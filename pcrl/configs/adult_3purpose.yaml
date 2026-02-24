@@ -1,0 +1,74 @@
+# Configuration for PCRL on Adult dataset with 3 purposes
+# Purpose 1: Income prediction (hiding sex, race)
+# Purpose 2: Workclass prediction (hiding sex, race, income)
+# Purpose 3: Education prediction (hiding sex, race, income)
+
+experiment_name: adult_3purpose_pcrl
+data_dir: data
+output_dir: outputs/adult_3purpose
+
+model:
+  input_dim: 57  # Number of features after preprocessing (will be auto-detected)
+  hidden_dims: [256, 128]
+  repr_dim: 64
+  purpose_emb_dim: 32
+  conditioning: film  # FiLM conditioning for purpose-aware representations
+
+  purposes:
+    - name: income_prediction
+      allowed_tasks:
+        - income
+      disallowed_attrs:
+        - sex
+        - race
+      task_type: classification
+
+    - name: workclass_prediction
+      allowed_tasks:
+        - workclass
+      disallowed_attrs:
+        - sex
+        - race
+        - income
+      task_type: classification
+
+    - name: education_prediction
+      allowed_tasks:
+        - education
+      disallowed_attrs:
+        - sex
+        - race
+        - income
+      task_type: classification
+
+training:
+  batch_size: 256
+  lr_encoder: 0.001
+  lr_auditor: 0.001
+  lr_task: 0.001
+  lambda_adv: 1.0
+  auditor_steps: 5  # K auditor updates per encoder update
+  epochs: 100
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  early_stopping_patience: 15
+  checkpoint_dir: checkpoints/adult_3purpose
+  log_interval: 50
+  eval_interval: 200
+  seed: 42
+
+# Auditor configuration
+auditor:
+  hidden_dim: 64
+  num_layers: 2
+  use_gradient_reversal: false  # Using alternating optimization instead
+
+# Task head configuration
+task_head:
+  hidden_dim: 64
+
+# Evaluation configuration
+evaluation:
+  probe_epochs: 100
+  probe_patience: 10
+  num_probe_seeds: 3
