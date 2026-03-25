@@ -1,0 +1,51 @@
+experiment_name: adult_basic
+
+data_dir: data
+output_dir: outputs/adult_basic
+
+model:
+  input_dim: 108
+  hidden_dims: [256, 256]
+  repr_dim: 128
+  purpose_emb_dim: 64
+  conditioning: film
+  purposes:
+    - name: income_prediction
+      allowed_tasks: [income]
+      disallowed_attrs: [race, sex]
+      task_type: classification
+      allowed_task_dims:
+        income: 2
+      disallowed_attr_dims:
+        race: 5
+        sex: 2
+    - name: employment_analysis
+      allowed_tasks: [occupation_group]
+      disallowed_attrs: [race, age_group, marital_status]
+      task_type: classification
+      allowed_task_dims:
+        occupation_group: 6
+      disallowed_attr_dims:
+        race: 5
+        age_group: 4
+        marital_status: 2
+    - name: education_assessment
+      allowed_tasks: [education_level]
+      disallowed_attrs: [sex, race, income]
+      task_type: classification
+      allowed_task_dims:
+        education_level: 4
+      disallowed_attr_dims:
+        sex: 2
+        race: 5
+        income: 2
+
+training:
+  batch_size: 256
+  lr_encoder: 0.001
+  lr_task: 0.001
+  lr_auditor: 0.001
+  lambda_adv: 1.0
+  auditor_steps: 5
+  epochs: 100
+  seed: 42
