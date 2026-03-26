@@ -113,7 +113,7 @@ class TestConfigs:
         assert cfg.lambda_verify == 0.0
 
     def test_load_yaml_config(self):
-        cfg = load_config("configs/adult_basic.yaml")
+        cfg = load_config("configs/adult.yaml")
         assert cfg.model.num_purposes == 3
         assert len(cfg.purposes) == 3
         registry = cfg.build_registry()

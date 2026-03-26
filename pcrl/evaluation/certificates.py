@@ -19,7 +19,10 @@ from pcrl.purposes.spec import PurposeRegistry
 from pcrl.purposes.verification import (
     CertificateResult,
     LinearComplianceCertificate,
+    NonlinearCertificateResult,
+    NonlinearComplianceCertificate,
     NullSpaceCertificate,
+    certified_accuracy_bound,
 )
 
 
@@ -50,6 +53,10 @@ class ComplianceReport:
     empirical_chance_acc: float = 0.0
     empirical_results: dict[str, dict[str, float]] = field(default_factory=dict)
     certified: bool = False
+    majority_proportion: float = 0.5
+    num_classes: int = 2
+    nonlinear_bound: float | None = None
+    nonlinear_best_sigma: float | None = None
 
 
 def _extract_representations_and_labels(
@@ -175,6 +182,13 @@ def generate_report(
 
     linear_audit = LinearAudit(epsilon=linear_epsilon)
     empirical_audit = EmpiricalAudit(random_state=random_state)
+    nonlinear_cert = NonlinearComplianceCertificate(
+        sigmas=(0.1, 0.5, 1.0),
+        lipschitz_constant=1.0,
+        num_noise_samples=50,
+        epsilon=linear_epsilon,
+        random_state=random_state,
+    )
 
     for purpose_idx, purpose in enumerate(purpose_registry.purposes):
         for attr_name in purpose.disallowed_attrs:
@@ -190,11 +204,21 @@ def generate_report(
             linear_result, null_result = linear_audit.audit(test_reprs, test_labels)
 
             # Empirical audit
-            num_classes = len(np.unique(np.concatenate([train_labels, test_labels])))
+            all_labels = np.concatenate([train_labels, test_labels])
+            unique_classes, class_counts = np.unique(all_labels, return_counts=True)
+            num_classes = len(unique_classes)
             chance_acc = 1.0 / max(num_classes, 1)
+            majority_proportion = float(class_counts.max() / len(all_labels))
 
             best_acc, emp_results = empirical_audit.audit(
                 train_reprs, train_labels, test_reprs, test_labels
+            )
+
+            # Nonlinear certificate
+            nl_result = nonlinear_cert.check(
+                test_reprs, test_labels,
+                majority_proportion=majority_proportion,
+                num_classes=num_classes,
             )
 
             # Overall certification
@@ -213,6 +237,10 @@ def generate_report(
                     empirical_chance_acc=chance_acc,
                     empirical_results=emp_results,
                     certified=certified,
+                    majority_proportion=majority_proportion,
+                    num_classes=num_classes,
+                    nonlinear_bound=nl_result.nonlinear_bound,
+                    nonlinear_best_sigma=nl_result.best_sigma,
                 )
             )
 
@@ -222,12 +250,18 @@ def generate_report(
 def print_compliance_table(reports: list[ComplianceReport]) -> None:
     """Print a clean summary table of compliance reports.
 
+    For each certified pair, shows the theoretical accuracy bound from the
+    Linear Compliance Guarantee theorem alongside the empirical auditor
+    accuracy. The bound should be close to or above the empirical accuracy,
+    confirming the certificate is meaningful.
+
     Args:
         reports: List of ComplianceReport objects.
     """
     header = (
-        f"{'Purpose':<25} {'Attribute':<18} {'Lin R²':>8} {'Lin Cert':>9} "
-        f"{'Var Pres':>9} {'Best Acc':>9} {'Chance':>8} {'Certified':>10}"
+        f"{'Purpose':<25} {'Attribute':<14} {'Lin R²':>8} {'Lin':>5} "
+        f"{'Var%':>6} {'EmpAcc':>8} {'Bound':>8} {'NL Bound':>9} "
+        f"{'Chance':>8} {'Status':>8}"
     )
     print("=" * len(header))
     print("COMPLIANCE AUDIT REPORT")
@@ -238,12 +272,18 @@ def print_compliance_table(reports: list[ComplianceReport]) -> None:
     for r in reports:
         status = "PASS" if r.certified else "FAIL"
         lin_status = "PASS" if r.linear_certified else "FAIL"
+        bound = certified_accuracy_bound(
+            r.linear_r2, r.majority_proportion, r.num_classes,
+        )
+        nl_str = f"{r.nonlinear_bound:>8.1%}" if r.nonlinear_bound is not None else "    N/A "
+
         print(
-            f"{r.purpose_name:<25} {r.attr_name:<18} "
-            f"{r.linear_r2:>8.4f} {lin_status:>9} "
-            f"{r.variance_preserved:>8.1%} "
-            f"{r.empirical_best_acc:>8.1%} {r.empirical_chance_acc:>7.1%} "
-            f"{status:>10}"
+            f"{r.purpose_name:<25} {r.attr_name:<14} "
+            f"{r.linear_r2:>8.4f} {lin_status:>5} "
+            f"{r.variance_preserved:>5.1%} "
+            f"{r.empirical_best_acc:>7.1%} {bound:>7.1%} {nl_str} "
+            f"{r.empirical_chance_acc:>7.1%} "
+            f"{status:>8}"
         )
 
     print("-" * len(header))

@@ -14,7 +14,10 @@ from pcrl.purposes.spec import PurposeRegistry, PurposeSpec
 from pcrl.purposes.verification import (
     CertificateResult,
     LinearComplianceCertificate,
+    NonlinearCertificateResult,
+    NonlinearComplianceCertificate,
     NullSpaceCertificate,
+    certified_accuracy_bound,
 )
 
 __all__ = [
@@ -32,6 +35,9 @@ __all__ = [
     "CompositionLoss",
     # Verification
     "LinearComplianceCertificate",
+    "NonlinearComplianceCertificate",
+    "NonlinearCertificateResult",
     "NullSpaceCertificate",
     "CertificateResult",
+    "certified_accuracy_bound",
 ]

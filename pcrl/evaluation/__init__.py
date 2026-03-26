@@ -31,6 +31,11 @@ from pcrl.evaluation.probes import (
     run_full_probe_evaluation,
     verify_purpose_differentiation,
 )
+from pcrl.evaluation.mine import (
+    MINEResult,
+    MINEstimator,
+    StatisticsNetwork,
+)
 from pcrl.evaluation.visualize import (
     plot_certificate_heatmap,
     plot_cvr_comparison,
@@ -69,6 +74,10 @@ __all__ = [
     "centered_kernel_alignment",
     "cosine_similarity_batch",
     "verify_purpose_differentiation",
+    # MINE
+    "MINEstimator",
+    "MINEResult",
+    "StatisticsNetwork",
     # Visualization
     "plot_purpose_separation",
     "plot_cvr_comparison",
