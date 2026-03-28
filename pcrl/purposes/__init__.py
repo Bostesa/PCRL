@@ -13,11 +13,16 @@ from pcrl.purposes.composition import (
 from pcrl.purposes.spec import PurposeRegistry, PurposeSpec
 from pcrl.purposes.verification import (
     CertificateResult,
+    ImpossibilityResult,
     LinearComplianceCertificate,
     NonlinearCertificateResult,
     NonlinearComplianceCertificate,
     NullSpaceCertificate,
     certified_accuracy_bound,
+    fano_mi_lower_bound,
+    find_conflicting_attributes,
+    impossibility_bound,
+    verify_impossibility,
 )
 
 __all__ = [
@@ -40,4 +45,10 @@ __all__ = [
     "NullSpaceCertificate",
     "CertificateResult",
     "certified_accuracy_bound",
+    # Impossibility
+    "ImpossibilityResult",
+    "fano_mi_lower_bound",
+    "impossibility_bound",
+    "find_conflicting_attributes",
+    "verify_impossibility",
 ]
