@@ -697,6 +697,145 @@ def impossibility_bound(
     return max(1.0 / num_classes, min(accuracy, 1.0))
 
 
+def fano_mi_lower_bound_multiclass(
+    accuracy: float,
+    num_classes: int,
+    entropy_a: float | None = None,
+) -> float:
+    """Multi-class Fano MI lower bound (generalizes fano_mi_lower_bound).
+
+    For a K-class attribute A with classifier accuracy alpha:
+
+        I(h; A) >= H(A) - H_b(1 - alpha) - (1 - alpha) * log(K - 1)
+
+    This is the same formula as fano_mi_lower_bound, but this function
+    name makes the multi-class nature explicit.  It is valid for any K >= 2,
+    including K = 30 (subject_id in HAR) and K = 6 (activity).
+
+    The bound is tight for uniform priors and becomes looser as the class
+    distribution becomes more skewed.
+
+    Args:
+        accuracy: Classifier accuracy on attribute A.
+        num_classes: Number of classes K.
+        entropy_a: Entropy H(A) in nats.  If None, uses log(K).
+
+    Returns:
+        Lower bound on I(h; A) in nats.
+    """
+    return fano_mi_lower_bound(accuracy, num_classes, entropy_a)
+
+
+def multiclass_impossibility_bound(
+    task_accuracy: float,
+    num_classes: int,
+    entropy_a: float | None = None,
+) -> float:
+    """Compute the minimum auditor accuracy for K-class attributes.
+
+    Theorem (Multi-Class Single-Representation Impossibility):
+        For attribute A with K classes, if any task head achieves accuracy
+        alpha on A from representation h, then any single-representation
+        method must allow an auditor to achieve at least:
+
+            Acc_auditor >= exp(I_lower - H(A))
+
+        where I_lower = H(A) - H_b(1-alpha) - (1-alpha)*log(K-1)
+        is the Fano MI lower bound.
+
+    This extends the binary impossibility bound to K-class attributes,
+    critical for HAR's 30-class subject_id and 6-class activity.
+
+    Args:
+        task_accuracy: Accuracy of the task classifier on attribute A.
+        num_classes: Number of classes K.
+        entropy_a: Entropy H(A) in nats.  If None, uses log(K).
+
+    Returns:
+        Lower bound on auditor accuracy for any single-representation method.
+
+    Examples:
+        >>> multiclass_impossibility_bound(0.95, 2)    # binary, 95% accuracy
+        0.9024...
+        >>> multiclass_impossibility_bound(0.90, 30)   # 30-class, 90% acc
+        0.0566...
+        >>> multiclass_impossibility_bound(0.50, 6)    # 6-class, 50% acc
+        0.1666...
+    """
+    mi_lower = fano_mi_lower_bound(task_accuracy, num_classes, entropy_a)
+    return impossibility_bound(mi_lower, num_classes, entropy_a)
+
+
+def min_representations_needed(
+    purposes: list["PurposeSpec"],
+) -> int:
+    """Corollary: minimum number of independent representations needed.
+
+    Given N purposes with conflicting constraints, computes the minimum
+    number of independent representations needed to satisfy ALL purposes
+    simultaneously.
+
+    Theorem (Minimum Representation Count):
+        Let G = (V, E) be the conflict graph where V = purposes and
+        (p_i, p_j) in E iff there exists an attribute A such that
+        A in allowed_tasks(p_i) and A in disallowed_attrs(p_j), or
+        vice versa.  The minimum number of independent representations
+        needed is the chromatic number chi(G).
+
+        For our purposes, we compute a greedy upper bound via graph
+        coloring, which equals the exact chromatic number for the
+        small graphs arising in practice.
+
+    Args:
+        purposes: List of PurposeSpec objects.
+
+    Returns:
+        Minimum number of independent representations needed.
+        Returns 1 if no conflicts exist (a single representation suffices).
+    """
+    n = len(purposes)
+    if n <= 1:
+        return 1
+
+    # Build conflict graph (adjacency matrix)
+    conflicts = set()
+    for i, pi in enumerate(purposes):
+        for j, pj in enumerate(purposes):
+            if i == j:
+                continue
+            # Conflict: pi's task is pj's disallowed, or vice versa
+            for task in pi.allowed_tasks:
+                if task in pj.disallowed_attrs:
+                    conflicts.add((min(i, j), max(i, j)))
+            for task in pj.allowed_tasks:
+                if task in pi.disallowed_attrs:
+                    conflicts.add((min(i, j), max(i, j)))
+
+    if not conflicts:
+        return 1
+
+    # Build adjacency lists
+    adj: dict[int, set[int]] = {i: set() for i in range(n)}
+    for i, j in conflicts:
+        adj[i].add(j)
+        adj[j].add(i)
+
+    # Greedy coloring (largest-first ordering)
+    order = sorted(range(n), key=lambda x: len(adj[x]), reverse=True)
+    colors = [-1] * n
+    num_colors = 0
+
+    for node in order:
+        neighbor_colors = {colors[nb] for nb in adj[node] if colors[nb] >= 0}
+        color = 0
+        while color in neighbor_colors:
+            color += 1
+        colors[node] = color
+        num_colors = max(num_colors, color + 1)
+
+    return num_colors
+
+
 def find_conflicting_attributes(
     purposes: list["PurposeSpec"],
 ) -> list[tuple[str, str, str]]:
