@@ -496,14 +496,31 @@ class NonlinearComplianceCertificate:
         best_r2 = 0.0
         best_linear_bound = 0.0
 
+        # Pre-compute label centering (shared across all noise samples)
+        if Z_np.ndim == 1:
+            num_cls = int(Z_np.max()) + 1
+            Z_onehot = np.eye(num_cls)[Z_np.astype(int)]
+        else:
+            Z_onehot = Z_np.astype(np.float64)
+        Z_centered = Z_onehot - Z_onehot.mean(axis=0, keepdims=True)
+        ss_tot = np.sum(Z_centered ** 2)
+        reg = self.linear_cert.regularization
+        reg_eye = reg * np.eye(d)
+
         for sigma in self.sigmas:
-            # Monte Carlo estimate of R² on noisy representations
+            # Monte Carlo estimate of R² on noisy representations.
+            # Inline the Gram solve to avoid recomputing Z centering each time.
             r2_sum = 0.0
             for _ in range(self.num_noise_samples):
                 noise = rng.randn(n, d) * sigma
                 H_noisy = H_np + noise
-                result = self.linear_cert.check(H_noisy.astype(np.float32), Z_np)
-                r2_sum += result.r_squared
+                H_c = H_noisy - H_noisy.mean(axis=0, keepdims=True)
+                gram = H_c.T @ H_c + reg_eye
+                W_star = np.linalg.solve(gram, H_c.T @ Z_centered)
+                Z_pred = H_c @ W_star
+                ss_res = np.sum((Z_centered - Z_pred) ** 2)
+                r2 = max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12))
+                r2_sum += r2
 
             avg_r2 = r2_sum / self.num_noise_samples
 

@@ -366,6 +366,9 @@ class PCRLTrainer:
             # Select purposes for this batch
             purposes = self._select_purposes(batch_idx)
 
+            cached_task_logits = None
+            cached_auditor_logits = None
+
             if self.config.gradient_reversal:
                 # GRL mode: joint training step
                 loss, task_l, adv_l, verify_l = self._train_grl_step(
@@ -381,8 +384,7 @@ class PCRLTrainer:
                         )
             else:
                 # Minimax mode: separate auditor and encoder steps
-                # Compute representations once; auditor uses detached copies,
-                # encoder step reuses the same tensors (with live gradients).
+                # Compute representations once for auditor (detached internally).
                 representations = {}
                 for purpose_name in purposes:
                     purpose_idx = self._get_purpose_idx(purpose_name)
@@ -392,9 +394,9 @@ class PCRLTrainer:
                 for _ in range(self.config.auditor_steps):
                     self._train_auditor_step(representations, batch)
 
-                loss, task_l, adv_l, verify_l = self._train_encoder_step(
-                    batch, purposes
-                )
+                (loss, task_l, adv_l, verify_l,
+                 representations, cached_task_logits, cached_auditor_logits
+                 ) = self._train_encoder_step(batch, purposes)
 
             total_loss += loss
             total_task_loss += task_l
@@ -406,12 +408,20 @@ class PCRLTrainer:
                 loss=f"{loss:.4f}", task=f"{task_l:.4f}", adv=f"{adv_l:.4f}"
             )
 
-            # Update accuracy stats
+            # Update accuracy stats using cached logits from encoder step
             with torch.no_grad():
                 self._update_accuracy_stats(
                     representations, batch, purposes,
-                    task_correct, task_total, auditor_correct, auditor_total
+                    task_correct, task_total, auditor_correct, auditor_total,
+                    cached_task_logits=cached_task_logits,
+                    cached_auditor_logits=cached_auditor_logits,
                 )
+
+            # Step schedulers once per batch (not per sub-step)
+            if self.encoder_scheduler is not None:
+                self.encoder_scheduler.step()
+            if self.auditor_scheduler is not None:
+                self.auditor_scheduler.step()
 
             self.state.global_step += 1
 
@@ -506,6 +516,12 @@ class PCRLTrainer:
                         task_correct, task_total, auditor_correct, auditor_total,
                     )
 
+                # Step schedulers once per batch
+                if self.encoder_scheduler is not None:
+                    self.encoder_scheduler.step()
+                if self.auditor_scheduler is not None:
+                    self.auditor_scheduler.step()
+
                 self.state.global_step += 1
 
         epoch_time = time.time() - start_time
@@ -599,11 +615,6 @@ class PCRLTrainer:
         self.encoder_optimizer.step()
         self.auditor_optimizer.step()
 
-        if self.encoder_scheduler is not None:
-            self.encoder_scheduler.step()
-        if self.auditor_scheduler is not None:
-            self.auditor_scheduler.step()
-
         return (
             total_loss.item(),
             total_task_loss.item(),
@@ -688,9 +699,6 @@ class PCRLTrainer:
             nn.utils.clip_grad_norm_(params, self.config.grad_clip)
         self.encoder_optimizer.step()
 
-        if self.encoder_scheduler is not None:
-            self.encoder_scheduler.step()
-
         return (
             total_loss.item(),
             total_task_loss.item(),
@@ -755,16 +763,16 @@ class PCRLTrainer:
                 nn.utils.clip_grad_norm_(params, self.config.grad_clip)
             self.auditor_optimizer.step()
 
-        if self.auditor_scheduler is not None:
-            self.auditor_scheduler.step()
-
         return total_loss.item()
 
     def _train_encoder_step(
         self,
         batch: dict[str, Any],
         purposes: list[str],
-    ) -> tuple[float, float, float, float]:
+    ) -> tuple[float, float, float, float,
+               dict[str, torch.Tensor],
+               dict[str, torch.Tensor],
+               dict[str, dict[str, torch.Tensor] | torch.Tensor]]:
         """Single encoder + task heads training step.
 
         Args:
@@ -772,7 +780,9 @@ class PCRLTrainer:
             purposes: List of purpose names to train on.
 
         Returns:
-            Tuple of (total_loss, task_loss, adv_loss, verify_loss).
+            Tuple of (total_loss, task_loss, adv_loss, verify_loss,
+                       representations, task_logits, auditor_logits).
+            The logits are detached and can be reused for accuracy tracking.
         """
         self.encoder_optimizer.zero_grad()
 
@@ -783,14 +793,16 @@ class PCRLTrainer:
             h_p = self.encoder(batch["features"], purpose_idx)
             representations[purpose_name] = h_p
 
-        # Compute task loss
+        # Compute task loss, collecting logits for reuse
         total_task_loss = torch.tensor(0.0, device=self.device)
+        task_logits: dict[str, torch.Tensor] = {}
         for purpose_name, h_p in representations.items():
             if purpose_name not in self.task_heads:
                 continue
 
             task_head = self.task_heads[purpose_name]
             task_preds = task_head(h_p)
+            task_logits[purpose_name] = task_preds
 
             # Get task type from config
             task_type = self._get_task_type(purpose_name)
@@ -810,18 +822,20 @@ class PCRLTrainer:
                     loss = task_loss(task_preds, targets, task_type)
                     total_task_loss = total_task_loss + loss
 
-        # Compute adversarial loss (maximize confusion)
+        # Compute adversarial loss (maximize confusion), collecting logits
         # Use per-attribute lambdas when available, otherwise global lambda
         use_per_attr = (self.config.lambda_adv_per_attr is not None
                         or self.config.lambda_verify_per_attr is not None)
         total_adv_loss = torch.tensor(0.0, device=self.device)
         weighted_adv_loss = torch.tensor(0.0, device=self.device)
+        auditor_logits: dict[str, dict[str, torch.Tensor] | torch.Tensor] = {}
         for purpose_name, h_p in representations.items():
             if purpose_name not in self.auditors:
                 continue
 
             auditor = self.auditors[purpose_name]
             auditor_preds = auditor(h_p)
+            auditor_logits[purpose_name] = auditor_preds
 
             if isinstance(auditor_preds, dict):
                 for attr_name, preds in auditor_preds.items():
@@ -881,14 +895,29 @@ class PCRLTrainer:
             nn.utils.clip_grad_norm_(params, self.config.grad_clip)
         self.encoder_optimizer.step()
 
-        if self.encoder_scheduler is not None:
-            self.encoder_scheduler.step()
+        # Detach logits and representations for accuracy tracking reuse
+        detached_reps = {k: v.detach() for k, v in representations.items()}
+        detached_task = {}
+        for k, v in task_logits.items():
+            if isinstance(v, dict):
+                detached_task[k] = {sk: sv.detach() for sk, sv in v.items()}
+            else:
+                detached_task[k] = v.detach()
+        detached_aud = {}
+        for k, v in auditor_logits.items():
+            if isinstance(v, dict):
+                detached_aud[k] = {sk: sv.detach() for sk, sv in v.items()}
+            else:
+                detached_aud[k] = v.detach()
 
         return (
             total_loss.item(),
             total_task_loss.item(),
             total_adv_loss.item(),
             total_verify_loss.item(),
+            detached_reps,
+            detached_task,
+            detached_aud,
         )
 
     def _train_grl_step(
@@ -994,11 +1023,6 @@ class PCRLTrainer:
         self.encoder_optimizer.step()
         self.auditor_optimizer.step()
 
-        if self.encoder_scheduler is not None:
-            self.encoder_scheduler.step()
-        if self.auditor_scheduler is not None:
-            self.auditor_scheduler.step()
-
         return (
             total_loss.item(),
             total_task_loss.item(),
@@ -1078,8 +1102,10 @@ class PCRLTrainer:
         task_total: dict[str, int],
         auditor_correct: dict[str, int],
         auditor_total: dict[str, int],
+        cached_task_logits: dict[str, torch.Tensor] | None = None,
+        cached_auditor_logits: dict[str, dict[str, torch.Tensor]] | None = None,
     ) -> None:
-        """Update accuracy statistics."""
+        """Update accuracy statistics, reusing cached logits when available."""
         for purpose_name in purposes:
             if purpose_name not in representations:
                 continue
@@ -1088,8 +1114,10 @@ class PCRLTrainer:
 
             # Task accuracy
             if purpose_name in self.task_heads:
-                task_head = self.task_heads[purpose_name]
-                task_preds = task_head(h_p)
+                if cached_task_logits and purpose_name in cached_task_logits:
+                    task_preds = cached_task_logits[purpose_name]
+                else:
+                    task_preds = self.task_heads[purpose_name](h_p)
 
                 if isinstance(task_preds, dict):
                     for task_name, logits in task_preds.items():
@@ -1110,8 +1138,10 @@ class PCRLTrainer:
 
             # Auditor accuracy
             if purpose_name in self.auditors:
-                auditor = self.auditors[purpose_name]
-                auditor_preds = auditor(h_p)
+                if cached_auditor_logits and purpose_name in cached_auditor_logits:
+                    auditor_preds = cached_auditor_logits[purpose_name]
+                else:
+                    auditor_preds = self.auditors[purpose_name](h_p)
 
                 if isinstance(auditor_preds, dict):
                     for attr_name, logits in auditor_preds.items():
