@@ -381,6 +381,8 @@ class PCRLTrainer:
                         )
             else:
                 # Minimax mode: separate auditor and encoder steps
+                # Compute representations once; auditor uses detached copies,
+                # encoder step reuses the same tensors (with live gradients).
                 representations = {}
                 for purpose_name in purposes:
                     purpose_idx = self._get_purpose_idx(purpose_name)
@@ -391,7 +393,7 @@ class PCRLTrainer:
                     self._train_auditor_step(representations, batch)
 
                 loss, task_l, adv_l, verify_l = self._train_encoder_step(
-                    representations, batch, purposes
+                    batch, purposes
                 )
 
             total_loss += loss
@@ -760,14 +762,12 @@ class PCRLTrainer:
 
     def _train_encoder_step(
         self,
-        representations: dict[str, torch.Tensor],
         batch: dict[str, Any],
         purposes: list[str],
     ) -> tuple[float, float, float, float]:
         """Single encoder + task heads training step.
 
         Args:
-            representations: Dictionary mapping purpose_name to representation.
             batch: Batch of data.
             purposes: List of purpose names to train on.
 
@@ -776,7 +776,7 @@ class PCRLTrainer:
         """
         self.encoder_optimizer.zero_grad()
 
-        # Recompute representations with gradients
+        # Compute representations with gradients for encoder update
         representations = {}
         for purpose_name in purposes:
             purpose_idx = self._get_purpose_idx(purpose_name)

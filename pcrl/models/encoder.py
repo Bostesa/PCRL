@@ -200,7 +200,7 @@ class PurposeConditionedEncoder(nn.Module):
         return self.repr_proj(h)
 
     def encode_all_purposes(self, x: torch.Tensor) -> dict[int, torch.Tensor]:
-        """Encode input for all purposes.
+        """Encode input for all purposes in a single batched forward pass.
 
         Args:
             x: Input features of shape (batch_size, input_dim).
@@ -208,10 +208,21 @@ class PurposeConditionedEncoder(nn.Module):
         Returns:
             Dictionary mapping purpose index to encoded representation.
         """
-        representations = {}
-        for idx in range(self.num_purposes):
-            representations[idx] = self.forward(x, idx)
-        return representations
+        batch_size = x.shape[0]
+        K = self.num_purposes
+
+        # Expand x: (batch*K, input_dim)
+        x_expanded = x.repeat(K, 1)
+
+        # Build purpose indices: [0,0,...,1,1,...,K-1,K-1,...]
+        purpose_idxs = torch.arange(K, device=x.device).repeat_interleave(batch_size)
+
+        # Single forward pass for all purposes
+        all_reps = self.forward(x_expanded, purpose_idxs)
+
+        # Split back into per-purpose tensors
+        return {idx: all_reps[idx * batch_size : (idx + 1) * batch_size]
+                for idx in range(K)}
 
     def get_purpose_embedding(self, purpose_idx: int) -> torch.Tensor:
         """Get the embedding vector for a specific purpose.
