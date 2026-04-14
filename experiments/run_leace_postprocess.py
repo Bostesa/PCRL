@@ -115,7 +115,7 @@ def main() -> None:
         return
 
     print(f"Loading checkpoint: {checkpoint_path}")
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
 
     encoder = CNNEncoder(
         repr_dim=REPR_DIM,
