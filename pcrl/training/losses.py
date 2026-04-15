@@ -529,5 +529,5 @@ class VerificationRegularizer(nn.Module):
         ss_res = ((Z_centered - Z_pred) ** 2).sum()
         ss_tot = (Z_centered**2).sum()
 
-        r_squared = 1.0 - ss_res / (ss_tot + 1e-12)
+        r_squared = 1.0 - ss_res / torch.clamp(ss_tot, min=1e-12)
         return r_squared.clamp(min=0.0)

@@ -42,6 +42,19 @@ class StandardEncoder(nn.Module):
         self.network = nn.Sequential(*layers)
         self.repr_proj = nn.Linear(hidden_dims[-1], repr_dim)
 
+        self._init_weights()
+
+    def _init_weights(self) -> None:
+        """Initialize weights: Kaiming for hidden layers (ReLU), Xavier for projection."""
+        for module in self.network:
+            if isinstance(module, nn.Linear):
+                nn.init.kaiming_normal_(module.weight, nonlinearity="relu")
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
+        nn.init.xavier_normal_(self.repr_proj.weight)
+        if self.repr_proj.bias is not None:
+            nn.init.zeros_(self.repr_proj.bias)
+
     def forward(
         self,
         x: torch.Tensor,
@@ -122,6 +135,18 @@ class PurposeConditionedEncoder(nn.Module):
 
         # Final projection to representation space
         self.repr_proj = nn.Linear(hidden_dims[-1], repr_dim)
+
+        self._init_weights()
+
+    def _init_weights(self) -> None:
+        """Initialize weights: Kaiming for hidden layers (ReLU), Xavier for projection."""
+        for layer in self.linear_layers:
+            nn.init.kaiming_normal_(layer.weight, nonlinearity="relu")
+            if layer.bias is not None:
+                nn.init.zeros_(layer.bias)
+        nn.init.xavier_normal_(self.repr_proj.weight)
+        if self.repr_proj.bias is not None:
+            nn.init.zeros_(self.repr_proj.bias)
 
     def forward(
         self,

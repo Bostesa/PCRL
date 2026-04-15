@@ -164,9 +164,12 @@ class AdultDataset(PCRLDataset):
         download: bool = True,
         transform: Any | None = None,
         age_bins: list[int] | None = None,
+        norm_stats: dict[str, tuple[float, float]] | None = None,
     ) -> None:
         self.age_bins = age_bins or [0, 25, 45, 65, 100]
         self._encoders: dict[str, dict[str, int]] = {}
+        self._norm_stats = norm_stats
+        self.norm_stats: dict[str, tuple[float, float]] = {}
         super().__init__(purposes, root, split, download, transform)
 
     def _load_data(self) -> None:
@@ -312,7 +315,11 @@ class AdultDataset(PCRLDataset):
 
         for col in self.NUMERICAL_COLUMNS:
             values = df[col].values.astype(np.float32)
-            mean, std = values.mean(), values.std() + 1e-8
+            if self._norm_stats and col in self._norm_stats:
+                mean, std = self._norm_stats[col]
+            else:
+                mean, std = float(values.mean()), float(values.std()) + 1e-8
+            self.norm_stats[col] = (mean, std)
             values = (values - mean) / std
             encoded_features.append(values.reshape(-1, 1))
 

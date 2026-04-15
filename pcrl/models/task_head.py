@@ -44,6 +44,19 @@ class TaskHead(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, output_dim if task_type == "classification" else 1),
         )
+        self._init_weights()
+
+    def _init_weights(self) -> None:
+        """Initialize weights: Kaiming for hidden layers (ReLU), Xavier for output."""
+        modules = list(self.network)
+        for i, module in enumerate(modules):
+            if isinstance(module, nn.Linear):
+                if i == len(modules) - 1:
+                    nn.init.xavier_normal_(module.weight)
+                else:
+                    nn.init.kaiming_normal_(module.weight, nonlinearity="relu")
+                if module.bias is not None:
+                    nn.init.zeros_(module.bias)
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
         """Forward pass.

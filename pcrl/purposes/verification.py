@@ -507,19 +507,15 @@ class NonlinearComplianceCertificate:
         reg = self.linear_cert.regularization
         reg_eye = reg * np.eye(d)
 
-        # Pre-compute global H mean for consistent centering
-        H_mean = H_np.mean(axis=0, keepdims=True)
-
         for sigma in self.sigmas:
             # Monte Carlo estimate of R² on noisy representations.
             # Inline the Gram solve to avoid recomputing Z centering each time.
-            # Use global H mean (not per-sample mean) so H and Z centering
-            # are consistent — required for correct R² via linear regression.
+            # Each noisy H is centered with its own mean (standard OLS centering).
             r2_sum = 0.0
             for _ in range(self.num_noise_samples):
                 noise = rng.randn(n, d) * sigma
                 H_noisy = H_np + noise
-                H_c = H_noisy - H_mean
+                H_c = H_noisy - H_noisy.mean(axis=0, keepdims=True)
                 gram = H_c.T @ H_c + reg_eye
                 W_star = np.linalg.solve(gram, H_c.T @ Z_centered)
                 Z_pred = H_c @ W_star
