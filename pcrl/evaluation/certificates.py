@@ -59,67 +59,49 @@ class ComplianceReport:
     nonlinear_best_sigma: float | None = None
 
 
-def _extract_representations(
+def _extract_representations_and_labels(
     encoder: nn.Module,
     loader: DataLoader,
     purpose_idx: int,
+    attr_names: list[str],
     device: torch.device | str = "cpu",
-) -> np.ndarray:
-    """Extract representations from a data loader for a single purpose.
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    """Extract representations and sensitive attribute labels in a single pass.
+
+    IMPORTANT: Representations and labels MUST be extracted in the same
+    iteration of the DataLoader.  If the loader has shuffle=True, separate
+    iterations produce different sample orderings, causing row-level
+    misalignment between representations and labels.  This was the root
+    cause of bug a50810e (April 2026).
 
     Args:
         encoder: Trained encoder.
-        loader: Data loader yielding batches with "features".
+        loader: Data loader yielding batches with "features" and
+            "sensitive_attrs".
         purpose_idx: Integer purpose index for the encoder.
+        attr_names: Names of sensitive attributes to extract.
         device: Device to run the encoder on.
 
     Returns:
-        Representations as numpy array of shape (n, repr_dim).
+        Tuple of (representations, labels_dict) where representations is
+        shape (n, repr_dim) and labels_dict maps attr_name -> (n,) array.
     """
     device = torch.device(device)
     encoder.eval()
 
     all_reprs: list[np.ndarray] = []
+    all_labels: dict[str, list[np.ndarray]] = {a: [] for a in attr_names}
 
     with torch.no_grad():
         for batch in loader:
             x = batch["features"].to(device)
             h = encoder(x, purpose_idx)
             all_reprs.append(h.cpu().numpy())
+            for attr in attr_names:
+                all_labels[attr].append(batch["sensitive_attrs"][attr].numpy())
 
-    return np.concatenate(all_reprs, axis=0)
-
-
-def _extract_labels(
-    loader: DataLoader,
-    attr_name: str,
-) -> np.ndarray:
-    """Extract attribute labels from a data loader.
-
-    Args:
-        loader: Data loader yielding batches with "sensitive_attrs".
-        attr_name: Name of the sensitive attribute to extract.
-
-    Returns:
-        Labels as numpy array of shape (n,).
-    """
-    all_labels: list[np.ndarray] = []
-    for batch in loader:
-        labels = batch["sensitive_attrs"][attr_name]
-        all_labels.append(labels.numpy())
-    return np.concatenate(all_labels, axis=0)
-
-
-def _extract_representations_and_labels(
-    encoder: nn.Module,
-    loader: DataLoader,
-    purpose_idx: int,
-    attr_name: str,
-    device: torch.device | str = "cpu",
-) -> tuple[np.ndarray, np.ndarray]:
-    """Extract representations and labels together (convenience wrapper)."""
-    reprs = _extract_representations(encoder, loader, purpose_idx, device)
-    labels = _extract_labels(loader, attr_name)
+    reprs = np.concatenate(all_reprs, axis=0)
+    labels = {a: np.concatenate(v) for a, v in all_labels.items()}
     return reprs, labels
 
 
@@ -217,33 +199,42 @@ def generate_report(
         random_state=random_state,
     )
 
-    # Pre-extract representations per purpose (encoder forward pass is the
-    # expensive part; labels are cheap to extract separately per attribute).
-    train_reps_cache: dict[int, np.ndarray] = {}
-    test_reps_cache: dict[int, np.ndarray] = {}
-    label_cache: dict[tuple[str, str], np.ndarray] = {}  # (split, attr) -> labels
+    # Collect all unique attr names needed across purposes, then extract
+    # representations AND labels in a single pass per (purpose_idx, loader).
+    # Single-pass extraction is critical: if the loader has shuffle=True,
+    # separate iterations produce different sample orderings, breaking the
+    # row-level alignment between representations and labels.
+    train_cache: dict[int, tuple[np.ndarray, dict[str, np.ndarray]]] = {}
+    test_cache: dict[int, tuple[np.ndarray, dict[str, np.ndarray]]] = {}
+
+    # Pre-compute which attrs each purpose needs
+    purpose_attrs: dict[int, list[str]] = {}
+    for idx, purpose in enumerate(purpose_registry.purposes):
+        if purpose.disallowed_attrs:
+            purpose_attrs[idx] = list(purpose.disallowed_attrs)
+
+    # Collect ALL attr names that any purpose needs (for each purpose's
+    # single-pass extraction — we extract all attrs the purpose cares about
+    # in one loop over the loader).
+    for purpose_idx in purpose_attrs:
+        if purpose_idx not in train_cache:
+            attrs = purpose_attrs[purpose_idx]
+            train_cache[purpose_idx] = _extract_representations_and_labels(
+                encoder, train_loader, purpose_idx, attrs, device
+            )
+            test_cache[purpose_idx] = _extract_representations_and_labels(
+                encoder, test_loader, purpose_idx, attrs, device
+            )
 
     for purpose_idx, purpose in enumerate(purpose_registry.purposes):
         if not purpose.disallowed_attrs:
             continue
-        if purpose_idx not in train_reps_cache:
-            train_reps_cache[purpose_idx] = _extract_representations(
-                encoder, train_loader, purpose_idx, device
-            )
-            test_reps_cache[purpose_idx] = _extract_representations(
-                encoder, test_loader, purpose_idx, device
-            )
 
         for attr_name in purpose.disallowed_attrs:
-            train_reprs = train_reps_cache[purpose_idx]
-            test_reprs = test_reps_cache[purpose_idx]
-
-            # Extract labels (cached across purposes that share the same attr)
-            if ("train", attr_name) not in label_cache:
-                label_cache[("train", attr_name)] = _extract_labels(train_loader, attr_name)
-                label_cache[("test", attr_name)] = _extract_labels(test_loader, attr_name)
-            train_labels = label_cache[("train", attr_name)]
-            test_labels = label_cache[("test", attr_name)]
+            train_reprs = train_cache[purpose_idx][0]
+            test_reprs = test_cache[purpose_idx][0]
+            train_labels = train_cache[purpose_idx][1][attr_name]
+            test_labels = test_cache[purpose_idx][1][attr_name]
 
             # Linear + null-space certificates (on test data)
             linear_result, null_result = linear_audit.audit(test_reprs, test_labels)
