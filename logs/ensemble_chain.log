@@ -1,0 +1,68 @@
+[2026-04-24T05:18:11Z] chain starting (pid=2076, ppid=2075)
+[2026-04-24T05:18:11Z] seed 0: starting training
+/opt/pytorch/lib/python3.12/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+=== CelebA PCRL ensemble — seed 0, device=cuda ===
+Train=10000 Val=3000 Test=3000
+/opt/pytorch/lib/python3.12/site-packages/torch/optim/lr_scheduler.py:198: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  warnings.warn(EPOCH_DEPRECATION_WARNING, UserWarning)
+seed=0 done in 1107s, best epoch=50, ckpt=/home/ubuntu/PCRL/checkpoints/celeba_ensemble/seed_0/best.pt
+[2026-04-24T05:36:45Z] seed 0: training exit=0
+[2026-04-24T05:36:45Z] seed 1: starting training
+/opt/pytorch/lib/python3.12/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+=== CelebA PCRL ensemble — seed 1, device=cuda ===
+Train=10000 Val=3000 Test=3000
+/opt/pytorch/lib/python3.12/site-packages/torch/optim/lr_scheduler.py:198: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  warnings.warn(EPOCH_DEPRECATION_WARNING, UserWarning)
+seed=1 done in 1091s, best epoch=50, ckpt=/home/ubuntu/PCRL/checkpoints/celeba_ensemble/seed_1/best.pt
+[2026-04-24T05:55:03Z] seed 1: training exit=0
+[2026-04-24T05:55:03Z] seed 2: starting training
+/opt/pytorch/lib/python3.12/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+=== CelebA PCRL ensemble — seed 2, device=cuda ===
+Train=10000 Val=3000 Test=3000
+/opt/pytorch/lib/python3.12/site-packages/torch/optim/lr_scheduler.py:198: UserWarning: The epoch parameter in `scheduler.step()` was not necessary and is being deprecated where possible. Please use `scheduler.step()` to step the scheduler. During the deprecation, if epoch is different from None, the closed form is used instead of the new chainable form, where available. Please open an issue if you are unable to replicate your use case: https://github.com/pytorch/pytorch/issues/new/choose.
+  warnings.warn(EPOCH_DEPRECATION_WARNING, UserWarning)
+seed=2 done in 1100s, best epoch=50, ckpt=/home/ubuntu/PCRL/checkpoints/celeba_ensemble/seed_2/best.pt
+[2026-04-24T06:13:30Z] seed 2: training exit=0
+[2026-04-24T06:13:30Z] all seeds done; running ensemble eval
+/opt/pytorch/lib/python3.12/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+=== Ensemble eval, device=cuda ===
+  Loading seed 0...
+  Compliance audit on seed 0...
+    seed 0: 3/13 pairs pass
+  Loading seed 1...
+  Compliance audit on seed 1...
+    seed 1: 3/13 pairs pass
+  Loading seed 2...
+  Compliance audit on seed 2...
+    seed 2: 5/13 pairs pass
+  Compliance audit on averaged-rep ensemble...
+/opt/pytorch/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:406: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+    averaged-rep: 2/13 pairs pass
+
+Saved /home/ubuntu/PCRL/results/celeba/pcrl_ensemble_perpair.csv
+  majority-vote: 3/13 pass
+  averaged-rep:  2/13 pass
+Saved /home/ubuntu/PCRL/results/celeba/pcrl_ensemble_vs_laftr.csv
+
+  PCRL 1-model (baseline_v2_fixed)      4/13   single PCRL run, fixed shuffle bug
+  PCRL 3-ensemble majority-vote         3/13   pass if >=2/3 seeds pass
+  PCRL 3-ensemble averaged-rep          2/13   elementwise mean of 3 encoders, then compliance
+  LAFTR 5-model ensemble                7/13   one model per purpose
+  LAFTR non-collapsed (4 models)        5/10   drops attractiveness_prediction (task-acc collapsed)
+[2026-04-24T07:07:24Z] eval exit=0
+[2026-04-24T07:07:24Z] eval succeeded; CSVs saved to ~/PCRL/results/celeba/
+-rw-rw-r-- 1 ubuntu ubuntu 1954 Apr 24 07:07 /home/ubuntu/PCRL/results/celeba/pcrl_ensemble_perpair.csv
+-rw-rw-r-- 1 ubuntu ubuntu  396 Apr 24 07:07 /home/ubuntu/PCRL/results/celeba/pcrl_ensemble_vs_laftr.csv
+[2026-04-24T07:07:24Z] chain done; calling sudo shutdown -h now

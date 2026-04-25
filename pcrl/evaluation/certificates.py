@@ -132,10 +132,21 @@ class LinearAudit:
 
 
 class EmpiricalAudit:
-    """Run PostHocAuditorSuite as a sanity check."""
+    """Run PostHocAuditorSuite as a sanity check.
 
-    def __init__(self, random_state: int = 42) -> None:
+    On large datasets (> max_fit_samples rows) the RBF-SVM in the suite is
+    O(n²) in time and memory and effectively never finishes. We subsample
+    the training set to `max_fit_samples` rows (stratified by label when
+    possible) before fitting; evaluation stays on the full test set.
+    """
+
+    def __init__(
+        self,
+        random_state: int = 42,
+        max_fit_samples: int = 20000,
+    ) -> None:
         self.random_state = random_state
+        self.max_fit_samples = max_fit_samples
 
     def audit(
         self,
@@ -155,8 +166,25 @@ class EmpiricalAudit:
         Returns:
             Tuple of (best_accuracy, per_classifier_results).
         """
+        fit_reprs, fit_labels = train_reprs, train_labels
+        n = len(train_labels)
+        if n > self.max_fit_samples:
+            rng = np.random.RandomState(self.random_state)
+            try:
+                from sklearn.model_selection import train_test_split
+                fit_reprs, _, fit_labels, _ = train_test_split(
+                    train_reprs, train_labels,
+                    train_size=self.max_fit_samples,
+                    stratify=train_labels,
+                    random_state=self.random_state,
+                )
+            except ValueError:
+                # stratify can fail when a class has <2 rows → fall back to uniform
+                idx = rng.choice(n, size=self.max_fit_samples, replace=False)
+                fit_reprs = train_reprs[idx]
+                fit_labels = train_labels[idx]
         suite = PostHocAuditorSuite(random_state=self.random_state)
-        suite.fit(train_reprs, train_labels)
+        suite.fit(fit_reprs, fit_labels)
         results = suite.evaluate(test_reprs, test_labels)
         best_acc = max(m["accuracy"] for m in results.values())
         return best_acc, results

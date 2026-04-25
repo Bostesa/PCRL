@@ -224,6 +224,58 @@ class PurposeConditionedEncoder(nn.Module):
 
         return self.repr_proj(h)
 
+    def forward_sequential_composition(
+        self,
+        x: torch.Tensor,
+        purpose_embs: list[torch.Tensor],
+    ) -> torch.Tensor:
+        """Encode x by applying multiple purpose FiLM heads in sequence.
+
+        At every hidden layer, the conditioning module is applied once per
+        purpose embedding, in the given order. For FiLM specifically this
+        realises multiplicative gate composition:
+
+            h <- linear(h)
+            for e_p in purpose_embs:
+                gamma_p, beta_p = film(e_p)
+                h = gamma_p * h + beta_p
+            h = norm(h); ReLU; dropout
+
+        The effective per-layer gamma is the elementwise product of the
+        per-purpose gammas: gamma_eff = prod_p gamma_p. Suppression by any
+        single purpose is preserved because zero anywhere in the product
+        forces the composed gate to zero, regardless of the other gates.
+
+        This contrasts with additive embedding composition
+        (forward_with_embedding(x, sum_p e_p)), where the combined gamma
+        equals sum_p gamma_p - (K - 1) * b_gamma — a learned-bias-dependent
+        sum that does not preserve multiplicative suppression.
+
+        Args:
+            x: Input features of shape (batch_size, input_dim).
+            purpose_embs: List of K purpose embeddings, each shape
+                (batch_size, purpose_emb_dim) or (purpose_emb_dim,).
+                Must contain at least one embedding.
+
+        Returns:
+            Composed representation h_p of shape (batch_size, repr_dim).
+        """
+        if not purpose_embs:
+            raise ValueError("forward_sequential_composition requires at least one embedding")
+
+        h = x
+        for linear, cond, norm in zip(
+            self.linear_layers, self.conditioning_layers, self.norm_layers
+        ):
+            h = linear(h)
+            for emb in purpose_embs:
+                h = cond(h, emb)
+            h = norm(h)
+            h = self.activation(h)
+            h = self.dropout(h)
+
+        return self.repr_proj(h)
+
     def encode_all_purposes(self, x: torch.Tensor) -> dict[int, torch.Tensor]:
         """Encode input for all purposes in a single batched forward pass.
 

@@ -309,6 +309,10 @@ class AdultDataset(PCRLDataset):
     def _preprocess(self, df: pd.DataFrame) -> None:
         """Preprocess the dataframe into tensors."""
         df = df.dropna().reset_index(drop=True)
+        # Keep a copy of the post-dropna, post-split dataframe so callers
+        # can derive integer-coded labels for any of the 14 input columns
+        # (used by the 91-pair composition benchmark).
+        self.raw_df = df.copy()
 
         # ── Feature encoding ─────────────────────────────────────────────
         encoded_features: list[np.ndarray] = []
