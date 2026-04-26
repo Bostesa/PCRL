@@ -30,6 +30,7 @@ Outputs (relative to the project root):
 
 from __future__ import annotations
 
+import argparse
 import csv
 import itertools
 import logging
@@ -201,6 +202,13 @@ def pair_r2(audit_i, audit_j) -> float:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ckpt", type=str, default=None,
+                        help="Path to checkpoint .pt; default checkpoints/adult/best.pt")
+    parser.add_argument("--suffix", type=str, default="",
+                        help="Suffix appended before .csv (e.g. _FIXED)")
+    args = parser.parse_args()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log.info(f"device={device}")
 
@@ -231,7 +239,9 @@ def main() -> None:
     log.info(f"  attrs: {list(train_attrs_full.keys())}")
 
     # ── Load checkpoint ──────────────────────────────────────────────────
-    ckpt_path = ROOT / "checkpoints" / "adult" / "best.pt"
+    ckpt_path = Path(args.ckpt) if args.ckpt else ROOT / "checkpoints" / "adult" / "best.pt"
+    if not ckpt_path.is_absolute():
+        ckpt_path = ROOT / ckpt_path
     if not ckpt_path.exists():
         raise FileNotFoundError(f"Adult PCRL checkpoint not found at {ckpt_path}")
 
@@ -332,7 +342,7 @@ def main() -> None:
     # ── Save 91-pair CSV ─────────────────────────────────────────────────
     out_dir = ROOT / "results" / "adult"
     out_dir.mkdir(parents=True, exist_ok=True)
-    pair_csv = out_dir / "composition_91pair.csv"
+    pair_csv = out_dir / f"composition_91pair{args.suffix}.csv"
     fieldnames = list(pair_rows[0].keys())
     with open(pair_csv, "w", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
@@ -373,7 +383,7 @@ def main() -> None:
     for r in summary_rows:
         r["sequential_strict_better"] = strict_better if r["method"] == "sequential" else ""
 
-    summary_csv = out_dir / "composition_summary.csv"
+    summary_csv = out_dir / f"composition_summary{args.suffix}.csv"
     fieldnames_s = ["method", "total_pairs", "pass_count", "mean_delta",
                     "mean_r_squared", "sequential_strict_better"]
     with open(summary_csv, "w", newline="") as fh:

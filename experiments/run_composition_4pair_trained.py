@@ -20,6 +20,7 @@ Outputs:
 
 from __future__ import annotations
 
+import argparse
 import csv
 import logging
 import sys
@@ -54,6 +55,13 @@ UNION_ATTRS = ["race", "sex", "age_group", "marital_status"]
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ckpt", type=str, default=None,
+                        help="Path to checkpoint .pt; default checkpoints/adult/best.pt")
+    parser.add_argument("--suffix", type=str, default="",
+                        help="Suffix appended before .csv (e.g. _FIXED)")
+    args = parser.parse_args()
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log.info(f"device={device}")
 
@@ -75,7 +83,9 @@ def main() -> None:
     train_attrs = {a: train_ds.sensitive_attrs[a].numpy() for a in UNION_ATTRS}
     test_attrs = {a: test_ds.sensitive_attrs[a].numpy() for a in UNION_ATTRS}
 
-    ckpt_path = ROOT / "checkpoints" / "adult" / "best.pt"
+    ckpt_path = Path(args.ckpt) if args.ckpt else ROOT / "checkpoints" / "adult" / "best.pt"
+    if not ckpt_path.is_absolute():
+        ckpt_path = ROOT / ckpt_path
     encoder = PurposeConditionedEncoder(
         input_dim=train_ds.info.num_features,
         hidden_dims=[128, 128], repr_dim=64,
@@ -155,7 +165,7 @@ def main() -> None:
                 "allowed_task_acc": round(acc, 6),
             })
 
-    out_csv = ROOT / "results" / "adult" / "composition_4pair_trained.csv"
+    out_csv = ROOT / "results" / "adult" / f"composition_4pair_trained{args.suffix}.csv"
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     with open(out_csv, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))

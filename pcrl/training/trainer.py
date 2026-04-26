@@ -304,9 +304,13 @@ class PCRLTrainer:
                 self._log_epoch_metrics("VAL", val_metrics)
                 self._update_history("val", val_metrics)
 
-                # Early stopping check
-                if val_metrics.loss < self.state.best_val_loss:
-                    self.state.best_val_loss = val_metrics.loss
+                # Early stopping check.
+                # Use val_task_loss alone (not task + lambda_adv * adv): the composite
+                # is dominated by adv when lambda_adv is large, so it rewards collapse —
+                # encoder driving auditor toward uniform (high entropy) lowers val_loss
+                # more than task degradation costs, picking degenerate checkpoints.
+                if val_metrics.task_loss < self.state.best_val_loss:
+                    self.state.best_val_loss = val_metrics.task_loss
                     self.state.patience_counter = 0
                     self.save_checkpoint("best")
                 else:
