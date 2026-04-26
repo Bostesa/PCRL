@@ -226,8 +226,7 @@ def _build_shared_heads(purposes):
         )
         auditors[p.name] = MultiAttributeAuditor(
             repr_dim=REPR_DIM, attr_output_dims=p.disallowed_attr_dims,
-            hidden_dim=64, num_layers=1, dropout=0.5,
-            use_spectral_norm=True,
+            hidden_dim=256, num_layers=3,
         )
     return task_heads, auditors
 
@@ -243,7 +242,7 @@ def train_standard(seed, data, device):
         batch_size=BATCH_SIZE, lr_encoder=1e-3, lr_auditor=1e-3,
         lambda_adv=0.0, lambda_verify=0.0, auditor_steps=1,
         epochs=EPOCHS, weight_decay=1e-4, early_stopping_patience=PATIENCE,
-        confusion_type="entropy", lambda_anneal=True,
+        confusion_type="entropy",
         checkpoint_dir=str(project_root / "checkpoints" / f"diab_std_s{seed}"),
     )
     trainer = PCRLTrainer(
@@ -276,7 +275,7 @@ def train_laftr(seed, data, device):
         batch_size=BATCH_SIZE, lr_encoder=1e-3, lr_auditor=1e-3,
         lambda_adv=LAMBDA_ADV, lambda_verify=LAMBDA_VERIFY, auditor_steps=K_AUDITOR,
         epochs=EPOCHS, weight_decay=1e-4, early_stopping_patience=PATIENCE,
-        confusion_type="entropy", lambda_anneal=True,
+        confusion_type="entropy",
         checkpoint_dir=str(project_root / "checkpoints" / f"diab_laftr_s{seed}"),
     )
     trainer = PCRLTrainer(
@@ -307,7 +306,7 @@ def train_pcrl(seed, data, device):
         batch_size=BATCH_SIZE, lr_encoder=1e-3, lr_auditor=1e-3,
         lambda_adv=LAMBDA_ADV, lambda_verify=LAMBDA_VERIFY, auditor_steps=K_AUDITOR,
         epochs=EPOCHS, weight_decay=1e-4, early_stopping_patience=PATIENCE,
-        confusion_type="entropy", lambda_anneal=True,
+        confusion_type="entropy",
         checkpoint_dir=str(project_root / "checkpoints" / f"diab_pcrl_s{seed}"),
     )
     trainer = PCRLTrainer(

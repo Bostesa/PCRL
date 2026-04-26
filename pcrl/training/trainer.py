@@ -1,41 +1,8 @@
-"""Main training loop for PCRL.
-
-Stability fixes (combined adversarial-training regime):
-
-1. LAFTR-sized auditor with spectral normalization
-   The encoder used to face a 3-layer 256-hidden auditor with no Lipschitz
-   bound — orders of magnitude larger than the 1-layer 8-50-hidden auditors
-   used in published fair-representation work (LAFTR, DANN). With lambda_adv
-   in the tens, that adversary is strong enough to drag the encoder into
-   collapse. The opt-in `use_spectral_norm` flag on `Auditor` (in
-   `pcrl/models/auditor.py`) bounds the auditor's Lipschitz constant via
-   `torch.nn.utils.parametrizations.spectral_norm`; new training scripts also
-   shrink the auditor to 1 hidden layer of 64 units with dropout 0.5.
-
-2. Sigmoid lambda annealing (DANN-style)
-   `lambda_schedule()` below ramps lambda_adv from ~0 to lam_max via
-   `2/(1+exp(-gamma*p)) - 1` after a short warmup, so the encoder learns the
-   task before the adversary kicks in. Enable via TrainerConfig.lambda_anneal.
-   `lambda_verify` is NOT annealed — it stays constant at its configured value.
-
-3. Gradient clipping on the auditor (already in place)
-   `_train_auditor_step` already calls `nn.utils.clip_grad_norm_` on auditor
-   parameters with `max_norm=config.grad_clip` (default 1.0). Kept here as a
-   safety belt against auditor gradient spikes that would otherwise bleed
-   through the minimax loop.
-
-Background: the previous bug — composite val loss (task + lambda*adv) used
-for early-stopping — selected collapsed checkpoints because the encoder could
-lower val_loss faster by pushing the auditor toward uniform than by keeping
-task accuracy. That bug is fixed at line ~308 (val_task_loss alone). The three
-changes above are complementary: they keep the adversary strong enough to be
-useful but not strong enough to dominate the encoder.
-"""
+"""Main training loop for PCRL."""
 
 from __future__ import annotations
 
 import logging
-import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,29 +26,6 @@ from pcrl.training.losses import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-def lambda_schedule(
-    step: int,
-    total_steps: int,
-    lam_max: float = 50.0,
-    gamma: float = 10.0,
-    warmup_frac: float = 0.05,
-) -> float:
-    """DANN-style sigmoid ramp for the adversarial weight.
-
-    Returns ~0 during the warmup window, then climbs smoothly toward lam_max
-    via `2/(1+exp(-gamma*p)) - 1` where p is post-warmup progress in [0, 1].
-    """
-    if total_steps <= 0:
-        return lam_max
-    warmup = warmup_frac * total_steps
-    denom = total_steps * (1.0 - warmup_frac)
-    if denom <= 0:
-        return lam_max
-    p = max(0.0, (step - warmup) / denom)
-    p = min(p, 1.0)
-    return lam_max * (2.0 / (1.0 + math.exp(-gamma * p)) - 1.0)
 
 
 @dataclass
@@ -124,9 +68,6 @@ class TrainerConfig:
     lambda_adv_per_purpose: dict[str, float] | None = None
     sequential_purposes: bool = False
     warmup_epochs: int = 0
-    lambda_anneal: bool = False
-    lambda_anneal_gamma: float = 10.0
-    lambda_anneal_warmup_frac: float = 0.05
 
 
 @dataclass
@@ -246,21 +187,6 @@ class PCRLTrainer:
         # Purpose indices for iteration
         self.purpose_names = list(task_heads.keys())
 
-        # Total step count, populated in train(); used by lambda_schedule.
-        self._total_steps: int = 0
-
-    def _current_lambda_adv(self) -> float:
-        """Effective lambda_adv for this step (anneal-aware)."""
-        if not self.config.lambda_anneal or self._total_steps <= 0:
-            return self.config.lambda_adv
-        return lambda_schedule(
-            self.state.global_step,
-            self._total_steps,
-            lam_max=self.config.lambda_adv,
-            gamma=self.config.lambda_anneal_gamma,
-            warmup_frac=self.config.lambda_anneal_warmup_frac,
-        )
-
     def _create_encoder_optimizer(self) -> Optimizer:
         """Create optimizer for encoder and task heads."""
         params = list(self.encoder.parameters())
@@ -341,7 +267,6 @@ class PCRLTrainer:
         if self.config.sequential_purposes:
             steps_per_epoch = len(train_loader) * len(self.purpose_names)
         total_steps = steps_per_epoch * self.config.epochs
-        self._total_steps = total_steps
         self._setup_schedulers(total_steps, steps_per_epoch)
 
         logger.info("=" * 60)
@@ -559,18 +484,10 @@ class PCRLTrainer:
 
         for purpose_name in purpose_order:
             purpose_idx = self._get_purpose_idx(purpose_name)
-            base_purpose_lambda = self._get_lambda_adv_for_purpose(purpose_name)
+            purpose_lambda = self._get_lambda_adv_for_purpose(purpose_name)
 
             for batch in train_loader:
                 batch = self._to_device(batch)
-
-                # Per-step anneal: scale base purpose lambda by the global
-                # schedule fraction so per-purpose ratios are preserved.
-                if self.config.lambda_anneal and self.config.lambda_adv > 0:
-                    scale = self._current_lambda_adv() / self.config.lambda_adv
-                    purpose_lambda = base_purpose_lambda * scale
-                else:
-                    purpose_lambda = base_purpose_lambda
 
                 if self.config.gradient_reversal:
                     # GRL mode for this single purpose
@@ -843,8 +760,6 @@ class PCRLTrainer:
 
         if total_loss.requires_grad:
             total_loss.backward()
-            # Auditor grad clip (safety belt — see top-of-file rationale).
-            # Bounds auditor gradient norm by config.grad_clip (default 1.0).
             if self.config.grad_clip is not None:
                 params = []
                 for auditor in self.auditors.values():
@@ -965,15 +880,13 @@ class PCRLTrainer:
                         if use_per_attr:
                             weighted_verify_loss = weighted_verify_loss + self._get_lambda_verify(attr_name) * r_sq
 
-        # Combined loss: L_task + lambda_adv(t) * L_adv + lambda_verify * L_verify
-        # lambda_verify stays constant; only lambda_adv anneals (when enabled).
+        # Combined loss: L_task + lambda_adv * L_adv + lambda_verify * L_verify
         if use_per_attr:
             total_loss = total_task_loss + weighted_adv_loss + weighted_verify_loss
         else:
-            lam_t = self._current_lambda_adv()
             total_loss = (
                 total_task_loss
-                + lam_t * total_adv_loss
+                + self.config.lambda_adv * total_adv_loss
                 + self.config.lambda_verify * total_verify_loss
             )
 
@@ -1068,9 +981,8 @@ class PCRLTrainer:
             if purpose_name not in self.auditors:
                 continue
             auditor = self.auditors[purpose_name]
-            # Pass lambda_adv (annealed if enabled) to auditor — GRL inside
-            # reverses/scales encoder gradients by this factor.
-            auditor_preds = auditor(h_p, lambda_=self._current_lambda_adv())
+            # Pass lambda_adv to auditor — GRL inside reverses/scales encoder gradients
+            auditor_preds = auditor(h_p, lambda_=self.config.lambda_adv)
 
             if isinstance(auditor_preds, dict):
                 for attr_name, preds in auditor_preds.items():
