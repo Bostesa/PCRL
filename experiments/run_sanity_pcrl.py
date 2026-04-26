@@ -18,6 +18,8 @@ from torch.utils.data import DataLoader
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from pcrl.data.base import collate_pcrl_batch  # noqa: E402
+from pcrl.evaluation.certificates import generate_report  # noqa: E402
 from pcrl.models.auditor import MultiAttributeAuditor  # noqa: E402
 from pcrl.models.encoder import PurposeConditionedEncoder  # noqa: E402
 from pcrl.models.task_head import TaskHead  # noqa: E402
@@ -26,7 +28,7 @@ from pcrl.training.trainer import PCRLTrainer, TrainerConfig  # noqa: E402
 
 REPR_DIM = 64
 HIDDEN_DIMS = [128, 128]
-PURPOSE_EMB_DIM_DEFAULTS = {"diabetes": 16, "hmda": 32}
+PURPOSE_EMB_DIM_DEFAULTS = {"diabetes": 16, "hmda": 32, "adult": 32}
 
 
 def load_diabetes():
@@ -51,7 +53,18 @@ def load_hmda():
     )
 
 
-LOADERS = {"diabetes": load_diabetes, "hmda": load_hmda}
+def load_adult():
+    from pcrl.data.adult import AdultDataset, get_adult_purposes
+    purposes = get_adult_purposes()
+    return (
+        purposes,
+        AdultDataset(purposes=purposes, root="data", split="train", download=True),
+        AdultDataset(purposes=purposes, root="data", split="val", download=False),
+        AdultDataset(purposes=purposes, root="data", split="test", download=False),
+    )
+
+
+LOADERS = {"diabetes": load_diabetes, "hmda": load_hmda, "adult": load_adult}
 
 
 def effective_rank(reprs: np.ndarray) -> float:
@@ -62,7 +75,7 @@ def effective_rank(reprs: np.ndarray) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", choices=["diabetes", "hmda"], required=True)
+    ap.add_argument("--dataset", choices=["diabetes", "hmda", "adult"], required=True)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", required=True)
     ap.add_argument("--epochs", type=int, default=200)
@@ -103,8 +116,7 @@ def main() -> int:
     auditors = {
         p.name: MultiAttributeAuditor(
             repr_dim=REPR_DIM, attr_output_dims=p.disallowed_attr_dims,
-            hidden_dim=64, num_layers=1, dropout=0.5,
-            use_spectral_norm=True,
+            hidden_dim=256, num_layers=3,
         )
         for p in purposes
     }
@@ -114,19 +126,23 @@ def main() -> int:
         lambda_adv=args.lambda_adv, lambda_verify=args.lambda_verify,
         auditor_steps=args.K, epochs=args.epochs, weight_decay=1e-4,
         early_stopping_patience=args.patience, confusion_type="entropy",
-        lambda_anneal=True, checkpoint_dir=str(ckpt_dir),
+        checkpoint_dir=str(ckpt_dir),
     )
     trainer = PCRLTrainer(
         encoder=encoder, task_heads=task_heads, auditors=auditors,
         config=cfg, purpose_registry=registry, device=device,
     )
 
+    pin = device.type == "cuda"
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
-                              num_workers=2, pin_memory=True)
+                              num_workers=0, pin_memory=pin,
+                              collate_fn=collate_pcrl_batch)
     val_loader = DataLoader(val_ds, batch_size=512, shuffle=False,
-                            num_workers=2, pin_memory=True)
+                            num_workers=0, pin_memory=pin,
+                            collate_fn=collate_pcrl_batch)
     test_loader = DataLoader(test_ds, batch_size=512, shuffle=False,
-                             num_workers=2, pin_memory=True)
+                             num_workers=0, pin_memory=pin,
+                             collate_fn=collate_pcrl_batch)
 
     t0 = time.time()
     state = trainer.train(train_loader, val_loader=val_loader)
@@ -188,6 +204,73 @@ def main() -> int:
                 }
                 majority_baselines[tname] = maj
 
+    # ── Per-pair audit eval ──────────────────────────────────────────────
+    # Saved auditor (loose, fast): the auditor weights from best.pt scored
+    # on the test set per (purpose, sensitive attr).
+    # Empirical post-hoc + R² (paper Table 3 methodology): generate_report()
+    # fits a fresh post-hoc auditor per pair and computes the linear-attack
+    # R² of the representation. Pair passes if Δacc<2pp AND R²<0.05.
+    audit_saved: dict[str, dict] = {}
+    sens_majority: dict[str, float] = {}
+    if "auditors" in ck:
+        aud_modules = nn.ModuleDict(auditors).to(device)
+        aud_modules.load_state_dict(ck["auditors"])
+        aud_modules.eval()
+        feats_chunks: list[torch.Tensor] = []
+        sens_chunks: dict[str, list] = {a: [] for a in test_ds.sensitive_attrs}
+        for batch in test_loader:
+            feats_chunks.append(batch["features"])
+            for a in sens_chunks:
+                if a in batch.get("sensitive_attrs", {}):
+                    sens_chunks[a].append(batch["sensitive_attrs"][a])
+        feats_t = torch.cat(feats_chunks).to(device)
+        sens_lab = {
+            a: torch.cat(c).cpu().numpy() if c else None
+            for a, c in sens_chunks.items()
+        }
+        for a, lbls in test_ds.sensitive_attrs.items():
+            _, c = lbls.unique(return_counts=True)
+            sens_majority[a] = float(c.max().item() / len(lbls))
+        with torch.no_grad():
+            for idx, p in enumerate(purposes):
+                z = encoder(feats_t, idx)
+                preds_dict = aud_modules[p.name].predict(z)
+                for attr in p.disallowed_attrs:
+                    if attr not in preds_dict or sens_lab.get(attr) is None:
+                        continue
+                    preds = preds_dict[attr].cpu().numpy()
+                    acc = float((preds == sens_lab[attr]).mean())
+                    base = sens_majority[attr]
+                    audit_saved[f"{p.name}/{attr}"] = {
+                        "acc": acc, "majority": base, "delta": acc - base,
+                        "pass": (acc - base) < 0.02,
+                    }
+
+    audit_pair: dict[str, dict] = {}
+    try:
+        reports = generate_report(
+            encoder=encoder, train_loader=train_loader,
+            test_loader=test_loader, purpose_registry=registry,
+            device=device,
+        )
+        for r in reports:
+            delta = r.empirical_best_acc - r.majority_proportion
+            audit_pair[f"{r.purpose_name}/{r.attr_name}"] = {
+                "best_acc": float(r.empirical_best_acc),
+                "majority": float(r.majority_proportion),
+                "delta": float(delta),
+                "linear_r2": float(r.linear_r2),
+                "pass_adjusted": bool(delta < 0.02 and r.linear_r2 < 0.05),
+            }
+    except Exception as e:
+        print(f"[{args.dataset}] generate_report failed: {e}", file=sys.stderr)
+
+    audit_pass_count = sum(1 for v in audit_saved.values() if v["pass"])
+    audit_pass_count_adjusted = sum(
+        1 for v in audit_pair.values() if v["pass_adjusted"]
+    )
+    audit_total = len(audit_saved) or len(audit_pair)
+
     # Sanity verdict
     reasons: list[str] = []
     mean_per_dim_std = float(np.mean(
@@ -233,6 +316,31 @@ def main() -> int:
             reasons.append(
                 f"loan_decision acc {decision_acc:.3f} <= 0.80 (REQUIRED)"
             )
+    elif args.dataset == "adult":
+        # STRICT criterion: adjusted_pass_count is the only gate.
+        # Saved-auditor count is informational only.
+        for p in purposes:
+            ppd = per_purpose[p.name]["per_dim_std_mean"]
+            if not (0.5 <= ppd <= 1.5):
+                reasons.append(
+                    f"{p.name} per_dim_std_mean {ppd:.3f} not in [0.5, 1.5]"
+                )
+            l2s = per_purpose[p.name]["l2_norm_std"]
+            if l2s <= 1.0:
+                reasons.append(f"{p.name} l2_norm_std {l2s:.3f} <= 1.0")
+        income_acc = task_acc.get(
+            "income_prediction/income", {}
+        ).get("acc", 0.0)
+        if not (0.75 <= income_acc <= 0.78):
+            reasons.append(
+                f"income acc {income_acc:.3f} not in [0.75, 0.78] "
+                f"(paper Table 3: 0.763)"
+            )
+        if audit_total > 0 and audit_pass_count_adjusted < 5:
+            reasons.append(
+                f"adjusted_pass_count {audit_pass_count_adjusted}/{audit_total} "
+                f"< 5 — paper achieves 6/8; revert may not be sufficient"
+            )
 
     sanity_pass = len(reasons) == 0
 
@@ -250,15 +358,19 @@ def main() -> int:
             "K": args.K,
             "patience": args.patience,
             "epochs": args.epochs,
-            "lambda_anneal": True,
-            "use_spectral_norm": True,
-            "auditor_hidden": 64,
-            "auditor_layers": 1,
-            "auditor_dropout": 0.5,
+            "lambda_anneal": False,
+            "use_spectral_norm": False,
+            "auditor_hidden": 256,
+            "auditor_layers": 3,
         },
         "majority_baselines": majority_baselines,
         "per_purpose": per_purpose,
         "task_acc": task_acc,
+        "audit_saved": audit_saved,
+        "audit_pair": audit_pair,
+        "audit_pass_count": audit_pass_count,
+        "audit_pass_count_adjusted": audit_pass_count_adjusted,
+        "audit_total": audit_total,
     }
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -156,9 +156,9 @@ def build_dataset(name: str) -> DatasetBundle:
     elif name == "diabetes":
         from pcrl.data.diabetes import DiabetesDataset, get_diabetes_purposes
         purposes = get_diabetes_purposes()
-        train_ds = DiabetesDataset(purposes=purposes, root="data", split="train")
-        val_ds = DiabetesDataset(purposes=purposes, root="data", split="val")
-        test_ds = DiabetesDataset(purposes=purposes, root="data", split="test")
+        train_ds = DiabetesDataset(purposes=purposes, split="train")
+        val_ds = DiabetesDataset(purposes=purposes, split="val")
+        test_ds = DiabetesDataset(purposes=purposes, split="test")
         K = 20
     elif name == "hmda":
         from pcrl.data.hmda import HMDADataset, get_hmda_purposes
