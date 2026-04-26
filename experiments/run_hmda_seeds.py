@@ -103,8 +103,11 @@ DROPOUT = 0.3
 WEIGHT_DECAY = 1e-4
 
 PURPOSE_EMB_DIM = 32
-AUDITOR_HIDDEN = 256
-AUDITOR_LAYERS = 3
+# Combined adversarial stabilization fix: 1-layer 64-unit auditor with
+# spectral norm + dropout 0.5; lambda annealing handled by TrainerConfig.
+AUDITOR_HIDDEN = 64
+AUDITOR_LAYERS = 1
+AUDITOR_DROPOUT = 0.5
 
 
 @dataclass
@@ -319,13 +322,14 @@ def run_hmda_seed(
             auditors[p.name] = MultiAttributeAuditor(
                 repr_dim=REPR_DIM, attr_output_dims=p.disallowed_attr_dims,
                 hidden_dim=AUDITOR_HIDDEN, num_layers=AUDITOR_LAYERS,
+                dropout=AUDITOR_DROPOUT, use_spectral_norm=True,
             )
         cfg = TrainerConfig(
             batch_size=BATCH_SIZE, lr_encoder=LR, lr_auditor=LR,
             lambda_adv=0.0, lambda_verify=0.0, auditor_steps=1,
             epochs=EPOCHS, weight_decay=WEIGHT_DECAY,
             early_stopping_patience=PATIENCE,
-            confusion_type="entropy",
+            confusion_type="entropy", lambda_anneal=True,
             checkpoint_dir=str(project_root / "checkpoints" / f"hmda_std_{seed}"),
         )
         tr = PCRLTrainer(encoder=std_encoder, task_heads=task_heads, auditors=auditors,
@@ -365,13 +369,14 @@ def run_hmda_seed(
             auditors[p.name] = MultiAttributeAuditor(
                 repr_dim=REPR_DIM, attr_output_dims=p.disallowed_attr_dims,
                 hidden_dim=AUDITOR_HIDDEN, num_layers=AUDITOR_LAYERS,
+                dropout=AUDITOR_DROPOUT, use_spectral_norm=True,
             )
         cfg = TrainerConfig(
             batch_size=BATCH_SIZE, lr_encoder=LR, lr_auditor=LR,
             lambda_adv=LAMBDA_ADV, lambda_verify=LAMBDA_VERIFY, auditor_steps=AUDITOR_STEPS,
             epochs=EPOCHS, weight_decay=WEIGHT_DECAY,
             early_stopping_patience=PATIENCE,
-            confusion_type="entropy",
+            confusion_type="entropy", lambda_anneal=True,
             checkpoint_dir=str(project_root / "checkpoints" / f"hmda_laftr_{seed}"),
         )
         tr = PCRLTrainer(encoder=enc, task_heads=task_heads, auditors=auditors,
@@ -451,13 +456,14 @@ def run_hmda_seed(
             auditors[p.name] = MultiAttributeAuditor(
                 repr_dim=REPR_DIM, attr_output_dims=p.disallowed_attr_dims,
                 hidden_dim=AUDITOR_HIDDEN, num_layers=AUDITOR_LAYERS,
+                dropout=AUDITOR_DROPOUT, use_spectral_norm=True,
             )
         cfg = TrainerConfig(
             batch_size=BATCH_SIZE, lr_encoder=LR, lr_auditor=LR,
             lambda_adv=LAMBDA_ADV, lambda_verify=LAMBDA_VERIFY, auditor_steps=AUDITOR_STEPS,
             epochs=EPOCHS, weight_decay=WEIGHT_DECAY,
             early_stopping_patience=PATIENCE,
-            confusion_type="entropy",
+            confusion_type="entropy", lambda_anneal=True,
             checkpoint_dir=str(project_root / "checkpoints" / f"hmda_pcrl_{seed}"),
         )
         tr = PCRLTrainer(encoder=enc, task_heads=task_heads, auditors=auditors,
