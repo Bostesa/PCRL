@@ -443,6 +443,16 @@ Compliance gate: delta < 2% AND linear R² < 5%.
 # ── Main ─────────────────────────────────────────────────────────────────
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out-dir", default=str(project_root / "results" / "diabetes"))
+    parser.add_argument("--seeds", type=int, nargs="+", default=None)
+    args = parser.parse_args()
+
+    global SEEDS
+    if args.seeds is not None:
+        SEEDS = list(args.seeds)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
     print(f"Start: {time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -452,7 +462,7 @@ def main():
     print(f"Diabetes: input_dim={data['input_dim']}, "
           f"purposes={[p.name for p in data['purposes']]}")
 
-    out_dir = project_root / "results" / "diabetes"
+    out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "purposes.md").write_text(PURPOSES_MD)
     print(f"  Wrote {out_dir / 'purposes.md'}")
