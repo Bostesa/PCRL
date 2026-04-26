@@ -65,6 +65,7 @@ class Auditor(nn.Module):
         num_layers: int = 2,
         dropout: float = 0.1,
         use_gradient_reversal: bool = False,
+        use_spectral_norm: bool = False,
     ) -> None:
         """Initialize the auditor.
 
@@ -75,6 +76,11 @@ class Auditor(nn.Module):
             num_layers: Number of hidden layers.
             dropout: Dropout probability.
             use_gradient_reversal: Whether to apply gradient reversal for end-to-end training.
+            use_spectral_norm: If True, wrap every Linear with spectral_norm
+                (modern parametrizations API). Bounds Lipschitz constant of the
+                auditor so the encoder sees a controlled adversary instead of
+                an arbitrarily strong one — pairs with lambda annealing to
+                avoid representation collapse.
         """
         super().__init__()
         self.repr_dim = repr_dim
@@ -82,6 +88,7 @@ class Auditor(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.use_gradient_reversal = use_gradient_reversal
+        self.use_spectral_norm = use_spectral_norm
 
         # Build MLP
         layers: list[nn.Module] = []
@@ -106,6 +113,14 @@ class Auditor(nn.Module):
 
         self.network = nn.Sequential(*layers)
         self._init_weights()
+
+        # Apply spectral_norm AFTER weight init so the parametrization sees
+        # initialized weights. Modern API: torch.nn.utils.parametrizations.spectral_norm.
+        if use_spectral_norm:
+            from torch.nn.utils.parametrizations import spectral_norm as _sn
+            for i, module in enumerate(self.network):
+                if isinstance(module, nn.Linear):
+                    self.network[i] = _sn(module)
 
     def _init_weights(self) -> None:
         """Initialize weights: Kaiming for hidden layers (ReLU), Xavier for output."""
@@ -210,6 +225,7 @@ class AuditorPool(nn.Module):
         base_seed: int = 42,
         dropout: float = 0.1,
         use_gradient_reversal: bool = False,
+        use_spectral_norm: bool = False,
     ) -> None:
         """Initialize the auditor pool.
 
@@ -222,12 +238,14 @@ class AuditorPool(nn.Module):
             base_seed: Base random seed for reproducibility.
             dropout: Dropout probability for all auditors.
             use_gradient_reversal: Whether to apply gradient reversal.
+            use_spectral_norm: If True, propagate to every pooled Auditor.
         """
         super().__init__()
         self.repr_dim = repr_dim
         self.output_dim = output_dim
         self.pool_size = pool_size
         self.use_gradient_reversal = use_gradient_reversal
+        self.use_spectral_norm = use_spectral_norm
 
         if hidden_dims is None:
             hidden_dims = [32, 64, 128]
@@ -257,6 +275,7 @@ class AuditorPool(nn.Module):
                 num_layers=config.num_layers,
                 dropout=dropout,
                 use_gradient_reversal=use_gradient_reversal,
+                use_spectral_norm=use_spectral_norm,
             )
             self.auditors.append(auditor)
 
@@ -399,6 +418,7 @@ class MultiAttributeAuditor(nn.Module):
         use_gradient_reversal: bool = False,
         use_pool: bool = False,
         pool_size: int = 5,
+        use_spectral_norm: bool = False,
     ) -> None:
         """Initialize multi-attribute auditor.
 
@@ -411,12 +431,14 @@ class MultiAttributeAuditor(nn.Module):
             use_gradient_reversal: Whether to use gradient reversal.
             use_pool: Whether to use auditor pools instead of single auditors.
             pool_size: Size of auditor pool (if use_pool=True).
+            use_spectral_norm: If True, propagate to underlying Auditors.
         """
         super().__init__()
         self.repr_dim = repr_dim
         self.attr_names = list(attr_output_dims.keys())
         self.use_gradient_reversal = use_gradient_reversal
         self.use_pool = use_pool
+        self.use_spectral_norm = use_spectral_norm
 
         self.auditors = nn.ModuleDict()
         for name, output_dim in attr_output_dims.items():
@@ -427,6 +449,7 @@ class MultiAttributeAuditor(nn.Module):
                     pool_size=pool_size,
                     dropout=dropout,
                     use_gradient_reversal=use_gradient_reversal,
+                    use_spectral_norm=use_spectral_norm,
                 )
             else:
                 self.auditors[name] = Auditor(
@@ -436,6 +459,7 @@ class MultiAttributeAuditor(nn.Module):
                     num_layers=num_layers,
                     dropout=dropout,
                     use_gradient_reversal=use_gradient_reversal,
+                    use_spectral_norm=use_spectral_norm,
                 )
 
     def forward(
@@ -534,6 +558,7 @@ class PurposeAuditors(nn.Module):
         use_gradient_reversal: bool = False,
         use_pool: bool = False,
         pool_size: int = 5,
+        use_spectral_norm: bool = False,
     ) -> None:
         """Initialize purpose-specific auditors.
 
@@ -546,6 +571,7 @@ class PurposeAuditors(nn.Module):
             use_gradient_reversal: Whether to use gradient reversal.
             use_pool: Whether to use auditor pools.
             pool_size: Size of auditor pools.
+            use_spectral_norm: If True, propagate to underlying MultiAttributeAuditor.
         """
         super().__init__()
         self.repr_dim = repr_dim
@@ -564,6 +590,7 @@ class PurposeAuditors(nn.Module):
                     use_gradient_reversal=use_gradient_reversal,
                     use_pool=use_pool,
                     pool_size=pool_size,
+                    use_spectral_norm=use_spectral_norm,
                 )
 
     def forward(
