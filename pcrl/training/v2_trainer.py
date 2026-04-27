@@ -1,19 +1,21 @@
-"""V2 trainer: LoRA + HSIC + vCLUB + VICReg + proxy-Lagrangian.
+"""V2 trainer: LoRA + linear-R² constraint + HSIC aux + vCLUB + VICReg + proxy-Lagrangian.
 
 Replaces the adversarial / minimax loop in ``trainer.py`` with a
-non-adversarial constrained optimisation loop:
+non-adversarial constrained optimisation loop. The primary independence
+constraint is the auditor's metric — linear R² of the optimal predictor
+of attr from z — so the optimiser and the audit cannot disagree.
 
     Primal step (per batch):
         z_p   = encoder(x, p)               # frozen backbone + per-purpose LoRA
-        L_task   = sum_p CE(task_head_p(z_p), y_p)
-        L_vicreg = sum_p vicreg_loss(z_p)
-        L_vclub  = sum_{p,a} vclub_{p,a}.mi_upper_bound(z_p, attr_a)
-        L_verify = sum_{p,a} R²(z_p, attr_a)
+        L_task     = sum_p CE(task_head_p(z_p), y_p)
+        L_vicreg   = sum_p vicreg_loss(z_p)
+        L_vclub    = sum_{p,a} vclub_{p,a}.mi_upper_bound(z_p, attr_a)
+        L_hsic_aux = sum_{p,a} HSIC(z_p, attr_a)        # fixed-weight nonlinear aux
         primal_loss = L_task
-                    + lambda_vicreg * L_vicreg
-                    + lambda_vclub  * L_vclub
-                    + lambda_verify * L_verify
-                    + sum_{p,a} lambda_{p,a}^HSIC * (HSIC(z_p, attr_a) - tau)
+                    + lambda_vicreg   * L_vicreg
+                    + lambda_vclub    * L_vclub
+                    + lambda_hsic_aux * L_hsic_aux
+                    + sum_{p,a} lambda_{p,a} * (R²(z_p, attr_a) - tau)
         backward; step (LoRA adapters + task head params)
 
     vCLUB q-net step (per batch, before primal):
@@ -21,8 +23,8 @@ non-adversarial constrained optimisation loop:
         (separate optimiser; X is detached so encoder isn't updated)
 
     Dual step (per batch, after primal):
-        for each (p, a): lambda_{p,a}^HSIC <- proj([0, lam_max],
-                                                   lambda + eta * (HSIC - tau))
+        for each (p, a): lambda_{p,a} <- proj([0, lam_max],
+                                              lambda + eta * (R² - tau))
 
 Early stopping: best val_task_loss only (not composite). Composite includes
 the constraint violations and would reward collapse, exactly as in v1.
@@ -69,12 +71,13 @@ class V2TrainerConfig:
     # Loss weights (fixed scalarisation for terms that aren't constraints)
     lambda_vicreg: float = 1.0
     lambda_vclub: float = 1.0
-    lambda_verify: float = 1.0
+    lambda_verify: float = 0.0  # Legacy; R² is now the constraint, not a fixed-weight term.
+    lambda_hsic_aux: float = 0.1  # Fixed weight for HSIC as a nonlinear auxiliary.
 
-    # HSIC constraint
-    lambda_hsic_init: float = 1.0
-    hsic_threshold: float = 0.05
-    hsic_lambda_max: float = 100.0
+    # Linear-R² constraint (proxy-Lagrangian primary; matches auditor's metric).
+    lambda_hsic_init: float = 1.0  # Reused as initial dual variable for the R² constraint.
+    r2_threshold: float = 0.05
+    r2_lambda_max: float = 100.0
 
     # VICReg knobs
     vicreg_gamma: float = 1.0
@@ -111,8 +114,10 @@ class V2EpochMetrics:
     vicreg_loss: float = 0.0
     verify_loss: float = 0.0
     hsic_mean: float = 0.0
+    r2_mean: float = 0.0
     task_accuracy: dict[str, float] = field(default_factory=dict)
     hsic_per_pair: dict[str, float] = field(default_factory=dict)
+    r2_per_pair: dict[str, float] = field(default_factory=dict)
     epoch_time: float = 0.0
 
 
@@ -171,7 +176,9 @@ class V2Trainer:
 
         self.purpose_names: list[str] = list(self.purpose_configs.keys())
 
-        # Build HSIC constraints (one per (purpose, attr) pair).
+        # Build linear-R² constraints (one per (purpose, attr) pair).
+        # The auditor measures linear R²; constraining the same quantity removes
+        # the metric mismatch that made HSIC-only training pass-without-passing.
         constraints: list[Constraint] = []
         self.pair_keys: list[tuple[str, str]] = []
         for purpose_name in self.purpose_names:
@@ -180,11 +187,11 @@ class V2Trainer:
                 constraints.append(
                     Constraint(
                         name=name,
-                        threshold=config.hsic_threshold,
+                        threshold=config.r2_threshold,
                         direction="<=",
                         eta_lambda=config.lr_lambda,
                         lambda_init=config.lambda_hsic_init,
-                        lambda_max=config.hsic_lambda_max,
+                        lambda_max=config.r2_lambda_max,
                     )
                 )
                 self.pair_keys.append((purpose_name, attr_name))
@@ -280,11 +287,13 @@ class V2Trainer:
                 gamma=self.config.vicreg_gamma,
             )
 
-        # ── L_vclub, L_verify, HSIC constraint values ───────────────────
+        # ── L_vclub, L_hsic_aux, L_verify (logging), R² constraint values ──
         L_vclub = torch.tensor(0.0, device=self.device)
+        L_hsic_aux = torch.tensor(0.0, device=self.device)
         L_verify = torch.tensor(0.0, device=self.device)
         constraint_values: dict[str, torch.Tensor] = {}
         constraint_scalars: dict[str, float] = {}
+        hsic_scalars: dict[str, float] = {}
         for purpose_name, attr_name in self.pair_keys:
             z = reprs[purpose_name]
             attr = batch["sensitive_attrs"][attr_name].long()
@@ -292,19 +301,27 @@ class V2Trainer:
 
             L_vclub = L_vclub + self.vclubs[key].mi_upper_bound(z, attr)
 
-            if int(attr.max().item()) >= 1:  # verifier only valid for >= 2 classes
-                L_verify = L_verify + self.verifier(z, attr)
-
+            # HSIC kept as differentiable fixed-weight auxiliary (nonlinear cover).
             hsic_val = hsic(z, attr)
-            constraint_values[key] = hsic_val
-            constraint_scalars[key] = float(hsic_val.detach().item())
+            L_hsic_aux = L_hsic_aux + hsic_val
+            hsic_scalars[key] = float(hsic_val.detach().item())
+
+            # Linear R² is the proxy-Lagrangian constraint value (matches auditor).
+            if int(attr.max().item()) >= 1:  # verifier only valid for >= 2 classes
+                r2_val = self.verifier(z, attr)
+            else:
+                r2_val = torch.tensor(0.0, device=self.device)
+            L_verify = L_verify + r2_val
+            constraint_values[key] = r2_val
+            constraint_scalars[key] = float(r2_val.detach().item())
 
         # ── Lagrangian + scalarised primal loss ─────────────────────────
         base = (
             L_task
             + self.config.lambda_vicreg * L_vicreg
             + self.config.lambda_vclub * L_vclub
-            + self.config.lambda_verify * L_verify
+            + self.config.lambda_hsic_aux * L_hsic_aux
+            + self.config.lambda_verify * L_verify  # legacy; default 0
         )
         primal_loss = self.proxy.lagrangian_loss(base, constraint_values)
 
@@ -327,10 +344,14 @@ class V2Trainer:
             "vicreg": float(L_vicreg.detach().item()),
             "vclub_primal": float(L_vclub.detach().item()),
             "verify": float(L_verify.detach().item()),
-            "hsic_mean": (
+            "r2_mean": (
                 sum(constraint_scalars.values()) / max(len(constraint_scalars), 1)
             ),
-            **{f"hsic[{k}]": v for k, v in constraint_scalars.items()},
+            "hsic_mean": (
+                sum(hsic_scalars.values()) / max(len(hsic_scalars), 1)
+            ),
+            **{f"r2[{k}]": v for k, v in constraint_scalars.items()},
+            **{f"hsic[{k}]": v for k, v in hsic_scalars.items()},
         }
 
     # ── epoch + eval ────────────────────────────────────────────────────
@@ -366,13 +387,16 @@ class V2Trainer:
             vicreg_loss=sums.get("vicreg", 0.0) / max(n, 1),
             verify_loss=sums.get("verify", 0.0) / max(n, 1),
             hsic_mean=sums.get("hsic_mean", 0.0) / max(n, 1),
-            hsic_per_pair={k.removeprefix("hsic["): None for k in sums if k.startswith("hsic[")},
+            r2_mean=sums.get("r2_mean", 0.0) / max(n, 1),
             epoch_time=time.time() - t0,
         )
-        # Refill hsic_per_pair with proper averaged values + strip the trailing "]"
         m.hsic_per_pair = {
             k[len("hsic["):-1]: sums[k] / max(n, 1)
             for k in sums if k.startswith("hsic[")
+        }
+        m.r2_per_pair = {
+            k[len("r2["):-1]: sums[k] / max(n, 1)
+            for k in sums if k.startswith("r2[")
         }
         return m
 
@@ -385,7 +409,9 @@ class V2Trainer:
         t0 = time.time()
         total_task = 0.0
         total_hsic = 0.0
+        total_r2 = 0.0
         per_pair_hsic_sum: dict[str, float] = {}
+        per_pair_r2_sum: dict[str, float] = {}
         task_correct: dict[str, int] = {}
         task_total: dict[str, int] = {}
         n = 0
@@ -415,15 +441,21 @@ class V2Trainer:
                 task_total[task_name] = task_total.get(task_name, 0) + targets.numel()
             total_task += L_task
 
-            # HSIC values per (p, a)
+            # HSIC + R² values per (p, a)
             for purpose_name, attr_name in self.pair_keys:
                 z = reprs[purpose_name]
                 attr = batch["sensitive_attrs"][attr_name].long()
                 key = _pair_key(purpose_name, attr_name)
                 hv = float(hsic(z, attr).item())
+                if int(attr.max().item()) >= 1:
+                    rv = float(self.verifier(z, attr).item())
+                else:
+                    rv = 0.0
                 per_pair_hsic_sum[key] = per_pair_hsic_sum.get(key, 0.0) + hv
+                per_pair_r2_sum[key] = per_pair_r2_sum.get(key, 0.0) + rv
                 n_pair_batches[key] = n_pair_batches.get(key, 0) + 1
                 total_hsic += hv
+                total_r2 += rv
 
             n += 1
 
@@ -431,8 +463,10 @@ class V2Trainer:
             loss=total_task / max(n, 1),  # task loss alone for early stopping
             task_loss=total_task / max(n, 1),
             hsic_mean=total_hsic / max(n * len(self.pair_keys), 1),
+            r2_mean=total_r2 / max(n * len(self.pair_keys), 1),
             task_accuracy={k: task_correct[k] / task_total[k] for k in task_correct if task_total[k] > 0},
             hsic_per_pair={k: v / max(n_pair_batches[k], 1) for k, v in per_pair_hsic_sum.items()},
+            r2_per_pair={k: v / max(n_pair_batches[k], 1) for k, v in per_pair_r2_sum.items()},
             epoch_time=time.time() - t0,
         )
         return m
@@ -444,7 +478,7 @@ class V2Trainer:
             self._update_history("train", tr)
             logger.info(
                 f"[V2/TRAIN] epoch={epoch} loss={tr.loss:.4f} task={tr.task_loss:.4f} "
-                f"vicreg={tr.vicreg_loss:.4f} verify={tr.verify_loss:.4f} "
+                f"vicreg={tr.vicreg_loss:.4f} r2_mean={tr.r2_mean:.4f} "
                 f"hsic_mean={tr.hsic_mean:.4f} q_loss={tr.vclub_q_loss:.4f} time={tr.epoch_time:.1f}s"
             )
 
@@ -453,7 +487,8 @@ class V2Trainer:
                 self._update_history("val", val)
                 logger.info(
                     f"[V2/VAL]   epoch={epoch} task={val.task_loss:.4f} "
-                    f"hsic_mean={val.hsic_mean:.4f} time={val.epoch_time:.1f}s"
+                    f"r2_mean={val.r2_mean:.4f} hsic_mean={val.hsic_mean:.4f} "
+                    f"time={val.epoch_time:.1f}s"
                 )
                 # Early stop on val task loss alone (NOT composite — composite would
                 # reward collapse via the HSIC + vCLUB terms).
@@ -483,6 +518,7 @@ class V2Trainer:
             ("vicreg_loss", metrics.vicreg_loss),
             ("verify_loss", metrics.verify_loss),
             ("hsic_mean", metrics.hsic_mean),
+            ("r2_mean", metrics.r2_mean),
             ("vclub_q_loss", metrics.vclub_q_loss),
         ):
             self.state.history.setdefault(f"{prefix}_{key}", []).append(val)

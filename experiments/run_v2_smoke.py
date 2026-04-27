@@ -100,8 +100,9 @@ def main() -> None:
 
     config = V2TrainerConfig(
         lr_primal=1e-3, lr_vclub=1e-3, lr_lambda=0.05,
-        lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=1.0,
-        lambda_hsic_init=1.0, hsic_threshold=0.05,
+        lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
+        lambda_hsic_aux=0.1,
+        lambda_hsic_init=1.0, r2_threshold=0.05,
         vicreg_gamma=1.0,
         lora_rank=8, lora_alpha=16, lora_dropout=0.0,
         batch_size=32, epochs=2, early_stopping_patience=None,
@@ -141,17 +142,20 @@ def main() -> None:
     print(f"LoRA grads: {nonzero_adapter_grads}/{total_adapter_params} adapter params have nonzero grad")
     assert nonzero_adapter_grads > 0, "no LoRA adapter received a nonzero gradient"
 
-    # ── Check 2: HSIC values are finite ────────────────────────────────
+    # ── Check 2: R² and HSIC values are finite ─────────────────────────
     val = trainer.evaluate(val_loader)
-    print("Val HSIC per (purpose, attr):")
-    for k, v in val.hsic_per_pair.items():
-        finite = "ok" if (v == v and v != float("inf") and v != float("-inf")) else "BAD"
-        print(f"  {k:<60s} HSIC={v:.4f}  {finite}")
-        assert v == v, f"NaN HSIC for {k}"
+    print("Val R² (constraint) and HSIC (aux) per (purpose, attr):")
+    for k in val.r2_per_pair.keys():
+        rv = val.r2_per_pair[k]
+        hv = val.hsic_per_pair.get(k, float("nan"))
+        finite = "ok" if (rv == rv and hv == hv) else "BAD"
+        print(f"  {k:<60s} R²={rv:.4f}  HSIC={hv:.4f}  {finite}")
+        assert rv == rv, f"NaN R² for {k}"
+        assert hv == hv, f"NaN HSIC for {k}"
 
     # ── Check 3: lambdas moved from init ───────────────────────────────
     moved = 0
-    print("Dual variables (lambda) for HSIC constraints:")
+    print("Dual variables (lambda) for R² constraints:")
     for name, c in trainer.proxy.constraints.items():
         if abs(c.lambda_value - initial_lambdas[name]) > 1e-6:
             moved += 1

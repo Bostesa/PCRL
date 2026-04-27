@@ -2,13 +2,13 @@
 """V2 validation runner — full 200 epochs × 3 seeds for one dataset.
 
 Trains the v2 pipeline (frozen StandardEncoder backbone + per-purpose
-LoRA adapters, HSIC + vCLUB independence, VICReg anti-collapse,
-proxy-Lagrangian dual variables on HSIC <= 0.05) on Adult / Diabetes /
-HMDA. After each seed it runs ``generate_report`` for the paper's
-adjusted compliance criterion (linear R² < 0.05 AND post-hoc auditor
-delta < 2pp). After all seeds finish, it computes representation
-health and writes ``STATUS: HEALTHY`` or ``STATUS: COLLAPSED`` at the
-top of the summary JSON.
+LoRA adapters, linear-R² constraint + HSIC auxiliary + vCLUB
+independence, VICReg anti-collapse, proxy-Lagrangian dual variables on
+linear R² <= 0.05) on Adult / Diabetes / HMDA. After each seed it runs
+``generate_report`` for the paper's adjusted compliance criterion
+(linear R² < 0.05 AND post-hoc auditor delta < 2pp). After all seeds
+finish, it computes representation health and writes ``STATUS: HEALTHY``
+or ``STATUS: COLLAPSED`` at the top of the summary JSON.
 
 Outputs:
     results/v2_<dataset>/per_seed_results.json
@@ -200,8 +200,9 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     ckpt_dir = ROOT / "checkpoints" / f"v2_{name}_s{seed}"
     config = V2TrainerConfig(
         lr_primal=1e-3, lr_vclub=1e-3, lr_lambda=0.05,
-        lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=1.0,
-        lambda_hsic_init=1.0, hsic_threshold=0.05, hsic_lambda_max=100.0,
+        lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
+        lambda_hsic_aux=0.1,
+        lambda_hsic_init=1.0, r2_threshold=0.05, r2_lambda_max=100.0,
         vicreg_gamma=1.0,
         lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
         batch_size=256, epochs=200, early_stopping_patience=20,
