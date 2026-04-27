@@ -354,6 +354,8 @@ def main() -> None:
     parser.add_argument("--seeds", type=int, nargs="*", default=SEEDS,
                         help="Seeds to run (default: 0 1 2)")
     parser.add_argument("--device", default=None)
+    parser.add_argument("--out-tag", default="",
+                        help="Suffix appended to results/v2_<dataset> output dir, e.g. _OPTION_A")
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -379,7 +381,7 @@ def main() -> None:
     summary = aggregate(args.dataset, per_seed_results)
     summary["total_wall_s"] = round(time.time() - overall_t0, 1)
 
-    out_dir = ROOT / "results" / f"v2_{args.dataset}"
+    out_dir = ROOT / "results" / f"v2_{args.dataset}{args.out_tag}"
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "per_seed_results.json", "w") as fh:
         json.dump({"summary": summary, "per_seed": per_seed_results}, fh, indent=2)
