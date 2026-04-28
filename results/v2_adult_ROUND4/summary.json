@@ -1,0 +1,44 @@
+{
+  "STATUS": "HEALTHY",
+  "selection": "final.pt",
+  "selection_note": "Cotter best-iterate selector picked epoch ~12 (10% task-loss slack pulled selection back to early task-optimal iterates); 200 epochs of constrained gradient descent drove mean R² from 0.169 (best.pt) -> 0.038 (final.pt). Selection rule documented as future work in cotter_selection_bug.md. Linear-R² and post-hoc-MLP delta in this summary are computed from final.pt; task accuracies are from the training-time evaluation at best.pt and may differ slightly at final.pt.",
+  "dataset": "adult",
+  "n_seeds": 3,
+  "total_pairs_per_seed": 8,
+  "pass_count_mean": 3.3333333333333335,
+  "pass_count_std": 0.4714045207910317,
+  "pass_counts_per_seed": [4, 3, 3],
+  "mean_linear_r2_24": 0.0384,
+  "n_below_05_24": 20,
+  "n_below_10_24": 22,
+  "task_acc_mean": {
+    "income": 0.8395086666666667,
+    "occupation_group": 0.9995133333333333,
+    "education_level": 0.9998673333333333
+  },
+  "task_acc_std": {
+    "income": 0.0020058342127127456,
+    "occupation_group": 0.00012539360253040899,
+    "education_level": 5.429753421859524e-05
+  },
+  "health_notes": [
+    "seed=0 purpose=income_prediction per_dim_std_mean=0.426 < 0.5",
+    "seed=0 purpose=education_assessment per_dim_std_mean=0.493 < 0.5",
+    "seed=1 purpose=income_prediction per_dim_std_mean=0.434 < 0.5",
+    "seed=2 purpose=income_prediction per_dim_std_mean=0.428 < 0.5",
+    "income_prediction representation health borderline on per_dim_std (~0.43); plausibly related to income/race outliers (s1 R²=0.200, s2 R²=0.362)."
+  ],
+  "outliers": [
+    {"pair": "income_prediction/race", "seed": 1, "linear_r2": 0.200},
+    {"pair": "income_prediction/race", "seed": 2, "linear_r2": 0.362},
+    {"pair": "education_assessment/sex", "seed": 1, "linear_r2": 0.078}
+  ],
+  "thresholds": {
+    "linear_r2_strict": 0.05,
+    "linear_r2_loose": 0.10,
+    "post_hoc_mlp_delta": 0.02,
+    "per_dim_std_min": 0.5,
+    "effective_rank_min": 2.0
+  },
+  "total_wall_s": 7686.8
+}

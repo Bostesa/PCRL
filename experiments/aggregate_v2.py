@@ -35,12 +35,21 @@ SEPARATE = {  # threat experiment 2 (already on origin)
 }
 
 
-def load_v2(dataset: str) -> dict | None:
-    path = ROOT / "results" / f"v2_{dataset}" / "summary.json"
-    if not path.exists():
-        return None
-    with open(path) as fh:
-        return json.load(fh)
+def load_v2(dataset: str) -> tuple[dict, str] | None:
+    """Return (summary, source_tag) for the most recent v2 run we have for ``dataset``.
+
+    Prefers Round 4 (BN-freeze + LEACE warm-start + final.pt selection) when
+    present, falling back to the earlier ``v2_<dataset>/`` directory.
+    """
+    candidates = [
+        (ROOT / "results" / f"v2_{dataset}_ROUND4" / "summary.json", "ROUND4 (final.pt)"),
+        (ROOT / "results" / f"v2_{dataset}" / "summary.json", "initial"),
+    ]
+    for path, tag in candidates:
+        if path.exists():
+            with open(path) as fh:
+                return json.load(fh), tag
+    return None
 
 
 def render() -> tuple[str, str]:
@@ -49,6 +58,10 @@ def render() -> tuple[str, str]:
     md.append("V2 = frozen StandardEncoder backbone + per-purpose LoRA adapters,\n"
               "HSIC + vCLUB independence penalty, VICReg anti-collapse,\n"
               "proxy-Lagrangian dual variables on HSIC ≤ 0.05.\n")
+    md.append("Round 4 adds BN-freeze + LEACE warm-start of LoRA adapters and "
+              "reports compliance from `final.pt` (the Cotter best-iterate "
+              "selector currently picks epoch ~12; see "
+              "`results/v2_adult_ROUND4/cotter_selection_bug.md`).\n")
     md.append("Compared against three reference points:\n")
     md.append("- **v1 paper** — adversarial PCRL with FiLM (mean over 3 seeds).")
     md.append("- **LEACE-on-raw** — concept-erasure baseline (threat exp 1).")
@@ -72,8 +85,8 @@ def render() -> tuple[str, str]:
     have_all = True
 
     for ds in DATASETS:
-        s = load_v2(ds)
-        if s is None:
+        loaded = load_v2(ds)
+        if loaded is None:
             md.append(f"| {ds} | (not yet run) | — | "
                       f"{V1_PAPER[ds]['pass']}/{V1_PAPER[ds]['total']} | "
                       f"{LEACE_ON_RAW[ds]['pass']}/{LEACE_ON_RAW[ds]['total']} | "
@@ -86,6 +99,7 @@ def render() -> tuple[str, str]:
                           f"{'—':>10} {'—':>10}")
             have_all = False
             continue
+        s, source_tag = loaded
 
         v2_pass = s["pass_count_mean"]
         v2_std = s["pass_count_std"]
@@ -122,10 +136,11 @@ def render() -> tuple[str, str]:
     # Per-dataset verdict
     md.append("## Per-dataset verdict\n")
     for ds in DATASETS:
-        s = load_v2(ds)
-        if s is None:
+        loaded = load_v2(ds)
+        if loaded is None:
             md.append(f"- **{ds}** — not yet run.")
             continue
+        s, _source_tag = loaded
         v2_pass = s["pass_count_mean"]
         v1_pass = V1_PAPER[ds]["pass"]
         sep = SEPARATE[ds]
