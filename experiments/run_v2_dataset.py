@@ -198,13 +198,13 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
             )
 
     ckpt_dir = ROOT / "checkpoints" / f"v2_{name}_s{seed}"
-    # Round 1 (commit-message: V2 Round 1): lambda_hsic_aux now defaults to 0.0
-    # and patience-based early stopping is replaced by Cotter best-iterate.
-    # We rely on the V2TrainerConfig defaults for both rather than overriding.
+    # Round 2: 20 warmup epochs + 200 constrained epochs = 220 total.
+    # Round 2 trainer defaults bring lambda_hsic_aux=0, lambda_init=0,
+    # lr_lambda=0.005, r2_lambda_max=1000, warmup_epochs=20. We only override
+    # the post-warmup epoch count and the checkpoint directory.
     config = V2TrainerConfig(
-        lr_primal=1e-3, lr_vclub=1e-3, lr_lambda=0.05,
         lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
-        lambda_hsic_init=1.0, r2_threshold=0.05, r2_lambda_max=100.0,
+        r2_threshold=0.05,
         vicreg_gamma=1.0,
         lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
         batch_size=256, epochs=200,
@@ -216,13 +216,20 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         purpose_registry=registry, config=config, device=device,
     )
 
-    log.info(f"  [{name}/seed={seed}] training (device={device}, K=200, Cotter best-iterate)")
+    log.info(
+        f"  [{name}/seed={seed}] training (device={device}, "
+        f"warmup={config.warmup_epochs} + epochs={config.epochs}, true Cotter best-iterate)"
+    )
     t0 = time.time()
     state = trainer.train(train_loader, val_loader=val_loader)
     train_time = time.time() - t0
+    cotter_meta = (state.history.get("cotter_selection") or [{}])[-1]
     log.info(
         f"  [{name}/seed={seed}] trained in {train_time:.0f}s, last_epoch={state.epoch}, "
-        f"best_epoch={state.best_epoch}, best_composite={state.best_val_loss:.4f}"
+        f"best_epoch={state.best_epoch}, best_task_loss={state.best_val_loss:.4f}, "
+        f"cotter={cotter_meta.get('kind','?')} "
+        f"feasible={cotter_meta.get('n_feasible_post_warmup','?')}/"
+        f"{cotter_meta.get('n_eligible_post_warmup','?')}"
     )
 
     # Reload best checkpoint
@@ -283,7 +290,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         "total_pairs": len(reports),
         "per_purpose_health": per_purpose_health,
         "lambdas_final": lambdas_final,
-        "best_composite": float(state.best_val_loss),
+        "best_task_loss_at_selected": float(state.best_val_loss),
+        "cotter_selection": cotter_meta,
     }
 
 

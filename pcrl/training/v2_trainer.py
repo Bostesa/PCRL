@@ -24,14 +24,24 @@ of attr from z — so the optimiser and the audit cannot disagree.
         for each (p, a): lambda_{p,a} <- proj([0, lam_max],
                                               lambda + eta * (R² - tau))
 
-Best-iterate selection: Cotter best-iterate on a composite that combines
-val_task_loss with constraint violations,
+Best-iterate selection (true Cotter, Cotter et al. JMLR 2019 §4.6):
+during training, snapshot every epoch's state in memory along with its
+val_task_loss and per-pair R²s. After training:
 
-    composite = val_task_loss + w * sum_{p,a} max(0, R²(z_p, a) - tau)
+    1. Among iterates after warmup that are FULLY FEASIBLE (every R² < tau),
+       return the one with min val_task_loss.
+    2. If no iterate is feasible, among iterates with val_task_loss within
+       10% of the best val_task_loss, return the one with smallest
+       sum_{p,a} max(0, R² - tau).
 
-Per Cotter et al. JMLR 2019 §4.6, proxy-Lagrangian methods are asymptotic
-in feasibility — selecting on val_task_loss alone exits before duals
-converge. We run the full schedule and snapshot the best composite iterate.
+The Round 1 composite `task + 0.5 * Σ violation` rewarded epochs 3-5
+where task was low but violation was still ~2.5 — exactly the wrong
+regime (lambdas hadn't ramped yet).
+
+Round 2 schedule: ``warmup_epochs`` task-only epochs (constraint
+Lagrangian and dual updates skipped) followed by ``epochs`` constrained
+epochs. Lambda damping (``lr_lambda=0.005``, cap 1000) prevents the
+saturate-and-oscillate failure mode that Round 1 exhibited.
 
 HSIC was previously kept as a fixed-weight differentiable auxiliary
 (``lambda_hsic_aux=0.1``). The R-LACE/LEACE diagnostic (commit f8d1966)
@@ -77,7 +87,8 @@ class V2TrainerConfig:
     # Optimiser learning rates
     lr_primal: float = 1e-3
     lr_vclub: float = 1e-3
-    lr_lambda: float = 0.05
+    lr_lambda: float = 0.005  # Round 2: damped from 0.05; per Stooke et al. ICML
+                              # 2020, slow dual-ascent prevents oscillation.
 
     # Loss weights (fixed scalarisation for terms that aren't constraints)
     lambda_vicreg: float = 1.0
@@ -88,12 +99,17 @@ class V2TrainerConfig:
                                   # fought the dual. Set to 0.0; HSIC still logged.
 
     # Linear-R² constraint (proxy-Lagrangian primary; matches auditor's metric).
-    lambda_hsic_init: float = 1.0  # Reused as initial dual variable for the R² constraint.
+    lambda_hsic_init: float = 0.0  # Round 2: lambdas start at 0; warmup keeps them
+                                   # at 0 for warmup_epochs, then dual ascent ramps.
     r2_threshold: float = 0.05
-    r2_lambda_max: float = 100.0
+    r2_lambda_max: float = 1000.0  # Round 2: raised from 100; gives the dual room
+                                   # to apply more pressure before saturating.
 
     # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6).
-    composite_violation_weight: float = 0.5  # weight w on Σ max(0, R² - τ)
+    # Round 2 uses true Cotter: best-feasible by min task_loss; fallback by
+    # min violation among iterates within 10% of best task_loss.
+    cotter_fallback_task_slack: float = 0.10  # 10% slack on task_loss for fallback
+    composite_violation_weight: float = 0.5  # legacy (Round 1); unused by true Cotter
 
     # VICReg knobs
     vicreg_gamma: float = 1.0
@@ -112,9 +128,11 @@ class V2TrainerConfig:
 
     # Training schedule
     batch_size: int = 256
-    epochs: int = 100
-    early_stopping_patience: int | None = None  # Round 1: deprecated. Cotter
-                                                # best-iterate runs full schedule.
+    epochs: int = 100  # Constrained epochs (warmup_epochs are added on top).
+    warmup_epochs: int = 20  # Round 2: task-only warmup. During these, the
+                             # constraint Lagrangian + dual updates are skipped
+                             # so LoRA can learn the task before pressure starts.
+    early_stopping_patience: int | None = None  # Deprecated; Cotter runs full schedule.
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
     log_interval: int = 50
@@ -272,8 +290,15 @@ class V2Trainer:
         self.vclub_optimizer.step()
         return float(total.detach().item())
 
-    def _primal_and_dual_step(self, batch: dict[str, Any]) -> dict[str, float]:
-        """One primal step (LoRA + heads) + one dual ascent on lambdas."""
+    def _primal_and_dual_step(
+        self, batch: dict[str, Any], apply_constraints: bool = True,
+    ) -> dict[str, float]:
+        """One primal step (LoRA + heads) + one dual ascent on lambdas.
+
+        If apply_constraints is False (warmup), the Lagrangian term and the
+        dual-ascent step are skipped — the primal loss is task + VICReg only.
+        Lambdas remain at their initial values.
+        """
         self.encoder.train()
         self.task_heads.train()
 
@@ -336,14 +361,19 @@ class V2Trainer:
             constraint_scalars[key] = float(r2_val.detach().item())
 
         # ── Lagrangian + scalarised primal loss ─────────────────────────
-        base = (
-            L_task
-            + self.config.lambda_vicreg * L_vicreg
-            + self.config.lambda_vclub * L_vclub
-            + self.config.lambda_hsic_aux * L_hsic_aux
-            + self.config.lambda_verify * L_verify  # legacy; default 0
-        )
-        primal_loss = self.proxy.lagrangian_loss(base, constraint_values)
+        if apply_constraints:
+            base = (
+                L_task
+                + self.config.lambda_vicreg * L_vicreg
+                + self.config.lambda_vclub * L_vclub
+                + self.config.lambda_hsic_aux * L_hsic_aux
+                + self.config.lambda_verify * L_verify  # legacy; default 0
+            )
+            primal_loss = self.proxy.lagrangian_loss(base, constraint_values)
+        else:
+            # Warmup: task + VICReg only. vCLUB / HSIC / Lagrangian skipped so
+            # the LoRA can fit the task before constraint pressure starts.
+            primal_loss = L_task + self.config.lambda_vicreg * L_vicreg
 
         # ── Primal step ─────────────────────────────────────────────────
         self.primal_optimizer.zero_grad()
@@ -356,7 +386,8 @@ class V2Trainer:
         self.primal_optimizer.step()
 
         # ── Dual step ───────────────────────────────────────────────────
-        self.proxy.dual_step(constraint_scalars)
+        if apply_constraints:
+            self.proxy.dual_step(constraint_scalars)
 
         return {
             "primal_loss": float(primal_loss.detach().item()),
@@ -376,7 +407,7 @@ class V2Trainer:
 
     # ── epoch + eval ────────────────────────────────────────────────────
 
-    def train_epoch(self, loader: DataLoader) -> V2EpochMetrics:
+    def train_epoch(self, loader: DataLoader, apply_constraints: bool = True) -> V2EpochMetrics:
         self.encoder.train()
         self.task_heads.train()
         self.vclubs.train()
@@ -393,7 +424,7 @@ class V2Trainer:
             for _ in range(self.config.vclub_steps):
                 q_loss = self._vclub_q_step(batch)
 
-            stats = self._primal_and_dual_step(batch)
+            stats = self._primal_and_dual_step(batch, apply_constraints=apply_constraints)
             stats["vclub_q_loss"] = q_loss
             for k, v in stats.items():
                 sums[k] = sums.get(k, 0.0) + v
@@ -492,14 +523,35 @@ class V2Trainer:
         return m
 
     def train(self, train_loader: DataLoader, val_loader: DataLoader | None = None) -> V2State:
+        """Round 2 training loop: warmup → constrained → true Cotter best-iterate.
+
+        ``warmup_epochs`` task-only epochs (constraint Lagrangian + dual ascent
+        skipped), then ``epochs`` constrained epochs. After training, the best
+        iterate is selected post-hoc by the true Cotter rule (see
+        ``_select_cotter_best``) and snapshotted as ``best.pt``.
+        """
         threshold = self.config.r2_threshold
-        w = self.config.composite_violation_weight
-        for epoch in range(self.config.epochs):
+        warmup_n = self.config.warmup_epochs
+        total_epochs = warmup_n + self.config.epochs
+
+        # Per-epoch records: (epoch, snapshot_state_dicts, val_task_loss,
+        #                     r2_per_pair, violation_sum, in_warmup).
+        # Snapshots live in CPU memory; one snapshot ≈ 1 MB on Adult, so 220
+        # snapshots is ~220 MB per seed (well under instance RAM).
+        epoch_records: list[
+            tuple[int, dict[str, dict[str, torch.Tensor]], float, dict[str, float], float, bool]
+        ] = []
+
+        for epoch in range(total_epochs):
             self.state.epoch = epoch
-            tr = self.train_epoch(train_loader)
+            in_warmup = epoch < warmup_n
+            apply_constraints = not in_warmup
+
+            tr = self.train_epoch(train_loader, apply_constraints=apply_constraints)
             self._update_history("train", tr)
             logger.info(
-                f"[V2/TRAIN] epoch={epoch} loss={tr.loss:.4f} task={tr.task_loss:.4f} "
+                f"[V2/TRAIN] epoch={epoch} {'(warmup)' if in_warmup else ''} "
+                f"loss={tr.loss:.4f} task={tr.task_loss:.4f} "
                 f"vicreg={tr.vicreg_loss:.4f} r2_mean={tr.r2_mean:.4f} "
                 f"hsic_mean={tr.hsic_mean:.4f} q_loss={tr.vclub_q_loss:.4f} time={tr.epoch_time:.1f}s"
             )
@@ -508,35 +560,103 @@ class V2Trainer:
                 val = self.evaluate(val_loader)
                 self._update_history("val", val)
 
-                # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6):
-                # composite = val_task_loss + w * Σ max(0, R² - τ).
-                # Proxy-Lagrangian iterates are asymptotic in feasibility — early
-                # stopping on val_task_loss alone exits before duals converge.
-                violation_sum = sum(
-                    max(0.0, v - threshold) for v in val.r2_per_pair.values()
-                )
-                composite = float(val.task_loss) + w * violation_sum
+                r2_per_pair = {k: float(v) for k, v in val.r2_per_pair.items()}
+                violation_sum = sum(max(0.0, v - threshold) for v in r2_per_pair.values())
                 self.state.history.setdefault("val_violation_sum", []).append(violation_sum)
-                self.state.history.setdefault("val_composite", []).append(composite)
+                self.state.history.setdefault("r2_per_pair_per_epoch", []).append(r2_per_pair)
+                self.state.history.setdefault("warmup_flag_per_epoch", []).append(bool(in_warmup))
 
                 logger.info(
                     f"[V2/VAL]   epoch={epoch} task={val.task_loss:.4f} "
-                    f"viol_sum={violation_sum:.4f} composite={composite:.4f} "
-                    f"r2_mean={val.r2_mean:.4f} hsic_mean={val.hsic_mean:.4f} "
-                    f"time={val.epoch_time:.1f}s"
+                    f"viol_sum={violation_sum:.4f} r2_mean={val.r2_mean:.4f} "
+                    f"hsic_mean={val.hsic_mean:.4f} time={val.epoch_time:.1f}s"
                 )
 
-                if composite < self.state.best_val_loss:
-                    self.state.best_val_loss = composite
-                    self.state.best_epoch = epoch
-                    self.save_checkpoint("best")
+                snapshot = {
+                    "backbone": {k: v.detach().cpu().clone() for k, v in self.encoder.backbone.state_dict().items()},
+                    "lora_adapters": {k: v.detach().cpu().clone() for k, v in self.encoder.adapters.state_dict().items()},
+                    "task_heads": {k: v.detach().cpu().clone() for k, v in self.task_heads.state_dict().items()},
+                }
+                epoch_records.append(
+                    (epoch, snapshot, float(val.task_loss), r2_per_pair, violation_sum, in_warmup)
+                )
 
+        # Always save the final iterate.
         self.save_checkpoint("final")
-        logger.info(
-            f"Training complete; best composite={self.state.best_val_loss:.4f} "
-            f"at epoch={self.state.best_epoch}"
-        )
+
+        # ── True Cotter best-iterate selection ──────────────────────────
+        sel = self._select_cotter_best(epoch_records, threshold)
+        if sel is not None:
+            sel_epoch, snap, sel_loss, sel_r2, sel_viol, sel_kind = sel
+            # Restore the selected weights into the live model and save as best.pt.
+            self.encoder.backbone.load_state_dict(snap["backbone"])
+            self.encoder.adapters.load_state_dict(snap["lora_adapters"])
+            self.task_heads.load_state_dict(snap["task_heads"])
+            self.state.best_epoch = sel_epoch
+            self.state.best_val_loss = sel_loss  # task_loss at best, not composite
+            self.save_checkpoint("best")
+
+            n_feasible = sum(
+                1 for r in epoch_records
+                if not r[5] and all(v < threshold for v in r[3].values())
+            )
+            n_eligible = sum(1 for r in epoch_records if not r[5])
+            logger.info(
+                f"Cotter selection [{sel_kind}]: epoch={sel_epoch} "
+                f"task_loss={sel_loss:.4f} viol_sum={sel_viol:.4f} "
+                f"(n_feasible={n_feasible}/{n_eligible} post-warmup iterates)"
+            )
+            self.state.history.setdefault("cotter_selection", []).append(
+                {
+                    "epoch": sel_epoch,
+                    "task_loss": sel_loss,
+                    "violation_sum": sel_viol,
+                    "kind": sel_kind,
+                    "n_feasible_post_warmup": n_feasible,
+                    "n_eligible_post_warmup": n_eligible,
+                }
+            )
+        else:
+            logger.warning("Cotter selection: no records to select from")
+
         return self.state
+
+    # ── Cotter best-iterate selection ───────────────────────────────────
+
+    def _select_cotter_best(
+        self, records, threshold: float,
+    ):
+        """Cotter et al. JMLR 2019 §4.6 best-iterate selection.
+
+        Among post-warmup iterates:
+          1. If any iterate is fully feasible (every R² < threshold), return
+             the one with min val_task_loss.
+          2. Otherwise, among iterates whose task_loss is within
+             ``cotter_fallback_task_slack`` (default 10%) of the best task_loss,
+             return the one with smallest sum-of-violations.
+        Returns ``(epoch, snapshot, task_loss, r2_per_pair, viol_sum, kind)``
+        with ``kind`` in {"feasible", "fallback"}, or None if no records exist.
+        """
+        if not records:
+            return None
+        eligible = [r for r in records if not r[5]]  # exclude warmup epochs
+        if not eligible:
+            eligible = list(records)
+
+        feasible = [r for r in eligible if all(v < threshold for v in r[3].values())]
+        if feasible:
+            b = min(feasible, key=lambda r: r[2])
+            # records are (epoch, snap, loss, r2, viol, in_warmup); drop in_warmup
+            return (b[0], b[1], b[2], b[3], b[4], "feasible")
+
+        slack = self.config.cotter_fallback_task_slack
+        best_task = min(r[2] for r in eligible)
+        # Treat best_task >= 0 (cross-entropy is non-negative); 1+slack scaling.
+        near_optimal = [r for r in eligible if r[2] <= best_task * (1.0 + slack)]
+        if near_optimal:
+            b = min(near_optimal, key=lambda r: r[4])
+            return (b[0], b[1], b[2], b[3], b[4], "fallback")
+        return None
 
     # ── checkpointing + history ─────────────────────────────────────────
 
