@@ -196,6 +196,16 @@ class V2Trainer:
         # but redoing it here is harmless and self-documenting).
         for p in self.encoder.backbone.parameters():
             p.requires_grad_(False)
+        # Also freeze BN running statistics. ``requires_grad_(False)`` only
+        # locks Parameters; BatchNorm's ``running_mean`` / ``running_var``
+        # are Buffers and still update in ``train()`` mode, drifting the
+        # backbone away from its initialised distribution and silently
+        # invalidating any closed-form structure (e.g. a LEACE warm-start)
+        # applied at construction time. We force every BN module in the
+        # backbone to ``eval()`` permanently — the encoder's ``train()``
+        # toggle no longer flips them back. LoRA adapters and task heads
+        # still respond to ``train()`` for their own dropout layers.
+        self._freeze_backbone_bn()
 
         self.encoder.to(self.device)
         self.task_heads.to(self.device)
@@ -250,6 +260,13 @@ class V2Trainer:
 
         self.state = V2State()
 
+    def _freeze_backbone_bn(self) -> None:
+        """Force every BatchNorm in the backbone into ``eval()``. Called once
+        at construction and re-asserted after every ``encoder.train()``."""
+        for m in self.encoder.backbone.modules():
+            if isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
+                m.eval()
+
     # ── helpers ─────────────────────────────────────────────────────────
 
     def _to_device(self, batch: dict[str, Any]) -> dict[str, Any]:
@@ -300,6 +317,7 @@ class V2Trainer:
         Lambdas remain at their initial values.
         """
         self.encoder.train()
+        self._freeze_backbone_bn()
         self.task_heads.train()
 
         # Forward all purposes (each requires a separate hook-injected pass).
@@ -409,6 +427,7 @@ class V2Trainer:
 
     def train_epoch(self, loader: DataLoader, apply_constraints: bool = True) -> V2EpochMetrics:
         self.encoder.train()
+        self._freeze_backbone_bn()
         self.task_heads.train()
         self.vclubs.train()
 
