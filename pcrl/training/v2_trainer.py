@@ -1,4 +1,4 @@
-"""V2 trainer: LoRA + linear-R² constraint + HSIC aux + vCLUB + VICReg + proxy-Lagrangian.
+"""V2 trainer: LoRA + linear-R² constraint + vCLUB + VICReg + proxy-Lagrangian.
 
 Replaces the adversarial / minimax loop in ``trainer.py`` with a
 non-adversarial constrained optimisation loop. The primary independence
@@ -10,11 +10,9 @@ of attr from z — so the optimiser and the audit cannot disagree.
         L_task     = sum_p CE(task_head_p(z_p), y_p)
         L_vicreg   = sum_p vicreg_loss(z_p)
         L_vclub    = sum_{p,a} vclub_{p,a}.mi_upper_bound(z_p, attr_a)
-        L_hsic_aux = sum_{p,a} HSIC(z_p, attr_a)        # fixed-weight nonlinear aux
         primal_loss = L_task
                     + lambda_vicreg   * L_vicreg
                     + lambda_vclub    * L_vclub
-                    + lambda_hsic_aux * L_hsic_aux
                     + sum_{p,a} lambda_{p,a} * (R²(z_p, attr_a) - tau)
         backward; step (LoRA adapters + task head params)
 
@@ -26,8 +24,21 @@ of attr from z — so the optimiser and the audit cannot disagree.
         for each (p, a): lambda_{p,a} <- proj([0, lam_max],
                                               lambda + eta * (R² - tau))
 
-Early stopping: best val_task_loss only (not composite). Composite includes
-the constraint violations and would reward collapse, exactly as in v1.
+Best-iterate selection: Cotter best-iterate on a composite that combines
+val_task_loss with constraint violations,
+
+    composite = val_task_loss + w * sum_{p,a} max(0, R²(z_p, a) - tau)
+
+Per Cotter et al. JMLR 2019 §4.6, proxy-Lagrangian methods are asymptotic
+in feasibility — selecting on val_task_loss alone exits before duals
+converge. We run the full schedule and snapshot the best composite iterate.
+
+HSIC was previously kept as a fixed-weight differentiable auxiliary
+(``lambda_hsic_aux=0.1``). The R-LACE/LEACE diagnostic (commit f8d1966)
+showed the linear-R² constraint is feasible on the frozen backbone with
+LEACE driving R² to 0.005 on 7/8 pairs. Under median bandwidth HSIC adds
+a competing nonlinear gradient that crowds out the R² signal; default is
+now ``lambda_hsic_aux=0.0``. The HSIC value is still computed for logging.
 
 The backbone is frozen; only LoRA adapters and task heads are trained on
 the primal optimiser. vCLUB q-nets get their own optimiser. The
@@ -72,12 +83,17 @@ class V2TrainerConfig:
     lambda_vicreg: float = 1.0
     lambda_vclub: float = 1.0
     lambda_verify: float = 0.0  # Legacy; R² is now the constraint, not a fixed-weight term.
-    lambda_hsic_aux: float = 0.1  # Fixed weight for HSIC as a nonlinear auxiliary.
+    lambda_hsic_aux: float = 0.0  # Round 1 fix: HSIC under median bandwidth was
+                                  # redundant with the linear-R² constraint and
+                                  # fought the dual. Set to 0.0; HSIC still logged.
 
     # Linear-R² constraint (proxy-Lagrangian primary; matches auditor's metric).
     lambda_hsic_init: float = 1.0  # Reused as initial dual variable for the R² constraint.
     r2_threshold: float = 0.05
     r2_lambda_max: float = 100.0
+
+    # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6).
+    composite_violation_weight: float = 0.5  # weight w on Σ max(0, R² - τ)
 
     # VICReg knobs
     vicreg_gamma: float = 1.0
@@ -97,7 +113,8 @@ class V2TrainerConfig:
     # Training schedule
     batch_size: int = 256
     epochs: int = 100
-    early_stopping_patience: int | None = 20
+    early_stopping_patience: int | None = None  # Round 1: deprecated. Cotter
+                                                # best-iterate runs full schedule.
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
     log_interval: int = 50
@@ -125,8 +142,11 @@ class V2EpochMetrics:
 class V2State:
     epoch: int = 0
     global_step: int = 0
+    # best_val_loss now tracks the Cotter best-iterate composite
+    # (val_task_loss + w * Σ max(0, R² - τ)), not raw val_task_loss.
     best_val_loss: float = float("inf")
-    patience_counter: int = 0
+    best_epoch: int = -1
+    patience_counter: int = 0  # Deprecated; retained for checkpoint backward compat.
     history: dict[str, list[float]] = field(default_factory=dict)
 
 
@@ -472,6 +492,8 @@ class V2Trainer:
         return m
 
     def train(self, train_loader: DataLoader, val_loader: DataLoader | None = None) -> V2State:
+        threshold = self.config.r2_threshold
+        w = self.config.composite_violation_weight
         for epoch in range(self.config.epochs):
             self.state.epoch = epoch
             tr = self.train_epoch(train_loader)
@@ -485,28 +507,35 @@ class V2Trainer:
             if val_loader is not None:
                 val = self.evaluate(val_loader)
                 self._update_history("val", val)
+
+                # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6):
+                # composite = val_task_loss + w * Σ max(0, R² - τ).
+                # Proxy-Lagrangian iterates are asymptotic in feasibility — early
+                # stopping on val_task_loss alone exits before duals converge.
+                violation_sum = sum(
+                    max(0.0, v - threshold) for v in val.r2_per_pair.values()
+                )
+                composite = float(val.task_loss) + w * violation_sum
+                self.state.history.setdefault("val_violation_sum", []).append(violation_sum)
+                self.state.history.setdefault("val_composite", []).append(composite)
+
                 logger.info(
                     f"[V2/VAL]   epoch={epoch} task={val.task_loss:.4f} "
+                    f"viol_sum={violation_sum:.4f} composite={composite:.4f} "
                     f"r2_mean={val.r2_mean:.4f} hsic_mean={val.hsic_mean:.4f} "
                     f"time={val.epoch_time:.1f}s"
                 )
-                # Early stop on val task loss alone (NOT composite — composite would
-                # reward collapse via the HSIC + vCLUB terms).
-                if val.task_loss < self.state.best_val_loss:
-                    self.state.best_val_loss = val.task_loss
-                    self.state.patience_counter = 0
-                    self.save_checkpoint("best")
-                else:
-                    self.state.patience_counter += 1
 
-                if (
-                    self.config.early_stopping_patience is not None
-                    and self.state.patience_counter >= self.config.early_stopping_patience
-                ):
-                    logger.info(f"Early stopping at epoch {epoch}")
-                    break
+                if composite < self.state.best_val_loss:
+                    self.state.best_val_loss = composite
+                    self.state.best_epoch = epoch
+                    self.save_checkpoint("best")
 
         self.save_checkpoint("final")
+        logger.info(
+            f"Training complete; best composite={self.state.best_val_loss:.4f} "
+            f"at epoch={self.state.best_epoch}"
+        )
         return self.state
 
     # ── checkpointing + history ─────────────────────────────────────────
@@ -537,6 +566,7 @@ class V2Trainer:
                 "epoch": self.state.epoch,
                 "global_step": self.state.global_step,
                 "best_val_loss": self.state.best_val_loss,
+                "best_epoch": self.state.best_epoch,
             },
             "history": self.state.history,
         }

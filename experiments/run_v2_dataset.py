@@ -198,14 +198,16 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
             )
 
     ckpt_dir = ROOT / "checkpoints" / f"v2_{name}_s{seed}"
+    # Round 1 (commit-message: V2 Round 1): lambda_hsic_aux now defaults to 0.0
+    # and patience-based early stopping is replaced by Cotter best-iterate.
+    # We rely on the V2TrainerConfig defaults for both rather than overriding.
     config = V2TrainerConfig(
         lr_primal=1e-3, lr_vclub=1e-3, lr_lambda=0.05,
         lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
-        lambda_hsic_aux=0.1,
         lambda_hsic_init=1.0, r2_threshold=0.05, r2_lambda_max=100.0,
         vicreg_gamma=1.0,
         lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
-        batch_size=256, epochs=200, early_stopping_patience=20,
+        batch_size=256, epochs=200,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
         checkpoint_dir=str(ckpt_dir),
     )
@@ -214,11 +216,14 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         purpose_registry=registry, config=config, device=device,
     )
 
-    log.info(f"  [{name}/seed={seed}] training (device={device}, K=200, patience=20)")
+    log.info(f"  [{name}/seed={seed}] training (device={device}, K=200, Cotter best-iterate)")
     t0 = time.time()
     state = trainer.train(train_loader, val_loader=val_loader)
     train_time = time.time() - t0
-    log.info(f"  [{name}/seed={seed}] trained in {train_time:.0f}s, last_epoch={state.epoch}")
+    log.info(
+        f"  [{name}/seed={seed}] trained in {train_time:.0f}s, last_epoch={state.epoch}, "
+        f"best_epoch={state.best_epoch}, best_composite={state.best_val_loss:.4f}"
+    )
 
     # Reload best checkpoint
     best = ckpt_dir / "best.pt"
@@ -271,13 +276,14 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         "seed": seed,
         "train_time_s": round(train_time, 1),
         "last_epoch": state.epoch,
+        "best_epoch": state.best_epoch,
         "task_accuracies": task_accs,
         "attribute_results": attr_results,
         "pass_count": pass_count,
         "total_pairs": len(reports),
         "per_purpose_health": per_purpose_health,
         "lambdas_final": lambdas_final,
-        "best_val_loss": float(state.best_val_loss),
+        "best_composite": float(state.best_val_loss),
     }
 
 
