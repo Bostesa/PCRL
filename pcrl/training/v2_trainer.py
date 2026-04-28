@@ -111,6 +111,17 @@ class V2TrainerConfig:
     cotter_fallback_task_slack: float = 0.10  # 10% slack on task_loss for fallback
     composite_violation_weight: float = 0.5  # legacy (Round 1); unused by true Cotter
 
+    # Fix 1: closed-form LEACE warm-start of the per-purpose LoRA adapters
+    # (Belrose et al. 2023). For each purpose, fits a LEACE eraser on
+    # (backbone_features, concatenated-one-hot disallowed_attrs) and
+    # initialises the last-Linear LoRA so that the encoder output at
+    # epoch 0 already approximately satisfies R²(z, A) ≈ 0. Closed-form
+    # diagnostic showed LEACE drives R² to ~0.005 on 7/8 Adult pairs, and
+    # the gradient optimiser couldn't reach this region from a zero-init
+    # LoRA. Starting inside the feasible set (or close to it) means the
+    # dual variables stay small and don't have to fight task gradient.
+    leace_init: bool = True
+
     # VICReg knobs
     vicreg_gamma: float = 1.0
     vicreg_lambda_var: float = 1.0
@@ -166,6 +177,28 @@ class V2State:
     best_epoch: int = -1
     patience_counter: int = 0  # Deprecated; retained for checkpoint backward compat.
     history: dict[str, list[float]] = field(default_factory=dict)
+
+
+def _linear_r2_train(H, Z, reg: float = 1e-6) -> float:
+    """Train-set linear R² of optimal Tikhonov-regularised one-hot predictor.
+
+    Mirrors ``rlace_diagnostic._linear_r2`` and the auditor's metric
+    (LinearComplianceCertificate). Used for LEACE warm-start diagnostics.
+    """
+    import numpy as np
+
+    Z = Z.astype("int64") if hasattr(Z, "astype") else Z
+    n_classes = int(Z.max()) + 1
+    Z_oh = np.eye(n_classes)[Z]
+    n, d = H.shape
+    H_c = H - H.mean(axis=0, keepdims=True)
+    Z_c = Z_oh - Z_oh.mean(axis=0, keepdims=True)
+    gram = H_c.T @ H_c + reg * np.eye(d)
+    W = np.linalg.solve(gram, H_c.T @ Z_c)
+    Z_pred = H_c @ W
+    ss_res = ((Z_c - Z_pred) ** 2).sum()
+    ss_tot = (Z_c ** 2).sum()
+    return float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
 
 
 def _pair_key(purpose_name: str, attr_name: str) -> str:
@@ -266,6 +299,110 @@ class V2Trainer:
         for m in self.encoder.backbone.modules():
             if isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
                 m.eval()
+
+    # ── LEACE warm-start ────────────────────────────────────────────────
+
+    @torch.no_grad()
+    def leace_warm_start(self, train_loader: DataLoader) -> dict[str, dict[str, float]]:
+        """Initialise each purpose's last-Linear LoRA from a closed-form LEACE
+        eraser on (backbone_features, concatenated-one-hot disallowed_attrs).
+
+        Per purpose:
+          1. Run the frozen backbone on the full train loader → features Z (N, d).
+             (No LoRA; the frozen-backbone output is the same for every purpose
+             at this stage since adapters are still zero.)
+          2. Stack disallowed_attrs as a concatenated one-hot concept matrix
+             A_oh (N, sum_a c_a). LEACE Theorem 4.2 — the affine eraser
+             driving Σ_{Pz, Z} = 0 covers all linearly independent directions
+             of Z simultaneously.
+          3. Fit ``LeaceEraser`` to (Z, A_oh) and extract the affine map
+             e(z) = Q z + (I − Q) μ.
+          4. Call ``encoder.init_last_layer_from_affine(p, Q, (I-Q) μ)`` —
+             rank-r SVD of (Q − I) W_repr factors into the LoRA's A, B; bias
+             absorbs the translation.
+
+        Returns per-purpose diagnostics: pre-init train R² and post-init
+        train R² for each (p, a) pair.
+        """
+        from concept_erasure import LeaceEraser
+
+        # Move backbone to eval mode for clean BN statistics.
+        was_training = self.encoder.training
+        self.encoder.eval()
+        # Pre-init: zero the last-layer LoRA so backbone(x) is unaffected.
+        # (At construction the LoRAs are zero-init; this is just defensive.)
+        last_idx = len(self.encoder._linear_modules) - 1
+        for p_idx in range(self.encoder.n_purposes):
+            adapter = self.encoder.adapters[p_idx][last_idx]
+            adapter.B.weight.zero_()
+            adapter.bias.zero_()
+
+        # Collect features + every disallowed attr across the loader.
+        # Use purpose 0's path; with zeroed adapters every purpose gives the
+        # same features (= raw backbone).
+        feats: list[torch.Tensor] = []
+        attrs_collect: dict[str, list[torch.Tensor]] = {}
+        for batch in train_loader:
+            batch = self._to_device(batch)
+            z = self.encoder(batch["features"], 0)
+            feats.append(z.detach().cpu())
+            for k, v in batch["sensitive_attrs"].items():
+                attrs_collect.setdefault(k, []).append(v.detach().cpu().long())
+
+        Z = torch.cat(feats, dim=0)  # (N, d)
+        attrs = {k: torch.cat(v, dim=0) for k, v in attrs_collect.items()}
+
+        diagnostics: dict[str, dict[str, float]] = {}
+        eye_d = torch.eye(Z.shape[1])
+
+        for purpose_name in self.purpose_names:
+            p_idx = self._purpose_idx(purpose_name)
+            disallowed = self.purpose_configs[purpose_name]["disallowed_attrs"]
+
+            # Build concatenated one-hot concept matrix.
+            oh_blocks: list[torch.Tensor] = []
+            for a_name in disallowed:
+                a_int = attrs[a_name]
+                n_classes = int(a_int.max().item()) + 1
+                oh = torch.eye(n_classes)[a_int]  # (N, c_a)
+                oh_blocks.append(oh)
+            A_oh = torch.cat(oh_blocks, dim=1).float()
+
+            eraser = LeaceEraser.fit(Z.float(), A_oh)
+            Q = eraser.P.detach()  # (d, d)
+            mu = (
+                eraser.bias.detach()
+                if eraser.bias is not None
+                else torch.zeros(Z.shape[1])
+            )
+            c = (eye_d - Q) @ mu
+
+            # Pre-init R² per pair (on train set, current backbone).
+            pre = {a: _linear_r2_train(Z.numpy(), attrs[a].numpy()) for a in disallowed}
+
+            # Apply LEACE-erased Z and report linear R² post-erasure (sanity).
+            Z_erased = eraser(Z.float())
+            post_closed = {
+                a: _linear_r2_train(Z_erased.numpy(), attrs[a].numpy())
+                for a in disallowed
+            }
+
+            self.encoder.init_last_layer_from_affine(p_idx, Q, c)
+
+            diagnostics[purpose_name] = {
+                **{f"r2_pre[{a}]": pre[a] for a in disallowed},
+                **{f"r2_post_closed[{a}]": post_closed[a] for a in disallowed},
+            }
+            logger.info(
+                f"[V2/LEACE] purpose={purpose_name} attrs={disallowed} "
+                f"pre={pre} post_closed={post_closed}"
+            )
+
+        # After init, switch back to original mode.
+        if was_training:
+            self.encoder.train()
+            self._freeze_backbone_bn()
+        return diagnostics
 
     # ── helpers ─────────────────────────────────────────────────────────
 

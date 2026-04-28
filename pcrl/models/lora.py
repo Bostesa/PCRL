@@ -52,9 +52,14 @@ class LoRAAdapter(nn.Module):
     """Single LoRA adapter for one Linear layer.
 
     Computes only the **adapter contribution** to the host Linear's
-    output (``B(A(x)) * scaling``); the host Linear itself still
+    output (``B(A(x)) * scaling + bias``); the host Linear itself still
     contributes its own ``W @ x + b`` term independently. The wrapper's
     forward hook adds the two together at runtime.
+
+    The optional ``bias`` parameter (zero-initialised) lets a closed-form
+    initialiser (e.g. LEACE) absorb the affine translation that a pure
+    rank-r factor cannot represent. Standard LoRA training leaves it at
+    zero, recovering the canonical no-bias-on-adapter behaviour.
 
     Args:
         in_features: Input dim of the host Linear.
@@ -87,6 +92,10 @@ class LoRAAdapter(nn.Module):
         # disabled because the host Linear already has its own bias.
         self.A = nn.Linear(in_features, rank, bias=False)
         self.B = nn.Linear(rank, out_features, bias=False)
+        # Optional adapter-side bias (translation). LEACE's affine eraser
+        # has a translation component (I-Q)μ that a rank-r BA factor
+        # cannot represent; this parameter absorbs it. Zero by default.
+        self.bias = nn.Parameter(torch.zeros(out_features))
         self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
 
         # Kaiming-normal A (small variance), zero B. The zero B means the
@@ -97,7 +106,7 @@ class LoRAAdapter(nn.Module):
         nn.init.zeros_(self.B.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.B(self.A(self.dropout(x))) * self.scaling
+        return self.B(self.A(self.dropout(x))) * self.scaling + self.bias
 
 
 def _coerce_purpose_idx(purpose_idx: int | torch.Tensor, n_purposes: int) -> int:
@@ -223,3 +232,73 @@ class PerPurposeLoRAEncoder(nn.Module):
     def n_trainable(self) -> int:
         """Total trainable parameter count (LoRA adapters only)."""
         return sum(p.numel() for p in self.adapters.parameters())
+
+    @torch.no_grad()
+    def init_last_layer_from_affine(
+        self, purpose_idx: int, Q: torch.Tensor, c: torch.Tensor,
+    ) -> None:
+        """Initialise this purpose's last-Linear LoRA to realise z' = Q z + c.
+
+        For the host Linear (W, b) on the final repr_proj, the modified
+        output we want is
+
+            z'_p(h) = Q (W h + b) + c
+                    = (Q W) h + (Q b + c)
+
+        The LoRA contribution is ``s · BA · h + d`` (with s=alpha/rank and
+        d the adapter-side bias). Matching:
+
+            s · BA = (Q − I) W       (rank-r factor of a (out, in) matrix)
+            d      = (Q − I) b + c   (closed form for the translation)
+
+        ``s · BA`` is rank-r; if rank(Q − I) ≤ r — which holds when the
+        concept Z spans ≤ r linearly-independent directions — the SVD
+        truncation is exact. Otherwise it is the best rank-r approximation
+        in Frobenius norm.
+
+        Hidden-layer adapters are left at zero so the projection is
+        applied only at the output step. Adapter A is set to a (rank,
+        in_features) matrix whose rows form the right singular basis
+        (orthonormal) so subsequent gradient updates can rotate inside
+        that subspace without immediately undoing the LEACE structure.
+        """
+        last_idx = len(self._linear_modules) - 1
+        host = self._linear_modules[last_idx]
+        adapter: LoRAAdapter = self.adapters[purpose_idx][last_idx]
+
+        W = host.weight.detach().to(Q.device)  # (out, in)
+        b = (
+            host.bias.detach().to(Q.device)
+            if host.bias is not None
+            else torch.zeros(host.out_features, device=Q.device)
+        )
+
+        out_dim, in_dim = W.shape
+        if Q.shape != (out_dim, out_dim):
+            raise ValueError(
+                f"Q must be ({out_dim}, {out_dim}); got {tuple(Q.shape)}"
+            )
+        if c.shape != (out_dim,):
+            raise ValueError(f"c must be ({out_dim},); got {tuple(c.shape)}")
+
+        target = (Q - torch.eye(out_dim, device=Q.device)) @ W  # (out, in)
+        # Rank-r SVD truncation: target ≈ U_r diag(σ_r) V_r^T
+        U, S, Vh = torch.linalg.svd(target, full_matrices=False)
+        r = adapter.rank
+        U_r = U[:, :r]                       # (out, r)
+        S_r = S[:r]                          # (r,)
+        Vh_r = Vh[:r, :]                     # (r, in)
+
+        # Distribute σ between A and B. Standard LoRA convention is to
+        # absorb σ into B (so A has unit-norm rows from V^T). Equivalent
+        # under gradient descent; A's rows form an orthonormal basis of
+        # the input-side subspace where the projection acts.
+        A_w = Vh_r                           # (r, in)
+        B_w = U_r * S_r.unsqueeze(0)         # (out, r)
+
+        # The adapter applies scaling s = alpha/r on top of (B_w A_w).
+        # We want the effective contribution to be `target = (Q-I) W`,
+        # so divide by s here.
+        adapter.A.weight.copy_(A_w.to(adapter.A.weight.dtype))
+        adapter.B.weight.copy_((B_w / adapter.scaling).to(adapter.B.weight.dtype))
+        adapter.bias.copy_(((Q - torch.eye(out_dim, device=Q.device)) @ b + c).to(adapter.bias.dtype))

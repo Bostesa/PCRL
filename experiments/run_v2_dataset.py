@@ -157,7 +157,7 @@ def reps_for_purpose(encoder, loader, idx, device):
 
 
 def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
-             seed: int, device: str) -> dict:
+             seed: int, device: str, epochs: int = 200) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -207,7 +207,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         r2_threshold=0.05,
         vicreg_gamma=1.0,
         lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
-        batch_size=256, epochs=200,
+        batch_size=256, epochs=epochs,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
         checkpoint_dir=str(ckpt_dir),
     )
@@ -220,6 +220,12 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         f"  [{name}/seed={seed}] training (device={device}, "
         f"warmup={config.warmup_epochs} + epochs={config.epochs}, true Cotter best-iterate)"
     )
+
+    if config.leace_init:
+        log.info(f"  [{name}/seed={seed}] LEACE warm-start of LoRA adapters …")
+        leace_diag = trainer.leace_warm_start(train_loader)
+        log.info(f"  [{name}/seed={seed}] LEACE warm-start done")
+
     t0 = time.time()
     state = trainer.train(train_loader, val_loader=val_loader)
     train_time = time.time() - t0
@@ -370,6 +376,8 @@ def main() -> None:
     parser.add_argument("--device", default=None)
     parser.add_argument("--out-tag", default="",
                         help="Suffix appended to results/v2_<dataset> output dir, e.g. _OPTION_A")
+    parser.add_argument("--epochs", type=int, default=200,
+                        help="Number of constrained epochs per seed (warmup is added on top).")
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -386,7 +394,7 @@ def main() -> None:
     overall_t0 = time.time()
     per_seed_results = []
     for seed in args.seeds:
-        result = run_seed(args.dataset, purposes, train_ds, val_ds, test_ds, seed, device)
+        result = run_seed(args.dataset, purposes, train_ds, val_ds, test_ds, seed, device, args.epochs)
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
               f"task_acc={result['task_accuracies']}, "
