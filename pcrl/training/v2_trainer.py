@@ -87,20 +87,30 @@ class V2TrainerConfig:
     # Optimiser learning rates
     lr_primal: float = 1e-3
     lr_vclub: float = 1e-3
-    lr_lambda: float = 0.005  # Round 2: damped from 0.05; per Stooke et al. ICML
-                              # 2020, slow dual-ascent prevents oscillation.
+    lr_lambda: float = 0.02  # Round 4: intermediate between R1's 0.05
+                             # (saturated at cap) and R2's 0.005 (under-engaged).
+                             # Round 3 probe + Fix 1 (LEACE init) needed
+                             # enough dual authority to keep R² descending.
 
     # Loss weights (fixed scalarisation for terms that aren't constraints)
-    lambda_vicreg: float = 1.0
-    lambda_vclub: float = 1.0
+    lambda_vicreg: float = 1.0  # Kept at full weight: VICReg variance term
+                                # protects per-dim std from collapsing under
+                                # sustained constraint pressure.
+    lambda_vclub: float = 0.0   # Round 4: vCLUB disabled in constrained phase.
+                                # Fix 2 probe showed vCLUB MI bound did not
+                                # contribute usefully to R² descent and
+                                # competed with the proxy-Lagrangian term.
+                                # vCLUB q-net still trains; estimate is logged
+                                # but contributes 0 to the primal loss.
     lambda_verify: float = 0.0  # Legacy; R² is now the constraint, not a fixed-weight term.
     lambda_hsic_aux: float = 0.0  # Round 1 fix: HSIC under median bandwidth was
                                   # redundant with the linear-R² constraint and
                                   # fought the dual. Set to 0.0; HSIC still logged.
 
     # Linear-R² constraint (proxy-Lagrangian primary; matches auditor's metric).
-    lambda_hsic_init: float = 0.0  # Round 2: lambdas start at 0; warmup keeps them
-                                   # at 0 for warmup_epochs, then dual ascent ramps.
+    lambda_hsic_init: float = 1.0  # Round 4: start duals with some authority.
+                                   # Round 2's 0.0 + low lr_lambda left duals
+                                   # stuck at single-digit values throughout.
     r2_threshold: float = 0.05
     r2_lambda_max: float = 1000.0  # Round 2: raised from 100; gives the dual room
                                    # to apply more pressure before saturating.
@@ -140,9 +150,9 @@ class V2TrainerConfig:
     # Training schedule
     batch_size: int = 256
     epochs: int = 100  # Constrained epochs (warmup_epochs are added on top).
-    warmup_epochs: int = 20  # Round 2: task-only warmup. During these, the
-                             # constraint Lagrangian + dual updates are skipped
-                             # so LoRA can learn the task before pressure starts.
+    warmup_epochs: int = 5  # Round 4: was 20; Round 2 showed K=20 lets task
+                            # overfit to ~100% during warmup, locking the rep
+                            # into task-optimal before constraints engage.
     early_stopping_patience: int | None = None  # Deprecated; Cotter runs full schedule.
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
