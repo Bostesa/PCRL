@@ -81,6 +81,19 @@ SEEDS = [0, 1, 2]
 HEALTH_PER_DIM_STD_MIN = 0.5
 HEALTH_EFF_RANK_MIN = 2.0
 
+# Per-dataset LoRA shape overrides. The default shape (rank=8, alpha=16) is
+# sufficient for joint LEACE on Adult/HMDA (max ``sum(c_i - 1) = 8`` on
+# ``employment_analysis``). Diabetes ``quality_research`` requires
+# ``race(5) + age_bucket(10) → 4 + 9 = 13`` independent erasure directions
+# which a rank-8 LoRA cannot express; the warm-start probe shows residual
+# R²=0.27 on age_bucket at epoch 0. Bump rank to 16 (alpha kept at 2 ×
+# rank) so LEACE init is feasible. See ``results/v2_fix1_audit.md``.
+LORA_BY_DATASET: dict[str, tuple[int, float]] = {
+    "adult": (8, 16.0),
+    "hmda": (8, 16.0),
+    "diabetes": (16, 32.0),
+}
+
 
 # ───────────────────────────────────────────────────────────────────────────
 # Dataset construction
@@ -176,12 +189,13 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     input_dim = train_ds.info.num_features
     repr_dim = 64
 
+    lora_rank, lora_alpha = LORA_BY_DATASET.get(name, (8, 16.0))
     backbone = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=repr_dim, dropout=0.3,
     )
     encoder = PerPurposeLoRAEncoder(
         backbone=backbone, n_purposes=len(purposes),
-        rank=8, alpha=16.0, dropout=0.0,
+        rank=lora_rank, alpha=lora_alpha, dropout=0.0,
     )
 
     task_heads: dict = {}
@@ -211,7 +225,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
         r2_threshold=0.05,
         vicreg_gamma=1.0,
-        lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
+        lora_rank=lora_rank, lora_alpha=lora_alpha, lora_dropout=0.0,
         batch_size=256, epochs=epochs,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
         lambda_min=5.0,  # Fix R1
