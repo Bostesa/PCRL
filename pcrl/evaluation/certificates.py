@@ -26,6 +26,225 @@ from pcrl.purposes.verification import (
 )
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Framework D: Dominant-Axis Auditing
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Standard one-hot R² systematically underestimates leakage on imbalanced
+# multi-class sensitive attributes. The Convex-Combination Identity:
+#
+#     R²_onehot = Σ_k w_k · R²_OvR_k,    w_k = π_k(1-π_k) / Σ_j π_j(1-π_j)
+#
+# weights each one-vs-rest R² by class variance. A high-leakage minority
+# class (small π_k) is downweighted by its small π_k(1-π_k). The dominant-
+# axis metric R²_DA = max_k R²_OvR_k surfaces this hidden leakage.
+#
+# Implementation: closed-form Tikhonov-regularized linear regression of
+# H → z_k for each binary indicator z_k = 1[y == k], following the same
+# centering and regularization conventions as LinearComplianceCertificate
+# so that the identity above holds tightly.
+
+def compute_dominant_axis_r2(
+    features: np.ndarray | torch.Tensor,
+    labels: np.ndarray | torch.Tensor,
+    *,
+    regularization: float = 1e-6,
+) -> dict:
+    """Dominant-axis R² for a multi-class sensitive attribute.
+
+    For each class k in 0..K-1:
+      • Build binary indicator z_k = 1[labels == k] (float).
+      • Fit closed-form Tikhonov-regularized OLS of features → z_k.
+      • R² is computed in-sample on the input data — matching the
+        convention of ``LinearComplianceCertificate`` (which is what
+        ``generate_report`` already calls on held-out test_loader data).
+
+    Return ``max_k R²_OvR_k``, the per-class array, and the argmax index.
+
+    Identity sanity check: the per-class R²s computed here, when weighted
+    by w_k = π_k(1-π_k)/Σ_j π_j(1-π_j), recover the standard one-hot R²
+    (this is the Convex-Combination Identity from the paper).
+
+    Args:
+        features: (n, d) representations.
+        labels: (n,) integer labels.
+        regularization: Tikhonov regularization (matches the default of
+            ``LinearComplianceCertificate``, 1e-6, so the identity holds
+            tightly).
+
+    Returns:
+        Dict with keys:
+          • ``r2_da``: max OvR R² (float).
+          • ``argmax_class``: class k* attaining the max (int).
+          • ``per_class_r2``: list[float] of length K, R²_OvR_k for each class.
+          • ``priors``: list[float] of length K, empirical class priors π_k.
+    """
+    H = features.detach().cpu().numpy() if isinstance(features, torch.Tensor) else np.asarray(features)
+    y = labels.detach().cpu().numpy() if isinstance(labels, torch.Tensor) else np.asarray(labels)
+    H = H.astype(np.float64, copy=False)
+    y = y.astype(np.int64, copy=False)
+
+    n, d = H.shape
+    K = int(y.max()) + 1
+
+    # Empirical priors (handles classes absent from y by leaving them at 0).
+    priors_full = np.zeros(K, dtype=np.float64)
+    for cls, c in zip(*np.unique(y, return_counts=True)):
+        priors_full[int(cls)] = c / n
+
+    H_centered = H - H.mean(axis=0, keepdims=True)
+    gram = H_centered.T @ H_centered + regularization * np.eye(d)
+    gram_inv_HT = np.linalg.solve(gram, H_centered.T)  # (d, n)
+
+    per_class_r2: list[float] = []
+    for k in range(K):
+        z = (y == k).astype(np.float64)
+        z_centered = z - z.mean()
+        w_star = gram_inv_HT @ z_centered  # (d,)
+        z_pred = H_centered @ w_star
+        ss_res = float(np.sum((z_centered - z_pred) ** 2))
+        ss_tot = float(np.sum(z_centered ** 2))
+        r2 = 1.0 - (ss_res / max(ss_tot, 1e-12))
+        per_class_r2.append(float(max(0.0, r2)))
+
+    arr = np.asarray(per_class_r2)
+    return {
+        "r2_da": float(arr.max()),
+        "argmax_class": int(arr.argmax()),
+        "per_class_r2": per_class_r2,
+        "priors": priors_full.tolist(),
+    }
+
+
+def compute_mlp_ovr_delta(
+    train_features: np.ndarray | torch.Tensor,
+    train_labels: np.ndarray | torch.Tensor,
+    test_features: np.ndarray | torch.Tensor,
+    test_labels: np.ndarray | torch.Tensor,
+    *,
+    hidden: int = 256,
+    epochs: int = 50,
+    lr: float = 1e-3,
+    dropout: float = 0.3,
+    batch_size: int = 256,
+    device: str = "cpu",
+    random_state: int = 0,
+) -> dict:
+    """Nonlinear MLP one-vs-rest probe for dominant-axis auditing.
+
+    For each class k, train a 2-layer MLP (hidden=256, ReLU, dropout=0.3,
+    Adam lr=1e-3, BCE) on (features, z_k = 1[label == k]) and evaluate test
+    accuracy. Report ``delta_k = test_acc_k − binary_majority_baseline_k``
+    where the baseline = max(π_k, 1 − π_k) on the test set. ``mlp_da_delta``
+    is ``max_k delta_k``.
+
+    Args:
+        train_features: (n_tr, d) features for fitting.
+        train_labels: (n_tr,) integer multi-class labels.
+        test_features: (n_te, d) features for evaluation.
+        test_labels: (n_te,) integer multi-class labels.
+        hidden: Hidden width.
+        epochs: Training epochs per class.
+        lr: Adam learning rate.
+        dropout: Dropout between hidden and output.
+        batch_size: Mini-batch size.
+        device: Torch device.
+        random_state: Seed for the MLP init and data shuffling.
+
+    Returns:
+        Dict with keys ``mlp_da_delta``, ``argmax_class``,
+        ``per_class_delta``, ``per_class_acc``, ``per_class_baseline``.
+    """
+    H_tr = train_features.detach().cpu().numpy() if isinstance(train_features, torch.Tensor) else np.asarray(train_features)
+    y_tr = train_labels.detach().cpu().numpy() if isinstance(train_labels, torch.Tensor) else np.asarray(train_labels)
+    H_te = test_features.detach().cpu().numpy() if isinstance(test_features, torch.Tensor) else np.asarray(test_features)
+    y_te = test_labels.detach().cpu().numpy() if isinstance(test_labels, torch.Tensor) else np.asarray(test_labels)
+
+    H_tr = H_tr.astype(np.float32, copy=False)
+    H_te = H_te.astype(np.float32, copy=False)
+    y_tr = y_tr.astype(np.int64, copy=False)
+    y_te = y_te.astype(np.int64, copy=False)
+
+    K = max(int(y_tr.max()) + 1, int(y_te.max()) + 1)
+    d = H_tr.shape[1]
+    dev = torch.device(device)
+
+    H_tr_t = torch.from_numpy(H_tr).to(dev)
+    H_te_t = torch.from_numpy(H_te).to(dev)
+
+    per_class_acc: list[float] = []
+    per_class_baseline: list[float] = []
+    per_class_delta: list[float] = []
+
+    for k in range(K):
+        z_tr = (y_tr == k).astype(np.float32)
+        z_te = (y_te == k).astype(np.int64)
+
+        # Binary majority baseline on the test set
+        n_te = len(z_te)
+        pos = int(z_te.sum())
+        baseline = float(max(pos, n_te - pos)) / max(n_te, 1)
+
+        # Edge case: class absent from train set → MLP can't learn it; the
+        # majority baseline is the best the model can do, so delta = 0.
+        if z_tr.sum() == 0 or z_tr.sum() == len(z_tr):
+            per_class_acc.append(baseline)
+            per_class_baseline.append(baseline)
+            per_class_delta.append(0.0)
+            continue
+
+        torch.manual_seed(random_state + k)
+
+        model = nn.Sequential(
+            nn.Linear(d, hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden, 1),
+        ).to(dev)
+
+        opt = torch.optim.Adam(model.parameters(), lr=lr)
+        loss_fn = nn.BCEWithLogitsLoss()
+
+        z_tr_t = torch.from_numpy(z_tr).to(dev)
+        n_tr = len(z_tr)
+        rng = np.random.RandomState(random_state + k)
+
+        model.train()
+        for _ in range(epochs):
+            perm = rng.permutation(n_tr)
+            for start in range(0, n_tr, batch_size):
+                idx = perm[start:start + batch_size]
+                xb = H_tr_t[idx]
+                yb = z_tr_t[idx]
+                opt.zero_grad()
+                logits = model(xb).squeeze(-1)
+                loss = loss_fn(logits, yb)
+                loss.backward()
+                opt.step()
+
+        model.eval()
+        with torch.no_grad():
+            probs = torch.sigmoid(model(H_te_t).squeeze(-1)).cpu().numpy()
+        preds = (probs >= 0.5).astype(np.int64)
+        acc = float((preds == z_te).mean())
+
+        per_class_acc.append(acc)
+        per_class_baseline.append(baseline)
+        per_class_delta.append(float(acc - baseline))
+
+    arr = np.asarray(per_class_delta)
+    return {
+        "mlp_da_delta": float(arr.max()),
+        "argmax_class": int(arr.argmax()),
+        "per_class_delta": per_class_delta,
+        "per_class_acc": per_class_acc,
+        "per_class_baseline": per_class_baseline,
+    }
+
+
 @dataclass
 class ComplianceReport:
     """Compliance audit report for one (purpose, attribute) pair.
@@ -41,6 +260,14 @@ class ComplianceReport:
         empirical_chance_acc: Chance-level accuracy for this attribute.
         empirical_results: Per-classifier accuracy breakdown.
         certified: Overall certification (linear_certified AND empirical below threshold).
+        r2_da: Dominant-axis R² = max_k R²_OvR_k. For binary attrs equals
+            ``linear_r2`` trivially.
+        r2_da_argmax: Class index k* attaining the dominant axis (-1 if not computed).
+        r2_da_per_class: Per-class OvR R² list (empty if not computed).
+        mlp_da_delta: Max over k of (MLP test accuracy on z_k vs rest minus
+            binary majority baseline). None if MLP probe disabled.
+        mlp_da_argmax: Class index attaining the max delta (-1 if not computed).
+        mlp_da_per_class: Per-class delta list (empty if not computed).
     """
 
     purpose_name: str
@@ -57,6 +284,12 @@ class ComplianceReport:
     num_classes: int = 2
     nonlinear_bound: float | None = None
     nonlinear_best_sigma: float | None = None
+    r2_da: float = 0.0
+    r2_da_argmax: int = -1
+    r2_da_per_class: list[float] = field(default_factory=list)
+    mlp_da_delta: float | None = None
+    mlp_da_argmax: int = -1
+    mlp_da_per_class: list[float] = field(default_factory=list)
 
 
 def _extract_representations_and_labels(
@@ -199,6 +432,9 @@ def generate_report(
     linear_epsilon: float = 0.01,
     empirical_threshold: float = 0.05,
     random_state: int = 42,
+    compute_dominant_axis: bool = True,
+    compute_mlp_da: bool = False,
+    mlp_da_kwargs: dict | None = None,
 ) -> list[ComplianceReport]:
     """Generate a full compliance report for all (purpose, disallowed_attr) pairs.
 
@@ -211,10 +447,18 @@ def generate_report(
         linear_epsilon: R² threshold for linear certificates.
         empirical_threshold: Maximum allowed (best_acc - chance_acc) for empirical audit.
         random_state: Seed for empirical auditors.
+        compute_dominant_axis: If True, also compute the linear R²_DA
+            metric (Framework D) on the test split. Cheap, default on.
+        compute_mlp_da: If True, also train an MLP one-vs-rest probe
+            per class and report the max accuracy delta over the binary
+            majority baseline. Expensive (50 epochs × K classes per pair);
+            opt-in.
+        mlp_da_kwargs: Optional kwargs forwarded to ``compute_mlp_ovr_delta``.
 
     Returns:
         List of ComplianceReport, one per (purpose, disallowed_attr) pair.
     """
+    mlp_da_kwargs = dict(mlp_da_kwargs or {})
     reports: list[ComplianceReport] = []
 
     linear_audit = LinearAudit(epsilon=linear_epsilon)
@@ -289,6 +533,28 @@ def generate_report(
             empirical_ok = (best_acc - chance_acc) < empirical_threshold
             certified = linear_result.certified and empirical_ok
 
+            # Dominant-axis auditing (Framework D)
+            r2_da_val = 0.0
+            r2_da_argmax = -1
+            r2_da_per_class: list[float] = []
+            if compute_dominant_axis:
+                da = compute_dominant_axis_r2(test_reprs, test_labels)
+                r2_da_val = da["r2_da"]
+                r2_da_argmax = da["argmax_class"]
+                r2_da_per_class = da["per_class_r2"]
+
+            mlp_da_val: float | None = None
+            mlp_da_argmax = -1
+            mlp_da_per_class: list[float] = []
+            if compute_mlp_da:
+                mlp = compute_mlp_ovr_delta(
+                    train_reprs, train_labels, test_reprs, test_labels,
+                    **mlp_da_kwargs,
+                )
+                mlp_da_val = mlp["mlp_da_delta"]
+                mlp_da_argmax = mlp["argmax_class"]
+                mlp_da_per_class = mlp["per_class_delta"]
+
             reports.append(
                 ComplianceReport(
                     purpose_name=purpose.name,
@@ -305,6 +571,12 @@ def generate_report(
                     num_classes=num_classes,
                     nonlinear_bound=nl_result.nonlinear_bound,
                     nonlinear_best_sigma=nl_result.best_sigma,
+                    r2_da=r2_da_val,
+                    r2_da_argmax=r2_da_argmax,
+                    r2_da_per_class=r2_da_per_class,
+                    mlp_da_delta=mlp_da_val,
+                    mlp_da_argmax=mlp_da_argmax,
+                    mlp_da_per_class=mlp_da_per_class,
                 )
             )
 
