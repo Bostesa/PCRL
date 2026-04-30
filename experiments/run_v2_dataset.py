@@ -157,7 +157,8 @@ def reps_for_purpose(encoder, loader, idx, device):
 
 
 def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
-             seed: int, device: str, epochs: int = 200) -> dict:
+             seed: int, device: str, epochs: int = 200,
+             out_tag: str = "") -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -197,11 +198,15 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
                 hidden_dim=128, z_categorical=True, l2=1e-1,
             )
 
-    ckpt_dir = ROOT / "checkpoints" / f"v2_{name}_s{seed}"
-    # Round 2: 20 warmup epochs + 200 constrained epochs = 220 total.
-    # Round 2 trainer defaults bring lambda_hsic_aux=0, lambda_init=0,
-    # lr_lambda=0.005, r2_lambda_max=1000, warmup_epochs=20. We only override
-    # the post-warmup epoch count and the checkpoint directory.
+    # ``out_tag`` is included in the checkpoint dir to keep parallel runs
+    # isolated (e.g. Round 4 vs an R1+R2 probe) so analysis scripts that
+    # read ``checkpoints/v2_{name}_s{seed}`` don't see clobbered weights.
+    ckpt_dir = ROOT / "checkpoints" / f"v2_{name}{out_tag}_s{seed}"
+    # Round 5 / Fix R1+R2: lambda_min=5.0 (proxy-Lagrangian dual floor) +
+    # warmup_when_leace_init=False (dataclass default; LEACE warm-start
+    # replaces task-only warmup as the source of feasible-set entry).
+    # All other knobs match Round 4. See
+    # `results/v2_optimizer_drift_audit.md` for the audit motivating R1+R2.
     config = V2TrainerConfig(
         lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
         r2_threshold=0.05,
@@ -209,6 +214,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         lora_rank=8, lora_alpha=16.0, lora_dropout=0.0,
         batch_size=256, epochs=epochs,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
+        lambda_min=5.0,  # Fix R1
         checkpoint_dir=str(ckpt_dir),
     )
     trainer = V2Trainer(
@@ -394,7 +400,10 @@ def main() -> None:
     overall_t0 = time.time()
     per_seed_results = []
     for seed in args.seeds:
-        result = run_seed(args.dataset, purposes, train_ds, val_ds, test_ds, seed, device, args.epochs)
+        result = run_seed(
+            args.dataset, purposes, train_ds, val_ds, test_ds,
+            seed, device, args.epochs, out_tag=args.out_tag,
+        )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
               f"task_acc={result['task_accuracies']}, "

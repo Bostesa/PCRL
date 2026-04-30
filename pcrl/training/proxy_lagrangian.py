@@ -39,6 +39,11 @@ class Constraint:
         eta_lambda: dual variable learning rate.
         lambda_init: initial lambda value.
         lambda_max: cap on lambda to prevent runaway growth.
+        lambda_min: floor for lambda. Default 0.0. Set positive to prevent
+            dual relaxation during temporary feasible windows; addresses
+            the LATE-DRIFT / STARVATION mode observed in Round 4 where
+            lambda decayed to <1 during a feasible interval and then
+            could not catch a re-rising R² before training ended.
     """
 
     def __init__(
@@ -49,14 +54,19 @@ class Constraint:
         eta_lambda: float = 0.01,
         lambda_init: float = 1.0,
         lambda_max: float = 100.0,
+        lambda_min: float = 0.0,
     ):
         assert direction in ("<=", ">="), "direction must be '<=' or '>='"
+        assert 0.0 <= lambda_min <= lambda_max, (
+            f"require 0 <= lambda_min ({lambda_min}) <= lambda_max ({lambda_max})"
+        )
         self.name = name
         self.threshold = threshold
         self.direction = direction
         self.eta_lambda = eta_lambda
-        self.lambda_value = lambda_init
+        self.lambda_value = max(lambda_min, lambda_init)
         self.lambda_max = lambda_max
+        self.lambda_min = lambda_min
         self.value_history: List[float] = []
         self.lambda_history: List[float] = []
         self.violation_history: List[float] = []
@@ -81,10 +91,13 @@ class Constraint:
         return self.lambda_value * (self.threshold - value_tensor)
 
     def update_lambda(self, value: float) -> None:
-        """Dual ascent step: lambda += eta_lambda * violation, projected."""
+        """Dual ascent step: lambda += eta_lambda * violation, projected to
+        ``[lambda_min, lambda_max]``."""
         violation = self.violation(value)
         self.lambda_value += self.eta_lambda * violation
-        self.lambda_value = max(0.0, min(self.lambda_value, self.lambda_max))
+        self.lambda_value = max(
+            self.lambda_min, min(self.lambda_value, self.lambda_max)
+        )
         self.value_history.append(value)
         self.lambda_history.append(self.lambda_value)
         self.violation_history.append(violation)

@@ -114,6 +114,14 @@ class V2TrainerConfig:
     r2_threshold: float = 0.05
     r2_lambda_max: float = 1000.0  # Round 2: raised from 100; gives the dual room
                                    # to apply more pressure before saturating.
+    # Round 5 / Fix R1: lambda floor. Project dual to
+    # [lambda_min, lambda_max] in dual_step. Prevents the LATE-DRIFT /
+    # STARVATION failure mode in which lambda decays to ~0 during a
+    # feasible interval (around epoch 25-100) and then can't catch a
+    # re-rising R² before training ends. See
+    # `results/v2_optimizer_drift_audit.md`. Set to >0 to enable; default
+    # 0.0 preserves the legacy unfloored behaviour.
+    lambda_min: float = 0.0
 
     # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6).
     # Round 2 uses true Cotter: best-feasible by min task_loss; fallback by
@@ -153,6 +161,17 @@ class V2TrainerConfig:
     warmup_epochs: int = 5  # Round 4: was 20; Round 2 showed K=20 lets task
                             # overfit to ~100% during warmup, locking the rep
                             # into task-optimal before constraints engage.
+    # Round 5 / Fix R2: when ``leace_init=True``, the warm-start has
+    # already produced a feasible LoRA initialisation (R² ≈ 0). The
+    # legacy ``warmup_epochs`` task-only phase then runs ~76 batches of
+    # pure-task gradient per epoch, which destroys the LEACE structure
+    # before constraints engage (Round 4 audit showed end-of-warmup
+    # epoch-0 R² of 0.5–0.95 across all pairs). When this flag is False,
+    # warmup is skipped if and only if ``leace_init=True``: the warm-start
+    # already provides the inductive bias warmup was meant to give. Set
+    # to True to force warmup even with LEACE init (legacy Round 4
+    # behaviour).
+    warmup_when_leace_init: bool = False
     early_stopping_patience: int | None = None  # Deprecated; Cotter runs full schedule.
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
@@ -283,6 +302,7 @@ class V2Trainer:
                         eta_lambda=config.lr_lambda,
                         lambda_init=config.lambda_hsic_init,
                         lambda_max=config.r2_lambda_max,
+                        lambda_min=config.lambda_min,
                     )
                 )
                 self.pair_keys.append((purpose_name, attr_name))
@@ -697,8 +717,23 @@ class V2Trainer:
         ``_select_cotter_best``) and snapshotted as ``best.pt``.
         """
         threshold = self.config.r2_threshold
-        warmup_n = self.config.warmup_epochs
+        # Fix R2: with LEACE warm-start the LoRA already starts inside the
+        # feasible set; the legacy task-only warmup phase erases that
+        # initialisation before constraints engage. Skip warmup when
+        # leace_init=True unless caller forces warmup_when_leace_init=True.
+        if self.config.leace_init and not self.config.warmup_when_leace_init:
+            warmup_n = 0
+        else:
+            warmup_n = self.config.warmup_epochs
         total_epochs = warmup_n + self.config.epochs
+        logger.info(
+            f"[V2/TRAIN] schedule: warmup_epochs={warmup_n} "
+            f"(config.warmup_epochs={self.config.warmup_epochs}, "
+            f"leace_init={self.config.leace_init}, "
+            f"warmup_when_leace_init={self.config.warmup_when_leace_init}), "
+            f"constrained_epochs={self.config.epochs}, "
+            f"lambda_min={self.config.lambda_min}"
+        )
 
         # Per-epoch records: (epoch, snapshot_state_dicts, val_task_loss,
         #                     r2_per_pair, violation_sum, in_warmup).

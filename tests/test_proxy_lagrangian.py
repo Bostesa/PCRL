@@ -52,6 +52,58 @@ def test_constraint_lambda_clipped_at_max():
     assert c.lambda_value == 5.0
 
 
+def test_constraint_lambda_min_floor_blocks_descent():
+    """Fix R1: with lambda_min > 0, dual descent is floored.
+
+    Even when the constraint is satisfied with margin (which would push
+    lambda toward 0), the projected lambda cannot fall below lambda_min.
+    """
+    c = Constraint(
+        "test", threshold=1.0, direction="<=", eta_lambda=1.0,
+        lambda_init=10.0, lambda_max=100.0, lambda_min=5.0,
+    )
+    # value=0.0 means violation = -1.0; descent of 1.0 would put lambda at 9.0
+    c.update_lambda(0.0)
+    assert c.lambda_value == 9.0
+    # Several big descents in a row — eventually clamped to lambda_min, not 0.
+    for _ in range(20):
+        c.update_lambda(0.0)
+    assert c.lambda_value == pytest.approx(5.0)
+
+
+def test_constraint_lambda_min_does_not_block_ascent():
+    """Lambda floor is one-sided: ascent from anywhere still works."""
+    c = Constraint(
+        "test", threshold=1.0, direction="<=", eta_lambda=0.5,
+        lambda_init=5.0, lambda_max=100.0, lambda_min=5.0,
+    )
+    c.update_lambda(3.0)  # violation = 2.0, ascent of 1.0
+    assert c.lambda_value == pytest.approx(6.0)
+
+
+def test_constraint_lambda_init_promoted_to_floor():
+    """If lambda_init < lambda_min, lambda starts at lambda_min."""
+    c = Constraint(
+        "test", threshold=1.0, direction="<=", eta_lambda=0.1,
+        lambda_init=1.0, lambda_max=100.0, lambda_min=5.0,
+    )
+    assert c.lambda_value == 5.0
+
+
+def test_constraint_lambda_min_invalid():
+    """lambda_min must be in [0, lambda_max]."""
+    with pytest.raises(AssertionError):
+        Constraint(
+            "test", threshold=1.0, direction="<=",
+            lambda_max=5.0, lambda_min=10.0,
+        )
+    with pytest.raises(AssertionError):
+        Constraint(
+            "test", threshold=1.0, direction="<=",
+            lambda_max=5.0, lambda_min=-1.0,
+        )
+
+
 def test_constraint_lagrangian_term_differentiable():
     """Lagrangian term is differentiable w.r.t. value_tensor."""
     c = Constraint("test", threshold=1.0, direction="<=", lambda_init=2.0)
