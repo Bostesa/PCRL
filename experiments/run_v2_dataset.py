@@ -85,13 +85,15 @@ HEALTH_EFF_RANK_MIN = 2.0
 # sufficient for joint LEACE on Adult/HMDA (max ``sum(c_i - 1) = 8`` on
 # ``employment_analysis``). Diabetes ``quality_research`` requires
 # ``race(5) + age_bucket(10) → 4 + 9 = 13`` independent erasure directions
-# which a rank-8 LoRA cannot express; the warm-start probe shows residual
-# R²=0.27 on age_bucket at epoch 0. Bump rank to 16 (alpha kept at 2 ×
-# rank) so LEACE init is feasible. See ``results/v2_fix1_audit.md``.
+# (joint LEACE) plus headroom for 10 simultaneous OvR per-class constraints
+# active during training. Round 6 with rank-16 (3 directions slack) hit
+# saturated lambdas (~421) on seeds 0 and 2 because the LoRA couldn't
+# satisfy all 10 per-class constraints. Round 7 bumps to rank-24
+# (11 directions slack). Adult/HMDA stay at rank-8.
 LORA_BY_DATASET: dict[str, tuple[int, float]] = {
     "adult": (8, 16.0),
     "hmda": (8, 16.0),
-    "diabetes": (16, 32.0),
+    "diabetes": (24, 48.0),
     # Folktables joint cardinality is capped at 12 (sex×race×age=2×2×3 on
     # the public_coverage purpose; LEACE rank requirement = sum(c_i-1) = 4)
     # so the rank-8 default has comfortable headroom.
