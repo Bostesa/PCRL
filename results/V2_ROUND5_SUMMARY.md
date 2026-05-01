@@ -1,20 +1,22 @@
 # V2 Round 5 Summary
 
-Generated: 2026-04-30 (manual, post-processor hit 16h cap before Diabetes finished).
+Generated: 2026-04-30. Numbers from `experiments/eval_round4_final_vs_best_v2.py`
+(test-set auditor, eval mode, full-dataset OLS) — same script that produced
+the Round 4 baselines.
 
 R1 (lambda floor=5.0) + R2 (skip warmup with LEACE init) + Diabetes rank-16
 LoRA. 3 seeds × 200 epochs × 3 datasets on AWS g4dn.xlarge.
 
 Commits: `dbe0fdc` (R1+R2) + `b3f43c5` (Diabetes rank-16).
 
-## Headline — strict R²<0.05 on final.pt
+## Headline — strict R²<0.05 on final.pt (auditor)
 
-| Dataset | R4 strict | R5 strict | Δ | R5 mean R² (final) | Status |
-|---|---|---|---|---|---|
-| Adult | 20/24 | **22/24** | +2 | 0.024 | GREEN (≥22 threshold met) |
-| HMDA | 6/18 | **16/18** | +10 | 0.030 | GREEN (≥14 threshold met) |
-| Diabetes | 6/18 | **9/18** | +3 | 0.072 | below 17/18 GREEN threshold |
-| **TOTAL** | **32/60** | **47/60** | **+15** | — | — |
+| Dataset | R4 strict | R5 strict | Δ | R4 mean R² | R5 mean R² | Status |
+|---|---|---|---|---|---|---|
+| Adult | 20/24 | **23/24** | +3 | 0.038 | 0.012 | GREEN (≥22 ✓) |
+| HMDA | 11/18 | **16/18** | +5 | 0.045 | 0.020 | GREEN (≥14 ✓) |
+| Diabetes | 15/18 | **16/18** | +1 | 0.025 | 0.017 | 1 short of 17/18 |
+| **TOTAL** | **46/60** | **55/60** | **+9** | — | — | PARTIAL |
 
 ## Per-pair-seed R² (final.pt) — previously failing pairs
 

@@ -1,27 +1,35 @@
 # V2 Round 5 Verdict
 
-Generated: 2026-04-30 (manual; orchestrator + post-processor hit 16h hard cap before
-Diabetes finished. Diabetes seed 2 finished at 19:46Z, ~5h after the 16h cap fired).
+Generated: 2026-04-30. Numbers below come from
+`experiments/eval_round4_final_vs_best_v2.py` (test-set auditor, encoder
+in eval mode, full-dataset OLS) — the canonical compliance metric, same
+script that produced the Round 4 baselines in
+`results/v2_*_ROUND4/final_vs_best.json`.
 
-## **PARTIAL**
+An earlier draft of this file used the train-time per-batch averaged R²
+from `history.r2_per_pair_per_epoch[-1]`, which gave Adult 22/24, HMDA 6/18,
+Diabetes 9/18. Those numbers are NOT comparable to Round 4 (which reports
+auditor R²) and have been replaced.
+
+## **PARTIAL** (one pair-seed short of ALL-GREEN)
 
 By the user's classification rules:
 
-- Adult: strict 22/24 (≥22 threshold) → **GREEN**
+- Adult: strict 23/24 (≥22 threshold) → **GREEN**
 - HMDA: strict 16/18 (≥14 threshold) → **GREEN**
-- Diabetes: strict 9/18 (≥17 threshold) → below GREEN threshold
+- Diabetes: strict 16/18 (≥17 threshold) → **1 short of GREEN**
 
-Two datasets meet the GREEN bar; Diabetes improves modestly (+3 strict pair-seeds vs Round 4)
-but doesn't reach the per-dataset GREEN threshold.
+Two datasets meet the GREEN bar; Diabetes is one pair-seed short
+(quality_research/age_bucket fails on all 3 seeds with R²=0.06/0.10/0.09).
 
-## Headline numbers
+## Headline numbers (test-set auditor on final.pt)
 
-| Dataset | R4 strict | R5 strict | Δ |
-|---|---|---|---|
-| Adult | 20/24 | 22/24 | +2 |
-| HMDA | 6/18 | 16/18 | +10 |
-| Diabetes | 6/18 | 9/18 | +3 |
-| **TOTAL** | **32/60** | **47/60** | **+15** |
+| Dataset | R4 strict | R5 strict | Δ | R4 mean R² | R5 mean R² |
+|---|---|---|---|---|---|
+| Adult | 20/24 | **23/24** | +3 | 0.038 | 0.012 |
+| HMDA | 11/18 | **16/18** | +5 | 0.045 | 0.020 |
+| Diabetes | 15/18 | **16/18** | +1 | 0.025 | 0.017 |
+| **TOTAL** | **46/60** | **55/60** | **+9** | — | — |
 
 Drift fix worked on the 6 originally-failing HMDA pair-seeds; pinned all 3 Adult
 income/race seeds (Round 4 finals 0.065/0.232/0.382 → R5 0.023/0.011/0.017 with

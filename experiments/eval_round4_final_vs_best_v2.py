@@ -61,13 +61,13 @@ def load_ds(name: str):
     return purposes, train_ds, test_ds
 
 
-def build(purposes, train_ds):
+def build(purposes, train_ds, rank: int = 8, alpha: float = 16.0):
     backbone = StandardEncoder(
         input_dim=train_ds.info.num_features, hidden_dims=[128, 128], repr_dim=64, dropout=0.3,
     )
     encoder = PerPurposeLoRAEncoder(
         backbone=backbone, n_purposes=len(purposes),
-        rank=8, alpha=16.0, dropout=0.0,
+        rank=rank, alpha=alpha, dropout=0.0,
     )
     task_heads = {}
     for p in purposes:
@@ -194,12 +194,23 @@ def main() -> None:
         )
     print(f"  using ckpt pattern: {ckpt_pattern}")
 
+    # Diabetes Round 5 uses LoRA rank 16 alpha 32 (per-dataset override in
+    # run_v2_dataset.py LORA_BY_DATASET); Adult/HMDA use rank 8 alpha 16.
+    # Match the trainer's per-dataset shape so state_dict load doesn't
+    # raise size-mismatch on Diabetes.
+    DEFAULT_RANK_BY_DATASET = {"adult": (8, 16.0), "hmda": (8, 16.0), "diabetes": (16, 32.0)}
+    rank, alpha = DEFAULT_RANK_BY_DATASET.get(args.dataset, (8, 16.0))
+    # Round 4 Diabetes was rank=8; if loading that legacy checkpoint, fall
+    # back. We detect by peeking at the checkpoint A.weight shape.
+    if args.out_tag == "_ROUND4" and args.dataset == "diabetes":
+        rank, alpha = 8, 16.0
+
     for seed in SEEDS:
         print(f"\n=== {args.dataset} seed={seed} ===")
         ckpt_dir = ROOT / "checkpoints" / ckpt_pattern.format(seed=seed)
         torch.manual_seed(seed)
         np.random.seed(seed)
-        encoder, task_heads = build(purposes, train_ds)
+        encoder, task_heads = build(purposes, train_ds, rank=rank, alpha=alpha)
 
         seed_out = {}
         for tag in ["best", "final"]:
