@@ -44,7 +44,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from pcrl.data.base import collate_pcrl_batch
-from pcrl.data.folktables import FolktablesIncomeDataset, get_folktables_purposes
+from pcrl.data.folktables_legacy import FolktablesIncomeDataset, get_folktables_purposes
 from pcrl.evaluation.certificates import generate_report
 from pcrl.models.auditor import MultiAttributeAuditor
 from pcrl.models.encoder import PurposeConditionedEncoder, StandardEncoder

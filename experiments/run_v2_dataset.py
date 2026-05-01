@@ -92,6 +92,10 @@ LORA_BY_DATASET: dict[str, tuple[int, float]] = {
     "adult": (8, 16.0),
     "hmda": (8, 16.0),
     "diabetes": (16, 32.0),
+    # Folktables joint cardinality is capped at 12 (sex×race×age=2×2×3 on
+    # the public_coverage purpose; LEACE rank requirement = sum(c_i-1) = 4)
+    # so the rank-8 default has comfortable headroom.
+    "folktables": (8, 16.0),
 }
 
 
@@ -121,6 +125,20 @@ def build_datasets(name: str):
         train_ds = HMDADataset(purposes=purposes, root="data", split="train")
         val_ds = HMDADataset(purposes=purposes, root="data", split="val")
         test_ds = HMDADataset(purposes=purposes, root="data", split="test")
+    elif name == "folktables":
+        from pcrl.data.folktables import FolktablesACSDataset, get_folktables_purposes
+        purposes = get_folktables_purposes()
+        train_ds = FolktablesACSDataset(
+            purposes=purposes, root="data", split="train", download=True,
+        )
+        val_ds = FolktablesACSDataset(
+            purposes=purposes, root="data", split="val", download=False,
+            norm_stats=train_ds.norm_stats,
+        )
+        test_ds = FolktablesACSDataset(
+            purposes=purposes, root="data", split="test", download=False,
+            norm_stats=train_ds.norm_stats,
+        )
     else:
         raise ValueError(f"unknown dataset {name}")
     return purposes, train_ds, val_ds, test_ds
@@ -171,7 +189,8 @@ def reps_for_purpose(encoder, loader, idx, device):
 
 def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              seed: int, device: str, epochs: int = 200,
-             out_tag: str = "") -> dict:
+             out_tag: str = "",
+             per_class_threshold: int = 6) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -229,6 +248,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         batch_size=256, epochs=epochs,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
         lambda_min=5.0,  # Fix R1
+        per_class_constraint_threshold=per_class_threshold,
         checkpoint_dir=str(ckpt_dir),
     )
     trainer = V2Trainer(
@@ -390,7 +410,7 @@ def aggregate(name: str, per_seed: list[dict]) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", required=True, choices=["adult", "diabetes", "hmda"])
+    parser.add_argument("--dataset", required=True, choices=["adult", "diabetes", "hmda", "folktables"])
     parser.add_argument("--seeds", type=int, nargs="*", default=SEEDS,
                         help="Seeds to run (default: 0 1 2)")
     parser.add_argument("--device", default=None)
@@ -398,6 +418,17 @@ def main() -> None:
                         help="Suffix appended to results/v2_<dataset> output dir, e.g. _OPTION_A")
     parser.add_argument("--epochs", type=int, default=200,
                         help="Number of constrained epochs per seed (warmup is added on top).")
+    parser.add_argument(
+        "--per-class-threshold", type=int, default=6,
+        help=(
+            "Cardinality threshold for per-class OvR R² constraints. "
+            "Attributes with K >= this value are constrained per-class "
+            "(K independent binary R² constraints) instead of one joint "
+            "multi-output R². Default 6 leaves Adult/HMDA (max K=5) "
+            "unchanged and activates per-class for Diabetes age_bucket "
+            "(K=10)."
+        ),
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -417,6 +448,7 @@ def main() -> None:
         result = run_seed(
             args.dataset, purposes, train_ds, val_ds, test_ds,
             seed, device, args.epochs, out_tag=args.out_tag,
+            per_class_threshold=args.per_class_threshold,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
