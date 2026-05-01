@@ -123,6 +123,19 @@ class V2TrainerConfig:
     # 0.0 preserves the legacy unfloored behaviour.
     lambda_min: float = 0.0
 
+    # Round 6: per-class OvR constraint for high-cardinality attributes.
+    # When an attribute's cardinality K is >= this threshold, replace the
+    # single joint multi-output R² constraint with K independent
+    # one-vs-rest binary R² constraints (each with its own dual). The
+    # joint averaged metric can be 'satisfied' (R²<τ) while one class
+    # leaks at R²~Kτ — see Ravfogel et al. ACL 2023 (log-linear
+    # guardedness pathology). Diagnosed on Round 5 Diabetes
+    # quality_research/age_bucket where joint R²≈0.06 was driven by a
+    # single class with R²≈0.6. Default 6 leaves Adult/HMDA (max K=5)
+    # unchanged; activates for Diabetes age_bucket (K=10) only on the
+    # current dataset suite.
+    per_class_constraint_threshold: int = 6
+
     # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6).
     # Round 2 uses true Cotter: best-feasible by min task_loss; fallback by
     # min violation among iterates within 10% of best task_loss.
@@ -234,6 +247,11 @@ def _pair_key(purpose_name: str, attr_name: str) -> str:
     return f"{purpose_name}__{attr_name}"
 
 
+def _per_class_key(purpose_name: str, attr_name: str, k: int) -> str:
+    """Constraint name for the k-th OvR per-class binary R² constraint."""
+    return f"{purpose_name}__{attr_name}__class_{k}"
+
+
 class V2Trainer:
     """Constrained-optimisation trainer for v2 PCRL."""
 
@@ -282,30 +300,78 @@ class V2Trainer:
                 "task_type": purpose.task_type,
                 "allowed_tasks": purpose.allowed_tasks,
                 "disallowed_attrs": purpose.disallowed_attrs,
+                "disallowed_attr_dims": dict(purpose.disallowed_attr_dims),
             }
 
         self.purpose_names: list[str] = list(self.purpose_configs.keys())
 
-        # Build linear-R² constraints (one per (purpose, attr) pair).
-        # The auditor measures linear R²; constraining the same quantity removes
-        # the metric mismatch that made HSIC-only training pass-without-passing.
+        # Build linear-R² constraints. Default: one Constraint per
+        # (purpose, attr) pair on the joint multi-output R² (matches the
+        # auditor's metric and removes the metric mismatch that made
+        # HSIC-only training pass-without-passing).
+        #
+        # Round 6 per-class OvR: when an attribute's cardinality K is at
+        # least ``per_class_constraint_threshold``, the single joint
+        # constraint is replaced with K independent OvR binary R²
+        # constraints — one per class — each with its own dual. This
+        # blocks the K-class averaging pathology where joint R² < τ is
+        # satisfied while one class leaks at R² ~ Kτ.
         constraints: list[Constraint] = []
         self.pair_keys: list[tuple[str, str]] = []
+        # pair → list of constraint names (1 element for low-K joint,
+        # K elements for high-K per-class). Used to drive primal/dual.
+        self.pair_constraint_keys: dict[tuple[str, str], list[str]] = {}
+        # pair → cardinality K, only populated for high-K (per-class) pairs.
+        self.high_k_pairs: dict[tuple[str, str], int] = {}
+        per_class_threshold = config.per_class_constraint_threshold
         for purpose_name in self.purpose_names:
+            attr_dims = self.purpose_configs[purpose_name]["disallowed_attr_dims"]
             for attr_name in self.purpose_configs[purpose_name]["disallowed_attrs"]:
-                name = _pair_key(purpose_name, attr_name)
-                constraints.append(
-                    Constraint(
-                        name=name,
-                        threshold=config.r2_threshold,
-                        direction="<=",
-                        eta_lambda=config.lr_lambda,
-                        lambda_init=config.lambda_hsic_init,
-                        lambda_max=config.r2_lambda_max,
-                        lambda_min=config.lambda_min,
+                pair = (purpose_name, attr_name)
+                self.pair_keys.append(pair)
+                K = int(attr_dims.get(attr_name, 2))
+                if K >= per_class_threshold:
+                    self.high_k_pairs[pair] = K
+                    names: list[str] = []
+                    for k in range(K):
+                        name = _per_class_key(purpose_name, attr_name, k)
+                        constraints.append(
+                            Constraint(
+                                name=name,
+                                threshold=config.r2_threshold,
+                                direction="<=",
+                                eta_lambda=config.lr_lambda,
+                                lambda_init=config.lambda_hsic_init,
+                                lambda_max=config.r2_lambda_max,
+                                lambda_min=config.lambda_min,
+                            )
+                        )
+                        names.append(name)
+                    self.pair_constraint_keys[pair] = names
+                    logger.info(
+                        f"[V2/INIT] pair={purpose_name}/{attr_name} "
+                        f"cardinality={K} >= per_class_threshold={per_class_threshold}: "
+                        f"{K} per-class OvR constraints"
                     )
-                )
-                self.pair_keys.append((purpose_name, attr_name))
+                else:
+                    name = _pair_key(purpose_name, attr_name)
+                    constraints.append(
+                        Constraint(
+                            name=name,
+                            threshold=config.r2_threshold,
+                            direction="<=",
+                            eta_lambda=config.lr_lambda,
+                            lambda_init=config.lambda_hsic_init,
+                            lambda_max=config.r2_lambda_max,
+                            lambda_min=config.lambda_min,
+                        )
+                    )
+                    self.pair_constraint_keys[pair] = [name]
+                    logger.info(
+                        f"[V2/INIT] pair={purpose_name}/{attr_name} "
+                        f"cardinality={K} < per_class_threshold={per_class_threshold}: "
+                        f"1 joint multi-output constraint"
+                    )
 
         # Optimisers
         primal_params: list[nn.Parameter] = list(self.encoder.trainable_parameters())
@@ -524,26 +590,64 @@ class V2Trainer:
         constraint_values: dict[str, torch.Tensor] = {}
         constraint_scalars: dict[str, float] = {}
         hsic_scalars: dict[str, float] = {}
+        # Per-pair representative R² for logging (joint for low-K, max
+        # per-class for high-K). Mirrors the historical r2[<pair>] log key.
+        pair_r2_log: dict[str, float] = {}
         for purpose_name, attr_name in self.pair_keys:
             z = reprs[purpose_name]
             attr = batch["sensitive_attrs"][attr_name].long()
-            key = _pair_key(purpose_name, attr_name)
+            pair = (purpose_name, attr_name)
+            pair_key_str = _pair_key(purpose_name, attr_name)
 
-            L_vclub = L_vclub + self.vclubs[key].mi_upper_bound(z, attr)
+            L_vclub = L_vclub + self.vclubs[pair_key_str].mi_upper_bound(z, attr)
 
             # HSIC kept as differentiable fixed-weight auxiliary (nonlinear cover).
             hsic_val = hsic(z, attr)
             L_hsic_aux = L_hsic_aux + hsic_val
-            hsic_scalars[key] = float(hsic_val.detach().item())
+            hsic_scalars[pair_key_str] = float(hsic_val.detach().item())
 
-            # Linear R² is the proxy-Lagrangian constraint value (matches auditor).
-            if int(attr.max().item()) >= 1:  # verifier only valid for >= 2 classes
-                r2_val = self.verifier(z, attr)
+            if int(attr.max().item()) < 1:
+                # Degenerate batch (single class observed); zero R² for every
+                # constraint name belonging to this pair.
+                zero = torch.tensor(0.0, device=self.device)
+                for cname in self.pair_constraint_keys[pair]:
+                    constraint_values[cname] = zero
+                    constraint_scalars[cname] = 0.0
+                pair_r2_log[pair_key_str] = 0.0
+                continue
+
+            if pair in self.high_k_pairs:
+                # K independent OvR binary R² constraints, one per class.
+                r2_per_k = self.verifier.forward_per_class(z, attr)  # (K_obs,)
+                names = self.pair_constraint_keys[pair]
+                K_total = len(names)
+                # Defensive: if a batch is missing the highest classes, the
+                # solver returns max_obs+1 entries. Extend with zeros so every
+                # constraint receives a value (zero is a valid lower-bound R²
+                # when no positive sample exists for that class in the batch).
+                if r2_per_k.numel() < K_total:
+                    pad = torch.zeros(
+                        K_total - r2_per_k.numel(), device=self.device,
+                    )
+                    r2_per_k = torch.cat([r2_per_k, pad])
+                pair_max = float("-inf")
+                for k, cname in enumerate(names):
+                    rk = r2_per_k[k]
+                    constraint_values[cname] = rk
+                    val = float(rk.detach().item())
+                    constraint_scalars[cname] = val
+                    pair_max = max(pair_max, val)
+                # L_verify is purely diagnostic; report mean per-class R².
+                L_verify = L_verify + r2_per_k.mean()
+                pair_r2_log[pair_key_str] = pair_max
             else:
-                r2_val = torch.tensor(0.0, device=self.device)
-            L_verify = L_verify + r2_val
-            constraint_values[key] = r2_val
-            constraint_scalars[key] = float(r2_val.detach().item())
+                # Single joint multi-output R² constraint (legacy).
+                r2_val = self.verifier(z, attr)
+                cname = self.pair_constraint_keys[pair][0]
+                constraint_values[cname] = r2_val
+                constraint_scalars[cname] = float(r2_val.detach().item())
+                L_verify = L_verify + r2_val
+                pair_r2_log[pair_key_str] = constraint_scalars[cname]
 
         # ── Lagrangian + scalarised primal loss ─────────────────────────
         if apply_constraints:
@@ -586,7 +690,13 @@ class V2Trainer:
             "hsic_mean": (
                 sum(hsic_scalars.values()) / max(len(hsic_scalars), 1)
             ),
-            **{f"r2[{k}]": v for k, v in constraint_scalars.items()},
+            # r2[<pair>] is the per-pair representative (joint for low-K
+            # pairs, max per-class for high-K pairs). r2[<pair>__class_k]
+            # carries every per-class scalar for high-K pairs so the
+            # history file preserves full diagnostics.
+            **{f"r2[{k}]": v for k, v in pair_r2_log.items()},
+            **{f"r2[{k}]": v for k, v in constraint_scalars.items()
+               if k not in pair_r2_log},
             **{f"hsic[{k}]": v for k, v in hsic_scalars.items()},
         }
 
@@ -678,14 +788,30 @@ class V2Trainer:
                 task_total[task_name] = task_total.get(task_name, 0) + targets.numel()
             total_task += L_task
 
-            # HSIC + R² values per (p, a)
+            # HSIC + R² values per (p, a). For high-K pairs the per-pair
+            # R² reported in r2_per_pair is max_k per-class OvR R² —
+            # this matches the constraint metric used during training so
+            # downstream feasibility checks (Cotter selection) operate on
+            # the same quantity. Low-K pairs report joint multi-output R²
+            # (legacy / auditor metric).
             for purpose_name, attr_name in self.pair_keys:
                 z = reprs[purpose_name]
                 attr = batch["sensitive_attrs"][attr_name].long()
+                pair = (purpose_name, attr_name)
                 key = _pair_key(purpose_name, attr_name)
                 hv = float(hsic(z, attr).item())
                 if int(attr.max().item()) >= 1:
-                    rv = float(self.verifier(z, attr).item())
+                    if pair in self.high_k_pairs:
+                        r2_per_k = self.verifier.forward_per_class(z, attr)
+                        K_total = self.high_k_pairs[pair]
+                        if r2_per_k.numel() < K_total:
+                            pad = torch.zeros(
+                                K_total - r2_per_k.numel(), device=self.device,
+                            )
+                            r2_per_k = torch.cat([r2_per_k, pad])
+                        rv = float(r2_per_k.max().item())
+                    else:
+                        rv = float(self.verifier(z, attr).item())
                 else:
                     rv = 0.0
                 per_pair_hsic_sum[key] = per_pair_hsic_sum.get(key, 0.0) + hv

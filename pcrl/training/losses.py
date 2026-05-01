@@ -493,6 +493,30 @@ class VerificationRegularizer(nn.Module):
         super().__init__()
         self.regularization = regularization
 
+    def _solve(self, H: torch.Tensor, Z: torch.Tensor):
+        """Shared ridge solve. Returns (Z_centered, Z_pred, num_classes) or
+        ``None`` when ``Z`` has fewer than 2 distinct classes."""
+        num_classes = int(Z.max().item()) + 1
+        if num_classes < 2:
+            return None
+
+        Z_onehot = F.one_hot(Z.long(), num_classes).float()
+
+        n, d = H.shape
+
+        H_centered = H - H.mean(dim=0, keepdim=True)
+        Z_centered = Z_onehot - Z_onehot.mean(dim=0, keepdim=True)
+
+        gram = H_centered.T @ H_centered + self.regularization * torch.eye(
+            d, device=H.device
+        )
+        rhs = H_centered.T @ Z_centered
+        # torch.linalg.solve has MPS backend bugs — move to CPU for solve
+        W_star = torch.linalg.solve(gram.cpu(), rhs.cpu()).to(H.device)
+
+        Z_pred = H_centered @ W_star
+        return Z_centered, Z_pred, num_classes
+
     def forward(self, H: torch.Tensor, Z: torch.Tensor) -> torch.Tensor:
         """Compute R² of optimal linear predictor as a differentiable loss.
 
@@ -502,32 +526,40 @@ class VerificationRegularizer(nn.Module):
 
         Returns:
             R² scalar tensor (lower is better — minimizing this removes
-            linear predictability of Z from H).
+            linear predictability of Z from H). This is the multi-output
+            R² with residuals summed across all K one-hot columns; for
+            balanced classes it equals the average per-class OvR R², for
+            unbalanced classes it is the ss_tot-weighted average.
         """
-        num_classes = int(Z.max().item()) + 1
-        if num_classes < 2:
+        solved = self._solve(H, Z)
+        if solved is None:
             return torch.tensor(0.0, device=H.device)
-
-        Z_onehot = F.one_hot(Z.long(), num_classes).float()
-
-        n, d = H.shape
-
-        # Center the data
-        H_centered = H - H.mean(dim=0, keepdim=True)
-        Z_centered = Z_onehot - Z_onehot.mean(dim=0, keepdim=True)
-
-        # Optimal linear predictor: W* = (H^T H + λI)^{-1} H^T Z
-        gram = H_centered.T @ H_centered + self.regularization * torch.eye(
-            d, device=H.device
-        )
-        rhs = H_centered.T @ Z_centered
-        # torch.linalg.solve has MPS backend bugs — move to CPU for solve
-        W_star = torch.linalg.solve(gram.cpu(), rhs.cpu()).to(H.device)
-
-        # Predictions and R²
-        Z_pred = H_centered @ W_star
+        Z_centered, Z_pred, _ = solved
         ss_res = ((Z_centered - Z_pred) ** 2).sum()
         ss_tot = (Z_centered**2).sum()
-
         r_squared = 1.0 - ss_res / torch.clamp(ss_tot, min=1e-12)
         return r_squared.clamp(min=0.0)
+
+    def forward_per_class(self, H: torch.Tensor, Z: torch.Tensor) -> torch.Tensor:
+        """Per-class one-vs-rest linear R²: returns shape (K,).
+
+        ``out[k]`` is the linear R² of the optimal ridge predictor of the
+        binary indicator ``(Z == k).float()`` from ``H``. Because ridge
+        with shared scalar regularisation decouples column-wise, this
+        matches the closed-form per-class OvR R² from K independent
+        single-output ridge regressions (verified by tests). The shared
+        solve is used so per-class extraction adds no extra linalg cost.
+
+        Used to address the K-class averaging pathology (Ravfogel et al.
+        ACL 2023): a multi-output averaged R²<τ can be satisfied while
+        one class leaks at R²~Kτ. Constraining each per-class R²<τ blocks
+        that failure mode.
+        """
+        solved = self._solve(H, Z)
+        if solved is None:
+            return torch.zeros(1, device=H.device)
+        Z_centered, Z_pred, _ = solved
+        ss_res_k = ((Z_centered - Z_pred) ** 2).sum(dim=0)
+        ss_tot_k = (Z_centered ** 2).sum(dim=0)
+        r2_k = 1.0 - ss_res_k / torch.clamp(ss_tot_k, min=1e-12)
+        return r2_k.clamp(min=0.0)
