@@ -100,6 +100,20 @@ LORA_BY_DATASET: dict[str, tuple[int, float]] = {
     "folktables": (8, 16.0),
 }
 
+# DataLoader ``num_workers`` per dataset. Adult/HMDA/Diabetes were calibrated
+# under ``num_workers=0`` (single-threaded data loader) and their reference
+# results in ``results/v2_<dataset>/`` are bit-reproducible only at that
+# setting — leaving them at 0 keeps Round 5/6/7 reproducibility intact.
+# Folktables Round 1 was CPU-bound at 85s/epoch on g4dn.xlarge with
+# ``num_workers=0`` (GPU at 15% util); Round 2 raises this to 4 to bring
+# wall time within the 8h × 3-seed budget.
+NUM_WORKERS_BY_DATASET: dict[str, int] = {
+    "adult": 0,
+    "hmda": 0,
+    "diabetes": 0,
+    "folktables": 4,
+}
+
 
 # ───────────────────────────────────────────────────────────────────────────
 # Dataset construction
@@ -192,7 +206,9 @@ def reps_for_purpose(encoder, loader, idx, device):
 def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              seed: int, device: str, epochs: int = 200,
              out_tag: str = "",
-             per_class_threshold: int = 6) -> dict:
+             per_class_threshold: int = 6,
+             report_best_iterate: bool = False,
+             freeze_leace_projection: bool = False) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -200,12 +216,20 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     for p in purposes:
         registry.register(p)
 
+    n_workers = NUM_WORKERS_BY_DATASET.get(name, 0)
+    persistent = n_workers > 0
     train_loader = DataLoader(train_ds, batch_size=256, shuffle=True,
-                              collate_fn=collate_pcrl_batch, num_workers=0)
+                              collate_fn=collate_pcrl_batch,
+                              num_workers=n_workers,
+                              persistent_workers=persistent)
     val_loader = DataLoader(val_ds, batch_size=256, shuffle=False,
-                            collate_fn=collate_pcrl_batch, num_workers=0)
+                            collate_fn=collate_pcrl_batch,
+                            num_workers=n_workers,
+                            persistent_workers=persistent)
     test_loader = DataLoader(test_ds, batch_size=256, shuffle=False,
-                             collate_fn=collate_pcrl_batch, num_workers=0)
+                             collate_fn=collate_pcrl_batch,
+                             num_workers=n_workers,
+                             persistent_workers=persistent)
 
     input_dim = train_ds.info.num_features
     repr_dim = 64
@@ -252,6 +276,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         lambda_min=5.0,  # Fix R1
         per_class_constraint_threshold=per_class_threshold,
         checkpoint_dir=str(ckpt_dir),
+        report_best_iterate=report_best_iterate,
+        freeze_leace_projection=freeze_leace_projection,
     )
     trainer = V2Trainer(
         encoder=encoder, task_heads=task_heads, vclubs=vclubs,
@@ -280,16 +306,30 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         f"{cotter_meta.get('n_eligible_post_warmup','?')}"
     )
 
-    # Reload best checkpoint
+    # Reload checkpoint for downstream eval. Prefer ``canonical_iterate.pt``
+    # (written by the trainer when ``report_best_iterate=True``) over
+    # ``best.pt``. Adult/HMDA/Diabetes runs leave ``report_best_iterate=False``
+    # so canonical_iterate.pt is never created and behavior falls through to
+    # the legacy best.pt path. The fallback order is canonical → best → final
+    # so an interrupted training that left only final.pt is still usable.
+    canonical = ckpt_dir / "canonical_iterate.pt"
     best = ckpt_dir / "best.pt"
-    if best.exists():
-        ckpt = torch.load(best, map_location=device, weights_only=False)
+    final = ckpt_dir / "final.pt"
+    chosen = canonical if canonical.exists() else (best if best.exists() else final)
+    if chosen.exists():
+        ckpt = torch.load(chosen, map_location=device, weights_only=False)
         encoder.backbone.load_state_dict(ckpt["backbone"])
         encoder.adapters.load_state_dict(ckpt["lora_adapters"])
+        # Encoder-level buffers (e.g. ``leace_P_p{p}``) live outside backbone
+        # and adapters. Optional key for backward compat with older checkpoints
+        # that predate the frozen-projection feature.
+        enc_buf = ckpt.get("encoder_buffers", {}) or {}
+        if enc_buf:
+            encoder.load_state_dict(enc_buf, strict=False)
         # task_heads is a plain dict here, but Trainer wraps it in nn.ModuleDict.
         # Use the trainer's task_heads (the live nn.ModuleDict) for state_dict load.
         trainer.task_heads.load_state_dict(ckpt["task_heads"])
-        log.info(f"  [{name}/seed={seed}] reloaded best.pt")
+        log.info(f"  [{name}/seed={seed}] reloaded {chosen.name}")
     encoder.eval()
 
     # Compliance via paper's adjusted criterion
@@ -431,6 +471,24 @@ def main() -> None:
             "(K=10)."
         ),
     )
+    parser.add_argument(
+        "--report-best-iterate", action="store_true", default=False,
+        help=(
+            "Opt-in: write ``canonical_iterate.pt`` containing whichever of "
+            "(best.pt, final.pt) has lower mean R² on val. Eval falls back "
+            "to canonical_iterate.pt > best.pt > final.pt. Default OFF "
+            "preserves existing best.pt-only behavior for Adult/HMDA/Diabetes."
+        ),
+    )
+    parser.add_argument(
+        "--freeze-leace-projection", action="store_true", default=False,
+        help=(
+            "Opt-in: register the LEACE projection (P_sub, μ) per purpose as "
+            "non-trainable buffers on the encoder; forward applies "
+            "h_proj = h - (h - μ) @ P_sub.T at every call. Default OFF leaves "
+            "Adult/HMDA/Diabetes runs with LoRA-side LEACE warm-start only."
+        ),
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -451,6 +509,8 @@ def main() -> None:
             args.dataset, purposes, train_ds, val_ds, test_ds,
             seed, device, args.epochs, out_tag=args.out_tag,
             per_class_threshold=args.per_class_threshold,
+            report_best_iterate=args.report_best_iterate,
+            freeze_leace_projection=args.freeze_leace_projection,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "

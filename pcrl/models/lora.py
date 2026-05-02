@@ -219,10 +219,67 @@ class PerPurposeLoRAEncoder(nn.Module):
         try:
             for linear, adapter in zip(self._linear_modules, self.adapters[p]):
                 handles.append(linear.register_forward_hook(self._make_hook(adapter)))
-            return self.backbone(x)
+            h = self.backbone(x)
         finally:
-            for h in handles:
-                h.remove()
+            for handle in handles:
+                handle.remove()
+
+        # Frozen LEACE projection (opt-in via ``set_leace_projection``). When a
+        # buffer ``leace_P_p{p}`` is registered for this purpose the LoRA-adapted
+        # output is hard-projected back to the LEACE null space at every forward
+        # pass: ``h_proj = h - P (h - μ)`` for the row-vector convention,
+        # implemented as ``h - (h - μ) @ P.T`` because ``h`` has shape (B, d).
+        # P is the concept-subspace projection (``I − eraser.P`` from
+        # concept_erasure), so this exactly reproduces the LEACE eraser output
+        # ``μ + (h − μ) @ eraser.P.T`` while keeping (P, μ) as non-trainable
+        # buffers — Cui Wang Ning 2025 precedent (kernelised INLP buffer).
+        # Idempotent w.r.t. the LoRA-side LEACE warm-start: re-applying LEACE to
+        # an already-erased representation is a no-op (P² = P).
+        buf_name_P = f"leace_P_p{p}"
+        if hasattr(self, buf_name_P):
+            P = getattr(self, buf_name_P)
+            mu = getattr(self, f"leace_mu_p{p}")
+            h = h - (h - mu) @ P.T
+        return h
+
+    @torch.no_grad()
+    def set_leace_projection(
+        self, purpose_idx: int, P: torch.Tensor, mu: torch.Tensor,
+    ) -> None:
+        """Register a non-trainable LEACE projection buffer for ``purpose_idx``.
+
+        Once set, ``forward(x, purpose_idx)`` applies
+        ``h_proj = h - (h - μ) @ P.T`` after the LoRA-adapted output ``h``,
+        hard-projecting the representation onto the LEACE null space at every
+        call. Drift along erased directions is removed; gradient updates to the
+        LoRA adapters can only move ``h`` in the orthogonal complement of P.
+
+        Args:
+            purpose_idx: Which purpose to install the projection for.
+            P: Concept-subspace projection matrix (``I − eraser.P`` from
+                concept_erasure), shape ``(d, d)``.
+            mu: LEACE shift vector (``eraser.bias``), shape ``(d,)``. Pass zeros
+                if the eraser was fitted with ``affine=False``.
+
+        Both tensors are stored as non-persistent... actually as persistent
+        buffers so they survive ``state_dict()``/``load_state_dict()`` round
+        trips and are checkpointed automatically. ``requires_grad=False`` is
+        forced because buffers cannot accumulate gradients, but gradients still
+        flow *through* the projection during backprop.
+        """
+        p = _coerce_purpose_idx(purpose_idx, self.n_purposes)
+        if P.dim() != 2 or P.shape[0] != P.shape[1]:
+            raise ValueError(f"P must be a square (d, d) matrix; got {tuple(P.shape)}")
+        if mu.dim() != 1 or mu.shape[0] != P.shape[0]:
+            raise ValueError(
+                f"mu must be (d,) matching P; got mu={tuple(mu.shape)} P={tuple(P.shape)}"
+            )
+        self.register_buffer(f"leace_P_p{p}", P.detach().clone(), persistent=True)
+        self.register_buffer(f"leace_mu_p{p}", mu.detach().clone(), persistent=True)
+
+    def has_leace_projection(self, purpose_idx: int) -> bool:
+        p = _coerce_purpose_idx(purpose_idx, self.n_purposes)
+        return hasattr(self, f"leace_P_p{p}")
 
     def trainable_parameters(self) -> Iterator[nn.Parameter]:
         """Yield only LoRA adapter parameters (backbone is frozen)."""

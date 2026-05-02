@@ -191,6 +191,34 @@ class V2TrainerConfig:
     log_interval: int = 50
     checkpoint_dir: str = "checkpoints/v2"
 
+    # ── Round 2 / Folktables additive opt-in flags (default OFF) ─────────
+    # Both flags below default to ``False`` so existing Adult / HMDA /
+    # Diabetes runs are bit-identical: the trainer skips both code paths
+    # entirely when neither is set. Folktables enables them via CLI.
+
+    # Cotter best-iterate (Cotter et al. JMLR 2019 §4.6) is already used to
+    # pick ``best.pt``. ``report_best_iterate`` adds a *second-pass* selector
+    # that writes ``canonical_iterate.pt`` containing whichever of best.pt
+    # and final.pt has the lower mean R² across all (purpose, attribute)
+    # pairs on the validation set. The Cotter rule's task-loss tiebreak
+    # sometimes picks an early epoch with feasible R² but degraded mean R²
+    # later; final.pt may have lower mean R² without being feasible. The
+    # second pass guards against both directions.
+    report_best_iterate: bool = False
+
+    # Frozen LEACE projection: register the LEACE projection matrix and shift
+    # vector as non-trainable buffers on the encoder so the LoRA-adapted
+    # output ``h`` is hard-projected onto the LEACE null space at every
+    # forward pass — ``h_proj = h - P (h - μ)``. Buffers are registered per
+    # purpose during ``leace_warm_start``. Without this flag the LEACE
+    # warm-start is consumed once (absorbed into the LoRA adapter's last
+    # layer) and discarded; LoRA drift along erased directions during
+    # subsequent training is unconstrained. Precedent: Cui Wang Ning 2025
+    # store kernelised INLP projection as a non-trainable buffer in their
+    # LLM recommender (no gradient flow into the projection itself,
+    # gradients still flow *through* it to the LoRA via the (I-P) factor).
+    freeze_leace_projection: bool = False
+
 
 @dataclass
 class V2EpochMetrics:
@@ -484,6 +512,24 @@ class V2Trainer:
             }
 
             self.encoder.init_last_layer_from_affine(p_idx, Q, c)
+
+            # Frozen LEACE projection (opt-in). Register the concept-subspace
+            # projection ``P_sub = I − Q`` and the LEACE shift ``μ`` as
+            # non-trainable buffers on the encoder for this purpose. Once set,
+            # ``encoder.forward`` applies ``h_proj = h − (h − μ) @ P_sub.T`` at
+            # output, which is mathematically identical to ``eraser(h)`` and
+            # therefore idempotent w.r.t. the LoRA-side warm-start above
+            # (P_sub² = P_sub, so re-projecting an already-erased h is a
+            # no-op). When LoRA drifts during training the projection catches
+            # the drift on the next forward pass.
+            if self.config.freeze_leace_projection:
+                P_sub = (eye_d - Q).to(Q.dtype)
+                self.encoder.set_leace_projection(p_idx, P_sub, mu)
+                logger.info(
+                    f"[V2/LEACE] purpose={purpose_name}: registered frozen "
+                    f"projection buffer (P_sub shape={tuple(P_sub.shape)}, "
+                    f"mu shape={tuple(mu.shape)})"
+                )
 
             diagnostics[purpose_name] = {
                 **{f"r2_pre[{a}]": pre[a] for a in disallowed},
@@ -946,6 +992,48 @@ class V2Trainer:
         else:
             logger.warning("Cotter selection: no records to select from")
 
+        # Second-pass selector (opt-in via ``report_best_iterate``). Writes
+        # ``canonical_iterate.pt`` containing whichever of (best.pt, final.pt)
+        # has the lower mean R² across all (purpose, attribute) pairs on the
+        # validation set. ``best.pt`` is the Cotter-selected snapshot
+        # currently loaded into the live model; ``final.pt`` is the last
+        # iterate. Adult/HMDA/Diabetes runs leave this flag False so no
+        # canonical_iterate.pt is created, preserving existing behavior.
+        if self.config.report_best_iterate and epoch_records and sel is not None:
+            final_r2 = epoch_records[-1][3]
+            best_r2 = sel[3]
+            mean_final = (
+                sum(final_r2.values()) / max(len(final_r2), 1) if final_r2 else float("inf")
+            )
+            mean_best = (
+                sum(best_r2.values()) / max(len(best_r2), 1) if best_r2 else float("inf")
+            )
+            if mean_final < mean_best:
+                # Restore final snapshot, save as canonical_iterate.pt, then
+                # restore best snapshot back into the live model so downstream
+                # callers see the Cotter-selected weights as before.
+                final_snap = epoch_records[-1][1]
+                self.encoder.backbone.load_state_dict(final_snap["backbone"])
+                self.encoder.adapters.load_state_dict(final_snap["lora_adapters"])
+                self.task_heads.load_state_dict(final_snap["task_heads"])
+                self.save_checkpoint("canonical_iterate")
+                # Restore best snapshot.
+                best_snap = sel[1]
+                self.encoder.backbone.load_state_dict(best_snap["backbone"])
+                self.encoder.adapters.load_state_dict(best_snap["lora_adapters"])
+                self.task_heads.load_state_dict(best_snap["task_heads"])
+                logger.info(
+                    f"[V2/CANONICAL] selected final.pt "
+                    f"(mean_R²_final={mean_final:.4f} < mean_R²_best={mean_best:.4f})"
+                )
+            else:
+                # Live model is already best; just save under the new name.
+                self.save_checkpoint("canonical_iterate")
+                logger.info(
+                    f"[V2/CANONICAL] selected best.pt "
+                    f"(mean_R²_best={mean_best:.4f} <= mean_R²_final={mean_final:.4f})"
+                )
+
         return self.state
 
     # ── Cotter best-iterate selection ───────────────────────────────────
@@ -1002,9 +1090,24 @@ class V2Trainer:
     def save_checkpoint(self, name: str) -> Path:
         ckpt_dir = Path(self.config.checkpoint_dir)
         ckpt_dir.mkdir(parents=True, exist_ok=True)
+        # Encoder top-level buffers that don't live under ``backbone`` or
+        # ``adapters`` (e.g. ``leace_P_p{p}``, ``leace_mu_p{p}`` registered by
+        # ``set_leace_projection``). For checkpoints written before the
+        # frozen-projection feature this dict is empty and the key is harmless
+        # backward-compat.
+        encoder_full = self.encoder.state_dict()
+        backbone_keys = set(self.encoder.backbone.state_dict().keys())
+        adapter_keys = set(self.encoder.adapters.state_dict().keys())
+        encoder_buffers = {
+            k: v for k, v in encoder_full.items()
+            if k.split(".", 1)[0] not in {"backbone", "adapters"}
+            and k not in backbone_keys
+            and k not in adapter_keys
+        }
         ckpt = {
             "backbone": self.encoder.backbone.state_dict(),
             "lora_adapters": self.encoder.adapters.state_dict(),
+            "encoder_buffers": encoder_buffers,
             "task_heads": self.task_heads.state_dict(),
             "vclubs": self.vclubs.state_dict(),
             "lambdas": {n: c.lambda_value for n, c in self.proxy.constraints.items()},
