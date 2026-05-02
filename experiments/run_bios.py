@@ -393,8 +393,21 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
     print("LEACE warm-start...")
     leace_diag = leace_warm_start_bert(model, train_loader, device=device)
     print(f"  LEACE: pre_r2={leace_diag['pre_r2_train']:.4f} → "
-          f"post_r2={leace_diag['post_r2_train']:.4f}")
-    constr = construction_r2(model, dev_loader, device, max_samples=None)
+          f"post_r2_eraser_only={leace_diag['post_r2_train_eraser_only']:.4f}")
+    try:
+        constr = construction_r2(model, dev_loader, device, max_samples=None)
+    except RuntimeError as e:
+        if not args.allow_warmstart_fail:
+            raise
+        # Smoke-test mode: LEACE warm-start at small n_train cannot generalize
+        # to dev (R² scales ~ d/n). Down-grade abort to warning so the rest of
+        # the training-loop wiring (Option D, monitor, Plan-B trip detection)
+        # can be exercised end-to-end. Production runs MUST not pass this flag.
+        print(f"  WARNING --allow-warmstart-fail: {e}")
+        constr = construction_r2(
+            model, dev_loader, device,
+            max_samples=None, abort_threshold=1.0,
+        )
     print(f"  Construction-time R² (full dev, n={constr['n_held_out']}): "
           f"{constr['r2_rounded']:.4f}  passed={constr['passed']}")
 
@@ -521,7 +534,7 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                       f"λ={cur_lambda:.3f}  |Δλ|_ema={monitor.delta_lambda_ema:.4f}  "
                       f"holdout_R²={_h:.4f}  "
                       f"in-batch_R²_window_mean="
-                      f"{(np.mean(monitor.inbatch_r2_window) if monitor.inbatch_r2_window else float('nan')):.4f}  "
+                      f"{monitor.last_inbatch_window_mean:.4f}  "
                       f"flip_rate_20={monitor.flip_rate():.2f}  "
                       f"sat_streak={monitor.lambda_saturation_streak}")
 
@@ -887,6 +900,10 @@ def _parse_args() -> argparse.Namespace:
                    help="Proportional gain on (R²_ema - threshold) in Plan B.")
     p.add_argument("--plan-b-ki", type=float, default=5.0,
                    help="Integral gain on (R²_ema - threshold) in Plan B.")
+    p.add_argument("--allow-warmstart-fail", action="store_true",
+                   help="Smoke-test only: downgrade construction-R² abort to "
+                        "warning. Required when --n-train is too small for "
+                        "LEACE to generalize. PRODUCTION RUNS MUST NOT USE THIS.")
     p.add_argument("--output-dir", type=str,
                    default="results/v2_bios_ROUND1")
     return p.parse_args()

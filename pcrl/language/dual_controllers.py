@@ -72,6 +72,10 @@ class FiveSignalMonitor:
         self.prev_lambda: Optional[float] = None
         self.sign_buffer: deque[int] = deque(maxlen=flip_window)
         self.inbatch_r2_window: list[float] = []
+        # Most recent K-window mean, preserved across refreshes so step-aligned
+        # log lines (e.g. every 50 primal steps with K=10) can read a stable
+        # value instead of an empty/just-reset window.
+        self.last_inbatch_window_mean: float = float("nan")
         self.last_holdout_r2: Optional[float] = None
         self.lambda_saturation_streak: int = 0
         # The most recent mid-window jump observed (for trip + reporting).
@@ -106,11 +110,13 @@ class FiveSignalMonitor:
             )
         self.last_holdout_r2 = float(holdout_r2)
 
-        # in-batch R² window mean (resets each refresh)
+        # in-batch R² window mean (resets each refresh, but cache the value
+        # so periodic log lines firing right after a reset can read it).
         if self.inbatch_r2_window:
             inbatch_window_mean = float(np.mean(self.inbatch_r2_window))
         else:
-            inbatch_window_mean = 0.0
+            inbatch_window_mean = float("nan")
+        self.last_inbatch_window_mean = inbatch_window_mean
         self.inbatch_r2_window = []
 
         return {
