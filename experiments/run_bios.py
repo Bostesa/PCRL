@@ -348,6 +348,15 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
         max_length=args.max_length,
         num_workers=args.num_workers,
     )
+    # The full-train loader is what LEACE warm-start fits on (matches the
+    # n=50K used during diagnostics). Carving the held-out 4096 OUT of the
+    # LEACE-fit data drops eraser quality enough to push the construction-R²
+    # check over 0.05 (observed on AWS launch #2: 0.045→0.078 at n=45,904).
+    # Held-out exclusion is for the dual signal (no gradient leakage), not
+    # for the one-shot eraser fit. Keep the original loader as
+    # ``full_train_loader`` and reassign ``train_loader`` to the carved
+    # primal subset below.
+    full_train_loader = train_loader
     # Option D: carve out a 4096-sample held-out subset (deterministic seed,
     # no overlap with primal mini-batches). Dual update reads R² off this
     # batch every K=holdout_refresh_every primal steps.
@@ -381,6 +390,34 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
           f"refresh_every={args.holdout_refresh_every}  "
           f"holdout_eval_bs={args.holdout_eval_batch_size}")
 
+    # ── INVARIANT: three disjoint dataset roles wired correctly ──────────
+    # full_train_loader   → LEACE one-shot eraser fit (NEEDS full n_train)
+    # train_loader        → primal mini-batches      (carved primal subset)
+    # holdout_loader      → dual signal R² eval      (4096 held-out)
+    # Adding a guard here prevents future refactors from silently dropping
+    # the LEACE-fit size below n_train and breaking the construction-R²
+    # check (the bug that crashed AWS launch #2).
+    n_full_for_leace = len(full_train_loader.dataset)
+    print(f"[invariant] LEACE-fit dataset size = {n_full_for_leace}, "
+          f"primal-train size = {len(primal_train_ds)}, "
+          f"holdout size = {len(holdout_ds)}")
+    if n_full_for_leace < args.n_train:
+        raise RuntimeError(
+            f"[invariant FAILED] full_train_loader.dataset has "
+            f"{n_full_for_leace} samples but --n-train={args.n_train}. "
+            f"LEACE warm-start MUST fit on the full subsample. Did a "
+            f"refactor pass the carved primal subset to "
+            f"leace_warm_start_bert by mistake?"
+        )
+    # primal + holdout MUST exactly partition the full set (no overlap, no
+    # missing indices) — critical for Option D's no-gradient-leakage property.
+    if len(primal_train_ds) + len(holdout_ds) != n_full_for_leace:
+        raise RuntimeError(
+            f"[invariant FAILED] primal({len(primal_train_ds)}) + "
+            f"holdout({len(holdout_ds)}) != full({n_full_for_leace}). "
+            f"Carve-out is broken — there is overlap or missing indices."
+        )
+
     model = BertWithLoRA(
         rank=args.rank, alpha=args.alpha, dropout=args.dropout,
     ).to(device)
@@ -390,10 +427,13 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
           f"trainable={desc['trainable']:,}  frozen={desc['frozen']:,}  "
           f"ratio={desc['ratio_trainable']:.4%}")
 
-    print("LEACE warm-start...")
-    leace_diag = leace_warm_start_bert(model, train_loader, device=device)
+    print(f"LEACE fitting on N={n_full_for_leace} samples")
+    leace_diag = leace_warm_start_bert(model, full_train_loader, device=device)
+    post_eraser = leace_diag["post_r2_train_eraser_only"]
     print(f"  LEACE: pre_r2={leace_diag['pre_r2_train']:.4f} → "
-          f"post_r2_eraser_only={leace_diag['post_r2_train_eraser_only']:.4f}")
+          f"post_r2_eraser_only={post_eraser:.4f}")
+    print(f"  LEACE post-R²(eraser only): {post_eraser:.4f} "
+          f"(expected ≈ 0.008 at N=50000)")
     try:
         constr = construction_r2(model, dev_loader, device, max_samples=None)
     except RuntimeError as e:
@@ -588,6 +628,23 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                       f"flip_rate={monitor.flip_rate():.2f} "
                       f"sat_streak={monitor.lambda_saturation_streak}")
 
+            # Hard 30-min checkpoint: if no epoch has completed by 30 min,
+            # the loop is too slow for the 12-epoch / 8h plan and we abort
+            # before burning more compute. Set 2026-05-02 ahead of launch #3.
+            if (
+                bail_reason is None
+                and elapsed_now >= 30 * 60
+                and len(history) == 0
+            ):
+                bail_reason = (
+                    f"BAIL @ 30 min hard-cap: epoch 0 still in progress at "
+                    f"global_step={global_step} (n_primal={len(primal_train_ds)}, "
+                    f"steps_per_epoch≈{len(primal_train_ds)//args.batch_size}). "
+                    f"Loop is too slow for 12 epochs in 8h."
+                )
+                print(f"!!! {bail_reason}")
+                break  # break inner step loop
+
             running_task += float(L_task.item())
             running_r2 += float(r2_marginal.item())
             running_holdout_r2 += (
@@ -595,6 +652,12 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             )
             running_steps += 1
             global_step += 1
+
+        # If the inner step loop bailed (e.g. hard 30-min cap with no epoch
+        # completed), skip end-of-epoch eval + _check_bail so the inner-set
+        # bail_reason is preserved for the summary.
+        if bail_reason is not None:
+            break
 
         ep_dt = time.time() - ep_t0
         avg_task = running_task / max(running_steps, 1)
