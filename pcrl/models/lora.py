@@ -274,8 +274,21 @@ class PerPurposeLoRAEncoder(nn.Module):
             raise ValueError(
                 f"mu must be (d,) matching P; got mu={tuple(mu.shape)} P={tuple(P.shape)}"
             )
-        self.register_buffer(f"leace_P_p{p}", P.detach().clone(), persistent=True)
-        self.register_buffer(f"leace_mu_p{p}", mu.detach().clone(), persistent=True)
+        # Move buffer to the encoder's current device so the forward pass
+        # (which runs on whatever device the encoder is on) doesn't hit a
+        # CPU/GPU device mismatch when concept_erasure produces CPU tensors
+        # but the encoder has been ``.to(cuda)``'d. Falls back to the input
+        # tensor's device when the encoder has no parameters yet.
+        try:
+            target_device = next(self.parameters()).device
+        except StopIteration:
+            target_device = P.device
+        self.register_buffer(
+            f"leace_P_p{p}", P.detach().to(target_device).clone(), persistent=True,
+        )
+        self.register_buffer(
+            f"leace_mu_p{p}", mu.detach().to(target_device).clone(), persistent=True,
+        )
 
     def has_leace_projection(self, purpose_idx: int) -> bool:
         p = _coerce_purpose_idx(purpose_idx, self.n_purposes)
