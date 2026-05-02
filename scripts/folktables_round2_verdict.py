@@ -80,9 +80,17 @@ def evaluate_seed(seed: int, train_ds, test_ds, purposes, registry, device: str)
     ckpt = torch.load(chosen, map_location=device, weights_only=False)
     encoder.backbone.load_state_dict(ckpt["backbone"])
     encoder.adapters.load_state_dict(ckpt["lora_adapters"])
+    # Frozen LEACE projection buffers (when present) must be installed via
+    # ``set_leace_projection`` rather than ``load_state_dict(strict=False)``,
+    # which silently skips unregistered buffers — verified empirically that
+    # the resulting encoder produced auditor R²=0.14 on income/race because
+    # the projection wasn't actually applied.
     enc_buf = ckpt.get("encoder_buffers", {}) or {}
-    if enc_buf:
-        encoder.load_state_dict(enc_buf, strict=False)
+    for p_idx in range(len(purposes)):
+        P_key = f"leace_P_p{p_idx}"
+        mu_key = f"leace_mu_p{p_idx}"
+        if P_key in enc_buf and mu_key in enc_buf:
+            encoder.set_leace_projection(p_idx, enc_buf[P_key], enc_buf[mu_key])
     encoder.eval().to(device)
 
     train_loader = DataLoader(

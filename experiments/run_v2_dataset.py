@@ -321,11 +321,19 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         encoder.backbone.load_state_dict(ckpt["backbone"])
         encoder.adapters.load_state_dict(ckpt["lora_adapters"])
         # Encoder-level buffers (e.g. ``leace_P_p{p}``) live outside backbone
-        # and adapters. Optional key for backward compat with older checkpoints
-        # that predate the frozen-projection feature.
+        # and adapters. ``load_state_dict(strict=False)`` *silently skips*
+        # buffers that aren't already registered, so we route through
+        # ``set_leace_projection`` which calls ``register_buffer`` explicitly.
+        # In-process path: trainer.leace_warm_start already registered them
+        # earlier in this function, so this is an idempotent overwrite. From
+        # a fresh process (verdict script reloading a saved checkpoint):
+        # this path *creates* the buffers on the rebuilt encoder.
         enc_buf = ckpt.get("encoder_buffers", {}) or {}
-        if enc_buf:
-            encoder.load_state_dict(enc_buf, strict=False)
+        for p_idx in range(len(purposes)):
+            P_key = f"leace_P_p{p_idx}"
+            mu_key = f"leace_mu_p{p_idx}"
+            if P_key in enc_buf and mu_key in enc_buf:
+                encoder.set_leace_projection(p_idx, enc_buf[P_key], enc_buf[mu_key])
         # task_heads is a plain dict here, but Trainer wraps it in nn.ModuleDict.
         # Use the trainer's task_heads (the live nn.ModuleDict) for state_dict load.
         trainer.task_heads.load_state_dict(ckpt["task_heads"])
