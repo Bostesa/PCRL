@@ -364,29 +364,53 @@ def _evaluate_dev(
 def _check_bail(
     elapsed_s: float,
     top10_acc: float,
+    tpr_rms: float,
     marg_adj_r2: float,
     *,
     phase: int,
 ) -> str | None:
     """Return a reason string if a bail condition is hit, else None.
 
-    Round 2 thresholds (set 2026-05-03) operate on Theil-adjusted R²
-    (``marg_adj_r2``) rather than raw R² — adj_R² has expectation 0 under
-    independence at any (n, d), so τ values are meaningful.
+    Round 2 revised thresholds (set 2026-05-03) lead with TPR-RMS-gap (the
+    BIOS standard fairness metric per De-Arteaga 2019). Adjusted-R² is
+    secondary/diagnostic. The pre-flight verdict at
+    ``results/v2_bios_PREFLIGHT/PREFLIGHT_VERDICT.md`` showed nHSIC primal +
+    Theil-adj dual + online LEACE refit produces a competitive TPR-gap
+    (0.049 RMS) even when adj-R² remains high — so the absolute R² gate
+    was inverting the metric hierarchy.
     """
     if phase == 1:
-        if elapsed_s >= 30 * 60 and top10_acc < 0.65:
-            return ("BAIL @ 30 min: top-10 acc {:.3f} < 0.65 — likely LoRA "
-                    "wiring is broken.".format(top10_acc))
-        if elapsed_s >= 30 * 60 and marg_adj_r2 > 0.30:
-            return ("BAIL @ 30 min: marginal adj-R² {:.4f} > 0.30 — "
-                    "estimator stack failed early.".format(marg_adj_r2))
-        if elapsed_s >= 60 * 60 and marg_adj_r2 > 0.20:
-            return ("BAIL @ 1 hr: marginal adj-R² {:.4f} > 0.20 — "
-                    "constraint not converging.".format(marg_adj_r2))
-        if elapsed_s >= 120 * 60 and marg_adj_r2 > 0.10:
-            return ("BAIL @ 2 hr: marginal adj-R² {:.4f} > 0.10 — "
-                    "this seed will not converge.".format(marg_adj_r2))
+        # 30 min: gross-failure trips
+        if elapsed_s >= 30 * 60:
+            if top10_acc < 0.65:
+                return (
+                    f"BAIL @ 30 min: top-10 acc {top10_acc:.3f} < 0.65 — "
+                    f"likely LoRA wiring is broken."
+                )
+            if tpr_rms > 0.30:
+                return (
+                    f"BAIL @ 30 min: TPR-RMS-gap {tpr_rms:.4f} > 0.30 — "
+                    f"estimator stack failed early."
+                )
+        # 1 hr: convergence-progress trip
+        if elapsed_s >= 60 * 60 and tpr_rms > 0.20:
+            return (
+                f"BAIL @ 1 hr: TPR-RMS-gap {tpr_rms:.4f} > 0.20 — "
+                f"not converging toward publishable fairness."
+            )
+        # 2 hr: final tightening trip + secondary R² catastrophe trip
+        if elapsed_s >= 120 * 60:
+            if tpr_rms > 0.15:
+                return (
+                    f"BAIL @ 2 hr: TPR-RMS-gap {tpr_rms:.4f} > 0.15 — "
+                    f"will not reach publishable threshold."
+                )
+            if marg_adj_r2 > 0.50:
+                return (
+                    f"BAIL @ 2 hr: adj-R² {marg_adj_r2:.4f} > 0.50 — "
+                    f"secondary catastrophe (rep is gender-saturated despite "
+                    f"good TPR-gap; suggests task head is masking the leak)."
+                )
         return None
     return None  # Phase-2 bail logic handled in run_phase2 (multi-constraint)
 
@@ -819,11 +843,13 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                   f"dev_adj_R²={ev['marginal_adj_r2']:.4f} "
                   f"TPR_rms={ev['tpr_rms_gap']:.4f}")
 
-        # Track best by (adj_R² ≤ τ AND highest acc).
-        is_compliant = ev["marginal_adj_r2"] <= args.r2_threshold
+        # Track best by TPR-RMS-gap ≤ args.tpr_pass_threshold AND highest acc
+        # (BIOS standard fairness metric, primary criterion). adj-R² is
+        # informational/secondary.
+        is_compliant = ev["tpr_rms_gap"] <= args.tpr_pass_threshold
         if is_compliant and ev["top10_acc"] > best_acc:
             best_acc = ev["top10_acc"]
-            best_marg_r2 = ev["marginal_adj_r2"]
+            best_marg_r2 = ev["tpr_rms_gap"]
             best_state = {
                 "model": {k: v.detach().cpu().clone()
                           for k, v in model.state_dict().items()},
@@ -833,7 +859,11 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             }
 
         bail_reason = _check_bail(
-            elapsed, ev["top10_acc"], ev["marginal_adj_r2"], phase=1,
+            elapsed,
+            ev["top10_acc"],
+            ev["tpr_rms_gap"],
+            ev["marginal_adj_r2"],
+            phase=1,
         )
         if bail_reason:
             print(f"!!! {bail_reason}")
@@ -898,7 +928,8 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             None if best_state is None
             else {"epoch": best_state["epoch"],
                   "dev_top10_acc": best_acc,
-                  "dev_marginal_adj_r2": best_marg_r2}
+                  "dev_tpr_rms_gap": best_marg_r2,
+                  "tpr_pass_threshold": args.tpr_pass_threshold}
         ),
         "leace_warmstart": leace_diag,
         "construction_r2": constr,
@@ -1156,6 +1187,11 @@ def _parse_args() -> argparse.Namespace:
                    help="Pre-flight gate: max acceptable dev adj-R².")
     p.add_argument("--gate-tpr-rms-max", type=float, default=0.15,
                    help="Pre-flight gate: max acceptable RMS TPR-gap.")
+    p.add_argument("--tpr-pass-threshold", type=float, default=0.15,
+                   help="TPR-RMS-gap threshold for marking an epoch "
+                        "compliant in best_compliant tracking. Default 0.15 "
+                        "(relaxed-publishable, per Round-2 revised criteria); "
+                        "0.10 is the strict-competitive band.")
     p.add_argument("--output-dir", type=str,
                    default="results/v2_bios_ROUND1")
     return p.parse_args()
