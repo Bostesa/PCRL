@@ -26,7 +26,14 @@ from .diagnostics import (
     describe_modules,
 )
 from .dual_controllers import EmaCrossCovPIController, FiveSignalMonitor
+from .hsic import gender_one_hot, hsic_unbiased_linear, nhsic_linear
 from .leace_warmstart import leace_warm_start_bert
+from .online_leace import OnlineLeaceRefit
+from .tpr_gap import (
+    theil_adjusted_r2,
+    tpr_gap_summary,
+    tpr_gaps_per_occupation,
+)
 
 __all__ = [
     "CLS_DIM",
@@ -44,5 +51,12 @@ __all__ = [
     "describe_modules",
     "EmaCrossCovPIController",
     "FiveSignalMonitor",
+    "gender_one_hot",
+    "hsic_unbiased_linear",
+    "nhsic_linear",
     "leace_warm_start_bert",
+    "OnlineLeaceRefit",
+    "theil_adjusted_r2",
+    "tpr_gap_summary",
+    "tpr_gaps_per_occupation",
 ]

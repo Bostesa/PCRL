@@ -41,12 +41,18 @@ from pcrl.language import (  # noqa: E402
     BIOS_TOP10,
     EmaCrossCovPIController,
     FiveSignalMonitor,
+    OnlineLeaceRefit,
     bio_length_by_gender,
     build_bios_loaders,
     cls_shape_trace,
     construction_r2,
     describe_modules,
+    gender_one_hot,
     leace_warm_start_bert,
+    nhsic_linear,
+    theil_adjusted_r2,
+    tpr_gap_summary,
+    tpr_gaps_per_occupation,
 )
 from pcrl.language.per_class_ovr_constraints import (  # noqa: E402
     build_phase2_constraints,
@@ -237,19 +243,17 @@ def _build_phase1_constraints(*, threshold: float, eta: float, lambda_min: float
 
 
 @torch.no_grad()
-def _holdout_r2(model, holdout_loader, device, *, ridge: float = 1e-6) -> float:
-    """Closed-form ridge R²([CLS], gender) on a fixed held-out batch.
+def _holdout_r2(model, holdout_loader, device, *, ridge: float = 1e-6) -> dict:
+    """Closed-form ridge R²([CLS], gender) on a fixed held-out batch +
+    Theil-adjusted R² for the dual signal.
 
-    Used as the dual-update signal in Phase 1 (Option D, set 2026-05-02). The
-    drift diagnostic (results/v2_bios_DRIFT/drift.json) showed the LEACE post-
-    projection alone fails to hold under task-loss training (Δ dev R² = +0.85
-    in 1 epoch). The proxy-Lagrangian dual uses this low-variance held-out R²
-    as the true constraint signal; the in-batch primal R² (32-sample noisy
-    estimate via VerificationRegularizer) provides the differentiable gradient.
+    Round 2 (set 2026-05-03): the dual update consumes ``adj_r2`` rather than
+    raw ``r2``. Theil's adjusted R² has expectation 0 under independence at
+    any (n, d) — the OLS noise floor of d/(n-1) ≈ 0.19 at d=768, n=4096
+    that crippled Round 1's dual is corrected away. ``τ = 0.05`` becomes
+    a meaningful threshold for the dual ascent.
 
-    Refresh frequency K and batch size N=4096 (d/N=0.19) chosen so the dual
-    sees a clean signal — at this N the in-sample OLS bias of the closed-form
-    estimator is below the 0.05 threshold.
+    Returns a dict with both raw and adjusted R² so callers can choose.
     """
     was_training = model.training
     model.eval()
@@ -273,7 +277,15 @@ def _holdout_r2(model, holdout_loader, device, *, ridge: float = 1e-6) -> float:
     Z_pred = H_c @ W
     ss_res = ((Z_c - Z_pred) ** 2).sum()
     ss_tot = (Z_c ** 2).sum()
-    return float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    r2 = float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    n = int(Z.shape[0])
+    d = int(Z.shape[1])
+    return {
+        "r2": r2,
+        "adj_r2": theil_adjusted_r2(r2, n, d),
+        "n": n,
+        "d": d,
+    }
 
 
 @torch.no_grad()
@@ -303,31 +315,78 @@ def _evaluate_dev(
     Z = torch.cat(z_blocks, dim=0)
     G = torch.cat(g_blocks, dim=0)
     OCC = torch.cat(occ_blocks, dim=0)
-    # Compute R² on full dev set in one shot via VerificationRegularizer
-    # (closed-form ridge); move to CPU so the MPS-bug shim in losses.py picks
-    # up the CPU path.
-    r2_marginal = float(verifier(Z.float(), G).item())
+
+    # Closed-form ridge OLS R² on full dev (same formula as _holdout_r2 / the
+    # construction-time check) so values are directly comparable end-to-end.
+    Z_np = Z.float().numpy().astype(np.float64)
+    g_np = G.numpy().astype(np.int64)
+    Z_oh = np.eye(2)[g_np].astype(np.float64)
+    H_c = Z_np - Z_np.mean(axis=0, keepdims=True)
+    Z_c = Z_oh - Z_oh.mean(axis=0, keepdims=True)
+    gram = H_c.T @ H_c + 1e-6 * np.eye(H_c.shape[1])
+    W = np.linalg.solve(gram, H_c.T @ Z_c)
+    ss_res = ((Z_c - H_c @ W) ** 2).sum()
+    ss_tot = (Z_c ** 2).sum()
+    r2_marginal = float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    n_dev_eff = int(Z_np.shape[0])
+    d_dev = int(Z_np.shape[1])
+    adj_r2 = theil_adjusted_r2(r2_marginal, n_dev_eff, d_dev)
+
+    # Per-occupation TPR gap (BIOS standard fairness metric, De-Arteaga 2019).
+    # Round 2 reports this as the **primary** metric; R² is diagnostic.
+    preds_np = []
+    occ_np = OCC.numpy()
+    # Re-run task head over Z (already on CPU) to recover predictions without
+    # another model forward pass — matches the predictions counted in
+    # ``correct`` above for ``top10_acc`` consistency.
+    with torch.no_grad():
+        task_head.cpu()
+        logits = task_head(Z.float())
+        preds_np = logits.argmax(-1).numpy()
+        task_head.to(device)
+    gaps = tpr_gaps_per_occupation(
+        preds_np, occ_np, g_np, n_occupations=10,
+    )
+    tpr = tpr_gap_summary(gaps)
+
     return {
         "top10_acc": correct / max(total, 1),
         "marginal_r2": r2_marginal,
+        "marginal_adj_r2": adj_r2,
+        "tpr_rms_gap": tpr["rms_gap"],
+        "tpr_max_abs_gap": tpr["max_abs_gap"],
+        "tpr_per_occupation": tpr["per_occupation"],
         "n_dev": int(total),
         "Z": Z, "G": G, "OCC": OCC,
     }
 
 
-def _check_bail(elapsed_s: float, top10_acc: float, marg_r2: float, *,
-                phase: int) -> str | None:
-    """Return a reason string if a bail condition is hit, else None."""
+def _check_bail(
+    elapsed_s: float,
+    top10_acc: float,
+    marg_adj_r2: float,
+    *,
+    phase: int,
+) -> str | None:
+    """Return a reason string if a bail condition is hit, else None.
+
+    Round 2 thresholds (set 2026-05-03) operate on Theil-adjusted R²
+    (``marg_adj_r2``) rather than raw R² — adj_R² has expectation 0 under
+    independence at any (n, d), so τ values are meaningful.
+    """
     if phase == 1:
         if elapsed_s >= 30 * 60 and top10_acc < 0.65:
             return ("BAIL @ 30 min: top-10 acc {:.3f} < 0.65 — likely LoRA "
                     "wiring is broken.".format(top10_acc))
-        if elapsed_s >= 60 * 60 and marg_r2 > 0.20:
-            return ("BAIL @ 1 hr: marginal R² {:.4f} > 0.20 — escalate to "
-                    "rank=48 or abandon.".format(marg_r2))
-        if elapsed_s >= 120 * 60 and marg_r2 > 0.10:
-            return ("BAIL @ 2 hr: marginal R² {:.4f} > 0.10 — this seed "
-                    "will not converge.".format(marg_r2))
+        if elapsed_s >= 30 * 60 and marg_adj_r2 > 0.30:
+            return ("BAIL @ 30 min: marginal adj-R² {:.4f} > 0.30 — "
+                    "estimator stack failed early.".format(marg_adj_r2))
+        if elapsed_s >= 60 * 60 and marg_adj_r2 > 0.20:
+            return ("BAIL @ 1 hr: marginal adj-R² {:.4f} > 0.20 — "
+                    "constraint not converging.".format(marg_adj_r2))
+        if elapsed_s >= 120 * 60 and marg_adj_r2 > 0.10:
+            return ("BAIL @ 2 hr: marginal adj-R² {:.4f} > 0.10 — "
+                    "this seed will not converge.".format(marg_adj_r2))
         return None
     return None  # Phase-2 bail logic handled in run_phase2 (multi-constraint)
 
@@ -477,7 +536,29 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
     config["info"] = info
     _save_json(output_dir / "config.json", config)
 
-    holdout_r2_cached: float | None = None
+    # Round 2 estimator stack (set 2026-05-03):
+    #   - primal differentiable signal: linear unbiased nHSIC (no d/N pathology)
+    #   - dual update signal:           Theil-adjusted held-out R² (E=0 under H₀)
+    #   - post-projection (optional):   sliding-buffer online LEACE refit with
+    #                                   shrinkage and constrain_cov_trace
+    online_leace: OnlineLeaceRefit | None = None
+    if args.online_leace:
+        online_leace = OnlineLeaceRefit(
+            d_x=768, d_z=1,
+            buffer_size=args.online_leace_buffer,
+            refit_every=args.online_leace_refit_every,
+            device="cpu",  # closed-form fit; portable across CUDA/MPS/CPU
+        )
+        print(f"[round2] online LEACE refit ENABLED  "
+              f"(buffer={args.online_leace_buffer}, "
+              f"refit_every={args.online_leace_refit_every}, "
+              f"shrinkage=True, constrain_cov_trace=True)")
+    print(f"[round2] primal=nHSIC(linear, unbiased)  "
+          f"dual=Theil-adjusted holdout R²  "
+          f"τ={args.r2_threshold}")
+
+    holdout_r2_cached: float | None = None      # raw R² (logging only)
+    holdout_adj_r2_cached: float | None = None  # the dual signal
     global_step = 0
     controller_mode = "option_d"  # swaps to "plan_b" if monitor trips in epoch 1
     plan_b: EmaCrossCovPIController | None = None
@@ -506,11 +587,13 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             logits = task_head(z)
             L_task = F.cross_entropy(logits, occ)
 
-            # Primal differentiable signal: in-batch R² via verifier
-            # (ridge=1e-4, 32 samples). Noisy but cheap and provides the
-            # gradient pull on the LoRA. Cotter proxy-Lagrangian convergence
-            # tolerates this so long as the dual is on a low-bias estimate.
-            r2_marginal = verifier(z, gen)
+            # Round 2 primal differentiable signal: linear unbiased nHSIC₁
+            # (Song et al. 2012). Has E[nHSIC] = 0 under independence at any
+            # (n, d) — replaces in-batch OLS R², which saturated at 1.0 due
+            # to d/N=24 noise floor at d=768, batch=32 (the failure mode
+            # confirmed in Round 1 results/v2_bios_ROUND1/VERDICT.md).
+            gen_oh = gender_one_hot(gen)
+            primal_signal = nhsic_linear(z, gen_oh)
 
             # Plan-B mode: overwrite proxy lambda from EMA-cov PI controller
             # before computing the lagrangian loss. The proxy's lambda field
@@ -523,7 +606,7 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                 proxy.constraints["marginal_gender"].lambda_value = lam_new
 
             primal_loss = proxy.lagrangian_loss(
-                L_task, {"marginal_gender": r2_marginal}
+                L_task, {"marginal_gender": primal_signal}
             )
 
             primal_optimizer.zero_grad(set_to_none=True)
@@ -532,32 +615,53 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                 torch.nn.utils.clip_grad_norm_(primal_params, args.grad_clip)
             primal_optimizer.step()
 
+            # Online LEACE refit (after primal step so the buffer captures the
+            # post-step [CLS] distribution). Observe every step; refit on
+            # cadence; register on the model.
+            if online_leace is not None:
+                with torch.no_grad():
+                    z_post_step = model(ids, mask)
+                online_leace.observe(z_post_step, gen)
+                if online_leace.should_refit(global_step):
+                    eraser = online_leace.refit(global_step)
+                    Q = eraser.P.detach().to(torch.float32)
+                    mu = (
+                        eraser.bias.detach().to(torch.float32)
+                        if eraser.bias is not None
+                        else torch.zeros(Q.shape[0], dtype=torch.float32)
+                    )
+                    model.set_leace_projection(Q, mu)
+
             # Dual update path
             refreshed_this_step = False
             if controller_mode == "option_d":
-                # Option D: held-out R² refreshed every K=10 primal steps.
+                # Option D: Theil-adjusted held-out R² refreshed every K
+                # primal steps. The dual ascent operates on adj_R² which
+                # has E=0 under independence at any (n, d), so threshold
+                # τ=0.05 is meaningful (raw R² has noise floor d/(n-1)≈0.19).
                 if (
-                    holdout_r2_cached is None
+                    holdout_adj_r2_cached is None
                     or global_step % args.holdout_refresh_every == 0
                 ):
-                    holdout_r2_cached = _holdout_r2(
-                        model, holdout_loader, device,
-                    )
+                    out = _holdout_r2(model, holdout_loader, device)
+                    holdout_r2_cached = out["r2"]
+                    holdout_adj_r2_cached = out["adj_r2"]
                     running_holdout_refreshes += 1
                     refreshed_this_step = True
-                proxy.dual_step({"marginal_gender": holdout_r2_cached})
+                proxy.dual_step({"marginal_gender": holdout_adj_r2_cached})
 
             cur_lambda = proxy.constraints["marginal_gender"].lambda_value
             monitor.on_primal_step(
                 lambda_now=cur_lambda,
                 lambda_max=args.lambda_max,
-                inbatch_r2=float(r2_marginal.detach().item()),
+                inbatch_r2=float(primal_signal.detach().item()),
             )
             if refreshed_this_step:
                 snap = monitor.on_dual_refresh(
                     lambda_now=cur_lambda,
-                    holdout_r2=holdout_r2_cached,
+                    holdout_r2=holdout_adj_r2_cached,
                 )
+                snap["holdout_raw_r2"] = holdout_r2_cached
                 with (output_dir / "monitor.jsonl").open("a") as f:
                     f.write(json.dumps(
                         {"global_step": global_step, "epoch": epoch, **snap},
@@ -646,9 +750,9 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                 break  # break inner step loop
 
             running_task += float(L_task.item())
-            running_r2 += float(r2_marginal.item())
+            running_r2 += float(primal_signal.detach().item())
             running_holdout_r2 += (
-                holdout_r2_cached if holdout_r2_cached is not None else 0.0
+                holdout_adj_r2_cached if holdout_adj_r2_cached is not None else 0.0
             )
             running_steps += 1
             global_step += 1
@@ -673,22 +777,33 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             "epoch_time_s": ep_dt,
             "controller_mode": controller_mode,
             "train_task_loss": avg_task,
-            "train_marginal_r2": avg_r2,
-            "train_holdout_r2_avg": avg_holdout_r2,
+            "train_nhsic": avg_r2,
+            "train_holdout_adj_r2_avg": avg_holdout_r2,
             "holdout_refreshes_this_epoch": running_holdout_refreshes,
             "dev_top10_acc": ev["top10_acc"],
             "dev_marginal_r2": ev["marginal_r2"],
+            "dev_marginal_adj_r2": ev["marginal_adj_r2"],
+            "dev_tpr_rms_gap": ev["tpr_rms_gap"],
+            "dev_tpr_max_abs_gap": ev["tpr_max_abs_gap"],
+            "dev_tpr_per_occupation": ev["tpr_per_occupation"],
             "lambda_marginal_gender": diag["lambda"],
             "delta_lambda_ema_end": monitor.delta_lambda_ema,
             "flip_rate_end": monitor.flip_rate(),
             "saturation_streak_end": monitor.lambda_saturation_streak,
+            "online_leace_refit_count": (
+                online_leace.refit_count if online_leace is not None else 0
+            ),
         }
         history.append(ep_log)
         print(f"[ep {epoch:2d}] elapsed={elapsed/60:.1f}m  "
               f"mode={controller_mode}  "
-              f"task_loss={avg_task:.4f}  train_R²={avg_r2:.4f}  "
-              f"holdout_R²={avg_holdout_r2:.4f}  "
-              f"dev_acc={ev['top10_acc']:.4f}  dev_R²={ev['marginal_r2']:.4f}  "
+              f"task_loss={avg_task:.4f}  train_nHSIC={avg_r2:.4f}  "
+              f"holdout_adj_R²={avg_holdout_r2:.4f}  "
+              f"dev_acc={ev['top10_acc']:.4f}  "
+              f"dev_R²={ev['marginal_r2']:.4f}  "
+              f"dev_adj_R²={ev['marginal_adj_r2']:.4f}  "
+              f"TPR_rms={ev['tpr_rms_gap']:.4f}  "
+              f"TPR_max={ev['tpr_max_abs_gap']:.4f}  "
               f"λ={diag['lambda']:.3f}")
         with (output_dir / "history.jsonl").open("a") as f:
             f.write(json.dumps(ep_log, default=_json_default) + "\n")
@@ -700,13 +815,15 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
                   f"|Δλ|_ema={monitor.delta_lambda_ema:.4f} "
                   f"flip_rate={monitor.flip_rate():.2f} "
                   f"sat_streak={monitor.lambda_saturation_streak} "
-                  f"dev_acc={ev['top10_acc']:.4f} dev_R²={ev['marginal_r2']:.4f}")
+                  f"dev_acc={ev['top10_acc']:.4f} "
+                  f"dev_adj_R²={ev['marginal_adj_r2']:.4f} "
+                  f"TPR_rms={ev['tpr_rms_gap']:.4f}")
 
-        # Track best by (R² ≤ τ AND highest acc), else by lowest R².
-        is_compliant = ev["marginal_r2"] <= args.r2_threshold
+        # Track best by (adj_R² ≤ τ AND highest acc).
+        is_compliant = ev["marginal_adj_r2"] <= args.r2_threshold
         if is_compliant and ev["top10_acc"] > best_acc:
             best_acc = ev["top10_acc"]
-            best_marg_r2 = ev["marginal_r2"]
+            best_marg_r2 = ev["marginal_adj_r2"]
             best_state = {
                 "model": {k: v.detach().cpu().clone()
                           for k, v in model.state_dict().items()},
@@ -716,7 +833,7 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             }
 
         bail_reason = _check_bail(
-            elapsed, ev["top10_acc"], ev["marginal_r2"], phase=1,
+            elapsed, ev["top10_acc"], ev["marginal_adj_r2"], phase=1,
         )
         if bail_reason:
             print(f"!!! {bail_reason}")
@@ -732,6 +849,45 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
     if best_state is not None:
         torch.save(best_state, output_dir / "checkpoint_best.pt")
 
+    # CPU pre-flight gate (Round 2, set 2026-05-03). After 1 epoch on a small
+    # subsample, decide whether the AWS launch is justified. Gate criteria:
+    #   - dev_marginal_adj_r2 < args.gate_adj_r2_max (default 0.10)
+    #   - dev_tpr_rms_gap     < args.gate_tpr_rms_max (default 0.15)
+    # Both must pass. If either fails, the AWS launch is NOT justified;
+    # we accept the §5.5 negative-result framing.
+    gate_decision: dict | None = None
+    if args.cpu_preflight:
+        if not history:
+            gate_decision = {
+                "decision": "FAIL",
+                "reason": "no completed epoch — pre-flight ran out of time or aborted",
+            }
+        else:
+            last = history[-1]
+            adj_r2 = float(last["dev_marginal_adj_r2"])
+            tpr_rms = float(last["dev_tpr_rms_gap"])
+            tpr_max = float(last["dev_tpr_max_abs_gap"])
+            acc = float(last["dev_top10_acc"])
+            adj_r2_pass = adj_r2 < args.gate_adj_r2_max
+            tpr_pass = tpr_rms < args.gate_tpr_rms_max
+            gate_decision = {
+                "decision": "PASS" if (adj_r2_pass and tpr_pass) else "FAIL",
+                "dev_top10_acc": acc,
+                "dev_marginal_adj_r2": adj_r2,
+                "dev_tpr_rms_gap": tpr_rms,
+                "dev_tpr_max_abs_gap": tpr_max,
+                "adj_r2_threshold": args.gate_adj_r2_max,
+                "tpr_rms_threshold": args.gate_tpr_rms_max,
+                "adj_r2_pass": adj_r2_pass,
+                "tpr_pass": tpr_pass,
+                "epochs_run": len(history),
+            }
+        print("\n" + "=" * 78)
+        print("[CPU PRE-FLIGHT GATE]")
+        for k, v in gate_decision.items():
+            print(f"  {k}: {v}")
+        print("=" * 78)
+
     summary = {
         "phase": 1,
         "epochs_run": len(history),
@@ -742,7 +898,7 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             None if best_state is None
             else {"epoch": best_state["epoch"],
                   "dev_top10_acc": best_acc,
-                  "dev_marginal_r2": best_marg_r2}
+                  "dev_marginal_adj_r2": best_marg_r2}
         ),
         "leace_warmstart": leace_diag,
         "construction_r2": constr,
@@ -750,6 +906,21 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
         "info": info,
         "controller_mode_final": controller_mode,
         "plan_b_swap": swap_log,
+        "round2_estimator_stack": {
+            "primal": "nhsic_linear (Song et al. 2012, unbiased, normalized)",
+            "dual": "Theil-adjusted held-out R² (E=0 under H₀)",
+            "online_leace": (
+                None if online_leace is None
+                else {
+                    "buffer_size": online_leace.buffer_size,
+                    "refit_every": online_leace.refit_every,
+                    "shrinkage": online_leace.shrinkage,
+                    "constrain_cov_trace": online_leace.constrain_cov_trace,
+                    "refit_count": online_leace.refit_count,
+                }
+            ),
+        },
+        "cpu_preflight_gate": gate_decision,
     }
     _save_json(output_dir / "summary.json", summary)
     print(f"\nWrote summary to {output_dir / 'summary.json'}")
@@ -967,6 +1138,24 @@ def _parse_args() -> argparse.Namespace:
                    help="Smoke-test only: downgrade construction-R² abort to "
                         "warning. Required when --n-train is too small for "
                         "LEACE to generalize. PRODUCTION RUNS MUST NOT USE THIS.")
+    # Round 2 stack (set 2026-05-03)
+    p.add_argument("--online-leace", action="store_true",
+                   help="Enable sliding-buffer online LEACE refit. Replaces "
+                        "the static post-projection with one re-fit every K "
+                        "primal steps on the most recent activations.")
+    p.add_argument("--online-leace-buffer", type=int, default=512,
+                   help="Sliding buffer size for online LEACE refit.")
+    p.add_argument("--online-leace-refit-every", type=int, default=10,
+                   help="Refit cadence (primal steps).")
+    # CPU pre-flight gate (Round 2)
+    p.add_argument("--cpu-preflight", action="store_true",
+                   help="CPU pre-flight gate: print PASS/FAIL based on "
+                        "dev_marginal_adj_r2 and dev_tpr_rms_gap after the "
+                        "configured epochs. AWS launch only if PASS.")
+    p.add_argument("--gate-adj-r2-max", type=float, default=0.10,
+                   help="Pre-flight gate: max acceptable dev adj-R².")
+    p.add_argument("--gate-tpr-rms-max", type=float, default=0.15,
+                   help="Pre-flight gate: max acceptable RMS TPR-gap.")
     p.add_argument("--output-dir", type=str,
                    default="results/v2_bios_ROUND1")
     return p.parse_args()
