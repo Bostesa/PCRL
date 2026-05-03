@@ -44,21 +44,29 @@ _TOP10_SET: frozenset[int] = frozenset(BIOS_TOP10_IDS)
 
 @dataclass
 class TokenizedBios(Dataset):
-    input_ids: torch.Tensor          # (N, 128) int64
-    attention_mask: torch.Tensor     # (N, 128) int64
+    input_ids: torch.Tensor          # (N, 128) int64 — hard_text
+    attention_mask: torch.Tensor     # (N, 128) int64 — hard_text
     occupation: torch.Tensor         # (N,) int64 in [0, 10)
     gender: torch.Tensor             # (N,) int64 in {0, 1}
+    # Scrubbed (gender-neutralized) variant — present iff the loader was
+    # built with ``include_scrubbed=True`` (Component 3 / pair-invariance).
+    input_ids_scrubbed: torch.Tensor | None = None
+    attention_mask_scrubbed: torch.Tensor | None = None
 
     def __len__(self) -> int:
         return self.input_ids.shape[0]
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
-        return {
+        out = {
             "input_ids": self.input_ids[idx],
             "attention_mask": self.attention_mask[idx],
             "occupation": self.occupation[idx],
             "gender": self.gender[idx],
         }
+        if self.input_ids_scrubbed is not None:
+            out["input_ids_scrubbed"] = self.input_ids_scrubbed[idx]
+            out["attention_mask_scrubbed"] = self.attention_mask_scrubbed[idx]
+        return out
 
 
 def _stratified_subsample(
@@ -95,6 +103,7 @@ def _stratified_subsample(
 
 def _tokenize_split(
     rows: dict, tokenizer, max_length: int = 128,
+    *, include_scrubbed: bool = False,
 ) -> TokenizedBios:
     enc = tokenizer(
         rows["hard_text"],
@@ -107,11 +116,30 @@ def _tokenize_split(
         [_LABEL_TO_LOCAL[p] for p in rows["profession"]], dtype=torch.int64,
     )
     gen = torch.tensor(rows["gender"], dtype=torch.int64)
+    ids_scrub = mask_scrub = None
+    if include_scrubbed:
+        # LabHC's HF release does not ship a scrubbed text field. Construct
+        # the counterfactual x' by deterministic pronoun + honorific swap
+        # (Zmigrod 2019). x' has the opposite gender of x; the pair-
+        # invariance loss in cda_invariance.py pulls CLS(x) ≈ CLS(x').
+        from .cda_invariance import swap_gender_pronouns
+        cf_texts = [swap_gender_pronouns(t) for t in rows["hard_text"]]
+        enc_scrub = tokenizer(
+            cf_texts,
+            max_length=max_length,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt",
+        )
+        ids_scrub = enc_scrub["input_ids"].long()
+        mask_scrub = enc_scrub["attention_mask"].long()
     return TokenizedBios(
         input_ids=enc["input_ids"].long(),
         attention_mask=enc["attention_mask"].long(),
         occupation=occ_local,
         gender=gen,
+        input_ids_scrubbed=ids_scrub,
+        attention_mask_scrubbed=mask_scrub,
     )
 
 
@@ -129,6 +157,7 @@ def build_bios_loaders(
     num_workers: int = 0,
     tokenizer_name: str = "bert-base-uncased",
     cache_dir: str | None = None,
+    include_scrubbed: bool = False,
 ) -> tuple[DataLoader, DataLoader, dict, "TokenizedBios", "TokenizedBios"]:
     """Build (train_loader, dev_loader, info, train_ds, dev_ds).
 
@@ -149,13 +178,13 @@ def build_bios_loaders(
     occ_local = np.array([_LABEL_TO_LOCAL[p] for p in occ_int])
     keep_idx = _stratified_subsample(occ_local, gen_int, n_train, seed)
     train_sub = train_filtered.select(keep_idx.tolist())
-    train_ds = _tokenize_split(train_sub[:], tokenizer, max_length)
+    train_ds = _tokenize_split(train_sub[:], tokenizer, max_length, include_scrubbed=include_scrubbed)
 
     full_dev = load_dataset(
         "LabHC/bias_in_bios", split="dev", cache_dir=cache_dir,
     )
     dev_filtered = _filter_top10(full_dev)
-    dev_ds = _tokenize_split(dev_filtered[:], tokenizer, max_length)
+    dev_ds = _tokenize_split(dev_filtered[:], tokenizer, max_length, include_scrubbed=include_scrubbed)
 
     g_train = torch.Generator().manual_seed(seed)
     train_loader = DataLoader(

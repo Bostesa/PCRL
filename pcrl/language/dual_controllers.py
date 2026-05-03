@@ -292,3 +292,84 @@ class EmaCrossCovPIController:
         self.lam = self.lam + self.kp * err + self.ki * self.integral
         self.lam = max(self.lambda_min, min(self.lambda_max, self.lam))
         return self.lam, r2
+
+
+# --------------------------------------------------------------------------
+# Component 4: OGDA dual update (Optimistic Gradient Descent Ascent)
+# --------------------------------------------------------------------------
+
+class OGDADualUpdate:
+    """Optimistic gradient ascent on a single Lagrangian dual variable.
+
+    Update rule (Daskalakis et al. 2018, arXiv:1711.00141; Mokhtari et al.
+    2019, arXiv:1901.08511):
+
+        λ_{t+1} = clip(λ_t + η · (2·g_t - g_{t-1}),  λ_min,  λ_max)
+
+    The "optimistic" half-step uses last round's gradient as a one-step
+    look-ahead, breaking the cycle that classical gradient descent-ascent
+    falls into on saddle-point objectives. Round 1's proxy-Lagrangian λ
+    bounced between 0 and lambda_max because the dual was responding to a
+    saturated primal — OGDA is the targeted fix.
+
+    Drop-in replacement for the inner ``Constraint.update_lambda`` call: pass
+    in the current constraint violation ``g_t`` (e.g. ``holdout_adj_r2 -
+    threshold``); the controller returns the new ``lambda_value`` to write
+    back onto ``proxy.constraints['marginal_gender'].lambda_value``.
+
+    Args:
+        eta: step size η. Defaults to 1.0; tune via smoke test.
+        lambda_min, lambda_max: hard clip on λ.
+        lambda_init: starting λ.
+    """
+
+    def __init__(
+        self,
+        *,
+        eta: float = 1.0,
+        lambda_min: float = 0.0,
+        lambda_max: float = 100.0,
+        lambda_init: float = 1.0,
+    ) -> None:
+        self.eta = float(eta)
+        self.lambda_min = float(lambda_min)
+        self.lambda_max = float(lambda_max)
+        self.lam: float = max(self.lambda_min, float(lambda_init))
+        self.prev_g: Optional[float] = None
+        self.step_count: int = 0
+
+    def step(self, g_t: float) -> float:
+        """One OGDA update. Returns the new ``lambda_value``."""
+        g = float(g_t)
+        if self.prev_g is None:
+            # Cold start: no look-ahead available, fall back to plain
+            # gradient ascent for one step.
+            update = g
+        else:
+            update = 2.0 * g - self.prev_g
+        self.lam = self.lam + self.eta * update
+        if self.lam < self.lambda_min:
+            self.lam = self.lambda_min
+        elif self.lam > self.lambda_max:
+            self.lam = self.lambda_max
+        self.prev_g = g
+        self.step_count += 1
+        return self.lam
+
+    def state_dict(self) -> dict:
+        return {
+            "lam": self.lam,
+            "prev_g": self.prev_g,
+            "step_count": self.step_count,
+            "eta": self.eta,
+            "lambda_min": self.lambda_min,
+            "lambda_max": self.lambda_max,
+        }
+
+    def load_state_dict(self, state: dict) -> None:
+        self.lam = float(state["lam"])
+        self.prev_g = state["prev_g"]
+        self.step_count = int(state["step_count"])
+        self.eta = float(state.get("eta", self.eta))
+        self.lambda_min = float(state.get("lambda_min", self.lambda_min))
+        self.lambda_max = float(state.get("lambda_max", self.lambda_max))
