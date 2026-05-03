@@ -571,11 +571,12 @@ def run_phase1(args, *, device: torch.device, output_dir: Path) -> dict:
             d_x=768, d_z=1,
             buffer_size=args.online_leace_buffer,
             refit_every=args.online_leace_refit_every,
-            device="cpu",  # closed-form fit; portable across CUDA/MPS/CPU
+            device=device,  # match model device — keeps refit on-device
         )
         print(f"[round2] online LEACE refit ENABLED  "
               f"(buffer={args.online_leace_buffer}, "
               f"refit_every={args.online_leace_refit_every}, "
+              f"device={device}, "
               f"shrinkage=True, constrain_cov_trace=True)")
     print(f"[round2] primal=nHSIC(linear, unbiased)  "
           f"dual=Theil-adjusted holdout R²  "
@@ -1176,8 +1177,10 @@ def _parse_args() -> argparse.Namespace:
                         "primal steps on the most recent activations.")
     p.add_argument("--online-leace-buffer", type=int, default=512,
                    help="Sliding buffer size for online LEACE refit.")
-    p.add_argument("--online-leace-refit-every", type=int, default=10,
-                   help="Refit cadence (primal steps).")
+    p.add_argument("--online-leace-refit-every", type=int, default=50,
+                   help="Refit cadence (primal steps). Default 50 set "
+                        "2026-05-03 after launch #4 hit the 30-min hard cap "
+                        "from per-step refit overhead at cadence 10.")
     # CPU pre-flight gate (Round 2)
     p.add_argument("--cpu-preflight", action="store_true",
                    help="CPU pre-flight gate: print PASS/FAIL based on "

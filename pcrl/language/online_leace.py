@@ -72,13 +72,16 @@ class OnlineLeaceRefit:
         """Append ``(x, z)`` to the sliding buffer.
 
         ``x`` is ``(B, d_x)``; ``z`` is ``(B,)`` integer (gender label).
-        Stored on CPU as fp32 for portability — refit moves to ``device``.
+        Stored on ``self.device`` as fp32 — keeps the refit hot path on the
+        same device as the model and avoids the cuda↔cpu transfers per step
+        that bottlenecked launch #4 (1.5 MB at d=768, n=512: negligible
+        VRAM). Round 2 launch #5 fix (set 2026-05-03).
         """
-        x_cpu = x.detach().to(dtype=torch.float32, device="cpu")
-        z_cpu = z.detach().to(dtype=torch.float32, device="cpu").view(-1, 1)
-        for i in range(x_cpu.shape[0]):
-            self.x_buf.append(x_cpu[i])
-            self.z_buf.append(z_cpu[i])
+        x_d = x.detach().to(dtype=torch.float32, device=self.device)
+        z_d = z.detach().to(dtype=torch.float32, device=self.device).view(-1, 1)
+        for i in range(x_d.shape[0]):
+            self.x_buf.append(x_d[i])
+            self.z_buf.append(z_d[i])
 
     def should_refit(self, global_step: int) -> bool:
         """``True`` if a refit is due at this primal step."""
@@ -93,12 +96,14 @@ class OnlineLeaceRefit:
         """Fit a fresh ``LeaceFitter`` on the current buffer; return its eraser.
 
         Returns the ``LeaceEraser`` (with ``.P`` and ``.bias`` accessible)
-        ready to register on the model.
+        ready to register on the model. Buffer tensors are already on
+        ``self.device`` so the LeaceFitter (also on ``self.device``) runs
+        the shrinkage Σ_xx + SVD entirely on-device.
         """
         from concept_erasure import LeaceFitter
 
-        x = torch.stack(list(self.x_buf), dim=0).to(self.device)
-        z = torch.stack(list(self.z_buf), dim=0).to(self.device)
+        x = torch.stack(list(self.x_buf), dim=0)  # already on self.device
+        z = torch.stack(list(self.z_buf), dim=0)
 
         fitter = LeaceFitter(
             x_dim=self.d_x,
