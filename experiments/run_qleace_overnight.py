@@ -393,6 +393,10 @@ def main() -> int:
     ap.add_argument("--instance-id", default="")
     ap.add_argument("--cost-per-hour", type=float, default=0.20)
     ap.add_argument("--shrinkage-alpha", type=float, default=1e-3)
+    ap.add_argument("--layers", nargs="*", type=int, default=[0, 1, 6, 12],
+                    help="BIOS hidden_states layers to probe")
+    ap.add_argument("--skip-toy-sanity", action="store_true",
+                    help="Skip toy sanity check (only for smoke after sanity has passed)")
     args = ap.parse_args()
 
     out_dir = ROOT / args.out_dir
@@ -425,16 +429,21 @@ def main() -> int:
     # ------------------------------------------------------------------
     # Stage 1: toy sanity
     # ------------------------------------------------------------------
-    print("[main] toy sanity check...", flush=True)
-    try:
-        toy = toy_sanity(seed=args.seed)
-    except Exception as e:
-        print(f"[toy-sanity-error] {e}\n{traceback.format_exc()}", flush=True)
-        toy = {"passed": False, "error": str(e)}
+    if args.skip_toy_sanity:
+        print("[main] skipping toy sanity (--skip-toy-sanity)", flush=True)
+        toy = {"skipped": True, "passed": True}
+    else:
+        print("[main] toy sanity check...", flush=True)
+        try:
+            toy = toy_sanity(seed=args.seed)
+        except Exception as e:
+            print(f"[toy-sanity-error] {e}\n{traceback.format_exc()}", flush=True)
+            toy = {"passed": False, "error": str(e)}
     payload["qleace"]["toy_sanity"] = toy
-    print(f"[main] toy: vanilla_lin={toy.get('vanilla_lin_acc'):.3f} "
-          f"quad={toy.get('vanilla_quad_acc'):.3f} qleace_lin={toy.get('qleace_lin_acc'):.3f} "
-          f"qleace_quad={toy.get('qleace_quad_acc'):.3f} passed={toy.get('passed')}", flush=True)
+    if not toy.get("skipped"):
+        print(f"[main] toy: vanilla_lin={toy.get('vanilla_lin_acc'):.3f} "
+              f"quad={toy.get('vanilla_quad_acc'):.3f} qleace_lin={toy.get('qleace_lin_acc'):.3f} "
+              f"qleace_quad={toy.get('qleace_quad_acc'):.3f} passed={toy.get('passed')}", flush=True)
     json_path.write_text(json.dumps(payload, indent=2, default=float))
     if s3_prefix:
         s3_put(json_path, f"{s3_prefix}/qleace_results.json")
@@ -449,7 +458,7 @@ def main() -> int:
     # ------------------------------------------------------------------
     # Stage 2: cache BIOS reps
     # ------------------------------------------------------------------
-    layers = [0, 1, 6, 12]
+    layers = sorted(set(int(L) for L in args.layers))
     print(f"[main] caching BIOS reps for layers {layers}...", flush=True)
     cache = cache_bios_reps(
         n_train=args.n_train, seed=args.seed,
