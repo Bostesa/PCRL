@@ -126,66 +126,60 @@ def cache_layer1_cls(
 
 # ---------------------------------------------------------------------------
 # Patching: per (L, h), forward corrupt with clean's z[L, h] swapped in,
-# return layer-1 [CLS] reps
+# return layer-1 [CLS] reps for that (L, h).
+#
+# DESIGN: process layers one at a time and pass cells to a callback for
+# immediate metric computation + JSON save. Avoids holding the full
+# (n_layers, n_heads, n, d_model) ~14 GB tensor in memory.
 # ---------------------------------------------------------------------------
 
 @torch.no_grad()
-def sweep_patching(
-    model, tokenizer, clean_texts, corrupt_texts, *,
-    max_length=128, batch_size=64, device="cuda",
-):
-    """Returns dict: layer_l, head_h -> patched_layer1_cls (n, d_model).
-
-    Strategy: for each layer L, cache clean's blocks.L.attn.hook_z PER BATCH,
-    then for each head h, re-run corrupt with patch hook. blocks.1.hook_resid_post
-    is captured.
-    """
+def sweep_one_layer(
+    model, tokenizer, clean_texts, corrupt_texts, L, *,
+    max_length=128, batch_size=128, device="cuda",
+) -> torch.Tensor:
+    """Patch each of layer L's 12 heads on corrupt run. Return tensor of
+    shape (n_heads, n, d_model) — one layer's worth of patched layer-1 [CLS]."""
     assert len(clean_texts) == len(corrupt_texts)
     n = len(clean_texts)
-    n_layers = model.cfg.n_layers
     n_heads = model.cfg.n_heads
     d_model = model.cfg.d_model
+    out = torch.empty((n_heads, n, d_model), dtype=torch.float32)
 
-    patched_cls = torch.empty((n_layers, n_heads, n, d_model), dtype=torch.float32)
+    for i in range(0, n, batch_size):
+        clean_chunk = clean_texts[i:i + batch_size]
+        corrupt_chunk = corrupt_texts[i:i + batch_size]
+        clean_ids = tokenizer(clean_chunk, max_length=max_length, truncation=True,
+                              padding="max_length", return_tensors="pt")["input_ids"].to(device)
+        corrupt_ids = tokenizer(corrupt_chunk, max_length=max_length, truncation=True,
+                                padding="max_length", return_tensors="pt")["input_ids"].to(device)
+        _, clean_cache = model.run_with_cache(
+            clean_ids, names_filter=f"blocks.{L}.attn.hook_z",
+        )
+        clean_z = clean_cache[f"blocks.{L}.attn.hook_z"]
 
-    for L in range(n_layers):
-        t_L = time.time()
-        for i in range(0, n, batch_size):
-            clean_chunk = clean_texts[i:i + batch_size]
-            corrupt_chunk = corrupt_texts[i:i + batch_size]
-            clean_ids = tokenizer(clean_chunk, max_length=max_length, truncation=True,
-                                  padding="max_length", return_tensors="pt")["input_ids"].to(device)
-            corrupt_ids = tokenizer(corrupt_chunk, max_length=max_length, truncation=True,
-                                    padding="max_length", return_tensors="pt")["input_ids"].to(device)
-            # Cache clean's hook_z[L]
-            _, clean_cache = model.run_with_cache(
-                clean_ids, names_filter=f"blocks.{L}.attn.hook_z",
+        for h in range(n_heads):
+            captured = {}
+
+            def patch_z(z, hook, _ref=clean_z, _h=h):
+                z[..., _h, :] = _ref[..., _h, :]
+                return z
+
+            def cap_resid(act, hook, _store=captured):
+                _store["v"] = act.detach().float().cpu()
+
+            model.run_with_hooks(
+                corrupt_ids,
+                fwd_hooks=[
+                    (f"blocks.{L}.attn.hook_z", patch_z),
+                    ("blocks.1.hook_resid_post", cap_resid),
+                ],
             )
-            clean_z = clean_cache[f"blocks.{L}.attn.hook_z"]  # (B, T, H, D_head)
-
-            for h in range(n_heads):
-                captured = {}
-
-                def patch_z(z, hook, _ref=clean_z, _h=h):
-                    z[..., _h, :] = _ref[..., _h, :]
-                    return z
-
-                def cap_resid(act, hook, _store=captured):
-                    _store["v"] = act.detach().float().cpu()
-
-                model.run_with_hooks(
-                    corrupt_ids,
-                    fwd_hooks=[
-                        (f"blocks.{L}.attn.hook_z", patch_z),
-                        ("blocks.1.hook_resid_post", cap_resid),
-                    ],
-                )
-                patched_cls[L, h, i:i + batch_size] = captured["v"][:, 0, :]
-            del clean_z, clean_cache
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        print(f"[sweep] layer {L} done in {time.time()-t_L:.1f}s", flush=True)
-    return patched_cls
+            out[h, i:i + batch_size] = captured["v"][:, 0, :]
+        del clean_z, clean_cache
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -404,10 +398,13 @@ def write_headline(path: Path, payload: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n-train", type=int, default=50_000)
-    ap.add_argument("--n-eval", type=int, default=31764)
+    ap.add_argument("--n-eval", type=int, default=31764,
+                    help="Examples for baselines + ablation (apples-to-apples with rank_k_sweep)")
+    ap.add_argument("--sweep-n-eval", type=int, default=3000,
+                    help="Examples for the 144-cell patching sweep — keep small for speed")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--max-length", type=int, default=128)
-    ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out-dir", default="results/v2_bios_FINAL")
     ap.add_argument("--s3-uri", default="")
@@ -562,31 +559,46 @@ def main() -> int:
         s3_put(json_path, f"{s3_prefix}/mech_interp_full_results.json")
 
     # ------------------------------------------------------------------
-    # Stage E: 12×12 patching sweep
+    # Stage E: 12×12 patching sweep — per-layer save, no full-tensor accumulator
     # ------------------------------------------------------------------
-    print(f"[s3] starting 12×12 patching sweep on n={n_kept} dev pairs...", flush=True)
-    sweep_t0 = time.time()
-    patched = sweep_patching(
-        model, tokenizer, clean_dev, corrupt_dev,
-        max_length=args.max_length, batch_size=args.batch_size, device=device,
-    )  # (12, 12, n_kept, 768)
-    print(f"[s3] sweep done in {(time.time()-sweep_t0)/60:.1f} min", flush=True)
+    # Use a smaller subset for the per-cell sweep (statistical stability for
+    # head ranking is fine at N~3000-5000). Full N is reserved for baselines
+    # and ablation where apples-to-apples vs rank_k_sweep matters.
+    sweep_n = min(args.sweep_n_eval, n_kept)
+    rng2 = np.random.default_rng(args.seed + 1)
+    sweep_idx = rng2.permutation(n_kept)[:sweep_n]
+    sweep_clean = [clean_dev[i] for i in sweep_idx]
+    sweep_corrupt = [corrupt_dev[i] for i in sweep_idx]
+    sweep_g = g_dev[sweep_idx]
+    sweep_corrupt_wrong = corrupt_wrong[sweep_idx]
+    sweep_n_corrupt_wrong = int(sweep_corrupt_wrong.sum())
+    sweep_g_t = torch.tensor(sweep_g)
+    payload["stage3"]["sweep_n_eval"] = int(sweep_n)
+    payload["stage3"]["sweep_n_corrupt_wrong"] = sweep_n_corrupt_wrong
+    print(f"[s3] starting 12×12 patching sweep on n={sweep_n} dev pairs "
+          f"(reduced from {n_kept} for speed; baselines + ablation use full N)...", flush=True)
 
-    # Compute per-cell metrics
     payload["stage3"]["per_head"] = {}
+    sweep_t0 = time.time()
     for L in range(model.cfg.n_layers):
+        t_L = time.time()
+        layer_patched = sweep_one_layer(
+            model, tokenizer, sweep_clean, sweep_corrupt, L,
+            max_length=args.max_length, batch_size=args.batch_size, device=device,
+        )  # (n_heads, sweep_n, d_model)
+        print(f"[sweep] layer {L} forward done in {time.time()-t_L:.1f}s", flush=True)
         for h in range(model.cfg.n_heads):
-            patched_cls = patched[L, h]  # (n_kept, 768)
+            patched_cls = layer_patched[h]
             patched_logits = probe.decision_function(patched_cls.numpy())
             patched_pred = probe.predict(patched_cls.numpy())
             mean_patched = float(patched_logits.mean())
             delta = mean_patched - mean_corrupt
             norm_delta = delta / spread
-            patched_correct = patched_pred == g_dev
-            recovered = patched_correct & corrupt_wrong
-            flip_rate = (float(recovered.sum()) / float(n_corrupt_wrong)
-                         if n_corrupt_wrong > 0 else float("nan"))
-            pop_r2 = population_linear_r2(patched_cls, g_dev_t)
+            patched_correct = patched_pred == sweep_g
+            recovered = patched_correct & sweep_corrupt_wrong
+            flip_rate = (float(recovered.sum()) / float(sweep_n_corrupt_wrong)
+                         if sweep_n_corrupt_wrong > 0 else float("nan"))
+            pop_r2 = population_linear_r2(patched_cls, sweep_g_t)
             payload["stage3"]["per_head"][f"L{L}_h{h}"] = {
                 "delta_logit": delta,
                 "norm_delta": norm_delta,
@@ -594,7 +606,10 @@ def main() -> int:
                 "mean_logit_patched": mean_patched,
                 "population_R2": pop_r2,
             }
-        # Save progress per layer
+        del layer_patched
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        # Save progress immediately after each layer
         payload["stage3"]["wall_time_seconds"] = float(time.time() - t_start)
         payload["stage3"]["aws_cost_estimate_usd"] = (
             (time.time() - t_start) / 3600.0 * args.cost_per_hour
@@ -604,7 +619,7 @@ def main() -> int:
         if s3_prefix:
             s3_put(json_path, f"{s3_prefix}/mech_interp_full_results.json")
             s3_put(headline_path, f"{s3_prefix}/mech_interp_full_HEADLINE.txt")
-        print(f"[s3] layer {L} cells written", flush=True)
+        print(f"[s3] layer {L} cells written ({(time.time()-sweep_t0)/60:.1f} min into sweep)", flush=True)
 
     # ------------------------------------------------------------------
     # Stage F: top-K causal ablation
