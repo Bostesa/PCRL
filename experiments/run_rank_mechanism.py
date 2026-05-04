@@ -500,6 +500,24 @@ def main():
     print(f"\n[combined] saved → {md_path}")
     print(f"[combined] total wall {time.time()-t0:.1f}s")
 
+    # Compact one-line verdicts (console-buffer-resilient).
+    print(
+        f"VERDICT_LINE_E1: l0_offdiag={mean_off0:.4f} l6_offdiag={mean_off6:.4f} "
+        f"orthogonality={e1_verdict} consolidation={consolidation} "
+        f"sizes_PHNFN={subset_sizes['P']},{subset_sizes['H']},{subset_sizes['N']},{subset_sizes['FN']}",
+        flush=True,
+    )
+    if not e2_out.get("error"):
+        van = e2_out["vanilla_layer1_r2"]
+        ks = [e2_out.get(f"rank_{k}_layer1_r2") for k in [1, 2, 4, 8]]
+        ks_str = ",".join(f"{r:.4f}" if r is not None else "NA" for r in ks)
+        print(
+            f"VERDICT_LINE_E2: vanilla={van:.4f} rank_1_2_4_8={ks_str} "
+            f"first_below_0.5={e2_out['first_k_below_0.5']} "
+            f"first_below_0.3={e2_out['first_k_below_0.3']}",
+            flush=True,
+        )
+
 
 if __name__ == "__main__":
     main()
