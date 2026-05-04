@@ -352,6 +352,11 @@ def main():
     p.add_argument("--log-every", dest="log_every", type=int, default=20)
     p.add_argument("--eval-batches", dest="eval_batches", type=int, default=0,
                    help="Max dev batches at eval time (0 = full dev set).")
+    p.add_argument("--exit-nonzero-on-fail", dest="exit_nonzero_on_fail",
+                   action="store_true",
+                   help="Exit with code 2 if the gate criterion fails. Used by "
+                        "the AWS user-data to chain ckpt1 → ckpt2 → full and "
+                        "bail on the first failure.")
     p.add_argument("--output-dir", dest="output_dir", default="results/v2_bios_PRO_LORA")
     args = p.parse_args()
     train(args)
