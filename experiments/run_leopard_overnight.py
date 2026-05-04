@@ -293,6 +293,11 @@ def main() -> int:
                     help="Stop launching new (layer, rank) trainings after this elapses")
     ap.add_argument("--ranks-extra", nargs="*", type=int, default=[],
                     help="Additional ranks to try at layer 0 only if rank=50 plateaus")
+    ap.add_argument("--layers", nargs="*", type=int, default=[0, 1, 6, 12],
+                    help="BIOS hidden_states layers to probe")
+    ap.add_argument("--rank-bump-layer", type=int, default=None,
+                    help="Layer index to apply --ranks-extra rank bump on; "
+                         "default = first of --layers (lowest)")
     ap.add_argument("--code-commit", default="")
     args = ap.parse_args()
 
@@ -327,7 +332,7 @@ def main() -> int:
     # ------------------------------------------------------------------
     # Stage 1: cache reps
     # ------------------------------------------------------------------
-    layers = [0, 1, 6, 12]
+    layers = sorted(set(int(L) for L in args.layers))
     print(f"[main] caching BIOS reps for layers {layers}...", flush=True)
     cache = cache_bios_reps(
         n_train=args.n_train, seed=args.seed,
@@ -402,24 +407,26 @@ def main() -> int:
             s3_put(headline_path, f"{s3_prefix}/leopard_HEADLINE.txt")
 
     # ------------------------------------------------------------------
-    # Stage 3: rank-bump sweep at layer 0 only (time permitting)
+    # Stage 3: rank-bump sweep at the bump layer only (time permitting)
     # ------------------------------------------------------------------
-    layer0 = payload["leopard"].get("layer_0", {})
-    primary0 = layer0.get(f"rank_{primary_rank}", {})
-    primary_R2 = primary0.get("leopard_R2", float("nan"))
+    bump_layer = args.rank_bump_layer if args.rank_bump_layer is not None else layers[0]
+    bump_key = f"layer_{bump_layer}"
+    bump_payload = payload["leopard"].get(bump_key, {})
+    primary_b = bump_payload.get(f"rank_{primary_rank}", {})
+    primary_R2 = primary_b.get("leopard_R2", float("nan"))
     plateau = (np.isfinite(primary_R2) and primary_R2 >= 0.5)
 
     if plateau and args.ranks_extra:
-        print(f"[main] rank={primary_rank} plateau at layer 0 "
+        print(f"[main] rank={primary_rank} plateau at layer {bump_layer} "
               f"(R²={primary_R2:.3f}) — sweeping extra ranks {args.ranks_extra}",
               flush=True)
         for r in args.ranks_extra:
             if (time.time() - t_start) > args.leopard_time_budget_sec:
                 print(f"[main] time budget exceeded, skipping rank={r}", flush=True)
                 break
-            print(f"[main] rank-bump layer 0 rank={r}", flush=True)
-            res_r = fit_and_eval_one(0, r)
-            payload["leopard"]["layer_0"][f"rank_{r}"] = res_r
+            print(f"[main] rank-bump layer {bump_layer} rank={r}", flush=True)
+            res_r = fit_and_eval_one(bump_layer, r)
+            payload["leopard"][bump_key][f"rank_{r}"] = res_r
             payload["leopard"]["wall_time_seconds"] = float(time.time() - t_start)
             payload["leopard"]["aws_cost_estimate_usd"] = (
                 (time.time() - t_start) / 3600.0 * args.cost_per_hour
