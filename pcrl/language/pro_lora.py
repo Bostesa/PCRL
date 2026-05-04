@@ -130,8 +130,16 @@ class ProLoRAEncoder(BertWithLoRA):
 
         ``BertLayer`` returns a tuple ``(hidden_states, *attns)``. We capture
         ``hidden_states[:, 0, :]`` (the [CLS] token) for EMA observation, then
-        apply the current eraser to the same token before passing to the next
-        layer.
+        apply the current eraser to **every token position** before passing
+        to the next layer.
+
+        Why all-token projection: the layer-stratified probe (results/
+        layer_stratified_probe.json) showed that CLS-only projection at
+        layer 0 has Δ=0.000 effect on layer-1 [CLS] R² because attention
+        in layer 1 reconstructs gender from non-CLS token positions
+        (pronouns, names, gendered nouns). Projecting all positions closes
+        that leakage path. The eraser P is fit on [CLS]↔gender pairs (still
+        captured CLS-only) but is applied uniformly across positions.
         """
         state = self._hook_handles[layer_idx]
 
@@ -142,10 +150,10 @@ class ProLoRAEncoder(BertWithLoRA):
             else:
                 hidden_states = output
                 tail = ()
-            # Capture pre-projection [CLS] for later EMA update.
+            # Capture pre-projection [CLS] for the EMA fitter (CLS-only,
+            # because the EMA fits the [CLS]↔gender covariance).
             cls_pre = hidden_states[:, 0, :].detach()
             state.capture = cls_pre.float()
-            # Apply current eraser if available.
             eraser = state.eraser
             if eraser is not None:
                 P = eraser.P.to(dtype=hidden_states.dtype, device=hidden_states.device)
@@ -154,11 +162,9 @@ class ProLoRAEncoder(BertWithLoRA):
                     mu = bias.to(dtype=hidden_states.dtype, device=hidden_states.device)
                 else:
                     mu = torch.zeros(P.shape[0], dtype=hidden_states.dtype, device=hidden_states.device)
-                cls = hidden_states[:, 0, :]
-                cls_erased = mu + (cls - mu) @ P.T
-                # Replace [CLS] in the residual stream.
-                new_hidden = hidden_states.clone()
-                new_hidden[:, 0, :] = cls_erased
+                # All-token projection: (B, T, D) @ (D, D) = (B, T, D).
+                # mu broadcasts over batch and sequence dims.
+                new_hidden = mu + (hidden_states - mu) @ P.T
                 if tail:
                     return (new_hidden,) + tail
                 return new_hidden
