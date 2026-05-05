@@ -394,11 +394,16 @@ def main() -> None:
     )
 
     if args.quick:
-        # Use deterministic head subsets so all workers see same mini-data.
-        train_ds = Subset(train_ds, list(range(min(2000, len(train_ds)))))
-        val_ds = Subset(val_ds, list(range(min(500, len(val_ds)))))
-        test_ds = Subset(test_ds, list(range(min(500, len(test_ds)))))
-        log_fn(f"  [quick] subset → N_train={len(train_ds)} N_val={len(val_ds)} N_test={len(test_ds)}")
+        # Seeded random subset — head subsets on Adult give degenerate
+        # uniform demographic priors (the test split is partially sorted).
+        rs = np.random.RandomState(args.seed)
+        def _sample(ds, n):
+            idx = rs.permutation(len(ds))[: min(n, len(ds))]
+            return Subset(ds, idx.tolist())
+        train_ds = _sample(train_ds, 2000)
+        val_ds = _sample(val_ds, 500)
+        test_ds = _sample(test_ds, 500)
+        log_fn(f"  [quick] random subset → N_train={len(train_ds)} N_val={len(val_ds)} N_test={len(test_ds)}")
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
                               collate_fn=collate_pcrl_batch, num_workers=0)
