@@ -268,6 +268,9 @@ def evaluate(
     )
     # On test split we want ALL sensitive attrs from the dataset, not just disallowed.
     test_ds = test_loader.dataset
+    # Unwrap torch.utils.data.Subset (used in --quick mode).
+    while isinstance(test_ds, Subset):
+        test_ds = test_ds.dataset
     all_sensitive_attrs = list(test_ds.info.sensitive_attrs.keys())
     test_reprs, test_labels_all = _extract_representations_and_labels(
         encoder, test_loader, 0, all_sensitive_attrs, DEVICE,
