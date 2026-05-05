@@ -360,9 +360,9 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.quick:
-        # Use full dataset but reduce epochs — small subsets give degenerate
-        # BN statistics + the model can't learn the task in 2000 rows.
-        args.epochs = min(args.epochs, 30)
+        # Use full dataset but cap epochs at 100 — Adult's MLP+BN needs ~50+
+        # epochs to escape the uniform-prediction plateau (200 in production).
+        args.epochs = min(args.epochs, 100)
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
