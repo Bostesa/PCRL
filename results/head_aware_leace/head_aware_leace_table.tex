@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Head-aware LEACE on BIOS BERT block-0 attention. Block-level baselines apply LEACE at \texttt{blocks.0.hook\_attn\_out}; head-aware applies LEACE per-head at \texttt{blocks.0.attn.hook\_z}. Occupation accuracy is a 10-class \textsc{lr} classifier trained on patched \texttt{layer-1} reps; vanilla baseline is the upper bound.}
+\label{tab:head-aware-leace}
+\begin{tabular}{lcccc}
+\toprule
+Condition & $R^2_{\text{gender}}$ & $R^2_{\text{gender}}$ & Occ.\ acc. & Gender
+\\
+  & (post-$W_O$) & (\texttt{layer-1}) & (10-class) & probe acc. \\
+\midrule
+Vanilla & 0.823 & 0.811 & 0.756 & 0.972 \\
+Rank-1 block @ \hooktok{attn\_out} & 0.106 & 0.788 & 0.757 & 0.939 \\
+Rank-8 block @ \hooktok{attn\_out} & 0.106 & 0.788 & 0.757 & 0.939 \\
+Head-aware (0,7)+(0,10) ind. & 0.814 & 0.804 & 0.755 & 0.969 \\
+Joint stacked $[z_7; z_{10}]$ & 0.815 & 0.803 & 0.757 & 0.968 \\
+Head-aware random pair (0,3)+(0,11) & 0.818 & 0.810 & 0.754 & 0.970 \\
+Head-aware (0,6) alone & 0.822 & 0.809 & 0.757 & 0.962 \\
+Head-aware (0,7)+(0,10)+(0,6) & 0.813 & 0.802 & 0.757 & 0.957 \\
+\bottomrule
+\end{tabular}
+\end{table}

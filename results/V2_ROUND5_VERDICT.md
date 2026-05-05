@@ -74,9 +74,9 @@ income/race seeds (Round 4 finals 0.065/0.232/0.382 → R5 0.023/0.011/0.017 wit
 
 All 3 instances stopped:
 
-- v2-adult-r5: i-032bfe6bad3cfb976 — stopped (training, on-instance watchdog shutdown)
-- v2-hmda-r5: i-0709621a9f869e652 — stopped (training, on-instance watchdog shutdown)
-- v2-diabetes-r5: i-0c7f05acab5015c5c — stopped (manually after restart-to-scp)
+- v2-adult-r5: [redacted-instance-id] — stopped (training, on-instance watchdog shutdown)
+- v2-hmda-r5: [redacted-instance-id] — stopped (training, on-instance watchdog shutdown)
+- v2-diabetes-r5: [redacted-instance-id] — stopped (manually after restart-to-scp)
 
 ## Cost
 

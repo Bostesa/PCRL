@@ -16,5 +16,5 @@ PCRL per-dim std is 30× smaller than Standard's (0.04 vs 1.22 max). Effective r
 The reported "PCRL 5.33/6 pairs pass, Δ-values ≤ 0.020 across attrs" is degenerate: with task heads emitting majority predictions, the audit's delta and R² metrics are trivially satisfied. The fairness audit measured nothing.
 
 ## Source data
-- Extracted from `checkpoints/hmda_pcrl_0/best.pt` and `checkpoints/hmda_std_0/best.pt` on instance i-0d7e9e53c253ac6c3 (2026-04-25)
+- Extracted from `checkpoints/hmda_pcrl_0/best.pt` and `checkpoints/hmda_std_0/best.pt` on instance [redacted-instance-id] (2026-04-25)
 - Test set: 13,661 samples, 78 features, 3 purposes

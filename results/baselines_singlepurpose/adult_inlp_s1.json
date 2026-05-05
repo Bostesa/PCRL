@@ -1,0 +1,82 @@
+{
+  "dataset": "adult",
+  "method": "inlp",
+  "seed": 1,
+  "purpose": "income_prediction",
+  "task_name": "income",
+  "task_dim": 2,
+  "disallowed_attrs": [
+    "race",
+    "sex"
+  ],
+  "config": {
+    "epochs": 200,
+    "lr": 0.001,
+    "batch_size": 256,
+    "lambda_adv": 1.0,
+    "disc_steps": 1,
+    "inlp_max_iters": 32,
+    "inlp_tol_pp": 1.0,
+    "patience": 20
+  },
+  "metrics": {
+    "per_attr": {
+      "race": {
+        "num_classes": 5,
+        "r2_onehot": 0.05615210945448634,
+        "r2_da": 0.09243212714316151,
+        "r2_da_argmax_class": 4,
+        "per_class_r2": [
+          0.004701272391520961,
+          0.014980681687938202,
+          0.09089208115208702,
+          0.01847682243100557,
+          0.09243212714316151
+        ],
+        "priors": [
+          0.009893758300132801,
+          0.027091633466135457,
+          0.09369189907038512,
+          0.008100929614873837,
+          0.8612217795484728
+        ],
+        "mlp_da_delta": 0.048273572377158014,
+        "mlp_da_argmax_class": 4
+      },
+      "sex": {
+        "num_classes": 2,
+        "r2_onehot": 0.11341283603434404,
+        "r2_da": 0.11874542009549516,
+        "r2_da_argmax_class": 0,
+        "per_class_r2": [
+          0.11874542009549516,
+          0.11874542009549516
+        ],
+        "priors": [
+          0.3262284196547145,
+          0.6737715803452855
+        ],
+        "mlp_da_delta": null,
+        "mlp_da_argmax_class": -1
+      }
+    },
+    "task_acc": 0.8480743691899071
+  },
+  "diagnostics": {
+    "per_attr_iterations": {
+      "race": 7,
+      "sex": 27
+    },
+    "per_attr_majority": {
+      "race": 0.8534153232507894,
+      "sex": 0.6697689878677081
+    },
+    "final_lr_acc": {
+      "race": 0.8593983712813694,
+      "sex": 0.6772477979059331
+    },
+    "pretrain_best_epoch": 25,
+    "post_proj_head_best_epoch": 15
+  },
+  "train_seconds": 21.49569082260132
+}

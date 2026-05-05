@@ -1,0 +1,74 @@
+{
+  "dataset": "diabetes",
+  "method": "laftr",
+  "seed": 0,
+  "purpose": "billing_audit",
+  "task_name": "primary_diagnosis_category",
+  "task_dim": 9,
+  "disallowed_attrs": [
+    "race",
+    "gender"
+  ],
+  "config": {
+    "epochs": 200,
+    "lr": 0.001,
+    "batch_size": 256,
+    "lambda_adv": 1.0,
+    "disc_steps": 1,
+    "inlp_max_iters": 32,
+    "inlp_tol_pp": 1.0,
+    "patience": 20
+  },
+  "metrics": {
+    "per_attr": {
+      "race": {
+        "num_classes": 5,
+        "r2_onehot": 0.020482564178412876,
+        "r2_da": 0.024530297462123762,
+        "r2_da_argmax_class": 0,
+        "per_class_r2": [
+          0.024530297462123762,
+          0.02152209964275753,
+          0.009750996706426651,
+          0.005137927601023273,
+          0.006736812387755364
+        ],
+        "priors": [
+          0.7513049962714392,
+          0.17636092468307232,
+          0.022651006711409395,
+          0.007550335570469799,
+          0.04213273676360925
+        ],
+        "mlp_da_delta": 0.0,
+        "mlp_da_argmax_class": 2
+      },
+      "gender": {
+        "num_classes": 2,
+        "r2_onehot": 0.018057690216324418,
+        "r2_da": 0.018057691706597545,
+        "r2_da_argmax_class": 0,
+        "per_class_r2": [
+          0.018057691706597545,
+          0.018057691706597545
+        ],
+        "priors": [
+          0.5349552572706935,
+          0.4650447427293065
+        ],
+        "mlp_da_delta": null,
+        "mlp_da_argmax_class": -1
+      }
+    },
+    "task_acc": 0.41769202087994034
+  },
+  "diagnostics": {
+    "best_epoch": 44,
+    "best_val_task": 1.6229380511102223,
+    "final_disc_acc_val": {
+      "race": 0.7452680652680652,
+      "gender": 0.5492773892773892
+    }
+  },
+  "train_seconds": 94.2951090335846
+}

@@ -1,0 +1,25 @@
+COUNTERBALANCE FINDING — head (0,6)
+=====================================
+
+Setup: head (0,6) was identified in §5.6 mech-interp as having the
+LARGEST OV-circuit projection onto gender directions in residual space
+(0.39 LEACE direction, 0.64 class-mean direction), yet ablating (0,6)
+on top of (0,7)+(0,10) HURT probe-acc recovery (top-3 ablate accuracy
+dropped to 0.224 vs top-2 at 0.319). This counterintuitive 'write-vs-read
+asymmetry' suggested (0,6) writes a gender feature in the OPPOSITE
+direction of (0,7)+(0,10).
+
+Stage-2 head-aware LEACE direct test:
+
+Condition                       | R²_gender at layer-1 [CLS]
+--------------------------------+-------------------------
+Vanilla                         | 0.811
+Head-aware (0,6) ALONE          | 0.809   (Δ -0.002)
+Head-aware (0,7)+(0,10)         | 0.804   (Δ -0.007)
+Head-aware (0,7)+(0,10)+(0,6)   | 0.802   (Δ -0.009)
+
+Interpretation:
+
+Erasing (0,6) did NOT change layer-1 R²(gender) appreciably. The §5.6 ablation
+asymmetry must come from a non-linear effect of (0,6) on probe accuracy, not
+from a linear gender writeout that LEACE can capture.

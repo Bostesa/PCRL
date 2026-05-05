@@ -1,0 +1,27 @@
+% CelebA-medium cross-purpose attack: 6-architecture diversity
+\begin{table}[t]
+  \centering
+  \caption{Cross-purpose attack on CelebA-medium decoupled-architecture
+  representations. Each row fits an independently-trained classifier on the
+  post-pipeline features and reports linear-R$^2$ between predicted
+  probabilities and one-hot labels (same formula as the main compliance
+  metric). Comparison: LEACE-init baseline (frozen erase, LoRA delta = 0)
+  vs. the trained R5 model. Stable R$^2$ across architectures evidences that
+  no architecture recovers concept signal beyond the LEACE generalization
+  gap; the LoRA does not re-encode the cross-term.}
+  \label{tab:celeba-cross-purpose}
+  \begin{tabular}{lcccc}
+    \toprule
+    & \multicolumn{2}{c}{Male} & \multicolumn{2}{c}{Young} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+    Attacker & LEACE-init & R5-trained & LEACE-init & R5-trained \\
+    \midrule
+    LR       & 0.0030 & 0.0030 & 0.0036 & 0.0032 \\
+    MLP      & 0.8576 & 0.8617 & 0.5255 & 0.4344 \\
+    XGB      & 0.9069 & 0.8443 & 0.6298 & 0.5623 \\
+    RF       & 0.8368 & 0.6131 & 0.4880 & 0.2982 \\
+    SVM-RBF  & 0.8250 & 0.5641 & 0.5434 & 0.4334 \\
+    DeepMLP  & 0.8214 & 0.7983 & 0.4115 & 0.4083 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

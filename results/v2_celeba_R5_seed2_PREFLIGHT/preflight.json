@@ -1,0 +1,214 @@
+{
+  "trainable_parameters": [
+    {
+      "name": "base_model.model.task_proj.lora_A.default.weight",
+      "shape": [
+        8,
+        512
+      ]
+    },
+    {
+      "name": "base_model.model.task_proj.lora_B.default.weight",
+      "shape": [
+        512,
+        8
+      ]
+    },
+    {
+      "name": "head.weight",
+      "shape": [
+        2,
+        512
+      ]
+    },
+    {
+      "name": "head.bias",
+      "shape": [
+        2
+      ]
+    }
+  ],
+  "bn_state": [
+    {
+      "name": "base_model.model.backbone.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer1.0.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer1.0.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer1.1.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer1.1.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer2.0.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer2.0.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer2.0.downsample.1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer2.1.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer2.1.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer3.0.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer3.0.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer3.0.downsample.1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer3.1.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer3.1.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer4.0.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer4.0.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer4.0.downsample.1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer4.1.bn1",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    },
+    {
+      "name": "base_model.model.backbone.layer4.1.bn2",
+      "class": "FrozenBatchNorm2d",
+      "training": false
+    }
+  ],
+  "forward_trace": [
+    {
+      "name": "input",
+      "shape": [
+        2,
+        3,
+        128,
+        128
+      ]
+    },
+    {
+      "name": "backbone(x) [post-avgpool, pre-proj]",
+      "shape": [
+        2,
+        512
+      ]
+    },
+    {
+      "name": "penultimate_proj(backbone(x))",
+      "shape": [
+        2,
+        512
+      ]
+    },
+    {
+      "name": "head(penultimate_proj(...))",
+      "shape": [
+        2,
+        2
+      ]
+    }
+  ],
+  "leace": {
+    "n_samples": 60000,
+    "rank_M": 58,
+    "top_8_singular_values": [
+      4.833180904388428,
+      4.174281120300293,
+      1.1821643965959083e-06,
+      1.1640398724921397e-06,
+      1.0604849194351118e-06,
+      9.177742867905181e-07,
+      7.448165320056432e-07,
+      6.917087489455298e-07
+    ],
+    "truncation_residual": 0.0,
+    "leace_proj_left_shape": [
+      512,
+      4
+    ],
+    "leace_proj_right_shape": [
+      4,
+      512
+    ],
+    "pre_r2": {
+      "male": 0.7015681304566425,
+      "young": 0.3163617191275292
+    },
+    "post_r2_closed": {
+      "male": 0.0,
+      "young": 0.0
+    },
+    "construction_r2": {
+      "male": 0.0,
+      "young": 0.0
+    },
+    "holdout_r2": {
+      "male": 0.010306164488421032,
+      "young": 0.010425572751210366
+    }
+  },
+  "config": {
+    "rank": 8,
+    "alpha": 16,
+    "dropout": 0.05,
+    "image_size": 128,
+    "fit_n": 60000,
+    "probe_n": 60000,
+    "batch_size": 256,
+    "seed": 2
+  }
+}

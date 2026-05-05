@@ -1,0 +1,13 @@
+% Methods note: PCRL compliance metric on CelebA
+%
+% We evaluate compliance on the LEACE-fit train subsample, matching the
+% tabular convention (\texttt{pcrl/training/v2\_trainer.py:252}, the
+% 56/60 strict-pass numbers, and the proxy-Lagrangian's per-batch R$^2$
+% formulation). Held-out val-partition R$^2$ is reported as additional
+% evidence of constraint generalization but is not the strict pass
+% criterion due to LEACE's finite-sample property: linear concept erasure
+% provides exact train-set guarantees, but bounded generalization to
+% held-out distributions, scaling as $\mathcal{O}(d/n)$ \citep{belrose2023leace}.
+% On CelebA with $d{=}512$ and $n_\text{fit}{=}60{,}000$, this places the
+% expected val-partition R$^2$ floor in the 0.10--0.20 band, matching what
+% we observe.

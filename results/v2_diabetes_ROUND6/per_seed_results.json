@@ -1,0 +1,447 @@
+{
+  "summary": {
+    "STATUS": "COLLAPSED",
+    "dataset": "diabetes",
+    "n_seeds": 3,
+    "total_pairs_per_seed": 6,
+    "pass_count_mean": 5.333333333333333,
+    "pass_count_std": 0.4714045207910317,
+    "pass_counts_per_seed": [
+      5,
+      6,
+      5
+    ],
+    "task_acc_mean": {
+      "primary_diagnosis_category": 0.31416266666666665,
+      "readmission_outcome": 0.9119129999999999,
+      "medication_change_outcome": 0.9802696666666666
+    },
+    "task_acc_std": {
+      "primary_diagnosis_category": 0.00043934901337723607,
+      "readmission_outcome": 1.1102230246251565e-16,
+      "medication_change_outcome": 0.010724104075503066
+    },
+    "health_notes": [
+      "seed=0 purpose=billing_audit per_dim_std_mean=0.352 < 0.5",
+      "seed=0 purpose=quality_research per_dim_std_mean=0.307 < 0.5",
+      "seed=0 purpose=clinical_decision_support per_dim_std_mean=0.249 < 0.5",
+      "seed=0 purpose=clinical_decision_support eff_rank=1.51 < 2.0",
+      "seed=1 purpose=billing_audit per_dim_std_mean=0.161 < 0.5",
+      "seed=1 purpose=billing_audit eff_rank=1.18 < 2.0",
+      "seed=1 purpose=quality_research per_dim_std_mean=0.289 < 0.5",
+      "seed=1 purpose=quality_research eff_rank=1.33 < 2.0",
+      "seed=1 purpose=clinical_decision_support per_dim_std_mean=0.308 < 0.5",
+      "seed=1 purpose=clinical_decision_support eff_rank=1.14 < 2.0",
+      "seed=2 purpose=billing_audit per_dim_std_mean=0.099 < 0.5",
+      "seed=2 purpose=quality_research per_dim_std_mean=0.307 < 0.5",
+      "seed=2 purpose=clinical_decision_support per_dim_std_mean=0.243 < 0.5",
+      "seed=2 purpose=clinical_decision_support eff_rank=1.22 < 2.0"
+    ],
+    "thresholds": {
+      "per_dim_std_min": 0.5,
+      "effective_rank_min": 2.0
+    },
+    "total_wall_s": 12107.4
+  },
+  "per_seed": [
+    {
+      "seed": 0,
+      "train_time_s": 3163.3,
+      "last_epoch": 199,
+      "best_epoch": 49,
+      "task_accuracies": {
+        "primary_diagnosis_category": 0.314784,
+        "readmission_outcome": 0.911913,
+        "medication_change_outcome": 0.993941
+      },
+      "attribute_results": [
+        {
+          "purpose": "billing_audit",
+          "attribute": "race",
+          "linear_r2": 0.009133,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "billing_audit",
+          "attribute": "gender",
+          "linear_r2": 0.005418,
+          "empirical_best_acc": 0.541573,
+          "majority_baseline": 0.531284,
+          "delta": 0.010289,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "race",
+          "linear_r2": 0.008903,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "age_bucket",
+          "linear_r2": 0.040476,
+          "empirical_best_acc": 0.293251,
+          "majority_baseline": 0.254932,
+          "delta": 0.03832,
+          "adj_pass": false
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "race",
+          "linear_r2": 0.013395,
+          "empirical_best_acc": 0.751491,
+          "majority_baseline": 0.748523,
+          "delta": 0.002968,
+          "adj_pass": true
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "gender",
+          "linear_r2": 0.004523,
+          "empirical_best_acc": 0.543531,
+          "majority_baseline": 0.531284,
+          "delta": 0.012246,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 5,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "billing_audit": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.3519582748413086,
+          "per_dim_std_max": 0.6770130395889282,
+          "per_dim_std_min": 0.11924871057271957,
+          "l2_norm_mean": 5.659356117248535,
+          "l2_norm_std": 1.3774182796478271,
+          "effective_rank": 3.413236618041992
+        },
+        "quality_research": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.30691128969192505,
+          "per_dim_std_max": 0.6531381011009216,
+          "per_dim_std_min": 0.11127662658691406,
+          "l2_norm_mean": 8.353936195373535,
+          "l2_norm_std": 0.6884865164756775,
+          "effective_rank": 6.4982500076293945
+        },
+        "clinical_decision_support": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.2491060048341751,
+          "per_dim_std_max": 0.6251752376556396,
+          "per_dim_std_min": 0.0727037563920021,
+          "l2_norm_mean": 2.579355239868164,
+          "l2_norm_std": 1.691182255744934,
+          "effective_rank": 1.512120008468628
+        }
+      },
+      "lambdas_final": {
+        "billing_audit__race": 8.97679712891592,
+        "billing_audit__gender": 15.579276616574921,
+        "quality_research__race": 54.81340225935089,
+        "quality_research__age_bucket__class_0": 421.0593603659715,
+        "quality_research__age_bucket__class_1": 88.88914313555074,
+        "quality_research__age_bucket__class_2": 15.302003200530955,
+        "quality_research__age_bucket__class_3": 22.166066453933745,
+        "quality_research__age_bucket__class_4": 35.09777541422926,
+        "quality_research__age_bucket__class_5": 64.32929368138402,
+        "quality_research__age_bucket__class_6": 91.10192879915083,
+        "quality_research__age_bucket__class_7": 96.09558956622925,
+        "quality_research__age_bucket__class_8": 64.68938985657752,
+        "quality_research__age_bucket__class_9": 11.374126643657375,
+        "clinical_decision_support__race": 20.151681135895164,
+        "clinical_decision_support__gender": 30.45511968851281
+      },
+      "best_task_loss_at_selected": 2.228526723016763,
+      "cotter_selection": {
+        "epoch": 49,
+        "task_loss": 2.228526723016763,
+        "violation_sum": 0.5887144914695195,
+        "kind": "fallback",
+        "n_feasible_post_warmup": 0,
+        "n_eligible_post_warmup": 200
+      }
+    },
+    {
+      "seed": 1,
+      "train_time_s": 3214.7,
+      "last_epoch": 199,
+      "best_epoch": 66,
+      "task_accuracies": {
+        "primary_diagnosis_category": 0.313852,
+        "readmission_outcome": 0.911913,
+        "medication_change_outcome": 0.967748
+      },
+      "attribute_results": [
+        {
+          "purpose": "billing_audit",
+          "attribute": "race",
+          "linear_r2": 0.0,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "billing_audit",
+          "attribute": "gender",
+          "linear_r2": 0.0,
+          "empirical_best_acc": 0.535048,
+          "majority_baseline": 0.531284,
+          "delta": 0.003764,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "race",
+          "linear_r2": 0.000579,
+          "empirical_best_acc": 0.751398,
+          "majority_baseline": 0.748523,
+          "delta": 0.002875,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "age_bucket",
+          "linear_r2": 0.002538,
+          "empirical_best_acc": 0.272465,
+          "majority_baseline": 0.254932,
+          "delta": 0.017533,
+          "adj_pass": true
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "race",
+          "linear_r2": 0.005596,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "gender",
+          "linear_r2": 0.004219,
+          "empirical_best_acc": 0.539336,
+          "majority_baseline": 0.531284,
+          "delta": 0.008052,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 6,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "billing_audit": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.16098539531230927,
+          "per_dim_std_max": 0.29526010155677795,
+          "per_dim_std_min": 0.030028386041522026,
+          "l2_norm_mean": 2.758850574493408,
+          "l2_norm_std": 1.2388931512832642,
+          "effective_rank": 1.1766477823257446
+        },
+        "quality_research": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.28929829597473145,
+          "per_dim_std_max": 0.4875098466873169,
+          "per_dim_std_min": 0.1184561476111412,
+          "l2_norm_mean": 2.3741862773895264,
+          "l2_norm_std": 1.9129124879837036,
+          "effective_rank": 1.3297289609909058
+        },
+        "clinical_decision_support": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.30802038311958313,
+          "per_dim_std_max": 0.6366870403289795,
+          "per_dim_std_min": 0.03298266604542732,
+          "l2_norm_mean": 3.0747296810150146,
+          "l2_norm_std": 2.397967576980591,
+          "effective_rank": 1.1443369388580322
+        }
+      },
+      "lambdas_final": {
+        "billing_audit__race": 28.877255852224703,
+        "billing_audit__gender": 48.71596483946044,
+        "quality_research__race": 5.0,
+        "quality_research__age_bucket__class_0": 421.46110297690865,
+        "quality_research__age_bucket__class_1": 80.3688715255269,
+        "quality_research__age_bucket__class_2": 5.01136218738556,
+        "quality_research__age_bucket__class_3": 5.0010627086162565,
+        "quality_research__age_bucket__class_4": 5.0,
+        "quality_research__age_bucket__class_5": 5.000115617752075,
+        "quality_research__age_bucket__class_6": 5.0,
+        "quality_research__age_bucket__class_7": 5.0018007071018316,
+        "quality_research__age_bucket__class_8": 5.0,
+        "quality_research__age_bucket__class_9": 5.0,
+        "clinical_decision_support__race": 37.17679151058433,
+        "clinical_decision_support__gender": 52.0033815729637
+      },
+      "best_task_loss_at_selected": 2.389389043407781,
+      "cotter_selection": {
+        "epoch": 66,
+        "task_loss": 2.389389043407781,
+        "violation_sum": 0.5344195101942334,
+        "kind": "fallback",
+        "n_feasible_post_warmup": 0,
+        "n_eligible_post_warmup": 200
+      }
+    },
+    {
+      "seed": 2,
+      "train_time_s": 3173.2,
+      "last_epoch": 199,
+      "best_epoch": 78,
+      "task_accuracies": {
+        "primary_diagnosis_category": 0.313852,
+        "readmission_outcome": 0.911913,
+        "medication_change_outcome": 0.97912
+      },
+      "attribute_results": [
+        {
+          "purpose": "billing_audit",
+          "attribute": "race",
+          "linear_r2": 0.000801,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "billing_audit",
+          "attribute": "gender",
+          "linear_r2": 0.00222,
+          "empirical_best_acc": 0.535421,
+          "majority_baseline": 0.531284,
+          "delta": 0.004137,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "race",
+          "linear_r2": 0.006694,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "quality_research",
+          "attribute": "age_bucket",
+          "linear_r2": 0.024552,
+          "empirical_best_acc": 0.278803,
+          "majority_baseline": 0.254932,
+          "delta": 0.023871,
+          "adj_pass": false
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "race",
+          "linear_r2": 0.009208,
+          "empirical_best_acc": 0.751305,
+          "majority_baseline": 0.748523,
+          "delta": 0.002782,
+          "adj_pass": true
+        },
+        {
+          "purpose": "clinical_decision_support",
+          "attribute": "gender",
+          "linear_r2": 0.0,
+          "empirical_best_acc": 0.535794,
+          "majority_baseline": 0.531284,
+          "delta": 0.00451,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 5,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "billing_audit": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.09890226274728775,
+          "per_dim_std_max": 0.19190016388893127,
+          "per_dim_std_min": 0.016918299719691277,
+          "l2_norm_mean": 3.711786985397339,
+          "l2_norm_std": 0.720945417881012,
+          "effective_rank": 2.0256474018096924
+        },
+        "quality_research": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.30655720829963684,
+          "per_dim_std_max": 0.6441876292228699,
+          "per_dim_std_min": 0.1274339258670807,
+          "l2_norm_mean": 10.242438316345215,
+          "l2_norm_std": 0.538303792476654,
+          "effective_rank": 5.715744495391846
+        },
+        "clinical_decision_support": {
+          "shape": [
+            10728,
+            64
+          ],
+          "per_dim_std_mean": 0.24318096041679382,
+          "per_dim_std_max": 0.5057422518730164,
+          "per_dim_std_min": 0.050598446279764175,
+          "l2_norm_mean": 2.603930711746216,
+          "l2_norm_std": 1.6358736753463745,
+          "effective_rank": 1.215894103050232
+        }
+      },
+      "lambdas_final": {
+        "billing_audit__race": 20.09497470021466,
+        "billing_audit__gender": 35.0735209429274,
+        "quality_research__race": 36.09540051341132,
+        "quality_research__age_bucket__class_0": 422.6127934123084,
+        "quality_research__age_bucket__class_1": 88.68849688053456,
+        "quality_research__age_bucket__class_2": 11.671297209024353,
+        "quality_research__age_bucket__class_3": 6.995582386254979,
+        "quality_research__age_bucket__class_4": 30.29908352184333,
+        "quality_research__age_bucket__class_5": 50.090039364100456,
+        "quality_research__age_bucket__class_6": 56.369648725986785,
+        "quality_research__age_bucket__class_7": 63.68266230940865,
+        "quality_research__age_bucket__class_8": 33.00124760985405,
+        "quality_research__age_bucket__class_9": 5.0031772804260255,
+        "clinical_decision_support__race": 36.75031637668757,
+        "clinical_decision_support__gender": 55.1022044122238
+      },
+      "best_task_loss_at_selected": 2.373057882345858,
+      "cotter_selection": {
+        "epoch": 78,
+        "task_loss": 2.373057882345858,
+        "violation_sum": 0.5638558430331093,
+        "kind": "fallback",
+        "n_feasible_post_warmup": 0,
+        "n_eligible_post_warmup": 200
+      }
+    }
+  ]
+}

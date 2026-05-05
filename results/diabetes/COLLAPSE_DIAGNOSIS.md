@@ -16,5 +16,5 @@ PCRL representations have non-trivial variance (per-dim std 1–2, effective ran
 The reported "PCRL 5/6 pairs pass with std=0 across seeds" is degenerate: a head that emits constant majority predictions trivially has R² = 0 with any attribute and acc-baseline ≤ 0 (auditors can't beat majority on a constant-output target). The fairness audit measured nothing because the model encoded nothing useful.
 
 ## Source data
-- Per-purpose representation stats and task accuracies: extracted from `checkpoints/diab_pcrl_s0/best.pt` and `checkpoints/diab_std_s0/best.pt` on instance i-0202e8ea199fdad3a (2026-04-25)
+- Per-purpose representation stats and task accuracies: extracted from `checkpoints/diab_pcrl_s0/best.pt` and `checkpoints/diab_std_s0/best.pt` on instance [redacted-instance-id] (2026-04-25)
 - Test set: 10,728 samples, 170 features, 3 purposes

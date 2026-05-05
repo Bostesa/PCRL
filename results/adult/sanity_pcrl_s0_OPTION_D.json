@@ -1,0 +1,194 @@
+{
+  "dataset": "adult",
+  "seed": 0,
+  "sanity_pass": false,
+  "fail_reasons": [
+    "best epoch 2 <= 5",
+    "adjusted_pass_count 0/8 < 5 \u2014 paper achieves 6/8; revert may not be sufficient"
+  ],
+  "stopped_epoch": 22,
+  "best_epoch": 2,
+  "train_time_s": 492.37331986427307,
+  "config": {
+    "lambda_adv": 50.0,
+    "lambda_verify": 50.0,
+    "K": 10,
+    "patience": 20,
+    "epochs": 200,
+    "lambda_anneal": false,
+    "use_spectral_norm": false,
+    "auditor_hidden": 256,
+    "auditor_layers": 3
+  },
+  "majority_baselines": {
+    "income": 0.7543160690571049,
+    "occupation_group": 0.2808100929614874,
+    "education_level": 0.32822045152722445
+  },
+  "per_purpose": {
+    "income_prediction": {
+      "shape": [
+        15060,
+        64
+      ],
+      "per_dim_std_mean": 0.9851663708686829,
+      "per_dim_std_max": 2.229823589324951,
+      "per_dim_std_min": 0.4103736877441406,
+      "l2_norm_mean": 9.233503341674805,
+      "l2_norm_std": 7.457252502441406,
+      "effective_rank": 3.711693286895752
+    },
+    "employment_analysis": {
+      "shape": [
+        15060,
+        64
+      ],
+      "per_dim_std_mean": 0.6839866042137146,
+      "per_dim_std_max": 1.834608793258667,
+      "per_dim_std_min": 0.29139190912246704,
+      "l2_norm_mean": 7.853192329406738,
+      "l2_norm_std": 4.958420276641846,
+      "effective_rank": 3.7744007110595703
+    },
+    "education_assessment": {
+      "shape": [
+        15060,
+        64
+      ],
+      "per_dim_std_mean": 0.6007248163223267,
+      "per_dim_std_max": 1.7232038974761963,
+      "per_dim_std_min": 0.3110666275024414,
+      "l2_norm_mean": 7.318082809448242,
+      "l2_norm_std": 3.9915201663970947,
+      "effective_rank": 5.595179080963135
+    }
+  },
+  "task_acc": {
+    "income_prediction/income": {
+      "acc": 0.7644754316069057,
+      "majority": 0.7543160690571049,
+      "delta": 0.010159362549800766
+    },
+    "employment_analysis/occupation_group": {
+      "acc": 0.42782204515272243,
+      "majority": 0.2808100929614874,
+      "delta": 0.14701195219123503
+    },
+    "education_assessment/education_level": {
+      "acc": 0.6484727755644091,
+      "majority": 0.32822045152722445,
+      "delta": 0.3202523240371846
+    }
+  },
+  "audit_saved": {
+    "income_prediction/race": {
+      "acc": 0.8612217795484728,
+      "majority": 0.8612217795484728,
+      "delta": 0.0,
+      "pass": true
+    },
+    "income_prediction/sex": {
+      "acc": 0.6753652058432935,
+      "majority": 0.6737715803452855,
+      "delta": 0.0015936254980080111,
+      "pass": true
+    },
+    "employment_analysis/race": {
+      "acc": 0.8612217795484728,
+      "majority": 0.8612217795484728,
+      "delta": 0.0,
+      "pass": true
+    },
+    "employment_analysis/age_group": {
+      "acc": 0.5292828685258965,
+      "majority": 0.5173306772908367,
+      "delta": 0.01195219123505975,
+      "pass": true
+    },
+    "employment_analysis/marital_status": {
+      "acc": 0.5673306772908366,
+      "majority": 0.5230411686586985,
+      "delta": 0.0442895086321381,
+      "pass": false
+    },
+    "education_assessment/sex": {
+      "acc": 0.6737715803452855,
+      "majority": 0.6737715803452855,
+      "delta": 0.0,
+      "pass": true
+    },
+    "education_assessment/race": {
+      "acc": 0.8612217795484728,
+      "majority": 0.8612217795484728,
+      "delta": 0.0,
+      "pass": true
+    },
+    "education_assessment/income": {
+      "acc": 0.7729747675962816,
+      "majority": 0.7543160690571049,
+      "delta": 0.018658698539176677,
+      "pass": true
+    }
+  },
+  "audit_pair": {
+    "income_prediction/race": {
+      "best_acc": 0.9209163346613546,
+      "majority": 0.8613187093482975,
+      "delta": 0.05959762531305712,
+      "linear_r2": 0.15957365056001682,
+      "pass_adjusted": false
+    },
+    "income_prediction/sex": {
+      "best_acc": 0.9120849933598938,
+      "majority": 0.6758576712154062,
+      "delta": 0.2362273221444876,
+      "linear_r2": 0.4205913438686453,
+      "pass_adjusted": false
+    },
+    "employment_analysis/race": {
+      "best_acc": 0.9138114209827357,
+      "majority": 0.8613187093482975,
+      "delta": 0.05249271163443825,
+      "linear_r2": 0.1628077348010588,
+      "pass_adjusted": false
+    },
+    "employment_analysis/age_group": {
+      "best_acc": 0.7617529880478088,
+      "majority": 0.5195510776686647,
+      "delta": 0.24220191037914407,
+      "linear_r2": 0.25444149791916904,
+      "pass_adjusted": false
+    },
+    "employment_analysis/marital_status": {
+      "best_acc": 0.9063081009296149,
+      "majority": 0.5215406198189007,
+      "delta": 0.38476748111071424,
+      "linear_r2": 0.44423413007383605,
+      "pass_adjusted": false
+    },
+    "education_assessment/sex": {
+      "best_acc": 0.9115537848605577,
+      "majority": 0.6758576712154062,
+      "delta": 0.23569611364515153,
+      "linear_r2": 0.3675470119451365,
+      "pass_adjusted": false
+    },
+    "education_assessment/race": {
+      "best_acc": 0.9144090305444887,
+      "majority": 0.8613187093482975,
+      "delta": 0.05309032119619128,
+      "linear_r2": 0.21088314741936653,
+      "pass_adjusted": false
+    },
+    "education_assessment/income": {
+      "best_acc": 0.8168658698539176,
+      "majority": 0.7528121413085066,
+      "delta": 0.06405372854541103,
+      "linear_r2": 0.214351637839038,
+      "pass_adjusted": false
+    }
+  },
+  "audit_pass_count": 7,
+  "audit_pass_count_adjusted": 0,
+  "audit_total": 8
+}

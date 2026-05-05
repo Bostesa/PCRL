@@ -1,0 +1,421 @@
+{
+  "summary": {
+    "STATUS": "COLLAPSED",
+    "dataset": "hmda",
+    "n_seeds": 3,
+    "total_pairs_per_seed": 6,
+    "pass_count_mean": 2.6666666666666665,
+    "pass_count_std": 0.9428090415820634,
+    "pass_counts_per_seed": [
+      4,
+      2,
+      2
+    ],
+    "task_acc_mean": {
+      "loan_decision": 0.8996170000000001,
+      "loan_amount_band": 0.5198006666666667,
+      "tract_denial_high": 0.6331893333333333
+    },
+    "task_acc_std": {
+      "loan_decision": 0.006849446303655969,
+      "loan_amount_band": 0.009627380479075763,
+      "tract_denial_high": 0.0013458599068583677
+    },
+    "health_notes": [
+      "seed=0 purpose=underwriting per_dim_std_mean=0.285 < 0.5",
+      "seed=0 purpose=underwriting eff_rank=1.00 < 2.0",
+      "seed=0 purpose=pricing_analysis per_dim_std_mean=0.369 < 0.5",
+      "seed=0 purpose=pricing_analysis eff_rank=1.99 < 2.0",
+      "seed=0 purpose=fair_lending_audit per_dim_std_mean=0.305 < 0.5",
+      "seed=0 purpose=fair_lending_audit eff_rank=1.14 < 2.0",
+      "seed=1 purpose=underwriting per_dim_std_mean=0.310 < 0.5",
+      "seed=1 purpose=pricing_analysis per_dim_std_mean=0.321 < 0.5",
+      "seed=1 purpose=fair_lending_audit per_dim_std_mean=0.228 < 0.5",
+      "seed=1 purpose=fair_lending_audit eff_rank=1.75 < 2.0",
+      "seed=2 purpose=underwriting per_dim_std_mean=0.439 < 0.5",
+      "seed=2 purpose=underwriting eff_rank=1.90 < 2.0",
+      "seed=2 purpose=pricing_analysis per_dim_std_mean=0.312 < 0.5",
+      "seed=2 purpose=pricing_analysis eff_rank=1.12 < 2.0",
+      "seed=2 purpose=fair_lending_audit per_dim_std_mean=0.293 < 0.5"
+    ],
+    "thresholds": {
+      "per_dim_std_min": 0.5,
+      "effective_rank_min": 2.0
+    },
+    "total_wall_s": 14799.5
+  },
+  "per_seed": [
+    {
+      "seed": 0,
+      "train_time_s": 3980.3,
+      "last_epoch": 204,
+      "best_epoch": 30,
+      "task_accuracies": {
+        "loan_decision": 0.893785,
+        "loan_amount_band": 0.532757,
+        "tract_denial_high": 0.631286
+      },
+      "attribute_results": [
+        {
+          "purpose": "underwriting",
+          "attribute": "race",
+          "linear_r2": 0.001611,
+          "empirical_best_acc": 0.648415,
+          "majority_baseline": 0.645825,
+          "delta": 0.00259,
+          "adj_pass": true
+        },
+        {
+          "purpose": "underwriting",
+          "attribute": "ethnicity",
+          "linear_r2": 0.00039,
+          "empirical_best_acc": 0.729888,
+          "majority_baseline": 0.728529,
+          "delta": 0.001359,
+          "adj_pass": true
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "race",
+          "linear_r2": 0.003589,
+          "empirical_best_acc": 0.701779,
+          "majority_baseline": 0.645825,
+          "delta": 0.055954,
+          "adj_pass": false
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "sex",
+          "linear_r2": 0.001822,
+          "empirical_best_acc": 0.668179,
+          "majority_baseline": 0.616422,
+          "delta": 0.051757,
+          "adj_pass": false
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "race",
+          "linear_r2": 0.009965,
+          "empirical_best_acc": 0.648415,
+          "majority_baseline": 0.645825,
+          "delta": 0.00259,
+          "adj_pass": true
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "sex",
+          "linear_r2": 0.015811,
+          "empirical_best_acc": 0.615109,
+          "majority_baseline": 0.616422,
+          "delta": -0.001313,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 4,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "underwriting": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.28463882207870483,
+          "per_dim_std_max": 0.3033275008201599,
+          "per_dim_std_min": 0.26728734374046326,
+          "l2_norm_mean": 3.472867012023926,
+          "l2_norm_std": 2.018005132675171,
+          "effective_rank": 1.0
+        },
+        "pricing_analysis": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.36873388290405273,
+          "per_dim_std_max": 0.589005708694458,
+          "per_dim_std_min": 0.09818519651889801,
+          "l2_norm_mean": 3.7661185264587402,
+          "l2_norm_std": 2.2918992042541504,
+          "effective_rank": 1.9854538440704346
+        },
+        "fair_lending_audit": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.3048626780509949,
+          "per_dim_std_max": 0.833158552646637,
+          "per_dim_std_min": 0.04808192700147629,
+          "l2_norm_mean": 1.4898360967636108,
+          "l2_norm_std": 2.73844051361084,
+          "effective_rank": 1.1420153379440308
+        }
+      },
+      "lambdas_final": {
+        "underwriting__race": 3.0734334206582106,
+        "underwriting__ethnicity": 0.42976173186299793,
+        "pricing_analysis__race": 1.3534132814408812,
+        "pricing_analysis__sex": 2.3619551110268846,
+        "fair_lending_audit__race": 5.719665191172394,
+        "fair_lending_audit__sex": 29.6928228116038
+      },
+      "best_task_loss_at_selected": 2.0915346159427255,
+      "cotter_selection": {
+        "epoch": 30,
+        "task_loss": 2.0915346159427255,
+        "violation_sum": 0.0,
+        "kind": "feasible",
+        "n_feasible_post_warmup": 4,
+        "n_eligible_post_warmup": 200
+      }
+    },
+    {
+      "seed": 1,
+      "train_time_s": 4228.0,
+      "last_epoch": 204,
+      "best_epoch": 37,
+      "task_accuracies": {
+        "loan_decision": 0.895835,
+        "loan_amount_band": 0.516946,
+        "tract_denial_high": 0.634141
+      },
+      "attribute_results": [
+        {
+          "purpose": "underwriting",
+          "attribute": "race",
+          "linear_r2": 0.065556,
+          "empirical_best_acc": 0.648415,
+          "majority_baseline": 0.645825,
+          "delta": 0.00259,
+          "adj_pass": false
+        },
+        {
+          "purpose": "underwriting",
+          "attribute": "ethnicity",
+          "linear_r2": 0.062844,
+          "empirical_best_acc": 0.729595,
+          "majority_baseline": 0.728529,
+          "delta": 0.001066,
+          "adj_pass": false
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "race",
+          "linear_r2": 0.006276,
+          "empirical_best_acc": 0.840422,
+          "majority_baseline": 0.645825,
+          "delta": 0.194597,
+          "adj_pass": false
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "sex",
+          "linear_r2": 0.015749,
+          "empirical_best_acc": 0.737208,
+          "majority_baseline": 0.616422,
+          "delta": 0.120786,
+          "adj_pass": false
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "race",
+          "linear_r2": 0.025409,
+          "empirical_best_acc": 0.648415,
+          "majority_baseline": 0.645825,
+          "delta": 0.00259,
+          "adj_pass": true
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "sex",
+          "linear_r2": 0.041107,
+          "empirical_best_acc": 0.615036,
+          "majority_baseline": 0.616422,
+          "delta": -0.001387,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 2,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "underwriting": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.3099212646484375,
+          "per_dim_std_max": 0.6979566812515259,
+          "per_dim_std_min": 0.12523236870765686,
+          "l2_norm_mean": 6.102883338928223,
+          "l2_norm_std": 0.8574208617210388,
+          "effective_rank": 3.652040958404541
+        },
+        "pricing_analysis": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.32123076915740967,
+          "per_dim_std_max": 0.705394446849823,
+          "per_dim_std_min": 0.1356261521577835,
+          "l2_norm_mean": 3.326428174972534,
+          "l2_norm_std": 1.591589093208313,
+          "effective_rank": 2.5640127658843994
+        },
+        "fair_lending_audit": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.22785916924476624,
+          "per_dim_std_max": 0.56496661901474,
+          "per_dim_std_min": 0.06728620827198029,
+          "l2_norm_mean": 7.167072296142578,
+          "l2_norm_std": 0.548819363117218,
+          "effective_rank": 1.752799153327942
+        }
+      },
+      "lambdas_final": {
+        "underwriting__race": 50.466413882972574,
+        "underwriting__ethnicity": 44.87798899054582,
+        "pricing_analysis__race": 1.0791045498847498,
+        "pricing_analysis__sex": 6.7753673636918395,
+        "fair_lending_audit__race": 0.0,
+        "fair_lending_audit__sex": 15.525695921182924
+      },
+      "best_task_loss_at_selected": 2.0942542563985893,
+      "cotter_selection": {
+        "epoch": 37,
+        "task_loss": 2.0942542563985893,
+        "violation_sum": 0.03128435722103824,
+        "kind": "fallback",
+        "n_feasible_post_warmup": 0,
+        "n_eligible_post_warmup": 200
+      }
+    },
+    {
+      "seed": 2,
+      "train_time_s": 4076.1,
+      "last_epoch": 204,
+      "best_epoch": 34,
+      "task_accuracies": {
+        "loan_decision": 0.909231,
+        "loan_amount_band": 0.509699,
+        "tract_denial_high": 0.634141
+      },
+      "attribute_results": [
+        {
+          "purpose": "underwriting",
+          "attribute": "race",
+          "linear_r2": 0.005082,
+          "empirical_best_acc": 0.720299,
+          "majority_baseline": 0.645825,
+          "delta": 0.074474,
+          "adj_pass": false
+        },
+        {
+          "purpose": "underwriting",
+          "attribute": "ethnicity",
+          "linear_r2": 0.000862,
+          "empirical_best_acc": 0.764732,
+          "majority_baseline": 0.728529,
+          "delta": 0.036202,
+          "adj_pass": false
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "race",
+          "linear_r2": 0.011435,
+          "empirical_best_acc": 0.671327,
+          "majority_baseline": 0.645825,
+          "delta": 0.025502,
+          "adj_pass": false
+        },
+        {
+          "purpose": "pricing_analysis",
+          "attribute": "sex",
+          "linear_r2": 0.023827,
+          "empirical_best_acc": 0.646073,
+          "majority_baseline": 0.616422,
+          "delta": 0.029651,
+          "adj_pass": false
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "race",
+          "linear_r2": 0.015245,
+          "empirical_best_acc": 0.653246,
+          "majority_baseline": 0.645825,
+          "delta": 0.007422,
+          "adj_pass": true
+        },
+        {
+          "purpose": "fair_lending_audit",
+          "attribute": "sex",
+          "linear_r2": 0.021861,
+          "empirical_best_acc": 0.615109,
+          "majority_baseline": 0.616422,
+          "delta": -0.001313,
+          "adj_pass": true
+        }
+      ],
+      "pass_count": 2,
+      "total_pairs": 6,
+      "per_purpose_health": {
+        "underwriting": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.4389793872833252,
+          "per_dim_std_max": 0.5558619499206543,
+          "per_dim_std_min": 0.3491479754447937,
+          "l2_norm_mean": 5.731075286865234,
+          "l2_norm_std": 2.527970314025879,
+          "effective_rank": 1.9006831645965576
+        },
+        "pricing_analysis": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.31248360872268677,
+          "per_dim_std_max": 0.5764056444168091,
+          "per_dim_std_min": 0.049674443900585175,
+          "l2_norm_mean": 3.6001222133636475,
+          "l2_norm_std": 2.22074818611145,
+          "effective_rank": 1.120065689086914
+        },
+        "fair_lending_audit": {
+          "shape": [
+            13661,
+            64
+          ],
+          "per_dim_std_mean": 0.29339879751205444,
+          "per_dim_std_max": 0.46274247765541077,
+          "per_dim_std_min": 0.21231229603290558,
+          "l2_norm_mean": 5.416082859039307,
+          "l2_norm_std": 1.7282248735427856,
+          "effective_rank": 3.2920074462890625
+        }
+      },
+      "lambdas_final": {
+        "underwriting__race": 2.9846018671989594,
+        "underwriting__ethnicity": 0.6054094097614223,
+        "pricing_analysis__race": 0.6647886011600456,
+        "pricing_analysis__sex": 0.019,
+        "fair_lending_audit__race": 17.5963206911112,
+        "fair_lending_audit__sex": 45.093761183026054
+      },
+      "best_task_loss_at_selected": 2.0999156865808697,
+      "cotter_selection": {
+        "epoch": 34,
+        "task_loss": 2.0999156865808697,
+        "violation_sum": 0.0,
+        "kind": "feasible",
+        "n_feasible_post_warmup": 3,
+        "n_eligible_post_warmup": 200
+      }
+    }
+  ]
+}

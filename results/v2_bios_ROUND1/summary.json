@@ -1,0 +1,122 @@
+{
+  "phase": 1,
+  "epochs_run": 5,
+  "elapsed_min": 67.04362959067026,
+  "bail_reason": "BAIL @ 1 hr: marginal R\u00b2 0.8619 > 0.20 \u2014 escalate to rank=48 or abandon.",
+  "final_dev": {
+    "epoch": 4,
+    "elapsed_s": 4022.0438208580017,
+    "epoch_time_s": 598.18221616745,
+    "controller_mode": "plan_b",
+    "train_task_loss": 0.36502187325512075,
+    "train_marginal_r2": 1.0,
+    "train_holdout_r2_avg": 0.5616115421278294,
+    "holdout_refreshes_this_epoch": 0,
+    "dev_top10_acc": 0.8742601687444906,
+    "dev_marginal_r2": 0.8618730902671814,
+    "lambda_marginal_gender": 100.0,
+    "delta_lambda_ema_end": 0.004470369563463094,
+    "flip_rate_end": 0.0,
+    "saturation_streak_end": 7153
+  },
+  "best_compliant": null,
+  "leace_warmstart": {
+    "pre_r2_train": 0.9499508732346809,
+    "post_r2_train_eraser_only": 0.008326884580292071,
+    "Q_shape": [
+      768,
+      768
+    ],
+    "mu_shape": [
+      768
+    ],
+    "located_layer11_module": "base_model.model.encoder.layer.11.output.dense",
+    "layer11_lora_b_l2_norm": 0.0,
+    "post_forward_projection_registered": true,
+    "lora_side_warm_start_disabled": true
+  },
+  "construction_r2": {
+    "r2": 0.04533321484443731,
+    "r2_rounded": 0.0453,
+    "n_held_out": 31764,
+    "d": 768,
+    "ols_overfit_bias_estimate": 0.024178315073668303,
+    "abort_threshold": 0.05,
+    "passed": true
+  },
+  "param_breakdown": {
+    "trainable": 1302528,
+    "frozen": 109482240,
+    "ratio_trainable": 0.011757284178272594,
+    "lora_q_v_adapters": 24,
+    "lora_output_dense_adapters": 1,
+    "lora_module_names_sample": [
+      "peft_model.base_model.model.encoder.layer.0.attention.self.query.lora_A.default.weight",
+      "peft_model.base_model.model.encoder.layer.0.attention.self.value.lora_A.default.weight",
+      "peft_model.base_model.model.encoder.layer.1.attention.self.query.lora_A.default.weight",
+      "peft_model.base_model.model.encoder.layer.1.attention.self.value.lora_A.default.weight",
+      "peft_model.base_model.model.encoder.layer.2.attention.self.query.lora_A.default.weight",
+      "peft_model.base_model.model.encoder.layer.2.attention.self.value.lora_A.default.weight",
+      "... (19 more)"
+    ],
+    "lora_module_names_total": 25
+  },
+  "info": {
+    "n_train": 50000,
+    "n_dev": 31764,
+    "tokenizer": "bert-base-uncased",
+    "max_length": 128,
+    "occupations": [
+      "professor",
+      "physician",
+      "attorney",
+      "photographer",
+      "journalist",
+      "nurse",
+      "psychologist",
+      "teacher",
+      "dentist",
+      "surgeon"
+    ],
+    "occupation_ids_alphabetic": [
+      21,
+      19,
+      2,
+      18,
+      11,
+      13,
+      22,
+      26,
+      6,
+      25
+    ],
+    "train_bucket_counts": {
+      "professor_g0": 10206,
+      "professor_g1": 8386,
+      "physician_g0": 3268,
+      "physician_g1": 3187,
+      "attorney_g0": 3165,
+      "attorney_g1": 1963,
+      "photographer_g0": 2457,
+      "photographer_g1": 1364,
+      "journalist_g0": 1585,
+      "journalist_g1": 1554,
+      "nurse_g0": 273,
+      "nurse_g1": 2711,
+      "psychologist_g0": 1097,
+      "psychologist_g1": 1796,
+      "teacher_g0": 1015,
+      "teacher_g1": 1537,
+      "dentist_g0": 1486,
+      "dentist_g1": 811,
+      "surgeon_g0": 1822,
+      "surgeon_g1": 317
+    }
+  },
+  "controller_mode_final": "plan_b",
+  "plan_b_swap": {
+    "global_step": 20,
+    "epoch": 0,
+    "trip_reason": "PLAN_B_TRIP[mid_window_jump]: |\u0394holdout_r2| = 0.2277 > 0.2 between consecutive dual refreshes"
+  }
+}

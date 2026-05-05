@@ -1,0 +1,25 @@
+% CelebA-medium cross-purpose attack, multi-seed (n=3)
+\begin{table}[t]
+  \centering
+  \caption{Cross-purpose attack on CelebA-medium decoupled-architecture
+  representations, $n{=}3$ seeds (mean $\pm$ std). Each row reports the
+  R$^2$ recovered by an independently trained classifier on the post-pipeline
+  features. R5-trained $\le$ LEACE-init baseline at every cell evidences the
+  LoRA does not amplify concept signal beyond the LEACE-projected residual,
+  consistently across seeds.}
+  \label{tab:celeba-cross-purpose-multiseed}
+  \begin{tabular}{lcccc}
+    \toprule
+    & \multicolumn{2}{c}{Male} & \multicolumn{2}{c}{Young} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+    Attacker & LEACE-init & R5-trained & LEACE-init & R5-trained \\
+    \midrule
+    LR       & 0.0032 $\pm$ 0.0002 & 0.0031 $\pm$ 0.0002 & 0.0033 $\pm$ 0.0002 & 0.0032 $\pm$ 0.0000 \\
+    MLP      & 0.8637 $\pm$ 0.0073 & 0.8426 $\pm$ 0.0293 & 0.4933 $\pm$ 0.0477 & 0.4134 $\pm$ 0.0397 \\
+    XGB      & 0.9066 $\pm$ 0.0028 & 0.8387 $\pm$ 0.0068 & 0.6330 $\pm$ 0.0040 & 0.5605 $\pm$ 0.0104 \\
+    RF       & 0.8362 $\pm$ 0.0015 & 0.6049 $\pm$ 0.0121 & 0.4877 $\pm$ 0.0010 & 0.2982 $\pm$ 0.0025 \\
+    SVM-RBF  & 0.8221 $\pm$ 0.0054 & 0.5573 $\pm$ 0.0200 & 0.5321 $\pm$ 0.0301 & 0.4285 $\pm$ 0.0146 \\
+    DeepMLP  & 0.8245 $\pm$ 0.0164 & 0.8320 $\pm$ 0.0440 & 0.4382 $\pm$ 0.0231 & 0.3898 $\pm$ 0.0329 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

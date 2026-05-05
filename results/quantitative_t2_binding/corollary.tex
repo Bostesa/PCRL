@@ -1,0 +1,51 @@
+% =====================================================================
+% Corollary: d_TV pair-witness form of the Multi-Purpose Impossibility.
+% Drop-in replacement / companion for Theorem 2.
+% =====================================================================
+
+\begin{corollary}[$d_{\mathrm{TV}}$ pair-witness form of Theorem~\ref{thm:multi-purpose-impossibility}]
+\label{cor:dtv-multi-purpose}
+Consider $k$ prediction tasks $(\widehat{Y}_1, \ldots, \widehat{Y}_k)$ and a sensitive attribute $A$
+on a common population. For each task $i$, write $p_a := \Pr(A{=}a)$ and define
+\begin{align*}
+\gamma_i &:= \max_{a,a'} \min\{p_a,\,p_{a'}\}\;\cdot\;d_{\mathrm{TV}}\!\big(P_{Y_i|A=a},\;P_{Y_i|A=a'}\big), \\
+\delta_i &:= \max_{a,a'}\; d_{\mathrm{TV}}\!\big(P_{\widehat{Y}_i|A=a},\;P_{\widehat{Y}_i|A=a'}\big), \\
+\mathrm{Err}_i &:= \Pr(\widehat{Y}_i \neq Y_i).
+\end{align*}
+Then under the multi-purpose setup of Theorem~\ref{thm:multi-purpose-impossibility},
+\begin{equation}
+\sum_{i=1}^{k} \mathrm{Err}_i \;\;\geq\;\; \sum_{i=1}^{k} \gamma_i \;-\; \sum_{i=1}^{k} \delta_i.
+\label{eq:dtv-bound}
+\end{equation}
+\end{corollary}
+
+\begin{proof}[Proof sketch]
+Fix $i$ and let $(a^\star,a^{\star\prime})$ achieve the maximum in $\gamma_i$. By the
+data-processing inequality $d_{\mathrm{TV}}(Y_i|A{=}a,\widehat{Y}_i|A{=}a) \leq \Pr(\widehat{Y}_i \neq Y_i \mid A{=}a) =: \mathrm{Err}_i^{(a)}$
+and the triangle inequality on $d_{\mathrm{TV}}$,
+$d_{\mathrm{TV}}(Y_i|A{=}a^\star, Y_i|A{=}a^{\star\prime}) \leq \mathrm{Err}_i^{(a^\star)} + \mathrm{Err}_i^{(a^{\star\prime})} + \delta_i$.
+Multiplying by $\min\{p_{a^\star},p_{a^{\star\prime}}\}$ and using
+$\mathrm{Err}_i = \sum_a p_a\,\mathrm{Err}_i^{(a)} \geq \min\{p_{a^\star},p_{a^{\star\prime}}\}\cdot(\mathrm{Err}_i^{(a^\star)} + \mathrm{Err}_i^{(a^{\star\prime})})$
+gives $\gamma_i \leq \mathrm{Err}_i + \delta_i$, hence $\mathrm{Err}_i \geq \gamma_i - \delta_i$. Sum over $i$.
+\end{proof}
+
+% ---------------------------------------------------------------------
+% Conventions vs. the original Theorem 2.
+%
+% The original Theorem 2 (mutual-information form) reads
+%   Sum Err_i  >=  k * gamma  -  Sum sqrt(eps_i / 2),
+% with eps_i = I(Y_hat_i ; A) and gamma a uniform per-purpose label-shift
+% parameter. Corollary 1 is tighter for two reasons:
+% (i) it replaces sqrt(eps_i/2), the Pinsker upper bound on d_TV(Y_hat_i|A),
+%     by d_TV(Y_hat_i|A) directly -- which is what we can estimate from
+%     PCRL predictions without any joint-Gaussianity assumption on Y_hat;
+% (ii) it replaces the uniform k*gamma by Sum gamma_i, dispensing with
+%     the worst-case-purpose relaxation. The proof above is the standard
+%     two-distribution coupling argument used in fairness bounds
+%     (cf. Madras et al. 2018, Lechner et al. 2021); the substitution
+%     into the multi-purpose setting is what makes it Corollary 1.
+%
+% Numerical verification of (1) on PCRL Adult/HMDA/Diabetes is in
+% results/quantitative_t2_binding/bound_numerical_results.json and
+% results/quantitative_t2_binding/tightness_table.tex.
+% ---------------------------------------------------------------------

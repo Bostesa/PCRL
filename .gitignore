@@ -4,13 +4,20 @@ __pycache__/
 *.pyo
 *.egg-info/
 
-# Virtual environment
+# Virtual environments
 .venv/
+venv/
+env/
 
-# Data and artifacts
-data/
+# Data and artifacts (raw datasets are not committed; see data/README.md)
+data/*
+!data/README.md
 *.zip
 checkpoints/
+*.pt
+*.ckpt
+*.pth
+*.safetensors
 benchmark.log
 
 # Old result snapshots (superseded by results/)
@@ -19,9 +26,30 @@ results_fixes/
 results_fixes2/
 
 # IDE / tools
+.vscode/
+.idea/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 .claude/
 gce/
 .DS_Store
 __MACOSX/
+
+# Logs and run artifacts
+logs/
+wandb/
+runs/
+*.log
 results/v2_bios_*/checkpoint_final.pt
+
+# Local orchestration state
+/tmp/round5/
+
+# Anonymization-required exclusions (secrets / env)
+.env
+.env.local
+*.pem
+*.key
+credentials*

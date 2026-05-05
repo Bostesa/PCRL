@@ -6,7 +6,7 @@ No further relaunches.
 
 ## Run
 
-- Instance: `i-07852a1d14efcb212` @ `100.26.196.22` → `34.228.52.209` (g4dn.xlarge)
+- Instance: `[redacted-instance-id]` @ `[redacted-ip]` → `[redacted-ip]` (g4dn.xlarge)
 - Boot: 2026-05-03 08:01:59Z. Training started ~08:17Z. Done.flag at 08:56:47Z.
   Watchdog shutdown at 09:02:47Z.
 - Wall: ~30 min training, ~55 min instance-up. Cost ≈ $0.55.

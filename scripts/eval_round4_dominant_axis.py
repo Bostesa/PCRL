@@ -49,6 +49,15 @@ SEEDS = [0, 1, 2]
 DATASETS = ["adult", "diabetes", "hmda"]
 DEVICE = "cpu"
 
+# Per-dataset LoRA rank/alpha. Mirrors experiments/run_v2_dataset.py.
+# Diabetes was bumped 16→24 in Round 7 to provide enough parameter slack
+# for 10 simultaneous OvR constraints on quality_research/age_bucket.
+LORA_BY_DATASET: dict[str, tuple[int, float]] = {
+    "adult": (8, 16.0),
+    "hmda": (8, 16.0),
+    "diabetes": (24, 48.0),
+}
+
 
 def load_ds(name: str):
     if name == "adult":
@@ -74,13 +83,14 @@ def load_ds(name: str):
     return purposes, train_ds, test_ds
 
 
-def build(purposes, train_ds):
+def build(purposes, train_ds, dataset: str):
     backbone = StandardEncoder(
         input_dim=train_ds.info.num_features, hidden_dims=[128, 128], repr_dim=64, dropout=0.3,
     )
+    rank, alpha = LORA_BY_DATASET.get(dataset, (8, 16.0))
     encoder = PerPurposeLoRAEncoder(
         backbone=backbone, n_purposes=len(purposes),
-        rank=8, alpha=16.0, dropout=0.0,
+        rank=rank, alpha=alpha, dropout=0.0,
     )
     task_heads = {}
     for p in purposes:
@@ -109,7 +119,7 @@ def convex_combo_predicted_r2(per_class_r2: list[float], priors: list[float]) ->
     return float(np.dot(w, arr))
 
 
-def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int) -> dict:
+def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int, tag: str) -> dict:
     purposes, train_ds, test_ds = load_ds(dataset)
     registry = PurposeRegistry()
     for p in purposes:
@@ -122,8 +132,9 @@ def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int) -> 
 
     torch.manual_seed(seed)
     np.random.seed(seed)
-    encoder, task_heads = build(purposes, train_ds)
-    ckpt_path = ROOT / "checkpoints" / f"v2_{dataset}_s{seed}" / "final.pt"
+    encoder, task_heads = build(purposes, train_ds, dataset)
+    ckpt_dir_name = f"v2_{dataset}_{tag}_s{seed}" if tag else f"v2_{dataset}_s{seed}"
+    ckpt_path = ROOT / "checkpoints" / ckpt_dir_name / "final.pt"
     state = load_ckpt(encoder, task_heads, ckpt_path)
     encoder.eval()
 
@@ -217,13 +228,15 @@ def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int) -> 
     return {"epoch": int(state.get("epoch", -1)), "rows": rows}
 
 
-def write_dataset_json(dataset: str, per_seed: dict, mlp_epochs: int) -> Path:
-    out_dir = ROOT / "results" / f"v2_{dataset}_ROUND4"
+def write_dataset_json(dataset: str, per_seed: dict, mlp_epochs: int, tag: str) -> Path:
+    dir_name = f"v2_{dataset}_{tag}" if tag else f"v2_{dataset}_ROUND4"
+    out_dir = ROOT / "results" / dir_name
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "dominant_axis_audit.json"
     with open(path, "w") as fh:
         json.dump({
             "dataset": dataset,
+            "tag": tag,
             "seeds": list(per_seed.keys()),
             "mlp_epochs": mlp_epochs,
             "per_seed": per_seed,
@@ -398,6 +411,14 @@ def main() -> None:
     ap.add_argument("--seeds", nargs="+", type=int, default=SEEDS)
     ap.add_argument("--mlp-epochs", type=int, default=50)
     ap.add_argument("--batch-size", type=int, default=256)
+    ap.add_argument(
+        "--tag", default="ROUND4",
+        help="Round tag, e.g. ROUND4, ROUND5, ROUND7 — applied to checkpoint and output paths.",
+    )
+    ap.add_argument(
+        "--summary-name", default=None,
+        help="Override cross-dataset summary filename (default V2_DOMINANT_AXIS_SUMMARY.md).",
+    )
     args = ap.parse_args()
 
     torch.manual_seed(0)
@@ -406,14 +427,16 @@ def main() -> None:
     dataset_results: dict[str, dict] = {}
     overall_t0 = time.time()
     for dataset in args.datasets:
-        print(f"\n=== {dataset.upper()} ===")
+        print(f"\n=== {dataset.upper()} (tag={args.tag}) ===")
         per_seed: dict = {}
         for seed in args.seeds:
             print(f"  -- seed {seed} --")
             t0 = time.time()
-            per_seed[seed] = eval_one_seed(dataset, seed, args.mlp_epochs, args.batch_size)
+            per_seed[seed] = eval_one_seed(
+                dataset, seed, args.mlp_epochs, args.batch_size, args.tag,
+            )
             print(f"  seed {seed} done in {time.time()-t0:.1f}s")
-        path = write_dataset_json(dataset, per_seed, args.mlp_epochs)
+        path = write_dataset_json(dataset, per_seed, args.mlp_epochs, args.tag)
         agg = aggregate_dataset(per_seed)
         dataset_results[dataset] = {"per_seed": per_seed, "aggregate": agg}
         print(f"  wrote {path}")
@@ -421,7 +444,8 @@ def main() -> None:
               f"mean R²_DA={agg['mean_r2_da']:.4f}  gap={agg['mean_gap_da_minus_onehot']:+.4f}  "
               f"hidden_by_onehot={agg['n_da_above_05_onehot_below_05']}/{agg['n_pair_seeds']}")
 
-    out_md = ROOT / "results" / "V2_DOMINANT_AXIS_SUMMARY.md"
+    summary_name = args.summary_name or "V2_DOMINANT_AXIS_SUMMARY.md"
+    out_md = ROOT / "results" / summary_name
     write_summary_md(dataset_results, out_md)
     print(f"\nWrote {out_md}")
     print(f"Total wall time: {time.time()-overall_t0:.1f}s")

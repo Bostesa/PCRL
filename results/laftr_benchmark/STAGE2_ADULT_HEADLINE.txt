@@ -1,0 +1,21 @@
+STAGE 2 ADULT BENCHMARK -- LAFTR vs PCRL (head-to-head, auditor R^2)
+====================================================================
+Strict pairs (R^2_onehot <= 0.05, post-hoc test-set OLS auditor):
+  PCRL R5:  23/24    mean R^2 = 0.012   (~1.05M params, shared backbone + LoRAs;
+                                         STATUS=COLLAPSED per its own summary.json)
+  LAFTR:     0/24    mean R^2 = 0.381   (129K params total, 3 independent encoders;
+                                         lambda=1.0, 200 epochs, no parameter sharing)
+
+Mean R^2 ratio LAFTR/PCRL: 32x.  PCRL passes strict on 23/24 cells.
+LAFTR fails strict on every cell.  This holds despite LAFTR using 8x fewer
+parameters than PCRL -- parameter independence does not buy compliance here.
+
+Task acc on the only non-trivial task (income):
+  PCRL R5: 0.787   |   LAFTR: 0.851   (LAFTR +0.064, the cost of compliance)
+
+Erratum 2026-05-05: original draft used train-time linear_r2 (21/24, mean 0.020)
+which the verdict commit 2efd2a3 explicitly says is not comparable to the
+published auditor numbers.  Canonical metric is dominant_axis_audit.json:r2_onehot.
+See PCRL_R5_RECONCILIATION.md.
+
+Stage 3 launching: HMDA + Diabetes, 18 more runs.

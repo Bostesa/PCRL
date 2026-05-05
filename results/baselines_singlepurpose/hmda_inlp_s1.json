@@ -1,0 +1,82 @@
+{
+  "dataset": "hmda",
+  "method": "inlp",
+  "seed": 1,
+  "purpose": "underwriting",
+  "task_name": "loan_decision",
+  "task_dim": 2,
+  "disallowed_attrs": [
+    "race",
+    "ethnicity"
+  ],
+  "config": {
+    "epochs": 200,
+    "lr": 0.001,
+    "batch_size": 256,
+    "lambda_adv": 1.0,
+    "disc_steps": 1,
+    "inlp_max_iters": 32,
+    "inlp_tol_pp": 1.0,
+    "patience": 20
+  },
+  "metrics": {
+    "per_attr": {
+      "race": {
+        "num_classes": 5,
+        "r2_onehot": 0.03964231782117833,
+        "r2_da": 0.047107053007920174,
+        "r2_da_argmax_class": 0,
+        "per_class_r2": [
+          0.047107053007920174,
+          0.043673653072759056,
+          0.036806612082252554,
+          0.007654398730130629,
+          0.0032768215482483765
+        ],
+        "priors": [
+          0.6484151965449089,
+          0.0616353122026206,
+          0.26110826440231316,
+          0.019691091428153135,
+          0.009150135422004246
+        ],
+        "mlp_da_delta": 0.26879437815679674,
+        "mlp_da_argmax_class": 0
+      },
+      "ethnicity": {
+        "num_classes": 2,
+        "r2_onehot": 0.07823479200829841,
+        "r2_da": 0.09692725917174527,
+        "r2_da_argmax_class": 0,
+        "per_class_r2": [
+          0.09692725917174527,
+          0.09692725917174472
+        ],
+        "priors": [
+          0.7295951980089306,
+          0.2704048019910695
+        ],
+        "mlp_da_delta": null,
+        "mlp_da_argmax_class": -1
+      }
+    },
+    "task_acc": 0.9119390966986312
+  },
+  "diagnostics": {
+    "per_attr_iterations": {
+      "race": 13,
+      "ethnicity": 7
+    },
+    "per_attr_majority": {
+      "race": 0.6480234260614934,
+      "ethnicity": 0.7327232796486091
+    },
+    "final_lr_acc": {
+      "race": 0.6431918008784773,
+      "ethnicity": 0.7407027818448023
+    },
+    "pretrain_best_epoch": 29,
+    "post_proj_head_best_epoch": 31
+  },
+  "train_seconds": 58.65455889701843
+}
