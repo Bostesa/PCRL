@@ -360,7 +360,9 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.quick:
-        args.epochs = min(args.epochs, 50)
+        # Use full dataset but reduce epochs — small subsets give degenerate
+        # BN statistics + the model can't learn the task in 2000 rows.
+        args.epochs = min(args.epochs, 30)
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -393,17 +395,8 @@ def main() -> None:
         f"disallowed={list(purpose.disallowed_attrs)}"
     )
 
-    if args.quick:
-        # Seeded random subset — head subsets on Adult give degenerate
-        # uniform demographic priors (the test split is partially sorted).
-        rs = np.random.RandomState(args.seed)
-        def _sample(ds, n):
-            idx = rs.permutation(len(ds))[: min(n, len(ds))]
-            return Subset(ds, idx.tolist())
-        train_ds = _sample(train_ds, 2000)
-        val_ds = _sample(val_ds, 500)
-        test_ds = _sample(test_ds, 500)
-        log_fn(f"  [quick] random subset → N_train={len(train_ds)} N_val={len(val_ds)} N_test={len(test_ds)}")
+    # Note: --quick now caps epochs at 30 but uses full dataset (small
+    # subsets give degenerate BN statistics + insufficient training signal).
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
                               collate_fn=collate_pcrl_batch, num_workers=0)
@@ -412,8 +405,7 @@ def main() -> None:
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False,
                              collate_fn=collate_pcrl_batch, num_workers=0)
 
-    input_dim = (train_ds.dataset.info.num_features
-                 if isinstance(train_ds, Subset) else train_ds.info.num_features)
+    input_dim = train_ds.info.num_features
 
     encoder = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=64, dropout=args.dropout,
