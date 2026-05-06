@@ -239,6 +239,23 @@ def build_paper_paste(summary: dict) -> str:
     ) if rows else 0.0
     pcrl_r2 = sum(1 for r in rows if r["pcrl_baseline_r2_pass"])
 
+    # Compute the top-3 worst-task-drop cells (by mean across seeds) so the
+    # paragraph names the actual cells, not a hardcoded template.
+    drop_by_pair: dict[tuple[str, str, str], list[float]] = {}
+    for r in rows:
+        key = (r["dataset"], r["purpose"], r["attribute"])
+        drop_by_pair.setdefault(key, []).append(r["splince_task_drop"])
+    pair_mean_drops = sorted(
+        ((k, sum(v) / len(v)) for k, v in drop_by_pair.items()),
+        key=lambda kv: kv[1], reverse=True,
+    )
+    top3 = pair_mean_drops[:3]
+    worst_phrase = ", ".join(
+        f"{p.replace('_', '\\_')}/{a.replace('_', '\\_')} on {ds.capitalize()} "
+        f"({d * 100:+.1f}~pp)"
+        for (ds, p, a), d in top3
+    ) if top3 else "n/a"
+
     parts: list[str] = []
     parts.append("## Section 5.3 paragraph (paste-ready)")
     parts.append("")
@@ -268,8 +285,8 @@ def build_paper_paste(summary: dict) -> str:
         f"degrades by a mean of {mean_drop*100:.1f} percentage points relative to "
         f"the unconstrained backbone, with the worst single-cell drops on the "
         f"purposes whose primary task and sensitive attribute share covariance "
-        f"directions (most notably employment\\_analysis/race on Adult and "
-        f"underwriting/race on HMDA). Read together, the comparison says that the "
+        f"directions (the three largest mean-over-seeds drops were {worst_phrase}). "
+        f"Read together, the comparison says that the "
         f"closed-form path can match or beat PCRL on the linear-erasure ledger when "
         f"the geometric alignment is benign, but pays for that erasure with a "
         f"representation that the rank-and-variance health checks reject; PCRL, "
