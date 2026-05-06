@@ -561,15 +561,19 @@ def main() -> int:
             l_total.backward()
             opt.step()
 
-            # Online LEACE refit (mirrors experiments/run_bios.py:643-658).
-            # Observe the post-step head output so the buffer reflects the
-            # current LoRA-shifted distribution; refit on cadence and swap the
-            # post-projection buffer in place via ``set_leace_projection``.
+            # Online LEACE refit. Observe the PRE-projection head output (host +
+            # adapter, no leace_P applied) so the new LEACE is fit on the
+            # distribution it will be applied to after ``set_leace_projection``
+            # replaces the buffer. Observing the post-projection output (smoke #4
+            # config, mirroring experiments/run_bios.py:648) caused the refit to
+            # produce a P_new for a different distribution than the next
+            # forward operates on, leaving R²(g) flat at 0.95 — see
+            # HEADLINE_ABORT_2 in S3 and the smoke #5 fix authorization.
             refit_this_step = False
             if online_leace is not None:
                 with torch.no_grad():
-                    z_post_step = head(x_b).detach()
-                online_leace.observe(z_post_step, g_b)
+                    z_pre_proj = (head.host(x_b) + head.adapter(x_b)).detach()
+                online_leace.observe(z_pre_proj, g_b)
                 if online_leace.should_refit(step):
                     eraser = online_leace.refit(step)
                     Q = eraser.P.detach().to(torch.float32)
