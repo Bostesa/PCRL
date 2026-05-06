@@ -87,11 +87,14 @@ documented and justifiable:
 | --- | --- | --- | --- |
 | `batch_size` | 256 | **4096** | the differentiable in-batch R²(gender) requires `N >= ~2·d` to avoid the rank-deficient saturation at R²=1; with d=768 batch=256 is mathematically broken (verified empirically). Cached features make 4096 trivial on GPU. |
 | `lambda_init` | 0.0 | **1.0** | the LoRA-realises-eraser warm-start is a saddle point that CE pulls out of in <2 steps; the dual ascent at 5e-3 takes ~2200 steps to reach λ=10, far longer than the 630-step training budget. Starting at 1.0 keeps the constraint binding from step 0 without forcing a hard project. |
-| `dual_lr` | 5e-3 | **5e-2** | matches the spec's autonomous-debug directive #4 ("COMPLIANCE FAILURE: raise dual LR to 1e-2"); 5e-2 is empirically close enough to keep λ growing through the warmup window. |
+| `dual_lr` | 5e-3 | **1e-1** | matches the spec's autonomous-debug directive #4 ("COMPLIANCE FAILURE: raise dual LR to 1e-2") plus extension after smoke #2 stayed at R²=0.95. |
+| post-projection | _(spec implicit)_ | **online LEACE refit, K=50** | static post-projection fits LEACE on the original cached-features distribution; under task-loss pressure the LoRA shifts that distribution and LEACE's zero-cross-cov guarantee no longer holds (smoke #2+#3 confirmed R² stayed at 0.95 even with `--use-post-projection`). Online refit observes post-step `(head(x), gender)` into a sliding buffer (4096 samples), refits LEACE with shrinkage every K=50 primal steps, swaps the post-projection buffer in place. Verified rescue from BIOS Round 2 (`pcrl/language/online_leace.py`, `experiments/run_bios.py`). |
+| `lambda_init` | 0.0 | **5.0** | start above 0 so the constraint binds before the dual ascent has time to climb. |
+| `lambda_max` | 10 | **20** | matches autonomous-debug directive #4. |
 
-If the smoke fails on compliance, the autonomous-debug directives in the spec
-(λ_max → 20, dual_lr → 1e-1, λ_floor enabled) can be applied without
-relaunching by re-running with overridden flags.
+If the smoke fails on compliance with online LEACE enabled (R² > 0.5), the
+documented rescues are exhausted — abort, sync HEADLINE_ABORT_2.txt, and ping.
+Falling back to option (c) (drop the layer-12 extension) at that point.
 
 ## Monitoring
 

@@ -350,7 +350,27 @@ def main() -> int:
     # representation inside the constraint set during training (the LoRA-only
     # warm-start is a saddle point that CE gradients escape rapidly).
     ap.add_argument("--use-post-projection", action="store_true")
+    # Online LEACE refit (BIOS Round 2 verified pattern, see
+    # ``pcrl/language/online_leace.py`` and ``experiments/run_bios.py``).
+    # The static post-projection fits LEACE on the *original* cached-features
+    # distribution; under task-loss pressure the LoRA shifts that distribution
+    # and the LEACE zero-cross-cov guarantee no longer holds, so gender info
+    # re-enters (smoke #2 + #3 on layer-12 confirmed this empirically — R²
+    # stayed at 0.95 even with --use-post-projection). Online refit observes
+    # post-step (head(x), gender) into a sliding buffer and refits LEACE
+    # every K steps, swapping the post-projection buffer in place. K=50 is
+    # the BIOS Round 2 default. Buffer size 4096 (>= d=768 with margin) for
+    # well-conditioned cov estimation under shrinkage.
+    ap.add_argument("--online-leace", action="store_true",
+                    help="Refit the LEACE post-projection every K primal steps "
+                    "on a sliding buffer of post-step (head(x), gender). "
+                    "Implies --use-post-projection (the buffer is the post-projection "
+                    "target).")
+    ap.add_argument("--online-leace-refit-every", type=int, default=50)
+    ap.add_argument("--online-leace-buffer", type=int, default=4096)
     args = ap.parse_args()
+    if args.online_leace:
+        args.use_post_projection = True
 
     if args.smoke_epochs > 0:
         args.epochs = args.smoke_epochs
@@ -457,6 +477,24 @@ def main() -> int:
         print(msg, flush=True)
         return 2
 
+    # ----- Online LEACE refit (optional) -----
+    online_leace = None
+    if args.online_leace:
+        from pcrl.language.online_leace import OnlineLeaceRefit
+        online_leace = OnlineLeaceRefit(
+            d_x=d, d_z=1,
+            buffer_size=args.online_leace_buffer,
+            refit_every=args.online_leace_refit_every,
+            device=device,
+            shrinkage=True, constrain_cov_trace=True,
+        )
+        print(
+            f"[pcrl_l12] online LEACE refit ENABLED  "
+            f"buffer={args.online_leace_buffer}  "
+            f"refit_every={args.online_leace_refit_every}  "
+            f"shrinkage=True  constrain_cov_trace=True", flush=True,
+        )
+
     # ----- Optimiser -----
     pg_a = {"params": [head.adapter.A.weight], "lr": args.lr_a, "weight_decay": 0.0}
     pg_b = {"params": [head.adapter.B.weight], "lr": args.lr_b, "weight_decay": 0.0}
@@ -523,6 +561,26 @@ def main() -> int:
             l_total.backward()
             opt.step()
 
+            # Online LEACE refit (mirrors experiments/run_bios.py:643-658).
+            # Observe the post-step head output so the buffer reflects the
+            # current LoRA-shifted distribution; refit on cadence and swap the
+            # post-projection buffer in place via ``set_leace_projection``.
+            refit_this_step = False
+            if online_leace is not None:
+                with torch.no_grad():
+                    z_post_step = head(x_b).detach()
+                online_leace.observe(z_post_step, g_b)
+                if online_leace.should_refit(step):
+                    eraser = online_leace.refit(step)
+                    Q = eraser.P.detach().to(torch.float32)
+                    mu_eraser = (
+                        eraser.bias.detach().to(torch.float32)
+                        if eraser.bias is not None
+                        else torch.zeros(Q.shape[0], dtype=torch.float32)
+                    )
+                    head.set_leace_projection(Q.to(device), mu_eraser.to(device))
+                    refit_this_step = True
+
             # Dual ascent on the actual constraint value; no warmup multiplier
             # on the dual update itself (warmup is applied to the primal
             # weighting only).
@@ -547,6 +605,11 @@ def main() -> int:
                     "warm_factor": float(warm_factor),
                     "per_dim_std_median": float(pds.median().item()),
                     "per_dim_std_min": float(pds.min().item()),
+                    "leace_refits": (
+                        int(online_leace.refit_count) if online_leace is not None
+                        else 0
+                    ),
+                    "leace_refit_this_step": bool(refit_this_step) if online_leace is not None else False,
                 })
             step += 1
 
@@ -560,13 +623,17 @@ def main() -> int:
             z_d = head(X_dev[idx].to(device)).detach()
             r2_dev = float(linear_r2(z_d.cpu(), g_dev[idx]).item())
         elapsed = time.time() - t0
+        refits_str = (
+            f"refits={online_leace.refit_count}  "
+            if online_leace is not None else ""
+        )
         print(
             f"[pcrl_l12] epoch {epoch+1}/{args.epochs}  step={step}  "
             f"task={history[-1]['task_loss']:.3f}  "
             f"R²(g, batch)={history[-1]['r2_gender_batch']:.4f}  "
             f"R²(g, dev4k)={r2_dev:.4f}  λ={constraint.lambda_value:.2f}  "
             f"per_dim_std_med={history[-1]['per_dim_std_median']:.3f}  "
-            f"elapsed={elapsed:.1f}s",
+            f"{refits_str}elapsed={elapsed:.1f}s",
             flush=True,
         )
 
@@ -669,6 +736,16 @@ def main() -> int:
             "lambdas": constraint.lambda_history,
             "violations": constraint.violation_history,
         },
+        "online_leace": (
+            {
+                "enabled": True,
+                "buffer_size": int(args.online_leace_buffer),
+                "refit_every": int(args.online_leace_refit_every),
+                "total_refits": int(online_leace.refit_count),
+            }
+            if online_leace is not None
+            else {"enabled": False}
+        ),
         "elapsed_s": time.time() - t0,
     }
     metrics_path = args.output_dir / f"metrics_{args.purpose}_{args.seed}.json"
