@@ -208,7 +208,9 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              out_tag: str = "",
              per_class_threshold: int = 6,
              report_best_iterate: bool = False,
-             freeze_leace_projection: bool = False) -> dict:
+             freeze_leace_projection: bool = False,
+             cross_purpose_attrs: list[str] | None = None,
+             cross_purpose_threshold: float = 0.10) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -278,6 +280,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         checkpoint_dir=str(ckpt_dir),
         report_best_iterate=report_best_iterate,
         freeze_leace_projection=freeze_leace_projection,
+        cross_purpose_attrs=cross_purpose_attrs,
+        cross_purpose_threshold=cross_purpose_threshold,
     )
     trainer = V2Trainer(
         encoder=encoder, task_heads=task_heads, vclubs=vclubs,
@@ -497,6 +501,16 @@ def main() -> None:
             "Adult/HMDA/Diabetes runs with LoRA-side LEACE warm-start only."
         ),
     )
+    parser.add_argument(
+        "--cross-purpose-attrs", nargs="*", default=None,
+        help="Opt-in: list of attribute names to constrain on h_concat "
+             "(e.g. --cross-purpose-attrs race sex age_group). Adds a "
+             "linear-R²(h_concat, A) <= cross_purpose_threshold dual per attr.",
+    )
+    parser.add_argument(
+        "--cross-purpose-threshold", type=float, default=0.10,
+        help="Threshold for the cross-purpose linear-R² constraint.",
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -519,6 +533,8 @@ def main() -> None:
             per_class_threshold=args.per_class_threshold,
             report_best_iterate=args.report_best_iterate,
             freeze_leace_projection=args.freeze_leace_projection,
+            cross_purpose_attrs=args.cross_purpose_attrs,
+            cross_purpose_threshold=args.cross_purpose_threshold,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "

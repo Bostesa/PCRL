@@ -136,6 +136,21 @@ class V2TrainerConfig:
     # current dataset suite.
     per_class_constraint_threshold: int = 6
 
+    # Cross-purpose constraint (2026-05-06 experiment).
+    # When ``cross_purpose_attrs`` is non-None, an additional Lagrangian
+    # constraint is imposed on the *concatenated* representation
+    # h_concat = [h_p1; h_p2; h_p3] for each listed attribute A:
+    #     linear-R²(h_concat, A) <= cross_purpose_threshold.
+    # Each cross-purpose constraint gets its own dual variable
+    # ``lambda_concat_<A>`` with the same eta_lambda / lambda_min /
+    # lambda_max as the per-pair constraints. The threshold is loosened
+    # vs the per-pair r2_threshold because h_concat is K=3 times wider
+    # (192-dim on Adult) and harder to constrain. Constraint name in the
+    # ProxyLagrangian: ``concat__<attr>`` (low cardinality) or
+    # ``concat__<attr>__class_k`` (per-class for high-K attrs).
+    cross_purpose_attrs: list[str] | None = None
+    cross_purpose_threshold: float = 0.10
+
     # Cotter best-iterate selection (Cotter et al. JMLR 2019 §4.6).
     # Round 2 uses true Cotter: best-feasible by min task_loss; fallback by
     # min violation among iterates within 10% of best task_loss.
@@ -399,6 +414,65 @@ class V2Trainer:
                         f"[V2/INIT] pair={purpose_name}/{attr_name} "
                         f"cardinality={K} < per_class_threshold={per_class_threshold}: "
                         f"1 joint multi-output constraint"
+                    )
+
+        # ── Cross-purpose constraints (opt-in via cross_purpose_attrs) ──
+        # For each listed attribute A, register a Constraint on
+        # linear-R²(h_concat, A). High-K attrs get K per-class duals
+        # (mirrors the per-pair OvR pathway).
+        self.cross_purpose_attrs: list[str] = list(config.cross_purpose_attrs or [])
+        # attr -> list of constraint names (1 for low-K, K for high-K)
+        self.cross_constraint_keys: dict[str, list[str]] = {}
+        # attr -> cardinality K (only populated for high-K attrs)
+        self.cross_high_k_attrs: dict[str, int] = {}
+        if self.cross_purpose_attrs:
+            # Resolve attribute cardinality from any purpose that lists it
+            attr_dims_global: dict[str, int] = {}
+            for purpose_name in self.purpose_names:
+                for a, K in self.purpose_configs[purpose_name]["disallowed_attr_dims"].items():
+                    if a not in attr_dims_global:
+                        attr_dims_global[a] = int(K)
+            for attr_name in self.cross_purpose_attrs:
+                K = attr_dims_global.get(attr_name, 2)
+                if K >= per_class_threshold:
+                    self.cross_high_k_attrs[attr_name] = K
+                    names: list[str] = []
+                    for k in range(K):
+                        cname = f"concat__{attr_name}__class_{k}"
+                        constraints.append(
+                            Constraint(
+                                name=cname,
+                                threshold=config.cross_purpose_threshold,
+                                direction="<=",
+                                eta_lambda=config.lr_lambda,
+                                lambda_init=config.lambda_hsic_init,
+                                lambda_max=config.r2_lambda_max,
+                                lambda_min=config.lambda_min,
+                            )
+                        )
+                        names.append(cname)
+                    self.cross_constraint_keys[attr_name] = names
+                    logger.info(
+                        f"[V2/INIT] cross-purpose attr={attr_name} K={K} "
+                        f"(per-class, {K} OvR duals, tau={config.cross_purpose_threshold})"
+                    )
+                else:
+                    cname = f"concat__{attr_name}"
+                    constraints.append(
+                        Constraint(
+                            name=cname,
+                            threshold=config.cross_purpose_threshold,
+                            direction="<=",
+                            eta_lambda=config.lr_lambda,
+                            lambda_init=config.lambda_hsic_init,
+                            lambda_max=config.r2_lambda_max,
+                            lambda_min=config.lambda_min,
+                        )
+                    )
+                    self.cross_constraint_keys[attr_name] = [cname]
+                    logger.info(
+                        f"[V2/INIT] cross-purpose attr={attr_name} K={K} "
+                        f"(joint, 1 dual, tau={config.cross_purpose_threshold})"
                     )
 
         # Optimisers
@@ -695,6 +769,46 @@ class V2Trainer:
                 L_verify = L_verify + r2_val
                 pair_r2_log[pair_key_str] = constraint_scalars[cname]
 
+        # ── Cross-purpose R² on h_concat (opt-in via cross_purpose_attrs) ──
+        concat_r2_log: dict[str, float] = {}
+        if self.cross_purpose_attrs:
+            h_concat = torch.cat(
+                [reprs[p] for p in self.purpose_names], dim=1
+            )  # (B, K_purposes * repr_dim)
+            for attr_name in self.cross_purpose_attrs:
+                attr = batch["sensitive_attrs"][attr_name].long()
+                if int(attr.max().item()) < 1:
+                    zero = torch.tensor(0.0, device=self.device)
+                    for cname in self.cross_constraint_keys[attr_name]:
+                        constraint_values[cname] = zero
+                        constraint_scalars[cname] = 0.0
+                    concat_r2_log[f"concat[{attr_name}]"] = 0.0
+                    continue
+                if attr_name in self.cross_high_k_attrs:
+                    r2_per_k = self.verifier.forward_per_class(h_concat, attr)
+                    names = self.cross_constraint_keys[attr_name]
+                    K_total = len(names)
+                    if r2_per_k.numel() < K_total:
+                        pad = torch.zeros(
+                            K_total - r2_per_k.numel(), device=self.device,
+                        )
+                        r2_per_k = torch.cat([r2_per_k, pad])
+                    pair_max = float("-inf")
+                    for k, cname in enumerate(names):
+                        rk = r2_per_k[k]
+                        constraint_values[cname] = rk
+                        v = float(rk.detach().item())
+                        constraint_scalars[cname] = v
+                        pair_max = max(pair_max, v)
+                    concat_r2_log[f"concat[{attr_name}]"] = pair_max
+                else:
+                    r2_val = self.verifier(h_concat, attr)
+                    cname = self.cross_constraint_keys[attr_name][0]
+                    constraint_values[cname] = r2_val
+                    v = float(r2_val.detach().item())
+                    constraint_scalars[cname] = v
+                    concat_r2_log[f"concat[{attr_name}]"] = v
+
         # ── Lagrangian + scalarised primal loss ─────────────────────────
         if apply_constraints:
             base = (
@@ -742,8 +856,9 @@ class V2Trainer:
             # history file preserves full diagnostics.
             **{f"r2[{k}]": v for k, v in pair_r2_log.items()},
             **{f"r2[{k}]": v for k, v in constraint_scalars.items()
-               if k not in pair_r2_log},
+               if k not in pair_r2_log and not k.startswith("concat__")},
             **{f"hsic[{k}]": v for k, v in hsic_scalars.items()},
+            **concat_r2_log,
         }
 
     # ── epoch + eval ────────────────────────────────────────────────────
@@ -865,6 +980,22 @@ class V2Trainer:
                 n_pair_batches[key] = n_pair_batches.get(key, 0) + 1
                 total_hsic += hv
                 total_r2 += rv
+
+            # Cross-purpose validation R² on h_concat (logging only).
+            if self.cross_purpose_attrs:
+                h_concat = torch.cat([reprs[p] for p in self.purpose_names], dim=1)
+                for attr_name in self.cross_purpose_attrs:
+                    attr = batch["sensitive_attrs"][attr_name].long()
+                    if int(attr.max().item()) < 1:
+                        rv_c = 0.0
+                    elif attr_name in self.cross_high_k_attrs:
+                        r2_per_k = self.verifier.forward_per_class(h_concat, attr)
+                        rv_c = float(r2_per_k.max().item())
+                    else:
+                        rv_c = float(self.verifier(h_concat, attr).item())
+                    key = f"concat[{attr_name}]"
+                    per_pair_r2_sum[key] = per_pair_r2_sum.get(key, 0.0) + rv_c
+                    n_pair_batches[key] = n_pair_batches.get(key, 0) + 1
 
             n += 1
 
