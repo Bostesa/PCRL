@@ -1,0 +1,31 @@
+CROSSPURP_CONSTRAINT — Adult only, 3 seeds, 75 epochs
+============================================================
+per-pair R² <= 0.05 (auditor):  19/24
+   baseline R5 audit:             23/24
+   delta:                         -4 cells (cost of cross-purpose constraint)
+
+h_concat R² (test, mean over 3 seeds, target tau_concat=0.10):
+   race            mean=0.0528 max=0.0913  pass(<=0.10): 3/3
+   sex             mean=0.1466 max=0.2302  pass(<=0.10): 1/3
+   age_group       mean=0.0870 max=0.1311  pass(<=0.10): 1/3
+   The constraint is partially achievable on race; sex and age_group
+   exceed tau_concat on 2/3 seeds.
+
+Cross-purpose attack flagged above 1pp (Adult-only, 3 archs x 5 attrs = 15 cells):
+   CROSSPURP_CONSTRAINT: 12/15  (mean delta_pp > 1.0 over 3 seeds)
+   baseline R5/§5.4:     14/15  (same metric, on Adult only)
+   delta:                -2 cells (modest cross-purpose improvement)
+
+   Notable: race attack delta dropped from +6.21pp (R5/LR) to +1.06pp here.
+   XGB/race fell below 1pp threshold on average.
+
+Verdict: Outcome (b/c) — partial cross-purpose reduction at cost of per-pair
+compliance. Per-pair lost 4 cells; cross-purpose attack lost 2 cells. The
+linear-R² constraint on h_concat is too weak to defeat MLP/XGB attackers on
+sex and age_group; addressing those would need kernel-HSIC or vCLUB MI bound
+on h_concat. Race compliance is achievable at training time even with linear
+constraint.
+
+Cotter feasibility (NEW): seed 0 = 0/75 feasible, seed 1 = 46/75, seed 2 = ?.
+Mixed convergence — cross-purpose constraint is hard to keep below tau on
+some seeds and dual saturates.

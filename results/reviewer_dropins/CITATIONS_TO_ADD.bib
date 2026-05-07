@@ -1,0 +1,106 @@
+% CITATIONS_TO_ADD.bib — entries to verify against the paper's .bib and add if missing.
+%
+% Methodology: the .tex / .bib are not in this repo (Overleaf hosted). I scanned every
+% \citep{...} call inside results/reviewer_dropins/ and results/paper_critique_responses/
+% to determine which keys the drop-ins assume exist. Required-to-check items below
+% are matched against that scan.
+%
+% Drop-in keys observed (already used and assumed present in the .bib):
+%   alghamdi2022beyond, cotter2019cotter, kearns2018preventing,
+%   lechner2024impossibility, madras2018laftr, sadeghi2022affine,
+%   zhao2019inherent
+%
+% New entries Phase D introduces:
+%   nissenbaum2004privacy   (abstract — operationalises contextual integrity)
+%
+% Plus four entries from the user's required-to-check list that are not used
+% by any drop-in and so are flagged here as candidates for the .bib if they
+% aren't already cited elsewhere in the paper.
+%
+% IMPORTANT: I cannot read the actual .bib so I cannot tell which of these
+% might already be present under a different key. Verify before adding. If
+% the paper already cites any of these, do not duplicate.
+%
+% Status legend:
+%   REQUIRED  — the drop-ins / Phase D explicitly cite this key
+%   CANDIDATE — flagged in the required-to-check list, not yet cited by any drop-in
+
+% ─── REQUIRED (Phase D abstract patch cites this key) ────────────────────
+
+@inproceedings{nissenbaum2004privacy,
+  author    = {Helen Nissenbaum},
+  title     = {Privacy as Contextual Integrity},
+  booktitle = {Washington Law Review},
+  volume    = {79},
+  pages     = {119--158},
+  year      = {2004},
+}
+
+% ─── CANDIDATE: 2024-2025 references that the paper likely benefits from ─
+
+@inproceedings{holstege2025splince,
+  author    = {Floris Holstege and Shauli Ravfogel and Bram Wouters},
+  title     = {Preserving Task-Relevant Information Under Linear Concept Removal},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2025},
+  note      = {SPLINCE / SPLICE; relevant for the LEACE-warm-start motivation in \S3},
+}
+
+@inproceedings{singh2024surgery,
+  author    = {Shashwat Singh and Shauli Ravfogel and Jonathan Herzig and
+               Roee Aharoni and Ryan Cotterell and Ponnurangam Kumaraguru},
+  title     = {Representation Surgery: Theory and Practice of Affine Steering},
+  booktitle = {Proceedings of the International Conference on Machine Learning (ICML)},
+  year      = {2024},
+  note      = {Distinct from sadeghi2022affine despite the similar-sounding name;
+               relevant if the paper discusses post-hoc representation editing.},
+}
+
+@inproceedings{han2024ffb,
+  author    = {Xiaotian Han and Jianfeng Chi and Yu Chen and Qifan Wang and
+               Han Zhao and Na Zou and Xia Hu},
+  title     = {{FFB}: A Fair Fairness Benchmark for In-Processing Group Fairness Methods},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  note      = {Relevant if the paper compares against fairness baselines on tabular benchmarks.},
+}
+
+@inproceedings{mireshghallah2023secret,
+  author    = {Niloofar Mireshghallah and Hyunwoo Kim and Xuhui Zhou and
+               Yulia Tsvetkov and Maarten Sap and Reza Shokri and Yejin Choi},
+  title     = {Can {LLM}s Keep a Secret? Testing Privacy Implications of Language Models
+               via Contextual Integrity Theory},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2024},
+  note      = {Contextual-integrity grounding for the new abstract framing
+               (Phase D adds "operationalises contextual integrity").
+               Date note: paper appeared at ICLR 2024 although prior preprints are 2023.},
+}
+
+% ─── ALREADY CITED (per drop-in scan) — do NOT duplicate; verify .bib has them ─
+% These entries are already used by \citep{...} calls in the drop-ins and are
+% assumed present in the paper's .bib. If any are missing, fall back to a
+% standard Google-Scholar-style entry. Listed here for the audit log only.
+%
+%   alghamdi2022beyond     — Alghamdi et al. NeurIPS 2022 ("Beyond Adult and COMPAS").
+%   cotter2019cotter       — Cotter et al. JMLR 2019 (proxy-Lagrangian).
+%   kearns2018preventing   — Kearns/Neel/Roth/Wu ICML 2018 ("Preventing Gerrymandering").
+%   lechner2024impossibility — Lechner & Ben-David ("On the Impossibility of Fairness
+%                              Without Sensitive Attributes"; year discrepancy with
+%                              the user's "Lechner & Ben-David 2022" — verify
+%                              against the actual .bib and standardise on one year).
+%   madras2018laftr        — Madras, Creager, Pitassi, Zemel ICML 2018 (LAFTR).
+%   sadeghi2022affine      — Sadeghi/Dehdashtian/Boddeti TMLR 2022 ("On Characterizing
+%                            the Trade-off in Invariant Representation Learning").
+%                            NB: bib key name "affine" is misleading — this is the
+%                            trade-off paper, not the Singh et al. affine-steering paper.
+%                            Consider renaming the key to sadeghi2022tradeoff.
+%   zhao2019inherent       — Zhao/Dan/Aragam/Jaakkola/Gordon/Ravikumar.
+%                            User flags JMLR 2022 publication; if the .bib still has
+%                            the 2019 arXiv preprint key, update to the JMLR 2022 entry.
+
+% ─── DECLINED (not needed by any current drop-in) ───────────────────────
+%
+% Hu/Ratz/Charpentier 2023 ("Fairness in Multi-Task Learning via Wasserstein
+% Barycenters"): the user's instruction says this is "only needed if §B-related
+% drop-ins reference it"; no §B drop-in references it, so not added.

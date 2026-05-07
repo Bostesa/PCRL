@@ -1,0 +1,23 @@
+% PCRL variance-constrained retraining: cleanly-compliant before/after.
+% 7/9 cells completed; diabetes_s1 and diabetes_s2 cut by 5h hard cap.
+\begin{table}[t]
+  \centering
+  \caption{Hard variance constraint (per\_dim\_std $\geq$ 0.5 via Lagrangian)
+  + soft eff\_rank penalty applied as a 150-epoch retrain warm-started from
+  the Round 5/7 checkpoints. Cleanly compliant = R$^2 \leq 0.05$ AND
+  per-purpose health passes (per\_dim\_std\_mean $\geq$ 0.5 AND eff\_rank
+  $\geq$ 2). Two diabetes cells (seeds 1, 2) did not complete in the 5h
+  budget; their counts are reported as ``--''.}
+  \label{tab:varconstraint-comparison}
+  \begin{tabular}{lcccc}
+    \toprule
+    Dataset  & Cleanly compliant before & Cleanly compliant after & Still collapse-compliant & Lost compliance \\
+    \midrule
+    Adult    & 3/24 & 0/24 & 19/24 & 1/24 \\
+    HMDA     & 2/18 & 0/18 & 14/18 & 0/18 \\
+    Diabetes & 2/18 & 0/6 (3 cells)\,/\,-- (2 cells did not complete) & 6/6 & 0/6 \\
+    \midrule
+    \textbf{Total (retrained 7 cells)} & 7/60 & \textbf{0/40} & 39/40 & 1/40 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

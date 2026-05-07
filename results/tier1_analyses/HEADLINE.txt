@@ -1,0 +1,67 @@
+Tier-1 analyses — local (no AWS spend), 2026-05-06.
+Three deliverables, all derived from existing artifacts.
+
+Task A: Theorem 2 label-shift validation
+----------------------------------------
+20 (dataset, purpose, disallowed-attr) cells across Adult / HMDA / Diabetes.
+For every cell we computed the maximum of
+    min{P(A=a), P(A=a')} * d_TV(pi_i^a, pi_i^a')
+across pairs of attribute values, calling the maximum gamma_min.
+  gamma_min >= 0.1   :  0/20  cells
+  gamma_min >= 0.05  :  3/20  cells (all on Adult)
+  gamma_min >= 0.01  : 12/20  cells
+  raw range          :  0.0009 (Diabetes quality_research vs race)
+                       0.0804 (Adult education_assessment vs income)
+Honest finding: Theorem 2 is essentially vacuous on these benchmarks.
+The marginal label distribution barely shifts across attribute groups,
+so the bound permits arbitrarily tight invariance without predicting
+any task-accuracy floor. The leakage we see in §5 is therefore not
+the label-shift channel Theorem 2 covers; it is high-cardinality
+residual structure in X that survives a low-rank LoRA adapter.
+Outputs:
+  theorem2_label_shift.json
+  theorem2_label_shift_table.tex
+  PAPER_PASTE_thm2.md
+
+Task B: Computational cost table
+--------------------------------
+PCRL train (per seed, k=3 purposes) vs k * single-purpose LAFTR:
+  Adult     PCRL 1873±23 s   |  3*LAFTR  102±32 s
+  HMDA      PCRL 3861±72 s   |  3*LAFTR  216±30 s
+  Diabetes  PCRL 3160±73 s   |  3*LAFTR  425±299 s
+Parameter counts (PCRL backbone + 3 LoRA + 3 task heads vs 3 full encoders):
+  Adult      69,412  vs 129,804   ratio 0.53
+  HMDA       65,113  vs 119,241   ratio 0.55
+  Diabetes  115,165  vs 154,829   ratio 0.74  (rank=24 LoRA)
+Inference latency (MPS, batch=1000, mean over 5 trials):
+  Adult     PCRL 0.88 us  vs single 0.36 us
+  HMDA      PCRL 0.62 us  vs single 0.32 us
+  Diabetes  PCRL 0.61 us  vs single 0.36 us
+PCRL trades higher training cost for sub-linear params and a single
+backbone forward path; latency overhead is sub-microsecond.
+Outputs:
+  compute_cost.json
+  compute_cost_table.tex
+  PAPER_PASTE_compute.md
+
+Task C: tau sensitivity (no retraining)
+---------------------------------------
+60 cells (3 datasets x 3 seeds x 6-8 (purpose, attribute) pairs).
+                strict          DA         meanR2_onehot   meanR2_DA
+                <tau           <tau        (passing)       (passing)
+  tau=0.01      37/60          31/60       0.0037          0.0041
+  tau=0.025     52/60          49/60       0.0070          0.0085
+  tau=0.05      56/60          55/60       0.0089          0.0113
+  tau=0.1       59/60          56/60       0.0118          0.0122
+  tau=0.2       60/60          59/60       0.0136          0.0171
+Mean R^2_onehot across all 60 cells = 0.0136; mean R^2_DA = 0.0217.
+Headline 56/60 strict at tau=0.05 is robust to a 1pp tightening
+(52/60 strict at tau=0.025) but degrades sharply at tau=0.01
+because a handful of cells sit just under 0.05.
+Outputs:
+  tau_sensitivity.json
+  tau_sensitivity_table.tex
+  tau_sensitivity_plot.pdf
+  PAPER_PASTE_tau.md
+
+Failures: none.

@@ -1,0 +1,25 @@
+% PCRL HMDA — three-way comparison: R5 baseline, scalar mean-of-slack variance retrain,
+% per-dim K=64 Lagrangian variance retrain. 75 epochs, 9 (purpose, seed) units = 18 pair-seeds.
+\begin{table}[t]
+  \centering
+  \caption{HMDA three-way comparison of variance-constraint dual aggregation
+  strategies on the cleanly-compliant criterion (R$^2 \leq 0.05$ AND per-purpose
+  per\_dim\_std\_mean $\geq 0.5$ AND eff\_rank $\geq 2$). Per-dim K$=$64
+  Lagrangian uses one dual variable per representation dimension per purpose
+  (192 duals per cell). Both retraining strategies fail to escape the collapse
+  attractor; per-dim aggregation yields slightly higher effective rank but no
+  pair-seeds clear the per\_dim\_std floor.}
+  \label{tab:perdim-vs-scalar}
+  \begin{tabular}{lccc}
+    \toprule
+    Metric & R5 baseline & Scalar mean-of-slack & Per-dim K=64 \\
+    \midrule
+    Cleanly compliant pair-seeds & 2/18 & 0/18 & 0/18 \\
+    Mean per\_dim\_std\_mean & 0.402 & 0.324 & 0.324 \\
+    Mean per\_dim\_std\_min & 0.205 & 0.207 & 0.185 \\
+    Mean eff\_rank & 4.70 & 4.57 & 4.95 \\
+    Purposes with eff\_rank $\geq 2$ & 6/9 & 9/9 & 9/9 \\
+    Purposes with per\_dim\_std\_mean $\geq 0.5$ & 1/9 & 0/9 & 0/9 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

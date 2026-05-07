@@ -1,0 +1,291 @@
+{
+  "train_time": {
+    "pcrl": {
+      "adult": {
+        "per_seed_train_s": [
+          1846.7,
+          1882.2,
+          1890.8
+        ],
+        "mean_s": 1873.2333333333333,
+        "std_s": 23.37741074912557,
+        "k_purposes": 3,
+        "epochs_total": 200,
+        "source": "v2_adult_ROUND5"
+      },
+      "hmda": {
+        "per_seed_train_s": [
+          3777.6,
+          3910.4,
+          3894.1
+        ],
+        "mean_s": 3860.7,
+        "std_s": 72.42672158809903,
+        "k_purposes": 3,
+        "epochs_total": 200,
+        "source": "v2_hmda_ROUND5"
+      },
+      "diabetes": {
+        "per_seed_train_s": [
+          3115.5,
+          3244.1,
+          3119.6
+        ],
+        "mean_s": 3159.733333333333,
+        "std_s": 73.09243006860102,
+        "k_purposes": 3,
+        "epochs_total": 200,
+        "source": "v2_diabetes_ROUND7"
+      }
+    },
+    "single_encoder_baselines": {
+      "adult": {
+        "laftr": {
+          "per_seed_train_s": [
+            39.986141204833984,
+            39.866204023361206,
+            21.73361110687256
+          ],
+          "mean_s": 33.86198544502258,
+          "std_s": 10.503651474444348,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        },
+        "inlp": {
+          "per_seed_train_s": [
+            22.979039192199707,
+            21.49569082260132,
+            26.57221293449402
+          ],
+          "mean_s": 23.682314316431682,
+          "std_s": 2.6103095819091084,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        }
+      },
+      "hmda": {
+        "laftr": {
+          "per_seed_train_s": [
+            80.81565690040588,
+            73.3937816619873,
+            61.33027720451355
+          ],
+          "mean_s": 71.84657192230225,
+          "std_s": 9.834398759314448,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        },
+        "inlp": {
+          "per_seed_train_s": [
+            56.19033122062683,
+            58.65455889701843,
+            67.78385996818542
+          ],
+          "mean_s": 60.87625002861023,
+          "std_s": 6.107733689206015,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        }
+      },
+      "diabetes": {
+        "laftr": {
+          "per_seed_train_s": [
+            94.2951090335846,
+            74.73285818099976,
+            256.2288091182709
+          ],
+          "mean_s": 141.7522587776184,
+          "std_s": 99.62093579176427,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        },
+        "inlp": {
+          "per_seed_train_s": [
+            56.727049350738525,
+            57.718162298202515,
+            48.71556115150452
+          ],
+          "mean_s": 54.386924266815186,
+          "std_s": 4.936481126059072,
+          "epochs": 200,
+          "note": "Single purpose; multiply by k for fair k-encoder comparison."
+        }
+      }
+    }
+  },
+  "params": {
+    "pcrl": {
+      "adult": {
+        "backbone": 38848,
+        "lora_per_purpose": 5768,
+        "lora_total": 17304,
+        "task_heads_total": 13260,
+        "total": 69412
+      },
+      "hmda": {
+        "backbone": 35392,
+        "lora_per_purpose": 5552,
+        "lora_total": 16656,
+        "task_heads_total": 13065,
+        "total": 65113
+      },
+      "diabetes": {
+        "backbone": 47168,
+        "lora_per_purpose": 18224,
+        "lora_total": 54672,
+        "task_heads_total": 13325,
+        "total": 115165
+      }
+    },
+    "independent": {
+      "adult": {
+        "encoder_per_purpose": 38848,
+        "encoders_total": 116544,
+        "task_heads_total": 13260,
+        "total": 129804
+      },
+      "hmda": {
+        "encoder_per_purpose": 35392,
+        "encoders_total": 106176,
+        "task_heads_total": 13065,
+        "total": 119241
+      },
+      "diabetes": {
+        "encoder_per_purpose": 47168,
+        "encoders_total": 141504,
+        "task_heads_total": 13325,
+        "total": 154829
+      }
+    },
+    "ratios_pcrl_over_independent": {
+      "adult": 0.534744691997165,
+      "hmda": 0.5460621766003304,
+      "diabetes": 0.743820602083589
+    }
+  },
+  "inference_latency": {
+    "per_dataset": {
+      "adult": {
+        "device": "mps",
+        "n_samples_per_batch": 1000,
+        "n_trials": 5,
+        "input_dim": 105,
+        "pcrl": {
+          "per_sample_us_mean": 0.8813414257019758,
+          "per_sample_us_std": 0.1570266928567615,
+          "trials_us_per_sample": [
+            1.135041005909443,
+            0.7700829301029444,
+            0.8581670699641109,
+            0.9060830343514681,
+            0.7373330881819129
+          ]
+        },
+        "single_encoder": {
+          "per_sample_us_mean": 0.3576165996491909,
+          "per_sample_us_std": 0.05778313877693641,
+          "trials_us_per_sample": [
+            0.4603749839589,
+            0.3415000392124057,
+            0.332667026668787,
+            0.3291249740868807,
+            0.32441597431898117
+          ]
+        }
+      },
+      "hmda": {
+        "device": "mps",
+        "n_samples_per_batch": 1000,
+        "n_trials": 5,
+        "input_dim": 78,
+        "pcrl": {
+          "per_sample_us_mean": 0.6226246245205402,
+          "per_sample_us_std": 0.0658417323689916,
+          "trials_us_per_sample": [
+            0.7275830721482635,
+            0.645791064016521,
+            0.5749160191044211,
+            0.5942079005762935,
+            0.5706250667572021
+          ]
+        },
+        "single_encoder": {
+          "per_sample_us_mean": 0.3168584080412984,
+          "per_sample_us_std": 0.03271086658023796,
+          "trials_us_per_sample": [
+            0.3743750276044011,
+            0.30958408024162054,
+            0.30729197897017,
+            0.29624998569488525,
+            0.296790967695415
+          ]
+        }
+      },
+      "diabetes": {
+        "device": "mps",
+        "n_samples_per_batch": 1000,
+        "n_trials": 5,
+        "input_dim": 170,
+        "pcrl": {
+          "per_sample_us_mean": 0.6084584165364504,
+          "per_sample_us_std": 0.06579350711375441,
+          "trials_us_per_sample": [
+            0.7201250409707427,
+            0.5798749625682831,
+            0.6058330181986094,
+            0.5484169814735651,
+            0.5880420794710517
+          ]
+        },
+        "single_encoder": {
+          "per_sample_us_mean": 0.3604750381782651,
+          "per_sample_us_std": 0.05033890495869199,
+          "trials_us_per_sample": [
+            0.4295000107958913,
+            0.34554197918623686,
+            0.313208089210093,
+            0.3190420102328062,
+            0.3950831014662981
+          ]
+        }
+      }
+    },
+    "device": "mps",
+    "n_samples_per_batch": 1000,
+    "n_trials": 5
+  },
+  "config": {
+    "n_purposes": {
+      "adult": 3,
+      "hmda": 3,
+      "diabetes": 3
+    },
+    "lora_rank": {
+      "adult": 8,
+      "hmda": 8,
+      "diabetes": 24
+    },
+    "input_dim": {
+      "adult": 105,
+      "hmda": 78,
+      "diabetes": 170
+    },
+    "task_output_dims": {
+      "adult": [
+        2,
+        6,
+        4
+      ],
+      "hmda": [
+        2,
+        5,
+        2
+      ],
+      "diabetes": [
+        9,
+        2,
+        2
+      ]
+    }
+  }
+}

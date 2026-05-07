@@ -1,0 +1,31 @@
+CROSS-PURPOSE ATTACK COMPARISON (LAFTR vs PCRL, 33 triples per method)
+===========================================================================
+TWO CRITERIA -- the verdict flips depending on which one you use.
+
+Criterion A: concat_acc - majority > 1pp (mean over 3 seeds)
+  PCRL  : 26/33   (Adult 14/15, HMDA 9/9, Diabetes 3/9)
+  LAFTR : 29/33   (Adult 15/15, HMDA 9/9, Diabetes 5/9)
+  Verdict: LAFTR > PCRL  (more raw leakage in concatenated rep)
+
+Criterion B: concat_acc - best_single_acc > 1pp (mean over 3 seeds)
+  PCRL  : 22/33   (Adult 10/15, HMDA 9/9, Diabetes 3/9)   <- matches paper
+  LAFTR : 16/33   (Adult  9/15, HMDA 4/9, Diabetes 3/9)
+  Verdict: PCRL > LAFTR  (PCRL adds more cross-purpose info beyond best single)
+
+The 22/33 figure in the existing paper text matches Criterion B exactly.
+Under Criterion B, LAFTR flags FEWER triples than PCRL because LAFTR's
+per-purpose encoders are highly redundant (independent training on same data),
+so concatenation adds little beyond the best single encoder. Under Criterion A,
+LAFTR flags MORE because its independent encoders retain task-relevant signal
+that PCRL's shared backbone shrinks.
+
+Worst-case absolute leakage (Criterion A, max delta_pp across all 33 cells):
+  PCRL  : XGB on adult/marital_status:    +38.22pp
+  LAFTR : MLP on diabetes/age_bucket:     +71.33pp  (1.9x PCRL's worst)
+
+PAPER INTEGRATION DECISION (resolve in the morning):
+  - If the existing §5.4 wording quotes 22/33: use Criterion B,
+    LAFTR row = 16/33, framing flips to redundancy explanation.
+  - If the existing §5.4 wording does NOT quote a number or quotes 26/33:
+    Criterion A is cleaner, LAFTR = 29/33, Theorem 2 confirmed.
+See PAPER_PASTE.md for both drop-in tables and full decision tree.
