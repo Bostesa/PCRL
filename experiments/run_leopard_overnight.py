@@ -37,8 +37,8 @@ import torch
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-LEOPARD_PATH = os.environ.get("LEOPARD_PATH", "/home/ubuntu/non-LEOPARD")
-if LEOPARD_PATH not in sys.path:
+LEOPARD_PATH = os.environ.get("LEOPARD_PATH")
+if LEOPARD_PATH and LEOPARD_PATH not in sys.path:
     sys.path.insert(0, LEOPARD_PATH)
 
 

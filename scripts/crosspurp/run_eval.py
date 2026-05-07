@@ -13,13 +13,7 @@ import warnings
 warnings.filterwarnings("ignore")
 from torch.utils.data import DataLoader
 
-# Resolve repo root (works on EC2 ubuntu/ec2-user and locally)
-for candidate in ["/home/ubuntu/PCRL", "/home/ec2-user/PCRL"]:
-    if Path(candidate).exists():
-        ROOT = Path(candidate)
-        break
-else:
-    ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pcrl.data.adult import AdultDataset, get_adult_purposes  # noqa: E402
@@ -40,20 +34,18 @@ def load_encoder(ckpt_path: Path, input_dim: int, n_purposes: int) -> torch.nn.M
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=64, dropout=0.3,
     )
     encoder = PerPurposeLoRAEncoder(
-        backbone, num_purposes=n_purposes, repr_dim=64,
+        backbone, n_purposes=n_purposes,
         rank=8, alpha=16.0, dropout=0.0,
     )
-    payload = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    if "encoder_state" in payload:
-        sd = payload["encoder_state"]
-    elif "model_state" in payload:
-        sd = payload["model_state"]
-    else:
-        sd = payload
-    try:
-        encoder.load_state_dict(sd, strict=False)
-    except Exception as e:
-        print(f"  load_state_dict warn: {e}")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    encoder.backbone.load_state_dict(ckpt["backbone"])
+    encoder.adapters.load_state_dict(ckpt["lora_adapters"])
+    enc_buf = ckpt.get("encoder_buffers", {}) or {}
+    for p_idx in range(n_purposes):
+        P_key = f"leace_P_p{p_idx}"
+        mu_key = f"leace_mu_p{p_idx}"
+        if P_key in enc_buf and mu_key in enc_buf:
+            encoder.set_leace_projection(p_idx, enc_buf[P_key], enc_buf[mu_key])
     encoder.eval()
     return encoder
 
@@ -84,9 +76,14 @@ def linear_r2_test(H_tr, y_tr, H_te, y_te, num_classes):
     Z_tr_c = y_tr_oh - y_tr_oh.mean(0, keepdims=True)
     Z_te_c = y_te_oh - y_te_oh.mean(0, keepdims=True)
     d = H_tr.shape[1]
-    gram = H_tr_c.T @ H_tr_c + 1e-6 * np.eye(d, dtype=np.float32)
+    # Bump reg to handle rank-deficient h_concat (cross-purpose constraint
+    # may collapse some dims). Fall back to lstsq if still singular.
+    gram = H_tr_c.T @ H_tr_c + 1e-4 * np.eye(d, dtype=np.float32)
     rhs = H_tr_c.T @ Z_tr_c
-    W = np.linalg.solve(gram, rhs)
+    try:
+        W = np.linalg.solve(gram, rhs)
+    except np.linalg.LinAlgError:
+        W, *_ = np.linalg.lstsq(gram, rhs, rcond=None)
     Z_pred = H_te_c @ W
     ss_res = ((Z_te_c - Z_pred) ** 2).sum()
     ss_tot = (Z_te_c ** 2).sum()

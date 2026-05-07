@@ -5,12 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-for candidate in ["/home/ubuntu/PCRL", "/home/ec2-user/PCRL"]:
-    if Path(candidate).exists():
-        ROOT = Path(candidate)
-        break
-else:
-    ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 RES = ROOT / "results" / "v2_adult_CROSSPURP" / "results.json"
 if not RES.exists():

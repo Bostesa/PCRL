@@ -223,7 +223,7 @@ def build_latex_table(summary: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-# ── Paper-paste paragraph (Dr. Yus's flowing-prose voice) ───────────────────
+# ── Paper-paste paragraph ────────────────────────────────────────────────
 
 
 def build_paper_paste(summary: dict) -> str:
