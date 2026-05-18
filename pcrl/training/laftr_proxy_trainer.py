@@ -413,6 +413,7 @@ class LAFTRProxyTrainer:
 
     # ── training infrastructure (ported from V2Trainer) ──────────────────
 
+    @torch.no_grad()
     def leace_warm_start(self, train_loader: DataLoader) -> dict[str, dict[str, float]]:
         """Initialise each purpose's last-Linear LoRA from a closed-form LEACE
         eraser on (backbone_features, concatenated-one-hot disallowed_attrs).

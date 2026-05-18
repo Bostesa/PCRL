@@ -337,7 +337,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
 
     # Task accuracies via the trained heads
     val_metrics = trainer.evaluate(test_loader)
-    task_accs = {k: round(float(v), 6) for k, v in val_metrics.task_accuracy.items()}
+    task_accs = {k: round(float(v), 6) for k, v in val_metrics["task_accuracy"].items()}
 
     # Health per purpose
     per_purpose_health: dict = {}
