@@ -130,3 +130,14 @@ def test_dual_step_increases_lambda_when_constraint_violated(toy_purposes, toy_l
                 f"constraint {n} violated ({scalar:.3f} > {trainer.config.r2_threshold}) "
                 f"but λ stayed at {c.lambda_value}"
             )
+
+
+def test_two_epoch_smoke_runs_on_cpu(toy_purposes, toy_loaders, tmp_path):
+    train, val = toy_loaders
+    trainer = _build_trainer(toy_purposes, leace_init=False)
+    trainer.config.epochs = 2
+    trainer.config.warmup_epochs = 0
+    trainer.config.checkpoint_dir = str(tmp_path / "ckpt")
+    state = trainer.train(train_loader=train, val_loader=val)
+    assert state["epoch"] == 1  # 0-indexed, 2 epochs total
+    assert (tmp_path / "ckpt" / "final.pt").exists()
