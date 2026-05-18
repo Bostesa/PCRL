@@ -112,3 +112,21 @@ def test_primal_loss_formula(toy_purposes, toy_loaders, monkeypatch):
         for n in stats["constraint_scalars"]
     )
     assert abs(stats["primal_loss"] - (base + lagrangian)) < 1e-4
+
+
+def test_dual_step_increases_lambda_when_constraint_violated(toy_purposes, toy_loaders):
+    train, _ = toy_loaders
+    # Use lambda_min=0 so the test can observe upward motion from a low base.
+    trainer = _build_trainer(toy_purposes, lambda_min=0.0)
+    for c in trainer.proxy.constraints.values():
+        c.lambda_value = 1.0
+    batch = trainer._to_device(next(iter(train)))
+    stats = trainer._primal_step_components(batch, apply_constraints=True)
+    # Confirm at least one pair was violated and that pair's λ went up.
+    for n, scalar in stats["constraint_scalars"].items():
+        c = trainer.proxy.constraints[n]
+        if scalar > trainer.config.r2_threshold:
+            assert c.lambda_value > 1.0, (
+                f"constraint {n} violated ({scalar:.3f} > {trainer.config.r2_threshold}) "
+                f"but λ stayed at {c.lambda_value}"
+            )
