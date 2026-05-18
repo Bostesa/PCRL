@@ -63,3 +63,30 @@ def test_discriminator_registered_per_pair(toy_purposes):
         layers = list(d.net.children())
         assert isinstance(layers[0], torch.nn.Linear)
         assert layers[0].in_features == 64
+
+
+def test_discriminator_step_detaches_encoder(toy_purposes, toy_loaders):
+    train, _ = toy_loaders
+    trainer = _build_trainer(toy_purposes)
+    # Snapshot LoRA adapter weights before the disc step.
+    before = {
+        n: p.detach().clone() for n, p in trainer.encoder.adapters.named_parameters()
+    }
+    batch = next(iter(train))
+    batch = {
+        "features": batch["features"],
+        "task_labels": {k: v for k, v in batch["task_labels"].items()},
+        "sensitive_attrs": {k: v for k, v in batch["sensitive_attrs"].items()},
+    }
+    loss = trainer._discriminator_step(batch)
+    assert loss > 0  # discriminator should produce a positive CE
+    for n, p in trainer.encoder.adapters.named_parameters():
+        assert torch.allclose(before[n], p), f"LoRA param {n} moved during disc step"
+    # Discriminator weights, by contrast, must move.
+    moved = False
+    for d in trainer.discriminators.values():
+        for p in d.parameters():
+            if p.grad is not None and p.grad.abs().sum() > 0:
+                moved = True
+                break
+    assert moved, "discriminator parameters had no gradient after step"

@@ -223,3 +223,37 @@ class LAFTRProxyTrainer:
 
     def _purpose_idx(self, purpose_name: str) -> int:
         return self.purpose_configs[purpose_name]["purpose_idx"]
+
+    def _to_device(self, batch: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "features": batch["features"].to(self.device),
+            "task_labels": {k: v.to(self.device) for k, v in batch["task_labels"].items()},
+            "sensitive_attrs": {k: v.to(self.device) for k, v in batch["sensitive_attrs"].items()},
+        }
+
+    def _discriminator_step(self, batch: dict[str, Any]) -> float:
+        """Phase 1: minimise Σ_{p,a} CE(disc_{p,a}(z_p.detach()), attr_a).
+
+        Detaching the representation means gradients do NOT propagate into
+        the encoder; only discriminator parameters move.
+        """
+        self.encoder.eval()  # no BN stat drift in this forward
+        with torch.no_grad():
+            reprs = {
+                p: self.encoder(batch["features"], self._purpose_idx(p))
+                for p in self.purpose_names
+            }
+        self.encoder.train()
+        self._freeze_backbone_bn()
+
+        self.disc_optimizer.zero_grad(set_to_none=True)
+        total = batch["features"].new_zeros(())
+        for purpose_name, attr_name in self.pair_keys:
+            z = reprs[purpose_name]
+            attr = batch["sensitive_attrs"][attr_name].long()
+            pkey = _pair_key(purpose_name, attr_name)
+            disc = self.discriminators[pkey]
+            total = total + F.cross_entropy(disc(z), attr)
+        total.backward()
+        self.disc_optimizer.step()
+        return float(total.detach().item())
