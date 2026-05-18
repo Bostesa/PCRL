@@ -231,6 +231,137 @@ class LAFTRProxyTrainer:
             "sensitive_attrs": {k: v.to(self.device) for k, v in batch["sensitive_attrs"].items()},
         }
 
+    def _primal_step_components(
+        self, batch: dict[str, Any], apply_constraints: bool = True,
+    ) -> dict[str, Any]:
+        """One primal+dual step. Returns scalar stats including a verifiable
+        decomposition of the primal loss (used by tests + logs).
+        """
+        self.encoder.train()
+        self._freeze_backbone_bn()
+        self.task_heads.train()
+        for d in self.discriminators.values():
+            d.train()
+
+        reprs: dict[str, torch.Tensor] = {}
+        for purpose_name in self.purpose_names:
+            reprs[purpose_name] = self.encoder(
+                batch["features"], self._purpose_idx(purpose_name),
+            )
+
+        # L_task
+        L_task = torch.tensor(0.0, device=self.device)
+        for purpose_name, z in reprs.items():
+            task_name = self.purpose_configs[purpose_name]["allowed_tasks"][0]
+            if task_name not in batch["task_labels"]:
+                continue
+            head = self.task_heads[purpose_name]
+            preds = head(z)
+            if isinstance(preds, dict):
+                preds = preds[task_name]
+            targets = batch["task_labels"][task_name]
+            L_task = L_task + task_loss(
+                preds, targets, self.purpose_configs[purpose_name]["task_type"],
+            )
+
+        # L_vicreg
+        L_vicreg = torch.tensor(0.0, device=self.device)
+        for z in reprs.values():
+            L_vicreg = L_vicreg + vicreg_loss(
+                z, lambda_var=self.config.vicreg_lambda_var,
+                lambda_cov=self.config.vicreg_lambda_cov,
+                gamma=self.config.vicreg_gamma,
+            )
+
+        # L_adv (discriminator CE, gradients flow into encoder via z)
+        # Freeze discriminator params for this backward so disc weights don't
+        # accumulate phantom gradients.
+        for p_ in self.discriminators.parameters():
+            p_.requires_grad_(False)
+        L_adv = torch.tensor(0.0, device=self.device)
+        for purpose_name, attr_name in self.pair_keys:
+            z = reprs[purpose_name]
+            attr = batch["sensitive_attrs"][attr_name].long()
+            pkey = _pair_key(purpose_name, attr_name)
+            disc = self.discriminators[pkey]
+            L_adv = L_adv + F.cross_entropy(disc(z), attr)
+        for p_ in self.discriminators.parameters():
+            p_.requires_grad_(True)
+
+        # Per-pair linear-R² constraint values (mirrors V2Trainer l.716–770)
+        constraint_values: dict[str, torch.Tensor] = {}
+        constraint_scalars: dict[str, float] = {}
+        pair_r2_log: dict[str, float] = {}
+        for purpose_name, attr_name in self.pair_keys:
+            z = reprs[purpose_name]
+            attr = batch["sensitive_attrs"][attr_name].long()
+            pair = (purpose_name, attr_name)
+            pkey = _pair_key(purpose_name, attr_name)
+            if int(attr.max().item()) < 1:
+                zero = torch.tensor(0.0, device=self.device)
+                for cname in self.pair_constraint_keys[pair]:
+                    constraint_values[cname] = zero
+                    constraint_scalars[cname] = 0.0
+                pair_r2_log[pkey] = 0.0
+                continue
+            if pair in self.high_k_pairs:
+                r2_per_k = self.verifier.forward_per_class(z, attr)
+                names = self.pair_constraint_keys[pair]
+                K_total = len(names)
+                if r2_per_k.numel() < K_total:
+                    pad = torch.zeros(K_total - r2_per_k.numel(), device=self.device)
+                    r2_per_k = torch.cat([r2_per_k, pad])
+                pair_max = float("-inf")
+                for k, cname in enumerate(names):
+                    rk = r2_per_k[k]
+                    constraint_values[cname] = rk
+                    val = float(rk.detach().item())
+                    constraint_scalars[cname] = val
+                    pair_max = max(pair_max, val)
+                pair_r2_log[pkey] = pair_max
+            else:
+                r2_val = self.verifier(z, attr)
+                cname = self.pair_constraint_keys[pair][0]
+                constraint_values[cname] = r2_val
+                constraint_scalars[cname] = float(r2_val.detach().item())
+                pair_r2_log[pkey] = constraint_scalars[cname]
+
+        # Snapshot λ values BEFORE the dual_step mutates them so the returned
+        # stats let a caller reconstruct the exact primal_loss they got back.
+        pre_dual_lambdas = {n: c.lambda_value for n, c in self.proxy.constraints.items()}
+
+        if apply_constraints:
+            base = (
+                L_task
+                + self.config.lambda_vicreg * L_vicreg
+                - self.config.lambda_adv * L_adv
+            )
+            primal_loss = self.proxy.lagrangian_loss(base, constraint_values)
+        else:
+            primal_loss = L_task + self.config.lambda_vicreg * L_vicreg
+
+        self.primal_optimizer.zero_grad()
+        primal_loss.backward()
+        if self.config.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(
+                [p for p in self.primal_optimizer.param_groups[0]["params"]],
+                max_norm=self.config.grad_clip,
+            )
+        self.primal_optimizer.step()
+
+        if apply_constraints:
+            self.proxy.dual_step(constraint_scalars)
+
+        return {
+            "primal_loss": float(primal_loss.detach().item()),
+            "L_task": float(L_task.detach().item()),
+            "L_vicreg": float(L_vicreg.detach().item()),
+            "L_adv": float(L_adv.detach().item()),
+            "constraint_scalars": constraint_scalars,
+            "pre_dual_lambdas": pre_dual_lambdas,
+            "pair_r2": pair_r2_log,
+        }
+
     def _discriminator_step(self, batch: dict[str, Any]) -> float:
         """Phase 1: minimise Σ_{p,a} CE(disc_{p,a}(z_p.detach()), attr_a).
 

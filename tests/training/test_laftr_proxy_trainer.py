@@ -90,3 +90,25 @@ def test_discriminator_step_detaches_encoder(toy_purposes, toy_loaders):
                 moved = True
                 break
     assert moved, "discriminator parameters had no gradient after step"
+
+
+def test_primal_loss_formula(toy_purposes, toy_loaders, monkeypatch):
+    """The primal loss must equal:
+        L_task + λ_vicreg·L_vicreg − λ_adv·Σ CE(disc, attr) + Σ λ_pa·(R² − τ)
+    Reconstruct using ``stats["pre_dual_lambdas"]`` — primal_loss was computed
+    with those values; ``trainer.proxy.constraints[n].lambda_value`` reflects
+    the *post* dual-step state.
+    """
+    train, _ = toy_loaders
+    trainer = _build_trainer(toy_purposes, lambda_adv=0.1)
+    # Capture the loss the trainer constructs.
+    batch = trainer._to_device(next(iter(train)))
+    stats = trainer._primal_step_components(batch)
+    # Expected reconstruction
+    base = stats["L_task"] + trainer.config.lambda_vicreg * stats["L_vicreg"] \
+           - trainer.config.lambda_adv * stats["L_adv"]
+    lagrangian = sum(
+        stats["pre_dual_lambdas"][n] * (stats["constraint_scalars"][n] - trainer.config.r2_threshold)
+        for n in stats["constraint_scalars"]
+    )
+    assert abs(stats["primal_loss"] - (base + lagrangian)) < 1e-4
