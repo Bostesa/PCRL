@@ -109,13 +109,26 @@ def compute_laftr_hard_r2_metrics(per_seed_file: dict) -> dict[str, Any]:
 
 def aggregate_across_datasets(
     per_dataset_blocks: dict[str, dict | None],
+    task_acc_dataset_mask: set[str] | None = None,
 ) -> dict[str, Any]:
     """Compute the "Aggregated (N cells)" column.
 
-    Weighting: each cell contributes equally to strict-pass and mean-R²-on-passing.
-    Task accuracy is averaged across datasets weighted by ``n_cells_per_seed *
-    n_seeds`` (= total cells), which is equivalent to weighting equally per cell
-    if each (purpose, seed) contributes one task acc per cell-block.
+    Strict-pass and mean-R²-on-passing aggregate over EVERY dataset that has
+    a populated block — the strict-pass denominator is the full grid count
+    regardless of task-acc availability.
+
+    Task accuracy is more subtle. The caller may pass an explicit
+    ``task_acc_dataset_mask`` (a set of dataset names) to restrict which
+    datasets contribute to the weighted task-acc average — used by
+    ``build_rows`` to enforce apples-to-apples cross-method aggregation
+    (only datasets where every method reports a comparable task-acc
+    contribute, see ``_common_task_acc_datasets``). With no mask, task-acc
+    aggregates over every populated dataset that has a non-null, non-NaN
+    task-acc value (legacy behavior).
+
+    The returned dict carries ``task_acc_n_cells`` so the renderer can show
+    ``"79.3% (60 cells)"`` vs ``"67.7% (42 cells)"`` and reviewers see the
+    denominator behind each aggregated task-acc number.
     """
     total_cells = 0
     total_passing = 0
@@ -123,6 +136,7 @@ def aggregate_across_datasets(
     n_summed_r2 = 0
     weighted_acc_sum = 0.0
     weighted_acc_n = 0
+    task_acc_n_cells = 0  # number of cells contributing to weighted task-acc
 
     for ds in DATASETS:
         block = per_dataset_blocks.get(ds)
@@ -139,9 +153,14 @@ def aggregate_across_datasets(
         if block.get("mean_r2_on_passing") is not None and n_pass > 0:
             sum_r2_passing += block["mean_r2_on_passing"] * n_pass
             n_summed_r2 += n_pass
+        # Task-acc contribution is gated by both (a) the cross-method mask
+        # (if provided) and (b) the block having a real task-acc value.
+        if task_acc_dataset_mask is not None and ds not in task_acc_dataset_mask:
+            continue
         if block.get("task_acc") is not None and not _is_nan(block["task_acc"]):
             weighted_acc_sum += block["task_acc"] * n_cells
             weighted_acc_n += n_cells
+            task_acc_n_cells += n_cells
 
     if total_cells == 0:
         return {
@@ -150,6 +169,7 @@ def aggregate_across_datasets(
             "task_acc": float("nan"),
             "n_cells_total": 0,
             "n_passing": 0,
+            "task_acc_n_cells": 0,
         }
     return {
         "strict_pass_rate": total_passing / total_cells,
@@ -157,7 +177,29 @@ def aggregate_across_datasets(
         "task_acc": weighted_acc_sum / weighted_acc_n if weighted_acc_n > 0 else float("nan"),
         "n_cells_total": total_cells,
         "n_passing": total_passing,
+        "task_acc_n_cells": task_acc_n_cells,
     }
+
+
+def _common_task_acc_datasets(
+    rows_per_dataset: list[tuple[str, dict[str, dict | None]]],
+) -> set[str]:
+    """Return the set of datasets where EVERY method reports a non-null,
+    non-NaN task_acc.
+
+    A row contributes a "miss" for a dataset if its block is None, missing
+    a task_acc key, or has task_acc=None / NaN. Any miss disqualifies that
+    dataset from the common mask — this is the strict apples-to-apples
+    interpretation (a row with no LAFTR-hard-R² data yet rules out every
+    dataset until results land, which is the desired behavior).
+    """
+    common = set(DATASETS)
+    for _, per_ds in rows_per_dataset:
+        for ds in DATASETS:
+            b = per_ds.get(ds)
+            if b is None or b.get("task_acc") is None or _is_nan(b.get("task_acc")):
+                common.discard(ds)
+    return common
 
 
 def _is_nan(x: Any) -> bool:
@@ -216,23 +258,100 @@ def _fmt_acc(b: dict | None, latex: bool = False) -> str:
     return f"{v * 100:.1f}\\%" if latex else f"{v * 100:.1f}%"
 
 
+def _fmt_acc_agg(aggr: dict | None, latex: bool = False) -> str:
+    """Aggregated task-acc cell: always shows the (N cells) denominator.
+
+    When the mask reduces the denominator below the strict-pass cell count
+    (e.g. 60 → 42 because LAFTR-Q HMDA task-acc is null), the per-cell
+    count makes the asymmetry visible inline rather than hidden behind a
+    matching percentage.
+    """
+    if aggr is None:
+        return "—"
+    v = aggr.get("task_acc")
+    n = aggr.get("task_acc_n_cells", 0)
+    if v is None or _is_nan(v) or n == 0:
+        return "—"
+    pct = "\\%" if latex else "%"
+    return f"{v * 100:.1f}{pct} ({n} cells)"
+
+
+def _excluded_task_acc_summary(
+    rows: list[tuple[str, str, dict[str, dict | None], dict]],
+    common_ds: set[str],
+) -> list[tuple[str, list[str]]]:
+    """For each dataset excluded from the cross-method task-acc mask, list the
+    method short-labels that caused the exclusion (those reporting null task-acc).
+    Returned list is sorted in canonical DATASETS order.
+    """
+    excluded: list[tuple[str, list[str]]] = []
+    for ds in DATASETS:
+        if ds in common_ds:
+            continue
+        missing: list[str] = []
+        for _, short, per_ds, _ in rows:
+            b = per_ds.get(ds)
+            if b is None or b.get("task_acc") is None or _is_nan(b.get("task_acc")):
+                missing.append(short)
+        excluded.append((ds, missing))
+    return excluded
+
+
+def _render_caption(
+    excluded: list[tuple[str, list[str]]],
+) -> str:
+    """Build the caption, appending an auto-generated \\footnote when the
+    task-acc cross-method mask drops any cells."""
+    base = (
+        r"LAFTR hard-R² rebuttal pilot. "
+        r"Three methods on the same 60-cell grid (Adult 24 + HMDA 18 + Diabetes 18, "
+        r"3 seeds each). "
+        r"\textit{Strict pass}: fraction of (purpose, attribute, seed) cells with "
+        r"linear $R^2(h_p, A) < 0.05$. "
+        r"\textit{Mean $R^2$ on passing}: mean linear $R^2$ over only the passing cells "
+        r"(depth-of-compliance; ``—'' when no cells pass). "
+        r"\textit{Task acc}: arithmetic mean over (purpose, seed); aggregated task-acc is "
+        r"averaged over cells where all three methods report comparable values."
+    )
+    if not excluded:
+        return base
+    parts: list[str] = []
+    for ds, missing in excluded:
+        ds_pretty = ds.upper() if ds == "hmda" else ds.title()
+        parts.append(
+            f"{ds_pretty} cells excluded "
+            f"({', '.join(missing)} report no comparable task acc)"
+        )
+    footnote_body = (
+        r"Task accuracy is averaged over cells where all three methods report comparable values; "
+        + "; ".join(parts)
+        + r". Per-cell rationale in \texttt{scripts/paper\_baseline\_numbers.json}."
+    )
+    return base + r" \protect\footnote{" + footnote_body + r"}"
+
+
 def render_tex(
     rows: list[tuple[str, str, dict[str, dict | None], dict]],
+    common_ds: set[str] | None = None,
 ) -> str:
-    """3-row LaTeX table. Each tuple: (method_label, method_short, per_dataset, aggregated)."""
+    """3-row LaTeX table. Each tuple: (method_label, method_short, per_dataset, aggregated).
+
+    If ``common_ds`` is provided and a proper subset of DATASETS, the caption gets a
+    \\footnote auto-explaining which dataset(s) are excluded from the aggregated
+    task-acc column and which method(s) caused each exclusion.
+    """
     lines = []
     lines.append(r"% Auto-generated by scripts/aggregate_laftr_hard_r2.py — do not edit by hand.")
     lines.append(r"\begin{table}[t]")
     lines.append(r"\centering")
     lines.append(r"\small")
-    lines.append(r"\caption{LAFTR hard-R² rebuttal pilot. " +
-                 r"Three methods on the same 60-cell grid (Adult 24 + HMDA 18 + Diabetes 18, " +
-                 r"3 seeds each). " +
-                 r"\textit{Strict pass}: fraction of (purpose, attribute, seed) cells with " +
-                 r"linear $R^2(h_p, A) < 0.05$. " +
-                 r"\textit{Mean $R^2$ on passing}: mean linear $R^2$ over only the passing cells " +
-                 r"(depth-of-compliance; ``—'' when no cells pass). " +
-                 r"\textit{Task acc}: arithmetic mean over (purpose, seed).}")
+    # When common_ds is None, callers haven't computed the mask — treat as
+    # full coverage (no footnote). When it's an empty set, the mask is
+    # legitimately empty (one method has zero data) and every dataset is
+    # excluded — distinct from None and should fire the footnote.
+    effective_common_ds = set(DATASETS) if common_ds is None else common_ds
+    excluded = _excluded_task_acc_summary(rows, effective_common_ds)
+    lines.append(r"\caption{" + _render_caption(excluded) + "}")
     lines.append(r"\label{tab:laftr_hard_r2}")
     lines.append(r"\begin{tabular}{l l c c c c}")
     lines.append(r"\toprule")
@@ -259,13 +378,13 @@ def render_tex(
             rf"{_fmt_r2(per_ds.get('diabetes'))} & "
             rf"{_fmt_r2(aggr)} \\"
         )
-        # Task acc
+        # Task acc — aggregated cell uses _fmt_acc_agg to show (N cells)
         lines.append(
             r" & Task acc & "
             rf"{_fmt_acc(per_ds.get('adult'), latex=True)} & "
             rf"{_fmt_acc(per_ds.get('hmda'), latex=True)} & "
             rf"{_fmt_acc(per_ds.get('diabetes'), latex=True)} & "
-            rf"{_fmt_acc(aggr, latex=True)} \\"
+            rf"{_fmt_acc_agg(aggr, latex=True)} \\"
         )
         lines.append(r"\midrule")
     # Drop the trailing midrule, replace with bottomrule
@@ -280,8 +399,15 @@ def render_tex(
 
 def render_headline(
     rows: list[tuple[str, str, dict[str, dict | None], dict]],
+    common_ds: set[str] | None = None,
 ) -> str:
-    """One-line summary across all three methods."""
+    """Plain-text summary: strict-pass table + aggregated task-acc mini-block.
+
+    The aggregated task-acc line shows ``"acc% (N cells)"`` so the
+    cross-method ledger is visible. If ``common_ds`` is a proper subset of
+    DATASETS, a one-line note explains which datasets are excluded and
+    why.
+    """
     parts: list[str] = []
     parts.append("LAFTR HARD-R² REBUTTAL PILOT — strict pass (R²<0.05) / depth / task acc")
     parts.append("=" * 78)
@@ -297,8 +423,21 @@ def render_headline(
             f"{_fmt_pass_rate_plain(aggr):18s}"
         )
     parts.append("")
+    parts.append("  Aggregated task acc (apples-to-apples: common cells across all three methods):")
+    for _, method_short, _, aggr in rows:
+        parts.append(f"    {method_short:38s} {_fmt_acc_agg(aggr, latex=False)}")
+    parts.append("")
     parts.append("Strict pass: linear R²(h_p, A) < 0.05; format \"rate (n_pass/n_cells)\"")
-    parts.append("Depth-of-compliance + task acc are in comparison.json / comparison_table.tex")
+    parts.append("Depth-of-compliance + per-dataset task acc are in comparison.json / comparison_table.tex")
+    if common_ds is not None and common_ds != set(DATASETS):
+        excluded = _excluded_task_acc_summary(rows, common_ds)
+        if excluded:
+            for ds, missing in excluded:
+                parts.append(
+                    f"Note: aggregated task acc excludes {ds.upper() if ds == 'hmda' else ds.title()} "
+                    f"because {', '.join(missing)} report no comparable task acc value "
+                    f"(see scripts/paper_baseline_numbers.json)."
+                )
     return "\n".join(parts) + "\n"
 
 
@@ -309,37 +448,59 @@ def render_headline(
 
 def build_rows(
     root: Path,
-) -> tuple[list[tuple[str, str, dict[str, dict | None], dict]], dict[str, Any]]:
-    """Return (rows_for_renderers, payload_for_json)."""
+) -> tuple[list[tuple[str, str, dict[str, dict | None], dict]], dict[str, Any], set[str]]:
+    """Return (rows_for_renderers, payload_for_json, common_task_acc_datasets).
+
+    Aggregates each method's task-acc only over the cross-method common
+    dataset mask (the set of datasets where every method reports a
+    comparable, non-null task-acc value). This produces an apples-to-apples
+    aggregated task-acc and prevents silent denominator drift across
+    methods.
+    """
     baselines = load_frozen_baselines(root)
     methods = baselines["methods"]
 
-    rows: list[tuple[str, str, dict[str, dict | None], dict]] = []
-
-    # Row 1: PCRL (frozen)
+    # Per-dataset blocks for each method.
     pcrl_per = methods["PCRL_paper"]["per_dataset"]
-    pcrl_aggr = aggregate_across_datasets(pcrl_per)
-    rows.append((methods["PCRL_paper"]["label"], methods["PCRL_paper"]["short_label"],
-                 pcrl_per, pcrl_aggr))
-
-    # Row 2: LAFTR-Q (frozen; HMDA + Diabetes likely null on disk)
     laftr_q_per = methods["LAFTR_appendixQ"]["per_dataset"]
-    laftr_q_aggr = aggregate_across_datasets(laftr_q_per)
-    rows.append((methods["LAFTR_appendixQ"]["label"], methods["LAFTR_appendixQ"]["short_label"],
-                 laftr_q_per, laftr_q_aggr))
-
-    # Row 3: LAFTR-hard-R² (live; None per dataset until pilot lands)
     laftr_hr2_per: dict[str, dict | None] = {}
     for ds in DATASETS:
         f = load_laftr_hard_r2_per_seed(root, ds)
         laftr_hr2_per[ds] = compute_laftr_hard_r2_metrics(f) if f is not None else None
-    laftr_hr2_aggr = aggregate_across_datasets(laftr_hr2_per)
-    rows.append(("LAFTR-hard-R² (this pilot, lambda_adv=1.0 + proxy-Lagrangian)",
-                 "LAFTR-hard-R²", laftr_hr2_per, laftr_hr2_aggr))
+
+    # Cross-method common-cell mask for task-acc aggregation.
+    common_task_acc_ds = _common_task_acc_datasets([
+        ("PCRL", pcrl_per),
+        ("LAFTR-Q", laftr_q_per),
+        ("LAFTR-hard-R²", laftr_hr2_per),
+    ])
+
+    # Aggregate each method with the same mask — apples-to-apples.
+    pcrl_aggr = aggregate_across_datasets(pcrl_per, task_acc_dataset_mask=common_task_acc_ds)
+    laftr_q_aggr = aggregate_across_datasets(laftr_q_per, task_acc_dataset_mask=common_task_acc_ds)
+    laftr_hr2_aggr = aggregate_across_datasets(laftr_hr2_per, task_acc_dataset_mask=common_task_acc_ds)
+
+    rows: list[tuple[str, str, dict[str, dict | None], dict]] = [
+        (methods["PCRL_paper"]["label"], methods["PCRL_paper"]["short_label"],
+         pcrl_per, pcrl_aggr),
+        (methods["LAFTR_appendixQ"]["label"], methods["LAFTR_appendixQ"]["short_label"],
+         laftr_q_per, laftr_q_aggr),
+        ("LAFTR-hard-R² (this pilot, lambda_adv=1.0 + proxy-Lagrangian)",
+         "LAFTR-hard-R²", laftr_hr2_per, laftr_hr2_aggr),
+    ]
+
+    excluded = _excluded_task_acc_summary(rows, common_task_acc_ds)
+    task_acc_asymmetric = bool(excluded)
 
     payload = {
         "_source": baselines["_source"],
         "_strict_pass_threshold": TAU,
+        "task_acc_common_datasets": sorted(common_task_acc_ds),
+        "task_acc_asymmetric": task_acc_asymmetric,
+        "task_acc_excluded_datasets": [
+            {"dataset": ds, "missing_in_methods": missing}
+            for ds, missing in excluded
+        ],
         "rows": [
             {
                 "method": label,
@@ -350,7 +511,7 @@ def build_rows(
             for label, short, per, aggr in rows
         ],
     }
-    return rows, payload
+    return rows, payload, common_task_acc_ds
 
 
 def main() -> int:
@@ -365,10 +526,10 @@ def main() -> int:
     out_dir = Path(args.out_dir).resolve() if args.out_dir else (root / "results" / "laftr_hard_r2")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    rows, payload = build_rows(root)
+    rows, payload, common_ds = build_rows(root)
 
-    tex = render_tex(rows)
-    headline = render_headline(rows)
+    tex = render_tex(rows, common_ds=common_ds)
+    headline = render_headline(rows, common_ds=common_ds)
 
     (out_dir / "comparison_table.tex").write_text(tex)
     (out_dir / "comparison.json").write_text(json.dumps(payload, indent=2, default=str))

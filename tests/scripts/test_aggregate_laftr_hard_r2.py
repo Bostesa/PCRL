@@ -153,7 +153,7 @@ def test_aggregate_across_datasets_weighted_correctly():
     """Adult 24 cells (21 pass at R²=0.014); HMDA 18 (16 pass at R²=0.005);
     Diabetes 18 (17 pass at R²=0.005). Aggregated pass rate must be
     (21+16+17)/(24+18+18) = 54/60; depth-of-compliance is the weighted mean
-    over passing cells."""
+    over passing cells. With no mask, task-acc denominator is the full 60."""
     blocks = {
         "adult": {
             "strict_pass_rate": 0.875, "mean_r2_on_passing": 0.014,
@@ -174,14 +174,15 @@ def test_aggregate_across_datasets_weighted_correctly():
     assert abs(aggr["strict_pass_rate"] - 54 / 60) < 1e-9
     expected_depth = (0.014 * 21 + 0.005 * 16 + 0.005 * 17) / (21 + 16 + 17)
     assert abs(aggr["mean_r2_on_passing"] - expected_depth) < 1e-9
-    # Task acc weighted by total cells per dataset
+    # Task acc weighted by total cells per dataset (no mask → all 60)
     expected_acc = (0.926 * 24 + 0.677 * 18 + 0.732 * 18) / 60
     assert abs(aggr["task_acc"] - expected_acc) < 1e-9
+    assert aggr["task_acc_n_cells"] == 60
 
 
 def test_aggregate_with_missing_dataset_skipped():
     """LAFTR-Q has only Adult; HMDA/Diabetes are None. Aggregated should only
-    include Adult and report n_cells_total=24."""
+    include Adult and report n_cells_total=24 / task_acc_n_cells=24."""
     blocks = {
         "adult": {
             "strict_pass_rate": 0.0, "mean_r2_on_passing": None,
@@ -196,6 +197,7 @@ def test_aggregate_with_missing_dataset_skipped():
     assert aggr["strict_pass_rate"] == 0.0
     assert aggr["mean_r2_on_passing"] is None
     assert abs(aggr["task_acc"] - 0.95) < 1e-9
+    assert aggr["task_acc_n_cells"] == 24
 
 
 def test_aggregate_with_all_missing_returns_nan():
@@ -204,6 +206,153 @@ def test_aggregate_with_all_missing_returns_nan():
     assert aggr["n_cells_total"] == 0
     assert aggr["n_passing"] == 0
     assert math.isnan(aggr["strict_pass_rate"])
+    assert aggr["task_acc_n_cells"] == 0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Apples-to-apples task-acc mask
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def _block(strict, r2_pass, acc, n_per_seed, n_seeds, n_passing):
+    return {
+        "strict_pass_rate": strict, "mean_r2_on_passing": r2_pass,
+        "task_acc": acc, "n_cells_per_seed": n_per_seed, "n_seeds": n_seeds,
+        "n_passing": n_passing,
+    }
+
+
+def test_common_task_acc_datasets_all_populated():
+    pcrl = {ds: _block(0.9, 0.01, 0.85, 8, 3, 22) for ds in ["adult", "hmda", "diabetes"]}
+    laftrq = {ds: _block(0.0, None, 0.90, 8, 3, 0) for ds in ["adult", "hmda", "diabetes"]}
+    hr2 = {ds: _block(0.8, 0.02, 0.88, 8, 3, 19) for ds in ["adult", "hmda", "diabetes"]}
+    common = agg._common_task_acc_datasets([("PCRL", pcrl), ("LAFTR-Q", laftrq), ("LAFTR-hard-R²", hr2)])
+    assert common == {"adult", "hmda", "diabetes"}
+
+
+def test_common_task_acc_datasets_one_null_excludes_dataset():
+    """LAFTR-Q HMDA task_acc=null → HMDA dropped from common across ALL methods."""
+    pcrl = {ds: _block(0.9, 0.01, 0.85, 8, 3, 22) for ds in ["adult", "hmda", "diabetes"]}
+    laftrq = {
+        "adult": _block(0.0, None, 0.95, 8, 3, 0),
+        "hmda": _block(0.0, None, None, 6, 3, 0),    # null task_acc
+        "diabetes": _block(0.83, None, 0.31, 6, 3, 15),
+    }
+    hr2 = {ds: _block(0.8, 0.02, 0.88, 8, 3, 19) for ds in ["adult", "hmda", "diabetes"]}
+    common = agg._common_task_acc_datasets([("PCRL", pcrl), ("LAFTR-Q", laftrq), ("LAFTR-hard-R²", hr2)])
+    assert common == {"adult", "diabetes"}
+
+
+def test_common_task_acc_datasets_method_entirely_none_excludes_all():
+    """LAFTR-hard-R² entirely None (pre-AWS) → common is empty set."""
+    pcrl = {ds: _block(0.9, 0.01, 0.85, 8, 3, 22) for ds in ["adult", "hmda", "diabetes"]}
+    laftrq = {ds: _block(0.0, None, 0.90, 8, 3, 0) for ds in ["adult", "hmda", "diabetes"]}
+    hr2 = {"adult": None, "hmda": None, "diabetes": None}
+    common = agg._common_task_acc_datasets([("PCRL", pcrl), ("LAFTR-Q", laftrq), ("LAFTR-hard-R²", hr2)])
+    assert common == set()
+
+
+def test_aggregate_with_mask_excludes_correct_datasets():
+    """With mask={adult, diabetes}, HMDA should be excluded from task_acc only.
+    Strict-pass and mean-R²-on-passing are unaffected by the mask."""
+    blocks = {
+        "adult": _block(0.875, 0.014, 0.926, 8, 3, 21),
+        "hmda": _block(16 / 18, 0.005, 0.677, 6, 3, 16),
+        "diabetes": _block(17 / 18, 0.005, 0.732, 6, 3, 17),
+    }
+    mask = {"adult", "diabetes"}
+    aggr = agg.aggregate_across_datasets(blocks, task_acc_dataset_mask=mask)
+    # strict-pass still over all 60
+    assert aggr["n_cells_total"] == 60
+    assert aggr["n_passing"] == 54
+    assert abs(aggr["strict_pass_rate"] - 54 / 60) < 1e-9
+    # mean R² on passing still over all passing cells
+    expected_depth = (0.014 * 21 + 0.005 * 16 + 0.005 * 17) / 54
+    assert abs(aggr["mean_r2_on_passing"] - expected_depth) < 1e-9
+    # task_acc only over Adult + Diabetes = 24 + 18 = 42 cells
+    expected_acc = (0.926 * 24 + 0.732 * 18) / 42
+    assert abs(aggr["task_acc"] - expected_acc) < 1e-9
+    assert aggr["task_acc_n_cells"] == 42
+
+
+def test_aggregate_with_empty_mask_yields_nan_task_acc():
+    """Empty mask → no cells contribute to task_acc → NaN with task_acc_n_cells=0."""
+    blocks = {
+        "adult": _block(0.9, 0.01, 0.85, 8, 3, 22),
+        "hmda": _block(0.9, 0.01, 0.80, 6, 3, 16),
+        "diabetes": _block(0.9, 0.01, 0.75, 6, 3, 17),
+    }
+    aggr = agg.aggregate_across_datasets(blocks, task_acc_dataset_mask=set())
+    # strict-pass etc. unaffected
+    assert aggr["n_cells_total"] == 60
+    # task_acc collapses
+    assert math.isnan(aggr["task_acc"])
+    assert aggr["task_acc_n_cells"] == 0
+
+
+def test_build_rows_applies_mask_to_all_three_methods(tmp_path):
+    """Construct a frozen baseline where LAFTR-Q HMDA task_acc is null and
+    LAFTR-hard-R² has data for all three datasets. Mask should be
+    {adult, diabetes}. PCRL aggregated task_acc must be computed over 42
+    cells (Adult+Diabetes), NOT over 60 — that's the silent-favoritism fix.
+    """
+    baselines = {
+        "_source": "test-mask",
+        "_strict_pass_threshold": 0.05,
+        "methods": {
+            "PCRL_paper": {
+                "label": "PCRL (paper)", "short_label": "PCRL",
+                "per_dataset": {
+                    "adult": _block(0.9, 0.01, 0.926, 8, 3, 22),
+                    "hmda": _block(0.9, 0.01, 0.677, 6, 3, 16),     # has acc
+                    "diabetes": _block(0.9, 0.01, 0.732, 6, 3, 17),
+                },
+            },
+            "LAFTR_appendixQ": {
+                "label": "LAFTR (Q)", "short_label": "LAFTR-Q",
+                "per_dataset": {
+                    "adult": _block(0.0, None, 0.95, 8, 3, 0),
+                    "hmda": _block(0.0, None, None, 6, 3, 0),       # null acc
+                    "diabetes": _block(0.83, None, 0.31, 6, 3, 15),
+                },
+            },
+        },
+    }
+    _write_frozen_baselines(tmp_path, baselines)
+    # Synthetic LAFTR-hard-R² for ALL three datasets so it doesn't constrain the mask.
+    for ds in ["adult", "hmda", "diabetes"]:
+        # 8 or 6 cells/seed × 3 seeds; just give 1 pass per seed for shape.
+        ncells = 8 if ds == "adult" else 6
+        cells = [{"purpose": "p", "attribute": f"a{i}", "linear_r2": 0.01 if i == 0 else 0.10}
+                 for i in range(ncells)]
+        blob = _make_per_seed_results(
+            cells_by_seed=[cells, cells, cells],
+            task_accs_by_seed=[{"t": 0.80}] * 3,
+        )
+        _write_laftr_hard_r2_results(tmp_path, ds, blob)
+
+    rows, payload, common = agg.build_rows(tmp_path)
+    # Mask excludes HMDA (LAFTR-Q HMDA task_acc is null)
+    assert common == {"adult", "diabetes"}
+    # Every method's aggregated task_acc denominator must be 42, not 60
+    for _, short, _, aggr in rows:
+        assert aggr["task_acc_n_cells"] == 42, (
+            f"method {short} task_acc_n_cells = {aggr['task_acc_n_cells']}, "
+            f"expected 42 (Adult+Diabetes only after HMDA exclusion)"
+        )
+    # PCRL aggregated task_acc must match the apples-to-apples computation
+    pcrl_aggr = rows[0][3]
+    expected_pcrl = (0.926 * 24 + 0.732 * 18) / 42
+    assert abs(pcrl_aggr["task_acc"] - expected_pcrl) < 1e-9
+    # Strict-pass aggregation is unaffected by the mask
+    assert pcrl_aggr["n_cells_total"] == 60
+    # Payload exposes the mask + exclusion list
+    assert payload["task_acc_common_datasets"] == ["adult", "diabetes"]
+    assert payload["task_acc_asymmetric"] is True
+    excluded = payload["task_acc_excluded_datasets"]
+    assert len(excluded) == 1
+    assert excluded[0]["dataset"] == "hmda"
+    assert "LAFTR-Q" in excluded[0]["missing_in_methods"]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -228,7 +377,7 @@ def synthetic_root(tmp_path):
 
 
 def test_build_rows_with_synthetic_root(synthetic_root):
-    rows, payload = agg.build_rows(synthetic_root)
+    rows, payload, common_ds = agg.build_rows(synthetic_root)
     # 3 rows: PCRL, LAFTR-Q, LAFTR-hard-R²
     assert len(rows) == 3
     pcrl_label, pcrl_short, _, _ = rows[0]
@@ -247,16 +396,23 @@ def test_build_rows_with_synthetic_root(synthetic_root):
     # Aggregated: only Adult counts (24 cells, 18 passing)
     assert hr2_aggr["n_cells_total"] == 24
     assert hr2_aggr["n_passing"] == 18
-    # Payload mirrors rows
+    # In this synthetic root: LAFTR-Q has Adult only, LAFTR-hard-R² has Adult only,
+    # so the common task-acc mask is {adult} — every method's aggregated task_acc
+    # is computed over the 24 Adult cells.
+    assert common_ds == {"adult"}
+    for _, _, _, aggr in rows:
+        assert aggr["task_acc_n_cells"] == 24
+    # Payload mirrors rows + exposes mask
     assert len(payload["rows"]) == 3
     assert payload["rows"][2]["short_label"] == "LAFTR-hard-R²"
+    assert payload["task_acc_common_datasets"] == ["adult"]
+    assert payload["task_acc_asymmetric"] is True
 
 
 def test_render_tex_does_not_crash_with_partial_data(synthetic_root):
-    rows, _ = agg.build_rows(synthetic_root)
-    tex = agg.render_tex(rows)
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    tex = agg.render_tex(rows, common_ds=common_ds)
     # Sanity: contains the three method labels and the 3 metric rows per method.
-    # Match the exact body-row labels (the caption mentions some of these too).
     assert "PCRL (paper)" in tex
     assert "LAFTR (Q)" in tex
     assert "LAFTR-hard-R²" in tex
@@ -267,14 +423,129 @@ def test_render_tex_does_not_crash_with_partial_data(synthetic_root):
     assert "—" in tex
 
 
+def test_render_tex_includes_footnote_when_asymmetric(synthetic_root):
+    """When common_ds is a proper subset of DATASETS, the caption must
+    auto-include a \\footnote explaining the exclusion."""
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    assert common_ds != {"adult", "hmda", "diabetes"}
+    tex = agg.render_tex(rows, common_ds=common_ds)
+    assert r"\protect\footnote{" in tex
+    # The footnote should name HMDA + Diabetes as excluded (only Adult survives mask)
+    assert "HMDA" in tex
+    assert "Diabetes" in tex
+    # It should mention which method(s) caused each exclusion. In this fixture
+    # both LAFTR-Q and LAFTR-hard-R² are missing HMDA/Diabetes.
+    assert "LAFTR-Q" in tex or "LAFTR-hard-R²" in tex
+
+
+def test_render_tex_footnote_fires_when_common_ds_is_empty_set(tmp_path):
+    """Regression: ``common_ds=set()`` (one method entirely missing) must
+    still fire the footnote — a `common_ds or set(DATASETS)` fallback would
+    silently skip it because empty sets are falsy.
+    """
+    baselines = {
+        "_source": "test-empty-mask",
+        "_strict_pass_threshold": 0.05,
+        "methods": {
+            "PCRL_paper": {
+                "label": "PCRL (paper)", "short_label": "PCRL",
+                "per_dataset": {
+                    "adult": _block(0.9, 0.01, 0.926, 8, 3, 22),
+                    "hmda": _block(0.9, 0.01, 0.677, 6, 3, 16),
+                    "diabetes": _block(0.9, 0.01, 0.732, 6, 3, 17),
+                },
+            },
+            "LAFTR_appendixQ": {
+                "label": "LAFTR (Q)", "short_label": "LAFTR-Q",
+                "per_dataset": {
+                    "adult": _block(0.0, None, 0.95, 8, 3, 0),
+                    "hmda": _block(0.0, None, 0.81, 6, 3, 0),
+                    "diabetes": _block(0.83, None, 0.31, 6, 3, 15),
+                },
+            },
+        },
+    }
+    _write_frozen_baselines(tmp_path, baselines)
+    # Note: NO LAFTR-hard-R² results on disk — every dataset is "missing" for
+    # that method → common mask is empty set, distinct from None.
+    rows, _, common_ds = agg.build_rows(tmp_path)
+    assert common_ds == set()  # empty, not None
+    tex = agg.render_tex(rows, common_ds=common_ds)
+    # Footnote MUST fire (all three datasets are excluded)
+    assert r"\protect\footnote{" in tex
+    # And the footnote names all three datasets
+    assert "Adult" in tex and "HMDA" in tex and "Diabetes" in tex
+
+
+def test_render_tex_no_footnote_when_symmetric(tmp_path):
+    """When all three methods report task_acc on every dataset, no footnote."""
+    baselines = {
+        "_source": "test-symmetric",
+        "_strict_pass_threshold": 0.05,
+        "methods": {
+            "PCRL_paper": {
+                "label": "PCRL (paper)", "short_label": "PCRL",
+                "per_dataset": {
+                    "adult": _block(0.9, 0.01, 0.926, 8, 3, 22),
+                    "hmda": _block(0.9, 0.01, 0.677, 6, 3, 16),
+                    "diabetes": _block(0.9, 0.01, 0.732, 6, 3, 17),
+                },
+            },
+            "LAFTR_appendixQ": {
+                "label": "LAFTR (Q)", "short_label": "LAFTR-Q",
+                "per_dataset": {
+                    "adult": _block(0.0, None, 0.95, 8, 3, 0),
+                    "hmda": _block(0.0, None, 0.81, 6, 3, 0),
+                    "diabetes": _block(0.83, None, 0.31, 6, 3, 15),
+                },
+            },
+        },
+    }
+    _write_frozen_baselines(tmp_path, baselines)
+    # All three datasets populated for LAFTR-hard-R²
+    for ds in ["adult", "hmda", "diabetes"]:
+        n = 8 if ds == "adult" else 6
+        cells = [{"purpose": "p", "attribute": f"a{i}", "linear_r2": 0.01 if i == 0 else 0.10}
+                 for i in range(n)]
+        blob = _make_per_seed_results(
+            cells_by_seed=[cells] * 3, task_accs_by_seed=[{"t": 0.80}] * 3,
+        )
+        _write_laftr_hard_r2_results(tmp_path, ds, blob)
+
+    rows, _, common_ds = agg.build_rows(tmp_path)
+    assert common_ds == {"adult", "hmda", "diabetes"}
+    tex = agg.render_tex(rows, common_ds=common_ds)
+    assert r"\protect\footnote{" not in tex
+
+
+def test_render_tex_aggregated_task_acc_shows_cell_count(synthetic_root):
+    """Aggregated task acc cells must show \"X.X\\% (N cells)\" format."""
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    tex = agg.render_tex(rows, common_ds=common_ds)
+    # The synthetic root has only Adult contributing — denominator = 24.
+    # All three methods report task_acc on Adult, so all three aggregated
+    # task-acc cells should read "X.X\\% (24 cells)".
+    assert "(24 cells)" in tex
+
+
 def test_render_headline_does_not_crash_with_partial_data(synthetic_root):
-    rows, _ = agg.build_rows(synthetic_root)
-    h = agg.render_headline(rows)
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    h = agg.render_headline(rows, common_ds=common_ds)
     assert "PCRL" in h
     assert "LAFTR-Q" in h
     assert "LAFTR-hard-R²" in h
     # LAFTR-Q HMDA/Diabetes must render "—"
     assert "—" in h
+
+
+def test_render_headline_shows_aggregated_task_acc_with_cells(synthetic_root):
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    h = agg.render_headline(rows, common_ds=common_ds)
+    # Aggregated task-acc mini-block prints "(24 cells)" per method
+    assert "(24 cells)" in h
+    # And the exclusion note names HMDA + Diabetes
+    assert "HMDA" in h
+    assert "Diabetes" in h
 
 
 def test_full_main_writes_three_files(synthetic_root, monkeypatch):
@@ -292,3 +563,6 @@ def test_full_main_writes_three_files(synthetic_root, monkeypatch):
     payload = json.loads((out / "comparison.json").read_text())
     assert len(payload["rows"]) == 3
     assert payload["_strict_pass_threshold"] == 0.05
+    assert "task_acc_common_datasets" in payload
+    assert "task_acc_asymmetric" in payload
+    assert "task_acc_excluded_datasets" in payload
