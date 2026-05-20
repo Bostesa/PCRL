@@ -212,7 +212,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              cross_purpose_attrs: list[str] | None = None,
              cross_purpose_threshold: float = 0.10,
              use_erase_layer: bool = False,
-             lora_target: str = "all_linear") -> dict:
+             lora_target: str = "all_linear",
+             lambda_vicreg: float = 1.0) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -273,7 +274,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     # All other knobs match Round 4. See
     # `results/v2_optimizer_drift_audit.md` for the audit motivating R1+R2.
     config = V2TrainerConfig(
-        lambda_vicreg=1.0, lambda_vclub=1.0, lambda_verify=0.0,
+        lambda_vicreg=lambda_vicreg, lambda_vclub=1.0, lambda_verify=0.0,
         r2_threshold=0.05,
         vicreg_gamma=1.0,
         lora_rank=lora_rank, lora_alpha=lora_alpha, lora_dropout=0.0,
@@ -548,6 +549,19 @@ def main() -> None:
             "task_proj). The latter matches the §5.5 vision pattern."
         ),
     )
+    parser.add_argument(
+        "--lambda-vicreg", type=float, default=1.0,
+        help=(
+            "Outer multiplier on the VICReg variance+covariance loss. "
+            "Default 1.0 preserves Round 5/7 + the original erase-pilot "
+            "λ=1.0 behaviour. Scaling ×5 (i.e. 5.0) scales both the "
+            "variance hinge gradient and the covariance gradient by 5×. "
+            "Under the erase-layer architecture the LEACE-vs-VICReg "
+            "tension is removed (A is structurally erased from backbone "
+            "output), so stronger VICReg can push per_dim_std above the "
+            "0.5 cleanly-compliant threshold without fighting R² descent."
+        ),
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -574,6 +588,7 @@ def main() -> None:
             cross_purpose_threshold=args.cross_purpose_threshold,
             use_erase_layer=args.use_erase_layer,
             lora_target=args.lora_target,
+            lambda_vicreg=args.lambda_vicreg,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
