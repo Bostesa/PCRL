@@ -23,6 +23,12 @@ REGION="${REGION:-us-east-1}"
 S3_BUCKET="${S3_BUCKET:-pcrl-bios-overnight-20260504}"
 S3_PREFIX_PATH="laftr_hard_r2"
 S3_PREFIX="s3://${S3_BUCKET}/${S3_PREFIX_PATH}"
+# Durable archive destination for results_final + STATUS.txt. Defaults to an
+# archive/ prefix in the SAME bucket — this only survives the 7-day lifecycle
+# if that rule has been deleted or scoped to exempt archive/ (see memory
+# reference_s3_bucket_lifecycle). To use a separate no-lifecycle bucket,
+# override ARCHIVE_DEST (and ensure the IAM role can write there).
+ARCHIVE_DEST="${ARCHIVE_DEST:-s3://${S3_BUCKET}/archive/laftr_hard_r2}"
 GIT_REF="${GIT_REF:-laftr-hard-r2-2026-05-17}"
 TAG_NAME="${TAG_NAME:-LAFTR_HARD_R2}"
 
@@ -78,6 +84,7 @@ USER_DATA_RENDERED="$(mktemp)"
 sed \
   -e "s|__S3_PREFIX__|${S3_PREFIX}|g" \
   -e "s|__S3_BUCKET__|${S3_BUCKET}|g" \
+  -e "s|__ARCHIVE_DEST__|${ARCHIVE_DEST}|g" \
   -e "s|__GIT_REF__|${GIT_REF}|g" \
   "${REPO_ROOT}/infra/laftr_hard_r2/user_data.sh" > "${USER_DATA_RENDERED}"
 echo "[render] user-data rendered to ${USER_DATA_RENDERED}"
@@ -134,8 +141,12 @@ echo
 echo "Per-dataset summaries land at:"
 echo "  ${S3_PREFIX}/per_dataset_summary/{adult,hmda,diabetes}_summary.json"
 echo
-echo "Final results land at:"
+echo "Durable headline (survives lifecycle expiry of result blobs):"
+echo "  aws s3 cp ${ARCHIVE_DEST}/STATUS.txt -"
+echo
+echo "Final results land at (run prefix + durable archive):"
 echo "  ${S3_PREFIX}/results_final/"
+echo "  ${ARCHIVE_DEST}/results_final/   (lifecycle-exempt — pull from here)"
 echo
 echo "To pull final to local:"
-echo "  aws s3 sync ${S3_PREFIX}/results_final/ results/"
+echo "  aws s3 sync ${ARCHIVE_DEST}/results_final/ results/"

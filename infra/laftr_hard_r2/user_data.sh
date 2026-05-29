@@ -23,11 +23,18 @@ echo "=== LAFTR_HARD_R2 bootstrap @ $(date -u) ==="
 S3_PREFIX="__S3_PREFIX__"
 S3_BUCKET="__S3_BUCKET__"
 GIT_REF="__GIT_REF__"
+# Durable, lifecycle-exempt destination for results_final + STATUS. Defaults to
+# an archive/ prefix in the same bucket; only survives the bucket's 7-day
+# lifecycle if that rule has been removed or scoped to exclude archive/ (see
+# memory reference_s3_bucket_lifecycle). Override via launch.sh ARCHIVE_DEST to
+# point at a separate no-lifecycle bucket.
+ARCHIVE_DEST="__ARCHIVE_DEST__"
 HARD_CAP_SEC=$(( 20 * 3600 ))
 PER_DATASET_TIMEOUT=21600   # 6h × 3600s
 INSTANCE_ID="$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo unknown)"
 echo "instance-id=${INSTANCE_ID}"
 echo "S3_PREFIX=${S3_PREFIX}"
+echo "ARCHIVE_DEST=${ARCHIVE_DEST}"
 echo "GIT_REF=${GIT_REF}"
 
 if [ -x /opt/pytorch/bin/python ]; then
@@ -169,15 +176,34 @@ for DS in adult hmda diabetes; do
 done
 aws s3 cp /dev/null "${S3_PREFIX}/STAGE_05_pilot_ok.txt" --no-progress >/dev/null 2>&1 || true
 
-# ── Stage 6: final S3 sync + shutdown ───────────────────────────────────
+# ── Stage 6: durable status file (survives even if result blobs are lost) ─
+# Headline numbers in plain text: instance id, completion time, per-dataset
+# strict-pass count + mean R² + task acc. Written to BOTH the run prefix and
+# the no-lifecycle archival destination so the numbers survive an S3
+# lifecycle expiration of the result blobs.
+STATUS_FILE=/home/ubuntu/PCRL/STATUS.txt
+sudo -u ubuntu bash -c "cd /home/ubuntu/PCRL && ${PY} -u scripts/emit_run_status.py \
+    --instance-id ${INSTANCE_ID} --out ${STATUS_FILE}" \
+    > /home/ubuntu/PCRL/emit_status.log 2>&1 || echo "WARN: emit_run_status failed"
+aws s3 cp "${STATUS_FILE}" "${S3_PREFIX}/STATUS.txt" --no-progress >/dev/null 2>&1 || true
+aws s3 cp "${STATUS_FILE}" "${ARCHIVE_DEST}/STATUS.txt" --no-progress >/dev/null 2>&1 || true
+aws s3 cp /dev/null "${S3_PREFIX}/STAGE_06_status_ok.txt" --no-progress >/dev/null 2>&1 || true
+
+# ── Stage 7: final S3 sync (run prefix + durable archive) + shutdown ─────
 for DS in adult hmda diabetes; do
   if [ -d /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 ]; then
+    # Run prefix (subject to the bucket lifecycle — convenient but ephemeral).
     aws s3 sync /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 \
       "${S3_PREFIX}/results_final/laftr_hard_r2_${DS}/" --no-progress >/dev/null 2>&1 || true
+    # Durable archive (lifecycle-exempt destination — see ARCHIVE_DEST).
+    aws s3 sync /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 \
+      "${ARCHIVE_DEST}/results_final/laftr_hard_r2_${DS}/" --no-progress >/dev/null 2>&1 || true
   fi
 done
 aws s3 cp /var/log/laftr_hard_r2.log "${S3_PREFIX}/laftr_hard_r2.log" --no-progress >/dev/null 2>&1 || true
+aws s3 cp /var/log/laftr_hard_r2.log "${ARCHIVE_DEST}/laftr_hard_r2.log" --no-progress >/dev/null 2>&1 || true
+aws s3 cp /dev/null "${S3_PREFIX}/STAGE_07_archive_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 touch /home/ubuntu/done.flag
-echo "all done @ $(date -u); shutting down"
+echo "all done @ $(date -u); archived to ${ARCHIVE_DEST}; shutting down"
 sudo shutdown -h now
