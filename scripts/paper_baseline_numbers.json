@@ -1,0 +1,83 @@
+{
+  "_source": "PCRL Round 5/7 on-disk per-seed results + LAFTR-Q Adult on disk + LAFTR-Q HMDA/Diabetes from submitted paper Appendix Q Table 13 (Appendix P for Diabetes task acc)",
+  "_extracted_from": [
+    "results/v2_adult_ROUND5/per_seed_results.json",
+    "results/v2_hmda_ROUND5/per_seed_results.json",
+    "results/v2_diabetes_ROUND7/per_seed_results.json",
+    "results/laftr_benchmark/adult/<purpose>/seed_<n>/metrics.json",
+    "submitted paper Appendix Q Table 13 (HMDA + Diabetes LAFTR-Q strict-pass + mean-R²)",
+    "submitted paper Appendix P (LAFTR-Q Diabetes task accuracy under collapse)"
+  ],
+  "_extracted_date": "2026-05-18",
+  "_strict_pass_threshold": 0.05,
+  "_note": "Frozen baselines for the LAFTR hard-R² rebuttal artifact. Do NOT regenerate at aggregate time — reviewer-facing numbers must be immutable. All LAFTR-Q rows now populated: Adult from on-disk results/laftr_benchmark/, HMDA + Diabetes from the submitted paper's Appendix Q Table 13 (+ Appendix P for Diabetes task acc under collapse).",
+  "methods": {
+    "PCRL_paper": {
+      "label": "PCRL (Round 5/7, paper headline)",
+      "short_label": "PCRL",
+      "per_dataset": {
+        "adult": {
+          "strict_pass_rate": 0.875,
+          "mean_r2_on_passing": 0.013712,
+          "task_acc": 0.92628,
+          "n_cells_per_seed": 8,
+          "n_seeds": 3,
+          "n_passing": 21
+        },
+        "hmda": {
+          "strict_pass_rate": 0.888889,
+          "mean_r2_on_passing": 0.005444,
+          "task_acc": 0.676679,
+          "n_cells_per_seed": 6,
+          "n_seeds": 3,
+          "n_passing": 16
+        },
+        "diabetes": {
+          "strict_pass_rate": 0.944444,
+          "mean_r2_on_passing": 0.00529,
+          "task_acc": 0.732507,
+          "n_cells_per_seed": 6,
+          "n_seeds": 3,
+          "n_passing": 17
+        }
+      }
+    },
+    "LAFTR_appendixQ": {
+      "label": "LAFTR (Appendix Q, lambda_adv=1.0, no proxy-Lagrangian)",
+      "short_label": "LAFTR-Q",
+      "per_dataset": {
+        "adult": {
+          "strict_pass_rate": 0.0,
+          "mean_r2_on_passing": null,
+          "task_acc": 0.950177,
+          "n_cells_per_seed": 8,
+          "n_seeds": 3,
+          "n_passing": 0,
+          "_note": "From on-disk results/laftr_benchmark/adult/. Mean R²_onehot across all (failing) cells is 0.381 — not reported here since the column is depth-of-compliance on passing cells, which is undefined when none pass."
+        },
+        "hmda": {
+          "strict_pass_rate": 0.0,
+          "mean_r2_on_passing": null,
+          "task_acc": null,
+          "n_cells_per_seed": 6,
+          "n_seeds": 3,
+          "n_passing": 0,
+          "_note_strict_pass": "Submitted paper Appendix Q Table 13: LAFTR fails strict R²<0.05 on all 18 HMDA cells (mean R²_onehot 0.270 across all cells, all three purposes failing).",
+          "_note_mean_r2_on_passing": "Null because n_passing=0 — depth-of-compliance is only defined over passing cells.",
+          "_note_task_acc": "Null because the submitted paper does not report a single clean LAFTR-Q HMDA task-accuracy number under the same ledger as the strict-pass/mean-R² columns (Appendix Q reports compliance metrics; task accuracy under the LAFTR objective on HMDA is not isolated as a comparable scalar). Aggregator renders this as '—'."
+        },
+        "diabetes": {
+          "strict_pass_rate": 0.833333,
+          "mean_r2_on_passing": null,
+          "task_acc": 0.313,
+          "n_cells_per_seed": 6,
+          "n_seeds": 3,
+          "n_passing": 15,
+          "_note_strict_pass": "Submitted paper Appendix Q Table 13: LAFTR passes R²<0.05 on 15/18 Diabetes cells, but this is 'compliance via representation collapse' — task signal collapses with the adversarial signal.",
+          "_note_mean_r2_on_passing": "Paper does not break out the depth-of-compliance for the 15 passing Diabetes cells; null with aggregator rendering '—'. The strict-pass count alone is the apples-to-apples comparison reviewers care about.",
+          "_note_task_acc": "Submitted paper Appendix P: 'task accuracy 31.3% vs majority baseline 28%' — LAFTR-Q Diabetes accuracy degrades to ≈ majority baseline, confirming collapse. The 15/18 strict-pass count is thus misleading without this context; the rebuttal table caption should reference the collapse footnote when this row is cited."
+        }
+      }
+    }
+  }
+}
