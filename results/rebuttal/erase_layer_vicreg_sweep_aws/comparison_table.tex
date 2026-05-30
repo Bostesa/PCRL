@@ -1,0 +1,56 @@
+% Rebuttal-evidence table: erase-layer architecture + VICReg sweep.
+% Baseline = Round 5 (Adult, HMDA) / Round 7 (Diabetes) from the submitted paper.
+% Erase pilot = the decoupled erase-layer architecture (frozen joint-LEACE
+% projection between backbone and a LoRA-trainable task projection), ported
+% from the CelebA §5.5 vision pipeline to tabular.
+% VICReg sweep = same erase-layer architecture with the outer VICReg
+% multiplier scaled 1.0 -> 5.0 (variance hinge + covariance penalty both
+% scaled, so the cleanly-compliant per_dim_std floor can be probed without
+% the LEACE-vs-VICReg tension that Appendix K documented).
+% Diabetes lambda=5.0 cell is unavailable: the 10h run cap fired while
+% Diabetes seed 2 was mid-training. Adult+HMDA totals (42 cells) are the
+% conclusive comparison.
+\begin{table}[t]
+\centering
+\small
+\caption{Erase-layer pilot and VICReg sweep vs.\ the submitted Round 5/7
+baseline. \textit{Strict pass}: $R^2(h_p, A) \leq 0.05$. \textit{Cleanly
+compliant}: strict pass + per-dim std $\geq 0.5$ + effective rank $\geq 2.0$.
+The erase-layer pilot moves \textit{strict pass} to $60/60$ and lifts
+effective rank by $4\times$; scaling $\lambda_{\text{vicreg}}$ further
+lifts effective rank by another $\sim 1$ but does not move per-dim std,
+which sits below $0.5$ in every condition. As the diagnostic in
+\S\ref{sec:perdim-std-floor} shows, the std floor is architectural to
+the published $[128,128] \to 64$ backbone, not a property of the
+erasure mechanism.}
+\label{tab:erase_vicreg_sweep}
+\begin{tabular}{l l r r r r}
+\toprule
+ & & Strict pass & Cleanly comp. & per-dim std & eff.\ rank \\
+\midrule
+\multirow{3}{*}{Adult}
+  & Baseline (Round 5)        & 21/24 & 1/24 & 0.368 & 3.35 \\
+  & Erase pilot ($\lambda{=}1.0$)  & 24/24 & 0/24 & 0.465 & 12.60 \\
+  & Erase pilot ($\lambda{=}5.0$)  & 24/24 & 0/24 & 0.467 & 13.65 \\
+\midrule
+\multirow{3}{*}{HMDA}
+  & Baseline (Round 5)        & 16/18 & 2/18 & 0.316 & 2.98 \\
+  & Erase pilot ($\lambda{=}1.0$)  & 18/18 & 0/18 & 0.408 & 12.37 \\
+  & Erase pilot ($\lambda{=}5.0$)  & 18/18 & 0/18 & 0.394 & 13.94 \\
+\midrule
+\multirow{3}{*}{Diabetes}
+  & Baseline (Round 7)        & 17/18 & 2/18 & 0.345 & 3.93 \\
+  & Erase pilot ($\lambda{=}1.0$)  & 18/18 & 0/18 & 0.393 & 21.11 \\
+  & Erase pilot ($\lambda{=}5.0$)  & \multicolumn{4}{c}{\textit{run cap, seed 2 incomplete; see headline}} \\
+\midrule
+\multirow{3}{*}{\textbf{Total (Adult + HMDA, 42 cells)}}
+  & Baseline                  & 37/42 & 3/42 & --- & --- \\
+  & Erase pilot ($\lambda{=}1.0$)  & 42/42 & 0/42 & --- & --- \\
+  & Erase pilot ($\lambda{=}5.0$)  & 42/42 & 0/42 & --- & --- \\
+\midrule
+\multirow{2}{*}{\textbf{Total (full 60 cells)}}
+  & Baseline                  & 54/60 & 5/60 & --- & --- \\
+  & Erase pilot ($\lambda{=}1.0$)  & 60/60 & 0/60 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
