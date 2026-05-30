@@ -159,15 +159,21 @@ class PerPurposeLoRAEncoder(nn.Module):
         rank: int = 8,
         alpha: float | None = None,
         dropout: float = 0.0,
+        lora_target: str = "all_linear",
     ) -> None:
         super().__init__()
         if n_purposes <= 0:
             raise ValueError(f"n_purposes must be positive, got {n_purposes}")
+        if lora_target not in {"all_linear", "repr_proj_only"}:
+            raise ValueError(
+                f"lora_target must be 'all_linear' or 'repr_proj_only'; got {lora_target!r}"
+            )
 
         self.backbone = backbone
         self.n_purposes = n_purposes
         self.rank = rank
         self.alpha = float(alpha) if alpha is not None else float(rank)
+        self.lora_target = lora_target
 
         # Freeze backbone parameters in-place. We don't strip them from
         # state_dict so checkpoints remain self-contained, but they will
@@ -180,9 +186,23 @@ class PerPurposeLoRAEncoder(nn.Module):
         # registered submodule that owns these Linears, so we don't need
         # to register them again — but we do need to keep the references
         # for the forward hook step.
-        self._linear_modules: list[nn.Linear] = [
+        #
+        # `_skip_lora=True` modules (e.g. the frozen LEACE erase layer) are
+        # excluded so adapters don't bypass the structural compliance.
+        # `lora_target="repr_proj_only"` further restricts adapters to the
+        # final Linear (mirrors §5.5 vision: only task_proj gets LoRA).
+        all_linears = [
             m for m in self.backbone.modules() if isinstance(m, nn.Linear)
         ]
+        all_linears = [m for m in all_linears if not getattr(m, "_skip_lora", False)]
+        if lora_target == "repr_proj_only":
+            if not all_linears:
+                raise ValueError(
+                    "backbone has no LoRA-eligible nn.Linear modules — LoRA has nothing to adapt"
+                )
+            self._linear_modules: list[nn.Linear] = [all_linears[-1]]
+        else:
+            self._linear_modules = all_linears
         if not self._linear_modules:
             raise ValueError(
                 "backbone has no nn.Linear modules — LoRA has nothing to adapt"

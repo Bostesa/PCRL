@@ -25,11 +25,13 @@ class StandardEncoder(nn.Module):
         hidden_dims: list[int],
         repr_dim: int,
         dropout: float = 0.1,
+        use_erase_layer: bool = False,
     ) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dims = hidden_dims
         self.repr_dim = repr_dim
+        self.use_erase_layer = use_erase_layer
 
         layers: list[nn.Module] = []
         dims = [input_dim] + hidden_dims
@@ -40,6 +42,26 @@ class StandardEncoder(nn.Module):
             layers.append(nn.Dropout(dropout))
 
         self.network = nn.Sequential(*layers)
+
+        # Optional frozen LEACE erase layer between network and repr_proj.
+        # Identity-initialised; the trainer's fit_erase_layer() overwrites
+        # weight/bias from a joint LEACE eraser fitted on the network's
+        # output features. Mirrors pcrl/vision/backbone.py:ResNet18EraseTaskLoRA.
+        # Marked with _skip_lora=True so PerPurposeLoRAEncoder excludes it
+        # from adapter attachment.
+        if use_erase_layer:
+            self.erase: nn.Linear | None = nn.Linear(
+                hidden_dims[-1], hidden_dims[-1], bias=True,
+            )
+            with torch.no_grad():
+                self.erase.weight.copy_(torch.eye(hidden_dims[-1]))
+                self.erase.bias.zero_()
+            for p in self.erase.parameters():
+                p.requires_grad_(False)
+            self.erase._skip_lora = True  # type: ignore[attr-defined]
+        else:
+            self.erase = None
+
         self.repr_proj = nn.Linear(hidden_dims[-1], repr_dim)
 
         self._init_weights()
@@ -54,6 +76,15 @@ class StandardEncoder(nn.Module):
         nn.init.xavier_normal_(self.repr_proj.weight)
         if self.repr_proj.bias is not None:
             nn.init.zeros_(self.repr_proj.bias)
+        # `erase` stays at identity init — fit_erase_layer overwrites it.
+
+    def network_output(self, x: torch.Tensor) -> torch.Tensor:
+        """Return the post-network, pre-erase, pre-repr_proj features.
+
+        Used by the trainer to collect features for joint LEACE fitting
+        when ``use_erase_layer=True``.
+        """
+        return self.network(x)
 
     def forward(
         self,
@@ -62,6 +93,8 @@ class StandardEncoder(nn.Module):
     ) -> torch.Tensor:
         """Encode input features (purpose_idx is accepted but ignored)."""
         h = self.network(x)
+        if self.erase is not None:
+            h = self.erase(h)
         return self.repr_proj(h)
 
 

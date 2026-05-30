@@ -210,7 +210,9 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              report_best_iterate: bool = False,
              freeze_leace_projection: bool = False,
              cross_purpose_attrs: list[str] | None = None,
-             cross_purpose_threshold: float = 0.10) -> dict:
+             cross_purpose_threshold: float = 0.10,
+             use_erase_layer: bool = False,
+             lora_target: str = "all_linear") -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -239,10 +241,12 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     lora_rank, lora_alpha = LORA_BY_DATASET.get(name, (8, 16.0))
     backbone = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=repr_dim, dropout=0.3,
+        use_erase_layer=use_erase_layer,
     )
     encoder = PerPurposeLoRAEncoder(
         backbone=backbone, n_purposes=len(purposes),
         rank=lora_rank, alpha=lora_alpha, dropout=0.0,
+        lora_target=lora_target,
     )
 
     task_heads: dict = {}
@@ -282,6 +286,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         freeze_leace_projection=freeze_leace_projection,
         cross_purpose_attrs=cross_purpose_attrs,
         cross_purpose_threshold=cross_purpose_threshold,
+        use_erase_layer=use_erase_layer,
+        lora_target=lora_target,
     )
     trainer = V2Trainer(
         encoder=encoder, task_heads=task_heads, vclubs=vclubs,
@@ -293,7 +299,17 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         f"warmup={config.warmup_epochs} + epochs={config.epochs}, true Cotter best-iterate)"
     )
 
-    if config.leace_init:
+    # When the erase-layer architecture is on, fit the frozen joint-LEACE
+    # erase and SKIP the legacy per-purpose `leace_warm_start` — §5.5
+    # vision uses the erase as its sole LEACE-based init (the task-proj
+    # LoRA starts at zero, with task gradients shaping it from scratch).
+    # Stacking both inits has not been ablated and would muddy the
+    # pilot's interpretation.
+    if use_erase_layer:
+        log.info(f"  [{name}/seed={seed}] fitting frozen LEACE erase layer …")
+        erase_diag = trainer.fit_erase_layer(train_loader)
+        log.info(f"  [{name}/seed={seed}] erase fit done: {erase_diag}")
+    elif config.leace_init:
         log.info(f"  [{name}/seed={seed}] LEACE warm-start of LoRA adapters …")
         leace_diag = trainer.leace_warm_start(train_loader)
         log.info(f"  [{name}/seed={seed}] LEACE warm-start done")
@@ -511,6 +527,27 @@ def main() -> None:
         "--cross-purpose-threshold", type=float, default=0.10,
         help="Threshold for the cross-purpose linear-R² constraint.",
     )
+    parser.add_argument(
+        "--use-erase-layer", action="store_true", default=False,
+        help=(
+            "Rebuttal pilot (2026-05-17): port §5.5 vision erase-layer "
+            "architecture to tabular. Inserts a frozen LEACE-fit Linear "
+            "layer between the backbone network and repr_proj. Combine "
+            "with --lora-target=repr_proj_only for the faithful vision "
+            "mirror (frozen backbone → frozen erase → LoRA-trainable "
+            "task_proj). Default OFF preserves Round 5/7 behaviour."
+        ),
+    )
+    parser.add_argument(
+        "--lora-target", choices=["all_linear", "repr_proj_only"],
+        default="all_linear",
+        help=(
+            "Where to attach LoRA adapters: 'all_linear' (default) puts "
+            "an adapter on every Linear in the backbone; 'repr_proj_only' "
+            "puts adapters only on the final Linear (the post-erase "
+            "task_proj). The latter matches the §5.5 vision pattern."
+        ),
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -535,6 +572,8 @@ def main() -> None:
             freeze_leace_projection=args.freeze_leace_projection,
             cross_purpose_attrs=args.cross_purpose_attrs,
             cross_purpose_threshold=args.cross_purpose_threshold,
+            use_erase_layer=args.use_erase_layer,
+            lora_target=args.lora_target,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "

@@ -178,6 +178,21 @@ class V2TrainerConfig:
     lora_alpha: float = 16.0
     lora_dropout: float = 0.0
 
+    # Rebuttal pilot (2026-05-17): port §5.5 vision erase-layer architecture
+    # to tabular. When `use_erase_layer=True`, a frozen `nn.Linear` is
+    # inserted between the backbone network and `repr_proj`, initialised by
+    # `fit_erase_layer()` from a joint LEACE eraser fitted on the
+    # backbone's pre-erase features against the concatenated one-hot
+    # disallowed-attribute set across all purposes. Mirrors
+    # `pcrl/vision/leace_warmstart.py:fit_and_set_erase_layer`. Should be
+    # combined with `lora_target="repr_proj_only"` so the LoRA only adapts
+    # the post-erase projection (analog of CelebA's task_proj+LoRA pattern).
+    # The proxy-Lagrangian dual ascent + per-pair constraints stay on; the
+    # erase layer is a structural inductive bias + stable init, not a
+    # constraint replacement.
+    use_erase_layer: bool = False
+    lora_target: str = "all_linear"
+
     # vCLUB q-network
     vclub_hidden: int = 128
     vclub_l2: float = 1e-1
@@ -501,6 +516,106 @@ class V2Trainer:
     # ── LEACE warm-start ────────────────────────────────────────────────
 
     @torch.no_grad()
+    @torch.no_grad()
+    def fit_erase_layer(self, train_loader: DataLoader) -> dict[str, float]:
+        """Fit a joint-LEACE eraser on backbone pre-erase features and write
+        the projection into the frozen ``backbone.erase`` Linear layer.
+
+        Mirrors ``pcrl/vision/leace_warmstart.py:fit_and_set_erase_layer``.
+        Concatenates one-hot disallowed attributes across **all purposes**
+        into a single concept matrix, fits one shared eraser, writes
+        ``W = I - proj_left @ proj_right`` into ``erase.weight`` and
+        ``b = bias @ (proj_left @ proj_right).T`` into ``erase.bias``.
+
+        Returns construction-time linear-R² diagnostics (pre vs post-fit on
+        the train set). Post-fit R² < 0.01 indicates the eraser was applied
+        correctly.
+
+        Pre-condition: ``backbone.erase`` exists and is frozen at identity
+        (set by ``StandardEncoder(use_erase_layer=True)``). LoRA adapters
+        must be zero so the network output is undisturbed; this is the
+        construction default for ``LoRAAdapter`` and the first action of
+        ``leace_warm_start``.
+        """
+        from concept_erasure import LeaceEraser
+
+        backbone = self.encoder.backbone
+        if not getattr(backbone, "use_erase_layer", False) or backbone.erase is None:
+            raise RuntimeError(
+                "fit_erase_layer() called but backbone has no erase layer; "
+                "construct StandardEncoder(use_erase_layer=True) first."
+            )
+
+        was_training = self.encoder.training
+        self.encoder.eval()
+
+        feats: list[torch.Tensor] = []
+        attrs_collect: dict[str, list[torch.Tensor]] = {}
+        for batch in train_loader:
+            batch = self._to_device(batch)
+            h = backbone.network_output(batch["features"])
+            feats.append(h.detach().cpu())
+            for k, v in batch["sensitive_attrs"].items():
+                attrs_collect.setdefault(k, []).append(v.detach().cpu().long())
+
+        H = torch.cat(feats, dim=0).float()  # (N, hidden_dims[-1])
+        attrs = {k: torch.cat(v, dim=0) for k, v in attrs_collect.items()}
+
+        # Joint A_oh: every disallowed attribute appearing in any purpose,
+        # concatenated. Duplicates across purposes are deduplicated so the
+        # one-hot block is built once per attribute.
+        union_attrs: list[str] = []
+        for purpose_name in self.purpose_names:
+            for a in self.purpose_configs[purpose_name]["disallowed_attrs"]:
+                if a not in union_attrs:
+                    union_attrs.append(a)
+
+        oh_blocks: list[torch.Tensor] = []
+        for a_name in union_attrs:
+            a_int = attrs[a_name]
+            n_classes = int(a_int.max().item()) + 1
+            oh = torch.eye(n_classes)[a_int]
+            oh_blocks.append(oh)
+        A_oh = torch.cat(oh_blocks, dim=1).float()
+
+        H_np = H.numpy()
+        pre_r2 = {a: _linear_r2_train(H_np, attrs[a].numpy()) for a in union_attrs}
+
+        eraser = LeaceEraser.fit(H, A_oh)
+        pl = eraser.proj_left.detach()   # (d, k)
+        pr = eraser.proj_right.detach()  # (k, d)
+        d = pl.shape[0]
+        Q = torch.eye(d, dtype=pl.dtype) - pl @ pr  # (d, d)
+        if hasattr(eraser, "bias") and eraser.bias is not None:
+            center = eraser.bias.detach()
+        else:
+            center = torch.zeros(d, dtype=pl.dtype)
+        # Linear y = x @ W.T + b. LeaceEraser computes
+        # y = (x - center) @ (I - pl @ pr).T + center. Match:
+        #   W = (I - pl @ pr)    (W.T = I - (pl @ pr).T)
+        #   b = center @ (pl @ pr).T
+        b = (center @ pr.T) @ pl.T
+
+        erase = backbone.erase
+        erase.weight.data.copy_(Q.float().to(erase.weight.device))
+        erase.bias.data.copy_(b.float().to(erase.bias.device))
+
+        H_erased = eraser(H).numpy()
+        post_r2 = {a: _linear_r2_train(H_erased, attrs[a].numpy()) for a in union_attrs}
+
+        if was_training:
+            self.encoder.train()
+            self._freeze_backbone_bn()
+
+        logger.info(
+            f"[V2/ERASE] fitted joint LEACE on hidden_dim={d} features over "
+            f"attrs={union_attrs}: pre_r2={pre_r2} post_r2={post_r2}"
+        )
+        return {
+            **{f"r2_pre[{a}]": pre_r2[a] for a in union_attrs},
+            **{f"r2_post[{a}]": post_r2[a] for a in union_attrs},
+        }
+
     def leace_warm_start(self, train_loader: DataLoader) -> dict[str, dict[str, float]]:
         """Initialise each purpose's last-Linear LoRA from a closed-form LEACE
         eraser on (backbone_features, concatenated-one-hot disallowed_attrs).
