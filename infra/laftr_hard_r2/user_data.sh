@@ -23,18 +23,24 @@ echo "=== LAFTR_HARD_R2 bootstrap @ $(date -u) ==="
 S3_PREFIX="__S3_PREFIX__"
 S3_BUCKET="__S3_BUCKET__"
 GIT_REF="__GIT_REF__"
-# Durable, lifecycle-exempt destination for results_final + STATUS. Defaults to
-# an archive/ prefix in the same bucket; only survives the bucket's 7-day
-# lifecycle if that rule has been removed or scoped to exclude archive/ (see
-# memory reference_s3_bucket_lifecycle). Override via launch.sh ARCHIVE_DEST to
-# point at a separate no-lifecycle bucket.
+# Durable, lifecycle-exempt destination for results_final + STATUS + checkpoints.
 ARCHIVE_DEST="__ARCHIVE_DEST__"
+# Canonical raw-data location (durable, lifecycle-exempt). HMDA + Diabetes raw
+# files live here so the instance has a reliable source to bootstrap from.
+ARCHIVE_RAW_DATA="s3://${S3_BUCKET}/archive/raw_data"
+# Datasets to TRAIN this run (smoke always runs Adult regardless). Can be
+# narrowed when relaunching a subset, e.g. "hmda diabetes". Existing
+# results_final/ for omitted datasets are pre-synced from the archive at
+# Stage 2.5 so the final STATUS.txt remains comprehensive.
+DATASETS="__DATASETS__"
 HARD_CAP_SEC=$(( 20 * 3600 ))
 PER_DATASET_TIMEOUT=21600   # 6h × 3600s
 INSTANCE_ID="$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo unknown)"
 echo "instance-id=${INSTANCE_ID}"
 echo "S3_PREFIX=${S3_PREFIX}"
 echo "ARCHIVE_DEST=${ARCHIVE_DEST}"
+echo "ARCHIVE_RAW_DATA=${ARCHIVE_RAW_DATA}"
+echo "DATASETS=${DATASETS}"
 echo "GIT_REF=${GIT_REF}"
 
 if [ -x /opt/pytorch/bin/python ]; then
@@ -72,7 +78,7 @@ ${PIP} install -q "concept-erasure>=0.2.0"
 echo "deps installed"
 aws s3 cp /dev/null "${S3_PREFIX}/STAGE_01_deps_ok.txt" --no-progress >/dev/null 2>&1 || true
 
-# ── Stage 2: data acquisition ───────────────────────────────────────────
+# ── Stage 2: data acquisition (canonical source: ARCHIVE_RAW_DATA) ──────
 mkdir -p /home/ubuntu/PCRL/data /home/ubuntu/PCRL/checkpoints /home/ubuntu/PCRL/results
 echo "attempting to sync preprocessed data from s3://${S3_BUCKET}/data/ ..."
 aws s3 sync "s3://${S3_BUCKET}/data/" /home/ubuntu/PCRL/data/ --no-progress >/dev/null 2>&1 || true
@@ -80,12 +86,14 @@ ls /home/ubuntu/PCRL/data/ 2>/dev/null | sed 's/^/  data\//'
 
 mkdir -p /home/ubuntu/PCRL/data/adult
 
+# HMDA: copy raw csv from the durable archive, then run prepare_hmda.py.
 if [ ! -f /home/ubuntu/PCRL/data/hmda_processed/train.parquet ]; then
   if [ ! -f /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv ]; then
-    echo "HMDA raw missing — attempting s3 fallback"
-    aws s3 cp "s3://${S3_BUCKET}/raw_data/hmda_2023_ca.csv" \
+    echo "HMDA raw missing — fetching from ${ARCHIVE_RAW_DATA}/hmda_2023_ca.csv"
+    mkdir -p /home/ubuntu/PCRL/data/hmda_raw
+    aws s3 cp "${ARCHIVE_RAW_DATA}/hmda_2023_ca.csv" \
       /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv --no-progress 2>&1 || \
-      echo "WARN: HMDA raw not in S3; HMDA run will fail"
+      echo "WARN: HMDA raw not in archive; HMDA run will fail"
   fi
   if [ -f /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv ]; then
     echo "running prepare_hmda.py"
@@ -95,21 +103,45 @@ if [ ! -f /home/ubuntu/PCRL/data/hmda_processed/train.parquet ]; then
   fi
 fi
 
+# Diabetes: copy raw csv from the durable archive. preprocess_diabetes.py
+# accepts ``data/diabetes/diabetic_data.csv`` directly (it only falls back to
+# the zip-extract path if that file is missing), so we sync the file itself
+# rather than reconstituting the unzipped ``dataset_diabetes/`` directory.
 if [ ! -f /home/ubuntu/PCRL/data/diabetes_processed/train.parquet ]; then
-  if [ ! -d /home/ubuntu/PCRL/data/diabetes/dataset_diabetes ]; then
-    echo "Diabetes raw missing — attempting s3 fallback"
+  if [ ! -f /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv ]; then
+    echo "Diabetes raw missing — fetching from ${ARCHIVE_RAW_DATA}/diabetes/diabetic_data.csv"
     mkdir -p /home/ubuntu/PCRL/data/diabetes
-    aws s3 sync "s3://${S3_BUCKET}/raw_data/diabetes/" \
-      /home/ubuntu/PCRL/data/diabetes/ --no-progress 2>&1 || \
-      echo "WARN: Diabetes raw not in S3; Diabetes run will fail"
+    aws s3 cp "${ARCHIVE_RAW_DATA}/diabetes/diabetic_data.csv" \
+      /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv --no-progress 2>&1 || \
+      echo "WARN: Diabetes raw not in archive; Diabetes run will fail"
   fi
-  if [ -d /home/ubuntu/PCRL/data/diabetes/dataset_diabetes ]; then
+  if [ -f /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv ]; then
     echo "running preprocess_diabetes.py"
     sudo -u ubuntu bash -c "cd /home/ubuntu/PCRL && ${PY} experiments/preprocess_diabetes.py" \
       > /home/ubuntu/PCRL/preprocess_diabetes.log 2>&1 || echo "WARN: preprocess_diabetes failed"
     aws s3 cp /home/ubuntu/PCRL/preprocess_diabetes.log "${S3_PREFIX}/preprocess_diabetes.log" --no-progress >/dev/null 2>&1 || true
   fi
 fi
+
+# Stage 2.5: pre-sync ANY existing per-dataset results from the durable
+# archive into the local results/ tree. This lets the final STATUS at
+# Stage 6 reflect the full 3-dataset picture even when DATASETS is narrowed
+# to a subset (e.g. the relaunch-only-HMDA+Diabetes case). Idempotent: any
+# dataset re-trained this run overwrites the synced copy.
+#
+# Tries both naming conventions for backward compat with the 2026-05-29
+# Adult result that landed at ``…/laftr_hard_r2_<ds>/`` (no suffix). The
+# new naming (suffix-preserving) is written by Stage 7 below.
+echo "syncing prior results from ${ARCHIVE_DEST}/results_final/ ..."
+mkdir -p /home/ubuntu/PCRL/results
+for DS in adult hmda diabetes; do
+  LOCAL_DIR=/home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2
+  aws s3 sync "${ARCHIVE_DEST}/results_final/laftr_hard_r2_${DS}_LAFTR_HARD_R2/" \
+    "${LOCAL_DIR}/" --no-progress >/dev/null 2>&1 || true
+  # Backward compat: older Adult archive entry has no suffix.
+  aws s3 sync "${ARCHIVE_DEST}/results_final/laftr_hard_r2_${DS}/" \
+    "${LOCAL_DIR}/" --no-progress >/dev/null 2>&1 || true
+done
 
 chown -R ubuntu:ubuntu /home/ubuntu/PCRL/data /home/ubuntu/PCRL/checkpoints /home/ubuntu/PCRL/results
 aws s3 cp /dev/null "${S3_PREFIX}/STAGE_02_data_ok.txt" --no-progress >/dev/null 2>&1 || true
@@ -160,8 +192,12 @@ if [ "${SMOKE_RC}" != "0" ]; then
 fi
 aws s3 cp /dev/null "${S3_PREFIX}/STAGE_04_smoke_ok.txt" --no-progress >/dev/null 2>&1 || true
 
-# ── Stage 5: full pilot (3 datasets × 3 seeds × 200 epochs) ─────────────
-for DS in adult hmda diabetes; do
+# ── Stage 5: full pilot (DATASETS × 3 seeds × 200 epochs) ──────────────
+# Iterates over the run's DATASETS list (defaults to "adult hmda diabetes";
+# narrow via launch.sh DATASETS_OVERRIDE for relaunches). Existing
+# results for omitted datasets were pre-synced from the archive at
+# Stage 2.5 so the final STATUS still reflects the full picture.
+for DS in ${DATASETS}; do
   echo "=== full pilot ${DS} @ $(date -u) ==="
   sudo -u ubuntu timeout ${PER_DATASET_TIMEOUT} bash -c "cd /home/ubuntu/PCRL && ${PY} -u experiments/run_laftr_hard_r2.py \
       --dataset ${DS} --out-tag _LAFTR_HARD_R2 --seeds 0 1 2 --device cuda" \
@@ -190,15 +226,30 @@ aws s3 cp "${STATUS_FILE}" "${ARCHIVE_DEST}/STATUS.txt" --no-progress >/dev/null
 aws s3 cp /dev/null "${S3_PREFIX}/STAGE_06_status_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 7: final S3 sync (run prefix + durable archive) + shutdown ─────
+# Results JSON+summaries: sync to BOTH the run prefix (convenient browse path)
+# and the durable archive. Checkpoints (.pt): sync to the durable archive
+# ONLY — they're small per-run (~250KB per file × ~18 files = ~5 MB total
+# on the LoRA-only setup), but the principle is "checkpoints to archive,
+# not the convenient-but-ephemeral run prefix" (user guidance 2026-05-29).
 for DS in adult hmda diabetes; do
   if [ -d /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 ]; then
-    # Run prefix (subject to the bucket lifecycle — convenient but ephemeral).
+    # Suffix-preserving naming so the local aggregator (which reads
+    # ``results/laftr_hard_r2_<ds>_LAFTR_HARD_R2/``) finds the synced copy
+    # without further renaming.
     aws s3 sync /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 \
-      "${S3_PREFIX}/results_final/laftr_hard_r2_${DS}/" --no-progress >/dev/null 2>&1 || true
-    # Durable archive (lifecycle-exempt destination — see ARCHIVE_DEST).
+      "${S3_PREFIX}/results_final/laftr_hard_r2_${DS}_LAFTR_HARD_R2/" --no-progress >/dev/null 2>&1 || true
     aws s3 sync /home/ubuntu/PCRL/results/laftr_hard_r2_${DS}_LAFTR_HARD_R2 \
-      "${ARCHIVE_DEST}/results_final/laftr_hard_r2_${DS}/" --no-progress >/dev/null 2>&1 || true
+      "${ARCHIVE_DEST}/results_final/laftr_hard_r2_${DS}_LAFTR_HARD_R2/" --no-progress >/dev/null 2>&1 || true
   fi
+done
+# Checkpoints: archive-only, per-seed, only for datasets trained this run.
+# Glob over the actual ckpt dirs that exist; orchestrator pattern is
+# ``checkpoints/laftr_hard_r2_<ds>_LAFTR_HARD_R2_s<seed>/{best,final,...}.pt``.
+for CKPT_DIR in /home/ubuntu/PCRL/checkpoints/laftr_hard_r2_*_LAFTR_HARD_R2_s*; do
+  [ -d "${CKPT_DIR}" ] || continue
+  BASENAME="$(basename ${CKPT_DIR})"
+  aws s3 sync "${CKPT_DIR}" "${ARCHIVE_DEST}/checkpoints/${BASENAME}/" \
+    --no-progress --exclude '*.npz' >/dev/null 2>&1 || true
 done
 aws s3 cp /var/log/laftr_hard_r2.log "${S3_PREFIX}/laftr_hard_r2.log" --no-progress >/dev/null 2>&1 || true
 aws s3 cp /var/log/laftr_hard_r2.log "${ARCHIVE_DEST}/laftr_hard_r2.log" --no-progress >/dev/null 2>&1 || true

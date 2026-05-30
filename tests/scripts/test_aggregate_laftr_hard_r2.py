@@ -548,8 +548,66 @@ def test_render_headline_shows_aggregated_task_acc_with_cells(synthetic_root):
     assert "Diabetes" in h
 
 
-def test_full_main_writes_three_files(synthetic_root, monkeypatch):
-    """End-to-end: invoke main() against the synthetic root and verify the three artifacts."""
+def test_render_paper_paste_contains_q3_framing(synthetic_root):
+    """The PAPER_PASTE.md must carry the 2026-05-29 finding that
+    occupation_group and education_level are deterministic recodings of
+    one-hot input features — so reviewers don't misread the ~99% task acc.
+    """
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    md = agg.render_paper_paste(rows, common_ds=common_ds)
+    # Q3 framing essentials
+    assert "deterministic recoding" in md
+    assert "occupation_group" in md and "education_level" in md
+    assert "`income`" in md
+    # Mentions the erase-layer evidence and the architectural-ceiling conclusion
+    assert "erase-layer" in md.lower()
+    assert "60/60" in md
+    # The 3 methods are all present
+    assert "PCRL (paper)" in md or "PCRL (Round 5/7" in md or "PCRL" in md
+    assert "LAFTR" in md
+    assert "Provenance" in md
+
+
+def test_render_paper_paste_handles_no_asymmetry(tmp_path):
+    """When all three methods report task_acc on every dataset, the asymmetry
+    note must NOT appear in PAPER_PASTE.md."""
+    baselines = {
+        "_source": "test-symmetric",
+        "_strict_pass_threshold": 0.05,
+        "methods": {
+            "PCRL_paper": {
+                "label": "PCRL (paper)", "short_label": "PCRL",
+                "per_dataset": {
+                    "adult": _block(0.9, 0.01, 0.93, 8, 3, 22),
+                    "hmda": _block(0.9, 0.01, 0.68, 6, 3, 16),
+                    "diabetes": _block(0.9, 0.01, 0.73, 6, 3, 17),
+                },
+            },
+            "LAFTR_appendixQ": {
+                "label": "LAFTR (Q)", "short_label": "LAFTR-Q",
+                "per_dataset": {
+                    "adult": _block(0.0, None, 0.95, 8, 3, 0),
+                    "hmda": _block(0.0, None, 0.81, 6, 3, 0),
+                    "diabetes": _block(0.83, None, 0.31, 6, 3, 15),
+                },
+            },
+        },
+    }
+    _write_frozen_baselines(tmp_path, baselines)
+    for ds in ["adult", "hmda", "diabetes"]:
+        n = 8 if ds == "adult" else 6
+        cells = [{"purpose": "p", "attribute": f"a{i}", "linear_r2": 0.01 if i == 0 else 0.10} for i in range(n)]
+        blob = _make_per_seed_results(
+            cells_by_seed=[cells] * 3, task_accs_by_seed=[{"t": 0.80}] * 3,
+        )
+        _write_laftr_hard_r2_results(tmp_path, ds, blob)
+    rows, _, common_ds = agg.build_rows(tmp_path)
+    md = agg.render_paper_paste(rows, common_ds=common_ds)
+    assert "Note on the aggregated task-accuracy column" not in md
+
+
+def test_full_main_writes_four_files(synthetic_root, monkeypatch):
+    """End-to-end: invoke main() against the synthetic root and verify the four artifacts."""
     out = synthetic_root / "results" / "laftr_hard_r2"
     monkeypatch.setattr(
         "sys.argv",
@@ -560,6 +618,7 @@ def test_full_main_writes_three_files(synthetic_root, monkeypatch):
     assert (out / "comparison_table.tex").is_file()
     assert (out / "comparison.json").is_file()
     assert (out / "HEADLINE.txt").is_file()
+    assert (out / "PAPER_PASTE.md").is_file()
     payload = json.loads((out / "comparison.json").read_text())
     assert len(payload["rows"]) == 3
     assert payload["_strict_pass_threshold"] == 0.05

@@ -31,6 +31,9 @@ S3_PREFIX="s3://${S3_BUCKET}/${S3_PREFIX_PATH}"
 ARCHIVE_DEST="${ARCHIVE_DEST:-s3://${S3_BUCKET}/archive/laftr_hard_r2}"
 GIT_REF="${GIT_REF:-laftr-hard-r2-2026-05-17}"
 TAG_NAME="${TAG_NAME:-LAFTR_HARD_R2}"
+# Datasets the run trains. Default = full pilot. Override for subset relaunch:
+#   DATASETS="hmda diabetes" ./launch.sh
+DATASETS="${DATASETS:-adult hmda diabetes}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "${REPO_ROOT}"
@@ -42,6 +45,7 @@ echo "[pre-flight 1] aws sts get-caller-identity"
 aws sts get-caller-identity --output json | sed 's/^/  /'
 
 # ── Pre-flight 2: git ref pushed ────────────────────────────────────────
+echo "[pre-flight 2] datasets this run: ${DATASETS}"
 echo "[pre-flight 2] git ref ${GIT_REF} reachable on origin"
 LOCAL_HEAD="$(git rev-parse HEAD 2>/dev/null || echo none)"
 REMOTE_HEAD="$(git ls-remote origin "${GIT_REF}" | awk '{print $1}')"
@@ -85,6 +89,7 @@ sed \
   -e "s|__S3_PREFIX__|${S3_PREFIX}|g" \
   -e "s|__S3_BUCKET__|${S3_BUCKET}|g" \
   -e "s|__ARCHIVE_DEST__|${ARCHIVE_DEST}|g" \
+  -e "s|__DATASETS__|${DATASETS}|g" \
   -e "s|__GIT_REF__|${GIT_REF}|g" \
   "${REPO_ROOT}/infra/laftr_hard_r2/user_data.sh" > "${USER_DATA_RENDERED}"
 echo "[render] user-data rendered to ${USER_DATA_RENDERED}"
