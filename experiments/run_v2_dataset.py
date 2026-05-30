@@ -213,6 +213,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              cross_purpose_threshold: float = 0.10,
              use_erase_layer: bool = False,
              lora_target: str = "all_linear",
+             lora_rank_override: int | None = None,
+             lora_alpha_override: float | None = None,
              lambda_vicreg: float = 1.0) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -239,7 +241,19 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     input_dim = train_ds.info.num_features
     repr_dim = 64
 
+    # CLI overrides for ablation studies (e.g. Diabetes rank-8 ablation tests
+    # what happens when the LoRA rank is BELOW the joint LEACE rank floor of
+    # 13 for Diabetes quality_research/{race, age_bucket}). When unset, fall
+    # back to the published LORA_BY_DATASET values.
     lora_rank, lora_alpha = LORA_BY_DATASET.get(name, (8, 16.0))
+    if lora_rank_override is not None:
+        lora_rank = lora_rank_override
+        # If only --lora-rank is given without --lora-alpha, default alpha=2×rank
+        # (matches the LORA_BY_DATASET convention: (8,16), (24,48) all are
+        # alpha=2×rank).
+        lora_alpha = lora_alpha_override if lora_alpha_override is not None else float(2 * lora_rank)
+    elif lora_alpha_override is not None:
+        lora_alpha = lora_alpha_override
     backbone = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=repr_dim, dropout=0.3,
         use_erase_layer=use_erase_layer,
@@ -562,6 +576,24 @@ def main() -> None:
             "0.5 cleanly-compliant threshold without fighting R² descent."
         ),
     )
+    parser.add_argument(
+        "--lora-rank", type=int, default=None,
+        help=(
+            "Override the per-dataset default LoRA rank from LORA_BY_DATASET. "
+            "Default (None) uses the published rank: Adult/HMDA=8, Diabetes=24, "
+            "Folktables=8. Setting --lora-rank=8 on Diabetes runs the rank-8 "
+            "ablation that tests what happens when LoRA rank is below the "
+            "joint LEACE rank floor (13 for quality_research/{race, age_bucket})."
+        ),
+    )
+    parser.add_argument(
+        "--lora-alpha", type=float, default=None,
+        help=(
+            "Override the per-dataset default LoRA alpha. Defaults to 2× rank "
+            "if only --lora-rank is set, or to the published LORA_BY_DATASET "
+            "value if neither is set."
+        ),
+    )
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -589,6 +621,8 @@ def main() -> None:
             use_erase_layer=args.use_erase_layer,
             lora_target=args.lora_target,
             lambda_vicreg=args.lambda_vicreg,
+            lora_rank_override=args.lora_rank,
+            lora_alpha_override=args.lora_alpha,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
