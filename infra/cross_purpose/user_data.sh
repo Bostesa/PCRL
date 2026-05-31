@@ -25,6 +25,10 @@ S3_PREFIX="__S3_PREFIX__"
 S3_BUCKET="__S3_BUCKET__"
 GIT_REF="__GIT_REF__"
 ARCHIVE_DEST="__ARCHIVE_DEST__"
+# Canonical raw-data location (durable, lifecycle-exempt). HMDA + Diabetes
+# raw files live here so the instance has a reliable source to bootstrap
+# from. Mirrors the LAFTR pattern at commit 1c5e1af.
+ARCHIVE_RAW_DATA="s3://${S3_BUCKET}/archive/raw_data"
 INSTANCE_TAG="__INSTANCE_TAG__"
 DATASETS="__DATASETS__"
 HARD_CAP_SEC=$(( 20 * 3600 ))
@@ -35,6 +39,7 @@ echo "INSTANCE_TAG=${INSTANCE_TAG}"
 echo "DATASETS=${DATASETS}"
 echo "S3_PREFIX=${S3_PREFIX}"
 echo "ARCHIVE_DEST=${ARCHIVE_DEST}"
+echo "ARCHIVE_RAW_DATA=${ARCHIVE_RAW_DATA}"
 echo "GIT_REF=${GIT_REF}"
 
 # Cross-purpose attribute lists per dataset (hardcoded for safety; matches
@@ -77,7 +82,7 @@ aws s3 cp <(echo "${HEAD_SHA}") "${S3_PREFIX}/git_head_${INSTANCE_ID}.txt" --no-
 ${PIP} install -q -r requirements.txt
 ${PIP} install -q "concept-erasure>=0.2.0"
 echo "deps installed"
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_01_env_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_01_env_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 2: data acquisition ───────────────────────────────────────────
 mkdir -p /home/ubuntu/PCRL/data /home/ubuntu/PCRL/checkpoints /home/ubuntu/PCRL/results
@@ -87,28 +92,40 @@ aws s3 sync "s3://${S3_BUCKET}/data/" /home/ubuntu/PCRL/data/ --no-progress >/de
 for DS in ${DATASETS}; do
   case "${DS}" in
     hmda)
+      # HMDA: copy raw csv from the durable archive, then run prepare_hmda.py.
+      # Mirrors LAFTR's post-1c5e1af pattern. Yesterday's AB run failed here
+      # because the source was s3://${S3_BUCKET}/raw_data/ (no archive prefix)
+      # which was empty.
       if [ ! -f /home/ubuntu/PCRL/data/hmda_processed/train.parquet ]; then
         if [ ! -f /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv ]; then
+          echo "HMDA raw missing — fetching from ${ARCHIVE_RAW_DATA}/hmda_2023_ca.csv"
           mkdir -p /home/ubuntu/PCRL/data/hmda_raw
-          aws s3 cp "s3://${S3_BUCKET}/raw_data/hmda_2023_ca.csv" \
+          aws s3 cp "${ARCHIVE_RAW_DATA}/hmda_2023_ca.csv" \
             /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv --no-progress 2>&1 || \
-            echo "WARN: HMDA raw not in S3; HMDA run will fail"
+            echo "WARN: HMDA raw not in archive; HMDA run will fail"
         fi
         if [ -f /home/ubuntu/PCRL/data/hmda_raw/hmda_2023_ca.csv ]; then
+          echo "running prepare_hmda.py"
           sudo -u ubuntu bash -c "cd /home/ubuntu/PCRL && ${PY} experiments/prepare_hmda.py" \
             > /home/ubuntu/PCRL/prepare_hmda.log 2>&1 || echo "WARN: prepare_hmda failed"
           aws s3 cp /home/ubuntu/PCRL/prepare_hmda.log "${S3_PREFIX}/prepare_hmda.log" --no-progress >/dev/null 2>&1 || true
         fi
       fi ;;
     diabetes)
+      # Diabetes: copy raw csv from the durable archive. preprocess_diabetes.py
+      # accepts data/diabetes/diabetic_data.csv directly (falls back to the
+      # zip-extract path only if missing), so sync the flat file rather than
+      # the unzipped dataset_diabetes/ directory. Mirrors LAFTR.
       if [ ! -f /home/ubuntu/PCRL/data/diabetes_processed/train.parquet ]; then
-        if [ ! -d /home/ubuntu/PCRL/data/diabetes/dataset_diabetes ]; then
+        if [ ! -f /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv ]; then
+          echo "Diabetes raw missing — fetching from ${ARCHIVE_RAW_DATA}/diabetes/diabetic_data.csv"
           mkdir -p /home/ubuntu/PCRL/data/diabetes
-          aws s3 sync "s3://${S3_BUCKET}/raw_data/diabetes/" \
-            /home/ubuntu/PCRL/data/diabetes/ --no-progress 2>&1 || \
-            echo "WARN: Diabetes raw not in S3; Diabetes run will fail"
+          aws s3 cp "${ARCHIVE_RAW_DATA}/diabetes/diabetic_data.csv" \
+            /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv --no-progress 2>&1 || \
+            echo "WARN: Diabetes raw not in archive; Diabetes run will fail"
         fi
-        if [ -d /home/ubuntu/PCRL/data/diabetes/dataset_diabetes ]; then
+        if [ -f /home/ubuntu/PCRL/data/diabetes/diabetic_data.csv ]; then
+          echo "running preprocess_diabetes.py"
           sudo -u ubuntu bash -c "cd /home/ubuntu/PCRL && ${PY} experiments/preprocess_diabetes.py" \
             > /home/ubuntu/PCRL/preprocess_diabetes.log 2>&1 || echo "WARN: preprocess_diabetes failed"
           aws s3 cp /home/ubuntu/PCRL/preprocess_diabetes.log "${S3_PREFIX}/preprocess_diabetes.log" --no-progress >/dev/null 2>&1 || true
@@ -119,7 +136,7 @@ for DS in ${DATASETS}; do
 done
 
 chown -R ubuntu:ubuntu /home/ubuntu/PCRL/data /home/ubuntu/PCRL/checkpoints /home/ubuntu/PCRL/results
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_02_data_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_02_data_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 3: live-log watchdog ──────────────────────────────────────────
 cat > /home/ubuntu/sync_watchdog.sh <<WATCHDOG_EOF
@@ -145,7 +162,7 @@ chmod +x /home/ubuntu/sync_watchdog.sh
 setsid nohup /home/ubuntu/sync_watchdog.sh </dev/null >/dev/null 2>&1 &
 disown
 echo "sync watchdog armed (60s cadence)"
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_03_watchdog_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_03_watchdog_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 4: smoke (first listed dataset, seed 0, 5 epochs) ─────────────
 SMOKE_DS="$(echo ${DATASETS} | awk '{print $1}')"
@@ -170,7 +187,7 @@ if [ "${SMOKE_RC}" != "0" ]; then
   sudo shutdown -h now
   exit 0
 fi
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_04_smoke_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_04_smoke_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 5: full training + cross-purpose eval per dataset ─────────────
 for DS in ${DATASETS}; do
@@ -202,7 +219,7 @@ for DS in ${DATASETS}; do
       "${S3_PREFIX}/per_dataset_summary/${DS}_eval_results.json" --no-progress >/dev/null 2>&1 || true
   fi
 done
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_05_pilot_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_05_pilot_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 6: durable status file ────────────────────────────────────────
 STATUS_FILE=/home/ubuntu/PCRL/STATUS.txt
@@ -211,9 +228,16 @@ sudo -u ubuntu bash -c "cd /home/ubuntu/PCRL && ${PY} -u scripts/emit_run_status
     > /home/ubuntu/PCRL/emit_status.log 2>&1 || echo "WARN: emit_run_status_cross_purpose failed"
 aws s3 cp "${STATUS_FILE}" "${S3_PREFIX}/STATUS.txt" --no-progress >/dev/null 2>&1 || true
 aws s3 cp "${STATUS_FILE}" "${ARCHIVE_DEST}/STATUS.txt" --no-progress >/dev/null 2>&1 || true
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_06_status_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_06_status_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 # ── Stage 7: final S3 sync (run prefix + durable archive) + shutdown ─────
+# Results JSON+summaries: sync to BOTH the run prefix (convenient browse path)
+# and the durable archive. Checkpoints (.pt): sync to the durable archive
+# ONLY — they're small (~250KB per LoRA file × ~18 files ≈ 5 MB total per
+# dataset) but the principle is "checkpoints to archive, not the convenient-
+# but-ephemeral run prefix" (user guidance 2026-05-29). Yesterday's AB run
+# lost its Adult checkpoints because this block synced only results/, not
+# checkpoints/.
 for DS in ${DATASETS}; do
   if [ -d /home/ubuntu/PCRL/results/v2_${DS}_${INSTANCE_TAG} ]; then
     aws s3 sync /home/ubuntu/PCRL/results/v2_${DS}_${INSTANCE_TAG} \
@@ -222,9 +246,18 @@ for DS in ${DATASETS}; do
       "${ARCHIVE_DEST}/results_final/v2_${DS}_${INSTANCE_TAG}/" --no-progress >/dev/null 2>&1 || true
   fi
 done
+# Checkpoints: archive-only, per-seed, only for datasets trained this run.
+# Glob over the actual ckpt dirs that exist; orchestrator pattern is
+# checkpoints/v2_<ds>_<INSTANCE_TAG>_s<seed>/{best,final,canonical_iterate,...}.pt
+for CKPT_DIR in /home/ubuntu/PCRL/checkpoints/v2_*_${INSTANCE_TAG}_s*; do
+  [ -d "${CKPT_DIR}" ] || continue
+  BASENAME="$(basename ${CKPT_DIR})"
+  aws s3 sync "${CKPT_DIR}" "${ARCHIVE_DEST}/checkpoints/${BASENAME}/" \
+    --no-progress --exclude '*.npz' >/dev/null 2>&1 || true
+done
 aws s3 cp /var/log/cross_purpose.log "${S3_PREFIX}/cross_purpose.log" --no-progress >/dev/null 2>&1 || true
 aws s3 cp /var/log/cross_purpose.log "${ARCHIVE_DEST}/cross_purpose.log" --no-progress >/dev/null 2>&1 || true
-aws s3 cp /dev/null "${S3_PREFIX}/STAGE_07_archive_ok.txt" --no-progress >/dev/null 2>&1 || true
+printf '' | aws s3 cp - "${S3_PREFIX}/STAGE_07_archive_ok.txt" --no-progress >/dev/null 2>&1 || true
 
 touch /home/ubuntu/done.flag
 echo "all done @ $(date -u); archived to ${ARCHIVE_DEST}; shutting down"
