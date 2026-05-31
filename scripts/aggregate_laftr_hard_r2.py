@@ -61,6 +61,67 @@ def load_laftr_hard_r2_per_seed(root: Path, dataset: str) -> dict | None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Representational-health diagnostics
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Published cleanly-compliant thresholds (matches v2_dataset orchestrator and
+# the erase-pilot aggregator). A "collapsed" seed is one where any purpose's
+# per_dim_std mean falls below PER_DIM_STD_MIN.
+PER_DIM_STD_MIN = 0.5
+EFF_RANK_MIN = 2.0
+
+
+def compute_collapse_diagnostics(
+    per_seed_file: dict, focus_task: str | None = None,
+) -> dict[str, Any]:
+    """Return per-seed representational-health summary.
+
+    For each seed, looks at ``per_purpose_health`` and reports the minimum
+    per_dim_std_mean and minimum effective_rank across purposes. A seed
+    counts as ``collapsed`` if min per_dim_std_mean < ``PER_DIM_STD_MIN`` or
+    min eff_rank < ``EFF_RANK_MIN``.
+
+    If ``focus_task`` is given, also reports that task's mean accuracy
+    across seeds (used by render_paper_paste to surface the "compliance via
+    collapse" signal, e.g. primary_diagnosis_category at majority baseline).
+    """
+    seeds = per_seed_file["per_seed"]
+    per_seed = []
+    n_collapsed = 0
+    focus_accs: list[float] = []
+    for s in seeds:
+        health = s.get("per_purpose_health") or {}
+        if not health:
+            continue
+        std_mins = [h.get("per_dim_std_mean", 0.0) for h in health.values()]
+        rank_mins = [h.get("effective_rank", 0.0) for h in health.values()]
+        std_min = min(std_mins) if std_mins else float("nan")
+        rank_min = min(rank_mins) if rank_mins else float("nan")
+        collapsed = std_min < PER_DIM_STD_MIN or rank_min < EFF_RANK_MIN
+        if collapsed:
+            n_collapsed += 1
+        per_seed.append({
+            "seed": s["seed"],
+            "min_per_dim_std": std_min,
+            "min_eff_rank": rank_min,
+            "collapsed": collapsed,
+        })
+        if focus_task and focus_task in s.get("task_accuracies", {}):
+            focus_accs.append(s["task_accuracies"][focus_task])
+    return {
+        "per_seed": per_seed,
+        "n_seeds": len(per_seed),
+        "n_collapsed": n_collapsed,
+        "focus_task": focus_task,
+        "focus_task_mean_acc": (sum(focus_accs) / len(focus_accs)) if focus_accs else None,
+        "thresholds": {
+            "per_dim_std_min": PER_DIM_STD_MIN,
+            "eff_rank_min": EFF_RANK_MIN,
+        },
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Metric computation
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -517,6 +578,7 @@ def build_rows(
 def render_paper_paste(
     rows: list[tuple[str, str, dict[str, dict | None], dict]],
     common_ds: set[str] | None = None,
+    root: Path | None = None,
 ) -> str:
     """Camera-ready Markdown for direct paste into the rebuttal.
 
@@ -603,23 +665,88 @@ def render_paper_paste(
     lines.append("and in PCRL Round 5's corresponding file. For LAFTR-Q the income-only number")
     lines.append("is in `results/laftr_benchmark/adult/income_prediction/seed_<n>/metrics.json`.)")
     lines.append("")
+    # ── Diabetes compliance-via-collapse framing ─────────────────────────
+    # Mirrors the Adult deterministic-recoding caveat. The Diabetes 18/18
+    # pass is real on the strict-R² criterion but pays for it with
+    # representational collapse — same failure mode the submitted paper's
+    # Appendix P applies to LAFTR-Q's Diabetes result (task acc 31.3% vs
+    # majority baseline 28%). We surface per-seed health diagnostics so a
+    # reviewer can see the 18/18 number isn't "real" compliance.
+    if root is not None:
+        diab = load_laftr_hard_r2_per_seed(root, "diabetes")
+        if diab is not None:
+            diag = compute_collapse_diagnostics(
+                diab, focus_task="primary_diagnosis_category"
+            )
+            if diag["n_collapsed"] > 0:
+                lines.append("## Reading the Diabetes 18/18 row (important)")
+                lines.append("")
+                lines.append("LAFTR-hard-R² hits 18/18 strict pass on Diabetes — but this is")
+                lines.append("compliance via representational collapse, not erasure. The")
+                lines.append(f"per-seed representational health (thresholds: per_dim_std mean ≥ "
+                             f"{diag['thresholds']['per_dim_std_min']}, effective rank ≥ "
+                             f"{diag['thresholds']['eff_rank_min']}):")
+                lines.append("")
+                lines.append("| Seed | Min per_dim_std mean | Min effective rank | Collapsed? |")
+                lines.append("|---|---|---|---|")
+                for s in diag["per_seed"]:
+                    flag = "**yes**" if s["collapsed"] else "no"
+                    lines.append(
+                        f"| {s['seed']} | {s['min_per_dim_std']:.3f} | "
+                        f"{s['min_eff_rank']:.2f} | {flag} |"
+                    )
+                lines.append("")
+                if diag["focus_task_mean_acc"] is not None:
+                    lines.append(
+                        f"The corollary in task-acc space: `primary_diagnosis_category` "
+                        f"averages **{diag['focus_task_mean_acc']*100:.1f}%** across seeds — "
+                        f"essentially the majority baseline. This is the same failure mode the"
+                    )
+                else:
+                    lines.append("The same failure mode the")
+                lines.append("submitted paper applies to LAFTR-Q on Diabetes in Appendix P")
+                lines.append("(LAFTR-Q `primary_diagnosis_category` at 31.3% vs majority")
+                lines.append("baseline 28%). PCRL Round 7 reaches 17/18 strict pass on the")
+                lines.append("same dataset **without** collapse (per_dim_std > 0.5,")
+                lines.append("eff_rank > 2.0 on every seed); PCRL + erase-layer reaches 18/18")
+                lines.append("also without collapse. The 18/18 number in row 3 should be read")
+                lines.append("alongside the collapse diagnostic; it is not real erasure.")
+                lines.append("")
+                lines.append(
+                    f"({diag['n_collapsed']}/{diag['n_seeds']} seeds satisfy the collapse "
+                    f"condition; per-seed numbers in `results/laftr_hard_r2_diabetes_LAFTR_HARD_R2/"
+                    f"per_seed_results.json[per_seed][·][per_purpose_health]`.)"
+                )
+                lines.append("")
     lines.append("## Headline interpretation")
     lines.append("")
     lines.append("- **R1's complaint** — LAFTR was audited under PCRL's strict-R² criterion")
     lines.append("  despite not being trained against it — is addressed by the third row.")
     lines.append("  Training LAFTR with the proxy-Lagrangian R²<0.05 constraint added on top")
-    lines.append("  of its published `λ_adv=1.0` adversarial loss yields the same Adult")
-    lines.append("  pass-rate as the original LAFTR (Appendix Q): 0/24 strict pass.")
-    lines.append("- **The architectural ceiling is what's binding**, not the training")
-    lines.append("  objective. Both LAFTR variants share an encoder that cannot satisfy")
-    lines.append("  linear R²<0.05 simultaneously with the task and adversarial losses on")
-    lines.append("  this backbone; the dual ramps but the primal cannot give back.")
-    lines.append("- **The erase-layer ablation is the load-bearing change** for compliance.")
-    lines.append("  PCRL + erase-layer achieves 60/60 on the same grid (Adult 24/24 + HMDA")
-    lines.append("  18/18 + Diabetes 18/18), and it does so by destroying enough")
-    lines.append("  representational capacity that even the `occupation_group` passthrough")
-    lines.append("  breaks from ~99% to ~77% — direct evidence that the constraint is biting")
-    lines.append("  on the encoder, not just the readout.")
+    lines.append("  of its published `λ_adv=1.0` adversarial loss moves the aggregated")
+    lines.append("  pass-rate from 15/60 (Appendix Q) to 35/60 — a real, attributable gain")
+    lines.append("  from the constraint mechanism. It does not close the gap to PCRL's")
+    lines.append("  54/60 or PCRL+erase-layer's 60/60.")
+    lines.append("- **Adult fails (0/24) despite the constraint engaging.** Dual variables")
+    lines.append("  ramp (some to λ≈80), the primal cannot give back, and the encoder")
+    lines.append("  cannot satisfy linear R²<0.05 simultaneously with the task and")
+    lines.append("  adversarial losses on this backbone. Same R² as Appendix Q's")
+    lines.append("  unconstrained LAFTR — the architectural ceiling is binding.")
+    lines.append("- **HMDA passes 17/18** clean-ish — one stubborn pair")
+    lines.append("  (`pricing_analysis/race` seed 0, R²=0.07). All seeds had")
+    lines.append("  `feasible=0/200` from Cotter; fallback selection took the lowest-")
+    lines.append("  violation iterate. The constraint composes with LAFTR's adversarial")
+    lines.append("  loss on this dataset.")
+    lines.append("- **Diabetes passes 18/18 but via collapse** (see the Diabetes section")
+    lines.append("  above). The 18/18 number is the same compliance-via-collapse mechanism")
+    lines.append("  the paper applies to LAFTR-Q in Appendix P; it is not real erasure.")
+    lines.append("  PCRL Round 7 reaches 17/18 on Diabetes without collapse.")
+    lines.append("- **The erase-layer ablation is the load-bearing change** for clean")
+    lines.append("  compliance. PCRL + erase-layer achieves 60/60 on the same grid")
+    lines.append("  (Adult 24/24 + HMDA 18/18 + Diabetes 18/18) and does so by")
+    lines.append("  destroying enough representational capacity that even the")
+    lines.append("  `occupation_group` passthrough breaks from ~99% to ~77% — direct")
+    lines.append("  evidence that the constraint is biting on the encoder, not the readout.")
     lines.append("")
     if asymmetric:
         lines.append("## Note on the aggregated task-accuracy column")
@@ -659,7 +786,7 @@ def main() -> int:
 
     tex = render_tex(rows, common_ds=common_ds)
     headline = render_headline(rows, common_ds=common_ds)
-    paper_paste = render_paper_paste(rows, common_ds=common_ds)
+    paper_paste = render_paper_paste(rows, common_ds=common_ds, root=root)
 
     (out_dir / "comparison_table.tex").write_text(tex)
     (out_dir / "comparison.json").write_text(json.dumps(payload, indent=2, default=str))

@@ -24,18 +24,27 @@ from scripts import aggregate_laftr_hard_r2 as agg  # noqa: E402
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def _make_per_seed_results(cells_by_seed: list[list[dict]], task_accs_by_seed: list[dict]) -> dict:
+def _make_per_seed_results(
+    cells_by_seed: list[list[dict]],
+    task_accs_by_seed: list[dict],
+    health_by_seed: list[dict] | None = None,
+) -> dict:
     """Build a per_seed_results.json structure matching what
     experiments/run_laftr_hard_r2.py writes.
+
+    ``health_by_seed[i]`` is the ``per_purpose_health`` dict for seed i;
+    defaults to empty (legacy behavior). Pass concrete dicts to drive
+    collapse-diagnostic tests.
     """
     per_seed = []
     for seed_idx, (cells, task_accs) in enumerate(zip(cells_by_seed, task_accs_by_seed)):
+        health = (health_by_seed[seed_idx] if health_by_seed else {})
         per_seed.append({
             "seed": seed_idx,
             "total_pairs": len(cells),
             "attribute_results": cells,
             "task_accuracies": task_accs,
-            "per_purpose_health": {},
+            "per_purpose_health": health,
         })
     return {"per_seed": per_seed, "summary": {}}
 
@@ -604,6 +613,145 @@ def test_render_paper_paste_handles_no_asymmetry(tmp_path):
     rows, _, common_ds = agg.build_rows(tmp_path)
     md = agg.render_paper_paste(rows, common_ds=common_ds)
     assert "Note on the aggregated task-accuracy column" not in md
+
+
+def test_compute_collapse_diagnostics_flags_low_per_dim_std():
+    """A seed with per_dim_std < PER_DIM_STD_MIN must be flagged as collapsed,
+    even if eff_rank is healthy."""
+    cells = [{"purpose": "p", "attribute": "a", "linear_r2": 0.01}]
+    health_seed_0 = {"p": {"per_dim_std_mean": 0.40, "effective_rank": 5.0}}  # collapsed (std)
+    health_seed_1 = {"p": {"per_dim_std_mean": 0.60, "effective_rank": 5.0}}  # healthy
+    blob = _make_per_seed_results(
+        cells_by_seed=[cells, cells],
+        task_accs_by_seed=[{"primary_diagnosis_category": 0.31}, {"primary_diagnosis_category": 0.30}],
+        health_by_seed=[health_seed_0, health_seed_1],
+    )
+    diag = agg.compute_collapse_diagnostics(blob, focus_task="primary_diagnosis_category")
+    assert diag["n_seeds"] == 2
+    assert diag["n_collapsed"] == 1
+    assert diag["per_seed"][0]["collapsed"] is True
+    assert diag["per_seed"][1]["collapsed"] is False
+    assert abs(diag["focus_task_mean_acc"] - 0.305) < 1e-9
+
+
+def test_compute_collapse_diagnostics_flags_low_eff_rank():
+    """A seed with eff_rank < EFF_RANK_MIN must be flagged as collapsed,
+    even if per_dim_std is healthy."""
+    cells = [{"purpose": "p", "attribute": "a", "linear_r2": 0.01}]
+    health = {"p": {"per_dim_std_mean": 0.60, "effective_rank": 1.5}}  # collapsed (rank)
+    blob = _make_per_seed_results(
+        cells_by_seed=[cells],
+        task_accs_by_seed=[{"t": 0.5}],
+        health_by_seed=[health],
+    )
+    diag = agg.compute_collapse_diagnostics(blob)
+    assert diag["n_collapsed"] == 1
+    assert diag["per_seed"][0]["collapsed"] is True
+
+
+def test_compute_collapse_diagnostics_min_over_purposes():
+    """Min per_dim_std + min eff_rank must be taken across all purposes in the seed."""
+    cells = [{"purpose": "p", "attribute": "a", "linear_r2": 0.01}]
+    health = {
+        "p1": {"per_dim_std_mean": 0.80, "effective_rank": 8.0},  # healthy
+        "p2": {"per_dim_std_mean": 0.20, "effective_rank": 1.0},  # collapsed
+    }
+    blob = _make_per_seed_results(
+        cells_by_seed=[cells],
+        task_accs_by_seed=[{"t": 0.5}],
+        health_by_seed=[health],
+    )
+    diag = agg.compute_collapse_diagnostics(blob)
+    s = diag["per_seed"][0]
+    assert s["min_per_dim_std"] == 0.20
+    assert s["min_eff_rank"] == 1.0
+    assert s["collapsed"] is True
+
+
+def test_compute_collapse_diagnostics_empty_health_skips_seed():
+    """Seeds without per_purpose_health entries must be skipped (not crash)."""
+    cells = [{"purpose": "p", "attribute": "a", "linear_r2": 0.01}]
+    blob = _make_per_seed_results(
+        cells_by_seed=[cells, cells],
+        task_accs_by_seed=[{"t": 0.5}, {"t": 0.5}],
+        # health_by_seed=None → both seeds get empty dicts → skipped
+    )
+    diag = agg.compute_collapse_diagnostics(blob)
+    assert diag["n_seeds"] == 0
+    assert diag["n_collapsed"] == 0
+
+
+def _diabetes_collapse_root(tmp_path):
+    """Construct a synthetic root where LAFTR-hard-R² Diabetes is in collapse:
+    18/18 strict pass + seeds 1+2 have per_dim_std=0.000, eff_rank=1.00 +
+    primary_diagnosis_category averages ~31% (matches the real 2026-05-30 run).
+    """
+    _write_frozen_baselines(tmp_path, _minimal_frozen_baselines())
+    diab_cells = [
+        {"purpose": "p", "attribute": f"a{i}", "linear_r2": 0.004} for i in range(6)
+    ]
+    diab_blob = _make_per_seed_results(
+        cells_by_seed=[diab_cells, diab_cells, diab_cells],
+        task_accs_by_seed=[
+            {"primary_diagnosis_category": 0.317, "readmission_outcome": 0.91, "medication_change_outcome": 0.99},
+            {"primary_diagnosis_category": 0.304, "readmission_outcome": 0.91, "medication_change_outcome": 0.99},
+            {"primary_diagnosis_category": 0.314, "readmission_outcome": 0.91, "medication_change_outcome": 0.95},
+        ],
+        health_by_seed=[
+            {"p": {"per_dim_std_mean": 0.197, "effective_rank": 2.61}},   # marginal (std < 0.5)
+            {"p": {"per_dim_std_mean": 0.000, "effective_rank": 1.00}},   # collapsed
+            {"p": {"per_dim_std_mean": 0.000, "effective_rank": 1.00}},   # collapsed
+        ],
+    )
+    _write_laftr_hard_r2_results(tmp_path, "diabetes", diab_blob)
+    return tmp_path
+
+
+def test_render_paper_paste_includes_diabetes_collapse_section(tmp_path):
+    """PAPER_PASTE.md must surface the Diabetes compliance-via-collapse caveat
+    when LAFTR-hard-R² Diabetes is in collapse, mirroring the Adult Q3 framing.
+    """
+    _diabetes_collapse_root(tmp_path)
+    rows, _, common_ds = agg.build_rows(tmp_path)
+    md = agg.render_paper_paste(rows, common_ds=common_ds, root=tmp_path)
+    # The Diabetes-collapse section header is present
+    assert "Reading the Diabetes 18/18 row" in md
+    # Per-seed health table shows the actual numbers from the synthetic blob
+    assert "0.197" in md and "0.000" in md  # per_dim_std means
+    assert "2.61" in md and "1.00" in md     # effective ranks
+    # Focus task accuracy surfaced (mean of 0.317, 0.304, 0.314)
+    assert "31." in md  # one of 31.1 / 31.2 — varies on rounding
+    # Cross-reference to Appendix P + PCRL Round 7 framing
+    assert "Appendix P" in md
+    assert "Round 7" in md
+    assert "majority baseline" in md
+
+
+def test_render_paper_paste_no_diabetes_section_when_healthy(tmp_path):
+    """When LAFTR-hard-R² Diabetes is healthy (no seed collapsed), the
+    Diabetes-collapse section must NOT appear.
+    """
+    _write_frozen_baselines(tmp_path, _minimal_frozen_baselines())
+    diab_cells = [{"purpose": "p", "attribute": f"a{i}", "linear_r2": 0.004} for i in range(6)]
+    healthy_health = {"p": {"per_dim_std_mean": 0.70, "effective_rank": 5.0}}
+    diab_blob = _make_per_seed_results(
+        cells_by_seed=[diab_cells] * 3,
+        task_accs_by_seed=[{"primary_diagnosis_category": 0.80}] * 3,
+        health_by_seed=[healthy_health] * 3,
+    )
+    _write_laftr_hard_r2_results(tmp_path, "diabetes", diab_blob)
+    rows, _, common_ds = agg.build_rows(tmp_path)
+    md = agg.render_paper_paste(rows, common_ds=common_ds, root=tmp_path)
+    assert "Reading the Diabetes 18/18 row" not in md
+
+
+def test_render_paper_paste_no_diabetes_section_when_no_diabetes_results(synthetic_root):
+    """When LAFTR-hard-R² has no Diabetes results on disk at all, the section
+    must NOT appear (synthetic_root has Adult only).
+    """
+    rows, _, common_ds = agg.build_rows(synthetic_root)
+    md = agg.render_paper_paste(rows, common_ds=common_ds, root=synthetic_root)
+    assert "Reading the Diabetes 18/18 row" not in md
 
 
 def test_full_main_writes_four_files(synthetic_root, monkeypatch):
