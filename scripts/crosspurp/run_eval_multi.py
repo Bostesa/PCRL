@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 import warnings
@@ -97,7 +98,42 @@ def build_loaders(dataset: str, batch_size: int = 512):
     return purposes, train_ds, test_ds, train_loader, test_loader, cfg
 
 
+def _detect_lora_target(lora_adapters_sd: dict) -> str:
+    """Infer lora_target from a checkpoint's lora_adapters state_dict.
+
+    Auto-detection over an explicit metadata file because (a) it works
+    against existing checkpoints with no trainer changes, and (b) the
+    state_dict key shape is structurally invariant under the lora_target
+    choice — it's a property of the encoder construction, not of training.
+
+    The PerPurposeLoRAEncoder.adapters is a ModuleList[purpose] of
+    ModuleList[per-Linear-in-backbone]. Keys look like:
+      <purpose_idx>.<linear_idx>.{A.weight,B.weight,bias}
+    With ``lora_target="all_linear"`` the StandardEncoder backbone has 3
+    Linear layers (in→128, 128→128, 128→64), so per-purpose linear_idx
+    ranges over {0,1,2}. With ``lora_target="repr_proj_only"`` only the
+    final Linear gets an adapter, so linear_idx is always 0.
+
+    Detection: presence of any key with linear_idx ∈ {1,2} → "all_linear";
+    otherwise → "repr_proj_only". Failure mode if wrong is loud (size
+    mismatch or missing-key RuntimeError from load_state_dict), not silent
+    corruption — so an incorrect inference cannot quietly produce bad
+    eval numbers.
+
+    Yesterday (2026-05-30) the AB eval crashed exactly here because the
+    eval script always built the encoder with the default ``all_linear``
+    while training used ``repr_proj_only``; this helper closes that gap.
+    """
+    for key in lora_adapters_sd.keys():
+        m = re.match(r"^\d+\.([12])\.", key)
+        if m is not None:
+            return "all_linear"
+    return "repr_proj_only"
+
+
 def load_encoder(ckpt_path: Path, input_dim: int, n_purposes: int, cfg: dict) -> torch.nn.Module:
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    lora_target = _detect_lora_target(ckpt["lora_adapters"])
     backbone = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=64, dropout=0.3,
         use_erase_layer=True,  # tolerated even if checkpoint was trained without
@@ -105,8 +141,8 @@ def load_encoder(ckpt_path: Path, input_dim: int, n_purposes: int, cfg: dict) ->
     encoder = PerPurposeLoRAEncoder(
         backbone, n_purposes=n_purposes,
         rank=cfg["lora_rank"], alpha=cfg["lora_alpha"], dropout=0.0,
+        lora_target=lora_target,
     )
-    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     encoder.backbone.load_state_dict(ckpt["backbone"], strict=False)
     encoder.adapters.load_state_dict(ckpt["lora_adapters"])
     enc_buf = ckpt.get("encoder_buffers", {}) or {}
