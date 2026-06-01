@@ -43,6 +43,16 @@ from pcrl.models.encoder import StandardEncoder  # noqa: E402
 from pcrl.models.lora import PerPurposeLoRAEncoder  # noqa: E402
 
 DATASET_CONFIG: dict[str, dict] = {
+    # ``propagate_norm_stats``: True only for datasets whose Dataset class
+    # exposes a ``.norm_stats`` attribute and accepts it as a constructor
+    # kwarg (AdultDataset). HMDADataset + DiabetesDataset bake their
+    # normalization into the preprocessed npz at build time and don't
+    # accept that kwarg — passing it raises AttributeError on the train
+    # side (yesterday's HMDA eval failure).
+    # ``data_root``: must match what training's build_datasets uses. For
+    # Diabetes the dataset looks for ``<root>/<split>.npz`` directly, so
+    # the root must be the preprocessed-data dir (yesterday's Diabetes
+    # eval failure was looking at ``data/train.npz`` instead).
     "adult": {
         "loader_module": "pcrl.data.adult",
         "dataset_class": "AdultDataset",
@@ -50,6 +60,7 @@ DATASET_CONFIG: dict[str, dict] = {
         "lora_rank": 8, "lora_alpha": 16.0,
         "default_cross_attrs": ["race", "sex", "age_group"],
         "data_root": "data",
+        "propagate_norm_stats": True,
     },
     "hmda": {
         "loader_module": "pcrl.data.hmda",
@@ -58,6 +69,7 @@ DATASET_CONFIG: dict[str, dict] = {
         "lora_rank": 8, "lora_alpha": 16.0,
         "default_cross_attrs": ["ethnicity", "race", "sex"],
         "data_root": "data",
+        "propagate_norm_stats": False,
     },
     "diabetes": {
         "loader_module": "pcrl.data.diabetes",
@@ -65,7 +77,8 @@ DATASET_CONFIG: dict[str, dict] = {
         "purposes_fn": "get_diabetes_purposes",
         "lora_rank": 24, "lora_alpha": 48.0,
         "default_cross_attrs": ["race", "gender", "age_bucket"],
-        "data_root": "data",
+        "data_root": "data/diabetes_processed",
+        "propagate_norm_stats": False,
     },
 }
 
@@ -87,10 +100,10 @@ def build_loaders(dataset: str, batch_size: int = 512):
     purposes = purposes_fn()
     root = str(ROOT / cfg["data_root"])
     train_ds = DSCls(purposes=purposes, root=root, split="train", download=False)
-    test_ds = DSCls(
-        purposes=purposes, root=root, split="test", download=False,
-        norm_stats=train_ds.norm_stats,
-    )
+    test_kwargs = dict(purposes=purposes, root=root, split="test", download=False)
+    if cfg.get("propagate_norm_stats", False):
+        test_kwargs["norm_stats"] = train_ds.norm_stats
+    test_ds = DSCls(**test_kwargs)
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=False,
                               collate_fn=collate_pcrl_batch, num_workers=0)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False,
@@ -235,6 +248,10 @@ def main() -> None:
     ap.add_argument("--seeds", nargs="*", type=int, default=SEEDS_DEFAULT)
     ap.add_argument("--out-tag", default=None,
                     help="Output dir tag (default: same as --tag)")
+    ap.add_argument("--ckpt-base", default=None,
+                    help="Override checkpoint base directory (default: <repo>/checkpoints). "
+                         "Useful for re-running eval against archived checkpoints, e.g. "
+                         "--ckpt-base checkpoints_archive/cross_purpose_ab")
     args = ap.parse_args()
 
     out_tag = args.out_tag or args.tag
@@ -258,7 +275,9 @@ def main() -> None:
         "purpose_names": purpose_names, "attrs": ATTRS, "cross_attrs": cross_attrs,
         "per_seed": [], "summary": {},
     }
-    CKPT_BASE = ROOT / "checkpoints"
+    CKPT_BASE = Path(args.ckpt_base) if args.ckpt_base else ROOT / "checkpoints"
+    if not CKPT_BASE.is_absolute():
+        CKPT_BASE = ROOT / CKPT_BASE
 
     for seed in args.seeds:
         ckpt_dir = CKPT_BASE / f"v2_{args.dataset}_{args.tag}_s{seed}"
