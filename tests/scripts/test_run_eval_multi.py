@@ -70,6 +70,35 @@ def test_detect_index_10_does_not_false_positive_as_all_linear():
     assert rem._detect_lora_target(sd) == "repr_proj_only"
 
 
+_HMDA_PROCESSED = REPO_ROOT / "data" / "hmda_processed" / "train.npz"
+_DIABETES_PROCESSED = REPO_ROOT / "data" / "diabetes_processed" / "train.npz"
+
+
+@pytest.mark.skipif(not _HMDA_PROCESSED.exists(), reason="HMDA preprocessed npz absent")
+def test_build_loaders_hmda_does_not_propagate_norm_stats():
+    """HMDADataset bakes normalization into the preprocessed npz and does
+    NOT expose ``.norm_stats``. Yesterday's eval crashed on
+    ``train_ds.norm_stats``. After the fix, build_loaders must skip the
+    propagation for HMDA."""
+    purposes, train_ds, test_ds, _, _, cfg = rem.build_loaders("hmda")
+    assert not hasattr(train_ds, "norm_stats") or train_ds.norm_stats == {}, \
+        "HMDADataset is expected to have no norm_stats; if it does now, " \
+        "update the DATASET_CONFIG flag"
+    assert len(test_ds) > 0
+
+
+@pytest.mark.skipif(not _DIABETES_PROCESSED.exists(), reason="Diabetes preprocessed npz absent")
+def test_build_loaders_diabetes_data_root_points_at_processed():
+    """DiabetesDataset looks at ``<root>/<split>.npz`` directly, so the
+    DATASET_CONFIG ``data_root`` must be ``data/diabetes_processed``.
+    Yesterday's eval crashed because ``data_root`` was ``data`` and the
+    dataset looked for ``data/train.npz`` instead of
+    ``data/diabetes_processed/train.npz``."""
+    purposes, train_ds, test_ds, _, _, cfg = rem.build_loaders("diabetes")
+    assert cfg["data_root"] == "data/diabetes_processed"
+    assert len(test_ds) > 0
+
+
 @pytest.mark.skipif(
     not (REPO_ROOT / "checkpoints/v2_adult_CROSSPURP_ERASE_SMOKE_s0/best.pt").exists(),
     reason="Requires the 2026-05-19 repr_proj_only smoke checkpoint",
