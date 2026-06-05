@@ -1,0 +1,26 @@
+CROSS-PURPOSE REBUTTAL — 3-dataset summary
+============================================================
+Protocol: Δpp = (concat_acc − best_single_purpose_acc) × 100,
+each acc = max over auditor seeds {11,22,33}, mean ± std over
+3 PCRL seeds. Same protocol as the submission's
+cross_purpose_attack_extra.tex — apples-to-apples.
+
+PER-PAIR LINEAR COMPLIANCE (eval-side fresh refit, train→test):
+  Adult     R² ≤ 0.05  : 24/24
+  HMDA      R² ≤ 0.05  : 18/18
+  Diabetes  R² ≤ 0.05  : 18/18
+  Total     R² ≤ 0.05  : 60/60
+
+H_CONCAT LINEAR COMPLIANCE (per-attribute):
+  Adult     R² ≤ 0.10  : 9/9
+  HMDA      R² ≤ 0.10  : 9/9
+  Diabetes  R² ≤ 0.10  : 9/9
+
+ATTACK FLAGS — unified-protocol (Δ over best-single-purpose-auditor > +1pp):
+  Submission : 22/33   (cross_purpose_attack_extra.tex, LR/MLP/XGB)
+  Cross-purp :  8/33
+  Cell-level : 20 improved, 12 flat (within max-std), 1 within-noise shift
+               (diabetes/race/XGB: −0.25 → −0.11, both below 0)
+  Net flips  : 14 cells FLAG → ok, 0 cells ok → FLAG
+
+(per-pair total = 3 seeds × pairs; attack total = 3 archs × |attrs| per dataset)
