@@ -1,9 +1,5 @@
 # PCRL: Purpose-Conditioned Representation Learning
 
-Supplementary code for the anonymous NeurIPS 2026 submission
-*"One Encoder, Many Purposes: Purpose-Conditioned Representation Learning
-with Compliance Certificates."*
-
 PCRL trains a single shared encoder that produces multiple purpose-specific
 representations, each carrying a compliance certificate (linear R² ≤ 0.05)
 for a declared list of disallowed sensitive attributes. The method combines
