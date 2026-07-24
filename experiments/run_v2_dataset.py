@@ -215,7 +215,13 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              lora_target: str = "all_linear",
              lora_rank_override: int | None = None,
              lora_alpha_override: float | None = None,
-             lambda_vicreg: float = 1.0) -> dict:
+             lambda_vicreg: float = 1.0,
+             adapter_type: str = "lora",
+             no_leace_init: bool = False,
+             warmup_epochs_override: int | None = None,
+             lambda_min: float = 5.0,
+             eval_split: str = "test",
+             eval_only: bool = False) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -262,6 +268,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         backbone=backbone, n_purposes=len(purposes),
         rank=lora_rank, alpha=lora_alpha, dropout=0.0,
         lora_target=lora_target,
+        adapter_type=adapter_type,
     )
 
     task_heads: dict = {}
@@ -294,7 +301,7 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         lora_rank=lora_rank, lora_alpha=lora_alpha, lora_dropout=0.0,
         batch_size=256, epochs=epochs,
         weight_decay=1e-4, grad_clip=1.0, vclub_steps=1,
-        lambda_min=5.0,  # Fix R1
+        lambda_min=lambda_min,  # Fix R1 default 5.0; --lambda-min for ablation 3
         per_class_constraint_threshold=per_class_threshold,
         checkpoint_dir=str(ckpt_dir),
         report_best_iterate=report_best_iterate,
@@ -304,6 +311,23 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         use_erase_layer=use_erase_layer,
         lora_target=lora_target,
     )
+    # Ablation 2: --no-leace-init removes every LEACE-based component from
+    # the run (no erase-layer fit is requested by construction, and the
+    # legacy LoRA-side warm-start below is gated on config.leace_init).
+    if no_leace_init:
+        if use_erase_layer:
+            raise ValueError(
+                "--no-leace-init contradicts --use-erase-layer: the erase "
+                "layer IS a LEACE init. Drop one of the two flags."
+            )
+        config.leace_init = False
+    # Ablation 3: explicit schedule control. --warmup-epochs N sets the
+    # warmup length unconditionally: N=0 disables warmup even without LEACE
+    # init; N>0 forces warmup even WITH LEACE init (warmup_when_leace_init
+    # overrides the R5 auto-skip).
+    if warmup_epochs_override is not None:
+        config.warmup_epochs = warmup_epochs_override
+        config.warmup_when_leace_init = warmup_epochs_override > 0
     trainer = V2Trainer(
         encoder=encoder, task_heads=task_heads, vclubs=vclubs,
         purpose_registry=registry, config=config, device=device,
@@ -320,26 +344,36 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     # LoRA starts at zero, with task gradients shaping it from scratch).
     # Stacking both inits has not been ablated and would muddy the
     # pilot's interpretation.
-    if use_erase_layer:
-        log.info(f"  [{name}/seed={seed}] fitting frozen LEACE erase layer …")
-        erase_diag = trainer.fit_erase_layer(train_loader)
-        log.info(f"  [{name}/seed={seed}] erase fit done: {erase_diag}")
-    elif config.leace_init:
-        log.info(f"  [{name}/seed={seed}] LEACE warm-start of LoRA adapters …")
-        leace_diag = trainer.leace_warm_start(train_loader)
-        log.info(f"  [{name}/seed={seed}] LEACE warm-start done")
+    if eval_only:
+        # Ablation 3 final-eval path: reuse the checkpoints written by an
+        # earlier training run with the same --out-tag; no fitting, no
+        # training. The erase-layer weights and LEACE buffers travel inside
+        # the checkpoint, so skipping fit_erase_layer here is correct.
+        train_time = 0.0
+        state = None
+        cotter_meta = {}
+        log.info(f"  [{name}/seed={seed}] eval-only: skipping training, reusing checkpoints")
+    else:
+        if use_erase_layer:
+            log.info(f"  [{name}/seed={seed}] fitting frozen LEACE erase layer …")
+            erase_diag = trainer.fit_erase_layer(train_loader)
+            log.info(f"  [{name}/seed={seed}] erase fit done: {erase_diag}")
+        elif config.leace_init:
+            log.info(f"  [{name}/seed={seed}] LEACE warm-start of LoRA adapters …")
+            leace_diag = trainer.leace_warm_start(train_loader)
+            log.info(f"  [{name}/seed={seed}] LEACE warm-start done")
 
-    t0 = time.time()
-    state = trainer.train(train_loader, val_loader=val_loader)
-    train_time = time.time() - t0
-    cotter_meta = (state.history.get("cotter_selection") or [{}])[-1]
-    log.info(
-        f"  [{name}/seed={seed}] trained in {train_time:.0f}s, last_epoch={state.epoch}, "
-        f"best_epoch={state.best_epoch}, best_task_loss={state.best_val_loss:.4f}, "
-        f"cotter={cotter_meta.get('kind','?')} "
-        f"feasible={cotter_meta.get('n_feasible_post_warmup','?')}/"
-        f"{cotter_meta.get('n_eligible_post_warmup','?')}"
-    )
+        t0 = time.time()
+        state = trainer.train(train_loader, val_loader=val_loader)
+        train_time = time.time() - t0
+        cotter_meta = (state.history.get("cotter_selection") or [{}])[-1]
+        log.info(
+            f"  [{name}/seed={seed}] trained in {train_time:.0f}s, last_epoch={state.epoch}, "
+            f"best_epoch={state.best_epoch}, best_task_loss={state.best_val_loss:.4f}, "
+            f"cotter={cotter_meta.get('kind','?')} "
+            f"feasible={cotter_meta.get('n_feasible_post_warmup','?')}/"
+            f"{cotter_meta.get('n_eligible_post_warmup','?')}"
+        )
 
     # Reload checkpoint for downstream eval. Prefer ``canonical_iterate.pt``
     # (written by the trainer when ``report_best_iterate=True``) over
@@ -351,6 +385,12 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     best = ckpt_dir / "best.pt"
     final = ckpt_dir / "final.pt"
     chosen = canonical if canonical.exists() else (best if best.exists() else final)
+    if eval_only and not chosen.exists():
+        raise FileNotFoundError(
+            f"--eval-only but no checkpoint found under {ckpt_dir} "
+            "(expected canonical_iterate.pt, best.pt or final.pt from a "
+            "prior run with the same --out-tag)"
+        )
     if chosen.exists():
         ckpt = torch.load(chosen, map_location=device, weights_only=False)
         encoder.backbone.load_state_dict(ckpt["backbone"])
@@ -375,9 +415,14 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         log.info(f"  [{name}/seed={seed}] reloaded {chosen.name}")
     encoder.eval()
 
+    # Ablation 3: selection runs score the compliance grid on the VAL split
+    # only (probes still fit on train); the test grid is reserved for the
+    # final --eval-only pass on the selected config.
+    eval_loader = val_loader if eval_split == "val" else test_loader
+
     # Compliance via paper's adjusted criterion
     reports = generate_report(
-        encoder=encoder, train_loader=train_loader, test_loader=test_loader,
+        encoder=encoder, train_loader=train_loader, test_loader=eval_loader,
         purpose_registry=registry, device=device,
     )
     pass_count = 0
@@ -398,13 +443,13 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         })
 
     # Task accuracies via the trained heads
-    val_metrics = trainer.evaluate(test_loader)
+    val_metrics = trainer.evaluate(eval_loader)
     task_accs = {k: round(float(v), 6) for k, v in val_metrics.task_accuracy.items()}
 
     # Health per purpose
     per_purpose_health: dict = {}
     for idx, p in enumerate(purposes):
-        reps = reps_for_purpose(encoder, test_loader, idx, device)
+        reps = reps_for_purpose(encoder, eval_loader, idx, device)
         per_purpose_health[p.name] = repr_health(reps)
 
     # Final lambda values for HSIC constraints
@@ -412,16 +457,18 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
 
     return {
         "seed": seed,
+        "eval_split": eval_split,
+        "checkpoint_used": chosen.name if chosen.exists() else None,
         "train_time_s": round(train_time, 1),
-        "last_epoch": state.epoch,
-        "best_epoch": state.best_epoch,
+        "last_epoch": state.epoch if state is not None else None,
+        "best_epoch": state.best_epoch if state is not None else None,
         "task_accuracies": task_accs,
         "attribute_results": attr_results,
         "pass_count": pass_count,
         "total_pairs": len(reports),
         "per_purpose_health": per_purpose_health,
         "lambdas_final": lambdas_final,
-        "best_task_loss_at_selected": float(state.best_val_loss),
+        "best_task_loss_at_selected": float(state.best_val_loss) if state is not None else None,
         "cotter_selection": cotter_meta,
     }
 
@@ -587,6 +634,65 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--adapter-type", choices=["lora", "linear"], default="lora",
+        help=(
+            "Ablation 1 (FAccT resubmission): 'lora' (default) uses rank-r "
+            "factorised per-purpose adapters; 'linear' replaces each adapter "
+            "with a full-rank unfactored linear delta (ΔW + bias, zero-init). "
+            "--lora-rank/--lora-alpha are ignored when 'linear'."
+        ),
+    )
+    parser.add_argument(
+        "--no-leace-init", action="store_true", default=False,
+        help=(
+            "Ablation 2: disable ALL LEACE-based initialisation (no frozen "
+            "erase layer allowed, and the legacy LoRA-side LEACE warm-start "
+            "is skipped). Leaves adapter + proxy-Lagrangian only. "
+            "Incompatible with --use-erase-layer."
+        ),
+    )
+    parser.add_argument(
+        "--warmup-epochs", type=int, default=None,
+        help=(
+            "Explicit warmup schedule override. N=0 disables task-only "
+            "warmup even when leace_init is off; N>0 forces N warmup epochs "
+            "even when LEACE init would normally auto-skip warmup (R5 rule). "
+            "Default (unset) keeps the legacy leace_init-coupled behaviour."
+        ),
+    )
+    parser.add_argument(
+        "--lambda-min", type=float, default=5.0,
+        help=(
+            "Proxy-Lagrangian dual floor (Fix R1). Default 5.0 matches "
+            "Round 5+ and the erase-layer pilot. Ablation 3 sweeps {0, 5}."
+        ),
+    )
+    parser.add_argument(
+        "--eval-split", choices=["test", "val"], default="test",
+        help=(
+            "Which split the compliance grid, task accuracies and health "
+            "metrics are computed on. Ablation 3 selection runs use 'val'; "
+            "default 'test' preserves all published behaviour."
+        ),
+    )
+    parser.add_argument(
+        "--results-tag", default=None,
+        help=(
+            "Optional override for the results dir suffix (checkpoints keep "
+            "--out-tag). Lets an --eval-only test-grid pass write to a "
+            "separate results dir instead of overwriting the selection run's "
+            "val-grid results."
+        ),
+    )
+    parser.add_argument(
+        "--eval-only", action="store_true", default=False,
+        help=(
+            "Skip training and re-evaluate from the checkpoints of a prior "
+            "run with the same --out-tag (canonical > best > final). Used "
+            "for the Ablation 3 test-grid eval of the selected config."
+        ),
+    )
+    parser.add_argument(
         "--lora-alpha", type=float, default=None,
         help=(
             "Override the per-dataset default LoRA alpha. Defaults to 2× rank "
@@ -623,6 +729,12 @@ def main() -> None:
             lambda_vicreg=args.lambda_vicreg,
             lora_rank_override=args.lora_rank,
             lora_alpha_override=args.lora_alpha,
+            adapter_type=args.adapter_type,
+            no_leace_init=args.no_leace_init,
+            warmup_epochs_override=args.warmup_epochs,
+            lambda_min=args.lambda_min,
+            eval_split=args.eval_split,
+            eval_only=args.eval_only,
         )
         per_seed_results.append(result)
         print(f"  → seed={seed}: pass {result['pass_count']}/{result['total_pairs']}, "
@@ -631,8 +743,11 @@ def main() -> None:
 
     summary = aggregate(args.dataset, per_seed_results)
     summary["total_wall_s"] = round(time.time() - overall_t0, 1)
+    # Full CLI config echo so every ablation result file is self-describing.
+    summary["run_config"] = {k: v for k, v in vars(args).items()}
 
-    out_dir = ROOT / "results" / f"v2_{args.dataset}{args.out_tag}"
+    results_tag = args.results_tag if args.results_tag is not None else args.out_tag
+    out_dir = ROOT / "results" / f"v2_{args.dataset}{results_tag}"
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "per_seed_results.json", "w") as fh:
         json.dump({"summary": summary, "per_seed": per_seed_results}, fh, indent=2)

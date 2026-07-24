@@ -108,6 +108,52 @@ class LoRAAdapter(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.B(self.A(self.dropout(x))) * self.scaling + self.bias
 
+    @torch.no_grad()
+    def zero_out(self) -> None:
+        """Zero the adapter contribution (B and bias; A may stay non-zero)."""
+        self.B.weight.zero_()
+        self.bias.zero_()
+
+
+class LinearAdapter(nn.Module):
+    """Full-rank per-purpose linear adapter for one Linear layer.
+
+    Ablation counterpart to :class:`LoRAAdapter` (FAccT resubmission
+    Ablation 1): the adapter contribution is an unfactored delta
+    ``ΔW @ x + bias`` with ``ΔW`` of shape (out, in), zero-initialised so
+    the wrapped encoder equals the frozen backbone at construction —
+    identical starting point to zero-B LoRA. Equivalent to LoRA with
+    rank = min(in, out) and no scaling, but parameterised directly.
+
+    Args:
+        in_features: Input dim of the host Linear.
+        out_features: Output dim of the host Linear.
+        dropout: Optional dropout on the adapter input ``x``.
+    """
+
+    def __init__(
+        self,
+        in_features: int,
+        out_features: int,
+        dropout: float = 0.0,
+    ) -> None:
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.delta = nn.Linear(in_features, out_features, bias=False)
+        self.bias = nn.Parameter(torch.zeros(out_features))
+        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
+        nn.init.zeros_(self.delta.weight)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.delta(self.dropout(x)) + self.bias
+
+    @torch.no_grad()
+    def zero_out(self) -> None:
+        """Zero the adapter contribution (delta and bias)."""
+        self.delta.weight.zero_()
+        self.bias.zero_()
+
 
 def _coerce_purpose_idx(purpose_idx: int | torch.Tensor, n_purposes: int) -> int:
     """Validate and reduce purpose_idx to a single int."""
@@ -147,9 +193,12 @@ class PerPurposeLoRAEncoder(nn.Module):
             tensor (or has additional args defaulted). Must contain at
             least one ``nn.Linear`` submodule.
         n_purposes: Number of distinct purposes (``|P|``).
-        rank: Rank for every adapter.
-        alpha: LoRA alpha for every adapter (defaults to ``rank``).
+        rank: Rank for every adapter (ignored when ``adapter_type="linear"``).
+        alpha: LoRA alpha for every adapter (defaults to ``rank``; ignored
+            when ``adapter_type="linear"``).
         dropout: Dropout applied on each adapter's input.
+        adapter_type: ``"lora"`` (default, rank-r factorised delta) or
+            ``"linear"`` (full-rank unfactored delta — Ablation 1 arm).
     """
 
     def __init__(
@@ -160,6 +209,7 @@ class PerPurposeLoRAEncoder(nn.Module):
         alpha: float | None = None,
         dropout: float = 0.0,
         lora_target: str = "all_linear",
+        adapter_type: str = "lora",
     ) -> None:
         super().__init__()
         if n_purposes <= 0:
@@ -168,12 +218,17 @@ class PerPurposeLoRAEncoder(nn.Module):
             raise ValueError(
                 f"lora_target must be 'all_linear' or 'repr_proj_only'; got {lora_target!r}"
             )
+        if adapter_type not in {"lora", "linear"}:
+            raise ValueError(
+                f"adapter_type must be 'lora' or 'linear'; got {adapter_type!r}"
+            )
 
         self.backbone = backbone
         self.n_purposes = n_purposes
         self.rank = rank
         self.alpha = float(alpha) if alpha is not None else float(rank)
         self.lora_target = lora_target
+        self.adapter_type = adapter_type
 
         # Freeze backbone parameters in-place. We don't strip them from
         # state_dict so checkpoints remain self-contained, but they will
@@ -211,18 +266,30 @@ class PerPurposeLoRAEncoder(nn.Module):
         # adapters[p][i] adapts self._linear_modules[i] for purpose p.
         self.adapters: nn.ModuleList = nn.ModuleList()
         for _ in range(n_purposes):
-            per_purpose = nn.ModuleList(
-                [
-                    LoRAAdapter(
-                        in_features=lin.in_features,
-                        out_features=lin.out_features,
-                        rank=rank,
-                        alpha=alpha,
-                        dropout=dropout,
-                    )
-                    for lin in self._linear_modules
-                ]
-            )
+            if adapter_type == "linear":
+                per_purpose = nn.ModuleList(
+                    [
+                        LinearAdapter(
+                            in_features=lin.in_features,
+                            out_features=lin.out_features,
+                            dropout=dropout,
+                        )
+                        for lin in self._linear_modules
+                    ]
+                )
+            else:
+                per_purpose = nn.ModuleList(
+                    [
+                        LoRAAdapter(
+                            in_features=lin.in_features,
+                            out_features=lin.out_features,
+                            rank=rank,
+                            alpha=alpha,
+                            dropout=dropout,
+                        )
+                        for lin in self._linear_modules
+                    ]
+                )
             self.adapters.append(per_purpose)
 
     @staticmethod
@@ -354,7 +421,7 @@ class PerPurposeLoRAEncoder(nn.Module):
         """
         last_idx = len(self._linear_modules) - 1
         host = self._linear_modules[last_idx]
-        adapter: LoRAAdapter = self.adapters[purpose_idx][last_idx]
+        adapter = self.adapters[purpose_idx][last_idx]
 
         W = host.weight.detach().to(Q.device)  # (out, in)
         b = (
@@ -372,6 +439,16 @@ class PerPurposeLoRAEncoder(nn.Module):
             raise ValueError(f"c must be ({out_dim},); got {tuple(c.shape)}")
 
         target = (Q - torch.eye(out_dim, device=Q.device)) @ W  # (out, in)
+
+        if isinstance(adapter, LinearAdapter):
+            # Full-rank adapter realises z' = Q z + c EXACTLY: no SVD
+            # truncation needed. ΔW = (Q − I) W, bias = (Q − I) b + c.
+            adapter.delta.weight.copy_(target.to(adapter.delta.weight.dtype))
+            adapter.bias.copy_(
+                ((Q - torch.eye(out_dim, device=Q.device)) @ b + c).to(adapter.bias.dtype)
+            )
+            return
+
         # Rank-r SVD truncation: target ≈ U_r diag(σ_r) V_r^T
         U, S, Vh = torch.linalg.svd(target, full_matrices=False)
         r = adapter.rank

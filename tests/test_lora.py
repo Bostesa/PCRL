@@ -188,9 +188,10 @@ def test_n_trainable_matches_lora_count(
 
     # Cross-check against the closed-form expectation for our backbone:
     # for each Linear with weight (out, in), per-purpose adapter has
-    # A: (rank, in) and B: (out, rank), no biases.
+    # A: (rank, in), B: (out, rank), and an adapter-side bias (out,) that
+    # absorbs the LEACE affine translation.
     expected_per_purpose = sum(
-        m.in_features * encoder.rank + encoder.rank * m.out_features
+        m.in_features * encoder.rank + encoder.rank * m.out_features + m.out_features
         for m in encoder._linear_modules
     )
     expected_total = expected_per_purpose * encoder.n_purposes

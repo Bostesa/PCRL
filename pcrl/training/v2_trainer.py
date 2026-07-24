@@ -646,9 +646,7 @@ class V2Trainer:
         # (At construction the LoRAs are zero-init; this is just defensive.)
         last_idx = len(self.encoder._linear_modules) - 1
         for p_idx in range(self.encoder.n_purposes):
-            adapter = self.encoder.adapters[p_idx][last_idx]
-            adapter.B.weight.zero_()
-            adapter.bias.zero_()
+            self.encoder.adapters[p_idx][last_idx].zero_out()
 
         # Collect features + every disallowed attr across the loader.
         # Use purpose 0's path; with zeroed adapters every purpose gives the
