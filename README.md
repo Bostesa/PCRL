@@ -148,33 +148,6 @@ python scripts/run_splince_benchmark.py
 Outputs `results/splince_benchmark/splince_results.json` plus per-cell
 `metrics.json` and the comparison summary `splince_vs_pcrl_summary.json`.
 
-## Paper-claim → artifact
-
-Every numeric claim in the paper traces back to a committed JSON, CSV, or
-Markdown file under `results/`.
-
-| # | Claim | Artifact |
-|--:|---|---|
-| 1 | 60-cell compliance grid (Table 1) | `results/v2_{adult,hmda,diabetes}_ROUND{5,5,7}/per_seed_results.json` + `dominant_axis_audit.json` |
-| 2 | 56 / 60 strict pass at τ=0.05 | derivable from #1 |
-| 3 | 7 / 60 cleanly compliant (rank + std health checks) | `collapse_diagnostic.json` in same dirs |
-| 4 | 49 / 56 collapse-compliant decomposition | derivable from #1 + #3 |
-| 5 | τ ∈ {0.01, 0.025, 0.05} sweep (37 / 52 / 56) | `results/tier1_analyses/tau_sensitivity.json` |
-| 6 | Round-4 baseline (46 / 60, mean R² = 0.038) | `results/v2_{adult,hmda,diabetes}_ROUND4/summary.json` |
-| 7 | Diabetes c.d.s./gender Zhao-Gordon slack 0.0011 | `results/reviewer_dropins/zhao_gordon_table.{csv,json}` |
-| 8 | Convex-Combination Identity 33 / 33 | same as #1 (`convex_combo_residual` column) |
-| 9 | HMDA underwriting/race amplification 12.7×, 10.7×, 3.2× | same as #1 |
-| 10 | Cross-purpose 26 / 33 (Criterion A) and 22 / 33 (Criterion B) | `results/cross_purpose_laftr/DUAL_CRITERIA.json` + `results/v2_cross_purpose/aggregate.json` |
-| 11 | Cross-purpose Prop 6 bound utilization 45–70% | `results/reviewer_dropins/prop6_bound_utilization/numerical_verification_v2.json` |
-| 12 | Adult held-out validation seed 3 (6 / 8, +0.0111 mean Δ) | `results/v2_adult_HELDOUT_S3/{per_seed_results,summary,dominant_axis_audit}.json` |
-| 13 | CelebA train R² ≤ 0.005 + Smiling acc 0.752 ± 0.010 | `results/v2_celeba_R5_FULL/{train_set_r2,training_log}.json` + `results/celeba/celeba_main_table.csv` |
-| 14 | CelebA 6-architecture audit (worst-case −6.3pp Male, −8.2pp Young) | `results/celeba/{baseline_v2_fixed,celeba_perpair,laftr_per_purpose,pcrl_ensemble_perpair}.csv` + `paper-body/tables/celeba_cross_purpose_multiseed.tex` |
-| 15 | SPLINCE comparison (3 / 60 health, 60 / 60 R², 2 / 60 +Δ-aud) | `results/splince_benchmark/{splince_results,splince_vs_pcrl_summary}.json` |
-| 16 | Compute cost (train time, params, latency) | `results/tier1_analyses/{compute_cost.json, compute_cost_table.tex}` |
-| 17 | Figure 2 drift trajectory | `results/v2_drift_trajectories/{data.json, drift_chart.png, trajectories.csv}` |
-| 18 | LAFTR baseline 15 / 60 strict pass | `results/laftr_benchmark/STAGE2_ADULT.md` + `adult/` per-cell |
-| 19 | Per-purpose INLP baseline 20 / 27 | `results/inlp_benchmark/inlp_results.json` |
-| 20 | Per-class OvR Diabetes age_bucket (rank 24, K=10) | `results/v2_diabetes_OVR_DIABETES_PROBE/{per_seed_results,summary}.json` |
 
 ## Hardware
 
@@ -185,32 +158,8 @@ architecture takes about 75 minutes per seed. The dominant-axis audit and
 the cross-purpose attack run comfortably on CPU once the trained
 checkpoints are available.
 
-## Data
 
-Raw datasets are not committed. See `docs/DATA.md` for download links,
-license terms, and preprocessing steps for each of: Adult (UCI), HMDA
-(FFIEC, 2023 California LAR), Diabetes 130-US Hospitals (UCI), CelebA
-(MMLAB), and BIOS (De-Arteaga et al. 2019).
-
-## Citation
-
-```bibtex
-@inproceedings{anonymous2026pcrl,
-  title  = {One Encoder, Many Purposes: Purpose-Conditioned Representation Learning with Compliance Certificates},
-  author = {Anonymous},
-  booktitle = {Submitted to Advances in Neural Information Processing Systems (NeurIPS)},
-  year   = {2026},
-  note   = {Under double-blind review.}
-}
-```
 
 ## License
 
 Released under the MIT License — see `LICENSE`.
-
-## Anonymization
-
-This repository is supplementary material for an anonymous NeurIPS 2026
-submission. Author and affiliation information have been removed. A
-non-anonymized version with full attribution will be released after the
-review process completes.
