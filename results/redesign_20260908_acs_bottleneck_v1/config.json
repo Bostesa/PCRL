@@ -1,0 +1,71 @@
+{
+  "starting_commit": "948169361c38fa5d37657fd45c5ab45c84f1fef5",
+  "parent_results": "results/redesign_20260907_acs_transfer_v1",
+  "reference_results": "results/redesign_20260908_acs_protection_v1",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "threads": 1,
+  "references": [
+    "E_pca",
+    "E_pca_leace",
+    "B_rich_bank",
+    "B_rich_bank_leace",
+    "C_tree_bank",
+    "C_tree_bank_leace"
+  ],
+  "learned_arms": [
+    "C_bottleneck",
+    "D_protected"
+  ],
+  "utility_tasks": [
+    "same_residence",
+    "commute_over20",
+    "income_binary",
+    "civilian_at_work",
+    "public_coverage"
+  ],
+  "training": {
+    "input_dim": 32,
+    "mapper_hidden": 64,
+    "release_dim": 16,
+    "decoder_hidden": 64,
+    "adversary_hidden": [
+      64,
+      32
+    ],
+    "source_weight": 1.0,
+    "reconstruction_weight": 0.1,
+    "protection_weight": 0.1,
+    "learning_rate": 0.001,
+    "batch_size": 256,
+    "warmup_epochs": 60,
+    "adversary_warmup_epochs": 20,
+    "continuation_epochs": 80,
+    "adversary_updates_per_mapper": 3,
+    "checkpoint": "fixed_final_epoch",
+    "prior_entropy": "empirical fitting labels, no smoothing",
+    "optimizer": "Adam defaults, no weight decay or clipping"
+  },
+  "head_budget": 2048,
+  "attacker_budget": 4096,
+  "head_mlp_epochs": 40,
+  "audit_mlp_epochs": 120,
+  "catchup_epochs": 120,
+  "audit_restart_offset": 10000,
+  "audit_min_samples_leaf": [
+    20,
+    5
+  ],
+  "margins": {
+    "source_loss_increase": 0.01,
+    "residential_headroom_fraction": 0.5,
+    "attribute_gain_fraction": 0.5,
+    "feature_residential_advantage": 0.01,
+    "feature_attribute_gain_excess": 0.005
+  },
+  "evaluation_status": "DEVELOPMENT EVALUATION: original test households informed this research direction; no fresh confirmatory test",
+  "maximum_total_experiment_seconds": 1800
+}

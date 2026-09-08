@@ -768,3 +768,63 @@ Evidence: [decision](results/redesign_20260908_acs_protection_v1/RESEARCH_DECISI
 [reproduction](results/redesign_20260908_acs_protection_v1/REPRODUCTION.md).
 Publish source, tests and compact evidence; keep raw records, fitted maps/models,
 caches and duplicate metadata local with hashes. No next experiment was launched.
+
+## Dated addition — 2026-09-08: fixed nonlinear ACS bottleneck
+
+Starting commit `948169361c38fa5d37657fd45c5ab45c84f1fef5`; correct research branch
+`ablations-facct-2026-07-24`, destination Bostesa/PCRL. Tracked checkout was clean;
+all historical results, subsequent/unrelated untracked objects and original
+source hashes were preserved. No AGENTS.md exists in checkout or ancestors.
+Current user authorized one fixed pilot plus normal commit/push, no PR/main/force.
+
+**Implementation, separate from findings.** Reused exact original32D PCA and
+saved LEACE/banks without refitting. Added strict source-only32→64ReLU→16 mapper,
+three binary source heads and reconstruction decoder;60 common base epochs,
+20 common adversary warmup, exact tensor and Adam clones,80 matched continuation
+with3 detached adversary steps per mapper step. C has observer adversaries;
+D adds−.1 mean(attributeCE/fittingpriorentropy). Fixed final iterates, trueepoch0,
+phase/gradient/counter/label boundaries and immutable final releases recorded.
+Fresh final audits plus120-epoch direct-coordinate catch-up use separate attacker
+pools and validation-only choices. No new eraser, LoRA, purpose conditioning,
+coalition, data, task search or claimed novel mechanism. Pre-run packaging of
+merged candidate selections and inherited-exposure metadata was corrected before
+freeze; no scientific run was invalidated or silently replaced.
+
+**Established development observations.** C/D preserve all three source tasks
+relative to original PCA+.01nats in all three seeds, on both splits. Primary
+D−C development loss differences: residence+.001298±.002680, SEXattack+.010078
+±.004332, raceattack+.002580±.001821. Matched-independent race difference is
++.012064±.009089; catch-up largely removes that apparent benefit. Both retain
+half original PCA residential headroom in1/3 development seeds and0/3 validation
+seeds. No primary feature-versus-bank numerical margin comparison passes(0/48).
+No primary race-gain halving passes; race code4 lacks fitting/validation support,
+so no complete all-attribute protection assessment is possible. Saved training
+adversaries understate recoverability: all12catch-ups improve on them, but only
+2/12 beat the selected fresh auditor on development. All candidates are reported.
+
+**Execution and verification.** Configuration and execution closure frozen before
+scientific fitting.23 focused tests passed2.17s; artificial pipeline.862s. Seed0
+process30.652s, remaining estimate61.305s versusactual58.078s:88.731s total, M4Pro
+CPU,24GiB, one numerical thread. No budget change, paid resource, download or
+unrelated job interruption. Independent state replay passed42 bitwise outputs,
+321 binary hashes, exact forks and saved Adam counters/schedules/exposures.
+Independent score replay passed555 candidate records,2,220 score sets and288
+model prediction sets(maxerror6.66e−16); all411 historical reference rows identical.
+Implementation/analysis/publication wall is separately reported from experiment
+execution. No model was refitted for tables or verification.
+
+**Unresolved hypotheses and unsupported claims.** D shows a modest SEX tradeoff,
+not a tie; that is insufficient overall feasibility. C's shared residential loss
+means compression versus source-focused training remains unresolved. Reconstruction
+can conflict with protection and guarantees neither transfer nor privacy. Current
+evidence does not justify PCRL-specific mechanisms, novelty, complete race
+protection, untouched confirmation, arbitrary-future-task or survey inference.
+The proposed fixed16-coordinate PCA control has not been run; no extra search
+was launched after outcomes.
+
+Evidence: [decision](results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md),
+[protocol](results/redesign_20260908_acs_bottleneck_v1/PROTOCOL.md),
+[table](results/redesign_20260908_acs_bottleneck_v1/TABLE.md),
+[analysis](results/redesign_20260908_acs_bottleneck_v1/ANALYSIS.md),
+[validation](results/redesign_20260908_acs_bottleneck_v1/VALIDATION.md),
+[reproduction](results/redesign_20260908_acs_bottleneck_v1/REPRODUCTION.md).

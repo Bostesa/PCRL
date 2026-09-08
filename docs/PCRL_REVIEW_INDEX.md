@@ -1,6 +1,8 @@
 # PCRL redesign review index
 
-**Latest addition, 2026-09-08:** the bounded ACS joint-erasure feasibility screen
+**Latest addition, 2026-09-08:** the [fixed nonlinear ACS bottleneck pilot](../results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md) is complete. Matched protection modestly reduces SEX recovery, but neither learned arm meets the residential/attribute tradeoff. Catch-up reduces the apparent race benefit. See the [dated appendix](#appendix--2026-09-08-fixed-nonlinear-acs-bottleneck). No PCRL advantage is established.
+
+**Earlier addition, 2026-09-08:** the bounded ACS joint-erasure feasibility screen
 is complete. Start with its [research decision](../results/redesign_20260908_acs_protection_v1/RESEARCH_DECISION.md)
 and the [dated appendix below](#appendix--2026-09-08-acs-protection-feasibility).
 PCA retained some residential transfer, but the declared source-utility and
@@ -231,3 +233,51 @@ PCA remains the strongest residential-transfer parent and the neural bank a
 strong task-serving alternative. The next methodological question is standard
 utility-aware nonlinear protection feasibility, before prioritizing a PCRL-specific
 mechanism. No such next experiment was started.
+
+## Appendix — 2026-09-08: fixed nonlinear ACS bottleneck
+
+The [fixed utility-aware nonlinear pilot](../results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md)
+starts from `948169361c38fa5d37657fd45c5ab45c84f1fef5` and reuses exact PCA,
+PCA+LEACE, rich neural/tree bank and control evidence. Matched16D arms share
+60-epoch source/reconstruction warmup,20-epoch adversary warmup, exact model/Adam
+clones and80 continuation epochs; only D applies the fixed nonlinear protection
+penalty. Final release audits include fresh logistic/MLP/tree candidates and
+saved-adversary catch-up in original coordinates. No purpose conditioning,
+coalition, LoRA, new eraser, new data, task search, or PCRL mechanism was added.
+
+D improves measured SEX attack loss over C by .010078nats on development,
+with source utility preserved in every seed. The race difference is only.002580
+with catch-up, compared with.012064 under independent-only audits. Both arms
+retain half original PCA residential headroom in1/3 development seeds and0/3
+validation seeds. No primary feature-bank numerical comparison passes all
+margins. Race coverage remains inadequate for a complete all-attribute claim.
+These are small fixed-design development findings, not novelty or impossibility.
+
+- [Frozen protocol](../results/redesign_20260908_acs_bottleneck_v1/PROTOCOL.md),
+  [configuration](../results/redesign_20260908_acs_bottleneck_v1/config.json),
+  [tables](../results/redesign_20260908_acs_bottleneck_v1/TABLE.md),
+  [paired/weighted analysis](../results/redesign_20260908_acs_bottleneck_v1/ANALYSIS.md),
+  [support](../results/redesign_20260908_acs_bottleneck_v1/SUPPORT.md).
+- [All target/candidate scores](../results/redesign_20260908_acs_bottleneck_v1/PER_TARGET.csv),
+  [paired differences](../results/redesign_20260908_acs_bottleneck_v1/PAIRED.csv),
+  [saved/fresh/catch-up audit](../results/redesign_20260908_acs_bottleneck_v1/CATCHUP.csv),
+  [SEX tradeoff](../results/redesign_20260908_acs_bottleneck_v1/tradeoff_SEX.png),
+  [race tradeoff](../results/redesign_20260908_acs_bottleneck_v1/tradeoff_RAC1P.png),
+  [training curves](../results/redesign_20260908_acs_bottleneck_v1/training_curves.png).
+- [Runner and reference/label boundaries](../experiments/run_acs_bottleneck.py),
+  [training phases and gradients](../experiments/acs_bottleneck_training.py),
+  [coordinate-faithful catch-up](../experiments/acs_bottleneck_catchup.py),
+  [reporting without refits](../scripts/summarize_acs_bottleneck.py).
+- [Validation](../results/redesign_20260908_acs_bottleneck_v1/VALIDATION.md),
+  [state replay](../results/redesign_20260908_acs_bottleneck_v1/INDEPENDENT_VERIFICATION.json),
+  [score replay](../results/redesign_20260908_acs_bottleneck_v1/SCORE_REPLAY.json),
+  [runtime](../results/redesign_20260908_acs_bottleneck_v1/runtime.json),
+  [reproduction and local-only artifacts](../results/redesign_20260908_acs_bottleneck_v1/REPRODUCTION.md).
+
+The three-seed scientific run took88.731s on the existing M4 Pro CPU with one
+numerical thread.23 focused tests passed;2,220 score sets and exact frozen
+releases replayed successfully. All411 reused reference records are unchanged.
+Compact source/evidence are published; raw records, fitted objects and arrays
+stay local with hashes. The single proposed next check is a fixed16-coordinate
+PCA control to distinguish compression from source-focused training; it was not
+run. No basis for advancing PCRL-specific protection has been established.
