@@ -1,0 +1,2614 @@
+{
+  "config": {
+    "input_dim": 48,
+    "mapper_hidden": 64,
+    "release_dim": 16,
+    "decoder_hidden": 64,
+    "adversary_hidden": [
+      64,
+      32
+    ],
+    "warm_base_epochs": 60,
+    "warm_adversary_epochs": 20,
+    "continuation_epochs": 80,
+    "batch_size": 256,
+    "adversary_updates_per_mapper_step": 3,
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "reconstruction_weight": 0.0,
+    "protection_weight": 0.1,
+    "curve_interval": 5,
+    "standardizer_std_floor": 1e-12,
+    "gradient_clipping": null,
+    "checkpoint_selection": "fixed final iterate",
+    "study": "acs_restricted_inputs_v1",
+    "teacher_input_dim": 16,
+    "raw_input_dim": 32,
+    "preservation_beta": 1.0,
+    "Q_seed_base": 20260909,
+    "initialization": "shifted teacher identity"
+  },
+  "miniature": false,
+  "seed": 0,
+  "teacher_name": "S",
+  "access": "K",
+  "bank": false,
+  "fit_pool": "representation_fit",
+  "source_label_keys": [
+    "income_binary",
+    "civilian_at_work",
+    "public_coverage"
+  ],
+  "attribute_schema": {
+    "SEX": 2,
+    "RAC1P": 9
+  },
+  "reserved_labels_received": false,
+  "final_evaluation_received": false,
+  "raw_inputs_received": false,
+  "source_validation_role": "diagnostic only; no checkpoint, stopping or weight selection",
+  "source_fit_coverage": {
+    "income_binary": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        8531,
+        1982
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "civilian_at_work": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        3392,
+        7121
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "public_coverage": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        7976,
+        2537
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    }
+  },
+  "attribute_fit_coverage": {
+    "SEX": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        5391,
+        5122
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "RAC1P": {
+      "class_schema": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "support": [
+        5989,
+        555,
+        90,
+        1,
+        32,
+        1674,
+        49,
+        1527,
+        596
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "schema_complete": true
+    }
+  },
+  "source_validation_coverage": {
+    "income_binary": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        2459,
+        545
+      ],
+      "known": 3004,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "civilian_at_work": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        969,
+        2035
+      ],
+      "known": 3004,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "public_coverage": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        2263,
+        741
+      ],
+      "known": 3004,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    }
+  },
+  "prior_entropies": {
+    "SEX": {
+      "support": [
+        5391,
+        5122
+      ],
+      "probabilities": [
+        0.512793684010273,
+        0.487206315989727
+      ],
+      "entropy": 0.6928197881286746,
+      "estimator": "masked representation-fit empirical frequencies"
+    },
+    "RAC1P": {
+      "support": [
+        5989,
+        555,
+        90,
+        1,
+        32,
+        1674,
+        49,
+        1527,
+        596
+      ],
+      "probabilities": [
+        0.5696756396842005,
+        0.052791781603728716,
+        0.008560829449253305,
+        9.512032721392562e-05,
+        0.0030438504708456197,
+        0.1592314277561115,
+        0.004660896033482355,
+        0.14524873965566443,
+        0.05669171501949967
+      ],
+      "entropy": 1.295640077942957,
+      "estimator": "masked representation-fit empirical frequencies"
+    }
+  },
+  "fit_input_sha256": "31b3fc5637a9b9e3d32e01bfc24cbce92af931326dd68d46ed4a1b8a953f763f",
+  "source_validation_input_sha256": "559138b96a66da2f1a21f58c4c3a0da991e63eed685f25cab5d32385607dcc72",
+  "raw_fit_input_sha256": null,
+  "raw_source_validation_input_sha256": null,
+  "standardized_fit_sha256": "18a4a8bb4c78864ab6954e8b3c8aa4f4449443872d50f478ed64dafd5ecc3631",
+  "standardized_validation_sha256": "97dade86545524e54d89df076d232038a4c1d3a30fb33793257c30c3c83eb0ef",
+  "source_label_hashes": {
+    "income_binary": "975d6344fdaeaafe0ef8f7e881aa42742c6d9faff93ea4396acd12b5ad37521f",
+    "civilian_at_work": "92f31ea56307e4f5b793929b87c51772737ad2fc4c01d64467879e0f8f8f167d",
+    "public_coverage": "a6383687b0d5486ab9401cf7edb2b1ec4c10e311255f618cb259ccd78706ed38"
+  },
+  "attribute_label_hashes": {
+    "SEX": "ba5650e7628b1abf3c58f1054ef8b3bba6801c253986b2b34a8d583e8a218f2f",
+    "RAC1P": "74ef61d8ba6c9dde09a5e815deea29cd7cee74ab0a9ee38866a2e40065a1f102"
+  },
+  "source_validation_label_hashes": {
+    "income_binary": "16b11d167cdc6be833149da1f27c185dfa56137fb73ae5656bae1304c4edb842",
+    "civilian_at_work": "36514f7b1677aa2f08a68cf361308111dc50b72fe39dbe403c16134e78f372a7",
+    "public_coverage": "f4d2423b0ae0cb2bd3c21f833ae28d2e99a7caeb45567bbfc16cb95333e6036e"
+  },
+  "preprocessing": {
+    "fit_pool": "representation_fit",
+    "fit_rows": 10513,
+    "mean": [
+      -4.823749530080677e-07,
+      9.17336347270259e-08,
+      1.5684843494245104e-07,
+      1.0133299877014712e-07,
+      4.2876450690943745e-09,
+      -3.242664465064679e-08,
+      1.4653115611338065e-08,
+      9.244021028634609e-08,
+      2.9078029286767305e-09,
+      2.666702622477407e-08,
+      -2.9981623908766534e-08,
+      1.198981475684936e-08,
+      1.9160192433245387e-08,
+      2.5305964678460725e-08,
+      2.5550112401816594e-08,
+      2.6487724703702853e-08,
+      -4.126911531628159e-08,
+      -8.610370870572249e-09,
+      1.1223708257726878e-08,
+      -7.1522171962480046e-09,
+      -1.7533279175106584e-08,
+      -1.6623306238128537e-08,
+      7.449871895259515e-09,
+      -1.745532199203214e-09,
+      2.3318942387142815e-09,
+      -4.652980777047788e-09,
+      -8.494498148457054e-09,
+      -9.991630414318519e-09,
+      -7.252852832580468e-09,
+      -2.1341133217460977e-08,
+      -8.402898458344582e-09,
+      4.123509763639456e-08
+    ],
+    "scale": [
+      1.1905394419326603,
+      0.8949100867471256,
+      0.5843053033713352,
+      0.5037841674564295,
+      0.4931750998035053,
+      0.4612288580731387,
+      0.45753513829600473,
+      0.41860282124099235,
+      0.37912753914973196,
+      0.354148908367648,
+      0.3320358399290903,
+      0.2902656469552218,
+      0.26588447431021367,
+      0.2468258314177937,
+      0.22968127043646286,
+      0.22042121502588144,
+      0.20937055542745414,
+      0.18994231022110564,
+      0.17365849686572654,
+      0.17302184423933278,
+      0.16634546249459414,
+      0.16313350590347656,
+      0.1593379732964904,
+      0.1515434429179784,
+      0.1478080786055169,
+      0.14456584232273875,
+      0.1392694286131842,
+      0.1273646037220649,
+      0.1229186080250031,
+      0.12048620040528345,
+      0.11674751492831366,
+      0.11320731395739854
+    ],
+    "teacher_statistics": "original first16 means/scales, never erased residual statistics",
+    "fit_computation_dtype": "float64",
+    "standardized_dtype": "float32"
+  },
+  "teacher": {
+    "sha256": "31b3fc5637a9b9e3d32e01bfc24cbce92af931326dd68d46ed4a1b8a953f763f",
+    "detached": true,
+    "immutable_verified": true,
+    "rows": 10513,
+    "coordinate_scale": [
+      1.1905394419326603,
+      0.8949100867471256,
+      0.5843053033713352,
+      0.5037841674564295,
+      0.4931750998035053,
+      0.4612288580731387,
+      0.45753513829600473,
+      0.41860282124099235,
+      0.37912753914973196,
+      0.354148908367648,
+      0.3320358399290903,
+      0.2902656469552218,
+      0.26588447431021367,
+      0.2468258314177937,
+      0.22968127043646286,
+      0.22042121502588144
+    ],
+    "coordinate_scale_sha256": "ea2c62d14e29c385316cf35b5a4ceb49c35fb8f481343ea21780e2a116365eab"
+  },
+  "initialization": {
+    "mode": "shifted teacher identity",
+    "parity": {
+      "representation_fit": {
+        "passed": true,
+        "max_absolute_error": 4.76837158203125e-07,
+        "atol": 1e-05,
+        "rtol": 1e-05,
+        "output_sha256": "519cf9a035537cb2fc724c25d5a601fbe52770de99ed9ea01f737eae13b55140",
+        "teacher_sha256": "31b3fc5637a9b9e3d32e01bfc24cbce92af931326dd68d46ed4a1b8a953f763f"
+      },
+      "source_validation": {
+        "passed": true,
+        "max_absolute_error": 4.76837158203125e-07,
+        "atol": 1e-05,
+        "rtol": 1e-05,
+        "output_sha256": "1de02cda7bc4252f9b95cd6b538dc9e0632ff1737a0e58781f113f8e2b768cb0",
+        "teacher_sha256": "559138b96a66da2f1a21f58c4c3a0da991e63eed685f25cab5d32385607dcc72"
+      }
+    },
+    "q_sha256": "cb2221a45784dca3c13ec5aaae75fde1413fa7007e3b8131503ed43879b3a054",
+    "q_seed": 20260909,
+    "Q_convention": "numpy float64 Gaussian QR; columns multiplied by sign(diag(R)), zero sign positive",
+    "formula": "W1[:,:16]=[I;-I;Q;-Q],W1[:,16:]=0;b1=[1;-1;1;-1];W2=[diag(s16),-diag(s16),0,0];b2=m16-s16",
+    "heads_initial_sha256": "39e183a34eb6915e4117a3b3b71402e532604fc02868bad807dd18644d2503be",
+    "decoder_initial_sha256": "58f7e8f8eb2b2cac7b76de00c3422997112adb94ac4875d43446ad7ca807dcb7",
+    "nondead_full_input_fixture": {
+      "disposable_model": true,
+      "optimizer_steps": 0,
+      "actual_model_unchanged": true,
+      "torch_rng_unchanged": true,
+      "fixture": "standardized u exactly zero, all32 v coordinates nonzero; synthetic all-zero source labels",
+      "all32_full_input_columns_nonzero_source_gradient": true,
+      "raw_input_weight_column_gradient_l2": [
+        0.032339390367269516,
+        0.03651221841573715,
+        0.04068503528833389,
+        0.04485786706209183,
+        0.049030691385269165,
+        0.053203511983156204,
+        0.05737633630633354,
+        0.06154916435480118,
+        0.06572198122739792,
+        0.06989481300115585,
+        0.07406764477491379,
+        0.07824046909809113,
+        0.08241329342126846,
+        0.0865861028432846,
+        0.09075892716646194,
+        0.09493176639080048,
+        0.09910459071397781,
+        0.10327742248773575,
+        0.10745023936033249,
+        0.11162307113409042,
+        0.11579588800668716,
+        0.1199687197804451,
+        0.12414154410362244,
+        0.12831436097621918,
+        0.1324871927499771,
+        0.13665999472141266,
+        0.1408328413963318,
+        0.14500565826892853,
+        0.14917849004268646,
+        0.1533513069152832,
+        0.15752415359020233,
+        0.16169695556163788
+      ],
+      "auxiliary_readout_source_gradient_l2": 0.7572243809700012
+    },
+    "all_mapper_parameters_trainable": true
+  },
+  "initialization_hashes": {
+    "model": "b3f0de8f2ce742de6834215089485f94b4b3d1bf8b0e0bdec7378e78c5543a87",
+    "adversaries": null
+  },
+  "shared_fork_hashes": {
+    "model": "7f99540d713161f3e9da7c2634d9a2ac2ab5fa58e44aa2eb2faf62c458a48ce6",
+    "adversaries": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af",
+    "mapper_optimizer": "7fbe365bf24990b08a7ccf774cf9995e2e0274b609edda015395748d3514ff2f",
+    "adversary_optimizer": "fe03612285bb9d80e7b7aaed0e894fa040ca06746d4c5b3c22b5610a6a32682c"
+  },
+  "adversary_initialization_hash": "54a70f9f7e480640cb1c6cd2db163d92648326678747e8b91cba46317608d9b4",
+  "adversary_initialization_phase": "after common base warmup",
+  "common_optimizer_counts": {
+    "mapper_optimizer_steps": 2520,
+    "adversary_optimizer_steps": 840
+  },
+  "shared_curves": {
+    "warm_base": [
+      {
+        "epoch": 0,
+        "mapper_optimizer_steps": 0,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.7074398994445801,
+        "fit_source_ce": 0.7074398994445801,
+        "fit_source_losses": {
+          "income_binary": 0.7074005603790283,
+          "civilian_at_work": 0.6789258122444153,
+          "public_coverage": 0.7359933257102966
+        },
+        "source_validation_ce": 0.7073661684989929,
+        "source_validation_base_loss": 0.7073661684989929,
+        "source_validation_losses": {
+          "income_binary": 0.7086160778999329,
+          "civilian_at_work": 0.6793681383132935,
+          "public_coverage": 0.7341141104698181
+        },
+        "fit_preservation_loss": 2.5445026436614424e-15,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 2.5445026436614424e-15,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.7074398994445826,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 5,
+        "mapper_optimizer_steps": 210,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.5707389712333679,
+        "fit_source_ce": 0.5707389712333679,
+        "fit_source_losses": {
+          "income_binary": 0.5273268222808838,
+          "civilian_at_work": 0.5582364201545715,
+          "public_coverage": 0.6266537308692932
+        },
+        "source_validation_ce": 0.570475161075592,
+        "source_validation_base_loss": 0.570475161075592,
+        "source_validation_losses": {
+          "income_binary": 0.5274839997291565,
+          "civilian_at_work": 0.5582507252693176,
+          "public_coverage": 0.625690758228302
+        },
+        "fit_preservation_loss": 0.02456498146057129,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.02456498146057129,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.5953039526939392,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 10,
+        "mapper_optimizer_steps": 420,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4975743293762207,
+        "fit_source_ce": 0.4975743293762207,
+        "fit_source_losses": {
+          "income_binary": 0.43946129083633423,
+          "civilian_at_work": 0.4938822090625763,
+          "public_coverage": 0.5593794584274292
+        },
+        "source_validation_ce": 0.4976671636104584,
+        "source_validation_base_loss": 0.4976671636104584,
+        "source_validation_losses": {
+          "income_binary": 0.43872570991516113,
+          "civilian_at_work": 0.4943055212497711,
+          "public_coverage": 0.5599702596664429
+        },
+        "fit_preservation_loss": 0.04075171798467636,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.04075171798467636,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.5383260473608971,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 15,
+        "mapper_optimizer_steps": 630,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.47014522552490234,
+        "fit_source_ce": 0.47014522552490234,
+        "fit_source_losses": {
+          "income_binary": 0.410808265209198,
+          "civilian_at_work": 0.45934051275253296,
+          "public_coverage": 0.5402868986129761
+        },
+        "source_validation_ce": 0.47098708152770996,
+        "source_validation_base_loss": 0.47098708152770996,
+        "source_validation_losses": {
+          "income_binary": 0.41019198298454285,
+          "civilian_at_work": 0.4605940580368042,
+          "public_coverage": 0.5421752333641052
+        },
+        "fit_preservation_loss": 0.03070385381579399,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.03070385381579399,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.5008490793406963,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 20,
+        "mapper_optimizer_steps": 840,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4514911472797394,
+        "fit_source_ce": 0.4514911472797394,
+        "fit_source_losses": {
+          "income_binary": 0.38561275601387024,
+          "civilian_at_work": 0.43830397725105286,
+          "public_coverage": 0.5305567383766174
+        },
+        "source_validation_ce": 0.45255622267723083,
+        "source_validation_base_loss": 0.45255622267723083,
+        "source_validation_losses": {
+          "income_binary": 0.3847588300704956,
+          "civilian_at_work": 0.43976882100105286,
+          "public_coverage": 0.533141016960144
+        },
+        "fit_preservation_loss": 0.026718558743596077,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.026718558743596077,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.47820970602333546,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 25,
+        "mapper_optimizer_steps": 1050,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4383974075317383,
+        "fit_source_ce": 0.4383974075317383,
+        "fit_source_losses": {
+          "income_binary": 0.3687676787376404,
+          "civilian_at_work": 0.42365822196006775,
+          "public_coverage": 0.5227663516998291
+        },
+        "source_validation_ce": 0.4401313066482544,
+        "source_validation_base_loss": 0.4401313066482544,
+        "source_validation_losses": {
+          "income_binary": 0.368631511926651,
+          "civilian_at_work": 0.4253624677658081,
+          "public_coverage": 0.5263999700546265
+        },
+        "fit_preservation_loss": 0.02492065541446209,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.02492065541446209,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.46331806294620037,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 30,
+        "mapper_optimizer_steps": 1260,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4296170175075531,
+        "fit_source_ce": 0.4296170175075531,
+        "fit_source_losses": {
+          "income_binary": 0.37027934193611145,
+          "civilian_at_work": 0.40702563524246216,
+          "public_coverage": 0.5115460753440857
+        },
+        "source_validation_ce": 0.43184521794319153,
+        "source_validation_base_loss": 0.43184521794319153,
+        "source_validation_losses": {
+          "income_binary": 0.37060725688934326,
+          "civilian_at_work": 0.40884631872177124,
+          "public_coverage": 0.5160821080207825
+        },
+        "fit_preservation_loss": 0.02188740484416485,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.02188740484416485,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.45150442235171795,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 35,
+        "mapper_optimizer_steps": 1470,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4206322729587555,
+        "fit_source_ce": 0.4206322729587555,
+        "fit_source_losses": {
+          "income_binary": 0.35739126801490784,
+          "civilian_at_work": 0.39585423469543457,
+          "public_coverage": 0.5086513757705688
+        },
+        "source_validation_ce": 0.42336854338645935,
+        "source_validation_base_loss": 0.42336854338645935,
+        "source_validation_losses": {
+          "income_binary": 0.35843485593795776,
+          "civilian_at_work": 0.3975031077861786,
+          "public_coverage": 0.5141676664352417
+        },
+        "fit_preservation_loss": 0.020268090069293976,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.020268090069293976,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.44090036302804947,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 40,
+        "mapper_optimizer_steps": 1680,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.410509318113327,
+        "fit_source_ce": 0.410509318113327,
+        "fit_source_losses": {
+          "income_binary": 0.341197669506073,
+          "civilian_at_work": 0.3873499035835266,
+          "public_coverage": 0.5029803514480591
+        },
+        "source_validation_ce": 0.41397595405578613,
+        "source_validation_base_loss": 0.41397595405578613,
+        "source_validation_losses": {
+          "income_binary": 0.3422257900238037,
+          "civilian_at_work": 0.3902534246444702,
+          "public_coverage": 0.5094486474990845
+        },
+        "fit_preservation_loss": 0.02280527912080288,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.02280527912080288,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.4333145972341299,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 45,
+        "mapper_optimizer_steps": 1890,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4078349173069,
+        "fit_source_ce": 0.4078349173069,
+        "fit_source_losses": {
+          "income_binary": 0.3391806483268738,
+          "civilian_at_work": 0.380059152841568,
+          "public_coverage": 0.5042650103569031
+        },
+        "source_validation_ce": 0.4107246398925781,
+        "source_validation_base_loss": 0.4107246398925781,
+        "source_validation_losses": {
+          "income_binary": 0.33939069509506226,
+          "civilian_at_work": 0.38268357515335083,
+          "public_coverage": 0.5100995898246765
+        },
+        "fit_preservation_loss": 0.018707357347011566,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.018707357347011566,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.4265422746539116,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 50,
+        "mapper_optimizer_steps": 2100,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.4029909670352936,
+        "fit_source_ce": 0.4029909670352936,
+        "fit_source_losses": {
+          "income_binary": 0.33441752195358276,
+          "civilian_at_work": 0.3742755651473999,
+          "public_coverage": 0.5002799034118652
+        },
+        "source_validation_ce": 0.4071024954319,
+        "source_validation_base_loss": 0.4071024954319,
+        "source_validation_losses": {
+          "income_binary": 0.3354417383670807,
+          "civilian_at_work": 0.37813758850097656,
+          "public_coverage": 0.5077282786369324
+        },
+        "fit_preservation_loss": 0.019182343035936356,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.019182343035936356,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.42217331007122993,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 55,
+        "mapper_optimizer_steps": 2310,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.3991805613040924,
+        "fit_source_ce": 0.3991805613040924,
+        "fit_source_losses": {
+          "income_binary": 0.3302312195301056,
+          "civilian_at_work": 0.36908963322639465,
+          "public_coverage": 0.49822092056274414
+        },
+        "source_validation_ce": 0.40294012427330017,
+        "source_validation_base_loss": 0.40294012427330017,
+        "source_validation_losses": {
+          "income_binary": 0.3313588500022888,
+          "civilian_at_work": 0.3720404803752899,
+          "public_coverage": 0.5054210424423218
+        },
+        "fit_preservation_loss": 0.01860327273607254,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.01860327273607254,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.41778383404016495,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 60,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": null,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 1.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0180224496871233,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.41334003396332264,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      }
+    ],
+    "warm_adversary": [
+      {
+        "epoch": 0,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 0,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": 1.3662548065185547,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 0.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.39531758427619934,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 5,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 210,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": 0.9624373912811279,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 0.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.39531758427619934,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 10,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 420,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": 0.9512401819229126,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 0.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.39531758427619934,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 15,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 630,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": 0.9457452297210693,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 0.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.39531758427619934,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      },
+      {
+        "epoch": 20,
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 840,
+        "fit_base_loss": 0.39531758427619934,
+        "fit_source_ce": 0.39531758427619934,
+        "fit_source_losses": {
+          "income_binary": 0.325777143239975,
+          "civilian_at_work": 0.3628365397453308,
+          "public_coverage": 0.497339129447937
+        },
+        "source_validation_ce": 0.3999336063861847,
+        "source_validation_base_loss": 0.3999336063861847,
+        "source_validation_losses": {
+          "income_binary": 0.3269335627555847,
+          "civilian_at_work": 0.3672562837600708,
+          "public_coverage": 0.505611002445221
+        },
+        "fit_preservation_loss": 0.0180224496871233,
+        "fit_normalized_adversary_ce": 0.9419854879379272,
+        "fit_reconstruction_mse": null,
+        "source_coefficient": 1.0,
+        "preservation_coefficient": 0.0,
+        "reconstruction_coefficient": 0.0,
+        "protection_coefficient": 0.0,
+        "fit_applied_preservation": 0.0,
+        "fit_applied_protection": 0.0,
+        "fit_objective": 0.39531758427619934,
+        "selection": "none; fixed final iterate",
+        "decoder_objective_path": "omitted"
+      }
+    ]
+  },
+  "schedules": {
+    "warm_base": {
+      "seed": 1280000,
+      "sha256": "d4471ec678dbc0818573ceb178c672376c8a9b516fc974cf74f5f944632f1c88"
+    },
+    "warm_adversary": {
+      "seed": 1280100,
+      "sha256": "e2a876e9a194b493cd1863972bc3c9599f7ac019de953b9ec118eb41290c0f96"
+    },
+    "continuation": {
+      "seed": 1280200,
+      "sha256": "90dcb5b317356984ad8c84fe14e0b93ed3a569e0c5df315042347a3bc40cf46f"
+    }
+  },
+  "skipped_phases": [],
+  "common_base_row_exposures": 630780,
+  "common_adversary_row_exposures": 210260,
+  "common_source_valid_label_exposures": {
+    "income_binary": 630780,
+    "civilian_at_work": 630780,
+    "public_coverage": 630780
+  },
+  "common_attribute_valid_label_exposures": {
+    "SEX": 210260,
+    "RAC1P": 210260
+  },
+  "native_source_head_training_exposure": {
+    "fit_pool": "representation_fit",
+    "mapper_epochs": 140,
+    "valid_label_exposures": {
+      "income_binary": 1471820,
+      "civilian_at_work": 1471820,
+      "public_coverage": 1471820
+    },
+    "selection": "fixed final iterate; no head refit or calibration"
+  },
+  "snapshots": {
+    "I": {
+      "checkpoint": "initialization.pt",
+      "model_hash": "b3f0de8f2ce742de6834215089485f94b4b3d1bf8b0e0bdec7378e78c5543a87",
+      "mapper_optimizer_steps": 0,
+      "unchanged_across_adversary_warmup": true
+    },
+    "W": {
+      "checkpoint": "warm_base.pt",
+      "model_hash": "7f99540d713161f3e9da7c2634d9a2ac2ab5fa58e44aa2eb2faf62c458a48ce6",
+      "mapper_optimizer_steps": 2520,
+      "unchanged_across_adversary_warmup": true
+    }
+  },
+  "gradient_diagnostic_indices_sha256": "da4032eb43f35ea9ad5440aa127d0cdc76476f4d5d140e8b7cab77ba6270c696",
+  "stage_gradient_diagnostics": {
+    "initialization": {
+      "coefficients": {
+        "source": 1.0,
+        "teacher": 1.0,
+        "protection": 0.0
+      },
+      "reconstruction_coefficient": 0.0,
+      "decoder_objective_path": "omitted",
+      "source_loss": 0.7067928314208984,
+      "preservation_loss": 2.5856798798427894e-15,
+      "normalized_adversary_ce": 1.3699520826339722,
+      "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+      "protection_available": true,
+      "input_teacher_l2": 41.769996643066406,
+      "input_raw_l2": 0.0,
+      "teacher_input_weight_l2": 8.0,
+      "raw_input_weight_l2": 0.0,
+      "source_raw_mapper_l2": 0.6887020468711853,
+      "source_raw_teacher_input_weight_l2": 0.041169486939907074,
+      "source_raw_raw_input_weight_l2": 0.0,
+      "source_applied_mapper_l2": 0.6887020468711853,
+      "source_applied_teacher_input_weight_l2": 0.041169486939907074,
+      "source_applied_raw_input_weight_l2": 0.0,
+      "teacher_raw_mapper_l2": 2.1094805902066582e-07,
+      "teacher_raw_teacher_input_weight_l2": 8.571504395149532e-09,
+      "teacher_raw_raw_input_weight_l2": 0.0,
+      "teacher_applied_mapper_l2": 2.1094805902066582e-07,
+      "teacher_applied_teacher_input_weight_l2": 8.571504395149532e-09,
+      "teacher_applied_raw_input_weight_l2": 0.0,
+      "protection_raw_mapper_l2": 0.11149531602859497,
+      "protection_raw_teacher_input_weight_l2": 0.012181593105196953,
+      "protection_raw_raw_input_weight_l2": 0.0,
+      "protection_applied_mapper_l2": 0.0,
+      "protection_applied_teacher_input_weight_l2": 0.0,
+      "protection_applied_raw_input_weight_l2": 0.0,
+      "teacher_protection_raw_dot": -5.33020116932903e-09,
+      "teacher_protection_raw_cosine": -0.2266268924386366,
+      "teacher_protection_applied_dot": 0.0,
+      "teacher_protection_applied_cosine": null,
+      "source_protection_raw_dot": -0.00964326597750187,
+      "source_protection_raw_cosine": -0.12558453125154326,
+      "source_protection_applied_dot": 0.0,
+      "source_protection_applied_cosine": null,
+      "source_teacher_raw_dot": 6.973303356971883e-08,
+      "source_teacher_raw_cosine": 0.47998940500162446,
+      "source_teacher_applied_dot": 6.973303356971883e-08,
+      "source_teacher_applied_cosine": 0.47998940500162446,
+      "training_state_unchanged": true,
+      "torch_rng_unchanged": true,
+      "optimizer_steps": 0,
+      "preservation_nonmapper_gradients_all_absent": true,
+      "cosine_zero_policy": "None when either norm is zero or component unavailable",
+      "hypothetical_preobserver_warmup": true,
+      "protection_observer_basis": "disposable original initialization",
+      "diagnostic_observer_state_sha256": "54a70f9f7e480640cb1c6cd2db163d92648326678747e8b91cba46317608d9b4"
+    },
+    "after_base_warmup": {
+      "coefficients": {
+        "source": 1.0,
+        "teacher": 1.0,
+        "protection": 0.0
+      },
+      "reconstruction_coefficient": 0.0,
+      "decoder_objective_path": "omitted",
+      "source_loss": 0.4148470461368561,
+      "preservation_loss": 0.02031063288450241,
+      "normalized_adversary_ce": 1.3697116374969482,
+      "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+      "protection_available": true,
+      "input_teacher_l2": 41.769996643066406,
+      "input_raw_l2": 0.0,
+      "teacher_input_weight_l2": 8.624258041381836,
+      "raw_input_weight_l2": 0.0,
+      "source_raw_mapper_l2": 0.23457252979278564,
+      "source_raw_teacher_input_weight_l2": 0.08147434890270233,
+      "source_raw_raw_input_weight_l2": 0.0,
+      "source_applied_mapper_l2": 0.23457252979278564,
+      "source_applied_teacher_input_weight_l2": 0.08147434890270233,
+      "source_applied_raw_input_weight_l2": 0.0,
+      "teacher_raw_mapper_l2": 0.34612587094306946,
+      "teacher_raw_teacher_input_weight_l2": 0.05265013128519058,
+      "teacher_raw_raw_input_weight_l2": 0.0,
+      "teacher_applied_mapper_l2": 0.34612587094306946,
+      "teacher_applied_teacher_input_weight_l2": 0.05265013128519058,
+      "teacher_applied_raw_input_weight_l2": 0.0,
+      "protection_raw_mapper_l2": 0.10200589150190353,
+      "protection_raw_teacher_input_weight_l2": 0.012731564231216908,
+      "protection_raw_raw_input_weight_l2": 0.0,
+      "protection_applied_mapper_l2": 0.0,
+      "protection_applied_teacher_input_weight_l2": 0.0,
+      "protection_applied_raw_input_weight_l2": 0.0,
+      "teacher_protection_raw_dot": -0.006199612282216549,
+      "teacher_protection_raw_cosine": -0.1755921969551027,
+      "teacher_protection_applied_dot": 0.0,
+      "teacher_protection_applied_cosine": null,
+      "source_protection_raw_dot": -0.007542858831584454,
+      "source_protection_raw_cosine": -0.3152343771222173,
+      "source_protection_applied_dot": 0.0,
+      "source_protection_applied_cosine": null,
+      "source_teacher_raw_dot": 0.017065279185771942,
+      "source_teacher_raw_cosine": 0.21018522526150651,
+      "source_teacher_applied_dot": 0.017065279185771942,
+      "source_teacher_applied_cosine": 0.21018522526150651,
+      "training_state_unchanged": true,
+      "torch_rng_unchanged": true,
+      "optimizer_steps": 0,
+      "preservation_nonmapper_gradients_all_absent": true,
+      "cosine_zero_policy": "None when either norm is zero or component unavailable",
+      "hypothetical_preobserver_warmup": true,
+      "protection_observer_basis": "disposable original initialization",
+      "diagnostic_observer_state_sha256": "54a70f9f7e480640cb1c6cd2db163d92648326678747e8b91cba46317608d9b4"
+    },
+    "shared_fork": {
+      "coefficients": {
+        "source": 1.0,
+        "teacher": 1.0,
+        "protection": -0.1
+      },
+      "reconstruction_coefficient": 0.0,
+      "decoder_objective_path": "omitted",
+      "source_loss": 0.4148470461368561,
+      "preservation_loss": 0.02031063288450241,
+      "normalized_adversary_ce": 0.9358696937561035,
+      "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+      "protection_available": true,
+      "input_teacher_l2": 41.769996643066406,
+      "input_raw_l2": 0.0,
+      "teacher_input_weight_l2": 8.624258041381836,
+      "raw_input_weight_l2": 0.0,
+      "source_raw_mapper_l2": 0.23457252979278564,
+      "source_raw_teacher_input_weight_l2": 0.08147434890270233,
+      "source_raw_raw_input_weight_l2": 0.0,
+      "source_applied_mapper_l2": 0.23457252979278564,
+      "source_applied_teacher_input_weight_l2": 0.08147434890270233,
+      "source_applied_raw_input_weight_l2": 0.0,
+      "teacher_raw_mapper_l2": 0.34612587094306946,
+      "teacher_raw_teacher_input_weight_l2": 0.05265013128519058,
+      "teacher_raw_raw_input_weight_l2": 0.0,
+      "teacher_applied_mapper_l2": 0.34612587094306946,
+      "teacher_applied_teacher_input_weight_l2": 0.05265013128519058,
+      "teacher_applied_raw_input_weight_l2": 0.0,
+      "protection_raw_mapper_l2": 0.2603417932987213,
+      "protection_raw_teacher_input_weight_l2": 0.07416629046201706,
+      "protection_raw_raw_input_weight_l2": 0.0,
+      "protection_applied_mapper_l2": 0.026034176349639893,
+      "protection_applied_teacher_input_weight_l2": 0.00741663109511137,
+      "protection_applied_raw_input_weight_l2": 0.0,
+      "teacher_protection_raw_dot": -0.023442134261131287,
+      "teacher_protection_raw_cosine": -0.26014722364792364,
+      "teacher_protection_applied_dot": 0.0023442134261131287,
+      "teacher_protection_applied_cosine": 0.26014725342797634,
+      "source_protection_raw_dot": -0.012591848149895668,
+      "source_protection_raw_cosine": -0.20619039663719219,
+      "source_protection_applied_dot": 0.0012591847917065024,
+      "source_protection_applied_cosine": 0.20619041642801786,
+      "source_teacher_raw_dot": 0.017065279185771942,
+      "source_teacher_raw_cosine": 0.21018522526150651,
+      "source_teacher_applied_dot": 0.017065279185771942,
+      "source_teacher_applied_cosine": 0.21018522526150651,
+      "training_state_unchanged": true,
+      "torch_rng_unchanged": true,
+      "optimizer_steps": 0,
+      "preservation_nonmapper_gradients_all_absent": true,
+      "cosine_zero_policy": "None when either norm is zero or component unavailable",
+      "hypothetical_preobserver_warmup": false,
+      "protection_observer_basis": "actual current observers",
+      "diagnostic_observer_state_sha256": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af"
+    }
+  },
+  "objective": "mean masked three-source BCE + beta fixed-teacher preservation; D minus .1 mean prior-entropy-normalized real-attribute CE; decoder graph absent",
+  "arms": {
+    "C": {
+      "protected": false,
+      "protection_coefficient": 0.0,
+      "fork_hashes": {
+        "model": "7f99540d713161f3e9da7c2634d9a2ac2ab5fa58e44aa2eb2faf62c458a48ce6",
+        "adversaries": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af",
+        "mapper_optimizer": "7fbe365bf24990b08a7ccf774cf9995e2e0274b609edda015395748d3514ff2f",
+        "adversary_optimizer": "fe03612285bb9d80e7b7aaed0e894fa040ca06746d4c5b3c22b5610a6a32682c"
+      },
+      "final_model_hash": "83143071d26a352426630c8d31f2f634a8a4ffe9847cfa3262f4933ac5bdd7a2",
+      "final_adversary_hash": "b014a8920b207f8e860d86a0ac8cd9198135c696e7b325a271286b508d1241cc",
+      "final_mapper_optimizer_hash": "9c299f5cdbaba0ce8ea35c461c3633e5b7ddd64ef6d5d1661034da40c5da1fd1",
+      "final_adversary_optimizer_hash": "4cea9a3a1d330e81f3c25e16584552062bb82675485606d98eef0401b4372b0c",
+      "schedule_hash": "90dcb5b317356984ad8c84fe14e0b93ed3a569e0c5df315042347a3bc40cf46f",
+      "selected_epoch": 80,
+      "continuation_mapper_optimizer_steps": 3360,
+      "continuation_adversary_optimizer_steps": 10080,
+      "optimizer_counts_including_common": {
+        "mapper_optimizer_steps": 5880,
+        "adversary_optimizer_steps": 10920
+      },
+      "mapper_row_exposures": 841040,
+      "adversary_row_exposures": 2523120,
+      "mapper_loss_uses_protection_gradient": false,
+      "preservation_schedule": "persistent",
+      "continuation_preservation_coefficient": 1.0,
+      "curve": [
+        {
+          "epoch": 0,
+          "mapper_optimizer_steps": 2520,
+          "adversary_optimizer_steps": 840,
+          "fit_base_loss": 0.39531758427619934,
+          "fit_source_ce": 0.39531758427619934,
+          "fit_source_losses": {
+            "income_binary": 0.325777143239975,
+            "civilian_at_work": 0.3628365397453308,
+            "public_coverage": 0.497339129447937
+          },
+          "source_validation_ce": 0.3999336063861847,
+          "source_validation_base_loss": 0.3999336063861847,
+          "source_validation_losses": {
+            "income_binary": 0.3269335627555847,
+            "civilian_at_work": 0.3672562837600708,
+            "public_coverage": 0.505611002445221
+          },
+          "fit_preservation_loss": 0.0180224496871233,
+          "fit_normalized_adversary_ce": 0.9419854879379272,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.0180224496871233,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.41334003396332264,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 5,
+          "mapper_optimizer_steps": 2730,
+          "adversary_optimizer_steps": 1470,
+          "fit_base_loss": 0.3931891620159149,
+          "fit_source_ce": 0.3931891620159149,
+          "fit_source_losses": {
+            "income_binary": 0.3233248293399811,
+            "civilian_at_work": 0.359524130821228,
+            "public_coverage": 0.49671852588653564
+          },
+          "source_validation_ce": 0.39828476309776306,
+          "source_validation_base_loss": 0.39828476309776306,
+          "source_validation_losses": {
+            "income_binary": 0.3248669505119324,
+            "civilian_at_work": 0.3642510175704956,
+            "public_coverage": 0.505736231803894
+          },
+          "fit_preservation_loss": 0.01765695959329605,
+          "fit_normalized_adversary_ce": 0.9359639286994934,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01765695959329605,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.41084612160921097,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 10,
+          "mapper_optimizer_steps": 2940,
+          "adversary_optimizer_steps": 2100,
+          "fit_base_loss": 0.3919891119003296,
+          "fit_source_ce": 0.3919891119003296,
+          "fit_source_losses": {
+            "income_binary": 0.3198816180229187,
+            "civilian_at_work": 0.35940346121788025,
+            "public_coverage": 0.4966823160648346
+          },
+          "source_validation_ce": 0.3962623178958893,
+          "source_validation_base_loss": 0.3962623178958893,
+          "source_validation_losses": {
+            "income_binary": 0.32025283575057983,
+            "civilian_at_work": 0.3630942106246948,
+            "public_coverage": 0.5054398775100708
+          },
+          "fit_preservation_loss": 0.01792363077402115,
+          "fit_normalized_adversary_ce": 0.9393439888954163,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01792363077402115,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.40991274267435074,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 15,
+          "mapper_optimizer_steps": 3150,
+          "adversary_optimizer_steps": 2730,
+          "fit_base_loss": 0.39048337936401367,
+          "fit_source_ce": 0.39048337936401367,
+          "fit_source_losses": {
+            "income_binary": 0.3172086477279663,
+            "civilian_at_work": 0.3591266870498657,
+            "public_coverage": 0.4951147735118866
+          },
+          "source_validation_ce": 0.3960573673248291,
+          "source_validation_base_loss": 0.3960573673248291,
+          "source_validation_losses": {
+            "income_binary": 0.31865862011909485,
+            "civilian_at_work": 0.36526134610176086,
+            "public_coverage": 0.5042521953582764
+          },
+          "fit_preservation_loss": 0.020737875252962112,
+          "fit_normalized_adversary_ce": 0.9314178228378296,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.020737875252962112,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.4112212546169758,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 20,
+          "mapper_optimizer_steps": 3360,
+          "adversary_optimizer_steps": 3360,
+          "fit_base_loss": 0.3876819908618927,
+          "fit_source_ce": 0.3876819908618927,
+          "fit_source_losses": {
+            "income_binary": 0.3161841928958893,
+            "civilian_at_work": 0.3520379066467285,
+            "public_coverage": 0.4948239326477051
+          },
+          "source_validation_ce": 0.39350613951683044,
+          "source_validation_base_loss": 0.39350613951683044,
+          "source_validation_losses": {
+            "income_binary": 0.3179696798324585,
+            "civilian_at_work": 0.3577093482017517,
+            "public_coverage": 0.5048394203186035
+          },
+          "fit_preservation_loss": 0.016367346048355103,
+          "fit_normalized_adversary_ce": 0.9246099591255188,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.016367346048355103,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.4040493369102478,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 25,
+          "mapper_optimizer_steps": 3570,
+          "adversary_optimizer_steps": 3990,
+          "fit_base_loss": 0.3856532871723175,
+          "fit_source_ce": 0.3856532871723175,
+          "fit_source_losses": {
+            "income_binary": 0.3155326247215271,
+            "civilian_at_work": 0.34803614020347595,
+            "public_coverage": 0.4933911859989166
+          },
+          "source_validation_ce": 0.39158546924591064,
+          "source_validation_base_loss": 0.39158546924591064,
+          "source_validation_losses": {
+            "income_binary": 0.3168574869632721,
+            "civilian_at_work": 0.3549366593360901,
+            "public_coverage": 0.5029622316360474
+          },
+          "fit_preservation_loss": 0.016041601076722145,
+          "fit_normalized_adversary_ce": 0.9182376861572266,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.016041601076722145,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.40169488824903965,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 30,
+          "mapper_optimizer_steps": 3780,
+          "adversary_optimizer_steps": 4620,
+          "fit_base_loss": 0.38414010405540466,
+          "fit_source_ce": 0.38414010405540466,
+          "fit_source_losses": {
+            "income_binary": 0.3124510943889618,
+            "civilian_at_work": 0.346292108297348,
+            "public_coverage": 0.49367713928222656
+          },
+          "source_validation_ce": 0.391272634267807,
+          "source_validation_base_loss": 0.391272634267807,
+          "source_validation_losses": {
+            "income_binary": 0.3149430453777313,
+            "civilian_at_work": 0.354520708322525,
+            "public_coverage": 0.5043541789054871
+          },
+          "fit_preservation_loss": 0.01658008247613907,
+          "fit_normalized_adversary_ce": 0.9181779623031616,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01658008247613907,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.40072018653154373,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 35,
+          "mapper_optimizer_steps": 3990,
+          "adversary_optimizer_steps": 5250,
+          "fit_base_loss": 0.3824922740459442,
+          "fit_source_ce": 0.3824922740459442,
+          "fit_source_losses": {
+            "income_binary": 0.31195276975631714,
+            "civilian_at_work": 0.34360602498054504,
+            "public_coverage": 0.4919179379940033
+          },
+          "source_validation_ce": 0.38990578055381775,
+          "source_validation_base_loss": 0.38990578055381775,
+          "source_validation_losses": {
+            "income_binary": 0.31515568494796753,
+            "civilian_at_work": 0.3508090376853943,
+            "public_coverage": 0.503752589225769
+          },
+          "fit_preservation_loss": 0.01699490286409855,
+          "fit_normalized_adversary_ce": 0.9125055074691772,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01699490286409855,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.39948717691004276,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 40,
+          "mapper_optimizer_steps": 4200,
+          "adversary_optimizer_steps": 5880,
+          "fit_base_loss": 0.3816802501678467,
+          "fit_source_ce": 0.3816802501678467,
+          "fit_source_losses": {
+            "income_binary": 0.3111511766910553,
+            "civilian_at_work": 0.3427184522151947,
+            "public_coverage": 0.49117112159729004
+          },
+          "source_validation_ce": 0.3897117078304291,
+          "source_validation_base_loss": 0.3897117078304291,
+          "source_validation_losses": {
+            "income_binary": 0.3144506812095642,
+            "civilian_at_work": 0.3509903848171234,
+            "public_coverage": 0.5036940574645996
+          },
+          "fit_preservation_loss": 0.015840167179703712,
+          "fit_normalized_adversary_ce": 0.9091653823852539,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.015840167179703712,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3975204173475504,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 45,
+          "mapper_optimizer_steps": 4410,
+          "adversary_optimizer_steps": 6510,
+          "fit_base_loss": 0.3803118169307709,
+          "fit_source_ce": 0.3803118169307709,
+          "fit_source_losses": {
+            "income_binary": 0.310502290725708,
+            "civilian_at_work": 0.33873870968818665,
+            "public_coverage": 0.4916944205760956
+          },
+          "source_validation_ce": 0.3876287043094635,
+          "source_validation_base_loss": 0.3876287043094635,
+          "source_validation_losses": {
+            "income_binary": 0.31430676579475403,
+            "civilian_at_work": 0.3452852964401245,
+            "public_coverage": 0.5032941699028015
+          },
+          "fit_preservation_loss": 0.014841795898973942,
+          "fit_normalized_adversary_ce": 0.9087969660758972,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.014841795898973942,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3951536128297448,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 50,
+          "mapper_optimizer_steps": 4620,
+          "adversary_optimizer_steps": 7140,
+          "fit_base_loss": 0.37995314598083496,
+          "fit_source_ce": 0.37995314598083496,
+          "fit_source_losses": {
+            "income_binary": 0.30973008275032043,
+            "civilian_at_work": 0.3396136164665222,
+            "public_coverage": 0.49051570892333984
+          },
+          "source_validation_ce": 0.3877128064632416,
+          "source_validation_base_loss": 0.3877128064632416,
+          "source_validation_losses": {
+            "income_binary": 0.3135104477405548,
+            "civilian_at_work": 0.3465085029602051,
+            "public_coverage": 0.5031194686889648
+          },
+          "fit_preservation_loss": 0.01497048418968916,
+          "fit_normalized_adversary_ce": 0.9059392213821411,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01497048418968916,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3949236301705241,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 55,
+          "mapper_optimizer_steps": 4830,
+          "adversary_optimizer_steps": 7770,
+          "fit_base_loss": 0.3784373104572296,
+          "fit_source_ce": 0.3784373104572296,
+          "fit_source_losses": {
+            "income_binary": 0.30826064944267273,
+            "civilian_at_work": 0.33624687790870667,
+            "public_coverage": 0.49080443382263184
+          },
+          "source_validation_ce": 0.38679349422454834,
+          "source_validation_base_loss": 0.38679349422454834,
+          "source_validation_losses": {
+            "income_binary": 0.3126312792301178,
+            "civilian_at_work": 0.3440115749835968,
+            "public_coverage": 0.5037376284599304
+          },
+          "fit_preservation_loss": 0.014713511802256107,
+          "fit_normalized_adversary_ce": 0.9069387912750244,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.014713511802256107,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3931508222594857,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 60,
+          "mapper_optimizer_steps": 5040,
+          "adversary_optimizer_steps": 8400,
+          "fit_base_loss": 0.3803882300853729,
+          "fit_source_ce": 0.3803882300853729,
+          "fit_source_losses": {
+            "income_binary": 0.3093455135822296,
+            "civilian_at_work": 0.3402196168899536,
+            "public_coverage": 0.49159958958625793
+          },
+          "source_validation_ce": 0.38830652832984924,
+          "source_validation_base_loss": 0.38830652832984924,
+          "source_validation_losses": {
+            "income_binary": 0.31340765953063965,
+            "civilian_at_work": 0.3467085361480713,
+            "public_coverage": 0.5048033595085144
+          },
+          "fit_preservation_loss": 0.01586834341287613,
+          "fit_normalized_adversary_ce": 0.8978813290596008,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.01586834341287613,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.39625657349824905,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 65,
+          "mapper_optimizer_steps": 5250,
+          "adversary_optimizer_steps": 9030,
+          "fit_base_loss": 0.3771416246891022,
+          "fit_source_ce": 0.3771416246891022,
+          "fit_source_losses": {
+            "income_binary": 0.3066920042037964,
+            "civilian_at_work": 0.33411863446235657,
+            "public_coverage": 0.4906143546104431
+          },
+          "source_validation_ce": 0.3868567943572998,
+          "source_validation_base_loss": 0.3868567943572998,
+          "source_validation_losses": {
+            "income_binary": 0.3118005394935608,
+            "civilian_at_work": 0.3439088761806488,
+            "public_coverage": 0.504861056804657
+          },
+          "fit_preservation_loss": 0.016026698052883148,
+          "fit_normalized_adversary_ce": 0.8987030982971191,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.016026698052883148,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3931683227419853,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 70,
+          "mapper_optimizer_steps": 5460,
+          "adversary_optimizer_steps": 9660,
+          "fit_base_loss": 0.3763265311717987,
+          "fit_source_ce": 0.3763265311717987,
+          "fit_source_losses": {
+            "income_binary": 0.30649980902671814,
+            "civilian_at_work": 0.3336612284183502,
+            "public_coverage": 0.48881852626800537
+          },
+          "source_validation_ce": 0.3847397267818451,
+          "source_validation_base_loss": 0.3847397267818451,
+          "source_validation_losses": {
+            "income_binary": 0.31165626645088196,
+            "civilian_at_work": 0.34051957726478577,
+            "public_coverage": 0.5020432472229004
+          },
+          "fit_preservation_loss": 0.013772089965641499,
+          "fit_normalized_adversary_ce": 0.89362633228302,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.013772089965641499,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3900986211374402,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 75,
+          "mapper_optimizer_steps": 5670,
+          "adversary_optimizer_steps": 10290,
+          "fit_base_loss": 0.3754787743091583,
+          "fit_source_ce": 0.3754787743091583,
+          "fit_source_losses": {
+            "income_binary": 0.30588942766189575,
+            "civilian_at_work": 0.3320932686328888,
+            "public_coverage": 0.4884536564350128
+          },
+          "source_validation_ce": 0.3836064338684082,
+          "source_validation_base_loss": 0.3836064338684082,
+          "source_validation_losses": {
+            "income_binary": 0.31068360805511475,
+            "civilian_at_work": 0.338654488325119,
+            "public_coverage": 0.5014811158180237
+          },
+          "fit_preservation_loss": 0.015162290073931217,
+          "fit_normalized_adversary_ce": 0.895304799079895,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.015162290073931217,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.39064106438308954,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 80,
+          "mapper_optimizer_steps": 5880,
+          "adversary_optimizer_steps": 10920,
+          "fit_base_loss": 0.37378016114234924,
+          "fit_source_ce": 0.37378016114234924,
+          "fit_source_losses": {
+            "income_binary": 0.30416232347488403,
+            "civilian_at_work": 0.32858240604400635,
+            "public_coverage": 0.48859578371047974
+          },
+          "source_validation_ce": 0.3839951455593109,
+          "source_validation_base_loss": 0.3839951455593109,
+          "source_validation_losses": {
+            "income_binary": 0.308429092168808,
+            "civilian_at_work": 0.34023699164390564,
+            "public_coverage": 0.5033193230628967
+          },
+          "fit_preservation_loss": 0.014662643894553185,
+          "fit_normalized_adversary_ce": 0.8933535814285278,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": 0.0,
+          "fit_applied_preservation": 0.014662643894553185,
+          "fit_applied_protection": 0.0,
+          "fit_objective": 0.3884428050369024,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        }
+      ],
+      "fixed_batch_gradient_diagnostics_at_shared_fork": {
+        "coefficients": {
+          "source": 1.0,
+          "teacher": 1.0,
+          "protection": 0.0
+        },
+        "reconstruction_coefficient": 0.0,
+        "decoder_objective_path": "omitted",
+        "source_loss": 0.4148470461368561,
+        "preservation_loss": 0.02031063288450241,
+        "normalized_adversary_ce": 0.9358696937561035,
+        "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+        "protection_available": true,
+        "input_teacher_l2": 41.769996643066406,
+        "input_raw_l2": 0.0,
+        "teacher_input_weight_l2": 8.624258041381836,
+        "raw_input_weight_l2": 0.0,
+        "source_raw_mapper_l2": 0.23457252979278564,
+        "source_raw_teacher_input_weight_l2": 0.08147434890270233,
+        "source_raw_raw_input_weight_l2": 0.0,
+        "source_applied_mapper_l2": 0.23457252979278564,
+        "source_applied_teacher_input_weight_l2": 0.08147434890270233,
+        "source_applied_raw_input_weight_l2": 0.0,
+        "teacher_raw_mapper_l2": 0.34612587094306946,
+        "teacher_raw_teacher_input_weight_l2": 0.05265013128519058,
+        "teacher_raw_raw_input_weight_l2": 0.0,
+        "teacher_applied_mapper_l2": 0.34612587094306946,
+        "teacher_applied_teacher_input_weight_l2": 0.05265013128519058,
+        "teacher_applied_raw_input_weight_l2": 0.0,
+        "protection_raw_mapper_l2": 0.2603417932987213,
+        "protection_raw_teacher_input_weight_l2": 0.07416629046201706,
+        "protection_raw_raw_input_weight_l2": 0.0,
+        "protection_applied_mapper_l2": 0.0,
+        "protection_applied_teacher_input_weight_l2": 0.0,
+        "protection_applied_raw_input_weight_l2": 0.0,
+        "teacher_protection_raw_dot": -0.023442134261131287,
+        "teacher_protection_raw_cosine": -0.26014722364792364,
+        "teacher_protection_applied_dot": 0.0,
+        "teacher_protection_applied_cosine": null,
+        "source_protection_raw_dot": -0.012591848149895668,
+        "source_protection_raw_cosine": -0.20619039663719219,
+        "source_protection_applied_dot": 0.0,
+        "source_protection_applied_cosine": null,
+        "source_teacher_raw_dot": 0.017065279185771942,
+        "source_teacher_raw_cosine": 0.21018522526150651,
+        "source_teacher_applied_dot": 0.017065279185771942,
+        "source_teacher_applied_cosine": 0.21018522526150651,
+        "training_state_unchanged": true,
+        "torch_rng_unchanged": true,
+        "optimizer_steps": 0,
+        "preservation_nonmapper_gradients_all_absent": true,
+        "cosine_zero_policy": "None when either norm is zero or component unavailable",
+        "hypothetical_preobserver_warmup": false,
+        "protection_observer_basis": "actual current observers",
+        "diagnostic_observer_state_sha256": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af"
+      },
+      "fixed_batch_gradient_diagnostics_at_final": {
+        "coefficients": {
+          "source": 1.0,
+          "teacher": 1.0,
+          "protection": 0.0
+        },
+        "reconstruction_coefficient": 0.0,
+        "decoder_objective_path": "omitted",
+        "source_loss": 0.4000312387943268,
+        "preservation_loss": 0.01571313850581646,
+        "normalized_adversary_ce": 0.8881505727767944,
+        "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+        "protection_available": true,
+        "input_teacher_l2": 41.769996643066406,
+        "input_raw_l2": 0.0,
+        "teacher_input_weight_l2": 8.772205352783203,
+        "raw_input_weight_l2": 0.0,
+        "source_raw_mapper_l2": 0.4393936097621918,
+        "source_raw_teacher_input_weight_l2": 0.12941087782382965,
+        "source_raw_raw_input_weight_l2": 0.0,
+        "source_applied_mapper_l2": 0.4393936097621918,
+        "source_applied_teacher_input_weight_l2": 0.12941087782382965,
+        "source_applied_raw_input_weight_l2": 0.0,
+        "teacher_raw_mapper_l2": 0.2395167052745819,
+        "teacher_raw_teacher_input_weight_l2": 0.053269438445568085,
+        "teacher_raw_raw_input_weight_l2": 0.0,
+        "teacher_applied_mapper_l2": 0.2395167052745819,
+        "teacher_applied_teacher_input_weight_l2": 0.053269438445568085,
+        "teacher_applied_raw_input_weight_l2": 0.0,
+        "protection_raw_mapper_l2": 1.365045189857483,
+        "protection_raw_teacher_input_weight_l2": 0.2576204836368561,
+        "protection_raw_raw_input_weight_l2": 0.0,
+        "protection_applied_mapper_l2": 0.0,
+        "protection_applied_teacher_input_weight_l2": 0.0,
+        "protection_applied_raw_input_weight_l2": 0.0,
+        "teacher_protection_raw_dot": 0.02950288914144039,
+        "teacher_protection_raw_cosine": 0.09023638934657638,
+        "teacher_protection_applied_dot": 0.0,
+        "teacher_protection_applied_cosine": null,
+        "source_protection_raw_dot": -0.06843948364257812,
+        "source_protection_raw_cosine": -0.11410533720703227,
+        "source_protection_applied_dot": 0.0,
+        "source_protection_applied_cosine": null,
+        "source_teacher_raw_dot": 0.06318316608667374,
+        "source_teacher_raw_cosine": 0.6003601243780082,
+        "source_teacher_applied_dot": 0.06318316608667374,
+        "source_teacher_applied_cosine": 0.6003601243780082,
+        "training_state_unchanged": true,
+        "torch_rng_unchanged": true,
+        "optimizer_steps": 0,
+        "preservation_nonmapper_gradients_all_absent": true,
+        "cosine_zero_policy": "None when either norm is zero or component unavailable",
+        "hypothetical_preobserver_warmup": false,
+        "protection_observer_basis": "actual current observers",
+        "diagnostic_observer_state_sha256": "b014a8920b207f8e860d86a0ac8cd9198135c696e7b325a271286b508d1241cc"
+      },
+      "decoder_unchanged": true,
+      "decoder_gradients_absent": true,
+      "decoder_optimizer_state_entries": 0,
+      "decoder_optimizer_parameter_indices": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "raw_columns_exact_zero": true,
+      "native_source_heads_sha256": "d8cd21652ca2c1edaf46084b5c1be6386e4e2bfdd68b3065b3d04f4a0f116c25"
+    },
+    "D": {
+      "protected": true,
+      "protection_coefficient": -0.1,
+      "fork_hashes": {
+        "model": "7f99540d713161f3e9da7c2634d9a2ac2ab5fa58e44aa2eb2faf62c458a48ce6",
+        "adversaries": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af",
+        "mapper_optimizer": "7fbe365bf24990b08a7ccf774cf9995e2e0274b609edda015395748d3514ff2f",
+        "adversary_optimizer": "fe03612285bb9d80e7b7aaed0e894fa040ca06746d4c5b3c22b5610a6a32682c"
+      },
+      "final_model_hash": "17e75a006c3dab32d74cd7b94cfbb56295da61ab2b641a0a8f77d17128712aa7",
+      "final_adversary_hash": "47370606b36f4b14918e0cd3fa1f59fed380e4e457a35caa6c4ec91398dab905",
+      "final_mapper_optimizer_hash": "2c72a561a362b6c25eeaa9409f324f466f6488c7cd2fb9d4c12a84ba4e203950",
+      "final_adversary_optimizer_hash": "c1fda25714e3c54870e77e076ed15955847793689792478f87138babc0bcb344",
+      "schedule_hash": "90dcb5b317356984ad8c84fe14e0b93ed3a569e0c5df315042347a3bc40cf46f",
+      "selected_epoch": 80,
+      "continuation_mapper_optimizer_steps": 3360,
+      "continuation_adversary_optimizer_steps": 10080,
+      "optimizer_counts_including_common": {
+        "mapper_optimizer_steps": 5880,
+        "adversary_optimizer_steps": 10920
+      },
+      "mapper_row_exposures": 841040,
+      "adversary_row_exposures": 2523120,
+      "mapper_loss_uses_protection_gradient": true,
+      "preservation_schedule": "persistent",
+      "continuation_preservation_coefficient": 1.0,
+      "curve": [
+        {
+          "epoch": 0,
+          "mapper_optimizer_steps": 2520,
+          "adversary_optimizer_steps": 840,
+          "fit_base_loss": 0.39531758427619934,
+          "fit_source_ce": 0.39531758427619934,
+          "fit_source_losses": {
+            "income_binary": 0.325777143239975,
+            "civilian_at_work": 0.3628365397453308,
+            "public_coverage": 0.497339129447937
+          },
+          "source_validation_ce": 0.3999336063861847,
+          "source_validation_base_loss": 0.3999336063861847,
+          "source_validation_losses": {
+            "income_binary": 0.3269335627555847,
+            "civilian_at_work": 0.3672562837600708,
+            "public_coverage": 0.505611002445221
+          },
+          "fit_preservation_loss": 0.0180224496871233,
+          "fit_normalized_adversary_ce": 0.9419854879379272,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.0180224496871233,
+          "fit_applied_protection": -0.09419854879379273,
+          "fit_objective": 0.3191414851695299,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 5,
+          "mapper_optimizer_steps": 2730,
+          "adversary_optimizer_steps": 1470,
+          "fit_base_loss": 0.3933701515197754,
+          "fit_source_ce": 0.3933701515197754,
+          "fit_source_losses": {
+            "income_binary": 0.32367390394210815,
+            "civilian_at_work": 0.35970333218574524,
+            "public_coverage": 0.4967332184314728
+          },
+          "source_validation_ce": 0.39843782782554626,
+          "source_validation_base_loss": 0.39843782782554626,
+          "source_validation_losses": {
+            "income_binary": 0.32512348890304565,
+            "civilian_at_work": 0.36439964175224304,
+            "public_coverage": 0.5057903528213501
+          },
+          "fit_preservation_loss": 0.017598140984773636,
+          "fit_normalized_adversary_ce": 0.9362646341323853,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.017598140984773636,
+          "fit_applied_protection": -0.09362646341323853,
+          "fit_objective": 0.3173418290913105,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 10,
+          "mapper_optimizer_steps": 2940,
+          "adversary_optimizer_steps": 2100,
+          "fit_base_loss": 0.39229440689086914,
+          "fit_source_ce": 0.39229440689086914,
+          "fit_source_losses": {
+            "income_binary": 0.3202676475048065,
+            "civilian_at_work": 0.3596493899822235,
+            "public_coverage": 0.4969661831855774
+          },
+          "source_validation_ce": 0.3964264392852783,
+          "source_validation_base_loss": 0.3964264392852783,
+          "source_validation_losses": {
+            "income_binary": 0.32047757506370544,
+            "civilian_at_work": 0.36314576864242554,
+            "public_coverage": 0.5056560039520264
+          },
+          "fit_preservation_loss": 0.017737384885549545,
+          "fit_normalized_adversary_ce": 0.9384623169898987,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.017737384885549545,
+          "fit_applied_protection": -0.09384623169898987,
+          "fit_objective": 0.3161855600774288,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 15,
+          "mapper_optimizer_steps": 3150,
+          "adversary_optimizer_steps": 2730,
+          "fit_base_loss": 0.39073190093040466,
+          "fit_source_ce": 0.39073190093040466,
+          "fit_source_losses": {
+            "income_binary": 0.3173440396785736,
+            "civilian_at_work": 0.3595150411128998,
+            "public_coverage": 0.4953365623950958
+          },
+          "source_validation_ce": 0.39621758460998535,
+          "source_validation_base_loss": 0.39621758460998535,
+          "source_validation_losses": {
+            "income_binary": 0.3185840845108032,
+            "civilian_at_work": 0.3656654357910156,
+            "public_coverage": 0.5044031739234924
+          },
+          "fit_preservation_loss": 0.020816540345549583,
+          "fit_normalized_adversary_ce": 0.9318929314613342,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.020816540345549583,
+          "fit_applied_protection": -0.09318929314613343,
+          "fit_objective": 0.3183591481298208,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 20,
+          "mapper_optimizer_steps": 3360,
+          "adversary_optimizer_steps": 3360,
+          "fit_base_loss": 0.3879365921020508,
+          "fit_source_ce": 0.3879365921020508,
+          "fit_source_losses": {
+            "income_binary": 0.3163408041000366,
+            "civilian_at_work": 0.35241836309432983,
+            "public_coverage": 0.4950505495071411
+          },
+          "source_validation_ce": 0.3936111032962799,
+          "source_validation_base_loss": 0.3936111032962799,
+          "source_validation_losses": {
+            "income_binary": 0.31792759895324707,
+            "civilian_at_work": 0.3579077124595642,
+            "public_coverage": 0.5049980282783508
+          },
+          "fit_preservation_loss": 0.016467392444610596,
+          "fit_normalized_adversary_ce": 0.9250795245170593,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016467392444610596,
+          "fit_applied_protection": -0.09250795245170594,
+          "fit_objective": 0.3118960320949554,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 25,
+          "mapper_optimizer_steps": 3570,
+          "adversary_optimizer_steps": 3990,
+          "fit_base_loss": 0.38589462637901306,
+          "fit_source_ce": 0.38589462637901306,
+          "fit_source_losses": {
+            "income_binary": 0.31579020619392395,
+            "civilian_at_work": 0.3483527600765228,
+            "public_coverage": 0.4935409128665924
+          },
+          "source_validation_ce": 0.3917694091796875,
+          "source_validation_base_loss": 0.3917694091796875,
+          "source_validation_losses": {
+            "income_binary": 0.3169114887714386,
+            "civilian_at_work": 0.3553227484226227,
+            "public_coverage": 0.5030739307403564
+          },
+          "fit_preservation_loss": 0.016013404354453087,
+          "fit_normalized_adversary_ce": 0.9189608693122864,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016013404354453087,
+          "fit_applied_protection": -0.09189608693122864,
+          "fit_objective": 0.3100119438022375,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 30,
+          "mapper_optimizer_steps": 3780,
+          "adversary_optimizer_steps": 4620,
+          "fit_base_loss": 0.38432541489601135,
+          "fit_source_ce": 0.38432541489601135,
+          "fit_source_losses": {
+            "income_binary": 0.31251034140586853,
+            "civilian_at_work": 0.3466813564300537,
+            "public_coverage": 0.49378448724746704
+          },
+          "source_validation_ce": 0.3914017677307129,
+          "source_validation_base_loss": 0.3914017677307129,
+          "source_validation_losses": {
+            "income_binary": 0.3150390684604645,
+            "civilian_at_work": 0.3547402024269104,
+            "public_coverage": 0.5044260025024414
+          },
+          "fit_preservation_loss": 0.016686363145709038,
+          "fit_normalized_adversary_ce": 0.9185114502906799,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016686363145709038,
+          "fit_applied_protection": -0.091851145029068,
+          "fit_objective": 0.3091606330126524,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 35,
+          "mapper_optimizer_steps": 3990,
+          "adversary_optimizer_steps": 5250,
+          "fit_base_loss": 0.38270068168640137,
+          "fit_source_ce": 0.38270068168640137,
+          "fit_source_losses": {
+            "income_binary": 0.31214967370033264,
+            "civilian_at_work": 0.3438146710395813,
+            "public_coverage": 0.49213770031929016
+          },
+          "source_validation_ce": 0.3899465501308441,
+          "source_validation_base_loss": 0.3899465501308441,
+          "source_validation_losses": {
+            "income_binary": 0.31516602635383606,
+            "civilian_at_work": 0.3508233428001404,
+            "public_coverage": 0.5038502812385559
+          },
+          "fit_preservation_loss": 0.017075199633836746,
+          "fit_normalized_adversary_ce": 0.9138707518577576,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.017075199633836746,
+          "fit_applied_protection": -0.09138707518577577,
+          "fit_objective": 0.30838880613446235,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 40,
+          "mapper_optimizer_steps": 4200,
+          "adversary_optimizer_steps": 5880,
+          "fit_base_loss": 0.38185667991638184,
+          "fit_source_ce": 0.38185667991638184,
+          "fit_source_losses": {
+            "income_binary": 0.311402827501297,
+            "civilian_at_work": 0.34267228841781616,
+            "public_coverage": 0.49149495363235474
+          },
+          "source_validation_ce": 0.3899538815021515,
+          "source_validation_base_loss": 0.3899538815021515,
+          "source_validation_losses": {
+            "income_binary": 0.31495875120162964,
+            "civilian_at_work": 0.350847065448761,
+            "public_coverage": 0.5040558576583862
+          },
+          "fit_preservation_loss": 0.016126446425914764,
+          "fit_normalized_adversary_ce": 0.909672737121582,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016126446425914764,
+          "fit_applied_protection": -0.09096727371215821,
+          "fit_objective": 0.3070158526301384,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 45,
+          "mapper_optimizer_steps": 4410,
+          "adversary_optimizer_steps": 6510,
+          "fit_base_loss": 0.3804970681667328,
+          "fit_source_ce": 0.3804970681667328,
+          "fit_source_losses": {
+            "income_binary": 0.3104825019836426,
+            "civilian_at_work": 0.3389560282230377,
+            "public_coverage": 0.4920526146888733
+          },
+          "source_validation_ce": 0.38768577575683594,
+          "source_validation_base_loss": 0.38768577575683594,
+          "source_validation_losses": {
+            "income_binary": 0.3141751289367676,
+            "civilian_at_work": 0.3452540934085846,
+            "public_coverage": 0.5036281943321228
+          },
+          "fit_preservation_loss": 0.014875289984047413,
+          "fit_normalized_adversary_ce": 0.9100503325462341,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.014875289984047413,
+          "fit_applied_protection": -0.09100503325462342,
+          "fit_objective": 0.3043673248961568,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 50,
+          "mapper_optimizer_steps": 4620,
+          "adversary_optimizer_steps": 7140,
+          "fit_base_loss": 0.3798615038394928,
+          "fit_source_ce": 0.3798615038394928,
+          "fit_source_losses": {
+            "income_binary": 0.3097321391105652,
+            "civilian_at_work": 0.33904126286506653,
+            "public_coverage": 0.49081113934516907
+          },
+          "source_validation_ce": 0.3874821960926056,
+          "source_validation_base_loss": 0.3874821960926056,
+          "source_validation_losses": {
+            "income_binary": 0.31360486149787903,
+            "civilian_at_work": 0.3455704152584076,
+            "public_coverage": 0.5032713413238525
+          },
+          "fit_preservation_loss": 0.014989027753472328,
+          "fit_normalized_adversary_ce": 0.9065414667129517,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.014989027753472328,
+          "fit_applied_protection": -0.09065414667129518,
+          "fit_objective": 0.30419638492166995,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 55,
+          "mapper_optimizer_steps": 4830,
+          "adversary_optimizer_steps": 7770,
+          "fit_base_loss": 0.37833884358406067,
+          "fit_source_ce": 0.37833884358406067,
+          "fit_source_losses": {
+            "income_binary": 0.3079979419708252,
+            "civilian_at_work": 0.3361363708972931,
+            "public_coverage": 0.4908822476863861
+          },
+          "source_validation_ce": 0.3864227533340454,
+          "source_validation_base_loss": 0.3864227533340454,
+          "source_validation_losses": {
+            "income_binary": 0.31216487288475037,
+            "civilian_at_work": 0.34359681606292725,
+            "public_coverage": 0.5035065412521362
+          },
+          "fit_preservation_loss": 0.014872929081320763,
+          "fit_normalized_adversary_ce": 0.9067971706390381,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.014872929081320763,
+          "fit_applied_protection": -0.09067971706390382,
+          "fit_objective": 0.3025320556014776,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 60,
+          "mapper_optimizer_steps": 5040,
+          "adversary_optimizer_steps": 8400,
+          "fit_base_loss": 0.38136792182922363,
+          "fit_source_ce": 0.38136792182922363,
+          "fit_source_losses": {
+            "income_binary": 0.31005820631980896,
+            "civilian_at_work": 0.34199967980384827,
+            "public_coverage": 0.49204587936401367
+          },
+          "source_validation_ce": 0.38910913467407227,
+          "source_validation_base_loss": 0.38910913467407227,
+          "source_validation_losses": {
+            "income_binary": 0.31403347849845886,
+            "civilian_at_work": 0.3480432629585266,
+            "public_coverage": 0.5052507519721985
+          },
+          "fit_preservation_loss": 0.016008194535970688,
+          "fit_normalized_adversary_ce": 0.89923095703125,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016008194535970688,
+          "fit_applied_protection": -0.08992309570312501,
+          "fit_objective": 0.3074530206620693,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 65,
+          "mapper_optimizer_steps": 5250,
+          "adversary_optimizer_steps": 9030,
+          "fit_base_loss": 0.3773674964904785,
+          "fit_source_ce": 0.3773674964904785,
+          "fit_source_losses": {
+            "income_binary": 0.3066536486148834,
+            "civilian_at_work": 0.33443742990493774,
+            "public_coverage": 0.4910114109516144
+          },
+          "source_validation_ce": 0.3866666853427887,
+          "source_validation_base_loss": 0.3866666853427887,
+          "source_validation_losses": {
+            "income_binary": 0.311296671628952,
+            "civilian_at_work": 0.34389540553092957,
+            "public_coverage": 0.5048080682754517
+          },
+          "fit_preservation_loss": 0.016157526522874832,
+          "fit_normalized_adversary_ce": 0.9005744457244873,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.016157526522874832,
+          "fit_applied_protection": -0.09005744457244874,
+          "fit_objective": 0.3034675784409046,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 70,
+          "mapper_optimizer_steps": 5460,
+          "adversary_optimizer_steps": 9660,
+          "fit_base_loss": 0.3764382302761078,
+          "fit_source_ce": 0.3764382302761078,
+          "fit_source_losses": {
+            "income_binary": 0.30610498785972595,
+            "civilian_at_work": 0.3339555561542511,
+            "public_coverage": 0.4892541766166687
+          },
+          "source_validation_ce": 0.3845198452472687,
+          "source_validation_base_loss": 0.3845198452472687,
+          "source_validation_losses": {
+            "income_binary": 0.3105819523334503,
+            "civilian_at_work": 0.3408546447753906,
+            "public_coverage": 0.5021229982376099
+          },
+          "fit_preservation_loss": 0.013757491484284401,
+          "fit_normalized_adversary_ce": 0.8944841027259827,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.013757491484284401,
+          "fit_applied_protection": -0.08944841027259827,
+          "fit_objective": 0.30074731148779393,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 75,
+          "mapper_optimizer_steps": 5670,
+          "adversary_optimizer_steps": 10290,
+          "fit_base_loss": 0.3754202127456665,
+          "fit_source_ce": 0.3754202127456665,
+          "fit_source_losses": {
+            "income_binary": 0.3057299256324768,
+            "civilian_at_work": 0.33160749077796936,
+            "public_coverage": 0.48892322182655334
+          },
+          "source_validation_ce": 0.3832435607910156,
+          "source_validation_base_loss": 0.3832435607910156,
+          "source_validation_losses": {
+            "income_binary": 0.3095892369747162,
+            "civilian_at_work": 0.3383792042732239,
+            "public_coverage": 0.501762330532074
+          },
+          "fit_preservation_loss": 0.014933358877897263,
+          "fit_normalized_adversary_ce": 0.8978630304336548,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.014933358877897263,
+          "fit_applied_protection": -0.08978630304336549,
+          "fit_objective": 0.3005672685801983,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        },
+        {
+          "epoch": 80,
+          "mapper_optimizer_steps": 5880,
+          "adversary_optimizer_steps": 10920,
+          "fit_base_loss": 0.3741253912448883,
+          "fit_source_ce": 0.3741253912448883,
+          "fit_source_losses": {
+            "income_binary": 0.3041492998600006,
+            "civilian_at_work": 0.32905301451683044,
+            "public_coverage": 0.4891738295555115
+          },
+          "source_validation_ce": 0.38402917981147766,
+          "source_validation_base_loss": 0.38402917981147766,
+          "source_validation_losses": {
+            "income_binary": 0.30743810534477234,
+            "civilian_at_work": 0.3409062922000885,
+            "public_coverage": 0.5037431716918945
+          },
+          "fit_preservation_loss": 0.014737334102392197,
+          "fit_normalized_adversary_ce": 0.8952786326408386,
+          "fit_reconstruction_mse": null,
+          "source_coefficient": 1.0,
+          "preservation_coefficient": 1.0,
+          "reconstruction_coefficient": 0.0,
+          "protection_coefficient": -0.1,
+          "fit_applied_preservation": 0.014737334102392197,
+          "fit_applied_protection": -0.08952786326408387,
+          "fit_objective": 0.29933486208319665,
+          "selection": "none; fixed final iterate",
+          "decoder_objective_path": "omitted"
+        }
+      ],
+      "fixed_batch_gradient_diagnostics_at_shared_fork": {
+        "coefficients": {
+          "source": 1.0,
+          "teacher": 1.0,
+          "protection": -0.1
+        },
+        "reconstruction_coefficient": 0.0,
+        "decoder_objective_path": "omitted",
+        "source_loss": 0.4148470461368561,
+        "preservation_loss": 0.02031063288450241,
+        "normalized_adversary_ce": 0.9358696937561035,
+        "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+        "protection_available": true,
+        "input_teacher_l2": 41.769996643066406,
+        "input_raw_l2": 0.0,
+        "teacher_input_weight_l2": 8.624258041381836,
+        "raw_input_weight_l2": 0.0,
+        "source_raw_mapper_l2": 0.23457252979278564,
+        "source_raw_teacher_input_weight_l2": 0.08147434890270233,
+        "source_raw_raw_input_weight_l2": 0.0,
+        "source_applied_mapper_l2": 0.23457252979278564,
+        "source_applied_teacher_input_weight_l2": 0.08147434890270233,
+        "source_applied_raw_input_weight_l2": 0.0,
+        "teacher_raw_mapper_l2": 0.34612587094306946,
+        "teacher_raw_teacher_input_weight_l2": 0.05265013128519058,
+        "teacher_raw_raw_input_weight_l2": 0.0,
+        "teacher_applied_mapper_l2": 0.34612587094306946,
+        "teacher_applied_teacher_input_weight_l2": 0.05265013128519058,
+        "teacher_applied_raw_input_weight_l2": 0.0,
+        "protection_raw_mapper_l2": 0.2603417932987213,
+        "protection_raw_teacher_input_weight_l2": 0.07416629046201706,
+        "protection_raw_raw_input_weight_l2": 0.0,
+        "protection_applied_mapper_l2": 0.026034176349639893,
+        "protection_applied_teacher_input_weight_l2": 0.00741663109511137,
+        "protection_applied_raw_input_weight_l2": 0.0,
+        "teacher_protection_raw_dot": -0.023442134261131287,
+        "teacher_protection_raw_cosine": -0.26014722364792364,
+        "teacher_protection_applied_dot": 0.0023442134261131287,
+        "teacher_protection_applied_cosine": 0.26014725342797634,
+        "source_protection_raw_dot": -0.012591848149895668,
+        "source_protection_raw_cosine": -0.20619039663719219,
+        "source_protection_applied_dot": 0.0012591847917065024,
+        "source_protection_applied_cosine": 0.20619041642801786,
+        "source_teacher_raw_dot": 0.017065279185771942,
+        "source_teacher_raw_cosine": 0.21018522526150651,
+        "source_teacher_applied_dot": 0.017065279185771942,
+        "source_teacher_applied_cosine": 0.21018522526150651,
+        "training_state_unchanged": true,
+        "torch_rng_unchanged": true,
+        "optimizer_steps": 0,
+        "preservation_nonmapper_gradients_all_absent": true,
+        "cosine_zero_policy": "None when either norm is zero or component unavailable",
+        "hypothetical_preobserver_warmup": false,
+        "protection_observer_basis": "actual current observers",
+        "diagnostic_observer_state_sha256": "797a7bb36d0851027eda99ee05ad4398709fb03cf42590e83fe210e78040c7af"
+      },
+      "fixed_batch_gradient_diagnostics_at_final": {
+        "coefficients": {
+          "source": 1.0,
+          "teacher": 1.0,
+          "protection": -0.1
+        },
+        "reconstruction_coefficient": 0.0,
+        "decoder_objective_path": "omitted",
+        "source_loss": 0.40030917525291443,
+        "preservation_loss": 0.01539212092757225,
+        "normalized_adversary_ce": 0.8830426931381226,
+        "raw_protection_definition": "positive mean prior-entropy-normalized adversary CE",
+        "protection_available": true,
+        "input_teacher_l2": 41.769996643066406,
+        "input_raw_l2": 0.0,
+        "teacher_input_weight_l2": 8.763130187988281,
+        "raw_input_weight_l2": 0.0,
+        "source_raw_mapper_l2": 0.42904770374298096,
+        "source_raw_teacher_input_weight_l2": 0.13071025907993317,
+        "source_raw_raw_input_weight_l2": 0.0,
+        "source_applied_mapper_l2": 0.42904770374298096,
+        "source_applied_teacher_input_weight_l2": 0.13071025907993317,
+        "source_applied_raw_input_weight_l2": 0.0,
+        "teacher_raw_mapper_l2": 0.2362316995859146,
+        "teacher_raw_teacher_input_weight_l2": 0.05138690024614334,
+        "teacher_raw_raw_input_weight_l2": 0.0,
+        "teacher_applied_mapper_l2": 0.2362316995859146,
+        "teacher_applied_teacher_input_weight_l2": 0.05138690024614334,
+        "teacher_applied_raw_input_weight_l2": 0.0,
+        "protection_raw_mapper_l2": 1.1491392850875854,
+        "protection_raw_teacher_input_weight_l2": 0.25517597794532776,
+        "protection_raw_raw_input_weight_l2": 0.0,
+        "protection_applied_mapper_l2": 0.1149139404296875,
+        "protection_applied_teacher_input_weight_l2": 0.025517599657177925,
+        "protection_applied_raw_input_weight_l2": 0.0,
+        "teacher_protection_raw_dot": 0.04263259097933769,
+        "teacher_protection_raw_cosine": 0.15704744710006044,
+        "teacher_protection_applied_dot": -0.004263259470462799,
+        "teacher_protection_applied_cosine": -0.15704744453129593,
+        "source_protection_raw_dot": -0.007923091761767864,
+        "source_protection_raw_cosine": -0.016070020540093335,
+        "source_protection_applied_dot": 0.0007923092925921082,
+        "source_protection_applied_cosine": 0.01607002123421836,
+        "source_teacher_raw_dot": 0.05890394374728203,
+        "source_teacher_raw_cosine": 0.5811665585739973,
+        "source_teacher_applied_dot": 0.05890394374728203,
+        "source_teacher_applied_cosine": 0.5811665585739973,
+        "training_state_unchanged": true,
+        "torch_rng_unchanged": true,
+        "optimizer_steps": 0,
+        "preservation_nonmapper_gradients_all_absent": true,
+        "cosine_zero_policy": "None when either norm is zero or component unavailable",
+        "hypothetical_preobserver_warmup": false,
+        "protection_observer_basis": "actual current observers",
+        "diagnostic_observer_state_sha256": "47370606b36f4b14918e0cd3fa1f59fed380e4e457a35caa6c4ec91398dab905"
+      },
+      "decoder_unchanged": true,
+      "decoder_gradients_absent": true,
+      "decoder_optimizer_state_entries": 0,
+      "decoder_optimizer_parameter_indices": [
+        10,
+        11,
+        12,
+        13
+      ],
+      "raw_columns_exact_zero": true,
+      "native_source_heads_sha256": "8f5ef4c946515309a1b43ee4b81d41ae7e094904daa04753dc6eb3ce60e69a06"
+    }
+  },
+  "runtime_seconds": 13.401424583978951,
+  "module_source_sha256": "95c21ba72d60292548ecefc77cd307b96f8d3e2471a08ee93a3232b5f5a02728",
+  "historical_helper_source_sha256": "7c3e0023645be05911a03fae9308b117fafe152085e34c76953af896febd7825"
+}
