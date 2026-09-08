@@ -828,3 +828,58 @@ Evidence: [decision](results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISI
 [analysis](results/redesign_20260908_acs_bottleneck_v1/ANALYSIS.md),
 [validation](results/redesign_20260908_acs_bottleneck_v1/VALIDATION.md),
 [reproduction](results/redesign_20260908_acs_bottleneck_v1/REPRODUCTION.md).
+
+## Dated addition — 2026-09-08 UTC: fixed PCA16 diagnostic
+
+Starting commit `96509680b5c4906a692249b18cc15463da8db9aa`, branch
+`ablations-facct-2026-07-24`, remote Bostesa/PCRL. Tracked checkout was clean;
+historical evidence, local fitted objects and unrelated untracked work were
+preserved. No applicable AGENTS.md was present in the checkout or ancestors.
+The user authorized this diagnostic and normal commit/push, without PR/main/force.
+
+**Implementation, separate from observations.** Added one compact runner using
+the exact first 16 columns of each saved PCA32 interface before fitting-specific
+standardization. No representation was fitted, no components selected, no map
+whitened/rotated, no eraser or training adversary added. Original PCA component
+hashes/order and cached releases replayed exactly. Existing cohort, household
+pools, masks, 2048-label utility rows and attacker rows remain unchanged. Fresh
+PCA16 heads/auditors use the previous recipes. Primary audit reporting now uses
+the matched five independent candidates for all releases; historical C/D
+catch-up-inclusive scores stay separately identified. All reference predictions
+and metrics are reused with original hashes and no regeneration.
+
+**Established development observations.** Mean residence log loss PCA16
+.495062±.002095, PCA32 .487411±.005595, C16 .500295±.003986, D16 .501592±.002660.
+PCA16−C16 is −.005232±.005723 and PCA16−D16 −.006530±.003566 nats. Under person
+weighting these shrink to −.000523±.009670 and −.001563±.006129. PCA16 meets the
+original-PCA+.01 source reference for every task/seed/split; half residential
+headroom holds in3/3 development and2/3 validation seeds. Primary PCA16 SEX/race
+attack gains are .032739/.077966 nats; race recovery exceeds C/D on average.
+Incomplete race support and original exposed-control failures persist. Equal
+stored dimensions alone do not account for the measured C16 loss, but this does
+not isolate objectives, optimization or geometry as its unique cause.
+
+**Execution and checks.** Protocol/configuration and actual execution closure
+frozen before fitting. Ten focused tests passed2.62s, including an artificial
+20-candidate pipeline. Complete seed0 took7.324s and projected21.973s for three;
+actual total19.663s (including setup, heads/auditors, scoring and process startup),
+M4 Pro CPU, one numerical thread. No budget changes or historical model reruns.
+New-only replay checked60 candidates/240 score sets (maximumerror2.22e−16),120
+bitwise model predictions,21 exact slices,60 standardizers,21 primary/48 family
+choices,27 MLP schedules and57 referenced hashes. No scientific run was invalidated.
+Runtime versus total implementation/analysis/publication is recorded separately.
+
+**Unresolved and unsupported.** PCA16 is a stronger compact transfer reference,
+not a uniformly dominating release, a privacy guarantee or a PCRL advance.
+PCA32 still transfers better; learned C/D favor source utility and race
+recoverability; weighted sensitivity limits the headline improvement. Existing
+evaluation households remain DEVELOPMENT EVALUATION. The one proposed next
+change is initializing the same C/D mapper to reproduce PCA16 exactly before
+otherwise unchanged matched training; that comparison has not been run.
+
+Evidence: [decision](results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md),
+[protocol](results/redesign_20260908_acs_pca16_v1/PROTOCOL.md),
+[table](results/redesign_20260908_acs_pca16_v1/TABLE.md),
+[paired analysis](results/redesign_20260908_acs_pca16_v1/ANALYSIS.md),
+[validation](results/redesign_20260908_acs_pca16_v1/VALIDATION.md),
+[reproduction](results/redesign_20260908_acs_pca16_v1/REPRODUCTION.md).

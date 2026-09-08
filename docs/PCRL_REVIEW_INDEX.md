@@ -1,6 +1,8 @@
 # PCRL redesign review index
 
-**Latest addition, 2026-09-08:** the [fixed nonlinear ACS bottleneck pilot](../results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md) is complete. Matched protection modestly reduces SEX recovery, but neither learned arm meets the residential/attribute tradeoff. Catch-up reduces the apparent race benefit. See the [dated appendix](#appendix--2026-09-08-fixed-nonlinear-acs-bottleneck). No PCRL advantage is established.
+**Latest addition, 2026-09-08 UTC:** the [fixed PCA16 control](../results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md) retains more residential utility than C16/D16 on the primary mean comparison, while original PCA32 remains better. The advantage shrinks under person weighting, and attributes remain recoverable. See the [dated PCA16 appendix](#appendix--2026-09-08-fixed-pca16-control). No new representation or protection method was fitted.
+
+**Previous addition, 2026-09-08:** the [fixed nonlinear ACS bottleneck pilot](../results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md) is complete. Matched protection modestly reduces SEX recovery, but neither learned arm meets the residential/attribute tradeoff. Catch-up reduces the apparent race benefit. See the [dated appendix](#appendix--2026-09-08-fixed-nonlinear-acs-bottleneck). No PCRL advantage is established.
 
 **Earlier addition, 2026-09-08:** the bounded ACS joint-erasure feasibility screen
 is complete. Start with its [research decision](../results/redesign_20260908_acs_protection_v1/RESEARCH_DECISION.md)
@@ -281,3 +283,32 @@ Compact source/evidence are published; raw records, fitted objects and arrays
 stay local with hashes. The single proposed next check is a fixed16-coordinate
 PCA control to distinguish compression from source-focused training; it was not
 run. No basis for advancing PCRL-specific protection has been established.
+
+## Appendix — 2026-09-08: fixed PCA16 control
+
+The [PCA16 decision](../results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md)
+adds exactly the first 16 original PCA32 coordinates, with no new PCA fit,
+whitening, rotation, erasure or learned representation. Original component
+ordering, output and fitting-row identities were verified. All other releases,
+models, predictions and selections are reused unchanged.
+
+Development residential log loss is .495062 ± .002095 (PCA16), .487411 ± .005595
+(PCA32), .500295 ± .003986 (C16), .501592 ± .002660 (D16). PCA16 meets all original
+PCA source-loss margins and retains half residential headroom in all three
+development seeds, but only two validation seeds. The weighted advantage over
+C/D is much smaller; recorded attributes remain recoverable and race coverage
+is incomplete. Equal dimensions do not imply equal information or isolate the
+cause of the learned mappers' loss. This establishes no PCRL novelty or privacy.
+
+Inspect [the fixed protocol](../results/redesign_20260908_acs_pca16_v1/PROTOCOL.md),
+[all task/seed results](../results/redesign_20260908_acs_pca16_v1/TABLE.md),
+[paired and weighted analysis](../results/redesign_20260908_acs_pca16_v1/ANALYSIS.md),
+[exact slicing and fitting boundaries](../experiments/run_acs_pca16.py),
+[primary independent versus historical catch-up reporting](../scripts/summarize_acs_pca16.py),
+[new-only score replay](../scripts/verify_acs_pca16.py),
+[validation](../results/redesign_20260908_acs_pca16_v1/VALIDATION.md) and
+[reproduction/local artifacts](../results/redesign_20260908_acs_pca16_v1/REPRODUCTION.md).
+Ten focused tests passed; 120 new probability sets replayed bitwise. Three seeds
+took 19.663 seconds on the existing M4 Pro, one numerical thread. No historical
+model was retrained. The recommended next change is PCA16-exact initialization
+of the otherwise unchanged matched C/D mapper; it has not been run.
