@@ -883,3 +883,57 @@ Evidence: [decision](results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md
 [paired analysis](results/redesign_20260908_acs_pca16_v1/ANALYSIS.md),
 [validation](results/redesign_20260908_acs_pca16_v1/VALIDATION.md),
 [reproduction](results/redesign_20260908_acs_pca16_v1/REPRODUCTION.md).
+
+## Dated addition — 2026-09-08 UTC: PCA16-initialized matched C/D
+
+Starting commit `de9a7e499c30802e320fec7ac01f0d6f72af8a48` on
+`ablations-facct-2026-07-24`, Bostesa/PCRL. No subsequent tracked changes or
+applicable AGENTS.md were present. Existing unrelated untracked work, fitted
+objects, raw data and all historical result bytes were preserved. The user
+explicitly authorized normal commit/push to this branch, without PR/main/force.
+
+**Implementation and checks, distinct from research.** Added optional analytical
+PCA16 mapper initialization and frozen I/W snapshots to the existing training
+and runner. Original random defaults retain identical artificial numerical
+checkpoints/Adam states. Actual new initialization preserves original source-head,
+decoder, preprocessing and adversary RNG identities; all32 signed hidden pairs
+remain trainable. Maximum PCA16 parity error4.77e-7 versus fixed1e-5 tolerances,
+with nonzero unused-readout gradients. Exact C/D forks,60/20/80 epoch schedules,
+example batches, objectives and final-state selection are unchanged. All training
+finishes before snapshot utility fitting; only final C/D receive new audits and
+catch-up. Historical PCA32/PCA16/LEACE/C/D/banks/controls are verified references.
+
+**Established development observations.** Residence I/W/C_init/D_init means are
+.495062/.498230/.499489/.501559. W−I is+.003168±.002616 unweighted, but
+−.002566±.004596 weighted; the mean warmup loss is not robust to PWGTP. Final
+C_init−oldC is−.000805±.002869, D_init−oldD−.000033±.000492. All three source
+margins pass every stage/seed/split; final residential half-headroom remains1/3
+development seeds. C_init leaks more SEX/race than oldC on the primary means;
+D_init leaks more SEX and practically ties oldD's race/residence. Independent
+D−C race attack-loss gain .022542 becomes .010327 with inclusive catch-up and
+reverses in seed0. No complete policy pass, no PCRL method advantage.
+
+**Execution/evidence.** Frozen protocol/configuration/execution dependencies
+preceded scientific fitting.18 focused checks plus a26-test comparison-helper
+check (five repeated) passed; miniature fixtures used no ACS outcomes. Seed0
+30.884s projected92.653s for three; actual91.787s with no budget changes or
+invalidated scientific runs. New-only replay checked204 candidates,816 score
+sets(maxerror4.44e-16),408 bitwise prediction sets,84 release arrays, schedules,
+actual Adam states and615 unchanged historical records. Independent/catch-up
+selectors, inherited260 fitting passes and all9 race categories remain visible.
+No raw/object download, reference regeneration, historical retraining or sweep.
+
+**Unresolved and unsupported.** This initialization did not solve the final
+tradeoff under the fixed schedule; it does not show impossibility. Stage changes
+do not uniquely identify objectives, geometry or optimization. Weighted/source
+counterevidence and sparse race support preclude broad privacy/population claims.
+These remain DEVELOPMENT EVALUATION households. The one suggested next change,
+a fixed PCA16-output preservation penalty during common warmup, is not executed.
+Neither baseline success nor failure establishes PCRL novelty.
+
+Evidence: [decision](results/redesign_20260908_acs_pca16_init_v1/RESEARCH_DECISION.md),
+[protocol](results/redesign_20260908_acs_pca16_init_v1/PROTOCOL.md),
+[stage/final tables](results/redesign_20260908_acs_pca16_init_v1/TABLE.md),
+[paired analysis](results/redesign_20260908_acs_pca16_init_v1/ANALYSIS.md),
+[validation](results/redesign_20260908_acs_pca16_init_v1/VALIDATION.md),
+[reproduction](results/redesign_20260908_acs_pca16_init_v1/REPRODUCTION.md).

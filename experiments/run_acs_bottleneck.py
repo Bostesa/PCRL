@@ -66,6 +66,11 @@ def check_config(cfg):
                 'audit_min_samples_leaf':[20,5]}.items():
         assert cfg[k]==v, 'Fixed scientific evaluation configuration changed: '+k
     assert cfg['margins']==read(ROOT/cfg['reference_results']/'config.json')['margins']
+    if 'mapper_initialization' in cfg:
+        assert cfg['mapper_initialization']=='pca16'
+        assert cfg['snapshot_releases']==['I','W','C_init','D_init']
+        assert cfg['parity_tolerance']=={'atol':1e-5,'rtol':1e-5}
+        assert cfg['maximum_total_experiment_seconds']==900
 
 
 def prepare(out):
@@ -77,6 +82,15 @@ def prepare(out):
         for seed in cfg['seeds']:
             files += [parent/f'seed_{seed}'/k for k in
                 ('metrics.json','selection_before_test.json','local_artifacts.json')]
+    if cfg.get('mapper_initialization')=='pca16':
+        for name in ('bottleneck_reference_results','pca16_reference_results'):
+            parent=ROOT/cfg[name]
+            files += [parent/k for k in ('config.json','PROTOCOL.md','protocol_freeze.json','SCORE_REPLAY.json')]
+            for seed in cfg['seeds']:
+                files += [parent/f'seed_{seed}'/k for k in
+                    ('metrics.json','selection_before_test.json','release_freeze.json','local_artifacts.json')]
+                if name=='bottleneck_reference_results':
+                    files += [parent/f'seed_{seed}'/'training/training.json']
     freeze={'created_utc':now(),'starting_commit':cfg['starting_commit'],
         'sha256':frozen_hashes(out),'reference_record_hashes':{str(p.relative_to(ROOT)):sha_file(p) for p in files},
         'evaluation_status':cfg['evaluation_status']}
@@ -196,6 +210,69 @@ class SavedReferences:
         assert fit_records['audit_fit_indices']==self.selection['audit_fit_indices']
 
 
+
+def initialization_history(cfg, seed, pair, releases):
+    """Verified old scores/objects; no historical model or auditor is fitted.
+
+    Changed training source is intentional. Original execution identities remain
+    in historical freezes; the new freeze identifies the extended implementation.
+    """
+    history={'raw':[], 'records':{}, 'used_files':{}, 'identities':{}}
+    for config_key, names in (('bottleneck_reference_results', LEARNED),
+                               ('pca16_reference_results', ('PCA16',))):
+        directory=ROOT/cfg[config_key]/f'seed_{seed}'
+        manifest={v['path']:v['sha256'] for v in read(directory/'local_artifacts.json')}
+        def checked(path):
+            key=str(path.relative_to(ROOT));digest=sha_file(path)
+            assert manifest[key]==digest, 'Historical object changed: '+key
+            history['used_files'][key]=digest
+            return path
+        previous=read(directory/'metrics.json');selected=read(directory/'selection_before_test.json')
+        checked(directory/'predictions.npz')
+        history['raw'] += [{**copy.deepcopy(r),'reused_reference':True}
+                          for r in previous['raw_metrics'] if r['release'] in names]
+        for key,rec in selected['fitting_records'].items():
+            if key.split('/')[1] in names:
+                history['records'][key]={field:selected[field].get(key) for field in
+                    ('head_selections','family_selections','auroc_selections')}
+                history['records'][key]['independent_selections']=selected.get('independent_selections',selected['head_selections'])[key]
+                history['records'][key]['record']=rec
+        history['identities'][config_key]={'task_fit_indices':selected['task_fit_indices'],
+            'audit_fit_indices':selected['audit_fit_indices'], 'metrics_sha256':sha_file(directory/'metrics.json'),
+            'selection_sha256':sha_file(directory/'selection_before_test.json')}
+        if config_key=='bottleneck_reference_results':
+            initial=torch.load(checked(directory/'training/initialization.pt'),weights_only=False)['model_state']
+            # Saved genuine zero-update checkpoint from this run, not its final model.
+            current=pair['snapshots']['I'].state_dict()
+            assert set(initial)==set(current)
+            assert all(initial[k].shape==current[k].shape for k in initial)
+            same={k:torch.equal(initial[k],current[k]) for k in initial if not k.startswith('mapper.')}
+            assert all(same.values()), 'Initialization changed non-mapper tensors or saved standardization'
+            old=read(directory/'training/training.json');new=pair['metadata']
+            for key in ('config','schedules','adversary_initialization_hash','preprocessing',
+                        'fit_input_sha256','source_validation_input_sha256','source_label_hashes',
+                        'attribute_label_hashes','source_validation_label_hashes','common_optimizer_counts'):
+                assert old[key]==new[key], 'Original recipe differs: '+key
+            for arm in LEARNED:
+                for key in ('schedule_hash','continuation_mapper_optimizer_steps',
+                    'continuation_adversary_optimizer_steps','optimizer_counts_including_common',
+                    'mapper_row_exposures','adversary_row_exposures'):
+                    assert old['arms'][arm][key]==new['arms'][arm][key]
+            history['identities']['original_initial_nonmapper_exact']=same
+            history['identities']['original_training_recipe_and_schedules_exact']=True
+        else:
+            errors={}
+            with np.load(checked(directory/'release_PCA16.npz')) as z:
+                for pool, value in releases['I'].items():
+                    expected=z[pool];assert np.allclose(value,expected,atol=1e-5,rtol=1e-5)
+                    error=value.astype(np.float64)-expected.astype(np.float64)
+                    errors[pool]={'max_abs':float(np.max(np.abs(error))),
+                        'rms':float(np.sqrt(np.mean(error**2))), 'historical_output_sha256':array_hash(expected),
+                        'initial_output_sha256':array_hash(value),'atol':1e-5,'rtol':1e-5}
+            history['identities']['I_vs_historical_PCA16']=errors
+    return history
+
+
 def run_seed(out,cfg,seed,*,miniature=False):
     if not miniature: verify_freeze(out)
     tick=time.perf_counter();directory=out/f'seed_{seed}';directory.mkdir(exist_ok=False)
@@ -212,14 +289,21 @@ def run_seed(out,cfg,seed,*,miniature=False):
     reuse_seconds=time.perf_counter()-tick;t=time.perf_counter()
     pair=train_pair(pca['representation_fit'],source_binaries(frame.iloc[pools['representation_fit']],edges),
         audit_labels(frame.iloc[pools['representation_fit']]),pca['source_validation'],
-        source_binaries(frame.iloc[pools['source_validation']],edges),seed,directory/'training',miniature=miniature)
+        source_binaries(frame.iloc[pools['source_validation']],edges),seed,directory/'training',miniature=miniature,
+        initialization=cfg.get('mapper_initialization','random'))
     training_seconds=time.perf_counter()-t
-    releases={n:{p:arm['model'].release(x) for p,x in pca.items()} for n,arm in pair['arms'].items()}
+    renamed={'C_bottleneck':'C_init','D_protected':'D_init'} if cfg.get('mapper_initialization')=='pca16' else {n:n for n in LEARNED}
+    final_arms={renamed[n]:arm for n,arm in pair['arms'].items()}
+    models={**pair.get('snapshots',{}),**{n:arm['model'] for n,arm in final_arms.items()}}
+    releases={n:{p:model.release(x) for p,x in pca.items()} for n,model in models.items()}
+    history=initialization_history(cfg,seed,pair,releases) if cfg.get('mapper_initialization')=='pca16' else None
+    training_completed_utc=now()
     for arrays in releases.values():
         for a in arrays.values(): a.setflags(write=False)
     def learned_state():
-        return {n:{'model':_state_hash(arm['model']),
-                   'adversaries':_state_hash(arm['adversaries'])} for n,arm in pair['arms'].items()}
+        return {n:{'model':_state_hash(model),
+                   'adversaries':_state_hash(final_arms[n]['adversaries']) if n in final_arms else None}
+                for n,model in models.items()}
     before=learned_state();outputs=frozen_digest(releases)
     release_meta={n:copy.deepcopy(refs.previous['release_metadata'][n]) for n in REFERENCES}
     for n,a in releases.items():
@@ -228,7 +312,9 @@ def run_seed(out,cfg,seed,*,miniature=False):
     write_json(directory/'release_freeze.json',{'created_utc':now(),'release_metadata':release_meta,
         'learned_state':before,'output_hashes':outputs,'reference_state':refs.initial,
         'fit_pool':'representation_fit','fit_raw_row_sha256':original_support['representation_fit']['raw_row_sha256'],
-        'reserved_labels_entered_release_fitting':False,'final_epoch_selection':'fixed80; no validation selection'})
+        'reserved_labels_entered_release_fitting':False,'final_epoch_selection':'fixed80; I/W diagnostics never selectable',
+        'scientific_training_completed_utc':training_completed_utc,
+        'initialization_history':history['identities'] if history else None})
     # First downstream construction/access to reserved labels after immutable maps.
     fit_y=binary_tasks(frame.iloc[pools['downstream_fit']],edges)
     val_y=binary_tasks(frame.iloc[pools['downstream_validation']],edges)
@@ -240,6 +326,11 @@ def run_seed(out,cfg,seed,*,miniature=False):
             'raw_rows_sha256':array_hash(frame.iloc[pools[pool][i]]._raw_row.to_numpy())} for t,i in indices.items()}
     index_records={'task_fit_indices':index_record(ti,'downstream_fit'),'audit_fit_indices':index_record(ai,'attacker_fit')}
     t=time.perf_counter();refs.verify_reuse(fit_y,val_y,audit_y,audit_v,ti,ai,index_records)
+    if history:
+        for identity in history['identities'].values():
+            if isinstance(identity,dict) and 'task_fit_indices' in identity:
+                assert identity['task_fit_indices']==index_records['task_fit_indices']
+                assert identity['audit_fit_indices']==index_records['audit_fit_indices']
     reference_prediction_verification_seconds=time.perf_counter()-t
     fitted={};selections={};records={};family_selections={};auroc_selections={};independent_selections={}
     def accept(key,result):
@@ -281,12 +372,15 @@ def run_seed(out,cfg,seed,*,miniature=False):
                 arrays['downstream_validation'][vi],val_y[target][vi],2,1250000+100*seed+j,
                 budget={'mlp':{'epochs':1 if miniature else cfg['head_mlp_epochs']}}))
         task_seconds+=time.perf_counter()-t
+        if release not in final_arms:
+            continue  # I/W utility-only snapshots have no new attribute audit.
+        training_arm=next(k for k,v in renamed.items() if v==release)
         for j,(target,k) in enumerate(AUDITS.items()):
             i=ai[target];vi=np.flatnonzero(audit_v[target]>=0);t=time.perf_counter()
             result=fit_primary_auditors(arrays['attacker_fit'][i],audit_y[target][i],
                 arrays['attacker_validation'][vi],audit_v[target][vi],k,1260000+100*seed+j,budget=audit_budget)
             audit_seconds+=time.perf_counter()-t;t=time.perf_counter()
-            train_meta=pair['metadata'];arm_meta=train_meta['arms'][release]
+            train_meta=pair['metadata'];arm_meta=train_meta['arms'][training_arm]
             exposure_passes=(train_meta['config']['warm_adversary_epochs']+
                 train_meta['config']['continuation_epochs']*train_meta['config']['adversary_updates_per_mapper_step'])
             inherited={'target':target,'fit_pool':train_meta['fit_pool'],
@@ -303,9 +397,9 @@ def run_seed(out,cfg,seed,*,miniature=False):
                 'total_row_exposures':train_meta['common_adversary_row_exposures']+arm_meta['adversary_row_exposures'],
                 'total_row_passes_equivalent':exposure_passes,
                 'total_known_label_exposures':train_meta['attribute_fit_coverage'][target]['known']*exposure_passes,
-                'final_adversary_state_hash':_state_hash(pair['arms'][release]['adversaries'][target]),
+                'final_adversary_state_hash':_state_hash(final_arms[release]['adversaries'][target]),
                 'continuation_schedule_hash':arm_meta['schedule_hash']}
-            caught=fit_catchup(pair['arms'][release]['adversaries'][target],arrays['attacker_fit'][i],audit_y[target][i],
+            caught=fit_catchup(final_arms[release]['adversaries'][target],arrays['attacker_fit'][i],audit_y[target][i],
                 arrays['attacker_validation'][vi],audit_v[target][vi],k,1300000+100*seed+j,
                 epochs=1 if miniature else cfg['catchup_epochs'],
                 inherited_exposure=inherited)
@@ -320,12 +414,19 @@ def run_seed(out,cfg,seed,*,miniature=False):
         records[key]=record;selections[key]=refs.selection['head_selections'][key]
         independent_selections[key]=selections[key];family_selections[key]=refs.selection['family_selections'][key]
         auroc_selections[key]=refs.selection['auroc_selections'][key]
+    if history:
+        for key,entry in history['records'].items():
+            records[key]=entry['record'];selections[key]=entry['head_selections']
+            independent_selections[key]=entry['independent_selections']
+            family_selections[key]=entry['family_selections'];auroc_selections[key]=entry['auroc_selections']
     provenance={'created_utc':now(),'used_reference_files_sha256':refs.used_files,
         'used_original_files_sha256':refs.source.used_files,'original_source_selection':refs.source.selection,
         'reference_metrics_path':str((refs.directory/'metrics.json').relative_to(ROOT)),
         'reference_metrics_sha256':sha_file(refs.directory/'metrics.json'),
         'reference_prediction_reuse':'Verified fitting rows/labels, recipe, exact standardizers, fitted-state and validation probability replay; original predictions/metrics retained.',
-        'verified_reference_candidates':refs.checked_candidates,'regeneration':'None; frozen inference only; no PCA, bank, encoder or eraser refit'}
+        'verified_reference_candidates':refs.checked_candidates,
+        'additional_history':history['identities'] if history else None,
+        'additional_history_files_sha256':history['used_files'] if history else {},'regeneration':'None; frozen inference only; no PCA, bank, encoder or eraser refit'}
     write_json(directory/'parent_provenance.json',provenance)
     record={'created_utc':now(),'evaluation_status':cfg['evaluation_status'],'head_selections':selections,
         'independent_selections':independent_selections,'family_selections':family_selections,
@@ -337,7 +438,15 @@ def run_seed(out,cfg,seed,*,miniature=False):
     print(f'seed {seed}: selections saved; opening DEVELOPMENT EVALUATION',flush=True)
     eval_started=now();t=time.perf_counter();test_frame=frame.iloc[pools['test']]
     ref_test=refs.evaluation_releases(test_frame)
-    test={n:arm['model'].release(ref_test['E_pca']) for n,arm in pair['arms'].items()}
+    test={n:model.release(ref_test['E_pca']) for n,model in models.items()}
+    if history:
+        with np.load(ROOT/cfg['pca16_reference_results']/f'seed_{seed}'/'release_PCA16.npz') as z:
+            expected=z['test'];assert np.allclose(test['I'],expected,atol=1e-5,rtol=1e-5)
+            e=test['I'].astype(np.float64)-expected.astype(np.float64)
+            write_json(directory/'evaluation_parity.json',{'atol':1e-5,'rtol':1e-5,
+                'max_abs':float(np.abs(e).max()),'rms':float(np.sqrt(np.mean(e**2))),
+                'initial_sha256':array_hash(test['I']),'historical_PCA16_sha256':array_hash(expected),
+                'selected_before_access':selection_hash})
     predictions={}
     val=score_and_save(fitted,selections,
         {r:{n:a[p] for n,a in releases.items()} for r,p in [('transfer','downstream_validation'),('audit','attacker_validation')]},
@@ -362,12 +471,14 @@ def run_seed(out,cfg,seed,*,miniature=False):
     for old in refs.previous['raw_metrics']:
         if old['release'] in (*REFERENCES,'prior','exposed'):
             raw.append({**copy.deepcopy(old),'independent_selected':old['selected'],'reused_reference':True})
+    if history: raw.extend(history['raw'])
     np.savez_compressed(directory/'predictions.npz',**predictions)
     for n,a in releases.items(): np.savez_compressed(directory/f'release_{n}.npz',**a,test=test[n])
     integrity={'learned_states_unchanged':before==learned_state(),
         'new_releases_unchanged':outputs==frozen_digest(releases),
         'reference_states_unchanged':refs.initial==refs.fingerprint(),
         'reference_files_unchanged':all(sha_file(ROOT/p)==h for p,h in {**refs.used_files,**refs.source.used_files}.items()),
+        'history_files_unchanged':not history or all(sha_file(ROOT/p)==h for p,h in history['used_files'].items()),
         'selection_unchanged':sha_file(directory/'selection_before_test.json')==selection_hash,
         'selection_created_utc':record['created_utc'],'evaluation_started_utc':eval_started,
         'selection_sha256':selection_hash,'evaluation_output_hashes':{n:array_hash(x) for n,x in test.items()}}

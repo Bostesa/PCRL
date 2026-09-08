@@ -172,6 +172,70 @@ class BottleneckModel(nn.Module):
         return self
 
 
+@torch.no_grad()
+def initialize_pca16_mapper(model):
+    """Overwrite only the mapper to undo standardization and select raw PCA16.
+
+    For z=(x-mean)/scale, ReLU([I;-I]z) and readout
+    [S diag(scale), -S diag(scale)] with bias S mean return S x.
+    S selects the first16 coordinates. Every parameter remains trainable,
+    including the initially zero readout columns for the other16 coordinates.
+    """
+    before_rng = torch.get_rng_state().clone()
+    nonmapper = {k: v for k, v in model.state_dict().items() if not k.startswith("mapper.")}
+    before_other = state_digest(nonmapper)
+    first, last = model.mapper[0], model.mapper[2]
+    identity = torch.eye(32, dtype=first.weight.dtype, device=first.weight.device)
+    first.weight.copy_(torch.cat((identity, -identity), 0))
+    first.bias.zero_()
+    readout = torch.diag(model.input_scale.to(last.weight))[:16]
+    last.weight.copy_(torch.cat((readout, -readout), 1))
+    last.bias.copy_(model.input_mean[:16].to(last.bias))
+    unchanged_other = state_digest(nonmapper) == before_other
+    unchanged_rng = torch.equal(before_rng, torch.get_rng_state())
+    if not unchanged_other or not unchanged_rng:
+        raise AssertionError("PCA16 initialization changed nonmapper state or RNG")
+    return {"mode": "pca16", "formula": "W1=[I32;-I32], b1=0; W2=[S diag(scale),-S diag(scale)], b2=S mean; S selects first16",
+            "nonmapper_initial_state_sha256": before_other,
+            "nonmapper_unchanged_by_overwrite": unchanged_other,
+            "torch_rng_unchanged_by_overwrite": unchanged_rng,
+            "unused_readout_columns": list(range(16, 32)) + list(range(48, 64)),
+            "all_mapper_parameters_trainable": all(p.requires_grad for p in model.mapper.parameters())}
+
+
+def _initialization_diagnostics(model, xraw, xvraw, xbatch, source_batch):
+    """Pre-update parity and a disposable gradient check; no fitting or RNG use."""
+    before = state_digest(model.state_dict())
+    frozen = copy.deepcopy(model).freeze()
+    parity = {}
+    for pool, raw in (("representation_fit", xraw), ("source_validation", xvraw)):
+        output, target = frozen.release(raw), raw[:, :16]
+        delta = output.astype(np.float64) - target.astype(np.float64)
+        passed = bool(np.allclose(output, target, atol=1e-5, rtol=1e-5))
+        parity[pool] = {"rows": len(raw), "atol": 1e-5, "rtol": 1e-5,
+                        "max_absolute_error": float(np.abs(delta).max()),
+                        "rms_error": float(np.sqrt(np.mean(delta * delta))), "passed": passed,
+                        "input_sha256": array_digest(raw), "output_sha256": array_digest(output),
+                        "target_pca16_sha256": array_digest(np.ascontiguousarray(target))}
+        if not passed:
+            raise AssertionError("Pre-update PCA16 parity failed on " + pool)
+    disposable = copy.deepcopy(model)
+    base, _, detail = base_loss(disposable, xbatch, source_batch)
+    unused = list(range(16, 32)) + list(range(48, 64))
+    norms = {}
+    for name, loss in (("source", detail["source_loss"]), ("base", base)):
+        gradient, = torch.autograd.grad(loss, disposable.mapper[2].weight, retain_graph=True)
+        part = gradient[:, unused]
+        norms[name + "_unused_readout_gradient_l2"] = float(torch.linalg.vector_norm(part))
+        norms[name + "_unused_readout_nonzero_entries"] = int(torch.count_nonzero(part))
+    if not np.isfinite(norms["base_unused_readout_gradient_l2"]) or norms["base_unused_readout_gradient_l2"] <= 0:
+        raise FloatingPointError("Initially unused PCA16 readout cannot learn")
+    if state_digest(model.state_dict()) != before or any(p.grad is not None for p in model.parameters()):
+        raise AssertionError("Disposable initialization check changed the actual model")
+    return {"parity": parity, "unused_readout_gradient_check": {**norms,
+            "disposable_model": True, "actual_model_unchanged": True, "optimizer_steps": 0}}
+
+
 def base_loss(model, x, source):
     h = model.mapper(x)
     task, task_losses, support = masked_source_bce({k: head(h) for k, head in model.heads.items()}, source)
@@ -299,9 +363,11 @@ def _checkpoint(path, model, adversaries, mapper_optimizer, adversary_optimizer,
 
 
 def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, miniature=False,
-               fit_pool="representation_fit"):
+               fit_pool="representation_fit", initialization="random"):
     if fit_pool != "representation_fit":
         raise ValueError("Training inputs must come from representation_fit")
+    if initialization not in ("random", "pca16"):
+        raise ValueError("Initialization must be random or pca16")
     xraw, xvraw = _features(xfit), _features(xval)
     source = _labels(source_y, len(xraw), SOURCE_SCHEMA, "source fitting")
     attributes = _labels(attr_y, len(xraw), ATTRIBUTE_SCHEMA, "attribute fitting")
@@ -322,6 +388,9 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(1270000 + 100 * int(seed))
         model = BottleneckModel(mean, scale)
+    initialization_metadata = (initialize_pca16_mapper(model) if initialization == "pca16"
+                               else {"mode": "random", "recipe": "historical full-model constructor unchanged"})
+    snapshots = {"I": copy.deepcopy(model).freeze()} if initialization == "pca16" else {}
     adversaries = nn.ModuleDict()
     x, xv = model.standardize(xraw), model.standardize(xvraw)
     mapper_optimizer, adversary_optimizer = _adam(model.parameters()), None
@@ -332,6 +401,9 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
         schedule_seed = 1280000 + 100 * int(seed) + offset
         orders, digest = _orders(len(x), epochs, schedule_seed)
         schedules[phase] = {"orders": orders, "seed": schedule_seed, "sha256": digest}
+    if initialization == "pca16":
+        first = schedules["warm_base"]["orders"][0][:cfg["batch_size"]]
+        initialization_metadata.update(_initialization_diagnostics(model, xraw, xvraw, x[first], _batch(source, first)))
     n_batch = math.ceil(len(x) / cfg["batch_size"])
     counters = {"mapper_optimizer_steps": 0, "adversary_optimizer_steps": 0}
     initial_hashes = {"model": state_digest(model.state_dict()), "adversaries": None}
@@ -369,6 +441,8 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
             raise AssertionError("Adversary warm-up changed the mapper, decoder or source heads")
         _checkpoint(out / (phase + ".pt"), model, adversaries, mapper_optimizer, adversary_optimizer,
                     {**counters, "epoch": len(schedules[phase]["orders"])}, phase)
+        if phase == "warm_base" and initialization == "pca16":
+            snapshots["W"] = copy.deepcopy(model).freeze()
     common_hashes = {"model": state_digest(model.state_dict()), "adversaries": state_digest(adversaries.state_dict()),
                      "mapper_optimizer": tree_digest(mapper_optimizer.state_dict()),
                      "adversary_optimizer": tree_digest(adversary_optimizer.state_dict())}
@@ -453,6 +527,12 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
         "preprocessing": {"fit_rows": len(x), "fit_pool": fit_pool, "mean": mean.tolist(), "scale": scale.tolist(),
                           "fit_computation_dtype": "float64", "standardized_dtype": "float32"},
         "initialization_hashes": initial_hashes, "shared_fork_hashes": common_hashes,
+        "initialization": initialization_metadata,
+        "snapshots": {
+            "I": {"checkpoint": "initialization.pt", "model_hash": initial_hashes["model"], "mapper_optimizer_steps": 0},
+            "W": {"checkpoint": "warm_base.pt", "model_hash": common_hashes["model"],
+                  "mapper_optimizer_steps": counters["mapper_optimizer_steps"],
+                  "unchanged_across_adversary_warmup": True}} if initialization == "pca16" else {},
         "adversary_initialization_hash": adversary_initial_hash,
         "adversary_initialization_phase": "after final common base epoch, before adversary warmup",
         "common_optimizer_counts": counters, "shared_curves": curves, "common_empty_minibatch_heads": missing_batches,
@@ -468,5 +548,8 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
         "arms": arm_metadata, "runtime_seconds": time.perf_counter() - started,
         "module_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
+    for name, snapshot in snapshots.items():
+        if state_digest(snapshot.state_dict()) != metadata["snapshots"][name]["model_hash"]:
+            raise AssertionError("Frozen I/W snapshot changed during training")
     (out / "training.json").write_text(json.dumps(metadata, indent=2, allow_nan=False) + "\n")
-    return {"arms": arms, "metadata": metadata}
+    return {"arms": arms, "snapshots": snapshots, "metadata": metadata}

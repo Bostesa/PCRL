@@ -1,6 +1,8 @@
 # PCRL redesign review index
 
-**Latest addition, 2026-09-08 UTC:** the [fixed PCA16 control](../results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md) retains more residential utility than C16/D16 on the primary mean comparison, while original PCA32 remains better. The advantage shrinks under person weighting, and attributes remain recoverable. See the [dated PCA16 appendix](#appendix--2026-09-08-fixed-pca16-control). No new representation or protection method was fitted.
+**Latest addition, 2026-09-08 UTC:** the [PCA16-initialized matched C/D experiment](../results/redesign_20260908_acs_pca16_init_v1/RESEARCH_DECISION.md) did not establish a better final tradeoff. Source utility remains preserved, final protected residential performance ties historical D, and weighted sensitivity reverses the common-warmup mean change. See the [dated appendix](#appendix--2026-09-08-pca16-initialized-matched-cd).
+
+**Previous addition, 2026-09-08 UTC:** the [fixed PCA16 control](../results/redesign_20260908_acs_pca16_v1/RESEARCH_DECISION.md) retains more residential utility than C16/D16 on the primary mean comparison, while original PCA32 remains better. The advantage shrinks under person weighting, and attributes remain recoverable. See the [dated PCA16 appendix](#appendix--2026-09-08-fixed-pca16-control). No new representation or protection method was fitted.
 
 **Previous addition, 2026-09-08:** the [fixed nonlinear ACS bottleneck pilot](../results/redesign_20260908_acs_bottleneck_v1/RESEARCH_DECISION.md) is complete. Matched protection modestly reduces SEX recovery, but neither learned arm meets the residential/attribute tradeoff. Catch-up reduces the apparent race benefit. See the [dated appendix](#appendix--2026-09-08-fixed-nonlinear-acs-bottleneck). No PCRL advantage is established.
 
@@ -312,3 +314,44 @@ Ten focused tests passed; 120 new probability sets replayed bitwise. Three seeds
 took 19.663 seconds on the existing M4 Pro, one numerical thread. No historical
 model was retrained. The recommended next change is PCA16-exact initialization
 of the otherwise unchanged matched C/D mapper; it has not been run.
+
+## Appendix — 2026-09-08: PCA16-initialized matched C/D
+
+Only the existing mapper's initialization changed. Signed positive/negative PCA32
+units analytically undo saved fitting-only standardization and reproduce PCA16
+within4.77e-7 coordinate error. Source heads/decoder, adversary initialization,
+model capacity, objectives, schedules and example access remain identical to the
+historical recipe. Frozen I/W snapshots diagnose initialization/common warmup;
+C_init/D_init are parallel final continuations. All representation training
+finished before fitting any reserved-task head, with no snapshot selection.
+
+Mean unweighted residential loss I/W/C_init/D_init is
+.495062/.498230/.499489/.501559. Final D practically ties historical D (.501592).
+Common warmup's +.003168 unweighted change becomes −.002566 under PWGTP; source
+utility improves and passes the original-PCA32+.01 reference throughout. Final
+C/D retain half residential headroom in only1/3 development seeds. Independent
+D−C race attack-loss gain .022542 shrinks to .010327 with catch-up and reverses
+in seed0. Race support remains incomplete; no joint policy or PCRL advantage
+is established. These are DEVELOPMENT EVALUATION, not confirmation.
+
+- [Decision](../results/redesign_20260908_acs_pca16_init_v1/RESEARCH_DECISION.md),
+  [stage/final tables](../results/redesign_20260908_acs_pca16_init_v1/TABLE.md),
+  [per-seed/weighted analysis](../results/redesign_20260908_acs_pca16_init_v1/ANALYSIS.md),
+  [stage plot](../results/redesign_20260908_acs_pca16_init_v1/residence_stages.png),
+  [frozen protocol](../results/redesign_20260908_acs_pca16_init_v1/PROTOCOL.md).
+- [Optional initialization/snapshot training](../experiments/acs_bottleneck_training.py),
+  [extended runner and label/selection boundaries](../experiments/run_acs_bottleneck.py),
+  [unchanged catch-up](../experiments/acs_bottleneck_catchup.py),
+  [read-only reporting](../scripts/summarize_acs_pca16_init.py).
+- [Validation](../results/redesign_20260908_acs_pca16_init_v1/VALIDATION.md),
+  [new-only model/score replay](../results/redesign_20260908_acs_pca16_init_v1/SCORE_REPLAY.json),
+  [reproduction/local-artifact limits](../results/redesign_20260908_acs_pca16_init_v1/REPRODUCTION.md),
+  [runtime](../results/redesign_20260908_acs_pca16_init_v1/runtime.json).
+
+Scientific process wall was91.787s for all three seeds on M4 Pro CPU, one
+numerical thread. Historical models and audits were not refitted. Old execution
+hashes remain intact; current source adds an option and is frozen separately.
+Raw records, fitted models/Adam states and caches remain local with hashes.
+The one proposed change is a PCA16-output preservation penalty during common
+warmup. It has not been run; baseline failure is not a prohibition on developing
+methods to address the demonstrated tradeoff.
