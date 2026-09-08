@@ -937,3 +937,13 @@ Evidence: [decision](results/redesign_20260908_acs_pca16_init_v1/RESEARCH_DECISI
 [paired analysis](results/redesign_20260908_acs_pca16_init_v1/ANALYSIS.md),
 [validation](results/redesign_20260908_acs_pca16_init_v1/VALIDATION.md),
 [reproduction](results/redesign_20260908_acs_pca16_init_v1/REPRODUCTION.md).
+
+## 2026-09-08 UTC — bounded overnight PCA16 preservation study
+
+Completed from reviewed commit `f197933a9ff57b5702b3547d0b8788f15c80189e` on `ablations-facct-2026-07-24`. All8 preservation conditions×3seeds, stage utility, direct/affine teacher diagnostics, full primary final audits, and the full predeclared nested360-epoch extension are complete. See [the research decision](results/redesign_20260908_acs_preservation_v1/OVERNIGHT_RESEARCH_DECISION.md), [matrix](results/redesign_20260908_acs_preservation_v1/EXECUTED_MATRIX.json), [validation](results/redesign_20260908_acs_preservation_v1/VALIDATION.md), and [reproduction](results/redesign_20260908_acs_preservation_v1/REPRODUCTION.md).
+
+Every final mean improves residence over beta0 under both weights. Strong persistent preservation retains almost all affine teacher structure and teacher-like attribute leakage; the measured D−C protection difference becomes small. Warmup-only preservation gives a limited favorable tradeoff, with higher source losses inside the original margins and important weighted/seed qualifications. All216 non-control audit trajectories retain epochs5–80 checkpoints, so360 does not change release scores or rankings. Race code4 remains unassessable; no new privacy or PCRL novelty claim.
+
+Measured scientific unit/audit wall672.27s includes one1.15s optional-loader preflight failure. The [documented amendment](results/redesign_20260908_acs_preservation_v1/OPERATIONAL_RECOVERY.md) adapted a historical manifest schema before optional fitting; all original freezes, core results and subsequent/unrelated work are preserved. Core and extended replay verify3,456 new/saved prediction sets bitwise across their declared scopes; maximum score discrepancy6.66e-16. Raw data, fitted models/Adam states, releases, predictions and caches remain local with hashes. Compact source/evidence are published to the authorized research branch; no main change, PR, force-push, new data, paid compute or unrelated job interruption.
+
+The single proposed next method experiment is fixed attribute-residualized teacher distillation with ordinary source gradients and matched strong audits. It remains a hypothesis and was not launched. Earlier conclusions and proposed-next-step statements above are historical evidence.

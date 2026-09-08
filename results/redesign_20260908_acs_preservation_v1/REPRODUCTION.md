@@ -1,0 +1,26 @@
+# Reproduction and evidence boundary
+
+This study is DEVELOPMENT EVALUATION on previously used households. Read [the frozen protocol](PROTOCOL.md) and [configuration](config.json); historical source hashes describe their original executions, while [this freeze](protocol_freeze.json) identifies the original preservation execution. [Amendment01](EXECUTION_AMENDMENT_01.json) separately identifies the optional-loader compatibility correction; original hashes and the pre-amendment core replay remain unchanged. The original bottleneck runner's assertions remain intact. The separately named [preservation runner](../../experiments/run_acs_preservation.py) adds the eight-condition matrix through optional [training support](../../experiments/acs_bottleneck_training.py), the [label-free diagnostic](../../experiments/acs_preservation_diagnostics.py), and the [nested audit runner](../../experiments/run_acs_preservation_extended.py)/[helper](../../experiments/acs_preservation_audits.py). Existing data, source, utility, scoring and primary-audit helpers remain dependencies, all listed in the freeze.
+
+Use the existing environment described in [environment.json](environment.json) and [requirements](../../requirements-redesign.txt). No package/model/data download was added. Scientific execution used existing M4 Pro CPU, one numerical thread. The local raw CSV is `data/folktables/2018/1-Year/psam_p06.csv`, SHA256 `dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0`.
+
+The exact original PCA32 arrays, saved fitting statistics, initial mapper, household rows and previous head/audit predictions are prerequisites. Reference paths are in config and protocol_freeze; each unit's parent_provenance identifies used historical objects. No historical representation model was trained for this study. Exact I state and all nondevelopment release arrays match prior I bitwise before its utility evidence is reused. Historical W/C_init/D_init and PCA16/C16/D16/simple bank scores are reused from validated evidence; their own original source hashes remain unchanged.
+
+Raw person data, fitted models/Adam states, decoder coefficients, predictions, split/release arrays and caches remain local. Each unit and extended seed has `local_artifacts.json` recording relative local paths, bytes and SHA256. Top-level selection/metrics/training records and full score CSVs provide compact public evidence. Exact saved-checkpoint replay requires the local objects; no public checkpoint download is claimed. Read-only report regeneration uses published metrics only.
+
+To regenerate numerically without the saved parents, follow the [original transfer](../redesign_20260907_acs_transfer_v1/REPRODUCTION.md), [protection](../redesign_20260908_acs_protection_v1/REPRODUCTION.md), [bottleneck](../redesign_20260908_acs_bottleneck_v1/REPRODUCTION.md), [PCA16](../redesign_20260908_acs_pca16_v1/REPRODUCTION.md), and [initialization](../redesign_20260908_acs_pca16_init_v1/REPRODUCTION.md) dependencies with their pinned source in fresh directories. This is numerical regeneration, not byte-identical replay. Never overwrite a historical directory or replace its source hashes.
+
+```sh
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
+# Focused artificial examples; no scientific ACS fitting.
+.venv/bin/python -m pytest -q tests/test_acs_pca16_preservation_training.py tests/test_acs_preservation_runner.py tests/test_acs_preservation_diagnostics.py tests/test_acs_preservation_audits.py tests/test_acs_preservation_comparisons.py
+# Read-only exact saved-artifact and independent-score replay; choose fresh report paths.
+.venv/bin/python scripts/verify_acs_preservation.py --out results/redesign_20260908_acs_preservation_v1 --report /tmp/preservation_replay_new.json
+.venv/bin/python scripts/verify_acs_preservation_extended.py --out results/redesign_20260908_acs_preservation_v1 --report /tmp/preservation_extended_replay_new.json
+# Read-only report regeneration.
+.venv/bin/python scripts/summarize_acs_preservation.py --out results/redesign_20260908_acs_preservation_v1
+```
+
+For a new scientific execution, create a fresh output directory and copy config/PROTOCOL there. Set its actual starting timestamp and parent paths before freezing. Keep every numerical setting unchanged. Run `python -m experiments.run_acs_preservation --out NEW --prepare --core`; the runner times each complete beta/seed unit, writes progress, projects remaining cost, and skips completed units on resume. Then `python -m experiments.run_acs_preservation_extended --out NEW` admits the whole fixed extension only when core is complete and the measured projection fits the remaining60-minute scientific/4-hour total ceilings. It refits360 from each prescribed original start; repeated first120 epochs are charged as new compute. Its nested120/360 checkpoints come from the same trajectory, with actual120/360 model/Adam/RNG states retained separately from validation-selected weights.
+
+Completed units/seeds and their fitted evidence are immutable. An incomplete unit directory fails closed on restart and remains available for diagnosis; do not delete or silently overwrite it. A stopped local session/computer cannot be guaranteed to continue. The progress record and measured runtimes provide a finite handoff.

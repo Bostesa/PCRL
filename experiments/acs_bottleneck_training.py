@@ -34,6 +34,15 @@ TRAIN_CONFIG = {
     "curve_interval": 5, "standardizer_std_floor": 1e-12,
     "gradient_clipping": None, "checkpoint_selection": "fixed final iterate",
 }
+PRESERVATION_CONFIG = {
+    "study": "acs_pca16_output_preservation_v1", "betas": [.1, 1.],
+    "schedules": ["warmup_only", "persistent"],
+    "teacher": "immutable raw original PCA32 coordinates [:, :16]",
+    "coordinate_scale": "saved representation-fitting input_scale[:16]",
+    "loss_reduction": "mean over examples and 16 coordinates",
+    "gradient_diagnostic_points": ["initialization", "after_base_warmup", "shared_fork", "final"],
+    "diagnostic_batch": "first warm_base minibatch at every point",
+}
 
 
 def tree_digest(value):
@@ -246,6 +255,24 @@ def base_loss(model, x, source):
     }
 
 
+def preservation_loss(released, teacher, coordinate_scale):
+    """Squared raw-coordinate error using fixed detached fitting scales.
+
+    Teacher targets are raw PCA16, never standardized mapper inputs. Explicit
+    detach protects both teacher and scale even for a caller's grad tensor.
+    Computation follows the mapper float32 dtype; saved scales remain float64.
+    """
+    teacher = torch.as_tensor(teacher).detach().to(released)
+    scale = torch.as_tensor(coordinate_scale).detach().to(released)
+    if released.ndim != 2 or released.shape[1] != 16 or teacher.shape != released.shape:
+        raise ValueError("Preservation requires matching raw PCA16 targets")
+    if scale.shape != (16,) or not torch.isfinite(scale).all() or not (scale > 0).all():
+        raise ValueError("Preservation requires fixed finite positive fitting scales")
+    if not torch.isfinite(teacher).all():
+        raise ValueError("Preservation teacher must be finite")
+    return ((released - teacher) / scale).square().mean()
+
+
 def protection_loss(adversaries, h, attributes, priors):
     plain, individual, support = masked_mean_ce({k: net(h) for k, net in adversaries.items()}, attributes)
     normalized = torch.stack([individual[k] / priors[k]["entropy"] for k in ATTRIBUTE_SCHEMA]).mean()
@@ -270,7 +297,8 @@ def adversary_update(model, adversaries, optimizer, x, attributes):
     return float(loss.detach()), support
 
 
-def mapper_update(model, adversaries, optimizer, x, source, attributes, priors, protected):
+def mapper_update(model, adversaries, optimizer, x, source, attributes, priors, protected,
+                  *, preservation_beta=0., teacher=None):
     optimizer.zero_grad(set_to_none=True)
     adversaries.zero_grad(set_to_none=True)
     states = [p.requires_grad for p in adversaries.parameters()]
@@ -283,6 +311,12 @@ def mapper_update(model, adversaries, optimizer, x, source, attributes, priors, 
         else:
             normalized = base.detach() * 0.
             objective = base
+        # The beta=0 branch is literally the historical graph/update path.
+        if preservation_beta:
+            if teacher is None:
+                raise ValueError("Active preservation requires raw PCA16 teacher targets")
+            preserve = preservation_loss(h, teacher, model.input_scale[:16])
+            objective = objective + preservation_beta * preserve
         if not torch.isfinite(objective):
             raise FloatingPointError("Nonfinite mapper objective")
         objective.backward()
@@ -294,10 +328,12 @@ def mapper_update(model, adversaries, optimizer, x, source, attributes, priors, 
             "objective": float(objective.detach()), "source_support": detail["source_support"]}
 
 
-def gradient_diagnostics(model, adversaries, x, source, attributes, priors):
+def gradient_diagnostics(model, adversaries, x, source, attributes, priors,
+                         *, teacher=None, preservation_beta=0., protected=True):
     """Measure separate mapper gradients without stepping or changing state."""
     base, h, parts = base_loss(model, x, source)
-    normalized, _ = protection_loss(adversaries, h, attributes, priors)
+    normalized = (protection_loss(adversaries, h, attributes, priors)[0]
+                  if len(adversaries) else base * 0.)
     parameters = list(model.mapper.parameters())
     result = {}
     for name, value in (("source", parts["source_loss"]), ("reconstruction", .1 * parts["reconstruction_mse"]),
@@ -313,8 +349,23 @@ def gradient_diagnostics(model, adversaries, x, source, attributes, priors):
         raise AssertionError("Protection term unexpectedly updates source heads or decoder")
     result["protection_source_decoder_gradient_l2"] = 0.
     result["protection_source_decoder_gradients_all_absent"] = all(g is None for g in outside)
-    if not all(np.isfinite(result[k]) and result[k] > 0 for k in ("base_first_weight_l2", "protection_first_weight_l2")):
+    required = ("base_first_weight_l2", "protection_first_weight_l2") if len(adversaries) else ("base_first_weight_l2",)
+    if not all(np.isfinite(result[k]) and result[k] > 0 for k in required):
         raise FloatingPointError("Broken or nonfinite base/protection gradient path")
+    if teacher is not None:
+        preserve = preservation_loss(h, teacher, model.input_scale[:16])
+        for name, value in (("preservation", preserve), ("applied_preservation", preservation_beta * preserve)):
+            gradients = torch.autograd.grad(value, parameters, retain_graph=True)
+            result[name + "_mapper_l2"] = float(torch.sqrt(sum((g * g).sum() for g in gradients)))
+        outside = list(model.heads.parameters()) + list(model.decoder.parameters()) + list(adversaries.parameters())
+        gradients = torch.autograd.grad(preserve, outside, allow_unused=True, retain_graph=True)
+        if any(g is not None for g in gradients):
+            raise AssertionError("Preservation directly updates a nonmapper parameter")
+        result.update(preservation_loss=float(preserve.detach()), preservation_coefficient=preservation_beta,
+                      preservation_nonmapper_gradients_all_absent=True,
+                      source_coefficient=1., reconstruction_coefficient=.1,
+                      protection_coefficient=-.1 if protected and len(adversaries) else 0.,
+                      applied_protection_mapper_l2=result["protection_mapper_l2"] if protected else 0.)
     return result
 
 
@@ -332,7 +383,8 @@ def _orders(n, epochs, seed):
 
 
 @torch.no_grad()
-def _curve(model, adversaries, x, source, attributes, xv, source_val, priors, epoch, counts):
+def _curve(model, adversaries, x, source, attributes, xv, source_val, priors, epoch, counts,
+           *, teacher=None, preservation_beta=0., protected=False):
     base, h, detail = base_loss(model, x, source)
     if len(adversaries):
         normalized, attribute_detail = protection_loss(adversaries, h, attributes, priors)
@@ -342,7 +394,7 @@ def _curve(model, adversaries, x, source, attributes, xv, source_val, priors, ep
         attribute_losses, normalized = None, None
     valbase, _, valdetail = base_loss(model, xv, source_val)
     scalar_tasks = lambda d: {k: float(v) if d["source_support"][k] else None for k, v in d["source_losses"].items()}
-    return {"epoch": epoch, **counts, "fit_base_loss": float(base),
+    result = {"epoch": epoch, **counts, "fit_base_loss": float(base),
             "fit_source_ce": float(detail["source_loss"]), "fit_source_losses": scalar_tasks(detail),
             "fit_reconstruction_mse": float(detail["reconstruction_mse"]),
             "fit_adversary_ce": attribute_losses,
@@ -351,6 +403,51 @@ def _curve(model, adversaries, x, source, attributes, xv, source_val, priors, ep
             "source_validation_losses": scalar_tasks(valdetail),
             "source_validation_reconstruction_mse": float(valdetail["reconstruction_mse"]),
             "selection": "none; fixed final iterate"}
+    if teacher is not None:
+        preserve = float(preservation_loss(h, teacher, model.input_scale[:16]))
+        protection_coefficient = -.1 if protected else 0.
+        result.update(fit_preservation_loss=preserve, preservation_coefficient=preservation_beta,
+                      fit_applied_preservation=preservation_beta * preserve,
+                      source_coefficient=1., reconstruction_coefficient=.1,
+                      protection_coefficient=protection_coefficient,
+                      fit_applied_protection=protection_coefficient * (normalized or 0.),
+                      fit_objective=float(base) + preservation_beta * preserve + protection_coefficient * (normalized or 0.))
+    return result
+
+
+def _preservation_diagnostics(model, adversaries, x, source, attributes, priors, teacher, beta, protected):
+    before = tree_digest((model.state_dict(), adversaries.state_dict(),
+                          [p.grad for p in model.parameters()], [p.grad for p in adversaries.parameters()]))
+    rng = torch.get_rng_state().clone()
+    result = gradient_diagnostics(model, adversaries, x, source, attributes, priors,
+                                  teacher=teacher, preservation_beta=beta, protected=protected)
+    after = tree_digest((model.state_dict(), adversaries.state_dict(),
+                         [p.grad for p in model.parameters()], [p.grad for p in adversaries.parameters()]))
+    if before != after or not torch.equal(rng, torch.get_rng_state()):
+        raise AssertionError("Gradient diagnostics changed training state or RNG")
+    result.update(training_state_unchanged=True, torch_rng_unchanged=True, optimizer_steps=0)
+    return result
+
+
+def _perturbed_preservation_check(model, x, teacher):
+    """Deterministic disposable offset; analytic readout-bias gradient check."""
+    before, rng = state_digest(model.state_dict()), torch.get_rng_state().clone()
+    disposable = copy.deepcopy(model)
+    with torch.no_grad():
+        disposable.mapper[2].bias.add_(.125 * disposable.input_scale[:16].float())
+    h = disposable.mapper(x)
+    loss = preservation_loss(h, teacher, disposable.input_scale[:16])
+    gradient, = torch.autograd.grad(loss, disposable.mapper[2].bias)
+    expected = (2. / 16 * ((h.detach() - teacher) / disposable.input_scale[:16].float().square()).mean(0))
+    if not torch.allclose(gradient, expected, atol=1e-7, rtol=1e-5) or float(torch.linalg.vector_norm(gradient)) <= 0:
+        raise AssertionError("Perturbed preservation gradient differs from analytic derivative")
+    if state_digest(model.state_dict()) != before or not torch.equal(rng, torch.get_rng_state()):
+        raise AssertionError("Disposable preservation check changed the actual model or RNG")
+    return {"normalized_bias_perturbation": .125, "loss": float(loss.detach()),
+            "expected_loss": .125 ** 2, "readout_bias_gradient_l2": float(torch.linalg.vector_norm(gradient)),
+            "analytic_gradient_max_absolute_error": float((gradient - expected).abs().max()),
+            "analytic_gradient_passed": True, "actual_model_unchanged": True,
+            "torch_rng_unchanged": True, "optimizer_steps": 0, "disposable_model": True}
 
 
 def _checkpoint(path, model, adversaries, mapper_optimizer, adversary_optimizer, counters, stage):
@@ -364,6 +461,31 @@ def _checkpoint(path, model, adversaries, mapper_optimizer, adversary_optimizer,
 
 def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, miniature=False,
                fit_pool="representation_fit", initialization="random"):
+    """Historical two-arm recipe; preservation is not part of this contract."""
+    return _train(xfit, source_y, attr_y, xval, source_val, seed, directory,
+                  miniature=miniature, fit_pool=fit_pool, initialization=initialization)
+
+
+def train_preservation_unit(xfit, source_y, attr_y, xval, source_val, seed, directory,
+                            *, beta, miniature=False, fit_pool="representation_fit", fitting_statistics=None):
+    """One common warmup and four fixed preservation/protection continuations.
+
+    The scientific study admits only beta=.1 or 1. Beta=0 is miniature-only
+    regression support, never an additional scientific arm. Saved historical
+    preprocessing is mandatory for scientific runs and checked against the
+    exact representation-fitting inputs before any output or optimization.
+    """
+    if beta not in PRESERVATION_CONFIG["betas"] and not (miniature and beta == 0):
+        raise ValueError("Preservation scientific beta must be .1 or 1.; beta=0 is miniature regression only")
+    if fitting_statistics is None and not miniature:
+        raise ValueError("Scientific preservation requires saved representation-fitting statistics")
+    return _train(xfit, source_y, attr_y, xval, source_val, seed, directory,
+                  miniature=miniature, fit_pool=fit_pool, initialization="pca16",
+                  preservation_beta=float(beta), fitting_statistics=fitting_statistics)
+
+
+def _train(xfit, source_y, attr_y, xval, source_val, seed, directory, *, miniature=False,
+           fit_pool="representation_fit", initialization="random", preservation_beta=None, fitting_statistics=None):
     if fit_pool != "representation_fit":
         raise ValueError("Training inputs must come from representation_fit")
     if initialization not in ("random", "pca16"):
@@ -379,12 +501,19 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
     if miniature:
         cfg.update(warm_base_epochs=1, warm_adversary_epochs=1, continuation_epochs=2,
                    batch_size=16, curve_interval=1)
-    out = Path(directory)
-    out.mkdir(parents=True, exist_ok=False)
     started = time.perf_counter()
     raw64 = xraw.astype(np.float64)
     mean, std = raw64.mean(0), raw64.std(0)
     scale = np.where(std > cfg["standardizer_std_floor"], std, 1.)
+    preservation_study = preservation_beta is not None
+    if fitting_statistics is not None:
+        saved_mean = np.asarray(fitting_statistics["mean"], dtype=np.float64)
+        saved_scale = np.asarray(fitting_statistics["scale"], dtype=np.float64)
+        if not np.array_equal(saved_mean, mean) or not np.array_equal(saved_scale, scale):
+            raise ValueError("Saved representation-fitting statistics do not match the historical fitting-only calculation")
+        mean, scale = saved_mean.copy(), saved_scale.copy()
+    out = Path(directory)
+    out.mkdir(parents=True, exist_ok=False)
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(1270000 + 100 * int(seed))
         model = BottleneckModel(mean, scale)
@@ -393,6 +522,9 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
     snapshots = {"I": copy.deepcopy(model).freeze()} if initialization == "pca16" else {}
     adversaries = nn.ModuleDict()
     x, xv = model.standardize(xraw), model.standardize(xvraw)
+    teacher = torch.from_numpy(xraw[:, :16].copy()).detach() if preservation_study else None
+    teacher_hash = array_digest(teacher.numpy()) if preservation_study else None
+    preservation_kwargs = {"teacher": teacher, "preservation_beta": preservation_beta} if preservation_study else {}
     mapper_optimizer, adversary_optimizer = _adam(model.parameters()), None
     schedules = {}
     for phase, epochs, offset in (("warm_base", cfg["warm_base_epochs"], 0),
@@ -404,6 +536,16 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
     if initialization == "pca16":
         first = schedules["warm_base"]["orders"][0][:cfg["batch_size"]]
         initialization_metadata.update(_initialization_diagnostics(model, xraw, xvraw, x[first], _batch(source, first)))
+    diagnostic_indices = schedules["warm_base"]["orders"][0][:cfg["batch_size"]]
+    stage_diagnostics = {}
+    def study_diagnostic(current, observers, beta, protected):
+        idx = diagnostic_indices
+        return _preservation_diagnostics(current, observers, x[idx], _batch(source, idx),
+                                         _batch(attributes, idx), priors, teacher[idx], beta, protected)
+    if preservation_study:
+        stage_diagnostics["initialization"] = study_diagnostic(model, adversaries, preservation_beta, False)
+        initialization_metadata["perturbed_preservation_gradient_check"] = _perturbed_preservation_check(
+            model, x[diagnostic_indices], teacher[diagnostic_indices])
     n_batch = math.ceil(len(x) / cfg["batch_size"])
     counters = {"mapper_optimizer_steps": 0, "adversary_optimizer_steps": 0}
     initial_hashes = {"model": state_digest(model.state_dict()), "adversaries": None}
@@ -419,7 +561,8 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
                 adversaries = nn.ModuleDict({k: _network(16, [64, 32], size) for k, size in ATTRIBUTE_SCHEMA.items()})
             adversary_optimizer = _adam(adversaries.parameters())
             adversary_initial_hash = state_digest(adversaries.state_dict())
-        curves[phase] = [_curve(model, adversaries, x, source, attributes, xv, validation, priors, 0, counters)]
+        phase_kwargs = preservation_kwargs if phase == "warm_base" else ({"teacher": teacher, "preservation_beta": 0.} if preservation_study else {})
+        curves[phase] = [_curve(model, adversaries, x, source, attributes, xv, validation, priors, 0, counters, **phase_kwargs)]
         missing_batches[phase] = {k: 0 for k in (SOURCE_SCHEMA if phase == "warm_base" else ATTRIBUTE_SCHEMA)}
         model_before = state_digest(model.state_dict())
         for epoch, order in enumerate(schedules[phase]["orders"], 1):
@@ -427,7 +570,8 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
                 indices = order[start:start + cfg["batch_size"]]
                 if phase == "warm_base":
                     detail = mapper_update(model, adversaries, mapper_optimizer, x[indices], _batch(source, indices),
-                                           _batch(attributes, indices), priors, False)
+                                           _batch(attributes, indices), priors, False,
+                                           **({"teacher": teacher[indices], "preservation_beta": preservation_beta} if preservation_study else {}))
                     counts = detail["source_support"]
                     counters["mapper_optimizer_steps"] += 1
                 else:
@@ -436,20 +580,27 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
                 for k, count in counts.items():
                     missing_batches[phase][k] += int(count == 0)
             if epoch % cfg["curve_interval"] == 0 or epoch == len(schedules[phase]["orders"]):
-                curves[phase].append(_curve(model, adversaries, x, source, attributes, xv, validation, priors, epoch, counters))
+                curves[phase].append(_curve(model, adversaries, x, source, attributes, xv, validation, priors, epoch, counters, **phase_kwargs))
         if phase == "warm_adversary" and state_digest(model.state_dict()) != model_before:
             raise AssertionError("Adversary warm-up changed the mapper, decoder or source heads")
         _checkpoint(out / (phase + ".pt"), model, adversaries, mapper_optimizer, adversary_optimizer,
                     {**counters, "epoch": len(schedules[phase]["orders"])}, phase)
         if phase == "warm_base" and initialization == "pca16":
             snapshots["W"] = copy.deepcopy(model).freeze()
+            if preservation_study:
+                stage_diagnostics["after_base_warmup"] = study_diagnostic(model, adversaries, preservation_beta, False)
     common_hashes = {"model": state_digest(model.state_dict()), "adversaries": state_digest(adversaries.state_dict()),
                      "mapper_optimizer": tree_digest(mapper_optimizer.state_dict()),
                      "adversary_optimizer": tree_digest(adversary_optimizer.state_dict())}
     first = schedules["continuation"]["orders"][0][:cfg["batch_size"]]
     diagnostics = gradient_diagnostics(model, adversaries, x[first], _batch(source, first), _batch(attributes, first), priors)
+    if preservation_study:
+        stage_diagnostics["shared_fork"] = study_diagnostic(model, adversaries, preservation_beta, True)
     arms, arm_metadata = {}, {}
-    for name, protected in (("C_bottleneck", False), ("D_protected", True)):
+    arm_specs = ([(f"{arm}_{schedule}", arm == "D", preservation_beta if schedule == "persistent" else 0., schedule)
+                  for schedule in PRESERVATION_CONFIG["schedules"] for arm in ("C", "D")]
+                 if preservation_study else [("C_bottleneck", False, 0., None), ("D_protected", True, 0., None)])
+    for name, protected, continuation_beta, preservation_schedule in arm_specs:
         arm, attackers = copy.deepcopy(model), copy.deepcopy(adversaries)
         optimizer, attacker_optimizer = _adam(arm.parameters()), _adam(attackers.parameters())
         optimizer.load_state_dict(copy.deepcopy(mapper_optimizer.state_dict()))
@@ -464,7 +615,9 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
         count = counters.copy()
         _checkpoint(arm_dir / "fork.pt", arm, attackers, optimizer, attacker_optimizer,
                     {**count, "continuation_epoch": 0}, "shared warmed fork")
-        curve = [_curve(arm, attackers, x, source, attributes, xv, validation, priors, 0, count)]
+        continuation_kwargs = {"teacher": teacher, "preservation_beta": continuation_beta, "protected": protected} if preservation_study else {}
+        fork_diagnostic = study_diagnostic(arm, attackers, continuation_beta, protected) if preservation_study else None
+        curve = [_curve(arm, attackers, x, source, attributes, xv, validation, priors, 0, count, **continuation_kwargs)]
         empty = {"source": {k: 0 for k in SOURCE_SCHEMA}, "attribute": {k: 0 for k in ATTRIBUTE_SCHEMA}}
         for epoch, order in enumerate(schedules["continuation"]["orders"], 1):
             for start in range(0, len(order), cfg["batch_size"]):
@@ -475,12 +628,13 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
                     count["adversary_optimizer_steps"] += 1
                     for k, n in counts.items():
                         empty["attribute"][k] += int(n == 0)
-                detail = mapper_update(arm, attackers, optimizer, x[indices], y, a, priors, protected)
+                detail = mapper_update(arm, attackers, optimizer, x[indices], y, a, priors, protected,
+                                       **({"teacher": teacher[indices], "preservation_beta": continuation_beta} if preservation_study else {}))
                 count["mapper_optimizer_steps"] += 1
                 for k, n in detail["source_support"].items():
                     empty["source"][k] += int(n == 0)
             if epoch % cfg["curve_interval"] == 0 or epoch == cfg["continuation_epochs"]:
-                curve.append(_curve(arm, attackers, x, source, attributes, xv, validation, priors, epoch, count))
+                curve.append(_curve(arm, attackers, x, source, attributes, xv, validation, priors, epoch, count, **continuation_kwargs))
         _checkpoint(arm_dir / "final.pt", arm, attackers, optimizer, attacker_optimizer,
                     {**count, "continuation_epoch": cfg["continuation_epochs"]}, "fixed final iterate")
         mapper_steps = cfg["continuation_epochs"] * n_batch
@@ -508,6 +662,13 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
             "mapper_loss_uses_protection_gradient": protected,
             "selected_epoch": cfg["continuation_epochs"], "selection": "fixed final iterate; no validation selection",
         }
+        if preservation_study:
+            arm_metadata[name].update(
+                preservation_beta=preservation_beta, preservation_schedule=preservation_schedule,
+                warmup_preservation_coefficient=preservation_beta,
+                continuation_preservation_coefficient=continuation_beta,
+                fixed_batch_gradient_diagnostics_at_shared_fork=fork_diagnostic,
+                fixed_batch_gradient_diagnostics_at_final=study_diagnostic(arm, attackers, continuation_beta, protected))
         if count != {"mapper_optimizer_steps": counters["mapper_optimizer_steps"] + mapper_steps,
                       "adversary_optimizer_steps": counters["adversary_optimizer_steps"] + adversary_steps}:
             raise AssertionError("Recorded continuation counts differ from optimizer actions")
@@ -551,5 +712,20 @@ def train_pair(xfit, source_y, attr_y, xval, source_val, seed, directory, *, min
     for name, snapshot in snapshots.items():
         if state_digest(snapshot.state_dict()) != metadata["snapshots"][name]["model_hash"]:
             raise AssertionError("Frozen I/W snapshot changed during training")
+    if preservation_study:
+        if array_digest(teacher.numpy()) != teacher_hash or teacher.requires_grad:
+            raise AssertionError("Immutable raw PCA16 teacher changed during training")
+        metadata.update(
+            preservation_config={**copy.deepcopy(PRESERVATION_CONFIG), "beta": preservation_beta},
+            teacher={"sha256": teacher_hash, "raw_coordinates": list(range(16)),
+                     "fit_pool": fit_pool, "rows": len(teacher), "detached": True,
+                     "immutable_verified": True, "labels_received": False,
+                     "coordinate_scale": scale[:16].tolist(),
+                     "coordinate_scale_sha256": array_digest(scale[:16]),
+                     "loss_dtype": "float32", "saved_statistics_supplied": fitting_statistics is not None,
+                     "saved_statistics_exact_fit_parity": fitting_statistics is not None},
+            gradient_diagnostic_indices_sha256=array_digest(diagnostic_indices),
+            stage_gradient_diagnostics=stage_diagnostics,
+            objective="mean three source BCEs + .1 reconstruction MSE + scheduled beta mean(((raw release - immutable raw PCA16) / fixed fitting scale)^2); D additionally minus .1 mean(attribute CE / fitting prior entropy)")
     (out / "training.json").write_text(json.dumps(metadata, indent=2, allow_nan=False) + "\n")
     return {"arms": arms, "snapshots": snapshots, "metadata": metadata}

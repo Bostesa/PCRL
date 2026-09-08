@@ -1,0 +1,81 @@
+--- experiments/run_acs_preservation.py (original frozen)
++++ experiments/run_acs_preservation.py (amended)
+@@ -81,9 +81,24 @@
+         'packages':{k:importlib.metadata.version(k) for k in previous['packages']}})
+ 
+ 
++def execution_amendments(out):
++    return {p.name:sha_file(p) for p in sorted(out.glob('EXECUTION_AMENDMENT_*.json'))}
++
++
++def effective_execution_hashes(out):
++    expected=read(out/'protocol_freeze.json')['sha256'].copy()
++    for path in sorted(out.glob('EXECUTION_AMENDMENT_*.json')):
++        amendment=read(path)
++        assert amendment['original_protocol_freeze_sha256']==sha_file(out/'protocol_freeze.json')
++        for name,change in amendment['source_changes'].items():
++            assert name.startswith('experiments/') and expected[name]==change['before_sha256']
++            expected[name]=change['after_sha256']
++    return expected
++
++
+ def verify_freeze(out):
+     check_config(read(out/'config.json'));freeze=read(out/'protocol_freeze.json')
+-    assert frozen_hashes(out)==freeze['sha256'], 'Execution/protocol changed after freeze'
++    assert frozen_hashes(out)==effective_execution_hashes(out), 'Execution/protocol changed outside recorded freeze/amendments'
+     for p,h in freeze['reference_record_hashes'].items(): assert sha_file(ROOT/p)==h, p
+ 
+ 
+--- experiments/run_acs_preservation_extended.py (original frozen)
++++ experiments/run_acs_preservation_extended.py (amended)
+@@ -31,6 +31,16 @@
+ 
+ STATIC_IDS = ("logistic", "hist_gb_20", "hist_gb_5")
+ FRESH_IDS = ("mlp_0", "mlp_1")
++
++
++def release_output_hashes(freeze, original):
++    """Accept the separately frozen, single-release PCA16 historical schema."""
++    if original == "PCA16":
++        assert freeze["release"] == "PCA16" and freeze["dimension"] == 16
++        assert freeze["component_indices"] == list(range(16))
++        assert freeze["representation_fitted"] is False
++        return freeze["output_hashes"]
++    return freeze["output_hashes"][original]
+ 
+ 
+ def release_sources(out, cfg, seed):
+@@ -81,7 +91,7 @@
+ 
+ 
+ def run_extended_seed(out, cfg, seed):
+-    from experiments.run_acs_preservation import verify_freeze
++    from experiments.run_acs_preservation import verify_freeze, execution_amendments
+     verify_freeze(out)
+     for beta in ("beta_0p1", "beta_1"):
+         for s in cfg["seeds"]:
+@@ -129,12 +139,13 @@
+         with np.load(path) as arrays:
+             releases[canonical] = {pool: arrays[pool].copy() for pool in arrays.files if pool != "test"}
+         freeze = read(parent/"release_freeze.json")
++        expected_hashes = release_output_hashes(freeze, original)
+         for pool, values in releases[canonical].items():
+-            assert array_hash(values) == freeze["output_hashes"][original][pool]
++            assert array_hash(values) == expected_hashes[pool]
+             values.setflags(write=False)
+     before = frozen_digest(releases)
+     write_json(directory/"release_freeze.json", {
+-        "created_utc": now(), "output_hashes": before,
++        "created_utc": now(), "output_hashes": before, "execution_amendments_sha256": execution_amendments(out),
+         "source_files_sha256": copy.deepcopy(used), "mapper_fitting": False,
+         "release_order": [name for name, _, _ in sources],
+         "evaluation_status": cfg["evaluation_status"]})
+@@ -210,7 +221,7 @@
+             record["fitting_records"][key] = metadata
+     record = {"created_utc": now(), "evaluation_status": cfg["evaluation_status"], "budgets": records,
+               "source_files_sha256": used, "release_freeze_sha256": sha_file(directory/"release_freeze.json"),
+-              "protocol_freeze_sha256": sha_file(out/"protocol_freeze.json"), "nested120_exact_replay": parity,
++              "protocol_freeze_sha256": sha_file(out/"protocol_freeze.json"), "execution_amendments_sha256": execution_amendments(out), "nested120_exact_replay": parity,
+               "audit_fit_indices": {target: {"n": len(ix), "pool_indices_sha256": array_hash(ix),
+                 "raw_rows_sha256": array_hash(frame.iloc[pools["attacker_fit"][ix]]._raw_row.to_numpy())}
+                 for target, ix in indices.items()}}
