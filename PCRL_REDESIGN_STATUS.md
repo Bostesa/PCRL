@@ -707,3 +707,64 @@ Artifacts: [decision](results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISIO
 [table](results/redesign_20260907_acs_transfer_v1/TABLE.md),
 [analysis](results/redesign_20260907_acs_transfer_v1/ANALYSIS.md),
 [reproduction and omissions](results/redesign_20260907_acs_transfer_v1/REPRODUCTION.md).
+
+## Dated addition — 2026-09-08: bounded ACS protection feasibility
+
+Starting commit `e765ced246be0f1c8d5bf8a131ccae5e576e9bf2`, branch
+`ablations-facct-2026-07-24`, destination Bostesa/PCRL. No tracked subsequent
+changes were present. All historical evidence, original source hashes and
+unrelated local work were preserved. The user authorized this run and a normal
+commit/push to the research branch; no PR, main change or force-push.
+
+**Implementation, distinct from research evidence.** Added a small runner reusing
+verified original ACS models/caches/splits; fixed-schema joint SEX2/RAC1P9 LEACE
+on representation-fitting complete cases, fixed numerical rank stabilization,
+affine mean preservation and immutable map/output hashes. No source retraining
+or reserved-task labels in release fitting. Ten primary arms plus full-input,
+prior and exposed controls receive matched downstream heads for five binary
+tasks. Independent auditors use logistic, two120-epoch MLPs and150-iteration
+HistGB with minimum leaf20/5. All selections saved before within-run evaluation;
+serialized predictions support reporting/replay without refitting. A saved-tree
+filename issue was fixed before freeze, not after an invalid scientific run.
+
+**Established development observations.** Reused original test households are
+DEVELOPMENT EVALUATION. PCA residence loss .487411±.005595 became .496275±.004211;
+compressed features .498699±.007746 became .509683±.004454. Half of positive
+residential headroom survived in2/3 PCA development seeds and1/3 validation seeds;
+compressed features0/3 on both. Every parent/seed failed preservation of all
+three source tasks within.01 nats. All15 maps met raw covariance tolerances,
+but nonlinear attribute recovery remained. PCA mean SEX attack loss rose from
+.655218 to.678120 and race loss from1.200399 to1.235046, versus priors.692687 and
+1.290043. None of96 feature/bank seed/split comparisons meets the joint numeric
+.01 utility/.005 attribute margins; one misses by only.00004064 nats, so this
+does not establish dominance or impossibility. Rare-category coverage prevents
+an all-race/all-attribute policy assessment in every seed. Commute remained weak.
+
+**Execution and validation.** Protocol/config/execution closure frozen before
+new fitting.30 focused tests passed4.66s; artificial pipeline2.696s. Seed0 wall
+58.022s, remaining estimate116.045s, actual115.312s; total173.334s, M4 Pro CPU,
+24GiB, one numerical thread. No budget/target/map change, paid resource, new
+download, source regeneration or unrelated-job interruption. Independent replay
+passed105 bitwise map applications,1,455 new binary hashes,711 candidate records
+and2,844 score sets (maximum discrepancy6.66e−16).234 original parent task metric
+dictionaries matched exactly. Two additional reporting regressions later passed,
+bringing coverage to32 distinct targeted tests. All run/correction/verification
+records are retained.
+
+**Unresolved hypothesis and unsupported claims.** PCA is the strongest simple
+residential-transfer parent, but the fully specified utility/recoverability
+policy was not met. It remains unresolved whether a standard utility-aware
+nonlinear protection baseline can improve this tradeoff without spending source
+utility. No purpose conditioning, coalition protection, PCRL efficacy, novel
+algorithm, universal privacy, independent confirmation or population inference
+has been established. The earlier synthetic and ACS results remain historical.
+
+Evidence: [decision](results/redesign_20260908_acs_protection_v1/RESEARCH_DECISION.md),
+[protocol](results/redesign_20260908_acs_protection_v1/PROTOCOL.md),
+[table](results/redesign_20260908_acs_protection_v1/TABLE.md),
+[analysis](results/redesign_20260908_acs_protection_v1/ANALYSIS.md),
+[support](results/redesign_20260908_acs_protection_v1/SUPPORT.md),
+[verification](results/redesign_20260908_acs_protection_v1/VALIDATION.md),
+[reproduction](results/redesign_20260908_acs_protection_v1/REPRODUCTION.md).
+Publish source, tests and compact evidence; keep raw records, fitted maps/models,
+caches and duplicate metadata local with hashes. No next experiment was launched.

@@ -1,5 +1,12 @@
 # PCRL redesign review index
 
+**Latest addition, 2026-09-08:** the bounded ACS joint-erasure feasibility screen
+is complete. Start with its [research decision](../results/redesign_20260908_acs_protection_v1/RESEARCH_DECISION.md)
+and the [dated appendix below](#appendix--2026-09-08-acs-protection-feasibility).
+PCA retained some residential transfer, but the declared source-utility and
+attribute tradeoff was not met. This is development evaluation, not confirmation
+or evidence of PCRL efficacy.
+
 **Later update, 2026-09-07:** the defined ACS transfer experiment is now complete.
 See the [dated appendix below](#appendix--2026-09-07-acs-transfer-completed) and
 [research decision](../results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISION.md).
@@ -172,3 +179,55 @@ protection-feasibility study after explicit purpose/utility/leakage criteria,
 not a reason to prioritize PCRL optimization. No PCRL method advantage has
 been established; the prior synthetic prediction-only success and full-feature
 leakage results remain unchanged.
+
+## Appendix — 2026-09-08: ACS protection feasibility
+
+Starting from `e765ced246be0f1c8d5bf8a131ccae5e576e9bf2`, the new screen reused
+the exact source models, cohort, masks and household pools. Five parents—three
+probabilities, rich neural/tree banks, compressed learned features and PCA—were
+each released unchanged and after one joint SEX2/RAC1P9 LEACE fit. Full covariates,
+fitting priors and exposed-label controls remain references. Source/eraser maps
+were frozen before matched heads for all five authorized binary tasks and five
+independent audit candidates per attribute. The original test households are
+explicitly **DEVELOPMENT EVALUATION**; unused households remain unused.
+
+The [research decision](../results/redesign_20260908_acs_protection_v1/RESEARCH_DECISION.md)
+reports partial PCA residential retention, failures of the all-three-source
+.01-nat preservation reference for every erased parent/seed, residual nonlinear
+attribute recovery, and race-support limitations. No feature-versus-bank pair
+meets all three descriptive utility/recoverability inequalities; very close
+misses are disclosed. This is not a purpose-conditioned or coalition experiment,
+and no PCRL, LoRA, adversarial encoder, task search or novel method was added.
+
+- [Frozen protocol](../results/redesign_20260908_acs_protection_v1/PROTOCOL.md),
+  [configuration](../results/redesign_20260908_acs_protection_v1/config.json),
+  [tables](../results/redesign_20260908_acs_protection_v1/TABLE.md),
+  [paired/weighted analysis](../results/redesign_20260908_acs_protection_v1/ANALYSIS.md),
+  [support and every exposed-control failure](../results/redesign_20260908_acs_protection_v1/SUPPORT.md).
+- [SEX tradeoff](../results/redesign_20260908_acs_protection_v1/tradeoff_SEX.png),
+  [RAC1P tradeoff](../results/redesign_20260908_acs_protection_v1/tradeoff_RAC1P.png),
+  [all candidates](../results/redesign_20260908_acs_protection_v1/PER_TARGET.csv),
+  [all categories](../results/redesign_20260908_acs_protection_v1/PER_CLASS.csv),
+  [fixed-margin decisions](../results/redesign_20260908_acs_protection_v1/criteria.json).
+- [Runner and access boundaries](../experiments/run_acs_protection.py),
+  [fixed-schema affine erasure](../experiments/acs_protection_maps.py),
+  [stronger independent audits](../experiments/acs_protection_audits.py),
+  [reporting without refits](../scripts/summarize_acs_protection.py).
+  Original [data](../experiments/acs_transfer_data.py),
+  [source models](../experiments/acs_transfer_models.py), and
+  [heads/scoring](../experiments/acs_transfer_heads.py) are unchanged dependencies.
+- [Validation](../results/redesign_20260908_acs_protection_v1/VALIDATION.md),
+  [map replay](../results/redesign_20260908_acs_protection_v1/INDEPENDENT_VERIFICATION.json),
+  [score replay](../results/redesign_20260908_acs_protection_v1/SCORE_REPLAY.json),
+  [original task reproduction](../results/redesign_20260908_acs_protection_v1/PARENT_TASK_REPLAY.json),
+  [runtime](../results/redesign_20260908_acs_protection_v1/runtime.json),
+  [reproduction and omitted objects](../results/redesign_20260908_acs_protection_v1/REPRODUCTION.md).
+
+The three-seed experiment took173.334s on the existing M4 Pro CPU. All15 maps
+passed raw numerical covariance checks; covariance is not a classification
+certificate, and seed2's absent eraser-fitting race category invalidates its
+coverage-aware flag. No complete race-policy assessment is possible in any seed.
+PCA remains the strongest residential-transfer parent and the neural bank a
+strong task-serving alternative. The next methodological question is standard
+utility-aware nonlinear protection feasibility, before prioritizing a PCRL-specific
+mechanism. No such next experiment was started.
