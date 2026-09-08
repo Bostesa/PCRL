@@ -1,0 +1,78 @@
+{
+  "starting_commit": "5f162ab37cc9e1caa391e6c964711fa85cc86a14",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "raw_path": "data/folktables/2018/1-Year/psam_p06.csv",
+  "sample_cap": 30000,
+  "sample_seed": 1200000,
+  "split_seed_base": 1210000,
+  "cohort": "19 <= AGEP <= 34 and PWGTP > 0",
+  "pool_fractions": {
+    "representation_fit": 0.35,
+    "source_validation": 0.1,
+    "downstream_fit": 0.15,
+    "downstream_validation": 0.1,
+    "attacker_fit": 0.1,
+    "attacker_validation": 0.1,
+    "test": 0.1
+  },
+  "numeric": [
+    "AGEP",
+    "WKHP"
+  ],
+  "categorical": [
+    "SCHL",
+    "MAR",
+    "RELP",
+    "CIT",
+    "DIS",
+    "DEAR",
+    "DEYE",
+    "DREM"
+  ],
+  "representation_dimension": 32,
+  "source_lr_grid": [
+    0.001,
+    0.003
+  ],
+  "source_epochs": 60,
+  "source_batch_size": 256,
+  "source_tree_leaf_grid": [
+    15,
+    31
+  ],
+  "source_tree_iterations": 150,
+  "head_budget": 2048,
+  "attacker_budget": 4096,
+  "head_mlp_epochs": 40,
+  "head_mlp_batch_size": 256,
+  "head_mlp_lr": 0.001,
+  "head_mlp_restarts": 1,
+  "attacker_tree_iterations": 150,
+  "attacker_tree_leaves": 15,
+  "threads": 1,
+  "income_quantiles": [
+    0.125,
+    0.25,
+    0.375,
+    0.5,
+    0.625,
+    0.75,
+    0.875
+  ],
+  "joint_support_rule": "all 8 states observed in representation-fit and source-validation; otherwise omit joint output from both rich banks and report limitation",
+  "training_weighted": false,
+  "weighted_sensitivity": "PWGTP-weighted final metrics on identical selected predictions only",
+  "task_selection": "minimum downstream-validation log loss across logistic C1 and one fixed MLP; report both",
+  "attack_selection": "minimum attacker-validation log loss across logistic C1, one MLP, one HistGB; report all",
+  "primary_comparisons": [
+    "D_features minus B_rich_bank",
+    "D_features minus C_tree_bank"
+  ],
+  "practical_transfer_effect": "0.01 nats lower held-out log loss; descriptive, not significance or admission threshold",
+  "sealed_test_rule": "save every release and head/attack selection before reading test outcomes for scoring",
+  "created_utc": "2026-09-08T01:18:20.796295+00:00"
+}

@@ -231,3 +231,23 @@ audit repetition was needed. All original results remain historical evidence.
   and logs contain reproduction commands. Fresh directories contain source/
   configuration snapshots, split/checkpoint identities, selection records,
   raw scores, schedules, runtimes and preservation checks.
+
+## Amendment — 2026-09-07: defined ACS transfer stage authorized
+
+The earlier screen and results above are preserved. The scientific admission
+rule is amended: a defined one-time release with equal downstream fitting
+privileges for banks and features suffices to test transfer. Proving every
+trusted service inadequate is not a prerequisite; services remain deployment
+alternatives. The [ACS transfer protocol](results/redesign_20260907_acs_transfer_v1/PROTOCOL.md)
+fixes two genuinely withheld task identities and strong prediction-bank controls.
+This stage measures unprotected transfer and recorded-attribute recoverability;
+it adds no PCRL optimization, privacy guarantee or novelty claim.
+
+The ACS stage is now complete: [research decision and compact results](results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISION.md).
+Learned features improved same-residence log loss over the rich neural/tree banks
+by .011767±.006259 / .018594±.008287 nats in paired three-seed results, while
+PCA outperformed the encoder. Commute features and banks tied at weak predictive
+performance. Sex/race recoverability remains measurable, with incomplete rare
+race-category coverage. A small baseline-led protection-feasibility study is
+justified; PCRL optimization and novelty are not established. The complete run
+took158.614s process wall on local CPU; no frozen task or search budget changed.

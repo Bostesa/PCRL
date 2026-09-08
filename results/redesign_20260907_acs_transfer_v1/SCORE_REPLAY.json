@@ -1,0 +1,573 @@
+{
+  "created_utc": "2026-09-08T02:17:04.015880+00:00",
+  "scope": "Independent saved-prediction metric replay; no training, model selection changes, or new test data.",
+  "method": "Reload original CSV using saved raw test-row indices. Recode MIG==1, valid integer JWMNP>20, SEX-1 and RAC1P-1 independently. Use sklearn log_loss/confusion_matrix/precision_recall_fscore_support/roc_auc_score; no experiment scorer imports. Repeat with the same predictions and original PWGTP.",
+  "absolute_tolerance": 2e-12,
+  "raw_sha256": "dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0",
+  "script_sha256": "4f8c4667f4753ff87a80943386fb774fe3213b2237a1b2d5cf5884995f2ca634",
+  "candidate_records_replayed": 240,
+  "test_score_sets_replayed": 480,
+  "family_selections_checked": 102,
+  "mlp_epoch_selections_checked": 90,
+  "fit_target_hashes_checked": 240,
+  "mlp_schedule_groups_checked": 12,
+  "seeds": {
+    "0": {
+      "test_rows": 2982,
+      "prediction_archive_sha256": "0c8bfedf2540934125493dd586a0c3ad84ebcf2691867d54a6bd2add9d4f548a",
+      "split_rows_sha256": "669fcff80bf61b3d8f17b7cb07d676a2b38030fe638942bfa4bae90f12311f8a",
+      "metrics_sha256": "c07d4ffc5f9de8d63c3e2950cf91a34d26157ec2778dbb22dc5947f74d8596a2",
+      "selection_sha256": "ecb1f63dd998b06c2fcb2f8357ca6d6511be69c8dda7e490ad0754e17256433d",
+      "race_test_coverage": {
+        "support": [
+          1685,
+          130,
+          22,
+          0,
+          9,
+          486,
+          7,
+          465,
+          178
+        ],
+        "coverage_complete": false
+      },
+      "race_attacker_fit_support": [
+        1704,
+        173,
+        17,
+        0,
+        4,
+        461,
+        22,
+        424,
+        188
+      ],
+      "controls": {
+        "audit/exposed/SEX/logistic": {
+          "selected": false,
+          "log_loss": 0.0011849359769118832,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/mlp": {
+          "selected": false,
+          "log_loss": 0.0002481230898187201,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/histgb": {
+          "selected": true,
+          "log_loss": 0.00010086119642112075,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/RAC1P/logistic": {
+          "selected": true,
+          "log_loss": 0.0013019725833722823,
+          "accuracy": 1.0,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "audit/exposed/RAC1P/mlp": {
+          "selected": false,
+          "log_loss": 0.0014113604352494916,
+          "accuracy": 1.0,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "audit/exposed/RAC1P/histgb": {
+          "selected": false,
+          "log_loss": 0.006714356553764539,
+          "accuracy": 0.9969818913480886,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 0.875,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "transfer/prior/same_residence/prior": {
+          "selected": true,
+          "log_loss": 0.5300561096361495,
+          "accuracy": 0.778672032193159,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            0.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "transfer/prior/commute_over20/prior": {
+          "selected": true,
+          "log_loss": 0.6927857540198609,
+          "accuracy": 0.5134449518011162,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            0.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/SEX/prior": {
+          "selected": true,
+          "log_loss": 0.692902232269579,
+          "accuracy": 0.5144198524480215,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            1.0,
+            0.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/RAC1P/prior": {
+          "selected": true,
+          "log_loss": 1.2872283132445825,
+          "accuracy": 0.5650570087189806,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 0.125,
+          "per_class_recall": [
+            1.0,
+            0.0,
+            0.0,
+            null,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coverage_complete": false
+        }
+      },
+      "new_errors": 0
+    },
+    "1": {
+      "test_rows": 3015,
+      "prediction_archive_sha256": "95d2659e69729ee8253f2a8c50c54093c67a1733d17d4564191bd12445c3f48f",
+      "split_rows_sha256": "d8543a6857e68adcbb2345781eba135a850463285a77a76b42b5c3e701233d1e",
+      "metrics_sha256": "d1f8aaac0c08eb1e7b291615b4855e5b2c538d138e70cb5ce8bcd960e0c529cf",
+      "selection_sha256": "ab092034e215457547e8f3d4db16140fad76606a5e6aa9f0451e9a834c665366",
+      "race_test_coverage": {
+        "support": [
+          1680,
+          158,
+          14,
+          0,
+          13,
+          455,
+          15,
+          491,
+          189
+        ],
+        "coverage_complete": false
+      },
+      "race_attacker_fit_support": [
+        1694,
+        181,
+        30,
+        0,
+        2,
+        476,
+        11,
+        469,
+        158
+      ],
+      "controls": {
+        "audit/exposed/SEX/logistic": {
+          "selected": false,
+          "log_loss": 0.001174908220406514,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/mlp": {
+          "selected": true,
+          "log_loss": 7.879980794455962e-05,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/histgb": {
+          "selected": false,
+          "log_loss": 0.00010002270470856978,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/RAC1P/logistic": {
+          "selected": false,
+          "log_loss": 0.0012652938511722369,
+          "accuracy": 1.0,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "audit/exposed/RAC1P/mlp": {
+          "selected": true,
+          "log_loss": 0.0011603727825724578,
+          "accuracy": 1.0,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "audit/exposed/RAC1P/histgb": {
+          "selected": false,
+          "log_loss": 0.00915358154498464,
+          "accuracy": 0.9956882255389718,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 0.875,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            null,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": false
+        },
+        "transfer/prior/same_residence/prior": {
+          "selected": true,
+          "log_loss": 0.5398785373297863,
+          "accuracy": 0.7698175787728027,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            0.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "transfer/prior/commute_over20/prior": {
+          "selected": true,
+          "log_loss": 0.6932381260550852,
+          "accuracy": 0.5069238377843719,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            0.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/SEX/prior": {
+          "selected": true,
+          "log_loss": 0.6920366859273556,
+          "accuracy": 0.523714759535655,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            1.0,
+            0.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/RAC1P/prior": {
+          "selected": true,
+          "log_loss": 1.316936485275418,
+          "accuracy": 0.5572139303482587,
+          "balanced_accuracy": null,
+          "observed_balanced_accuracy": 0.125,
+          "per_class_recall": [
+            1.0,
+            0.0,
+            0.0,
+            null,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coverage_complete": false
+        }
+      },
+      "new_errors": 0
+    },
+    "2": {
+      "test_rows": 2979,
+      "prediction_archive_sha256": "386f44c0d4b93249b4b07cf5c2cd1b3d2beb536b9dc7b9c9269c86c2fde6910a",
+      "split_rows_sha256": "07d9b48e99a05f30396c8dd46d2a3e7b8bd182ca9e8ef55baa55604530e65038",
+      "metrics_sha256": "5e0d73aa1bf008873c0bc60b9a3607b345aa6a9e16e040a651d8c6907373abe6",
+      "selection_sha256": "c41275bbea45bda54d7d2056a35e96c356d1adc3eb7f45a9ec73368ae0b6b1e1",
+      "race_test_coverage": {
+        "support": [
+          1723,
+          139,
+          20,
+          1,
+          9,
+          479,
+          6,
+          430,
+          172
+        ],
+        "coverage_complete": true
+      },
+      "race_attacker_fit_support": [
+        1670,
+        165,
+        22,
+        0,
+        5,
+        450,
+        9,
+        450,
+        170
+      ],
+      "controls": {
+        "audit/exposed/SEX/logistic": {
+          "selected": false,
+          "log_loss": 0.0012006198378806511,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/mlp": {
+          "selected": false,
+          "log_loss": 0.00041388287647620614,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/SEX/histgb": {
+          "selected": true,
+          "log_loss": 0.00010245134759979111,
+          "accuracy": 1.0,
+          "balanced_accuracy": 1.0,
+          "observed_balanced_accuracy": 1.0,
+          "per_class_recall": [
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/RAC1P/logistic": {
+          "selected": false,
+          "log_loss": 0.010592320692028473,
+          "accuracy": 0.9996643168848607,
+          "balanced_accuracy": 0.8888888888888888,
+          "observed_balanced_accuracy": 0.8888888888888888,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/RAC1P/mlp": {
+          "selected": true,
+          "log_loss": 0.002354202444296397,
+          "accuracy": 0.9996643168848607,
+          "balanced_accuracy": 0.8888888888888888,
+          "observed_balanced_accuracy": 0.8888888888888888,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/exposed/RAC1P/histgb": {
+          "selected": false,
+          "log_loss": 0.013432823544225668,
+          "accuracy": 0.9966431688486069,
+          "balanced_accuracy": 0.7777777777777778,
+          "observed_balanced_accuracy": 0.7777777777777778,
+          "per_class_recall": [
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+            0.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "transfer/prior/same_residence/prior": {
+          "selected": true,
+          "log_loss": 0.5396783111636214,
+          "accuracy": 0.7697213830144344,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            0.0,
+            1.0
+          ],
+          "coverage_complete": true
+        },
+        "transfer/prior/commute_over20/prior": {
+          "selected": true,
+          "log_loss": 0.6935405521984817,
+          "accuracy": 0.47979539641943736,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            1.0,
+            0.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/SEX/prior": {
+          "selected": true,
+          "log_loss": 0.6931211930730654,
+          "accuracy": 0.5068815038603558,
+          "balanced_accuracy": 0.5,
+          "observed_balanced_accuracy": 0.5,
+          "per_class_recall": [
+            1.0,
+            0.0
+          ],
+          "coverage_complete": true
+        },
+        "audit/prior/RAC1P/prior": {
+          "selected": true,
+          "log_loss": 1.2659631489721956,
+          "accuracy": 0.5783820073850285,
+          "balanced_accuracy": 0.1111111111111111,
+          "observed_balanced_accuracy": 0.1111111111111111,
+          "per_class_recall": [
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "coverage_complete": true
+        }
+      },
+      "new_errors": 0
+    }
+  },
+  "warnings": [],
+  "fallbacks": [],
+  "errors": [],
+  "numeric_values_compared": 32186,
+  "max_absolute_metric_error": 4.440892098500626e-16,
+  "max_error_path": "seed_0/audit/E_pca/RAC1P/histgb/test/log_loss",
+  "passed": true,
+  "runtime_seconds": 2.6679053329862654
+}

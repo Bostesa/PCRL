@@ -1,5 +1,10 @@
 # PCRL redesign review index
 
+**Later update, 2026-09-07:** the defined ACS transfer experiment is now complete.
+See the [dated appendix below](#appendix--2026-09-07-acs-transfer-completed) and
+[research decision](../results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISION.md).
+The following original redesign summary remains historical.
+
 **Research decision: redefine the problem before further method development.**
 Prediction-only release passed the strengthened fixed-task audits for all three
 seeds. Full representations remained leaky. No PCRL method advantage has been
@@ -121,3 +126,49 @@ Historical starting commits, source hashes, protocol freezes, metrics and logs
 are unchanged. The publication commit packages that evidence; it is not the
 commit at which the experiments were originally executed. Packaging checks are
 recorded separately in [publication validation](../results/redesign_publication_20260907/VALIDATION.md).
+
+## Appendix — 2026-09-07: ACS transfer completed
+
+The earlier application screen is preserved, with a dated admission amendment.
+A defined one-time release is sufficient to test transfer; trusted services remain
+deployment alternatives rather than empirical admission gates. This controlled
+public-data benchmark makes no Census deployment, public-record linkage privacy,
+PCRL protection or novelty claim. No synthetic audit was repeated.
+
+On30,000 sampled California2018 ACS adults, source-only representations improved
+same-residence transfer over rich neural and tree banks in all three seeds.
+Mean paired log-loss gains were .011767 and .018594 nats, respectively. Plain
+PCA was stronger still. Commute transfer was weak, with banks and learned features
+practically tied. Recorded sex/race remained recoverable; rare race-category
+support was incomplete and the nine-class schema was retained.
+
+Start with the [ACS research decision](../results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISION.md),
+[complete tables](../results/redesign_20260907_acs_transfer_v1/TABLE.md),
+[paired/weighted analysis](../results/redesign_20260907_acs_transfer_v1/ANALYSIS.md),
+[transfer plot](../results/redesign_20260907_acs_transfer_v1/transfer.png),
+and [frozen protocol](../results/redesign_20260907_acs_transfer_v1/PROTOCOL.md).
+[Schema definitions](ACS_2018_SCHEMA_NOTES.md) verify Census codes, eligibility,
+input exclusions and direct-answer aliases.
+
+Review [raw-cohort/split/mask preprocessing](../experiments/acs_transfer_data.py),
+[source-only encoder and banks](../experiments/acs_transfer_models.py),
+[downstream and audit heads](../experiments/acs_transfer_heads.py), and the
+[runner's frozen-release and saved-selection test gate](../experiments/run_acs_transfer.py).
+[Reporting](../scripts/summarize_acs_transfer.py) reads saved metrics without
+refitting. Each seed has source selection, preprocessing, selection-before-test,
+raw metrics and omitted-artifact hashes.
+
+See [verification](../results/redesign_20260907_acs_transfer_v1/VERIFICATION.md),
+[score replay](../results/redesign_20260907_acs_transfer_v1/SCORE_REPLAY.json),
+[reproduction/availability](../results/redesign_20260907_acs_transfer_v1/REPRODUCTION.md)
+and the [compact-evidence manifest](../results/redesign_20260907_acs_transfer_v1/publication_manifest.json).
+Source, tests and compact evidence are published; raw data, fitted models and
+cached arrays stay local. Total three-seed experiment process wall was158.614s
+on one CPU numerical thread, Apple M4 Pro.
+
+This adds evidence for information-retaining interfaces on one reserved task,
+with PCA as a strong simple alternative. It supports a bounded baseline-led
+protection-feasibility study after explicit purpose/utility/leakage criteria,
+not a reason to prioritize PCRL optimization. No PCRL method advantage has
+been established; the prior synthetic prediction-only success and full-feature
+leakage results remain unchanged.

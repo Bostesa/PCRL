@@ -645,3 +645,65 @@ Established observations and the research decision remain unchanged:
 prediction-only release passed the strengthened fixed-task audits; full
 representations remained leaky; no PCRL method advantage or universal privacy
 guarantee has been established. No real-data method pilot was justified.
+
+## Dated appendix — 2026-09-07: ACS task-identity transfer
+
+Starting commit: `5f162ab37cc9e1caa391e6c964711fa85cc86a14`; branch
+`ablations-facct-2026-07-24`, remote `https://github.com/Bostesa/PCRL.git`.
+No AGENTS.md exists in this checkout or its ancestors. Original tracked work
+was clean; unrelated untracked work and all historical experiment evidence were
+preserved. The user authorized this experiment and committing/pushing compact
+results to the research branch; main, force-pushes and PRs remain excluded.
+
+**Framing amendment.** The original screen remains intact. A defined one-time
+release with identical downstream learning access for banks/features is enough
+to investigate transfer. Trusted services remain deployment alternatives, not
+a requirement to disprove before running a scientific benchmark. Public ACS
+is a simulation dataset, with no confidentiality claim against public linkage.
+
+**Implementation.** Added a separate raw2018 ACS loader with19–34/PWGTP>0 cohort,
+whole-household sampling/splits, missing-label masks, ten-field allowlist, and
+fit-only numeric/category preprocessing. Excluded all task fields, direct answer
+families, SEX/RAC1P recodes, fertility/migration applicability aliases and COW.
+No historical loader or output was overwritten. Source-only64/64/32 encoder and
+independent tree banks use income/ESR/PUBCOV distributions plus a supported
+eight-state joint bank. Reserved MIG/JWMNP labels enter only post-freeze heads.
+Seven releases include the simple probability bank, rich neural/tree banks,
+features, matched-storage feature compression, PCA and full allowed covariates.
+Independent logistic/MLP transfer heads and logistic/MLP/tree attribute audits
+use fixed schema2/9, separate fitting/validation pools and saved selection before
+testing. Person-weighted sensitivity reuses unchanged selected predictions.
+
+**Established observations.** Across three seeds on the fixed30,000-person cohort,
+D minus B residence log-loss differences are −.004596/−.014570/−.016133 nats;
+D minus C differences −.012076/−.015786/−.027920. Mean D residence loss is
+.498762±.006353; PCA is .487411±.005595 and full inputs .490646±.006126.
+Feature compression to26 dimensions retains .498699±.007746. Commute D is
+.681786±.003885, neural bank .681481±.002771, tree bank .681863±.004760:
+a practical tie under a weak task/reference result. Attribute information
+remains recoverable; D SEX AUROC .631907±.010057, RAC1P loss1.228515±.032005
+versus prior1.290043±.025603. Rare race categories lack support in some pools;
+undefined macro metrics are explicit rather than averaged away.
+
+**Validation and execution.**30 focused tests passed2.26s. An artificial full
+pipeline check completed1.249s without ACS model outcomes; schema preparation
+1.053s. Complete seed0 process wall53.266s; remaining estimate106.532s saved
+before expansion; actual remaining105.348s. Total158.614s, CPU Apple M4 Pro,
+24GiB, one numerical thread. Frozen-state/maps/caches/selection checks passed.
+No run was invalidated, grid expanded, task replaced, package/data downloaded,
+paid resource provisioned or other process interrupted. Exact commands and
+independent replay records are in the new directory.
+
+**Research decision and limits.** A reserved residential task benefits from
+retaining information beyond the competitive banks. PCA's stronger result and
+weak commute transfer argue against attributing the gain to the learned encoder.
+Proceed only to a bounded baseline-led protection-feasibility study with explicit
+purpose and output-aware criteria; no PCRL, erasure or adversarial encoder was
+trained here. No protection, coalition, universal future-task sufficiency, survey
+uncertainty or novelty claim follows. The earlier toy evidence is unchanged.
+
+Artifacts: [decision](results/redesign_20260907_acs_transfer_v1/RESEARCH_DECISION.md),
+[protocol](results/redesign_20260907_acs_transfer_v1/PROTOCOL.md),
+[table](results/redesign_20260907_acs_transfer_v1/TABLE.md),
+[analysis](results/redesign_20260907_acs_transfer_v1/ANALYSIS.md),
+[reproduction and omissions](results/redesign_20260907_acs_transfer_v1/REPRODUCTION.md).

@@ -1,0 +1,1153 @@
+{
+  "created_utc": "2026-09-08T02:23:01.489165+00:00",
+  "verification": "independent artifact/data consistency and inference-only replay; no fitting or model selection",
+  "verification_code_sha256": "739d1f2e9623990dfb12e9a4ef6d0e36ee506c56c555f68cdab39f15094936cf",
+  "verification_script": "from pathlib import Path\nimport hashlib,json,math,time,datetime,sys\nimport numpy as np,pandas as pd,torch,joblib\nfrom threadpoolctl import threadpool_limits\nROOT=Path('/Users/nathansamson/PCRL');sys.path.insert(0,str(ROOT))\nfrom experiments.acs_transfer_data import FEATURES,NUMERIC,CATEGORICAL,CATEGORY_CODES,CovariatePreprocessor\nfrom experiments.acs_transfer_models import SourceEncoder,source_scores,state_digest\n\nOUT=ROOT/'results/redesign_20260907_acs_transfer_v1'\nstarted=time.perf_counter()\ndef read(p):return json.loads(Path(p).read_text())\ndef sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()\ndef ah(a):\n a=np.ascontiguousarray(a)\n return hashlib.sha256(str(a.dtype).encode()+str(a.shape).encode()+a.tobytes()).hexdigest()\ndef expect(condition,message):\n if not condition:raise AssertionError(message)\ndef known_codes(v,k):\n v=np.asarray(v,float);return np.where(np.isin(v,np.arange(1,k+1)),v-1,-1).astype(np.int64)\ndef targets(f,edges):\n income=f.PINCP.to_numpy(float);valid=np.isfinite(income)&(income>=-19998)&(income<=4209995)\n binary=np.where(valid,income>50000,-1).astype(np.int64)\n bins=np.where(valid,np.searchsorted(edges,income,side='right'),-1).astype(np.int64)\n esr,pub=known_codes(f.ESR,6),known_codes(f.PUBCOV,2)\n complete=valid&(esr>=0)&(pub>=0)\n joint=np.where(complete,4*binary+2*(esr==0)+(pub==0),-1).astype(np.int64)\n mig=known_codes(f.MIG,3)\n commute=f.JWMNP.to_numpy(float)\n cv=np.isfinite(commute)&(commute>=1)&(commute<=200)&(commute==np.floor(commute))\n return {'income_binary':binary,'income_bins':bins,'esr':esr,'pubcov':pub,'joint':joint,\n         'same_residence':np.where(mig<0,-1,mig==0).astype(np.int64),\n         'commute_over20':np.where(cv,commute>20,-1).astype(np.int64),\n         'SEX':known_codes(f.SEX,2),'RAC1P':known_codes(f.RAC1P,9)}\ncfg=read(OUT/'config.json');freeze=read(OUT/'protocol_freeze.json');support=read(OUT/'schema_support.json')\nfor p,h in freeze['sha256'].items():expect(sha(ROOT/p)==h,'frozen file '+p)\nexpect(sha(OUT/'schema_support.json')==freeze['schema_support_sha256'],'support freeze')\nexpect(sha(ROOT/cfg['raw_path'])==support['raw_sha256'],'raw data hash')\ncolumns=list(FEATURES)+['SERIALNO','SPORDER','PWGTP','PINCP','ESR','PUBCOV','MIG','JWMNP','SEX','RAC1P']\nraw=pd.read_csv(ROOT/cfg['raw_path'],usecols=columns,dtype={'SERIALNO':str})\nraw['_raw_row']=np.arange(len(raw),dtype=np.int64)\neligible=raw[raw.AGEP.between(19,34)&raw.PWGTP.gt(0)].drop_duplicates(['SERIALNO','SPORDER'])\nsource_keys=('income_binary','income_bins','esr','pubcov','joint')\nreport={'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),\n 'verification':'independent artifact/data consistency and inference-only replay; no fitting or model selection',\n 'verification_code_sha256':sha(Path(__file__)),\n 'verification_script':Path(__file__).read_text(),\n 'command':'OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 .venv/bin/python -B /tmp/verify_acs_transfer_independent.py',\n 'frozen_source_protocol_config_hashes_verified':True,'raw_data_sha256':support['raw_sha256'],\n 'raw_rows':len(raw),'seeds':{},'limitations':[\n 'Optimizer actions are checked against saved counters, epoch logs, checkpoints, and independently regenerated schedules; no optimizer updates were rerun.',\n 'Before/after integrity claims use recorded prior-state hashes plus independent current-file hashes and source-validation inference replay.',\n 'Only source-validation outputs are replayed here; no final-test outcomes were used to fit or select anything.',\n 'joblib object hashes are not serialization-invariant for these HistGB artifacts. Reloaded object hashes are reported but are not treated as file-integrity failures; saved file SHA256 checks, inference replay, and recorded in-process before/after hashes provide the stated evidence.',\n 'Recorded before/after hashes establish an in-process boundary check, not cryptographic proof of all historical execution actions.']}\ntorch.set_num_threads(1)\nwith threadpool_limits(limits=1):\n cohorts=[]\n for seed in cfg['seeds']:\n  base=OUT/f'seed_{seed}';m=read(base/'metrics.json');sel=read(base/'source_selection.json');choice=read(base/'selection_before_test.json')\n  schema={**sel['class_counts'],'same_residence':2,'commute_over20':2,'SEX':2,'RAC1P':9}\n  with np.load(base/'split_rows.npz') as z:rows={k:z[k].copy() for k in z.files}\n  cohorts.append(np.sort(np.concatenate(list(rows.values()))))\n  expect(len(np.unique(cohorts[-1]))==len(cohorts[-1]),'person overlap')\n  households={k:set(raw.iloc[v].SERIALNO) for k,v in rows.items()}\n  for i,a in enumerate(rows):\n   for b in list(rows)[i+1:]:expect(households[a].isdisjoint(households[b]),'household overlap')\n  selected_groups=set().union(*households.values())\n  expected_whole=eligible[eligible.SERIALNO.isin(selected_groups)]._raw_row.to_numpy()\n  expect(np.array_equal(np.sort(expected_whole),cohorts[-1]),'whole cohort households retained')\n  pool_y={k:targets(raw.iloc[v],np.array(sel['income_edges'])) for k,v in rows.items()}\n  for pool,indices in rows.items():\n   rec=support['seeds'][str(seed)]['pools'][pool]\n   expect(ah(indices)==rec['raw_row_hash'],'raw row hash')\n   expect(ah(np.asarray(sorted(households[pool]),dtype='U'))==rec['household_hash'],'group hash')\n   for name,y in pool_y[pool].items():\n    expected={'valid':int((y>=0).sum()),'missing_or_inapplicable':int((y<0).sum()),'class_counts':np.bincount(y[y>=0],minlength=schema[name]).tolist()}\n    expect(expected==rec['support'][name],f'support {pool}/{name}')\n  prep=read(base/'preprocessing.json');pre=CovariatePreprocessor()\n  pre.numeric,pre.categories,pre.feature_names=prep['numeric'],prep['categories'],prep['feature_names']\n  expect(prep['fitted_columns']==list(FEATURES),'feature allowlist')\n  fitting_frame=raw.iloc[rows['representation_fit']]\n  for name in NUMERIC:\n   v=fitting_frame[name].to_numpy(float).copy();lo,hi=(0,99) if name=='AGEP' else (1,99)\n   v[~np.isfinite(v)|(v<lo)|(v>hi)]=np.nan\n   median=float(np.nanmedian(v)) if np.isfinite(v).any() else 0.\n   filled=np.nan_to_num(v,nan=median)\n   expect(np.array_equal(prep['numeric'][name],[median,float(filled.mean()),max(float(filled.std()),1e-8)]),'fitting-only numeric statistics')\n  for name in CATEGORICAL:\n   levels=sorted(int(v) for v in fitting_frame[name].dropna().unique() if v in CATEGORY_CODES[name])\n   expect(levels==prep['categories'][name],'fitting-only categorical schema')\n  with np.load(base/'release_F_covariates.npz') as z:x={k:z[k].copy() for k in z.files}\n  for pool in x:expect(ah(pre.transform(raw.iloc[rows[pool]]))==ah(x[pool]),'stored preprocessing replay')\n  train_income=raw.iloc[rows['representation_fit']].PINCP.to_numpy(float)\n  valid=np.isfinite(train_income)&(train_income>=-19998)&(train_income<=4209995)\n  expect(np.array_equal(np.unique(np.quantile(train_income[valid],np.arange(1,8)/8)),sel['income_edges']),'fitting-only quantiles')\n  nn_records=[];initial_states=[];neural=None\n  for lr in cfg['source_lr_grid']:\n   directory=base/'source'/f'encoder_{lr}';meta=read(directory/'metadata.json')\n   expect(meta==sel['encoder_candidates'][str(lr)],'source embedded metadata')\n   expect(meta['source_target_order']==list(source_keys),'source whitelist')\n   expect(meta['class_counts']==sel['class_counts'],'source schema')\n   expect(not meta['downstream_labels_received'] and not meta['final_test_received'],'source access flags')\n   for split,pool in [('source_fit','representation_fit'),('source_validation','source_validation')]:\n    expect(meta['accessed_array_hashes'][split+'_features']==ah(x[pool]),'source feature input hash')\n    for name in source_keys:expect(meta['accessed_array_hashes'][split+'_labels'][name]==ah(pool_y[pool][name]),'source label hash')\n   n=len(rows['representation_fit']);per_epoch=math.ceil(n/cfg['source_batch_size']);steps=per_epoch*cfg['source_epochs']\n   expect(meta['optimizer_steps']==meta['planned_batches']==steps and meta['skipped_all_missing_batches']==0,'neural budget')\n   generator=torch.Generator().manual_seed(meta['schedule_seed']);digest=hashlib.sha256()\n   for epoch in range(cfg['source_epochs']):\n    for batch in torch.randperm(n,generator=generator).split(cfg['source_batch_size']):\n     digest.update(len(batch).to_bytes(8,'little'));digest.update(batch.numpy().tobytes())\n   expect(digest.hexdigest()==meta['schedule_hash'],'source schedule reconstruction')\n   history=meta['validation_history'];expect(len(history)==cfg['source_epochs']+1,'all-epoch source history')\n   best=min(history,key=lambda v:(v['validation']['mean_source_loss'],v['epoch']))\n   expect(best['epoch']==meta['selected_epoch'] and best['optimizer_steps']==meta['selected_optimizer_steps'],'source selected epoch')\n   expect(best['validation']['mean_source_loss']==meta['validation_loss'],'source selected loss')\n   for row in history:expect(row['optimizer_steps']==row['epoch']*per_epoch,'source epoch step count')\n   for stage,hashkey in [('initialization','initial_state_hash'),('selected','selected_state_hash'),('final','final_state_hash')]:\n    checkpoint=torch.load(directory/(stage+'.pt'),weights_only=True,map_location='cpu')\n    expect(state_digest(checkpoint['state_dict'])==meta[hashkey],'checkpoint tensor hash '+stage)\n    if stage=='initialization':\n     expect(checkpoint['metadata']['optimizer_steps']==checkpoint['metadata']['epoch']==0,'true initialization counters')\n     initial_states.append(checkpoint['state_dict'])\n    else:\n     expected_steps=meta['selected_optimizer_steps'] if stage=='selected' else steps\n     expect(checkpoint['metadata']['checkpoint_optimizer_steps']==expected_steps,'saved checkpoint selected/final counters')\n   loaded=SourceEncoder.load(directory/'selected.pt')\n   expect(not loaded.training and not any(p.requires_grad for p in loaded.parameters()),'source frozen')\n   val=source_scores(loaded.probabilities(x['source_validation']),{k:pool_y['source_validation'][k] for k in source_keys},sel['class_counts'])\n   expect(abs(val['mean_source_loss']-meta['validation_loss'])<1e-8,'saved source validation inference')\n   if lr==sel['selected_lr']:neural=loaded\n   nn_records.append({'lr':lr,'optimizer_steps':steps,'selected_epoch':meta['selected_epoch'],\n      'selected_optimizer_steps':meta['selected_optimizer_steps'],'validation_loss':meta['validation_loss'],\n      'initial_state_hash':meta['initial_state_hash'],'schedule_hash':meta['schedule_hash']})\n  expect(all(torch.equal(initial_states[0][k],initial_states[1][k]) for k in initial_states[0]),'identical actual source initialization tensors')\n  expect(len({r['schedule_hash'] for r in nn_records})==1,'same source schedule')\n  expect(min(nn_records,key=lambda z:(z['validation_loss'],z['lr']))['lr']==sel['selected_lr'],'source LR selection')\n  tree_records=[];tree=None\n  for leaves in cfg['source_tree_leaf_grid']:\n   directory=base/'source'/f'tree_{leaves}';meta=read(directory/'metadata.json')\n   expect(meta==sel['tree_candidates'][str(leaves)],'tree embedded metadata')\n   expect(meta['accessed_array_hashes']==sel['encoder_candidates'][str(cfg['source_lr_grid'][0])]['accessed_array_hashes'],'tree/neural identical source examples/labels')\n   expect(meta['config']['l2_regularization']==1 and meta['config']['early_stopping'] is False,'tree objective/protocol')\n   bank=joblib.load(directory/'source_tree_bank.joblib')\n   reloaded_tree_hash=joblib.hash((bank.models,bank.constants,bank.class_counts),hash_name='sha1')\n   for name,record in meta['training'].items():\n    expected=0 if record['constant_predictor'] else cfg['source_tree_iterations']\n    expect(record['boosting_iterations']==expected,'tree fixed iterations')\n   p=bank.probabilities(x['source_validation'])\n   for name,record in meta['training'].items():\n    expect(p[name].shape[1]==schema[name],'tree fixed probability schema')\n    for absent in record['absent_schema_classes']:expect(np.all(p[name][:,absent]==0),'tree absent probability column')\n   val=source_scores(p,{k:pool_y['source_validation'][k] for k in source_keys},sel['class_counts'])\n   expect(abs(val['mean_source_loss']-meta['validation_loss'])<1e-8,'tree source validation replay')\n   if leaves==sel['selected_tree_leaves']:tree=bank\n   tree_records.append({'leaves':leaves,'validation_loss':meta['validation_loss'],'heads':meta['training'], 'recorded_preserialization_object_hash':meta['model_content_hash'], 'reloaded_object_hash':reloaded_tree_hash, 'object_hash_matches_after_reload':reloaded_tree_hash==meta['model_content_hash'], 'saved_source_validation_loss_replay':val['mean_source_loss']})\n  expect(min(tree_records,key=lambda r:(r['validation_loss'],r['leaves']))['leaves']==sel['selected_tree_leaves'],'tree source validation selection')\n  maps=joblib.load(base/'release_maps.joblib')\n  maps_reloaded_hash=joblib.hash({'tree':tree,'pca':maps['pca'],'compression':maps['compression'],'preprocessing':pre})\n  probabilities=neural.probabilities(x['source_validation']);latent=neural.release(x['source_validation'])\n  tree_probs=tree.probabilities(x['source_validation'])\n  replay={'A_binary_bank':np.column_stack([probabilities['income_binary'][:,1],probabilities['esr'][:,0],probabilities['pubcov'][:,0]]),\n          'B_rich_bank':np.concatenate([probabilities[k] for k in sel['bank_keys']],1),\n          'C_tree_bank':np.concatenate([tree_probs[k] for k in sel['bank_keys']],1),\n          'D_features':latent,'D_compressed':maps['compression'].transform(latent),\n          'E_pca':maps['pca'].transform(x['source_validation']),'F_covariates':x['source_validation']}\n  release_arrays={};replay_details={}\n  for name,rec in m['release_metadata'].items():\n   with np.load(base/f'release_{name}.npz') as z:arrays={k:z[k].copy() for k in z.files}\n   release_arrays[name]=arrays\n   for pool,a in arrays.items():expect(ah(a)==rec['development_hashes'][pool],'frozen development release file '+name)\n   prediction=np.asarray(replay[name],dtype=np.float32)\n   maxdelta=float(np.max(np.abs(prediction-arrays['source_validation'])))\n   expect(np.allclose(prediction,arrays['source_validation'],atol=2e-6,rtol=2e-6),'source-validation release replay '+name)\n   replay_details[name]={'dimension':arrays['source_validation'].shape[1],'bitwise_equal':ah(prediction)==ah(arrays['source_validation']),'max_absolute_difference':maxdelta}\n  index_summary={};schedule_summary={}\n  for role,items,budget,base_seed,fitpool,valpool in [\n    ('transfer',('same_residence','commute_over20'),cfg['head_budget'],1230000,'downstream_fit','downstream_validation'),\n    ('audit',('SEX','RAC1P'),cfg['attacker_budget'],1240000,'attacker_fit','attacker_validation')]:\n   for j,target in enumerate(items):\n    y=pool_y[fitpool][target];yv=pool_y[valpool][target];idx=np.random.default_rng(base_seed+100*seed+j).permutation(np.flatnonzero(y>=0))[:budget];vi=np.flatnonzero(yv>=0)\n    saved=choice['task_fit_indices' if role=='transfer' else 'audit_fit_indices'][target]\n    expect(saved['n']==len(idx) and saved['pool_indices_sha256']==ah(idx) and saved['raw_rows_sha256']==ah(rows[fitpool][idx]),'matched target rows')\n    group=[(key,record) for key,record in choice['fitting_records'].items() if key.startswith(role+'/') and key.endswith('/'+target) and '/prior/' not in key]\n    schedules=set();counts=set();targethashes=set();initialization_seeds=set();parameters=set()\n    for key,record in group:\n     _,release,_=key.split('/')\n     expect(record['fit_hashes']['y']==ah(y[idx]) and record['validation_hashes']['y']==ah(yv[vi]),'matched fitting/validation targets')\n     if release!='exposed':\n      expect(record['fit_hashes']['x']==ah(np.asarray(release_arrays[release][fitpool][idx],np.float64)),'actual head input hash')\n      expect(record['validation_hashes']['x']==ah(np.asarray(release_arrays[release][valpool][vi],np.float64)),'actual head validation input hash')\n     chosen=min(record['validation_scores'],key=lambda f:(record['validation_scores'][f]['log_loss'],f))\n     expect(chosen==choice['head_selections'][key]==record['selected_family'],'validation-only family selection')\n     mlp=record['candidates']['mlp'];expect('fallback_reason' not in mlp,'no unreported MLP fallback')\n     steps=cfg['head_mlp_epochs']*math.ceil(len(idx)/cfg['head_mlp_batch_size'])\n     expect(mlp['optimizer_steps']==steps and mlp['training_row_exposures']==len(idx)*cfg['head_mlp_epochs'],'head fixed budgets')\n     g=np.random.default_rng(mlp['schedule_seed']);h=hashlib.sha256()\n     for epoch in range(cfg['head_mlp_epochs']):h.update(g.permutation(len(idx)).tobytes())\n     expect(h.hexdigest()==mlp['schedule_hash'],'head schedule reconstructed')\n     expect(mlp['selected_optimizer_steps']==mlp['selected_epoch']*math.ceil(len(idx)/cfg['head_mlp_batch_size']),'selected head step count')\n     best=min(mlp['validation_curve'],key=lambda r:(r['validation_log_loss'],r['epoch']))\n     expect(best['epoch']==mlp['selected_epoch'],'head validation-only checkpoint')\n     schedules.add(mlp['schedule_hash']);counts.add(steps);targethashes.add(record['fit_hashes']['y'])\n     initialization_seeds.add(mlp['initialization_seed']);parameters.add(json.dumps(mlp['parameters'],sort_keys=True))\n     expect(mlp['row_exposure_min']==mlp['row_exposure_max']==cfg['head_mlp_epochs'] and mlp['restarts']==1,'matched exposure/restart budget')\n     for family,candidate in record['candidates'].items():\n      meta=read(base/'fitted'/key/family/'metadata.json')\n      expect(meta==candidate,'saved candidate metadata')\n      if family=='histgb':expect(meta['boosting_iterations']==cfg['attacker_tree_iterations'] and meta['parameters']['l2_regularization']==1,'audit tree fixed budget')\n      if family=='logistic':expect(meta['parameters']['C']==1 and meta['parameters']['max_iter']==500,'fixed logistic configuration')\n    expect(len(schedules)==len(counts)==len(targethashes)==len(initialization_seeds)==len(parameters)==1,'matched heads across releases')\n    index_summary[role+'/'+target]={'fit_rows':len(idx),'validation_rows':len(vi),'fit_valid_pool_rows':int((y>=0).sum()),'fit_missing_pool_rows':int((y<0).sum())}\n    schedule_summary[role+'/'+target]={'compared_interfaces':len(group),'schedule_hash':next(iter(schedules)),'optimizer_steps':next(iter(counts)),'training_row_exposures':len(idx)*cfg['head_mlp_epochs'],'initialization_seed':next(iter(initialization_seeds)),'parameters':json.loads(next(iter(parameters)))}\n  integrity=m['integrity']\n  expect(sha(base/'selection_before_test.json')==integrity['selection_sha256'],'selection hash')\n  expect(sha(base/'source_selection.json')==choice['source_selection_sha256'],'source selection hash')\n  expect(sha(OUT/'protocol_freeze.json')==choice['protocol_freeze_sha256'],'protocol identity')\n  expect(choice['created_utc']<integrity['test_evaluation_started_utc'],'test boundary timestamp')\n  expect(integrity['source_state_before']==integrity['source_state_after']==state_digest(neural.state_dict()),'source current/before/after tensors')\n  expect(integrity['fitted_maps_before']==integrity['fitted_maps_after'],'recorded frozen maps')\n  expect(all(integrity[k] for k in ['fitted_maps_unchanged','source_unchanged','development_releases_unchanged','selection_still_unchanged']),'integrity flags')\n  manifest=read(base/'local_artifacts.json')\n  for file in manifest:expect(sha(ROOT/file['path'])==file['sha256'],'saved artifact hash '+file['path'])\n  prior_metadata_complete=all('validation_scores' in read(base/'fitted'/key/'prior/metadata.json') for key in choice['head_selections'] if '/prior/' in key)\n  expect(prior_metadata_complete,'standalone prior validation metadata')\n  report['seeds'][str(seed)]={'passed':True,'pool_rows':{k:len(v) for k,v in rows.items()},\n    'pool_households':{k:len(v) for k,v in households.items()},'row_and_household_isolation':True,'whole_household_cohort':True,\n    'all_pool_label_masks_and_supports_verified':True,'source_candidates':nn_records,'tree_candidates':tree_records,\n    'selected_lr':sel['selected_lr'],'selected_tree_leaves':sel['selected_tree_leaves'],'class_counts':sel['class_counts'],\n    'joint_supported':sel['joint_supported'],'source_fit_ESR_support':np.bincount(pool_y['representation_fit']['esr'],minlength=6).tolist(),\n    'source_input_hashes_and_whitelist_verified':True,'matching_source_initial_tensors_verified':True,\n    'release_source_validation_replay':replay_details,'head_rows':index_summary,'head_schedules':schedule_summary,\n    'all_head_and_source_validation_selections_verified':True,'saved_artifacts_checked':len(manifest),\n    'frozen_release_file_hashes_verified':True,'frozen_model_before_after_verified':True,\n    'reloaded_maps_joblib_hash':maps_reloaded_hash,'reloaded_maps_hash_matches_recorded':maps_reloaded_hash==integrity['fitted_maps_after'],\n    'prior_metadata_contains_validation_scores':prior_metadata_complete,'selection_before_test_verified':True,\n    'selection_created_utc':choice['created_utc'],'test_started_utc':integrity['test_evaluation_started_utc']}\n expect(all(np.array_equal(cohorts[0],c) for c in cohorts[1:]),'common sampled population across seeds')\nreport['all_seeds_passed']=True;report['same_sampled_cohort_across_seeds']=True\nreport['runtime_seconds']=time.perf_counter()-started\n(OUT/'INDEPENDENT_VERIFICATION.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\\n')\nlines=['# Independent ACS artifact verification','','All three completed seeds passed artifact, split, source-selection, and schedule consistency checks. No optimizer update or model fit was executed. Source-validation predictions were replayed from saved objects; final-test predictions were not used to select anything.','',\n'| Seed | Source-fit / source-val rows | Selected LR | Selected epoch / step | Total source steps per LR | Selected tree leaves |',\n'| --- | --- | --- | --- | --- | --- |']\nfor seed,r in report['seeds'].items():\n chosen=next(c for c in r['source_candidates'] if c['lr']==r['selected_lr'])\n lines.append(f\"| {seed} | {r['pool_rows']['representation_fit']} / {r['pool_rows']['source_validation']} | {r['selected_lr']} | {chosen['selected_epoch']} / {chosen['selected_optimizer_steps']} | {chosen['optimizer_steps']} | {r['selected_tree_leaves']} |\")\nlines += ['', '- Both source learning-rate configurations start from identical saved tensors and use the independently regenerated same minibatch schedule. Initial checkpoints contain epoch 0 / step 0 state; selected and final tensors match their recorded hashes.',\n'- Source fitting uses only the five permitted label arrays on the recorded rows. Reconstructed masks, class supports, income edges, feature allowlist, and fitting-only preprocessing agree with saved artifacts in every pool. The two source tree settings use those same labels/examples, L2=1, and 150 iterations per nonconstant head.',\n'- All seven releases replay on source validation within the reported numerical tolerance. Every saved development-array hash and local artifact-manifest hash verifies. Household/person pools are disjoint; whole-household sampling and the common cohort across seeds verify.',\n'- Downstream and audit heads use identical selected rows, labels, validation rows, seeds, full 40-epoch MLP schedules, and exposure counts across interfaces. Source configurations and downstream families/checkpoints minimize the recorded validation criteria; no final-test choice was made.',\n'- Each saved source/head selection precedes the recorded test-evaluation timestamp; its hash remains unchanged. Recorded neural/tree/PCA/preprocessing before/after hashes agree. JSON records whether reloaded map object hashes also agree, separately from prediction replay.',\n'', 'Coverage caveat: the fixed ESR probability schema retains all six categories even when a source-fitting category is absent. Explicit per-seed supports and tree absent-column checks are in the JSON; absence is not a learned-class or privacy-success claim.',\n'', 'Serialization caveat: reloaded HistGB/tree-map joblib object hashes differ from their in-memory hashes; even a pure pickle roundtrip changes these object hashes. The saved file SHA256 checks and source-validation prediction replay pass. Recorded in-process before/after map hashes agree; this verifier does not claim to reconstruct a pre-serialization object hash.',\n'', 'Standalone prior metadata contains its validation scores, consistent with the frozen source and selection records.',\n'', 'These checks validate internal evidence consistency and inference replay, not an independent retraining. Actual optimizer execution counts are checked against saved logs/checkpoints and regenerated schedules. The source/protocol/data hashes remain frozen.',\n'',f\"Verification runtime: {report['runtime_seconds']:.3f} seconds, CPU, one numerical thread. INDEPENDENT_VERIFICATION.json includes the verification source and command so these inference-only checks can be replayed without modifying frozen experiment files.\"]\n(OUT/'VERIFICATION.md').write_text('\\n'.join(lines)+'\\n')\nprint(json.dumps({'all_seeds_passed':True,'runtime_seconds':report['runtime_seconds'],'seeds':{s:{'rows':r['pool_rows'],'source':r['source_candidates'],'maps_hash_matches':r['reloaded_maps_hash_matches_recorded'],'prior_metadata_complete':r['prior_metadata_contains_validation_scores']} for s,r in report['seeds'].items()}},indent=2))\n",
+  "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 .venv/bin/python -B /tmp/verify_acs_transfer_independent.py",
+  "frozen_source_protocol_config_hashes_verified": true,
+  "raw_data_sha256": "dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0",
+  "raw_rows": 378817,
+  "seeds": {
+    "0": {
+      "passed": true,
+      "pool_rows": {
+        "representation_fit": 10513,
+        "source_validation": 3004,
+        "downstream_fit": 4539,
+        "downstream_validation": 2984,
+        "attacker_fit": 2993,
+        "attacker_validation": 2985,
+        "test": 2982
+      },
+      "pool_households": {
+        "representation_fit": 7051,
+        "source_validation": 2015,
+        "downstream_fit": 3022,
+        "downstream_validation": 2015,
+        "attacker_fit": 2015,
+        "attacker_validation": 2014,
+        "test": 2015
+      },
+      "row_and_household_isolation": true,
+      "whole_household_cohort": true,
+      "all_pool_label_masks_and_supports_verified": true,
+      "source_candidates": [
+        {
+          "lr": 0.001,
+          "optimizer_steps": 2520,
+          "selected_epoch": 46,
+          "selected_optimizer_steps": 1932,
+          "validation_loss": 0.7112638790609527,
+          "initial_state_hash": "3aa116b26d5a46a7f1ebb59012ef9d9049da14c626f7dcf9ca57484fd68e59a5",
+          "schedule_hash": "0adb972510490103d8fbcff97f95f4c976de1f2abe38610b9adbcc5ef21aad6e"
+        },
+        {
+          "lr": 0.003,
+          "optimizer_steps": 2520,
+          "selected_epoch": 22,
+          "selected_optimizer_steps": 924,
+          "validation_loss": 0.7083127960015693,
+          "initial_state_hash": "3aa116b26d5a46a7f1ebb59012ef9d9049da14c626f7dcf9ca57484fd68e59a5",
+          "schedule_hash": "0adb972510490103d8fbcff97f95f4c976de1f2abe38610b9adbcc5ef21aad6e"
+        }
+      ],
+      "tree_candidates": [
+        {
+          "leaves": 15,
+          "validation_loss": 0.7196764531126919,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "2c282f552e5c73af60d00389ff8b45d02021ac2c",
+          "reloaded_object_hash": "97f48227ffb0ec483beb212c6ca605c17391a33a",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7196764531126919
+        },
+        {
+          "leaves": 31,
+          "validation_loss": 0.7442172651582616,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10513,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "65673eaeeadf4dacd8dfe83bde12af910a6c439d",
+          "reloaded_object_hash": "97d4a5cc96ec1e25b6663b1fcd267cae565309e8",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7442172651582616
+        }
+      ],
+      "selected_lr": 0.003,
+      "selected_tree_leaves": 15,
+      "class_counts": {
+        "income_binary": 2,
+        "income_bins": 8,
+        "esr": 6,
+        "pubcov": 2,
+        "joint": 8
+      },
+      "joint_supported": true,
+      "source_fit_ESR_support": [
+        7121,
+        219,
+        534,
+        140,
+        0,
+        2499
+      ],
+      "source_input_hashes_and_whitelist_verified": true,
+      "matching_source_initial_tensors_verified": true,
+      "release_source_validation_replay": {
+        "A_binary_bank": {
+          "dimension": 3,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "B_rich_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "C_tree_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_features": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "E_pca": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "F_covariates": {
+          "dimension": 76,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_compressed": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        }
+      },
+      "head_rows": {
+        "transfer/same_residence": {
+          "fit_rows": 2048,
+          "validation_rows": 2984,
+          "fit_valid_pool_rows": 4539,
+          "fit_missing_pool_rows": 0
+        },
+        "transfer/commute_over20": {
+          "fit_rows": 2048,
+          "validation_rows": 1984,
+          "fit_valid_pool_rows": 3026,
+          "fit_missing_pool_rows": 1513
+        },
+        "audit/SEX": {
+          "fit_rows": 2993,
+          "validation_rows": 2985,
+          "fit_valid_pool_rows": 2993,
+          "fit_missing_pool_rows": 0
+        },
+        "audit/RAC1P": {
+          "fit_rows": 2993,
+          "validation_rows": 2985,
+          "fit_valid_pool_rows": 2993,
+          "fit_missing_pool_rows": 0
+        }
+      },
+      "head_schedules": {
+        "transfer/same_residence": {
+          "compared_interfaces": 7,
+          "schedule_hash": "ee8943e0edcf48411f3bceff950844d10bddb587d934cfe598206c2e39e4ebeb",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250000,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "transfer/commute_over20": {
+          "compared_interfaces": 7,
+          "schedule_hash": "8805fac2d66d18ece39f39efbe46665308c5377a171fac16e4fc1d57a4cc355c",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250001,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/SEX": {
+          "compared_interfaces": 8,
+          "schedule_hash": "7df9eb79a0d59d2f9aad66f30d8268ea61670fa30c0411d4e985355beffb6f67",
+          "optimizer_steps": 480,
+          "training_row_exposures": 119720,
+          "initialization_seed": 1260000,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/RAC1P": {
+          "compared_interfaces": 8,
+          "schedule_hash": "f97934754f2ec243f4e9459700979ecc693f8edeb1c48e90fdaca1b61ac31e59",
+          "optimizer_steps": 480,
+          "training_row_exposures": 119720,
+          "initialization_seed": 1260001,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        }
+      },
+      "all_head_and_source_validation_selections_verified": true,
+      "saved_artifacts_checked": 174,
+      "frozen_release_file_hashes_verified": true,
+      "frozen_model_before_after_verified": true,
+      "reloaded_maps_joblib_hash": "e5b5c2a953d042d798132ae4319ebe12",
+      "reloaded_maps_hash_matches_recorded": false,
+      "prior_metadata_contains_validation_scores": true,
+      "selection_before_test_verified": true,
+      "selection_created_utc": "2026-09-08T01:28:57.653088+00:00",
+      "test_started_utc": "2026-09-08T01:28:57.661495+00:00"
+    },
+    "1": {
+      "passed": true,
+      "pool_rows": {
+        "representation_fit": 10428,
+        "source_validation": 3010,
+        "downstream_fit": 4521,
+        "downstream_validation": 3041,
+        "attacker_fit": 3021,
+        "attacker_validation": 2964,
+        "test": 3015
+      },
+      "pool_households": {
+        "representation_fit": 7051,
+        "source_validation": 2015,
+        "downstream_fit": 3022,
+        "downstream_validation": 2015,
+        "attacker_fit": 2015,
+        "attacker_validation": 2014,
+        "test": 2015
+      },
+      "row_and_household_isolation": true,
+      "whole_household_cohort": true,
+      "all_pool_label_masks_and_supports_verified": true,
+      "source_candidates": [
+        {
+          "lr": 0.001,
+          "optimizer_steps": 2460,
+          "selected_epoch": 35,
+          "selected_optimizer_steps": 1435,
+          "validation_loss": 0.7174062682297841,
+          "initial_state_hash": "ee1a93785ee1b2ea1a8569bf2d325b6934b144bdf22d6e32b70e65faca040c5c",
+          "schedule_hash": "d7b481fad99aa27a435482219e6080adec2c1d54dd35a347c786f41358791682"
+        },
+        {
+          "lr": 0.003,
+          "optimizer_steps": 2460,
+          "selected_epoch": 15,
+          "selected_optimizer_steps": 615,
+          "validation_loss": 0.7175319787341413,
+          "initial_state_hash": "ee1a93785ee1b2ea1a8569bf2d325b6934b144bdf22d6e32b70e65faca040c5c",
+          "schedule_hash": "d7b481fad99aa27a435482219e6080adec2c1d54dd35a347c786f41358791682"
+        }
+      ],
+      "tree_candidates": [
+        {
+          "leaves": 15,
+          "validation_loss": 0.7287571614165514,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "f32b6c181ef4631aa420c19baff3c1bdbce34d29",
+          "reloaded_object_hash": "27b74ace722f3bbf0168ec8b2465575e08c2d078",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7287571614165514
+        },
+        {
+          "leaves": 31,
+          "validation_loss": 0.7539010498520721,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10428,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "ba709d838641741a65a9fe6fdf9eb873c7eb34d7",
+          "reloaded_object_hash": "e996bec2696875803d0bc32f80c3f29180a6ae20",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7539010498520721
+        }
+      ],
+      "selected_lr": 0.001,
+      "selected_tree_leaves": 15,
+      "class_counts": {
+        "income_binary": 2,
+        "income_bins": 8,
+        "esr": 6,
+        "pubcov": 2,
+        "joint": 8
+      },
+      "joint_supported": true,
+      "source_fit_ESR_support": [
+        6974,
+        200,
+        503,
+        165,
+        0,
+        2586
+      ],
+      "source_input_hashes_and_whitelist_verified": true,
+      "matching_source_initial_tensors_verified": true,
+      "release_source_validation_replay": {
+        "A_binary_bank": {
+          "dimension": 3,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "B_rich_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "C_tree_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_features": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "E_pca": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "F_covariates": {
+          "dimension": 75,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_compressed": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        }
+      },
+      "head_rows": {
+        "transfer/same_residence": {
+          "fit_rows": 2048,
+          "validation_rows": 3041,
+          "fit_valid_pool_rows": 4521,
+          "fit_missing_pool_rows": 0
+        },
+        "transfer/commute_over20": {
+          "fit_rows": 2048,
+          "validation_rows": 2018,
+          "fit_valid_pool_rows": 3023,
+          "fit_missing_pool_rows": 1498
+        },
+        "audit/SEX": {
+          "fit_rows": 3021,
+          "validation_rows": 2964,
+          "fit_valid_pool_rows": 3021,
+          "fit_missing_pool_rows": 0
+        },
+        "audit/RAC1P": {
+          "fit_rows": 3021,
+          "validation_rows": 2964,
+          "fit_valid_pool_rows": 3021,
+          "fit_missing_pool_rows": 0
+        }
+      },
+      "head_schedules": {
+        "transfer/same_residence": {
+          "compared_interfaces": 7,
+          "schedule_hash": "6b1e75abb198d2f7cef452ba2570f16f7049dffa1b49707bde1f5b0fb658de96",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250100,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "transfer/commute_over20": {
+          "compared_interfaces": 7,
+          "schedule_hash": "b9823f972d06f8fabd262240445f0416f789909b1baec490b144f2dde90943f9",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250101,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/SEX": {
+          "compared_interfaces": 8,
+          "schedule_hash": "651c20666c999db77fdea93b79ac664acb115a9c23da8c2e2980d6c179112c48",
+          "optimizer_steps": 480,
+          "training_row_exposures": 120840,
+          "initialization_seed": 1260100,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/RAC1P": {
+          "compared_interfaces": 8,
+          "schedule_hash": "baae1bde352803c0ef6c2c2caaad08ddefe114a59ba36aeb1fd46e9fad6ad15d",
+          "optimizer_steps": 480,
+          "training_row_exposures": 120840,
+          "initialization_seed": 1260101,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        }
+      },
+      "all_head_and_source_validation_selections_verified": true,
+      "saved_artifacts_checked": 174,
+      "frozen_release_file_hashes_verified": true,
+      "frozen_model_before_after_verified": true,
+      "reloaded_maps_joblib_hash": "0c654a3043bde7bc97e0a3671a1462fe",
+      "reloaded_maps_hash_matches_recorded": false,
+      "prior_metadata_contains_validation_scores": true,
+      "selection_before_test_verified": true,
+      "selection_created_utc": "2026-09-08T01:30:56.873584+00:00",
+      "test_started_utc": "2026-09-08T01:30:56.881031+00:00"
+    },
+    "2": {
+      "passed": true,
+      "pool_rows": {
+        "representation_fit": 10551,
+        "source_validation": 2979,
+        "downstream_fit": 4464,
+        "downstream_validation": 3024,
+        "attacker_fit": 2941,
+        "attacker_validation": 3062,
+        "test": 2979
+      },
+      "pool_households": {
+        "representation_fit": 7051,
+        "source_validation": 2015,
+        "downstream_fit": 3022,
+        "downstream_validation": 2015,
+        "attacker_fit": 2015,
+        "attacker_validation": 2014,
+        "test": 2015
+      },
+      "row_and_household_isolation": true,
+      "whole_household_cohort": true,
+      "all_pool_label_masks_and_supports_verified": true,
+      "source_candidates": [
+        {
+          "lr": 0.001,
+          "optimizer_steps": 2520,
+          "selected_epoch": 47,
+          "selected_optimizer_steps": 1974,
+          "validation_loss": 0.7165897768929629,
+          "initial_state_hash": "61e484d8a219a4998a5c7fd5293adfe2f94fa8c1274c5f8c9d595f8a6abed68e",
+          "schedule_hash": "150f9564ae1168289c6817a06d55b8ab24478dbdf1447e72a72d0378fc1e519b"
+        },
+        {
+          "lr": 0.003,
+          "optimizer_steps": 2520,
+          "selected_epoch": 17,
+          "selected_optimizer_steps": 714,
+          "validation_loss": 0.7169127649167437,
+          "initial_state_hash": "61e484d8a219a4998a5c7fd5293adfe2f94fa8c1274c5f8c9d595f8a6abed68e",
+          "schedule_hash": "150f9564ae1168289c6817a06d55b8ab24478dbdf1447e72a72d0378fc1e519b"
+        }
+      ],
+      "tree_candidates": [
+        {
+          "leaves": 15,
+          "validation_loss": 0.7288575066338395,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "ea044cc5e7992fb9a6a3d9e551c888e5de0ac328",
+          "reloaded_object_hash": "6898cff99fef4a5790042349fdfd2042b0fc8058",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7288575066338395
+        },
+        {
+          "leaves": 31,
+          "validation_loss": 0.7542110198958404,
+          "heads": {
+            "income_binary": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "income_bins": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            },
+            "esr": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                5
+              ],
+              "absent_schema_classes": [
+                4
+              ],
+              "boosting_iterations": 150,
+              "fitted_trees": 750,
+              "constant_predictor": false
+            },
+            "pubcov": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 150,
+              "constant_predictor": false
+            },
+            "joint": {
+              "fit_rows": 10551,
+              "fitted_classes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "absent_schema_classes": [],
+              "boosting_iterations": 150,
+              "fitted_trees": 1200,
+              "constant_predictor": false
+            }
+          },
+          "recorded_preserialization_object_hash": "6610a13e2aeb97180b0b2bfe586f74199d1eeb57",
+          "reloaded_object_hash": "ed699996dc4febbde7d7115eddb9db0757e70662",
+          "object_hash_matches_after_reload": false,
+          "saved_source_validation_loss_replay": 0.7542110198958404
+        }
+      ],
+      "selected_lr": 0.001,
+      "selected_tree_leaves": 15,
+      "class_counts": {
+        "income_binary": 2,
+        "income_bins": 8,
+        "esr": 6,
+        "pubcov": 2,
+        "joint": 8
+      },
+      "joint_supported": true,
+      "source_fit_ESR_support": [
+        7099,
+        233,
+        532,
+        146,
+        0,
+        2541
+      ],
+      "source_input_hashes_and_whitelist_verified": true,
+      "matching_source_initial_tensors_verified": true,
+      "release_source_validation_replay": {
+        "A_binary_bank": {
+          "dimension": 3,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "B_rich_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "C_tree_bank": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_features": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "E_pca": {
+          "dimension": 32,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "F_covariates": {
+          "dimension": 77,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        },
+        "D_compressed": {
+          "dimension": 26,
+          "bitwise_equal": true,
+          "max_absolute_difference": 0.0
+        }
+      },
+      "head_rows": {
+        "transfer/same_residence": {
+          "fit_rows": 2048,
+          "validation_rows": 3024,
+          "fit_valid_pool_rows": 4464,
+          "fit_missing_pool_rows": 0
+        },
+        "transfer/commute_over20": {
+          "fit_rows": 2048,
+          "validation_rows": 2072,
+          "fit_valid_pool_rows": 2953,
+          "fit_missing_pool_rows": 1511
+        },
+        "audit/SEX": {
+          "fit_rows": 2941,
+          "validation_rows": 3062,
+          "fit_valid_pool_rows": 2941,
+          "fit_missing_pool_rows": 0
+        },
+        "audit/RAC1P": {
+          "fit_rows": 2941,
+          "validation_rows": 3062,
+          "fit_valid_pool_rows": 2941,
+          "fit_missing_pool_rows": 0
+        }
+      },
+      "head_schedules": {
+        "transfer/same_residence": {
+          "compared_interfaces": 7,
+          "schedule_hash": "ef065467e395a1b91e0f6e77d7c43e0936f256fa428add2fe5c387e913c13388",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250200,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "transfer/commute_over20": {
+          "compared_interfaces": 7,
+          "schedule_hash": "b0fed3f00a7da99840d194a0ce28aaadc263d5cc1e6aeb2647553c92339acb57",
+          "optimizer_steps": 320,
+          "training_row_exposures": 81920,
+          "initialization_seed": 1250201,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/SEX": {
+          "compared_interfaces": 8,
+          "schedule_hash": "c58a48d1dc1e1aa0e06783732f1d352560d80a164c52559a6c983858cc61e804",
+          "optimizer_steps": 480,
+          "training_row_exposures": 117640,
+          "initialization_seed": 1260200,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        },
+        "audit/RAC1P": {
+          "compared_interfaces": 8,
+          "schedule_hash": "fe83fa11fdabfa18841f597456c401e9f758b9325c6b566a7ab4556256db0ff2",
+          "optimizer_steps": 480,
+          "training_row_exposures": 117640,
+          "initialization_seed": 1260201,
+          "parameters": {
+            "batch_size": 256,
+            "epochs": 40,
+            "hidden": [
+              64,
+              32
+            ],
+            "lr": 0.001,
+            "validation_interval": 5,
+            "weight_decay": 0.0
+          }
+        }
+      },
+      "all_head_and_source_validation_selections_verified": true,
+      "saved_artifacts_checked": 174,
+      "frozen_release_file_hashes_verified": true,
+      "frozen_model_before_after_verified": true,
+      "reloaded_maps_joblib_hash": "d9436a905d4dc9846e427bf4960d6636",
+      "reloaded_maps_hash_matches_recorded": false,
+      "prior_metadata_contains_validation_scores": true,
+      "selection_before_test_verified": true,
+      "selection_created_utc": "2026-09-08T01:31:48.998023+00:00",
+      "test_started_utc": "2026-09-08T01:31:49.064824+00:00"
+    }
+  },
+  "limitations": [
+    "Optimizer actions are checked against saved counters, epoch logs, checkpoints, and independently regenerated schedules; no optimizer updates were rerun.",
+    "Before/after integrity claims use recorded prior-state hashes plus independent current-file hashes and source-validation inference replay.",
+    "Only source-validation outputs are replayed here; no final-test outcomes were used to fit or select anything.",
+    "joblib object hashes are not serialization-invariant for these HistGB artifacts. Reloaded object hashes are reported but are not treated as file-integrity failures; saved file SHA256 checks, inference replay, and recorded in-process before/after hashes provide the stated evidence.",
+    "Recorded before/after hashes establish an in-process boundary check, not cryptographic proof of all historical execution actions."
+  ],
+  "all_seeds_passed": true,
+  "same_sampled_cohort_across_seeds": true,
+  "runtime_seconds": 6.528459833934903
+}

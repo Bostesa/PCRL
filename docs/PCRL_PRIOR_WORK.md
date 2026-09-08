@@ -103,3 +103,13 @@ selection and a precise policy should precede another method experiment. The
 separate [application screen](PCRL_APPLICATION_SELECTION.md) examines HAR,
 Diabetes, and ACS; the additional literature here does not add application
 candidates or establish that those three satisfy the release-necessity gate.
+
+## Amendment — 2026-09-07: scope of the ACS transfer benchmark
+
+The authorized [ACS transfer experiment](../results/redesign_20260907_acs_transfer_v1/PROTOCOL.md)
+uses a defined one-time release and equal downstream fitting access. A trusted
+service is a deployment alternative, not an empirical admission gate. This
+controlled comparison asks whether source-only features support two reserved task
+identities beyond rich neural and tree prediction banks; it does not claim a
+new transfer-learning formulation or a protection advantage. The earlier focused
+literature matrix and its limits remain unchanged.

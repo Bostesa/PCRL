@@ -501,3 +501,28 @@ the existing `.venv/bin/python`; original exploratory values were preserved in
 the reproducible run described above. This screen wrote this document, the new
 screening script, and the fresh application-screen results directory. Historical
 source, data, and results were not changed.
+
+## Amendment — 2026-09-07: admit the defined ACS transfer benchmark
+
+The original screen above remains intact as a historical decision. A defined
+one-time release setting is sufficient to investigate cross-task transfer.
+We do not require proof that every possible trusted service is inadequate before
+running a scientific benchmark. A trusted service remains a deployment
+alternative, not an empirical admission gate.
+
+The now-authorized setting is a hypothetical data owner releasing a fixed
+per-record interface to a researcher who may fit new supervised heads but cannot
+retrain or query the owner's encoder. Prediction banks and representations have
+identical downstream fitting privileges. California 2018 ACS public records
+simulate this interface; this experiment cannot claim to protect those public
+records against linkage. Source families are personal income, labor-force status
+and public coverage. Residential mobility and commute duration are fixed withheld
+task identities in a common19–34 positive-person-weight cohort. They support
+a controlled study of contemporaneous young-adult socioeconomic, residential
+and commuting information, not a Census deployment or longitudinal prediction.
+
+This specification admits an **unprotected transfer comparison**. It does not
+require attribute privacy, prove representation necessity, establish PCRL novelty,
+or justify a protection mechanism. The competitive bank is part of the test.
+SEX/RAC1P recoverability is measured without collapsing the recorded schema.
+No synthetic audit is repeated. See the [frozen ACS protocol](../results/redesign_20260907_acs_transfer_v1/PROTOCOL.md).
