@@ -78,7 +78,6 @@ from pcrl.models.task_head import TaskHead
 from pcrl.purposes.composition import compose_and, compose_embeddings_additive
 from pcrl.purposes.spec import PurposeRegistry, PurposeSpec
 from pcrl.purposes.verification import (
-    certified_accuracy_bound,
     find_conflicting_attributes,
     impossibility_bound,
     verify_impossibility,
@@ -228,7 +227,7 @@ def run_compliance_audit(
             "attribute": FEATURE_NAMES.get(task_name, task_name),
             "role": "ALLOWED (task)",
             "linear_r2": float("nan"),
-            "accuracy_bound": float("nan"),
+            "accuracy_bound": None,
             "empirical_acc": task_acc,
             "majority_prop": float("nan"),
             "status": f"{task_acc:.1%}",
@@ -252,9 +251,7 @@ def run_compliance_audit(
             train_reprs, attr_train, test_reprs, attr_test,
         )
 
-        bound = certified_accuracy_bound(
-            linear_result.r_squared, majority_prop, num_classes,
-        )
+        bound = None  # Retired invalid classification-accuracy guarantee.
 
         certified = (
             linear_result.certified
@@ -298,7 +295,7 @@ def print_deployment_table(all_rows: list[dict], title: str) -> None:
             current_party = party
 
         r2_str = f"{r['linear_r2']:.4f}" if not np.isnan(r['linear_r2']) else "—"
-        bound_str = f"{r['accuracy_bound']:.1%}" if not np.isnan(r['accuracy_bound']) else "—"
+        bound_str = "retired"
         emp_str = f"{r['empirical_acc']:.1%}"
 
         print(

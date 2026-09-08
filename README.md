@@ -1,5 +1,11 @@
 # PCRL: Purpose-Conditioned Representation Learning
 
+**September 2026 redesign:** start with the [review index](docs/PCRL_REVIEW_INDEX.md)
+and [research report](PCRL_NEXT_STAGE_RESEARCH_REPORT.md). Prediction-only release
+passed the strengthened fixed-task audits; full representations remained leaky;
+no PCRL method advantage has been established. The older submission description
+and headline results below are historical and are not revalidated by this stage.
+
 Supplementary code for the anonymous NeurIPS 2026 submission
 *"One Encoder, Many Purposes: Purpose-Conditioned Representation Learning
 with Compliance Certificates."*
@@ -11,6 +17,13 @@ a closed-form joint LEACE warm-start with a proxy-Lagrangian fine-tune on a
 held-out R² constraint per (purpose, attribute) pair. Results are evaluated
 under both the standard one-hot R² metric and a Dominant-Axis audit that
 exposes per-class leakage hidden by aggregate one-hot scoring.
+
+**Evaluation correction (September 2026):** R² here measures empirical
+affine least-squares prediction, not a universal classification guarantee.
+The former `certified_accuracy_bound` and its nonlinear smoothing extension
+are disabled: zero least-squares R² can coexist with 90% linear-threshold
+accuracy. See [the exact counterexample and scope of valid claims](docs/ACCURACY_CERTIFICATE_RETIREMENT.md).
+Historical result files below are preserved, not revalidated by this correction.
 
 ## Headline results
 

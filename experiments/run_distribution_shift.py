@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
-"""Distribution shift experiment: do PCRL certificates hold under covariate shift?
+"""Compare empirical leakage under a covariate shift.
 
-Trains PCRL on the standard Adult train set, then evaluates compliance on:
-  1. The full test set (baseline)
-  2. A distribution-shifted subset: only people with education >= Bachelor's
-
-If certificates hold under shift, this demonstrates that purpose embeddings
-produce representations with structural privacy guarantees, not just
-guarantees that are artefacts of the training distribution.
-
-Results saved to results/adult/distribution_shift.csv.
+Differences in least-squares scores and attacker accuracies are descriptive;
+the retired R²-to-classification bounds cannot certify privacy under shift.
 """
 
 from __future__ import annotations
@@ -63,10 +56,6 @@ from pcrl.models.auditor import MultiAttributeAuditor
 from pcrl.models.encoder import PurposeConditionedEncoder
 from pcrl.models.task_head import TaskHead
 from pcrl.purposes.spec import PurposeRegistry
-from pcrl.purposes.verification import (
-    NonlinearComplianceCertificate,
-    certified_accuracy_bound,
-)
 from pcrl.training.trainer import PCRLTrainer, TrainerConfig
 
 logging.basicConfig(level=logging.WARNING)
@@ -126,12 +115,9 @@ def run_compliance_audit(
     disallowed_attrs: list[str],
     disallowed_attr_dims: dict[str, int],
 ) -> list[ComplianceReport]:
-    """Run linear + empirical + nonlinear audit on representations."""
+    """Run empirical least-squares and classification audits on representations."""
     linear_audit = LinearAudit()
     empirical_audit = EmpiricalAudit()
-    nonlinear_cert = NonlinearComplianceCertificate(
-        sigmas=(0.1, 0.5, 1.0), num_noise_samples=50,
-    )
     reports = []
 
     for attr_name in disallowed_attrs:
@@ -160,12 +146,6 @@ def run_compliance_audit(
             train_reprs, train_labels, test_reprs, test_labels,
         )
 
-        nl_result = nonlinear_cert.check(
-            test_reprs, test_labels,
-            majority_proportion=test_majority,
-            num_classes=len(test_unique),
-        )
-
         empirical_ok = (best_acc - chance_acc) < 0.05
         certified = linear_result.certified and empirical_ok
 
@@ -182,8 +162,6 @@ def run_compliance_audit(
             certified=certified,
             majority_proportion=test_majority,
             num_classes=len(test_unique),
-            nonlinear_bound=nl_result.nonlinear_bound,
-            nonlinear_best_sigma=nl_result.best_sigma,
         ))
 
     return reports
@@ -368,13 +346,11 @@ def main() -> None:
 
     comparison_rows = []
     for fr, sr in zip(full_reports, shifted_reports):
-        f_bound = certified_accuracy_bound(fr.linear_r2, fr.majority_proportion, fr.num_classes)
-        s_bound = certified_accuracy_bound(sr.linear_r2, sr.majority_proportion, sr.num_classes)
         delta_r2 = sr.linear_r2 - fr.linear_r2
 
-        # Certificate "holds" if shifted empirical acc is still bounded
-        holds = sr.empirical_best_acc <= s_bound + 0.05
-        holds_str = "YES" if holds else "NO"
+        # The classification-accuracy guarantee is retired as invalid.
+        holds = None
+        holds_str = "retired"
 
         f_nl = f"{fr.nonlinear_bound:.1%}" if fr.nonlinear_bound is not None else "N/A"
         s_nl = f"{sr.nonlinear_bound:.1%}" if sr.nonlinear_bound is not None else "N/A"
@@ -382,7 +358,7 @@ def main() -> None:
         print(
             f"{fr.purpose_name:<25} {fr.attr_name:<14} "
             f"{fr.linear_r2:>8.4f} {sr.linear_r2:>9.4f} {delta_r2:>+9.4f} "
-            f"{f_bound:>10.1%} {s_bound:>11.1%} "
+            f"{'retired':>10} {'retired':>11} "
             f"{f_nl:>8} {s_nl:>9} "
             f"{fr.empirical_best_acc:>8.1%} {sr.empirical_best_acc:>9.1%} "
             f"{holds_str:>7}"
@@ -394,8 +370,8 @@ def main() -> None:
             "full_r2": round(fr.linear_r2, 6),
             "shifted_r2": round(sr.linear_r2, 6),
             "delta_r2": round(delta_r2, 6),
-            "full_linear_bound": round(f_bound, 4),
-            "shifted_linear_bound": round(s_bound, 4),
+            "full_linear_bound": None,
+            "shifted_linear_bound": None,
             "full_nonlinear_bound": round(fr.nonlinear_bound, 4) if fr.nonlinear_bound is not None else "",
             "shifted_nonlinear_bound": round(sr.nonlinear_bound, 4) if sr.nonlinear_bound is not None else "",
             "full_empirical_acc": round(fr.empirical_best_acc, 4),
@@ -406,8 +382,7 @@ def main() -> None:
         })
 
     print("-" * 110)
-    holds_count = sum(1 for r in comparison_rows if r["bound_holds"])
-    print(f"Certificates hold under shift: {holds_count}/{len(comparison_rows)}")
+    print("Classification guarantees under shift: unavailable (invalid bound retired)")
     print("=" * 110)
 
     # ── Save CSV ──────────────────────────────────────────────────────────

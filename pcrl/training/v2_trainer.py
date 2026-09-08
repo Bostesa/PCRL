@@ -28,7 +28,7 @@ Best-iterate selection (true Cotter, Cotter et al. JMLR 2019 §4.6):
 during training, snapshot every epoch's state in memory along with its
 val_task_loss and per-pair R²s. After training:
 
-    1. Among iterates after warmup that are FULLY FEASIBLE (every R² < tau),
+    1. Among iterates after warmup that are FULLY FEASIBLE (every R² defined and <= its own threshold),
        return the one with min val_task_loss.
     2. If no iterate is feasible, among iterates with val_task_loss within
        10% of the best val_task_loss, return the one with smallest
@@ -59,6 +59,7 @@ so no separate optimiser is needed for it.
 from __future__ import annotations
 
 import logging
+import math
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -191,6 +192,8 @@ class V2TrainerConfig:
     # erase layer is a structural inductive bias + stable init, not a
     # constraint replacement.
     use_erase_layer: bool = False
+    erase_mode: str = "shared_union"
+    initialization_provenance: dict[str, Any] = field(default_factory=dict)
     lora_target: str = "all_linear"
 
     # vCLUB q-network
@@ -229,8 +232,8 @@ class V2TrainerConfig:
     # Cotter best-iterate (Cotter et al. JMLR 2019 §4.6) is already used to
     # pick ``best.pt``. ``report_best_iterate`` adds a *second-pass* selector
     # that writes ``canonical_iterate.pt`` containing whichever of best.pt
-    # and final.pt has the lower mean R² across all (purpose, attribute)
-    # pairs on the validation set. The Cotter rule's task-loss tiebreak
+    # and final.pt has the better validation feasibility, violation, then
+    # mean R². Undefined scores cannot improve this ranking. The Cotter rule's task-loss tiebreak
     # sometimes picks an early epoch with feasible R² but degraded mean R²
     # later; final.pt may have lower mean R² without being feasible. The
     # second pass guards against both directions.
@@ -265,12 +268,14 @@ class V2EpochMetrics:
     hsic_per_pair: dict[str, float] = field(default_factory=dict)
     r2_per_pair: dict[str, float] = field(default_factory=dict)
     epoch_time: float = 0.0
+    class_coverage: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 @dataclass
 class V2State:
     epoch: int = 0
     global_step: int = 0
+    vclub_optimizer_steps: int = 0
     # best_val_loss now tracks the Cotter best-iterate composite
     # (val_task_loss + w * Σ max(0, R² - τ)), not raw val_task_loss.
     best_val_loss: float = float("inf")
@@ -279,7 +284,7 @@ class V2State:
     history: dict[str, list[float]] = field(default_factory=dict)
 
 
-def _linear_r2_train(H, Z, reg: float = 1e-6) -> float:
+def _linear_r2_train(H, Z, reg: float = 1e-6, num_classes: int | None = None) -> float:
     """Train-set linear R² of optimal Tikhonov-regularised one-hot predictor.
 
     Mirrors ``rlace_diagnostic._linear_r2`` and the auditor's metric
@@ -288,7 +293,9 @@ def _linear_r2_train(H, Z, reg: float = 1e-6) -> float:
     import numpy as np
 
     Z = Z.astype("int64") if hasattr(Z, "astype") else Z
-    n_classes = int(Z.max()) + 1
+    n_classes = num_classes if num_classes is not None else int(Z.max()) + 1
+    if len(np.unique(Z)) != n_classes or n_classes < 2:
+        return float("nan")
     Z_oh = np.eye(n_classes)[Z]
     n, d = H.shape
     H_c = H - H.mean(axis=0, keepdims=True)
@@ -298,7 +305,7 @@ def _linear_r2_train(H, Z, reg: float = 1e-6) -> float:
     Z_pred = H_c @ W
     ss_res = ((Z_c - Z_pred) ** 2).sum()
     ss_tot = (Z_c ** 2).sum()
-    return float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    return float(max(0.0, 1.0 - ss_res / ss_tot)) if ss_tot > 1e-12 else float("nan")
 
 
 def _pair_key(purpose_name: str, attr_name: str) -> str:
@@ -490,6 +497,23 @@ class V2Trainer:
                         f"(joint, 1 dual, tau={config.cross_purpose_threshold})"
                     )
 
+        self.attr_schema: dict[str, int] = {}
+        for pc in self.purpose_configs.values():
+            for attr in pc["disallowed_attrs"]:
+                K = int(pc["disallowed_attr_dims"].get(attr, 2))
+                if attr in self.attr_schema and self.attr_schema[attr] != K:
+                    raise ValueError(f"inconsistent class schema for {attr}")
+                self.attr_schema[attr] = K
+        unknown_cross = set(self.cross_purpose_attrs) - set(self.attr_schema)
+        if unknown_cross:
+            raise ValueError(f"cross-purpose attributes need a declared class schema: {sorted(unknown_cross)}")
+        self.score_thresholds = {
+            _pair_key(p, a): config.r2_threshold for p, a in self.pair_keys
+        }
+        self.score_thresholds.update({
+            f"concat[{a}]": config.cross_purpose_threshold for a in self.cross_purpose_attrs
+        })
+
         # Optimisers
         primal_params: list[nn.Parameter] = list(self.encoder.trainable_parameters())
         primal_params += list(self.task_heads.parameters())
@@ -505,6 +529,11 @@ class V2Trainer:
         )
 
         self.state = V2State()
+        if not self.config.initialization_provenance:
+            self.config.initialization_provenance = {
+                "kind": "unspecified_by_caller",
+                "backbone_mode": "eval; frozen BatchNorm and disabled backbone dropout",
+            }
 
     def _freeze_backbone_bn(self) -> None:
         """Force every BatchNorm in the backbone into ``eval()``. Called once
@@ -516,105 +545,68 @@ class V2Trainer:
     # ── LEACE warm-start ────────────────────────────────────────────────
 
     @torch.no_grad()
-    @torch.no_grad()
     def fit_erase_layer(self, train_loader: DataLoader) -> dict[str, float]:
-        """Fit a joint-LEACE eraser on backbone pre-erase features and write
-        the projection into the frozen ``backbone.erase`` Linear layer.
+        """Fit frozen LEACE maps on fitting data in backbone eval mode.
 
-        Mirrors ``pcrl/vision/leace_warmstart.py:fit_and_set_erase_layer``.
-        Concatenates one-hot disallowed attributes across **all purposes**
-        into a single concept matrix, fits one shared eraser, writes
-        ``W = I - proj_left @ proj_right`` into ``erase.weight`` and
-        ``b = bias @ (proj_left @ proj_right).T`` into ``erase.bias``.
-
-        Returns construction-time linear-R² diagnostics (pre vs post-fit on
-        the train set). Post-fit R² < 0.01 indicates the eraser was applied
-        correctly.
-
-        Pre-condition: ``backbone.erase`` exists and is frozen at identity
-        (set by ``StandardEncoder(use_erase_layer=True)``). LoRA adapters
-        must be zero so the network output is undisturbed; this is the
-        construction default for ``LoRAAdapter`` and the first action of
-        ``leace_warm_start``.
+        ``shared_union`` preserves the historical union baseline.
+        ``per_purpose`` uses only that purpose's own prohibited attributes.
+        These are empirical fitting-set least-squares diagnostics, not
+        out-of-sample predictive scores or classification guarantees.
         """
         from concept_erasure import LeaceEraser
 
         backbone = self.encoder.backbone
         if not getattr(backbone, "use_erase_layer", False) or backbone.erase is None:
-            raise RuntimeError(
-                "fit_erase_layer() called but backbone has no erase layer; "
-                "construct StandardEncoder(use_erase_layer=True) first."
-            )
-
+            raise RuntimeError("fit_erase_layer requires StandardEncoder(use_erase_layer=True)")
+        if backbone.erase_mode != self.config.erase_mode:
+            raise ValueError("encoder and trainer erase_mode must agree")
+        if self.encoder.lora_target != "repr_proj_only":
+            raise ValueError("frozen erase calibration requires lora_target='repr_proj_only'")
         was_training = self.encoder.training
         self.encoder.eval()
-
-        feats: list[torch.Tensor] = []
+        feats = []
         attrs_collect: dict[str, list[torch.Tensor]] = {}
         for batch in train_loader:
             batch = self._to_device(batch)
-            h = backbone.network_output(batch["features"])
-            feats.append(h.detach().cpu())
+            feats.append(backbone.network_output(batch["features"]).detach().cpu())
             for k, v in batch["sensitive_attrs"].items():
                 attrs_collect.setdefault(k, []).append(v.detach().cpu().long())
-
-        H = torch.cat(feats, dim=0).float()  # (N, hidden_dims[-1])
-        attrs = {k: torch.cat(v, dim=0) for k, v in attrs_collect.items()}
-
-        # Joint A_oh: every disallowed attribute appearing in any purpose,
-        # concatenated. Duplicates across purposes are deduplicated so the
-        # one-hot block is built once per attribute.
-        union_attrs: list[str] = []
-        for purpose_name in self.purpose_names:
-            for a in self.purpose_configs[purpose_name]["disallowed_attrs"]:
-                if a not in union_attrs:
-                    union_attrs.append(a)
-
-        oh_blocks: list[torch.Tensor] = []
-        for a_name in union_attrs:
-            a_int = attrs[a_name]
-            n_classes = int(a_int.max().item()) + 1
-            oh = torch.eye(n_classes)[a_int]
-            oh_blocks.append(oh)
-        A_oh = torch.cat(oh_blocks, dim=1).float()
-
-        H_np = H.numpy()
-        pre_r2 = {a: _linear_r2_train(H_np, attrs[a].numpy()) for a in union_attrs}
-
-        eraser = LeaceEraser.fit(H, A_oh)
-        pl = eraser.proj_left.detach()   # (d, k)
-        pr = eraser.proj_right.detach()  # (k, d)
-        d = pl.shape[0]
-        Q = torch.eye(d, dtype=pl.dtype) - pl @ pr  # (d, d)
-        if hasattr(eraser, "bias") and eraser.bias is not None:
-            center = eraser.bias.detach()
+        H = torch.cat(feats).float()
+        attrs = {k: torch.cat(v) for k, v in attrs_collect.items()}
+        schema = {}
+        for pc in self.purpose_configs.values():
+            for a in pc["disallowed_attrs"]:
+                K = int(pc["disallowed_attr_dims"].get(a, 2))
+                if a in schema and schema[a] != K:
+                    raise ValueError(f"inconsistent class schema for {a}")
+                schema[a] = K
+        if self.config.erase_mode == "shared_union":
+            groups = [("shared_union", list(schema), backbone.erase)]
         else:
-            center = torch.zeros(d, dtype=pl.dtype)
-        # Linear y = x @ W.T + b. LeaceEraser computes
-        # y = (x - center) @ (I - pl @ pr).T + center. Match:
-        #   W = (I - pl @ pr)    (W.T = I - (pl @ pr).T)
-        #   b = center @ (pl @ pr).T
-        b = (center @ pr.T) @ pl.T
-
-        erase = backbone.erase
-        erase.weight.data.copy_(Q.float().to(erase.weight.device))
-        erase.bias.data.copy_(b.float().to(erase.bias.device))
-
-        H_erased = eraser(H).numpy()
-        post_r2 = {a: _linear_r2_train(H_erased, attrs[a].numpy()) for a in union_attrs}
-
-        if was_training:
-            self.encoder.train()
-            self._freeze_backbone_bn()
-
-        logger.info(
-            f"[V2/ERASE] fitted joint LEACE on hidden_dim={d} features over "
-            f"attrs={union_attrs}: pre_r2={pre_r2} post_r2={post_r2}"
-        )
-        return {
-            **{f"r2_pre[{a}]": pre_r2[a] for a in union_attrs},
-            **{f"r2_post[{a}]": post_r2[a] for a in union_attrs},
-        }
+            groups = [(name, pc["disallowed_attrs"],
+                       backbone.purpose_erasers[pc["purpose_idx"]])
+                      for name, pc in self.purpose_configs.items()]
+        diagnostics = {}
+        for name, prohibited, layer in groups:
+            if not prohibited:
+                continue
+            concepts = torch.cat([
+                torch.nn.functional.one_hot(attrs[a], num_classes=schema[a]).float()
+                for a in prohibited
+            ], dim=1)
+            eraser = LeaceEraser.fit(H, concepts)
+            removed = eraser.proj_left @ eraser.proj_right
+            Q = torch.eye(H.shape[1], dtype=H.dtype) - removed
+            center = eraser.bias if eraser.bias is not None else torch.zeros(H.shape[1])
+            layer.weight.copy_(Q.to(layer.weight))
+            layer.bias.copy_((center @ removed.T).to(layer.bias))
+            for a in prohibited:
+                prefix = "" if name == "shared_union" else f"{name}/"
+                diagnostics[f"r2_pre[{prefix}{a}]"] = float(self.verifier(H, attrs[a], num_classes=schema[a]))
+                diagnostics[f"r2_post[{prefix}{a}]"] = float(self.verifier(eraser(H), attrs[a], num_classes=schema[a]))
+        self.encoder.train(was_training)
+        logger.info("[V2/ERASE] mode=%s diagnostics=%s", self.config.erase_mode, diagnostics)
+        return diagnostics
 
     def leace_warm_start(self, train_loader: DataLoader) -> dict[str, dict[str, float]]:
         """Initialise each purpose's last-Linear LoRA from a closed-form LEACE
@@ -674,7 +666,7 @@ class V2Trainer:
             oh_blocks: list[torch.Tensor] = []
             for a_name in disallowed:
                 a_int = attrs[a_name]
-                n_classes = int(a_int.max().item()) + 1
+                n_classes = self.attr_schema[a_name]
                 oh = torch.eye(n_classes)[a_int]  # (N, c_a)
                 oh_blocks.append(oh)
             A_oh = torch.cat(oh_blocks, dim=1).float()
@@ -689,12 +681,12 @@ class V2Trainer:
             c = (eye_d - Q) @ mu
 
             # Pre-init R² per pair (on train set, current backbone).
-            pre = {a: _linear_r2_train(Z.numpy(), attrs[a].numpy()) for a in disallowed}
+            pre = {a: _linear_r2_train(Z.numpy(), attrs[a].numpy(), num_classes=self.attr_schema[a]) for a in disallowed}
 
             # Apply LEACE-erased Z and report linear R² post-erasure (sanity).
             Z_erased = eraser(Z.float())
             post_closed = {
-                a: _linear_r2_train(Z_erased.numpy(), attrs[a].numpy())
+                a: _linear_r2_train(Z_erased.numpy(), attrs[a].numpy(), num_classes=self.attr_schema[a])
                 for a in disallowed
             }
 
@@ -771,6 +763,7 @@ class V2Trainer:
         self.vclub_optimizer.zero_grad()
         total.backward()
         self.vclub_optimizer.step()
+        self.state.vclub_optimizer_steps += 1
         return float(total.detach().item())
 
     def _primal_and_dual_step(
@@ -839,88 +832,41 @@ class V2Trainer:
             L_hsic_aux = L_hsic_aux + hsic_val
             hsic_scalars[pair_key_str] = float(hsic_val.detach().item())
 
-            if int(attr.max().item()) < 1:
-                # Degenerate batch (single class observed); zero R² for every
-                # constraint name belonging to this pair.
-                zero = torch.tensor(0.0, device=self.device)
-                for cname in self.pair_constraint_keys[pair]:
-                    constraint_values[cname] = zero
-                    constraint_scalars[cname] = 0.0
-                pair_r2_log[pair_key_str] = 0.0
-                continue
-
+            K = self.attr_schema[attr_name]
             if pair in self.high_k_pairs:
-                # K independent OvR binary R² constraints, one per class.
-                r2_per_k = self.verifier.forward_per_class(z, attr)  # (K_obs,)
-                names = self.pair_constraint_keys[pair]
-                K_total = len(names)
-                # Defensive: if a batch is missing the highest classes, the
-                # solver returns max_obs+1 entries. Extend with zeros so every
-                # constraint receives a value (zero is a valid lower-bound R²
-                # when no positive sample exists for that class in the batch).
-                if r2_per_k.numel() < K_total:
-                    pad = torch.zeros(
-                        K_total - r2_per_k.numel(), device=self.device,
-                    )
-                    r2_per_k = torch.cat([r2_per_k, pad])
-                pair_max = float("-inf")
-                for k, cname in enumerate(names):
-                    rk = r2_per_k[k]
-                    constraint_values[cname] = rk
-                    val = float(rk.detach().item())
-                    constraint_scalars[cname] = val
-                    pair_max = max(pair_max, val)
-                # L_verify is purely diagnostic; report mean per-class R².
-                L_verify = L_verify + r2_per_k.mean()
-                pair_r2_log[pair_key_str] = pair_max
+                scores = self.verifier.forward_per_class(z, attr, num_classes=K)
+                finite = torch.isfinite(scores)
+                for cname, rk in zip(self.pair_constraint_keys[pair], scores):
+                    if torch.isfinite(rk):
+                        constraint_values[cname] = rk
+                        constraint_scalars[cname] = float(rk.detach())
+                if finite.any():
+                    L_verify = L_verify + scores[finite].mean()
+                pair_r2_log[pair_key_str] = float(scores.max().detach())
             else:
-                # Single joint multi-output R² constraint (legacy).
-                r2_val = self.verifier(z, attr)
-                cname = self.pair_constraint_keys[pair][0]
-                constraint_values[cname] = r2_val
-                constraint_scalars[cname] = float(r2_val.detach().item())
-                L_verify = L_verify + r2_val
-                pair_r2_log[pair_key_str] = constraint_scalars[cname]
+                score = self.verifier(z, attr, num_classes=K)
+                pair_r2_log[pair_key_str] = float(score.detach())
+                if torch.isfinite(score):
+                    cname = self.pair_constraint_keys[pair][0]
+                    constraint_values[cname] = score
+                    constraint_scalars[cname] = float(score.detach())
+                    L_verify = L_verify + score
 
-        # ── Cross-purpose R² on h_concat (opt-in via cross_purpose_attrs) ──
         concat_r2_log: dict[str, float] = {}
         if self.cross_purpose_attrs:
-            h_concat = torch.cat(
-                [reprs[p] for p in self.purpose_names], dim=1
-            )  # (B, K_purposes * repr_dim)
+            h_concat = torch.cat([reprs[p] for p in self.purpose_names], dim=1)
             for attr_name in self.cross_purpose_attrs:
                 attr = batch["sensitive_attrs"][attr_name].long()
-                if int(attr.max().item()) < 1:
-                    zero = torch.tensor(0.0, device=self.device)
-                    for cname in self.cross_constraint_keys[attr_name]:
-                        constraint_values[cname] = zero
-                        constraint_scalars[cname] = 0.0
-                    concat_r2_log[f"concat[{attr_name}]"] = 0.0
-                    continue
+                K = self.attr_schema[attr_name]
                 if attr_name in self.cross_high_k_attrs:
-                    r2_per_k = self.verifier.forward_per_class(h_concat, attr)
-                    names = self.cross_constraint_keys[attr_name]
-                    K_total = len(names)
-                    if r2_per_k.numel() < K_total:
-                        pad = torch.zeros(
-                            K_total - r2_per_k.numel(), device=self.device,
-                        )
-                        r2_per_k = torch.cat([r2_per_k, pad])
-                    pair_max = float("-inf")
-                    for k, cname in enumerate(names):
-                        rk = r2_per_k[k]
-                        constraint_values[cname] = rk
-                        v = float(rk.detach().item())
-                        constraint_scalars[cname] = v
-                        pair_max = max(pair_max, v)
-                    concat_r2_log[f"concat[{attr_name}]"] = pair_max
+                    scores = self.verifier.forward_per_class(h_concat, attr, num_classes=K)
                 else:
-                    r2_val = self.verifier(h_concat, attr)
-                    cname = self.cross_constraint_keys[attr_name][0]
-                    constraint_values[cname] = r2_val
-                    v = float(r2_val.detach().item())
-                    constraint_scalars[cname] = v
-                    concat_r2_log[f"concat[{attr_name}]"] = v
+                    scores = self.verifier(h_concat, attr, num_classes=K).reshape(1)
+                for cname, score in zip(self.cross_constraint_keys[attr_name], scores):
+                    if torch.isfinite(score):
+                        constraint_values[cname] = score
+                        constraint_scalars[cname] = float(score.detach())
+                concat_r2_log[f"concat[{attr_name}]"] = float(scores.max().detach())
 
         # ── Lagrangian + scalarised primal loss ─────────────────────────
         if apply_constraints:
@@ -946,6 +892,7 @@ class V2Trainer:
                 max_norm=self.config.grad_clip,
             )
         self.primal_optimizer.step()
+        self.state.global_step += 1
 
         # ── Dual step ───────────────────────────────────────────────────
         if apply_constraints:
@@ -957,8 +904,10 @@ class V2Trainer:
             "vicreg": float(L_vicreg.detach().item()),
             "vclub_primal": float(L_vclub.detach().item()),
             "verify": float(L_verify.detach().item()),
+            "r2_valid_constraint_count": len(constraint_scalars),
+            "r2_total_constraint_count": len(self.proxy.constraints),
             "r2_mean": (
-                sum(constraint_scalars.values()) / max(len(constraint_scalars), 1)
+                sum(constraint_scalars.values()) / len(constraint_scalars) if constraint_scalars else float("nan")
             ),
             "hsic_mean": (
                 sum(hsic_scalars.values()) / max(len(hsic_scalars), 1)
@@ -999,7 +948,6 @@ class V2Trainer:
             for k, v in stats.items():
                 sums[k] = sums.get(k, 0.0) + v
             n += 1
-            self.state.global_step += 1
 
         m = V2EpochMetrics(
             loss=sums.get("primal_loss", 0.0) / max(n, 1),
@@ -1023,106 +971,78 @@ class V2Trainer:
 
     @torch.no_grad()
     def evaluate(self, loader: DataLoader) -> V2EpochMetrics:
+        """Evaluate task predictions and full-split empirical linear leakage.
+
+        Leakage is fitted on this validation split for checkpoint selection;
+        it is not an out-of-sample attacker score. Full-split fitting avoids
+        minibatch class-coverage artifacts and averages of batch maxima.
+        """
         self.encoder.eval()
         self.task_heads.eval()
         self.vclubs.eval()
-
         t0 = time.time()
         total_task = 0.0
-        total_hsic = 0.0
-        total_r2 = 0.0
-        per_pair_hsic_sum: dict[str, float] = {}
-        per_pair_r2_sum: dict[str, float] = {}
+        n_samples = 0
+        hsic_sums = {_pair_key(p, a): 0.0 for p, a in self.pair_keys}
+        features = {p: [] for p in self.purpose_names}
+        attributes = {a: [] for a in self.attr_schema}
         task_correct: dict[str, int] = {}
         task_total: dict[str, int] = {}
-        n = 0
-        n_pair_batches: dict[str, int] = {}
-
         for batch in loader:
             batch = self._to_device(batch)
-            reprs: dict[str, torch.Tensor] = {}
-            for purpose_name in self.purpose_names:
-                reprs[purpose_name] = self.encoder(
-                    batch["features"], self._purpose_idx(purpose_name),
-                )
-            # Task loss + accuracy
-            L_task = 0.0
-            for purpose_name, z in reprs.items():
-                task_name = self._primary_task(purpose_name)
+            batch_n = len(batch["features"])
+            n_samples += batch_n
+            for a in attributes:
+                attributes[a].append(batch["sensitive_attrs"][a].long())
+            for purpose in self.purpose_names:
+                z = self.encoder(batch["features"], self._purpose_idx(purpose))
+                features[purpose].append(z)
+                for a in self.purpose_configs[purpose]["disallowed_attrs"]:
+                    hsic_sums[_pair_key(purpose, a)] += batch_n * float(hsic(z, batch["sensitive_attrs"][a].long()))
+                task_name = self._primary_task(purpose)
                 if task_name not in batch["task_labels"]:
                     continue
-                head = self.task_heads[purpose_name]
-                preds = head(z)
+                preds = self.task_heads[purpose](z)
                 if isinstance(preds, dict):
                     preds = preds[task_name]
                 targets = batch["task_labels"][task_name]
-                L_task += float(task_loss(preds, targets, self._task_type(purpose_name)).item())
-                pred_classes = preds.argmax(dim=-1)
-                task_correct[task_name] = task_correct.get(task_name, 0) + int((pred_classes == targets).sum().item())
-                task_total[task_name] = task_total.get(task_name, 0) + targets.numel()
-            total_task += L_task
-
-            # HSIC + R² values per (p, a). For high-K pairs the per-pair
-            # R² reported in r2_per_pair is max_k per-class OvR R² —
-            # this matches the constraint metric used during training so
-            # downstream feasibility checks (Cotter selection) operate on
-            # the same quantity. Low-K pairs report joint multi-output R²
-            # (legacy / auditor metric).
-            for purpose_name, attr_name in self.pair_keys:
-                z = reprs[purpose_name]
-                attr = batch["sensitive_attrs"][attr_name].long()
-                pair = (purpose_name, attr_name)
-                key = _pair_key(purpose_name, attr_name)
-                hv = float(hsic(z, attr).item())
-                if int(attr.max().item()) >= 1:
-                    if pair in self.high_k_pairs:
-                        r2_per_k = self.verifier.forward_per_class(z, attr)
-                        K_total = self.high_k_pairs[pair]
-                        if r2_per_k.numel() < K_total:
-                            pad = torch.zeros(
-                                K_total - r2_per_k.numel(), device=self.device,
-                            )
-                            r2_per_k = torch.cat([r2_per_k, pad])
-                        rv = float(r2_per_k.max().item())
-                    else:
-                        rv = float(self.verifier(z, attr).item())
-                else:
-                    rv = 0.0
-                per_pair_hsic_sum[key] = per_pair_hsic_sum.get(key, 0.0) + hv
-                per_pair_r2_sum[key] = per_pair_r2_sum.get(key, 0.0) + rv
-                n_pair_batches[key] = n_pair_batches.get(key, 0) + 1
-                total_hsic += hv
-                total_r2 += rv
-
-            # Cross-purpose validation R² on h_concat (logging only).
+                total_task += batch_n * float(task_loss(preds, targets, self._task_type(purpose)))
+                if self._task_type(purpose) == "classification":
+                    task_correct[task_name] = task_correct.get(task_name, 0) + int((preds.argmax(-1) == targets).sum())
+                    task_total[task_name] = task_total.get(task_name, 0) + targets.numel()
+        scores = {key: float("nan") for key in self.score_thresholds}
+        coverage = {}
+        if n_samples:
+            features = {p: torch.cat(v) for p, v in features.items()}
+            attributes = {a: torch.cat(v) for a, v in attributes.items()}
+            groups = [( _pair_key(p, a), features[p], a, (p, a) in self.high_k_pairs)
+                      for p, a in self.pair_keys]
             if self.cross_purpose_attrs:
-                h_concat = torch.cat([reprs[p] for p in self.purpose_names], dim=1)
-                for attr_name in self.cross_purpose_attrs:
-                    attr = batch["sensitive_attrs"][attr_name].long()
-                    if int(attr.max().item()) < 1:
-                        rv_c = 0.0
-                    elif attr_name in self.cross_high_k_attrs:
-                        r2_per_k = self.verifier.forward_per_class(h_concat, attr)
-                        rv_c = float(r2_per_k.max().item())
-                    else:
-                        rv_c = float(self.verifier(h_concat, attr).item())
-                    key = f"concat[{attr_name}]"
-                    per_pair_r2_sum[key] = per_pair_r2_sum.get(key, 0.0) + rv_c
-                    n_pair_batches[key] = n_pair_batches.get(key, 0) + 1
-
-            n += 1
-
-        m = V2EpochMetrics(
-            loss=total_task / max(n, 1),  # task loss alone for early stopping
-            task_loss=total_task / max(n, 1),
-            hsic_mean=total_hsic / max(n * len(self.pair_keys), 1),
-            r2_mean=total_r2 / max(n * len(self.pair_keys), 1),
-            task_accuracy={k: task_correct[k] / task_total[k] for k in task_correct if task_total[k] > 0},
-            hsic_per_pair={k: v / max(n_pair_batches[k], 1) for k, v in per_pair_hsic_sum.items()},
-            r2_per_pair={k: v / max(n_pair_batches[k], 1) for k, v in per_pair_r2_sum.items()},
+                concat = torch.cat([features[p] for p in self.purpose_names], dim=1)
+                groups.extend((f"concat[{a}]", concat, a, a in self.cross_high_k_attrs)
+                              for a in self.cross_purpose_attrs)
+            for key, h, a, per_class in groups:
+                attr = attributes[a]
+                stats = self.verifier.per_class_statistics(h, attr, num_classes=self.attr_schema[a])
+                coverage[key] = {
+                    "support": stats.support.cpu().tolist(),
+                    "variance": stats.variance.cpu().tolist(),
+                    "valid_mask": stats.valid_mask.cpu().tolist(),
+                    "r2_per_class": stats.r_squared.cpu().tolist(),
+                }
+                scores[key] = float(stats.r_squared.max()) if per_class else float(
+                    self.verifier(h, attr, num_classes=self.attr_schema[a]))
+        finite = [v for v in scores.values() if math.isfinite(v)]
+        loss = total_task / n_samples if n_samples else float("nan")
+        return V2EpochMetrics(
+            loss=loss, task_loss=loss,
+            r2_mean=sum(finite) / len(finite) if finite and len(finite) == len(scores) else float("nan"),
+            task_accuracy={k: task_correct[k] / task_total[k] for k in task_correct},
+            r2_per_pair=scores, class_coverage=coverage,
+            hsic_per_pair={k: v / max(n_samples, 1) for k, v in hsic_sums.items()},
+            hsic_mean=sum(hsic_sums.values()) / max(n_samples * len(hsic_sums), 1),
             epoch_time=time.time() - t0,
         )
-        return m
 
     def train(self, train_loader: DataLoader, val_loader: DataLoader | None = None) -> V2State:
         """Round 2 training loop: warmup → constrained → true Cotter best-iterate.
@@ -1132,7 +1052,6 @@ class V2Trainer:
         iterate is selected post-hoc by the true Cotter rule (see
         ``_select_cotter_best``) and snapshotted as ``best.pt``.
         """
-        threshold = self.config.r2_threshold
         # Fix R2: with LEACE warm-start the LoRA already starts inside the
         # feasible set; the legacy task-only warmup phase erases that
         # initialisation before constraints engage. Skip warmup when
@@ -1159,9 +1078,11 @@ class V2Trainer:
             tuple[int, dict[str, dict[str, torch.Tensor]], float, dict[str, float], float, bool]
         ] = []
 
-        for epoch in range(total_epochs):
+        # Epoch counts completed training epochs; initialization has zero updates.
+        self.save_checkpoint("initialization")
+        for epoch in range(1, total_epochs + 1):
             self.state.epoch = epoch
-            in_warmup = epoch < warmup_n
+            in_warmup = epoch <= warmup_n
             apply_constraints = not in_warmup
 
             tr = self.train_epoch(train_loader, apply_constraints=apply_constraints)
@@ -1178,8 +1099,10 @@ class V2Trainer:
                 self._update_history("val", val)
 
                 r2_per_pair = {k: float(v) for k, v in val.r2_per_pair.items()}
-                violation_sum = sum(max(0.0, v - threshold) for v in r2_per_pair.values())
+                _, violation_sum = self._score_summary(r2_per_pair)
                 self.state.history.setdefault("val_violation_sum", []).append(violation_sum)
+                self.state.history.setdefault("val_class_coverage", []).append(val.class_coverage)
+                self.state.history.setdefault("optimizer_steps_per_epoch", []).append(self.state.global_step)
                 self.state.history.setdefault("r2_per_pair_per_epoch", []).append(r2_per_pair)
                 self.state.history.setdefault("warmup_flag_per_epoch", []).append(bool(in_warmup))
 
@@ -1190,6 +1113,10 @@ class V2Trainer:
                 )
 
                 snapshot = {
+                    "optimizer_steps": self.state.global_step,
+                    "vclub_optimizer_steps": self.state.vclub_optimizer_steps,
+                    "vclubs": {k: v.detach().cpu().clone() for k, v in self.vclubs.state_dict().items()},
+                    "lambdas": {n: c.lambda_value for n, c in self.proxy.constraints.items()},
                     "backbone": {k: v.detach().cpu().clone() for k, v in self.encoder.backbone.state_dict().items()},
                     "lora_adapters": {k: v.detach().cpu().clone() for k, v in self.encoder.adapters.state_dict().items()},
                     "task_heads": {k: v.detach().cpu().clone() for k, v in self.task_heads.state_dict().items()},
@@ -1202,20 +1129,23 @@ class V2Trainer:
         self.save_checkpoint("final")
 
         # ── True Cotter best-iterate selection ──────────────────────────
-        sel = self._select_cotter_best(epoch_records, threshold)
+        sel = self._select_cotter_best(epoch_records)
         if sel is not None:
             sel_epoch, snap, sel_loss, sel_r2, sel_viol, sel_kind = sel
             # Restore the selected weights into the live model and save as best.pt.
             self.encoder.backbone.load_state_dict(snap["backbone"])
             self.encoder.adapters.load_state_dict(snap["lora_adapters"])
             self.task_heads.load_state_dict(snap["task_heads"])
+            self.vclubs.load_state_dict(snap["vclubs"])
+            for name, value in snap["lambdas"].items():
+                self.proxy.constraints[name].lambda_value = value
             self.state.best_epoch = sel_epoch
             self.state.best_val_loss = sel_loss  # task_loss at best, not composite
-            self.save_checkpoint("best")
+            self.save_checkpoint("best", epoch=sel_epoch, optimizer_steps=snap["optimizer_steps"], vclub_steps=snap["vclub_optimizer_steps"])
 
             n_feasible = sum(
                 1 for r in epoch_records
-                if not r[5] and all(v < threshold for v in r[3].values())
+                if not r[5] and self._score_summary(r[3])[0]
             )
             n_eligible = sum(1 for r in epoch_records if not r[5])
             logger.info(
@@ -1238,8 +1168,7 @@ class V2Trainer:
 
         # Second-pass selector (opt-in via ``report_best_iterate``). Writes
         # ``canonical_iterate.pt`` containing whichever of (best.pt, final.pt)
-        # has the lower mean R² across all (purpose, attribute) pairs on the
-        # validation set. ``best.pt`` is the Cotter-selected snapshot
+        # has the better validation feasibility, violation, then mean R². ``best.pt`` is the Cotter-selected snapshot
         # currently loaded into the live model; ``final.pt`` is the last
         # iterate. Adult/HMDA/Diabetes runs leave this flag False so no
         # canonical_iterate.pt is created, preserving existing behavior.
@@ -1252,7 +1181,11 @@ class V2Trainer:
             mean_best = (
                 sum(best_r2.values()) / max(len(best_r2), 1) if best_r2 else float("inf")
             )
-            if mean_final < mean_best:
+            final_status = self._score_summary(final_r2)
+            best_status = self._score_summary(best_r2)
+            final_rank = (not final_status[0], final_status[1], mean_final)
+            best_rank = (not best_status[0], best_status[1], mean_best)
+            if final_rank < best_rank:
                 # Restore final snapshot, save as canonical_iterate.pt, then
                 # restore best snapshot back into the live model so downstream
                 # callers see the Cotter-selected weights as before.
@@ -1260,19 +1193,25 @@ class V2Trainer:
                 self.encoder.backbone.load_state_dict(final_snap["backbone"])
                 self.encoder.adapters.load_state_dict(final_snap["lora_adapters"])
                 self.task_heads.load_state_dict(final_snap["task_heads"])
-                self.save_checkpoint("canonical_iterate")
+                self.vclubs.load_state_dict(final_snap["vclubs"])
+                for name, value in final_snap["lambdas"].items():
+                    self.proxy.constraints[name].lambda_value = value
+                self.save_checkpoint("canonical_iterate", epoch=epoch_records[-1][0], optimizer_steps=final_snap["optimizer_steps"], vclub_steps=final_snap["vclub_optimizer_steps"])
                 # Restore best snapshot.
                 best_snap = sel[1]
                 self.encoder.backbone.load_state_dict(best_snap["backbone"])
                 self.encoder.adapters.load_state_dict(best_snap["lora_adapters"])
                 self.task_heads.load_state_dict(best_snap["task_heads"])
+                self.vclubs.load_state_dict(best_snap["vclubs"])
+                for name, value in best_snap["lambdas"].items():
+                    self.proxy.constraints[name].lambda_value = value
                 logger.info(
                     f"[V2/CANONICAL] selected final.pt "
                     f"(mean_R²_final={mean_final:.4f} < mean_R²_best={mean_best:.4f})"
                 )
             else:
                 # Live model is already best; just save under the new name.
-                self.save_checkpoint("canonical_iterate")
+                self.save_checkpoint("canonical_iterate", epoch=sel[0], optimizer_steps=sel[1]["optimizer_steps"], vclub_steps=sel[1]["vclub_optimizer_steps"])
                 logger.info(
                     f"[V2/CANONICAL] selected best.pt "
                     f"(mean_R²_best={mean_best:.4f} <= mean_R²_final={mean_final:.4f})"
@@ -1282,13 +1221,23 @@ class V2Trainer:
 
     # ── Cotter best-iterate selection ───────────────────────────────────
 
+    def _score_summary(self, scores: dict[str, float]) -> tuple[bool, float]:
+        """Use each score's own threshold; incomplete coverage is not a pass."""
+        if set(scores) != set(self.score_thresholds):
+            return False, float("inf")
+        if any(not math.isfinite(v) for v in scores.values()):
+            return False, float("inf")
+        violation = sum(max(0.0, value - self.score_thresholds[key])
+                        for key, value in scores.items())
+        return all(value <= self.score_thresholds[key] for key, value in scores.items()), violation
+
     def _select_cotter_best(
-        self, records, threshold: float,
+        self, records, threshold: float | None = None,
     ):
         """Cotter et al. JMLR 2019 §4.6 best-iterate selection.
 
         Among post-warmup iterates:
-          1. If any iterate is fully feasible (every R² < threshold), return
+          1. If every declared score is defined and R² <= its own threshold, return
              the one with min val_task_loss.
           2. Otherwise, among iterates whose task_loss is within
              ``cotter_fallback_task_slack`` (default 10%) of the best task_loss,
@@ -1302,7 +1251,10 @@ class V2Trainer:
         if not eligible:
             eligible = list(records)
 
-        feasible = [r for r in eligible if all(v < threshold for v in r[3].values())]
+        # Recompute instead of trusting precomputed legacy violation sums.
+        eligible = [(r[0], r[1], r[2], r[3], self._score_summary(r[3])[1], r[5])
+                    for r in eligible]
+        feasible = [r for r in eligible if self._score_summary(r[3])[0]]
         if feasible:
             b = min(feasible, key=lambda r: r[2])
             # records are (epoch, snap, loss, r2, viol, in_warmup); drop in_warmup
@@ -1331,7 +1283,7 @@ class V2Trainer:
         ):
             self.state.history.setdefault(f"{prefix}_{key}", []).append(val)
 
-    def save_checkpoint(self, name: str) -> Path:
+    def save_checkpoint(self, name: str, *, epoch: int | None = None, optimizer_steps: int | None = None, vclub_steps: int | None = None) -> Path:
         ckpt_dir = Path(self.config.checkpoint_dir)
         ckpt_dir.mkdir(parents=True, exist_ok=True)
         # Encoder top-level buffers that don't live under ``backbone`` or
@@ -1356,9 +1308,15 @@ class V2Trainer:
             "vclubs": self.vclubs.state_dict(),
             "lambdas": {n: c.lambda_value for n, c in self.proxy.constraints.items()},
             "config": vars(self.config),
+            "initialization_provenance": self.config.initialization_provenance,
+            "constraint_thresholds": self.score_thresholds,
+            "optimizer_steps": {
+                "primal": self.state.global_step if optimizer_steps is None else optimizer_steps,
+                "vclub": self.state.vclub_optimizer_steps if vclub_steps is None else vclub_steps,
+            },
             "state": {
-                "epoch": self.state.epoch,
-                "global_step": self.state.global_step,
+                "epoch": self.state.epoch if epoch is None else epoch,
+                "global_step": self.state.global_step if optimizer_steps is None else optimizer_steps,
                 "best_val_loss": self.state.best_val_loss,
                 "best_epoch": self.state.best_epoch,
             },

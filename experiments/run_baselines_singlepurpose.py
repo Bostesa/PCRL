@@ -100,6 +100,7 @@ def first_purpose_spec(purposes) -> dict:
         "task_name": task_name,
         "task_dim": p.allowed_task_dims[task_name],
         "disallowed_attrs": list(p.disallowed_attrs),
+        "disallowed_attr_dims": dict(p.disallowed_attr_dims),
     }
 
 
@@ -240,21 +241,25 @@ def evaluate_run(
     for attr in purpose_spec["disallowed_attrs"]:
         y_tr = train_labels[attr]
         y_te = test_labels[attr]
-        K = int(max(y_tr.max(), y_te.max())) + 1
+        K = purpose_spec["disallowed_attr_dims"].get(attr, int(y_tr.max()) + 1)
 
-        r2_onehot = float(cert.check(test_reprs, y_te).r_squared)
-        da = compute_dominant_axis_r2(test_reprs, y_te)
+        r2_onehot = float(cert.check(test_reprs, y_te, num_classes=K).r_squared)
+        da = compute_dominant_axis_r2(test_reprs, y_te, num_classes=K)
 
         mlp_delta = None
         mlp_argmax = -1
+        mlp_coverage = {}
         if K > 2:
             mlp = compute_mlp_ovr_delta(
-                train_reprs, y_tr, test_reprs, y_te,
+                train_reprs, y_tr, test_reprs, y_te, num_classes=K,
                 hidden=256, epochs=50, lr=1e-3, dropout=0.3,
                 batch_size=256, device=DEVICE, random_state=seed,
             )
             mlp_delta = float(mlp["mlp_da_delta"])
             mlp_argmax = int(mlp["argmax_class"])
+            mlp_coverage = {key: mlp[key] for key in (
+                "train_class_support", "test_class_support", "valid_mask", "coverage_complete",
+            )}
 
         per_attr[attr] = {
             "num_classes": K,
@@ -265,6 +270,7 @@ def evaluate_run(
             "priors": [float(x) for x in da["priors"]],
             "mlp_da_delta": mlp_delta,
             "mlp_da_argmax_class": mlp_argmax,
+            "mlp_da_coverage": mlp_coverage,
         }
         log_fn(
             f"    [{purpose_spec['name']}/{attr}/K={K}] "

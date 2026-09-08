@@ -1,14 +1,8 @@
-"""Compliance certificates and verification.
+"""Empirical covariance and affine least-squares compliance checks.
 
-Provides mathematical certificates proving that disallowed attributes
-cannot be linearly recovered from learned representations.
-
-Key insight: linear certificates are PROVABLE (closed-form), while
-empirical audits (PostHocAuditorSuite) are sanity checks. Together
-they give both mathematical guarantees and practical confidence.
-
-Includes a formal theorem (Linear Compliance Guarantee) that converts
-R² certificates into upper bounds on classification accuracy.
+These scores concern squared-error prediction on the supplied sample. They
+are not universal guarantees on linear-threshold classification accuracy or
+out-of-sample leakage. The former accuracy-bound APIs are explicitly retired.
 """
 
 from __future__ import annotations
@@ -22,40 +16,82 @@ import numpy as np
 
 @dataclass
 class CertificateResult:
-    """Result of a compliance certificate check.
+    """Empirical affine ridge score and explicit target coverage.
 
-    Attributes:
-        r_squared: R² score of the optimal linear predictor.
-        certified: Whether the certificate passes (R² < epsilon).
-        epsilon: Threshold used for certification.
-        variance_preserved: Fraction of task-relevant variance preserved
-            after null-space projection (only set by NullSpaceCertificate).
+    ``certified`` means the defined empirical squared-error score meets the
+    threshold. It makes no universal classification-accuracy claim.
     """
 
     r_squared: float
     certified: bool
     epsilon: float
     variance_preserved: float | None = None
+    class_support: list[int] | None = None
+    valid_mask: list[bool] | None = None
+    coverage_complete: bool = True
+    score_defined: bool = True
+
+
+def _prepare_targets(Z: np.ndarray, num_classes: int | None = None):
+    """Construct a fixed one-hot schema, or retain continuous target columns."""
+    if Z.ndim == 1 and np.issubdtype(Z.dtype, np.integer):
+        K = num_classes if num_classes is not None else (int(Z.max()) + 1 if len(Z) else 0)
+        if K < 1 or (len(Z) and (Z.min() < 0 or Z.max() >= K)):
+            raise ValueError("Integer labels require a nonempty schema [0, num_classes)")
+        targets = np.eye(K, dtype=np.float64)[Z.astype(int)]
+        support = targets.sum(axis=0).astype(int)
+    else:
+        if num_classes is not None:
+            raise ValueError("num_classes applies only to integer class labels")
+        targets = np.asarray(Z, dtype=np.float64)
+        if targets.ndim == 1:
+            targets = targets[:, None]
+        if targets.ndim != 2 or targets.shape[1] == 0:
+            raise ValueError("Targets must have shape (n,) or (n,c)")
+        # For one-hot matrices retain class support; continuous columns have
+        # no categorical support interpretation.
+        is_onehot = np.all((targets == 0) | (targets == 1)) and np.all(targets.sum(axis=1) == 1)
+        support = targets.sum(axis=0).astype(int) if is_onehot else None
+    return targets, support
+
+
+def _empirical_ridge_fit(H, Z, regularization, num_classes):
+    H = np.asarray(H, dtype=np.float64)
+    targets, support = _prepare_targets(np.asarray(Z), num_classes)
+    if H.ndim != 2 or len(H) != len(targets):
+        raise ValueError("Expected H (n,d) and matching target rows")
+    if not np.isfinite(H).all() or not np.isfinite(targets).all():
+        raise ValueError("Representations and targets must be finite")
+    n, d = H.shape
+    if n == 0:
+        valid = np.zeros(targets.shape[1], dtype=bool)
+        return H, np.zeros((d, targets.shape[1])), float("nan"), support, valid
+    H_c = H - H.mean(axis=0, keepdims=True)
+    Z_c = targets - targets.mean(axis=0, keepdims=True)
+    ss_tot = (Z_c ** 2).sum(axis=0)
+    valid = ss_tot > 0
+    if support is not None:
+        valid &= (support > 0) & (support < n)
+    gram = H_c.T @ H_c + regularization * np.eye(d)
+    W = np.linalg.solve(gram, H_c.T @ Z_c)
+    # Require coverage of every declared target; undefined columns do not
+    # silently disappear in the variance-weighted aggregate.
+    score = float("nan")
+    if valid.all():
+        score = float(max(0.0, 1.0 - ((Z_c - H_c @ W) ** 2).sum() / ss_tot.sum()))
+    return H_c, W, score, support, valid
 
 
 class LinearComplianceCertificate:
-    """Closed-form linear compliance certificate.
+    """In-sample affine ridge least-squares audit with explicit coverage.
 
-    Given representations H (n × d) and disallowed labels Z (n × c one-hot
-    or n × 1 integer), computes the optimal linear predictor W* and its R².
-    If R² < epsilon, we certify that no linear classifier can predict Z from
-    H with R² exceeding epsilon.
-
-    Similar in spirit to LEACE (Belrose et al. 2023) concept erasure verification.
+    Fitting and scoring occur on the supplied rows. This empirical covariance /
+    squared-error diagnostic is separate from out-of-sample predictive R² and
+    does not certify threshold-classification accuracy. Regularization gives
+    a ridge score; it is not a universal bound on unregularized OLS predictors.
     """
 
     def __init__(self, epsilon: float = 0.01, regularization: float = 1e-6) -> None:
-        """Initialize the certificate checker.
-
-        Args:
-            epsilon: R² threshold below which a certificate is issued.
-            regularization: Tikhonov regularization for numerical stability.
-        """
         self.epsilon = epsilon
         self.regularization = regularization
 
@@ -63,49 +99,26 @@ class LinearComplianceCertificate:
         self,
         H: torch.Tensor | np.ndarray,
         Z: torch.Tensor | np.ndarray,
+        *,
+        num_classes: int | None = None,
     ) -> CertificateResult:
-        """Check linear compliance.
+        """Score integer labels in a fixed schema or continuous target columns.
 
-        Args:
-            H: Representations of shape (n, d).
-            Z: Disallowed attribute labels. Either integer labels of shape (n,)
-               or one-hot of shape (n, c).
-
-        Returns:
-            CertificateResult with R² and certification status.
+        Pass the dataset's class count for integer labels. Float targets are
+        treated as continuous, including shape (n,); one-hot matrices work too.
+        Incomplete support or zero target variance yields NaN and fails closed.
         """
-        H_np = self._to_numpy(H)
-        Z_np = self._to_numpy(Z)
-
-        # Convert integer labels to one-hot for the linear predictor
-        if Z_np.ndim == 1:
-            num_classes = int(Z_np.max()) + 1
-            Z_onehot = np.eye(num_classes)[Z_np.astype(int)]
-        else:
-            Z_onehot = Z_np
-
-        n, d = H_np.shape
-
-        # Center the data
-        H_centered = H_np - H_np.mean(axis=0, keepdims=True)
-        Z_centered = Z_onehot - Z_onehot.mean(axis=0, keepdims=True)
-
-        # Compute optimal linear predictor: W* = (H^T H + λI)^{-1} H^T Z
-        gram = H_centered.T @ H_centered + self.regularization * np.eye(d)
-        W_star = np.linalg.solve(gram, H_centered.T @ Z_centered)
-
-        # Compute predictions and R²
-        Z_pred = H_centered @ W_star
-        ss_res = np.sum((Z_centered - Z_pred) ** 2)
-        ss_tot = np.sum(Z_centered ** 2)
-
-        r_squared = 1.0 - (ss_res / max(ss_tot, 1e-12))
-        r_squared = float(max(0.0, r_squared))  # Clamp to [0, 1]
-
+        _, _, score, support, valid = _empirical_ridge_fit(
+            self._to_numpy(H), self._to_numpy(Z), self.regularization, num_classes,
+        )
         return CertificateResult(
-            r_squared=r_squared,
-            certified=r_squared < self.epsilon,
+            r_squared=score,
+            certified=bool(np.isfinite(score) and score < self.epsilon),
             epsilon=self.epsilon,
+            class_support=None if support is None else support.tolist(),
+            valid_mask=valid.tolist(),
+            coverage_complete=bool(valid.all()),
+            score_defined=bool(np.isfinite(score)),
         )
 
     @staticmethod
@@ -116,15 +129,10 @@ class LinearComplianceCertificate:
 
 
 class NullSpaceCertificate:
-    """Null-space compliance certificate.
+    """Empirical ridge diagnostic with geometric variance preservation.
 
-    Projects H onto the null space of the optimal linear predictor of Z,
-    then measures how much total variance is preserved. A high preservation
-    means the representation retains most of its information even after
-    removing all linearly-predictable Z information.
-
-    Certificate: "The representation's projection orthogonal to Z preserves
-    X% of task-relevant variance."
+    The projection removes the span of fitted coefficient columns. The
+    retained fraction measures total representation variance, not task utility.
     """
 
     def __init__(self, epsilon: float = 0.01, regularization: float = 1e-6) -> None:
@@ -135,73 +143,36 @@ class NullSpaceCertificate:
         self,
         H: torch.Tensor | np.ndarray,
         Z: torch.Tensor | np.ndarray,
+        *,
+        num_classes: int | None = None,
     ) -> CertificateResult:
-        """Check null-space compliance and measure variance preservation.
-
-        Args:
-            H: Representations of shape (n, d).
-            Z: Disallowed attribute labels (n,) or one-hot (n, c).
-
-        Returns:
-            CertificateResult with R², certification status, and
-            variance_preserved indicating how much variance remains
-            after projecting out Z-predictive directions.
-        """
-        H_np = self._to_numpy(H)
-        Z_np = self._to_numpy(Z)
-
-        if Z_np.ndim == 1:
-            num_classes = int(Z_np.max()) + 1
-            Z_onehot = np.eye(num_classes)[Z_np.astype(int)]
-        else:
-            Z_onehot = Z_np
-
-        n, d = H_np.shape
-
-        # Center
-        H_centered = H_np - H_np.mean(axis=0, keepdims=True)
-        Z_centered = Z_onehot - Z_onehot.mean(axis=0, keepdims=True)
-
-        # Compute optimal linear predictor
-        gram = H_centered.T @ H_centered + self.regularization * np.eye(d)
-        W_star = np.linalg.solve(gram, H_centered.T @ Z_centered)
-
-        # R² of the linear predictor
-        Z_pred = H_centered @ W_star
-        ss_res = np.sum((Z_centered - Z_pred) ** 2)
-        ss_tot = np.sum(Z_centered ** 2)
-        r_squared = float(max(0.0, 1.0 - (ss_res / max(ss_tot, 1e-12))))
-
-        # Compute null-space projection
-        # The Z-predictive subspace is spanned by the columns of W_star.
-        # Project H onto the orthogonal complement.
-        U, S, Vt = np.linalg.svd(W_star, full_matrices=False)
-        # Projection matrix onto column space of W_star
-        P_z = U @ U.T  # (d, d) projection onto Z-predictive subspace
-        # Null-space projector (in representation space)
-        P_null = np.eye(d) - P_z
-
-        H_projected = H_centered @ P_null
-        var_original = np.sum(H_centered ** 2)
-        var_projected = np.sum(H_projected ** 2)
-        variance_preserved = float(var_projected / max(var_original, 1e-12))
-
+        H_c, W, score, support, valid = _empirical_ridge_fit(
+            self._to_numpy(H), self._to_numpy(Z), self.regularization, num_classes,
+        )
+        # Include only nonzero singular directions: full U would remove
+        # arbitrary directions when the fitted predictor is rank deficient.
+        U, singular, _ = np.linalg.svd(W, full_matrices=False)
+        tolerance = np.finfo(W.dtype).eps * max(W.shape) * (singular[0] if len(singular) else 0.0)
+        basis = U[:, singular > tolerance]
+        projected = H_c - (H_c @ basis) @ basis.T
+        variance = float((H_c ** 2).sum())
+        preserved = float((projected ** 2).sum() / variance) if variance > 0 else float("nan")
         return CertificateResult(
-            r_squared=r_squared,
-            certified=r_squared < self.epsilon,
+            r_squared=score,
+            certified=bool(np.isfinite(score) and score < self.epsilon),
             epsilon=self.epsilon,
-            variance_preserved=variance_preserved,
+            variance_preserved=preserved,
+            class_support=None if support is None else support.tolist(),
+            valid_mask=valid.tolist(),
+            coverage_complete=bool(valid.all()),
+            score_defined=bool(np.isfinite(score)),
         )
 
-    @staticmethod
-    def _to_numpy(x: torch.Tensor | np.ndarray) -> np.ndarray:
-        if isinstance(x, torch.Tensor):
-            return x.detach().cpu().numpy()
-        return np.asarray(x)
+    _to_numpy = staticmethod(LinearComplianceCertificate._to_numpy)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Theorem: Linear Compliance Guarantee
+# Retired classification-accuracy interfaces
 # ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -210,166 +181,27 @@ def certified_accuracy_bound(
     majority_proportion: float,
     num_classes: int = 2,
 ) -> float:
-    """Compute an upper bound on linear classifier accuracy from the R² certificate.
+    """Retired: least-squares R² does not bound threshold-classifier accuracy.
 
-    Theorem (Linear Compliance Guarantee):
-        Let h = f(x, p) be the representation produced by the encoder for
-        purpose p.  Let W* = argmin_W ||HW - Z||² be the optimal linear
-        predictor of the one-hot encoded disallowed attribute Z from the
-        representation matrix H.  If the compliance certificate reports
-        R² < epsilon, then for ANY linear classifier g(h) = Wh + b, the
-        accuracy of predicting Z from h is bounded above by:
-
-            acc(g) <= max(pi_maj, pi_maj + sqrt(epsilon * k * pi_maj * (1 - pi_maj)))
-
-        where pi_maj is the majority-class proportion and k is the number
-        of classes.
-
-    Proof:
-        We derive the bound in three steps, connecting R² of the optimal
-        linear regression to the best achievable classification accuracy.
-
-        Step 1: R² bounds the variance explained.
-        -----------------------------------------
-        The R² of the optimal linear predictor W* on the one-hot encoding
-        Z is defined as:
-
-            R² = 1 - SS_res / SS_tot
-
-        where SS_tot = ||Z - Z_bar||² is the total variance of the
-        centered one-hot targets and SS_res = ||Z - HW*||² is the
-        residual.  Since W* is optimal (minimises SS_res over all linear
-        maps), any other linear map W achieves R²(W) <= R²(W*) = R².
-        Therefore:
-
-            For all linear W:  Var_explained(W) <= R² * SS_tot.       (1)
-
-        Step 2: Link explained variance to correlation.
-        ------------------------------------------------
-        Consider a single binary column z_j of the one-hot encoding
-        (indicating class j).  z_j has mean pi_j and variance
-        pi_j(1 - pi_j).  The squared correlation between any linear
-        projection w^T h and z_j satisfies:
-
-            rho²(w^T h, z_j) = Cov²(w^T h, z_j) / [Var(w^T h) * Var(z_j)]
-
-        The numerator Cov²(w^T h, z_j) is bounded by the variance that
-        the linear map explains in z_j, which by (1) is at most
-        R² * n * pi_j(1 - pi_j) (the fraction of SS_tot attributable to
-        column j).  Therefore:
-
-            rho²(w^T h, z_j) <= R²                                    (2)
-
-        for the optimal direction w.
-
-        Step 3: Convert correlation to accuracy via Bayes error.
-        --------------------------------------------------------
-        For a k-class problem, the Bayes error rate P_e of the best
-        classifier using a single linear feature with squared correlation
-        rho² with the class indicator is lower-bounded by the error when
-        the feature is Gaussian-distributed within each class.  In the
-        binary case, a classical result (Tong, 1990; Devroye et al.,
-        1996) gives:
-
-            P_e >= pi_min * (1 - sqrt(rho²))
-
-        for the minority class with proportion pi_min = 1 - pi_maj.
-        Equivalently, accuracy is bounded by:
-
-            acc <= 1 - P_e <= 1 - pi_min + pi_min * sqrt(rho²)
-                 = pi_maj + (1 - pi_maj) * sqrt(rho²)
-
-        Substituting rho² <= R² from (2):
-
-            acc <= pi_maj + (1 - pi_maj) * sqrt(R²)
-
-        For k > 2 classes, the one-hot encoding has k columns. The
-        optimal linear classifier can exploit correlations with ALL k
-        class indicators simultaneously.  Each column j contributes at
-        most R² * pi_j(1 - pi_j) of explained variance.  The total
-        excess accuracy (above majority baseline) is bounded by the sum
-        of per-class contributions:
-
-            acc - pi_maj <= sum_j sqrt(R² * pi_j * (1 - pi_j))
-
-        In the worst case (classes balanced at 1/k each, which maximises
-        the sum), this simplifies to:
-
-            acc - pi_maj <= k * sqrt(R² * (1/k) * (1 - 1/k))
-                         = sqrt(R² * k * (k-1)) / sqrt(k)
-                         = sqrt(R² * (k-1))
-
-        For our general bound, we use the tighter per-class form
-        evaluated at the actual majority proportion:
-
-            acc <= pi_maj + sqrt(R² * k * pi_maj * (1 - pi_maj))
-
-        This is obtained by applying Cauchy-Schwarz to the sum of
-        per-class contributions:
-
-            sum_j sqrt(R² * pi_j(1-pi_j))
-              <= sqrt(k * R² * sum_j pi_j(1-pi_j) / k)    [Cauchy-Schwarz]
-              <= sqrt(k * R² * pi_maj(1 - pi_maj))         [Jensen's ineq.]
-
-        Finally, the bound cannot be below the majority-class baseline
-        (a trivial classifier always predicts the majority class), so:
-
-            acc(g) <= max(pi_maj, pi_maj + sqrt(epsilon * k * pi_maj * (1 - pi_maj)))
-
-        QED.
-
-    Args:
-        r_squared: R² from the linear compliance certificate (0 <= R² <= 1).
-        majority_proportion: Proportion of the majority class (0 < pi <= 1).
-        num_classes: Number of distinct classes (k >= 2).
-
-    Returns:
-        Upper bound on the accuracy of any linear classifier predicting
-        the disallowed attribute from the representation.
-
-    Examples:
-        >>> certified_accuracy_bound(0.01, 0.5, 2)   # R²=1%, balanced binary
-        0.5707...
-        >>> certified_accuracy_bound(0.0, 0.6, 2)     # R²=0, trivially majority
-        0.6
-        >>> certified_accuracy_bound(0.01, 0.8, 3)    # R²=1%, 80% majority, 3-class
-        0.9236...
+    The signature remains available so downstream callers receive an explicit
+    error instead of silently reusing the invalid universal guarantee. For the
+    exact counterexample, see ``docs/ACCURACY_CERTIFICATE_RETIREMENT.md`` and
+    ``tests/test_accuracy_bound.py``. Zero covariance and zero affine
+    least-squares explained variance remain meaningful, narrower claims.
     """
-    if not 0.0 <= r_squared <= 1.0:
-        raise ValueError(f"r_squared must be in [0, 1], got {r_squared}")
-    if not 0.0 < majority_proportion <= 1.0:
-        raise ValueError(
-            f"majority_proportion must be in (0, 1], got {majority_proportion}"
-        )
-    if num_classes < 2:
-        raise ValueError(f"num_classes must be >= 2, got {num_classes}")
-
-    pi_maj = majority_proportion
-    k = num_classes
-
-    excess = math.sqrt(r_squared * k * pi_maj * (1.0 - pi_maj))
-    bound = pi_maj + excess
-
-    # Clamp to [pi_maj, 1.0]
-    return min(max(bound, pi_maj), 1.0)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Nonlinear Compliance Certificate (Randomized Smoothing)
-# ═══════════════════════════════════════════════════════════════════════════
+    raise NotImplementedError(
+        "certified_accuracy_bound is retired: affine least-squares R² does "
+        "not imply a universal classification-accuracy bound. Evaluate "
+        "classification accuracy with separately fitted held-out attackers."
+    )
 
 
 @dataclass
 class NonlinearCertificateResult:
-    """Result of a nonlinear compliance certificate check.
+    """Legacy serialized result schema; its accuracy bounds are invalid.
 
-    Attributes:
-        best_sigma: Sigma that produced the tightest bound.
-        r_squared_noisy: R² of the linear predictor on noisy representations.
-        linear_bound: Accuracy bound from the linear certificate on noisy h.
-        nonlinear_bound: Accuracy bound for Lipschitz-bounded nonlinear classifiers.
-        lipschitz_constant: Assumed Lipschitz constant L of the adversary.
-        per_sigma: Per-sigma breakdown of (sigma, r2_noisy, bound).
+    Retained for import compatibility and reading historical artifacts only.
+    Active report generation never constructs a result from this schema.
     """
 
     best_sigma: float
@@ -381,49 +213,7 @@ class NonlinearCertificateResult:
 
 
 class NonlinearComplianceCertificate:
-    """Randomized smoothing certificate for Lipschitz-bounded nonlinear adversaries.
-
-    Extends the linear compliance certificate to nonlinear classifiers using
-    randomized smoothing theory (Cohen et al. 2019, Salman et al. 2019).
-
-    Key idea:
-        If we add isotropic Gaussian noise N(0, sigma²I) to the representation
-        h and the linear R² certificate certifies that the noisy representation
-        h + noise has R² < epsilon, then for any classifier g with Lipschitz
-        constant L:
-
-            acc(g, h) <= certified_accuracy_bound(R²_noisy) + L * sigma * C(d)
-
-        where C(d) = sqrt(2 / (pi * d)) is a dimension-dependent correction
-        factor arising from the expected norm of Gaussian noise projected onto
-        the gradient direction.
-
-    Proof sketch:
-        1. Let g: R^d -> R^k be a classifier with Lipschitz constant L, i.e.,
-           ||g(h1) - g(h2)|| <= L * ||h1 - h2|| for all h1, h2.
-
-        2. Define the smoothed classifier g_sigma(h) = E[g(h + eta)] where
-           eta ~ N(0, sigma²I).  By the randomized smoothing guarantee,
-           g_sigma is "stable" — its predictions cannot change much under
-           small perturbations.
-
-        3. The smoothed classifier g_sigma operates on the distribution of
-           noisy representations. Since g_sigma is an affine functional of
-           the distribution of g(h + eta), and the linear certificate bounds
-           the R² of ANY linear predictor on h + eta, g_sigma's accuracy
-           on the noisy representations is bounded by the linear bound.
-
-        4. The gap between g(h) on clean data and g_sigma(h) is bounded by
-           E[||g(h) - g(h + eta)||] <= L * E[||eta||] = L * sigma * sqrt(d)
-           * sqrt(2/pi) / sqrt(d) = L * sigma * sqrt(2 / (pi * d)).
-           In terms of accuracy difference, this translates to at most
-           L * sigma * sqrt(2 / (pi * d)).
-
-        5. Therefore: acc(g, h) <= acc(g_sigma, h_noisy) + L*sigma*C(d)
-                                 <= linear_bound(R²_noisy) + L*sigma*C(d)
-
-    We test multiple sigma values and report the tightest bound.
-    """
+    """Retired smoothing extension of the invalid R²-to-accuracy guarantee."""
 
     def __init__(
         self,
@@ -434,15 +224,6 @@ class NonlinearComplianceCertificate:
         regularization: float = 1e-6,
         random_state: int = 42,
     ) -> None:
-        """
-        Args:
-            sigmas: Noise standard deviations to test.
-            lipschitz_constant: Assumed Lipschitz constant L of the adversary.
-            num_noise_samples: Number of noise samples for Monte Carlo R² estimate.
-            epsilon: R² threshold for the underlying linear certificate.
-            regularization: Tikhonov regularization for numerical stability.
-            random_state: Seed for reproducibility.
-        """
         self.sigmas = sigmas
         self.lipschitz_constant = lipschitz_constant
         self.num_noise_samples = num_noise_samples
@@ -451,111 +232,16 @@ class NonlinearComplianceCertificate:
 
     def check(
         self,
-        H: np.ndarray | "torch.Tensor",
-        Z: np.ndarray | "torch.Tensor",
+        H: np.ndarray | torch.Tensor,
+        Z: np.ndarray | torch.Tensor,
         majority_proportion: float | None = None,
         num_classes: int | None = None,
     ) -> NonlinearCertificateResult:
-        """Compute the nonlinear compliance bound via randomized smoothing.
-
-        Args:
-            H: Representations of shape (n, d).
-            Z: Disallowed attribute labels (n,) or one-hot (n, c).
-            majority_proportion: Majority class proportion. If None, computed from Z.
-            num_classes: Number of classes. If None, computed from Z.
-
-        Returns:
-            NonlinearCertificateResult with the tightest bound across sigmas.
-        """
-        H_np = self._to_numpy(H).astype(np.float64)
-        Z_np = self._to_numpy(Z)
-
-        if Z_np.ndim == 1:
-            Z_int = Z_np.astype(int)
-        else:
-            Z_int = Z_np.argmax(axis=1)
-
-        if num_classes is None:
-            num_classes = int(Z_int.max()) + 1
-        if majority_proportion is None:
-            _, counts = np.unique(Z_int, return_counts=True)
-            majority_proportion = float(counts.max() / len(Z_int))
-
-        n, d = H_np.shape
-        L = self.lipschitz_constant
-
-        # Correction factor: expected accuracy gap from smoothing
-        # E[||eta||] / sqrt(d) for eta ~ N(0, sigma^2 I) gives
-        # sigma * sqrt(2 / (pi * d)) per unit of L
-        correction = math.sqrt(2.0 / (math.pi * d))
-
-        rng = np.random.RandomState(self.random_state)
-        per_sigma: list[tuple[float, float, float]] = []
-        best_bound = float("inf")
-        best_sigma = self.sigmas[0]
-        best_r2 = 0.0
-        best_linear_bound = 0.0
-
-        # Pre-compute label centering (shared across all noise samples)
-        if Z_np.ndim == 1:
-            num_cls = int(Z_np.max()) + 1
-            Z_onehot = np.eye(num_cls)[Z_np.astype(int)]
-        else:
-            Z_onehot = Z_np.astype(np.float64)
-        Z_centered = Z_onehot - Z_onehot.mean(axis=0, keepdims=True)
-        ss_tot = np.sum(Z_centered ** 2)
-        reg = self.linear_cert.regularization
-        reg_eye = reg * np.eye(d)
-
-        for sigma in self.sigmas:
-            # Monte Carlo estimate of R² on noisy representations.
-            # Inline the Gram solve to avoid recomputing Z centering each time.
-            # Each noisy H is centered with its own mean (standard OLS centering).
-            r2_sum = 0.0
-            for _ in range(self.num_noise_samples):
-                noise = rng.randn(n, d) * sigma
-                H_noisy = H_np + noise
-                H_c = H_noisy - H_noisy.mean(axis=0, keepdims=True)
-                gram = H_c.T @ H_c + reg_eye
-                W_star = np.linalg.solve(gram, H_c.T @ Z_centered)
-                Z_pred = H_c @ W_star
-                ss_res = np.sum((Z_centered - Z_pred) ** 2)
-                r2 = max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12))
-                r2_sum += r2
-
-            avg_r2 = r2_sum / self.num_noise_samples
-
-            # Linear bound on noisy representations
-            lin_bound = certified_accuracy_bound(
-                min(avg_r2, 1.0), majority_proportion, num_classes,
-            )
-
-            # Nonlinear bound = linear bound on noisy + Lipschitz correction
-            nl_bound = lin_bound + L * sigma * correction
-            nl_bound = min(nl_bound, 1.0)
-
-            per_sigma.append((sigma, avg_r2, nl_bound))
-
-            if nl_bound < best_bound:
-                best_bound = nl_bound
-                best_sigma = sigma
-                best_r2 = avg_r2
-                best_linear_bound = lin_bound
-
-        return NonlinearCertificateResult(
-            best_sigma=best_sigma,
-            r_squared_noisy=best_r2,
-            linear_bound=best_linear_bound,
-            nonlinear_bound=best_bound,
-            lipschitz_constant=L,
-            per_sigma=per_sigma,
+        """Fail explicitly; smoothing does not repair the invalid premise."""
+        raise NotImplementedError(
+            "NonlinearComplianceCertificate is retired because it depends "
+            "on the invalid least-squares R²-to-classification-accuracy bound."
         )
-
-    @staticmethod
-    def _to_numpy(x: "torch.Tensor | np.ndarray") -> np.ndarray:
-        if isinstance(x, np.ndarray):
-            return x
-        return x.detach().cpu().numpy()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -953,8 +639,8 @@ def verify_impossibility(
         # Impossibility bound for single-rep methods
         single_rep_acc = impossibility_bound(mi_needed, num_classes, entropy_a)
 
-        # PCRL accuracy bound (from its MI — upper bound via certified_accuracy_bound
-        # is not directly MI-based, so use the same Fano converse for consistency)
+        # MI-based diagnostic from the same Fano expression. This does not use
+        # the retired least-squares-to-classification bound.
         if pcrl_mi <= 0:
             pcrl_acc = 1.0 / num_classes
         else:

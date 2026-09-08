@@ -67,7 +67,6 @@ from pcrl.models.baselines import INLPProjector, LEACEEraser
 from pcrl.models.encoder import PurposeConditionedEncoder, StandardEncoder
 from pcrl.models.task_head import TaskHead
 from pcrl.purposes.spec import PurposeRegistry, PurposeSpec
-from pcrl.purposes.verification import certified_accuracy_bound
 from pcrl.training.trainer import PCRLTrainer, TrainerConfig
 
 logging.basicConfig(

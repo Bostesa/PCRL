@@ -472,94 +472,99 @@ class FairnessPenalty(nn.Module):
         return self.strength * penalty
 
 
-class VerificationRegularizer(nn.Module):
-    """Differentiable regularizer penalizing high linear R² of disallowed attributes.
+@dataclass
+class PerClassR2Result:
+    """Batch least-squares diagnostics in a fixed class schema.
 
-    Computes the R² of the optimal linear predictor of Z from H on each batch,
-    encouraging the encoder to produce representations from which disallowed
-    attributes cannot be linearly predicted. This directly optimizes toward
-    certifiable compliance.
-
-    The computation is differentiable (via torch.linalg.solve), so gradients
-    flow back through the encoder.
+    Undefined scores are NaN. Support and nonzero target variance are both
+    required; an unobserved class is not evidence of privacy.
     """
 
-    def __init__(self, regularization: float = 1e-4) -> None:
-        """Initialize the verification regularizer.
+    r_squared: torch.Tensor
+    support: torch.Tensor
+    variance: torch.Tensor
+    valid_mask: torch.Tensor
 
-        Args:
-            regularization: Tikhonov regularization for numerical stability.
-        """
+
+class VerificationRegularizer(nn.Module):
+    """Differentiable in-sample ridge R² of categorical attributes.
+
+    These are empirical squared-error scores, not classification guarantees.
+    Pass the dataset's fixed ``num_classes`` on every training/evaluation call.
+    The optional constructor schema supports single-attribute consumers; schema
+    inference remains available for backwards compatibility only.
+    """
+
+    def __init__(
+        self, regularization: float = 1e-4, num_classes: int | None = None,
+    ) -> None:
         super().__init__()
         self.regularization = regularization
+        self.num_classes = num_classes
 
-    def _solve(self, H: torch.Tensor, Z: torch.Tensor):
-        """Shared ridge solve. Returns (Z_centered, Z_pred, num_classes) or
-        ``None`` when ``Z`` has fewer than 2 distinct classes."""
-        num_classes = int(Z.max().item()) + 1
-        if num_classes < 2:
-            return None
-
-        Z_onehot = F.one_hot(Z.long(), num_classes).float()
-
+    def _solve(
+        self, H: torch.Tensor, Z: torch.Tensor, num_classes: int | None = None,
+    ):
+        if H.ndim != 2 or Z.ndim != 1 or H.shape[0] != Z.shape[0]:
+            raise ValueError("Expected H (n,d) and integer labels Z (n,)")
+        if Z.is_floating_point() or Z.is_complex():
+            raise ValueError("VerificationRegularizer expects integer class labels")
+        K = num_classes if num_classes is not None else self.num_classes
+        if K is None:
+            if not Z.numel():
+                raise ValueError("num_classes is required for empty labels")
+            K = int(Z.max().item()) + 1
+        if K < 1 or (Z.numel() and (Z.min() < 0 or Z.max() >= K)):
+            raise ValueError("Labels must be in the fixed class schema [0, num_classes)")
+        onehot = F.one_hot(Z.long(), K).to(dtype=H.dtype, device=H.device)
+        support = onehot.sum(dim=0).to(torch.long)
         n, d = H.shape
-
+        if n == 0:
+            return onehot, onehot, support
         H_centered = H - H.mean(dim=0, keepdim=True)
-        Z_centered = Z_onehot - Z_onehot.mean(dim=0, keepdim=True)
-
+        Z_centered = onehot - onehot.mean(dim=0, keepdim=True)
         gram = H_centered.T @ H_centered + self.regularization * torch.eye(
-            d, device=H.device
+            d, device=H.device, dtype=H.dtype,
         )
         rhs = H_centered.T @ Z_centered
-        # torch.linalg.solve has MPS backend bugs — move to CPU for solve
+        # The CPU solve avoids known MPS linalg issues and preserves autograd.
         W_star = torch.linalg.solve(gram.cpu(), rhs.cpu()).to(H.device)
+        return Z_centered, H_centered @ W_star, support
 
-        Z_pred = H_centered @ W_star
-        return Z_centered, Z_pred, num_classes
+    def per_class_statistics(
+        self, H: torch.Tensor, Z: torch.Tensor, num_classes: int | None = None,
+    ) -> PerClassR2Result:
+        """Return OvR scores, support counts, population variances and masks."""
+        Z_centered, Z_pred, support = self._solve(H, Z, num_classes)
+        ss_res = ((Z_centered - Z_pred) ** 2).sum(dim=0)
+        ss_tot = (Z_centered ** 2).sum(dim=0)
+        variance = ss_tot / max(len(Z), 1)
+        valid = (support > 0) & (support < len(Z)) & (variance > 0)
+        # Divide by 1 for invalid columns before masking so their backward
+        # path cannot produce NaN gradients in valid columns.
+        denominator = torch.where(valid, ss_tot, torch.ones_like(ss_tot))
+        scores = (1.0 - ss_res / denominator).clamp(min=0.0)
+        scores = torch.where(valid, scores, torch.full_like(scores, float("nan")))
+        return PerClassR2Result(scores, support, variance, valid)
 
-    def forward(self, H: torch.Tensor, Z: torch.Tensor) -> torch.Tensor:
-        """Compute R² of optimal linear predictor as a differentiable loss.
+    def forward(
+        self, H: torch.Tensor, Z: torch.Tensor, num_classes: int | None = None,
+    ) -> torch.Tensor:
+        """Variance-weighted aggregate R²; NaN if schema coverage is incomplete.
 
-        Args:
-            H: Representations of shape (n, d).
-            Z: Integer labels of shape (n,).
-
-        Returns:
-            R² scalar tensor (lower is better — minimizing this removes
-            linear predictability of Z from H). This is the multi-output
-            R² with residuals summed across all K one-hot columns; for
-            balanced classes it equals the average per-class OvR R², for
-            unbalanced classes it is the ss_tot-weighted average.
+        Requiring complete coverage prevents an aggregate constraint from
+        silently certifying classes absent in a batch or evaluation split.
         """
-        solved = self._solve(H, Z)
-        if solved is None:
-            return torch.tensor(0.0, device=H.device)
-        Z_centered, Z_pred, _ = solved
-        ss_res = ((Z_centered - Z_pred) ** 2).sum()
-        ss_tot = (Z_centered**2).sum()
-        r_squared = 1.0 - ss_res / torch.clamp(ss_tot, min=1e-12)
-        return r_squared.clamp(min=0.0)
+        result = self.per_class_statistics(H, Z, num_classes)
+        if not bool(result.valid_mask.all()):
+            return H.new_full((), float("nan"))
+        return (result.r_squared * result.variance).sum() / result.variance.sum()
 
-    def forward_per_class(self, H: torch.Tensor, Z: torch.Tensor) -> torch.Tensor:
-        """Per-class one-vs-rest linear R²: returns shape (K,).
+    def forward_per_class(
+        self, H: torch.Tensor, Z: torch.Tensor, num_classes: int | None = None,
+    ) -> torch.Tensor:
+        """Return shape (K,) OvR ridge R², with NaN for undefined classes.
 
-        ``out[k]`` is the linear R² of the optimal ridge predictor of the
-        binary indicator ``(Z == k).float()`` from ``H``. Because ridge
-        with shared scalar regularisation decouples column-wise, this
-        matches the closed-form per-class OvR R² from K independent
-        single-output ridge regressions (verified by tests). The shared
-        solve is used so per-class extraction adds no extra linalg cost.
-
-        Used to address the K-class averaging pathology (Ravfogel et al.
-        ACL 2023): a multi-output averaged R²<τ can be satisfied while
-        one class leaks at R²~Kτ. Constraining each per-class R²<τ blocks
-        that failure mode.
+        Use ``per_class_statistics`` for the associated explicit coverage mask.
         """
-        solved = self._solve(H, Z)
-        if solved is None:
-            return torch.zeros(1, device=H.device)
-        Z_centered, Z_pred, _ = solved
-        ss_res_k = ((Z_centered - Z_pred) ** 2).sum(dim=0)
-        ss_tot_k = (Z_centered ** 2).sum(dim=0)
-        r2_k = 1.0 - ss_res_k / torch.clamp(ss_tot_k, min=1e-12)
-        return r2_k.clamp(min=0.0)
+        return self.per_class_statistics(H, Z, num_classes).r_squared

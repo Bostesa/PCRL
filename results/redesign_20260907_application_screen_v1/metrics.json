@@ -1,0 +1,1312 @@
+{
+  "config": {
+    "oracle_seed": 9137,
+    "oracle_fit_fraction": 0.7,
+    "oracle_order": [
+      "har_official_train",
+      "diabetes_processed_train"
+    ],
+    "oracle_additive_smoothing": 1.0,
+    "learned_reference": {
+      "dataset": "HAR official training participants only",
+      "subject_split_seed": 9138,
+      "subject_group_sizes": [
+        13,
+        4,
+        4
+      ],
+      "task": "is_active = activity source ID <= 3",
+      "task_model": "StandardScaler + LogisticRegression",
+      "C": 1.0,
+      "max_iter": 2000,
+      "tol": 0.0001,
+      "solver": "lbfgs",
+      "attack": "add-one-smoothed categorical conditional frequency",
+      "probability_bins": 20,
+      "bin_edges": "fixed equal-width [0,1], no data fitting",
+      "attribute": "six-way activity",
+      "selection": "none; one fixed task model, no search"
+    },
+    "threads": 1
+  },
+  "sources": {
+    "har_official_train": {
+      "version": "UCI HAR Dataset Version 1.0; local README November 2013",
+      "url": "https://archive.ics.uci.edu/dataset/240/human+activity+recognition+using+smartphones",
+      "doi": "10.24432/C54S4K"
+    },
+    "diabetes_processed_train": {
+      "version": "Diabetes 130-US hospitals 1999-2008; repository processed split seed42",
+      "url": "https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008",
+      "doi": "10.24432/C5230J"
+    }
+  },
+  "git_commit": "15dbcc3c3338f6707e7a0b3901d738d99651a77d",
+  "source_sha256": "f7d78d6e73f78c23c3f0f3fb8bb4f7a0a028d2d8a4007a29d748c79c0d0dc0d6",
+  "used_training_files_sha256": {
+    "data/UCI HAR Dataset/train/y_train.txt": "415b3357e2e2d5e70a45c781947c6bdd80e0410a579d862eedcd6bbce3c694ef",
+    "data/UCI HAR Dataset/train/subject_train.txt": "66e1e2fbe9b396fa5155f531dc3348c803f503be663e2318772d49947db9153a",
+    "data/UCI HAR Dataset/train/X_train.txt": "9c1246099c8d5463779eec5a3845cc3898df9d8c715441ab2a1232d4421fc42f",
+    "data/diabetes_processed/train.npz": "5b9c62155804ccaefaef36aa7d8059aefcbea27d59af2c3fc04964dc999bc102"
+  },
+  "oracle_checks_retrospective": [
+    {
+      "dataset": "har_official_train",
+      "kind": "oracle exact-label release; retrospective exploratory check",
+      "rows": 7352,
+      "fit_rows": 5146,
+      "development_rows": 2206,
+      "split_indices_sha256": "f570722bba7b5cc62b692aefae9276a8979190913b6cf68e8c684d8fb070bea8",
+      "training_pool_support": {
+        "activity": [
+          1226,
+          1073,
+          986,
+          1286,
+          1374,
+          1407
+        ],
+        "is_active": [
+          4067,
+          3285
+        ],
+        "subject": [
+          347,
+          341,
+          302,
+          325,
+          308,
+          281,
+          316,
+          323,
+          328,
+          366,
+          368,
+          360,
+          408,
+          321,
+          372,
+          409,
+          392,
+          376,
+          382,
+          344,
+          383
+        ]
+      },
+      "metrics": [
+        {
+          "prior_accuracy": 0.058476881233000905,
+          "conditional_accuracy": 0.06255666364460562,
+          "conditional_balanced_accuracy": 0.056139165712851394,
+          "prior_log_loss_nats": 3.0412087274324913,
+          "conditional_log_loss_nats": 3.049940494063394,
+          "log_loss_gain_nats": -0.008731766630902804,
+          "attribute_fit_support": [
+            256,
+            245,
+            219,
+            225,
+            210,
+            212,
+            223,
+            211,
+            226,
+            247,
+            260,
+            240,
+            279,
+            223,
+            274,
+            278,
+            274,
+            253,
+            258,
+            255,
+            278
+          ],
+          "attribute_development_support": [
+            91,
+            96,
+            83,
+            100,
+            98,
+            69,
+            93,
+            112,
+            102,
+            119,
+            108,
+            120,
+            129,
+            98,
+            98,
+            131,
+            118,
+            123,
+            124,
+            89,
+            105
+          ],
+          "code_fit_support": [
+            866,
+            747,
+            677,
+            913,
+            964,
+            979
+          ],
+          "code_development_support": [
+            360,
+            326,
+            309,
+            373,
+            410,
+            428
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "activity",
+          "attribute": "subject",
+          "empirical_training_pool_MI_nats": 0.007584025939687308
+        },
+        {
+          "prior_accuracy": 0.19401631912964643,
+          "conditional_accuracy": 1.0,
+          "conditional_balanced_accuracy": 1.0,
+          "prior_log_loss_nats": 1.7857623258947537,
+          "conditional_log_loss_nats": 0.0058224678347904455,
+          "log_loss_gain_nats": 1.7799398580599632,
+          "attribute_fit_support": [
+            866,
+            747,
+            677,
+            913,
+            964,
+            979
+          ],
+          "attribute_development_support": [
+            360,
+            326,
+            309,
+            373,
+            410,
+            428
+          ],
+          "code_fit_support": [
+            866,
+            747,
+            677,
+            913,
+            964,
+            979
+          ],
+          "code_development_support": [
+            360,
+            326,
+            309,
+            373,
+            410,
+            428
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "activity",
+          "attribute": "activity",
+          "empirical_training_pool_MI_nats": 1.7838771628334396
+        },
+        {
+          "prior_accuracy": 0.058476881233000905,
+          "conditional_accuracy": 0.06119673617407072,
+          "conditional_balanced_accuracy": 0.05831193538834734,
+          "prior_log_loss_nats": 3.0412087274324913,
+          "conditional_log_loss_nats": 3.0396729020021285,
+          "log_loss_gain_nats": 0.0015358254303627916,
+          "attribute_fit_support": [
+            256,
+            245,
+            219,
+            225,
+            210,
+            212,
+            223,
+            211,
+            226,
+            247,
+            260,
+            240,
+            279,
+            223,
+            274,
+            278,
+            274,
+            253,
+            258,
+            255,
+            278
+          ],
+          "attribute_development_support": [
+            91,
+            96,
+            83,
+            100,
+            98,
+            69,
+            93,
+            112,
+            102,
+            119,
+            108,
+            120,
+            129,
+            98,
+            98,
+            131,
+            118,
+            123,
+            124,
+            89,
+            105
+          ],
+          "code_fit_support": [
+            2856,
+            2290
+          ],
+          "code_development_support": [
+            1211,
+            995
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "is_active",
+          "attribute": "subject",
+          "empirical_training_pool_MI_nats": 0.00582292745024747
+        },
+        {
+          "prior_accuracy": 0.19401631912964643,
+          "conditional_accuracy": 0.357207615593835,
+          "conditional_balanced_accuracy": 0.3333333333333333,
+          "prior_log_loss_nats": 1.7857623258947537,
+          "conditional_log_loss_nats": 1.0985097853785677,
+          "log_loss_gain_nats": 0.687252540516186,
+          "attribute_fit_support": [
+            866,
+            747,
+            677,
+            913,
+            964,
+            979
+          ],
+          "attribute_development_support": [
+            360,
+            326,
+            309,
+            373,
+            410,
+            428
+          ],
+          "code_fit_support": [
+            2856,
+            2290
+          ],
+          "code_development_support": [
+            1211,
+            995
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "is_active",
+          "attribute": "activity",
+          "empirical_training_pool_MI_nats": 0.6874796434434862
+        }
+      ]
+    },
+    {
+      "dataset": "diabetes_processed_train",
+      "kind": "oracle exact-label release; retrospective exploratory check",
+      "rows": 50053,
+      "fit_rows": 35037,
+      "development_rows": 15016,
+      "split_indices_sha256": "05aa8339e2ce6206225d2e75af9ea6eda7bafcfd2fc324fb2196d918bccd6591",
+      "training_pool_support": {
+        "primary_diagnosis_category": [
+          15257,
+          4072,
+          4611,
+          3369,
+          2859,
+          6811,
+          2426,
+          1917,
+          8731
+        ],
+        "readmission_outcome": [
+          45650,
+          4403
+        ],
+        "medication_change_outcome": [
+          27641,
+          22412
+        ],
+        "race": [
+          37436,
+          9041,
+          1052,
+          342,
+          2182
+        ],
+        "gender": [
+          26553,
+          23500
+        ],
+        "age_bucket": [
+          107,
+          379,
+          805,
+          1917,
+          4814,
+          8733,
+          11202,
+          12730,
+          8054,
+          1312
+        ]
+      },
+      "metrics": [
+        {
+          "prior_accuracy": 0.7490676611614278,
+          "conditional_accuracy": 0.7490676611614278,
+          "conditional_balanced_accuracy": 0.2,
+          "prior_log_loss_nats": 0.7784266451747381,
+          "conditional_log_loss_nats": 0.7733220614750159,
+          "log_loss_gain_nats": 0.0051045836997222205,
+          "attribute_fit_support": [
+            26188,
+            6354,
+            723,
+            236,
+            1536
+          ],
+          "attribute_development_support": [
+            11248,
+            2687,
+            329,
+            106,
+            646
+          ],
+          "code_fit_support": [
+            10659,
+            2818,
+            3191,
+            2360,
+            2028,
+            4866,
+            1700,
+            1349,
+            6066
+          ],
+          "code_development_support": [
+            4598,
+            1254,
+            1420,
+            1009,
+            831,
+            1945,
+            726,
+            568,
+            2665
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "primary_diagnosis_category",
+          "attribute": "race",
+          "empirical_training_pool_MI_nats": 0.0053516075947369355
+        },
+        {
+          "prior_accuracy": 0.5228423015450187,
+          "conditional_accuracy": 0.5436201385189131,
+          "conditional_balanced_accuracy": 0.538662624529098,
+          "prior_log_loss_nats": 0.6923432737570346,
+          "conditional_log_loss_nats": 0.6889876093952447,
+          "log_loss_gain_nats": 0.003355664361789912,
+          "attribute_fit_support": [
+            18702,
+            16335
+          ],
+          "attribute_development_support": [
+            7851,
+            7165
+          ],
+          "code_fit_support": [
+            10659,
+            2818,
+            3191,
+            2360,
+            2028,
+            4866,
+            1700,
+            1349,
+            6066
+          ],
+          "code_development_support": [
+            4598,
+            1254,
+            1420,
+            1009,
+            831,
+            1945,
+            726,
+            568,
+            2665
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "primary_diagnosis_category",
+          "attribute": "gender",
+          "empirical_training_pool_MI_nats": 0.0035988985349951624
+        },
+        {
+          "prior_accuracy": 0.2503329781566329,
+          "conditional_accuracy": 0.25053276505061267,
+          "conditional_balanced_accuracy": 0.10383709192356247,
+          "prior_log_loss_nats": 1.8476356945583297,
+          "conditional_log_loss_nats": 1.7988376322988708,
+          "log_loss_gain_nats": 0.04879806225945882,
+          "attribute_fit_support": [
+            79,
+            265,
+            551,
+            1362,
+            3310,
+            6035,
+            7907,
+            8971,
+            5635,
+            922
+          ],
+          "attribute_development_support": [
+            28,
+            114,
+            254,
+            555,
+            1504,
+            2698,
+            3295,
+            3759,
+            2419,
+            390
+          ],
+          "code_fit_support": [
+            10659,
+            2818,
+            3191,
+            2360,
+            2028,
+            4866,
+            1700,
+            1349,
+            6066
+          ],
+          "code_development_support": [
+            4598,
+            1254,
+            1420,
+            1009,
+            831,
+            1945,
+            726,
+            568,
+            2665
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "primary_diagnosis_category",
+          "attribute": "age_bucket",
+          "empirical_training_pool_MI_nats": 0.05062536134702264
+        },
+        {
+          "prior_accuracy": 0.7490676611614278,
+          "conditional_accuracy": 0.7490676611614278,
+          "conditional_balanced_accuracy": 0.2,
+          "prior_log_loss_nats": 0.7784266451747381,
+          "conditional_log_loss_nats": 0.7781561705874482,
+          "log_loss_gain_nats": 0.0002704745872899039,
+          "attribute_fit_support": [
+            26188,
+            6354,
+            723,
+            236,
+            1536
+          ],
+          "attribute_development_support": [
+            11248,
+            2687,
+            329,
+            106,
+            646
+          ],
+          "code_fit_support": [
+            31948,
+            3089
+          ],
+          "code_development_support": [
+            13702,
+            1314
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "readmission_outcome",
+          "attribute": "race",
+          "empirical_training_pool_MI_nats": 0.00021166672821979274
+        },
+        {
+          "prior_accuracy": 0.5228423015450187,
+          "conditional_accuracy": 0.5228423015450187,
+          "conditional_balanced_accuracy": 0.5,
+          "prior_log_loss_nats": 0.6923432737570346,
+          "conditional_log_loss_nats": 0.6923559920032846,
+          "log_loss_gain_nats": -1.2718246249932008e-05,
+          "attribute_fit_support": [
+            18702,
+            16335
+          ],
+          "attribute_development_support": [
+            7851,
+            7165
+          ],
+          "code_fit_support": [
+            31948,
+            3089
+          ],
+          "code_development_support": [
+            13702,
+            1314
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "readmission_outcome",
+          "attribute": "gender",
+          "empirical_training_pool_MI_nats": 4.932498420207043e-06
+        },
+        {
+          "prior_accuracy": 0.2503329781566329,
+          "conditional_accuracy": 0.2503329781566329,
+          "conditional_balanced_accuracy": 0.1,
+          "prior_log_loss_nats": 1.8476356945583297,
+          "conditional_log_loss_nats": 1.846380966755136,
+          "log_loss_gain_nats": 0.0012547278031935782,
+          "attribute_fit_support": [
+            79,
+            265,
+            551,
+            1362,
+            3310,
+            6035,
+            7907,
+            8971,
+            5635,
+            922
+          ],
+          "attribute_development_support": [
+            28,
+            114,
+            254,
+            555,
+            1504,
+            2698,
+            3295,
+            3759,
+            2419,
+            390
+          ],
+          "code_fit_support": [
+            31948,
+            3089
+          ],
+          "code_development_support": [
+            13702,
+            1314
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "readmission_outcome",
+          "attribute": "age_bucket",
+          "empirical_training_pool_MI_nats": 0.0010755204308319994
+        },
+        {
+          "prior_accuracy": 0.7490676611614278,
+          "conditional_accuracy": 0.7490676611614278,
+          "conditional_balanced_accuracy": 0.2,
+          "prior_log_loss_nats": 0.7784266451747381,
+          "conditional_log_loss_nats": 0.777984254242193,
+          "log_loss_gain_nats": 0.0004423909325451669,
+          "attribute_fit_support": [
+            26188,
+            6354,
+            723,
+            236,
+            1536
+          ],
+          "attribute_development_support": [
+            11248,
+            2687,
+            329,
+            106,
+            646
+          ],
+          "code_fit_support": [
+            19423,
+            15614
+          ],
+          "code_development_support": [
+            8218,
+            6798
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "medication_change_outcome",
+          "attribute": "race",
+          "empirical_training_pool_MI_nats": 0.00032338232836265357
+        },
+        {
+          "prior_accuracy": 0.5228423015450187,
+          "conditional_accuracy": 0.5228423015450187,
+          "conditional_balanced_accuracy": 0.5,
+          "prior_log_loss_nats": 0.6923432737570346,
+          "conditional_log_loss_nats": 0.6921273219677023,
+          "log_loss_gain_nats": 0.00021595178933231374,
+          "attribute_fit_support": [
+            18702,
+            16335
+          ],
+          "attribute_development_support": [
+            7851,
+            7165
+          ],
+          "code_fit_support": [
+            19423,
+            15614
+          ],
+          "code_development_support": [
+            8218,
+            6798
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "medication_change_outcome",
+          "attribute": "gender",
+          "empirical_training_pool_MI_nats": 0.00015330156464476996
+        },
+        {
+          "prior_accuracy": 0.2503329781566329,
+          "conditional_accuracy": 0.2503329781566329,
+          "conditional_balanced_accuracy": 0.1,
+          "prior_log_loss_nats": 1.8476356945583297,
+          "conditional_log_loss_nats": 1.8452517736830907,
+          "log_loss_gain_nats": 0.0023839208752389762,
+          "attribute_fit_support": [
+            79,
+            265,
+            551,
+            1362,
+            3310,
+            6035,
+            7907,
+            8971,
+            5635,
+            922
+          ],
+          "attribute_development_support": [
+            28,
+            114,
+            254,
+            555,
+            1504,
+            2698,
+            3295,
+            3759,
+            2419,
+            390
+          ],
+          "code_fit_support": [
+            19423,
+            15614
+          ],
+          "code_development_support": [
+            8218,
+            6798
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "medication_change_outcome",
+          "attribute": "age_bucket",
+          "empirical_training_pool_MI_nats": 0.0018103469158539214
+        },
+        {
+          "prior_accuracy": 0.7490676611614278,
+          "conditional_accuracy": 0.7490676611614278,
+          "conditional_balanced_accuracy": 0.2,
+          "prior_log_loss_nats": 0.7784266451747381,
+          "conditional_log_loss_nats": 0.7739512858954886,
+          "log_loss_gain_nats": 0.00447535927924958,
+          "attribute_fit_support": [
+            26188,
+            6354,
+            723,
+            236,
+            1536
+          ],
+          "attribute_development_support": [
+            11248,
+            2687,
+            329,
+            106,
+            646
+          ],
+          "code_fit_support": [
+            5434,
+            4208,
+            551,
+            466,
+            1057,
+            1497,
+            116,
+            148,
+            2022,
+            927,
+            162,
+            80,
+            1133,
+            971,
+            133,
+            123,
+            948,
+            910,
+            86,
+            84,
+            2403,
+            2106,
+            183,
+            174,
+            931,
+            621,
+            81,
+            67,
+            745,
+            486,
+            55,
+            63,
+            3100,
+            2449,
+            283,
+            234
+          ],
+          "code_development_support": [
+            2276,
+            1902,
+            209,
+            211,
+            476,
+            665,
+            51,
+            62,
+            855,
+            441,
+            84,
+            40,
+            526,
+            380,
+            50,
+            53,
+            396,
+            362,
+            35,
+            38,
+            963,
+            859,
+            60,
+            63,
+            377,
+            291,
+            26,
+            32,
+            298,
+            211,
+            33,
+            26,
+            1377,
+            1047,
+            126,
+            115
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "joint_three_label_bank",
+          "attribute": "race",
+          "empirical_training_pool_MI_nats": 0.0074681053111830195
+        },
+        {
+          "prior_accuracy": 0.5228423015450187,
+          "conditional_accuracy": 0.5381592967501332,
+          "conditional_balanced_accuracy": 0.5310684261289048,
+          "prior_log_loss_nats": 0.6923432737570346,
+          "conditional_log_loss_nats": 0.6891961098991144,
+          "log_loss_gain_nats": 0.0031471638579202432,
+          "attribute_fit_support": [
+            18702,
+            16335
+          ],
+          "attribute_development_support": [
+            7851,
+            7165
+          ],
+          "code_fit_support": [
+            5434,
+            4208,
+            551,
+            466,
+            1057,
+            1497,
+            116,
+            148,
+            2022,
+            927,
+            162,
+            80,
+            1133,
+            971,
+            133,
+            123,
+            948,
+            910,
+            86,
+            84,
+            2403,
+            2106,
+            183,
+            174,
+            931,
+            621,
+            81,
+            67,
+            745,
+            486,
+            55,
+            63,
+            3100,
+            2449,
+            283,
+            234
+          ],
+          "code_development_support": [
+            2276,
+            1902,
+            209,
+            211,
+            476,
+            665,
+            51,
+            62,
+            855,
+            441,
+            84,
+            40,
+            526,
+            380,
+            50,
+            53,
+            396,
+            362,
+            35,
+            38,
+            963,
+            859,
+            60,
+            63,
+            377,
+            291,
+            26,
+            32,
+            298,
+            211,
+            33,
+            26,
+            1377,
+            1047,
+            126,
+            115
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "joint_three_label_bank",
+          "attribute": "gender",
+          "empirical_training_pool_MI_nats": 0.004224118880655871
+        },
+        {
+          "prior_accuracy": 0.2503329781566329,
+          "conditional_accuracy": 0.2500665956313266,
+          "conditional_balanced_accuracy": 0.10319618851322362,
+          "prior_log_loss_nats": 1.8476356945583297,
+          "conditional_log_loss_nats": 1.7974763651131531,
+          "log_loss_gain_nats": 0.05015932944517654,
+          "attribute_fit_support": [
+            79,
+            265,
+            551,
+            1362,
+            3310,
+            6035,
+            7907,
+            8971,
+            5635,
+            922
+          ],
+          "attribute_development_support": [
+            28,
+            114,
+            254,
+            555,
+            1504,
+            2698,
+            3295,
+            3759,
+            2419,
+            390
+          ],
+          "code_fit_support": [
+            5434,
+            4208,
+            551,
+            466,
+            1057,
+            1497,
+            116,
+            148,
+            2022,
+            927,
+            162,
+            80,
+            1133,
+            971,
+            133,
+            123,
+            948,
+            910,
+            86,
+            84,
+            2403,
+            2106,
+            183,
+            174,
+            931,
+            621,
+            81,
+            67,
+            745,
+            486,
+            55,
+            63,
+            3100,
+            2449,
+            283,
+            234
+          ],
+          "code_development_support": [
+            2276,
+            1902,
+            209,
+            211,
+            476,
+            665,
+            51,
+            62,
+            855,
+            441,
+            84,
+            40,
+            526,
+            380,
+            50,
+            53,
+            396,
+            362,
+            35,
+            38,
+            963,
+            859,
+            60,
+            63,
+            377,
+            291,
+            26,
+            32,
+            298,
+            211,
+            33,
+            26,
+            1377,
+            1047,
+            126,
+            115
+          ],
+          "all_attribute_classes_supported": true,
+          "privacy_pass": null,
+          "task": "joint_three_label_bank",
+          "attribute": "age_bucket",
+          "empirical_training_pool_MI_nats": 0.056719956970946436
+        }
+      ]
+    }
+  ],
+  "earlier_observation_checks_passed": true,
+  "learned_output_reference": {
+    "kind": "single fixed learned-output reference, no representation methods",
+    "split": {
+      "task_fit": {
+        "subject_ids": [
+          26,
+          14,
+          30,
+          11,
+          6,
+          17,
+          28,
+          19,
+          27,
+          1,
+          25,
+          21,
+          7
+        ],
+        "rows": 4697
+      },
+      "attacker_fit": {
+        "subject_ids": [
+          16,
+          23,
+          22,
+          5
+        ],
+        "rows": 1361
+      },
+      "development": {
+        "subject_ids": [
+          15,
+          8,
+          29,
+          3
+        ],
+        "rows": 1294
+      }
+    },
+    "task_iterations": [
+      9
+    ],
+    "task_utility": {
+      "task_fit": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "log_loss_nats": 0.00012132552844431835,
+        "task_support": [
+          2586,
+          2111
+        ],
+        "activity_support": [
+          801,
+          685,
+          625,
+          826,
+          876,
+          884
+        ]
+      },
+      "attacker_fit": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "log_loss_nats": 0.0001662124046441307,
+        "task_support": [
+          774,
+          587
+        ],
+        "activity_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ]
+      },
+      "development": {
+        "accuracy": 0.999227202472952,
+        "balanced_accuracy": 0.9992927864214993,
+        "log_loss_nats": 0.002496159011400073,
+        "task_support": [
+          707,
+          587
+        ],
+        "activity_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ]
+      }
+    },
+    "activity_leakage": {
+      "oracle_active_bit": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.101068054683097,
+        "log_loss_gain_nats": 0.6854202714782027,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          774,
+          587
+        ],
+        "code_development_support": [
+          707,
+          587
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      },
+      "learned_hard_active_output": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.105104429261619,
+        "log_loss_gain_nats": 0.6813838968996808,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          774,
+          587
+        ],
+        "code_development_support": [
+          706,
+          588
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      },
+      "learned_active_probability_20_bins": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.105090021216699,
+        "log_loss_gain_nats": 0.6813983049446009,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          773,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          587
+        ],
+        "code_development_support": [
+          706,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          588
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      }
+    },
+    "unknown_person_identity_attack": "not measured; fixed identity classes do not transfer across disjoint people",
+    "privacy_pass": null,
+    "checkpoint_sha256": "5145e02e43ac1a3c791b68d6b4e1e41bd47b0bd7980d6029a196d27e1d548cb8"
+  },
+  "selection": "no real-data application pilot; insufficient reusable-need evidence",
+  "final_test_access": false,
+  "runtime": {
+    "total_seconds": 5.072659166995436,
+    "learned_task_and_attacks_seconds": 0.06776870810426772,
+    "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "logical_cpus": 14,
+    "numerical_threads": 1
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "split_sizes": {
+    "representation_train": 4096,
+    "calibration": 2048,
+    "attacker_fit": 2048,
+    "validation": 2048,
+    "test": 4096
+  },
+  "generator": {
+    "mixing_seeds": [
+      20260908,
+      20260909
+    ],
+    "cubic_coefficient": 0.2,
+    "latent_dimension": 8,
+    "description": "Fixed nonlinear PCRL pilot: protection-aware upstream training before LEACE.\n\nL=(U,V,S,E1,...,E5) ~ N(0,I8); X=(LQ1 + .2*(LQ1)^3)Q2+b.\nThe two fixed orthogonal matrices and the monotone componentwise cubic make\nthe observation map invertible. No generator parameter depends on outcomes.\n"
+  },
+  "protection_strengths": [
+    0.0,
+    0.1,
+    1.0
+  ],
+  "thresholds": {
+    "p1_V": 0.05,
+    "p1_S": 0.05,
+    "p2_U": 0.05,
+    "p2_S": 0.05,
+    "combined_S": 0.1
+  },
+  "leace": {
+    "shrinkage": false,
+    "constrain_cov_trace": false,
+    "svd_tol": 1e-10
+  },
+  "primary_utility": "mean independently fitted MLP task probe R2 for U and V",
+  "feasibility": "All five prohibited recipient/target scores satisfy their threshold for BOTH linear and MLP validation attackers",
+  "selection": "Among C and two D strengths, highest validation utility if feasible; otherwise minimum sum normalized excess then highest utility, then smaller strength. Also select among positive strengths by the same rule.",
+  "device": "cpu",
+  "threads": 1,
+  "training": {
+    "pretrain": {
+      "hidden_dim": 32,
+      "repr_dim": 8,
+      "epochs": 80,
+      "batch_size": 256,
+      "lr": 0.002,
+      "eval_every": 5
+    },
+    "adaptation": {
+      "steps": 400,
+      "batch_size": 256,
+      "lr": 0.001,
+      "rank": 4,
+      "alpha": 4.0,
+      "dropout": 0.0,
+      "ridge": 0.001,
+      "std_floor": 1e-06,
+      "per_purpose_threshold": 0.05,
+      "concat_threshold": 0.1,
+      "dual_init": 1.0,
+      "dual_lr": 0.02,
+      "dual_max": 10.0
+    }
+  },
+  "probes": {
+    "hidden": 32,
+    "epochs": 80,
+    "validation_interval": 5,
+    "batch_size": 256,
+    "lr": 0.001,
+    "initialization_offsets": [
+      0,
+      1
+    ],
+    "ols_rcond": 1e-10,
+    "constant_tolerance": 1e-10,
+    "prediction_batch_size": 4096
+  }
+}

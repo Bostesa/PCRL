@@ -1,0 +1,63 @@
+{
+  "seeds": [
+    2,
+    0,
+    1
+  ],
+  "test_rng_seeds": {
+    "0": 1100004,
+    "1": 1100104,
+    "2": 1100204
+  },
+  "test_n": 4096,
+  "utility_floor_each": 0.99,
+  "thresholds": {
+    "p1_V": 0.05,
+    "p1_S": 0.05,
+    "p2_U": 0.05,
+    "p2_S": 0.05,
+    "combined_S": 0.1
+  },
+  "attack_seed_base": 1200000,
+  "task_seed_base": 1300000,
+  "families": [
+    "linear",
+    "mlp",
+    "histgb"
+  ],
+  "full_reference": {
+    "seed": 2,
+    "key": "E_dual_0.01"
+  },
+  "attackers": {
+    "mlp": {
+      "hidden": 32,
+      "steps": 1800,
+      "batch_size": 256,
+      "lr": 0.001,
+      "restarts": 2,
+      "validation_interval": 40,
+      "prediction_batch_size": 4096
+    },
+    "histgb": {
+      "loss": "squared_error",
+      "max_iter": 200,
+      "max_leaf_nodes": 15,
+      "learning_rate": 0.05,
+      "l2_regularization": 1.0,
+      "early_stopping": false,
+      "min_samples_leaf": 20,
+      "max_bins": 255,
+      "max_depth": null,
+      "max_features": 1.0,
+      "categorical_features": null,
+      "warm_start": false
+    },
+    "preprocessing": {
+      "constant_tolerance": 1e-10
+    },
+    "ols": {
+      "rcond": 1e-10
+    }
+  }
+}

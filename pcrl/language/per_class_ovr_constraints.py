@@ -24,9 +24,8 @@ For each constraint each call to :func:`evaluate_constraints` returns a
 **differentiable** scalar value tensor (used by the proxy-Lagrangian loss)
 plus its scalar value (used by the dual update). When a per-occupation slice
 in the current batch has < ``min_slice_size`` samples or fewer than 2 distinct
-gender values, that constraint's value is set to 0.0 for the batch — this is
-a valid lower bound on R² and prevents noisy estimates from very small slices
-from driving the dual variable.
+gender values, that constraint is undefined (NaN) for the batch. It is omitted from the
+differentiable loss and must not drive a dual update or count as a privacy pass.
 
 Caveat for batch=32 + 10 occupations
 ------------------------------------
@@ -42,7 +41,7 @@ threshold per batch on average.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import torch
 
@@ -93,6 +92,8 @@ class Phase2Eval:
     scalars: dict[str, float]
     n_active_slices: int
     n_total_slices: int
+    support: dict[str, list[int]] = field(default_factory=dict)
+    valid_mask: dict[str, bool] = field(default_factory=dict)
 
 
 def evaluate_constraints(
@@ -113,7 +114,7 @@ def evaluate_constraints(
         verifier: ``pcrl.training.losses.VerificationRegularizer`` instance.
         min_slice_size: Minimum number of samples required in a per-occupation
             slice before its R² is computed. Slices below this size return
-            ``0.0`` (a valid lower bound).
+            undefined scores (NaN).
 
     Returns:
         Phase2Eval with differentiable per-constraint values, scalar values,
@@ -121,39 +122,33 @@ def evaluate_constraints(
     """
     diffs: dict[str, torch.Tensor] = {}
     scalars: dict[str, float] = {}
+    support: dict[str, list[int]] = {}
+    valid: dict[str, bool] = {}
     n_active = 0
 
+    def evaluate(name: str, features: torch.Tensor, labels: torch.Tensor, min_size: int):
+        counts = torch.bincount(labels.long(), minlength=2)
+        support[name] = counts.tolist()
+        valid[name] = len(labels) >= min_size and bool((counts > 0).all())
+        if not valid[name]:
+            scalars[name] = float("nan")
+            return
+        r2 = verifier(features, labels, num_classes=2)
+        diffs[name] = r2
+        scalars[name] = float(r2.detach().item())
+
     for k, occ_name in enumerate(BIOS_TOP10):
-        mask = (occupation == k)
-        if int(mask.sum().item()) < min_slice_size:
-            zero = z.new_zeros(())
-            diffs[f"cond_occ_{occ_name}"] = zero
-            scalars[f"cond_occ_{occ_name}"] = 0.0
-            continue
-        z_sub = z[mask]
-        g_sub = gender[mask]
-        if int(g_sub.unique().numel()) < 2:
-            zero = z.new_zeros(())
-            diffs[f"cond_occ_{occ_name}"] = zero
-            scalars[f"cond_occ_{occ_name}"] = 0.0
-            continue
-        r2 = verifier(z_sub, g_sub)
-        diffs[f"cond_occ_{occ_name}"] = r2
-        scalars[f"cond_occ_{occ_name}"] = float(r2.detach().item())
-        n_active += 1
+        mask = occupation == k
+        name = f"cond_occ_{occ_name}"
+        evaluate(name, z[mask], gender[mask], min_slice_size)
+        n_active += int(valid[name])
 
-    if int(gender.unique().numel()) < 2:
-        zero = z.new_zeros(())
-        diffs["marginal_gender"] = zero
-        scalars["marginal_gender"] = 0.0
-    else:
-        r2_marg = verifier(z, gender)
-        diffs["marginal_gender"] = r2_marg
-        scalars["marginal_gender"] = float(r2_marg.detach().item())
-
+    evaluate("marginal_gender", z, gender, 2)
     return Phase2Eval(
         differentiable=diffs,
         scalars=scalars,
         n_active_slices=n_active,
         n_total_slices=len(BIOS_TOP10),
+        support=support,
+        valid_mask=valid,
     )

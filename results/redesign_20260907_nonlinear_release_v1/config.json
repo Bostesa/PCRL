@@ -1,0 +1,92 @@
+{
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "prior_results": "results/redesign_20260907_nonlinear_upstream_v1",
+  "fresh_test_rng_seeds": {
+    "0": 900004,
+    "1": 900104,
+    "2": 900204
+  },
+  "split_sizes": {
+    "representation_train": 4096,
+    "calibration": 2048,
+    "attacker_fit": 2048,
+    "validation": 2048,
+    "test": 4096
+  },
+  "generator": {
+    "mixing_seeds": [
+      20260908,
+      20260909
+    ],
+    "cubic_coefficient": 0.2,
+    "latent_dimension": 8,
+    "description": "Fixed nonlinear PCRL pilot: protection-aware upstream training before LEACE.\n\nL=(U,V,S,E1,...,E5) ~ N(0,I8); X=(LQ1 + .2*(LQ1)^3)Q2+b.\nThe two fixed orthogonal matrices and the monotone componentwise cubic make\nthe observation map invertible. No generator parameter depends on outcomes.\n"
+  },
+  "utility_floor_each_purpose": 0.99,
+  "thresholds": {
+    "p1_V": 0.05,
+    "p1_S": 0.05,
+    "p2_U": 0.05,
+    "p2_S": 0.05,
+    "combined_S": 0.1
+  },
+  "fixed_weights": [
+    0.01,
+    0.1
+  ],
+  "dual_initial_weights": [
+    0.01,
+    0.1
+  ],
+  "leace": {
+    "shrinkage": false,
+    "constrain_cov_trace": false,
+    "svd_tol": 1e-10
+  },
+  "probes": {
+    "hidden": 32,
+    "epochs": 80,
+    "validation_interval": 5,
+    "batch_size": 256,
+    "lr": 0.001,
+    "initialization_offsets": [
+      0,
+      1
+    ],
+    "ols_rcond": 1e-10,
+    "constant_tolerance": 1e-10,
+    "prediction_batch_size": 4096
+  },
+  "selection": "Within each new method: require both validation MLP task R2 >= .99; then minimize maximum of all 10 leakage/threshold ratios; tie by higher minimum purpose utility then key. If no utility-feasible candidate, diagnostic only: highest minimum purpose utility then lowest ratio then key.",
+  "device": "cpu",
+  "threads": 1,
+  "training": {
+    "steps": 400,
+    "batch_size": 256,
+    "encoder_lr": 0.001,
+    "rank": 4,
+    "alpha": 4.0,
+    "dropout": 0.0,
+    "eraser_holdout_size": 1024,
+    "eraser_refresh_every": 25,
+    "adversary_hidden": 32,
+    "adversary_lr": 0.001,
+    "adversary_warmup_steps": 100,
+    "adversary_steps_per_encoder": 2,
+    "feature_std_floor": 1e-06,
+    "target_std_floor": 1e-06,
+    "per_purpose_threshold": 0.05,
+    "concat_threshold": 0.1,
+    "dual_lr_multiplier": 0.02,
+    "dual_max": 1.0,
+    "leace": {
+      "shrinkage": false,
+      "constrain_cov_trace": false,
+      "svd_tol": 1e-10
+    }
+  }
+}

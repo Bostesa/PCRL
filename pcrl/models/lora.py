@@ -235,6 +235,7 @@ class PerPurposeLoRAEncoder(nn.Module):
         # not appear in `trainable_parameters()`.
         for p in self.backbone.parameters():
             p.requires_grad_(False)
+        self.backbone.eval()
 
         # Reference list (NOT a submodule list) of Linear layers inside
         # the backbone, in traversal order. ``self.backbone`` is the
@@ -292,6 +293,16 @@ class PerPurposeLoRAEncoder(nn.Module):
                 )
             self.adapters.append(per_purpose)
 
+    def train(self, mode: bool = True):
+        """Train adapters while keeping frozen BN and dropout in eval mode.
+
+        Calibration, training and extraction see the same backbone feature
+        distribution. Adapter dropout still follows the requested mode.
+        """
+        super().train(mode)
+        self.backbone.eval()
+        return self
+
     @staticmethod
     def _make_hook(adapter: LoRAAdapter):
         def hook(_module, inputs, output):
@@ -306,7 +317,10 @@ class PerPurposeLoRAEncoder(nn.Module):
         try:
             for linear, adapter in zip(self._linear_modules, self.adapters[p]):
                 handles.append(linear.register_forward_hook(self._make_hook(adapter)))
-            h = self.backbone(x)
+            if getattr(self.backbone, "erase_mode", None) == "per_purpose":
+                h = self.backbone(x, p)
+            else:
+                h = self.backbone(x)
         finally:
             for handle in handles:
                 handle.remove()

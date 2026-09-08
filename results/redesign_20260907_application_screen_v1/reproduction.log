@@ -1,0 +1,252 @@
+Fixed screening configuration: {"learned_reference": {"C": 1.0, "attack": "add-one-smoothed categorical conditional frequency", "attribute": "six-way activity", "bin_edges": "fixed equal-width [0,1], no data fitting", "dataset": "HAR official training participants only", "max_iter": 2000, "probability_bins": 20, "selection": "none; one fixed task model, no search", "solver": "lbfgs", "subject_group_sizes": [13, 4, 4], "subject_split_seed": 9138, "task": "is_active = activity source ID <= 3", "task_model": "StandardScaler + LogisticRegression", "tol": 0.0001}, "oracle_additive_smoothing": 1.0, "oracle_fit_fraction": 0.7, "oracle_order": ["har_official_train", "diabetes_processed_train"], "oracle_seed": 9137, "threads": 1}
+Earlier oracle development observations reproduced exactly.
+{
+  "learned_output_reference": {
+    "kind": "single fixed learned-output reference, no representation methods",
+    "split": {
+      "task_fit": {
+        "subject_ids": [
+          26,
+          14,
+          30,
+          11,
+          6,
+          17,
+          28,
+          19,
+          27,
+          1,
+          25,
+          21,
+          7
+        ],
+        "rows": 4697
+      },
+      "attacker_fit": {
+        "subject_ids": [
+          16,
+          23,
+          22,
+          5
+        ],
+        "rows": 1361
+      },
+      "development": {
+        "subject_ids": [
+          15,
+          8,
+          29,
+          3
+        ],
+        "rows": 1294
+      }
+    },
+    "task_iterations": [
+      9
+    ],
+    "task_utility": {
+      "task_fit": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "log_loss_nats": 0.00012132552844431835,
+        "task_support": [
+          2586,
+          2111
+        ],
+        "activity_support": [
+          801,
+          685,
+          625,
+          826,
+          876,
+          884
+        ]
+      },
+      "attacker_fit": {
+        "accuracy": 1.0,
+        "balanced_accuracy": 1.0,
+        "log_loss_nats": 0.0001662124046441307,
+        "task_support": [
+          774,
+          587
+        ],
+        "activity_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ]
+      },
+      "development": {
+        "accuracy": 0.999227202472952,
+        "balanced_accuracy": 0.9992927864214993,
+        "log_loss_nats": 0.002496159011400073,
+        "task_support": [
+          707,
+          587
+        ],
+        "activity_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ]
+      }
+    },
+    "activity_leakage": {
+      "oracle_active_bit": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.101068054683097,
+        "log_loss_gain_nats": 0.6854202714782027,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          774,
+          587
+        ],
+        "code_development_support": [
+          707,
+          587
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      },
+      "learned_hard_active_output": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.105104429261619,
+        "log_loss_gain_nats": 0.6813838968996808,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          774,
+          587
+        ],
+        "code_development_support": [
+          706,
+          588
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      },
+      "learned_active_probability_20_bins": {
+        "prior_accuracy": 0.19860896445131376,
+        "conditional_accuracy": 0.36321483771251933,
+        "conditional_balanced_accuracy": 0.3333333333333333,
+        "prior_log_loss_nats": 1.7864883261612998,
+        "conditional_log_loss_nats": 1.105090021216699,
+        "log_loss_gain_nats": 0.6813983049446009,
+        "attribute_fit_support": [
+          212,
+          191,
+          184,
+          243,
+          265,
+          266
+        ],
+        "attribute_development_support": [
+          213,
+          197,
+          177,
+          217,
+          233,
+          257
+        ],
+        "code_fit_support": [
+          773,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          587
+        ],
+        "code_development_support": [
+          706,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          588
+        ],
+        "all_attribute_classes_supported": true,
+        "privacy_pass": null
+      }
+    },
+    "unknown_person_identity_attack": "not measured; fixed identity classes do not transfer across disjoint people",
+    "privacy_pass": null,
+    "checkpoint_sha256": "5145e02e43ac1a3c791b68d6b4e1e41bd47b0bd7980d6029a196d27e1d548cb8"
+  },
+  "runtime": {
+    "total_seconds": 5.072659166995436,
+    "learned_task_and_attacks_seconds": 0.06776870810426772,
+    "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "logical_cpus": 14,
+    "numerical_threads": 1
+  }
+}

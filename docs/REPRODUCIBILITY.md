@@ -6,6 +6,12 @@ artifact" tables list which file backs which claim; this document goes
 further: which command produces that file, on what hardware, and how long
 to expect.
 
+The old universal R²-to-classification-accuracy bound and its nonlinear
+smoothing extension are retired as invalid. Historical bound columns must
+not be interpreted as guarantees. Current reports retain empirical
+least-squares statistics and separately fitted attacker accuracies; see
+[the mathematical correction](ACCURACY_CERTIFICATE_RETIREMENT.md).
+
 ## Environment
 
 Python 3.10 or 3.12. PyTorch 2.0+. Other deps in `requirements.txt`.

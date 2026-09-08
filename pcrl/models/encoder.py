@@ -15,8 +15,8 @@ class StandardEncoder(nn.Module):
 
     Matches PurposeConditionedEncoder's architecture (Linear → BatchNorm →
     ReLU → Dropout per hidden layer, final Linear projection) but ignores
-    purpose_idx entirely. Used as a baseline to isolate the effect of
-    purpose conditioning.
+    purpose_idx unless the explicit per-purpose eraser mode is enabled.
+    Used as a baseline to isolate the effect of purpose conditioning.
     """
 
     def __init__(
@@ -26,12 +26,19 @@ class StandardEncoder(nn.Module):
         repr_dim: int,
         dropout: float = 0.1,
         use_erase_layer: bool = False,
+        erase_mode: str = "shared_union",
+        n_purposes: int = 1,
     ) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dims = hidden_dims
         self.repr_dim = repr_dim
         self.use_erase_layer = use_erase_layer
+        if erase_mode not in {"shared_union", "per_purpose"}:
+            raise ValueError("erase_mode must be shared_union or per_purpose")
+        if n_purposes < 1:
+            raise ValueError("n_purposes must be positive")
+        self.erase_mode = erase_mode
 
         layers: list[nn.Module] = []
         dims = [input_dim] + hidden_dims
@@ -62,6 +69,13 @@ class StandardEncoder(nn.Module):
         else:
             self.erase = None
 
+        # Keep the historical shared erase parameter names intact. Independent
+        # maps are explicit modules so checkpoints retain each purpose's map.
+        self.purpose_erasers = nn.ModuleList()
+        if use_erase_layer and erase_mode == "per_purpose":
+            import copy
+            self.purpose_erasers.extend(copy.deepcopy(self.erase) for _ in range(n_purposes))
+
         self.repr_proj = nn.Linear(hidden_dims[-1], repr_dim)
 
         self._init_weights()
@@ -91,10 +105,15 @@ class StandardEncoder(nn.Module):
         x: torch.Tensor,
         purpose_idx: torch.Tensor | int | None = None,
     ) -> torch.Tensor:
-        """Encode input features (purpose_idx is accepted but ignored)."""
+        """Encode features, applying the selected purpose's eraser if enabled."""
         h = self.network(x)
         if self.erase is not None:
-            h = self.erase(h)
+            if self.erase_mode == "per_purpose":
+                if purpose_idx is None:
+                    raise ValueError("per-purpose erasure requires purpose_idx")
+                h = self.purpose_erasers[int(purpose_idx)](h)
+            else:
+                h = self.erase(h)
         return self.repr_proj(h)
 
 

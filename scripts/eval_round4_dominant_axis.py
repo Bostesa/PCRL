@@ -166,11 +166,11 @@ def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int, tag
             train_labels = train_cache[purpose_idx][1][attr_name]
             test_labels = test_cache[purpose_idx][1][attr_name]
 
-            num_classes = int(max(train_labels.max(), test_labels.max())) + 1
+            num_classes = purpose.disallowed_attr_dims.get(attr_name, int(train_labels.max()) + 1)
 
             t0 = time.time()
-            r2_onehot = cert.check(test_reprs, test_labels).r_squared
-            da = compute_dominant_axis_r2(test_reprs, test_labels)
+            r2_onehot = cert.check(test_reprs, test_labels, num_classes=num_classes).r_squared
+            da = compute_dominant_axis_r2(test_reprs, test_labels, num_classes=num_classes)
             t_linear = time.time() - t0
 
             mlp_da: dict | None = None
@@ -178,7 +178,7 @@ def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int, tag
             if num_classes > 2:
                 t0 = time.time()
                 mlp_da = compute_mlp_ovr_delta(
-                    train_reprs, train_labels, test_reprs, test_labels,
+                    train_reprs, train_labels, test_reprs, test_labels, num_classes=num_classes,
                     hidden=256, epochs=mlp_epochs, lr=1e-3, dropout=0.3,
                     batch_size=batch_size, device=DEVICE, random_state=seed,
                 )
@@ -211,6 +211,11 @@ def eval_one_seed(dataset: str, seed: int, mlp_epochs: int, batch_size: int, tag
                 "mlp_per_class_acc": (
                     [float(x) for x in mlp_da["per_class_acc"]]
                     if mlp_da is not None else []
+                ),
+                "mlp_da_coverage": (
+                    {key: mlp_da[key] for key in (
+                        "train_class_support", "test_class_support", "valid_mask", "coverage_complete",
+                    )} if mlp_da is not None else {}
                 ),
                 "wall_seconds": {"linear": t_linear, "mlp": t_mlp},
             }

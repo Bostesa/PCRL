@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
-"""Nonlinear compliance certificates via randomized smoothing.
+"""Retired experiment: its R²-to-classification-accuracy premise is false.
 
-Extends the linear compliance guarantee to Lipschitz-bounded nonlinear
-adversaries using randomized smoothing. For each (purpose, attribute) pair,
-adds Gaussian noise at multiple sigma values, computes the linear R² on
-noisy representations, and derives a bound that holds for any classifier
-with Lipschitz constant L.
-
-Runs on Adult (3 purposes) and HAR (2 purposes). Prints updated compliance
-tables with a "NL Bound" column. Saves results to results/adult/ and
-results/har_real/.
+The entry point fails before training. Historical outputs are retained only
+as artifacts and must not be interpreted as mathematical guarantees.
 """
 
 from __future__ import annotations
@@ -284,6 +277,7 @@ def run_har(device: str) -> list[ComplianceReport]:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
+    raise NotImplementedError("Retired invalid accuracy certificate; see docs/ACCURACY_CERTIFICATE_RETIREMENT.md")
     device = "mps" if torch.backends.mps.is_available() else (
         "cuda" if torch.cuda.is_available() else "cpu"
     )

@@ -222,7 +222,7 @@ class EmaCrossCovPIController:
         self.lam: float = max(lambda_min, lambda_init)
         self.integral: float = 0.0
         self.state = EmaState()
-        self.last_r2_ema: float = 0.0
+        self.last_r2_ema: float = float("nan")
         self.n_observations: int = 0
 
     @torch.no_grad()
@@ -263,7 +263,7 @@ class EmaCrossCovPIController:
         """Closed-form ridge OLS R² on EMA-tracked centred moments."""
         s = self.state
         if s.mean_x is None:
-            return 0.0
+            return float("nan")
         cov_xx = s.M_xx - torch.outer(s.mean_x, s.mean_x)
         cov_zz = s.M_zz - torch.outer(s.mean_z, s.mean_z)
         cov_xz = s.M_xz - torch.outer(s.mean_x, s.mean_z)
@@ -273,17 +273,19 @@ class EmaCrossCovPIController:
         try:
             sol = torch.linalg.solve(gram, cov_xz)
         except RuntimeError:
-            return 0.0
+            return float("nan")
         ss_explained = float(torch.trace(cov_xz.t() @ sol).item())
         ss_tot = float(torch.trace(cov_zz).item())
-        if ss_tot <= 1e-12:
-            return 0.0
+        if ss_tot <= 1e-12 or not bool((torch.diagonal(cov_zz) > 1e-12).all()):
+            return float("nan")
         return float(max(0.0, min(1.0, ss_explained / ss_tot)))
 
     def step(self) -> tuple[float, float]:
         """Recompute λ from current EMA stats. Returns ``(lambda, r2_ema)``."""
         r2 = self.r2_ema()
         self.last_r2_ema = r2
+        if not np.isfinite(r2):
+            return self.lam, r2
         err = r2 - self.threshold
         self.integral = max(
             -self.integral_clip,

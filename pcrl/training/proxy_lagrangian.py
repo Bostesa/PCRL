@@ -18,6 +18,7 @@ Refs:
     Wei & Niethammer 2022, "The Fairness-Accuracy Pareto Front."
 """
 
+import math
 from typing import Dict, List
 
 import torch
@@ -78,7 +79,7 @@ class Constraint:
         return self.threshold - value
 
     def is_satisfied(self, value: float) -> bool:
-        return self.violation(value) <= 0
+        return math.isfinite(value) and self.violation(value) <= 0
 
     def lagrangian_term(self, value_tensor: torch.Tensor) -> torch.Tensor:
         """lambda * violation(value), differentiable in value_tensor.
@@ -93,6 +94,13 @@ class Constraint:
     def update_lambda(self, value: float) -> None:
         """Dual ascent step: lambda += eta_lambda * violation, projected to
         ``[lambda_min, lambda_max]``."""
+        if not math.isfinite(value):
+            # Undefined observations contain no evidence for dual ascent or
+            # descent. Keep a diagnostic record, without changing lambda.
+            self.value_history.append(value)
+            self.lambda_history.append(self.lambda_value)
+            self.violation_history.append(float("nan"))
+            return
         violation = self.violation(value)
         self.lambda_value += self.eta_lambda * violation
         self.lambda_value = max(
@@ -142,6 +150,8 @@ class ProxyLagrangianOptimizer:
         total = base_loss
         for name, value_tensor in constraint_values.items():
             assert name in self.constraints, f"Unknown constraint: {name}"
+            if not bool(torch.isfinite(value_tensor).all()):
+                continue
             total = total + self.constraints[name].lagrangian_term(value_tensor)
         return total
 
@@ -159,8 +169,8 @@ class ProxyLagrangianOptimizer:
     def all_satisfied(self, constraint_values: Dict[str, float]) -> bool:
         """True iff every constraint is currently satisfied."""
         return all(
-            self.constraints[name].is_satisfied(value)
-            for name, value in constraint_values.items()
+            name in constraint_values and constraint.is_satisfied(constraint_values[name])
+            for name, constraint in self.constraints.items()
         )
 
     def diagnostics(self) -> Dict[str, Dict[str, object]]:

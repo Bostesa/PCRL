@@ -71,7 +71,6 @@ from pcrl.models.baselines import INLPProjector, LEACEEraser
 from pcrl.models.encoder import PurposeConditionedEncoder, StandardEncoder
 from pcrl.models.task_head import TaskHead
 from pcrl.purposes.spec import PurposeRegistry, PurposeSpec
-from pcrl.purposes.verification import certified_accuracy_bound
 from pcrl.training.trainer import PCRLTrainer, TrainerConfig
 
 logging.basicConfig(
@@ -566,12 +565,10 @@ def print_detailed_table(results: list[MethodResult]) -> None:
         for r in result.reports:
             d = r.empirical_best_acc - r.majority_proportion
             ok = d < 0.02 and r.linear_r2 < 0.05
-            bound = certified_accuracy_bound(
-                r.linear_r2, r.majority_proportion, r.num_classes,
-            )
+            bound = None  # Retired invalid classification-accuracy guarantee.
             print(f"{result.name:<24} {r.purpose_name:<22} {r.attr_name:<14} "
                   f"{r.empirical_best_acc:>6.1%} {r.majority_proportion:>6.1%} "
-                  f"{d:>+7.1%} {r.linear_r2:>7.4f} {bound:>7.1%} "
+                  f"{d:>+7.1%} {r.linear_r2:>7.4f} {'retired':>7} "
                   f"{'PASS' if ok else 'FAIL':>8}")
     print()
 
@@ -585,9 +582,7 @@ def save_csv(
         for r in result.reports:
             delta = r.empirical_best_acc - r.majority_proportion
             ok = delta < 0.02 and r.linear_r2 < 0.05
-            bound = certified_accuracy_bound(
-                r.linear_r2, r.majority_proportion, r.num_classes,
-            )
+            bound = None  # Retired invalid classification-accuracy guarantee.
             task_accs = {f"{t}_acc": round(v, 4)
                          for t, v in result.task_accuracies.items()}
             rows.append({
@@ -599,7 +594,7 @@ def save_csv(
                 "majority_baseline": round(r.majority_proportion, 4),
                 "delta": round(delta, 4),
                 "linear_r2": round(r.linear_r2, 4),
-                "bound": round(bound, 4),
+                "bound": None,
                 "adj_pass": ok,
                 "supports_multi_purpose": result.supports_multi_purpose,
                 "train_time_s": round(result.train_time, 1),

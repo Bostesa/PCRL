@@ -198,7 +198,7 @@ def construction_r2(
     Z_pred = H_c @ W
     ss_res = ((Z_c - Z_pred) ** 2).sum()
     ss_tot = (Z_c ** 2).sum()
-    r2 = float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    r2 = float(max(0.0, 1.0 - ss_res / ss_tot)) if ss_tot > 0 else float("nan")
     r2_rounded = round(r2, decimal_places)
 
     n = int(Z.shape[0])
@@ -212,7 +212,7 @@ def construction_r2(
         "abort_threshold": abort_threshold,
         "passed": r2 <= abort_threshold,
     }
-    if r2 > abort_threshold:
+    if not np.isfinite(r2) or r2 > abort_threshold:
         raise RuntimeError(
             f"Construction-time linear-R²([CLS], gender) = "
             f"{r2_rounded:.{decimal_places}f} exceeds abort threshold "

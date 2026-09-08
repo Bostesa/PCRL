@@ -63,7 +63,6 @@ from pcrl.models.auditor import MultiAttributeAuditor
 from pcrl.models.encoder import PurposeConditionedEncoder
 from pcrl.models.task_head import TaskHead
 from pcrl.purposes.spec import PurposeRegistry
-from pcrl.purposes.verification import certified_accuracy_bound
 from pcrl.training.trainer import PCRLTrainer, TrainerConfig
 
 logging.basicConfig(level=logging.WARNING)
@@ -203,9 +202,7 @@ def run_dataset(
             entropy_z = -float(np.sum(probs * np.log(probs + 1e-12)))
             entropy_z_bits = entropy_z / np.log(2)
 
-            lin_bound = certified_accuracy_bound(
-                linear_result.r_squared, majority_prop, num_classes,
-            )
+            lin_bound = None  # Retired invalid classification-accuracy guarantee.
 
             certified = (
                 linear_result.certified
@@ -261,7 +258,7 @@ def print_mine_table(rows: list[dict], title: str) -> None:
             f"{r['mi_bits']:>10.4f} {r['entropy_z_bits']:>10.2f} "
             f"{r['mi_fraction']:>7.1%} "
             f"{r['empirical_best_acc']:>7.1%} "
-            f"{r['linear_bound']:>7.1%} "
+            f"{'retired':>7} "
             f"{status:>8}"
         )
 

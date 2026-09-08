@@ -365,11 +365,14 @@ def run_one_cell(
                 fit_time = time.time() - t0
 
                 # Linear R² on test (one-hot, matches PCRL's r2_onehot).
-                lc = LinearComplianceCertificate(epsilon=0.05).check(Zp_te, A_te[attr])
+                num_classes = purpose.disallowed_attr_dims.get(attr, int(A_tr[attr].max()) + 1)
+                lc = LinearComplianceCertificate(epsilon=0.05).check(
+                    Zp_te, A_te[attr], num_classes=num_classes,
+                )
                 r2_onehot = lc.r_squared
 
                 # Dominant-axis R²
-                da = compute_dominant_axis_r2(Zp_te, A_te[attr])
+                da = compute_dominant_axis_r2(Zp_te, A_te[attr], num_classes=num_classes)
 
                 # 3-arch audit for ∆_aud
                 t1 = time.time()

@@ -161,6 +161,7 @@ class PCRLTrainer:
                     "task_type": purpose.task_type,
                     "allowed_tasks": purpose.allowed_tasks,
                     "disallowed_attrs": purpose.disallowed_attrs,
+                    "disallowed_attr_dims": purpose.disallowed_attr_dims,
                 }
 
         # Verification regularizer
@@ -599,7 +600,12 @@ class PCRLTrainer:
             for attr_name in disallowed:
                 if attr_name in batch["sensitive_attrs"]:
                     targets = batch["sensitive_attrs"][attr_name]
-                    r_sq = self.verify_reg(h_p, targets)
+                    class_count = self.purpose_configs.get(purpose_name, {}).get(
+                        "disallowed_attr_dims", {}
+                    ).get(attr_name)
+                    r_sq = self.verify_reg(h_p, targets, num_classes=class_count)
+                    if not bool(torch.isfinite(r_sq)):
+                        continue
                     total_verify_loss = total_verify_loss + r_sq
 
         total_loss = (
@@ -686,7 +692,12 @@ class PCRLTrainer:
             for attr_name in disallowed:
                 if attr_name in batch["sensitive_attrs"]:
                     targets = batch["sensitive_attrs"][attr_name]
-                    r_sq = self.verify_reg(h_p, targets)
+                    class_count = self.purpose_configs.get(purpose_name, {}).get(
+                        "disallowed_attr_dims", {}
+                    ).get(attr_name)
+                    r_sq = self.verify_reg(h_p, targets, num_classes=class_count)
+                    if not bool(torch.isfinite(r_sq)):
+                        continue
                     total_verify_loss = total_verify_loss + r_sq
 
         total_loss = (
@@ -875,7 +886,12 @@ class PCRLTrainer:
                 for attr_name in disallowed:
                     if attr_name in batch["sensitive_attrs"]:
                         targets = batch["sensitive_attrs"][attr_name]
-                        r_sq = self.verify_reg(h_p, targets)
+                        class_count = self.purpose_configs.get(purpose_name, {}).get(
+                            "disallowed_attr_dims", {}
+                        ).get(attr_name)
+                        r_sq = self.verify_reg(h_p, targets, num_classes=class_count)
+                        if not bool(torch.isfinite(r_sq)):
+                            continue
                         total_verify_loss = total_verify_loss + r_sq
                         if use_per_attr:
                             weighted_verify_loss = weighted_verify_loss + self._get_lambda_verify(attr_name) * r_sq
@@ -1005,7 +1021,12 @@ class PCRLTrainer:
                 for attr_name in disallowed:
                     if attr_name in batch["sensitive_attrs"]:
                         targets = batch["sensitive_attrs"][attr_name]
-                        r_sq = self.verify_reg(h_p, targets)
+                        class_count = self.purpose_configs.get(purpose_name, {}).get(
+                            "disallowed_attr_dims", {}
+                        ).get(attr_name)
+                        r_sq = self.verify_reg(h_p, targets, num_classes=class_count)
+                        if not bool(torch.isfinite(r_sq)):
+                            continue
                         total_verify_loss = total_verify_loss + r_sq
 
         # Combined: task + adv + verify (no lambda_adv multiplier — GRL handles it)

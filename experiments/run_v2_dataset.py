@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """V2 validation runner — full 200 epochs × 3 seeds for one dataset.
 
-Trains the v2 pipeline (frozen StandardEncoder backbone + per-purpose
+Trains the v2 pipeline (explicitly labeled random or checkpoint-initialized
+frozen StandardEncoder backbone + per-purpose
 LoRA adapters, linear-R² constraint + HSIC auxiliary + vCLUB
 independence, VICReg anti-collapse, proxy-Lagrangian dual variables on
 linear R² <= 0.05) on Adult / Diabetes / HMDA. After each seed it runs
@@ -19,6 +20,7 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
@@ -221,7 +223,10 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
              warmup_epochs_override: int | None = None,
              lambda_min: float = 5.0,
              eval_split: str = "test",
-             eval_only: bool = False) -> dict:
+             eval_only: bool = False,
+             erase_mode: str = "shared_union",
+             backbone_init: str = "random",
+             backbone_checkpoint: str | None = None) -> dict:
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -263,7 +268,35 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
     backbone = StandardEncoder(
         input_dim=input_dim, hidden_dims=[128, 128], repr_dim=repr_dim, dropout=0.3,
         use_erase_layer=use_erase_layer,
+        erase_mode=erase_mode, n_purposes=len(purposes),
     )
+    provenance = {
+        "kind": backbone_init, "seed": seed,
+        "backbone_mode": "eval (frozen BatchNorm statistics and dropout disabled)",
+        "adapter_mode": "train during optimization; eval during calibration/extraction",
+        "pretraining_performed_by_runner": False,
+    }
+    if backbone_init == "pretrained":
+        if backbone_checkpoint is None:
+            raise ValueError("pretrained initialization requires --backbone-checkpoint")
+        source = Path(backbone_checkpoint).expanduser().resolve()
+        payload = torch.load(source, map_location="cpu", weights_only=True)
+        weights = payload.get("backbone", payload.get("state_dict", payload))
+        # Load network + projection only: erasers are always calibrated on the
+        # designated representation-fitting split of this run.
+        base_weights = {k: v for k, v in weights.items()
+                        if k.startswith("network.") or k.startswith("repr_proj.")}
+        expected = {k for k in backbone.state_dict()
+                    if k.startswith("network.") or k.startswith("repr_proj.")}
+        if set(base_weights) != expected:
+            raise ValueError("backbone checkpoint must contain the complete matching StandardEncoder network and repr_proj")
+        backbone.load_state_dict(base_weights, strict=False)
+        provenance.update({"checkpoint": str(source),
+                           "checkpoint_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                           "training_history": payload.get("initialization_provenance", "not supplied; pretrained label is caller-declared")})
+    elif backbone_init != "random" or backbone_checkpoint is not None:
+        raise ValueError("use random without a checkpoint, or pretrained with a checkpoint")
+    log.info("Backbone initialization: %s", provenance)
     encoder = PerPurposeLoRAEncoder(
         backbone=backbone, n_purposes=len(purposes),
         rank=lora_rank, alpha=lora_alpha, dropout=0.0,
@@ -309,6 +342,8 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
         cross_purpose_attrs=cross_purpose_attrs,
         cross_purpose_threshold=cross_purpose_threshold,
         use_erase_layer=use_erase_layer,
+        erase_mode=erase_mode,
+        initialization_provenance=provenance,
         lora_target=lora_target,
     )
     # Ablation 2: --no-leace-init removes every LEACE-based component from
@@ -457,6 +492,9 @@ def run_seed(name: str, purposes: list[PurposeSpec], train_ds, val_ds, test_ds,
 
     return {
         "seed": seed,
+        "initialization_provenance": ckpt.get("initialization_provenance", {"kind": "unknown_historical"}) if chosen.exists() else provenance,
+        "erase_mode": erase_mode if use_erase_layer else "none",
+        "optimizer_steps": ckpt.get("optimizer_steps") if chosen.exists() else None,
         "eval_split": eval_split,
         "checkpoint_used": chosen.name if chosen.exists() else None,
         "train_time_s": round(train_time, 1),
@@ -590,6 +628,18 @@ def main() -> None:
         help="Threshold for the cross-purpose linear-R² constraint.",
     )
     parser.add_argument(
+        "--backbone-init", choices=["random", "pretrained"], default="random",
+        help="Explicit initialization label; random performs no task pretraining.",
+    )
+    parser.add_argument(
+        "--backbone-checkpoint", default=None,
+        help="Local StandardEncoder state dict for --backbone-init=pretrained; provenance hash is recorded.",
+    )
+    parser.add_argument(
+        "--erase-mode", choices=["shared_union", "per_purpose"], default="shared_union",
+        help="Shared union baseline or independent prohibited sets; requires --use-erase-layer and --lora-target=repr_proj_only.",
+    )
+    parser.add_argument(
         "--use-erase-layer", action="store_true", default=False,
         help=(
             "Rebuttal pilot (2026-05-17): port §5.5 vision erase-layer "
@@ -701,6 +751,12 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+    if (args.backbone_init == "pretrained") != (args.backbone_checkpoint is not None):
+        parser.error("--backbone-init=pretrained and --backbone-checkpoint must be supplied together")
+    if args.erase_mode == "per_purpose" and not args.use_erase_layer:
+        parser.error("--erase-mode=per_purpose requires --use-erase-layer")
+    if args.use_erase_layer and args.lora_target != "repr_proj_only":
+        parser.error("--use-erase-layer requires --lora-target=repr_proj_only for stable calibration")
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -725,6 +781,9 @@ def main() -> None:
             cross_purpose_attrs=args.cross_purpose_attrs,
             cross_purpose_threshold=args.cross_purpose_threshold,
             use_erase_layer=args.use_erase_layer,
+            erase_mode=args.erase_mode,
+            backbone_init=args.backbone_init,
+            backbone_checkpoint=args.backbone_checkpoint,
             lora_target=args.lora_target,
             lambda_vicreg=args.lambda_vicreg,
             lora_rank_override=args.lora_rank,

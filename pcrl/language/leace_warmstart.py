@@ -150,21 +150,11 @@ def leace_warm_start_bert(
 def _linear_r2_train(H, z, reg: float = 1e-6) -> float:
     """Train-set linear R² of optimal Tikhonov-regularised one-hot predictor.
 
-    Same closed form as ``pcrl.training.v2_trainer._linear_r2_train`` (private
-    in v2_trainer.py); duplicated here so this module's import surface is
-    independent of v2_trainer's internals.
+    Uses the shared scorer with the fixed binary gender schema. Missing
+    classes produce an undefined score rather than an apparent privacy pass.
     """
-    import numpy as np
+    from pcrl.purposes.verification import LinearComplianceCertificate
 
-    H = np.asarray(H, dtype=np.float64)
-    z = np.asarray(z, dtype=np.int64)
-    n_classes = int(z.max()) + 1
-    Z_oh = np.eye(n_classes)[z].astype(np.float64)
-    H_c = H - H.mean(axis=0, keepdims=True)
-    Z_c = Z_oh - Z_oh.mean(axis=0, keepdims=True)
-    gram = H_c.T @ H_c + reg * np.eye(H_c.shape[1])
-    W = np.linalg.solve(gram, H_c.T @ Z_c)
-    Z_pred = H_c @ W
-    ss_res = ((Z_c - Z_pred) ** 2).sum()
-    ss_tot = (Z_c ** 2).sum()
-    return float(max(0.0, 1.0 - ss_res / max(ss_tot, 1e-12)))
+    return LinearComplianceCertificate(regularization=reg).check(
+        H, z, num_classes=2,
+    ).r_squared
