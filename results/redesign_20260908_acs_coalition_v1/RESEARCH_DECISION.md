@@ -1,0 +1,52 @@
+# Coalition pressure helps SEX recovery; the broader purpose tradeoff remains unresolved
+
+The feature interface shows a conditional benefit from coalition training beyond stronger local protection. F_J reduces selected coalition SEX recovery relative to both F_I and F_Iplus. The race conclusion depends on the legal audit pool, and the feature interface retains substantially more opposing-task recovery than the prediction interface. This is evidence about a fixed training objective and finite auditors, not a purpose-compliance or privacy certificate.
+
+The strongest positive finding is the **F_J versus F_Iplus SEX comparison**: expanded-catchup360 signed gain falls by **.005827 nats unweighted / .002704 PWGTP**. Unweighted improvement occurs in all three seeds and all three audit scopes; weighted improvement occurs in two seeds, with a favorable mean in every scope. These SEX comparisons are unchanged at 120 versus 360 epochs. The benefit therefore is not explained entirely by the additional local sensitive coefficient in Iplus. Realized gradients and observer information still differ; nominal coefficient matching does not prove a particular mechanism.
+
+The strongest counterevidence is **race and individual access**. F_J has *more* standard-independent AB race recovery than F_Iplus in every seed under both weights: mean excess **.010059 / .008066**. Expanded-catchup selection instead favors F_J by **.003364 / .004679** on average, with favorable signs in two seeds. Meanwhile B's separately selected expanded-catchup race gain is **.018041 / .015994 higher** under F_J than F_Iplus, in all three seeds. B is a legal AB projection. The selected AB development loss need not beat a selected singleton's development loss; the full candidate evidence is retained without development-based clipping or reselection. A favorable pooled AB mean does not establish uniformly reduced recoverability.
+
+| Required conclusion | Answer |
+| --- | --- |
+| Coalition benefit over ordinary local training? | F: SEX recovery falls consistently versus I, with reserved-utility costs; race depends on scope. P: much smaller mean improvements. |
+| Benefit surviving targeted stronger-local control? | F: SEX improves in 3/3 unweighted and 2/3 weighted seeds; race has conflicting scope-specific orderings. P: tiny SEX change, pooled race worse in all seeds. |
+| Residence capability beyond coordinated predictions? | F_J beats P_J in every seed; .01 margin holds in 2/3 U and 1/3 W. It fails against E and fails the combined AB-gain reference. |
+| Commute capability beyond coordinated predictions? | No .01-nat feature advantage against P_J or E in any seed; small mean differences have mixed signs. |
+| Source utility retained? | F conditions pass all-source allowances in 2/3 seeds under both weights. P passes 1–2/3 depending condition/weight; E passes 0/3. No universal retention. |
+| Stronger audits reverse apparent finding? | Yes: expanded-independent AB race J−I changes sign unweighted from120 to360; legal pool expansion also changes race orderings. The principal F SEX comparisons persist. |
+| Full attribute support available? | SEX support is complete in these audited pools. RAC1P is not: code4 is absent from independent attacker fitting and attacker validation; no full-attribute certificate follows. |
+
+## Primary comparison
+
+Each cell is the three-seed mean **unweighted / PWGTP**, on the same unweighted-validation-selected predictions. Losses and signed prior-relative gains are nats; lower is better. Source entries count seeds satisfying **all three** original-PCA32 source allowances, out of three. AB gains use expanded-catchup360; E has independent candidates only. The full [table](TABLE.md) reports standard and expanded independent scopes, individual forbidden targets, native heads, SDs and raw source-task losses.
+
+| Release | All-source allowances U / W | A residence loss U / W | B commute loss U / W | AB SEX gain U / W | AB race gain U / W |
+| --- | --- | --- | --- | --- | --- |
+| F_I | 2/3 / 2/3 | .511633 / .489051 | .690494 / .690882 | .018875 / .015566 | .044829 / .044139 |
+| F_Iplus | 2/3 / 2/3 | .513606 / .492142 | .690654 / .690389 | .011233 / .006857 | .041639 / .042509 |
+| F_J | 2/3 / 2/3 | .517426 / .493421 | .691736 / .691324 | .005406 / .004153 | .038275 / .037830 |
+| P_I | 2/3 / 1/3 | .530677 / .504623 | .692977 / .692534 | .004370 / .002050 | .025834 / .026523 |
+| P_Iplus | 1/3 / 1/3 | .530966 / .504927 | .692983 / .692348 | .003370 / .001766 | .025008 / .025362 |
+| P_J | 1/3 / 2/3 | .531076 / .504841 | .692736 / .692145 | .003195 / .001363 | .025575 / .026267 |
+| Direct E | 0/3 / 0/3 | .508385 / .486163 | .687243 / .689689 | .008202 / .004494 | .052713 / .046232 |
+
+F releases 16 coordinates to each purpose. P releases its actual two A source probabilities and one B probability. Both have 6,355 forward parameters and the same source supervision, with purpose weights .25/.25/.5 across the three tasks. Historical rich and source-only banks differ in routing, weights, interfaces and exposure; they remain context rather than matched substitutes. [Frozen policy](PURPOSE_POLICY.md), [access rules](ACCESS_SCOPE.md), [protection control](PROTECTION_CONTROL.md).
+
+## What the comparisons establish
+
+- **Coalition training versus I:** F_J lowers pooled AB SEX gain by .013469 / .011413 and pooled race gain by .006554 / .006309. Residence loss increases by .005794 / .004370 and commute loss by .001243 / .000442. This is a utility/recovery tradeoff.
+- **Survival against Iplus:** the SEX benefit survives in the stated sense; race has no audit-scope-independent ordering. For P, J versus Iplus differences are much smaller: pooled SEX gain changes by −.000175 / −.000403, while race gain increases by .000567 / .000905 in every seed. Extra local pressure accounts for much of P's J-versus-I improvement.
+- **Residence capability:** F_J improves on P_J by .013650 / .011420, with favorable signs in all seeds. The fixed .01-nat inequality holds in 2/3 unweighted and 1/3 weighted seeds. F_J is worse than E by .009041 / .007258 on average, and never beats E by .01. Its pooled AB race excess over P_J is .012700 / .011563. No seed satisfies the residence-plus-both-AB-gain numerical conjunction against P_J; full race support would remain unresolved even if it did.
+- **Commute capability:** F_J improves on P_J by only .001000 / .000821 on average, with mixed seed signs, and is worse than E by .004493 / .001635. No .01-nat feature advantage occurs against either control. Residence evidence is not used as a commute result, and commute failure does not erase the residence advantage over P.
+- **Source retention and opposing tasks:** F_J satisfies all source allowances in 2/3 seeds under both weights; seed 1 fails coverage by exceeding the parent loss by .013132 / .018554. E fails all-source retention in every seed. Thus E's better reserved-task losses do not make it a source-utility replacement. F_J still yields forbidden B income/work gains of .130739/.153785 unweighted, and A coverage gain .053493. No opposing-task pass threshold was invented.
+- **Budget and access:** 64 seed/condition/view/target/scope selections have different scores at 120 versus 360 epochs. For example, F_J−F_I AB race gain under expanded independent access changes from +.001126 to −.005640 unweighted; the corresponding weighted contrast is favorable at both budgets. Standard-independent and expanded-catchup versions of this contrast stay unchanged. Public-head composition, longer fitting and saved-start exposure are distinct changes. Epoch zero is eligible inside catch-up, so an inclusive advantage need not come from additional optimization.
+
+The main remaining limitation is **scope-dependent predictive control**: reduced selected coalition SEX recovery does not control all individual forbidden targets, race, or a genuinely refreshed release history. The deterministic k=1/2/4 check only duplicates the same output. It does not establish safety when a second model version produces new values. All nine race categories remain reported; code 4 is absent from independent attacker-fitting and attacker-validation rows in all three seeds. Development support and exposed-control failures remain separately reported, while saved observers have a different representation-fitting exposure pool. Original test households remain **DEVELOPMENT EVALUATION**, and seed SDs describe fits on one cohort, not population uncertainty. Margins are descriptive references, not privacy budgets or noninferiority tests.
+
+## Completion and next decision
+
+All six conditions, three seeds, utility heads, eleven individual/coalition audit roles, nested120/360 budgets, direct E and seven prior/exposed controls are complete. No scientific phase was skipped. Scientific process time was **1,883.536 seconds (31.392 minutes)**, including the failed operational attempt and its one bounded recovery. Completed fits were preserved; no historical representation/teacher or completed scientific fit was retrained. [Executed matrix](EXECUTED_MATRIX.json), [actual fitting counts](FITTING_COUNTS.json), [measured compute and total work](runtime.json), [operational amendment](EXECUTION_AMENDMENTS.json), [validation](VALIDATION.md), [local artifacts](LOCAL_ARTIFACTS.md), [reproduction](REPRODUCTION.md).
+
+Recommend exactly one next method experiment: **history-aware protection for one genuine model refresh**, with a fixed old release and common household partition, current-only J and history-aware Iplus controls, and matched F/P interfaces. It tests whether explicit history conditioning limits *incremental* disclosure while preserving the useful source/residence tradeoff; it cannot retract information already present in the old output. [The single finite design](NEXT_DESIGN.md) is proposed only and has not been launched.
+
+Figures: [SEX tradeoff](coalition_SEX.png), [race tradeoff](coalition_RAC1P.png), [individual versus coalition recovery](individual_coalition_recovery.png), [paired F−P task differences](task_F_minus_P.png), [separate reserved tasks](reserved_task_capability.png), [native source stages](native_source_stages.png), [access expansion](audit_access_expansion.png), [budget sensitivity](audit_budget.png). All fixed per-seed contrasts are in [PAIRED.csv](PAIRED.csv); [ANALYSIS.md](ANALYSIS.md) retains the full mean/SD comparison tables.
