@@ -1,0 +1,1667 @@
+{
+  "study": "acs_coalition_strength_v1",
+  "seed": 0,
+  "interface": "P",
+  "regime": "Iplus",
+  "beta": 0.05,
+  "miniature": false,
+  "config": {
+    "input_dim": 32,
+    "mapper_hidden": 64,
+    "release_dim": 16,
+    "decoder_hidden": 64,
+    "adversary_hidden": [
+      64,
+      32
+    ],
+    "warm_base_epochs": 60,
+    "warm_adversary_epochs": 20,
+    "continuation_epochs": 80,
+    "batch_size": 256,
+    "adversary_updates_per_mapper_step": 3,
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "reconstruction_weight": 0.0,
+    "protection_weight": 0.1,
+    "curve_interval": 5,
+    "standardizer_std_floor": 1e-12,
+    "gradient_clipping": null,
+    "checkpoint_selection": "fixed final iterate",
+    "study": "acs_coalition_strength_v1",
+    "preservation_weight": 0.0,
+    "observer_seed_base": 20260911,
+    "source_reduction": "equal purpose mean",
+    "historical_training_recipe": "acs_coalition_v1"
+  },
+  "coefficients": {
+    "individual": -0.1,
+    "extra_local": -0.05,
+    "coalition": 0.0
+  },
+  "fit_pool": "representation_fit",
+  "reserved_labels_received": false,
+  "final_evaluation_received": false,
+  "historical_fork_path": "/Users/nathansamson/PCRL/results/redesign_20260908_acs_coalition_v1/seed_0/training/P_I/fork.pt",
+  "historical_fork_sha256": "5012696676a676baf0c8ab13e1731fc78472545bd2ad98ca89e84f049b9dd362",
+  "historical_fork_tree_sha256": "2e33ad88a5de56a0976d0b390571520c2ee87ec49ebd26486f91eda83eb29102",
+  "historical_training_module_sha256": "c9e846cbed3c2f40c604f5dfb2630e35f3b827942bc3bd4d64bb6c42d15bc763",
+  "fork_hashes": {
+    "model": "d6f136295d90627b6d0adb10f81cb89e24e59b217c5cf5e3b7e9af16bcf827bc",
+    "adversaries": "a46d5f7212633e1076b5424d4450e966e8ff36bd4075cae770c06a58e5b660c4",
+    "mapper_optimizer": "0b26bf4f26ce9cb18fbf0494038bef07db17bdca6364fa5975f1f43356e4926b",
+    "adversary_optimizer": "613b67325e06ef18a22d7410dc0907220845302d6d691dbc10ca139e2ad3714e"
+  },
+  "final_hashes": {
+    "model": "d2dbb39ac8fe418c6943978dfe44d8c9e8047e472c30bfecca4c74547815ae52",
+    "adversaries": "c5be5fc1e0d071ee26cb65e12f24e513500a932dc078e8f3dfcad1006572f085",
+    "mapper_optimizer": "025fc06cac6319033e8f743e16d99b9e87dcbc94b22cb6d7af56305c339aa635",
+    "adversary_optimizer": "397336a461171841cf9751a4ac6fc5324e924ea10f030a5be4b2d762f59c1153"
+  },
+  "counts": {
+    "mapper_optimizer_steps": 5880,
+    "adversary_optimizer_steps": 10920
+  },
+  "schedules": {
+    "warm_base": {
+      "seed": 1280000,
+      "sha256": "d4471ec678dbc0818573ceb178c672376c8a9b516fc974cf74f5f944632f1c88"
+    },
+    "warm_adversary": {
+      "seed": 1280100,
+      "sha256": "e2a876e9a194b493cd1863972bc3c9599f7ac019de953b9ec118eb41290c0f96"
+    },
+    "continuation": {
+      "seed": 1280200,
+      "sha256": "90dcb5b317356984ad8c84fe14e0b93ed3a569e0c5df315042347a3bc40cf46f"
+    }
+  },
+  "schedule_sha256": "90dcb5b317356984ad8c84fe14e0b93ed3a569e0c5df315042347a3bc40cf46f",
+  "fit_input_sha256": "a5aa4c3121dee60c61068b41bcfc589531883571ed82898e8fa6531d43c90daa",
+  "standardized_fit_sha256": "623728da9229bf144a0593d2699fddbafd2fa87e32e4a62ca2a411c6e85b8d26",
+  "source_label_hashes": {
+    "income_binary": "975d6344fdaeaafe0ef8f7e881aa42742c6d9faff93ea4396acd12b5ad37521f",
+    "civilian_at_work": "92f31ea56307e4f5b793929b87c51772737ad2fc4c01d64467879e0f8f8f167d",
+    "public_coverage": "a6383687b0d5486ab9401cf7edb2b1ec4c10e311255f618cb259ccd78706ed38"
+  },
+  "attribute_label_hashes": {
+    "SEX": "ba5650e7628b1abf3c58f1054ef8b3bba6801c253986b2b34a8d583e8a218f2f",
+    "RAC1P": "74ef61d8ba6c9dde09a5e815deea29cd7cee74ab0a9ee38866a2e40065a1f102"
+  },
+  "source_validation_input_sha256": "52e81cffad90b3263eb00044d067cbfc0dba12c389b2d08a6dd0063b31c4196d",
+  "source_validation_label_hashes": {
+    "income_binary": "16b11d167cdc6be833149da1f27c185dfa56137fb73ae5656bae1304c4edb842",
+    "civilian_at_work": "36514f7b1677aa2f08a68cf361308111dc50b72fe39dbe403c16134e78f372a7",
+    "public_coverage": "f4d2423b0ae0cb2bd3c21f833ae28d2e99a7caeb45567bbfc16cb95333e6036e"
+  },
+  "preprocessing": {
+    "mean": [
+      -4.823749530080677e-07,
+      9.17336347270259e-08,
+      1.5684843494245104e-07,
+      1.0133299877014712e-07,
+      4.2876450690943745e-09,
+      -3.242664465064679e-08,
+      1.4653115611338065e-08,
+      9.244021028634609e-08,
+      2.9078029286767305e-09,
+      2.666702622477407e-08,
+      -2.9981623908766534e-08,
+      1.198981475684936e-08,
+      1.9160192433245387e-08,
+      2.5305964678460725e-08,
+      2.5550112401816594e-08,
+      2.6487724703702853e-08,
+      -4.126911531628159e-08,
+      -8.610370870572249e-09,
+      1.1223708257726878e-08,
+      -7.1522171962480046e-09,
+      -1.7533279175106584e-08,
+      -1.6623306238128537e-08,
+      7.449871895259515e-09,
+      -1.745532199203214e-09,
+      2.3318942387142815e-09,
+      -4.652980777047788e-09,
+      -8.494498148457054e-09,
+      -9.991630414318519e-09,
+      -7.252852832580468e-09,
+      -2.1341133217460977e-08,
+      -8.402898458344582e-09,
+      4.123509763639456e-08
+    ],
+    "scale": [
+      1.1905394419326603,
+      0.8949100867471256,
+      0.5843053033713352,
+      0.5037841674564295,
+      0.4931750998035053,
+      0.4612288580731387,
+      0.45753513829600473,
+      0.41860282124099235,
+      0.37912753914973196,
+      0.354148908367648,
+      0.3320358399290903,
+      0.2902656469552218,
+      0.26588447431021367,
+      0.2468258314177937,
+      0.22968127043646286,
+      0.22042121502588144,
+      0.20937055542745414,
+      0.18994231022110564,
+      0.17365849686572654,
+      0.17302184423933278,
+      0.16634546249459414,
+      0.16313350590347656,
+      0.1593379732964904,
+      0.1515434429179784,
+      0.1478080786055169,
+      0.14456584232273875,
+      0.1392694286131842,
+      0.1273646037220649,
+      0.1229186080250031,
+      0.12048620040528345,
+      0.11674751492831366,
+      0.11320731395739854
+    ],
+    "fit_rows": 10513
+  },
+  "prior_entropies": {
+    "SEX": {
+      "support": [
+        5391,
+        5122
+      ],
+      "probabilities": [
+        0.512793684010273,
+        0.487206315989727
+      ],
+      "entropy": 0.6928197881286746
+    },
+    "RAC1P": {
+      "support": [
+        5989,
+        555,
+        90,
+        1,
+        32,
+        1674,
+        49,
+        1527,
+        596
+      ],
+      "probabilities": [
+        0.5696756396842005,
+        0.052791781603728716,
+        0.008560829449253305,
+        9.512032721392562e-05,
+        0.0030438504708456197,
+        0.1592314277561115,
+        0.004660896033482355,
+        0.14524873965566443,
+        0.05669171501949967
+      ],
+      "entropy": 1.295640077942957
+    },
+    "income_binary": {
+      "support": [
+        8531,
+        1982
+      ],
+      "probabilities": [
+        0.8114715114619995,
+        0.18852848853800058
+      ],
+      "entropy": 0.4840822091970691
+    },
+    "civilian_at_work": {
+      "support": [
+        3392,
+        7121
+      ],
+      "probabilities": [
+        0.3226481499096357,
+        0.6773518500903644
+      ],
+      "entropy": 0.6288494679613046
+    },
+    "public_coverage": {
+      "support": [
+        7976,
+        2537
+      ],
+      "probabilities": [
+        0.7586797298582707,
+        0.2413202701417293
+      ],
+      "entropy": 0.5525970041321543
+    }
+  },
+  "source_fit_coverage": {
+    "income_binary": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        8531,
+        1982
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "civilian_at_work": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        3392,
+        7121
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "public_coverage": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        7976,
+        2537
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    }
+  },
+  "attribute_fit_coverage": {
+    "SEX": {
+      "class_schema": [
+        0,
+        1
+      ],
+      "support": [
+        5391,
+        5122
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true
+      ],
+      "schema_complete": true
+    },
+    "RAC1P": {
+      "class_schema": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "support": [
+        5989,
+        555,
+        90,
+        1,
+        32,
+        1674,
+        49,
+        1527,
+        596
+      ],
+      "known": 10513,
+      "missing": 0,
+      "valid_class_mask": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "schema_complete": true
+    }
+  },
+  "observer_roles": {
+    "A__public_coverage": {
+      "view": "A",
+      "target": "public_coverage",
+      "classes": 2,
+      "input_dim": 2,
+      "seed": 20260915,
+      "initial_state_sha256": "49472a4a80eceb041154aa6c10c8dd697d52b62a1d09cc8b330a955b93d67378",
+      "parameters": 2338
+    },
+    "A__SEX": {
+      "view": "A",
+      "target": "SEX",
+      "classes": 2,
+      "input_dim": 2,
+      "seed": 20260911,
+      "initial_state_sha256": "f4bf77b35ce385f9164a994f8cbe6f747385e270492313275cd00105a6f9a97c",
+      "parameters": 2338
+    },
+    "A__RAC1P": {
+      "view": "A",
+      "target": "RAC1P",
+      "classes": 9,
+      "input_dim": 2,
+      "seed": 20260912,
+      "initial_state_sha256": "d847b6e889bef6988897f93ed25cc6941c69a2c7983c6c81afce65cf9449467f",
+      "parameters": 2569
+    },
+    "B__income_binary": {
+      "view": "B",
+      "target": "income_binary",
+      "classes": 2,
+      "input_dim": 1,
+      "seed": 20260923,
+      "initial_state_sha256": "99563a05f88b229e5bad88ce0353135737440ff6f7a2aefe1a6f09ad6e5f2d55",
+      "parameters": 2274
+    },
+    "B__civilian_at_work": {
+      "view": "B",
+      "target": "civilian_at_work",
+      "classes": 2,
+      "input_dim": 1,
+      "seed": 20260924,
+      "initial_state_sha256": "20a29b0f9c45a7b6cdb8c55df34129918cf9da5ad0f891151ee264092b352fe8",
+      "parameters": 2274
+    },
+    "B__SEX": {
+      "view": "B",
+      "target": "SEX",
+      "classes": 2,
+      "input_dim": 1,
+      "seed": 20260921,
+      "initial_state_sha256": "5321b6bacecce135bb3b3cbcec08dd74e671dde18664e8d3fe190e6ec06e5e8f",
+      "parameters": 2274
+    },
+    "B__RAC1P": {
+      "view": "B",
+      "target": "RAC1P",
+      "classes": 9,
+      "input_dim": 1,
+      "seed": 20260922,
+      "initial_state_sha256": "6338cd5cd838af65a5740e0d712d902313cdf658268fd081c30a6fe9ee3dc3ac",
+      "parameters": 2505
+    },
+    "AB__SEX": {
+      "view": "AB",
+      "target": "SEX",
+      "classes": 2,
+      "input_dim": 3,
+      "seed": 20260931,
+      "initial_state_sha256": "18509277390db14cb3b52c346d4b4f6646f331acc09253d253567cfe84c7638f",
+      "parameters": 2402
+    },
+    "AB__RAC1P": {
+      "view": "AB",
+      "target": "RAC1P",
+      "classes": 9,
+      "input_dim": 3,
+      "seed": 20260932,
+      "initial_state_sha256": "53b5abb3eda055039752689d3581eebe1984fb82100a9c038bd8d01fd8d8b3f1",
+      "parameters": 2633
+    }
+  },
+  "observer_optimization": "fixed mean of nine ordinary masked role CEs; normalization only in reversed forward losses",
+  "fork_diagnostic": {
+    "coefficients": {
+      "source": 1.0,
+      "individual": -0.1,
+      "extra_local": -0.05,
+      "coalition": 0.0
+    },
+    "condition": "Iplus",
+    "beta": 0.05,
+    "interface": "P",
+    "losses": {
+      "source": 0.34904277324676514,
+      "individual": 0.9278455972671509,
+      "extra_local": 1.9893639087677002,
+      "coalition": 0.9912028908729553
+    },
+    "source_task_losses": {
+      "income_binary": 0.2853453755378723,
+      "civilian_at_work": 0.26390472054481506,
+      "public_coverage": 0.4234604835510254
+    },
+    "observer_ce": {
+      "A__public_coverage": 0.47484448552131653,
+      "A__SEX": 0.6941214203834534,
+      "A__RAC1P": 1.283237099647522,
+      "B__income_binary": 0.36702415347099304,
+      "B__civilian_at_work": 0.5508853197097778,
+      "B__SEX": 0.694007158279419,
+      "B__RAC1P": 1.275827169418335,
+      "AB__SEX": 0.6939324736595154,
+      "AB__RAC1P": 1.2707635164260864
+    },
+    "groups": {
+      "A_mapper": {
+        "source_raw_l2": 0.10149084776639938,
+        "individual_raw_l2": 0.02930261380970478,
+        "extra_local_raw_l2": 0.03824827820062637,
+        "coalition_raw_l2": 0.03946574032306671,
+        "source_individual_raw_dot": 0.0007278700941242278,
+        "source_individual_raw_cosine": 0.2447488356082676,
+        "source_coalition_raw_dot": 0.00017351476708427072,
+        "source_coalition_raw_cosine": 0.043320085726139226,
+        "source_extra_local_raw_dot": 0.000306525471387431,
+        "source_extra_local_raw_cosine": 0.07896375623973499,
+        "individual_extra_local_raw_dot": 0.000757624045945704,
+        "individual_extra_local_raw_cosine": 0.6759825719149971,
+        "extra_local_coalition_raw_dot": 0.001157410559244454,
+        "extra_local_coalition_raw_cosine": 0.7667526694236242,
+        "individual_coalition_raw_dot": 0.0005039839306846261,
+        "individual_coalition_raw_cosine": 0.43580285796114954,
+        "source_applied_l2": 0.10149084776639938,
+        "individual_applied_l2": 0.0029302621260285378,
+        "extra_local_applied_l2": 0.0019124139798805118,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -7.278701377799734e-05,
+        "source_individual_applied_cosine": -0.24474878805701755,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -1.5326271750382148e-05,
+        "source_extra_local_applied_cosine": -0.07896374398389036,
+        "individual_extra_local_applied_dot": 3.7881204661971424e-06,
+        "individual_extra_local_applied_cosine": 0.6759824175451509,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.004451966844499111,
+        "objective_l2": 0.10071735829114914
+      },
+      "B_mapper": {
+        "source_raw_l2": 0.17017880082130432,
+        "individual_raw_l2": 0.15500572323799133,
+        "extra_local_raw_l2": 0.054198458790779114,
+        "coalition_raw_l2": 0.07338469475507736,
+        "source_individual_raw_dot": 0.00565098924562335,
+        "source_individual_raw_cosine": 0.2142255605725863,
+        "source_coalition_raw_dot": 0.0020044653210788965,
+        "source_coalition_raw_cosine": 0.16050464146887153,
+        "source_extra_local_raw_dot": 0.0024329801090061665,
+        "source_extra_local_raw_cosine": 0.26378261078112347,
+        "individual_extra_local_raw_dot": -0.0007519817445427179,
+        "individual_extra_local_raw_cosine": -0.08951022047055864,
+        "extra_local_coalition_raw_dot": 0.0029716133140027523,
+        "extra_local_coalition_raw_cosine": 0.7471363500503869,
+        "individual_coalition_raw_dot": -0.0010116752237081528,
+        "individual_coalition_raw_cosine": -0.0889381083678833,
+        "source_applied_l2": 0.17017880082130432,
+        "individual_applied_l2": 0.015500575304031372,
+        "extra_local_applied_l2": 0.0027099233120679855,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -0.0005650990060530603,
+        "source_individual_applied_cosine": -0.21422555027694534,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -0.00012164900545030832,
+        "source_extra_local_applied_cosine": -0.2637825745193298,
+        "individual_extra_local_applied_dot": -3.7599086226691725e-06,
+        "individual_extra_local_applied_cosine": -0.08951018857425781,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.015494892373681068,
+        "objective_l2": 0.16681551933288574
+      },
+      "A_heads": {
+        "source_raw_l2": 0.0360996387898922,
+        "individual_raw_l2": 0.006767410319298506,
+        "extra_local_raw_l2": 0.010207227431237698,
+        "coalition_raw_l2": 0.009164758026599884,
+        "source_individual_raw_dot": 9.695762855699286e-05,
+        "source_individual_raw_cosine": 0.3968776285879534,
+        "source_coalition_raw_dot": -0.00011655005073407665,
+        "source_coalition_raw_cosine": -0.35228050281388457,
+        "source_extra_local_raw_dot": -0.0001577880175318569,
+        "source_extra_local_raw_cosine": -0.4282164745835973,
+        "individual_extra_local_raw_dot": 3.167399700032547e-05,
+        "individual_extra_local_raw_cosine": 0.458535083856629,
+        "extra_local_coalition_raw_dot": 8.386415720451623e-05,
+        "extra_local_coalition_raw_cosine": 0.896494423335816,
+        "individual_coalition_raw_dot": 2.064252839772962e-05,
+        "individual_coalition_raw_cosine": 0.33282763461171516,
+        "source_applied_l2": 0.0360996387898922,
+        "individual_applied_l2": 0.0006767410086467862,
+        "extra_local_applied_l2": 0.0005103613948449492,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -9.695762855699286e-06,
+        "source_individual_applied_cosine": -0.396877642242405,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": 7.889401786087546e-06,
+        "source_extra_local_applied_cosine": 0.4282165044130859,
+        "individual_extra_local_applied_dot": 1.5836999978091626e-07,
+        "individual_extra_local_applied_cosine": 0.4585351215047539,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.0010174415074288845,
+        "objective_l2": 0.03606392443180084
+      },
+      "B_heads": {
+        "source_raw_l2": 0.03671559318900108,
+        "individual_raw_l2": 0.03072013147175312,
+        "extra_local_raw_l2": 0.014398505911231041,
+        "coalition_raw_l2": 0.017569536343216896,
+        "source_individual_raw_dot": -9.850753122009337e-05,
+        "source_individual_raw_cosine": -0.08733650646635963,
+        "source_coalition_raw_dot": 0.00020481491810642183,
+        "source_coalition_raw_cosine": 0.31750512239164236,
+        "source_extra_local_raw_dot": 0.0003286449646111578,
+        "source_extra_local_raw_cosine": 0.6216687034613054,
+        "individual_extra_local_raw_dot": -0.0001412091078236699,
+        "individual_extra_local_raw_cosine": -0.3192436077419074,
+        "extra_local_coalition_raw_dot": 0.0002113443915732205,
+        "extra_local_coalition_raw_cosine": 0.8354356385959398,
+        "individual_coalition_raw_dot": -0.00016141746891662478,
+        "individual_coalition_raw_cosine": -0.2990660828842093,
+        "source_applied_l2": 0.03671559318900108,
+        "individual_applied_l2": 0.003072013147175312,
+        "extra_local_applied_l2": 0.0007199253304861486,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": 9.850751666817814e-06,
+        "source_individual_applied_cosine": 0.08733649356467157,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -1.643224823055789e-05,
+        "source_extra_local_applied_cosine": -0.6216686733032769,
+        "individual_extra_local_applied_dot": -7.060456255203462e-07,
+        "individual_extra_local_applied_cosine": -0.3192436313222353,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.0029229209758341312,
+        "objective_l2": 0.03665263205766678
+      },
+      "all_mappers": {
+        "source_raw_l2": 0.19814445078372955,
+        "individual_raw_l2": 0.15775112807750702,
+        "extra_local_raw_l2": 0.0663355365395546,
+        "coalition_raw_l2": 0.08332381397485733,
+        "source_individual_raw_dot": 0.006378859281539917,
+        "source_individual_raw_cosine": 0.2040744497009759,
+        "source_coalition_raw_dot": 0.0021779797971248627,
+        "source_coalition_raw_cosine": 0.13191761541107644,
+        "source_extra_local_raw_dot": 0.0027395058423280716,
+        "source_extra_local_raw_cosine": 0.20842224557821756,
+        "individual_extra_local_raw_dot": 5.642330506816506e-06,
+        "individual_extra_local_raw_cosine": 0.0005391874836126268,
+        "extra_local_coalition_raw_dot": 0.004129023756831884,
+        "extra_local_coalition_raw_cosine": 0.7470195965584105,
+        "individual_coalition_raw_dot": -0.0005076912930235267,
+        "individual_coalition_raw_cosine": -0.03862407582743737,
+        "source_applied_l2": 0.19814445078372955,
+        "individual_applied_l2": 0.01577511616051197,
+        "extra_local_applied_l2": 0.003316777292639017,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -0.0006378859980031848,
+        "source_individual_applied_cosine": -0.20407442867441844,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -0.0001369752862956375,
+        "source_extra_local_applied_cosine": -0.20842220745972573,
+        "individual_extra_local_applied_dot": 2.821161615429446e-08,
+        "individual_extra_local_applied_cosine": 0.0005391865980184362,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.016121776774525642,
+        "objective_l2": 0.19486258924007416
+      }
+    },
+    "routing": {
+      "local_A_to_A_mapper_l2": 0.05860523506999016,
+      "extra_A_to_A_mapper_l2": 0.03824827820062637,
+      "local_A_to_B_mapper_l2": 0.0,
+      "extra_A_to_B_mapper_l2": 0.0,
+      "local_B_to_A_mapper_l2": 0.0,
+      "extra_B_to_A_mapper_l2": 0.0,
+      "local_B_to_B_mapper_l2": 0.31001150608062744,
+      "extra_B_to_B_mapper_l2": 0.05419846996665001
+    },
+    "state_unchanged": true,
+    "rng_unchanged": true
+  },
+  "final_diagnostic": {
+    "coefficients": {
+      "source": 1.0,
+      "individual": -0.1,
+      "extra_local": -0.05,
+      "coalition": 0.0
+    },
+    "condition": "Iplus",
+    "beta": 0.05,
+    "interface": "P",
+    "losses": {
+      "source": 0.3273760676383972,
+      "individual": 0.9435944557189941,
+      "extra_local": 1.9846729040145874,
+      "coalition": 0.9836267232894897
+    },
+    "source_task_losses": {
+      "income_binary": 0.28369778394699097,
+      "civilian_at_work": 0.2578479051589966,
+      "public_coverage": 0.38397926092147827
+    },
+    "observer_ce": {
+      "A__public_coverage": 0.46887701749801636,
+      "A__SEX": 0.6955869793891907,
+      "A__RAC1P": 1.2782185077667236,
+      "B__income_binary": 0.41001805663108826,
+      "B__civilian_at_work": 0.5895863175392151,
+      "B__SEX": 0.694389820098877,
+      "B__RAC1P": 1.2652338743209839,
+      "AB__SEX": 0.6947966814041138,
+      "AB__RAC1P": 1.2495152950286865
+    },
+    "groups": {
+      "A_mapper": {
+        "source_raw_l2": 0.16611018776893616,
+        "individual_raw_l2": 0.0529024600982666,
+        "extra_local_raw_l2": 0.1087118610739708,
+        "coalition_raw_l2": 0.17939624190330505,
+        "source_individual_raw_dot": 0.0021399487741291523,
+        "source_individual_raw_cosine": 0.2435180962527892,
+        "source_coalition_raw_dot": -0.0007361100288107991,
+        "source_coalition_raw_cosine": -0.024702057284845338,
+        "source_extra_local_raw_dot": 0.0023938531521707773,
+        "source_extra_local_raw_cosine": 0.13256360496167124,
+        "individual_extra_local_raw_dot": 0.004881144966930151,
+        "individual_extra_local_raw_cosine": 0.8487287370767937,
+        "extra_local_coalition_raw_dot": 0.01313644740730524,
+        "extra_local_coalition_raw_cosine": 0.6735776367457194,
+        "individual_coalition_raw_dot": 0.005485924892127514,
+        "individual_coalition_raw_cosine": 0.578043667901105,
+        "source_applied_l2": 0.16611018776893616,
+        "individual_applied_l2": 0.005290246102958918,
+        "extra_local_applied_l2": 0.005435592029243708,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -0.00021399487741291523,
+        "source_individual_applied_cosine": -0.24351809196576935,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -0.0001196926532429643,
+        "source_extra_local_applied_cosine": -0.1325636251111284,
+        "individual_extra_local_applied_dot": 2.440572643536143e-05,
+        "individual_extra_local_applied_cosine": 0.8487289377626186,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.01031231414526701,
+        "objective_l2": 0.16441278159618378
+      },
+      "B_mapper": {
+        "source_raw_l2": 0.30388903617858887,
+        "individual_raw_l2": 0.24694225192070007,
+        "extra_local_raw_l2": 0.1446608603000641,
+        "coalition_raw_l2": 0.23598279058933258,
+        "source_individual_raw_dot": 0.01616097241640091,
+        "source_individual_raw_cosine": 0.2153560381595522,
+        "source_coalition_raw_dot": 0.017561446875333786,
+        "source_coalition_raw_cosine": 0.2448865483971304,
+        "source_extra_local_raw_dot": 0.010152393952012062,
+        "source_extra_local_raw_cosine": 0.23094171492173904,
+        "individual_extra_local_raw_dot": -0.0013583244290202856,
+        "individual_extra_local_raw_cosine": -0.038023935415533214,
+        "extra_local_coalition_raw_dot": 0.017087481915950775,
+        "extra_local_coalition_raw_cosine": 0.5005491081411738,
+        "individual_coalition_raw_dot": -0.001276851980946958,
+        "individual_coalition_raw_cosine": -0.021911132132094148,
+        "source_applied_l2": 0.30388903617858887,
+        "individual_applied_l2": 0.02469422109425068,
+        "extra_local_applied_l2": 0.007233044598251581,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -0.0016160972882062197,
+        "source_individual_applied_cosine": -0.21535608010151586,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -0.0005076196976006031,
+        "source_extra_local_applied_cosine": -0.23094166437067576,
+        "individual_extra_local_applied_dot": -6.791620762669481e-06,
+        "individual_extra_local_applied_cosine": -0.03802392566246288,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.02546640858054161,
+        "objective_l2": 0.2979087829589844
+      },
+      "A_heads": {
+        "source_raw_l2": 0.03424519672989845,
+        "individual_raw_l2": 0.0073714591562747955,
+        "extra_local_raw_l2": 0.01570982113480568,
+        "coalition_raw_l2": 0.023555001243948936,
+        "source_individual_raw_dot": 7.90764024714008e-05,
+        "source_individual_raw_cosine": 0.31325194349162927,
+        "source_coalition_raw_dot": -0.0003021896118298173,
+        "source_coalition_raw_cosine": -0.37462498092054924,
+        "source_extra_local_raw_dot": -4.686621832661331e-05,
+        "source_extra_local_raw_cosine": -0.08711421059391021,
+        "individual_extra_local_raw_dot": 8.78521241247654e-05,
+        "individual_extra_local_raw_cosine": 0.7586257198329368,
+        "extra_local_coalition_raw_dot": 0.0002824184484779835,
+        "extra_local_coalition_raw_cosine": 0.7632005785634894,
+        "individual_coalition_raw_dot": 6.864643364679068e-05,
+        "individual_coalition_raw_cosine": 0.3953496734587732,
+        "source_applied_l2": 0.03424519672989845,
+        "individual_applied_l2": 0.000737146008759737,
+        "extra_local_applied_l2": 0.0007854910800233483,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -7.907638973847497e-06,
+        "source_individual_applied_cosine": -0.31325185347486184,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": 2.3433105980075197e-06,
+        "source_extra_local_applied_cosine": 0.08711419617783839,
+        "individual_extra_local_applied_dot": 4.392606456349313e-07,
+        "individual_extra_local_applied_cosine": 0.7586256446956213,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.0014279012102633715,
+        "objective_l2": 0.034112222492694855
+      },
+      "B_heads": {
+        "source_raw_l2": 0.04029633104801178,
+        "individual_raw_l2": 0.03138839080929756,
+        "extra_local_raw_l2": 0.012077859602868557,
+        "coalition_raw_l2": 0.023608729243278503,
+        "source_individual_raw_dot": -0.00043493707198649645,
+        "source_individual_raw_cosine": -0.34386808451757267,
+        "source_coalition_raw_dot": 7.568253204226494e-05,
+        "source_coalition_raw_cosine": 0.07955317848001456,
+        "source_extra_local_raw_dot": 0.00015939051809255034,
+        "source_extra_local_raw_cosine": 0.32749675385998217,
+        "individual_extra_local_raw_dot": -1.5200967027340084e-06,
+        "individual_extra_local_raw_cosine": -0.004009702845956155,
+        "extra_local_coalition_raw_dot": 0.000144102523336187,
+        "extra_local_coalition_raw_cosine": 0.5053694643723955,
+        "individual_coalition_raw_dot": -0.0002808844146784395,
+        "individual_coalition_raw_cosine": -0.3790408170922399,
+        "source_applied_l2": 0.04029633104801178,
+        "individual_applied_l2": 0.003138839267194271,
+        "extra_local_applied_l2": 0.0006038929568603635,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": 4.34937137470115e-05,
+        "source_individual_applied_cosine": 0.34386811588418076,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -7.969525540829636e-06,
+        "source_extra_local_applied_cosine": -0.3274967515368277,
+        "individual_extra_local_applied_dot": -7.60050511416921e-09,
+        "individual_extra_local_applied_cosine": -0.004009714158142578,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.0031940252520143986,
+        "objective_l2": 0.041292183101177216
+      },
+      "all_mappers": {
+        "source_raw_l2": 0.34632524847984314,
+        "individual_raw_l2": 0.2525453567504883,
+        "extra_local_raw_l2": 0.18095587193965912,
+        "coalition_raw_l2": 0.29643020033836365,
+        "source_individual_raw_dot": 0.018300920724868774,
+        "source_individual_raw_cosine": 0.20924225762381543,
+        "source_coalition_raw_dot": 0.01682533696293831,
+        "source_coalition_raw_cosine": 0.16389177870820543,
+        "source_extra_local_raw_dot": 0.012546246871352196,
+        "source_extra_local_raw_cosine": 0.20019673671397767,
+        "individual_extra_local_raw_dot": 0.0035228203050792217,
+        "individual_extra_local_raw_cosine": 0.07708651684007106,
+        "extra_local_coalition_raw_dot": 0.03022392839193344,
+        "extra_local_coalition_raw_cosine": 0.5634505196488988,
+        "individual_coalition_raw_dot": 0.004209072794765234,
+        "individual_coalition_raw_cosine": 0.05622437044058618,
+        "source_applied_l2": 0.34632524847984314,
+        "individual_applied_l2": 0.02525452710688114,
+        "extra_local_applied_l2": 0.0090477978810668,
+        "coalition_applied_l2": 0.0,
+        "source_individual_applied_dot": -0.001830092165619135,
+        "source_individual_applied_cosine": -0.20924233926218186,
+        "source_coalition_applied_dot": 0.0,
+        "source_coalition_applied_cosine": null,
+        "source_extra_local_applied_dot": -0.0006273123435676098,
+        "source_extra_local_applied_cosine": -0.20019664192189493,
+        "individual_extra_local_applied_dot": 1.7614107491681352e-05,
+        "individual_extra_local_applied_cosine": 0.07708653260424694,
+        "extra_local_coalition_applied_dot": 0.0,
+        "extra_local_coalition_applied_cosine": null,
+        "individual_coalition_applied_dot": 0.0,
+        "individual_coalition_applied_cosine": null,
+        "combined_protection_l2": 0.027475113049149513,
+        "objective_l2": 0.3402664363384247
+      }
+    },
+    "routing": {
+      "local_A_to_A_mapper_l2": 0.1058049201965332,
+      "extra_A_to_A_mapper_l2": 0.108711838722229,
+      "local_A_to_B_mapper_l2": 0.0,
+      "extra_A_to_B_mapper_l2": 0.0,
+      "local_B_to_A_mapper_l2": 0.0,
+      "extra_B_to_A_mapper_l2": 0.0,
+      "local_B_to_B_mapper_l2": 0.4938843846321106,
+      "extra_B_to_B_mapper_l2": 0.1446608453989029
+    },
+    "state_unchanged": true,
+    "rng_unchanged": true
+  },
+  "curve": [
+    {
+      "epoch": 0,
+      "counts": {
+        "mapper_optimizer_steps": 2520,
+        "adversary_optimizer_steps": 840
+      },
+      "source_loss": 0.3424144387245178,
+      "task_losses": {
+        "income_binary": 0.26708850264549255,
+        "civilian_at_work": 0.2456357777118683,
+        "public_coverage": 0.4284667372703552
+      },
+      "purpose_losses": {
+        "A": 0.2563621401786804,
+        "B": 0.4284667372703552
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9360764026641846,
+      "extra_local_loss": 1.985498309135437,
+      "coalition_loss": 0.9844606518745422,
+      "observer_ce": {
+        "A__public_coverage": 0.5051497220993042,
+        "A__SEX": 0.6908175349235535,
+        "A__RAC1P": 1.2793610095977783,
+        "B__income_binary": 0.37209102511405945,
+        "B__civilian_at_work": 0.5462164878845215,
+        "B__SEX": 0.6925318241119385,
+        "B__RAC1P": 1.278624176979065,
+        "AB__SEX": 0.6873968839645386,
+        "AB__RAC1P": 1.265514612197876
+      },
+      "objective": 0.14953188598155975,
+      "source_validation": {
+        "income_binary": 0.2925710082054138,
+        "civilian_at_work": 0.2896477282047272,
+        "public_coverage": 0.48979759216308594
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 5,
+      "counts": {
+        "mapper_optimizer_steps": 2730,
+        "adversary_optimizer_steps": 1470
+      },
+      "source_loss": 0.3406141400337219,
+      "task_losses": {
+        "income_binary": 0.2665790319442749,
+        "civilian_at_work": 0.24443188309669495,
+        "public_coverage": 0.4257228672504425
+      },
+      "purpose_losses": {
+        "A": 0.25550544261932373,
+        "B": 0.4257228672504425
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9436362385749817,
+      "extra_local_loss": 1.9838736057281494,
+      "coalition_loss": 0.9828890562057495,
+      "observer_ce": {
+        "A__public_coverage": 0.5060409903526306,
+        "A__SEX": 0.6908833384513855,
+        "A__RAC1P": 1.2795312404632568,
+        "B__income_binary": 0.3866565227508545,
+        "B__civilian_at_work": 0.5659708976745605,
+        "B__SEX": 0.6923825144767761,
+        "B__RAC1P": 1.2743998765945435,
+        "AB__SEX": 0.6861283779144287,
+        "AB__RAC1P": 1.2638143301010132
+      },
+      "objective": 0.14705681800842285,
+      "source_validation": {
+        "income_binary": 0.29291316866874695,
+        "civilian_at_work": 0.29012125730514526,
+        "public_coverage": 0.49181219935417175
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 10,
+      "counts": {
+        "mapper_optimizer_steps": 2940,
+        "adversary_optimizer_steps": 2100
+      },
+      "source_loss": 0.33920472860336304,
+      "task_losses": {
+        "income_binary": 0.26590263843536377,
+        "civilian_at_work": 0.2438480705022812,
+        "public_coverage": 0.4235341250896454
+      },
+      "purpose_losses": {
+        "A": 0.2548753619194031,
+        "B": 0.4235341250896454
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9448051452636719,
+      "extra_local_loss": 1.9858078956604004,
+      "coalition_loss": 0.9861946702003479,
+      "observer_ce": {
+        "A__public_coverage": 0.5067102909088135,
+        "A__SEX": 0.6917988061904907,
+        "A__RAC1P": 1.2810049057006836,
+        "B__income_binary": 0.3858034610748291,
+        "B__civilian_at_work": 0.5689958930015564,
+        "B__SEX": 0.6925361156463623,
+        "B__RAC1P": 1.2759394645690918,
+        "AB__SEX": 0.6890654563903809,
+        "AB__RAC1P": 1.2668875455856323
+      },
+      "objective": 0.14543381333351135,
+      "source_validation": {
+        "income_binary": 0.2945809066295624,
+        "civilian_at_work": 0.2923024296760559,
+        "public_coverage": 0.49324870109558105
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 15,
+      "counts": {
+        "mapper_optimizer_steps": 3150,
+        "adversary_optimizer_steps": 2730
+      },
+      "source_loss": 0.33781540393829346,
+      "task_losses": {
+        "income_binary": 0.2642514109611511,
+        "civilian_at_work": 0.24224381148815155,
+        "public_coverage": 0.4223831593990326
+      },
+      "purpose_losses": {
+        "A": 0.25324761867523193,
+        "B": 0.4223831593990326
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9421646595001221,
+      "extra_local_loss": 1.9845373630523682,
+      "coalition_loss": 0.9830520153045654,
+      "observer_ce": {
+        "A__public_coverage": 0.5043426156044006,
+        "A__SEX": 0.6906147003173828,
+        "A__RAC1P": 1.2803516387939453,
+        "B__income_binary": 0.3841002881526947,
+        "B__civilian_at_work": 0.5635789036750793,
+        "B__SEX": 0.6926370859146118,
+        "B__RAC1P": 1.2753260135650635,
+        "AB__SEX": 0.6846544146537781,
+        "AB__RAC1P": 1.2669930458068848
+      },
+      "objective": 0.14437207579612732,
+      "source_validation": {
+        "income_binary": 0.2944081425666809,
+        "civilian_at_work": 0.2934171259403229,
+        "public_coverage": 0.4956437349319458
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 20,
+      "counts": {
+        "mapper_optimizer_steps": 3360,
+        "adversary_optimizer_steps": 3360
+      },
+      "source_loss": 0.3365962505340576,
+      "task_losses": {
+        "income_binary": 0.2642267048358917,
+        "civilian_at_work": 0.24075372517108917,
+        "public_coverage": 0.4207023084163666
+      },
+      "purpose_losses": {
+        "A": 0.25249022245407104,
+        "B": 0.4207023084163666
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9433358907699585,
+      "extra_local_loss": 1.98270845413208,
+      "coalition_loss": 0.9824577569961548,
+      "observer_ce": {
+        "A__public_coverage": 0.5067104697227478,
+        "A__SEX": 0.6909611225128174,
+        "A__RAC1P": 1.2784433364868164,
+        "B__income_binary": 0.3825034201145172,
+        "B__civilian_at_work": 0.570456862449646,
+        "B__SEX": 0.6923345327377319,
+        "B__RAC1P": 1.2724130153656006,
+        "AB__SEX": 0.6855053305625916,
+        "AB__RAC1P": 1.2638620138168335
+      },
+      "objective": 0.1431272327899933,
+      "source_validation": {
+        "income_binary": 0.296236515045166,
+        "civilian_at_work": 0.293878436088562,
+        "public_coverage": 0.497801810503006
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 25,
+      "counts": {
+        "mapper_optimizer_steps": 3570,
+        "adversary_optimizer_steps": 3990
+      },
+      "source_loss": 0.33507227897644043,
+      "task_losses": {
+        "income_binary": 0.26214373111724854,
+        "civilian_at_work": 0.2399461418390274,
+        "public_coverage": 0.4190995991230011
+      },
+      "purpose_losses": {
+        "A": 0.2510449290275574,
+        "B": 0.4190995991230011
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9440343379974365,
+      "extra_local_loss": 1.9836944341659546,
+      "coalition_loss": 0.980832576751709,
+      "observer_ce": {
+        "A__public_coverage": 0.5048566460609436,
+        "A__SEX": 0.6903666853904724,
+        "A__RAC1P": 1.2814116477966309,
+        "B__income_binary": 0.3890036940574646,
+        "B__civilian_at_work": 0.5667991042137146,
+        "B__SEX": 0.6920802593231201,
+        "B__RAC1P": 1.2735867500305176,
+        "AB__SEX": 0.6829365491867065,
+        "AB__RAC1P": 1.2644544839859009
+      },
+      "objective": 0.1414841115474701,
+      "source_validation": {
+        "income_binary": 0.29552897810935974,
+        "civilian_at_work": 0.2961488366127014,
+        "public_coverage": 0.5007529258728027
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 30,
+      "counts": {
+        "mapper_optimizer_steps": 3780,
+        "adversary_optimizer_steps": 4620
+      },
+      "source_loss": 0.3336649537086487,
+      "task_losses": {
+        "income_binary": 0.26154279708862305,
+        "civilian_at_work": 0.23903343081474304,
+        "public_coverage": 0.4170417785644531
+      },
+      "purpose_losses": {
+        "A": 0.25028812885284424,
+        "B": 0.4170417785644531
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9498929381370544,
+      "extra_local_loss": 1.9867233037948608,
+      "coalition_loss": 0.9816569089889526,
+      "observer_ce": {
+        "A__public_coverage": 0.5057233572006226,
+        "A__SEX": 0.690471887588501,
+        "A__RAC1P": 1.2839295864105225,
+        "B__income_binary": 0.3995581269264221,
+        "B__civilian_at_work": 0.5769979357719421,
+        "B__SEX": 0.6921117901802063,
+        "B__RAC1P": 1.2786617279052734,
+        "AB__SEX": 0.6823957562446594,
+        "AB__RAC1P": 1.2676018476486206
+      },
+      "objective": 0.13933947682380676,
+      "source_validation": {
+        "income_binary": 0.2968651354312897,
+        "civilian_at_work": 0.2976885437965393,
+        "public_coverage": 0.506354570388794
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 35,
+      "counts": {
+        "mapper_optimizer_steps": 3990,
+        "adversary_optimizer_steps": 5250
+      },
+      "source_loss": 0.33302751183509827,
+      "task_losses": {
+        "income_binary": 0.2605263888835907,
+        "civilian_at_work": 0.23757398128509521,
+        "public_coverage": 0.4170048236846924
+      },
+      "purpose_losses": {
+        "A": 0.24905018508434296,
+        "B": 0.4170048236846924
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9462148547172546,
+      "extra_local_loss": 1.982690453529358,
+      "coalition_loss": 0.9811965227127075,
+      "observer_ce": {
+        "A__public_coverage": 0.5064218044281006,
+        "A__SEX": 0.6896657347679138,
+        "A__RAC1P": 1.2784825563430786,
+        "B__income_binary": 0.39383843541145325,
+        "B__civilian_at_work": 0.5710617303848267,
+        "B__SEX": 0.6918636560440063,
+        "B__RAC1P": 1.275630235671997,
+        "AB__SEX": 0.6825848817825317,
+        "AB__RAC1P": 1.2660552263259888
+      },
+      "objective": 0.13927149772644043,
+      "source_validation": {
+        "income_binary": 0.29600825905799866,
+        "civilian_at_work": 0.29736101627349854,
+        "public_coverage": 0.5088176727294922
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 40,
+      "counts": {
+        "mapper_optimizer_steps": 4200,
+        "adversary_optimizer_steps": 5880
+      },
+      "source_loss": 0.3315548896789551,
+      "task_losses": {
+        "income_binary": 0.26045581698417664,
+        "civilian_at_work": 0.23829415440559387,
+        "public_coverage": 0.4137348234653473
+      },
+      "purpose_losses": {
+        "A": 0.24937498569488525,
+        "B": 0.4137348234653473
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9483795166015625,
+      "extra_local_loss": 1.9823317527770996,
+      "coalition_loss": 0.9800671339035034,
+      "observer_ce": {
+        "A__public_coverage": 0.505468487739563,
+        "A__SEX": 0.6901565194129944,
+        "A__RAC1P": 1.278537392616272,
+        "B__income_binary": 0.39848101139068604,
+        "B__civilian_at_work": 0.5776607990264893,
+        "B__SEX": 0.6917626261711121,
+        "B__RAC1P": 1.2739171981811523,
+        "AB__SEX": 0.6823893189430237,
+        "AB__RAC1P": 1.2634944915771484
+      },
+      "objective": 0.13760033249855042,
+      "source_validation": {
+        "income_binary": 0.297285795211792,
+        "civilian_at_work": 0.30105289816856384,
+        "public_coverage": 0.5072798728942871
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 45,
+      "counts": {
+        "mapper_optimizer_steps": 4410,
+        "adversary_optimizer_steps": 6510
+      },
+      "source_loss": 0.3307238221168518,
+      "task_losses": {
+        "income_binary": 0.2590407431125641,
+        "civilian_at_work": 0.23750421404838562,
+        "public_coverage": 0.41317519545555115
+      },
+      "purpose_losses": {
+        "A": 0.24827247858047485,
+        "B": 0.41317519545555115
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9489203691482544,
+      "extra_local_loss": 1.9828643798828125,
+      "coalition_loss": 0.9801072478294373,
+      "observer_ce": {
+        "A__public_coverage": 0.5068640112876892,
+        "A__SEX": 0.6902570128440857,
+        "A__RAC1P": 1.2792576551437378,
+        "B__income_binary": 0.4004613757133484,
+        "B__civilian_at_work": 0.5748752951622009,
+        "B__SEX": 0.6919668316841125,
+        "B__RAC1P": 1.274006962776184,
+        "AB__SEX": 0.6823244690895081,
+        "AB__RAC1P": 1.2637196779251099
+      },
+      "objective": 0.13668856024742126,
+      "source_validation": {
+        "income_binary": 0.2969750761985779,
+        "civilian_at_work": 0.3009149730205536,
+        "public_coverage": 0.5086252093315125
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 50,
+      "counts": {
+        "mapper_optimizer_steps": 4620,
+        "adversary_optimizer_steps": 7140
+      },
+      "source_loss": 0.3289152979850769,
+      "task_losses": {
+        "income_binary": 0.2586163282394409,
+        "civilian_at_work": 0.2354014664888382,
+        "public_coverage": 0.41082167625427246
+      },
+      "purpose_losses": {
+        "A": 0.24700888991355896,
+        "B": 0.41082167625427246
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9446468949317932,
+      "extra_local_loss": 1.9848394393920898,
+      "coalition_loss": 0.9832268953323364,
+      "observer_ce": {
+        "A__public_coverage": 0.5045037865638733,
+        "A__SEX": 0.6903811097145081,
+        "A__RAC1P": 1.2784303426742554,
+        "B__income_binary": 0.39061227440834045,
+        "B__civilian_at_work": 0.567363977432251,
+        "B__SEX": 0.692535400390625,
+        "B__RAC1P": 1.278657078742981,
+        "AB__SEX": 0.6843114495277405,
+        "AB__RAC1P": 1.26808762550354
+      },
+      "objective": 0.1352086365222931,
+      "source_validation": {
+        "income_binary": 0.29802897572517395,
+        "civilian_at_work": 0.3026001453399658,
+        "public_coverage": 0.5135631561279297
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 55,
+      "counts": {
+        "mapper_optimizer_steps": 4830,
+        "adversary_optimizer_steps": 7770
+      },
+      "source_loss": 0.3315120339393616,
+      "task_losses": {
+        "income_binary": 0.2609393894672394,
+        "civilian_at_work": 0.23439405858516693,
+        "public_coverage": 0.4153573215007782
+      },
+      "purpose_losses": {
+        "A": 0.24766671657562256,
+        "B": 0.4153573215007782
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9483299255371094,
+      "extra_local_loss": 1.9813175201416016,
+      "coalition_loss": 0.9782190322875977,
+      "observer_ce": {
+        "A__public_coverage": 0.508549153804779,
+        "A__SEX": 0.6897439956665039,
+        "A__RAC1P": 1.278274416923523,
+        "B__income_binary": 0.401714563369751,
+        "B__civilian_at_work": 0.5699792504310608,
+        "B__SEX": 0.6922354698181152,
+        "B__RAC1P": 1.2714391946792603,
+        "AB__SEX": 0.6809041500091553,
+        "AB__RAC1P": 1.261482834815979
+      },
+      "objective": 0.1376131772994995,
+      "source_validation": {
+        "income_binary": 0.30194246768951416,
+        "civilian_at_work": 0.3026101887226105,
+        "public_coverage": 0.5258342027664185
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 60,
+      "counts": {
+        "mapper_optimizer_steps": 5040,
+        "adversary_optimizer_steps": 8400
+      },
+      "source_loss": 0.32686126232147217,
+      "task_losses": {
+        "income_binary": 0.25735488533973694,
+        "civilian_at_work": 0.2369525134563446,
+        "public_coverage": 0.40656885504722595
+      },
+      "purpose_losses": {
+        "A": 0.24715369939804077,
+        "B": 0.40656885504722595
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.949482798576355,
+      "extra_local_loss": 1.9813580513000488,
+      "coalition_loss": 0.9797327518463135,
+      "observer_ce": {
+        "A__public_coverage": 0.5051599740982056,
+        "A__SEX": 0.6894891262054443,
+        "A__RAC1P": 1.2776670455932617,
+        "B__income_binary": 0.4050690829753876,
+        "B__civilian_at_work": 0.576688826084137,
+        "B__SEX": 0.6918092370033264,
+        "B__RAC1P": 1.2734249830245972,
+        "AB__SEX": 0.6824780106544495,
+        "AB__RAC1P": 1.2624620199203491
+      },
+      "objective": 0.13284507393836975,
+      "source_validation": {
+        "income_binary": 0.29858317971229553,
+        "civilian_at_work": 0.3074943423271179,
+        "public_coverage": 0.5162999629974365
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 65,
+      "counts": {
+        "mapper_optimizer_steps": 5250,
+        "adversary_optimizer_steps": 9030
+      },
+      "source_loss": 0.325597882270813,
+      "task_losses": {
+        "income_binary": 0.25690510869026184,
+        "civilian_at_work": 0.23417161405086517,
+        "public_coverage": 0.40565744042396545
+      },
+      "purpose_losses": {
+        "A": 0.2455383539199829,
+        "B": 0.40565744042396545
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9484769701957703,
+      "extra_local_loss": 1.9844651222229004,
+      "coalition_loss": 0.9834109544754028,
+      "observer_ce": {
+        "A__public_coverage": 0.5045706033706665,
+        "A__SEX": 0.689957857131958,
+        "A__RAC1P": 1.280980110168457,
+        "B__income_binary": 0.4029046595096588,
+        "B__civilian_at_work": 0.5707489252090454,
+        "B__SEX": 0.6919942498207092,
+        "B__RAC1P": 1.276940941810608,
+        "AB__SEX": 0.6847864389419556,
+        "AB__RAC1P": 1.2676763534545898
+      },
+      "objective": 0.131526917219162,
+      "source_validation": {
+        "income_binary": 0.2986336946487427,
+        "civilian_at_work": 0.3084258437156677,
+        "public_coverage": 0.5171624422073364
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 70,
+      "counts": {
+        "mapper_optimizer_steps": 5460,
+        "adversary_optimizer_steps": 9660
+      },
+      "source_loss": 0.3235854506492615,
+      "task_losses": {
+        "income_binary": 0.25607338547706604,
+        "civilian_at_work": 0.23185737431049347,
+        "public_coverage": 0.4032055139541626
+      },
+      "purpose_losses": {
+        "A": 0.24396538734436035,
+        "B": 0.4032055139541626
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9477221965789795,
+      "extra_local_loss": 1.983388900756836,
+      "coalition_loss": 0.9803426265716553,
+      "observer_ce": {
+        "A__public_coverage": 0.5046738386154175,
+        "A__SEX": 0.6903059482574463,
+        "A__RAC1P": 1.2781766653060913,
+        "B__income_binary": 0.39864209294319153,
+        "B__civilian_at_work": 0.5740343332290649,
+        "B__SEX": 0.6919587850570679,
+        "B__RAC1P": 1.2763707637786865,
+        "AB__SEX": 0.6820968389511108,
+        "AB__RAC1P": 1.264755368232727
+      },
+      "objective": 0.1296437829732895,
+      "source_validation": {
+        "income_binary": 0.29869475960731506,
+        "civilian_at_work": 0.3056758642196655,
+        "public_coverage": 0.5186458826065063
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 75,
+      "counts": {
+        "mapper_optimizer_steps": 5670,
+        "adversary_optimizer_steps": 10290
+      },
+      "source_loss": 0.32325536012649536,
+      "task_losses": {
+        "income_binary": 0.25555217266082764,
+        "civilian_at_work": 0.2320023626089096,
+        "public_coverage": 0.4027334153652191
+      },
+      "purpose_losses": {
+        "A": 0.24377727508544922,
+        "B": 0.4027334153652191
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9480815529823303,
+      "extra_local_loss": 1.983612060546875,
+      "coalition_loss": 0.9810354709625244,
+      "observer_ce": {
+        "A__public_coverage": 0.5034217834472656,
+        "A__SEX": 0.6903316974639893,
+        "A__RAC1P": 1.2770904302597046,
+        "B__income_binary": 0.4022810459136963,
+        "B__civilian_at_work": 0.5729021430015564,
+        "B__SEX": 0.6925941109657288,
+        "B__RAC1P": 1.276799201965332,
+        "AB__SEX": 0.6829738616943359,
+        "AB__RAC1P": 1.2649105787277222
+      },
+      "objective": 0.12926658987998962,
+      "source_validation": {
+        "income_binary": 0.3006838858127594,
+        "civilian_at_work": 0.30894574522972107,
+        "public_coverage": 0.5185967683792114
+      },
+      "beta": 0.05
+    },
+    {
+      "epoch": 80,
+      "counts": {
+        "mapper_optimizer_steps": 5880,
+        "adversary_optimizer_steps": 10920
+      },
+      "source_loss": 0.3216673731803894,
+      "task_losses": {
+        "income_binary": 0.25516751408576965,
+        "civilian_at_work": 0.23104193806648254,
+        "public_coverage": 0.4002300202846527
+      },
+      "purpose_losses": {
+        "A": 0.2431047260761261,
+        "B": 0.4002300202846527
+      },
+      "coefficients": {
+        "source": 1.0,
+        "individual": -0.1,
+        "extra_local": -0.05,
+        "coalition": 0.0
+      },
+      "individual_loss": 0.9473868608474731,
+      "extra_local_loss": 1.9854230880737305,
+      "coalition_loss": 0.9823095798492432,
+      "observer_ce": {
+        "A__public_coverage": 0.5051194429397583,
+        "A__SEX": 0.6898501515388489,
+        "A__RAC1P": 1.2817776203155518,
+        "B__income_binary": 0.39468201994895935,
+        "B__civilian_at_work": 0.5738125443458557,
+        "B__SEX": 0.6919570565223694,
+        "B__RAC1P": 1.2788965702056885,
+        "AB__SEX": 0.682784914970398,
+        "AB__RAC1P": 1.2685654163360596
+      },
+      "objective": 0.12765753269195557,
+      "source_validation": {
+        "income_binary": 0.29901331663131714,
+        "civilian_at_work": 0.3108181655406952,
+        "public_coverage": 0.5262209177017212
+      },
+      "beta": 0.05
+    }
+  ],
+  "diagnostic_indices_sha256": "da4032eb43f35ea9ad5440aa127d0cdc76476f4d5d140e8b7cab77ba6270c696",
+  "caller_rng_unchanged": true,
+  "historical_fork_unchanged": true,
+  "warmup_refitted": false,
+  "selected_epoch": 80,
+  "selection": "fixed final iterate; source validation diagnostic only",
+  "mapper_exposure_per_row": 140,
+  "observer_exposure_per_row": 260,
+  "source_valid_label_exposures": {
+    "income_binary": 1471820,
+    "civilian_at_work": 1471820,
+    "public_coverage": 1471820
+  },
+  "observer_valid_label_exposures": {
+    "A__public_coverage": 2733380,
+    "A__SEX": 2733380,
+    "A__RAC1P": 2733380,
+    "B__income_binary": 2733380,
+    "B__civilian_at_work": 2733380,
+    "B__SEX": 2733380,
+    "B__RAC1P": 2733380,
+    "AB__SEX": 2733380,
+    "AB__RAC1P": 2733380
+  },
+  "module_source_sha256": "612a141bc5171859f602b1447822357aa160e58a2cf848655f764f45856eb527",
+  "runtime_seconds": 22.068551541073248
+}

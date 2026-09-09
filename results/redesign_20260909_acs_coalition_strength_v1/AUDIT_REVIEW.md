@@ -1,0 +1,59 @@
+# Coalition-strength audit review
+
+The full 54-system matrix is complete, including 36 new continuations and 18 unchanged historical systems. All 54 paired-system functions were frozen before new reserved-task fitting. Every new model, candidate prediction and weighted/unweighted score passed [full independent replay](SCORE_REPLAY.json). Additional training strength produces attribute-specific tradeoffs; it does not establish a utility-matched F coalition-SEX advance under the primary rules. [TABLE](TABLE.md), [complete matching analysis](MATCHING_ANALYSIS.md), and [all audit findings](AUDIT_FINDINGS.md) retain favorable and contrary scopes.
+
+## What each audit scope measures
+
+Every new system has 11 forbidden-target roles: A coverage/commute/SEX/race; B income/employment/residence/SEX/race; AB SEX/race. Each role receives logistic regression, two fresh 64/32 ReLU MLP starts, and the fixed boosted-tree candidates with minimum leaf sizes 20 and 5. Every fresh MLP follows one 360-epoch trajectory, with separately retained validation-best checkpoints through 120 and 360. The saved final training observer supplies an additional 360-epoch catch-up trajectory for each of its nine roles. There is no training observer for the two opposing reserved tasks.
+
+| Scope | Eligible paths | Exposure qualification |
+|---|---|---|
+| Standard independent | Fresh attacks on the published wire; AB additionally includes every legal sensitive A/B singleton attack by projection | Fitting labels come from the fixed independent attacker pool |
+| Expanded independent | Standard pool plus attacks on F's public native-source probabilities, including every corresponding singleton projection | Public source heads carry their original source-label training exposure |
+| Expanded catch-up | Expanded independent pool plus each legal own/projected saved-observer catch-up trajectory | Trained weights inherit representation-fitting exposure; audit Adam starts empty |
+
+P's published wire already consists of its native probabilities, so its derived candidate family is deduplicated. All singleton projections remain within one condition, interface and seed. Alternatives in the strength grid are separate deployments; no attack receives another coefficient's release or fitted auditor. Standalone saved observers are reported diagnostically and excluded from selectors. Their epoch 0 states remain eligible within their own catch-up trajectories.
+
+All choices use minimum **unweighted attacker-validation log loss**, with the existing deterministic candidate-ID tie rule. PWGTP evaluates the same selected predictions. Pool containment guarantees that the coalition's selected validation loss is no larger than each included singleton candidate's validation loss. It imposes no corresponding ordering on development-evaluation loss. Saved probabilities, all candidate curves, selections and source paths are retained in each condition's `audits/audit_selection.json` and compact score records.
+
+## Exposure, coordinates and budgets
+
+Each assigned native source head inherits 140 source-training passes: 60 common source epochs plus 80 continuation epochs. Every observer inherits 260 representation-fitting passes: 20 observer-warmup epochs plus three detached updates in each of 80 continuation epochs. The representation-fitting row counts for seeds 0/1/2 are 10,513/10,428/10,551. Thus each assigned source task has 1,471,820/1,459,920/1,477,140 label presentations; each observer role has 2,733,380/2,711,280/2,743,260. These inherited exposures are separate from the capped 4,096-label independent attacker pool and the additional 120/360 fitting passes on that pool.
+
+F's public source heads receive ordinary source-objective gradients. P's heads are part of its released probabilities and also receive protection-objective gradients during the 80 continuation epochs. The 140-pass source count therefore describes their source-label exposure, not every label that can influence a P head. The [gradient accounting](GRADIENT_ACCOUNTING.md) preserves this difference in the matched forward architecture.
+
+Fresh attacks use their own fitting-only standardizer. Catch-up uses the original direct wire coordinates with an identity standardizer and a fresh Adam state; pre-update predictions must match that condition's own saved observer exactly. No mapper/head update, coordinate realignment, eraser refresh or hidden P representation is permitted during auditing. F-derived attacks additionally apply only the public assigned source heads: 34 affine parameters for A, 17 for B, 51 for AB. The fresh/catch-up MLP then has 64d + 2,144 + 33k parameters, where d is its input width and k the class count. It receives 16/16/32 coordinates on F wires, 2/1/3 on native-probability paths, and 2 or 9 output classes. These routes and inherited exposure differ even when the final auditor architecture is the same.
+
+The 120-versus-360 comparison is nested within the same trajectory, with its real terminal model, Adam state, counters and RNG saved separately from validation-selected checkpoints. Logistic/tree candidates remain eligible at both budgets. The extension changes fitting time only; it introduces no extra family, seed, data subset or restart. A better validation checkpoint can generalize worse on development households. Later selected epochs and continuing changes leave saturation unresolved; this study stops at 360.
+
+## What the complete audit changes
+
+An [independent compact-record review](AUDIT_REVIEW.json) reads all 54 unique systems, without fitting or repeating model inference. Among the 36 new systems, saved-start trajectories win 212/324 observer-eligible expanded-catch-up endpoints at 360; the denominator is 396 if the 72 reserved-target roles without observers are included. Of the 212 winners, 39 select epoch 0. By target, the winner/epoch-0 counts are SEX 55/9, race 104/22, public coverage 28/3, income 19/5 and employment 6/0. Including the 18 reused systems gives 309/486 observer-eligible winners and 58 epoch-0 selections. These are endpoint counts with shared witnesses, not independent scientific replications.
+
+The following table concerns all 396 forbidden-role endpoints in the 36 **new** systems. A checkpoint change includes a later validation-best state of the same candidate. Development directions compare the selected 360 result with the selected 120 result; larger attack loss means weaker measured recovery.
+
+| Audit scope | Changed checkpoint / candidate ID | Unweighted: lower / higher attack loss | PWGTP: lower / higher attack loss |
+|---|---:|---:|---:|
+| Standard independent | 41 / 16 | 17 / 24 | 8 / 33 |
+| Expanded independent | 47 / 17 | 17 / 30 | 8 / 39 |
+| Expanded catch-up | 38 / 12 | 16 / 22 | 10 / 28 |
+
+Every new F expanded-catch-up selection is identical at 120 and 360. Across all 54 systems, F coalition SEX is unchanged at both budgets in every scope; F coalition race changes at two endpoints only under expanded independent auditing. P coalition SEX changes at four endpoints under expanded catch-up, while P coalition race changes at eight endpoints under each independent scope. Thus stability of the primary F comparison does not imply stability of all targets or interfaces. [Budget differences](AUDIT_BUDGET.csv), [scope differences](AUDIT_SCOPE.csv), and [changed fixed-pair qualifications](PAIR_BUDGET_CHANGES.csv) retain both signs. The 229 changed comparison rows span repeated panels/deltas and are not 229 independent discoveries.
+
+A material inherited counterexample remains visible: seed 0 F J beta 0.1, B/race and its coalition projection, switches from the wire MLP at epoch 65 to a native-probability MLP at epoch 255. Validation loss improves 1.2642922062→1.2640736016, while development loss worsens 1.2515792407→1.2718780166; weighted loss also worsens 1.2264246287→1.2413771157. These are changed auditor generalization results on an unchanged release. The new seed 0 F Iplus beta 0.025 B/race example similarly has better validation but worse development at the later checkpoint. Some P selections occur as late as epochs 350–355, so saturation remains unresolved at the authorized stopping budget.
+
+Negative gains require the same caution. Seed 0 P Iplus beta 0.025 selects the leaf-5 tree for coalition SEX: development loss 0.7106018115 exceeds prior loss 0.6929022323, giving signed gain −0.0176995792. That candidate wins all three validation-selected scopes and is unchanged across budgets. It drives this system's negative mean gain in [TABLE](TABLE.md). This is a selected auditor performing worse than the prior on development households; it is not negative recoverability or evidence of privacy. The signed value is retained rather than clipped or replaced using development performance.
+
+## Limits on the method conclusion
+
+Under the primary F/unweighted/residential-transfer/SEX/expanded-catch-up 360 comparison at delta 0.001, none of the 25 fixed J/Iplus pairs qualifies by close matching in any seed. Only J beta 0.025 versus ordinary I qualifies directionally in one seed; no fixed pair qualifies in all three. PWGTP produces additional one-seed directional cases, while the close-matching result remains zero. P supplies some one-seed close matches, but its source floors and reserved-task utility differ; it does not establish the F claim. Eligibility, lower-SEX qualification and full-vector dominance remain separate.
+
+The familiar beta 0.1 F contrast survives the nested audit budget: mean coalition SEX gain improves from 0.01123 for Iplus to 0.00541 for J, with a residence-loss increase of 0.00382. At beta 0.2, mean race gain is lower for F J than F Iplus (0.02441 versus 0.04375), but source feasibility is only 1/3 unweighted and SEX gains do not improve monotonically with beta. These findings support an attribute-specific utility/recovery tradeoff. They do not support a claim that stronger joint protection preserves every source, reserved task or forbidden target. Full per-seed values and explicit exclusions, rather than a favorable mean or audit scope, determine these limits.
+
+## Reuse and assessment limits
+
+The 18 historical paired systems, direct E, prior and exposed-label controls retain their original evidence and source identities from reviewed commit `9461fe29c4f7db337ea5dc20e295dc8d02c3d9e2`. They are not refitted or copied into new learned arms. [Reuse review](REUSE_AUDIT_REVIEW.json) checks their local availability and published identities; [REUSE_MANIFEST](REUSE_MANIFEST.json) binds the retained files. Both family labels share each ordinary-I zero anchor; that alias never supplies independent evidence.
+
+All nine race categories remain reported. Race code 4 has no independent attacker-fitting or attacker-validation support in any seed. Representation-fitting support is 1/1/0, so inherited observer exposure differs; it does not make the independently unsupported category assessable. Existing development support is 0/0/1; the one seed 2 person has PWGTP 79. The reused exposed-label control still fails that category despite near-perfect aggregate accuracy. Finite aggregate race losses/gains remain descriptive numerical evidence, not an all-category protection certificate. See the preserved [historical audit review](../redesign_20260908_acs_coalition_v1/COALITION_AUDIT.md).
+
+Signed gains, class-support flags and failures of the fixed utility/protection margins remain visible. Original PCA32 remains the source-allowance parent and retains its original 120-epoch audit evidence; it is not relabeled as a newly extended control. These are finite predictive audits on **DEVELOPMENT EVALUATION** households. They establish neither privacy nor a universal cross-purpose restriction. Three seeds share one sampled cohort, and their standard deviations are descriptive rather than population or survey-design uncertainty.
