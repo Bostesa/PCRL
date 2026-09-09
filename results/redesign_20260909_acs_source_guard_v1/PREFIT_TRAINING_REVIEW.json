@@ -1,0 +1,47 @@
+{
+  "created_utc": "2026-09-09T02:35:21.685690+00:00",
+  "study": "acs_source_guard_v1",
+  "status": "corrected_and_prefit_passed",
+  "scope": "Artificial numerical/integration validation before scientific source freeze; no ACS fitting or scientific-result invalidation",
+  "initial_fault": {
+    "command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 .venv/bin/python -m pytest -q tests/test_acs_source_guard_training.py",
+    "result": "11 passed, 1 failed in 4.85s",
+    "failed_test": "test_guarded_saved_proposals_support_cast_and_retained_state",
+    "failure": "torch.load(weights_only=True) rejected a NumPy scalar embedded in saved diagnostic metadata (numpy._core.multiarray.scalar)",
+    "cause": "float64 epsilon/2 remained a NumPy scalar in the new roundoff metadata; model/optimizer tensors and numerical projection were not the fault"
+  },
+  "correction": {
+    "implementation": "Convert float64 unit roundoff to a Python float before derived metadata is saved; preserve safe tensor/primitive checkpoint loading",
+    "scientific_fits_before_correction": 0,
+    "historical_artifacts_changed": false,
+    "permissive_pickle_load_introduced": false
+  },
+  "subsequent_checks": [
+    {
+      "result": "12 passed in 3.52s",
+      "scope": "New source-guard focused tests after metadata correction"
+    },
+    {
+      "result": "27 passed in 7.24s",
+      "scope": "Source-guard plus historical coalition/strength focused tests, before final rescaling fixture"
+    },
+    {
+      "result": "43 passed",
+      "scope": "Final parent/reviewer prefit suite, including independent replay and complete artificial pipelines; recorded in PREFIT_INTEGRATION_REVIEW.json",
+      "source": "parent notification and committed compact prefit integration record"
+    }
+  ],
+  "additional_prefreeze_review_changes": [
+    "Separate true float64 summation bound from ideal KKT primal tolerance; verify realized-minus-ideal and total feasibility bounds without cast correction.",
+    "Retain compact every-step JSONL plus fixed epoch detailed checkpoints.",
+    "Record support-restricted and full-forward task displacement dots separately.",
+    "Add explicit zero-protection literal source dispatch, positive constraint rescaling and deterministic active-set tie fixtures."
+  ],
+  "scientific_failure": false,
+  "execution_amendment_required": false,
+  "final_source_sha256": {
+    "experiments/acs_source_guard_training.py": "46e640a86bfa725a7b3621d3072bf72d33a073dc3c613b2c8930507047bec443",
+    "tests/test_acs_source_guard_training.py": "fcab714a0f3e1e0988ea11d323836d9715cdf4c7e723f3323369ec78b9aa7744",
+    "results/redesign_20260909_acs_source_guard_v1/NUMERICAL_POLICY.json": "a5b2800e5e598f2223e11f211bd73e4f9ff48f207523f30b083339aba3581b26"
+  }
+}

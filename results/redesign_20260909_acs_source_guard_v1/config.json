@@ -1,0 +1,344 @@
+{
+  "parent_results": "results/redesign_20260907_acs_transfer_v1",
+  "reference_results": "results/redesign_20260908_acs_protection_v1",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "threads": 1,
+  "references": [
+    "E_pca",
+    "E_pca_leace",
+    "B_rich_bank",
+    "B_rich_bank_leace",
+    "C_tree_bank",
+    "C_tree_bank_leace"
+  ],
+  "utility_tasks": [
+    "same_residence",
+    "commute_over20",
+    "income_binary",
+    "civilian_at_work",
+    "public_coverage"
+  ],
+  "head_budget": 2048,
+  "attacker_budget": 4096,
+  "head_mlp_epochs": 40,
+  "audit_mlp_epochs": 120,
+  "catchup_epochs": 120,
+  "audit_restart_offset": 10000,
+  "audit_min_samples_leaf": [
+    20,
+    5
+  ],
+  "margins": {
+    "source_loss_increase": 0.01,
+    "residential_headroom_fraction": 0.5,
+    "attribute_gain_fraction": 0.5,
+    "feature_residential_advantage": 0.01,
+    "feature_attribute_gain_excess": 0.005
+  },
+  "evaluation_status": "DEVELOPMENT EVALUATION: original test households informed this research direction; no fresh confirmatory test",
+  "parity_tolerance": {
+    "atol": 1e-05,
+    "rtol": 1e-05
+  },
+  "bottleneck_reference_results": "results/redesign_20260908_acs_bottleneck_v1",
+  "pca16_reference_results": "results/redesign_20260908_acs_pca16_v1",
+  "init_reference_results": "results/redesign_20260908_acs_pca16_init_v1",
+  "preservation_reference_results": "results/redesign_20260908_acs_preservation_v1",
+  "selective_reference_results": "results/redesign_20260908_acs_selective_preservation_v1",
+  "extended_audit_epochs": 360,
+  "study": "acs_source_guard_v1",
+  "starting_commit": "02a069213e095ed9e8a890c4cbd92e9ef84edb41",
+  "started_utc": "2026-09-09T02:13:21+00:00",
+  "restricted_reference_results": "results/redesign_20260908_acs_restricted_inputs_v1",
+  "interfaces": [
+    "F",
+    "P"
+  ],
+  "regimes": [
+    "G_J",
+    "G_L025",
+    "G_L20",
+    "T"
+  ],
+  "condition_order": [
+    "F_T",
+    "P_T",
+    "F_G_J",
+    "F_G_L025",
+    "F_G_L20",
+    "P_G_J",
+    "P_G_L025",
+    "P_G_L20"
+  ],
+  "execution_order": {
+    "training": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "conditions": [
+        "shared_T",
+        "F_G_J",
+        "F_G_L025",
+        "F_G_L20",
+        "P_G_J",
+        "P_G_L025",
+        "P_G_L20"
+      ]
+    },
+    "global_release_freeze": "all24 new and24 reused systems before any new reserved evaluation; explicit final partial freeze only if cap stops training permanently",
+    "evaluation": {
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "conditions": [
+        "F_T",
+        "P_T",
+        "F_G_J",
+        "F_G_L025",
+        "F_G_L20",
+        "P_G_J",
+        "P_G_L025",
+        "P_G_L20"
+      ]
+    }
+  },
+  "maximum_scientific_seconds": 5400,
+  "maximum_total_work_seconds": 14400,
+  "reserved_reporting_seconds": 1800,
+  "mapper_initialization": "original_raw_pca16",
+  "target_order": [
+    "SEX",
+    "RAC1P",
+    "income_binary",
+    "civilian_at_work",
+    "public_coverage",
+    "same_residence",
+    "commute_over20"
+  ],
+  "view_ids": {
+    "A": 0,
+    "B": 1,
+    "AB": 2
+  },
+  "observer_seed_base": 20260911,
+  "fresh_seed_base": 1260000,
+  "catchup_seed_base": 1300000,
+  "attacker_subset_seed_base": 1240000,
+  "source_task_assignment": {
+    "A": [
+      "income_binary",
+      "civilian_at_work"
+    ],
+    "B": [
+      "public_coverage"
+    ]
+  },
+  "reserved_task_assignment": {
+    "A": [
+      "same_residence"
+    ],
+    "B": [
+      "commute_over20"
+    ]
+  },
+  "audit_roles": {
+    "A": [
+      "public_coverage",
+      "commute_over20",
+      "SEX",
+      "RAC1P"
+    ],
+    "B": [
+      "income_binary",
+      "civilian_at_work",
+      "same_residence",
+      "SEX",
+      "RAC1P"
+    ],
+    "AB": [
+      "SEX",
+      "RAC1P"
+    ]
+  },
+  "observer_roles": {
+    "A": [
+      "public_coverage",
+      "SEX",
+      "RAC1P"
+    ],
+    "B": [
+      "income_binary",
+      "civilian_at_work",
+      "SEX",
+      "RAC1P"
+    ],
+    "AB": [
+      "SEX",
+      "RAC1P"
+    ]
+  },
+  "audit_scopes": [
+    "standard_independent",
+    "expanded_independent",
+    "expanded_catchup"
+  ],
+  "source_loss": "(mean(income,employment)+public_coverage)/2",
+  "objectives": {
+    "F_G_J": {
+      "family": "J",
+      "beta": 0.1,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": 0.0,
+      "coalition": -0.1
+    },
+    "F_G_L025": {
+      "family": "Iplus",
+      "beta": 0.025,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": -0.025,
+      "coalition": 0.0
+    },
+    "F_G_L20": {
+      "family": "Iplus",
+      "beta": 0.2,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": -0.2,
+      "coalition": 0.0
+    },
+    "F_T": {
+      "family": "T",
+      "beta": 0.0,
+      "guarded": false,
+      "individual": 0.0,
+      "extra_local": 0.0,
+      "coalition": 0.0
+    },
+    "P_G_J": {
+      "family": "J",
+      "beta": 0.1,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": 0.0,
+      "coalition": -0.1
+    },
+    "P_G_L025": {
+      "family": "Iplus",
+      "beta": 0.025,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": -0.025,
+      "coalition": 0.0
+    },
+    "P_G_L20": {
+      "family": "Iplus",
+      "beta": 0.2,
+      "guarded": true,
+      "individual": -0.1,
+      "extra_local": -0.2,
+      "coalition": 0.0
+    },
+    "P_T": {
+      "family": "T",
+      "beta": 0.0,
+      "guarded": false,
+      "individual": 0.0,
+      "extra_local": 0.0,
+      "coalition": 0.0
+    }
+  },
+  "extra_local_reduction": "M_A+M_B SUM",
+  "forward_parameter_count": 6355,
+  "repetition_counts": [
+    1,
+    2,
+    4
+  ],
+  "direct_control": "frozen E for both purposes; no observer/native head",
+  "exposed_controls": "Reuse all compatible historical controls with original seeds, fitting exposure and120/360 records; zero new exposed/prior/direct teacher fitting",
+  "training": {
+    "input_dim": 32,
+    "mapper_hidden": 64,
+    "release_dim": 16,
+    "decoder_hidden": 64,
+    "adversary_hidden": [
+      64,
+      32
+    ],
+    "source_weight": "equal_purpose",
+    "reconstruction_weight": 0.0,
+    "protection_weight": 0.1,
+    "learning_rate": 0.001,
+    "batch_size": 256,
+    "warmup_epochs": 60,
+    "adversary_warmup_epochs": 20,
+    "continuation_epochs": 80,
+    "adversary_updates_per_mapper": 3,
+    "checkpoint": "fixed_final_epoch",
+    "prior_entropy": "empirical fitting labels, no smoothing",
+    "optimizer": "Adam defaults, no weight decay or clipping",
+    "preservation_weight": 0.0,
+    "purpose_branches": 2,
+    "decoder": null
+  },
+  "coalition_reference_results": "results/redesign_20260908_acs_coalition_v1",
+  "families": [
+    "Iplus",
+    "J"
+  ],
+  "ordinary_individual_coefficient": 0.1,
+  "global_release_freeze_required": true,
+  "audit_budget_semantics": {
+    "audit_mlp_epochs": 120,
+    "catchup_epochs": 120,
+    "extended_audit_epochs": 360,
+    "execution": "one360 trajectory; nested120/360 selected and terminal checkpoints"
+  },
+  "new_paired_systems": 24,
+  "reused_paired_systems": 24,
+  "total_paired_systems": 48,
+  "strength_reference_results": "results/redesign_20260909_acs_coalition_strength_v1",
+  "new_unique_forward_continuations": 21,
+  "new_branch_mappers": 42,
+  "guard": {
+    "proposal": "ordinary source and full Adam from exact same current float32 parameters and full Adam; retain full moments once",
+    "support": {
+      "F": "mapper parameters only",
+      "P": "mappers and assigned source heads"
+    },
+    "arithmetic": "float64 differences/constraints/projection; original float32 Adam and stored parameters",
+    "svd_relative_rank_tolerance": 1e-12,
+    "svd_applied_to": "active gradient matrix, not Gram",
+    "active_subsets": "all eight in lexicographic order",
+    "primal_tolerance": "1e-12*max(1,norm(g)*norm(v))",
+    "diagnostic_epochs": [
+      1,
+      20,
+      40,
+      60,
+      80
+    ],
+    "diagnostic_batch": "first continuation minibatch",
+    "empty_task": "zero constraint and explicit zero eligible support",
+    "state": "theta_next=theta_s+v on support, theta_s elsewhere; retain M_f; zero-protection exact source-step shortcut",
+    "cast_bound": "actual task dot minus ideal <= sum(abs(g)*abs(e)) + float64 summation roundoff; no corrective float32 update"
+  },
+  "shared_T": {
+    "forward_alias": "seed_N/T_shared",
+    "initial_model_and_Adam_exact": true,
+    "source_only_all_protection_coefficients_zero": true,
+    "observer_sets": "distinct F/P saved observer and Adam; each gets3 detached updates on pre-forward tensors thenone shared source Adam",
+    "independent_RNG_and_batches": true,
+    "counts": "3 unique trajectories,6 release/audit systems"
+  }
+}

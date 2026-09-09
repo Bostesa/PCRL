@@ -1,0 +1,120 @@
+{
+  "study": "acs_source_guard_v1",
+  "created_utc": "2026-09-09T02:28:04.493791+00:00",
+  "source_module": "experiments/acs_source_guard_training.py",
+  "objective": ".5*||v-r||_2^2; constraints Gv <= 0; three individual unweighted native source gradients on original protection support",
+  "source_task_order": [
+    "income_binary",
+    "civilian_at_work",
+    "public_coverage"
+  ],
+  "source_objective_weights": [
+    0.25,
+    0.25,
+    0.5
+  ],
+  "support": {
+    "F": "Both mapper parameter blocks, 6304 coordinates; source heads excluded",
+    "P": "All mapper and assigned source-head parameters, 6355 coordinates"
+  },
+  "outside_support": "Both Adam proposal parameter values must be bitwise identical; retain theta_source there",
+  "adam": {
+    "implementation": "Two literal disposable torch.optim.Adam instances restored from the same current parameter and full optimizer state; original defaults preserved",
+    "gradient_none_zero": "None remains None, zero remains zero; proposal counters/moments follow literal Adam semantics",
+    "accepted_live_state": "Original float32 parameters theta_source + v; retain full-proposal first/second moments and once-incremented step counters exactly; discard source-proposal state",
+    "source_only_control": "All protection coefficients, including ordinary individual, are zero; dispatch directly to source_step, without parameter subtraction/addition/cast roundtrip",
+    "inherited_moments": "Source proposal starts from the actual inherited full-gradient moments; it is not a clean protection-free history"
+  },
+  "projection_dtype": "float64",
+  "active_subset_order": [
+    [],
+    [
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2
+    ]
+  ],
+  "svd": {
+    "matrix": "Active gradient rows A, not A @ A.T",
+    "relative_rank_cutoff": 1e-12,
+    "keep_rule": "singular_value > 1e-12 * largest_singular_value; all-zero matrix has rank0",
+    "candidate": "c=V_keep @ r; v=r-V_keep.T @ c; lambda_active=U_keep @ (c/s_keep); inactive lambda=0"
+  },
+  "kkt": {
+    "primal_tolerance": "1e-12 * max(1, ||g_t||_2 * ||v||_2), separately for each task",
+    "dual_tolerance": "1e-12 * max(1, ||lambda||_2); require every lambda >= -tolerance",
+    "stationarity_tolerance": "1e-12 * max(1, ||v||_2, ||r||_2, ||G.T @ lambda||_2); require ||v-r+G.T@lambda||_2 <= tolerance",
+    "complementarity_tolerance": "1e-12 * max(1, abs(lambda_t)*||g_t||_2*||v||_2); require abs(lambda_t*(g_t dot v)) <= tolerance",
+    "all_finite_required": true
+  },
+  "candidate_selection": {
+    "objective_record": "Squared Euclidean distance (twice optimization objective)",
+    "distance_tie_tolerance": "1e-12 * max(1, minimum_valid_candidate_squared_distance)",
+    "tie_rule": "Take lexicographically first KKT-valid active subset whose squared distance <= minimum + fixed tie tolerance",
+    "no_feasible_candidate": "Raise FloatingPointError; preserve incomplete unit failure checkpoint and stop; never substitute zero silently"
+  },
+  "quantization": {
+    "apply": "Form theta_source64 + v64 on support, convert each parameter directly to original float32; no correction",
+    "realized_increment": "stored_float32_parameter_as_float64 - theta_source_float32_as_float64",
+    "cast_error": "e = realized_increment - v, computed in float64",
+    "task_cast_bound": "b_t=sum_i abs(g_ti)*abs(e_i)",
+    "ideal_primal": "KKT tolerance above; no claim that stored float32 update meets it exactly",
+    "unit_roundoff": "u = float64 epsilon/2",
+    "dot_gamma": "gamma_n=n*u/(1-n*u), n=guard support dimension; gamma_1=u/(1-u)",
+    "absolute_products": "a_t=sum abs(g_t)*abs(realized); i_t=sum abs(g_t)*abs(v); b_t as above",
+    "summation_roundoff": "gamma_n*(a_t+i_t+b_t) + gamma_1*(a_t+i_t+abs(actual_dot_t)+abs(ideal_dot_t))",
+    "checked_cast_deviation": "actual_dot_t - ideal_dot_t <= b_t + summation_roundoff_t",
+    "checked_total_feasibility": "actual_dot_t <= ideal_primal_tolerance_t + b_t + summation_roundoff_t",
+    "projection_and_cast_are_separate": true
+  },
+  "zero_task_support": "Preserve task and mask; its native connected-zero or None derivative becomes a zero projection constraint. Labels/rows are never modified.",
+  "diagnostics": {
+    "detailed_epochs": [
+      1,
+      20,
+      40,
+      60,
+      80
+    ],
+    "minibatch": "First continuation minibatch in each listed epoch, after three scheduled detached observer updates",
+    "same_batch_native_losses": [
+      "pre",
+      "source",
+      "full",
+      "accepted"
+    ],
+    "displacement_dots": "g\u00b7d_s, g\u00b7r, g\u00b7v, g\u00b7(d_s+v), and actual stored-total dots use the original protection support; F therefore excludes ordinary head displacement",
+    "all_steps": "Compact hash-bound gzip JSONL with support/active sets/norms/dots/KKT residuals/cast bounds and exact epoch, batch hash and counters",
+    "epoch_summaries": "Min/max/mean norms/dots, active/rank counts, zero-eligible counts, fixed source support",
+    "full_dimension_displacement_dots": "Separate full_source_displacement_dots/full_ideal_total_displacement_dots/full_actual_total_displacement_dots include every forward parameter and therefore ordinary F head displacement; support-restricted dots remain separately retained."
+  },
+  "shared_T": {
+    "one_forward_trajectory_per_seed": true,
+    "two_separate_observer_sets": true,
+    "order": "F three detached steps, P three detached steps from the same pre-forward model; one shared source-only step",
+    "rng": "Each interface uses its own restored prescribed torch RNG under isolated fork_rng; forward trajectory uses its restored state",
+    "required_prefit": "F-only and P-only multiple literal source-only steps reproduce shared F/P forward and observer tensors, Adam states, counts and schedules exactly"
+  },
+  "no_scientific_fit_for_policy": true
+}

@@ -1,0 +1,536 @@
+{
+  "study": "acs_source_guard_v1",
+  "created_utc": "2026-09-09T02:15:48.783401+00:00",
+  "purpose": "Frozen read-only comparisons; no coefficient/release selection, interpolation or optimization",
+  "interfaces": [
+    "F",
+    "P"
+  ],
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "families": [
+    "J",
+    "Iplus"
+  ],
+  "unique_paired_systems": 48,
+  "historically_reused_paired_systems": 24,
+  "new_paired_systems": 24,
+  "weights": {
+    "unweighted": "test",
+    "person_weighted": "test_person_weighted"
+  },
+  "audit_budgets": [
+    120,
+    360
+  ],
+  "audit_scopes": [
+    "standard_independent",
+    "expanded_independent",
+    "expanded_catchup"
+  ],
+  "delta_values": [
+    0,
+    0.0005,
+    0.001,
+    0.002
+  ],
+  "panels": {
+    "source_only": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage"
+    ],
+    "residential_transfer": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage",
+      "same_residence"
+    ],
+    "source_commute": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage",
+      "commute_over20"
+    ],
+    "full_authorized": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage",
+      "same_residence",
+      "commute_over20"
+    ]
+  },
+  "primary": {
+    "interface": "F",
+    "attribute": "SEX",
+    "view": "AB",
+    "audit_budget": 360,
+    "audit_scope": "expanded_catchup",
+    "weighting": "unweighted",
+    "panel": "residential_transfer",
+    "delta": 0.001,
+    "split": "test",
+    "evaluation_split": "development_evaluation"
+  },
+  "source_feasibility": {
+    "parent_release": "original PCA32/E_pca",
+    "head_type": "Independent validation-selected 2048-label utility head; never native training heads",
+    "tasks": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage"
+    ],
+    "maximum_per_task_loss_increase": 0.01,
+    "formula": "BOTH systems each have every selected independent source-probe loss <= same seed/weight/split PCA32 probe+.01+1e-12; report validation and development separately.",
+    "mean_substitution_allowed": false,
+    "source_violation_cancellation_allowed": false,
+    "validation_selection_caveat": "Validation source-probe loss is evaluated on the head-selection pool and is diagnostic; its feasibility is reported separately from DEVELOPMENT EVALUATION, with the corresponding original PCA32 validation score."
+  },
+  "utility_conditions": {
+    "difference": "G_J task log loss minus the fixed guarded local task log loss, for every panel component",
+    "close": "Every absolute component difference <= delta+1e-12",
+    "directional": "Every signed G_J-minus-guarded-local component difference <= delta+1e-12",
+    "score_roundoff_tolerance": 1e-12,
+    "notes": "Delta is componentwise utility tolerance, not a privacy budget, significance threshold, or Pareto roundoff. All five raw task differences are retained even for a smaller panel."
+  },
+  "attack_improvement": {
+    "signed_gain": "same fitting-prior log loss minus selected attack log loss",
+    "formula": "G_J AB attribute gain minus the fixed guarded local AB attribute gain < -1e-12",
+    "strict_gain_roundoff_tolerance": 1e-12,
+    "clip_negative_gains": false,
+    "qualified_close": "both source-feasible AND close utility AND strictly lower selected gain",
+    "qualified_directional": "both source-feasible AND directional utility AND strictly lower selected gain",
+    "attribute_averaging": false,
+    "scope": "SEX primary; same calculations reported separately for RAC1P, without implying complete category support."
+  },
+  "missing_metrics": {
+    "nonfinite": "Missing, null, NaN, +infinity or -infinity are unavailable, never filled with0.",
+    "pair_rule": "Any missing required source/parent, panel utility, or compared attribute gain makes that decision unassessable, even if another observed criterion fails. Retain every observed difference and exclusion reason.",
+    "irrelevant_panel_component": "A missing task outside the selected panel does not by itself invalidate that panel; it remains explicitly missing in full raw differences.",
+    "aggregate_rule": "Same fixed method pair and evaluation split across all three seeds. Report counts 0\u20133 and each seed; aggregate all-three means/SD only with three finite values. Never average only qualifying seeds, stitch local comparators across seeds, mix validation with development, or infer feasibility from mean metrics."
+  },
+  "fixed_contrasts": [
+    "guarded minus corresponding unguarded same coefficient",
+    "each guarded minus same-interface T",
+    "G_J minus G_L025",
+    "G_J minus G_L20",
+    "F minus P within new condition",
+    "T minus historical ordinary I"
+  ],
+  "fixed_contrast_targets": {
+    "authorized_utility": [
+      "income_binary",
+      "civilian_at_work",
+      "public_coverage",
+      "same_residence",
+      "commute_over20"
+    ],
+    "forbidden_audits": {
+      "A": [
+        "public_coverage",
+        "commute_over20",
+        "SEX",
+        "RAC1P"
+      ],
+      "B": [
+        "income_binary",
+        "civilian_at_work",
+        "same_residence",
+        "SEX",
+        "RAC1P"
+      ],
+      "AB": [
+        "SEX",
+        "RAC1P"
+      ]
+    },
+    "native_source": "Native heads diagnostic separately; no native/probe substitution."
+  },
+  "pareto": {
+    "roundoff_tolerance": 1e-12,
+    "delta_used_for_dominance": false,
+    "minimize_every_component": true,
+    "dominates": "x_i <= y_i+1e-12 for every declared component AND x_j < y_j-1e-12 for at least one component",
+    "duplicate_or_roundoff_tied_points": "Neither dominates; retain shared-anchor identity and all tied labels.",
+    "vectors": {
+      "source_only__AB_SEX": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "gain/AB/SEX"
+      ],
+      "source_only__AB_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "gain/AB/RAC1P"
+      ],
+      "source_only__AB_SEX_and_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "gain/AB/SEX",
+        "gain/AB/RAC1P"
+      ],
+      "residential_transfer__AB_SEX": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "gain/AB/SEX"
+      ],
+      "residential_transfer__AB_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "gain/AB/RAC1P"
+      ],
+      "residential_transfer__AB_SEX_and_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "gain/AB/SEX",
+        "gain/AB/RAC1P"
+      ],
+      "source_commute__AB_SEX": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/commute_over20",
+        "gain/AB/SEX"
+      ],
+      "source_commute__AB_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/commute_over20",
+        "gain/AB/RAC1P"
+      ],
+      "source_commute__AB_SEX_and_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/commute_over20",
+        "gain/AB/SEX",
+        "gain/AB/RAC1P"
+      ],
+      "full_authorized__AB_SEX": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "utility/commute_over20",
+        "gain/AB/SEX"
+      ],
+      "full_authorized__AB_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "utility/commute_over20",
+        "gain/AB/RAC1P"
+      ],
+      "full_authorized__AB_SEX_and_RAC1P": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "utility/commute_over20",
+        "gain/AB/SEX",
+        "gain/AB/RAC1P"
+      ],
+      "full_authorized_and_all_forbidden_roles": [
+        "utility/income_binary",
+        "utility/civilian_at_work",
+        "utility/public_coverage",
+        "utility/same_residence",
+        "utility/commute_over20",
+        "gain/A/public_coverage",
+        "gain/A/commute_over20",
+        "gain/A/SEX",
+        "gain/A/RAC1P",
+        "gain/B/income_binary",
+        "gain/B/civilian_at_work",
+        "gain/B/same_residence",
+        "gain/B/SEX",
+        "gain/B/RAC1P",
+        "gain/AB/SEX",
+        "gain/AB/RAC1P"
+      ]
+    },
+    "domains": [
+      "F all fixed new and matched reused points",
+      "P all fixed new and matched reused points",
+      "all F/P fixed points"
+    ],
+    "aggregation": [
+      "Separate per-seed frontiers",
+      "Separate three-seed-mean frontiers requiring every component finite for all three seeds; no population or joint-feasibility interpretation"
+    ],
+    "missing_components": "A point missing any declared vector component is unassessable; never drop that component or claim its Pareto membership.",
+    "coverage": "Numerical Pareto status is separate from category-support assessment; race support gaps are retained.",
+    "missing_alternatives": "A complete point with an observed dominating witness is dominated. Without such a witness, if any alternative is incomplete label not_dominated_among_assessable_points, not unconditional nondominated. A missing point is unassessable. All alternatives must be complete for a complete-grid nondominated claim."
+  },
+  "highlighting": "All fixed alternatives/seeds/endpoints, no release selection; source validation and DEVELOPMENT EVALUATION separately",
+  "original_parent_metric_identity": {
+    "0": {
+      "metrics_path": "results/redesign_20260908_acs_protection_v1/seed_0/metrics.json",
+      "metrics_sha256": "ef1a7f1fe24493b1ed998ffb1ead3bb7d76325111038da2632bc8908c0b4997e",
+      "selection_path": "results/redesign_20260908_acs_protection_v1/seed_0/selection_before_test.json",
+      "selection_sha256": "bd1db63a4eb16722ad7c650e52298d4cbfb3c346be68873c68f8e92516a94620",
+      "role": "transfer",
+      "release": "E_pca",
+      "selected_flag": true,
+      "metric": "log_loss",
+      "tasks": {
+        "income_binary": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/income_binary",
+          "scores": {
+            "validation": 0.3067554165251938,
+            "validation_person_weighted": 0.2903518127357525,
+            "test": 0.3068980650891795,
+            "test_person_weighted": 0.31872632369154397
+          }
+        },
+        "civilian_at_work": {
+          "candidate_id": "logistic",
+          "selection_key": "transfer/E_pca/civilian_at_work",
+          "scores": {
+            "validation": 0.31409655632363015,
+            "validation_person_weighted": 0.3056778812204597,
+            "test": 0.28475496083864515,
+            "test_person_weighted": 0.26590580115060536
+          }
+        },
+        "public_coverage": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/public_coverage",
+          "scores": {
+            "validation": 0.4888160896889246,
+            "validation_person_weighted": 0.5013222269846658,
+            "test": 0.5179215912219812,
+            "test_person_weighted": 0.5276901519905658
+          }
+        },
+        "same_residence": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/same_residence",
+          "scores": {
+            "validation": 0.503561232894474,
+            "validation_person_weighted": 0.46991354750935554,
+            "test": 0.4924030236699547,
+            "test_person_weighted": 0.4773771037611872
+          }
+        },
+        "commute_over20": {
+          "candidate_id": "logistic",
+          "selection_key": "transfer/E_pca/commute_over20",
+          "scores": {
+            "validation": 0.6793320753197857,
+            "validation_person_weighted": 0.6785521616826254,
+            "test": 0.6937296760377784,
+            "test_person_weighted": 0.6920983959338728
+          }
+        }
+      }
+    },
+    "1": {
+      "metrics_path": "results/redesign_20260908_acs_protection_v1/seed_1/metrics.json",
+      "metrics_sha256": "1844b90cfe4bfa5498058e3ebc5eb125824ec62c8bd333a12a2b05ad912dafa9",
+      "selection_path": "results/redesign_20260908_acs_protection_v1/seed_1/selection_before_test.json",
+      "selection_sha256": "7409eb29af34ff4f941834a952f4dab87444c0601d622a40bfb557b17c9d568a",
+      "role": "transfer",
+      "release": "E_pca",
+      "selected_flag": true,
+      "metric": "log_loss",
+      "tasks": {
+        "income_binary": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/income_binary",
+          "scores": {
+            "validation": 0.3059723674696484,
+            "validation_person_weighted": 0.305041660598901,
+            "test": 0.28939968070909255,
+            "test_person_weighted": 0.30125846883280205
+          }
+        },
+        "civilian_at_work": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/civilian_at_work",
+          "scores": {
+            "validation": 0.2995875888915295,
+            "validation_person_weighted": 0.3032984548391811,
+            "test": 0.286353846153214,
+            "test_person_weighted": 0.2752813821526603
+          }
+        },
+        "public_coverage": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/public_coverage",
+          "scores": {
+            "validation": 0.4866134814401306,
+            "validation_person_weighted": 0.4962657709302833,
+            "test": 0.4971037506030933,
+            "test_person_weighted": 0.5015961194261777
+          }
+        },
+        "same_residence": {
+          "candidate_id": "logistic",
+          "selection_key": "transfer/E_pca/same_residence",
+          "scores": {
+            "validation": 0.491088437378727,
+            "validation_person_weighted": 0.46756362083878794,
+            "test": 0.4813637119060091,
+            "test_person_weighted": 0.4544411478539815
+          }
+        },
+        "commute_over20": {
+          "candidate_id": "logistic",
+          "selection_key": "transfer/E_pca/commute_over20",
+          "scores": {
+            "validation": 0.6784729039148049,
+            "validation_person_weighted": 0.6743893413678616,
+            "test": 0.6777763389200293,
+            "test_person_weighted": 0.6819863075256803
+          }
+        }
+      }
+    },
+    "2": {
+      "metrics_path": "results/redesign_20260908_acs_protection_v1/seed_2/metrics.json",
+      "metrics_sha256": "91bf08cfb71b291ff554f580d28da8c9ccdccb5aa4f7ca573635d9c3a1df9dce",
+      "selection_path": "results/redesign_20260908_acs_protection_v1/seed_2/selection_before_test.json",
+      "selection_sha256": "97eb3cea94b1c4526e536f01573aee389ac4f6892b47abaf770c966583a40945",
+      "role": "transfer",
+      "release": "E_pca",
+      "selected_flag": true,
+      "metric": "log_loss",
+      "tasks": {
+        "income_binary": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/income_binary",
+          "scores": {
+            "validation": 0.30820846550334,
+            "validation_person_weighted": 0.3128199836508066,
+            "test": 0.2994374096035728,
+            "test_person_weighted": 0.3117187154523298
+          }
+        },
+        "civilian_at_work": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/civilian_at_work",
+          "scores": {
+            "validation": 0.30041956668991476,
+            "validation_person_weighted": 0.3000727796515312,
+            "test": 0.29411261379417086,
+            "test_person_weighted": 0.2905806128827627
+          }
+        },
+        "public_coverage": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/public_coverage",
+          "scores": {
+            "validation": 0.4849287699398754,
+            "validation_person_weighted": 0.5007742248274926,
+            "test": 0.4988445461249358,
+            "test_person_weighted": 0.5130461775852106
+          }
+        },
+        "same_residence": {
+          "candidate_id": "logistic",
+          "selection_key": "transfer/E_pca/same_residence",
+          "scores": {
+            "validation": 0.5053613872615593,
+            "validation_person_weighted": 0.4896834127516261,
+            "test": 0.4884670544407495,
+            "test_person_weighted": 0.46172243112592687
+          }
+        },
+        "commute_over20": {
+          "candidate_id": "mlp",
+          "selection_key": "transfer/E_pca/commute_over20",
+          "scores": {
+            "validation": 0.6769365625711985,
+            "validation_person_weighted": 0.6786553846446886,
+            "test": 0.6912040558120929,
+            "test_person_weighted": 0.6977614271289241
+          }
+        }
+      }
+    }
+  },
+  "evaluation_status": "DEVELOPMENT EVALUATION; all three seeds share a cohort, descriptive SDs only; no fresh population or statistical noninferiority claim.",
+  "comparison_roundoff_tolerance": 1e-12,
+  "new_unique_forward_continuations": 21,
+  "fixed_method_pairs": [
+    [
+      "G_J",
+      "G_L025"
+    ],
+    [
+      "G_J",
+      "G_L20"
+    ]
+  ],
+  "split_identities": [
+    "validation",
+    "test"
+  ],
+  "evaluation_splits": {
+    "validation": {
+      "unweighted": "validation",
+      "person_weighted": "validation_person_weighted"
+    },
+    "development_evaluation": {
+      "unweighted": "test",
+      "person_weighted": "test_person_weighted"
+    }
+  },
+  "method_arms": [
+    "G_J",
+    "G_L025",
+    "G_L20",
+    "T",
+    "U_J",
+    "U_L025",
+    "U_L20",
+    "I"
+  ],
+  "guarded_unguarded_pairs": [
+    [
+      "G_J",
+      "U_J"
+    ],
+    [
+      "G_L025",
+      "U_L025"
+    ],
+    [
+      "G_L20",
+      "U_L20"
+    ]
+  ],
+  "all_pair_grid": {
+    "guarded_coalition_arms": 1,
+    "fixed_guarded_local_arms": 2,
+    "rows_per_attribute": 4608,
+    "total_rows": 9216,
+    "fixed_pair_aggregate_rows": 3072,
+    "definition": "2 fixed G_J/local pairs \u00d7 2 interfaces \u00d7 3 seeds \u00d7 2 weightings \u00d7 2 evaluation splits \u00d7 4 deltas \u00d7 4 panels \u00d7 3 audit scopes \u00d7 2 audit budgets \u00d7 2 separately reported attributes",
+    "validation_and_development_combined_for_qualification": false,
+    "condition_selection_allowed": false
+  },
+  "alias_accounting": "48 interface systems:24 new and24 reused; source-only F_T/P_T share three verified forward trajectories but retain different released interfaces and separate observer/auditor evidence. New forward continuations21; no averaging the two T interfaces as independent forward fits.",
+  "interpretation_constraints": [
+    "Native-head improvement does not establish independent source-probe feasibility.",
+    "Failure of T establishes failure under this source-only recipe; it does not isolate the causal reason for that failure.",
+    "An attribute-only benefit is not an all-task/all-access tradeoff improvement.",
+    "Prior-negative signed attack gain is retained and can indicate auditor generalization failure; it does not establish nonrecoverability."
+  ]
+}
