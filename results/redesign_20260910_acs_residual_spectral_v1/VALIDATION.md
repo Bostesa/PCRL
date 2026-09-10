@@ -1,0 +1,27 @@
+# Validation and completion evidence
+
+The complete development matrix contains 24 new spectral maps and 18 frozen historical system-seed controls. All maps were frozen before new residence/commute evaluation. All eight recipes exceed the .01 residence gain reference in all seeds and both weightings, but no recipe meets the prospective nomination rule and C1 does not establish an advantage over both local controls. Completion and numerical correctness are not evidence of a method advance.
+
+## Mathematical and implementation checks
+
+The final focused suite passes **40 tests in 1.86 seconds**, with two upstream Torch deprecation warnings. It checks residual least-squares trace identity, exact covariance-subspace whitening, orthogonality, eigensolution objective, replay, anchor identity, deterministic cross-fitting and rank handling, the XOR interaction and nonlinear first-moment counterexample, and finite-source LP optima 0/.5 with zero primal residual. It also covers audit probability conversion and selection, transport schema/partitions, canonical projected-input scoring, reporting/withholding arithmetic and replay fixtures. See `FINAL_TESTS.txt`, `MATHEMATICS.md`, and public `NUMERICAL_SUMMARY.json`.
+
+Each seed retains whitening rank128 and output rank16. All utility matrices have positive trace; no rank exception or invented utility occurred. Numerical source/map checks and nuisance support/convergence diagnostics are preserved in public summaries and complete local fitted records. Full race assessment remains unassessable where classes lack support.
+
+## Independent replay
+
+[INDEPENDENT_REPLAY.json](INDEPENDENT_REPLAY.json) independently reconstructs labels, masks and weights from raw ACS, replays all42 systems and verifies **46,344 exact prediction arrays, 92,688 score dictionaries, 5,544 scope selections, 16,500 legal routes, 294 anchor-pool checks and 168 spectral-pool replays**. Maximum score discrepancy is **6.66e-16**. All14,226 checked files remain unchanged; no fit, optimizer update or reselection occurred. B predictions and source vectors are exact. Runtime:244.799 seconds for core replay plus21.606 seconds for report replay.
+
+The same independent reporting stage verifies full candidate/per-class/selected tables, means, fixed comparisons, close/directional rules, source/half-headroom context, actual per-person routed withholding arithmetic and nomination. Separate [surrogate replay](INDEPENDENT_SURROGATES.json) checks504 rows and1,728 class-by-arm moments with maximum discrepancy1.11e-16; [negative increment replay](INDEPENDENT_NEGATIVE_COUNTS.json) checks48 rows; [legacy criteria replay](INDEPENDENT_LEGACY_CRITERIA.json) checks168 rows. All use the already frozen objects/scores and introduce no model fits. Historical identity and its separate pre-study replay are preserved in `HISTORICAL_AUDIT.md` and `HISTORICAL_REPLAY_NEW.json`.
+
+## Corrected verification defect
+
+The first partial independent replay caught a memory-layout difference when projecting inputs for linear attacks. The original score helper passed a non-contiguous column slice while the authoritative candidate path used a contiguous input. A focused regression failed before the one-line fix and passed after it. All42 units were repaired with their frozen models and selections;24 spectral units had changes at floating-point roundoff scale, at most2.22e-16 per probability and1.11e-16 log loss. There were **zero refits and zero reselections**. Pre-repair generated predictions/metrics and exact reconstructed evaluation-source evidence remain local. Root and per-unit `PROJECTION_LAYOUT_REPAIR.json` receipts preserve the correction. Full independent replay subsequently passed. Routine historical-loader and recovery improvements are recorded in `OPERATIONAL_AMENDMENTS.json`; the map recipe and grid never changed after freeze.
+
+## Data, plots and publication
+
+California2017 one-year admission and exact schema/provenance/partition replay passed; no final partition model scores or outcomes were generated. This does not prove distinct people across years. The 2018 development population is not new evidence. See `TRANSPORT_ADMISSION.md` and `TRANSPORT_VERIFICATION.json`.
+
+All144 PNG/PDF figure files were generated, with per-seed/four-role panels and complete fixed withholding curves. Representative final unweighted and weighted figures were visually inspected. [FINAL_REVIEW.md](FINAL_REVIEW.md) records the separate bounded code/publication/report review. The allowlisted packager has deterministic gzip, fitted-vector/row exclusion, metadata-preservation and corruption-rejection checks. Final public archive hashes and exact payload bytes are verified with `python -m scripts.package_acs_residual_spectral --verify`; see `PUBLICATION_SUMMARY.json` and `EVIDENCE_MANIFEST.json` for the resulting package. A preliminary dry-run correctly refused concurrently changing review inputs; no evidence from it was published.
+
+No optional model sweep, paid job, recipe refresh, future-source evaluation or duplicate B trajectory was launched. [FITTING_COUNTS.json](FITTING_COUNTS.json) and [RUNTIME.json](RUNTIME.json) distinguish actual fitting, evaluation, overlapping review and correction work. Local fitted artifacts remain in the isolated worktree listed in `COMPLETION.json`; public-only readers can verify aggregate integrity but cannot reproduce person-level inference without authorized access to those objects and data.

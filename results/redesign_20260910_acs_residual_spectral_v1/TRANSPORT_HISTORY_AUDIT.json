@@ -1,0 +1,33 @@
+{
+  "historical_head": "482f14d648ced588949ff23faeb8d0cb616a781f",
+  "reachable_commits": 166,
+  "command": [
+    "git",
+    "log",
+    "--all",
+    "--format=%H %s",
+    "-G",
+    "(^|[^[:alnum:].])201[67]([^[:alnum:].]|$)",
+    "--",
+    "pcrl/data",
+    "experiments",
+    "configs",
+    ":(glob)**/*config*.json",
+    ":(glob)**/*manifest*.json",
+    ":(glob)**/*MANIFEST*.json"
+  ],
+  "output": "59a9fcddad8de1796161fd5d1fba1f951acc85d1 Overnight QLEACE + LEOPARD scripts for \u00a75.6 BIOS layer-{0,1,6,12} sweep\n",
+  "reviewed_disposition": "Only matching commit 59a9fcddad8de1796161fd5d1fba1f951acc85d1 adds an unrelated Alvarez-Esteban 2016 covariance-barycenter citation in experiments/run_qleace_overnight.py; no 2017 or 2016 ACS source use recorded.",
+  "scope": "All locally reachable git history for data loaders, experiment code, configs, and all lowercase config/manifest plus uppercase MANIFEST JSON paths. Full available-text checkout scan separately covers other filenames, reports and ignored artifacts.",
+  "supplemental_embedded_year_search": {
+    "pattern": "((acs|folktables|pums)[_ /-]*201[67]|201[67][_ /-]*(acs|folktables|pums)|[_/]201[67][_/])",
+    "case_insensitive": true,
+    "purpose": "Cover embedded release names and underscore-separated years that standalone word-token scans omit.",
+    "available_text_scope": "rg --hidden --no-ignore --search-zip over py/json/json.gz/yaml/yml/md/txt/sh; excludes .git, .venv, data, __pycache__; original read-only checkout",
+    "available_text_matches": 0,
+    "available_text_rg_exit_code": 1,
+    "git_history_scope": "Same 166 reachable commits and pathspecs as primary history search, git log -i -G supplemental pattern",
+    "git_history_matches": 0,
+    "git_history_exit_code": 0
+  }
+}
