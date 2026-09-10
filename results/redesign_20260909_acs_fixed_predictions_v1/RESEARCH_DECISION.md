@@ -1,0 +1,34 @@
+# Fixed predictions with an auxiliary A channel: research decision
+
+The auxiliary channel adds residential capability while preserving the original source services exactly; coalition training gives a favorable mean disclosure tradeoff, but does not establish an all-seed, weighting-robust advantage over both local controls.
+
+All results below are **DEVELOPMENT EVALUATION** on the repeatedly studied ACS cohort. Losses and prior-relative recovery gains are in nats. Lower loss and lower recovery gain are preferable. Values are means over all three seeds; the same validation-selected predictions supply both weightings. U / W means unweighted / PWGTP.
+
+| System | Residence loss U / W | Residence improvement over H U / W | Additional AB SEX gain U / W | Additional AB race gain U / W |
+| --- | --- | --- | --- | --- |
+| H | 0.529633 / 0.505151 | 0.000000 / 0.000000 | 0.000000 / 0.000000 | 0.000000 / 0.000000 |
+| H+E_A | 0.504360 / 0.481831 | 0.025273 / 0.023320 | 0.012810 / 0.010281 | 0.048764 / 0.043428 |
+| H+A0 | 0.497835 / 0.476844 | 0.031798 / 0.028307 | 0.021558 / 0.019341 | 0.043642 / 0.035886 |
+| H+L025 | 0.511535 / 0.488729 | 0.018098 / 0.016422 | 0.003814 / 0.002168 | 0.011658 / 0.011281 |
+| H+L20 | 0.511786 / 0.489794 | 0.017847 / 0.015357 | 0.008898 / 0.002921 | 0.012175 / 0.009606 |
+| H+J | 0.508105 / 0.485635 | 0.021528 / 0.019516 | 0.001109 / 0.000740 | 0.005694 / 0.005948 |
+
+The table uses expanded catch-up-inclusive 360-epoch audits. H itself has AB SEX gain **.011731 / .011309** and AB race gain **.035310 / .034210**. Thus J's absolute gains are **.012840 / .012049** and **.041005 / .040158**. Adding features cannot remove an anchor-only attack; negative selected development increments are finite validation-selection effects, not information erasure.
+
+**Source preservation succeeds in two distinct senses.** All nine original selected PCA32 source predictors reproduce their complete two-class vectors and original validation/development scores exactly. Separately, every system passes all three legacy PCA32 +.01 source-readout allowances in every seed on both validation and development, under both weightings: 18/18 systems in each split/weight combination. These readouts inherit overlapping upstream source-label exposure; their pass is not an untouched-holdout result. Auxiliary native heads are diagnostics and are never substituted for the fixed service or selected probes.
+
+**The strongest positive finding is useful A-only transfer with modest mean additional SEX recovery.** J improves residence over H by .021528 U / .019516 W, exceeds the .01 reference in all three seeds under both weightings, and has better mean residence and lower mean AB SEX/race gain than both L025 and L20. Mean SEX advantages remain under standard and expanded independent audits. B's coverage/commute readouts and all B attacks are identical across conditions. This supports an asymmetric interface: additional A capability without changing B's supplied values.
+
+**The coordination claim remains conditional.** At the primary source-plus-residence panel and δ=.001, neither J/local pair is close in any seed. Directional utility plus strictly lower pooled AB SEX qualifies in 1/3 U seeds against L025 and 2/3 against L20; both counts are 0/3 under PWGTP. The same counts apply to all-five-task utility because B commute is identical. These are fixed comparator counts, not selected-seed averages. Source-only close + lower SEX qualifies in 1/3 U seeds against each local alternative and 0/3 W; larger residential improvements may fail a close rule while still being useful. Exact exclusions and all tolerance sensitivities are retained.
+
+**Counterevidence matters.** J raises A's pooled race gain over L20 by .005153 U / .004064 W (all three U seeds worsen). Its A race mean also worsens versus both locals under expanded independent U audits. Against L025, mean A coverage recovery changes from a favorable independent contrast to +.000437 U in the pooled audit, and A commute recovery rises +.000563 U. Seed 0 favors L20's residence by .008014 U / .010193 W. Weighted pooled J-minus-local coalition SEX reverses sign in one seed for each comparator. J's additional AB race gain exceeds .005 in two seeds under both weightings and in both means; its additional U AB SEX exceeds .005 in seed 2. No complete protection advance follows from the mean SEX result.
+
+The older PCA32-based residential half-headroom criterion fails for J in all three seeds under both weightings. Improvement over the new H anchor control does not replace that original requirement. The simple alternatives remain competitive choices at other utility levels. A0 has .010270 U / .008790 W lower residence loss than J; E has .003745 / .003803 lower mean loss. Their higher sensitive recovery makes these exchanges, not evidence that J dominates every simpler interface. H already permits appreciable forbidden prediction (including B income/employment); an auxiliary channel cannot repair that inherited disclosure. Missing RAC1P code-4 attacker-fitting/validation support prevents an all-category race assessment. All nine categories and exposed-control failures remain visible.
+
+The full finite matrix is complete: **12 learned continuations, three common source warmups, 18 release systems**, 102 unique final observer trajectories, 1,077 unique audit candidate fits, and 120 utility candidates. No historical model was refitted; all three pinned E maps and nine selected anchors were reused. Independent replay reconstructed 14,472 candidate probability arrays and 28,944 score dictionaries with maximum score error 6.67e-16; independent comparison replay checked 11,520 matching rows. No further learned experiment was launched.
+
+The next action is one locked independent evaluation of these six fixed interfaces, with all local/simple controls and the same access policy. Its purpose is to test whether the specific residence/SEX tradeoff survives untouched evaluation, not to optimize another coefficient. [NEXT_DESIGN.md](NEXT_DESIGN.md) specifies it.
+
+Read [TABLE.md](TABLE.md), [per-seed results](PER_SEED.md), [source feasibility](SOURCE_FEASIBILITY.md), [matching](MATCHING_ANALYSIS.md), [audit findings](AUDIT_FINDINGS.md), [validation](VALIDATION.md), and [reproduction](REPRODUCTION.md). Numerical thresholds are descriptive references, not privacy budgets or statistical noninferiority claims.
+
+Measured through local report completion: 24.50 minutes through fitting/evaluation; 29.00 minutes for all bounded scientific/verification processes; 38.63 minutes conservatively charged including the subsequent read-only synthesis window. Total elapsed work was 64.51 minutes before publication. [Runtime records](runtime.json) distinguish these quantities and preserve actual UTC dates.

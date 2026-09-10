@@ -1,0 +1,11 @@
+# Prefit review
+
+The scientific change is an immutable source-service interface plus one A-only auxiliary channel. Source utility is preserved as a function identity, while the historical independently refitted probe criteria remain separate. The full two-class schema prospectively clarifies the previous scalar proposal because the original MLP softmax columns are independently rounded. No outcome selected the schema.
+
+Reuse nine exact PCA32 source predictors, original selected checkpoint/preprocessor/row/probability identities, three original PCA maps/PCA16 initializers/genuine A-head states, three pinned real-label E maps and unchanged cohort/splits. No historical model or teacher refit. Retain original historical source hashes. New stationary H/E observers and H fresh/catch-up audits are necessary; P-T or E-only audits are not audits of these anchors plus E.
+
+Risks: accidentally reconstructing p0; aliasing B after warming it twice; division by five rather than nine when omitting already aliased B work; confusing native and probe outcomes; feeding anchors to a raw-input predictor; slicing after standardization; forgetting public auxiliary heads or H coalition ancestors; changing seeds with dimensions; reserved-label fitting before global freeze; claiming reduction of already disclosed H information from a negative development increment. Tests and independent replay address these explicitly.
+
+Confounds retained: source readout labels overlap anchor fitting exposure; stationary observers versus changing auxiliary trajectories; E protected-label exposure and different fitting capacity; fixed B may sacrifice historical commute capability; finite attackers and absent race category4. Three seeds share a repeatedly adapted cohort. A better training observer loss or exact native identity is not a protection advance. Both local strengths and the source-only/static controls remain mandatory.
+
+The old coefficient prohibitions and source-guard protocol are unchanged historical evidence. This separately named study has only the four explicitly authorized learned objectives, with no guard or new sweep. Limits are90minutes scientific/fourhours total with30minutes reserved. Initial branch and remote equal reviewedcommit; no tracked changes, no applicable AGENTS.md found,25GiBfree. Existing unrelated untracked work is preserved.
