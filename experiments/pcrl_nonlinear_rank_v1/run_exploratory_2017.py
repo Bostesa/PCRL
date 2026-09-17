@@ -40,8 +40,11 @@ def prepare(out: Path, seed: int, registry: Registry):
     from experiments import acs_spectral_transport_eval as ev
 
     # FrozenSeed loads the historical spectral maps from ev.DEV, so point there first.
-    ev.DEV = resolve(f'results/{DEV_NAME}').resolve()
-    ev.LOCAL = resolve('data/acs_spectral_transport').resolve()
+    # Resolve the FILE, not the directory: this worktree has the tracked result
+    # directories of the completed studies but not their ignored contents, so a
+    # directory-level match lands on an empty folder.
+    ev.DEV = resolve(f'results/{DEV_NAME}/seed_{seed}/maps.joblib').resolve().parents[1]
+    ev.LOCAL = resolve('data/acs_spectral_transport/2017_attacker_fit.npz').resolve().parent
     frozen = ev.FrozenSeed(seed)
 
     model = joblib.load(out / f'seed_{seed}' / 'maps.joblib')
