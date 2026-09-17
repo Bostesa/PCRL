@@ -1,0 +1,397 @@
+{
+  "study": "acs_spectral_transport_v1",
+  "created_utc": "2026-09-17T16:07:40.121683+00:00",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "weights": [
+    "unweighted",
+    "person_weighted"
+  ],
+  "interfaces": [
+    "H",
+    "E",
+    "A0",
+    "L025",
+    "L20",
+    "J",
+    "spectral_S0",
+    "spectral_M025",
+    "spectral_M1",
+    "spectral_L025",
+    "spectral_L1",
+    "spectral_C025",
+    "spectral_C1",
+    "spectral_L2"
+  ],
+  "mode_A": {
+    "scopes": [
+      "standard_independent",
+      "expanded_independent",
+      "expanded_catchup",
+      "kernel_standard_independent",
+      "kernel_expanded_independent",
+      "kernel_expanded_catchup"
+    ],
+    "budgets": [
+      120,
+      360
+    ],
+    "primary_scope": "kernel_expanded_catchup",
+    "primary_budget": 360
+  },
+  "mode_B": {
+    "scopes": {
+      "common_fresh": {
+        "origins": [
+          "fresh"
+        ],
+        "spaces": [
+          "wire"
+        ]
+      },
+      "fresh_expanded": {
+        "origins": [
+          "fresh"
+        ],
+        "spaces": [
+          "wire",
+          "derived"
+        ]
+      },
+      "fresh_catchup": {
+        "origins": [
+          "fresh",
+          "catchup"
+        ],
+        "spaces": [
+          "wire",
+          "derived"
+        ]
+      },
+      "transport_all": {
+        "origins": [
+          "fresh",
+          "catchup",
+          "frozen2018"
+        ],
+        "spaces": [
+          "wire",
+          "derived"
+        ]
+      }
+    },
+    "budgets": [
+      120,
+      360
+    ],
+    "primary_scope": "transport_all",
+    "primary_budget": 360,
+    "selection": "minimum unweighted 2017 validation log loss, then candidate ID; diagnostic saved_adversary excluded"
+  },
+  "endpoint_direction": "candidate minus comparator; lower is better for utility loss and for recovery",
+  "families": {
+    "F1_primary": {
+      "mode": "B",
+      "scope": "transport_all",
+      "budget": 360,
+      "contrasts": [
+        [
+          "spectral_C1",
+          "spectral_L1"
+        ],
+        [
+          "spectral_C1",
+          "spectral_L2"
+        ]
+      ],
+      "endpoints": [
+        "utility/same_residence",
+        "recovery/A/SEX",
+        "recovery/AB/SEX",
+        "recovery/A/RAC1P",
+        "recovery/AB/RAC1P"
+      ]
+    },
+    "F2_neural_replication": {
+      "mode": "B",
+      "scope": "transport_all",
+      "budget": 360,
+      "contrasts": [
+        [
+          "J",
+          "L025"
+        ],
+        [
+          "J",
+          "L20"
+        ]
+      ],
+      "endpoints": [
+        "utility/same_residence",
+        "recovery/A/SEX",
+        "recovery/AB/SEX",
+        "recovery/A/RAC1P",
+        "recovery/AB/RAC1P"
+      ]
+    },
+    "F3_secondary": {
+      "mode": "B",
+      "scope": "transport_all",
+      "budget": 360,
+      "contrasts": [
+        [
+          "spectral_C1",
+          "J"
+        ]
+      ],
+      "endpoints": [
+        "utility/same_residence",
+        "recovery/A/SEX",
+        "recovery/AB/SEX",
+        "recovery/A/RAC1P",
+        "recovery/AB/RAC1P"
+      ]
+    },
+    "F4_frozen_transfer": {
+      "mode": "A",
+      "scope": "kernel_expanded_catchup",
+      "budget": 360,
+      "contrasts": [
+        [
+          "spectral_C1",
+          "spectral_L1"
+        ],
+        [
+          "spectral_C1",
+          "spectral_L2"
+        ],
+        [
+          "J",
+          "L025"
+        ],
+        [
+          "J",
+          "L20"
+        ]
+      ],
+      "endpoints": [
+        "utility/same_residence",
+        "recovery/A/SEX",
+        "recovery/AB/SEX",
+        "recovery/A/RAC1P",
+        "recovery/AB/RAC1P"
+      ]
+    }
+  },
+  "context_contrasts": [
+    [
+      "spectral_C025",
+      "spectral_L025"
+    ],
+    [
+      "spectral_S0",
+      "J"
+    ],
+    [
+      "spectral_S0",
+      "H"
+    ],
+    [
+      "spectral_S0",
+      "E"
+    ],
+    [
+      "spectral_S0",
+      "A0"
+    ],
+    [
+      "spectral_M025",
+      "J"
+    ],
+    [
+      "spectral_M025",
+      "H"
+    ],
+    [
+      "spectral_M025",
+      "E"
+    ],
+    [
+      "spectral_M025",
+      "A0"
+    ],
+    [
+      "spectral_M1",
+      "J"
+    ],
+    [
+      "spectral_M1",
+      "H"
+    ],
+    [
+      "spectral_M1",
+      "E"
+    ],
+    [
+      "spectral_M1",
+      "A0"
+    ],
+    [
+      "spectral_L025",
+      "J"
+    ],
+    [
+      "spectral_L025",
+      "H"
+    ],
+    [
+      "spectral_L025",
+      "E"
+    ],
+    [
+      "spectral_L025",
+      "A0"
+    ],
+    [
+      "spectral_L1",
+      "J"
+    ],
+    [
+      "spectral_L1",
+      "H"
+    ],
+    [
+      "spectral_L1",
+      "E"
+    ],
+    [
+      "spectral_L1",
+      "A0"
+    ],
+    [
+      "spectral_C025",
+      "J"
+    ],
+    [
+      "spectral_C025",
+      "H"
+    ],
+    [
+      "spectral_C025",
+      "E"
+    ],
+    [
+      "spectral_C025",
+      "A0"
+    ],
+    [
+      "spectral_C1",
+      "J"
+    ],
+    [
+      "spectral_C1",
+      "H"
+    ],
+    [
+      "spectral_C1",
+      "E"
+    ],
+    [
+      "spectral_C1",
+      "A0"
+    ],
+    [
+      "spectral_L2",
+      "J"
+    ],
+    [
+      "spectral_L2",
+      "H"
+    ],
+    [
+      "spectral_L2",
+      "E"
+    ],
+    [
+      "spectral_L2",
+      "A0"
+    ],
+    [
+      "J",
+      "H"
+    ],
+    [
+      "J",
+      "E"
+    ],
+    [
+      "J",
+      "A0"
+    ],
+    [
+      "J",
+      "L025"
+    ],
+    [
+      "J",
+      "L20"
+    ],
+    [
+      "spectral_M1",
+      "spectral_S0"
+    ],
+    [
+      "spectral_L1",
+      "spectral_M1"
+    ],
+    [
+      "spectral_L1",
+      "spectral_S0"
+    ]
+  ],
+  "bootstrap": {
+    "replicates": 2000,
+    "rng": "numpy.random.default_rng(20260917)",
+    "unit": "final-partition SERIALNO group, with replacement, all rows retained",
+    "weighted_mean": "ratio recomputed in each replicate",
+    "adjustment": "single-step studentized max-|t|; se=bootstrap SD; c=quantile(T,.95,method=higher); se<=1e-15 degenerate and excluded",
+    "unadjusted": "2.5/97.5 percentile, descriptive only"
+  },
+  "rules": {
+    "advantage": ">=1 sensitive endpoint adjusted upper < 0 and no sensitive endpoint adjusted lower > 0, per weighting",
+    "primary_coordination": "advantage over both comparators under both weightings and seed-mean residence difference <= .001 for both comparators and weightings; A/RAC1P adjusted lower > 0 is a reported failure",
+    "residence_capability": "seed-mean gain vs H >= .01 and every seed gain >= .01, per mode and weighting",
+    "half_headroom": "residence <= (PCA32 + min(rich bank, tree bank))/2 per seed",
+    "source_allowance": "each selected source probe <= PCA32 reference probe + .01 per seed, weighting and mode",
+    "utility_delta": 0.001,
+    "dev_gate_sensitive_tolerance": 0.0005,
+    "dev_gate_strict": 0.001,
+    "roundoff": 1e-12,
+    "consistency": "consistent if transport seed-mean has development sign; contradicted if adjusted transport interval excludes zero with opposite sign; else unresolved"
+  },
+  "withholding": {
+    "sources": [
+      "E",
+      "A0",
+      "L025",
+      "L20",
+      "J",
+      "spectral_S0"
+    ],
+    "p": [
+      0,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "uniform_key": "spectral-transport-withholding-v1|2017|seed|condition|SERIALNO|SPORDER"
+  },
+  "class_reporting": {
+    "insufficient_final_support": 10,
+    "floor": 1e-12
+  }
+}
