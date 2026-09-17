@@ -275,6 +275,35 @@ def markdown(out: Path, record: dict) -> str:
                     c['seeds_compared'], c['sign_agrees_with_2018']))
         lines += ['', '(only rows where agreement is not unanimous are listed; the full set is in',
                   '`EXPLORATORY_2017.json`)', '']
+
+    lines += ['## Reading', '',
+              '**Alias check.** `spectral_lin16_L1/L2/C1` reproduce the historical',
+              '`spectral_L1/L2/C1` rows digit for digit. Those nine conditions are the historical',
+              'objects, reused and not refitted, and this table confirms the aliasing end to end',
+              'on a second year.', '',
+              '**The two 2018 effects reproduce in direction at the seed mean.** The nonlinear',
+              'penalty again lowers recovery at matched rank and policy (`nlr16_C1` sits below',
+              '`lin16_C1` on all four family sensitive endpoints), and rank-8 compression again',
+              'lowers race recovery sharply (`lin8_C1` additional `A/RAC1P` 0.0162 against',
+              '`lin16_C1` 0.0471).', '',
+              '**But the comparison against J is worse here than in 2018, not better.** On this',
+              'partition J has lower additional recovery than the best new candidate on **all**',
+              'four family sensitive endpoints (J 0.0013/0.0039/0.0069/0.0015 against `nlr8_C1`',
+              '0.0105/0.0155/0.0127/0.0154), while `nlr8_C1` keeps the residence advantage',
+              '(0.0267 against 0.0189). In 2018 the same candidate was statistically',
+              'indistinguishable from J on both race endpoints. So the one place the 2018 result',
+              'came closest to J does **not** carry over. This strengthens the no-go verdict',
+              'rather than weakening it, which is the useful thing an exploratory cross-year look',
+              'can do.', '',
+              '**Per-seed direction agreement is only moderate**, not the near-unanimity a',
+              'seed-mean statement would suggest. That is consistent with the independent review',
+              'finding that the predecessor\'s "same signs on all 20 endpoints" claim was a',
+              'seed-mean statement whose per-seed agreement was weaker. Three seeds on an exposed',
+              'partition cannot resolve this, and no interval is offered that would imply',
+              'otherwise.', '',
+              '**What this section is not.** It is not a confirmation, not a replication, and not',
+              'evidence that any candidate should proceed. The decision in `RESEARCH_DECISION.md`',
+              'rests on the 2018 development result and is unchanged by this table.', '']
     return '\n'.join(lines) + '\n'
 
 

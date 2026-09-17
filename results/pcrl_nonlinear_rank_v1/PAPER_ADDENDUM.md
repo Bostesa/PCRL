@@ -209,6 +209,26 @@ let the same compute buy more.
 * **Not an optimisation artifact.** The refinement never returned its initial point; feasibility
   `max|W'W − I| ≤ 1.4e-15`.
 
+### 5.4 Exploratory cross-year look (2017), which cuts against the candidate
+
+The 2017 partitions are spent, so this is **EXPLORATORY CROSS-YEAR DEVELOPMENT** evidence and no
+intervals are computed on it. Three things are worth recording.
+
+First, a correctness check: `spectral_lin16_L1/L2/C1` reproduce the historical `spectral_L1/L2/C1`
+rows digit for digit on this second year, confirming end to end that the nine reused conditions
+are the historical objects.
+
+Second, both attribution effects reproduce in direction at the seed mean — the nonlinear penalty
+again lowers recovery at matched rank and policy, and rank-8 compression again lowers race
+recovery sharply (`lin8_C1` additional `A/RAC1P` 0.0162 against `lin16_C1` 0.0471).
+
+Third, and against the candidate: on this partition J has lower additional recovery than
+`nlr8_C1` on **all four** family sensitive endpoints (0.0013/0.0039/0.0069/0.0015 against
+0.0105/0.0155/0.0127/0.0154) while `nlr8_C1` keeps the residence advantage (0.0267 against
+0.0189). The one place 2018 came closest to J — parity on both race endpoints — does not carry
+over, and per-seed direction agreement with 2018 is only moderate (188 of 288). Three seeds on an
+exposed partition cannot resolve that, and nothing here is offered as confirmation.
+
 ## 6. What the penalty does measure correctly
 
 The construction is not broken as a *measure*. Its fixtures show it detecting exactly the

@@ -40,6 +40,15 @@ identified and measured.
   resolve on a five-times-larger locked partition. This is a reproduction of a known limitation,
   not a new one.
 * No candidate is a strict Pareto improvement over J, and none was assumed.
+* **The exploratory cross-year look makes the gap wider, not narrower.** On the already-spent
+  2017 partitions the two attribution effects reproduce in direction at the seed mean, but J has
+  lower additional recovery than the best new candidate on **all four** family sensitive endpoints
+  (0.0013/0.0039/0.0069/0.0015 against 0.0105/0.0155/0.0127/0.0154), while the candidate keeps its
+  residence advantage (0.0267 against 0.0189). The single place the 2018 result came closest to J
+  — parity on both race endpoints — does not carry over. Per-seed direction agreement with 2018 is
+  only moderate (188 of 288 seed-level comparisons). This is exploratory development evidence with
+  no intervals and it cannot confirm anything; it is reported because it cuts against the
+  candidate, and omitting it would be the selective reading. See `EXPLORATORY_2017.md`.
 
 ### What did improve, and what caused it
 

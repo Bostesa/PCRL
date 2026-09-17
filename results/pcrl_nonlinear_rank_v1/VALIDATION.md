@@ -4,7 +4,7 @@ What was checked, with the measured number. Nothing here certifies privacy.
 
 ## 1. Falsification fixtures (ran before any new ACS score)
 
-`tests/pcrl_nonlinear_rank_v1/`: 23 passed in 3.23s
+`tests/pcrl_nonlinear_rank_v1/`: 23 passed in 3.15s
 
 Covered: feature-family shape and frozen scaling; explicit bandwidth failure;
 chunk-size invariance; the magnitude fixture (old first moment exactly 0 while the
