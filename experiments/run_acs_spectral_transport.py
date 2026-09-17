@@ -176,7 +176,7 @@ def _bundle(rel, condition, view, valid):
 def score_mode_b(out, seed, condition):
     dest = Path(out)/f'seed_{seed}'/condition/'mode_B'
     if (dest/'complete.json').exists(): return
-    tick = time.perf_counter(); dest.mkdir(parents=True, exist_ok=True)
+    ev.NONDETERMINISM_EVENTS.clear(); tick = time.perf_counter(); dest.mkdir(parents=True, exist_ok=True)
     final, rel = _final_inputs(out, seed); y, w = final['labels'], final['weights']
     record = ev.read(Path(out)/f'seed_{seed}'/condition/'audit_selection.json')
     util = ev.read(Path(out)/f'seed_{seed}'/condition/'utility_selection.json')
@@ -184,7 +184,7 @@ def score_mode_b(out, seed, condition):
     for role, cs in util['candidates'].items():
         view, t = role.split('/'); valid = y[t] >= 0
         for cid, c in cs.items():
-            p = load_candidate(c['dir']).predict_proba(rel['wire'][condition][view][valid])
+            p = ev.stable_predict(load_candidate(c['dir']).predict_proba, rel['wire'][condition][view][valid], c['dir'])
             store.put(f'utility/{role}/{cid}', p)
             rows.append({'role': 'utility', 'view': view, 'target': t, 'candidate_id': cid,
                          'selected': util['selection'][role] == cid, 'scores': _score_rows(y[t], w, p, 2)})
@@ -203,7 +203,7 @@ def score_mode_b(out, seed, condition):
                              'scores': _score_rows(y[t], w, p, old.CLASSES[t])})
     store.save(dest/'predictions.npz')
     write_json(dest/'metrics.json', {'seed': seed, 'condition': condition, 'mode': 'B', 'raw_metrics': rows})
-    write_json(dest/'complete.json', {'utc': ev.now(), 'runtime_seconds': time.perf_counter()-tick,
+    write_json(dest/'complete.json', {'utc': ev.now(), 'runtime_seconds': time.perf_counter()-tick, 'nondeterminism_events': list(ev.NONDETERMINISM_EVENTS),
         'metrics_sha256': sha_file(dest/'metrics.json'), 'predictions_sha256': sha_file(dest/'predictions.npz'), 'rows': len(rows)})
 
 
@@ -223,7 +223,7 @@ def _dev_utilities(seed, condition):
 def score_mode_a(out, seed, condition):
     dest = Path(out)/f'seed_{seed}'/condition/'mode_A'
     if (dest/'complete.json').exists(): return
-    tick = time.perf_counter(); dest.mkdir(parents=True, exist_ok=True)
+    ev.NONDETERMINISM_EVENTS.clear(); tick = time.perf_counter(); dest.mkdir(parents=True, exist_ok=True)
     final, rel = _final_inputs(out, seed); y, w = final['labels'], final['weights']
     store = Store(); rows = []; pcache = {}
     sel, cands = _dev_utilities(seed, condition)
@@ -231,7 +231,7 @@ def score_mode_a(out, seed, condition):
     for role, cs in cands.items():
         view, t = role.split('/'); valid = y[t] >= 0
         for cid, c in cs.items():
-            p = c.predict_proba(rel['wire'][condition][view][valid]); store.put(f'utility/{role}/{cid}', p)
+            p = ev.stable_predict(c.predict_proba, rel['wire'][condition][view][valid], role+cid); store.put(f'utility/{role}/{cid}', p)
             rows.append({'role': 'utility', 'view': view, 'target': t, 'candidate_id': cid, 'selected': sel[role] == cid,
                          'scores': _score_rows(y[t], w, p, 2)})
     audits = spec.load_audits(ev.DEV/f'seed_{seed}'/condition/'audits')
@@ -242,7 +242,7 @@ def score_mode_a(out, seed, condition):
             for cid, c in cs.items():
                 x = bundle[c.space]; x = x[:, c.columns] if c.columns is not None else x; x = np.ascontiguousarray(x)
                 key = (c.metadata['base_candidate_directory'], array_hash(x))
-                if key not in pcache: pcache[key] = c.base.predict_proba(x)
+                if key not in pcache: pcache[key] = ev.stable_predict(c.base.predict_proba, x, key[0])
                 p = pcache[key]; store.put(f'audit/{b}/{role}/{cid}', p)
                 rows.append({'role': 'audit', 'view': view, 'target': t, 'audit_budget': int(b), 'candidate_id': cid,
                              'space': c.space, 'family': c.metadata.get('family'), 'candidate_origin': c.metadata.get('candidate_origin'),
@@ -252,7 +252,7 @@ def score_mode_a(out, seed, condition):
                              'scores': _score_rows(y[t], w, p, old.CLASSES[t])})
     store.save(dest/'predictions.npz')
     write_json(dest/'metrics.json', {'seed': seed, 'condition': condition, 'mode': 'A', 'raw_metrics': rows})
-    write_json(dest/'complete.json', {'utc': ev.now(), 'runtime_seconds': time.perf_counter()-tick,
+    write_json(dest/'complete.json', {'utc': ev.now(), 'runtime_seconds': time.perf_counter()-tick, 'nondeterminism_events': list(ev.NONDETERMINISM_EVENTS),
         'metrics_sha256': sha_file(dest/'metrics.json'), 'predictions_sha256': sha_file(dest/'predictions.npz'), 'rows': len(rows)})
 
 
@@ -267,14 +267,14 @@ def score_seed_context(out, seed):
         name, t = key.split('/'); valid = y[t] >= 0
         x = rel['pca'] if name == 'E_pca' else rel['banks'][name]
         for cid, d in r['dirs'].items():
-            p = load_candidate(d).predict_proba(x[valid]); store.put(f'B/reference/{key}/{cid}', p)
+            p = ev.stable_predict(load_candidate(d).predict_proba, x[valid], d); store.put(f'B/reference/{key}/{cid}', p)
             rows.append({'mode': 'B', 'kind': 'reference', 'release': name, 'target': t, 'candidate_id': cid, 'selected': cid == r['selected'], 'scores': _score_rows(y[t], w, p, 2)})
     hsel = ev.read(ev.PROTECTION/f'seed_{seed}'/'selection_before_test.json')['head_selections']
     for name, tasks in (('E_pca', ev.TASKS), ('B_rich_bank', ('same_residence',)), ('C_tree_bank', ('same_residence',))):
         for t in tasks:
             valid = y[t] >= 0; x = rel['pca'] if name == 'E_pca' else rel['banks'][name]
             cid = hsel[f'transfer/{name}/{t}']
-            p = load_candidate(ev.PROTECTION/f'seed_{seed}'/'fitted/transfer'/name/t/cid).predict_proba(x[valid])
+            p = ev.stable_predict(load_candidate(ev.PROTECTION/f'seed_{seed}'/'fitted/transfer'/name/t/cid).predict_proba, x[valid], name+t)
             store.put(f'A/reference/{name}/{t}/{cid}', p)
             rows.append({'mode': 'A', 'kind': 'reference', 'release': name, 'target': t, 'candidate_id': cid, 'selected': True, 'scores': _score_rows(y[t], w, p, 2)})
     for t in ev.TARGETS:
@@ -318,6 +318,7 @@ def phase_score(out, seeds, workers):
     if not labels.exists():
         np.savez_compressed(labels, **{'y/'+t: v for t, v in final['labels'].items()}, weights=final['weights'],
                             serialno=final['serialno'], sporder=final['sporder'], raw_rows=final['raw_rows'])
+    for s in seeds: _final_inputs(out, s)  # build each seed's final releases once, before any worker starts
     jobs = [(_score_job, (s, c)) for s in seeds for c in ('context', *ev.INTERFACES)]
     run_pool(out, jobs, workers, 'SCORE')
 

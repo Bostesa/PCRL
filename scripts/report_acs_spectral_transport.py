@@ -568,9 +568,9 @@ def report(out, seeds=(0, 1, 2)):
         fits['reference_probe_pairs'] += len([p for p in base.glob('reference/fitted/*/*/mlp/metadata.json')])
     # write
     ev_dir = out/'evidence'; ev_dir.mkdir(exist_ok=True)
-    per_seed.to_csv(out/'PER_SEED.csv', index=False)
-    agg.to_csv(out/'AGGREGATE.csv', index=False)
-    paired.to_csv(ev_dir/'PAIRED_UNADJUSTED.csv', index=False)
+    csv_gz(out/'PER_SEED.csv.gz', per_seed)
+    csv_gz(out/'AGGREGATE.csv.gz', agg)
+    csv_gz(ev_dir/'PAIRED_UNADJUSTED.csv.gz', paired)
     pd.DataFrame([{**r, 'family': n, 'critical_value': f['critical']} for n, f in fam.items() for r in f['rows']]).to_csv(out/'FAMILIES.csv', index=False)
     crit.to_csv(ev_dir/'CRITERIA_PER_SEED.csv', index=False); crit_summary.to_csv(ev_dir/'CRITERIA_SUMMARY.csv', index=False)
     csv_gz(ev_dir/'WITHHOLDING.csv.gz', withdf); wdom.to_csv(ev_dir/'WITHHOLDING_DOMINANCE.csv', index=False)

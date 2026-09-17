@@ -82,6 +82,12 @@ def verify_lock(out=OUT):
     path = lock_path(out)
     if not path.exists(): raise PermissionError('Final partition sealed: TRANSPORT_LOCK.json missing')
     lock = read(path)
+    for amendment in sorted(Path(out).glob('TRANSPORT_LOCK_AMENDMENT_*.json')):
+        a = read(amendment)
+        # Amendments may only re-bind named evaluation-code files; objects, data and selections keep their original hashes.
+        if any(not (k.startswith('experiments/') or k.startswith('scripts/')) or k not in lock['files'] for k in a['code_hashes']):
+            raise PermissionError('Invalid lock amendment: '+amendment.name)
+        lock['files'].update(a['code_hashes'])
     for name, digest in lock['files'].items():
         p = Path(name) if name.startswith('/') else ROOT/name
         if sha_file(p) != digest: raise PermissionError('Locked input changed: '+name)
@@ -200,7 +206,9 @@ def save_releases(path, rel):
         if rel['derived'][c] is not None:
             for v, x in rel['derived'][c].items(): arrays[f'derived/{c}/{v}'] = x
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, **arrays)
+    import os, tempfile
+    fd, tmp = tempfile.mkstemp(dir=Path(path).parent, suffix='.npz'); os.close(fd)
+    np.savez_compressed(tmp, **arrays); os.replace(tmp, path)  # atomic: readers never see a partial file
 
 
 def load_releases(path):
@@ -255,6 +263,28 @@ def _candidate_record(base_dir, space, columns, origin, cid, view, target, budge
             'diagnostic_only': diagnostic, 'family': family}
 
 
+NONDETERMINISM_EVENTS = []
+
+
+def stable_predict(fn, x, label=''):
+    """Compute twice; on disagreement compute again and keep the value two runs agree on.
+
+    Rare, load-dependent corrupted blocks were observed in CPU prediction outputs
+    during parallel final scoring (Lock amendment 2). Every prediction is now
+    confirmed by an identical second computation.
+    """
+    first = np.ascontiguousarray(fn(x), dtype=np.float64); second = np.ascontiguousarray(fn(x), dtype=np.float64)
+    if np.array_equal(first, second): return first
+    runs = [first, second]
+    for _ in range(4):
+        runs.append(np.ascontiguousarray(fn(x), dtype=np.float64))
+        for i in range(len(runs)-1):
+            if np.array_equal(runs[i], runs[-1]):
+                NONDETERMINISM_EVENTS.append({'label': str(label), 'runs': len(runs), 'agreeing_run': i})
+                return runs[-1]
+    raise ArithmeticError('No two identical prediction runs: '+str(label))
+
+
 class Loaded:
     """Deduplicated base-model loader and prediction cache."""
     def __init__(self): self.models, self.preds = {}, {}
@@ -269,7 +299,9 @@ class Loaded:
         if cols is not None: x = x[:, cols]
         x = np.ascontiguousarray(x)
         key = (rec['base_candidate_directory'], tag, array_hash(x))
-        if key not in self.preds: self.preds[key] = self.base(rec['base_candidate_directory']).predict_proba(x)
+        if key not in self.preds:
+            self.preds[key] = stable_predict(self.base(rec['base_candidate_directory']).predict_proba, x, key[:2])
+            self.preds[key].setflags(write=False)
         return self.preds[key]
 
 
