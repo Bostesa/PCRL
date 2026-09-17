@@ -110,4 +110,12 @@ Fitted objects, 2017 arrays, per-person predictions and losses stay local under 
 
 ## Amendments
 
-(None at protocol commit.)
+(None at protocol commit `9be345a`, SHA256 in `PROTOCOL_FREEZE.json`.)
+
+**Amendment 1 — 2026-09-17, after Mode B fitting/selection, before the lock and before any final-partition read.** Implementation clarifications only; no scope, contrast, threshold, family, budget or selection rule changed.
+1. The scoring and report code was exercised end to end on the 2017 *task-validation* partition in a scratch directory (`scripts/dry_run_acs_spectral_transport.py`). That partition was already used for utility selection. Its numbers are code-test output, are not reported, and did not change any rule. The dry run caught a figure-labeling defect and an incomplete diagnostic mapping, both fixed before the lock.
+2. The realized-routing check of the withholding arithmetic uses seed 0, the AB/SEX endpoint and sources J and spectral_S0, in each primary scope. The expected-loss computation itself covers all sources, seeds, endpoints and p.
+3. Added descriptive diagnostic: for each non-H interface, the selected A/AB sensitive attack's final loss is compared with the routed copy of H's own selected attack (executable on the augmented wire), in `transport_all` and `common_fresh`, budget 360.
+4. The comparable-category race diagnostic restricts final rows to race classes that have support in every Mode A and Mode B attacker-fitting subset. It is reported as an unadjusted point estimate for the F1–F4 race endpoints.
+5. Bootstrap intervals are computed for Mode A `kernel_expanded_catchup`, Mode B `transport_all` and Mode B `common_fresh` at budget 360. All other scopes and budgets are reported as point estimates.
+6. Finder `.DS_Store` files are excluded from lock hashing.
