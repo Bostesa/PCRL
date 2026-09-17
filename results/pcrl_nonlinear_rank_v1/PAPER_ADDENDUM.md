@@ -11,8 +11,10 @@ The completed residual spectral study closed with a specific next step: replace 
 first-moment penalty with one "a nonlinear attacker cannot walk around", and select the
 channel rank by the sign of the eigenvalues rather than fixing `r = 16`. This addendum runs
 that step as a two-factor development experiment — penalty family × channel dimension — and
-reports two structural findings and one mechanism finding. All three are negative for the
-proposed design, and all three are sharper than "it did not work".
+reports two structural findings, one mechanism finding, and an attribution result. The verdict on
+the proposed design is negative, but not because the mechanism is inert: it moves the tradeoff
+substantially and the movement is attributable. Three of six registered directional predictions
+were wrong, which is recorded in `RESEARCH_DECISION.md` before anything else.
 
 We adopt neither the phrase nor the hope behind "cannot walk around": no finite empirical
 penalty over a finite function class is a certificate of anything, and this addendum's own
@@ -141,7 +143,73 @@ fix is closed-form and is specified in `NEXT_CONFIRMATION_SPEC.md`. It was delib
 applied here: applying it after seeing the diagnostic and re-running would have replaced a
 registered experiment with an unregistered one.
 
-## 5. What the penalty does measure correctly
+## 5. The 2018 development outcome, and what caused it
+
+Primary: 2018 test pool, scope `kernel_expanded_catchup`, budget 360, three seeds, both
+weightings, paired household-cluster bootstrap over 20,147 cohort households with 2,000
+replicates and single-step studentized max-|t| adjustment within family.
+
+**Headline: no candidate improved the tradeoff against both local controls and J, so none is
+nominated.** All eight registered coordination cells fail. The best new candidate,
+`spectral_nlr8_C1`, is significantly worse than J on `A/SEX` under both weightings (+0.0106
+unweighted), is statistically indistinguishable from J on the other three family sensitive
+endpoints, and has a higher but not significant residence gain (0.0259 against 0.0215).
+
+Seed-mean additional recovery over `H`, unweighted, budget 360:
+
+| condition | residence gain | add. A/SEX | add. A/RAC1P | add. AB/SEX | add. AB/RAC1P |
+|---|---|---|---|---|---|
+| `lin16_C1` (= historical `spectral_C1`) | 0.0265 | 0.0135 | 0.0274 | 0.0098 | 0.0231 |
+| `nlr16_C1` | 0.0277 | 0.0071 | 0.0202 | 0.0099 | 0.0115 |
+| `lin8_C1` | 0.0261 | 0.0125 | 0.0058 | 0.0091 | 0.0082 |
+| **`nlr8_C1`** | **0.0259** | **0.0059** | **0.0055** | **0.0036** | **0.0040** |
+| `J` (frozen neural) | 0.0215 | −0.0047 | 0.0071 | 0.0011 | 0.0057 |
+| `spectral_S0` (no penalty) | 0.0319 | 0.0279 | 0.0655 | 0.0237 | 0.0500 |
+
+Full table, all twelve conditions and both weightings, in `DEVELOPMENT_2018.md`; per-seed values
+and absolute recovery alongside `H`'s own in `PER_SEED.csv`.
+
+### 5.1 Attribution: both factors help, on different roles
+
+Contrasts at matched rank and policy, adjusted intervals excluding zero, no endpoint significantly
+worse and no residence cost in either case:
+
+* **The nonlinear penalty** reduces **sex** recovery most — `A/SEX` −0.0064 (r16) and −0.0065
+  (r8), `AB/SEX` −0.0055 (r8) — and also `A/RAC1P` −0.0073 and `AB/RAC1P` −0.0116 at r16.
+* **Rank-8 compression** reduces **race** recovery most — `A/RAC1P` −0.0217 (original penalty),
+  −0.0146 (nonlinear), `AB/RAC1P` −0.0149 (original).
+
+They compose: additional `A/RAC1P` recovery falls from the predecessor's 0.0274 to 0.0055,
+statistically indistinguishable from J's 0.0071. So the benefit is **both** the penalty and the
+smaller dimension, and they act on different protected roles — not "neither", which is what §4
+alone would have suggested.
+
+### 5.2 Reconciling §4 with §5.1
+
+These are consistent. The rotation share says ~63% of the optimiser's surrogate movement is
+provably inert. The remaining ~37% moves the subspace — projector distance 1.88, largest
+principal angle 43.9° for `nlr16_C1` seed 0 — and that part bought statistically significant
+reductions in measured recovery. So this is **not** a clean surrogate failure. It is a partially
+gameable surrogate that still does real work, which makes the closed-form fix in
+`NEXT_CONFIRMATION_SPEC.md` better motivated rather than less: removing the inert fraction should
+let the same compute buy more.
+
+### 5.3 Controls
+
+* Every new arm clears the `.01` residence reference in every seed and both weightings. None
+  retains half the residence headroom — neither does J (0 of 3 seeds), so this is a property of
+  the interface. The new arms clear the legacy source allowance in 1–2 of 3 seeds where J clears
+  it in 3 of 3, which is a real cost of the appended channel.
+* **Not a withholding artifact.** Across 360 cells, randomised withholding of a simpler channel
+  dominates a new candidate in **0** cells across all seeds and weightings (maximum 2 of 6). The
+  branch-routed expected-loss identity holds to 2.2e-16.
+* **Not a numerical artifact.** 27,540 stored predictions recomputed in a separate process matched
+  bitwise with **0 mismatches**, with the machine at swap capacity throughout; score replay agrees
+  to 4.4e-16 over 2112 checks.
+* **Not an optimisation artifact.** The refinement never returned its initial point; feasibility
+  `max|W'W − I| ≤ 1.4e-15`.
+
+## 6. What the penalty does measure correctly
 
 The construction is not broken as a *measure*. Its fixtures show it detecting exactly the
 disclosure the original first-moment penalty is blind to:
@@ -162,7 +230,7 @@ So the negative result is not "the measure is blind". It is "the measure is info
 objective built from it is partly gameable by an information-preserving transformation, and on
 this interface the conditioning variable has little to offer anyway".
 
-## 6. Scope and attribution
+## 7. Scope and attribution
 
 `nonlinear_moment_refinement` is an engineering adaptation. The squared-Frobenius norm of a
 residualised cross-covariance between random features and a partialled-out variable is the RCoT

@@ -10,12 +10,21 @@ admission preparation only and is never performance evidence.
 
 ## 1. Why a next study is specifiable at all
 
-This study's negative result is not "a nonlinear penalty did not help." It is
-sharper: the registered penalty **is not invariant under a transformation that
-the disclosure it measures is invariant under**, and 37–91% of its optimiser's
-progress was reachable through exactly that transformation. The defect is
-localised to two identified terms and is fixable in closed form. That makes a
-next experiment well-posed rather than another grid.
+This study's negative result is not "a nonlinear penalty did not help." The
+penalty demonstrably did help: at matched rank and policy it produced
+statistically significant reductions in measured sensitive recovery (`A/SEX`
+−0.0064 at r16, −0.0065 at r8; `AB/SEX` −0.0055 at r8; `A/RAC1P` −0.0073 and
+`AB/RAC1P` −0.0116 at r16) with no endpoint significantly worse and no residence
+cost. It simply did not go far enough to beat J on every role.
+
+What makes a next experiment well-posed is that a specific, closed-form defect
+was found and measured: the registered penalty **is not invariant under a
+transformation that the disclosure it measures is invariant under**, and a mean
+of **63%** (range 37–91%) of its optimiser's progress was reachable through
+exactly that transformation. So roughly 37% of the surrogate movement bought the
+real reductions above. Removing the provably inert fraction should let the same
+compute buy more — which is a stronger reason to run the fix than a pure
+negative would have been.
 
 ## 2. The fixed recipe: `rotation_invariant_moment_refinement`
 

@@ -30,9 +30,13 @@ def collect(out: Path) -> dict:
         if not path.exists():
             continue
         record = read_json(path)
-        for block in (record.get('inputs'), *(v.get('inputs', {}) for v in
-                                              record.get('seeds', {}).values()
-                                              if isinstance(v, dict))):
+        blocks = [record.get('inputs')]
+        # `seeds` is a dict of per-seed records in some files and a plain list of
+        # seed numbers in others, so its shape is checked rather than assumed.
+        seeds = record.get('seeds')
+        if isinstance(seeds, dict):
+            blocks += [v.get('inputs') for v in seeds.values() if isinstance(v, dict)]
+        for block in blocks:
             if isinstance(block, dict):
                 inputs.update(block.get('files', {}))
     for seed in (0, 1, 2):

@@ -34,6 +34,13 @@ def _fmt(value, digits=4):
     return '—' if value is None else f'{value:.{digits}f}'
 
 
+def _replay_verdict(replay) -> str:
+    if replay['all_clean']:
+        return '**0 mismatches**.'
+    total = sum(len(r['mismatches']) for rows in replay['seeds'].values() for r in rows)
+    return f'**{total} MISMATCHES** — see PREDICTION_REPLAY.json; affected units are quarantined.'
+
+
 def seed_mean(rows, key='value'):
     values = [_f(r[key]) for r in rows]
     values = [v for v in values if v is not None]
@@ -115,7 +122,7 @@ def validation_md(out: Path) -> str:
         lines += ['## 6. Independent prediction replay (corruption detection)', '',
                   f"{replay['predictions_checked']} stored prediction arrays were recomputed in a",
                   'separate process that did not write them, and compared bitwise:',
-                  f"**{'0 mismatches' if replay['all_clean'] else str(sum(len(r['mismatches']) for rows in replay['seeds'].values() for r in rows)) + ' MISMATCHES'}**.', '',
+                  _replay_verdict(replay), '',
                   'This check exists because the completed transport study found rare,',
                   'load-dependent corrupted CPU prediction blocks under extreme memory pressure.',
                   'That machine condition recurred during this run (swap near capacity throughout),',
