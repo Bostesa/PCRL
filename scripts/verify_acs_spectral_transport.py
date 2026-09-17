@@ -118,7 +118,7 @@ def main():
             count += 1
     check('score_dictionaries', worst < 1e-9, {'selected_rows': count, 'max_abs_difference': worst}, res)
     # 6. incremental baselines and 8. paired differences from the published tables
-    ps = pd.read_csv(OUT/'PER_SEED.csv')
+    ps = pd.read_csv(OUT/'PER_SEED.csv.gz')
     key = ['seed', 'mode', 'scope', 'budget', 'weight', 'endpoint']
     a = ps[ps.kind == 'absolute_recovery']; hA = a[a.condition == 'H'][key+['value']].rename(columns={'value': 'h'})
     add = ps[ps.kind == 'additional_recovery'].merge(a[key+['condition', 'value']].rename(columns={'value': 'abs'}), on=key+['condition']).merge(hA, on=key)

@@ -1,0 +1,13 @@
+{
+  "created_utc": "2026-09-17T18:30:13.098673+00:00",
+  "reason": "Post-scoring housekeeping of published output files only: PER_SEED, AGGREGATE and PAIRED_UNADJUSTED are written as gzip CSV, matching the repository convention for large published tables. Contents are unchanged.",
+  "code_hashes": {
+    "scripts/report_acs_spectral_transport.py": "38205cc67c86b2ed6e72ff5b9784b9afcfefd61241127fe74beb45e94afc289a"
+  },
+  "original_code_hashes": {
+    "scripts/report_acs_spectral_transport.py": "a2705f890489ed7045a81648b9e9deae7ab8510fd7fbabb604cde8de7cad7c47"
+  },
+  "affects_results": "No. No score, selection, interval, threshold or decision was recomputed or changed; only the serialization of already-computed tables.",
+  "note": "scripts/verify_acs_spectral_transport.py and the replay/audit scripts were written after the lock and are not locked inputs.",
+  "diff": "diff --git a/scripts/report_acs_spectral_transport.py b/scripts/report_acs_spectral_transport.py\nindex 9ef529e..bee45f1 100644\n--- a/scripts/report_acs_spectral_transport.py\n+++ b/scripts/report_acs_spectral_transport.py\n@@ -568,9 +568,9 @@ def report(out, seeds=(0, 1, 2)):\n         fits['reference_probe_pairs'] += len([p for p in base.glob('reference/fitted/*/*/mlp/metadata.json')])\n     # write\n     ev_dir = out/'evidence'; ev_dir.mkdir(exist_ok=True)\n-    per_seed.to_csv(out/'PER_SEED.csv', index=False)\n-    agg.to_csv(out/'AGGREGATE.csv', index=False)\n-    paired.to_csv(ev_dir/'PAIRED_UNADJUSTED.csv', index=False)\n+    csv_gz(out/'PER_SEED.csv.gz', per_seed)\n+    csv_gz(out/'AGGREGATE.csv.gz', agg)\n+    csv_gz(ev_dir/'PAIRED_UNADJUSTED.csv.gz', paired)\n     pd.DataFrame([{**r, 'family': n, 'critical_value': f['critical']} for n, f in fam.items() for r in f['rows']]).to_csv(out/'FAMILIES.csv', index=False)\n     crit.to_csv(ev_dir/'CRITERIA_PER_SEED.csv', index=False); crit_summary.to_csv(ev_dir/'CRITERIA_SUMMARY.csv', index=False)\n     csv_gz(ev_dir/'WITHHOLDING.csv.gz', withdf); wdom.to_csv(ev_dir/'WITHHOLDING_DOMINANCE.csv', index=False)\n"
+}
