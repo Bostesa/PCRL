@@ -187,6 +187,102 @@ def contrast_intervals(boot, vectors, seeds, contrasts, families):
     return rows
 
 
+# ------------------------------------------------------------------ withholding controls
+P_VALUES = (0., .25, .5, .75, 1.)
+WITHHOLD_SOURCES = ('E', 'A0', 'L025', 'L20', 'J', 'spectral_S0')
+
+
+def branch_uniforms(serial, sporder, seed, condition):
+    """Fixed per-person independent branch, the existing explicit routed mechanism.
+
+    The assignment must persist for a person's release: repeated independent
+    re-draws would eventually disclose the auxiliary channel.
+    """
+    import hashlib
+    return np.array([
+        int.from_bytes(hashlib.sha256(
+            f'nonlinear-rank-withholding-v1|2018|{seed}|{condition}|{a}|{b}'.encode()
+        ).digest()[:8], 'big') / 2 ** 64
+        for a, b in zip(serial, sporder)])
+
+
+def withholding(points, vectors, boot, frames, seeds, candidates):
+    """Expected loss under Bernoulli(p) release of the auxiliary channel.
+
+    Valid for THIS routed mechanism only: H's selected predictor serves the
+    H-branch persons and the interface's selected predictor serves the augmented
+    persons, so expected per-person loss is exactly (1-p) L_H + p L_aug. This is
+    never an interpolation of features or of probability vectors.
+    """
+    rows, checks = [], []
+    sources = tuple(s for s in WITHHOLD_SOURCES + tuple(candidates)
+                    if (seeds[0], s, MAIN_SPLIT, 'unweighted', MAIN_BUDGET, MAIN_SCOPE) in points)
+    for source, seed, p, weight in itertools.product(sources, seeds, P_VALUES, WEIGHTS):
+        h = points[seed, 'H', MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+        a = points[seed, source, MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+        mixed_utility = {t: (1 - p) * h['utility'][t] + p * a['utility'][t] for t in h['utility']}
+        mixed_gains = {e: (1 - p) * h['gains'][e] + p * a['gains'][e] for e in FORBIDDEN}
+        for task, value in mixed_utility.items():
+            rows.append({'source': source, 'p': p, 'seed': seed, 'weight': weight,
+                         'kind': 'utility_loss', 'endpoint': task, 'value': value})
+        for endpoint, value in mixed_gains.items():
+            rows.append({'source': source, 'p': p, 'seed': seed, 'weight': weight,
+                         'kind': 'absolute_recovery', 'endpoint': endpoint, 'value': value})
+    # Per-person arithmetic check plus one realised routing, on AB/SEX.
+    for source in sources:
+        for p in P_VALUES:
+            seed = seeds[0]
+            frame, pools, labels, weights = frames[seed]
+            y = labels['test']['SEX']
+            valid = y >= 0
+            _, lh = vectors[seed, 'H', 'unweighted', 'recovery/AB/SEX']
+            _, la = vectors[seed, source, 'unweighted', 'recovery/AB/SEX']
+            w = np.ones_like(lh)
+            expected = float(w @ ((1 - p) * lh + p * la) / w.sum())
+            linear = (1 - p) * float(w @ lh / w.sum()) + p * float(w @ la / w.sum())
+            sub = frame.iloc[pools['test']]
+            u = branch_uniforms(sub.SERIALNO.to_numpy()[valid],
+                                sub.SPORDER.to_numpy()[valid], seed, source)
+            realised = float(w @ np.where(u < p, la, lh) / w.sum())
+            checks.append({'source': source, 'p': p, 'seed': seed, 'endpoint': 'AB/SEX',
+                           'expected_per_person_mixture': expected,
+                           'linear_combination': linear,
+                           'abs_difference': abs(expected - linear),
+                           'one_realised_routing': realised,
+                           'realised_fraction_augmented': float(np.mean(u < p))})
+    return rows, checks
+
+
+def withholding_dominance(points, seeds, candidates):
+    """Does randomised withholding of a simpler channel dominate a new candidate?
+
+    Uses the historical directional rule verbatim: all five utility losses within
+    .001, all six A/B/AB sensitive recoveries no worse, and at least one strict
+    improvement.
+    """
+    from scripts.acs_coalition_strength_comparisons import UTILITY_TASKS
+    from scripts.report_acs_residual_spectral import directional
+    out = []
+    sources = tuple(s for s in WITHHOLD_SOURCES
+                    if (seeds[0], s, MAIN_SPLIT, 'unweighted', MAIN_BUDGET, MAIN_SCOPE) in points)
+    for candidate, source, p in itertools.product(candidates, sources, P_VALUES):
+        verdicts = []
+        for seed, weight in itertools.product(seeds, WEIGHTS):
+            h = points[seed, 'H', MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+            a = points[seed, source, MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+            mixed = {'utility': {t: (1 - p) * h['utility'][t] + p * a['utility'][t]
+                                 for t in h['utility']},
+                     'gains': {e: (1 - p) * h['gains'][e] + p * a['gains'][e] for e in FORBIDDEN}}
+            target = points[seed, candidate, MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+            # All five utility tasks; the historical rule's own task list.
+            verdicts.append(directional(mixed, target, UTILITY_TASKS,
+                                        UTILITY_DELTA)['dominates'])
+        out.append({'candidate': candidate, 'source': source, 'p': p,
+                    'dominates_all_seeds_and_weights': bool(all(verdicts)),
+                    'dominating_cells': int(sum(verdicts)), 'cells': len(verdicts)})
+    return out
+
+
 def csvout(path, rows):
     if not rows:
         Path(path).write_text('')
@@ -234,6 +330,10 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
         registered[f'coordination_{family}_rank{rank}_C1_vs_J'] = coordination(
             decisions, candidate, ('J',))
 
+    wh_rows, wh_checks = withholding(points, vectors, boot, frames, seeds, NEW_CONDITIONS)
+    wh_dominance = withholding_dominance(points, seeds, NEW_CONDITIONS)
+    max_wh_error = max(c['abs_difference'] for c in wh_checks) if wh_checks else 0.0
+
     report = {
         'created_utc': time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime()),
         'year': 2018, 'evaluation_status': 'DEVELOPMENT EVALUATION (repeatedly used pools)',
@@ -246,6 +346,14 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
         'score_replay': {'checked': len(replay), 'max_abs_difference': max_replay,
                          'clean': bool(max_replay < 1e-9)},
         'criteria_summary': criteria_summary,
+        'withholding': {'p_grid': list(P_VALUES), 'sources': list(WITHHOLD_SOURCES),
+                        'arithmetic_checks': wh_checks,
+                        'max_expected_vs_linear_abs_difference': max_wh_error,
+                        'dominates_any_new_candidate_all_cells': bool(
+                            any(r['dominates_all_seeds_and_weights'] for r in wh_dominance)),
+                        'mechanism_note': ('branch-routed, fixed per person; expected loss is '
+                                           '(1-p) L_H + p L_aug for THIS mechanism only, never '
+                                           'an interpolation of features or probabilities')},
         'registered_decisions': registered,
         'decisions': decisions,
         'runtime_seconds': time.perf_counter() - tick,
@@ -258,6 +366,8 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     csvout(out / 'CRITERIA_SUMMARY.csv', criteria_summary)
     csvout(out / 'PAIRED_INTERVALS.csv', intervals)
     csvout(out / 'SCORE_REPLAY.csv', replay)
+    csvout(out / 'WITHHOLDING.csv', wh_rows)
+    csvout(out / 'WITHHOLDING_DOMINANCE.csv', wh_dominance)
     print('REPORT done, replay max abs diff %.3e over %d checks' % (max_replay, len(replay)))
     return report
 
