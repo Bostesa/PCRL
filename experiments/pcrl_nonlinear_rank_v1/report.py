@@ -46,8 +46,13 @@ PROTECTION_PATH = 'results/redesign_20260908_acs_protection_v1/seed_{seed}/metri
 
 
 # ------------------------------------------------------------------ points
-def condition_dir(out: Path, seed: int, condition: str) -> Path:
-    """New conditions live in this study; historical ones are read from the frozen study.
+def condition_file(out: Path, seed: int, condition: str, name: str) -> Path:
+    """Resolve one artifact of a condition, by FILE and not by directory.
+
+    Resolving on the directory is wrong here: the tracked result directories of
+    the completed studies exist in this fresh worktree but their ignored contents
+    (`metrics.json`, `predictions.npz`) do not, so a directory-level match points
+    at an empty folder. Every lookup therefore resolves the file itself.
 
     A condition in ``HISTORICAL_ALIAS`` has an objective identical to a historical
     arm, so it is never refitted or re-audited: its frozen unit is read directly.
@@ -56,11 +61,11 @@ def condition_dir(out: Path, seed: int, condition: str) -> Path:
     """
     alias = HISTORICAL_ALIAS.get(condition)
     if alias is not None:
-        return resolve(f'results/{DEV_NAME}/seed_{seed}/{alias}')
-    local = Path(out) / f'seed_{seed}' / condition
-    if (local / 'metrics.json').exists():
+        return resolve(f'results/{DEV_NAME}/seed_{seed}/{alias}/{name}')
+    local = Path(out) / f'seed_{seed}' / condition / name
+    if local.exists():
         return local
-    return resolve(f'results/{DEV_NAME}/seed_{seed}/{condition}')
+    return resolve(f'results/{DEV_NAME}/seed_{seed}/{condition}/{name}')
 
 
 def load_points(out: Path, seeds, conditions, registry: Registry):
@@ -70,7 +75,7 @@ def load_points(out: Path, seeds, conditions, registry: Registry):
         prior = {r['target']: r['scores'] for r in read_json(priors_path)['raw_metrics']
                  if r['condition'] == 'prior'}
         for condition in conditions:
-            path = condition_dir(out, seed, condition) / 'metrics.json'
+            path = condition_file(out, seed, condition, 'metrics.json')
             registry.add(path)
             records = read_json(path)['raw_metrics']
             raw[seed, condition] = records

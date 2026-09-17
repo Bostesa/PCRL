@@ -23,8 +23,8 @@ from .maps import HISTORICAL_ALIAS, condition_name
 from .objective import POLICIES
 from .report import (BOOTSTRAP_REPLICATES, BOOTSTRAP_SEED, ClusterBootstrap, FAMILY_ENDPOINTS,
                      FORBIDDEN, MAIN_BUDGET, MAIN_SCOPE, MAIN_SPLIT, ROUNDOFF, SENSITIVE,
-                     UTILITY_DELTA, WEIGHTS, advantage, condition_dir, coordination, criteria_rows,
-                     flat_rows, load_points, noninferiority, simultaneous)
+                     UTILITY_DELTA, WEIGHTS, advantage, condition_file, coordination,
+                     criteria_rows, flat_rows, load_points, noninferiority, simultaneous)
 from .run_fit import limit_threads, machine_state
 
 NEW_CONDITIONS = tuple(condition_name(f, r, p) for r in (16, 8)
@@ -85,7 +85,7 @@ def person_loss_vectors(out: Path, seeds, conditions, points, frames, registry: 
     for seed in seeds:
         _frame, _pools, labels, _weights = frames[seed]
         for condition in conditions:
-            path = condition_dir(out, seed, condition) / 'predictions.npz'
+            path = condition_file(out, seed, condition, 'predictions.npz')
             registry.add(path)
             with np.load(path) as store:
                 for weight in WEIGHTS:
