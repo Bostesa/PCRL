@@ -208,3 +208,64 @@ Attack scopes are kept distinct: a common fresh scope (2017-fitted wire candidat
 Explicit non-claims: this is not a closed-form, spectral or globally optimal solver; not a new conditional-independence criterion; not an enforcement of `Z ⊥ S | H`; not a bound on `I(S;Z|H)`; not a calibrated test; not the first conditional fair-representation method; not the first to penalise nonlinear functions of a representation; and not evidence of robustness to nonlinear adversaries. A kernel on `S` alone would not address nonlinear functions of `Z`, and nonlinear features of the **input** followed by first-moment protection of `Z` would not either — which is why the feature maps here are applied to the actual released `Z`, conditional on the actual released `H` available to that recipient.
 
 Any bounded-search novelty statement is phrased as absence of evidence after a bounded search, never as a first.
+
+---
+
+## POSTSCRIPT — a specification error found after fitting, recorded not repaired
+
+**Timing, stated explicitly.** Everything above was written and hashed into
+`PROTOCOL_FREEZE.json` before the fit phase began. The diagnosis below was made
+**after** all 27 maps were fitted and **before** any 2018 score was read. It
+changes nothing in §1-§7: the penalty that was registered is the penalty that was
+fitted, and the fitted maps are the ones that are audited and reported. This
+postscript is a finding *about* the registered specification, not an edit to it.
+
+### The defect
+
+Disclosure from the released channel is invariant under `Z -> Z Q` for orthogonal
+`Q`, because `Z` and `Z Q` determine each other and any attacker able to use one
+is able to use the other (verified in `tests/.../test_released_channel_information_is_rotation_invariant`).
+The utility term `tr(W' U W)` and the original linear penalty `tr(W' P W)` are
+invariant too. **The nonlinear penalty of §3-§4 is not.** So the optimiser can
+lower it by re-basing the released channel at zero utility cost and with zero
+change in what is recoverable — and `diagnostics.py` measures how much of the
+training-objective gain is reachable exactly that way.
+
+A penalty intended to measure disclosure from `Z` should be a function of the
+information `Z` carries, not of the particular basis chosen for it. By that
+standard the registered feature family is misspecified.
+
+### Where the slack comes from, exactly
+
+1. **The quadratic block (a genuine specification error, exactly fixable).** With
+   the symmetric moment matrix `M_ab = E[z_a z_b b_k(H) e_c]`, rotation acts as
+   `M -> Q' M Q`, which preserves `||M||_F`. But
+   `||M||_F^2 = sum_a M_aa^2 + 2 sum_{a<b} M_ab^2`, whereas §3 sums the monomials
+   `a <= b` with **equal** weight and so computes
+   `sum_a M_aa^2 + sum_{a<b} M_ab^2`. The missing factor of two on the
+   off-diagonals is the whole defect. Weighting each off-diagonal monomial by
+   `sqrt(2)` makes the block exactly `||M||_F^2` and therefore **exactly**
+   rotation invariant. Measured on a synthetic fixture: the shipped convention
+   moves by ~10% under a random rotation; the `sqrt(2)`-weighted version moves by
+   `< 1e-12`.
+2. **Per-feature standardisation (a smaller, structural breakage).** Freezing a
+   separate mean and scale per feature gives the features unequal weights, which
+   breaks the Frobenius structure a second time. Measured slack ~1%.
+3. **The Fourier block (Monte-Carlo error, not a specification error).** Because
+   `omega ~ N(0, I)` is rotationally symmetric in distribution, the feature set is
+   distributionally invariant and the block converges to a rotation-invariant
+   limit; at 32 features per band it is only approximately invariant. Measured:
+   the slack shrinks as features are added.
+
+Items 1 and 2 are properties of the construction and would appear on any dataset.
+They are not findings about ACS.
+
+### Consequence for the claims
+
+The measured rotation share bounds how much of the surrogate improvement could
+possibly correspond to real disclosure reduction: the remainder provably does not.
+This is reported as the study's central mechanism result and is the reason the
+research decision does not treat the training-objective improvement as progress.
+The fix is specified in `NEXT_CONFIRMATION_SPEC.md`; it was **not** applied here,
+because applying it after seeing the diagnostic and then re-running would replace
+a registered experiment with an unregistered one.

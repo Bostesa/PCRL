@@ -30,6 +30,7 @@ from experiments.run_acs_transfer import subset_indices
 
 from .inputs import (DEV_NAME, FIXED_NAME, HIST_ROOT, OUT, Registry, array_hash, read_json,
                      resolve, sha_file, write_json)
+from .maps import HISTORICAL_ALIAS
 from .run_fit import limit_threads, machine_state
 
 DEV_H_AUDITS = f'results/{DEV_NAME}/seed_{{seed}}/H/audits'
@@ -59,6 +60,12 @@ def evaluate_seed(out: Path, seed: int, conditions, registry: Registry) -> dict:
     _, teacher, anchors = None, None, None
     results = {}
     for condition in conditions:
+        if condition in HISTORICAL_ALIAS:
+            # Objective identical to a historical arm: reuse its frozen unit, never refit.
+            results[condition] = {'condition': condition, 'disposition': 'REUSED HISTORICAL',
+                                  'aliases': HISTORICAL_ALIAS[condition], 'new_fits': 0}
+            print('DEV_ALIAS', seed, condition, '->', HISTORICAL_ALIAS[condition], flush=True)
+            continue
         dest = out / f'seed_{seed}' / condition
         marker = dest / 'complete.json'
         if marker.exists():

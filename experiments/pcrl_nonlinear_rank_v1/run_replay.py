@@ -27,6 +27,7 @@ from experiments.acs_transfer_data import array_hash
 from experiments.run_acs_residual_spectral import load_labels, wires
 
 from .inputs import HIST_ROOT, OUT, read_json, sha_file, write_json
+from .maps import HISTORICAL_ALIAS
 from .run_fit import limit_threads, machine_state
 
 
@@ -105,6 +106,8 @@ def run(out: Path = OUT, seeds=(0, 1, 2), conditions=None) -> dict:
         names = conditions or read_json(out / f'seed_{seed}' / 'fit_complete.json')['conditions']
         rows = []
         for condition in names:
+            if condition in HISTORICAL_ALIAS:
+                continue          # frozen historical unit; this study wrote no prediction for it
             if not (out / f'seed_{seed}' / condition / 'complete.json').exists():
                 continue
             tick = time.perf_counter()

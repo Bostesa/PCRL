@@ -74,12 +74,28 @@ def array_hash(array) -> str:
     return h.hexdigest()
 
 
+def _finite(obj):
+    """Replace non-finite floats with None so ``allow_nan=False`` cannot abort a write.
+
+    A NaN or infinity is a real signal (an undefined ratio, a degenerate interval),
+    so it is preserved as an explicit null rather than silently coerced to a number.
+    """
+    import math
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _finite(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_finite(v) for v in obj]
+    return obj
+
+
 def write_json(path, obj) -> Path:
     """Atomic JSON write; readers never observe a partial file."""
     import tempfile
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(obj, indent=2, allow_nan=False, sort_keys=False) + '\n'
+    text = json.dumps(_finite(obj), indent=2, allow_nan=False, sort_keys=False) + '\n'
     fd, tmp = tempfile.mkstemp(dir=path.parent, suffix='.tmp')
     with os.fdopen(fd, 'w') as handle:
         handle.write(text)

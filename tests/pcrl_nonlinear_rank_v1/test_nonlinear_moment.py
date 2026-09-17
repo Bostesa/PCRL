@@ -329,3 +329,130 @@ def test_utility_term_is_covariance_normalised_so_collapse_cannot_pay():
         w = qr_retract(RNG.normal(size=(v.shape[1], r)))
         z = v @ w
         assert np.max(abs(z.T @ z / len(z) - np.eye(r))) < 1e-9
+
+
+# --------------------------------------------------------------- 9. rotation invariance
+def test_nonlinear_penalty_is_not_a_trace_form():
+    """Terminal B finding A2, verified numerically.
+
+    A trace form ``tr(W' A W)`` with W-independent A is invariant under W -> W Q
+    for orthogonal Q. Utility and the original linear penalty are invariant; the
+    nonlinear penalty is not. So no W-independent matrix represents it and no
+    closed-form eigensolution exists.
+    """
+    from experiments.pcrl_nonlinear_rank_v1.diagnostics import rotation_invariance_check
+    obj, w = _toy_objective()
+    check = rotation_invariance_check(obj, w)
+    assert check['utility_change_abs'] < 1e-12
+    assert check['original_penalty_change_abs'] < 1e-12
+    assert check['nonlinear_penalty_change_abs'] > 1e-6
+
+
+def test_released_channel_information_is_rotation_invariant():
+    """Z and ZQ are related by an invertible map, so no attacker can distinguish them.
+
+    This is what makes the rotation share a measure of surrogate movement rather
+    than of disclosure reduction: a logistic attacker's achievable log loss is
+    identical on Z and ZQ, because the rotation can be absorbed into its weights.
+    """
+    from sklearn.linear_model import LogisticRegression
+    v = whiten(RNG.normal(size=(1500, 8)))
+    w = qr_retract(RNG.normal(size=(v.shape[1], 4)))
+    q = qr_retract(RNG.normal(size=(4, 4)))
+    z = v @ w
+    labels = (z[:, 0] + .5 * z[:, 1] ** 2 + RNG.normal(scale=.5, size=len(z)) > 0).astype(int)
+    losses = []
+    for features in (z, z @ q):
+        model = LogisticRegression(C=1., max_iter=5000).fit(features, labels)
+        p = np.clip(model.predict_proba(features), 1e-12, 1.)
+        losses.append(float(-np.mean(np.log(p[np.arange(len(labels)), labels]))))
+    assert abs(losses[0] - losses[1]) < 1e-6
+
+
+def test_rotation_share_is_between_zero_and_one_on_a_real_descent():
+    from experiments.pcrl_nonlinear_rank_v1.diagnostics import rotation_share
+    obj, w = _toy_objective()
+    refined = stiefel_descent(obj, w, max_updates=40)
+    share = rotation_share(obj, w, refined['W'], max_updates=40)
+    assert share['applicable']
+    assert share['total_training_gain'] >= -1e-12
+    assert share['rotation_only_training_gain'] >= -1e-12
+    # rotation is a strict subset of the search space, so it cannot beat the free search
+    assert share['loss_at_best_rotation_of_original_subspace'] >= share['loss_at_nonlinear_solution'] - 1e-9
+    # The projector distance is the well-conditioned measure of "same subspace";
+    # arccos of a singular value near 1 amplifies 1e-16 into ~1e-8, so the angle
+    # gets the looser tolerance.
+    assert share['subspace_original_vs_rotation']['projector_frobenius_distance'] < 1e-10
+    assert share['subspace_original_vs_rotation']['max_principal_angle_rad'] < 1e-6
+    assert abs(share['utility_at_best_rotation'] - share['utility_at_original']) < 1e-10
+
+
+# --------------------------------------------------------------- 10. why the slack exists
+# The rotation diagnostic found that most of the refinement's training-objective gain
+# is reachable by rotation alone. These tests localise the cause, which turns out to be
+# a specification error in the feature family rather than anything about ACS data.
+#
+# Disclosure from the released channel is invariant under Z -> Z Q (Q orthogonal),
+# because Z and ZQ determine each other. A penalty meant to measure that disclosure
+# should therefore be invariant too. The quadratic block as specified is not, for an
+# exactly identifiable reason: it sums squared moments over the monomials a <= b with
+# equal weight, while the squared Frobenius norm of the symmetric moment matrix
+# M_ab = E[z_a z_b g] counts each off-diagonal entry twice. Since M -> Q' M Q under
+# rotation, only the Frobenius-weighted sum is preserved.
+
+def _quadratic_block(z, g, offdiag_weight, pairs):
+    total = 0.0
+    for a, b in pairs:
+        m = float(np.mean(z[:, a] * z[:, b] * g))
+        total += (1.0 if a == b else offdiag_weight) * m * m
+    return total
+
+
+def test_equal_weighted_quadratic_block_is_not_rotation_invariant():
+    """This is the shipped convention, and it leaves slack a rotation can harvest."""
+    z = RNG.normal(size=(4000, 5))
+    g = RNG.normal(size=4000)
+    q = qr_retract(RNG.normal(size=(5, 5)))
+    pairs = quadratic_pairs(5)
+    before = _quadratic_block(z, g, 1.0, pairs)
+    after = _quadratic_block(z @ q, g, 1.0, pairs)
+    assert abs(after / before - 1.0) > .02          # a rotation moves it materially
+
+
+def test_frobenius_weighted_quadratic_block_is_exactly_rotation_invariant():
+    """Weighting off-diagonal monomials by 2 makes the block ||M||_F^2, which M -> Q'MQ preserves."""
+    z = RNG.normal(size=(4000, 5))
+    g = RNG.normal(size=4000)
+    q = qr_retract(RNG.normal(size=(5, 5)))
+    pairs = quadratic_pairs(5)
+    before = _quadratic_block(z, g, 2.0, pairs)
+    after = _quadratic_block(z @ q, g, 2.0, pairs)
+    assert abs(after - before) < 1e-12 * max(1.0, before)
+    # and it equals the squared Frobenius norm of the full symmetric moment matrix
+    m = np.einsum('na,nb,n->ab', z, z, g) / len(z)
+    assert before == pytest.approx(float(np.sum(m * m)), rel=1e-12)
+
+
+def test_fourier_block_slack_shrinks_as_features_are_added():
+    """The RFF block's slack is Monte-Carlo error, not a specification error.
+
+    omega ~ N(0, I) is rotationally symmetric in distribution, so the feature SET is
+    distributionally invariant and the block converges to a rotation-invariant limit;
+    at a finite feature count it is only approximately invariant.
+    """
+    z = RNG.normal(size=(6000, 5))
+    g = RNG.normal(size=6000)
+    q = qr_retract(RNG.normal(size=(5, 5)))
+
+    def slack(m, seed):
+        rng = np.random.default_rng(seed)
+        omega = rng.normal(size=(5, m))
+        phase = rng.uniform(0, 2 * np.pi, m)
+        def block(zz):
+            f = np.sqrt(2 / m) * np.cos(zz @ omega + phase)
+            return float(np.sum((f.T @ g / len(zz)) ** 2))
+        return abs(block(z @ q) / block(z) - 1.0)
+
+    few = float(np.mean([slack(16, 100 + i) for i in range(12)]))
+    many = float(np.mean([slack(1024, 200 + i) for i in range(12)]))
+    assert many < few

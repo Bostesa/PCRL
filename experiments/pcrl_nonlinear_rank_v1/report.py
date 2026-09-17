@@ -47,7 +47,16 @@ PROTECTION_PATH = 'results/redesign_20260908_acs_protection_v1/seed_{seed}/metri
 
 # ------------------------------------------------------------------ points
 def condition_dir(out: Path, seed: int, condition: str) -> Path:
-    """New conditions live in this study; historical ones are read from the frozen study."""
+    """New conditions live in this study; historical ones are read from the frozen study.
+
+    A condition in ``HISTORICAL_ALIAS`` has an objective identical to a historical
+    arm, so it is never refitted or re-audited: its frozen unit is read directly.
+    That keeps the ledger honest (nine reused, not nine new) and guarantees the
+    reused column is bit-for-bit the published one.
+    """
+    alias = HISTORICAL_ALIAS.get(condition)
+    if alias is not None:
+        return resolve(f'results/{DEV_NAME}/seed_{seed}/{alias}')
     local = Path(out) / f'seed_{seed}' / condition
     if (local / 'metrics.json').exists():
         return local
@@ -121,13 +130,21 @@ def criteria_rows(out: Path, points, seeds, conditions, registry: Registry):
                 point = points[seed, condition, MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
                 legacy = utility_criteria(point['utility'], pca, banks)
                 gain = h['utility']['same_residence'] - point['utility']['same_residence']
+                # These two legacy criteria are TRI-STATE: the historical helpers return
+                # None when the headroom ratio or a source loss is undefined. Coercing
+                # None to False would silently report a failure where the criterion does
+                # not apply, so the raw value and the definedness flag are both kept.
+                retention = legacy['residential_retention']
+                preservation = legacy['source_preservation']
                 per_seed.append({
                     'seed': seed, 'condition': condition, 'weight': weight,
                     'residence_loss': point['utility']['same_residence'],
                     'residence_gain_vs_H': gain,
                     'residence_gain_at_least_01': bool(gain >= RESIDENCE_REFERENCE - ROUNDOFF),
-                    'half_headroom_pass': bool(legacy['residential_retention'].get('pass')),
-                    'source_allowance_pass': bool(legacy['source_preservation'].get('pass')),
+                    'half_headroom_pass': retention.get('pass'),
+                    'half_headroom_ratio_defined': retention.get('ratio_defined'),
+                    'half_headroom_retained_fraction': retention.get('retained_fraction'),
+                    'source_allowance_pass': preservation.get('pass'),
                     'pca32_residence': pca['same_residence'],
                     'better_bank_residence': min(banks.values()),
                     'half_headroom_threshold': (pca['same_residence'] + min(banks.values())) / 2,
@@ -145,8 +162,12 @@ def criteria_rows(out: Path, points, seeds, conditions, registry: Registry):
             'residence_01_all_seeds_and_mean': bool(
                 np.mean(gains) >= RESIDENCE_REFERENCE - ROUNDOFF
                 and np.min(gains) >= RESIDENCE_REFERENCE - ROUNDOFF),
-            'half_headroom_pass_seeds': sum(r['half_headroom_pass'] for r in rows),
-            'source_allowance_pass_seeds': sum(r['source_allowance_pass'] for r in rows),
+            'half_headroom_pass_seeds': sum(1 for r in rows if r['half_headroom_pass'] is True),
+            'half_headroom_fail_seeds': sum(1 for r in rows if r['half_headroom_pass'] is False),
+            'half_headroom_undefined_seeds': sum(1 for r in rows if r['half_headroom_pass'] is None),
+            'source_allowance_pass_seeds': sum(1 for r in rows if r['source_allowance_pass'] is True),
+            'source_allowance_fail_seeds': sum(1 for r in rows if r['source_allowance_pass'] is False),
+            'source_allowance_undefined_seeds': sum(1 for r in rows if r['source_allowance_pass'] is None),
             'seeds': len(rows),
         })
     return per_seed, summary
@@ -171,10 +192,15 @@ class ClusterBootstrap:
         self.groups, self.inverse = np.unique(cohort_households, return_inverse=True)
         self.n_groups = len(self.groups)
         rng = np.random.default_rng(seed)
-        draws = rng.integers(0, self.n_groups, size=(replicates, self.n_groups))
+        # Draw one replicate at a time: materialising all (replicates x n_groups)
+        # draws at once would add a transient array as large as `counts` itself,
+        # and this machine is running with swap at capacity.
+        # float64 so the ratio matmuls need no dtype-promotion temporary; the counts
+        # are small non-negative integers and are represented exactly.
         self.counts = np.zeros((replicates, self.n_groups))
         for b in range(replicates):
-            self.counts[b] = np.bincount(draws[b], minlength=self.n_groups)
+            draw = rng.integers(0, self.n_groups, size=self.n_groups)
+            self.counts[b] = np.bincount(draw, minlength=self.n_groups)
         self.replicates = replicates
         self.targets = {}
 
