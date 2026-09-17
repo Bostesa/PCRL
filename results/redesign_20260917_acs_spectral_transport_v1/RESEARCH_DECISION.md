@@ -1,5 +1,9 @@
 # Research decision
 
+## Disclosure: what was registered before the outcome
+
+The protocol, the four comparison families, every endpoint, the uncertainty procedure and all decision rules were fixed, hashed and pushed before the 2017 final partition could be read (`PROTOCOL.md`, `COMPARISONS.json`, `TRANSPORT_LOCK.json`, commit `3e31f28`). **No directional prediction was registered**: the study did not record in advance which way the C1-versus-L2 comparison would go. The F1 pass should therefore be read as a prespecified-rule confirmation on a sealed evaluation, not as a called shot.
+
 ## Conclusion
 
 The residual spectral channel is **not a competitive mechanism**, and the locked 2017 evaluation did not rescue it. It does two things well: it preserves the published service outputs exactly (structural, verified bitwise on every released view), and it supplies real reusable capability — about 0.025–0.030 nats of residence-prediction improvement over the service alone, in every seed, both weightings and both transfer modes, against 0.017–0.019 for the frozen adversarially trained channel J.
