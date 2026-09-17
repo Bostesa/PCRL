@@ -76,10 +76,12 @@ This is the mechanism result, and it needs no fitted attacker.
 The released channel is `Z = V W`. For orthogonal `Q`, `Z` and `Z Q` determine each other, so
 any attacker able to use one is able to use the other: **disclosure is invariant under
 `W → W Q`**. So is the utility term `tr(W' U W)`, exactly. So is the original linear penalty
-`tr(W' P W)`, exactly. Measured, applying a random `Q` to the original solution changes utility
-by `≤ 3e-16` and the original penalty by `≤ 3e-17`.
+`tr(W' P W)`, exactly. Measured over all 18 fitted conditions, applying a random `Q` to the
+original solution changes utility by at most `3.3e-16` and the original penalty by at most
+`2.8e-17` — both at floating-point noise.
 
-The nonlinear penalty changes by `4e-4` to `7.5e-3`. It is therefore **not** a trace form for
+The nonlinear penalty changes by `1.1e-4` to `1.4e-2`, i.e. by up to fourteen orders of
+magnitude more. It is therefore **not** a trace form for
 any `W`-independent matrix, which also means no closed-form eigensolution exists and the
 optimality statements of the closed-form spectral line are not inherited. That part was
 expected and is stated in the method.
@@ -89,19 +91,22 @@ released channel at **zero** utility cost and with **zero** change in what is re
 measure how much of its progress is exactly that, by minimising the same objective over
 rotations of the original subspace alone:
 
-| condition | rotation-only share of the training gain, by seed |
-|---|---|
-| `nlr16_L1` | 0.907, 0.807, … |
-| `nlr16_L2` | 0.645, 0.656, … |
-| `nlr16_C1` | 0.625, 0.717, … |
-| `nlr8_L1` | 0.590, 0.768, … |
-| `nlr8_L2` | 0.367, 0.478, … |
-| `nlr8_C1` | 0.514, … |
+| condition | seed 0 | seed 1 | seed 2 | mean |
+|---|---|---|---|---|
+| `spectral_nlr16_L1` | 0.907 | 0.807 | 0.793 | **0.836** |
+| `spectral_nlr16_L2` | 0.645 | 0.656 | 0.582 | **0.628** |
+| `spectral_nlr16_C1` | 0.625 | 0.717 | 0.657 | **0.666** |
+| `spectral_nlr8_L1` | 0.590 | 0.768 | 0.689 | **0.682** |
+| `spectral_nlr8_L2` | 0.367 | 0.478 | 0.457 | **0.434** |
+| `spectral_nlr8_C1` | 0.514 | 0.549 | 0.495 | **0.519** |
 
-(complete table in `DEVELOPMENT_2018.md`; per-seed values in `DIAGNOSTICS_SUMMARY.json`)
+Across all 18 fitted nonlinear conditions: minimum 0.367, median 0.635, maximum 0.907, **mean 0.628**.
 
-Between roughly a third and nine tenths of the surrogate improvement is reachable without
-changing the released information at all. For `nlr16_C1` seed 0: the objective falls from
+Between roughly a third and nine tenths of the surrogate improvement — on average **63%** —
+is reachable without changing the released information at all. The pattern is orderly rather
+than noisy: the share is consistently higher at rank 16 than at rank 8, which is what the
+diagnosis in §4.1 predicts, because the mis-weighted off-diagonal monomials are 120 of 136
+terms at `r = 16` but only 28 of 36 at `r = 8`. For `nlr16_C1` seed 0: the objective falls from
 −0.5902 to −0.6719 under free optimisation, but reaches −0.6413 by rotation alone, and the
 utility at the best rotation is *bit-identical* to the utility at the original solution
 (0.80071059 in both). The remainder does move the subspace — projector distance 1.88, largest
