@@ -515,8 +515,15 @@ def validation(out: Path) -> str:
 # ------------------------------------------------------------------ manifest
 def manifest(out: Path) -> dict:
     out = Path(out)
-    entries = {}
+    # Symlinked condition directories point into the invariant study's worktree. They are
+    # read-only historical evidence of ANOTHER study and are recorded by reference, never
+    # hashed into this study's manifest as though they were its own output.
+    linked = sorted(str(p.relative_to(out)) for p in out.rglob('*') if p.is_symlink())
+    entries, bulk = {}, defaultdict(lambda: {'files': 0, 'bytes': 0})
     for path in sorted(out.rglob('*')):
+        if path.is_symlink() or any(parent.is_symlink() for parent in path.parents
+                                    if out in parent.parents or parent == out):
+            continue
         if not path.is_file():
             continue
         relative = str(path.relative_to(out))
@@ -524,11 +531,28 @@ def manifest(out: Path) -> dict:
             continue        # non-circular: the manifest never hashes itself or the handoff
         if relative.startswith('logs/'):
             continue
+        # Per-candidate fitted audit objects are bulk artifacts: thousands of small files
+        # already hashed by their own `unit_complete.json`. They are summarised by count
+        # and size rather than enumerated, and the unit records remain the authority.
+        parts = relative.split('/')
+        if 'fitted' in parts:
+            key = '/'.join(parts[:parts.index('fitted') + 1])
+            bulk[key]['files'] += 1
+            bulk[key]['bytes'] += path.stat().st_size
+            continue
         entries[relative] = {'sha256': sha_file(path), 'bytes': path.stat().st_size}
     record = {
         'study': 'pcrl_direct_adversarial_v1',
         'created_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'files': entries, 'count': len(entries),
+        'bulk_fitted_artifacts': {k: dict(v) for k, v in sorted(bulk.items())},
+        'bulk_note': ('Per-candidate fitted audit objects are summarised by count and size. '
+                      "Each role's own `unit_complete.json` already carries the per-file "
+                      'hashes and is the authority for them.'),
+        'symlinked_read_only_evidence': linked,
+        'symlink_note': ('These names are symlinks into the invariant-baselines worktree. They '
+                         "are another study's published evidence, read only, and are recorded "
+                         'by reference rather than hashed into this manifest.'),
         'noncircularity': ('ARTIFACT_MANIFEST.json and HANDOFF.json are excluded from the '
                            'manifest, so no file hashes itself or a file that hashes it.'),
         'local_only': ('*.npz releases, *.pt checkpoints and *.joblib fitted objects are '
