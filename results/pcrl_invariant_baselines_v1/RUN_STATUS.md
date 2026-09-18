@@ -43,17 +43,17 @@ Status values: `PENDING`, `RUNNING`, `DONE`, `BLOCKED`, `SCOPED OUT (evidence)`.
 | # | Stage | Status | Artifact | Resume |
 |---|---|---|---|---|
 | 0 | Worktree, artifact recovery, required reading | DONE | this file | — |
-| 1 | `PROTOCOL.md` + `METHOD.md` frozen and committed | PENDING | `PROTOCOL.md`, `PROTOCOL_FREEZE.json` | — |
-| 2 | Rotation-invariant objective implemented | PENDING | `experiments/pcrl_invariant_baselines_v1/invariant_moment.py` | — |
-| 3 | Invariance + gradient validation (the gate) | PENDING | `INVARIANCE_VALIDATION.md` | `pytest tests/pcrl_invariant_baselines_v1` |
-| 4 | Repaired matrix: 18 mapper fits | PENDING | `MATRIX.json` | `python -m experiments.pcrl_invariant_baselines_v1.run_fit` |
-| 5a | Spectral/SARL alias audit | PENDING | `BASELINE_ADAPTATIONS.md` | — |
-| 5b | LEACE auxiliary-channel baseline | PENDING | `BASELINE_ADAPTATIONS.md` | — |
-| 5c | SPLINCE auxiliary-channel baseline | PENDING | `BASELINE_ADAPTATIONS.md` | — |
-| 5d | OptNet-ARL adaptation: 9 mapper fits | PENDING | `BASELINE_ADAPTATIONS.md` | — |
-| 6 | 2018 development evaluation | PENDING | `DEVELOPMENT_2018.md` | `python -m experiments.pcrl_invariant_baselines_v1.run_dev_2018` |
-| 7 | Exploratory 2017 evaluation | PENDING | `EXPLORATORY_2017.md` | `python -m experiments.pcrl_invariant_baselines_v1.run_exploratory_2017` |
-| 8 | Reports, decision, handoff | PENDING | `RESEARCH_DECISION.md`, `PAPER_ADDENDUM.md`, `HANDOFF.json` | — |
+| 1 | `PROTOCOL.md` + `METHOD.md` frozen and committed | DONE | `PROTOCOL.md`, `PROTOCOL_FREEZE.json` | — |
+| 2 | Rotation-invariant objective implemented | DONE | `experiments/pcrl_invariant_baselines_v1/invariant_moment.py` | — |
+| 3 | Invariance + gradient validation (the gate) | DONE | `INVARIANCE_VALIDATION.md` | `pytest tests/pcrl_invariant_baselines_v1` |
+| 4 | Repaired matrix: 18 mapper fits | DONE | `MATRIX.json` | `python -m experiments.pcrl_invariant_baselines_v1.run_fit` |
+| 5a | Spectral/SARL alias audit | DONE (0 fits: alias proved) | `BASELINE_ADAPTATIONS.md` | — |
+| 5b | LEACE auxiliary-channel baseline | DONE | `BASELINE_ADAPTATIONS.md` | — |
+| 5c | SPLINCE auxiliary-channel baseline | DONE (feasible) | `BASELINE_ADAPTATIONS.md` | — |
+| 5d | OptNet-ARL adaptation: 9 mapper fits | DONE | `BASELINE_ADAPTATIONS.md` | — |
+| 6 | 2018 development evaluation | DONE (33 units) | `DEVELOPMENT_2018.md` | `python -m experiments.pcrl_invariant_baselines_v1.run_dev_2018` |
+| 7 | Exploratory 2017 evaluation | DONE (repaired arms only) | `EXPLORATORY_2017.md` | `python -m experiments.pcrl_invariant_baselines_v1.run_exploratory_2017` |
+| 8 | Reports, decision, handoff | DONE | `RESEARCH_DECISION.md`, `PAPER_ADDENDUM.md`, `HANDOFF.json` | — |
 
 ## Recovered read-only inputs
 
@@ -78,18 +78,31 @@ fits in 1324 s, 27 dev-2018 audit units in 1106 s, peak RSS 647 MB.
 
 | Stage | Measured |
 |---|---|
-| (pending) | |
+| Validation suite (40 fixtures) | 10 s |
+| Fit 18 repaired conditions (3 seeds) | 949 s |
+| Mechanism gate + cross-family objective matrix | 12 s |
+| SARL alias audit (fits nothing) | 3 s |
+| LEACE + SPLINCE, 6 fits | 11 s |
+| OptNet-ARL, 9 fits (1200 steps x 2 starts each) | 1362 s |
+| 2018 development evaluation, 33 audit units | 1345 s |
+| 2018 endpoints, bootstrap and decisions | 34 s |
+| Exploratory 2017 fit, 18 units | ~1500 s |
+| Exploratory 2017 scoring, 18 units | ~1400 s |
+| **Total new compute** | **~1.9 hours at one worker** |
+
+Peak resident set size during fitting: **369 MB**.
 
 ## Fit ledger
 
 | Quantity | Planned | Actual |
 |---|---:|---:|
-| Repaired rotation-invariant mapper fits (3 policies x 2 ranks x 3 seeds) | 18 | — |
-| Linear-erasure baseline fits (LEACE, SPLINCE x 3 seeds) | 6 | — |
-| OptNet-ARL adaptation fits (3 policies x rank 16 x 3 seeds) | 9 | — |
-| **Nominal total new mapper fits** | **33** | — |
-| Reused matched-rank original controls (never refitted) | 9 | — |
-| Reused defective-nonlinear controls (never refitted) | 18 | — |
+| Repaired rotation-invariant mapper fits (3 policies x 2 ranks x 3 seeds) | 18 | **18** |
+| Linear-erasure baseline fits (LEACE, SPLINCE x 3 seeds) | 6 | **6** |
+| OptNet-ARL adaptation fits (3 policies x rank 16 x 3 seeds) | 9 | **9** |
+| **Nominal total new mapper fits** | **33** | **33** |
+| Reused matched-rank original controls (never refitted) | 9 | **9** |
+| Reused defective-nonlinear controls (never refitted) | 18 | **18** |
+| SARL duplicate fits avoided by the alias audit | — | **6** |
 
 Counts fall below nominal where an alias is proved or a formulation is documented
 infeasible; each such reduction is recorded with its evidence.
