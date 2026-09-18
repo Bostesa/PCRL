@@ -30,7 +30,7 @@ from scripts.acs_coalition_strength_comparisons import UTILITY_TASKS
 
 from experiments.pcrl_nonlinear_rank_v1.report import (BOOTSTRAP_REPLICATES, BOOTSTRAP_SEED,
                                                        FAMILY_ENDPOINTS, FAMILY_SENSITIVE,
-                                                       FORBIDDEN, MAIN_BUDGET, MAIN_SCOPE,
+                                                       FORBIDDEN, MAIN_BUDGET,
                                                        MAIN_SPLIT, PRIOR_PATH, RESIDENCE_REFERENCE,
                                                        ROUNDOFF, SENSITIVE, UTILITY_DELTA, WEIGHTS,
                                                        ClusterBootstrap, advantage, coordination,
@@ -40,6 +40,20 @@ from experiments.pcrl_nonlinear_rank_v1.inputs import DEV_NAME, Registry, read_j
 from .inputs import OUT, resolve
 from .run_fit import WIDTHS, arm_plan, beta_tag, main_arm
 from .train import BETAS, POLICIES
+
+from experiments.pcrl_nonlinear_rank_v1.report import MAIN_SCOPE as INHERITED_MAIN_SCOPE
+
+# The primary 2018 scope is MATCHED-EXPOSURE, not the inherited catch-up scope
+# (`RUN_STATUS.md` amendment 4). Under `kernel_expanded_catchup` the historical arms
+# carry saved-observer catch-up candidates that no arm fitted in this study has, so the
+# two sides of every new-versus-historical contrast are attacked with different budgets.
+# Measured on seed 0: `dax16_C1_b010`, whose released channel is BITWISE IDENTICAL to
+# `A0`, scores `A/RAC1P` additional recovery +0.0509 against `A0`'s +0.0664 under the
+# catch-up scope, and +0.0548 against +0.0548 -- exactly equal, as it must be -- under
+# the independent scope. The bias favours this study's own arms, which is why it is
+# corrected rather than kept.
+MAIN_SCOPE = 'kernel_expanded_independent'
+CATCHUP_SCOPE = INHERITED_MAIN_SCOPE
 
 INVARIANT_NAME = 'pcrl_invariant_baselines_v1'
 
@@ -163,7 +177,7 @@ def candidate_wide(rows: list, replicates: dict, alpha: float = ALPHA,
 __all__ = ['ALPHA', 'BOOTSTRAP_REPLICATES', 'BOOTSTRAP_SEED', 'BUDGETS', 'ClusterBootstrap',
            'FAMILY_ENDPOINTS', 'FAMILY_SENSITIVE', 'FORBIDDEN', 'HISTORICAL_ERASURE',
            'HISTORICAL_EXTERNAL', 'HISTORICAL_OPTNET', 'HISTORICAL_SPECTRAL', 'MAIN',
-           'MAIN_BUDGET', 'MAIN_SCOPE', 'MAIN_SPLIT', 'NEW_ARMS', 'NEW_ERASURE',
+           'CATCHUP_SCOPE', 'INHERITED_MAIN_SCOPE', 'MAIN_BUDGET', 'MAIN_SCOPE', 'MAIN_SPLIT', 'NEW_ARMS', 'NEW_ERASURE',
            'NO_PROTECTION', 'OUT', 'REPEAT', 'RESIDENCE_REFERENCE', 'ROUNDOFF', 'SCOPES',
            'SENSITIVE', 'SIMPLE', 'SINGLE', 'UTILITY_DELTA', 'UTILITY_TASKS', 'WEIGHTS',
            'advantage', 'available', 'candidate_wide', 'condition_file', 'coordination',

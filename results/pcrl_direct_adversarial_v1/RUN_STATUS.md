@@ -79,13 +79,73 @@ is visible rather than silent. The reused within-contrast studentized max-|t| bo
 remain in the same table under their own column names, so the predecessor's tables stay
 directly comparable.
 
+### Amendment 4 — the primary 2018 scope is matched-exposure, not catch-up
+
+**Declared `2026-09-18T13:25Z`, after the first two audit units of seed 0 and before
+any comparison was computed. The bias it removes ran in this study's own favour.**
+
+`METHOD.md` §7 reuses the predecessors' primary 2018 scope, `kernel_expanded_catchup`.
+Under that scope the historical arms carry **saved-observer catch-up candidates** that
+no arm fitted in this study has — this study has no saved observer, which `METHOD.md`
+§7 itself states. The two sides of every new-versus-historical contrast are therefore
+attacked with **different budgets**, and the new arms are the ones attacked less.
+
+The size of the effect was measured directly, on the cleanest possible case.
+`dax16_C1_b010` selected its unmoved initial checkpoint, so its released channel is
+**bitwise identical to `A0`** (release hash `d0e97e9dcdf0` on `wire/A/test`, equal to
+`dax16_none` and to the frozen `A0` channel). Additional recovery over `H`, seed 0,
+unweighted, budget 360:
+
+| scope | arm | `A/SEX` | `AB/SEX` | `A/RAC1P` | `AB/RAC1P` |
+|---|---|---|---|---|---|
+| `kernel_expanded_independent` | `A0` | +0.0340 | +0.0314 | +0.0548 | +0.0359 |
+| `kernel_expanded_independent` | `dax16_C1_b010` | +0.0340 | +0.0314 | **+0.0548** | +0.0359 |
+| `kernel_expanded_catchup` | `A0` | +0.0305 | +0.0255 | +0.0664 | +0.0384 |
+| `kernel_expanded_catchup` | `dax16_C1_b010` | +0.0305 | +0.0255 | **+0.0509** | +0.0279 |
+
+Under the matched-exposure scope the two rows are **exactly equal, as they must be for
+a bitwise-identical channel**. Under the catch-up scope the identical channel appears
+**0.0155 better** on `A/RAC1P` and 0.0105 better on `AB/RAC1P`, purely because `A0`'s
+selected attacker there is a `catchup` candidate and the new arm has none.
+
+**The primary 2018 scope is therefore `kernel_expanded_independent`.** The catch-up
+scope remains in `PER_SEED.csv` and is reported alongside, explicitly labelled as giving
+the historical arms exposure the new arms never had. No equal-total-history claim is
+made in either direction.
+
+The exact-equality row is also the strongest end-to-end correctness check this study
+has: an independently re-audited channel that is bitwise identical to a historical one
+reproduces its endpoints exactly. It is recorded as a validation result, not just as a
+scope note.
+
 ## Resource decisions
 
 * Machine: 14 CPUs, 24 GB, shared. Load average at session start `8.20 / 7.72 / 7.01`,
   with a Docker VM holding 14 CPUs and 8 GB and other interactive sessions present.
 * One experimental worker per phase, one BLAS/OpenMP thread, `torch.set_num_threads(1)`.
-* Concurrency above one worker is taken only after measuring free memory, capped at
-  two, and recorded below.
+
+**Concurrency was measured and then declined.** At `13:19Z`:
+
+```
+vm.swapusage: total = 29696.00M  used = 28636.19M  free = 1059.81M
+System-wide memory free percentage: 22%
+audit worker RSS: 332 MB
+```
+
+**Swap is 96% full with 1.0 GB free.** That is precisely the condition under which this
+project previously observed zero-sum probability rows, whose cause was never
+established. CPU headroom exists (14 cores, load ~8, most of it a mostly-idle Docker
+VM), but CPU headroom is not the binding resource here. The study therefore runs on
+**one experimental worker throughout**, which is the conservative reading of the
+instruction to increase only after confirming available memory.
+
+Two short-lived transport workers were launched at `13:17Z` before this measurement and
+both aborted within 20 seconds on a path-ordering bug (`ev.DEV` was overwritten before
+`FrozenSeed.object_files()` was read). They wrote no scientific output. The bug is
+fixed; the incident is recorded because it happened, not because it mattered.
+
+Cost of the decision: the 2017 panel runs serially at roughly 161 s per interface rather
+than in parallel across seeds. The schedule absorbs it.
 
 ## Phase log
 

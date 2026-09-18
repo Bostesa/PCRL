@@ -238,14 +238,19 @@ def prepare(out: Path, seed: int, registry: Registry, new_arms, include_baseline
             if optnet['proofs'][arm]['identity_proved']:
                 encoders[arm] = optnet['encoders'][arm]
 
+    # Hash the frozen 2018 objects while `ev.DEV` still points at the residual-spectral
+    # study; `object_files()` resolves `maps.joblib` through it. Only after that is
+    # `ev.DEV` repointed at this study's tree, which is where `fit_unit` looks for each
+    # interface's 2018 attack candidates (`<DEV>/seed_N/<arm>/audits/audit_selection.json`).
+    for path in frozen.object_files():
+        registry.add(path)
+
     model = TransportModel(frozen.spectral, a0, channels, affine, encoders)
     conditions = tuple(sorted(model.arms))
     frozen.spectral = model
     ev.SPECTRAL = conditions
     ev.INTERFACES = ('H',) + conditions
     ev.DEV = Path(out).resolve()
-    for path in frozen.object_files():
-        registry.add(path)
     return ev, frozen, conditions, proofs
 
 

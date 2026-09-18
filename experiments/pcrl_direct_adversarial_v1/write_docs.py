@@ -15,8 +15,8 @@ from pathlib import Path
 import numpy as np
 
 from .inputs import OUT, read_json, sha_file, write_json
-from .report import (BETAS, FAMILY_SENSITIVE, MAIN, NEW_ARMS, NO_PROTECTION, POLICIES, SINGLE,
-                     WIDTHS, main_arm)
+from .report import (BETAS, CATCHUP_SCOPE, FAMILY_SENSITIVE, MAIN, MAIN_SCOPE, NEW_ARMS,
+                     NO_PROTECTION, POLICIES, SINGLE, WIDTHS, main_arm)
 
 FAMILY_ENDPOINT_LABEL = {
     'recovery/A/SEX': 'A/SEX', 'recovery/AB/SEX': 'AB/SEX',
@@ -138,11 +138,11 @@ def development_2018(out: Path) -> str:
         grouped = defaultdict(list)
         for row in per_seed:
             if (row['kind'] == 'additional_recovery' and row['weight'] == weight
-                    and row['scope'] == 'kernel_expanded_catchup' and row['budget'] == '360'
+                    and row['scope'] == MAIN_SCOPE and row['budget'] == '360'
                     and row['endpoint'] in FAMILY_SENSITIVE):
                 grouped[row['condition'], row['endpoint']].append(float(row['value']))
             if (row['kind'] == 'utility_gain_vs_H' and row['weight'] == weight
-                    and row['scope'] == 'kernel_expanded_catchup' and row['budget'] == '360'
+                    and row['scope'] == MAIN_SCOPE and row['budget'] == '360'
                     and row['endpoint'] == 'same_residence'):
                 grouped[row['condition'], 'residence_gain'].append(float(row['value']))
         conditions = sorted({c for c, _ in grouped})
@@ -156,7 +156,7 @@ def development_2018(out: Path) -> str:
                          if (condition, 'residence_gain') in grouped else '--')
             body.append([f'`{condition}`', *cells, residence])
         lines += [f'## Seed-mean additional recovery over `H`, {weight}, '
-                  'scope `kernel_expanded_catchup`, budget 360', '',
+                  'scope `kernel_expanded_independent` (matched exposure), budget 360', '',
                   'Lower recovery is less disclosure. Residence gain is a capability, so higher',
                   'is more. **Observed negative increments are reported as measured and are**',
                   '**never truncated to zero.**', '',
@@ -365,7 +365,7 @@ def frontier_analysis(out: Path) -> str:
     # frontier points
     grouped = defaultdict(list)
     for row in per_seed:
-        if (row['weight'] != 'unweighted' or row['scope'] != 'kernel_expanded_catchup'
+        if (row['weight'] != 'unweighted' or row['scope'] != MAIN_SCOPE
                 or row['budget'] != '360'):
             continue
         if row['kind'] == 'additional_recovery' and row['endpoint'] in FAMILY_SENSITIVE:
