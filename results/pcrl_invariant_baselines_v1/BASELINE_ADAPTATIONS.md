@@ -346,3 +346,129 @@ reference problem** against an explicit ridge solve before any ACS fit.
 | §6d OptNet-ARL x 3 policies x 3 seeds | 9 | faithful implementation proves impossible with accessible materials |
 
 **No extra baseline tuning sweep is authorised.**
+
+---
+
+# RESULTS APPENDIX — what the adaptations measured
+
+Written after the fits, before any 2018 or 2017 score was read for these arms.
+
+## A. §6a — the SARL alias audit: **equivalent up to one measured mismatch, so reused**
+
+Verdict: the marginal spectral arms `spectral_M025` and `spectral_M1` **are** SARL-style
+residual-teacher adaptations. They are **credited and reused as explicit adaptations**.
+**Zero duplicate models were fitted.** (`ALIAS_AUDIT.json`)
+
+The derivation is confirmed constructively: rebuilding the arm from
+`top-r eigenvectors of (U − coefficient · P_marginal)`, with `U` the trace-normalised
+Gram of the residualised teacher and `P_marginal` built from an intercept-only basis and
+the **class prior** as the nuisance, reproduces the stored historical map **bitwise**
+(max abs difference `0.0`) for both arms in all three seeds.
+
+The three divergence points, measured rather than asserted:
+
+| # | Divergence | Measured |
+|---|---|---|
+| 1 | **Ordering** | Ascending truncation (SARL's sort order) selects a subspace at projector distance **5.657** from the correct one — the **maximum possible** value `sqrt(2·16)`, i.e. a completely orthogonal subspace. This is the single most damaging bug a reimplementation can ship, and it is what the official SARL code's `sort` + `indices[0:r]` would produce without the sign convention reversed. |
+| 2 | **Rank rule** | `U − λ̄P` has **32 positive eigenvalues** in every seed and both arms, so SARL's sign rule would select `min(16, 32) = 16`. **The sign rule and the fixed `r = 16` agree**; the rule is not binding here. |
+| 3 | **Repeated eigenspaces** | The gap at the truncation boundary is `4.8e-4` to `1.7e-3` — small but strictly positive, so the selected subspace is well posed. No tie straddles the cut. |
+
+**The one real mismatch.** The repository trace-normalises each attribute's moment Gram
+**separately** and then averages; SARL would take one raw sum. Because the per-attribute
+raw traces differ by a factor of ~1.9 (`SEX ≈ 0.047`, `RAC1P ≈ 0.045`,
+`public_coverage ≈ 0.024`), this is a **per-block reweighting, not a global scalar**, and
+so is **not** absorbable into `λ̄`. Measured effect: the selected subspace moves by a
+projector Frobenius distance of **0.10–0.20** (out of a maximum 5.657).
+
+So: equivalent in construction, family and solution method; **not** identical in the
+sensitive-attribute weighting. Credited, reused, and the mismatch stated precisely.
+
+**Scope.** Only the **marginal** arms are SARL aliases. The local and coalition arms use
+the residualised moment `e_j = onehot(S_j) − m_j(H_c)`, which is a **conditional**
+construction (U-FaTE-adjacent), not SARL.
+
+## B. §6b — LEACE: exact linear erasure, at the rank the theory predicts
+
+All three seeds **FITTED**. Applied to the 16-coordinate `A0` auxiliary channel **alone**
+and appended to **unchanged** `H_A`.
+
+| Seed | Realised rank | `k_z` | Linear cross-covariance before → after | Idempotency error | Mean-preservation error |
+|---|---|---|---|---|---|
+| 0 | 6 | 10 | `2.48e-1` → `4.56e-16` | `4.9e-15` | `7.7e-15` |
+| 1 | 6 | 10 | `2.72e-1` → `3.86e-16` | `6.7e-15` | `4.9e-15` |
+| 2 | **7** | **9** | `2.76e-1` → `7.21e-16` | `3.0e-15` | `6.0e-15` |
+
+The rank arithmetic is exactly the theory: a concatenated joint one-hot over SEX (2),
+RAC1P (9) and public_coverage (2) has centred rank `1 + 8 + 1 = 10`, leaving `16 − 10 = 6`.
+**Seed 2 differs for a real and recorded reason**: its `RAC1P` class index 3 has **zero**
+population support, so the centred joint one-hot has rank 9, not 10, and the channel keeps
+7 dimensions. Support is recorded, never repaired — and here the support directly
+determines the realised width of a released channel.
+
+**Guarantee scope, unchanged from the paper:** no **affine** predictor under any
+nonnegative convex loss beats the best constant predictor, **on the transformed channel**
+and for the moments it was fitted on. A fixture in this study confirms the limit
+concretely: after erasure a linear probe recovers `R² < 1e-8` while a **quadratic** feature
+of the same erased channel still recovers. Nothing is claimed for the augmented release,
+which still contains `H_A`.
+
+## C. §6c — SPLINCE: feasible, same rank as LEACE, covariance preserved exactly
+
+All three seeds **FITTED and FEASIBLE** — the `SCOPED INFEASIBLE` branch was not exercised.
+The silent LEACE fallback was disabled and did not fire (`fallback_to_leace = False`).
+
+| Seed | Rank | `k_z` | `k_y` | `dim U⁻` | `cond(U'V)` | Target-covariance preservation error | `‖Σ_xy‖_F` |
+|---|---|---|---|---|---|---|---|
+| 0 | 6 | 10 | 2 | 4 | 3.45 | `1.24e-14` | 2.18 |
+| 1 | 6 | 10 | 2 | 4 | 2.19 | `6.01e-14` | 2.41 |
+| 2 | 7 | 9 | 2 | 5 | 2.96 | `5.55e-15` | 2.02 |
+
+`cond(U'V)` sits between 2.2 and 3.5, five to six orders of magnitude below the declared
+`1e6` gate, so this is nowhere near the near-infeasible regime the paper does not treat.
+SPLINCE costs **no extra rank** over LEACE, exactly as the paper claims (same kernel
+`colsp(Σ_xz)`, different range), and it preserves the authorised training-task
+cross-covariance to `~1e-14` against a signal of norm ~2.
+
+**Preservation target:** `income_binary` and `civilian_at_work`. **Not** residence.
+**Not** commute. Named an adaptation.
+
+**Two limitations restated before any recovery number is read.**
+
+1. **Thm 2 caveat.** SPLINCE and LEACE share a kernel, so after re-fitting a strictly
+   convex *unregularized* model with a unique minimiser they give **identical**
+   predictions. This study's attacker slate is regularised logistic regression, restarted
+   MLPs, boosted trees and ridge kernel features, so a difference *can* appear — but any
+   difference is attributable to **attacker regularisation and nonlinearity**, not to a
+   stronger erasure guarantee.
+2. **Label-access asymmetry.** No other arm uses task labels during representation
+   fitting; the spectral and repaired arms optimise against the residualised teacher `R`.
+   SPLINCE sees two authorised task labels its comparators do not. This is an asymmetry
+   **in SPLINCE's favour on utility**, and it is disclosed rather than resolved.
+
+## D. §6d — OptNet-ARL: budget set from a training-only probe
+
+Nine conditions, rank 16, three policies, three seeds. Every departure from the published
+single-view supervised formulation is enumerated in §5.2 and carried in the machine-readable
+`DEPARTURES` list inside `OPTNET_SUMMARY.json`. The two that most affect interpretation:
+the **multi-lambda multi-attribute form is an extrapolation** (the paper asserts it in one
+sentence with no equation, no normalisation rule and no code), and the **mini-batch
+projector is the paper's own practice** but is approximate and is never called exact.
+
+Budget: **1200 Adam steps per start, two starts**, set from a training-only convergence
+probe rather than copied from the other arms — 200 mini-batch steps is not comparable to
+200 full-objective Riemannian updates. See `RUN_STATUS.md` amendment 2 and
+`OPTNET_CALIBRATION.json`.
+
+## E. Fit ledger actually realised
+
+| Arm | Nominal | Realised | Why |
+|---|---:|---:|---|
+| §6a spectral/SARL alias audit | 0 | **0** | equivalence established up to a measured mismatch; credited and reused, never duplicated |
+| §6b LEACE x 3 seeds | 3 | **3** | fitted |
+| §6c SPLINCE x 3 seeds | 3 | **3** | fitted; feasible, so no scoped-infeasible reduction |
+| §6d OptNet-ARL x 9 | 9 | **9** | fitted |
+| **External total** | **15** | **15** | |
+
+Registered forecast **Q7** ("at least one external adaptation proves to be an alias or
+infeasible") is **met by the alias route, not the infeasibility route**: the SARL audit
+avoided six fits, while SPLINCE turned out comfortably feasible.
