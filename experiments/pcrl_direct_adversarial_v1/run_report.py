@@ -201,6 +201,7 @@ def per_seed_signs(boot, vectors, seeds, specs) -> list:
 def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     limit_threads()
     out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
     tick = time.perf_counter()
     registry = Registry.new()
 

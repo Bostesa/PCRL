@@ -81,6 +81,7 @@ def build(out: Path, seeds):
 def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     limit_threads()
     out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
     points, registry, missing, conditions = build(out, seeds)
 
     rows = []
