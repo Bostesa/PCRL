@@ -338,9 +338,16 @@ def run(out: Path = OUT, seeds=(0, 1, 2), budget: int = 1500, policies=tuple(POL
         labels, _ = load_representation_labels(seed, registry)
         protected, views = protected_and_views(state, labels)
 
-        # Reported before any encoder is built (BASELINE_ADAPTATIONS.md 5.4).
-        signal = float(np.sum((state['V'].T @ (state['R'] - state['R'].mean(0))) ** 2)
-                       / max(np.sum((state['R'] - state['R'].mean(0)) ** 2), 1e-300))
+        # Reported before any encoder is built (BASELINE_ADAPTATIONS.md 5.4). This is the
+        # OLS R^2 of the residualised teacher on the whitened features: the source review
+        # warns that residualisation can annihilate the utility signal entirely, leaving
+        # B with no negative eigenvalues and an empty encoder, silently. Because V is
+        # whitened to V'V/n = I, the explained sum of squares is ||V'R||_F^2 / n, so the
+        # 1/n is required for the ratio to read on the [0, 1] R^2 scale.
+        centred = state['R'] - state['R'].mean(0)
+        rows = len(state['V'])
+        signal = float(np.sum((state['V'].T @ centred) ** 2)
+                       / (rows * max(np.sum(centred ** 2), 1e-300)))
         conditions, encoders_by_arm = {}, {}
         for policy in policies:
             name = f'optnet16_{policy}'
@@ -353,6 +360,10 @@ def run(out: Path = OUT, seeds=(0, 1, 2), budget: int = 1500, policies=tuple(POL
                 **release, 'condition': name, 'rank': RANK,
                 'theorem_4_1_upper_bound': rank_bound,
                 'utility_signal_ratio': signal,
+                'utility_signal_ratio_definition': (
+                    "OLS R^2 of the residualised teacher R on the whitened features V, "
+                    "= ||V'R||_F^2 / (n ||R||_F^2). A value near 0 would mean residualisation "
+                    "annihilated the utility signal and the encoder would be empty."),
             }
             print('OPTNET', seed, name, 'obj', round(result['training_objective'], 6),
                   'spread', round(result['restart_spread'], 6), flush=True)

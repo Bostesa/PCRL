@@ -108,7 +108,18 @@ Recorded as they happen so the run stays auditable.
    measured and recorded as a limitation (`METHOD.md` section 3.7). **A fixture
    expectation was corrected; no measure, constant or datum was changed.** Timing:
    before any fit and before any outcome.
-2. `KernelBlock.build` derived `role_index` only from the frozen `ROLE_ORDER`, which
+2. **A reporting bug in an OptNet diagnostic, found and fixed; no fitted value affected.**
+   `utility_signal_ratio` was written without its `1/n` factor, so it recorded `10513.0`
+   where the quantity is an OLS R-squared on the `[0, 1]` scale. Because `V` is whitened
+   to `V'V/n = I`, the explained sum of squares is `||V'R||_F^2 / n`. **The corrected
+   value is 1.000**, i.e. the residualised teacher lies entirely in the span of the
+   whitened features, which is the healthy case the source review's warning was about
+   (a value near 0 would mean residualisation had annihilated the utility signal and the
+   encoder would be empty). The code is fixed for future runs; this run's stored field is
+   unnormalised and is reported as such. **The diagnostic is a report-only field: it
+   enters no objective, no selection and no fitted map.** Timing: during the OptNet fits,
+   before any OptNet score was read.
+3. `KernelBlock.build` derived `role_index` only from the frozen `ROLE_ORDER`, which
    synthetic fixtures cannot satisfy. `role_index` is now an explicit optional
    parameter defaulting to the `ROLE_ORDER` position, so every production fit is
    unchanged. Timing: before any fit.
