@@ -359,8 +359,13 @@ def frontier_analysis(out: Path) -> str:
 
     lines = ['# FRONTIER_ANALYSIS — discrete configurations, not an interpolated curve', '',
              'Every point below is an **actual fitted release**. No realisable release is',
-             'invented between two curve points, and no withholding mixture is used to claim a',
-             'privacy property by hidden randomisation.', '']
+             'invented between two curve points.', '',
+             '**No withholding mixture is used anywhere in this study.** The historical arms',
+             'have a withholding grid in their own protocol; this study introduces none, makes',
+             'no interpolated-release claim, and therefore claims no privacy property that would',
+             'depend on hidden randomisation. Every released interface is a deterministic',
+             'function of permitted inference inputs, and the release/no-release indicator does',
+             'not exist here because every person in a scored pool receives the release.', '']
 
     # frontier points
     grouped = defaultdict(list)
