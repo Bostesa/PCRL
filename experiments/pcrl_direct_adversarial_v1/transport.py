@@ -331,18 +331,63 @@ def run(out: Path = OUT, seeds=(0, 1, 2), new_arms=(), include_baselines=True,
     return summary
 
 
+MAX_SCORE_ATTEMPTS = 3
+
+
 def score_seed(ev, frozen, root: Path, seed: int, conditions) -> dict:
+    """Score each 2017 unit, with a BOUNDED retry for the transient scorer fault.
+
+    The full-schema probability validation occasionally rejects a matrix in this stage.
+    The predecessor study saw the same thing, aborted the unit before writing anything,
+    and recomputed; the cause was never established and is not established here. A
+    rejected unit is therefore recomputed at most `MAX_SCORE_ATTEMPTS` times, every
+    attempt is recorded, any partial output is quarantined rather than overwritten, and
+    a unit that never validates is left **absent and listed** rather than accepted.
+    """
     from experiments import acs_fixed_predictions_audits as old
     from experiments.acs_transfer_heads import load_candidate, metrics
 
     final = ev._partition(ev.FINAL)
-    rows = {}
+    rows, faults = {}, []
     for condition in conditions:
         dest = root / f'seed_{seed}' / condition / 'mode_B'
         if (dest / 'complete.json').exists():
             rows[condition] = read_json(dest / 'complete.json')
             print('X2017_SCORE_REUSED', seed, condition, flush=True)
             continue
+        for attempt in range(1, MAX_SCORE_ATTEMPTS + 1):
+            try:
+                rows[condition] = _score_unit(ev, frozen, root, seed, condition, final,
+                                              load_candidate, metrics, old, attempt)
+                break
+            except ValueError as error:
+                faults.append({'seed': seed, 'condition': condition, 'attempt': attempt,
+                               'error': repr(error)})
+                print('X2017_SCORE_FAULT', seed, condition, 'attempt', attempt, repr(error),
+                      flush=True)
+                partial = dest / 'metrics.json'
+                if partial.exists():
+                    quarantine = dest.with_name(
+                        f'quarantine_mode_B_attempt{attempt}_{time.time_ns()}')
+                    dest.rename(quarantine)
+                    write_json(quarantine / 'quarantine.json', {
+                        'reason': 'probability validation rejected a matrix in this unit',
+                        'attempt': attempt, 'counted_as_completed': False})
+                if attempt == MAX_SCORE_ATTEMPTS:
+                    print('X2017_SCORE_ABANDONED', seed, condition, flush=True)
+    if faults:
+        write_json(root / f'seed_{seed}' / 'score_faults.json',
+                   {'faults': faults, 'max_attempts': MAX_SCORE_ATTEMPTS,
+                    'note': ('transient full-schema probability validation failures. The cause '
+                             'was not established. No rejected matrix reached any table.')})
+    return rows
+
+
+def _score_unit(ev, frozen, root: Path, seed: int, condition: str, final,
+                load_candidate, metrics, old, attempt: int) -> dict:
+    rows = {}
+    for _ in (0,):
+        dest = root / f'seed_{seed}' / condition / 'mode_B'
         tick = time.perf_counter()
         path = root / f'seed_{seed}' / 'releases_2017' / 'final_evaluation.npz'
         if not path.exists():
@@ -393,13 +438,14 @@ def score_seed(ev, frozen, root: Path, seed: int, conditions) -> dict:
             'evaluation_status': 'EXPLORATORY CROSS-YEAR DEVELOPMENT (seal already spent)',
             'raw_metrics': out_rows})
         complete = {'runtime_seconds': time.perf_counter() - tick, 'rows': len(out_rows),
+                    'attempts': attempt,
                     'nondeterminism_events': list(ev.NONDETERMINISM_EVENTS),
                     'metrics_sha256': sha_file(dest / 'metrics.json')}
         write_json(dest / 'complete.json', complete)
         rows[condition] = complete
         print('X2017_SCORE', seed, condition, len(out_rows), 'rows',
-              round(complete['runtime_seconds'], 1), 's', flush=True)
-    return rows
+              round(complete['runtime_seconds'], 1), 's attempt', attempt, flush=True)
+    return rows[condition]
 
 
 def main():
