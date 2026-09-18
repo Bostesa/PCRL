@@ -176,3 +176,49 @@ absorbs it, and no unit is dropped to pay for it.
 ## Failures, quarantines and omitted units
 
 Recorded here as they occur. Corrupted scores are never treated as data.
+
+### 1. Racing transport workers, `14:45:47Z` — no scientific output
+
+Replacing a stalled wrapper script left two 2017 transport workers running against the
+same output tree for about 40 seconds. They collided on
+`exploratory_2017/seed_0/dax16_C1_b030/fitted/wire/A/public_coverage/fresh`
+(`FileExistsError`, the correct behaviour of a directory that refuses to be
+overwritten). Both were killed, `exploratory_2017/` was deleted in full, and a single
+worker was restarted. **No metrics file was written by either.** The stale wrapper's
+own `T2017 ... COMPLETE` log lines are annotated as spurious in `logs/chain.log`.
+
+### 2. Transient probability-validation failure, `15:26:37Z` — recomputed, not accepted
+
+The 2017 fit stage aborted on `seed 0 / optnet16_C1` with
+
+```
+ValueError: Probabilities must be finite, normalized and aligned with the full class schema
+```
+
+raised by the scorer's full-schema validation inside `fit_unit`, **before any metrics
+file was written**. The 17 units already fitted for that seed were unaffected and are
+retained by their own completion markers.
+
+The unit was recomputed and **completed cleanly on the first retry**, with no change to
+code, inputs or seeds. The OptNet 2017 channel was checked directly and is finite on
+both fitting partitions (`min −0.563`, `max +0.736`, `std 0.032`); it is an order of
+magnitude smaller in scale than the other arms' channels but contains nothing invalid.
+
+This matches, in the same stage, the sporadic in-memory prediction corruption recorded
+by the predecessor study (`EXPLORATORY_2017.md` at `73903b7f`: *"Every occurrence was
+detected by the scorer's full-schema validation and aborted its unit before any metrics
+file was written"*). **The cause was not established then and is not established now.**
+It is recorded as an unexplained fault, not attributed to the OptNet channel, and the
+machine's memory state at the time is in the resource section above.
+
+The successful recomputation happened under a **diagnostic observer** (a wrapper that
+inspects the probability matrix before delegating to the real scorer). That unit was
+therefore **quarantined, not accepted**, and recomputed by the unpatched pipeline. The
+quarantined directory and its `quarantine.json` are retained.
+
+### 3. `splince_dax8_none` — SCOPED INFEASIBLE, 3 of 3 seeds
+
+SPLINCE on the width-8 no-protection channel is jointly infeasible under its own formal
+condition in every seed, so **3 of the 126 planned transform fits produce no release**
+and no 2017 interface. Reported under its own name, never replaced by a LEACE fit
+wearing the SPLINCE label.
