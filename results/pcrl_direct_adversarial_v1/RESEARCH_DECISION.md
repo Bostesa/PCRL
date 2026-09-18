@@ -10,9 +10,11 @@ declared nominee conjunction is **UNSUPPORTED**. Two things inside the study do 
 and neither is the headline: coalition conditioning genuinely beats strong local
 controls, and it pays for that in measured utility.
 
-All numbers are **2018 DEVELOPMENT** on pools this project has used repeatedly, under
-the matched-exposure primary scope `kernel_expanded_independent`, budget 360,
-unweighted unless stated.
+Unless a section says otherwise, numbers are **2018 DEVELOPMENT** on pools this project
+has used repeatedly, under the matched-exposure primary scope
+`kernel_expanded_independent`, budget 360, unweighted. §3b is **2017 EXPLORATORY** and
+is labelled throughout; years are reported separately and rows are never pooled across
+them.
 
 ## 1. Disclosure: what was registered, and how it turned out
 
