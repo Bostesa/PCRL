@@ -279,6 +279,35 @@ One scalar per role, frozen at the reference projection:
 N_j^kernel = D_kernel_j(W_ref)                                                (9)
 ```
 
+### 3.7 The kernel block has an `m`-dependent floor — a limitation, measured
+
+Added **before any fit and before any outcome was opened** (see `RUN_STATUS.md`
+amendment 1). The quadratic block averages over **all** valid rows, so its
+conditional-null value concentrates as the representation pool grows. **The kernel
+block does not.** It averages over the frozen subset of at most `m = 512` rows, so its
+null value is governed by `m`, not by the ~10,500-row pool.
+
+Measured on the oracle-nuisance conditional-null fixture at a fixed pool of 64,000
+rows (5 subset draws each):
+
+| `m` | 32 | 64 | 128 | 256 | **512** | 1024 | 2048 |
+|---|---|---|---|---|---|---|---|
+| mean `D_kernel` | 1.11e-2 | 9.37e-3 | 2.77e-3 | 1.52e-3 | **7.13e-4** | 4.36e-4 | 2.28e-4 |
+
+The decay is roughly `1/m`, as expected for a V-statistic whose retained diagonal
+contributes an `O(1/m)` bias.
+
+**Consequences, stated before any fitted value is read:**
+
+* The kernel block **cannot be driven below its own `m`-dependent floor**, for reasons
+  that have nothing to do with disclosure. A small nonzero fitted value is therefore
+  **not** evidence of residual conditional dependence.
+* `m = 512` is the frozen protocol value and is **not** changed in response to this
+  measurement. Raising it would raise cost quadratically and would be an
+  outcome-independent but unregistered change.
+* This floor applies equally to every policy, rank and arm, so it does not bias the
+  **comparison** between arms. It bounds what the *absolute* block value can mean.
+
 Cost: `L_j` is built once per role (`512 x 512` doubles = 2.1 MB). Per objective
 evaluation the kernel block needs `Z` on `m_j <= 512` rows and one `m_j x m_j`
 distance matrix, streamed in row chunks. **No `n x n` matrix over the full

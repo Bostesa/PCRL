@@ -98,13 +98,32 @@ infeasible; each such reduction is recorded with its evidence.
 
 Recorded as they happen so the run stays auditable.
 
-*(none yet)*
+1. **A validation fixture asserted the wrong thing; the code was correct.** The
+   conditional-null fixture was written to assert that *both* penalty blocks
+   concentrate towards zero as the representation pool `n` grows. The quadratic block
+   does (4.9e-4 at n=2000 -> 3.3e-6 at n=128000). The kernel block does **not**, and
+   should not: it averages over the frozen subset of at most `m = 512` rows, so its
+   sample size is `m` regardless of `n`. The fixture was split into two -- quadratic
+   concentration in `n`, kernel concentration in `m` -- and the underlying property was
+   measured and recorded as a limitation (`METHOD.md` section 3.7). **A fixture
+   expectation was corrected; no measure, constant or datum was changed.** Timing:
+   before any fit and before any outcome.
+2. `KernelBlock.build` derived `role_index` only from the frozen `ROLE_ORDER`, which
+   synthetic fixtures cannot satisfy. `role_index` is now an explicit optional
+   parameter defaulting to the `ROLE_ORDER` position, so every production fit is
+   unchanged. Timing: before any fit.
 
 ## Amendments to the registered protocol
 
 Recorded with timing and affected units.
 
-*(none yet)*
+1. **`METHOD.md` section 3.7 added** -- the kernel block's conditional-null floor is
+   governed by the frozen subset size `m`, not by the representation pool, with the
+   measured `1/m` decay table. Timing: **before any fit and before any ACS outcome was
+   opened.** Affected units: none fitted yet. This **adds a documented limitation**; it
+   changes no equation, constant, subset, seed, endpoint, decision rule or registered
+   forecast. `m = 512` was deliberately **not** changed in response to the
+   measurement.
 
 ## Scope boundaries in force
 
