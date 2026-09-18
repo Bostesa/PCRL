@@ -171,9 +171,10 @@ def table_chronology(repo: Pinned, out: Path):
          r'2018 development; 2017 reuse',
          r'Development', '7 forecasts, 3 wrong',
          r'repair exact; measured disclosure worse; three external arms beat it'),
-        (r'4. Direct adversarial refinement', r'\emph{pending}',
-         r'\emph{to be read from the committed matrix}',
-         r'\emph{Development}', r'\emph{pending}', r'\emph{pending}'),
+        (r'4. Direct adversarial refinement', r'\texttt{86f142c4}',
+         r'2018 development; 2017 panel',
+         r'Development', r'3 questions, 5 weak directional priors',
+         r'\emph{fitting in progress; 126 fits registered, no result read}'),
     ]
     b = [r'\begin{tabular}{@{}p{2.5cm}p{1.2cm}p{2.2cm}p{1.9cm}p{2.5cm}p{3.5cm}@{}}', r'\toprule',
          r'Study & Commit & Data pools & Evidence role & Registration & Outcome \\',
@@ -607,9 +608,12 @@ def table_pending(repo: Pinned, out: Path):
         b.append(' & '.join(r) + r' \\')
     b += [r'\bottomrule', r'\end{tabular}']
     NOTE = (
-        r'Cells are deliberately empty. '
-        r'They are filled only from a committed artifact whose hash and executed-unit count '
-        r'have been checked, and no forecast is entered in the meantime.')
+        r'Cells are deliberately empty. They are filled only from a committed artifact whose '
+        r'hash and executed-unit count have been checked, and no forecast is entered in the '
+        r'meantime. The study registered its protocol, method and 126-fit matrix at '
+        r'\texttt{86f142c4} while this revision was being written; all ten preconditions above '
+        r'were checked against that registration and are satisfied, with one watch item '
+        r'(\texttt{PENDING\_EXPERIMENT\_INTEGRATION.md} P6). No result had been read.')
     save_table(out, 'pending_study4', '\n'.join(b) + '\n', repo,
                'make_assets_v3.table_pending', note=NOTE)
 

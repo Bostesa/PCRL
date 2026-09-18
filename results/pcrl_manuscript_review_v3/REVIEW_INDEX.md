@@ -22,7 +22,7 @@ Every source branch and historical study directory is preserved unchanged.
 | [`CONTRIBUTION_ASSESSMENT.md`](CONTRIBUTION_ASSESSMENT.md) | independent review memo: 3 contributions, 3 objections, the smallest gap |
 | [`VALIDATION.md`](VALIDATION.md) | checks V1–V8, and what was deliberately not checked |
 | [`VERIFICATION_V3.json`](VERIFICATION_V3.json) | machine-readable output of V1–V5 |
-| [`PENDING_EXPERIMENT_INTEGRATION.md`](PENDING_EXPERIMENT_INTEGRATION.md) | the fourth study: empty cells, 10 protocol checks, 6 artifact checks, commands |
+| [`PENDING_EXPERIMENT_INTEGRATION.md`](PENDING_EXPERIMENT_INTEGRATION.md) | the fourth study: protocol registered at `86f142c4` and checked (10/10 satisfied, 1 watch item), empty cells, 6 artifact checks, commands |
 | [`REPRODUCE_PAPER.md`](REPRODUCE_PAPER.md) | every command, in order, with expected output |
 | [`HANDOFF.json`](HANDOFF.json) | aggregate handoff record |
 
@@ -53,6 +53,10 @@ Study 2 assets.
 * **One new finding contributed by this review:** every headline paired contrast is
   invariant to the attack scope, while `H`-relative levels move by a factor of five between
   scopes (`CORRECTIONS.md` B11, `VALIDATION.md` V3–V4).
+* **The fourth study registered its protocol while this revision was being written.** Its
+  protocol, method and matrix were read and all ten preconditions checked (10/10 satisfied,
+  one watch item). **No result from it was read**, and no number from it appears anywhere
+  here. Its own §1 carries corrections B1–B4, so the two records agree.
 
 ## Reviewer risks, as seen from here
 

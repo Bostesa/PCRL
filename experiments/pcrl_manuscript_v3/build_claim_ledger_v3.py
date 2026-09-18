@@ -431,14 +431,25 @@ def build(repo: Pinned) -> list[dict]:
                'claim rests on them. A cache read is never counted as a new fit.',
         manuscript_location='app:study3')
     add(id='V25',
-        claim='Terminal 1\'s fourth study had committed no protocol at the time of this revision.',
-        status='PENDING', source_commit='n/a', source_file='n/a', source_key='n/a',
-        dataset_year='n/a', statistical_family='n/a',
-        value='no protocol, matrix or result committed on any branch as of 2026-09-18',
-        caveat='Cells are left empty and marked pending. No forecast is entered. The '
-               'predecessor claim that Terminal 1 had no experiment at all was stale and is '
-               'corrected: Study 3 exists and is integrated.',
-        manuscript_location='app:pending; PENDING_EXPERIMENT_INTEGRATION.md')
+        claim='Terminal 1\'s fourth study registered its protocol during this revision and was '
+              'still fitting; no result from it has been read.',
+        status='PENDING (protocol checked, results not read)',
+        source_commit='86f142c4a4324c4dc71c8d094eecd48b29af640d',
+        source_file='results/pcrl_direct_adversarial_v1/{PROTOCOL.md,METHOD.md,MATRIX.json,RUN_STATUS.md}',
+        source_key='declared_total; fit_counts; blocks',
+        dataset_year='ACS 2018 development + 2017 exploratory panel (69 units)',
+        statistical_family='registered: candidate-wide simultaneous over every contrast searched '
+                           'for a winning claim x 5 endpoints x 2 weightings (m = 860); realised '
+                           'correction is a studentized Bonferroni bound, z = 4.02, because the '
+                           'registered percentile form is not estimable at 2000 replicates',
+        value='126 fits declared (main 72, no_protection 6, single_attacker 12, new_erasure 12, '
+              'optimizer_repeat 24); phases 1-5 open; all 10 protocol preconditions satisfied, '
+              '1 watch item (P6)',
+        caveat='The protocol was READ; no fitted object, checkpoint, log or partial score was '
+               'opened and no number from it appears in the manuscript. Protocol checks cannot '
+               'pre-validate results. Realised counts must be read from the run ledger at '
+               'completion, not from this matrix.',
+        manuscript_location='Table 1 row 4; app:pending; PENDING_EXPERIMENT_INTEGRATION.md')
     return L
 
 
