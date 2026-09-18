@@ -1,0 +1,366 @@
+{
+  "study": "pcrl_direct_adversarial_v1",
+  "created_utc": "2026-09-18T12:41:10.135660+00:00",
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "widths": [
+    16,
+    8
+  ],
+  "policies": [
+    "L1",
+    "L2",
+    "C1"
+  ],
+  "betas": [
+    0.1,
+    0.3,
+    1.0,
+    3.0
+  ],
+  "training_config": {
+    "mapper_updates": 300,
+    "checkpoint_every": 50,
+    "attacker_updates_per_mapper": 5,
+    "attacker_warmup": 100,
+    "refresh_fractions": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "refresh_catchup": 40,
+    "head_warmup": 60,
+    "batch": 256,
+    "lr": 0.001,
+    "teacher_weight": 1.0,
+    "nominal_mapper_updates": 600,
+    "reduction_reason": "",
+    "extra_optimizer_seed": 0,
+    "families": [
+      "linear",
+      "mlp64",
+      "mlp64_32"
+    ]
+  },
+  "attacker_families": [
+    "linear",
+    "mlp64",
+    "mlp64_32"
+  ],
+  "single_attacker_family": "mlp64",
+  "held_out_audit_architectures": [
+    "mlp[64,32] with independent audit seeds",
+    "HistGB trees",
+    "random-Fourier kernel ridge",
+    "multinomial logistic on the wire"
+  ],
+  "slot_schedule": {
+    "C1": [
+      "A/public_coverage|0",
+      "A/SEX|0",
+      "A/RAC1P|0",
+      "AB/SEX|0",
+      "AB/RAC1P|0"
+    ],
+    "L1": [
+      "A/public_coverage|0",
+      "A/SEX|0",
+      "A/RAC1P|0",
+      "A/SEX|1",
+      "A/RAC1P|1"
+    ],
+    "L2": [
+      "A/public_coverage|0",
+      "A/SEX|0",
+      "A/RAC1P|0",
+      "A/SEX|1",
+      "A/RAC1P|1"
+    ]
+  },
+  "trainable_protected_roles": [
+    "A/public_coverage",
+    "A/SEX",
+    "A/RAC1P",
+    "AB/SEX",
+    "AB/RAC1P"
+  ],
+  "role_classes": {
+    "A/public_coverage": 2,
+    "A/SEX": 2,
+    "A/RAC1P": 9,
+    "AB/SEX": 2,
+    "AB/RAC1P": 9
+  },
+  "audited_forbidden_registry": [
+    "A/public_coverage",
+    "A/commute_over20",
+    "A/SEX",
+    "A/RAC1P",
+    "B/income_binary",
+    "B/civilian_at_work",
+    "B/same_residence",
+    "B/SEX",
+    "B/RAC1P",
+    "AB/SEX",
+    "AB/RAC1P"
+  ],
+  "pools": [
+    "representation_fit",
+    "source_validation",
+    "downstream_fit",
+    "downstream_validation",
+    "attacker_fit",
+    "attacker_validation",
+    "test"
+  ],
+  "blocks": {
+    "main": {
+      "arms": [
+        "dax16_L1_b010",
+        "dax16_L1_b030",
+        "dax16_L1_b100",
+        "dax16_L1_b300",
+        "dax16_L2_b010",
+        "dax16_L2_b030",
+        "dax16_L2_b100",
+        "dax16_L2_b300",
+        "dax16_C1_b010",
+        "dax16_C1_b030",
+        "dax16_C1_b100",
+        "dax16_C1_b300",
+        "dax8_L1_b010",
+        "dax8_L1_b030",
+        "dax8_L1_b100",
+        "dax8_L1_b300",
+        "dax8_L2_b010",
+        "dax8_L2_b030",
+        "dax8_L2_b100",
+        "dax8_L2_b300",
+        "dax8_C1_b010",
+        "dax8_C1_b030",
+        "dax8_C1_b100",
+        "dax8_C1_b300"
+      ],
+      "per_seed": 24,
+      "fits": 72,
+      "description": "2 widths x 3 policies x 4 betas x 3 anchor seeds"
+    },
+    "no_protection": {
+      "arms": [
+        "dax16_none",
+        "dax8_none"
+      ],
+      "per_seed": 2,
+      "fits": 6,
+      "description": "beta = 0, same utility objective and budget"
+    },
+    "single_attacker": {
+      "arms": [
+        "dax16_L2_b030_single",
+        "dax16_L2_b100_single",
+        "dax16_C1_b030_single",
+        "dax16_C1_b100_single"
+      ],
+      "per_seed": 4,
+      "fits": 12,
+      "description": "width16 x {L2,C1} x beta {0.3,1.0} x 3 seeds, one MLP family, same initialisation, utility objective, role weights, alternation schedule and refresh opportunities",
+      "limitation": "per-attacker optimiser-step exposure is matched; ensemble-wide gradient steps are one third because there are one third as many attackers. Compute equivalence does not imply equal expressive capacity"
+    },
+    "new_erasure": {
+      "arms": [
+        "leace_dax16_none",
+        "splince_dax16_none",
+        "leace_dax8_none",
+        "splince_dax8_none"
+      ],
+      "per_seed": 4,
+      "fits": 12,
+      "description": "LEACE/SPLINCE refit on each width no-protection channel; the HISTORICAL leace_A0 and splince_A0 are kept and never replaced",
+      "reuse_reason": "refit only because the input channel is new; the method, numerical policy and library overrides are the verified wrapper of 73903b7f"
+    },
+    "optimizer_repeat": {
+      "arms": [
+        "dax16_L2_b030_r1",
+        "dax16_L2_b030_r2",
+        "dax16_L2_b100_r1",
+        "dax16_L2_b100_r2",
+        "dax16_C1_b030_r1",
+        "dax16_C1_b030_r2",
+        "dax16_C1_b100_r1",
+        "dax16_C1_b100_r2"
+      ],
+      "per_seed": 8,
+      "fits": 24,
+      "description": "width16 x {L2,C1} x beta {0.3,1.0} x 3 anchor seeds x 2 additional optimiser seeds",
+      "limitation": "optimisation repetitions CONDITIONAL on the three historical anchors. They are not six or nine independent population seeds and test only stability of the proposed mechanism"
+    }
+  },
+  "fit_counts": {
+    "main": 72,
+    "no_protection": 6,
+    "single_attacker": 12,
+    "optimizer_repeat": 24,
+    "new_erasure": 12,
+    "total_new_mapper_or_transform_fits": 126
+  },
+  "declared_total": 126,
+  "audit_2018": {
+    "interfaces": 126,
+    "per_interface": "full eleven-role registry, budgets 120 and 360",
+    "stress_set": [
+      "J",
+      "leace_A0",
+      "dax16_C1_b030",
+      "dax16_C1_b100",
+      "dax16_L2_b030",
+      "dax16_L2_b100"
+    ],
+    "stress": "2 fresh audit initialisations and a 720-epoch continuation"
+  },
+  "panel_2017": {
+    "main": [
+      "dax16_C1_b030",
+      "dax16_C1_b100",
+      "dax16_L1_b030",
+      "dax16_L1_b100",
+      "dax16_L2_b030",
+      "dax16_L2_b100",
+      "dax8_C1_b030",
+      "dax8_C1_b100",
+      "dax8_L1_b030",
+      "dax8_L1_b100",
+      "dax8_L2_b030",
+      "dax8_L2_b100"
+    ],
+    "no_protection": [
+      "dax16_none",
+      "dax8_none"
+    ],
+    "new_erasure": [
+      "leace_dax16_none",
+      "splince_dax16_none",
+      "leace_dax8_none",
+      "splince_dax8_none"
+    ],
+    "historical_baselines": [
+      "leace_A0",
+      "splince_A0",
+      "optnet16_L1",
+      "optnet16_L2",
+      "optnet16_C1"
+    ],
+    "references": [
+      "H",
+      "A0",
+      "J"
+    ]
+  },
+  "panel_2017_count": 69,
+  "baseline_transport_completion": {
+    "interfaces": [
+      "leace_A0/seed_0",
+      "leace_A0/seed_1",
+      "leace_A0/seed_2",
+      "splince_A0/seed_0",
+      "splince_A0/seed_1",
+      "splince_A0/seed_2",
+      "optnet16_L1/seed_0",
+      "optnet16_L1/seed_1",
+      "optnet16_L1/seed_2",
+      "optnet16_L2/seed_0",
+      "optnet16_L2/seed_1",
+      "optnet16_L2/seed_2",
+      "optnet16_C1/seed_0",
+      "optnet16_C1/seed_1",
+      "optnet16_C1/seed_2"
+    ],
+    "count": 15,
+    "rule": "reuse the 2018-fitted transformation on 2017; never fit a new 2017 eraser and call it transported. OptNet reconstruction must be verified against the recorded 2018 artifacts before it may inherit the old identity"
+  },
+  "references_2018": [
+    "H",
+    "E",
+    "A0",
+    "L025",
+    "L20",
+    "J"
+  ],
+  "reuse_policy": "A mathematically identical branch is reused WITH PROOF and is never fitted to fill a count. A failed or duplicate fit is not a completed unique system. Every reuse records the hash it was validated against.",
+  "dependency_hashes": {
+    "seed_0/training/A0/final.pt": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/training/A0/final.pt",
+      "sha256": "379ca674fac9ea2a7726e660422d1a40337af45b84a887f661b02645c1c41c63"
+    },
+    "seed_0/training/A0/releases.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/training/A0/releases.npz",
+      "sha256": "db48086dff1f83bc93e670c7aa9b84c09379946d54dbe7888723307ec595dfe5"
+    },
+    "seed_0/pca.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/pca.npz",
+      "sha256": "a2015174bb67e1aa03370dda7eef3233ce08f551fbbc2bcb276396cfad36130a"
+    },
+    "seed_0/anchors.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/anchors.npz",
+      "sha256": "2a40cdf734631be40d07f0b24de1d7211b10a984c9c23b5c7da8db1c19ebf9fa"
+    },
+    "seed_0/split_rows.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/split_rows.npz",
+      "sha256": "669fcff80bf61b3d8f17b7cb07d676a2b38030fe638942bfa4bae90f12311f8a"
+    },
+    "seed_0/indices.json": {
+      "path": "/Users/nathansamson/PCRL-terminal-1-adversarial/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/indices.json",
+      "sha256": "09963c395041bd778d611296426b7f0bd84e0de1c3ef0044a123ca6aa7caff44"
+    },
+    "seed_1/training/A0/final.pt": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/training/A0/final.pt",
+      "sha256": "76935ed9303575d1c7fda498bc1d143be8d9c6c4e6bab1e6d845c7ed2a969e59"
+    },
+    "seed_1/training/A0/releases.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/training/A0/releases.npz",
+      "sha256": "b61c4be69b1f99622e0e67384951e5729b605196083ebb05c2698688b365961a"
+    },
+    "seed_1/pca.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/pca.npz",
+      "sha256": "99f5e4d5a7dc8ad51157519583a62ac5f7fe898c7557fcd743a6a5a020d6382b"
+    },
+    "seed_1/anchors.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/anchors.npz",
+      "sha256": "957f78dfd36862fe2b39e1685433d671d44a2b8d3d511b14a52a9636ad037379"
+    },
+    "seed_1/split_rows.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/split_rows.npz",
+      "sha256": "d8543a6857e68adcbb2345781eba135a850463285a77a76b42b5c3e701233d1e"
+    },
+    "seed_1/indices.json": {
+      "path": "/Users/nathansamson/PCRL-terminal-1-adversarial/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/indices.json",
+      "sha256": "a73234a814242120d0f5d17b156b94affed49ff98930493db9806df49d9a8613"
+    },
+    "seed_2/training/A0/final.pt": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/training/A0/final.pt",
+      "sha256": "131743adb7a7c4df31ab262e592151a0c53b7e5d3713770a53ab488fe95bfac0"
+    },
+    "seed_2/training/A0/releases.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/training/A0/releases.npz",
+      "sha256": "8ad0d0fb7d576517b9d3ebbeacf09708fa8fa925009e7702f6326219be875d2c"
+    },
+    "seed_2/pca.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/pca.npz",
+      "sha256": "36f37df30eef4ae68224d1456836e53de40c54fe2be97ac1dfd0c4ae734ba89f"
+    },
+    "seed_2/anchors.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/anchors.npz",
+      "sha256": "8319e40110eda68071107bbc648bcb0be1e3255975c5d7222e038a0c23a20768"
+    },
+    "seed_2/split_rows.npz": {
+      "path": "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/split_rows.npz",
+      "sha256": "07d9b48e99a05f30396c8dd46d2a3e7b8bd182ca9e8ef55baa55604530e65038"
+    },
+    "seed_2/indices.json": {
+      "path": "/Users/nathansamson/PCRL-terminal-1-adversarial/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/indices.json",
+      "sha256": "954ed946d2aa467490959a76ad81b5e4f74bfca3bc514b3e943f057066e92718"
+    }
+  }
+}
