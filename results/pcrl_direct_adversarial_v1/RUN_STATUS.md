@@ -144,8 +144,23 @@ both aborted within 20 seconds on a path-ordering bug (`ev.DEV` was overwritten 
 `FrozenSeed.object_files()` was read). They wrote no scientific output. The bug is
 fixed; the incident is recorded because it happened, not because it mattered.
 
-Cost of the decision: the 2017 panel runs serially at roughly 161 s per interface rather
-than in parallel across seeds. The schedule absorbs it.
+The question was reopened at `14:52Z`, before the 2017 panel, because that stage is the
+long pole and has its own corruption guard (`ev.stable_predict` computes every
+prediction array twice and requires agreement). The measurement settled it against
+concurrency again:
+
+```
+vm.swapusage: total = 30720.00M  used = 29572.06M  free = 1147.94M
+free physical 0.16 GB, inactive 3.57 GB, load average 9.61
+```
+
+**Free physical memory is effectively zero.** A second worker loading a `FrozenSeed`
+(encoders, teacher maps, tree banks, PCA) is exactly the allocation that would page.
+The 2017 panel therefore runs serially as well.
+
+Cost of the decision: the 2017 panel runs at roughly 161 s per interface rather than in
+parallel across seeds, costing roughly 90 minutes of wall clock. The nine-hour ceiling
+absorbs it, and no unit is dropped to pay for it.
 
 ## Phase log
 
