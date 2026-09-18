@@ -3,7 +3,7 @@
 ## The verdict in one line
 
 **A directly adversarial refinement of the strongest developed protection channel does
-not improve the frontier.** The best arm this study produced is significantly *worse*
+not improve the frontier, on either year.** The best arm this study produced is significantly *worse*
 than frozen `J` on `AB/RAC1P` and significantly worse than `leace_A0` on `AB/SEX`, and
 is significantly better than **no** comparator on **no** sensitive endpoint. The
 declared nominee conjunction is **UNSUPPORTED**. Two things inside the study do work,
@@ -115,6 +115,53 @@ The previous study's central finding survives this one: **a closed-form linear e
 applied to a channel this project already had still matches `J` and still beats four
 studies of developed mechanism, now including this one.**
 
+## 3b. The 2017 panel — and the comparison that had never been made
+
+**EXPLORATORY CROSS-YEAR DEVELOPMENT.** The 2017 `final_evaluation` partition is spent,
+there are no intervals, and the original frozen 2017 transport result keeps its
+historical status. Panel membership was fixed in `PROTOCOL.md` §10 before any 2017
+number was read. **66 of the 69 declared interfaces** were scored; the 3 absent are
+`splince_dax8_none`, infeasible in every seed.
+
+The **15 baseline transport completions are the deliverable here**, and they are the
+first time this project has seen its external comparators on a second year. Every
+reconstruction was admitted only after rebuilding the **2018** release bitwise:
+**15 of 15 IDENTITY PROVED at max abs difference exactly 0.0**.
+
+Seed means, scope `common_fresh`, budget 360, unweighted:
+
+| condition | `A/SEX` | `AB/SEX` | `A/RAC1P` | `AB/RAC1P` | residence gain |
+|---|---|---|---|---|---|
+| `A0` | +0.0325 | +0.0312 | +0.0632 | +0.0564 | +0.0289 |
+| **`J`** | **+0.0013** | +0.0069 | +0.0039 | **+0.0015** | +0.0189 |
+| **`splince_A0`** *(new to 2017)* | +0.0021 | **+0.0009** | **+0.0053** | +0.0049 | +0.0148 |
+| **`leace_A0`** *(new to 2017)* | +0.0071 | +0.0072 | +0.0145 | +0.0101 | **+0.0219** |
+| **`optnet16_L2`** *(new to 2017)* | +0.0084 | +0.0078 | +0.0201 | +0.0191 | +0.0165 |
+| **`optnet16_C1`** *(new to 2017)* | +0.0093 | +0.0088 | +0.0211 | +0.0185 | +0.0139 |
+| **`optnet16_L1`** *(new to 2017)* | +0.0149 | +0.0140 | +0.0314 | +0.0307 | +0.0180 |
+| `spectral_C1` | +0.0170 | +0.0148 | +0.0471 | +0.0436 | +0.0282 |
+| `dax8_L2_b100` (best new arm here) | +0.0137 | +0.0151 | +0.0102 | +0.0142 | +0.0246 |
+| `dax8_C1_b100` | +0.0120 | +0.0137 | +0.0115 | +0.0142 | +0.0254 |
+| `dax16_C1_b100` | +0.0176 | +0.0167 | +0.0259 | +0.0231 | +0.0252 |
+| `leace_dax8_none` | −0.0002 | −0.0002 | −0.0002 | +0.0003 | **−0.0007** |
+
+Three readings, and the second is the one that matters:
+
+* **The 2017 look reproduces the 2018 verdict.** `J` again dominates every arm this
+  study produced, and the best new arm is roughly **3 to 10 times** `J`'s recovery on
+  `A/SEX` while gaining about 0.006 of residence. The direction is the same on both
+  years, which is the most that a spent partition can be asked to say.
+* **The previously untested comparison now exists, and it holds.** The previous study's
+  headline — that a closed-form linear eraser applied to a channel this project already
+  had matches `J` — was measured on **one year only**, because a pipeline boundary and a
+  missing serialisation had stopped it being transported. Both were engineering
+  problems, both are resolved, and on 2017 `splince_A0` is the **strongest protection
+  arm in the whole panel** on `AB/SEX` and `A/RAC1P`, at the lowest residence gain.
+* **The external baselines reorder slightly between years.** On 2018 `leace_A0` edges
+  `splince_A0`; on 2017 `splince_A0` is clearly ahead of it. With no intervals, three
+  seeds and a spent partition, that reordering is **not** a finding — it is a reason not
+  to treat either year's ordering of the two erasers as settled.
+
 ## 4. Mechanism: why it failed, stated carefully
 
 * **The training family was not the binding problem.** The training probe's gain and
@@ -143,6 +190,15 @@ studies of developed mechanism, now including this one.**
   (−0.0111) and `AB/RAC1P` (−0.0075). An optimiser seed moves the measured endpoint by
   as much as the effects being claimed.
 
+* **A stronger attack does not rescue the arms; it moves against them.** The
+  prespecified stress suite — two fresh audit initialisations and a **720-epoch**
+  continuation on the four sensitive roles, carried into **both sides** — found
+  *stronger* attacks against this study's arms (mean validation improvement `+0.0003`
+  to `+0.0021`) and *weaker* ones against `J` (`−0.0077`) and `leace_A0` (`−0.0049`),
+  whose default-suite attackers were already better. **In 0 of 72 role-cells did the
+  720-epoch trajectory win selection**: the extra budget bought nothing anywhere, and
+  the longer trajectory overfits its own validation pool.
+
 **None of this is causal.** These are observational associations among diagnostics of a
 bounded search, on three anchor seeds.
 
@@ -167,6 +223,28 @@ Four amendments, all declared before the outcome they could have affected, in
 The exact-equality row is also the strongest end-to-end correctness evidence here: an
 independently re-audited channel that is bitwise identical to a historical one
 reproduces its endpoints exactly.
+
+## 5b. Integrity incidents
+
+Three, all recorded in `RUN_STATUS.md`, none of which put a number into a table:
+
+1. **Two racing 2017 transport workers** ran for ~40 s while a stalled wrapper script
+   was being replaced. They collided on a directory that refuses to be overwritten, both
+   were killed, `exploratory_2017/` was deleted in full and a single worker restarted.
+   No metrics file was written by either.
+2. **Four transient probability-validation failures** in the 2017 stage — one in fitting
+   (`seed 0 / optnet16_C1`) and three in scoring (`seed 1 / dax8_C1_b100`,
+   `seed 1 / dax8_L2_b030`, `seed 2 / leace_A0`). Each was caught by the scorer's
+   full-schema validation **before any metrics file was written**, and each recomputed
+   cleanly on the next attempt inside a bounded 3-attempt loop, with no change to code,
+   inputs or seeds. **No unit was abandoned and no rejected matrix reached any table.**
+   The same fault, in the same stage, is recorded by the predecessor study. **Its cause
+   was not established then and is not established here**, and it is not attributed to
+   any particular arm — the OptNet 2017 channel was checked directly and is finite
+   throughout. The machine was running with free physical memory at 0.16 GB and swap 96%
+   full, which is recorded as context, not as a diagnosis.
+3. One unit recomputed under a **diagnostic observer** during that investigation was
+   **quarantined rather than accepted**, and recomputed by the unpatched pipeline.
 
 ## 6. Exact fit accounting
 

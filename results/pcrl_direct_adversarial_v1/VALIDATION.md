@@ -13,9 +13,9 @@ silently be wrong.
 | map serialisation: a reloaded channel reproduces its release bitwise | PASS |
 | resumed-unit identity: recorded hashes still match their files | PASS |
 | role masks: the audited forbidden registry is the full historical eleven | PASS |
-| end-to-end: a bitwise-identical released channel reproduces its comparator's endpoints exactly under the matched-exposure scope | not applicable |
-| score aggregation: stored endpoints recomputable from stored predictions | not applicable |
-| simultaneous construction: the candidate-wide family covers every searched contrast and dominates | not applicable |
+| end-to-end: a bitwise-identical released channel reproduces its comparator's endpoints exactly under the matched-exposure scope | PASS |
+| score aggregation: stored endpoints recomputable from stored predictions | PASS |
+| simultaneous construction: the candidate-wide family covers every searched contrast and dominates | PASS |
 
 ## The sign fixture, in numbers
 
