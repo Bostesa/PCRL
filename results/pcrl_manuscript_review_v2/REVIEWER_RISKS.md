@@ -11,6 +11,7 @@ valid for it. Three tiers, and no acceptance probability, because that would not
 | "No endpoint significantly worse" for the nonlinear penalty | "Your own CSV has `significantly_worse = True` for `nlr8_L1` on A/race" | §8.3 and Table 10 give per-factor better/worse/unresolved counts; Appendix A lists every significant cell. Withdrawn as item 12. |
 | "63 % of optimisation was wasted, 37 % bought the protection" | "That is not what a rotation search measures" | §8.5 reports an attained share under a bounded invariant search and drops the causal partition and the prediction. Withdrawn as item 13. |
 | "Not an optimisation artifact" | "Three passing checks do not certify a nonconvex optimum" | §8.7 states exactly which three failures are excluded and that suboptimality remains live. Withdrawn as item 14. |
+| "+0.0098 person-weighted" for `nlr8-C1` vs J | "Your Table 11 says +0.01210" | §8.4 now reports +0.0121; the generated table was always right. Withdrawn as item 17, and it enlarges the deficit. |
 | Nuisance weakness read as a property of the interface | "A weak model is not an absence of information" | §8.6 scopes it to the fitted nuisances and contrasts 0.03–0.66 % on sex with 8.1–8.9 % on an authorised attribute. Withdrawn as item 15. |
 | `rank(U) = 32` presented as settling the sign pattern | "Where is the inertia argument?" | §8.1 rests the conclusion on the measured counts and says so. |
 | Stale cross-terminal status ("still running", "2016 never admitted") | "Which is it?" | Removed; Table 1 and `REVIEW_INDEX.md` carry the current status. Item 16. |
@@ -51,10 +52,12 @@ valid for it. Three tiers, and no acceptance probability, because that would not
   reviewer who reads §7.2 alone will take it as a success; a reviewer who reads §8 alone will take
   the whole line of work as a failure. Both readings are wrong and the abstract is ordered to
   prevent them. That ordering should not be softened in either direction.
-* **Sixteen withdrawn or narrowed claims is a lot**, and invites the reading that the underlying
-  work was careless. The opposite is nearer the truth: every published table was right, all 90
-  Study-1 endpoints reproduce to 1e-15, both prediction replays are clean, and fifteen of the
-  sixteen are wording, scope or counting. §9's preamble says so and should keep saying so.
+* **Seventeen withdrawn or narrowed claims is a lot**, and invites the reading that the underlying
+  work was careless. The opposite is nearer the truth: every published *table* was right, all 90
+  Study-1 endpoints reproduce to 1e-15, both prediction replays are clean, and sixteen of the
+  seventeen are wording, scope or counting. The seventeenth is a figure mis-typed into a prose
+  summary whose own generated table carried the right value — and correcting it makes the result
+  *worse* for the candidate, not better. §9's preamble says so and should keep saying so.
 * **The withholding-matching analysis (§7.6) is the most novel analysis in the paper and is
   post-hoc.** It is labelled so in the caption, the section and the ledger. It must not migrate
   into the abstract as a registered finding.

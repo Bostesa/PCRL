@@ -77,7 +77,8 @@ abstracted as though there were.
   measured recovery substantially in the intended direction — composed, the two factors take
   additional A/race recovery from 0.0274 to 0.0055 against J's 0.0071 while holding residence gain
   at 0.0259 against J's 0.0215 — but the best candidate is significantly worse than J on local sex
-  under both weightings, and the exploratory cross-year look makes the gap wider, not narrower.
+  under both weightings (+0.0106 unweighted, +0.0121 person-weighted), and the exploratory
+  cross-year look makes the gap wider, not narrower.
 
 ## Data-pool decisions
 

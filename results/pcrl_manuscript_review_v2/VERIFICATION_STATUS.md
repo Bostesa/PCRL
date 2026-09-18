@@ -81,6 +81,7 @@ they resolve only in the worktree where the study ran.
 | Attribution-family denominators recounted from `PAIRED_INTERVALS.csv` | one significantly worse cell found — correction A2 |
 | Rotation stop reasons inspected | `budget_exhausted` / `line_search_failed_no_improvement` — correction A3 |
 | Nuisance improvement recomputed over all roles and seeds | 0.03–0.66 % (sex), 0.96–2.35 % (race) — correction A8 |
+| Every hand-written prose figure cross-checked against its evidence file | 18 of 19 matched exactly; one did not — `nlr8-C1` vs J on A/sex person-weighted is **+0.01210**, not the +0.0098 in Study 2's prose — correction A11 |
 | PDF compiled and every rendered page inspected | 22 pages, 0 overfull/underfull boxes, 0 undefined references or citations, 0 LaTeX warnings |
 | Integration: both study trees preserved, tests collected, build reproducible | `INTEGRATION_MANIFEST.json` |
 

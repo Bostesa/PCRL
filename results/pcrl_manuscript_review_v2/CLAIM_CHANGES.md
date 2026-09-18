@@ -13,8 +13,10 @@ or `results/pcrl_nonlinear_rank_v1` was edited. Those trees are historical artif
 preserved exactly as committed. Every change below is made in the **new** manuscript
 (`papers/pcrl_manuscript_v2/`) and in this review directory.
 
-**No numerical result changed anywhere in this revision.** Every correction is to wording, scope,
-a denominator, or a causal reading. Each row names the artifact that settles it.
+**No stored result, table or interval changed anywhere in this revision.** All but one correction
+is to wording, scope, a denominator or a causal reading; the exception is A11, a figure
+mis-transcribed into a prose summary, where the evidence file was always right. Each row names the
+artifact that settles it.
 
 ---
 
@@ -153,6 +155,31 @@ is prior work (SARL Thm 3, OptNet-ARL Thm 4.1, K-TOpt Cor 4.1) and made no chang
 `RESEARCH_DECISION.md` gives the frozen-nuisance improvement as "sex by 0.2–0.7 %". The minimum
 across seeds and roles is 0.027 % (seed 2, `A/SEX`). The manuscript states 0.03–0.66 %. No
 conclusion depends on the difference.
+
+### A11. A mis-transcribed figure in Study 2's prose summary
+
+**Was** (`results/pcrl_nonlinear_rank_v1/RESEARCH_DECISION.md` line 32, repeated in
+`PAPER_ADDENDUM.md` line 154): *"significantly worse than J on `A/SEX` under both weightings
+(+0.0106 unweighted, **+0.0098** person-weighted; adjusted intervals exclude zero)"*.
+
+**Evidence.** `results/pcrl_nonlinear_rank_v1/PAIRED_INTERVALS.csv`, family
+`C5_candidate_vs_reference`:
+
+```
+spectral_nlr8_C1 - J, recovery/A/SEX, unweighted       +0.01065  [+0.00331, +0.01799]  worse
+spectral_nlr8_C1 - J, recovery/A/SEX, person_weighted  +0.01210  [+0.00441, +0.01978]  worse
+```
+
+No cell anywhere in that file supports `+0.0098` for this contrast. The value `0.0098` does appear
+in the same study's development table — it is `spectral_lin16_C1`'s additional `AB/SEX` recovery
+(`DEVELOPMENT_2018.md` line 11) — which is the likely source of the slip.
+
+**Now.** §8.4 reports `+0.0106` unweighted and **`+0.0121`** person-weighted, and Table 11, which is
+generated directly from the interval file, carried the correct value throughout. This is the one
+**numerical** correction in this revision, and it makes the candidate's deficit against J *larger*,
+not smaller. Recorded as withdrawn-claims item 17.
+
+The original documents are preserved unedited; this is the correction of record.
 
 ### A9. Evidence status made consistent in four places
 

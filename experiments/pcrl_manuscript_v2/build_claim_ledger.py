@@ -155,6 +155,7 @@ def main() -> int:
            and r['left'] == 'spectral_nlr8_C1' and r['right'] == 'J'
            and r['endpoint'] in SENS]
     cvj_worse = sum(r['significantly_worse'] == 'True' for r in cvj)
+    cvj_sex = {r['weight']: float(r['estimate']) for r in cvj if r['endpoint'] == 'recovery/A/SEX'}
 
     shares = [d['rotation_only_share'] for s in diag['seeds'].values()
               for d in s['rotation'].values() if d.get('applicable')]
@@ -398,7 +399,9 @@ def main() -> int:
         claim='The best refined candidate is significantly worse than J on local sex under both '
               'weightings and indistinguishable elsewhere; it is not nominated.',
         value=f'{cvj_worse} of {len(cvj)} sensitive cells significantly worse '
-              '(recovery/A/SEX, both weightings: +0.0106 and +0.0121); '
+              f'(recovery/A/SEX, unweighted {cvj_sex["unweighted"]:+.5f}, person-weighted '
+              f'{cvj_sex["person_weighted"]:+.5f}; the study prose gave +0.0098 for the latter, '
+              'which no cell supports - see CLAIM_CHANGES A11); '
               'residence gain 0.0259 vs J 0.0215, not significant',
         source_commit=SHA_NONLIN, source_artifact=f'{NONLIN}/PAIRED_INTERVALS.csv',
         endpoint_or_table='Table: candidate_vs_j',
