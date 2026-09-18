@@ -1,0 +1,103 @@
+{
+  "study": "pcrl_invariant_baselines_v1",
+  "terminal": "terminal_1",
+  "frozen_utc": "2026-09-18T02:28:27.164689+00:00",
+  "base_commit": "c37807e4f568ef38e5528fc09c1506083278bf4d",
+  "status": "FROZEN BEFORE ANY NEW FIT AND BEFORE ANY NEW ACS PERFORMANCE OUTCOME",
+  "documents": {
+    "METHOD.md": {
+      "sha256": "2b0b9bce5bc229479b0b7ee0a0416d141716738f6cfe912af4661cd6bc8fe90d",
+      "bytes": 23275
+    },
+    "PROTOCOL.md": {
+      "sha256": "121708d95ab535e2de4c7d0497a3d5b7a0c5cd71714033136f3f319fdabf37de",
+      "bytes": 16434
+    },
+    "RUN_STATUS.md": {
+      "sha256": "d9bf52223c5da1887022ba2a3678a58494625a004b700b5b9bad0405d4d7a11c",
+      "bytes": 5886
+    }
+  },
+  "constants": {
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "ranks": [
+      16,
+      8
+    ],
+    "policies": [
+      "L1",
+      "L2",
+      "C1"
+    ],
+    "kernel_subset_max": 512,
+    "kernel_subset_seed_formula": "20260930 + 100*seed + 10*rank + role_index",
+    "role_order": [
+      "A/SEX",
+      "A/RAC1P",
+      "A/public_coverage",
+      "AB/SEX",
+      "AB/RAC1P"
+    ],
+    "bandwidth_subset_max": 1024,
+    "bandwidth_subset_seed_formula": "20260918 + 100*seed + rank",
+    "bands": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "kernel_estimator": "V-statistic, diagonal retained",
+    "block_weight_quadratic": 0.5,
+    "block_weight_kernel": 0.5,
+    "combine_weight_linear": 0.5,
+    "combine_weight_nonlinear": 0.5,
+    "floor": 1e-12,
+    "degenerate_convention": "nondividing: drop degenerate block, reweight survivor to 1.0; both degenerate -> D_j:=0; lin reference degenerate -> c_j:=0",
+    "feature_centering": "none",
+    "quadratic_scale": "one scalar per role per block from the common reference projection",
+    "max_updates": 200,
+    "starts": 2,
+    "eligible_checkpoints": 4,
+    "perturb_seed_formula": "20260920 + 100*seed + rank",
+    "perturb_magnitude": 0.05,
+    "selection": "lowest training objective only; no attacker/residence/commute/outcome consulted",
+    "blas_threads": 1,
+    "fitting_workers": 1
+  },
+  "declared_tolerances": {
+    "quadratic_packed_vs_full_relative": 1e-12,
+    "kernel_vs_dense_gram_relative": 1e-12,
+    "rotation_invariance": "abs(delta) <= 1e-10 * max(1, abs(value))",
+    "gradient_vs_central_fd_relative": 1e-06,
+    "fd_step": 1e-06,
+    "rotation_direction_derivative": "abs(<G,WA>) <= 1e-9 * ||G||_F * ||WA||_F",
+    "chunk_invariance_relative": 1e-12,
+    "H_parity": "bitwise np.array_equal",
+    "feasibility_max_abs": 1e-13,
+    "expected_fp_error_note": "sqrt(n)*eps ~ 2.3e-14 for n=1.05e4 float64 pairwise summation; O(r*eps) ~ 3.5e-15 for the r x r conjugation"
+  },
+  "acceptance_gate": {
+    "measure": "diagnostics.rotation_share on fitted maps",
+    "threshold": 0.1,
+    "registered_forecast": 0.01,
+    "timing": "computed after fitting and BEFORE any 2018 score is read",
+    "on_failure": "repaired arm is not scored; misspecification is the reportable result; baselines and evidence work continue"
+  },
+  "registered_forecasts": {
+    "Q1": "rotation-only share < 0.01 in every seed, rank, policy (structural; the gate)",
+    "Q2": "repaired family attains a HIGHER final training objective than the defective family in >= 15 of 18 matched conditions",
+    "Q3": "repaired family's measured additional A/SEX recovery is NOT worse than the defective family's at matched rank/policy in >= 2 of 3 seeds",
+    "Q4": "repaired family still fails the primary point-estimate coordination rule against both L1 and L2 in every cell",
+    "Q5": "repaired best candidate remains significantly worse than J on A/SEX under at least one weighting",
+    "Q6": "LEACE baseline: near-zero LINEAR recovery from the transformed channel alone, but selected additional recovery from the augmented A wire stays above zero",
+    "Q7": "at least one external adaptation proves to be an alias or infeasible and is credited-and-reused or reported scoped-infeasible rather than refitted"
+  },
+  "scope": {
+    "2018": "development",
+    "2017": "development for these new methods, labelled so; original locked study keeps its historical status",
+    "2016": "NOT scored, fitted, transformed, tuned on, or inspected. Remains UNSCORED."
+  }
+}
