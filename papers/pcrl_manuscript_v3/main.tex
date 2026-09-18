@@ -1,0 +1,658 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{natbib}
+\usepackage{textcomp}
+\bibliographystyle{plainnat}
+
+% Generated table notes, each a macro so it can be used inside a \caption.
+\input{tables/study_chronology_note.tex}
+\input{tables/repair_diagnostic_note.tex}
+\input{tables/external_vs_repaired_note.tex}
+\input{tables/external_vs_J_note.tex}
+\input{tables/erasure_rank_note.tex}
+\input{tables/scope_decomposition_note.tex}
+\input{tables/pending_study4_note.tex}
+\input{tables/related_work_note.tex}
+
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{1.5pt}
+
+\title{Adding a reusable feature channel beside a prediction service you cannot change:\\
+an evaluated release problem, one confirmed effect, and three negative method results}
+\author{}
+\date{Integrated revision of 2026-09-18.
+Branch \texttt{research/pcrl-manuscript-integrated-v3}.}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+An organisation already publishes a prediction service---fixed probability vectors that downstream
+recipients consume and cannot be asked to re-accept. We formalise and evaluate what happens when it
+adds a \emph{second}, reusable feature channel for one of those recipients without altering a single
+published number, and tries to limit what that recipient, and that recipient colluding with another,
+can \emph{newly} infer about sex and race. The contribution is an implemented release interface with
+a measurement contract---per-recipient views, a coalition view, independently fitted attackers, and
+incremental disclosure always reported beside absolute disclosure---together with what three
+completed studies of one mechanism family measured through it. Four findings. (i) Exact preservation
+of the published outputs is structural and holds bitwise on all 210 released views; it does not imply
+stable service \emph{accuracy}, which moves by up to $0.015$ nats across one year. (ii) On a locked,
+previously unused survey year, a penalty built from the coalition's joint view beats both an
+equal-strength and an equal-total-mass local control under simultaneous $95\%$ intervals: 14 of 16
+sensitive cells strictly better, none worse, two unresolved. The paired residence constraint is a
+\emph{point} rule, and interval non-inferiority at the same margin holds in $0$ of $4$ comparisons.
+(iii) Two successive refinements of the mechanism---a penalty nonlinear in the channel, then an
+exactly rotation-invariant repair of that penalty---both fail. The repair is verified exact to
+$10^{-15}$, and the release it produces discloses significantly \emph{more} than the defective
+objective it repairs on $8$ of $48$ sensitive cells, with none significantly less. (iv) The first
+executed external-method comparisons put adapted LEACE, SPLINCE and two OptNet-ARL policies below
+the developed mechanism on every sensitive endpoint they resolve---$31$ of $32$ arm $\times$
+endpoint $\times$ weighting cells; adapted LEACE also costs $0.0098$ nats of authorised
+residence capability against the channel it transformed, a significant loss. We therefore report an
+empirical and problem-formulation contribution and three negative method results, and we list every
+claim of our own that this revision withdraws or narrows.
+\end{abstract}
+
+\section{What the paper does}
+\label{sec:contribution}
+
+Suppose a company already publishes two prediction services: a credit-style model that returns
+probabilities to one business partner, and a coverage model that returns probabilities to another.
+Both partners have built systems on those exact numbers, so the company cannot revise them. It now
+wants to give the first partner something more useful---a compact reusable feature vector built from
+what the published predictions leave unexplained---while making sure that the partner, and the two
+partners pooling what they hold, cannot use it to work out an applicant's sex or race any better than
+the published predictions already allow. That is the problem this paper implements and measures.
+
+\paragraph{Contribution, precisely.} We build the interface and the measurement contract, and we
+report what a bounded programme of experiments measured through them.
+
+\begin{itemize}\itemsep1pt
+\item \textbf{The interface.} A mechanism appends a channel $Z$ to one recipient's published
+output and modifies nothing. Preservation is then an \emph{identity}, not a bounded perturbation,
+and is checked bitwise on every released view.
+\item \textbf{The comparisons it enables.} Because $Z$ is separable, heterogeneous mechanisms become
+directly comparable at matched width on the same wire: spectral moment penalties, an adversarially
+trained neural channel, and closed-form linear erasers, all evaluated by the same independently
+fitted attacker slate against the same recipient-specific and coalition-specific audit roles, with
+$H$-only recovery always subtracted and always also shown unsubtracted.
+\item \textbf{The empirical finding.} On a sealed year, a penalty built from the coalition's joint
+view lowers measured recovery relative to two local-only controls matched on penalty strength and on
+total penalty mass. Everything the project then developed to close the remaining gap to the strongest
+comparator failed, and three adapted published methods beat it.
+\end{itemize}
+
+\textbf{This is an empirical and problem-formulation paper, not a method paper.} We do not present a
+deployable mechanism. We are not offering new mathematics: known concept erasure, eigenvalue-sign
+rank selection, minimax adversarial training and conditional-moment characterisations are prior work,
+cited as such. Adversarially protected representations that transfer to new tasks are not new either
+\citep{madras2018laftr}. What we did not find, after a bounded search, is a prior \emph{evaluation}
+of recipient-specific and combined-access policies over an already-published output that the
+mechanism may not touch (\S\ref{sec:related}); that is absence of evidence after a bounded search, not
+a priority claim.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/release_view.pdf}
+\caption{The release graph. $H_A$ and $H_B$ are already published and are never modified; $Z$ is
+appended to $A$'s wire alone. Three audit views are scored: $A$ alone, the coalition $AB$, and the
+$H$-only baseline that every number in this paper is measured against. This is a schematic of the
+interface, not a result.}
+\label{fig:release}
+\end{figure}
+
+\section{The interface, and four distinctions we hold to throughout}
+\label{sec:interface}
+
+Each person has covariates $X$, sensitive attributes $S$ (sex, 2 classes; race, 9 classes) and task
+labels. Two services are frozen and published before anything here happens: $H_A(X)\in[0,1]^4$, the
+full income-over-\$50k and employment probability vectors released to recipient~A, and
+$H_B(X)\in[0,1]^2$, the coverage vector released to recipient~B. A mechanism may add
+$Z\in\mathbb{R}^{16}$ \emph{for A only}. So A sees $(H_A,Z)$, B sees $H_B$, and the coalition AB sees
+$(H_A,Z,H_B)$. $H$ without a subscript means the no-channel interface. The policy authorises A for
+income, employment and residence and B for coverage and commute, and forbids sex and race everywhere
+plus nine cross-role combinations---eleven forbidden roles in all. The adversary holds labelled data
+from the release year, fits fixed attack families on its own pool, selects on a validation pool, and
+sees only its legal view.
+
+Three names recur. \textbf{$J$} is a 16-dimensional adversarially trained channel recovered from
+earlier work and never retrained; it is the strongest comparator in the study and it is
+\emph{internal}. \textbf{$L1$} and \textbf{$L2$} are local controls whose penalty uses only A's own
+view, matched to the candidate on penalty strength and on total penalty mass respectively, so that a
+coalition effect cannot be confused with ``more penalty''. \textbf{$C1$} adds a penalty term built
+from the coalition's joint view; it is the candidate.
+
+Four distinctions carry the argument and are never merged.
+
+\begin{description}\itemsep1.5pt
+\item[\normalfont\textbf{Preservation is architectural; accuracy is empirical.}] $Z$ is concatenated
+to $H_A$ and never mixed into it, so $H$ is preserved by construction---a property of concatenation,
+not a theorem. It does \emph{not} follow that the service stays accurate: on identical released
+vectors, employment log loss rises by $0.0138$ nats and income falls by $0.0145$ between the two
+years (Appendix~\ref{app:study1}).
+\item[\normalfont\textbf{Added capability is measured against the correct $H$-only view.}] A channel
+``adds capability'' only if independently fitted probes do better with $(H_A,Z)$ than with $H_A$.
+\item[\normalfont\textbf{Added disclosure is a finite-auditor log-loss gain, not an information
+bound.}] Every recovery number is the improvement a validation-selected attacker achieves over the
+same attacker family restricted to $H$. It is a floor on what is recoverable and never a ceiling
+(\S\ref{sec:limits}).
+\item[\normalfont\textbf{Recipients have different permitted tasks.}] AB's authorised union is not
+either singleton's permission set, and the audit roles differ accordingly.
+\end{description}
+
+\textbf{Two scope limits bound every claim below.} Only recipient~A receives a channel: nothing here
+demonstrates joint optimisation of channels for several recipients, and the coalition penalty is a
+constraint on one channel given another recipient's fixed view, not a multi-channel design. And
+although residence and commute labels are excluded from every representation fit---the sense in which
+residence is held out---residence outcomes have been inspected repeatedly across this line of work,
+so residence is not a pristine unseen task and we do not claim unseen-task generality.
+
+\section{The mechanism family, and what is a theorem here}
+\label{sec:method}
+
+Let $T$ be a frozen PCA32 teacher. Build $\phi(T)$ from standardised $T$ and 96 random Fourier
+features \citep{rahimi2007random}; residualise against a degree-2 polynomial basis in the released
+service probabilities and eigen-whiten to $V$ with $V^\top V/n=I$. Utility is $U=C_{VR}C_{RV}$ for the
+residualised teacher $R$: for $W^\top W=I$, $\operatorname{tr}(W^\top UW)$ is exactly the training
+reduction in least-squares reconstruction error of $R$. Protection matrices $P_j$ are built from
+household-grouped 3-fold cross-fitted nuisances $m_j(H)$ \citep{chernozhukov2016dml} and the
+residuals $\mathrm{onehot}(S_j)-m_j(H)$, aggregated over local roles, coalition roles and a marginal
+variant. The released map is the top-16 eigenvectors of $U_{\mathrm{norm}}-\lambda P$. Inference needs
+only $T$ and $H_A$; $H_B$ enters fitting and auditing and is never an inference input.
+
+Study~2 replaced the fixed penalty matrix by one computed from degree-two monomials of the channel
+output, so the objective is no longer $\operatorname{tr}(W^\top AW)$ for any $W$-independent $A$, and
+added a predeclared rank-8 variant. Study~3 replaced that penalty again with two blocks that are
+exactly invariant under $W\mapsto WQ$ for orthogonal $Q$: a Frobenius-weighted quadratic moment block,
+for which rotation acts as $M\mapsto Q^\top MQ$, and an exact average of three Gaussian kernels on a
+frozen $512$-row subset, which sees the data only through pairwise distances.
+
+\paragraph{What is proved, and over what.} Four statements are elementary and we prove them in
+Appendix~\ref{app:math}; nothing else in this paper is a theorem.
+
+\begin{enumerate}\itemsep1pt
+\item Appending $Z$ without modifying $H$ preserves $H$ exactly. This is a property of concatenation.
+\item An unrestricted recipient holding $[H,Z]$ can ignore $Z$, so its optimal population log loss is
+no worse than with $H$ alone. This bounds the \emph{population optimum}, not any fitted model, and
+our measured increments are sometimes negative.
+\item Under unrestricted Bayes prediction and ordinary log loss, the population risk difference
+between $H$ and $(H,Z)$ \emph{equals} $I(S;Z\mid H)$. Our validation-selected finite attackers do not
+attain those infima, so the reported differences bound that quantity in neither direction, and
+mutual-information estimation has its own formal limits \citep{mcallester2020formal}.
+\item For the repaired quadratic block, orthogonal reparameterisation preserves the Frobenius norm,
+and an exact radial kernel is invariant to the corresponding distance-preserving rotations. Both hold
+identically, subject to stated finite-precision conditions; measured, the objective moves by at most
+$5.6\times10^{-17}$ under random rotations.
+\end{enumerate}
+
+Ky Fan's maximum principle \citep{fan1949weyl} gives a restricted global optimum for the
+\emph{original} fixed-matrix family only. The refinements have no fixed matrix to take a spectrum of,
+so they inherit no optimality statement whatever, and a suboptimal solution remains a live
+explanation for their results. Eigenvalue-sign rank selection is SARL's Theorem~3, OptNet-ARL's
+Theorem~4.1 and K-TOpt's Corollary~4.1 \citep{sadeghi2019sarl,sadeghi2021optnetarl,sadeghi2022ktopt};
+we fixed $r=16$ to match the width of the neural comparator, which is a comparison choice, not an
+optimum. The moment condition is a finite fitted subset of the $L^2$ characterisation of conditional
+independence used by kernel CI tests \citep{zhang2011kci,strobl2019rcit}---Lemma~2(v) of
+\citet{zhang2011kci}, attributed there to Daudin---quantified over $f\in\{Z_\ell b_k(H)\}$ rather than
+over every square-integrable $f$. Vanishing fitted moments therefore establish no conditional
+independence, and a non-zero moment may reflect nuisance error: one of our own fixtures shows a
+misspecified $m(H)$ manufacturing a penalty more than ten times the oracle value under \emph{exact}
+conditional independence.
+
+\section{Relation to prior work}
+\label{sec:related}
+
+The closed-form line of Sadeghi, Dehdashtian and Boddeti already solves this shape of problem. SARL
+\citep{sadeghi2019sarl} takes eigenvectors of a utility-minus-$\lambda$-dependence matrix; OptNet-ARL
+\citep{sadeghi2021optnetarl} keeps closed-form ridge players inside a learned encoder and states in
+one sentence that it generalises to several sensitive attributes; K-TOpt \citep{sadeghi2022ktopt} adds
+random Fourier features and evaluates on Folktables \citep{ding2021retiring}; U-FaTE
+\citep{dehdashtian2024ufate} adds a \emph{conditional} penalty. Our marginal arms are, up to
+parametrisation, SARL's construction on whitened residuals---verified by bitwise rebuild
+(\S\ref{sec:external}). Adversarial fair \emph{and transferable} representation learning is Madras et
+al.\ \citep{madras2018laftr}, and we claim nothing new for that combination. Linear concept erasure
+\citep{belrose2023leace,holstege2025splince} supplies an exact guarantee against \emph{linear}
+adversaries on a representation the releaser owns and may edit. Adversarial removal is known to leave
+recoverable information \citep{elazar2018adversarial}, and least-privilege learning has fundamental
+limits \citep{stadler2024leastprivilege}. \textbf{Reusing a known solver, a conditional-moment
+characterisation or a rank rule is attribution, not innovation.}
+
+Three things differ, with their weight stated honestly. \emph{What we condition on:} U-FaTE's
+conditional measure is stratification over a discrete label, and $H_A$ is a pair of continuous
+probability vectors, so we substitute cross-fitted nuisance residuals; $H$ is also a \emph{released
+artifact} rather than the label to be predicted. \emph{What utility means:} reconstruction of a
+residualised teacher rather than dependence with a label. \emph{Recipient structure:} separate local
+and coalition penalties over a fixed prior output, with only one recipient receiving a channel. The
+first two are adaptations of known components. For the third, the nearest candidate we found is
+weaker prior art than its title suggests: the multi-consumer information-theoretic line
+\citep{sankar2013utility} designs one sanitised release consumed by many users, and we could not
+confirm from its text that it carries a per-recipient release or a collusion term---we mark that
+entry ambiguous rather than assert it. Appendix~\ref{app:related} gives the full comparison table over
+five features (fixed pre-existing output, reusable extra features, recipient-specific permissions,
+coalition-aware training, independent attack evaluation), with every entry we could not verify from a
+full text marked as unverified rather than guessed.
+
+\section{Evidence status, and a chronology that keeps four studies apart}
+\label{sec:design}
+
+California ACS one-year PUMS, ages 19--34, three household splits throughout, with disjoint pools for
+representation fitting, source validation, task fitting and validation, attacker fitting and
+validation, and evaluation. Attacks are logistic regression, two restarted MLPs at 120/360 epochs,
+two gradient-boosted trees and a random-feature kernel-ridge family, plus every legal projection of
+$H$'s own attacks and of singleton candidates into the coalition view. Uncertainty is a paired
+household-cluster bootstrap with single-step max-$|t|$ simultaneous intervals inside each pre-declared
+family.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/study_chronology.tex}
+\caption{Four studies, kept apart by what each is evidence \emph{for}. Only Study~1 is confirmatory.
+Study~3 is a \emph{new formulation designed to repair a defect Study~2 diagnosed after evaluation};
+it does not retroactively repair Study~2's evaluated maps, and its 2017 pass is development on a
+partition Study~1 already spent, not a second sealed-year confirmation.
+\noteStudyChronology}
+\label{tab:chronology}
+\end{table}
+
+The distinction Table~\ref{tab:chronology} enforces is worth stating in words, because it is easy to
+blur. Study~2 fitted and evaluated maps, and \emph{afterwards} diagnosed that its penalty was
+coordinate-dependent. Study~3 wrote a new objective that is provably free of that defect, and refit
+under it. Those are three different things: a diagnosed bug, a new formulation, and a rerun. The
+Study~2 numbers in this paper remain numbers for the defective objective and are labelled so; the
+Study~3 numbers are numbers for a different construction, not corrected versions of Study~2's.
+
+\section{Study 1: the confirmed coalition effect, and the rule it did not establish}
+\label{sec:study1}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/forest_primary.pdf}
+\caption{Paired differences with simultaneous $95\%$ intervals inside each pre-declared family, fresh
+2017 attacks, both weightings, candidate minus comparator in nats. \textbf{Left, F1:} $C1$ against
+its two local controls. The two grey A/sex rows are \emph{unresolved}---the comparison is undecided,
+not the endpoint unaffected. \textbf{Right, F3:} $C1$ against $J$.}
+\label{fig:forest}
+\end{figure}
+
+On the sealed 2017 partition, $C1$ has a simultaneous-interval advantage over both $L1$ and $L2$
+under both weightings, and the registered \texttt{advantage} rule fired in all four contrast $\times$
+weighting cells. The effect is real and not uniform: of the 16 sensitive cells in family F1,
+\textbf{14 have adjusted intervals entirely below zero, none is above zero, and two are unresolved}
+($C1$ versus $L1$ on A/sex unweighted, $[-0.00585,+0.00020]$, and versus $L2$, $[-0.00568,+0.00052]$).
+Frozen 2018 attacks reproduce the ordering, so it is not an artifact of refitting attackers on the new
+year. Every augmented interface clears the $0.01$-nat residence reference over $H$ in every seed,
+weighting and mode.
+
+\textbf{The paired residence rule is a point criterion and only a point criterion.} As implemented it
+is $\text{seed-mean}(C1-\text{comparator})\le 0.001$ on residence log loss; the four values are
+$0.00029$, $0.00010$, $0.00059$ and $0.00017$, so it passes. It does \emph{not} follow that the cost
+is below $0.001$: \textbf{zero of four comparisons support interval non-inferiority at that margin},
+missing it by $2\%$ to $35\%$ even under the most permissive procedure we computed, and zero support
+two-sided equivalence (Appendix~\ref{app:study1}). ``No statistically detected cost'' and ``a cost
+bounded below $0.001$'' are different statements and only the first is supported. The same applies to
+the harm side: the \texttt{advantage} rule requires that no sensitive endpoint be significantly worse,
+which is an absence-of-evidence condition, and on the two unresolved A/sex cells up to
+$5\times10^{-4}$ nats of \emph{extra} local sex recovery is not excluded.
+
+\textbf{And the mechanism is not competitive with $J$.} $C1$ is significantly worse than $J$ on all
+four sensitive endpoints under both weightings and on both source probes, and better only on
+residence, $-0.0093\,[-0.0150,-0.0036]$. That ordering survives matching the two channels on average
+utility in both directions (Appendix~\ref{app:study1}). It does \emph{not} make $J$ dominant: $J$
+carries materially less residence capability than every spectral arm, so neither channel
+Pareto-dominates the other, and $J$ is an internal channel, so this is evidence about $J$ and not
+about the state of the art.
+
+\section{Studies 2 and 3: two refinements, both negative}
+\label{sec:study23}
+
+Study~2 asked whether that gap closes if the penalty acts on nonlinear functions of the channel, or
+the released rank is reduced, or both. Both factors moved measured recovery in the intended direction
+and they act on different attributes---the nonlinear penalty most on sex, rank-8 compression most on
+race---taking additional A/race recovery from $0.0274$ to $0.0055$ against $J$'s $0.0071$ while
+holding residence gain at $0.0259$ against $J$'s $0.0215$. But \textbf{all eight registered
+coordination cells failed}, the best candidate \texttt{nlr8-C1} remained significantly worse than $J$
+on local sex ($+0.01065$ unweighted, $+0.01210$ person-weighted; adjusted intervals exclude zero), an
+exploratory cross-year look widened rather than narrowed that gap, and the nonlinear penalty was not
+harmless: at rank 8 with the $L1$ policy it made A/race recovery significantly \emph{worse},
+$+0.00862\,[+0.00168,+0.01556]$ unweighted. Denominators are in Appendix~\ref{app:study2}; most of
+the grid is simply undecided at three seeds.
+
+Study~2 then diagnosed, after those maps had been evaluated, that its penalty was
+\emph{coordinate-dependent}: summing degree-two monomials $a\le b$ with equal weight computes
+$\sum_a M_{aa}^2+\sum_{a<b}M_{ab}^2$ rather than $\|M\|_F^2$, and only the latter survives
+$M\mapsto Q^\top MQ$. A separately optimised, information-preserving rotation of the original
+solution's subspace reaches a mean $0.628$ of the refinement's training-objective gain (range
+$0.367$--$0.907$ over 18 conditions). That share is \textbf{attained, not a supremum}---every rotation
+search stopped on budget exhaustion or a failed line search---and it is a property of the objective,
+not an accounting of what the optimiser did.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/repair_diagnostic.tex}
+\caption{The repair worked on the objective and did not work on the release.
+\noteRepairDiagnostic}
+\label{tab:repair}
+\end{table}
+
+\textbf{Study~3 repaired it exactly, and the repair made the measured outcome worse.} The repaired
+objective is a function on the Grassmannian: rotation-only share $1.4\times10^{-15}$ over 18 cells
+against a registered forecast of $0.01$, and $|L(WQ)-L(W)|\le5.6\times10^{-17}$ on real data. This
+gate was computed after fitting and \emph{before} any 2018 or 2017 score was read, which is why the
+repair claim is supportable at all. Under the repaired objective---the only common yardstick---the
+repaired map attains a lower value than the defective one in 18 of 18 matched cells. And its releases
+disclose \emph{more}: over six matched contrasts $\times$ four sensitive endpoints $\times$ two
+weightings, \textbf{8 of 48 cells are significantly worse and none is significantly better}
+(Table~\ref{tab:repair}). The largest is $+0.0107\,[+0.0034,+0.0180]$ on local race at rank 16;
+none of the twelve residence cells resolves in either direction, so the extra disclosure buys no
+measured capability. Of Study~3's seven registered
+forecasts, three were wrong, and the authors' own registration of the central one was ill-posed;
+Appendix~\ref{app:study3} reproduces all seven.
+
+\textbf{What this does and does not show.} It refutes the prediction made from the rotation
+diagnostic---that removing the provably inert slack would let the same compute buy more protection.
+It does \emph{not} show that rotation invariance is harmful, and it does not isolate a cause. The
+repair changed five things at once: Frobenius weighting, a single scalar block scale in place of
+per-feature standardisation, no centering, an exact radial kernel in place of a finite Fourier bank,
+and frozen per-role $512$-row subsets. No ablation separates them, and the kernel substitution
+changes the estimand---the new block averages over at most $512$ rows and carries a measured $1/m$
+V-statistic floor. Surrogate--attacker mismatch remains the live explanation; ``coordinate dependence
+was an implicit regulariser'' is a hypothesis this design cannot test, and we do not assert it.
+Nor does four failed coordination cells in one construction show that nonlinear conditional-dependence
+penalties cannot satisfy a coordination rule. Finally, the repaired arms are significantly
+\emph{worse} than their own linear-moment controls on A/race at rank 8 in three contrasts, so ``the
+repaired arms beat their own controls''---true of exploratory 2017 seed means---is not true of the
+2018 intervals.
+
+\section{The first executed external comparisons}
+\label{sec:external}
+
+Studies 1 and 2 ran no published method. Study~3 did, and the answer is unambiguous in one direction
+and carefully bounded in the other.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/external_vs_repaired.tex}
+\caption{Adapted published methods against the repaired mechanism at rank 16 with the coalition
+policy. Every arm transforms or replaces \emph{only} the auxiliary channel and appends it to
+unchanged $H_A$. \noteExternalVsRepaired}
+\label{tab:extrep}
+\end{table}
+
+\paragraph{What each adaptation is, and what it is not.} LEACE \citep{belrose2023leace} and SPLINCE
+\citep{holstege2025splince} are applied to the 16-coordinate auxiliary channel \emph{alone} and the
+transformed channel is appended to unchanged $H_A$. They are deliberately \emph{not} applied to the
+concatenated $[H_A,Z]$ wire: LEACE's $P^\ast$ is a single oblique projection over all coordinates and
+nothing constrains it to act as the identity on $H_A$, so editing the joint wire would generally
+change the published service output. The consequence for interpretation is the important part.
+\textbf{Their empirical linear guarantee applies to the fitted erasure of that channel, on the moments
+it was fitted on. It is not a guarantee about arbitrary nonlinear prediction from the concatenated
+service-plus-channel view an attacker actually holds}---LEACE's own authors conjecture that
+nondestructive editing against a general nonlinear adversary is intractable, and a fixture in this
+study confirms the boundary concretely: after erasure a linear probe reads $R^2<10^{-8}$ while a
+quadratic feature of the same erased channel still recovers. SPLINCE additionally preserves covariance
+with the \emph{authorised training} tasks, not with the held-out residence task; that is an
+adaptation, and an asymmetry in SPLINCE's favour on utility, since no other arm sees a task label
+during representation fitting. SPLINCE also shares LEACE's kernel, so under its own Theorem~2 the two
+coincide after refitting an unregularised unique-minimiser model---any difference measured here comes
+from attacker regularisation and nonlinearity, never from a stronger guarantee. OptNet-ARL's
+multi-$\lambda$ multi-attribute form is an \textbf{extrapolation}: the paper asserts multi-attribute
+generalisation in one sentence with no equation, no normalisation rule and no code. And the project's
+marginal spectral arms turned out to \emph{be} SARL-style rebuilds---reconstructing them from the
+derivation reproduces the stored maps bitwise---with one measured mismatch that is not absorbable into
+$\bar\lambda$: per-attribute trace reweighting, moving the selected subspace by projector Frobenius
+distance $0.10$--$0.20$. They are credited and reused, and six duplicate fits were avoided.
+\textbf{Shared policy coefficients do not imply equal effective regularisation across methods.}
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/external_vs_J.tex}
+\caption{The same arms against the frozen neural channel $J$.
+\noteExternalVsJ}
+\label{tab:extJ}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/utility_recovery_v3.pdf}
+\caption{Authorised capability against additional recovery, one panel per sensitive endpoint. No
+privacy score is averaged across endpoints: doing so would let a favourable sex result hide an
+unfavourable race result, which is exactly what happens for several arms here.}
+\label{fig:tradeoff3}
+\end{figure}
+
+\paragraph{The result.} Adapted LEACE, OptNet-C1 and OptNet-L2 recover significantly less than the
+repaired spectral mechanism on all four sensitive endpoints under \emph{both} weightings, and
+adapted SPLINCE on seven of those eight cells (Table~\ref{tab:extrep}; its coalition-sex cell is
+unresolved under person weighting). \texttt{OptNet-L1} separates on none.
+\textbf{A closed-form linear eraser from 2023, applied to a channel this project already had, recovers
+less than the mechanism this line of work developed across three studies.} That is the consequential
+finding, and it is a finding about our mechanism.
+
+The utility side must be stated with equal care, and the incoming study's own summary overstated it.
+LEACE's residence-loss difference against the repaired arm is $+0.0036\,[-0.0028,+0.0100]$ unweighted
+and $+0.0040\,[-0.0031,+0.0110]$ person-weighted. That is \emph{unresolved}, not costless: the interval
+admits a cost of up to $0.010$ nats, larger than the recovery advantage LEACE wins on three of the
+four endpoints, and it contains SPLINCE's $+0.0089$, which the same analysis calls significant. Against
+the channel LEACE actually transformed, the cost is real: $+0.0098\,[+0.0036,+0.0159]$ unweighted and
+$+0.0078\,[+0.0011,+0.0145]$ person-weighted, with mean residence gain over $H$ falling from $0.0318$
+to $0.0220$. \textbf{Linear erasure of this channel buys its protection with measurable authorised
+capability.} We therefore do not say LEACE dominates anything.
+
+Against $J$, LEACE, SPLINCE, OptNet-C1 and OptNet-L2 are \emph{not separated} at three seeds on any of
+the five family endpoints, while the repaired spectral arm is significantly worse on three of four
+(Table~\ref{tab:extJ}). ``Not separated'' is not equivalence: no equivalence or non-inferiority test
+was run for these cells, and all three external point estimates on local sex lean towards $J$, two of
+them missing significance by less than $0.0007$. \texttt{OptNet-L1} is significantly worse than $J$ on
+local sex, so the OptNet family is not uniformly indistinguishable from it either.
+
+\paragraph{One structural finding worth keeping.} Linear erasure deletes exactly
+$\operatorname{rank}(\Sigma_{XZ})$ directions, so the realised width of the released channel is
+$6,6,7$ across the three seeds. Seed~2 differs because one race category has \emph{no support in that
+seed's own representation-fitting pool} (counts $1,1,0$); the category is not absent from California,
+and a class without support is unmeasured, not protected. \textbf{Protected-class support in the
+fitting pool determines the realised width of a released channel} (Appendix~\ref{app:study3}).
+
+\section{What this evidence does not establish}
+\label{sec:limits}
+
+Stated once, in one place, rather than scattered.
+
+\textbf{No attack maximum is an upper bound.} Every recovery number is what a
+\emph{validation-selected} member of a finite attack collection achieved. It is a floor. Our own data
+contain a clean demonstration: when $J$ is given additional attack candidates, its measured absolute
+recovery \emph{falls}, because selection on validation loss can pick a candidate that generalises
+worse (Appendix~\ref{app:scope}). A stronger attacker we did not build would move any of these numbers
+upward.
+
+\textbf{Nested validation-selected models need not produce non-negative gains.} Statement~2 of
+\S\ref{sec:method} is about population optima. In finite samples, 22 of 429 unweighted role-cells
+have \emph{negative} increments, and $J$'s own local-sex increment is negative under person weighting
+with an interval excluding zero. We report these unclipped, because clipping them would manufacture
+protection out of a selection artifact. $H$'s own attack, routed onto an augmented wire, remains
+executable, so a negative increment removes nothing an $H$-only attacker already had.
+
+\textbf{No detected difference is not equality.} Most of the grid in every attribution family is
+unresolved at three seeds. We mark such cells blank and never read them as parity.
+
+\textbf{Ratios are scale-dependent; paired differences are not.} $C1$ against $J$ on A/race is
+$6.0\times$ on increments and $2.6\times$ in absolute terms; the paired difference is identical on
+both scales because the shared $H$ baseline cancels inside a paired contrast. We therefore quote
+differences. This also makes every headline contrast in this paper invariant to the choice of attack
+scope, even though the $H$-relative \emph{levels} are not (Appendix~\ref{app:scope}).
+
+\textbf{Nothing here is a certificate.} Vanishing fitted finite moments imply neither $Z\perp S\mid H$
+nor any bound on $I(S;Z\mid H)$; no Type-I control is inherited from KCI or RCoT; and a misspecified
+nuisance manufactures a penalty more than ten times the oracle value under exact conditional
+independence.
+
+\textbf{Development against confirmation.} Only the 2017 transport is confirmatory. The 2018 pools
+have been used repeatedly; the 2017 seal is spent, so Study~3's cross-year pass is development,
+carries no intervals by design, and excludes the erasure and OptNet arms entirely. \textbf{ACS 2016
+remains unscored}: admitted on provenance and schema with a prospective label-blind split prepared,
+with no label, output, transform or performance figure inspected. A positive development result may
+motivate a confirmation; it can never inherit a sealed year's status.
+
+\textbf{Sampling and design.} Three seeds are three fixed fitted systems on one cohort. The bootstraps
+cover people, not retraining variability and not Census design variance. Transport is between public
+survey years of the same state and age band, and cross-year person distinctness cannot be established
+from public identifiers. Income is nominal and unadjusted and its estimand differs again in 2016.
+
+\textbf{Numerical integrity.} Study~3's exploratory 2017 stage aborted four times with a probability
+row summing to exactly zero inside an otherwise well-formed array. Every occurrence was detected by
+full-schema validation and aborted its unit before any metrics file was written; the four affected
+units were quarantined and recomputed by the unpatched pipeline, so no corrupted array reached any
+table. The machine was at swap capacity throughout. \textbf{Memory pressure was the observed
+condition, not a demonstrated cause}, and nothing here claims the machine is now proved reliable. One
+document in the incoming package records that no such fault occurred; it predates the stage in which
+they did, and we follow the run ledger instead (\texttt{CORRECTIONS.md} B10).
+
+\begin{table}[t]
+\centering\scriptsize
+\input{tables/claim_support.tex}
+\caption{Every load-bearing claim, its status, the measurement behind it, and what it does not
+establish. The full traceable list, with source commit, artifact, endpoint, data pool and uncertainty
+procedure for each, is \texttt{CLAIM\_LEDGER.csv}.}
+\label{tab:claimsupport}
+\end{table}
+
+\section{Claims this revision withdraws or narrows}
+\label{sec:withdrawn}
+
+Seventeen items were corrected in the previous revision and are carried forward in
+\texttt{CORRECTIONS.md}. Fourteen are new here. The substantive ones:
+
+\begin{enumerate}\itemsep1pt
+\item \textbf{``LEACE dominates the repaired mechanism with no statistically detectable residence
+cost.''} The recovery half holds. The utility half does not: the difference is unresolved with an
+interval admitting $0.010$ nats, it contains SPLINCE's significant cost, and against the channel LEACE
+transformed the cost is significant at $+0.0098$. \emph{Dominates} is withdrawn.
+\item \textbf{``LEACE, SPLINCE and OptNet-C1 are statistically indistinguishable from $J$.''} Narrowed
+to unresolved differences. No equivalence test was run and all three point estimates lean towards $J$
+on local sex.
+\item \textbf{$J$ is not Pareto-dominant.} It recovers less and supplies less residence capability
+than several spectral arms, significantly so against \texttt{riv16-L1}. It is a trade.
+\item \textbf{``Coordinate dependence was acting as an implicit regulariser.''} Narrowed to a
+hypothesis. Five ingredients changed together and no ablation separates them.
+\item \textbf{The $63\%$ rotation share} is an attained diagnostic value, not a supremum and not a
+causal decomposition of training benefit.
+\item \textbf{``Zero population support''} for a race category is a \emph{fitting-pool} count
+($1,1,0$ by seed). A category missing from one pool is not absent from the population.
+\item \textbf{The two carried numerical corrections are kept}: the \texttt{nlr8-C1} versus $J$ local-sex
+deficit is $+0.01210$ person-weighted, not $+0.0098$; and ``no endpoint significantly worse'' for the
+nonlinear-penalty factor stays withdrawn, the counterexample being $+0.00862\,[+0.00168,+0.01556]$
+unweighted.
+\item \textbf{``Terminal 1's experiment does not exist''} was stale. Study~3 is complete, committed
+and integrated here at \texttt{73903b7f}.
+\end{enumerate}
+
+\section{Conclusion}
+
+A service that has already published predictions can add a reusable channel beside them without
+changing a released number, and can steer that channel away from directions a recipient or a colluding
+pair would use to infer sex and race. On a locked, previously unused survey year, the
+coalition-conditioning knob does what it claims against both of its local controls---14 of 16 sensitive
+cells strictly better, none worse, two unresolved---while costing residence capability by an amount the
+data cannot bound below the $0.001$ nats the registered rule used. Everything built afterwards to make
+the mechanism competitive failed: a nonlinear penalty failed all eight of its coordination cells and
+made one endpoint significantly worse; an exact repair of that penalty's coordinate dependence---the
+one intervention the diagnostic predicted would help---produced significantly \emph{more} disclosure on
+eight of forty-eight cells and less on none; and the first executed external comparisons put three adapted published
+methods below the developed mechanism on every sensitive endpoint.
+
+\textbf{The defensible contribution is the release problem and the evaluation design}: fixed published
+outputs as a hard constraint, recipient-specific and coalition-specific audit roles, fresh and frozen
+attackers never pooled, absolute and incremental recovery reported side by side, negative increments
+retained unclipped, denominators printed beside every count, per-endpoint results never averaged into
+one score, and a sealed temporal transport with the multiplicity fixed in advance. The measurement
+contract is what made three successive negative results legible instead of ambiguous. The mechanism
+family is not competitive, and we say so.
+
+\section{Reproducibility}
+
+Deterministic seeds throughout; every unit writes a hash-bound completion record. All 90 pre-declared
+Study~1 endpoints were regenerated from stored per-person predictions by an independently written
+scorer agreeing to $1.1\times10^{-15}$. Study~3's own independent score replay reports a maximum
+absolute difference of $4.4\times10^{-16}$ over 3{,}264 checks, and $H_A$/$H_B$ parity is bitwise on
+all seven pools for every arm at release time and again at evaluation time. Every table and figure
+here is generated by two scripts from committed evidence; the Study~3 assets are read at a pinned
+commit through the object store, so each printed digit traces to a (commit, path, sha256) triple in
+\texttt{MANIFEST.json}. No number was typed by hand. Commands and file map:
+\texttt{REPRODUCE\_PAPER.md} in \texttt{results/pcrl\_manuscript\_review\_v3/}.
+
+\appendix
+\clearpage
+
+\section{Elementary results and their boundaries}
+\label{app:math}
+\noindent Proofs and the exact conditions under which each holds are in
+\texttt{MATHEMATICAL\_REVIEW.md}. Each statement is given at four levels---population definition,
+empirical estimator, algorithmic approximation, numerical test---because conflating them is the
+failure mode this appendix exists to prevent.
+
+\section{Related-work comparison}
+\label{app:related}
+
+\begin{table}[h]
+\centering\small
+\input{tables/related_work.tex}
+\caption{The five features this paper's setting turns on. \noteRelatedWork}
+\label{tab:related}
+\end{table}
+
+\noindent The column that is ours is the first: no text we read \emph{evaluated} a mechanism under
+the constraint that a previously published output is immutable, with per-recipient and coalition
+audit roles. That is absence of evidence after a bounded search, not a priority claim, and it would
+be false as a statement about what these methods \emph{can} do --- three of them were adapted into
+this setting in \S\ref{sec:external} and beat the mechanism developed here. The attribution ledger,
+naming every component this work reuses and from whom, is in
+\texttt{RELATED\_WORK\_COMPARISON.md}.
+
+\section{Study 1: locked transport, full tables}
+\label{app:study1}
+\begin{center}\small\input{tables/primary_comparisons.tex}\end{center}
+\begin{center}\small\input{tables/denominators.tex}\end{center}
+\begin{center}\small\input{tables/equivalence.tex}\end{center}
+\begin{center}\small\input{tables/criteria.tex}\end{center}
+\begin{center}\small\input{tables/withholding_matching.tex}\end{center}
+\begin{center}\small\input{tables/absolute_vs_additional.tex}\end{center}
+
+\section{Study 2: attribution and denominators}
+\label{app:study2}
+\begin{center}\small\input{tables/attribution.tex}\end{center}
+\begin{center}\small\input{tables/candidate_vs_j.tex}\end{center}
+\begin{center}\small\input{tables/rank_spectrum.tex}\end{center}
+\begin{center}\scriptsize\input{tables/attribution_cells.tex}\end{center}
+
+\section{Study 3: registered forecasts, erasure rank, conditions}
+\label{app:study3}
+\begin{center}\small\input{tables/erasure_rank.tex}\end{center}
+\noindent\footnotesize\noteErasureRank\normalsize
+\begin{center}\small\input{tables/conditions.tex}\end{center}
+
+\section{Attack scope, and what a paired contrast is invariant to}
+\label{app:scope}
+\begin{center}\small\input{tables/scope_decomposition.tex}\end{center}
+\noindent\footnotesize\noteScopeDecomposition\normalsize
+
+\section{Pending integration}
+\label{app:pending}
+\noindent A fourth study---a direct adversarial neural refinement with frozen $H$, refreshed
+attackers, local and coalition controls, two widths and four penalty strengths---was in progress when
+this revision was completed and had committed no protocol. Its cells are left empty and marked
+pending; the preconditions we will check before integrating any of them are printed beside each row,
+and no forecast is entered in the meantime. Full detail:
+\texttt{PENDING\_EXPERIMENT\_INTEGRATION.md}.
+\begin{center}\small\input{tables/pending_study4.tex}\end{center}
+\noindent\footnotesize\notePendingStudyFour\normalsize
+
+\bibliography{references}
+
+\end{document}
