@@ -124,6 +124,41 @@ Recorded as they happen so the run stays auditable.
    parameter defaulting to the `ROLE_ORDER` position, so every production fit is
    unchanged. Timing: before any fit.
 
+4. **A transient, non-reproducible scoring fault in the exploratory 2017 fit — the
+   predecessor's precedent, reproduced.** The 2017 fit aborted after 3 clean units on
+   `seed_0/spectral_riv8_C1` with "Probabilities must be finite, normalized and aligned
+   with the full class schema", raised from the validation-scoring loop of
+   `acs_spectral_transport_eval.fit_unit`.
+
+   **Investigated before re-running, not blind-retried.** Two hypotheses were
+   distinguished:
+
+   * *Systematic support/schema failure.* `RAC1P` class 3 has support 2 in the 2017
+     `attacker_fit` partition and **0** in `attacker_validation`, so a classifier could
+     in principle emit a width-8 probability array against a 9-class schema. **Rejected:**
+     the three rank-16 arms scored cleanly against exactly the same labels, so label
+     support is not the differentiator.
+   * *Transient numerical fault.* The unit was recomputed with every call to `metrics`
+     wrapped by a diagnostic that reports shape, finiteness, sign, magnitude and row-sum
+     of each probability array. **The unit completed with 0 bad arrays.** No wrong schema
+     width, no nonfinite value, no negative probability, no row sum away from 1.
+
+   This matches the predecessor's record exactly — same error text, same
+   non-reproducibility, same recovery on immediate recompute, and the machine again at
+   swap capacity. Notably the predecessor's instance was also on a **rank-8** arm
+   (`seed_1/spectral_lin8_L2`); with two instances this is a weak pattern worth
+   recording, not an explanation. **One non-reproducing event does not establish
+   causation, and memory pressure remains a SUSPECTED condition, not a demonstrated
+   cause.**
+
+   Disposition: the aborted unit wrote no metrics file. The **diagnostic** recomputation
+   was itself quarantined (`spectral_riv8_C1__diagnostic_patched_*/QUARANTINE.json`)
+   because it ran under a monkeypatched scorer — its outputs are expected to be
+   numerically identical, since the wrapper delegated to the real function on every
+   call, but a unit produced under a patched scorer has a provenance defect and is used
+   in no table. The unit was then recomputed by the **unpatched** pipeline. Nothing is
+   merged, averaged or voted between the copies.
+
 ## Amendments to the registered protocol
 
 Recorded with timing and affected units.
