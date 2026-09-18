@@ -68,9 +68,10 @@ def check_gradient_signs() -> dict:
     with torch.no_grad():
         attacker[-1].weight.zero_()
         attacker[-1].bias.zero_()
-    zero_gain = float(torch.nn.functional.cross_entropy(base, s)
-                      - torch.nn.functional.cross_entropy(base + attacker(
-                          torch.cat((ha, carrier(x).detach()), 1)), s))
+    with torch.no_grad():
+        zero_gain = float(torch.nn.functional.cross_entropy(base, s)
+                          - torch.nn.functional.cross_entropy(base + attacker(
+                              torch.cat((ha, carrier(x).detach()), 1)), s))
 
     opt_a = torch.optim.Adam(attacker.parameters(), lr=1e-2)
     for _ in range(400):
@@ -88,14 +89,16 @@ def check_gradient_signs() -> dict:
                 - torch.nn.functional.cross_entropy(base + attacker(torch.cat((ha, z), 1)), s))
         return torch.clamp(gain, min=0.0)
 
-    trained_gain = float(penalty_now())
+    with torch.no_grad():
+        trained_gain = float(penalty_now())
     opt_m = torch.optim.Adam(carrier.parameters(), lr=1e-2)
     before = trained_gain
     for _ in range(50):
         opt_m.zero_grad(set_to_none=True)
         (1.0 * penalty_now()).backward()
         opt_m.step()
-    after = float(penalty_now())
+    with torch.no_grad():
+        after = float(penalty_now())
     return {'zero_correction_gain': zero_gain,
             'trained_attacker_gain': trained_gain,
             'penalty_after_mapper_steps': after,
@@ -337,14 +340,17 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
         'score_aggregation': check_score_aggregation(out),
         'simultaneous_construction': check_simultaneous_construction(out),
     }
-    report['all_pass'] = all(v.get('pass') is not False for v in report.values()
-                             if isinstance(v, dict))
+    checks = dict(report)
+    report['all_pass'] = all(v.get('pass') is not False for v in checks.values())
+    report['checks_passed'] = sum(1 for v in checks.values() if v.get('pass') is True)
+    report['checks_not_applicable'] = sorted(k for k, v in checks.items()
+                                             if v.get('pass') is None)
+    report['checks_failed'] = sorted(k for k, v in checks.items() if v.get('pass') is False)
     report['runtime_seconds'] = time.perf_counter() - tick
     report['machine'] = machine_state()
     write_json(out / 'VALIDATION.json', report)
-    for name, value in report.items():
-        if isinstance(value, dict):
-            print('VALIDATE', name, value.get('pass'), flush=True)
+    for name, value in checks.items():
+        print('VALIDATE', name, value.get('pass'), flush=True)
     return report
 
 
