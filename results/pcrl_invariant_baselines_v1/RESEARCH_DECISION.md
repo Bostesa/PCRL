@@ -116,6 +116,33 @@ Two caveats that keep this honest, both declared before the numbers were read:
 * SPLINCE sees two authorised task labels (`income_binary`, `civilian_at_work`) that no
   other arm uses in representation fitting. That asymmetry favours SPLINCE on utility.
 
+### 3b. The cross-year look agrees, and widens the gap
+
+Exploratory only, no intervals, on the already-spent 2017 partitions
+(`EXPLORATORY_2017.md`). Seed means of additional recovery over `H`, unweighted:
+
+| arm | `A/SEX` | `AB/SEX` | `A/RAC1P` | `AB/RAC1P` | residence gain |
+|---|---|---|---|---|---|
+| `J` | 0.0013 | 0.0069 | **0.0039** | 0.0015 | 0.0189 |
+| `spectral_C1` (linear control) | 0.0170 | 0.0148 | 0.0471 | 0.0436 | 0.0282 |
+| `spectral_riv16_C1` | 0.0127 | 0.0103 | 0.0402 | 0.0359 | 0.0273 |
+| `spectral_riv8_C1` (best repaired) | 0.0096 | 0.0100 | **0.0203** | 0.0223 | 0.0260 |
+
+Two readings, and the second is the one that matters:
+
+* **The repaired arms do beat their own linear-moment controls here**, which they did
+  not consistently do on 2018. Rank-8 compression is again the larger of the two
+  effects on race recovery.
+* **`J` still dominates by roughly a factor of five on race recovery** while giving up
+  only a modest amount of residence gain, and under person weighting `J` sits at or
+  below zero on two of the four sensitive endpoints. Beating a local control while
+  losing to `J` fivefold is the same qualitative outcome the 2018 intervals reached,
+  and the same one the predecessor recorded on 2017.
+
+The erasure and OptNet baselines were **not** transported to 2017 (reasons recorded in
+`EXPLORATORY_2017.md`), so the external-baseline comparison rests entirely on the 2018
+development evaluation.
+
 ### 4. Rank behaviour
 
 `r_plus = 16` in all three seeds, as already known; the sign-selection rule changes
