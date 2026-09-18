@@ -306,9 +306,81 @@ def attack_strength(out: Path) -> str:
                   'means the shorter budget understated what was reachable.', '',
                   table(['condition', 'mean catch-up gain', 'max', 'rows'], body), '',
                   '_Full table in `MECH_CATCHUP.csv`._', '']
+    lines += stress_section(out)
     lines += ['## Backing data', '', '* `MECH_TRAINING_VS_AUDIT.csv`', '* `MECH_REFRESH.csv`',
-              '* `MECH_CATCHUP.csv`', '* `MECHANISM.json`', '']
+              '* `MECH_CATCHUP.csv`', '* `MECHANISM.json`', '* `STRESS_SUMMARY.json`',
+              '* `STRESS_COMPARISON.csv`', '']
     return '\n'.join(lines) + '\n'
+
+
+def stress_section(out: Path) -> list:
+    """The prespecified 720-epoch, two-fresh-initialisation stress suite."""
+    summary_path = out / 'STRESS_SUMMARY.json'
+    if not summary_path.exists():
+        return ['## Stress attack suite', '', '_The stress suite has not been run yet._', '']
+    summary = read_json(summary_path)
+    rows = []
+    for seed, conditions in sorted(summary['seeds'].items()):
+        for condition in sorted(conditions):
+            path = out / 'stress' / f'seed_{seed}' / condition / 'selection_before_test.json'
+            metrics = out / 'stress' / f'seed_{seed}' / condition / 'metrics.json'
+            if not (path.exists() and metrics.exists()):
+                continue
+            selection = read_json(path)['selection']
+            scored = {(r['role'], r['candidate_id']): r for r in read_json(metrics)['raw_metrics']}
+            for role, entry in selection.items():
+                key = (role, entry['stress_selected'])
+                if key not in scored:
+                    continue
+                rows.append({
+                    'seed': int(seed), 'condition': condition, 'role': role,
+                    'stress_candidate': entry['stress_selected'],
+                    'stress_epochs': 720 if 'nested360' in entry['stress_selected'] else 360,
+                    'stress_validation_log_loss': entry['stress_validation_log_loss'],
+                    'default_validation_log_loss': entry['baseline_validation_log_loss'],
+                    'validation_improvement':
+                        (entry['baseline_validation_log_loss']
+                         - entry['stress_validation_log_loss'])
+                        if entry['baseline_validation_log_loss'] is not None else None,
+                    'stress_test_log_loss': scored[key]['scores']['test']['log_loss'],
+                    'stress_test_log_loss_person_weighted':
+                        scored[key]['scores']['test_person_weighted']['log_loss']})
+    if not rows:
+        return ['## Stress attack suite', '', '_No stress rows were produced._', '']
+
+    import csv as _csv
+    with open(out / 'STRESS_COMPARISON.csv', 'w', newline='') as handle:
+        writer = _csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+    by_condition = defaultdict(list)
+    for row in rows:
+        by_condition[row['condition']].append(row)
+    body = []
+    for condition, group in sorted(by_condition.items()):
+        improvements = [r['validation_improvement'] for r in group
+                        if r['validation_improvement'] is not None]
+        chose_720 = sum(1 for r in group if r['stress_epochs'] == 720)
+        body.append([f'`{condition}`', len(group),
+                     fnum(np.mean(improvements), 5) if improvements else '--',
+                     fnum(np.max(improvements), 5) if improvements else '--',
+                     f'{chose_720}/{len(group)}'])
+    return ['## Stress attack suite — two fresh initialisations and a 720-epoch continuation', '',
+            'Prespecified in `PROTOCOL.md` §9 before any outcome, on the four family sensitive',
+            'roles. The set contains **both sides**: the competitors `J` and `leace_A0` and this',
+            "study's own width-16 `C1` and `L2` arms at `beta` 0.3 and 1.0. Strengthening the",
+            'attack on a competitor alone would be the obvious way to manufacture a win, and is',
+            'not done. Selection is on attacker validation only, written to disk before the test',
+            'pool is read.', '',
+            '`validation improvement` is the default suite\'s selected validation log loss minus',
+            "the stress suite's. Positive means the stress suite found a **stronger** attack.", '',
+            table(['condition', 'role-cells', 'mean validation improvement', 'max',
+                   '720-epoch chosen'], body), '',
+            'A 720-epoch trajectory winning selection would mean the default 360-epoch budget',
+            'had been understating what is recoverable. Where the 360-epoch checkpoint still',
+            'wins, the extra budget bought nothing and the longer trajectory overfits its own',
+            'validation pool.', '']
 
 
 # ------------------------------------------------------------------ optimisation stability
