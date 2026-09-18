@@ -124,40 +124,78 @@ Recorded as they happen so the run stays auditable.
    parameter defaulting to the `ROLE_ORDER` position, so every production fit is
    unchanged. Timing: before any fit.
 
-4. **A transient, non-reproducible scoring fault in the exploratory 2017 fit — the
-   predecessor's precedent, reproduced.** The 2017 fit aborted after 3 clean units on
-   `seed_0/spectral_riv8_C1` with "Probabilities must be finite, normalized and aligned
-   with the full class schema", raised from the validation-scoring loop of
-   `acs_spectral_transport_eval.fit_unit`.
+4. **Sporadic corruption of in-memory prediction output, captured and characterised.**
+   *(This entry supersedes two earlier versions. The first called the fault "transient"
+   on a single occurrence; the second claimed it struck at a fixed position in the unit
+   sequence. Both were wrong and both are corrected here. The evidence below is the
+   captured artefact, not an inference.)*
 
-   **Investigated before re-running, not blind-retried.** Two hypotheses were
-   distinguished:
+   **What happened.** The exploratory 2017 stage aborted four times with "Probabilities
+   must be finite, normalized and aligned with the full class schema", raised by
+   `acs_transfer_heads.metrics`:
 
-   * *Systematic support/schema failure.* `RAC1P` class 3 has support 2 in the 2017
-     `attacker_fit` partition and **0** in `attacker_validation`, so a classifier could
-     in principle emit a width-8 probability array against a 9-class schema. **Rejected:**
-     the three rank-16 arms scored cleanly against exactly the same labels, so label
-     support is not the differentiator.
-   * *Transient numerical fault.* The unit was recomputed with every call to `metrics`
-     wrapped by a diagnostic that reports shape, finiteness, sign, magnitude and row-sum
-     of each probability array. **The unit completed with 0 bad arrays.** No wrong schema
-     width, no nonfinite value, no negative probability, no row sum away from 1.
+   | # | Phase | Unit | Position in that process |
+   |---|---|---|---|
+   | 1 | fit | `seed_0/spectral_riv8_C1` | 4th computed |
+   | 2 | fit | `seed_2/spectral_riv8_C1` | 13th computed |
+   | 3 | fit | `seed_2/spectral_riv8_L2` | 3rd computed |
+   | 4 | score | `seed_0` (2nd scored unit) | 2nd computed |
 
-   This matches the predecessor's record exactly — same error text, same
-   non-reproducibility, same recovery on immediate recompute, and the machine again at
-   swap capacity. Notably the predecessor's instance was also on a **rank-8** arm
-   (`seed_1/spectral_lin8_L2`); with two instances this is a weak pattern worth
-   recording, not an explanation. **One non-reproducing event does not establish
-   causation, and memory pressure remains a SUSPECTED condition, not a demonstrated
-   cause.**
+   **The captured signature.** Wrapping every `metrics` call in a pass-through observer
+   caught the offending array:
 
-   Disposition: the aborted unit wrote no metrics file. The **diagnostic** recomputation
-   was itself quarantined (`spectral_riv8_C1__diagnostic_patched_*/QUARANTINE.json`)
-   because it ran under a monkeypatched scorer — its outputs are expected to be
-   numerically identical, since the wrapper delegated to the real function on every
-   call, but a unit produced under a patched scorer has a provenance defect and is used
-   in no table. The unit was then recomputed by the **unpatched** pipeline. Nothing is
-   merged, averaged or voted between the copies.
+   ```
+   BAD ARRAY: rowsum [0, 1.00000017]  worst deviation 1.000e+00
+   ```
+
+   At least one row of a probability matrix summed to **exactly zero** — an all-zero
+   block — while the rest of the array was well-formed (max row sum 1.00000017, i.e.
+   normal floating-point noise). **This is a zeroed memory block, not a modelling,
+   schema or support failure.**
+
+   **Hypotheses tested and rejected**, before any re-run:
+
+   * *Systematic support/schema failure of the rank-8 wire.* `RAC1P` class 3 has support
+     2 in the 2017 `attacker_fit` partition and 0 in `attacker_validation`. **Rejected:**
+     the rank-16 arms score cleanly against identical labels; the rank-8 arms themselves
+     complete cleanly on recompute; and a support failure would produce a wrong **width**,
+     not a zeroed row inside a correct-width array.
+   * *Cross-condition cache collision.* **Rejected by reading the code:** `Loaded` is
+     per-unit and its key includes `array_hash(x)`, so a width-20 wire's prediction
+     cannot be served to a width-12 wire.
+   * *Fixed position in the unit sequence.* **Rejected by the table above:** 4th, 13th,
+     3rd and 2nd. The fault is **sporadic**, not positional.
+   * *The double-compute guard firing.* `stable_predict` computes each array twice and
+     raises `ArithmeticError` on persistent disagreement. It did not raise, so the
+     corruption occurred **after** the guard — consistent with the cached, read-only
+     array being damaged in memory between storage and use.
+
+   **What this does and does not establish.** It establishes that a well-formed
+   prediction array acquired an all-zero row in memory, sporadically, on a machine that
+   was at **swap capacity for the entire run**, and that the identical computation
+   succeeds on recompute every time. It matches the transport study's documented
+   precedent — `stable_predict`'s own docstring records "rare, load-dependent corrupted
+   blocks ... in CPU prediction outputs" — and the predecessor's instance. **It does not
+   establish causation.** Memory pressure remains a **SUSPECTED** condition. Four
+   occurrences on one machine in one session is a pattern, not a mechanism, and no claim
+   is made about the hardware.
+
+   **The integrity system worked.** Every occurrence was **detected** by the scorer's
+   full-schema validation and **aborted the unit before it wrote a metrics file**. No
+   corrupted array was ever scored, cached into a table, averaged, or silently
+   tolerated. This is the guard doing precisely what it exists for.
+
+   **Operational response, bounded and recorded as a workaround rather than a fix:** the
+   stage is driven by its resume markers, which skip completed units, inside a retry
+   loop with a **hard cap of 12 attempts**. Progress is monotone because a unit that
+   aborts writes no `complete.json`. This is not an unbounded sweep and it changes no
+   number — a unit either completes cleanly or is not used.
+
+   **Disposition.** Aborted units wrote no metrics file. Every unit computed under the
+   diagnostic wrapper was **quarantined** with a `QUARANTINE.json` and recomputed by the
+   **unpatched** pipeline, even though the wrapper returns `real(...)` unconditionally,
+   so **no unit used in any table was produced under a patched scorer**. Nothing is
+   merged, averaged or voted between copies.
 
 ## Amendments to the registered protocol
 
