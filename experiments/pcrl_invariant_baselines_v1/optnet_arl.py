@@ -341,10 +341,11 @@ def run(out: Path = OUT, seeds=(0, 1, 2), budget: int = 1500, policies=tuple(POL
         # Reported before any encoder is built (BASELINE_ADAPTATIONS.md 5.4).
         signal = float(np.sum((state['V'].T @ (state['R'] - state['R'].mean(0))) ** 2)
                        / max(np.sum((state['R'] - state['R'].mean(0)) ** 2), 1e-300))
-        conditions = {}
+        conditions, encoders_by_arm = {}, {}
         for policy in policies:
             name = f'optnet16_{policy}'
             result = fit_condition(state, protected, views, policy, seed, budget)
+            encoders_by_arm[name] = result['encoder']
             release = build_releases(name, seed, result['encoder'], state['model'], registry, out)
             rank_bound = theorem_4_1_rank(protected, state['R'], policy_weights(policy))
             conditions[name] = {
@@ -355,6 +356,12 @@ def run(out: Path = OUT, seeds=(0, 1, 2), budget: int = 1500, policies=tuple(POL
             }
             print('OPTNET', seed, name, 'obj', round(result['training_objective'], 6),
                   'spread', round(result['restart_spread'], 6), flush=True)
+        # Persist the selected encoders so the exploratory 2017 transport can reuse them
+        # without refitting. Added after the first production run, which therefore has no
+        # encoder file; the stage is deterministic, so re-running reproduces them exactly.
+        import joblib
+        joblib.dump(encoders_by_arm, out / f'seed_{seed}' / 'optnet_encoders.joblib')
+
         record = {'seed': seed, 'runtime_seconds': time.perf_counter() - tick,
                   'budget_steps': budget, 'starts': STARTS, 'batch': BATCH,
                   'architecture': f'128 -> {HIDDEN} -> {RANK}, ReLU',
