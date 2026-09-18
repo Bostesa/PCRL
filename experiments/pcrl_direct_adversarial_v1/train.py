@@ -274,7 +274,12 @@ def fit_arm(state, labels, folds, a0, width, policy, beta, seed, config: Trainin
     take_checkpoint(0)
     for step in range(1, config.mapper_updates + 1):
         if step in refresh_steps:
+            # The single-attacker ablation keeps the same refresh OPPORTUNITIES but has
+            # only one family, so a refresh point naming an absent family refreshes that
+            # one family instead of being skipped. Locked rule, not a fallback choice.
             family = refresh_steps[step]
+            if family not in config.families:
+                family = config.families[-1]
             before = _role_monitor_ce(model, monitor, ensembles)
             fresh = {}
             for key, ensemble in ensembles.items():

@@ -60,6 +60,25 @@ Launch 2 ran with `checkpoint_every = 50` (the dataclass default) against the fr
 than the document to the code. 13 checkpoints would have been strictly more evidence
 than 7, but honouring a just-frozen protocol matters more than a discretionary grid.
 
+### Amendment 3 — the candidate-wide correction is studentized, not percentile
+
+**Declared `2026-09-18T13:00Z`, before any 2018 or 2017 result was read.**
+
+`PROTOCOL.md` §5 registered the candidate-wide adjustment as "per-comparison two-sided
+bootstrap quantiles at level `alpha / m`". The realised family is **86 contrasts x 5
+family endpoints x 2 weightings = 860**, so `alpha / m = 5.8e-5` and the required tail
+quantile sits at `2.9e-5`. With 2000 bootstrap replicates that quantile is **not
+estimable**: it lies beyond the most extreme replicate (`2000 x 2.9e-5 = 0.06` of one
+observation).
+
+The correction used is therefore the conservative alternative the same section
+authorises: a **studentized Bonferroni bound**, `estimate +/- z_{1 - alpha/(2m)} x
+bootstrap_SE`, with `z = 4.02` at `m = 860`. Every row carries a `percentile_estimable`
+flag recording that the registered percentile form was unavailable, so the substitution
+is visible rather than silent. The reused within-contrast studentized max-|t| bounds
+remain in the same table under their own column names, so the predecessor's tables stay
+directly comparable.
+
 ## Resource decisions
 
 * Machine: 14 CPUs, 24 GB, shared. Load average at session start `8.20 / 7.72 / 7.01`,
