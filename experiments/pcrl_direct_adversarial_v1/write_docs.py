@@ -479,6 +479,9 @@ def validation(out: Path) -> str:
                              'bitwise',
         'resumed_unit_identity': 'resumed-unit identity: recorded hashes still match their files',
         'role_masks': 'role masks: the audited forbidden registry is the full historical eleven',
+        'identical_channel_identical_endpoints': 'end-to-end: a bitwise-identical released '
+                                                 'channel reproduces its comparator\'s endpoints '
+                                                 'exactly under the matched-exposure scope',
         'score_aggregation': 'score aggregation: stored endpoints recomputable from stored '
                              'predictions',
         'simultaneous_construction': 'simultaneous construction: the candidate-wide family '

@@ -1,6 +1,6 @@
 """Validation aimed at material risks, not at accumulating redundant assertions.
 
-Ten checks, each targeting a way this study could silently be wrong:
+Eleven checks, each targeting a way this study could silently be wrong:
 
 1. **gradient signs** -- on a synthetic fixture where the answer is known, stronger
    recovery must raise the mapper's penalty and the mapper step must reduce it;
@@ -18,7 +18,11 @@ Ten checks, each targeting a way this study could silently be wrong:
    per-person predictions;
 9. **role masks** -- the audited forbidden registry must be the full historical eleven;
 10. **simultaneous comparison construction** -- the candidate-wide family must contain
-    every contrast searched, and its critical value must exceed the within-contrast one.
+    every contrast searched, and its critical value must exceed the within-contrast one;
+11. **identical channel, identical endpoints** -- two arms whose released channel is
+    bitwise identical must score exactly the same endpoints under the matched-exposure
+    scope. This is the end-to-end check: it fails if anything between the release and
+    the score is not a function of the release.
 """
 from __future__ import annotations
 
@@ -243,6 +247,64 @@ def check_simultaneous_construction(out: Path) -> dict:
             'pass': bool(present <= searched and len(sizes) == 1 and wider)}
 
 
+def check_identical_channel_identical_endpoints(out: Path, seeds) -> dict:
+    """End-to-end: a bitwise-identical channel must reproduce its comparator's endpoints.
+
+    Several low-beta arms select their unmoved initial checkpoint, so their released
+    channel is bitwise identical to the matched-width no-protection continuation. Under
+    the MATCHED-EXPOSURE primary scope those arms must score **exactly** the same
+    endpoints as that continuation. If they do not, something between the release and
+    the score is not a function of the release.
+    """
+    from experiments.pcrl_nonlinear_rank_v1.inputs import Registry as BaseRegistry
+    from .report import FORBIDDEN, MAIN_BUDGET, MAIN_SCOPE, MAIN_SPLIT, WEIGHTS, load_points
+
+    out = Path(out)
+    pairs = []
+    for seed in seeds:
+        releases = out / f'seed_{seed}' / 'releases'
+        if not releases.exists():
+            continue
+        digests = {}
+        for path in sorted(releases.iterdir()):
+            npz = path / 'releases.npz'
+            if not npz.exists():
+                continue
+            z = np.asarray(arrays(npz)['wire/A/test'], np.float64)[:, H_A_WIDTH:]
+            digests.setdefault(array_hash(z), []).append(path.name)
+        for group in digests.values():
+            if len(group) > 1:
+                pairs.append((seed, sorted(group)))
+    if not pairs:
+        return {'pass': None, 'reason': 'no two arms share a released channel'}
+
+    conditions = sorted({arm for _s, group in pairs for arm in group})
+    scored = [c for c in conditions
+              if all((out / f'seed_{s}' / c / 'metrics.json').exists() for s in seeds)]
+    if len(scored) < 2:
+        return {'pass': None, 'reason': 'identical-channel arms are not all scored yet',
+                'groups': [{'seed': s, 'arms': g} for s, g in pairs]}
+    points, _raw, _prior = load_points(out, seeds, tuple(scored), BaseRegistry.new())
+    mismatches, checked = [], 0
+    for seed, group in pairs:
+        group = [a for a in group if a in scored]
+        for other in group[1:]:
+            for weight in WEIGHTS:
+                a = points[seed, group[0], MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+                b = points[seed, other, MAIN_SPLIT, weight, MAIN_BUDGET, MAIN_SCOPE]
+                checked += 1
+                for endpoint in FORBIDDEN:
+                    if a['gains'][endpoint] != b['gains'][endpoint]:
+                        mismatches.append(f'{seed}/{group[0]} vs {other}/{endpoint}/{weight}')
+                for task in a['utility']:
+                    if a['utility'][task] != b['utility'][task]:
+                        mismatches.append(f'{seed}/{group[0]} vs {other}/utility/{task}/{weight}')
+    return {'groups': [{'seed': s, 'arms': g} for s, g in pairs],
+            'comparisons': checked, 'scope': MAIN_SCOPE,
+            'mismatches': mismatches[:20], 'mismatch_count': len(mismatches),
+            'pass': not mismatches}
+
+
 def check_score_aggregation(out: Path) -> dict:
     """Stored endpoint values must be recomputable from stored per-person predictions."""
     import csv
@@ -270,6 +332,8 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
         'map_serialisation': check_map_serialisation(out, seeds[0], registry),
         'resumed_unit_identity': check_resumed_identity(out, seeds),
         'role_masks': check_role_masks(),
+        'identical_channel_identical_endpoints':
+            check_identical_channel_identical_endpoints(out, seeds),
         'score_aggregation': check_score_aggregation(out),
         'simultaneous_construction': check_simultaneous_construction(out),
     }
