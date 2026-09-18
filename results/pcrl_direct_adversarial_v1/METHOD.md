@@ -313,7 +313,18 @@ coefficients and are not numerically comparable** to the historical `J` coeffici
 monitor_score = U(theta)|monitor + beta * policy_penalty(theta)|monitor         (6)
 ```
 
-  with the attacker slate contemporaneous with that checkpoint. **No residence, no
+  Each checkpoint is scored against **its own freshly initialised attacker slate**,
+  trained for the **same fixed budget** of 300 attacker minibatch updates against that
+  frozen channel on `mapper_fit`, and read on `monitor` (`RUN_STATUS.md` amendment 1).
+  Equal budget across checkpoints is the point: neither the contemporaneous slate
+  (weaker early) nor the final slate (specialised to the final channel, and therefore
+  understating what is recoverable early) is a neutral yardstick, and **both biases
+  point the same way**. The contemporaneous and final-slate scores are still computed
+  and stored, and are used for the training-attacker-versus-fresh-auditor analysis.
+
+  This is a **selection** yardstick, not a protection measurement: 300 fresh updates on
+  three differentiable families is far weaker than the 2018 audit slate, and every
+  protection claim rests on the audit, never on this number. **No residence, no
   commute, no downstream pool, no test pool.** Selection is `argmin`, ties to the
   earlier step.
 

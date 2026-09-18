@@ -51,7 +51,7 @@ REFRESH_FAMILY = ('mlp64', 'mlp64_32', 'mlp64')
 @dataclass
 class TrainingConfig:
     mapper_updates: int = 300
-    checkpoint_every: int = 50
+    checkpoint_every: int = 100
     attacker_updates_per_mapper: int = 5
     attacker_warmup: int = 100
     refresh_fractions: tuple = (0.25, 0.50, 0.75)
@@ -61,6 +61,7 @@ class TrainingConfig:
     lr: float = 1e-3
     teacher_weight: float = 1.0
     nominal_mapper_updates: int = 600
+    selection_probe_updates: int = 300
     reduction_reason: str = ''
     extra_optimizer_seed: int = 0
     families: tuple = FAMILIES
@@ -344,14 +345,44 @@ def fit_arm(state, labels, folds, a0, width, policy, beta, seed, config: Trainin
         if step % config.checkpoint_every == 0:
             take_checkpoint(step)
 
-    scores = [c['monitor']['monitor_score'] for c in checkpoints]
+    # Equal-budget fresh-probe re-evaluation (RUN_STATUS amendment 1, declared before any
+    # outcome). Neither the contemporaneous slate nor the final slate is a neutral
+    # yardstick: the contemporaneous slate is weaker at early checkpoints, and the final
+    # slate is specialised to the final channel and so UNDERSTATES what is recoverable
+    # from an early one. Both biases point the same way and would hand selection to the
+    # unmoved initial point for reasons that have nothing to do with the channel.
+    # Every checkpoint is therefore scored against its OWN freshly initialised slate,
+    # trained for the SAME fixed budget against that frozen channel. The contemporaneous
+    # and final-slate numbers are kept for the training-attacker-versus-auditor analysis.
+    final_state = state_of(model)
+    final_slate, fresh = [], []
+    for entry in checkpoints:
+        model.load_state_dict(entry['state'])
+        record = _monitor_components(model, monitor, ensembles, config, teacher_variance,
+                                     policy, beta)
+        record['step'] = entry['step']
+        final_slate.append(record)
+        fresh.append(fresh_probe(model, train, monitor, slots, config, teacher_variance,
+                                 policy, beta, seed, entry['step']))
+    model.load_state_dict(final_state)
+
+    scores = [c['monitor_score'] for c in fresh]
+    common = fresh
     chosen = int(np.argmin(scores))
     model.load_state_dict(checkpoints[chosen]['state'])
     model.eval()
 
     return {'model': model, 'checkpoints': checkpoints, 'selected_index': chosen,
             'selected_step': checkpoints[chosen]['step'],
-            'monitor_scores': [{'step': c['step'], **c['monitor']} for c in checkpoints],
+            'selection_rule': ('argmin of the equal-budget fresh-probe monitor score; ties to '
+                               'the earlier step. U and the policy penalty on the internal '
+                               'monitor fold, every checkpoint scored against its OWN freshly '
+                               'initialised attacker slate trained for the same fixed budget. '
+                               'No residence, no commute, no downstream or test pool.'),
+            'monitor_scores': common,
+            'final_slate_monitor_scores': final_slate,
+            'contemporaneous_monitor_scores': [{'step': c['step'], **c['monitor']}
+                                               for c in checkpoints],
             'trace': trace, 'refreshes': refresh_log,
             'attacker_warmup_loss': {'first': warm[0] if warm else None,
                                      'last': warm[-1] if warm else None},
@@ -362,6 +393,43 @@ def fit_arm(state, labels, folds, a0, width, policy, beta, seed, config: Trainin
                                           + config.refresh_catchup * len(config.refresh_fractions)),
             'mapper_updates_total': config.mapper_updates,
             'runtime_seconds': time.perf_counter() - tick}
+
+
+def fresh_probe(model, train: FoldTensors, monitor: FoldTensors, slots, config: TrainingConfig,
+                teacher_variance: float, policy: str, beta: float, seed: int, step: int) -> dict:
+    """Score one frozen checkpoint against its own freshly initialised attacker slate.
+
+    Same slot schedule and same families as training, a fixed `selection_probe_updates`
+    budget for every checkpoint, fitted on `mapper_fit` and read on `monitor`. Equal
+    budget across checkpoints is the whole point: this is a *selection* yardstick, not a
+    claim that these attackers are strong in absolute terms. The 2018 audit, which is
+    what any protection claim rests on, is an entirely separate and much larger slate.
+    """
+    hb_width = int(train.hb.shape[1])
+    ensembles = {}
+    for role, replica in slots:
+        ensembles[(role, replica)] = RoleEnsemble(
+            role, replica, config.families, service_width(role, hb_width) + model.width,
+            90000 + seed * 100 + step)
+    parameters = [p for e in ensembles.values() for p in e.parameters()]
+    optimiser = torch.optim.Adam(parameters, lr=config.lr, betas=(0.9, 0.999), eps=1e-8)
+    rng = np.random.default_rng(20266018 + 1000 * seed + step)
+    n = len(train.x)
+    for _ in range(config.selection_probe_updates):
+        ix = torch.from_numpy(rng.choice(n, size=min(config.batch, n), replace=False))
+        with torch.no_grad():
+            z = model.encode(train.x[ix])
+        optimiser.zero_grad(set_to_none=True)
+        total, count = attacker_loss(z, train, ix, ensembles)
+        if count:
+            if not torch.isfinite(total):
+                raise AssertionError('non-finite fresh-probe attacker loss')
+            total.backward()
+            optimiser.step()
+    record = _monitor_components(model, monitor, ensembles, config, teacher_variance, policy, beta)
+    record['step'] = step
+    record['probe_updates'] = config.selection_probe_updates
+    return record
 
 
 def incumbent_input_dim(net) -> int:
