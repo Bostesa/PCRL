@@ -35,9 +35,9 @@ from experiments.pcrl_nonlinear_rank_v1.report import (BOOTSTRAP_REPLICATES, BOO
                                                        ROUNDOFF, SENSITIVE, UTILITY_DELTA, WEIGHTS,
                                                        ClusterBootstrap, advantage, coordination,
                                                        flat_rows, noninferiority, simultaneous)
-from experiments.pcrl_nonlinear_rank_v1.inputs import DEV_NAME, Registry, read_json, resolve
+from experiments.pcrl_nonlinear_rank_v1.inputs import DEV_NAME, Registry, read_json
 
-from .inputs import OUT
+from .inputs import OUT, resolve
 from .run_fit import WIDTHS, arm_plan, beta_tag, main_arm
 from .train import BETAS, POLICIES
 

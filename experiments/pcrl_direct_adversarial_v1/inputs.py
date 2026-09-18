@@ -23,9 +23,30 @@ import numpy as np
 import torch
 from torch import nn
 
-from experiments.pcrl_nonlinear_rank_v1.inputs import (FIXED_NAME, Registry, arrays, array_hash,
-                                                       load_representation_labels, resolve,
-                                                       sha_file, write_json, read_json)
+import os
+
+from experiments.pcrl_nonlinear_rank_v1.inputs import (FIXED_NAME, MissingArtifact, Registry,
+                                                       arrays, array_hash,
+                                                       load_representation_labels, sha_file,
+                                                       write_json, read_json)
+from experiments.pcrl_nonlinear_rank_v1.inputs import resolve as _base_resolve
+
+# The invariant-baselines study's ignored local artifacts (its 2018 releases and its
+# OptNet/erasure records) live in ITS OWN worktree, which the predecessor's resolver does
+# not search. They are read **read-only** and hashed; that worktree is never written to,
+# switched, stashed, reset or rebased.
+EXTRA_ROOTS = tuple(Path(p) for p in (
+    os.environ.get('PCRL_DAX_INVARIANT_ROOT', '/Users/nathansamson/PCRL-terminal-1-invariant'),
+) if Path(p).exists())
+
+
+def resolve(relative):
+    """First existing path across this study's extra read-only roots, then the base roots."""
+    for root in EXTRA_ROOTS:
+        candidate = root / Path(relative)
+        if candidate.exists():
+            return candidate
+    return _base_resolve(relative)
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'results/pcrl_direct_adversarial_v1'

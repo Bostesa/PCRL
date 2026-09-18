@@ -22,13 +22,13 @@ from pathlib import Path
 
 import numpy as np
 
-from experiments.pcrl_nonlinear_rank_v1.inputs import Registry, read_json, resolve, write_json
+from experiments.pcrl_nonlinear_rank_v1.inputs import Registry, read_json, write_json
 from experiments.pcrl_nonlinear_rank_v1.report_2017 import BUDGET, SCOPES, TRANSPORT_NAME, point, priors
 from experiments.pcrl_nonlinear_rank_v1.report import FORBIDDEN, WEIGHTS
 from experiments.pcrl_nonlinear_rank_v1.run_report import csvout
 
 from .freeze import panel_2017
-from .inputs import OUT
+from .inputs import OUT, resolve
 from .run_fit import limit_threads
 
 REFERENCES = ('H', 'J', 'E', 'A0', 'spectral_C1', 'spectral_L2')

@@ -1,0 +1,2180 @@
+{
+  "seed": 1,
+  "arm": "dax8_L1_b300",
+  "width": 8,
+  "policy": "L1",
+  "beta": 3.0,
+  "repeat": 0,
+  "families": [
+    "linear",
+    "mlp64",
+    "mlp64_32"
+  ],
+  "config": {
+    "mapper_updates": 600,
+    "checkpoint_every": 100,
+    "attacker_updates_per_mapper": 5,
+    "attacker_warmup": 100,
+    "refresh_fractions": [
+      0.25,
+      0.5,
+      0.75
+    ],
+    "refresh_catchup": 40,
+    "head_warmup": 60,
+    "batch": 256,
+    "lr": 0.001,
+    "teacher_weight": 1.0,
+    "nominal_mapper_updates": 600,
+    "selection_probe_updates": 300,
+    "reduction_reason": "",
+    "extra_optimizer_seed": 0,
+    "families": [
+      "linear",
+      "mlp64",
+      "mlp64_32"
+    ]
+  },
+  "release": {
+    "path": "/Users/nathansamson/PCRL-terminal-1-adversarial/results/pcrl_direct_adversarial_v1/seed_1/releases/dax8_L1_b300/releases.npz",
+    "sha256": "ef6660a4929f9e667049366132c8ea6811e624143c9bbab5321baffe77cbc59b",
+    "A_width": 12,
+    "AB_width": 14
+  },
+  "checkpoints_sha256": "66bd9be5a1b36616f2d2b434ede25d03b76d77e804145d28df34023efa445004",
+  "channel_hash": {
+    "representation_fit": "00f52c49f0837083967381d068049a1aea12a9e904e9a4f859ca688d7ba32cd7",
+    "source_validation": "a1a80031c930a3b8870b4e0652b219fdadb403ee318db8428eb377af1a3c734c",
+    "downstream_fit": "fbbdec601fd9fb09a6a69eb7623fd1c3201bebaeddc8a67a37cbf46d43c08272",
+    "downstream_validation": "699ed861d52e9d9c0cc4b922edb676bebf0a64fec2639f06a559419bace0722a",
+    "attacker_fit": "37f031bcea1a4bc9bbf9e44c9a8a2731920022d3878007cff758948d1f68e138",
+    "attacker_validation": "6ddf551f4f134e50dc4bf0aaff8aac754cf6f6acf2567e90091265273141a2f8",
+    "test": "6acbc62eb1714a9e8a843629ea3f965485ac052246122042c98c5d041c8ac614"
+  },
+  "teacher_variance": 5.800608158111572,
+  "initialisation": "A0 mapper followed by one deterministic training-only PCA projection of the A0 output; heads are the algebraic image of the A0 heads under that projection",
+  "selected_index": 1,
+  "selected_step": 100,
+  "selection_rule": "argmin of the equal-budget fresh-probe monitor score; ties to the earlier step. U and the policy penalty on the internal monitor fold, every checkpoint scored against its OWN freshly initialised attacker slate trained for the same fixed budget. No residence, no commute, no downstream or test pool.",
+  "monitor_scores": [
+    {
+      "utility": 0.22428473830223083,
+      "source": 0.22428473830223083,
+      "distortion": 0.0,
+      "gains": {
+        "A/public_coverage": 0.016680032014846802,
+        "A/SEX": 0.03947395086288452,
+        "A/RAC1P": 0.04045736789703369,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.032203782349824905,
+      "monitor_score": 0.32089608907699585,
+      "step": 0,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.2543218433856964,
+      "source": 0.23605680465698242,
+      "distortion": 0.018265027552843094,
+      "gains": {
+        "A/public_coverage": 0.008734285831451416,
+        "A/SEX": 0.012215793132781982,
+        "A/RAC1P": 0.008457422256469727,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.0098025007173419,
+      "monitor_score": 0.28372934460639954,
+      "step": 100,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.2686215937137604,
+      "source": 0.24214452505111694,
+      "distortion": 0.026477066799998283,
+      "gains": {
+        "A/public_coverage": 0.010731995105743408,
+        "A/SEX": 0.01604175567626953,
+        "A/RAC1P": 0.004686713218688965,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.01048682164400816,
+      "monitor_score": 0.3000820577144623,
+      "step": 200,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.27699369192123413,
+      "source": 0.2445954978466034,
+      "distortion": 0.032398201525211334,
+      "gains": {
+        "A/public_coverage": 0.005971550941467285,
+        "A/SEX": 0.014275431632995605,
+        "A/RAC1P": 0.003453493118286133,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:linear",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.007900158874690533,
+      "monitor_score": 0.30069416761398315,
+      "step": 300,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.2876588702201843,
+      "source": 0.24891851842403412,
+      "distortion": 0.038740355521440506,
+      "gains": {
+        "A/public_coverage": 0.005328238010406494,
+        "A/SEX": 0.01794898509979248,
+        "A/RAC1P": 0.004198551177978516,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.009158591739833355,
+      "monitor_score": 0.3151346445083618,
+      "step": 400,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.29320430755615234,
+      "source": 0.24953706562519073,
+      "distortion": 0.043667230755090714,
+      "gains": {
+        "A/public_coverage": 0.003175675868988037,
+        "A/SEX": 0.0127219557762146,
+        "A/RAC1P": 0.006062030792236328,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.007319887634366751,
+      "monitor_score": 0.3151639699935913,
+      "step": 500,
+      "probe_updates": 300
+    },
+    {
+      "utility": 0.2934737801551819,
+      "source": 0.24708905816078186,
+      "distortion": 0.04638473689556122,
+      "gains": {
+        "A/public_coverage": 0.004327654838562012,
+        "A/SEX": 0.01059657335281372,
+        "A/RAC1P": 0.00308382511138916,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.006002684589475393,
+      "monitor_score": 0.3114818334579468,
+      "step": 600,
+      "probe_updates": 300
+    }
+  ],
+  "final_slate_monitor_scores": [
+    {
+      "utility": 0.22428473830223083,
+      "source": 0.22428473830223083,
+      "distortion": 0.0,
+      "gains": {
+        "A/public_coverage": 0.010289609432220459,
+        "A/SEX": 0.013885855674743652,
+        "A/RAC1P": 0.008706808090209961,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.010960757732391357,
+      "monitor_score": 0.2571670114994049,
+      "step": 0
+    },
+    {
+      "utility": 0.2543218433856964,
+      "source": 0.23605680465698242,
+      "distortion": 0.018265027552843094,
+      "gains": {
+        "A/public_coverage": 0.004293084144592285,
+        "A/SEX": 0.006463825702667236,
+        "A/RAC1P": 0.0021899938583374023,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:linear",
+        "A/SEX": "1:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.004315634723752737,
+      "monitor_score": 0.26726874709129333,
+      "step": 100
+    },
+    {
+      "utility": 0.2686215937137604,
+      "source": 0.24214452505111694,
+      "distortion": 0.026477066799998283,
+      "gains": {
+        "A/public_coverage": 0.005778908729553223,
+        "A/SEX": 0.007324397563934326,
+        "A/RAC1P": 0.0004438161849975586,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:linear",
+        "A/SEX": "0:linear",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.004515707492828369,
+      "monitor_score": 0.2821687161922455,
+      "step": 200
+    },
+    {
+      "utility": 0.27699369192123413,
+      "source": 0.2445954978466034,
+      "distortion": 0.032398201525211334,
+      "gains": {
+        "A/public_coverage": 0.007232725620269775,
+        "A/SEX": 0.006117820739746094,
+        "A/RAC1P": 0.0,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.004450181964784861,
+      "monitor_score": 0.29034423828125,
+      "step": 300
+    },
+    {
+      "utility": 0.2876588702201843,
+      "source": 0.24891851842403412,
+      "distortion": 0.038740355521440506,
+      "gains": {
+        "A/public_coverage": 0.006171822547912598,
+        "A/SEX": 0.007882177829742432,
+        "A/RAC1P": 0.0037206411361694336,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.005924880504608154,
+      "monitor_score": 0.3054335117340088,
+      "step": 400
+    },
+    {
+      "utility": 0.29320430755615234,
+      "source": 0.24953706562519073,
+      "distortion": 0.043667230755090714,
+      "gains": {
+        "A/public_coverage": 0.003778517246246338,
+        "A/SEX": 0.0071707963943481445,
+        "A/RAC1P": 0.0042133331298828125,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.005054215434938669,
+      "monitor_score": 0.30836695432662964,
+      "step": 500
+    },
+    {
+      "utility": 0.2934737801551819,
+      "source": 0.24708905816078186,
+      "distortion": 0.04638473689556122,
+      "gains": {
+        "A/public_coverage": 0.008375346660614014,
+        "A/SEX": 0.008584082126617432,
+        "A/RAC1P": 0.008947968482971191,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.008635799400508404,
+      "monitor_score": 0.3193811774253845,
+      "step": 600
+    }
+  ],
+  "contemporaneous_monitor_scores": [
+    {
+      "step": 0,
+      "utility": 0.22428473830223083,
+      "source": 0.22428473830223083,
+      "distortion": 0.0,
+      "gains": {
+        "A/public_coverage": 0.013082772493362427,
+        "A/SEX": 0.03189510107040405,
+        "A/RAC1P": 0.026060819625854492,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.023679563775658607,
+      "monitor_score": 0.2953234314918518,
+      "state_index": 0
+    },
+    {
+      "step": 100,
+      "utility": 0.2543218433856964,
+      "source": 0.23605680465698242,
+      "distortion": 0.018265027552843094,
+      "gains": {
+        "A/public_coverage": 0.011226177215576172,
+        "A/SEX": 0.016992807388305664,
+        "A/RAC1P": 0.009737968444824219,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.012652317993342876,
+      "monitor_score": 0.29227879643440247,
+      "state_index": 1
+    },
+    {
+      "step": 200,
+      "utility": 0.2686215937137604,
+      "source": 0.24214452505111694,
+      "distortion": 0.026477066799998283,
+      "gains": {
+        "A/public_coverage": 0.007573127746582031,
+        "A/SEX": 0.014017879962921143,
+        "A/RAC1P": 0.0068857669830322266,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.009492258541285992,
+      "monitor_score": 0.2970983684062958,
+      "state_index": 2
+    },
+    {
+      "step": 300,
+      "utility": 0.27699369192123413,
+      "source": 0.2445954978466034,
+      "distortion": 0.032398201525211334,
+      "gains": {
+        "A/public_coverage": 0.010301470756530762,
+        "A/SEX": 0.00884699821472168,
+        "A/RAC1P": 0.006519794464111328,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:linear",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.008556087501347065,
+      "monitor_score": 0.3026619553565979,
+      "state_index": 3
+    },
+    {
+      "step": 400,
+      "utility": 0.2876588702201843,
+      "source": 0.24891851842403412,
+      "distortion": 0.038740355521440506,
+      "gains": {
+        "A/public_coverage": 0.009585440158843994,
+        "A/SEX": 0.01580941677093506,
+        "A/RAC1P": 0.006314516067504883,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.010569791309535503,
+      "monitor_score": 0.31936824321746826,
+      "state_index": 4
+    },
+    {
+      "step": 500,
+      "utility": 0.29320430755615234,
+      "source": 0.24953706562519073,
+      "distortion": 0.043667230755090714,
+      "gains": {
+        "A/public_coverage": 0.006224632263183594,
+        "A/SEX": 0.010884225368499756,
+        "A/RAC1P": 0.006369829177856445,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.007826228626072407,
+      "monitor_score": 0.31668299436569214,
+      "state_index": 5
+    },
+    {
+      "step": 600,
+      "utility": 0.2934737801551819,
+      "source": 0.24708905816078186,
+      "distortion": 0.04638473689556122,
+      "gains": {
+        "A/public_coverage": 0.008375346660614014,
+        "A/SEX": 0.008584082126617432,
+        "A/RAC1P": 0.008947968482971191,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      },
+      "label_support": {
+        "A/public_coverage": 1990,
+        "A/SEX": 1990,
+        "A/RAC1P": 1990
+      },
+      "penalty": 0.008635799400508404,
+      "monitor_score": 0.3193811774253845,
+      "state_index": 6
+    }
+  ],
+  "trace": [
+    {
+      "step": 1,
+      "train_loss": 0.31164002418518066,
+      "utility": 0.2538175582885742,
+      "source": 0.2538175582885742,
+      "distortion": 0.0,
+      "penalty": 0.0192741546779871,
+      "mapper_grad_norm": 0.46287339794610594,
+      "gains": {
+        "A/public_coverage": 0.006743431091308594,
+        "A/SEX": 0.020384907722473145,
+        "A/RAC1P": 0.030694127082824707,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 10,
+      "train_loss": 0.304315984249115,
+      "utility": 0.20637643337249756,
+      "source": 0.2026720941066742,
+      "distortion": 0.0037043325137346983,
+      "penalty": 0.03264651820063591,
+      "mapper_grad_norm": 0.3960418336273321,
+      "gains": {
+        "A/public_coverage": 0.025410175323486328,
+        "A/SEX": 0.04369920492172241,
+        "A/RAC1P": 0.02883017063140869,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 20,
+      "train_loss": 0.2886315584182739,
+      "utility": 0.22035831212997437,
+      "source": 0.21470865607261658,
+      "distortion": 0.00564965046942234,
+      "penalty": 0.022757748141884804,
+      "mapper_grad_norm": 0.4176692273090547,
+      "gains": {
+        "A/public_coverage": 0.01865774393081665,
+        "A/SEX": 0.012207388877868652,
+        "A/RAC1P": 0.03740811347961426,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 30,
+      "train_loss": 0.2788833975791931,
+      "utility": 0.21096454560756683,
+      "source": 0.2021399438381195,
+      "distortion": 0.008824601769447327,
+      "penalty": 0.022639622911810875,
+      "mapper_grad_norm": 0.4622147724579036,
+      "gains": {
+        "A/public_coverage": 0.023602932691574097,
+        "A/SEX": 0.009288430213928223,
+        "A/RAC1P": 0.035027503967285156,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 40,
+      "train_loss": 0.3377855718135834,
+      "utility": 0.2793724238872528,
+      "source": 0.268023282289505,
+      "distortion": 0.011349128559231758,
+      "penalty": 0.019471049308776855,
+      "mapper_grad_norm": 0.4612106905186576,
+      "gains": {
+        "A/public_coverage": 0.022829055786132812,
+        "A/SEX": 0.015990257263183594,
+        "A/RAC1P": 0.01959383487701416,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 50,
+      "train_loss": 0.31754833459854126,
+      "utility": 0.24829913675785065,
+      "source": 0.23771613836288452,
+      "distortion": 0.010582992807030678,
+      "penalty": 0.023083070293068886,
+      "mapper_grad_norm": 0.3940573119841706,
+      "gains": {
+        "A/public_coverage": 0.0036528706550598145,
+        "A/SEX": 0.030800580978393555,
+        "A/RAC1P": 0.03479576110839844,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 60,
+      "train_loss": 0.33556628227233887,
+      "utility": 0.27742937207221985,
+      "source": 0.26137280464172363,
+      "distortion": 0.01605655997991562,
+      "penalty": 0.019378969445824623,
+      "mapper_grad_norm": 0.4675629066569977,
+      "gains": {
+        "A/public_coverage": 0.017603129148483276,
+        "A/SEX": 0.010356545448303223,
+        "A/RAC1P": 0.03017723560333252,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 70,
+      "train_loss": 0.3793243169784546,
+      "utility": 0.2876368761062622,
+      "source": 0.2730482220649719,
+      "distortion": 0.014588644728064537,
+      "penalty": 0.03056248091161251,
+      "mapper_grad_norm": 0.46518685595319936,
+      "gains": {
+        "A/public_coverage": 0.01556086540222168,
+        "A/SEX": 0.013999700546264648,
+        "A/RAC1P": 0.062126874923706055,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 80,
+      "train_loss": 0.3058220148086548,
+      "utility": 0.26964178681373596,
+      "source": 0.2549806833267212,
+      "distortion": 0.014661089517176151,
+      "penalty": 0.012060075998306274,
+      "mapper_grad_norm": 0.42870841991567893,
+      "gains": {
+        "A/public_coverage": 0.017384082078933716,
+        "A/SEX": 0.012373864650726318,
+        "A/RAC1P": 0.006422281265258789,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 90,
+      "train_loss": 0.3539683520793915,
+      "utility": 0.2587713301181793,
+      "source": 0.24092043936252594,
+      "distortion": 0.017850901931524277,
+      "penalty": 0.03173233941197395,
+      "mapper_grad_norm": 0.4099374160553708,
+      "gains": {
+        "A/public_coverage": 0.014369070529937744,
+        "A/SEX": 0.025744199752807617,
+        "A/RAC1P": 0.0550837516784668,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 100,
+      "train_loss": 0.26481354236602783,
+      "utility": 0.21456751227378845,
+      "source": 0.19696421921253204,
+      "distortion": 0.01760329306125641,
+      "penalty": 0.01674867607653141,
+      "mapper_grad_norm": 0.41542387046651125,
+      "gains": {
+        "A/public_coverage": 0.02236887812614441,
+        "A/SEX": 0.005760490894317627,
+        "A/RAC1P": 0.022116661071777344,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 110,
+      "train_loss": 0.37618309259414673,
+      "utility": 0.2817351818084717,
+      "source": 0.2609019875526428,
+      "distortion": 0.020833194255828857,
+      "penalty": 0.03148263692855835,
+      "mapper_grad_norm": 0.5227716612266953,
+      "gains": {
+        "A/public_coverage": 0.014072299003601074,
+        "A/SEX": 0.033433496952056885,
+        "A/RAC1P": 0.04694211483001709,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 120,
+      "train_loss": 0.3293474316596985,
+      "utility": 0.2591971755027771,
+      "source": 0.2407171130180359,
+      "distortion": 0.01848006062209606,
+      "penalty": 0.02338341809809208,
+      "mapper_grad_norm": 0.4840437737956658,
+      "gains": {
+        "A/public_coverage": 0.020011305809020996,
+        "A/SEX": 0.012511610984802246,
+        "A/RAC1P": 0.037627339363098145,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 130,
+      "train_loss": 0.3299765884876251,
+      "utility": 0.2567770779132843,
+      "source": 0.23631954193115234,
+      "distortion": 0.020457541570067406,
+      "penalty": 0.024399837478995323,
+      "mapper_grad_norm": 0.4256352970102483,
+      "gains": {
+        "A/public_coverage": 0.005582630634307861,
+        "A/SEX": 0.03403729200363159,
+        "A/RAC1P": 0.03357958793640137,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 140,
+      "train_loss": 0.3543130159378052,
+      "utility": 0.24011975526809692,
+      "source": 0.2208077311515808,
+      "distortion": 0.019312025979161263,
+      "penalty": 0.038064420223236084,
+      "mapper_grad_norm": 0.4734948130152932,
+      "gains": {
+        "A/public_coverage": 0.018780291080474854,
+        "A/SEX": 0.03112936019897461,
+        "A/RAC1P": 0.06428360939025879,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 150,
+      "train_loss": 0.3761684000492096,
+      "utility": 0.2635306119918823,
+      "source": 0.24231617152690887,
+      "distortion": 0.021214444190263748,
+      "penalty": 0.037545930594205856,
+      "mapper_grad_norm": 0.6604861966371794,
+      "gains": {
+        "A/public_coverage": 0.04602733254432678,
+        "A/SEX": 0.032018065452575684,
+        "A/RAC1P": 0.034592390060424805,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 160,
+      "train_loss": 0.30108097195625305,
+      "utility": 0.2604285180568695,
+      "source": 0.23919950425624847,
+      "distortion": 0.02122902125120163,
+      "penalty": 0.013550817966461182,
+      "mapper_grad_norm": 0.47121210454383794,
+      "gains": {
+        "A/public_coverage": 0.01950836181640625,
+        "A/SEX": 1.6868114471435547e-05,
+        "A/RAC1P": 0.02112722396850586,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:linear",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 170,
+      "train_loss": 0.36207878589630127,
+      "utility": 0.27767032384872437,
+      "source": 0.2533307373523712,
+      "distortion": 0.024339599534869194,
+      "penalty": 0.028136154636740685,
+      "mapper_grad_norm": 0.48353466511539117,
+      "gains": {
+        "A/public_coverage": 0.013750433921813965,
+        "A/SEX": 0.03431648015975952,
+        "A/RAC1P": 0.03634154796600342,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 180,
+      "train_loss": 0.27232465147972107,
+      "utility": 0.22759509086608887,
+      "source": 0.2049056589603424,
+      "distortion": 0.022689437493681908,
+      "penalty": 0.014909853227436543,
+      "mapper_grad_norm": 0.4413170197963956,
+      "gains": {
+        "A/public_coverage": 0.014570266008377075,
+        "A/SEX": 0.017277777194976807,
+        "A/RAC1P": 0.01288151741027832,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 190,
+      "train_loss": 0.3835410475730896,
+      "utility": 0.2853618264198303,
+      "source": 0.25852686166763306,
+      "distortion": 0.026834962889552116,
+      "penalty": 0.032726407051086426,
+      "mapper_grad_norm": 0.5927136529608336,
+      "gains": {
+        "A/public_coverage": 0.03397834300994873,
+        "A/SEX": 0.02202785015106201,
+        "A/RAC1P": 0.042173027992248535,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 200,
+      "train_loss": 0.34703317284584045,
+      "utility": 0.2658679783344269,
+      "source": 0.23880529403686523,
+      "distortion": 0.0270626749843359,
+      "penalty": 0.02705506421625614,
+      "mapper_grad_norm": 0.43330548898505217,
+      "gains": {
+        "A/public_coverage": 0.0037926435470581055,
+        "A/SEX": 0.05003941059112549,
+        "A/RAC1P": 0.02733314037322998,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:linear",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 210,
+      "train_loss": 0.31238019466400146,
+      "utility": 0.2506621181964874,
+      "source": 0.2217944860458374,
+      "distortion": 0.02886764332652092,
+      "penalty": 0.020572692155838013,
+      "mapper_grad_norm": 0.531458024321793,
+      "gains": {
+        "A/public_coverage": 0.028093665838241577,
+        "A/SEX": 0.009630322456359863,
+        "A/RAC1P": 0.023994088172912598,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 220,
+      "train_loss": 0.3606314957141876,
+      "utility": 0.25115975737571716,
+      "source": 0.22285248339176178,
+      "distortion": 0.028307270258665085,
+      "penalty": 0.03649057820439339,
+      "mapper_grad_norm": 0.5326945063369976,
+      "gains": {
+        "A/public_coverage": 0.038109660148620605,
+        "A/SEX": 0.02556532621383667,
+        "A/RAC1P": 0.045796751976013184,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 230,
+      "train_loss": 0.317501038312912,
+      "utility": 0.25076547265052795,
+      "source": 0.22373372316360474,
+      "distortion": 0.027031758800148964,
+      "penalty": 0.022245189175009727,
+      "mapper_grad_norm": 0.5982840277212267,
+      "gains": {
+        "A/public_coverage": 0.02868485450744629,
+        "A/SEX": 0.010613977909088135,
+        "A/RAC1P": 0.02743673324584961,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 240,
+      "train_loss": 0.2985309362411499,
+      "utility": 0.23333309590816498,
+      "source": 0.20453207194805145,
+      "distortion": 0.028801020234823227,
+      "penalty": 0.02173260785639286,
+      "mapper_grad_norm": 0.6535095249818733,
+      "gains": {
+        "A/public_coverage": 0.004289090633392334,
+        "A/SEX": 0.029853641986846924,
+        "A/RAC1P": 0.031055092811584473,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 250,
+      "train_loss": 0.3748134672641754,
+      "utility": 0.30571243166923523,
+      "source": 0.2721225917339325,
+      "distortion": 0.033589836210012436,
+      "penalty": 0.02303367853164673,
+      "mapper_grad_norm": 0.6095119512838524,
+      "gains": {
+        "A/public_coverage": 0.019804418087005615,
+        "A/SEX": 0.013689994812011719,
+        "A/RAC1P": 0.03560662269592285,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 260,
+      "train_loss": 0.31351006031036377,
+      "utility": 0.2894076108932495,
+      "source": 0.24882596731185913,
+      "distortion": 0.040581632405519485,
+      "penalty": 0.00803415011614561,
+      "mapper_grad_norm": 0.5225335146034608,
+      "gains": {
+        "A/public_coverage": 0.005657553672790527,
+        "A/SEX": 0.004158496856689453,
+        "A/RAC1P": 0.014286398887634277,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 270,
+      "train_loss": 0.35597795248031616,
+      "utility": 0.2667050361633301,
+      "source": 0.23067043721675873,
+      "distortion": 0.03603459149599075,
+      "penalty": 0.02975763939321041,
+      "mapper_grad_norm": 0.552441896067988,
+      "gains": {
+        "A/public_coverage": 0.009418070316314697,
+        "A/SEX": 0.03427267074584961,
+        "A/RAC1P": 0.04558217525482178,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 280,
+      "train_loss": 0.3915252089500427,
+      "utility": 0.28351935744285583,
+      "source": 0.2492835819721222,
+      "distortion": 0.03423577919602394,
+      "penalty": 0.03600195050239563,
+      "mapper_grad_norm": 0.4671863859829182,
+      "gains": {
+        "A/public_coverage": 0.014007538557052612,
+        "A/SEX": 0.033537864685058594,
+        "A/RAC1P": 0.060460448265075684,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 290,
+      "train_loss": 0.3590486943721771,
+      "utility": 0.30328598618507385,
+      "source": 0.2728450298309326,
+      "distortion": 0.03044094890356064,
+      "penalty": 0.018587568774819374,
+      "mapper_grad_norm": 0.5655187203383633,
+      "gains": {
+        "A/public_coverage": 0.02306753396987915,
+        "A/SEX": 0.005049943923950195,
+        "A/RAC1P": 0.027645230293273926,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 300,
+      "train_loss": 0.3490302860736847,
+      "utility": 0.258159875869751,
+      "source": 0.2214481681585312,
+      "distortion": 0.036711692810058594,
+      "penalty": 0.030290136113762856,
+      "mapper_grad_norm": 0.5360235829328106,
+      "gains": {
+        "A/public_coverage": 0.029344648122787476,
+        "A/SEX": 0.03232449293136597,
+        "A/RAC1P": 0.029201269149780273,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 310,
+      "train_loss": 0.3444679379463196,
+      "utility": 0.285312294960022,
+      "source": 0.25068551301956177,
+      "distortion": 0.03462677448987961,
+      "penalty": 0.01971854828298092,
+      "mapper_grad_norm": 0.596002260085287,
+      "gains": {
+        "A/public_coverage": 0.018431425094604492,
+        "A/SEX": 0.003937065601348877,
+        "A/RAC1P": 0.03678715229034424,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 320,
+      "train_loss": 0.36094534397125244,
+      "utility": 0.3024752140045166,
+      "source": 0.2691360414028168,
+      "distortion": 0.033339161425828934,
+      "penalty": 0.019490042701363564,
+      "mapper_grad_norm": 0.5093438529801904,
+      "gains": {
+        "A/public_coverage": 0.017788052558898926,
+        "A/SEX": 0.01271200180053711,
+        "A/RAC1P": 0.027970075607299805,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 330,
+      "train_loss": 0.35910212993621826,
+      "utility": 0.2899830639362335,
+      "source": 0.2583444118499756,
+      "distortion": 0.03163865581154823,
+      "penalty": 0.023039689287543297,
+      "mapper_grad_norm": 0.57217536513058,
+      "gains": {
+        "A/public_coverage": 0.015136271715164185,
+        "A/SEX": 0.028927981853485107,
+        "A/RAC1P": 0.02505481243133545,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 340,
+      "train_loss": 0.32678720355033875,
+      "utility": 0.26840537786483765,
+      "source": 0.22896812856197357,
+      "distortion": 0.039437245577573776,
+      "penalty": 0.019460609182715416,
+      "mapper_grad_norm": 0.5447389097618616,
+      "gains": {
+        "A/public_coverage": 0.011707395315170288,
+        "A/SEX": 0.017166554927825928,
+        "A/RAC1P": 0.029507875442504883,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 350,
+      "train_loss": 0.3499307930469513,
+      "utility": 0.2829333245754242,
+      "source": 0.2436617910861969,
+      "distortion": 0.03927154093980789,
+      "penalty": 0.022332489490509033,
+      "mapper_grad_norm": 0.5553658599700789,
+      "gains": {
+        "A/public_coverage": 0.02813124656677246,
+        "A/SEX": 0.028049767017364502,
+        "A/RAC1P": 0.010816454887390137,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 360,
+      "train_loss": 0.32009071111679077,
+      "utility": 0.2506157159805298,
+      "source": 0.21657629311084747,
+      "distortion": 0.03403941169381142,
+      "penalty": 0.023158332332968712,
+      "mapper_grad_norm": 0.48312953471740955,
+      "gains": {
+        "A/public_coverage": 0.015662312507629395,
+        "A/SEX": 0.008742868900299072,
+        "A/RAC1P": 0.04506981372833252,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 370,
+      "train_loss": 0.34454014897346497,
+      "utility": 0.2543153464794159,
+      "source": 0.21837225556373596,
+      "distortion": 0.03594310209155083,
+      "penalty": 0.030074933543801308,
+      "mapper_grad_norm": 0.5337288339369007,
+      "gains": {
+        "A/public_coverage": 0.02328968048095703,
+        "A/SEX": 0.01464909315109253,
+        "A/RAC1P": 0.05228602886199951,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 380,
+      "train_loss": 0.35817721486091614,
+      "utility": 0.2867232859134674,
+      "source": 0.24923275411128998,
+      "distortion": 0.03749053180217743,
+      "penalty": 0.02381797693669796,
+      "mapper_grad_norm": 0.6317381156872756,
+      "gains": {
+        "A/public_coverage": 0.032183051109313965,
+        "A/SEX": 0.022271037101745605,
+        "A/RAC1P": 0.01699984073638916,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 390,
+      "train_loss": 0.4029133915901184,
+      "utility": 0.3178252875804901,
+      "source": 0.28482216596603394,
+      "distortion": 0.03300311788916588,
+      "penalty": 0.02836270071566105,
+      "mapper_grad_norm": 0.5271417639408802,
+      "gains": {
+        "A/public_coverage": 0.024095147848129272,
+        "A/SEX": 0.012481093406677246,
+        "A/RAC1P": 0.04851186275482178,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 400,
+      "train_loss": 0.334014356136322,
+      "utility": 0.2513117492198944,
+      "source": 0.21313178539276123,
+      "distortion": 0.038179975003004074,
+      "penalty": 0.027567535638809204,
+      "mapper_grad_norm": 0.46255773659462224,
+      "gains": {
+        "A/public_coverage": 0.0357460081577301,
+        "A/SEX": 0.013500511646270752,
+        "A/RAC1P": 0.03345608711242676,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 410,
+      "train_loss": 0.31581658124923706,
+      "utility": 0.26825588941574097,
+      "source": 0.22854217886924744,
+      "distortion": 0.039713721722364426,
+      "penalty": 0.01585356332361698,
+      "mapper_grad_norm": 0.47679045941278786,
+      "gains": {
+        "A/public_coverage": 0.0,
+        "A/SEX": 0.01099252700805664,
+        "A/RAC1P": 0.03656816482543945,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:linear",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 420,
+      "train_loss": 0.3615680932998657,
+      "utility": 0.28723233938217163,
+      "source": 0.24570441246032715,
+      "distortion": 0.04152793064713478,
+      "penalty": 0.024778584018349648,
+      "mapper_grad_norm": 0.6508879241812332,
+      "gains": {
+        "A/public_coverage": 0.012594938278198242,
+        "A/SEX": 0.02629643678665161,
+        "A/RAC1P": 0.03544437885284424,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 430,
+      "train_loss": 0.3462315797805786,
+      "utility": 0.2964963912963867,
+      "source": 0.25394147634506226,
+      "distortion": 0.04255490377545357,
+      "penalty": 0.016578396782279015,
+      "mapper_grad_norm": 0.6141321077964534,
+      "gains": {
+        "A/public_coverage": 0.014233231544494629,
+        "A/SEX": 0.009820103645324707,
+        "A/RAC1P": 0.02568185329437256,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 440,
+      "train_loss": 0.29905641078948975,
+      "utility": 0.2435692697763443,
+      "source": 0.19966164231300354,
+      "distortion": 0.04390762373805046,
+      "penalty": 0.01849570870399475,
+      "mapper_grad_norm": 0.524428244733114,
+      "gains": {
+        "A/public_coverage": 0.010169059038162231,
+        "A/SEX": 0.012089669704437256,
+        "A/RAC1P": 0.033228397369384766,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 450,
+      "train_loss": 0.32698437571525574,
+      "utility": 0.2909640669822693,
+      "source": 0.24970662593841553,
+      "distortion": 0.04125744104385376,
+      "penalty": 0.012006769888103008,
+      "mapper_grad_norm": 0.6642840278533718,
+      "gains": {
+        "A/public_coverage": 0.005102008581161499,
+        "A/SEX": 0.01886814832687378,
+        "A/RAC1P": 0.012050151824951172,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 460,
+      "train_loss": 0.40026748180389404,
+      "utility": 0.3066446781158447,
+      "source": 0.262502521276474,
+      "distortion": 0.04414216801524162,
+      "penalty": 0.031207600608468056,
+      "mapper_grad_norm": 0.5133305193434482,
+      "gains": {
+        "A/public_coverage": 0.02297341823577881,
+        "A/SEX": 0.02139914035797119,
+        "A/RAC1P": 0.049250245094299316,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 470,
+      "train_loss": 0.3681104779243469,
+      "utility": 0.27674949169158936,
+      "source": 0.23151139914989471,
+      "distortion": 0.04523808881640434,
+      "penalty": 0.03045366145670414,
+      "mapper_grad_norm": 0.6418207906891829,
+      "gains": {
+        "A/public_coverage": 0.025170207023620605,
+        "A/SEX": 0.010915815830230713,
+        "A/RAC1P": 0.05527496337890625,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 480,
+      "train_loss": 0.3472484350204468,
+      "utility": 0.29250791668891907,
+      "source": 0.2479872852563858,
+      "distortion": 0.04452062398195267,
+      "penalty": 0.018246838822960854,
+      "mapper_grad_norm": 0.5485485140734718,
+      "gains": {
+        "A/public_coverage": 0.01959720253944397,
+        "A/SEX": 0.011569678783416748,
+        "A/RAC1P": 0.023573637008666992,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 490,
+      "train_loss": 0.39609286189079285,
+      "utility": 0.29528871178627014,
+      "source": 0.24968883395195007,
+      "distortion": 0.04559987410902977,
+      "penalty": 0.03360138460993767,
+      "mapper_grad_norm": 0.5984583341099328,
+      "gains": {
+        "A/public_coverage": 0.019479215145111084,
+        "A/SEX": 0.032877206802368164,
+        "A/RAC1P": 0.04844772815704346,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 500,
+      "train_loss": 0.35425442457199097,
+      "utility": 0.2804829478263855,
+      "source": 0.24151721596717834,
+      "distortion": 0.038965728133916855,
+      "penalty": 0.024590492248535156,
+      "mapper_grad_norm": 0.598755772985506,
+      "gains": {
+        "A/public_coverage": 0.02315586805343628,
+        "A/SEX": 0.03202897310256958,
+        "A/RAC1P": 0.01858663558959961,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 510,
+      "train_loss": 0.39456266164779663,
+      "utility": 0.2813965678215027,
+      "source": 0.23634737730026245,
+      "distortion": 0.04504920542240143,
+      "penalty": 0.03772203251719475,
+      "mapper_grad_norm": 0.5913746234996899,
+      "gains": {
+        "A/public_coverage": 0.02999711036682129,
+        "A/SEX": 0.02941274642944336,
+        "A/RAC1P": 0.0537562370300293,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 520,
+      "train_loss": 0.3772909641265869,
+      "utility": 0.31358927488327026,
+      "source": 0.2689811587333679,
+      "distortion": 0.044608116149902344,
+      "penalty": 0.021233895793557167,
+      "mapper_grad_norm": 0.5835498872536671,
+      "gains": {
+        "A/public_coverage": 0.009083390235900879,
+        "A/SEX": 0.019751250743865967,
+        "A/RAC1P": 0.034867048263549805,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 530,
+      "train_loss": 0.37512561678886414,
+      "utility": 0.28449755907058716,
+      "source": 0.2367718368768692,
+      "distortion": 0.04772573709487915,
+      "penalty": 0.03020935319364071,
+      "mapper_grad_norm": 0.5753736467042695,
+      "gains": {
+        "A/public_coverage": 0.01844385266304016,
+        "A/SEX": 0.020170927047729492,
+        "A/RAC1P": 0.052013278007507324,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 540,
+      "train_loss": 0.3487720191478729,
+      "utility": 0.28480997681617737,
+      "source": 0.23976624011993408,
+      "distortion": 0.04504374414682388,
+      "penalty": 0.021320680156350136,
+      "mapper_grad_norm": 0.5974108535267828,
+      "gains": {
+        "A/public_coverage": 0.0,
+        "A/SEX": 0.02801734209060669,
+        "A/RAC1P": 0.03594470024108887,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:linear",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 550,
+      "train_loss": 0.3737075626850128,
+      "utility": 0.2871832251548767,
+      "source": 0.2409278154373169,
+      "distortion": 0.04625541344285011,
+      "penalty": 0.028841445222496986,
+      "mapper_grad_norm": 0.50560654955582,
+      "gains": {
+        "A/public_coverage": 0.025313884019851685,
+        "A/SEX": 0.03172057867050171,
+        "A/RAC1P": 0.029489874839782715,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 560,
+      "train_loss": 0.3809185028076172,
+      "utility": 0.32369160652160645,
+      "source": 0.27696916460990906,
+      "distortion": 0.04672243073582649,
+      "penalty": 0.019075632095336914,
+      "mapper_grad_norm": 0.609437885209659,
+      "gains": {
+        "A/public_coverage": 0.024155914783477783,
+        "A/SEX": 0.023332655429840088,
+        "A/RAC1P": 0.009738326072692871,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:linear",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 570,
+      "train_loss": 0.3645496666431427,
+      "utility": 0.2719528377056122,
+      "source": 0.22354739904403687,
+      "distortion": 0.04840542748570442,
+      "penalty": 0.030865609645843506,
+      "mapper_grad_norm": 0.5582184433715612,
+      "gains": {
+        "A/public_coverage": 0.015652239322662354,
+        "A/SEX": 0.023449301719665527,
+        "A/RAC1P": 0.05349528789520264,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 580,
+      "train_loss": 0.41204923391342163,
+      "utility": 0.3041767477989197,
+      "source": 0.2581949234008789,
+      "distortion": 0.04598183184862137,
+      "penalty": 0.035957496613264084,
+      "mapper_grad_norm": 0.6038183742112693,
+      "gains": {
+        "A/public_coverage": 0.03449887037277222,
+        "A/SEX": 0.026675879955291748,
+        "A/RAC1P": 0.04669773578643799,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 590,
+      "train_loss": 0.35156577825546265,
+      "utility": 0.25259798765182495,
+      "source": 0.20799823105335236,
+      "distortion": 0.04459976404905319,
+      "penalty": 0.0329892635345459,
+      "mapper_grad_norm": 0.7147032799981783,
+      "gains": {
+        "A/public_coverage": 0.01062089204788208,
+        "A/SEX": 0.013429701328277588,
+        "A/RAC1P": 0.07491719722747803,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64",
+        "A/SEX": "1:mlp64_32",
+        "A/RAC1P": "1:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    },
+    {
+      "step": 600,
+      "train_loss": 0.36438119411468506,
+      "utility": 0.27549949288368225,
+      "source": 0.22937852144241333,
+      "distortion": 0.04612096771597862,
+      "penalty": 0.029627233743667603,
+      "mapper_grad_norm": 0.5445679078771166,
+      "gains": {
+        "A/public_coverage": 0.035063236951828,
+        "A/SEX": 0.013358712196350098,
+        "A/RAC1P": 0.04045975208282471,
+        "AB/SEX": 0.0,
+        "AB/RAC1P": 0.0
+      },
+      "active_attacker": {
+        "A/public_coverage": "0:mlp64_32",
+        "A/SEX": "0:mlp64",
+        "A/RAC1P": "0:mlp64_32",
+        "AB/SEX": null,
+        "AB/RAC1P": null
+      }
+    }
+  ],
+  "refreshes": [
+    {
+      "step": 150,
+      "family": "mlp64",
+      "decisions": {
+        "A/public_coverage|0": {
+          "incumbent_monitor_ce": 0.5030151605606079,
+          "refreshed_monitor_ce": 0.5097384452819824,
+          "kept": "incumbent",
+          "recovery": -0.006723284721374512
+        },
+        "A/SEX|0": {
+          "incumbent_monitor_ce": 0.6767536401748657,
+          "refreshed_monitor_ce": 0.6864368319511414,
+          "kept": "incumbent",
+          "recovery": -0.009683191776275635
+        },
+        "A/RAC1P|0": {
+          "incumbent_monitor_ce": 1.2552227973937988,
+          "refreshed_monitor_ce": 1.2597863674163818,
+          "kept": "incumbent",
+          "recovery": -0.004563570022583008
+        },
+        "A/SEX|1": {
+          "incumbent_monitor_ce": 0.6779998540878296,
+          "refreshed_monitor_ce": 0.6869059205055237,
+          "kept": "incumbent",
+          "recovery": -0.008906066417694092
+        },
+        "A/RAC1P|1": {
+          "incumbent_monitor_ce": 1.2567840814590454,
+          "refreshed_monitor_ce": 1.2600734233856201,
+          "kept": "incumbent",
+          "recovery": -0.003289341926574707
+        }
+      }
+    },
+    {
+      "step": 300,
+      "family": "mlp64_32",
+      "decisions": {
+        "A/public_coverage|0": {
+          "incumbent_monitor_ce": 0.5028643012046814,
+          "refreshed_monitor_ce": 0.5118429660797119,
+          "kept": "incumbent",
+          "recovery": -0.008978664875030518
+        },
+        "A/SEX|0": {
+          "incumbent_monitor_ce": 0.6774938106536865,
+          "refreshed_monitor_ce": 0.6891680359840393,
+          "kept": "incumbent",
+          "recovery": -0.011674225330352783
+        },
+        "A/RAC1P|0": {
+          "incumbent_monitor_ce": 1.2558833360671997,
+          "refreshed_monitor_ce": 1.2605063915252686,
+          "kept": "incumbent",
+          "recovery": -0.004623055458068848
+        },
+        "A/SEX|1": {
+          "incumbent_monitor_ce": 0.6763717532157898,
+          "refreshed_monitor_ce": 0.6882570385932922,
+          "kept": "incumbent",
+          "recovery": -0.011885285377502441
+        },
+        "A/RAC1P|1": {
+          "incumbent_monitor_ce": 1.2572858333587646,
+          "refreshed_monitor_ce": 1.2605383396148682,
+          "kept": "incumbent",
+          "recovery": -0.0032525062561035156
+        }
+      }
+    },
+    {
+      "step": 450,
+      "family": "mlp64",
+      "decisions": {
+        "A/public_coverage|0": {
+          "incumbent_monitor_ce": 0.5026307106018066,
+          "refreshed_monitor_ce": 0.5082963705062866,
+          "kept": "incumbent",
+          "recovery": -0.0056656599044799805
+        },
+        "A/SEX|0": {
+          "incumbent_monitor_ce": 0.690472424030304,
+          "refreshed_monitor_ce": 0.6912131309509277,
+          "kept": "incumbent",
+          "recovery": -0.0007407069206237793
+        },
+        "A/RAC1P|0": {
+          "incumbent_monitor_ce": 1.2554740905761719,
+          "refreshed_monitor_ce": 1.2605690956115723,
+          "kept": "incumbent",
+          "recovery": -0.005095005035400391
+        },
+        "A/SEX|1": {
+          "incumbent_monitor_ce": 0.691964864730835,
+          "refreshed_monitor_ce": 0.6915302276611328,
+          "kept": "refreshed",
+          "recovery": 0.00043463706970214844
+        },
+        "A/RAC1P|1": {
+          "incumbent_monitor_ce": 1.257239580154419,
+          "refreshed_monitor_ce": 1.26087486743927,
+          "kept": "incumbent",
+          "recovery": -0.0036352872848510742
+        }
+      }
+    }
+  ],
+  "attacker_warmup_loss": {
+    "first": 0.8199617385864257,
+    "last": 0.8626024881998698
+  },
+  "slots": [
+    "A/public_coverage|0",
+    "A/SEX|0",
+    "A/RAC1P|0",
+    "A/SEX|1",
+    "A/RAC1P|1"
+  ],
+  "attacker_families": [
+    "linear",
+    "mlp64",
+    "mlp64_32"
+  ],
+  "attacker_updates_total": 3220,
+  "mapper_updates_total": 600,
+  "runtime_seconds": 14.15795879199868
+}
