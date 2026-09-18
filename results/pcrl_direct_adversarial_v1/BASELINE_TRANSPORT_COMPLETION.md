@@ -34,13 +34,19 @@ the **2018** release and must match the stored 2018 `releases.npz` **bitwise on*
 
 | seed | arm | status | max abs difference vs stored 2018 | identity proved |
 |---|---|---|---|---|
+| 0 | `leace_A0` | IDENTITY PROVED | 0.000e+00 | yes |
 | 0 | `optnet16_C1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 0 | `optnet16_L1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 0 | `optnet16_L2` | IDENTITY PROVED | 0.000e+00 | yes |
+| 0 | `splince_A0` | IDENTITY PROVED | 0.000e+00 | yes |
+| 1 | `leace_A0` | IDENTITY PROVED | 0.000e+00 | yes |
 | 1 | `optnet16_C1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 1 | `optnet16_L1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 1 | `optnet16_L2` | IDENTITY PROVED | 0.000e+00 | yes |
+| 1 | `splince_A0` | IDENTITY PROVED | 0.000e+00 | yes |
+| 2 | `leace_A0` | IDENTITY PROVED | 0.000e+00 | yes |
 | 2 | `optnet16_C1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 2 | `optnet16_L1` | IDENTITY PROVED | 0.000e+00 | yes |
 | 2 | `optnet16_L2` | IDENTITY PROVED | 0.000e+00 | yes |
+| 2 | `splince_A0` | IDENTITY PROVED | 0.000e+00 | yes |
 
