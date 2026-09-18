@@ -1,0 +1,1030 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{2pt}
+
+\title{Adding a reusable representation beside a fixed prediction service:\\
+an evaluated problem, a coalition-conditioning effect, and two negative method results}
+\author{}
+\date{Integrated revision of 2026-09-17.
+Branch \texttt{research/pcrl-manuscript-integrated-v2}.}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+An organisation already publishes a prediction service: fixed probability vectors that downstream
+recipients consume and cannot be asked to re-accept. We ask what happens when it adds a
+\emph{second}, reusable feature channel for one recipient without changing a single published
+number, and tries to limit what that recipient---and a coalition of recipients---can \emph{newly}
+infer about sex and race. We contribute an evaluated formulation of that problem and two completed
+studies of one mechanism family for it. The mechanism keeps the teacher information the published
+outputs do not explain and chooses directions by maximising linear reconstruction of that residual
+minus conditional-moment penalties, conditioning on the released service probabilities through
+cross-fitted nuisances. Penalties can be local to one recipient or specific to a coalition's joint
+view. Five findings. (i) Exact service preservation is structural and holds bitwise on all 210
+released views; it does not imply stable service \emph{accuracy}, which moves by up to $0.015$ nats
+across one year. (ii) On a locked, previously unused survey year the coalition-conditioned penalty
+beats both an equal-strength and an equal-total-mass local control under simultaneous 95\%
+intervals: 14 of its 16 sensitive endpoint cells are strictly better, none is worse, and two are
+unresolved. The registered rule---at least one strictly better and none strictly worse, per
+weighting---passed in all four cells. (iii) That rule pairs with a \emph{point} constraint on
+residence utility, and the interval evidence does not establish non-inferiority at the same
+$0.001$ margin: zero of four comparisons, under any procedure we computed. (iv) Under identical
+attacks the mechanism is significantly worse than a frozen adversarially trained channel of the
+same width on all four sensitive endpoints under both weightings, and that ordering survives
+matching the two on average utility in both directions. (v) A refinement---a penalty nonlinear in
+the channel, plus a rank-8 compression---moves measured recovery substantially in the intended
+direction on development data, but all eight registered coordination cells still fail, the best
+candidate remains significantly worse than the neural channel on local sex, and an exploratory
+cross-year look widens rather than narrows that gap. The refinement also turned out to be
+coordinate-dependent: a search that only rotates the released subspace, changing nothing an
+attacker can recover, reaches a large share of its training-objective gain. We report an
+evaluation contribution and two negative method results, and we list every claim of our own that
+this revision withdraws or narrows.
+\end{abstract}
+
+\section{What this paper is, and what it is not}
+\label{sec:contribution}
+
+A service that already publishes predictions can hand one recipient extra features built only from
+what those predictions leave unexplained, and can steer those features away from directions that
+would let that recipient---or that recipient plus a colluding one---guess sex or race better than
+the published predictions already allow. We show the steering knob works on a sealed new year of
+data against its own local controls; that a refinement of it moves recovery further in the intended
+direction on development data; and that neither version is competitive with an adversarially
+trained channel of the same size.
+
+\textbf{This is an empirical and problem-formulation paper, not a method paper.} The useful output
+is the formulation---fixed published outputs as a hard constraint, recipient-specific and
+coalition-specific audit roles---together with the evaluation design and two honest negative
+results. It is not a deployable mechanism and we do not present it as one. No claim here
+establishes universal privacy, conditional independence, an upper bound on mutual information, or
+the failure of any mathematical method family.
+
+Two completed studies are reported. \textbf{Study~1} is a locked temporal transport of a frozen
+14-interface slate to a previously unused survey year (\S\ref{sec:results1}). \textbf{Study~2} is a
+development study of a nonlinear-moment refinement and a rank intervention
+(\S\ref{sec:results2}). The main text keeps them apart by what each is evidence \emph{for}, not by
+the order in which they were run. \S\ref{sec:withdrawn} lists every claim this revision withdraws
+or narrows, with the evidence for each.
+
+\paragraph{One paragraph for a colleague.} We study a release setting that existing invariant- and
+fair-representation work does not evaluate: an organisation has already published prediction
+outputs it cannot revise, and wants to add a reusable feature channel for one recipient while
+limiting what that recipient, and that recipient colluding with another, can newly infer about
+protected attributes. Within that setting we show that a penalty built specifically from the
+coalition's joint view measurably reduces recovery relative to local-only penalties on a sealed
+evaluation year---but that the whole mechanism family we tried remains clearly behind an
+adversarially trained channel of the same width, so what we are offering is the evaluated problem
+and the measurement design, not a competitive algorithm.
+
+\section{Threat model and interface, in plain language}
+\label{sec:interface}
+
+Each person has covariates $X$, sensitive attributes $S$ (sex, 2 classes; race, 9 classes) and task
+labels. Before anything in this paper happens, two services are already frozen and published:
+
+\begin{itemize}\itemsep1pt
+\item $H_A(X)\in[0,1]^4$ --- the full income-over-\$50k and employment probability vectors,
+  released to recipient~A;
+\item $H_B(X)\in[0,1]^2$ --- the full public-coverage probability vector, released to recipient~B.
+\end{itemize}
+
+A mechanism may add a channel $Z\in\mathbb{R}^{16}$ \emph{for A only}. Recipient B's release is
+unchanged. So the three views are: A sees $(H_A,Z)$; B sees $H_B$; the coalition AB sees
+$(H_A,Z,H_B)$. Throughout, $H$ with no subscript means the no-channel interface: what an attacker
+can already do from the published service alone.
+
+Three names recur and are fixed here once.
+
+\begin{description}\itemsep2pt
+\item[\normalfont\textbf{$J$, the frozen neural channel.}] A 16-dimensional adversarially trained
+channel, recovered from the earlier line of work and never retrained here. It is the strongest
+comparator in the study. It is \emph{internal}: it is not an external published baseline, and no
+result below should be read as a comparison against a state-of-the-art system
+(\S\ref{sec:related}).
+\item[\normalfont\textbf{Local controls, $L1$ and $L2$.}] Spectral arms whose penalty uses only
+recipient A's own view. $L1$ is matched to the candidate on penalty \emph{strength}; $L2$ is
+matched on total penalty \emph{mass}. They exist so that a coalition effect cannot be confused with
+``more penalty''.
+\item[\normalfont\textbf{Coalition condition, $C1$.}] The same construction with an additional
+penalty term built from the coalition's joint view $(H_A,Z,H_B)$. It is the candidate.
+\end{description}
+
+The adversary holds labelled data from the release year, fits fixed attack families on its own
+pool, selects on a validation pool, and sees only its legal view. The policy authorises A for
+income, employment and residence, B for coverage and commute, and forbids sex and race everywhere,
+coverage and commute for A, and income, employment and residence for B---eleven forbidden roles.
+Every published function, including the preprocessing, the released map and the neural arms' public
+auxiliary heads, is in scope, and coalition attacks may use any legal projection of A's and B's
+candidates.
+
+\textbf{The A-only limitation is real and bounds every claim below.} Only one recipient receives a
+channel. Nothing here demonstrates joint optimisation of channels for several recipients, and the
+coalition penalty is a constraint on one channel given another recipient's fixed view, not a
+multi-channel design.
+
+\section{Why the published outputs are retained}
+\label{sec:retained}
+
+The constraint that makes this problem different from representation learning is that $H_A$ and
+$H_B$ have already been published. Downstream consumers have built on those exact numbers; a
+revision is a migration, not a deployment. So the mechanism may append but not modify: $Z$ is
+concatenated to $H_A$ and never mixed into it. Exact preservation is then \emph{structural} rather
+than measured---there is no perturbation whose size must be bounded---and we verify it bitwise on
+every released view rather than certifying it statistically. This also means preservation is
+\emph{easy}: appending a vector while leaving another untouched is a trivial observation about
+concatenation, not a theorem, and we claim nothing more for it.
+
+Two things it does not give us. It does not mean the service stays \emph{accurate}: on identical
+released vectors, employment log loss rises by $0.0138$ nats and income falls by $0.0145$ between
+the two years (Table~\ref{tab:criteria}). And it does not constrain what the appended channel
+discloses, which is the entire subject of this paper.
+
+\section{The mechanism}
+\label{sec:method}
+
+\subsection{The original fixed-matrix construction}
+
+Let $T$ be a frozen PCA32 teacher. Build $\phi(T)=[\,\text{standardised }T,\ 96 \text{ random
+Fourier features}\,]$ with a median-heuristic bandwidth \citep{rahimi2007random}. Let $q_A$ be the
+intercept and all degree-2 monomials in A's two positive-class service probabilities; $q_{AB}$ adds
+B's. Residualise by SVD least squares, $V_0=\phi-q_A B_\phi$ and $R=T-q_A B_T$, then eigen-whiten
+$V_0$ to $V$ with $V^\top V/n=I$. Utility is $U=C_{VR}C_{RV}$: for $W^\top W=I$,
+$\operatorname{tr}(W^\top UW)$ is exactly the training reduction in least-squares reconstruction
+error of the residualised teacher. Protection matrices use household-grouped 3-fold cross-fitted
+multinomial-logistic nuisances $m_j$ (cross-fitting in the sense of \citealp{chernozhukov2016dml};
+we claim none of that work's orthogonality or rate guarantees for our moments) and, for each
+retained basis column $b_k$,
+\[
+G_{jk}=\frac{1}{n_j}\sum_i V_i\, b_k(H_i)\,\bigl(\mathrm{onehot}(S_j)_i-m_j(H_i)\bigr)^{\!\top},
+\qquad P_j=\textstyle\sum_k G_{jk}G_{jk}^{\top}\ \text{(trace-normalised)},
+\]
+averaged over local roles (basis $q_A$: sex, race, coverage), coalition roles (basis $q_{AB}$: sex,
+race) and a marginal variant (constant basis). The released map is the top-16 eigenvectors of
+$U_{\mathrm{norm}}-\lambda P$, giving arms S0 ($\lambda=0$), M025/M1 (marginal), L025/L1/L2 (local)
+and C025/C1 (local $+$ coalition). Inference needs only $T$ and $H_A$; $H_B$ enters fitting and
+auditing only.
+
+\subsection{The refinement studied in Study~2}
+\label{sec:refinement}
+
+Study~2 replaces the fixed penalty matrix with a penalty computed from degree-two monomials of the
+channel output itself, so that the objective is no longer of the form
+$\operatorname{tr}(W^\top AW)$ for any $W$-independent $A$. It also adds a predeclared rank-8
+variant. Both are development-only interventions. The refinement was fitted, audited and then found
+to be \emph{coordinate-dependent}; \S\ref{sec:rotation} reports that diagnostic. \textbf{The defect
+was not repaired in the maps that were evaluated}, so every Study~2 number below is a number for
+the defective objective, and should be read that way.
+
+\subsection{What is a theorem here, and what is not}
+\label{sec:scope}
+
+The eigenvector step is Ky Fan's maximum principle for a \emph{fixed} empirical matrix
+\citep{fan1949weyl}. It certifies nothing about the choice of features, basis, nuisances, rank or
+attacker, and with $r$ fixed at 16 it can retain directions whose penalty exceeds their utility.
+Crucially, it is a statement about the \emph{original} family only: the refinement of
+\S\ref{sec:refinement} has no fixed matrix to take a spectrum of, so it inherits no optimality
+statement whatever. Selecting rank by eigenvalue sign is not our idea and is not new: it is SARL's
+Theorem 3, OptNet-ARL's Theorem 4.1 and K-TOpt's Corollary 4.1
+\citep{sadeghi2019sarl,sadeghi2021optnetarl,sadeghi2022ktopt}. We fixed $r=16$ to match the width
+of the neural baselines, which is a comparison choice, not an optimum.
+
+The moment condition is a finite subset of the $L^2$ characterisation of conditional independence
+that kernel CI tests use \citep{zhang2011kci,strobl2019rcit}. Precisely, it is Lemma 2(v) of
+\citet{zhang2011kci}, attributed there to Daudin: our centring on the $S$ side is algebraically
+equivalent to residualising the $(Z,H)$ side, since with $\tilde f=f-\mathbb{E}[f\mid H]$ we have
+$\mathbb{E}[f(Z,H)(\mathbf 1\{S=c\}-m_c(H))]=\mathbb{E}[\tilde f\cdot\mathbf 1\{S=c\}]$. The
+characterisation quantifies over \emph{every} square-integrable $f$; we test
+$f\in\{Z_\ell b_k(H)\}$---linear in $Z$, degree-2 in $H$, with estimated nuisances and finite
+samples. Consequently vanishing fitted moments do not establish conditional independence, and a
+non-zero moment may reflect nuisance error rather than leakage. Two fixtures make this concrete and
+are carried in the code. An XOR channel has exactly zero marginal moment while $S=ZH$ recovers it
+perfectly; it is detected by an interaction term \emph{in $H$}, so enriching the conditioning side
+suffices. A magnitude channel---$(Z,S)$ uniform on $\{(-1,0),(1,0),(-2,1),(2,1)\}$ with $H$
+constant---has exactly zero first moment, yet $\mathbf 1\{|Z|>1.5\}$ recovers $S$ exactly; because
+$H$ is constant, \emph{no} enrichment of the conditioning side can ever see it, and only a
+nonlinear function of $Z$ can ($\mathbb{E}[Z^2(S-\tfrac12)]=0.75$). The attacks that defeat our
+arms on ACS are MLPs and boosted trees, i.e.\ the second kind.
+
+With population-optimal log-loss predictors, the $H$ versus $(H,Z)$ risk difference equals
+$I(S;Z\mid H)$. Our validation-selected finite attacks do not attain those infima, so the reported
+differences bound it in neither direction---indeed some are negative---and mutual-information
+estimation has its own formal limits \citep{mcallester2020formal}. We report no certified
+information quantity. For the withholding control, an independent visible branch
+$B\sim\mathrm{Bernoulli}(p)$ gives $I(S;B,Z_B\mid H)=p\,I(S;Z\mid H)$ and expected routed loss
+$(1-p)L_H+p\,L_{HZ}$; the branch must be persistent, since independent re-draws would eventually
+reveal $Z$.
+
+\paragraph{Invariance, stated carefully.} For an invertible coordinate change $W\mapsto WQ$ with
+$Q$ orthogonal, the released \emph{information} and the unrestricted Bayes-optimal prediction risks
+are unchanged, because the two releases are measurable functions of one another. That is a
+statement about information and about optima over all measurable predictors. It is \emph{not} a
+statement that every finite trained attacker, or every feature-restricted penalty, behaves
+identically on the two releases: a fitted MLP at a fixed budget is a particular algorithm applied
+to particular coordinates. We use the first statement only, and only where it is what the argument
+needs.
+
+\section{Relation to prior work}
+\label{sec:related}
+
+The closed-form line of Sadeghi, Dehdashtian and Boddeti already solves this shape of problem. SARL
+\citep{sadeghi2019sarl} takes eigenvectors of a utility-minus-$\lambda$-dependence matrix;
+OptNet-ARL \citep{sadeghi2021optnetarl} keeps closed-form ridge players inside a learned encoder
+and already handles several sensitive attributes through several $\lambda$; K-TOpt
+\citep{sadeghi2022ktopt} adds random Fourier features and evaluates on Folktables
+\citep{ding2021retiring}; U-FaTE \citep{dehdashtian2024ufate} adds a \emph{conditional} penalty.
+Our marginal arms are, up to parametrisation, SARL's construction on whitened random-feature
+residuals. \textbf{Reusing a known solver, a conditional-moment characterisation or a rank rule is
+attribution, not innovation}, and we list the reused components explicitly in
+\texttt{RELATED\_WORK\_SCOPE.md}.
+
+Three things differ, and we state their weight honestly. \emph{What we condition on:} U-FaTE's
+conditional measure is stratification over a discrete label $Y$, and its own text scopes the
+equivalence to ``when $Y$ is not a continuous label''; $H_A$ is a pair of continuous probability
+vectors, so stratification is unavailable and we substitute cross-fitted nuisance residuals. $H$ is
+also a \emph{released artifact} rather than the label to be predicted---a different object even
+setting continuity aside. \emph{What utility means:} reconstruction of a residualised teacher
+rather than dependence with a label. \emph{Recipient structure:} separate local and coalition
+penalties, with only one recipient receiving a channel.
+
+The first two are adaptations of known components, not new optimisation principles. The third we
+did not find in the surveyed literature, and the nearest candidate is weaker prior art than its
+title suggests: the multi-consumer information-theoretic line \citep{sankar2013utility} designs
+\emph{one} sanitised release consumed by many users who differ only in private side information,
+with no per-recipient release, no collusion term, and no constraint to preserve an already-published
+output. Linear concept erasure \citep{belrose2023leace,holstege2025splince} addresses a different
+guarantee (exact \emph{linear} erasure) on a representation the releaser owns and may edit; LEACE
+scopes its guarantee to linear adversaries explicitly. Adversarial removal is known to leave
+recoverable information \citep{elazar2018adversarial}, and least-privilege learning has fundamental
+limits \citep{stadler2024leastprivilege}.
+
+Two further neighbourhoods are worth separating from ours. Conditional fair representation learning
+conditions on a \emph{label} for separation-style criteria \citep{zhao2019conditional,hwa2024enforcing},
+not on a released prediction, and again designs the representation from scratch.
+Information-theoretic privacy gives the quantities our log-loss endpoints relate to---leakage and
+utility both become mutual information under log loss \citep{makhdoumi2014funnel}, with
+perfect-privacy conditions \citep{rassouli2021perfect} and robustness of leakage measures to side
+information \citep{liao2019sideinfo}---but assumes a known joint distribution and a randomised
+mapping, whereas our released map is deterministic and our attacks are fitted. Task-agnostic
+private representation learning \citep{arevalo2024tappfl} targets attribute inference without a
+known downstream task, again with no fixed prior output and one recipient.
+
+\paragraph{The scope of ``we did not find it''.} A bounded search cannot establish novelty and we
+make no priority claim. We distinguish four questions and answer them separately in
+\texttt{RELATED\_WORK\_SCOPE.md}: whether a prior formulation \emph{can express} this setting
+(several can); whether it supplies an \emph{algorithm} applicable here (several do, with
+adaptation); whether it \emph{evaluated} recipient-specific and combined-access policies with
+unchanged existing outputs (we did not find one that did); and whether our study demonstrates an
+effect beyond its own controls (\S\ref{sec:coalition}: yes, against $L1$ and $L2$ on one sealed
+year). ``We did not find a directly matching evaluation'' is the claim; ``no prior method can do
+this'' is not, and would be false for at least the adaptation question.
+
+\paragraph{No external baseline was run, and what that costs us.} SARL, K-TOpt, U-FaTE, OptNet-ARL,
+LEACE and SPLINCE are discussed but never executed here. So this paper cannot claim competitiveness
+with any of them and does not. In particular, $J$ is an \emph{internal} adversarially trained
+channel, not an external benchmark, and where $J$ beats our arms that is evidence about $J$, not
+about the state of the art. \texttt{RELATED\_WORK\_SCOPE.md} specifies what a fair external
+comparison would require, including two constraints that are easy to get wrong: if $H$ must remain
+immutable then LEACE/SPLINCE may act only on the auxiliary channel $Z$, and any guarantee they
+carry then has that scope; and a baseline may not consume residence labels if it is to be compared
+on transfer to a residence task excluded from representation fitting. Any privileged-label variant
+is an oracle and belongs outside the main comparison.
+
+\section{Experimental design and the status of each data pool}
+\label{sec:design}
+
+California ACS one-year PUMS, ages 19--34, three household splits (seeds) throughout, with disjoint
+pools for representation fitting, source validation, task fitting and validation, attacker fitting
+and validation, and evaluation.
+
+\begin{table}[t]
+\centering\small
+\input{tables/evidence_status.tex}
+\caption{The four evidence roles, kept distinct in the abstract, the figures, the methods and the
+limitations. The original 2017 seal is the only confirmatory evidence in this paper. Its later
+reuse by Study~2 is development evidence on an exposed partition and carries no intervals by
+design. ACS 2016 is admitted on documented provenance and schema checks with a prospective
+label-blind household split prepared, and is \textbf{unscored}: no model was fitted on it, no
+outcome distribution was inspected, and no performance diagnostic was produced.}
+\label{tab:evidence}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\input{tables/conditions.tex}
+\caption{The condition table. Every interface is fitted on ACS 2018 source data. ``Fitting
+labels'' are what the representation's penalty consumed; ``inference inputs'' are what the released
+map needs at serving time. \textbf{Residence and commute labels are absent from every
+representation fit.} $H_B$ enters fitting and auditing for coalition arms and is never an inference
+input. The \texttt{lin16}, \texttt{nlr}$\ast$ and \texttt{lin8} rows are Study~2 only. Fit counts
+and the full grid are in Appendix~\ref{app:grid}.}
+\label{tab:conditions}
+\end{table}
+
+\paragraph{Study~1: locked transport.} Fourteen interfaces per seed---H, E, A0, L025, L20, J
+(frozen adversarially trained channels, recovered without retraining) and the eight spectral
+arms---i.e.\ 42 interface instances, of which 24 are the new maps, frozen before any reserved-label
+evaluation. Development was ACS 2018. Transport was ACS 2017, admitted on provenance and schema
+alone, with a label-blind household hash partition fixed before any prediction existed.
+\textbf{Mode A} applies everything frozen: 2018 services, channels, probes, attacker candidate sets
+and 2018 validation selections are scored once on 2017. \textbf{Mode B} refits only probes, priors
+and attackers on 2017 fitting pools and selects on 2017 validation pools; representations,
+protection matrices and nuisances are never refitted. The two are never pooled: a weaker frozen
+attack after a shift is not evidence that fresh attackers fail.
+
+Attacks are logistic regression, two restarted MLPs at 120/360 epochs, two gradient-boosted trees
+and a random-feature kernel-ridge family, plus every legal projection of H's own attacks and of
+singleton candidates into the coalition view, plus, for the neural arms, their public auxiliary
+heads and saved-observer catch-up trajectories. Before the final partition could be read, a lock
+hashed 17{,}639 inputs---protocol, comparison families, code, all interface objects, all 2017
+fitting/validation releases, every fitted object and selection---and was committed and pushed.
+Uncertainty is a paired household-cluster bootstrap (2{,}000 replicates over the 10{,}701 final
+households) with single-step max-$|t|$ simultaneous intervals inside each pre-declared family.
+
+\paragraph{Study~2: development refinement.} 2018 only for its registered evidence, with a
+household-cluster bootstrap over the underlying cohort. The deviation from Study~1 is deliberate
+and recorded: the 2017 study had one household partition shared by all three seeds and could
+cluster on it directly, whereas the 2018 pools are split per seed and overlap in people, so
+clusters are drawn once per replicate from the cohort and applied to every seed. Study~2 later
+re-scored the 2017 partitions as \emph{exploratory} evidence, refitting probes and attackers on
+2017 fitting pools and selecting on 2017 validation pools; it deliberately never calls the sealed
+loader, and it computes no simultaneous intervals there.
+
+\paragraph{Data independence.} This is transport between public survey years of the same state and
+age band, not a fresh sample from the 2018 distribution. Public identifiers \emph{cannot} establish
+that 2017 respondents are different people from 2018 respondents. Verified disjointness is limited
+to published household groups within 2017. Income is nominal and unadjusted, and the annual
+adjustment factor differs between years, which limits cross-year interpretation of the income
+column. The same caution will apply to any future 2016 evaluation, where the income estimand
+differs again.
+
+\paragraph{What was registered in each study, and what was not.} In Study~1, the protocol, the four
+comparison families, every endpoint, the uncertainty procedure and all decision rules were fixed,
+hashed and pushed before the final partition could be read---but \emph{no directional prediction
+was registered}. The result in \S\ref{sec:coalition} is therefore a prespecified-rule confirmation
+on a sealed evaluation, not a called shot. It is also not merely exploratory: fixing the contrasts,
+the endpoint families, the multiplicity correction and the stopping point before the outcome is
+what makes the simultaneous intervals mean what they say. In Study~2, six directional predictions
+\emph{were} registered and hashed before fitting; three of the six turned out wrong or ambiguous,
+and \S\ref{sec:registered2} reports them before anything else.
+
+\paragraph{The residence task, stated precisely.} Residence labels were excluded from every
+representation fit, so no arm's map saw them. That is the sense in which residence is a held-out
+task. It is \emph{not} a pristine unseen-task selection: residence outcomes have been used
+repeatedly across this line of work as the utility endpoint, so the choice of residence as the
+capability measure is itself a development decision. And exact output preservation does not
+preserve future service accuracy under shift (\S\ref{sec:parity}).
+
+\section{Study 1: the locked 2017 evaluation}
+\label{sec:results1}
+
+\subsection{Residence capability, and its limits}
+
+Every augmented interface clears the $0.01$-nat residence reference over H in every seed, weighting
+and mode; the spectral arms carry $0.025$--$0.030$ nats against $0.017$--$0.019$ for the frozen
+neural channel J. Table~\ref{tab:criteria} adds the qualification that matters: the stronger
+half-headroom reference---is the channel's residence probe within half the gap between the
+published service and an \emph{unrestricted} PCA32 or richer bank---passes in only 0--2 of 3 seeds
+for every interface in both modes. The channel adds real capability relative to what is already
+published. It does not approach what an unrestricted representation of the same covariates would
+give.
+
+\subsection{Coalition conditioning beats both local controls, with two cells unresolved}
+\label{sec:coalition}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/forest_primary.pdf}
+\caption{Paired differences with simultaneous 95\% intervals inside each pre-declared family, Mode
+B (fresh 2017 attacks), both weightings. Each difference is candidate minus comparator in nats.
+\textbf{Left panel, F1:} C1 against its two local controls. The two grey A/sex rows are the
+unresolved cells---the comparison there is undecided, \emph{not} the endpoint unaffected.
+\textbf{Right panel, F3:} C1 against the frozen neural channel J; every sensitive endpoint is
+orange.}
+\label{fig:forest}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\input{tables/primary_comparisons.tex}
+\caption{Registered families F1 and F3, Mode B, scope \texttt{transport\_all}, budget 360,
+unweighted rows shown; the person-weighted rows are in Figure~\ref{fig:forest}.
+$\blacktriangledown$ marks an adjusted interval entirely below zero (candidate better),
+$\blacktriangle$ entirely above (worse), blank means the interval crosses zero.}
+\label{tab:primary}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\input{tables/denominators.tex}
+\caption{\textbf{The denominator, made explicit.} ``Sens.\ cells'' counts contrasts $\times$ 4
+sensitive roles $\times$ 2 weightings. ``\texttt{advantage} fired'' counts the registered rule---at
+least one sensitive endpoint strictly better and none strictly worse, \emph{per weighting}---over
+contrast~$\times$~weighting cells. The two are different objects and this paper quotes whichever
+one it means.}
+\label{tab:denominators}
+\end{table}
+
+On the sealed 2017 partition, C1 has a simultaneous-interval advantage over both its equal-strength
+local control L1 and the equal-total-mass control L2, under both weightings. The registered
+\texttt{advantage} rule fired in all four contrast $\times$ weighting cells, and the registered
+primary coordination decision was recorded as supported.
+
+The effect is real and it is not uniform. Of the 16 sensitive cells in F1, \textbf{14 have adjusted
+intervals entirely below zero, none is above zero, and two are unresolved}: C1 versus L1 on A/sex
+unweighted, $[-0.00585,+0.00020]$, and C1 versus L2 on A/sex unweighted, $[-0.00568,+0.00052]$. In
+both, the point estimate favours C1 and the same endpoint is strictly better under person
+weighting. So the accurate statement is that coalition conditioning lowers measured recovery
+against both local controls, most clearly on the coalition endpoints and local race, with local sex
+unweighted undecided. Our earlier summary said ``8 of 8 sensitive endpoints better, 0 worse under
+both weightings''; that count is the endpoint~$\times$~comparator grid scored as better in
+\emph{at~least~one} weighting, and as written it overstates the result. It is withdrawn
+(\S\ref{sec:withdrawn}, item~11). Frozen 2018 attacks reproduce the ordering (F4), so it is not an
+artifact of refitting attackers on the new year.
+
+\subsection{The residence rule is a point criterion, and only a point criterion}
+
+\begin{table}[t]
+\centering\small
+\input{tables/equivalence.tex}
+\caption{Retrospective non-inferiority for the F1 residence endpoint at the registered margin of
+$0.001$ nats. Lower loss is better, so the question is whether the \emph{upper} bound falls below
+$+0.001$. It does not, in any of the four comparisons, even under the most permissive procedure
+(a pointwise one-sided bootstrap percentile with no multiplicity adjustment). This assessment is
+retrospective and does not replace the registered outcome. The frozen-transfer family F4 is in
+Appendix~\ref{app:equiv}, where 5 of 8 comparisons do clear the margin pointwise and 1 of 8 does so
+simultaneously.}
+\label{tab:equivalence}
+\end{table}
+
+The rule as implemented is $\text{seed-mean}(\text{C1}-\text{comparator})\le 0.001$ on the
+residence log loss. It is one-sided---C1 may be arbitrarily better---and it is a \emph{point}
+criterion: no interval enters it. The four values are $0.00029$, $0.00010$, $0.00059$, $0.00017$,
+so it passes, and would pass under a two-sided reading too.
+
+It does not follow that the residence cost is below $0.001$. Table~\ref{tab:equivalence} shows that
+\textbf{zero of four comparisons support non-inferiority at that margin}, missing it by 2\% to
+35\%, and zero support two-sided equivalence. ``No statistically detected cost'' and ``a cost
+bounded below $0.001$'' are different statements and only the first is supported. Our earlier
+phrasing ``inside the prespecified $0.001$ band'' invited exactly the interval reading the evidence
+does not support, and we withdraw it.
+
+The same distinction applies to the harm side of the rule. The \texttt{advantage} rule requires
+that \emph{no} sensitive endpoint is significantly worse. That is an absence-of-evidence condition,
+not a demonstration of no harm: on the two unresolved A/sex cells, up to $5\times10^{-4}$ nats of
+\emph{extra} local sex recovery is not excluded. We therefore show point estimates and intervals
+rather than saying an endpoint is unaffected.
+
+\subsection{Absolute against additional recovery}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/absolute_vs_additional.pdf}
+\caption{Absolute recovery on the 2017 final partition, split into the part an attacker already
+gets from the published service alone (grey) and the part the appended channel adds (blue). Mode B,
+unweighted, seed mean. Lower is better. The grey segment is identical across interfaces by
+construction: it is H's own recovery. Hatched segments are \emph{negative} increments, where the
+validation-selected attack on the augmented wire does worse than H's own attack.}
+\label{fig:absadd}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\input{tables/absolute_vs_additional.tex}
+\caption{Absolute and additional (H-relative) recovery beside residence gain. Mode B,
+\texttt{transport\_all}, 360, unweighted, seed mean. Lower is better for recovery, higher for
+residence gain. The two recovery columns are different quantities and are never combined.}
+\label{tab:absadd}
+\end{table}
+
+The H baseline is substantial: an attacker on the bare service wire already recovers $0.0165$ nats
+of A/race and $0.0141$ of AB/sex. Two consequences.
+
+\emph{Ratios are scale-dependent; differences are not.} C1 against J on A/race is $6.0\times$ on
+increments ($0.0453$ vs $0.0076$) and $2.6\times$ on absolute values ($0.0617$ vs $0.0241$). The
+paired difference, $0.0377\,[0.0294, 0.0459]$, is identical on both scales, because the shared prior
+and H selection cancel inside a paired contrast. We quote the difference.
+
+\emph{Some increments are negative, and that is a measurement, not protection.} 22 of 429 unweighted
+role-cells are negative in the primary scope. J's own A/sex increment is negative under PWGTP
+($-0.0033$, interval excluding zero) and its absolute A/sex recovery, $0.0092$, is \emph{below} H's
+own $0.0101$: the validation-selected fresh attack on J's wire does worse than H's attack. That is a
+property of selection. H's attack, routed onto J's augmented wire, remains executable, so a negative
+increment removes nothing an H-only attacker already had. In 8 of 312 sensitive cells the selected
+attack generalises worse than that routed H control (15 of 312 under the fresh-only scope). Adding
+frozen 2018 candidates lowers additional recovery for every interface because it strengthens the
+subtracted baseline, not because the wire discloses less. \textbf{No finite attack collection
+establishes an upper bound on what is recoverable}; every number here is a floor.
+
+\subsection{The mechanism is not competitive with the frozen neural channel}
+\label{sec:notcompetitive}
+
+C1 is significantly worse than J on \emph{all four} sensitive endpoints under \emph{both}
+weightings, and worse on both source probes (income $+0.0081$, employment $+0.0135$, intervals
+excluding zero). It is better only on residence, $-0.0093\,[-0.0150,-0.0036]$
+(Figure~\ref{fig:forest}, right panel). The registered secondary decision F3 is therefore recorded
+as not supported, and its local-race failure clause also fires.
+
+Two things this does \emph{not} say. It does not say J dominates: J carries materially less
+residence capability than every spectral arm, so neither channel Pareto-dominates the other and we
+make no such claim. And it does not say the mechanism is behind the state of the art, because J is
+an internal channel and no external method was run (\S\ref{sec:related}). The honest statement is
+the narrow one: at matched width, under identical attacks, the spectral channel discloses
+significantly more of both protected attributes to both views than this particular adversarially
+trained channel, while supplying more of the authorised capability. ``Same width'' is a
+\emph{capacity} control and says nothing about whether their utility is comparable. It is not,
+which is why \S\ref{sec:matching} matches them on it.
+
+\subsection{Matching the two channels on average utility}
+\label{sec:matching}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/withholding.pdf}
+\caption{Post-hoc average-utility matching. Under the declared randomised-withholding mechanism (H
+always released; an independent visible $\mathrm{Bernoulli}(p)$ branch, fixed per person, decides
+whether the channel is also released), expected residence gain and expected additional recovery are
+both exactly $p$ times their full-release values, so each channel traces a straight line from the
+origin. Lower and further right is better. The dashed line marks C1's full-release residence gain;
+a comparator whose line ends below it cannot reach C1's utility at any schedule, and its $p^\star$
+is printed as $>1$ rather than hidden.}
+\label{fig:withholding}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\input{tables/withholding_matching.tex}
+\caption{Post-hoc average-utility matching, Mode B, unweighted.
+$p^\star=\text{gain}_{\text{C1}}/\text{gain}_{\text{source}}$ is the withholding probability at
+which a comparator's \emph{mean} residence gain equals C1's; it is identified in closed form
+because the mixture is exactly linear in $p$. Values above 1 mean the comparator cannot reach C1's
+utility at any schedule, and the corresponding recovery cell is therefore undefined rather than
+blank-because-worse.}
+\label{tab:matching}
+\end{table}
+
+Because the routed family mixes per-person \emph{losses}, expected residence gain over H is exactly
+$p$ times the full-release gain, and expected additional recovery is exactly $p$ times the
+full-release increment. The probability matching a target's \emph{mean} residence gain is therefore
+identified in closed form. This yields two findings the fixed-$p$ grid did not surface.
+
+First, \textbf{J cannot be made as useful as C1 by any withholding schedule}: it would need
+$p^\star=1.49$. Nor can E ($1.07$), L025 ($1.62$) or L20 ($1.56$). The C1-versus-J comparison is not
+two points on one traversable frontier. Second, \textbf{the ordering survives matching in both
+directions}. Where matching is identifiable, C1 beats withheld A0 ($p^\star=0.976$) and withheld S0
+($p^\star=0.929$) on all four sensitive endpoints; and C1 withheld down to J's residence level
+($p^\star=0.670$) still leaks far more than J on all four ($0.0303$ against $0.0076$ on A/race).
+
+Both statements are \textbf{post-hoc average-utility matching}: $p^\star$ is estimated from the same
+data as the outcome, so the fixed-$p$ intervals do not transfer to it, and it matches an average over
+people who receive different information. The original fixed-$p$ analysis is unchanged, and on it
+neither family robustly dominates: withholding dominates a given spectral arm in 1--3 of 180 fixed
+comparisons and a spectral arm dominates withholding in 0--3 of 180. A finite list of controls
+failing to dominate C1 is not evidence that C1 is efficient.
+
+\subsection{Service parity, probe quality, and what moved}
+\label{sec:parity}
+
+\begin{table}[t]
+\centering\small
+\input{tables/criteria.tex}
+\caption{Passing seeds out of 3 for the two reference criteria, unweighted. The legacy source-probe
+allowance passes everywhere under fresh adaptation (Mode B) but \textbf{passes in only 0--1 of 3
+seeds for every spectral arm under frozen transfer} (Mode A): a frozen 2018 probe does not carry
+onto a spectral wire in a new year, and refitting the probe repairs it. Separately, the released
+service vectors are identical bits in every condition (210 of 210 views), while service
+\emph{accuracy} moves between the years by $+0.0138$ nats on employment, $-0.0145$ on income and
+$-0.0067$ on coverage. A worse probe does not change a delivered prediction, and an identical
+delivered prediction is not a stable one.}
+\label{tab:criteria}
+\end{table}
+
+Three different objects must be kept apart. The \emph{released} income, employment and coverage
+probability vectors are identical, bitwise, in every condition---structural, verified on 210 of 210
+released views. Service \emph{accuracy} changes with the year: employment $+0.0138$ nats, income
+$-0.0145$, coverage $-0.0067$. Independently fitted \emph{source probes} are a third thing again,
+and their pass pattern separates the two modes (Table~\ref{tab:criteria}).
+
+\subsection{Development against transport: magnitude, not only resolution}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/per_seed.pdf}
+\caption{The three per-seed values behind each F1 endpoint; the vertical bar is the seed mean that
+enters the estimand. Orange marks endpoints where the seeds do not all share the seed-mean sign.
+Aggregate sign agreement can conceal per-seed disagreement, and does here.}
+\label{fig:perseed}
+\end{figure}
+
+All 20 F1 \emph{seed-mean} signs agree with development. Only 13 of 20 agree in \emph{every seed}
+(Figure~\ref{fig:perseed}); across all 90 family endpoints only 48 of 90 have all three seeds
+agreeing with their own seed mean. And magnitudes moved: F1 point estimates changed by factors
+between $0.054\times$ and $14.8\times$ (for instance C1 $-$ L2 on AB/sex went from $-0.0003$ to
+$-0.0047$). A larger evaluation pool shrinks standard errors; it does not move point estimates by a
+factor of fifteen. The years differ in sample size, in calendar year, in evaluation pool and in
+which attacker families were available, and this design does not separate them. Our earlier claim
+that ``what changed is resolution, not direction'' is withdrawn.
+
+\subsection{Support limitations}
+
+Race class 3 (Alaska Native alone) has one person in the final partition and none in 2017 attacker
+validation, so class-specific recall and AUROC are undefined for it. Full nine-class log loss is
+always scored with a fixed $10^{-12}$ probability floor and renormalisation; no category is dropped.
+A comparable-category diagnostic restricted to classes supported in every fitting pool of both modes
+reproduces the F1 race differences almost exactly (C1 $-$ L1 on A/race: $-0.0137$ against $-0.0137$
+on all rows). \textbf{A class without support is unmeasured, not protected.}
+
+\section{Study 2: a nonlinear penalty and a rank intervention}
+\label{sec:results2}
+
+Study~2 asked whether the gap in \S\ref{sec:notcompetitive} is closed by making the penalty act on
+nonlinear functions of the channel, by reducing the released rank, or by both. Its evidence is ACS
+2018 development data throughout; it is not a second confirmation of anything.
+
+\subsection{The rank question was settled without fitting anything}
+
+\begin{table}[t]
+\centering\small
+\input{tables/rank_spectrum.tex}
+\caption{Outcome-free rank diagnostic, computed from already-saved 2018 arm spectra before any new
+fit. $r_+=\min(16,\#\{\lambda_i(U-P)>\tau\})$ under the existing relative tolerance convention. No
+ACS outcome, reserved label, attack or fit is involved.}
+\label{tab:rank}
+\end{table}
+
+$r_+=16$ in every seed and for every original objective, and not one of the top sixteen directions
+is nonpositive. Eigenvalue-sign rank selection therefore makes \emph{no change} on this interface:
+the reduced-rank recipe is an exact alias of the rank-16 recipe, and that column of the design is
+void by alias. The predeclared branch fired instead, and a rank-8 sensitivity was run for both
+penalty families and all three policies. \textbf{Rank 8 is a compression intervention, not
+eigenvalue-sign selection}, and it is labelled that way everywhere.
+
+The structural reading is that $U_{\mathrm{raw}}=(V^\top\!R/n)(R^\top\!V/n)$ with $R$ of width 32,
+so $\operatorname{rank}(U)\le 32$; measured, $U$ has exactly 32 eigenvalues above tolerance and none
+below, and since the penalties are positive semidefinite,
+$\#\text{pos}(U-\lambda P)\le\#\text{pos}(U)$. We report the measured counts as the finding.
+\textbf{We do not claim that $\operatorname{rank}(U)=32$ by itself implies that all sixteen selected
+eigenvalues of $U-P$ are positive}: that needs an inertia argument with assumptions we did not
+establish. The measurement is what supports the conclusion. And $r_+$ is the retained rank of the
+\emph{old fixed linear-moment} objective; the refined objective has no fixed matrix, so neither the
+rank statement nor Ky Fan optimality transfers to it.
+
+\subsection{What was registered, and how it turned out}
+\label{sec:registered2}
+
+Six directional predictions were registered and hashed before the fit phase started.
+\textbf{Three of the six were wrong or ambiguous.}
+
+\begin{enumerate}\itemsep1pt
+\item[P1] $r_+=16$ in all three seeds, so sign-based rank selection changes nothing ---
+  \textbf{confirmed} (and checkable without a fit).
+\item[P2] The refinement lowers its own training objective below the original solution at rank 16
+  --- \textbf{confirmed}, 18/18 conditions, gains $0.017$--$0.146$.
+\item[P3] The best new candidate keeps additional A/race recovery \emph{above} J's in $\ge 2$ of 3
+  seeds --- \textbf{not confirmed}: 1 of 3 seeds unweighted, 2 of 3 person-weighted; the paired
+  interval on the difference contains zero.
+\item[P4] Training-objective improvement will \emph{not} transfer to independent-attack improvement
+  --- \textbf{refuted in its qualitative form} (\S\ref{sec:attribution}).
+\item[P5] Rank-8 compression costs $>0.002$ nats of residence gain in $\ge 2$ of 3 seeds ---
+  \textbf{literally met in 4 of 6 policy$\times$family cells, but the substantive claim fails}: the
+  seed-mean cost is $\le 0.002$ everywhere and the sign flips across seeds.
+\item[P6] No new candidate satisfies the primary coordination rule against both local controls ---
+  \textbf{confirmed}: all eight registered coordination cells are NOT SUPPORTED.
+\end{enumerate}
+
+\subsection{What each factor did, with its denominator}
+\label{sec:attribution}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/attribution.pdf}
+\caption{Each factor separately, unweighted rows, adjusted simultaneous intervals inside each
+comparison family. Blue: interval entirely below zero (less recovery). Orange: entirely above
+(more). Grey: crosses zero. The single orange bar in the middle panel is the one cell where the
+nonlinear penalty made an endpoint significantly \emph{worse}.}
+\label{fig:attribution}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\input{tables/attribution.tex}
+\caption{The attribution denominators. ``Sens.\ cells'' is contrasts $\times$ 4 roles $\times$ 2
+weightings. Most cells are unresolved in every factor; the effects are real where they are marked
+and the majority of the grid is simply undecided at three seeds. The full list of significant cells
+is Appendix~\ref{app:cells}.}
+\label{tab:attribution}
+\end{table}
+
+Both factors reduce measured recovery, and they act on different attributes: the nonlinear penalty
+reduces sex recovery most (A/sex $-0.0064$ at $r=16$, $-0.0065$ at $r=8$; AB/sex $-0.0055$ at
+$r=8$; also A/race $-0.0073$ and AB/race $-0.0116$ at $r=16$), while rank-8 compression reduces race
+recovery most (A/race $-0.0217$ under the original penalty, $-0.0146$ under the nonlinear one).
+Composed, they take additional A/race recovery from the predecessor's $0.0274$ down to $0.0055$,
+against J's $0.0071$, while holding residence gain at $0.0259$ against J's $0.0215$. No residence
+endpoint moved significantly in either direction in any attribution family.
+
+\textbf{The denominators matter and were previously misstated.} The nonlinear penalty is
+significantly better in 7 of 24 sensitive cells at $r=16$ and 5 of 24 at $r=8$; rank-8 compression
+in 15 of 48; the coalition-versus-local contrast in 29 of 64. And the nonlinear penalty is
+\emph{not} harmless: at $r=8$ with the L1 policy it makes A/race recovery significantly worse,
+$+0.00862$ with adjusted simultaneous interval
+$[+0.00168,+0.01556]$, under unweighted scoring. Study~2's own
+decision document says ``no endpoint significantly worse'' for this factor; that is withdrawn
+(\S\ref{sec:withdrawn}, item~12). Similarly, the coalition penalty is significantly worse than a
+local control in 2 of 64 cells.
+
+\subsection{The refined candidate against J: still a no-go}
+
+\begin{table}[t]
+\centering\small
+\input{tables/candidate_vs_j.tex}
+\caption{The best new candidate, \texttt{nlr8-C1}, against the frozen neural channel J on 2018
+development data. Two of eight sensitive cells are significantly worse; none is better; the
+residence advantage is positive in point estimate and not significant.}
+\label{tab:candj}
+\end{table}
+
+The best new candidate, \texttt{nlr8-C1}, is \textbf{significantly worse than J on A/sex} under both
+weightings ($+0.0106$ unweighted, $+0.0098$ person-weighted; adjusted intervals exclude zero). A/sex
+is a forbidden role and is not set aside. On the other three family sensitive endpoints it is
+statistically indistinguishable from J, and its residence gain is higher ($0.0259$ against $0.0215$)
+but not significantly so. It also costs more service-probe loss: it clears the legacy source
+allowance in 1--2 of 3 seeds where J clears it in 3 of 3. All eight registered coordination cells
+against the local controls fail, reproducing---not resolving---the limitation Study~1 could only
+settle on a five-times-larger locked partition.
+
+So the decision is: \textbf{do not run a confirmation on this design}. That is a decision about
+this design. It is not evidence that spectral, kernel, nonlinear or fixed-service methods cannot
+work here; a finite collection of failed variants rules out nothing of the kind. Nor is J's
+position an upper bound on attainable utility at a privacy constraint: a maximally leaky channel is
+not such a bound, and neither is any single measured point.
+
+\subsection{The rotation diagnostic}
+\label{sec:rotation}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.60\textwidth]{figures/rotation.pdf}
+\caption{For each condition and seed, the share of the refinement's training-objective gain that a
+\emph{separately optimised, information-preserving} orthogonal transformation of the original
+solution's subspace also reaches. Bars are condition means. Mean $0.628$, range $0.367$--$0.907$
+over 18 conditions. The rotation search is itself a bounded optimisation, stopping on an update
+budget or a failed line search, so each value is an attained share, not a supremum --- and it is a
+property of the \emph{objective}, not an accounting of what the optimiser did.}
+\label{fig:rotation}
+\end{figure}
+
+The utility term, the original linear penalty and the information content of the release are all
+invariant under $W\mapsto WQ$ for orthogonal $Q$. The refined penalty is not: measured, the
+nonlinear penalty changes by up to $7.5\times10^{-3}$ under such a rotation while utility changes by
+$\le 3.3\times10^{-16}$ and the original penalty by $\le 2.8\times10^{-17}$. So the refined
+objective is genuinely coordinate-dependent, and a rotation that provably changes nothing an
+attacker can recover can nonetheless improve it.
+
+The cause is localised exactly and reproduced on a synthetic fixture: summing degree-two monomials
+$a\le b$ with equal weight computes $\sum_a M_{aa}^2+\sum_{a<b}M_{ab}^2$ instead of
+$\|M\|_F^2$, and only the latter survives $M\mapsto Q'MQ$. Weighting off-diagonals by $\sqrt 2$
+restores exact invariance ($<10^{-12}$ against about 10\% slack). Per-feature standardisation adds
+about 1\%; the Fourier block's residual slack is Monte-Carlo error that shrinks with feature count.
+
+\textbf{What this diagnostic is, and what it is not.} It demonstrates a weakness of the objective:
+a quantity that should be a function of the released information is not. It is \emph{not} a causal
+budget partition of the optimiser's work. We previously wrote that roughly 63\% of the optimiser's
+progress was ``provably inert'' and the remaining 37\% ``bought'' the measured privacy reductions,
+and predicted that removing the inert part would let the same compute buy more. That is withdrawn
+(\S\ref{sec:withdrawn}, item~13). The measured quantity is the share of the training gain
+\emph{also attainable} by a separately optimised invariant transformation; the two searches are
+different optimisations over different feasible sets, so their values do not decompose the actual
+trajectory into an effective part and a wasted part, and nothing here predicts what a repaired
+objective would achieve. The defect is a reason to fix the construction before spending a
+confirmation year on it, which is what the next-step specification does; it is not a reason to
+expect the fix to succeed.
+
+\subsection{The frozen-nuisance diagnostic}
+
+The frozen nuisances barely beat a constant prior on the protected attributes: across the local and
+coalition roles and all three seeds, sex by $0.03$--$0.66\%$ of the prior loss and race by
+$0.96$--$2.35\%$. The same nuisance family reaches $8.1$--$8.9\%$ on public coverage, an
+\emph{authorised} attribute, so the gap is specific to the protected targets rather than a property
+of the nuisance machinery. On these fitted models the protected residual is therefore close to the
+\emph{marginal} residual, which is one reason an $H$-conditioned penalty had limited room to differ
+from the marginal one in this study.
+
+\textbf{This is a diagnostic of those frozen nuisance models and nothing more.} It does \emph{not}
+show that $H$ carries little population information about sex or race; it does not show that the
+fitted $m_j(H)$ are accurate conditional means; and it does not show that conditional and marginal
+protection coincide in general. A restricted nuisance class can miss information and can miss
+conditional interactions entirely, and a misspecified $m(H)$ can manufacture a penalty more than ten
+times the oracle value under \emph{exact} conditional independence---which one of our own fixtures
+demonstrates.
+
+\subsection{Optimisation quality, stated within its limits}
+
+The refinement never returned its initial point in any of the 18 conditions; both restarts
+completed; and orthogonality held to $\max|W^\top W-I|\le 1.4\times10^{-15}$. Those checks rule out
+three specific failures. \textbf{They do not establish that the nonconvex objective was optimised
+well.} The original fixed-matrix solver has a restricted global optimum by Ky Fan; the refinement
+has no such guarantee, and a suboptimal solution remains a live explanation for its results.
+
+\subsection{Exploratory cross-year reuse, which cuts against the candidate}
+
+Study~2 also re-scored the 2017 partitions. That evidence is \textbf{exploratory}: the 2017 seal was
+already spent by Study~1, so those rows are now an exposed development pool. Probes and attackers
+were fitted on 2017 fitting pools and selected on 2017 validation pools, so selection still never
+saw the evaluation rows, and \emph{no simultaneous intervals are computed there by design}. Years
+are reported separately and rows are never pooled.
+
+On that partition the two 2018 attribution effects reproduce in direction at the seed mean, and
+nine conditions reproduce the historical arms digit for digit, confirming the aliasing end to end.
+But the comparison against J is \emph{worse} here, not better: J has lower additional recovery than
+\texttt{nlr8-C1} on all four family sensitive endpoints ($0.0013/0.0039/0.0069/0.0015$ against
+$0.0105/0.0155/0.0127/0.0154$), while the candidate keeps its residence advantage ($0.0267$ against
+$0.0189$). The one place the 2018 result came closest to J---parity on both race endpoints---does
+not carry over. Per-seed direction agreement with 2018 is only moderate (188 of 288 seed-level
+comparisons). Figure~\ref{fig:tradeoff} shows both 2017 roles side by side. We report this because
+it cuts against the candidate; omitting it would be the selective reading.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/tradeoff.pdf}
+\caption{Residence capability against additional local race recovery. \textbf{Left:} the locked
+2017 evaluation, the frozen 14-interface slate, confirmatory. \textbf{Right:} the same survey year
+after its seal was spent, with Study~2's new arms added --- exploratory, no intervals. The two
+panels share axes so the new arms can be placed against the frozen slate, but they are
+\emph{different evidence}: only the left panel supports a confirmatory reading. In both, J sits
+alone at low utility and low disclosure.}
+\label{fig:tradeoff}
+\end{figure}
+
+\section{Claims this revision withdraws or narrows}
+\label{sec:withdrawn}
+
+Stated explicitly, because each was in one of our own earlier documents. Items 1--10 were already
+corrected in the previous revision and are repeated here so this paper is self-contained; items
+11--16 are new in this integration. Almost all are wording, scope or counting: no numerical result
+changed, and all 90 Study~1 endpoints reproduce under an independently written scorer to
+$1.1\times10^{-15}$.
+
+\begin{enumerate}\itemsep1pt
+\item ``\emph{Residence difference inside the prespecified $\pm0.001$ band.}'' The rule is one-sided
+and applies to a point estimate. Zero of four interval comparisons support non-inferiority at that
+margin. The registered rule still passed.
+\item ``\emph{What changed is resolution, not direction.}'' Magnitudes changed by $0.054\times$ to
+$14.8\times$; sample size alone does not explain the newly significant result.
+\item ``\emph{Every F1 endpoint keeps its development sign (20/20).}'' True of seed means; 13 of 20
+in every seed.
+\item ``\emph{C1 versus J fails on local race.}'' It fails on all four sensitive endpoints under both
+weightings, plus both source probes.
+\item ``\emph{Several times more sex and race.}'' Scale-dependent: $6.0\times$ on increments,
+$2.6\times$ in absolute terms. We now quote the paired difference.
+\item ``\emph{Under frozen transfer every spectral arm fails in 0--1 of 3 seeds.}'' The underlying
+column counts \emph{passing} seeds; the arms pass in 0--1 of 3, i.e.\ fail in 2--3 of 3.
+\item ``\emph{The gap is the surrogate, not the solver.}'' Global optimality of the fixed matrix
+excludes a solver failure and nothing else. Six candidate causes remain unseparated. We now say
+``consistent with''.
+\item ``\emph{If a nonlinear penalty also loses, the conclusion generalises to the closed-form
+spectral family.}'' Withdrawn entirely. Two arms failing is evidence about two arms; and a penalty
+acting on nonlinear functions of $Z$ is provably not a trace form, so such a successor is not in
+that family at all.
+\item ``\emph{Two lock amendments.}'' Three exist. All are code-only; the third post-dates every
+final-partition read.
+\item \emph{Reporting the H-relative residence gain without the half-headroom failure.} Corrected in
+Table~\ref{tab:criteria}.
+\item \textbf{``\emph{8 of 8 sensitive endpoints better, 0 worse, under both weightings}'' (F1).}
+The denominator is 16 cells, of which 14 are strictly better, 0 worse and 2 unresolved. The
+registered \texttt{advantage} rule---a different object---fired in 4 of 4 cells
+(\S\ref{sec:coalition}, Table~\ref{tab:denominators}).
+\item \textbf{``\emph{No endpoint significantly worse}'' for the nonlinear-penalty factor.} One is:
+\texttt{nlr8-L1} against \texttt{lin8-L1} on A/race, unweighted, $+0.00862$ with an adjusted interval
+excluding zero (\S\ref{sec:attribution}).
+\item \textbf{``\emph{Roughly 37\% of the surrogate movement bought the measured reductions, so
+removing the provably inert 63\% should let the same compute buy more.}''} Withdrawn as a causal
+claim and as a prediction. The diagnostic reports an attainable share under a separately optimised
+invariant transformation, not a decomposition of the optimiser's trajectory
+(\S\ref{sec:rotation}).
+\item \textbf{``\emph{Not an optimisation artifact.}''} The three completed checks exclude three
+specific failures and do not establish good optimisation of a nonconvex objective.
+\item \textbf{``\emph{The protected residual is close to the marginal residual, so any
+$H$-conditioned penalty has limited room to differ, whatever function class it uses.}''} Narrowed
+to a statement about the frozen nuisance models actually fitted.
+\item \textbf{``\emph{2016's admission has never been run.}''} It has: 2016 is admitted on
+provenance and schema with a prospective label-blind split prepared, and remains \textbf{unscored}
+(Table~\ref{tab:evidence}). The reciprocal stale claim---that the other terminal was still
+running---is also removed.
+\end{enumerate}
+
+\section{Limitations}
+\label{sec:limitations}
+
+Three seeds are three fixed fitted systems on one cohort, not population replications. The
+bootstraps cover people, not retraining variability and not Census design variance; PWGTP replicate
+weights were not used. Attack strength is a floor, not a guarantee. Only recipient A receives a
+channel. Transport is between public survey years of the same state and age band, and cross-year
+person distinctness cannot be established from public identifiers. Income is nominal and
+unadjusted, and its estimand differs again in 2016, which any future evaluation there must handle.
+The evaluation refits attackers but not the representation, so it does not test a mechanism
+retrained on the new year. The 2018 pools have been used repeatedly and are development, not
+confirmation; the 2017 seal is spent; Study~2's evaluated maps carry a known, unrepaired
+coordinate-dependence defect. No external published method was executed, so no competitiveness
+claim against the literature is made or supported.
+
+\textbf{Numerical recovery.} Three code-only lock amendments are recorded. The first fixed a
+release-file write race; the second fixed rare load-dependent prediction corruption found by an
+independent cross-process replay; the third changed three published tables from CSV to gzip CSV and
+post-dates every final read. Machine memory pressure was the \emph{observed condition} under which
+the corruption appeared; it is not a demonstrated cause, and we do not claim one. The repair does
+not depend on the diagnosis: every prediction is computed twice and must agree, all final units were
+rescored, originals are preserved, the post-fix replay found 0 mismatches in 59{,}874 predictions
+with 0 selection changes in 37{,}122 validation predictions, and Study~2's independent
+cross-process replay of 27{,}540 stored predictions matched bitwise with the machine at swap
+capacity throughout.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+A service that has already published predictions can add a reusable channel beside them without
+changing a single released number, and can steer that channel away from directions a recipient or a
+colluding pair would use to infer sex and race. On a locked, previously unused survey year, the
+coalition-conditioning knob does what it claims against both of its local controls---14 of 16
+sensitive cells strictly better, none worse, two unresolved---under simultaneous intervals and both
+weightings. It also costs residence utility by an amount the data cannot bound below the $0.001$
+nats our registered rule used, and the channel it steers remains significantly worse than a frozen
+adversarially trained channel of the same width on every sensitive endpoint, an ordering that
+survives matching the two on average utility in both directions. A refinement designed to close
+that gap moved measured recovery substantially in the intended direction, failed every one of its
+eight registered coordination cells, remained significantly worse than the neural channel on local
+sex, looked worse still on an exploratory cross-year look, and turned out to rest on a
+coordinate-dependent objective.
+
+The defensible contribution is the problem formulation and the evaluation design: fixed published
+outputs as a hard constraint, recipient-specific and coalition-specific audit roles, fresh and
+frozen attackers never pooled, absolute and incremental recovery reported side by side, negative
+increments retained unclipped, denominators printed beside every count, and a sealed temporal
+transport with the multiplicity fixed in advance. Both method results are negative and we report
+them as such.
+
+\section{Reproducibility}
+\label{sec:repro}
+
+Deterministic seeds throughout; every unit writes a hash-bound completion record; the lock refuses
+to open the final partition if any hashed input changed. All 90 pre-declared Study~1 endpoints were
+regenerated from stored per-person predictions by an independently written scorer that shares no
+computation function with the original report code, agreeing to $1.1\times10^{-15}$ on point
+estimates and $2.4\times10^{-15}$ on interval endpoints, with identical critical values; candidate
+selection was re-derived from stored validation losses with 0 mismatches in 924 cells; and the lock
+was re-verified over all 17{,}639 hashed inputs with every amendment applied. Study~2's comparison
+arithmetic was verified independently from its published CSVs. Every table and figure in this paper
+is generated by one script from committed evidence files, each recorded with a sha256 in
+\texttt{MANIFEST.json}; no number was typed by hand. Commands, file map and software versions:
+\texttt{REPRODUCE\_PAPER.md}. Fitted objects, releases and per-person arrays stay local; compact
+aggregates, code, tables and figures are published.
+
+\appendix
+
+\section{Significant attribution cells}
+\label{app:cells}
+\noindent Every cell in the Study~2 attribution families whose adjusted simultaneous interval
+excludes zero. $\blacktriangledown$: less recovery. $\blacktriangle$: more. Cells not listed are
+unresolved at three seeds; the denominators are in Table~\ref{tab:attribution}.
+
+\begin{center}\scriptsize
+\input{tables/attribution_cells.tex}
+\end{center}
+
+\section{Frozen-transfer non-inferiority}
+\label{app:equiv}
+\noindent The same retrospective non-inferiority assessment for family F4 (Mode A, frozen
+transfer). Unlike F1, 5 of 8 comparisons clear the $0.001$ margin under a pointwise one-sided bound
+and 1 of 8 clears it simultaneously. This is a different family on a different mode and does not
+transfer to the registered primary result.
+
+\begin{center}\small
+\input{tables/equivalence_f4.tex}
+\end{center}
+
+\section{Design grid and fit counts}
+\label{app:grid}
+
+Study~2's grid was frozen before fitting: 2 penalty families $\times$ 2 rank recipes $\times$ 3
+policies $\times$ 3 seeds $=$ 54 nominal interface records, of which 27 are unique new fits, 9 are
+reused historical objects and 18 are void by alias (the $r_+$ column, \S\ref{sec:results2}). A cache
+read is never counted as a new fit and a resumed unit is counted once. The grid was not expanded in
+response to a disappointing result. These counts describe implementation effort; they are not
+scientific evidence and no claim in this paper rests on them.
+
+\bibliography{references}
+
+\end{document}

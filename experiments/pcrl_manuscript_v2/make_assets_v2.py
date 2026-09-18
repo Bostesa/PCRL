@@ -205,25 +205,28 @@ def table_conditions(repo: Repo, out: Path):
     rows = [
         # name, objective, rank, fitting labels, released to A, inference inputs, source year, status
         ('H', 'none (no channel)', '--', 'none', r'$H_A$ only', r'$H_A$', '2018', 'reference'),
-        ('E', 'adversarial (frozen)', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'context'),
-        ('A0', 'adversarial (frozen)', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'context'),
-        ('L025', 'adversarial (frozen)', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'F2 control'),
-        ('L20', 'adversarial (frozen)', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'F2 control'),
-        ('J', 'adversarial (frozen)', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'external-style ref.'),
+        ('E', 'adversarial, frozen', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'context'),
+        ('A0', 'adversarial, frozen', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'context'),
+        ('L025', 'adversarial, frozen', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'F2 control'),
+        ('L20', 'adversarial, frozen', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'F2 control'),
+        ('J', 'adversarial, frozen', '16', 'sex, race', r'$H_A,Z$', r'$X$', '2018', 'neural ref.'),
         ('S0', r'$U$ only ($\lambda=0$)', '16', 'none', r'$H_A,Z$', r'$T,H_A$', '2018', 'context'),
         ('M025 / M1', r'$U-\lambda P_{\mathrm{marg}}$', '16', 'sex, race', r'$H_A,Z$', r'$T,H_A$', '2018', 'context'),
         ('L1 / L2 / L025', r'$U-\lambda P_{\mathrm{loc}}$', '16', 'sex, race, cov.', r'$H_A,Z$', r'$T,H_A$', '2018', 'F1/F4 control'),
-        ('C025 / C1', r'$U-\lambda(P_{\mathrm{loc}}{+}P_{AB})$', '16', r'$+$ coalition sex, race', r'$H_A,Z$', r'$T,H_A$', '2018', 'F1/F3/F4 candidate'),
-        (r'lin16-$\ast$', r'$U-\lambda P$ (alias of L1/L2/C1)', '16', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'reused, not refitted'),
-        (r'nlr16-$\ast$', 'nonlinear-moment refinement', '16', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'new, development only'),
-        (r'lin8-$\ast$', r'$U-\lambda P$, compressed', '8', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'new, development only'),
-        (r'nlr8-$\ast$', 'nonlinear refinement, compressed', '8', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'new, development only'),
+        ('C025 / C1', r'$U-\lambda(P_{\mathrm{loc}}{+}P_{AB})$', '16', r'$+$ coal.\ sex, race', r'$H_A,Z$', r'$T,H_A$', '2018', 'candidate'),
+        (r'lin16-$\ast$', r'$U-\lambda P$ (alias)', '16', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'alias, not refitted'),
+        (r'nlr16-$\ast$', 'nonlinear refinement', '16', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'dev.\\ only'),
+        (r'lin8-$\ast$', r'$U-\lambda P$, compressed', '8', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'dev.\\ only'),
+        (r'nlr8-$\ast$', 'nonlinear ref., compressed', '8', 'as above', r'$H_A,Z$', r'$T,H_A$', '2018', 'dev.\\ only'),
     ]
-    lines = [r'\begin{tabular}{@{}llcllcl@{}}', r'\toprule',
-             r'Interface & Objective & $r$ & Fitting labels & Inference inputs & Src.\ yr.\ & Role \\',
+    lines = [r'\begin{tabular}{@{}llclll@{}}', r'\toprule',
+             r'Interface & Objective & $r$ & Fitting labels & Inf.\ inputs & Role \\',
              r'\midrule']
+    years = set()
     for name, obj, rank, lab, _rel, inf, yr, role in rows:
-        lines.append(rf'\texttt{{{name}}} & {obj} & {rank} & {lab} & {inf} & {yr} & {role} \\')
+        years.add(yr)
+        lines.append(rf'\texttt{{{name}}} & {obj} & {rank} & {lab} & {inf} & {role} \\')
+    assert years == {'2018'}, years
     lines += [r'\bottomrule', r'\end{tabular}']
     # sanity: the alias map and the rank branch must agree with what the table asserts
     assert set(alias) == {'spectral_lin16_L1', 'spectral_lin16_L2', 'spectral_lin16_C1'}
@@ -381,7 +384,7 @@ def table_criteria(repo: Repo, out: Path):
     order = ['H', 'E', 'A0', 'J', 'spectral_S0', 'spectral_L1', 'spectral_L2', 'spectral_C1']
     lines = [r'\begin{tabular}{@{}lcccc@{}}', r'\toprule',
              r'& \multicolumn{2}{c}{source-probe allowance} & '
-             r'\multicolumn{2}{c}{half-headroom residence} \\',
+             r'\multicolumn{2}{c}{half-headroom residence} \\[1pt]',
              r'\cmidrule(lr){2-3}\cmidrule(lr){4-5}',
              r'Interface & Mode A (frozen) & Mode B (fresh) & Mode A & Mode B \\', r'\midrule']
     idx = {(x['interface'], x['mode']): x for x in sub}
@@ -393,15 +396,9 @@ def table_criteria(repo: Repo, out: Path):
             rf'\texttt{{{LABEL[name]}}} & {a["legacy_source_probe_allowance_pass_seeds"]} / 3 & '
             rf'{b["legacy_source_probe_allowance_pass_seeds"]} / 3 & '
             rf'{a["half_headroom_pass_seeds"]} / 3 & {b["half_headroom_pass_seeds"]} / 3 \\')
-    lines += [r'\midrule',
-              r'\multicolumn{5}{@{}l}{\textit{Released service vectors: identical bits, '
-              r'210 of 210 views, every condition.}} \\',
-              r'\multicolumn{5}{@{}l}{\textit{Service \emph{accuracy}, 2017 minus 2018 (nats):}']
-    accs = ', '.join(rf"{x['service_task'].replace('_', r'\_')} "
-                     f"{f(x['change_2017_minus_2018']):+.4f}".replace('-', '$-$') for x in q)
-    lines[-1] += ' ' + accs + r'.} \\'
     lines += [r'\bottomrule', r'\end{tabular}']
     emit(out, 'criteria', lines, r, 'make_assets_v2.table_criteria')
+    return {x['service_task']: float(x['change_2017_minus_2018']) for x in q}
 
 
 def table_attribution(repo: Repo, out: Path):
@@ -563,7 +560,7 @@ def fig_absolute_vs_additional(repo: Repo, out: Path):
            and x['weight'] == 'unweighted'}
     order = ['H', 'J', 'E', 'A0', 'spectral_S0', 'spectral_L2', 'spectral_L1', 'spectral_C1']
     style()
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.7), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.0), sharey=True)
     for ax, role, title in ((axes[0], 'A/RAC1P', 'A / race'),
                             (axes[1], 'AB/SEX', 'AB / sex')):
         names = [n for n in order if n in sub]
@@ -582,8 +579,10 @@ def fig_absolute_vs_additional(repo: Repo, out: Path):
         ax.set_yticklabels([LABEL[n] for n in names], fontsize=7)
         ax.set_xlabel('recovery (nats), lower is better')
         ax.set_title(title, fontsize=8)
-    axes[0].legend(loc='lower right', frameon=False, fontsize=6)
-    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False, fontsize=6.6,
+               bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(rect=(0, 0.075, 1, 1))
     save_fig(fig, out, 'absolute_vs_additional', r, 'make_assets_v2.fig_absolute_vs_additional')
 
 
@@ -692,7 +691,7 @@ def fig_attribution(repo: Repo, out: Path):
     r = scoped(repo)
     pi = r.csv(f'{NONLIN}/PAIRED_INTERVALS.csv')
     style()
-    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.9), sharex=True)
+    fig, axes = plt.subplots(1, 3, figsize=(7.2, 4.3), sharex=True)
     panels = [('C1_nonlinear_vs_original_rank16', 'Nonlinear penalty, $r=16$'),
               ('C6_nonlinear_vs_original_rank8', 'Nonlinear penalty, $r=8$'),
               ('C3_rank8_vs_rank16', 'Rank 8 vs rank 16')]
@@ -708,7 +707,7 @@ def fig_attribution(repo: Repo, out: Path):
         ax.axvline(0, color='k', lw=0.8, ls=(0, (3, 3)))
         ax.set_yticks(ys)
         ax.set_yticklabels([f'{LABEL[x["left"]]}: {ENDPOINT[x["endpoint"]]}' for x in sub],
-                           fontsize=5.4)
+                           fontsize=6.0)
         ax.set_title(title, fontsize=8)
     fig.supxlabel('change in additional recovery, candidate minus comparator (nats)',
                   fontsize=8, y=0.02)
@@ -750,21 +749,21 @@ def fig_per_seed(repo: Repo, out: Path):
     rows = r.csv(f'{REVIEW}/PER_SEED_DIRECTION.csv')
     sub = [x for x in rows if x['family'] == 'F1_primary']
     style()
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    fig, ax = plt.subplots(figsize=(7.0, 4.4))
     ys = np.arange(len(sub))[::-1]
     for y, x in zip(ys, sub):
         seeds = [f(x[f'seed_{i}']) for i in range(3)]
         m = f(x['seed_mean'])
         agree = x['all_seeds_match_seed_mean_sign'] == 'True'
         col = PALETTE['C1'] if agree else '#b8562a'
-        ax.plot(seeds, [y] * 3, 'o', color=col, ms=3.4, alpha=0.85)
+        ax.plot(seeds, [y] * 3, 'o', color=col, ms=4.2, alpha=0.85)
         ax.plot([m, m], [y - 0.32, y + 0.32], color='k', lw=1.4)
     ax.axvline(0, color='k', lw=0.8, ls=(0, (3, 3)))
     ax.set_yticks(ys)
     ax.set_yticklabels([f'{LABEL[x["contrast"].split(" - ")[0]]}$-$'
                         f'{LABEL[x["contrast"].split(" - ")[1]]} '
                         f'{ENDPOINT[x["endpoint"]]} ({WSHORT[x["weight"]]})' for x in sub],
-                       fontsize=5.6)
+                       fontsize=7.0)
     ax.set_xlabel('paired difference (nats); bar is the seed mean that enters the estimand')
     fig.tight_layout()
     save_fig(fig, out, 'per_seed', r, 'make_assets_v2.fig_per_seed')
@@ -834,7 +833,7 @@ def main() -> int:
     facts['equivalence'] = table_equivalence(repo, out)
     table_absolute_vs_additional(repo, out)
     table_withholding(repo, out)
-    table_criteria(repo, out)
+    facts['service_accuracy'] = table_criteria(repo, out)
     facts['attribution'] = table_attribution(repo, out)
     facts['candidate_vs_J'] = table_candidate_vs_J(repo, out)
     facts['rank'] = table_rank(repo, out)
