@@ -1,0 +1,26 @@
+{
+  "unit": {
+    "seed": 1,
+    "condition": "spectral_lin8_L2",
+    "phase": "exploratory 2017 Mode B scoring"
+  },
+  "error": "ValueError: Probabilities must be finite, normalized and aligned with the full class schema",
+  "raised_in": "experiments/acs_transfer_heads.py:100 metrics(), audit branch",
+  "units_completed_before_failure": 11,
+  "reproduced": false,
+  "recheck": "Every candidate of that unit was recomputed immediately afterwards: all 11 roles x both budgets x every candidate. 0 produced a wrong class-schema width, a nonfinite value, a row sum away from 1, or a negative probability.",
+  "artifact_state": "The unit aborted before writing anything, so no corrupt artifact exists on disk and none is quarantined. The 11 units written before the failure are unaffected and were each written atomically after their own completion.",
+  "guard_note": "Audit predictions in this phase already pass through ev.stable_predict, which computes each array twice and requires agreement, so a returned array was confirmed twice. The fault therefore occurred outside that guard or was transient.",
+  "classification": "Transient, non-reproducible fault under extreme memory pressure. This matches the precedent recorded by the completed transport study (its lock amendment 2: rare, load-dependent corrupted CPU prediction blocks). Memory pressure remains a SUSPECTED contributing condition, not a demonstrated root cause: this single non-reproducing event does not establish causation either.",
+  "disposition": "Scoring re-run from the resumable markers; completed units skipped, the failed unit recomputed from scratch. Nothing is averaged, majority-voted or carried over from the failed attempt.",
+  "machine_at_recovery": {
+    "swapusage": "total = 29696.00M  used = 28638.44M  free = 1057.56M  (encrypted)",
+    "free_percentage": "System-wide memory free percentage: 24%",
+    "loadavg": [
+      6.04638671875,
+      6.31640625,
+      6.58447265625
+    ],
+    "peak_rss_mb": 39.15625
+  }
+}
