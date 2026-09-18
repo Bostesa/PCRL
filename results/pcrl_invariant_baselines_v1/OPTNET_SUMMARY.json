@@ -1,0 +1,2582 @@
+{
+  "seeds": {
+    "0": {
+      "seed": 0,
+      "runtime_seconds": 471.6006093750475,
+      "budget_steps": 1200,
+      "starts": 2,
+      "batch": 512,
+      "architecture": "128 -> (64,) -> 16, ReLU",
+      "gamma": 0.0001,
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0002,
+      "departures_from_published_formulation": [
+        "Utility target is the residualised teacher R (32 columns), not a class label. Structurally free: Y enters Lemma 1 only as Y~ inside Y~'Y~ and the lemma assumes no discreteness. rank(R~) = 32 > 16, so the Theorem 4.1 rank cap is not binding.",
+        "Multiple lambda over multiple protected roles (the L1/L2/C1 policies). EXTRAPOLATION: the paper asserts multi-lambda generalisation in one sentence with no equation, no normalisation rule and no code. The form used is one independent J term per role carrying its policy weight, matching this study's existing aggregation. That specific form is not in the paper.",
+        "Adversary players receive [H_c, Z] -- the actual service probabilities the recipient holds, plus the additional channel -- rather than Z alone. The original is single-view.",
+        "Mini-batch exact Gaussian kernel at batch 512. This is the PAPER'S OWN practice (it approximates the projector and gradient on one mini-batch, O(b^3) per step, justified by analogy with Nystrom). It is declared approximate and is NOT claimed exact for the infinite-dimensional kernel.",
+        "Encoder is a fixed small MLP (128 -> 64 -> 16, ReLU) on the frozen whitened V, frozen before fitting; no architecture expansion is authorised.",
+        "Rank fixed at 16 so comparisons are at equal realised rank. Theorem 4.1's negative-eigenvalue count is REPORTED alongside as the paper's upper bound, but is never used to select.",
+        "Released Z is the raw encoder output and is NOT covariance-normalised, unlike the spectral arms where W'W = I forces Cov(Z) = I. This does not bias any endpoint: recovery and reconstruction are both invariant under an invertible linear map of the channel.",
+        "Player kernels use instance-normalised inputs with sigma = 1, which is what the PAPER states. The official code instead divides by the whole-batch Frobenius norm; the two differ and the paper's version is implemented.",
+        "The official code trace-normalises each J term by the label energy (/||S~||^2, /||Y~||^2). That normalisation appears nowhere in the paper's equations. It is adopted here, because without it the continuous 32-column R and the one-hot protected targets are on incomparable scales, and it is declared as a code-not-paper choice."
+      ],
+      "conditions": {
+        "optnet16_L1": {
+          "policy": "L1",
+          "selected_start": 0,
+          "training_objective": -0.8757938488301852,
+          "start_objectives": [
+            -0.8757938488301852,
+            -0.8720868556255471
+          ],
+          "restart_spread": 0.003706993204638076,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.43714677739370467,
+              "penalty": 0.22840791961556614,
+              "utility": 0.6655546970092708
+            },
+            {
+              "step": 50,
+              "loss": -0.6007304142525096,
+              "penalty": 0.24929241484094097,
+              "utility": 0.8500228290934506
+            },
+            {
+              "step": 100,
+              "loss": -0.6497811497002344,
+              "penalty": 0.22605508444661795,
+              "utility": 0.8758362341468523
+            },
+            {
+              "step": 150,
+              "loss": -0.7172455817705595,
+              "penalty": 0.1683698022039448,
+              "utility": 0.8856153839745043
+            },
+            {
+              "step": 200,
+              "loss": -0.7395023331219516,
+              "penalty": 0.16587140283082172,
+              "utility": 0.9053737359527733
+            },
+            {
+              "step": 250,
+              "loss": -0.736682551694433,
+              "penalty": 0.16770512144660718,
+              "utility": 0.9043876731410402
+            },
+            {
+              "step": 300,
+              "loss": -0.7892955930045717,
+              "penalty": 0.12852504929561387,
+              "utility": 0.9178206423001856
+            },
+            {
+              "step": 350,
+              "loss": -0.7704620581339047,
+              "penalty": 0.14683810055649948,
+              "utility": 0.9173001586904042
+            },
+            {
+              "step": 400,
+              "loss": -0.79866316712159,
+              "penalty": 0.12974723544899824,
+              "utility": 0.9284104025705883
+            },
+            {
+              "step": 450,
+              "loss": -0.8059684118983825,
+              "penalty": 0.11877265496443262,
+              "utility": 0.9247410668628152
+            },
+            {
+              "step": 500,
+              "loss": -0.8369000202856012,
+              "penalty": 0.09920859954124031,
+              "utility": 0.9361086198268415
+            },
+            {
+              "step": 550,
+              "loss": -0.8166763485827229,
+              "penalty": 0.11699727847584457,
+              "utility": 0.9336736270585674
+            },
+            {
+              "step": 600,
+              "loss": -0.8295154259377888,
+              "penalty": 0.10299179038328685,
+              "utility": 0.9325072163210757
+            },
+            {
+              "step": 650,
+              "loss": -0.8330450787979465,
+              "penalty": 0.10790094397094852,
+              "utility": 0.940946022768895
+            },
+            {
+              "step": 700,
+              "loss": -0.8511045131412962,
+              "penalty": 0.09296601992648028,
+              "utility": 0.9440705330677764
+            },
+            {
+              "step": 750,
+              "loss": -0.8466065963892153,
+              "penalty": 0.10397353061190429,
+              "utility": 0.9505801270011196
+            },
+            {
+              "step": 800,
+              "loss": -0.8586642096049671,
+              "penalty": 0.09081690408431564,
+              "utility": 0.9494811136892828
+            },
+            {
+              "step": 850,
+              "loss": -0.8307362275677384,
+              "penalty": 0.1123501877210061,
+              "utility": 0.9430864152887445
+            },
+            {
+              "step": 900,
+              "loss": -0.8591203114237462,
+              "penalty": 0.0924995328638247,
+              "utility": 0.951619844287571
+            },
+            {
+              "step": 950,
+              "loss": -0.8479712882709769,
+              "penalty": 0.10192720862407652,
+              "utility": 0.9498984968950535
+            },
+            {
+              "step": 1000,
+              "loss": -0.8753843566559564,
+              "penalty": 0.07771707528819807,
+              "utility": 0.9531014319441544
+            },
+            {
+              "step": 1050,
+              "loss": -0.8871170124284504,
+              "penalty": 0.07235121285557652,
+              "utility": 0.959468225284027
+            },
+            {
+              "step": 1100,
+              "loss": -0.8737300170868301,
+              "penalty": 0.07847527405342297,
+              "utility": 0.9522052911402531
+            },
+            {
+              "step": 1150,
+              "loss": -0.8497193722735552,
+              "penalty": 0.10111005879066998,
+              "utility": 0.9508294310642252
+            },
+            {
+              "step": 1199,
+              "loss": -0.8798311850407361,
+              "penalty": 0.07736171701031465,
+              "utility": 0.9571929020510508
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.0006455815020536022,
+            0.0007005366211510275,
+            0.0008172219479929133,
+            0.0008965688686763265,
+            0.000994533634933099,
+            0.0010966506820215167,
+            0.001192710934949039,
+            0.0012037960124620401,
+            0.0012796216717084715,
+            0.0013628976880641983,
+            0.001385610788138501,
+            0.0014552996377262136,
+            0.001570361221329104,
+            0.0017021169467697867,
+            0.0018230132055470968,
+            0.001993999027636716
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "fd6be514cbc9b50f87ffdcdd2a88b38f071e9d7a54120765dc4719757227785f",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "9b64fab70a70a83dc649b6c1aa6cd851e8fa6491f0b178b8cd222993c1f9cfce"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "932d3cf33192e61e991c9ba33f4bdf7795af841142bb71e6be0d4a61b4979925"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "e8c0c44ea31d516b4455e7b2f736b2502d1f8614dd13b288d6c332e911cb34c1"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "26375c191b5ca25811b8a55ef6c8ea455ee90a9a81e23ea9b6527f7aa82b73b3"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "03836fe821bf293019357ca4a64bae3f9b1edb3c8a1521ed93d2a8027166020d"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "421430d0c4393a81188cbad9c57645fb1949d8d32732662dbcf5c2ffd9188209"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "8dc26fb6f088df10ca3f1b472095e5dd48a7dc8c11fef9e15541935e86e33b5c"
+            }
+          ],
+          "condition": "optnet16_L1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10513,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10512.999999999995
+        },
+        "optnet16_L2": {
+          "policy": "L2",
+          "selected_start": 0,
+          "training_objective": -0.7853744161096778,
+          "start_objectives": [
+            -0.7853744161096778,
+            -0.7788586760041623
+          ],
+          "restart_spread": 0.006515740105515588,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.20873885777813855,
+              "penalty": 0.4568158392311323,
+              "utility": 0.6655546970092708
+            },
+            {
+              "step": 50,
+              "loss": -0.36919600700946814,
+              "penalty": 0.46412071147175776,
+              "utility": 0.8333167184812259
+            },
+            {
+              "step": 100,
+              "loss": -0.4412818860969791,
+              "penalty": 0.4126801851772756,
+              "utility": 0.8539620712742547
+            },
+            {
+              "step": 150,
+              "loss": -0.5572264332914043,
+              "penalty": 0.30314172099438125,
+              "utility": 0.8603681542857856
+            },
+            {
+              "step": 200,
+              "loss": -0.5880011136964685,
+              "penalty": 0.2923604293017222,
+              "utility": 0.8803615429981907
+            },
+            {
+              "step": 250,
+              "loss": -0.5786154552027497,
+              "penalty": 0.3025404213463714,
+              "utility": 0.8811558765491211
+            },
+            {
+              "step": 300,
+              "loss": -0.6624936782391035,
+              "penalty": 0.23295578262322741,
+              "utility": 0.8954494608623309
+            },
+            {
+              "step": 350,
+              "loss": -0.6344849455091591,
+              "penalty": 0.25918230888299454,
+              "utility": 0.8936672543921537
+            },
+            {
+              "step": 400,
+              "loss": -0.6716771571411567,
+              "penalty": 0.2349403118729851,
+              "utility": 0.9066174690141419
+            },
+            {
+              "step": 450,
+              "loss": -0.6727259912665027,
+              "penalty": 0.22724038467805435,
+              "utility": 0.899966375944557
+            },
+            {
+              "step": 500,
+              "loss": -0.7341193947318931,
+              "penalty": 0.1799381372460958,
+              "utility": 0.914057531977989
+            },
+            {
+              "step": 550,
+              "loss": -0.7079230918561082,
+              "penalty": 0.20546734768827446,
+              "utility": 0.9133904395443827
+            },
+            {
+              "step": 600,
+              "loss": -0.7168078218218392,
+              "penalty": 0.19143019558707877,
+              "utility": 0.908238017408918
+            },
+            {
+              "step": 650,
+              "loss": -0.7165301805959647,
+              "penalty": 0.20315027445822326,
+              "utility": 0.9196804550541879
+            },
+            {
+              "step": 700,
+              "loss": -0.7548587699309959,
+              "penalty": 0.1666463413354558,
+              "utility": 0.9215051112664516
+            },
+            {
+              "step": 750,
+              "loss": -0.7544271609524065,
+              "penalty": 0.17759750086902087,
+              "utility": 0.9320246618214273
+            },
+            {
+              "step": 800,
+              "loss": -0.76176066492514,
+              "penalty": 0.16489655686906302,
+              "utility": 0.9266572217942031
+            },
+            {
+              "step": 850,
+              "loss": -0.7072773024050748,
+              "penalty": 0.211276732463056,
+              "utility": 0.9185540348681308
+            },
+            {
+              "step": 900,
+              "loss": -0.7643926662856709,
+              "penalty": 0.16411707091701278,
+              "utility": 0.9285097372026837
+            },
+            {
+              "step": 950,
+              "loss": -0.7355049434340117,
+              "penalty": 0.19348943139762026,
+              "utility": 0.9289943748316319
+            },
+            {
+              "step": 1000,
+              "loss": -0.797643598749177,
+              "penalty": 0.13474490375941117,
+              "utility": 0.9323885025085882
+            },
+            {
+              "step": 1050,
+              "loss": -0.8034218823861199,
+              "penalty": 0.1353947841281818,
+              "utility": 0.9388166665143017
+            },
+            {
+              "step": 1100,
+              "loss": -0.7881775061951957,
+              "penalty": 0.1412658452181539,
+              "utility": 0.9294433514133495
+            },
+            {
+              "step": 1150,
+              "loss": -0.7435962607082766,
+              "penalty": 0.18563588375826645,
+              "utility": 0.929232144466543
+            },
+            {
+              "step": 1199,
+              "loss": -0.8082092899303837,
+              "penalty": 0.12885232799108784,
+              "utility": 0.9370616179214715
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.00042198987953565763,
+            0.0005368359168839131,
+            0.0005670977182006189,
+            0.0006138622392698925,
+            0.0007300693967682782,
+            0.0008056325316076612,
+            0.0009250549677262473,
+            0.0009600799982058709,
+            0.000987936567167287,
+            0.0010185693995160942,
+            0.0010842312477097194,
+            0.0011122026907715568,
+            0.001268361334480107,
+            0.0013202702634825417,
+            0.001500104624159169,
+            0.0015479660556134806
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "ff81a84952360f4b768416b77018ac394c616e9e12fa61307e87263100f51e13",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L2",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "869bb760c6e146862de1f15037155fded8ac01face64b5b409ba88f39b4829a8"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "ac492c3d1e8cb986fa78b108fd4b3d907cb4847fbcce5c7d754571a875beeafe"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "fbbfd63867ee03f80619134c89b7a5dc913a6e513153b8e822e7c3aae825d6ca"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "6f9837b5482ea1a2d6a98b5461b50afa2a00db0de9a92910d6ecd67e147c6cab"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "91d22bc6419bb4c95e287237e66606b95a25282355be45c167078c05e26ba088"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "a89c60b9927711e0bff88643303b08c407973741f435f3dac417f31ddc094850"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "8b773d9e95b0e3f8327e6f2bdca96952af2ed50081b2c08d89bfbf6a3f0d0522"
+            }
+          ],
+          "condition": "optnet16_L2",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10513,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10512.999999999995
+        },
+        "optnet16_C1": {
+          "policy": "C1",
+          "selected_start": 0,
+          "training_objective": -0.8099045913958303,
+          "start_objectives": [
+            -0.8099045913958303,
+            -0.8067107472908717
+          ],
+          "restart_spread": 0.0031938441049585986,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.24611952179720753,
+              "penalty": 0.4194351752120633,
+              "utility": 0.6655546970092708
+            },
+            {
+              "step": 50,
+              "loss": -0.42467713261334306,
+              "penalty": 0.40973907944781374,
+              "utility": 0.8344162120611568
+            },
+            {
+              "step": 100,
+              "loss": -0.486268423478899,
+              "penalty": 0.36986634705097765,
+              "utility": 0.8561347705298766
+            },
+            {
+              "step": 150,
+              "loss": -0.5918694841524269,
+              "penalty": 0.27073640696402257,
+              "utility": 0.8626058911164495
+            },
+            {
+              "step": 200,
+              "loss": -0.6159022148906605,
+              "penalty": 0.268096365894087,
+              "utility": 0.8839985807847476
+            },
+            {
+              "step": 250,
+              "loss": -0.6134722034323281,
+              "penalty": 0.27034267702082443,
+              "utility": 0.8838148804531525
+            },
+            {
+              "step": 300,
+              "loss": -0.6906405012403509,
+              "penalty": 0.2082715471517406,
+              "utility": 0.8989120483920915
+            },
+            {
+              "step": 350,
+              "loss": -0.674527892519679,
+              "penalty": 0.22355694524164282,
+              "utility": 0.8980848377613219
+            },
+            {
+              "step": 400,
+              "loss": -0.7062873488447182,
+              "penalty": 0.2038878382291216,
+              "utility": 0.9101751870738398
+            },
+            {
+              "step": 450,
+              "loss": -0.7036280999966975,
+              "penalty": 0.19733299837828244,
+              "utility": 0.90096109837498
+            },
+            {
+              "step": 500,
+              "loss": -0.7460408344460907,
+              "penalty": 0.17092508969273645,
+              "utility": 0.9169659241388272
+            },
+            {
+              "step": 550,
+              "loss": -0.7411873848411916,
+              "penalty": 0.17480696165084803,
+              "utility": 0.9159943464920397
+            },
+            {
+              "step": 600,
+              "loss": -0.7433003620570154,
+              "penalty": 0.16852830566765173,
+              "utility": 0.9118286677246672
+            },
+            {
+              "step": 650,
+              "loss": -0.7452418922205573,
+              "penalty": 0.17712136490308117,
+              "utility": 0.9223632571236384
+            },
+            {
+              "step": 700,
+              "loss": -0.792360731369939,
+              "penalty": 0.1328551151066286,
+              "utility": 0.9252158464765676
+            },
+            {
+              "step": 750,
+              "loss": -0.7838757756182815,
+              "penalty": 0.14913820721805496,
+              "utility": 0.9330139828363364
+            },
+            {
+              "step": 800,
+              "loss": -0.7947367324704747,
+              "penalty": 0.13550878365319077,
+              "utility": 0.9302455161236655
+            },
+            {
+              "step": 850,
+              "loss": -0.7554967198930762,
+              "penalty": 0.16474566294526166,
+              "utility": 0.9202423828383379
+            },
+            {
+              "step": 900,
+              "loss": -0.7904999594916701,
+              "penalty": 0.14005136228390336,
+              "utility": 0.9305513217755734
+            },
+            {
+              "step": 950,
+              "loss": -0.7596516100028237,
+              "penalty": 0.1722935699695523,
+              "utility": 0.931945179972376
+            },
+            {
+              "step": 1000,
+              "loss": -0.8249859047551892,
+              "penalty": 0.10950987103459715,
+              "utility": 0.9344957757897864
+            },
+            {
+              "step": 1050,
+              "loss": -0.8304486620170114,
+              "penalty": 0.11053985872899771,
+              "utility": 0.9409885207460091
+            },
+            {
+              "step": 1100,
+              "loss": -0.8156819489573192,
+              "penalty": 0.11678317865236923,
+              "utility": 0.9324651276096884
+            },
+            {
+              "step": 1150,
+              "loss": -0.7904808341590311,
+              "penalty": 0.14234520697774045,
+              "utility": 0.9328260411367716
+            },
+            {
+              "step": 1199,
+              "loss": -0.828405586811557,
+              "penalty": 0.1105297528940639,
+              "utility": 0.9389353397056208
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.00036769671969792884,
+            0.00046855886496200143,
+            0.0005122288181935881,
+            0.0005449136771413208,
+            0.0006419060330457102,
+            0.0007210355927637475,
+            0.0008005860588010854,
+            0.0008378309025966338,
+            0.0009026448617009602,
+            0.0009226869361587431,
+            0.0009558888507709745,
+            0.0009852339640438123,
+            0.0011536910038444012,
+            0.0012134223117355794,
+            0.0013749614168738996,
+            0.001441006194366089
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "e57b1cfce30b239ed5c8aa3913bc016cdf83dfe8af9abc051dd589f3e29e9269",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_C1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "c88a714b598114b4a902eba95029b0f2aa852756322cd2ae6608e670eeddf3ed"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "1fdd8e53172f6a25d1cc82c8d68c9f3c544488466cd9fbd179ae1c5bbf52ba47"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "fa799b44c7ddcdad66536100421e4871eaa5866913ebd7539ae620d9bb0c6954"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "51556332f410a6523d63fef709c7332067ba9927318185f0fc903718e3bfd711"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "a30219b1a6ed376befef11c4e86b120aeb2a5185a64553887c131e3f92a55f3b"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "639a0b1eac3eb042b4a6fba4ae968ff9a38435eb33a16cf55b1e9a34c58d58a4"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "a032b6aed384f46fcce29e3b41683c0af2f5d22baeda1b7282a6ea75ceb22363"
+            }
+          ],
+          "condition": "optnet16_C1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 56,
+            "matrix_rows": 10513,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10512.999999999995
+        }
+      },
+      "inputs": {
+        "count": 6,
+        "files": {
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_0/maps.joblib": {
+            "sha256": "0cc29ac818e611c35b742b9082fec8695742b7e9c80b5a82d4de95ada6df4aec",
+            "bytes": 307725
+          },
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_0/matrix_diagnostics.json": {
+            "sha256": "2594a01483f7fd25ffc40842522700f9a726acd0b38f9bcc5164e1217d0b4ad5",
+            "bytes": 1396040
+          },
+          "/Users/nathansamson/PCRL/data/folktables/2018/1-Year/psam_p06.csv": {
+            "sha256": "dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0",
+            "bytes": 267297811
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/anchors.npz": {
+            "sha256": "2a40cdf734631be40d07f0b24de1d7211b10a984c9c23b5c7da8db1c19ebf9fa",
+            "bytes": 831722
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/pca.npz": {
+            "sha256": "a2015174bb67e1aa03370dda7eef3233ce08f551fbbc2bcb276396cfad36130a",
+            "bytes": 3328549
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_0/split_rows.npz": {
+            "sha256": "669fcff80bf61b3d8f17b7cb07d676a2b38030fe638942bfa4bae90f12311f8a",
+            "bytes": 59278
+          }
+        }
+      },
+      "machine": {
+        "swapusage": "total = 28672.00M  used = 27243.75M  free = 1428.25M  (encrypted)",
+        "free_percentage": "System-wide memory free percentage: 19%",
+        "loadavg": [
+          8.03759765625,
+          7.51513671875,
+          7.4482421875
+        ],
+        "peak_rss_mb": 571.703125
+      }
+    },
+    "1": {
+      "seed": 1,
+      "runtime_seconds": 468.50440483295824,
+      "budget_steps": 1200,
+      "starts": 2,
+      "batch": 512,
+      "architecture": "128 -> (64,) -> 16, ReLU",
+      "gamma": 0.0001,
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0002,
+      "departures_from_published_formulation": [
+        "Utility target is the residualised teacher R (32 columns), not a class label. Structurally free: Y enters Lemma 1 only as Y~ inside Y~'Y~ and the lemma assumes no discreteness. rank(R~) = 32 > 16, so the Theorem 4.1 rank cap is not binding.",
+        "Multiple lambda over multiple protected roles (the L1/L2/C1 policies). EXTRAPOLATION: the paper asserts multi-lambda generalisation in one sentence with no equation, no normalisation rule and no code. The form used is one independent J term per role carrying its policy weight, matching this study's existing aggregation. That specific form is not in the paper.",
+        "Adversary players receive [H_c, Z] -- the actual service probabilities the recipient holds, plus the additional channel -- rather than Z alone. The original is single-view.",
+        "Mini-batch exact Gaussian kernel at batch 512. This is the PAPER'S OWN practice (it approximates the projector and gradient on one mini-batch, O(b^3) per step, justified by analogy with Nystrom). It is declared approximate and is NOT claimed exact for the infinite-dimensional kernel.",
+        "Encoder is a fixed small MLP (128 -> 64 -> 16, ReLU) on the frozen whitened V, frozen before fitting; no architecture expansion is authorised.",
+        "Rank fixed at 16 so comparisons are at equal realised rank. Theorem 4.1's negative-eigenvalue count is REPORTED alongside as the paper's upper bound, but is never used to select.",
+        "Released Z is the raw encoder output and is NOT covariance-normalised, unlike the spectral arms where W'W = I forces Cov(Z) = I. This does not bias any endpoint: recovery and reconstruction are both invariant under an invertible linear map of the channel.",
+        "Player kernels use instance-normalised inputs with sigma = 1, which is what the PAPER states. The official code instead divides by the whole-batch Frobenius norm; the two differ and the paper's version is implemented.",
+        "The official code trace-normalises each J term by the label energy (/||S~||^2, /||Y~||^2). That normalisation appears nowhere in the paper's equations. It is adopted here, because without it the continuous 32-column R and the one-hot protected targets are on incomparable scales, and it is declared as a code-not-paper choice."
+      ],
+      "conditions": {
+        "optnet16_L1": {
+          "policy": "L1",
+          "selected_start": 1,
+          "training_objective": -0.8818383783832762,
+          "start_objectives": [
+            -0.8818383783832762,
+            -0.8775509158542129
+          ],
+          "restart_spread": 0.004287462529063313,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.47551769163064006,
+              "penalty": 0.21613600527455915,
+              "utility": 0.6916536969051992
+            },
+            {
+              "step": 50,
+              "loss": -0.606823086396684,
+              "penalty": 0.24000454168731025,
+              "utility": 0.8468276280839943
+            },
+            {
+              "step": 100,
+              "loss": -0.6731697547430221,
+              "penalty": 0.19686983816833514,
+              "utility": 0.8700395929113572
+            },
+            {
+              "step": 150,
+              "loss": -0.7213571382966583,
+              "penalty": 0.17264359615404967,
+              "utility": 0.8940007344507079
+            },
+            {
+              "step": 200,
+              "loss": -0.7348868194123406,
+              "penalty": 0.166193231895239,
+              "utility": 0.9010800513075795
+            },
+            {
+              "step": 250,
+              "loss": -0.7710690898121905,
+              "penalty": 0.13572739595639938,
+              "utility": 0.9067964857685898
+            },
+            {
+              "step": 300,
+              "loss": -0.7628667757825642,
+              "penalty": 0.1441408392481551,
+              "utility": 0.9070076150307194
+            },
+            {
+              "step": 350,
+              "loss": -0.7911825162691298,
+              "penalty": 0.12717240797444687,
+              "utility": 0.9183549242435767
+            },
+            {
+              "step": 400,
+              "loss": -0.7903912925839643,
+              "penalty": 0.12756727713271565,
+              "utility": 0.91795856971668
+            },
+            {
+              "step": 450,
+              "loss": -0.808927382477542,
+              "penalty": 0.12064794630887588,
+              "utility": 0.9295753287864179
+            },
+            {
+              "step": 500,
+              "loss": -0.8088522949415045,
+              "penalty": 0.11942654420196014,
+              "utility": 0.9282788391434645
+            },
+            {
+              "step": 550,
+              "loss": -0.8364600780945397,
+              "penalty": 0.09866083836221537,
+              "utility": 0.9351209164567551
+            },
+            {
+              "step": 600,
+              "loss": -0.8317693600307727,
+              "penalty": 0.10573646000743078,
+              "utility": 0.9375058200382035
+            },
+            {
+              "step": 650,
+              "loss": -0.830571802375347,
+              "penalty": 0.1038570526911924,
+              "utility": 0.9344288550665394
+            },
+            {
+              "step": 700,
+              "loss": -0.8550705134612069,
+              "penalty": 0.08874439388763275,
+              "utility": 0.9438149073488397
+            },
+            {
+              "step": 750,
+              "loss": -0.8423368105375579,
+              "penalty": 0.10617023350630676,
+              "utility": 0.9485070440438647
+            },
+            {
+              "step": 800,
+              "loss": -0.8476048311117312,
+              "penalty": 0.1020463423336194,
+              "utility": 0.9496511734453507
+            },
+            {
+              "step": 850,
+              "loss": -0.863431101970079,
+              "penalty": 0.08765247016819899,
+              "utility": 0.951083572138278
+            },
+            {
+              "step": 900,
+              "loss": -0.8362513901452084,
+              "penalty": 0.11642964934246394,
+              "utility": 0.9526810394876724
+            },
+            {
+              "step": 950,
+              "loss": -0.8679528814163262,
+              "penalty": 0.0862209457383495,
+              "utility": 0.9541738271546757
+            },
+            {
+              "step": 1000,
+              "loss": -0.8684229927593108,
+              "penalty": 0.0845936719794269,
+              "utility": 0.9530166647387377
+            },
+            {
+              "step": 1050,
+              "loss": -0.8617066066541847,
+              "penalty": 0.09284952794123391,
+              "utility": 0.9545561345954187
+            },
+            {
+              "step": 1100,
+              "loss": -0.8648224350752817,
+              "penalty": 0.08703621724480473,
+              "utility": 0.9518586523200864
+            },
+            {
+              "step": 1150,
+              "loss": -0.8802008695050826,
+              "penalty": 0.07515472597551089,
+              "utility": 0.9553555954805935
+            },
+            {
+              "step": 1199,
+              "loss": -0.8731065903135572,
+              "penalty": 0.08179948405193456,
+              "utility": 0.9549060743654918
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.0004846291967149125,
+            0.0005972670458463463,
+            0.0006704800830838069,
+            0.0007226769511284268,
+            0.0007583170470848174,
+            0.0008056755516095234,
+            0.00085973671341723,
+            0.0009579525999284565,
+            0.0010279732822424522,
+            0.0011628889350967359,
+            0.001188558568357538,
+            0.0012229321946888826,
+            0.0014234167539114388,
+            0.0015115367885786472,
+            0.001726899212882418,
+            0.0019441519889129577
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "4f9f9fbb251a8a6c7526afb57ca38b19d8126eca003af0a7cce5c097cccf670a",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "4764525d482753aff2051d77ab0e2fa3029f6f02084fbd522d52a79181f1e044"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "37ece7af1134977502f8769623a371c6803cfce0d8126233b90181e722906525"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "2da3364c8693ea975e9e9d95bab68e19cfce930e61dd980502b2a72a4b206ea1"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "d37dec6dffced1a4897d286562c93cb955ec140e9987d2384b2bf1dab0dde83c"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "d80367adea1c519179e8eea5a46f072decb67086a549898ca307738a0b37e87a"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "2895d32a541eb5c83dd37d1f7e4b96001d1afba2f62b925607f58787b6f47431"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "db3b6e70d1a0ba2cfc65528265faa3239247838b67826b6564b7918be8797081"
+            }
+          ],
+          "condition": "optnet16_L1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10428,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10427.999999999987
+        },
+        "optnet16_L2": {
+          "policy": "L2",
+          "selected_start": 0,
+          "training_objective": -0.8024964540187579,
+          "start_objectives": [
+            -0.8024964540187579,
+            -0.7978062133967225
+          ],
+          "restart_spread": 0.00469024062203538,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.20059641897946145,
+              "penalty": 0.48438266505610006,
+              "utility": 0.6849790840355615
+            },
+            {
+              "step": 50,
+              "loss": -0.4076796000670065,
+              "penalty": 0.43324055943298295,
+              "utility": 0.8409201594999894
+            },
+            {
+              "step": 100,
+              "loss": -0.4329451948058489,
+              "penalty": 0.42218147017838314,
+              "utility": 0.8551266649842321
+            },
+            {
+              "step": 150,
+              "loss": -0.5550532553958859,
+              "penalty": 0.2971603360835794,
+              "utility": 0.8522135914794653
+            },
+            {
+              "step": 200,
+              "loss": -0.6191537568351538,
+              "penalty": 0.2556637890350919,
+              "utility": 0.8748175458702457
+            },
+            {
+              "step": 250,
+              "loss": -0.6129719432677415,
+              "penalty": 0.27692947594299566,
+              "utility": 0.8899014192107372
+            },
+            {
+              "step": 300,
+              "loss": -0.5998031118767448,
+              "penalty": 0.2917081458251694,
+              "utility": 0.8915112577019143
+            },
+            {
+              "step": 350,
+              "loss": -0.675012714508566,
+              "penalty": 0.2238016213708748,
+              "utility": 0.8988143358794408
+            },
+            {
+              "step": 400,
+              "loss": -0.6716065228841979,
+              "penalty": 0.23577125596250775,
+              "utility": 0.9073777788467057
+            },
+            {
+              "step": 450,
+              "loss": -0.6718373998957572,
+              "penalty": 0.2342363071646147,
+              "utility": 0.9060737070603718
+            },
+            {
+              "step": 500,
+              "loss": -0.7227208673447274,
+              "penalty": 0.1959741064953956,
+              "utility": 0.918694973840123
+            },
+            {
+              "step": 550,
+              "loss": -0.7291357810986095,
+              "penalty": 0.18483398598930675,
+              "utility": 0.9139697670879163
+            },
+            {
+              "step": 600,
+              "loss": -0.724184012283509,
+              "penalty": 0.19503257578510574,
+              "utility": 0.9192165880686148
+            },
+            {
+              "step": 650,
+              "loss": -0.7342828617444159,
+              "penalty": 0.1881215912694139,
+              "utility": 0.9224044530138298
+            },
+            {
+              "step": 700,
+              "loss": -0.7440886787828696,
+              "penalty": 0.18418958730877139,
+              "utility": 0.928278266091641
+            },
+            {
+              "step": 750,
+              "loss": -0.7669813984040771,
+              "penalty": 0.15594267937714457,
+              "utility": 0.9229240777812217
+            },
+            {
+              "step": 800,
+              "loss": -0.7534672707437984,
+              "penalty": 0.17708061986580004,
+              "utility": 0.9305478906095984
+            },
+            {
+              "step": 850,
+              "loss": -0.7402131485673079,
+              "penalty": 0.1894382599857709,
+              "utility": 0.9296514085530788
+            },
+            {
+              "step": 900,
+              "loss": -0.7330383818222466,
+              "penalty": 0.19700935058459165,
+              "utility": 0.9300477324068382
+            },
+            {
+              "step": 950,
+              "loss": -0.7557208115592005,
+              "penalty": 0.17191868801915983,
+              "utility": 0.9276394995783602
+            },
+            {
+              "step": 1000,
+              "loss": -0.737776200723028,
+              "penalty": 0.20004419691670167,
+              "utility": 0.9378203976397297
+            },
+            {
+              "step": 1050,
+              "loss": -0.7940358106729286,
+              "penalty": 0.14476023384362036,
+              "utility": 0.938796044516549
+            },
+            {
+              "step": 1100,
+              "loss": -0.7776041594649481,
+              "penalty": 0.16084516582513259,
+              "utility": 0.9384493252900806
+            },
+            {
+              "step": 1150,
+              "loss": -0.7861149107678372,
+              "penalty": 0.14548918957687265,
+              "utility": 0.9316041003447099
+            },
+            {
+              "step": 1199,
+              "loss": -0.8292713156276579,
+              "penalty": 0.11216240935061783,
+              "utility": 0.9414337249782757
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.00033009124199406505,
+            0.0004764715830673576,
+            0.0005134296231537968,
+            0.000543024489618949,
+            0.0005728295698715013,
+            0.0006009273993291079,
+            0.0006480229255459041,
+            0.0006665574137786553,
+            0.0007698639659712481,
+            0.0007867581650315797,
+            0.0008529265983541032,
+            0.000894439502481636,
+            0.0009287490066001435,
+            0.0010005519404742815,
+            0.0010502037617988041,
+            0.0011646930031483144
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "f29198d7e9ab6b351537320b50d4c0a373d674823efef2fb4429955f84dfb99e",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L2",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "7000229b1507fce99cd0f791ba8c7eb4adc6ba9836217919da6de7366baf3cf1"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "279e0d98b3e171a764b8bdbb6e8131c2a9d017a76491249f386384db672c1fb0"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "a073db3910a654fb8e6aeda5ee60435e2f727f2dce188a656fd1105e03007994"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "0d32f98d05b1e8cf0af96b9f0f7a13a128f0ca2e9795c389a9a471e7bf684b18"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "8ab35450f8d5d07d648708481a98972cf294bf7a8458ac0d2f8fe91113750913"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "544ef7f9990ea5838d4adb75b6d96f3356373d1eecbc171b568518a09b3fe8d9"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "76e0aeb2e5f6f7e7a300184b21d603fae4e8d325c64736397b1f536a9607d945"
+            }
+          ],
+          "condition": "optnet16_L2",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10428,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10427.999999999987
+        },
+        "optnet16_C1": {
+          "policy": "C1",
+          "selected_start": 1,
+          "training_objective": -0.8386955857509424,
+          "start_objectives": [
+            -0.8386955857509424,
+            -0.8373391963755142
+          ],
+          "restart_spread": 0.0013563893754281464,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.2957949738211958,
+              "penalty": 0.3958587230840034,
+              "utility": 0.6916536969051992
+            },
+            {
+              "step": 50,
+              "loss": -0.4347484884470814,
+              "penalty": 0.3951988922753374,
+              "utility": 0.8299473807224188
+            },
+            {
+              "step": 100,
+              "loss": -0.5325953637400699,
+              "penalty": 0.3184023000628413,
+              "utility": 0.8509976638029112
+            },
+            {
+              "step": 150,
+              "loss": -0.586425139836487,
+              "penalty": 0.2893448457886291,
+              "utility": 0.8757699856251162
+            },
+            {
+              "step": 200,
+              "loss": -0.6415181502367198,
+              "penalty": 0.23921429596042365,
+              "utility": 0.8807324461971434
+            },
+            {
+              "step": 250,
+              "loss": -0.6636068164441831,
+              "penalty": 0.225410388237347,
+              "utility": 0.8890172046815301
+            },
+            {
+              "step": 300,
+              "loss": -0.6549060646771374,
+              "penalty": 0.23512234551797512,
+              "utility": 0.8900284101951125
+            },
+            {
+              "step": 350,
+              "loss": -0.6728332674289261,
+              "penalty": 0.2250990929419726,
+              "utility": 0.8979323603708987
+            },
+            {
+              "step": 400,
+              "loss": -0.7009597849606317,
+              "penalty": 0.19668121854762038,
+              "utility": 0.8976410035082522
+            },
+            {
+              "step": 450,
+              "loss": -0.6943856896720384,
+              "penalty": 0.2148271133519018,
+              "utility": 0.9092128030239401
+            },
+            {
+              "step": 500,
+              "loss": -0.710075932229725,
+              "penalty": 0.1986942579948076,
+              "utility": 0.9087701902245325
+            },
+            {
+              "step": 550,
+              "loss": -0.7495082386158365,
+              "penalty": 0.16769596161079592,
+              "utility": 0.9172042002266324
+            },
+            {
+              "step": 600,
+              "loss": -0.7522460060810775,
+              "penalty": 0.16873044123028882,
+              "utility": 0.9209764473113663
+            },
+            {
+              "step": 650,
+              "loss": -0.7368757352767188,
+              "penalty": 0.17796015996533138,
+              "utility": 0.9148358952420501
+            },
+            {
+              "step": 700,
+              "loss": -0.7799604015686872,
+              "penalty": 0.14422157694153187,
+              "utility": 0.9241819785102191
+            },
+            {
+              "step": 750,
+              "loss": -0.7708365116449679,
+              "penalty": 0.1617291965870197,
+              "utility": 0.9325657082319876
+            },
+            {
+              "step": 800,
+              "loss": -0.7836192879399606,
+              "penalty": 0.1518037857183986,
+              "utility": 0.9354230736583592
+            },
+            {
+              "step": 850,
+              "loss": -0.7951838380871945,
+              "penalty": 0.13959933310065503,
+              "utility": 0.9347831711878495
+            },
+            {
+              "step": 900,
+              "loss": -0.7491345772497849,
+              "penalty": 0.18586322849853532,
+              "utility": 0.9349978057483203
+            },
+            {
+              "step": 950,
+              "loss": -0.8185824893357297,
+              "penalty": 0.11604515203209145,
+              "utility": 0.9346276413678212
+            },
+            {
+              "step": 1000,
+              "loss": -0.795635662587912,
+              "penalty": 0.1389693236050737,
+              "utility": 0.9346049861929856
+            },
+            {
+              "step": 1050,
+              "loss": -0.8038595136824103,
+              "penalty": 0.132110843669,
+              "utility": 0.9359703573514102
+            },
+            {
+              "step": 1100,
+              "loss": -0.8063166199978047,
+              "penalty": 0.1286093674126616,
+              "utility": 0.9349259874104663
+            },
+            {
+              "step": 1150,
+              "loss": -0.8292794457907602,
+              "penalty": 0.11120585358445542,
+              "utility": 0.9404852993752156
+            },
+            {
+              "step": 1199,
+              "loss": -0.8207148088539796,
+              "penalty": 0.11808434344633992,
+              "utility": 0.9387991523003195
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.0002953932200005702,
+            0.0003657451252281013,
+            0.00041115154428602663,
+            0.0004567422683253371,
+            0.00046336093552305747,
+            0.0004991111141968179,
+            0.0005285782873407392,
+            0.0005749906996906695,
+            0.0006223889562447433,
+            0.0006564795270492024,
+            0.0007025599751474632,
+            0.0007437402777466723,
+            0.0008402764724363081,
+            0.0008538573278720276,
+            0.001012501525349735,
+            0.0010563964561190098
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "e95b0a9fc4a5b89587d79dcf8f289eb25407cf8f07689b01cd498bd0d13b800f",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_C1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "31015ac9d90fbca64324ee5afc5eee1bb06bd8b548d047405d380ccaf1c539c1"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "f0bc0d829a749b24b7197855f202a9290f87c528986c8f1bc13b724d95e8ba0c"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "712ca3caab81994e5620346695f9726e7b2678c2ab35c4f88686d7b1b3f035e4"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "93fa8bef9438ba7947371b37568a46ad16b52e910c5fe5731c37d27992468936"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "49b32dc753722bd426e83b69375d3f12351197a8a0ebe46e1a66010ede9c6597"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "878100eec173244e30ecd2b5e47210084a094b7c619ff5aa046f84e67e515e29"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "be1b6ef72569ace4e162a820d46d84bb23c843702f6534162e1595420412b4b8"
+            }
+          ],
+          "condition": "optnet16_C1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 56,
+            "matrix_rows": 10428,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10427.999999999987
+        }
+      },
+      "inputs": {
+        "count": 6,
+        "files": {
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_1/maps.joblib": {
+            "sha256": "2f0207853dd6595b11c5d51875fc3fe856371c7d6f97d99198fd0ee19dafb85b",
+            "bytes": 307725
+          },
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_1/matrix_diagnostics.json": {
+            "sha256": "b910d9885728e0022934b0cbbba77b057d86653c8e6172d21f01a1c852fd3193",
+            "bytes": 1395399
+          },
+          "/Users/nathansamson/PCRL/data/folktables/2018/1-Year/psam_p06.csv": {
+            "sha256": "dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0",
+            "bytes": 267297811
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/anchors.npz": {
+            "sha256": "957f78dfd36862fe2b39e1685433d671d44a2b8d3d511b14a52a9636ad037379",
+            "bytes": 654173
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/pca.npz": {
+            "sha256": "99f5e4d5a7dc8ad51157519583a62ac5f7fe898c7557fcd743a6a5a020d6382b",
+            "bytes": 3318553
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_1/split_rows.npz": {
+            "sha256": "d8543a6857e68adcbb2345781eba135a850463285a77a76b42b5c3e701233d1e",
+            "bytes": 59227
+          }
+        }
+      },
+      "machine": {
+        "swapusage": "total = 28672.00M  used = 28385.31M  free = 286.69M  (encrypted)",
+        "free_percentage": "System-wide memory free percentage: 18%",
+        "loadavg": [
+          12.84521484375,
+          9.3740234375,
+          8.203125
+        ],
+        "peak_rss_mb": 571.703125
+      }
+    },
+    "2": {
+      "seed": 2,
+      "runtime_seconds": 422.3186157910386,
+      "budget_steps": 1200,
+      "starts": 2,
+      "batch": 512,
+      "architecture": "128 -> (64,) -> 16, ReLU",
+      "gamma": 0.0001,
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0002,
+      "departures_from_published_formulation": [
+        "Utility target is the residualised teacher R (32 columns), not a class label. Structurally free: Y enters Lemma 1 only as Y~ inside Y~'Y~ and the lemma assumes no discreteness. rank(R~) = 32 > 16, so the Theorem 4.1 rank cap is not binding.",
+        "Multiple lambda over multiple protected roles (the L1/L2/C1 policies). EXTRAPOLATION: the paper asserts multi-lambda generalisation in one sentence with no equation, no normalisation rule and no code. The form used is one independent J term per role carrying its policy weight, matching this study's existing aggregation. That specific form is not in the paper.",
+        "Adversary players receive [H_c, Z] -- the actual service probabilities the recipient holds, plus the additional channel -- rather than Z alone. The original is single-view.",
+        "Mini-batch exact Gaussian kernel at batch 512. This is the PAPER'S OWN practice (it approximates the projector and gradient on one mini-batch, O(b^3) per step, justified by analogy with Nystrom). It is declared approximate and is NOT claimed exact for the infinite-dimensional kernel.",
+        "Encoder is a fixed small MLP (128 -> 64 -> 16, ReLU) on the frozen whitened V, frozen before fitting; no architecture expansion is authorised.",
+        "Rank fixed at 16 so comparisons are at equal realised rank. Theorem 4.1's negative-eigenvalue count is REPORTED alongside as the paper's upper bound, but is never used to select.",
+        "Released Z is the raw encoder output and is NOT covariance-normalised, unlike the spectral arms where W'W = I forces Cov(Z) = I. This does not bias any endpoint: recovery and reconstruction are both invariant under an invertible linear map of the channel.",
+        "Player kernels use instance-normalised inputs with sigma = 1, which is what the PAPER states. The official code instead divides by the whole-batch Frobenius norm; the two differ and the paper's version is implemented.",
+        "The official code trace-normalises each J term by the label energy (/||S~||^2, /||Y~||^2). That normalisation appears nowhere in the paper's equations. It is adopted here, because without it the continuous 32-column R and the one-hot protected targets are on incomparable scales, and it is declared as a code-not-paper choice."
+      ],
+      "conditions": {
+        "optnet16_L1": {
+          "policy": "L1",
+          "selected_start": 1,
+          "training_objective": -0.8797699370401617,
+          "start_objectives": [
+            -0.8797699370401617,
+            -0.877702191716321
+          ],
+          "restart_spread": 0.002067745323840686,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.46693615788768217,
+              "penalty": 0.23441072898080986,
+              "utility": 0.701346886868492
+            },
+            {
+              "step": 50,
+              "loss": -0.6191124380248816,
+              "penalty": 0.23790150942307017,
+              "utility": 0.8570139474479518
+            },
+            {
+              "step": 100,
+              "loss": -0.6902980160319407,
+              "penalty": 0.20357893404590494,
+              "utility": 0.8938769500778457
+            },
+            {
+              "step": 150,
+              "loss": -0.7271390821156942,
+              "penalty": 0.16744270550130497,
+              "utility": 0.8945817876169992
+            },
+            {
+              "step": 200,
+              "loss": -0.7587786000272533,
+              "penalty": 0.1457423737175698,
+              "utility": 0.9045209737448231
+            },
+            {
+              "step": 250,
+              "loss": -0.7639015569812214,
+              "penalty": 0.15338143954544448,
+              "utility": 0.9172829965266659
+            },
+            {
+              "step": 300,
+              "loss": -0.7573825506063276,
+              "penalty": 0.15566108608770218,
+              "utility": 0.9130436366940298
+            },
+            {
+              "step": 350,
+              "loss": -0.8082517849363919,
+              "penalty": 0.11551006999218427,
+              "utility": 0.9237618549285762
+            },
+            {
+              "step": 400,
+              "loss": -0.8122119516943456,
+              "penalty": 0.1124316260408445,
+              "utility": 0.9246435777351901
+            },
+            {
+              "step": 450,
+              "loss": -0.8068610426437267,
+              "penalty": 0.12111504909360411,
+              "utility": 0.9279760917373309
+            },
+            {
+              "step": 500,
+              "loss": -0.81987020674371,
+              "penalty": 0.11130559624531439,
+              "utility": 0.9311758029890244
+            },
+            {
+              "step": 550,
+              "loss": -0.817792082585588,
+              "penalty": 0.11858114673114079,
+              "utility": 0.9363732293167288
+            },
+            {
+              "step": 600,
+              "loss": -0.8221066491590313,
+              "penalty": 0.11787508239928911,
+              "utility": 0.9399817315583204
+            },
+            {
+              "step": 650,
+              "loss": -0.8564628786198657,
+              "penalty": 0.08939013944485119,
+              "utility": 0.9458530180647169
+            },
+            {
+              "step": 700,
+              "loss": -0.855881127590799,
+              "penalty": 0.08888184703996126,
+              "utility": 0.9447629746307603
+            },
+            {
+              "step": 750,
+              "loss": -0.8541824002783206,
+              "penalty": 0.09103711077690088,
+              "utility": 0.9452195110552215
+            },
+            {
+              "step": 800,
+              "loss": -0.8535208204457226,
+              "penalty": 0.09859789604828063,
+              "utility": 0.9521187164940033
+            },
+            {
+              "step": 850,
+              "loss": -0.842705667110722,
+              "penalty": 0.1061633852758471,
+              "utility": 0.9488690523865692
+            },
+            {
+              "step": 900,
+              "loss": -0.8566222337684983,
+              "penalty": 0.09201414434081598,
+              "utility": 0.9486363781093143
+            },
+            {
+              "step": 950,
+              "loss": -0.8565772846693442,
+              "penalty": 0.09516360646301994,
+              "utility": 0.9517408911323642
+            },
+            {
+              "step": 1000,
+              "loss": -0.8805128487545351,
+              "penalty": 0.07497760095376534,
+              "utility": 0.9554904497083004
+            },
+            {
+              "step": 1050,
+              "loss": -0.8601333940302178,
+              "penalty": 0.09385726948831347,
+              "utility": 0.9539906635185313
+            },
+            {
+              "step": 1100,
+              "loss": -0.8649592415489125,
+              "penalty": 0.08971303288909743,
+              "utility": 0.95467227443801
+            },
+            {
+              "step": 1150,
+              "loss": -0.8817912834225691,
+              "penalty": 0.07266089573600179,
+              "utility": 0.9544521791585708
+            },
+            {
+              "step": 1199,
+              "loss": -0.8762291187745085,
+              "penalty": 0.07697865875527152,
+              "utility": 0.95320777752978
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.0005567469765936516,
+            0.0006427689524004311,
+            0.0007180007988803083,
+            0.0007617830046462048,
+            0.0008319826853177116,
+            0.0009305297954969429,
+            0.0010129615533876922,
+            0.0010511966212425454,
+            0.001143163656688487,
+            0.0012214493298107454,
+            0.0012899963855389112,
+            0.0012993916779012644,
+            0.0014918228957108088,
+            0.001512509247789711,
+            0.0017292811526497217,
+            0.0019353126826667309
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "5d64a66144f9a8607221863713bafbdcda1c476da385ea3ef9d91c92ab665e2b",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "7b3065773cd8853a2c545a1ecbc087bbb88bb9ecf1f4ced72ff3516e52a65dfe"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "977584f485a9df3b8d0aaed0d09a3a269bb88fccc3451b589bf179852f7477e0"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "bae8eeb191ac673e46645954771cd8423ffbf9e15fc97f36369167983238e268"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "223402a364f3fa4375065fb576c776a2c714db06d3cba9ca8e7357f0e25e2540"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "05f120d12b0268ab5fe021b0909a981d2d03cf363be25aa367c9cbe934b3ff10"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "38d5c78f5381e7c34148a7bb912327bfcc4fceb48acda5e43456cfe27064f537"
+            },
+            {
+              "arm": "optnet16_L1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "6466298fd5b50bf96c4283c9e6bc665969dfa7929f4d60a4d9ceafa75ac4cf7d"
+            }
+          ],
+          "condition": "optnet16_L1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10551,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10550.99999999998
+        },
+        "optnet16_L2": {
+          "policy": "L2",
+          "selected_start": 1,
+          "training_objective": -0.7958240840585197,
+          "start_objectives": [
+            -0.7958240840585197,
+            -0.789846073555097
+          ],
+          "restart_spread": 0.005978010503422726,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.23252542890687228,
+              "penalty": 0.4688214579616197,
+              "utility": 0.701346886868492
+            },
+            {
+              "step": 50,
+              "loss": -0.3927776771823286,
+              "penalty": 0.45050736820617543,
+              "utility": 0.843285045388504
+            },
+            {
+              "step": 100,
+              "loss": -0.5092829864052926,
+              "penalty": 0.3651444762766787,
+              "utility": 0.8744274626819712
+            },
+            {
+              "step": 150,
+              "loss": -0.5687692768799195,
+              "penalty": 0.30551703007204006,
+              "utility": 0.8742863069519596
+            },
+            {
+              "step": 200,
+              "loss": -0.6231317300836209,
+              "penalty": 0.25934005039872843,
+              "utility": 0.8824717804823493
+            },
+            {
+              "step": 250,
+              "loss": -0.6211200480802348,
+              "penalty": 0.27306217299345703,
+              "utility": 0.8941822210736918
+            },
+            {
+              "step": 300,
+              "loss": -0.6095165018308834,
+              "penalty": 0.2797250953694832,
+              "utility": 0.8892415972003666
+            },
+            {
+              "step": 350,
+              "loss": -0.6829685110467071,
+              "penalty": 0.2173794062496729,
+              "utility": 0.90034791729638
+            },
+            {
+              "step": 400,
+              "loss": -0.7012851862369962,
+              "penalty": 0.19754896591023502,
+              "utility": 0.8988341521472313
+            },
+            {
+              "step": 450,
+              "loss": -0.6842366688795187,
+              "penalty": 0.21991477568947493,
+              "utility": 0.9041514445689937
+            },
+            {
+              "step": 500,
+              "loss": -0.7044366551541577,
+              "penalty": 0.20661704544209264,
+              "utility": 0.9110537005962503
+            },
+            {
+              "step": 550,
+              "loss": -0.6946814592963453,
+              "penalty": 0.21976112047231366,
+              "utility": 0.914442579768659
+            },
+            {
+              "step": 600,
+              "loss": -0.6954330492742755,
+              "penalty": 0.22345081341782774,
+              "utility": 0.9188838626921032
+            },
+            {
+              "step": 650,
+              "loss": -0.769105537330969,
+              "penalty": 0.15649662354817048,
+              "utility": 0.9256021608791395
+            },
+            {
+              "step": 700,
+              "loss": -0.7517896041597152,
+              "penalty": 0.17201990405649145,
+              "utility": 0.9238095082162067
+            },
+            {
+              "step": 750,
+              "loss": -0.7562649141252756,
+              "penalty": 0.17033159205305992,
+              "utility": 0.9265965061783356
+            },
+            {
+              "step": 800,
+              "loss": -0.7500236743868807,
+              "penalty": 0.1824736741984784,
+              "utility": 0.932497348585359
+            },
+            {
+              "step": 850,
+              "loss": -0.7345395460612061,
+              "penalty": 0.1902834005500954,
+              "utility": 0.9248229466113015
+            },
+            {
+              "step": 900,
+              "loss": -0.7640219388134275,
+              "penalty": 0.16327611008131543,
+              "utility": 0.927298048894743
+            },
+            {
+              "step": 950,
+              "loss": -0.7555482094054045,
+              "penalty": 0.17734363029267092,
+              "utility": 0.9328918396980754
+            },
+            {
+              "step": 1000,
+              "loss": -0.8021317549724727,
+              "penalty": 0.13260202515090477,
+              "utility": 0.9347337801233775
+            },
+            {
+              "step": 1050,
+              "loss": -0.7528397032506692,
+              "penalty": 0.1810322443961904,
+              "utility": 0.9338719476468595
+            },
+            {
+              "step": 1100,
+              "loss": -0.7681906821558219,
+              "penalty": 0.16675622077051863,
+              "utility": 0.9349469029263405
+            },
+            {
+              "step": 1150,
+              "loss": -0.8019927695995415,
+              "penalty": 0.1325431831247285,
+              "utility": 0.9345359527242699
+            },
+            {
+              "step": 1199,
+              "loss": -0.7964251561366724,
+              "penalty": 0.13763612524919638,
+              "utility": 0.9340612813858687
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.0003972509228019541,
+            0.0004895996006300538,
+            0.000519313511345566,
+            0.0005654861702279791,
+            0.0006096030481677506,
+            0.0006689752045683633,
+            0.0007370803039500355,
+            0.0007800727148035945,
+            0.0008819583421329976,
+            0.000948498363337733,
+            0.001074206581472828,
+            0.0011285653372959889,
+            0.0011996961949372474,
+            0.0012398733350182632,
+            0.0012906467760607481,
+            0.0015563050283795988
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "86677f27826b2211b333afa1f563ba1065cf4e7d4a7e46191192bf0c81d46b28",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_L2",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "47d5df3ba76fe118d90a943328d44286c212699db7386f156097b7ae8a758895"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "79ae5a117e07e2b4bf256581be8906b22fe84b02298f6c6f3ad9e7080383fa82"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "e6f653d72d8e59a9edc61669a966be45a4598717add6e6dd02acb92acb5d6022"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "ccf730725fa417ad7bf20ede534f1151b83ad2e642ff20a63d9cddf2d40b3311"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "d60b90fbf49c4d8b9399aba93a0059022250ac17ef8bc067f6d626c2e49d5c02"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "d84e516667710f193b74cc02243c8817a7f9f025c8fe1b448f548f5918730200"
+            },
+            {
+              "arm": "optnet16_L2",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "ed6e88e1e3b220e4b1c81fc84e9f773bf55274756cf9c893e2b7ee0c0c7c3136"
+            }
+          ],
+          "condition": "optnet16_L2",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 45,
+            "matrix_rows": 10551,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10550.99999999998
+        },
+        "optnet16_C1": {
+          "policy": "C1",
+          "selected_start": 1,
+          "training_objective": -0.8309615781602174,
+          "start_objectives": [
+            -0.8309615781602174,
+            -0.8071084138536995
+          ],
+          "restart_spread": 0.02385316430651796,
+          "history": [
+            {
+              "step": 0,
+              "loss": -0.2717201953985154,
+              "penalty": 0.4296266914699766,
+              "utility": 0.701346886868492
+            },
+            {
+              "step": 50,
+              "loss": -0.43581905607245686,
+              "penalty": 0.4087153387265059,
+              "utility": 0.8445343947989628
+            },
+            {
+              "step": 100,
+              "loss": -0.552028872228979,
+              "penalty": 0.32417700077594463,
+              "utility": 0.8762058730049236
+            },
+            {
+              "step": 150,
+              "loss": -0.6246266266544159,
+              "penalty": 0.25111389023338193,
+              "utility": 0.8757405168877979
+            },
+            {
+              "step": 200,
+              "loss": -0.648254613372968,
+              "penalty": 0.2370194721442702,
+              "utility": 0.8852740855172382
+            },
+            {
+              "step": 250,
+              "loss": -0.6620001994065292,
+              "penalty": 0.23306259206724922,
+              "utility": 0.8950627914737784
+            },
+            {
+              "step": 300,
+              "loss": -0.6429839966052404,
+              "penalty": 0.2493622229873994,
+              "utility": 0.8923462195926398
+            },
+            {
+              "step": 350,
+              "loss": -0.7211203586048998,
+              "penalty": 0.18283975029970917,
+              "utility": 0.9039601089046089
+            },
+            {
+              "step": 400,
+              "loss": -0.7121401841602505,
+              "penalty": 0.19079115450853135,
+              "utility": 0.9029313386687818
+            },
+            {
+              "step": 450,
+              "loss": -0.722594066740537,
+              "penalty": 0.1841456763517446,
+              "utility": 0.9067397430922817
+            },
+            {
+              "step": 500,
+              "loss": -0.7353307182293831,
+              "penalty": 0.1770377836694747,
+              "utility": 0.9123685018988578
+            },
+            {
+              "step": 550,
+              "loss": -0.7326049580131366,
+              "penalty": 0.18433421764858243,
+              "utility": 0.9169391756617191
+            },
+            {
+              "step": 600,
+              "loss": -0.7377541442808266,
+              "penalty": 0.1834494240127955,
+              "utility": 0.9212035682936222
+            },
+            {
+              "step": 650,
+              "loss": -0.7964534988407388,
+              "penalty": 0.13195203943637118,
+              "utility": 0.9284055382771099
+            },
+            {
+              "step": 700,
+              "loss": -0.7777252140522743,
+              "penalty": 0.14790555361859545,
+              "utility": 0.9256307676708698
+            },
+            {
+              "step": 750,
+              "loss": -0.7907335998457068,
+              "penalty": 0.13837444381691694,
+              "utility": 0.9291080436626238
+            },
+            {
+              "step": 800,
+              "loss": -0.7974739190681823,
+              "penalty": 0.13749152282981808,
+              "utility": 0.9349654418980003
+            },
+            {
+              "step": 850,
+              "loss": -0.7648099807547353,
+              "penalty": 0.16378531732868162,
+              "utility": 0.9285952980834169
+            },
+            {
+              "step": 900,
+              "loss": -0.7809849393285002,
+              "penalty": 0.14811447997229535,
+              "utility": 0.9290994193007955
+            },
+            {
+              "step": 950,
+              "loss": -0.788949459991164,
+              "penalty": 0.1461907738546752,
+              "utility": 0.9351402338458391
+            },
+            {
+              "step": 1000,
+              "loss": -0.8342307395941609,
+              "penalty": 0.10526495393739818,
+              "utility": 0.9394956935315592
+            },
+            {
+              "step": 1050,
+              "loss": -0.8096731116492126,
+              "penalty": 0.12762432842111343,
+              "utility": 0.9372974400703261
+            },
+            {
+              "step": 1100,
+              "loss": -0.8192535452711499,
+              "penalty": 0.11987868879599703,
+              "utility": 0.939132234067147
+            },
+            {
+              "step": 1150,
+              "loss": -0.8445550433417126,
+              "penalty": 0.09170603042476894,
+              "utility": 0.9362610737664815
+            },
+            {
+              "step": 1199,
+              "loss": -0.8424652665321988,
+              "penalty": 0.09495138894018061,
+              "utility": 0.9374166554723794
+            }
+          ],
+          "released_covariance_eigenvalues": [
+            0.00032182494995750184,
+            0.0003611774149126805,
+            0.00042502659083664394,
+            0.0004308746790370631,
+            0.0004775662219979172,
+            0.0004968686960096748,
+            0.0005352029354160202,
+            0.0005719194134043258,
+            0.0006315318277819629,
+            0.0007032491455973102,
+            0.0007571356772219781,
+            0.0008281771068321881,
+            0.000860498181789912,
+            0.0009021751139274838,
+            0.000941103632959679,
+            0.0011485575315841028
+          ],
+          "selection_rule": "lowest training objective across two deterministic starts, on a fixed evaluation batch; no attacker, residence, commute or development outcome is consulted",
+          "release_sha256": "bbd92e7094804c626292da3e2f56969114a434bd7d6404899d0deb4855da9bd0",
+          "reused": false,
+          "parity": [
+            {
+              "arm": "optnet16_C1",
+              "pool": "representation_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "bad55d4783da1e8b3ec672a5998587f79269f484918a746e1f1654ec51064d2b"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "source_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "3bfc17a760c82c000a05e19a964061a11b99713120de286411b75edf48ed622e"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "fe211951821e8fec81a816c28357c3328cd9e70e2bccfb2df8f7897de51e8d32"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "downstream_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "db820feb66f32ff01c184b482ec47966399e9dac8cd9e2516bacf9dd2aae56f6"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_fit",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "ff74f13d248d10e4dc5aec509b9c7f63343f30238130991c6d7a23bac763a50d"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "attacker_validation",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "dc24029d72dfc74ed596bf05528f4453c3643c4a7205e171758de0e2497f913c"
+            },
+            {
+              "arm": "optnet16_C1",
+              "pool": "test",
+              "rank": 16,
+              "anchor_A_exact": true,
+              "anchor_B_exact": true,
+              "A_width": 20,
+              "AB_width": 22,
+              "z_hash": "985f74b2906ef7ee13cbc0bfb9659ce456d3b33f645069a915605c9b35e5eeae"
+            }
+          ],
+          "condition": "optnet16_C1",
+          "rank": 16,
+          "theorem_4_1_upper_bound": {
+            "negative_eigenvalue_count": 32,
+            "low_rank_factor_width": 56,
+            "matrix_rows": 10551,
+            "note": "Theorem 4.1 upper bound only. Its assumptions (z free and disconnected from the encoder, linear predictors) do not hold during training. Reported, never used to select; rank is fixed at 16 for comparability."
+          },
+          "utility_signal_ratio": 10550.99999999998
+        }
+      },
+      "inputs": {
+        "count": 6,
+        "files": {
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_2/maps.joblib": {
+            "sha256": "7c2da63b81eefa5cc159b254f2284ca000064d8544bb9c788272c94c923c9fa9",
+            "bytes": 307341
+          },
+          "/Users/nathansamson/.config/superpowers/worktrees/PCRL/residual-spectral-20260910/results/redesign_20260910_acs_residual_spectral_v1/seed_2/matrix_diagnostics.json": {
+            "sha256": "eab363296c11b4d597c5e6e5d2020af33e7aaa27776a9a8633a10f8b8cdba950",
+            "bytes": 1354011
+          },
+          "/Users/nathansamson/PCRL/data/folktables/2018/1-Year/psam_p06.csv": {
+            "sha256": "dc2187fc90df2c5f6b546ee89a2b41c9a97379c9e7136461b6a6c8de871b43e0",
+            "bytes": 267297811
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/anchors.npz": {
+            "sha256": "8319e40110eda68071107bbc648bcb0be1e3255975c5d7222e038a0c23a20768",
+            "bytes": 655246
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/pca.npz": {
+            "sha256": "36f37df30eef4ae68224d1456836e53de40c54fe2be97ac1dfd0c4ae734ba89f",
+            "bytes": 3317060
+          },
+          "/Users/nathansamson/PCRL/results/redesign_20260909_acs_fixed_predictions_v1/seed_2/split_rows.npz": {
+            "sha256": "07d9b48e99a05f30396c8dd46d2a3e7b8bd182ca9e8ef55baa55604530e65038",
+            "bytes": 59234
+          }
+        }
+      },
+      "machine": {
+        "swapusage": "total = 29696.00M  used = 28220.38M  free = 1475.62M  (encrypted)",
+        "free_percentage": "System-wide memory free percentage: 18%",
+        "loadavg": [
+          10.705078125,
+          9.3544921875,
+          8.53076171875
+        ],
+        "peak_rss_mb": 571.703125
+      }
+    }
+  },
+  "method": "OptNet-ARL (Sadeghi, Wang & Boddeti 2109.05535) -- CONTROLLED ADAPTATION, not a verbatim reproduction",
+  "departures_from_published_formulation": [
+    "Utility target is the residualised teacher R (32 columns), not a class label. Structurally free: Y enters Lemma 1 only as Y~ inside Y~'Y~ and the lemma assumes no discreteness. rank(R~) = 32 > 16, so the Theorem 4.1 rank cap is not binding.",
+    "Multiple lambda over multiple protected roles (the L1/L2/C1 policies). EXTRAPOLATION: the paper asserts multi-lambda generalisation in one sentence with no equation, no normalisation rule and no code. The form used is one independent J term per role carrying its policy weight, matching this study's existing aggregation. That specific form is not in the paper.",
+    "Adversary players receive [H_c, Z] -- the actual service probabilities the recipient holds, plus the additional channel -- rather than Z alone. The original is single-view.",
+    "Mini-batch exact Gaussian kernel at batch 512. This is the PAPER'S OWN practice (it approximates the projector and gradient on one mini-batch, O(b^3) per step, justified by analogy with Nystrom). It is declared approximate and is NOT claimed exact for the infinite-dimensional kernel.",
+    "Encoder is a fixed small MLP (128 -> 64 -> 16, ReLU) on the frozen whitened V, frozen before fitting; no architecture expansion is authorised.",
+    "Rank fixed at 16 so comparisons are at equal realised rank. Theorem 4.1's negative-eigenvalue count is REPORTED alongside as the paper's upper bound, but is never used to select.",
+    "Released Z is the raw encoder output and is NOT covariance-normalised, unlike the spectral arms where W'W = I forces Cov(Z) = I. This does not bias any endpoint: recovery and reconstruction are both invariant under an invertible linear map of the channel.",
+    "Player kernels use instance-normalised inputs with sigma = 1, which is what the PAPER states. The official code instead divides by the whole-batch Frobenius norm; the two differ and the paper's version is implemented.",
+    "The official code trace-normalises each J term by the label energy (/||S~||^2, /||Y~||^2). That normalisation appears nowhere in the paper's equations. It is adopted here, because without it the continuous 32-column R and the one-hot protected targets are on incomparable scales, and it is declared as a code-not-paper choice."
+  ],
+  "unique_new_fits": 9
+}
