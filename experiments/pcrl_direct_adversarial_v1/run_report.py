@@ -210,30 +210,62 @@ def registered_expectations(signs, intervals, decisions, seeds) -> dict:
     for row in signs:
         by_contrast[row['left'], row['right'], row['endpoint'], row['weight']].append(row)
 
+    # A contrast is DEGENERATE when both arms released the same channel in every seed, so
+    # every per-seed difference is exactly zero. At beta 0.1 and 0.3 the preregistered
+    # checkpoint rule returns the unmoved channel, which makes C1, L1 and L2 the same
+    # object there. Such a cell can neither confirm nor refute a directional expectation,
+    # and counting it as a refutation would be an artifact. Degenerate cells are reported
+    # separately, never silently dropped.
+    degenerate = set()
+    for (left, right, _endpoint, weight), rows in by_contrast.items():
+        pair = (left, right, weight)
+        if pair in degenerate:
+            continue
+        if all(r['estimate'] == 0.0
+               for e in FAMILY_ENDPOINTS
+               for r in by_contrast.get((left, right, e, weight), [])):
+            degenerate.add(pair)
+
     def seed_wins(left, right, endpoint, weight, better=True):
         rows = by_contrast.get((left, right, endpoint, weight), [])
         # recovery endpoints: negative estimate means `left` leaks LESS
         return sum(1 for r in rows if (r['estimate'] < 0) == better), len(rows)
 
-    out = {}
+    out = {'degenerate_contrasts': sorted(f'{a} vs {b} / {w}' for a, b, w in degenerate),
+           'degeneracy_note': ('a contrast whose two arms released the SAME channel in every '
+                               'seed. It can neither confirm nor refute a directional '
+                               'expectation, so it is reported separately rather than counted '
+                               'as either outcome.')}
 
     # D1: C1 reduces AB/* recovery relative to L1 at matched width and beta, >=2 of 3 seeds
-    cells, met = [], 0
+    cells, met, live = [], 0, 0
     for width in WIDTHS:
         for beta in BETAS:
+            left, right = main_arm(width, 'C1', beta), main_arm(width, 'L1', beta)
+            is_degenerate = (left, right, 'unweighted') in degenerate
             for endpoint in ('recovery/AB/SEX', 'recovery/AB/RAC1P'):
-                wins, total = seed_wins(main_arm(width, 'C1', beta),
-                                        main_arm(width, 'L1', beta), endpoint, 'unweighted')
+                wins, total = seed_wins(left, right, endpoint, 'unweighted')
                 if not total:
                     continue
                 ok = wins >= 2
-                met += bool(ok)
                 cells.append({'width': width, 'beta': beta, 'endpoint': endpoint,
-                              'seeds_favouring_C1': wins, 'seeds': total, 'met': ok})
+                              'seeds_favouring_C1': wins, 'seeds': total, 'met': ok,
+                              'degenerate': is_degenerate})
+                if not is_degenerate:
+                    live += 1
+                    met += bool(ok)
     out['D1'] = {'statement': ('C1 reduces AB/* recovery relative to L1 at matched width and '
                                'beta in at least 2 of 3 seeds'),
-                 'cells_evaluated': len(cells), 'cells_met': met, 'detail': cells,
-                 'outcome': 'CONFIRMED' if cells and met > len(cells) / 2 else 'REFUTED'}
+                 'cells_evaluated': len(cells),
+                 'degenerate_cells': sum(1 for c in cells if c['degenerate']),
+                 'informative_cells': live, 'informative_cells_met': met, 'detail': cells,
+                 'outcome': ('CONFIRMED' if live and met > live / 2
+                             else 'REFUTED' if live else 'UNASSESSABLE'),
+                 'outcome_note': ('evaluated on INFORMATIVE cells only. At beta 0.1 and 0.3 the '
+                                  'checkpoint rule returned the unmoved channel, so C1 and L1 '
+                                  'are the same object there and every difference is exactly '
+                                  'zero; those cells are counted and reported but cannot bear '
+                                  'on a directional expectation.')}
 
     # D2: at least one C1 arm shows a local race cost relative to L2
     costs = []
@@ -251,23 +283,30 @@ def registered_expectations(signs, intervals, decisions, seeds) -> dict:
                  'outcome': 'CONFIRMED' if costs else 'REFUTED'}
 
     # D3: ensemble recovery is NOT lower than single-attacker recovery in most cells
-    cells, not_lower = [], 0
+    cells, not_lower, live = [], 0, 0
     for width, policy, beta in SINGLE_CELLS:
         arm = main_arm(width, policy, beta)
+        is_degenerate = (arm, f'{arm}_single', 'unweighted') in degenerate
         for endpoint in FAMILY_ENDPOINTS:
             if endpoint.startswith('utility/'):
                 continue
             rows = by_contrast.get((arm, f'{arm}_single', endpoint, 'unweighted'), [])
             for row in rows:
                 cells.append({'arm': arm, 'endpoint': endpoint, 'seed': row['seed'],
-                              'ensemble_minus_single': row['estimate']})
-                not_lower += bool(row['estimate'] >= 0)
+                              'ensemble_minus_single': row['estimate'],
+                              'degenerate': is_degenerate})
+                if not is_degenerate:
+                    live += 1
+                    not_lower += bool(row['estimate'] >= 0)
     out['D3'] = {'statement': ('the ensemble arm\'s measured recovery is NOT lower than the '
                                'single-attacker arm\'s in the majority of cells'),
-                 'cells': len(cells), 'cells_not_lower': not_lower,
+                 'cells': len(cells),
+                 'degenerate_cells': sum(1 for c in cells if c['degenerate']),
+                 'informative_cells': live, 'informative_cells_not_lower': not_lower,
                  'detail': cells[:24],
-                 'outcome': ('CONFIRMED' if cells and not_lower > len(cells) / 2
-                             else 'REFUTED' if cells else 'UNASSESSABLE')}
+                 'outcome': ('CONFIRMED' if live and not_lower > live / 2
+                             else 'REFUTED' if live else 'UNASSESSABLE'),
+                 'outcome_note': 'evaluated on INFORMATIVE cells only, as for D1'}
 
     # D5: width 8 shows lower recovery AND lower residence gain than width 16
     both, cells = 0, []
