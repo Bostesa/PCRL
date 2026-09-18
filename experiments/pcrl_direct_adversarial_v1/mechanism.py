@@ -17,8 +17,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .inputs import (OUT, POOLS, ROLE_ORDER, Registry, arrays, read_json, resolve, sha_file,
-                     write_json)
+from collections import defaultdict
+
+from .inputs import (OUT, POOLS, ROLE_ORDER, Registry, array_hash, arrays, read_json, resolve,
+                     sha_file, write_json)
 from .report import (BETAS, FAMILY_SENSITIVE, MAIN, MAIN_BUDGET, MAIN_SCOPE, MAIN_SPLIT,
                      NEW_ERASURE, NO_PROTECTION, POLICIES, SINGLE, WEIGHTS, WIDTHS,
                      condition_file, main_arm)
@@ -217,6 +219,71 @@ def compression(out: Path, seeds, conditions) -> list:
     return rows
 
 
+# ------------------------------------------------------------------ 5b. exact fit accounting
+def channel_accounting(out: Path, seeds) -> dict:
+    """Completed units against genuinely distinct released channels.
+
+    A completed fit whose preregistered selection returned the unmoved initial
+    checkpoint is a **completed unit that is not a unique system**. It is counted as
+    such, never as a separate fitted interface, and never dropped either. Units that are
+    bitwise identical to a HISTORICAL arm are recorded as proved duplicates and reused
+    with that proof rather than presented as new.
+    """
+    from .inputs import H_A_WIDTH
+    out = Path(out)
+    per_seed, duplicates_of_historical = {}, []
+    for seed in seeds:
+        root = out / f'seed_{seed}' / 'releases'
+        if not root.exists():
+            continue
+        groups = defaultdict(list)
+        for path in sorted(root.iterdir()):
+            npz = path / 'releases.npz'
+            if not npz.exists():
+                continue
+            z = np.asarray(arrays(npz)['wire/A/test'], np.float64)[:, H_A_WIDTH:]
+            groups[array_hash(z)].append(path.name)
+        # Bitwise duplicates of a historical external arm.
+        for arm, historical in (('leace_dax16_none', 'leace_A0'),
+                                ('splince_dax16_none', 'splince_A0')):
+            local = root / arm / 'releases.npz'
+            if not local.exists():
+                continue
+            try:
+                reference = resolve(f'results/pcrl_invariant_baselines_v1/seed_{seed}'
+                                    f'/releases/{historical}/releases.npz')
+            except FileNotFoundError:
+                continue
+            a = np.asarray(arrays(local)['wire/A/test'], np.float64)[:, H_A_WIDTH:]
+            b = np.asarray(arrays(reference)['wire/A/test'], np.float64)[:, H_A_WIDTH:]
+            if np.array_equal(a, b):
+                duplicates_of_historical.append(
+                    {'seed': seed, 'arm': arm, 'identical_to': historical,
+                     'max_abs_difference': 0.0,
+                     'reason': ('its input channel is the no-protection continuation, whose '
+                                'preregistered selection returned the unmoved A0 channel, and '
+                                'both erasers are deterministic closed forms of that channel')})
+        per_seed[str(seed)] = {
+            'released_units': sum(len(v) for v in groups.values()),
+            'distinct_channels': len(groups),
+            'duplicate_units_within_seed': sum(len(v) - 1 for v in groups.values()),
+            'duplicate_groups': [sorted(v) for v in groups.values() if len(v) > 1]}
+    total_units = sum(v['released_units'] for v in per_seed.values())
+    distinct = sum(v['distinct_channels'] for v in per_seed.values())
+    return {
+        'per_seed': per_seed,
+        'released_units_total': total_units,
+        'distinct_channels_total': distinct,
+        'duplicate_units_within_seed_total': total_units - distinct,
+        'duplicates_of_historical_arms': duplicates_of_historical,
+        'distinct_and_new_channels': distinct - len(duplicates_of_historical),
+        'note': ('Duplicates here are OUTCOMES of the preregistered checkpoint rule, not '
+                 'failed or wasted fits: every unit ran its full budget and its selection '
+                 'returned the unmoved initial checkpoint. They are counted as completed units '
+                 'that are not unique systems.'),
+    }
+
+
 # ------------------------------------------------------------------ 6. class support
 def class_support(out: Path, seeds) -> list:
     """Which protected categories are unsupported in each ACTUAL training fold.
@@ -265,6 +332,7 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     ranks = compression(out, seeds, [c for c in conditions
                                      if (out / f'seed_{seeds[0]}' / 'releases' / c).exists()])
     support = class_support(out, seeds)
+    accounting = channel_accounting(out, seeds)
 
     csvout(out / 'MECH_TRAINING_VS_AUDIT.csv', gap)
     csvout(out / 'MECH_REFRESH.csv', refresh)
@@ -275,6 +343,7 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     csvout(out / 'MECH_CLASS_SUPPORT.csv', support)
 
     summary = {
+        'channel_accounting': accounting,
         'training_versus_auditor': {
             'rows': len(gap),
             'mean_training_gain': float(np.mean([r['training_fresh_probe_gain'] for r in gap

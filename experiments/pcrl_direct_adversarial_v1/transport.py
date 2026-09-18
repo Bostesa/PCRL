@@ -221,8 +221,13 @@ def prepare(out: Path, seed: int, registry: Registry, new_arms, include_baseline
 
     state = load_frozen_state(seed, registry)
     a0 = state['a0']
-    channels = load_new_channels(out, seed, new_arms, a0, state['channel']['representation_fit'])
+    # The new erasure arms transform a no-protection channel, so those channels must be
+    # loaded whether or not the caller listed them among the panel arms.
+    needed = tuple(dict.fromkeys(tuple(new_arms)
+                                 + tuple(f'dax{w}_none' for w in WIDTHS))) if new_arms else ()
+    channels = load_new_channels(out, seed, needed, a0, state['channel']['representation_fit'])
     affine = load_new_erasure_affine(out, seed, registry) if new_arms else {}
+    affine = {name: spec for name, spec in affine.items() if spec['base'] in channels}
     encoders, proofs = {}, {}
 
     if include_baselines:
