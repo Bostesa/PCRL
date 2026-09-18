@@ -1,0 +1,257 @@
+{
+  "question": "Are the existing MARGINAL spectral arms already SARL-style residual-teacher adaptations under their exact parametrisation?",
+  "derivation": "SARL Appendix B eq. 24 minimises Tr[G'BG] over G'G=I with B = lambda*S~'S~ - (1-lambda)*Y~'Y~ in the coordinates of an orthonormal basis of range(X~'), which IS the whitening. With U and P the whitened cross-covariance Grams this is B = lambda*P - (1-lambda)*U, so SARL takes the TOP eigenvectors of U - lambda_bar*P with lambda_bar = lambda/(1-lambda). The repository computes A = U - coefficient*P and takes its top-r eigenvectors, with V whitened, U the trace-normalised Gram of the residualised teacher R, and the marginal P built from an intercept-only basis and the class PRIOR as the nuisance -- so its per-class moment is V'e_c/n with e_c the CENTRED one-hot, i.e. exactly the whitened sensitive cross-covariance SARL uses.",
+  "scope": "Only the MARGINAL arms are candidate SARL aliases. The local and coalition arms use the residualised moment e_j = onehot(S_j) - m_j(H_c), which is a CONDITIONAL construction (U-FaTE-adjacent), not SARL. K-TOpt and U-FaTE are related formulations, not automatically distinct implemented baselines, and are not fitted.",
+  "known_source_hazard": "The official SARL code takes the r algebraically smallest eigenvectors with no sign test, which its own Theorem 3 excludes. Any equivalence claimed here is to the PAPER, not to that code path.",
+  "seeds": {
+    "0": {
+      "seed": 0,
+      "rows": 10513,
+      "whitened_rank": 128,
+      "per_attribute": {
+        "SEX": {
+          "raw_trace": 0.04672554154317339,
+          "stored_raw_trace": 0.04672554154317339,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        },
+        "RAC1P": {
+          "raw_trace": 0.04470720044680486,
+          "stored_raw_trace": 0.04470720044680486,
+          "raw_trace_abs_error": 0.0,
+          "classes": 9,
+          "unsupported_classes": []
+        },
+        "public_coverage": {
+          "raw_trace": 0.023993751603149135,
+          "stored_raw_trace": 0.023993751603149135,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        }
+      },
+      "per_attribute_raw_traces": {
+        "SEX": 0.04672554154317339,
+        "RAC1P": 0.04470720044680486,
+        "public_coverage": 0.023993751603149135
+      },
+      "per_attribute_trace_ratio_max_over_min": 1.9474045708233785,
+      "arms": [
+        {
+          "arm": "spectral_M025",
+          "coefficient": 0.25,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.65685424949238,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.0009837581232877562,
+          "eigenvalues_around_boundary": [
+            0.012239389383212512,
+            0.011229682913535554,
+            0.009152090557086602,
+            0.008168332433798846,
+            0.0076304840141905375,
+            0.007311846192127269
+          ],
+          "sarl_gram_subspace_distance": 0.20056098846909523,
+          "sarl_gram_trace_rescale": 1.0
+        },
+        {
+          "arm": "spectral_M1",
+          "coefficient": 1.0,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.656854249492379,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.000475705772906964,
+          "eigenvalues_around_boundary": [
+            0.011575206503533157,
+            0.010939749980362137,
+            0.008441233872712851,
+            0.007965528099805887,
+            0.007607873976689193,
+            0.007200043807159027
+          ],
+          "sarl_gram_subspace_distance": 0.1512545045414239,
+          "sarl_gram_trace_rescale": 1.0
+        }
+      ]
+    },
+    "1": {
+      "seed": 1,
+      "rows": 10428,
+      "whitened_rank": 128,
+      "per_attribute": {
+        "SEX": {
+          "raw_trace": 0.05011252123065489,
+          "stored_raw_trace": 0.05011252123065489,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        },
+        "RAC1P": {
+          "raw_trace": 0.03938157732388032,
+          "stored_raw_trace": 0.03938157732388032,
+          "raw_trace_abs_error": 0.0,
+          "classes": 9,
+          "unsupported_classes": []
+        },
+        "public_coverage": {
+          "raw_trace": 0.02635592020494912,
+          "stored_raw_trace": 0.02635592020494912,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        }
+      },
+      "per_attribute_raw_traces": {
+        "SEX": 0.05011252123065489,
+        "RAC1P": 0.03938157732388032,
+        "public_coverage": 0.02635592020494912
+      },
+      "per_attribute_trace_ratio_max_over_min": 1.9013762692013596,
+      "arms": [
+        {
+          "arm": "spectral_M025",
+          "coefficient": 0.25,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.65685424949238,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.0012807018022293042,
+          "eigenvalues_around_boundary": [
+            0.013233082129541558,
+            0.012426917599076326,
+            0.009805194978838099,
+            0.008524493176608795,
+            0.007950818848763249,
+            0.00769958254385308
+          ],
+          "sarl_gram_subspace_distance": 0.1474978792585715,
+          "sarl_gram_trace_rescale": 1.0
+        },
+        {
+          "arm": "spectral_M1",
+          "coefficient": 1.0,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.656854249492378,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.0012829991871742673,
+          "eigenvalues_around_boundary": [
+            0.01289610496601795,
+            0.01211360859209784,
+            0.009537149376586429,
+            0.008254150189412161,
+            0.00785570739634506,
+            0.007283089223980773
+          ],
+          "sarl_gram_subspace_distance": 0.10237663548808361,
+          "sarl_gram_trace_rescale": 1.0
+        }
+      ]
+    },
+    "2": {
+      "seed": 2,
+      "rows": 10551,
+      "whitened_rank": 128,
+      "per_attribute": {
+        "SEX": {
+          "raw_trace": 0.04989800985334271,
+          "stored_raw_trace": 0.04989800985334271,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        },
+        "RAC1P": {
+          "raw_trace": 0.04692008183548808,
+          "stored_raw_trace": 0.04692008183548808,
+          "raw_trace_abs_error": 0.0,
+          "classes": 9,
+          "unsupported_classes": [
+            3
+          ]
+        },
+        "public_coverage": {
+          "raw_trace": 0.025973779642392603,
+          "stored_raw_trace": 0.025973779642392603,
+          "raw_trace_abs_error": 0.0,
+          "classes": 2,
+          "unsupported_classes": []
+        }
+      },
+      "per_attribute_raw_traces": {
+        "SEX": 0.04989800985334271,
+        "RAC1P": 0.04692008183548808,
+        "public_coverage": 0.025973779642392603
+      },
+      "per_attribute_trace_ratio_max_over_min": 1.9210915985405002,
+      "arms": [
+        {
+          "arm": "spectral_M025",
+          "coefficient": 0.25,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.65685424949238,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.0016660873591920929,
+          "eigenvalues_around_boundary": [
+            0.013105673740960238,
+            0.010703647250063822,
+            0.009852700755395828,
+            0.008186613396203735,
+            0.007854331252736123,
+            0.007432186207688809
+          ],
+          "sarl_gram_subspace_distance": 0.16504531881373644,
+          "sarl_gram_trace_rescale": 1.0
+        },
+        {
+          "arm": "spectral_M1",
+          "coefficient": 1.0,
+          "rank": 16,
+          "stored_map_bitwise_identical": true,
+          "stored_map_max_abs_difference": 0.0,
+          "ordering_ascending_subspace_distance": 5.65685424949238,
+          "ordering_note": "Ascending truncation selects the BOTTOM 16 eigenvectors. A large distance here is the expected, correct result: it quantifies the bug a reimplementation ships if it copies SARL sort order without reversing the sign convention.",
+          "positive_eigenvalue_count": 32,
+          "sarl_rank_rule_would_select": 16,
+          "fixed_rank_equals_sign_rule": true,
+          "truncation_boundary_gap": 0.0014075967988874637,
+          "eigenvalues_around_boundary": [
+            0.012752190709529002,
+            0.01058890624003222,
+            0.009421882794936694,
+            0.00801428599604923,
+            0.007607745235264026,
+            0.007288123702002685
+          ],
+          "sarl_gram_subspace_distance": 0.12419127180559798,
+          "sarl_gram_trace_rescale": 1.0
+        }
+      ]
+    }
+  },
+  "runtime_seconds": 3.2945049590198323
+}

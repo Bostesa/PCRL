@@ -174,7 +174,7 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
             'A = U - coefficient*P and takes its top-r eigenvectors, with V whitened, U the '
             'trace-normalised Gram of the residualised teacher R, and the marginal P built from '
             'an intercept-only basis and the class PRIOR as the nuisance -- so its per-class '
-            'moment is V\\'e_c/n with e_c the CENTRED one-hot, i.e. exactly the whitened '
+            "moment is V'e_c/n with e_c the CENTRED one-hot, i.e. exactly the whitened "
             'sensitive cross-covariance SARL uses.'),
         'scope': (
             "Only the MARGINAL arms are candidate SARL aliases. The local and coalition arms use "

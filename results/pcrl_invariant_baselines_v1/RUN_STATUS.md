@@ -124,6 +124,23 @@ Recorded with timing and affected units.
    changes no equation, constant, subset, seed, endpoint, decision rule or registered
    forecast. `m = 512` was deliberately **not** changed in response to the
    measurement.
+2. **OptNet-ARL optimiser budget set to 1200 Adam steps per start, two starts**, in place
+   of the 200 full-objective updates used by every other arm. Timing: **after a
+   training-only calibration probe and before any OptNet fit or any ACS outcome.**
+   Affected units: the 9 OptNet conditions only.
+
+   Justification, which the protocol explicitly permits ("a justified prospectively
+   documented comparable budget after training-only calibration"): 200 mini-batch Adam
+   steps at batch 512 is about 10 epochs of gradient signal over a ~12k-parameter
+   encoder, and is not comparable to 200 full-objective Riemannian updates on a
+   128x16 Stiefel point. A comparable budget should equalise optimisation *progress*,
+   not step count. A single-start training-only probe (`OPTNET_CALIBRATION.json`) shows
+   the training objective improving by 0.030 between steps 800 and 1000 but only 0.003
+   between 1000 and 1200 -- a tenfold deceleration, leaving the run within ~0.4% of its
+   plateau. Measured cost 0.085 s/step, so 9 conditions x 2 starts x 1200 steps is
+   ~31 minutes at one worker. **The probe read the training objective and the wall
+   clock only; no attacker, residence, commute or development outcome is reachable
+   from it.**
 
 ## Scope boundaries in force
 
