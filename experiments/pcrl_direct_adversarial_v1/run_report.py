@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from collections import defaultdict
 
 from experiments.pcrl_nonlinear_rank_v1.inputs import HIST_ROOT, Registry, write_json
 from experiments.pcrl_nonlinear_rank_v1.run_report import (_losses, _replay_row, _weights_for,
@@ -198,6 +199,105 @@ def per_seed_signs(boot, vectors, seeds, specs) -> list:
     return rows
 
 
+def registered_expectations(signs, intervals, decisions, seeds) -> dict:
+    """Evaluate the five directional expectations of `PROTOCOL.md` §3, mechanically.
+
+    Registered before any fit. Being wrong about one is a reportable outcome, not a
+    failure, and the evaluation is generated rather than read off by eye so that it
+    cannot drift toward whatever happened.
+    """
+    by_contrast = defaultdict(list)
+    for row in signs:
+        by_contrast[row['left'], row['right'], row['endpoint'], row['weight']].append(row)
+
+    def seed_wins(left, right, endpoint, weight, better=True):
+        rows = by_contrast.get((left, right, endpoint, weight), [])
+        # recovery endpoints: negative estimate means `left` leaks LESS
+        return sum(1 for r in rows if (r['estimate'] < 0) == better), len(rows)
+
+    out = {}
+
+    # D1: C1 reduces AB/* recovery relative to L1 at matched width and beta, >=2 of 3 seeds
+    cells, met = [], 0
+    for width in WIDTHS:
+        for beta in BETAS:
+            for endpoint in ('recovery/AB/SEX', 'recovery/AB/RAC1P'):
+                wins, total = seed_wins(main_arm(width, 'C1', beta),
+                                        main_arm(width, 'L1', beta), endpoint, 'unweighted')
+                if not total:
+                    continue
+                ok = wins >= 2
+                met += bool(ok)
+                cells.append({'width': width, 'beta': beta, 'endpoint': endpoint,
+                              'seeds_favouring_C1': wins, 'seeds': total, 'met': ok})
+    out['D1'] = {'statement': ('C1 reduces AB/* recovery relative to L1 at matched width and '
+                               'beta in at least 2 of 3 seeds'),
+                 'cells_evaluated': len(cells), 'cells_met': met, 'detail': cells,
+                 'outcome': 'CONFIRMED' if cells and met > len(cells) / 2 else 'REFUTED'}
+
+    # D2: at least one C1 arm shows a local race cost relative to L2
+    costs = []
+    for width in WIDTHS:
+        for beta in BETAS:
+            rows = by_contrast.get((main_arm(width, 'C1', beta), main_arm(width, 'L2', beta),
+                                    'recovery/A/RAC1P', 'unweighted'), [])
+            for row in rows:
+                if row['estimate'] > 0:
+                    costs.append({'width': width, 'beta': beta, 'seed': row['seed'],
+                                  'excess_A_RAC1P_recovery': row['estimate']})
+    out['D2'] = {'statement': ('at least one C1 arm shows a LOCAL RACE COST relative to L2 on '
+                               'recovery/A/RAC1P'),
+                 'instances': len(costs), 'detail': costs[:20],
+                 'outcome': 'CONFIRMED' if costs else 'REFUTED'}
+
+    # D3: ensemble recovery is NOT lower than single-attacker recovery in most cells
+    cells, not_lower = [], 0
+    for width, policy, beta in SINGLE_CELLS:
+        arm = main_arm(width, policy, beta)
+        for endpoint in FAMILY_ENDPOINTS:
+            if endpoint.startswith('utility/'):
+                continue
+            rows = by_contrast.get((arm, f'{arm}_single', endpoint, 'unweighted'), [])
+            for row in rows:
+                cells.append({'arm': arm, 'endpoint': endpoint, 'seed': row['seed'],
+                              'ensemble_minus_single': row['estimate']})
+                not_lower += bool(row['estimate'] >= 0)
+    out['D3'] = {'statement': ('the ensemble arm\'s measured recovery is NOT lower than the '
+                               'single-attacker arm\'s in the majority of cells'),
+                 'cells': len(cells), 'cells_not_lower': not_lower,
+                 'detail': cells[:24],
+                 'outcome': ('CONFIRMED' if cells and not_lower > len(cells) / 2
+                             else 'REFUTED' if cells else 'UNASSESSABLE')}
+
+    # D5: width 8 shows lower recovery AND lower residence gain than width 16
+    both, cells = 0, []
+    for policy in POLICIES:
+        for beta in BETAS:
+            rec = [r['estimate'] for e in FAMILY_ENDPOINTS if e.startswith('recovery/')
+                   for r in by_contrast.get((main_arm(8, policy, beta),
+                                             main_arm(16, policy, beta), e, 'unweighted'), [])]
+            res = [r['estimate'] for r in by_contrast.get(
+                (main_arm(8, policy, beta), main_arm(16, policy, beta),
+                 'utility/same_residence', 'unweighted'), [])]
+            if not rec or not res:
+                continue
+            lower_recovery = float(np.mean(rec)) < 0
+            # utility rows are candidate-minus-comparator LOSS, so positive means width 8
+            # gives up more residence capability
+            lower_residence = float(np.mean(res)) > 0
+            both += bool(lower_recovery and lower_residence)
+            cells.append({'policy': policy, 'beta': beta,
+                          'mean_recovery_difference': float(np.mean(rec)),
+                          'mean_residence_loss_difference': float(np.mean(res)),
+                          'lower_recovery': lower_recovery, 'lower_residence': lower_residence})
+    out['D5'] = {'statement': ('width 8 shows lower recovery AND lower residence gain than '
+                               'width 16 at matched policy and beta'),
+                 'cells': len(cells), 'cells_with_both': both, 'detail': cells,
+                 'outcome': ('CONFIRMED' if cells and both > len(cells) / 2
+                             else 'REFUTED' if cells else 'UNASSESSABLE')}
+    return out
+
+
 def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
     limit_threads()
     out = Path(out)
@@ -260,7 +360,9 @@ def run(out: Path = OUT, seeds=(0, 1, 2)) -> dict:
                            'contrast x five family endpoints x two weightings'),
                       'note': ClusterBootstrap.__doc__.strip()},
         'score_replay': {'checks': len(replay), 'max_abs_difference': max_replay},
-        'registered_decisions': registered, 'decisions': decisions,
+        'registered_decisions': registered,
+        'registered_expectations': registered_expectations(signs, intervals, decisions, seeds),
+        'decisions': decisions,
         'runtime_seconds': time.perf_counter() - tick, 'machine': machine_state(),
         'inputs': registry.dump(),
         'uncertainty_scope': (
