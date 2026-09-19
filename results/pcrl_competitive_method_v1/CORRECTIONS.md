@@ -206,3 +206,28 @@ Recorded in `RUN_STATUS.md` as amendments, with timing, what outcomes had been s
 affected units, and whether refitting is required. Any change motivated by a
 development outcome is carried as an explicitly labelled exploratory branch and cannot
 rewrite the registered primary study.
+
+---
+
+## Addendum (2026-09-19, after Terminal 2 review of commit `4f09e63c`) — correcting §6 of this file
+
+§6 above says the `dax16_C1_b100` vs `dax16_L2_b100` residence cost is "**significant** —
+the interval excludes zero". That holds **only at the predecessor's family-adjusted
+(within-contrast max-|t|) level**, `[+0.0001, +0.0068]`. At the predecessor's
+**candidate-wide** level the same contrast reads `[-0.0018, +0.0087]` and **contains
+zero**: the cost is then not significant. Two further points this file omitted:
+
+* the predecessor reported its one positive family (coalition vs local) at the
+  family-adjusted level and its negative frontier family at the candidate-wide level —
+  **different correction levels for the positive and negative results**;
+* the predecessor's Q2 table omitted the fourth, strength-matched contrast
+  `dax8_C1_b100` vs `dax8_L2_b100`, all of whose rows are null, with several point
+  estimates favouring `L2`.
+
+The accurate statement: coalition conditioning beat the weak local control `L1`; against
+the strength-matched `L2` it showed one sensitive endpoint at width 16 at the
+family-adjusted level only, nothing candidate-wide, and nothing at width 8. **This
+study's decisions use ONE declared level** — the candidate-wide studentized Bonferroni
+bound within each registered family (P for decisions, X exploratory) — for positive and
+negative results alike; both that level and the within-contrast level are reported for
+every contrast in `INTERVALS_P.csv` / `INTERVALS_X.csv`.

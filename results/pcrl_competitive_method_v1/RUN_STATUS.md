@@ -83,3 +83,27 @@ releases are now bitwise identical and are audited once. No other unit is affect
 ## Incidents
 
 None yet.
+
+## Response to Terminal 2 review (handoff v4, `2026-09-19T02:54Z`), recorded `~03:40Z`
+
+Read during the 2018 audit stage, after fitting, before any panel or new test-split
+table was produced. No decision rule changes; these are declarations and additional
+reporting.
+
+* **B1 (one correction level).** Already registered (PROTOCOL §5-6): decisions use the
+  candidate-wide bound within family P only; both that level and the within-contrast
+  level are written for every contrast. `CORRECTIONS.md` addendum corrects this study's
+  own §6 wording about the predecessor's C1-vs-L2 residence contrast.
+* **B2 (measured rank, not cardinality).** Track E reports the measured cross-moment
+  spectra, the relative tolerance, realised release rank and per-class support per role
+  and anchor (`TRACK_E_FITS.json`). No rank is set from schema cardinality.
+* **B4 (counts).** Planned / released / distinct / duplicate-of-untouched-start /
+  audited are counted separately in `COUNTS.json`.
+* **B5 (projection form).** Declared form: whitened projection
+  `z_out = mu + (z-mu) R P S`, support defined at relative tolerance `1e-10`. **Measured:
+  the supported rank is 16 of 16 for A0 and J on every anchor at every tolerance from
+  1e-14 to 1e-6**, so `R S = I` exactly, no direction is off-support, and the whitened
+  and LEACE-subtractive forms coincide on training AND transported rows (off-support
+  norm identically zero). `P` is `r x r` in whitened coordinates, so its range lies in
+  the support by construction. Were a channel rank-deficient, this form would delete
+  off-support components of new rows; that case does not arise here.
