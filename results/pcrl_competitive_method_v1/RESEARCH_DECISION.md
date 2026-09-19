@@ -122,7 +122,16 @@ outcome was seen.** The standard matched audit remains the only protection measu
 
 ## 7. 2017 exploratory transport
 
-(filled from `EXPLORATORY_2017.json` at completion — see §7 addendum below.)
+All 18 transported Track E units (panel + L/LX controls, 3 anchors) fitted and scored with
+0 faults; neural nominees are J. Unweighted seed means (`EXPLORATORY_2017.md`):
+J +0.0013 / +0.0069 / +0.0039 / +0.0015, residence +0.0189; `E_J_C_k6` −0.0011 / −0.0014 /
+−0.0003 / +0.0018, residence +0.0187; `E_J_C_k8` residence +0.0116. Both projections leak
+less than J on AB/SEX and A/RAC1P in all three anchors; the k6 residence difference changes
+sign across anchors. The matched local controls behave the same, so **2017 shows no
+coalition-specific signal**. This descriptive check does not rescue the 2018 verdict: the
+panel's registered decision is made on 2018, and 2017 is exploratory with no interval.
+`E_J_C_k6` on 2017 is the closest thing to a J-level-utility, lower-disclosure point in the
+study; it is a **hypothesis for a new prospective evaluation**, not a result.
 
 ## 8. Explanations ruled out and still open
 
