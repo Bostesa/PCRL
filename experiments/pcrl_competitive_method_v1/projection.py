@@ -262,9 +262,16 @@ def leading_directions(kernel: np.ndarray, k: int, degeneracy_tol: float = 1e-9)
 
 
 def projector(U: np.ndarray, dimension: int) -> np.ndarray:
-    """`P = I - U U'`, symmetric and idempotent by construction."""
+    """`P = I - U U'`, symmetric and idempotent by construction.
+
+    When `U` spans the whole space, `P` is analytically zero and is returned as EXACT
+    zeros: the floating residue of `I - U U'` (~1e-16) is a deterministic function of the
+    input and a standardising attacker could amplify it (RUN_STATUS amendment 2).
+    """
     if U.size == 0:
         return np.eye(dimension)
+    if U.shape[1] >= dimension:
+        return np.zeros((dimension, dimension))
     return np.eye(dimension) - U @ U.T
 
 

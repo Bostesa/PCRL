@@ -281,3 +281,13 @@ def test_basis_redundancy_survives_float32_rounding():
     h_a = h_a.astype(np.float64)
     assert len(pj.nonredundant_columns(h_a)) == 2
     assert len(pj.nonredundant_columns(h_ab)) == 3
+
+
+def test_full_span_projector_is_exact_zero_and_release_is_constant():
+    z = _channel()
+    w = pj.fit_whitening(z)
+    U = pj.leading_directions(np.eye(w.rank) + 0.1, w.rank)['U']
+    P = pj.projector(U, w.rank)
+    assert np.array_equal(P, np.zeros_like(P))
+    out = pj.release(w, z, P)
+    assert np.array_equal(out, np.broadcast_to(w.mu, out.shape))

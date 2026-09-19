@@ -124,6 +124,29 @@ def write_references(out: Path, seed: int):
             dax.save_release(path, dax.build_wires(channel, state['anchors']))
 
 
+def audit_seed_unit(out: Path, seed: int, name: str) -> dict:
+    """Audit one release with bounded retries and quarantine; no identity handling."""
+    registry = dax.Registry.new()
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            result = dev.evaluate_seed(out, seed, [name], registry)[name]
+            result['compaction'] = compact(out / f'seed_{seed}' / name, seed)
+            return result
+        except Exception as exc:
+            target = out / f'seed_{seed}' / 'quarantine' / f'{name}_attempt{attempt}'
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = out / f'seed_{seed}' / name
+            if source.exists() and not source.is_symlink():
+                shutil.move(str(source), str(target))
+            target.mkdir(parents=True, exist_ok=True)
+            write_json_atomic(target / 'quarantine.json', {
+                'seed': seed, 'condition': name, 'attempt': attempt, 'utc': utcnow(),
+                'error': repr(exc), 'traceback': traceback.format_exc(),
+                'inputs_changed': False})
+            print('DEV_QUARANTINE', seed, name, attempt, repr(exc)[:200], flush=True)
+    return {'failed': True}
+
+
 def audit_seed(out: Path, seed: int, conditions=None) -> dict:
     root = out / f'seed_{seed}' / 'releases'
     names = conditions or sorted(p.name for p in root.iterdir()

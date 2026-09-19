@@ -44,7 +44,41 @@ verified compaction of PROTOCOL §3 before any new outcome. Applied to `ref_A0` 
 
 ## Amendments
 
-None yet.
+### Amendment 1 — concurrency reduced to one worker; single global audit queue
+
+**Declared `2026-09-19T03:06Z`, during Track N fitting, before any new audit outcome.**
+No 2018 or 2017 outcome of any new release had been opened.
+
+At `03:04Z` swap use was 5.6 GB (0 at `02:54Z`), above the 2 GB threshold PROTOCOL §9
+registered for dropping to one worker. The three per-anchor workers were then ~130 MB
+resident each, and several unrelated sessions had started in the same interval; the
+cause of the swap growth is **not established** and is not attributed to this study.
+The rule was applied as registered:
+
+* the three per-anchor workers were stopped between units (every fit directory had its
+  completion marker; no partial unit existed: 25/22/21 completed Track N units);
+* a single global orchestrator (`run_all.py`) resumes the remaining fits and runs **one
+  audit queue across all anchors**, ordered by (priority, anchor, track, unit), so the
+  registered cutoffs remove a reduction slice uniformly from every anchor;
+* units are claimed atomically and the identity table is file-locked, so concurrency can
+  be raised again **only if swap use is below 1 GB at a stage boundary** (a rule declared
+  here, before any audit outcome).
+
+Affected units: none refit; scheduling only. The prospective cutoffs of PROTOCOL §9
+(`06:45Z` for priority 3, `07:00Z` for priority 2) are unchanged.
+
+### Amendment 2 — full-span projector made exactly zero
+
+**Declared `~03:10Z`, before any audit of any new release had started (0 audit lines in
+the orchestrator log).** Outcome-free invariant: for `k = r` the projector
+`I - U U'` is analytically zero, but its floating residue (~1e-16) made the pilot
+report "realised rank 16" for what METHOD §2.6 describes as a constant map. The residue
+is a deterministic function of `z`; a standardising attacker could amplify it into a
+spurious signal. `projection.projector` now returns exact zeros when `U` spans the
+space (new fixture, 16/16 tests pass). The 18 full-span releases were rebuilt as the
+exact constant `mu` (realised rank 0; `maps.joblib`, `track_e_fit.json` and markers
+updated with new hashes). Within each channel and anchor the L/C/LX full-span
+releases are now bitwise identical and are audited once. No other unit is affected.
 
 ## Incidents
 
