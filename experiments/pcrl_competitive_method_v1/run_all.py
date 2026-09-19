@@ -64,7 +64,8 @@ def audit_worker(worker: int):
         release = OUT / f'seed_{seed}' / 'releases' / unit / 'releases.npz'
         if not release.exists():
             continue
-        if priority in CUTOFF and datetime.now(timezone.utc) > CUTOFF[priority]:
+        if (os.environ.get('PCRL_NO_CUTOFF') != '1' and priority in CUTOFF
+                and datetime.now(timezone.utc) > CUTOFF[priority]):
             log.append({'seed': seed, 'unit': unit, 'status': f'PENDING priority {priority} cutoff'})
             write_json_atomic(log_path, log)
             continue

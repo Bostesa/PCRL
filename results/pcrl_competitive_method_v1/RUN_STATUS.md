@@ -107,3 +107,16 @@ reporting.
   norm identically zero). `P` is `r x r` in whitened coordinates, so its range lies in
   the support by construction. Were a channel rank-deficient, this form would delete
   off-support components of new rows; that case does not arise here.
+
+### Amendment 3 — schedule cutoffs removed at the user's direction
+
+**Declared `~04:58Z`, by the user's instruction ("just let them continue"), before any
+audit of a priority-2 or priority-3 unit had run and before any panel or 2017 outcome.**
+The prospective cutoffs of PROTOCOL §9 (`06:45Z` for Track N `gamma = .01`, `07:00Z` for
+Track E `k in {1, 6}`) and the 2017 launch deadline (`08:40Z`) no longer stop the run.
+The first audit pass (already running, with the cutoff loaded) is left untouched; any
+unit it skips is never claimed, and a second pass with `PCRL_NO_CUTOFF=1` audits it.
+The panel is nominated only after both passes, so every registered candidate
+configuration is eligible for assessment. Consequence: the full registered matrix is
+audited, and the closeout may run past the original `09:47Z` ceiling. No scientific
+input, rule or unit definition changes.

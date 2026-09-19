@@ -97,7 +97,7 @@ def link_duplicates(seed: int, units):
             link.symlink_to(OUT / f'seed_{seed}' / canonical)
 
 
-def run(seed: int, units) -> dict:
+def run(seed: int, units, deadline=None, tag: str = 'pass') -> dict:
     limit_threads()
     torch.set_num_threads(1)
     root = OUT / 'exploratory_2017'
@@ -111,16 +111,24 @@ def run(seed: int, units) -> dict:
     dest.parent.mkdir(parents=True, exist_ok=True)
     if not dest.exists():
         dest.symlink_to(source)
+    import hashlib
+    from datetime import datetime, timezone
+    key = hashlib.sha256('|'.join(conditions).encode()).hexdigest()[:12]
     rel, labels = {}, {}
     for part in ev.FIT_PARTITIONS:
         data = ev._partition(part)
-        path = root / f'seed_{seed}' / 'releases_2017' / f'{part}.npz'
+        path = root / f'seed_{seed}' / f'releases_2017_{key}' / f'{part}.npz'
         if not path.exists():
             ev.save_releases(path, ev.build_releases(frozen, data['frame']))
         rel[part] = ev.load_releases(path)
         labels[part] = data['labels']
-    fits = {}
-    for condition in conditions:
+    fits, pending = {}, []
+    wanted = [u for u in units if u in conditions]
+    for condition in wanted:
+        if deadline is not None and datetime.now(timezone.utc) > deadline:
+            pending.append(condition)
+            print('X2017_DEFERRED', seed, condition, flush=True)
+            continue
         marker = root / f'seed_{seed}' / condition / 'fit_complete.json'
         if marker.exists():
             fits[condition] = read_json(marker)
@@ -128,11 +136,15 @@ def run(seed: int, units) -> dict:
         tick = time.perf_counter()
         fits[condition] = ev.fit_unit(root, seed, condition, rel, labels, frozen)
         print('X2017_FIT', seed, condition, round(time.perf_counter() - tick, 1), flush=True)
-    scores = T.score_seed(ev, frozen, root, seed, conditions)
-    record = {'seed': seed, 'conditions': list(conditions), 'affine_reexpression_max_abs': proofs,
+    fitted = tuple(c for c in wanted if c not in pending)
+    final_path = root / f'seed_{seed}' / 'releases_2017' / 'final_evaluation.npz'
+    if final_path.exists():
+        final_path.unlink()          # rebuilt for this condition set by score_seed
+    scores = T.score_seed(ev, frozen, root, seed, fitted)
+    record = {'seed': seed, 'conditions': list(fitted), 'pending_after_deadline': pending, 'affine_reexpression_max_abs': proofs,
               'fits': fits, 'scores': scores, 'utc': utcnow(),
               'evaluation_status': 'EXPLORATORY CROSS-YEAR DEVELOPMENT'}
-    write_json_atomic(root / f'seed_{seed}' / 'transport_record.json', record)
+    write_json_atomic(root / f'seed_{seed}' / f'transport_record_{tag}.json', record)
     return record
 
 
