@@ -87,7 +87,7 @@ def loss_vectors(conditions, points, frames, registry):
 # ------------------------------------------------------------------ families
 def family_x(units) -> list:
     """Exploratory whole-grid family (PROTOCOL §5). Never used to nominate."""
-    have = set(units)
+    have = set(units) | set(HISTORICAL)
     specs = []
 
     def add(left, right, family):
@@ -123,7 +123,7 @@ def family_x(units) -> list:
 
 
 def family_p(panel: list, units) -> list:
-    have = set(units)
+    have = set(units) | set(HISTORICAL)
     specs = []
 
     def add(left, right, family):
@@ -132,7 +132,7 @@ def family_p(panel: list, units) -> list:
 
     for entry in panel:
         unit = entry['unit']
-        for right in ('J',) + EXTERNAL:
+        for right in ('J', 'ref_J') + EXTERNAL:
             add(unit, right, 'P_vs_external')
         for control in entry['controls']:
             add(unit, control, 'P_vs_local_control')
@@ -141,7 +141,8 @@ def family_p(panel: list, units) -> list:
             for control in ('marginal', 'pca', 'rand'):
                 add(unit, f'E_{channel}_{control}_k{k}', 'P_vs_compression_or_erasure')
             add(unit, 'leace_J', 'P_vs_compression_or_erasure')
-            add(unit, 'ref_A0' if channel == 'A0' else 'ref_J', 'P_vs_starting_channel')
+            if channel == 'A0':
+                add(unit, 'ref_A0', 'P_vs_starting_channel')
         else:
             parts = unit.split('_')
             init, gtag, beta = parts[1], parts[2], parts[-1]
@@ -200,7 +201,9 @@ def decisions(panel, p_rows) -> list:
     for entry in panel:
         unit = entry['unit']
         per_comparator = {}
-        for comparator in ('J',) + EXTERNAL + tuple(entry['controls']):
+        # RUN_STATUS amendment 4: ref_J (bitwise J, identical audit slate) is the decision
+        # comparator for J; historical J carries extra derived-space candidates.
+        for comparator in ('ref_J', 'J') + EXTERNAL + tuple(entry['controls']):
             cell = {}
             for weight in rep.WEIGHTS:
                 rows = {e: index.get((unit, comparator, weight, e)) for e in FAMILY_ENDPOINTS}
@@ -222,13 +225,15 @@ def decisions(panel, p_rows) -> list:
             per_comparator[comparator] = cell
         both = lambda c: all(per_comparator.get(c, {}).get(w) and
                              per_comparator[c][w]['qualifies'] for w in rep.WEIGHTS)
-        competitive = both('J') and any(both(c) for c in EXTERNAL)
+        competitive = both('ref_J') and any(both(c) for c in EXTERNAL)
         coalition = competitive and all(both(c) for c in entry['controls'])
         out.append({'unit': unit, 'family': entry['family'], 'status': entry['status'],
                     'per_comparator': per_comparator,
                     'competitive_development_tradeoff_both_weightings': bool(competitive),
                     'coalition_specific_benefit': bool(coalition),
-                    'qualifies_vs_J': {w: (per_comparator.get('J', {}).get(w) or {}).get('qualifies')
+                    'qualifies_vs_historical_J': {w: (per_comparator.get('J', {}).get(w) or {}).get('qualifies')
+                                                  for w in rep.WEIGHTS},
+                    'qualifies_vs_J': {w: (per_comparator.get('ref_J', {}).get(w) or {}).get('qualifies')
                                        for w in rep.WEIGHTS}})
     return out
 

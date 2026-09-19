@@ -82,7 +82,23 @@ releases are now bitwise identical and are audited once. No other unit is affect
 
 ## Incidents
 
-None yet.
+### Incident 1 — 2017 stage needed attacker weights deleted by compaction (`07:12Z`)
+
+The first 2017 launch failed on all anchors with `FileNotFoundError` on
+`<unit>/audits/fitted/.../model.pt`. Cause, established by traceback: the predecessor's
+2017 Mode B stage also scores each interface's **2018-fitted** attackers on 2017
+(`transport_origin`), so it reads their weights; the audit compaction of PROTOCOL §3
+had deleted them. The compaction docstring's claim that no stage reads them was
+**wrong**. No 2017 number was produced by the failed launch.
+
+Repair: the 18 canonical 2018 audits needed by the 2017 panel (6 Track E units x 3
+anchors) were re-run without compaction. The audit is seeded; each regenerated
+`metrics.json` must equal the compacted run's raw records exactly, and every retained
+prediction array must be bitwise equal, before the regenerated directory is used
+(`REGEN_FOR_2017.json`; compacted originals kept under `_compacted/`). The neural
+nominees and their L1/L2 controls are bitwise duplicates of untouched `J`
+(`audit_identity.json`), so their 2017 results are the historical `J` results and they
+are not re-transported.
 
 ## Response to Terminal 2 review (handoff v4, `2026-09-19T02:54Z`), recorded `~03:40Z`
 
@@ -120,3 +136,20 @@ The panel is nominated only after both passes, so every registered candidate
 configuration is eligible for assessment. Consequence: the full registered matrix is
 audited, and the closeout may run past the original `09:47Z` ceiling. No scientific
 input, rule or unit definition changes.
+
+### Amendment 4 — `ref_J` is the decision comparator for J (declared AFTER outcomes were seen)
+
+**Declared `~07:45Z`, after the 2018 panel intervals had been computed.** The registered
+identity validation (`ref_A0`, `ref_J` must reproduce the historical audits exactly)
+**failed on 3 cells**: seed 1 `AB/RAC1P` for J and seed 2 `A/commute_over20` for both A0
+and J. Cause, established: the historical A0/J audits (residual-spectral study) carry an
+extra `derived__*` candidate space that no new release has; validation selection picked a
+derived candidate in 2 of 66 selected A0 cells and 4 of 66 J cells. The external
+baselines (`leace_A0`, `splince_A0`, `optnet16_*`) and every new release carry none. Seed 0
+matched exactly, which is why the pre-lock check passed.
+
+`ref_J` is J's channel bitwise, audited with exactly the new arms' slate, so it is the
+exposure-matched comparator; the decision rule now uses `ref_J` for "J". Because this was
+declared after outcomes, **both** are reported and the verdict is shown under each: it is
+**identical** (no panel member qualifies against either). The identity check is reported
+as FAILED-with-cause, not as passed.
