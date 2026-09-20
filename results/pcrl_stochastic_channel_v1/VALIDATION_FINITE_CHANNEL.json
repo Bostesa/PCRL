@@ -1,0 +1,86 @@
+{
+ "scope": "Exact small finite models only. No ACS pool read, no release fitted, 2016 sealed.",
+ "environment": {
+  "python": "3.13.7",
+  "numpy": "2.5.3",
+  "cvxpy": "1.9.3",
+  "scipy": "1.18.1",
+  "solvers": [
+   "CLARABEL",
+   "SCS",
+   "SCIPY",
+   "HIGHS",
+   "OSQP"
+  ],
+  "platform": "macOS-15.6-arm64-arm-64bit-Mach-O"
+ },
+ "randomization_payoff_at_zero_leakage": {
+  "model": "P(S=1|T)=(1/10,2/5,9/10), Y=1[T==1], cost 0 iff Z==Y",
+  "best_deterministic_perfectly_private_cost": 0.3333333333333333,
+  "solved_cost": 0.05124834538061848,
+  "ratio": 6.504275032836397,
+  "verified_cmi": 1.8817174586196323e-09,
+  "constraint_violation": 1.8817174586196323e-09,
+  "task_information_nats": 0.48555184637355864,
+  "reviewed_hand_constructed_task_information_nats": 0.4854855270534466,
+  "solved_P_Z1_given_T": [
+   8.668132645318274e-07,
+   0.9999996544279988,
+   0.15374375440401655
+  ],
+  "note": "the solver independently recovered the reviewed channel up to relabelling of Z: reviewed q=(1,0,11/13), solved 1-q=(1,0,0.846256)",
+  "solver_attempts": [
+   {
+    "solver": "CLARABEL",
+    "status": "optimal_inaccurate",
+    "verified_worst_violation": 7.967665974144308e-12,
+    "objective": 0.05128004090636334
+   },
+   {
+    "solver": "SCS",
+    "status": "optimal",
+    "verified_worst_violation": 1.8817174586196323e-09,
+    "objective": 0.05124834538061848
+   }
+  ]
+ },
+ "nullspace_feasibility": {
+  "feasible": true,
+  "null_dim": 2,
+  "singular_values": [
+   0.2694301256218254,
+   1.3864052192707532e-17,
+   0.0
+  ],
+  "tolerance": 1e-12,
+  "null_dim_by_tolerance": {
+   "1e-14": 2,
+   "1e-12": 2,
+   "1e-10": 2,
+   "1e-08": 2,
+   "1e-06": 2
+  },
+  "task_norm": 0.380952380952381
+ },
+ "simultaneous_roles": {
+  "xor_channel_local_cmi": 0.0,
+  "xor_channel_coalition_cmi": 0.6931471805599453,
+  "coarse_binned_coalition_cmi": 0.0,
+  "cost_local_constraint_only": 5.791771586770129e-09,
+  "cost_both_constraints": 0.499956684615282,
+  "interpretation": "the XOR channel is free under the local constraint alone and unavailable once the coalition role is bound; binning the coalition view hides the leak completely, which is why fitted-model constraints are never advertised as population conditional-information certificates"
+ },
+ "lp_reference": {
+  "epsilon": 0.05,
+  "objective": 0.03208926799999316,
+  "achieved_cmi": 0.0005999226570959516,
+  "max_log_ratio": 0.04999999954496327,
+  "note": "pointwise likelihood-ratio bound; stricter than an average MI budget"
+ },
+ "limits": [
+  "Convexity, feasibility and optimality are properties of the specified finite model.",
+  "Nothing here transfers automatically to continuous H or to the ACS population.",
+  "No rate constraint is imposed; the convex/LP characterization is known to fail when one is active.",
+  "A solver status string is not accepted as evidence; every reported channel is re-verified by recomputing cmi."
+ ]
+}
