@@ -60,7 +60,8 @@ could move either way; it carries no claim and is not re-derived here.
 **Memo says:** the training penalty "mixes baseline approximation error with incremental
 disclosure"; a correction seeing H and J can beat the frozen baseline even when R is constant.
 
-**Verdict: CONFIRMED (structurally; an executable demonstration is Stage A, §D below).**
+**Verdict: CONFIRMED, structurally and executably** — but the *magnitude* is baseline-dependent and
+must not be transferred to the study. See the measured ladder below.
 
 `experiments/pcrl_utility_extension_v1/extension.py` `role_gains`:
 
@@ -86,6 +87,38 @@ Two amplifiers the memo does not mention:
 
 METHOD §3's "the incremental gain is zero at initialisation by construction" is true (the correction
 nets are zero-initialised) but says nothing after the first optimizer step.
+
+### Measured — `experiments/pcrl_stochastic_channel_v1/diagnostics.py`, artifact `CONSTANT_CHANNEL_DIAGNOSTIC.json`
+
+A constant extension (`R ≡ 0`, column std exactly `0`, so `I(S;R | H, Z_J) = 0` by construction) is
+run through the **shipped** `role_gains` after training the correction slate for 120 steps. Reported
+gain, seed 0, synthetic fold of 512 rows:
+
+| role | reported gain (nats) |
+|---|---|
+| `A/public_coverage` | 0.5041 |
+| `A/SEX` | 0.4972 |
+| `A/RAC1P` | 0.9048 |
+| `AB/SEX` | 0.5250 |
+| `AB/RAC1P` | 0.9568 |
+
+**This magnitude is an artifact of a deliberately under-fitted baseline and does not transfer.**
+The slack is the frozen baseline's distance from its own optimum, so it decays as the baseline is
+better fitted (max over roles, seed 0):
+
+| frozen-baseline full-batch steps | 10 | 50 | 200 | 800 | 3000 |
+|---|---|---|---|---|---|
+| max reported gain on a constant channel | 0.9568 | 0.7770 | 0.2680 | 0.0025 | 0.00004 |
+
+The real study fits `p0J` for `p0_epochs = 60` minibatch epochs (`extension.py:70,185`, batch 256),
+which is far more optimiser steps than the top of this ladder. **The honest conclusion is that the
+mechanism is real and its size in the study is unmeasured**; quantifying it there requires the real
+`seed_context`, which needs the 2018 pools and is not attempted in this stage. Note the scale it
+would have to beat: the pilot's screen is `.001` nats, and the 800-step rung of this ladder is
+`.0025`.
+
+Gain is exactly `0` before the first optimiser step, confirming METHOD §3's initialisation claim
+and its limits (`test_gain_is_zero_before_the_first_optimizer_step`).
 
 **Scope limit (agrees with the memo):** `role_gains` is the *training* penalty only. The audited
 leakage in `PILOT_SCREEN.json` / `metrics.json` comes from `run_dev_2018.evaluate_seed` →

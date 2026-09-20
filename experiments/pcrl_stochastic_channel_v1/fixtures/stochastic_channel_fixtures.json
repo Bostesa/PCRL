@@ -1,0 +1,193 @@
+{
+  "scope": "Synthetic exact finite models only; no ACS or protected evaluation data read.",
+  "units": "Natural-log information (nats). Independence uses exact fractions.",
+  "toys": [
+    {
+      "name": "rational_symmetric_output",
+      "input_probability": [
+        "1/3",
+        "1/3",
+        "1/3"
+      ],
+      "sensitive_probability_given_input": [
+        "0",
+        "1/3",
+        "1"
+      ],
+      "release_one_probability_given_input": [
+        "5/6",
+        "0",
+        "2/3"
+      ],
+      "target": "Y = 1[T == 1]",
+      "random_release_sensitive_independence_exact": true,
+      "random_release_sensitive_information_nats": 0.0,
+      "random_release_task_information_nats": 0.3182570841474064,
+      "all_deterministic_partitions": [
+        {
+          "partition": [
+            0,
+            0,
+            0
+          ],
+          "exact_private": true,
+          "sensitive_information_nats": 0.0,
+          "task_information_nats": 0.0
+        },
+        {
+          "partition": [
+            0,
+            0,
+            1
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.3865874373531202,
+          "task_information_nats": 0.17441604792151594
+        },
+        {
+          "partition": [
+            0,
+            1,
+            0
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.0126920667924222,
+          "task_information_nats": 0.6365141682948128
+        },
+        {
+          "partition": [
+            0,
+            1,
+            1
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.2626187977341148,
+          "task_information_nats": 0.17441604792151594
+        },
+        {
+          "partition": [
+            0,
+            1,
+            2
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.474790187165719,
+          "task_information_nats": 0.6365141682948128
+        }
+      ],
+      "largest_exact_private_deterministic_task_information_nats": 0,
+      "releasing_probability_vector_sensitive_information_nats": 0.474790187165719
+    },
+    {
+      "name": "strictly_interior_sensitive_probabilities",
+      "input_probability": [
+        "1/3",
+        "1/3",
+        "1/3"
+      ],
+      "sensitive_probability_given_input": [
+        "1/10",
+        "2/5",
+        "9/10"
+      ],
+      "release_one_probability_given_input": [
+        "1",
+        "0",
+        "11/13"
+      ],
+      "target": "Y = 1[T == 1]",
+      "random_release_sensitive_independence_exact": true,
+      "random_release_sensitive_information_nats": 0.0,
+      "random_release_task_information_nats": 0.4854855270534466,
+      "all_deterministic_partitions": [
+        {
+          "partition": [
+            0,
+            0,
+            0
+          ],
+          "exact_private": true,
+          "sensitive_information_nats": 0.0,
+          "task_information_nats": 0.0
+        },
+        {
+          "partition": [
+            0,
+            0,
+            1
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.2076722217707964,
+          "task_information_nats": 0.17441604792151594
+        },
+        {
+          "partition": [
+            0,
+            1,
+            0
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.004487966604102323,
+          "task_information_nats": 0.6365141682948128
+        },
+        {
+          "partition": [
+            0,
+            1,
+            1
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.1509312254935803,
+          "task_information_nats": 0.17441604792151594
+        },
+        {
+          "partition": [
+            0,
+            1,
+            2
+          ],
+          "exact_private": false,
+          "sensitive_information_nats": 0.24986410471643372,
+          "task_information_nats": 0.6365141682948128
+        }
+      ],
+      "largest_exact_private_deterministic_task_information_nats": 0,
+      "releasing_probability_vector_sensitive_information_nats": 0.24986410471643372
+    }
+  ],
+  "view_and_coarsening_counterexamples": {
+    "individually_private_jointly_disclosing": {
+      "definition": "S,C independent fair bits; Z=S xor C",
+      "A_increment_nats": 0.0,
+      "coalition_increment_given_C_nats": 0.6931471805599453,
+      "increment_conditioned_on_constant_context_bin_nats": 0.0
+    },
+    "coalition_increment_zero_local_increment_positive": {
+      "definition": "S fair bit; B=S; Z=S",
+      "A_increment_nats": 0.6931471805599453,
+      "coalition_increment_given_B_nats": 0.0
+    }
+  },
+  "utility_proxy_counterexample": {
+    "definition": "Independent Y,S in {-1,+1}; teacher=(Y,10*S)",
+    "release_Y": {
+      "teacher_total_squared_error": 100,
+      "task_information_nats": 0.6931471805599453,
+      "sensitive_information_nats": 0
+    },
+    "release_S": {
+      "teacher_total_squared_error": 1,
+      "task_information_nats": 0,
+      "sensitive_information_nats": 0.6931471805599453
+    },
+    "scope": "Counterexample to teacher fidelity implying useful private transfer; not a diagnosis of ACS."
+  },
+  "interpretation": [
+    "Stochastic channels can strictly improve over every deterministic channel under exact privacy in a finite model.",
+    "This does not show that randomization improves the ACS PCRL frontier.",
+    "A release probability, its logits, repeated independent samples, or joint use of two private channels need separate audits.",
+    "Conditional privacy for coarsened contexts does not establish conditional privacy for the actual released context.",
+    "Training with Y labels creates a supervised diagnostic, not evidence of held-out-task transfer."
+  ],
+  "script_sha256": "998573c81c4b5558ea524a09eaddbc893a19ddd9f7f065949685336c4092c085"
+}

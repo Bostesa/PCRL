@@ -101,8 +101,17 @@ def selections(candidates):
     for name in old.SCOPES: chosen['kernel_'+name]=common[name]; pools['kernel_'+name]=commonp[name]
     return chosen,pools
 
-def build_audits(wire,derived,labels,indices,seed,directory,*,historical=None,ancestor=None):
-    """Only attacker fitting and validation accepted; no spectral saved observer."""
+def build_audits(wire,derived,labels,indices,seed,directory,*,historical=None,ancestor=None,extra_candidates=None):
+    """Only attacker fitting and validation accepted; no spectral saved observer.
+
+    `extra_candidates` is an additive, opt-in slate supplement shaped like `cs`
+    ({budget: {role: {candidate_id: AuditCandidate}}}), merged after the ancestor block and before
+    `inherit_singletons`, so supplied A/AB candidates are inherited into the coalition roles. It
+    defaults to `None`, in which case this function behaves exactly as before. Used by
+    `pcrl_stochastic_channel_v1` to place untouched-J, ignore-extension predictors inside each
+    extended release's own slate (see that study's `slate.py`); every supplied candidate carries
+    `projection_columns`, so the existing route-parity assertion below re-scores it and checks the
+    routing against its recorded validation scores."""
     assert set(labels)==set(old.FIT_POOLS)
     directory=Path(directory)
     if (directory/'audit_selection.json').exists():
@@ -181,6 +190,16 @@ def build_audits(wire,derived,labels,indices,seed,directory,*,historical=None,an
                     ident='anchor__'+cid; meta=copy.deepcopy(c.metadata)
                     meta.update(candidate_id=ident,view=view,projection_columns=list(cols),source_condition='H',anchor_ancestor=True,inherited_singleton=False)
                     current[ident]=old.AuditCandidate(c.base,'wire',cols,meta)
+    if extra_candidates is not None:
+        # Additive only: supplied candidates never replace a fitted or ancestor candidate, and the
+        # canonical B slate stays shared unchanged across every system.
+        for b,roles in extra_candidates.items():
+            for role,extra in roles.items():
+                if role.split('/')[0]=='B': raise ValueError('canonical B candidates are shared; no supplement allowed')
+                clash=set(extra)&set(cs[b][role])
+                if clash: raise ValueError(f'supplementary candidate ids collide at {role}: {sorted(clash)}')
+                cs[b][role].update(extra)
+        counts['supplementary_candidates']=sum(len(r) for roles in extra_candidates.values() for r in roles.values())
     widths={s:(v['A']['attacker_fit'].shape[1],v['B']['attacker_fit'].shape[1]) for s,v in spaces.items()}
     select={};pools={};record={}; parity=[]
     for b,roles in cs.items():
