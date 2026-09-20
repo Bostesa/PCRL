@@ -1,0 +1,99 @@
+{
+ "decision": {
+  "per_recipe": {
+   "c1_mlp64x32_wd1e-4": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.033624960015297786,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9446228886610618,
+    "stronger": false
+   },
+   "c2_mlp128x64_do.2": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.035623103326796274,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.94258081222873,
+    "stronger": false
+   },
+   "c3_mlp64_wd1e-3": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.03479097305961425,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9448460379170682,
+    "stronger": false
+   },
+   "c4_mlp64x32_lr3e-4": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.03264829666437606,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9460219740470862,
+    "stronger": false
+   },
+   "c5_mlp256x128_do.3_wd1e-3": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.035990808373601337,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9424787929707481,
+    "stronger": false
+   },
+   "c6_mlp128x128_do.1_lr5e-4": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.03429848755559778,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9443296126248025,
+    "stronger": false
+   },
+   "c7_bag3_mlp64x32": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.036195745607714304,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9417059488851768,
+    "stronger": false
+   },
+   "c8_mlp32x16_wd1e-4": {
+    "A0_endpoints_better_than_standard": 0,
+    "recipe_A0_minus_H_increment": 0.034543190210115836,
+    "standard_A0_minus_H_increment": 0.03762538633064473,
+    "mean_A0_full_validation_loss": 0.9453161250707541,
+    "stronger": false
+   }
+  },
+  "adopted": null,
+  "stress_strength_established": false,
+  "rule": "of \"stronger\" (declared before running):\n  a recipe is STRONGER iff, averaged over seeds and both weightings,\n   (i)  its A0 full-view validation log loss is lower than the standard slate's selected\n        validation loss on at least 3 of the 4 sensitive endpoints, and\n   (ii) its A0-minus-H validation increment (recipe on both views) is at least the standard\n        slate's A0-minus-H validation increment on average over the 4 endpoints.\nIf several qualify, the one with the lowest mean A0 full-view validation loss is adopted.\nAn adopted recipe is ADDED to the frozen slate (per endpoint, the candidate with lower\nvalidation loss is selected), never substituted, and is applied to every interface\nincluding H, so it cannot lower a measured increment by replacing a stronger candidate.\nIf none qualifies, the standard slate is retained and added stress strength is recorded as\nNOT established."
+ },
+ "positive_control_A0_minus_H_validation": {
+  "A/SEX": {
+   "unweighted": 0.032383987367560096,
+   "person_weighted": 0.0298324901545662
+  },
+  "AB/SEX": {
+   "unweighted": 0.030784387688484422,
+   "person_weighted": 0.02851349973751412
+  },
+  "A/RAC1P": {
+   "unweighted": 0.05080453629129448,
+   "person_weighted": 0.047915689734762346
+  },
+  "AB/RAC1P": {
+   "unweighted": 0.04261777911132817,
+   "person_weighted": 0.038150720559648
+  }
+ },
+ "audit_portability_max_abs": {
+  "ref_A0|0|unweighted": 1.7323785593603702e-05,
+  "ref_J|0|unweighted": 0.0008106351600713491,
+  "ref_A0|0|person_weighted": 9.251369032758916e-05,
+  "ref_J|0|person_weighted": 0.0009512019064419341,
+  "ref_A0|1|unweighted": 4.047883361835147e-09,
+  "ref_J|1|unweighted": 0.0019475636281924835,
+  "ref_A0|1|person_weighted": 1.204575306168465e-08,
+  "ref_J|1|person_weighted": 0.003093538579293842,
+  "ref_A0|2|unweighted": 2.512503023766044e-05,
+  "ref_J|2|unweighted": 0.0030702653432088667,
+  "ref_A0|2|person_weighted": 7.344471405007491e-05,
+  "ref_J|2|person_weighted": 0.0030379225052901138
+ },
+ "audit_portability_tol": 0.003,
+ "audit_portability_ok": false
+}
