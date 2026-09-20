@@ -8,6 +8,7 @@ A mismatch is recorded and the chunk is marked not verified; nothing is silently
 import argparse, hashlib, json, os, subprocess, sys, tempfile, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
+import archive
 from archive import sha_file, write_json_atomic, utcnow
 
 
@@ -17,12 +18,11 @@ def restore(bucket, prefix, chunk, roots, verify_dir):
     root = Path(roots[man['group']])
     root.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    shafile = tempfile.mktemp()
-    cmd = (f'SHACMD="$(command -v sha256sum || echo shasum -a 256)"; aws s3api get-object --bucket {bucket} '
-           f'--key "{man["key"]}" --version-id "{man["version_id"]}" /dev/stdout | tee >($SHACMD > {shafile}) '
-           f'| zstd -d -q | tar -x --strip-components=1 -C "{root}"; sleep 2')
-    p = subprocess.run(['bash', '-o', 'pipefail', '-c', cmd], capture_output=True, text=True)
-    got = open(shafile).read().split()[0] if os.path.exists(shafile) else None
+    work = tempfile.mkdtemp()
+    p = subprocess.run(['bash', '-c', archive._STREAM.format(
+        work=work, bucket=bucket, key=man['key'], vid=man['version_id'],
+        strip='--strip-components=1', dest=root)], capture_output=True, text=True)
+    got = open(f'{work}/.sha').read().split()[0] if os.path.exists(f'{work}/.sha') else None
     bad = []
     for f in man['files']:
         path = root / f['rel']

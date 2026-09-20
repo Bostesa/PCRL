@@ -228,6 +228,18 @@ def upload(plan_path, chunk_ids, bucket, prefix, manifest_dir, zstd_level=3, thr
 
 
 # ------------------------------------------------------------------ verify (runs on AWS)
+_STREAM = """set -o pipefail
+mkfifo "{work}/.pipe"
+SHACMD="$(command -v sha256sum || echo shasum -a 256)"
+aws s3api get-object --bucket {bucket} --key "{key}" --version-id "{vid}" "{work}/.pipe" > "{work}/.meta.json" &
+GET=$!
+cat "{work}/.pipe" | tee >($SHACMD > "{work}/.sha") | zstd -d -q | tar -x {strip} -C "{dest}"
+RC=$?
+wait $GET; GRC=$?
+sleep 1
+exit $(( RC | GRC ))"""
+
+
 def verify(bucket, prefix, manifest_keys, scratch, out_dir):
     out_dir = Path(out_dir)
     for mkey in manifest_keys:
@@ -235,10 +247,12 @@ def verify(bucket, prefix, manifest_keys, scratch, out_dir):
                                         capture_output=True, check=True).stdout)
         work = Path(tempfile.mkdtemp(dir=scratch))
         t0 = time.time()
-        # stream: s3 -> tee(sha256) -> zstd -d -> tar -x
-        pipe = subprocess.run(['bash', '-o', 'pipefail', '-c',
-                               'SHACMD="$(command -v sha256sum || echo shasum -a 256)"; ' f'aws s3api get-object --bucket {bucket} --key "{man["key"]}" --version-id "{man["version_id"]}" /dev/stdout | tee >($SHACMD > {work}/.sha) '
-                               f'| zstd -d -q | tar -x -C {work}; sleep 2'], capture_output=True, text=True)
+        # stream: s3 body -> FIFO -> tee(sha256) -> zstd -d -> tar -x.
+        # The body MUST go to a FIFO, not /dev/stdout: `s3api get-object` also prints its response
+        # metadata JSON on stdout, which would corrupt the stream and its hash.
+        pipe = subprocess.run(['bash', '-c', _STREAM.format(
+            work=work, bucket=bucket, key=man['key'], vid=man['version_id'], strip='', dest=work)],
+            capture_output=True, text=True)
         got_stream = (work / '.sha').read_text().split()[0] if (work / '.sha').exists() else None
         bad, checked = [], 0
         for f in man['files']:
