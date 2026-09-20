@@ -210,6 +210,8 @@ def audit_job(seed: int, name: str) -> dict:
     """Unchanged predecessor audit (run_dev_2018.evaluate_seed), exact-identity dedup, bounded
     retries with quarantine. No compaction, no deletion of fitted attacker weights."""
     from experiments.pcrl_direct_adversarial_v1 import run_dev_2018 as dev
+    from . import portability
+    portability.install(OUT / 'PORTABILITY_AMENDMENT_1.json')
     seed_dir = OUT / f'seed_{seed}'
     rpath = seed_dir / 'releases' / name / 'releases.npz'
     ident = release_identity(rpath)
@@ -231,6 +233,7 @@ def audit_job(seed: int, name: str) -> dict:
         try:
             res = dev.evaluate_seed(OUT, seed, [name], dax.Registry.new())[name]
             res['identity'] = ident
+            res['portability'] = portability.record()
             return res
         except Exception as exc:
             q = seed_dir / 'quarantine' / f'{name}_attempt{attempt}'

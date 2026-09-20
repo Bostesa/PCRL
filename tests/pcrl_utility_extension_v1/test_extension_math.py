@@ -54,3 +54,25 @@ def test_selection_rule_tiebreak():
             'X_r2_L2_b001': {'config': 'X_r2_L2_b001', 'pass': True, 'recon_mean': .9},
             'X_r2_C1_b001': {'config': 'X_r2_C1_b001', 'pass': False, 'recon_mean': .9}}
     assert pg.select_tier3(rows) == ['X_r8_C1_b001', 'X_r2_C1_b010']
+
+
+def _scores(log_loss=1.0, auroc=0.7, support=(10, 20), precision=0.5):
+    return {'log_loss': log_loss, 'auroc': auroc, 'accuracy': 0.8, 'support': list(support),
+            'per_class': [{'precision': precision, 'predicted_support': support[0], 'auroc': auroc}],
+            'coverage_complete': True, 'class_schema': [0, 1]}
+
+
+def test_amendment1_accepts_measured_platform_deviation_only():
+    """Amendment 1: tolerant where the platform actually moves, exact everywhere else."""
+    from experiments.pcrl_utility_extension_v1.portability import TolerantScores
+    stored = _scores()
+    assert TolerantScores(_scores(log_loss=1.0 + 3.9e-9, auroc=0.7 + 1.5e-5)) == stored  # measured
+    assert TolerantScores(_scores(log_loss=1.0 + 1e-6)) != stored          # beyond log-loss tolerance
+    assert TolerantScores(_scores(log_loss=1.0 + 2.5)) != stored           # a mis-routed candidate
+    assert TolerantScores(_scores(support=(11, 20))) != stored             # counts stay exact
+    assert TolerantScores(_scores(precision=0.5 + 1e-6)) != stored         # precision stays exact
+    assert TolerantScores(_scores(auroc=0.7 + 0.01)) != stored             # ranking tolerance is bounded
+    d = _scores(); d['per_class'][0].pop('precision')
+    assert TolerantScores(d) != stored                                     # missing key is a failure
+    d2 = _scores(); d2['per_class'][0]['precision'] = None
+    assert TolerantScores(d2) != stored                                    # None vs value is a failure
