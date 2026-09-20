@@ -213,7 +213,7 @@ rows6 = [
  ("Utility-first candidate hidden in the earlier 372-slot evidence", r"\textbf{None}",
   "0 of 124 configurations pass vs $J$ or \\texttt{leace\\_A0} ($m{=}2480$)", "Exploratory reanalysis; does not change that study's own verdict"),
  ("Study 6: stronger attacker found", r"\textbf{Not established}", "0 of 8 prespecified recipes beat the standard slate",
-  "Never state as 'survived a stronger attack'"),
+  "Not evidence of survival against a stronger attack"),
  ("Study 6 Tier 3 / Tier 4 results", r"\textsc{not triggered}", "Gate rule after the failed pilot; no partial grid fitted",
   "Absent evidence for an unrun design, not missing evidence for a claimed one"),
 ]
