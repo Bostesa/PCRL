@@ -286,7 +286,8 @@ def build_release(ctx, encoder, encoded, name, *, mechanism=None, inputs_root=No
         n = len(h)
         g = _predictions(enc['actions'][actions], n)
         b = _predictions(np.asarray(enc['b'])[:, None], n)
-        arm = {'aux': None, 'token_probs': np.ones((n, 1)), 'global_offsets': g}
+        arm = {'aux': None, 'token_probs': np.ones((n, 1)),
+               'global_offsets': _predictions(enc.get('global_offsets', g), n)}
         if q is not None:
             t = _codes(enc['codes'][family], len(q), n)
             token = q[t]

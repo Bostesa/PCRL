@@ -42,3 +42,20 @@ def test_local_partition_is_independent_of_b_service_and_label_outcomes():
     assert np.array_equal(a,a2)
     assert np.any(ab!=ab2)
     assert np.array_equal(ab//2,a)
+
+
+def test_reserved_dictionary_strengthens_common_calibration_without_widening_primary_actions():
+    from types import SimpleNamespace
+    from experiments.pcrl_task_directed_release_v1.encoding import Encoder
+    from experiments.pcrl_task_directed_release_v1.data import RuntimeInputs
+    predictor=SimpleNamespace(predict_proba=lambda x:np.tile([.4,.6],(len(x),1)))
+    risk=SimpleNamespace(predict=lambda x:np.ones((len(x.x_a),11))/11)
+    code=SimpleNamespace(assign=lambda r,x,s:{k:np.zeros(len(r),int) for k in ('T0','Ttask','Trisk')})
+    encoder=Encoder(predictor,predictor,risk,code,
+                    {17:{'offsets':np.array([0.,1.])},33:{'offsets':np.array([0.,-.5,.5])}},None,{})
+    encoded=encoder.encode(RuntimeInputs(np.zeros((4,32)),np.ones((4,4))*.5))
+    assert encoded['actions'][17].shape==(4,2)
+    assert encoded['actions'][33].shape==(4,3)
+    assert encoded['global_offsets'].shape==(4,4)
+    assert np.array_equal(encoded['global_offsets'][:,:2],encoded['actions'][17])
+    assert np.array_equal(encoded['global_offsets'][:,2:],encoded['actions'][33][:,1:])

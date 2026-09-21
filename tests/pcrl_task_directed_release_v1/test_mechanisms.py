@@ -209,3 +209,13 @@ def test_empty_refined_child_deploys_supported_sibling_distribution(tmp_path):
     release=m.build_release(ctx,e,enc,spec['configuration'],mechanism=mechanism)
     assert_allclose(release['downstream_validation']['token_probs'],
                     mechanism['Q'][enc['downstream_validation']['codes']['Trisk']])
+
+
+def test_all_control_releases_retain_common_calibration_library():
+    m=module();ctx,e,enc,split=fixture()
+    for values in enc.values():
+        values['global_offsets']=np.column_stack((values['actions'][17],values['b']*.8))
+    for name in ('H','continuous_task','T0_code','Trisk_code','independent_token'):
+        release=m.build_release(ctx,e,enc,name)
+        for pool,arm in release.items():
+            assert_array_equal(arm['global_offsets'],enc[pool]['global_offsets'])

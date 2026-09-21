@@ -51,9 +51,17 @@ def stage(kind):
         files=sorted((private/'inputs').rglob('*'))
         files=[p for p in files if p.is_file()]
     else:
-        files=sorted((ROOT/'experiments'/STUDY).rglob('*.py'))
-        files+=sorted((ROOT/'tests'/STUDY).rglob('*.py'))
-        files += [p for p in sorted(OUT.glob('*')) if p.is_file() and p.suffix in ('.md','.json')]
+        # Ship committed study files only; independent agents may be writing
+        # unrelated, unfinished reporting/test modules in this worktree.
+        tracked=subprocess.run(['git','ls-files','-z','--',f'experiments/{STUDY}',
+                                f'tests/{STUDY}',f'results/{STUDY}'],
+                               cwd=ROOT,capture_output=True,check=True).stdout
+        files=[ROOT/p.decode() for p in tracked.split(b'\0') if p]
+        files=[p for p in files if p.is_file() and p.suffix in ('.py','.md','.json')]
+        dirty=subprocess.run(['git','diff','--name-only','HEAD','--',
+                              *[str(p.relative_to(ROOT)) for p in files]],
+                             cwd=ROOT,capture_output=True,text=True,check=True).stdout
+        if dirty.strip():raise RuntimeError('Commit task code/protocol changes before staging')
     manifest=[]
     for p in files:
         relative=str(p.relative_to(ROOT))

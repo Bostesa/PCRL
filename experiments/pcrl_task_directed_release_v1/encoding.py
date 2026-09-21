@@ -201,8 +201,11 @@ class Encoder:
         b=clipped(self.baseline.predict_proba(inputs.h_a)[:,1])
         r=logit(p)-logit(b);risk=self.risk.predict(inputs)
         codes=self.code.assign(r,inputs.x_a,risk)
+        actions={k:action_probabilities(b,d['offsets']) for k,d in self.dictionaries.items()}
+        global_offsets=np.column_stack([actions[k] if k==17 else actions[k][:,1:]
+                                       for k in sorted(actions)])
         return {'p':p,'b':b,'r':r,'risk':risk,'codes':codes,
-                'actions':{k:action_probabilities(b,d['offsets']) for k,d in self.dictionaries.items()}}
+                'actions':actions,'global_offsets':global_offsets}
 
 
 def fit_encoder(ctx,out_dir):
@@ -225,7 +228,10 @@ def fit_encoder(ctx,out_dir):
     p=clipped(teachers['task'].predict_proba(cb_inputs.features())[:,1]);b=clipped(teachers['baseline'].predict_proba(cb_inputs.h_a)[:,1])
     r=logit(p)-logit(b);risk_values=risk.predict(cb_inputs)
     code=Codebook.fit(r,cb_inputs.x_a,risk_values,anchor)
-    dictionaries={17:fit_dictionary(p,b,rf['weights'][cb],17)}
+    # Reserve the one registered recovery dictionary before outcomes. Its
+    # global H-only offsets are available symmetrically from the first audit.
+    # No 33-action Q is fitted unless branch A triggers.
+    dictionaries={k:fit_dictionary(p,b,rf['weights'][cb],k) for k in (17,33)}
     partitions=ServicePartitions.fit(rf['ha'][cb],rf['hb'][cb],anchor)
     meta.update({'teacher_train_rows':len(f),'teacher_internal_validation_rows':len(v),
                  'codebook_rows':len(cb),'mechanism_rows':len(roles['mechanism']),
