@@ -46,13 +46,16 @@ def household_roles(serials):
             'mechanism':np.flatnonzero(u>=.60)}
 
 
+def validate_evaluation_permit(evaluation_permit):
+    if evaluation_permit is None or not Path(evaluation_permit).is_file():
+        raise PermissionError('Current-run evaluation is sealed until selection freeze')
+    permit=json.loads(Path(evaluation_permit).read_text())
+    if not permit.get('selection_frozen'):
+        raise PermissionError('Evaluation permit does not freeze selection')
+
+
 def read_rows(raw_path, rows, columns, *, pool, evaluation_permit=None):
-    if pool=='test':
-        if evaluation_permit is None or not Path(evaluation_permit).is_file():
-            raise PermissionError('Current-run evaluation is sealed until selection freeze')
-        permit=json.loads(Path(evaluation_permit).read_text())
-        if not permit.get('selection_frozen'):
-            raise PermissionError('Evaluation permit does not freeze selection')
+    if pool=='test':validate_evaluation_permit(evaluation_permit)
     rows=np.asarray(rows,dtype=np.int64)
     if len(np.unique(rows))!=len(rows) or np.any(rows<0):
         raise ValueError('Duplicate or invalid raw row indices')
@@ -81,6 +84,7 @@ def labels_from_frame(frame):
 
 
 def load_anchor(anchor, pools=POOLS[:-1], *, inputs_root=None, evaluation_permit=None):
+    if 'test' in pools:validate_evaluation_permit(evaluation_permit)
     import torch
     from torch import nn
     inputs_root=Path(inputs_root or OUT/'private/inputs').resolve()

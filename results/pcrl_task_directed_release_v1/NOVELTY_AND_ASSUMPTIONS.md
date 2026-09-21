@@ -1,6 +1,6 @@
 # Task-directed finite-channel release: novelty and assumptions
 
-Primary-source review, checked 2026-09-21. This is a research assessment, not a submission or a claim of exhaustive priority search. Relevant full-text sections were read for all seven papers; exact locators and URLs are recorded in `source_evidence.json`.
+Primary-source review, checked 2026-09-21. This is a research assessment, not a submission or a claim of exhaustive priority search. Relevant full-text sections were read for all seven papers; exact locators and URLs are recorded in `LITERATURE_SOURCES.json`.
 
 ## Defensible claim
 
@@ -42,4 +42,4 @@ Task sufficiency means `Y` is conditionally independent of the original input gi
 
 ## SaTML check
 
-The [current call](https://satml.org/call-for-papers/) is for SaTML 2027: abstract registration September 22, 2026; full papers September 29; anonymized artifacts October 2; deadlines are 23:59 AoE. Complete details of the mandatory last-submission review disclosure are in `source_evidence.json`. No submission, registration, or contact was attempted.
+The [current call](https://satml.org/call-for-papers/) is for SaTML 2027: abstract registration September 22, 2026; full papers September 29; anonymized artifacts October 2; deadlines are 23:59 AoE. Complete details of the mandatory last-submission review disclosure are in `LITERATURE_SOURCES.json`. No submission, registration, or contact was attempted.

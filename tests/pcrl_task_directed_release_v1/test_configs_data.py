@@ -45,3 +45,16 @@ def test_label_reader_cannot_open_current_evaluation_before_freeze(tmp_path):
         read_rows(raw, np.array([1]), ['MIG'], pool='test', evaluation_permit=None)
     got = read_rows(raw, np.array([0, 2]), ['SERIALNO','MIG'], pool='representation_fit')
     assert got['MIG'].tolist() == [1, 3]
+
+
+def test_bad_evaluation_permit_is_rejected_before_any_feature_member_is_opened(tmp_path, monkeypatch):
+    from experiments.pcrl_task_directed_release_v1.data import load_anchor
+    permit=tmp_path/'permit.json';permit.write_text('{"selection_frozen":false}')
+    opened=[]
+    def forbidden_open(*args,**kwargs):
+        opened.append(args)
+        raise AssertionError('Evaluation features were accessed before permit validation')
+    monkeypatch.setattr(np,'load',forbidden_open)
+    with pytest.raises(PermissionError):
+        load_anchor(0,pools=('test',),inputs_root=tmp_path,evaluation_permit=permit)
+    assert opened==[]
