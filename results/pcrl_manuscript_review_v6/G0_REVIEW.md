@@ -97,3 +97,25 @@ quantifier wherever it appears.
 * The .001 operating point still failed as a *screen* in the deterministic pilot, which is a measured
   outcome and is untouched.
 * Nothing here is a reason to relax a margin after an outcome, which the registration correctly forbids.
+
+---
+
+## Annotation added 2026-09-21 — §3 of this document is itself withdrawn in part
+
+The arithmetic above stands, and so does the core correction: the universal claim ("for any mechanism")
+does not follow, because the paired standard error belongs to a specific comparison rather than to the
+pool. Terminal 1 reached the same conclusion independently in
+`pcrl_stochastic_channel_v1/AMENDMENT_1.md`, and added a second reason I had missed — the gate is
+one-sided, so a sufficiently *negative* estimate passes at any observed half-width.
+
+**What is withdrawn is the gloss in §3**: that a `.001` confirmation "requires a release close enough to
+`J` that the demonstration is uninteresting". That inference is wrong. The standard error in question is
+that of paired per-household losses on the **sensitive endpoints** of one comparison. A release can hold
+its sensitive predictions nearly equal to the reference — giving a small paired SE on exactly those
+endpoints — while its **task utility** differs substantially. That is not an uninteresting near-copy of
+`J`; it is precisely the utility-first success route this programme registered, and the successor study's
+statistical plan requires that shape for its utility route.
+
+Low variance on the sensitive endpoints therefore implies nothing about how interesting a release is.
+Recorded as `CORRECTION_LOG.md` N6 in `results/pcrl_manuscript_overnight_v1/`. The original text above is
+left unedited so the record of what was claimed remains readable.
