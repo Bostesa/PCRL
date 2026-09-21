@@ -1,0 +1,163 @@
+{
+ "anchors": [
+  0,
+  1,
+  2
+ ],
+ "ceilings": {
+  "aws_usd": 50,
+  "closeout_reserved_minutes": [
+   45,
+   60
+  ],
+  "forecast_cap_usd": 45,
+  "useful_target_hours": 8,
+  "wall_clock_hours": 10
+ },
+ "constraints": {
+  "no_rate_constraint": true,
+  "partitions": {
+   "C_A": "4 H_A cells x 2 coverage bins = 8",
+   "C_AB": "x 2 H_B bins = 16",
+   "coarser_fallback_trigger": "feature-cell counts alone: any cell < 40 rows or any (cell,class) < 10"
+  },
+  "weighting": "unweighted and PWGTP; intersection imposed on a single Q if both regimes claimed",
+  "zero_budget_path": "linear A_r Q[:,z]=0 per token, then independent MI recomputation"
+ },
+ "contract": "S1 (replacement; recipients who never received J). See RELEASE_CONTRACT.md.",
+ "controls_per_surviving_family_output_size": [
+  "unprotected fixed-cost Q",
+  "constant token",
+  "token independent of T",
+  "deterministic nearest-prototype assignment",
+  "argmax-rounded selected Q (ablation only; may violate constraints)"
+ ],
+ "correction_family": {
+  "external_baseline_comparisons": 4,
+  "frozen_family_size": 68,
+  "max_nominees": 4,
+  "method": "Bonferroni over the frozen family count, applied regardless of outcome",
+  "primary_sensitive_endpoints": [
+   "A/SEX",
+   "AB/SEX",
+   "A/RAC1P",
+   "AB/RAC1P"
+  ],
+  "routes": 2,
+  "weightings": 2
+ },
+ "locked_utc": "2026-09-21T07:10:00Z",
+ "references": [
+  "H",
+  "J",
+  "LEACE-on-A0",
+  "SPLINCE-on-A0",
+  "OptNet adaptation if verified artifacts exist"
+ ],
+ "sealed": {
+  "2016": "sealed - no path, manifest, archive or bundle reference",
+  "2017": "not opened"
+ },
+ "selection": {
+  "max_nominees": 4,
+  "protection_rule": "minimize worst primary sensitive difference vs J among configs meeting validation utility/source screens",
+  "routes": [
+   "protection",
+   "utility"
+  ],
+  "tie_break": [
+   "lower alphabet size",
+   "configuration ID"
+  ],
+  "utility_rule": "maximize the smaller of the two weighting-specific residence improvements among configs meeting validation disclosure/source screens"
+ },
+ "self_sha256": "02eb78302036699b9ef73ac1625134288a8d32e780b65a0d129fa8b771c09a33",
+ "stage_A_action_library": {
+  "K": [
+   9,
+   17
+  ],
+  "SUP_offsets": "evenly spaced over [-4,4] including exactly 0",
+  "allowance_nats": 0.001,
+  "decided_over": "all three anchors per family/output-size block",
+  "registered_fallback": "K prototype-specific regularized H_A-only residence decoders, frozen before cost estimation, with global-decoder fallback under 100 decoder-fit rows"
+ },
+ "stage_Q_primary_matrix": {
+  "anchors": 3,
+  "budgets_nats": [
+   0.0,
+   0.002,
+   0.01
+  ],
+  "constraint_sets": [
+   "L",
+   "C"
+  ],
+  "families": 2,
+  "nominal_Q_fits": 144,
+  "objectives": [
+   "SUP",
+   "LF"
+  ],
+  "output_sizes": [
+   9,
+   17
+  ],
+  "reduction_rule": "decided from measured throughput BEFORE seeing the affected cells outcomes; no losing anchor is ever omitted",
+  "schedule": "K=9 tier first (both objectives, both policies, all budgets, all anchors); K=17 is the expansion tier"
+ },
+ "stage_R_representation_screen": {
+  "families": [
+   "pca32",
+   "zj"
+  ],
+  "k_fallback": 256,
+  "k_primary": 64,
+  "mlp": {
+   "batch": 256,
+   "epochs": 200,
+   "hidden": [
+    64,
+    32
+   ],
+   "lr": 0.001,
+   "validation_interval": 5
+  },
+  "nominal_units": 12,
+  "pass_rule": {
+   "allowance_nats": 0.001,
+   "kind": "point-estimate scheduling rule, not a confidence claim",
+   "min_anchors_with_gain_over_H": 2
+  },
+  "probe_slate": [
+   {
+    "C": 0.03,
+    "family": "logistic"
+   },
+   {
+    "C": 0.3,
+    "family": "logistic"
+   },
+   {
+    "C": 3.0,
+    "family": "logistic"
+   },
+   {
+    "family": "mlp",
+    "weight_decay": 0.0
+   },
+   {
+    "family": "mlp",
+    "weight_decay": 0.0001
+   }
+  ],
+  "rows": "all eligible declared downstream-fitting households (no 2048 cap)",
+  "views": [
+   "H",
+   "H_plus_J",
+   "H_plus_T",
+   "H_plus_raw"
+  ]
+ },
+ "study": "pcrl_stochastic_replacement_overnight_v1"
+}
