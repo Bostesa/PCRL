@@ -15,8 +15,11 @@ Three things were established, and one of them changes what this line of work ca
 2. **The finite-channel machinery works and the randomization payoff is real in the model**: at
    exactly zero leakage the solver beats the best deterministic perfectly-private map by **6.5×**,
    and independently rediscovers the review's hand-constructed channel up to relabelling.
-3. **The `.001`-nat operating point is not confirmable on this evidence base, by any mechanism.**
-   This was found before any compute was spent, and it is the most consequential result here.
+3. **The historical comparisons have limited precision near equality** (G0, narrowed by
+   `AMENDMENT_1.md`): an adjusted one-sided bound at or below `.001` was not achievable for a
+   comparison sitting near zero. The practical consequence, stated prospectively, is that a pass
+   requires a candidate that *reduces* additional sensitive recovery relative to same-host J, not one
+   that merely fails to increase it.
 
 ## 1. Verification (`VERIFICATION.md`, commit `dd7f8e1d2`)
 
@@ -72,6 +75,21 @@ supervised success can never become a claim about a task excluded from training.
 
 ## 4. Finite-channel machinery (`STAGE_4.md`, `VALIDATION_FINITE_CHANNEL.json`, commit `ccfe0b575`)
 
+**Framing, which the validation table must not be read against.** The stochastic-optimization and
+nullspace results below are **established mathematics, not findings of this study.** The single-role
+feasibility criterion is Rassouli & Gündüz Proposition 1 verbatim; the `δ = 0` linear-cost program
+already has an LP in their Theorem 1, covering squared-error and error-probability utilities; the
+convexity of an MI-constrained channel design with a linear cost follows from joint convexity of
+relative entropy composed with affine maps, and the contrast with the nonconvex privacy funnel is
+attributable to that paper's own diagnosis (the utility *constraint* `I(X;Y) ≥ R`). The table below
+is therefore an **implementation validation** — evidence that this code computes the known objects
+correctly — and the 6.5× separation is a reproduction of a known phenomenon, not a result.
+
+Any PCRL contribution must rest on the **adaptation** (the deployment contract; the nested
+local-vs-coalition role structure; the conditional, multi-role, `δ > 0` case, which is *not* in the
+cited paper) and on the **empirical evidence** from stages B–D. Nothing in this section is offered as
+a contribution.
+
 | validation | result |
 |---|---|
 | randomization payoff at `δ = 0` | cost **0.0512** vs **0.3333** for the only deterministic perfectly-private map — **6.5×**, at recomputed leakage `1.9e-9` |
@@ -108,44 +126,72 @@ Adjusted one-sided half-width `z × SE`, median by endpoint (nats):
 point estimate of exactly zero, the one-sided upper bound on any sensitive endpoint lands at best at
 1.4× the `.001` screen, and typically at 5–9×.
 
-### What this does and does not mean
+### What this does and does not mean — **see `AMENDMENT_1.md` (2026-09-20)**
 
-* A `.001`-nat **confirmation** claim is not demonstrable at this sample size, on any endpoint,
-  under any weighting — **for any mechanism, not just this one.** More fitted channels do not supply
-  more independent households. This is a property of the evidence base.
+An earlier version of this section concluded that a `.001`-nat confirmation claim was "not
+demonstrable at this sample size … for any mechanism". **That extrapolation is withdrawn.** It is
+corrected by a dated amendment published before any new ACS outcome existed; G0's measurements above
+are unchanged, its gate status is unchanged, and the `.001` margin is unchanged.
+
+The error: the criterion is **one-sided** — `estimate + z × SE ≤ .001` — so a half-width above `.001`
+does not rule out passing. It only rules out passing with an estimate at or near zero. A sufficiently
+**negative** estimate passes at any half-width in the record: `≤ −0.00120` at the smallest observed
+(0.00220), `≤ −0.00620` at the `A/SEX` unweighted median. Those magnitudes are not unreachable here —
+`pcrl_nonlinear_rank_v1` recorded attack *reductions* with adjusted upper bounds below zero at
+exactly that scale (A/SEX −0.0064, A/RAC1P −0.0073, AB/RAC1P −0.0116). Separately, historical
+half-widths do **not** lower-bound a new mechanism's paired-loss `SE`, which is a property of the
+specific pair compared; a release agreeing with J on most households can have a materially smaller
+`SE` than anything in the record.
+
+What G0 does establish:
+
+* **For the historical comparisons, precision is limited near equality.** On these four endpoints an
+  adjusted one-sided bound at or below `.001` was not achievable for a comparison sitting near zero.
+  That is a statement about those comparisons and that regime — not about the reachability of the
+  operating point.
 * A `.001` point-estimate **screen** remains runnable and meaningful; that is what the predecessor
-  used and failed. The limit is on confidence statements.
-* Per the registration, G0 constrains claims and does not fail the study. The budget ladder is to be
-  set from this gate **in advance**, which is what is happening, rather than relaxed afterwards.
+  used and failed.
+* **A negative estimate is the route to a pass.** Stated prospectively: to pass G5 with a confirmable
+  bound, a candidate must *reduce* measured additional sensitive recovery relative to same-host J,
+  not merely fail to increase it. That is a harder and more honest target.
+* Candidate-specific intervals are computed and reported wherever prescribed, **never withheld**
+  because historical precision was poor. Bootstrap units are households; release draws and optimizer
+  seeds do not add units.
 
-### Registered prediction P8: CONFIRMED, and more strongly than predicted
+### Registered prediction P8
 
-P8 (50%) said the precision check would show `z × SE > .001` on **at least one** endpoint. It holds
-on **every** endpoint and every weighting, 544/544 rows, and also holds unadjusted. Recorded as
-predicted-and-confirmed; the under-statement is recorded too.
+P8 (50%) said the precision check would show `z × SE > .001` on **at least one** endpoint, "i.e. the
+`.001` margin is not demonstrable at this sample size even if the point estimate is zero". **It
+stands CONFIRMED in its literal form** — the first clause holds on every endpoint and every
+weighting, 544/544 rows, and also unadjusted, and its gloss is correctly conditioned on an estimate
+of zero. The failure was in this report, which dropped that condition. The generalization is
+withdrawn in `AMENDMENT_1.md`; the literal prediction is retained as confirmed.
 
 ## 6. Status of the other registered predictions
 
 Unresolved, because Stage 5 has not run: P1, P2, P3, P4, P5, P6. P7 (J anchors raise measured
 increments) is structurally argued in `VERIFICATION.md` §A but not yet measured.
 
-## 7. Why stage 5 stopped, and what it needs
+## 7. Stage 5 — authorized, blocked only on credentials
 
-Two reasons, both reported rather than worked around.
+The study is authorized to proceed within the $50 incremental ceiling. The only obstacle is
+authentication.
 
-**Access blocker.** `aws sts get-caller-identity` returns `Your session has expired. Please
-reauthenticate using 'aws login'.` Stage B needs the stored release arrays (`H_A`, `Z_J`) and the
-A-side inference inputs, which are **not present locally**: `anchors.npz` and `releases.npz` do not
-exist in any worktree, having been archived to S3 and unlinked under `DELETION_LEDGER.md` after
-verified read-back. The archive bucket has no lifecycle rule, so nothing is at risk of expiry; it is
-purely a credentials problem.
+**Access blocker.** Both configured CLI profiles for account `314993518743` are expired:
+`AWS_PROFILE=vein` (SSO session `vein`, start URL `https://d-9066063854.awsapps.com/start`) returns
+`Token has expired and refresh failed`; `AWS_PROFILE=default` returns `Your session has expired`.
+Unblock with `aws sso login --profile vein`.
 
-**A decision that is not mine to make.** G0 changes what $50 of compute buys. It cannot buy a
-confirmable `.001` result, because no amount of compute can. It can still buy a development answer
-to a real question — *does randomization change the capability/disclosure tradeoff on point
-estimates where the deterministic channel failed?* — which is what the registration scoped. That is
-worth knowing and is bounded. But the budget should be committed with that constraint understood,
-not discovered afterwards.
+Stage B needs the stored release arrays (`H_A`, `Z_J`) and the A-side inference inputs, which are
+**not present locally**: `anchors.npz` and `releases.npz` do not exist in any worktree, having been
+archived to S3 and unlinked under `DELETION_LEDGER.md` after verified read-back. The archive bucket
+has no lifecycle rule, so nothing is at risk of expiry.
+
+**What the budget buys, stated prospectively.** A development answer to *does randomization change
+the capability/disclosure tradeoff where the deterministic channel failed?*, which is what the
+registration scoped. Per `AMENDMENT_1.md`, a confirmable `.001` bound remains reachable for a
+candidate whose estimate is sufficiently negative; the target is a candidate that *reduces*
+additional sensitive recovery relative to same-host J.
 
 ## 8. What is already usable, regardless
 
@@ -158,8 +204,12 @@ Even if stage 5 never runs, this branch carries:
 * validated finite-channel machinery, including the coarse-conditioning counterexample that bounds
   every claim this family of methods can make;
 * a narrowed, source-checked contribution statement that will survive review, replacing three claims
-  that would not have;
-* **G0**, which is a result about the whole research programme and was obtained for free.
+  that would not have — with the stochastic-optimization and nullspace results treated as
+  **established mathematics** (§4), so that any PCRL contribution must rest on the adaptation and
+  the evidence, not on rediscovering them;
+* **G0**, which characterises the precision available near equality on these endpoints, obtained
+  before any compute was spent — narrowed by `AMENDMENT_1.md` and, in its corrected form, a
+  prospective statement of what a passing candidate has to look like.
 
 ## 9. Reproduction
 

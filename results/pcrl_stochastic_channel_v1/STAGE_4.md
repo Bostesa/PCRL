@@ -19,6 +19,25 @@ DCP formulation: `I(S;Z|C) = Σ kl_div(a, b)` exactly, because `Σa = Σb = 1` m
 correction terms cancel. `a` and `b` are affine in `Q`, `kl_div` is jointly convex, so each
 constraint is a convex sublevel set and the program is convex with a linear objective.
 
+## These are established mathematics, validated — not results
+
+Every property exercised below is known. The single-role feasibility criterion is Rassouli & Gündüz
+Proposition 1 verbatim (`dim(Null(P_{X|W}) \ Null(P_{Y|W})) ≠ 0`); their Theorem 1 already gives an
+LP for the optimal perfectly-private mapping, extending to squared-error and error-probability
+utilities; convexity of an MI-constrained channel design under a linear cost follows from joint
+convexity of relative entropy composed with affine maps; and the reason the privacy funnel is
+nonconvex where this is not — the utility *constraint* `I(X;Y) ≥ R` — is Makhdoumi et al.'s own
+diagnosis. The strict advantage of randomization over deterministic maps under exact privacy is
+likewise classical.
+
+**So the table below is an implementation validation, not a finding.** It is evidence that this code
+computes the known objects correctly, and that the reviewed fixtures and this solver agree. The 6.5×
+separation reproduces a known phenomenon in a specified finite model.
+
+Any PCRL contribution must be established elsewhere: through the **adaptation** — the deployment
+contract, the nested local-vs-coalition role structure, and the conditional multi-role `δ > 0` case,
+which is *not* in the cited work — and through the **empirical evidence** of stages B–D.
+
 ## Validation results
 
 **The randomization payoff, through the solver.** On the review's interior-probability toy with

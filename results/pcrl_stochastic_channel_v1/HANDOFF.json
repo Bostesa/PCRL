@@ -3,7 +3,7 @@
  "role": "experiments",
  "study": "pcrl_stochastic_channel_v1",
  "branch": "research/pcrl-stochastic-channel-v1",
- "milestone": "stages_1_to_4_complete_G0_recorded_stage5_blocked",
+ "milestone": "stages_1_to_4_complete_G0_amended_stage5_authorized_blocked_on_aws_auth",
  "updated_utc": "2026-09-20T19:29:04.767103+00:00",
  "evidence_commit": "0109f09fc2db5725dda8b2c38c2bc4fe040a1335",
  "base_commit": "0517c06a79995dc574c857f890a2d6601e7d3c01",
@@ -17,7 +17,7 @@
  "for_terminal_2": {
   "correction_1_disclose_in_method": "METHOD section 1 of pcrl_utility_extension_v1 says untouched-J predictor candidates are part of every comparison. The implementation routed H-only ancestors and audited ref_J as a separate condition. Confirmed against source; VERIFICATION.md section A. Disclose; do not rerun; infer no historical win, since the correction only raises measured increments.",
   "correction_2_disclose_in_method": "The training penalty role_gains mixes frozen-baseline approximation slack with incremental disclosure; a constant extension still reports a positive gain. Audited leakage is unaffected. The magnitude in the study is unmeasured, not estimated.",
-  "headline_for_any_write_up": "G0: on the 2018 development pools every sensitive endpoint has an adjusted one-sided half-width above .001 nats (544/544 rows; smallest 0.00220 adjusted, 0.00141 unadjusted at one-sided 95 percent). A .001-nat confirmation claim is not demonstrable at this sample size for ANY mechanism. A .001 point-estimate screen remains meaningful. This is a property of the evidence base, not of a method.",
+  "headline_for_any_write_up": "G0 as AMENDED (AMENDMENT_1.md, 2026-09-20): for the HISTORICAL comparisons on the 2018 development pools, precision is limited NEAR EQUALITY - an adjusted one-sided bound at or below .001 was not achievable for a comparison whose point estimate sat near zero (smallest adjusted half-width 0.00220 nats, medians 0.0069-0.0136; already true unadjusted at one-sided 95 percent, smallest 0.00141). This does NOT rule out passing: the criterion is one-sided, so a sufficiently negative estimate passes at any observed half-width (<= -0.00120 at the smallest), and historical widths do not lower-bound a new mechanism paired-loss SE. The earlier claim that .001 was unconfirmable for ANY mechanism is WITHDRAWN. The .001 margin is unchanged.",
   "narrow_the_contribution_statement": [
    "The unconditional nullspace feasibility test is verbatim Rassouli and Gunduz Proposition 1; cite, do not derive.",
    "The delta=0 linear-cost problem already has a published LP in that paper, including MSE and error-probability utilities.",
@@ -30,9 +30,10 @@
   ],
   "do_not_claim": [
    "No fitted-model conditional-information result is a population certificate. Binning the coalition view drops a full log 2 leak to exactly zero in the validated fixture.",
-   "No confirmation at .001 on any endpoint from this evidence base.",
+   "No confirmation at .001 is claimed from a near-equality estimate on this evidence base; a confirmable pass requires a sufficiently negative candidate-specific estimate, with its own paired-household interval reported.",
    "A supervised residence diagnostic can never support a reserved-task transfer claim."
-  ]
+  ],
+  "established_mathematics_not_contribution": "The stochastic-optimization and nullspace results are established mathematics: Rassouli and Gunduz Proposition 1 is the feasibility criterion verbatim, their Theorem 1 gives the delta=0 LP including squared-error and error-probability utilities, convexity follows from joint convexity of relative entropy composed with affine maps, and the privacy funnel nonconvexity diagnosis is Makhdoumi et al. Present them as cited background and as implementation validation. Any PCRL contribution must rest on the adaptation - deployment contract, nested local-vs-coalition roles, the conditional multi-role delta>0 case - and on the empirical evidence."
  },
  "artifacts": {
   "VERIFICATION.md": "source check of the review memo; two code claims confirmed, seven literature disagreements",
@@ -46,7 +47,7 @@
  },
  "predictions": {
   "resolved": {
-   "P8": "CONFIRMED and under-stated: all endpoints fail, not at least one"
+   "P8": "CONFIRMED in its literal form (z*SE > .001 on every endpoint, also unadjusted); the generalization to any mechanism is WITHDRAWN in AMENDMENT_1.md"
   },
   "unresolved": [
    "P1",
@@ -59,14 +60,29 @@
   ]
  },
  "blocked_on": {
-  "what": "AWS session expired; aws sts get-caller-identity returns session expired",
+  "what": "both CLI profiles for account 314993518743 expired",
+  "profiles_tested": {
+   "vein": "Token has expired and refresh failed (SSO session vein)",
+   "default": "Your session has expired"
+  },
+  "unblock": "aws sso login --profile vein",
   "why_it_matters": "anchors.npz and releases.npz are not present in any worktree; archived to S3 and unlinked after verified read-back per DELETION_LEDGER.md",
-  "risk": "none pending; the UX archive bucket has no lifecycle rule",
-  "unblock": "aws login, then infra/pcrl_utility_extension_v1/restore.py"
+  "risk": "none pending; the UX archive bucket has no lifecycle rule"
  },
  "tests": {
   "study": 49,
   "full_repository_suite": 772,
   "failures": 0
- }
+ },
+ "amendments": [
+  {
+   "file": "AMENDMENT_1.md",
+   "date": "2026-09-20",
+   "subject": "G0 conclusion narrowed",
+   "published_before_any_new_acs_outcome": true,
+   "gate_status_changed": false,
+   "margin_changed": false,
+   "measurements_changed": false
+  }
+ ]
 }
