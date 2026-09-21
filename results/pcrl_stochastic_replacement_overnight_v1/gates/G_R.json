@@ -1,0 +1,202 @@
+{
+ "contract": "S1 replacement (RELEASE_CONTRACT.md)",
+ "decision": "Per PROTOCOL section 3: both families failed, so the unquantized controls were completed, quantization loss was separated from probe failure, and the constrained ACS fitting branch is CLOSED. No Q was fitted on ACS. No third code family, no extra year, no relaxed threshold.",
+ "environment": {
+  "cloud_spend_usd": 0.0,
+  "numpy": "2.5.3",
+  "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+  "python": "3.13.7",
+  "sklearn": "1.9.1",
+  "torch": "2.14.0",
+  "where": "local CPU"
+ },
+ "gate": "G_R",
+ "headline_positives_surviving_simultaneous_correction": {
+  "correction": {
+   "adjusted_one_sided_z": 3.180425742656707,
+   "frozen_family_size": 68
+  },
+  "quantized_code_beats_H": {
+   "person_weighted": {
+    "bootstrap_se": 0.004631379209994736,
+    "estimate": -0.016804314753612125,
+    "upper_one_sided": -0.00918637386226464,
+    "upper_one_sided_adjusted": -0.0020745570901397857
+   },
+   "reading": "The 64-state pca32 code adds real residence capability over H alone, corrected.",
+   "unweighted": {
+    "bootstrap_se": 0.0037446489531100784,
+    "estimate": -0.01679093454202896,
+    "upper_one_sided": -0.010631535129845816,
+    "upper_one_sided_adjusted": -0.004881356614345179
+   }
+  },
+  "unquantized_A_side_beats_J_on_residence": {
+   "person_weighted": {
+    "bootstrap_se": 0.0033208568090155152,
+    "estimate": -0.018496758259500142,
+    "upper_one_sided": -0.01303443489260448,
+    "upper_one_sided_adjusted": -0.00793501977643039
+   },
+   "reading": "The unquantized standardized A-side PCA32 view attains strictly LOWER residence loss than the same-host J channel, with adjusted one-sided upper bounds below zero under both weightings. The A-side inputs therefore carry residence signal beyond J's 16-coordinate auxiliary channel. This quantitatively contradicts the precursor's subsumption claim (PRECURSOR_CORRECTIONS.md C1, C2).",
+   "unweighted": {
+    "bootstrap_se": 0.002788243046673261,
+    "estimate": -0.015327646529523141,
+    "households_union": 5443,
+    "upper_one_sided": -0.010741394841380404,
+    "upper_one_sided_adjusted": -0.0064598465670999364
+   }
+  }
+ },
+ "internal_consistency_check": {
+  "note": "exactly 0.00000 with zero SE because the zj family's unquantized view IS Z_J. This is an IDENTITY confirming the family is wired correctly, and per PRECURSOR_CORRECTIONS.md C3 it is NOT reported as evidence of anything and its zero variance is NOT precision.",
+  "zj_raw_minus_J": {
+   "bootstrap_se": 0.0,
+   "estimate": 0.0
+  }
+ },
+ "mean_inclusive_log_loss_person_weighted": {
+  "pca32": {
+   "256": {
+    "H": 0.5085955600878,
+    "H_plus_J": 0.4875686506688212,
+    "H_plus_T": 0.5050066883174579,
+    "H_plus_raw": 0.46907189190269727
+   },
+   "64": {
+    "H": 0.5085955600878,
+    "H_plus_J": 0.4875686506688212,
+    "H_plus_T": 0.4917912456509405,
+    "H_plus_raw": 0.46907189190269727
+   }
+  },
+  "zj": {
+   "256": {
+    "H": 0.5085955600878,
+    "H_plus_J": 0.4875686506688212,
+    "H_plus_T": 0.5085955600878,
+    "H_plus_raw": 0.4875686506688212
+   },
+   "64": {
+    "H": 0.5085955600878,
+    "H_plus_J": 0.4875686506688212,
+    "H_plus_T": 0.5050491887122647,
+    "H_plus_raw": 0.4875686506688212
+   }
+  }
+ },
+ "mean_inclusive_log_loss_unweighted": {
+  "pca32": {
+   "256": {
+    "H": 0.5323118930571048,
+    "H_plus_J": 0.5097613694637347,
+    "H_plus_T": 0.5292882986819908,
+    "H_plus_raw": 0.4944337225347109
+   },
+   "64": {
+    "H": 0.5323118930571048,
+    "H_plus_J": 0.5097613694637347,
+    "H_plus_T": 0.5155209585856267,
+    "H_plus_raw": 0.4944337225347109
+   }
+  },
+  "zj": {
+   "256": {
+    "H": 0.5323118930571048,
+    "H_plus_J": 0.5097613694637347,
+    "H_plus_T": 0.5323118930571048,
+    "H_plus_raw": 0.5097613694637347
+   },
+   "64": {
+    "H": 0.5323118930571048,
+    "H_plus_J": 0.5097613694637347,
+    "H_plus_T": 0.5287903885698388,
+    "H_plus_raw": 0.5097613694637347
+   }
+  }
+ },
+ "name": "Stage R representation screen (Section 6)",
+ "pools": "2018 development (repeatedly used)",
+ "registered_predictions_resolved": {
+  "P1": {
+   "outcome": "REFUTED on both halves. Both families failed, AND pca32 was clearly the better of the two (deficit +0.00576 vs +0.01903 unweighted). My stated reason - that a J-derived code should preserve more of J - was wrong: Z_J is already a 16-dim compressed summary, so quantizing it to 64 states destroys proportionally more than quantizing the richer 32-dim input space.",
+   "text": "zj family passes the R screen; pca32 fails it"
+  },
+  "P2": {
+   "outcome": "CONFIRMED decisively: +0.0211 nats (pca32 k=64) and +0.0190 (zj k=64).",
+   "text": "H+raw beats H+T for both families, i.e. quantization costs measurable utility"
+  }
+ },
+ "registered_predictions_unreached": [
+  "P3 action library",
+  "P4 LF competitiveness",
+  "P5 which endpoint improves first",
+  "P6 overall competitiveness"
+ ],
+ "screen_outcome": {
+  "pca32": {
+   "256": {
+    "anchors_with_gain_both_weightings": 1,
+    "mean_deficit_T_vs_J": {
+     "person_weighted": 0.01743803764863666,
+     "unweighted": 0.019526929218256106
+    },
+    "pass": false
+   },
+   "64": {
+    "anchors_with_gain_both_weightings": 3,
+    "mean_deficit_T_vs_J": {
+     "person_weighted": 0.0042225949821192805,
+     "unweighted": 0.005759589121891932
+    },
+    "pass": false
+   }
+  },
+  "zj": {
+   "256": {
+    "anchors_with_gain_both_weightings": 0,
+    "mean_deficit_T_vs_J": {
+     "person_weighted": 0.021026909418978834,
+     "unweighted": 0.02255052359336997
+    },
+    "pass": false
+   },
+   "64": {
+    "anchors_with_gain_both_weightings": 3,
+    "mean_deficit_T_vs_J": {
+     "person_weighted": 0.017480538043443555,
+     "unweighted": 0.019029019106104123
+    },
+    "pass": false
+   }
+  }
+ },
+ "screen_rule": {
+  "allowance_nats": 0.001,
+  "kind": "point-estimate scheduling rule, NOT a confidence non-inferiority claim",
+  "min_anchors_gain_over_H": 2
+ },
+ "split": "validation only; test never read",
+ "verdict": "FAIL for both families at both resolutions",
+ "what_this_does_not_establish": [
+  "NOT that no replacement can work. A different code family is unregistered tonight and was not tested.",
+  "NOT that useful information is absent - the opposite was measured: the unquantized view beats J.",
+  "NOT a statement about disclosure. No privacy constraint was applied and no Q was fitted on ACS, so nothing here bears on the utility/disclosure tradeoff.",
+  "NOT a population claim. Repeatedly used 2018 development pools; task-informed development throughout."
+ ],
+ "why_it_failed": {
+  "T_minus_J_pca32_k64": {
+   "bootstrap_se": 0.002972403415333175,
+   "estimate": 0.005759589672604735,
+   "upper_one_sided": 0.010648758211078451
+  },
+  "diagnosis": "Quantization, not probe failure. The unquantized view has NO deficit versus J - it is strictly better - while the 64-state code gives away 0.019 to 0.021 nats and the 256-state fallback gives away more still. At k=256 the one-hot block is 256 columns on 4539 fitting rows, so the fallback is additionally estimation-limited; at k=64 the binding loss is the coder itself.",
+  "quantization_cost_nats_unweighted": {
+   "definition": "(H+T deficit vs J) minus (H+raw deficit vs J); isolates the coder from the probe",
+   "pca32_k256": 0.03485,
+   "pca32_k64": 0.02109,
+   "zj_k256": 0.02255,
+   "zj_k64": 0.01903
+  }
+ }
+}
