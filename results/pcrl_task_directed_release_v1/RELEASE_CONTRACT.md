@@ -1,0 +1,11 @@
+# Release contract
+
+A recipient receives [H_A,Z]; B receives exactly H_B; their coalition receives [H_A,H_B,Z]. H_A is the four saved probabilities for income and civilian-at-work; H_B is the two saved public-coverage probabilities. Stored float64 service arrays remain byte-identical. Recipients are assumed to have H previously; J is an experimental comparator, not an established previous disclosure. In a different deployment where J was already received, this mechanism cannot erase it.
+
+The only permitted inference inputs are historical PCA32 from AGEP,WKHP,SCHL,MAR,RELP,CIT,DIS,DEAR,DEYE,DREM, standardized with the saved A0/J means/scales, and H_A. The runtime interface accepts exactly PCA32 and four H_A columns. Residence/protected/source labels are fitting-only; household/person identifiers, evaluation indices, weights, H_B, B-only outputs and actual protected labels are not encoder inputs. Risk-model outputs are predictions from permitted inputs. No contract expansion is allowed.
+
+The encoder, code boundaries/clusters, action dictionary and kernel Q are public. Draw one categorical token from the appropriate Q row and persist that token for the person. The uniform variate/seed used to make the draw stays private. Publishing the Q row, internal code, risk vector, average probability or every hypothetical token is a different release. Explicit unprotected controls are labeled as such. Repeated independent redraws need a separate composition analysis.
+
+Conditional baselines are H_A for A and (H_A,H_B) for AB. A conditioning cells use only H_A income/employment probabilities. Coalition cells may add B coverage. A/public_coverage is an audited target; its name does not authorize coverage predictions in A conditioning. The claimed predecessor ownership bug has not yet been located in the committed sources reviewed; our implementation tests the corrected ownership directly and will publish any exact source correction separately.
+
+Finite-model conditional-information constraints concern the declared coarse service partition. They are not protection conditional on all continuous H, arbitrary auxiliary knowledge, an individual privacy guarantee, differential privacy, or population certification. The full-H attacks are empirical diagnostics, not upper bounds on information.
