@@ -16,7 +16,7 @@
 
 \begin{document}
 
-\title{Releasing a Feature Channel Beside a Prediction Service\\You Cannot Change:\\
+\title{Releasing a Feature Channel Beside a Prediction Service You Cannot Change:\\
 An Evaluated Release Problem and Six Negative Mechanism Results}
 
 \author{\IEEEauthorblockN{Anonymous Submission}}
@@ -38,7 +38,7 @@ senses of competitiveness: lower disclosure at comparable utility, and higher ut
 disclosure. Adapted published erasers beat our own mechanism. A capacity diagnostic then shows why the
 most recent attempt could not have succeeded as designed: a label-free code of the permitted inputs
 carries genuine signal for the held-out task, yet adds nothing measurable once the already-released
-service predictions are in the view. We report the release problem, the evaluation design, and every
+service predictions are in the view---a result about appending, not about replacing. We report the release problem, the evaluation design, and every
 claim this revision withdraws.
 \end{abstract}
 
@@ -364,13 +364,18 @@ repeatedly used pools; the test split was never read.}
 \label{fig:capacity}
 \end{figure}
 
-\textbf{The informative part is why.} The code is not noise: alone it beats the label prior by
-$0.014$--$0.022$ nats in every anchor. Alone it is also beaten by $J$ in every anchor, and adding it to
-$J$ changes nothing measurable (Table~\ref{tab:subsumption}). The plain reading is that the A-side
-residence signal this code captures is, at this probe family's resolution, \emph{already carried by the
-service predictions that were published}. That is a statement about the release contract, and it offers a
-mechanism-level explanation for why this line of work has repeatedly gone negative: the contract already
-hands the recipient the signal an extension is trying to add.
+\textbf{What the numbers support, and a reading we decline.} The code is not noise: alone it beats the
+label prior in every anchor. Alone it is also beaten by $J$ in every anchor, and adding it to $J$ changes
+nothing measurable (Table~\ref{tab:subsumption}). It is tempting to read that as the published service
+predictions \emph{already carrying} whatever A-side residence signal exists, which would be a statement
+about the release contract and a mechanism-level explanation for this line of work's repeated negatives.
+\textbf{We decline that reading}, for two reasons. First, it does not follow from the measurement: the
+differences are fractions of their own standard errors, and the comparison is one code at one
+quantization resolution through one probe family (\S\ref{sec:capacity-limits}). Second, it conflates the
+\emph{quantized code} with the A-side inputs it is built from---an unquantized view of those inputs is a
+different object, and this diagnostic did not test one. A successor experiment separating quantization
+loss from probe failure is registered and running; its outcome is not part of this paper, and we state
+the distinction here rather than claim the explanation.
 
 \begin{table}[t]
 \centering\footnotesize
@@ -515,12 +520,14 @@ rule used. Everything we built afterwards to make that into a competitive releas
 registered senses of competitiveness, and adapted published erasers applied to a channel we already had
 beat our own mechanism.
 
-The most recent diagnostic suggests a reason that is specific to this contract rather than to any one
-optimiser: a label-free code of the permitted inputs carries real signal for the held-out task, and adds
-nothing measurable once the published service predictions are already in the recipient's view. If that
-holds more broadly, then the room for an \emph{additional} channel beside a rich published output is
-small, and the open question is not a better penalty but whether a release that \emph{replaces} rather
-than \emph{appends} can hold task utility while removing disclosure---which our evidence does not test.
+The most recent diagnostic narrows where to look next. A label-free code of the permitted inputs carries
+real signal for the held-out task and adds nothing measurable once the published service predictions are
+in the recipient's view---but at one quantization resolution, through one probe family, and with the
+differences inside their own standard errors, which is not enough to conclude that the published output
+already carries everything an extension could add. Two candidate explanations remain open and are
+separable by experiment: quantization loss, and genuine redundancy with the published output. What the
+evidence does say is that the append question and the replacement question are different, and that this
+programme has so far measured only the first.
 
 \textbf{The defensible contribution is the release problem and the evaluation design}: fixed published
 outputs as a hard constraint, recipient-specific and coalition-specific audit roles, fresh and frozen

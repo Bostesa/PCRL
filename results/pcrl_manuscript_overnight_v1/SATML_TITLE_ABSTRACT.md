@@ -13,7 +13,7 @@ Shorter alternative, same commitments:
 
 **An Immutable Published Service, a Second Channel, and Six Negative Mechanism Results**
 
-## Abstract (226 words; counted by `wc -w` on the body text alone)
+## Abstract (233 words; counted on the body text alone, synchronised with papers/pcrl_satml_v1/main.tex)
 
 > An organisation already publishes a prediction service: fixed probability vectors that downstream
 > recipients consume and cannot be asked to re-accept. We formalise and evaluate what happens when it adds
@@ -29,8 +29,10 @@ Shorter alternative, same commitments:
 > disclosure. Adapted published erasers beat our own mechanism. A capacity diagnostic then shows why the
 > most recent attempt could not have succeeded as designed: a label-free code of the permitted inputs
 > carries genuine signal for the held-out task, yet adds nothing measurable once the already-released
-> service predictions are in the view. We report the release problem, the evaluation design, and every
+> service predictions are in the view---a result about appending, not about replacing. We report the release problem, the evaluation design, and every
 > claim this revision withdraws.
+
+---
 
 ## Commitments this abstract makes, and does not make
 
@@ -38,7 +40,8 @@ Shorter alternative, same commitments:
   the study stopped at a capacity gate before any channel was constrained.
 * **Does not** promise any ongoing or future result.
 * Claims confirmation only for the locked-year coalition effect. Everything else is labelled development.
-* "adds nothing measurable" is the fitted-probe result, not an information-theoretic subsumption claim.
+* "adds nothing measurable" is the fitted-probe result, not an information-theoretic subsumption claim,
+  and it is stated as a result about appending rather than about replacing the channel.
 * No bound on mutual information, no certificate, no survival against a stronger attack.
 
 ## Word count
@@ -46,7 +49,7 @@ Shorter alternative, same commitments:
 Body text of the abstract only, excluding the title and the blockquote markers:
 
 ```
-226
+233
 ```
 
 Re-run before registration: `sed -n '/^> /p' SATML_TITLE_ABSTRACT.md | sed 's/^> //' | wc -w`
