@@ -28,8 +28,16 @@ frozen J. Three results are worth keeping:
 **Why the negative is informative rather than empty.** The two negatives now come from opposite directions.
 Studies 1–5 asked for less disclosure at equal utility and could not get past J; Study 6 asked for more
 capability at bounded disclosure and found that the extra capability is not separable from the extra
-disclosure by this adversarial term. The inseparability appeared on a proxy that never saw a residential
-label, which removes the usual "the utility target leaked" explanation for this design.
+disclosure by this adversarial term.
+
+**Corrected reading (see CORRECTIONS_V6 D7).** An earlier version of this assessment said the inseparability
+appeared "on a proxy that never saw a residential label, which removes the usual 'the utility target leaked'
+explanation". That inference is wrong and is withdrawn. Excluding residence labels keeps the *reserved task*
+out of fitting; it does not make the target innocuous. The target is the residual of A0 — the unprotected
+channel with the largest sensitive recovery in this line of work (+0.032 A/SEX, +0.051 A/RAC1P over H) — so
+improving on the proxy can be achieved precisely by carrying sensitive-correlated directions. "The objective
+itself rewarded sensitive information" therefore remains a live explanation of the pilot outcome, and the
+study cannot distinguish it from "no extension of J in this family separates capability from disclosure".
 
 **Not claimed.** Any bound on I(S; Z | H); protection from appending a deterministic channel (impossible by
 the inclusion fact); equivalence from nonsignificance; confidence statements for the pilot (nothing was

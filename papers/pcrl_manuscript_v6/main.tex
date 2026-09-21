@@ -421,7 +421,10 @@ appending it cannot reduce optimal population utility \emph{or} optimal sensitiv
 reading of ``appending $R$ protected us'' is wrong by construction. The target is therefore extra useful
 capability at a \emph{bounded empirical} disclosure increase. Capability is measured by a proxy that uses no
 residential label: reduction in reconstruction error of the residual teacher signal $Z_{A_0}$ that a frozen
-decoder from $(H_A,Z_J)$ leaves unexplained. Cross-fitted out-of-fold residuals are training artifacts only;
+decoder from $(H_A,Z_J)$ leaves unexplained. \textbf{Label-free is not neutral}: $A_0$ is the unprotected
+channel, so rewarding reconstruction of its residual can reward sensitive-correlated directions, and a
+configuration can improve on this proxy precisely by carrying sensitive information. The proxy keeps the
+reserved task out of fitting; it does not make the objective innocuous. Cross-fitted out-of-fold residuals are training artifacts only;
 the deployed map uses the single final decoder, and no out-of-fold target, row identifier, $H_B$ or sensitive
 label is reachable at inference.
 
@@ -472,6 +475,19 @@ increment $\le.001$ on each endpoint and no anchor increment $>.003$. \textsc{fa
 \label{tab:s6pilot}
 \end{table}
 
+\paragraph{Two defects in the pilot's own machinery, found afterwards by source review.} Both were confirmed
+against the implementation by a subsequent study and are disclosed here rather than repaired retrospectively.
+First, the method text said untouched-$J$ predictor candidates were part of every comparison; the audit slate
+in fact routed $H$-only ancestors and audited $\mathrm{ref}_J$ as a \emph{separate} condition, so the
+``a larger input can make a finite learner worse'' safeguard was served by a differenced comparator rather
+than by an in-slate predictor. The bias runs in the direction that flatters the release, and the fix---adding
+in-slate $J$ anchors---can only lower the selected attacker's loss and therefore \emph{raise} measured
+increments. It makes the screen harder, so no result here becomes a win under it, and nothing above is
+re-derived from it. Second, the training-time penalty mixes frozen-baseline approximation slack with
+incremental disclosure: a \emph{constant} extension, which by construction discloses nothing, still registers
+a positive gain, and the statistic is one-sided. That affects the interpretation of $\beta$ as a knob, not the
+audited leakage reported here, and its magnitude in this study is \textbf{unmeasured rather than estimated}.
+
 \paragraph{No coalition advantage here either.} At matched $\beta=30$ the coalition policy $C1$ is not better
 than the strength-matched local control $L2$ (worst increment $+0.0049$ against $+0.0016$). A third mechanism
 family now reproduces the pattern that coalition conditioning buys nothing over a strength-matched local
@@ -516,7 +532,11 @@ transport across architectures to better than $\sim.003$ nats}: re-auditing an i
 hardware refits the attacker slate, which moved Study~6's reference audit by up to $0.0031$ nats against its
 own $.003$ tolerance. Every Study~6 comparison is therefore made against references re-audited on the same
 host under the identical slate, and its numbers must not be differenced against earlier studies' published
-audit values at a finer precision. \textbf{An unrun tier is not evidence}: Study~6's Tier~3 and Tier~4 were
+audit values at a finer precision. \textbf{Audit slates and training penalties are themselves artifacts}: Study~6's slate omitted the in-slate
+untouched-$J$ predictor its method text promised, and its training penalty registers a positive gain for a
+provably non-disclosing constant channel; both are disclosed in \S\ref{sec:study6}, neither is repaired
+retrospectively, and the first makes future screens harder rather than easier. \textbf{An unrun tier is not
+evidence}: Study~6's Tier~3 and Tier~4 were
 never triggered, and nothing about $r\in\{4,8\}$, a nominee comparison or a 2017 transport of this mechanism
 follows from this paper. \textbf{A deterministic append cannot protect}: by the inclusion fact, $[H_A,Z_J,R]$
 can only weakly increase optimal sensitive recovery over $[H_A,Z_J]$; every measured decrease is a
@@ -575,9 +595,15 @@ every count, per-endpoint results never averaged, and a sealed temporal transpor
 advance. That contract is what made six negative method results legible rather than ambiguous. The mechanism
 family, as tested, is not competitive under either definition of competitiveness we have registered. What a
 sixth study adds is that the failure is not an artefact of asking only for lower recovery: when we asked
-instead for more capability at bounded disclosure, the same inseparability appeared in a new mechanism, on a
-proxy that never saw a residential label. Whether a different family can separate them on this channel remains
-open, and would need a fresh prospective design rather than a larger $\beta$ on this one.
+instead for more capability at bounded disclosure, the same inseparability appeared in a new mechanism.
+\textbf{We do not read that as evidence about the utility target.} Withholding residence labels keeps the
+\emph{reserved task} out of fitting; it does not make the target innocuous, because the target is the residual
+of $A_0$, the unprotected channel that carries the largest sensitive recovery in this paper ($+0.032$ on
+$A$/SEX and $+0.051$ on $A$/RAC1P over $H$). Rewarding reconstruction of that residual can reward
+sensitive-correlated directions directly, so ``the objective itself paid for sensitive information'' remains a
+live explanation of the pilot's inseparability, alongside the possibility that no extension of $J$ in this
+family separates the two. Distinguishing them needs a target that is not built from an unprotected channel,
+which is a fresh prospective design rather than a larger $\beta$ on this one.
 
 \section{Reproducibility}
 
