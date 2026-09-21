@@ -1,0 +1,600 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+
+\input{tables/external_vs_repaired_note.tex}
+\input{tables/repair_diagnostic_note.tex}
+\input{tables/external_vs_J_note.tex}
+\input{tables/related_work_note.tex}
+
+\begin{document}
+
+\title{Releasing a Feature Channel Beside a Prediction Service\\You Cannot Change:\\
+An Evaluated Release Problem and Six Negative Mechanism Results}
+
+\author{\IEEEauthorblockN{Anonymous Submission}}
+
+\maketitle
+
+\begin{abstract}
+An organisation already publishes a prediction service: fixed probability vectors that downstream
+recipients consume and cannot be asked to re-accept. We formalise and evaluate what happens when it adds
+a second, reusable feature channel for one recipient without altering a published number, while limiting
+what that recipient, and that recipient colluding with another, can newly infer about sex and race. Our
+contribution is an implemented release interface and measurement contract: per-recipient and coalition
+views, independently fitted attackers, incremental disclosure reported beside absolute disclosure, and
+negative increments retained unclipped. On a locked, previously unused survey year, a penalty built from
+the coalition's joint view beats an equal-strength and an equal-total-mass local control on 14 of 16
+sensitive cells, none worse; its utility cost is bounded by a point rule, not by an interval. Six
+subsequent mechanisms fail to improve on the strongest channel we already had, under both registered
+senses of competitiveness: lower disclosure at comparable utility, and higher utility at bounded
+disclosure. Adapted published erasers beat our own mechanism. A capacity diagnostic then shows why the
+most recent attempt could not have succeeded as designed: a label-free code of the permitted inputs
+carries genuine signal for the held-out task, yet adds nothing measurable once the already-released
+service predictions are in the view. We report the release problem, the evaluation design, and every
+claim this revision withdraws.
+\end{abstract}
+
+\section{Introduction}
+
+A company runs two prediction services. One returns credit-style probabilities to a business partner;
+the other returns coverage probabilities to a different partner. Both partners have built systems on
+those exact numbers, so the company cannot revise them. It now wants to give the first partner something
+more useful---a compact reusable feature vector built from what the published predictions leave
+unexplained---while making sure that the partner, and the two partners pooling what they hold, cannot use
+it to work out an applicant's sex or race any better than the published predictions already allow.
+
+That situation is ordinary and it is not what the fairness and concept-erasure literature usually
+evaluates. Most methods assume the releaser owns the representation and may edit or replace it. Here the
+published output is immutable: it is already in the recipients' systems, and the only decision left is
+what to put \emph{beside} it. That constraint changes what a mechanism may do, what preservation means,
+and who the adversary is.
+
+This paper contributes the problem, an implemented interface for it, a measurement contract, and the
+results of six mechanisms evaluated through them. One effect replicates on a sealed year. Every mechanism
+we built to turn that effect into a competitive release failed, and three adapted published erasers beat
+our own mechanism on the same wire. We report that plainly, because the evaluation design is what makes
+the failures legible, and because the negative results are specific enough to constrain what should be
+tried next.
+
+\paragraph*{Contributions}
+\begin{itemize}\itemsep2pt
+\item \textbf{A release problem with an immutable published output}, formalised with per-recipient and
+coalition audit views, and an interface in which preservation is a bitwise identity rather than a bounded
+perturbation (\S\ref{sec:interface}).
+\item \textbf{A measurement contract} that makes heterogeneous mechanisms comparable at matched width on
+one wire: independently fitted attacker slates, incremental disclosure always reported beside absolute
+disclosure, negative increments retained unclipped, per-endpoint results never averaged
+(\S\ref{sec:interface}).
+\item \textbf{One confirmed effect} on a locked, previously unused survey year: coalition-conditioned
+penalties beat both matched local controls (\S\ref{sec:confirmed}).
+\item \textbf{Six negative mechanism results} against the strongest channel we had, under both registered
+senses of competitiveness, with adapted published erasers outperforming our mechanism
+(\S\ref{sec:negative}).
+\item \textbf{A capacity diagnostic} explaining why the most recent design could not have worked as
+specified, and a delimitation of exactly what it rejects (\S\ref{sec:capacity}).
+\end{itemize}
+
+\textbf{What this paper is not.} It does not present a deployable competitive mechanism; we do not have
+one. It offers no new mathematics: concept erasure, eigenvalue-sign rank selection, minimax adversarial
+training and conditional-moment characterisations are prior work, cited as such, and adversarially
+protected transferable representations are not new either~\cite{madras2018laftr}. The framework does not
+establish a superior method, and we do not claim that it does.
+
+\section{The interface and the measurement contract}
+\label{sec:interface}
+
+Each person has covariates $X$, sensitive attributes $S$ (sex, 2 classes; race, 9 classes) and task
+labels. Two services are frozen and published before anything else happens: $H_A(X)\in[0,1]^4$, the
+income-over-\$50k and employment probability vectors released to recipient~A, and $H_B(X)\in[0,1]^2$, the
+coverage vector released to B. A mechanism may add a channel $Z\in\mathbb{R}^{16}$ \emph{for A only}, so
+A sees $(H_A,Z)$, B sees $H_B$, and the coalition AB sees $(H_A,Z,H_B)$. $H$ without a subscript is the
+no-channel interface. The policy authorises A for income, employment and residence, and B for coverage
+and commute; sex and race are forbidden everywhere, along with nine cross-role combinations. The
+adversary holds labelled data from the release year, fits fixed attack families on its own pool, selects
+on a validation pool, and sees only its legal view. Inference for A uses A-side inputs only; $H_B$ enters
+fitting and auditing and is never an inference input.
+
+Three names recur. $A_0$ is an unprotected neural channel. \textbf{$J$} is an adversarially trained
+16-dimensional channel from earlier work in this line, never retrained; it is the strongest comparator
+here, and it is \emph{internal}---an experimental artifact of this project, not a deployed product
+(\S\ref{sec:contract}). $L1$ and $L2$ are local controls whose penalty uses only A's own view, matched to
+the candidate on penalty strength and on total penalty mass respectively; $C1$ adds a penalty term built
+from the coalition's joint view.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/release_view.pdf}
+\caption{The release graph. $H_A$ and $H_B$ are published and never modified; $Z$ is appended to A's wire
+alone. Three audit views are scored: A alone, the coalition AB, and the $H$-only baseline that every
+increment is measured against. A schematic, not a result.}
+\label{fig:release}
+\end{figure*}
+
+Four distinctions carry the argument and are never merged.
+
+\begin{itemize}\itemsep2pt
+\item \textbf{Preservation is architectural; accuracy is empirical.} $Z$ is concatenated to $H_A$ and
+never mixed into it, so $H$ is preserved by construction and checked bitwise on every released view. It
+does \emph{not} follow that the service stays accurate: on identical released vectors, employment log
+loss rises by $0.0138$ nats and income falls by $0.0145$ between two survey years.
+\item \textbf{Added capability is measured against the correct $H$-only view.} A channel adds capability
+only if independently fitted probes do better with $(H_A,Z)$ than with $H_A$ alone.
+\item \textbf{Added disclosure is a finite-auditor log-loss gain, not an information bound.} Every
+recovery number is the improvement a validation-selected attacker achieves over the same family
+restricted to $H$. It is a floor on what is recoverable, never a ceiling.
+\item \textbf{Recipients have different permitted tasks}, so the coalition's authorised union is not
+either singleton's and the audit roles differ accordingly.
+\end{itemize}
+
+\textbf{Scope limits.} Only recipient A receives a channel, so nothing here is a multi-channel design.
+Residence and commute labels are excluded from every representation fit and selection, but residence
+outcomes have been inspected repeatedly across this line of work, so residence is \emph{reserved from
+training} rather than a pristine unseen task, and we never describe a result on it as blind evaluation.
+
+\textbf{Data and uncertainty.} California ACS one-year PUMS, ages 19--34, three household splits, with
+disjoint pools for representation fitting, source validation, task fitting and validation, attacker
+fitting and validation, and evaluation. Attacks are logistic regression, restarted MLPs, gradient-boosted
+trees and a random-feature kernel family, plus every legal projection of $H$'s own attacks into each
+view. Uncertainty is a paired household-cluster bootstrap with simultaneous intervals inside
+pre-declared families. Both weightings (unweighted and person-weighted) are computed from the same
+predictions and reported separately.
+
+\section{What is proved, and over what}
+\label{sec:proved}
+
+Four statements are elementary; nothing else in this paper is a theorem.
+
+\begin{enumerate}\itemsep2pt
+\item Appending $Z$ without modifying $H$ preserves $H$ exactly. This is a property of concatenation.
+\item \textbf{Inclusion fact.} A recipient holding $[H,Z]$ can ignore $Z$, so its optimal \emph{population}
+log loss is no worse than with $H$ alone --- for the task \emph{and} for a sensitive attribute. A
+deterministic appended channel therefore cannot reduce optimal sensitive recovery, and a constant
+appended channel has exactly zero population incremental disclosure. Any reading of ``appending this
+channel protected us'' is wrong by construction; only finite fitted probes can move either way, and some
+of our measured increments are negative.
+\item Under Bayes prediction and log loss, the population risk difference between $H$ and $(H,Z)$ equals
+$I(S;Z\mid H)$. Our validation-selected finite attackers do not attain those infima, so reported
+differences bound that quantity in neither direction, and mutual-information estimation has its own
+formal limits~\cite{mcallester2020formal}.
+\item For one refinement, orthogonal reparameterisation leaves the objective invariant, measured to
+$5.6\times10^{-17}$.
+\end{enumerate}
+
+Ky Fan's principle~\cite{fan1949weyl} gives a restricted optimum for the original fixed-matrix family
+only; the refinements have no fixed matrix and inherit no optimality statement. The moment condition we
+use is a finite fitted subset of the $L^2$ characterisation of conditional independence behind kernel CI
+tests~\cite{zhang2011kci,strobl2019rcit}. Vanishing fitted moments establish no conditional independence:
+one of our own fixtures has a misspecified nuisance manufacturing a penalty more than ten times the
+oracle value under \emph{exact} conditional independence.
+
+\section{Related work}
+\label{sec:related}
+
+The closed-form line of Sadeghi et al.\ solves this shape of problem when the releaser owns the
+representation: SARL~\cite{sadeghi2019sarl} takes eigenvectors of a utility-minus-$\lambda$-dependence
+matrix, OptNet-ARL~\cite{sadeghi2021optnetarl} embeds closed-form players in a learned encoder,
+K-TOpt~\cite{sadeghi2022ktopt} adds random features and evaluates on Folktables~\cite{ding2021retiring},
+and U-FaTE~\cite{dehdashtian2024ufate} adds a conditional penalty. Our marginal arms turn out to
+\emph{be} SARL-style constructions on whitened residuals, verified by bitwise rebuild. Adversarial fair
+and transferable representation learning is Madras et al.~\cite{madras2018laftr}. Linear concept
+erasure~\cite{belrose2023leace,holstege2025splince} gives an exact guarantee against \emph{linear}
+adversaries on a representation the releaser may edit. Adversarial removal is known to leave recoverable
+information~\cite{elazar2018adversarial}, and least-privilege learning has fundamental
+limits~\cite{stadler2024leastprivilege}. \textbf{Reusing a known solver, a conditional-moment
+characterisation or a rank rule is attribution, not innovation.}
+
+Three things differ here, with their weight stated honestly. \emph{What we condition on}: a released
+continuous artifact $H$, through cross-fitted nuisance residuals, rather than stratification on a label.
+\emph{What utility means}: reconstruction of a residualised teacher rather than dependence with a label.
+\emph{Recipient structure}: separate local and coalition penalties over a fixed prior output, with only
+one recipient receiving a channel. The first two are adaptations of known components. For the third, the
+nearest prior candidate we found is the multi-consumer information-theoretic
+line~\cite{sankar2013utility}, which designs one sanitised release consumed by many users; we could not
+confirm from its text that it carries a per-recipient release or a collusion term, and we mark that entry
+ambiguous rather than assert it. What we did not find, after a bounded search, is a prior
+\emph{evaluation} of recipient-specific and combined-access policies over an already-published output the
+mechanism may not touch. That is absence of evidence, not a priority claim.
+
+\section{The confirmed effect}
+\label{sec:confirmed}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/forest_primary.pdf}
+\caption{Paired differences with simultaneous $95\%$ intervals inside each pre-declared family, fresh
+attacks on the locked year, both weightings, candidate minus comparator in nats. \textbf{Left:} the
+coalition-conditioned candidate against its two local controls. The two grey A/sex rows are
+\emph{unresolved}---the comparison is undecided, not the endpoint unaffected. \textbf{Right:} the same
+candidate against the frozen channel $J$.}
+\label{fig:forest}
+\end{figure*}
+
+On a locked survey year that no earlier stage of this project had touched, the coalition-conditioned
+candidate $C1$ has a simultaneous-interval advantage over both $L1$ and $L2$ under both weightings. Of
+the 16 sensitive cells, \textbf{14 have adjusted intervals entirely below zero, none is above zero, and
+two are unresolved} ($C1$ versus $L1$ on A/sex unweighted, $[-0.00585,+0.00020]$; versus $L2$,
+$[-0.00568,+0.00052]$). Frozen attacks from the earlier year reproduce the ordering, so this is not an
+artifact of refitting attackers on the new year.
+
+Two qualifications travel with that result and are not separable from it. First, \textbf{the paired
+utility rule is a point criterion and only a point criterion}: as implemented it compares seed means at a
+$0.001$-nat margin and passes, but \textbf{zero of four comparisons support interval non-inferiority at
+that margin}, missing it by $2\%$ to $35\%$ even under the most permissive procedure we computed. ``No
+statistically detected cost'' and ``a cost bounded below $0.001$'' are different statements and only the
+first is supported. Second, \textbf{the mechanism is not competitive with $J$}: $C1$ is significantly
+worse than $J$ on all four sensitive endpoints under both weightings, and better only on residence
+capability. Since $J$ carries materially less residence capability than the spectral arms, neither
+channel dominates the other.
+
+\section{Six mechanisms that did not improve on \texorpdfstring{$J$}{J}}
+\label{sec:negative}
+
+We group the negative results by what they tested rather than by the order they ran; the chronology, with
+evidence commits, is in Appendix~\ref{app:chronology}.
+
+\subsection{Refining the penalty}
+A penalty acting on nonlinear functions of the channel moved recovery in the intended direction but
+failed all eight registered coordination cells, and at reduced rank it made one endpoint significantly
+\emph{worse} ($+0.00862\,[+0.00168,+0.01556]$). That penalty was then diagnosed, after its maps had been
+evaluated, as coordinate-dependent: it summed degree-two monomials with equal weight instead of computing
+a Frobenius norm. A successor objective repaired that exactly---rotation-only share $1.4\times10^{-15}$
+over 18 cells, verified before any score was read---and \textbf{the repaired releases disclosed more}: 8
+of 48 sensitive cells significantly worse, none better. The repair changed five ingredients at once, so
+no single cause is isolated, and we do not claim that rotation invariance is harmful.
+
+\subsection{Published erasers, adapted, beat our mechanism}
+\label{sec:external}
+LEACE~\cite{belrose2023leace} and SPLINCE~\cite{holstege2025splince} were applied to the auxiliary
+channel alone and appended to unchanged $H_A$; they are deliberately \emph{not} applied to the
+concatenated wire, since an oblique projection over all coordinates would generally change the published
+service output. Adapted LEACE and two OptNet-ARL policies recover significantly less than our repaired
+mechanism on all four sensitive endpoints under both weightings, and adapted SPLINCE on seven of eight
+cells (Table~\ref{tab:extrep}). \textbf{A closed-form linear eraser from 2023, applied to a channel this
+project already had, beats the mechanism this line of work developed across three studies.} The utility
+side must be stated with equal care: LEACE's residence cost against the repaired arm is
+\emph{unresolved}, $+0.0036\,[-0.0028,+0.0100]$, and against the channel it actually transformed it is
+significant, $+0.0098\,[+0.0036,+0.0159]$. Linear erasure of this channel buys its protection with
+measurable authorised capability, so we do not say it dominates.
+
+\begin{table*}[t]
+\centering\footnotesize
+\input{tables/external_vs_repaired.tex}
+\caption{Adapted published methods against the repaired mechanism at rank 16 with the coalition policy.
+Every arm transforms only the auxiliary channel and appends it to unchanged $H_A$. Development pools.
+\noteExternalVsRepaired}
+\label{tab:extrep}
+\end{table*}
+
+\subsection{Training the channel directly against attackers}
+Direct adversarial refinement of the channel, starting from the unprotected channel $A_0$, produced 60
+distinct new channels and improved no sensitive endpoint against any comparator: across its frontier
+family 189 cells are significantly worse and 18 significantly better, \emph{all 18 on residence utility}.
+Its one positive---that coalition conditioning beats a local control---survives robustly only against the
+\emph{weak} control; against the strength-matched control it holds on one endpoint at one width at the
+family-adjusted level and not under the simultaneous correction its negative results are held to. A
+separate finding from the same study is worth more than its headline: 63 of 114 trajectories published a
+checkpoint bitwise identical to their starting channel although every one had moved, so unchanged
+releases were a \emph{selection} outcome, not stasis.
+
+\subsection{Starting from \texorpdfstring{$J$}{J}, and projecting out of \texorpdfstring{$J$}{J}}
+The most direct test initialised adversarial training from $J$'s own trained weights and, separately,
+removed coalition-conditioned directions from $J$ by a rank-reducing projection. \textbf{No prospectively
+selected release met the registered competitive conjunction} under either weighting. The neural nominees
+\emph{are} $J$: at low teacher strength the registered equal-budget selection returned the untouched
+starting channel on every anchor, and at higher teacher strength the channel was pulled back toward $A_0$
+and leaked more. The projection nominees lower coalition sex recovery against $J$
+($-0.0091\,[-0.0158,-0.0025]$) at a significant residence cost ($+0.0101\,[+0.0023,+0.0179]$ unweighted),
+which is a trade-off rather than dominance, and they do not separate from matched local-only projections
+on any endpoint---so coalition conditioning established no advantage here. Their point estimates sit
+within $\pm0.0011$ of ordinary LEACE applied to $J$ on every endpoint unweighted, which is point
+proximity and not statistical equivalence.
+
+\subsection{Buying capability instead of lowering disclosure}
+\label{sec:utilityfirst}
+A release beside $H$ can be competitive in two ways: lower disclosure at comparable utility, or higher
+utility at bounded disclosure. The studies above registered the first. A sixth registered the second:
+append a small learned channel $R$ beside a frozen $J$, predicting residual teacher information a frozen
+decoder from $(H_A,Z_J)$ leaves unexplained, and ask for capability at bounded added disclosure. Its
+pilot passed the capability leg and the source allowances at every configuration and \textbf{failed the
+declared $0.001$-nat disclosure screen at every configuration}; capability and disclosure fell together,
+monotonically, as the adversarial weight rose (Fig.~\ref{fig:s6pilot}). The closest configuration missed
+the screen at the lowest capability in the grid. Its expansion tiers were never triggered, and we report
+them as such rather than as missing evidence.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/study6_pilot.pdf}
+\caption{Utility-first pilot (development pools): capability against the worst mean sensitive increment
+over $J$, with the declared screen dashed. Increasing the adversarial weight moves each policy down and
+to the left. Point-estimate screening values, not confidence statements.}
+\label{fig:s6pilot}
+\end{figure*}
+
+\textbf{Label-free is not neutral.} The capability proxy uses no residential label, but it is the
+residual of $A_0$, the unprotected channel that carries the largest sensitive recovery in this paper
+($+0.032$ on A/sex and $+0.051$ on A/race over $H$). Rewarding reconstruction of that residual can reward
+sensitive-correlated directions, so ``the objective itself paid for sensitive information'' remains a
+live explanation of the pilot's inseparability, alongside ``no extension of $J$ in this family separates
+them''. This design cannot distinguish them.
+
+\section{A capacity diagnostic, and what it rejects}
+\label{sec:capacity}
+
+The most recent study asked whether a \emph{randomized} finite release, optimised under explicit
+conditional-disclosure constraints, could reach an operating point the deterministic extension could not.
+It registered a tier ladder with machine-readable gates and stopped at the first empirical gate.
+
+\textbf{The stochastic solver was never run on data.} The finite-channel machinery was built and
+validated on synthetic fixtures---where randomization does strictly beat the best deterministic
+perfectly-private map---but no channel was ever constrained, fitted or audited on survey data, and no
+cloud compute was spent. \textbf{This is therefore not a failed stochastic mechanism}, and nothing here
+bears on whether a role-constrained stochastic release would beat a deterministic one. What failed is a
+prior capacity question.
+
+\textbf{What was measured.} A prespecified, label-free $k$-means code $T$ of the permitted A-side
+inference inputs, at 64 states and at one predeclared 256-state fallback, was given to the house utility
+probe family alongside the same-host $J$ release, and asked whether it retained a residence advantage
+\emph{before} any privacy constraint. It did not: the anchor-mean advantage is $-0.00268$ nats at 64
+codes and $-0.01136$ at 256, with no anchor positive under the unweighted accounting
+(Table~\ref{tab:capacity}, Fig.~\ref{fig:capacity}). The gate failed and stages C and D did not run.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/study7_capacity.tex}
+\caption{Capacity diagnostic, development pools, validation split: residence advantage of
+$[H_A,Z_J,\mathrm{onehot}(T)]$ over same-host $J$, per anchor and weighting, with the paired
+household-bootstrap standard error. At $|T|=64$ every estimate lies within about one SE of zero: no
+demonstrated advantage, and no demonstrated deficit.}
+\label{tab:capacity}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/study7_capacity.pdf}
+\caption{The same diagnostic with paired household-bootstrap standard errors. Development evidence on
+repeatedly used pools; the test split was never read.}
+\label{fig:capacity}
+\end{figure}
+
+\textbf{The informative part is why.} The code is not noise: alone it beats the label prior by
+$0.014$--$0.022$ nats in every anchor. Alone it is also beaten by $J$ in every anchor, and adding it to
+$J$ changes nothing measurable (Table~\ref{tab:subsumption}). The plain reading is that the A-side
+residence signal this code captures is, at this probe family's resolution, \emph{already carried by the
+service predictions that were published}. That is a statement about the release contract, and it offers a
+mechanism-level explanation for why this line of work has repeatedly gone negative: the contract already
+hands the recipient the signal an extension is trying to add.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/study7_subsumption.tex}
+\caption{Residence validation log loss (nats, lower is better) at $|T|=64$. $^\dagger$The prior and
+$T$-only columns are reported by the source study but have no machine-readable backing or committed
+generator at the pinned commit; we report them as reported-not-verified. The $J$ and $J{+}T$ columns
+reproduce exactly from its stored results.}
+\label{tab:subsumption}
+\end{table}
+
+\subsection{What this diagnostic does not establish}
+\label{sec:capacity-limits}
+
+Four delimitations, each of which we enforce in the wording above.
+
+\textbf{It is a fitted-probe result, not an information statement.} The differences that motivate it are
+$0.16$, $0.98$ and $0.41$ standard errors from zero at the declared resolution, on 2048 fitting rows with
+84 input columns against the baseline's 20, using a logistic and a 40-epoch MLP selected on validation
+log loss. ``No measurable improvement at this probe capacity'' is supported; ``$T$ contains no useful
+information beyond $J$'' is not. A probe family can miss information its own inputs jointly determine: in
+an exact fixture with $Y=J\cdot T$ for independent signs, a score additive in $J$ and one-hot $T$ gains
+exactly zero over the prior while the joint view determines $Y$. That is a capacity counterexample, not a
+claim that residence behaves like this.
+
+\textbf{It rejects appending, not replacing.} The diagnostic asks whether $T$ adds to $J$. It cannot see
+a release that \emph{replaces} $J$. In an exact fixture with $H$ constant, $J=(Y,S)$ and $T=Y$ for
+independent bits, appending $T$ to $J$ adds exactly zero task information, while replacing $J$ by $T$
+preserves task utility in full and removes the sensitive bit entirely ($0.693$ nats of disclosure
+removed). Append-redundancy is therefore not a universal rejection of replacement channels, and the
+untested question---a prospective release beside unchanged $H$ for a new recipient, with $J$ as a
+comparator rather than a component---remains open.
+
+\textbf{It is one code, one probe family, two resolutions, three anchors}, on repeatedly used development
+pools. It is not a capacity theorem and not a statement about the population. Higher resolution is
+monotonically worse, which is consistent both with there being nothing to find and with the probe being
+handicapped by width.
+
+\textbf{One reported ceiling is withdrawn.} The study also estimated a fitted-model ceiling under a
+partition it described as ``baseline probability deciles''. Those deciles are constructed from the
+baseline probe's \emph{per-row log loss}, which is computed from each person's own residence label, so
+the partition conditions on the outcome. The signature is visible in the numbers: ten cells take residence
+log loss from about $0.52$ to $0.065$--$0.094$ nats. A fixture reproduces the effect on a label that is
+pure noise at the same base rate: loss-decile conditioning ``predicts'' it at $0.057$ nats against a true
+entropy of $0.590$, while the label-free control (deciles of the predicted probability) leaks nothing.
+\textbf{We withdraw that estimate rather than reinterpret it}, and we use no ceiling in any claim here.
+Its companion partition is label-free but has $1.9$--$2.1$ rows per cell and is unusable for a different
+reason. Neither entered the gate decision, which rests on the deployable probe comparison alone; we
+therefore do not propagate the defect to the gate outcome or to any other result.
+
+\section{The release contract, and one assumption we could not verify}
+\label{sec:contract}
+
+The interface of \S\ref{sec:interface} says $H_A$ and $H_B$ are immutable published outputs. $J$ is
+different: it is an experimental channel produced inside this project. In the source studies, ``released
+wire'' denotes the experimental release interface---arrays written to disk and audited---not delivery to
+an external recipient, and we found no evidence that $J$ was ever deployed to anyone.
+
+This matters because the most recent design treated $J$ as a compulsory component of the new release, on
+the stated ground that it ``was actually released to these recipients and remains accessible'' and so
+could not be revoked. We could not substantiate that, and a later registration asserting prior deployment
+is not evidence of deployment. The consequence is structural rather than cosmetic: holding $J$ inside the
+release turned the capacity question into the append question of \S\ref{sec:capacity}, which is precisely
+the question that cannot see a replacement win. \textbf{If the channel was never deployed, then $J$ is a
+comparator and not a compulsory component}, and a release for a \emph{new} recipient under a prospective
+contract is the natural next design. If deployment evidence exists, the old-recipient threat model
+returns and must be audited as such; we state the dependency rather than resolve it by assumption.
+
+\section{What this evidence does not establish}
+\label{sec:limits}
+
+\textbf{No attack maximum is an upper bound.} Every recovery number is what a validation-selected member
+of a finite collection achieved. Three separate searches for a stronger attacker---a wider, deeper
+network held out of every training ensemble, and two calibration suites---each failed to beat the
+standard slate, which bounds what those searches found, not what exists.
+
+\textbf{Development against confirmation.} Only the locked-year transport is confirmatory. The 2018 pools
+have been used repeatedly, and three anchors with simultaneous intervals do not restore pristine
+confirmation. A later survey year remains sealed and unscored: it has never been loaded, transformed,
+inspected, scored or included in any restore bundle.
+
+\textbf{Screening thresholds are not confidence statements.} Where a study nominated nothing, no adjusted
+interval exists, and its pass/fail legs are point estimates.
+
+\textbf{Precision near equality is limited.} On these endpoints and pools, an adjusted one-sided upper
+bound at or below $0.001$ nats was not achievable for a comparison whose point estimate sat near zero:
+the smallest adjusted half-width in the record is $0.00220$ nats and the medians run $0.0069$--$0.0136$.
+This already holds unadjusted, so multiplicity is not the cause. It is a statement about \emph{those
+comparisons in the near-equality regime}, not about the achievable precision of a mechanism that does not
+yet exist: the standard error belongs to the paired per-household sensitive losses of a specific
+comparison, and a release whose sensitive predictions nearly match the reference can have a much smaller
+one while its task utility differs substantially.
+
+\textbf{Audits do not transport across hardware below about $0.003$ nats}, because re-auditing refits the
+attacker slate; comparisons are therefore made against same-host references and not differenced against
+earlier published audits at finer precision.
+
+\textbf{Machinery is itself an artifact.} One study's audit slate omitted the in-slate untouched-$J$
+predictor its method text promised, so a safeguard was served by a differenced comparator instead; the
+fix can only raise measured increments and therefore makes screens harder. Another study's training-time
+penalty registers a positive gain for a provably non-disclosing constant channel, which affects the
+interpretation of its weight knob rather than its audited leakage; its magnitude in that study is
+unmeasured rather than estimated.
+
+\textbf{Nothing here is a certificate.} Vanishing fitted moments imply neither conditional independence
+nor any bound on $I(S;Z\mid H)$, and a guarantee in a fitted finite model is not a population guarantee:
+in a validated fixture, binning a conditioning view drops a full $\log 2$ of measured leakage to exactly
+zero.
+
+\section{Open science}
+\label{sec:openscience}
+
+Every number in this paper is generated from committed evidence at pinned commits, and each printed digit
+traces to a (commit, path, SHA-256) triple recorded in the submitted artifact. Table and figure
+generators, the independent verification scripts, the claim ledger, the correction log and the
+mathematical fixtures are included; no number was typed by hand. The evidence is ACS public-use
+microdata, so no restricted data is redistributed. Anonymised artifacts will be shared within the
+required window, and the final artifact deposited on acceptance.
+
+\section{LLM usage considerations}
+\label{sec:llm}
+
+This work was substantially assisted by a large language model, and describing that as editorial help
+would be inaccurate. A model was used to write and refactor experiment and analysis code, to draft and
+revise this manuscript, to audit the studies' own reports against their source code and stored outputs,
+and to construct the counterexample fixtures cited here. Experimental designs, registrations and stopping
+rules were fixed in advance of outcomes and are committed; model-generated analyses were checked by
+independently written scripts that recompute each reported quantity from the smallest machine-readable
+source, and several claims in this paper exist \emph{because} that recomputation contradicted the
+original write-up---the withdrawn ceiling of \S\ref{sec:capacity-limits} is one. The authors take full
+responsibility for every claim, number and omission in the submitted work, including those first drafted
+by a model; nothing was accepted on the model's assertion alone, and every load-bearing figure is
+reproducible from the artifact.
+
+\section{Conclusion}
+
+A service that has already published predictions can add a reusable channel beside them without changing
+a released number, and can steer that channel away from directions a recipient or a colluding pair would
+use to infer sex and race. On a locked, previously unused year, coalition conditioning does what it
+claims against both matched local controls, at a utility cost the data cannot bound below the margin its
+rule used. Everything we built afterwards to make that into a competitive release failed, in both
+registered senses of competitiveness, and adapted published erasers applied to a channel we already had
+beat our own mechanism.
+
+The most recent diagnostic suggests a reason that is specific to this contract rather than to any one
+optimiser: a label-free code of the permitted inputs carries real signal for the held-out task, and adds
+nothing measurable once the published service predictions are already in the recipient's view. If that
+holds more broadly, then the room for an \emph{additional} channel beside a rich published output is
+small, and the open question is not a better penalty but whether a release that \emph{replaces} rather
+than \emph{appends} can hold task utility while removing disclosure---which our evidence does not test.
+
+\textbf{The defensible contribution is the release problem and the evaluation design}: fixed published
+outputs as a hard constraint, recipient-specific and coalition-specific audit roles, fresh and frozen
+attackers never pooled, absolute and incremental recovery side by side, negative increments unclipped,
+denominators beside every count, per-endpoint results never averaged, and a sealed temporal transport
+with its multiplicity fixed in advance. That contract is what made six negative results legible instead
+of ambiguous, and it is what we would keep.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\appendices
+
+\section{Study chronology}
+\label{app:chronology}
+\begin{table*}[h]
+\centering\footnotesize
+\input{tables/study_chronology_v6.tex}
+\caption{The completed studies, with evidence commits and what each is evidence for. Only the first is
+confirmatory.}
+\end{table*}
+
+\section{Claim ledger summary}
+\label{app:claims}
+\begin{table*}[h]
+\centering\scriptsize
+\input{tables/claim_support_v6.tex}
+\caption{Every load-bearing claim, its status, the measurement behind it, and what it does not establish.
+The full traceable list is in the artifact.}
+\end{table*}
+
+\section{Additional tables}
+\label{app:tables}
+\begin{table*}[h]
+\centering\footnotesize
+\input{tables/external_vs_J.tex}
+\caption{External arms against $J$. \noteExternalVsJ}
+\end{table*}
+\begin{table*}[h]
+\centering\footnotesize
+\input{tables/repair_diagnostic.tex}
+\caption{The exact repair worked on the objective and did not work on the release. \noteRepairDiagnostic}
+\end{table*}
+\begin{table*}[h]
+\centering\footnotesize
+\input{tables/study6_tiers.tex}
+\caption{The utility-first study's tier ladder. Tiers 3 and 4 were never triggered.}
+\end{table*}
+
+\section{Corrections this revision makes}
+\label{app:corrections}
+Each item names the original claim, the evidence, and the replacement.
+\begin{enumerate}\itemsep2pt
+\item \textbf{``The inseparability appeared on a proxy that never saw a residential label, which removes
+the utility-target explanation.''} Withdrawn: the proxy is the residual of the unprotected channel, so
+proxy gains can be bought with sensitive-correlated directions (\S\ref{sec:utilityfirst}).
+\item \textbf{A fitted-model ceiling from ``probability deciles''.} Withdrawn: the deciles are built from
+per-row log loss, which reads the person's label (\S\ref{sec:capacity-limits}). No ceiling is used.
+\item \textbf{``The code's residence content is already subsumed by $J$.''} Replaced by the measured
+fitted-probe result; the differences are $0.16$--$0.98$ SE (\S\ref{sec:capacity-limits}).
+\item \textbf{``No anchor positive at either resolution.''} True unweighted; person-weighted, one of
+three anchors is positive at both resolutions. Anchor means stay negative and the gate outcome is
+unchanged.
+\item \textbf{``A $.001$-nat confirmation is not demonstrable for any mechanism.''} Withdrawn by the
+source study and by us: the standard error belongs to a specific comparison, not to the pool
+(\S\ref{sec:limits}).
+\item \textbf{``A confirmable pass requires a candidate that reduces measured sensitive recovery.''}
+Scoped: valid only where the release replaces $J$; for an appended release the inclusion fact makes the
+population increment non-negative, so a strictly negative requirement would certify finite-probe noise
+(\S\ref{sec:proved}, \S\ref{sec:contract}).
+\item \textbf{``$J$ was already released to these recipients.''} Not substantiated; treated as an
+internal comparator (\S\ref{sec:contract}).
+\item \textbf{``A release close enough to $J$ to be confirmable would be uninteresting.''} Withdrawn: low
+variance on sensitive endpoints is compatible with a large task-utility difference (\S\ref{sec:limits}).
+\end{enumerate}
+
+\end{document}

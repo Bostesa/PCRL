@@ -1,0 +1,220 @@
+{
+ "audited_commit": "cd895e4291b3dc2c0ed5e9c5482415d30f4e9f2a",
+ "sources_sha256": {
+  "results/pcrl_stochastic_channel_v1/STAGE_B_RESULTS.json": "4d7ca0bdc9408fb22a19a7841a0daed0dff44f7d693cb28dbfa9eee839173afb",
+  "results/pcrl_stochastic_channel_v1/gates/G2.json": "5229e976a80910b4fa349590c883ffdaef439dae189ee8e38fc22cc406e60274",
+  "experiments/pcrl_stochastic_channel_v1/stage_b.py": "29d62d13dc64990722d80854d5fc848343d9ff68f06c0da908c5ec3f3f4a27c2"
+ },
+ "findings": [
+  {
+   "item": "G2 seed-mean advantage reproduces",
+   "value": {
+    "64": -0.00268,
+    "256": -0.01136
+   },
+   "status": "CONFIRMED",
+   "comment": "matches gates/G2.json seed_mean_unweighted at both resolutions"
+  },
+  {
+   "item": "seeds_with_positive_advantage is unweighted-only",
+   "value": {
+    "64": {
+     "unweighted": 0,
+     "person_weighted": 1
+    },
+    "256": {
+     "unweighted": 0,
+     "person_weighted": 1
+    }
+   },
+   "status": "CORRECTION",
+   "comment": "gates/G2.json reports seeds_with_positive_advantage = 0 without naming a weighting, and the decision document says 'negative in 3/3 seeds at both resolutions'. Person-weighted, seed 0 is POSITIVE at both resolutions (+0.00216 at 64, +0.00007 at 256). Seed means stay negative under both weightings, so the G2 verdict is unaffected."
+  },
+  {
+   "item": "precision at the declared resolution",
+   "value": [
+    0.1645457106323486,
+    0.9836620904562263,
+    0.41023870601138174
+   ],
+   "status": "CONFIRMED",
+   "comment": "|estimate|/SE = 0.16, 0.98, 0.41 at |T|=64: within ~1 SE of zero, i.e. no demonstrated advantage and no demonstrated deficit, as the decision document itself states."
+  },
+  {
+   "item": "precision at the fallback resolution",
+   "value": [
+    0.7162522958862153,
+    3.0702125043441195,
+    2.6380574143033737
+   ],
+   "status": "CONTEXT",
+   "comment": "|estimate|/SE = 0.72, 3.07, 2.64 at |T|=256, where the probe carries 276 input columns against the baseline's 20 on 2048 fitting rows; a width handicap is a live explanation of the deficit."
+  },
+  {
+   "item": "J_only and J_plus_T trace to STAGE_B_RESULTS.json",
+   "value": true,
+   "status": "CONFIRMED",
+   "comment": "the two columns that carry the comparison reproduce exactly"
+  },
+  {
+   "item": "prior and T_only have no machine-readable backing",
+   "value": {
+    "in_stage_b_results": false,
+    "generator_in_committed_code": false
+   },
+   "status": "GAP",
+   "comment": "gates/G2.json reports prior and T-only validation log losses, and the closing commit message repeats them, but STAGE_B_RESULTS.json contains neither and no committed code fits a T-only or prior probe. Two of the four columns of the headline table are unreproducible from this commit."
+  },
+  {
+   "item": "size of the 'subsumption' difference against its own uncertainty",
+   "value": {
+    "J_plus_T_minus_J_only": {
+     "0": 0.00091,
+     "1": 0.00472,
+     "2": 0.00241
+    },
+    "bootstrap_se": {
+     "0": 0.00553,
+     "1": 0.00479,
+     "2": 0.00587
+    },
+    "ratio": {
+     "0": 0.16,
+     "1": 0.99,
+     "2": 0.41
+    }
+   },
+   "status": "CORRECTION",
+   "comment": "the difference that motivates the word 'subsumed' is 0.16-0.98 SE. It supports 'no measurable improvement at this probe capacity', not an information-theoretic subsumption claim."
+  },
+  {
+   "item": "B1 decile partition is built from per-row loss, which reads the residence label",
+   "value": true,
+   "status": "DEFECT",
+   "comment": "stage_b.run_seed: decile_cells = digitize(_baseline_score(ref_j, j_val), ...); _baseline_score returns probe['per_row_loss']; _per_row computes -log p[i, y_i] from y_val = the residence label. The partition coordinate is therefore a function of each person's own label."
+  },
+  {
+   "item": "numerical signature of the leak",
+   "value": {
+    "baseline_log_loss_by_seed": [
+     0.09357,
+     0.06473,
+     0.07062
+    ],
+    "real_residence_log_loss_J_only": [
+     0.52507,
+     0.50114,
+     0.52856
+    ],
+    "n_base_cells": 10
+   },
+   "status": "DEFECT",
+   "comment": "ten cells reduce residence log loss from ~0.52 to 0.065-0.094 nats. No label-free 10-cell partition of a service-probability view can do that; the fixture b1_label_leak_fixture.py reproduces the effect on a label that is pure noise."
+  },
+  {
+   "item": "B1 influence on the gate decision",
+   "value": {
+    "gate_verdict_source": "Does a prespecified label-free A-side code T retain a reside...",
+    "decision": "Stop at Stage B. Stages C and D are NOT run. No grid expansion, per REGISTRATION section 6.",
+    "B1_verdict": "NOT RELIABLY ESTIMABLE at this sample size"
+   },
+   "status": "SCOPED",
+   "comment": "G2's verdict is computed from B2; B1 is reported as 'NOT RELIABLY ESTIMABLE' and did not gate, select or stop anything. The defect is confined to interpretation and must not be propagated to the G2 outcome or to unrelated studies."
+  },
+  {
+   "item": "product partition is label-free but sparse",
+   "value": {
+    "rows_per_cell": [
+     2.0707841776544065,
+     1.9481101857783472,
+     2.0754975978037065
+    ]
+   },
+   "status": "CONFIRMED",
+   "comment": "_bin_view uses only the baseline view, no label. Its 1.9-2.1 rows per cell make it unusable, which the study states correctly."
+  }
+ ],
+ "B2_recomputed": {
+  "64": {
+   "unweighted_by_seed": [
+    -0.0009097970982707704,
+    -0.0047151121783765015,
+    -0.0024094577728200894
+   ],
+   "person_weighted_by_seed": [
+    0.0021649874952366366,
+    -0.003995388276927192,
+    -0.006815088031784433
+   ],
+   "bootstrap_se_by_seed": [
+    0.0055291450307299005,
+    0.004793426751039693,
+    0.005873306778500908
+   ],
+   "seed_mean_unweighted": -0.002678122349822454,
+   "seed_mean_person_weighted": -0.0028818296044916627,
+   "seeds_positive_unweighted": 0,
+   "seeds_positive_person_weighted": 1,
+   "abs_estimate_over_se_by_seed": [
+    0.1645457106323486,
+    0.9836620904562263,
+    0.41023870601138174
+   ],
+   "households": 2015,
+   "validation_rows_by_seed": [
+    2984,
+    3041,
+    3024
+   ],
+   "fit_rows": 2048,
+   "probe_input_dim": 84,
+   "ref_J_probe_input_dim": 20,
+   "selected_family": [
+    "mlp",
+    "mlp",
+    "mlp"
+   ]
+  },
+  "256": {
+   "unweighted_by_seed": [
+    -0.0040421971161764825,
+    -0.017098529495818582,
+    -0.01294956621704968
+   ],
+   "person_weighted_by_seed": [
+    7.478003227284757e-05,
+    -0.013146154569329271,
+    -0.015093142212033617
+   ],
+   "bootstrap_se_by_seed": [
+    0.005643538093200934,
+    0.0055691680858003965,
+    0.004908750714384753
+   ],
+   "seed_mean_unweighted": -0.011363430943014915,
+   "seed_mean_person_weighted": -0.00938817224969668,
+   "seeds_positive_unweighted": 0,
+   "seeds_positive_person_weighted": 1,
+   "abs_estimate_over_se_by_seed": [
+    0.7162522958862153,
+    3.0702125043441195,
+    2.6380574143033737
+   ],
+   "households": 2015,
+   "validation_rows_by_seed": [
+    2984,
+    3041,
+    3024
+   ],
+   "fit_rows": 2048,
+   "probe_input_dim": 276,
+   "ref_J_probe_input_dim": 20,
+   "selected_family": [
+    "mlp",
+    "mlp",
+    "mlp"
+   ]
+  }
+ },
+ "scope": "arithmetic on committed evidence; no ACS model fitted, no pool read, 2016 untouched"
+}
