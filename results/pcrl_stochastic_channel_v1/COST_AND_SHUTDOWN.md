@@ -34,6 +34,29 @@ exist, because the gate stopped it.
 no-op rather than an omission. Verified: no instance was ever launched by this study; `launch.py` was
 never invoked.
 
+### Flagged during closeout — a running instance belonging to a DIFFERENT study
+
+The closeout check `describe-instances --filters Name=instance-state-name,Values=running,pending`
+returned one instance, which is **not this study's** and was **not touched**:
+
+| field | value |
+|---|---|
+| id | `i-0fed8843075a831af` |
+| type | `g7e.2xlarge` (GPU) |
+| launched | 2026-09-20T07:56:50Z |
+| running for | **~18.5 h** as of 2026-09-21T02:27Z |
+| tags | `Name=s1-aws-s1`, `study=s1-aws`, `purpose=study` |
+| public IP | 18.204.230.124 |
+
+Tagged `study=s1-aws`, so it belongs to a separate line of work (cf. the `s1-aws-314993518743-us-east-1`
+bucket created 2026-09-19), not to `pcrl_stochastic_channel_v1`. **It was deliberately left running:**
+this study's shutdown authority covers task-created compute only, and terminating another study's GPU
+instance could destroy work in progress.
+
+Raised for the owner's attention because the accrued cost is material — roughly **$28–46** at typical
+`g7e.2xlarge` on-demand rates for 18.5 hours — and because an 18-hour GPU instance may simply have
+been forgotten. It does **not** count against this study's $50 ceiling.
+
 ## Restore and its verification
 
 One chunk restored, into **this worktree** (`/Users/nathansamson/PCRL-terminal-1-stochastic`) and
