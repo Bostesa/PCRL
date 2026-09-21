@@ -52,7 +52,14 @@ adjusted one-sided `z = 3.18`, 5,443 shared households, three anchors pooled):
 | `H+raw(pca32)` − `J`, unweighted | **−0.01533** | 0.00279 | **−0.00646** | **yes** |
 | `H+raw(pca32)` − `J`, person-weighted | **−0.01850** | 0.00332 | **−0.00794** | **yes** |
 | `H+T(pca32,64)` − `H`, unweighted | −0.01679 | 0.00374 | −0.00488 | yes |
-| `H+T(pca32,64)` − `H`, person-weighted | −0.01680 | 0.00463 | −0.00207 | yes |
+| `H+T(pca32,64)` − `H`, person-weighted | −0.01680 | 0.00463 | −0.00207 | **downgraded — see below** |
+
+**Amended 2026-09-21 (`AMENDMENT_1.md` M3).** Terminal 2 showed the frozen family size of 68 does not
+survive being written out — it double-counts endpoints across routes and omits the residence tests.
+The two `H+raw` − `J` rows are insensitive to this: voiding them would take a family of roughly
+**2.6 million** tests. The last row is **not** robust (a family of ≈ 351 would void it), so
+`H+T` − `H` under person weighting is reported as a point estimate with its interval and **not** as a
+corrected significant finding.
 
 So the A-side inputs carry residence signal **beyond** `J`'s 16-coordinate auxiliary channel, and
 even the 64-state code adds real capability over `H` alone. This **quantitatively contradicts the
