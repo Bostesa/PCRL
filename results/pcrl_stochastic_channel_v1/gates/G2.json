@@ -1,0 +1,165 @@
+{
+ "gate": "G2",
+ "name": "capacity: unconstrained within-family diagnostic",
+ "verdict": "FAIL",
+ "decision": "Stop at Stage B. Stages C and D are NOT run. No grid expansion, per REGISTRATION section 6.",
+ "split": "validation only; the test split was never read",
+ "pools": "2018 development (repeatedly used)",
+ "environment": {
+  "python": "3.13.7",
+  "numpy": "2.5.3",
+  "sklearn": "1.9.1",
+  "torch": "2.14.0",
+  "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+  "where": "local CPU",
+  "cloud_spend_usd": 0.0
+ },
+ "what_was_measured": "Does a prespecified label-free A-side code T retain a residence advantage over the SAME-HOST untouched-J release, before any privacy constraint? Probe family is the house utility family (logistic + mlp, selection by validation log loss), on the historical subset indices.",
+ "B2_deployable": {
+  "declared_resolution_64": {
+   "advantage_code_only_by_seed": [
+    -0.0009097970982707704,
+    -0.0047151121783765015,
+    -0.0024094577728200894
+   ],
+   "seed_mean_unweighted": -0.00268,
+   "seed_mean_person_weighted": -0.00288,
+   "seeds_with_positive_advantage": 0,
+   "advantage_inclusion_respecting_by_seed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "probe_input_dim": 84,
+   "ref_J_probe_input_dim": 20
+  },
+  "predeclared_fallback_256": {
+   "advantage_code_only_by_seed": [
+    -0.0040421971161764825,
+    -0.017098529495818582,
+    -0.01294956621704968
+   ],
+   "seed_mean_unweighted": -0.01136,
+   "seed_mean_person_weighted": -0.00939,
+   "seeds_with_positive_advantage": 0,
+   "advantage_inclusion_respecting_by_seed": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "probe_input_dim": 276
+  },
+  "candidate_specific_intervals": {
+   "0": {
+    "estimate": -0.0009097978423302702,
+    "bootstrap_se": 0.0055291450307299005,
+    "households": 2015,
+    "rows": 2984,
+    "n_boot": 4000,
+    "critical_value": 1.6448536269514722,
+    "adjusted_note": "unadjusted one-sided 95%; a family adjustment is applied at report time",
+    "upper_one_sided": 0.008184836415406516,
+    "lower_one_sided": -0.010004432100067056,
+    "unit": "household"
+   },
+   "1": {
+    "estimate": -0.0047151125296514855,
+    "bootstrap_se": 0.004793426751039693,
+    "households": 2015,
+    "rows": 3041,
+    "n_boot": 4000,
+    "critical_value": 1.6448536269514722,
+    "adjusted_note": "unadjusted one-sided 95%; a family adjustment is applied at report time",
+    "upper_one_sided": 0.0031693728473223643,
+    "lower_one_sided": -0.012599597906625334,
+    "unit": "household"
+   },
+   "2": {
+    "estimate": -0.002409458009577466,
+    "bootstrap_se": 0.005873306778500908,
+    "households": 2015,
+    "rows": 3024,
+    "n_boot": 4000,
+    "critical_value": 1.6448536269514722,
+    "adjusted_note": "unadjusted one-sided 95%; a family adjustment is applied at report time",
+    "upper_one_sided": 0.007251271947238419,
+    "lower_one_sided": -0.01207018796639335,
+    "unit": "household"
+   }
+  },
+  "note": "Intervals are reported on their own merits per AMENDMENT_1 section 4, not withheld because historical precision was poor. Bootstrap unit is the household."
+ },
+ "subsumption_check": {
+  "validation_log_loss_nats": {
+   "0": {
+    "prior": 0.54501,
+    "T_only": 0.53093,
+    "J_only": 0.52507,
+    "J_plus_T": 0.52598
+   },
+   "1": {
+    "prior": 0.52859,
+    "T_only": 0.51292,
+    "J_only": 0.50114,
+    "J_plus_T": 0.50586
+   },
+   "2": {
+    "prior": 0.55554,
+    "T_only": 0.53321,
+    "J_only": 0.52856,
+    "J_plus_T": 0.53097
+   }
+  },
+  "reading": "T ALONE beats the prior by 0.014 to 0.022 nats in every seed, so the code carries genuine residence signal. J alone beats T alone in every seed. Adding T to J does not improve on J and is slightly worse. The code residence-relevant content is therefore already subsumed by the released service predictions; this is not a case of compression destroying signal."
+ },
+ "B1_fitted_model_ceiling": {
+  "verdict": "NOT RELIABLY ESTIMABLE at this sample size",
+  "product_partition": {
+   "ceiling_by_seed": [
+    0.00722,
+    0.00428,
+    0.00735
+   ],
+   "rows_per_cell": [
+    2.1,
+    1.9,
+    2.1
+   ],
+   "sparse": true
+  },
+  "probability_decile_partition": {
+   "ceiling_by_seed": [
+    -0.06931,
+    -0.08077,
+    -0.08806
+   ],
+   "note": "negative values are a variance artifact: 10 baseline cells times 64 codes is 640 cells on 2984 rows"
+  },
+  "reading": "Conditioning on any reasonably fine baseline view crossed with 64 codes exhausts the 2984 validation rows, which is exactly the near-unique-conditioning failure the review warned about. B1 is reported as unestimable rather than as a number; G2 rests on B2, which is unambiguous."
+ },
+ "registered_predictions_resolved": {
+  "P2": {
+   "confidence": 0.55,
+   "text": "Stage B shows a residence advantage over same-host J that is positive but under .003 nats",
+   "outcome": "REFUTED - the advantage is NEGATIVE in 3 of 3 seeds at both resolutions, not positive-but-small"
+  },
+  "P3": {
+   "confidence": 0.3,
+   "text": "Stage B shows no usable residence advantage at the declared resolution, stopping the study at the first gate",
+   "outcome": "CONFIRMED"
+  }
+ },
+ "registered_predictions_unreached": [
+  "P1",
+  "P4",
+  "P5",
+  "P6",
+  "P7"
+ ],
+ "honest_note": "I registered P2 at 55 percent and P3 at 30 percent. P3 is what happened, so I was wrong about the more likely of the two, and wrong in an optimistic direction.",
+ "what_this_does_not_establish": [
+  "Not a capacity theorem. A different code, a different probe family or a different resolution could differ.",
+  "Not a statement about the ACS population; these are repeatedly used 2018 development pools.",
+  "Not a claim that randomization cannot help. The constrained mechanism was never reached, because the UNCONSTRAINED release already fails."
+ ]
+}

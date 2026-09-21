@@ -1,4 +1,13 @@
-# REPORT — `pcrl_stochastic_channel_v1` (interim: stages 1–4 complete, G0 recorded, stage 5 blocked)
+# REPORT — `pcrl_stochastic_channel_v1`
+
+> **CLOSED NEGATIVE at gate G2 (capacity).** The final verdict, the measured numbers and the
+> resolution of every registered prediction are in **`RESEARCH_DECISION.md`**; cost and shutdown
+> accounting in `COST_AND_SHUTDOWN.md`. Headline: a label-free A-side code carries genuine residence
+> signal, but that signal is **already subsumed by the released service predictions `J`** — adding the
+> code to `J` does not improve on `J` in any of three anchors at either declared resolution. Stages C
+> and D were not run, per the gate rule. Cloud spend **$0.00**.
+>
+> Sections 1–6 below record stages 1–4 as they stood before Stage B ran, and remain accurate.
 
 Branch `research/pcrl-stochastic-channel-v1`, based on `0517c06a7`. **No ACS pool has been read by
 this study, no release has been fitted, no cloud compute has been created, and $0 has been spent.**
@@ -172,26 +181,30 @@ withdrawn in `AMENDMENT_1.md`; the literal prediction is retained as confirmed.
 Unresolved, because Stage 5 has not run: P1, P2, P3, P4, P5, P6. P7 (J anchors raise measured
 increments) is structurally argued in `VERIFICATION.md` §A but not yet measured.
 
-## 7. Stage 5 — authorized, blocked only on credentials
+## 7. Stage 5 — executed, and closed at G2
 
-The study is authorized to proceed within the $50 incremental ceiling. The only obstacle is
-authentication.
+**Authentication.** The `default` profile was expired; the **`vein`** profile (SSO, account
+`314993518743`) worked. That matches the earlier pattern: one profile expired while another was live.
+Commands run with `AWS_PROFILE=vein`.
 
-**Access blocker.** Both configured CLI profiles for account `314993518743` are expired:
-`AWS_PROFILE=vein` (SSO session `vein`, start URL `https://d-9066063854.awsapps.com/start`) returns
-`Token has expired and refresh failed`; `AWS_PROFILE=default` returns `Your session has expired`.
-Unblock with `aws sso login --profile vein`.
+**Restore.** One chunk, `exec_main__0000`, restored **into this worktree** — not into the main
+checkout, so `main` and every unrelated worktree stay untouched (`FALLBACK_ROOTS[0]` is the module's
+own worktree, so the resolver finds it). 2,545 files, every SHA-256 re-checked, stream hash matched,
+**0 bad**, 13.7 s. Record: `RESTORE_VERIFICATION.json`. Nothing was deleted or re-uploaded.
 
-Stage B needs the stored release arrays (`H_A`, `Z_J`) and the A-side inference inputs, which are
-**not present locally**: `anchors.npz` and `releases.npz` do not exist in any worktree, having been
-archived to S3 and unlinked under `DELETION_LEDGER.md` after verified read-back. The archive bucket
-has no lifecycle rule, so nothing is at risk of expiry.
+**Stage B ran and G2 FAILED.** Full numbers in `RESEARCH_DECISION.md` and `gates/G2.json`. The
+unconstrained release adds nothing to same-host J on residence: seed-mean advantage **−0.00268** nats
+at `|T| = 64` and **−0.01136** at the predeclared `|T| = 256` fallback, **0 of 3** seeds positive at
+either resolution, and exactly `0.00000` under the inclusion-respecting accounting that G2 is judged
+on. The sharp version: the code carries real residence signal (`T` alone beats the prior by
+0.014–0.022 nats) that is **already subsumed by `J`**.
 
-**What the budget buys, stated prospectively.** A development answer to *does randomization change
-the capability/disclosure tradeoff where the deterministic channel failed?*, which is what the
-registration scoped. Per `AMENDMENT_1.md`, a confirmable `.001` bound remains reachable for a
-candidate whose estimate is sufficiently negative; the target is a candidate that *reduces*
-additional sensitive recovery relative to same-host J.
+Per the registration, stages C and D were **not run** and no grid was expanded. **The constrained
+stochastic mechanism was never reached, so nothing here bears on whether randomization beats a
+deterministic channel** — the *unconstrained* release failed first.
+
+**Cost.** $0.00 compute, `< $0.01` in S3 requests, against the $50 ceiling. No cloud resource was
+created, so shutdown is a confirmed no-op rather than an omission (`COST_AND_SHUTDOWN.md`).
 
 ## 8. What is already usable, regardless
 
