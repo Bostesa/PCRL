@@ -1,0 +1,9 @@
+# Dispatch after the finer-conditioning incident — 2026-09-22
+
+The original A scheduler continues with its complete registered queue. The stopped serial C prefit parent is replaced by an independently reviewed controller with at most three new original-formulation C map workers. It excludes the already attempted child, preserves failed solutions, and never retries an accepted map. Including A workers and any adopted worker, the task remains below the original 16-worker limit with one BLAS thread each. The prefit cutoff is 06:20 UTC. This dispatch does not read comparative audit outcomes.
+
+After A87 and the registered C map attempts and bounded repairs close, the final controller installs the four already registered primary D replacements while all scientific writers are closed. It then dispatches the six middle-budget C audits, the four fresh D audits, and the other twelve C audits through the existing scheduler. Combining these independent audit jobs saves a separate four-job wave. Every audit retains all 16 roles and the original predictor slate, seeds and weights.
+
+This supersedes only the earlier C-audits-before-D execution order in [EXECUTION_OVERLAP_ADDENDUM_20260922.md](EXECUTION_OVERLAP_ADDENDUM_20260922.md). It changes no configuration, data role, cost, constraint, margin, candidate family, scientific retry limit or selection rule. The original science cutoff of 07:26:05 UTC and final verification hour remain. Failed bounded repairs remain incomplete and cannot be silently refit by the audit launcher.
+
+Final freeze requires exact registered job identities and accepted artifact hashes, followed by publication before evaluation access. The source hashes are in [EXECUTION_RECOVERY_COORDINATION_20260922.json](EXECUTION_RECOVERY_COORDINATION_20260922.json). Actual completion remains to be recorded.
