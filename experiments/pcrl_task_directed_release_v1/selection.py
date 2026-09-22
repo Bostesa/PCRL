@@ -456,11 +456,33 @@ def build_contrast_family(selection, *, matched_specs=None):
             if same_budget in local_available:
                 pair(route, 'attribution_coalition_same_budget', candidate, same_budget)
         matched['randomization'] = [mechanism_id(code, 'U', None, actions), code + '_code']
+        simple_frontiers = {}
+        suffix = '_a33' if actions == 33 else ''
+        for label, kind in (('withholding', 'withhold'), ('randomized_response', 'rr')):
+            attempted = [f'{code}_{kind}_{mix:g}{suffix}' for mix in (.25, .5, .75)]
+            control_available = [n for n in attempted if n in available
+                and (actions == 17 or n in selection.get('registered_controls', {}))]
+            if route == 'utility_first':
+                eligible = [n for n in control_available if selection['aggregates'][n]['maximum_sensitive_increment_J']
+                            <= margins['sensitive_allowance']]
+            else:
+                eligible = [n for n in control_available if max(selection['aggregates'][n]['utility_delta_J'].values())
+                            <= margins['utility_allowance']]
+            nominee = min(eligible, key=lambda n: _rank(n, selection['aggregates'], route)) if eligible else None
+            simple_frontiers[label] = {'attempted': attempted, 'available': control_available,
+                'missing': sorted(set(attempted) - set(control_available)), 'eligible': sorted(eligible),
+                'nominee': nominee, 'complete': len(control_available) == len(attempted),
+                'input': code, 'max_actions': actions}
+            if nominee is not None:
+                matched['randomization'].append(nominee)
         for purpose, comparators in matched.items():
             missing = [name for name in comparators if name not in available]
             complete = not missing and bool(comparators)
             if purpose == 'coalition':
                 complete = complete and frontier['complete']
+            elif purpose == 'randomization':
+                complete = complete and all(f['complete'] and f['nominee'] is not None for f in simple_frontiers.values())
+                missing += [name for f in simple_frontiers.values() for name in f['missing']]
             attribution[route][purpose] = {'comparators': comparators, 'missing': missing,
                                            'complete': complete, 'input': code, 'policy': policy,
                                            'budget': budget, 'max_actions': actions,
@@ -470,6 +492,8 @@ def build_contrast_family(selection, *, matched_specs=None):
             if purpose == 'coalition':
                 attribution[route][purpose].update(local_frontier=frontier, same_budget_comparator=same_budget,
                     same_budget_available=same_budget in local_available)
+            elif purpose == 'randomization':
+                attribution[route][purpose]['simple_control_frontiers'] = simple_frontiers
             for comparator in comparators:
                 if comparator in available:
                     pair(route, 'attribution_' + purpose + '_' + comparator, candidate, comparator,
@@ -530,7 +554,8 @@ def build_contrast_family(selection, *, matched_specs=None):
         for purpose, record in attribution[route].items():
             if not record['claim_eligible']:
                 reason = ('matched local frontier incomplete or has no eligible nominee' if purpose == 'coalition'
-                          else 'one or more matched comparisons unavailable')
+                          else 'matched simple-control frontier incomplete/empty or comparison unavailable'
+                          if purpose == 'randomization' else 'one or more matched comparisons unavailable')
                 formula = {'kind': 'blocked', 'reason': reason}
             else:
                 clauses = []

@@ -1,0 +1,7 @@
+# Support-aware zero-privacy verification
+
+Added 2026-09-22 before comparative outcome review, as independent verification of the registered zero-budget diagnostics and prediction P7. It changes no fitted mechanism, selection rule, margin or release contract.
+
+For each observed sensitive/context cell, integer unweighted counts or integer PWGTP mass give the equivalent equation coefficients `n(s,c,t)*n(c) - n(s,c)*n(c,t)`. The verifier stacks these equations across the constrained roles and both weightings, restricts columns to observed mechanism-estimation states, and performs exact integer elimination. Unsupported states cannot inflate the reported nullity. A one-dimensional supported nullspace contains only constant kernels. With a larger nullspace and at least two actions, the verifier constructs a centered nonconstant rational direction and a small binary stochastic perturbation, then checks every independence equation and simplex row exactly. Absent children obey their fixed sibling mixture; wholly absent parents use the zero action.
+
+The floating-point version is also checked by the independent conditional-information implementation. Full rational witnesses remain in the private archive; public output contains ranks, support counts, residuals and witness hashes. These are finite empirical feasibility certificates. They establish neither useful held-out task information nor population privacy, and they are not a novelty claim.

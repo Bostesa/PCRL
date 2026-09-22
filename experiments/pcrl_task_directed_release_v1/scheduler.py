@@ -55,6 +55,39 @@ def marker_for(j):
     return base/'audits'/j['name']/'COMPLETE.json'
 
 
+def extension_phases(branch):
+    """Use only an explicit prospectively frozen extension schedule."""
+    if branch=='A':
+        from . import branches
+        registry=branches._registration()
+        schedule=json.loads((OUT/'EXTRA_RESOURCE_SCHEDULE.json').read_text())
+        specs={r['id']:r for r in registry['maps']+registry['controls']}
+        lookup,require=branches.lookup_release,branches.require_scheduled
+    elif branch=='C':
+        from . import robustness
+        registry=robustness._registration()
+        schedule=json.loads((OUT/'ROBUSTNESS_RESOURCE_SCHEDULE.json').read_text())
+        specs={r['id']:r for r in registry['maps']}
+        lookup,require=robustness.lookup_spec,robustness.require_scheduled
+    else:raise ValueError('Unknown registered extension')
+    jobs=[]
+    for ident in schedule['unit_ids']:
+        spec=specs[ident]
+        require(lookup(spec['configuration'],spec['anchor']))
+        jobs.append(job('audit',spec['anchor'],spec['configuration']))
+    return [(f'extension_{branch}',jobs)]
+
+
+def evaluation_phases():
+    selection=json.loads((OUT/'SELECTION.json').read_text())
+    if not selection.get('selection_frozen'):raise RuntimeError('No frozen evaluation permit')
+    jobs=[job('evaluate',anchor,name) for name in selection['evaluation_configurations'] for anchor in (0,1,2)]
+    for j in jobs:
+        if not (OUT/'private/run'/f"anchor_{j['anchor']}"/'audits'/j['name']/'COMPLETE.json').exists():
+            raise ValueError('Frozen evaluation configuration lacks its accepted audit')
+    return [('evaluation',jobs)]
+
+
 
 def dependencies_ready(j):
     """Read accepted markers only; scheduling never reads performance values."""
@@ -100,7 +133,7 @@ def execute(j,deadline):
             'log':str(log.relative_to(ROOT)),'marker_sha256':sha(marker) if marker.exists() else None}
 
 
-def run(selected_phases=None,evaluation=False):
+def run(selected_phases=None,evaluation=False,extension=None):
     plan_path=OUT/'RESOURCE_SCHEDULE.json'
     plan=json.loads(plan_path.read_text())
     if not plan.get('frozen_before_comparative_outcomes'):raise RuntimeError('Resource plan is not frozen')
@@ -115,12 +148,9 @@ def run(selected_phases=None,evaluation=False):
     lock.parent.mkdir(parents=True,exist_ok=True)
     with lock.open('a') as owner:
         fcntl.flock(owner,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        if evaluation:
-            selection=json.loads((OUT/'SELECTION.json').read_text())
-            if not selection.get('selection_frozen'):raise RuntimeError('No frozen evaluation permit')
-            registered=release_ledger()['records']
-            work=[('evaluation',[job('evaluate',r['anchor'],r['configuration']) for r in registered
-                 if (OUT/'private/run'/f"anchor_{r['anchor']}"/'audits'/r['configuration']/'COMPLETE.json').exists()])]
+        if evaluation and extension:raise ValueError('Choose evaluation or fitting extension')
+        if evaluation:work=evaluation_phases()
+        elif extension:work=extension_phases(extension)
         else:work=phases()
         if selected_phases:work=[p for p in work if p[0] in selected_phases]
         state={'started_utc':now(),'pid':os.getpid(),'resource_schedule_sha256':sha(plan_path),
@@ -164,4 +194,5 @@ def run(selected_phases=None,evaluation=False):
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser();ap.add_argument('--phases',nargs='*');ap.add_argument('--evaluate',action='store_true')
-    a=ap.parse_args();run(a.phases,a.evaluate)
+    ap.add_argument('--extension',choices=('A','C'))
+    a=ap.parse_args();run(a.phases,a.evaluate,a.extension)

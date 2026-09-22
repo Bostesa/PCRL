@@ -33,3 +33,21 @@ def test_dependency_scheduler_gates_refinements_until_complete_t0(tmp_path,monke
  assert not s.dependencies_ready(refined)
  q=base/'maps/T0_L_0.002_a17/ACCEPTED.json';q.parent.mkdir(parents=True);q.write_text('{}')
  assert s.dependencies_ready(refined)
+
+
+def test_evaluation_schedule_covers_frozen_extensions_and_rejects_missing_audit(tmp_path,monkeypatch):
+ import json
+ import pytest
+ from experiments.pcrl_task_directed_release_v1 import scheduler as s
+ monkeypatch.setattr(s,'OUT',tmp_path)
+ names=['H','Trisk_C_0.002_a33','Trisk_L_0.01_a17_fineC']
+ (tmp_path/'SELECTION.json').write_text(json.dumps({'selection_frozen':True,'evaluation_configurations':names}))
+ for name in names:
+  for anchor in (0,1,2):
+   marker=tmp_path/'private/run'/f'anchor_{anchor}'/'audits'/name/'COMPLETE.json'
+   marker.parent.mkdir(parents=True);marker.write_text('{}')
+ block=s.evaluation_phases()
+ assert len(block[0][1])==9
+ assert {j['name'] for j in block[0][1]}==set(names)
+ marker.unlink()
+ with pytest.raises(ValueError,match='lacks its accepted audit'):s.evaluation_phases()

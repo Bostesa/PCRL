@@ -1,0 +1,9 @@
+# Prospective amendment 4: matched simple-randomization attribution controls
+
+Recorded 2026-09-22 UTC, before comparative study outcomes have been inspected. This corrects the dedicated randomization-attribution conjunction. It changes no scientific fitting specification, models, maps, margins, reporting weights, main historical-J criterion, or main competitive criterion.
+
+A randomization-specific effect must compare against both the matched unconstrained deterministic-action map and direct input code, and against validation-nominated withholding and randomized-response controls with the same input and action alphabet. Each simple-control family retains its complete registered three-point mixture grid (.25, .5, .75), availability and eligibility. Utility-first eligibility requires all eight J-relative privacy caps and nominates minimum balanced task loss, then lexical ID. Protection-first eligibility requires both J-relative task allowances and nominates minimum maximum sensitive increment, then balanced task loss and lexical ID.
+
+An incomplete grid or empty eligibility in either simple-control family blocks dedicated randomization attribution. Each selected simple-control comparator enters the existing explicit adjusted direct-comparison and evaluated common-cap conjunction, alongside U and direct code. All added endpoints enter the same prospective `M = len(endpoints)` before evaluation. Availability alone does not establish success. Broader unselected control grids remain descriptive.
+
+The triggering counterexample is synthetic: a candidate may beat U and direct code while losing task utility to an eligible randomized-response or withholding control. The previous dedicated formula could incorrectly support a randomization effect in that case, even though the separate competitive route would fail. The amended formula rejects it directly.

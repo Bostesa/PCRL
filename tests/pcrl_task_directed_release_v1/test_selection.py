@@ -379,3 +379,43 @@ def test_branch_controls_without_provenance_or_wrong_family_rejected():
     spec.update(registration_id='synthetic', baseline_family='rr')
     with pytest.raises(ValueError, match='control specification'):
         selection.select_validation(base(), candidate_ids=[A], registered_controls={name: spec})
+
+
+def test_randomization_claim_rejects_candidate_that_beats_U_code_but_loses_to_simple_controls():
+    values = attribution_fixture()
+    values[A] = anchors(u=.49, s=.501)
+    values['Trisk_U_unconstrained_a17'] = anchors(u=.495, s=.501)
+    values['Trisk_code'] = anchors(u=.496, s=.501)
+    for family in ('withhold', 'rr'):
+        for mix in (.25, .5, .75):
+            values[f'Trisk_{family}_{mix:g}'] = anchors(u=.48 + mix*.001, s=.502)
+    got = selection.select_validation(values, candidate_ids=[A], families=families())
+    contrasts = selection.build_contrast_family(got)
+    metadata = contrasts['attribution']['utility_first']['randomization']
+    assert metadata['comparators'] == ['Trisk_U_unconstrained_a17', 'Trisk_code',
+                                       'Trisk_withhold_0.25', 'Trisk_rr_0.25']
+    assert all(f['complete'] for f in metadata['simple_control_frontiers'].values())
+    eps = {e['id']: e for e in contrasts['endpoints']}
+    upper = {key: sum(t['coefficient']*values[t['configuration']][0][t['role']]['validation']['unweighted']
+                     for t in e['terms']) for key, e in eps.items()}
+    formula = contrasts['attribution_claim_formulas']['utility_first']['randomization']
+    assert formula['kind'] == 'all'
+    assert not formula_passes(formula, eps, upper)
+
+
+@pytest.mark.parametrize('failure', ['incomplete', 'no_eligible', 'different_input'])
+def test_randomization_claim_blocks_incomplete_empty_or_wrong_input_simple_grid(failure):
+    values = attribution_fixture()
+    values['Trisk_U_unconstrained_a17'] = anchors(u=.495, s=.501)
+    values['Trisk_code'] = anchors(u=.496, s=.501)
+    for kind in ('withhold', 'rr'):
+        for mix in (.25, .5, .75):
+            code = 'Ttask' if failure == 'different_input' else 'Trisk'
+            values[f'{code}_{kind}_{mix:g}'] = anchors(u=.6, s=.4) if failure == 'no_eligible' else anchors()
+    if failure == 'incomplete':
+        del values['Trisk_rr_0.75']
+    got = selection.select_validation(values, candidate_ids=[A], families=families())
+    contrasts = selection.build_contrast_family(got)
+    for route in selection.ROUTES:
+        assert not contrasts['attribution'][route]['randomization']['claim_eligible']
+        assert contrasts['attribution_claim_formulas'][route]['randomization']['kind'] == 'blocked'
