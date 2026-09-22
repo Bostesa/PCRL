@@ -139,3 +139,13 @@ def test_parent_reconstructs_selection_once_rechecks_closure_and_every_unit_repo
         assert result['wire_draw_repetitions_total']==192*512
         assert result['source_selection_closure_unchanged']
     assert '/nonexistent/original' not in json.dumps(result)
+
+
+def test_resumed_deadline_preserves_bounded_future_limit(monkeypatch):
+    m=module()
+    now=dt.datetime(2026,9,22,17,30,tzinfo=dt.timezone.utc)
+    monkeypatch.setattr(m,'_now',lambda:now)
+    assert m._deadline(None,'2026-09-22T19:10:00Z')==dt.datetime(2026,9,22,19,10,tzinfo=dt.timezone.utc)
+    for limit in ('2026-09-22T17:00:00Z','2026-09-22T20:00:00Z','2026-09-22T19:10:00'):
+        with pytest.raises(ValueError):m._deadline(None,limit)
+    with pytest.raises(ValueError):m._deadline('2026-09-22T19:11:00Z','2026-09-22T19:10:00Z')

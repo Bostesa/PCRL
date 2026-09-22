@@ -234,11 +234,15 @@ def _closed_writers(out):
         yield
 
 
-def _deadline(value):
+def _deadline(value, resume_limit=None):
     absolute=dt.datetime.fromisoformat(configuration()['absolute_deadline_utc'].replace('Z','+00:00'))
     cutoff=absolute.replace(hour=8,minute=19,second=50,microsecond=0)
+    if resume_limit is not None:
+        cutoff=dt.datetime.fromisoformat(resume_limit.replace('Z','+00:00'))
+        if cutoff.tzinfo is None or not _now()<cutoff<=_now()+dt.timedelta(hours=2):
+            raise ValueError('Explicit resumed closeout limit must be future, timezone-aware and within two hours')
     wanted=cutoff if value is None else dt.datetime.fromisoformat(value.replace('Z','+00:00')) if isinstance(value,str) else value
-    if wanted.tzinfo is None or wanted>cutoff or wanted<=_now():raise ValueError('Verification needs a future UTC deadline before the08:20 closeout limit')
+    if wanted.tzinfo is None or wanted>cutoff or wanted<=_now():raise ValueError('Verification needs a future UTC deadline within the closeout limit')
     return wanted.astimezone(dt.timezone.utc)
 
 
@@ -253,7 +257,7 @@ def _alarm(deadline):
 
 
 def verify_parallel(*,artifact_root,original_root,out_dir,writers_closed=False,max_workers=8,
-                    deadline_utc=None,public_report=None):
+                    deadline_utc=None,public_report=None,resume_limit_utc=None):
     if writers_closed is not True:raise ValueError('Caller must explicitly confirm scientific writers closed')
     root=Path(artifact_root).resolve();original=Path(original_root).resolve();out=root/'results'/STUDY
     directory=Path(out_dir).resolve()
@@ -262,7 +266,7 @@ def verify_parallel(*,artifact_root,original_root,out_dir,writers_closed=False,m
     public_target=None if public_report is None else Path(public_report).resolve()
     if public_target is not None and (not public_target.is_relative_to(out) or public_target.exists()):
         raise ValueError('Public report needs a new owned study path')
-    deadline=_deadline(deadline_utc);resources=worker_limit(max_workers);directory.mkdir(parents=True)
+    deadline=(_deadline(deadline_utc) if resume_limit_utc is None else _deadline(deadline_utc,resume_limit_utc));resources=worker_limit(max_workers);directory.mkdir(parents=True)
     report={'schema':1,'passed':False,'all_passed':False,'started_utc':_now().isoformat(),'resources':resources,
             'deadline_utc':deadline.isoformat(),'scientific_writers_closed':True,'original_fallback_allowed':False,
             'evaluation_requested':True,'role_count_per_unit':len(ROLES),'wire_repetitions_per_role':WIRE_REPETITIONS,
@@ -324,9 +328,10 @@ def main(argv=None):
     parser.add_argument('--original-root',required=True,type=Path);parser.add_argument('--out-dir',required=True,type=Path)
     parser.add_argument('--writers-closed',action='store_true');parser.add_argument('--max-workers',type=int,default=8)
     parser.add_argument('--deadline-utc');parser.add_argument('--public-report',type=Path)
+    parser.add_argument('--resume-limit-utc',help='Explicit user-resumed operational limit, at most two hours ahead')
     args=parser.parse_args(argv)
     result=verify_parallel(artifact_root=args.artifact_root,original_root=args.original_root,out_dir=args.out_dir,
-        writers_closed=args.writers_closed,max_workers=args.max_workers,deadline_utc=args.deadline_utc,public_report=args.public_report)
+        writers_closed=args.writers_closed,max_workers=args.max_workers,deadline_utc=args.deadline_utc,public_report=args.public_report,resume_limit_utc=args.resume_limit_utc)
     print(json.dumps({'passed':result['passed'],'planned_units':result['planned_units'],'passed_units':result['passed_units'],
                       'failed_or_incomplete_units':result['failed_or_incomplete_units'],'seconds':result['seconds']},indent=2))
     return 0 if result['passed'] else 1
