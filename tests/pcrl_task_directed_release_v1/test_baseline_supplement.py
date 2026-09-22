@@ -147,3 +147,29 @@ def test_restored_supplement_loads_only_owned_maps_and_reconstructs_moments(froz
     bad = copy.deepcopy(prepared); bad['ctx']['pools']['representation_fit']['labels']['SEX'][0] ^= 1
     with pytest.raises(ValueError, match='slice'):
         verify.verify_baseline_supplement(bad, restored_spec, study_out=target)
+
+
+@pytest.mark.parametrize('method', ['leace_supervised', 'splince_supervised'])
+def test_receipt_pinned_object_identity_arrays_replay_and_tampering_rejected(frozen_parent, method, monkeypatch):
+    from experiments.pcrl_task_directed_release_v1 import verify
+    out, prepared = frozen_parent
+    rf = prepared['ctx']['pools']['representation_fit']
+    rf['ids'] = rf['ids'].astype(object)
+    rf['households'] = rf['households'].astype(object)
+    base = out/'private/run/anchor_0'
+    joblib.dump(prepared, base/'prepared.joblib')
+    receipt = json.loads((base/'PREPARED.json').read_text())
+    receipt['cache_sha256'] = receipt['artifact_hashes']['prepared.joblib'] = run.sha(base/'prepared.joblib')
+    run.atomic(base/'PREPARED.json', receipt)
+    mod, _, _ = register_and_schedule()
+    spec = mod.lookup_release(method+'_mechanism40', 0)
+    mod.prepared_for_spec(0, prepared, spec)
+    report = verify.verify_baseline_supplement(prepared, spec, study_out=out)
+    assert report['passed'] and report['provided_people'] == 200
+    path = base/'baseline_supplement/mechanism40/slice.npz'
+    with path.open('ab') as f:f.write(b'changed after acceptance')
+    def forbidden_load(*args, **kwargs):
+        raise AssertionError('Artifact integrity must fail before any NumPy deserialization')
+    monkeypatch.setattr(np, 'load', forbidden_load)
+    with pytest.raises(ValueError, match='hash|checksum|artifact|Artifact'):
+        verify.verify_baseline_supplement(prepared, spec, study_out=out)

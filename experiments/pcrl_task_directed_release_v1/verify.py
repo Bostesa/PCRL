@@ -297,7 +297,11 @@ def verify_baseline_supplement(prepared, spec, *, study_out):
         **{'label_'+k: np.asarray(rf['labels'][k])[ix] for k in (*baselines.PROTECTED, *baselines.TASKS)}}
     path = root/'private/run'/f'anchor_{anchor}'/'baseline_supplement'/spec['scope']/'slice.npz'
     _require(path.resolve().is_relative_to(root), 'Supplement slice escapes owned root')
-    with np.load(path, allow_pickle=False) as bundle:
+    # The original task-produced RF identity columns have object dtype. The
+    # accepted receipt verifies every member before deserialization; bind this
+    # exact slice again rather than rewriting its immutable saved representation.
+    _require(_sha(path) == receipt['rf_slice_sha256'], 'Supplement slice hash changed')
+    with np.load(path, allow_pickle=True) as bundle:
         _require(set(bundle.files) == set(expected), 'Supplement slice schema changed')
         for key, value in expected.items():
             actual = bundle[key]

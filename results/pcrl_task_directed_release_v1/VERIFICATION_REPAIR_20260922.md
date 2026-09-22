@@ -1,0 +1,7 @@
+# Dated independent-verifier repair — 2026-09-22
+
+The first independent replay passed 69 of 75 units. The six mechanism40 LEACE/SPLINCE units stopped before prediction replay because the verifier opened the original `slice.npz` with `allow_pickle=False`. Header-only inspection confirmed that only the saved person and household identity arrays have NumPy object dtype; the fitting code had intentionally preserved the inherited identity representation. These are task-produced files already authenticated by the accepted fitting receipt.
+
+The verifier now verifies that exact slice against its separately recorded SHA-256 and permits its original object representation after the complete artifact receipt is verified. Every identity, household, weight, label, feature, probability and fitted covariance/map comparison remains enforced. No fitted artifact, prediction, outcome, selection, scientific source fingerprint, inference calculation or tolerance is changed. The source patch is confined to the independent verifier.
+
+Two regression cases reproduce the failure with object-dtype identities, cover both erasers, and require a tampered slice to be rejected before NumPy deserialization. The original failed report is preserved as `PARALLEL_VERIFICATION_ATTEMPT1.json`; its six error records and all successful replays remain in the private archive. All 75 units are replayed again under one unchanged repaired verifier to produce the final canonical report. That final report, not this repair note, establishes successful completion.
