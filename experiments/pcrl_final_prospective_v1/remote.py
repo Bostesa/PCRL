@@ -79,3 +79,26 @@ if __name__ == '__main__':
     s = sub.add_parser('get'); s.add_argument('cid')
     a = ap.parse_args()
     print(send(['set -eu', a.command], a.description) if a.a == 'run' else json.dumps(get(a.cid), indent=1))
+
+
+def fetch(relative_paths, local_root=ROOT, wait=True):
+    """Copy host files (paths relative to /opt/pcrl/work) to the local tree via the private bucket."""
+    import time
+    prefix = f's3://{BUCKET}/{STUDY}/outbox'
+    cmds = ['set -eu', 'cd /opt/pcrl/work'] + [
+        f'aws s3 cp {shlex.quote(p)} {shlex.quote(prefix+"/"+p)} --sse AES256 --only-show-errors' for p in relative_paths]
+    cid = send(cmds, f'fetch {len(relative_paths)} files')
+    if not wait:
+        return cid
+    while True:
+        time.sleep(4)
+        r = get(cid)
+        if r['Status'] not in ('Pending', 'InProgress'):
+            break
+    if r['Status'] != 'Success':
+        raise RuntimeError(r)
+    for p in relative_paths:
+        target = Path(local_root)/p
+        target.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(['aws', '--profile', 'vein', 's3', 'cp', prefix+'/'+p, str(target), '--only-show-errors'], check=True)
+    return cid
