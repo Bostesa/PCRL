@@ -1,0 +1,88 @@
+{
+ "schema": 1,
+ "terminal": "terminal_3",
+ "branch": "research/pcrl-claims-foundation-v1",
+ "content_commit": "fa96b553809a52ea903f3615657fd84222a53b40",
+ "worktree": "<terminal 3 worktree>",
+ "base_commit": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+ "manuscript_target": {
+  "branch": "research/pcrl-submission-finish-v1",
+  "commit": "30a6fd19e17453bc8c421a65491b5b482ab9291f",
+  "files": [
+   "papers/pcrl_satml_final_v1/main.tex",
+   "papers/pcrl_satml_final_v1/references.bib"
+  ]
+ },
+ "files": [
+  "analysis/pcrl_claims_foundation_v1/__init__.py",
+  "analysis/pcrl_claims_foundation_v1/build_manuscript_patch.py",
+  "analysis/pcrl_claims_foundation_v1/exact_fixtures.py",
+  "analysis/pcrl_claims_foundation_v1/historical_precision_diagnostic.py",
+  "analysis/pcrl_claims_foundation_v1/replay_dominant_axis.py",
+  "results/pcrl_claims_foundation_v1/BRANCH_DISCOVERY.md",
+  "results/pcrl_claims_foundation_v1/CLAIM_MATRIX.csv",
+  "results/pcrl_claims_foundation_v1/CORRECTED_CONTRIBUTIONS.md",
+  "results/pcrl_claims_foundation_v1/CORRECTIONS.md",
+  "results/pcrl_claims_foundation_v1/DOMINANT_AXIS_REPLAY.json",
+  "results/pcrl_claims_foundation_v1/FIXTURE_OUTPUTS.json",
+  "results/pcrl_claims_foundation_v1/HISTORICAL_PRECISION_DIAGNOSTIC.json",
+  "results/pcrl_claims_foundation_v1/IMPLEMENTATION_CLAIM_ALIGNMENT.md",
+  "results/pcrl_claims_foundation_v1/MANUSCRIPT_PATCH.md",
+  "results/pcrl_claims_foundation_v1/METHOD_LINEAGE.md",
+  "results/pcrl_claims_foundation_v1/METHOD_LINEAGE_NOTES.md",
+  "results/pcrl_claims_foundation_v1/PRIOR_ART_MATRIX.md",
+  "results/pcrl_claims_foundation_v1/PRIOR_ART_NOTES.md",
+  "results/pcrl_claims_foundation_v1/REBUTTAL_WORK_INDEX.csv",
+  "results/pcrl_claims_foundation_v1/REVIEW_INDEX.md",
+  "results/pcrl_claims_foundation_v1/REVIEW_RESPONSE_EVIDENCE.md",
+  "results/pcrl_claims_foundation_v1/SOURCE_MAP.json",
+  "results/pcrl_claims_foundation_v1/THEORY_REPAIRS.md",
+  "results/pcrl_claims_foundation_v1/VERIFICATION_REPORT.md",
+  "results/pcrl_claims_foundation_v1/patches/0001-retire-accuracy-guarantee-on-main.patch",
+  "results/pcrl_claims_foundation_v1/patches/0002-manuscript-integration-against-30a6fd19e.patch",
+  "results/pcrl_claims_foundation_v1/tex/audit_dominant_axis.tex",
+  "results/pcrl_claims_foundation_v1/tex/composition.tex",
+  "results/pcrl_claims_foundation_v1/tex/contributions.tex",
+  "results/pcrl_claims_foundation_v1/tex/corrections_additions.tex",
+  "results/pcrl_claims_foundation_v1/tex/measurement.tex",
+  "results/pcrl_claims_foundation_v1/tex/method_release.tex",
+  "results/pcrl_claims_foundation_v1/tex/references_additions.bib",
+  "results/pcrl_claims_foundation_v1/tex/related_work.tex",
+  "tests/pcrl_claims_foundation_v1/__init__.py",
+  "tests/pcrl_claims_foundation_v1/test_claims_foundation.py"
+ ],
+ "numerical_changes": [
+  "Table I Adult mean aggregate 0.0080 -> 0.0082 under float64 reconstruction (interpretive; stored numbers unchanged; not applied in patch 0002)",
+  "no other number in the manuscript changes"
+ ],
+ "textual_changes": [
+  "E1 label-free -> residence-supervised code (blocking)",
+  "E2 selected release local-only; coalition audited not constrained",
+  "E3 conditioning cells 2 (A) / 4 (AB)",
+  "E4 increment is not a floor",
+  "E6 API retired only on research branches (patch 0001 for main)",
+  "E7 DA definition, identity attribution, replay sentence",
+  "M1-M7 prior-art attributions; +6 bib entries",
+  "composition lemma (tight lambda_min bound)",
+  "corrections: random backbone; P4 misapplied; skipped certificate named"
+ ],
+ "unresolved": [
+  "genuine NeurIPS reviews must be retrieved by the author (not in any ref)",
+  "owner decision: apply patches/0001 to main",
+  "optional abstract edits subject to the venue post-registration rules",
+  "LoRA-vs-linear-adapter, erase-layer and held-out-selection ablations never run (limitation, not an assignment)",
+  "no dual bound for the Q solves (optimality solver-reported)",
+  "the value of randomisation over D17 awaits Terminal 1 fresh-year test",
+  "0.003-nat hardware figure and three-attacker-search claim not traced by T3"
+ ],
+ "urgent_review_for_terminal_1": null,
+ "integration_commands": [
+  "git fetch origin research/pcrl-claims-foundation-v1",
+  "git show origin/research/pcrl-claims-foundation-v1:results/pcrl_claims_foundation_v1/patches/0002-manuscript-integration-against-30a6fd19e.patch > /tmp/t3.patch",
+  "git apply --check /tmp/t3.patch && git apply /tmp/t3.patch",
+  "cd papers/pcrl_satml_final_v1 && latexmk -pdf main.tex",
+  "if main.tex moved: python analysis/pcrl_claims_foundation_v1/build_manuscript_patch.py <dir> <out> results/pcrl_claims_foundation_v1/tex/references_additions.bib"
+ ],
+ "restart_instruction": "If Terminal 2 is closed: from its worktree, run the integration commands above; then update results/pcrl_submission_review_v1/{REVIEW_TO_EVIDENCE.md,NOVELTY_AND_SCOPE.md,CORRECTIONS_FINAL.md} per MANUSCRIPT_PATCH.md \"Separate note\" and CORRECTIONS.md T3-1..T3-17.",
+ "written_utc": "2026-09-22T22:31:31+00:00"
+}
