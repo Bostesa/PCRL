@@ -24,7 +24,7 @@ Sources, both read 2026-09-22: <https://satml.org/call-for-papers/> and the subm
 It names the release contract and the measurement, and claims no competitive algorithm. Substantial
 title changes are barred after registration, so it is written to survive every outcome still open.
 
-## Recommended abstract (561 words)
+## Recommended abstract (228 words)
 
 > An organisation already publishes a prediction service whose outputs downstream recipients consume and
 > cannot be asked to re-accept. We study what it can release *beside* those fixed outputs for one
