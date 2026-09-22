@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "source_resource_receipt": "AWS_RESOURCES.json",
+  "source_resource_receipt_sha256": "a1d8db6d1b08cb48fa30405b4ffe35501ddf23eec561d87f8432b870de632f7e",
+  "compute_intervals": [
+    {
+      "instance_type": "c7i.4xlarge",
+      "start_utc": "2026-09-21T22:56:00.161625+00:00",
+      "end_utc": "2026-09-21T23:55:17.736426+00:00",
+      "timestamp_basis": "ESTIMATE: AWS_RESOURCES.created_utc is inventory creation, not a verified launch/running transition; replace if actual task launch receipt is available"
+    },
+    {
+      "instance_type": "c7i.8xlarge",
+      "start_utc": "2026-09-21T23:57:22.768712+00:00",
+      "end_utc": "2026-09-22T08:22:06+00:00",
+      "timestamp_basis": "Recorded resized start and original shutdown journal time; billing transition precision covered by explicit contingency."
+    },
+    {
+      "instance_type": "c7i.8xlarge",
+      "start_utc": "2026-09-22T17:19:00+00:00",
+      "end_utc": "2026-09-22T18:19:56.481238+00:00",
+      "timestamp_basis": "Conservative rounded restart request from CLOSEOUT_RESUME_20260922.json through API-confirmed termination, not an exact invoice transition."
+    }
+  ],
+  "gp3_intervals": [
+    {
+      "provisioned_gib": 80,
+      "start_utc": "2026-09-21T22:56:00.161625+00:00",
+      "end_utc": "2026-09-22T18:19:56.940871+00:00",
+      "deletion_confirmed": true,
+      "timestamp_basis": "Start estimated from resource inventory; end is actual volume deletion or explicit as-of UTC if retained"
+    }
+  ],
+  "ipv4_intervals": [
+    {
+      "addresses": 1,
+      "start_utc": "2026-09-21T22:56:00.161625+00:00",
+      "end_utc": "2026-09-21T23:55:17.736426+00:00"
+    },
+    {
+      "addresses": 1,
+      "start_utc": "2026-09-21T23:57:22.768712+00:00",
+      "end_utc": "2026-09-22T08:22:06+00:00"
+    },
+    {
+      "addresses": 1,
+      "start_utc": "2026-09-22T17:19:00+00:00",
+      "end_utc": "2026-09-22T18:19:56.481238+00:00"
+    }
+  ],
+  "s3_storage_intervals": [
+    {
+      "bytes": 17649570353,
+      "start_utc": "2026-09-21T22:58:31+00:00",
+      "end_utc": "2026-09-22T18:20:08.931332+00:00",
+      "inventory_basis": "Conservative final all-version bytes plus16MiB reserved for final proof tail, charged for the entire episode since earliest object; includes noncurrent versions. No incomplete multipart uploads."
+    }
+  ],
+  "s3_requests": {
+    "put_copy_post_list": 100000,
+    "get_other": 100000,
+    "inventory_basis": "Explicit conservative request-count allowances, not measured requests. Actual retained inventory has27084 versions, including emergency copies; allowances include multipart/list/readback and proof uploads."
+  },
+  "internet_transfer_out": {
+    "bytes": 53687091200,
+    "confirmed_free_bytes_applied": 0,
+    "inventory_basis": "Explicit50GiB conservative internet-transfer allowance, not measured egress. Same-region archive transfers are included in EC2 NetworkOut and ordinarily not internet egress; this allowance exceeds observed all-EC2 outbound plus local artifact downloads. No free tier credited."
+  },
+  "retained_s3_inventory": {
+    "bytes": 17649570353,
+    "object_count": 27085,
+    "incomplete_multipart_bytes": 0,
+    "inventory_utc": "2026-09-22T18:20:08.931332+00:00",
+    "scope": "All27084 task-prefix object versions plus one final proof archive with a16MiB maximum allowance. Actual tail bytes/version are separately published in FINAL_CONTROL_ARCHIVE.json."
+  },
+  "retained_gp3_gib": 0,
+  "other_task_charges": [
+    {
+      "description": "Explicit contingency allowance for billable API usage, sub-minute transition uncertainty and incidental task charges; not a measured charge",
+      "usd": "1.00",
+      "source_receipt": "COST_USAGE.json/estimation_policy"
+    }
+  ],
+  "all_billable_categories_accounted": true,
+  "unrelated_running_instance": "untouched; no cost estimated because usage is outside this task and unknown",
+  "estimation_policy": "Complete conservative budget estimate using observed resources and declared usage allowances. All cost categories are represented; request/transfer/timestamp uncertainty is not invoice-reconciled. Allowances are estimates, not proven billing upper bounds.",
+  "source_resource_closeout_sha256": "6658c0c231c2a7705515761b7c8f6e21bc59e59c1873e97f7a5d738b29893311",
+  "source_inventory_summary_sha256": "3e7a95c3b82fe003b31335197e515a98c9b4bf1dc8a5b8ce26a764a77745e159",
+  "retention_horizon": "One month explicitly reported; ongoing private preservation continues to incur S3 storage beyond that."
+}

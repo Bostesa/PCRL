@@ -1,0 +1,185 @@
+{
+  "assumptions": [
+    "Elapsed running intervals use continuous time prorating; billing rounding/minimums and timestamp uncertainty are not an invoice reconciliation.",
+    "GB-Mo prorated by UTC calendar-month length; byte conversion uses 2^30 bytes per storage/transfer GB-equivalent and is stated explicitly.",
+    "S3 Standard and outbound transfer use the highest first-tier recorded rate; account aggregation/discounts can reduce those rates.",
+    "No free-tier allowance is assumed unless confirmed_free_bytes_applied is supplied; no tax, support plan, credits or discounts inferred.",
+    "Stopped EC2 ends compute time but retains chargeable EBS unless deletion is confirmed. Retained public addresses need their actual chargeable interval.",
+    "Archive inventory must include all task-owned copies, noncurrent versions and incomplete multipart parts; multipart/list/restore verification requests and internet downloads are separate inputs.",
+    "No cost is inferred for pre-existing unrelated resources, and no AWS operation is performed."
+  ],
+  "complete_estimate_inputs": true,
+  "compute_network_scope": "EC2 + task gp3 + public IPv4 + internet data transfer; S3 storage/requests additionally enter the incremental total",
+  "compute_network_subtotal_usd": "18.89285436",
+  "compute_network_target_35": {
+    "assessment": "within_on_declared_inputs",
+    "estimated_usd": "18.89285436",
+    "limit_usd": "35",
+    "within_limit": true
+  },
+  "currency": "USD",
+  "episode_plus_one_month_retention_usd": "20.82108149",
+  "estimate_not_invoice": true,
+  "incremental_ceiling_50": {
+    "assessment": "within_on_declared_inputs",
+    "estimated_usd": "20.44302029",
+    "limit_usd": "50",
+    "within_limit": true
+  },
+  "inventory_declared_complete": true,
+  "known_episode_subtotal_usd": "20.44302029",
+  "line_items": [
+    {
+      "category": "compute",
+      "description": "c7i.4xlarge",
+      "end_utc": "2026-09-21T23:55:17.736426+00:00",
+      "estimated_usd": "0.70558567",
+      "seconds": "3557.574801",
+      "start_utc": "2026-09-21T22:56:00.161625+00:00",
+      "timestamp_basis": "ESTIMATE: AWS_RESOURCES.created_utc is inventory creation, not a verified launch/running transition; replace if actual task launch receipt is available",
+      "usd_per_hour": "0.7140000000"
+    },
+    {
+      "category": "compute",
+      "description": "c7i.8xlarge",
+      "end_utc": "2026-09-22T08:22:06+00:00",
+      "estimated_usd": "12.01234841",
+      "seconds": "30283.231288",
+      "start_utc": "2026-09-21T23:57:22.768712+00:00",
+      "timestamp_basis": "Recorded resized start and original shutdown journal time; billing transition precision covered by explicit contingency.",
+      "usd_per_hour": "1.4280000000"
+    },
+    {
+      "category": "compute",
+      "description": "c7i.8xlarge",
+      "end_utc": "2026-09-22T18:19:56.481238+00:00",
+      "estimated_usd": "1.45040422",
+      "seconds": "3656.481238",
+      "start_utc": "2026-09-22T17:19:00+00:00",
+      "timestamp_basis": "Conservative rounded restart request from CLOSEOUT_RESUME_20260922.json through API-confirmed termination, not an exact invoice transition.",
+      "usd_per_hour": "1.4280000000"
+    },
+    {
+      "category": "gp3",
+      "deletion_confirmed": true,
+      "description": "Provisioned gp3 storage",
+      "end_utc": "2026-09-22T18:19:56.940871+00:00",
+      "estimated_usd": "0.17243649",
+      "provisioned_gib": "80",
+      "start_utc": "2026-09-21T22:56:00.161625+00:00"
+    },
+    {
+      "addresses": "1",
+      "category": "ipv4",
+      "description": "In-use public IPv4",
+      "end_utc": "2026-09-21T23:55:17.736426+00:00",
+      "estimated_usd": "0.00494108",
+      "start_utc": "2026-09-21T22:56:00.161625+00:00"
+    },
+    {
+      "addresses": "1",
+      "category": "ipv4",
+      "description": "In-use public IPv4",
+      "end_utc": "2026-09-22T08:22:06+00:00",
+      "estimated_usd": "0.04206004",
+      "start_utc": "2026-09-21T23:57:22.768712+00:00"
+    },
+    {
+      "addresses": "1",
+      "category": "ipv4",
+      "description": "In-use public IPv4",
+      "end_utc": "2026-09-22T18:19:56.481238+00:00",
+      "estimated_usd": "0.00507845",
+      "start_utc": "2026-09-22T17:19:00+00:00"
+    },
+    {
+      "bytes": "17649570353",
+      "category": "s3_storage",
+      "description": "S3 Standard storage byte-time",
+      "end_utc": "2026-09-22T18:20:08.931332+00:00",
+      "estimated_usd": "0.01016593",
+      "inventory_basis": "Conservative final all-version bytes plus16MiB reserved for final proof tail, charged for the entire episode since earliest object; includes noncurrent versions. No incomplete multipart uploads.",
+      "start_utc": "2026-09-21T22:58:31+00:00"
+    },
+    {
+      "category": "s3_requests",
+      "description": "put_copy_post_list",
+      "estimated_usd": "0.50000000",
+      "requests": "100000",
+      "usd_per_request": "0.0000050000",
+      "basis": "100000 requests in each category as conservative allowance; not measured request count"
+    },
+    {
+      "category": "s3_requests",
+      "description": "get_other",
+      "estimated_usd": "0.04000000",
+      "requests": "100000",
+      "usd_per_request": "4.000E-7",
+      "basis": "100000 requests in each category as conservative allowance; not measured request count"
+    },
+    {
+      "category": "internet_transfer",
+      "confirmed_free_bytes_applied": "0",
+      "description": "Internet data transfer out, first paid tier estimate",
+      "estimated_usd": "4.50000000",
+      "usd_per_gib": "0.0900000000",
+      "declared_transfer_allowance_bytes": "53687091200",
+      "basis": "50GiB budget allowance; not measured internet egress"
+    },
+    {
+      "category": "other",
+      "description": "Explicit contingency allowance for billable API usage, sub-minute transition uncertainty and incidental task charges; not a measured charge",
+      "estimated_usd": "1.00000000",
+      "source_receipt": "COST_USAGE.json/estimation_policy"
+    }
+  ],
+  "missing_inputs": [],
+  "price_provenance": {
+    "CURRENT_LARGER_INSTANCE_PRICE.json": {
+      "commit": "840fe7cbac2c6127859655cf182dec3ba3d82395",
+      "path": "results/pcrl_task_directed_release_v1/CURRENT_LARGER_INSTANCE_PRICE.json",
+      "sha256": "1f2677e11f9e523da3a36d0d61929f2dec4e568d60f7099e4c1cd6ad33678b7d",
+      "source": "AWS Price List API"
+    },
+    "CURRENT_PRICES.json": {
+      "commit": "53ce8b897bd8fcccc96c99e9a29d83f34b5dcda6",
+      "path": "results/pcrl_task_directed_release_v1/CURRENT_PRICES.json",
+      "sha256": "7646e79ad8d0af88a3cf41147ecdb377964b6d9cc146e3e7fc1bc0cc44828bb1",
+      "source": "AWS Price List Query API AmazonEC2 us-east-1"
+    },
+    "CURRENT_STORAGE_NETWORK_PRICES.json": {
+      "commit": "a1186a4fd751ed2edaeecd5c1d808dbb2bd98fcd",
+      "path": "results/pcrl_task_directed_release_v1/CURRENT_STORAGE_NETWORK_PRICES.json",
+      "sha256": "2062580ddb5b7c56901db03d5cacbe04747e2c0ef25d9ce9cd338f5056849161",
+      "source": "AWS Price List API, us-east-1"
+    }
+  },
+  "retained_gp3_usd_per_month_estimate": "0E-8",
+  "retained_s3_standard_usd_per_month_estimate": "0.37806120",
+  "retention_scope": "recurring estimates are separate from elapsed episode charges; indefinite retention has no finite total-cost ceiling",
+  "schema": 1,
+  "unrelated_instance": {
+    "action": "untouched",
+    "cost_estimated": false,
+    "reason": "Unrelated running instance is outside this task; its usage and costs are unknown"
+  },
+  "usage_content_sha256": "cac7830fe913f2a22ddb89efbdbba1ed5d097483d8951a2f3efcc06d30064e08",
+  "usage_file_sha256": "70d4638b491394ba28cc3dbdc71c16cc49d1ecf8c4ccb5cb727a775787277003",
+  "usage_file": "COST_USAGE.json",
+  "raw_private_worksheet_sha256": "06832f801507e76bf57d070497776851bce96e69c013f44d4b173bf576cd919e",
+  "estimation_policy": "Complete conservative budget estimate using observed resources and declared usage allowances. All cost categories are represented; request/transfer/timestamp uncertainty is not invoice-reconciled. Allowances are estimates, not proven billing upper bounds.",
+  "inventory_summary": {
+    "inventory_utc": "2026-09-22T18:20:08.931332+00:00",
+    "version_count": 27084,
+    "unique_keys": 27066,
+    "all_version_bytes": 17632793137,
+    "noncurrent_version_bytes": 28642743,
+    "delete_markers": 0,
+    "incomplete_multipart_bytes": 0,
+    "earliest_version_utc": "2026-09-21T22:58:31+00:00",
+    "latest_version_utc": "2026-09-22T18:18:10+00:00"
+  },
+  "observed_all_ec2_networkout_bytes": 17947397355.0,
+  "network_metric_scope": "EC2 all outbound includes same-region transfers and can have ingestion lag; it is not billable internet egress.",
+  "generated_utc": "2026-09-22T18:22:45.511829+00:00"
+}
