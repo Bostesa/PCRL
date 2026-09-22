@@ -1,0 +1,17 @@
+{
+  "created_utc": "2026-09-22T22:03:00Z",
+  "host": {"type": "c7i.8xlarge", "vcpu": 32, "memory_gib": 64, "os": "Ubuntu 24.04 x86_64", "price_usd_hour": 1.428,
+           "reason": "account standard vCPU quota is 32; same instance class as the predecessor; Linux x86 reproduces archived encodings bitwise"},
+  "concurrency": {"workers": 20, "threads_per_worker": 1, "process_model": "spawn, maxtasksperchild=1, dependency-aware scheduler (H roles -> release A roles -> AB roles)",
+                  "memory_basis": "observed peak RSS <= 0.66 GB per unit in the emulated benchmark so far; 20 workers leave > 45 GB free"},
+  "benchmark": {"dataset": "2018 (already used) people resampled by household to the 2016 pool sizes (fit 39,697; attacker val 7,911; task val 8,006; final 23,684); timing device only",
+                "observed_so_far": {"H role units": "63-119 s", "J/C/E/S units": "63-120 s", "D17/D33 units": "120-234 s",
+                                    "Q units (17-token full support, 675k expanded rows)": "about 10 min (binary) to 25 min (RAC1P)"},
+                "full_record": "private/runs/emulated/TIMING.json, summarized in BENCHMARK.json after completion"},
+  "forecast": {"prepare_2016_minutes": 5, "fit_minutes": "60-80 (critical path Q/RR/W A/RAC1P then AB/RAC1P)", "lock_minutes": 5,
+               "score_minutes": "10-20", "bootstrap_minutes": "<10", "verification_and_closeout_minutes": ">= 60"},
+  "recipe_changes_for_resources": "none; the frozen predecessor slate is feasible at 2016 size",
+  "cost": {"ceiling_usd": 50, "target_usd": 35, "forecast_compute_usd": "8-12 (5-8 instance hours)", "storage_network_usd": "< 3",
+           "watchdog": "instance self-terminates at 2026-09-23 06:40 UTC after syncing private runs to the private archive"},
+  "no_minimum_runtime": true
+}

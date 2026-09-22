@@ -1,0 +1,96 @@
+{
+  "slate": "predecessor catchup slate, unchanged",
+  "config": {
+    "logistic": {
+      "C": 1.0,
+      "max_iter": 2000,
+      "solver": "lbfgs",
+      "tol": 0.0001
+    },
+    "mlp": {
+      "hidden": [
+        64,
+        32
+      ],
+      "epochs": 360,
+      "nested_epochs": 120,
+      "batch_size": 256,
+      "lr": 0.001,
+      "weight_decay": 0.0001,
+      "validation_interval": 5
+    },
+    "histgb": {
+      "max_iter": 150,
+      "max_leaf_nodes": 15,
+      "learning_rate": 0.1,
+      "l2_regularization": 1.0,
+      "early_stopping": false
+    }
+  },
+  "probability_floor": 1e-09,
+  "candidates": [
+    "logistic (C=1, lbfgs, max_iter 2000; H + token onehot + H x onehot)",
+    "hist_gb_20, hist_gb_5 (exact person-token expansion; min_samples_leaf x max token support)",
+    "sampled_hist_gb_20, sampled_hist_gb_5 (one fixed sampled token per person; seed 20260921+role seed)",
+    "mlp_120, mlp_360 (64-32 ReLU, Adam 1e-3, wd 1e-4, batch 256 people, validation every 5 epochs, nested 120/360 selections of one trajectory)"
+  ],
+  "fit_weighting": "0.5 + 0.5 * PWGTP/mean(PWGTP) per original person; token expansion conserves person weight",
+  "ancestors": {
+    "H": "all same-role H-only model candidates (wire H) for every non-H release",
+    "AB": "all candidates of the same release A role + H B role (B unchanged)",
+    "J": "never an ancestor of a replacement release"
+  },
+  "selection_rule": "0.5 * unweighted expected log loss + 0.5 * PWGTP expected log loss; lexical candidate tie",
+  "validation_pool": "validation/attacker_validation (2016 admission partition)",
+  "fit_pool": "fitting (attacker_fit U task_fit, 2016 admission partition)",
+  "seeds": "2016000 + 10000*anchor + 37*role_index(predecessor ROLE_SPECS order); identical across releases (common random numbers)",
+  "role_seeds": {
+    "0|attack:A/SEX": 2016000,
+    "0|attack:A/RAC1P": 2016037,
+    "0|attack:B/SEX": 2016333,
+    "0|attack:B/RAC1P": 2016370,
+    "0|utility:A/same_residence": 2016407,
+    "0|attack:AB/SEX": 2016074,
+    "0|attack:AB/RAC1P": 2016111,
+    "1|attack:A/SEX": 2026000,
+    "1|attack:A/RAC1P": 2026037,
+    "1|attack:B/SEX": 2026333,
+    "1|attack:B/RAC1P": 2026370,
+    "1|utility:A/same_residence": 2026407,
+    "1|attack:AB/SEX": 2026074,
+    "1|attack:AB/RAC1P": 2026111,
+    "2|attack:A/SEX": 2036000,
+    "2|attack:A/RAC1P": 2036037,
+    "2|attack:B/SEX": 2036333,
+    "2|attack:B/RAC1P": 2036370,
+    "2|utility:A/same_residence": 2036407,
+    "2|attack:AB/SEX": 2036074,
+    "2|attack:AB/RAC1P": 2036111
+  },
+  "dependencies_example": {
+    "Q/0/attack:AB/SEX": [
+      [
+        "H",
+        0,
+        "attack:AB/SEX"
+      ],
+      [
+        "Q",
+        0,
+        "attack:A/SEX"
+      ],
+      [
+        "H",
+        0,
+        "attack:B/SEX"
+      ]
+    ]
+  },
+  "full_schema": {
+    "SEX": 2,
+    "RAC1P": 9,
+    "missing_fit_class": "uniform full-schema floor (1-K*1e-9)q+1e-9; class never removed"
+  },
+  "stochastic_training": "exact expected-risk person-token expansion with conserved weights (logistic, exact trees, MLP minibatches); sampled-token trees use one fixed categorical draw per person",
+  "raw_input_diagnostic": "not run (optional); absence of a stronger attacker is not a privacy certificate"
+}

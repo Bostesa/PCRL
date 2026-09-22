@@ -1,0 +1,330 @@
+{
+  "created_utc": "2026-09-22T21:48:15.606728+00:00",
+  "families": {
+    "H": {
+      "family": "H",
+      "purpose": "service-only reference (immutable services)",
+      "map": null,
+      "actions": null,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "none new (historical services only)",
+        "training_households": "n/a",
+        "actions": 1,
+        "channel_width": 0,
+        "inference_inputs": "H_A (4) to A, H_B (2) to B"
+      }
+    },
+    "J": {
+      "family": "J",
+      "purpose": "historical operating-point comparator",
+      "map": null,
+      "actions": null,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "historical J training (source labels + protected-attribute adversarial terms); no residence supervision",
+        "training_households": "historical representation_fit (anchor-specific 2018 split)",
+        "actions": 1,
+        "channel_width": 16,
+        "inference_inputs": "standardized PCA32 -> frozen 64-16 mapper"
+      }
+    },
+    "Q": {
+      "family": "T0_L_0.01_a17",
+      "purpose": "predeclared operating-point hypothesis 1 (constrained stochastic release)",
+      "map": "T0_L_0.01_a17",
+      "actions": 17,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "residence (teacher, 48% of RF; costs on mechanism 40% of RF); SEX and RAC1P (A-view constraint tables on mechanism rows)",
+        "training_households": "anchor-specific 2018 representation_fit roles (teacher 48%, internal 12%, mechanism 40%)",
+        "actions": 17,
+        "channel_width": "1 categorical token (17 values)",
+        "inference_inputs": "PCA32 + H_A -> T0 code (32 cells) -> one sampled token"
+      }
+    },
+    "D17": {
+      "family": "T0_U_unconstrained_a17",
+      "purpose": "predeclared operating-point hypothesis 2 (same code, same 17 actions, unconstrained)",
+      "map": "T0_U_unconstrained_a17",
+      "actions": 17,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "residence only (teacher + mechanism costs); no protected labels used by the channel",
+        "training_households": "same as Q",
+        "actions": 17,
+        "channel_width": "1 categorical token (17 values, deterministic)",
+        "inference_inputs": "same as Q"
+      }
+    },
+    "D33": {
+      "family": "T0_U_unconstrained_a33",
+      "purpose": "control: finer deterministic task control (33 actions)",
+      "map": "T0_U_unconstrained_a33",
+      "actions": 33,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "residence only",
+        "training_households": "same as Q",
+        "actions": 33,
+        "channel_width": "1 categorical token (33 values, deterministic)",
+        "inference_inputs": "same as Q"
+      }
+    },
+    "C": {
+      "family": "continuous_task",
+      "purpose": "control: direct continuous supervised task prediction",
+      "map": null,
+      "actions": null,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "residence (teacher)",
+        "training_households": "teacher 48% of RF",
+        "actions": "continuous",
+        "channel_width": 1,
+        "inference_inputs": "PCA32 + H_A -> teacher probability p"
+      }
+    },
+    "E": {
+      "family": "leace_supervised_mechanism40",
+      "purpose": "control: label-matched LEACE adaptation (mechanism40)",
+      "map": null,
+      "actions": null,
+      "eraser": [
+        "leace_supervised",
+        "mechanism40"
+      ],
+      "fairness": {
+        "training_labels": "SEX and RAC1P (joint one-hot, complete cases) on mechanism 40% of RF; frozen teacher logit as input",
+        "training_households": "mechanism40 slice (anchor 0: 4131 people / 2800 households)",
+        "actions": "continuous",
+        "channel_width": 33,
+        "inference_inputs": "[PCA32, clipped teacher logit] -> affine eraser"
+      }
+    },
+    "S": {
+      "family": "splince_supervised_mechanism40",
+      "purpose": "control: label-matched SPLINCE adaptation (mechanism40)",
+      "map": null,
+      "actions": null,
+      "eraser": [
+        "splince_supervised",
+        "mechanism40"
+      ],
+      "fairness": {
+        "training_labels": "SEX and RAC1P as E, plus residence/income/employment preservation covariance",
+        "training_households": "mechanism40 slice (as E)",
+        "actions": "continuous",
+        "channel_width": 33,
+        "inference_inputs": "as E"
+      }
+    },
+    "RR75": {
+      "family": "T0_rr_0.75",
+      "purpose": "fixed simple-randomization control: randomized response over D17 actions, publish 0.75",
+      "map": "T0_U_unconstrained_a17",
+      "actions": 17,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "as D17 (no new fit)",
+        "training_households": "as D17",
+        "actions": 17,
+        "channel_width": "1 categorical token (17 values, full support)",
+        "inference_inputs": "as D17 plus private coin"
+      }
+    },
+    "W75": {
+      "family": "T0_withhold_0.75",
+      "purpose": "fixed simple-randomization control: withhold D17 action with probability 0.25",
+      "map": "T0_U_unconstrained_a17",
+      "actions": 17,
+      "eraser": null,
+      "fairness": {
+        "training_labels": "as D17 (no new fit)",
+        "training_households": "as D17",
+        "actions": "17 + withheld symbol",
+        "channel_width": "1 categorical token (18 values)",
+        "inference_inputs": "as D17 plus private coin"
+      }
+    }
+  },
+  "anchors": [
+    0,
+    1,
+    2
+  ],
+  "anchor_rule": "three frozen fits; common families across anchors; anchors are not independent datasets",
+  "candidates": [
+    "Q",
+    "D17"
+  ],
+  "controls": [
+    "H",
+    "J",
+    "D33",
+    "C",
+    "E",
+    "S",
+    "RR75",
+    "W75"
+  ],
+  "secondary_comparators_of_Q": [
+    "D17",
+    "D33",
+    "C",
+    "E",
+    "S",
+    "RR75",
+    "W75"
+  ],
+  "simple_randomization_controls": {
+    "RR75": "T0_rr_0.75 (fitted/archived as a fixed transform of T0_U_unconstrained_a17; complete for all three anchors)",
+    "W75": "T0_withhold_0.75 (same)"
+  },
+  "not_in_panel": {
+    "OptNet16": "no saved encoder weights (predecessor FRESH_YEAR_CONFIRMATION_PROTOCOL); no transport comparison exists",
+    "leace_A0/splince_A0": "historical arrays only in this panel scope; not listed by the assignment",
+    "union88 erasers": "assignment specifies mechanism40 label access"
+  },
+  "feature_schema": {
+    "raw_covariates": [
+      "AGEP",
+      "WKHP",
+      "SCHL",
+      "MAR",
+      "RELP",
+      "CIT",
+      "DIS",
+      "DEAR",
+      "DEYE",
+      "DREM"
+    ],
+    "preprocessing": "frozen per-anchor CovariatePreprocessor (preprocessing.json) -> float32",
+    "pca": "frozen per-anchor release_maps.joblib[pca] -> PCA32 float32",
+    "standardization": "(PCA32 float64 - J input_mean)/input_scale -> float32",
+    "H_A": "income_binary (2) + civilian_at_work (2) frozen service heads on PCA32",
+    "H_B": "public_coverage (2) frozen service head on PCA32",
+    "categorical_maps": "unseen valid codes and missing/invalid map to separate declared columns (historical code)"
+  },
+  "service_fingerprints": {
+    "2018_parity": "PCA32, H_A, H_B and J recomputed from raw 2018 rows are byte-identical to the archived arrays (all pools, anchor 0 checked in Tier A; all anchors in HISTORICAL_VERIFICATION.json)"
+  },
+  "runtime_randomness_contract": "one persistent token per person drawn from the Q row of its code with a private per-person coin; repeated requests return the same token; the coin and Q row are never released",
+  "exact_equivalence_groups_2018_test": {
+    "0": [
+      [
+        "C"
+      ],
+      [
+        "D17"
+      ],
+      [
+        "D33"
+      ],
+      [
+        "E"
+      ],
+      [
+        "H"
+      ],
+      [
+        "J"
+      ],
+      [
+        "Q"
+      ],
+      [
+        "RR75"
+      ],
+      [
+        "S"
+      ],
+      [
+        "W75"
+      ]
+    ],
+    "1": [
+      [
+        "C"
+      ],
+      [
+        "D17"
+      ],
+      [
+        "D33"
+      ],
+      [
+        "E"
+      ],
+      [
+        "H"
+      ],
+      [
+        "J"
+      ],
+      [
+        "Q"
+      ],
+      [
+        "RR75"
+      ],
+      [
+        "S"
+      ],
+      [
+        "W75"
+      ]
+    ],
+    "2": [
+      [
+        "C"
+      ],
+      [
+        "D17"
+      ],
+      [
+        "D33"
+      ],
+      [
+        "E"
+      ],
+      [
+        "H"
+      ],
+      [
+        "J"
+      ],
+      [
+        "Q"
+      ],
+      [
+        "RR75"
+      ],
+      [
+        "S"
+      ],
+      [
+        "W75"
+      ]
+    ]
+  },
+  "roles": {
+    "H": [
+      "attack:A/SEX",
+      "attack:A/RAC1P",
+      "attack:B/SEX",
+      "attack:B/RAC1P",
+      "utility:A/same_residence",
+      "attack:AB/SEX",
+      "attack:AB/RAC1P"
+    ],
+    "other": [
+      "attack:A/SEX",
+      "attack:A/RAC1P",
+      "utility:A/same_residence",
+      "attack:AB/SEX",
+      "attack:AB/RAC1P"
+    ]
+  },
+  "units": 156
+}
