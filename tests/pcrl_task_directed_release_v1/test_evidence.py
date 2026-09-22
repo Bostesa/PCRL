@@ -92,6 +92,23 @@ def test_partial_anchors_are_listed_not_averaged_and_counts_do_not_invent_fits()
     assert counts['mathematical_duplicate_release_count'] is None
 
 
+def test_resource_unscheduled_nominal_units_are_not_incomplete_scheduled_comparisons():
+    grid, selected, ledger = fixture()
+    ledger += [{'configuration': f'optional_{i}', 'anchor': 0, 'kind': 'control', 'scheduled': False}
+               for i in range(36)]
+    ledger.append({'configuration': 'required_missing', 'anchor': 0, 'kind': 'control', 'scheduled': True})
+    counts = module().build_evidence(grid, selection=selected, ledger=ledger)['execution']
+    assert counts['nominal_release_anchor_units'] == 49
+    assert counts['scheduled_release_anchor_units'] == 13
+    assert counts['resource_unscheduled_release_anchor_units'] == 36
+    assert counts['scheduled_role_audit_units'] == 13*16
+    assert counts['incomplete_audit_units'] == 1
+    assert counts['incomplete_audits'] == [{'configuration': 'required_missing', 'anchor': 0}]
+    ledger[-1]['scheduled'] = 'true'
+    with pytest.raises(ValueError, match='scheduled'):
+        module().build_evidence(grid, selection=selected, ledger=ledger)
+
+
 @pytest.mark.parametrize('fault', ['wrong_selection','duplicate_receipt','missing_receipt','nonfinite',
                                   'injected_person_ids','class_schema','mixed_pool'])
 def test_unaccepted_misaligned_or_nonpublic_native_summaries_fail(fault):

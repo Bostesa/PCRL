@@ -110,7 +110,8 @@ def _ledger(records=None):
     for record in records:
         key = (_name(record['configuration']), _anchor(record['anchor']))
         if key in result:raise ValueError('Duplicate nominal release/anchor ledger unit')
-        result[key] = {'configuration':key[0], 'anchor':key[1], 'kind':record.get('kind','control')}
+        result[key] = {'configuration':key[0], 'anchor':key[1], 'kind':record.get('kind','control'),
+                       'scheduled':record.get('scheduled',True)}
     return result
 
 
@@ -193,18 +194,28 @@ def _execution(grid, nominal, receipt_keys):
         n, r, total = (_count(record[k]) for k in ('new_role_fits','reused_role_audits','role_audits'))
         if n+r != total or total != len(ROLES):raise ValueError('Role-fit/reuse counts do not match accepted audit schema')
         new += n; reused += r; roles += total
-    scheduled = set(nominal); expected_eval = {(name,a) for name in grid['records'] for a in ANCHORS}
+    if any(type(r.get('scheduled',True)) is not bool for r in nominal.values()):
+        raise ValueError('Ledger scheduled flags must be booleans')
+    scheduled = {key for key,r in nominal.items() if r.get('scheduled',True)}
+    unscheduled = set(nominal)-scheduled
+    expected_eval = {(name,a) for name in grid['records'] for a in ANCHORS}
     def missing(keys):return [{'configuration':n,'anchor':a} for n,a in sorted(keys)]
     return {'nominal_release_anchor_units':len(nominal),
             'nominal_map_units':sum(r['kind']=='finite_map' for r in nominal.values()),
             'nominal_role_audit_units':len(nominal)*len(ROLES),
+            'scheduled_release_anchor_units':len(scheduled),
+            'scheduled_map_units':sum(nominal[key]['kind']=='finite_map' for key in scheduled),
+            'scheduled_role_audit_units':len(scheduled)*len(ROLES),
+            'resource_unscheduled_release_anchor_units':len(unscheduled),
+            'resource_unscheduled_units':missing(unscheduled),
             'accepted_audit_units':len(audits),'accepted_map_units':len(maps),
             'accepted_evaluation_units':len(receipt_keys),'scheduled_evaluation_units':len(expected_eval),
             'incomplete_audit_units':len(scheduled-set(audits)),
             'incomplete_evaluation_units':len(expected_eval-set(receipt_keys)),
             'incomplete_audits':missing(scheduled-set(audits)),
             'incomplete_evaluations':missing(expected_eval-set(receipt_keys)),
-            'extra_accepted_audit_units':len(set(audits)-scheduled),
+            'extra_accepted_audit_units':len(set(audits)-set(nominal)),
+            'accepted_resource_unscheduled_audit_units':len(set(audits)&unscheduled),
             'unique_registry_artifacts':len({r['registry_sha256'] for r in audits.values()}),
             'unique_solution_artifacts':len({r['solution_sha256'] for r in maps.values()}),
             'accepted_role_audit_units':roles,'new_role_fit_units':new,'reused_role_audit_units':reused,
