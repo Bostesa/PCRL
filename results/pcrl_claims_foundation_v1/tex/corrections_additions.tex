@@ -1,0 +1,16 @@
+% Terminal 3 replacement text; applied by patches/0002 against main.tex @30a6fd19e.
+% --- corr4
+\item \textbf{A proposed Sadeghi--Boddeti near-optimality certificate is not an implemented result.}
+It was explicitly skipped for want of the necessary numerical check and is not claimed here.
+\item \textbf{The encoder line's backbone was not pretrained.} It was described as pretrained on the
+union of permitted tasks; in the implementation that produced its results it was a seeded random MLP,
+frozen at initialisation.
+\item \textbf{A rank floor for single-layer edits is not a floor for the trained adapters.} Erasure below
+$\sum_{i>r}\sigma_i^2/\operatorname{tr}\operatorname{Cov}(A)$ is impossible for one rank-$r$
+multiplicative edit of a fixed representation, but the trained adapters edit every layer with
+nonlinearities in between; a rank-one edit of the first layer can remove a rank-two sensitive
+cross-covariance entirely.
+
+% --- lineage
+This work descends from a purpose-conditioned representation line in which one shared frozen, randomly
+initialised backbone carried per-purpose adapters,

@@ -1,0 +1,239 @@
+From 7029127095de2c96663d507129006d3de89ca74e Mon Sep 17 00:00:00 2001
+From: Bostesa <Bostesa@users.noreply.github.com>
+Date: Tue, 22 Sep 2026 18:16:37 -0400
+Subject: [PATCH] =?UTF-8?q?Retire=20the=20invalid=20R=C2=B2-to-accuracy=20?=
+ =?UTF-8?q?guarantee=20on=20main?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ docs/ACCURACY_CERTIFICATE_RETIREMENT.md | 47 +++++++++++++++++++++++
+ pcrl/evaluation/certificates.py         | 24 +++---------
+ pcrl/purposes/verification.py           | 21 ++++++++++-
+ tests/test_accuracy_bound_retired.py    | 50 +++++++++++++++++++++++++
+ 4 files changed, 121 insertions(+), 21 deletions(-)
+ create mode 100644 docs/ACCURACY_CERTIFICATE_RETIREMENT.md
+ create mode 100644 tests/test_accuracy_bound_retired.py
+
+diff --git a/docs/ACCURACY_CERTIFICATE_RETIREMENT.md b/docs/ACCURACY_CERTIFICATE_RETIREMENT.md
+new file mode 100644
+index 000000000..3b9dbd25a
+--- /dev/null
++++ b/docs/ACCURACY_CERTIFICATE_RETIREMENT.md
+@@ -0,0 +1,47 @@
++# Retired classification-accuracy certificate
++
++The universal claim that zero affine least-squares R² forces every linear
++threshold classifier to majority accuracy is false. The former
++`certified_accuracy_bound` API now raises `NotImplementedError`. Its derived
++`NonlinearComplianceCertificate.check` also raises, because randomized
++smoothing does not establish the missing R²-to-accuracy implication.
++
++Use this exact finite sample, with each row indicating repeated observations:
++
++| A | h | Count |
++|---|---:|---:|
++| 1 | 1 | 9 |
++| 1 | -9 | 1 |
++| 0 | -1 | 9 |
++| 0 | 9 | 1 |
++
++Both conditional feature means are zero. Therefore Cov(h, A) = 0, the
++optimal affine least-squares predictor is the constant 1/2, and its R² is
++zero. Nevertheless, predicting A = 1 exactly when h > 0 classifies 18 of
++20 observations correctly (90%), versus a majority baseline of 50%.
++`tests/test_accuracy_bound.py` verifies these values directly without
++training a classifier or invoking asymptotic approximations.
++
++The valid narrower statement is about squared loss: zero cross-covariance
++means affine least-squares prediction cannot improve on the optimal
++constant predictor on that distribution (or the supplied empirical
++sample). It does not imply statistical independence, a bound on arbitrary
++threshold decisions, or out-of-sample privacy. Equal class means also do
++not imply equal class-conditional distributions. Empirical, regularized
++R² scores should be described with their fitting data and numerical
++regularization; refitting on an evaluation sample is a descriptive
++least-squares statistic, not a held-out attacker's predictive score.
++
++For two views with exactly zero cross-covariance with the same prohibited
++signal, their concatenation has exactly zero cross-covariance too. The
++approximate-leakage example h1 = N + delta S and h2 = N - delta S does not
++contradict this statement: for nonzero delta each view already has nonzero
++squared-linear R² = delta²/(1 + delta²), and their difference recovers S.
++
++Active compliance reports no longer generate or display accuracy bounds.
++Legacy result fields remain readable, with new report values set to
++`None` and `accuracy_guarantee_status = "retired_invalid"`. Historical
++results, archived plans, and paper result tables remain unchanged. The
++available `paper-body/` tree contains result tables only; a manuscript
++theorem source is not present in this checkout, so this correction is the
++active statement governing interpretation of those artifacts.
+diff --git a/pcrl/evaluation/certificates.py b/pcrl/evaluation/certificates.py
+index 334fd6881..10f633d6b 100644
+--- a/pcrl/evaluation/certificates.py
++++ b/pcrl/evaluation/certificates.py
+@@ -463,13 +463,6 @@ def generate_report(
+ 
+     linear_audit = LinearAudit(epsilon=linear_epsilon)
+     empirical_audit = EmpiricalAudit(random_state=random_state)
+-    nonlinear_cert = NonlinearComplianceCertificate(
+-        sigmas=(0.1, 0.5, 1.0),
+-        lipschitz_constant=1.0,
+-        num_noise_samples=50,
+-        epsilon=linear_epsilon,
+-        random_state=random_state,
+-    )
+ 
+     # Collect all unique attr names needed across purposes, then extract
+     # representations AND labels in a single pass per (purpose_idx, loader).
+@@ -522,12 +515,8 @@ def generate_report(
+                 train_reprs, train_labels, test_reprs, test_labels
+             )
+ 
+-            # Nonlinear certificate
+-            nl_result = nonlinear_cert.check(
+-                test_reprs, test_labels,
+-                majority_proportion=majority_proportion,
+-                num_classes=num_classes,
+-            )
++            # The randomized-smoothing accuracy certificate is retired (it relied
++            # on the invalid R²-to-accuracy bound); report fields stay None.
+ 
+             # Overall certification
+             empirical_ok = (best_acc - chance_acc) < empirical_threshold
+@@ -569,8 +558,8 @@ def generate_report(
+                     certified=certified,
+                     majority_proportion=majority_proportion,
+                     num_classes=num_classes,
+-                    nonlinear_bound=nl_result.nonlinear_bound,
+-                    nonlinear_best_sigma=nl_result.best_sigma,
++                    nonlinear_bound=None,
++                    nonlinear_best_sigma=None,
+                     r2_da=r2_da_val,
+                     r2_da_argmax=r2_da_argmax,
+                     r2_da_per_class=r2_da_per_class,
+@@ -608,16 +597,13 @@ def print_compliance_table(reports: list[ComplianceReport]) -> None:
+     for r in reports:
+         status = "PASS" if r.certified else "FAIL"
+         lin_status = "PASS" if r.linear_certified else "FAIL"
+-        bound = certified_accuracy_bound(
+-            r.linear_r2, r.majority_proportion, r.num_classes,
+-        )
+         nl_str = f"{r.nonlinear_bound:>8.1%}" if r.nonlinear_bound is not None else "    N/A "
+ 
+         print(
+             f"{r.purpose_name:<25} {r.attr_name:<14} "
+             f"{r.linear_r2:>8.4f} {lin_status:>5} "
+             f"{r.variance_preserved:>5.1%} "
+-            f"{r.empirical_best_acc:>7.1%} {bound:>7.1%} {nl_str} "
++            f"{r.empirical_best_acc:>7.1%} {'retired':>7} {nl_str} "
+             f"{r.empirical_chance_acc:>7.1%} "
+             f"{status:>8}"
+         )
+diff --git a/pcrl/purposes/verification.py b/pcrl/purposes/verification.py
+index d7229963b..253998e5e 100644
+--- a/pcrl/purposes/verification.py
++++ b/pcrl/purposes/verification.py
+@@ -210,9 +210,17 @@ def certified_accuracy_bound(
+     majority_proportion: float,
+     num_classes: int = 2,
+ ) -> float:
+-    """Compute an upper bound on linear classifier accuracy from the R² certificate.
++    """RETIRED: least-squares R² does not bound threshold-classifier accuracy.
+ 
+-    Theorem (Linear Compliance Guarantee):
++    Raises NotImplementedError. The historical statement below is FALSE and is
++    kept only for provenance: a balanced binary attribute with conditional
++    feature values (1, -9) w.p. (.9, .1) versus (-1, 9) w.p. (.9, .1) has zero
++    affine least-squares R² while the threshold h > 0 is 90% accurate
++    (docs/ACCURACY_CERTIFICATE_RETIREMENT.md). The valid narrower statement:
++    zero cross-covariance means affine least-squares prediction cannot improve
++    on the optimal constant predictor on that distribution.
++
++    Historical (invalid) Theorem (Linear Compliance Guarantee):
+         Let h = f(x, p) be the representation produced by the encoder for
+         purpose p.  Let W* = argmin_W ||HW - Z||² be the optimal linear
+         predictor of the one-hot encoded disallowed attribute Z from the
+@@ -335,6 +343,11 @@ def certified_accuracy_bound(
+         >>> certified_accuracy_bound(0.01, 0.8, 3)    # R²=1%, 80% majority, 3-class
+         0.9236...
+     """
++    raise NotImplementedError(
++        "certified_accuracy_bound is retired: affine least-squares R² does not "
++        "bound threshold-classification accuracy (see "
++        "docs/ACCURACY_CERTIFICATE_RETIREMENT.md)."
++    )
+     if not 0.0 <= r_squared <= 1.0:
+         raise ValueError(f"r_squared must be in [0, 1], got {r_squared}")
+     if not 0.0 < majority_proportion <= 1.0:
+@@ -467,6 +480,10 @@ class NonlinearComplianceCertificate:
+         Returns:
+             NonlinearCertificateResult with the tightest bound across sigmas.
+         """
++        raise NotImplementedError(
++            "NonlinearComplianceCertificate is retired: it relied on the invalid "
++            "least-squares R²-to-classification-accuracy bound."
++        )
+         H_np = self._to_numpy(H).astype(np.float64)
+         Z_np = self._to_numpy(Z)
+ 
+diff --git a/tests/test_accuracy_bound_retired.py b/tests/test_accuracy_bound_retired.py
+new file mode 100644
+index 000000000..a0dcfcd13
+--- /dev/null
++++ b/tests/test_accuracy_bound_retired.py
+@@ -0,0 +1,50 @@
++"""The universal R²-to-accuracy guarantee is false; its API must refuse to run."""
++
++import ast
++from fractions import Fraction
++from pathlib import Path
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def _function(path, name):
++    tree = ast.parse((ROOT / path).read_text())
++    node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
++    ns = {}
++    exec(compile(ast.Module(body=[node], type_ignores=[]), path, "exec"), ns)
++    return ns[name]
++
++
++def test_zero_affine_r2_with_ninety_percent_threshold_accuracy():
++    rows = [(1, 1)] * 9 + [(1, -9)] + [(0, -1)] * 9 + [(0, 9)]
++    n = Fraction(len(rows))
++    mh = sum(Fraction(h) for _, h in rows) / n
++    ma = sum(Fraction(a) for a, _ in rows) / n
++    cov = sum((Fraction(h) - mh) * (Fraction(a) - ma) for a, h in rows) / n
++    assert cov == 0  # so the affine least-squares R² is exactly zero
++    accuracy = Fraction(sum((h > 0) == (a == 1) for a, h in rows), len(rows))
++    assert accuracy == Fraction(9, 10)
++
++
++def test_certified_accuracy_bound_raises():
++    bound = _function("pcrl/purposes/verification.py", "certified_accuracy_bound")
++    with pytest.raises(NotImplementedError):
++        bound(0.0, 0.5, 2)
++
++
++def test_nonlinear_certificate_check_raises():
++    src = (ROOT / "pcrl/purposes/verification.py").read_text()
++    tree = ast.parse(src)
++    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "NonlinearComplianceCertificate")
++    check = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "check")
++    raises = [n for n in ast.walk(check) if isinstance(n, ast.Raise)]
++    first = check.body[1] if isinstance(check.body[0], ast.Expr) else check.body[0]
++    assert isinstance(first, ast.Raise) and raises
++
++
++def test_generate_report_no_longer_calls_retired_certificates():
++    src = (ROOT / "pcrl/evaluation/certificates.py").read_text()
++    assert "nonlinear_cert.check(" not in src
++    assert "certified_accuracy_bound(" not in src
+-- 
+2.50.1
+

@@ -1,0 +1,150 @@
+{
+ "f1_retired_accuracy_guarantee": {
+  "n": 20,
+  "cov_hA": "0",
+  "affine_ls_r2": "0",
+  "threshold_h_gt_0_accuracy": "9/10",
+  "majority_accuracy": "1/2",
+  "conditional_means": [
+   "0",
+   "0"
+  ]
+ },
+ "f2_convex_combination_identity": {
+  "ols": {
+   "pooled_onehot_r2": "20997924/266369119",
+   "per_class_r2": [
+    "3728674/50576415",
+    "5502131/53948176",
+    "1343954/64063459"
+   ],
+   "weights": [
+    "75/158",
+    "32/79",
+    "19/158"
+   ],
+   "combo": "20997924/266369119",
+   "exact_equal": true
+  },
+  "ridge_1_10": {
+   "pooled_onehot_r2": "73802988392244/936410057360359",
+   "per_class_r2": [
+    "13105409405794/177799377979815",
+    "19338651261611/189652669845136",
+    "4724324709074/225212545441099"
+   ],
+   "weights": [
+    "75/158",
+    "32/79",
+    "19/158"
+   ],
+   "combo": "73802988392244/936410057360359",
+   "exact_equal": true
+  },
+  "uniform_weights_not_equal": true
+ },
+ "f2b_rare_class_masking": {
+  "priors": [
+   "9/10",
+   "9/100",
+   "1/100"
+  ],
+  "per_class_r2": [
+   "1/11",
+   "1/1001",
+   "1"
+  ],
+  "weights": [
+   "50/101",
+   "91/202",
+   "11/202"
+  ],
+  "aggregate": "111/1111",
+  "aggregate_float": 0.0999099909990999,
+  "rare_class_r2": "1",
+  "bound_aggregate_over_w_rare": "222/121",
+  "bound_float": 1.834710743801653,
+  "bound_is_vacuous": true
+ },
+ "f3_max_ovr_vs_all_directions": {
+  "per_class_r2": [
+   "3/4",
+   "3/4",
+   "0"
+  ],
+  "aggregate": "1/2",
+  "max_ovr_r2_DA": "3/4",
+  "r2_best_class_contrast": "1",
+  "note": "top squared canonical correlation is 1 > max OvR 3/4 > aggregate 1/2"
+ },
+ "f4_composition": {
+  "epsilon": "1/10",
+  "individual_r2": [
+   "1/101",
+   "1/101"
+  ],
+  "joint_r2": "1",
+  "cov_Z_eigen_min": "1/50",
+  "lambda_min_bound": "1",
+  "condition_number": "100",
+  "zero_cov_views": {
+   "cov_Z1_S": "0",
+   "cov_Z2_S": "0",
+   "joint_linear_r2": "0",
+   "S_equals_Z1_times_Z2_exactly": true
+  }
+ },
+ "f5_xor_coarsening": {
+  "I(S;Z)": "0",
+  "I(S;Z|H)": "1*log2",
+  "I(S;Z|coarse(H)=const)": "0",
+  "I(S;Z|H)_nats": 0.6931471805599453
+ },
+ "f6_replacement_vs_extension": {
+  "I(Y;T|J)": "0",
+  "I(Y;T)": "1*log2",
+  "I(Y;J)": "1*log2",
+  "I(S;J)": "1*log2",
+  "I(S;T)": "0"
+ },
+ "f7_zero_budget_and_refinement": {
+  "child_copy_joint_equal": true,
+  "objective_equal": true,
+  "objective": "2405/2898",
+  "constant_kernel_I(S;Z|C)": "0",
+  "zero_mass_row_irrelevant": true
+ },
+ "f8_expected_loss_vs_mixture_loss": {
+  "expected_single_token_loss": 1.203972804325936,
+  "loss_of_mixture_prediction": 0.6931471805599453,
+  "difference_nats": 0.5108256237659906
+ },
+ "f9_restricted_family_increment_without_information": {
+  "I(S;Z|H)": "0",
+  "restricted_H_only_linear_logistic_loss": "log3 - (2/3)log2",
+  "restricted_loss_nats": 0.636514168294813,
+  "loss_with_Z": 0.0,
+  "measured_increment_nats": 0.636514168294813,
+  "argument": "loss(a,b)=loss(a,-b) by H->-H symmetry; convexity gives optimum at b=0"
+ },
+ "f10_cmi_convexity_spotcheck": {
+  "trials": 200,
+  "max_midpoint_violation": 0.0
+ },
+ "f11_prop6_whitened_bound_on_epsilon_example": {
+  "R_offdiag": "99/101",
+  "lambda_min_R": "2/101",
+  "sum_per_purpose_r2": "2/101",
+  "bound": "1",
+  "joint_r2": "1",
+  "tight": true
+ },
+ "f12_prop4_floor_not_implied_for_multilayer_lora": {
+  "pooled_r2_before": "1",
+  "cross_cov_rank": 2,
+  "lora_rank_first_layer": 1,
+  "pooled_r2_after_rank1_first_layer_edit": "0",
+  "task_feature_y_preserved": true,
+  "note": "Prop 4's floor sum_{i>r} sigma_i^2/tr > 0 for r=1 applies only to h=(I+BA')f0"
+ }
+}

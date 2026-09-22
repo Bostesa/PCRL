@@ -1,0 +1,289 @@
+diff --git a/papers/pcrl_satml_final_v1/main.tex b/papers/pcrl_satml_final_v1/main.tex
+index 724ebc6..8d87b8b 100644
+--- a/papers/pcrl_satml_final_v1/main.tex
++++ b/papers/pcrl_satml_final_v1/main.tex
+@@ -70,13 +70,13 @@ $H$-only baseline against which every increment is measured.}
+ \item \textbf{The release problem and its measurement contract} (\S\ref{sec:problem}): per-recipient and
+ coalition audit roles, independently fitted attackers, additional disclosure always reported against the
+ fixed service baseline, negative increments retained unclipped, per-endpoint results never averaged.
+-\item \textbf{An auditing result that survives checking} (\S\ref{sec:audit}): a prevalence-weighted
+-aggregate one-hot regression score can conceal a much larger sensitive direction, which a class-aware
+-dominant-axis audit exposes; we give the exact convex-combination identity behind it, and the precise
+-limits of the linear guarantees it is often paired with.
+-\item \textbf{A task-directed finite release} (\S\ref{sec:method}) optimised under explicit
+-conditional-disclosure constraints, with its optimisation assumptions, its relationship to established
+-convex programmes, and an exact fixture separating what it can and cannot do.
++\item \textbf{An audit caution that survives checking} (\S\ref{sec:audit}): the pooled one-hot
++regression score is a prevalence-weighted average of per-class scores, so it can conceal a much larger
++rare-class direction that a per-class (dominant-axis) audit exposes; we state the precise limits of the
++linear guarantees it is often paired with, including a tight bound for approximate composition.
++\item \textbf{A task-directed finite release} (\S\ref{sec:method}): an instance of an established
++convex leakage--distortion programme for one recipient, with its optimisation assumptions, the coarse
++conditioning it actually uses, and an exact fixture separating what it can and cannot do.
+ \item \textbf{A controlled evaluation} (\S\ref{sec:eval}) in which the selected release improves the
+ permitted task over the strongest prior channel with bounds excluding zero, does \emph{not} establish the
+ registered competitiveness conjunction, and is matched by a simpler deterministic baseline---together with
+@@ -107,10 +107,12 @@ the token distribution, not predicted probabilities; the two differ, and only th
+ of what a recipient experiences.
+ 
+ \paragraph{What a number means here} Every recovery figure is the log-loss reduction an independently
+-fitted, validation-selected attacker achieves relative to the same family restricted to $H$. It is a
+-floor on what is recoverable, never a ceiling, and it is not an estimate of conditional mutual
+-information~\cite{mcallester2020formal}: a restricted predictor can improve after receiving a deterministic feature $Z=f(H)$ even
+-where $I(S;Z\mid H)=0$, and a failed attack bounds nothing from above.
++fitted, validation-selected attacker achieves relative to the same family restricted to $H$. Absolute
++recovery---the entropy baseline minus the held-out loss of an attacker fixed before evaluation---is, up
++to sampling error, a lower bound on the view's mutual information with the attribute. The increment over
++the $H$-restricted fit is a difference of two such lower bounds and bounds $I(S;Z\mid H)$ in neither
++direction~\cite{mcallester2020formal}: a restricted predictor can improve after receiving a deterministic
++feature $Z=f(H)$ even where $I(S;Z\mid H)=0$, and a failed attack bounds nothing from above.
+ 
+ \section{What linear audits do and do not certify}
+ \label{sec:audit}
+@@ -125,18 +127,22 @@ aggregate is a prevalence-weighted convex combination of the per-class one-versu
+ R^2_{\mathrm{onehot}}=\textstyle\sum_k w_k R^2_{\mathrm{OvR},k},\qquad
+ w_k=\frac{\pi_k(1-\pi_k)}{\sum_j \pi_j(1-\pi_j)},
+ \]
+-so a rare class contributes almost nothing to the number a compliance report prints. Auditing the
+-\emph{dominant axis} instead---the worst single direction across classes---exposes what the aggregate
+-smooths away. On the imbalanced mortgage attribute the gap is large (Table~\ref{tab:da}): mean
++so a rare class contributes almost nothing to the number a compliance report prints. This is the
++familiar variance-weighted multi-output $R^2$, not a new identity; it holds exactly when both scores share
++rows, centring and ridge penalty. Auditing the \emph{dominant axis} instead---the largest per-class
++one-versus-rest score, itself only a lower bound on the best linear sensitive direction---exposes what the
++aggregate smooths away. On the imbalanced mortgage attribute the gap is large (Table~\ref{tab:da}): mean
+ $R^2_{\mathrm{DA}}=0.0609$ against $R^2_{\mathrm{onehot}}=0.0192$ over nine multi-class pair-seeds, and in
+-one configuration the aggregate reads $0.027$ where the dominant axis reads $0.288$. The identity itself
+-was validated on every multi-class pair-seed, maximum absolute residual $0.0021$.
++one configuration the aggregate reads $0.027$ where the dominant axis reads $0.288$, on the rarest
++class (prevalence $0.9\%$), for which the aggregate alone cannot bound the class score. Replaying the
++stored per-class scores reproduces the stored aggregate within $2\times10^{-5}$ in $31$ of $33$ cells; the
++two exceptions trace to a single-precision aggregate in the historical evaluation code.
+ 
+ \begin{table}[t]
+ \centering\footnotesize
+ \caption{Aggregate one-hot versus dominant-axis auditing on the multi-class protected attribute, mean over
+-pair-seeds of the canonical checkpoints. The aggregate understates the recoverable direction, most on the
+-imbalanced attribute. Historical evidence from the encoder line described in \S\ref{sec:lineage}.}
++pair-seeds of the canonical checkpoints (in-sample ridge scores on held-out test representations). The
++aggregate understates the recoverable direction, most on the imbalanced attribute. Historical evidence from the encoder line described in \S\ref{sec:lineage}.}
+ \label{tab:da}
+ \input{tables/dominant_axis.tex}
+ \end{table}
+@@ -146,14 +152,18 @@ classification}. We previously asserted that zero affine least-squares $R^2$ for
+ classifier to majority accuracy. That is false, and a twenty-row counterexample settles it: both
+ conditional feature means are zero, so $\mathrm{Cov}(h,A)=0$ and the optimal affine predictor is constant
+ with $R^2=0$, yet thresholding at $h>0$ classifies $18/20$ correctly against a $50\%$ majority baseline.
+-The claim is withdrawn and the corresponding API now refuses to run. The valid statement is narrower and
+-about squared loss only: zero cross-covariance means affine least-squares prediction cannot improve on the
+-optimal constant predictor on that distribution.
++The claim is withdrawn and the corresponding API refuses to run in the evaluated code. The valid
++statement concerns losses convex in an affine prediction: zero cross-covariance means no affine predictor
++improves on the best constant under squared, logistic or any other such loss on that
++distribution~\cite{belrose2023leace}; thresholded accuracy is not such a loss.
+ 
+ Second, \textbf{composition is exact only at exact zero}. Two views with exactly zero cross-covariance
+-with the same signal retain exactly zero under concatenation. Approximate leakage does not inherit this:
+-$h_1=N+\delta S$ and $h_2=N-\delta S$ each carry $R^2=\delta^2/(1+\delta^2)$ and their difference recovers
+-$S$. Neither statement supplies independence or any guarantee against a nonlinear attack.
++with the same signal retain exactly zero under concatenation, yet can determine it nonlinearly: with
++independent signs $V,S$, the views $SV$ and $V$ each have zero covariance with $S$ and their product is
++$S$. Approximate leakage composes with a conditioning penalty: for views with nonsingular covariances,
++$R^2(h_1,\dots,h_k)\le\sum_p R^2(h_p)/\lambda_{\min}(R)$, where $R$ is the block-whitened cross-view
++correlation (a Rayleigh--Ritz bound). It is tight: $h_1=N+\delta S$ and $h_2=N-\delta S$ each carry
++$R^2=\delta^2/(1+\delta^2)$, $\lambda_{\min}(R)=2\delta^2/(1+\delta^2)$, and their difference recovers $S$.
+ 
+ Third, \textbf{more retained rank is not more task performance, and fewer flagged attacks is not low
+ absolute disclosure}. We report absolute recovery beside every increment for this reason.
+@@ -167,19 +177,27 @@ preserve authorised covariance~\cite{holstege2025splince}. Adversarial fair and
+ representations are due to Madras et al.~\cite{madras2018laftr}; adversarial removal is known to leave
+ recoverable information~\cite{elazar2018adversarial}, and least-privilege learning has fundamental
+ limits~\cite{stadler2024leastprivilege}. The closed-form line of Sadeghi et
+-al.~\cite{sadeghi2019sarl,sadeghi2021optnetarl,sadeghi2022ktopt} and the conditional extension
+-U-FaTE~\cite{dehdashtian2024ufate} solve the same shape of problem when the representation is the
+-releaser's to change. All of these assume what our setting denies: here the published output is immutable
++al.~\cite{sadeghi2019sarl,sadeghi2021optnetarl,sadeghi2022ktopt} and U-FaTE~\cite{dehdashtian2024ufate},
++which conditions its dependence measure on the target label, solve the same shape of problem when the
++representation is the releaser's to change. Flexibly fair representations let each task drop a different
++subset of sensitive attributes from one shared encoder~\cite{creager2019ffvae}. All of these assume what our setting denies: here the published output is immutable
+ and the only decision is what to append.
+ 
+ \paragraph{Finite-alphabet privacy--utility optimisation} The convex programme of \S\ref{sec:method} is
+-established. Rassouli and G\"und\"uz~\cite{rassouli2021perfect} give the perfect-privacy characterisation,
+-the nullspace feasibility criterion and the linear-programme form of the zero-budget linear-cost problem;
+-the privacy funnel of Makhdoumi et al.~\cite{makhdoumi2014funnel} is nonconvex precisely because of a
+-utility constraint we do not impose. Multi-user and side-information formulations of utility--privacy
+-tradeoffs~\cite{sankar2013utility,liao2019sideinfo} design a sanitised release for many consumers. We
+-claim no new optimisation result: the nullspace criterion and the convexity facts are theirs, and what is
+-ours is the release contract, the per-recipient and coalition constraint structure, and an evaluated
++established: finite-alphabet leakage--distortion design is convex for a fixed joint
++law~\cite{calmon2012privacy}, including after quantising to a finite code~\cite{salamatian2015managing}.
++Rassouli and G\"und\"uz~\cite{rassouli2021perfect} characterise when perfect privacy is feasible through a
++nullspace condition and reduce the zero-leakage problem with mutual-information utility to a linear
++programme; our zero-budget case is conditional and is linear by the same argument. The privacy funnel of
++Makhdoumi et al.~\cite{makhdoumi2014funnel} is nonconvex precisely because of a utility constraint we do
++not impose. A new release has been designed beside fixed earlier releases under an incremental-leakage
++budget~\cite{erdogdu2015continual}, and per-party and collusion mutual-information constraints on
++sequential releases were studied recently~\cite{taylor2026collusion}; since $C$ is fixed,
++$I(S;Z\mid C)=I(S;Z,C)-I(S;C)$, so our conditional budgets are joint-view budgets with a shifted
++constant. Side information at the recipient appears in~\cite{sankar2013utility,liao2019sideinfo}, and
++randomised finite pre-processing under fairness constraints in~\cite{calmon2017optimized}. We claim no new
++optimisation result. What is ours is the setting---the conditioning view is a third party's published
++prediction service that a coalition partner also holds---the measurement contract, and an evaluated
+ operating point. Related conditional-independence and information-bound machinery we rely on for scoping
+ comes from the kernel conditional-independence literature~\cite{zhang2011kci,strobl2019rcit}, cross-fitted
+ nuisance estimation~\cite{chernozhukov2016dml}, and the formal limits of mutual-information
+@@ -188,8 +206,10 @@ estimation~\cite{mcallester2020formal}. The data are Folktables-style ACS microd
+ \section{A task-directed finite release}
+ \label{sec:method}
+ 
+-\paragraph{Construction} A label-free code $T=g(X_A)$ over permitted $A$-side inputs is mapped to a finite
+-output alphabet by a row-stochastic channel $Q$, and the recipient receives one sampled token. Writing
++\paragraph{Construction} Two residence-supervised teachers, $p(X_A,H_A)$ and $b(H_A)$, define a residual
++logit $r=\operatorname{logit}p-\operatorname{logit}b$; its $32$ quantile cells form a code $T=g(X_A,H_A)$,
++into which no protected label enters at runtime. $T$ is mapped to a finite output alphabet by a
++row-stochastic channel $Q$, and the recipient receives one sampled token. Writing
+ $C_A=H_A$ and $C_{AB}=(H_A,H_B)$ for the conditioning views, the programme is
+ \[
+ \min_{Q\ \ge\ 0,\ Q\mathbf{1}=\mathbf{1}}\ \sum_{t,z}p(t)\,Q_{tz}D_{tz}
+@@ -197,18 +217,24 @@ $C_A=H_A$ and $C_{AB}=(H_A,H_B)$ for the conditioning views, the programme is
+ \]
+ with a cost table $D$ fixed before optimisation. Under the mechanism's Markov structure $Z-T-(S,C)$ and a
+ fixed fitted law, each conditional mutual information is affine in $Q$ inside a jointly convex relative
+-entropy, so the feasible set is convex and the objective linear.
++entropy, so the feasible set is convex and the objective linear. A \emph{local} policy imposes the $r=A$
++constraints only; a \emph{coalition} policy adds $r=AB$. The selected utility release is local, so its
++coalition view is audited but not constrained. We report solver status and replay primal feasibility;
++no duality gap was recorded, so optimality of the fitted programme is solver-reported, not certified.
+ 
+ \paragraph{Attribution, honestly} This is an \emph{established} convex programme applied to a new release
+-contract, not a new optimisation result. The finite-alphabet privacy--utility problem, the nullspace
+-feasibility criterion and the linear-programme form at zero budget are prior work; the privacy funnel is
+-nonconvex precisely because of a utility constraint we do not impose. Optimising the decoder jointly with
++contract, not a new optimisation result. The convex finite-alphabet leakage--distortion
++problem~\cite{calmon2012privacy}, releases beside fixed earlier releases~\cite{erdogdu2015continual},
++collusion constraints~\cite{taylor2026collusion} and the nullspace feasibility
++criterion~\cite{rassouli2021perfect} are prior work; the privacy funnel is nonconvex precisely because of
++a utility constraint we do not impose. Optimising the decoder jointly with
+ $Q$, or maximising a task mutual information, destroys the convexity, and we do neither. What is ours is
+ the release contract, the per-recipient and coalition constraint structure, and the evaluated operating
+ point.
+ 
+ \paragraph{What the constraint is, and is not} $\delta_r$ binds a conditional mutual information in a
+-\emph{fitted finite model} whose conditioning view is a coarsened partition. It is not a population
++\emph{fitted finite model} whose conditioning view is a coarsened partition---two cells of $H_A$ for
++$A$, four of $(H_A,H_B)$ for $AB$. It is not a population
+ guarantee and not a statement about the continuous service vectors: in a validated fixture, binning a
+ conditioning view drops a full $\log 2$ of measured leakage to exactly zero. All audited attacks therefore
+ use continuous $H$, and the budgets are never quoted as measured increments over the prior channel.
+@@ -277,7 +303,7 @@ worse at the task and leaks less. Development data; point estimates only.}
+ \end{table}
+ 
+ \paragraph{Baselines, and what each one was allowed to see} The comparison set is deliberately wider than
+-$J$. \emph{Deterministic action releases} ($D_{17}$, $D_{33}$) use the same label-free code and action
++$J$. \emph{Deterministic action releases} ($D_{17}$, $D_{33}$) use the same residence-supervised code and action
+ dictionary with no privacy constraint. A \emph{direct code} release publishes the code index itself. A
+ \emph{continuous task prediction} publishes the real-valued authorised prediction and is the strongest task
+ point in the table, with the worst sensitive comparison of the group. \emph{Supervised erasure adaptations}
+@@ -337,8 +363,8 @@ deterministic release, any coalition-specific benefit, and any unseen-task claim
+ \section{Relation to the earlier encoder line}
+ \label{sec:lineage}
+ 
+-This work descends from a purpose-conditioned representation line in which one shared frozen backbone
+-carried per-purpose adapters, each warm-started from a closed-form erasure projection~\cite{belrose2023leace} and trained under a
++This work descends from a purpose-conditioned representation line in which one shared frozen, randomly
++initialised backbone carried per-purpose adapters, each warm-started from a closed-form erasure projection~\cite{belrose2023leace} and trained under a
+ per-purpose linear leakage bound. That setting differs from this one in its release contract: there the
+ releaser owned and re-emitted the representation, here the service output is immutable and the decision is
+ what to append. The auditing result of \S\ref{sec:audit} and the composition limits come from that line and
+@@ -401,8 +427,16 @@ per-purpose erasure retains both ($0.9996$, $0.9997$); the restricted arm ties t
+ beating it.
+ \item \textbf{``The published output already carries the signal''} is withdrawn: a controlled diagnosis
+ attributes the effect to quantization, not redundancy (\S\ref{sec:eval}).
+-\item \textbf{A proposed near-optimality certificate is not an implemented result.} It was explicitly
+-skipped for want of the necessary numerical check and is not claimed here.
++\item \textbf{A proposed Sadeghi--Boddeti near-optimality certificate is not an implemented result.}
++It was explicitly skipped for want of the necessary numerical check and is not claimed here.
++\item \textbf{The encoder line's backbone was not pretrained.} It was described as pretrained on the
++union of permitted tasks; in the implementation that produced its results it was a seeded random MLP,
++frozen at initialisation.
++\item \textbf{A rank floor for single-layer edits is not a floor for the trained adapters.} Erasure below
++$\sum_{i>r}\sigma_i^2/\operatorname{tr}\operatorname{Cov}(A)$ is impossible for one rank-$r$
++multiplicative edit of a fixed representation, but the trained adapters edit every layer with
++nonlinearities in between; a rank-one edit of the first layer can remove a rank-two sensitive
++cross-covariance entirely.
+ \item \textbf{Exact-zero covariance composition} holds; approximate leakage does not inherit it, and
+ neither implies independence or a nonlinear guarantee.
+ \end{enumerate}
+diff --git a/papers/pcrl_satml_final_v1/references.bib b/papers/pcrl_satml_final_v1/references.bib
+index 36431ca..40711c2 100644
+--- a/papers/pcrl_satml_final_v1/references.bib
++++ b/papers/pcrl_satml_final_v1/references.bib
+@@ -232,3 +232,67 @@
+   publisher = {PMLR},
+   url       = {https://proceedings.mlr.press/v80/madras18a.html}
+ }
++
++% Proposed additions (Terminal 3). Verified sources: PRIOR_ART_NOTES.md.
++
++@inproceedings{calmon2012privacy,
++  title     = {Privacy Against Statistical Inference},
++  author    = {Calmon, Fl{\'a}vio du Pin and Fawaz, Nadia},
++  booktitle = {50th Annual Allerton Conference on Communication, Control, and Computing},
++  pages     = {1401--1408},
++  year      = {2012},
++  doi       = {10.1109/Allerton.2012.6483382},
++  note      = {arXiv:1210.2123},
++  url       = {https://arxiv.org/abs/1210.2123}
++}
++
++@article{salamatian2015managing,
++  title   = {Managing Your Private and Public Data: Bringing Down Inference Attacks Against Your Privacy},
++  author  = {Salamatian, Salman and Zhang, Amy and Calmon, Fl{\'a}vio du Pin and Bhamidipati, Sandilya and Fawaz, Nadia and Kveton, Branislav and Oliveira, Pedro and Taft, Nina},
++  journal = {IEEE Journal of Selected Topics in Signal Processing},
++  volume  = {9},
++  number  = {7},
++  pages   = {1240--1255},
++  year    = {2015},
++  note    = {arXiv:1408.3698},
++  url     = {https://arxiv.org/abs/1408.3698}
++}
++
++@inproceedings{erdogdu2015continual,
++  title     = {Privacy-Utility Trade-off under Continual Observation},
++  author    = {Erdogdu, Murat A. and Fawaz, Nadia},
++  booktitle = {IEEE International Symposium on Information Theory (ISIT)},
++  pages     = {1801--1805},
++  year      = {2015},
++  url       = {https://www.cs.toronto.edu/~erdogdu/papers/priv_isit.pdf}
++}
++
++@misc{taylor2026collusion,
++  title         = {Adaptive Privacy of Sequential Data Releases Under Collusion},
++  author        = {Taylor, Sophie and Vippathalla, Praneeth Kumar and Coon, Justin P.},
++  year          = {2026},
++  eprint        = {2601.21859},
++  archivePrefix = {arXiv},
++  primaryClass  = {cs.IT},
++  url           = {https://arxiv.org/abs/2601.21859}
++}
++
++@inproceedings{calmon2017optimized,
++  title     = {Optimized Pre-Processing for Discrimination Prevention},
++  author    = {Calmon, Flavio P. and Wei, Dennis and Vinzamuri, Bhanukiran and Natesan Ramamurthy, Karthikeyan and Varshney, Kush R.},
++  booktitle = {Advances in Neural Information Processing Systems 30 (NIPS 2017)},
++  year      = {2017},
++  note      = {arXiv:1704.03354},
++  url       = {https://proceedings.neurips.cc/paper/2017/hash/9a49a25d845a483fae4be7e341368e36-Abstract.html}
++}
++
++@inproceedings{creager2019ffvae,
++  title     = {Flexibly Fair Representation Learning by Disentanglement},
++  author    = {Creager, Elliot and Madras, David and Jacobsen, J{\"o}rn-Henrik and Weis, Marissa A. and Swersky, Kevin and Pitassi, Toniann and Zemel, Richard},
++  booktitle = {Proceedings of the 36th International Conference on Machine Learning},
++  series    = {Proceedings of Machine Learning Research},
++  volume    = {97},
++  pages     = {1436--1445},
++  year      = {2019},
++  url       = {https://proceedings.mlr.press/v97/creager19a.html}
++}
