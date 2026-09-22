@@ -55,6 +55,28 @@ def marker_for(j):
     return base/'audits'/j['name']/'COMPLETE.json'
 
 
+def preparation_dependency(branch,spec):
+    """Declare shared first-write caches without reading scientific outcomes."""
+    anchor=spec['anchor'];base=f'private/run/anchor_{anchor}'
+    if branch=='baseline':
+        scope=spec['scope']
+        return {'key':f'baseline/{anchor}/{scope}',
+                'marker':f'{base}/baseline_supplement/{scope}/FITTED.json'}
+    folder={'A':'action33','C':'fineC'}[branch]
+    return {'key':f'{branch}/{anchor}','marker':f'{base}/branches/{folder}/TABLES.json'}
+
+
+def preparation_ready(j,active_jobs):
+    """One owner creates a shared cache; receipt readers may then run together.
+
+    Unit locks remain nonblocking integrity guards. The scheduler must avoid
+    launching two first writers of the same registered preparation scope.
+    """
+    dependency=j.get('preparation')
+    if dependency is None or (OUT/dependency['marker']).exists():return True
+    return not any(other.get('preparation',{}).get('key')==dependency['key'] for other in active_jobs)
+
+
 def extension_phases(branch):
     """Use only an explicit prospectively frozen extension schedule."""
     if branch=='A':
@@ -83,7 +105,8 @@ def extension_phases(branch):
     for ident in schedule['unit_ids']:
         spec=specs[ident]
         require(lookup(spec['configuration'],spec['anchor']))
-        jobs.append(job('audit',spec['anchor'],spec['configuration']))
+        jobs.append({**job('audit',spec['anchor'],spec['configuration']),
+                     'preparation':preparation_dependency(branch,spec)})
     return [(f'extension_{branch}',jobs)]
 
 
@@ -178,7 +201,8 @@ def run(selected_phases=None,evaluation=False,extension=None):
                         state['status']='disk_safety_stop';atomic(path,state)
                         raise RuntimeError('Task volume below registered free disk reserve')
                     if mem<plan.get('minimum_free_memory_bytes',4*1024**3):memory_wait=True;break
-                    ready=next((i for i,j in enumerate(pending) if dependencies_ready(j)),None)
+                    ready=next((i for i,j in enumerate(pending)
+                                if dependencies_ready(j) and preparation_ready(j,active.values())),None)
                     if ready is None:break
                     j=pending.pop(ready);active[pool.submit(execute,j,deadline)]=j
                 if not active:

@@ -48,12 +48,19 @@ def _contained_file(root,relative):
 
 
 def _verify_receipt_coverage(root,records):
-    """Require all active accepted artifacts, including deployable input maps."""
+    """Require active, staged and preserved receipts in their actual directories.
+
+    Preserved audit manifests are relative to the preserved audit directory;
+    their original model-path strings are not used or silently redirected to
+    replacement models. Installed retry pins additionally require the complete
+    registered original/staged version chain, even if an entire receipt vanished.
+    """
     indexed=_record_map(records)
-    run_root=root/'results'/STUDY/'private/run'
-    receipts=sorted(p for name in ('PREPARED.json','ACCEPTED.json','COMPLETE.json')
-                    for p in run_root.rglob(name) if 'quarantine' not in p.parts
-                    and not set(p.relative_to(root).parts)&EXCLUDED_PARTS)
+    out=root/'results'/STUDY;run_root=out/'private/run'
+    receipt_roots=(run_root,out/'private/numerical_recovery',out/'private/numerical_originals')
+    receipts=sorted({p for base in receipt_roots for name in ('PREPARED.json','ACCEPTED.json','COMPLETE.json')
+                    for p in base.rglob(name) if 'quarantine' not in p.parts
+                    and not set(p.relative_to(root).parts)&EXCLUDED_PARTS})
     manifests=list((root/'results'/STUDY/'private/deployment_inputs').glob('*/MANIFEST.json'))
     for marker in receipts+manifests:
         record=json.loads(marker.read_text())
@@ -66,6 +73,10 @@ def _verify_receipt_coverage(root,records):
             name=path.relative_to(root).as_posix()
             if name not in indexed or indexed[name]['sha256']!=expected:
                 raise ValueError(f'Accepted artifact missing, excluded, or changed: {name}')
+        if marker.is_relative_to(run_root) and marker.name=='ACCEPTED.json' and record.get('numerical_retry') is not None:
+            from .numerical_recovery_run import verify_installed_retry
+            verify_installed_retry(record['anchor'],record['configuration'],record,
+                                   study_out=out,source_root=root)
 
 
 def inventory(root=ROOT):

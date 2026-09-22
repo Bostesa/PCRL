@@ -213,7 +213,8 @@ def source_snapshot(root):
     out=root/'results'/STUDY
     required=('SELECTION.json','CONTRASTS.json','VALIDATION_GRID.json','RESOURCE_SCHEDULE.json')
     optional=('EXTRA_CONFIGS.json','EXTRA_RESOURCE_SCHEDULE.json','ROBUSTNESS_CONFIGS.json','ROBUSTNESS_RESOURCE_SCHEDULE.json',
-              'BASELINE_SUPPLEMENTS.json','BASELINE_SUPPLEMENT_SCHEDULE.json')
+              'BASELINE_SUPPLEMENTS.json','BASELINE_SUPPLEMENT_SCHEDULE.json','NUMERICAL_RECOVERY.json',
+              'SPLITS.json','DATED_SPLIT_CLARIFICATION.md')
     documents={name:_sha(_owned(root,out/name)) for name in required}
     for name in optional:
         if (out/name).exists():documents[name]=_sha(_owned(root,out/name))

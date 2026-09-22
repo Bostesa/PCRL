@@ -75,3 +75,29 @@ def test_baseline_supplement_is_separate_fixed_twelve_unit_schedule(tmp_path,mon
  with pytest.raises(ValueError,match='12|twelve|all'):s.extension_phases('baseline')
  (tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json').write_text(json.dumps({'unit_ids':list(reversed(order))}))
  with pytest.raises(ValueError,match='fixed order'):s.extension_phases('baseline')
+
+
+def test_shared_preparation_waits_for_owner_but_not_unrelated_work(tmp_path,monkeypatch):
+ from experiments.pcrl_task_directed_release_v1 import scheduler as s
+ monkeypatch.setattr(s,'OUT',tmp_path)
+ first={**s.job('audit',0,'leace_supervised_mechanism40'),
+        'preparation':{'key':'baseline/0/mechanism40','marker':'private/run/anchor_0/baseline_supplement/mechanism40/FITTED.json'}}
+ second={**s.job('audit',0,'splince_supervised_mechanism40'),'preparation':first['preparation']}
+ other={**s.job('audit',1,'splince_supervised_mechanism40'),
+        'preparation':{'key':'baseline/1/mechanism40','marker':'private/run/anchor_1/baseline_supplement/mechanism40/FITTED.json'}}
+ assert s.preparation_ready(first,[])
+ assert not s.preparation_ready(second,[first])
+ assert s.preparation_ready(other,[first])
+ assert s.preparation_ready(s.job('audit',0,'J'),[first])
+ marker=tmp_path/first['preparation']['marker'];marker.parent.mkdir(parents=True);marker.write_text('{}')
+ assert s.preparation_ready(second,[first])
+
+
+def test_preparation_receipt_keys_match_actual_extension_cache_layouts():
+ from experiments.pcrl_task_directed_release_v1 import scheduler as s
+ a=s.preparation_dependency('A',{'anchor':2})
+ c=s.preparation_dependency('C',{'anchor':2})
+ b=s.preparation_dependency('baseline',{'anchor':2,'scope':'union88'})
+ assert a=={'key':'A/2','marker':'private/run/anchor_2/branches/action33/TABLES.json'}
+ assert c=={'key':'C/2','marker':'private/run/anchor_2/branches/fineC/TABLES.json'}
+ assert b=={'key':'baseline/2/union88','marker':'private/run/anchor_2/baseline_supplement/union88/FITTED.json'}
