@@ -75,7 +75,9 @@ def active_scientific_writers():
         except (psutil.NoSuchProcess,psutil.AccessDenied):continue
         if ('experiments.pcrl_task_directed_release_v1.scheduler' in args
                 or ('experiments.pcrl_task_directed_release_v1.run' in args
-                    and any(command in args for command in ('prepare','benchmark','audit','map','evaluate')))):
+                    and any(command in args for command in ('prepare','benchmark','audit','map','evaluate')))
+                or ('experiments.pcrl_task_directed_release_v1.numerical_recovery_run' in args
+                    and any(command in args for command in ('execute','install')))):
             found.append(process.pid)
     return found
 

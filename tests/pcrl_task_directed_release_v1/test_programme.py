@@ -62,6 +62,18 @@ def test_active_writers_block_freeze_before_validation(tmp_path,monkeypatch):
     with pytest.raises(RuntimeError,match='writers'):p.freeze()
 
 
+def test_numerical_retry_writers_block_selection_but_registration_is_read_only(monkeypatch):
+    from types import SimpleNamespace
+    module='experiments.pcrl_task_directed_release_v1.numerical_recovery_run'
+    processes=[SimpleNamespace(pid=100+i,info={'cmdline':['python','-m',module,command]})
+               for i,command in enumerate(('execute','install','register'))]
+    monkeypatch.setattr(p.psutil,'process_iter',lambda fields:processes)
+    monkeypatch.setattr(p.os,'getpid',lambda:999)
+    assert p.active_scientific_writers()==[100,101]
+    monkeypatch.setattr(p.os,'getpid',lambda:100)
+    assert p.active_scientific_writers()==[101]
+
+
 def test_extra_schedule_is_resolved_against_verified_registry(tmp_path,monkeypatch):
     root(tmp_path,monkeypatch);spec=branches.action33_specs()[0]
     write(tmp_path/'EXTRA_RESOURCE_SCHEDULE.json',{'unit_ids':[spec['id']]})

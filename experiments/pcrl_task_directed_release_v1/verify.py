@@ -443,6 +443,10 @@ class _FrozenArtifacts:
             self.map(coarse, anchor)
             _require(receipt.get('coarse_solution_sha256') == self.map_receipts[(anchor, coarse)]['sha256'],
                      'Frozen coarse map dependency changed')
+        if receipt.get('numerical_retry') is not None:
+            from .numerical_recovery_run import verify_installed_retry
+            verify_installed_retry(anchor, name, receipt,
+                study_out=self.layout.out, source_root=self.layout.root)
         result = joblib.load(path)
         _require(result.get('feasible') is True and result.get('Q') is not None, 'Frozen accepted map is infeasible')
         self.maps[key], self.map_receipts[key] = result, receipt

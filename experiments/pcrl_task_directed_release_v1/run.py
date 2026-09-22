@@ -249,6 +249,9 @@ def _map_receipt(anchor,name):
         coarse=_map_receipt(anchor,record['coarse_configuration'])
         if record.get('coarse_solution_sha256')!=coarse['sha256']:
             raise ValueError('Accepted coarse witness changed')
+    if record.get('numerical_retry') is not None:
+        from .numerical_recovery_run import verify_installed_retry
+        verify_installed_retry(anchor,name,record)
     return record
 
 

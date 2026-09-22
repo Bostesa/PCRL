@@ -129,7 +129,11 @@ def test_publish_streams_and_manifest_are_encrypted_read_back_and_scope_restored
     code.write_bytes(b'# synthetic source\n')
     model = out / 'private/run/anchor_0/model.bin'; model.parent.mkdir(parents=True)
     model.write_bytes(b'synthetic archive weights')
-    records = [record(str(p.relative_to(root)), p.read_bytes()) for p in (code,model)]
+    retry = out / 'private/numerical_recovery/anchor_0/unit/solution.bin'
+    original = out / 'private/numerical_originals/anchor_0/unit/model.bin'
+    for path, data in ((retry, b'repaired weights'), (original, b'preserved original weights')):
+        path.parent.mkdir(parents=True); path.write_bytes(data)
+    records = [record(str(p.relative_to(root)), p.read_bytes()) for p in (code,model,retry,original)]
     monkeypatch.setattr(archive, 'ROOT', root); monkeypatch.setattr(archive, 'OUT', out)
     monkeypatch.setattr(archive, 'inventory', lambda: records)
     objects = {}; calls = []
@@ -154,8 +158,10 @@ def test_publish_streams_and_manifest_are_encrypted_read_back_and_scope_restored
     index = archive.publish('synthetic-private-bucket', 'synthetic/task', tmp_path / 'archive',
                             tmp_path / 'restored', 'synthetic-commit')
     assert index['all_streams_and_files_verified'] and index['restore_completed']
-    assert index['files'] == index['expected_restored_files'] == 2
-    assert index['chunks'][0]['per_file_verified'] == index['chunks'][0]['restored_files'] == 2
+    assert index['files'] == index['expected_restored_files'] == 4
+    assert index['chunks'][0]['per_file_verified'] == index['chunks'][0]['restored_files'] == 4
     assert index['manifest_version_id'] == 'v1'
     assert (tmp_path / 'restored' / model.relative_to(root)).read_bytes() == model.read_bytes()
+    for path in (retry, original):
+        assert (tmp_path / 'restored' / path.relative_to(root)).read_bytes() == path.read_bytes()
     assert sum(c[1] == 'put-object' for c in calls) == 2

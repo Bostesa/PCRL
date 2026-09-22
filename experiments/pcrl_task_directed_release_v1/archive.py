@@ -233,7 +233,8 @@ def publish(bucket,prefix,directory,restore_root,source_commit,*,bucket_attestat
           'source_root':str(ROOT),'files':records,'selection_sha256':sha(OUT/'SELECTION.json')}
     atomic(directory/'MANIFEST.private.json',manifest)
     prefixes=[f'experiments/{STUDY}',f'tests/{STUDY}','experiments/acs_transfer_data.py',f'results/{STUDY}/private/inputs',
-              f'results/{STUDY}/private/deployment_inputs',f'results/{STUDY}/private/run/anchor_0']
+              f'results/{STUDY}/private/deployment_inputs',f'results/{STUDY}/private/run/anchor_0',
+              f'results/{STUDY}/private/numerical_recovery',f'results/{STUDY}/private/numerical_originals']
     # The representative restore needs the global selection permit, prospective
     # contrasts, manifests, protocol, and reports in addition to anchor0 weights.
     prefixes+=sorted(r['path'] for r in records if PurePosixPath(r['path']).parent==PurePosixPath('results')/STUDY)
@@ -242,7 +243,7 @@ def publish(bucket,prefix,directory,restore_root,source_commit,*,bucket_attestat
            'destination_preflight':destination,'restore_prefixes':prefixes,'expected_restored_files':expected_restore,
            'encryption':'AES256','manifest_sha256':sha(directory/'MANIFEST.private.json'),
            'files':len(records),'uncompressed_bytes':sum(r['bytes'] for r in records),'chunks':[],
-           'restore_scope':'all indexed global study documents, tests and executable sources; all owned inputs and deployment input maps; complete indexed anchor0 artifacts; other anchors verified in stream'}
+           'restore_scope':'all indexed global study documents, tests and executable sources; all owned inputs and deployment input maps; complete indexed anchor0 artifacts; numerical retry and preserved original versions; other anchors verified in stream'}
     for i,group in enumerate(chunk_records(records)):
         name=f'part-{i:04d}.tar.zst';path=directory/name;info=pack(ROOT,group,path)
         key=prefix.rstrip('/')+'/'+name
