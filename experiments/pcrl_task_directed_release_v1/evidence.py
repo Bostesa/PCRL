@@ -23,6 +23,12 @@ ROLES = tuple('attack:' + r for r in config.PRIMARY + config.SECONDARY) + tuple(
 HISTORICAL = ('J', 'leace_A0', 'splince_A0', 'optnet16_L1', 'optnet16_L2', 'optnet16_C1')
 ENTRY_KEYS = {'ce', 'accuracy', 'support', 'weight_sum', 'ess', 'per_class', 'selection',
               'independent_selection', 'independent_ce', 'selection_source', 'fixed_decoder_ce'}
+VERSION_SCOPE = 'Receipt-only provenance/byte checks; no score, model or prediction replay.'
+VERSION_HASHES = ('original_map_receipt_sha256', 'original_solution_sha256', 'original_audit_receipt_sha256',
+    'original_registry_sha256', 'claim_sha256', 'retry_receipt_sha256', 'installation_receipt_sha256',
+    'current_map_receipt_sha256', 'current_solution_sha256', 'current_audit_receipt_sha256', 'current_registry_sha256')
+VERSION_COUNTS = tuple(prefix+field for prefix in ('original_', 'current_')
+    for field in ('audit_role_units', 'new_role_fits', 'reused_role_audits'))
 
 
 def _name(value):
@@ -123,8 +129,129 @@ def _receipts(values, *, fields, extra=()):
         if key in result:raise ValueError('Duplicate accepted receipt')
         record = {'configuration':key[0], 'anchor':key[1]}
         for field in fields:record[field] = _hash(value[field])
+        for field in extra:record[field] = _count(value[field])
         result[key] = record
     return result
+
+
+def _empty_numerical_versions():
+    return {'schema':1,'registered':False,'registration_sha256':None,'registered_slots':0,
+        'new_nominal_configurations':0,'coverage_complete':True,'records':[],'scope':VERSION_SCOPE}
+
+
+def _public_numerical_versions(value):
+    value = _empty_numerical_versions() if value is None else value
+    if (not isinstance(value,dict) or set(value)!=set(_empty_numerical_versions())
+            or value['schema']!=1 or type(value['registered']) is not bool or value['coverage_complete'] is not True
+            or value['new_nominal_configurations']!=0 or value['scope']!=VERSION_SCOPE
+            or not isinstance(value['records'],list) or _count(value['registered_slots'])!=len(value['records'])):
+        raise ValueError('Invalid public numerical-version schema/completion')
+    if value['registered']:_hash(value['registration_sha256'])
+    elif value['records'] or value['registration_sha256'] is not None:
+        raise ValueError('Unregistered numerical versions')
+    allowed={'configuration','anchor','attempts','retry_completed','retry_accepted','installation_decision','reaudit_completed',
+             *VERSION_HASHES,*VERSION_COUNTS}
+    seen=set()
+    for row in value['records']:
+        if not isinstance(row,dict) or set(row)!=allowed:raise ValueError('Unexpected nonpublic numerical-version field')
+        key=(_name(row['configuration']),_anchor(row['anchor']))
+        if key in seen:raise ValueError('Duplicate numerical version slot')
+        seen.add(key)
+        installed=row['installation_decision']=='installed_accepted_retry'
+        if (row['installation_decision'] not in ('installed_accepted_retry','retained_original')
+                or row['attempts']!=1 or row['retry_completed'] is not True
+                or row['retry_accepted'] is not installed or row['reaudit_completed'] is not installed):
+            raise ValueError('Incomplete or contradictory numerical version decision')
+        for field in VERSION_HASHES:_hash(row[field])
+        for field in VERSION_COUNTS:_count(row[field])
+        for prefix in ('original_','current_'):
+            if row[prefix+'audit_role_units']!=len(ROLES) or row[prefix+'new_role_fits']+row[prefix+'reused_role_audits']!=len(ROLES):
+                raise ValueError('Numerical audit role counts differ from the registered slate')
+    return copy.deepcopy(value)
+
+
+def collect_numerical_versions(*,out_root=config.OUT):
+    """Require completed Branch-D decisions and re-audits; read only JSON receipts.
+
+    Original/current model and solution hashes are accepted receipt declarations;
+    their weights are deliberately left to independent replay, not opened here.
+    """
+    root=Path(out_root).resolve();path=root/'NUMERICAL_RECOVERY.json'
+    if not path.exists():return _empty_numerical_versions()
+    from . import numerical_recovery_run as retry
+    def read(path, *, expected=None, identity=None, stage=None):
+        path=Path(path)
+        if not path.resolve().is_relative_to(root) or not path.is_file():
+            raise ValueError('Required numerical completion receipt missing or escaping root')
+        sha=run.sha(path)
+        if expected is not None and sha!=expected:raise ValueError('Numerical receipt hash mismatch')
+        row=json.loads(path.read_text())
+        if identity is not None and (row.get('anchor'),row.get('configuration'))!=identity:
+            raise ValueError('Numerical receipt identity mismatch')
+        if stage is not None:run._validate_provenance(row,stage)
+        return row,sha
+    registry,pin=read(path)
+    if (registry.get('schema')!=1 or registry.get('branch')!='D' or registry.get('attempts_per_slot')!=1
+            or registry.get('new_nominal_configurations')!=0
+            or [(s['anchor'],s['configuration']) for s in registry.get('slots',[])]!=list(retry.SLOTS)):
+        raise ValueError('Numerical registration differs from the four original slots')
+    if (registry.get('config_hash')!=config.digest(config.configuration())
+            or registry.get('scientific_source_hashes')!=run.source_fingerprint()
+            or registry.get('runner_sha256')!=run.sha(run.__file__)
+            or registry.get('recovery_source_hashes')!=retry._recovery_sources()
+            or registry.get('resource_schedule_sha256')!=run.sha(root/'RESOURCE_SCHEDULE.json')):
+        raise ValueError('Numerical registration source/schedule provenance changed')
+    records=[]
+    for slot in registry['slots']:
+        anchor,name=slot['anchor'],slot['configuration'];identity=(anchor,name)
+        stage=root/'private/numerical_recovery'/f'anchor_{anchor}'/name
+        active=root/'private/run'/f'anchor_{anchor}'
+        claim,claim_sha=read(stage/'CLAIM.json',identity=identity)
+        complete,complete_sha=read(stage/'COMPLETE.json',identity=identity)
+        installation,install_sha=read(stage/'INSTALLATION.json',identity=identity)
+        if (claim.get('registration_sha256')!=pin or claim.get('attempt')!=1
+                or complete.get('registration_sha256')!=pin or complete.get('attempts')!=1
+                or type(complete.get('accepted')) is not bool
+                or installation.get('retry_receipt_sha256')!=complete_sha):
+            raise ValueError('Numerical claim/completion/installation provenance mismatch')
+        installed=installation.get('decision')=='installed_accepted_retry'
+        if installed != complete['accepted'] or installation.get('decision') not in ('installed_accepted_retry','retained_original'):
+            raise ValueError('Numerical installation has no completed accepted/retained decision')
+        old=(root/'private/numerical_originals'/f'anchor_{anchor}'/name) if installed else None
+        original_map,old_map_sha=read(old/'map/ACCEPTED.json' if installed else active/'maps'/name/'ACCEPTED.json',
+            expected=slot['original']['receipt_sha256'],identity=identity,stage='map')
+        original_audit,old_audit_sha=read(old/'audit/COMPLETE.json' if installed else active/'audits'/name/'COMPLETE.json',
+            expected=slot['audit']['receipt_sha256'],identity=identity,stage='audit')
+        current_map,map_sha=read(active/'maps'/name/'ACCEPTED.json',identity=identity,stage='map')
+        current_audit,audit_sha=read(active/'audits'/name/'COMPLETE.json',identity=identity,stage='audit')
+        if (original_map.get('sha256')!=slot['original']['solution_sha256']
+                or original_audit.get('map_solution_sha256')!=original_map['sha256']
+                or original_audit.get('registry_sha256')!=slot['audit']['registry_sha256']
+                or current_audit.get('map_solution_sha256')!=current_map.get('sha256')):
+            raise ValueError('Numerical map/audit dependency mismatch')
+        if installed:
+            expected={'registration_sha256':pin,'retry_receipt_sha256':complete_sha,
+                'original_accepted_sha256':old_map_sha,'original_solution_sha256':original_map['sha256'],
+                'recovery_source_hashes':registry['recovery_source_hashes']}
+            if (complete.get('feasible') is not True or current_map.get('numerical_retry')!=expected
+                    or any(installation.get(k)!=v for k,v in expected.items())
+                    or installation.get('new_solution_sha256')!=current_map['sha256']
+                    or installation.get('new_accepted_sha256')!=map_sha or installation.get('reaudit_required') is not True
+                    or complete.get('artifact_hashes',{}).get('map/solution.joblib')!=current_map['sha256']):
+                raise ValueError('Installed numerical version/re-audit receipt is inconsistent')
+        row={'configuration':name,'anchor':anchor,'attempts':1,'retry_completed':True,
+            'retry_accepted':complete['accepted'],'installation_decision':installation['decision'],'reaudit_completed':installed,
+            'original_map_receipt_sha256':old_map_sha,'original_solution_sha256':original_map['sha256'],
+            'original_audit_receipt_sha256':old_audit_sha,'original_registry_sha256':original_audit['registry_sha256'],
+            'claim_sha256':claim_sha,'retry_receipt_sha256':complete_sha,'installation_receipt_sha256':install_sha,
+            'current_map_receipt_sha256':map_sha,'current_solution_sha256':current_map['sha256'],
+            'current_audit_receipt_sha256':audit_sha,'current_registry_sha256':current_audit['registry_sha256']}
+        for prefix,audit in (('original_',original_audit),('current_',current_audit)):
+            row.update({prefix+'audit_role_units':audit['role_audits'],prefix+'new_role_fits':audit['new_role_fits'],
+                        prefix+'reused_role_audits':audit['reused_role_audits']})
+        records.append(row)
+    return _public_numerical_versions({'schema':1,'registered':True,'registration_sha256':pin,
+        'registered_slots':len(records),'new_nominal_configurations':0,'coverage_complete':True,'records':records,'scope':VERSION_SCOPE})
 
 
 def collect_evaluation_grid(*, out_root=config.OUT, ledger=None):
@@ -147,7 +274,8 @@ def collect_evaluation_grid(*, out_root=config.OUT, ledger=None):
     grid = {'schema':1, 'phase':'evaluation', 'pool':'test', 'selection_frozen':True,
             'selection_sha256':selection_sha, 'config_hash':cfg_hash,
             'source_hashes':selection['source_hashes'], 'inference_source_hashes':selection['inference_source_hashes'],
-            'records':{name:{} for name in names}, 'receipts':[], 'audit_receipts':[], 'map_receipts':[]}
+            'records':{name:{} for name in names}, 'receipts':[], 'audit_receipts':[], 'map_receipts':[],
+            'numerical_versions':collect_numerical_versions(out_root=root)}
     audit_records = {}
     for name, anchor in sorted(pairs):
         base = root/'private/run'/f'anchor_{anchor}'
@@ -189,6 +317,18 @@ def _execution(grid, nominal, receipt_keys):
     audits = _receipts(grid.get('audit_receipts',[]),fields=('registry_sha256','receipt_sha256'),
                        extra=('role_audits','new_role_fits','reused_role_audits'))
     maps = _receipts(grid.get('map_receipts',[]),fields=('solution_sha256','receipt_sha256'))
+    versions=_public_numerical_versions(grid.get('numerical_versions'))
+    repeated=[r for r in versions['records'] if r['installation_decision']=='installed_accepted_retry']
+    for row in versions['records']:
+        key=(row['configuration'],row['anchor']);audit=audits.get(key,{});mapping=maps.get(key,{})
+        if (key not in nominal or audit.get('receipt_sha256')!=row['current_audit_receipt_sha256']
+                or audit.get('registry_sha256')!=row['current_registry_sha256']
+                or mapping.get('receipt_sha256')!=row['current_map_receipt_sha256']
+                or mapping.get('solution_sha256')!=row['current_solution_sha256']
+                or audit.get('role_audits')!=row['current_audit_role_units']
+                or audit.get('new_role_fits')!=row['current_new_role_fits']
+                or audit.get('reused_role_audits')!=row['current_reused_role_audits']):
+            raise ValueError('Numerical version differs from active nominal map/audit receipts')
     new = reused = roles = 0
     for record in grid.get('audit_receipts',[]):
         n, r, total = (_count(record[k]) for k in ('new_role_fits','reused_role_audits','role_audits'))
@@ -216,12 +356,22 @@ def _execution(grid, nominal, receipt_keys):
             'incomplete_evaluations':missing(expected_eval-set(receipt_keys)),
             'extra_accepted_audit_units':len(set(audits)-set(nominal)),
             'accepted_resource_unscheduled_audit_units':len(set(audits)&unscheduled),
+            'registered_numerical_retry_slots':versions['registered_slots'],
+            'completed_numerical_retry_attempts':len(versions['records']),
+            'installed_numerical_replacements':len(repeated),
+            'retained_original_after_rejected_retry':len(versions['records'])-len(repeated),
+            'preserved_original_map_versions':len(repeated),'preserved_original_audit_versions':len(repeated),
+            'repeated_audit_units':len(repeated),
+            'total_accepted_map_versions':len(maps)+len(repeated),
+            'total_accepted_audit_versions':len(audits)+len(repeated),
+            'total_role_audit_units_with_repeats':roles+sum(r['original_audit_role_units'] for r in repeated),
+            'total_new_role_fit_units_with_repeats':new+sum(r['original_new_role_fits'] for r in repeated),
             'unique_registry_artifacts':len({r['registry_sha256'] for r in audits.values()}),
             'unique_solution_artifacts':len({r['solution_sha256'] for r in maps.values()}),
             'accepted_role_audit_units':roles,'new_role_fit_units':new,'reused_role_audit_units':reused,
             'mathematical_duplicate_release_count':None,
             'exact_equivalence_status':'pending separate exact channel/action-dictionary proof',
-            'count_scope':'accepted receipt declarations; new role-fit units are not individual learner counts; artifact hashes do not prove mathematical channel equality'}
+            'count_scope':'accepted receipt declarations; active nominal units and preserved numerical versions are separate; repeated-role counts include superseded completed audits; operational scheduler incidents without completed fit receipts are not scientific failures or extra fitted versions; new role-fit units are not individual learner counts; artifact hashes do not prove mathematical channel equality'}
 
 
 def _public_formula(formula):
@@ -261,7 +411,7 @@ def build_evidence(grid, *, selection, claims=None, bounds=None, ledger=None):
             or grid.get('selection_frozen') is not True or selection.get('selection_frozen') is not True):
         raise ValueError('Only frozen test evaluation aggregates are supported')
     if set(grid)-{'schema','phase','pool','selection_frozen','selection_sha256','config_hash','source_hashes',
-                  'inference_source_hashes','records','receipts','audit_receipts','map_receipts'}:
+                  'inference_source_hashes','records','receipts','audit_receipts','map_receipts','numerical_versions'}:
         raise ValueError('Unexpected nonpublic grid field')
     if 'config_hash' in grid:_hash(grid['config_hash'])
     for key,permitted in (('source_hashes',run.source_fingerprint()),('inference_source_hashes',reporting.inference_source_fingerprint())):
@@ -352,6 +502,11 @@ def build_evidence(grid, *, selection, claims=None, bounds=None, ledger=None):
             'selection_sha256':selection_sha,'grid_digest':config.digest(grid),
             'aggregation':'equal mean of exactly three anchor estimates, separately for each weighting; class support remains anchor-specific',
             'scope':'descriptive historically used 2018 development evaluation; measured attacker CE recovery, not mutual information',
+            'cross_anchor_scope':{'globally_unseen_people':False,'globally_untouched_labels':False,
+                'retraining_uncertainty_included':False,'bounds_conditional_on_fitted_models':True,
+                'description':'Anchor-specific seals do not imply globally unseen people; non-test assignments overlap other anchors test pools. Shared-household resampling does not account for retraining or validation-selection uncertainty.',
+                'disclosure':'DATED_SPLIT_CLARIFICATION.md'},
+            'numerical_versions':_public_numerical_versions(grid.get('numerical_versions')),
             'sensitive_signs':{'recovery_over_H':'CE(H)-CE(configuration)','recovery_increment_over_J':'CE(J)-CE(configuration)',
                                'J_minus_H_loss':'CE(J)-CE(H)'},
             'configurations':configs,'baseline_families':family_rows,
@@ -401,7 +556,7 @@ def render_tables(evidence):
             ', '.join(spec.get('missing_required_configurations',[])) or 'none',
             spec.get('scientifically_ineligible','unavailable'),spec.get('configuration') or 'none'])
     provenance='Source: EVIDENCE.json; native accepted summaries: EVALUATION_GRID.json. Selection SHA-256: `'+evidence['selection_sha256']+'`. Grid digest: `'+evidence['grid_digest']+'`. Every complete configuration stores its three summary/receipt hashes.\n\n'
-    context='Machine-rendered descriptive aggregates. Means require all three anchors; unweighted and PWGTP metrics use the same frozen predictors. Missing diagnostics are unavailable, never imputed.\n\n'
+    context='Machine-rendered descriptive aggregates. Means require all three anchors; unweighted and PWGTP metrics use the same frozen predictors. Missing diagnostics are unavailable, never imputed. These are dependent analyses of the same inherited 2018 cohort; people are not globally unseen across anchors. The anchor-specific test seal does not imply globally untouched labels. Household bounds are conditional on fitted models; they do not include retraining or validation-selection uncertainty. See DATED_SPLIT_CLARIFICATION.md.\n\n'
     execution=evidence['execution'];count_rows=[[k,v] for k,v in execution.items() if isinstance(v,(int,type(None))) and not isinstance(v,bool)]
     incomplete=[[n,','.join(map(str,r.get('missing_anchors',[])))] for n,r in configs.items() if r['status']!='complete']
     return {

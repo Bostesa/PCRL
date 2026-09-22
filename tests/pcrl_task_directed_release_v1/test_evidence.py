@@ -297,3 +297,120 @@ def test_family_metadata_is_blocked_only_and_private_fields_still_rejected():
     with pytest.raises(ValueError):
         m._public_formula({'kind': 'blocked', 'passed': False,
             'incomplete_required_families': ['supervised_LEACE'], 'ids': ['private-person']})
+
+
+@pytest.fixture
+def numerical_receipts(tmp_path, monkeypatch):
+    from experiments.pcrl_task_directed_release_v1 import numerical_recovery_run as retry
+    monkeypatch.setattr(run, 'OUT', tmp_path)
+    def write(path, data):
+        path.parent.mkdir(parents=True, exist_ok=True); path.write_text(json.dumps(data))
+        return run.sha(path)
+    write(tmp_path/'RESOURCE_SCHEDULE.json', {'config_hash': config.digest(config.configuration())})
+    slots = []
+    for i, (anchor, name) in enumerate(retry.SLOTS):
+        old = tmp_path/'private/numerical_originals'/f'anchor_{anchor}'/name
+        mapping = {**run._provenance('map'), 'anchor': anchor, 'configuration': name, 'sha256': 'a'*64}
+        audit = {**run._provenance('audit'), 'anchor': anchor, 'configuration': name,
+            'map_solution_sha256': 'a'*64, 'registry_sha256': 'b'*64,
+            'role_audits': 16, 'new_role_fits': 9, 'reused_role_audits': 7}
+        slots.append({'anchor': anchor, 'configuration': name,
+            'original': {'receipt_sha256': write(old/'map/ACCEPTED.json', mapping), 'solution_sha256': 'a'*64},
+            'audit': {'receipt_sha256': write(old/'audit/COMPLETE.json', audit), 'registry_sha256': 'b'*64}})
+    registry = {'schema': 1, 'branch': 'D', 'attempts_per_slot': 1, 'new_nominal_configurations': 0,
+                **retry._source_context(), 'slots': slots}
+    pin = write(tmp_path/'NUMERICAL_RECOVERY.json', registry)
+    for slot in slots:
+        a, n = slot['anchor'], slot['configuration']; ident = {'anchor': a, 'configuration': n}
+        stage = tmp_path/'private/numerical_recovery'/f'anchor_{a}'/n
+        active = tmp_path/'private/run'/f'anchor_{a}'
+        write(stage/'CLAIM.json', {**ident, 'registration_sha256': pin, 'attempt': 1})
+        retry_sha = write(stage/'COMPLETE.json', {**ident, 'registration_sha256': pin, 'attempts': 1,
+            'accepted': True, 'feasible': True, 'artifact_hashes': {'map/solution.joblib': 'c'*64}})
+        retry_pin = {'registration_sha256': pin, 'retry_receipt_sha256': retry_sha,
+            'original_accepted_sha256': slot['original']['receipt_sha256'],
+            'original_solution_sha256': 'a'*64, 'recovery_source_hashes': registry['recovery_source_hashes']}
+        map_sha = write(active/'maps'/n/'ACCEPTED.json', {**run._provenance('map'), **ident,
+            'sha256': 'c'*64, 'numerical_retry': retry_pin})
+        write(stage/'INSTALLATION.json', {**ident, **retry_pin, 'decision': 'installed_accepted_retry',
+            'new_solution_sha256': 'c'*64, 'new_accepted_sha256': map_sha, 'reaudit_required': True})
+        write(active/'audits'/n/'COMPLETE.json', {**run._provenance('audit'), **ident,
+            'map_solution_sha256': 'c'*64, 'registry_sha256': 'd'*64,
+            'role_audits': 16, 'new_role_fits': 9, 'reused_role_audits': 7})
+    return tmp_path, slots
+
+
+def test_receipt_only_numerical_versions_count_repeated_work_not_new_configs(numerical_receipts):
+    root, slots = numerical_receipts; m = module()
+    versions = m.collect_numerical_versions(out_root=root)
+    assert versions['registered_slots'] == 4 and versions['coverage_complete']
+    assert versions['new_nominal_configurations'] == 0
+    assert all(r['retry_completed'] and r['reaudit_completed'] for r in versions['records'])
+    grid, selected, ledger = fixture(); grid['numerical_versions'] = versions
+    for row in versions['records']:
+        ident={k:row[k] for k in ('configuration','anchor')}
+        ledger.append({**ident,'kind':'finite_map'})
+        grid['audit_receipts'].append({**ident,'receipt_sha256':row['current_audit_receipt_sha256'],
+            'registry_sha256':row['current_registry_sha256'],'role_audits':16,'new_role_fits':9,'reused_role_audits':7})
+        grid['map_receipts'].append({**ident,'receipt_sha256':row['current_map_receipt_sha256'],
+            'solution_sha256':row['current_solution_sha256']})
+    got = m.build_evidence(grid, selection=selected, ledger=ledger)
+    execution = got['execution']
+    assert execution['nominal_release_anchor_units'] == 16
+    assert execution['installed_numerical_replacements'] == execution['repeated_audit_units'] == 4
+    assert execution['total_accepted_audit_versions'] == execution['accepted_audit_units']+4
+    assert execution['total_new_role_fit_units_with_repeats'] == execution['new_role_fit_units']+36
+    assert got['numerical_versions'] == versions
+
+
+@pytest.mark.parametrize('missing', ['CLAIM.json', 'COMPLETE.json', 'INSTALLATION.json', 'reaudit'])
+def test_final_version_evidence_requires_all_completion_receipts(numerical_receipts, missing):
+    root, slots = numerical_receipts; a, n = slots[0]['anchor'], slots[0]['configuration']
+    path = (root/'private/run'/f'anchor_{a}'/'audits'/n/'COMPLETE.json' if missing == 'reaudit' else
+            root/'private/numerical_recovery'/f'anchor_{a}'/n/missing)
+    path.unlink()
+    with pytest.raises(ValueError, match='receipt|missing|completion'):
+        module().collect_numerical_versions(out_root=root)
+
+
+def test_version_public_schema_rejects_private_fields(numerical_receipts):
+    root, _ = numerical_receipts; grid, selected, ledger = fixture()
+    grid['numerical_versions'] = module().collect_numerical_versions(out_root=root)
+    grid['numerical_versions']['records'][0]['private_path'] = '/private/model.joblib'
+    with pytest.raises(ValueError, match='public'):
+        module().build_evidence(grid, selection=selected, ledger=ledger)
+
+
+def test_rejected_retry_keeps_original_without_counting_a_reaudit(numerical_receipts):
+    import shutil
+    root, slots = numerical_receipts; slot=slots[0]; a,n=slot['anchor'],slot['configuration']
+    stage=root/'private/numerical_recovery'/f'anchor_{a}'/n
+    complete=json.loads((stage/'COMPLETE.json').read_text());complete.update(accepted=False,feasible=False)
+    (stage/'COMPLETE.json').write_text(json.dumps(complete))
+    (stage/'INSTALLATION.json').write_text(json.dumps({'anchor':a,'configuration':n,'decision':'retained_original',
+        'retry_receipt_sha256':run.sha(stage/'COMPLETE.json')}))
+    old=root/'private/numerical_originals'/f'anchor_{a}'/n
+    active=root/'private/run'/f'anchor_{a}'
+    for source,target in ((old/'map',active/'maps'/n),(old/'audit',active/'audits'/n)):
+        shutil.rmtree(target);shutil.copytree(source,target)
+    row=module().collect_numerical_versions(out_root=root)['records'][0]
+    assert row['retry_completed'] and not row['retry_accepted'] and not row['reaudit_completed']
+    assert row['current_registry_sha256']==row['original_registry_sha256']
+    assert row['current_audit_receipt_sha256']==row['original_audit_receipt_sha256']
+
+
+def test_reaudit_of_old_map_cannot_satisfy_installed_retry_completion(numerical_receipts):
+    root,slots=numerical_receipts;a,n=slots[0]['anchor'],slots[0]['configuration']
+    path=root/'private/run'/f'anchor_{a}'/'audits'/n/'COMPLETE.json'
+    value=json.loads(path.read_text());value['map_solution_sha256']='a'*64
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError,match='dependency'):
+        module().collect_numerical_versions(out_root=root)
+
+
+def test_rendered_scope_never_claims_globally_unseen_cross_anchor_people():
+    grid, selected, ledger = fixture(); result = module().build_evidence(grid, selection=selected, ledger=ledger)
+    assert result['cross_anchor_scope']['globally_unseen_people'] is False
+    assert result['cross_anchor_scope']['retraining_uncertainty_included'] is False
+    for text in module().render_tables(result).values():
+        assert 'not globally unseen' in text and 'conditional on fitted models' in text

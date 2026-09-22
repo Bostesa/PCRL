@@ -4,6 +4,8 @@ This index maps the requested scientific questions to the implemented checks and
 
 The scientific sample is historically reused 2018 development data. **2016 remains sealed.** See [DATA_USE.md](DATA_USE.md), [RELEASE_CONTRACT.md](RELEASE_CONTRACT.md), and the separately defined [fresh-year confirmation protocol](FRESH_YEAR_CONFIRMATION_PROTOCOL.md). Instructions for synthetic checks, preserved-model replay, historical fitting entry points and private archive restore are in [REPRODUCE.md](REPRODUCE.md).
 
+[DATED_SPLIT_CLARIFICATION.md](DATED_SPLIT_CLARIFICATION.md) and [SPLITS.json](SPLITS.json) disclose the unchanged inherited cross-anchor person overlap. An anchor-specific test seal is not a globally unseen-person or globally untouched-label design. Household inference is conditional on the fitted models; it does not include retraining or validation-selection uncertainty. Row-index disjointness must not be represented as a household-disjointness proof.
+
 ## Design, permitted information and exact mathematics
 
 | Review question | Definition and implementation | Evidence to inspect |
@@ -54,3 +56,5 @@ The scientific sample is historically reused 2018 development data. **2016 remai
 | What should the final reviewer read first? | This index, [REPRODUCE.md](REPRODUCE.md), protocol/amendments, then frozen inference and its verification | Final `DEVELOPMENT_RESULTS.md`, `VALIDATION.md`, handoff and archive references — **pending final closeout/review**. A final report must retain limitations, failed/unavailable comparisons, and refuted or unassessed bets. |
 
 Reviewers should prefer machine-readable receipts, explicit formula trees and independently reconstructed predictions over prose summaries. Private verification details remain in the private archive; public reports should expose aggregate counts, errors, hashes, scientific scope and actual coverage without original-person records.
+
+Final `EVIDENCE.numerical_versions` is the receipt-based index of original/retry/install/current-audit versions. Its separate execution counters include preserved superseded maps/audits and repeated completed audits without adding nominal configurations. Final generation requires the relevant completion receipts. Scheduler cache-lock/dispatch incidents without completed fit receipts remain operational incidents, not scientific failures or extra fitted versions; preserve their logs separately.

@@ -2,6 +2,8 @@
 
 This is a source-audited command guide, not a result or completion certificate. Use [REVIEW_INDEX.md](REVIEW_INDEX.md) to locate the evidence and pending outputs. The ACS cohorts are historically reused 2018 development data; a new run on them is not fresh confirmation. **2016 remains sealed.** These commands neither fetch nor authorize opening it.
 
+[DATED_SPLIT_CLARIFICATION.md](DATED_SPLIT_CLARIFICATION.md) indexes the inherited assignments without changing them: people in one anchor's test pool can be in another anchor's non-test pool. The seal is anchor-specific; people and labels are not globally untouched across anchors. Shared-household bounds are conditional on the fitted models and do not include retraining or validation-selection uncertainty. This distinction does not change the registered estimands or resampling rules.
+
 ## Source, environment, and synthetic checks
 
 Use the published source commit identified by the final handoff/archive index, once generated. Match the scientific Python and package versions in [ENVIRONMENT.json](ENVIRONMENT.json); it records the execution environment, not a portable environment lock. The historical source commits are pinned in [CONFIGS.json](CONFIGS.json) and [ARTIFACT_DEFINITIONS.json](ARTIFACT_DEFINITIONS.json). Figure rendering additionally requires Matplotlib. Archive commands require `zstd` and an authenticated AWS CLI with access to the exact private archive objects.
@@ -169,6 +171,8 @@ python -m experiments.pcrl_task_directed_release_v1.attack_calibration
 ```
 
 Evidence consumes all registered units and separately counts scheduled, resource-unscheduled and incomplete scheduled units. Per-person artifacts remain private. Attack calibration summarizes stored validation candidate/checkpoint metadata and inherited H slack; it does not refit attacks. Subjective prediction assessment is the pure `predictions.assess_predictions` API, using explicit native validation, frozen claim results, exact zero certificates and selection/provenance inputs under `PREDICTION_ASSESSMENT_RULES.json`.
+
+When Branch D is registered, final evidence also requires completed numerical retry/installation decisions and current re-audit receipts. `numerical_versions` preserves original/current receipt and registry hashes; execution totals distinguish active nominal slots, preserved superseded versions and repeated completed audits. No new nominal configuration is created by a replacement. Operational scheduler incidents that fail before completed fit receipts remain in their incident logs and are not scientific failures or additional fitted versions. Earlier interim outputs are not overwritten by this final evidence generation.
 
 Figures have a Python API, not a CLI. Use the receipt-bound aggregate grid and combined ledger metadata so branch controls and fine-conditioning maps are labelled correctly. Choose a fresh output directory:
 
