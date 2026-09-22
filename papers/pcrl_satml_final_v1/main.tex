@@ -1,0 +1,410 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+
+\begin{document}
+
+\title{Task-Directed Releases Beside a Fixed Prediction Service:\\
+Measuring Additional Sensitive Recovery for Single and Colluding Recipients}
+
+\author{\IEEEauthorblockN{Anonymous Submission}}
+
+\maketitle
+
+\begin{abstract}
+An organisation already publishes a prediction service whose outputs downstream recipients consume and
+cannot be asked to re-accept. We study what it can release \emph{beside} those fixed outputs for one
+recipient: a channel that must serve a permitted task while limiting what that recipient, and that
+recipient colluding with another, can newly infer about sex and race. We formalise this purpose-specific
+release problem, give it an implemented interface and measurement contract---per-recipient and coalition
+views, independently fitted attackers, additional disclosure always reported against the fixed service
+baseline, and negative increments retained unclipped---and use it to evaluate a task-directed finite
+release optimised under explicit conditional-disclosure constraints. On repeatedly used development data,
+the selected release improves permitted-task loss over the strongest channel this project had by
+$0.0163$ nats with paired household bounds excluding zero, and all eight sensitive point estimates favour
+it; but seven of the eight adjusted non-inferiority bounds do not resolve, so the registered
+competitiveness conjunction is \textbf{not} established, and a matched deterministic release without the
+stochastic machinery performs comparably. We report what the comparison does not isolate: the task
+objective used authorised supervision the comparator never received, and neither randomisation nor
+coalition conditioning earned its registered attribution. We also correct published claims of our own,
+including a linear-erasure guarantee that a counterexample refutes, and state precisely which guarantees
+are finite-model rather than population statements.
+\end{abstract}
+
+\section{Introduction}
+
+A bank collects mortgage applications and uses them for several purposes. An underwriter must not see
+applicant race; a fair-lending auditor must. A pricing analyst sits somewhere in between. Each purpose
+admits a different set of permissible attributes, and this is the dilemma of \emph{purpose limitation}
+codified in data-protection regulation and, at the representation level, of contextual integrity.
+
+Most of the machine-learning literature attacks this problem by owning the representation: it edits,
+projects or retrains until an attribute is hard to recover. In deployment the harder version is often the
+one where **the organisation has already published something**. A prediction service is live, its outputs
+are inside the recipients' systems, and they cannot be recalled or renegotiated. The only decision left is
+what to place \emph{beside} the fixed outputs, for whom, and how to measure what that addition gives away.
+
+This paper formalises and evaluates that release problem. A service publishes probability vectors $H_A$ to
+one recipient and $H_B$ to another; a mechanism may add a channel for the first recipient only. The
+permitted task is a residence-mobility prediction that recipient is authorised to perform; the protected
+targets are sex and race, forbidden to both recipients individually and to the two acting together.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/release_view.pdf}
+\caption{The release interface. $H_A$ and $H_B$ are already published and are never modified. A channel
+is appended to recipient $A$'s wire alone. Three views are audited: $A$ alone, the coalition $AB$, and the
+$H$-only baseline against which every increment is measured.}
+\label{fig:release}
+\end{figure}
+
+\paragraph*{Contributions}
+\begin{itemize}\itemsep2pt
+\item \textbf{The release problem and its measurement contract} (\S\ref{sec:problem}): per-recipient and
+coalition audit roles, independently fitted attackers, additional disclosure always reported against the
+fixed service baseline, negative increments retained unclipped, per-endpoint results never averaged.
+\item \textbf{An auditing result that survives checking} (\S\ref{sec:audit}): a prevalence-weighted
+aggregate one-hot regression score can conceal a much larger sensitive direction, which a class-aware
+dominant-axis audit exposes; we give the exact convex-combination identity behind it, and the precise
+limits of the linear guarantees it is often paired with.
+\item \textbf{A task-directed finite release} (\S\ref{sec:method}) optimised under explicit
+conditional-disclosure constraints, with its optimisation assumptions, its relationship to established
+convex programmes, and an exact fixture separating what it can and cannot do.
+\item \textbf{A controlled evaluation} (\S\ref{sec:eval}) in which the selected release improves the
+permitted task over the strongest prior channel with bounds excluding zero, does \emph{not} establish the
+registered competitiveness conjunction, and is matched by a simpler deterministic baseline---together with
+the supervision asymmetry that comparison does not isolate.
+\item \textbf{Corrections to our own published claims} (\S\ref{sec:corrections}), including a universal
+regression-to-classification guarantee that an exact counterexample refutes.
+\end{itemize}
+
+\section{The release problem and the measurement contract}
+\label{sec:problem}
+
+\paragraph{Views} Each person has covariates $X$, sensitive attributes $S$ (sex, 2 classes; race, 9
+classes) and task labels. Two services are frozen and published first: $H_A(X)\in[0,1]^4$ and
+$H_B(X)\in[0,1]^2$. A mechanism may add a channel $Z$ for $A$ only, so $A$ holds $(H_A,Z)$, $B$ holds
+$H_B$, and the coalition holds $(H_A,H_B,Z)$. The policy authorises $A$ for the residence task and
+forbids sex and race to $A$, to $B$ and to the coalition.
+
+\paragraph{Threat model} The adversary holds labelled data from the release year, fits attack families on
+its own pool, selects on a validation pool, and sees only its legal view. It knows the mechanism, the
+codebook and the channel law; what it does not hold is the person-specific draw. Attacks are fitted on the
+\emph{unrounded continuous} service predictions, never on a coarsened view, because any conditioning
+partition used inside an optimiser is a property of that optimiser and not of the released interface.
+
+\paragraph{Single-token semantics} The released object is one sampled token per person, drawn once and
+reused. Publishing the channel row itself, or redrawing per query, is a different mechanism with different
+disclosure, and we never score one as if it were the other. Expected scoring averages \emph{losses} over
+the token distribution, not predicted probabilities; the two differ, and only the first is the expectation
+of what a recipient experiences.
+
+\paragraph{What a number means here} Every recovery figure is the log-loss reduction an independently
+fitted, validation-selected attacker achieves relative to the same family restricted to $H$. It is a
+floor on what is recoverable, never a ceiling, and it is not an estimate of conditional mutual
+information~\cite{mcallester2020formal}: a restricted predictor can improve after receiving a deterministic feature $Z=f(H)$ even
+where $I(S;Z\mid H)=0$, and a failed attack bounds nothing from above.
+
+\section{What linear audits do and do not certify}
+\label{sec:audit}
+
+The evaluation contract above is a response to a concrete measurement failure we documented in this line
+of work, and the failure is worth stating because it motivates every audit choice that follows.
+
+\paragraph{Aggregate scores hide rare-class leakage} A common compliance reading is an aggregate one-hot
+regression score $R^2(h,A)$ against a multi-class protected attribute. For an imbalanced attribute this
+aggregate is a prevalence-weighted convex combination of the per-class one-versus-rest scores,
+\[
+R^2_{\mathrm{onehot}}=\textstyle\sum_k w_k R^2_{\mathrm{OvR},k},\qquad
+w_k=\frac{\pi_k(1-\pi_k)}{\sum_j \pi_j(1-\pi_j)},
+\]
+so a rare class contributes almost nothing to the number a compliance report prints. Auditing the
+\emph{dominant axis} instead---the worst single direction across classes---exposes what the aggregate
+smooths away. On the imbalanced mortgage attribute the gap is large (Table~\ref{tab:da}): mean
+$R^2_{\mathrm{DA}}=0.0609$ against $R^2_{\mathrm{onehot}}=0.0192$ over nine multi-class pair-seeds, and in
+one configuration the aggregate reads $0.027$ where the dominant axis reads $0.288$. The identity itself
+was validated on every multi-class pair-seed, maximum absolute residual $0.0021$.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/dominant_axis.tex}
+\caption{Aggregate one-hot versus dominant-axis auditing on the multi-class protected attribute, mean over
+pair-seeds of the canonical checkpoints. The aggregate understates the recoverable direction, most on the
+imbalanced attribute. Historical evidence from the encoder line described in \S\ref{sec:lineage}.}
+\label{tab:da}
+\end{table}
+
+\paragraph{Three limits we now state explicitly} First, \textbf{a zero linear score does not bound
+classification}. We previously asserted that zero affine least-squares $R^2$ forces every linear threshold
+classifier to majority accuracy. That is false, and a twenty-row counterexample settles it: both
+conditional feature means are zero, so $\mathrm{Cov}(h,A)=0$ and the optimal affine predictor is constant
+with $R^2=0$, yet thresholding at $h>0$ classifies $18/20$ correctly against a $50\%$ majority baseline.
+The claim is withdrawn and the corresponding API now refuses to run. The valid statement is narrower and
+about squared loss only: zero cross-covariance means affine least-squares prediction cannot improve on the
+optimal constant predictor on that distribution.
+
+Second, \textbf{composition is exact only at exact zero}. Two views with exactly zero cross-covariance
+with the same signal retain exactly zero under concatenation. Approximate leakage does not inherit this:
+$h_1=N+\delta S$ and $h_2=N-\delta S$ each carry $R^2=\delta^2/(1+\delta^2)$ and their difference recovers
+$S$. Neither statement supplies independence or any guarantee against a nonlinear attack.
+
+Third, \textbf{more retained rank is not more task performance, and fewer flagged attacks is not low
+absolute disclosure}. We report absolute recovery beside every increment for this reason.
+
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Erasure the releaser owns} Linear concept erasure gives an exact guarantee against linear
+adversaries on a representation the releaser may edit~\cite{belrose2023leace}, and task-relevant variants
+preserve authorised covariance~\cite{holstege2025splince}. Adversarial fair and transferable
+representations are due to Madras et al.~\cite{madras2018laftr}; adversarial removal is known to leave
+recoverable information~\cite{elazar2018adversarial}, and least-privilege learning has fundamental
+limits~\cite{stadler2024leastprivilege}. The closed-form line of Sadeghi et
+al.~\cite{sadeghi2019sarl,sadeghi2021optnetarl,sadeghi2022ktopt} and the conditional extension
+U-FaTE~\cite{dehdashtian2024ufate} solve the same shape of problem when the representation is the
+releaser's to change. All of these assume what our setting denies: here the published output is immutable
+and the only decision is what to append.
+
+\paragraph{Finite-alphabet privacy--utility optimisation} The convex programme of \S\ref{sec:method} is
+established. Rassouli and G\"und\"uz~\cite{rassouli2021perfect} give the perfect-privacy characterisation,
+the nullspace feasibility criterion and the linear-programme form of the zero-budget linear-cost problem;
+the privacy funnel of Makhdoumi et al.~\cite{makhdoumi2014funnel} is nonconvex precisely because of a
+utility constraint we do not impose. Multi-user and side-information formulations of utility--privacy
+tradeoffs~\cite{sankar2013utility,liao2019sideinfo} design a sanitised release for many consumers. We
+claim no new optimisation result: the nullspace criterion and the convexity facts are theirs, and what is
+ours is the release contract, the per-recipient and coalition constraint structure, and an evaluated
+operating point. Related conditional-independence and information-bound machinery we rely on for scoping
+comes from the kernel conditional-independence literature~\cite{zhang2011kci,strobl2019rcit}, cross-fitted
+nuisance estimation~\cite{chernozhukov2016dml}, and the formal limits of mutual-information
+estimation~\cite{mcallester2020formal}. The data are Folktables-style ACS microdata~\cite{ding2021retiring}.
+
+\section{A task-directed finite release}
+\label{sec:method}
+
+\paragraph{Construction} A label-free code $T=g(X_A)$ over permitted $A$-side inputs is mapped to a finite
+output alphabet by a row-stochastic channel $Q$, and the recipient receives one sampled token. Writing
+$C_A=H_A$ and $C_{AB}=(H_A,H_B)$ for the conditioning views, the programme is
+\[
+\min_{Q\ \ge\ 0,\ Q\mathbf{1}=\mathbf{1}}\ \sum_{t,z}p(t)\,Q_{tz}D_{tz}
+\quad\text{s.t.}\quad I_Q(S_r;Z\mid C_r)\le\delta_r ,
+\]
+with a cost table $D$ fixed before optimisation. Under the mechanism's Markov structure $Z-T-(S,C)$ and a
+fixed fitted law, each conditional mutual information is affine in $Q$ inside a jointly convex relative
+entropy, so the feasible set is convex and the objective linear.
+
+\paragraph{Attribution, honestly} This is an \emph{established} convex programme applied to a new release
+contract, not a new optimisation result. The finite-alphabet privacy--utility problem, the nullspace
+feasibility criterion and the linear-programme form at zero budget are prior work; the privacy funnel is
+nonconvex precisely because of a utility constraint we do not impose. Optimising the decoder jointly with
+$Q$, or maximising a task mutual information, destroys the convexity, and we do neither. What is ours is
+the release contract, the per-recipient and coalition constraint structure, and the evaluated operating
+point.
+
+\paragraph{What the constraint is, and is not} $\delta_r$ binds a conditional mutual information in a
+\emph{fitted finite model} whose conditioning view is a coarsened partition. It is not a population
+guarantee and not a statement about the continuous service vectors: in a validated fixture, binning a
+conditioning view drops a full $\log 2$ of measured leakage to exactly zero. All audited attacks therefore
+use continuous $H$, and the budgets are never quoted as measured increments over the prior channel.
+
+\paragraph{Why a replacement can beat an extension} An exact fixture bounds what any ``does the new
+channel add anything?'' test can conclude. With $H$ constant, a prior channel $J=(Y,S)$ carrying both the
+useful bit and the sensitive bit, and a candidate $T=Y$: appending $T$ to $J$ adds exactly zero task
+information, while \emph{replacing} $J$ by $T$ preserves the task in full and removes the sensitive bit
+entirely ($\log 2$ nats). A test that measures the first can return zero while the second is strictly
+better. This is a design example, not an ACS finding.
+
+\section{Evaluation}
+\label{sec:eval}
+
+\paragraph{Setup} California ACS one-year public-use microdata, ages 19--34, household-separated pools for
+representation fitting, task fitting and validation, attacker fitting and validation, and evaluation.
+Uncertainty is a paired household bootstrap over $5{,}473$ households, aggregated across three anchors that
+share people, with simultaneous Bonferroni-adjusted bounds over a frozen family of $706$ contrasts
+($z=3.97$). All numbers in this section are \textbf{development} evidence on repeatedly used pools and are
+conditional on the fitted releases.
+
+\paragraph{The selected release improves the permitted task} The utility-route nominee $Q$ reduces
+residence log loss relative to the strongest channel this project had, $J$, by $0.01625$ nats unweighted
+and $0.01639$ person-weighted, with adjusted bounds excluding zero in both weightings
+(Table~\ref{tab:bounds}, Figure~\ref{fig:bounds}).
+
+\begin{table}[t]
+\centering\scriptsize
+\input{tables/primary_bounds.tex}
+\caption{The selected release $Q$ against $J$: paired household bootstrap, simultaneous adjusted bounds
+over the frozen family of $706$. The task improvement resolves; seven of the eight sensitive endpoints do
+not. Development data.}
+\label{tab:bounds}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/primary_bounds.pdf}
+\caption{The same comparison. Every sensitive point estimate favours $Q$, and seven of eight intervals
+cross zero: \emph{unresolved}, which is neither demonstrated protection nor demonstrated harm.}
+\label{fig:bounds}
+\end{figure}
+
+\paragraph{The competitiveness conjunction is not established} All eight sensitive point estimates favour
+$Q$ over $J$, but only one adjusted non-inferiority bound resolves ($AB$/sex unweighted, upper
+$-0.00007$). The registered conjunction therefore fails. \textbf{This is not evidence of excess
+disclosure}: seven endpoints are unresolved at this precision, and an unresolved interval is not a finding
+in either direction.
+
+\paragraph{A simpler baseline matches it} $D_{17}$ uses the same code and the same $17$-action dictionary
+with no privacy constraint and no stochastic optimisation. It attains a slightly \emph{better} task point
+estimate than $Q$ and \emph{lower} sensitive point estimates in seven of eight cells (Table~\ref{tab:rel}).
+All ten corresponding adjusted differences are unresolved, so we do not claim $D_{17}$ is better, and we
+equally do not claim the two are equivalent. $D_{33}$, with a larger dictionary, has better task point
+estimates and mixed sensitive comparisons; its cap feasibility was not established and it is not a
+dominating method. The honest reading is that on this evidence \textbf{the stochastic machinery has not
+been shown to buy anything over a matched deterministic release}.
+
+\begin{table}[t]
+\centering\footnotesize
+\input{tables/releases.tex}
+\caption{Releases compared against $J$ on the permitted task and on additional sensitive recovery
+(unweighted point estimates; positive task values favour the release). $H$ carries no channel, so it is
+worse at the task and leaks less. Development data; point estimates only.}
+\label{tab:rel}
+\end{table}
+
+\paragraph{Baselines, and what each one was allowed to see} The comparison set is deliberately wider than
+$J$. \emph{Deterministic action releases} ($D_{17}$, $D_{33}$) use the same label-free code and action
+dictionary with no privacy constraint. A \emph{direct code} release publishes the code index itself. A
+\emph{continuous task prediction} publishes the real-valued authorised prediction and is the strongest task
+point in the table, with the worst sensitive comparison of the group. \emph{Supervised erasure adaptations}
+(LEACE and SPLINCE) were fitted with protected labels on the same standardised inputs plus the clipped
+frozen residence-teacher logit; SPLINCE additionally preserves residence, income and employment covariance,
+so it sees authorised task labels that $J$ never saw. Two fitting pools were prepared in advance---one
+matching the mechanism's own fresh-label rows and one the broader union---so that no post-outcome choice
+between fairness interpretations was needed, with each method's own complete-case mask disclosed rather
+than assumed identical. These adaptations completed, but neither supplied an \emph{eligible} nominee for
+the utility route, which is why the stricter all-family diagnostic is reported as blocked rather than as
+passed or failed. An unavailable comparator family is not a verdict about that family.
+
+\paragraph{What the comparison does not isolate} $Q$'s objective used authorised residence supervision.
+$J$ never received that training objective. The comparison therefore establishes neither unseen-task
+transfer nor an isolated benefit of the new optimiser, and a supervised task result must not be described
+as an untouched-task result. The continuous task predictor and the supervised eraser adaptations are
+reported with their actual label access and pools for the same reason.
+
+\paragraph{Neither refinement earned its claim} Neither risk refinement nor coalition conditioning obtained
+its registered attribution: the nominated release is \emph{local}. Beating $J$ alone cannot attribute a
+benefit to the coalition machinery.
+
+\paragraph{Why an earlier explanation was wrong} A predecessor experiment found that a label-free code of
+the permitted inputs added nothing measurable once the published predictions were in the recipient's view,
+and read this as the published output already carrying the available signal. A subsequent controlled
+diagnosis separated the two candidate explanations and found the opposite: the \emph{unquantized} input
+view attains strictly lower residence loss than $J$, with adjusted bounds below zero, while a $64$-state
+code of the same inputs gives that advantage away. The obstacle was quantization, not redundancy, and the
+earlier universal reading is withdrawn (\S\ref{sec:corrections}).
+
+\section{Limitations, and a direct answer}
+\label{sec:limits}
+
+\textbf{Development, not confirmation.} The $2018$ pools have been used repeatedly across this line of
+work. Three anchors and simultaneous intervals do not restore independence from prior research, and no
+result here is a confirmation.
+
+\textbf{Unresolved is not equivalence, and not harm.} Seven of eight sensitive comparisons are unresolved.
+We do not convert them into either claim.
+
+\textbf{Fitted-model budgets are not population guarantees}, coarse conditioning is not conditioning on the
+continuous service vectors, and negative finite-attacker increments do not demonstrate negative conditional
+mutual information.
+
+\textbf{Attacks bound from below only.} Three searches for a stronger attacker across this project each
+failed to beat the standard slate, which bounds what those searches found, not what exists.
+
+\textbf{Audits do not transport across hardware} below about $0.003$ nats, so comparisons use same-host
+references.
+
+\paragraph{What was established} A task-directed release beside a fixed service improved the permitted task
+over the strongest channel we had, with bounds excluding zero, while every sensitive point estimate moved
+in the favourable direction and seven of eight remained unresolved. \textbf{What was not established}: the
+registered competitiveness conjunction, any advantage of the stochastic machinery over a matched
+deterministic release, any coalition-specific benefit, and any unseen-task claim.
+
+\section{Relation to the earlier encoder line}
+\label{sec:lineage}
+
+This work descends from a purpose-conditioned representation line in which one shared frozen backbone
+carried per-purpose adapters, each warm-started from a closed-form erasure projection~\cite{belrose2023leace} and trained under a
+per-purpose linear leakage bound. That setting differs from this one in its release contract: there the
+releaser owned and re-emitted the representation, here the service output is immutable and the decision is
+what to append. The auditing result of \S\ref{sec:audit} and the composition limits come from that line and
+survive checking; its training results are not re-used as evidence for the present mechanism, because they
+tested a different algorithm against a different claim. Appendix~\ref{app:lineage} gives the correspondence.
+
+\section*{Open Science}
+Every number in this paper is generated from committed evidence at pinned commits, and each printed digit
+traces to a (commit, path, SHA-256) triple recorded in the artifact. The artifact contains the table and
+figure generators, the independent verification scripts, the claim ledger, the correction log, synthetic
+fixtures, schemas, aggregate result tables and provenance hashes, together with a recipe for obtaining the
+public ACS microdata this work uses. No restricted data is redistributed and no individual-level records
+are included. Anonymised artifacts will be shared within the window the call specifies.
+
+\section*{LLM Usage Considerations}
+This work was substantially assisted by a large language model, and describing that as editorial help would
+be inaccurate. A model was used to propose and refine experimental designs, to write and refactor the
+experiment and analysis code, to draft and revise this manuscript, and to audit the studies' own reports
+against their source code and stored outputs. Registrations, margins and stopping rules were committed
+before outcomes. Model-generated analyses were checked by independently written scripts that recompute each
+reported quantity from the smallest machine-readable source, and several statements in this paper exist
+because that recomputation contradicted an earlier write-up---the withdrawn explanation in
+\S\ref{sec:eval} and the retired guarantee in \S\ref{sec:audit} are two. The authors take full
+responsibility for every claim, number and omission in this work, including those first drafted by a model;
+nothing was accepted on the model's assertion alone, and every load-bearing figure is reproducible from the
+artifact.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\appendices
+
+\section{Lineage and what each study tested}
+\label{app:lineage}
+The encoder line and the present release line share an evaluation philosophy and a protected-attribute
+audit, not an algorithm. Claims from the encoder line used here are limited to the dominant-axis audit, the
+convex-combination identity, the retired guarantee and the composition boundary. The encoder line's
+training headline totals are same-grid post hoc development evidence: the dual floor and warm-up rule were
+developed after examining an earlier evaluation on the same grid, and neither was validated on a held-out
+subset of purpose/attribute/seed triples. A later prospective registration does not retrospectively change
+that scope.
+
+\section{Counts and accounting}
+\label{app:counts}
+The task-directed programme's primary matrix is $81$ nominal maps ($54$ positive, $18$ zero, $9$
+unconstrained); an independent replay covered all $81$. Of $162$ nominal maps in the full matrix, $126$
+were scheduled and completed and $36$ were prospectively unscheduled under the registered resource
+schedule; the completed maps reduce to $125$ exact kernel groups. There are $297$ current audits and
+evaluations. These are resource and accounting figures, not scientific contributions.
+
+\section{Corrections this paper makes}
+\label{sec:corrections}
+\begin{enumerate}\itemsep2pt
+\item \textbf{The universal regression-to-classification guarantee is withdrawn.} Zero affine $R^2$ can
+coexist with $90\%$ threshold accuracy; the valid statement is the narrower squared-loss one
+(\S\ref{sec:audit}).
+\item \textbf{A shared union eraser does not demonstrate retention of conflicting purposes.} In the
+recorded comparison the shared union destroys both tasks ($R^2\approx0$ on each), while separate
+per-purpose erasure retains both ($0.9996$, $0.9997$); the restricted arm ties that comparator rather than
+beating it.
+\item \textbf{``The published output already carries the signal''} is withdrawn: a controlled diagnosis
+attributes the effect to quantization, not redundancy (\S\ref{sec:eval}).
+\item \textbf{A proposed near-optimality certificate is not an implemented result.} It was explicitly
+skipped for want of the necessary numerical check and is not claimed here.
+\item \textbf{Exact-zero covariance composition} holds; approximate leakage does not inherit it, and
+neither implies independence or a nonlinear guarantee.
+\end{enumerate}
+
+\end{document}
