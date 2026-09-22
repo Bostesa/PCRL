@@ -3,15 +3,24 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 from pathlib import Path,PurePosixPath
+import re
 import subprocess
 import tarfile
 from .config import ROOT,OUT,STUDY
 from .run import atomic,sha,now
 
 EXCLUDED_PARTS={'__pycache__','.pytest_cache','venv','staging','archives'}
+MAX_LOCK_METADATA_BYTES=4096
+
+
+def _task_lock_digest(name):
+    """Recognize only this study's canonical hashed unit-lock namespace."""
+    match=re.fullmatch(rf'results/{re.escape(STUDY)}/private/locks/([0-9a-f]{{64}})\.lock',name)
+    return match.group(1) if match else None
 
 
 def safe_relative(name):
@@ -19,9 +28,60 @@ def safe_relative(name):
         raise ValueError('Unsafe archive path')
     p=PurePosixPath(name)
     if (p.is_absolute() or not p.parts or '..' in p.parts or p.as_posix()!=name
-            or '2016' in name or 'ss16' in name):
+            or (('2016' in name or 'ss16' in name) and _task_lock_digest(name) is None)):
         raise ValueError('Unsafe or sealed archive path')
     return p
+
+
+def _validate_lock_metadata(name,payload):
+    """Bind a bounded metadata record to its filename; never assert PID liveness.
+
+    Hash names can contain a sealed-year substring by chance. Such a name is
+    admissible only in the exact namespace above and only with the same strict
+    JSON record that unit_lock writes. All hashed unit locks are checked, even
+    when their digest does not contain the otherwise forbidden substring.
+    """
+    digest=_task_lock_digest(name)
+    if digest is None:return
+    if not 0<len(payload)<=MAX_LOCK_METADATA_BYTES:
+        raise ValueError('Invalid lock metadata size')
+    def unique_object(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise ValueError('Duplicate lock metadata key')
+            result[key]=value
+        return result
+    try:
+        record=json.loads(payload.decode('utf-8'),object_pairs_hook=unique_object)
+    except (ValueError,UnicodeError) as error:
+        raise ValueError('Invalid lock metadata JSON') from error
+    if not isinstance(record,dict) or set(record)!={'pid','key','utc'}:
+        raise ValueError('Invalid lock metadata schema')
+    pid=record['pid'];key=record['key'];utc=record['utc']
+    if not isinstance(pid,int) or isinstance(pid,bool) or pid<=0:
+        raise ValueError('Invalid lock metadata PID')
+    # These are the unit-key namespaces emitted by the registered study and
+    # its read-only closeout driver. Do not admit arbitrary path-like payloads.
+    key_pattern=(r'(?:prepare/[012]|(?:map|audit|evaluation)/[012]/[A-Za-z0-9_.-]+'
+                 r'|benchmark|programme/(?:selection_freeze|final_evidence)'
+                 r'|branch/[AC]/(?:registration|resource_schedule|tables/[012])'
+                 r'|baseline_supplement/(?:registration|schedule|[012]/(?:mechanism40|union88)))')
+    if (not isinstance(key,str) or re.fullmatch(key_pattern,key) is None
+            or '2016' in key or 'ss16' in key or any(part in ('.','..') for part in key.split('/'))
+            or hashlib.sha256(key.encode('utf-8')).hexdigest()!=digest):
+        raise ValueError('Invalid lock metadata key or filename digest')
+    if not isinstance(utc,str) or re.fullmatch(
+            r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:\+00:00|Z)',utc) is None:
+        raise ValueError('Invalid lock metadata UTC timestamp')
+    try:dt.datetime.fromisoformat(utc.replace('Z','+00:00'))
+    except ValueError as error:raise ValueError('Invalid lock metadata UTC timestamp') from error
+
+
+def _read_lock_metadata(name,path):
+    if _task_lock_digest(name) is None:return None
+    with path.open('rb') as handle:payload=handle.read(MAX_LOCK_METADATA_BYTES+1)
+    _validate_lock_metadata(name,payload)
+    return payload
 
 
 def _record_map(records):
@@ -57,7 +117,8 @@ def _verify_receipt_coverage(root,records):
     """
     indexed=_record_map(records)
     out=root/'results'/STUDY;run_root=out/'private/run'
-    receipt_roots=(run_root,out/'private/numerical_recovery',out/'private/numerical_originals')
+    receipt_roots=(run_root,out/'private/numerical_recovery',out/'private/numerical_originals',
+                   out/'private/c_recovery/attempts')
     receipts=sorted({p for base in receipt_roots for name in ('PREPARED.json','ACCEPTED.json','COMPLETE.json')
                     for p in base.rglob(name) if 'quarantine' not in p.parts
                     and not set(p.relative_to(root).parts)&EXCLUDED_PARTS})
@@ -92,7 +153,10 @@ def inventory(root=ROOT):
         if path.is_symlink():raise ValueError('Archive refuses symbolic links')
         if not path.is_file():continue
         safe_relative(relative.as_posix())
-        records.append({'path':relative.as_posix(),'bytes':path.stat().st_size,'sha256':sha(path)})
+        payload=_read_lock_metadata(relative.as_posix(),path)
+        records.append({'path':relative.as_posix(),
+                        'bytes':len(payload) if payload is not None else path.stat().st_size,
+                        'sha256':hashlib.sha256(payload).hexdigest() if payload is not None else sha(path)})
     if not records:raise ValueError('Refusing an empty study archive')
     _verify_receipt_coverage(root,records)
     return records
@@ -117,6 +181,14 @@ def pack(root,records,path):
             with tarfile.open(fileobj=compressor.stdin,mode='w|',dereference=True) as tf:
                 for record in records:
                     file=_contained_file(root,record['path'])
+                    if file.is_file() and _task_lock_digest(record['path']) is not None:
+                        payload=_read_lock_metadata(record['path'],file)
+                        if len(payload)!=record['bytes'] or hashlib.sha256(payload).hexdigest()!=record['sha256']:
+                            raise ValueError('Lock metadata changed during archive sealing')
+                        info=tf.gettarinfo(file,arcname=record['path']);info.size=len(payload)
+                        # Serialize the validated bytes, not a second mutable file read.
+                        tf.addfile(info,io.BytesIO(payload))
+                        continue
                     if not file.is_file() or file.stat().st_size!=record['bytes'] or sha(file)!=record['sha256']:
                         raise ValueError('Artifact changed during archive sealing')
                     tf.add(file,arcname=record['path'],recursive=False)
@@ -144,6 +216,9 @@ def verify_and_restore(path,records,*,restore_root=None,restore_prefixes=()):
                     raise ValueError('Unexpected archive member/type/duplicate')
                 spec=expected[member.name]
                 if member.size!=spec['bytes']:raise ValueError('Archive member size mismatch')
+                lock_payload=bytearray() if _task_lock_digest(member.name) is not None else None
+                if lock_payload is not None and not 0<member.size<=MAX_LOCK_METADATA_BYTES:
+                    raise ValueError('Invalid lock metadata size in archive')
                 stream=tf.extractfile(member);h=hashlib.sha256();output=None;temp=None;target=None
                 try:
                     restore=base is not None and any(member.name==p or member.name.startswith(p.rstrip('/')+'/') for p in restore_prefixes)
@@ -154,8 +229,10 @@ def verify_and_restore(path,records,*,restore_root=None,restore_prefixes=()):
                         temp=target.with_name(target.name+'.restore-tmp');output=temp.open('xb')
                     for block in iter(lambda:stream.read(8*1024*1024),b''):
                         h.update(block)
+                        if lock_payload is not None:lock_payload.extend(block)
                         if output is not None:output.write(block)
                     if h.hexdigest()!=spec['sha256']:raise ValueError('Restored artifact hash mismatch')
+                    if lock_payload is not None:_validate_lock_metadata(member.name,bytes(lock_payload))
                     if output is not None:
                         output.flush();os.fsync(output.fileno());output.close();output=None
                         # Atomic create-if-absent: another process cannot be overwritten.
@@ -233,6 +310,46 @@ def encrypted_put(bucket,key,path):
     return header
 
 
+def c_recovery_restore_prefixes(root,records):
+    """Restore every installed C retry and its declared replay dependencies.
+
+    This uses hashed receipt metadata only. Nonrepresentative anchors contribute
+    just their installed C maps and prepared/fineC inputs, never extra audit fits.
+    """
+    root=Path(root).resolve();indexed=_record_map(records)
+    study=PurePosixPath('results')/STUDY;run_root=study/'private/run'
+    prefixes={str(study/'private/c_recovery')}
+    for name in indexed:
+        path=PurePosixPath(name)
+        if (len(path.parts)!=8 or path.parts[:4]!=run_root.parts
+                or re.fullmatch(r'anchor_[012]',path.parts[4]) is None
+                or path.parts[5]!='maps' or path.name!='ACCEPTED.json'):continue
+        marker=json.loads(_contained_file(root,name).read_text())
+        pin=marker.get('c_failure_retry')
+        if pin is None:continue
+        anchor=int(path.parts[4][-1]);configuration=path.parts[6]
+        registration_name=str(path.parent/'recovery_evidence/REGISTRATION.json')
+        if (marker.get('anchor')!=anchor or marker.get('configuration')!=configuration
+                or registration_name not in indexed
+                or indexed[registration_name]['sha256']!=pin.get('registration_sha256')):
+            raise ValueError('C restore registration/slot pin differs')
+        registration=json.loads(_contained_file(root,registration_name).read_text())
+        if registration.get('anchor')!=anchor or registration.get('configuration')!=configuration:
+            raise ValueError('C restore registration identity differs')
+        dependencies=registration.get('dependency_files')
+        required={'PREPARED.json','prepared.joblib','branches/fineC/TABLES.json','branches/fineC/tables.joblib'}
+        if not isinstance(dependencies,dict) or set(dependencies)!=required:
+            raise ValueError('C restore dependency schema differs')
+        for relative,digest in dependencies.items():
+            safe_relative(relative)
+            dependency=str(run_root/f'anchor_{anchor}'/relative)
+            if dependency not in indexed or indexed[dependency]['sha256']!=digest:
+                raise ValueError('C restore dependency missing or changed')
+            prefixes.add(dependency)
+        prefixes.add(str(path.parent))
+    return sorted(prefixes)
+
+
 def publish(bucket,prefix,directory,restore_root,source_commit,*,bucket_attestation=None):
     """Call only after scientific writes are closed; never deletes source artifacts."""
     selection=json.loads((OUT/'SELECTION.json').read_text())
@@ -249,12 +366,13 @@ def publish(bucket,prefix,directory,restore_root,source_commit,*,bucket_attestat
     # The representative restore needs the global selection permit, prospective
     # contrasts, manifests, protocol, and reports in addition to anchor0 weights.
     prefixes+=sorted(r['path'] for r in records if PurePosixPath(r['path']).parent==PurePosixPath('results')/STUDY)
+    prefixes+=c_recovery_restore_prefixes(ROOT,records)
     expected_restore=sum(any(r['path']==p or r['path'].startswith(p+'/') for p in prefixes) for r in records)
     index={'created_utc':now(),'study':STUDY,'source_commit':source_commit,'private_access':True,
            'destination_preflight':destination,'restore_prefixes':prefixes,'expected_restored_files':expected_restore,
            'encryption':'AES256','manifest_sha256':sha(directory/'MANIFEST.private.json'),
            'files':len(records),'uncompressed_bytes':sum(r['bytes'] for r in records),'chunks':[],
-           'restore_scope':'all indexed global study documents, tests and executable sources; all owned inputs and deployment input maps; complete indexed anchor0 artifacts; numerical retry and preserved original versions; other anchors verified in stream'}
+           'restore_scope':'all indexed global study documents, tests and executable sources; all owned inputs and deployment input maps; complete indexed anchor0 artifacts; numerical retry and preserved original versions; every installed C retry plus its registered prepared/fineC replay dependencies; remaining other-anchor files verified in stream'}
     for i,group in enumerate(chunk_records(records)):
         name=f'part-{i:04d}.tar.zst';path=directory/name;info=pack(ROOT,group,path)
         key=prefix.rstrip('/')+'/'+name
