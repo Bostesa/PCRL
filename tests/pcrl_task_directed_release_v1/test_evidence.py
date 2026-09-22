@@ -241,3 +241,42 @@ def test_amendment5_diagnostics_and_missing_vs_ineligible_families_stay_distinct
     assert result['selected_routes']['utility_first']['incomplete_required_families']==[]
     assert result['family_eligibility']['utility_first']['supervised_SPLINCE']['scientifically_ineligible']
     assert 'does not veto' in m.render_tables(result)['BASELINES.md']
+
+
+def test_native_selection_blocked_family_metadata_is_public_and_preserved():
+    from experiments.pcrl_task_directed_release_v1 import selection
+    from test_selection import base, A
+    chosen = selection.select_validation(base(), candidate_ids=[A])
+    contrasts = selection.build_contrast_family(chosen)
+    checks = {(endpoint['id'], check['name']): False
+        for endpoint in contrasts['endpoints'] for check in endpoint['checks']}
+    observed = set()
+    for group in ('claim_formulas', 'attribution_claim_formulas', 'diagnostic_claim_formulas'):
+        for route in contrasts[group].values():
+            for raw in route.values():
+                evaluated = reporting.evaluate_formula(raw, checks)
+                before = copy.deepcopy(evaluated)
+                module()._public_formula(evaluated)
+                assert evaluated == before
+                if evaluated.get('kind') == 'blocked':
+                    observed.update(set(evaluated) & {'incomplete_required_families',
+                        'eligible_comparator_families', 'empty_required_families'})
+    assert observed == {'incomplete_required_families', 'eligible_comparator_families', 'empty_required_families'}
+
+
+@pytest.mark.parametrize('field', ['incomplete_required_families', 'eligible_comparator_families', 'empty_required_families'])
+@pytest.mark.parametrize('bad_value', ['family', {'family': True}, [1], [['family']], [None]])
+def test_blocked_family_metadata_requires_public_string_lists(field, bad_value):
+    with pytest.raises(ValueError):
+        module()._public_formula({'kind': 'blocked', 'passed': False, field: bad_value})
+
+
+def test_family_metadata_is_blocked_only_and_private_fields_still_rejected():
+    m = module()
+    for node in ({'endpoint': 'e', 'check': 'cap', 'passed': False},
+                 {'kind': 'any', 'clauses': [{'passed': False}], 'passed': False}):
+        with pytest.raises(ValueError):
+            m._public_formula({**node, 'empty_required_families': ['public_family']})
+    with pytest.raises(ValueError):
+        m._public_formula({'kind': 'blocked', 'passed': False,
+            'incomplete_required_families': ['supervised_LEACE'], 'ids': ['private-person']})

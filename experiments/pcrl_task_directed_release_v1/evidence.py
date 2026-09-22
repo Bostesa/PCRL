@@ -214,8 +214,13 @@ def _execution(grid, nominal, receipt_keys):
 
 
 def _public_formula(formula):
-    if not isinstance(formula,dict) or set(formula)-{'kind','clauses','endpoint','check','reason','passed'}:
+    family_fields={'incomplete_required_families','eligible_comparator_families','empty_required_families'}
+    if not isinstance(formula,dict) or set(formula)-{'kind','clauses','endpoint','check','reason','passed'}-family_fields:
         raise ValueError('Unexpected nonpublic claim formula field')
+    for field in family_fields & set(formula):
+        if (formula.get('kind')!='blocked' or not isinstance(formula[field],list)
+                or any(not isinstance(name,str) for name in formula[field])):
+            raise ValueError('Public family metadata requires string lists on blocked claim nodes')
     if not isinstance(formula.get('passed'),bool):raise ValueError('Claim verdict must be a boolean')
     if 'clauses' in formula:
         if formula.get('kind') not in ('all','any') or not formula['clauses']:raise ValueError('Invalid claim conjunction/disjunction')
