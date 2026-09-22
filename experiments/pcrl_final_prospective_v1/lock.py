@@ -25,6 +25,7 @@ CODE = ('audit_panel.py', 'common.py', 'inference_panel.py', 'pipeline.py', 'pre
         'transport.py', 'lock.py')
 PREDECESSOR = ('audits.py', 'evaluation.py', 'mechanisms.py', 'encoding.py', 'data.py', 'finite.py', 'baselines.py',
                'uncertainty.py', 'config.py')
+SERVICE_CODE = ('acs_transfer_data.py', 'acs_transfer_heads.py')
 
 
 def validate_unit(root, unit, dataset):
@@ -57,13 +58,18 @@ def validate_unit(root, unit, dataset):
     with np.load(d/'val_losses.npz') as z:
         losses = {str(k): z['losses'][:, j] for j, k in enumerate(z['candidate_ids'])}
         selection = select_losses(losses, z['weights'])
+        independent_ids = [cid for cid, candidate in registry['candidates'].items()
+                           if candidate.get('origin') == 'independent']
+        independent = select_losses({cid: losses[cid] for cid in independent_ids}, z['weights'])
     if (record.get('selection') != selection['selection']
             or registry.get('selection') != selection['selection']
-            or record.get('independent_selection') != registry.get('independent_selection')):
+            or record.get('independent_selection') != independent['selection']
+            or registry.get('independent_selection') != independent['selection']):
         raise ValueError(f'Validation selection mismatch: {unit}')
     for cid, score in selection['scores'].items():
         old = registry['validation_scores'].get(cid, {})
-        if any(abs(score[k]-old.get(k, float('nan'))) > 1e-12 for k in ('unweighted', 'weighted', 'balanced')):
+        if any(k not in old or not np.isfinite(old[k]) or abs(score[k]-old[k]) > 1e-12
+               for k in ('unweighted', 'weighted', 'balanced')):
             raise ValueError(f'Validation score mismatch: {unit}, {cid}')
     files[str((d/'COMPLETE.json').relative_to(ROOT))] = sha(d/'COMPLETE.json')
     files[str((d/'ARTIFACTS.json').relative_to(ROOT))] = sha(d/'ARTIFACTS.json')
@@ -85,6 +91,9 @@ def build(dataset='acs2016'):
         files[str(p.relative_to(ROOT))] = sha(p)
     for name in PREDECESSOR:
         p = ROOT/'experiments/pcrl_task_directed_release_v1'/name
+        files[str(p.relative_to(ROOT))] = sha(p)
+    for name in SERVICE_CODE:
+        p = ROOT/'experiments'/name
         files[str(p.relative_to(ROOT))] = sha(p)
     staged = INPUTS/'STAGED_INPUTS.json'
     files[str(staged.relative_to(ROOT))] = sha(staged)

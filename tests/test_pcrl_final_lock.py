@@ -19,6 +19,7 @@ def assert_lock_rejects_changed_fitted_model(tmp_path):
     joblib.dump({'dataset': 'acs2016', 'release': 'Q', 'anchor': 0,
                  'role': unit[2], 'selection': 'candidate',
                  'independent_selection': 'candidate',
+                 'candidates': {'candidate': {'origin': 'independent'}},
                  'validation_scores': {'candidate': {'unweighted': 0.25, 'weighted': 0.25,
                                                      'balanced': 0.25}}}, d/'registry.joblib')
     np.savez_compressed(d/'val_losses.npz', candidate_ids=np.array(['candidate']),
