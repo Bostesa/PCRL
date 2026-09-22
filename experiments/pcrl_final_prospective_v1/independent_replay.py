@@ -103,6 +103,8 @@ def replay(root, features, labels, units):
         y = labels[target]
         mask = y >= 0
         feats = {k: v[mask] for k, v in features[anchor].items()}
+        if ('ids' in feats and not np.array_equal(feats['ids'], stored['ids'])) or not np.array_equal(y[mask], stored['y']):
+            raise ValueError(f'Independent replay rows or labels differ: {short}/{anchor}/{role}')
         q, p = predict(reg['candidates'][reg['selection']], root, feats, short, anchor)
         loss = expected_loss(q, p, y[mask])
         err = np.abs(loss-stored['loss'])
@@ -122,13 +124,16 @@ def point_estimates(root, endpoints):
         if key not in cache:
             d = root/'units'/f'anchor_{a}'/short/role.replace(':', '__').replace('/', '__')
             with np.load(d/'score_final.npz') as z:
-                cache[key] = (z['loss'], z['weights'], z['households'])
+                cache[key] = (z['loss'], z['weights'], z['households'], z['ids'])
         return cache[key]
     out = {}
     for e in endpoints:
         vals = []
         for a in ANCHORS:
-            lp, w, _ = get(e['plus'], a, e['role']); lm, _, _ = get(e['minus'], a, e['role'])
+            lp, w, h, ids = get(e['plus'], a, e['role'])
+            lm, wm, hm, im = get(e['minus'], a, e['role'])
+            if not (np.array_equal(ids, im) and np.array_equal(h, hm) and np.array_equal(w, wm)):
+                raise ValueError(f'Paired person order, household or weights differ: {e["id"]}, anchor {a}')
             w = np.ones_like(lp) if e['weighting'] == 'unweighted' else w
             vals.append(float(np.sum(w*(lp-lm))/np.sum(w)))
         out[e['id']] = {'estimate': float(np.mean(vals)), 'anchors': vals}

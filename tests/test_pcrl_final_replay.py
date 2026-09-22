@@ -1,12 +1,31 @@
 """A verifier must pair all three anchors on the union of final households."""
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from experiments.pcrl_final_prospective_v1.independent_replay import bootstrap_se
+from experiments.pcrl_final_prospective_v1.independent_replay import bootstrap_se, point_estimates
+from experiments.pcrl_final_prospective_v1.audit_panel import unit_dir
 
 
 class ReplayBootstrapTest(unittest.TestCase):
+    def test_rejects_mismatched_person_order(self):
+        role = 'attack:A/SEX'
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            for anchor in range(3):
+                for release, ids in (('Q', ['a', 'b']), ('J', ['b', 'a'])):
+                    d = unit_dir(root, release, anchor, role)
+                    d.mkdir(parents=True)
+                    np.savez_compressed(d/'score_final.npz', ids=np.array(ids),
+                                        loss=np.array([.2, .3]), weights=np.ones(2),
+                                        households=np.array(['h1', 'h2']))
+            endpoint = {'id': 'paired', 'plus': 'Q', 'minus': 'J',
+                        'role': role, 'weighting': 'unweighted'}
+            with self.assertRaisesRegex(ValueError, 'person order'):
+                point_estimates(root, [endpoint])
+
     def test_household_union_covers_each_anchor(self):
         role = 'attack:A/SEX'
         cache = {}
