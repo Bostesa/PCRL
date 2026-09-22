@@ -1,0 +1,70 @@
+{
+  "P1": {
+    "formula": "mean_balanced(H.validation) - mean_balanced(continuous_task.fixed_decoder) >= 0.003",
+    "probability": 0.85,
+    "role": "utility:A/same_residence",
+    "utility_gain": 0.003
+  },
+  "P2": {
+    "allowed_loss": 0.001,
+    "formula": "mean_balanced(T0_U_unconstrained_a17.fixed_decoder) - mean_balanced(continuous_task.fixed_decoder) <= 0.001",
+    "probability": 0.6,
+    "role": "utility:A/same_residence"
+  },
+  "P3": {
+    "formula": "exists policy in {L,C}, budget in {0.0005,0.002,0.01}: mean_balanced(J.validation) - mean_balanced(T0_policy_budget_a17.validation) >= 0.003",
+    "probability": 0.6,
+    "role": "utility:A/same_residence",
+    "six_common_three_anchor_configurations": true,
+    "utility_gain": 0.003
+  },
+  "P4": {
+    "allowed_sensitive_increment": 0.001,
+    "formula": "exists one common policy in {L,C} at budget0.002,a17: Trisk selected balanced task CE is strictly smaller than both same-policy T0 and Ttask, and CE(comparator)-CE(Trisk) <=0.001 for each primary role and each weighting, separately against each comparator",
+    "interpretation": "same-policy triplet, direct comparator-relative measured recovery increments; no policy mixing or J-only substitute",
+    "privacy_roles": [
+      "A/SEX",
+      "A/RAC1P",
+      "AB/SEX",
+      "AB/RAC1P"
+    ],
+    "privacy_weightings": [
+      "unweighted",
+      "PWGTP"
+    ],
+    "probability": 0.4
+  },
+  "P5": {
+    "allowed_task_penalty": 0.001,
+    "formula": "max_{AB/SEX,AB/RAC1P}[balanced CE(H)-balanced CE(Trisk_C_0.002_a17)] < corresponding maximum for Trisk_L_0.002_a17, and balanced task CE(C)-balanced task CE(L) <=0.001",
+    "interpretation": "balance the two weightings within each AB role, then maximize over the two roles; H is the same three-anchor H deployment baseline",
+    "probability": 0.65
+  },
+  "P6": {
+    "blocked_reason_rule": "unknown blocked reasons and missing attempts remain unassessed; complete validation-screen failures and complete empty comparator unions refute this programme-level bet",
+    "formula": "at least one frozen route has passed the registered adjusted competitive criterion",
+    "probability": 0.25,
+    "refutation": "complete scheduled programme and mandatory family attempts, then both routes fail the validation screen, have a fully measured empty feasible-comparator union, or fail their evaluated adjusted conjunction",
+    "routes": [
+      "utility_first",
+      "protection_first"
+    ],
+    "scope": "registered common-configuration programme, not every possible encoder or a population claim",
+    "selection_metadata_required_for_refutation": true
+  },
+  "P7": {
+    "coverage": "all18 primary zero-budget map/anchor systems required for refutation; one valid exact witness suffices for support",
+    "formula": "any primary zero-budget accepted map has an exact observed-support nonconstant feasible kernel certificate",
+    "probability": 0.7,
+    "required_proof": "supported-state rank/nullity plus actual action count; nonconstant rational simplex/equation witness and independent CMI check",
+    "scope": "finite empirical feasibility; neither a nonconstant optimized solution nor useful held-out utility is required or implied"
+  },
+  "aggregation": "exactly three anchors, equal mean of native balanced CE; caps use unweighted and PWGTP separately",
+  "comparison_arithmetic": "finite Python floats, literal <, <= or >=; no rounding, comparison tolerance or outcome-conditioned choice",
+  "inference_performed": false,
+  "missingness": "supported if any complete existential witness passes; refuted only with complete pertinent inputs and every case false; otherwise unassessed",
+  "registered_before_outcome_assessment": true,
+  "schema": 1,
+  "scientific_gate": false,
+  "source_predictions": "PREDICTIONS.md; original subjective probabilities retained"
+}
