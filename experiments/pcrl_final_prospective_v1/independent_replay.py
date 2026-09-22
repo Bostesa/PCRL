@@ -136,8 +136,7 @@ def point_estimates(root, endpoints):
 
 
 def bootstrap_se(endpoints, cache, n_boot=2000, seed=777):
-    hh = cache[next(iter(cache))][2]
-    uniq, inv = np.unique(hh, return_inverse=True)
+    uniq = np.unique(np.concatenate([entry[2] for entry in cache.values()]))
     rng = np.random.default_rng(seed)
     mult = rng.multinomial(len(uniq), np.full(len(uniq), 1/len(uniq)), size=n_boot).T  # households x draws
     out = {}
