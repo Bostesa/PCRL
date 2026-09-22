@@ -463,13 +463,6 @@ def generate_report(
 
     linear_audit = LinearAudit(epsilon=linear_epsilon)
     empirical_audit = EmpiricalAudit(random_state=random_state)
-    nonlinear_cert = NonlinearComplianceCertificate(
-        sigmas=(0.1, 0.5, 1.0),
-        lipschitz_constant=1.0,
-        num_noise_samples=50,
-        epsilon=linear_epsilon,
-        random_state=random_state,
-    )
 
     # Collect all unique attr names needed across purposes, then extract
     # representations AND labels in a single pass per (purpose_idx, loader).
@@ -522,12 +515,8 @@ def generate_report(
                 train_reprs, train_labels, test_reprs, test_labels
             )
 
-            # Nonlinear certificate
-            nl_result = nonlinear_cert.check(
-                test_reprs, test_labels,
-                majority_proportion=majority_proportion,
-                num_classes=num_classes,
-            )
+            # The randomized-smoothing accuracy certificate is retired (it relied
+            # on the invalid R²-to-accuracy bound); report fields stay None.
 
             # Overall certification
             empirical_ok = (best_acc - chance_acc) < empirical_threshold
@@ -569,8 +558,8 @@ def generate_report(
                     certified=certified,
                     majority_proportion=majority_proportion,
                     num_classes=num_classes,
-                    nonlinear_bound=nl_result.nonlinear_bound,
-                    nonlinear_best_sigma=nl_result.best_sigma,
+                    nonlinear_bound=None,
+                    nonlinear_best_sigma=None,
                     r2_da=r2_da_val,
                     r2_da_argmax=r2_da_argmax,
                     r2_da_per_class=r2_da_per_class,
@@ -608,16 +597,13 @@ def print_compliance_table(reports: list[ComplianceReport]) -> None:
     for r in reports:
         status = "PASS" if r.certified else "FAIL"
         lin_status = "PASS" if r.linear_certified else "FAIL"
-        bound = certified_accuracy_bound(
-            r.linear_r2, r.majority_proportion, r.num_classes,
-        )
         nl_str = f"{r.nonlinear_bound:>8.1%}" if r.nonlinear_bound is not None else "    N/A "
 
         print(
             f"{r.purpose_name:<25} {r.attr_name:<14} "
             f"{r.linear_r2:>8.4f} {lin_status:>5} "
             f"{r.variance_preserved:>5.1%} "
-            f"{r.empirical_best_acc:>7.1%} {bound:>7.1%} {nl_str} "
+            f"{r.empirical_best_acc:>7.1%} {'retired':>7} {nl_str} "
             f"{r.empirical_chance_acc:>7.1%} "
             f"{status:>8}"
         )

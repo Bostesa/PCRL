@@ -210,9 +210,17 @@ def certified_accuracy_bound(
     majority_proportion: float,
     num_classes: int = 2,
 ) -> float:
-    """Compute an upper bound on linear classifier accuracy from the R² certificate.
+    """RETIRED: least-squares R² does not bound threshold-classifier accuracy.
 
-    Theorem (Linear Compliance Guarantee):
+    Raises NotImplementedError. The historical statement below is FALSE and is
+    kept only for provenance: a balanced binary attribute with conditional
+    feature values (1, -9) w.p. (.9, .1) versus (-1, 9) w.p. (.9, .1) has zero
+    affine least-squares R² while the threshold h > 0 is 90% accurate
+    (docs/ACCURACY_CERTIFICATE_RETIREMENT.md). The valid narrower statement:
+    zero cross-covariance means affine least-squares prediction cannot improve
+    on the optimal constant predictor on that distribution.
+
+    Historical (invalid) Theorem (Linear Compliance Guarantee):
         Let h = f(x, p) be the representation produced by the encoder for
         purpose p.  Let W* = argmin_W ||HW - Z||² be the optimal linear
         predictor of the one-hot encoded disallowed attribute Z from the
@@ -335,6 +343,11 @@ def certified_accuracy_bound(
         >>> certified_accuracy_bound(0.01, 0.8, 3)    # R²=1%, 80% majority, 3-class
         0.9236...
     """
+    raise NotImplementedError(
+        "certified_accuracy_bound is retired: affine least-squares R² does not "
+        "bound threshold-classification accuracy (see "
+        "docs/ACCURACY_CERTIFICATE_RETIREMENT.md)."
+    )
     if not 0.0 <= r_squared <= 1.0:
         raise ValueError(f"r_squared must be in [0, 1], got {r_squared}")
     if not 0.0 < majority_proportion <= 1.0:
@@ -467,6 +480,10 @@ class NonlinearComplianceCertificate:
         Returns:
             NonlinearCertificateResult with the tightest bound across sigmas.
         """
+        raise NotImplementedError(
+            "NonlinearComplianceCertificate is retired: it relied on the invalid "
+            "least-squares R²-to-classification-accuracy bound."
+        )
         H_np = self._to_numpy(H).astype(np.float64)
         Z_np = self._to_numpy(Z)
 
