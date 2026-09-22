@@ -84,7 +84,7 @@ def test_rebuilds_selection_and_exact_explicit_family_from_saved_summaries(froze
     assert result['selection']['routes']['utility_first']['nominee'] == 'Trisk_C_0.002_a17'
 
 
-@pytest.mark.parametrize('kind', ['source', 'summary', 'nominee', 'contrast_count', 'pin'])
+@pytest.mark.parametrize('kind', ['source', 'summary', 'nominee', 'contrast_count', 'pin', 'diagnostics'])
 def test_tampered_provenance_summaries_or_selection_fail_before_model_loading(frozen, kind):
     root, out = frozen
     if kind == 'source':
@@ -101,6 +101,8 @@ def test_tampered_provenance_summaries_or_selection_fail_before_model_loading(fr
             value['routes']['utility_first']['nominee'] = 'J'
         elif kind == 'contrast_count':
             value['family_size'] += 1
+        elif kind == 'diagnostics':
+            value['diagnostic_claim_formulas'] = {}
         else:
             value['frozen_audits']['J']['0']['registry_sha256'] = 'wrong'
         write(path, value)
@@ -327,3 +329,24 @@ def test_full_validation_command_replays_real_synthetic_saved_models_without_ref
     assert evaluated['passed'], (out/'private/check-evaluation/incident.json').read_text() if not evaluated['passed'] else ''
     assert evaluated['evaluation_opened'] and len(evaluated['units']) == 6
     assert all(len(u['evaluation_roles']['test']) == 16 for u in evaluated['units'].values())
+    # Representative archive restore contains only anchor0, and the original
+    # anchor0 is deleted to make any unremapped fallback fail visibly.
+    restored = tmp_path/'restored'; shutil.copytree(root, restored)
+    restored_out = restored/'results'/config.STUDY
+    for anchor in (1, 2):
+        shutil.rmtree(restored_out/'private/run'/f'anchor_{anchor}')
+    shutil.rmtree(out/'private/run/anchor_0')
+
+    def restored_synthetic_input(anchor, pools, *, inputs_root, evaluation_permit):
+        assert anchor == 0 and pools == ('test',)
+        assert inputs_root == restored_out/'private/inputs'
+        assert evaluation_permit == restored_out/'SELECTION.json'
+        return evaluation_contexts[anchor]
+
+    monkeypatch.setattr(data, 'load_anchor', restored_synthetic_input)
+    restored_report = module().verify_restored_unit('J', anchor=0, artifact_root=restored, original_root=root,
+        out_dir=restored_out/'private/representative', include_evaluation=True,
+        expected_selection_sha256=sha(out/'SELECTION.json'))
+    assert restored_report['passed'] and restored_report['anchor'] == 0
+    assert restored_report['scope'] == 'representative single-anchor restore; full selection reconstruction is separate'
+    assert restored_report['selection_recomputed'] is False

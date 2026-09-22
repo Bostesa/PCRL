@@ -204,7 +204,7 @@ def verify_frozen_selection(*, artifact_root, original_root=None):
     _require(frozen.get('contrast_family_size') == contrasts['family_size'] == len(contrasts['endpoints']),
              'Frozen explicit contrast count differs')
     for key in ('evaluation_configurations', 'selected_contrast_configurations', 'attribution',
-                'claim_formulas', 'attribution_claim_formulas'):
+                'claim_formulas', 'attribution_claim_formulas', 'diagnostic_claim_formulas'):
         _require(frozen.get(key) == contrasts[key], 'Selection/contrast binding differs: '+key)
     report = {'passed': True, 'complete_configurations': len(rebuilt['aggregates']),
         'validation_units': units, 'family_size': len(contrasts['endpoints']),
@@ -421,6 +421,71 @@ class _FrozenArtifacts:
         return {'passed': all(r['passed'] for r in reports.values()), 'channels': reports,
                 'status': 'checked' if reports else 'not_applicable_no_channel_dependencies',
                 'scope': 'selected release map dependencies and coarse witnesses; independent empirical math, no new optimum certificate'}
+
+
+def verify_restored_unit(name, *, artifact_root, original_root, out_dir, anchor=0,
+                         include_evaluation=True, expected_selection_sha256=None, wire_repetitions=512):
+    """Replay one representative restored anchor, without reading other anchors.
+
+    Use the selection hash from the separately completed original-root full
+    verification as ``expected_selection_sha256``. Global registration/source
+    documents, owned inputs and this anchor's accepted dependencies must exist.
+    This checks the frozen selection binding; it does not recompute three-anchor
+    selection and clearly reports that narrower scope.
+    """
+    layout = _Layout(artifact_root, original_root); _name(name); layout.anchor(anchor)
+    directory = Path(out_dir).resolve()
+    _require(directory.is_relative_to(layout.out/'private') and not directory.exists(),
+             'Representative replay needs a new task-owned private output directory')
+    schedule = _json(layout.file('RESOURCE_SCHEDULE.json')); cfg_hash = digest(configuration())
+    if not schedule.get('frozen_before_comparative_outcomes') or schedule.get('config_hash') != cfg_hash:
+        raise PermissionError('Representative replay requires the frozen resource schedule')
+    permit = layout.file('SELECTION.json'); frozen = _json(permit); selection_hash = _sha(permit)
+    _require(frozen.get('selection_frozen') is True and frozen.get('validation_only') is True
+             and frozen.get('config_hash') == frozen.get('configuration_digest') == cfg_hash,
+             'Representative replay requires the unchanged frozen selection')
+    if expected_selection_sha256 is not None:
+        _require(selection_hash == expected_selection_sha256, 'Restored selection differs from original verification pin')
+    _source_closure(layout, frozen); _registrations(layout, frozen)
+    _require(_sha(layout.file('CONTRASTS.json')) == frozen.get('contrasts_sha256'), 'Restored contrast binding changed')
+    _require(name in frozen['evaluation_configurations'], 'Representative configuration was not frozen')
+    artifacts = _FrozenArtifacts(layout, frozen); prepared = artifacts.preparation(anchor)
+    registry_paths = {}
+    for configuration_name in {'H', name}:
+        path = artifacts.audit(configuration_name, anchor)
+        pin = frozen['frozen_audits'].get(configuration_name, {}).get(str(anchor), {})
+        _require(pin.get('registry_sha256') == _sha(path)
+                 and pin.get('receipt_sha256') == _sha(layout.owned(path.parent/'COMPLETE.json')),
+                 'Representative restored audit differs from selection-time pin')
+        registry_paths[configuration_name] = path
+    release = artifacts.release(name, anchor, prepared)
+    h_release = artifacts.release('H', anchor, prepared); evaluation = None; evaluation_parity = None
+    if include_evaluation:
+        base = layout.anchor(anchor)/'evaluation'/name
+        receipt = layout.manifest(base/'COMPLETE.json', stage='evaluation', anchor=anchor, name=name)
+        _require(receipt.get('selection_sha256') == selection_hash
+                 and receipt.get('registry_sha256') == _sha(registry_paths[name]),
+                 'Representative evaluation selection/registry binding changed')
+        from .data import RuntimeInputs, load_anchor
+        ctx = load_anchor(anchor, pools=('test',), inputs_root=artifacts.inputs, evaluation_permit=permit)
+        encoded = {p: prepared['encoder'].encode(RuntimeInputs(d['x'], d['ha'])) for p, d in ctx['pools'].items()}
+        evaluation_parity = math_replay.h_parity(ctx, artifacts.inputs)
+        _require(all(all(row.values()) for row in evaluation_parity.values()), 'Restored evaluation H byte parity failed')
+        evaluation = {'ctx': ctx, 'release': artifacts.release(name, anchor,
+            {**prepared, 'ctx': ctx, 'encoded': encoded}), 'directory': base}
+    unit = verify_replay_unit(registry=registry_paths[name], h_registry=registry_paths['H'],
+        ctx=prepared['ctx'], release=release, h_release=h_release, artifact_root=layout.root,
+        original_root=layout.original, out_dir=directory, evaluation=evaluation, wire_repetitions=wire_repetitions)
+    math_report = artifacts.math_maps(anchor)
+    _require(_sha(permit) == selection_hash, 'Restored selection changed during replay')
+    result = {'passed': bool(unit['passed'] and math_report['passed']), 'anchor': anchor, 'configuration': name,
+        'scope': 'representative single-anchor restore; full selection reconstruction is separate',
+        'selection_recomputed': False, 'selection_sha256': selection_hash,
+        'original_selection_pin_checked': expected_selection_sha256 is not None,
+        'original_fallback_allowed': False, 'preparation': artifacts.preparation_reports[anchor],
+        'evaluation_H_byte_parity': evaluation_parity, 'unit': unit, 'mathematical_replay': math_report}
+    _write(directory/'restore_verification.json', result)
+    return result
 
 
 def verify_study(*, artifact_root, original_root=None, out_dir, include_evaluation=False,
