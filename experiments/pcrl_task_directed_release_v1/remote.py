@@ -57,6 +57,8 @@ def stage(kind):
                                 f'tests/{STUDY}',f'results/{STUDY}'],
                                cwd=ROOT,capture_output=True,check=True).stdout
         files=[ROOT/p.decode() for p in tracked.split(b'\0') if p]
+        # Hash-pinned historical preprocessing is a read-only inference dependency.
+        files.append(ROOT/'experiments/acs_transfer_data.py')
         files=[p for p in files if p.is_file() and p.suffix in ('.py','.md','.json')]
         dirty=subprocess.run(['git','diff','--name-only','HEAD','--',
                               *[str(p.relative_to(ROOT)) for p in files]],

@@ -192,7 +192,29 @@ def _prepare(anchor,*,allow_fit):
 
 
 def map_spec(name,anchor):
-    return next((m for m in configuration()['maps'] if m['configuration']==name and m['anchor']==anchor),None)
+    primary=next((m for m in configuration()['maps'] if m['configuration']==name and m['anchor']==anchor),None)
+    if primary is not None:return primary
+    from .branches import lookup_spec
+    extra=lookup_spec(name,anchor)
+    if extra is not None:return extra
+    from .robustness import lookup_spec as robustness_spec
+    return robustness_spec(name,anchor)
+
+
+def _extra_release(name,anchor):
+    if name.endswith('_fineC'):
+        from .robustness import lookup_spec
+        return lookup_spec(name,anchor)
+    from .branches import lookup_release
+    return lookup_release(name,anchor)
+
+
+def _extra_module(spec):
+    if spec['branch']=='C':
+        from . import robustness
+        return robustness
+    from . import branches
+    return branches
 
 
 def ensure_map(anchor,name,prepared=None):
@@ -211,6 +233,9 @@ def _map_receipt(anchor,name):
     record=_read_marker(base/'ACCEPTED.json','map',anchor=anchor,name=name)
     if sha(base/'solution.joblib')!=record.get('sha256'):raise ValueError('Accepted channel solution hash changed')
     if record.get('spec_hash')!=digest(spec):raise ValueError('Accepted channel specification changed')
+    if spec.get('branch') in ('A','C'):
+        if record.get('extra_resource_schedule_sha256')!=_extra_module(spec).require_scheduled(spec):
+            raise ValueError('Accepted branch resource schedule changed')
     if record.get('prepared_cache_sha256')!=_prepared_receipt(anchor)['cache_sha256']:
         raise ValueError('Accepted channel preparation changed')
     if record.get('coarse_configuration') is not None:
@@ -238,9 +263,14 @@ def _ensure_map(anchor,name,prepared):
     p=prepared if prepared is not None else prepare(anchor)
     preparation=_prepared_receipt(anchor)
     coarse=None;coarse_name=None
-    if spec['input']!='T0':
+    if spec['input']!='T0' and spec.get('branch')!='C':
         coarse_name=mechanism_id('T0',spec['policy'],spec['budget'],spec.get('max_actions',17))
         coarse=ensure_map(anchor,coarse_name,p)
+    extra_schedule_sha=None
+    if spec.get('branch') in ('A','C'):
+        branch_module=_extra_module(spec)
+        p=branch_module.prepared_for_spec(anchor,p,spec)
+        extra_schedule_sha=branch_module.require_scheduled(spec)
     _quarantine([base],f'map-{anchor}-{name}')
     tick=time.perf_counter()
     result=fit_map(p['ctx'],p['encoder'],p['encoded'],p['tables'],spec,base,coarse_solution=coarse)
@@ -250,6 +280,7 @@ def _ensure_map(anchor,name,prepared):
     atomic(base/'ACCEPTED.json',{**_provenance('map'),'created_utc':now(),'configuration':name,
              'anchor':anchor,'sha256':sha(path),'spec_hash':digest(spec),
              'prepared_cache_sha256':preparation['cache_sha256'],
+             'extra_resource_schedule_sha256':extra_schedule_sha,
              'coarse_configuration':coarse_name,
              'coarse_solution_sha256':None if coarse_name is None else _map_receipt(anchor,coarse_name)['sha256'],
              'seconds':time.perf_counter()-tick,'artifact_hashes':_artifact_hashes(base,[base])})
@@ -260,7 +291,16 @@ def _release_map_name(name,anchor):
     if map_spec(name,anchor) is not None:return name
     if name=='constant_best':return mechanism_id('T0','U',None)
     if any(name.startswith(c+'_withhold_') or name.startswith(c+'_rr_') for c in ('T0','Ttask','Trisk')):
+        if name.endswith('_a33'):
+            from .branches import lookup_release
+            branch=lookup_release(name,anchor)
+            if branch is None:raise ValueError('Unregistered expanded-action control')
+            return branch['required_map']
         return mechanism_id(name.split('_')[0],'U',None)
+    if name.endswith('_a33'):
+        from .branches import lookup_release
+        branch=lookup_release(name,anchor)
+        if branch is not None:return branch.get('required_map')
     return None
 
 
@@ -268,11 +308,16 @@ def release_for(name,p,anchor,*,allow_fit=True):
     from .mechanisms import build_release
     if allow_fit and 'test' in p['ctx']['pools']:
         raise ValueError('Evaluation/test releases require allow_fit=False')
+    branch=_extra_release(name,anchor)
+    if branch is not None:_extra_module(branch).require_scheduled(branch)
     required=_release_map_name(name,anchor)
     mechanism=None
     if required is not None:
         mechanism=ensure_map(anchor,required,p) if allow_fit else _load_map(anchor,required)
-    return build_release(p['ctx'],p['encoder'],p['encoded'],name,mechanism=mechanism,erasers=p['erasers'])
+    spec=branch if branch is not None else map_spec(name,anchor)
+    actions=spec.get('max_actions',17) if spec is not None else 17
+    canonical=branch.get('canonical_release',name) if branch is not None else name
+    return build_release(p['ctx'],p['encoder'],p['encoded'],canonical,mechanism=mechanism,erasers=p['erasers'],actions=actions)
 
 
 def audit_unit(anchor,name,prepared=None):
@@ -295,6 +340,11 @@ def _audit_receipt(anchor,name):
         raise ValueError('Accepted audit channel changed')
     if name!='H' and record.get('H_registry_sha256')!=_audit_receipt(anchor,'H')['registry_sha256']:
         raise ValueError('Accepted H ancestor changed')
+    branch=_extra_release(name,anchor)
+    if branch is not None:
+        if (record.get('branch_release_hash')!=digest(branch)
+                or record.get('extra_resource_schedule_sha256')!=_extra_module(branch).require_scheduled(branch)):
+            raise ValueError('Accepted extra release registration/schedule changed')
     return record
 
 
@@ -317,11 +367,14 @@ def _audit_unit(anchor,name,prepared):
     result=fit_release_audits(name,p['ctx'],release,base,h_baseline=h,b_baseline=h,
                              global_offsets={pool:e.get('global_offsets',e['actions'][17]) for pool,e in p['encoded'].items()})
     required=_release_map_name(name,anchor)
+    branch=_extra_release(name,anchor)
     atomic(marker,{**_provenance('audit'),'created_utc':now(),'anchor':anchor,'configuration':name,
                    'registry_sha256':sha(base/'registry.joblib'),
                    'prepared_cache_sha256':preparation['cache_sha256'],
                    'map_solution_sha256':None if required is None else _map_receipt(anchor,required)['sha256'],
                    'H_registry_sha256':None if name=='H' else _audit_receipt(anchor,'H')['registry_sha256'],
+                   'branch_release_hash':None if branch is None else digest(branch),
+                   'extra_resource_schedule_sha256':None if branch is None else _extra_module(branch).require_scheduled(branch),
                    'artifact_hashes':_artifact_hashes(base,[base]),
                    'seconds':time.perf_counter()-tick,'peak_rss_bytes':peak_rss_bytes(),
                    'role_audits':len(result['registry']['roles']),
@@ -382,6 +435,12 @@ def _evaluate_unit(anchor,name):
     base=anchor_dir(anchor);out=base/'evaluation'/name
     # Every fitting dependency is required and verified before test arrays open.
     audit=_audit_receipt(anchor,name)
+    pin=selection.get('frozen_audits',{}).get(name,{}).get(str(anchor))
+    if not pin or name not in selection.get('evaluation_configurations',[]):
+        raise ValueError('No selection-time audit pin for this evaluation')
+    if (pin.get('registry_sha256')!=audit['registry_sha256']
+            or pin.get('receipt_sha256')!=sha(base/'audits'/name/'COMPLETE.json')):
+        raise ValueError('Accepted audit changed after selection freeze')
     required=_release_map_name(name,anchor)
     if required is not None:_map_receipt(anchor,required)
     if (out/'COMPLETE.json').exists():

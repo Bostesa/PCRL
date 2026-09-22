@@ -122,9 +122,12 @@ def test_source_dependencies_ignore_document_and_report_edits(monkeypatch,tmp_pa
 
 
 def test_successful_frozen_evaluation_pins_summary_and_private_artifacts(isolated,monkeypatch):
-    run.atomic(isolated/'SELECTION.json',{'selection_frozen':True,'config_hash':run.digest(run.configuration())})
     registry=run.anchor_dir(0)/'audits/H/registry.joblib';registry.parent.mkdir(parents=True)
     registry.write_bytes(b'synthetic frozen registry')
+    receipt=registry.parent/'COMPLETE.json';receipt.write_text('{}')
+    run.atomic(isolated/'SELECTION.json',{'selection_frozen':True,'config_hash':run.digest(run.configuration()),
+        'evaluation_configurations':['H'],'frozen_audits':{'H':{'0':{
+            'registry_sha256':run.sha(registry),'receipt_sha256':run.sha(receipt)}}}})
     monkeypatch.setattr(run,'_audit_receipt',lambda *a:{'registry_sha256':run.sha(registry)})
     encoder=SimpleNamespace(encode=lambda inputs:{'p':np.full(len(inputs.x_a),.5)})
     def prep(anchor,*,allow_fit):
@@ -151,6 +154,18 @@ def test_successful_frozen_evaluation_pins_summary_and_private_artifacts(isolate
     (run.anchor_dir(0)/'evaluation/H/test/role.npz').write_bytes(b'corrupted')
     with pytest.raises(ValueError,match='artifact hash'):run.evaluate_unit(0,'H')
     assert loads==['test']
+
+
+def test_resealed_audit_cannot_open_test_after_selection(isolated,monkeypatch):
+    base=run.anchor_dir(0)/'audits/H';base.mkdir(parents=True)
+    (base/'COMPLETE.json').write_text('{"changed":true}')
+    run.atomic(isolated/'SELECTION.json',{'selection_frozen':True,
+        'evaluation_configurations':['H'],'frozen_audits':{'H':{'0':{
+            'registry_sha256':'current-registry','receipt_sha256':'original-receipt'}}}})
+    monkeypatch.setattr(run,'_audit_receipt',lambda *a:{'registry_sha256':'current-registry'})
+    monkeypatch.setattr(run,'load_anchor',lambda *a,**k:pytest.fail('test opened after reseal'))
+    with pytest.raises(ValueError,match='changed after selection'):
+        run.evaluate_unit(0,'H')
 
 
 def test_accepted_immutable_dependencies_do_not_take_mutation_lock(tmp_path,monkeypatch):
