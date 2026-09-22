@@ -481,8 +481,13 @@ def main():
                   'anchor':args.anchor,'name':args.name,'seconds':time.perf_counter()-started}),flush=True)
     except Exception as error:
         path=OUT/'private/incidents'/f'{time.time_ns()}-{args.command}-{args.anchor}.json'
+        try:
+            from .incidents import preserve_arrays
+            arrays=preserve_arrays(error,path.with_suffix('.arrays'))
+        except Exception as snapshot_error:
+            arrays={'snapshot_error_type':type(snapshot_error).__name__,'message':str(snapshot_error)}
         atomic(path,{'created_utc':now(),'command':vars(args),'type':type(error).__name__,
-                     'message':str(error),'traceback':traceback.format_exc()})
+                     'message':str(error),'traceback':traceback.format_exc(),'private_array_snapshot':arrays})
         raise
 
 

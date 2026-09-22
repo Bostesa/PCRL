@@ -24,3 +24,18 @@ def test_absent_columns_do_not_make_constant_system_nonconstant():
 def test_noninteger_mass_cannot_be_called_exact():
     with pytest.raises(ValueError,match='integer cell masses'):
         certify({'A/S/W':np.array([[[.5,1]],[[1,.5]]])},[1,1],[0,1])
+
+
+@pytest.mark.parametrize('law,parents,actions',[
+    (np.zeros((2,1,3),int),[0,1,2],2),
+    (np.zeros((0,1,3),int),[0,1,2],2),
+    (np.ones((2,1,3),int),[0,np.inf,np.inf],2),
+    (np.ones((2,1,3),int),[0,1,2],2.5),
+])
+def test_invalid_certificate_schema_rejected_at_entry(law,parents,actions):
+    with pytest.raises(ValueError):certify({'role':law},[1,1,1],parents,n_actions=actions)
+
+
+def test_empty_law_cannot_receive_even_constant_certificate():
+    with pytest.raises(ValueError,match='positive observed mass'):
+        certify({'role':np.zeros((2,1,1),int)},[1],[0])

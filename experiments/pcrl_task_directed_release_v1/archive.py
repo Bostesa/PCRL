@@ -1,6 +1,7 @@
 """Encrypted task-private archival with complete stream/file verification."""
 from __future__ import annotations
 import argparse
+import datetime as dt
 import hashlib
 import json
 import os
@@ -166,11 +167,36 @@ def aws_json(*args):
     return json.loads(p.stdout) if p.stdout.strip() else {}
 
 
-def validate_destination(bucket,prefix):
+def bucket_block_from_attestation(path,expected_sha256,bucket):
+    """Consume a fresh scoped read-only AWS response from the authenticated host.
+
+    The execution role need not receive account/bucket administration rights.
+    This is an explicit recorded provenance transfer, not an inferred policy.
+    """
+    path=Path(path)
+    if sha(path)!=expected_sha256:raise ValueError('Bucket metadata attestation hash differs')
+    record=json.loads(path.read_text())
+    if record.get('schema')!=1 or record.get('bucket')!=bucket or record.get('operation')!='GetPublicAccessBlock':
+        raise ValueError('Bucket metadata attestation has the wrong scope')
+    checked=dt.datetime.fromisoformat(record['checked_utc'].replace('Z','+00:00'))
+    if checked.tzinfo is None:raise ValueError('Bucket attestation timestamp must include timezone')
+    age=(dt.datetime.now(dt.timezone.utc)-checked).total_seconds()
+    if not -60<=age<=1800:raise ValueError('Bucket metadata attestation is not fresh')
+    return record['response'].get('PublicAccessBlockConfiguration',{}),record['checked_utc']
+
+
+def validate_destination(bucket,prefix,*,bucket_attestation=None):
     """Read-only preflight; privacy is verified, never inferred from encryption."""
     if not bucket or not prefix or prefix.startswith('/') or '..' in PurePosixPath(prefix).parts:
         raise ValueError('An explicit task-private archive destination is required')
-    block=aws_json('s3api','get-public-access-block','--bucket',bucket).get('PublicAccessBlockConfiguration',{})
+    provenance={'bucket_metadata_verification':'direct AWS API'}
+    if bucket_attestation is None:
+        block=aws_json('s3api','get-public-access-block','--bucket',bucket).get('PublicAccessBlockConfiguration',{})
+    else:
+        path,expected=bucket_attestation
+        block,checked=bucket_block_from_attestation(path,expected,bucket)
+        provenance={'bucket_metadata_verification':'fresh authenticated-host AWS response',
+                    'bucket_attestation_sha256':expected,'bucket_checked_utc':checked}
     required=('BlockPublicAcls','IgnorePublicAcls','BlockPublicPolicy','RestrictPublicBuckets')
     if any(block.get(k) is not True for k in required):
         raise ValueError('Archive requires all four bucket public-access blocks for private storage')
@@ -178,7 +204,7 @@ def validate_destination(bucket,prefix):
                       '--max-keys','1')
     if contents.get('KeyCount',0) or contents.get('Contents'):
         raise ValueError('Archive destination prefix must be empty')
-    return {'bucket_public_access_block':{k:block[k] for k in required},'prefix_empty_before_upload':True}
+    return {'bucket_public_access_block':{k:block[k] for k in required},'prefix_empty_before_upload':True,**provenance}
 
 
 def encrypted_put(bucket,key,path):
@@ -196,11 +222,12 @@ def encrypted_put(bucket,key,path):
     return header
 
 
-def publish(bucket,prefix,directory,restore_root,source_commit):
+def publish(bucket,prefix,directory,restore_root,source_commit,*,bucket_attestation=None):
     """Call only after scientific writes are closed; never deletes source artifacts."""
     selection=json.loads((OUT/'SELECTION.json').read_text())
     if not selection.get('selection_frozen'):raise RuntimeError('Archive closeout requires frozen scientific selection')
-    destination=validate_destination(bucket,prefix)
+    destination=(validate_destination(bucket,prefix) if bucket_attestation is None else
+                 validate_destination(bucket,prefix,bucket_attestation=bucket_attestation))
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=False)
     records=inventory();manifest={'created_utc':now(),'study':STUDY,'source_commit':source_commit,
           'source_root':str(ROOT),'files':records,'selection_sha256':sha(OUT/'SELECTION.json')}
@@ -251,4 +278,8 @@ def publish(bucket,prefix,directory,restore_root,source_commit):
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--bucket',required=True);p.add_argument('--prefix',required=True)
     p.add_argument('--directory',required=True);p.add_argument('--restore-root',required=True);p.add_argument('--source-commit',required=True)
-    a=p.parse_args();print(json.dumps(publish(a.bucket,a.prefix,a.directory,a.restore_root,a.source_commit),indent=2))
+    p.add_argument('--bucket-attestation');p.add_argument('--bucket-attestation-sha256')
+    a=p.parse_args()
+    if bool(a.bucket_attestation)!=bool(a.bucket_attestation_sha256):p.error('Attestation path and hash must be supplied together')
+    proof=(a.bucket_attestation,a.bucket_attestation_sha256) if a.bucket_attestation else None
+    print(json.dumps(publish(a.bucket,a.prefix,a.directory,a.restore_root,a.source_commit,bucket_attestation=proof),indent=2))

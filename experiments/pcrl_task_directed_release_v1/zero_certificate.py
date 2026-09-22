@@ -11,6 +11,7 @@ from fractions import Fraction
 from functools import reduce
 import json
 import math
+import operator
 from pathlib import Path
 import numpy as np
 from .math_replay import conditional_information
@@ -18,8 +19,9 @@ from .math_replay import conditional_information
 
 def integer_counts(value):
     a=np.asarray(value)
-    if a.ndim!=3 or not np.isfinite(a).all() or np.any(a<0) or np.any(a!=np.floor(a)) or np.any(a>2**53):
+    if a.ndim!=3 or min(a.shape)<1 or not np.isfinite(a).all() or np.any(a<0) or np.any(a!=np.floor(a)) or np.any(a>2**53):
         raise ValueError('Exact certificate requires nonnegative exactly represented integer cell masses')
+    if not np.any(a>0):raise ValueError('Each constrained law needs positive observed mass')
     return np.asarray(a,dtype=object)
 
 
@@ -68,8 +70,10 @@ def certify(counts_by_role,state_mass,parents,*,n_actions=2,zero_action=0):
     parents=np.asarray(parents)
     if mass.ndim!=1 or not np.isfinite(mass).all() or np.any(mass<0) or np.any(mass!=np.floor(mass)):
         raise ValueError('State support must be integer nonnegative counts')
-    if parents.shape!=mass.shape or np.any(parents!=np.floor(parents)) or np.any(parents<0):
+    if parents.shape!=mass.shape or not np.isfinite(parents).all() or np.any(parents!=np.floor(parents)) or np.any(parents<0):
         raise ValueError('Invalid fixed parent map')
+    try:n_actions,zero_action=operator.index(n_actions),operator.index(zero_action)
+    except TypeError as error:raise ValueError('Action counts and indices must be integers') from error
     if n_actions<1 or not 0<=zero_action<n_actions:raise ValueError('Invalid action schema')
     supported=np.flatnonzero(mass>0).tolist();m=len(supported)
     if not m or not counts_by_role:raise ValueError('Observed support and constrained roles required')
