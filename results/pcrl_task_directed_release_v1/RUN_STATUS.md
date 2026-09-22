@@ -1,5 +1,5 @@
 # Run status
 
-2026-09-21T23:17:46.108991+00:00
+Updated 2026-09-22T00:51:09.099246+00:00. Accepted ACS maps: 35; complete release/anchor audits: 30 (480 role audits, including 189 unchanged B-role reuses). Completed evaluation units: 0.
 
-The prospective protocol is committed and pushed. Verified 2018 inputs and compatible historical reference arrays are restored in the task-owned execution environment. The exact mathematical fixture and 104 focused implementation checks passed; a separate schedule test covers every registered release. No ACS comparative outcome has been inspected and the current-run evaluation remains locked. The complete fitting-and-audit benchmark is next. Resource allocation uses current AWS prices and remains within the authorized ceiling.
+Scheduler: running; live process verified: True. An accepted map is an execution result, not evidence of a competitive tradeoff. All current-run evaluation remains historically reused 2018 development data.

@@ -136,6 +136,7 @@ def test_freeze_writes_complete_ids_and_hashed_family_without_overwrite(tmp_path
     assert saved['contrast_family_size'] == len(family['endpoints'])
     assert saved['predictor_choices'][A]['2']['attack:A/SEX']['selection'] == 'chosen'
     assert saved['attribution_claim_formulas'] == family['attribution_claim_formulas']
+    assert saved['diagnostic_claim_formulas'] == family['diagnostic_claim_formulas']
     with pytest.raises(FileExistsError):
         selection.freeze_selection(got, out_dir=tmp_path)
 
@@ -417,5 +418,85 @@ def test_randomization_claim_blocks_incomplete_empty_or_wrong_input_simple_grid(
     got = selection.select_validation(values, candidate_ids=[A], families=families())
     contrasts = selection.build_contrast_family(got)
     for route in selection.ROUTES:
-        assert not contrasts['attribution'][route]['randomization']['claim_eligible']
+        if failure != 'no_eligible':
+            assert not contrasts['attribution'][route]['randomization']['claim_eligible']
+            assert contrasts['attribution_claim_formulas'][route]['randomization']['kind'] == 'blocked'
+
+
+def test_completed_ineligible_family_is_visible_but_does_not_veto_nonempty_feasible_set():
+    values = base(); values['constant_best'] = anchors(u=.7, s=.6)
+    declared = {**families(), 'constant': {'configurations': ['constant_best'], 'required': True, 'label_matched': True}}
+    got = selection.select_validation(values, candidate_ids=[B], families=declared)
+    route = got['routes']['protection_first']
+    assert route['screen_passed'] and route['competitive_validation_eligible']
+    assert route['scientifically_ineligible_families'] == ['constant']
+    assert not route['incomplete_required_families']
+    contrasts = selection.build_contrast_family(got)
+    assert contrasts['claim_formulas']['protection_first']['competitive']['kind'] == 'all'
+    assert contrasts['diagnostic_claim_formulas']['protection_first']['competitive_all_families']['kind'] == 'blocked'
+
+
+def test_missing_mandatory_setting_blocks_even_when_other_family_and_partial_frontier_feasible():
+    declared = {**families(), 'required_grid': {'configurations': ['constant_best', 'independent_token'],
+                                               'required': True, 'label_matched': True}}
+    values = base(); values['constant_best'] = anchors(u=.495, s=.51)
+    got = selection.select_validation(values, candidate_ids=[A], families=declared)
+    route = got['routes']['utility_first']
+    assert not route['competitive_validation_eligible']
+    assert route['incomplete_required_families'] == ['required_grid']
+    assert route['family_nominees']['required_grid']['configuration'] == 'constant_best'
+
+
+def test_randomization_keeps_infeasible_extremes_visible_without_requiring_their_dominance():
+    values = attribution_fixture()
+    values[A] = anchors(u=.49, s=.502)
+    values['Trisk_U_unconstrained_a17'] = anchors(u=.47, s=.4)
+    values['Trisk_code'] = anchors(u=.46, s=.4)
+    for kind in ('withhold', 'rr'):
+        for mix in (.25, .5, .75):
+            values[f'Trisk_{kind}_{mix:g}'] = anchors(u=.496, s=.501)
+    got = selection.select_validation(values, candidate_ids=[A], families=families())
+    contrasts = selection.build_contrast_family(got)
+    info = contrasts['attribution']['utility_first']['randomization']
+    assert info['comparators'] == ['Trisk_withhold_0.25', 'Trisk_rr_0.25']
+    assert info['scientifically_ineligible_controls'] == ['Trisk_U_unconstrained_a17', 'Trisk_code']
+    assert info['claim_eligible']
+    assert contrasts['attribution_claim_formulas']['utility_first']['randomization']['kind'] == 'all'
+    strict = contrasts['diagnostic_claim_formulas']['utility_first']['randomization_all_controls']
+    assert strict['kind'] == 'all'
+    strict_comparators = {e['comparator'] for e in contrasts['endpoints'] if e['id'] in {r['endpoint'] for r in leaves(strict)}}
+    assert {'Trisk_U_unconstrained_a17', 'Trisk_code'} <= strict_comparators
+    eps = {e['id']: e for e in contrasts['endpoints']}
+    upper = {key: sum(t['coefficient']*values[t['configuration']][0][t['role']]['validation']['unweighted']
+                     for t in e['terms']) for key, e in eps.items()}
+    assert formula_passes(contrasts['attribution_claim_formulas']['utility_first']['randomization'], eps, upper)
+    assert not formula_passes(strict, eps, upper)
+
+
+def test_randomization_empty_total_feasible_set_still_blocks():
+    values = attribution_fixture()
+    for name in ['Trisk_U_unconstrained_a17', 'Trisk_code'] + [f'Trisk_{kind}_{mix:g}'
+            for kind in ('withhold', 'rr') for mix in (.25, .5, .75)]:
+        values[name] = anchors(u=.6, s=.4)
+    got = selection.select_validation(values, candidate_ids=[A], families=families())
+    contrasts = selection.build_contrast_family(got)
+    for route in selection.ROUTES:
+        info = contrasts['attribution'][route]['randomization']
+        assert info['comparators'] == [] and info['complete']
+        assert not info['claim_eligible']
         assert contrasts['attribution_claim_formulas'][route]['randomization']['kind'] == 'blocked'
+
+
+def test_unfinished_optional33_does_not_replace_or_block_completed_primary_family_frontier():
+    values = base()
+    for family in selection.default_families().values():
+        values.update({name: anchors(u=.495, s=.501) for name in family['configurations']})
+    name = 'Trisk_U_unconstrained_a33'
+    spec = {'input': 'Trisk', 'policy': 'U', 'budget': None, 'max_actions': 33,
+            'branch': 'A', 'registration_id': 'prospective_optional'}
+    got = selection.select_validation(values, candidate_ids=[A], registered_extensions={name: spec})
+    route = got['routes']['utility_first']
+    assert route['competitive_validation_eligible'] and not route['incomplete_required_families']
+    family = route['family_nominees']['deterministic_actions']
+    assert name in family['attempted'] and name in family['unavailable']
+    assert name not in family['required_configurations'] and family['required_frontier_complete']

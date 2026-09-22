@@ -6,8 +6,9 @@ and weighting; a route selects one configuration for all anchors and weightings.
 The selected deployment predictor remains the already chosen validation recipe.
 Independent/fixed-decoder diagnostics cannot replace it after route selection.
 
-An empty required label-matched family prevents competitive superiority. A route
-without a passing configuration retains its nearest descriptive nominee. Neither
+Missing mandatory comparisons or an empty total feasible comparator set prevent
+competitive superiority. Completed but scientifically ineligible families remain
+visible. A route without a passing configuration retains its descriptive nominee. Neither
 that nominee nor a later favorable evaluation result retroactively passes its
 validation screen. Both routes remain in the same explicit multiplicity family.
 """
@@ -43,6 +44,7 @@ def default_families(*, registered_extensions=None, registered_controls=None):
         'supervised_SPLINCE': ['splince_supervised'],
         'constant_null': ['constant_best', 'independent_token'],
     }
+    mandatory = copy.deepcopy(groups)
     for name, spec in sorted((registered_extensions or {}).items()):
         if spec['policy'] == 'U' and name not in groups['deterministic_actions']:
             groups['deterministic_actions'].append(name)
@@ -50,7 +52,8 @@ def default_families(*, registered_extensions=None, registered_controls=None):
                       'constant_best': 'constant_null', 'independent_token': 'constant_null'}
     for name, spec in sorted((registered_controls or {}).items()):
         groups[control_groups[spec['baseline_family']]].append(name)
-    return {name: {'configurations': values, 'label_matched': True, 'required': True}
+    return {name: {'configurations': values, 'required_configurations': mandatory[name],
+                   'label_matched': True, 'required': True}
             for name, values in groups.items()}
 
 
@@ -238,6 +241,10 @@ def select_validation(validation, *, candidate_ids, families=None, registered_ex
         family['configurations'] = _names(family['configurations'], 'family configurations')
         if not isinstance(family.get('label_matched'), bool) or not isinstance(family.get('required'), bool):
             raise ValueError('Declare label_matched and required booleans for every family')
+        family['required_configurations'] = _names(family.get('required_configurations',
+            family['configurations'] if family['required'] else []), 'required family configurations')
+        if not set(family['required_configurations']) <= set(family['configurations']):
+            raise ValueError('Required settings must belong to the declared family frontier')
     aggregates, choices, unavailable = _prepare_validation(validation)
     for name in set(candidates) | {c for f in families.values() for c in f['configurations']}:
         if name not in aggregates and name not in unavailable:
@@ -263,15 +270,27 @@ def select_validation(validation, *, candidate_ids, families=None, registered_ex
                 eligible = [name for name in available if max(aggregates[name]['utility_delta_J'].values())
                             <= cfg['inference']['utility_allowance']]
             selected = min(eligible, key=lambda n: _rank(n, aggregates, route)) if eligible else None
+            missing_required = sorted(set(family['required_configurations']) - set(available))
+            required_complete = not missing_required and (bool(family['required_configurations']) or not family['required'])
             family_nominees[family_name] = {
                 'configuration': selected, 'eligible': sorted(eligible),
                 'attempted': list(family['configurations']), 'available': sorted(available),
                 'unavailable': sorted(set(family['configurations']) - set(available)),
                 'label_matched': family['label_matched'], 'required': family['required'],
                 'empty_eligibility': not eligible,
+                'required_configurations': list(family['required_configurations']),
+                'missing_required_configurations': missing_required,
+                'required_frontier_complete': required_complete,
+                'scientifically_ineligible': bool(required_complete and available and not eligible),
             }
         empty = [name for name, family in family_nominees.items()
                  if family['label_matched'] and family['required'] and family['configuration'] is None]
+        incomplete = [name for name, family in family_nominees.items()
+                      if family['label_matched'] and family['required'] and not family['required_frontier_complete']]
+        eligible_families = [name for name, family in family_nominees.items()
+                             if family['label_matched'] and family['configuration'] is not None]
+        ineligible = [name for name, family in family_nominees.items()
+                      if family['label_matched'] and family['scientifically_ineligible']]
         screen_passed = nominee is not None and screens[nominee][0]
         routes[route] = {
             'nominee': nominee, 'screen_passed': bool(screen_passed),
@@ -281,10 +300,13 @@ def select_validation(validation, *, candidate_ids, families=None, registered_ex
             'validation_frontier': {n: {'screen_passed': screens[n][0], 'maximum_violation': screens[n][1]}
                                     for n in sorted(available_candidates)},
             'family_nominees': family_nominees, 'empty_required_families': empty,
-            'competitive_validation_eligible': bool(screen_passed and not empty
+            'incomplete_required_families': incomplete, 'scientifically_ineligible_families': ineligible,
+            'eligible_comparator_families': eligible_families,
+            'competitive_validation_eligible': bool(screen_passed and not incomplete and eligible_families),
+            'strict_all_families_validation_eligible': bool(screen_passed and not empty and not incomplete
                 and any(f['label_matched'] and f['required'] for f in family_nominees.values())),
-            'competitive_claim_requires': 'all required family eligibility nonempty; adjusted candidate and comparator caps; '
-                                          'all required adjusted pairwise conjunctions',
+            'competitive_claim_requires': 'complete mandatory comparison attempts and a nonempty feasible comparator set; '
+                'adjusted candidate/comparator caps and every eligible family pairwise conjunction',
         }
     return {
         'schema': 1, 'validation_only': True, 'selection_frozen': False,
@@ -455,7 +477,16 @@ def build_contrast_family(selection, *, matched_specs=None):
             same_budget = _matched_name(code, 'L', budget, actions, conditioning)
             if same_budget in local_available:
                 pair(route, 'attribution_coalition_same_budget', candidate, same_budget)
-        matched['randomization'] = [mechanism_id(code, 'U', None, actions), code + '_code']
+        randomization_extremes = [mechanism_id(code, 'U', None, actions), code + '_code']
+        extreme_available = [n for n in randomization_extremes if n in available]
+        if route == 'utility_first':
+            extreme_eligible = [n for n in extreme_available if selection['aggregates'][n]['maximum_sensitive_increment_J']
+                                <= margins['sensitive_allowance']]
+        else:
+            extreme_eligible = [n for n in extreme_available if max(selection['aggregates'][n]['utility_delta_J'].values())
+                                <= margins['utility_allowance']]
+        matched['randomization'] = list(extreme_eligible)
+        strict_randomization_comparators = list(randomization_extremes)
         simple_frontiers = {}
         suffix = '_a33' if actions == 33 else ''
         for label, kind in (('withholding', 'withhold'), ('randomized_response', 'rr')):
@@ -475,33 +506,42 @@ def build_contrast_family(selection, *, matched_specs=None):
                 'input': code, 'max_actions': actions}
             if nominee is not None:
                 matched['randomization'].append(nominee)
+                strict_randomization_comparators.append(nominee)
         for purpose, comparators in matched.items():
             missing = [name for name in comparators if name not in available]
             complete = not missing and bool(comparators)
             if purpose == 'coalition':
                 complete = complete and frontier['complete']
             elif purpose == 'randomization':
-                complete = complete and all(f['complete'] and f['nominee'] is not None for f in simple_frontiers.values())
+                missing = [n for n in randomization_extremes if n not in available]
                 missing += [name for f in simple_frontiers.values() for name in f['missing']]
+                complete = not missing and all(f['complete'] for f in simple_frontiers.values())
             attribution[route][purpose] = {'comparators': comparators, 'missing': missing,
                                            'complete': complete, 'input': code, 'policy': policy,
                                            'budget': budget, 'max_actions': actions,
                                            'conditioning_family': conditioning,
-                                           'claim_eligible': bool(complete),
-                                           'claim_eligible_meaning': 'availability only; adjusted conjunction must pass'}
+                                           'claim_eligible': bool(complete and comparators),
+                                           'claim_eligible_meaning': 'complete required comparisons and nonempty eligible set only; adjusted conjunction must pass'}
             if purpose == 'coalition':
                 attribution[route][purpose].update(local_frontier=frontier, same_budget_comparator=same_budget,
                     same_budget_available=same_budget in local_available)
             elif purpose == 'randomization':
-                attribution[route][purpose]['simple_control_frontiers'] = simple_frontiers
-            for comparator in comparators:
+                ineligible_controls = [n for n in extreme_available if n not in extreme_eligible]
+                ineligible_controls += [n for f in simple_frontiers.values() for n in f['available'] if n not in f['eligible']]
+                attribution[route][purpose].update(simple_control_frontiers=simple_frontiers,
+                    attempted_extremes=randomization_extremes, available_extremes=extreme_available,
+                    eligible_extremes=extreme_eligible, scientifically_ineligible_controls=ineligible_controls,
+                    diagnostic_comparators=strict_randomization_comparators,
+                    strict_all_controls_claim_eligible=bool(complete and all(f['nominee'] is not None for f in simple_frontiers.values())))
+            endpoint_comparators = strict_randomization_comparators if purpose == 'randomization' else comparators
+            for comparator in endpoint_comparators:
                 if comparator in available:
                     pair(route, 'attribution_' + purpose + '_' + comparator, candidate, comparator,
                          utility_margin=0 if route == 'utility_first' else margins['utility_allowance'],
                          strict_utility=route == 'utility_first', sensitive_margin=margins['sensitive_allowance'])
             # Even descriptive/incomplete nominations retain prospective cap endpoints;
             # no subsequently favorable result can fill a missing validation frontier.
-            for name in sorted({candidate, *(n for n in comparators if n in available)}):
+            for name in sorted({candidate, *(n for n in endpoint_comparators if n in available)}):
                 attribution_caps(route, purpose, name)
     ids = [e['id'] for e in endpoints]
     if len(set(ids)) != len(ids):
@@ -515,11 +555,13 @@ def build_contrast_family(selection, *, matched_specs=None):
         return [{'endpoint': e['id'], 'check': check} for e in records]
 
     claims = {}
+    diagnostic_claims = {route: {} for route in ROUTES}
     for route in ROUTES:
         record = selection['routes'][route]
         if not record['screen_passed']:
             blocked = {'kind': 'blocked', 'reason': 'validation screen did not pass; descriptive nominee only'}
             claims[route] = {'historical_J': blocked, 'competitive': copy.deepcopy(blocked)}
+            diagnostic_claims[route]['competitive_all_families'] = copy.deepcopy(blocked)
             continue
         historical = references(route, 'candidate_J_utility_gate', 'utility_gate')
         historical += references(route, 'candidate_J_privacy_cap', 'privacy_cap')
@@ -528,9 +570,9 @@ def build_contrast_family(selection, *, matched_specs=None):
                 route, 'candidate_J_privacy_cap', 'strict_sensitive_improvement')})
         historical = {'kind': 'all', 'clauses': historical}
         if not record['competitive_validation_eligible']:
-            competitive = {'kind': 'blocked', 'reason': 'one or more required label-matched families lack eligibility, '
-                           'or no required label-matched family was declared',
-                           'empty_required_families': record['empty_required_families']}
+            competitive = {'kind': 'blocked', 'reason': 'mandatory comparison attempts incomplete or total feasible comparator set empty',
+                           'incomplete_required_families': record['incomplete_required_families'],
+                           'eligible_comparator_families': record['eligible_comparator_families']}
         else:
             clauses = [historical]
             for family_name, family in sorted(record['family_nominees'].items()):
@@ -548,41 +590,57 @@ def build_contrast_family(selection, *, matched_specs=None):
                     clauses += references(route, 'family_evaluated_J_utility_cap', 'comparator_utility_cap', comparator)
             competitive = {'kind': 'all', 'clauses': clauses}
         claims[route] = {'historical_J': historical, 'competitive': competitive}
+        diagnostic_claims[route]['competitive_all_families'] = (copy.deepcopy(competitive)
+            if record['strict_all_families_validation_eligible'] else
+            {'kind': 'blocked', 'reason': 'stricter diagnostic requires every required family to have an eligible nominee',
+             'empty_required_families': record['empty_required_families'],
+             'incomplete_required_families': record['incomplete_required_families']})
     attribution_claims = {route: {} for route in ROUTES}
+
+    def attribution_formula(route, purpose, candidate, comparators):
+        clauses = []
+        for comparator in comparators:
+            prefix = 'attribution_' + purpose + '_' + comparator
+            clauses += references(route, prefix + '_utility', 'utility', comparator)
+            clauses += references(route, prefix + '_sensitive', 'sensitive_noninferiority', comparator)
+            if route == 'protection_first':
+                roles = ('attack:AB/SEX', 'attack:AB/RAC1P') if purpose == 'coalition' else None
+                clauses.append({'kind': 'any', 'clauses': references(route, prefix + '_sensitive',
+                                'strict_sensitive_improvement', comparator, roles=roles)})
+        check = 'attribution_privacy_cap' if route == 'utility_first' else 'attribution_utility_cap'
+        for name in sorted({candidate, *comparators}):
+            clauses += references(route, 'attribution_' + purpose + '_evaluated_J_cap', check, name)
+        return {'kind': 'all', 'clauses': clauses}
+
     for route in ROUTES:
         candidate = selection['routes'][route]['nominee']
         for purpose, record in attribution[route].items():
             if not record['claim_eligible']:
                 reason = ('matched local frontier incomplete or has no eligible nominee' if purpose == 'coalition'
-                          else 'matched simple-control frontier incomplete/empty or comparison unavailable'
+                          else 'matched control attempt incomplete or total feasible comparator set empty'
                           if purpose == 'randomization' else 'one or more matched comparisons unavailable')
                 formula = {'kind': 'blocked', 'reason': reason}
             else:
-                clauses = []
-                for comparator in record['comparators']:
-                    prefix = 'attribution_' + purpose + '_' + comparator
-                    clauses += references(route, prefix + '_utility', 'utility', comparator)
-                    clauses += references(route, prefix + '_sensitive', 'sensitive_noninferiority', comparator)
-                    if route == 'protection_first':
-                        roles = ('attack:AB/SEX', 'attack:AB/RAC1P') if purpose == 'coalition' else None
-                        clauses.append({'kind': 'any', 'clauses': references(route, prefix + '_sensitive',
-                                        'strict_sensitive_improvement', comparator, roles=roles)})
-                check = 'attribution_privacy_cap' if route == 'utility_first' else 'attribution_utility_cap'
-                for name in sorted({candidate, *record['comparators']}):
-                    clauses += references(route, 'attribution_' + purpose + '_evaluated_J_cap', check, name)
-                formula = {'kind': 'all', 'clauses': clauses}
+                formula = attribution_formula(route, purpose, candidate, record['comparators'])
             attribution_claims[route][purpose] = formula
             record['adjusted_claim_formula'] = copy.deepcopy(formula)
+            if purpose == 'randomization':
+                strict = (attribution_formula(route, purpose, candidate, record['diagnostic_comparators'])
+                    if record['strict_all_controls_claim_eligible'] else
+                    {'kind': 'blocked', 'reason': 'stricter diagnostic requires U/direct code and eligible nominees in both simple-control families'})
+                diagnostic_claims[route]['randomization_all_controls'] = strict
+                record['strict_all_controls_adjusted_formula'] = copy.deepcopy(strict)
     return {
         'schema': 1, 'prospective': True, 'endpoints': endpoints, 'family_size': len(endpoints),
         'route_multiplicity': list(ROUTES), 'attribution': attribution,
         'claim_formulas': claims, 'attribution_claim_formulas': attribution_claims,
+        'diagnostic_claim_formulas': diagnostic_claims,
         'evaluation_configurations': sorted(available),
         'selected_contrast_configurations': sorted({t['configuration'] for e in endpoints for t in e['terms']}),
         'claim_scope': 'both routes retained; either fully supported route may be reported; no post-hoc route winner',
         'descriptive_grid': selection['descriptive_configurations'],
         'multiplicity_rule': 'M = len(endpoints), alpha/(2*M); corresponding adjusted one-sided bounds',
-        'empty_eligibility_rule': 'never evidence of competitive superiority',
+        'empty_eligibility_rule': 'empty total feasible comparator set never supports superiority; completed ineligible families stay visible',
         'historical_half_headroom_scope': 'separate inherited criterion; only interpretable with positive J headroom',
     }
 
@@ -601,7 +659,8 @@ def freeze_selection(selection, *, out_dir, matched_specs=None):
               'evaluation_configurations': contrasts['evaluation_configurations'],
               'selected_contrast_configurations': contrasts['selected_contrast_configurations'],
               'attribution': contrasts['attribution'], 'claim_formulas': contrasts['claim_formulas'],
-              'attribution_claim_formulas': contrasts['attribution_claim_formulas']}
+              'attribution_claim_formulas': contrasts['attribution_claim_formulas'],
+              'diagnostic_claim_formulas': contrasts['diagnostic_claim_formulas']}
     directory.mkdir(parents=True, exist_ok=True)
     with contrasts_path.open('x') as handle:
         handle.write(encoded)

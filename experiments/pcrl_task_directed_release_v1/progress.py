@@ -1,10 +1,58 @@
 """Public-safe execution inventory; does not read comparative performance."""
 from __future__ import annotations
 import json
+import hashlib
 from pathlib import Path
 import psutil
 from .config import OUT,configuration,digest,release_ledger
 from .run import atomic,now,sha,_validate_provenance
+
+
+def evaluation_exposure(*,out_root=None):
+    """Conservative metadata-only evidence of any evaluation attempt or opening.
+
+    Canonical evaluate_unit persists its task-owned lock before loading test
+    arrays. A failed permit can leave the same lock, so lock/attempt evidence
+    deliberately sets evaluation_opened=true without claiming that loading
+    certainly succeeded. No selection score, log body or prediction is read.
+    """
+    root=Path(OUT if out_root is None else out_root);evidence=[]
+    from .branches import action33_specs,action33_controls
+    from .robustness import robustness_specs
+    possible=release_ledger()['records']+action33_specs()+action33_controls()+robustness_specs()
+    known={hashlib.sha256(f"evaluation/{r['anchor']}/{r['configuration']}".encode()).hexdigest()+'.lock'
+           for r in possible}
+    for path in sorted((root/'private/locks').glob('*.lock')):
+        if path.name in known:
+            evidence.append({'kind':'durable_evaluation_lock','marker_sha256':sha(path)})
+            continue
+        try:record=json.loads(path.read_text())
+        except (ValueError,OSError):continue
+        if isinstance(record.get('key'),str) and record['key'].startswith('evaluation/'):
+            evidence.append({'kind':'durable_evaluation_lock','marker_sha256':sha(path)})
+    for anchor in configuration()['seeds']:
+        for path in sorted((root/'private/run'/f'anchor_{anchor}'/'evaluation').glob('*')):
+            if path.is_dir():evidence.append({'kind':'evaluation_output_directory','anchor':anchor})
+    for _ in (root/'private/logs').glob('evaluate__*.log'):
+        evidence.append({'kind':'evaluation_process_log_exists'})
+    for _ in (root/'private/quarantine').glob('evaluation-*'):
+        evidence.append({'kind':'quarantined_evaluation_attempt'})
+    path=root/'private/SCHEDULER.json'
+    if path.exists():
+        raw=json.loads(path.read_text())
+        if any(j.get('command')=='evaluate' for j in raw.get('active_jobs',[])):
+            evidence.append({'kind':'scheduler_active_evaluation'})
+        if any(j.get('command')=='evaluate' and j.get('status') not in ('pending','dependency_blocked')
+               for j in raw.get('jobs',[])):
+            evidence.append({'kind':'scheduler_recorded_evaluation_attempt'})
+    path=root/'RUN_LEDGER.json'
+    if path.exists():
+        prior=json.loads(path.read_text())
+        if prior.get('evaluation_opened') or prior.get('evaluation_attempted_or_opened'):
+            evidence.append({'kind':'prior_conservative_ledger'})
+    opened=bool(evidence)
+    return {'evaluation_attempted_or_opened':opened,'evaluation_opened':opened,'evidence':evidence,
+            'interpretation':'conservative: any durable canonical evaluation-attempt evidence counts as opened, including attempts that may have failed before test loading; false means no such evidence found, not a universal read-access proof'}
 
 
 def snapshot():
@@ -34,13 +82,18 @@ def snapshot():
                    'remaining_jobs':raw.get('remaining_jobs'),
                    'incidents_or_incomplete':[{'id':j['id'],'status':j['status'],'returncode':j.get('returncode')}
                        for j in raw['jobs'] if j['status']!='complete']}
+    exposure=evaluation_exposure(out_root=OUT)
     result={'written_utc':now(),'status':'execution_inventory','config_hash':digest(cfg),
             'nominal_primary_maps':len(cfg['maps']),'nominal_primary_release_anchor_audits':len(release_ledger()['records']),
             'accepted_ACS_Q_maps':len(maps),'complete_ACS_release_audits':len(audits),
             'completed_role_audits':sum(r['new_role_fits']+r['reused_role_audits'] for r in audits),
             'new_role_fits':sum(r['new_role_fits'] for r in audits),
             'unchanged_B_role_audits_reused':sum(r['reused_role_audits'] for r in audits),
-            'completed_evaluations':len(evaluations),'evaluation_opened':bool(evaluations),
+            'completed_evaluations':len(evaluations),
+            'evaluation_opened':bool(evaluations) or exposure['evaluation_opened'],
+            'evaluation_attempted_or_opened':bool(evaluations) or exposure['evaluation_attempted_or_opened'],
+            'evaluation_exposure_evidence':exposure['evidence'],
+            'evaluation_exposure_interpretation':exposure['interpretation'],
             'selection_frozen':(OUT/'SELECTION.json').exists(),
             'scheduler':scheduler,'maps':maps,'audits':audits,'evaluations':evaluations,
             'comparative_performance_read':False,
@@ -49,7 +102,7 @@ def snapshot():
     text=(f"# Run status\n\nUpdated {result['written_utc']}. "
           f"Accepted ACS maps: {len(maps)}; complete release/anchor audits: {len(audits)} "
           f"({result['completed_role_audits']} role audits, including {result['unchanged_B_role_audits_reused']} unchanged B-role reuses). "
-          f"Completed evaluation units: {len(evaluations)}.\n\n"
+          f"Completed evaluation units: {len(evaluations)}; evaluation attempted or opened (conservative): {result['evaluation_attempted_or_opened']}.\n\n"
           f"Scheduler: {scheduler.get('status','not recorded')}; live process verified: {scheduler.get('verified_process_alive',False)}. "
           "An accepted map is an execution result, not evidence of a competitive tradeoff. "
           "All current-run evaluation remains historically reused 2018 development data.\n")

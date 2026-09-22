@@ -41,3 +41,20 @@ def test_conjunction_uses_bounds_and_any_is_explicit():
  assert not evaluate_formula({'kind':'blocked','reason':'no eligible comparator'},checks)['passed']
  assert not check_bound({'lower':-.1,'upper':.01},{'bound':'upper','operator':'<','threshold':0})
  assert check_bound({'lower':0,'upper':0},{'bound':'upper','operator':'<=','threshold':0})
+
+
+def test_stricter_diagnostic_result_cannot_replace_passing_registered_claim():
+ from experiments.pcrl_task_directed_release_v1.reporting import evaluate_claims
+ endpoints=[{'id':'feasible','checks':[{'name':'gain','bound':'upper','operator':'<','threshold':0}]},
+            {'id':'extreme','checks':[{'name':'gain','bound':'upper','operator':'<','threshold':0}]}]
+ feasible={'endpoint':'feasible','check':'gain'}
+ strict={'kind':'all','clauses':[feasible,{'endpoint':'extreme','check':'gain'}]}
+ contrasts={'endpoints':endpoints,'family_size':2,
+  'claim_formulas':{'utility_first':{'competitive':feasible}},
+  'diagnostic_claim_formulas':{'utility_first':{'competitive_all_families':strict}}}
+ bounds={'family_size':2,'bounds':{'feasible':{'lower':-.02,'upper':-.01},
+                                 'extreme':{'lower':.01,'upper':.02}}}
+ result=evaluate_claims(contrasts,bounds)
+ assert result['claim_results']['utility_first']['competitive']['passed']
+ assert not result['diagnostic_claim_results']['utility_first']['competitive_all_families']['passed']
+ assert result['family_size']==2

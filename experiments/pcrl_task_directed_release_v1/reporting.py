@@ -95,7 +95,7 @@ def evaluate_formula(formula,checks):
 
 
 def evaluate_claims(contrasts,results):
-    """Evaluate frozen main and attribution all/any trees using adjusted bounds."""
+    """Evaluate main, attribution and separately named stricter diagnostic trees."""
     endpoints=contrasts['endpoints'];ids=[e['id'] for e in endpoints]
     if (len(ids)!=len(set(ids)) or len(ids)!=contrasts['family_size']
             or results['family_size']!=len(ids) or set(results['bounds'])!=set(ids)):
@@ -115,6 +115,7 @@ def evaluate_claims(contrasts,results):
     return {'family_size':len(ids),'checks':records,
             'claim_results':formulas('claim_formulas'),
             'attribution_claim_results':formulas('attribution_claim_formulas'),
+            'diagnostic_claim_results':formulas('diagnostic_claim_formulas'),
             'scope':'frozen prospective formulas, simultaneous adjusted interval bounds; both routes retained'}
 
 
