@@ -51,3 +51,27 @@ def test_evaluation_schedule_covers_frozen_extensions_and_rejects_missing_audit(
  assert {j['name'] for j in block[0][1]}==set(names)
  marker.unlink()
  with pytest.raises(ValueError,match='lacks its accepted audit'):s.evaluation_phases()
+
+
+def test_baseline_supplement_is_separate_fixed_twelve_unit_schedule(tmp_path,monkeypatch):
+ import importlib.util
+ import json
+ from pathlib import Path
+ from experiments.pcrl_task_directed_release_v1 import scheduler as s
+ spec=importlib.util.spec_from_file_location('programme_test_helpers',Path(__file__).with_name('test_programme.py'))
+ helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+ monkeypatch.setattr(s,'OUT',tmp_path)
+ before=s.phases();specs,checked=helper.supplement_stub(tmp_path,monkeypatch)
+ order=[r['id'] for r in specs]
+ (tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json').write_text(json.dumps({'unit_ids':order}))
+ block=s.extension_phases('baseline')
+ assert len(block)==1 and block[0][0]=='extension_baseline'
+ assert [j['name']+f"/anchor_{j['anchor']}" for j in block[0][1]]==order
+ assert len(block[0][1])==len(checked)==12 and all(j['command']=='audit' for j in block[0][1])
+ assert s.phases()==before
+ assert len([j for _,jobs in before for j in jobs if j['command']=='audit'])==180
+ (tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json').write_text(json.dumps({'unit_ids':order[:-1]}))
+ import pytest
+ with pytest.raises(ValueError,match='12|twelve|all'):s.extension_phases('baseline')
+ (tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json').write_text(json.dumps({'unit_ids':list(reversed(order))}))
+ with pytest.raises(ValueError,match='fixed order'):s.extension_phases('baseline')

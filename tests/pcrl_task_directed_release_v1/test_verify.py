@@ -191,6 +191,32 @@ def test_verify_study_records_gate_failure_without_opening_prepared_or_evaluatio
     assert (out/'private/verify-failure/verification.json').is_file()
 
 
+def test_registered_mandatory_supplements_reconstruct_when_unfinished(frozen, monkeypatch):
+    from experiments.pcrl_task_directed_release_v1 import baseline_supplement as supplement
+    root, out = frozen
+    old = json.loads((out/'SELECTION.json').read_text())
+    grid = json.loads((out/'VALIDATION_GRID.json').read_text())
+    for name in ('SELECTION.json', 'CONTRASTS.json', 'VALIDATION_GRID.json'):
+        (out/name).unlink()
+    monkeypatch.setattr(run, 'OUT', out)
+    (out/supplement.AMENDMENT).write_text('Prospective synthetic fairness amendment.\n')
+    supplement.register()
+    shutil.copy(supplement.__file__, root/'experiments'/config.STUDY/'baseline_supplement.py')
+    controls = {s['configuration']: supplement.lookup_release(s['configuration'], 0)
+        for s in supplement.specs() if s['anchor'] == 0}
+    chosen = selection.select_validation(grid['records'], candidate_ids=old['candidate_ids'], registered_controls=controls)
+    for key in ('frozen_audits', 'config_hash', 'source_hashes', 'inference_source_hashes'):
+        chosen[key] = old[key]
+    write(out/'VALIDATION_GRID.json', grid)
+    selection.freeze_selection(chosen, out_dir=out)
+    result = module().verify_frozen_selection(artifact_root=root)
+    family = result['selection']['routes']['utility_first']['family_nominees']['supervised_LEACE']
+    assert set(family['missing_required_configurations']) == {
+        'leace_supervised', 'leace_supervised_mechanism40', 'leace_supervised_union88'}
+    assert not family['required_frontier_complete']
+    assert result['report']['registrations'][supplement.REGISTRY]['registered_configurations_used'] == 4
+
+
 def test_math_channel_replays_empirical_tables_and_detects_changed_objective():
     from test_math_replay import prepared
     from experiments.pcrl_task_directed_release_v1 import math_replay

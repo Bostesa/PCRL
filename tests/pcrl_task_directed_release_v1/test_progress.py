@@ -46,3 +46,21 @@ def test_snapshot_propagates_partial_evaluation_evidence_without_reading_outputs
     assert result['completed_evaluations']==0 and result['evaluation_opened']
     assert result['evaluation_attempted_or_opened'] and result['comparative_performance_read'] is False
     assert 'attempted or opened' in (tmp_path/'RUN_STATUS.md').read_text()
+
+
+def test_comparative_access_is_not_reset_after_validation_opens(tmp_path,monkeypatch):
+    monkeypatch.setattr(progress,'OUT',tmp_path)
+    write(tmp_path/'VALIDATION_OPENED.json',{'scope':'registered validation comparisons'})
+    first=progress.snapshot()
+    assert first['comparative_performance_read'] and not first['evaluation_opened']
+    (tmp_path/'VALIDATION_OPENED.json').unlink()
+    second=progress.snapshot()
+    assert second['comparative_performance_read'] and not second['evaluation_opened']
+    assert 'RUN_LEDGER.json:prior_comparative_access' in second['comparative_access_evidence']
+
+
+def test_baseline_metadata_registration_alone_is_not_comparative_access(tmp_path):
+    write(tmp_path/'BASELINE_SUPPLEMENTS.json',{'metadata_only':True})
+    assert not progress.comparative_access(out_root=tmp_path)['comparative_performance_read']
+    write(tmp_path/'BRANCH_A_TRIGGER.json',{'registered':False})
+    assert progress.comparative_access(out_root=tmp_path)['comparative_performance_read']

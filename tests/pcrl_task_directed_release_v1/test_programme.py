@@ -132,3 +132,97 @@ def test_branch_A_uses_fixed_whole_comparison_order_and_valid_dependencies(tmp_p
         elif s['input']!='T0':required=config.mechanism_id('T0',s['policy'],s['budget'],33)
         else:required=None
         if required:assert required+f"/anchor_{s['anchor']}" in ids[:position]
+
+
+def supplement_stub(tmp_path,monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    import experiments.pcrl_task_directed_release_v1 as package
+    specs=[]
+    for scope in ('mechanism40','union88'):
+        for method,family in (('leace','supervised_LEACE'),('splince','supervised_SPLINCE')):
+            name=f'{method}_supervised_{scope}'
+            for anchor in (0,1,2):
+                specs.append({'id':f'{name}/anchor_{anchor}','configuration':name,'anchor':anchor,
+                    'branch':'baseline_supplement','kind':'control','required':True,'label_matched':True,
+                    'scope':scope,'method':method,'baseline_family':family,'max_actions':17,
+                    'required_map':None,'canonical_release':name})
+    checked=[]
+    def lookup(name,anchor):
+        return {**next(s for s in specs if s['configuration']==name and s['anchor']==anchor),
+                'baseline_registration_sha256':'a'*64,'baseline_source_sha256':'b'*64}
+    supplement=SimpleNamespace(registration=lambda:{'controls':specs},specs=lambda:specs,
+                               lookup_release=lookup,require_scheduled=lambda spec:checked.append(spec) or 'c'*64)
+    monkeypatch.setitem(sys.modules,package.__name__+'.baseline_supplement',supplement)
+    monkeypatch.setattr(package,'baseline_supplement',supplement,raising=False)
+    write(tmp_path/'BASELINE_SUPPLEMENTS.json',{})
+    return specs,checked
+
+
+def test_baseline_supplement_is_all12_required_units_and_four_common_family_controls(tmp_path,monkeypatch):
+    root(tmp_path,monkeypatch);specs,checked=supplement_stub(tmp_path,monkeypatch)
+    write(tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json',{'unit_ids':[s['id'] for s in specs]})
+    rows=p.completion_inventory();extra=[r for r in rows if r['scope']=='baseline_supplement']
+    assert len(rows)==192 and len(extra)==12 and all(r['required'] for r in extra)
+    assert len(checked)==12 and not any(r['complete'] for r in extra)
+    common=p.registration_inputs()['registered_controls']
+    assert len(common)==4 and all(s['required'] and s['baseline_registration_sha256']=='a'*64 for s in common.values())
+    assert {s['baseline_family'] for s in common.values()}=={'supervised_LEACE','supervised_SPLINCE'}
+    monkeypatch.setattr(reporting,'collect_validation',lambda:pytest.fail('missing mandatory supplement allowed selection'))
+    with pytest.raises(RuntimeError,match='incomplete'):p.freeze()
+
+
+def test_registered_but_unscheduled_supplement_cannot_disappear_from_closeout(tmp_path,monkeypatch):
+    root(tmp_path,monkeypatch);specs,checked=supplement_stub(tmp_path,monkeypatch)
+    rows=p.completion_inventory()
+    assert len(rows)==192 and len([r for r in rows if r['scope']=='baseline_supplement'])==12
+    assert not checked
+    def collect():write(tmp_path/'VALIDATION_GRID.json',{});return {}
+    monkeypatch.setattr(reporting,'collect_validation',collect)
+    monkeypatch.setattr(selection,'select_validation',lambda value,**kwargs:{'arguments':kwargs})
+    monkeypatch.setattr(reporting,'bind_frozen_provenance',lambda selected:selected)
+    def freeze(selected,**kwargs):
+        write(tmp_path/'SELECTION.json',selected);write(tmp_path/'CONTRASTS.json',{});return selected
+    monkeypatch.setattr(selection,'freeze_selection',freeze)
+    result=p.freeze(closeout_reason='documented access failure after registration')
+    assert len([r for r in result['completion_at_freeze']['missing'] if r['scope']=='baseline_supplement'])==12
+    assert len(result['arguments']['registered_controls'])==4
+
+
+def test_baseline_schedule_cannot_choose_subset_or_fit_before_schedule(tmp_path,monkeypatch):
+    root(tmp_path,monkeypatch);specs,_=supplement_stub(tmp_path,monkeypatch)
+    path=tmp_path/'BASELINE_SUPPLEMENT_SCHEDULE.json'
+    write(path,{'unit_ids':[s['id'] for s in specs[:-1]]})
+    with pytest.raises(ValueError,match='twelve|12|all'):p.completion_inventory()
+    path.unlink()
+    s=specs[0];write(tmp_path/'private/run'/f"anchor_{s['anchor']}"/'audits'/s['configuration']/'COMPLETE.json',{})
+    with pytest.raises(ValueError,match='schedule'):p.completion_inventory()
+
+
+def test_amendment_activation_prevents_deleted_registry_from_bypassing_required_controls(tmp_path,monkeypatch):
+    root(tmp_path,monkeypatch);supplement_stub(tmp_path,monkeypatch)
+    from experiments.pcrl_task_directed_release_v1 import baseline_supplement
+    (tmp_path/'AMENDMENT_6_BASELINE_FAIRNESS.md').write_text('Prospective synthetic amendment')
+    path=tmp_path/'BASELINE_SUPPLEMENTS.json';path.unlink()
+    monkeypatch.setattr(baseline_supplement,'registration',lambda:json.loads(path.read_text()))
+    assert p.baseline_supplement_active()
+    with pytest.raises(FileNotFoundError):p.completion_inventory()
+    with pytest.raises(FileNotFoundError):p.registration_inputs()
+
+
+def test_real_baseline_registration_and_schedule_integrate_without_fitting(tmp_path,monkeypatch):
+    import importlib
+    from experiments.pcrl_task_directed_release_v1 import scheduler
+    supplement=importlib.import_module('experiments.pcrl_task_directed_release_v1.baseline_supplement')
+    root(tmp_path,monkeypatch);monkeypatch.setattr(scheduler,'OUT',tmp_path)
+    (tmp_path/supplement.AMENDMENT).write_text('Synthetic prospective fairness amendment; no data')
+    registry=supplement.register()
+    assert len(registry['controls'])==12
+    schedule=supplement.freeze_schedule(resource_decision={'registry_commit':'a'*40,'scope':'synthetic metadata-only test'})
+    assert schedule['unit_ids']==[s['id'] for s in supplement.specs()]
+    arguments=p.registration_inputs();assert len(arguments['registered_controls'])==4
+    rows=p.completion_inventory();assert len(rows)==192
+    assert not any(r['complete'] for r in rows)
+    block=scheduler.extension_phases('baseline')
+    assert len(block[0][1])==12
+    assert not (tmp_path/'private/run').exists()

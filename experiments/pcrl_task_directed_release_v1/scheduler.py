@@ -69,6 +69,15 @@ def extension_phases(branch):
         schedule=json.loads((OUT/'ROBUSTNESS_RESOURCE_SCHEDULE.json').read_text())
         specs={r['id']:r for r in registry['maps']}
         lookup,require=robustness.lookup_spec,robustness.require_scheduled
+    elif branch=='baseline':
+        from . import baseline_supplement
+        registry=baseline_supplement.registration()
+        schedule=json.loads((OUT/'BASELINE_SUPPLEMENT_SCHEDULE.json').read_text())
+        controls=registry['controls'];expected=baseline_supplement.specs()
+        if len(controls)!=12 or controls!=expected or schedule.get('unit_ids')!=[r['id'] for r in expected]:
+            raise ValueError('Baseline supplement schedule requires all twelve registered controls in fixed order')
+        specs={r['id']:r for r in controls}
+        lookup,require=baseline_supplement.lookup_release,baseline_supplement.require_scheduled
     else:raise ValueError('Unknown registered extension')
     jobs=[]
     for ident in schedule['unit_ids']:
@@ -194,5 +203,5 @@ def run(selected_phases=None,evaluation=False,extension=None):
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser();ap.add_argument('--phases',nargs='*');ap.add_argument('--evaluate',action='store_true')
-    ap.add_argument('--extension',choices=('A','C'))
+    ap.add_argument('--extension',choices=('A','C','baseline'))
     a=ap.parse_args();run(a.phases,a.evaluate,a.extension)

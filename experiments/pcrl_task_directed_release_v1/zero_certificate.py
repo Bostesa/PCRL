@@ -85,6 +85,7 @@ def certify(counts_by_role,state_mass,parents,*,n_actions=2,zero_action=0):
     if any(sum(row)!=0 for row in rows):raise AssertionError('Constant supported kernel must be feasible')
     echelon,pivots=exact_echelon(rows,m);rank=len(pivots);nullity=m-rank
     record={'supported_states':m,'unsupported_states':int(np.sum(mass==0)),
+            'action_count':n_actions,'zero_action':zero_action,
             'exact_rank':rank,'exact_nullity':nullity,'nonzero_integer_equations':len(rows),
             'constant_only_on_supported_states':nullity==1 or n_actions==1,
             'nonconstant_supported_kernel_exists':nullity>1 and n_actions>1,

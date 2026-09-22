@@ -55,6 +55,19 @@ def evaluation_exposure(*,out_root=None):
             'interpretation':'conservative: any durable canonical evaluation-attempt evidence counts as opened, including attempts that may have failed before test loading; false means no such evidence found, not a universal read-access proof'}
 
 
+def comparative_access(*,out_root=None):
+    """Preserve evidence that validation comparisons have been inspected/used."""
+    root=Path(out_root) if out_root is not None else OUT
+    markers=('VALIDATION_OPENED.json','VALIDATION_GRID.json','EXTRA_CONFIGS.json',
+             'ROBUSTNESS_CONFIGS.json','BRANCH_A_TRIGGER.json','BRANCH_C_TRIGGER.json',
+             'SELECTION.json','ATTACK_CALIBRATION.json')
+    evidence=[name for name in markers if (root/name).is_file()]
+    prior=root/'RUN_LEDGER.json'
+    if prior.exists() and json.loads(prior.read_text()).get('comparative_performance_read'):
+        evidence.append('RUN_LEDGER.json:prior_comparative_access')
+    return {'comparative_performance_read':bool(evidence),'comparative_access_evidence':evidence}
+
+
 def snapshot():
     cfg=configuration();maps=[];audits=[];evaluations=[]
     for anchor in cfg['seeds']:
@@ -96,7 +109,7 @@ def snapshot():
             'evaluation_exposure_interpretation':exposure['interpretation'],
             'selection_frozen':(OUT/'SELECTION.json').exists(),
             'scheduler':scheduler,'maps':maps,'audits':audits,'evaluations':evaluations,
-            'comparative_performance_read':False,
+            **comparative_access(),
             'integrity_scope':'Receipt identity/config/source checked; complete artifact replay is a separate verification.'}
     atomic(OUT/'RUN_LEDGER.json',result)
     text=(f"# Run status\n\nUpdated {result['written_utc']}. "

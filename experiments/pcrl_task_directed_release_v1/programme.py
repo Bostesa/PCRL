@@ -9,6 +9,20 @@ from .config import OUT,configuration,release_ledger,mechanism_id,digest
 from .run import atomic,now,sha
 
 
+def baseline_supplement_active():
+    return any((OUT/name).exists() for name in ('AMENDMENT_6_BASELINE_FAIRNESS.md',
+               'BASELINE_SUPPLEMENTS.json','BASELINE_SUPPLEMENT_SCHEDULE.json'))
+
+
+def _baseline_registration():
+    from . import baseline_supplement
+    registry=baseline_supplement.registration();controls=registry['controls']
+    expected=baseline_supplement.specs()
+    if len(controls)!=12 or controls!=expected:
+        raise ValueError('Baseline supplement requires all twelve registered controls')
+    return baseline_supplement,controls
+
+
 def registration_inputs():
     """Supply every registered extension, including resource-incomplete slots."""
     extensions={};controls={};anchors={}
@@ -35,6 +49,16 @@ def registration_inputs():
             value={k:v for k,v in spec.items() if k not in ('id','anchor')}
             old=extensions.setdefault(raw['configuration'],value)
             if old!=value:raise ValueError('Registered common robustness configuration differs across anchors')
+    if baseline_supplement_active():
+        supplement,records=_baseline_registration()
+        for raw in records:
+            spec=supplement.lookup_release(raw['configuration'],raw['anchor'])
+            if spec is None or spec.get('anchor')!=raw['anchor'] or spec.get('configuration')!=raw['configuration']:
+                raise ValueError('Registered baseline supplement identity differs from lookup')
+            anchors.setdefault(raw['configuration'],set()).add(raw['anchor'])
+            value={k:v for k,v in spec.items() if k not in ('id','anchor')}
+            old=controls.setdefault(raw['configuration'],value)
+            if old!=value:raise ValueError('Registered common baseline supplement differs across anchors')
     if any(value!={0,1,2} for value in anchors.values()):
         raise ValueError('Registered common configuration requires all three anchors')
     if set(extensions)&set(controls):raise ValueError('Configuration is registered as both map and control')
@@ -84,6 +108,26 @@ def completion_inventory():
             seen.add(key)
             registered.append({'configuration':key[0],'anchor':key[1],'scope':scope,
                                'resource_schedule_sha256':schedule_sha})
+    if baseline_supplement_active():
+        supplement,controls=_baseline_registration()
+        path=OUT/'BASELINE_SUPPLEMENT_SCHEDULE.json';scheduled=path.exists()
+        if scheduled:
+            ids=json.loads(path.read_text()).get('unit_ids')
+            if ids!=[s['id'] for s in controls]:
+                raise ValueError('Baseline supplement schedule must include all twelve controls in registered order')
+        for raw in controls:
+            key=(raw['configuration'],raw['anchor'])
+            if key in seen:raise ValueError('Duplicate baseline supplement unit')
+            seen.add(key)
+            if scheduled:
+                spec=supplement.lookup_release(*key)
+                schedule_sha=supplement.require_scheduled(spec)
+            else:
+                schedule_sha=None
+                if (OUT/'private/run'/f'anchor_{key[1]}'/'audits'/key[0]/'COMPLETE.json').exists():
+                    raise ValueError('Accepted baseline supplement lacks its prospective resource schedule')
+            registered.append({'configuration':key[0],'anchor':key[1],'scope':'baseline_supplement',
+                               'required':True,'fit_scope':raw['scope'],'resource_schedule_sha256':schedule_sha})
     for row in registered:
         marker=OUT/'private/run'/f"anchor_{row['anchor']}"/'audits'/row['configuration']/'COMPLETE.json'
         row['complete']=False;row['receipt_sha256']=None

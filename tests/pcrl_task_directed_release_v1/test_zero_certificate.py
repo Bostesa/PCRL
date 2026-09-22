@@ -39,3 +39,12 @@ def test_invalid_certificate_schema_rejected_at_entry(law,parents,actions):
 def test_empty_law_cannot_receive_even_constant_certificate():
     with pytest.raises(ValueError,match='positive observed mass'):
         certify({'role':np.zeros((2,1,1),int)},[1],[0])
+
+
+@pytest.mark.parametrize('actions,zero',[(1,0),(3,2)])
+def test_certificate_reports_actual_action_schema_including_single_action_exception(actions,zero):
+    report,q=certify({'role':np.ones((2,1,3),int)},[2,2,2],[0,1,2],n_actions=actions,zero_action=zero)
+    assert report['action_count']==actions and report['zero_action']==zero
+    assert report['exact_nullity']==3
+    assert report['constant_only_on_supported_states']==(actions==1)
+    assert (q is None)==(actions==1)

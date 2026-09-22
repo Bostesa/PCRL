@@ -110,22 +110,27 @@ def _registrations(layout, frozen):
     extensions = {n: copy.deepcopy(s) for n, s in frozen['mechanism_specs'].items() if n not in primary}
     controls = copy.deepcopy(frozen.get('registered_controls', {}))
     groups = {}
-    for filename, module_name, hash_key in (
-            ('EXTRA_CONFIGS.json', 'branches', 'extra_registration_sha256'),
-            ('ROBUSTNESS_CONFIGS.json', 'robustness', 'robustness_registration_sha256')):
+    for filename, module_name, hash_key, branch, source_key in (
+            ('EXTRA_CONFIGS.json', 'branches', 'extra_registration_sha256', 'A', 'branch_source_sha256'),
+            ('ROBUSTNESS_CONFIGS.json', 'robustness', 'robustness_registration_sha256', 'C', 'robustness_source_sha256'),
+            ('BASELINE_SUPPLEMENTS.json', 'baseline_supplement', 'baseline_registration_sha256',
+             'baseline_supplement', 'baseline_source_sha256')):
         path = layout.out/filename
         wanted = {n: s for n, s in {**extensions, **controls}.items()
-                  if (s.get('branch') == 'C') == (module_name == 'robustness')}
+                  if s.get('branch') == branch}
         if not wanted and not path.exists():
             continue
         path = layout.owned(path); record = _json(path); file_hash = _sha(path)
         _require(record.get('primary_config_hash') == digest(configuration()), 'Extension primary configuration changed')
         _require(record.get('scientific_source_hashes') == run.source_fingerprint(), 'Extension scientific sources changed')
-        _require(record.get('registered') is True and record.get('trigger', {}).get('triggered') is True,
+        if branch == 'baseline_supplement':
+            from . import baseline_supplement
+            baseline_supplement.registration(study_out=layout.out)
+        _require(record.get('registered') is True and (record.get('trigger', {}).get('triggered') is True
+                 or (branch == 'baseline_supplement' and record.get('trigger', {}).get('outcomes_used') is False)),
                  'Extension lacks its prospective registration/trigger')
         _require(record.get('registration_payload_hash') == digest(
             {k: v for k, v in record.items() if k != 'registration_payload_hash'}), 'Extension registration payload changed')
-        source_key = 'branch_source_sha256' if module_name == 'branches' else 'robustness_source_sha256'
         source = Path(__file__).with_name(module_name+'.py')
         archived = layout.owned(layout.root/'experiments'/STUDY/(module_name+'.py'))
         _require(record.get(source_key) == _sha(source) == _sha(archived), 'Extension source provenance changed')
@@ -271,6 +276,75 @@ def verify_math_channel(prepared, spec, result, tables, *, fine_partition=None):
     return inspection
 
 
+def verify_baseline_supplement(prepared, spec, *, study_out):
+    """Reconstruct the accepted slice/moments and verify a frozen affine map.
+
+    No baseline fitter, cached moment builder or original-root fallback is used.
+    The supplied preparation must be the fitting context, even during test replay.
+    """
+    from scipy.special import logit
+    from . import baseline_supplement, baselines
+    root = Path(study_out).resolve(); anchor = prepared['ctx']['anchor']
+    _require(spec['anchor'] == anchor, 'Supplement anchor differs from fitting context')
+    receipt = baseline_supplement.artifact_receipt(anchor, spec, study_out=root)
+    fitted = baseline_supplement.load_fitted(anchor, spec, study_out=root)
+    ix = baseline_supplement.validate_slice(prepared, spec['scope'])
+    rf = prepared['ctx']['pools']['representation_fit']; p = np.asarray(prepared['encoded']['representation_fit']['p'])
+    features = np.column_stack((rf['x'][ix], logit(np.clip(p[ix], 1e-5, 1-1e-5))))
+    expected = {'rf_row_indices': ix, 'ids': np.asarray(rf['ids'])[ix],
+        'households': np.asarray(rf['households'])[ix], 'weights': np.asarray(rf['weights'])[ix],
+        'features': features, 'teacher_probabilities': p[ix],
+        **{'label_'+k: np.asarray(rf['labels'][k])[ix] for k in (*baselines.PROTECTED, *baselines.TASKS)}}
+    path = root/'private/run'/f'anchor_{anchor}'/'baseline_supplement'/spec['scope']/'slice.npz'
+    _require(path.resolve().is_relative_to(root), 'Supplement slice escapes owned root')
+    with np.load(path, allow_pickle=False) as bundle:
+        _require(set(bundle.files) == set(expected), 'Supplement slice schema changed')
+        for key, value in expected.items():
+            actual = bundle[key]
+            same = (actual.shape == value.shape and (np.allclose(actual, value, atol=1e-12, rtol=1e-12)
+                    if key in ('features', 'teacher_probabilities') else np.array_equal(actual, value)))
+            _require(same, 'Supplement slice differs from frozen RF inputs: '+key)
+    mask = np.ones(len(ix), bool)
+    for key in baselines.PROTECTED:
+        mask &= expected['label_'+key] >= 0
+    if spec['method'] == 'splince_supervised':
+        for key in baselines.TASKS:
+            mask &= expected['label_'+key] >= 0
+    rows = np.flatnonzero(mask); arrays = fitted.arrays
+    _require(len(rows) >= 2 and np.array_equal(rows, arrays['fit_row_indices']), 'Supplement complete-case mask changed')
+    xf = features[rows]; mean = xf.mean(axis=0); xc = xf-mean
+    z = np.column_stack([expected['label_'+key][rows] == value
+        for key in baselines.PROTECTED for value in np.unique(expected['label_'+key][rows])]).astype(float)
+    z -= z.mean(axis=0)
+    y = (np.column_stack([expected['label_'+key][rows] for key in baselines.TASKS]).astype(float)
+         if spec['method'] == 'splince_supervised' else np.empty((len(rows), 0)))
+    if y.shape[1]:
+        y -= y.mean(axis=0)
+    moments = {'mean': mean, 'covariance_xx': xc.T@xc/(len(rows)-1),
+        'covariance_xz': xc.T@z/(len(rows)-1), 'covariance_xy': xc.T@y/(len(rows)-1)}
+    def maximum(value):
+        return float(np.max(np.abs(value))) if value.size else 0.
+    errors = {key: maximum(value-arrays[key]) for key, value in moments.items()}
+    _require(all(np.allclose(value, arrays[key], atol=1e-10, rtol=1e-10)
+                 for key, value in moments.items()), 'Supplement empirical moments differ from frozen slice')
+    guarded = maximum(fitted.projection@moments['covariance_xz'])
+    preserved = maximum(fitted.projection@moments['covariance_xy']-moments['covariance_xy'])
+    tol = baselines.TOLERANCES
+    bound = lambda value: tol['constraint_atol']+tol['constraint_rtol']*maximum(value)
+    guarded_ok = guarded <= bound(moments['covariance_xz'])
+    preserved_ok = preserved <= bound(moments['covariance_xy'])
+    _require(guarded_ok and preserved_ok, 'Supplement frozen map failed empirical moment constraints')
+    _require(receipt.get('H_byte_unchanged') is True and receipt.get('parent_cache_unchanged') is True,
+             'Supplement does not preserve its parent/H')
+    return {'passed': True, 'scope': spec['scope'], 'configuration': spec['configuration'],
+        'provided_people': len(ix), 'provided_households': len(np.unique(expected['households'])),
+        'complete_case_people': len(rows), 'complete_case_households': len(np.unique(expected['households'][rows])),
+        'moment_maximum_errors': errors, 'guardedness_passed': guarded_ok,
+        'task_preservation_passed': preserved_ok, 'guardedness_maximum_error': guarded,
+        'task_preservation_maximum_error': preserved, 'fit_receipt_sha256': receipt['receipt_sha256'],
+        'scope_limitation': 'Unweighted empirical affine moments; full H parity is verified separately.'}
+
+
 class _FrozenArtifacts:
     """Read-only archive adapter. Deliberately does not call run.prepare/release_for."""
     def __init__(self, layout, frozen):
@@ -290,7 +364,8 @@ class _FrozenArtifacts:
             return primary
         for filename, registration_key, source_key in (
                 ('EXTRA_CONFIGS.json', 'extra_registration_sha256', 'branch_source_sha256'),
-                ('ROBUSTNESS_CONFIGS.json', 'robustness_registration_sha256', 'robustness_source_sha256')):
+                ('ROBUSTNESS_CONFIGS.json', 'robustness_registration_sha256', 'robustness_source_sha256'),
+                ('BASELINE_SUPPLEMENTS.json', 'baseline_registration_sha256', 'baseline_source_sha256')):
             path = self.layout.out/filename
             if not path.exists():
                 continue
@@ -302,6 +377,9 @@ class _FrozenArtifacts:
         return None
 
     def branch_schedule(self, spec):
+        if spec['branch'] == 'baseline_supplement':
+            from . import baseline_supplement
+            return baseline_supplement.require_scheduled(spec, study_out=self.layout.out)
         filename = 'ROBUSTNESS_RESOURCE_SCHEDULE.json' if spec['branch'] == 'C' else 'EXTRA_RESOURCE_SCHEDULE.json'
         path = self.layout.file(filename); schedule = _json(path)
         registration_key = 'robustness_registration_sha256' if spec['branch'] == 'C' else 'extra_registration_sha256'
@@ -385,10 +463,14 @@ class _FrozenArtifacts:
             pin = self.frozen['frozen_audits']['H'][str(anchor)]
             _require(receipt.get('H_registry_sha256') == pin['registry_sha256'], 'Audit H ancestor dependency changed')
         spec = self.spec(name, anchor)
-        if spec is not None and spec.get('branch') in ('A', 'C'):
+        if spec is not None and spec.get('branch') in ('A', 'C', 'baseline_supplement'):
             _require(receipt.get('branch_release_hash') == digest(spec)
                      and receipt.get('extra_resource_schedule_sha256') == self.branch_schedule(spec),
                      'Audit branch registration/schedule dependency changed')
+            if spec['branch'] == 'baseline_supplement':
+                from . import baseline_supplement
+                _require(receipt.get('supplement_fit_sha256') == baseline_supplement.artifact_receipt(
+                    anchor, spec, study_out=self.layout.out)['receipt_sha256'], 'Audit supplement fit dependency changed')
         return self.layout.owned(base/'registry.joblib')
 
     def release(self, name, anchor, prepared):
@@ -396,8 +478,14 @@ class _FrozenArtifacts:
         required = self.required_map(name, anchor)
         mechanism = None if required is None else self.map(required, anchor)
         spec = self.spec(name, anchor) or {}
+        erasers = prepared['erasers']
+        if spec.get('branch') == 'baseline_supplement':
+            from . import baseline_supplement
+            report = verify_baseline_supplement(self.prepared.get(anchor, prepared), spec, study_out=self.layout.out)
+            self.preparation_reports.setdefault(anchor, {}).setdefault('baseline_supplements', {})[name] = report
+            erasers = {**erasers, name: baseline_supplement.load_fitted(anchor, spec, study_out=self.layout.out)}
         return build_release(prepared['ctx'], prepared['encoder'], prepared['encoded'],
-            spec.get('canonical_release', name), mechanism=mechanism, erasers=prepared['erasers'],
+            spec.get('canonical_release', name), mechanism=mechanism, erasers=erasers,
             actions=spec.get('max_actions', 17), inputs_root=self.inputs)
 
     def math_maps(self, anchor):

@@ -49,9 +49,12 @@ def default_families(*, registered_extensions=None, registered_controls=None):
         if spec['policy'] == 'U' and name not in groups['deterministic_actions']:
             groups['deterministic_actions'].append(name)
     control_groups = {'withhold': 'withholding', 'rr': 'randomized_response',
-                      'constant_best': 'constant_null', 'independent_token': 'constant_null'}
+                      'constant_best': 'constant_null', 'independent_token': 'constant_null',
+                      'supervised_LEACE': 'supervised_LEACE', 'supervised_SPLINCE': 'supervised_SPLINCE'}
     for name, spec in sorted((registered_controls or {}).items()):
         groups[control_groups[spec['baseline_family']]].append(name)
+        if spec.get('branch') == 'baseline_supplement':
+            mandatory[control_groups[spec['baseline_family']]].append(name)
     return {name: {'configurations': values, 'required_configurations': mandatory[name],
                    'label_matched': True, 'required': True}
             for name, values in groups.items()}
@@ -59,7 +62,7 @@ def default_families(*, registered_extensions=None, registered_controls=None):
 
 def _registered(spec):
     return isinstance(spec, dict) and any(spec.get(key) for key in
-        ('registration_id', 'extra_registration_sha256', 'robustness_registration_sha256'))
+        ('registration_id', 'extra_registration_sha256', 'robustness_registration_sha256', 'baseline_registration_sha256'))
 
 
 def _conditioning(spec):
@@ -218,6 +221,15 @@ def select_validation(validation, *, candidate_ids, families=None, registered_ex
             raise ValueError('Controls require an explicit prospective registration_id')
         canonical = spec.get('canonical_release')
         family = spec.get('baseline_family')
+        if spec.get('branch') == 'baseline_supplement':
+            method, scope = spec.get('method'), spec.get('scope')
+            if (method not in ('leace_supervised', 'splince_supervised') or scope not in ('mechanism40', 'union88')
+                    or name != method+'_'+scope or canonical != name or spec.get('configuration', name) != name
+                    or family != ('supervised_LEACE' if method == 'leace_supervised' else 'supervised_SPLINCE')
+                    or spec.get('required') is not True or spec.get('label_matched') is not True
+                    or spec.get('kind') != 'control' or spec.get('required_map') is not None):
+                raise ValueError('Invalid prospectively registered baseline supplement')
+            continue
         valid_family = ((family == 'withhold' and '_withhold_' in str(canonical))
                         or (family == 'rr' and '_rr_' in str(canonical))
                         or (family in ('constant_best', 'independent_token') and family == canonical))

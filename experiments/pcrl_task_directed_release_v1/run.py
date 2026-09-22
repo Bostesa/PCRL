@@ -202,6 +202,10 @@ def map_spec(name,anchor):
 
 
 def _extra_release(name,anchor):
+    if name in {method+'_'+scope for method in ('leace_supervised','splince_supervised')
+                for scope in ('mechanism40','union88')}:
+        from .baseline_supplement import lookup_release
+        return lookup_release(name,anchor)
     if name.endswith('_fineC'):
         from .robustness import lookup_spec
         return lookup_spec(name,anchor)
@@ -210,6 +214,9 @@ def _extra_release(name,anchor):
 
 
 def _extra_module(spec):
+    if spec['branch']=='baseline_supplement':
+        from . import baseline_supplement
+        return baseline_supplement
     if spec['branch']=='C':
         from . import robustness
         return robustness
@@ -310,6 +317,8 @@ def release_for(name,p,anchor,*,allow_fit=True):
         raise ValueError('Evaluation/test releases require allow_fit=False')
     branch=_extra_release(name,anchor)
     if branch is not None:_extra_module(branch).require_scheduled(branch)
+    if branch is not None and branch['branch']=='baseline_supplement':
+        p=_extra_module(branch).prepared_for_spec(anchor,p,branch,allow_fit=allow_fit)
     required=_release_map_name(name,anchor)
     mechanism=None
     if required is not None:
@@ -345,6 +354,9 @@ def _audit_receipt(anchor,name):
         if (record.get('branch_release_hash')!=digest(branch)
                 or record.get('extra_resource_schedule_sha256')!=_extra_module(branch).require_scheduled(branch)):
             raise ValueError('Accepted extra release registration/schedule changed')
+        if (branch['branch']=='baseline_supplement' and record.get('supplement_fit_sha256')!=
+                _extra_module(branch).artifact_receipt(anchor,branch)['receipt_sha256']):
+            raise ValueError('Accepted supplement fit dependency changed')
     return record
 
 
@@ -375,6 +387,8 @@ def _audit_unit(anchor,name,prepared):
                    'H_registry_sha256':None if name=='H' else _audit_receipt(anchor,'H')['registry_sha256'],
                    'branch_release_hash':None if branch is None else digest(branch),
                    'extra_resource_schedule_sha256':None if branch is None else _extra_module(branch).require_scheduled(branch),
+                   'supplement_fit_sha256':None if branch is None or branch['branch']!='baseline_supplement' else
+                       _extra_module(branch).artifact_receipt(anchor,branch)['receipt_sha256'],
                    'artifact_hashes':_artifact_hashes(base,[base]),
                    'seconds':time.perf_counter()-tick,'peak_rss_bytes':peak_rss_bytes(),
                    'role_audits':len(result['registry']['roles']),
