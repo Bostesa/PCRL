@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import pytest
 
 from experiments.pcrl_task_aligned_cuts_v1 import scheduler
 
@@ -48,3 +49,59 @@ def test_relative_state_path_accepts_receipt_and_resumes(tmp_path, monkeypatch):
     second = scheduler.run_queue(tmp_path,queue_path,**kwargs)
     assert second['units']['fixture']['status'] == 'complete'
     assert len(second['attempts']) == 1
+
+
+def test_sidecar_accepts_only_hash_verified_distinct_completed_control(tmp_path):
+    root = tmp_path.resolve()
+    lock = root / 'results/pcrl_task_aligned_cuts_v1/PROTOCOL_LOCK.json'
+    lock.parent.mkdir(parents=True)
+    lock.write_text('{}')
+    lock_sha = scheduler._sha(lock)
+    output = root / 'results/pcrl_task_aligned_cuts_v1/private/sidecar_audits/a0_simple_D17'
+    output.mkdir(parents=True)
+    (output / 'artifact.txt').write_text('frozen fitted route\n')
+    sidecar = {
+        'schema':'pcrl-control-audit-sidecar-v1', 'outer_pool_opened':False,
+        'protocol_lock_sha256':lock_sha,
+        'input_index_sha256':'1'*64,
+        'shared_H_source_complete_sha256':'2'*64,
+        'simple_map_audit_units':{'D17':{
+            'status':'registered_unrun', 'release_id':'a0_simple_D17',
+            'canonical_release_id':'a0_simple_D17',
+            'output_relative_dir':str(output.relative_to(root)),
+            'source_file_sha256':'3'*64,'source_array_sha256':'4'*64}},
+        'fitted_control_audits':{},
+    }
+    sidecar_path = root / 'results/pcrl_task_aligned_cuts_v1/CONTROL_SIDECAR.json'
+    sidecar_path.write_text(json.dumps(sidecar))
+    sidecar_sha = scheduler._sha(sidecar_path)
+    receipt = {
+        'schema':'pcrl-control-audit-complete-v1', 'unit_id':'a0_simple_D17',
+        'release_id':'a0_simple_D17', 'sidecar_sha256':sidecar_sha,
+        'source_file_sha256':'3'*64, 'source_array_sha256':'4'*64,
+        'protocol_lock_sha256':lock_sha, 'input_index_sha256':'1'*64,
+        'H_source_complete_sha256':'2'*64,
+        'artifacts':{'artifact.txt':scheduler._sha(output/'artifact.txt')},
+    }
+    receipt_path = output/'SIDECAR_COMPLETE.json'
+    original_receipt_bytes = json.dumps(receipt)
+    receipt_path.write_text(original_receipt_bytes)
+    kwargs = dict(state_path=Path('results/pcrl_task_aligned_cuts_v1/private/SIDECAR_STATUS.json'),
+                  deadline=dt.datetime.now(dt.timezone.utc)+dt.timedelta(minutes=1),
+                  only_ids=('D17',),minimum_free_memory_bytes=0,minimum_free_disk_bytes=0)
+    first = scheduler.run_control_sidecar(root, sidecar_path, sidecar_sha, **kwargs)
+    assert first['units']['a0_simple_D17']['status'] == 'complete'
+    assert first['attempts'] == []
+    second = scheduler.run_control_sidecar(root, sidecar_path, sidecar_sha, **kwargs)
+    assert second['units']['a0_simple_D17']['status'] == 'complete'
+    (output/'unlisted.txt').write_text('not in receipt')
+    with pytest.raises(ValueError, match='extra or missing'):
+        scheduler.run_control_sidecar(root, sidecar_path, sidecar_sha, **kwargs)
+    (output/'unlisted.txt').unlink()
+    receipt_path.write_text(json.dumps(receipt, indent=2))
+    with pytest.raises(RuntimeError, match='previously accepted control receipt changed'):
+        scheduler.run_control_sidecar(root, sidecar_path, sidecar_sha, **kwargs)
+    receipt_path.write_text(original_receipt_bytes)
+    (output/'artifact.txt').write_text('changed\n')
+    with pytest.raises(ValueError, match='artifact mismatch'):
+        scheduler.run_control_sidecar(root, sidecar_path, sidecar_sha, **kwargs)

@@ -1,0 +1,31 @@
+{
+  "schema": "pcrl-one-token-release-input-v1",
+  "mechanism": {
+    "channel": "ChannelArtifact directory with hash-verified Q.npz and manifest.json",
+    "channel_shape": [32, 17],
+    "encoder": "pinned frozen T0 encoder joblib file, verified against channel manifest encoder_sha256 before deserialization",
+    "encoder_runtime_fields": ["x_a", "h_a"],
+    "encoder_runtime_shape": {"x_a": ["N", 32], "h_a": ["N", 4]}
+  },
+  "private_emit_input_npz": {
+    "exact_fields": ["x_a", "h_a", "release_ids"],
+    "x_a": "finite PCA32 allowed A inputs, N by 32",
+    "h_a": "finite four-coordinate historical A service, N by 4; bytes are preserved",
+    "release_ids": "one-dimensional unique caller-held nonempty strings or integers, length N; never emitted",
+    "forbidden_fields": ["current-person residence label", "protected labels", "H_B", "hidden T0 code", "person-specific Q row", "per-person loss", "RNG state"]
+  },
+  "private_key": {
+    "format": "raw file containing at least 32 secret bytes, mode 0600",
+    "creation_command": "python -m experiments.pcrl_task_aligned_cuts_v1.release_cli key-init --output <private/key_file>",
+    "retention": "caller retains same key privately across process restarts; never bundle with public channel or wire"
+  },
+  "wire_output_npz": {
+    "exact_fields": ["h_a", "token"],
+    "h_a": "same shape, dtype and bytes as private input h_a",
+    "token": "one sampled integer in [0,16] per original person, length N",
+    "hidden_data_excluded": ["x_a", "release_ids", "T0", "Q row", "RNG seed", "replay key", "Y", "S", "H_B"]
+  },
+  "query_scope": "one computationally pseudorandom token per immutable person/input/channel/key; no repeated-independent-draw or composition guarantee",
+  "evaluation": "Exact expected-token losses are computed internally across all 17 tokens; they are not released on the wire",
+  "platform": "Historical frozen encodings are scientific inputs from verified Linux x86; Mac re-encoding is not interchangeable for historical comparisons"
+}
