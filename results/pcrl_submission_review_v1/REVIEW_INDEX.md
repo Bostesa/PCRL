@@ -16,11 +16,17 @@ outside the limit). **Zero new ACS fits; 2016 not scored; no cloud compute; noth
 | `ANONYMIZATION_CHECK.md` | scan results, allowlist rationale, residual risks |
 | `SUBMISSION_READY_CHECK.md` | passed / missing, including the items only the author can do |
 | `PENDING_INTEGRATION.md` | the fresh-year comparison: exact expected artifacts and commands |
+| `T3_INTEGRATION.md` | what the claims-foundation audit changed, what I verified myself, and the public-`main` repair branch |
+| `T3_VERIFICATION.json` | 15 source-pinned checks of the integration, all passing |
+| `REGISTRATION_WORDING.md` | proposed abstract wording, **not applied**, pending the venue's post-registration rules |
 | `checks/` | the generators and the verification script |
 | `../../artifact/pcrl_satml_anon/` + `.tar.gz` | the anonymous artifact package |
 
 ## Verification actually performed
 
+* The claims-foundation audit (`33124f965`) integrated after independently confirming its blocking items
+  against source: the residence-supervised code, the local-only policy of the selected release, the 2/4-cell
+  conditioning, the `results/rebuttal/**` provenance, and the still-live API on `origin/main`.
 * Every new number recomputed from the smallest machine-readable source at pinned commit `f4bdf4cd5`;
   the "81 primary maps" figure traced to its protocol arithmetic (54+18+9) and its independent replay.
 * Original contributions read from their pinned sources at `0176f149e`, not from an index.

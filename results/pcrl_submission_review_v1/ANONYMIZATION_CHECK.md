@@ -10,6 +10,7 @@ Checked 2026-09-22 against `artifact/pcrl_satml_anon/` and `papers/pcrl_satml_fi
 | institution / lab / advisor names | **0 hits** |
 | absolute local paths (`/Users/...`), worktree names, hostnames | **0 hits** |
 | AWS account/instance identifiers, S3 URIs, bucket names, credentials | **0 hits** |
+| literal substring "aws" | 4 hits, **all reviewed and benign**: the directory name `erase_layer_vicreg_sweep_aws` inside provenance hashes and one loop over rebuttal directory names. It is a repository path, not an account, bucket, instance or credential, and it is retained because deleting provenance would weaken verifiability. |
 | repository URL or remote, GitHub org/repo | **0 hits** |
 
 Manuscript: the author block is `Anonymous Submission`; no acknowledgements; the Open Science section

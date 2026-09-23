@@ -32,7 +32,7 @@ If registration does not happen by the deadline, the paper is not eligible and n
 | LLM usage considerations section after Open Science | **PASS**, and it discloses substantial model assistance in design, code, drafting and auditing |
 | Compiles clean, no undefined references or citations | **PASS** |
 | Figures legible, tables not crowded, captions match generating evidence | **PASS** — every page inspected |
-| **Prior reviews appended after all appendices** | **MISSING — BLOCKING IF THE LINEAGE ANSWER IS "same paper"** (below) |
+| **Prior reviews appended after all appendices** | **MISSING — BLOCKING IF THE LINEAGE ANSWER IS "same paper"**. Reviews are now confirmed to exist; only their text is missing (below) |
 
 ## The prior-review item, precisely
 
@@ -43,14 +43,29 @@ same paper**, plus how they were addressed.
 Representation Learning with Per-Purpose Linear Leakage Bounds", NeurIPS 2026, PDF created at the submission
 deadline, local file `32955_One_Encoder_Many_Purpose.pdf`.
 
-**Not found:** its venue reviews. Searched the repository at the pinned commit, `~/Downloads` (1,395 files)
-and `~/Documents`. Everything review-shaped that exists is either agent-simulated or belongs to a different
-paper ("Outputs Leak What They Use"), as itemised in `REVIEW_TO_EVIDENCE.md`. **No agent-written review may
-be substituted, and none has been.**
+**Also established (new): it was reviewed.** `results/rebuttal/ablations_facct/PREDICTIONS.md` @ `ecaeba46`
+registers ablations against concerns attributed to specific reviewers and the area chair — "reviewers AC,
+AkJK Q1, NY7k Q2" and "AkJK Q2". Those are venue reviewer handles, so reviews were received and the project
+worked from them. My earlier report said only that reviews were "not found"; the sharper and correct
+statement is that **the reviews exist and their text is absent from every local record**.
 
-**Author must supply, if the reviews exist:** the full review text for submission 32955 (all reviewers, plus
-any meta-review), exported from the venue system. The response mapping is already drafted in
-`REVIEW_TO_EVIDENCE.md` and can be completed within an hour of receiving them.
+**Not found:** the review text itself. Searched the repository at the pinned commit, `~/Downloads`
+(1,395 files) and `~/Documents`. Everything review-shaped that exists is either agent-simulated or belongs
+to a different paper ("Outputs Leak What They Use"), as itemised in `REVIEW_TO_EVIDENCE.md`. The
+paraphrases in the registration are project summaries. **No agent-written review and no paraphrase may be
+substituted, and none has been.**
+
+### Exactly what Nathan must retrieve
+
+> The complete official reviews for **NeurIPS 2026 submission 32955**, "One Encoder, Many Purposes" —
+> every reviewer's full text (summary, strengths, weaknesses, questions, limitations, scores) plus the
+> meta-review/area-chair text if one was issued. Export them from the submission system (OpenReview) under
+> the author account, as text or PDF, unedited.
+
+Reviewer handles to expect, from the registration record: **AkJK**, **NY7k**, and the area chair (**AC**);
+there may be more. Anonymise only author-identifying details; the venue requires them otherwise unedited.
+Once supplied, the response mapping in `REVIEW_TO_EVIDENCE.md` — which already maps four reviewer-attributed
+concerns to their current status — can be completed quickly.
 
 **Author must also answer:** is this submission *the same paper*? The contract, mechanism, data and results
 all differ; two contributions (the dominant-axis audit and the composition/guarantee corrections) are reused.

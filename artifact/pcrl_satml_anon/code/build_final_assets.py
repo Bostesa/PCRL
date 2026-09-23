@@ -77,8 +77,8 @@ NAMES = [("H", r"$H$ only (no channel)"), ("J", r"$J$ (prior channel)"),
          ("leace_supervised_union88", r"supervised LEACE (union pool)"),
          ("splince_supervised_union88", r"supervised SPLINCE (union pool)"),
          ("leace_A0", r"historical LEACE on $A_0$")]
-L = [r"\begin{tabular}{@{}l r r r@{}}", r"\toprule",
-     r"release & task vs $J$ & worst sens.\ vs $J$ & median sens.\ vs $J$ \\", r"\midrule"]
+L = [r"\begin{tabular}{@{}l r r@{}}", r"\toprule",
+     r"release & task vs $J$ & worst sens.\ vs $J$ \\", r"\midrule"]
 for cfg, label in NAMES:
     if cfg not in ftp:
         continue
@@ -86,7 +86,7 @@ for cfg, label in NAMES:
     inc = sorted(v["recovery_increment_over_J"] for v in pts.get(cfg, {}).values())
     worst = max(inc) if inc else float("nan")
     med = inc[len(inc) // 2] if inc else float("nan")
-    L.append(r"%s & $%+.5f$ & $%+.5f$ & $%+.5f$ \\" % (label, t, worst, med))
+    L.append(r"%s & $%+.5f$ & $%+.5f$ \\" % (label, t, worst))
 emit("releases.tex", "\n".join(L + [r"\bottomrule", r"\end{tabular}"]))
 
 # ---------------------------------------------------------------- T3: the original audit
