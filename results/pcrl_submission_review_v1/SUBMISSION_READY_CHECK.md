@@ -25,7 +25,7 @@ If registration does not happen by the deadline, the paper is not eligible and n
 |---|---|
 | `\documentclass[conference]{IEEEtran}`, 10pt, two columns, unmodified margins | **PASS** |
 | Body within 12 pages | **PASS** — body ~5 pages; references and appendices are outside the limit |
-| Central evidence in the body, not relegated to appendices | **PASS** — the primary comparison, the release table and the audit result are all in the body |
+| Central evidence in the body, not relegated to appendices | **PASS** — the development comparison, the release table, the prospective 2016 decision and the audit result are all in the body |
 | Anonymous (no names, affiliations, acknowledgements) | **PASS** |
 | Own prior work cited in third person | **AUTHOR DECISION** — see `ANONYMIZATION_CHECK.md` risk 1 |
 | Open Science section immediately before references | **PASS** |

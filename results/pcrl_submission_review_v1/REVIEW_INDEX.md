@@ -15,7 +15,9 @@ outside the limit). **Zero new ACS fits; 2016 not scored; no cloud compute; noth
 | `NOVELTY_AND_SCOPE.md` | what is prior art (and whose), and what is actually ours |
 | `ANONYMIZATION_CHECK.md` | scan results, allowlist rationale, residual risks |
 | `SUBMISSION_READY_CHECK.md` | passed / missing, including the items only the author can do |
-| `PENDING_INTEGRATION.md` | the fresh-year comparison: exact expected artifacts and commands |
+| `PENDING_INTEGRATION.md` | **nothing remains pending integration**; the prospective study is in |
+| `PROSPECTIVE_2016_VERIFICATION.json` | 21 checks of the ACS 2016 decision, each re-derived from estimates and bootstrap SEs |
+| `PROTOCOL_REVIEW_RETROSPECTIVE.md` | review of the 2016 protocol, written **after** outcomes and labelled as such |
 | `T3_INTEGRATION.md` | what the claims-foundation audit changed, what I verified myself, and the public-`main` repair branch |
 | `T3_VERIFICATION.json` | 15 source-pinned checks of the integration, all passing |
 | `REGISTRATION_WORDING.md` | proposed abstract wording, **not applied**, pending the venue's post-registration rules |
@@ -35,6 +37,7 @@ outside the limit). **Zero new ACS fits; 2016 not scored; no cloud compute; noth
 
 ## Not verified here
 
-* The fresh-year prospective comparison (no protocol or outcome published at this writing).
+* The 2016 bootstrap draws themselves (10,000 accepted draws are read from the study's inference file;
+  the point estimates, standard errors and every bound derived from them were re-derived here).
 * The Stage-B bootstrap of the predecessor study (per-row losses were never serialised).
 * Terminal 1's cloud state — reported by its status file, not directly observed.

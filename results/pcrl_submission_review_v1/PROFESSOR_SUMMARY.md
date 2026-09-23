@@ -13,11 +13,17 @@ disclosure always reported against the fixed service baseline, one sampled token
 and negative increments kept rather than clipped. What was measured: on repeatedly used 2018 development
 data, the selected task-directed release improves the permitted residence task over the strongest channel
 this project had by 0.0163 nats with paired household bounds excluding zero, and all eight sensitive point
-estimates move in the favourable direction. The strongest missing claim is the one the registration asked
-for: seven of those eight adjusted non-inferiority bounds do not resolve, so the competitiveness
-conjunction is **not** established, a matched deterministic release without the stochastic machinery
-performs comparably, the task objective used authorised supervision the comparator never received, and
-neither randomisation nor coalition conditioning earned its registered attribution.
+estimates move in the favourable direction. A frozen version of that release was then tested prospectively on a
+previously unused 2016 cohort under a lock created before any final label was read: it, and a matched
+deterministic release, each passed all eight registered sensitive-recovery clauses against the prior
+channel while failing both task clauses, because the task improvement shrank from 0.0163 nats in
+development to 0.0033 on the fresh year — below the 0.003-nat minimum the registration demanded, though
+still an improvement. The strongest missing claim is the one the registration asked for: neither year
+establishes the full conjunction, a matched deterministic release performs at least as well without the
+stochastic machinery, the randomised release buys task loss from the simple controls at the price of
+significantly higher measured recovery on six of eight endpoints, the task objective used authorised
+supervision the comparator never received, and neither randomisation nor coalition conditioning earned
+its registered attribution.
 
 ## Evidence table
 
@@ -30,6 +36,10 @@ neither randomisation nor coalition conditioning earned its registered attributi
 | Attribution to randomisation / coalition / risk refinement | none | **not established**; the nominee is local |
 | Aggregate vs dominant-axis audit (original contribution) | $0.0192$ vs $0.0609$ mean; one cell $0.027$ vs $0.288$ | **supported**, with its exact identity validated 33/33 |
 | Universal zero-$R^2$ accuracy guarantee | 20-row counterexample, 90% vs 50% | **refuted and withdrawn** |
-| Fresh-year prospective comparison | — | **not integrated**; the experiment had not published a protocol or outcome at this writing |
+| Prospective ACS 2016: sensitive clauses vs J (Q and D17) | 8 of 8 each, every upper bound below zero | **passed** on the registered attacker slate |
+| Prospective ACS 2016: task clauses vs J (Q and D17) | Q $-0.001505/-0.001871$; D17 $-0.002913/-0.002951$; required $\le-0.003$ | **failed**; each release is 8/10 overall |
+| Why the task clauses failed | development effect $-0.0163$ nats vs prospective $-0.0033$ | the effect shrank on a fresh year; the test was not underpowered for the effect it expected |
+| Q vs matched RR75 / W75 controls | better task loss; significantly higher recovery on 6 of 8 endpoints each | **no complete frontier benefit** |
+| Q vs deterministic D17 / D33 | worse unweighted task loss; no sensitive advantage anywhere | **randomisation not shown to help** |
 
 No prediction about acceptance is offered.

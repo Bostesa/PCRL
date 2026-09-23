@@ -1,63 +1,31 @@
-# PENDING_INTEGRATION — the fresh-year prospective comparison
+# PENDING_INTEGRATION — nothing remains pending integration
 
-**Status: nothing from it is in the paper, because it has published neither a protocol nor an outcome.**
+**The prospective ACS 2016 study is complete and integrated.** Evidence commit
+`5e154e5c4fdaeb23d327a0ebefe838525f1a19cb` on `research/pcrl-final-prospective-v1`, remote-verified;
+handoff `.git/pcrl_finish_handoff_v1/terminal_1/FINAL_HANDOFF.json`; lock commit `0b65a1cd0` with
+evaluation-lock SHA-256 `e17b8167…` created before any final label was read.
 
-**Updated 2026-09-22T22:02Z.** Terminal 1's status file now records **`protocol_commit`
-`3f9aaee5ce6317660d987f81caf542dd59b4efbb`** ("Protocol registered and pushed; Tier B provenance audit"),
-with **`evidence_commit` still `null`** and branch head `b90993e37`. An earlier version of this file said
-the protocol commit was null; that was true when written and is now superseded.
+Integrated into §VII of the paper, Table IV, Figure 3, the claim ledger (rows `P16-1`…`P16-8`) and
+`PROSPECTIVE_2016_VERIFICATION.json` (21 checks, all re-derived from estimates and bootstrap standard
+errors rather than read from status strings).
 
-**So: a protocol exists to review, and no outcome exists to integrate.** The pre-outcome protocol review
-listed below has **not** been performed against `3f9aaee5c` by this terminal and must not be reported as
-done. It is an outstanding item, not a completed one. Nothing in Terminal 1's locked study was
-interrupted or altered here.
+Outcome, in the fixed vocabulary of the earlier outcome map: **neither candidate passes.** Q and D17 each
+pass all eight registered sensitive-recovery clauses against J and fail both task clauses, so each is
+8/10 and neither establishes the full conjunction. Per that map, we report the useful task result and the
+exact unresolved bounds, and we do not turn an unmet margin into demonstrated harm.
 
-## Outstanding: review `3f9aaee5c` before any outcome, for
+## Superseded statements
 
-1. Frozen $Q$ and $D_{17}$ hypotheses, unchanged release objects, and the full control set.
-2. One shared household fit/validation/final partition across all anchors.
-3. Fresh-year fitting restricted to auditors and downstream probes; **no release reselection**.
-4. The two operating-point conjunctions, each with two task and eight privacy clauses. Candidate-level
-   $\alpha=.025+.025$ controls the declaration over the two candidates **provided component tests have
-   their stated size**; the bootstrap gives nominal control under its assumptions, not an exact
-   finite-sample guarantee. The intersection–union argument within a conjunction is valid; component
-   bounds are pointwise, not simultaneous.
-5. Secondary matched-control intervals in a separate, disclosed family with no global error-control claim.
-6. Loss-difference signs, $H$-baseline cancellation, exact expected one-token loss, and **no
-   loss-of-average-probability substitution**.
-7. Continuous $H$ in attacks, appropriate ancestor predictors, the full race schema, and no token or
-   anchor pseudoreplication.
-8. A technical-validity process that does not halt full-panel evaluation merely because a result is
-   unfavourable.
+* "Awaiting Terminal 1" — superseded; the study is done.
+* "The protocol review is outstanding" — superseded by `PROTOCOL_REVIEW_RETROSPECTIVE.md`, which is
+  **retrospective** and labelled as such. It was written after outcomes and is not backdated.
 
-## When an evidence commit is published
+## What is genuinely still open (not integration items)
 
-```
-cd /Users/nathansamson/PCRL && git fetch origin
-git ls-remote origin refs/heads/research/pcrl-final-prospective-v1     # must match the local SHA
-SHA=<full remote sha>
-git show $SHA:results/pcrl_final_prospective_v1/HEADLINE.json          # or the published equivalent
-```
-
-Then: verify protocol-lock timing against the first outcome, data provenance, release hashes, chosen
-auditors, partition rules, incidents and amendments; recompute both primary decisions and every cited
-contrast from the per-person aggregates or bootstrap-ready household contributions; **do not fit another
-attacker to verify a published number**.
-
-## Outcome map, fixed in advance
-
-| outcome | what the paper says |
-|---|---|
-| $Q$ passes its $J$ conjunction | a transported improvement for the selected stochastic release under the tested attacks; matched-control attribution stays separate |
-| $D_{17}$ passes | a simpler task-directed release reaches the operating point — **not** disguised as a stochastic-optimisation contribution |
-| both pass | describe both; use matched-control evidence to assess the added machinery |
-| neither passes | report the task result and the exact unresolved or adverse privacy bounds; **unresolved does not become harm** |
-| the year was not defensibly unused, or scoring was technically invalid | report that limitation with no fresh-year success language |
-
-The fresh-year analysis would be prospective **conditional on** the 2018-fitted releases and freshly
-selected audit models. It is not a guarantee about different people, future time, all attackers or
-training-algorithm stability; a supervised task must not be described as unseen; and primary and secondary
-intervals do not share one global 95% coverage property.
-
-Any integration must stay inside the registered abstract and title scope, which were written to accommodate
-every outcome above.
+| item | owner | note |
+|---|---|---|
+| Genuine prior reviews for NeurIPS submission 32955 | author | reviews are confirmed to exist (handles AkJK, NY7k, AC); their text is in no local record. Exact request in `SUBMISSION_READY_CHECK.md` |
+| Lineage decision: same paper or successor? | author | decides whether the prior-review appendix is required at all |
+| Registration facts: authors, affiliations, ORCIDs, certification, topics, conflicts | author | fixed at abstract registration |
+| Abstract wording now that 2016 has landed | author + venue rules | proposed text in `REGISTRATION_WORDING.md`; **not** applied to any registration |
+| `fix/retire-accuracy-guarantee` | author | pushed at `5d4eda046`, deliberately **unmerged**; `origin/main` still ships the retired API |

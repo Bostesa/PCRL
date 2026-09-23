@@ -130,3 +130,48 @@ json.dump({"pins": {"task_directed": TD, "replacement": RP, "original_work": OW}
           open(os.path.join(ROOT, "results/pcrl_submission_review_v1/FINAL_ASSET_HASHES.json"), "w"),
           indent=1)
 print(f"{len(manifest)} assets from {len(sources)} pinned sources")
+
+# ============================================================ prospective ACS 2016 (added on integration)
+P16 = "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb"
+inf16 = json.loads(show(P16, "results/pcrl_final_prospective_v1/INFERENCE_2016.json"))
+z1 = inf16["primary"]["Q"]["z_one_sided"]
+ROLE16 = {"utility:A/same_residence": "residence (task)", "attack:A/SEX": r"$A$/sex",
+          "attack:A/RAC1P": r"$A$/race", "attack:AB/SEX": r"$AB$/sex", "attack:AB/RAC1P": r"$AB$/race"}
+
+L = [r"\begin{tabular}{@{}l l r r r c@{}}", r"\toprule",
+     r"endpoint & wt. & estimate & upper bd. & threshold & clause \\", r"\midrule"]
+for cand, label in (("Q", r"\textbf{$Q$ (randomised)}"), ("D17", r"$D_{17}$ (deterministic)")):
+    L.append(r"\multicolumn{6}{@{}l}{" + label + r"} \\")
+    for e in inf16["primary"][cand]["clauses"]:
+        w = "unw." if e["weighting"] == "unweighted" else "pers."
+        ub = e["estimate"] + z1 * e["bootstrap_se"]
+        ok = ub <= e["threshold"] if e["clause"] == "task" else ub <= e["threshold"]
+        L.append(r"\quad %s & %s & $%+.5f$ & $%+.5f$ & $%+.3f$ & %s \\" %
+                 (ROLE16[e["role"]], w, e["estimate"], ub, e["threshold"],
+                  r"\textbf{pass}" if ok else "fail"))
+    L.append(r"\addlinespace[2pt]")
+emit("prospective2016.tex", "\n".join(L[:-1] + [r"\bottomrule", r"\end{tabular}"]))
+
+fig, ax = plt.subplots(figsize=(3.4, 2.4))
+ypos, labels = [], []
+for i, (cand, col) in enumerate((("Q", WARN), ("D17", INK))):
+    for j, e in enumerate(inf16["primary"][cand]["clauses"]):
+        if e["weighting"] != "unweighted":
+            continue
+        y = len(ypos)
+        est = e["estimate"]; ub = est + z1 * e["bootstrap_se"]; lo = est - z1 * e["bootstrap_se"]
+        ax.plot([lo, ub], [y, y], color=col, lw=1.2)
+        ax.scatter(est, y, color=col, s=13, zorder=3)
+        ypos.append(y); labels.append(f"{ROLE16[e['role']]} ({cand})")
+ax.axvline(0, color=MUTE, lw=0.8)
+ax.axvline(-0.003, color=ACC, lw=0.9, ls="--")
+ax.text(-0.003, len(ypos) - 0.3, " registered task margin", fontsize=5.6, color=ACC, va="top")
+ax.set_yticks(ypos); ax.set_yticklabels(labels, fontsize=5.6); ax.invert_yaxis()
+ax.set_xlabel("difference versus $J$ in nats (negative favours the release)")
+ax.set_title("Prospective ACS 2016: both releases pass 8 of 10 clauses\n(unweighted shown; person-weighted agrees)",
+             fontsize=7)
+savefig(fig, "prospective2016")
+json.dump({"pins": {"task_directed": TD, "replacement": RP, "original_work": OW, "prospective_2016": P16},
+           "sources_sha256": sources, "assets": manifest},
+          open(os.path.join(ROOT, "results/pcrl_submission_review_v1/FINAL_ASSET_HASHES.json"), "w"), indent=1)
+print(f"added 2016 assets; {len(manifest)} total")
