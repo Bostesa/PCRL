@@ -1,0 +1,85 @@
+% Approximate-composition lemma (original Proposition 6), clean statement, proof and tightness.
+% Terminal 2 (claims role, new numbering). Standalone: pdflatex COMPOSITION_LEMMA.tex.
+% For the manuscript, copy the lemma, proof and remark into the appendix; the body sentence already
+% present at main.tex@8df7527c:171-175 is consistent with part (i).
+\documentclass{article}
+\usepackage{amsmath,amssymb,amsthm}
+\newtheorem{lemma}{Lemma}
+\newtheorem*{remark}{Remark}
+\DeclareMathOperator{\tr}{tr}
+\begin{document}
+
+\paragraph{Setting.} Let $h_1,\dots,h_k$ be random vectors ($h_p\in\mathbb R^{d_p}$) and $A\in\mathbb R^{c}$ a
+target (for a categorical attribute, the centred one-hot vector), all with finite second moments, on one
+distribution. That distribution may be the empirical distribution of an evaluation sample, in which case
+every covariance below is the sample covariance. Write $\Sigma_p=\operatorname{Cov}(h_p)$,
+$\Sigma_{pq}=\operatorname{Cov}(h_p,h_q)$, $\Sigma_{pA}=\operatorname{Cov}(h_p,A)$ and
+$\Sigma_A=\operatorname{Cov}(A)$, with $\tr\Sigma_A>0$. For a view $h$ with $\Sigma_h\succ0$ and
+$\tau\ge 0$ define the affine least-squares score
+\[
+R^2_\tau(h;A)=\frac{\tr\big(\Sigma_{hA}^{\top}(\Sigma_h+\tau I)^{-1}\Sigma_{hA}\big)}{\tr\Sigma_A},\qquad R^2=R^2_0 .
+\]
+Assume $\Sigma_p\succ0$ for every $p$. Let $D=\operatorname{blkdiag}(\Sigma_1^{1/2},\dots,\Sigma_k^{1/2})$ and
+let $R=D^{-1}\Sigma_H D^{-1}$ be the block-whitened correlation of $H=(h_1;\dots;h_k)$, so $R_{pp}=I$ and
+$R_{pq}=\Sigma_p^{-1/2}\Sigma_{pq}\Sigma_q^{-1/2}$.
+
+\begin{lemma}[Approximate composition]
+\begin{enumerate}
+\item[(i)] If $R\succ0$, then $R^2(H;A)\le \sum_p R^2(h_p;A)\,/\,\lambda_{\min}(R)$.
+\item[(ii)] If $R$ is singular, then (i) holds for the pseudo-inverse score
+$\tr(\Sigma_{HA}^{\top}\Sigma_H^{+}\Sigma_{HA})/\tr\Sigma_A$, with $\lambda_{\min}(R)$ replaced by the smallest
+positive eigenvalue $\lambda_+(R)$.
+\item[(iii)] For every $\tau\ge0$ and $R\succ0$: $R^2_\tau(H;A)\le \sum_p R^2_\tau(h_p;A)\,/\,\lambda_{\min}(R)$,
+with the \emph{same} $\tau$ in every score.
+\item[(iv)] Parts (i)--(iii) hold for each target column separately (the per-class score), and for every
+contrast $a^\top A$. Hence they hold for the largest squared canonical correlation between $H$ and $A$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+Let $M_p=\Sigma_p^{-1/2}\Sigma_{pA}$ and $M=(M_1;\dots;M_k)=D^{-1}\Sigma_{HA}$. Then
+$R^2(h_p;A)=\|M_p\|_F^2/\tr\Sigma_A$. Since $\Sigma_H=DRD$,
+$R^2(H;A)=\tr(M^\top R^{-1}M)/\tr\Sigma_A\le \|M\|_F^2/(\lambda_{\min}(R)\tr\Sigma_A)$, because
+$R^{-1}\preceq\lambda_{\min}(R)^{-1}I$. Finally $\|M\|_F^2=\sum_p\|M_p\|_F^2$. This proves (i).
+
+For (ii): if $Ru=0$ then $\operatorname{Var}(u^\top D^{-1}H)=0$, so $u^\top M=0$. The columns of $M$ therefore
+lie in $\operatorname{range}(R)$, where $R^{+}\preceq\lambda_+(R)^{-1}I$.
+
+For (iii): write $\Sigma_H+\tau I=D(R+\tau D^{-2})D$ and $\Sigma_p+\tau I=\Sigma_p^{1/2}(I+\tau\Sigma_p^{-1})\Sigma_p^{1/2}$.
+The per-view score is then $\tr(M_p^\top(I+\tau\Sigma_p^{-1})^{-1}M_p)/\tr\Sigma_A$. Put
+$K_d=I+\tau D^{-2}$. Because the diagonal blocks of $R$ are identities, $\tr R=\dim R$, so
+$\lambda:=\lambda_{\min}(R)\le1$. Hence $R+\tau D^{-2}\succeq\lambda I+\tau D^{-2}\succeq\lambda K_d$, which gives
+$(R+\tau D^{-2})^{-1}\preceq\lambda^{-1}K_d^{-1}$. Since $K_d$ is block diagonal,
+$\tr(M^\top K_d^{-1}M)=\sum_p\tr(M_p^\top(I+\tau\Sigma_p^{-1})^{-1}M_p)$.
+
+For (iv): apply (i)--(iii) with $A$ replaced by a single column, or by $a^\top A$, and take the supremum
+over unit-variance contrasts: each summand is at most that view's largest squared canonical correlation.
+\end{proof}
+
+\paragraph{Tightness.} Let $V,S$ be independent, centred, unit-variance, and set $h_1=V+\delta S$,
+$h_2=V-\delta S$ with $\delta\ne0$. Then $R^2(h_p;S)=\delta^2/(1+\delta^2)$, $R_{12}=(1-\delta^2)/(1+\delta^2)$,
+$\lambda_{\min}(R)=2\delta^2/(1+\delta^2)$, and the bound equals $1=R^2(H;S)$, because $h_1-h_2=2\delta S$. The
+ill-conditioning is explicit: $\operatorname{cond}(\Sigma_H)=\delta^{-2}$.
+
+\begin{remark}[Mapping to the implemented statistic and missing assumptions]
+\begin{itemize}
+\item \emph{The repository statistic.} It is an in-sample ridge score with gram
+$H_c^\top H_c+\lambda I$, i.e.\ $\tau=\lambda/n$ in covariance units, on the evaluation sample. Part (iii)
+applies to it exactly, with the \emph{sample} covariances and the same $\lambda$ for every view and for
+the concatenation. It is a statement about that sample, not about the population or a held-out attacker.
+\item \emph{Collapsed representations.} Some views have singular or near-singular $\Sigma_p$ (effective
+rank $\approx3$ in the original encoder line). Then $R$ is undefined or $\lambda_{\min}(R)$ is tiny, and
+the bound is vacuous unless (ii) is used on the supported subspace. An application must report
+$\lambda_{\min}(R)$ or $\lambda_+(R)$ and the eigenvalue threshold used.
+\item \emph{Max-single-class versus all-class-contrast.} The pooled score is a prevalence-weighted
+average of the per-class scores. The implemented dominant-axis score is the maximum per-class score,
+which is itself at most the top squared canonical correlation. The lemma bounds each of these
+separately (part (iv)). A bound on the per-class maxima does not bound a class contrast.
+\item \emph{Scope.} The lemma is linear and second-order. It implies nothing about nonlinear recovery:
+two views each with zero covariance with $S$ can determine $S$ exactly.
+\item \emph{Status.} This is an elementary Rayleigh--Ritz bound, not a new theorem of the method. Part
+(iii) with a regularised premise corrects an earlier over-cautious note in the claims audit (T3-12),
+which said the premise had to be unregularised.
+\end{itemize}
+\end{remark}
+\end{document}

@@ -1,0 +1,65 @@
+From 2fc7a7c4b956f6e620cde6f56c6625288f9b165b Mon Sep 17 00:00:00 2001
+From: Bostesa <Bostesa@users.noreply.github.com>
+Date: Tue, 22 Sep 2026 23:06:11 -0400
+Subject: [PATCH] Mark the smoothing certificate retired and make the
+ retirement tests state what they refute
+
+---
+ pcrl/purposes/verification.py        |  9 ++++++++-
+ tests/test_accuracy_bound_retired.py | 16 ++++++++++++++++
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/pcrl/purposes/verification.py b/pcrl/purposes/verification.py
+index 253998e5e..ecd712652 100644
+--- a/pcrl/purposes/verification.py
++++ b/pcrl/purposes/verification.py
+@@ -394,7 +394,14 @@ class NonlinearCertificateResult:
+ 
+ 
+ class NonlinearComplianceCertificate:
+-    """Randomized smoothing certificate for Lipschitz-bounded nonlinear adversaries.
++    """RETIRED: ``check`` raises NotImplementedError.
++
++    The derivation below chains randomized smoothing into the refuted
++    R²-to-accuracy bound (``certified_accuracy_bound``), so step 5 is invalid.
++    It is kept only for provenance (docs/ACCURACY_CERTIFICATE_RETIREMENT.md).
++
++    Historical (invalid) description: randomized smoothing certificate for
++    Lipschitz-bounded nonlinear adversaries.
+ 
+     Extends the linear compliance certificate to nonlinear classifiers using
+     randomized smoothing theory (Cohen et al. 2019, Salman et al. 2019).
+diff --git a/tests/test_accuracy_bound_retired.py b/tests/test_accuracy_bound_retired.py
+index a0dcfcd13..e9b2cf755 100644
+--- a/tests/test_accuracy_bound_retired.py
++++ b/tests/test_accuracy_bound_retired.py
+@@ -26,6 +26,10 @@ def test_zero_affine_r2_with_ninety_percent_threshold_accuracy():
+     assert cov == 0  # so the affine least-squares R² is exactly zero
+     accuracy = Fraction(sum((h > 0) == (a == 1) for a, h in rows), len(rows))
+     assert accuracy == Fraction(9, 10)
++    # The retired theorem asserted acc <= max(pi_maj, pi_maj + sqrt(eps*k*pi_maj*(1-pi_maj))),
++    # which at R^2 = 0 (eps -> 0) and pi_maj = 1/2 is 1/2. The observed 9/10 refutes it.
++    retired_bound_at_zero_r2 = Fraction(1, 2)
++    assert accuracy > retired_bound_at_zero_r2
+ 
+ 
+ def test_certified_accuracy_bound_raises():
+@@ -48,3 +52,15 @@ def test_generate_report_no_longer_calls_retired_certificates():
+     src = (ROOT / "pcrl/evaluation/certificates.py").read_text()
+     assert "nonlinear_cert.check(" not in src
+     assert "certified_accuracy_bound(" not in src
++
++
++def test_retired_api_raises_when_importable():
++    """Import-based check (complements the AST checks) where the full stack is installed."""
++    pytest.importorskip("torch")
++    import numpy as np
++    from pcrl.purposes.verification import NonlinearComplianceCertificate, certified_accuracy_bound
++
++    with pytest.raises(NotImplementedError):
++        certified_accuracy_bound(0.0, 0.5, 2)
++    with pytest.raises(NotImplementedError):
++        NonlinearComplianceCertificate().check(np.zeros((4, 1)), np.array([0, 1, 0, 1]))
+-- 
+2.50.1
+
