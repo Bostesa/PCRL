@@ -231,7 +231,7 @@ def g4_sdpi_bound(trials: int = 300):
     D = [[1.0 if z == t else 0.0 for z in range(17)] for t in range(17)]
     return {"trials": trials, "violations": viol, "sdpi_log2_bound_tighter": sdpi_tighter,
             "radius_bound_tighter": radius_tighter,
-            "deterministic_17_action_kernel": {"eta_TV": dobrushin(D), "radius_nats": math.log(17),
+            "synthetic_identity_17_kernel_not_D17": {"eta_TV": dobrushin(D), "radius_nats": math.log(17),
                                                "log2_ceiling_SEX": math.log(2), "log9_ceiling_RAC1P": math.log(9)}}
 
 
@@ -312,7 +312,7 @@ def g6_unrestricted_impossibility():
     I = mi(j, [0], [2], [1])
     assert I["log3"] != 0 or I["log2"] != 0
     return {"worst_case_I(S;Z|H)": "3/4 log3 - log2 > 0", "nats": ln(I),
-            "consequence": "a nonzero useful kernel cannot be certified for every law; restrict the envelope or bound all information (radius)"}
+            "consequence": "under an unrestricted envelope, zero worst-case leakage forces a constant channel; positive budgets are certifiable when the worst assignment information is small (see g9; CR-3)"}
 
 
 def g7_constant_channel():
@@ -358,9 +358,30 @@ def g8_conditional_homogeneity():
             "assumption_violated": {"I(S;Z|H)": full_b, "I(S;Z|B)": binned_b, "binned_is_upper_bound": False}}
 
 
+def g9_unrestricted_worst_case_is_small_for_small_radius():
+    """Precise form of the unrestricted-envelope impossibility.
+    With P(S|H=h)=pi fixed and P(T|S,h) unrestricted, the S->Z rows range over conv{Q_t}; MI is convex
+    in those rows, so the worst case is max over assignments s -> t_s of I_pi(S;Z). It is 0 iff all
+    reachable rows coincide, and it is always <= R(Q). For BSC(1/2 - eta) and uniform binary S it equals
+    log 2 - h(1/2 - eta) ~ 2 eta^2: small, positive, and certifiable distribution-free."""
+    rows = []
+    for eta in (0.01, 0.02, 0.05, 0.1):
+        Q = [[0.5 + eta, 0.5 - eta], [0.5 - eta, 0.5 + eta]]
+        worst = max(binary_mi(0.5, [Q[a], Q[b]]) for a in (0, 1) for b in (0, 1))
+        _, radius, _, _ = blahut_arimoto(Q, 2000)
+        h = lambda x: -x * math.log(x) - (1 - x) * math.log(1 - x)
+        closed = math.log(2) - h(0.5 - eta)
+        assert abs(worst - closed) < 1e-12 and worst <= radius + 1e-9 and worst > 0
+        rows.append({"eta": eta, "unrestricted_worst_case_nats": worst, "radius_nats": radius,
+                     "two_eta_squared": 2 * eta ** 2})
+    return {"rows": rows,
+            "statement": "zero worst-case leakage under an unrestricted envelope forces a constant channel; "
+                         "small positive worst cases (<= R(Q)) are attainable by nonconstant channels"}
+
+
 FIXTURES = [g1_chain_rule, g2_row_radius_bound, g2b_public_state_dependence, g3_utility_ceiling,
             g4_sdpi_bound, g5_envelope, g6_unrestricted_impossibility, g7_constant_channel,
-            g8_conditional_homogeneity]
+            g8_conditional_homogeneity, g9_unrestricted_worst_case_is_small_for_small_radius]
 
 
 def run_all():

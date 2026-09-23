@@ -74,3 +74,25 @@ No method branch existed at this writing. When one lands:
    selection.
 6. **Compare** the certified value with log|S| at the utility level claimed, and with a matched-κ kernel.
 7. **Local encoder.** Check that no H_B enters it.
+
+## Update 2026-09-23 — review of the full-view method (0e90d0b3) and reconciliation
+
+- [T4_EVIDENCE_REVIEW.md](T4_EVIDENCE_REVIEW.md):
+  - The continuity constants are proved and reproduced; Winter 2016 gives a tighter bridge.
+  - The radius brackets are interval-certified (INTERVAL_RADIUS.json). This supersedes "Q's κ is
+    unknown" above: Q's κ is 1.762 / 1.937 / 1.968 nats, and D17's is log 16 / 14 / 15.
+  - The finite-law feasibility of the robust channels holds within guard: 13/36 exact and 23/36 within
+    1.3e-9.
+  - The solver optima are rigorously bracketed (27/27, max gap 2.0e-6) (T4_SYNTHETIC_REVIEW.json).
+  - **No distinct, supported construction remains.**
+- [CORRECTIONS_2026-09-23.md](CORRECTIONS_2026-09-23.md): CR-1 to CR-6 supersede specific sentences in
+  this directory's earlier files (MATH_REVIEW, FULL_VIEW_GUARANTEE_REVIEW, the answers above, and the
+  claims matrix rows M02, M06, M11) and in two other owners' reports. Read the answers above together
+  with CR-1 (the 0.026 figure is a scale, not a Bayes gain or a threshold), CR-2 ("not established"),
+  CR-3 (the precise impossibility) and CR-6 (D17 = log 16 / 14 / 15).
+- HOMOGENEITY_TEST.json records that the available aggregates cannot test T ⟂ H | (S,B): the fine cells
+  are not nested in the bins.
+- Handoffs: handoffs_2026-09-23/ (manuscript, research, evaluation), also in
+  pcrl_week_finish_v2/claims/.
+- New code: interval_radius.py, review_t4_synthetic.py, homogeneity_test.py, and fixture g9. Tests: 23
+  pass (13 in this directory's suite, 10 claims-foundation).

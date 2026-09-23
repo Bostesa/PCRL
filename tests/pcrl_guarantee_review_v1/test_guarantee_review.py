@@ -82,3 +82,36 @@ def test_prospective_decisions_reproduce():
     assert out["sensitive_all_pass_at_one_sided_bonferroni_20"] == {"Q": True, "D17": True}
     assert out["Q_vs_D17"]["D17_task_better_resolved"] == ["unweighted"]
     assert not out["Q_vs_D17"]["full_domination_by_D17"]
+
+
+# ---- review of the full-view method (0e90d0b3) ----
+
+def test_unrestricted_worst_case_is_positive_but_small_for_small_radius():
+    rows = fv.g9_unrestricted_worst_case_is_small_for_small_radius()["rows"]
+    assert all(0 < r["unrestricted_worst_case_nats"] <= r["radius_nats"] + 1e-9 for r in rows)
+    assert rows[0]["unrestricted_worst_case_nats"] < 3e-4
+
+
+def test_t4_synthetic_brackets_are_rigorous():
+    pytest.importorskip("mpmath")
+    pytest.importorskip("scipy")
+    pin = "0e90d0b3da97bec28cf200abe2213803c2fb3b71"
+    if subprocess.run(["git", "cat-file", "-e", pin], cwd=ROOT, capture_output=True).returncode:
+        pytest.skip("pinned method commit not available")
+    out = json.loads(subprocess.check_output(
+        [sys.executable, str(ROOT / "analysis/pcrl_guarantee_review_v1/review_t4_synthetic.py")], cwd=ROOT))
+    fx = out["fixtures"]
+    assert all(f["law_hashes_match"] and f["exact_rebuild_rounds_to_committed"] for f in fx.values())
+    robust = [e for f in fx.values() for b in f["budgets"].values() for m, e in b.items()
+              if m == "robust" and "certified_gap" in e]
+    assert len(robust) == 27 and max(e["certified_gap"] for e in robust) < 3e-6
+    assert all(e["feasibility"] in ("certified", "within_guard") for e in robust)
+    lp = fx["rational_separation"]["exact_zero_budget_lp"]
+    assert lp["lp_optimum_cost"] == "3/10" and lp["best_zero_leakage_deterministic_cost"] == "2/5"
+
+
+def test_committed_radius_brackets_reproduce():
+    rec = json.loads((ROOT / "results/pcrl_guarantee_review_v1/INTERVAL_RADIUS.json").read_text())
+    assert all(v["sha256_matches_T4"] and v["T4_bracket_contains_interval_bracket"] for v in rec.values())
+    assert {k: v["outputs_with_positive_mass"] for k, v in rec.items() if k.endswith("D17")} == \
+        {"0/D17": 16, "1/D17": 14, "2/D17": 15}
