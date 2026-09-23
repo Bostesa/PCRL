@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from experiments.pcrl_task_aligned_cuts_v1 import audit, inner_panel
+import json
+
+import pytest
+
+from experiments.pcrl_task_aligned_cuts_v1 import audit, data, inner_panel
 
 
 def _pool(prefix: str):
@@ -36,6 +40,8 @@ def test_inner_panel_all_roles_legal_ancestors_and_no_outer(monkeypatch, tmp_pat
 
     def fake_fit(fit_rows, fit_p, validation_rows, validation_p, role, output_dir,
                  seed, *, release_id, slate):
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / 'own_registry.json').write_text(json.dumps({'role': role, 'release_id': release_id}))
         fitted.append((role, release_id, len(fit_rows['ids']),
                        tuple(validation_rows['ids']), fit_p.shape[1], slate, seed))
         _, view, target = audit.parse_role(role)
@@ -85,3 +91,20 @@ def test_inner_panel_all_roles_legal_ancestors_and_no_outer(monkeypatch, tmp_pat
     with np.load(out / 'INNER_PILOT_CONTRIBUTIONS.npz', allow_pickle=False) as private:
         assert set(private['utility_A_same_residence_households']) == {
             'validation-house-2', 'validation-house-3'}
+
+
+def test_shared_h_requires_complete_hash_pinned_source(tmp_path):
+    source = tmp_path / 'private' / 'source_audit'
+    h_root = source / 'H'
+    (h_root / 'attack_A_SEX').mkdir(parents=True)
+    model = h_root / 'attack_A_SEX' / 'own_registry.json'
+    model.write_text('{"toy": true}\n')
+    receipt = {'unit_id': 'source_audit',
+               'artifacts': {'H/attack_A_SEX/own_registry.json': data.sha256_file(model)}}
+    (source / 'COMPLETE.json').write_text(json.dumps(receipt))
+    verified = inner_panel._verified_shared_h_receipt(h_root)
+    assert verified['source_unit_id'] == 'source_audit'
+    assert verified['artifact_count'] == 1
+    model.write_text('{"toy": false}\n')
+    with pytest.raises(ValueError, match='differs'):
+        inner_panel._verified_shared_h_receipt(h_root)

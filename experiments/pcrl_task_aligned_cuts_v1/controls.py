@@ -281,7 +281,9 @@ def gradient_control_grid(cost: np.ndarray, cuts: Sequence[Mapping[str, Any]], *
                           steps_per_run: int, seeds: Sequence[int],
                           penalties: Sequence[float],
                           learning_rates: Sequence[float] = (0.05,),
-                          dual_learning_rates: Sequence[float] = (1.0,)) -> list[dict[str, Any]]:
+                          dual_learning_rates: Sequence[float] = (1.0,),
+                          initializations: Mapping[str, np.ndarray | None] | None = None,
+                          initialization_smoothing: float = 0.01) -> list[dict[str, Any]]:
     """Run a preregistered matched gradient grid; do not select on assessment.
 
     The caller must freeze this grid and choose a route on the allowed inner
@@ -291,15 +293,32 @@ def gradient_control_grid(cost: np.ndarray, cuts: Sequence[Mapping[str, Any]], *
     """
     if not seeds or not penalties or not learning_rates or not dual_learning_rates:
         raise ValueError('empty gradient comparison grid')
+    if not 0 < initialization_smoothing < 1:
+        raise ValueError('initialization smoothing must lie in (0,1)')
+    starts = dict(initializations or {'random':None})
+    if not starts or any(not name for name in starts):
+        raise ValueError('empty or unnamed gradient initializations')
     outputs = []
-    for seed in seeds:
-        for penalty in penalties:
-            for learning_rate in learning_rates:
-                for dual_lr in dual_learning_rates:
-                    outputs.append(optimize_gradient_bank(
-                        cost, cuts, steps=steps_per_run,
-                        learning_rate=learning_rate, penalty=penalty,
-                        seed=seed, dual_learning_rate=dual_lr))
+    for start_name, start in starts.items():
+        initial = None
+        if start is not None:
+            q = np.asarray(start, dtype=np.float64)
+            if q.shape != np.asarray(cost).shape:
+                raise ValueError(f'invalid gradient start {start_name}')
+            initial = (1-initialization_smoothing)*q + initialization_smoothing/q.shape[1]
+        # Deterministic starts have no seed-dependent randomness; deduplicate
+        # them rather than spending a second identical scientific run.
+        for seed in (seeds if start is None else seeds[:1]):
+            for penalty in penalties:
+                for learning_rate in learning_rates:
+                    for dual_lr in dual_learning_rates:
+                        result = optimize_gradient_bank(
+                            cost, cuts, steps=steps_per_run,
+                            learning_rate=learning_rate, penalty=penalty,
+                            seed=seed, dual_learning_rate=dual_lr,initial=initial)
+                        result['initialization'] = start_name
+                        result['initialization_smoothing'] = initialization_smoothing if start is not None else None
+                        outputs.append(result)
     return outputs
 
 
@@ -377,8 +396,14 @@ def materialize_simple_controls(index_path: str | Path, anchor: int,
     return manifest
 
 
-def load_saved_bank(fit_dir: str | Path) -> tuple[np.ndarray, list[dict[str, Any]], str]:
-    """Reconstruct the exact private bank serialized by ``fit_p1_center``."""
+def load_saved_bank(fit_dir: str | Path, *,
+                    cost_dir: str | Path | None = None) -> tuple[np.ndarray, list[dict[str, Any]], str]:
+    """Reconstruct one arm's cost and the exact frozen P1 attack bank.
+
+    The reference-bank directory stores *U0* cost even when an arm uses U1.
+    A U1 control therefore requires its own `cost_dir` and verifies the arm's
+    frozen-bank, adjusted-bank, cost-file and delta pins before optimization.
+    """
     from . import solver
     directory = Path(fit_dir)
     meta = json.loads((directory/'bank.json').read_text())
@@ -395,16 +420,39 @@ def load_saved_bank(fit_dir: str | Path) -> tuple[np.ndarray, list[dict[str, Any
             cuts.append({**record, 'coeff': np.asarray(arrays[key], dtype=np.float64)})
     if solver.bank_sha256(cuts, cost.shape) != meta['bank_sha256']:
         raise ValueError('frozen bank hash mismatch')
+    expected_bank = meta['bank_sha256']
+    if cost_dir is not None:
+        arm_root = Path(cost_dir)
+        arm = json.loads((arm_root/'FIT_P1_ARM.json').read_text())
+        if (arm.get('arm') not in ('U0P1','U1P1') or
+                arm.get('frozen_source_bank_sha256') != expected_bank or
+                arm.get('n_cuts') != len(cuts) or
+                arm.get('status') not in ('INITIAL_BANK_FEASIBLE','DESCRIPTIVE_PHASE_I_FALLBACK')):
+            raise ValueError('arm is not pinned to this complete frozen bank')
+        arm_cost_path = arm_root/'cost.npz'
+        if hashlib.sha256(arm_cost_path.read_bytes()).hexdigest() != arm.get('cost_sha256'):
+            raise ValueError('arm cost archive hash mismatch')
+        with np.load(arm_cost_path, allow_pickle=False) as arm_costs:
+            cost = np.asarray(arm_costs['cost'], dtype=np.float64)
+        delta = float(arm['delta'])
+        cuts = [{**cut,'delta':delta,'floor':float(cut['rho'])-delta}
+                for cut in cuts]
+        expected_bank = arm['adjusted_bank_sha256']
+        if solver.bank_sha256(cuts, cost.shape) != expected_bank:
+            raise ValueError('arm-adjusted cut bank hash mismatch')
     make_bank(cost, cuts)
-    return cost, cuts, meta['bank_sha256']
+    return cost, cuts, expected_bank
 
 
 def fit_saved_bank_controls(fit_dir: str | Path, output_dir: str | Path, *,
+                            cost_dir: str | Path | None = None,
+                            index_path: str | Path, anchor: int,
                             milp_seconds: float, heuristic_seconds: float,
                             gradient_steps: int, gradient_seeds: Sequence[int],
                             gradient_penalties: Sequence[float],
                             gradient_learning_rates: Sequence[float],
-                            gradient_dual_rates: Sequence[float]) -> dict[str, Any]:
+                            gradient_dual_rates: Sequence[float],
+                            initialization_smoothing: float = 0.01) -> dict[str, Any]:
     """Run matched fixed-bank deterministic and gradient controls.
 
     The bank, cost and reference floors are immutable; this function neither
@@ -412,7 +460,17 @@ def fit_saved_bank_controls(fit_dir: str | Path, output_dir: str | Path, *,
     An exchange controller can call it after each common-bank update with the
     *same* retained cuts and equal oracle budget.
     """
-    cost, cuts, bank_hash = load_saved_bank(fit_dir)
+    cost, cuts, bank_hash = load_saved_bank(fit_dir, cost_dir=cost_dir)
+    from . import data
+    idx = data.index(index_path)
+    d17 = data.load_map(idx, anchor, 'D17')
+    if cost_dir is None:
+        d_u1 = rowwise_minimizer(cost)
+    else:
+        with np.load(Path(cost_dir)/'UNCONSTRAINED.npz',allow_pickle=False) as archive:
+            d_u1 = np.asarray(archive['Q'],dtype=np.float64)
+        if not np.array_equal(d_u1,rowwise_minimizer(cost)):
+            raise ValueError('arm unconstrained optimizer is not exact rowwise U1 minimum')
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
@@ -427,7 +485,9 @@ def fit_saved_bank_controls(fit_dir: str | Path, output_dir: str | Path, *,
                                      seeds=gradient_seeds,
                                      penalties=gradient_penalties,
                                      learning_rates=gradient_learning_rates,
-                                     dual_learning_rates=gradient_dual_rates)
+                                     dual_learning_rates=gradient_dual_rates,
+                                     initializations={'random':None,'D17':d17,'D_U1':d_u1},
+                                     initialization_smoothing=initialization_smoothing)
     artifacts = []
     if deterministic['Q'] is not None:
         np.savez_compressed(output/'MILP_Q.npz', Q=deterministic['Q'])
@@ -441,11 +501,14 @@ def fit_saved_bank_controls(fit_dir: str | Path, output_dir: str | Path, *,
     report = {
         'schema':'pcrl-matched-bank-controls-v1',
         'bank_sha256':bank_hash,
+        'cost_source':str(Path(cost_dir or fit_dir)),
         'cut_count':len(cuts),
         'milp':{k:v for k,v in deterministic.items() if k != 'Q'},
         'heuristic':{k:v for k,v in heuristic.items() if k != 'Q'},
         'gradient':[{k:v for k,v in candidate.items() if k != 'Q'}
                     for candidate in gradient],
+        'gradient_initializations':['random','D17','D_U1'],
+        'initialization_smoothing':initialization_smoothing,
         'same_frozen_cost_and_cuts':True,
         'fresh_oracle_error':'unresolved; this command uses a fixed bank only',
     }
@@ -466,6 +529,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument('--output-dir',required=True,type=Path)
     parser.add_argument('--u1-cost',type=Path)
     parser.add_argument('--fit-dir',type=Path)
+    parser.add_argument('--cost-dir',type=Path)
+    parser.add_argument('--initialization-smoothing',type=float)
     parser.add_argument('--milp-seconds',type=float)
     parser.add_argument('--heuristic-seconds',type=float)
     parser.add_argument('--gradient-steps',type=int)
@@ -483,19 +548,23 @@ def main(argv: list[str] | None = None) -> None:
                           'distinct_maps':sum('alias_of' not in r for r in result['map_records'].values())},
                          sort_keys=True))
     else:
-        required = (args.fit_dir,args.milp_seconds,args.heuristic_seconds,
+        required = (args.fit_dir,args.index,args.anchor,args.milp_seconds,args.heuristic_seconds,
                     args.gradient_steps,args.gradient_seed,args.gradient_penalty,
-                    args.gradient_learning_rate,args.gradient_dual_rate)
+                    args.gradient_learning_rate,args.gradient_dual_rate,
+                    args.initialization_smoothing)
         if any(value is None for value in required):
             parser.error('fit-bank requires fit directory and explicit compute/hyperparameter budget')
         result = fit_saved_bank_controls(args.fit_dir,args.output_dir,
+                                         cost_dir=args.cost_dir,
+                                         index_path=args.index,anchor=args.anchor,
                                          milp_seconds=args.milp_seconds,
                                          heuristic_seconds=args.heuristic_seconds,
                                          gradient_steps=args.gradient_steps,
                                          gradient_seeds=args.gradient_seed,
                                          gradient_penalties=args.gradient_penalty,
                                          gradient_learning_rates=args.gradient_learning_rate,
-                                         gradient_dual_rates=args.gradient_dual_rate)
+                                         gradient_dual_rates=args.gradient_dual_rate,
+                                         initialization_smoothing=args.initialization_smoothing)
         print(json.dumps({'bank_sha256':result['bank_sha256'],
                           'milp_valid':result['milp']['incumbent_valid'],
                           'gradient_runs':len(result['gradient'])},sort_keys=True))

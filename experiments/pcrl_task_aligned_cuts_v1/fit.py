@@ -74,6 +74,13 @@ def _write_json(path, value):
         stream.write("\n")
 
 
+def _scientific_file_inventory(root):
+    """Hash every private unit artifact written before the completion record."""
+    return {str(path.relative_to(root)): data.sha256_file(path)
+            for path in sorted(Path(root).rglob("*")) if path.is_file()
+            and path.name not in ("EXCHANGE_ROUND.json", "COMPLETE.json", "SOURCE_PROVENANCE.json")}
+
+
 def _selection_rows(value, anchor, provided):
     """Use one registered household split; a supplied mask is checked exactly."""
     all_prepared = {k: data.load_prepared(value, k) for k in (0, 1, 2)}
@@ -479,6 +486,7 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
     cost_path = Path(cost_dir) / "cost.npz"
     if not cost_path.exists():
         cost_path = Path(cost_dir) / "coefficients.npz"
+    cost_source_sha = data.sha256_file(cost_path)
     with np.load(cost_path, allow_pickle=False) as saved_cost:
         cost_u = np.asarray(saved_cost["cost_U"], dtype=np.float64)
         cost_w = np.asarray(saved_cost["cost_W"], dtype=np.float64)
@@ -498,15 +506,43 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
         old_cuts = [{**cut, "delta": float(delta),
                      "floor": float(cut["rho"])-float(delta)} for cut in old_cuts]
     adjusted_source_bank_sha = solver.bank_sha256(old_cuts, cost.shape)
+    arm_record_path = Path(cost_dir) / "FIT_P1_ARM.json"
+    if arm_record_path.exists():
+        arm_record = json.loads(arm_record_path.read_text())
+        if (arm_record.get("anchor") != anchor or
+                arm_record.get("delta") != float(delta) or
+                arm_record.get("selection_household_assignment_sha256") != split_sha or
+                arm_record.get("frozen_source_bank_sha256") != old_bank_sha or
+                arm_record.get("adjusted_bank_sha256") != adjusted_source_bank_sha or
+                arm_record.get("cost_sha256") != cost_source_sha):
+            raise ValueError("exchange cost/arm does not match frozen bank, delta or selection")
+    elif Path(cost_dir).resolve() != Path(bank_dir).resolve():
+        raise ValueError("unregistered exchange cost directory")
     kernels = {name: release.validate_channel(np.asarray(q), n_states=32, n_tokens=17)
                for name, q in channels.items()}
+    saved_lp = release.ChannelArtifact.load(Path(cost_dir) / "channel").Q
+    if not np.array_equal(kernels["LP"], saved_lp):
+        raise ValueError("exchange LP channel differs from its frozen arm/round artifact")
+    for name, q in kernels.items():
+        replay = solver.replay_p1(q, cost, old_cuts)
+        if replay["maximum_cut_violation"] > solver.PRIMAL_TOL:
+            raise ValueError(f"exchange input {name} is infeasible for its source bank")
+        if name in ("DET", "MILP") and not np.all((q == 0) | (q == 1)):
+            raise ValueError("deterministic exchange control is not one-hot")
+    aliases = {name: hashlib.sha256(np.ascontiguousarray(q).tobytes()).hexdigest()
+               for name, q in sorted(kernels.items())}
     root = _private_output(output_dir, resume=resume)
     if resume and (root / "EXCHANGE_ROUND.json").exists():
         old = json.loads((root / "EXCHANGE_ROUND.json").read_text())
         if (old["anchor"] != anchor or old["round_index"] != round_index or
                 old["source_bank_sha256"] != old_bank_sha or
+                old["adjusted_source_bank_sha256"] != adjusted_source_bank_sha or
+                old["delta"] != float(delta) or
+                old["cost_source_sha256"] != cost_source_sha or
+                old["response_channel_aliases_sha256"] != aliases or
                 old["selection_household_assignment_sha256"] != split_sha or
-                data.sha256_file(root / "coefficients.npz") != old["coefficient_archive_sha256"]):
+                data.sha256_file(root / "coefficients.npz") != old["coefficient_archive_sha256"] or
+                _scientific_file_inventory(root) != old["artifact_sha256"]):
             raise ValueError("completed exchange round does not match frozen inputs")
         return old
     coefficient_rows = data.coefficient_pool(prepared, data.load_map(value, anchor, "D17"))
@@ -527,10 +563,8 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
     # Exact aliases share one response fit, but all declared labels remain in
     # the provenance map. A changed channel is a new release and new bank fit.
     unique = {}
-    aliases = {}
     for name, q in sorted(kernels.items()):
-        digest = hashlib.sha256(np.ascontiguousarray(q).tobytes()).hexdigest()
-        aliases[name] = digest
+        digest = aliases[name]
         unique.setdefault(digest, (name, q))
     proposals = []
     for digest, (name, q) in unique.items():
@@ -597,6 +631,7 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
               "source_bank_sha256": old_bank_sha,
               "source_bank_delta": source_delta,
               "adjusted_source_bank_sha256": adjusted_source_bank_sha,
+              "cost_source_sha256": cost_source_sha,
               "bank_sha256": union["bank_sha256"],
               "coefficient_archive_sha256": archive_sha,
               "new_cut_count": len(union["added_ids"]),
@@ -612,6 +647,7 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
               "selection_household_assignment_sha256": split_sha,
               "created_utc": datetime.now(timezone.utc).isoformat(),
               "interpretation": "one heuristic best-response exchange round; re-solve matched deterministic control on this exact bank"}
+    record["artifact_sha256"] = _scientific_file_inventory(root)
     _write_json(root / "EXCHANGE_ROUND.json", record)
     return record
 

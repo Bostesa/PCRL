@@ -36,6 +36,26 @@ def _registry_routes(role: str, release_id: str, own: dict, h_only: dict,
     return audit.build_role_route_bank(role, release_id, own, h_only, **kwargs)
 
 
+def _verified_shared_h_receipt(h_root: Path) -> dict:
+    """Verify every reused H model byte against its completed source unit."""
+    if h_root.name != 'H':
+        raise ValueError('Shared H root must be the H directory of a completed audit unit')
+    source_unit = h_root.parent
+    receipt_path = source_unit / 'COMPLETE.json'
+    if not receipt_path.is_file():
+        raise ValueError('Shared H slate lacks an immutable completed source receipt')
+    receipt = json.loads(receipt_path.read_text())
+    pinned = {name: digest for name, digest in receipt.get('artifacts', {}).items()
+              if name.startswith('H/')}
+    actual = {str(path.relative_to(source_unit)): data.sha256_file(path)
+              for path in sorted(h_root.rglob('*')) if path.is_file()}
+    if not pinned or pinned != actual:
+        raise ValueError('Shared H slate differs from completed source artifact inventory')
+    return {'source_unit_id': receipt.get('unit_id'),
+            'source_complete_sha256': data.sha256_file(receipt_path),
+            'artifact_count': len(pinned)}
+
+
 def run_inner_panel(prepared: dict, candidate_q: np.ndarray, split: dict,
                     release_id: str, output_dir: str | Path, *,
                     slate: str = 'standard',
@@ -89,6 +109,8 @@ def run_inner_panel(prepared: dict, candidate_q: np.ndarray, split: dict,
     h_root = Path(shared_h_root) if shared_h_root is not None else root / 'H'
     if 'private' not in h_root.parts:
         raise ValueError('Shared H-only fitted objects must remain private')
+    shared_h_receipt = (_verified_shared_h_receipt(h_root)
+                        if shared_h_root is not None else None)
 
     # Fit the B-only ancestor solely on H_B; A and AB slates use exactly their
     # declared service columns and token.  The same seed is used for each role
@@ -101,6 +123,9 @@ def run_inner_panel(prepared: dict, candidate_q: np.ndarray, split: dict,
         h_by_role[role] = audit.fit_role_slate(
             fit_h, fit_h['token_probs'], select_h, select_h['token_probs'],
             role, h_root / _slug(role), seed, release_id='H', slate=slate)
+    h_registry_hashes = {
+        role: data.sha256_file(h_root / _slug(role) / 'own_registry.json')
+        for role in h_roles}
     for role_index, role in enumerate(audit.ROLES):
         seed = 16000 + 1000 * anchor + role_index
         own_by_role[role] = audit.fit_role_slate(
@@ -159,6 +184,8 @@ def run_inner_panel(prepared: dict, candidate_q: np.ndarray, split: dict,
         'not_confirmation': True, 'anchor': anchor, 'release_id': release_id,
         'channel_sha256': q_hash, 'slate': slate,
         'H_slate_root': str(h_root.resolve()),
+        'H_registry_sha256': h_registry_hashes,
+        'shared_H_source_receipt': shared_h_receipt,
         'split_assignment_sha256': split['assignment_sha256'],
         'fit_pool': 'downstream_fit', 'selection_pool': 'downstream_validation:inner_selection',
         'score_pool': 'downstream_validation:inner_pilot',

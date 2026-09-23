@@ -125,8 +125,10 @@ def main(argv: list[str] | None = None) -> None:
             prepared = data.load_prepared(value, args.anchor)
             all_prepared = {k: data.load_prepared(value, k) for k in (0, 1, 2)}
             split = data.global_validation_split(all_prepared)
+            center_h = root / f"a{args.anchor}_u1p1_z000_audit" / "H"
+            shared_h = center_h if fit_dir.name != f"a{args.anchor}_u1p1_z000" and center_h.is_dir() else None
             result = inner_panel.run_inner_panel(prepared, channel.Q, split,
-                fit_dir.name, out, slate="standard")
+                fit_dir.name, out, slate="standard", shared_h_root=shared_h)
     _record_and_close(out, args.command, result)
     print(json.dumps({"unit": os.environ["PCRL_UNIT_ID"], "status": "complete"}, sort_keys=True))
 
