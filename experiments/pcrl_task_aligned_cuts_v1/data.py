@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
+import datetime as dt
 from typing import Any
 
 import joblib
 import numpy as np
 
 INDEX_RELATIVE = Path('results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json')
+SANITIZED_RELATIVE = Path('results/pcrl_task_aligned_cuts_v1/private/sanitized_2018_v2')
 POOLS = ('representation_fit', 'downstream_fit', 'downstream_validation',
          'attacker_fit', 'attacker_validation')
 MAPS = {'Q': 'T0_L_0.01_a17', 'D17': 'T0_U_unconstrained_a17',
@@ -39,6 +42,157 @@ def index(root_or_path: str | Path) -> dict[str, Any]:
     if value.get('completed_prospective_evidence_commit') != '5e154e5c4fdaeb23d327a0ebefe838525f1a19cb':
         raise ValueError('unexpected completed evidence pin')
     return value
+
+
+def _index_digest(value: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True,
+                         separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+
+
+def _study_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _sanitized_root() -> Path:
+    return _study_root() / SANITIZED_RELATIVE
+
+
+def _sanitized_record(value: dict[str, Any], anchor: int) -> tuple[Path, dict[str, Any]] | None:
+    """Find a pinned label-stripped copy; never fall back after a receipt exists."""
+    root = _sanitized_root()
+    receipt_path = root / 'SANITIZATION.json'
+    if not receipt_path.exists():
+        if root.exists() and any(root.iterdir()):
+            raise RuntimeError('partial sanitized working copies require inspection')
+        return None
+    receipt = json.loads(receipt_path.read_text())
+    if (receipt.get('schema') != 'pcrl-sanitized-prepared-v1' or
+            receipt.get('index_canonical_sha256') != _index_digest(value)):
+        raise ValueError('sanitized 2018 receipt/index mismatch')
+    record = receipt['anchors'][str(anchor)]
+    source = member_record(value, anchor, 'prepared')
+    if record['source_sha256'] != source['sha256']:
+        raise ValueError('sanitized 2018 source pin mismatch')
+    relative = Path(record['sanitized_relative_path'])
+    path = (root / relative).resolve()
+    if relative.is_absolute() or not path.is_relative_to(root.resolve()):
+        raise ValueError('unsafe sanitized working-copy path')
+    if not path.is_file() or sha256_file(path) != record['sanitized_sha256']:
+        raise ValueError('sanitized 2018 working-copy hash mismatch')
+    return path, record
+
+
+def _assert_retained_equal(left: Any, right: Any) -> dict[str, int]:
+    """Compare all retained fields, using bytes for numeric/Unicode arrays.
+
+    `joblib.hash` is not stable for the archived custom Encoder/AffineEraser
+    objects after a compressed roundtrip even when their fields match.  This
+    walk checks their fields explicitly and refuses an unknown object type.
+    """
+    counts = {'nodes': 0, 'arrays': 0, 'array_bytes': 0}
+
+    def walk(a: Any, b: Any, location: str) -> None:
+        counts['nodes'] += 1
+        if type(a) is not type(b):
+            raise ValueError(f'sanitized type differs at {location}')
+        if isinstance(a, dict):
+            if set(a) != set(b):
+                raise ValueError(f'sanitized keys differ at {location}')
+            for key in sorted(a, key=str):
+                walk(a[key], b[key], f'{location}/{key}')
+        elif isinstance(a, (list, tuple)):
+            if len(a) != len(b):
+                raise ValueError(f'sanitized length differs at {location}')
+            for item, (x, y) in enumerate(zip(a, b)):
+                walk(x, y, f'{location}/{item}')
+        elif isinstance(a, np.ndarray):
+            if a.shape != b.shape or a.dtype != b.dtype:
+                raise ValueError(f'sanitized array schema differs at {location}')
+            counts['arrays'] += 1
+            if a.dtype.kind == 'O':
+                for item, (x, y) in enumerate(zip(a.flat, b.flat)):
+                    walk(x, y, f'{location}/{item}')
+            else:
+                a_bytes = np.ascontiguousarray(a).tobytes()
+                b_bytes = np.ascontiguousarray(b).tobytes()
+                counts['array_bytes'] += len(a_bytes)
+                if a_bytes != b_bytes:
+                    raise ValueError(f'sanitized array bytes differ at {location}')
+        elif isinstance(a, np.generic):
+            if a.dtype != b.dtype or a.tobytes() != b.tobytes():
+                raise ValueError(f'sanitized scalar bytes differ at {location}')
+        elif isinstance(a, (set, frozenset)):
+            if a != b:
+                raise ValueError(f'sanitized set differs at {location}')
+        elif hasattr(a, 'detach') and hasattr(a, 'cpu') and hasattr(a, 'numpy'):
+            first = np.asarray(a.detach().cpu().numpy())
+            second = np.asarray(b.detach().cpu().numpy())
+            walk(first, second, f'{location}/tensor')
+        elif hasattr(a, '__dict__'):
+            walk(vars(a), vars(b), f'{location}/fields')
+        elif isinstance(a, (str, bytes, int, float, bool, type(None))):
+            if a != b:
+                raise ValueError(f'sanitized scalar differs at {location}')
+        else:
+            raise TypeError(f'unsupported retained object type at {location}: {type(a).__name__}')
+
+    walk(left, right, 'prepared')
+    return counts
+
+
+def create_sanitized_working_copies(value: dict[str, Any]) -> dict[str, Any]:
+    """Once, strip outer labels from hash-pinned 2018 pickles without examining them.
+
+    Original archived objects are never overwritten.  The content equality
+    check covers the complete retained object, including every frozen T0 code,
+    service array, inner label, weight and household identifier.  The outer
+    label dictionary is removed by key, without indexing any label value.
+    """
+    root = _sanitized_root()
+    if root.exists() and any(root.iterdir()):
+        receipt_path = root / 'SANITIZATION.json'
+        if not receipt_path.is_file():
+            raise RuntimeError('partial sanitized working copies require inspection')
+        receipt = json.loads(receipt_path.read_text())
+        for anchor in (0, 1, 2):
+            _sanitized_record(value, anchor)
+        return receipt
+    staging = root.with_name(root.name + '.staging')
+    if staging.exists():
+        raise RuntimeError('partial sanitized staging directory requires inspection')
+    staging.mkdir(parents=True, exist_ok=False)
+    records: dict[str, Any] = {}
+    for anchor in (0, 1, 2):
+        source_record = member_record(value, anchor, 'prepared')
+        source = verified_member(source_record)
+        prepared = joblib.load(source)
+        outer = prepared['ctx']['pools']['attacker_validation']
+        if 'labels' not in outer:
+            raise ValueError('expected outer labels absent from original archive')
+        del outer['labels']
+        relative = Path(f'anchor_{anchor}.joblib')
+        target = staging / relative
+        joblib.dump(prepared, target, compress=3)
+        reloaded = joblib.load(target)
+        if 'labels' in reloaded['ctx']['pools']['attacker_validation']:
+            raise ValueError(f'sanitized anchor {anchor} changed retained scientific inputs')
+        equality = _assert_retained_equal(prepared, reloaded)
+        records[str(anchor)] = {
+            'source_sha256': source_record['sha256'],
+            'sanitized_relative_path': str(relative),
+            'sanitized_sha256': sha256_file(target),
+            'retained_structure_equality': equality,
+            'outer_labels_removed_by_key': True,
+        }
+    receipt = {'schema': 'pcrl-sanitized-prepared-v1',
+               'index_canonical_sha256': _index_digest(value),
+               'created_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
+               'anchors': records,
+               'scientific_scope': 'all retained arrays bitwise and object fields structurally equal; attacker_validation.labels omitted',
+               'historical_receipts_unchanged': True}
+    (staging / 'SANITIZATION.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
+    os.replace(staging, root)
+    return receipt
 
 
 def member_record(value: dict[str, Any], anchor: int, kind: str,
@@ -103,8 +257,13 @@ def verify_local_members(value: dict[str, Any], *, restore_root: str | Path | No
 
 def load_prepared(value: dict[str, Any], anchor: int, *,
                   restore_root: str | Path | None = None) -> dict[str, Any]:
-    path = verified_member(member_record(value, anchor, 'prepared'), restore_root=restore_root)
+    sanitized = _sanitized_record(value, anchor) if restore_root is None else None
+    path = (sanitized[0] if sanitized is not None else
+            verified_member(member_record(value, anchor, 'prepared'), restore_root=restore_root))
     prepared = joblib.load(path)
+    if sanitized is not None:
+        if 'labels' in prepared['ctx']['pools']['attacker_validation']:
+            raise ValueError('sanitized copy unexpectedly contains outer labels')
     if prepared['ctx']['anchor'] != anchor or tuple(prepared['ctx']['pools']) != POOLS:
         raise ValueError('prepared anchor/pool schema mismatch')
     for name in POOLS:
@@ -134,6 +293,24 @@ def load_prepared(value: dict[str, Any], anchor: int, *,
     prepared['ctx']['pools']['attacker_validation'] = {
         name: part for name, part in outer.items() if name != 'labels'}
     return prepared
+
+
+def main(argv: list[str] | None = None) -> None:
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('command', choices=('sanitize',))
+    parser.add_argument('--index', required=True, type=Path)
+    args = parser.parse_args(argv)
+    value = index(args.index)
+    receipt = create_sanitized_working_copies(value)
+    print(json.dumps({'schema': receipt['schema'],
+                      'anchors': len(receipt['anchors']),
+                      'receipt_sha256': sha256_file(_sanitized_root() / 'SANITIZATION.json')},
+                     sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()
 
 
 def load_map(value: dict[str, Any], anchor: int, name: str, *,
