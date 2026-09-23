@@ -32,7 +32,7 @@ def _atomic(path: Path, value: dict) -> None:
 
 def inventory(root: Path) -> list[dict]:
     root = root.resolve()
-    prefixes = [f'experiments/{STUDY}', f'results/{STUDY}',
+    prefixes = [f'experiments/{STUDY}', f'analysis/{STUDY}', f'results/{STUDY}',
                 f'tests/{STUDY}']
     records = []
     for prefix in prefixes:
