@@ -33,7 +33,20 @@
     ],
     "source_bank_sha256": "29184eccad1f5dfc7f0f18e1f684c283c7ad48848933c3a2553faa1435380011"
   },
-  "checkpoint_name": "a0_u1p1_z000",
+  "checkpoint_name": "a0_u1p1_z000_round_zero_center",
+  "exchanged_bank_evidence": {
+    "aggregate_pilot_screen_relative_path": "EXCHANGE_PILOT_SCREEN.json",
+    "aggregate_pilot_screen_sha256": "909c3b20054ec150d5e7304491a27abbb39138d5e73cc896afbc4cafdb90eec1",
+    "bank_sha256": "1b933956edcedf4d14dc7a73ec3fa6f4e7b7be7da1b24db98e97039d3ac4a18d",
+    "cut_count": 324,
+    "exchange_audit_complete_sha256": "be29b295fbdfdf9db63fdafd1c829e3403cb2ed2a7bb8f875003391035dceee8",
+    "exchange_complete_sha256": "dd78ecf18d4faff606ab1d8c324acf08f27e680097166101201c9724fa8fdbfb",
+    "exchange_round_relative_path": "private/exchange_r01/EXCHANGE_ROUND.json",
+    "exchange_round_sha256": "6d104b7d8f799752abf82a5b49b51b64c1c750dff2d6528810513499e53c9d12",
+    "matched_milp_audit_complete_sha256": "177093f7140e31917e3be73a46ca6bdc2b9047c7df872a80c3eda1773808496a",
+    "matched_milp_result_relative_path": "private/exchange_r01_deterministic/EXCHANGED_MILP.json",
+    "matched_milp_result_sha256": "868306677aa7e9ec14a388fb5409241412575d51c27ce71c0cfcbe04725f6f8a"
+  },
   "fitted_attack_bank": {
     "all_fitted_model_files_pinned_by_complete_receipt": true,
     "files": [
@@ -109,9 +122,9 @@
     "relative_path": "REUSABLE_INPUTS_PINNED.json",
     "sha256": "f99903ad085597048c7bfca023fa39f1f89f83a6036852fe422ed8edba61c316"
   },
-  "interpretation": "A trained callable release checkpoint with a feasible initial fixed bank. No independent matched-control advantage or population privacy guarantee follows from this manifest.",
+  "interpretation": "The named exchange release is technically callable but did not improve the independently measured inner-pilot task/sensitive-recovery tradeoff over the same-bank deterministic MILP. The fixed-bank stochastic integrality gap is numerical training evidence only; no population privacy guarantee or cross-anchor feasible P1 claim follows.",
   "local_worktree": "/Users/nathansamson/PCRL/.worktrees/pcrl-task-aligned-cuts-v1",
-  "model_status": "EXPERIMENTAL_UNVALIDATED",
+  "model_status": "EXPERIMENTAL_NO_ADVANTAGE",
   "new_study_archive": {
     "bucket": null,
     "key": null,
@@ -120,6 +133,67 @@
     "version_id": null
   },
   "not_selection_lock": true,
+  "original_center_manifest_status_at_fit": "EXPERIMENTAL_UNVALIDATED",
+  "package_receipt": {
+    "mode_count": 5,
+    "relative_path": "private/packages/PACKAGE_RECEIPT.json",
+    "reproducible_script_relative_path": "agents/release_math/package_channels.py",
+    "reproducible_script_sha256": "0265207a93c63fa862186667427427f87d8ba9ef893ccbd3c0059ccc5ced4d6d",
+    "sha256": "36073659163ee5e7074f90e3b68d8e3524df7ab79e1e93160edeef2f307426ca"
+  },
+  "packaged_modes": [
+    {
+      "array_sha256": "69785680d95b58699439b857710bfc1eb122d3cfd9220d1ee08b719f3b380cb1",
+      "channel_Q_sha256": "93c4ea8d6eb2384496a98a917cb2ce47cd005dd3cac76a97dda11b3964fab294",
+      "channel_manifest_sha256": "15997bec2440bd7eb3455ed61c829102b9bced9e727bab9320b182ce65bdbe13",
+      "channel_relative_path": "private/packages/exchange_candidate/channel",
+      "model_status": "EXPERIMENTAL_NO_ADVANTAGE",
+      "name": "exchange_candidate",
+      "source_relative_path": "private/exchange_r01/channel/Q.npz",
+      "source_sha256": "93c4ea8d6eb2384496a98a917cb2ce47cd005dd3cac76a97dda11b3964fab294"
+    },
+    {
+      "array_sha256": "3ec5d483979645819bb6562061a0bcdcb58172854e7772ea334e0b7548b24113",
+      "channel_Q_sha256": "1ff5f34ca098b3c12adf3ce8365312ee4d8ce077732659f08e7821870d0b1ed3",
+      "channel_manifest_sha256": "0e1c51c5b4de6672a236d0d5b248a1041112f61e315b2bc6c9589ced5981e330",
+      "channel_relative_path": "private/packages/round_zero_center/channel",
+      "model_status": "EXPERIMENTAL_NO_ADVANTAGE",
+      "name": "round_zero_center",
+      "source_relative_path": "private/run/a0_u1p1_z000/channel/Q.npz",
+      "source_sha256": "1ff5f34ca098b3c12adf3ce8365312ee4d8ce077732659f08e7821870d0b1ed3"
+    },
+    {
+      "array_sha256": "0c364549a5ea655352fb130c0a885023378766aef81d662f9f69baa7b114165c",
+      "channel_Q_sha256": "b30d3d94456d9235b85898aee65d40e3f6bdceec1868efe0901b19daf3bcf3e2",
+      "channel_manifest_sha256": "4ad9ea11c6cd92cd6b433b6459255e76642d6dda960d57c4e22c297522816dd5",
+      "channel_relative_path": "private/packages/baseline_D_U1/channel",
+      "model_status": "BASELINE_CONTROL",
+      "name": "baseline_D_U1",
+      "source_relative_path": "private/controls/a0_simple/D_U1.npz",
+      "source_sha256": "b30d3d94456d9235b85898aee65d40e3f6bdceec1868efe0901b19daf3bcf3e2"
+    },
+    {
+      "array_sha256": "8b4a5a83745320f93616457c62d92d7cf953c4bcb2e90220f931708b028e55ce",
+      "channel_Q_sha256": "de7a8ec304a4855fc4b8c5ac61c712a749bcc76982a7c0660e0d9cc6d112685c",
+      "channel_manifest_sha256": "13249b341f9e9dd153e74e0a3a96845f8d8efb397a37f4478a8d39b15bb38076",
+      "channel_relative_path": "private/packages/baseline_a0_MILP/channel",
+      "model_status": "BASELINE_CONTROL",
+      "name": "baseline_a0_MILP",
+      "source_relative_path": "private/controls/a0_u1p1_z000_initial_bank/MILP_Q.npz",
+      "source_sha256": "de7a8ec304a4855fc4b8c5ac61c712a749bcc76982a7c0660e0d9cc6d112685c"
+    },
+    {
+      "array_sha256": "162cadc364f5b8894d631c6630b2ac7ab74781639d2fcc3810a37413de0116e1",
+      "channel_Q_sha256": "23a10c01701200f2bca5ef29c96ad2755962f7890e7064b11b08ba72bad2251c",
+      "channel_manifest_sha256": "43bfb4880d09eb411f0094fa642092fb9c2aa6d95a8c50a84ecdb4b44fbaa7eb",
+      "channel_relative_path": "private/packages/baseline_exchanged_MILP/channel",
+      "model_status": "BASELINE_CONTROL",
+      "name": "baseline_exchanged_MILP",
+      "source_relative_path": "private/exchange_r01_deterministic/MILP_Q.npz",
+      "source_sha256": "23a10c01701200f2bca5ef29c96ad2755962f7890e7064b11b08ba72bad2251c"
+    }
+  ],
+  "primary_named_mode": "exchange_candidate",
   "public_wire": [
     "h_a",
     "token"
@@ -128,7 +202,15 @@
     "bundled": false,
     "retention": "caller-held private 0600 file; never commit or archive with public model"
   },
-  "schema": "pcrl-trained-private-checkpoint-manifest-v1",
-  "scope": "2018 used development; anchor 0; U1P1; registered delta 0; initial 312-cut bank; zero exchange rounds",
-  "study": "pcrl_task_aligned_cuts_v1"
+  "schema": "pcrl-trained-private-model-modes-manifest-v2",
+  "scope": "2018 used development; anchor-0 U1P1 delta 0; initial 312-cut center and one registered 324-cut exchange; no outer assessment",
+  "study": "pcrl_task_aligned_cuts_v1",
+  "synthetic_emit_receipt": {
+    "H_A_byte_parity_all_modes": true,
+    "allowed_synthetic_inputs_only": true,
+    "keyed_replay_all_modes": true,
+    "mode_count": 5,
+    "relative_path": "private/packages/SMOKE_RECEIPT.json",
+    "sha256": "1927f0118ee5127b3ff35540420f5bfd228d67129ba39c79e1f2af3168d6a849"
+  }
 }

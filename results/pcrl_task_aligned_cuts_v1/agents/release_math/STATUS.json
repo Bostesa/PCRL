@@ -2,8 +2,7 @@
   "agent": "release_math",
   "base_commit": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
   "blockers": [
-    "All-anchor C2 slot impossible under unchanged registered P1 banks; no in-run rho/delta changes",
-    "Await active matched-control audit sidecar closure and coordinator source-freeze signal before registered exchange"
+    "Final owner integration commit/remote verification and data-owner archive readback remain; no scientific fit is pending in this worker scope"
   ],
   "completed_units": {
     "acs_candidate": 4,
@@ -13,12 +12,20 @@
     "c2_rounds_executed": 0,
     "center_fixed_bank_milp": 1,
     "cross_anchor_independent_phase_i_replays": 3,
+    "exchange_bank_total_cuts": 324,
+    "exchange_inner_audits": 2,
+    "exchange_matched_milp": 1,
+    "exchange_new_cuts": 12,
+    "exchange_rounds_executed": 1,
     "initial_bank": 1,
     "initial_bank_cuts": 312,
     "initial_bank_slates": 18,
+    "packaged_modes": 5,
+    "packaged_synthetic_emits": 5,
     "synthetic_smoke": 1
   },
-  "heartbeat_utc": "2026-09-23T13:23:10.014865+00:00",
+  "current_source_commit": "aad94995eaf2fa224d1448fe84f838c499f03d03",
+  "heartbeat_utc": "2026-09-23T13:56:32.304309+00:00",
   "implemented_entry_points": [
     "method.coefficient_pair",
     "method.score_expected",
@@ -44,7 +51,7 @@
     "release_cli.generate_key",
     "release_cli.emit"
   ],
-  "next_action": "Freeze and run the registered one-round anchor-0 LP/MILP exchange after active sidecar closes; then package hash-identical center (EXPERIMENTAL_NO_ADVANTAGE), D_U1 and a0 MILP (two BASELINE_CONTROL modes), synthetic-test emit, and update pointers.",
+  "next_action": "Hand off verified aggregate exchange/packaging records to coordinator, retain private originals and weights for data-owner archive/readback, then close worker scope. No further candidate fits or source changes.",
   "owned_files": {
     "experiments/pcrl_task_aligned_cuts_v1/exchange_cli.py": "a8077c0d20f647db6fa6ba369730d146171ab523772255108cd227b2cb5eb775",
     "experiments/pcrl_task_aligned_cuts_v1/fit.py": "9325d80509df8c4086dd5551351cd2cce173313809bedf1a6823b6ecbe2ea30d",
@@ -56,15 +63,26 @@
     "results/pcrl_task_aligned_cuts_v1/C2_METHOD_AMENDMENT.md": "d60f7062aa7665a9bb4411149840f69f3dd966ee111d5a5c0b6cc89fcc6193c4",
     "results/pcrl_task_aligned_cuts_v1/C2_NOT_TRIGGERED.json": "f5debb2fb797bc8bd8fe138e5f9f118bf601cb6d2d496cf49d8512a252e4e502",
     "results/pcrl_task_aligned_cuts_v1/CROSS_ANCHOR_INFEASIBILITY_CERTIFICATE.json": "4b7ade789a8ae224a6e935460e482b045e762933ac7ea328355f03067a0b1713",
+    "results/pcrl_task_aligned_cuts_v1/EXCHANGE_PILOT_SCREEN.json": "909c3b20054ec150d5e7304491a27abbb39138d5e73cc896afbc4cafdb90eec1",
     "results/pcrl_task_aligned_cuts_v1/METHOD.md": "0bec094af3cf25383fc3ec861cd8748f1b4c544981b4a7e7b82f7d6d0be9ec17",
     "results/pcrl_task_aligned_cuts_v1/NEXT_ACTION.md": "e13e7441578cba31bc0b525cd1e5b3ffbcac6064bec3d8c4645392b3a5a615c5",
-    "results/pcrl_task_aligned_cuts_v1/OPTIMIZATION_CERTIFICATES.json": "54acae773c62e5b24f30ad4f576eb31b32f5357a06f1fa84afa078b9f969e980",
-    "results/pcrl_task_aligned_cuts_v1/QUICKSTART.md": "3aa23530c9a57b8e1aa27d984df56803036832293292b0035d3ac6efe36a071f",
+    "results/pcrl_task_aligned_cuts_v1/OPTIMIZATION_CERTIFICATES.json": "8d1d64b715488a837daa9617fb4b49e2ce9d110972cdb59de3c82e90b01cd530",
+    "results/pcrl_task_aligned_cuts_v1/QUICKSTART.md": "1c57d31414544a6d18ec77f2449c38489a78912900d20c60ee54015963342bb4",
     "results/pcrl_task_aligned_cuts_v1/RELEASE_INPUT_SCHEMA.json": "7604a52e30580f6b5fe2347e618f0507b200e3becba638975d21cbd3e4f4451d",
     "results/pcrl_task_aligned_cuts_v1/SYNTHETIC_DEMO.json": "3ecbb7f092ce93a69cdf244c88c7462b265f04e5bf0067d16668560010a58e80",
-    "results/pcrl_task_aligned_cuts_v1/TRAINED_MODEL_MANIFEST.json": "e677a786afb0b9b6d89a5b704f797d2c7a70f39c58a5382b8e672bc3f72d4b1d",
-    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_SIDECAR.json": "783182b3555a32875392d1d1c1771821146846743ba40638a51c96a211cbae1f",
-    "results/pcrl_task_aligned_cuts_v1/agents/release_math/INITIAL_FIXED_BANK_CERTIFICATE.json": "626513819133083059ff6f0c164faa5b0277012930c5f77cc5795d4fdf1ffc01"
+    "results/pcrl_task_aligned_cuts_v1/TRAINED_MODEL_MANIFEST.json": "9e92437b41c461194a3c5042449f3d7817ad42ab37ed549d5b85c284988be3ba",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGED_MILP_INCIDENT.json": "b7e1cc26451f52afb230961e4f37a0ac6e7d3b9f34555d78a7c38b7899fd9bab",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGED_MILP_SIDECAR.json": "8011141598348c6afab3debc2e832df37848f1f0ddb4ed3b86a9930148d37a01",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_AUDIT_SIDECAR.json": "8532af0761baf8b47e4d1040d9b0919a754a24d551d059db8d254160eccc0e6f",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_EXECUTION_PIN.json": "d454be76383fd31d124c928be584b0f84119fd567160daa8e1ea23202f2903bc",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_MILP_AUDIT_SIDECAR.json": "a48755839d3d3bb4284fe7ea90b4815c79186fa5cc47e268f4bed2e355684f42",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_PILOT_SCREEN_PRE_CAPABILITY_FIX.json": "9e6738af7152cd88302d9d5af17357b02e77d7620738d2c8a119753c7f131f5d",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/EXCHANGE_SIDECAR.json": "16593bbe4143e990feaead9d77c339ffee72eb6bfc785e56b413e624422b5a4a",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/INITIAL_FIXED_BANK_CERTIFICATE.json": "626513819133083059ff6f0c164faa5b0277012930c5f77cc5795d4fdf1ffc01",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/audit_exchanged_channel.py": "eaaa0166c20a683e36ddb216c4d6de67dd70ed761b590fa98d1a5cd4e0a48c69",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/make_exchange_pilot_screen.py": "07acac61a23ec87c24a8ec69aa0317d68c4e1b6b8e1aae7582f9f5b64a10982a",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/package_channels.py": "0265207a93c63fa862186667427427f87d8ba9ef893ccbd3c0059ccc5ced4d6d",
+    "results/pcrl_task_aligned_cuts_v1/agents/release_math/solve_exchanged_milp.py": "4e7400bfeb8ca0fa87ed9990c94f6e43bfe582e0f27979808bfe4a760a229b86"
   },
   "passing_checks": [
     "Python py_compile",
@@ -80,6 +98,21 @@
     "QUICKSTART CLI flags inspected; public audit synthetic command passed; 12 trained-manifest local file records rehashed",
     "QUICKSTART fixed-bank objective reproduction passed exactly: 0.4678505964229197",
     "Independent raw-bank phase-I LP and analytic single-H-cut dual proof match a1/a2 recorded fallback relaxations",
-    "Optimization certificate source hashes and LP/MILP gap arithmetic replayed"
-  ]
+    "Optimization certificate source hashes and LP/MILP gap arithmetic replayed",
+    "Exchange COMPLETE rehashed across 342 artifacts; old 312 cuts preserved byte-for-byte; 324-cut LP primal/dual and max violation replayed",
+    "Exchanged-bank deterministic MILP valid lower/incumbent and binary/constraint replay; numerical integrality gap 0.00033902789 nats",
+    "Two hash-pinned standard inner-pilot audit receipts rehashed across 213 artifacts each; aggregate point rule 0/6 passes",
+    "Five ChannelArtifact packages byte-identical to their source Q arrays; separate-process synthetic emit H_A byte parity and stable keyed replay for all five",
+    "Expired-deadline scheduler receipt-only replay returned 49 valid completed units without refit",
+    "One pre-import MILP CLI incident preserved; bounded same-config PYTHONPATH retry completed",
+    "Reporting-only capability-clause correction: original uncommitted screen preserved; candidate passes \u22650.01 task-over-H, pairwise verdicts remain 0/6"
+  ],
+  "verified_private_receipts": {
+    "exchange_audit_complete_sha256": "be29b295fbdfdf9db63fdafd1c829e3403cb2ed2a7bb8f875003391035dceee8",
+    "exchange_complete_sha256": "dd78ecf18d4faff606ab1d8c324acf08f27e680097166101201c9724fa8fdbfb",
+    "exchange_milp_audit_complete_sha256": "177093f7140e31917e3be73a46ca6bdc2b9047c7df872a80c3eda1773808496a",
+    "exchange_milp_complete_sha256": "9a84d7044e5a0b08784c6b592d75bf6e7085ed98b17f3e99bdc49da9401283ca",
+    "package_receipt_sha256": "36073659163ee5e7074f90e3b68d8e3524df7ab79e1e93160edeef2f307426ca",
+    "synthetic_emit_receipt_sha256": "1927f0118ee5127b3ff35540420f5bfd228d67129ba39c79e1f2af3168d6a849"
+  }
 }

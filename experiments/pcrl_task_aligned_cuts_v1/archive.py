@@ -8,6 +8,7 @@ unit must be restored and replayed before any separate cleanup decision.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import datetime as dt
 import json
 import os
@@ -21,6 +22,20 @@ from experiments.pcrl_final_prospective_v1.archive_run import (
 STUDY = 'pcrl_task_aligned_cuts_v1'
 BUCKET = 'pcrl-ux-archive-ed9d21fd'
 SKIP_PARTS = {'archive_stage', '__pycache__', '.pytest_cache'}
+
+
+@contextmanager
+def _private_outputs(directory: Path):
+    """Create archive material owner-only, restoring the caller's umask."""
+    if directory.is_symlink():
+        raise ValueError('archive staging directory must not be a symlink')
+    previous = os.umask(0o077)
+    try:
+        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        directory.chmod(0o700)
+        yield
+    finally:
+        os.umask(previous)
 
 
 def _atomic(path: Path, value: dict) -> None:
@@ -56,8 +71,14 @@ def inventory(root: Path) -> list[dict]:
 
 def stage(root: Path, staging: Path, *, target_bytes: int = 900_000_000) -> dict:
     """Pack and independently unpack-check all bytes; leave originals intact."""
+    if staging.is_symlink():
+        raise ValueError('archive staging directory must not be a symlink')
     root = root.resolve(); staging = staging.resolve()
-    staging.mkdir(parents=True, exist_ok=True)
+    with _private_outputs(staging):
+        return _stage_private(root, staging, target_bytes=target_bytes)
+
+
+def _stage_private(root: Path, staging: Path, *, target_bytes: int) -> dict:
     manifest_path = staging / 'MANIFEST.private.json'
     if manifest_path.exists():
         raise FileExistsError('archive stage already exists; never overwrite evidence')
@@ -106,7 +127,16 @@ def publish(staging: Path, prefix: str, *, restore_prefix: str,
     model weights/predictions.  Replay of its scientific loss is a separate
     required check by the coordinator before cleanup.
     """
+    if staging.is_symlink():
+        raise ValueError('archive staging directory must not be a symlink')
     staging = staging.resolve(); restore_root = restore_root.resolve()
+    with _private_outputs(staging):
+        return _publish_private(staging, prefix, restore_prefix=restore_prefix,
+                                restore_root=restore_root)
+
+
+def _publish_private(staging: Path, prefix: str, *, restore_prefix: str,
+                     restore_root: Path) -> dict:
     manifest_path = staging / 'MANIFEST.private.json'
     manifest = json.loads(manifest_path.read_text())
     if manifest['study'] != STUDY or not manifest['originals_retained']:
