@@ -1,8 +1,9 @@
 """Independent, private inner-development audit of a frozen 2018 release.
 
 The audit fits on downstream_fit, selects predictors on the registered
-inner_selection households, and scores only inner_pilot households.  It never
-opens the software-locked outer assessment pool.
+inner_selection households, and scores only inner_pilot households. It does
+not index outer outcomes; the archived monolithic joblib seal has the
+transient-deserialization limitation recorded in VALIDATION.md.
 """
 from __future__ import annotations
 
@@ -10,6 +11,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import subprocess
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -196,3 +199,180 @@ def run_inner_panel(prepared: dict, candidate_q: np.ndarray, split: dict,
     }
     _json_atomic(root / 'INNER_PANEL.json', report)
     return report
+
+
+def _under_root(root: Path, relative: str) -> Path:
+    path = Path(relative)
+    if path.is_absolute() or '..' in path.parts:
+        raise ValueError('Sidecar path must be root-relative')
+    resolved = (root / path).resolve()
+    if not resolved.is_relative_to(root.resolve()):
+        raise ValueError('Sidecar path escapes study worktree')
+    return resolved
+
+
+def _sidecar_inputs(root: Path, registration: Path, expected_sha: str,
+                    name: str) -> tuple[dict, dict, Path, Path]:
+    from . import controls
+    if data.sha256_file(registration) != expected_sha:
+        raise ValueError('Control-audit sidecar SHA differs from locked argv')
+    sidecar = json.loads(registration.read_text())
+    if (sidecar.get('schema') != 'pcrl-control-audit-sidecar-v1'
+            or sidecar.get('anchor') != 0 or sidecar.get('slate') != 'standard'
+            or sidecar.get('outer_pool_opened') is not False):
+        raise ValueError('Unexpected registered control-audit scope')
+    for path_key, hash_key in (
+            ('input_index_relative_path', 'input_index_sha256'),
+            ('simple_map_manifest_relative_path', 'simple_map_manifest_sha256'),
+            ('fitted_control_source_relative_path', 'fitted_control_source_sha256')):
+        source = _under_root(root, sidecar[path_key])
+        if data.sha256_file(source) != sidecar[hash_key]:
+            raise ValueError(f'Sidecar dependency changed: {path_key}')
+    if data.sha256_file(root / 'results/pcrl_task_aligned_cuts_v1/PROTOCOL_LOCK.json') != sidecar['protocol_lock_sha256']:
+        raise ValueError('Original protocol lock changed')
+    h_root = _under_root(root, sidecar['shared_H_root_relative_path'])
+    h_receipt = _verified_shared_h_receipt(h_root)
+    if h_receipt['source_complete_sha256'] != sidecar['shared_H_source_complete_sha256']:
+        raise ValueError('Shared H source receipt changed')
+    matches = [(family, record) for family in ('simple_map_audit_units', 'fitted_control_audits')
+               for label, record in sidecar[family].items() if label == name]
+    if len(matches) != 1:
+        raise ValueError('Unknown or ambiguous registered control label')
+    _, record = matches[0]
+    if record['status'] == 'aliased_to_registered_unit':
+        raise ValueError(f'Exact Q alias; audit canonical {record["canonical_release_id"]}')
+    if record['status'] != 'registered_unrun' or record['canonical_release_id'] != record['release_id']:
+        raise ValueError('Control label is not a distinct registered release')
+    source = _under_root(root, record['source_relative_path'])
+    if data.sha256_file(source) != record['source_file_sha256']:
+        raise ValueError('Pinned control release file changed')
+    with np.load(source, allow_pickle=False) as saved:
+        if list(saved) != ['Q']:
+            raise ValueError('Control release archive must contain only Q')
+        q = np.ascontiguousarray(np.asarray(saved['Q'], dtype=np.float64))
+    if (list(q.shape) != record['shape'] or q.shape[0] != 32 or q.shape[1] < 2
+            or not np.isfinite(q).all() or (q < 0).any()
+            or not np.allclose(q.sum(axis=1), 1., atol=1e-8, rtol=0)
+            or controls._array_sha(q) != record['source_array_sha256']):
+        raise ValueError('Pinned control release array changed or is malformed')
+    output = _under_root(root, record['output_relative_dir'])
+    if 'private' not in output.parts:
+        raise ValueError('Control audit output must be private')
+    return sidecar, record, q, output
+
+
+def _artifact_hashes(output: Path) -> dict[str, str]:
+    result = {}
+    for path in sorted(output.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('Scientific receipt cannot contain symlinks')
+        if path.is_file() and path != output / 'SIDECAR_COMPLETE.json':
+            result[str(path.relative_to(output))] = data.sha256_file(path)
+    return result
+
+
+def audit_registered_control(registration_path: str | Path, expected_sidecar_sha256: str,
+                             name: str, *, verify_only: bool = False) -> dict:
+    """Run or verify one hash-pinned distinct control on the common inner slate."""
+    root = Path.cwd().resolve()
+    registration = Path(registration_path).resolve()
+    if not registration.is_relative_to(root):
+        raise ValueError('Control registration must belong to this worktree')
+    sidecar, record, q, output = _sidecar_inputs(
+        root, registration, expected_sidecar_sha256, name)
+    receipt_path = output / 'SIDECAR_COMPLETE.json'
+    if receipt_path.is_file():
+        receipt = json.loads(receipt_path.read_text())
+        report_path = output / 'INNER_PANEL.json'
+        if not report_path.is_file():
+            raise ValueError('Completed control audit lacks its inner-panel report')
+        report = json.loads(report_path.read_text())
+        raw_q_sha = hashlib.sha256(q.tobytes()).hexdigest()
+        if (receipt.get('schema') != 'pcrl-control-audit-complete-v1'
+                or receipt.get('unit_id') != record['release_id']
+                or receipt.get('release_id') != record['release_id']
+                or receipt.get('sidecar_sha256') != expected_sidecar_sha256
+                or receipt.get('source_file_sha256') != record['source_file_sha256']
+                or receipt.get('source_array_sha256') != record['source_array_sha256']
+                or receipt.get('inner_panel_channel_sha256') != raw_q_sha
+                or receipt.get('protocol_lock_sha256') != sidecar['protocol_lock_sha256']
+                or receipt.get('input_index_sha256') != sidecar['input_index_sha256']
+                or receipt.get('H_source_complete_sha256') != sidecar['shared_H_source_complete_sha256']
+                or report.get('release_id') != record['release_id']
+                or report.get('channel_sha256') != raw_q_sha
+                or report.get('split_assignment_sha256') != sidecar['inner_split_sha256']
+                or report.get('outer_pool_opened') is not False
+                or receipt.get('artifacts') != _artifact_hashes(output)):
+            raise ValueError('Completed control audit receipt or artifacts changed')
+        return {'status': 'verified_complete', 'unit_id': record['release_id'],
+                'receipt_sha256': data.sha256_file(receipt_path)}
+    if verify_only:
+        raise FileNotFoundError('Control audit has no completed receipt')
+    if output.exists() and any(output.iterdir()):
+        raise FileExistsError('Partial control audit preserved; quarantine before retry')
+    output.mkdir(parents=True, exist_ok=True)
+    from .pipeline import source_tree
+    source_pin = source_tree()
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+    value = data.index(_under_root(root, sidecar['input_index_relative_path']))
+    all_prepared = {anchor: data.load_prepared(value, anchor) for anchor in (0, 1, 2)}
+    split = data.global_validation_split(all_prepared)
+    if split['assignment_sha256'] != sidecar['inner_split_sha256']:
+        raise ValueError('Registered inner household split changed')
+    report = run_inner_panel(
+        all_prepared[sidecar['anchor']], q, split, record['release_id'], output,
+        slate=sidecar['slate'],
+        shared_h_root=_under_root(root, sidecar['shared_H_root_relative_path']))
+    raw_q_sha = hashlib.sha256(q.tobytes()).hexdigest()
+    if report['channel_sha256'] != raw_q_sha:
+        raise ValueError('Inner-pilot raw Q digest differs from validated control array')
+    provenance = {
+        'schema': 1, 'unit_id': record['release_id'],
+        'git_head_at_audit': head, **source_pin,
+        'sidecar_sha256': expected_sidecar_sha256,
+        'source_file_sha256': record['source_file_sha256'],
+        'source_array_sha256': record['source_array_sha256'],
+        'inner_panel_channel_sha256': raw_q_sha,
+        'protocol_lock_sha256': sidecar['protocol_lock_sha256'],
+        'input_index_sha256': sidecar['input_index_sha256'],
+        'split_assignment_sha256': split['assignment_sha256'],
+        'shared_H_source_complete_sha256': sidecar['shared_H_source_complete_sha256'],
+        'inner_panel_sha256': data.sha256_file(output / 'INNER_PANEL.json'),
+        'created_utc': datetime.now(timezone.utc).isoformat(),
+    }
+    _json_atomic(output / 'SOURCE_PROVENANCE.json', provenance)
+    receipt = {
+        'schema': 'pcrl-control-audit-complete-v1',
+        'unit_id': record['release_id'], 'release_id': record['release_id'],
+        'sidecar_sha256': expected_sidecar_sha256,
+        'source_file_sha256': record['source_file_sha256'],
+        'source_array_sha256': record['source_array_sha256'],
+        'inner_panel_channel_sha256': raw_q_sha,
+        'protocol_lock_sha256': sidecar['protocol_lock_sha256'],
+        'input_index_sha256': sidecar['input_index_sha256'],
+        'H_source_complete_sha256': sidecar['shared_H_source_complete_sha256'],
+        'source_tree_sha256': source_pin['source_tree_sha256'],
+        'artifacts': _artifact_hashes(output),
+        'completed_utc': datetime.now(timezone.utc).isoformat(),
+    }
+    _json_atomic(receipt_path, receipt)
+    return {'status': 'complete', 'unit_id': record['release_id'],
+            'receipt_sha256': data.sha256_file(receipt_path)}
+
+
+def main(argv: list[str] | None = None) -> None:
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command', choices=('audit-control',))
+    parser.add_argument('--sidecar', required=True)
+    parser.add_argument('--sidecar-sha256', required=True)
+    parser.add_argument('--name', required=True)
+    parser.add_argument('--verify-only', action='store_true')
+    args = parser.parse_args(argv)
+    result = audit_registered_control(args.sidecar, args.sidecar_sha256,
+                                      args.name, verify_only=args.verify_only)
+    print(json.dumps(result, sort_keys=True))
+
+
+if __name__ == '__main__':
+    main()

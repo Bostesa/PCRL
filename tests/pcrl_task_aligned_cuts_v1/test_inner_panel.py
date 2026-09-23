@@ -7,7 +7,9 @@ import json
 
 import pytest
 
-from experiments.pcrl_task_aligned_cuts_v1 import audit, data, inner_panel
+import hashlib
+
+from experiments.pcrl_task_aligned_cuts_v1 import audit, controls, data, inner_panel
 
 
 def _pool(prefix: str):
@@ -108,3 +110,82 @@ def test_shared_h_requires_complete_hash_pinned_source(tmp_path):
     model.write_text('{"toy": false}\n')
     with pytest.raises(ValueError, match='differs'):
         inner_panel._verified_shared_h_receipt(h_root)
+
+
+def test_control_sidecar_verify_only_replays_pins_and_rejects_tamper(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    root = tmp_path / 'results' / 'pcrl_task_aligned_cuts_v1'
+    root.mkdir(parents=True)
+    lock = root / 'PROTOCOL_LOCK.json'
+    lock.write_text('{}\n')
+    index = root / 'REUSABLE_INPUTS_PINNED.json'
+    index.write_text('{}\n')
+    simple_root = root / 'private' / 'controls' / 'simple'
+    simple_root.mkdir(parents=True)
+    simple_manifest = simple_root / 'MANIFEST.json'
+    simple_manifest.write_text('{}\n')
+    fitted_manifest = simple_root / 'CONTROLS.json'
+    fitted_manifest.write_text('{}\n')
+    q = np.zeros((32, 17))
+    q[:, 0] = 1.
+    source = simple_root / 'D17.npz'
+    np.savez(source, Q=q)
+    h_root = root / 'private' / 'run' / 'center' / 'H'
+    h_root.mkdir(parents=True)
+    h_file = h_root / 'toy.json'
+    h_file.write_text('{}\n')
+    h_complete = h_root.parent / 'COMPLETE.json'
+    h_complete.write_text(json.dumps({'unit_id': 'center',
+                                     'artifacts': {'H/toy.json': data.sha256_file(h_file)}}))
+    output = root / 'private' / 'sidecar_audits' / 'D17'
+    sidecar = root / 'CONTROL_AUDIT_SIDECAR.json'
+    sidecar.write_text(json.dumps({
+        'schema': 'pcrl-control-audit-sidecar-v1', 'anchor': 0,
+        'slate': 'standard', 'outer_pool_opened': False,
+        'input_index_relative_path': str(index.relative_to(tmp_path)),
+        'input_index_sha256': data.sha256_file(index),
+        'simple_map_manifest_relative_path': str(simple_manifest.relative_to(tmp_path)),
+        'simple_map_manifest_sha256': data.sha256_file(simple_manifest),
+        'fitted_control_source_relative_path': str(fitted_manifest.relative_to(tmp_path)),
+        'fitted_control_source_sha256': data.sha256_file(fitted_manifest),
+        'protocol_lock_sha256': data.sha256_file(lock),
+        'shared_H_root_relative_path': str(h_root.relative_to(tmp_path)),
+        'shared_H_source_complete_sha256': data.sha256_file(h_complete),
+        'inner_split_sha256': 'test-split',
+        'simple_map_audit_units': {'D17': {
+            'release_id': 'a0_simple_D17',
+            'source_relative_path': str(source.relative_to(tmp_path)),
+            'source_file_sha256': data.sha256_file(source),
+            'source_array_sha256': controls._array_sha(q),
+            'shape': [32, 17],
+            'output_relative_dir': str(output.relative_to(tmp_path)),
+            'status': 'registered_unrun',
+            'canonical_release_id': 'a0_simple_D17',
+        }}, 'fitted_control_audits': {},
+    }))
+    sidecar_sha = data.sha256_file(sidecar)
+    with pytest.raises(ValueError, match='SHA differs'):
+        inner_panel.audit_registered_control(sidecar, '0' * 64, 'D17', verify_only=True)
+    with pytest.raises(FileNotFoundError, match='no completed receipt'):
+        inner_panel.audit_registered_control(sidecar, sidecar_sha, 'D17', verify_only=True)
+    output.mkdir(parents=True)
+    raw_q_sha = hashlib.sha256(q.tobytes()).hexdigest()
+    report = {'release_id': 'a0_simple_D17', 'channel_sha256': raw_q_sha,
+              'split_assignment_sha256': 'test-split', 'outer_pool_opened': False}
+    (output / 'INNER_PANEL.json').write_text(json.dumps(report))
+    receipt = {'schema': 'pcrl-control-audit-complete-v1',
+               'unit_id': 'a0_simple_D17', 'release_id': 'a0_simple_D17',
+               'sidecar_sha256': sidecar_sha,
+               'source_file_sha256': data.sha256_file(source),
+               'source_array_sha256': controls._array_sha(q),
+               'inner_panel_channel_sha256': raw_q_sha,
+               'protocol_lock_sha256': data.sha256_file(lock),
+               'input_index_sha256': data.sha256_file(index),
+               'H_source_complete_sha256': data.sha256_file(h_complete),
+               'artifacts': {'INNER_PANEL.json': data.sha256_file(output / 'INNER_PANEL.json')}}
+    (output / 'SIDECAR_COMPLETE.json').write_text(json.dumps(receipt))
+    checked = inner_panel.audit_registered_control(sidecar, sidecar_sha, 'D17', verify_only=True)
+    assert checked['status'] == 'verified_complete'
+    (output / 'INNER_PANEL.json').write_text('{"tampered": true}')
+    with pytest.raises(ValueError, match='changed'):
+        inner_panel.audit_registered_control(sidecar, sidecar_sha, 'D17', verify_only=True)

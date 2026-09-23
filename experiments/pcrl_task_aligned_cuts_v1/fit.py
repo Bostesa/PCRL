@@ -463,6 +463,22 @@ def fit_reference_bank(anchor, index_path, output_dir, selection_mask=None,
                          attack_slate=attack_slate, resume=resume)
 
 
+def _solve_with_descriptive_fallback(cost, cuts):
+    """Preserve an infeasible registered bank and optionally solve its phase-I fallback."""
+    registered = solver.solve_p1(cost, cuts)
+    if registered["feasible"]:
+        return {"registered_solution": registered, "solution": registered,
+                "registered_feasible": True, "fallback_common_relaxation": None}
+    if registered["status"] != "registered_bank_infeasible":
+        return {"registered_solution": registered, "solution": registered,
+                "registered_feasible": False, "fallback_common_relaxation": None}
+    amount = float(registered["phase_one"]["minimum_common_violation"] + solver.PRIMAL_TOL)
+    relaxed = solver.relax_cuts(cuts, amount, np.asarray(cost).shape)
+    fallback = solver.solve_p1(cost, relaxed)
+    return {"registered_solution": registered, "solution": fallback,
+            "registered_feasible": False, "fallback_common_relaxation": amount}
+
+
 def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
                    *, round_index, delta=0., selection_mask=None,
                    attack_slate="standard", resume=False):
@@ -618,14 +634,16 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
         "bank_sha256": union["bank_sha256"],
         "cuts": [{k: v for k, v in cut.items() if k != "coeff"} for cut in union["cuts"]],
         "coefficient_archive_sha256": archive_sha})
-    solution = solver.solve_p1(cost, union["cuts"])
+    solved = _solve_with_descriptive_fallback(cost, union["cuts"])
+    solution = solved["solution"]
     channel_relative = None
     if solution.get("Q") is not None and solution.get("feasible"):
         channel_relative = "channel"
         release.ChannelArtifact(solution["Q"],
             data.member_record(value, anchor, "encoder")["sha256"],
             f"P1_exchange_r{round_index}_anchor_{anchor}",
-            "EXPERIMENTAL_UNVALIDATED").save(root / channel_relative)
+            "EXPERIMENTAL_UNVALIDATED" if solved["registered_feasible"]
+            else "DESCRIPTIVE_PHASE_I_FALLBACK").save(root / channel_relative)
     record = {"schema": 1, "anchor": anchor, "round_index": int(round_index),
               "delta": float(delta), "attack_slate": attack_slate,
               "source_bank_sha256": old_bank_sha,
@@ -636,6 +654,13 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
               "coefficient_archive_sha256": archive_sha,
               "new_cut_count": len(union["added_ids"]),
               "total_cut_count": len(union["cuts"]),
+              "status": "EXCHANGED_REGISTERED_FEASIBLE" if solved["registered_feasible"]
+                        else ("DESCRIPTIVE_PHASE_I_FALLBACK" if channel_relative
+                              else "REGISTERED_INFEASIBLE_NO_CHANNEL"),
+              "registered_feasible": solved["registered_feasible"],
+              "fallback_common_relaxation": solved["fallback_common_relaxation"],
+              "registered_failure": {k: v for k, v in solved["registered_solution"].items()
+                                     if k != "Q"} if not solved["registered_feasible"] else None,
               "oracle_log": union["oracle_log"],
               "response_channel_aliases_sha256": aliases,
               "synchronized_lp_deterministic": "LP" in kernels and any(
