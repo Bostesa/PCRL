@@ -1,0 +1,39 @@
+{
+  "decoder_trigger_file_sha256": "917a3221612d8ddd050b1aa62473db4ca283734d7da7000dce4525f49ab72592",
+  "development_resources": "Inner selection only for this nomination; inner pilot is descriptive, and outer assessment cannot influence selection.",
+  "limitations": [
+    "The +0.001 guard versus center is an eligibility screen, not the primary target versus matched controls.",
+    "The rule was fixed after observing anchor-0 pilot outcomes; later intervals cannot be interpreted as covering all adaptive design choices.",
+    "Anchors share households and are not independent samples."
+  ],
+  "original_protocol_lock_file_sha256": "4d730b46b5ea9e6053937356ce622551c4fcb63f1ced1c49dc05065c75e900cf",
+  "schema": "pcrl-development-nomination-rule-amendment-v1",
+  "selected_slots_maximum": 2,
+  "slot_1": {
+    "configuration": "U1P1 delta=0 initial center, same setting in anchors 0/1/2",
+    "feasibility": "Record each anchor registered-bank status; a phase-I descriptive fallback or invalid unit cannot be reported as meeting the registered primary P1 point.",
+    "selection": "fixed identity; no ranking by later C2 outcomes"
+  },
+  "slot_2": {
+    "configuration": "one common C2 alternating decoder/channel round number for all three anchors, 32-state T0 and 17 token labels",
+    "eligibility": [
+      "Round output is valid and registered-bank feasible at delta=0 in all three anchors; descriptive phase-I fallbacks are ineligible.",
+      "On inner_selection, every one of A/SEX, A/RAC1P, AB/SEX and AB/RAC1P under U and PWGTP has protected-recovery contrast versus the same-anchor center no greater than +0.001 nats after equal-anchor aggregation.",
+      "Use frozen validation-selected compatible attack routes, unchanged class schema, original weights and exact expected-token loss; report per-anchor contrasts even though eligibility uses the equal-anchor mean."
+    ],
+    "if_none_eligible": "Do not fill slot 2 with another arm; publish the complete C2 development curve and reasons for ineligibility.",
+    "protection_contrast": "mean_anchor[CE_sensitive(center)-CE_sensitive(C2_round)] = mean_anchor[recovery(C2_round)-recovery(center)]; negative favors C2",
+    "ranking_score": "minimum over eligible common rounds of (1/3)*sum_anchor[0.5*CE_utility_U(anchor,round)+0.5*CE_utility_PWGTP(anchor,round)] on inner_selection, using an independently fitted utility probe and exact token expectation",
+    "tie_break": "lexical registered round unit ID"
+  },
+  "status": "prospective for C2 outcomes and outer assessment; post-pilot amendment, not part of the original pre-candidate protocol registration",
+  "timing": "After anchor-0 crossed pilot and four priority matched-control pilot audits; before any C2 alternating-round outcome or outer development assessment.",
+  "unchanged_primary_claim": {
+    "AB_RAC1P_required_recovery_difference": "<= -0.002 nats in both weightings against every distinct matched comparator",
+    "H_task_capability": "candidate improves task CE over H by >= 0.01 nats at development point estimate",
+    "family": "generated 5 roles x 2 weightings x every distinct slot-comparator comparison; two-sided Bonferroni alpha 0.05",
+    "other_protected_recovery_difference": "<= +0.001 nats",
+    "task_CE_difference": "<= +0.001 nats"
+  },
+  "written_utc": "2026-09-23T12:55:08.661530+00:00"
+}
