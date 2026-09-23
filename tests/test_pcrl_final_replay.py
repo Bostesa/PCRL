@@ -32,8 +32,9 @@ class ReplayBootstrapTest(unittest.TestCase):
         for anchor in range(3):
             households = np.array([f'h{i}' for i in range(10) if i != anchor])
             loss = np.arange(len(households), dtype=float)/10
-            cache[('Q', anchor, role)] = (loss, np.ones(len(loss)), households)
-            cache[('J', anchor, role)] = (loss[::-1], np.ones(len(loss)), households)
+            ids = np.array([f'{anchor}-{i}' for i in range(len(households))])
+            cache[('Q', anchor, role)] = (loss, np.ones(len(loss)), households, ids)
+            cache[('J', anchor, role)] = (loss[::-1], np.ones(len(loss)), households, ids)
         endpoint = {'id': 'paired', 'plus': 'Q', 'minus': 'J',
                     'role': role, 'weighting': 'unweighted'}
         result = bootstrap_se([endpoint], cache, n_boot=100, seed=9)

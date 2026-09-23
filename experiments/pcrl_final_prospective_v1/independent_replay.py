@@ -148,7 +148,7 @@ def bootstrap_se(endpoints, cache, n_boot=2000, seed=777):
     for e in endpoints:
         ratios = []
         for a in ANCHORS:
-            lp, w, h = cache[(e['plus'], a, e['role'])]; lm = cache[(e['minus'], a, e['role'])][0]
+            lp, w, h, _ = cache[(e['plus'], a, e['role'])]; lm = cache[(e['minus'], a, e['role'])][0]
             idx = np.searchsorted(uniq, h)
             if not np.array_equal(uniq[idx], h):
                 raise ValueError('Household outside the common final-household union')
