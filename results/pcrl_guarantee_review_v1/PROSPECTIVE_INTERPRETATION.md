@@ -87,6 +87,11 @@ not a dominance. Against C, E and S, Q leaks less and performs worse on the task
 
 ## Check of the manuscript's integration
 
+**Update (re-checked at 55c0c5a358eea193e6d2293a2c814a5435487d14):** the manuscript owner added an
+inferential-scope paragraph (lines 386–392) stating that the sensitive clauses are per-clause results, not
+a jointly certified family. That is correct and makes P-2 optional. P-1 is **still present** at line 365.
+P-3 is not yet present. Fragment line numbers now target 55c0c5a3.
+
 Checked against `research/pcrl-submission-finish-v1` @ `8df7527c7c9a49668860223cd6d445256c345ca4`,
 `papers/pcrl_satml_final_v1/main.tex`. Every number in §`sec:prospective` and in the abstract matches the
 recomputation. Three wording repairs are proposed. Numbers are unchanged.
