@@ -105,6 +105,27 @@ check("Q shows no significant sensitive advantage over D17 on any endpoint",
           and "attack" in r.get("role", "") and r["upper"] < 0), 0,
       note="randomisation is not shown to beat the matched deterministic control")
 
+# ---------------------------------------------------------------- 3. deterministic controls, by weighting
+for comp in ("D17", "D33"):
+    task = [r for r in rows if r["id"].startswith(f"secondary|Q-vs-{comp}|") and "utility" in r["role"]]
+    unw = [r for r in task if r["weighting"] == "unweighted"][0]
+    pw = [r for r in task if r["weighting"] != "unweighted"][0]
+    check(f"Q is significantly WORSE than {comp} on unweighted task loss", unw["lower"] > 0, True,
+          note=f"estimate {unw['estimate']:+.6f}, interval [{unw['lower']:+.6f}, {unw['upper']:+.6f}] excludes zero")
+    check(f"Q vs {comp} weighted task contrast is UNRESOLVED", pw["lower"] <= 0 <= pw["upper"], True,
+          note=f"estimate {pw['estimate']:+.6f}, interval [{pw['lower']:+.6f}, {pw['upper']:+.6f}] crosses zero")
+    sens = [r for r in rows if r["id"].startswith(f"secondary|Q-vs-{comp}|") and "attack" in r["role"]]
+    check(f"no sensitive endpoint shows Q superior to {comp}", sum(1 for r in sens if r["upper"] < 0), 0,
+          note="and none shows Q significantly worse either; all eight are unresolved")
+
+# ---------------------------------------------------------------- 4. inferential scope
+check("the primary decision is a conjunction of per-clause one-sided bounds, not a simultaneous family",
+      inf["primary"]["Q"]["alpha"], 0.025,
+      note="intersection-union: each clause is tested at its own level. Passing 8 of 10 does NOT confer "
+           "simultaneous 95% coverage on those 8 components when they are highlighted separately.")
+check("the secondary family carries its own simultaneous correction", round(z_two, 4), 3.384,
+      note="70 endpoints, two-sided Bonferroni; reported apart from the primary decision")
+
 out = {"pinned_commit": SHA, "sources_sha256": sources, "z_one_sided": z_one, "z_two_sided": z_two,
        "primary_summary": summary, "matched_simple_controls": ctrl, "checks": checks,
        "counts": inf.get("counts"), "households": inf.get("households"),

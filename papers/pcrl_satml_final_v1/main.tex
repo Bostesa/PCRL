@@ -103,6 +103,15 @@ $H_B(X)\in[0,1]^2$. A mechanism may add a channel $Z$ for $A$ only, so $A$ holds
 $H_B$, and the coalition holds $(H_A,H_B,Z)$. The policy authorises $A$ for the residence task and
 forbids sex and race to $A$, to $B$ and to the coalition.
 
+\paragraph{Preservation is architectural; accuracy is not} The channel is concatenated to $H_A$ and never
+mixed into it, so preservation of the published service is an identity rather than a bounded perturbation,
+and we check it bitwise on every released view: in the prospective evaluation of \S\ref{sec:prospective}
+the service bytes were identical across all $30$ family/anchor interfaces. \textbf{That is a statement
+about bytes, not about accuracy.} The same frozen service, scored on a different survey year, has its own
+error: on the 2016 final pool its mean accuracy was $0.874$ for income, $0.891$ for civilian work and
+$0.760$ for public coverage. A recipient who was promised unchanged outputs gets exactly that; a recipient
+who assumes unchanged \emph{performance} across years does not, and the two claims are never merged here.
+
 \paragraph{Threat model} The adversary holds labelled data from the release year, fits attack families on
 its own pool, selects on a validation pool, and sees only its legal view. It knows the mechanism, the
 codebook and the channel law; what it does not hold is the person-specific draw. Attacks are fitted on the
@@ -374,7 +383,12 @@ $-0.0033$, about a fifth of it. \textbf{The conjunction failed because the effec
 not because the test was underpowered for the effect it expected}---which is the most informative thing
 this evaluation produced, and a caution about development effect sizes generally. Equally, the eight passing sensitive clauses are a real result on this attacker slate and
 these access views---not a universal privacy guarantee, not evidence about arbitrary attackers, and not a
-coalition-specific property.
+coalition-specific property. \textbf{Their inferential scope is also narrower than it looks when they are
+quoted alone.} The primary decision is an intersection--union test: each clause is checked at its own
+one-sided level, which is what makes the \emph{conjunction} valid without a simultaneous correction. It
+does not follow that the eight sensitive clauses, lifted out and highlighted on their own, carry
+simultaneous $95\%$ coverage as a set. We report them as eight per-clause results inside a conjunction
+that failed, and we do not restate them as a jointly certified family.
 
 \begin{table}[t]
 \centering\scriptsize
@@ -399,8 +413,10 @@ control ($-0.011652$, $-0.011170$) and a $75\%$ withholding control ($-0.007055$
 weightings---but it also has \emph{significantly higher} measured sensitive recovery on \textbf{six of
 eight} endpoints against each. A complete task-and-privacy benefit over these controls is therefore not
 established, and task performance alone does not imply dominance. Against the deterministic $D_{17}$ and
-$D_{33}$, $Q$ is worse on unweighted task loss and shows no significant sensitive advantage on any
-endpoint, so \textbf{randomisation is not shown to beat the matched deterministic control}. Direct
+$D_{33}$, $Q$ is significantly \emph{worse} on unweighted task loss (intervals excluding zero) while the
+person-weighted contrasts are \emph{unresolved}, and no sensitive endpoint shows $Q$ superior to either
+control---all eight are unresolved in both directions. So \textbf{randomisation is not shown to beat the
+matched deterministic control} on this evidence, and it is not shown to be worse on disclosure either. Direct
 supervised and erasure-adaptation controls achieve better task loss than $Q$ at different measured
 disclosure costs.
 
