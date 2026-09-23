@@ -1,0 +1,2048 @@
+{
+  "core_audit_units": 36,
+  "created_utc": "2026-09-23T12:05:16.757952+00:00",
+  "frozen_before_comparative_outcomes": true,
+  "nominal_core_configurations": 36,
+  "protocol_sha256": "7a828bae25504a734787294ea950dec7d459c97c4ddaf37f7f4a8c3a61bba233",
+  "schema": "pcrl-task-aligned-queue-v1",
+  "source_baseline_commit": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+  "units": [
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "admit",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_admit"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [],
+      "id": "a0_admit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_admit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-u1",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1_decoder"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit"
+      ],
+      "id": "a0_u1_decoder",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1_decoder",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-bank",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_reference_bank"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit"
+      ],
+      "id": "a0_reference_bank",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_reference_bank",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_z000",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_z000",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_z000_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p1_z000"
+      ],
+      "id": "a0_u1p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_z000_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b005",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b005",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b005_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p0_b005"
+      ],
+      "id": "a0_u0p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b005_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b010",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b010",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b010_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p0_b010"
+      ],
+      "id": "a0_u0p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b010_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b020",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b020",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b020_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p0_b020"
+      ],
+      "id": "a0_u0p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p0_b020_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b005",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b005",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b005_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p0_b005"
+      ],
+      "id": "a0_u1p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b005_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b010",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b010",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b010_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p0_b010"
+      ],
+      "id": "a0_u1p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b010_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b020",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b020",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b020_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p0_b020"
+      ],
+      "id": "a0_u1p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p0_b020_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_m002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_m002",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_m002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p1_m002"
+      ],
+      "id": "a0_u0p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_m002_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_p002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_p002",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_p002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p1_p002"
+      ],
+      "id": "a0_u0p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_p002_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_z000",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank"
+      ],
+      "id": "a0_u0p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_z000",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_z000_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u0p1_z000"
+      ],
+      "id": "a0_u0p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u0p1_z000_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_m002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_m002",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_m002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p1_m002"
+      ],
+      "id": "a0_u1p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_m002_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_p002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_admit",
+        "a0_reference_bank",
+        "a0_u1_decoder"
+      ],
+      "id": "a0_u1p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_p002",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "0",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_p002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a0_u1p1_p002"
+      ],
+      "id": "a0_u1p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a0_u1p1_p002_audit",
+      "tier": "A"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "admit",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_admit"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [],
+      "id": "a1_admit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_admit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-u1",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1_decoder"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit"
+      ],
+      "id": "a1_u1_decoder",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1_decoder",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-bank",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_reference_bank"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit"
+      ],
+      "id": "a1_reference_bank",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_reference_bank",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_z000",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_z000",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_z000_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p1_z000"
+      ],
+      "id": "a1_u1p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_z000_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b005",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b005",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b005_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p0_b005"
+      ],
+      "id": "a1_u0p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b005_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b010",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b010",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b010_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p0_b010"
+      ],
+      "id": "a1_u0p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b010_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b020",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b020",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b020_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p0_b020"
+      ],
+      "id": "a1_u0p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p0_b020_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b005",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b005",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b005_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p0_b005"
+      ],
+      "id": "a1_u1p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b005_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b010",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b010",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b010_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p0_b010"
+      ],
+      "id": "a1_u1p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b010_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b020",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b020",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b020_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p0_b020"
+      ],
+      "id": "a1_u1p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p0_b020_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_m002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_m002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_m002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p1_m002"
+      ],
+      "id": "a1_u0p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_m002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_p002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_p002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_p002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p1_p002"
+      ],
+      "id": "a1_u0p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_p002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_z000",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank"
+      ],
+      "id": "a1_u0p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_z000",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_z000_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u0p1_z000"
+      ],
+      "id": "a1_u0p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u0p1_z000_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_m002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_m002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_m002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p1_m002"
+      ],
+      "id": "a1_u1p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_m002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_p002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_admit",
+        "a1_reference_bank",
+        "a1_u1_decoder"
+      ],
+      "id": "a1_u1p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_p002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "1",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_p002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a1_u1p1_p002"
+      ],
+      "id": "a1_u1p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a1_u1p1_p002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "admit",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_admit"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [],
+      "id": "a2_admit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_admit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-u1",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1_decoder"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit"
+      ],
+      "id": "a2_u1_decoder",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1_decoder",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-bank",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_reference_bank"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit"
+      ],
+      "id": "a2_reference_bank",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_reference_bank",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_z000",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_z000",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_z000_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p1_z000"
+      ],
+      "id": "a2_u1p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_z000_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b005",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b005",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b005_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p0_b005"
+      ],
+      "id": "a2_u0p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b005_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b010",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b010",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b010_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p0_b010"
+      ],
+      "id": "a2_u0p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b010_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b020",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b020",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b020_audit",
+        "--arm",
+        "U0P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p0_b020"
+      ],
+      "id": "a2_u0p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p0_b020_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b005",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p0_b005",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b005",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b005_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.005"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p0_b005"
+      ],
+      "id": "a2_u1p0_b005_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b005_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b010",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p0_b010",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b010",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b010_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.01"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p0_b010"
+      ],
+      "id": "a2_u1p0_b010_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b010_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b020",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p0_b020",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b020",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b020_audit",
+        "--arm",
+        "U1P0",
+        "--budget",
+        "0.02"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p0_b020"
+      ],
+      "id": "a2_u1p0_b020_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p0_b020_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_m002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_m002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_m002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p1_m002"
+      ],
+      "id": "a2_u0p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_m002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_p002",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_p002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_p002_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p1_p002"
+      ],
+      "id": "a2_u0p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_p002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_z000",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank"
+      ],
+      "id": "a2_u0p1_z000",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_z000",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_z000_audit",
+        "--arm",
+        "U0P1",
+        "--budget",
+        "0"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u0p1_z000"
+      ],
+      "id": "a2_u0p1_z000_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u0p1_z000_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_m002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p1_m002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_m002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_m002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "-0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p1_m002"
+      ],
+      "id": "a2_u1p1_m002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_m002_audit",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "fit-arm",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_p002",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_admit",
+        "a2_reference_bank",
+        "a2_u1_decoder"
+      ],
+      "id": "a2_u1p1_p002",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_p002",
+      "tier": "B"
+    },
+    {
+      "argv": [
+        "/Users/nathansamson/PCRL/.venv/bin/python",
+        "-m",
+        "experiments.pcrl_task_aligned_cuts_v1.pipeline",
+        "audit-inner",
+        "--anchor",
+        "2",
+        "--index",
+        "results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json",
+        "--output-dir",
+        "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_p002_audit",
+        "--arm",
+        "U1P1",
+        "--budget",
+        "+0.002"
+      ],
+      "complete_marker": "COMPLETE.json",
+      "dependencies": [
+        "a2_u1p1_p002"
+      ],
+      "id": "a2_u1p1_p002_audit",
+      "output_dir": "results/pcrl_task_aligned_cuts_v1/private/run/a2_u1p1_p002_audit",
+      "tier": "B"
+    }
+  ]
+}
