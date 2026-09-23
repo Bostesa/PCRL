@@ -2,15 +2,17 @@
 
 **Status: nothing from it is in the paper, because it has published neither a protocol nor an outcome.**
 
-Terminal 1's status file (`pcrl_finish_handoff_v1/terminal_1/STATUS.json`, written 2026-09-22T21:30Z)
-records study `pcrl_final_prospective_v1` on branch `research/pcrl-final-prospective-v1`, phase
-"Tier A started ... no 2016 outcome accessed", with **`protocol_commit: null`** and
-**`evidence_commit: null`**. The branch exists locally and is not on `origin`.
+**Updated 2026-09-22T22:02Z.** Terminal 1's status file now records **`protocol_commit`
+`3f9aaee5ce6317660d987f81caf542dd59b4efbb`** ("Protocol registered and pushed; Tier B provenance audit"),
+with **`evidence_commit` still `null`** and branch head `b90993e37`. An earlier version of this file said
+the protocol commit was null; that was true when written and is now superseded.
 
-Because `protocol_commit` is null there was nothing to review; the protocol review requested of this
-terminal could not be performed and must not be reported as done.
+**So: a protocol exists to review, and no outcome exists to integrate.** The pre-outcome protocol review
+listed below has **not** been performed against `3f9aaee5c` by this terminal and must not be reported as
+done. It is an outstanding item, not a completed one. Nothing in Terminal 1's locked study was
+interrupted or altered here.
 
-## When a protocol is committed — review it for (before any outcome)
+## Outstanding: review `3f9aaee5c` before any outcome, for
 
 1. Frozen $Q$ and $D_{17}$ hypotheses, unchanged release objects, and the full control set.
 2. One shared household fit/validation/final partition across all anchors.
