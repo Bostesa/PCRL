@@ -485,9 +485,19 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
         cost = np.asarray(saved_cost["cost"], dtype=np.float64)
     if cost.shape != (32, 17) or not np.allclose(cost, .5*(cost_u+cost_w), atol=1e-13):
         raise ValueError("frozen task cost scaling differs from registered objective")
-    if any(abs(float(cut["rho"])-float(delta)-float(cut["floor"])) > 1e-10
-           for cut in old_cuts):
-        raise ValueError("old bank uses another registered protection delta")
+    source_deltas = {float(cut["delta"]) for cut in old_cuts}
+    if len(source_deltas) != 1 or any(
+            abs(float(cut["rho"])-float(cut["delta"])-float(cut["floor"])) > 1e-10
+            for cut in old_cuts):
+        raise ValueError("old bank has inconsistent frozen reference floors")
+    source_delta = source_deltas.pop()
+    # The initial fitted predictors/coefficients are shared across registered
+    # protection points. Rebase only their declared rho-derived floors; do not
+    # change fitted attacks or reference risks after seeing a candidate.
+    if source_delta != float(delta):
+        old_cuts = [{**cut, "delta": float(delta),
+                     "floor": float(cut["rho"])-float(delta)} for cut in old_cuts]
+    adjusted_source_bank_sha = solver.bank_sha256(old_cuts, cost.shape)
     kernels = {name: release.validate_channel(np.asarray(q), n_states=32, n_tokens=17)
                for name, q in channels.items()}
     root = _private_output(output_dir, resume=resume)
@@ -585,13 +595,16 @@ def exchange_round(anchor, index_path, bank_dir, cost_dir, channels, output_dir,
     record = {"schema": 1, "anchor": anchor, "round_index": int(round_index),
               "delta": float(delta), "attack_slate": attack_slate,
               "source_bank_sha256": old_bank_sha,
+              "source_bank_delta": source_delta,
+              "adjusted_source_bank_sha256": adjusted_source_bank_sha,
               "bank_sha256": union["bank_sha256"],
               "coefficient_archive_sha256": archive_sha,
               "new_cut_count": len(union["added_ids"]),
               "total_cut_count": len(union["cuts"]),
               "oracle_log": union["oracle_log"],
               "response_channel_aliases_sha256": aliases,
-              "synchronized_lp_deterministic": "LP" in kernels and "DET" in kernels,
+              "synchronized_lp_deterministic": "LP" in kernels and any(
+                  name in kernels for name in ("DET", "MILP")),
               "channel_relative": channel_relative,
               "channel_sha256": data.sha256_file(root / channel_relative / "Q.npz")
               if channel_relative else None,

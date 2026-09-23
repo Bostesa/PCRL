@@ -11,7 +11,7 @@ import subprocess
 
 import numpy as np
 
-from . import data, fit, scheduler
+from . import data, fit, scheduler, release, inner_panel
 
 
 STUDY = Path("results/pcrl_task_aligned_cuts_v1")
@@ -104,7 +104,29 @@ def main(argv: list[str] | None = None) -> None:
             result = fit.solve_p0_arm(args.anchor, args.index, out, arm=args.arm,
                                       budget=float(args.budget), u1_dir=u1)
     else:
-        raise NotImplementedError("Independent inner audit integration is pending")
+        if args.arm is None or args.budget is None:
+            raise ValueError("Registered arm and budget required")
+        budget_tag = {"-0.002":"m002", "0":"z000", "+0.002":"p002",
+                      "0.005":"b005", "0.01":"b010", "0.02":"b020"}.get(args.budget)
+        if budget_tag is None:
+            raise ValueError("Unregistered budget spelling")
+        fit_dir = root / f"a{args.anchor}_{args.arm.lower()}_{budget_tag}"
+        fit_file = fit_dir / ("FIT_P1_ARM.json" if args.arm.endswith("P1") else "FIT_P0_ARM.json")
+        fit_record = json.loads(fit_file.read_text())
+        channel_relative = fit_record.get("channel_relative")
+        if channel_relative is None:
+            result = {"status": "NOT_TRIGGERED_NO_VALID_CHANNEL", "fit_unit": fit_dir.name}
+            (out / "INNER_PANEL.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+        else:
+            channel_dir = fit_dir / channel_relative
+            if data.sha256_file(channel_dir / "Q.npz") != fit_record["channel_sha256"]:
+                raise ValueError("Frozen channel hash differs from completed fit")
+            channel = release.ChannelArtifact.load(channel_dir)
+            prepared = data.load_prepared(value, args.anchor)
+            all_prepared = {k: data.load_prepared(value, k) for k in (0, 1, 2)}
+            split = data.global_validation_split(all_prepared)
+            result = inner_panel.run_inner_panel(prepared, channel.Q, split,
+                fit_dir.name, out, slate="standard")
     _record_and_close(out, args.command, result)
     print(json.dumps({"unit": os.environ["PCRL_UNIT_ID"], "status": "complete"}, sort_keys=True))
 

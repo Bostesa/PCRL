@@ -161,7 +161,7 @@ def _execute(root: Path, unit: dict[str, Any], queue_sha: str,
     return {'id': ident, 'status': status, 'started_utc': started,
             'completed_utc': _now(), 'seconds': time.perf_counter() - timer,
             'pid': process.pid, 'returncode': process.returncode,
-            'log': str(log_path.relative_to(root)), 'completion': marker}
+            'log': str(log_path.resolve().relative_to(root)), 'completion': marker}
 
 
 def run_queue(root: Path, queue_path: Path, *, state_path: Path,
