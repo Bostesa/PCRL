@@ -20,7 +20,7 @@ from .common import OUT, ROOT, STUDY, atomic_json, now, sha
 
 BUCKET = 'pcrl-ux-archive-ed9d21fd'
 PREFIX = f'{STUDY}/archive'
-EXCLUDED = {'__pycache__', '.pytest_cache', 'staging', 'archive_meta', 'archive_stage'}
+EXCLUDED = {'__pycache__', '.pytest_cache', 'staging', 'archive_stage'}
 RESTORE_UNIT = f'results/{STUDY}/private/runs/acs2016/units/anchor_0/Q/attack__A__SEX'
 
 
@@ -178,7 +178,8 @@ def put_and_readback(bucket, key, source, readback):
     if version:
         target += ['--version-id', version]
     head = aws(*target)
-    if head.get('ServerSideEncryption') != 'AES256' or head.get('ContentLength') != source.stat().st_size:
+    if (head.get('ServerSideEncryption') != 'AES256' or head.get('ContentLength') != source.stat().st_size
+            or (version is not None and head.get('VersionId') != version)):
         raise ValueError(f'Archive object metadata differs: {key}')
     get = ['s3api', 'get-object', '--bucket', bucket, '--key', key]
     if version:
@@ -205,8 +206,10 @@ def check_preflight(path, bucket, prefix):
 def snapshot_host_records():
     target = OUT/'private/host_records'
     target.mkdir(parents=True, exist_ok=True)
-    for name in ('environment.txt', 'parity.log', 'prepare2016.log', 'fit2016.log', 'emulated.log',
-                 'deadline.sh', 'BENCHMARK_DEPRIORITIZED_UTC'):
+    for name in ('environment.txt', 'setup_repair.sh', 'setup_repair.log', 'parity.log',
+                 'prepare2016.log', 'fit2016.log', 'score2016.log', 'infer2016.log',
+                 'emulated.log', 'code_hash_check.log', 'deadline.sh', 'READY',
+                 'BENCHMARK_DEPRIORITIZED_UTC'):
         p = Path('/opt/pcrl')/name
         if p.is_file():
             shutil.copy2(p, target/name)
