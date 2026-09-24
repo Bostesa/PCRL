@@ -199,7 +199,7 @@ def score_locked_outer(anchor: int, releases: Mapping[str, Mapping[str, Any]],
     root = Path(output_dir).resolve()
     if "private" not in root.parts:
         raise ValueError("outer person and household contributions must remain private")
-    if root.exists() and any(root.iterdir()):
+    if root.exists():
         raise FileExistsError("outer scoring output already exists; preserve first record")
     if not isinstance(releases, Mapping) or not releases:
         raise ValueError("locked nonempty release panel required")

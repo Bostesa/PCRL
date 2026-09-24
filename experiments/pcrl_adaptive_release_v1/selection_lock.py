@@ -181,6 +181,7 @@ def build_lock(private_root: str | Path, index_path: str | Path,
         "family_members": {family: _family_members(names, family)
                            for family in FAMILIES},
     }
+    from . import outer_access
     lock = {
         "schema": "pcrl-adaptive-selection-lock-v1", "status": "LOCKED",
         "study": "pcrl_adaptive_release_v1", "assessment_year": 2018,
@@ -188,6 +189,11 @@ def build_lock(private_root: str | Path, index_path: str | Path,
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "protocol_sha256": _sha(protocol_path),
         "input_index_sha256": index_sha,
+        "scoring_code_sha256": outer_access.scoring_code_hashes(),
+        "outer_population": {
+            "census_sha256": _sha(outer_access.CENSUS_PATH),
+            "pools": list(outer_access.data.POOLS),
+            "role": "outer_assessment"},
         "selection_source": selection_source,
         "slots": slots, "alias_of": endpoint_aliases,
         "family_representatives": {family: {
@@ -232,8 +238,7 @@ def build_lock(private_root: str | Path, index_path: str | Path,
             "comparison_scope": "contextual continuous 16-coordinate A auxiliary; not a matched 17-token baseline"}
     # Enforce the same pre-unlock structural validation without creating an
     # unlock receipt or touching any assessment rows.
-    from .outer_access import verify_lock_structure
-    verify_lock_structure(lock)
+    outer_access.verify_lock_structure(lock)
     summary = {"schema": "pcrl-adaptive-inner-selection-v1",
                "source_role": "inner_selection", "development_only": True,
                "candidate_choices": choices,

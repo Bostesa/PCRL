@@ -10,15 +10,17 @@ import numpy as np
 import pytest
 
 from experiments.pcrl_adaptive_release_v1 import external_audit, roles
+from experiments.pcrl_adaptive_release_v1 import outer_pool
 from experiments.pcrl_task_aligned_cuts_v1 import audit as inherited_audit
 
 
 POOLS = ("representation_fit", "downstream_fit", "downstream_validation", "attacker_fit")
+ALL_POOLS = (*POOLS, "attacker_validation")
 
 
 def _prepared() -> dict:
     pools = {}
-    for j, name in enumerate(POOLS):
+    for j, name in enumerate(ALL_POOLS):
         n = 8
         ids = np.asarray([f"{name}-{i}" for i in range(n)])
         houses = []
@@ -43,7 +45,7 @@ def _prepared() -> dict:
         }
     encoded = {name: {"codes": {"T0": np.zeros(8, dtype=int)},
                       "p": np.zeros(8), "r": np.zeros(8), "risk": np.zeros((8, 11))}
-               for name in POOLS}
+               for name in ALL_POOLS}
     return {"ctx": {"pools": pools}, "encoded": encoded}
 
 
@@ -135,10 +137,11 @@ def test_external_index_pins_only_declared_release(tmp_path: Path) -> None:
 
 def test_locked_j_outer_attach_matches_gate_rows_and_service_bytes() -> None:
     prepared = _prepared()
-    unlocked = roles._pooled_role(prepared, "outer_assessment", allow_outer=True)
+    unlocked = outer_pool.pooled_locked_outer(prepared, {
+        "people": 10, "households": 10, "weight_sum": 10.})
     attached = external_audit.attach_locked_outer_j(prepared, unlocked)
     expected = []
-    for name in POOLS:
+    for name in ALL_POOLS:
         pool = prepared["ctx"]["pools"][name]
         mask = np.asarray([roles.role_of(h) == "outer_assessment"
                            for h in pool["households"]])

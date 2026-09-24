@@ -11,13 +11,18 @@ import json
 from pathlib import Path
 
 from experiments.pcrl_task_aligned_cuts_v1 import data
-from . import inference, roles
+from . import inference, outer_pool, roles
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = ROOT / "results/pcrl_adaptive_release_v1/SELECTION_LOCK.json"
 UNLOCK_PATH = ROOT / "results/pcrl_adaptive_release_v1/private/OUTER_UNLOCK.json"
+CENSUS_PATH = ROOT / "results/pcrl_adaptive_release_v1/DATA_ROLE_COUNTS.json"
+ORIGINAL_RESTORE_ROOT = ROOT / "results/pcrl_adaptive_release_v1/private/original_2018_restore"
 BRANCH = "research/pcrl-adaptive-release-v1"
 MANDATORY_FAMILIES = ("simple", "task_only", "gradient", "deterministic")
+SCORING_CODE = ("outer_audit.py", "outer_access.py", "outer_pool.py",
+                "inference_run.py", "inference.py", "external_audit.py",
+                "release_specs.py")
 
 
 def _sha(path: Path) -> str:
@@ -28,6 +33,16 @@ def _sha(path: Path) -> str:
 def _hex(value: object, size: int) -> bool:
     return (isinstance(value, str) and len(value) == size and
             all(char in "0123456789abcdef" for char in value))
+
+
+def scoring_code_hashes() -> dict[str, str]:
+    directory = Path(__file__).resolve().parent
+    result = {name: _sha(directory / name) for name in SCORING_CODE}
+    result["paired_inference.py"] = _sha(
+        ROOT / "experiments/pcrl_task_aligned_cuts_v1/inference.py")
+    result["paired_uncertainty.py"] = _sha(
+        ROOT / "experiments/pcrl_task_directed_release_v1/uncertainty.py")
+    return result
 
 
 def verify_lock_structure(lock: dict) -> None:
@@ -57,6 +72,12 @@ def verify_lock_structure(lock: dict) -> None:
         raise PermissionError("selection endpoint family cannot be reconstructed") from error
     if rebuilt != manifest:
         raise PermissionError("selection endpoint family differs from registered slots")
+    if (lock.get("scoring_code_sha256") != scoring_code_hashes() or
+            lock.get("outer_population") != {
+                "census_sha256": _sha(CENSUS_PATH),
+                "pools": list(data.POOLS),
+                "role": "outer_assessment"}):
+        raise PermissionError("locked scorer or five-pool population differs")
     capability = lock.get("capability_manifest")
     expected_capability = inference.capability_endpoints(
         [slot["id"] for slot in slots])
@@ -159,7 +180,11 @@ def load_locked_outer_role(index_path: str | Path, anchor: int,
     index = data.index(index_file)
     if data._sanitized_record(index, anchor) is None:
         raise FileNotFoundError("verified label-stripped prepared receipt required")
-    prepared = data.load_prepared(index, anchor)
-    if "labels" in prepared["ctx"]["pools"].get("attacker_validation", {}):
-        raise ValueError("historical final labels unexpectedly present")
-    return roles._pooled_role(prepared, "outer_assessment", allow_outer=True)
+    census = json.loads(CENSUS_PATH.read_text())
+    if (census.get("schema") != "pcrl-adaptive-role-summary-v1" or
+            census.get("outer_labels_accessed") is not False or
+            census.get("global_role_overlap") != 0):
+        raise ValueError("registered five-pool household census differs")
+    return outer_pool.load_verified_outer(
+        index, anchor, census["anchors"][str(anchor)]["outer_assessment"],
+        ORIGINAL_RESTORE_ROOT)

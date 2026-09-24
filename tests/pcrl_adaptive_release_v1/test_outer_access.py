@@ -32,6 +32,13 @@ def _lock_files(tmp_path, monkeypatch):
     unlock_path.parent.mkdir()
     index_path = tmp_path / "2018-index.json"
     index_path.write_text("{}")
+    census_path = tmp_path / "DATA_ROLE_COUNTS.json"
+    census_path.write_text(json.dumps({"schema": "pcrl-adaptive-role-summary-v1",
+        "outer_labels_accessed": False, "global_role_overlap": 0,
+        "anchors": {str(a): {"outer_assessment": {
+            "people": 1, "households": 1, "weight_sum": 1.}}
+            for a in (0, 1, 2)}}))
+    monkeypatch.setattr(outer_access, "CENSUS_PATH", census_path)
     slots = [{"id": "candidate", "arm": "U", "source_name": "candidate",
               "comparators": ["D17", "simple", "task_only", "gradient", "deterministic"]}]
     lock = {"schema": "pcrl-adaptive-selection-lock-v1", "status": "LOCKED",
@@ -39,6 +46,10 @@ def _lock_files(tmp_path, monkeypatch):
             "outer_assessment_authorized": True,
             "protocol_sha256": "a"*64,
             "input_index_sha256": hashlib.sha256(b"{}").hexdigest(),
+            "scoring_code_sha256": outer_access.scoring_code_hashes(),
+            "outer_population": {
+                "census_sha256": hashlib.sha256(census_path.read_bytes()).hexdigest(),
+                "pools": list(outer_access.data.POOLS), "role": "outer_assessment"},
             "slots": slots, "alias_of": {},
             "family_representatives": {name: {"U": name} for name in
                                        ("simple", "task_only", "gradient", "deterministic")},
@@ -85,7 +96,9 @@ def test_verified_outer_gate_opens_only_globally_assigned_2018_rows(tmp_path, mo
     lock, _, index, digest = _lock_files(tmp_path, monkeypatch)
     monkeypatch.setattr(outer_access.data, "index", lambda *_: {})
     monkeypatch.setattr(outer_access.data, "_sanitized_record", lambda *_: {"verified": True})
-    monkeypatch.setattr(outer_access.data, "load_prepared", lambda *_: _synthetic_outer())
+    monkeypatch.setattr(outer_access.outer_pool, "load_verified_outer",
+                        lambda *args: roles._pooled_role(_synthetic_outer(),
+                                             "outer_assessment", allow_outer=True))
     with pytest.raises(PermissionError):
         roles.pooled_role(_synthetic_outer(), "outer_assessment")
     rows = outer_access.load_locked_outer_role(index, 0, lock, digest)
@@ -97,14 +110,17 @@ def test_verified_outer_gate_opens_only_globally_assigned_2018_rows(tmp_path, mo
 def test_outer_gate_refuses_unmapped_or_unscored_endpoint_before_data_read(tmp_path, monkeypatch):
     lock, receipt, index, _ = _lock_files(tmp_path, monkeypatch)
     monkeypatch.setattr(outer_access.data, "index", lambda *_: pytest.fail("index read before mapping check"))
-    for mutation in ("unmapped", "unscored", "missing_family"):
+    for mutation in ("unmapped", "unscored", "missing_family", "changed_scorer"):
         value = json.loads(lock.read_text())
         if mutation == "unmapped":
             del value["anchors"]["1"]["logical_to_canonical"]["candidate"]
         elif mutation == "unscored":
             value["anchors"]["2"]["logical_to_canonical"]["gradient"] = "absent"
         else:
-            del value["family_representatives"]["gradient"]
+            if mutation == "missing_family":
+                del value["family_representatives"]["gradient"]
+            else:
+                value["scoring_code_sha256"]["outer_pool.py"] = "0"*64
         lock.write_text(json.dumps(value))
         digest = hashlib.sha256(lock.read_bytes()).hexdigest()
         unlock = json.loads(receipt.read_text())

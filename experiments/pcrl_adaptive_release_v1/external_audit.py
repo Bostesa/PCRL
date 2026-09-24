@@ -26,6 +26,10 @@ METHODS = ("J", "leace_A0", "splince_A0", "optnet16_C1", "optnet16_L1", "optnet1
 EXTERNAL_INDEX_SCHEMA = "pcrl-external-release-inputs-private-v1"
 HISTORICAL_COMPETITIVE_COMMIT = "7f961d5c7f6f0562efcb25a27a77bb5221c279a7"
 POOLS = ("representation_fit", "downstream_fit", "downstream_validation", "attacker_fit")
+OUTER_POOLS = (*POOLS, "attacker_validation")
+# The J inner slates were fitted and archived before the five-pool outer-only
+# correction. Keep their actual source pin; the outer scorer records its new SHA.
+FROZEN_J_INNER_SOURCE_SHA256 = "36b2bdd3692d296364d52aff12453d5c14d7b4bb66a461556548dc3fe5c17cba"
 INNER_ROLES = ("audit_fit", "inner_selection", "inner_check")
 H_ROLES = (*inherited.ROLES, "attack:B/SEX", "attack:B/RAC1P")
 
@@ -325,16 +329,20 @@ def audit_external_panel(anchor: int, methods: tuple[str, ...],
 def attach_locked_outer_j(prepared: Mapping[str, Any],
                           unlocked_rows: Mapping[str, Any]) -> dict:
     """Align J16 to already-unlocked outer rows, preserving their H and labels."""
-    expected = roles._pooled_role(prepared, "outer_assessment", allow_outer=True)
+    # The ordinary prepared loader strips fifth-pool labels. The locked outer
+    # gate supplies those from the verified original; compare every nonlabel
+    # source coordinate here before attaching the continuous J auxiliary.
     for key in ("ids", "households", "weights", "ha", "hb"):
-        if not _same_bytes(expected[key], unlocked_rows[key]):
+        pieces = []
+        for name in OUTER_POOLS:
+            pool = prepared["ctx"]["pools"][name]
+            mask = np.asarray([roles.role_of(h) == "outer_assessment"
+                               for h in pool["households"]], dtype=bool)
+            pieces.append(np.asarray(pool[key])[mask])
+        if not _same_bytes(np.concatenate(pieces), unlocked_rows[key]):
             raise ValueError("J source differs from verified outer gate rows")
-    for target in roles.CLASS_COUNT:
-        if not _same_bytes(expected["labels"][target],
-                           unlocked_rows["labels"][target]):
-            raise ValueError("J labels differ from verified outer gate rows")
     pieces = []
-    for name in POOLS:
+    for name in OUTER_POOLS:
         pool = prepared["ctx"]["pools"][name]
         mask = np.asarray([roles.role_of(h) == "outer_assessment"
                            for h in pool["households"]], dtype=bool)
@@ -395,7 +403,7 @@ def score_locked_j_outer(anchor: int, input_index_path: str | Path,
             "J" not in inner.get("releases", {}) or
             set(complete.get("release_ids", [])) != set(inner.get("releases", {})) or
             inner.get("source_code_sha256") != {
-                "external_audit.py": _sha(__file__),
+                "external_audit.py": FROZEN_J_INNER_SOURCE_SHA256,
                 "inherited_audit.py": _sha(inherited.__file__),
                 "roles.py": _sha(roles.__file__) }):
         raise ValueError("frozen J inner receipt/source/selection differs")
