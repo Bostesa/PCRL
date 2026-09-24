@@ -52,3 +52,43 @@ Each entry gives the UTC time, the outcome-access status at the time, the trigge
    - ADV trains on nuisance_train ∪ coefficient_split and checks feasibility on coefficient_split.
    - Stochastic laws weaken the two exact hist_gb audit attackers through the min-leaf rule. The rule is identical for all releases.
    - Receiver-fit noise was about .004 nats on the smoke.
+
+## M4 — 2026-09-24 18:42Z (pre-fit; outcome access: 30% a0 engineering smoke, bank feasibility only, no task or attack losses read)
+
+- **Trigger.** With the M3 closing refit, the 2-round smoke NM4_U had no round feasible on the enlarged bank. The round-0 LP was broken by a round-1 A/RAC1P attacker (max violation .0034). Round 1 was broken by its own closing attacker (.0071). The predecessor rule guaranteed that the last round was feasible, because the final bank equalled that round's LP bank. The closing refit removes this guarantee and the predecessor code raised an error.
+- **Rule, identical for every privacy-constrained family (NM*, T32*, RD_PRIV, ADV_B*, ADV_B*_P):**
+  - Each unit's selection set is its own checkpoints plus the exact D17 witness. The witness is feasible for any bank by construction.
+  - Selection applies the unit's registered rule among members feasible on its final bank. That bank includes attackers refit on the checkpoint being judged: the closing refit for NM and T32, and the unit's own refits for RD and ADV.
+  - If only the witness is feasible, the unit selects D17, flagged `WITNESS_FALLBACK`. It is then an exact alias of D17 and is audited once, in the alias ledger.
+  - This replaces ADV's minimum-violation fallback. RD_PRIV already worked this way. DET_SEL already includes the all-D17 assignment.
+  - RD_TASK has no privacy constraint and is unaffected.
+- **Reason.** A release is admissible only if its bank-measured recovery, including attackers refit on that release, stays within delta of D17. This is the math review's finding that frozen attackers overstate mixture privacy. The same standard applies to every family, so no family is favored.
+- **Reporting.** Selecting the witness is not an uninstantiated test. The unit's checkpoints, their within-T32 variation, and the violations that excluded them are all reported ("trained / used by the LP / selected"). Witness fallbacks are counted per family and anchor.
+
+## M5 — 2026-09-24 18:44Z (pre-fit, from the independent pre-launch review `agents/verifier/PRELAUNCH_REVIEW.md`; outcome access: none beyond the engineering smokes)
+
+1. **P-form final-round key.** NM1_P, NM4_P and T32_P choose, among members feasible on the final bank (including the D17 witness, per M4), the one with the largest final-bank AB/SEX slack. Slack is min over AB/SEX cuts and both weightings of (L_a − rho) on coefficient_split. Ties go to the lower inner_selection fixed-decoder task, then the round. The ADV_B*_P units use this same key over their shortlisted checkpoints, with slack measured against attackers refit on each checkpoint.
+   - Reason: the registered task key pushed P-form units to their least-protective feasible round, so the route's own target played no part.
+   - U-form units and RD_TASK are unchanged. RD_PRIV keeps its task key because it serves both routes. Its mu is bisected to the minimal feasible value, so it is a minimally protective feasible policy. This is disclosed as a limitation that favors NM on the P route.
+2. **ADV_B*_P strength.** These units:
+   - early-stop on inner_selection with the privacy key (task CE − beta × mean adversary CE);
+   - use seeds distinct from ADV_B* (+500);
+   - rank shortlisted checkpoints by attackers refit on each checkpoint, not by the co-trained adversary;
+   - record any fallback explicitly.
+3. **Outer alias guard.** Outer scoring asserts that every logical law is byte-identical to its canonical law on outer rows. If it is not, the law is scored separately and the lock's comparator merge is recomputed on outer rows (recorded).
+4. **Positive controls gate the lock.** The lock pins the POS receipts (AB/SEX and AB/RAC1P, all three anchors) and their `detected` flags. An undetected control marks that role and anchor's audit strength as uninformative in the report. It never changes endpoints.
+5. **Outer gate.** It verifies the lock commit on origin via `git ls-remote` and `git show` before opening outer rows.
+6. **Minor fixes.**
+   - assess refuses if J endpoints are in the lock but the J outer scores are absent;
+   - the `rd` alias tolerance is atol 1e-12, rtol 0;
+   - the watchdog is clamped in code to no later than 2026-09-25T13:26Z;
+   - a runner timeout kills the whole process group;
+   - docs corrected to audit seed 26000.
+7. **Disclosed, not changed.** Decoder refits train on nuisance_train under policies fitted with nuisance_train labels, which is mildly adverse to NM. ROUND.json records an inner_check task score that no rule reads.
+8. **Clarifications recorded at 18:50Z (implementation).**
+   - ADV_B*_P also caps its inner_selection task loss at the D17 witness's + .001. This mirrors the task cap in NM_P's own LP. If no epoch meets the cap, the unit records NO_ELIGIBLE_EPOCH and selects the D17 witness.
+   - The witness score for each unit is computed as follows:
+     - NM and T32 use the last round's decoder;
+     - RD_PRIV uses a pure-D17 receiver with the unit's common seed;
+     - ADV uses its warm-start decoder.
+   - On an exact task tie, the witness wins.

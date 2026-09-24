@@ -614,7 +614,6 @@ def run_unit(variant, anchor, role_dict, q_ref, historical_q, bank_dir, output_d
                   "inner_selection_fixed_decoder_task": task_scores_law(decoder, role_dict["inner_selection"], q_law["inner_selection"]),
                   "inner_check_fixed_decoder_task": task_scores_law(decoder, role_dict["inner_check"], q_law["inner_check"]),
                   "nonalias": nonalias, "within_t32_projection_rescore": rescore,
-                  "elapsed_seconds": round(time.time() - t_start, 1),
                   "outer_labels_accessed": False,
                   "scope": "fixed-bank/fixed-decoder training diagnostics; refit audits are separate"}
         if fix and r == 0 and form == "U":
@@ -625,22 +624,36 @@ def run_unit(variant, anchor, role_dict, q_ref, historical_q, bank_dir, output_d
         params_by_round.append(p)
         final = (cost, calibrated["cuts"])
         laws = {n: q_law[n] for n in SCIENCE_ROLES}
-        _log("unit_round", variant=variant, round=r, seconds=record["elapsed_seconds"],
+        _log("unit_round", variant=variant, round=r, seconds=round(time.time() - t_start, 1),
              objective=solution["replay"].get("objective"), tau=solution.get("tau"),
              eta=p["eta"], tv_d17=nonalias["coefficient_split"]["tv_to_d17"]["weighted_mean"])
     closing = _closing_refit(root, anchor, rounds, role_dict, laws, q_ref, final[0], cut_store,
                              ctx, tokens, K, bank)
-    selection = select_final_round(params_by_round, records, final[0], closing["cuts"])
+    # Amendment M4: candidate set = rounds + exact D17 witness (always feasible).
+    witness_params = dict(zip(("B", "A", "eta"), channel.d17_params(q_ref, K, len(policy_bank.names))))
+    _save_npz(root / "witness" / "PARAMS.npz", B=witness_params["B"], A=witness_params["A"],
+              eta=np.asarray(witness_params["eta"]))
+    witness_task = task_scores_law(decoder, role_dict["inner_selection"],
+                                   q_ref[codes["inner_selection"]])
+    selection = select_final_round(params_by_round, records, final[0], closing["cuts"],
+                                   witness=(witness_params, witness_task), form=form)
     selection["closing_refit"] = closing["record"]
+    selection["witness_task_decoder"] = "last round's selected decoder"
     _write_json(root / "FINAL_BANK_SELECTION.json", selection)
     chosen_round = selection["selected_round"]
-    release_spec = _release_spec(variant, anchor, K, fix, policy_bank.names, bank, root,
-                                 f"round_r{chosen_round:02d}/PARAMS.npz")
+    params_relative = ("witness/PARAMS.npz" if chosen_round is None
+                       else f"round_r{chosen_round:02d}/PARAMS.npz")
+    release_spec = _release_spec(variant, anchor, K, fix, policy_bank.names, bank, root, params_relative)
+    release_spec["selection_status"] = selection["status"]
     _write_json(root / "RELEASE_SPEC.json", release_spec)
     _write_json(root / "SELECTED.json", {"selected_round": chosen_round,
+                                         "selection_status": selection["status"],
                                          "selection_rule": selection["selection_rule"],
                                          "release_spec_sha256": _sha_file(root / "RELEASE_SPEC.json")})
     receipt = {**expected, "status": "COMPLETE", "selected_round": chosen_round,
+               "selection_status": selection["status"],
+               "feasible_rounds": [c["round"] for c in selection["final_bank_checks"]
+                                   if c["round"] is not None and c["feasible"]],
                "closing_refit": {k: closing["record"][k] for k in
                                  ("round_index", "new_attack_count", "cut_count", "bank_sha256")},
                "rounds_summary": [{"round": x["round"], "objective": x["solution"]["replay"].get("objective"),
@@ -686,20 +699,61 @@ def _closing_refit(root, anchor, rounds, role_dict, laws, q_ref, final_cost, cut
     return {"cuts": calibrated["cuts"], "record": record}
 
 
-def select_final_round(params_by_round, records, final_cost, final_cuts):
-    """AR rule: feasible on the last rebased bank, then min inner-selection task CE."""
+def select_final_round(params_by_round, records, final_cost, final_cuts, *, witness=None, form="U"):
+    """AR rule over rounds (+ the M4 D17 witness): feasible on the final bank, then
+    lowest inner-selection balanced task CE, then earlier member (witness first).
+
+    Status: SELECTED_ROUND, WITNESS_SELECTED (witness wins among feasible members)
+    or WITNESS_FALLBACK (only the witness is feasible).
+    """
+    members = []
+    if witness is not None:
+        members.append((None, witness[0], witness[1]))
+    members += [(rec["round"], p, rec["inner_selection_fixed_decoder_task"])
+                for p, rec in zip(params_by_round, records)]
     checks = []
-    for r, p in enumerate(params_by_round):
+    for label, p, task in members:
         check = channel.check_feasible(p, final_cost, final_cuts)
-        checks.append({"round": r, "feasible": check["feasible"],
-                       "maximum_cut_violation": check["maximum_cut_violation"]})
-    eligible = [rec for rec, c in zip(records, checks) if c["feasible"]]
+        worst = min(final_cuts, key=lambda cut: check["slacks"][cut["id"]]) if final_cuts else None
+        checks.append({"round": label, "member": "D17_witness" if label is None else f"round_{label:02d}",
+                       "feasible": check["feasible"],
+                       "maximum_cut_violation": check["maximum_cut_violation"],
+                       "violated_cuts": int(sum(v < -channel.PRIMAL_TOL for v in check["slacks"].values())),
+                       "worst_cut": worst["id"] if worst else None,
+                       "inner_selection_task_balanced": (task["U"] + task["W"]) / 2,
+                       "ab_sex_slack_vs_rho": _ab_sex_slack(check, final_cuts)})
+    if witness is not None and not checks[0]["feasible"]:
+        raise AssertionError("D17 witness infeasible on the final bank: accounting error")
+    eligible = [(i, c) for i, c in enumerate(checks) if c["feasible"]]
     if not eligible:
-        raise RuntimeError("no round satisfies the final rebased bank")
-    chosen = min(eligible, key=lambda rec: ((rec["inner_selection_fixed_decoder_task"]["U"] +
-                                             rec["inner_selection_fixed_decoder_task"]["W"]) / 2, rec["round"]))
-    return {"selected_round": chosen["round"], "final_bank_checks": checks,
-            "selection_rule": "minimum inner-selection balanced task CE among final-bank-feasible rounds; earlier round tie"}
+        raise RuntimeError("no member satisfies the final rebased bank")
+    if form == "P":   # amendment M5.1: largest final-bank AB/SEX slack, then task, then member order
+        if any(c["ab_sex_slack_vs_rho"] is None for _, c in eligible):
+            raise ValueError("P-form selection requires AB/SEX cuts in the final bank")
+        index, chosen = min(eligible, key=lambda item: (-item[1]["ab_sex_slack_vs_rho"],
+                                                        item[1]["inner_selection_task_balanced"], item[0]))
+    else:
+        index, chosen = min(eligible, key=lambda item: (item[1]["inner_selection_task_balanced"], item[0]))
+    rounds_feasible = any(c["feasible"] for c in checks if c["round"] is not None)
+    if chosen["round"] is not None:
+        status = "SELECTED_ROUND"
+    else:
+        status = "WITNESS_SELECTED" if rounds_feasible else "WITNESS_FALLBACK"
+    return {"selected_round": chosen["round"], "selected_member": chosen["member"],
+            "status": status, "final_bank_checks": checks, "form": form,
+            "selection_rule": ("M5.1/M4: largest final-bank AB/SEX slack min(L_a - rho) over AB/SEX cuts and "
+                               "both weightings among final-bank-feasible members {rounds, exact D17 witness}; "
+                               "tie -> lower inner-selection balanced task CE, then witness/earlier round"
+                               if form == "P" else
+                               "M4/AR: minimum inner-selection balanced task CE among final-bank-feasible "
+                               "members {rounds, exact D17 witness}; tie -> witness, then earlier round")}
+
+
+def _ab_sex_slack(check, cuts):
+    """min over AB/SEX cuts (U and W) of L_a - rho; slacks are L_a - (rho - delta)."""
+    values = [check["slacks"][c["id"]] + float(c["floor"]) - float(c["rho"])
+              for c in cuts if c.get("role") == channel.P_TARGET_ROLE]
+    return float(min(values)) if values else None
 
 
 def _release_spec(variant, anchor, K, fix, names, bank, unit_root, params_relative):
@@ -772,7 +826,11 @@ def run_det_sel(variant, from_dir, output_dir, *, role_dict=None, q_ref=None):
     A = np.zeros((K, len(names)))
     A[np.arange(K), best["index"]] = 1.
     _save_npz(root / "PARAMS.npz", B=np.zeros((32, 17)), A=A, eta=np.asarray(1.))
+    all_d17 = any(r["index"] == [0] * K for r in rows)
+    if not all_d17 or names[0] != "D17":
+        raise AssertionError("all-D17 assignment missing from the DET_SEL enumeration")
     record = {**expected, "selected": best, "assignments_evaluated": len(rows),
+              "all_d17_assignment_included": all_d17,
               "feasible_assignments": int(sum(r["feasible"] for r in rows)),
               "assignments": rows,
               "rule": "lowest 0.5U+0.5W task loss among bank-feasible assignments; tie fewer non-D17 contexts, then lexicographic",

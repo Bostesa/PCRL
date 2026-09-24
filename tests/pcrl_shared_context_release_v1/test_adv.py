@@ -60,14 +60,15 @@ def test_adv_end_to_end_selection_and_pinned_law(synthetic, tmp_path):
     out = tmp_path / "adv"
     sel = adv.run_adv(0, 2.0, role_dict, d17, bank, out, max_epochs=3, min_epochs=3, shortlist=2,
                       log=lambda *_: None)
-    assert sel["selected_epoch"] in [s["epoch"] for s in sel["shortlist"]]
-    chosen = next(s for s in sel["shortlist"] if s["epoch"] == sel["selected_epoch"])
-    feasible = [s for s in sel["shortlist"] if s["final_bank"]["feasible"]]
-    if feasible:
-        assert chosen["final_bank"]["feasible"] and sel["flag"] is None
-        assert chosen["inner_selection_task"] == min(s["inner_selection_task"] for s in feasible)
+    feasible = [s for s in sel["shortlist"] if s["final_bank"]["feasible"]] + [sel["witness"]]
+    assert sel["witness"]["final_bank"]["feasible"]
+    best = min(f["inner_selection_task"] for f in feasible)
+    if sel["witness_selected"]:
+        assert sel["selected_epoch"] is None and sel["witness"]["inner_selection_task"] == best
     else:
-        assert sel["flag"].startswith("NO_FINAL_BANK_FEASIBLE")
+        chosen = next(s for s in sel["shortlist"] if s["epoch"] == sel["selected_epoch"])
+        assert chosen["final_bank"]["feasible"] and sel["flag"] is None
+        assert chosen["inner_selection_task"] == best
     # final bank = round-0 + one best-response set per shortlisted checkpoint
     assert sel["final_bank_cut_count"] == len(bank.cut_meta) + 2 * 8
     assert sel["timing_seconds"]["per_epoch_mean"] > 0
@@ -79,8 +80,8 @@ def test_adv_end_to_end_selection_and_pinned_law(synthetic, tmp_path):
     assert np.all((q == 0) | (q >= adv.PRUNE * 0.99))
     with pytest.raises((ValueError, PermissionError)):
         law({**inputs, "hb": role_dict["inner_check"]["hb"]})
-    enc = out / sel["encoder"]["path"]
-    enc.write_bytes(enc.read_bytes() + b"x")
+    pinned = out / (sel["scaler"]["path"] if sel["witness_selected"] else sel["encoder"]["path"])
+    pinned.write_bytes(pinned.read_bytes() + b"x")
     with pytest.raises(ValueError, match="hash"):
         adv.load_law(out)
 
@@ -103,7 +104,7 @@ def _plugin_ce(law, s, k):
 
 
 def test_adversarial_pressure_reduces_sex_leakage(monkeypatch, tmp_path):
-    """Task signal x0 also predicts SEX: beta=2 must leak less SEX through the token than beta=0."""
+    """Task signal x0 also predicts SEX: the beta=2 shortlisted law leaks less SEX than beta=0's."""
     monkeypatch.setattr(rd, "attack_losses", fx.fake_attack_losses)
     monkeypatch.setattr(rd, "fit_best_response", fx.fake_best_response)
     role_dict = fx.make_roles(n=800, seed=3)
@@ -114,30 +115,66 @@ def test_adversarial_pressure_reduces_sex_leakage(monkeypatch, tmp_path):
     d17 = fx.d17_map()
     rd.attach_round0_laws(role_dict, d17, 0.5 * d17 + 0.5 / 17)
     bank = fx.make_bank(role_dict, d17)
-    leak, epochs = {}, {}
+    leak = {}
+    rows = role_dict["inner_check"]
     for beta in (0.0, 2.0):
-        epochs[beta] = adv.run_adv(2, beta, role_dict, d17, bank, tmp_path / f"b{beta}", max_epochs=15, min_epochs=15,
-                    shortlist=1, init="random", lr=1e-3, weight_decay=1e-4, log=lambda *_: None)["selected_epoch"]
-        law_fn = adv.load_law(tmp_path / f"b{beta}")
-        rows = role_dict["inner_check"]
-        leak[beta] = _plugin_ce(law_fn(rd.legal_inputs(rows)), rows["labels"]["SEX"], 2)
-    print("leak", leak, "epochs", epochs)
-    assert min(epochs.values()) > 0, "selection must move off the random init for the test to mean anything"
+        out = tmp_path / f"b{beta}"
+        sel = adv.run_adv(2, beta, role_dict, d17, bank, out, max_epochs=15, min_epochs=15,
+                          shortlist=1, init="random", lr=1e-3, weight_decay=1e-4, log=lambda *_: None)
+        e = sel["shortlist"][0]["epoch"]
+        assert e > 0, "shortlist must move off the random init for the test to mean anything"
+        enc, _, _ = adv.build_modules(adv.N_ENCODER_FEATURES, 0)
+        enc.load_state_dict(torch.load(out / "checkpoints" / f"encoder_e{e:03d}.pt", weights_only=True))
+        with np.load(out / "feature_scaler.npz") as s:
+            law = adv.AdvLaw(enc, rd.Scaler(s["mean"], s["scale"]), s["d17_token_map"].copy())
+        leak[beta] = _plugin_ce(law(rd.legal_inputs(rows)), rows["labels"]["SEX"], 2)
     assert leak[2.0] > leak[0.0]
 
 
-def test_optional_privacy_checkpoint_rule(synthetic, tmp_path):
+def test_privacy_units_m5_rule(synthetic, tmp_path):
     role_dict, d17, bank = synthetic
     sel = adv.run_adv(0, 2.0, role_dict, d17, bank, tmp_path / "p", max_epochs=4, min_epochs=4, shortlist=2,
                       select="privacy", log=lambda *_: None)
-    assert sel["select"] == "privacy"
+    task = adv.run_adv(0, 2.0, role_dict, d17, bank, tmp_path / "t", max_epochs=1, min_epochs=1, shortlist=1,
+                       log=lambda *_: None)
+    assert sel["training"]["seed"] == task["training"]["seed"] + 500          # distinct seeds (M5)
+    beta = 2.0
     hist = {h["epoch"]: h for h in sel["history"]}
-    ref = hist[0]["task_balanced"]
-    if sel["privacy_rule_eligible_epochs"] and sel["flag"] is None:
-        chosen = hist[sel["selected_epoch"]]
-        assert chosen["task_balanced"] <= ref + 0.001
-        feas = [s for s in sel["shortlist"] if s["final_bank"]["feasible"]]
-        assert chosen["adv_ce_inner_selection"]["AB/SEX"] == max(s["inner_selection_own_adversary_ab_sex_ce"] for s in feas)
+    for s_ in sel["shortlist"]:                                                 # privacy key + task cap
+        h = hist[s_["epoch"]]
+        assert h["task_balanced"] <= sel["witness"]["inner_selection_task"] + 0.001
+        adv_ce = h["adv_ce_inner_selection"]
+        assert s_["selection_key"][1] == pytest.approx(h["task_balanced"] - beta * sum(adv_ce.values()) / 4)
+    feas = [s_ for s_ in sel["shortlist"] if s_["final_bank"]["feasible"]] + [sel["witness"]]
+    top = max(f["final_bank_ab_sex_slack"] for f in feas)                       # refit-attacker slack key
+    assert sel["witness"]["final_bank_ab_sex_slack"] == pytest.approx(0.0, abs=1e-12)
+    if sel["witness_selected"]:
+        assert sel["witness"]["final_bank_ab_sex_slack"] == top
+    else:
+        chosen = next(s_ for s_ in sel["shortlist"] if s_["epoch"] == sel["selected_epoch"])
+        assert chosen["final_bank_ab_sex_slack"] == top and top > 0
+    if not sel["shortlist"]:
+        assert sel["privacy_note"].startswith("NO_ELIGIBLE_EPOCH") and sel["flag"] == "WITNESS_FALLBACK"
     with pytest.raises(ValueError):
         adv.run_adv(0, 2.0, role_dict, d17, bank, tmp_path / "q", max_epochs=1, min_epochs=1, shortlist=1,
                     select="bogus", log=lambda *_: None)
+
+
+def test_adv_witness_fallback_returns_exact_d17(synthetic, tmp_path, monkeypatch):
+    """M4: no feasible checkpoint -> exact one-hot D17 law, flag WITNESS_FALLBACK."""
+    role_dict, d17, bank = synthetic
+    real_check = rd.PersonBank.check
+
+    def reject_non_d17(self, law):
+        out = real_check(self, law)
+        if np.any(law != self.d17_law):
+            out = {**out, "feasible": False, "max_violation": 0.01}
+        return out
+    monkeypatch.setattr(rd.PersonBank, "check", reject_non_d17)
+    out = tmp_path / "w"
+    sel = adv.run_adv(0, 0.5, role_dict, d17, bank, out, max_epochs=2, min_epochs=2, shortlist=2,
+                      log=lambda *_: None)
+    assert sel["flag"] == "WITNESS_FALLBACK" and sel["witness_selected"] and sel["selected_epoch"] is None
+    rows = role_dict["inner_check"]
+    q = adv.load_law(out)(rd.legal_inputs(rows))
+    np.testing.assert_array_equal(q, rd.onehot(rd.d17_tokens(d17, rows["token_codes"])))

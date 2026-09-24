@@ -14,13 +14,16 @@ from tests.pcrl_shared_context_release_v1.test_selection import ABSEX, TASK, rou
 PINS = {str(a): {"inner_panel_complete_sha256": f"{a}" * 64, "inner_audit_sha256": f"{a + 3}" * 64,
                  "index_sha256": "e" * 64} for a in (0, 1, 2)}
 J_PINS = {str(a): {"inner_complete_sha256": "c" * 64, "inner_audit_sha256": "d" * 64} for a in (0, 1, 2)}
+POS = {lock.pos_key(a, r): {"detected": not (a == 2 and r == "AB/RAC1P"), "improvement_nats": {}}
+       for a in (0, 1, 2) for r in lock.POS_ROLES}
 
 
 def build(reports=None, j=True):
     reports = reports or three(deltas={"NM4_U": {TASK: -.006}, "NM1_P": {ABSEX: .003}})
     inner = selection.select_inner(reports)
     return lock.build_lock(inner, reports, PINS, j_pins=J_PINS if j else None, code_commit="f" * 40,
-                           protocol_sha256="1" * 64, inner_selection_sha256="2" * 64), reports
+                           protocol_sha256="1" * 64, inner_selection_sha256="2" * 64,
+                           positive_controls=POS), reports
 
 
 def test_primary_family_is_80_with_registered_clauses_and_z():
@@ -97,3 +100,36 @@ def test_verify_structure_detects_tampering_and_lock_is_write_once(tmp_path):
     assert json.loads(path.read_text())["status"] == "LOCKED"
     with pytest.raises(FileExistsError):
         lock.write_once(path, value)
+
+
+def test_lock_requires_all_six_positive_controls(tmp_path):
+    value, reports = build()
+    assert value["audit_uninformative"] == ["2|attack:AB/RAC1P"]
+    inner = selection.select_inner(reports)
+    partial = {k: v for k, v in POS.items() if k != "0|attack:AB/SEX"}
+    with pytest.raises(ValueError, match="six positive-control"):
+        lock.build_lock(inner, reports, PINS, j_pins=None, code_commit="f" * 40,
+                        protocol_sha256="1" * 64, inner_selection_sha256="2" * 64,
+                        positive_controls=partial)
+    with pytest.raises(FileNotFoundError, match="refusing to lock"):
+        lock.load_positive_controls(tmp_path / "private" / "units")
+
+
+def test_load_positive_controls_pins_receipts(tmp_path):
+    root = tmp_path / "private" / "units"
+    for a in (0, 1, 2):
+        for r in lock.POS_ROLES:
+            uid = f"a{a}_POS_{r.replace('/', '_')}"
+            name = f"a{a}_{r.replace('/', '_')}_SUMMARY.json"
+            (root / uid).mkdir(parents=True)
+            summary = {"anchor": a, "role": r, "smoke": False, "outer_labels_accessed": False,
+                       "detected": True, "improvement_nats": {"U": 1., "PWGTP": 1.}, "threshold_nats": .01}
+            (root / uid / name).write_text(json.dumps(summary))
+            (root / "_receipts").mkdir(exist_ok=True)
+            (root / "_receipts" / f"{uid}.json").write_text(json.dumps(
+                {"outputs_sha256": {name: lock._sha(root / uid / name)}}))
+    pinned = lock.load_positive_controls(root)
+    assert len(pinned) == 6 and all(v["detected"] for v in pinned.values())
+    (root / "a1_POS_AB_SEX" / "a1_AB_SEX_SUMMARY.json").write_text("{}")
+    with pytest.raises(ValueError):
+        lock.load_positive_controls(root)

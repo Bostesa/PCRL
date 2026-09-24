@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -357,9 +358,56 @@ def _hex(value: object, size: int) -> bool:
             all(char in "0123456789abcdef" for char in value))
 
 
+LOCK_RELATIVE = f"results/{STUDY}/SELECTION_LOCK.json"
+
+
+def _git(*args: str, repo: Path = ROOT) -> str:
+    return subprocess.check_output(["git", *args], cwd=repo, text=True,
+                                   stderr=subprocess.PIPE)
+
+
+def remote_lock_check(commit: str, expected_lock_sha256: str, *, repo: Path = ROOT) -> dict:
+    """Amendment M5.5: the lock commit is on origin/<branch> and holds these lock bytes."""
+    if not _hex(commit, 40) or not _hex(expected_lock_sha256, 64):
+        raise PermissionError("40-hex commit and 64-hex lock SHA-256 required")
+    listing = _git("ls-remote", "origin", f"refs/heads/{BRANCH}", repo=repo).split()
+    if len(listing) < 1 or not _hex(listing[0], 40):
+        raise PermissionError(f"origin/{BRANCH} is not visible")
+    tip = listing[0]
+    _git("fetch", "-q", "origin", f"refs/heads/{BRANCH}", repo=repo)
+    if subprocess.run(["git", "merge-base", "--is-ancestor", commit, tip], cwd=repo,
+                      capture_output=True).returncode:
+        raise PermissionError("lock commit is not on the pushed study branch")
+    blob = subprocess.check_output(["git", "show", f"{commit}:{LOCK_RELATIVE}"], cwd=repo)
+    if hashlib.sha256(blob).hexdigest() != expected_lock_sha256:
+        raise PermissionError("SELECTION_LOCK.json at the pushed commit differs from the expected SHA-256")
+    return {"branch": BRANCH, "remote_tip": tip, "remote_commit_sha": commit,
+            "lock_relative_path": LOCK_RELATIVE, "lock_sha256_at_commit": expected_lock_sha256}
+
+
+def write_unlock(expected_lock_sha256: str, commit: str, *, unlock_path: Path | None = None) -> dict:
+    """Coordinator command: verify on origin, then write the unlock receipt once."""
+    target = unlock_path or UNLOCK_PATH
+    if target.exists():
+        raise FileExistsError("outer unlock receipt is write-once")
+    if _sha(LOCK_PATH) != expected_lock_sha256:
+        raise PermissionError("local SELECTION_LOCK.json differs from the expected SHA-256")
+    evidence = remote_lock_check(commit, expected_lock_sha256)
+    receipt = {"schema": UNLOCK_SCHEMA, "lock_sha256": expected_lock_sha256,
+               "remote_verified": True, "branch": BRANCH, "remote_commit_sha": commit,
+               "verified_utc": datetime.now(timezone.utc).isoformat(), "evidence": evidence}
+    target.parent.mkdir(parents=True, exist_ok=True)
+    evaluate._json_atomic(target, receipt)
+    return receipt
+
+
 def verify_outer_gate(selection_lock_path: str | Path, expected_lock_sha256: str, *,
                       lock_path: Path | None = None, unlock_path: Path | None = None) -> dict:
-    """AR outer_access pattern with this study's constants; raise unless unlocked."""
+    """AR outer_access pattern with this study's constants; raise unless unlocked.
+
+    The receipt's `remote_verified` flag is not trusted: the commit is re-checked
+    on origin (`remote_lock_check`) before any outer row can be opened.
+    """
     registered = (lock_path or LOCK_PATH).resolve()
     unlock_file = unlock_path or UNLOCK_PATH
     path = Path(selection_lock_path).resolve()
@@ -380,62 +428,103 @@ def verify_outer_gate(selection_lock_path: str | Path, expected_lock_sha256: str
             unlock.get("remote_verified") is not True or unlock.get("branch") != BRANCH or
             not _hex(unlock.get("remote_commit_sha"), 40)):
         raise PermissionError("outer unlock was not remotely verified")
+    remote_lock_check(unlock["remote_commit_sha"], expected_lock_sha256)
     return lock
+
+
+def _score_release(rows: Mapping, law: np.ndarray, route_locks: tuple, prefix: str,
+                   contributions: dict) -> dict:
+    own_locks, h_locks = route_locks
+    h_law = np.ones((len(rows["ids"]), 1), dtype=np.float64)
+    role_results = {}
+    for role in ar_audit.ROLES:
+        score = ar_audit.score_frozen_route(rows, law, own_locks[role])
+        h_score = ar_audit.score_frozen_route(rows, h_law, h_locks[role])
+        contributions.update(evaluate._private_contributions(prefix, role, score, h_score))
+        role_results[role] = {"candidate": score["scores"], "H": h_score["scores"],
+                              "n_people": len(score["loss"]),
+                              "selected_candidate": own_locks[role]["selected"],
+                              "H_selected_candidate": h_locks[role]["selected"]}
+    return {"roles": role_results, "private_contribution_prefix": prefix}
 
 
 def score_outer(anchor: int, sources: Mapping[str, Any], index_path: str | Path,
                 inner_panel_dir: str | Path, selection_lock_path: str | Path,
-                expected_lock_sha256: str, output_dir: str | Path) -> dict:
-    """Score frozen inner routes on outer rows; no refit, no reselection."""
+                expected_lock_sha256: str, output_dir: str | Path, *, _gate=None,
+                _load_outer_rows=None) -> dict:
+    """Score frozen inner routes on outer rows; no refit, no reselection.
+
+    `sources` must declare every logical release of the inner panel (the same
+    source file). Amendment M5.3: each logical law is evaluated on the outer rows
+    and must be byte-identical to its canonical law; an alias that breaks on
+    outer rows is scored separately (with its canonical's frozen routes, since it
+    shared them on inner rows) and recorded under `outer_alias_breaks`.
+    """
     from experiments.pcrl_adaptive_release_v1 import outer_audit, outer_pool
 
     root = Path(output_dir).resolve()
     if "private" not in root.parts or root.exists():
         raise FileExistsError("outer output must be a new private directory")
-    lock = verify_outer_gate(selection_lock_path, expected_lock_sha256)
+    lock = (_gate or verify_outer_gate)(selection_lock_path, expected_lock_sha256)
     pinned = lock["anchors"].get(str(anchor), {})
     inner_root = Path(inner_panel_dir)
     inner = verify_complete(inner_root)
     if (pinned.get("inner_panel_complete_sha256") != _sha(inner_root / "COMPLETE.json") or
             pinned.get("inner_audit_sha256") != _sha(inner_root / "INNER_AUDIT.json")):
         raise PermissionError("inner panel differs from the locked anchor record")
+    ledger = json.loads((inner_root / "ALIAS_LEDGER.json").read_text())
+    if _sha(inner_root / "ALIAS_LEDGER.json") != inner["alias_ledger_sha256"]:
+        raise ValueError("alias ledger differs from the inner report")
+    declared = ledger["declared"]
+    if set(sources) != set(declared):
+        raise ValueError("outer scoring must declare exactly the inner panel's logical releases")
     index_file = Path(index_path).resolve()
     if _sha(index_file) != inner["index_sha256"]:
         raise ValueError("input index differs from the inner panel")
-    route_locks, pinned_laws = {}, {}
-    for release_id, source in sources.items():
-        if release_id not in inner["releases"]:
-            raise ValueError("outer release was not a canonical inner release")
-        pinned_laws[release_id] = laws.load(source)
-        if _public_descriptor(pinned_laws[release_id].descriptor) != inner["releases"][release_id]["source"]:
-            raise ValueError("supplied release differs from its locked inner descriptor")
-        route_locks[release_id] = outer_audit.reconstruct_selected_routes(inner_root, inner, release_id)
+    pinned_laws, route_locks = {}, {}
+    for name, source in sources.items():
+        pinned_laws[name] = laws.load(source)
+        if _public_descriptor(pinned_laws[name].descriptor) != declared[name]["source"]:
+            raise ValueError(f"{name}: supplied release differs from its locked inner descriptor")
+        canonical = declared[name]["canonical"]
+        if canonical not in route_locks:
+            route_locks[canonical] = outer_audit.reconstruct_selected_routes(inner_root, inner, canonical)
     # Sole outer-label access, after every route and artifact check above.
-    census = json.loads(CENSUS_PATH.read_text())
-    rows = outer_pool.load_verified_outer(
-        data.index(index_file), anchor,
-        census["anchors"][str(anchor)]["outer_assessment"], ORIGINAL_RESTORE_ROOT)
-    h_law = np.ones((len(rows["ids"]), 1), dtype=np.float64)
-    results, contributions = {}, {}
-    for release_id in sorted(sources):
-        law = pinned_laws[release_id](laws.legal_inputs(rows))
-        own_locks, h_locks = route_locks[release_id]
-        prefix = inner["releases"][release_id]["private_contribution_prefix"]
-        role_results = {}
-        for role in ar_audit.ROLES:
-            score = ar_audit.score_frozen_route(rows, law, own_locks[role])
-            h_score = ar_audit.score_frozen_route(rows, h_law, h_locks[role])
-            contributions.update(evaluate._private_contributions(prefix, role, score, h_score))
-            role_results[role] = {"candidate": score["scores"], "H": h_score["scores"],
-                                  "n_people": len(score["loss"]),
-                                  "selected_candidate": own_locks[role]["selected"],
-                                  "H_selected_candidate": h_locks[role]["selected"]}
-        results[release_id] = {"roles": role_results, "private_contribution_prefix": prefix}
+    if _load_outer_rows is None:
+        census = json.loads(CENSUS_PATH.read_text())
+        rows = outer_pool.load_verified_outer(
+            data.index(index_file), anchor,
+            census["anchors"][str(anchor)]["outer_assessment"], ORIGINAL_RESTORE_ROOT)
+    else:
+        rows = _load_outer_rows()
+    legal = laws.legal_inputs(rows)
+    outer_laws = {name: pinned_laws[name](legal) for name in sorted(sources)}
+    results, contributions, breaks, confirmed = {}, {}, {}, {}
+    for name in sorted(sources):
+        canonical = declared[name]["canonical"]
+        if name == canonical:
+            results[name] = _score_release(rows, outer_laws[name], route_locks[name],
+                                           inner["releases"][name]["private_contribution_prefix"],
+                                           contributions)
+            continue
+        same = laws.law_identity(outer_laws[name]) == laws.law_identity(outer_laws[canonical])
+        if same:
+            confirmed[name] = canonical
+            continue
+        differing = np.any(outer_laws[name] != outer_laws[canonical], axis=1)
+        breaks[name] = {"canonical": canonical, "outer_people_differing": int(differing.sum()),
+                        "max_abs_difference": float(np.max(np.abs(outer_laws[name] - outer_laws[canonical]))),
+                        "routes": "canonical's frozen inner routes (shared on inner rows)"}
+        prefix = hashlib.sha256(f"outer_alias_break|{name}".encode()).hexdigest()[:12]
+        results[name] = {**_score_release(rows, outer_laws[name], route_locks[canonical], prefix,
+                                          contributions),
+                         "scored_separately_from": canonical}
     root.mkdir(parents=True, mode=0o700)
     np.savez_compressed(root / "OUTER_CONTRIBUTIONS.npz", **contributions)
     report = {"schema": "pcrl-sc-outer-audit-v1", "anchor": anchor, "mode": "outer",
               "no_outer_fit_or_selection": True, "selection_lock_sha256": expected_lock_sha256,
-              "releases": results,
+              "releases": results, "outer_alias_confirmed": confirmed,
+              "outer_alias_breaks": breaks,
               "contributions_sha256": _sha(root / "OUTER_CONTRIBUTIONS.npz")}
     evaluate._json_atomic(root / "OUTER_AUDIT.json", report)
     evaluate._seal_private_permissions(root)
@@ -543,6 +632,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     outer.add_argument("--lock", required=True)
     outer.add_argument("--lock-sha256", required=True)
     outer.add_argument("--out", required=True)
+    unlock = sub.add_parser("unlock", help="coordinator: verify the pushed lock, write OUTER_UNLOCK.json")
+    unlock.add_argument("--lock-sha256", required=True)
+    unlock.add_argument("--commit", required=True)
     outer_j = sub.add_parser("outer-j")
     outer_j.add_argument("--anchor", type=int, choices=(0, 1, 2), required=True)
     outer_j.add_argument("--index", required=True)
@@ -551,6 +643,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     outer_j.add_argument("--lock-sha256", required=True)
     outer_j.add_argument("--out", required=True)
     args = parser.parse_args(argv)
+    if args.mode == "unlock":
+        print(json.dumps(write_unlock(args.lock_sha256, args.commit), indent=2, sort_keys=True))
+        return
     if args.mode == "outer-j":
         report = score_outer_j(args.anchor, args.index, args.j_inner_panel, args.lock,
                                args.lock_sha256, args.out)

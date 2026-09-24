@@ -21,10 +21,12 @@ every epoch's law is checked on coefficient_split against the frozen round-0
 bank; early stopping uses that key. The K best epochs by
 (frozen-bank infeasible, max violation or inner task CE) are shortlisted, a
 best-response attacker slate is refit on each shortlisted law (audit_fit,
-validated on inner_selection), and all of them join the final bank. Among the
-shortlist, the lowest inner_selection task CE among final-bank-feasible
-checkpoints wins; if none is feasible, the smallest max violation wins and is
-flagged. The released object is the per-person softmax law, with entries below
+validated on inner_selection), and all of them join the final bank. Amendment
+M4: the selection set is the shortlist plus the exact D17 witness (feasible by
+construction; scored with the warm-start decoder/adversaries); the unit's rule
+picks among final-bank-feasible members. If no checkpoint is feasible the unit
+is D17 exactly (flag WITNESS_FALLBACK) and ``load_law`` returns the one-hot D17
+law, so the audit collapses it as an alias. The released object is the per-person softmax law, with entries below
 PRUNE zeroed and rows renormalized (registered; bounds the per-person support
 that the exact-expansion hist_gb auditors are scaled by).
 """
@@ -171,7 +173,8 @@ def run_adv(anchor, beta, role_dict, d17, bank: rd.Round0Bank, out_dir, *, max_e
     torch = _torch()
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    seed = rd.SEED_BASE["ADV"] + 1000 * anchor + int(round(beta * 10))
+    # M5: privacy-select units use seeds distinct from task-select units (+500)
+    seed = rd.SEED_BASE["ADV"] + 1000 * anchor + int(round(beta * 10)) + (500 if select == "privacy" else 0)
     rng = np.random.default_rng(seed)
     ntr, coef, aud, sel = (role_dict[k] for k in ("nuisance_train", "coefficient_split", "audit_fit", "inner_selection"))
     scaler, scaler_source = rd.feature_builder(ntr)
@@ -282,7 +285,15 @@ def run_adv(anchor, beta, role_dict, d17, bank: rd.Round0Bank, out_dir, *, max_e
                 "support_mean": float(support.mean()), "support_max": int(support.max())}
 
     def key(rec):
-        return (0, rec["task_balanced"]) if rec["frozen_bank_feasible"] else (1, rec["frozen_bank_max_violation"])
+        """Early-stopping / shortlist key: task CE (task units) or the M5 privacy key
+        task CE - beta * mean adversary CE (privacy units), both on inner_selection;
+        frozen-bank-infeasible epochs rank after all feasible ones."""
+        if not rec["frozen_bank_feasible"]:
+            return (1, rec["frozen_bank_max_violation"])
+        if select == "privacy":
+            adv_ce = rec["adv_ce_inner_selection"]
+            return (0, rec["task_balanced"] - beta * sum(adv_ce.values()) / len(adv_ce))
+        return (0, rec["task_balanced"])
 
     history, states = [], []
     ev = evaluate()
@@ -328,18 +339,28 @@ def run_adv(anchor, beta, role_dict, d17, bank: rd.Round0Bank, out_dir, *, max_e
             break
     train_seconds = time.perf_counter() - t_start
 
-    # --- shortlist, best-response refits, final-bank selection (M1(d)) -----
-    if select not in ("task", "privacy"):
-        raise ValueError("select must be 'task' (spec rule) or 'privacy' (optional P-style rule)")
-    ref_task = history[0]["task_balanced"]  # warm start ~ D17 (0.97 D17 + 0.03 uniform)
-
-    def ab_sex(rec):
-        return rec["adv_ce_inner_selection"]["AB/SEX"]
-    eligible_p = [h for h in history if h["frozen_bank_feasible"] and h["task_balanced"] <= ref_task + 0.001]
-    if select == "privacy" and eligible_p:
-        ranked = sorted(eligible_p, key=lambda rec: (-ab_sex(rec), rec["task_balanced"], rec["epoch"]))[:shortlist]
+    # --- shortlist, best-response refits, final-bank selection (M1(d), M4, M5) ---
+    # exact D17 witness (M4), scored with the warm-start decoder and adversaries on inner_selection
+    witness_law = rd.onehot(d17_map_tokens[np.asarray(sel["token_codes"], dtype=np.int64)])
+    dec0 = copy.deepcopy(decoder)
+    dec0.load_state_dict(states[0][1])
+    with torch.no_grad():
+        wq = torch.as_tensor(witness_law, dtype=torch.float32)
+        ys, ms = S["labels"]["same_residence"]
+        raw_w = torch.as_tensor(np.asarray(sel["weights"], dtype=np.float64), dtype=torch.float32)
+        wu = float(expected_ce(dec0, S["ha"], wq, ys, torch.ones_like(S["w"]), ms))
+        ww = float(expected_ce(dec0, S["ha"], wq, ys, raw_w, ms))
+    witness_task = 0.5 * (wu + ww)
+    privacy_note = None
+    if select == "privacy":
+        # P-route task cap against the exact witness under the same warm-start decoder
+        pool = [h for h in history if h["frozen_bank_feasible"] and h["task_balanced"] <= witness_task + 0.001]
+        if not pool:
+            privacy_note = ("NO_ELIGIBLE_EPOCH: no frozen-feasible epoch with inner task <= D17 witness task + 0.001; "
+                            "selection set is the witness only (explicit, not a task-rule fallback)")
     else:
-        ranked = sorted(history, key=lambda rec: (key(rec), rec["epoch"]))[:shortlist]
+        pool = list(history)
+    ranked = sorted(pool, key=lambda rec: (key(rec), rec["epoch"]))[:shortlist]
     ckpt_dir = out / "checkpoints"
     ckpt_dir.mkdir(exist_ok=True)
     all_specs = dict(bank.specs)
@@ -350,43 +371,59 @@ def run_adv(anchor, beta, role_dict, d17, bank: rd.Round0Bank, out_dir, *, max_e
         enc = copy.deepcopy(encoder)
         enc.load_state_dict(states[e][0])
         laws[e] = AdvLaw(enc, scaler, d17_map_tokens)
+        torch.save(states[e][0], ckpt_dir / f"encoder_e{e:03d}.pt")  # every shortlisted law is kept
         specs, cuts = rd.fit_best_response(
             role_dict, laws[e], out / f"best_response_e{e:03d}",
-            rd.SEED_BASE["BR"] + 1000 * anchor + 500 + 10 * rank + int(round(beta * 10)),
-            f"ADV_b{beta:g}_e{e:03d}")
+            rd.SEED_BASE["BR"] + 1000 * anchor + 500 + 10 * rank + int(round(beta * 10))
+            + (500 if select == "privacy" else 0),
+            f"ADV_b{beta:g}{'_P' if select == 'privacy' else ''}_e{e:03d}")
         all_specs.update(specs)
         pb.add(all_specs, cuts, f"BR_e{e:03d}")
     br_seconds = time.perf_counter() - t_br
     pb.calibrate()
+
+    def ab_sex_slack(chk):
+        """min over AB/SEX cuts and weightings of (L_a - rho) on coefficient_split (final bank)."""
+        g = chk["group_max_violation"]
+        return -max(g["AB/SEX|U"], g["AB/SEX|W"]) - pb.delta
+
     final = []
     for rec in ranked:
         chk = pb.check(laws[rec["epoch"]](coef_inputs))
         final.append({"epoch": rec["epoch"], "inner_selection_task": rec["task_balanced"],
-                      "inner_selection_own_adversary_ab_sex_ce": ab_sex(rec),
+                      "selection_key": list(key(rec)),
+                      "final_bank_ab_sex_slack": ab_sex_slack(chk),
                       "frozen_bank_max_violation": rec["frozen_bank_max_violation"],
                       "final_bank": {k: v for k, v in chk.items() if k != "rho"}})
-    feasible = [f for f in final if f["final_bank"]["feasible"]]
-    if feasible:
-        if select == "privacy" and eligible_p:
-            chosen = min(feasible, key=lambda f: (-f["inner_selection_own_adversary_ab_sex_ce"],
-                                                  f["inner_selection_task"], f["epoch"]))
-        else:
-            chosen = min(feasible, key=lambda f: (f["inner_selection_task"], f["epoch"]))
-        flag = None
+    witness_check = pb.check(pb.d17_law)
+    if not witness_check["feasible"]:
+        raise AssertionError("D17 witness infeasible on its own calibrated bank")
+    witness = {"epoch": None, "witness": True, "inner_selection_task": witness_task,
+               "final_bank_ab_sex_slack": ab_sex_slack(witness_check),
+               "final_bank": {k: v for k, v in witness_check.items() if k != "rho"}}
+    feasible = [f for f in final if f["final_bank"]["feasible"]] + [witness]
+    if select == "privacy":  # M5: largest AB/SEX slack vs attackers refit on each checkpoint
+        chosen = min(feasible, key=lambda f: (-f["final_bank_ab_sex_slack"], f["inner_selection_task"],
+                                              f["epoch"] is None, f["epoch"] or 0))
     else:
-        chosen = min(final, key=lambda f: (f["final_bank"]["max_violation"], f["epoch"]))
-        flag = "NO_FINAL_BANK_FEASIBLE_CHECKPOINT: chose smallest max violation"
-    e = chosen["epoch"]
-    enc_path = ckpt_dir / f"encoder_e{e:03d}.pt"
-    torch.save(states[e][0], enc_path)
-    dec_path = ckpt_dir / f"decoder_e{e:03d}.pt"
-    torch.save(states[e][1], dec_path)
+        chosen = min(feasible, key=lambda f: (f["inner_selection_task"], f["epoch"] is None, f["epoch"] or 0))
     scaler_path = out / "feature_scaler.npz"
     np.savez(scaler_path, mean=scaler.mean, scale=scaler.scale, d17_token_map=d17_map_tokens)
+    if chosen is witness:
+        e, enc_pin, dec_pin = None, None, None
+        flag = ("WITNESS_FALLBACK" if len(feasible) == 1 else "WITNESS_SELECTED_BY_RULE")
+    else:
+        e, flag = chosen["epoch"], None
+        enc_path = ckpt_dir / f"encoder_e{e:03d}.pt"
+        torch.save(states[e][0], enc_path)
+        dec_path = ckpt_dir / f"decoder_e{e:03d}.pt"
+        torch.save(states[e][1], dec_path)
+        enc_pin = {"path": str(enc_path.relative_to(out)), "sha256": rd.sha_file(enc_path)}
+        dec_pin = {"path": str(dec_path.relative_to(out)), "sha256": rd.sha_file(dec_path)}
     selected = {"schema": "pcrl-sc-adv-v1", "variant": f"ADV_beta{beta:g}", "anchor": anchor, "beta": beta,
-                "selected_epoch": e, "flag": flag,
-                "encoder": {"path": str(enc_path.relative_to(out)), "sha256": rd.sha_file(enc_path)},
-                "decoder": {"path": str(dec_path.relative_to(out)), "sha256": rd.sha_file(dec_path)},
+                "selected_epoch": e, "flag": flag, "witness_selected": chosen is witness,
+                "witness": witness,
+                "encoder": enc_pin, "decoder": dec_pin,
                 "scaler": {"path": scaler_path.name, "sha256": rd.sha_file(scaler_path)},
                 "architecture": {"encoder": f"{N_ENCODER_FEATURES}-{WIDTH}-{WIDTH}-17 ReLU softmax (49 policy features + onehot D17(T0))",
                                  "decoder": f"(4+17)-{WIDTH}-{WIDTH}-2", "adversaries": f"(4|6+17)-{WIDTH}-{WIDTH}-(2|9)"},
@@ -396,10 +433,10 @@ def run_adv(anchor, beta, role_dict, d17, bank: rd.Round0Bank, out_dir, *, max_e
                              "encoder_rows": "nuisance_train ∪ coefficient_split", "adversary_rows": "audit_fit",
                              "loss": "E_q[CE_Y] - beta * mean_k E_q[CE_S_k] (exact 17-token expectation)"},
                 "prune": PRUNE, "feature_builder": scaler_source,
-                "select": select, "privacy_rule_eligible_epochs": len(eligible_p),
-                "selection_rule": ("shortlist K by (frozen-bank infeasible, max violation | inner task CE); refit best-response attackers on each; lowest inner_selection task CE among final-bank-feasible; else smallest max violation (flagged)"
-                                   if select == "task" or not eligible_p else
-                                   "OPTIONAL P-style: among frozen-feasible epochs with inner task <= warm-start task + 0.001, shortlist K by highest own-adversary AB/SEX CE on inner_selection; refit best responses; choose highest AB/SEX CE among final-bank-feasible; else smallest max violation (flagged)"),
+                "select": select, "privacy_note": privacy_note, "shortlist_pool_size": len(pool),
+                "selection_rule": ("M4: selection set = shortlist (K best by early-stopping key: frozen-bank feasibility, then inner_selection task CE) ∪ {exact D17 witness}; best-response attackers refit on each shortlisted law; lowest inner_selection task CE among final-bank-feasible members (ties: checkpoint before witness, earlier epoch); witness only -> D17 exactly (WITNESS_FALLBACK)"
+                                   if select == "task" else
+                                   "M4 + M5 (ADV_B*_P): early stopping and shortlist by the privacy key task CE - beta*mean adversary CE on inner_selection, among frozen-feasible epochs with inner task <= D17-witness task + 0.001; best-response attackers refit on each; set = shortlist ∪ {exact D17 witness}; largest final-bank AB/SEX slack min_(AB/SEX cuts, U/W)(L_a - rho) on coefficient_split among feasible members, ties lower inner task; witness only -> D17 exactly (WITNESS_FALLBACK)"),
                 "shortlist": final, "final_bank_cut_count": len(pb.cuts),
                 "timing_seconds": {"warm_start": warm_seconds, "train_total": train_seconds,
                                    "per_epoch_mean": float(np.mean(epoch_seconds)) if epoch_seconds else None,
@@ -416,12 +453,24 @@ def load_law(unit_dir):
     root = Path(unit_dir)
     import json
     selected = json.loads((root / "SELECTED.json").read_text())
-    for item in ("encoder", "scaler"):
+    items = ("scaler",) if selected.get("witness_selected") else ("encoder", "scaler")
+    for item in items:
         if rd.sha_file(root / selected[item]["path"]) != selected[item]["sha256"]:
             raise ValueError(f"frozen ADV {item} hash mismatch")
     with np.load(root / selected["scaler"]["path"]) as s:
         scaler = rd.Scaler(s["mean"], s["scale"])
         d17_map_tokens = s["d17_token_map"].copy()
+    if selected.get("witness_selected"):
+        from . import policies
+
+        def witness(inputs: Mapping) -> np.ndarray:  # exact one-hot D17 (M4 WITNESS_FALLBACK)
+            extra = set(inputs) - set(rd.LEGAL_INPUTS)
+            if extra:
+                raise ValueError(f"illegal release inputs {sorted(extra)}")
+            legal = policies.check_legal(inputs)
+            return rd.onehot(d17_map_tokens[np.asarray(legal["token_codes"], dtype=np.int64)])
+        witness.selected = selected
+        return witness
     encoder, _, _ = build_modules(N_ENCODER_FEATURES, 0)
     encoder.load_state_dict(torch.load(root / selected["encoder"]["path"], weights_only=True))
     law = AdvLaw(encoder, scaler, d17_map_tokens, selected.get("prune", PRUNE))

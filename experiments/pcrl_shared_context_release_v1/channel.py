@@ -629,7 +629,7 @@ def check_feasible(params, cost_blocks, cuts, *, tau=None, task_caps=None):
     """Final-bank replay used by round selection and the deterministic selector."""
     rep = replay(params["B"], params["A"], params["eta"], cost_blocks, cuts,
                  tau=tau, task_caps=task_caps)
-    return {**_brief(rep), "feasible": _feasible(rep)}
+    return {**_brief(rep), "slacks": rep["slacks"], "feasible": _feasible(rep)}
 
 
 # ---------------------------------------------------------------------------

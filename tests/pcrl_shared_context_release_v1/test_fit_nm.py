@@ -134,7 +134,7 @@ def test_nm_unit_alternation_release_and_det_sel(built):
                              role_dict=built["roles"], q_ref=built["d17"])
     record = json.loads((built["root"] / "DET_SEL4" / "DET_SEL.json").read_text())
     M = len(receipt["policy_columns"])
-    assert record["bank_source"] == "closing"
+    assert record["bank_source"] == "closing" and record["all_d17_assignment_included"]
     assert record["assignments_evaluated"] == M ** 4 and record["feasible_assignments"] >= 1
     assert record["nonalias_coefficient_split"]["deterministic_emission"]["all_rows_one_hot"]
     det_law = release.load_law(built["root"] / "DET_SEL4")
@@ -160,3 +160,55 @@ def test_unit_refuses_nonprivate_or_undecided_k(built):
         fit_nm.run_unit("NM1_U", 0, built["roles"], built["d17"], built["hist"],
                         built["bank"]["root"], Path("public_unit_never_created"), rounds=0)
     assert not Path("public_unit_never_created").exists()
+
+
+def test_no_feasible_round_falls_back_to_exact_d17_witness(built, monkeypatch):
+    """M4: force every round infeasible with an extra closing cut only D17 satisfies."""
+    from experiments.pcrl_shared_context_release_v1 import laws
+    original = fit_nm._closing_refit
+
+    def forcing(*args, **kwargs):
+        out = original(*args, **kwargs)
+        d17 = built["d17"]
+        K, M = out["cuts"][0]["coeff_A"].shape
+        coeff_a = np.zeros((K, M)); coeff_a[:, 0] = 1. / K
+        cut = {"id": "synthetic/only_d17_mass/U", "role": "A/SEX", "weighting": "U",
+               "coeff_B": d17 / 32., "coeff_A": coeff_a, "rho": 1.0, "delta": 0., "floor": 1.0}
+        return {**out, "cuts": out["cuts"] + [cut]}
+
+    monkeypatch.setattr(fit_nm, "_closing_refit", forcing)
+    out = built["root"] / "NM1_U_forced"
+    receipt = fit_nm.run_unit("NM1_U", 0, built["roles"], built["d17"], built["hist"],
+                              built["bank"]["root"], out, rounds=1)
+    selection = json.loads((out / "FINAL_BANK_SELECTION.json").read_text())
+    rounds = [c for c in selection["final_bank_checks"] if c["round"] is not None]
+    if any(c["feasible"] for c in rounds):
+        pytest.skip("synthetic rounds emitted D17 exactly; forcing cut not binding")
+    assert selection["status"] == "WITNESS_FALLBACK" and selection["selected_round"] is None
+    assert receipt["selection_status"] == "WITNESS_FALLBACK" and receipt["feasible_rounds"] == []
+    assert all(c["maximum_cut_violation"] > 0 for c in rounds)
+    assert (out / "round_r00" / "PARAMS.npz").is_file() and (out / "round_r01" / "PARAMS.npz").is_file()
+    legal = policies.legal_inputs(built["roles"]["inner_check"])
+    q = laws.load(out)(legal)
+    assert np.array_equal(q, built["d17"][built["roles"]["inner_check"]["token_codes"]])
+
+
+def test_p_form_selects_largest_ab_sex_slack():
+    """M5.1 key on a toy bank: P picks the most AB/SEX-protective feasible member."""
+    d17 = np.zeros((32, 17)); d17[:, 0] = 1.
+    far = np.zeros((32, 17)); far[:, 1] = 1.
+    half = 0.5 * d17 + 0.5 * far
+    params = [{"B": half, "A": np.zeros((1, 1)), "eta": 0.}, {"B": far, "A": np.zeros((1, 1)), "eta": 0.}]
+    gb = np.zeros((32, 17)); gb[:, 1] = 1. / 32           # AB/SEX loss grows with token-1 mass
+    cuts = [{"id": f"ab/{v}", "role": "AB/SEX", "weighting": v, "coeff_B": gb,
+             "coeff_A": np.zeros((1, 1)), "rho": 0., "delta": .001, "floor": -.001} for v in ("U", "W")]
+    cost = {v: {"B": np.zeros((32, 17)), "A": np.zeros((1, 1))} for v in ("U", "W")}
+    records = [{"round": 0, "inner_selection_fixed_decoder_task": {"U": .1, "W": .1}},
+               {"round": 1, "inner_selection_fixed_decoder_task": {"U": .3, "W": .3}}]
+    witness = ({"B": d17, "A": np.zeros((1, 1)), "eta": 0.}, {"U": .2, "W": .2})
+    p_sel = fit_nm.select_final_round(params, records, cost, cuts, witness=witness, form="P")
+    u_sel = fit_nm.select_final_round(params, records, cost, cuts, witness=witness, form="U")
+    assert p_sel["selected_round"] == 1 and p_sel["status"] == "SELECTED_ROUND"
+    assert u_sel["selected_round"] == 0
+    slacks = {c["member"]: c["ab_sex_slack_vs_rho"] for c in p_sel["final_bank_checks"]}
+    assert slacks == pytest.approx({"D17_witness": 0., "round_00": .5, "round_01": 1.})

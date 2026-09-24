@@ -260,9 +260,11 @@ def test_rd_priv_selects_final_bank_feasible_round(synthetic, tmp_path):
     out = tmp_path / "rd_priv"
     sel = rd.run_rd_priv(0, role_dict, d17, bank, out, rounds=1, log=lambda *_: None)
     assert sel["dual_source"].startswith("recomputed")
+    assert sel["witness"]["final_bank_check"]["feasible"]
     if sel["selected_round"] is None:
-        assert sel["flag"].startswith("NO_FINAL_BANK_FEASIBLE")
-        assert all(not r["final_bank_check"]["feasible"] for r in sel["rounds"])
+        assert sel["witness_selected"] and sel["flag"] in ("WITNESS_FALLBACK", "WITNESS_SELECTED_BY_RULE")
+        if sel["flag"] == "WITNESS_FALLBACK":
+            assert all(not r["final_bank_check"]["feasible"] for r in sel["rounds"])
     else:
         chosen = sel["rounds"][sel["selected_round"]]
         assert chosen["final_bank_check"]["feasible"] and sel["flag"] is None
@@ -302,3 +304,28 @@ def test_rd_priv_tau_fallback_and_d17_alias(synthetic, tmp_path, monkeypatch):
         assert changed == 0.0
     else:
         assert changed <= 0.05
+
+
+def test_rd_priv_witness_fallback_is_exact_d17(synthetic, tmp_path, monkeypatch):
+    """M4: if no round survives its own refits, RD_PRIV is exactly D17 (WITNESS_FALLBACK)."""
+    role_dict, d17, bank = synthetic
+    real_check = rd.PersonBank.check
+
+    def reject_non_d17(self, law):
+        out = real_check(self, law)
+        if np.any(np.argmax(law, 1) != np.argmax(self.d17_law, 1)) and any(
+                c["origin"].startswith("BR_") for c in self.cuts):
+            out = {**out, "feasible": False, "max_violation": 0.01}
+        return out
+    monkeypatch.setattr(rd.PersonBank, "check", reject_non_d17)
+    sel = rd.run_rd_priv(0, role_dict, d17, bank, tmp_path / "w", rounds=1, log=lambda *_: None)
+    any_feasible = any(r["final_bank_check"]["feasible"] for r in sel["rounds"])
+    assert all(r["final_bank_check"]["feasible"] == (r["census_coefficient_split"]["fraction_changed_vs_D17"] == 0)
+               for r in sel["rounds"])
+    if not any_feasible:
+        assert sel["flag"] == "WITNESS_FALLBACK" and sel["selected_round"] is None
+    elif sel["witness_selected"]:
+        assert sel["flag"] == "WITNESS_SELECTED_BY_RULE"
+    q = rd.load_law(tmp_path / "w")(rd.legal_inputs(role_dict["inner_check"]))
+    if sel["witness_selected"]:
+        np.testing.assert_array_equal(q, rd.onehot(rd.d17_tokens(d17, role_dict["inner_check"]["token_codes"])))

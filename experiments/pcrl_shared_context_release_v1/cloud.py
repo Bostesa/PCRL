@@ -61,6 +61,14 @@ PRICE = {"c7i.8xlarge_usd_per_hour": 1.428,   # AWS price list 2026-09-21 (prede
 STANDARD_FAMILIES = tuple("acdhimrtz")
 DEFAULT_HOURS = 10
 HARD_STOP_MINUTES = 30
+# Protocol ceiling (RUN_STATUS: 20 h elapsed). Amendment M5.6: clamped in code.
+CEILING_UTC = datetime(2026, 9, 25, 13, 26, 0, tzinfo=timezone.utc)
+
+
+def clamp_schedule(watchdog: datetime) -> tuple[datetime, datetime]:
+    """Watchdog (sync + shutdown) and hard-stop backstop, both no later than the ceiling."""
+    watchdog = min(watchdog, CEILING_UTC - timedelta(minutes=HARD_STOP_MINUTES))
+    return watchdog, watchdog + timedelta(minutes=HARD_STOP_MINUTES)
 
 
 def utcnow() -> datetime:
@@ -184,7 +192,7 @@ def manifest_pin() -> dict:
 
 def render_user_data(commit: str, watchdog: datetime, *, manifest_version: str,
                      manifest_sha: str) -> str:
-    hard_stop = watchdog + timedelta(minutes=HARD_STOP_MINUTES)
+    watchdog, hard_stop = clamp_schedule(watchdog)
     fmt = "%Y-%m-%d %H:%M:%S"
     values = {"__COMMIT__": commit, "__BRANCH__": BRANCH, "__REPO__": REPO,
               "__MANIFEST_VERSION__": manifest_version, "__MANIFEST_SHA__": manifest_sha,
@@ -212,8 +220,9 @@ def launch(commit: str, *, watchdog_utc: str | None = None, dry_run: bool = True
     now = utcnow()
     watchdog = (datetime.strptime(watchdog_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
                 if watchdog_utc else now + timedelta(hours=DEFAULT_HOURS))
-    if not now + timedelta(minutes=30) <= watchdog <= now + timedelta(hours=20):
-        raise ValueError("watchdog must be between 30 minutes and 20 hours from now")
+    watchdog, hard_stop = clamp_schedule(watchdog)
+    if not now + timedelta(minutes=30) <= watchdog:
+        raise ValueError("watchdog must be at least 30 minutes from now (and is clamped to the ceiling)")
     pin = manifest_pin()
     user_data = render_user_data(commit, watchdog, manifest_version=pin["version_id"],
                                  manifest_sha=pin["sha256"])
@@ -264,7 +273,7 @@ def launch(commit: str, *, watchdog_utc: str | None = None, dry_run: bool = True
               "ami": AMI, "instance_profile": INSTANCE_PROFILE, "subnet": SUBNET,
               "security_group_id": group, "security_group_ingress_rules": 0,
               "volume_gib": VOLUME_GIB, "launch_utc": iso(now), "watchdog_utc": iso(watchdog),
-              "hard_stop_utc": iso(watchdog + timedelta(minutes=HARD_STOP_MINUTES)),
+              "hard_stop_utc": iso(hard_stop), "ceiling_utc": iso(CEILING_UTC),
               "shutdown_behavior": "terminate", "source_commit": commit, "branch": BRANCH,
               "input_manifest": pin,
               "user_data_sha256": hashlib.sha256(user_data.encode()).hexdigest(),

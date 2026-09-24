@@ -233,3 +233,35 @@ def test_cross_commit_reuse_requires_explicit_commit_and_same_tree(units_root, m
     assert runner.Runner(q, units_root, reuse_commits=[old]).run() == {"first": "REUSED"}
     monkeypatch.setattr(runner, "code_tree_sha256", lambda package_dir=None: "2" * 64)
     assert runner.Runner(q, units_root, reuse_commits=[old]).run() == {"first": "BLOCKED"}
+
+
+def test_timeout_kills_the_whole_process_group(units_root, tmp_path):
+    import os
+    import time
+    pid_file = tmp_path / "grandchild.pid"
+    code = ("import subprocess,sys,pathlib,time;"
+            "p=subprocess.Popen([sys.executable,'-c','import time;time.sleep(60)']);"
+            f"pathlib.Path({str(pid_file)!r}).write_text(str(p.pid));time.sleep(60)")
+    unit = {**u("slow", code), "timeout_seconds": 2}
+    final = runner.Runner(queue(unit), units_root).run()
+    assert final == {"slow": "FAILED"}  # two timed-out attempts
+    grandchild = int(pid_file.read_text())
+    time.sleep(.2)
+    try:
+        os.kill(grandchild, 0)
+        alive = True
+    except ProcessLookupError:
+        alive = False
+    assert not alive
+
+
+def test_watchdog_is_clamped_to_the_protocol_ceiling():
+    from datetime import datetime, timedelta, timezone
+    from experiments.pcrl_shared_context_release_v1 import cloud
+
+    late = datetime(2026, 9, 25, 20, 0, tzinfo=timezone.utc)
+    watchdog, hard_stop = cloud.clamp_schedule(late)
+    assert hard_stop <= cloud.CEILING_UTC and watchdog <= cloud.CEILING_UTC
+    assert hard_stop - watchdog == timedelta(minutes=30)
+    early = datetime(2026, 9, 25, 3, 0, tzinfo=timezone.utc)
+    assert cloud.clamp_schedule(early)[0] == early

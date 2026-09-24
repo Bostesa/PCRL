@@ -1,6 +1,6 @@
 # Independent audit contract (shared-context release v1)
 
-Owner: baseline/audit agent. Written 2026-09-24 before any science fit and before any outcome was seen. Implementation: `experiments/pcrl_shared_context_release_v1/audit_panel.py` (infrastructure owner), which wraps the AR slate unchanged; positive controls in `poscontrol.py`. Sources cited: `agents/pipeline_audit/AUDIT_SELECTION_MAP.md`, `DESIGN_SPEC.md` §5 + M1, and background §15–16.
+Owner: baseline/audit agent. Written 2026-09-24 before any science fit and before any outcome was seen. Implementation: `experiments/pcrl_shared_context_release_v1/audit_panel.py` (infrastructure owner), which wraps the AR slate unchanged; positive controls in `poscontrol.py`. Sources cited: `agents/pipeline_audit/AUDIT_SELECTION_MAP.md`, `DESIGN_SPEC.md` §5, amendments M1–M5 (`PROTOCOL_AMENDMENTS.md`), and background §15–16.
 
 **Principle.** Only this audit is privacy or utility evidence. Fixed-bank LP gains, frozen-attacker feasibility and best-response feasibility during fitting are optimization devices, not claims (M1.4; MATH_REVIEW §3.3: frozen attackers overstated a mixture's privacy by about 10 × delta).
 
@@ -36,7 +36,7 @@ The deliberately different family required by background §15 is the tree-based 
 | Outer development assessment | outer_assessment, only after the selection lock and remote-verified unlock (`audit_panel.verify_outer_gate`), replaying frozen inner routes with no refit or reselection |
 
 - `assert_household_disjoint` is enforced at every fit.
-- Seeds: `36000 + 1000·anchor + role_index`, identical across releases (common random numbers).
+- Seeds: `26000 + 1000·anchor + role_index` (`audit_panel.SEED_BASE`), identical across releases (common random numbers).
 - H-only slates are fitted once per anchor and role and shared byte-for-byte by every release. The panel refuses an H score that differs across releases.
 
 ## 4. Validation selection and ignore-channel ancestors
@@ -96,7 +96,7 @@ State this plainly in every report:
    - the RD_PRIV and ADV best-response attackers (rd/adv);
    - route and slate selection for all of them.
 
-   The audit attackers are separate fits, not independent data. The new seeds (36000 range vs 20260924+ and 56000+) are not data independence.
+   The audit attackers are separate fits, not independent data. The different seeds (audit 26000+ vs fit_nm 20260924+ and RD/ADV best responses 56000+) are not data independence.
 2. **Deterministic families can coincide exactly.**
    - For a deterministic release (RD_TASK, RD_PRIV, D17, DET_SEL, and NM when it collapses to a T32 kernel), `logistic` and `hist_gb` fits do not depend on the seed. The audit's release-route models of those families are then numerically the same as the corresponding best-response attackers fitted on the same law and rows.
    - Only the MLP and the sampled trees differ. So for those laws, "fresh" means a different selection and score role, not a different fit.
@@ -117,7 +117,11 @@ State this plainly in every report:
 - **Smoke.** On a 30% subsample of a0 (not science): AB/SEX improved U 0.692 and PWGTP 0.691 nats; AB/RAC1P improved U 1.215 and PWGTP 1.194 nats. Both were detected.
 - **Limitation.** The oracle is maximal, so detection shows the slate can see a leak through the wire. It does not show sensitivity at the ±0.001–0.002-nat margins. A graded leak control was not implemented in v1, so no statement about detection power at the margin is licensed.
 
-## 8. Same-host references and receipts
+## 8. Exact-witness aliases (M4)
+
+A privacy-constrained unit (NM*, T32*, RD_PRIV, ADV_B*, ADV_B*_P) whose selection lands on the exact D17 witness releases the one-hot D17 law. `rd.load_law` and `adv.load_law` return it bit-exactly, so `audit_panel.canonicalize` collapses the unit into D17's audit and records it in `ALIAS_LEDGER.json`. Each such unit is reported as `WITNESS_FALLBACK` (no checkpoint feasible) or `WITNESS_SELECTED_BY_RULE` (the witness won the unit's rule). Its excluded checkpoints and their violations are reported, and witness selections are counted per family and anchor. None of these is an uninstantiated test or a D17 win.
+
+## 9. Same-host references and receipts
 
 - Every release, D17, Q_HIST and H is audited in the same panel on the same host, with shared H slates. Nothing is subtracted from a historical audit.
 - Each unit saves original-person and household U/W contributions and route selection receipts, both privately.

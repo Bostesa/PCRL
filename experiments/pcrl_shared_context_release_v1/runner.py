@@ -42,6 +42,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -359,13 +360,18 @@ class Runner:
             clock = time.monotonic()
             with (attempt_dir / "stdout.log").open("wb") as out, \
                     (attempt_dir / "stderr.log").open("wb") as err:
-                process = subprocess.Popen(argv, cwd=self.root, env=env, stdout=out, stderr=err)
+                # Own session/process group so a timeout kills every descendant (M5.6).
+                process = subprocess.Popen(argv, cwd=self.root, env=env, stdout=out, stderr=err,
+                                           start_new_session=True)
                 try:
                     code = process.wait(timeout=unit["timeout_seconds"])
                     reason = None if code == 0 else (
                         f"refused: exit {code}" if code == REFUSED_EXIT else f"technical: exit {code}")
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                     process.wait()
                     code, reason = None, f"technical: timeout after {unit['timeout_seconds']} s"
             wall = time.monotonic() - clock

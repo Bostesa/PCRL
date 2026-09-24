@@ -168,7 +168,7 @@ def test_panel_refuses_outer_or_misassigned_rows(tmp_path, monkeypatch):
         audit_panel.canonicalize({"H": d17_spec}, pools)
 
 
-def test_outer_gate_requires_coordinator_lock_and_remote_unlock(tmp_path):
+def test_outer_gate_requires_coordinator_lock_and_remote_unlock(tmp_path, monkeypatch):
     lock = tmp_path / "SELECTION_LOCK.json"
     unlock = tmp_path / "OUTER_UNLOCK.json"
     kwargs = {"lock_path": lock, "unlock_path": unlock}
@@ -186,7 +186,11 @@ def test_outer_gate_requires_coordinator_lock_and_remote_unlock(tmp_path):
     with pytest.raises(PermissionError, match="remotely verified"):
         audit_panel.verify_outer_gate(lock, sha, **kwargs)
     unlock.write_text(json.dumps({**receipt, "remote_verified": True}))
+    checked = []
+    monkeypatch.setattr(audit_panel, "remote_lock_check",
+                        lambda commit, digest: checked.append((commit, digest)))
     assert audit_panel.verify_outer_gate(lock, sha, **kwargs)["status"] == "LOCKED"
+    assert checked == [("a" * 40, sha)]  # the receipt's flag alone is never trusted
     with pytest.raises(PermissionError):
         audit_panel.verify_outer_gate(lock, "f" * 64, **kwargs)
     with pytest.raises(PermissionError):  # an unregistered lock path is refused
@@ -222,3 +226,72 @@ def test_outer_j_runs_only_behind_this_study_gate(tmp_path, monkeypatch):
         audit_panel.score_outer_j(0, tmp_path / "index.json", tmp_path / "private" / "j",
                                   audit_panel.LOCK_PATH, "0" * 64, tmp_path / "private" / "out")
     assert opened == [] and not (tmp_path / "private" / "out").exists()
+
+
+def _git(repo, *args):
+    import subprocess
+    return subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True,
+                          text=True).stdout.strip()
+
+
+def test_remote_lock_check_against_a_real_origin(tmp_path):
+    origin, work = tmp_path / "origin.git", tmp_path / "work"
+    _git(tmp_path, "init", "-q", "--bare", str(origin))
+    _git(tmp_path, "init", "-q", "-b", "main", str(work))
+    _git(work, "remote", "add", "origin", str(origin))
+    lock_file = work / audit_panel.LOCK_RELATIVE
+    lock_file.parent.mkdir(parents=True)
+    lock_file.write_text('{"status": "LOCKED"}\n')
+    _git(work, "add", ".")
+    _git(work, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "lock")
+    commit = _git(work, "rev-parse", "HEAD")
+    sha = hashlib.sha256(lock_file.read_bytes()).hexdigest()
+    with pytest.raises(Exception):  # not pushed yet
+        audit_panel.remote_lock_check(commit, sha, repo=work)
+    _git(work, "push", "-q", "origin", f"HEAD:refs/heads/{audit_panel.BRANCH}")
+    evidence = audit_panel.remote_lock_check(commit, sha, repo=work)
+    assert evidence["remote_tip"] == commit
+    with pytest.raises(PermissionError, match="differs"):
+        audit_panel.remote_lock_check(commit, "0" * 64, repo=work)
+
+
+def test_score_outer_alias_guard(tmp_path, monkeypatch):
+    """A law aliased on inner rows but different on outer rows is scored separately."""
+    from experiments.pcrl_adaptive_release_v1 import outer_audit
+
+    mock_slate(monkeypatch)
+    pools = synthetic_pools()
+    d17_spec, q = d17_file(tmp_path)
+    shifted = lambda legal: np.where((legal["x"][:, 0] > 5)[:, None],
+                                     np.full((len(legal["x"]), 17), 1 / 17), q[legal["token_codes"]])
+    sources = {"D17": d17_spec,
+               "NM1_U": nested_unit(tmp_path, monkeypatch, "NM1_U", shifted),
+               "RD_TASK": nested_unit(tmp_path, monkeypatch, "RD_TASK",
+                                      lambda legal: q[legal["token_codes"]].copy())}
+    inner_dir = tmp_path / "private" / "panel"
+    inner = audit_panel.run_panel(0, pools, sources, inner_dir, index_sha256="0" * 64)
+    assert inner["logical_to_canonical"] == {"D17": "D17", "NM1_U": "D17", "RD_TASK": "D17"}
+    locked = {"anchors": {"0": {"inner_panel_complete_sha256": audit_panel._sha(inner_dir / "COMPLETE.json"),
+                                "inner_audit_sha256": audit_panel._sha(inner_dir / "INNER_AUDIT.json")}}}
+    monkeypatch.setattr(outer_audit, "reconstruct_selected_routes", lambda root, report, rid: (
+        {r: {"role": r, "release_id": rid, "selected": "m"} for r in audit_panel.ar_audit.ROLES},
+        {r: {"role": r, "release_id": "H", "selected": "m"} for r in audit_panel.ar_audit.ROLES}))
+    index = tmp_path / "index.json"
+    index.write_text("{}")
+    monkeypatch.setattr(audit_panel, "_sha", lambda p: "0" * 64 if str(p) == str(index.resolve())
+                        else laws.sha256_file(p))
+    locked["anchors"]["0"] = {"inner_panel_complete_sha256": laws.sha256_file(inner_dir / "COMPLETE.json"),
+                              "inner_audit_sha256": laws.sha256_file(inner_dir / "INNER_AUDIT.json")}
+    outer_rows = synthetic_pools(seed=5)["inner_check"]
+    outer_rows["x"][:3, 0] = 10.
+    report = audit_panel.score_outer(0, sources, index, inner_dir, "lock", "f" * 64,
+                                     tmp_path / "private" / "outer", _gate=lambda p, s: locked,
+                                     _load_outer_rows=lambda: outer_rows)
+    assert report["outer_alias_confirmed"] == {"RD_TASK": "D17"}
+    assert report["outer_alias_breaks"]["NM1_U"]["outer_people_differing"] == 3
+    assert report["releases"]["NM1_U"]["scored_separately_from"] == "D17"
+    assert set(report["releases"]) == {"D17", "NM1_U"}
+    with pytest.raises(ValueError, match="exactly the inner panel"):
+        audit_panel.score_outer(0, {"D17": d17_spec}, index, inner_dir, "lock", "f" * 64,
+                                tmp_path / "private" / "outer2", _gate=lambda p, s: locked,
+                                _load_outer_rows=lambda: outer_rows)

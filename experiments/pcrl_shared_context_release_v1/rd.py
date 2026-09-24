@@ -73,7 +73,7 @@ LLOYD_ROUNDS = 3
 PRIV_ROUNDS = 3
 BISECTION_STEPS = 12
 TAU_GRID = (0.002, 0.01, 0.03, 0.1, 0.3)  # RD_TASK D17-shrinkage grid; first entry = policies.TAU
-SEED_BASE = {"RD_TASK": 51000, "RD_PRIV": 52000, "ADV": 64000, "BR": 56000}  # disjoint from audit 26000/27000/36000 ranges
+SEED_BASE = {"RD_TASK": 51000, "RD_PRIV": 52000, "ADV": 64000, "BR": 56000}  # disjoint from audit 26000+ and positive-control 27000+ ranges
 SMOKE_FRACTION = 0.3
 
 
@@ -354,7 +354,7 @@ class PersonBank:
             aid = cut["attack_id"]
             if aid not in self.attacks:
                 valid, losses = attack_losses(specs[aid], self.rows)
-                if np.allclose(losses, losses[:, :1]):
+                if np.allclose(losses, losses[:, :1], atol=1e-12, rtol=0):
                     losses = losses[:, :1].copy()  # token-invariant (H-only) route
                 w = self.weights[valid]
                 self.attacks[aid] = {"valid": valid, "losses": losses,
@@ -968,19 +968,29 @@ def run_rd_priv(anchor, role_dict, d17, bank: Round0Bank, out_dir, *, rounds=PRI
     for rec, pol in zip(records, policies_by_round):
         chk = pb.check(pol(legal_inputs(coef)))
         rec["final_bank_check"] = {k: v for k, v in chk.items() if k != "rho"}
+    # M4: selection set = rounds ∪ {exact D17 witness}; the witness is scored by the same
+    # pure-law receiver recipe and common seed, and is feasible on any bank by construction.
+    witness_task, _ = receiver_score(_D17Law(d17), ntr, sel, out / "d17_receiver", seed0 + 3)
+    witness_check = pb.check(pb.d17_law)
+    if not witness_check["feasible"]:
+        raise AssertionError("D17 witness infeasible on its own calibrated bank")
     feasible = [rec for rec in records if rec["final_bank_check"]["feasible"]]
-    if feasible:
-        best = min(feasible, key=lambda rec: (rec["inner_selection_task_receiver"]["balanced"], rec["round"]))
-        flag, policy_pin, selected_round = None, best["policy"], best["round"]
+    witness = {"round": None, "witness": True, "inner_selection_task_receiver": witness_task,
+               "final_bank_check": {k: v for k, v in witness_check.items() if k != "rho"}}
+    best = min(feasible + [witness], key=lambda rec: (rec["inner_selection_task_receiver"]["balanced"],
+                                                      rec["round"] is None, rec["round"] or 0))
+    if best is witness:
+        # exact D17 (one-hot D17 law; the audit collapses it as an alias of D17)
+        policy_pin = {**save_policy(_D17Law(d17), out / "d17_witness" / "policy.joblib"),
+                      "path": "d17_witness/policy.joblib"}
+        flag = "WITNESS_FALLBACK" if not feasible else "WITNESS_SELECTED_BY_RULE"
+        selected_round = None
     else:
-        # every round policy is violated by attackers refit on itself: the registered
-        # deterministic fallback is D17 itself (feasible by construction); RD_PRIV aliases D17.
-        policy_pin = {**save_policy(_D17Law(d17), out / "d17_fallback" / "policy.joblib"),
-                      "path": "d17_fallback/policy.joblib"}
-        flag, selected_round = "NO_FINAL_BANK_FEASIBLE_ROUND: RD_PRIV falls back to D17 (alias)", None
+        flag, policy_pin, selected_round = None, best["policy"], best["round"]
     selected = {"schema": "pcrl-sc-rd-v1", "variant": "RD_PRIV", "anchor": anchor,
                 "selected_round": selected_round, "policy": policy_pin, "flag": flag,
-                "selection_rule": "lowest inner_selection balanced task CE (receiver slate fit on the round's pure law) among rounds feasible on the final bank (round-0 + best-response refits on every round policy); if none, D17 (flagged alias)",
+                "selection_rule": "M4: selection set = rounds ∪ {exact D17 witness}; lowest inner_selection balanced task CE (receiver slate fit on the member's pure law, common seed) among members feasible on the final bank (round-0 + best-response refits on every round policy, incl. itself); ties: round before witness; witness only -> D17 exactly (WITNESS_FALLBACK)",
+                "witness": witness, "witness_selected": best is witness,
                 "oracle": "two policies.fit_paired_oracle fits (paired task u and paired price lambda.a, M2) combined as Delta_u - mu*Delta_p",
                 "oracle_records": {"task": u_record, "price": p_record},
                 "direction": direction, "dual_source": dual_source, "price_direction": lam_record,

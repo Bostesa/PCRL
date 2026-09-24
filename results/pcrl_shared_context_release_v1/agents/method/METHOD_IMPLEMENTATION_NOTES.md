@@ -115,3 +115,29 @@ Caveat from a synthetic probe (scratchpad, not a test): pairing removes person-l
 all tokens (raw oracle 91% -> paired 10% deviation), but when token-specific noise is ~0.1 nats the
 fitted mean paired difference of some token still falls below -tau by chance and the paired policy
 deviates for almost everyone. TAU is not scaled by estimation error.
+
+## Amendment M3.1 (closing refit) — implemented
+
+After round R, `_closing_refit` fits A/AB best responses on round R's own per-person law (AR routine,
+seed round = R+1, dir `closing/`), rebases the whole bank, and the AR final-round rule runs on that
+enlarged bank; DET_SEL reads `closing/` when present. Recorded in `closing/CLOSING.json`,
+`FINAL_BANK_SELECTION.json` and `COMPLETE.json["closing_refit"]`. If no round is feasible the unit
+writes `FINAL_BANK_SELECTION.json` with status NO_FEASIBLE_ROUND (per-round violation, count, worst cut)
+and stops with `NoFeasibleRound` — no fallback is registered. This happened in the engineering smoke
+(NM4_U, 30% a0, 2 rounds). `elapsed_seconds` was removed from ROUND.json so a crashed unit can resume.
+
+## Amendments M4 and M5.1 — implemented
+
+- M4: final selection set = rounds + exact D17 witness (`witness/PARAMS.npz`, B=D17, A=0, eta=0),
+  feasibility on the closing-enlarged bank. Status SELECTED_ROUND / WITNESS_SELECTED / WITNESS_FALLBACK
+  in FINAL_BANK_SELECTION.json, SELECTED.json, RELEASE_SPEC.json and COMPLETE.json
+  (`selected_round` null for the witness). The witness's inner-selection task uses the last round's
+  decoder. release.json loads and the law equals D17 exactly. All round checkpoints and per-member
+  violations (count, max, worst cut) are kept. DET_SEL asserts the all-D17 assignment is enumerated.
+- M5.1: P-form units rank feasible members by the largest final-bank AB/SEX slack
+  min(L_a - rho) over AB/SEX cuts in both weightings, then lower inner-selection task, then witness or
+  earlier round. U-form units are unchanged.
+- M5.7 (disclosed, no code change): decoder refits train on nuisance_train under policies fitted with
+  nuisance_train labels. ROUND.json records an inner_check task score that no selection rule reads.
+- Smoke (2 rounds, a0 30%): NM4_U completes with WITNESS_FALLBACK (law equals D17 exactly); NM4_P
+  completes with SELECTED_ROUND (all three members feasible, round 0 selected by the P key).

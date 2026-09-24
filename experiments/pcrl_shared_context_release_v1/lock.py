@@ -4,7 +4,8 @@
 labels, the comparator representatives, three code-generated families (primary,
 secondary, H-capability) with a SHA-256 of each canonical manifest, the code
 commit, the inner report hashes, per-anchor logical->canonical maps and the
-per-anchor J pin (`external_context.J`). The outer role is opened only after
+per-anchor J pin (`external_context.J`), and the six positive-control receipts
+with their `detected` flags (amendment M5.4; refuses to lock if any is missing). The outer role is opened only after
 the coordinator commits and pushes this file and writes `private/OUTER_UNLOCK.json`
 (schema `pcrl-sc-outer-unlock-v1`) with the remote-verified commit; see
 `audit_panel.verify_outer_gate`.
@@ -154,9 +155,47 @@ def _manifest(endpoints: list[dict], scope: str) -> dict:
             "scope": scope}
 
 
+POS_ROLES = ("AB/SEX", "AB/RAC1P")
+
+
+def pos_key(anchor: int, role: str) -> str:
+    return f"{anchor}|attack:{role}"
+
+
+def load_positive_controls(units_root: str | Path) -> dict:
+    """Amendment M5.4: pin all six POS receipts and `detected` flags; refuse if any is missing."""
+    root = Path(units_root)
+    out = {}
+    for anchor in ANCHORS:
+        for role in POS_ROLES:
+            uid = f"a{anchor}_POS_{role.replace('/', '_')}"
+            receipt_path = root / "_receipts" / f"{uid}.json"
+            summary_name = f"a{anchor}_{role.replace('/', '_')}_SUMMARY.json"
+            summary_path = root / uid / summary_name
+            if not receipt_path.is_file() or not summary_path.is_file():
+                raise FileNotFoundError(f"positive control {uid} has no completed receipt/summary; refusing to lock")
+            receipt = json.loads(receipt_path.read_text())
+            summary = json.loads(summary_path.read_text())
+            if (receipt.get("outputs_sha256", {}).get(summary_name) != _sha(summary_path) or
+                    summary.get("anchor") != anchor or summary.get("role") != role or
+                    summary.get("smoke") is not False or summary.get("outer_labels_accessed") is not False or
+                    not isinstance(summary.get("detected"), bool)):
+                raise ValueError(f"positive control {uid} receipt or summary differs")
+            out[pos_key(anchor, role)] = {
+                "unit_id": uid, "runner_receipt_sha256": _sha(receipt_path),
+                "summary_sha256": _sha(summary_path), "detected": summary["detected"],
+                "improvement_nats": summary["improvement_nats"],
+                "threshold_nats": summary["threshold_nats"]}
+    return out
+
+
 def build_lock(inner_selection: Mapping, reports: Mapping[int, Mapping], pins: Mapping[str, Mapping],
                *, j_pins: Mapping[str, Mapping] | None, code_commit: str,
-               protocol_sha256: str, inner_selection_sha256: str) -> dict:
+               protocol_sha256: str, inner_selection_sha256: str,
+               positive_controls: Mapping[str, Mapping]) -> dict:
+    expected_pos = {pos_key(a, r) for a in ANCHORS for r in POS_ROLES}
+    if set(positive_controls) != expected_pos:
+        raise ValueError("all six positive-control receipts are required before the lock")
     routes = inner_selection["routes"]
     aliases = dict(inner_selection["alias_of"])
     slots = [{"id": f"{route}_nominee", "arm": route, "source_name": routes[route]["nominee"],
@@ -195,6 +234,8 @@ def build_lock(inner_selection: Mapping, reports: Mapping[int, Mapping], pins: M
             "slots": slots, "alias_of": aliases, **manifests,
             "manifest_sha256": {name: manifest_sha256(value) for name, value in manifests.items()},
             "bootstrap": BOOTSTRAP, "anchors": anchors,
+            "positive_controls": dict(positive_controls),
+            "audit_uninformative": sorted(k for k, v in positive_controls.items() if not v["detected"]),
             "external_context": {"J": dict(j_pins)} if j_pins is not None else None,
             "outer_access": ("only via audit_panel.verify_outer_gate after this file is committed, "
                              "pushed and remote-verified and private/OUTER_UNLOCK.json is written")}
@@ -205,6 +246,10 @@ def verify_lock_structure(lock: Mapping) -> None:
     """Regenerate every family from the slots and compare counts and hashes."""
     if lock.get("schema") != SCHEMA or lock.get("status") != "LOCKED":
         raise PermissionError("not a locked shared-context selection")
+    pos = lock.get("positive_controls") or {}
+    if (set(pos) != {pos_key(a, r) for a in ANCHORS for r in POS_ROLES} or
+            lock.get("audit_uninformative") != sorted(k for k, v in pos.items() if not v["detected"])):
+        raise PermissionError("positive-control receipts are not pinned in the lock")
     aliases = lock["alias_of"]
     primary = enumerate_family(lock["slots"], alias_of=aliases)
     secondary_def = secondary_slots(lock["slots"])
@@ -256,6 +301,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--inner-selection", required=True)
     parser.add_argument("--reports", nargs=3, required=True, help="inner panel dirs a0 a1 a2")
     parser.add_argument("--j-reports", nargs=3, help="J inner panel dirs a0 a1 a2")
+    parser.add_argument("--units-root", required=True, help="runner units root holding the six POS units")
     parser.add_argument("--protocol", default=str(audit_panel.RESULTS / "PROTOCOL.md"))
     parser.add_argument("--out", default=str(audit_panel.LOCK_PATH))
     args = parser.parse_args(argv)
@@ -273,7 +319,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         index_sha = pins["0"]["index_sha256"]
         j_pins = {str(a): _j_pin(d, a, index_sha) for a, d in zip(ANCHORS, args.j_reports)}
     lock = build_lock(inner, reports, pins, j_pins=j_pins, code_commit=_git_commit(),
-                      protocol_sha256=_sha(args.protocol), inner_selection_sha256=_sha(inner_path))
+                      protocol_sha256=_sha(args.protocol), inner_selection_sha256=_sha(inner_path),
+                      positive_controls=load_positive_controls(args.units_root))
     verify_lock_structure(lock)
     digest = write_once(Path(args.out), lock)
     print(json.dumps({"lock_sha256": digest,

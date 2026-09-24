@@ -36,7 +36,7 @@ FAMILIES = ("family_manifest", "secondary_manifest", "capability_manifest")
 CSV_FIELDS = ("family", "id", "candidate", "candidate_release", "arm", "comparator", "role",
               "weighting", "clause", "threshold", "estimate", "bootstrap_se", "lower", "upper",
               "passed_upper_bound", "point_screen_passed", "demonstrated_adverse",
-              "exact_zero_same_route", "anchor_estimate_0", "anchor_estimate_1", "anchor_estimate_2")
+              "exact_zero_same_route", "audit_uninformative_anchors", "anchor_estimate_0", "anchor_estimate_1", "anchor_estimate_2")
 
 
 def _load_outer(directory: str | Path, anchor: int, lock_sha: str, *, j: bool = False) -> dict:
@@ -67,7 +67,7 @@ def _load_outer(directory: str | Path, anchor: int, lock_sha: str, *, j: bool = 
                 scores[(release, anchor, role)] = candidate
     for role, h in h_by_role.items():
         scores[("H", anchor, role)] = h
-    return scores
+    return scores, report
 
 
 def _write_new(path: Path, text: str) -> None:
@@ -88,17 +88,31 @@ def assess(selection_lock_path: str | Path, expected_lock_sha256: str,
     lock_module.verify_lock_structure(lock)
     if set(outer_dirs) != set(ANCHORS):
         raise ValueError("three completed outer anchors required")
+    j_locked = any("J" in (e["plus"], e["minus"]) for e in lock["secondary_manifest"]["endpoints"])
+    if j_locked and j_outer_dirs is None:
+        raise ValueError("J endpoints are locked; --outer-j scores are required (M5.6)")
     out = Path(output_dir)
-    scores, h_match = {}, {}
+    scores, h_match, breaks = {}, {}, {}
     for anchor in ANCHORS:
-        scores.update(_load_outer(outer_dirs[anchor], anchor, expected_lock_sha256))
+        current, report = _load_outer(outer_dirs[anchor], anchor, expected_lock_sha256)
+        scores.update(current)
         mapping = lock["anchors"][str(anchor)]["logical_to_canonical"]
+        confirmed = report.get("outer_alias_confirmed", {})
+        broken = report.get("outer_alias_breaks", {})
         for logical, canonical in mapping.items():
+            if logical == canonical:
+                continue
+            if logical in broken:
+                if broken[logical]["canonical"] != canonical or logical not in report["releases"]:
+                    raise ValueError(f"{logical}: outer alias break record is inconsistent")
+                breaks.setdefault(logical, {})[str(anchor)] = broken[logical]
+                continue  # its own separately scored outer rows are already in `scores`
+            if confirmed.get(logical) != canonical:
+                raise ValueError(f"{logical}: outer alias to {canonical} was not verified on outer rows")
             for role in ROLES:
-                if (canonical, anchor, role) in scores:
-                    scores[(logical, anchor, role)] = scores[(canonical, anchor, role)]
+                scores[(logical, anchor, role)] = scores[(canonical, anchor, role)]
         if j_outer_dirs is not None:
-            j_scores = _load_outer(j_outer_dirs[anchor], anchor, expected_lock_sha256, j=True)
+            j_scores, _ = _load_outer(j_outer_dirs[anchor], anchor, expected_lock_sha256, j=True)
             for role in ROLES:
                 scores[("J", anchor, role)] = j_scores[("J", anchor, role)]
                 h_match[f"{anchor}|{role}"] = inference_run._same_score(
@@ -114,8 +128,6 @@ def assess(selection_lock_path: str | Path, expected_lock_sha256: str,
     results, rows_out = {}, []
     for name in FAMILIES:
         endpoints = lock[name]["endpoints"]
-        if name == "secondary_manifest" and j_outer_dirs is None:
-            endpoints = [e for e in endpoints if "J" not in (e["plus"], e["minus"])]
         if not endpoints:
             continue
         clean = [{k: v for k, v in e.items() if k != "exact_zero_same_route"} for e in endpoints]
@@ -125,6 +137,30 @@ def assess(selection_lock_path: str | Path, expected_lock_sha256: str,
             row["exact_zero_same_route"] = flags[row["id"]]
             rows_out.append(row)
         results[name] = result
+    # M5.3: comparator merges fixed at the lock but broken on outer rows are
+    # recomputed as a separately corrected descriptive supplement (never silently copied).
+    supplement = []
+    for name in FAMILIES:
+        for e in lock[name]["endpoints"]:
+            for other in e["comparator_names"]:
+                if other != e["comparator"] and other in breaks:
+                    supplement.append({**{k: v for k, v in e.items() if k != "exact_zero_same_route"},
+                                       "id": f"outer_alias_supplement|{e['id']}|{other}",
+                                       "family": "outer_alias_supplement", "comparator": other,
+                                       "comparator_names": [other],
+                                       "plus": e["candidate_release"] if e["clause"] in ("task", "capability") else other,
+                                       "minus": other if e["clause"] in ("task", "capability") else e["candidate_release"]})
+    if supplement:
+        result = paired.evaluate_family(supplement, scores, n_boot=n_boot, seed=seed, alpha=alpha)
+        for row in result["rows"]:
+            row["exact_zero_same_route"] = False
+            rows_out.append(row)
+        results["outer_alias_supplement"] = result
+    pos = lock["positive_controls"]
+    for row in rows_out:
+        row["audit_uninformative_anchors"] = (
+            [a for a in ANCHORS if not pos[f"{a}|{row['role']}"]["detected"]]
+            if f"0|{row['role']}" in pos else [])
     primary = results["family_manifest"]
     by_comparator = {}
     for slot in lock["slots"]:
@@ -148,6 +184,12 @@ def assess(selection_lock_path: str | Path, expected_lock_sha256: str,
               "families": {name: {k: v for k, v in res.items() if k != "rows"}
                            for name, res in results.items()},
               "j_H_identical_to_main_H": h_match or None,
+              "outer_alias_breaks": breaks,
+              "outer_merge_recomputed": sorted({r["id"] for r in supplement}),
+              "positive_controls": pos,
+              "audit_uninformative": lock["audit_uninformative"],
+              "audit_uninformative_note": ("an undetected positive control marks that role/anchor's audit "
+                                           "strength uninformative; endpoints are unchanged"),
               "scope": ("conditional on the fitted, selected objects; not the adaptive research "
                         "history nor the ACS survey design")}
     out.mkdir(parents=True, exist_ok=True)
@@ -158,6 +200,7 @@ def assess(selection_lock_path: str | Path, expected_lock_sha256: str,
     lines = [",".join(CSV_FIELDS)]
     for row in rows_out:
         values = {**row, **{f"anchor_estimate_{i}": v for i, v in enumerate(row["anchor_estimates"])}}
+        values["audit_uninformative_anchors"] = ";".join(map(str, row["audit_uninformative_anchors"]))
         lines.append(",".join(_csv(values.get(field)) for field in CSV_FIELDS))
     _write_new(out / "FULL_RESULTS.csv", "\n".join(lines) + "\n")
     return report

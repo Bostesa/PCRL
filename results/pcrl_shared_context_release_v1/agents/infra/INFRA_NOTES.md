@@ -32,7 +32,7 @@ Two private paths are involved:
 ### `audit_panel.py`
 
 - The AR slate is unchanged: `ar_audit.fit_role_slate`, `select_frozen_routes`, `score_frozen_route`, `evaluate._registry_routes` and `_private_contributions`, with the same seven H ancestor roles.
-- Seeds are `36000 + 1000*anchor + role_index`. This is a new registered base, and the seeds are common to every release.
+- Seeds are `26000 + 1000*anchor + role_index`, the AR value, common to every release (see the follow-up section).
 - **De-duplication.** A release's identity is a SHA-256 over three items for each of the roles `audit_fit`, `inner_selection` and `inner_check`:
   - the role name;
   - the SHA of the ordered person ids;
