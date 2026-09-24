@@ -35,3 +35,8 @@
   - RD_TASK: non-D17 only on a2.
 - 19:54Z: inner selection + SELECTION_LOCK written on host from the three inner panels; both slots DIAGNOSTIC_ONLY (U: NM1_U, P: NM4_P); primary 40 endpoints (comparators that are exact D17 on all anchors merged), z=3.2272; secondary 120; capability 4; POS 6/6 pinned detected. Lock sha256 d995484103cfbc9ca9f1411a2f89d6f5d9ee1f46e1bbdce1c8d0d82d20cadbfc. Outer not yet opened.
 - 19:56:26Z OUTER_UNLOCK verified (lock commit e5d555a on origin). 19:58Z restore-outer + run-outer (frozen routes, no refit/selection on outer) + assess. Outer opened once. Results: U 8/20 primary clauses (DIAGNOSTIC_ONLY NM1_U), P 0/20 (DIAGNOSTIC_ONLY NM4_P); capability 4/4; no route passed.
+- 20:05Z representative restore and replay: a0_bank and a0_NM4_P fetched by version from S3 with matching SHA-256. The per-person law on the Mac equalled the Linux alias-ledger identity bit for bit on 3 roles.
+- 20:12Z independent verification CONFIRMED: 44/44 primary and capability estimates and decisions reproduced; custody chain verified.
+- 20:14Z post-lock archives (outer scores, unlock, assessment, post-hoc, reports, verify) uploaded with SSE and read back; the restored outer-labelled originals were excluded. All 116 unit archive manifests read-back verified.
+- 20:15:55Z terminate requested; 20:16:34Z terminated; 20:16:50Z study SG deleted; 0 live study resources. Cost upper estimate about $2.1. Local private restore scratch deleted.
+- **Study CLOSED. Verdict EXPERIMENTAL_NO_ADVANTAGE.** See RESEARCH_DECISION.md.
