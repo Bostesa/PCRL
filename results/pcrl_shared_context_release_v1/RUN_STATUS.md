@@ -8,9 +8,9 @@
 
 ## Log
 - 17:26Z start; discovery; sparse worktree; symlink to predecessor sanitized inputs (gitignored).
-- 17:40–18:10Z parallel agents: support census (label-blind, reproduces DATA_ROLE_COUNTS exactly; T0 codes stored), code audit (A1–A3, A5 confirmed; A4 partly), fit-pipeline map, math review (3 design-changing findings -> Amendment M1), confirmation plan (running).
-- 18:05Z implementers launched: method (channel/policies/contexts/fit_nm/release), baselines (rd/adv/poscontrol + BASELINE_MATCHING/AUDIT_CONTRACT), infra (laws/runner/audit_panel/cloud/stage/archive). Target code-complete ~21:15Z.
-- 18:40Z pre-fit registration committed and pushed: ba391494379ece6b21b4dc8952495a5ec35a5a4d (remote verified). Outcome access: none.
+- 17:30–17:46Z parallel agents: support census (label-blind, reproduces DATA_ROLE_COUNTS exactly; T0 codes stored), code audit (A1–A3, A5 confirmed; A4 partly), fit-pipeline map, math review (3 design-changing findings -> Amendment M1), confirmation plan (running).
+- ~17:44Z implementers launched: method (channel/policies/contexts/fit_nm/release), baselines (rd/adv/poscontrol + BASELINE_MATCHING/AUDIT_CONTRACT), infra (laws/runner/audit_panel/cloud/stage/archive). Time box 21:15Z; method implementer finished 18:07Z.
+- 17:48:02Z pre-fit registration committed and pushed: ba391494379ece6b21b4dc8952495a5ec35a5a4d (remote verified). Outcome access: none.
 - Early manuscript-owner notice: `.git/pcrl_week_finish_v2/evaluation/TO_MANUSCRIPT_SHARED_CONTEXT_START.json`.
 
 ## Agent board
@@ -23,3 +23,4 @@
 | Baseline/audit owner | agent | RD/ADV/poscontrol, BASELINE_MATCHING, AUDIT_CONTRACT | running |
 | Infrastructure | agent | runner/cloud/audit integration | running |
 | Independent verifier | agent (later, fresh context) | INDEPENDENT_VERIFICATION, REVIEW | not started |
+- Timestamp correction (18:08Z): earlier entries in RUN_STATUS/DESIGN_SPEC/RESPONSE carried estimated times that ran ahead of the clock; corrected to git commit times (registration 17:48:02Z, confirmation plan 17:59:21Z). No content change.

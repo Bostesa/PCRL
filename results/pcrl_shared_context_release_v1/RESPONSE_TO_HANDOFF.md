@@ -1,6 +1,6 @@
 # Response to the shared-context handoff (pre-fit)
 
-Written 2026-09-24, 17:26–18:30Z, before any new release candidate was fitted and before any new outcome was observed. Evidence: `agents/support/SUPPORT_CENSUS.{json,md}` (label-blind census), `agents/pipeline_audit/{CODE_CHECKS,AUDIT_SELECTION_MAP,ENDPOINT_UNCERTAINTY}.md` (code audit + power), `agents/pipeline_fit/PIPELINE_FIT_MAP.md` (implementation map), `agents/math/MATH_REVIEW.md` (independent mathematical review; see the addendum at the end of this file).
+Written 2026-09-24, 17:26–17:48Z, before any new release candidate was fitted and before any new outcome was observed. Evidence: `agents/support/SUPPORT_CENSUS.{json,md}` (label-blind census), `agents/pipeline_audit/{CODE_CHECKS,AUDIT_SELECTION_MAP,ENDPOINT_UNCERTAINTY}.md` (code audit + power), `agents/pipeline_fit/PIPELINE_FIT_MAP.md` (implementation map), `agents/math/MATH_REVIEW.md` (independent mathematical review; see the addendum at the end of this file).
 
 ## 1. Is the support diagnosis reproduced from code and committed artifacts?
 
@@ -94,7 +94,7 @@ From the predecessor's assessment (same outer pool, 70-endpoint Bonferroni, z = 
 
 A candidate that coincides with D17 for most people has smaller paired variance, so near-D17 mixtures are the most plausible passers. Even so, I expect the complete conjunctions to fail with high probability regardless of the true merit of richer inputs. The margins are not relaxed (section 16 of the handoff). All point estimates and intervals will be reported so the programme's actual effect sizes are visible. Registered subjective predictions are in `PROTOCOL.md` section 9.
 
-## Addendum: independent mathematical review (received 18:30Z, pre-fit)
+## Addendum: independent mathematical review (received ~17:45Z, pre-fit)
 
 `agents/math/MATH_REVIEW.md` reproduced Examples A and B exactly from the committed fixtures, confirmed the nested parameterization is algebraically sound, and **changed the design** (Amendment M1 in `DESIGN_SPEC.md`):
 
