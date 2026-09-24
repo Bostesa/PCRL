@@ -370,6 +370,61 @@ def start_runner(queue: str, workers: int, *, extra: list[str] | None = None) ->
                 f"Start SC queue runner x{workers}")
 
 
+LOCKCHECK = "/opt/pcrl/lockcheck"
+SPARSE = ("/experiments/__init__.py /experiments/pcrl_adaptive_release_v1/ "
+          "/experiments/pcrl_task_aligned_cuts_v1/ /experiments/pcrl_task_directed_release_v1/ "
+          "/experiments/pcrl_final_prospective_v1/ /experiments/pcrl_shared_context_release_v1/ "
+          "/results/pcrl_adaptive_release_v1/ /results/pcrl_task_aligned_cuts_v1/ "
+          "/results/pcrl_shared_context_release_v1/")
+
+
+def lockcheck(commit: str) -> str:
+    """Separate checkout at a pushed commit; /opt/pcrl/work is never touched."""
+    verify_pushed(commit)
+    return send(["set -eu",
+                 f"if [ ! -d {LOCKCHECK}/.git ]; then git clone -q --filter=blob:none --no-checkout "
+                 f"--sparse --depth 200 --single-branch --branch {BRANCH} {REPO} {LOCKCHECK}; fi",
+                 f"cd {LOCKCHECK}", f"git sparse-checkout set --no-cone {SPARSE}",
+                 f"git fetch -q --depth 200 origin {BRANCH}",
+                 f"git merge-base --is-ancestor {commit} FETCH_HEAD",
+                 f"git checkout -q --detach {commit}",
+                 f"test \"$(git rev-parse HEAD)\" = {commit}",
+                 "git status --porcelain --untracked-files=no | (! grep .)",
+                 f"printf '%s\\n' {commit} > {LOCKCHECK}/SOURCE_COMMIT.txt",
+                 "git -C /opt/pcrl/work rev-parse HEAD"],
+                f"Lockcheck checkout {commit[:12]}")
+
+
+def pull(remote_path: str, local_path: str, *, timeout_seconds: int = 600) -> dict:
+    """Copy one host file to the Mac through the private bucket, SHA-verified end to end."""
+    if not re.fullmatch(r"/opt/pcrl/[A-Za-z0-9_./-]+", remote_path) or ".." in remote_path:
+        raise ValueError("remote path must be a plain file under /opt/pcrl")
+    target = Path(local_path)
+    key = f"{STUDY}/control/transfer/{utcnow().strftime('%Y%m%dT%H%M%SZ')}-{Path(remote_path).name}"
+    command_id = send(["set -eu", f"test -f {remote_path}",
+                       f"aws s3 cp {remote_path} s3://{BUCKET}/{key} --sse AES256 --only-show-errors",
+                       f"sha256sum {remote_path} | cut -d' ' -f1"],
+                      f"Pull {Path(remote_path).name}", timeout_seconds)
+    result = wait(command_id, timeout_seconds + 60)
+    if result["Status"] != "Success":
+        raise RuntimeError(f"host upload failed: {result['StandardErrorContent'][-500:]}")
+    digest = result["StandardOutputContent"].strip().splitlines()[-1]
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise RuntimeError("host did not report a SHA-256")
+    temporary = target.with_name(target.name + ".partial")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    aws("s3", "cp", f"s3://{BUCKET}/{key}", str(temporary), "--only-show-errors")
+    local = hashlib.sha256(temporary.read_bytes()).hexdigest()
+    if local != digest:
+        temporary.unlink()
+        raise ValueError("downloaded bytes differ from the host SHA-256")
+    if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+        temporary.unlink()
+        raise FileExistsError(f"{target} exists with different bytes; not overwritten")
+    os.replace(temporary, target)
+    return {"remote": remote_path, "local": str(target), "sha256": digest, "s3_key": key}
+
+
 def status() -> dict:
     ident = instance()
     item = aws("ec2", "describe-instances", "--instance-ids", ident)["Reservations"][0]["Instances"][0]
@@ -464,6 +519,9 @@ def main(argv: list[str] | None = None) -> None:
     item = sub.add_parser("start-runner"); item.add_argument("--queue", required=True)
     item.add_argument("--workers", type=int, default=16)
     item.add_argument("--extra", nargs=argparse.REMAINDER, default=[])
+    item = sub.add_parser("lockcheck"); item.add_argument("--commit", required=True)
+    item = sub.add_parser("pull"); item.add_argument("--remote", required=True)
+    item.add_argument("--local", required=True)
     sub.add_parser("status")
     item = sub.add_parser("terminate"); item.add_argument("--confirm", required=True)
     item = sub.add_parser("cost"); item.add_argument("--record", action="store_true")
@@ -489,6 +547,10 @@ def main(argv: list[str] | None = None) -> None:
         value = {"command_id": stage_code(args.commit)}
     elif args.action == "start-runner":
         value = {"command_id": start_runner(args.queue, args.workers, extra=args.extra)}
+    elif args.action == "lockcheck":
+        value = {"command_id": lockcheck(args.commit)}
+    elif args.action == "pull":
+        value = pull(args.remote, args.local)
     elif args.action == "status":
         value = status()
     elif args.action == "terminate":

@@ -25,3 +25,6 @@
 | Independent verifier | agent (later, fresh context) | INDEPENDENT_VERIFICATION, REVIEW | not started |
 - Timestamp correction (18:08Z): earlier entries in RUN_STATUS/DESIGN_SPEC/RESPONSE carried estimated times that ran ahead of the clock; corrected to git commit times (registration 17:48:02Z, confirmation plan 17:59:21Z). No content change.
 - 18:53:41Z launched i-0732026d054f6d3ee (c7i.8xlarge, $1.428/h, SG sg-01e1c3010494c470c zero ingress, tags Project=pcrl Study=pcrl_shared_context_release_v1) at launch commit 8ac75775e0c35a1746c6870a91037d18aff48e25; watchdog 2026-09-25T09:00Z, hard stop 09:30Z.
+- 18:56Z runner started (16 workers, 58 units). 19:06Z: banks x3, decide_k, POS x6, J_inner x3 complete, no failures.
+- K decision: nm4_K = 4 (no anchor failed the registered support rule; K=2 fallback not triggered).
+- Positive controls (revealing channel, detection = H-minus-leak >= .01 nats in both weightings on inner_check): AB/SEX and AB/RAC1P detected on all three anchors (6/6). The predecessor ran only a0 AB/RAC1P.

@@ -159,3 +159,82 @@ Run everything from the worktree with `PYTHONPATH=.` and `/Users/nathansamson/PC
 5. Build the queue on the host with `cloud send "plan queue" "cd /opt/pcrl/work && PYTHONPATH=. /opt/pcrl/venv/bin/python -m experiments.pcrl_shared_context_release_v1.runner plan --index /opt/pcrl/work/results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json --units-root /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/units --plan-dir /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/plan --queue-out /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/QUEUE.json"`.
 6. Start the runner with `cloud start-runner --queue /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/QUEUE.json --workers 12`.
 7. Record spend with `cloud cost --record`.
+
+## Coordinator post-inner sequence
+
+This section was added 2026-09-24. Run the local commands from the worktree, prefixed with `PY="PYTHONPATH=. /Users/nathansamson/PCRL/.venv/bin/python -m experiments.pcrl_shared_context_release_v1"`, so `$PY.cloud` means `PYTHONPATH=. …python -m experiments.pcrl_shared_context_release_v1.cloud`.
+
+- **Host steps.** Each one is a `$PY.cloud send "<desc>" "<command>" [--timeout N]`, followed by `$PY.cloud wait <command_id>`.
+- **Two checkouts on the host.**
+  - `/opt/pcrl/work` stays at launch commit 8ac7577. The runner uses it, and it is only ever read, with one exception: the `lock_staging` files written in step A2.
+  - All post-lock code runs from `/opt/pcrl/lockcheck`, a separate sparse checkout of the pushed commit that contains the lock, with `PYTHONPATH=/opt/pcrl/lockcheck`. Unit data is read from `/opt/pcrl/work` by explicit path.
+  - The host modules used in A2–A3 are unchanged between 8ac7577 and the current tip.
+- **Assumptions.** The queue was planned with `--plan-dir /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/plan`, and the units root is `…/private/units`. If you used different paths, substitute them.
+
+Shorthands used below; spell them out in the real commands:
+
+    W=/opt/pcrl/work; L=/opt/pcrl/lockcheck; U=$W/results/pcrl_shared_context_release_v1/private/units
+    P=/opt/pcrl/venv/bin/python; M=experiments.pcrl_shared_context_release_v1
+    IDX=$W/results/pcrl_task_aligned_cuts_v1/REUSABLE_INPUTS_PINNED.json
+    STG=$W/results/pcrl_shared_context_release_v1/private/lock_staging
+
+### A. Nomination and lock (inner data only)
+
+1. **Wait for the prerequisite units.** Once all three `aA_inner_audit`, all three `aA_J_inner` and all six POS units have runner receipts, this prints 12:
+   `ls $U/_receipts | grep -cE '^a[012]_(inner_audit|J_inner|POS_AB_SEX|POS_AB_RAC1P)\.json$'`
+2. **Selection.** Run from the work checkout. The code is unchanged since 8ac7577.
+   `cd $W && mkdir -p $STG && PYTHONPATH=$W $P -m $M.selection inner --reports $U/a0_inner_audit $U/a1_inner_audit $U/a2_inner_audit --out $STG/INNER_SELECTION.json`
+3. **Lock.** Its `code_commit` is recorded as 8ac7577. It refuses unless all six POS receipts are present.
+   `cd $W && PYTHONPATH=$W $P -m $M.lock --inner-selection $STG/INNER_SELECTION.json --reports $U/a0_inner_audit $U/a1_inner_audit $U/a2_inner_audit --j-reports $U/a0_J_inner $U/a1_J_inner $U/a2_J_inner --units-root $U --out $STG/SELECTION_LOCK.json`
+4. **Pull both files locally.** This is local, uses the private bucket, and checks SHA-256 end to end.
+   - `$PY.cloud pull --remote /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/lock_staging/INNER_SELECTION.json --local results/pcrl_shared_context_release_v1/INNER_SELECTION.json`
+   - `$PY.cloud pull --remote /opt/pcrl/work/results/pcrl_shared_context_release_v1/private/lock_staging/SELECTION_LOCK.json --local results/pcrl_shared_context_release_v1/SELECTION_LOCK.json`
+5. **Commit and push locally.** Commit both files, together with `postlock.py` if it is not yet pushed. Then:
+   - `C=$(git rev-parse HEAD)`
+   - `S=$(shasum -a 256 results/pcrl_shared_context_release_v1/SELECTION_LOCK.json | cut -d' ' -f1)`
+6. **Create the lockcheck checkout.** This is local; it verifies that C is on origin, then sends the checkout to the host.
+   `$PY.cloud lockcheck --commit $C`
+   It clones or fetches into `/opt/pcrl/lockcheck`, checks out C detached, and asserts the working tree is clean. It never touches `/opt/pcrl/work`.
+7. **Copy the sanitized anchors into lockcheck.** These copies are label-stripped and SHA-verified.
+   `cd $L && PYTHONPATH=$L $P -m $M.postlock prepare`
+8. **Unlock.** This re-verifies on origin with `git ls-remote`, `git merge-base` and a hash of `git show C:…/SELECTION_LOCK.json`, then writes `$L/results/…/private/OUTER_UNLOCK.json` once.
+   `cd $L && PYTHONPATH=$L $P -m $M.audit_panel unlock --lock-sha256 $S --commit $C`
+
+### B. Restore the outer source objects (only after the gate)
+
+`cd $L && PYTHONPATH=$L $P -m $M.postlock restore-outer --lock-sha256 $S`
+
+- It gates first, then fetches AR's three original prepared objects into `$L/results/pcrl_shared_context_release_v1/private/original_2018_restore/<index member_path>`. These are the only objects that carry outer labels.
+- Each object is fetched by exact key and version, then checked for byte count and SHA-256 against both the pin and the index before it is moved into place with mode 600. A receipt is written to `private/ORIGINAL_RESTORE.json`.
+- The three pins were head-verified 2026-09-24. Each object exists with the pinned version, the pinned byte count and AES256 encryption:
+
+  | Anchor | Version | Bytes |
+  |---|---|---|
+  | 0 | `GotQn1gutDW1.JIT5OtUjtNEQwOufY8Y` | 26,542,284 |
+  | 1 | `FZTabGKmb7BxaQpDrBUNp.SyZcHELLif` | 26,370,921 |
+  | 2 | `tbHR5wcc.iWdl.4aAtTfFGY9VHXb3A0q` | 26,366,724 |
+
+  Their SHA-256 is checked on the host.
+
+### C. Outer scoring (frozen routes, every logical release, gate re-run on each call)
+
+For each anchor A in 0, 1, 2:
+
+- `cd $L && PYTHONPATH=$L $P -m $M.audit_panel outer --anchor A --index $IDX --sources $W/results/pcrl_shared_context_release_v1/private/plan/aA_audit_sources.json --inner-panel $U/aA_inner_audit --lock $L/results/pcrl_shared_context_release_v1/SELECTION_LOCK.json --lock-sha256 $S --out $L/results/pcrl_shared_context_release_v1/private/outer/aA`
+- `cd $L && PYTHONPATH=$L $P -m $M.audit_panel outer-j --anchor A --index $IDX --j-inner-panel $U/aA_J_inner --lock $L/results/pcrl_shared_context_release_v1/SELECTION_LOCK.json --lock-sha256 $S --out $L/results/pcrl_shared_context_release_v1/private/outer_j/aA`
+
+The sources file declares every logical release. `score_outer` checks each alias byte for byte on the outer rows and scores any broken alias separately.
+
+Shortcut for all of C and D at once, idempotent and skipping completed anchors: `cd $L && PYTHONPATH=$L $P -m $M.postlock run-outer --lock-sha256 $S`.
+
+### D. Assessment
+
+- `cd $L && PYTHONPATH=$L $P -m $M.assess --lock $L/results/pcrl_shared_context_release_v1/SELECTION_LOCK.json --lock-sha256 $S --outer $L/results/pcrl_shared_context_release_v1/private/outer/a0 …/a1 …/a2 --outer-j $L/results/pcrl_shared_context_release_v1/private/outer_j/a0 …/a1 …/a2 --out $L/results/pcrl_shared_context_release_v1/assessment` (use `--timeout 7200`)
+- Pull each of `INFERENCE.json`, `ENDPOINT_TABLE.json` and `FULL_RESULTS.csv`:
+  `$PY.cloud pull --remote /opt/pcrl/lockcheck/results/pcrl_shared_context_release_v1/assessment/<file> --local results/pcrl_shared_context_release_v1/<file>`
+
+### E. Archive the lockcheck outputs
+
+The watchdog and the archive sweep cover only `/opt/pcrl/work`, so archive lockcheck separately:
+
+`aws s3 sync $L/results/pcrl_shared_context_release_v1/private s3://pcrl-ux-archive-ed9d21fd/pcrl_shared_context_release_v1/postlock/private --sse AES256 --only-show-errors && aws s3 sync $L/results/pcrl_shared_context_release_v1/assessment s3://pcrl-ux-archive-ed9d21fd/pcrl_shared_context_release_v1/postlock/assessment --sse AES256 --only-show-errors`
