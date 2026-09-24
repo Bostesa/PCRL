@@ -117,6 +117,89 @@ def test_task_only_private_token_laws_are_actual_17_token_mixtures():
                                              mode="randomized_response", publish=1.1)
 
 
+@pytest.mark.parametrize("mode", ["constant_replacement", "randomized_response"])
+def test_sampled_task_only_release_has_private_stable_one_token_wire(tmp_path, mode):
+    rows = _role_rows("nuisance_train", 60, f"sample-{mode}")
+    model, _ = task_baselines.fit_task_only(rows, seed=31)
+    inputs = RuntimeInputs(rows["x"][:5], rows["ha"][:5])
+    ids = [f"person-{j}" for j in range(5)]
+    cache_path = tmp_path / "private" / f"{mode}_cache.json"
+    kwargs = dict(mode=mode, publish=.5, replay_key=b"k"*32,
+                  release_id="synthetic-2018-development", cache_path=cache_path)
+    first_session = task_baselines.TaskOnlyReleaseSession(model, **kwargs)
+    first = first_session.emit(inputs, ids)
+    assert set(first) == {"h_a", "token"}
+    assert first["h_a"].tobytes() == inputs.h_a.tobytes()
+    assert first["h_a"].dtype == inputs.h_a.dtype
+    assert first["token"].shape == (5,)
+    assert np.all((0 <= first["token"]) & (first["token"] < 17))
+    assert np.array_equal(first_session.emit(inputs, ids)["token"], first["token"])
+    assert cache_path.is_file()
+    assert "person-0" not in cache_path.read_text()
+    second_session = task_baselines.TaskOnlyReleaseSession(model, **kwargs)
+    assert np.array_equal(second_session.emit(inputs, ids)["token"], first["token"])
+    wrong_key = task_baselines.TaskOnlyReleaseSession(
+        model, **{**kwargs, "replay_key": b"z"*32})
+    with pytest.raises(ValueError, match="different model or release"):
+        wrong_key.emit(inputs, ids)
+    changed_ha = inputs.h_a.copy(); changed_ha[0, 0] += 1
+    with pytest.raises(ValueError, match="changed"):
+        second_session.emit(RuntimeInputs(inputs.x_a, changed_ha), ids)
+    changed_x = inputs.x_a.copy(); changed_x[0, 0] += 1
+    with pytest.raises(ValueError, match="changed"):
+        second_session.emit(RuntimeInputs(changed_x, inputs.h_a), ids)
+    with pytest.raises(TypeError, match="RuntimeInputs"):
+        second_session.emit({"x": inputs.x_a, "ha": inputs.h_a,
+                             "labels": rows["labels"]}, ids)
+    with pytest.raises(ValueError, match="duplicate"):
+        second_session.emit(inputs, [ids[0]]*5)
+    saved_cache = json.loads(cache_path.read_text())
+    record = next(iter(saved_cache["records"].values()))
+    record["token"] = (record["token"]+1) % 17
+    cache_path.write_text(json.dumps(saved_cache))
+    with pytest.raises(ValueError, match="cache token"):
+        second_session.emit(inputs, ids)
+
+
+def test_sampled_task_only_control_matches_exact_registered_law_and_pins_model():
+    rows = _role_rows("nuisance_train", 60, "sample-law")
+    model, _ = task_baselines.fit_task_only(rows, seed=31)
+    inputs = RuntimeInputs(rows["x"], rows["ha"])
+    session = task_baselines.TaskOnlyReleaseSession(
+        model, mode="randomized_response", publish=.75,
+        replay_key=b"s"*32, release_id="development-replay")
+    ids = list(range(60))
+    law = task_baselines.task_only_control_law(
+        model, inputs, mode="randomized_response", publish=.75)
+    observed = session.emit(inputs, ids)["token"]
+    assert observed.shape == (60,)
+    for i, identifier in enumerate(ids):
+        digest = task_baselines._runtime_row_digest(inputs.x_a[i], inputs.h_a[i])
+        u = session._uniform(("int", identifier), digest)
+        expected = int(np.searchsorted(np.cumsum(law[i]), u, side="right"))
+        assert observed[i] == expected
+    model.cuts[0] -= .01
+    with pytest.raises(ValueError, match="model"):
+        session.emit(inputs, ids)
+
+
+def test_sampled_task_only_requires_private_key_and_registered_control_point():
+    rows = _role_rows("nuisance_train", 60, "sample-invalid")
+    model, _ = task_baselines.fit_task_only(rows, seed=31)
+    with pytest.raises(ValueError, match="key"):
+        task_baselines.TaskOnlyReleaseSession(
+            model, mode="randomized_response", publish=.5,
+            replay_key=b"short", release_id="r1")
+    with pytest.raises(ValueError, match="publish"):
+        task_baselines.TaskOnlyReleaseSession(
+            model, mode="randomized_response", publish=.25,
+            replay_key=b"k"*32, release_id="r1")
+    with pytest.raises(ValueError, match="private"):
+        task_baselines.TaskOnlyReleaseSession(
+            model, mode="constant_replacement", publish=.5,
+            replay_key=b"k"*32, release_id="r1", cache_path="/tmp/public.json")
+
+
 @pytest.mark.parametrize("policy", ["task_only", "joint_risk", "random_eligible"])
 def test_matched_partition_controls_keep_t32_parent_support_and_leaf_budget(policy):
     coefficient = _role_rows("coefficient_split", 220, "coefficient")

@@ -142,3 +142,30 @@ def test_control_cli_exposes_only_frozen_center_and_private_output_arguments():
     for option in ("--branch", "--center-dir", "--index", "--anchor",
                    "--delta", "--output-dir", "--a-center-dir"):
         assert option in run.stdout
+
+
+@pytest.mark.parametrize("alias_status", ["SUPPORT_LIMITED_ALIAS_A",
+                                           "NO_ACCEPTED_SPLIT_ALIAS_A"])
+def test_b_alias_loader_accepts_exact_frozen_a_channel(tmp_path, monkeypatch, alias_status):
+    from experiments.pcrl_adaptive_release_v1 import fit_b
+
+    root = tmp_path / "private" / "b_alias"
+    root.mkdir(parents=True)
+    q = np.eye(17)[np.zeros(32, dtype=int)]
+    np.savez_compressed(root / "Q.npz", Q=q)
+    complete = {"schema": "pcrl-adaptive-B-center-v1", "anchor": 0,
+                "delta": .001, "status": alias_status,
+                "a_complete_receipt_sha256": "a"*64,
+                "selected_channel_relative": "Q.npz",
+                "artifact_sha256": fit_controls._inventory(root)}
+    (root / "COMPLETE.json").write_text(json.dumps(complete))
+    cost = np.ones_like(q)
+    monkeypatch.setattr(fit_b, "load_a_selected", lambda *args, **kwargs: {
+        "cost": {"U": cost, "W": cost}, "cuts": [], "Q": q,
+        "complete_receipt_sha256": "a"*64,
+        "selected_bank_sha256": "b"*64})
+    result = fit_controls.load_final_problem(
+        "B", root, anchor=0, delta=.001,
+        a_center_dir=tmp_path / "private" / "a")
+    assert result["source"]["branch"] == "B_ALIAS_A"
+    assert np.array_equal(result["selected_channel"], q)

@@ -8,10 +8,13 @@ opened by this module.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import fcntl
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
+import stat
 from typing import Mapping, Sequence
 
 import joblib
@@ -228,6 +231,183 @@ def task_only_control_law(model: TaskOnlyPredictor, inputs: RuntimeInputs, *,
     if not np.isfinite(law).all() or np.any(law < 0) or np.max(np.abs(law.sum(1)-1)) > 1e-12:
         raise ValueError("invalid exact task-only control law")
     return law
+
+
+def _runtime_row_digest(x: np.ndarray, ha: np.ndarray) -> str:
+    """Bind a replay ID to its immutable local inputs without storing them."""
+    digest = hashlib.sha256()
+    for array in (x, ha):
+        value = np.ascontiguousarray(array)
+        digest.update(str(value.dtype).encode())
+        digest.update(str(value.shape).encode())
+        digest.update(value.tobytes())
+    return digest.hexdigest()
+
+
+def _task_model_digest(model: TaskOnlyPredictor) -> str:
+    if not isinstance(model, TaskOnlyPredictor):
+        raise TypeError("frozen TaskOnlyPredictor required")
+    digest = hashlib.sha256(model.training_sha256.encode())
+    for name, array in (("mean", model.mean), ("scale", model.scale),
+                        ("cuts", model.cuts), ("coef", model.model.coef_),
+                        ("intercept", model.model.intercept_),
+                        ("classes", model.model.classes_)):
+        value = np.ascontiguousarray(array)
+        digest.update(name.encode())
+        digest.update(str(value.dtype).encode())
+        digest.update(str(value.shape).encode())
+        digest.update(value.tobytes())
+    return digest.hexdigest()
+
+
+def _release_identifier(value) -> tuple[str, str | int]:
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError("boolean release ID is invalid")
+    if isinstance(value, str) and value:
+        return ("str", value)
+    if isinstance(value, (int, np.integer)):
+        return ("int", int(value))
+    raise ValueError("release IDs must be nonempty strings or integers")
+
+
+class TaskOnlyReleaseSession:
+    """Sample one registered 17-token control per immutable person/release.
+
+    HMAC gives stable pseudorandom draws across restarts without exposing the
+    secret. An optional private cache also rejects ID/input changes across
+    restarts; without it that rejection is confined to this process. Neither
+    the person-specific law nor the model scores appear on the wire.
+    """
+
+    def __init__(self, model: TaskOnlyPredictor, *, mode: str, publish: float,
+                 replay_key: bytes, release_id: str,
+                 cache_path: str | Path | None = None):
+        if not isinstance(replay_key, bytes) or len(replay_key) < 32:
+            raise ValueError("private replay key must contain at least 32 bytes")
+        if not isinstance(release_id, str) or not release_id:
+            raise ValueError("nonempty release_id required")
+        if mode not in ("unmodified", "constant_replacement", "randomized_response"):
+            raise ValueError("unknown registered control mode")
+        if publish not in (.5, .75, .9, 1.) or (mode == "unmodified" and publish != 1.):
+            raise ValueError("publish must be a registered control rate")
+        self._model = model
+        self._model_sha256 = _task_model_digest(model)
+        self._mode = mode
+        self._publish = float(publish)
+        self._replay_key = replay_key
+        self._release_id = release_id
+        self._cache = {}
+        key_binding = hmac.new(replay_key, b"PCRL_TASK_ONLY_CACHE_KEY_BINDING_V1",
+                               hashlib.sha256).hexdigest()
+        self._config_sha256 = hashlib.sha256(json.dumps(
+            ["PCRL_TASK_ONLY_RELEASE_V1", self._model_sha256, mode,
+             self._publish, release_id, key_binding],
+            separators=(",", ":")).encode()).hexdigest()
+        if cache_path is None:
+            self._cache_path = None
+        else:
+            requested = Path(cache_path)
+            target = requested.resolve()
+            if "private" not in requested.parts or "private" not in target.parts:
+                raise ValueError("persistent replay cache must remain private")
+            self._cache_path = target
+
+    def _id_key(self, identifier: tuple[str, str | int]) -> str:
+        payload = json.dumps(["ID", self._release_id, identifier],
+                             separators=(",", ":")).encode()
+        return hmac.new(self._replay_key, payload, hashlib.sha256).hexdigest()
+
+    def _uniform(self, identifier: tuple[str, str | int], row_digest: str) -> float:
+        payload = json.dumps(["PCRL_TASK_ONLY_REPLAY_V1", self._config_sha256,
+                              identifier, row_digest], separators=(",", ":")).encode()
+        draw = hmac.new(self._replay_key, payload, hashlib.sha256).digest()
+        return int.from_bytes(draw[:8], "big") / 2**64
+
+    def _read_persistent(self) -> dict:
+        if self._cache_path is None or not self._cache_path.exists():
+            return {}
+        document = json.loads(self._cache_path.read_text())
+        if (document.get("schema") != "pcrl-task-only-replay-cache-v1" or
+                document.get("config_sha256") != self._config_sha256 or
+                not isinstance(document.get("records"), dict)):
+            raise ValueError("private replay cache has a different model or release")
+        return document["records"]
+
+    def _write_persistent(self, records: dict) -> None:
+        target = self._cache_path
+        assert target is not None
+        document = {"schema": "pcrl-task-only-replay-cache-v1",
+                    "config_sha256": self._config_sha256,
+                    "records": records}
+        temporary = target.with_name(target.name+f".tmp.{os.getpid()}")
+        temporary.write_text(json.dumps(document, sort_keys=True,
+                                        separators=(",", ":"))+"\n")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, target)
+
+    def emit(self, inputs: RuntimeInputs, release_ids: Sequence) -> dict:
+        if not isinstance(inputs, RuntimeInputs):
+            raise TypeError("task-only release accepts RuntimeInputs(X_A,H_A) only")
+        if _task_model_digest(self._model) != self._model_sha256:
+            raise ValueError("frozen task-only model changed after session construction")
+        ids = [_release_identifier(value) for value in release_ids]
+        if len(ids) != len(inputs.h_a):
+            raise ValueError("one release ID required per original person")
+        if len(set(ids)) != len(ids):
+            raise ValueError("duplicate release IDs within a batch")
+        law = task_only_control_law(self._model, inputs, mode=self._mode,
+                                    publish=self._publish, constant_token=0)
+        if self._cache_path is None:
+            records = dict(self._cache)
+            tokens = self._sample_batch(inputs, ids, law, records)
+            self._cache = records
+        else:
+            if self._cache_path.parent.exists():
+                if stat.S_IMODE(self._cache_path.parent.stat().st_mode) & 0o077:
+                    raise ValueError("private replay cache directory is accessible to others")
+            else:
+                self._cache_path.parent.mkdir(parents=True, mode=0o700)
+            lock_path = self._cache_path.with_name(self._cache_path.name+".lock")
+            descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+            with os.fdopen(descriptor, "r+") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                records = self._read_persistent()
+                tokens = self._sample_batch(inputs, ids, law, records)
+                self._write_persistent(records)
+                self._cache = records.copy()
+        h = np.array(inputs.h_a, copy=True)
+        if h.dtype != np.asarray(inputs.h_a).dtype or h.tobytes() != np.asarray(inputs.h_a).tobytes():
+            raise AssertionError("H_A service byte parity failed")
+        h.flags.writeable = False
+        tokens.flags.writeable = False
+        return {"h_a": h, "token": tokens}
+
+    def _sample_batch(self, inputs: RuntimeInputs, ids: list, law: np.ndarray,
+                      records: dict) -> np.ndarray:
+        tokens = np.empty(len(ids), dtype=np.int64)
+        for i, identifier in enumerate(ids):
+            key = self._id_key(identifier)
+            row_digest = _runtime_row_digest(inputs.x_a[i], inputs.h_a[i])
+            if key in records:
+                previous = records[key]
+                if previous["input_sha256"] != row_digest:
+                    raise ValueError("release ID reused with changed local or service inputs")
+                token = int(previous["token"])
+                if not 0 <= token < 17:
+                    raise ValueError("private replay cache has invalid token")
+                cumulative = np.cumsum(law[i]); cumulative[-1] = 1.
+                expected = int(np.searchsorted(
+                    cumulative, self._uniform(identifier, row_digest), side="right"))
+                if token != expected:
+                    raise ValueError("private replay cache token differs from keyed law")
+            else:
+                cumulative = np.cumsum(law[i])
+                cumulative[-1] = 1.
+                token = int(np.searchsorted(
+                    cumulative, self._uniform(identifier, row_digest), side="right"))
+                records[key] = {"input_sha256": row_digest, "token": token}
+            tokens[i] = token
+        return tokens
 
 
 def _risk_matrix(features: Mapping[str, np.ndarray]) -> np.ndarray:

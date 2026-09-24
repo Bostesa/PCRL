@@ -100,10 +100,13 @@ def load_final_problem(branch: str, center_dir: str | Path, *, anchor: int,
             complete.get("anchor") != anchor or complete.get("delta") != delta or
             complete.get("artifact_sha256") != _inventory(root)):
         raise ValueError("B center input or artifact hash inventory differs")
-    if complete.get("status") == "SUPPORT_LIMITED_ALIAS_A":
+    if complete.get("status") in ("SUPPORT_LIMITED_ALIAS_A",
+                                  "NO_ACCEPTED_SPLIT_ALIAS_A"):
         if a_center_dir is None:
-            raise ValueError("B support-limited alias requires its frozen A center")
+            raise ValueError("B exact A alias requires its frozen A center")
         a = load_final_problem("A", a_center_dir, anchor=anchor, delta=delta)
+        if complete.get("a_complete_receipt_sha256") != a["source"]["center_sha256"]:
+            raise ValueError("B alias references a different frozen A center")
         channel_path = (root / complete["selected_channel_relative"]).resolve()
         if not channel_path.is_relative_to(root):
             raise ValueError("B alias channel path escaped private center")
@@ -113,6 +116,7 @@ def load_final_problem(branch: str, center_dir: str | Path, *, anchor: int,
             raise ValueError("B alias channel differs from frozen A release")
         return {**a, "source": {"branch": "B_ALIAS_A", "anchor": anchor,
                                 "delta": delta, "center_sha256": _file_sha(complete_path),
+                                "alias_status": complete["status"],
                                 "a_center_sha256": a["source"]["center_sha256"],
                                 "selected_bank_sha256": a["source"]["selected_bank_sha256"]}}
     if complete.get("status") != "COMPLETE":

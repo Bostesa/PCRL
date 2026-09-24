@@ -28,6 +28,30 @@ audit slate through a per-person-law audit adapter. A sampled implementation
 must maintain one persistent token per record for its stated release; exact
 law scoring is an evaluation method.
 
+`TaskOnlyReleaseSession` implements the sampled wire for these modes. It
+requires a private 32-byte-or-longer replay key, an immutable `release_id`,
+and only `RuntimeInputs(X_A,H_A)` plus caller-held record IDs. It HMAC-samples
+the registered private law and returns exactly `{h_a, token}`; H_A bytes are
+preserved. Repeating the same ID and inputs reuses the token, including
+across restarts with the same key. A private `cache_path` additionally binds
+each ID to its input digest across restarts and rejects a changed X_A/H_A;
+without that path, changed-input rejection applies within the current
+session. The cache holds keyed ID digests, input hashes and tokens, with no
+raw records or secret key. It is an implementation of one persistent release,
+not a repeated-independent-query privacy guarantee.
+
+```python
+from experiments.pcrl_task_directed_release_v1.data import RuntimeInputs
+from experiments.pcrl_adaptive_release_v1.task_baselines import (
+    TaskOnlyReleaseSession, load_task_only)
+model, receipt = load_task_only("/private/study/task_only_anchor0")
+session = TaskOnlyReleaseSession(
+    model, mode="randomized_response", publish=.75,
+    replay_key=private_key_bytes, release_id="development-release-1",
+    cache_path="/private/study/task_only_anchor0_replay.json")
+wire = session.emit(RuntimeInputs(x_a, h_a), record_ids)
+```
+
 `select_partition_control` returns a nested T32 child partition for each
 registered policy. All three consider the same allowed frozen H_A,
 residual/posterior, SEX2 and full-RAC1P9 risk features, training-only

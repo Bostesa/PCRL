@@ -56,6 +56,33 @@ def inner_validation_from_report(report: Mapping) -> dict:
     return scores
 
 
+def expand_named_scores(canonical_scores: Mapping, aliases: Mapping[str, str]) -> dict:
+    """Restore declared release names after exact-law audit deduplication.
+
+    The canonical report contains one fitted audit per distinct release law.
+    Selection still needs the predeclared names on every anchor, especially
+    the historical D17 fallback. Aliases copy the same validation scores;
+    they never create another fitted predictor or independent observation.
+    """
+    if "H" not in canonical_scores or not isinstance(aliases, Mapping):
+        raise ValueError("canonical H score and alias map required")
+    if "A_control_D17" not in aliases:
+        raise ValueError("registered D17 control alias is absent")
+    named = dict(canonical_scores)
+    for name, canonical in aliases.items():
+        if canonical not in canonical_scores:
+            raise ValueError(f"alias {name} canonical audit score is absent")
+        score = canonical_scores[canonical]
+        if name in named and named[name] != score:
+            raise ValueError(f"conflicting canonical and named score for {name}")
+        named[name] = score
+    d17 = named["A_control_D17"]
+    if "D17" in named and named["D17"] != d17:
+        raise ValueError("conflicting D17 audit score")
+    named["D17"] = d17
+    return named
+
+
 def _loss(scores: Mapping, anchor: int, release: str, role: str, weighting: str) -> float:
     value = float(scores[anchor][release][role][weighting])
     if not math.isfinite(value):

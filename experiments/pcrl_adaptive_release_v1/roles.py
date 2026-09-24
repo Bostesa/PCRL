@@ -31,6 +31,12 @@ def _role_mask(households: np.ndarray, role: str) -> np.ndarray:
 
 
 def pooled_role(prepared: dict[str, Any], role: str) -> dict[str, Any]:
+    """Return only prelock inner households; outer labels remain sealed."""
+    return _pooled_role(prepared, role, allow_outer=False)
+
+
+def _pooled_role(prepared: dict[str, Any], role: str, *,
+                 allow_outer: bool) -> dict[str, Any]:
     """Return only allocated, label-bearing rows; refuse outer pre-lock.
 
     The archived attacker-validation labels are absent in the sanitized loader
@@ -39,7 +45,7 @@ def pooled_role(prepared: dict[str, Any], role: str) -> dict[str, Any]:
     """
     if role not in ROLE_NAMES:
         raise ValueError('unknown household role')
-    if role == 'outer_assessment':
+    if role == 'outer_assessment' and not allow_outer:
         raise PermissionError('outer labels require the selection lock')
     columns = ('x', 'ha', 'hb', 'weights', 'ids', 'households')
     gathered: dict[str, list[np.ndarray]] = {key: [] for key in columns}

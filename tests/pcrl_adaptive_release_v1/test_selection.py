@@ -80,3 +80,31 @@ def test_validation_extraction_never_uses_inner_check_outcome():
     extracted = selection.inner_validation_from_report(report)
     assert extracted["candidate"][selection.TASK_ROLE]["U"] == .4
     assert extracted["H"][selection.TASK_ROLE]["U"] == .5
+
+
+def test_named_alias_expansion_restores_d17_and_preserves_exact_scores():
+    canonical = {"A_selected": {"task": {"U": .4}},
+                 "A_control_D17": {"task": {"U": .5}},
+                 "H": {"task": {"U": .6}}}
+    aliases = {"A_selected": "A_selected", "B_selected": "A_selected",
+               "A_control_D17": "A_control_D17"}
+    named = selection.expand_named_scores(canonical, aliases)
+    assert named["D17"] == canonical["A_control_D17"]
+    assert named["B_selected"] == canonical["A_selected"]
+    assert named["H"] == canonical["H"]
+    assert set(named) >= {"D17", "A_selected", "B_selected", "H"}
+
+
+def test_named_alias_expansion_fails_closed_on_missing_or_conflicting_routes():
+    import pytest
+
+    canonical = {"A_selected": {"task": {"U": .4}},
+                 "H": {"task": {"U": .6}}}
+    with pytest.raises(ValueError, match="D17"):
+        selection.expand_named_scores(canonical, {"A_selected": "A_selected"})
+    with pytest.raises(ValueError, match="absent"):
+        selection.expand_named_scores(canonical, {"A_control_D17": "missing"})
+    with pytest.raises(ValueError, match="conflicting"):
+        selection.expand_named_scores(
+            {**canonical, "A_control_D17": {"task": {"U": .5}}},
+            {"A_control_D17": "A_selected"})
