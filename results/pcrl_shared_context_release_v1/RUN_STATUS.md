@@ -28,3 +28,9 @@
 - 18:56Z runner started (16 workers, 58 units). 19:06Z: banks x3, decide_k, POS x6, J_inner x3 complete, no failures.
 - K decision: nm4_K = 4 (no anchor failed the registered support rule; K=2 fallback not triggered).
 - Positive controls (revealing channel, detection = H-minus-leak >= .01 nats in both weightings on inner_check): AB/SEX and AB/RAC1P detected on all three anchors (6/6). The predecessor ran only a0 AB/RAC1P.
+- 19:45Z: all 55 fit/control units complete with zero technical failures; a1_inner_audit complete; a0/a2 inner audits running. Structural capacity report (coefficient/inner_selection only) built on host: /opt/pcrl/reports_out/ENCODER_CAPACITY.json.
+  - U-form NM (NM1_U, NM4_U) never produced within-T32 variation at any round (LP declined the richer columns); final: a0 selected a round (T32 function), a1/a2 WITNESS_FALLBACK (every round failed attackers refit on itself).
+  - P-form NM used within-T32 variation on 5/6 unit-anchors; selected non-D17 rounds except a1_NM1_P (WITNESS_SELECTED).
+  - RD_PRIV: D17 by its own task rule on all anchors; ADV task-selected units: D17 by rule; ADV privacy-selected units: WITNESS_FALLBACK (no epoch within the D17+.001 inner task cap) at least on a1/a2 (a0 per report).
+  - RD_TASK: non-D17 only on a2.
+- 19:54Z: inner selection + SELECTION_LOCK written on host from the three inner panels; both slots DIAGNOSTIC_ONLY (U: NM1_U, P: NM4_P); primary 40 endpoints (comparators that are exact D17 on all anchors merged), z=3.2272; secondary 120; capability 4; POS 6/6 pinned detected. Lock sha256 d995484103cfbc9ca9f1411a2f89d6f5d9ee1f46e1bbdce1c8d0d82d20cadbfc. Outer not yet opened.
