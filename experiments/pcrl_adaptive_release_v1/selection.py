@@ -18,6 +18,44 @@ U_TASK = -.003
 P_TARGET_MARGIN = -.002
 
 
+def inner_validation_from_report(report: Mapping) -> dict:
+    """Extract selected-route *validation* scores without opening check losses.
+
+    The caller must verify the saved report against its COMPLETE inventory.
+    This deliberately never reads private per-person contributions or the
+    `candidate` field, which holds the separate inner-check outcome.
+    """
+    if (report.get("schema") != "pcrl-adaptive-inner-audit-v1" or
+            report.get("selection_role") != "inner_selection" or
+            report.get("score_role") != "inner_check" or
+            report.get("outer_pool_opened") is not False):
+        raise ValueError("registered inner audit report required")
+    releases = report.get("releases")
+    if not isinstance(releases, Mapping) or not releases:
+        raise ValueError("inner report has no releases")
+    scores: dict[str, dict] = {}
+    h_scores: dict[str, dict[str, float]] = {}
+    for release, payload in releases.items():
+        role_records = payload.get("roles", {})
+        if set(role_records) != set(ROLES):
+            raise ValueError("inner report lacks registered role endpoints")
+        scores[release] = {}
+        for role in ROLES:
+            record = role_records[role]
+            selected = record["selected_candidate"]
+            h_selected = record["H_selected_candidate"]
+            candidate = record["candidate_validation_scores"][selected]
+            h = record["H_validation_scores"][h_selected]
+            scores[release][role] = {weighting: float(candidate[weighting])
+                                     for weighting in WEIGHTINGS}
+            current_h = {weighting: float(h[weighting]) for weighting in WEIGHTINGS}
+            if role in h_scores and h_scores[role] != current_h:
+                raise ValueError("shared H validation reference differs across releases")
+            h_scores[role] = current_h
+    scores["H"] = h_scores
+    return scores
+
+
 def _loss(scores: Mapping, anchor: int, release: str, role: str, weighting: str) -> float:
     value = float(scores[anchor][release][role][weighting])
     if not math.isfinite(value):

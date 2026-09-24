@@ -60,3 +60,23 @@ def test_recovery_guard_prevents_large_sensitive_harm():
     difference = selection.aggregate_differences(scores, "strong_task")
     assert difference["sensitive"]["attack:A/SEX"]["U"] > .001
     assert not selection.point_eligible(difference, "U")
+
+
+def test_validation_extraction_never_uses_inner_check_outcome():
+    roles = {}
+    for role in selection.ROLES:
+        roles[role] = {
+            "selected_candidate": "own/logistic",
+            "candidate_validation_scores": {
+                "own/logistic": {"U": .4, "PWGTP": .41}},
+            "H_selected_candidate": "H/logistic",
+            "H_validation_scores": {
+                "H/logistic": {"U": .5, "PWGTP": .51}},
+            "candidate": {"U": -999., "PWGTP": -999.},
+        }
+    report = {"schema": "pcrl-adaptive-inner-audit-v1",
+              "selection_role": "inner_selection", "score_role": "inner_check",
+              "outer_pool_opened": False, "releases": {"candidate": {"roles": roles}}}
+    extracted = selection.inner_validation_from_report(report)
+    assert extracted["candidate"][selection.TASK_ROLE]["U"] == .4
+    assert extracted["H"][selection.TASK_ROLE]["U"] == .5
