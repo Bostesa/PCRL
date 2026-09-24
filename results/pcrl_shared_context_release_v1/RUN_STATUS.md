@@ -34,3 +34,4 @@
   - RD_PRIV: D17 by its own task rule on all anchors; ADV task-selected units: D17 by rule; ADV privacy-selected units: WITNESS_FALLBACK (no epoch within the D17+.001 inner task cap) at least on a1/a2 (a0 per report).
   - RD_TASK: non-D17 only on a2.
 - 19:54Z: inner selection + SELECTION_LOCK written on host from the three inner panels; both slots DIAGNOSTIC_ONLY (U: NM1_U, P: NM4_P); primary 40 endpoints (comparators that are exact D17 on all anchors merged), z=3.2272; secondary 120; capability 4; POS 6/6 pinned detected. Lock sha256 d995484103cfbc9ca9f1411a2f89d6f5d9ee1f46e1bbdce1c8d0d82d20cadbfc. Outer not yet opened.
+- 19:56:26Z OUTER_UNLOCK verified (lock commit e5d555a on origin). 19:58Z restore-outer + run-outer (frozen routes, no refit/selection on outer) + assess. Outer opened once. Results: U 8/20 primary clauses (DIAGNOSTIC_ONLY NM1_U), P 0/20 (DIAGNOSTIC_ONLY NM4_P); capability 4/4; no route passed.
