@@ -1,0 +1,64 @@
+{
+  "blockers": [],
+  "completed_units": [
+    "synthetic_reference_feasibility",
+    "synthetic_alternating_decoder",
+    "synthetic_A_center_all_roles",
+    "synthetic_A_two_round_final_bank_selection",
+    "historical_a1_reference_replay",
+    "historical_a2_reference_replay",
+    "2018_a0_admission_read_only"
+  ],
+  "current_source_hash": "b259225dfa50dbbc820b80f76590bf400de69308661e8c776c021d884727bb30",
+  "implemented_entry_points": [
+    "reference.calibrate_reference",
+    "reference.solve_calibrated",
+    "alternate.coverage_law",
+    "alternate.fit_decoder_round",
+    "alternate.select_frozen_decoder",
+    "alternate.channel_update",
+    "alternate.select_and_update",
+    "fit_a.run_center",
+    "fit_a.run_center_from_roles",
+    "fit_a.fit_frozen_decoder",
+    "fit_a.load_frozen_decoder",
+    "fit_a.build_attack_bank",
+    "fit_a.load_frozen_bank",
+    "fit_a.person_loss_from_attack",
+    "fit_a.task_person_losses",
+    "fit_a.select_final_bank_feasible"
+  ],
+  "known_limitations": [
+    "No ACS candidate fits dispatched by this agent; coordinator will run them after source pin.",
+    "Current max_rounds>0 controller always executes the requested number of rounds; exact-alias/three-stale-round early stops are not yet encoded. A max_rounds=0 center is unaffected.",
+    "Independent common audit/control comparisons are separate queue units; A receipt reports fixed-bank feasibility and inner fixed-decoder task diagnostics only."
+  ],
+  "next_action": "Coordinator pins source, dispatches 2018 anchor-0 A max_rounds=0 center, then common independent audit/controls; review bounded early-stop implementation before max_rounds>3 dispatch.",
+  "owned_files": {
+    "experiments/pcrl_adaptive_release_v1/alternate.py": "3f5b56bd0b90f5aec935e91a0ba67b830c887b162841ed94c6e5fc03a3691e80",
+    "experiments/pcrl_adaptive_release_v1/fit_a.py": "f68b35de338d5e48c3730c285861dd83ee415756b45ed3fee86c234bf3a242a8",
+    "experiments/pcrl_adaptive_release_v1/reference.py": "3ecfd7573b96f812068df0125321f42ae91a62b6eadab28d917d97231bd1a705",
+    "results/pcrl_adaptive_release_v1/agents/reference_a/HISTORICAL_REPLAY.json": "4feab5c26ddd3e58c08ba01fc2a780e6f4bc0f0b6102f690e774b3f77cb25a9a",
+    "results/pcrl_adaptive_release_v1/agents/reference_a/REFERENCE_MATH.md": "2db05422e71d954946ae1ef339b2a1fdeaf1cb2890c8b28f6dae6b3ab7fecdfe",
+    "results/pcrl_adaptive_release_v1/agents/reference_a/replay_historical.py": "f025aa8462979b9e41dc50913c31651c1833a78fbe3cdf6422858cb4c8b36649",
+    "tests/pcrl_adaptive_release_v1/test_alternate.py": "a13d9e1948ba59b5e66fb12cadc0ced3ad1585b022da1645ed68db36ae0b2f7a",
+    "tests/pcrl_adaptive_release_v1/test_fit_a.py": "d13d9ee69efbb864600c2cca312b0aeb9774c41c7db764be7bf4f31d945b8d2e",
+    "tests/pcrl_adaptive_release_v1/test_reference.py": "0d85f60397862169701ac7527ae1644a81f3ccebc57de00d63077eec595804df"
+  },
+  "passing_checks": [
+    "22 targeted tests: reference/alternate/fit_a plus inherited solver review",
+    "full four-role 312-cut synthetic center fit/release with immutable resume",
+    "full four-role two-round synthetic 312-to-384-cut fit and final-bank replay with immutable resume",
+    "read-only sanitized 2018 anchor-0 role/map admission; outer labels absent",
+    "hash-pinned historical a1/a2 D17 witness replay"
+  ],
+  "production_cut_provenance_required": [
+    "coefficient_pool_sha256",
+    "class_order",
+    "weight_normalization"
+  ],
+  "role": "mathematics_reference_and_branch_A",
+  "schema": 1,
+  "scientific_ACS_candidate_fits_dispatched_by_this_agent": 0,
+  "source_base_commit": "1b79157c8c0acdbe08c35db4113c38ea43c495f6"
+}
