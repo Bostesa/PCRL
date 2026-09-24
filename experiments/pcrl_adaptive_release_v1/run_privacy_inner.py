@@ -166,9 +166,10 @@ def dispatch_privacy_inner(anchor: int, index_path: str | Path,
     fit = _private(privacy_fit_dir)
     output = _private(output_dir)
     spec_path = _private(spec_index)
-    if (source == output or fit == output or spec_path.is_relative_to(output) or
-            output.is_relative_to(source) or source.is_relative_to(output)):
-        raise ValueError("PrivacyFirst audit output and spec index must be separate")
+    if (output.is_relative_to(source) or source.is_relative_to(output) or
+            output.is_relative_to(fit) or fit.is_relative_to(output) or
+            any(spec_path.is_relative_to(root) for root in (source, fit, output))):
+        raise ValueError("PrivacyFirst audit output and spec index must be separate from source evidence")
     source_evidence = _verify_main(source, index, anchor)
     spec = privacy_first_fit.load_release_spec(fit)
     fit_complete = json.loads((fit / "COMPLETE.json").read_text())
