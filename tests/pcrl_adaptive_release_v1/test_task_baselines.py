@@ -90,6 +90,38 @@ def test_task_only_resume_rejects_changed_scientific_source_pin(tmp_path):
                                       {**receipt, "module_sha256": "b"*64})
 
 
+def test_task_only_loader_recovers_verified_module_cli_pickle(tmp_path):
+    """The historical -m fit serialized its class as __main__.TaskOnlyPredictor."""
+    import __main__
+    import joblib
+
+    rows = _role_rows("nuisance_train", 60, "module-cli")
+    model, receipt = task_baselines.fit_task_only(rows, seed=31)
+    root = tmp_path / "private" / "task_only_cli"
+    root.mkdir(parents=True)
+    path = root / "task_only.joblib"
+    sentinel = object()
+    prior = getattr(__main__, "TaskOnlyPredictor", sentinel)
+    prior_module = task_baselines.TaskOnlyPredictor.__module__
+    try:
+        setattr(__main__, "TaskOnlyPredictor", task_baselines.TaskOnlyPredictor)
+        task_baselines.TaskOnlyPredictor.__module__ = "__main__"
+        joblib.dump(model, path, compress=3)
+    finally:
+        task_baselines.TaskOnlyPredictor.__module__ = prior_module
+        if prior is sentinel:
+            delattr(__main__, "TaskOnlyPredictor")
+        else:
+            setattr(__main__, "TaskOnlyPredictor", prior)
+    (root / "TASK_ONLY.json").write_text(json.dumps({**receipt,
+        "model_sha256": task_baselines._sha_file(path)}))
+    loaded, verified = task_baselines.load_task_only(root)
+    assert verified["model_sha256"] == task_baselines._sha_file(path)
+    assert isinstance(loaded, task_baselines.TaskOnlyPredictor)
+    assert np.array_equal(loaded.token_codes(RuntimeInputs(rows["x"], rows["ha"])),
+                          model.token_codes(RuntimeInputs(rows["x"], rows["ha"])))
+
+
 def test_task_only_rejects_labels_from_any_other_household_role():
     rows = _role_rows("coefficient_split", 60, "wrong")
     with pytest.raises(ValueError, match="nuisance_train"):

@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import sys
 from typing import Mapping, Sequence
 
 import joblib
@@ -199,7 +200,22 @@ def load_task_only(directory: str | Path) -> tuple[TaskOnlyPredictor, dict]:
     path = root / "task_only.joblib"
     if receipt.get("schema") != "pcrl-task-only-token-v1" or _sha_file(path) != receipt.get("model_sha256"):
         raise ValueError("task-only model hash/receipt mismatch")
-    model = joblib.load(path)
+    # The first three immutable task-only fits were invoked with ``python -m``.
+    # Pickle recorded their class as __main__.TaskOnlyPredictor; an audit CLI
+    # has a different __main__. Bind the hash-verified historical name to this
+    # exact class for deserialization, then restore the caller's module.
+    main = sys.modules["__main__"]
+    absent = object()
+    prior = getattr(main, "TaskOnlyPredictor", absent)
+    if prior is not absent and prior is not TaskOnlyPredictor:
+        raise ValueError("ambiguous __main__.TaskOnlyPredictor during model load")
+    if prior is absent:
+        setattr(main, "TaskOnlyPredictor", TaskOnlyPredictor)
+    try:
+        model = joblib.load(path)
+    finally:
+        if prior is absent:
+            delattr(main, "TaskOnlyPredictor")
     if not isinstance(model, TaskOnlyPredictor) or model.training_sha256 != receipt["training_sha256"]:
         raise ValueError("task-only model training hash differs")
     return model, receipt
