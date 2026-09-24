@@ -75,7 +75,7 @@ The **RD_TASK preflight** measures whether X_A carries task information beyond (
 ## Which ingredient did what
 
 - **Richer inputs for utility: negative.** The task-only richer policy shows no gain over D17 on outer data. The utility LP never bought a richer column. The task-sufficiency condition flagged by the math review appears to hold empirically: within-state variation cannot improve the task.
-- **Richer inputs for privacy: unresolved.** The P nominee's richer law exists only on anchor 0; on anchors 1–2 it is a T32 kernel. Against T32_P the AB/SEX point estimate favors it by about .001, well inside noise.
+- **Richer inputs for privacy: unresolved.** The P nominee's richer law exists only on anchor 0; on anchors 1–2 it is a stochastic T32 kernel. Against T32_P the AB/SEX point estimate favors it by about .001, well inside noise.
 - **Randomization: no evidence of benefit.**
   - The deterministic same-context selector DET_SEL4 matched the stochastic P nominee's AB/SEX recovery at lower task loss.
   - Caveat: DET_SEL4 was registered as the randomization control for the NM4 family, but it chooses on *task* within the NM4_U closing bank. It is not the deterministic counterpart of the privacy-first NM4_P. The comparison therefore mixes "deterministic vs stochastic" with "task-first vs privacy-first selection".
@@ -109,4 +109,17 @@ The **RD_TASK preflight** measures whether X_A carries task information beyond (
 
 ## Independent verification
 
-See `INDEPENDENT_VERIFICATION.json` and `REVIEW.md`; the status is summarized in `RUN_STATUS.md`.
+**Status: CONFIRMED** by an independent verifier using separate code (`INDEPENDENT_VERIFICATION.json`, `REVIEW.md`).
+
+- **Primary and capability.** All 40 primary and 4 capability point estimates were recomputed (maximum difference 3.1e-17). All 44 decisions match, both at the locked z = 3.227 and at the registered 80-endpoint z = 3.4205 (see amendment D1).
+- **Secondary.** 119 of 120 decisions match. The exception is the U nominee versus J task clause (PWGTP), which sits within 3% of its threshold and flips with the bootstrap seed. It is descriptive only.
+- **Chain of custody.** The last work unit finished at 19:48:40. The lock commit (19:54:21, on origin) precedes OUTER_UNLOCK (19:56:26), which precedes the restore and the outer scores (19:57–19:58). No work unit touched outer rows.
+- **Other replays.** The inner-selection replay, the alias ledger and the capacity statuses all match.
+
+Verifier caveats, adopted here:
+
+- **U slot.** Its 8 passes are all exact-zero same-route RAC1P clauses, so **0 of 12 substantive clauses pass**. On inner_check the U nominee was *worse* than D17 on task (+.0015 / +.0016).
+- **P slot.** The AB/SEX gain is a trade-off, not an across-the-board improvement. On anchor 1 the PWGTP AB/SEX estimate goes the wrong way (+.0008), and RAC1P recovery is higher there.
+- **NM4_P on anchors 1–2** is a *stochastic* T32 kernel (η = 0), not a richer law.
+- **Comparators.** RD_PRIV and ADV collapsed to D17, so any statement that NM "beats" them is vacuous.
+- **Capability.** The capability passes reflect information already present in D17 and T32.

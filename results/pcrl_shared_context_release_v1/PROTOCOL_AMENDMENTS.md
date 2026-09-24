@@ -92,3 +92,9 @@ Each entry gives the UTC time, the outcome-access status at the time, the trigge
      - RD_PRIV uses a pure-D17 receiver with the unit's common seed;
      - ADV uses its warm-start decoder.
    - On an exact task tie, the witness wins.
+
+## D1: disclosed deviation, recorded 20:13Z (post-assessment; no decision affected)
+
+- **Family size.** PROTOCOL §7 registered 2 slots × 4 comparators × 5 roles × 2 weightings = 80 primary endpoints. The lock applied the AR alias rule, which merges comparators that are the same law on all three anchors. RD_PRIV and the ADV representatives were exact D17 aliases, so the generated primary family has 40 endpoints and z = 3.2272.
+- **Robustness.** The independent verifier re-derived every decision with z = 3.4205, the 80-endpoint value, and all 44 primary and capability decisions are unchanged.
+- **Naming artifact.** The lock's merged D17 group carries the canonical label ADV_B1 in some maps. Those scores are D17's.

@@ -78,15 +78,16 @@ See `METHOD.md` and `DESIGN_SPEC.md`.
 
 - **Status:** no NM unit passed the inner_check screen, so both slots are `DIAGNOSTIC_ONLY`, chosen as the rank-minimum under the registered lexicographic keys.
 - **U nominee NM1_U:** an exact alias of NM4_U and T32_U. It is a deterministic T32 kernel on anchor 0 and D17 on anchors 1–2. It is not a richer model.
-- **P nominee NM4_P:** richer on anchor 0 only; T32 kernels on anchors 1–2.
+- **P nominee NM4_P:** richer on anchor 0 only; stochastic T32 kernels (η=0) on anchors 1–2.
 
 ## 5. Did either complete competitive conjunction pass against the strong matched controls?
 
 **No.**
 
-- **U:** 8/20 primary clauses, all eight being exact-zero same-H-only-route RAC1P guards. Task versus D17 was −.00015 / −.00002.
+- **U:** 8/20 primary clauses, all eight being exact-zero same-H-only-route RAC1P guards, so **0 of 12 substantive clauses** pass. Task versus D17 was −.00015 / −.00002. On inner_check the nominee was worse than D17 (+.0015 / +.0016).
 - **P:** 0/20. Task was +.0078 / +.0076, demonstrated adverse. AB/SEX was −.0040 / −.0031 with upper bounds +.0015 / +.0031.
-- **Comparator merge:** the RD_PRIV and ADV comparators merged with D17 because all of them selected D17.
+- **Comparator merge:** the RD_PRIV and ADV comparators merged with D17 because all of them selected D17. The primary family has 40 endpoints rather than the registered 80 (amendment D1). Decisions are unchanged at the 80-endpoint z.
+- **Independent verification:** CONFIRMED. All 44 primary and capability estimates and decisions were recomputed with separate code (`INDEPENDENT_VERIFICATION.json`).
 
 ## 6. If there was a gain, where did it come from? Which ablations establish it?
 

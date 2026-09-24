@@ -94,7 +94,7 @@ Fraction of coefficient-split people whose token differs from D17 (unweighted / 
 - **U nominee NM1_U** is an exact alias of NM4_U and T32_U on all three anchors. On anchor 0 it is a deterministic T32 kernel far from D17 (mean TV .718). On anchors 1 and 2 it is exactly D17. It contains **no** decision beyond the old code.
 - **P nominee NM4_P**:
   - carries a genuinely richer stochastic law only on **anchor 0** (V=.520, 87% of weight on stochastic rows);
-  - on anchors 1 and 2 its selected round is a T32 kernel with η=0.
+  - on anchors 1 and 2 its selected round is a stochastic T32 kernel with η=0.
 
   Its three-anchor outer estimates therefore mix one richer release with two old-code kernels.
 
