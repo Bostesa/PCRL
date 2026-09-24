@@ -58,3 +58,16 @@ def test_locked_outer_requires_original_fifth_pool_labels():
     with pytest.raises(ValueError, match="original label-bearing"):
         outer_pool.pooled_locked_outer(prepared, {"people": 2, "households": 2,
                                                    "weight_sum": 2.})
+
+
+def test_locked_outer_accepts_archived_extra_task_labels_without_scoring_them():
+    prepared = {"ctx": {"pools": {
+        "downstream_fit": _pool("first", _outer_household("first")),
+        "attacker_validation": _pool("fifth", _outer_household("fifth"))}},
+        "encoded": {"downstream_fit": _encoded(),
+                    "attacker_validation": _encoded()}}
+    prepared["ctx"]["pools"]["attacker_validation"]["labels"]["historical_other_task"] = np.array([1])
+    result = outer_pool.pooled_locked_outer(
+        prepared, {"people": 2, "households": 2, "weight_sum": 2.})
+    assert set(result["labels"]) == {"same_residence", "SEX", "RAC1P"}
+    assert result["labels"]["same_residence"].tolist() == [1, 1]

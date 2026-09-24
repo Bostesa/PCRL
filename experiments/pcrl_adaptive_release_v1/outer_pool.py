@@ -34,7 +34,8 @@ def _same_bytes(left: Any, right: Any) -> bool:
 def pooled_locked_outer(prepared: dict[str, Any], census: Mapping[str, Any]) -> dict:
     """Append the fifth pool in its original order and replay census counts."""
     pool = prepared["ctx"]["pools"].get(FIFTH_POOL)
-    if not isinstance(pool, dict) or set(pool.get("labels", {})) != set(roles.CLASS_COUNT):
+    labels = pool.get("labels") if isinstance(pool, dict) else None
+    if not isinstance(labels, dict) or not set(roles.CLASS_COUNT).issubset(labels):
         raise ValueError("original label-bearing fifth pool required after unlock")
     encoded = prepared["encoded"][FIFTH_POOL]
     n = len(pool["ids"])

@@ -10,13 +10,13 @@
     "inference_run.py": "b9ab2590f998cdad587616ddf8628f365826fca06eb10d3ddc453b8064ec4d3f",
     "outer_access.py": "f0719cf654330408d34487e4c519c8c1ac19189ba019a7fa09b8c72d49ac35f3",
     "outer_audit.py": "55d24d6e4277cad418cddac910a2ee1449aa094b9363c8cfb648e9406476f29b",
-    "outer_pool.py": "fd9ee777f1c25c7a41872c6cab1ba31aacf03e42ee3aa286a4a6ae47a137313f",
+    "outer_pool.py": "a5c6d74b905cd7e88ac2617715ed2a7acc4d0296a5f7096129e858d3fde4c76d",
     "paired_inference.py": "f670a9cd9846e1593d32b344f79f60d20a30cff389b5af7286ebeb22cfe19227",
     "paired_uncertainty.py": "74b3e3c7159a3ac1fa50c0cf925a6393458bb0da52954c3d3fe511c24b966e3e",
     "release_specs.py": "cee9815b802b1774c154075bf3ef489ab81da57d877e0a0c277376c2c7331a47"
   },
   "created_utc": "2026-09-24T05:23:04.554426+00:00",
-  "defect": "Object-array tobytes() compared process-local pointers for IDs and household keys after independent joblib loads. All three anchors had equal identifier values and byte-identical numeric x,H,weights,J; the old check falsely failed.",
+  "defect": "Two pre-output checks were too strict: object-array tobytes() compared process-local pointers for IDs and household keys after independent joblib loads; then exact equality of label-key sets rejected the archived fifth pool because it includes four additional historical task labels. The required residence, SEX and RAC1P labels were present on all three anchors.",
   "failed_attempts": [
     {
       "anchor": 0,
@@ -59,13 +59,21 @@
       "ssm_command_id": "9a32b951-84d9-4455-8f96-47a94bf3c9f6",
       "started_utc": "2026-09-24T05:18:08.722079+00:00",
       "status": "FAILED_BEFORE_SCORE_OUTPUT"
+    },
+    {
+      "anchor": 0,
+      "failure_phase": "fifth-pool required-label subset check after original deserialization",
+      "kind": "outer",
+      "ssm_command_id": "5dcd179c-52a4-4b4e-8a16-9aac5f763384",
+      "started_utc": "2026-09-24T05:25:11.143576+00:00",
+      "status": "FAILED_BEFORE_SCORE_OUTPUT"
     }
   ],
-  "failure_phase": "post-unlock fifth-pool original/sanitized equality check, before score_locked_outer or contextual J returned rows and before any output directory creation",
+  "failure_phase": "post-unlock fifth-pool original/sanitized equality or required-label schema checks, before any outer score or output directory creation",
   "gate_test": "tests/pcrl_adaptive_release_v1/test_outer_access.py::test_postlock_scorer_repair_requires_remote_pinned_exact_hash_change",
   "lock_sha256": "4f894f98af67fd2a79e35ad3697971041aa53451b292b8bdf9691c8dd761f484",
   "locked_commit_sha": "83e2e5d80a5902e23d9a1620a011d43521214bed",
-  "no_output_verification_ssm_command_id": "2887d2b1-f0ff-4843-b597-bb8005e389d3",
+  "no_output_verification_ssm_command_id": "89461119-b527-4dea-a4c9-2e1795db11eb",
   "original_scoring_code_sha256": {
     "external_audit.py": "cc90cf445834c265a9d7ab6c09a78e11ced84faa3cf47f33cec157d00a2cbda5",
     "inference.py": "ce5ef67303d92c95e28bb5ead6a5b573e7320d0e21301049512628707dd085a8",
@@ -79,11 +87,17 @@
   },
   "outer_labels_deserialized_on_failed_attempts": true,
   "outer_scores_or_predictions_inspected_before_repair": false,
-  "regression_test": "tests/pcrl_adaptive_release_v1/test_outer_pool.py::test_object_identifiers_survive_independent_deserialization",
-  "repair": "Compare object identifiers elementwise with identical scalar types and values; retain bitwise comparison for numeric arrays. The gate additionally requires this exact old/new hash map and a separately remote-verified correction receipt.",
+  "regression_tests": [
+    "tests/pcrl_adaptive_release_v1/test_outer_pool.py::test_object_identifiers_survive_independent_deserialization",
+    "tests/pcrl_adaptive_release_v1/test_outer_pool.py::test_locked_outer_accepts_archived_extra_task_labels_without_scoring_them"
+  ],
+  "repair": "Compare object identifiers elementwise with identical scalar types and values while retaining bitwise comparison for numeric arrays. Require the three study labels as a subset and return only those labels to the scorer. The gate requires this exact old/new scorer hash map and a separately remote-verified correction receipt.",
+  "revised_utc": "2026-09-24T05:27:18.599490+00:00",
+  "revision": 2,
   "schema": "pcrl-adaptive-postlock-scorer-correction-v1",
   "scientific_choices": "Original lock bytes, candidates, controls, endpoints, routing, release artifacts, predictor models, weights, and margins unchanged.",
   "score_outputs_written_before_repair": false,
   "status": "TECHNICAL_SCORER_REPAIR",
-  "study": "pcrl_adaptive_release_v1"
+  "study": "pcrl_adaptive_release_v1",
+  "supersedes_correction_sha256": "bcd9ff2843b5c88707abadebd25df3f3d92d1fdf6416bcb4bced76bd30f4a174"
 }
