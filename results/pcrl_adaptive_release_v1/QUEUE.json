@@ -1,0 +1,1221 @@
+{
+  "mandatory_count": 44,
+  "optional_count": 48,
+  "optional_drop_order": [
+    "anchor_1_2_extra_allowances",
+    "B_128_refinement",
+    "anchor_0_noncenter_allowances",
+    "rounds_above_3"
+  ],
+  "protocol_sha256": "d67a012707133a4840444063f97f7b5f695d369712f0f0d39883bad117da4c7a",
+  "registered_utc": "2026-09-24T02:46:20.863540+00:00",
+  "schema": "pcrl-adaptive-queue-v1",
+  "source_base_commit": "1b79157c8c0acdbe08c35db4113c38ea43c495f6",
+  "unit_count": 92,
+  "units": [
+    {
+      "depends_on": [],
+      "id": "global_roles",
+      "kind": "role_census",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "global_roles"
+      ],
+      "id": "source_admission",
+      "kind": "hash_admission",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [],
+      "id": "b_exact_fixtures",
+      "kind": "exact_math_fixtures",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "source_admission"
+      ],
+      "id": "a0_admit",
+      "kind": "admit_anchor",
+      "optional": false,
+      "settings": {
+        "anchor": 0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_admit"
+      ],
+      "id": "a0_headroom",
+      "kind": "headroom_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_admit"
+      ],
+      "id": "a0_reference",
+      "kind": "reference_bank",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "delta": 0.001,
+        "reference": "D17"
+      }
+    },
+    {
+      "depends_on": [
+        "a0_admit"
+      ],
+      "id": "a0_positive_control",
+      "kind": "audit_positive_control",
+      "optional": false,
+      "settings": {
+        "anchor": 0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_reference",
+        "a0_headroom"
+      ],
+      "id": "a0_A_center_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_center_fit"
+      ],
+      "id": "a0_A_center_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_center_controls",
+        "a0_positive_control"
+      ],
+      "id": "a0_A_center_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_admit",
+        "b_exact_fixtures"
+      ],
+      "id": "a0_B_nuisance",
+      "kind": "nuisance_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_nuisance",
+        "a0_reference"
+      ],
+      "id": "a0_B_64_split",
+      "kind": "nested_split",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "max_states": 64,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_split"
+      ],
+      "id": "a0_B_64_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_fit"
+      ],
+      "id": "a0_B_64_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_controls",
+        "a0_positive_control"
+      ],
+      "id": "a0_B_64_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_center_audit"
+      ],
+      "id": "a0_A_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_optional_000_fit"
+      ],
+      "id": "a0_A_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_optional_000_controls"
+      ],
+      "id": "a0_A_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_center_audit"
+      ],
+      "id": "a0_A_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_optional_003_fit"
+      ],
+      "id": "a0_A_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_optional_003_controls"
+      ],
+      "id": "a0_A_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_audit"
+      ],
+      "id": "a0_B_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_optional_000_fit"
+      ],
+      "id": "a0_B_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_optional_000_controls"
+      ],
+      "id": "a0_B_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_audit"
+      ],
+      "id": "a0_B_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_optional_003_fit"
+      ],
+      "id": "a0_B_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_optional_003_controls"
+      ],
+      "id": "a0_B_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_64_audit"
+      ],
+      "id": "a0_B_128_split",
+      "kind": "nested_split",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "max_states": 128,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_128_split"
+      ],
+      "id": "a0_B_128_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 128
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_128_fit"
+      ],
+      "id": "a0_B_128_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_B_128_controls"
+      ],
+      "id": "a0_B_128_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 0,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "source_admission"
+      ],
+      "id": "a1_admit",
+      "kind": "admit_anchor",
+      "optional": false,
+      "settings": {
+        "anchor": 1
+      }
+    },
+    {
+      "depends_on": [
+        "a1_admit"
+      ],
+      "id": "a1_headroom",
+      "kind": "headroom_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 1
+      }
+    },
+    {
+      "depends_on": [
+        "a1_admit"
+      ],
+      "id": "a1_reference",
+      "kind": "reference_bank",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "delta": 0.001,
+        "reference": "D17"
+      }
+    },
+    {
+      "depends_on": [
+        "a1_admit"
+      ],
+      "id": "a1_positive_control",
+      "kind": "audit_positive_control",
+      "optional": false,
+      "settings": {
+        "anchor": 1
+      }
+    },
+    {
+      "depends_on": [
+        "a1_reference",
+        "a1_headroom"
+      ],
+      "id": "a1_A_center_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_center_fit"
+      ],
+      "id": "a1_A_center_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_center_controls",
+        "a1_positive_control"
+      ],
+      "id": "a1_A_center_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a1_admit",
+        "b_exact_fixtures"
+      ],
+      "id": "a1_B_nuisance",
+      "kind": "nuisance_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 1
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_nuisance",
+        "a1_reference"
+      ],
+      "id": "a1_B_64_split",
+      "kind": "nested_split",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "max_states": 64,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_split"
+      ],
+      "id": "a1_B_64_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_fit"
+      ],
+      "id": "a1_B_64_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_controls",
+        "a1_positive_control"
+      ],
+      "id": "a1_B_64_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_center_audit"
+      ],
+      "id": "a1_A_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_optional_000_fit"
+      ],
+      "id": "a1_A_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_optional_000_controls"
+      ],
+      "id": "a1_A_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_center_audit"
+      ],
+      "id": "a1_A_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_optional_003_fit"
+      ],
+      "id": "a1_A_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a1_A_optional_003_controls"
+      ],
+      "id": "a1_A_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_audit"
+      ],
+      "id": "a1_B_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_optional_000_fit"
+      ],
+      "id": "a1_B_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_optional_000_controls"
+      ],
+      "id": "a1_B_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_audit"
+      ],
+      "id": "a1_B_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_optional_003_fit"
+      ],
+      "id": "a1_B_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_optional_003_controls"
+      ],
+      "id": "a1_B_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_64_audit"
+      ],
+      "id": "a1_B_128_split",
+      "kind": "nested_split",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "max_states": 128,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_128_split"
+      ],
+      "id": "a1_B_128_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 128
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_128_fit"
+      ],
+      "id": "a1_B_128_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a1_B_128_controls"
+      ],
+      "id": "a1_B_128_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 1,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "source_admission"
+      ],
+      "id": "a2_admit",
+      "kind": "admit_anchor",
+      "optional": false,
+      "settings": {
+        "anchor": 2
+      }
+    },
+    {
+      "depends_on": [
+        "a2_admit"
+      ],
+      "id": "a2_headroom",
+      "kind": "headroom_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 2
+      }
+    },
+    {
+      "depends_on": [
+        "a2_admit"
+      ],
+      "id": "a2_reference",
+      "kind": "reference_bank",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "delta": 0.001,
+        "reference": "D17"
+      }
+    },
+    {
+      "depends_on": [
+        "a2_admit"
+      ],
+      "id": "a2_positive_control",
+      "kind": "audit_positive_control",
+      "optional": false,
+      "settings": {
+        "anchor": 2
+      }
+    },
+    {
+      "depends_on": [
+        "a2_reference",
+        "a2_headroom"
+      ],
+      "id": "a2_A_center_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_center_fit"
+      ],
+      "id": "a2_A_center_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_center_controls",
+        "a2_positive_control"
+      ],
+      "id": "a2_A_center_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a2_admit",
+        "b_exact_fixtures"
+      ],
+      "id": "a2_B_nuisance",
+      "kind": "nuisance_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 2
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_nuisance",
+        "a2_reference"
+      ],
+      "id": "a2_B_64_split",
+      "kind": "nested_split",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "max_states": 64,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_split"
+      ],
+      "id": "a2_B_64_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_fit"
+      ],
+      "id": "a2_B_64_controls",
+      "kind": "matched_controls",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_controls",
+        "a2_positive_control"
+      ],
+      "id": "a2_B_64_audit",
+      "kind": "independent_inner_audit",
+      "optional": false,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_center_audit"
+      ],
+      "id": "a2_A_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_optional_000_fit"
+      ],
+      "id": "a2_A_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_optional_000_controls"
+      ],
+      "id": "a2_A_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_center_audit"
+      ],
+      "id": "a2_A_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 32
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_optional_003_fit"
+      ],
+      "id": "a2_A_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a2_A_optional_003_controls"
+      ],
+      "id": "a2_A_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "A",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_audit"
+      ],
+      "id": "a2_B_optional_000_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.0,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_optional_000_fit"
+      ],
+      "id": "a2_B_optional_000_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_optional_000_controls"
+      ],
+      "id": "a2_B_optional_000_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.0
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_audit"
+      ],
+      "id": "a2_B_optional_003_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.003,
+        "max_rounds": 6,
+        "n_states": 64
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_optional_003_fit"
+      ],
+      "id": "a2_B_optional_003_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_optional_003_controls"
+      ],
+      "id": "a2_B_optional_003_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.003
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_64_audit"
+      ],
+      "id": "a2_B_128_split",
+      "kind": "nested_split",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "max_states": 128,
+        "min_households": 100
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_128_split"
+      ],
+      "id": "a2_B_128_fit",
+      "kind": "adaptive_channel_fit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001,
+        "max_rounds": 6,
+        "n_states": 128
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_128_fit"
+      ],
+      "id": "a2_B_128_controls",
+      "kind": "matched_controls",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a2_B_128_controls"
+      ],
+      "id": "a2_B_128_audit",
+      "kind": "independent_inner_audit",
+      "optional": true,
+      "settings": {
+        "anchor": 2,
+        "branch": "B",
+        "delta": 0.001
+      }
+    },
+    {
+      "depends_on": [
+        "a0_A_center_audit",
+        "a0_B_64_audit",
+        "a1_A_center_audit",
+        "a1_B_64_audit",
+        "a2_A_center_audit",
+        "a2_B_64_audit"
+      ],
+      "id": "inner_decision",
+      "kind": "selection_decision",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "inner_decision"
+      ],
+      "id": "selection_lock",
+      "kind": "freeze_panel",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "selection_lock"
+      ],
+      "id": "outer_development_assessment",
+      "kind": "outer_score",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "outer_development_assessment"
+      ],
+      "id": "independent_replay",
+      "kind": "replay_score",
+      "optional": false,
+      "settings": {}
+    },
+    {
+      "depends_on": [
+        "independent_replay"
+      ],
+      "id": "private_archive_closeout",
+      "kind": "archive_closeout",
+      "optional": false,
+      "settings": {}
+    }
+  ]
+}
