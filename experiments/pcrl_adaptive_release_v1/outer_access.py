@@ -58,7 +58,7 @@ def _scorer_hashes_authorized(lock: dict) -> bool:
             not LOCK_PATH.is_file()):
         return False
     changed = sorted(key for key in current if current[key] != frozen[key])
-    if changed != ["outer_access.py", "outer_pool.py"]:
+    if changed != ["external_audit.py", "outer_access.py", "outer_pool.py"]:
         return False
     lock_sha = _sha(LOCK_PATH)
     correction = json.loads(CORRECTION_PATH.read_text())
@@ -70,7 +70,9 @@ def _scorer_hashes_authorized(lock: dict) -> bool:
         correction.get("original_scoring_code_sha256") == frozen and
         correction.get("corrected_scoring_code_sha256") == current and
         correction.get("changed_modules") == changed and
-        correction.get("score_outputs_written_before_repair") is False and
+        correction.get("failed_attempts_produced_score_outputs") is False and
+        correction.get("main_outer_scores_completed_and_preserved") is True and
+        correction.get("contextual_j_outputs_written_before_repair") is False and
         correction.get("candidate_panel_unchanged") is True and
         receipt.get("schema") == "pcrl-adaptive-scorer-correction-unlock-v1" and
         receipt.get("lock_sha256") == lock_sha and

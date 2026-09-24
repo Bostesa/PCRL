@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pickle
 from pathlib import Path
 
 import numpy as np
@@ -154,6 +155,19 @@ def test_locked_j_outer_attach_matches_gate_rows_and_service_bytes() -> None:
     changed["ids"][0] = "wrong-id"
     with pytest.raises(ValueError, match="outer gate rows"):
         external_audit.attach_locked_outer_j(prepared, changed)
+
+
+def test_locked_j_aligns_independently_deserialized_object_identifiers() -> None:
+    prepared = _prepared()
+    for pool in prepared["ctx"]["pools"].values():
+        pool["ids"] = pool["ids"].astype(object)
+        pool["households"] = pool["households"].astype(object)
+    unlocked = outer_pool.pooled_locked_outer(prepared, {
+        "people": 10, "households": 10, "weight_sum": 10.})
+    independent = pickle.loads(pickle.dumps(prepared))
+    attached = external_audit.attach_locked_outer_j(independent, unlocked)
+    assert attached["ids"].tolist() == unlocked["ids"].tolist()
+    assert attached["aux"].shape == (10, 16)
 
 
 def test_outer_j_replay_refuses_before_any_prepared_load(tmp_path: Path, monkeypatch) -> None:

@@ -134,6 +134,7 @@ def test_postlock_scorer_repair_requires_remote_pinned_exact_hash_change(tmp_pat
     lock_path, unlock_path, _, _ = _lock_files(tmp_path, monkeypatch)
     current = outer_access.scoring_code_hashes()
     frozen = dict(current)
+    frozen["external_audit.py"] = "3" * 64
     frozen["outer_pool.py"] = "1" * 64
     frozen["outer_access.py"] = "2" * 64
     lock = json.loads(lock_path.read_text())
@@ -157,8 +158,10 @@ def test_postlock_scorer_repair_requires_remote_pinned_exact_hash_change(tmp_pat
         "lock_sha256": lock_sha,
         "original_scoring_code_sha256": frozen,
         "corrected_scoring_code_sha256": current,
-        "changed_modules": ["outer_access.py", "outer_pool.py"],
-        "score_outputs_written_before_repair": False,
+        "changed_modules": ["external_audit.py", "outer_access.py", "outer_pool.py"],
+        "failed_attempts_produced_score_outputs": False,
+        "main_outer_scores_completed_and_preserved": True,
+        "contextual_j_outputs_written_before_repair": False,
         "candidate_panel_unchanged": True,
     }
     public.write_text(json.dumps(correction))

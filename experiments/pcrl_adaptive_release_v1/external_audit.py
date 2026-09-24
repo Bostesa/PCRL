@@ -19,7 +19,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from experiments.pcrl_task_aligned_cuts_v1 import audit as inherited, data
-from . import evaluate, roles
+from . import evaluate, outer_pool, roles
 
 
 METHODS = ("J", "leace_A0", "splince_A0", "optnet16_C1", "optnet16_L1", "optnet16_L2")
@@ -40,8 +40,7 @@ def _sha(path: str | Path) -> str:
 
 
 def _same_bytes(left: np.ndarray, right: np.ndarray) -> bool:
-    a, b = np.asarray(left), np.asarray(right)
-    return a.shape == b.shape and a.dtype == b.dtype and a.tobytes() == b.tobytes()
+    return outer_pool._same_bytes(left, right)
 
 
 def _unit_law(rows: Mapping[str, Any]) -> np.ndarray:

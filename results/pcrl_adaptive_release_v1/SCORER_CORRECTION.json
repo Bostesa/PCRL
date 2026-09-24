@@ -1,14 +1,19 @@
 {
   "candidate_panel_unchanged": true,
   "changed_modules": [
+    "external_audit.py",
     "outer_access.py",
     "outer_pool.py"
   ],
+  "contextual_j_diagnosis_ssm_command_id": "95922551-c226-4935-8a34-384d9bbf02e9",
+  "contextual_j_no_output_verification_ssm_command_id": "758d7c8d-a79b-4b94-957e-eeec2f277d27",
+  "contextual_j_outputs_written_before_repair": false,
+  "contextual_j_regression_test": "tests/pcrl_adaptive_release_v1/test_external_audit.py::test_locked_j_aligns_independently_deserialized_object_identifiers",
   "corrected_scoring_code_sha256": {
-    "external_audit.py": "cc90cf445834c265a9d7ab6c09a78e11ced84faa3cf47f33cec157d00a2cbda5",
+    "external_audit.py": "076705795d53a78b885863d09484f964df44aa6cfb768022ac3cfc64c0616103",
     "inference.py": "ce5ef67303d92c95e28bb5ead6a5b573e7320d0e21301049512628707dd085a8",
     "inference_run.py": "b9ab2590f998cdad587616ddf8628f365826fca06eb10d3ddc453b8064ec4d3f",
-    "outer_access.py": "f0719cf654330408d34487e4c519c8c1ac19189ba019a7fa09b8c72d49ac35f3",
+    "outer_access.py": "60a45661de7316191c47dc03e1bf889fd37987b6ea1a11d20f8eec49b94358d7",
     "outer_audit.py": "55d24d6e4277cad418cddac910a2ee1449aa094b9363c8cfb648e9406476f29b",
     "outer_pool.py": "a5c6d74b905cd7e88ac2617715ed2a7acc4d0296a5f7096129e858d3fde4c76d",
     "paired_inference.py": "f670a9cd9846e1593d32b344f79f60d20a30cff389b5af7286ebeb22cfe19227",
@@ -16,7 +21,7 @@
     "release_specs.py": "cee9815b802b1774c154075bf3ef489ab81da57d877e0a0c277376c2c7331a47"
   },
   "created_utc": "2026-09-24T05:23:04.554426+00:00",
-  "defect": "Two pre-output checks were too strict: object-array tobytes() compared process-local pointers for IDs and household keys after independent joblib loads; then exact equality of label-key sets rejected the archived fifth pool because it includes four additional historical task labels. The required residence, SEX and RAC1P labels were present on all three anchors.",
+  "defect": "Two pre-output checks were too strict: object-array tobytes() compared process-local pointers for IDs and household keys after independent joblib loads; then exact equality of label-key sets rejected the archived fifth pool because it includes four additional historical task labels. The required residence, SEX and RAC1P labels were present on all three anchors. The separately locked continuous-J alignment used a duplicate object-pointer byte comparator on its independently deserialized IDs and households; its numeric H and weight arrays were byte-identical on all anchors.",
   "failed_attempts": [
     {
       "anchor": 0,
@@ -69,10 +74,22 @@
       "status": "FAILED_BEFORE_SCORE_OUTPUT"
     }
   ],
+  "failed_attempts_produced_score_outputs": false,
   "failure_phase": "post-unlock fifth-pool original/sanitized equality or required-label schema checks, before any outer score or output directory creation",
   "gate_test": "tests/pcrl_adaptive_release_v1/test_outer_access.py::test_postlock_scorer_repair_requires_remote_pinned_exact_hash_change",
   "lock_sha256": "4f894f98af67fd2a79e35ad3697971041aa53451b292b8bdf9691c8dd761f484",
   "locked_commit_sha": "83e2e5d80a5902e23d9a1620a011d43521214bed",
+  "main_outer_score_receipts_sha256": {
+    "0": "7051e3e7e2ad49bd640ca16b8e4cfba4e3e96d6ff882570ad10e6aa0fe326d4e",
+    "1": "2ffacce453a3c340e319e8df01ad6bc118ef5d1aaaaf60d73a616df7ffd2560e",
+    "2": "729269cb717cc492b3d9bb7070c2e6c0cf3ad1195c7a7add26a571ff764c18e3"
+  },
+  "main_outer_scores_completed_and_preserved": true,
+  "main_outer_verified_archive_sha256": {
+    "0": "28f2fb81041afad63b020dc925fa0e30524fae5c68a9d452143ff3f1f3b678fe",
+    "1": "c989e918cca39d70a7532ab9522ace54d81f87958df1b4867ea9c7caca15f594",
+    "2": "2080d3895d01ec50d3bcb53757d5e18e19f2c506a94fcdcf9afd8763c6f819bb"
+  },
   "no_output_verification_ssm_command_id": "89461119-b527-4dea-a4c9-2e1795db11eb",
   "original_scoring_code_sha256": {
     "external_audit.py": "cc90cf445834c265a9d7ab6c09a78e11ced84faa3cf47f33cec157d00a2cbda5",
@@ -91,13 +108,12 @@
     "tests/pcrl_adaptive_release_v1/test_outer_pool.py::test_object_identifiers_survive_independent_deserialization",
     "tests/pcrl_adaptive_release_v1/test_outer_pool.py::test_locked_outer_accepts_archived_extra_task_labels_without_scoring_them"
   ],
-  "repair": "Compare object identifiers elementwise with identical scalar types and values while retaining bitwise comparison for numeric arrays. Require the three study labels as a subset and return only those labels to the scorer. The gate requires this exact old/new scorer hash map and a separately remote-verified correction receipt.",
-  "revised_utc": "2026-09-24T05:27:18.599490+00:00",
-  "revision": 2,
+  "repair": "Compare object identifiers elementwise with identical scalar types and values while retaining bitwise comparison for numeric arrays. Require the three study labels as a subset and return only those labels to the scorer. The gate requires this exact old/new scorer hash map and a separately remote-verified correction receipt. Continuous-J alignment now calls the same corrected comparator, preserving bytewise H and weight parity. The three already completed 17-token outer scores are retained without refitting or rescoring.",
+  "revised_utc": "2026-09-24T05:33:44.009338+00:00",
+  "revision": 3,
   "schema": "pcrl-adaptive-postlock-scorer-correction-v1",
-  "scientific_choices": "Original lock bytes, candidates, controls, endpoints, routing, release artifacts, predictor models, weights, and margins unchanged.",
-  "score_outputs_written_before_repair": false,
+  "scientific_choices": "Original lock bytes, candidates, controls, endpoints, routing, release artifacts, predictor models, weights, and margins unchanged; completed 17-token scores retained. Continuous J is contextual, not a matched 17-token comparator.",
   "status": "TECHNICAL_SCORER_REPAIR",
   "study": "pcrl_adaptive_release_v1",
-  "supersedes_correction_sha256": "bcd9ff2843b5c88707abadebd25df3f3d92d1fdf6416bcb4bced76bd30f4a174"
+  "supersedes_correction_sha256": "48fe29af0767156ef2f046f2be9e7c600d2e05849ce7c60d3797d051f6617dd3"
 }
