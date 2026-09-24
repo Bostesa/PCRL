@@ -7,4 +7,7 @@
 - Ceilings: US$50 or 20 instance-hours, and 2026-09-25T19:30Z.
 
 ## Log
-- ~23:40Z: protocol written (`PROTOCOL.md`), before any solve.
+- 23:34:05Z: registration committed and pushed as `5f91117`, remote-verified, before any solve. Outcome access: none.
+- 23:35Z: early manuscript-owner notice written: `.git/pcrl_privacy_first_selector_v1/TO_MANUSCRIPT_PRIVACY_FIRST_SELECTOR_START.json`.
+- 23:40–23:43Z: code written and pushed as launch commit `9bb77ac`. It covers solve, host, lockgate, outer and cloud, and 11 synthetic tests pass. AWS preflight passed.
+- 23:44:19Z: launched `i-07d9bc2619c9f5b11` (c7i.8xlarge, $1.428/h), with security group `sg-07748c7024ec577d4` (zero ingress) and tags `Project=pcrl` and `Study=pcrl_privacy_first_selector_v1`. Watchdog 2026-09-25T09:00Z; hard stop 09:30Z.
