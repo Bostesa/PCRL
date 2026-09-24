@@ -184,71 +184,107 @@ def best_task(rows):
     return min(rows, key=lambda r: (r["task_balanced"], r["non_d17_contexts"], r["index"]))
 
 
-def solve_mixture(cost, cuts, caps, K, M, *, time_limit=120.):
-    """R: max t over row-stochastic A (B=0, eta=1). Variables vec(A) (row-major) then t."""
-    n = K * M + 1
+def _lp_rows(cost, cuts, caps, K, M, full):
+    """Inequality rows over x = [vec(B) if full] + vec(A) + [eta if full] + [t]."""
+    S, Z = channel.N_STATES, channel.N_TOKENS
+    nb = S * Z if full else 0
+    n = nb + K * M + (1 if full else 0) + 1
+
+    def vec(gb, ga):
+        v = np.zeros(n)
+        if full:
+            v[:nb] = np.asarray(gb, dtype=np.float64).ravel()
+        v[nb:nb + K * M] = np.asarray(ga, dtype=np.float64).ravel()
+        return v
     rows, rhs = [], []
     for cut in cuts:
-        row = np.zeros(n)
-        row[:-1] = -np.asarray(cut["coeff_A"], dtype=np.float64).ravel()
+        row = -vec(cut["coeff_B"], cut["coeff_A"])
         if cut["role"] == TARGET:
             row[-1] = 1.
             rhs.append(-float(cut["rho"]))
         else:
             rhs.append(-float(cut["floor"]))
         rows.append(row)
+    task = {v: vec(cost[v]["B"], cost[v]["A"]) for v in channel.WEIGHTINGS}
     for v in channel.WEIGHTINGS:
-        row = np.zeros(n)
-        row[:-1] = np.asarray(cost[v]["A"], dtype=np.float64).ravel()
-        rows.append(row)
-        rhs.append(caps[v])
-    a_ub, b_ub = np.vstack(rows), np.asarray(rhs)
-    a_eq = sparse.hstack((sparse.kron(sparse.eye(K), np.ones((1, M))),
-                          sparse.csr_matrix((K, 1))), format="csr")
-    b_eq = np.ones(K)
-    c = np.zeros(n); c[-1] = -1.
-    bounds = [(0., 1.)] * (K * M) + [(None, None)]
+        rows.append(task[v]); rhs.append(caps[v])
+    if full:
+        eq_b = sparse.hstack((sparse.kron(sparse.eye(S), np.ones((1, Z))), sparse.csr_matrix((S, K * M)),
+                              np.ones((S, 1)), sparse.csr_matrix((S, 1))), format="csr")
+        eq_a = sparse.hstack((sparse.csr_matrix((K, nb)), sparse.kron(sparse.eye(K), np.ones((1, M))),
+                              -np.ones((K, 1)), sparse.csr_matrix((K, 1))), format="csr")
+        a_eq, b_eq = sparse.vstack((eq_b, eq_a), format="csr"), np.concatenate((np.ones(S), np.zeros(K)))
+    else:
+        a_eq = sparse.hstack((sparse.kron(sparse.eye(K), np.ones((1, M))), sparse.csr_matrix((K, 1))), format="csr")
+        b_eq = np.ones(K)
+    return np.vstack(rows), np.asarray(rhs), a_eq, b_eq, 0.5 * (task["U"] + task["W"]), n, nb
+
+
+def solve_lp(cost, cuts, caps, K, M, *, full=False, time_limit=300.):
+    """Stage 1: max t. Stage 2 (amendment A1): min balanced task s.t. t >= t* (HiGHS tolerances).
+
+    full=False: R arms (B = 0, eta = 1, A row-stochastic). full=True: NM4PF (B, A, eta free).
+    """
+    a_ub, b_ub, a_eq, b_eq, task_vec, n, nb = _lp_rows(cost, cuts, caps, K, M, full)
     options = dict(HIGHS_OPTIONS); options["time_limit"] = float(time_limit)
-    raw = linprog(c, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds,
-                  method="highs", options=options)
-    if raw.status != 0 or raw.x is None:
-        raise RuntimeError(f"mixture LP unresolved: {raw.message}")
-    A = np.maximum(raw.x[:-1].reshape(K, M), 0.)
-    mass = A.sum(1)
-    if np.max(np.abs(mass - 1)) > SIMPLEX_TOL:
-        raise RuntimeError("mixture LP rows are not stochastic within tolerance")
-    A = A / mass[:, None]
-    repair = float(np.max(np.abs(A - raw.x[:-1].reshape(K, M))))
-    B = np.zeros((channel.N_STATES, channel.N_TOKENS))
+    bounds = [(0., 1.)] * (n - 1) + [(None, None)]
+    c1 = np.zeros(n); c1[-1] = -1.
+    raw1 = linprog(c1, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds, method="highs", options=options)
+    if raw1.status != 0 or raw1.x is None:
+        raise RuntimeError(f"stage-1 LP unresolved: {raw1.message}")
+    t_star = float(raw1.x[-1])
+    y_ub = np.asarray(raw1.ineqlin.marginals, dtype=float)
+    y_eq = np.asarray(raw1.eqlin.marginals, dtype=float)
+    reduced = c1 - a_ub.T @ y_ub - a_eq.T @ y_eq
+    dual_value = float(b_ub @ y_ub + b_eq @ y_eq + np.minimum(reduced[:-1], 0.).sum())
+    bounds2 = bounds[:-1] + [(t_star, None)]
+    raw2 = linprog(task_vec, A_ub=a_ub, b_ub=b_ub, A_eq=a_eq, b_eq=b_eq, bounds=bounds2, method="highs",
+                   options=options)
+    if raw2.status != 0 or raw2.x is None:
+        raise RuntimeError(f"stage-2 LP unresolved: {raw2.message}")
+    x = raw2.x
+    if full:
+        cleaned = channel._clean_params(x[:nb].reshape(channel.N_STATES, channel.N_TOKENS),
+                                        x[nb:nb + K * M].reshape(K, M), float(x[nb + K * M]))
+        if cleaned is None:
+            raise RuntimeError("full-mixture solution failed the simplex cleaning")
+        B, A, eta, repair = cleaned
+    else:
+        A = np.maximum(x[:K * M].reshape(K, M), 0.)
+        mass = A.sum(1)
+        if np.max(np.abs(mass - 1)) > SIMPLEX_TOL:
+            raise RuntimeError("mixture LP rows are not stochastic within tolerance")
+        A = A / mass[:, None]
+        repair = float(np.max(np.abs(A - x[:K * M].reshape(K, M))))
+        B, eta = np.zeros((channel.N_STATES, channel.N_TOKENS)), 1.
     rec = evaluate(B, A, cost, cuts, caps)
-    if not rec["feasible"]:
-        raise RuntimeError("cleaned mixture solution violates the objective's constraints")
-    y_ub = np.asarray(raw.ineqlin.marginals, dtype=float)
-    y_eq = np.asarray(raw.eqlin.marginals, dtype=float)
-    # Dual objective of min c'x (HiGHS marginals are <= 0 for <= rows); t bound = -dual.
-    reduced = c - a_ub.T @ y_ub - a_eq.T @ y_eq
-    box = np.minimum(reduced[:-1], 0.)          # x <= 1 upper bounds of A
-    dual_value = float(b_ub @ y_ub + b_eq @ y_eq + box.sum())
-    return {"B": B, "A": A, "eta": 1., "record": {
-        **rec, "solver": "HiGHS", "solver_status": int(raw.status), "solver_message": raw.message,
-        "solver_t": float(raw.x[-1]), "repair_max": repair,
-        "dual_t_upper_bound": -dual_value, "dual_gap": -dual_value - rec["t"],
+    if not rec["feasible"] or rec["t"] < t_star - 1e-9:
+        raise RuntimeError("cleaned LP solution violates the objective's constraints or loses t")
+    law = np.asarray(A)
+    return {"B": B, "A": A, "eta": float(eta), "record": {
+        **rec, "solver": "HiGHS", "stage1_status": int(raw1.status), "stage1_t": t_star,
+        "stage1_task_balanced": float(task_vec @ raw1.x), "stage2_status": int(raw2.status),
+        "stage2_message": raw2.message, "lexicographic_tie_rule": "amendment A1",
+        "repair_max": repair, "dual_t_upper_bound": -dual_value, "dual_gap": -dual_value - t_star,
         "free_variable_reduced_cost_t": float(reduced[-1]),
-        "one_hot_contexts": int(np.sum(A.max(1) >= 1 - 1e-12)),
-        "fractional_contexts": int(np.sum(A.max(1) < 1 - 1e-12))}}
+        "one_hot_contexts": int(np.sum(law.max(1) >= 1 - 1e-12)),
+        "fractional_contexts": int(np.sum(law.max(1) < 1 - 1e-12))}}
+
+
+def solve_mixture(cost, cuts, caps, K, M):
+    return solve_lp(cost, cuts, caps, K, M, full=False)
 
 
 def solve_full(cost, cuts, d17):
-    solution = channel.solve_privacy_first(cost, cuts, d17)
-    if not solution.get("feasible") or solution.get("params") is None:
-        raise RuntimeError(f"NM4PF unresolved: {solution.get('status')}")
-    p = solution["params"]
-    rec = evaluate(p["B"], p["A"], cost, cuts, task_caps(cost, d17))
-    if not rec["feasible"] or abs(rec["t"] - solution["tau"]) > 1e-7:
-        raise RuntimeError("NM4PF replay disagrees with the SC solver")
-    keep = {k: solution.get(k) for k in ("status", "tau", "solver_status", "solver_message",
-                                         "repair_max", "dual_tau_upper_bound", "dual_gap", "sparsity")}
-    return {"B": p["B"], "A": p["A"], "eta": float(p["eta"]), "record": {**rec, "sc_solver": keep}}
+    caps = task_caps(cost, d17)
+    K, M = np.asarray(cost["U"]["A"]).shape
+    sol = solve_lp(cost, cuts, caps, K, M, full=True)
+    reference = channel.solve_privacy_first(cost, cuts, d17)
+    if not reference.get("feasible") or abs(reference["tau"] - sol["record"]["stage1_t"]) > 1e-7:
+        raise RuntimeError("NM4PF stage-1 t differs from the SC privacy-first LP")
+    sol["record"]["sc_solver_tau"] = float(reference["tau"])
+    sol["record"]["sc_solver_status"] = reference.get("status")
+    return sol
 
 
 # ---------------------------------------------------------------------------
