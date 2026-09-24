@@ -24,3 +24,4 @@
 | Infrastructure | agent | runner/cloud/audit integration | running |
 | Independent verifier | agent (later, fresh context) | INDEPENDENT_VERIFICATION, REVIEW | not started |
 - Timestamp correction (18:08Z): earlier entries in RUN_STATUS/DESIGN_SPEC/RESPONSE carried estimated times that ran ahead of the clock; corrected to git commit times (registration 17:48:02Z, confirmation plan 17:59:21Z). No content change.
+- 18:53:41Z launched i-0732026d054f6d3ee (c7i.8xlarge, $1.428/h, SG sg-01e1c3010494c470c zero ingress, tags Project=pcrl Study=pcrl_shared_context_release_v1) at launch commit 8ac75775e0c35a1746c6870a91037d18aff48e25; watchdog 2026-09-25T09:00Z, hard stop 09:30Z.
