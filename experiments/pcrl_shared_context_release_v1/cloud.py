@@ -378,21 +378,24 @@ SPARSE = ("/experiments/__init__.py /experiments/pcrl_adaptive_release_v1/ "
           "/results/pcrl_shared_context_release_v1/")
 
 
-def lockcheck(commit: str) -> str:
+def lockcheck(commit: str, directory: str = LOCKCHECK) -> str:
     """Separate checkout at a pushed commit; /opt/pcrl/work is never touched."""
     verify_pushed(commit)
+    if directory in ("/opt/pcrl/work", "/opt/pcrl") or not re.fullmatch(r"/opt/pcrl/[a-z0-9_-]+", directory):
+        raise ValueError("separate checkout must be a new directory directly under /opt/pcrl")
+    LOCKCHECK_ = directory
     return send(["set -eu",
-                 f"if [ ! -d {LOCKCHECK}/.git ]; then git clone -q --filter=blob:none --no-checkout "
-                 f"--sparse --depth 200 --single-branch --branch {BRANCH} {REPO} {LOCKCHECK}; fi",
-                 f"cd {LOCKCHECK}", f"git sparse-checkout set --no-cone {SPARSE}",
+                 f"if [ ! -d {LOCKCHECK_}/.git ]; then git clone -q --filter=blob:none --no-checkout "
+                 f"--sparse --depth 200 --single-branch --branch {BRANCH} {REPO} {LOCKCHECK_}; fi",
+                 f"cd {LOCKCHECK_}", f"git sparse-checkout set --no-cone {SPARSE}",
                  f"git fetch -q --depth 200 origin {BRANCH}",
                  f"git merge-base --is-ancestor {commit} FETCH_HEAD",
                  f"git checkout -q --detach {commit}",
                  f"test \"$(git rev-parse HEAD)\" = {commit}",
                  "git status --porcelain --untracked-files=no | (! grep .)",
-                 f"printf '%s\\n' {commit} > {LOCKCHECK}/SOURCE_COMMIT.txt",
+                 f"printf '%s\\n' {commit} > {LOCKCHECK_}/SOURCE_COMMIT.txt",
                  "git -C /opt/pcrl/work rev-parse HEAD"],
-                f"Lockcheck checkout {commit[:12]}")
+                f"Separate checkout {directory} at {commit[:12]}")
 
 
 def pull(remote_path: str, local_path: str, *, timeout_seconds: int = 600) -> dict:
@@ -520,6 +523,7 @@ def main(argv: list[str] | None = None) -> None:
     item.add_argument("--workers", type=int, default=16)
     item.add_argument("--extra", nargs=argparse.REMAINDER, default=[])
     item = sub.add_parser("lockcheck"); item.add_argument("--commit", required=True)
+    item.add_argument("--dir", default=LOCKCHECK, help="e.g. /opt/pcrl/posthoc")
     item = sub.add_parser("pull"); item.add_argument("--remote", required=True)
     item.add_argument("--local", required=True)
     sub.add_parser("status")
@@ -548,7 +552,7 @@ def main(argv: list[str] | None = None) -> None:
     elif args.action == "start-runner":
         value = {"command_id": start_runner(args.queue, args.workers, extra=args.extra)}
     elif args.action == "lockcheck":
-        value = {"command_id": lockcheck(args.commit)}
+        value = {"command_id": lockcheck(args.commit, args.dir)}
     elif args.action == "pull":
         value = pull(args.remote, args.local)
     elif args.action == "status":
