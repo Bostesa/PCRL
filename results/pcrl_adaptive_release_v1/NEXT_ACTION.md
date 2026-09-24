@@ -1,0 +1,3 @@
+# One next research decision
+
+Do not tune another allowance or promote the fixed-bank gap into an algorithm claim. The registered state-refinement hypothesis remained untested on ACS because the 100-household-per-child floor allowed no split on any anchor. A new study would first need a provenance-checked fitting resource that supports legal child states and an assessment resource independent of its model and selection history. Keep the 17-token wire and give task-only, nonadaptive, gradient, and deterministic controls the same inputs and supervision. If such data are unavailable, preserve this trained release as an experimental artifact and make no competitive or population-privacy claim. Reusing the already assessed 2018 or 2016 rows cannot supply fresh confirmation.

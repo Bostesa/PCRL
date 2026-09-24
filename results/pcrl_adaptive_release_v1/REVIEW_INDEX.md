@@ -1,0 +1,7 @@
+# Review path
+
+Start with [RESEARCH_DECISION.md](RESEARCH_DECISION.md) for the direct outcome, then [FULL_RESULTS.csv](FULL_RESULTS.csv) and [OUTER_FRONTIER.svg](OUTER_FRONTIER.svg) for all aggregate comparisons. The frozen [SELECTION_LOCK.json](SELECTION_LOCK.json) names the two diagnostic slots and 70 primary endpoints; [INFERENCE.json](INFERENCE.json) records the paired intervals and complete conjunctions. [PAPER_ADDENDUM.md](PAPER_ADDENDUM.md) contains the only manuscript-safe summary.
+
+For method and scientific scope, read [METHOD.md](METHOD.md), [REFERENCE_CALIBRATION.md](REFERENCE_CALIBRATION.md), [STATE_REFINEMENT.md](STATE_REFINEMENT.md), and [VALIDATION.md](VALIDATION.md). The independent [bootstrap review](agents/independent_review/LOCKED_BOOTSTRAP_REVIEW.md) recomputes all 74 registered contrasts and interval decisions. The independent [packaging review](agents/independent_review/PACKAGING_REVIEW.md) checks the runnable U/P/D17 T32 release and its archived pins. The post-lock technical scorer changes are isolated in [SCORER_CORRECTION.json](SCORER_CORRECTION.json).
+
+For reproduction and accounting, use [QUICKSTART.md](QUICKSTART.md), [MODEL_MANIFEST.json](MODEL_MANIFEST.json), [ARCHIVE_INDEX.json](ARCHIVE_INDEX.json), [UNIT_LEDGER.json](UNIT_LEDGER.json), [RESUME.md](RESUME.md), and [COST_AND_CLOSEOUT.md](COST_AND_CLOSEOUT.md). `HANDOFF.json` collects report hashes and role-specific integration instructions. Private person records, fitted weights, logs, and contribution arrays remain in versioned encrypted S3 rather than Git.

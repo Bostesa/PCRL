@@ -70,8 +70,8 @@ def _checked_rows(report: Mapping, manifest: Mapping, family: str) -> list[dict]
         if not isinstance(anchors, list) or len(anchors) != 3:
             raise ValueError("each endpoint needs exactly three anchor estimates")
         anchor_values = [_number(x, "anchor estimate") for x in anchors]
-        # A percentile bootstrap interval can exclude its original-sample
-        # estimate when the resampling distribution is biased or asymmetric.
+        # The locked intervals are normal bounds from a paired-household
+        # bootstrap standard error; only ordered finite bounds are required.
         if lower > upper:
             raise ValueError("invalid endpoint uncertainty interval")
         if not _close(estimate, sum(anchor_values) / 3):
