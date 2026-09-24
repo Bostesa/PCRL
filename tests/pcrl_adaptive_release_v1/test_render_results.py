@@ -189,3 +189,17 @@ def test_renderer_cli_accepts_exact_three_anchor_pins(tmp_path):
     result = render_results.main(args)
     assert result["outer_aggregate_crosscheck"] == "PASS_ALL_THREE_ANCHORS"
     assert (tmp_path / "FULL_RESULTS.csv").is_file()
+
+
+def test_renderer_accepts_biased_percentile_interval_outside_point(tmp_path):
+    lock, inner, inference_path, _ = _fixture(tmp_path)
+    result = json.loads(inference_path.read_text())
+    row = result["rows"][0]
+    row["lower"], row["upper"] = .002, .003
+    row["demonstrated_adverse"] = True
+    inference_path.write_text(json.dumps(result, sort_keys=True))
+    summary = render_results.render_results(
+        lock, _sha(lock), inner, _sha(inner), inference_path, _sha(inference_path),
+        None, tmp_path / "FULL_RESULTS.csv", tmp_path / "ENDPOINT_TABLE.json",
+        tmp_path / "PLOT_DATA.json")
+    assert summary["primary_all_passed"] is False

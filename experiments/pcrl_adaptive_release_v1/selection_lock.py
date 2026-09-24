@@ -56,9 +56,12 @@ def _family_members(names: set[str], family: str) -> list[str]:
                                                for prefix in prefixes))
 
 
-def _verified_anchor(private_root: Path, anchor: int, index_sha: str) -> tuple[dict, dict, dict]:
-    panel = private_root / f"a{anchor}_inner_panel_d001"
-    spec_path = private_root / f"a{anchor}_INNER_SPECS.json"
+def _verified_anchor(private_root: Path, anchor: int, index_sha: str,
+                     *, privacy_first: bool = False) -> tuple[dict, dict, dict]:
+    panel = private_root / (f"a{anchor}_inner_panel_plus_privacy" if privacy_first
+                            else f"a{anchor}_inner_panel_d001")
+    spec_path = private_root / (f"a{anchor}_INNER_PLUS_PRIVACY_SPECS.json"
+                                if privacy_first else f"a{anchor}_INNER_SPECS.json")
     binding_path = spec_path.with_suffix(".binding.json")
     complete = json.loads((panel / "COMPLETE.json").read_text())
     report = json.loads((panel / "INNER_AUDIT.json").read_text())
@@ -92,6 +95,10 @@ def _verified_anchor(private_root: Path, anchor: int, index_sha: str) -> tuple[d
         raise ValueError("pinned logical alias roster differs from inner panel")
     scores = selection.expand_named_scores(
         selection.inner_validation_from_report(report), aliases)
+    if privacy_first and ("PrivacyFirst_selected" not in aliases or
+                          aliases["PrivacyFirst_selected"] not in report["releases"] or
+                          "PrivacyFirst_complete_sha256" not in spec.get("source_receipts", {})):
+        raise ValueError("registered privacy-first release was not merged and pinned")
     return report, spec, {
         "scores": scores, "aliases": aliases,
         "inner_panel_complete_sha256": _sha(panel / "COMPLETE.json"),
@@ -103,7 +110,8 @@ def _verified_anchor(private_root: Path, anchor: int, index_sha: str) -> tuple[d
 
 def build_lock(private_root: str | Path, index_path: str | Path,
                protocol_path: str | Path, *,
-               external_j: bool = False) -> tuple[dict, dict]:
+               external_j: bool = False,
+               privacy_first: bool = False) -> tuple[dict, dict]:
     root = Path(private_root).resolve()
     if "private" not in root.parts:
         raise ValueError("verified fitted panels must remain private")
@@ -111,7 +119,7 @@ def build_lock(private_root: str | Path, index_path: str | Path,
     reports, specifications, records = {}, {}, {}
     for anchor in selection.ANCHORS:
         reports[anchor], specifications[anchor], records[anchor] = _verified_anchor(
-            root, anchor, index_sha)
+            root, anchor, index_sha, privacy_first=privacy_first)
     names = set(records[0]["scores"]) - {"H", "D17"}
     if any(set(records[a]["scores"]) - {"H", "D17"} != names
            for a in selection.ANCHORS):
@@ -135,6 +143,10 @@ def build_lock(private_root: str | Path, index_path: str | Path,
     # B branch's recorded support-limited status remains in its fitted receipt.
     candidate_names = [name for name in candidate_names
                        if name == "A_selected" or aliases.get(name, name) != "A_selected"]
+    if privacy_first:
+        if "PrivacyFirst_selected" not in names:
+            raise ValueError("registered privacy-first candidate absent on an anchor")
+        candidate_names.append("PrivacyFirst_selected")
     choices = {route: selection.select_route_candidate(
         scores, candidate_names, route) for route in ("U", "P")}
     slots = []
@@ -178,6 +190,7 @@ def build_lock(private_root: str | Path, index_path: str | Path,
         "candidate_choices": choices,
         "family_choices": family_selections,
         "candidate_names": candidate_names,
+        "privacy_first_included": privacy_first,
         "family_members": {family: _family_members(names, family)
                            for family in FAMILIES},
     }
@@ -258,9 +271,12 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--selection-out", required=True)
     parser.add_argument("--external-j", action="store_true",
                         help="pin three already completed same-host continuous J inner audits")
+    parser.add_argument("--privacy-first", action="store_true",
+                        help="require three merged privacy-first inner panels")
     args = parser.parse_args(argv)
     lock, summary = build_lock(args.private_root, args.index, args.protocol,
-                               external_j=args.external_j)
+                               external_j=args.external_j,
+                               privacy_first=args.privacy_first)
     for name, value in ((args.lock_out, lock),
                         (args.selection_out, summary)):
         path = Path(name)

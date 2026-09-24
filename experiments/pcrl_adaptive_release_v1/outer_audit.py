@@ -284,6 +284,7 @@ def main(argv: list[str] | None = None) -> dict:
     parser.add_argument("--a-controls-dir")
     parser.add_argument("--b-controls-dir")
     parser.add_argument("--task-only-dir")
+    parser.add_argument("--privacy-first-dir")
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args(argv)
     from . import release_specs
@@ -304,7 +305,8 @@ def main(argv: list[str] | None = None) -> dict:
         b_parity_receipt=args.b_parity_receipt,
         a_controls_dir=args.a_controls_dir,
         b_controls_dir=args.b_controls_dir,
-        task_only_dir=args.task_only_dir)
+        task_only_dir=args.task_only_dir,
+        privacy_first_dir=args.privacy_first_dir)
     available = bundle["releases"]
     if not required <= set(available):
         raise ValueError("locked release ID is absent from verified fitted sources")

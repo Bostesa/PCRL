@@ -265,6 +265,7 @@ def build_release_specs(anchor: int, delta: float,
                         a_controls_dir: str | Path | None = None,
                         b_controls_dir: str | Path | None = None,
                         task_only_dir: str | Path | None = None,
+                        privacy_first_dir: str | Path | None = None,
                         require_current_linux_for_b: bool = True) -> dict:
     """Return canonical runnable audit specs and every declared name's alias."""
     root_a = _private_root(a_center_dir)
@@ -352,6 +353,20 @@ def build_release_specs(anchor: int, delta: float,
                        "task_only_receipt_sha256": receipt_sha,
                        "mode": mode, "publish": rate,
                        "constant_token": 0}, identity)
+    if privacy_first_dir is not None:
+        from . import privacy_first_fit
+
+        privacy_root = _private_root(privacy_first_dir)
+        privacy_spec = privacy_first_fit.load_release_spec(privacy_root)
+        complete = json.loads((privacy_root / "COMPLETE.json").read_text())
+        inputs = complete.get("inputs", {})
+        if (inputs.get("anchor") != anchor or inputs.get("delta") != delta or
+                inputs.get("branch") != "A" or
+                inputs.get("center_complete_sha256") != a["complete_receipt_sha256"]):
+            raise ValueError("privacy-first channel differs from frozen A center")
+        sources["PrivacyFirst_complete_sha256"] = _file_sha(privacy_root / "COMPLETE.json")
+        add("PrivacyFirst_selected", privacy_spec,
+            _channel_identity(privacy_spec["Q"], None))
     return {"releases": canonical, "aliases": aliases,
             "source_receipts": sources,
             "canonical_release_count": len(canonical),
@@ -370,6 +385,7 @@ def main(argv: list[str] | None = None) -> dict:
     parser.add_argument("--a-controls-dir")
     parser.add_argument("--b-controls-dir")
     parser.add_argument("--task-only-dir")
+    parser.add_argument("--privacy-first-dir")
     parser.add_argument("--output-index", help="private aggregate mapping/receipt JSON")
     args = parser.parse_args(argv)
     bundle = build_release_specs(
@@ -378,7 +394,8 @@ def main(argv: list[str] | None = None) -> dict:
         b_parity_receipt=args.b_parity_receipt,
         a_controls_dir=args.a_controls_dir,
         b_controls_dir=args.b_controls_dir,
-        task_only_dir=args.task_only_dir)
+        task_only_dir=args.task_only_dir,
+        privacy_first_dir=args.privacy_first_dir)
     manifest = {key: value for key, value in bundle.items() if key != "releases"}
     manifest.update({"schema": "pcrl-release-audit-spec-index-v1",
                      "anchor": args.anchor, "delta": args.delta,
