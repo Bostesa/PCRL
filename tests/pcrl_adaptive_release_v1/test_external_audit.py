@@ -19,11 +19,11 @@ POOLS = ("representation_fit", "downstream_fit", "downstream_validation", "attac
 def _prepared() -> dict:
     pools = {}
     for j, name in enumerate(POOLS):
-        n = 6
+        n = 8
         ids = np.asarray([f"{name}-{i}" for i in range(n)])
         houses = []
         candidate = 0
-        for role in ("audit_fit", "inner_selection", "inner_check"):
+        for role in ("audit_fit", "inner_selection", "inner_check", "outer_assessment"):
             matches = []
             while len(matches) < 2:
                 name_candidate = f"house-{j}-{candidate}"
@@ -41,8 +41,8 @@ def _prepared() -> dict:
             "labels": {"same_residence": np.zeros(n, dtype=int),
                        "SEX": np.zeros(n, dtype=int), "RAC1P": np.zeros(n, dtype=int)},
         }
-    encoded = {name: {"codes": {"T0": np.zeros(6, dtype=int)},
-                      "p": np.zeros(6), "r": np.zeros(6), "risk": np.zeros((6, 11))}
+    encoded = {name: {"codes": {"T0": np.zeros(8, dtype=int)},
+                      "p": np.zeros(8), "r": np.zeros(8), "risk": np.zeros((8, 11))}
                for name in POOLS}
     return {"ctx": {"pools": pools}, "encoded": encoded}
 
@@ -51,7 +51,7 @@ def _external_file(path: Path, prepared: dict, *, corrupt_h: bool = False) -> st
     arrays = {}
     for j, name in enumerate(POOLS):
         pool = prepared["ctx"]["pools"][name]
-        a = np.column_stack((pool["ha"], np.full((6, 16), j + 0.75)))
+        a = np.column_stack((pool["ha"], np.full((8, 16), j + 0.75)))
         if corrupt_h and name == "attacker_fit":
             a[0, 0] += 1
         arrays[f"wire/A/{name}"] = a
@@ -105,7 +105,7 @@ def test_external_file_rejects_hash_change_and_preserves_archived_order(tmp_path
     digest = _external_file(source, prepared)
     aux = external_audit.verified_external_aux(source, digest, prepared)
     assert set(aux) == set(POOLS)
-    assert np.array_equal(aux["representation_fit"], np.full((6, 16), 0.75))
+    assert np.array_equal(aux["representation_fit"], np.full((8, 16), 0.75))
     assert np.array_equal(external_audit.archived_ab_wire(
         prepared["ctx"]["pools"]["representation_fit"], aux["representation_fit"]),
         np.column_stack((prepared["ctx"]["pools"]["representation_fit"]["ha"],
@@ -131,3 +131,46 @@ def test_external_index_pins_only_declared_release(tmp_path: Path) -> None:
     assert record["sha256"] == digest
     with pytest.raises(ValueError, match="undeclared"):
         external_audit.pinned_external_record(index, index_sha, 0, "new_candidate")
+
+
+def test_locked_j_outer_attach_matches_gate_rows_and_service_bytes() -> None:
+    prepared = _prepared()
+    unlocked = roles._pooled_role(prepared, "outer_assessment", allow_outer=True)
+    attached = external_audit.attach_locked_outer_j(prepared, unlocked)
+    expected = []
+    for name in POOLS:
+        pool = prepared["ctx"]["pools"][name]
+        mask = np.asarray([roles.role_of(h) == "outer_assessment"
+                           for h in pool["households"]])
+        expected.append(pool["J"][mask])
+    assert np.array_equal(attached["aux"], np.concatenate(expected))
+    assert attached["ha"].tobytes() == unlocked["ha"].tobytes()
+    assert attached["hb"].tobytes() == unlocked["hb"].tobytes()
+    changed = dict(unlocked)
+    changed["ids"] = changed["ids"].copy()
+    changed["ids"][0] = "wrong-id"
+    with pytest.raises(ValueError, match="outer gate rows"):
+        external_audit.attach_locked_outer_j(prepared, changed)
+
+
+def test_outer_j_replay_refuses_before_any_prepared_load(tmp_path: Path, monkeypatch) -> None:
+    from experiments.pcrl_adaptive_release_v1 import outer_access
+
+    seen = []
+
+    def denied(*_args, **_kwargs):
+        seen.append("gate")
+        raise PermissionError("remote-verified outer unlock receipt is absent")
+
+    def forbidden_load(*_args, **_kwargs):
+        seen.append("prepared")
+        raise AssertionError("prepared opened before gate")
+
+    monkeypatch.setattr(outer_access, "verify_outer_unlock", denied)
+    monkeypatch.setattr(external_audit.data, "load_prepared", forbidden_load)
+    with pytest.raises(PermissionError, match="remote-verified"):
+        external_audit.score_locked_j_outer(
+            0, tmp_path / "index.json", tmp_path / "inner",
+            tmp_path / "SELECTION_LOCK.json", "0" * 64,
+            tmp_path / "private" / "outer_J")
+    assert seen == ["gate"]

@@ -32,19 +32,25 @@ def _lock_files(tmp_path, monkeypatch):
     unlock_path.parent.mkdir()
     index_path = tmp_path / "2018-index.json"
     index_path.write_text("{}")
-    slots = [{"id": "candidate", "arm": "U", "comparators": ["D17"]}]
+    slots = [{"id": "candidate", "arm": "U", "source_name": "candidate",
+              "comparators": ["D17", "simple", "task_only", "gradient", "deterministic"]}]
     lock = {"schema": "pcrl-adaptive-selection-lock-v1", "status": "LOCKED",
             "study": "pcrl_adaptive_release_v1", "assessment_year": 2018,
             "outer_assessment_authorized": True,
             "protocol_sha256": "a"*64,
             "input_index_sha256": hashlib.sha256(b"{}").hexdigest(),
             "slots": slots, "alias_of": {},
+            "family_representatives": {name: {"U": name} for name in
+                                       ("simple", "task_only", "gradient", "deterministic")},
             "family_manifest": inference.family_manifest(slots),
             "anchors": {str(anchor): {
                 "inner_panel_complete_sha256": "b"*64,
                 "inner_audit_sha256": "c"*64,
+                "logical_to_canonical": {name: name for name in
+                    ("candidate", "D17", "simple", "task_only", "gradient", "deterministic")},
                 "releases": {"candidate": {"channel_array_sha256": "d"*64},
-                             "D17": {"channel_array_sha256": "e"*64}}
+                             **{name: {"channel_array_sha256": "e"*64} for name in
+                                ("D17", "simple", "task_only", "gradient", "deterministic")}}
             } for anchor in (0, 1, 2)}}
     lock_path.write_text(json.dumps(lock))
     digest = hashlib.sha256(lock_path.read_bytes()).hexdigest()
@@ -80,3 +86,23 @@ def test_verified_outer_gate_opens_only_globally_assigned_2018_rows(tmp_path, mo
     assert rows["ids"].tolist() == ["synthetic-person"]
     assert rows["labels"]["RAC1P"].tolist() == [2]
     assert rows["token_codes"].tolist() == [0]
+
+
+def test_outer_gate_refuses_unmapped_or_unscored_endpoint_before_data_read(tmp_path, monkeypatch):
+    lock, receipt, index, _ = _lock_files(tmp_path, monkeypatch)
+    monkeypatch.setattr(outer_access.data, "index", lambda *_: pytest.fail("index read before mapping check"))
+    for mutation in ("unmapped", "unscored", "missing_family"):
+        value = json.loads(lock.read_text())
+        if mutation == "unmapped":
+            del value["anchors"]["1"]["logical_to_canonical"]["candidate"]
+        elif mutation == "unscored":
+            value["anchors"]["2"]["logical_to_canonical"]["gradient"] = "absent"
+        else:
+            del value["family_representatives"]["gradient"]
+        lock.write_text(json.dumps(value))
+        digest = hashlib.sha256(lock.read_bytes()).hexdigest()
+        unlock = json.loads(receipt.read_text())
+        unlock["lock_sha256"] = digest
+        receipt.write_text(json.dumps(unlock))
+        with pytest.raises(PermissionError):
+            outer_access.load_locked_outer_role(index, 0, lock, digest)

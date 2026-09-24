@@ -322,6 +322,173 @@ def audit_external_panel(anchor: int, methods: tuple[str, ...],
     return report
 
 
+def attach_locked_outer_j(prepared: Mapping[str, Any],
+                          unlocked_rows: Mapping[str, Any]) -> dict:
+    """Align J16 to already-unlocked outer rows, preserving their H and labels."""
+    expected = roles._pooled_role(prepared, "outer_assessment", allow_outer=True)
+    for key in ("ids", "households", "weights", "ha", "hb"):
+        if not _same_bytes(expected[key], unlocked_rows[key]):
+            raise ValueError("J source differs from verified outer gate rows")
+    for target in roles.CLASS_COUNT:
+        if not _same_bytes(expected["labels"][target],
+                           unlocked_rows["labels"][target]):
+            raise ValueError("J labels differ from verified outer gate rows")
+    pieces = []
+    for name in POOLS:
+        pool = prepared["ctx"]["pools"][name]
+        mask = np.asarray([roles.role_of(h) == "outer_assessment"
+                           for h in pool["households"]], dtype=bool)
+        aux = np.asarray(pool["J"])
+        if (aux.shape != (len(pool["ids"]), 16) or
+                not np.issubdtype(aux.dtype, np.floating) or
+                not np.isfinite(aux).all()):
+            raise ValueError("frozen outer J auxiliary schema changed")
+        pieces.append(np.asarray(aux[mask], dtype=np.float64))
+    attached = dict(unlocked_rows)
+    attached["aux"] = np.concatenate(pieces)
+    if attached["aux"].shape != (len(unlocked_rows["ids"]), 16):
+        raise ValueError("J auxiliary differs from verified outer gate rows")
+    return attached
+
+
+def score_locked_j_outer(anchor: int, input_index_path: str | Path,
+                         inner_panel_dir: str | Path,
+                         selection_lock_path: str | Path,
+                         expected_lock_sha256: str,
+                         output_dir: str | Path) -> dict:
+    """Score saved J/H predictors only, after remote-verified selection unlock."""
+    from . import outer_access, outer_audit
+
+    # This gate is first: even the prepared/index object is not opened before
+    # the coordinator's committed lock and remote-verification receipt pass.
+    lock = outer_access.verify_outer_unlock(
+        selection_lock_path, expected_lock_sha256)
+    if anchor not in (0, 1, 2):
+        raise ValueError("registered anchor required")
+    output = Path(output_dir).resolve()
+    if "private" not in output.parts:
+        raise ValueError("continuous outer contributions must remain private")
+    if output.exists():
+        raise FileExistsError("outer contextual score already exists; preserve first record")
+    contextual = lock.get("external_context", {}).get("J", {}).get(str(anchor))
+    if (not isinstance(contextual, dict) or
+            not isinstance(contextual.get("inner_complete_sha256"), str) or
+            not isinstance(contextual.get("inner_audit_sha256"), str)):
+        raise PermissionError("three-anchor J context was not pinned in selection lock")
+    inner_root = Path(inner_panel_dir).resolve()
+    if "private" not in inner_root.parts:
+        raise ValueError("completed J inner panel must remain private")
+    complete_path = inner_root / "COMPLETE.json"
+    report_path = inner_root / "INNER_AUDIT.json"
+    if (_sha(complete_path) != contextual["inner_complete_sha256"] or
+            _sha(report_path) != contextual["inner_audit_sha256"]):
+        raise ValueError("J inner artifacts differ from committed selection lock")
+    complete = json.loads(complete_path.read_text())
+    inner = json.loads(report_path.read_text())
+    if (complete.get("schema") != "pcrl-adaptive-continuous-inner-complete-v1" or
+            complete.get("anchor") != anchor or
+            complete.get("artifacts") != evaluate._inventory(inner_root) or
+            inner.get("schema") != "pcrl-adaptive-continuous-inner-audit-v1" or
+            inner.get("anchor") != anchor or
+            inner.get("outer_pool_opened") is not False or
+            "J" not in complete.get("release_ids", []) or
+            "J" not in inner.get("releases", {}) or
+            set(complete.get("release_ids", [])) != set(inner.get("releases", {})) or
+            inner.get("source_code_sha256") != {
+                "external_audit.py": _sha(__file__),
+                "inherited_audit.py": _sha(inherited.__file__),
+                "roles.py": _sha(roles.__file__) }):
+        raise ValueError("frozen J inner receipt/source/selection differs")
+    index_file = Path(input_index_path).resolve()
+    if (not index_file.is_file() or _sha(index_file) != lock["input_index_sha256"] or
+            _sha(index_file) != inner.get("input_index_sha256")):
+        raise ValueError("prepared input index differs from J inner/selection lock")
+    index = data.index(index_file)
+    j_source = inner["releases"]["J"].get("source", {})
+    if (j_source.get("kind") != "archived_continuous_J16" or
+            j_source.get("prepared_source_sha256") !=
+            data.member_record(index, anchor, "prepared")["sha256"]):
+        raise ValueError("J prepared source differs from frozen inner release")
+    # Reconstruct exact saved route IDs and verify all fitted-model hashes.
+    # This function does not fit predictors or reselect on any outer scores.
+    own_locks, h_locks = outer_audit.reconstruct_selected_routes(
+        inner_root, inner, "J")
+    unlocked = outer_access.load_locked_outer_role(
+        index_file, anchor, selection_lock_path, expected_lock_sha256)
+    if data._sanitized_record(index, anchor) is None:
+        raise FileNotFoundError("verified label-stripped prepared receipt required")
+    prepared = data.load_prepared(index, anchor)
+    if "labels" in prepared["ctx"]["pools"]["attacker_validation"]:
+        raise ValueError("historical final labels unexpectedly present")
+    j_rows = attach_locked_outer_j(prepared, unlocked)
+    law = _unit_law(unlocked)
+    scores, contributions = {}, {}
+    prefix = inner["releases"]["J"]["private_contribution_prefix"]
+    for role in inherited.ROLES:
+        score = inherited.score_frozen_route(j_rows, law, own_locks[role])
+        h_score = inherited.score_frozen_route(unlocked, law, h_locks[role])
+        contributions.update(evaluate._private_contributions(
+            prefix, role, score, h_score))
+        scores[role] = {
+            "n_people": len(score["loss"]),
+            "n_households": len(set(score["households"])),
+            "candidate": score["scores"], "H": h_score["scores"],
+            "H_minus_candidate": {w: h_score["scores"][w] - score["scores"][w]
+                                  for w in ("U", "PWGTP")},
+            "selected_candidate": own_locks[role]["selected"],
+            "H_selected_candidate": h_locks[role]["selected"],
+        }
+    output.mkdir(parents=True, exist_ok=False, mode=0o700)
+    contributions_path = output / "OUTER_CONTRIBUTIONS.npz"
+    np.savez_compressed(contributions_path, **contributions)
+    report = {
+        "schema": "pcrl-adaptive-continuous-outer-J-v1",
+        "anchor": anchor, "assessment_year": 2018,
+        "development_only": True, "contextual_not_matched_token_comparator": True,
+        "no_outer_fit_or_selection": True,
+        "selection_lock_sha256": expected_lock_sha256,
+        "inner_complete_sha256": contextual["inner_complete_sha256"],
+        "inner_audit_sha256": contextual["inner_audit_sha256"],
+        "index_sha256": _sha(index_file),
+        "source_code_sha256": {"external_audit.py": _sha(__file__),
+                               "outer_audit.py": _sha(outer_audit.__file__),
+                               "inherited_audit.py": _sha(inherited.__file__)},
+        "releases": {"J": {"source": j_source, "roles": scores,
+                            "private_contribution_prefix": prefix}},
+        "contributions_relative_path": contributions_path.name,
+        "contributions_sha256": _sha(contributions_path),
+    }
+    _write_atomic(output / "OUTER_AUDIT.json", report)
+    evaluate._seal_private_permissions(output)
+    receipt = {
+        "schema": "pcrl-adaptive-continuous-outer-complete-v1",
+        "completed_utc": datetime.now(timezone.utc).isoformat(),
+        "anchor": anchor, "release_ids": ["J"],
+        "selection_lock_sha256": expected_lock_sha256,
+        "artifacts": evaluate._inventory(output),
+    }
+    _write_atomic(output / "COMPLETE.json", receipt)
+    (output / "COMPLETE.json").chmod(0o600)
+    return report
+
+
+def outer_j_main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=score_locked_j_outer.__doc__)
+    parser.add_argument("--anchor", type=int, choices=(0, 1, 2), required=True)
+    parser.add_argument("--index", type=Path, required=True)
+    parser.add_argument("--inner-panel-dir", type=Path, required=True)
+    parser.add_argument("--selection-lock", type=Path, required=True)
+    parser.add_argument("--lock-sha256", required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args(argv)
+    report = score_locked_j_outer(
+        args.anchor, args.index, args.inner_panel_dir, args.selection_lock,
+        args.lock_sha256, args.out)
+    print(json.dumps({"schema": report["schema"], "anchor": args.anchor,
+                      "complete_sha256": _sha(args.out / "COMPLETE.json")},
+                     sort_keys=True))
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--anchor", type=int, required=True)
@@ -345,4 +512,8 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "outer-j":
+        outer_j_main(sys.argv[2:])
+    else:
+        main()
