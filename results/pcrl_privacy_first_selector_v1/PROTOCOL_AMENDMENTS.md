@@ -18,3 +18,21 @@ Each entry gives the UTC time, the outcome-access status, the trigger and the ch
   - the host moves them to `private/superseded_solve_A1/`;
   - `SOLVE_REPORTS_SUPERSEDED_A1.json` is committed next to the new `SOLVE_REPORTS.json`.
 - **Direction.** The stage-1 t is unchanged by construction. The second stage can only lower task, so it removes a disadvantage of the LP arms and favours none of D, D17 or the controls.
+
+## A2 — 2026-09-24 ~23:58Z (Texas power-table planning values; before any audit result, inner_check score or outer access)
+
+- **Outcome access.** As in A1. The inner audits were running, but no audit output had been read.
+- **Purpose.** PROTOCOL §10 required "registered planning values" for the conditional Texas 2018 table but did not state them. They are fixed here, before any number they could depend on exists.
+- **Family.** The D4-vs-D17 conjunction only: task and the four recovery roles in both weightings, so M = 10 endpoints and K = 10 conjunctive components.
+- **Error rates.** α = .05 and β = .20, giving z = z_{1−α/M} + z_{1−β/K} = z_.995 + z_.98 ≈ 2.576 + 2.054 = 4.630. The transport SD inflation is κ = 1.25.
+- **Per-endpoint SD.** s_e = SE_boot(e) · √H_2018.
+  - SE_boot(e) is this study's outer bootstrap SE for D4 vs D17.
+  - H_2018 = 2,968: the union of outer-assessment households across the three anchors (`DATA_ROLE_COUNTS.json` `global_households.outer_assessment`), which is the bootstrap's resampling unit.
+- **Planning effects and formulas** (CONFIRMATION_PLAN §6):
+  - AB/SEX target: Δ* = −.0035 (the size of the prior lead). The margin is −.002, so formula (c) applies: H = ⌈κ² z² s² / (.0015)²⌉.
+  - Task and the three guards: Δ* = 0 against the +.001 non-inferiority margin, formula (d): H = ⌈κ² z² s² / (.001)²⌉.
+  - Required final-pool households = the maximum over the 10 endpoints. The admitted total = that / 0.30.
+- **Sensitivity rows** (descriptive, labelled as chosen after the outer result):
+  - Δ*_ABSEX equal to D4's outer point estimate;
+  - κ = 1.0.
+- **Scope.** No Texas file is read. The table only restates what the 2018 development SEs imply.
