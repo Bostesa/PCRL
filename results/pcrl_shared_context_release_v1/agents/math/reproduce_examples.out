@@ -1,0 +1,93 @@
+
+==============================================================================
+A. Example A (fixture_b1), exact
+==============================================================================
+P(S=0), P(S=1) = [Fraction(1, 2), Fraction(1, 2)]
+P(T|S) = [[Fraction(4, 5), Fraction(1, 5)], [Fraction(1, 5), Fraction(4, 5)]]  det = 3/5
+=> for ANY token alphabet, P(Z|S=0)=P(Z|S=1) iff (P(T=lo|S=0)-P(T=lo|S=1))(q_lo-q_hi)=0 iff q_lo=q_hi (factor 3/5 != 0); then Z is independent of X, so I(Y;Z)=0.
+richer channel P(Z=1|X) = (Fraction(0, 1), Fraction(0, 1), Fraction(1, 1), Fraction(1, 4))  P(Z=1|S=0), P(Z=1|S=1) = [Fraction(1, 5), Fraction(1, 5)]
+I(S;Z) = 0.000e+00 (exact independence: True)
+I(Y;Z) = 0.08972125227 nats
+deterministic partitions enumerated: 15; exactly private: 2
+   private partition (0, 0, 0, 0): I(Y;Z) = 0.000e+00
+   private partition (0, 1, 1, 0): I(Y;Z) = 0.000e+00
+RG Prop.1, W=X: v=(1,0,-1,0): P_{S|X}v = [0, 0]  P_{Y|X}v = [Fraction(4, 5), Fraction(-4, 5)] -> feasible
+RG Prop.1, W=T: P_{S|T} is 2x2 with det 3/5 -> Null={0} -> infeasible
+private binary-channel polytope: 8 vertices; max I(Y;Z) = 0.08972125227 at ('0', '0', '1', '1/4')
+   (the fixture channel (0,0,1,1/4) is a vertex with ONE fractional row)
+component D17-analog: P(Z=1|S=0,1) = [Fraction(1, 5), Fraction(4, 5)] -> private: False
+component d_new: P(Z=1|S=0,1) = [Fraction(1, 5), Fraction(0, 1)] -> private: False
+1/4*D17-analog + 3/4*d_new == (0,0,1,1/4): True  (neither component is private)
+committed fixture_b1 agrees (note: its 't_only_private_implies_row_equality' field is a hard-coded constant, re-derived above).
+
+==============================================================================
+B. Example B (fixture_b2), exact
+==============================================================================
+contextual Z = T if H=0 else 0: I(Y;Z|H) = 0.34657359027997 (log2/2 = 0.34657359027997); I(S;Z|H) = 0.0e+00
+context-blind q(z|T): at H=1, S=T, so P(Z|S=s,H=1)=q(.|T=s); privacy forces q(.|0)=q(.|1) -> Z independent of (H,T) -> I(Y;Z|H)=0.
+nested representation: hard contexts phi_k=1{H=k}, bank {Z=T, Z=0}, eta=1, A[0,Z=T]=1, A[1,Z=0]=1 -> deterministic.
+committed fixture_b2 agrees (its 'context_blind_private_implies_constant' field is hard-coded True; re-derived above).
+
+==============================================================================
+N. Nested parameterization: exact Fraction checks
+==============================================================================
+row sums exactly 1 and nonnegative at eta in {0,1/3,1}: True
+affine: mixture of parameters (eta=1/5, 4/5) is feasible with eta=22/35 and emits the mixture of kernels: True
+eta=0 embeds an arbitrary T-kernel exactly: True
+expected-token loss replay: person-level == sum B*cB + sum A*cA exactly: True
+D17 witness (B=D17,A=0,eta=0) emits D17 exactly: True
+D17 witness (A[k,D17]=1,B=0,eta=1), SOFT contexts, emits D17 exactly: True
+alias direction (move mass B->A on the D17 token, eta+=eps) leaves q unchanged: True
+
+==============================================================================
+R. Degrees of freedom and identifiable rank (float, synthetic)
+==============================================================================
+32x17, K=1, M=6 (D17 column + 0 extra T32-measurable column): polytope dim = 518 (=512+K(M-1)+1=518); rank of map to q on rows = 517; alias dim = 1
+32x17, K=4, M=6 (D17 column + 0 extra T32-measurable column): polytope dim = 533 (=512+K(M-1)+1=533); rank of map to q on rows = 532; alias dim = 1
+32x17, K=4, M=6 (D17 column + 1 extra T32-measurable column): polytope dim = 533 (=512+K(M-1)+1=533); rank of map to q on rows = 531; alias dim = 2
+
+==============================================================================
+C. Counterexample: single shared eta at K=1 loses the richer-policy gain
+==============================================================================
+C(D17) = 1/5  C(d_new) = 1/4  best deterministic T-kernel = 1/5
+nested, K=1, bank {D17,d_new}          : 1/5
+nested, K=2 aligned with T, same bank  : 0
+nested, K=2 contexts CROSSING T (x0,x2|x1,x3): 1/5
+nested, K=1, bank {D17,d_new,switched} : 0
+HiGHS LP over (B,A,eta), K=1: value 0.200000 (exact 1/5)
+
+==============================================================================
+V. One binding cut: LP optimum is time-sharing of two deterministic releases
+==============================================================================
+optimum: B = [-0.  0.  0.  0.]  A = [0.25 0.75]  eta = 1.0
+emitted P(Z=1|x) = [0.   0.   1.   0.25]  (fixture (0,0,1,1/4))
+frozen-decoder task loss 0.852417 vs D17 0.325083 vs constant 1.203973
+refit (Bayes) decoder on the optimum: H(Y|Z) = 0.603426 < frozen 0.852417: decoder staleness is conservative for task loss
+bank {d_new} only: B = [0.25 0.   0.   0.25]  A = [0.75]  eta = 0.75  emitted = [0.   0.   1.   0.25]
+=> identical release at eta=1 (A on D17 column) and eta=3/4 (D17 in B): eta is not identified; interior eta = global time-sharing of a deterministic T-kernel (weight 1/4) and d_new (weight 3/4)
+
+==============================================================================
+M. Nonalias metric: within-T variation and T-projection value
+==============================================================================
+D17-analog (eta=0 witness)        : mean within-T TV 0.0000, max pairwise 0.0000; T-projection ('0', '0', '1', '1') private: False, task info 0.36806
+D17 via A-column, eta=1 (alias)   : mean within-T TV 0.0000, max pairwise 0.0000; T-projection ('0', '0', '1', '1') private: False, task info 0.36806
+fixture channel (0,0,1,1/4)       : mean within-T TV 0.1200, max pairwise 0.7500; T-projection ('0', '0', '2/5', '2/5') private: False, task info 0.08972
+=> T is task-sufficient in Example A, so the T-projection has IDENTICAL task information (lemma: if Y is independent of X given (T,H), every decoder's expected loss depends on q only through its (T,H)-cell average); the within-T variation buys privacy, not task information.
+two FRESH draws of (0,0,1,1/4): P(Z1=Z2=1|S=0), P(Z1=Z2=1|S=1) = [Fraction(1, 5), Fraction(1, 20)] -> exact privacy fails; one persistent draw per record is required
+
+==============================================================================
+S. Frozen attackers overstate mixture privacy; concavity lower bound
+==============================================================================
+lambda=0.00 on the relabelled D17: frozen-attacker loss 0.5004, refit (Bayes) loss 0.5004, overstatement +0.0000 nats; component-refit concavity bound 0.5004
+lambda=0.05 on the relabelled D17: frozen-attacker loss 0.5420, refit (Bayes) loss 0.5393, overstatement +0.0027 nats; component-refit concavity bound 0.5004
+lambda=0.10 on the relabelled D17: frozen-attacker loss 0.5836, refit (Bayes) loss 0.5731, overstatement +0.0105 nats; component-refit concavity bound 0.5004
+lambda=0.20 on the relabelled D17: frozen-attacker loss 0.6668, refit (Bayes) loss 0.6269, overstatement +0.0399 nats; component-refit concavity bound 0.5004
+
+==============================================================================
+P. Rebasing after adding a stronger attacker can relax a constraint
+==============================================================================
+rho(old bank {a1}) = 0.7584; rho(new bank {a1,a2}) = 0.5004
+candidate (relabelled D17): L_a1 = 0.6380, L_a2 = 1.3322
+feasible under old bank: False | under new bank: True
+
+All assertions passed.
