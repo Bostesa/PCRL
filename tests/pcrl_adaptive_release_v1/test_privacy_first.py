@@ -61,11 +61,20 @@ def test_corrupt_reference_floor_is_detected_before_optimization():
     cut = next(item for item in cuts if item["role"] == "A/SEX")
     cut["rho"] += .01
     cut["floor"] += .01
-    witness = privacy_first.replay_privacy_first(d17, 0., pair, cuts, d17)
-    assert witness["maximum_cut_violation"] == pytest.approx(.009)
-    phase = privacy_first.phase_one_privacy_first(pair, cuts, d17, time_limit_seconds=5)
-    assert phase["minimum_common_violation"] > .004
-    with pytest.raises(ValueError, match="D17.*witness"):
+    assert float(np.sum(cut["coeff"]*d17))- (cut["rho"]-.001) == pytest.approx(-.009)
+    with pytest.raises(ValueError, match="rho.*minimum.*D17"):
+        privacy_first.solve_privacy_first(pair, cuts, d17, time_limit_seconds=5)
+
+
+def test_understated_rho_rejected_even_when_d17_tau_zero_witness_passes():
+    pair, cuts, d17 = tiny_problem(h_only_ab_sex=True)
+    for cut in cuts:
+        if cut["role"] == "AB/SEX" and cut["weighting"] == "U":
+            cut["rho"] = .4  # true minimum of both retained D17 attack losses is .5
+            cut["floor"] = .399
+    assert all(float(np.sum(cut["coeff"]*d17))-cut["rho"] >= 0
+               for cut in cuts if cut["role"] == "AB/SEX" and cut["weighting"] == "U")
+    with pytest.raises(ValueError, match="rho.*minimum.*D17"):
         privacy_first.solve_privacy_first(pair, cuts, d17, time_limit_seconds=5)
 
 

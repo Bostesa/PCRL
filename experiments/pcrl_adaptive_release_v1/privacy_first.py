@@ -34,7 +34,7 @@ def _problem(cost_pair: Mapping, cuts: Sequence[Mapping], d17: np.ndarray):
         raise ValueError("task costs and D17 must use identical states and tokens")
     if not isinstance(cuts, Sequence) or isinstance(cuts, (str, bytes)) or not cuts:
         raise ValueError("nonempty frozen attack bank required")
-    parsed, groups, identifiers = [], {}, set()
+    parsed, groups, reference_losses, identifiers = [], {}, {}, set()
     for source in cuts:
         if not isinstance(source, Mapping):
             raise ValueError("every cut must be a mapping")
@@ -58,11 +58,15 @@ def _problem(cost_pair: Mapping, cuts: Sequence[Mapping], d17: np.ndarray):
         if group in groups and abs(groups[group]-rho) > 1e-10:
             raise ValueError("frozen rho differs within role and weighting")
         groups[group] = rho
+        reference_losses.setdefault(group, []).append(float(np.sum(coeff*q_ref)))
         parsed.append({"id": cid, "role": role, "weighting": weighting,
                        "coeff": coeff, "rho": rho})
     expected = {(role, weight) for role in ROLES for weight in WEIGHTS}
     if set(groups) != expected:
         raise ValueError("every role and weighting requires at least one frozen attack cut")
+    for group, rho in groups.items():
+        if abs(rho-min(reference_losses[group])) > 1e-10:
+            raise ValueError(f"rho must equal minimum retained attack loss on D17 coefficient rows: {group}")
     return cost, parsed, q_ref
 
 
