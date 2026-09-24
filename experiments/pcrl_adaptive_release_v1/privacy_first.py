@@ -223,9 +223,22 @@ def load_frozen_inputs(branch: str, center_dir: Path, controls_dir: Path, *,
     root = controls_dir.resolve()
     complete_path = root/"COMPLETE.json"
     complete = json.loads(complete_path.read_text())
+    center_source = problem["source"]
+    control_source = complete.get("source")
+    provenance_keys = {"d17_member_sha256", "historical_q_member_sha256",
+                       "fit_controls_source_sha256", "controls_source_sha256"}
+    source_matches = (isinstance(control_source, dict)
+                      and set(control_source) == set(center_source) | provenance_keys
+                      and all(control_source[key] == value
+                              for key, value in center_source.items())
+                      and all(isinstance(control_source[key], str)
+                              and len(control_source[key]) == 64
+                              and all(ch in "0123456789abcdef"
+                                      for ch in control_source[key])
+                              for key in provenance_keys))
     if ("private" not in root.parts or complete.get("status") != "COMPLETE"
             or complete.get("artifact_sha256") != fit_controls._inventory(root)
-            or complete.get("source") != problem["source"]):
+            or not source_matches):
         raise ValueError("controls receipt or frozen center source differs")
     path = root/"channels/D17/Q.npz"
     with np.load(path, allow_pickle=False) as archive:
@@ -235,7 +248,7 @@ def load_frozen_inputs(branch: str, center_dir: Path, controls_dir: Path, *,
                                        problem["cost_pair"]["W"]),
                                       problem["cuts"]) != complete.get("fixed_bank_sha256")):
         raise ValueError("D17 or final frozen bank differs from controls receipt")
-    return problem["cost_pair"], problem["cuts"], q_ref, problem["source"]
+    return problem["cost_pair"], problem["cuts"], q_ref, center_source
 
 
 def main(argv=None):

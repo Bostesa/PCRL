@@ -1,9 +1,11 @@
 """The optional privacy-first LP uses the same frozen rows and 17-token wire."""
 
+import json
 import numpy as np
 import pytest
 
 from experiments.pcrl_adaptive_release_v1 import privacy_first
+from experiments.pcrl_adaptive_release_v1 import fit_controls
 
 
 ROLES = ("A/SEX", "A/RAC1P", "AB/SEX", "AB/RAC1P")
@@ -86,3 +88,32 @@ def test_missing_role_or_bad_calibration_rejected():
     altered[0]["floor"] += .002
     with pytest.raises(ValueError, match="floor.*rho"):
         privacy_first.solve_privacy_first(pair, altered, d17)
+
+
+def test_loader_accepts_pinned_control_source_extension_but_rejects_changed_core(tmp_path, monkeypatch):
+    pair, cuts, d17 = tiny_problem()
+    source = {"branch": "A", "anchor": 0, "delta": .001,
+              "center_sha256": "a"*64, "selected_bank_sha256": "b"*64}
+    monkeypatch.setattr(fit_controls, "load_final_problem", lambda *args, **kwargs: {
+        "cost_pair": pair, "cuts": cuts, "source": source})
+    control_dir = tmp_path/"private/controls"
+    channel_dir = control_dir/"channels/D17"
+    channel_dir.mkdir(parents=True)
+    np.savez_compressed(channel_dir/"Q.npz", Q=d17)
+    provenance = {**source, "d17_member_sha256": "c"*64,
+                  "historical_q_member_sha256": "d"*64,
+                  "fit_controls_source_sha256": "e"*64,
+                  "controls_source_sha256": "f"*64}
+    receipt = {"status": "COMPLETE", "source": provenance,
+               "artifact_sha256": fit_controls._inventory(control_dir),
+               "q_ref_sha256": fit_controls._array_sha(d17),
+               "fixed_bank_sha256": fit_controls._bank_sha(.5*(pair["U"]+pair["W"]), cuts)}
+    (control_dir/"COMPLETE.json").write_text(json.dumps(receipt))
+    loaded = privacy_first.load_frozen_inputs(
+        "A", tmp_path/"private/center", control_dir, anchor=0, delta=.001)
+    assert loaded[3] == source and np.array_equal(loaded[2], d17)
+    receipt["source"]["selected_bank_sha256"] = "0"*64
+    (control_dir/"COMPLETE.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="controls receipt|source differs"):
+        privacy_first.load_frozen_inputs(
+            "A", tmp_path/"private/center", control_dir, anchor=0, delta=.001)
