@@ -76,7 +76,32 @@ def _channel_artifact(spec: Mapping[str, Any]) -> tuple[np.ndarray, Path]:
 
 
 def token_law_for_release(spec: Mapping[str, Any], rows: dict) -> np.ndarray:
-    """Evaluate private router, then discard leaf IDs before predictor fitting."""
+    """Evaluate a pinned channel/router or task-only original-person law privately."""
+    if "task_only_model_dir" in spec:
+        from experiments.pcrl_task_directed_release_v1.data import RuntimeInputs
+        from . import task_baselines
+
+        if "Q" in spec or "router" in spec:
+            raise ValueError("task-only person law cannot be represented as a T0 channel")
+        directory = Path(spec["task_only_model_dir"]).resolve()
+        if "private" not in directory.parts:
+            raise ValueError("task-only frozen model must remain private")
+        _pin(directory / "TASK_ONLY.json", spec["task_only_receipt_sha256"])
+        model, _ = task_baselines.load_task_only(directory)
+        mode = spec.get("mode")
+        publish = float(spec.get("publish"))
+        if (mode not in ("unmodified", "constant_replacement", "randomized_response") or
+                publish not in (0.5, 0.75, 0.9, 1.0) or
+                (mode == "unmodified" and publish != 1.0) or
+                spec.get("constant_token", 0) != 0):
+            raise ValueError("task-only law requires a registered mode/rate and existing token 0")
+        local = RuntimeInputs(np.asarray(rows["x"]), np.asarray(rows["ha"]))
+        law = task_baselines.task_only_control_law(
+            model, local, mode=mode, publish=publish, constant_token=0)
+        if (law.shape != (len(local.x_a), 17) or not np.isfinite(law).all() or
+                np.any(law < 0) or np.max(np.abs(law.sum(axis=1)-1)) > 1e-10):
+            raise ValueError("invalid private original-person token law")
+        return law
     q, _ = _channel_artifact(spec)
     router = spec["router"]
     if router == "T0":
@@ -192,18 +217,34 @@ def audit_panel(anchor: int, releases: Mapping[str, Mapping[str, Any]],
         _slug(release_id)
         if release_id == "H":
             raise ValueError("H-only is a shared ancestor, not a candidate release")
-        q, source = _channel_artifact(spec)
-        descriptors[release_id] = {
-            "channel_artifact": _artifact_record(source, index_file.parent),
-            "channel_array_sha256": _array_sha(q),
-            "router_kind": "T0" if spec["router"] == "T0" else "callable",
-        }
-        if callable(spec["router"]):
-            route_source = _pin(spec["router_artifact_path"], spec["router_sha256"])
-            descriptors[release_id]["router_artifact"] = _artifact_record(route_source, index_file.parent)
-            descriptors[release_id]["router_entrypoint"] = spec["router_entrypoint"]
+        if "task_only_model_dir" in spec:
+            from . import task_baselines
+
+            receipt_path = _pin(Path(spec["task_only_model_dir"]) / "TASK_ONLY.json",
+                                spec["task_only_receipt_sha256"])
+            _, model_receipt = task_baselines.load_task_only(receipt_path.parent)
+            descriptors[release_id] = {
+                "law_kind": "task_only_original_person_17_token",
+                "task_only_receipt_artifact": _artifact_record(receipt_path, index_file.parent),
+                "task_only_model_artifact": _artifact_record(receipt_path.parent / "task_only.joblib", index_file.parent),
+                "task_only_model_sha256": model_receipt["model_sha256"],
+                "mode": spec["mode"], "publish": spec["publish"],
+                "constant_token": 0 if spec["mode"] == "constant_replacement" else None,
+                "recipient_observes_person_law": False,
+            }
         else:
-            descriptors[release_id]["router_source"] = "stored Linux x86 T0 codes in pinned prepared object"
+            q, source = _channel_artifact(spec)
+            descriptors[release_id] = {
+                "channel_artifact": _artifact_record(source, index_file.parent),
+                "channel_array_sha256": _array_sha(q),
+                "router_kind": "T0" if spec["router"] == "T0" else "callable",
+            }
+            if callable(spec["router"]):
+                route_source = _pin(spec["router_artifact_path"], spec["router_sha256"])
+                descriptors[release_id]["router_artifact"] = _artifact_record(route_source, index_file.parent)
+                descriptors[release_id]["router_entrypoint"] = spec["router_entrypoint"]
+            else:
+                descriptors[release_id]["router_source"] = "stored Linux x86 T0 codes in pinned prepared object"
         laws[release_id] = {name: token_law_for_release(spec, pools[name])
                             for name in POOL_ROLES}
     root.mkdir(parents=True, exist_ok=True)
@@ -277,6 +318,14 @@ def audit_panel(anchor: int, releases: Mapping[str, Mapping[str, Any]],
     if contributions_path.exists():
         raise FileExistsError("existing private contributions retained")
     np.savez_compressed(contributions_path, **contributions)
+    source_code_sha256 = {"evaluate.py": _sha(__file__),
+                          "audit.py": _sha(audit.__file__),
+                          "roles.py": _sha(roles.__file__),
+                          "inherited_audit.py": _sha(inherited_audit.__file__),
+                          "data.py": _sha(data.__file__)}
+    if any("task_only_model_dir" in spec for spec in releases.values()):
+        from . import task_baselines
+        source_code_sha256["task_baselines.py"] = _sha(task_baselines.__file__)
     report = {
         "schema": "pcrl-adaptive-inner-audit-v1", "anchor": anchor,
         "not_confirmation": True, "outer_pool_opened": False,
@@ -284,11 +333,7 @@ def audit_panel(anchor: int, releases: Mapping[str, Mapping[str, Any]],
         "score_role": "inner_check", "slate": slate,
         "probability_floor": audit.FLOOR,
         "index_sha256": _sha(index_file),
-        "source_code_sha256": {"evaluate.py": _sha(__file__),
-                               "audit.py": _sha(audit.__file__),
-                               "roles.py": _sha(roles.__file__),
-                               "inherited_audit.py": _sha(inherited_audit.__file__),
-                               "data.py": _sha(data.__file__)},
+        "source_code_sha256": source_code_sha256,
         "releases": report_releases,
         "contributions_relative_path": contributions_path.name,
         "contributions_sha256": _sha(contributions_path),

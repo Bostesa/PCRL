@@ -177,3 +177,106 @@ def test_channel_bytes_must_match_pinned_artifact(tmp_path):
             "channel_artifact_sha256": _sha(channel_path), "router": "T0"}
     with pytest.raises(ValueError):
         e.token_law_for_release(spec, _rows("audit_fit"))
+
+
+def _saved_task_only(tmp_path):
+    from experiments.pcrl_adaptive_release_v1 import roles, task_baselines
+
+    households = []
+    index = 0
+    while len(households) < 40:
+        name = f"synthetic-task-fit-{index}"
+        if roles.role_of(name) == "nuisance_train":
+            households.append(name)
+        index += 1
+    x = np.zeros((40, 32)); ha = np.zeros((40, 4))
+    x[:, 0] = np.linspace(-2, 2, 40)
+    ha[:, 0] = np.linspace(-2, 2, 40)
+    rows = {"x": x, "ha": ha, "weights": np.ones(40),
+            "households": np.array(households),
+            "labels": {"same_residence": (ha[:, 0] > 0).astype(int)}}
+    model, receipt = task_baselines.fit_task_only(rows, seed=41)
+    directory = tmp_path / "private" / "task_only"
+    task_baselines.save_task_only(directory, model, receipt)
+    return model, directory
+
+
+def test_task_only_person_law_uses_pinned_model_and_legal_local_inputs_only(tmp_path):
+    from experiments.pcrl_adaptive_release_v1 import task_baselines
+    from experiments.pcrl_task_directed_release_v1.data import RuntimeInputs
+
+    e = evaluate()
+    model, directory = _saved_task_only(tmp_path)
+    rows = _rows("audit_fit")
+    rows["token_codes"][:] = 0  # same historical code, different legal X_A/H_A
+    rows["x"][:, 0] = [-1.5, -.5, .5, 1.5]
+    rows["ha"][:, 0] = [-1.5, -.5, .5, 1.5]
+    spec = {"task_only_model_dir": str(directory),
+            "task_only_receipt_sha256": _sha(directory / "TASK_ONLY.json"),
+            "mode": "constant_replacement", "publish": .5}
+    actual = e.token_law_for_release(spec, rows)
+    expected = task_baselines.task_only_control_law(
+        model, RuntimeInputs(rows["x"], rows["ha"]),
+        mode="constant_replacement", publish=.5, constant_token=0)
+    assert actual.shape == (4, 17)
+    assert np.array_equal(actual, expected)
+    assert len(np.unique(actual, axis=0)) > 1
+    changed_hidden = {**rows, "hb": np.full((4, 2), 99.),
+                      "households": np.array(["changed"]*4),
+                      "labels": {"same_residence": np.ones(4),
+                                 "SEX": np.ones(4), "RAC1P": np.ones(4)}}
+    assert np.array_equal(actual, e.token_law_for_release(spec, changed_hidden))
+    rr = {**spec, "mode": "randomized_response", "publish": .5}
+    assert np.allclose(e.token_law_for_release(rr, rows),
+                       .5*np.eye(17)[model.token_codes(RuntimeInputs(rows["x"], rows["ha"]))]+.5/17)
+    tampered = {**spec, "task_only_receipt_sha256": "0"*64}
+    with pytest.raises(ValueError, match="pin|artifact|hash"):
+        e.token_law_for_release(tampered, rows)
+
+
+def test_inner_panel_audits_task_only_person_law_without_publishing_it(tmp_path, monkeypatch):
+    e = evaluate()
+    _, directory = _saved_task_only(tmp_path)
+    index_path = tmp_path / "index.json"
+    index_path.write_text('{"synthetic":true}')
+    monkeypatch.setattr(e.data, "index", lambda path: {"synthetic": True})
+    monkeypatch.setattr(e.data, "_sanitized_record", lambda index, anchor: (index_path, {}))
+    monkeypatch.setattr(e.data, "load_prepared", lambda index, anchor: {"anchor": anchor})
+    pools = {name: _rows(name) for name in ("audit_fit", "inner_selection", "inner_check")}
+    for rows in pools.values():
+        rows["x"][:, 0] = [-1.5, -.5, .5, 1.5]
+        rows["ha"][:, 0] = [-1.5, -.5, .5, 1.5]
+        rows["token_codes"][:] = 0
+    monkeypatch.setattr(e.roles, "pooled_role", lambda prepared, role: pools[role])
+    seen_laws = []
+    def fit(fit_rows, fit_p, selection_rows, selection_p, role,
+            output_dir, seed, *, release_id, slate):
+        if release_id == "task_rr":
+            seen_laws.append(fit_p.copy())
+            assert fit_p.shape == (4, 17)
+        return _fake_registry(role, release_id, slate)
+    monkeypatch.setattr(e.audit, "fit_role_slate", fit)
+    monkeypatch.setattr(e.audit, "select_frozen_routes", lambda rows, law, role,
+            routes, *, release_id: {"role": role, "release_id": release_id,
+            "route": next(iter(routes.values())), "selected": "m",
+            "scores": {"m": {"balanced": .5}}, "candidate_count": len(routes),
+            "rule": "synthetic"})
+    def score(rows, law, lock):
+        n = len(rows["ids"])
+        loss = np.full(n, .6 if lock["release_id"] == "H" else .5)
+        return {"ids": rows["ids"], "households": rows["households"],
+                "weights": rows["weights"], "loss": loss,
+                "scores": e.audit.score_weightings(loss, rows["weights"])}
+    monkeypatch.setattr(e.audit, "score_frozen_route", score)
+    spec = {"task_only_model_dir": str(directory),
+            "task_only_receipt_sha256": _sha(directory / "TASK_ONLY.json"),
+            "mode": "randomized_response", "publish": .5}
+    report = e.audit_panel(0, {"task_rr": spec}, index_path,
+                           tmp_path / "private" / "task_panel")
+    assert len(seen_laws) == 5
+    assert len(np.unique(seen_laws[0], axis=0)) > 1
+    assert report["releases"]["task_rr"]["source"]["law_kind"] == "task_only_original_person_17_token"
+    assert "task_baselines.py" in report["source_code_sha256"]
+    public_text = (tmp_path / "private" / "task_panel" / "INNER_AUDIT.json").read_text()
+    assert "token_law" not in public_text
+    assert "person_probability_rows" not in public_text
