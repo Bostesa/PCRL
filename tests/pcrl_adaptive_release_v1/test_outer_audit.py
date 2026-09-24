@@ -164,6 +164,28 @@ def test_changed_inner_report_or_lock_stops_before_outer_gate(tmp_path, monkeypa
     assert calls == []
 
 
+def test_lock_scores_preselected_subset_of_complete_inner_panel(tmp_path):
+    inner, lock_path, _ = _panel(tmp_path)
+    report_path = inner / "INNER_AUDIT.json"
+    report = json.loads(report_path.read_text())
+    report["releases"]["unselected"] = {"source": {"unused": True}}
+    report_path.write_text(json.dumps(report, sort_keys=True))
+    receipt_path = inner / "COMPLETE.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["release_ids"] = ["candidate", "unselected"]
+    receipt["artifacts"] = evaluate._inventory(inner)
+    receipt_path.write_text(json.dumps(receipt, sort_keys=True))
+    lock = json.loads(lock_path.read_text())
+    lock["anchors"]["0"]["inner_panel_complete_sha256"] = _sha(receipt_path)
+    lock["anchors"]["0"]["inner_audit_sha256"] = _sha(report_path)
+    lock_path.write_text(json.dumps(lock, sort_keys=True))
+    _, recovered, completed = outer_audit.verify_locked_inner(
+        inner, lock_path, _sha(lock_path), anchor=0,
+        release_ids={"candidate"})
+    assert sorted(recovered["releases"]) == ["candidate", "unselected"]
+    assert completed["release_ids"] == ["candidate", "unselected"]
+
+
 def test_index_or_scoring_source_drift_stops_before_outer_gate(tmp_path, monkeypatch):
     inner, lock_path, report = _panel(tmp_path)
     index = tmp_path / "index.json"

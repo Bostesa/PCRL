@@ -109,8 +109,8 @@ def verify_locked_inner(inner_panel_dir: str | Path, selection_lock_path: str | 
             report.get("schema") != "pcrl-adaptive-inner-audit-v1" or
             report.get("anchor") != anchor or
             report.get("outer_pool_opened") is not False or
-            set(report.get("releases", {})) != release_ids or
-            sorted(complete.get("release_ids", [])) != sorted(release_ids)):
+            set(report.get("releases", {})) != set(complete.get("release_ids", [])) or
+            not release_ids <= set(report.get("releases", {}))):
         raise ValueError("inner panel receipt or report differs from locked complete panel")
     for release_id in release_ids:
         if (report["releases"][release_id].get("source") !=
