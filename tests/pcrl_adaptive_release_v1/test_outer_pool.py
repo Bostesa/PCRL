@@ -1,8 +1,19 @@
 """The locked assessment must match the preregistered five-pool census."""
 import numpy as np
+import pickle
 import pytest
 
 from experiments.pcrl_adaptive_release_v1 import outer_pool, roles
+
+
+def test_object_identifiers_survive_independent_deserialization():
+    original = np.array(["household-0000000000000001",
+                         "household-0000000000000002"], dtype=object)
+    restored = pickle.loads(pickle.dumps(original))
+    assert original[0] is not restored[0]
+    assert outer_pool._same_bytes(original, restored)
+    restored[1] = "different-household"
+    assert not outer_pool._same_bytes(original, restored)
 
 
 def _pool(person, household):

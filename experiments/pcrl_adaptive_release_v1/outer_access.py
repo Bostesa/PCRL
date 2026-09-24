@@ -16,6 +16,8 @@ from . import inference, outer_pool, roles
 ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = ROOT / "results/pcrl_adaptive_release_v1/SELECTION_LOCK.json"
 UNLOCK_PATH = ROOT / "results/pcrl_adaptive_release_v1/private/OUTER_UNLOCK.json"
+CORRECTION_PATH = ROOT / "results/pcrl_adaptive_release_v1/SCORER_CORRECTION.json"
+CORRECTION_UNLOCK_PATH = ROOT / "results/pcrl_adaptive_release_v1/private/SCORER_CORRECTION_UNLOCK.json"
 CENSUS_PATH = ROOT / "results/pcrl_adaptive_release_v1/DATA_ROLE_COUNTS.json"
 ORIGINAL_RESTORE_ROOT = ROOT / "results/pcrl_adaptive_release_v1/private/original_2018_restore"
 BRANCH = "research/pcrl-adaptive-release-v1"
@@ -45,6 +47,39 @@ def scoring_code_hashes() -> dict[str, str]:
     return result
 
 
+def _scorer_hashes_authorized(lock: dict) -> bool:
+    """Allow only the remotely verified, post-lock object-ID scorer repair."""
+    frozen = lock.get("scoring_code_sha256")
+    current = scoring_code_hashes()
+    if frozen == current:
+        return True
+    if (not isinstance(frozen, dict) or set(frozen) != set(current) or
+            not CORRECTION_PATH.is_file() or not CORRECTION_UNLOCK_PATH.is_file() or
+            not LOCK_PATH.is_file()):
+        return False
+    changed = sorted(key for key in current if current[key] != frozen[key])
+    if changed != ["outer_access.py", "outer_pool.py"]:
+        return False
+    lock_sha = _sha(LOCK_PATH)
+    correction = json.loads(CORRECTION_PATH.read_text())
+    receipt = json.loads(CORRECTION_UNLOCK_PATH.read_text())
+    return (
+        correction.get("schema") == "pcrl-adaptive-postlock-scorer-correction-v1" and
+        correction.get("status") == "TECHNICAL_SCORER_REPAIR" and
+        correction.get("lock_sha256") == lock_sha and
+        correction.get("original_scoring_code_sha256") == frozen and
+        correction.get("corrected_scoring_code_sha256") == current and
+        correction.get("changed_modules") == changed and
+        correction.get("score_outputs_written_before_repair") is False and
+        correction.get("candidate_panel_unchanged") is True and
+        receipt.get("schema") == "pcrl-adaptive-scorer-correction-unlock-v1" and
+        receipt.get("lock_sha256") == lock_sha and
+        receipt.get("correction_sha256") == _sha(CORRECTION_PATH) and
+        receipt.get("remote_verified") is True and
+        receipt.get("branch") == BRANCH and
+        _hex(receipt.get("remote_commit_sha"), 40))
+
+
 def verify_lock_structure(lock: dict) -> None:
     """Verify every endpoint and mandatory family without reading assessment data."""
     if (lock.get("schema") != "pcrl-adaptive-selection-lock-v1" or
@@ -72,7 +107,7 @@ def verify_lock_structure(lock: dict) -> None:
         raise PermissionError("selection endpoint family cannot be reconstructed") from error
     if rebuilt != manifest:
         raise PermissionError("selection endpoint family differs from registered slots")
-    if (lock.get("scoring_code_sha256") != scoring_code_hashes() or
+    if (not _scorer_hashes_authorized(lock) or
             lock.get("outer_population") != {
                 "census_sha256": _sha(CENSUS_PATH),
                 "pools": list(data.POOLS),

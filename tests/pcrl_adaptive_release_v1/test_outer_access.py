@@ -128,3 +128,51 @@ def test_outer_gate_refuses_unmapped_or_unscored_endpoint_before_data_read(tmp_p
         receipt.write_text(json.dumps(unlock))
         with pytest.raises(PermissionError):
             outer_access.load_locked_outer_role(index, 0, lock, digest)
+
+
+def test_postlock_scorer_repair_requires_remote_pinned_exact_hash_change(tmp_path, monkeypatch):
+    lock_path, unlock_path, _, _ = _lock_files(tmp_path, monkeypatch)
+    current = outer_access.scoring_code_hashes()
+    frozen = dict(current)
+    frozen["outer_pool.py"] = "1" * 64
+    frozen["outer_access.py"] = "2" * 64
+    lock = json.loads(lock_path.read_text())
+    lock["scoring_code_sha256"] = frozen
+    lock_path.write_text(json.dumps(lock))
+    lock_sha = hashlib.sha256(lock_path.read_bytes()).hexdigest()
+    unlock = json.loads(unlock_path.read_text())
+    unlock["lock_sha256"] = lock_sha
+    unlock_path.write_text(json.dumps(unlock))
+
+    public = lock_path.with_name("SCORER_CORRECTION.json")
+    private = unlock_path.with_name("SCORER_CORRECTION_UNLOCK.json")
+    monkeypatch.setattr(outer_access, "CORRECTION_PATH", public, raising=False)
+    monkeypatch.setattr(outer_access, "CORRECTION_UNLOCK_PATH", private, raising=False)
+    with pytest.raises(PermissionError):
+        outer_access.verify_outer_unlock(lock_path, lock_sha)
+
+    correction = {
+        "schema": "pcrl-adaptive-postlock-scorer-correction-v1",
+        "status": "TECHNICAL_SCORER_REPAIR",
+        "lock_sha256": lock_sha,
+        "original_scoring_code_sha256": frozen,
+        "corrected_scoring_code_sha256": current,
+        "changed_modules": ["outer_access.py", "outer_pool.py"],
+        "score_outputs_written_before_repair": False,
+        "candidate_panel_unchanged": True,
+    }
+    public.write_text(json.dumps(correction))
+    private.write_text(json.dumps({
+        "schema": "pcrl-adaptive-scorer-correction-unlock-v1",
+        "lock_sha256": lock_sha,
+        "correction_sha256": hashlib.sha256(public.read_bytes()).hexdigest(),
+        "remote_verified": True,
+        "branch": outer_access.BRANCH,
+        "remote_commit_sha": "e" * 40,
+    }))
+    assert outer_access.verify_outer_unlock(lock_path, lock_sha) == lock
+    bad = json.loads(private.read_text())
+    bad["correction_sha256"] = "0" * 64
+    private.write_text(json.dumps(bad))
+    with pytest.raises(PermissionError):
+        outer_access.verify_outer_unlock(lock_path, lock_sha)

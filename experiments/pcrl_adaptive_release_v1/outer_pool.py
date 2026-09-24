@@ -23,7 +23,12 @@ ENCODED = ("p", "r", "risk")
 
 def _same_bytes(left: Any, right: Any) -> bool:
     a, b = np.asarray(left), np.asarray(right)
-    return a.shape == b.shape and a.dtype == b.dtype and a.tobytes() == b.tobytes()
+    if a.shape != b.shape or a.dtype != b.dtype:
+        return False
+    if a.dtype.hasobject:
+        # Object-array bytes are process-local pointers, not serialized IDs.
+        return all(type(x) is type(y) and x == y for x, y in zip(a.flat, b.flat))
+    return np.ascontiguousarray(a).tobytes() == np.ascontiguousarray(b).tobytes()
 
 
 def pooled_locked_outer(prepared: dict[str, Any], census: Mapping[str, Any]) -> dict:
