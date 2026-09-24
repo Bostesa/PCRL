@@ -1,9 +1,22 @@
 """Branch B orchestration primitives without accessing ACS outcomes."""
 import json
+import subprocess
 import numpy as np
 import pytest
 
 from experiments.pcrl_adaptive_release_v1 import fit_a, fit_b, refinement, roles
+
+
+def test_source_commit_accepts_verified_archive_receipt_without_git(tmp_path, monkeypatch):
+    def no_checkout(*args, **kwargs):
+        raise subprocess.CalledProcessError(128, ["git", "rev-parse", "HEAD"])
+    monkeypatch.setattr(fit_b.subprocess, "run", no_checkout)
+    receipt = tmp_path / "SOURCE_COMMIT.txt"
+    receipt.write_text("a" * 40 + "\n")
+    assert fit_b._source_commit(tmp_path) == "a" * 40
+    receipt.write_text("not-a-commit\n")
+    with pytest.raises(ValueError, match="full scientific source commit"):
+        fit_b._source_commit(tmp_path)
 
 
 class FrozenRisk:

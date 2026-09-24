@@ -27,18 +27,30 @@ MIN_CHECK_GAIN_RATIO = 0.25  # frozen before any Branch B ACS candidate fit
 AMENDMENT_01_SHA256 = "a77279820a0996159b99ea56c9a97eabf51179a0c5c722f5a9283ed2f569e0a8"
 
 
+def _source_commit(workspace: Path) -> str:
+    """Read a checkout SHA or the exact staged Git-archive source receipt."""
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace,
+                                check=True, capture_output=True, text=True).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        receipt = workspace / "SOURCE_COMMIT.txt"
+        if not receipt.is_file():
+            raise ValueError("Git checkout or staged source commit receipt required") from None
+        commit = receipt.read_text().strip()
+    if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit):
+        raise ValueError("full scientific source commit required")
+    return commit
+
+
 def _source_provenance() -> dict:
-    """Pin the registered amendment, checkout and changing B source bytes."""
+    """Pin the registered amendment, source commit and changing B bytes."""
     from experiments.pcrl_task_aligned_cuts_v1 import data
 
     workspace = Path(__file__).resolve().parents[2]
     amendment = workspace / "results/pcrl_adaptive_release_v1/AMENDMENT_01.md"
     if not amendment.is_file() or data.sha256_file(amendment) != AMENDMENT_01_SHA256:
         raise ValueError("registered pre-B amendment is absent or changed")
-    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=workspace,
-                            check=True, capture_output=True, text=True).stdout.strip()
-    if len(commit) != 40:
-        raise ValueError("full scientific source commit required")
+    commit = _source_commit(workspace)
     module = Path(__file__).resolve().parent
     return {"amendment_01_sha256": AMENDMENT_01_SHA256,
             "source_commit": commit,
