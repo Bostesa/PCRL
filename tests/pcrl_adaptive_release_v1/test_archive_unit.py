@@ -21,3 +21,13 @@ def test_inventory_checks_completed_bytes_and_refuses_symlink(tmp_path):
     (unit / "outside").symlink_to(tmp_path)
     with pytest.raises(ValueError, match="symlinks"):
         inventory(unit)
+
+
+def test_inventory_accepts_new_fitter_receipt_key(tmp_path):
+    unit = tmp_path / "unit"
+    unit.mkdir()
+    (unit / "INPUTS.json").write_text("{}")
+    expected = hashlib.sha256(b"{}").hexdigest()
+    (unit / "COMPLETE.json").write_text(
+        json.dumps({"artifact_sha256": {"INPUTS.json": expected}}))
+    assert inventory(unit)["INPUTS.json"] == expected

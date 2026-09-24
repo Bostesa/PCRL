@@ -36,7 +36,8 @@ def inventory(unit: Path) -> dict[str, str]:
     receipt = unit / "COMPLETE.json"
     if not receipt.is_file():
         raise ValueError("unit has no immutable COMPLETE receipt")
-    declared = json.loads(receipt.read_text()).get("artifacts")
+    completion = json.loads(receipt.read_text())
+    declared = completion.get("artifacts", completion.get("artifact_sha256"))
     if not isinstance(declared, dict) or not declared:
         raise ValueError("completion receipt lacks artifact hashes")
     for relative, expected in declared.items():
