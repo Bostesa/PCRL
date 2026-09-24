@@ -22,6 +22,15 @@ ALPHA = .05
 ANCHORS = (0, 1, 2)
 
 
+def expected_capability_manifest(slots: list[Mapping]) -> dict:
+    """Separate, frozen H-benefit family; never added to primary endpoints."""
+    endpoints = inference.capability_endpoints([slot["id"] for slot in slots])
+    return {"schema": 1, "endpoints": endpoints,
+            "n_endpoints": len(endpoints),
+            "multiplicity": "separate two-sided Bonferroni H-capability family",
+            "scope": "2018 development; not a primary-clause rescue"}
+
+
 def _verify_remote_lock(path: str | Path, expected_sha256: str) -> None:
     from . import outer_access
     outer_access.verify_outer_unlock(path, expected_sha256)
@@ -38,7 +47,11 @@ def validate_locked_resolution(lock: Mapping) -> dict[int, dict[str, str]]:
         lock["slots"], alias_of=lock.get("alias_of", {}))
     if lock.get("family_manifest") != expected_manifest:
         raise ValueError("locked endpoint family differs from registered slots")
-    required = {name for item in expected_manifest["endpoints"]
+    capability_manifest = expected_capability_manifest(lock["slots"])
+    if lock.get("capability_manifest") != capability_manifest:
+        raise ValueError("locked separate H-capability family differs")
+    required = {name for item in [*expected_manifest["endpoints"],
+                                  *capability_manifest["endpoints"]]
                 for name in (item["plus"], item["minus"]) if name != "H"}
     resolved = {}
     for anchor in ANCHORS:
@@ -198,10 +211,32 @@ def run_inference(selection_lock_path: str | Path,
             {row["id"] for row in result["rows"]} !=
             {endpoint["id"] for endpoint in endpoints}):
         raise ValueError("inference endpoint family differs from committed lock")
+    capability_endpoints = lock["capability_manifest"]["endpoints"]
+    capability_raw = inference.evaluate_family(
+        capability_endpoints, scores, n_boot=BOOTSTRAP_DRAWS,
+        seed=BOOTSTRAP_SEED, alpha=ALPHA)
+    if (capability_raw["family_size"] != lock["capability_manifest"]["n_endpoints"] or
+            {row["id"] for row in capability_raw["rows"]} !=
+            {endpoint["id"] for endpoint in capability_endpoints}):
+        raise ValueError("H-capability family differs from committed lock")
+    capability_rows = [{**row,
+                        "point_benefit_over_H": -row["estimate"],
+                        "benefit_over_H_interval": [-row["upper"], -row["lower"]],
+                        "point_capability_screen_passed": row["point_screen_passed"],
+                        "interval_supports_registered_threshold": row["passed_upper_bound"]}
+                       for row in capability_raw["rows"]]
+    capability = {"family_size": capability_raw["family_size"],
+                  "alpha": capability_raw["alpha"],
+                  "critical_value_two_sided": capability_raw["critical_value_two_sided"],
+                  "bootstrap": capability_raw["bootstrap"],
+                  "rows": capability_rows,
+                  "scope": "separate H-capability family on 2018 development data",
+                  "primary_clause_rescue": False}
     private_record = {"schema": "pcrl-adaptive-inference-replay-index-v1",
                       "selection_lock_sha256": expected_lock_sha256,
                       "outer_artifacts": provenance,
                       "endpoint_ids": [item["id"] for item in endpoints],
+                      "capability_endpoint_ids": [item["id"] for item in capability_endpoints],
                       "bootstrap_seed": BOOTSTRAP_SEED,
                       "bootstrap_draws": BOOTSTRAP_DRAWS,
                       "inference_run_source_sha256": evaluate._sha(__file__),
@@ -211,6 +246,8 @@ def run_inference(selection_lock_path: str | Path,
               "assessment_year": 2018, "development_only": True,
               "selection_lock_sha256": expected_lock_sha256,
               "family_manifest": lock["family_manifest"],
+              "capability_manifest": lock["capability_manifest"],
+              "capability": capability,
               "anchor_resolution": {str(a): resolution[a] for a in ANCHORS},
               "private_replay_index_sha256": evaluate._sha(private_index),
               **result}

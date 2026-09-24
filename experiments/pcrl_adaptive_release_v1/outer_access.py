@@ -57,6 +57,15 @@ def verify_lock_structure(lock: dict) -> None:
         raise PermissionError("selection endpoint family cannot be reconstructed") from error
     if rebuilt != manifest:
         raise PermissionError("selection endpoint family differs from registered slots")
+    capability = lock.get("capability_manifest")
+    expected_capability = inference.capability_endpoints(
+        [slot["id"] for slot in slots])
+    if capability != {
+            "schema": 1, "endpoints": expected_capability,
+            "n_endpoints": len(expected_capability),
+            "multiplicity": "separate two-sided Bonferroni H-capability family",
+            "scope": "2018 development; not a primary-clause rescue"}:
+        raise PermissionError("H-capability uncertainty family was not frozen")
     representatives = lock.get("family_representatives")
     aliases = lock.get("alias_of", {})
     if (not isinstance(representatives, dict) or

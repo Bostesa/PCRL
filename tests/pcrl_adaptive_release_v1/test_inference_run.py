@@ -20,7 +20,15 @@ def _synthetic_outer(tmp_path):
             "comparators": ["D17"]}
     lock = {"schema": "pcrl-adaptive-selection-lock-v1", "status": "LOCKED",
             "assessment_year": 2018, "slots": [slot], "alias_of": {},
-            "family_manifest": inference.family_manifest([slot]), "anchors": {}}
+            "family_manifest": inference.family_manifest([slot]),
+            "capability_manifest": {
+                "schema": 1,
+                "endpoints": inference.capability_endpoints([slot["id"]]),
+                "n_endpoints": 2,
+                "multiplicity": "separate two-sided Bonferroni H-capability family",
+                "scope": "2018 development; not a primary-clause rescue",
+            },
+            "anchors": {}}
     descriptors = {"A_selected": {"toy": "A"},
                    "B_selected": {"toy": "B"}, "D17": {"toy": "D17"}}
     for anchor in range(3):
@@ -90,6 +98,14 @@ def test_replay_resolves_anchor_specific_alias_and_common_household_family(tmp_p
     assert report["family_size"] == 10
     assert report["bootstrap"]["requested"] == 10000
     assert report["decisions"]["P_candidate"]["all_primary_clauses_passed"] is False
+    assert report["capability"]["family_size"] == 2
+    assert report["capability"]["bootstrap"]["requested"] == 10000
+    capability_u = next(item for item in report["capability"]["rows"]
+                        if item["weighting"] == "U")
+    assert capability_u["estimate"] == pytest.approx((-.15-.2-.2)/3)
+    assert capability_u["point_benefit_over_H"] == pytest.approx((.15+.2+.2)/3)
+    assert capability_u["benefit_over_H_interval"][0] == pytest.approx(-capability_u["upper"])
+    assert report["capability"]["primary_clause_rescue"] is False
     row = next(item for item in report["rows"]
                if item["role"] == "utility:A/same_residence" and
                item["weighting"] == "U")
@@ -110,6 +126,10 @@ def test_unmapped_endpoint_or_tampered_contributions_fails_before_output(tmp_pat
     with pytest.raises(ValueError, match="unmapped|resolve"):
         inference_run.validate_locked_resolution(lock)
     lock["anchors"]["1"]["logical_to_canonical"]["P_candidate"] = "B_selected"
+    lock["capability_manifest"]["n_endpoints"] = 3
+    with pytest.raises(ValueError, match="capability"):
+        inference_run.validate_locked_resolution(lock)
+    lock["capability_manifest"]["n_endpoints"] = 2
     lock["anchors"]["1"]["logical_to_canonical"]["unused_full_spec_name"] = "unscored"
     assert inference_run.validate_locked_resolution(lock)[1]["P_candidate"] == "B_selected"
     lock_path, lock_sha, outer_dirs = _synthetic_outer(tmp_path)

@@ -193,7 +193,16 @@ def build_lock(private_root: str | Path, index_path: str | Path,
         "family_representatives": {family: {
             route: family_selections[family][route]["selected"]
             for route in ("U", "P")} for family in FAMILIES},
-        "family_manifest": manifest, "anchors": anchor_locks,
+        "family_manifest": manifest,
+        "capability_manifest": {
+            "schema": 1,
+            "endpoints": inference.capability_endpoints(
+                [slot["id"] for slot in slots]),
+            "n_endpoints": 2 * len(slots),
+            "multiplicity": "separate two-sided Bonferroni H-capability family",
+            "scope": "2018 development; not a primary-clause rescue",
+        },
+        "anchors": anchor_locks,
     }
     if external_j:
         external = {}

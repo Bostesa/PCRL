@@ -43,6 +43,12 @@ def _lock_files(tmp_path, monkeypatch):
             "family_representatives": {name: {"U": name} for name in
                                        ("simple", "task_only", "gradient", "deterministic")},
             "family_manifest": inference.family_manifest(slots),
+            "capability_manifest": {
+                "schema": 1,
+                "endpoints": inference.capability_endpoints(["candidate"]),
+                "n_endpoints": 2,
+                "multiplicity": "separate two-sided Bonferroni H-capability family",
+                "scope": "2018 development; not a primary-clause rescue"},
             "anchors": {str(anchor): {
                 "inner_panel_complete_sha256": "b"*64,
                 "inner_audit_sha256": "c"*64,
