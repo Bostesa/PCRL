@@ -2,7 +2,7 @@
 
 Written from PROTOCOL.md, PROTOCOL_AMENDMENTS.md and agents/verifier/VERIFIER_BRIEF.md
 only. It does not import or read solve.py, host.py, outer.py, lockgate.py, or any
-SC/TAC inference/channel code. Allowed dependencies: numpy, scipy, json, hashlib.
+SC/TAC inference/channel code. Allowed dependencies: numpy, scipy, json, hashlib, subprocess (+ stdlib argparse/datetime).
 
 Part A (solves): re-derive D4, D1, TASK_SEL4, DET_SEL4 by own enumeration and R4, R1,
 NM4PF by own LP formulations (stage 1 primal via HiGHS interior point, cross-checked
@@ -10,10 +10,14 @@ with the explicitly constructed dual LP via dual simplex; amendment A1 stage 2 v
 interior point), then compare with the implementation's PARAMS/SOLVE outputs and
 SOLVE_REPORTS.json.
 
-Parts B (outer estimates) and C (custody) are placeholders to be added later.
+Part B: recompute every outer endpoint (point estimate, own household bootstrap with the
+verifier's own seed, bounds at the locked z, decisions, labels). Part C: custody chain.
 
 Usage:
     python verify_independent.py part_a --data <V> [--out <json>]
+    python -m experiments.pcrl_privacy_first_selector_v1.verify_independent part_bc \
+        --outer-root <private/outer> --lock <SELECTION_LOCK.json> --endpoint-table <json> \
+        --inference <json> --lockcheck <git checkout> --inner-root <private/inner_panels> --out <json>
 """
 from __future__ import annotations
 
@@ -542,12 +546,411 @@ def part_a(data: Path, out: Path | None = None) -> dict:
     return result
 
 
-def part_b(*_args, **_kwargs):
-    raise NotImplementedError("Part B (outer point estimates and decisions) not yet implemented")
+# ============================================================================ Part B
+FAMILIES = ("family_manifest", "secondary_manifest", "capability_manifest")
+DEFAULT_SEED = 918273645          # verifier's own seed (NOT the registered 20260926)
+DEFAULT_DRAWS = 10_000
+H_NAME = "H"
 
 
-def part_c(*_args, **_kwargs):
-    raise NotImplementedError("Part C (custody) not yet implemented")
+def role_stem(prefix: str, role: str) -> str:
+    return f"{prefix}__{role.replace(':', '_').replace('/', '_')}"
+
+
+class OuterAnchor:
+    """One anchor's outer contribution archive, addressed by logical release name."""
+
+    def __init__(self, outer_root: Path, anchor: int, l2c: dict):
+        d = Path(outer_root) / f"a{anchor}"
+        self.anchor, self.dir, self.l2c = anchor, d, l2c
+        self.audit = json.loads((d / "OUTER_AUDIT.json").read_text())
+        self.complete = json.loads((d / "COMPLETE.json").read_text())
+        try:
+            self.npz = np.load(d / "OUTER_CONTRIBUTIONS.npz", allow_pickle=False)
+            self.npz_pickle = False
+        except ValueError:  # pragma: no cover - object-dtype string arrays
+            self.npz = np.load(d / "OUTER_CONTRIBUTIONS.npz", allow_pickle=True)
+            self.npz_pickle = True
+        self._cache: dict = {}
+        confirmed = self.audit.get("outer_alias_confirmed", {}) or {}
+        self.alias_disagreements = {k: {"lock": l2c.get(k), "outer": v} for k, v in confirmed.items()
+                                    if l2c.get(k) != v}
+        self.alias_breaks = self.audit.get("outer_alias_breaks", {}) or {}
+
+    def arrays(self, logical: str, role: str) -> dict:
+        canonical = self.l2c[logical]
+        key = (canonical, role)
+        if key not in self._cache:
+            prefix = self.audit["releases"][canonical]["private_contribution_prefix"]
+            s = role_stem(prefix, role)
+            self._cache[key] = {
+                "ids": np.asarray(self.npz[f"{s}_ids"]).astype(str),
+                "households": np.asarray(self.npz[f"{s}_households"]).astype(str),
+                "weights": np.asarray(self.npz[f"{s}_weights"], float),
+                "candidate": np.asarray(self.npz[f"{s}_candidate_loss"], float),
+                "H": np.asarray(self.npz[f"{s}_H_loss"], float),
+                "canonical": canonical, "stem": s}
+        return self._cache[key]
+
+    def contrast(self, plus: str, minus: str, role: str):
+        """Per-person D = loss(plus) - loss(minus); 'H' = H-only ancestor loss."""
+        ref_name = plus if plus != H_NAME else minus
+        ref = self.arrays(ref_name, role)
+        def loss(name):
+            if name == H_NAME:
+                return ref["H"], ref
+            x = self.arrays(name, role)
+            if not np.array_equal(x["ids"], ref["ids"]):
+                raise AssertionError(f"a{self.anchor} {role}: person ids differ between {name} and {ref_name}")
+            if not np.array_equal(x["households"], ref["households"]):
+                raise AssertionError(f"a{self.anchor} {role}: households differ between {name} and {ref_name}")
+            if not np.array_equal(x["weights"], ref["weights"]):
+                raise AssertionError(f"a{self.anchor} {role}: weights differ between {name} and {ref_name}")
+            return x["candidate"], x
+        lp, _ = loss(plus)
+        lm, _ = loss(minus)
+        return lp - lm, ref["households"], ref["weights"]
+
+
+def household_counts(rng: np.random.Generator, n_households: int, batch: int) -> np.ndarray:
+    """One multinomial resample of the household union per draw (batch x n_households)."""
+    return rng.multinomial(n_households, np.full(n_households, 1.0 / n_households), size=batch).astype(float)
+
+
+def bonferroni_z(m: int, alpha: float = 0.05) -> float:
+    from scipy.stats import norm
+    return float(norm.isf(alpha / (2 * m)))
+
+
+def compute_estimates(lock: dict, outer_root: Path, seed: int = DEFAULT_SEED, draws: int = DEFAULT_DRAWS,
+                      batch: int = 250, counts_fn=household_counts) -> dict:
+    anchors = {a: OuterAnchor(outer_root, a, lock["anchors"][str(a)]["logical_to_canonical"]) for a in ANCHORS}
+    endpoints = []
+    for fam in FAMILIES:
+        for e in lock[fam]["endpoints"]:
+            endpoints.append((fam, e))
+    # per-person contrasts; household union
+    per = {}
+    hh_all = set()
+    for fam, e in endpoints:
+        for a in ANCHORS:
+            D, hh, w_p = anchors[a].contrast(e["plus"], e["minus"], e["role"])
+            w = np.ones_like(D) if e["weighting"] == "U" else w_p
+            if e["weighting"] not in ("U", "PWGTP"):
+                raise ValueError(e["weighting"])
+            per[(e["id"], a)] = (D, hh, w)
+            hh_all.update(hh.tolist())
+    union = np.array(sorted(hh_all))
+    H = len(union)
+    # H-loss identity across releases (diagnostic)
+    h_identity = 0.0
+    for a, oa in anchors.items():
+        by_role: dict = {}
+        for (canonical, role), x in list(oa._cache.items()):
+            if role in by_role and np.array_equal(by_role[role]["ids"], x["ids"]):
+                h_identity = max(h_identity, float(np.abs(by_role[role]["H"] - x["H"]).max()))
+            by_role.setdefault(role, x)
+    # point estimates and household aggregates (deduplicated columns)
+    num_cols, den_cols, num_key, den_key = [], [], {}, {}
+    ests = {}
+    col_of = {}
+    for fam, e in endpoints:
+        anc = []
+        for a in ANCHORS:
+            D, hh, w = per[(e["id"], a)]
+            anc.append(float(np.sum(w * D) / np.sum(w)))
+            idx = np.searchsorted(union, hh)
+            nv = np.bincount(idx, weights=w * D, minlength=H)
+            dv = np.bincount(idx, weights=w, minlength=H)
+            kn, kd = hashlib.sha256(nv.tobytes()).hexdigest(), hashlib.sha256(dv.tobytes()).hexdigest()
+            if kn not in num_key:
+                num_key[kn] = len(num_cols); num_cols.append(nv)
+            if kd not in den_key:
+                den_key[kd] = len(den_cols); den_cols.append(dv)
+            col_of[(e["id"], a)] = (num_key[kn], den_key[kd])
+        ests[e["id"]] = {"anchor_estimates": anc, "estimate": float(np.mean(anc))}
+    N = np.stack(num_cols, axis=1)
+    Dn = np.stack(den_cols, axis=1)
+    ids = [e["id"] for _, e in endpoints]
+    ni = np.array([[col_of[(i, a)][0] for a in ANCHORS] for i in ids])
+    di = np.array([[col_of[(i, a)][1] for a in ANCHORS] for i in ids])
+    rng = np.random.default_rng(seed)
+    boot = np.empty((draws, len(ids)))
+    got, attempted, rejected = 0, 0, 0
+    while got < draws:
+        C = counts_fn(rng, H, min(batch, draws - got))
+        attempted += C.shape[0]
+        num = C @ N
+        den = C @ Dn
+        ok = np.all(den != 0, axis=1)
+        rejected += int((~ok).sum())
+        num, den = num[ok], den[ok]
+        ratio = num[:, ni] / den[:, di]           # draws x endpoints x anchors
+        b = ratio.mean(axis=2)
+        k = min(b.shape[0], draws - got)
+        boot[got:got + k] = b[:k]
+        got += k
+        if attempted > 100 * draws:
+            raise RuntimeError("too many zero-denominator draws")
+    se = boot.std(axis=0, ddof=1)
+    for j, i in enumerate(ids):
+        ests[i]["bootstrap_se"] = float(se[j])
+    meta = {"seed": seed, "draws": draws, "attempted": attempted, "rejected_zero_denominator": rejected,
+            "household_union_size": H, "numerator_columns": N.shape[1], "denominator_columns": Dn.shape[1],
+            "max_H_loss_diff_across_releases": h_identity,
+            "alias_disagreements": {str(a): oa.alias_disagreements for a, oa in anchors.items()},
+            "alias_breaks": {str(a): oa.alias_breaks for a, oa in anchors.items()},
+            "npz_needed_pickle": {str(a): oa.npz_pickle for a, oa in anchors.items()}}
+    return {"estimates": ests, "meta": meta, "completed_utc": {str(a): oa.complete.get("completed_utc")
+                                                              for a, oa in anchors.items()}}
+
+
+def decision_labels(rows_by_id: dict, lock: dict, passed_key: str, est_key: str) -> dict:
+    prim = [e for e in lock["family_manifest"]["endpoints"]]
+    out, counts = {}, {}
+    for slot, label in (("D", "ARM_D_MEETS_CRITERIA"), ("R", "ARM_R_MEETS_CRITERIA"),
+                        ("R_vs_D", "RANDOMIZATION_ADDS")):
+        es = [e for e in prim if e["candidate"] == slot]
+        passed = [bool(rows_by_id[e["id"]][passed_key]) for e in es]
+        out[label] = bool(len(es) == 10 and all(passed))
+        counts[slot] = {"passed": int(sum(passed)), "total": len(es)}
+    lead = []
+    for e in prim:
+        if e["candidate"] != "D":
+            continue
+        est = rows_by_id[e["id"]][est_key]
+        if e["role"] == "attack:AB/SEX":
+            lead.append(est <= -0.002)
+        elif e["role"].startswith("utility:"):
+            lead.append(est <= 0.001)
+        else:
+            lead.append(est <= 0.001)
+    out["LEAD_REPRODUCED"] = bool(len(lead) == 10 and all(lead))
+    return {"labels": out, "counts": counts}
+
+
+def part_b(lock_path: Path, outer_root: Path, endpoint_table: Path, inference: Path,
+           seed: int = DEFAULT_SEED, draws: int = DEFAULT_DRAWS, counts_fn=household_counts) -> dict:
+    lock = json.loads(Path(lock_path).read_text())
+    table = json.loads(Path(endpoint_table).read_text())
+    inf = json.loads(Path(inference).read_text())
+    theirs = {r["id"]: r for r in table["rows"]}
+    comp = compute_estimates(lock, outer_root, seed=seed, draws=draws, counts_fn=counts_fn)
+    mine = comp["estimates"]
+    rows, flips = [], []
+    mx = {"estimate": 0.0, "anchor_estimate": 0.0, "their_bounds_vs_their_se": 0.0, "se_rel": 0.0, "se_abs": 0.0}
+    fam_checks = {}
+    lock_ids = set()
+    for fam in FAMILIES:
+        F = lock[fam]
+        z = float(F["critical_value_two_sided"])
+        m = len(F["endpoints"])
+        z_re = bonferroni_z(m)
+        fam_checks[fam] = {"n_endpoints": m, "locked_z": z, "recomputed_z": z_re,
+                           "z_match": abs(z - z_re) <= 1e-12,
+                           "n_endpoints_field_match": F.get("n_endpoints", m) == m}
+        for e in F["endpoints"]:
+            lock_ids.add(e["id"])
+            me, th = mine[e["id"]], theirs.get(e["id"])
+            lo, up = me["estimate"] - z * me["bootstrap_se"], me["estimate"] + z * me["bootstrap_se"]
+            passed = bool(up <= e["threshold"])
+            row = {"id": e["id"], "family": fam, "threshold": e["threshold"], "z": z,
+                   "estimate": me["estimate"], "anchor_estimates": me["anchor_estimates"],
+                   "bootstrap_se": me["bootstrap_se"], "lower": lo, "upper": up, "passed_upper_bound": passed,
+                   "margin_upper_minus_threshold": up - e["threshold"]}
+            if th is None:
+                row["missing_in_endpoint_table"] = True
+                flips.append({"id": e["id"], "reason": "missing in ENDPOINT_TABLE"})
+                rows.append(row)
+                continue
+            meta_match = all(th.get(k) == e.get(k) for k in ("plus", "minus", "role", "weighting", "threshold",
+                                                             "candidate", "clause"))
+            d_est = abs(th["estimate"] - me["estimate"])
+            d_anc = max(abs(x - y) for x, y in zip(th["anchor_estimates"], me["anchor_estimates"]))
+            their_b = max(abs(th["lower"] - (th["estimate"] - z * th["bootstrap_se"])),
+                          abs(th["upper"] - (th["estimate"] + z * th["bootstrap_se"])))
+            their_pass_consistent = bool(th["passed_upper_bound"]) == bool(th["upper"] <= e["threshold"])
+            se_abs = abs(th["bootstrap_se"] - me["bootstrap_se"])
+            se_rel = se_abs / th["bootstrap_se"] if th["bootstrap_se"] > 0 else (0.0 if se_abs <= 1e-15 else float("inf"))
+            mx["estimate"] = max(mx["estimate"], d_est)
+            mx["anchor_estimate"] = max(mx["anchor_estimate"], d_anc)
+            mx["their_bounds_vs_their_se"] = max(mx["their_bounds_vs_their_se"], their_b)
+            mx["se_rel"] = max(mx["se_rel"], se_rel)
+            mx["se_abs"] = max(mx["se_abs"], se_abs)
+            row.update({"theirs": {k: th.get(k) for k in ("estimate", "anchor_estimates", "bootstrap_se", "lower",
+                                                         "upper", "passed_upper_bound")},
+                        "estimate_abs_diff": d_est, "anchor_estimate_max_abs_diff": d_anc,
+                        "se_abs_diff": se_abs, "se_rel_diff": se_rel,
+                        "their_bounds_recomputed_max_abs_diff": their_b,
+                        "their_pass_consistent_with_their_upper": their_pass_consistent,
+                        "endpoint_metadata_match_lock": meta_match,
+                        "decision_flip": passed != bool(th["passed_upper_bound"])})
+            if row["decision_flip"]:
+                flips.append({"id": e["id"], "mine": passed, "theirs": bool(th["passed_upper_bound"]),
+                              "my_margin": up - e["threshold"], "their_margin": th["upper"] - e["threshold"]})
+            rows.append(row)
+    by_id = {r["id"]: r for r in rows}
+    my_labels = decision_labels(by_id, lock, "passed_upper_bound", "estimate")
+    their_labels = inf["decision_labels"]
+    label_agree = {k: (my_labels["labels"][k] == their_labels.get(k)) for k in my_labels["labels"]}
+    their_lab_from_table = decision_labels(theirs, lock, "passed_upper_bound", "estimate")
+    counts_agree = all(their_labels.get("clauses_passed", {}).get(s) == v["passed"]
+                       for s, v in my_labels["counts"].items())
+    near = sorted(rows, key=lambda r: abs(r["margin_upper_minus_threshold"]))
+    near = [{"id": r["id"], "my_margin": r["margin_upper_minus_threshold"],
+             "their_margin": (r["theirs"]["upper"] - r["threshold"]) if "theirs" in r else None}
+            for r in near if r["bootstrap_se"] > 0][:8]
+    ok_rows = [r for r in rows if "theirs" in r]
+    checks = {
+        "endpoint_ids_match_lock": set(theirs) == lock_ids,
+        "endpoint_metadata_match_lock": all(r["endpoint_metadata_match_lock"] for r in ok_rows),
+        "point_estimates_within_1e-12": mx["estimate"] <= 1e-12 and mx["anchor_estimate"] <= 1e-12,
+        "their_bounds_consistent_with_their_se_at_locked_z": mx["their_bounds_vs_their_se"] <= 1e-12,
+        "their_pass_consistent_with_their_upper": all(r["their_pass_consistent_with_their_upper"] for r in ok_rows),
+        "se_within_5pct_mc_tolerance": mx["se_rel"] <= 0.05,
+        "locked_z_recomputed": all(v["z_match"] for v in fam_checks.values()),
+        "no_decision_flips": len(flips) == 0,
+        "labels_agree": all(label_agree.values()),
+        "clause_counts_agree": counts_agree,
+        "their_labels_consistent_with_their_table": their_lab_from_table["labels"] == {
+            k: their_labels.get(k) for k in their_lab_from_table["labels"]},
+        "no_alias_disagreements": all(not v for v in comp["meta"]["alias_disagreements"].values()),
+        "selection_lock_sha_in_table_and_inference": {
+            "endpoint_table": table.get("selection_lock_sha256"), "inference": inf.get("selection_lock_sha256"),
+            "lock_file": sha256_file(Path(lock_path))},
+    }
+    s = checks["selection_lock_sha_in_table_and_inference"]
+    checks["selection_lock_sha_consistent"] = s["endpoint_table"] == s["inference"] == s["lock_file"]
+    passed_all = all(v for k, v in checks.items() if isinstance(v, bool))
+    return {"pass": bool(passed_all), "checks": checks, "families": fam_checks, "max_differences": mx,
+            "decision_flips": flips, "nearest_to_threshold": near,
+            "labels": {"mine": my_labels, "theirs": {k: their_labels.get(k) for k in my_labels["labels"]},
+                       "theirs_clauses_passed": their_labels.get("clauses_passed"), "agree": label_agree},
+            "bootstrap": comp["meta"], "outer_completed_utc": comp["completed_utc"], "endpoints": rows}
+
+
+# ============================================================================ Part C
+LOCK_COMMIT = "7fcfaf1a8a70b6fa93b47d8f826ea504c1fe08ed"
+LOCK_SHA256 = "d89cfe1bfb3c625ca279bfe256b884f482371ad510aa0892d53026538fc0bc7a"
+BRANCH = "research/pcrl-privacy-first-selector-v1"
+LOCK_REL = f"results/{STUDY}/SELECTION_LOCK.json"
+
+
+def _git(repo: Path, *args, binary=False):
+    import subprocess
+    r = subprocess.run(["git", "-C", str(repo), *args], capture_output=True)
+    return r.returncode, (r.stdout if binary else r.stdout.decode().strip()), r.stderr.decode().strip()
+
+
+def _utc(s: str):
+    from datetime import datetime, timezone
+    d = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    if d.tzinfo is None:
+        raise ValueError(f"naive timestamp {s!r}")
+    return d.astimezone(timezone.utc)
+
+
+def part_c(lock_path: Path, lockcheck: Path, outer_root: Path, inner_root: Path, unlock: Path | None = None,
+           restore: Path | None = None, lock_commit: str = LOCK_COMMIT, lock_sha256: str = LOCK_SHA256,
+           branch: str = BRANCH, fetch: bool = False, units_root: Path | None = None) -> dict:
+    lock = json.loads(Path(lock_path).read_text())
+    private = Path(outer_root).parent
+    unlock = Path(unlock) if unlock else private / "OUTER_UNLOCK.json"
+    restore = Path(restore) if restore else private / "ORIGINAL_RESTORE.json"
+    c, notes = {}, []
+    # git: lock commit bytes
+    rc, blob, err = _git(lockcheck, "show", f"{lock_commit}:{LOCK_REL}", binary=True)
+    c["lock_commit_blob_sha256"] = hashlib.sha256(blob).hexdigest() if rc == 0 else f"ERROR: {err}"
+    c["lock_commit_bytes_match_pin"] = rc == 0 and c["lock_commit_blob_sha256"] == lock_sha256
+    c["local_lock_file_matches_pin"] = sha256_file(Path(lock_path)) == lock_sha256
+    rc, ctime, err = _git(lockcheck, "show", "-s", "--format=%cI", lock_commit)
+    c["lock_commit_time"] = ctime if rc == 0 else f"ERROR: {err}"
+    # on origin
+    rc, out, err = _git(lockcheck, "ls-remote", "origin", f"refs/heads/{branch}")
+    remote_sha = out.split()[0] if rc == 0 and out else None
+    c["remote_branch_sha"] = remote_sha or f"ERROR: {err or 'branch not found'}"
+    if remote_sha:
+        if _git(lockcheck, "cat-file", "-e", f"{remote_sha}^{{commit}}")[0] != 0 and fetch:
+            _git(lockcheck, "fetch", "origin", branch)
+        rc, _, err = _git(lockcheck, "merge-base", "--is-ancestor", lock_commit, remote_sha)
+        c["lock_commit_on_origin"] = rc == 0
+        if rc not in (0, 1):
+            notes.append(f"merge-base failed ({err}); remote tip may be missing locally (use --fetch)")
+    else:
+        c["lock_commit_on_origin"] = False
+    # receipts
+    u = json.loads(unlock.read_text())
+    r = json.loads(restore.read_text())
+    c["unlock"] = {k: u.get(k) for k in ("verified_utc", "remote_commit_sha", "lock_sha256")}
+    c["unlock_lock_sha_matches_pin"] = u.get("lock_sha256") == lock_sha256
+    if u.get("remote_commit_sha"):
+        rc, _, err = _git(lockcheck, "merge-base", "--is-ancestor", lock_commit, u["remote_commit_sha"])
+        c["lock_commit_ancestor_of_unlock_remote_sha"] = rc == 0
+    else:
+        c["lock_commit_ancestor_of_unlock_remote_sha"] = False
+    c["restore_utc"] = r.get("utc")
+    completed = {}
+    for a in ANCHORS:
+        completed[str(a)] = json.loads((Path(outer_root) / f"a{a}" / "COMPLETE.json").read_text()).get("completed_utc")
+    c["outer_completed_utc"] = completed
+    try:
+        t_lock, t_unlock, t_restore = _utc(ctime), _utc(u["verified_utc"]), _utc(r["utc"])
+        t_outer = [_utc(v) for v in completed.values()]
+        c["order_lock_before_unlock"] = t_lock < t_unlock
+        c["order_unlock_before_restore"] = t_unlock < t_restore
+        c["order_restore_before_every_outer_complete"] = all(t_restore < t for t in t_outer)
+    except Exception as ex:  # malformed or missing timestamps
+        notes.append(f"timestamp parse failed: {ex!r}")
+        c["order_lock_before_unlock"] = c["order_unlock_before_restore"] = False
+        c["order_restore_before_every_outer_complete"] = False
+    # inner pins
+    inner = {}
+    for a in ANCHORS:
+        A = lock["anchors"][str(a)]
+        d = Path(inner_root) / f"a{a}"
+        got_c = sha256_file(d / "COMPLETE.json") if (d / "COMPLETE.json").exists() else None
+        got_i = sha256_file(d / "INNER_AUDIT.json") if (d / "INNER_AUDIT.json").exists() else None
+        inner[str(a)] = {"COMPLETE.json": got_c == A["inner_panel_complete_sha256"],
+                         "INNER_AUDIT.json": got_i == A["inner_audit_sha256"]}
+    c["inner_pins"] = inner
+    c["inner_pins_match"] = all(all(v.values()) for v in inner.values())
+    # unit pins (optional, if unit dirs exist)
+    units_root = Path(units_root) if units_root else Path(inner_root).parent / "units"
+    unit_res, unit_missing = {}, []
+    for a in ANCHORS:
+        for name, rel in lock["anchors"][str(a)].get("releases", {}).items():
+            pins = rel.get("pins") or {}
+            rid = rel.get("release_id")
+            if not pins or not rid:
+                continue
+            for fname, want in pins.items():
+                p = units_root / rid / fname
+                if p.exists():
+                    unit_res[f"{rid}/{fname}"] = sha256_file(p) == want
+                else:
+                    unit_missing.append(f"{rid}/{fname}")
+    c["unit_pins_checked"] = len(unit_res)
+    c["unit_pins_missing"] = unit_missing
+    c["unit_pins_match"] = all(unit_res.values()) if unit_res else None
+    c["unit_pin_mismatches"] = [k for k, v in unit_res.items() if not v]
+    bool_keys = ["lock_commit_bytes_match_pin", "local_lock_file_matches_pin", "lock_commit_on_origin",
+                 "unlock_lock_sha_matches_pin", "lock_commit_ancestor_of_unlock_remote_sha",
+                 "order_lock_before_unlock", "order_unlock_before_restore",
+                 "order_restore_before_every_outer_complete", "inner_pins_match"]
+    ok = all(c[k] for k in bool_keys) and c["unit_pins_match"] is not False
+    return {"pass": bool(ok), "checks": c, "notes": notes}
+
+
+def part_bc(args) -> dict:
+    b = part_b(args.lock, args.outer_root, args.endpoint_table, args.inference, seed=args.seed, draws=args.draws)
+    c = part_c(args.lock, args.lockcheck, args.outer_root, args.inner_root, unlock=args.unlock,
+               restore=args.restore, lock_commit=args.lock_commit, lock_sha256=args.lock_sha256,
+               branch=args.branch, fetch=args.fetch, units_root=args.units_root)
+    res = {"schema": "pcrl-pfs-independent-verification-part-bc-v1", "study": STUDY,
+           "pass": bool(b["pass"] and c["pass"]), "part_b": b, "part_c": c}
+    if args.out:
+        Path(args.out).write_text(json.dumps(res, indent=2, sort_keys=True, default=float) + "\n")
+    return res
 
 
 def main(argv=None) -> int:
@@ -556,11 +959,39 @@ def main(argv=None) -> int:
     pa = sub.add_parser("part_a", help="re-solve the fixed-bank arms")
     pa.add_argument("--data", required=True, type=Path)
     pa.add_argument("--out", type=Path, default=RESULTS / "INDEPENDENT_VERIFICATION_PART_A.json")
+    pb = sub.add_parser("part_bc", help="outer estimates/decisions (B) and custody (C)")
+    pb.add_argument("--outer-root", required=True, type=Path, help="dir containing a0/ a1/ a2/")
+    pb.add_argument("--lock", required=True, type=Path)
+    pb.add_argument("--endpoint-table", required=True, type=Path)
+    pb.add_argument("--inference", required=True, type=Path)
+    pb.add_argument("--lockcheck", required=True, type=Path, help="git checkout with origin remote")
+    pb.add_argument("--inner-root", required=True, type=Path, help="inner_panels dir")
+    pb.add_argument("--units-root", type=Path, default=None, help="default: <inner-root>/../units")
+    pb.add_argument("--unlock", type=Path, default=None, help="default: <outer-root>/../OUTER_UNLOCK.json")
+    pb.add_argument("--restore", type=Path, default=None, help="default: <outer-root>/../ORIGINAL_RESTORE.json")
+    pb.add_argument("--lock-commit", default=LOCK_COMMIT)
+    pb.add_argument("--lock-sha256", default=LOCK_SHA256)
+    pb.add_argument("--branch", default=BRANCH)
+    pb.add_argument("--fetch", action="store_true", help="git fetch origin <branch> if remote tip is missing")
+    pb.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    pb.add_argument("--draws", type=int, default=DEFAULT_DRAWS)
+    pb.add_argument("--out", type=Path, default=None)
     args = ap.parse_args(argv)
     if args.part == "part_a":
         res = part_a(args.data, args.out)
         print(json.dumps({"pass": res["pass"], "summary": res["summary"], "max_differences": res["max_differences"]},
                          indent=2))
+        return 0 if res["pass"] else 1
+    if args.part == "part_bc":
+        res = part_bc(args)
+        b, c = res["part_b"], res["part_c"]
+        print(json.dumps({"pass": res["pass"], "part_b_pass": b["pass"],
+                          "part_b_checks": {k: v for k, v in b["checks"].items() if isinstance(v, bool)},
+                          "max_differences": b["max_differences"], "decision_flips": b["decision_flips"],
+                          "labels": b["labels"]["mine"]["labels"], "labels_agree": b["labels"]["agree"],
+                          "part_c_pass": c["pass"],
+                          "part_c_checks": {k: v for k, v in c["checks"].items() if isinstance(v, bool)},
+                          "part_c_notes": c["notes"]}, indent=2, default=float))
         return 0 if res["pass"] else 1
     return 2
 
