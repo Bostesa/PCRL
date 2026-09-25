@@ -25,3 +25,7 @@
 - 00:03:09Z: outer originals restored behind the gate and SHA-verified. Outer scoring started, once, from the lockcheck checkout.
 - ~00:04–00:06Z: outer scoring completed for anchors 0–2, followed by the outer decision-variation report.
 - ~00:07Z: the locked assessment ran once, with bootstrap seed 20260926 and 10,000 draws. **Status: NOT_ESTABLISHED.** No registered label was earned: D passed 4/10 clauses, R 3/10 and R_vs_D 4/10, and LEAD_REPRODUCED is false.
+- 00:07Z: private archives uploaded and read back (see COST_AND_CLOSEOUT.md).
+- ~00:12Z: independent verification CONFIRMED with separate code: Part A 21/21; Part B reproduced all 134 estimates, with one seed-sensitive guard clause and no label change; Part C custody passed.
+- 00:14:35Z: instance terminated and study SG deleted; 0 study resources remain. Cost ≈ $0.72.
+- **Study CLOSED. Status NOT_ESTABLISHED.** See RESEARCH_DECISION.md and PAPER_ADDENDUM.md.

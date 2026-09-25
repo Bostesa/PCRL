@@ -106,3 +106,15 @@ Reading the table:
 - **Fixed basis.** Every arm used the NM4_U closing bank, which was never refit on the arm's own law. The audit's attackers were refit on each release, and they are the only privacy evidence.
 - **Survey design.** The intervals condition on the fitted, selected objects. They do not cover the adaptive research history or the ACS survey design.
 - **Development data.** The 2018 outer role was opened for the second time, having been opened by the predecessor study. This is development evidence on repeatedly used data.
+
+## Independent verification
+
+**Status: CONFIRMED.** The verifier worked from `agents/verifier/VERIFIER_BRIEF.md` with fresh context, using separate code in `verify_independent.py` that imports nothing from the study or SC/TAC inference. Details are in `INDEPENDENT_VERIFICATION.json`.
+
+- **A. Solves.** 21/21 checks pass.
+  - D4, D1, TASK_SEL4 and DET_SEL4 were re-derived by the verifier's own enumeration and match bit-exact.
+  - R4, R1 and NM4PF were re-solved by interior point and by an explicit dual. t matches to 1.1e-15 and task to 7.8e-16.
+- **B. Outer.** All 134 point estimates were reproduced, with a maximum difference of 8.7e-19. Bootstrap SEs, computed with an independent seed, agree within 2.6%. All four labels agree.
+  - One clause flips with the seed: primary R_vs_D A/SEX PWGTP guard. Its upper bound is within 1.5e-5 of +.001; it fails at the locked seed and passes at the verifier's.
+  - R_vs_D therefore passes 4/10 clauses at the locked seed and 5/10 at the verifier's. RANDOMIZATION_ADDS is false either way.
+- **C. Custody.** The lock commit is on origin with the pinned bytes. The order is lock (00:02:15) < unlock (00:02:45) < original restore (00:03:09) < every outer completion. The inner panel and unit pins match.
