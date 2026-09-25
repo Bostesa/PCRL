@@ -100,7 +100,7 @@ Reading the table:
 
 ## Deviations and caveats
 
-- **Amendment A1** (before any audit): the LP arms received the same lexicographic task tie rule as D. It changed only anchor 1, where R4 and NM4PF had returned costly t = 0 vertices. The first solves are kept in `SOLVE_REPORTS_SUPERSEDED_A1.json`.
+- **Amendment A1** (before any audit): the LP arms received the same lexicographic task tie rule as D. t was unchanged everywhere. The rule lowered fixed-bank task for R4 on anchor 1 (a costly t = 0 vertex became D17 itself) and on anchor 2, and for NM4PF on every anchor. R1 and R4 on anchor 0 were unchanged. The first solves are kept in `SOLVE_REPORTS_SUPERSEDED_A1.json`.
 - **Amendment A2** (before any audit result): Texas planning values.
 - **The audit's AB/SEX measurement saturates at the H-only route.** This is a property of the inherited slate: the route that is best on inner_selection is scored, and the ignore-channel ancestor is always a candidate. The resolution of this study's target endpoint is bounded by it.
 - **Fixed basis.** Every arm used the NM4_U closing bank, which was never refit on the arm's own law. The audit's attackers were refit on each release, and they are the only privacy evidence.
