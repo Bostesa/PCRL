@@ -16,7 +16,7 @@ Last updated 2026-10-01. Owner/integration session, branch `research/combined-em
 | Methodology audit: PCRL ACS lineage | done |
 | Independent verification fixtures F1–F10 | done; rerun byte-identical on 2026-10-01 (88 s) |
 | Integration into the 14 required files plus CLAIM_LEDGER.csv | done |
-| Commit and push of the preparation branch | see HANDOFF.json `git` |
+| Commit and push of the preparation branch | done; pushed, remote SHA verified (HANDOFF.json `git`) |
 
 ## Agent roles
 
