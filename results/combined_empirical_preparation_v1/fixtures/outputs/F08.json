@@ -1,0 +1,389 @@
+{
+ "id": "F8",
+ "honest_reaudit": {
+  "stored_claim": "3/21 survive",
+  "rows_total": 21,
+  "rows_old_verdict_breach": 3,
+  "rows_old_verdict_stopped": 18,
+  "survivors_stored_flag": 3,
+  "survivors_recomputed_from_aucs": 3,
+  "survivors_all_old_stopped": true,
+  "collapse_among_stopped": 15,
+  "distinct_stopped_measurements": 15,
+  "distinct_survivor_measurements": 2,
+  "survivors": [
+   "E2 noise|adult/sex|noise \u03c3=4.0|xgb=0.5340|mlp=0.5465",
+   "E2 noise|adult/sex|noise \u03c3=8.0|xgb=0.5137|mlp=0.5182",
+   "E4S1 noise|adult/sex|noise sigma=8.0|xgb=0.5137|mlp=0.5182"
+  ],
+  "near_bar_rows": [
+   "E2 noise|adult/sex|noise \u03c3=2.0|max=0.5620",
+   "E2 noise|adult/sex|noise \u03c3=4.0|max=0.5465",
+   "E4S1 noise|adult/sex|noise sigma=2.0|max=0.5620",
+   "E4S1 noise|hmda/race|noise sigma=8.0|max=0.5511"
+  ]
+ },
+ "master_gauntlet": {
+  "combinations": 36,
+  "methods": [
+   "DANN-scrub",
+   "LAFTR",
+   "LAFTR (official)",
+   "LEACE",
+   "Obliviator",
+   "VFAE"
+  ],
+  "cells": [
+   "adult/sex/income",
+   "hmda/race/loan_amount_band",
+   "hmda/race/loan_decision"
+  ],
+  "certified": 1,
+  "certified_list": [
+   [
+    "hmda/race/loan_decision",
+    "VFAE",
+    "tier1"
+   ]
+  ],
+  "txt_published_rows_marked_CERTIFIES": 1
+ },
+ "continuous_cost": {
+  "merged_rows": 20,
+  "non_degenerate": 20,
+  "shards_tracked": [
+   "adult"
+  ],
+  "untracked_shards": [
+   "hmda",
+   "diabetes"
+  ],
+  "adult_shard_rows_identical_in_merged": true,
+  "adult_shard_rows": 9,
+  "cost_rep_n20": {
+   "pearson": 0.7545333545475691,
+   "spearman": 0.7674945739269676,
+   "stored_pearson": 0.754533354547569,
+   "stored_spearman": 0.7674945739269676
+  },
+  "cost_durable_n20": {
+   "pearson": 0.7948746207852938,
+   "spearman": 0.8482124269192886,
+   "stored_pearson": 0.7948746207852936,
+   "stored_spearman": 0.8482124269192884
+  },
+  "cost_rep_n27": {
+   "n": 27,
+   "pearson": 0.748575288800704,
+   "spearman": 0.6983206432408675,
+   "stored_pearson": 0.7485752888007036,
+   "stored_spearman": 0.6983206432408675
+  },
+  "cost_durable_n27": {
+   "n": 27,
+   "pearson": 0.7991437704746871,
+   "spearman": 0.8281658135319308,
+   "stored_pearson": 0.7991437704746869,
+   "stored_spearman": 0.8281658135319308
+  }
+ },
+ "pcrl_encoder": {
+  "per_seed_results_selected_checkpoint": {
+   "adult_ROUND5": {
+    "strict_pass": 21,
+    "cells": 24,
+    "best_epochs": [
+     158,
+     188,
+     147
+    ],
+    "last_epochs": [
+     199,
+     199,
+     199
+    ]
+   },
+   "hmda_ROUND5": {
+    "strict_pass": 16,
+    "cells": 18,
+    "best_epochs": [
+     30,
+     78,
+     191
+    ],
+    "last_epochs": [
+     199,
+     199,
+     199
+    ]
+   },
+   "diabetes_ROUND5": {
+    "strict_pass": 18,
+    "cells": 18,
+    "best_epochs": [
+     86,
+     47,
+     71
+    ],
+    "last_epochs": [
+     199,
+     199,
+     199
+    ]
+   },
+   "diabetes_ROUND6": {
+    "strict_pass": 18,
+    "cells": 18,
+    "best_epochs": [
+     49,
+     66,
+     78
+    ],
+    "last_epochs": [
+     199,
+     199,
+     199
+    ]
+   },
+   "diabetes_ROUND7": {
+    "strict_pass": 17,
+    "cells": 18,
+    "best_epochs": [
+     197,
+     80,
+     176
+    ],
+    "last_epochs": [
+     199,
+     199,
+     199
+    ]
+   }
+  },
+  "final_vs_best_ROUND5": {
+   "adult": {
+    "best": 21,
+    "final": 23
+   },
+   "hmda": {
+    "best": 16,
+    "final": 16
+   },
+   "diabetes": {
+    "best": 18,
+    "final": 16
+   }
+  },
+  "dominant_axis_audits_final_epoch": {
+   "cells": 60,
+   "epochs": [
+    199
+   ],
+   "strict_pass_stored_onehot": 56,
+   "strict_pass_float64_identity_onehot": 56,
+   "strict_pass_dominant_axis": 55,
+   "multiclass_pair_seeds": 33,
+   "amplification_median": 1.4327958281064337,
+   "amplification_max": 12.650296539354338,
+   "n_amp_gt_1.5": 14,
+   "n_amp_gt_2": 7,
+   "hidden_cases": [
+    "hmda s1 underwriting/race onehot=0.0268 da=0.2880"
+   ],
+   "certificate_minus_float64_identity": {
+    "max_abs": 0.0032497435970307853,
+    "max_relative_understatement": 0.49865777309377324,
+    "n_cert_above_float64": 0,
+    "n_relative_understatement_gt_1pct": 5,
+    "pass_fail_flips_at_0.05": 0,
+    "worst_rows": [
+     "adult s0 employment_analysis/marital_status K=2 cert=0.00327 f64=0.00652",
+     "adult s0 employment_analysis/age_group K=4 cert=0.00538 f64=0.00749",
+     "adult s0 employment_analysis/race K=5 cert=0.00327 f64=0.00372"
+    ]
+   }
+  }
+ },
+ "erase_layer_pilot": {
+  "adult": {
+   "strict_pass": "24/24",
+   "cleanly_compliant": "0/24",
+   "status_field": "COLLAPSED",
+   "adj_pass_counts_per_seed": [
+    1,
+    0,
+    0
+   ],
+   "best_epoch": [
+    183,
+    189,
+    129
+   ],
+   "last_epoch": [
+    199,
+    199,
+    199
+   ],
+   "final_and_best_both_stored": false
+  },
+  "hmda": {
+   "strict_pass": "18/18",
+   "cleanly_compliant": "0/18",
+   "status_field": "COLLAPSED",
+   "adj_pass_counts_per_seed": [
+    0,
+    0,
+    0
+   ],
+   "best_epoch": [
+    150,
+    162,
+    146
+   ],
+   "last_epoch": [
+    199,
+    199,
+    199
+   ],
+   "final_and_best_both_stored": false
+  },
+  "diabetes": {
+   "strict_pass": "18/18",
+   "cleanly_compliant": "0/18",
+   "status_field": "COLLAPSED",
+   "adj_pass_counts_per_seed": [
+    5,
+    5,
+    5
+   ],
+   "best_epoch": [
+    68,
+    81,
+    16
+   ],
+   "last_epoch": [
+    199,
+    199,
+    199
+   ],
+   "final_and_best_both_stored": false
+  },
+  "total_strict": "60/60",
+  "comparison_json_pilot_strict": {
+   "adult": "24/24",
+   "hmda": "18/18",
+   "diabetes": "18/18"
+  },
+  "comparison_json_base_strict": {
+   "adult": [
+    "ROUND5",
+    "21/24"
+   ],
+   "hmda": [
+    "ROUND5",
+    "16/18"
+   ],
+   "diabetes": [
+    "ROUND7",
+    "17/18"
+   ]
+  },
+  "checkpoint_selector": [
+   "adult s0: fallback feasible=0 epoch=183",
+   "adult s1: fallback feasible=0 epoch=189",
+   "adult s2: fallback feasible=0 epoch=129",
+   "hmda s0: fallback feasible=0 epoch=150",
+   "hmda s1: fallback feasible=0 epoch=162",
+   "hmda s2: fallback feasible=0 epoch=146",
+   "diabetes s0: fallback feasible=0 epoch=68",
+   "diabetes s1: fallback feasible=0 epoch=81",
+   "diabetes s2: fallback feasible=0 epoch=16"
+  ]
+ },
+ "input_files": [
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/honest_reaudit.json",
+   "sha256": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/master_gauntlet_table.json",
+   "sha256": "a5b7d0dbe900ce73bb0c896b61e76820b9aa763ed570a1040d973afc7755351c"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/master_gauntlet_table.txt",
+   "sha256": "624c3a5ef54def44d956b0e36546973dc9ab0c4f39d3c6a644e78d016e547f91"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/continuous_cost.json",
+   "sha256": "7064543ec53ebdab71569b3fdb1cd73663b916ebb730b784d836f10e0889c77c"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/continuous_cost_adult.json",
+   "sha256": "aa3b5f69720eec6fd3f26ddf0b92b9fbbfe3f2984078c670d8b08a2ce51725c2"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/expansion_analysis.json",
+   "sha256": "329de63fcecd92297f0437946b9c266fbf04c27d6ba2a1cb903fc1568827fb29"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/per_seed_results.json",
+   "sha256": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/per_seed_results.json",
+   "sha256": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND5/per_seed_results.json",
+   "sha256": "b61e845561f3ec997e82fd4dd84c52d1c6a095613c52cb6df468d017bf9694d1"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND6/per_seed_results.json",
+   "sha256": "2f4b4a91e5013b791aed4703b59f77688d0194fa774e9cba1c241a8e70e9f435"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND7/per_seed_results.json",
+   "sha256": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/final_vs_best.json",
+   "sha256": "0aa18f73b6db76f2615e70e3235a7fd991698af78aa8c6d709300635dec2ec3b"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/final_vs_best.json",
+   "sha256": "24f217725ca0549bf708ae7d6c2817f9e7932c0f81cfbbfa845525b47472430c"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND5/final_vs_best.json",
+   "sha256": "c03d6452c6d1edb170982b4be3265f34e99ed6d548c7c020242312a7bb389600"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/dominant_axis_audit.json",
+   "sha256": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/dominant_axis_audit.json",
+   "sha256": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077"
+  },
+  {
+   "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND7/dominant_axis_audit.json",
+   "sha256": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e"
+  },
+  {
+   "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_adult_ERASE_PILOT/per_seed_results.json",
+   "sha256": "21ec5a6f5b3b653399e0c28b4c0d15da45dbfa5dc29cd3e0c09ca1bb96ec63a0"
+  },
+  {
+   "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_hmda_ERASE_PILOT/per_seed_results.json",
+   "sha256": "281d8c0d5164e98ee0af596a79768bf8ea65c3b100f2f2997f8e650857e512e4"
+  },
+  {
+   "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_diabetes_ERASE_PILOT/per_seed_results.json",
+   "sha256": "2dec181a5e58d08f8e53f5748b6605476fb62bed638130f173fad4530d646b96"
+  },
+  {
+   "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/rebuttal/comparison.json",
+   "sha256": "f3194dde9e8ddd279585bd077e8c4a175e20d37003cdf223efc8bca02cbec858"
+  }
+ ]
+}
