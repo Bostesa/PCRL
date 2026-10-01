@@ -1,0 +1,1541 @@
+{
+ "meta": {
+  "date": "2026-10-01",
+  "role": "methodology_pcrl_encoder (Fork C, Q4 recounts)",
+  "method": "standalone python (recount_headlines.py, no repo imports) reading committed files via git show and local untracked files; no training, no cloud, no checkpoint re-evaluation",
+  "manuscript": "Downloads/Formatting_Instructions_For_NeurIPS_2026 (23).pdf text (identical text to (24).pdf); line numbers are the printed manuscript line numbers",
+  "refs": {
+   "origin/main": "55e4cb1d1",
+   "cross-purpose-rebuttal-2026-05-18": "d39211214",
+   "rebuttal-evidence": "5739d3bb9",
+   "laftr-hard-r2-2026-05-17": "2037ad452"
+  },
+  "tau": 0.05,
+  "checkpoint_key": "final.pt = last constrained epoch; best.pt = Cotter best-iterate (fallback rule) reloaded by run_v2_dataset.py:336-339 before writing per_seed_results.json",
+  "relocation_inventory_checked": [
+   "fl-PCRL-main-results-ignored.json.gz",
+   "fl-PCRL-main-checkpoints.json.gz"
+  ]
+ },
+ "entries": [
+  {
+   "id": "a1_strict_56_60",
+   "claim": "56/60 strict R2_onehot<0.05 (Adult 23/24, HMDA 16/18, Diabetes 17/18)",
+   "manuscript": "pdf23 lines 10,53-54,303,349; Table 1 (lines 301-306)",
+   "sources": [
+    "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json"
+   ],
+   "field": "per_seed.<s>.rows[].r2_onehot",
+   "recomputed": {
+    "adult": "23/24",
+    "hmda": "16/18",
+    "diabetes": "17/18",
+    "total": "56/60",
+    "total_le": "56/60"
+   },
+   "reported": "56/60 (23/24,16/18,17/18)",
+   "checkpoint": "final.pt (epoch 199 of constrained phase; audit script loads checkpoints/<run>/final.pt)",
+   "split": "in-sample OLS fit+score on TEST split representations (LinearComplianceCertificate.check(test_reprs,test_labels))",
+   "epochs": {
+    "adult": [
+     199
+    ],
+    "hmda": [
+     199
+    ],
+    "diabetes": [
+     199
+    ]
+   },
+   "match": "yes",
+   "assessment": "Recount exact on final.pt DA audit; same 56 under < or <=. Failures: Adult income/sex s2 .0602; HMDA pricing/race s0 .0728, pricing/sex s0 .1178; Diabetes quality_research/age_bucket s2 .0686.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "a2_tau_sweep",
+   "claim": "tau sweep strict 37/52/56/59/60; DA 31/49/55/56/59",
+   "manuscript": "pdf23 lines 303-305; Table 5 (lines 997-1005)",
+   "sources": [
+    "origin/main:results/tier1_analyses/tau_sensitivity.json",
+    "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json"
+   ],
+   "field": "r2_onehot / r2_da",
+   "recomputed": {
+    "0.01": {
+     "strict_lt": 37,
+     "strict_le": 37,
+     "da_lt": 31,
+     "da_le": 31
+    },
+    "0.025": {
+     "strict_lt": 52,
+     "strict_le": 52,
+     "da_lt": 49,
+     "da_le": 49
+    },
+    "0.05": {
+     "strict_lt": 56,
+     "strict_le": 56,
+     "da_lt": 55,
+     "da_le": 55
+    },
+    "0.1": {
+     "strict_lt": 59,
+     "strict_le": 59,
+     "da_lt": 56,
+     "da_le": 56
+    },
+    "0.2": {
+     "strict_lt": 60,
+     "strict_le": 60,
+     "da_lt": 59,
+     "da_le": 59
+    }
+   },
+   "reported": {
+    "0.01": "37/31",
+    "0.025": "52/49",
+    "0.05": "56/55",
+    "0.1": "59/56",
+    "0.2": "60/59"
+   },
+   "checkpoint": "final.pt",
+   "split": "test in-sample OLS",
+   "match": "yes",
+   "assessment": "All five taus match for strict and DA; < vs <= makes no difference.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "a3_hidden",
+   "claim": "1/60 hidden by one-hot (HMDA underwriting/race s1: 0.027 vs 0.288)",
+   "manuscript": "pdf23 lines 13-14, 259-262, Table 1",
+   "sources": [
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json"
+   ],
+   "field": "r2_onehot<0.05<=r2_da",
+   "recomputed": [
+    [
+     "hmda",
+     "underwriting",
+     "race",
+     1,
+     0.0268,
+     0.288
+    ]
+   ],
+   "reported": "1/60",
+   "checkpoint": "final.pt",
+   "split": "test in-sample OLS",
+   "match": "yes",
+   "assessment": "Single hidden cell confirmed.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "a4_amplification",
+   "claim": "median R2_DA/R2_onehot 1.43x, worst 12.7x (HMDA underwriting/race 12.7,10.7,3.2); identity holds 33/33 within 0.01, max residual 0.0021",
+   "manuscript": "pdf23 lines 60, 278-280; Appendix J lines 590-591",
+   "sources": [
+    "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json"
+   ],
+   "field": "r2_da/r2_onehot; convex_combo_residual; per_class_r2,priors",
+   "recomputed": {
+    "n_multiclass": 33,
+    "median_ratio": 1.433,
+    "max_ratio": [
+     12.65,
+     "hmda",
+     "underwriting",
+     "race",
+     0,
+     0.002626667088329704,
+     0.03322811757753319
+    ],
+    "hmda_underwriting_race": [
+     [
+      0,
+      12.65,
+      0.0026,
+      0.0332
+     ],
+     [
+      1,
+      10.74,
+      0.0268,
+      0.288
+     ],
+     [
+      2,
+      3.22,
+      0.0081,
+      0.026
+     ]
+    ],
+    "stored_max_residual": 0.0021077795853659915,
+    "independent_max_residual": 0.0021077795853659907,
+    "n_within_0.01": 33
+   },
+   "reported": "1.43x median, 12.7x worst, 33/33, 0.0021",
+   "checkpoint": "final.pt",
+   "split": "test in-sample OLS",
+   "note": "12.7x worst case is s0 where r2_onehot=0.0026 and r2_da=0.0332: both below tau; ratio of two sub-threshold numbers",
+   "match": "yes",
+   "assessment": "Median 1.433, max 12.65 (rounds to 12.7; printed 12.7x is s0, 10.7x s1, 3.2x s2). Worst-case 12.7x is a ratio of two sub-threshold values (0.0026 vs 0.0332); only s1 crosses tau. Identity independently reproduced from per_class_r2 and priors: max residual 0.0021 (Adult), 33/33 within 0.01. Residual is consistent with r2_onehot computed from float32 representations (verification.py:77-102 does not upcast) vs float64 in compute_dominant_axis_r2 (certificates.py:84).",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "a5_clean_7_60",
+   "claim": "7/60 cleanly compliant, 49 collapse-compliant, 4 failed; Table 6 per-(dataset,purpose)",
+   "manuscript": "pdf23 lines 11,56-57,220-228, Table 1, Table 6 (lines 1017-1031)",
+   "sources": [
+    "origin/main:results/v2_adult_ROUND5/per_seed_results.json",
+    "origin/main:results/v2_hmda_ROUND5/per_seed_results.json",
+    "origin/main:results/v2_diabetes_ROUND7/per_seed_results.json",
+    "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json"
+   ],
+   "field": "R2 from dominant_axis_audit r2_onehot (final.pt) x per_seed[].per_purpose_health.{per_dim_std_mean,effective_rank} (best.pt-reloaded eval)",
+   "recomputed": {
+    "final_r2_x_besthealth": {
+     "clean": 7,
+     "collapse": 49,
+     "failed": 4
+    },
+    "per_dataset_purpose": {
+     "adult/income_prediction": {
+      "clean": 0,
+      "collapse": 5,
+      "failed": 1
+     },
+     "adult/employment_analysis": {
+      "clean": 3,
+      "collapse": 6,
+      "failed": 0
+     },
+     "adult/education_assessment": {
+      "clean": 0,
+      "collapse": 9,
+      "failed": 0
+     },
+     "hmda/underwriting": {
+      "clean": 2,
+      "collapse": 4,
+      "failed": 0
+     },
+     "hmda/pricing_analysis": {
+      "clean": 0,
+      "collapse": 4,
+      "failed": 2
+     },
+     "hmda/fair_lending_audit": {
+      "clean": 0,
+      "collapse": 6,
+      "failed": 0
+     },
+     "diabetes/billing_audit": {
+      "clean": 2,
+      "collapse": 4,
+      "failed": 0
+     },
+     "diabetes/quality_research": {
+      "clean": 0,
+      "collapse": 5,
+      "failed": 1
+     },
+     "diabetes/clinical_decision_support": {
+      "clean": 0,
+      "collapse": 6,
+      "failed": 0
+     }
+    },
+    "clean_cells": [
+     [
+      "adult",
+      "employment_analysis",
+      "race",
+      0
+     ],
+     [
+      "adult",
+      "employment_analysis",
+      "age_group",
+      0
+     ],
+     [
+      "adult",
+      "employment_analysis",
+      "marital_status",
+      0
+     ],
+     [
+      "hmda",
+      "underwriting",
+      "race",
+      2
+     ],
+     [
+      "hmda",
+      "underwriting",
+      "ethnicity",
+      2
+     ],
+     [
+      "diabetes",
+      "billing_audit",
+      "race",
+      2
+     ],
+     [
+      "diabetes",
+      "billing_audit",
+      "gender",
+      2
+     ]
+    ],
+    "best_r2_x_besthealth": {
+     "clean": 5,
+     "collapse": 49,
+     "failed": 6
+    },
+    "best_r2_strict_le_0.05": "54/60"
+   },
+   "reported": "7 clean / 49 collapse / 4 failed",
+   "checkpoint": "MIXED: R2 from final.pt; health metrics from per_seed_results.json, which run_v2_dataset.py computes after reloading canonical_iterate.pt>best.pt>final.pt (best.pt exists for every canonical run per relocated checkpoint inventory)",
+   "split": "health on test-split representations",
+   "match": "yes-with-caveat",
+   "assessment": "7/49/4 reproduces ONLY by mixing final.pt R2 with health metrics from per_seed_results.json, which run_v2_dataset.py:336-394 computes after reloading best.pt (canonical>best>final). With a single consistent checkpoint (best.pt R2 + best.pt health) the count is 5 clean / 49 collapse / 6 failed (54/60 strict). No final.pt health metrics are stored for the canonical runs.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "a6_tables_7_9",
+   "claim": "Per-cell R2_onehot / R2_DA / argmax in Tables 7-9",
+   "manuscript": "pdf23 Tables 7-9 (lines 1041-1124)",
+   "sources": [
+    "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json"
+   ],
+   "field": "r2_onehot, r2_da, r2_da_argmax_class",
+   "recomputed": {
+    "cells_checked": 60,
+    "mismatches": []
+   },
+   "reported": "table values",
+   "checkpoint": "final.pt",
+   "split": "test in-sample OLS",
+   "match": "yes",
+   "assessment": "60/60 cells match to 4 dp incl. argmax class.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "b1_round4_46_60",
+   "claim": "Round 4 46/60 strict -> 56/60 post-fix; mean R2 Adult .038->.012, HMDA .045->.020, Diabetes .025->.009",
+   "manuscript": "pdf23 lines 248-249, 616-618 (Appendix K)",
+   "sources": [
+    "origin/main:results/v2_adult_ROUND4/final_vs_best.json",
+    "origin/main:results/v2_hmda_ROUND4/final_vs_best.json",
+    "origin/main:results/v2_diabetes_ROUND4/final_vs_best.json",
+    "origin/main:results/v2_adult_ROUND5/final_vs_best.json",
+    "origin/main:results/v2_hmda_ROUND5/final_vs_best.json",
+    "origin/main:results/v2_diabetes_ROUND5/final_vs_best.json",
+    "origin/main:results/v2_diabetes_ROUND7/per_seed_results.json"
+   ],
+   "field": "per_seed.<s>.{best,final}.rows[].linear_r2 (generate_report on reloaded checkpoint)",
+   "recomputed": {
+    "per_dataset": {
+     "adult": {
+      "best": {
+       "strict_lt": "0/24",
+       "mean_r2": 0.169,
+       "adj_pass": "0/24",
+       "best_epochs": [
+        11,
+        12
+       ]
+      },
+      "final": {
+       "strict_lt": "20/24",
+       "mean_r2": 0.0384,
+       "adj_pass": "10/24",
+       "best_epochs": [
+        -1
+       ]
+      }
+     },
+     "hmda": {
+      "best": {
+       "strict_lt": "16/18",
+       "mean_r2": 0.0178,
+       "adj_pass": "8/18",
+       "best_epochs": [
+        30,
+        34,
+        37
+       ]
+      },
+      "final": {
+       "strict_lt": "11/18",
+       "mean_r2": 0.0455,
+       "adj_pass": "3/18",
+       "best_epochs": [
+        -1
+       ]
+      }
+     },
+     "diabetes": {
+      "best": {
+       "strict_lt": "17/18",
+       "mean_r2": 0.0118,
+       "adj_pass": "16/18",
+       "best_epochs": [
+        65,
+        85,
+        101
+       ]
+      },
+      "final": {
+       "strict_lt": "15/18",
+       "mean_r2": 0.0253,
+       "adj_pass": "15/18",
+       "best_epochs": [
+        -1
+       ]
+      }
+     },
+     "adult_R5": {
+      "best": {
+       "strict_lt": "21/24",
+       "mean_r2": 0.0204,
+       "adj_pass": "12/24",
+       "best_epochs": [
+        147,
+        158,
+        188
+       ]
+      },
+      "final": {
+       "strict_lt": "23/24",
+       "mean_r2": 0.0119,
+       "adj_pass": "10/24",
+       "best_epochs": [
+        -1
+       ]
+      }
+     },
+     "hmda_R5": {
+      "best": {
+       "strict_lt": "16/18",
+       "mean_r2": 0.0258,
+       "adj_pass": "3/18",
+       "best_epochs": [
+        30,
+        78,
+        191
+       ]
+      },
+      "final": {
+       "strict_lt": "16/18",
+       "mean_r2": 0.0201,
+       "adj_pass": "0/18",
+       "best_epochs": [
+        -1
+       ]
+      }
+     },
+     "diabetes_R5": {
+      "best": {
+       "strict_lt": "18/18",
+       "mean_r2": 0.009,
+       "adj_pass": "15/18",
+       "best_epochs": [
+        47,
+        71,
+        86
+       ]
+      },
+      "final": {
+       "strict_lt": "16/18",
+       "mean_r2": 0.0174,
+       "adj_pass": "15/18",
+       "best_epochs": [
+        -1
+       ]
+      }
+     }
+    },
+    "R4_total_final": "46/60",
+    "R4_total_best": "33/60",
+    "diabetes_R7_bestpt_mean": 0.0079,
+    "diabetes_R7_bestpt_strict": "17/18",
+    "diabetes_R7_finalpt_mean_from_DA_audit": 0.0092,
+    "adult_R5_final_mean_DA": 0.0119,
+    "hmda_R5_final_mean_DA": 0.0201
+   },
+   "reported": "46/60 -> 56/60; .038/.045/.025 -> .012/.020/.009",
+   "checkpoint": "R4: final.pt adopted post hoc after Cotter fallback selected epoch ~12 on Adult; R5 final_vs_best.md files are titled 'Round 4' (template alias) but hold R5 numbers",
+   "note": "Diabetes 56/60 component is Round 7 (per-class OvR + rank 24), i.e. two further changes beyond the lambda-floor + warmup-skip 'combined modification' credited in Appendix K",
+   "match": "yes-with-caveat",
+   "assessment": "R4 final.pt = 20+11+15 = 46/60 and mean R2 .038/.045/.025 reproduce; post-fix means .012/.020/.009 reproduce from final.pt. But under the Cotter best.pt rule R4 is 0/24+16/18+17/18 = 33/60, and for HMDA and Diabetes best.pt beat final.pt (R4 HMDA best 16/18 mean .018 vs final 11/18 .045). final.pt was adopted for all datasets after inspecting Adult. Diabetes R5 (the actual lambda-floor+warmup-skip run) is 16/18 final / 18/18 best; the 17/18 in the headline is Round 7 (per-class OvR + rank 24). The R5 final_vs_best.md files are mis-titled \"Round 4\".",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "c1_erase_pilot",
+   "claim": "erase-layer pilot strict 54/60 -> 60/60; cleanly 5/60 -> 0/60",
+   "manuscript": "not in submitted PDF (rebuttal asset); memory/project notes; rebuttal-evidence HEADLINE",
+   "sources": [
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_adult_ERASE_PILOT/per_seed_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_hmda_ERASE_PILOT/per_seed_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_diabetes_ERASE_PILOT/per_seed_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/rebuttal/comparison.json"
+   ],
+   "field": "per_seed[].attribute_results[].linear_r2 (<=0.05) and per_purpose_health",
+   "recomputed": {
+    "adult": {
+     "pilot_strict_le": "24/24",
+     "pilot_clean": "0/24",
+     "pilot_r2_max": 0.013,
+     "baseline_bestpt_strict_le": "21/24",
+     "baseline_bestpt_clean": "1/24",
+     "task_acc_pilot_mean": {
+      "income": 0.7755,
+      "occupation_group": 0.7534,
+      "education_level": 0.8337
+     },
+     "task_acc_baseline_mean": {
+      "income": 0.7873,
+      "occupation_group": 0.992,
+      "education_level": 0.9995
+     },
+     "pilot_best_epochs": [
+      183,
+      189,
+      129
+     ],
+     "pilot_cotter": [
+      "fallback",
+      "fallback",
+      "fallback"
+     ]
+    },
+    "hmda": {
+     "pilot_strict_le": "18/18",
+     "pilot_clean": "0/18",
+     "pilot_r2_max": 0.007,
+     "baseline_bestpt_strict_le": "16/18",
+     "baseline_bestpt_clean": "2/18",
+     "task_acc_pilot_mean": {
+      "loan_decision": 0.8928,
+      "loan_amount_band": 0.3769,
+      "tract_denial_high": 0.6342
+     },
+     "task_acc_baseline_mean": {
+      "loan_decision": 0.8979,
+      "loan_amount_band": 0.498,
+      "tract_denial_high": 0.6341
+     },
+     "pilot_best_epochs": [
+      150,
+      162,
+      146
+     ],
+     "pilot_cotter": [
+      "fallback",
+      "fallback",
+      "fallback"
+     ]
+    },
+    "diabetes": {
+     "pilot_strict_le": "18/18",
+     "pilot_clean": "0/18",
+     "pilot_r2_max": 0.008,
+     "baseline_bestpt_strict_le": "17/18",
+     "baseline_bestpt_clean": "2/18",
+     "task_acc_pilot_mean": {
+      "primary_diagnosis_category": 0.3156,
+      "readmission_outcome": 0.9119,
+      "medication_change_outcome": 0.7635
+     },
+     "task_acc_baseline_mean": {
+      "primary_diagnosis_category": 0.2864,
+      "readmission_outcome": 0.9119,
+      "medication_change_outcome": 0.9992
+     },
+     "pilot_best_epochs": [
+      68,
+      81,
+      16
+     ],
+     "pilot_cotter": [
+      "fallback",
+      "fallback",
+      "fallback"
+     ]
+    }
+   },
+   "reported": "54/60 -> 60/60; 5/60 -> 0/60",
+   "checkpoint": "both sides best.pt-reloaded evaluation from run_v2_dataset.py (canonical>best>final); the 54/60 baseline is NOT the 56/60 final.pt headline",
+   "note": "pilot is a different architecture (frozen LEACE layer between backbone and repr_proj; LoRA only on repr_proj); large task-accuracy drops on Adult occupation/education",
+   "match": "yes-with-caveat",
+   "assessment": "54/60->60/60 and 5/60->0/60 reproduce from local untracked per_seed_results (best.pt-reloaded linear_r2, <=0.05). The 54/60 baseline is the best.pt view of the same R5/R7 runs whose final.pt view is the published 56/60; the two are not interchangeable. Pilot is a different architecture and loses task accuracy (Adult occupation .992->.753, education .9995->.834; HMDA loan_amount_band .498->.377; Diabetes medication_change .999->.764). Cotter selector fell back on every pilot seed.",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "d1_cross_purpose",
+   "claim": "Submission 26/33 absolute, 22/33 incremental (LAFTR 29/33, 16/33); rebuttal 'unified protocol' 22/33 -> 8/33",
+   "manuscript": "pdf23 lines 16-17, 51-52, 317-320 (abstract of source (21) says 22/33)",
+   "sources": [
+    "origin/main:results/v2_cross_purpose/aggregate.json",
+    "origin/main:results/cross_purpose_laftr/cross_purpose_laftr_results.json",
+    "origin/main:results/cross_purpose_laftr/DUAL_CRITERIA.json",
+    "d39211214:results/rebuttal/cross_purpose/unified_protocol_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/cross_purpose/comparison.json"
+   ],
+   "field": "aggregate[].concat_delta_mean_pp (>1 = criterion A), gain_mean_pp (>1 = criterion B); unified per_seed.rows[].{gain_pp,concat_delta_pp}",
+   "recomputed": {
+    "submission_A_abs": "26/33",
+    "submission_B_incr": "22/33",
+    "laftr_A_abs": "29/33",
+    "laftr_B_incr_recomputed": null,
+    "dual_criteria_file": {
+     "pcrl_A": 26,
+     "pcrl_B": 22,
+     "laftr_A": 29,
+     "laftr_B": 16
+    },
+    "crosspurp_model_B_incr_mean_of_seeds": "8/33",
+    "crosspurp_model_aggregate_flags": "8/33",
+    "crosspurp_model_A_abs_mean_of_seeds": "19/33",
+    "local_untracked_comparison_new_flags_by_ds": {
+     "adult": [
+      10,
+      15
+     ],
+     "hmda": [
+      6,
+      9
+     ],
+     "diabetes": [
+      3,
+      9
+     ]
+    },
+    "nonlinear_comparison": {
+     "n_nonlinear_cells": 22,
+     "submission_abs_flags_nonlinear": 18,
+     "crosspurp_abs_flags_nonlinear": 19,
+     "cells_where_crosspurp_abs_gt_submission_abs": 20,
+     "mean_abs_pp_submission_nonlinear": 19.38,
+     "mean_abs_pp_crosspurp_nonlinear": 24.18,
+     "crosspurp_LR_abs_all_zero": true
+    },
+    "crosspurp_cells": {
+     "adult/race/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "adult/race/MLP": {
+      "gain_pp": 1.12,
+      "concat_minus_majority_pp": 10.13,
+      "best_single_minus_majority_pp": 9.01
+     },
+     "adult/race/XGB": {
+      "gain_pp": 1.21,
+      "concat_minus_majority_pp": 5.01,
+      "best_single_minus_majority_pp": 3.8
+     },
+     "adult/sex/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "adult/sex/MLP": {
+      "gain_pp": 0.83,
+      "concat_minus_majority_pp": 31.2,
+      "best_single_minus_majority_pp": 30.37
+     },
+     "adult/sex/XGB": {
+      "gain_pp": 2.62,
+      "concat_minus_majority_pp": 27.33,
+      "best_single_minus_majority_pp": 24.71
+     },
+     "adult/age_group/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "adult/age_group/MLP": {
+      "gain_pp": 1.39,
+      "concat_minus_majority_pp": 32.72,
+      "best_single_minus_majority_pp": 31.33
+     },
+     "adult/age_group/XGB": {
+      "gain_pp": 3.42,
+      "concat_minus_majority_pp": 26.23,
+      "best_single_minus_majority_pp": 22.81
+     },
+     "adult/marital_status/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "adult/marital_status/MLP": {
+      "gain_pp": 0.6,
+      "concat_minus_majority_pp": 46.06,
+      "best_single_minus_majority_pp": 45.46
+     },
+     "adult/marital_status/XGB": {
+      "gain_pp": 2.04,
+      "concat_minus_majority_pp": 42.78,
+      "best_single_minus_majority_pp": 40.74
+     },
+     "adult/income/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "adult/income/MLP": {
+      "gain_pp": 0.18,
+      "concat_minus_majority_pp": 8.5,
+      "best_single_minus_majority_pp": 8.32
+     },
+     "adult/income/XGB": {
+      "gain_pp": 0.24,
+      "concat_minus_majority_pp": 6.97,
+      "best_single_minus_majority_pp": 6.73
+     },
+     "hmda/ethnicity/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "hmda/ethnicity/MLP": {
+      "gain_pp": 0.05,
+      "concat_minus_majority_pp": 26.91,
+      "best_single_minus_majority_pp": 26.86
+     },
+     "hmda/ethnicity/XGB": {
+      "gain_pp": 0.77,
+      "concat_minus_majority_pp": 26.16,
+      "best_single_minus_majority_pp": 25.39
+     },
+     "hmda/race/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "hmda/race/MLP": {
+      "gain_pp": 0.19,
+      "concat_minus_majority_pp": 34.79,
+      "best_single_minus_majority_pp": 34.6
+     },
+     "hmda/race/XGB": {
+      "gain_pp": 1.59,
+      "concat_minus_majority_pp": 32.09,
+      "best_single_minus_majority_pp": 30.5
+     },
+     "hmda/sex/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "hmda/sex/MLP": {
+      "gain_pp": 0.05,
+      "concat_minus_majority_pp": 38.39,
+      "best_single_minus_majority_pp": 38.34
+     },
+     "hmda/sex/XGB": {
+      "gain_pp": 1.29,
+      "concat_minus_majority_pp": 37.43,
+      "best_single_minus_majority_pp": 36.14
+     },
+     "diabetes/race/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "diabetes/race/MLP": {
+      "gain_pp": -0.04,
+      "concat_minus_majority_pp": 0.02,
+      "best_single_minus_majority_pp": 0.05
+     },
+     "diabetes/race/XGB": {
+      "gain_pp": -0.11,
+      "concat_minus_majority_pp": -0.26,
+      "best_single_minus_majority_pp": -0.15
+     },
+     "diabetes/gender/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "diabetes/gender/MLP": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 1.67,
+      "best_single_minus_majority_pp": 1.67
+     },
+     "diabetes/gender/XGB": {
+      "gain_pp": -0.75,
+      "concat_minus_majority_pp": -0.25,
+      "best_single_minus_majority_pp": 0.5
+     },
+     "diabetes/age_bucket/LR": {
+      "gain_pp": 0.0,
+      "concat_minus_majority_pp": 0.0,
+      "best_single_minus_majority_pp": 0.0
+     },
+     "diabetes/age_bucket/MLP": {
+      "gain_pp": -0.11,
+      "concat_minus_majority_pp": 59.51,
+      "best_single_minus_majority_pp": 59.62
+     },
+     "diabetes/age_bucket/XGB": {
+      "gain_pp": 0.83,
+      "concat_minus_majority_pp": 38.52,
+      "best_single_minus_majority_pp": 37.69
+     }
+    },
+    "submission_cells": {
+     "adult/age_group/LR": {
+      "concat_minus_majority_pp": 5.09,
+      "gain_pp": 1.62
+     },
+     "adult/age_group/MLP": {
+      "concat_minus_majority_pp": 15.37,
+      "gain_pp": 7.66
+     },
+     "adult/age_group/XGB": {
+      "concat_minus_majority_pp": 20.0,
+      "gain_pp": 9.28
+     },
+     "adult/income/LR": {
+      "concat_minus_majority_pp": 6.45,
+      "gain_pp": -0.05
+     },
+     "adult/income/MLP": {
+      "concat_minus_majority_pp": 6.66,
+      "gain_pp": 0.14
+     },
+     "adult/income/XGB": {
+      "concat_minus_majority_pp": 6.52,
+      "gain_pp": 0.3
+     },
+     "adult/marital_status/LR": {
+      "concat_minus_majority_pp": 20.8,
+      "gain_pp": 4.08
+     },
+     "adult/marital_status/MLP": {
+      "concat_minus_majority_pp": 32.71,
+      "gain_pp": 6.87
+     },
+     "adult/marital_status/XGB": {
+      "concat_minus_majority_pp": 38.22,
+      "gain_pp": 10.87
+     },
+     "adult/race/LR": {
+      "concat_minus_majority_pp": -0.08,
+      "gain_pp": -0.09
+     },
+     "adult/race/MLP": {
+      "concat_minus_majority_pp": 4.03,
+      "gain_pp": 1.3
+     },
+     "adult/race/XGB": {
+      "concat_minus_majority_pp": 6.21,
+      "gain_pp": 2.79
+     },
+     "adult/sex/LR": {
+      "concat_minus_majority_pp": 1.55,
+      "gain_pp": 0.38
+     },
+     "adult/sex/MLP": {
+      "concat_minus_majority_pp": 18.81,
+      "gain_pp": 4.09
+     },
+     "adult/sex/XGB": {
+      "concat_minus_majority_pp": 22.31,
+      "gain_pp": 6.7
+     },
+     "diabetes/age_bucket/LR": {
+      "concat_minus_majority_pp": 19.32,
+      "gain_pp": 9.94
+     },
+     "diabetes/age_bucket/MLP": {
+      "concat_minus_majority_pp": 33.86,
+      "gain_pp": 9.53
+     },
+     "diabetes/age_bucket/XGB": {
+      "concat_minus_majority_pp": 34.37,
+      "gain_pp": 11.96
+     },
+     "diabetes/gender/LR": {
+      "concat_minus_majority_pp": 0.55,
+      "gain_pp": 0.2
+     },
+     "diabetes/gender/MLP": {
+      "concat_minus_majority_pp": 0.95,
+      "gain_pp": 0.31
+     },
+     "diabetes/gender/XGB": {
+      "concat_minus_majority_pp": -0.55,
+      "gain_pp": -0.5
+     },
+     "diabetes/race/LR": {
+      "concat_minus_majority_pp": -0.01,
+      "gain_pp": -0.01
+     },
+     "diabetes/race/MLP": {
+      "concat_minus_majority_pp": 0.0,
+      "gain_pp": 0.0
+     },
+     "diabetes/race/XGB": {
+      "concat_minus_majority_pp": -0.36,
+      "gain_pp": -0.25
+     },
+     "hmda/ethnicity/LR": {
+      "concat_minus_majority_pp": 13.63,
+      "gain_pp": 2.51
+     },
+     "hmda/ethnicity/MLP": {
+      "concat_minus_majority_pp": 24.66,
+      "gain_pp": 6.04
+     },
+     "hmda/ethnicity/XGB": {
+      "concat_minus_majority_pp": 25.32,
+      "gain_pp": 6.45
+     },
+     "hmda/race/LR": {
+      "concat_minus_majority_pp": 4.32,
+      "gain_pp": 3.79
+     },
+     "hmda/race/MLP": {
+      "concat_minus_majority_pp": 32.17,
+      "gain_pp": 5.55
+     },
+     "hmda/race/XGB": {
+      "concat_minus_majority_pp": 33.35,
+      "gain_pp": 5.14
+     },
+     "hmda/sex/LR": {
+      "concat_minus_majority_pp": 11.78,
+      "gain_pp": 4.78
+     },
+     "hmda/sex/MLP": {
+      "concat_minus_majority_pp": 35.58,
+      "gain_pp": 5.24
+     },
+     "hmda/sex/XGB": {
+      "concat_minus_majority_pp": 36.22,
+      "gain_pp": 5.07
+     }
+    }
+   },
+   "reported": "26/33, 22/33, 29/33, 16/33; 22/33 -> 8/33",
+   "checkpoint": "submission: R5/R7 final? (see run_cross_purpose_attack_v2.py); cross-purpose model: canonical_iterate.pt (Diabetes best_epoch=0 per commit msg)",
+   "note": "8/33 is a NEW model (cross-purpose-constrained h_concat training) scored under the incremental criterion; under the absolute criterion the same new model flags more cells with much larger magnitudes",
+   "match": "yes-with-caveat",
+   "assessment": "Submission 26/33 (A, absolute) and 22/33 (B, incremental) reproduce from aggregate.json; LAFTR 29/33 reproduces; LAFTR 16/33 only from DUAL_CRITERIA.json (laftr aggregate lacks gain field). 8/33 reproduces (B on a NEW cross-purpose-constrained model). Under criterion A the new model flags 19/33; all 11 LR cells go to exactly 0 (linear concat erasure), but on the 22 nonlinear cells absolute flags go 18->19 and absolute leakage rises in 20/22 cells (mean +19.4pp -> +24.2pp over majority). The local untracked comparison.json (pre-unified, absolute-vs-majority) gives 10/15+6/9+3/9 = 19/33. The 22/33->8/33 headline therefore swaps criteria-favourable framing: it compares incremental gains while single-purpose leakage itself increased. Also: paper Table 10 caption says gain over majority but values are gain over best single purpose (e.g. Adult age_group XGB +9.28 = gain; absolute is +20.0); +38.2pp marital_status quoted in text is the absolute XGB value (38.22).",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "e1_laftr_hard_adult",
+   "claim": "LAFTR-hard-R2 Adult 0/24 strict, mean R2 0.247, COLLAPSED",
+   "manuscript": "not in submitted PDF (rebuttal asset; memory note project_laftr_hard_r2_launch)",
+   "sources": [
+    "laftr-hard-r2-2026-05-17:results/laftr_hard_r2_adult_SMOKE/summary.json"
+   ],
+   "field": "summary.pass_count_mean (adj_pass) / STATUS",
+   "recomputed": {
+    "smoke_only": {
+     "STATUS": "COLLAPSED",
+     "n_seeds": 1,
+     "pass_counts_per_seed": [
+      0
+     ],
+     "total_wall_s": 319.0
+    }
+   },
+   "reported": "0/24 COLLAPSED",
+   "match": "unverifiable",
+   "checkpoint": "n/a",
+   "note": "Full Adult per_seed_results.json reportedly only in S3 archive (archive/laftr_hard_r2/results_final/laftr_hard_r2_adult/); not committed, not local, not in relocation inventory. Smoke is 1 seed x 5 epochs.",
+   "assessment": "Only a 1-seed 5-epoch smoke (0/8 adj_pass, COLLAPSED) is committed. Full Adult result (0/24, mean R2 .247) is not in git, not local, not in the relocation inventory; reportedly only in S3 archive. Not checked this phase (no cloud).",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "f1_three_way",
+   "claim": "Mean R2 PCRL 0.014 / INLP 0.038 / LAFTR 0.270; strict pass 93% / 72% / 25%; Table 13",
+   "manuscript": "pdf23 lines 55-56, 349-350, 728-735, Table 13 (lines 1366-1378); LAFTR 15/60 at line 213-214",
+   "sources": [
+    "origin/main:results/inlp_benchmark/inlp_results.json",
+    "origin/main:results/laftr_benchmark/adult/<purpose>/seed_<s>/metrics.json"
+   ],
+   "field": "rows[].{laftr,inlp,pcrl}_r2_onehot, *_strict_pass",
+   "recomputed": {
+    "n_rows": 60,
+    "n_cells": 27,
+    "mean": {
+     "pcrl": 0.0136,
+     "inlp": 0.0382,
+     "laftr": 0.2702
+    },
+    "pass": {
+     "pcrl": "56/60",
+     "inlp": "43/60",
+     "laftr": "15/60"
+    },
+    "inlp_pass_recomputed_le_0.05": "43/60",
+    "per_dataset_purpose": {
+     "adult/education_assessment": {
+      "laftr_mean": 0.374,
+      "inlp_mean": 0.065,
+      "pcrl_mean": 0.01,
+      "laftr_pass": "0/9",
+      "inlp_pass": "5/9",
+      "pcrl_pass": "9/9"
+     },
+     "adult/employment_analysis": {
+      "laftr_mean": 0.359,
+      "inlp_mean": 0.007,
+      "pcrl_mean": 0.006,
+      "laftr_pass": "0/9",
+      "inlp_pass": "9/9",
+      "pcrl_pass": "9/9"
+     },
+     "adult/income_prediction": {
+      "laftr_mean": 0.422,
+      "inlp_mean": 0.089,
+      "pcrl_mean": 0.024,
+      "laftr_pass": "0/6",
+      "inlp_pass": "0/6",
+      "pcrl_pass": "5/6"
+     },
+     "diabetes/billing_audit": {
+      "laftr_mean": 0.021,
+      "inlp_mean": 0.017,
+      "pcrl_mean": 0.008,
+      "laftr_pass": "6/6",
+      "inlp_pass": "6/6",
+      "pcrl_pass": "6/6"
+     },
+     "diabetes/clinical_decision_support": {
+      "laftr_mean": 0.02,
+      "inlp_mean": 0.02,
+      "pcrl_mean": 0.006,
+      "laftr_pass": "6/6",
+      "inlp_pass": "6/6",
+      "pcrl_pass": "6/6"
+     },
+     "diabetes/quality_research": {
+      "laftr_mean": 0.157,
+      "inlp_mean": 0.007,
+      "pcrl_mean": 0.014,
+      "laftr_pass": "3/6",
+      "inlp_pass": "6/6",
+      "pcrl_pass": "5/6"
+     },
+     "hmda/fair_lending_audit": {
+      "laftr_mean": 0.264,
+      "inlp_mean": 0.038,
+      "pcrl_mean": 0.011,
+      "laftr_pass": "0/6",
+      "inlp_pass": "4/6",
+      "pcrl_pass": "6/6"
+     },
+     "hmda/pricing_analysis": {
+      "laftr_mean": 0.273,
+      "inlp_mean": 0.054,
+      "pcrl_mean": 0.037,
+      "laftr_pass": "0/6",
+      "inlp_pass": "4/6",
+      "pcrl_pass": "4/6"
+     },
+     "hmda/underwriting": {
+      "laftr_mean": 0.445,
+      "inlp_mean": 0.048,
+      "pcrl_mean": 0.013,
+      "laftr_pass": "0/6",
+      "inlp_pass": "3/6",
+      "pcrl_pass": "6/6"
+     }
+    },
+    "pcrl_column_vs_DA_audit_mismatches": 0,
+    "laftr_adult_metrics_json_mismatches": "0/24"
+   },
+   "reported": "0.014/0.038/0.270; 93/72/25%",
+   "checkpoint": "PCRL column = final.pt DA audit; LAFTR/INLP = independent per-purpose encoders",
+   "note": "LAFTR per-seed metrics.json committed only for Adult; HMDA/Diabetes LAFTR values exist only inside inlp_results.json rows (writer script not in repo)",
+   "match": "yes-with-caveat",
+   "assessment": "Means .0136/.0382/.2702 and passes 56/60 (93%), 43/60 (72%), 15/60 (25%) reproduce from inlp_results.json; PCRL column equals final.pt DA audit (0 mismatches); LAFTR Adult column equals committed metrics.json (0/24 mismatches). HMDA/Diabetes LAFTR per-seed metrics.json are not committed (only encoder.pt relocated for Adult); the script that merged laftr_r2_onehot into inlp_results.json is not in the repo. \"27 cells\" are (dataset,purpose,seed) training cells; percentages are over 60 audit rows.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "g1_rank8",
+   "claim": "Diabetes rank-8 ablation 18/18 strict, R2 range [0.0043,0.0087]; rank-24 comparator 18/18 [0.0053,0.0080]",
+   "manuscript": "not in submitted PDF (rebuttal-evidence HEADLINE.md)",
+   "sources": [
+    "rebuttal-evidence:results/rebuttal/erase_rank8_diabetes_cpu/v2_diabetes_ERASE_RANK8/per_seed_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_rank8_diabetes_cpu/v2_diabetes_ERASE_RANK8/per_seed_results.json",
+    "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_diabetes_ERASE_PILOT/per_seed_results.json"
+   ],
+   "field": "per_seed[].attribute_results[].linear_r2",
+   "recomputed": {
+    "rank8_strict_le": "18/18",
+    "rank8_range": [
+     0.0043,
+     0.0087
+    ],
+    "rank8_task_acc_mean": {
+     "primary_diagnosis_category": 0.3168,
+     "readmission_outcome": 0.912,
+     "medication_change_outcome": 0.7525
+    },
+    "rank24_erase_pilot_strict_le": "18/18",
+    "rank24_erase_pilot_range": [
+     0.0053,
+     0.008
+    ]
+   },
+   "reported": "18/18 [0.0043,0.0087]",
+   "checkpoint": "best.pt-reloaded eval (run_v2_dataset.py)",
+   "note": "HEADLINE.md calls the rank-24 comparator 'published Round 7' but the 18/18 rank-24 numbers are the erase-layer pilot; the published Round 7 (LoRA-inside-LEACE) is 17/18 on final.pt. Local file sha256 equals rebuttal-evidence committed copy.",
+   "match": "yes-with-caveat",
+   "assessment": "18/18 and [0.0043,0.0087] reproduce; local file is byte-identical to rebuttal-evidence copy. The rank-24 comparator labelled \"published Round 7\" in HEADLINE.md is actually the erase-layer pilot Diabetes run (18/18, [0.0053,0.0080]); published Round 7 is 17/18 (final.pt). medication_change task acc 0.7525 vs 0.9992 (R7) - large utility loss.",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "h1_heldout_s3",
+   "claim": "Adult seed-3 held-out: 6/8 vs 7/8 (headline seed 2); clean 1/8 vs 0/8; mean delta +0.0111 (sd 0.0372, range [-0.0395,+0.0824])",
+   "manuscript": "pdf23 lines 364-370",
+   "sources": [
+    "origin/main:results/reviewer_dropins/heldout_s3_compare.json",
+    "origin/main:results/v2_adult_HELDOUT_S3/dominant_axis_audit.json"
+   ],
+   "field": "per_cell[].{held,head}_r2_pass, *_cleanly_compliant, delta_r2_onehot",
+   "recomputed": {
+    "held_pass": "6/8",
+    "head_pass": "7/8",
+    "held_clean": "1/8",
+    "head_clean": "0/8",
+    "delta_mean": 0.0111,
+    "delta_sd_sample": 0.0372,
+    "delta_sd_pop": 0.0348,
+    "delta_range": [
+     -0.0395,
+     0.0824
+    ]
+   },
+   "reported": "6/8 vs 7/8; 1/8 vs 0/8; +0.0111 (0.0372)",
+   "checkpoint": "final.pt (HELDOUT DA audit epoch 199)",
+   "note": "Seed 3 only shares the schedule; it is a new training seed on the SAME train/test split, not held-out data. 'Head' comparator is seed 2.",
+   "match": "yes",
+   "assessment": "6/8 vs 7/8, clean 1/8 vs 0/8, delta mean +0.0111, sample sd 0.0372, range [-0.0395,+0.0824] all reproduce. Caveat: seed 3 is a new training seed on the same train/test split, not held-out data; one fold, one dataset.",
+   "float32": "r2_onehot via verification.py LinearComplianceCertificate (no upcast; float32 reps x float64 one-hot); DA via certificates.compute_dominant_axis_r2 (float64)"
+  },
+  {
+   "id": "i1_celeba",
+   "claim": "CelebA train-set R2<=0.005 Male/Young; Smiling acc 0.752+/-0.010; Table 11/12; trained<=LEACE-init 'without exception'",
+   "manuscript": "pdf23 lines 338-340, 682-697, Tables 11-12",
+   "sources": [
+    "origin/main:results/v2_celeba_R5_FULL/train_set_r2.json",
+    "origin/main:results/v2_celeba_R5_FULL/cross_purpose.json",
+    "origin/main:results/v2_celeba_R5_FULL/training_log.json",
+    "origin/main:results/v2_celeba_R5_seed1/train_set_r2.json",
+    "origin/main:results/v2_celeba_R5_seed1/cross_purpose.json",
+    "origin/main:results/v2_celeba_R5_seed1/training_log.json",
+    "origin/main:results/v2_celeba_R5_seed2/train_set_r2.json",
+    "origin/main:results/v2_celeba_R5_seed2/cross_purpose.json",
+    "origin/main:results/v2_celeba_R5_seed2/training_log.json"
+   ],
+   "field": "train_r2_*; history[-1].{task_acc,r2_male,r2_young}; selector.n_feasible_epochs; cross_purpose.{leace_init_baseline,r5_trained}.<arch>.r2_*",
+   "recomputed": {
+    "per_seed": {
+     "0": {
+      "train_r2_male": 0.0029,
+      "train_r2_young": 0.0031,
+      "val_r2_male_last_epoch": 0.1558,
+      "val_r2_young_last_epoch": 0.1705,
+      "val_smiling_acc_last_epoch": 0.7556,
+      "n_feasible_epochs": 0,
+      "maxmax_delta_pp": {
+       "male": -4.5,
+       "young": -6.8
+      },
+      "mlp_trained_r2": {
+       "male": 0.862,
+       "young": 0.434
+      }
+     },
+     "1": {
+      "train_r2_male": 0.003,
+      "train_r2_young": 0.0028,
+      "val_r2_male_last_epoch": 0.1569,
+      "val_r2_young_last_epoch": 0.1561,
+      "val_smiling_acc_last_epoch": 0.74,
+      "n_feasible_epochs": 0,
+      "maxmax_delta_pp": {
+       "male": -6.3,
+       "young": -6.8
+      },
+      "mlp_trained_r2": {
+       "male": 0.809,
+       "young": 0.368
+      }
+     },
+     "2": {
+      "train_r2_male": 0.0036,
+      "train_r2_young": 0.0029,
+      "val_r2_male_last_epoch": 0.1636,
+      "val_r2_young_last_epoch": 0.1672,
+      "val_smiling_acc_last_epoch": 0.7595,
+      "n_feasible_epochs": 0,
+      "maxmax_delta_pp": {
+       "male": -2.8,
+       "young": -8.2
+      },
+      "mlp_trained_r2": {
+       "male": 0.857,
+       "young": 0.438
+      }
+     }
+    },
+    "smiling_acc_mean": 0.7517,
+    "smiling_acc_sd_sample": 0.0103,
+    "cellwise_trained_gt_init": [
+     [
+      "0",
+      "male",
+      "LR",
+      0.0
+     ],
+     [
+      "0",
+      "male",
+      "MLP",
+      0.4
+     ],
+     [
+      "1",
+      "young",
+      "LR",
+      0.0
+     ],
+     [
+      "2",
+      "male",
+      "DeepMLP",
+      7.2
+     ]
+    ]
+   },
+   "reported": "R2<=0.005; 0.752+/-0.010; worst deltas -6.3 (Male), -8.2 (Young); trained<=init every cell",
+   "checkpoint": "final epoch (selector found 0 feasible epochs on all seeds)",
+   "note": "Table 12 deltas are max-over-attackers(trained) minus max-over-attackers(init), not cellwise; cellwise trained>init occurs. Val-split in-sample linear R2 at final epoch ~0.16 (fails tau). Cross-purpose 'R2' is linear R2 of attacker-predicted probabilities vs labels.",
+   "match": "partial",
+   "assessment": "Train-set R2 (0.0029-0.0036) and Smiling acc 0.7517+/-0.0103 (sample sd of last-epoch VAL accuracy) reproduce; Table 11 seed-0 values and Table 12 deltas reproduce. But Table 12 is max-over-attackers(trained) minus max-over-attackers(init); cellwise, trained > init on seed 0 Male MLP (+0.4pp) and seed 2 Male DeepMLP (+7.2pp), contradicting \"trained <= LEACE-init at every cell ... without exception\" (pdf23 lines 685-686, Table 11 caption). Val-split linear R2 at the final epoch is 0.156-0.170 on every seed and the selector found 0 feasible epochs; the paper reports only the train-set R2. Nonlinear attackers recover Male at R2 0.81-0.88 (MLP) from the trained representation.",
+   "float32": "n/a or not checked"
+  },
+  {
+   "id": "p1_separate_encoders",
+   "claim": "Appendix P: separate encoders 5/20 pair-seeds (Adult 0/8, HMDA 0/6, Diabetes 5/6 via collapse, task 31.3%); LEACE-on-raw 0/20",
+   "manuscript": "pdf23 lines 716-726",
+   "sources": [
+    "origin/main:results/adult_SEPARATE/summary.json",
+    "origin/main:results/hmda_SEPARATE/summary.json",
+    "origin/main:results/diabetes_SEPARATE/summary.json",
+    "origin/main:results/LEACE_SUMMARY.md"
+   ],
+   "field": "summary.total_pass (combined adjusted criterion)",
+   "recomputed": {
+    "separate": {
+     "adult": {
+      "total_pass": 0,
+      "total_pairs": 8,
+      "seed": 0,
+      "headline_task_acc": 0.789641,
+      "pcrl_comparator": "6/8"
+     },
+     "hmda": {
+      "total_pass": 0,
+      "total_pairs": 6,
+      "seed": 0,
+      "headline_task_acc": 0.892614,
+      "pcrl_comparator": "5.3/6"
+     },
+     "diabetes": {
+      "total_pass": 5,
+      "total_pairs": 6,
+      "seed": 0,
+      "headline_task_acc": 0.313292,
+      "pcrl_comparator": "5/6"
+     }
+    },
+    "total": "5/20"
+   },
+   "reported": "5/20; 0/20",
+   "checkpoint": "single seed 0; run 2026-04-26 (pre-v2 PCRL)",
+   "match": "yes-with-caveat",
+   "assessment": "5/20 reproduces but these are 20 pairs at ONE seed (not pair-seeds), under the combined (delta<0.02 and R2<0.05) criterion, run 2026-04-26 against a pre-v2 PCRL comparator (6/8, 5.3/6, 5/6) - not the R5/R7 headline model. LEACE-on-raw 0/20 is a markdown summary only (per-pair JSON relocated .pt files). LEACE_SUMMARY notes occupation_group/education_level/medication_change ~100% accuracy from direct label leakage in inputs."
+  }
+ ],
+ "final_pt_failures": [
+  [
+   "adult",
+   "income_prediction",
+   "sex",
+   2,
+   0.0602
+  ],
+  [
+   "hmda",
+   "pricing_analysis",
+   "race",
+   0,
+   0.0728
+  ],
+  [
+   "hmda",
+   "pricing_analysis",
+   "sex",
+   0,
+   0.1178
+  ],
+  [
+   "diabetes",
+   "quality_research",
+   "age_bucket",
+   2,
+   0.0686
+  ]
+ ],
+ "sources_sha256": {
+  "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f",
+  "origin/main:results/v2_adult_ROUND5/per_seed_results.json": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61",
+  "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077",
+  "origin/main:results/v2_hmda_ROUND5/per_seed_results.json": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877",
+  "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e",
+  "origin/main:results/v2_diabetes_ROUND7/per_seed_results.json": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25",
+  "origin/main:results/tier1_analyses/tau_sensitivity.json": "2f438c0a121aa6431f3a24b04899956e592902dcd487ae517e257c4120417693",
+  "origin/main:results/v2_adult_ROUND4/final_vs_best.json": "d9de50fe7bd89920dfa1a337e0ea5f183d33a591058321c73de9ad6ab1cf5c1f",
+  "origin/main:results/v2_hmda_ROUND4/final_vs_best.json": "ccab18a6e93ea76cfe298c1b6ddb8bff8c76fd18bfecb2c125b5eb1678471263",
+  "origin/main:results/v2_diabetes_ROUND4/final_vs_best.json": "1afbba8318708749205f57999fa8aeee29ebfd55b72205e50395a2b5cf5c6981",
+  "origin/main:results/v2_adult_ROUND5/final_vs_best.json": "0aa18f73b6db76f2615e70e3235a7fd991698af78aa8c6d709300635dec2ec3b",
+  "origin/main:results/v2_hmda_ROUND5/final_vs_best.json": "24f217725ca0549bf708ae7d6c2817f9e7932c0f81cfbbfa845525b47472430c",
+  "origin/main:results/v2_diabetes_ROUND5/final_vs_best.json": "c03d6452c6d1edb170982b4be3265f34e99ed6d548c7c020242312a7bb389600",
+  "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_adult_ERASE_PILOT/per_seed_results.json": "21ec5a6f5b3b653399e0c28b4c0d15da45dbfa5dc29cd3e0c09ca1bb96ec63a0",
+  "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_hmda_ERASE_PILOT/per_seed_results.json": "281d8c0d5164e98ee0af596a79768bf8ea65c3b100f2f2997f8e650857e512e4",
+  "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_diabetes_ERASE_PILOT/per_seed_results.json": "2dec181a5e58d08f8e53f5748b6605476fb62bed638130f173fad4530d646b96",
+  "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/rebuttal/comparison.json": "f3194dde9e8ddd279585bd077e8c4a175e20d37003cdf223efc8bca02cbec858",
+  "origin/main:results/v2_cross_purpose/aggregate.json": "45f4f7786ea33f82476d0841315504030a7c98fcd94bb5ad418b0c559636dc57",
+  "origin/main:results/cross_purpose_laftr/cross_purpose_laftr_results.json": "dc818b52161226e6919bcb80e5beda85c9a3e4741bde5de291e3bd570913e78c",
+  "origin/main:results/cross_purpose_laftr/DUAL_CRITERIA.json": "0eaae3f84ab39d41ebd1ca9109ede0301954bd5e0278ced3287bb2cec32c21c7",
+  "d39211214:results/rebuttal/cross_purpose/unified_protocol_results.json": "2682f3f3ee1a050e0afb7c13a3d8831bbb1893d7ca6601a052166e8d564a5d0a",
+  "/Users/nathansamson/PCRL/results/rebuttal/cross_purpose/comparison.json": "94edf36c450dfcdbdcba44e986439c596858ad7138e346e78931c663093d4812",
+  "laftr-hard-r2-2026-05-17:results/laftr_hard_r2_adult_SMOKE/summary.json": "a4acb187bf06c3b2d3811361868ecc9e5ba2530405546f29d194cf34e14b7be1",
+  "origin/main:results/inlp_benchmark/inlp_results.json": "ddacf9ff0702ecc4657926fc9d8b2f19814b6806ea644a11fe3c50ff7085df18",
+  "origin/main:results/laftr_benchmark/adult/income_prediction/seed_0/metrics.json": "a49bc04b104135ded0a5eb4d43a002c561cdfdd852d345f99b6f8236a6fc90e1",
+  "origin/main:results/laftr_benchmark/adult/income_prediction/seed_1/metrics.json": "71745d5b15601d14a36cb712200e5ac68f3251bcfa45b620058c3b8494482de1",
+  "origin/main:results/laftr_benchmark/adult/income_prediction/seed_2/metrics.json": "f79da0b941a5de2f1dfe6d058b08eaf7fc350618daf288bd6d85b73ce0dae7d2",
+  "origin/main:results/laftr_benchmark/adult/employment_analysis/seed_0/metrics.json": "c9000d5985898bd773ab58d5e038968820748bfa3d0b1f2630dc05fcd0258962",
+  "origin/main:results/laftr_benchmark/adult/employment_analysis/seed_1/metrics.json": "d3fa536e047c344c2b0bc21f56ff7baffa6d3fdd8d4a19659985f763d5e375cf",
+  "origin/main:results/laftr_benchmark/adult/employment_analysis/seed_2/metrics.json": "c9a4c249ca5b8ea1a070cc1123ff7973087ff74ac0aae2b75367202d715f3e7b",
+  "origin/main:results/laftr_benchmark/adult/education_assessment/seed_0/metrics.json": "c12fc7899b19570e8eff2af06b0719acbc7fd3f13a92f9e46d1edcea08154b55",
+  "origin/main:results/laftr_benchmark/adult/education_assessment/seed_1/metrics.json": "2a7552f7bb8713f7ce73fa3f279bc45c4eb5234308bf8d3f233b3c10b6a510a8",
+  "origin/main:results/laftr_benchmark/adult/education_assessment/seed_2/metrics.json": "7a537af86daa1123d93382d4bda16fcfc551898dc15576d6e498c470382dbd42",
+  "/Users/nathansamson/PCRL/results/rebuttal/erase_rank8_diabetes_cpu/v2_diabetes_ERASE_RANK8/per_seed_results.json": "5ca054507cfc91b48feeb046fa854c952fb9844534ace5252235fb72390ca012",
+  "rebuttal-evidence:results/rebuttal/erase_rank8_diabetes_cpu/v2_diabetes_ERASE_RANK8/per_seed_results.json": "5ca054507cfc91b48feeb046fa854c952fb9844534ace5252235fb72390ca012",
+  "origin/main:results/reviewer_dropins/heldout_s3_compare.json": "c43ac7f655b5f5da3f8f07bf962534f6560ca8a192316ebf5465e9dc57ade516",
+  "origin/main:results/v2_celeba_R5_FULL/train_set_r2.json": "61d0acbee2a514be309ee1544c3172791b7491b91303f7bad2b2cb5f9edd099b",
+  "origin/main:results/v2_celeba_R5_FULL/cross_purpose.json": "87659bc63ff49d9c25b4322abc7cf2ef37adb462ccea8d6a4bda4d711ae06d90",
+  "origin/main:results/v2_celeba_R5_FULL/training_log.json": "d99ee8949c7a5c1d680c8d0ef1821b0eff4397fba9153466043ee972e729b5dc",
+  "origin/main:results/v2_celeba_R5_seed1/train_set_r2.json": "fa4f4dd29ed988d56af2c381cfe459057f8c7318e83348547cb8cd4a8e952f88",
+  "origin/main:results/v2_celeba_R5_seed1/cross_purpose.json": "d3638e8573ac771ffb46eda120e15e922a04ff84c3c6efc819eb9f9a3f5edba1",
+  "origin/main:results/v2_celeba_R5_seed1/training_log.json": "05bf3b040454f8e89adaf1930227634a0b325bd96b952c5f3032adf16dcb67c3",
+  "origin/main:results/v2_celeba_R5_seed2/train_set_r2.json": "84ad8b210eb2f23ef9d1e348c03a7ab6fb41f1d1efcac7d26167dfb740217284",
+  "origin/main:results/v2_celeba_R5_seed2/cross_purpose.json": "4335ba227c7f7bca0350c5c6f6ec60212f9698ae6a60e4d02ca28d740ea013bb",
+  "origin/main:results/v2_celeba_R5_seed2/training_log.json": "72a08a40ff29522447bc43db0e1ee48e86598e1d23581e1add54e503378fcaf2",
+  "origin/main:results/SEPARATE_SUMMARY.md": "1cbd25a2ba88949e93176892e52c0c6e829f2dd5277fe0fa617085ec80a09c25",
+  "origin/main:results/LEACE_SUMMARY.md": "ecadcff53200a9928cac72f62b3da1dae17ce5f937329bc028760566c51273e3",
+  "origin/main:results/adult_SEPARATE/summary.json": "2202624c5527c56ebe200d1634a8531527311f32e200a1320c7aa451affbbd21",
+  "origin/main:results/hmda_SEPARATE/summary.json": "fbd2807064109b19944c4acb69c2a63802ab1a3cbd74e8bb3fdfc75c1b8f5a63",
+  "origin/main:results/diabetes_SEPARATE/summary.json": "f49af186d90ce33d7de7735f56b0bcea33b521c79ad65bc805e9ed1438cebd3f"
+ },
+ "supplementary_entries": [
+  {
+   "id": "s1_within_1pp",
+   "claim": "Task accuracy within 1pp of the unconstrained backbone (PDF(23) l.55, l.83-84)",
+   "sources": [
+    {
+     "path": "origin/main:results/v2_adult_ROUND5/task_acc_vs_unconstrained.json",
+     "sha256": "0b748c5af38a5b0002c9093ed1c028a18ee983226e2c3ab9e4f430489c3362b0",
+     "committed": "135e440e6 2026-05-05 (before 2026-05-07 PDF)"
+    }
+   ],
+   "field": "[*].within_1pp, gap_pp",
+   "recomputed": {
+    "comparable_tasks": 7,
+    "within_1pp": 2,
+    "gaps_pp": {
+     "adult/income": -6.22,
+     "hmda/loan_decision": -1.44,
+     "hmda/loan_amount_band": -11.56,
+     "hmda/tract_denial_high": -2.44,
+     "diabetes/primary_diagnosis_category": -12.85,
+     "diabetes/readmission_outcome": 0.0,
+     "diabetes/medication_change_outcome": -0.04
+    }
+   },
+   "reported": "all tasks within 1pp",
+   "match": "no",
+   "assessment": "Contradicted by the repo's own comparison. The two passing tasks are readmission_outcome (PCRL accuracy equals the comparator, both ~majority) and medication_change_outcome (deterministic recoding of inputs). PCRL accuracies come from best.pt; comparator is a separately trained single-seed StandardEncoder (val early stopping), not PCRL's frozen random backbone.",
+   "checkpoint": "PCRL best.pt (per_seed_results.json); comparator seed-0 trained encoder",
+   "split": "test",
+   "recount_by": "parent methodology role, standalone json read"
+  },
+  {
+   "id": "s2_tau_sweep_B",
+   "claim": "Table 5 tau sweep (independent second recount, Fork B)",
+   "sources": [
+    {
+     "path": "origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+     "sha256": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f"
+    },
+    {
+     "path": "origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+     "sha256": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077"
+    },
+    {
+     "path": "origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json",
+     "sha256": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e"
+    }
+   ],
+   "field": "per_seed.<seed>.rows[].r2_onehot, r2_da",
+   "recomputed": {
+    "0.01": [
+     37,
+     31
+    ],
+    "0.025": [
+     52,
+     49
+    ],
+    "0.05": [
+     56,
+     55
+    ],
+    "0.1": [
+     59,
+     56
+    ],
+    "0.2": [
+     60,
+     59
+    ]
+   },
+   "match": "yes",
+   "note": "re-thresholding of tau=0.05-trained models; not a retraining sweep"
+  },
+  {
+   "id": "s3_clean_same_checkpoint",
+   "claim": "7/60 cleanly compliant (independent recount, Fork B)",
+   "sources": [
+    {
+     "path": "origin/main:results/v2_adult_ROUND5/per_seed_results.json",
+     "sha256": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61"
+    },
+    {
+     "path": "origin/main:results/v2_hmda_ROUND5/per_seed_results.json",
+     "sha256": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877"
+    },
+    {
+     "path": "origin/main:results/v2_diabetes_ROUND7/per_seed_results.json",
+     "sha256": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25"
+    }
+   ],
+   "recomputed": {
+    "final_R2_plus_best_health": 7,
+    "best_R2_plus_best_health": 5,
+    "strict_best_pt": 54,
+    "strict_final_pt": 56,
+    "R2_health_delta_lt_0.02": 3,
+    "clean_cells_with_delta_ge_0.02": 4
+   },
+   "match": "7 only by mixing checkpoints"
+  },
+  {
+   "id": "s4_diabetes_lambda_420",
+   "claim": "Diabetes per-class OvR duals saturated ~420 on classes k=5,6,7 => rank 16 insufficient => rank 24 (PDF(23) App. L l.663-666)",
+   "sources": [
+    {
+     "path": "origin/main:results/v2_diabetes_ROUND6/per_seed_results.json"
+    },
+    {
+     "path": "origin/main:results/v2_diabetes_ROUND7/per_seed_results.json"
+    }
+   ],
+   "field": "per_seed[].lambdas_final.quality_research__age_bucket__class_k",
+   "recomputed": {
+    "R7_class0": [
+     420.2,
+     419.4,
+     420.2
+    ],
+    "R6_class0": [
+     421.1,
+     421.5,
+     422.6
+    ],
+    "R6_class5_7_range": "50-96",
+    "expected_from_absent_class_artifact": 430.3
+   },
+   "match": "420 reproduced; attribution to k=5-7 not supported: the saturated dual is class 0 ([0-10), prior 0.00215), absent from ~57.6% of B=256 batches and scored R2=1.0 when absent (losses.py:562-565)",
+   "recount_by": "Fork B recount_B.py (scratchpad)"
+  },
+  {
+   "id": "s5_crosspurp_adult",
+   "claim": "Adult cross-purpose constraint: per-pair 23/24->19/24; attack flags 14/15->12/15 (PDF(23) l.333-334)",
+   "sources": [
+    {
+     "path": "origin/main:results/v2_adult_CROSSPURP/results.json",
+     "sha256": "4f8c30a2923f866f35b85a148494c6b74fc4c974c201e829e40a87a5124bf2ce"
+    },
+    {
+     "path": "origin/main:results/v2_cross_purpose/per_seed_results.json",
+     "sha256": "25e38e4aa058a4b38b939c2f4fc8ae4d79c957ae73180ab60cb01e69a77d822b"
+    }
+   ],
+   "recomputed": {
+    "per_pair_pass": "19/24",
+    "attack_flags_absolute": "12/15",
+    "baseline_adult_absolute": "14/15"
+   },
+   "match": "yes",
+   "caveat": "75 epochs vs 200; canonical_iterate.pt vs final.pt; only race/sex/age_group constrained"
+  },
+  {
+   "id": "s6_accuracy_counterexample",
+   "claim": "Prop 3 Linear Compliance Bound (Acc <= pi_max + k sqrt(eps pi_max(1-pi_max)), tight at eps=0)",
+   "sources": [
+    {
+     "path": "fix/retire-accuracy-guarantee:docs/ACCURACY_CERTIFICATE_RETIREMENT.md"
+    }
+   ],
+   "recomputed": {
+    "rows": "(A,h)=(1,1)x9,(1,-9)x1,(0,-1)x9,(0,9)x1",
+    "cov": 0.0,
+    "R2": 0.0,
+    "threshold_rule_acc": 0.9,
+    "majority": 0.5,
+    "old_bound": 0.5
+   },
+   "match": "counterexample reproduced; bound refuted",
+   "recount_by": "Fork D D_counterexample.py (scratchpad, standalone numpy)"
+  }
+ ]
+}

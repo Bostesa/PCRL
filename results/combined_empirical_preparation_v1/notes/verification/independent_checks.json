@@ -1,0 +1,1411 @@
+[
+ {
+  "id": "F1",
+  "title": "One-hot aggregation identity ('Convex-Combination Identity', NeurIPS draft Proposition 4)",
+  "question": "Is aggregate one-hot R2 exactly the variance-weighted average of per-class OvR R2, with w_k = pi_k(1-pi_k)/sum_j pi_j(1-pi_j); when does it fail; how large is the float32 discrepancy?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F01_onehot_identity.py",
+    "sha256": "6ad8f9cf2f1127d1787225bacef77d34be4f2572bd20081f94398da961a04f5a"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F01.json",
+    "sha256": "633c0f90a4f9c24e652485986d175d94c36c903a861fe77e9097c242dc32773b"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/evaluation/certificates.py",
+    "sha256": "c864366d604db542273a11a584d67bbcbbd89d5554d783d72150ab11a9bf56c9"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/purposes/verification.py",
+    "sha256": "36c81d945d61e941d812d5cdf9a1bd4c5a993a437ae06edcc4d38d3fe9b5d76a"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):pcrl/evaluation/certificates.py",
+    "sha256": "dfcdaa0000b428b8d85bbbfe6f37c87be47b2c3301d4374c9fc13407b8bfee22"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):pcrl/purposes/verification.py",
+    "sha256": "e7c164be33c59839a9c32b50bad9cff7ba18b89547bcbb7f1163c94a686a424f"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_origin_main.json",
+    "sha256": "3cfda0be482e135a35a8ff357b89a5881ed7321c6f525a4fb2339702948578d0"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_research_pcrl-submission-finish-v1.json",
+    "sha256": "319438a6778c2b2fc50cc43c7233e161d2ae3fd6d12e41ddf952448e0948fd4a"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F01_onehot_identity.py > outputs/F01.json ; /Users/nathansamson/PCRL/.venv/bin/python orig_compare.py --root <export of ref> --label <ref>",
+  "result": {
+   "identity_in_sample_float64_residual": -1.942890293094024e-15,
+   "weights_written_out": {
+    "pi": [
+     0.6096666666666667,
+     0.25333333333333335,
+     0.092,
+     0.045
+    ],
+    "w_k": [
+     0.42983403970251016,
+     0.341658174047385,
+     0.15088511222098286,
+     0.07762267402912203
+    ],
+    "per_class_r2": [
+     0.24414777032044888,
+     0.13744716517010402,
+     0.06098754494501757,
+     0.12310007131869238
+    ],
+    "aggregate": 0.17066043915324802,
+    "sum_w_r2": 0.17066043915324997
+   },
+   "max_abs_diff_weights_sstot_vs_priors": 1.5210055437364645e-14,
+   "held_out_residual_test_weights": 2.7755575615628914e-17,
+   "held_out_residual_train_weights": 0.0003563997540877717,
+   "held_out_mixed_sign_residual_after_pcrl_style_clipping": -0.04094339896553015,
+   "float32_benign_abs_diff": 5.331644015171833e-10,
+   "float32_stress": [
+    {
+     "tail_sd": 0.01,
+     "offset": 20.0,
+     "r2_float64": 0.5783514637383633,
+     "r2_float32_gram_clipped_at_0": 0.5783475366652846
+    },
+    {
+     "tail_sd": 0.003,
+     "offset": 5.0,
+     "r2_float64": 0.5783510032943575,
+     "r2_float32_gram_clipped_at_0": 0.5780431633451569
+    },
+    {
+     "tail_sd": 0.001,
+     "offset": 5.0,
+     "r2_float64": 0.5783500791200586,
+     "r2_float32_gram_clipped_at_0": 0.44982834114153625
+    },
+    {
+     "tail_sd": 0.001,
+     "offset": 0.0,
+     "r2_float64": 0.5783511385699468,
+     "r2_float32_gram_clipped_at_0": 0.0
+    }
+   ],
+   "original_origin_main": {
+    "residual_float64_input": 2.7755575615628914e-17,
+    "residual_float32_input": 7.510514710151739e-10,
+    "stress_cert_r2": [
+     0.5783475366652606,
+     0.5780431633451336,
+     0.44982834114150794,
+     0.0
+    ],
+    "stress_cert_certified_at_0.05": [
+     false,
+     false,
+     false,
+     true
+    ],
+    "stress_dominant_axis_float64": [
+     0.5783514637383396,
+     0.5783510032943349,
+     0.5783500791200373,
+     0.5783511385699243
+    ]
+   },
+   "original_submission_finish": {
+    "residual_float64_input": 1.942890293094024e-15,
+    "residual_float32_input": 2.1788865156580073e-10,
+    "stress_cert_r2": [
+     0.5783514637383629,
+     0.5783510032943582,
+     0.5783500791200609,
+     0.5783511385699477
+    ]
+   },
+   "stored_audits_cert_vs_float64_identity": {
+    "max_abs": 0.0032497435970307853,
+    "max_relative_understatement": 0.49865777309377324,
+    "n_cert_above_float64": 0,
+    "n_relative_understatement_gt_1pct": 5,
+    "pass_fail_flips_at_0.05": 0,
+    "worst_rows": [
+     "adult s0 employment_analysis/marital_status K=2 cert=0.00327 f64=0.00652",
+     "adult s0 employment_analysis/age_group K=4 cert=0.00538 f64=0.00749",
+     "adult s0 employment_analysis/race K=5 cert=0.00327 f64=0.00372"
+    ]
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "The identity is an exact algebraic identity (residual ~1e-15) for any column-wise least-squares fit (OLS or ridge), in or out of sample, provided the weights use the variances of the SAME rows that are scored (train-set weights on test R2 leave a residual 3.6e-4 here), every class has positive variance, and per-class R2 are not clipped (PCRL clips max(0,.) per class; out of sample with mixed signs this breaks the identity, residual -0.041 in the fixture). It is a weighting identity only: it says nothing about the max over linear contrasts (F2). The nonzero 'residuals' PCRL reports (max 0.0021 multiclass, 0.0032 on a binary row) are not tolerance of an approximate identity but a numerical artifact: origin/main LinearComplianceCertificate accumulates the Gram matrix in float32 when given float32 representations while the dominant-axis code casts to float64; the certificate is never above the float64 value and understates it by up to 50% relative in stored audits (no pass/fail flips at tau=0.05). In a constructed ill-conditioned stress case the origin/main certificate returns 0.0 (certified) where the float64 R2 is 0.578. submission-finish-v1 casts to float64 and agrees with the independent value. The stress case is synthetic; it does not show that any stored PCRL verdict flips.",
+  "original_implementation_compared": {
+   "compared": true,
+   "refs": [
+    "origin/main@55e4cb1d1",
+    "research/pcrl-submission-finish-v1@55c0c5a35"
+   ],
+   "functions": [
+    "LinearComplianceCertificate.check",
+    "compute_dominant_axis_r2"
+   ]
+  }
+ },
+ {
+  "id": "F2",
+  "title": "Dominant axis (max per-class R2) versus full categorical diagnostic (first canonical correlation)",
+  "question": "Can every class-indicator R2 be small while a linear class contrast is highly recoverable; what does PCRL's dominant axis compute?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F02_multiclass_contrast.py",
+    "sha256": "d0b11955ddf70920d2bfd0f6dbe6cfcef9c6a8e39645c98708236957b929ebc3"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F02.json",
+    "sha256": "dcf4b87350edab5176410dcd3e3dea7d3f8b49088dff940b44679e8a0afdbf89"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/evaluation/certificates.py",
+    "sha256": "c864366d604db542273a11a584d67bbcbbd89d5554d783d72150ab11a9bf56c9"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):pcrl/evaluation/certificates.py",
+    "sha256": "dfcdaa0000b428b8d85bbbfe6f37c87be47b2c3301d4374c9fc13407b8bfee22"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_origin_main.json",
+    "sha256": "3cfda0be482e135a35a8ff357b89a5881ed7321c6f525a4fb2339702948578d0"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F02_multiclass_contrast.py > outputs/F02.json ; /Users/nathansamson/PCRL/.venv/bin/python orig_compare.py ...",
+  "result": {
+   "definition_dominant_axis": "max_k in-sample ridge R2 of 1{y=k} (origin/main pcrl/evaluation/certificates.py:47-117)",
+   "definition_canonical": "lambda_max(S_yy^-1/2 S_yz (S_zz+eps I)^-1 S_zy S_yy^-1/2), one reference class dropped, eps=1e-10 tr(S_zz)/d, eigen floor 1e-12; invariant to dropped class (max diff 3e-14)",
+   "proved_bound": "rho2 <= (K-1) * max_k R2_k (Cauchy-Schwarz); 300 random configurations: max ratio 1.000, never violated",
+   "K3_balanced_e1_minus_e2": {
+    "per_class_r2": [
+     0.000722,
+     0.630052,
+     0.635031
+    ],
+    "dominant_axis_max": 0.6350310103135332,
+    "onehot_r2": 0.4214689505061623,
+    "canonical_rho2": 0.8441613452697634,
+    "gap_ratio_rho2_over_DA": 1.3293230276313224,
+    "passes_tau_0.05": {
+     "onehot": false,
+     "dominant_axis": false,
+     "canonical": false
+    },
+    "optimal_contrast_normalised": [
+     0.0,
+     -1.0,
+     0.9999
+    ]
+   },
+   "K3_imbalanced_e1_minus_e2": {
+    "per_class_r2": [
+     0.002066,
+     0.323252,
+     0.358751
+    ],
+    "dominant_axis_max": 0.3587511111334273,
+    "onehot_r2": 0.18134109380156793,
+    "canonical_rho2": 0.6145110814165762,
+    "gap_ratio_rho2_over_DA": 1.712917569718763,
+    "passes_tau_0.05": {
+     "onehot": false,
+     "dominant_axis": false,
+     "canonical": false
+    },
+    "optimal_contrast_normalised": [
+     0.0,
+     -0.9489,
+     1.0
+    ]
+   },
+   "K10_balanced_half_contrast": {
+    "per_class_r2": [
+     0.042539,
+     0.03742,
+     0.038717,
+     0.039462,
+     0.044094,
+     0.043229,
+     0.046873,
+     0.03883,
+     0.0368,
+     0.04215
+    ],
+    "dominant_axis_max": 0.04687334162525325,
+    "onehot_r2": 0.041035972927615294,
+    "canonical_rho2": 0.3636516263679226,
+    "gap_ratio_rho2_over_DA": 7.758175836390624,
+    "passes_tau_0.05": {
+     "onehot": true,
+     "dominant_axis": true,
+     "canonical": false
+    },
+    "optimal_contrast_normalised": [
+     0.0,
+     -0.0356,
+     -0.017,
+     -0.0162,
+     -0.0068,
+     -0.9756,
+     -1.0,
+     -0.9617,
+     -0.9509,
+     -0.9879
+    ]
+   },
+   "original_dominant_axis_origin_main": {
+    "K3_balanced_e1_minus_e2": 0.635031010313533,
+    "K3_imbalanced_e1_minus_e2": 0.3587511111334273,
+    "K10_balanced_half_contrast": 0.04687334162525325
+   },
+   "original_dominant_axis_submission_finish": {
+    "K3_balanced_e1_minus_e2": 0.6350310103135182,
+    "K3_imbalanced_e1_minus_e2": 0.3587511111334206,
+    "K10_balanced_half_contrast": 0.046873341625162546
+   }
+  },
+  "verdict": "partially",
+  "scope": "Confirmed: the dominant axis is a max over the K indicator directions only and can miss contrast leakage: K=10 balanced, every indicator R2 <= 0.047 and one-hot R2 = 0.041 (both pass tau=0.05) while the half-vs-half contrast has rho2 = 0.364. Refuted as stated for K=3: 'every indicator small but a contrast highly recoverable' is impossible because rho2 <= (K-1) R2_DA = 2 R2_DA; the e1-e2 contrast gives gap 1.33 (balanced) and 1.71 (imbalanced 0.8/0.1/0.1). The canonical diagnostic is still only linear and in-sample; it bounds all linear contrasts, not nonlinear recoverability (F7 XOR). The original implementations reproduce the independent per-class values exactly (both refs).",
+  "original_implementation_compared": {
+   "compared": true,
+   "refs": [
+    "origin/main@55e4cb1d1",
+    "research/pcrl-submission-finish-v1@55c0c5a35"
+   ],
+   "functions": [
+    "compute_dominant_axis_r2",
+    "LinearComplianceCertificate.check"
+   ]
+  }
+ },
+ {
+  "id": "F3",
+  "title": "Unsupported (absent / singleton / constant) classes",
+  "question": "What do the original (origin/main) and fixed (submission-finish-v1) scorers return when a declared class is absent, constant, or a singleton?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F03_unsupported_classes.py",
+    "sha256": "0e67de2566a2f92edef6b5ffeb4bb46d351b3f9eb91576c3e1bbf51fc1f5ea9f"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F03.json",
+    "sha256": "152e6c18cabd072e733f11258511ed3adaa64ad3b17663823f221916c93f44fc"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/evaluation/certificates.py",
+    "sha256": "c864366d604db542273a11a584d67bbcbbd89d5554d783d72150ab11a9bf56c9"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/purposes/verification.py",
+    "sha256": "36c81d945d61e941d812d5cdf9a1bd4c5a993a437ae06edcc4d38d3fe9b5d76a"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):pcrl/evaluation/certificates.py",
+    "sha256": "dfcdaa0000b428b8d85bbbfe6f37c87be47b2c3301d4374c9fc13407b8bfee22"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):pcrl/purposes/verification.py",
+    "sha256": "e7c164be33c59839a9c32b50bad9cff7ba18b89547bcbb7f1163c94a686a424f"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-submission-finish-v1(55c0c5a35):tests/test_scoring_support.py",
+    "sha256": "0090720f283c02e639fe950d3c393a96a9ba3d95b4da502f7286563fc6cd0fd7"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_origin_main.json",
+    "sha256": "3cfda0be482e135a35a8ff357b89a5881ed7321c6f525a4fb2339702948578d0"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_research_pcrl-submission-finish-v1.json",
+    "sha256": "319438a6778c2b2fc50cc43c7233e161d2ae3fd6d12e41ddf952448e0948fd4a"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F03_unsupported_classes.py > outputs/F03.json ; /Users/nathansamson/PCRL/.venv/bin/python orig_compare.py ...",
+  "result": {
+   "independent_report": {
+    "absent_top_and_singleton": {
+     "supports": [
+      94,
+      105,
+      1,
+      0
+     ],
+     "status": [
+      "estimable",
+      "estimable",
+      "too_few",
+      "absent"
+     ],
+     "dominant_axis": "NOT_ESTIMABLE"
+    },
+    "absent_middle": {
+     "supports": [
+      66,
+      0,
+      61,
+      73
+     ],
+     "status": [
+      "estimable",
+      "absent",
+      "estimable",
+      "estimable"
+     ],
+     "dominant_axis": "NOT_ESTIMABLE"
+    },
+    "constant": {
+     "supports": [
+      200,
+      0,
+      0,
+      0
+     ],
+     "status": [
+      "constant",
+      "absent",
+      "absent",
+      "absent"
+     ],
+     "dominant_axis": "NOT_ESTIMABLE"
+    },
+    "singleton_outlier": {
+     "supports": [
+      99,
+      100,
+      1,
+      0
+     ],
+     "status": [
+      "estimable",
+      "estimable",
+      "too_few",
+      "absent"
+     ],
+     "dominant_axis": "NOT_ESTIMABLE"
+    }
+   },
+   "origin_main": {
+    "absent_top_and_singleton": {
+     "cert_r2": 0.019115715423222546,
+     "cert_certified": true,
+     "da_r2": 0.01995745602768828,
+     "da_per_class": [
+      0.018257997028764406,
+      0.01995745602768828,
+      0.01986920061332531
+     ]
+    },
+    "absent_middle": {
+     "cert_r2": 0.034675878464085486,
+     "cert_certified": true,
+     "da_r2": 1.0,
+     "da_per_class": [
+      0.0215444102385981,
+      1.0,
+      0.02587855992100563,
+      0.055248326842144646
+     ]
+    },
+    "constant": {
+     "cert_r2": 1.0,
+     "cert_certified": false,
+     "da_r2": 1.0,
+     "da_per_class": [
+      1.0
+     ]
+    },
+    "singleton_outlier": {
+     "cert_r2": 0.034160936580293955,
+     "cert_certified": true,
+     "da_r2": 0.6543554003905987,
+     "da_per_class": [
+      0.020800879516080784,
+      0.035177787808975736,
+      0.6543554003905987
+     ]
+    }
+   },
+   "submission_finish_default_schema": {
+    "absent_top_and_singleton": {
+     "cert_r2": 0.019115715423223878,
+     "cert_certified": true,
+     "coverage_complete": true,
+     "da_r2": 0.01995745602768806
+    },
+    "absent_middle": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "coverage_complete": false,
+     "da_r2": "NaN"
+    },
+    "constant": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "coverage_complete": false,
+     "da_r2": "NaN"
+    },
+    "singleton_outlier": {
+     "cert_r2": 0.034160936580293955,
+     "cert_certified": true,
+     "coverage_complete": true,
+     "da_r2": 0.6543554003906019
+    }
+   },
+   "submission_finish_declared_K4": {
+    "absent_top_and_singleton": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "da_r2": "NaN",
+     "observed_r2_da": 0.01995745602768806
+    },
+    "absent_middle": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "da_r2": "NaN",
+     "observed_r2_da": 0.055248326842144646
+    },
+    "constant": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "da_r2": "NaN",
+     "observed_r2_da": "NaN"
+    },
+    "singleton_outlier": {
+     "cert_r2": "NaN",
+     "cert_certified": false,
+     "da_r2": "NaN",
+     "observed_r2_da": 0.654355400390602
+    }
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "origin/main: schema is inferred as max(label)+1, so an absent top class silently disappears and the one-hot certificate passes; an absent middle class contributes a zero column (certificate passes, 0.035) while the dominant axis reports R2 = 1.0 for the absent class (0/0 guarded by 1e-12 -> 1); all-constant labels give certificate R2 = 1.0 (fails, for the wrong reason). submission-finish-v1: absent/constant classes give NaN and fail closed, BUT only if the caller passes num_classes for an absent TOP class (default schema still certifies 0.019 with coverage_complete=True), and a singleton class is treated as valid: its in-sample R2 is a single-row leverage statistic (0.020 for an ordinary row, 0.654 when that row is an outlier, pure-noise H). A correct report gives counts and 'not estimable' (fixture rule: fewer than d+2 positives). Code not repaired.",
+  "original_implementation_compared": {
+   "compared": true,
+   "refs": [
+    "origin/main@55e4cb1d1",
+    "research/pcrl-submission-finish-v1@55c0c5a35"
+   ],
+   "functions": [
+    "LinearComplianceCertificate.check",
+    "compute_dominant_axis_r2"
+   ]
+  }
+ },
+ {
+  "id": "F4",
+  "title": "Nested singleton / ancestor predictors in coalition and appended-channel audits",
+  "question": "Without nested predictors can a coalition report lower recovery than one view (spurious negative combination effect), and do the ACS coalition audits include nested predictors?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F04_nested_slate.py",
+    "sha256": "42e30dd7010149c8ed440f45a16da8b3a7a002f0cc07230f30e2ec6ab0028bc4"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F04.json",
+    "sha256": "2ecae772910a7a0509dece08b272d2aa443d6b06bcb1052aa05a3e5e726d8e17"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-privacy-first-selector-v1(8fdc61e39):experiments/acs_coalition_audits.py",
+    "sha256": "ad72d0ab4106ad7e288c0423ac3f796e5b76ea175e897f89f4a1e868f7f58082"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-privacy-first-selector-v1(8fdc61e39):experiments/acs_fixed_predictions_audits.py",
+    "sha256": "a50027f5c5d356022f109018f6c5aaf332e5326ab07088e58340cf28ae828b77"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-privacy-first-selector-v1(8fdc61e39):experiments/pcrl_task_aligned_cuts_v1/audit.py",
+    "sha256": "7336e5bdf8706357a12fd63c6eeedb0031450161b65202d56b7322a22b26186d"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-privacy-first-selector-v1(8fdc61e39):experiments/pcrl_stochastic_channel_v1/slate.py",
+    "sha256": "4c621754e3acd75154a93a743645f70a28afc14fb113ec5febbac27f93f9db1a"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-privacy-first-selector-v1(8fdc61e39):experiments/pcrl_stochastic_replacement_overnight_v1/replacement.py",
+    "sha256": "e509145ababcc24d8ee16fd917e276edfa6b2af79207cb804ef7ad9c77d2a98f"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F04_nested_slate.py > outputs/F04.json ; git grep -n -i 'slate\\|ancestor\\|singleton\\|nested' <ref> -- experiments pcrl",
+  "result": {
+   "two_recipients": {
+    "seed0": {
+     "A_alone_auc": 0.7876728459694525,
+     "AB_without_nested_auc": 0.5926427894966854,
+     "AB_with_nested_auc": 0.7876728459694525,
+     "effect_without": -0.19503005647276717,
+     "effect_with": 0.0,
+     "paired_CI_without": [
+      -0.21488118395951167,
+      -0.17526338104701134
+     ]
+    },
+    "seed1": {
+     "A_alone_auc": 0.7798991949747988,
+     "AB_without_nested_auc": 0.6161652790413198,
+     "AB_with_nested_auc": 0.7798991949747988,
+     "effect_without": -0.16373391593347897,
+     "effect_with": 0.0,
+     "paired_CI_without": [
+      -0.18357380101566997,
+      -0.14219157242749023
+     ]
+    },
+    "seed2": {
+     "A_alone_auc": 0.7836333026997244,
+     "AB_without_nested_auc": 0.5819598626387638,
+     "AB_with_nested_auc": 0.7836333026997244,
+     "effect_without": -0.20167344006096066,
+     "effect_with": 0.0,
+     "paired_CI_without": [
+      -0.22178352178585747,
+      -0.18227685186485879
+     ]
+    }
+   },
+   "appended_channel": {
+    "seed0": {
+     "J_auc": 0.8352569832053052,
+     "ext_H_only_auc": 0.7703668331343638,
+     "ext_H_and_J_auc": 0.8352569832053052,
+     "increment_H_only": -0.06489015007094134,
+     "increment_H_and_J": 0.0,
+     "paired_CI_H_only": [
+      -0.0758119657575986,
+      -0.05450278987845953
+     ]
+    },
+    "seed1": {
+     "J_auc": 0.8369373843957668,
+     "ext_H_only_auc": 0.7763567647920899,
+     "ext_H_and_J_auc": 0.8369373843957668,
+     "increment_H_only": -0.06058061960367689,
+     "increment_H_and_J": 0.0,
+     "paired_CI_H_only": [
+      -0.06950143149988389,
+      -0.05080833439548553
+     ]
+    },
+    "seed2": {
+     "J_auc": 0.8386499061913696,
+     "ext_H_only_auc": 0.6976152595372108,
+     "ext_H_and_J_auc": 0.8386499061913696,
+     "increment_H_only": -0.14103464665415877,
+     "increment_H_and_J": 0.0,
+     "paired_CI_H_only": [
+      -0.15658257623164423,
+      -0.12551503375468118
+     ]
+    }
+   },
+   "source_inspection": {
+    "coalition_singletons_included": "research/pcrl-privacy-first-selector-v1:experiments/acs_coalition_audits.py:180-196 (inherit_singletons adds every A/B singleton candidate, column-projected, to AB); called at :310; parity asserted :318-327; metadata flag :337. Same file on shared-context-release-v1 (537e74a44) and task-directed-release-v1 (f4bdf4cd5).",
+    "fixed_predictions_H_anchor_ancestors": "research/pcrl-privacy-first-selector-v1:experiments/acs_fixed_predictions_audits.py:295-308 (ancestor H candidates routed into every role) then inherit_singletons :313",
+    "route_bank": "research/pcrl-privacy-first-selector-v1:experiments/pcrl_task_aligned_cuts_v1/audit.py:449-492 (own + same-role H-only ancestors; AB adds A same-release and B H-only); docstring :456 'J is a comparator, never an appended ancestor'",
+    "appended_channel_gap_documented_in_repo": "research/pcrl-privacy-first-selector-v1:experiments/pcrl_stochastic_channel_v1/slate.py:1-21 states pcrl_utility_extension_v1 routed only H-only ancestors and audited ref_J as a separate condition, so 'nothing in the extension's own slate recovers a J-only predictor'; slate.py:84-110 (add_j_anchors) adds ignore-R J anchors",
+    "replacement_study": "research/pcrl-privacy-first-selector-v1:experiments/pcrl_stochastic_replacement_overnight_v1/replacement.py:160-175 ancestor_inclusive best-of(view, H ancestor); final_prospective_v1 freeze.py:111-113 'J never an ancestor of a replacement release'"
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "Fixture: B is pure noise (150 dims, 300 fit rows), so the population combination effect is 0, yet the coalition slate without nested predictors reports -0.16 to -0.20 AUC versus A alone (paired CIs exclude 0); adding column-projected singleton fits restores equality. Appended channel: H-only ancestors leave an increment of -0.06 to -0.14 (spurious 'extension lowers recovery below J'); adding H+J ancestors restores 0. The fixture magnitudes depend on the deliberately high noise dimension and are illustrative only. Source: the ACS coalition audits on the three named refs DO include nested singletons and H ancestors; the appended-channel (J ancestor) gap existed in pcrl_utility_extension_v1 and is documented and patched (for later studies) in pcrl_stochastic_channel_v1/slate.py. Whether any stored utility-extension verdict changes was not rerun.",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": [
+    "research/pcrl-privacy-first-selector-v1@8fdc61e39",
+    "research/pcrl-shared-context-release-v1@537e74a44",
+    "research/pcrl-task-directed-release-v1@f4bdf4cd5"
+   ],
+   "note": "source inspection only; ACS audit code not executed (needs ACS data)"
+  }
+ },
+ {
+  "id": "F5",
+  "title": "Defense-aware attacker versus pre-noise (insider) access versus query averaging",
+  "question": "Does knowing sigma give access to clean h; which of (a)-(d) does durable-guarantees Tier 2 implement?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F05_defense_aware_access.py",
+    "sha256": "b4a8cbc0dd4b7c6e614af233ee3544e92d1929d6fe3478a9b915242010a14ce4"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F05.json",
+    "sha256": "9e6cc37082e7e06521eb189d5f16b0aa4e60631fab267f532f967848ca93211d"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/utils/battery.py",
+    "sha256": "5d9802ac2cfb650cd5be6ad8d381a2011764abcb9b51c8284e15a820ac599029"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/experiments/two_tier_certification.py",
+    "sha256": "9b3754344f26e4e37da5b911a1918430bca53db64bfdff191d8c5b20b8fc44af"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/experiments/averaging_attack.py",
+    "sha256": "6f6e3d61164c6534730d9c5e493d5fc2861e9a88c626597c3e4a890ccd6fbff8"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/experiments/run_knows_q.py",
+    "sha256": "0b374fb1c0d6af0f7e1f16e862dd24f289eb1a6c3b08a3a275381a3ae81b2d38"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/experiments/mi_ceiling.py",
+    "sha256": "3abc55bb8fad328867fdf8e5d8a4fbfa5bf258b294811cc4d7e4d49e296ae06b"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/README.md",
+    "sha256": "fb3eda0c8ceb525088ac3ec9495d2cd649a3364876e4611e907e1f7906fc69a9"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/averaging_attack.json",
+    "sha256": "a84912679690cbe8b73509b752482bb4cff018bada1a9c941f5b783cd14d7e8b"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/knows_q.json",
+    "sha256": "e8b73d07f008336c80262814abdc70d2bd83a1b9beb977aa913fe451ba10a01b"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F05_defense_aware_access.py > outputs/F05.json",
+  "result": {
+   "analytic_auc": {
+    "a_defense_aware_one_release": 0.6240851829770754,
+    "b_clean_h_insider": 0.7602499389065233,
+    "c_fresh_average_N1": 0.6240851829770754,
+    "c_fresh_average_N4": 0.6914624612740131,
+    "c_fresh_average_N16": 0.736455371567231,
+    "d_persistent_N1": 0.6240851829770754,
+    "d_persistent_N4": 0.6240851829770754,
+    "d_persistent_N16": 0.6240851829770754
+   },
+   "monte_carlo_auc": {
+    "a_logit_on_r": 0.6195566829069266,
+    "a_lrt_clean_fit_sigma_known": 0.6196961551384822,
+    "a_lrt_deconv_from_released_only": 0.6199284088545416,
+    "b_logit_on_clean_h": 0.7558111829789278,
+    "c_fresh_average_N1": 0.6215422946767148,
+    "d_persistent_N1": 0.628496015936255,
+    "c_fresh_average_N4": 0.6874625794012704,
+    "d_persistent_N4": 0.6188185010960174,
+    "c_fresh_average_N16": 0.7306726007616123,
+    "d_persistent_N16": 0.6212999307988928
+   },
+   "tier2_mapping": {
+    "implemented": "(a) defense-aware single-release attacker with clean TRAINING statistics: utils/battery.py:60-78 fits N(mu_k, Sigma_k + Sigma_noise) on clean train rows and scores the EXPOSED (single noised draw) held-out rows; gaussian_lrt :88-103; used by two_tier_certification.py:117-128 (full_point) with P from mi_ceiling.train_channel (one fresh-noise draw per row, mi_ceiling.py:251-262: P = h + sigma*randn, logits L = D(P)) and noise_cov = sigma^2 I (two_tier_certification.py:147)",
+    "not_implemented_by_tier2": "(b) clean test-time h; (c) multi-query averaging; (d) persistent noise",
+    "averaging": "(c) implemented separately in experiments/averaging_attack.py:10-16,110-124 (Tier-1 learners on the mean of N fresh draws); stored results/averaging_attack.json: T1 max 0.506 (N=1) -> 0.560 (N=16), breaching 0.55 at N=16",
+    "knows_q": "experiments/run_knows_q.py:1-7: for SUBSPACE channels knowing Q recovers h_perp exactly (stored max_recon_err 2.3e-5); knows-Q MLP 0.982 vs Tier-2 LRT 0.856 on the easy cell (results/knows_q.json) -> the Gaussian LRT is not an upper bound for defense-aware attackers on non-isotropic channels",
+    "claim_mismatch": "README.md:46-49 and utils/battery.py:15-21 describe Tier 2 as an attacker who 'has seen the representation before noise was added ... or anyone who can query the same row repeatedly and average'; the implemented LRT has neither test-time clean access nor averaging."
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "Gaussian toy (d=4, delta=1, tau=1, sigma=2): one-release defense-aware attackers all sit at the analytic 0.624 (logit on r 0.620, clean-fit LRT 0.620, deconvolution LRT from released data only 0.620), insider clean h 0.756 (analytic 0.760), fresh averaging N=4/16 0.688/0.731 (0.691/0.736), persistent noise N=16 0.621. Knowing sigma does not give access to h; clean training statistics only help estimation, not the test-time channel. For isotropic noise the implemented Tier 2 is approximately Bayes-optimal among single-release attackers, so it is a valid (a); it is not (b) or (c), and for subspace channels it is beaten by the knows-Q attacker.",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": [
+    "durable-guarantees@956f5c8"
+   ],
+   "note": "source inspection + stored JSON; dg LRT reimplemented independently, not imported"
+  }
+ },
+ {
+  "id": "F6",
+  "title": "Accounting for an appended constant channel",
+  "question": "Population increment is zero; can finite-sample fresh fits show nonzero/negative differences, and does paired uncertainty cover zero?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F06_constant_extension.py",
+    "sha256": "fd5bf9e987b69b18f94a4c6634611ce30b2bf37fb98836582d41c3b3491e6401"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F06.json",
+    "sha256": "58ae1d08340f8a39d3a2cf8dbd1d7147283607f7359296918dba6c93e2218491"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F06_constant_extension.py > outputs/F06.json",
+  "result": {
+   "auc_diffs_ext_minus_base": [
+    -5.06785817643296e-05,
+    -0.0013292013989066875,
+    0.0022200775204481715,
+    -0.0026361753496713103,
+    -0.00247213678238134,
+    -0.0004143196333714627
+   ],
+   "n_negative": 5,
+   "per_seed_paired_people_ci_covers_zero_logloss": [
+    true,
+    true,
+    true,
+    false,
+    false,
+    true
+   ],
+   "per_seed_paired_people_auc_ci": [
+    [
+     -0.004412385842056135,
+     0.0038972965298321957
+    ],
+    [
+     -0.003918775049489282,
+     0.002251857300428706
+    ],
+    [
+     0.0005079048324240582,
+     0.00418977749435678
+    ],
+    [
+     -0.005525984218789135,
+     0.0002843813564356464
+    ],
+    [
+     -0.0056603499330913935,
+     0.0003403613074860191
+    ],
+    [
+     -0.0023678839782511813,
+     0.0016377842675006356
+    ]
+   ],
+   "across_fits": {
+    "auc_diff_ext_minus_base": {
+     "mean": -0.0007804057042744931,
+     "t_ci95_over_fits": [
+      -0.0026738407492468783,
+      0.001113029340697892
+     ],
+     "covers_zero": true
+    },
+    "auc_diff_refit_control": {
+     "mean": -0.0011067787344965867,
+     "t_ci95_over_fits": [
+      -0.0031980061709234384,
+      0.0009844487019302652
+     ],
+     "covers_zero": true
+    },
+    "logloss_diff_ext_minus_base": {
+     "mean": 0.0017883056236715949,
+     "t_ci95_over_fits": [
+      -0.00046082640437448887,
+      0.004037437651717679
+     ],
+     "covers_zero": true
+    },
+    "logloss_diff_refit_control": {
+     "mean": 0.0018763297204410275,
+     "t_ci95_over_fits": [
+      -0.0004960626296358311,
+      0.004248722070517887
+     ],
+     "covers_zero": true
+    }
+   },
+   "sd_ext_minus_base": 0.0018042412254648168,
+   "sd_refit_control": 0.0019927162342553233
+  },
+  "verdict": "partially",
+  "scope": "Confirmed that a constant column (zero population increment) produces nonzero, mostly negative AUC differences (5/6 seeds; up to -0.0026) and changes every person's loss. Partially: paired CIs over shared evaluation people alone cover zero in only 4/6 seeds (log loss) and 5/6 (AUC) because they condition on the two fitted models; uncertainty over refits (6 seeds) covers zero for both AUC and log loss, and the constant-extension spread (sd 0.0018) equals a pure refit control (sd 0.0020). Accounting must include fit randomness, not only paired evaluation-sample uncertainty.",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": []
+  }
+ },
+ {
+  "id": "F7",
+  "title": "Positive and null controls for an adaptive attacker slate, with replay",
+  "question": "Does a validation-selected slate recover a directly included attribute, an XOR, and a contrast missed by max-per-class; does it stay at chance on a null; does a second seed agree?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F07_slate_controls.py",
+    "sha256": "30a116800b592d703bda8e0e042f2b14956fc61642a700415c231b8197cbbed3"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F07.json",
+    "sha256": "6c5674815b65e7d78faba87cf2796a13cade7122e917af15afdb9d9870f35c20"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F07_first_attempt_noise1.35.json",
+    "sha256": "ba7fbfe253b64953f284ce8dfa4c3db469f539b9b7587e2fc12f69164b86ea85"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F07_slate_controls.py > outputs/F07.json",
+  "result": {
+   "seed0": {
+    "C1_direct": {
+     "selected": "hgb",
+     "auc": 1.0,
+     "ci95": [
+      1.0,
+      1.0
+     ]
+    },
+    "C2_xor": {
+     "selected": "hgb",
+     "auc": 0.9999155542044228,
+     "ci95": [
+      0.9997576652608215,
+      0.9999973325904657
+     ],
+     "logit_auc": 0.5085988042475347
+    },
+    "C3_planted_contrast_K10": {
+     "selected": "logit",
+     "auc": 0.6716318084102093,
+     "ci95": [
+      0.6657661001200171,
+      0.6774719804704256
+     ],
+     "dominant_axis_r2": 0.03920126309146432,
+     "half_membership_auc": 0.8149141657129524
+    },
+    "C4_null": {
+     "selected": "logit",
+     "auc": 0.5050813333333333,
+     "ci95": [
+      0.48714191603417817,
+      0.5270104292828515
+     ]
+    }
+   },
+   "seed1_replay": {
+    "C1_direct": {
+     "selected": "hgb",
+     "auc": 0.9999982214127675,
+     "ci95": [
+      0.9999928777443031,
+      1.0
+     ]
+    },
+    "C2_xor": {
+     "selected": "hgb",
+     "auc": 0.9999105750955645,
+     "ci95": [
+      0.9998304072865964,
+      0.9999708483122506
+     ],
+     "logit_auc": 0.5145744798228942
+    },
+    "C3_planted_contrast_K10": {
+     "selected": "logit",
+     "auc": 0.6824500994548226,
+     "ci95": [
+      0.6768722169062275,
+      0.6877451639471708
+     ],
+     "dominant_axis_r2": 0.0454484744251169,
+     "half_membership_auc": 0.8337101488180424
+    },
+    "C4_null": {
+     "selected": "logit",
+     "auc": 0.49467318181494935,
+     "ci95": [
+      0.4707184219614278,
+      0.5145551107778605
+     ]
+    }
+   },
+   "verdicts_seed0": {
+    "C1_recovers": true,
+    "C2_linear_misses": true,
+    "C2_slate_recovers": true,
+    "C3_DA_passes_but_slate_recovers": true,
+    "C4_null_ci_contains_half": true
+   },
+   "replay_agrees": true
+  },
+  "verdict": "confirmed",
+  "scope": "All four controls behave as designed on two independent seeds. Disclosed: the first C3 design (noise 1.35) put the seed-1 dominant-axis value at 0.0509, on the 0.05 threshold, so replay disagreed; the planted noise was raised to 1.5 (fixture design, not an empirical claim) and the first output is kept. These controls validate a slate on synthetic data only; they do not certify the ACS or encoder slates.",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": []
+  }
+ },
+ {
+  "id": "F8",
+  "title": "Independent recount of headline counts from stored results",
+  "question": "Do stored per-row results reproduce 18/21 -> 3 survivors, 1/36, r/rho, and PCRL 56/60 and pilot 60/60, including final-vs-best?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F08_recount_headlines.py",
+    "sha256": "cb3fb05e7bc92fe239dfaf82cfc2cf5bada08a39613c9e8a2884505fb0147dcc"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F08.json",
+    "sha256": "f5fab9292cabee7aa7c80e4176df5b07fad2537978888ca30774b7890fcca41a"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/honest_reaudit.json",
+    "sha256": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/master_gauntlet_table.json",
+    "sha256": "a5b7d0dbe900ce73bb0c896b61e76820b9aa763ed570a1040d973afc7755351c"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/master_gauntlet_table.txt",
+    "sha256": "624c3a5ef54def44d956b0e36546973dc9ab0c4f39d3c6a644e78d016e547f91"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/continuous_cost.json",
+    "sha256": "7064543ec53ebdab71569b3fdb1cd73663b916ebb730b784d836f10e0889c77c"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/continuous_cost_adult.json",
+    "sha256": "aa3b5f69720eec6fd3f26ddf0b92b9fbbfe3f2984078c670d8b08a2ce51725c2"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/expansion_analysis.json",
+    "sha256": "329de63fcecd92297f0437946b9c266fbf04c27d6ba2a1cb903fc1568827fb29"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/per_seed_results.json",
+    "sha256": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/per_seed_results.json",
+    "sha256": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND5/per_seed_results.json",
+    "sha256": "b61e845561f3ec997e82fd4dd84c52d1c6a095613c52cb6df468d017bf9694d1"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND6/per_seed_results.json",
+    "sha256": "2f4b4a91e5013b791aed4703b59f77688d0194fa774e9cba1c241a8e70e9f435"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND7/per_seed_results.json",
+    "sha256": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/final_vs_best.json",
+    "sha256": "0aa18f73b6db76f2615e70e3235a7fd991698af78aa8c6d709300635dec2ec3b"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/final_vs_best.json",
+    "sha256": "24f217725ca0549bf708ae7d6c2817f9e7932c0f81cfbbfa845525b47472430c"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND5/final_vs_best.json",
+    "sha256": "c03d6452c6d1edb170982b4be3265f34e99ed6d548c7c020242312a7bb389600"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "sha256": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "sha256": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/verify/pcrl_results/results/v2_diabetes_ROUND7/dominant_axis_audit.json",
+    "sha256": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_adult_ERASE_PILOT/per_seed_results.json",
+    "sha256": "21ec5a6f5b3b653399e0c28b4c0d15da45dbfa5dc29cd3e0c09ca1bb96ec63a0"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_hmda_ERASE_PILOT/per_seed_results.json",
+    "sha256": "281d8c0d5164e98ee0af596a79768bf8ea65c3b100f2f2997f8e650857e512e4"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/v2_diabetes_ERASE_PILOT/per_seed_results.json",
+    "sha256": "2dec181a5e58d08f8e53f5748b6605476fb62bed638130f173fad4530d646b96"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws/rebuttal/comparison.json",
+    "sha256": "f3194dde9e8ddd279585bd077e8c4a175e20d37003cdf223efc8bca02cbec858"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/README.md",
+    "sha256": "fb3eda0c8ceb525088ac3ec9495d2cd649a3364876e4611e907e1f7906fc69a9"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F08_recount_headlines.py <dg clone> <export of origin/main results> /Users/nathansamson/PCRL/results/rebuttal/erase_layer_pilot_aws > outputs/F08.json",
+  "result": {
+   "honest_reaudit": {
+    "rows_total": 21,
+    "rows_old_verdict_breach": 3,
+    "rows_old_verdict_stopped": 18,
+    "survivors_stored_flag": 3,
+    "collapse_among_stopped": 15,
+    "distinct_stopped_measurements": 15,
+    "distinct_survivor_measurements": 2,
+    "near_bar_rows": [
+     "E2 noise|adult/sex|noise \u03c3=2.0|max=0.5620",
+     "E2 noise|adult/sex|noise \u03c3=4.0|max=0.5465",
+     "E4S1 noise|adult/sex|noise sigma=2.0|max=0.5620",
+     "E4S1 noise|hmda/race|noise sigma=8.0|max=0.5511"
+    ]
+   },
+   "master_gauntlet": {
+    "combinations": 36,
+    "certified": 1,
+    "certified_list": [
+     [
+      "hmda/race/loan_decision",
+      "VFAE",
+      "tier1"
+     ]
+    ]
+   },
+   "continuous_cost": {
+    "cost_rep_n20": {
+     "pearson": 0.7545333545475691,
+     "spearman": 0.7674945739269676,
+     "stored_pearson": 0.754533354547569,
+     "stored_spearman": 0.7674945739269676
+    },
+    "cost_durable_n20": {
+     "pearson": 0.7948746207852938,
+     "spearman": 0.8482124269192886,
+     "stored_pearson": 0.7948746207852936,
+     "stored_spearman": 0.8482124269192884
+    },
+    "cost_rep_n27": {
+     "n": 27,
+     "pearson": 0.748575288800704,
+     "spearman": 0.6983206432408675,
+     "stored_pearson": 0.7485752888007036,
+     "stored_spearman": 0.6983206432408675
+    },
+    "cost_durable_n27": {
+     "n": 27,
+     "pearson": 0.7991437704746871,
+     "spearman": 0.8281658135319308,
+     "stored_pearson": 0.7991437704746869,
+     "stored_spearman": 0.8281658135319308
+    }
+   },
+   "pcrl_encoder": {
+    "per_seed_results_selected_checkpoint": {
+     "adult_ROUND5": {
+      "strict_pass": 21,
+      "cells": 24,
+      "best_epochs": [
+       158,
+       188,
+       147
+      ],
+      "last_epochs": [
+       199,
+       199,
+       199
+      ]
+     },
+     "hmda_ROUND5": {
+      "strict_pass": 16,
+      "cells": 18,
+      "best_epochs": [
+       30,
+       78,
+       191
+      ],
+      "last_epochs": [
+       199,
+       199,
+       199
+      ]
+     },
+     "diabetes_ROUND5": {
+      "strict_pass": 18,
+      "cells": 18,
+      "best_epochs": [
+       86,
+       47,
+       71
+      ],
+      "last_epochs": [
+       199,
+       199,
+       199
+      ]
+     },
+     "diabetes_ROUND6": {
+      "strict_pass": 18,
+      "cells": 18,
+      "best_epochs": [
+       49,
+       66,
+       78
+      ],
+      "last_epochs": [
+       199,
+       199,
+       199
+      ]
+     },
+     "diabetes_ROUND7": {
+      "strict_pass": 17,
+      "cells": 18,
+      "best_epochs": [
+       197,
+       80,
+       176
+      ],
+      "last_epochs": [
+       199,
+       199,
+       199
+      ]
+     }
+    },
+    "final_vs_best_ROUND5": {
+     "adult": {
+      "best": 21,
+      "final": 23
+     },
+     "hmda": {
+      "best": 16,
+      "final": 16
+     },
+     "diabetes": {
+      "best": 18,
+      "final": 16
+     }
+    },
+    "dominant_axis_audits_final_epoch": {
+     "cells": 60,
+     "epochs": [
+      199
+     ],
+     "strict_pass_stored_onehot": 56,
+     "strict_pass_float64_identity_onehot": 56,
+     "strict_pass_dominant_axis": 55,
+     "multiclass_pair_seeds": 33,
+     "amplification_median": 1.4327958281064337,
+     "amplification_max": 12.650296539354338,
+     "n_amp_gt_1.5": 14,
+     "n_amp_gt_2": 7,
+     "hidden_cases": [
+      "hmda s1 underwriting/race onehot=0.0268 da=0.2880"
+     ],
+     "certificate_minus_float64_identity": {
+      "max_abs": 0.0032497435970307853,
+      "max_relative_understatement": 0.49865777309377324,
+      "n_cert_above_float64": 0,
+      "n_relative_understatement_gt_1pct": 5,
+      "pass_fail_flips_at_0.05": 0,
+      "worst_rows": [
+       "adult s0 employment_analysis/marital_status K=2 cert=0.00327 f64=0.00652",
+       "adult s0 employment_analysis/age_group K=4 cert=0.00538 f64=0.00749",
+       "adult s0 employment_analysis/race K=5 cert=0.00327 f64=0.00372"
+      ]
+     }
+    }
+   },
+   "erase_pilot": {
+    "total_strict": "60/60",
+    "comparison_json_pilot_strict": {
+     "adult": "24/24",
+     "hmda": "18/18",
+     "diabetes": "18/18"
+    },
+    "comparison_json_base_strict": {
+     "adult": [
+      "ROUND5",
+      "21/24"
+     ],
+     "hmda": [
+      "ROUND5",
+      "16/18"
+     ],
+     "diabetes": [
+      "ROUND7",
+      "17/18"
+     ]
+    },
+    "checkpoint_selector": [
+     "adult s0: fallback feasible=0 epoch=183",
+     "adult s1: fallback feasible=0 epoch=189",
+     "adult s2: fallback feasible=0 epoch=129",
+     "hmda s0: fallback feasible=0 epoch=150",
+     "hmda s1: fallback feasible=0 epoch=162",
+     "hmda s2: fallback feasible=0 epoch=146",
+     "diabetes s0: fallback feasible=0 epoch=68",
+     "diabetes s1: fallback feasible=0 epoch=81",
+     "diabetes s2: fallback feasible=0 epoch=16"
+    ],
+    "adult": {
+     "strict_pass": "24/24",
+     "cleanly_compliant": "0/24",
+     "status_field": "COLLAPSED",
+     "adj_pass_counts_per_seed": [
+      1,
+      0,
+      0
+     ],
+     "final_and_best_both_stored": false
+    },
+    "hmda": {
+     "strict_pass": "18/18",
+     "cleanly_compliant": "0/18",
+     "status_field": "COLLAPSED",
+     "adj_pass_counts_per_seed": [
+      0,
+      0,
+      0
+     ],
+     "final_and_best_both_stored": false
+    },
+    "diabetes": {
+     "strict_pass": "18/18",
+     "cleanly_compliant": "0/18",
+     "status_field": "COLLAPSED",
+     "adj_pass_counts_per_seed": [
+      5,
+      5,
+      5
+     ],
+     "final_and_best_both_stored": false
+    }
+   }
+  },
+  "verdict": "partially",
+  "scope": "Reproduced exactly: 3 survivors; 1/36 (VFAE tier1 hmda/race/loan_decision); r/rho 0.7949/0.8482 (n=20) and 0.7991/0.8282 (n=27); PCRL 56/60 one-hot and 55/60 dominant-axis strict passes, 33 multiclass pair-seeds, median amplification 1.43, max 12.65, 14 >1.5, 7 >2, one hidden case; pilot 60/60. Qualifications: (1) the honest-reaudit denominator 21 includes 3 rows whose certificate verdict was 'breach' (sigma 0/0.25/0.5) -- certificate-approved rows are 18, of which 15 collapse; 3 survivors are 2 distinct measurements (E2 sigma=8 and E4S1 sigma=8 are the same numbers); (2) 56/60 is the FINAL-epoch (epoch 199) audit; the selected-checkpoint per_seed_results give 54/60 (Adult 21, HMDA 16, Diabetes R7 17), which is the baseline the rebuttal pilot comparison uses; final_vs_best R5: Adult best 21 / final 23, HMDA 16/16, Diabetes best 18 / final 16; (3) the pilot stores only one checkpoint (best_epoch < 199, selector 'fallback' with 0 feasible epochs in all 9 seeds; summary STATUS 'COLLAPSED'), so final-vs-best is not verifiable for it; (4) only the adult continuous-cost shard is tracked, hmda/diabetes shard files are absent (merged rows used).",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": [
+    "durable-guarantees@956f5c8",
+    "origin/main@55e4cb1d1",
+    "local untracked erase_layer_pilot_aws"
+   ],
+   "note": "stored-result recount only; no model rerun"
+  }
+ },
+ {
+  "id": "F9",
+  "title": "Withdrawn R2-to-accuracy guarantee: 20-observation counterexample and current exposure",
+  "question": "Does affine least-squares R2 = 0 coexist with 90% threshold accuracy; is the withdrawn guarantee still exposed on origin/main?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F09_accuracy_guarantee.py",
+    "sha256": "f4291a76c1e3d97af121fd8c0c5845093f0323ea8ccf5935573053ec0d82cdbd"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F09.json",
+    "sha256": "c2f8ac4fa58f5550d01c4bde8fe24ba67f07e58cfd1f06f028fe64b5cf726ac6"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/purposes/verification.py",
+    "sha256": "36c81d945d61e941d812d5cdf9a1bd4c5a993a437ae06edcc4d38d3fe9b5d76a"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@origin/main(55e4cb1d1):pcrl/evaluation/certificates.py",
+    "sha256": "c864366d604db542273a11a584d67bbcbbd89d5554d783d72150ab11a9bf56c9"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@fix/retire-accuracy-guarantee(5d4eda046):pcrl/purposes/verification.py",
+    "sha256": "74be76e4c3374073ffe6ed59f93de5d19d3cc09eeb7c090cfbf77383b3fc3654"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL@research/pcrl-guarantee-review-v1(1dfb17f2c):docs/ACCURACY_CERTIFICATE_RETIREMENT.md",
+    "sha256": "9bdfceb0a793933dce997ad35e574a0d27d11ce9f9ff658a617146c356e7678b"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_origin_main.json",
+    "sha256": "3cfda0be482e135a35a8ff357b89a5881ed7321c6f525a4fb2339702948578d0"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/orig_research_pcrl-submission-finish-v1.json",
+    "sha256": "319438a6778c2b2fc50cc43c7233e161d2ae3fd6d12e41ddf952448e0948fd4a"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F09_accuracy_guarantee.py > outputs/F09.json ; /Users/nathansamson/PCRL/.venv/bin/python orig_compare.py ... ; git grep -n certified_accuracy_bound <ref> -- pcrl",
+  "result": {
+   "doc_example": {
+    "exact_cov_h_A": "0",
+    "ols_r2": -2.220446049250313e-16,
+    "best_threshold_accuracy": 0.9,
+    "majority_rate": 0.5
+   },
+   "own_example": {
+    "exact_cov_h_A": "0",
+    "ols_r2": 2.220446049250313e-16,
+    "best_threshold_accuracy": 0.9
+   },
+   "origin_main_certified_accuracy_bound(0,0.5,2)": 0.5,
+   "origin_main_certificate_on_example": {
+    "r_squared": 0.0,
+    "certified": true
+   },
+   "submission_finish_certified_accuracy_bound": {
+    "exception": "NotImplementedError",
+    "message": "certified_accuracy_bound is retired: affine least-squares R\u00b2 does not imply a universal classification-accuracy bound. Evaluate classification accuracy with separately fitted held-out attackers."
+   },
+   "exposure": {
+    "origin/main": "pcrl/purposes/verification.py:1-11 (module docstring 'formal theorem (Linear Compliance Guarantee)'), :204-358 live function; called by pcrl/evaluation/certificates.py:611 (generate_report prints the bound) and verification.py:529 (NonlinearComplianceCertificate)",
+    "fix/retire-accuracy-guarantee@5d4eda046": "raises NotImplementedError; NOT an ancestor of origin/main (unmerged)",
+    "research/pcrl-submission-finish-v1": "retired (verification.py:179-195 raises NotImplementedError)"
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "Exact rational arithmetic: Cov(h,A) = 0, OLS slope 0, R2 = 0, threshold accuracy 18/20 = 0.90 vs the withdrawn bound 0.50, for the repo's example and an independent one. origin/main still exposes and calls the withdrawn guarantee (returns 0.5 and certifies R2 = 0 at the example). Report only; nothing changed.",
+  "original_implementation_compared": {
+   "compared": true,
+   "refs": [
+    "origin/main@55e4cb1d1",
+    "research/pcrl-submission-finish-v1@55c0c5a35"
+   ],
+   "functions": [
+    "certified_accuracy_bound",
+    "LinearComplianceCertificate.check"
+   ]
+  }
+ },
+ {
+  "id": "F10",
+  "title": "Scope of leakage statements conditioned on a coarsened output",
+  "question": "Can leakage measured through / conditional on a coarsened output differ from the same quantity with the full continuous output, in either direction?",
+  "input_files": [
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/F10_coarse_conditioning.py",
+    "sha256": "003e24e4d7d2fef171708d3c94db3416e936aa9b3e91fe84d0b0dd90534829fd"
+   },
+   {
+    "path": "/Users/nathansamson/PCRL/.worktrees/combined-empirical-preparation-v1/results/combined_empirical_preparation_v1/fixtures/outputs/F10.json",
+    "sha256": "f90dcafd38ee3b140ac2fc74b0e284a197f3ee008f06bdafa8b85244f3dcc2a8"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/docs/imputation_baseline.md",
+    "sha256": "13e7f87c9506b7670c0fb6a62cb44d94332500b6e5165245460d234ea42cb71e"
+   },
+   {
+    "path": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/dg/results/master_gauntlet_table.txt",
+    "sha256": "624c3a5ef54def44d956b0e36546973dc9ab0c4f39d3c6a644e78d016e547f91"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 F10_coarse_conditioning.py > outputs/F10.json",
+  "result": {
+   "id": "F10",
+   "E1_output_leak_hidden_by_coarsening": {
+    "I_S_C": 0.0,
+    "I_S_Y": 0.2780719051126379,
+    "bayes_acc_S_from_C": 0.5,
+    "bayes_acc_S_from_Y": 0.8
+   },
+   "E2_residual_beyond_coarse_output_vanishes_given_full_output": {
+    "I_S_Z_given_C": 0.2780719051126379,
+    "I_S_Z_given_Y": 0.0
+   },
+   "E3_conditioning_on_full_output_creates_dependence": {
+    "I_S_Z": 0.0,
+    "I_S_Z_given_C": 0.0,
+    "I_S_Z_given_Y": 1.0
+   }
+  },
+  "verdict": "confirmed",
+  "scope": "Exact discrete examples (bits): E1 I(S;C)=0 but I(S;Y)=0.278 (Bayes accuracy 0.50 vs 0.80); E2 I(S;Z|C)=0.278 but I(S;Z|Y)=0; E3 I(S;Z|C)=0 but I(S;Z|Y)=1. So statements made from a coarse label (the durable-guarantees label-coupling predictor is fit on the 1-D discrete task label, docs/imputation_baseline.md:12-17) or conditional on it do not transfer to the continuous output (the 'out' attack reads task logits, master_gauntlet_table.txt footer), in either direction for conditional statements; for the unconditional output leak the coarse version can only be lower (C is a function of Y). Illustrative, not a claim about any cell.",
+  "original_implementation_compared": {
+   "compared": false,
+   "refs": []
+  }
+ }
+]

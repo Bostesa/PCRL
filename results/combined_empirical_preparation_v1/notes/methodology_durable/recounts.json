@@ -1,0 +1,536 @@
+[
+ {
+  "id": "R01",
+  "claim": "README: of 21 results the certificate marked as protected, 3 survived and 18 collapsed",
+  "manuscript_location": "README.md:57-60,141",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/honest_reaudit.json",
+  "sha256": {
+   "results/honest_reaudit.json": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5"
+  },
+  "field_path": "master[*].{old_verdict,honest_stopped}; survived; total",
+  "python_snippet": "import json\nd=json.load(open('honest_reaudit.json'))\nm=d['master']\nprint('total',d['total'],'survived',d['survived'])\nprint('old_verdict==stopped:',sum(r['old_verdict']=='stopped' for r in m),' breach:',sum(r['old_verdict']=='breach' for r in m))\nprint('survivors among stopped:',sum(r['honest_stopped'] for r in m if r['old_verdict']=='stopped'))\nprint('honest bar uses max(xgb,mlp) only; LoRA not in this file')",
+  "value": "total 21 survived 3\nold_verdict==stopped: 18  breach: 3\nsurvivors among stopped: 3\nhonest bar uses max(xgb,mlp) only; LoRA not in this file",
+  "matches_manuscript": {
+   "match": false,
+   "note": "3/21 reproduces as stored, but 3 of the 21 rows (E2 noise sigma=0, 0.25, 0.5) carry old_verdict='breach' in this file (attacked R2 0.104/0.087/0.068 > tau), so the file itself supports '3 of 18 certificate-stopped' (attacked instrument, Partition B). The README's 21 only holds under the at-rest instrument (Partition A, see R02). E2 sigma=1,2,8 and E4S1 sigma=1,2,8 are the same measurements counted twice (3 duplicate pairs), so distinct rows = 18, distinct survivors = 2 (sigma=4, sigma=8). One of the 21 is sigma=0 = no removal at all. The README framing (21/18/3, 1/36) predates the paper's 67/59/8 and 7/42 framing."
+  }
+ },
+ {
+  "id": "R02",
+  "claim": "Partition A (at-rest certificate approves iff linear R2<=0.05): existing 21 approved, 18 fail, 3 survive",
+  "manuscript_location": "README.md:57-60 (as 21/18/3); paper.tex:56-59 aggregates into 67/59/8",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/honest_reaudit.json, results/noise_channel_test.json",
+  "sha256": {
+   "results/honest_reaudit.json": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5",
+   "results/noise_channel_test.json": "b0a249a0df82761654a0870ce5ab69b1f484a8bba218b0054b8637653842c9b4"
+  },
+  "field_path": "noise_channel_test.rows[*].baseline_linear_r2 (E2 rows) ; honest_reaudit.master[*].old_r2 (E4S1 rows)",
+  "python_snippet": "import json\nhr=json.load(open('honest_reaudit.json')); nc=json.load(open('noise_channel_test.json'))\nbase={r['sigma_rel']:r['baseline_linear_r2'] for r in nc['rows']}\napp=fail=0\nfor r in hr['master']:\n    ar = base[float(r['method'].split('=')[1])] if r['experiment']=='E2 noise' else r['old_r2']\n    a = ar<=0.05; app+=a; fail+= (a and not r['honest_stopped'])\nprint('approved',app,'fail',fail,'survive',app-fail)",
+  "value": "approved 21 fail 18 survive 3",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. Mixed instrument: E2 rows approved by the at-rest R2 (0.008-0.035) while E4S1 rows use the LoRA-attacked R2 (selected as attacked stoppers). Partition B (attacked R2 approval) gives 18 approved / 15 fail on the same rows (expansion_analysis.json reaudit_tally.cert_approved)."
+  }
+ },
+ {
+  "id": "R03",
+  "claim": "Abstract/Intro: 67 configurations declared removed, 59 failed stronger attackers, 8 hold",
+  "manuscript_location": "paper.tex:56-59, 115-118, 305-306, 414",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/expansion_reaudit_paperframing.json",
+  "sha256": {
+   "results/expansion_reaudit_paperframing.json": "6ea313eae16c37476d7d87a377a067125ff53b8a371124abfe2e99768a973050"
+  },
+  "field_path": "existing / new_cells / combined.{approved,fail,survive}; rows[*].{approved_at_rest,honest_stopped}",
+  "python_snippet": "import json\nd=json.load(open('expansion_reaudit_paperframing.json'))\nrows=d['rows']; ap=[r for r in rows if r['approved_at_rest']]\nnf=sum(not r['honest_stopped'] for r in ap)\nprint('new approved',len(ap),'new fail',nf,'new survive',len(ap)-nf)\nprint('combined stored',d['combined'])\nimport collections\nprint('approved by dataset (new):',dict(collections.Counter(r['cell'].split('/')[0] for r in ap)))",
+  "value": "new approved 46 new fail 41 new survive 5\ncombined stored {'approved': 67, 'fail': 59, 'survive': 8, 'total_reaudited': 102}\napproved by dataset (new): {'diabetes_hospital': 14, 'folktables': 27, 'lawschool': 5}",
+  "matches_manuscript": {
+   "match": true,
+   "note": "67/59/8 = existing 21/18/3 + new 46/41/5. Caveats: (i) 'fail' = max(XGB,MLP)>0.55 on the REPRESENTATION only (honest_stopped); LoRA/LRT and the output surface are not part of this verdict despite paper.tex:306-308 ('any attacker ... on either exposed surface'); recomputing with tier1_max (incl. LoRA) gives the same 41/5. (ii) Approved configs come from Adult(20), HMDA(1), diabetes_hospital(14), folktables(27), lawschool(5); Dutch contributes 0 approved and lawschool/race 0, so '67 across the six datasets' (paper.tex:305) spans 5 datasets. (iii) 67 rows = 64 distinct measurements (appendix.tex:393-399 discloses). (iv) one of the 67 is sigma=0 (no removal)."
+  }
+ },
+ {
+  "id": "R04",
+  "claim": "94 of 102 re-audited configurations give up the attribute (regardless of certificate)",
+  "manuscript_location": "not in submitted paper; README/expansion headline only",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/expansion_analysis.json, results/expansion_reaudit_paperframing.json, results/honest_reaudit.json",
+  "sha256": {
+   "results/expansion_analysis.json": "329de63fcecd92297f0437946b9c266fbf04c27d6ba2a1cb903fc1568827fb29",
+   "results/expansion_reaudit_paperframing.json": "6ea313eae16c37476d7d87a377a067125ff53b8a371124abfe2e99768a973050",
+   "results/honest_reaudit.json": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5"
+  },
+  "field_path": "expansion_analysis.reaudit_tally.combined; headline.reaudit_combined",
+  "python_snippet": "import json\na=json.load(open('expansion_analysis.json'))\nprint(a['reaudit_tally'])\npf=json.load(open('expansion_reaudit_paperframing.json')); hr=json.load(open('honest_reaudit.json'))\nprint('recount fail all rows:', sum(not r['honest_stopped'] for r in pf['rows'])+sum(not r['honest_stopped'] for r in hr['master']), 'of', len(pf['rows'])+len(hr['master']))",
+  "value": "{'existing': {'failed': 18, 'total': 21}, 'new': {'failed': 76, 'total': 81}, 'combined': {'failed': 94, 'total': 102}, 'cert_approved': {'existing': {'false_pass': 15, 'approved': 18}, 'new': {'false_pass': 3, 'approved': 8}}}\nrecount fail all rows: 94 of 102",
+  "matches_manuscript": {
+   "match": true,
+   "note": "94/102 = 18/21 existing + 76/81 new, counting ALL re-audited configs (certificate-approved or not). It is not a manuscript number; the paper uses 59/67. Under Partition B (attacked R2) the approved set is 18+8=26 with 15+3=18 false passes (cert_approved field)."
+  }
+ },
+ {
+  "id": "R05",
+  "claim": "Mechanism split among the 59: 48 targeted projections read mean TPR@1%FPR 63%, 11 noise configs 9%",
+  "manuscript_location": "paper.tex:423-427",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/tpr_failing59.json",
+  "sha256": {
+   "results/tpr_failing59.json": "03ae6baba65fabf9fb02943d4d19ba29471aeefc73fd69b737a666779e03deb5"
+  },
+  "field_path": "configs[*].{kind,'tpr@0.01_mean'}",
+  "python_snippet": "import json,statistics as st,collections\nd=json.load(open('tpr_failing59.json'))\ng=collections.defaultdict(list)\nfor c in d['configs']: g[c['kind']].append(c['tpr@0.01_mean'])\nfor k,v in g.items(): print(k,len(v),round(st.mean(v),4))\nprint('n_configs',d['n_configs'])",
+  "value": "noise 11 0.0934\nproj 48 0.6309\nn_configs 59",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches (48 proj 0.631, 11 noise 0.093). The 11 'noise' include sigma=0 (no erasure) and duplicate sigma=1/2 rows. 'tpr@0.01' for multiclass HMDA rows is a per-class quantity; see tpr_capture worst_class = the MAX over classes."
+  }
+ },
+ {
+  "id": "R06",
+  "claim": "Seven of eight survivors read 0.9-2.1% TPR@1%FPR; the eighth (Adult sigma=4) reads 7.7%",
+  "manuscript_location": "paper.tex:732-735",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/tpr_extension.json",
+  "sha256": {
+   "results/tpr_extension.json": "32f36c5ea083e36630c2ad012385ee53679ed13a64e6cb165d99390f80b03528"
+  },
+  "field_path": "results.configs[population=='a_survivors' and not tier2_block].'tpr@0.01_mean'",
+  "python_snippet": "import json\nd=json.load(open('tpr_extension.json'))\nv=[(c['config'],round(c['tpr@0.01_mean']*100,2)) for c in d['results']['configs'] if c['population']=='a_survivors' and not c.get('tier2_block')]\nfor x in v: print(x)",
+  "value": "('honest_reaudit|adult/sex|E2 noise σ=4.0', 7.66)\n('honest_reaudit|adult/sex|E2 noise σ=8.0', 2.07)\n('honest_reaudit|adult/sex|E4S1 noise sigma=8.0', 2.07)\n('expansion|diabetes_hospital/race/readmit_30_days|noise σ=8', 1.49)\n('expansion|folktables/race/employment|noise σ=8', 0.93)\n('expansion|folktables/race/public_coverage|noise σ=8', 1.53)\n('expansion|folktables/race/income|noise σ=8', 1.37)\n('expansion|lawschool/sex/pass_bar|noise σ=8', 1.48)",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches (0.93-2.07%, Adult sigma=4 7.66%). The two Adult sigma=8 rows are one measurement. Adult rows use the XGB+MLP suite only; expansion rows include LoRA."
+  }
+ },
+ {
+  "id": "R07",
+  "claim": "README: of 36 published-method combinations, 1 certifies (VFAE T1 easy)",
+  "manuscript_location": "README.md:74-77",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/master_gauntlet_table.json",
+  "sha256": {
+   "results/master_gauntlet_table.json": "a5b7d0dbe900ce73bb0c896b61e76820b9aa763ed570a1040d973afc7755351c"
+  },
+  "field_path": "cells.<cell>.<method>.<tier>.certified",
+  "python_snippet": "import json\nd=json.load(open('master_gauntlet_table.json'))\nn=c=0; who=[]\nfor cell,ms in d['cells'].items():\n    for m,t in ms.items():\n        for tier,v in t.items():\n            n+=1; c+=v['certified']\n            if v['certified']: who.append((cell,m,tier))\nprint(c,'of',n,who)",
+  "value": "1 of 36 [('hmda/race/loan_decision', 'VFAE', 'tier1')]",
+  "matches_manuscript": {
+   "match": true,
+   "note": "1/36 matches. 36 = 6 variants (LAFTR official, LAFTR reimpl, VFAE, DANN-scrub, LEACE, Obliviator) x 3 cells x 2 tiers. Older framing; the paper adds FARE to reach 42 (R08). Certification uses the REPRESENTATION verdict only (baseline_gauntlet.py:452 `rep_{tier}_max <= BAR`); output readings are recorded but not part of the verdict."
+  }
+ },
+ {
+  "id": "R08",
+  "claim": "Seven of 42 published-method combinations pass (VFAE easy T1 + FARE 6/6)",
+  "manuscript_location": "paper.tex:603, 629",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/master_gauntlet_table.json, results/fare_gauntlet.json",
+  "sha256": {
+   "results/master_gauntlet_table.json": "a5b7d0dbe900ce73bb0c896b61e76820b9aa763ed570a1040d973afc7755351c",
+   "results/fare_gauntlet.json": "be9dc53fd16a1e7a53306f27bba26ecff724bad7b0ead1ce96621945e0407def"
+  },
+  "field_path": "master cells.*.*.*.certified + fare_gauntlet.cells[*].{tier1,tier2}.certified",
+  "python_snippet": "import json\nm=json.load(open('master_gauntlet_table.json')); f=json.load(open('fare_gauntlet.json'))\na=sum(v['certified'] for ms in m['cells'].values() for t in ms.values() for v in t.values())\nb=sum(c[t]['certified'] for c in f['cells'] for t in ('tier1','tier2'))\nprint('passes',a+b,'of',36+2*len(f['cells']))",
+  "value": "passes 7 of 42",
+  "matches_manuscript": {
+   "match": true,
+   "note": "7/42 matches. DANN-scrub is described in the repo as a 'generic mechanism, not a published system' (baseline_gauntlet.json provenance_note) yet counted among 'published removal methods' (paper.tex:61-62). FNF and Fair PCA are not in the 42."
+  }
+ },
+ {
+  "id": "R09",
+  "claim": "FARE keeps 0%, 28%, 39% of clean utility",
+  "manuscript_location": "paper.tex:68, 112, 622, 688-689",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/fare_gauntlet.json",
+  "sha256": {
+   "results/fare_gauntlet.json": "be9dc53fd16a1e7a53306f27bba26ecff724bad7b0ead1ce96621945e0407def"
+  },
+  "field_path": "cells[*].tier1.cert.{lift_own_mean,lift_lr_mean} / cells[*].clean_lift",
+  "python_snippet": "import json\nd=json.load(open('fare_gauntlet.json'))\nfor c in d['cells']:\n    k=c['tier1']['cert']; best=max(k['lift_own_mean'],k['lift_lr_mean'])\n    print(c['key'], round(100*best/c['clean_lift'],1), 'own',round(100*k['lift_own_mean']/c['clean_lift'],1), 'rep_t2',round(max(k['rep_xgb_mean'],k['rep_mlp_mean'],k['rep_lora_mean'],k['rep_lrt_mean']),3))",
+  "value": "easy 0.0 own 0.0 rep_t2 0.539\nmiddle 28.3 own 28.3 rep_t2 0.535\nhard 39.0 own 38.3 rep_t2 0.546",
+  "matches_manuscript": {
+   "match": true,
+   "note": "0.0/28.3/39.0 (lift_best = max(own head, retrained LR probe)). Baseline utility uses the better of own head and a refit probe (baseline_gauntlet.py:380,419), unlike 'deployed head accuracy' for ours (paper.tex:263). Adult FARE per-seed readings are identical across 3 'seeds' (std 0), so the 3-seed mean is one deterministic fit."
+  }
+ },
+ {
+  "id": "R10",
+  "claim": "VFAE survivor: Tier-1 0.536 at 71% (paper) / 72% (README); Tier-2 0.551-0.556; beta 1->1000 0.536->0.743; mid/hard 0.585/0.587",
+  "manuscript_location": "paper.tex:619, 659-665; README.md:76-77",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/baseline_gauntlet.json",
+  "sha256": {
+   "results/baseline_gauntlet.json": "1d117921bf326959d3bbcf6479c9861bc713f36efa30d0b0f4b57dd5a2fe991b"
+  },
+  "field_path": "cells[0].baselines[VFAE].{rows,tier1.cert}",
+  "python_snippet": "import json\nd=json.load(open('baseline_gauntlet.json'))\nfor c in d['cells']:\n    b=[x for x in c['baselines'] if x['baseline']=='VFAE'][0]; cl=c['clean_lift']\n    t1=b['tier1']\n    if t1['certified']:\n        k=t1['cert']; print(c['cell'],'cert T1',round(k['rep_tier1_max'],4),'util',round(100*k['lift_best']/cl,1),'T2 per-seed LRT',[round(x,4) for x in k['per_seed']['rep_lrt']],'T2 mean',round(k['rep_tier2_max'],4))\n        r1=[r for r in b['rows'] if r['label']=='β=1 sampled-z'][0]; r3=[r for r in b['rows'] if r['label']=='β=1000 sampled-z'][0]\n        print('  sweep seed0 beta1 T1',round(r1['tier1_max'],4),'util',round(100*r1['lift_best']/cl,1),'beta1000 T1',round(r3['tier1_max'],4))\n    else:\n        print(c['cell'],'closest T1',round(t1['closest']['tier1_max'],4))",
+  "value": "hmda/race/loan_decision cert T1 0.5347 util 72.2 T2 per-seed LRT [0.5565, 0.5509, 0.5516] T2 mean 0.553\n  sweep seed0 beta1 T1 0.5361 util 70.8 beta1000 T1 0.7428\nhmda/race/loan_amount_band closest T1 0.5851\nadult/sex/income closest T1 0.5873",
+  "matches_manuscript": {
+   "match": false,
+   "note": "Certified 3-seed point: T1 0.5347, utility 72.2% (README 72% matches). Paper's 0.536 and 71% are the seed-0 SWEEP row (0.5361, 70.8%), not the 3-seed certified values. Tier-2 0.551-0.556 = per-seed LRT range (mean 0.553). beta trend 0.536->0.743 and 0.585/0.587 match."
+  }
+ },
+ {
+  "id": "R11",
+  "claim": "Table 1 baseline utilities: LAFTR 3-17% (easy), DANN 42-69%, LEACE 82-101%, Obliviator 85-99%",
+  "manuscript_location": "paper.tex:617-621",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/laftr_official.json, results/baseline_gauntlet.json, results/obliviator_gauntlet.json",
+  "sha256": {
+   "results/laftr_official.json": "488cead63156e3f846db9c8bb5a56555d1052ec1b1089afd7834ec66fc187350",
+   "results/baseline_gauntlet.json": "1d117921bf326959d3bbcf6479c9861bc713f36efa30d0b0f4b57dd5a2fe991b",
+   "results/obliviator_gauntlet.json": "9813254b3c1bc18828f9e1461650747f118f0b81f51dabb7bd4c9ff7ec51f5e7"
+  },
+  "field_path": "cells[*].rows[*].lift_best / clean_lift; tier1.closest",
+  "python_snippet": "import json\nlo=json.load(open('laftr_official.json'))\nc=lo['cells'][0]; print('LAFTR-official easy per gamma %:',[(r['label'],round(100*r['lift_best']/c['clean_lift'],1)) for r in c['rows']], 'reported op point', c['tier1']['closest']['label'])\nob=json.load(open('obliviator_gauntlet.json'))\nprint('Obliviator reported pts %:',[round(100*c['tier1']['closest']['lift_best']/c['clean_lift'],1) for c in ob['cells']], 'sweep min',min(round(100*r['lift_best']/c['clean_lift'],1) for c in ob['cells'] for r in c['rows']))\nbg=json.load(open('baseline_gauntlet.json'))\nfor name in ('DANN-scrub','LEACE'):\n    print(name,[round(100*[b for b in c['baselines'] if b['baseline']==name][0]['tier1']['closest']['lift_best']/c['clean_lift'],1) for c in bg['cells']])",
+  "value": "LAFTR-official easy per gamma %: [('γ=0.5', 103.6), ('γ=1', 102.0), ('γ=2', 2.8), ('γ=4', 17.0), ('γ=8', 12.7)] reported op point γ=1\nObliviator reported pts %: [92.2, 99.0, 91.8] sweep min 85.0\nDANN-scrub [42.0, 69.2, 43.0]\nLEACE [100.6, 96.7, 82.2]",
+  "matches_manuscript": {
+   "match": false,
+   "note": "DANN 42/69/43 and LEACE 101/97/82 match. LAFTR '3-17%' is the easy-cell range at gamma=2,4,8 of the official run, but the operating point the master table reports for LAFTR-official easy is gamma=1 at 102% (and 79%/80% on middle/hard); the reimplementation reads 66-79% on easy. Obliviator '85-99%' spans the whole iteration sweep (iter 0 = 85.0%), whereas reported points are 92/99/92%. Ranges are not drawn from a single declared rule."
+  }
+ },
+ {
+  "id": "R12",
+  "claim": "Cost ramp: r=0.799 (95% CI 0.60-0.90), rho=0.828, n=27; external n=7 rho=0.929 (CI 0.58-0.99) r=0.872 (CI 0.35-0.98); high-coupling n=15 cost 0.018-1.000, 4 at >=0.99",
+  "manuscript_location": "paper.tex:103, 479-481, 494-496, 502-506",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/continuous_cost.json, results/expansion_cost.json",
+  "sha256": {
+   "results/continuous_cost.json": "7064543ec53ebdab71569b3fdb1cd73663b916ebb730b784d836f10e0889c77c",
+   "results/expansion_cost.json": "1a37df41258d5da3cd2015483c68f0b27935f92324c820fbbe03324a2ceabee6"
+  },
+  "field_path": "rows[*].{predictor,cost_durable,degenerate}",
+  "python_snippet": "import json,numpy as np\nfrom scipy import stats\nrows=json.load(open('continuous_cost.json'))['rows']+json.load(open('expansion_cost.json'))['rows']\np=[r for r in rows if not r['degenerate'] and r['cost_durable'] is not None]\nx=np.array([r['predictor'] for r in p]); y=np.array([r['cost_durable'] for r in p])\nr=stats.pearsonr(x,y)[0]; z=np.arctanh(r); se=1/np.sqrt(len(x)-3)\nprint('n',len(x),'r',round(r,4),'rho',round(stats.spearmanr(x,y)[0],4),'CI',np.round(np.tanh([z-1.96*se,z+1.96*se]),3))\ne=[q for q in p if q['cell'].split('/')[0] in ('folktables','lawschool','dutch')]\nxe=np.array([q['predictor'] for q in e]); ye=np.array([q['cost_durable'] for q in e]); se=1/np.sqrt(len(e)-3)\nre_=stats.pearsonr(xe,ye)[0]; rh=stats.spearmanr(xe,ye)\nprint('ext n',len(e),'r',round(re_,4),np.round(np.tanh(np.arctanh(re_)+np.array([-1.96,1.96])*se),2),'rho',round(rh[0],4),'p',round(rh[1],4),np.round(np.tanh(np.arctanh(rh[0])+np.array([-1.96,1.96])*se),2))\nh=[q for q in p if q['predictor']>0.55]; print('hi n',len(h),round(min(q['cost_durable'] for q in h),3),max(q['cost_durable'] for q in h),sum(q['cost_durable']>=0.99 for q in h))",
+  "value": "n 27 r 0.7991 rho 0.8282 CI [0.602 0.904]\next n 7 r 0.8725 [0.35 0.98] rho 0.9286 p 0.0025 [0.58 0.99]\nhi n 15 0.018 1.0 4",
+  "matches_manuscript": {
+   "match": true,
+   "note": "All match. Caveats: continuous_cost.json 'stats' holds the 20-cell values (r=0.795, rho=0.848), not the 27-cell headline the README points to (README.md:139); the 27 combine continuous_cost (20) + expansion_cost (7 non-degenerate of 9). 'CI' is Fisher-z; rho CI is Fisher-z on a Spearman coefficient (approximate). Two diabetes_hospital cells were dropped as degenerate (clean lift ~0)."
+  }
+ },
+ {
+  "id": "R13",
+  "claim": "Clustered robustness: leave-one-dataset-out Pearson 0.752-0.888; cluster bootstrap [0.70, 0.93]",
+  "manuscript_location": "paper.tex:481-484",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/clustered_correlation.json",
+  "sha256": {
+   "results/clustered_correlation.json": "f62636de3eda5733d53bc9c71fd627cdf0eb8d2e179af0c5d494ffe85addb0f9"
+  },
+  "field_path": "leave_one_dataset_out[*].pearson; cluster_bootstrap.ci95",
+  "python_snippet": "import json\nd=json.load(open('clustered_correlation.json'))\nprint([ (x['held_out'],round(x['pearson'],3)) for x in d['leave_one_dataset_out']])\nprint('ci95',[round(v,3) for v in d['cluster_bootstrap']['ci95']],'n_groups',len(d['datasets']),d['cells_per_dataset'])",
+  "value": "[('adult', 0.888), ('diabetes', 0.752), ('dutch', 0.787), ('folktables', 0.794), ('hmda', 0.796), ('lawschool', 0.81)]\nci95 [0.699, 0.928] n_groups 6 {'adult': 9, 'diabetes': 5, 'dutch': 1, 'folktables': 4, 'hmda': 6, 'lawschool': 2}",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. Only 6 clusters (adult 9, hmda 6, diabetes 5, folktables 4, lawschool 2, dutch 1); a 6-cluster bootstrap CI is fragile. Bootstrap not re-run here (stored CI read)."
+  }
+ },
+ {
+  "id": "R14",
+  "claim": "Base-rate gap correlates at r=0.819, rho=0.831 (n=27), indistinguishable from the predictor",
+  "manuscript_location": "paper.tex:498-502",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/baserate_baseline.json",
+  "sha256": {
+   "results/baserate_baseline.json": "c101881e765e42b6d7f6e6670386f2efa3aa6fdb6f926a811fb59c23472eb988"
+  },
+  "field_path": "rows[*].{gap,cost}; all27.gap",
+  "python_snippet": "import json,numpy as np\nfrom scipy import stats\nd=json.load(open('baserate_baseline.json'))\ng=np.array([r['gap'] for r in d['rows']]); c=np.array([r['cost'] for r in d['rows']])\nprint(len(g),round(stats.pearsonr(g,c)[0],4),round(stats.spearmanr(g,c)[0],4))",
+  "value": "27 0.8189 0.8309",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches (recomputed from rows). The paper treats the gap as a pre-training predictor; both it and the predictor are computed on the full cell label set (no train/test separation needed since no model is fit for the gap)."
+  }
+ },
+ {
+  "id": "R15",
+  "claim": "Representation-only cost: r=0.749 rho=0.698 (27 natural); r=0.920 rho=0.950 constructed; both-surfaces constructed 0.805/0.845",
+  "manuscript_location": "paper.tex:486-490, 507-510",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/continuous_cost.json, results/expansion_cost.json, results/cliff_or_ramp_constructed.json",
+  "sha256": {
+   "results/continuous_cost.json": "7064543ec53ebdab71569b3fdb1cd73663b916ebb730b784d836f10e0889c77c",
+   "results/expansion_cost.json": "1a37df41258d5da3cd2015483c68f0b27935f92324c820fbbe03324a2ceabee6",
+   "results/cliff_or_ramp_constructed.json": "1b73360098781bd6a57455812d49eddc888c8367b2b00b786daefff88ad1e3f9"
+  },
+  "field_path": "rows[*].cost_rep / cost_durable",
+  "python_snippet": "import json,numpy as np\nfrom scipy import stats\nrows=json.load(open('continuous_cost.json'))['rows']+json.load(open('expansion_cost.json'))['rows']\np=[r for r in rows if not r['degenerate'] and r['cost_rep'] is not None]\nx=np.array([r['predictor'] for r in p]); y=np.array([r['cost_rep'] for r in p])\nprint('natural rep',len(p),round(stats.pearsonr(x,y)[0],3),round(stats.spearmanr(x,y)[0],3))\nc=json.load(open('cliff_or_ramp_constructed.json'))['rows']\nxc=np.array([r['predictor'] for r in c])\nfor k in ('cost_rep','cost_durable'):\n    yc=np.array([r[k] for r in c]); print('constructed',k,len(c),round(stats.pearsonr(xc,yc)[0],3),round(stats.spearmanr(xc,yc)[0],4), round(stats.spearmanr(xc,yc)[1],4))\nprint('constructed base cells',sorted(set(r['cell'].split('[')[0] for r in c)))",
+  "value": "natural rep 27 0.749 0.698\nconstructed cost_rep 9 0.92 0.95 0.0001\nconstructed cost_durable 9 0.805 0.8452 0.0041\nconstructed base cells ['adult/marital_status/income', 'adult/sex/income', 'hmda/ethnicity/loan_amount_band']",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. The 9 constructed cells derive from only 3 base cells (adult/sex/income, adult/marital_status/income, hmda/ethnicity/loan_amount_band) on 2 datasets, all of which are also natural cells."
+  }
+ },
+ {
+  "id": "R16",
+  "claim": "Full-rank channel utility: T1 94.6/56.6/-0.5%, T2 55.5/21.7/-7.0% (in-sample, 5 seeds)",
+  "manuscript_location": "paper.tex:549, 626; appendix.tex:428-429; README.md:85-90",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/two_tier_certification.json",
+  "sha256": {
+   "results/two_tier_certification.json": "e380d61ff6b0dd88ab635f27cc98c58181d1d14ee227343baa1dfe6224212b32"
+  },
+  "field_path": "e2e_cells[*].{tier1,tier2}.lift_mean / clean_lift",
+  "python_snippet": "import json\nd=json.load(open('two_tier_certification.json'))\nfor c in d['e2e_cells']:\n    print(c['cell'],[round(100*c[t]['lift_mean']/c['clean_lift'],1) for t in ('tier1','tier2')],'T2 rep max',round(max(c['tier2'][k] for k in ('xgb_mean','mlp_mean','lora_mean','lrt_mean')),4))",
+  "value": "hmda/race/loan_decision [94.6, 55.5] T2 rep max 0.5377\nhmda/race/loan_amount_band [56.6, 21.7] T2 rep max 0.5496\nadult/sex/income [-0.5, -7.0] T2 rep max 0.5339",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. Verdicts are representation-surface only (no output entry in e2e_cells). Middle-cell T2 passes at LRT 0.5496 under mean-then-max aggregation; under per-seed max-then-mean (maxseed_worstpair.json d1c fullrank_tier2_middle rep macro_mean) it reads 0.553 and fails. Hard-cell 'certification' keeps no utility (-0.5%/-7.0%)."
+  }
+ },
+ {
+  "id": "R17",
+  "claim": "Out of partition: full-rank 70.8/57.2/-3.0 (T1) and 69.7/21.6/-9.6 (T2); subspace 64/97/97; max attacker delta 0.013; no verdict flips",
+  "manuscript_location": "paper.tex:127-128, 545-547, 722-726; appendix.tex:425",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/fresh_partition_generalization.json",
+  "sha256": {
+   "results/fresh_partition_generalization.json": "a79677ca8d2920935cc7044e275a0fd903a57496ce139ca386aebbe473a134cb"
+  },
+  "field_path": "cells[*].{fullrank_t1,fullrank_t2,subspace}.{utility_kept_eval_pct,delta_tier1_max,delta_lrt}; flips",
+  "python_snippet": "import json\nd=json.load(open('fresh_partition_generalization.json'))\nmx=0\nfor c in d['cells']:\n    print(c['cell'],{k:round(c[k]['utility_kept_eval_pct'],1) for k in ('fullrank_t1','fullrank_t2','subspace')},'clean_lift eval',round(c['clean_lift_eval'],4),'in-sample',round(c['clean_lift_rep_insample'],4))\n    for k in ('fullrank_t1','fullrank_t2','subspace'): mx=max(mx,abs(c[k]['delta_tier1_max']),abs(c[k]['delta_lrt']))\nprint('max |delta|',round(mx,4),'flips',d['flips'])",
+  "value": "hmda/race/loan_decision {'fullrank_t1': 70.8, 'fullrank_t2': 69.7, 'subspace': 64.0} clean_lift eval 0.0152 in-sample 0.0273\nhmda/race/loan_amount_band {'fullrank_t1': 57.2, 'fullrank_t2': 21.6, 'subspace': 96.6} clean_lift eval 0.3966 in-sample 0.4163\nadult/sex/income {'fullrank_t1': -3.0, 'fullrank_t2': -9.6, 'subspace': 96.8} clean_lift eval 0.0687 in-sample 0.1853\nmax |delta| 0.0133 flips []",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. Note Adult clean lift is 0.069 out of partition vs 0.185 in-sample on the same half (clean_lift_rep_insample), i.e. the in-sample clean model is heavily overfit; ratios with different denominators (in-sample 85% vs out-of-partition 97% for the hard subspace point) are therefore not comparable. 3 train seeds, not 5."
+  }
+ },
+ {
+  "id": "R18",
+  "claim": "Isolate-then-noise in-sample utility 102/100/84-85% at sigma=16 (5 seeds); held-out 108.8/101.6/87.3%",
+  "manuscript_location": "paper.tex:641; appendix.tex:229-233, 426-427",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/hardening_seeds.json, results/two_tier_certification.json",
+  "sha256": {
+   "results/hardening_seeds.json": "54eeaa6eda93f6bd255230ac02111140a0de088cd3d210504dad511b7f9d7d1a",
+   "results/two_tier_certification.json": "e380d61ff6b0dd88ab635f27cc98c58181d1d14ee227343baa1dfe6224212b32"
+  },
+  "field_path": "exp10_5seed[easy,middle].D.{lift_mean,lr_lift_mean}; hard_cell_sigma16_alternative; posthoc_cells[*].clean_lift",
+  "python_snippet": "import json\nh=json.load(open('hardening_seeds.json')); t=json.load(open('two_tier_certification.json'))\nD=[c['D'] for c in h['exp10_5seed']][:2]+[h['hard_cell_sigma16_alternative']]\ncl=[c['clean_lift_5seed'] for c in h['exp10_5seed']]\nref=[c['clean_lift'] for c in t['posthoc_cells']]\nprint('in-sample own',[round(100*d['lift_mean']/c,1) for d,c in zip(D,cl)])\nprint('held-out LR / posthoc clean ref',[round(100*d['lr_lift_mean']/r,1) for d,r in zip(D,ref)])\nprint('hard edge',h['hard_cell_edge'])",
+  "value": "in-sample own [102.2, 100.0, 85.3]\nheld-out LR / posthoc clean ref [108.8, 101.6, 87.2]\nhard edge {'rep_max_per_seed': [0.5473282311968906, 0.5399952958966363, 0.5609805168790458, 0.5535074813818919, 0.5584423029422485], 'worst_seed_max': 0.5609805168790458, 'n_seeds_breaching_055': 3, 'bar_all_seeds_hold': 0.57}",
+  "matches_manuscript": {
+   "match": false,
+   "note": "In-sample 102.2/100.0/85.3 and held-out 108.75/101.62/87.25 reproduce. The appendix recon table and Table-1 footnote write the hard in-sample value as 84 (the 3-seed isolate_vs_fullrank value, R19), vs 85.4 in the conventions table: two sources for one number. The held-out convention divides a retrained-LR lift on rows the encoder saw by a DIFFERENT model's clean reference (post-hoc arm's frozen encoder), so >100% is partly a denominator artifact. Hard-cell exp10 winner (sigma=8) breaches at 3/5 seeds (worst 0.561); paper's 'breaches at five seeds' (paper.tex:589) means 'under 5-seed evaluation', 3 of 5 seeds breach."
+  }
+ },
+ {
+  "id": "R19",
+  "claim": "Matched-T1 comparison: isolate 101.6/100.4/84.3% vs full-rank 1.9/38.6/0.1%; LRT full-rank 0.52-0.58 vs subspace 0.66-0.86",
+  "manuscript_location": "paper.tex:576-582",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/isolate_vs_fullrank.json",
+  "sha256": {
+   "results/isolate_vs_fullrank.json": "471a4ccd7130f16556118115e1cb2d4cb1d6e1b0c7d66bbdeb4990acc5f5cc46"
+  },
+  "field_path": "rows[*].{isolate,fullrank}.{util_mean,lrt_mean,t1_max_mean}, fullrank.sigma",
+  "python_snippet": "import json\nd=json.load(open('isolate_vs_fullrank.json'))\nfor r in d['rows']:\n    print(r['cell'],'iso',round(r['isolate']['util_mean'],1),round(r['isolate']['t1_max_mean'],3),round(r['isolate']['lrt_mean'],3),'| full sigma',r['fullrank']['sigma'],round(r['fullrank']['util_mean'],1),round(r['fullrank']['t1_max_mean'],3),round(r['fullrank']['lrt_mean'],3))",
+  "value": "easy iso 101.6 0.509 0.854 | full sigma 32.0 1.9 0.508 0.522\nmiddle iso 100.4 0.535 0.864 | full sigma 16.0 38.6 0.534 0.571\nhard iso 84.3 0.537 0.662 | full sigma 32.0 0.1 0.532 0.581",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. Framing caveat: full-rank is matched to the isolate point's T1 reading (0.509 on easy), which is far below the 0.55 bar, forcing sigma=32 on easy; at the bar the full-rank channel already passes T1 at 94.6%/56.6% (R16). The ~100pp easy-cell gap is an artifact of matching to over-protection, the honest at-bar gap is ~8pp easy / ~43pp middle / ~85pp hard. 3 train seeds x 2 probe seeds."
+  }
+ },
+ {
+  "id": "R20",
+  "claim": "Averaging attack: AUC 0.506/0.520/0.530/0.560 at N=1/4/8/16; 'effect stronger on the other two' cells",
+  "manuscript_location": "paper.tex:553-561; appendix.tex:241-245",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/averaging_attack.json, results/tpr_capture.json",
+  "sha256": {
+   "results/averaging_attack.json": "a84912679690cbe8b73509b752482bb4cff018bada1a9c941f5b783cd14d7e8b",
+   "results/tpr_capture.json": "73d5f8785ea3ebe2f128b52678353782cc1392e494b81738bb76747b775bdfdf"
+  },
+  "field_path": "averaging_attack.rows[*].tier1_max_mean; tpr_capture.averaging[*]",
+  "python_snippet": "import json,collections,statistics as st\na=json.load(open('averaging_attack.json'))\nprint('easy',[(r['N'],round(r['tier1_max_mean'],4)) for r in a['rows']],'train_seed',a['config']['train_seed'])\ng=collections.defaultdict(list)\nfor r in json.load(open('tpr_capture.json'))['averaging']: g[(r['cell'],r['N'])].append(r['tier1_max'])\nprint({k:round(st.mean(v),3) for k,v in sorted(g.items())})",
+  "value": "easy [(1, 0.506), (2, 0.5141), (4, 0.5204), (8, 0.5304), (16, 0.5596)] train_seed 0\n{('hard', 1): 0.536, ('hard', 4): 0.547, ('hard', 8): 0.55, ('hard', 16): 0.559, ('middle', 1): 0.531, ('middle', 4): 0.622, ('middle', 8): 0.808, ('middle', 16): 0.929}",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Easy matches (single training seed, 2 probe seeds). The 'stronger on the other two' clause is backed only by tpr_capture.json (5 seeds): middle crosses at N=4 (0.62), but hard reaches 0.559 only at N=16 (0.550 at N=8), i.e. about the same as easy, not stronger. Noise is fresh per query, so averaging N releases is the attack; no N large enough to recover the clean vector (N->inf) is run."
+  }
+ },
+ {
+  "id": "R21",
+  "claim": "Bar sensitivity: 64 / 59 / 51 of 67 approved fail at bar 0.52 / 0.55 / 0.60; gauntlet 0 / 1 / 4 of 36 pass",
+  "manuscript_location": "appendix.tex:389-402",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/honest_reaudit.json, results/expansion_reaudit_paperframing.json, results/expansion_reaudit.json, results/baseline_gauntlet.json, results/laftr_official.json, results/obliviator_gauntlet.json",
+  "sha256": {
+   "results/honest_reaudit.json": "3d3d7ecd6ae4df40cd84a77e5b8c4c9360449ee7a0298c6d05ceb50e9ae7a5a5",
+   "results/expansion_reaudit_paperframing.json": "6ea313eae16c37476d7d87a377a067125ff53b8a371124abfe2e99768a973050",
+   "results/expansion_reaudit.json": "9211b3e867afd938a726406a814459bd696e081ade28a191f98f96e7d3b2407e",
+   "results/baseline_gauntlet.json": "1d117921bf326959d3bbcf6479c9861bc713f36efa30d0b0f4b57dd5a2fe991b",
+   "results/laftr_official.json": "488cead63156e3f846db9c8bb5a56555d1052ec1b1089afd7834ec66fc187350",
+   "results/obliviator_gauntlet.json": "9813254b3c1bc18828f9e1461650747f118f0b81f51dabb7bd4c9ff7ec51f5e7"
+  },
+  "field_path": "max(xgb_auc,mlp_auc) per approved row; baselines tier{1,2} cert/closest maxima",
+  "python_snippet": "import json\nhr=json.load(open('honest_reaudit.json')); pf=json.load(open('expansion_reaudit_paperframing.json')); er={(r['cell'],r['method']):r for r in json.load(open('expansion_reaudit.json'))['master']}\nv=[max(r['xgb_auc'],r['mlp_auc']) for r in hr['master']]+[max(er[(r['cell'],r['method'])]['xgb_auc'],er[(r['cell'],r['method'])]['mlp_auc']) for r in pf['rows'] if r['approved_at_rest']]\nprint(len(v),{b:sum(x>b for x in v) for b in (0.52,0.55,0.60)})\nit=[]\nfor c in json.load(open('baseline_gauntlet.json'))['cells']:\n    for b in c['baselines']:\n        for t in ('tier1','tier2'):\n            T=b[t]; it.append(T['cert'][f'rep_{t}_max'] if T['certified'] else T['closest'][f'{t}_max'])\nfor f in ('laftr_official.json','obliviator_gauntlet.json'):\n    for c in json.load(open(f))['cells']:\n        for t in ('tier1','tier2'):\n            T=c[t]; it.append(T['cert'][f'rep_{t}_max'] if T['certified'] else T['closest'][f'{t}_max'])\nprint(len(it),{b:sum(x<=b for x in it) for b in (0.52,0.55,0.60)})",
+  "value": "67 {0.52: 64, 0.55: 59, 0.6: 51}\n36 {0.52: 0, 0.55: 1, 0.6: 4}",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. The gauntlet alternative-bar counts reuse the 0.55-selected operating points (seed-0 sweep 'closest' rows); they are not re-selected/re-certified at the alternative bar, so they are approximate."
+  }
+ },
+ {
+  "id": "R22",
+  "claim": "Max over seeds: 6 of the 7 distinct survivors still pass (exception Adult sigma=4)",
+  "manuscript_location": "paper.tex:738-741",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/maxseed_worstpair.json",
+  "sha256": {
+   "results/maxseed_worstpair.json": "d259629efa7b22fb2ff954bc9e75c7649d19a1b9ddb8c9cd3a3adc138202f665"
+  },
+  "field_path": "d1a_survivors.{n_distinct,n_pass_max}; rows[*].flips",
+  "python_snippet": "import json\nd=json.load(open('maxseed_worstpair.json'))['d1a_survivors']\nprint(d['n_distinct'],d['n_pass_mean'],d['n_pass_max'],[r['label'] for r in d['rows'] if r['flips']])",
+  "value": "7 7 6 ['adult/sex noise sigma_rel=4']",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches. 'Max over seeds' here = max over 2 probe seeds for the Adult rows (single training seed), not over training seeds."
+  }
+ },
+ {
+  "id": "R23",
+  "claim": "Worst-pair: HMDA/race operating points sit 0.01-0.11 above the bar across nine affected passes; Table-1 fn7 0.014 / 0.060 (rep), 0.069 (easy output)",
+  "manuscript_location": "paper.tex:646-649, 742-745",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/maxseed_worstpair.json",
+  "sha256": {
+   "results/maxseed_worstpair.json": "d259629efa7b22fb2ff954bc9e75c7649d19a1b9ddb8c9cd3a3adc138202f665"
+  },
+  "field_path": "d1c_d2_ours[*].{worst_mean,flips_on_pair}",
+  "python_snippet": "import json\nd=json.load(open('maxseed_worstpair.json'))['d1c_d2_ours']\na=[r for r in d if r['flips_on_pair']]\nprint(len(a),round(min(r['worst_mean'] for r in a)-0.55,3),round(max(r['worst_mean'] for r in a)-0.55,3))\nprint([(r['config'],r['surface'],round(r['worst_mean']-0.55,3)) for r in d if r['config'].startswith('subspace')])\nprint('fullrank_tier2_middle rep macro_mean',[round(r['macro_mean'],4) for r in d if r['config']=='fullrank_tier2_middle' and r['surface']=='rep'])",
+  "value": "9 0.014 0.105\n[('subspace_easy', 'rep', 0.014), ('subspace_easy', 'out', 0.069), ('subspace_middle', 'rep', 0.06), ('subspace_middle', 'out', 0.286), ('subspace_hard', 'rep', -0.009), ('subspace_hard', 'out', 0.04)]\nfullrank_tier2_middle rep macro_mean [0.5532]",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches (0.014-0.105; 0.014/0.060/0.069). The nine include output-surface rows. Same file shows full-rank T2 middle rep macro_mean = 0.553 (> bar) under max-then-mean aggregation, contradicting the pass reported from two_tier_certification under mean-then-max (0.5496)."
+  }
+ },
+ {
+  "id": "R24",
+  "claim": "Supported-class (>=3000 rows) criterion: subspace clears at sigma=256 with 49.7% (easy) and sigma=1024 with 76.2% (middle); null 0.522 vs all-pairs 0.556",
+  "manuscript_location": "paper.tex:745-750",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/worstpair_supported_sweep.json, results/gate_5seed.json, results/worstpair_null.json",
+  "sha256": {
+   "results/worstpair_supported_sweep.json": "0200b48da47e884fcaecca7349b9ca4f6b80e18928108a0f4143cc4650460f1a",
+   "results/gate_5seed.json": "1413bb69983947bd1c18715855cf8f29def87df98d7e8e068a22fc3204717568",
+   "results/worstpair_null.json": "021bc5237a845118ecead8e0ae80af1f1e9c0a113cee63b7e38dff95e9dc0c36"
+  },
+  "field_path": "results[channel=subspace].passing.util_pct; gate_5seed.cells[*].util_pct; worstpair_null.{worstpair_max,worstpair_mean}",
+  "python_snippet": "import json\ns=json.load(open('worstpair_supported_sweep.json'))\nprint([(r['cell'],r['passing']['sigma'],round(r['passing']['util_pct'],1)) for r in s['results'] if r['channel']=='subspace'])\ng=json.load(open('gate_5seed.json'))\nprint('5-seed',[(c['cell'],c['sigma'],round(c['util_pct'],1),c['n_seeds_negative_lift']) for c in g['cells']],g['scoring']['G4']['verdict'])\nn=json.load(open('worstpair_null.json')); print('null max',round(n['worstpair_max'],4),'mean',round(n['worstpair_mean'],4),'p95',round(n['worstpair_p95'],4),'n',n['n_measurements'])",
+  "value": "[('easy', 256.0, 49.7), ('middle', 1024.0, 76.2)]\n5-seed [('easy', 256.0, 41.0, 1), ('middle', 1024.0, 77.4, 0)] FALSIFIED\nnull max 0.5556 mean 0.5361 p95 0.5544 n 27",
+  "matches_manuscript": {
+   "match": false,
+   "note": "3-seed values 49.7/76.2 match, but the registered 5-seed recertification (gate_5seed.json, committed 6a625e7 at 2026-07-29 03:06 EDT, ~2h BEFORE the submitted PDF was built at 04:57 EDT) gives easy 41.0% (1 of 5 seeds negative lift; registered G4 FALSIFIED) and middle 77.4%. Paper quotes the stale 3-seed 49.7% while claiming headline points are re-run at five seeds (paper.tex:262). Also the 'all-pairs null 0.556' is the MAX over 27 null measurements (mean 0.536, p95 0.554), so 'no configuration can clear it' (paper.tex:749-750) overstates: the expected null is below the bar."
+  }
+ },
+ {
+  "id": "R25",
+  "claim": "Subspace channel: knows-Q attacker 0.92-0.99, above the Gaussian LRT's 0.66-0.94 on the same cells",
+  "manuscript_location": "paper.tex:567-571",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/knows_q.json, results/two_tier_certification.json",
+  "sha256": {
+   "results/knows_q.json": "e8b73d07f008336c80262814abdc70d2bd83a1b9beb977aa913fe451ba10a01b",
+   "results/two_tier_certification.json": "e380d61ff6b0dd88ab635f27cc98c58181d1d14ee227343baa1dfe6224212b32"
+  },
+  "field_path": "knows_q.cells[*].{knows_q_max,lrt}; posthoc_cells[*].winner_tier1.lrt",
+  "python_snippet": "import json\nk=json.load(open('knows_q.json'))\nprint([(c['cell'],round(c['knows_q_max'],3),round(c['lrt'],3)) for c in k['cells']])\nt=json.load(open('two_tier_certification.json'))\nprint('posthoc LRT',[round(c['winner_tier1']['lrt'],3) for c in t['posthoc_cells']])",
+  "value": "[('easy', 0.982, 0.856), ('middle', 0.99, 0.864), ('hard', 0.918, 0.662)]\nposthoc LRT [0.923, 0.944, 0.793]",
+  "matches_manuscript": {
+   "match": false,
+   "note": "knows-Q 0.918-0.990 matches; on the same (e2e subspace) cells the LRT reads 0.66-0.86, not 0.66-0.94. 0.94 is the post-hoc arm's LRT (0.923/0.944), a different model."
+  }
+ },
+ {
+  "id": "R26",
+  "claim": "Prop-2 computed witness: attacker AUC 0.618/0.604/0.540/0.548/0.575/0.534; dmin/sigma 0.016-0.171",
+  "manuscript_location": "appendix.tex:159-197",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/prop2_witness_recompute.json, results/prop2_witness_amountband.json, results/mi_ceiling.json",
+  "sha256": {
+   "results/prop2_witness_recompute.json": "9757f98bb8c6aaf39d8dd080a797a10ed3ebf5ea06bc3650783200bbba68ffdc",
+   "results/prop2_witness_amountband.json": "9181af6eed11870a6d485c7d267534d2be8f32dcbc663299ae51d5a038eef57f",
+   "results/mi_ceiling.json": "d121a88afbcefb90cc9a7f46f832fb50caa787e78a7f29e286605fe07d36ea7e"
+  },
+  "field_path": "rows[*].{appendix_faithful_auc,dmin_over_sigma}",
+  "python_snippet": "import json\na=json.load(open('prop2_witness_recompute.json'))['rows']; b={(r['tier']):r for r in json.load(open('prop2_witness_amountband.json'))['rows']}\nout=[]\nfor r in a:\n    if r['label'].startswith('middle'): r=b[r['tier']]\n    out.append((r['label'],r['tier'],round(r['appendix_faithful_auc'],3),round(r['dmin_over_sigma'],3)))\nprint(out); print('dmin/sigma range',min(x[3] for x in out),max(x[3] for x in out))\nm=json.load(open('mi_ceiling.json'))['operating_point_extension']['points']; print('README Table-2 command prints worst_case_auc',[round(p['worst_case_auc'],3) for p in m])",
+  "value": "[('easy (HMDA/decision)', 'T1', 0.618, 0.139), ('middle (HMDA/amount)', 'T1', 0.604, 0.099), ('easy (HMDA/decision)', 'T2', 0.54, 0.028), ('middle (HMDA/amount)', 'T2', 0.548, 0.041), ('hard (Adult/income)', 'T1', 0.575, 0.171), ('hard (Adult/income)', 'T2', 0.534, 0.064)]\ndmin/sigma range 0.028 0.171\nREADME Table-2 command prints worst_case_auc [0.993, 0.96, 0.849, 0.804, 0.717, 0.593]",
+  "matches_manuscript": {
+   "match": false,
+   "note": "AUC column matches after the amount-band channel correction. The caption's lower bound 0.016 is the dmin/sigma of the MISLABELLED middle-T2 row (loan_decision channel); with the corrected channel the range is 0.028-0.171. README's 'Table 2' command prints mi_ceiling.json operating_point_extension (marginal witness 0.993/0.960/...), which prop2_witness_recompute.json documents as a different, non-faithful construction."
+  }
+ },
+ {
+  "id": "R27",
+  "claim": "Headline cells: clean accuracies 0.915/0.619/0.895 vs majority 0.893/0.210/0.752; lifts 0.022/0.409/0.144",
+  "manuscript_location": "paper.tex:219-223",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/number_reports.json, results/fresh_partition_generalization.json, results/two_tier_certification.json",
+  "sha256": {
+   "results/number_reports.json": "a0176b631e324cf2dd34db99c4ace9b17b62d8b553717a0f9a5a07ed2aee76bf",
+   "results/fresh_partition_generalization.json": "a79677ca8d2920935cc7044e275a0fd903a57496ce139ca386aebbe473a134cb",
+   "results/two_tier_certification.json": "e380d61ff6b0dd88ab635f27cc98c58181d1d14ee227343baa1dfe6224212b32"
+  },
+  "field_path": "number_reports.a_headline_accuracies[*]",
+  "python_snippet": "import json\nfor r in json.load(open('number_reports.json'))['a_headline_accuracies']:\n    print(r['cell'],round(r['clean_accuracy'],3),round(r['majority_baseline_acc'],3),round(r['clean_lift_insample'],3),r['source_lift'],'|',r['source_majority'])",
+  "value": "easy 0.915 0.893 0.022 two_tier_certification.json:e2e_cells.clean_lift | fresh_partition_generalization.json:cells.task_maj_eval\nmiddle 0.619 0.21 0.409 two_tier_certification.json:e2e_cells.clean_lift | fresh_partition_generalization.json:cells.task_maj_eval\nhard 0.895 0.752 0.143 two_tier_certification.json:e2e_cells.clean_lift | fresh_partition_generalization.json:cells.task_maj_eval",
+  "matches_manuscript": {
+   "match": false,
+   "note": "Numbers reproduce but 'clean accuracy' is not measured: it is constructed as majority rate from fresh_partition eval half (task_maj_eval) + in-sample clean lift from two_tier_certification (5 seeds on the training partition). Measured out-of-partition clean lift on Adult is 0.069 (R17), so the in-sample 0.895 overstates held-out clean accuracy (~0.82)."
+  }
+ },
+ {
+  "id": "R28",
+  "claim": "Adult survivors at Tier 2: 'five of the eight still leak to an attacker who knows the defense'; 'four of the five read 0.55-0.58'",
+  "manuscript_location": "paper.tex:59-61, 435-437; appendix.tex:199",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/number_reports.json, results/expansion_reaudit_paperframing.json",
+  "sha256": {
+   "results/number_reports.json": "a0176b631e324cf2dd34db99c4ace9b17b62d8b553717a0f9a5a07ed2aee76bf",
+   "results/expansion_reaudit_paperframing.json": "6ea313eae16c37476d7d87a377a067125ff53b8a371124abfe2e99768a973050"
+  },
+  "field_path": "c_adult_survivors_tier2.rows[*].above_bar; rows[approved & survive].tier2_max",
+  "python_snippet": "import json\nn=json.load(open('number_reports.json'))['c_adult_survivors_tier2']\nprint('adult rows above bar',n['n_above_bar'],'of',n['n_total'])\npf=json.load(open('expansion_reaudit_paperframing.json'))\ns=[round(r['tier2_max'],3) for r in pf['rows'] if r['approved_at_rest'] and r['honest_stopped']]\nprint('expansion survivors T2',s,'above',sum(x>0.55 for x in s))",
+  "value": "adult rows above bar 1 of 3\nexpansion survivors T2 [0.565, 0.531, 0.577, 0.564, 0.552] above 4",
+  "matches_manuscript": {
+   "match": true,
+   "note": "1 (Adult sigma=4, LRT 0.555) + 4 (0.552/0.564/0.565/0.577) = 5 of 8. The Adult LRT values come from mi_ceiling.json (a different pipeline run at the matching sigma, appendix.tex:199), not from the re-audit suite; the two Adult sigma=8 rows are one measurement, so 5 of 7 distinct."
+  }
+ },
+ {
+  "id": "R29",
+  "claim": "TPR@1%FPR at surviving operating points on the protected surface: 1.4-3.7%",
+  "manuscript_location": "paper.tex:728-731",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/tpr_capture.json",
+  "sha256": {
+   "results/tpr_capture.json": "73d5f8785ea3ebe2f128b52678353782cc1392e494b81738bb76747b775bdfdf"
+  },
+  "field_path": "tpr.<point>.rep.per_seed[*].'worst_class_tpr@0.01'",
+  "python_snippet": "import json,statistics as st\nd=json.load(open('tpr_capture.json'))['tpr']\nv={k:round(100*st.mean(p.get('worst_class_tpr@0.01',p.get('tpr@0.01')) for p in s['rep']['per_seed'].values()),2) for k,s in d.items() if (k.startswith('subspace') or k.startswith('fullrank'))}\nprint(v, min(v.values()), max(v.values()))",
+  "value": "{'subspace_easy': 1.56, 'fullrank_tier1_easy': 3.69, 'fullrank_tier2_easy': 2.28, 'subspace_middle': 2.59, 'fullrank_tier1_middle': 2.75, 'fullrank_tier2_middle': 2.25, 'subspace_hard': 2.47, 'fullrank_tier1_hard': 2.57, 'fullrank_tier2_hard': 1.43} 1.43 3.69",
+  "matches_manuscript": {
+   "match": true,
+   "note": "Matches (1.43-3.69). 'worst_class_tpr' is the MAX per-class TPR (most-exposed class), with classes as small as 126 test rows (HMDA race class 4)."
+  }
+ },
+ {
+  "id": "R30",
+  "claim": "FARE certificate reads 0.000 on the multiclass cell while three configurations leak race pairs at 0.603-0.610",
+  "manuscript_location": "paper.tex:692-694",
+  "repository": "Bostesa/durable-guarantees@956f5c883f515646aa457db55ecbd74b913768b2",
+  "file": "results/fare_gauntlet.json",
+  "sha256": {
+   "results/fare_gauntlet.json": "be9dc53fd16a1e7a53306f27bba26ecff724bad7b0ead1ce96621945e0407def"
+  },
+  "field_path": "cells[middle].rows[tag in k10_a0.5,k25_a0.5,k25_a0.75].{dp_ub,tier1_max}",
+  "python_snippet": "import json\nc=json.load(open('fare_gauntlet.json'))['cells'][1]\nprint([(r['tag'],r['dp_ub'],round(r['tier1_max'],3)) for r in c['rows'] if r['tag'].split('_ts')[0] in ('k10_a0.5','k25_a0.5','k25_a0.75')])\nprint('dp_ub available',sum(r['dp_ub'] is not None for r in c['rows']),'of',len(c['rows']))",
+  "value": "[('k10_a0.5_ts0', 0.0, 0.603), ('k25_a0.5_ts0', 0.0, 0.61), ('k25_a0.75_ts0', 0.0, 0.606)]\ndp_ub available 14 of 25",
+  "matches_manuscript": {
+   "match": false,
+   "note": "Values 0.603-0.610 reproduce but they are macro one-vs-rest Tier-1 AUCs (max(XGB,MLP)), not race-PAIR readings; FARE's dp_ub bounds downstream demographic parity, not attribute recovery (docs/fare_results.md:66-69 says so), and is null on 11 of 25 seed-0 middle sweep rows (34/75 per docs/fare_results.md:31)."
+  }
+ }
+]

@@ -1,0 +1,876 @@
+{
+ "role": "methodology_pcrl_acs",
+ "created": "2026-10-01",
+ "lineage_status": "SaTML 27 manuscript registered 2026-09-23, withdrawn by an author 2026-09-26 (coordinator); not under review",
+ "manuscript_sources": {
+  "main_tex": {
+   "ref": "research/pcrl-submission-finish-v1",
+   "commit": "55c0c5a358eea193e6d2293a2c814a5435487d14",
+   "path": "papers/pcrl_satml_final_v1/main.tex",
+   "title": "Task-Directed Releases Beside a Fixed Prediction Service: Measuring Additional Sensitive Recovery for Single and Colluding Recipients"
+  },
+  "downloads_pdf": {
+   "path": "/Users/nathansamson/Downloads/PCRL_SaTML_Manuscript.pdf",
+   "sha256": "7c8e80e2e77f71f37102e127341cce6a58efb45e68c9d49bae68bb14f550dfd3",
+   "title": "Sharing Data for Specific Predictions with Privacy Constraints",
+   "note": "text not present in any git ref; abstract numbers identical to main.tex; differs in title, Fig.1 annotation, P-1 wording fixed, adds \"point estimates meet the 0.003-nat improvement target\" sentence"
+  }
+ },
+ "method": "standalone python3 (stdlib only: hashlib, json, subprocess, statistics.NormalDist); reads git blobs with git show; no repository imports; no data rows read",
+ "script": {
+  "sha256": "f80fae46dcd2bdd24b36b813ed68206680af604f1aa0be7f42e119c595ef3533",
+  "source": "#!/usr/bin/env python3\n\"\"\"Standalone recount of the SaTML-candidate headline numbers (methodology_pcrl_acs, 2026-10-01).\n\nNo repository imports. Reads git blobs via `git show <ref>:<path>`, hashes the exact blob bytes,\nrecomputes each headline quantity from stored fields, and prints a JSON list.\n\"\"\"\nimport hashlib, json, subprocess, sys\nfrom statistics import NormalDist\n\nREPO = '/Users/nathansamson/PCRL'\nTD = 'f4bdf4cd5bf74c634feeec50aef78bff249667e4'   # research/pcrl-task-directed-release-v1\nFP = '5e154e5c4fdaeb23d327a0ebefe838525f1a19cb'   # research/pcrl-final-prospective-v1\nSUB = '55c0c5a358eea193e6d2293a2c814a5435487d14'  # research/pcrl-submission-finish-v1\nTDR = 'results/pcrl_task_directed_release_v1/'\nFPR = 'results/pcrl_final_prospective_v1/'\nQ, D17, D33 = 'T0_L_0.01_a17', 'T0_U_unconstrained_a17', 'T0_U_unconstrained_a33'\nN = NormalDist()\n_cache = {}\n\n\ndef blob(ref, path):\n    key = (ref, path)\n    if key not in _cache:\n        raw = subprocess.run(['git', '-C', REPO, 'show', f'{ref}:{path}'], check=True, capture_output=True).stdout\n        oid = subprocess.run(['git', '-C', REPO, 'rev-parse', f'{ref}:{path}'], check=True,\n                             capture_output=True, text=True).stdout.strip()\n        _cache[key] = (raw, hashlib.sha256(raw).hexdigest(), oid)\n    return _cache[key]\n\n\ndef js(ref, path):\n    return json.loads(blob(ref, path)[0])\n\n\nrows = []\n\n\ndef add(quantity, manuscript_value, location, ref, path, field, stored, recomputed, method, match, notes=''):\n    raw, sha, oid = blob(ref, path)\n    rows.append({'quantity': quantity, 'manuscript_value': manuscript_value, 'manuscript_location': location,\n                 'ref': ref, 'path': path, 'blob_sha': oid, 'sha256': sha, 'field_path': field,\n                 'stored_value': stored, 'recomputed_value': recomputed, 'method': method,\n                 'match': bool(match), 'notes': notes})\n\n\nMAIN = f'{SUB[:9]}:papers/pcrl_satml_final_v1/main.tex'\n\n# ---------------- development (2018) ----------------\nH = js(TD, TDR + 'HEADLINE_EVIDENCE.json')\nu = H['nominees']['utility_first']\nassert u['configuration'] == Q\nfor w, mv in (('unweighted', '0.01625'), ('PWGTP', '0.01639')):\n    v = u['task']['loss_delta_J'][w]\n    add(f'dev task improvement over J ({w})', mv, MAIN + ':278-279 (abstract :30-31 gives 0.0163)', TD, TDR + 'HEADLINE_EVIDENCE.json',\n        f'/nominees/utility_first/task/loss_delta_J/{w}', v, round(-v, 5), 'negate loss delta; round 5 dp',\n        abs(round(-v, 5) - float(mv)) < 5e-6)\n    # selected - J selected\n    J = H['fixed_task_path']['J']['selected'][w]\n    sel = u['task']['selected'][w]\n    add(f'dev task delta recomputed from selected CE ({w})', mv, MAIN + ':278', TD, TDR + 'HEADLINE_EVIDENCE.json',\n        f'/nominees/utility_first/task/selected/{w} - /fixed_task_path/J/selected/{w}', v, sel - J,\n        'CE(Q selected) - CE(J selected)', abs((sel - J) - v) < 1e-12)\nub = u['J_utility_bounds']\nadd('dev task adjusted bounds exclude zero (both weightings)', 'bounds excluding zero', MAIN + ':30-31,279', TD,\n    TDR + 'HEADLINE_EVIDENCE.json', '/nominees/utility_first/J_utility_bounds[*].upper',\n    [b['upper'] for b in ub], all(b['upper'] < 0 for b in ub), 'all upper < 0', all(b['upper'] < 0 for b in ub))\nsens = u['sensitive']\ninc = {(r, w): sens[r][w]['recovery_increment_over_J'] for r in sens for w in sens[r]}\nnfav = sum(v < 0 for v in inc.values())\nadd('dev sensitive point estimates favouring Q over J', '8 of 8', MAIN + ':31-32,299-300', TD, TDR + 'HEADLINE_EVIDENCE.json',\n    '/nominees/utility_first/sensitive/*/*/recovery_increment_over_J', {f'{r}|{w}': v for (r, w), v in inc.items()},\n    f'{nfav}/{len(inc)}', 'count increment < 0', nfav == 8 and len(inc) == 8)\npb = u['J_privacy_bounds']\nresolved = [b for b in pb if b['upper'] <= 0.001]\nadd('dev non-inferiority bounds resolving at +0.001 cap', '1 of 8 (AB/sex unweighted, upper -0.00007); 7 unresolved',\n    MAIN + ':32-33,300-301', TD, TDR + 'HEADLINE_EVIDENCE.json', '/nominees/utility_first/J_privacy_bounds[*].upper',\n    {f\"{b['role']}|{b['weighting']}\": b['upper'] for b in pb},\n    {'resolved': len(resolved), 'which': [f\"{b['role']}|{b['weighting']}\" for b in resolved],\n     'upper': [round(b['upper'], 5) for b in resolved], 'passed_flags': sum(b['passed'] for b in pb)},\n    'count upper <= 0.001 (registered cap, PROTOCOL.md:47)',\n    len(resolved) == 1 and resolved[0]['role'] == 'attack:AB/SEX' and resolved[0]['weighting'] == 'unweighted'\n    and round(resolved[0]['upper'], 5) == -0.00007,\n    'Note: the cap is +0.001, so \"resolves\" means upper<=0.001, not upper<0; AB/SEX unweighted is also the only upper<0.')\nadd('dev competitive conjunction', 'not established', MAIN + ':32-33', TD, TDR + 'HEADLINE_EVIDENCE.json',\n    '/nominees/utility_first/competitive_passed', u['competitive_passed'], u['competitive_passed'], 'read flag',\n    u['competitive_passed'] is False)\nPB = js(TD, TDR + 'PAIRED_BOUNDS.json')\nm = PB['family_size']\nz = N.inv_cdf(1 - 0.05 / (2 * m))\nadd('dev Bonferroni family size and critical value', 'm=706, z=3.97', MAIN + ':273-274', TD, TDR + 'PAIRED_BOUNDS.json',\n    '/family_size, /critical_value_adjusted', [m, PB['critical_value_adjusted']], [m, round(z, 4)],\n    'z = Phi^-1(1-0.05/(2m))', m == 706 and abs(z - PB['critical_value_adjusted']) < 1e-6)\nadd('dev bootstrap household union', '5,473', MAIN + ':272', TD, TDR + 'PAIRED_BOUNDS.json', '/households_union',\n    PB['households_union'], H['bootstrap_households'], 'cross-check HEADLINE /bootstrap_households',\n    PB['households_union'] == H['bootstrap_households'] == 5473,\n    'Per-anchor test pools have 2,015 households each (anchor_household_counts); 5,473 is their union, so anchors share households.')\n# symmetric normal bounds check on utility bound\nb0 = PB['bounds'][ub[0]['endpoint']]\nadd('dev task bound = estimate +/- z*SE', f\"[{ub[0]['lower']:.6f},{ub[0]['upper']:.6f}]\", MAIN + ':Table II', TD,\n    TDR + 'PAIRED_BOUNDS.json', f\"/bounds/{ub[0]['endpoint']}\", [b0['estimate'], b0['bootstrap_se']],\n    [b0['estimate'] - z * b0['bootstrap_se'], b0['estimate'] + z * b0['bootstrap_se']], 'recompute from estimate and SE',\n    abs(b0['estimate'] + z * b0['bootstrap_se'] - ub[0]['upper']) < 1e-9)\n# Q vs D17 attribution contrasts\nC = js(TD, TDR + 'CONTRASTS.json')['endpoints']\nqd = []\nfor e in C:\n    cf = {t['configuration']: t['coefficient'] for t in e['terms']}\n    if set(cf) == {Q, D17}:\n        bb = PB['bounds'][e['id']]\n        qd.append((e['role'], e['weighting'], cf[Q], bb['estimate'], bb['lower'], bb['upper']))\nunres = sum(lo <= 0 <= up for *_, lo, up in qd)\nd17_lower_sens = sum(1 for role, w, cq, est, lo, up in qd if role.startswith('attack') and est > 0)\ntask_pts = [(w, est) for role, w, cq, est, lo, up in qd if role.startswith('utility')]\nadd('dev Q vs D17: adjusted differences unresolved', 'all ten unresolved', MAIN + ':308-309', TD, TDR + 'CONTRASTS.json',\n    'endpoints with terms {Q:+/-1, D17:-/+1} -> /bounds/<id>', len(qd), f'{unres}/{len(qd)} intervals contain 0',\n    'count lower<=0<=upper', unres == 10 and len(qd) == 10)\nadd('dev D17 lower sensitive point estimates than Q', '7 of 8', MAIN + ':306-307', TD, TDR + 'CONTRASTS.json',\n    'sensitive contrasts CE(D17)-CE(Q) > 0', None, f'{d17_lower_sens}/8', 'count estimate > 0 (orientation D17:+1, Q:-1)',\n    d17_lower_sens == 7)\nadd('dev D17 slightly better task point estimate', 'slightly better', MAIN + ':306', TD, TDR + 'CONTRASTS.json',\n    'utility contrasts CE(Q)-CE(D17)', task_pts, all(est > 0 for w, est in task_pts), 'estimate > 0 means D17 lower loss',\n    all(est > 0 for w, est in task_pts))\n# null comparator (independent token) increment as finite-attacker noise calibration\nNM = js(TD, TDR + 'NARRATIVE_MANIFEST.json')\nfor cfg, expect in (('independent_token', 'population increment over H is exactly 0 (token independent of all data)'),\n                    ('constant_best', 'population increment over H is exactly 0 (constant channel)')):\n    pts = [p for p in NM['primary_sensitive_points'] if p['configuration'] == cfg]\n    vals = {f\"{p['role']}|{p['weighting']}\": p['recovery_over_H'] for p in pts}\n    rng = [min(vals.values()), max(vals.values())]\n    add(f'null-extension calibration: {cfg} measured recovery_over_H', 'not in manuscript (Q4 audit)', 'n/a; '\n        'relevant to main.tex:127-133 and CORRECTIONS_FINAL boundaries', TD, TDR + 'NARRATIVE_MANIFEST.json',\n        f'/primary_sensitive_points[configuration={cfg}]/recovery_over_H', vals, rng,\n        'min/max over 4 roles x 2 weightings', True,\n        expect + '; finite fitted values shown. constant_best is routed as an H release (is_H_release) so it is exactly 0 '\n        'by construction; independent_token gives the finite-attacker noise floor of the increment estimator.')\nq_over_h = {f\"{r}|{w}\": sens[r][w]['recovery_over_H'] for r in sens for w in sens[r]}\nadd('Q measured recovery_over_H (absolute increment vs fixed service)', 'not printed in main.tex (Table III gives J-relative only)',\n    'main.tex:127-133 contract says absolute recovery beside every increment', TD, TDR + 'HEADLINE_EVIDENCE.json',\n    '/nominees/utility_first/sensitive/*/*/recovery_over_H', q_over_h, [min(q_over_h.values()), max(q_over_h.values())],\n    'min/max', True, 'All eight positive (0.00086-0.00614): Q adds measured recovery over H on every endpoint, while being below J.')\n\n# ---------------- prospective (2016) ----------------\nI = js(FP, FPR + 'INFERENCE_2016.json')\nLOC_P = MAIN + ':367-372; Table IV'\nfor c in ('Q', 'D17'):\n    cl = I['primary'][c]['clauses']\n    zc = I['primary'][c]['z_one_sided']\n    recomputed_pass = 0\n    task_ub = []\n    for k in cl:\n        ubk = k['estimate'] + zc * k['bootstrap_se']\n        assert abs(ubk - k['upper_bound_97_5']) < 1e-12\n        ok = ubk <= k['threshold']\n        recomputed_pass += ok\n        if k['clause'] == 'task':\n            task_ub.append(round(ubk, 6))\n    sens_ok = sum(1 for k in cl if k['clause'] != 'task' and k['estimate'] + zc * k['bootstrap_se'] <= k['threshold'])\n    sens_neg = sum(1 for k in cl if k['clause'] != 'task' and k['estimate'] + zc * k['bootstrap_se'] < 0)\n    add(f'prospective {c} clauses passed', '8 of 10', LOC_P, FP, FPR + 'INFERENCE_2016.json', f'/primary/{c}/clauses[*]',\n        I['primary'][c]['clauses_passed'], f'{recomputed_pass}/10 (sensitive {sens_ok}/8, all-below-zero {sens_neg}/8)',\n        'upper = estimate + z_one_sided*SE <= threshold', recomputed_pass == 8 == I['primary'][c]['clauses_passed'] and sens_neg == 8)\n    mv = {'Q': '-0.001505, -0.001871', 'D17': '-0.002913, -0.002951'}[c]\n    add(f'prospective {c} task upper bounds', mv, MAIN + ':370-371', FP, FPR + 'INFERENCE_2016.json',\n        f'/primary/{c}/clauses[clause=task].upper_bound_97_5', [k['upper_bound_97_5'] for k in cl if k['clause'] == 'task'],\n        task_ub, 'estimate + 1.959964*SE, round 6 dp', [f'{x:.6f}' for x in task_ub] == mv.split(', '))\n    pts = [k['estimate'] for k in cl if k['clause'] == 'task']\n    add(f'prospective {c} task point estimates <= -0.003 (Downloads-PDF variant sentence)',\n        'The point estimates meet the 0.003-nat improvement target', 'Downloads/PCRL_SaTML_Manuscript.pdf sec. VII (not in main.tex@55c0c5a35)',\n        FP, FPR + 'INFERENCE_2016.json', f'/primary/{c}/clauses[clause=task].estimate', pts, all(p <= -0.003 for p in pts),\n        'all estimates <= -0.003', all(p <= -0.003 for p in pts))\nqt = [k for k in I['primary']['Q']['clauses'] if k['clause'] == 'task' and k['weighting'] == 'unweighted'][0]\nratio = qt['estimate'] / u['task']['loss_delta_J']['unweighted']\nadd('prospective vs development effect ratio', '-0.0033 vs -0.0163, about a fifth', MAIN + ':381-382', FP, FPR + 'INFERENCE_2016.json',\n    '/primary/Q/clauses[task,unweighted].estimate', qt['estimate'], round(ratio, 3), 'ratio to dev unweighted delta',\n    round(qt['estimate'], 4) == -0.0033 and 0.18 < ratio < 0.22)\nses = [k['bootstrap_se'] for c in ('Q', 'D17') for k in I['primary'][c]['clauses'] if k['clause'] == 'task']\nadd('prospective realised task SE range', '0.0009-0.0011', MAIN + ':379-380', FP, FPR + 'INFERENCE_2016.json',\n    '/primary/*/clauses[task].bootstrap_se', ses, [round(min(ses), 5), round(max(ses), 5)], 'min/max',\n    0.00085 <= min(ses) and max(ses) <= 0.00115)\nsec = I['secondary']\nzs = N.inv_cdf(1 - sec['alpha'] / (2 * sec['family_size']))\nadd('prospective secondary family and z', '70 endpoints; z=3.384', 'CLAIM_LEDGER P16-5; ' + MAIN + ':411', FP, FPR + 'INFERENCE_2016.json',\n    '/secondary/family_size, /secondary/z', [sec['family_size'], sec['z']], [len(sec['rows']), round(zs, 4)],\n    'Phi^-1(1-0.05/(2*70))', sec['family_size'] == len(sec['rows']) == 70 and abs(zs - sec['z']) < 1e-9)\nfor comp, mv in (('RR75', '-0.011652, -0.011170'), ('W75', '-0.007055, -0.006875')):\n    rr = [r for r in sec['rows'] if r['comparator'] == comp]\n    task = [r for r in rr if 'utility' in r['role']]\n    sensr = [r for r in rr if 'attack' in r['role']]\n    # orientation for sensitive rows\n    higher = sum(1 for r in sensr if (r['estimate'] - sec['z'] * r['bootstrap_se']) > 0)\n    add(f'prospective Q-{comp} task estimates', mv, MAIN + ':411-413', FP, FPR + 'INFERENCE_2016.json',\n        f'/secondary/rows[comparator={comp},utility].estimate', [r['estimate'] for r in task],\n        [f\"{r['estimate']:.6f}\" for r in task], 'round 6 dp', [f\"{r['estimate']:.6f}\" for r in task] == mv.split(', '),\n        f\"orientations: {sorted(set(r['orientation'] for r in task))}\")\n    add(f'prospective Q vs {comp}: sensitive endpoints with significantly higher Q recovery', '6 of 8', MAIN + ':413-414', FP,\n        FPR + 'INFERENCE_2016.json', f'/secondary/rows[comparator={comp},attack]', [r['orientation'] for r in sensr][:1],\n        f'{higher}/{len(sensr)}', 'count estimate - z*SE > 0 under stored orientation', higher == 6 and len(sensr) == 8,\n        'orientation string printed in stored_value; positive must mean Q recovers more')\nfor comp, mv in (('D17', '+0.001476'), ('D33', '+0.001782')):\n    r = [x for x in sec['rows'] if x['comparator'] == comp and 'utility' in x['role'] and x['weighting'] == 'unweighted'][0]\n    rp = [x for x in sec['rows'] if x['comparator'] == comp and 'utility' in x['role'] and x['weighting'] == 'PWGTP'][0]\n    sens_sig = sum(1 for x in sec['rows'] if x['comparator'] == comp and 'attack' in x['role'] and x['excludes_zero'])\n    add(f'prospective Q-{comp} unweighted task', mv + ' (interval excludes zero); PWGTP unresolved; 0/8 sensitive significant',\n        'CLAIM_LEDGER P16-6; ' + MAIN + ':415-418', FP, FPR + 'INFERENCE_2016.json', f'/secondary/rows[comparator={comp},utility]',\n        [r['estimate'], r['excludes_zero'], rp['excludes_zero']], [f\"{r['estimate']:+.6f}\", r['lower'] > 0, sens_sig],\n        'read and check lower>0; count sensitive excludes_zero', f\"{r['estimate']:+.6f}\" == mv and r['lower'] > 0\n        and not rp['excludes_zero'] and sens_sig == 0)\nadd('prospective households', '15,928', MAIN + ':361', FP, FPR + 'INFERENCE_2016.json', '/households', I['households'], I['households'],\n    'read', I['households'] == 15928)\nS = js(FP, FPR + 'SERVICE_2016_FINAL.json')\nrows_ = [S['anchors'][a]['rows'] for a in S['anchors']]\nadd('prospective final-pool people', '23,684', MAIN + ':361', FP, FPR + 'SERVICE_2016_FINAL.json', '/anchors/*/rows', rows_, rows_[0],\n    'read (same rows every anchor)', set(rows_) == {23684})\nfor svc, mv in (('income_binary', '0.874'), ('civilian_at_work', '0.891'), ('public_coverage', '0.760')):\n    acc = [S['anchors'][a]['services'][svc]['accuracy'] for a in S['anchors']]\n    mean = sum(acc) / len(acc)\n    add(f'2016 frozen service mean accuracy {svc}', mv, MAIN + ':111-112', FP, FPR + 'SERVICE_2016_FINAL.json',\n        f'/anchors/*/services/{svc}/accuracy', acc, round(mean, 3), 'mean over three anchors, round 3', f'{mean:.3f}' == mv)\n\n\nfor c in ('Q', 'D17'):\n    rows_h = [r for r in I['descriptive'] if r['id'].split('|')[1] == 'recovery_over_H' and r['id'].split('|')[2] == c]\n    vals = {f\"{r['role']}|{r['weighting']}\": [r['estimate'], r['lower_unadjusted_95'], r['upper_unadjusted_95']] for r in rows_h}\n    excl = sum(1 for v in vals.values() if v[1] > 0)\n    add(f'2016 {c} measured recovery beyond H (descriptive, unadjusted 95%)',\n        'not in main.tex@55c0c5a35 or Downloads PDF; guarantee review P-1 asks for it', 'main.tex:365 (P-1 wording), :127-133',\n        FP, FPR + 'INFERENCE_2016.json', f'/descriptive[id=descriptive|recovery_over_H|{c}|*]', vals,\n        {'estimates_positive': sum(1 for v in vals.values() if v[0] > 0), 'intervals_excluding_zero': excl},\n        'count estimate>0 and lower_unadjusted_95>0', True,\n        'Positive = release adds measured recovery beyond the fixed service H. Passing the J-relative clauses is not \"adds nothing beyond H\".')\n\njson.dump(rows, sys.stdout, indent=1)\nprint(file=sys.stderr)\nprint(f'{sum(r[\"match\"] for r in rows)}/{len(rows)} match', file=sys.stderr)\n"
+ },
+ "summary": {
+  "quantities": 39,
+  "match": 39,
+  "mismatch": []
+ },
+ "additional_observations": [
+  "Table III (releases.tex) caption says \"unweighted point estimates\" but the \"worst sens. vs J\" column is max over BOTH weightings (artifact code/build_final_assets.py:86-87); Q row -0.00246 is the PWGTP A/sex value, unweighted max is -0.00394 (AB/RAC1P).",
+  "Q development recovery over H is positive on 8/8 endpoints (0.00086-0.00614); 2016 Q recovery over H positive 8/8 with 6/8 unadjusted 95% intervals excluding zero; neither appears in the manuscript tables.",
+  "Null-extension calibration: independent_token (population increment 0) yields finite increments in [-0.00036, +0.00077]; constant_best is routed as H and is exactly 0."
+ ],
+ "rows": [
+  {
+   "quantity": "dev task improvement over J (unweighted)",
+   "manuscript_value": "0.01625",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:278-279 (abstract :30-31 gives 0.0163)",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/task/loss_delta_J/unweighted",
+   "stored_value": -0.016250890380841487,
+   "recomputed_value": 0.01625,
+   "method": "negate loss delta; round 5 dp",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev task delta recomputed from selected CE (unweighted)",
+   "manuscript_value": "0.01625",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:278",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/task/selected/unweighted - /fixed_task_path/J/selected/unweighted",
+   "stored_value": -0.016250890380841487,
+   "recomputed_value": -0.016250890380841487,
+   "method": "CE(Q selected) - CE(J selected)",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev task improvement over J (PWGTP)",
+   "manuscript_value": "0.01639",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:278-279 (abstract :30-31 gives 0.0163)",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/task/loss_delta_J/PWGTP",
+   "stored_value": -0.01639356971785394,
+   "recomputed_value": 0.01639,
+   "method": "negate loss delta; round 5 dp",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev task delta recomputed from selected CE (PWGTP)",
+   "manuscript_value": "0.01639",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:278",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/task/selected/PWGTP - /fixed_task_path/J/selected/PWGTP",
+   "stored_value": -0.01639356971785394,
+   "recomputed_value": -0.01639356971785394,
+   "method": "CE(Q selected) - CE(J selected)",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev task adjusted bounds exclude zero (both weightings)",
+   "manuscript_value": "bounds excluding zero",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:30-31,279",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/J_utility_bounds[*].upper",
+   "stored_value": [
+    -0.005223253670362853,
+    -0.0036171580916587176
+   ],
+   "recomputed_value": true,
+   "method": "all upper < 0",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev sensitive point estimates favouring Q over J",
+   "manuscript_value": "8 of 8",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:31-32,299-300",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/sensitive/*/*/recovery_increment_over_J",
+   "stored_value": {
+    "A/RAC1P|PWGTP": -0.004817702367784005,
+    "A/RAC1P|unweighted": -0.005667259892111698,
+    "A/SEX|PWGTP": -0.0024605585826837917,
+    "A/SEX|unweighted": -0.009611807242514425,
+    "AB/RAC1P|PWGTP": -0.0046264099001842585,
+    "AB/RAC1P|unweighted": -0.003936082564977683,
+    "AB/SEX|PWGTP": -0.0061998792824027316,
+    "AB/SEX|unweighted": -0.011029642762975689
+   },
+   "recomputed_value": "8/8",
+   "method": "count increment < 0",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev non-inferiority bounds resolving at +0.001 cap",
+   "manuscript_value": "1 of 8 (AB/sex unweighted, upper -0.00007); 7 unresolved",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:32-33,300-301",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/J_privacy_bounds[*].upper",
+   "stored_value": {
+    "attack:A/SEX|unweighted": 0.0023641109537006037,
+    "attack:A/RAC1P|unweighted": 0.00583287591958027,
+    "attack:AB/SEX|unweighted": -6.627312373252807e-05,
+    "attack:AB/RAC1P|unweighted": 0.0076478419565326325,
+    "attack:A/SEX|PWGTP": 0.011354511100654267,
+    "attack:A/RAC1P|PWGTP": 0.007967883472654074,
+    "attack:AB/SEX|PWGTP": 0.006467685138944082,
+    "attack:AB/RAC1P|PWGTP": 0.007682633815819348
+   },
+   "recomputed_value": {
+    "resolved": 1,
+    "which": [
+     "attack:AB/SEX|unweighted"
+    ],
+    "upper": [
+     -7e-05
+    ],
+    "passed_flags": 1
+   },
+   "method": "count upper <= 0.001 (registered cap, PROTOCOL.md:47)",
+   "match": true,
+   "notes": "Note: the cap is +0.001, so \"resolves\" means upper<=0.001, not upper<0; AB/SEX unweighted is also the only upper<0."
+  },
+  {
+   "quantity": "dev competitive conjunction",
+   "manuscript_value": "not established",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:32-33",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/competitive_passed",
+   "stored_value": false,
+   "recomputed_value": false,
+   "method": "read flag",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev Bonferroni family size and critical value",
+   "manuscript_value": "m=706, z=3.97",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:273-274",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/PAIRED_BOUNDS.json",
+   "blob_sha": "0c2b7b893a2e73758a311f9f9c4fef2362c086a6",
+   "sha256": "5cdaa5010d6deb49380477c3a678ca8a8405f157aa662e2ae650d957595adcbd",
+   "field_path": "/family_size, /critical_value_adjusted",
+   "stored_value": [
+    706,
+    3.9735088356801094
+   ],
+   "recomputed_value": [
+    706,
+    3.9735
+   ],
+   "method": "z = Phi^-1(1-0.05/(2m))",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev bootstrap household union",
+   "manuscript_value": "5,473",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:272",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/PAIRED_BOUNDS.json",
+   "blob_sha": "0c2b7b893a2e73758a311f9f9c4fef2362c086a6",
+   "sha256": "5cdaa5010d6deb49380477c3a678ca8a8405f157aa662e2ae650d957595adcbd",
+   "field_path": "/households_union",
+   "stored_value": 5473,
+   "recomputed_value": 5473,
+   "method": "cross-check HEADLINE /bootstrap_households",
+   "match": true,
+   "notes": "Per-anchor test pools have 2,015 households each (anchor_household_counts); 5,473 is their union, so anchors share households."
+  },
+  {
+   "quantity": "dev task bound = estimate +/- z*SE",
+   "manuscript_value": "[-0.027279,-0.005223]",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:Table II",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/PAIRED_BOUNDS.json",
+   "blob_sha": "0c2b7b893a2e73758a311f9f9c4fef2362c086a6",
+   "sha256": "5cdaa5010d6deb49380477c3a678ca8a8405f157aa662e2ae650d957595adcbd",
+   "field_path": "/bounds/contrast_65ab012d87854c641052b60b",
+   "stored_value": [
+    -0.016250890380841536,
+    0.0027752893390989987
+   ],
+   "recomputed_value": [
+    -0.02727852709131935,
+    -0.005223253670363722
+   ],
+   "method": "recompute from estimate and SE",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev Q vs D17: adjusted differences unresolved",
+   "manuscript_value": "all ten unresolved",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:308-309",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/CONTRASTS.json",
+   "blob_sha": "031c9ce2bcd5104cd72a09b95e5d851e157ced33",
+   "sha256": "d6baa59554c3101bdf3580bf8cf98cd0ccea0126da8e692fe881e4b2b2af1b19",
+   "field_path": "endpoints with terms {Q:+/-1, D17:-/+1} -> /bounds/<id>",
+   "stored_value": 10,
+   "recomputed_value": "10/10 intervals contain 0",
+   "method": "count lower<=0<=upper",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev D17 lower sensitive point estimates than Q",
+   "manuscript_value": "7 of 8",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:306-307",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/CONTRASTS.json",
+   "blob_sha": "031c9ce2bcd5104cd72a09b95e5d851e157ced33",
+   "sha256": "d6baa59554c3101bdf3580bf8cf98cd0ccea0126da8e692fe881e4b2b2af1b19",
+   "field_path": "sensitive contrasts CE(D17)-CE(Q) > 0",
+   "stored_value": null,
+   "recomputed_value": "7/8",
+   "method": "count estimate > 0 (orientation D17:+1, Q:-1)",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "dev D17 slightly better task point estimate",
+   "manuscript_value": "slightly better",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:306",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/CONTRASTS.json",
+   "blob_sha": "031c9ce2bcd5104cd72a09b95e5d851e157ced33",
+   "sha256": "d6baa59554c3101bdf3580bf8cf98cd0ccea0126da8e692fe881e4b2b2af1b19",
+   "field_path": "utility contrasts CE(Q)-CE(D17)",
+   "stored_value": [
+    [
+     "unweighted",
+     0.0009539864888608312
+    ],
+    [
+     "PWGTP",
+     0.0012608165416930549
+    ]
+   ],
+   "recomputed_value": true,
+   "method": "estimate > 0 means D17 lower loss",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "null-extension calibration: independent_token measured recovery_over_H",
+   "manuscript_value": "not in manuscript (Q4 audit)",
+   "manuscript_location": "n/a; relevant to main.tex:127-133 and CORRECTIONS_FINAL boundaries",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/NARRATIVE_MANIFEST.json",
+   "blob_sha": "cf070312795c9fc328021f4ddd747c4372b73c9b",
+   "sha256": "4e73b59f91f36260ebc3a5c43d4cbaae90a7ae477dabf5b3a9d8044e1bef0756",
+   "field_path": "/primary_sensitive_points[configuration=independent_token]/recovery_over_H",
+   "stored_value": {
+    "A/RAC1P|unweighted": 0.0005984825078528822,
+    "A/RAC1P|PWGTP": -0.00036046911611764543,
+    "A/SEX|unweighted": 0.0007655853695066606,
+    "A/SEX|PWGTP": 0.0006620073515396507,
+    "AB/RAC1P|unweighted": -0.0002155197428486133,
+    "AB/RAC1P|PWGTP": -0.00011587701362025804,
+    "AB/SEX|unweighted": 0.00032604749933540234,
+    "AB/SEX|PWGTP": 0.00047133706599855607
+   },
+   "recomputed_value": [
+    -0.00036046911611764543,
+    0.0007655853695066606
+   ],
+   "method": "min/max over 4 roles x 2 weightings",
+   "match": true,
+   "notes": "population increment over H is exactly 0 (token independent of all data); finite fitted values shown. constant_best is routed as an H release (is_H_release) so it is exactly 0 by construction; independent_token gives the finite-attacker noise floor of the increment estimator."
+  },
+  {
+   "quantity": "null-extension calibration: constant_best measured recovery_over_H",
+   "manuscript_value": "not in manuscript (Q4 audit)",
+   "manuscript_location": "n/a; relevant to main.tex:127-133 and CORRECTIONS_FINAL boundaries",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/NARRATIVE_MANIFEST.json",
+   "blob_sha": "cf070312795c9fc328021f4ddd747c4372b73c9b",
+   "sha256": "4e73b59f91f36260ebc3a5c43d4cbaae90a7ae477dabf5b3a9d8044e1bef0756",
+   "field_path": "/primary_sensitive_points[configuration=constant_best]/recovery_over_H",
+   "stored_value": {
+    "A/RAC1P|unweighted": -0.0,
+    "A/RAC1P|PWGTP": -0.0,
+    "A/SEX|unweighted": -0.0,
+    "A/SEX|PWGTP": -0.0,
+    "AB/RAC1P|unweighted": -0.0,
+    "AB/RAC1P|PWGTP": -0.0,
+    "AB/SEX|unweighted": -0.0,
+    "AB/SEX|PWGTP": -0.0
+   },
+   "recomputed_value": [
+    -0.0,
+    -0.0
+   ],
+   "method": "min/max over 4 roles x 2 weightings",
+   "match": true,
+   "notes": "population increment over H is exactly 0 (constant channel); finite fitted values shown. constant_best is routed as an H release (is_H_release) so it is exactly 0 by construction; independent_token gives the finite-attacker noise floor of the increment estimator."
+  },
+  {
+   "quantity": "Q measured recovery_over_H (absolute increment vs fixed service)",
+   "manuscript_value": "not printed in main.tex (Table III gives J-relative only)",
+   "manuscript_location": "main.tex:127-133 contract says absolute recovery beside every increment",
+   "ref": "f4bdf4cd5bf74c634feeec50aef78bff249667e4",
+   "path": "results/pcrl_task_directed_release_v1/HEADLINE_EVIDENCE.json",
+   "blob_sha": "d9619a299646bf5c2abca7655cc1ab17a04d2760",
+   "sha256": "d11d7ff51e3af6d09bc0037f6edeebe632d3bd0cc6b1a2e7fc226ec3d35d67f6",
+   "field_path": "/nominees/utility_first/sensitive/*/*/recovery_over_H",
+   "stored_value": {
+    "A/RAC1P|PWGTP": 0.0014675725746122747,
+    "A/RAC1P|unweighted": 0.0008582871956135385,
+    "A/SEX|PWGTP": 0.005775694629809647,
+    "A/SEX|unweighted": 0.006135669255049603,
+    "AB/RAC1P|PWGTP": 0.0017975932350196011,
+    "AB/RAC1P|unweighted": 0.001568311711201087,
+    "AB/SEX|PWGTP": 0.004388157849297691,
+    "AB/SEX|unweighted": 0.00541821078887339
+   },
+   "recomputed_value": [
+    0.0008582871956135385,
+    0.006135669255049603
+   ],
+   "method": "min/max",
+   "match": true,
+   "notes": "All eight positive (0.00086-0.00614): Q adds measured recovery over H on every endpoint, while being below J."
+  },
+  {
+   "quantity": "prospective Q clauses passed",
+   "manuscript_value": "8 of 10",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:367-372; Table IV",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/Q/clauses[*]",
+   "stored_value": 8,
+   "recomputed_value": "8/10 (sensitive 8/8, all-below-zero 8/8)",
+   "method": "upper = estimate + z_one_sided*SE <= threshold",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective Q task upper bounds",
+   "manuscript_value": "-0.001505, -0.001871",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:370-371",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/Q/clauses[clause=task].upper_bound_97_5",
+   "stored_value": [
+    -0.0015052917591446078,
+    -0.001871410923827089
+   ],
+   "recomputed_value": [
+    -0.001505,
+    -0.001871
+   ],
+   "method": "estimate + 1.959964*SE, round 6 dp",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective Q task point estimates <= -0.003 (Downloads-PDF variant sentence)",
+   "manuscript_value": "The point estimates meet the 0.003-nat improvement target",
+   "manuscript_location": "Downloads/PCRL_SaTML_Manuscript.pdf sec. VII (not in main.tex@55c0c5a35)",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/Q/clauses[clause=task].estimate",
+   "stored_value": [
+    -0.003266119525787647,
+    -0.003995625143285218
+   ],
+   "recomputed_value": true,
+   "method": "all estimates <= -0.003",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective D17 clauses passed",
+   "manuscript_value": "8 of 10",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:367-372; Table IV",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/D17/clauses[*]",
+   "stored_value": 8,
+   "recomputed_value": "8/10 (sensitive 8/8, all-below-zero 8/8)",
+   "method": "upper = estimate + z_one_sided*SE <= threshold",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective D17 task upper bounds",
+   "manuscript_value": "-0.002913, -0.002951",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:370-371",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/D17/clauses[clause=task].upper_bound_97_5",
+   "stored_value": [
+    -0.002913164152583206,
+    -0.0029514960687862346
+   ],
+   "recomputed_value": [
+    -0.002913,
+    -0.002951
+   ],
+   "method": "estimate + 1.959964*SE, round 6 dp",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective D17 task point estimates <= -0.003 (Downloads-PDF variant sentence)",
+   "manuscript_value": "The point estimates meet the 0.003-nat improvement target",
+   "manuscript_location": "Downloads/PCRL_SaTML_Manuscript.pdf sec. VII (not in main.tex@55c0c5a35)",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/D17/clauses[clause=task].estimate",
+   "stored_value": [
+    -0.004741877291169793,
+    -0.0051420700685698905
+   ],
+   "recomputed_value": true,
+   "method": "all estimates <= -0.003",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective vs development effect ratio",
+   "manuscript_value": "-0.0033 vs -0.0163, about a fifth",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:381-382",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/Q/clauses[task,unweighted].estimate",
+   "stored_value": -0.003266119525787647,
+   "recomputed_value": 0.201,
+   "method": "ratio to dev unweighted delta",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective realised task SE range",
+   "manuscript_value": "0.0009-0.0011",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:379-380",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/primary/*/clauses[task].bootstrap_se",
+   "stored_value": [
+    0.0008983980218678629,
+    0.0010838026801582375,
+    0.0009330340521617965,
+    0.0011176603330788854
+   ],
+   "recomputed_value": [
+    0.0009,
+    0.00112
+   ],
+   "method": "min/max",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective secondary family and z",
+   "manuscript_value": "70 endpoints; z=3.384",
+   "manuscript_location": "CLAIM_LEDGER P16-5; 55c0c5a35:papers/pcrl_satml_final_v1/main.tex:411",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/family_size, /secondary/z",
+   "stored_value": [
+    70,
+    3.3840362518645613
+   ],
+   "recomputed_value": [
+    70,
+    3.384
+   ],
+   "method": "Phi^-1(1-0.05/(2*70))",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective Q-RR75 task estimates",
+   "manuscript_value": "-0.011652, -0.011170",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:411-413",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=RR75,utility].estimate",
+   "stored_value": [
+    -0.011652436653992538,
+    -0.011169505336419168
+   ],
+   "recomputed_value": [
+    "-0.011652",
+    "-0.011170"
+   ],
+   "method": "round 6 dp",
+   "match": true,
+   "notes": "orientations: ['CE_task(Q) - CE_task(comp); negative favors Q']"
+  },
+  {
+   "quantity": "prospective Q vs RR75: sensitive endpoints with significantly higher Q recovery",
+   "manuscript_value": "6 of 8",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:413-414",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=RR75,attack]",
+   "stored_value": [
+    "recovery(Q)-recovery(comp) = CE_comp - CE_Q; negative favors Q"
+   ],
+   "recomputed_value": "6/8",
+   "method": "count estimate - z*SE > 0 under stored orientation",
+   "match": true,
+   "notes": "orientation string printed in stored_value; positive must mean Q recovers more"
+  },
+  {
+   "quantity": "prospective Q-W75 task estimates",
+   "manuscript_value": "-0.007055, -0.006875",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:411-413",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=W75,utility].estimate",
+   "stored_value": [
+    -0.007055453317451635,
+    -0.0068751997094247015
+   ],
+   "recomputed_value": [
+    "-0.007055",
+    "-0.006875"
+   ],
+   "method": "round 6 dp",
+   "match": true,
+   "notes": "orientations: ['CE_task(Q) - CE_task(comp); negative favors Q']"
+  },
+  {
+   "quantity": "prospective Q vs W75: sensitive endpoints with significantly higher Q recovery",
+   "manuscript_value": "6 of 8",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:413-414",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=W75,attack]",
+   "stored_value": [
+    "recovery(Q)-recovery(comp) = CE_comp - CE_Q; negative favors Q"
+   ],
+   "recomputed_value": "6/8",
+   "method": "count estimate - z*SE > 0 under stored orientation",
+   "match": true,
+   "notes": "orientation string printed in stored_value; positive must mean Q recovers more"
+  },
+  {
+   "quantity": "prospective Q-D17 unweighted task",
+   "manuscript_value": "+0.001476 (interval excludes zero); PWGTP unresolved; 0/8 sensitive significant",
+   "manuscript_location": "CLAIM_LEDGER P16-6; 55c0c5a35:papers/pcrl_satml_final_v1/main.tex:415-418",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=D17,utility]",
+   "stored_value": [
+    0.0014757577653821468,
+    true,
+    false
+   ],
+   "recomputed_value": [
+    "+0.001476",
+    true,
+    0
+   ],
+   "method": "read and check lower>0; count sensitive excludes_zero",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective Q-D33 unweighted task",
+   "manuscript_value": "+0.001782 (interval excludes zero); PWGTP unresolved; 0/8 sensitive significant",
+   "manuscript_location": "CLAIM_LEDGER P16-6; 55c0c5a35:papers/pcrl_satml_final_v1/main.tex:415-418",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/secondary/rows[comparator=D33,utility]",
+   "stored_value": [
+    0.0017817459898638206,
+    true,
+    false
+   ],
+   "recomputed_value": [
+    "+0.001782",
+    true,
+    0
+   ],
+   "method": "read and check lower>0; count sensitive excludes_zero",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective households",
+   "manuscript_value": "15,928",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:361",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/households",
+   "stored_value": 15928,
+   "recomputed_value": 15928,
+   "method": "read",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "prospective final-pool people",
+   "manuscript_value": "23,684",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:361",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/SERVICE_2016_FINAL.json",
+   "blob_sha": "3edbdb118fc353b7cc9dc7326b6ad65a24f2896d",
+   "sha256": "16d7202300ae672b6207a2b5e7ce3048e5f631532c59d6597b42c56ccf86b085",
+   "field_path": "/anchors/*/rows",
+   "stored_value": [
+    23684,
+    23684,
+    23684
+   ],
+   "recomputed_value": 23684,
+   "method": "read (same rows every anchor)",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "2016 frozen service mean accuracy income_binary",
+   "manuscript_value": "0.874",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:111-112",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/SERVICE_2016_FINAL.json",
+   "blob_sha": "3edbdb118fc353b7cc9dc7326b6ad65a24f2896d",
+   "sha256": "16d7202300ae672b6207a2b5e7ce3048e5f631532c59d6597b42c56ccf86b085",
+   "field_path": "/anchors/*/services/income_binary/accuracy",
+   "stored_value": [
+    0.8721077520689072,
+    0.8747677757135619,
+    0.8755277824691775
+   ],
+   "recomputed_value": 0.874,
+   "method": "mean over three anchors, round 3",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "2016 frozen service mean accuracy civilian_at_work",
+   "manuscript_value": "0.891",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:111-112",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/SERVICE_2016_FINAL.json",
+   "blob_sha": "3edbdb118fc353b7cc9dc7326b6ad65a24f2896d",
+   "sha256": "16d7202300ae672b6207a2b5e7ce3048e5f631532c59d6597b42c56ccf86b085",
+   "field_path": "/anchors/*/services/civilian_at_work/accuracy",
+   "stored_value": [
+    0.8904745819962844,
+    0.887223441986151,
+    0.8938523897990205
+   ],
+   "recomputed_value": 0.891,
+   "method": "mean over three anchors, round 3",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "2016 frozen service mean accuracy public_coverage",
+   "manuscript_value": "0.760",
+   "manuscript_location": "55c0c5a35:papers/pcrl_satml_final_v1/main.tex:111-112",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/SERVICE_2016_FINAL.json",
+   "blob_sha": "3edbdb118fc353b7cc9dc7326b6ad65a24f2896d",
+   "sha256": "16d7202300ae672b6207a2b5e7ce3048e5f631532c59d6597b42c56ccf86b085",
+   "field_path": "/anchors/*/services/public_coverage/accuracy",
+   "stored_value": [
+    0.7589511906772505,
+    0.7602178686032764,
+    0.7605978719810843
+   ],
+   "recomputed_value": 0.76,
+   "method": "mean over three anchors, round 3",
+   "match": true,
+   "notes": ""
+  },
+  {
+   "quantity": "2016 Q measured recovery beyond H (descriptive, unadjusted 95%)",
+   "manuscript_value": "not in main.tex@55c0c5a35 or Downloads PDF; guarantee review P-1 asks for it",
+   "manuscript_location": "main.tex:365 (P-1 wording), :127-133",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/descriptive[id=descriptive|recovery_over_H|Q|*]",
+   "stored_value": {
+    "attack:A/SEX|unweighted": [
+     0.004697157987080341,
+     0.0037757692005612577,
+     0.0056185467735994235
+    ],
+    "attack:A/SEX|PWGTP": [
+     0.004376923338300552,
+     0.003188092766489918,
+     0.005565753910111186
+    ],
+    "attack:A/RAC1P|unweighted": [
+     0.005267440504963992,
+     0.003982532414946239,
+     0.006552348594981744
+    ],
+    "attack:A/RAC1P|PWGTP": [
+     0.006034610357812056,
+     0.004427561045555181,
+     0.007641659670068931
+    ],
+    "attack:AB/SEX|unweighted": [
+     0.0038209416620302032,
+     0.003097399865460578,
+     0.0045444834585998285
+    ],
+    "attack:AB/SEX|PWGTP": [
+     0.003430434137774529,
+     0.00249964535998937,
+     0.0043612229155596885
+    ],
+    "attack:AB/RAC1P|unweighted": [
+     0.000491031665641837,
+     -0.0010671901092885409,
+     0.002049253440572215
+    ],
+    "attack:AB/RAC1P|PWGTP": [
+     0.0012957035530781794,
+     -0.0005546978594173581,
+     0.0031461049655737167
+    ]
+   },
+   "recomputed_value": {
+    "estimates_positive": 8,
+    "intervals_excluding_zero": 6
+   },
+   "method": "count estimate>0 and lower_unadjusted_95>0",
+   "match": true,
+   "notes": "Positive = release adds measured recovery beyond the fixed service H. Passing the J-relative clauses is not \"adds nothing beyond H\"."
+  },
+  {
+   "quantity": "2016 D17 measured recovery beyond H (descriptive, unadjusted 95%)",
+   "manuscript_value": "not in main.tex@55c0c5a35 or Downloads PDF; guarantee review P-1 asks for it",
+   "manuscript_location": "main.tex:365 (P-1 wording), :127-133",
+   "ref": "5e154e5c4fdaeb23d327a0ebefe838525f1a19cb",
+   "path": "results/pcrl_final_prospective_v1/INFERENCE_2016.json",
+   "blob_sha": "3735c8f4f09978baeec743361db4ff15c74d3d86",
+   "sha256": "09566ca36b3389cbba73757d306c576554cc32952276ed2a33ba897d774b75a9",
+   "field_path": "/descriptive[id=descriptive|recovery_over_H|D17|*]",
+   "stored_value": {
+    "attack:A/SEX|unweighted": [
+     0.005109568736706178,
+     0.004052620392491097,
+     0.006166517080921259
+    ],
+    "attack:A/SEX|PWGTP": [
+     0.0054885864274600805,
+     0.00413150929390239,
+     0.006845663561017771
+    ],
+    "attack:A/RAC1P|unweighted": [
+     0.005806819170305379,
+     0.004255293785675912,
+     0.007358344554934846
+    ],
+    "attack:A/RAC1P|PWGTP": [
+     0.005802384312540536,
+     0.0038742276257320548,
+     0.007730540999349017
+    ],
+    "attack:AB/SEX|unweighted": [
+     0.0036511922218796402,
+     0.0027698812843794892,
+     0.004532503159379791
+    ],
+    "attack:AB/SEX|PWGTP": [
+     0.003528716681863301,
+     0.0024020429064496654,
+     0.0046553904572769365
+    ],
+    "attack:AB/RAC1P|unweighted": [
+     0.002572456552912067,
+     0.0012459938156980004,
+     0.003898919290126134
+    ],
+    "attack:AB/RAC1P|PWGTP": [
+     0.0020323216003950207,
+     0.00033641390682012683,
+     0.003728229293969915
+    ]
+   },
+   "recomputed_value": {
+    "estimates_positive": 8,
+    "intervals_excluding_zero": 8
+   },
+   "method": "count estimate>0 and lower_unadjusted_95>0",
+   "match": true,
+   "notes": "Positive = release adds measured recovery beyond the fixed service H. Passing the J-relative clauses is not \"adds nothing beyond H\"."
+  }
+ ]
+}
