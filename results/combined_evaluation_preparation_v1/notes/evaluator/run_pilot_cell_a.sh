@@ -10,6 +10,20 @@ M=$WT/results/combined_evaluation_preparation_v1/notes/methodology/protocol_conf
 C=$HOME/PCRL_eval_cache_private/pilot_adult_s0
 cd "$WT"
 case "${EXECUTE:-0}" in 1) MODE="--execute-scientific-fits";; *) MODE="--dry-run";; esac
+if [ "$MODE" != "--dry-run" ]; then
+  # refuse scientific execution unless protocol config and every manifest match the committed lock
+  python3 - "$WT" "$C" <<'PYEOF' || { echo "LOCK CHECK FAILED: refusing to execute"; exit 3; }
+import hashlib, json, os, sys
+wt, c = sys.argv[1], sys.argv[2]
+pk = os.path.join(wt, "results/combined_evaluation_preparation_v1")
+lock = json.load(open(os.path.join(pk, "PILOT_LOCK.json")))
+sha = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()
+assert sha(os.path.join(pk, "notes/methodology/protocol_config.json")) == lock["protocol_config_sha256"], "protocol config changed"
+for name, h in lock["manifests_sha256"].items():
+    assert sha(os.path.join(c, name)) == h, "manifest changed: " + name
+print("lock check passed")
+PYEOF
+fi
 n=0
 for m in $C/manifest_*.json; do
   t=$(basename "$m" .json)
