@@ -44,6 +44,12 @@ def fit_attackers(arrays: dict, cfg: dict, auth: FitAuthorization, attackers=("l
     # P1 = R02 held-out R2 vs tau). R02 is a least-squares fit on real attacker_fit rows, so it sits behind the
     # same authorization as the attacker slate.
     auth.check("closed-form linear quantities (native check, R02, held-out rho1^2)", synthetic)
+    # 2026-10-02 repair: the contract comes from the manifest's "release" block when the arrays were admitted
+    # from a manifest; the protocol-wide default (noise="none") applies only to manifest-free synthetic arrays.
+    if arrays.get("_has_manifest"):
+        contract = ReleaseContract.from_manifest(arrays.get("_release"))
+    else:
+        contract = ReleaseContract(**{k: v for k, v in cfg["release_contract"].items() if k in ("noise", "sigma")})
     out["closed_form"] = closed_form_linear(rep, np.asarray(y), fi, ei, cfg)
     for s in surfaces:
         if s != "rep" and arrays.get("outputs") is None:
@@ -55,8 +61,7 @@ def fit_attackers(arrays: dict, cfg: dict, auth: FitAuthorization, attackers=("l
             att.fit(X[fi], y[fi], X[vi], y[vi], auth=auth, synthetic=synthetic)
             out["probs"][(s, a)] = att.predict_proba(X[ei])
             out["timing_s"][f"{s}|{a}"] = time.perf_counter() - t0
-            rec = att.access_record(s, ReleaseContract(**{k: v for k, v in cfg["release_contract"].items()
-                                                          if k in ("noise", "sigma")}))
+            rec = att.access_record(s, contract)
             out["records"].append({"surface": srec.to_json(), "attacker": a, "selected": att.selected,
                                    "selection_table": att.selection_table, "access": rec.to_json(),
                                    "n_fit": int(len(fi)), "n_val": int(len(vi)), "n_eval": int(len(ei))})

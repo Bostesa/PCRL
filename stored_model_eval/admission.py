@@ -189,14 +189,18 @@ def admit(manifest: dict | str | Path, base_dir: Path | None = None) -> dict:
             if n_dup:
                 warnings.append(f"{n_dup} rows are duplicate records; they collapse to one unit in inference")
         K = int(y.max()) + 1
+        # per-role thresholds (e.g. 100 / 30 / 100) when the manifest declares a support_rule; the single global
+        # min_class_support applied to attacker_val was a bug for the pilot rule (Addendum D1 #11)
+        rule = manifest.get("support_rule") or {}
         for r in allowed:
             m = roles == r
+            thr = int(rule.get(r, min_sup))
             cnt = np.bincount(y[m], minlength=K).tolist()
-            uns = [k for k, c in enumerate(cnt) if c < min_sup]
+            uns = [k for k, c in enumerate(cnt) if c < thr]
             summary[r] = {"n_rows": int(m.sum()), "n_units": int(len(set(units[m].tolist()))),
-                          "class_counts": cnt, "unsupported_classes": uns}
+                          "class_counts": cnt, "unsupported_classes": uns, "min_support": thr}
             if m.sum() and uns:
-                warnings.append(f"role {r}: classes {uns} below min support {min_sup} -> NOT_ESTIMABLE "
+                warnings.append(f"role {r}: classes {uns} below min support {thr} -> NOT_ESTIMABLE "
                                 "for per-class / pair quantities involving them")
     res["role_summary"] = summary
     res["n_rows"] = int(len(ids[anchor])) if anchor else 0
@@ -218,4 +222,7 @@ def load_admitted(manifest_path: str | Path) -> tuple[dict, dict]:
         if "row_ids" not in out:
             out["row_ids"] = _load_member(Path(rec["files"][a["file"]]["path"]), a["ids"])
     out["_synthetic"] = bool(manifest.get("synthetic", False))
+    # the release contract travels with the arrays (a global default contract must never override it)
+    out["_release"] = manifest.get("release")
+    out["_has_manifest"] = True
     return out, rec

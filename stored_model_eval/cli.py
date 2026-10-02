@@ -1,6 +1,12 @@
 """Command line: python -m stored_model_eval <command> [...]
 
-Commands: plan | admit | forward | recount | fit-attackers | score | infer | report
+Commands: plan | admit | forward | recount | fit-attackers | score | infer | report | pilot | lock
+
+CELL-A pilot (repaired runner; see pilot.py, pilot_infer.py, lock.py):
+  pilot --plan | (default dry-run) | --execute-scientific-fits [--resume] [--units a,b]
+  lock build|verify --inputs-dir D [--lock P]
+  infer --units-dir D --out INFER.json          (pilot inference from saved predictions only)
+  report --pilot-infer INFER.json --tables-dir D [--historical-native dominant_axis_audit.json]
 Global: --protocol PATH (protocol config JSON, deep-merged over defaults), --dry-run, --out PATH (JSON).
 Default mode performs NO scientific fits and opens NO network connections (a socket guard is installed).
 """
@@ -137,6 +143,13 @@ def cmd_score(a, cfg):
 
 
 def cmd_infer(a, cfg):
+    if a.units_dir:
+        from .pilot_infer import infer_pilot
+        if a.dry_run:
+            return {"dry_run": True, "units_dir": a.units_dir}
+        return infer_pilot(Path(a.units_dir).expanduser())
+    if not a.scores:
+        raise SystemExit("infer needs --scores (legacy) or --units-dir (pilot)")
     from .pipeline import infer, load_scores
     sc = load_scores(a.scores)
     if a.dry_run:
@@ -145,6 +158,14 @@ def cmd_infer(a, cfg):
 
 
 def cmd_report(a, cfg):
+    if a.pilot_infer:
+        from .pilot_infer import report_pilot
+        if not a.tables_dir:
+            raise SystemExit("report --pilot-infer needs --tables-dir")
+        hist = json.loads(Path(a.historical_native).read_text()) if a.historical_native else None
+        return report_pilot(json.loads(Path(a.pilot_infer).read_text()), Path(a.tables_dir), hist)
+    if not (a.scores and a.infer):
+        raise SystemExit("report needs --scores and --infer (legacy) or --pilot-infer (pilot)")
     from .pipeline import report
     inf = json.loads(Path(a.infer).read_text())
     return report(a.scores, inf, cfg)
@@ -176,15 +197,97 @@ def build_parser():
     s.add_argument("--k", type=int, default=2, help="classes for --synthetic-kind contrast")
     s.add_argument("--attackers", default="linear,gbt,mlp"); s.add_argument("--surfaces", default=None)
     s.add_argument("--timing-out", default=None)
-    for name in ("score", "infer"):
-        s = sub.add_parser(name); s.add_argument("--scores", required=True)
-        s.add_argument("--min-support", type=int, default=None)
-    s = sub.add_parser("report"); s.add_argument("--scores", required=True); s.add_argument("--infer", required=True)
+    s = sub.add_parser("score"); s.add_argument("--scores", required=True)
+    s.add_argument("--min-support", type=int, default=None)
+    s = sub.add_parser("infer"); s.add_argument("--scores", default=None)
+    s.add_argument("--min-support", type=int, default=None)
+    s.add_argument("--units-dir", default=None, help="pilot: run_v1/units (saved predictions only)")
+    s = sub.add_parser("report"); s.add_argument("--scores", default=None); s.add_argument("--infer", default=None)
+    s.add_argument("--pilot-infer", default=None); s.add_argument("--tables-dir", default=None)
+    s.add_argument("--historical-native", default=None,
+                   help="origin/main results/v2_adult_ROUND4/dominant_axis_audit.json (N0 comparison)")
+    s = sub.add_parser("pilot", help="CELL-A pilot unit runner")
+    s.add_argument("--plan", action="store_true")
+    s.add_argument("--execute-scientific-fits", action="store_true")
+    s.add_argument("--resume", action="store_true")
+    s.add_argument("--units", default=None, help="comma-separated registered unit IDs (subset)")
+    s.add_argument("--worktree", default=None)
+    s.add_argument("--run-dir", default=None, help="default ~/PCRL_eval_cache_private/pilot_adult_s0/run_v1")
+    s.add_argument("--manifest-dir", default=None, help="default <run-dir>/inputs")
+    s.add_argument("--lock", default=None,
+                   help="default <worktree>/results/combined_stored_model_pilot_v1/PILOT_LOCK_v2.json")
+    s.add_argument("--synthetic", action="store_true", help="inputs are synthetic fixtures (tests)")
+    s.add_argument("--allow-other-branch-for-tests", action="store_true")
+    s = sub.add_parser("lock", help="build / verify PILOT_LOCK_v2.json")
+    s.add_argument("action", choices=["build", "verify"])
+    s.add_argument("--inputs-dir", default=None); s.add_argument("--lock", default=None)
+    s.add_argument("--run-dir", default=None)
+    s.add_argument("--access-table", default=None); s.add_argument("--features", default=None)
+    s.add_argument("--effective-out", default=None, help="also write EFFECTIVE_PROTOCOL.json here (build)")
+    s.add_argument("--worktree", default=None); s.add_argument("--allow-other-branch-for-tests", action="store_true")
     return p
 
 
+def _pilot_paths(a):
+    from .pilot import DEFAULT_RUN_DIR, resolve_worktree
+    wt = resolve_worktree(a.worktree, a.allow_other_branch_for_tests)
+    run = Path(a.run_dir).expanduser() if getattr(a, "run_dir", None) else DEFAULT_RUN_DIR
+    lock = Path(a.lock).expanduser() if a.lock else \
+        Path(wt["root"]) / "results/combined_stored_model_pilot_v1/PILOT_LOCK_v2.json"
+    return wt, run, lock
+
+
+def cmd_pilot(a, cfg):
+    import os
+    from . import pilot
+    if a.plan and a.execute_scientific_fits:
+        raise SystemExit("--plan and --execute-scientific-fits are exclusive")
+    wt, run, lock_path = _pilot_paths(a)
+    mdir = Path(a.manifest_dir).expanduser() if a.manifest_dir else run / "inputs"
+    subset = [u.strip() for u in a.units.split(",")] if a.units else None
+    if a.plan:
+        return {"worktree": wt, **pilot.plan(mdir, subset)}
+    if a.dry_run or not a.execute_scientific_fits:
+        out = pilot.dry_run(mdir, subset)
+        out["worktree"] = wt
+        if lock_path.exists():
+            from .lock import verify_lock
+            out["lock_check"] = verify_lock(lock_path, Path(wt["root"]), mdir)
+        else:
+            out["lock_check"] = {"ok": False, "mismatches": [f"no lock at {lock_path}"]}
+        return out
+    if os.environ.get("OMP_NUM_THREADS") != "1":
+        raise SystemExit("REFUSED: scientific execution requires OMP_NUM_THREADS=1 (one scheduler, fixed threads)")
+    from .lock import verify_lock
+    if not lock_path.exists():
+        raise SystemExit(f"REFUSED: lock {lock_path} not found")
+    v = verify_lock(lock_path, Path(wt["root"]), mdir)
+    if not v["ok"]:
+        raise SystemExit("REFUSED: lock verification failed:\n  " + "\n  ".join(v["mismatches"]))
+    auth = FitAuthorization(synthetic=a.synthetic, execute_scientific_fits=True)
+    res = pilot.execute(mdir, run / "units", auth, subset=subset, resume=a.resume,
+                        log=lambda m: print(m, file=sys.stderr, flush=True))
+    res.update(worktree=wt, lock_check=v)
+    return res
+
+
+def cmd_lock(a, cfg):
+    from .lock import DEFAULT_ACCESS_TABLE, build_lock, verify_lock
+    wt, run, lock_path = _pilot_paths(a)
+    inputs = Path(a.inputs_dir).expanduser() if a.inputs_dir else run / "inputs"
+    if a.action == "build":
+        return build_lock(Path(wt["root"]), inputs, lock_path, a.access_table or DEFAULT_ACCESS_TABLE, a.features,
+                          Path(a.effective_out) if a.effective_out else None)
+    v = verify_lock(lock_path, Path(wt["root"]), inputs)
+    if not v["ok"]:
+        print(json.dumps(v, indent=1))
+        raise SystemExit(3)
+    return v
+
+
 COMMANDS = {"plan": cmd_plan, "admit": cmd_admit, "forward": cmd_forward, "recount": cmd_recount,
-            "fit-attackers": cmd_fit, "score": cmd_score, "infer": cmd_infer, "report": cmd_report}
+            "fit-attackers": cmd_fit, "score": cmd_score, "infer": cmd_infer, "report": cmd_report,
+            "pilot": cmd_pilot, "lock": cmd_lock}
 
 
 def main(argv=None) -> int:

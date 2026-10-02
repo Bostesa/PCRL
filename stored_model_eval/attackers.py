@@ -135,6 +135,7 @@ class ReleaseChannel:
     def __init__(self, contract: ReleaseContract, seed: int = 0):
         if contract.noise == "none":
             raise ValueError("ReleaseChannel needs a noise contract")
+        self.persistent = contract.persistent
         self.contract, self.seed = contract, int(seed)
         self.sigma = float(contract.sigma)
 
@@ -142,7 +143,7 @@ class ReleaseChannel:
         H = np.asarray(H, dtype=np.float64)
         E = np.empty_like(H)
         for r, t in enumerate(np.asarray(tokens).tolist()):
-            key = [self.seed, int(t)] if self.contract.noise == "persistent_token" \
+            key = [self.seed, int(t)] if self.persistent \
                 else [self.seed, int(t), int(query) + 1]
             E[r] = np.random.default_rng(np.random.SeedSequence(key)).normal(size=H.shape[1])
         return H + self.sigma * E
@@ -239,7 +240,7 @@ class RepeatedReleaseAttacker:
 
     def access_record(self, surface: str = "rep") -> AccessRecord:
         c = self.channel.contract
-        valid = c.noise == "fresh_per_query"
+        valid = c.issues_fresh_noise()
         return AccessRecord(tag=f"A3({self.N})", attacker=self.name, surface=surface,
                             fit_inputs=self.base.access_record().fit_inputs,
                             eval_inputs=[f"{self.N} releases of target"], requires=["query interface"],

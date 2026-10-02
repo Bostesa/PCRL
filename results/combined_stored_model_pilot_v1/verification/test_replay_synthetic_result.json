@@ -1,0 +1,331 @@
+{
+ "schema": "pcrl.cell_a.replay_synthetic_validation/v1",
+ "generated_utc": "2026-10-02T16:47:04Z",
+ "workdir": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/synth_replay",
+ "B_primary": 20000,
+ "B_exploratory": 2000,
+ "B_reference_bootstrap": 20000,
+ "clean_replay_seconds": 64.3,
+ "clean_replay_summary": {
+  "INFO": 3,
+  "PASS": 1108
+ },
+ "mc_borderline_items": [],
+ "n_checks": 52,
+ "n_pass": 52,
+ "checks": [
+  {
+   "check": "unit: weighted AUC with ties == brute-force pairwise",
+   "pass": true,
+   "detail": "0.379843073593 vs 0.379843073593"
+  },
+  {
+   "check": "unit: weighted AUC == sklearn roc_auc_score(sample_weight)",
+   "pass": true,
+   "detail": "0.379843073593 vs 0.379843073593"
+  },
+  {
+   "check": "unit: cluster bootstrap SE matches unit-level SE (duplicates collapse)",
+   "pass": true,
+   "detail": "ratio=0.990"
+  },
+  {
+   "check": "unit: cluster SE ~ sqrt(2) x naive row SE when every unit is doubled",
+   "pass": true,
+   "detail": "ratio=1.406"
+  },
+  {
+   "check": "unit: 90% percentile interval half-width ~ 1.645 SE",
+   "pass": true,
+   "detail": "0.01676 vs 0.01712"
+  },
+  {
+   "check": "unit: MC SE of alpha=0.05/16 percentile finite and < 0.5 SE",
+   "pass": true,
+   "detail": "0.000835"
+  },
+  {
+   "check": "unit: MC SE of the B=20000 alpha=0.05/16 bound matches seed-to-seed spread (ratio in [0.5, 2])",
+   "pass": true,
+   "detail": "empirical sd=0.000463 mean mcse=0.000400 ratio=1.16"
+  },
+  {
+   "check": "unit: analytic R\u00b2 = 1 - 1.5^2 = -1.25 (unclamped)",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "unit: role rule matches independent copy",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "clean synthetic run: no FAIL items",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "clean synthetic run: runner CSV comparisons were actually made",
+   "pass": true,
+   "detail": 463
+  },
+  {
+   "check": "clean synthetic run: MC-borderline decisions listed (informational)",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "26 units / 16 endpoints",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "direct signal: P2 income_prediction__sex RECOVERY_OUTSIDE_SCOPE_ESTABLISHED",
+   "pass": true,
+   "detail": 0.9639560384048627
+  },
+  {
+   "check": "direct signal: P1 income_prediction__sex FAILS_TO_GENERALISE (G1 lower > 0.05)",
+   "pass": true,
+   "detail": 0.22931785365684165
+  },
+  {
+   "check": "direct signal: C1 (N0 > 0.05) and C3; failing P1 NOT read as C2 when C1 holds (D1 #8)",
+   "pass": true,
+   "detail": {
+    "categories": [
+     "C1",
+     "C3"
+    ],
+    "notes": [
+     "P1 fails to generalise but C1 already holds: not read as C2 (D1 #8)"
+    ],
+    "outputs_surface_bound": {
+     "estimate": 0.8877528157022078,
+     "lower": 0.867165908741075,
+     "upper": 0.9068122142014998,
+     "mcse_lower": 0.00037165086218574067,
+     "mcse_upper": 0.0003354049799423497,
+     "n_finite": 20000,
+     "established_above": true
+    }
+   }
+  },
+  {
+   "check": "category rule (0.01, 0.01, 'FAILS_TO_GENERALISE', 'BELOW_BAR_ESTABLISHED', None) -> ['historical_check_passes', 'C2']",
+   "pass": true,
+   "detail": [
+    "historical_check_passes",
+    "C2"
+   ]
+  },
+  {
+   "check": "category rule (0.06, 0.06, 'FAILS_TO_GENERALISE', 'UNRESOLVED', None) -> ['C1', 'C5_UNRESOLVED']",
+   "pass": true,
+   "detail": [
+    "C1",
+    "C5_UNRESOLVED"
+   ]
+  },
+  {
+   "check": "category rule (0.01, 0.01, 'GENERALISES', 'BELOW_BAR_ESTABLISHED', 0.6) -> ['historical_check_passes', 'C3']",
+   "pass": true,
+   "detail": [
+    "historical_check_passes",
+    "C3"
+   ]
+  },
+  {
+   "check": "category rule (0.049, 0.051, 'NE', 'NE', None) -> ['historical_check_passes', 'C1_float32_float64_disagree', 'C5_NE']",
+   "pass": true,
+   "detail": [
+    "historical_check_passes",
+    "C1_float32_float64_disagree",
+    "C5_NE"
+   ]
+  },
+  {
+   "check": "held-out rho1^2 from RHO_u/RHO_v == np.corrcoef^2",
+   "pass": true,
+   "detail": 0.14260684495355105
+  },
+  {
+   "check": "tau sensitivity grid reported for G1",
+   "pass": true,
+   "detail": {
+    "0.01": "FAILS_TO_GENERALISE",
+    "0.02": "FAILS_TO_GENERALISE",
+    "0.05": "FAILS_TO_GENERALISE",
+    "0.1": "FAILS_TO_GENERALISE"
+   }
+  },
+  {
+   "check": "unsupported task class excluded from utility AUC/macro-F1 (employment class 5)",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "normalised-lift flag computed from clean lift",
+   "pass": true,
+   "detail": {
+    "U1": {
+     "clean_lift": -0.27350813743218805,
+     "normalised_lift_reportable": false
+    },
+    "U2": {
+     "clean_lift": -0.283001808318264,
+     "normalised_lift_reportable": false
+    }
+   }
+  },
+  {
+   "check": "null: P2 education_assessment__income BELOW_BAR_ESTABLISHED",
+   "pass": true,
+   "detail": 0.5273088847320017
+  },
+  {
+   "check": "null: held-out G1 negative and GENERALISES",
+   "pass": true,
+   "detail": -0.0014705675348420932
+  },
+  {
+   "check": "borderline (true AUC 0.55): P2 education_assessment__sex UNRESOLVED",
+   "pass": true,
+   "detail": 0.5494120261105966
+  },
+  {
+   "check": "NE unit: P1 and P2 NE and category C5_NE (not UNRESOLVED)",
+   "pass": true,
+   "detail": [
+    "historical_check_passes",
+    "C5_NE"
+   ]
+  },
+  {
+   "check": "unsupported classes: race supported = {1,2,4}",
+   "pass": true,
+   "detail": [
+    1,
+    2,
+    4
+   ]
+  },
+  {
+   "check": "ties + unsupported: macro AUC over supported classes == sklearn",
+   "pass": true,
+   "detail": "0.7299321590002465 vs 0.7299321590002465"
+  },
+  {
+   "check": "macro AUC differs from all-class macro (unsupported excluded)",
+   "pass": true,
+   "detail": "0.770257721913112 vs 0.7299321590002465"
+  },
+  {
+   "check": "worst-pair AUC (p_j/(p_j+p_k), rows of the two classes) == sklearn reference",
+   "pass": true,
+   "detail": "0.7602168949771689 vs 0.760216894977169"
+  },
+  {
+   "check": "LL_skill = 1 - LL/LL0 (LL0 = attacker_fit prior) == sklearn",
+   "pass": true,
+   "detail": "0.591270214076576 vs 0.591270214076576"
+  },
+  {
+   "check": "LLR_nats = LL0 - LL == sklearn",
+   "pass": true,
+   "detail": "0.3723215611965398 vs 0.3723215611965397"
+  },
+  {
+   "check": "Brier skill == numpy reference",
+   "pass": true,
+   "detail": "0.6631599119455125 vs 0.6631599119455124"
+  },
+  {
+   "check": "G1 R\u00b2 (SS_tot around saved prior, unclamped) == reference [income_prediction__sex]",
+   "pass": true,
+   "detail": "0.22931785365684165 vs 0.22931785365684165"
+  },
+  {
+   "check": "N0 float64 == sklearn in-sample ridge [income_prediction__sex]",
+   "pass": true,
+   "detail": "0.24270281176539554 vs 0.24270281176539577"
+  },
+  {
+   "check": "G1 R\u00b2 (SS_tot around saved prior, unclamped) == reference [education_assessment__race]",
+   "pass": true,
+   "detail": "-0.006930656735288476 vs -0.006930656735288698"
+  },
+  {
+   "check": "N0 float64 == sklearn in-sample ridge [education_assessment__race]",
+   "pass": true,
+   "detail": "0.0019416229175294175 vs 0.0019416229175294175"
+  },
+  {
+   "check": "seed aggregation sigma=0.25: point == mean of seeds",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "seed aggregation sigma=0.25: within-replicate mean interval no wider than widest seed",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "seed aggregation sigma=8: point == mean of seeds",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "seed aggregation sigma=8: within-replicate mean interval no wider than widest seed",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "noise utility paired difference vs untreated present",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "assessment duplicates present in synthetic data",
+   "pass": true,
+   "detail": "rows=2212 clusters=2075"
+  },
+  {
+   "check": "mutation: wrong supported.json detected",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "mutation: assessment ID replaced by attacker_fit row detected",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "mutation: missing unit detected (unit IDs compared, not counts)",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "mutation: analytic negative held-out R\u00b2 reported exactly -1.25 (unclamped)",
+   "pass": true,
+   "detail": -1.2499999999999996
+  },
+  {
+   "check": "mutation: G1_pred that is not the ridge fit detected by closed-form re-derivation",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "mutation: flipped runner decision (far from bar) detected as FAIL",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "mutation: point estimate perturbed by 1e-3 detected as FAIL",
+   "pass": true,
+   "detail": null
+  }
+ ],
+ "addendum": "FROZEN_DESIGN Addendum D1 applied (task_labels_v1.npz, LLR_nats/LL_skill, RHO_u/RHO_v, type-7 quantiles, C1 suppresses C2, tau grid, task-class support)",
+ "note": "runner CSV layout in the synthetic report is a guess; FROZEN_DESIGN fixes only preds.npz/supported.json. Comparator adapters will be re-validated against the real CSV headers."
+}

@@ -54,7 +54,7 @@ attacked.
 | Projection arms | Recount only. The projection matrices were never saved, and refitting them is not authorized. |
 | Rows | PCRL test split (the encoder never trained on it): 7,571 attacker-fit, 2,239 attacker-validation, 5,250 assessment |
 
-**CELL-B: HMDA race/loan decision.** It is eligible but its inputs are not yet prepared. That is extension E1.
+**CELL-B: HMDA race/loan decision.** Correction (2026-10-02): it fails eligibility rule 4 (no documented projection arm on this encoder) and is not part of the CELL-A run. Preparing it would be extension E1.
 
 ## Access table
 

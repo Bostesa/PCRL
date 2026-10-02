@@ -1,6 +1,6 @@
 """Access records, release contracts and the surface / attacker / metric decomposition table.
 
-Access tags (EVALUATION_PROTOCOL_DRAFT.md section 3):
+Access tags (PILOT_PROTOCOL.md / ATTACKER_ACCESS_TABLE.csv; executed set in effective.py):
   A1 release         : (release, S) pairs from the attacker-fit role; one target release
   A2 defense-aware   : A1 + mechanism code + public parameters; simulates the defense on data it holds
   A3(N) repeated     : A2 + N releases of the same target; ONLY where fresh randomness is issued per query
@@ -28,23 +28,58 @@ CONTRACTS = ("none", "fresh_per_query", "persistent_token")
 
 @dataclass(frozen=True)
 class ReleaseContract:
-    noise: str = "none"            # none | fresh_per_query | persistent_token
+    """What a recipient receives and how often fresh randomness is issued.
+
+    noise:
+      none              deterministic release (untreated arms); no randomness
+      fresh_per_query   r = h + N(0, sigma^2 I) with a fresh draw on every query
+      persistent_token  r = h + N(0, sigma^2 I) drawn once per row and returned on every query
+    The pilot derives the contract from each manifest's "release" block (`from_manifest`): a gaussian_noise
+    release with release_count "one" is one persistent draw per row per release seed -> persistent_token
+    (Addendum D1 #3). Applying the protocol-wide default noise="none" to a noise arm is a bug
+    (tests/test_17_pilot_units.py::test_noise_contract_reaches_access_records).
+    """
+    noise: str = "none"
     sigma: float | None = None     # isotropic noise scale if Sigma not given
     Sigma: np.ndarray | None = field(default=None, compare=False)
+    release_count: str | None = None
+    seed: int | None = None
 
     def __post_init__(self):
         if self.noise not in CONTRACTS:
             raise ValueError(f"noise contract must be one of {CONTRACTS}")
 
+    @classmethod
+    def from_manifest(cls, release: dict | None) -> "ReleaseContract":
+        """Contract from a manifest "release" block (None = untreated deterministic release)."""
+        if not release:
+            return cls(noise="none", release_count="one")
+        if release.get("kind") != "gaussian_noise":
+            raise ValueError(f"unsupported release kind {release.get('kind')!r}")
+        if release.get("release_count") != "one":
+            raise ValueError(f"release_count {release.get('release_count')!r}: only one persistent draw per row "
+                             "is supported by this contract")
+        sigma = float(release["sigma_abs"])
+        if not sigma > 0:
+            raise ValueError("gaussian_noise release needs sigma_abs > 0")
+        return cls(noise="persistent_token", sigma=sigma, release_count="one",
+                   seed=None if release.get("seed") is None else int(release["seed"]))
+
+    @property
+    def persistent(self) -> bool:
+        return self.noise != "fresh_per_query"
+
+    def issues_fresh_noise(self) -> bool:
+        return self.noise == "fresh_per_query"
+
     def effective_queries(self, N: int) -> int:
         """Number of independent noise draws N queries actually yield."""
-        if self.noise == "fresh_per_query":
-            return int(N)
-        return 1
+        return int(N) if self.issues_fresh_noise() else 1
 
     def to_json(self):
         return {"noise": self.noise, "sigma": self.sigma,
-                "Sigma": None if self.Sigma is None else "declared (matrix)"}
+                "Sigma": None if self.Sigma is None else "declared (matrix)",
+                "persistent": self.persistent, "release_count": self.release_count, "seed": self.seed}
 
 
 @dataclass
@@ -60,6 +95,8 @@ class AccessRecord:
     invalid_reason: str | None = None
     queries: int = 1
     effective_queries: int = 1
+    status: str = "EXECUTED"       # EXECUTED | REUSED | STAGED_NOT_RUN
+    note: str | None = None
 
     def to_json(self):
         return dict(self.__dict__)

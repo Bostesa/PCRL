@@ -159,3 +159,17 @@ def forward_to_cache(ckpt_path, expected_sha256, X, row_ids, cache_dir, tag: str
     info["arrays"] = {k: list(v.shape) for k, v in out.items()}
     (cache / f"{tag}.provenance.json").write_text(json.dumps(info, indent=1, default=str))
     return info
+
+
+def frozen_head_logits(ckpt_path, expected_sha256: str, head_name: str, rep: np.ndarray,
+                       batch_size: int = 4096) -> tuple[np.ndarray, dict]:
+    """U1 utility: apply the stored purpose head to a (released) representation. weights_only load + sha256 check
+    (load_checkpoint refuses on mismatch); eval mode, no grad, float32 as in the forward cache. No fitting."""
+    ck, prov = load_checkpoint(ckpt_path, expected_sha256, allow_pickle=False)
+    model = FrozenPCRLv2(ck)
+    if head_name not in model.heads:
+        raise KeyError(f"checkpoint has no head {head_name!r} (heads: {model.head_names})")
+    t = model.torch
+    R = t.as_tensor(np.asarray(rep, dtype=np.float32))
+    out = [model.head(R[i:i + batch_size], head_name) for i in range(0, len(R), batch_size)]
+    return t.cat(out).numpy() if out else np.zeros((0, 0), np.float32), prov

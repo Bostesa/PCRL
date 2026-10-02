@@ -1,6 +1,8 @@
 # Pilot protocol: frozen-artifact re-evaluation
 
-**Version.** Draft v1, 2026-10-02, methodology role. Machine-readable twin:
+> **Superseded (2026-10-02, branch research/combined-stored-model-pilot-v1):** this preparation protocol was executed in amended form; see `results/combined_stored_model_pilot_v1/EXECUTED_PROTOCOL.md` and `AMENDMENT_1.md`. The original bytes are preserved at commit 031860f.
+
+**Version.** v1, 2026-10-02, methodology role (draft label superseded by the executed protocol). Machine-readable twin:
 `notes/methodology/protocol_config.json`. Where the two disagree, the JSON governs the evaluator and this
 text must be amended.
 
@@ -60,7 +62,7 @@ grouping unit. Ties go to the cell with fewer rows.
 | Slot | Cell (dataset / task / sensitive attribute) | Encoder + sha256 | Arms (reference / projection / noise / other) | Grouping unit | n per role | Notes |
 |---|---|---|---|---|---|---|
 | CELL-A | Adult (PCRL v2 purposes): 8 disallowed (purpose, attribute) pairs, incl. income_prediction / sex = the AAAI "hard" cell | PCRL Round-4 seed-0 `final.pt`, sha256 1cfc2fef…c061 (= durable-guarantees' audited encoder; drive inventory match) | **New-fit track:** untreated (all 8 pairs); Gaussian noise σ_abs ∈ {0.25, 0.5, 1, 2, 4, 8} × seeds {0,1,2} for income_prediction / sex (fit-free regeneration). **Historical-recount track only:** 10 projection releases (MMD/HSIC r1–r16) via stored per-row attacker scores on dg's original rows — no projection regeneration because Q was never saved (refit not authorized). | record (Adult has no linkage key; 5 exact-duplicate records collapse to 15,055 units) | pool = PCRL Adult **test** split, 15,060 rows: attacker_fit 7,571 / attacker_val 2,239 / assessment 5,250 | Inputs written, frozen forward done, 152 manifests admitted (2026-10-02). Race classes 61 and 40 in assessment → NE for race per-class/pairs (3/5 classes, 3/10 pairs supported). |
-| CELL-B | HMDA race / loan_decision (AAAI "easy" cell) | PCRL Round-4 seed-0 `final.pt`, sha256 e29d0367…2846 | untreated; noise σ = 8 (only documented noise case on this encoder); no projection | record | pool = PCRL HMDA test split (row counts to be written at input preparation) | Eligible by rule, **inputs not yet prepared** (Adult-specific prep script; extension step E1 in QUICKSTART). Smallest race class 126 in dg's assessment role; test-split counts to be checked against n_min = 100 before lock. |
+| CELL-B | HMDA race / loan_decision (AAAI "easy" cell) | PCRL Round-4 seed-0 `final.pt`, sha256 e29d0367…2846 | untreated; noise σ = 8 (only documented noise case on this encoder); no projection | record | pool = PCRL HMDA test split (row counts to be written at input preparation) | **Not eligible** (fails rule 4: no documented projection arm on this encoder); **not part of the CELL-A run**; inputs not prepared (Adult-specific prep script; extension step E1 in QUICKSTART). Smallest race class 126 in dg's assessment role; test-split counts to be checked against n_min = 100 before lock. |
 | CELL-C (optional) | — | — | — | — | — | No further cell qualifies (see notes/artifacts/pilot_cell_selection.csv). |
 
 **Coordinator note on rule 4 (2026-10-02).** CELL-A satisfies rule 4 only through the historical-recount track: the
