@@ -1,0 +1,493 @@
+{
+ "schema": "pcrl.matched_removal_benchmark.replay_synthetic_validation/v1",
+ "generated_utc": "2026-10-02T20:47:07Z",
+ "workdir": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/bench_verify",
+ "B_primary": 20000,
+ "B_exploratory": 2000,
+ "B_reference": 20000,
+ "clean_replay_seconds": 309.6,
+ "clean_replay_summary": {
+  "INFO": 21,
+  "PASS": 1393
+ },
+ "clean_replay_non_pass": [],
+ "tolerances_frozen_before_real_run": {
+  "point": 1e-09,
+  "bound": "6.5 x replay MC SE + 5e-05",
+  "g1_rederive": 1e-06,
+  "leace_rederive_rel": 1e-06,
+  "leace_mean_rel": 1e-09,
+  "leace_native": "||W P Sigma_xz||_2 <= svd_tol*(1+1e-9)+1e-12",
+  "transform_rel": 1e-09,
+  "alias": 1e-10
+ },
+ "mutations": {
+  "defense_fit contaminated by an assessment row": {
+   "detected": true,
+   "n_fail": 8,
+   "matched": [
+    "adult: stored test-split roles == sha256('pilot-roles-v1|'+record_key) roles",
+    "adult: defense_fit canon keys disjoint from every test-split role",
+    "adult: defense_fit units disjoint from all test-split units"
+   ]
+  },
+  "supported.json drops a supported class": {
+   "detected": true,
+   "n_fail": 2,
+   "matched": [
+    "hmda__s0__underwriting__race__A: supported classes"
+   ]
+  },
+  "transform uses each role's own mean": {
+   "detected": true,
+   "n_fail": 1,
+   "matched": [
+    "adult__s1__income_prediction__sex__B: saved transformed rows (transformed.npz) == x - (x - mean_x) R^T L^T"
+   ]
+  },
+  "false B==C alias claim": {
+   "detected": true,
+   "n_fail": 1,
+   "matched": [
+    "adult__s0: B==C alias claim"
+   ]
+  },
+  "G1_pred not the fixed-ridge fit": {
+   "detected": true,
+   "n_fail": 3,
+   "matched": [
+    "hmda__s1__underwriting__race__B: saved G1_pred == fixed-ridge(1e-6) re-derivation on attacker_fit -> assessment"
+   ]
+  },
+  "hmda roles hashed with the Adult salt": {
+   "detected": true,
+   "n_fail": 8,
+   "matched": [
+    "hmda: stored test-split roles == sha256('bench-roles-hmda-v1|'+record_key) roles"
+   ]
+  },
+  "B map fitted on the wrong concept": {
+   "detected": true,
+   "n_fail": 7,
+   "matched": [
+    "adult__s0__income_prediction__sex__B: saved sigma_xz == recomputation on defense_fit rows",
+    "adult__s0__income_prediction__sex__B: NATIVE ||W Cov(erased defense_fit h, concept)||_2 <= svd_tol (recomputed rows)",
+    "adult__s0__income_prediction__sex__B: erased defense_fit rows == numpy re-derivation of LeaceFitter (recomputed rows)"
+   ]
+  },
+  "saved mean is not the defense_fit mean": {
+   "detected": true,
+   "n_fail": 4,
+   "matched": [
+    "hmda__s0__underwriting__race__B: saved mean_x == mean of recomputed defense_fit h (original fitting mean)"
+   ]
+  },
+  "ignore-rep candidate is not the outputs-only model": {
+   "detected": true,
+   "n_fail": 2,
+   "matched": [
+    "adult__s1__income_prediction__sex__A: repPLUSoutputs 'ignore_rep' candidate == outputs NL model predictions"
+   ]
+  },
+  "outputs-only surface not aliased across methods": {
+   "detected": true,
+   "n_fail": 2,
+   "matched": [
+    "hmda__s1__underwriting__race__D_sigma2_rs0: outputs/GBT/as1 identical to hmda__s1__underwriting__race__A"
+   ]
+  },
+  "runner point estimate perturbed by 1e-4": {
+   "detected": true,
+   "matched": [
+    "Rrep[adult,C]: point"
+   ]
+  },
+  "runner decision flipped (Rrep[adult,A] ABOVE -> UNRESOLVED)": {
+   "detected": true,
+   "matched": [
+    "Rrep[adult,A]: decision"
+   ]
+  },
+  "runner family has 23 endpoints": {
+   "detected": true,
+   "matched": [
+    "PRIMARY_ENDPOINTS rows == family size 24",
+    "PRIMARY_ENDPOINTS ids == replay family ids"
+   ]
+  },
+  "runner one-sided bounds at alpha=0.05 instead of 0.05/24 (all rows)": {
+   "detected": true,
+   "matched": [
+    "G1[adult,A]: simultaneous lower bound",
+    "Rrep[adult,A]: simultaneous lower bound",
+    "Rrep[adult,B]: simultaneous lower bound",
+    "Rrep[adult,C]: simultaneous lower bound",
+    "Rrep[adult,D]: simultaneous lower bound"
+   ]
+  },
+  "runner sigma* wrong": {
+   "detected": true,
+   "matched": [
+    "adult: sigma*"
+   ]
+  },
+  "runner alias row missing for an aliased C endpoint": {
+   "detected": true,
+   "matched": [
+    "Rrep[hmda,C]: alias_of"
+   ]
+  },
+  "runner worst-class bound = bound of the max (not max of per-class a/K bounds)": {
+   "detected": true,
+   "matched": [
+    "SUM|hmda|A|P|rep|NL|AUC_worst_class_derived: derived lower bound (max of per-class a/K bounds)",
+    "SUM|adult|A|P|rep|NL|AUC_worst_class_derived: derived lower bound (max of per-class a/K bounds)"
+   ]
+  }
+ },
+ "null_calibration": {
+  "null (all class AUC 0.5)": {
+   "theta_max": 0.5,
+   "n_replicates": 400,
+   "B": 1000,
+   "n": 800,
+   "K": 4,
+   "members": 3,
+   "coverage_LCB_one_sided": 0.945,
+   "coverage_UCB_one_sided": 1.0,
+   "coverage_two_sided_90": 0.945,
+   "nominal_one_sided": 0.95,
+   "naive_bound_of_max_LCB_coverage": 0.3325,
+   "naive_bound_of_max_UCB_coverage": 1.0
+  },
+  "near-tied (0.60, 0.60, 0.59, 0.50)": {
+   "theta_max": 0.6,
+   "n_replicates": 400,
+   "B": 1000,
+   "n": 800,
+   "K": 4,
+   "members": 3,
+   "coverage_LCB_one_sided": 0.975,
+   "coverage_UCB_one_sided": 1.0,
+   "coverage_two_sided_90": 0.975,
+   "nominal_one_sided": 0.95,
+   "naive_bound_of_max_LCB_coverage": 0.6975,
+   "naive_bound_of_max_UCB_coverage": 1.0
+  }
+ },
+ "n_checks": 62,
+ "n_pass": 62,
+ "checks": [
+  {
+   "check": "unit: weighted AUC with ties == sklearn roc_auc_score(sample_weight)",
+   "pass": true,
+   "detail": "0.465131861063 vs 0.465131861063"
+  },
+  {
+   "check": "unit: fixed ridge 1e-6 == sklearn Ridge(alpha=1e-6)",
+   "pass": true,
+   "detail": "1.11e-16"
+  },
+  {
+   "check": "unit: LEACE numpy re-derivation == official (generic 4-class)",
+   "pass": true,
+   "detail": "max|dP|=2.35e-14 max|dX|=0.00e+00 truncated=1 trace_mixed=False residual xcov=4.28e-16"
+  },
+  {
+   "check": "unit: LEACE numpy re-derivation == official (weak class (svd_tol truncation))",
+   "pass": true,
+   "detail": "max|dP|=8.88e-16 max|dX|=0.00e+00 truncated=1 trace_mixed=False residual xcov=1.92e-16"
+  },
+  {
+   "check": "unit: LEACE numpy re-derivation == official (anisotropic (trace constraint))",
+   "pass": true,
+   "detail": "max|dP|=1.51e-14 max|dX|=0.00e+00 truncated=1 trace_mixed=False residual xcov=3.61e-16"
+  },
+  {
+   "check": "unit: truncation case exercised (official eraser leaves residual cross-covariance)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: cluster bootstrap of duplicated rows == bootstrap of unique units",
+   "pass": true,
+   "detail": "0.0e+00"
+  },
+  {
+   "check": "unit: derived worst bound = max_k q_k(a/K), max_k q_k(1-a/K)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: decide_ni(LCB=-0.01) == NONINFERIOR (>= margin)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: decide_ni(UCB=-0.0101) == INFERIOR",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: decide_ni(UCB=-0.01) == UNRESOLVED (strict <)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: decide_bar strict both sides",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "unit: role rule (both salts) == separately typed copy",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "generator: hmda C map equals B map (alias case present)",
+   "pass": true,
+   "detail": "{0: True, 1: True}"
+  },
+  {
+   "check": "generator: adult C map differs from B map (non-alias case present)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "design: adult sigma* = 0.5 (qualifies), hmda sigma* = max grid flagged",
+   "pass": true,
+   "detail": "{'adult': {'sigma_star': 0.5, 'flagged': False, 'curve': {0.5: 0.5432848687367804, 2.0: 0.505303407333677}}, 'hmda': {'sigma_star': 2.0, 'flagged': True, 'curve': {0.5: 0.5991640232800037, 2.0: 0.5973010995058963}}}"
+  },
+  {
+   "check": "clean replay: no FAIL items",
+   "pass": true,
+   "detail": "summary={'INFO': 21, 'PASS': 1393}; first fails=[]"
+  },
+  {
+   "check": "clean replay: every non-PASS/INFO item is MC_BORDERLINE (diagnosed)",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "check": "adult: defense_fit excludes the 80 shared-canon-key train rows (excluded_dup)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "hmda: defense_fit excludes the 80 shared-canon-key train rows (excluded_dup)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "support: hmda race classes 3 and 4 NE in every arm (macro over {0,1,2}, 3 pairs)",
+   "pass": true,
+   "detail": "{'hmda__s0__underwriting__race__A': [0, 1, 2], 'hmda__s0__underwriting__race__B': [0, 1, 2], 'hmda__s0__underwriting__race__C': [0, 1, 2], 'hmda__s0__underwriting__race__D_sigma0.5_rs0': [0, 1, 2], 'hmda__s0__underwriting__race__D_sigma0.5_rs1': [0, 1, 2], 'hmda__s0__underwriting__race__D_sigma2_rs0': [0, 1, 2], 'hmda__s0__underwriting__race__D_sigma2_rs1': [0, 1, 2]}"
+  },
+  {
+   "check": "support: adult sex both classes supported in every arm",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "point estimates: all 10514 unit-level statistics (macro/worst class/pair AUC, Brier, LL, LLR, G1, G2, rho1^2, U1, U2) == reference",
+   "pass": true,
+   "detail": "max |diff| = 8.88e-16 at adult__s1__income_prediction__sex__B|P|rep|GBT|as1|brier_skill"
+  },
+  {
+   "check": "replicate summaries: 24 primary point estimates (mean over encoder x release x attacker seeds) == reference",
+   "pass": true,
+   "detail": "max |diff| = 1.11e-16"
+  },
+  {
+   "check": "primary bounds (alpha=0.05/24, B=20000) agree with the reference bootstrap within MC tolerance",
+   "pass": true,
+   "detail": "worst |diff|/tol = 0.35 (Rrep[adult,B] lower: replay 0.481377 ref 0.482276 tol 2.59e-03)"
+  },
+  {
+   "check": "primary decisions == reference decisions",
+   "pass": true,
+   "detail": "{}"
+  },
+  {
+   "check": "designed decisions reproduced (null BELOW, borderline UNRESOLVED, NI margin -0.01 both ways)",
+   "pass": true,
+   "detail": "{'Rrep[adult,A]': 'ABOVE', 'Rrep[adult,B]': 'BELOW', 'Rrep[adult,C]': 'UNRESOLVED', 'U2NI[adult,B]': 'NONINFERIOR', 'U2NI[adult,C]': 'INFERIOR', 'U2NI[adult,D]': 'UNRESOLVED', 'Rrep[hmda,B]': 'BELOW', 'Rrep[hmda,C]': 'BELOW', 'U2NI[hmda,C]': 'NONINFERIOR', 'Rplus[adult,A]': 'ABOVE'}"
+  },
+  {
+   "check": "family size 24 with hmda C endpoints as alias rows (counted, not dropped)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "sigma* reproduced from attacker_val predictions only",
+   "pass": true,
+   "detail": "{'adult': 0.5, 'hmda': 2.0}"
+  },
+  {
+   "check": "worst-class derived bound SUM|hmda|A|P|rep|NL|AUC_worst_class_derived: point (max of seed-mean class AUCs) and bounds == reference",
+   "pass": true,
+   "detail": "replay [0.6085, 0.6392] ref [0.6086, 0.6389] naive bound-of-max [0.6177, 0.6358]"
+  },
+  {
+   "check": "worst-class derived bound SUM|adult|A|P|rep|NL|AUC_worst_class_derived: point (max of seed-mean class AUCs) and bounds == reference",
+   "pass": true,
+   "detail": "replay [0.8724, 0.8863] ref [0.8728, 0.8866] naive bound-of-max [0.8738, 0.8857]"
+  },
+  {
+   "check": "near-tied worst class: top two per-class lower bounds within 0.01 (tie exercised)",
+   "pass": true,
+   "detail": "{'AUC_class_0': [0.601921478276342, 0.6247321548338504], 'AUC_class_1': [0.6084042977604175, 0.6350692093490923], 'AUC_class_2': [0.6085183212619304, 0.639182990899716]}"
+  },
+  {
+   "check": "exploratory 90% interval (B=2000) == reference within MC tolerance",
+   "pass": true,
+   "detail": "replay [0.87351, 0.88507] ref [0.87392, 0.88498]"
+  },
+  {
+   "check": "LEACE: erased defense_fit rows == numpy re-derivation of the official fitter on every map",
+   "pass": true,
+   "detail": "{'adult__s0__income_prediction__sex__B': '1.1e-14 (P 1.6e-15)', 'adult__s0__income_prediction__sex__C': '2.1e-14 (P 4.8e-15)', 'adult__s1__income_prediction__sex__B': '2.5e-14 (P 5.3e-15)', 'adult__s1__income_prediction__sex__C': '2.3e-14 (P 3.0e-15)', 'hmda__s0__underwriting__race__B': '2.4e-14 (P 2.1e-12)', 'hmda__s0__underwriting__race__C': '2.2e-14 (P 2.1e-12)', 'hmda__s1__underwriting__race__B': '2.5e-14 (P 4.1e-15)', 'hmda__s1__underwriting__race__C': '2.6e-14 (P 4.0e-15)'}"
+  },
+  {
+   "check": "LEACE native bound ||W P Sigma_xz||_2 <= svd_tol on every map (saved arrays and recomputed rows)",
+   "pass": true,
+   "detail": "{'adult__s0__income_prediction__sex__B': (0.0, 1), 'adult__s0__income_prediction__sex__C': (0.0, 2), 'adult__s1__income_prediction__sex__B': (0.0, 1), 'adult__s1__income_prediction__sex__C': (0.008477, 3), 'hmda__s0__underwriting__race__B': (0.0, 1), 'hmda__s0__underwriting__race__C': (0.0, 3), 'hmda__s1__underwriting__race__B': (0.0, 1), 'hmda__s1__underwriting__race__C': (0.0, 3)}"
+  },
+  {
+   "check": "LEACE: exact-zero cross-covariance / OLS R^2 where nothing is truncated; truncation case exercised",
+   "pass": true,
+   "detail": "{'adult__s0__income_prediction__sex__B': ('3.7e-15', 1), 'adult__s0__income_prediction__sex__C': ('3.9e-15', 2), 'adult__s1__income_prediction__sex__B': ('4.3e-15', 1), 'adult__s1__income_prediction__sex__C': ('1.5e-02', 3), 'hmda__s0__underwriting__race__B': ('2.5e-15', 1), 'hmda__s0__underwriting__race__C': ('2.5e-15', 3), 'hmda__s1__underwriting__race__B': ('1.9e-15', 1), 'hmda__s1__underwriting__race__C': ('2.4e-15', 3)}"
+  },
+  {
+   "check": "LEACE: rank-deficient defense_fit covariance case present (hmda s0 dead unit)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "LEACE: every leace-scope item PASS/INFO in the clean run",
+   "pass": true,
+   "detail": "[]"
+  },
+  {
+   "check": "LEACE: B==C alias determined from saved maps (hmda alias, adult not)",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "LEACE: transformed attacker-role rows use the original fitting mean",
+   "pass": true,
+   "detail": "8"
+  },
+  {
+   "check": "G1: saved G1_pred re-derived (A raw, B/C via saved map, D via pilot noise convention) on every unit",
+   "pass": true,
+   "detail": "28 units"
+  },
+  {
+   "check": "mutation detected: defense_fit contaminated by an assessment row",
+   "pass": true,
+   "detail": "[\"adult: stored test-split roles == sha256('pilot-roles-v1|'+record_key) roles\", 'adult: defense_fit canon keys disjoint from every test-split role', 'adult: defense_fit units disjoint from all test-split units']"
+  },
+  {
+   "check": "mutation detected: supported.json drops a supported class",
+   "pass": true,
+   "detail": "['hmda__s0__underwriting__race__A: supported classes']"
+  },
+  {
+   "check": "mutation detected: transform uses each role's own mean",
+   "pass": true,
+   "detail": "['adult__s1__income_prediction__sex__B: saved transformed rows (transformed.npz) == x - (x - mean_x) R^T L^T']"
+  },
+  {
+   "check": "mutation detected: false B==C alias claim",
+   "pass": true,
+   "detail": "['adult__s0: B==C alias claim']"
+  },
+  {
+   "check": "mutation detected: G1_pred not the fixed-ridge fit",
+   "pass": true,
+   "detail": "['hmda__s1__underwriting__race__B: saved G1_pred == fixed-ridge(1e-6) re-derivation on attacker_fit -> assessment']"
+  },
+  {
+   "check": "mutation detected: hmda roles hashed with the Adult salt",
+   "pass": true,
+   "detail": "[\"hmda: stored test-split roles == sha256('bench-roles-hmda-v1|'+record_key) roles\"]"
+  },
+  {
+   "check": "mutation detected: B map fitted on the wrong concept",
+   "pass": true,
+   "detail": "['adult__s0__income_prediction__sex__B: saved sigma_xz == recomputation on defense_fit rows', 'adult__s0__income_prediction__sex__B: NATIVE ||W Cov(erased defense_fit h, concept)||_2 <= svd_tol (recomputed rows)', 'adult__s0__income_prediction__sex__B: erased defense_fit rows == numpy re-derivation of LeaceFitter (recomputed rows)']"
+  },
+  {
+   "check": "mutation detected: saved mean is not the defense_fit mean",
+   "pass": true,
+   "detail": "['hmda__s0__underwriting__race__B: saved mean_x == mean of recomputed defense_fit h (original fitting mean)']"
+  },
+  {
+   "check": "mutation detected: ignore-rep candidate is not the outputs-only model",
+   "pass": true,
+   "detail": "[\"adult__s1__income_prediction__sex__A: repPLUSoutputs 'ignore_rep' candidate == outputs NL model predictions\"]"
+  },
+  {
+   "check": "mutation detected: outputs-only surface not aliased across methods",
+   "pass": true,
+   "detail": "['hmda__s1__underwriting__race__D_sigma2_rs0: outputs/GBT/as1 identical to hmda__s1__underwriting__race__A']"
+  },
+  {
+   "check": "mutation detected: runner point estimate perturbed by 1e-4",
+   "pass": true,
+   "detail": "['Rrep[adult,C]: point']"
+  },
+  {
+   "check": "mutation detected: runner decision flipped (Rrep[adult,A] ABOVE -> UNRESOLVED)",
+   "pass": true,
+   "detail": "['Rrep[adult,A]: decision']"
+  },
+  {
+   "check": "mutation detected: runner family has 23 endpoints",
+   "pass": true,
+   "detail": "['PRIMARY_ENDPOINTS rows == family size 24', 'PRIMARY_ENDPOINTS ids == replay family ids']"
+  },
+  {
+   "check": "mutation detected: runner one-sided bounds at alpha=0.05 instead of 0.05/24 (all rows)",
+   "pass": true,
+   "detail": "['G1[adult,A]: simultaneous lower bound', 'Rrep[adult,A]: simultaneous lower bound', 'Rrep[adult,B]: simultaneous lower bound']"
+  },
+  {
+   "check": "mutation detected: runner sigma* wrong",
+   "pass": true,
+   "detail": "['adult: sigma*']"
+  },
+  {
+   "check": "mutation detected: runner alias row missing for an aliased C endpoint",
+   "pass": true,
+   "detail": "['Rrep[hmda,C]: alias_of']"
+  },
+  {
+   "check": "mutation detected: runner worst-class bound = bound of the max (not max of per-class a/K bounds)",
+   "pass": true,
+   "detail": "['SUM|hmda|A|P|rep|NL|AUC_worst_class_derived: derived lower bound (max of per-class a/K bounds)', 'SUM|adult|A|P|rep|NL|AUC_worst_class_derived: derived lower bound (max of per-class a/K bounds)']"
+  },
+  {
+   "check": "null-calibration null (all class AUC 0.5): derived LCB(max) one-sided coverage >= 0.95 - 2 MC SE",
+   "pass": true,
+   "detail": "{\"theta_max\": 0.5, \"n_replicates\": 400, \"B\": 1000, \"n\": 800, \"K\": 4, \"members\": 3, \"coverage_LCB_one_sided\": 0.945, \"coverage_UCB_one_sided\": 1.0, \"coverage_two_sided_90\": 0.945, \"nominal_one_sided\": 0.95, \"naive_bound_of_max_LCB_coverage\": 0.3325, \"naive_bound_of_max_UCB_coverage\": 1.0}"
+  },
+  {
+   "check": "null-calibration null (all class AUC 0.5): derived UCB(max) one-sided coverage >= 0.95 - 2 MC SE",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "check": "null-calibration near-tied (0.60, 0.60, 0.59, 0.50): derived LCB(max) one-sided coverage >= 0.95 - 2 MC SE",
+   "pass": true,
+   "detail": "{\"theta_max\": 0.6, \"n_replicates\": 400, \"B\": 1000, \"n\": 800, \"K\": 4, \"members\": 3, \"coverage_LCB_one_sided\": 0.975, \"coverage_UCB_one_sided\": 1.0, \"coverage_two_sided_90\": 0.975, \"nominal_one_sided\": 0.95, \"naive_bound_of_max_LCB_coverage\": 0.6975, \"naive_bound_of_max_UCB_coverage\": 1.0}"
+  },
+  {
+   "check": "null-calibration near-tied (0.60, 0.60, 0.59, 0.50): derived UCB(max) one-sided coverage >= 0.95 - 2 MC SE",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "elapsed_s": 1354.3
+}

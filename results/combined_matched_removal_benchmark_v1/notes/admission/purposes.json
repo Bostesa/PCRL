@@ -1,0 +1,138 @@
+{
+ "adult": {
+  "source": "PCRL b96c412 pcrl/data/adult.py get_adult_purposes() order == checkpoint task_heads order == checkpoint lambdas key order == LoRA adapter index",
+  "checkpoint_order_agrees_all_seeds": true,
+  "purposes": {
+   "income_prediction": {
+    "index": 0,
+    "task": "income",
+    "task_dim": 2,
+    "disallowed_attrs": [
+     "race",
+     "sex"
+    ],
+    "disallowed_attr_dims": {
+     "race": 5,
+     "sex": 2
+    },
+    "rep_key": "rep_p0",
+    "logits_key": "logits_income_prediction",
+    "labels_task_key": "task_income"
+   },
+   "employment_analysis": {
+    "index": 1,
+    "task": "occupation_group",
+    "task_dim": 6,
+    "disallowed_attrs": [
+     "race",
+     "age_group",
+     "marital_status"
+    ],
+    "disallowed_attr_dims": {
+     "race": 5,
+     "age_group": 4,
+     "marital_status": 2
+    },
+    "rep_key": "rep_p1",
+    "logits_key": "logits_employment_analysis",
+    "labels_task_key": "task_occupation_group"
+   },
+   "education_assessment": {
+    "index": 2,
+    "task": "education_level",
+    "task_dim": 4,
+    "disallowed_attrs": [
+     "sex",
+     "race",
+     "income"
+    ],
+    "disallowed_attr_dims": {
+     "sex": 2,
+     "race": 5,
+     "income": 2
+    },
+    "rep_key": "rep_p2",
+    "logits_key": "logits_education_assessment",
+    "labels_task_key": "task_education_level"
+   }
+  },
+  "tier1": {
+   "purpose": "income_prediction",
+   "task": "income",
+   "target": "sex",
+   "policy": [
+    "race",
+    "sex"
+   ],
+   "purpose_index": 0,
+   "policy_equals_disallowed": true,
+   "target_dims": 2
+  }
+ },
+ "hmda": {
+  "source": "PCRL b96c412 pcrl/data/hmda.py get_hmda_purposes() order == checkpoint task_heads order == checkpoint lambdas key order == LoRA adapter index",
+  "checkpoint_order_agrees_all_seeds": true,
+  "purposes": {
+   "underwriting": {
+    "index": 0,
+    "task": "loan_decision",
+    "task_dim": 2,
+    "disallowed_attrs": [
+     "race",
+     "ethnicity"
+    ],
+    "disallowed_attr_dims": {
+     "race": 5,
+     "ethnicity": 2
+    },
+    "rep_key": "rep_p0",
+    "logits_key": "logits_underwriting",
+    "labels_task_key": "task_loan_decision"
+   },
+   "pricing_analysis": {
+    "index": 1,
+    "task": "loan_amount_band",
+    "task_dim": 5,
+    "disallowed_attrs": [
+     "race",
+     "sex"
+    ],
+    "disallowed_attr_dims": {
+     "race": 5,
+     "sex": 2
+    },
+    "rep_key": "rep_p1",
+    "logits_key": "logits_pricing_analysis",
+    "labels_task_key": "task_loan_amount_band"
+   },
+   "fair_lending_audit": {
+    "index": 2,
+    "task": "tract_denial_high",
+    "task_dim": 2,
+    "disallowed_attrs": [
+     "race",
+     "sex"
+    ],
+    "disallowed_attr_dims": {
+     "race": 5,
+     "sex": 2
+    },
+    "rep_key": "rep_p2",
+    "logits_key": "logits_fair_lending_audit",
+    "labels_task_key": "task_tract_denial_high"
+   }
+  },
+  "tier1": {
+   "purpose": "underwriting",
+   "task": "loan_decision",
+   "target": "race",
+   "policy": [
+    "race",
+    "ethnicity"
+   ],
+   "purpose_index": 0,
+   "policy_equals_disallowed": true,
+   "target_dims": 5
+  }
+ }
+}

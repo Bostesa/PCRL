@@ -225,6 +225,7 @@ def build_parser():
     s.add_argument("--access-table", default=None); s.add_argument("--features", default=None)
     s.add_argument("--effective-out", default=None, help="also write EFFECTIVE_PROTOCOL.json here (build)")
     s.add_argument("--worktree", default=None); s.add_argument("--allow-other-branch-for-tests", action="store_true")
+    sub.add_parser("bench", help="matched removal benchmark runner (see bench.py; bench --help)", add_help=False)
     return p
 
 
@@ -285,14 +286,24 @@ def cmd_lock(a, cfg):
     return v
 
 
+def cmd_bench(a, cfg):
+    from .bench import main as bench_main
+    return bench_main(a.bench_args)
+
+
 COMMANDS = {"plan": cmd_plan, "admit": cmd_admit, "forward": cmd_forward, "recount": cmd_recount,
             "fit-attackers": cmd_fit, "score": cmd_score, "infer": cmd_infer, "report": cmd_report,
-            "pilot": cmd_pilot, "lock": cmd_lock}
+            "pilot": cmd_pilot, "lock": cmd_lock, "bench": cmd_bench}
 
 
 def main(argv=None) -> int:
     install_network_guard()
-    a = build_parser().parse_args(argv)
+    parser = build_parser()
+    a, extra = parser.parse_known_args(argv)
+    if a.cmd == "bench":
+        a.bench_args = list(extra)  # every token after `bench`, in order, goes to bench.main
+    elif extra:
+        parser.error(f"unrecognized arguments: {' '.join(extra)}")
     cfg = load_protocol(a.protocol)
     t0 = time.perf_counter()
     res = COMMANDS[a.cmd](a, cfg)

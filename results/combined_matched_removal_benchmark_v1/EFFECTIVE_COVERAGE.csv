@@ -1,0 +1,22 @@
+statistic,definition,fitting_route,saved_predictions,inference,report_table,arms_or_status
+native_A,PCRL historical in-sample ridge R2 on test split (N0),"closed form, per encoder seed",fit_records.json native,none (reproduction vs dominant_axis_audit),NATIVE_AND_HELDOUT_CHECKS.csv,Tier1+E1
+native_BC,official LEACE implementation bound + exact-zero cross-cov (descriptive) on defense_fit,LeaceMap.native_check,fit_records.json native; map npz,none,NATIVE_AND_HELDOUT_CHECKS.csv,"B,C"
+out_of_support,"label-free out-of-support component norm per (dataset, seed)",defenses geometry,fit_records.json,none,NATIVE_AND_HELDOUT_CHECKS.csv,"B,C"
+G1,held-out fixed ridge 1e-6 R2 (unclamped),closed form on attacker_fit,"preds.npz G1_pred, G1_prior",cluster bootstrap; primary for A,PRIMARY_ENDPOINTS.csv / NATIVE_AND_HELDOUT_CHECKS.csv,all arms
+G2,held-out scale-invariant relative-ridge R2,"closed form, rho on attacker_val","preds.npz G2_pred, G2_prior",exploratory bootstrap,NATIVE_AND_HELDOUT_CHECKS.csv,all arms
+rho1sq,held-out top canonical correlation,closed form,"preds.npz RHO_u, RHO_v",exploratory,NATIVE_AND_HELDOUT_CHECKS.csv,all arms
+heldout_crosscov,held-out cross-cov norm (B/C),closed form,fit_records.json,exploratory,NATIVE_AND_HELDOUT_CHECKS.csv,"B,C"
+Rrep,"C_rep NL-selected macro AUC (+L, GBT, MLP; attacker seeds 0-2)","grid on attacker_fit, select attacker_val, refit selected at seeds",preds.npz P__rep__<recipe>__as<k>,"primary (A,B,C,D*) + exploratory bars/per-seed",PRIMARY_ENDPOINTS.csv / RECOVERY.csv,all arms
+Rplus,C_rep_plus_clean_out NL-selected macro AUC incl. ignore-rep/ignore-outputs candidates,as Rrep; slate includes outputs_only and C_rep models,preds.npz P__repPLUSoutputs__<recipe>__as<k>,primary + exploratory,PRIMARY_ENDPOINTS.csv / RECOVERY.csv,all arms
+outputs_only,clean logits recovery (aliased across arms),"once per (dataset, seed, purpose, attr)",preds.npz P__outputs__<recipe>,exploratory,RECOVERY.csv,reference
+label_only,P(s|y_task) Laplace 1,attacker_fit,preds.npz LO_P,exploratory; output-minus-label contrast,RECOVERY.csv / MATCHED_COMPARISONS.csv,reference
+constant,attacker_fit prior,attacker_fit,preds.npz s_prior_fit,reference for Brier/LL skill,RECOVERY.csv,reference
+worst_class_pair,supported worst-class / worst-pair (maximum),from saved probabilities,preds.npz,"simultaneous per-class/pair bounds, derived max",RECOVERY.csv,all arms
+brier_ll,"Brier skill, LLR_nats, LL_skill (clip 1e-12)",from saved probabilities,preds.npz,exploratory,RECOVERY.csv,all arms
+LRT_A2_A4,noise LRTs (sigma-informed released-only; clean-population stress),closed form on attacker_fit,preds.npz P__rep__LRT_A2/A4,exploratory,RECOVERY.csv,D
+U1,frozen head on transformed rep (compatibility; outside LEACE scope),forward pass,preds.npz U1_logits,exploratory,UTILITY.csv,all arms
+U2,LR probe task capability,"grid on attacker_fit, select attacker_val",preds.npz U2_P,"primary non-inferiority (B,C,D*) margin -0.01; exploratory",PRIMARY_ENDPOINTS.csv / UTILITY.csv / MATCHED_COMPARISONS.csv,all arms
+clean_out_utility,clean head task accuracy/log-loss (unchanged across arms),none,preds.npz clean logits,exploratory,UTILITY.csv,reference
+sigma_star,diagnostic noise operating point from attacker_val only,sigma-star stage,"SIGMA_STAR.json, val_preds.npz",fixed before assessment scoring,SIGMA_STAR_SUMMARY.json,D
+seed_variation,encoder/release/attacker seed SDs,from per-seed points,preds.npz per-seed keys,descriptive,SEED_VARIATION.csv,all arms
+repeated_query,fresh-per-query averaging,not run (persistent contract),n/a,n/a,EXECUTION notes,staged/NA
