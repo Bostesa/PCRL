@@ -3,7 +3,9 @@
 
 Builds, in a scratch directory, a private-input directory and a run_v1 directory that follow
 notes/FROZEN_DESIGN.md (labels with record keys/units/roles, cache, releases, manifests,
-units/<id>/{preds.npz, supported.json, fit_records.json}) with known ground truth:
+units/<id>/{preds.npz, supported.json, fit_records.json, COMPLETE.json}, run_v1/inputs/{task_labels_v1.npz,
+manifest_v2_*}; full-K probability columns indexed by class label; surfaces rep/outputs/repPLUSoutputs;
+LO_P Laplace alpha=1; s_prior_fit/t_prior_fit) with known ground truth:
 
   * direct signal          income_prediction__sex       (P2 must be RECOVERY_OUTSIDE_SCOPE_ESTABLISHED, C2 and C3)
   * null                   education_assessment__income (P2 BELOW_BAR_ESTABLISHED; held-out G1 < 0 -> GENERALISES)
@@ -18,8 +20,7 @@ units/<id>/{preds.npz, supported.json, fit_records.json}) with known ground trut
 A synthetic "runner" report (PRIMARY_ENDPOINTS / DECOMPOSITION / UTILITY / SUPPORT_COVERAGE CSVs) is
 produced by an implementation inside this file that is independent of replay.py: sklearn AUC/log-loss,
 sklearn Ridge, and an index-resampling cluster bootstrap with scipy rankdata and a different RNG.
-The CSV column layout is a GUESS at the runner's layout (FROZEN_DESIGN does not fix it); the real
-layout is adapted when the run lands.
+The tables use the runner's real layouts (headers read from the real report directory on 2026-10-02).
 
 Mutation runs check that replay.py detects: wrong supported.json, an assessment ID swapped for a fit row,
 a missing unit, a perturbed point estimate, a flipped decision, and a G1_pred that is not the ridge fit.
@@ -82,6 +83,7 @@ def generate(work, seed=7):
     (inp / "cache").mkdir(parents=True)
     (inp / "releases").mkdir()
     (run / "units").mkdir(parents=True)
+    (run / "inputs").mkdir()          # actual layout: task labels + v2 manifests under run_v1/inputs/
 
     n_units, n_dup = 6000, 400
     keys = np.array([hashlib.sha1(f"synthetic-{i}".encode()).hexdigest()[:20] for i in range(n_units)])
@@ -124,7 +126,7 @@ def generate(work, seed=7):
     for p in PURPOSES:
         lab[f"task_{p}"] = task_u[p][src].astype(np.int64)
         tl[f"y_task_{p}"] = lab[f"task_{p}"][::-1].copy()
-    np.savez(inp / "task_labels_v1.npz", **tl)
+    np.savez(run / "inputs" / "task_labels_v1.npz", **tl)
     cache = {"row_id": row_id}
     for k, v in rep_u.items():
         cache[k] = v[src].astype(np.float32)
@@ -142,7 +144,7 @@ def generate(work, seed=7):
         if release:
             m["files"]["rel"] = {"path": release, "sha256": "synthetic"}
             m["release"] = {"kind": "gaussian_noise"}
-        (inp / f"manifest_{uid}.json").write_text(json.dumps(m, indent=1))
+        (run / "inputs" / f"manifest_v2_{uid}.json").write_text(json.dumps(m, indent=1))
 
     roles = lab["role"]
     fm, vm, am = roles == "attacker_fit", roles == "attacker_val", roles == "assessment"
@@ -166,17 +168,18 @@ def generate(work, seed=7):
 
     def write_unit(uid, purpose, attr, H, U1_logits, P_dict, extra_fit=None):
         y = lab[attr]
-        fit_classes = sorted(np.unique(y[fm]).tolist())
-        Y = np.eye(max(y) + 1)[y][:, fit_classes]
+        K = int(max(y)) + 1
+        fit_classes = list(range(K))        # actual format: columns = class labels 0..K-1
+        Y = np.eye(K)[y]
         g1 = ridge_pred(H.astype(np.float64), Y, 1e-6)
         lam2 = 0.02 * np.trace(np.cov(H[fm].T)) * fm.sum()
         g2 = ridge_pred(H.astype(np.float64), Y, lam2)
         prior = Y[fm].mean(axis=0)
         t = lab[f"task_{purpose}"]
-        LO = np.zeros((am.sum(), len(fit_classes)))
-        for tv in np.unique(t[fm]):
+        LO = np.zeros((am.sum(), K))
+        for tv in np.unique(t[am]):          # Laplace alpha=1 on attacker_fit
             sel = fm & (t == tv)
-            LO[t[am] == tv] = [np.mean(y[sel] == c) for c in fit_classes]
+            LO[t[am] == tv] = [(np.sum(y[sel] == c) + 1.0) / (sel.sum() + K) for c in range(K)]
         W2 = np.random.default_rng(int(hashlib.sha256(uid.encode()).hexdigest()[:8], 16)).normal(size=(H.shape[1], TASK_K[purpose])) * 0.3
         U2 = softmax(H[am].astype(np.float64) @ (heads[purpose] + W2))
         gr = np.random.default_rng(int(hashlib.sha256(("rho" + uid).encode()).hexdigest()[:8], 16))
@@ -185,7 +188,8 @@ def generate(work, seed=7):
         preds = {"RHO_u": ru, "RHO_v": rv}
         preds.update({"assess_row_id": row_id[am], "assess_unit": lab["unit"][am], "y_s": y[am],
                  "y_task": t[am], "G1_pred": g1, "G2_pred": g2, "G1_prior": prior, "G2_prior": prior,
-                 "LO_P": LO, "U1_logits": U1_logits, "U2_P": U2})
+                 "LO_P": LO, "U1_logits": U1_logits, "U2_P": U2, "s_prior_fit": prior,
+                 "t_prior_fit": np.array([np.mean(t[fm] == c) for c in range(TASK_K[purpose])])})
         for k, v in P_dict.items():
             preds[k] = v
         ud = run / "units" / uid
@@ -199,6 +203,9 @@ def generate(work, seed=7):
             {"unit": uid, "counts": counts, "supported_classes": supc, "supported_pairs": supp}, indent=1))
         (ud / "fit_records.json").write_text(json.dumps({"synthetic": True, **(extra_fit or {})}))
         (ud / "models").mkdir()
+        (ud / "COMPLETE.json").write_text(json.dumps({"unit": uid, "files": {
+            n_: hashlib.sha256((ud / n_).read_bytes()).hexdigest()
+            for n_ in ("preds.npz", "supported.json", "fit_records.json")}}, indent=1))
         truth["units"][uid] = {"fit_classes": fit_classes, "supported_classes": supc}
         return preds
 
@@ -208,7 +215,7 @@ def generate(work, seed=7):
         pi = PURPOSES.index(p)
         H = cache[f"rep_p{pi}"]
         y = lab[a]
-        cols = sorted(np.unique(y[fm]).tolist())
+        cols = list(range(int(max(y)) + 1))
         s = SIGNAL[uid]
         ties = uid == "income_prediction__race"
         yA = y[am]
@@ -216,9 +223,11 @@ def generate(work, seed=7):
               "P__rep__GBT": make_P(yA, cols, s, gen, ties),
               "P__rep__MLP": make_P(yA, cols, 0.9 * s, gen, ties)}
         Pd["P__rep__NL"] = Pd["P__rep__GBT"].copy()
-        Pd["P__outputs__L"] = make_P(yA, cols, 0.5 * s, gen, ties)
-        Pd["P__outputs__NL"] = make_P(yA, cols, 0.6 * s, gen, ties)
-        Pd["P__rep+outputs__NL"] = make_P(yA, cols, 1.05 * s, gen, ties)
+        for surf, f_ in (("outputs", 0.6), ("repPLUSoutputs", 1.05)):
+            Pd[f"P__{surf}__L"] = make_P(yA, cols, 0.8 * f_ * s, gen, ties)
+            Pd[f"P__{surf}__GBT"] = make_P(yA, cols, 0.95 * f_ * s, gen, ties)
+            Pd[f"P__{surf}__MLP"] = make_P(yA, cols, f_ * s, gen, ties)
+            Pd[f"P__{surf}__NL"] = Pd[f"P__{surf}__MLP"].copy()
         if uid == "income_prediction__sex":
             untreated_outputs = {k: v for k, v in Pd.items() if k.startswith("P__outputs__")}
         write_unit(uid, p, a, H, cache[f"logits_{p}"][am], Pd)
@@ -234,10 +243,12 @@ def generate(work, seed=7):
             y = lab["sex"]
             yA = y[am]
             a_s = 2.0 / (1.0 + sig)
-            Pd = {"P__rep__L": make_P(yA, [0, 1], 0.8 * a_s, g), "P__rep__NL": make_P(yA, [0, 1], a_s, g),
-                  "P__rep+outputs__NL": make_P(yA, [0, 1], max(a_s, 1.2), g),
+            Pd = {"P__rep__L": make_P(yA, [0, 1], 0.8 * a_s, g), "P__rep__GBT": make_P(yA, [0, 1], a_s, g),
+                  "P__rep__MLP": make_P(yA, [0, 1], 0.7 * a_s, g),
+                  "P__repPLUSoutputs__NL": make_P(yA, [0, 1], max(a_s, 1.2), g),
                   "P__rep__LRT_A2": make_P(yA, [0, 1], 0.9 * a_s, g),
                   "P__rep__LRT_A4": make_P(yA, [0, 1], 1.3 * a_s, g)}
+            Pd["P__rep__NL"] = Pd["P__rep__GBT"].copy()
             Pd.update({k_: v_.copy() for k_, v_ in untreated_outputs.items()})   # reused outputs surface
             write_unit(uid, "income_prediction", "sex", Hn, (Hn[am] @ heads["income_prediction"]), Pd,
                        {"release_contract": {"noise": "gaussian", "sigma": sig, "persistent": True}})
@@ -257,109 +268,224 @@ def mw_auc(score, pos):
     return (r[pos].sum() - n1 * (n1 + 1) / 2) / (n1 * n0)
 
 
+def ll12(y, P, labels):   # frozen convention: clip probabilities at 1e-12 (EFFECTIVE_PROTOCOL log_loss_clip)
+    idx = np.searchsorted(np.asarray(labels), y)
+    return float(np.mean(-np.log(np.clip(np.asarray(P, dtype=np.float64)[np.arange(len(y)), idx], 1e-12, 1 - 1e-12))))
+
+
 def ref_r2(Y, pred, prior):
     return 1.0 - np.sum((Y - pred) ** 2) / np.sum((Y - prior[None, :]) ** 2)
 
 
-def build_reference_report(inp, run, report, truth, B=20000):
+def build_reference_report(inp, run, report, truth, B=20000, B_expl=2000):
+    """Independent 'synthetic runner': writes the seven runner tables in the real layouts (headers as read
+    from results/combined_stored_model_pilot_v1 on 2026-10-02). Point values by sklearn/numpy; intervals by an
+    index-resampling cluster bootstrap with RandomState(777) and scipy rankdata (not replay.py's code)."""
     lab = dict(np.load(inp / "labels.npz"))
     roles = lab["role"]
-    tl = dict(np.load(inp / "task_labels_v1.npz"))
+    fm, am = roles == "attacker_fit", roles == "assessment"
+    tl = dict(np.load(run / "inputs" / "task_labels_v1.npz"))
     order = np.argsort(tl["row_id"])
-    task_sup = {}
-    for p in PURPOSES:
-        t_all = tl[f"y_task_{p}"][order]
-        task_sup[p] = [int(c) for c in np.unique(t_all)
-                       if all(np.sum((t_all == c) & (roles == r_)) >= R.SUPPORT_MIN[r_] for r_ in R.SUPPORT_MIN)]
+    task_all = {p: tl[f"y_task_{p}"][order] for p in PURPOSES}
+    task_sup = {p: [int(c) for c in np.unique(t_all)
+                    if all(np.sum((t_all == c) & (roles == r_)) >= R.SUPPORT_MIN[r_] for r_ in R.SUPPORT_MIN)]
+                for p, t_all in task_all.items()}
     units = sorted(p.name for p in (run / "units").iterdir())
-    rows_p, rows_d, rows_u, rows_s = [], [], [], []
     alpha = 0.05 / 16
-    # cluster structure for the index bootstrap
     first = dict(np.load(run / "units" / units[0] / "preds.npz"))
     au = first["assess_unit"]
     uniq = np.unique(au)
     members = [np.flatnonzero(au == u) for u in uniq]
     rs = np.random.RandomState(777)
     draws = [np.concatenate([members[j] for j in rs.randint(0, len(uniq), len(uniq))]) for _ in range(B)]
+    dex = draws[:B_expl]
+    cache = dict(np.load(inp / "cache" / "synth_test.npz"))
+
+    def boot(fn, ds):
+        return np.array([fn(ix) for ix in ds])
+
+    def ci90(v):
+        return np.quantile(v, [0.05, 0.95])
+
+    def macro(y, P, cols, supc, ix=None):
+        ix = np.arange(len(y)) if ix is None else ix
+        return float(np.mean([mw_auc(P[ix, cols.index(c)], y[ix] == c) for c in supc]))
+
+    def r2fn(Y, pred, prior):
+        res = ((Y - pred) ** 2).sum(1)
+        tot = ((Y - prior[None, :]) ** 2).sum(1)
+        return lambda ix: 1 - res[ix].sum() / tot[ix].sum()
+
+    def mixed_r2(H, Y):   # own float32-centring/Gram, float64 solve
+        Hf = H.astype(np.float32)
+        Hc = Hf - Hf.mean(axis=0, keepdims=True)
+        G = Hc.T @ Hc + 1e-6 * np.eye(Hc.shape[1])
+        Zc = Y - Y.mean(0, keepdims=True)
+        W = np.linalg.solve(G.astype(np.float64), (Hc.T @ Zc).astype(np.float64))
+        return 1 - np.sum((Zc - Hc @ W) ** 2) / np.sum(Zc ** 2)
+
+    def n1_cols(H, Yall):   # within-assessment in-sample native statistic
+        Ha, Ya = H[am], Yall[am]
+        r_ = Ridge(alpha=1e-6, solver="cholesky").fit(Ha.astype(np.float64), Ya)
+        return {"N1_float64_raw": fmt(ref_r2(Ya, r_.predict(Ha.astype(np.float64)), Ya.mean(0))),
+                "N1_mixed_raw": fmt(mixed_r2(Ha, Ya))}
+
+    def dec(lo, hi, t, incl):
+        return "ESTABLISHED_ABOVE" if lo > t else ("ESTABLISHED_BELOW" if (hi <= t if incl else hi < t) else "UNRESOLVED")
+
+    rows_p, rows_e, rows_d, rows_u, rows_s, rows_n = [], [], [], [], [], []
     ref = {}
+    n0 = {}
+    for p, a in R.UNTREATED_PAIRS:
+        uid = f"{p}__{a}"
+        H = cache[f"rep_p{PURPOSES.index(p)}"]
+        Yall = np.eye(int(lab[a].max()) + 1)[lab[a]]
+        r = Ridge(alpha=1e-6, solver="cholesky").fit(H.astype(np.float64), Yall)
+        n0[uid] = (ref_r2(Yall, r.predict(H.astype(np.float64)), Yall.mean(0)), mixed_r2(H, Yall))
     for p, a in R.UNTREATED_PAIRS:
         uid = f"{p}__{a}"
         pr = dict(np.load(run / "units" / uid / "preds.npz"))
         y = pr["y_s"]
         cols = truth["units"][uid]["fit_classes"]
         supc = truth["units"][uid]["supported_classes"]
-        Y = np.eye(max(cols) + 1)[y][:, cols]
-        g1 = ref_r2(Y, pr["G1_pred"], pr["G1_prior"])
-        res = ((Y - pr["G1_pred"]) ** 2).sum(1)
-        tot = ((Y - pr["G1_prior"][None, :]) ** 2).sum(1)
-        g1b = np.array([1 - res[ix].sum() / tot[ix].sum() for ix in draws])
-        ref[uid] = {"G1": g1}
-        lo, hi = np.quantile(g1b, [alpha, 1 - alpha])
+        Y = np.eye(len(cols))[y]
+        f_g1 = r2fn(Y, pr["G1_pred"], pr["G1_prior"])
+        g1 = f_g1(np.arange(len(y)))
+        ref[uid] = {"G1": g1, "N0": n0[uid][0]}
+        c1 = n0[uid][1] > 0.05
+        base = {"alpha_each": fmt(alpha), "B": B, "seed": 20261003, "n_ne_replicates": 0,
+                "native_N0_category": "C1" if c1 else "historical check passes"}
         if len(supc) < 2:
-            rows_p.append({"endpoint": f"P1-{uid}", "unit": uid, "estimate": fmt(g1), "lower": "",
-                           "upper": "", "decision": "NE"})
-            rows_p.append({"endpoint": f"P2-{uid}", "unit": uid, "estimate": "", "lower": "", "upper": "",
-                           "decision": "NE"})
+            for fam in ("P1", "P2"):
+                rows_p.append({"id": f"{fam}-{uid}", "unit": uid, "point": "", "lower": "", "upper": "",
+                               "decision": "NE", "category": "C5", **base})
         else:
-            rows_p.append({"endpoint": f"P1-{uid}", "unit": uid, "estimate": fmt(g1), "lower": fmt(lo),
-                           "upper": fmt(hi), "decision": "FAILS_TO_GENERALISE" if lo > 0.05 else
-                           ("GENERALISES" if hi <= 0.05 else "UNRESOLVED")})
+            lo, hi = np.quantile(boot(f_g1, draws), [alpha, 1 - alpha])
+            d1 = dec(lo, hi, 0.05, True)
+            rows_p.append({"id": f"P1-{uid}", "unit": uid, "point": fmt(g1), "lower": fmt(lo), "upper": fmt(hi),
+                           "decision": d1, "category": {"UNRESOLVED": "C5", "ESTABLISHED_BELOW": "none (established below)"}
+                           .get(d1, "C1" if c1 else "C2"), **base})
             P = pr["P__rep__NL"]
-            a2 = ref_macro_auc(y, P, cols, supc)
-            ab = np.array([np.mean([mw_auc(P[ix, cols.index(c)], y[ix] == c) for c in supc]) for ix in draws])
-            lo, hi = np.quantile(ab, [alpha, 1 - alpha])
-            rows_p.append({"endpoint": f"P2-{uid}", "unit": uid, "estimate": fmt(a2), "lower": fmt(lo),
-                           "upper": fmt(hi), "decision": "RECOVERY_OUTSIDE_SCOPE_ESTABLISHED" if lo > 0.55 else
-                           ("BELOW_BAR_ESTABLISHED" if hi < 0.55 else "UNRESOLVED")})
+            a2 = macro(y, P, cols, supc)
+            lo, hi = np.quantile(boot(lambda ix: macro(y, P, cols, supc, ix), draws), [alpha, 1 - alpha])
+            d2 = dec(lo, hi, 0.55, False)
+            rows_p.append({"id": f"P2-{uid}", "unit": uid, "point": fmt(a2), "lower": fmt(lo), "upper": fmt(hi),
+                           "decision": d2, "category": {"UNRESOLVED": "C5", "ESTABLISHED_BELOW": "none (established below)"}
+                           .get(d2, "C1 (native check fails as historically defined)" if c1 else "C3"), **base})
             ref[uid]["P2"] = a2
-        # decomposition (wide, guessed layout); F0 = in-sample ridge on all rows (sklearn, float64)
-        H = dict(np.load(inp / "cache" / "synth_test.npz"))[f"rep_p{PURPOSES.index(p)}"].astype(np.float64)
-        Yall = np.eye(int(lab[a].max()) + 1)[lab[a]]
-        r = Ridge(alpha=1e-6, solver="cholesky").fit(H, Yall)
-        n0 = ref_r2(Yall, r.predict(H), Yall.mean(0))
-        ref[uid]["N0"] = n0
-        row = {"unit": uid, "F0_N0": fmt(n0), "F1_G1": fmt(g1)}
+        # exploratory: G1 with tau grid, rep NL macro AUC with bars, LL quantities
+        lo, hi = ci90(boot(f_g1, dex))
+        rows_e.append({"id": f"{uid}|G1|r2", "unit": uid, "kind": "untreated", "quantity": "G1", "surface": "rep",
+                       "recipe": "G1", "metric": "r2", "point": fmt(g1), "lower90": fmt(lo), "upper90": fmt(hi),
+                       "decisions": json.dumps({f"tau={t}": dec(lo, hi, t, True) for t in (0.01, 0.02, 0.05, 0.1)}),
+                       "boot_B": B_expl, "boot_seed": 20261002})
+        # decomposition
+        rows_d.append({"unit": uid, "step": "F0", "point": fmt(max(0.0, n0[uid][1])), "point_raw_mixed": fmt(n0[uid][1]),
+                       "point_float64": fmt(max(0.0, n0[uid][0])), "historical_r2_onehot": "",
+                       "category": "C1" if c1 else "historical check passes"})
+        rows_d.append({"unit": uid, "step": "F1", "point": fmt(g1), "lower90": fmt(lo), "upper90": fmt(hi)})
         if len(supc) >= 2:
-            row.update({"F2_G1_as_AUC": fmt(ref_macro_auc(y, pr["G1_pred"], cols, supc)),
-                        "F3_L_rep": fmt(ref_macro_auc(y, pr["P__rep__L"], cols, supc)),
-                        "F4_NL_rep": fmt(ref_macro_auc(y, pr["P__rep__NL"], cols, supc)),
-                        "F5_NL_outputs": fmt(ref_macro_auc(y, pr["P__outputs__NL"], cols, supc)),
-                        "F6_NL_rep_outputs": fmt(ref_macro_auc(y, pr["P__rep+outputs__NL"], cols, supc))})
-        rows_d.append(row)
+            yfit = lab[a][fm]
+            prior = np.array([np.mean(yfit == c) for c in cols])
+            for k_ in ("P__rep__NL", "P__rep__L"):
+                Pk = pr[k_]
+                v = boot(lambda ix: macro(y, Pk, cols, supc, ix), dex)
+                lo, hi = ci90(v)
+                pt = macro(y, Pk, cols, supc)
+                rows_e.append({"id": f"{uid}|{k_}|macro_auc", "unit": uid, "kind": "untreated", "quantity": "recovery",
+                               "surface": "rep", "recipe": k_.split("__")[-1], "metric": "macro_auc", "point": fmt(pt),
+                               "lower90": fmt(lo), "upper90": fmt(hi), "boot_B": B_expl, "boot_seed": 20261002,
+                               "decisions": json.dumps({f"{b:.2f}": dec(lo, hi, b, False) for b in (0.52, 0.55, 0.60)})})
+                ll = ll12(y, Pk, cols)
+                ll0 = ll12(y, np.tile(prior, (len(y), 1)), cols)
+                for met, val in (("LLR_nats", ll0 - ll), ("LL_skill", 1 - ll / ll0)):
+                    rows_e.append({"id": f"{uid}|{k_}|{met}", "unit": uid, "kind": "untreated", "quantity": "recovery",
+                                   "surface": "rep", "recipe": k_.split("__")[-1], "metric": met, "point": fmt(val),
+                                   "boot_B": B_expl, "boot_seed": 20261002})
+            Fk = {"F2": pr["G1_pred"], "F3": pr["P__rep__L"], "F4": pr["P__rep__NL"], "F5": pr["P__outputs__NL"],
+                  "F6": pr["P__repPLUSoutputs__NL"]}
+            fv = {f_: boot(lambda ix, P_=P_: macro(y, P_, cols, supc, ix), dex) for f_, P_ in Fk.items()}
+            for f_, P_ in Fk.items():
+                lo, hi = ci90(fv[f_])
+                row = {"unit": uid, "step": f_, "point": fmt(macro(y, P_, cols, supc)), "lower90": fmt(lo), "upper90": fmt(hi)}
+                dn = {"F3": "F2", "F4": "F3", "F5": "F4", "F6": "F4"}.get(f_)
+                if dn:
+                    dl, dh = ci90(fv[f_] - fv[dn])
+                    row.update({"delta_name": f"{f_}_minus_{dn}",
+                                "delta_point": fmt(macro(y, P_, cols, supc) - macro(y, Fk[dn], cols, supc)),
+                                "delta_lower90": fmt(dl), "delta_upper90": fmt(dh)})
+                rows_d.append(row)
+        rows_n.append({"unit": uid, "N0_status": "REPRODUCED", "N0_mixed_clamped": fmt(max(0.0, n0[uid][1])),
+                       "N0_mixed_raw": fmt(n0[uid][1]), "N0_float64_clamped": fmt(max(0.0, n0[uid][0])),
+                       "N0_rows": len(lab[a]),
+                       **n1_cols(cache[f"rep_p{PURPOSES.index(p)}"], np.eye(int(lab[a].max()) + 1)[lab[a]])})
+    # seed aggregate G1 (mean over seeds within replicate)
+    for s in R.SIGMAS:
+        fns, pts = [], []
+        for k in R.SEEDS:
+            pr = dict(np.load(run / "units" / f"income_prediction__sex__p0_sigma{s}_seed{k}" / "preds.npz"))
+            Y = np.eye(2)[pr["y_s"]]
+            f_ = r2fn(Y, pr["G1_pred"], pr["G1_prior"])
+            fns.append(f_)
+            pts.append(f_(np.arange(len(Y))))
+        lo, hi = ci90(boot(lambda ix: np.mean([f_(ix) for f_ in fns]), dex))
+        rows_e.append({"id": f"income_prediction__sex__p0_sigma{s}__seedmean|G1|r2",
+                       "unit": f"income_prediction__sex__p0_sigma{s}__seedmean", "kind": "noise_seed_aggregate",
+                       "quantity": "G1", "surface": "rep", "recipe": "G1", "metric": "r2", "point": fmt(np.mean(pts)),
+                       "lower90": fmt(lo), "upper90": fmt(hi), "seed_sd": fmt(np.std(pts, ddof=1)),
+                       "per_seed_points": json.dumps([float(x) for x in pts]), "boot_B": B_expl, "boot_seed": 20261002})
     refu = None
     for uid in units:
         pr = dict(np.load(run / "units" / uid / "preds.npz"))
         t = pr["y_task"]
         K = pr["U1_logits"].shape[1]
+        purpose = uid.split("__")[0]
+        tsup = task_sup[purpose]
+        tfit = task_all[purpose][fm]
+        maj = np.bincount(tfit).argmax()
         u1p = softmax(pr["U1_logits"].astype(np.float64))
-        vals = {}
-        tsup = task_sup[uid.split("__")[0]]
+        vals = {("Uconst", "accuracy"): float(np.mean(t == maj))}
         for name, P in (("U1", u1p), ("U2", pr["U2_P"])):
-            vals[f"{name}_accuracy"] = accuracy_score(t, P.argmax(1))
-            vals[f"{name}_logloss"] = log_loss(t, P, labels=list(range(K)))
-            vals[f"{name}_auc"] = (roc_auc_score(t, P[:, 1]) if K == 2 else
-                                   float(np.mean([roc_auc_score(t == c, P[:, c]) for c in tsup])))
-            vals[f"{name}_macro_f1"] = f1_score(t, P.argmax(1), labels=tsup, average="macro", zero_division=0)
+            vals[(name, "accuracy")] = accuracy_score(t, P.argmax(1))
+            vals[(name, "log_loss")] = ll12(t, P, list(range(K)))
+            vals[(name, "macro_auc")] = float(np.mean([roc_auc_score(t == c, P[:, c]) for c in tsup]))
+            vals[(name, "macro_f1")] = f1_score(t, P.argmax(1), labels=tsup, average="macro", zero_division=0)
+            vals[(f"{name}_lift", "accuracy_lift_over_constant")] = vals[(name, "accuracy")] - vals[("Uconst", "accuracy")]
         if uid == "income_prediction__sex":
             refu = vals
-        rows_u.append({"unit": uid, **{k: fmt(v) for k, v in vals.items()}})
-        y_all = lab[uid.split("__")[1]]
-        for c in sorted(np.unique(y_all).tolist()):
-            cnt = {r_: int(np.sum((y_all == c) & (roles == r_))) for r_ in R.SUPPORT_MIN}
-            rows_s.append({"unit": uid, "class": c, **{f"n_{k}": v for k, v in cnt.items()},
-                           "supported": all(cnt[r_] >= R.SUPPORT_MIN[r_] for r_ in R.SUPPORT_MIN)})
-    for row in rows_u:
-        if "sigma" in row["unit"]:
-            for k in list(refu):
-                row[f"diff_{k}"] = fmt(float(row[k]) - refu[k])
+        for (kind, met), v in vals.items():
+            row = {"unit": uid, "kind": kind, "metric": met, "point": fmt(v)}
+            if "sigma" in uid and kind in ("U1", "U2"):
+                row.update({"reference_unit": "income_prediction__sex", "diff_point": fmt(v - refu[(kind, met)])})
+            rows_u.append(row)
+        if "sigma" in uid:
+            for name in ("U1", "U2"):
+                k_ = (f"{name}_lift", "accuracy_lift_over_constant")
+                rows_u.append({"unit": uid, "kind": f"{name}_normalised_lift", "metric": "normalised_accuracy_lift",
+                               "point": fmt(vals[k_] / refu[k_])})
+            Hn = dict(np.load(inp / "releases" / f"p0_{uid.split('__p0_')[1]}.npz"))["rep"]
+            rows_n.append({"unit": uid, "N0_status": "unverified", **n1_cols(Hn, np.eye(2)[lab["sex"]])})
+        a = uid.split("__")[1]
+        for what, y_all, sup_ in (("sensitive", lab[a], truth["units"][uid]["supported_classes"]),
+                                  ("task", task_all[purpose], tsup)):
+            for c in sorted(np.unique(y_all).tolist()):
+                cnt = {r_: int(np.sum((y_all == c) & (roles == r_))) for r_ in R.SUPPORT_MIN}
+                rows_s.append({"unit": uid, "what": what, "class": c, **{f"n_{k}": v for k, v in cnt.items()},
+                               "supported": c in sup_,
+                               "unit_status": "ESTIMABLE" if len(truth["units"][uid]["supported_classes"]) >= 2 else "NE"})
     report.mkdir(parents=True, exist_ok=True)
-    for name, rows in (("PRIMARY_ENDPOINTS.csv", rows_p), ("DECOMPOSITION.csv", rows_d),
-                       ("UTILITY.csv", rows_u), ("SUPPORT_COVERAGE.csv", rows_s)):
-        cols = []
+    fam = [{"id": f"{f}-{p}__{a}", "unit": f"{p}__{a}", "statistic": "G1_r2" if f == "P1" else "rep__NL__macro_auc",
+            "bar": 0.05 if f == "P1" else 0.55} for f in ("P1", "P2") for p, a in R.UNTREATED_PAIRS]
+    (report / "PRIMARY_FAMILY.json").write_text(json.dumps(
+        {"family": fam, "family_size": 16, "alpha_each": alpha, "B": B, "seed": 20261003, "quantile_method": "linear"}))
+    for name, rows in (("PRIMARY_ENDPOINTS.csv", rows_p), ("EXPLORATORY_ENDPOINTS.csv", rows_e),
+                       ("DECOMPOSITION.csv", rows_d), ("UTILITY.csv", rows_u), ("SUPPORT_COVERAGE.csv", rows_s),
+                       ("NATIVE_CHECKS.csv", rows_n)):
+        cols_ = []
         for r_ in rows:
-            cols += [c for c in r_ if c not in cols]
+            cols_ += [c for c in r_ if c not in cols_]
         with open(report / name, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=cols)
+            w = csv.DictWriter(f, fieldnames=cols_)
             w.writeheader()
             w.writerows(rows)
     return ref
@@ -450,8 +576,9 @@ def run(work, b_prim, b_expl, b_ref):
     C("clean synthetic run: no FAIL items", not fails, [f"{i['check']}: {i['runner_value']} vs {i['replay_value']}"
                                                          for i in fails][:10])
     C("clean synthetic run: runner CSV comparisons were actually made",
-      sum(i["scope"] in ("primary", "decomposition", "utility") for i in items) >= 16 * 3,
-      sum(i["scope"] in ("primary", "decomposition", "utility") for i in items))
+      all(sum(i["scope"] == sc for i in items) >= 16 for sc in ("primary", "exploratory", "decomposition", "utility",
+                                                                 "support", "native", "categories")),
+      dict(__import__("collections").Counter(i["scope"] for i in items)))
     border = [i["check"] for i in items if i["status"] == "MC_BORDERLINE"]
     C("clean synthetic run: MC-borderline decisions listed (informational)", True, border)
     prim = {r["endpoint"]: r for r in res["primary"]}
@@ -508,10 +635,12 @@ def run(work, b_prim, b_expl, b_ref):
     for j, k in ((1, 2), (1, 4), (2, 4)):
         rows = (pr["y_s"] == j) | (pr["y_s"] == k)
         pj, pk = P[rows, cols.index(j)], P[rows, cols.index(k)]
-        wp.append(roc_auc_score(pr["y_s"][rows] == j, pj / (pj + pk)))
+        wp.append(roc_auc_score(pr["y_s"][rows] == k, pk / (pj + pk)))   # protocol orientation
     got = res["exploratory"]["income_prediction__race|P|rep|NL|AUC_worst_pair"]["estimate"]
-    C("worst-pair AUC (p_j/(p_j+p_k), rows of the two classes) == sklearn reference", abs(min(wp) - got) < 1e-12,
-      f"{got} vs {min(wp)}")
+    C("worst-pair AUC (max over supported pairs; p_j/(p_j+p_k), rows of the two classes) == sklearn reference",
+      abs(max(wp) - got) < 1e-12, f"{got} vs {max(wp)}")
+    got_min = res["exploratory"]["income_prediction__race|P|rep|NL|AUC_min_pair"]["estimate"]
+    C("min-pair AUC kept as a separate statistic", abs(min(wp) - got_min) < 1e-12)
     # log-loss reduction and Brier skill against sklearn / numpy, prior = attacker_fit frequencies
     lab = dict(np.load(inp / "labels.npz"))
     yfit = lab["sex"][lab["role"] == "attacker_fit"]
@@ -603,16 +732,26 @@ def run(work, b_prim, b_expl, b_ref):
     C("mutation: G1_pred that is not the ridge fit detected by closed-form re-derivation",
       any(i["status"] == "FAIL" and "education_assessment__income: saved G1_pred" in i["check"] for i in p["items"]))
 
+    def m_tamper(mrun):
+        f = mrun / "units" / "employment_analysis__age_group" / "fit_records.json"
+        f.write_text(f.read_text().replace("true", "false"))
+    p, _ = mutate("tamper", m_tamper)
+    C("mutation: file changed after COMPLETE.json detected (sha256)",
+      any(i["status"] == "FAIL" and "employment_analysis__age_group: COMPLETE.json" in i["check"] for i in p["items"]))
+    C("v2 manifests found under run_v1/inputs (prefix stripped)",
+      sum(1 for i in payload["items"] if i["check"].endswith("manifest used for closed-form check")
+          and "manifest_v2_" in str(i["replay_value"])) == 26)
+
     mrep = work / "report_mut"
     if mrep.exists():
         shutil.rmtree(mrep)
     shutil.copytree(report, mrep)
     rows = list(csv.DictReader(open(mrep / "PRIMARY_ENDPOINTS.csv")))
     for row in rows:
-        if row["endpoint"] == "P2-income_prediction__sex":
-            row["decision"] = "BELOW_BAR_ESTABLISHED"
-        if row["endpoint"] == "P1-education_assessment__race":
-            row["estimate"] = fmt(float(row["estimate"]) + 1e-3)
+        if row["id"] == "P2-income_prediction__sex":
+            row["decision"] = "ESTABLISHED_BELOW"
+        if row["id"] == "P1-education_assessment__race":
+            row["point"] = fmt(float(row["point"]) + 1e-3)
     with open(mrep / "PRIMARY_ENDPOINTS.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
@@ -630,9 +769,10 @@ def run(work, b_prim, b_expl, b_ref):
            "clean_replay_seconds": round(t_clean, 1), "clean_replay_summary": payload["summary"],
            "mc_borderline_items": border,
            "n_checks": len(C.rows), "n_pass": sum(r_["pass"] for r_ in C.rows), "checks": C.rows,
-           "addendum": "FROZEN_DESIGN Addendum D1 applied (task_labels_v1.npz, LLR_nats/LL_skill, RHO_u/RHO_v, type-7 quantiles, C1 suppresses C2, tau grid, task-class support)",
-           "note": ("runner CSV layout in the synthetic report is a guess; FROZEN_DESIGN fixes only preds.npz/"
-                    "supported.json. Comparator adapters will be re-validated against the real CSV headers.")}
+           "addendum": "FROZEN_DESIGN Addendum D1 applied (task_labels_v1.npz, LLR_nats/LL_skill, RHO_u/RHO_v, type-7 quantiles, C1 suppresses C2, tau grid, task-class support); actual saved format per coordinator 2026-10-02 (full-K columns, repPLUSoutputs, Laplace LO_P, priors, COMPLETE.json, run_v1/inputs)",
+           "note": ("synthetic runner tables use the real report layouts (PRIMARY_ENDPOINTS, PRIMARY_FAMILY, "
+                    "EXPLORATORY_ENDPOINTS, DECOMPOSITION, UTILITY, SUPPORT_COVERAGE, NATIVE_CHECKS) and are produced "
+                    "by an implementation independent of replay.py")}
     return out
 
 

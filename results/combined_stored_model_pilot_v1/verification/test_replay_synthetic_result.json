@@ -1,18 +1,22 @@
 {
  "schema": "pcrl.cell_a.replay_synthetic_validation/v1",
- "generated_utc": "2026-10-02T16:47:04Z",
+ "generated_utc": "2026-10-02T18:00:30Z",
  "workdir": "/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/synth_replay",
  "B_primary": 20000,
  "B_exploratory": 2000,
  "B_reference_bootstrap": 20000,
- "clean_replay_seconds": 64.3,
+ "clean_replay_seconds": 93.6,
  "clean_replay_summary": {
-  "INFO": 3,
-  "PASS": 1108
+  "INFO": 43,
+  "PASS": 2092,
+  "NOTE": 1,
+  "MC_BORDERLINE": 1
  },
- "mc_borderline_items": [],
- "n_checks": 52,
- "n_pass": 52,
+ "mc_borderline_items": [
+  "employment_analysis__race|P__rep__L|macro_auc: decision 0.60"
+ ],
+ "n_checks": 55,
+ "n_pass": 55,
  "checks": [
   {
    "check": "unit: weighted AUC with ties == brute-force pairwise",
@@ -67,12 +71,26 @@
   {
    "check": "clean synthetic run: runner CSV comparisons were actually made",
    "pass": true,
-   "detail": 463
+   "detail": {
+    "inputs": 3,
+    "ids_roles": 210,
+    "support": 381,
+    "estimates": 270,
+    "native": 154,
+    "inference": 2,
+    "primary": 110,
+    "categories": 36,
+    "exploratory": 256,
+    "decomposition": 237,
+    "utility": 478
+   }
   },
   {
    "check": "clean synthetic run: MC-borderline decisions listed (informational)",
    "pass": true,
-   "detail": []
+   "detail": [
+    "employment_analysis__race|P__rep__L|macro_auc: decision 0.60"
+   ]
   },
   {
    "check": "26 units / 16 endpoints",
@@ -82,7 +100,7 @@
   {
    "check": "direct signal: P2 income_prediction__sex RECOVERY_OUTSIDE_SCOPE_ESTABLISHED",
    "pass": true,
-   "detail": 0.9639560384048627
+   "detail": 0.9682586334865396
   },
   {
    "check": "direct signal: P1 income_prediction__sex FAILS_TO_GENERALISE (G1 lower > 0.05)",
@@ -101,11 +119,11 @@
      "P1 fails to generalise but C1 already holds: not read as C2 (D1 #8)"
     ],
     "outputs_surface_bound": {
-     "estimate": 0.8877528157022078,
-     "lower": 0.867165908741075,
-     "upper": 0.9068122142014998,
-     "mcse_lower": 0.00037165086218574067,
-     "mcse_upper": 0.0003354049799423497,
+     "estimate": 0.8827618528366146,
+     "lower": 0.8621349745289609,
+     "upper": 0.9025819100475071,
+     "mcse_lower": 0.0002578764336213791,
+     "mcse_upper": 0.00027863429957929636,
      "n_finite": 20000,
      "established_above": true
     }
@@ -181,7 +199,7 @@
   {
    "check": "null: P2 education_assessment__income BELOW_BAR_ESTABLISHED",
    "pass": true,
-   "detail": 0.5273088847320017
+   "detail": 0.5387210893220936
   },
   {
    "check": "null: held-out G1 negative and GENERALISES",
@@ -191,7 +209,7 @@
   {
    "check": "borderline (true AUC 0.55): P2 education_assessment__sex UNRESOLVED",
    "pass": true,
-   "detail": 0.5494120261105966
+   "detail": 0.5486166089086727
   },
   {
    "check": "NE unit: P1 and P2 NE and category C5_NE (not UNRESOLVED)",
@@ -221,29 +239,34 @@
    "detail": "0.770257721913112 vs 0.7299321590002465"
   },
   {
-   "check": "worst-pair AUC (p_j/(p_j+p_k), rows of the two classes) == sklearn reference",
+   "check": "worst-pair AUC (max over supported pairs; p_j/(p_j+p_k), rows of the two classes) == sklearn reference",
    "pass": true,
-   "detail": "0.7602168949771689 vs 0.760216894977169"
+   "detail": "0.7961754500851564 vs 0.7961754500851566"
+  },
+  {
+   "check": "min-pair AUC kept as a separate statistic",
+   "pass": true,
+   "detail": null
   },
   {
    "check": "LL_skill = 1 - LL/LL0 (LL0 = attacker_fit prior) == sklearn",
    "pass": true,
-   "detail": "0.591270214076576 vs 0.591270214076576"
+   "detail": "0.6153901508640762 vs 0.6153901508640762"
   },
   {
    "check": "LLR_nats = LL0 - LL == sklearn",
    "pass": true,
-   "detail": "0.3723215611965398 vs 0.3723215611965397"
+   "detail": "0.3875098326617431 vs 0.387509832661743"
   },
   {
    "check": "Brier skill == numpy reference",
    "pass": true,
-   "detail": "0.6631599119455125 vs 0.6631599119455124"
+   "detail": "0.6911704239238172 vs 0.6911704239238173"
   },
   {
    "check": "G1 R\u00b2 (SS_tot around saved prior, unclamped) == reference [income_prediction__sex]",
    "pass": true,
-   "detail": "0.22931785365684165 vs 0.22931785365684165"
+   "detail": "0.22931785365684165 vs 0.22931785365684176"
   },
   {
    "check": "N0 float64 == sklearn in-sample ridge [income_prediction__sex]",
@@ -253,7 +276,7 @@
   {
    "check": "G1 R\u00b2 (SS_tot around saved prior, unclamped) == reference [education_assessment__race]",
    "pass": true,
-   "detail": "-0.006930656735288476 vs -0.006930656735288698"
+   "detail": "-0.006930656735288476 vs -0.006930656735288476"
   },
   {
    "check": "N0 float64 == sklearn in-sample ridge [education_assessment__race]",
@@ -316,6 +339,16 @@
    "detail": null
   },
   {
+   "check": "mutation: file changed after COMPLETE.json detected (sha256)",
+   "pass": true,
+   "detail": null
+  },
+  {
+   "check": "v2 manifests found under run_v1/inputs (prefix stripped)",
+   "pass": true,
+   "detail": null
+  },
+  {
    "check": "mutation: flipped runner decision (far from bar) detected as FAIL",
    "pass": true,
    "detail": null
@@ -326,6 +359,6 @@
    "detail": null
   }
  ],
- "addendum": "FROZEN_DESIGN Addendum D1 applied (task_labels_v1.npz, LLR_nats/LL_skill, RHO_u/RHO_v, type-7 quantiles, C1 suppresses C2, tau grid, task-class support)",
- "note": "runner CSV layout in the synthetic report is a guess; FROZEN_DESIGN fixes only preds.npz/supported.json. Comparator adapters will be re-validated against the real CSV headers."
+ "addendum": "FROZEN_DESIGN Addendum D1 applied (task_labels_v1.npz, LLR_nats/LL_skill, RHO_u/RHO_v, type-7 quantiles, C1 suppresses C2, tau grid, task-class support); actual saved format per coordinator 2026-10-02 (full-K columns, repPLUSoutputs, Laplace LO_P, priors, COMPLETE.json, run_v1/inputs)",
+ "note": "synthetic runner tables use the real report layouts (PRIMARY_ENDPOINTS, PRIMARY_FAMILY, EXPLORATORY_ENDPOINTS, DECOMPOSITION, UTILITY, SUPPORT_COVERAGE, NATIVE_CHECKS) and are produced by an implementation independent of replay.py"
 }
