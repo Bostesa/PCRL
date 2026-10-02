@@ -1,0 +1,646 @@
+{
+  "dataset": "adult",
+  "tag": "CROSS_PURPOSE_AB",
+  "tau": 0.05,
+  "tau_cross": 0.1,
+  "purpose_names": [
+    "income_prediction",
+    "employment_analysis",
+    "education_assessment"
+  ],
+  "attrs": [
+    "age_group",
+    "income",
+    "marital_status",
+    "race",
+    "sex"
+  ],
+  "cross_attrs": [
+    "race",
+    "sex",
+    "age_group"
+  ],
+  "per_seed": [
+    {
+      "seed": 0,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "income_prediction/race": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "income_prediction/sex": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/race": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/age_group": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/marital_status": {
+          "r2_onehot_test": -1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/sex": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/race": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/income": {
+          "r2_onehot_test": 1.7881393432617188e-07,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": 0.0,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "sex": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_group": {
+          "r2_onehot_test": 0.0,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_group": {
+            "attack_acc": 0.5173306772908367,
+            "majority": 0.5173306772908367,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 31.929405450820923
+          },
+          "income": {
+            "attack_acc": 0.7543160690571049,
+            "majority": 0.7543160690571049,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.456549882888794
+          },
+          "marital_status": {
+            "attack_acc": 0.5230411686586985,
+            "majority": 0.5230411686586985,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.827214241027832
+          },
+          "race": {
+            "attack_acc": 0.8612217795484728,
+            "majority": 0.8612217795484728,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 24.44350242614746
+          },
+          "sex": {
+            "attack_acc": 0.6737715803452855,
+            "majority": 0.6737715803452855,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.122629165649414
+          }
+        },
+        "MLP": {
+          "age_group": {
+            "attack_acc": 0.8577025232403719,
+            "majority": 0.5173306772908367,
+            "delta_pp": 34.037184594953516,
+            "flag_1pp": true,
+            "elapsed_s": 43.127180099487305
+          },
+          "income": {
+            "attack_acc": 0.8393094289508632,
+            "majority": 0.7543160690571049,
+            "delta_pp": 8.499335989375833,
+            "flag_1pp": true,
+            "elapsed_s": 22.324190616607666
+          },
+          "marital_status": {
+            "attack_acc": 0.9841301460823373,
+            "majority": 0.5230411686586985,
+            "delta_pp": 46.10889774236387,
+            "flag_1pp": true,
+            "elapsed_s": 42.937169551849365
+          },
+          "race": {
+            "attack_acc": 0.9588313413014609,
+            "majority": 0.8612217795484728,
+            "delta_pp": 9.760956175298807,
+            "flag_1pp": true,
+            "elapsed_s": 50.77615547180176
+          },
+          "sex": {
+            "attack_acc": 0.9852589641434263,
+            "majority": 0.6737715803452855,
+            "delta_pp": 31.148738379814077,
+            "flag_1pp": true,
+            "elapsed_s": 52.093194007873535
+          }
+        },
+        "XGB": {
+          "age_group": {
+            "attack_acc": 0.7941567065073041,
+            "majority": 0.5173306772908367,
+            "delta_pp": 27.682602921646737,
+            "flag_1pp": true,
+            "elapsed_s": 50.69453549385071
+          },
+          "income": {
+            "attack_acc": 0.8235059760956175,
+            "majority": 0.7543160690571049,
+            "delta_pp": 6.918990703851257,
+            "flag_1pp": true,
+            "elapsed_s": 12.265076637268066
+          },
+          "marital_status": {
+            "attack_acc": 0.9457503320053121,
+            "majority": 0.5230411686586985,
+            "delta_pp": 42.27091633466136,
+            "flag_1pp": true,
+            "elapsed_s": 12.937652111053467
+          },
+          "race": {
+            "attack_acc": 0.901062416998672,
+            "majority": 0.8612217795484728,
+            "delta_pp": 3.984063745019917,
+            "flag_1pp": true,
+            "elapsed_s": 50.824565410614014
+          },
+          "sex": {
+            "attack_acc": 0.9394422310756972,
+            "majority": 0.6737715803452855,
+            "delta_pp": 26.567065073041174,
+            "flag_1pp": true,
+            "elapsed_s": 12.87798810005188
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "income_prediction/race": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "income_prediction/sex": {
+          "r2_onehot_test": 1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/race": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/age_group": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/marital_status": {
+          "r2_onehot_test": -1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/sex": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/race": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/income": {
+          "r2_onehot_test": 1.7881393432617188e-07,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": 5.960464477539063e-08,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "sex": {
+          "r2_onehot_test": 2.384185791015625e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_group": {
+          "r2_onehot_test": 1.1920928955078125e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_group": {
+            "attack_acc": 0.5173306772908367,
+            "majority": 0.5173306772908367,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 26.424500703811646
+          },
+          "income": {
+            "attack_acc": 0.7543160690571049,
+            "majority": 0.7543160690571049,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 4.011502981185913
+          },
+          "marital_status": {
+            "attack_acc": 0.5230411686586985,
+            "majority": 0.5230411686586985,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.7802286148071289
+          },
+          "race": {
+            "attack_acc": 0.8612217795484728,
+            "majority": 0.8612217795484728,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 23.57911968231201
+          },
+          "sex": {
+            "attack_acc": 0.6737715803452855,
+            "majority": 0.6737715803452855,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.230010986328125
+          }
+        },
+        "MLP": {
+          "age_group": {
+            "attack_acc": 0.8429614873837982,
+            "majority": 0.5173306772908367,
+            "delta_pp": 32.56308100929615,
+            "flag_1pp": true,
+            "elapsed_s": 52.91289281845093
+          },
+          "income": {
+            "attack_acc": 0.8375830013280212,
+            "majority": 0.7543160690571049,
+            "delta_pp": 8.326693227091631,
+            "flag_1pp": true,
+            "elapsed_s": 23.822270154953003
+          },
+          "marital_status": {
+            "attack_acc": 0.9814077025232404,
+            "majority": 0.5230411686586985,
+            "delta_pp": 45.83665338645419,
+            "flag_1pp": true,
+            "elapsed_s": 40.261616468429565
+          },
+          "race": {
+            "attack_acc": 0.9616201859229747,
+            "majority": 0.8612217795484728,
+            "delta_pp": 10.039840637450192,
+            "flag_1pp": true,
+            "elapsed_s": 58.29574918746948
+          },
+          "sex": {
+            "attack_acc": 0.9853253652058432,
+            "majority": 0.6737715803452855,
+            "delta_pp": 31.155378486055774,
+            "flag_1pp": true,
+            "elapsed_s": 41.25517511367798
+          }
+        },
+        "XGB": {
+          "age_group": {
+            "attack_acc": 0.7730411686586985,
+            "majority": 0.5173306772908367,
+            "delta_pp": 25.571049136786183,
+            "flag_1pp": true,
+            "elapsed_s": 48.91470217704773
+          },
+          "income": {
+            "attack_acc": 0.8228419654714475,
+            "majority": 0.7543160690571049,
+            "delta_pp": 6.852589641434259,
+            "flag_1pp": true,
+            "elapsed_s": 11.723276138305664
+          },
+          "marital_status": {
+            "attack_acc": 0.9524568393094289,
+            "majority": 0.5230411686586985,
+            "delta_pp": 42.94156706507304,
+            "flag_1pp": true,
+            "elapsed_s": 14.044010877609253
+          },
+          "race": {
+            "attack_acc": 0.9128154050464807,
+            "majority": 0.8612217795484728,
+            "delta_pp": 5.159362549800795,
+            "flag_1pp": true,
+            "elapsed_s": 46.2440505027771
+          },
+          "sex": {
+            "attack_acc": 0.949402390438247,
+            "majority": 0.6737715803452855,
+            "delta_pp": 27.563081009296152,
+            "flag_1pp": true,
+            "elapsed_s": 12.236181259155273
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "income_prediction/race": {
+          "r2_onehot_test": 6.556510925292969e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "income_prediction/sex": {
+          "r2_onehot_test": -4.76837158203125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/race": {
+          "r2_onehot_test": -2.384185791015625e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/age_group": {
+          "r2_onehot_test": 0.0,
+          "tau": 0.05,
+          "pass": true
+        },
+        "employment_analysis/marital_status": {
+          "r2_onehot_test": -1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/sex": {
+          "r2_onehot_test": -2.384185791015625e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/race": {
+          "r2_onehot_test": 5.364418029785156e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "education_assessment/income": {
+          "r2_onehot_test": -2.5033950805664062e-06,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": -1.1920928955078125e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "sex": {
+          "r2_onehot_test": 5.364418029785156e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_group": {
+          "r2_onehot_test": 4.172325134277344e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_group": {
+            "attack_acc": 0.5173306772908367,
+            "majority": 0.5173306772908367,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 30.618971824645996
+          },
+          "income": {
+            "attack_acc": 0.7543160690571049,
+            "majority": 0.7543160690571049,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 4.21142053604126
+          },
+          "marital_status": {
+            "attack_acc": 0.5230411686586985,
+            "majority": 0.5230411686586985,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.8328378200531006
+          },
+          "race": {
+            "attack_acc": 0.8612217795484728,
+            "majority": 0.8612217795484728,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 24.37204360961914
+          },
+          "sex": {
+            "attack_acc": 0.6737715803452855,
+            "majority": 0.6737715803452855,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 4.361330032348633
+          }
+        },
+        "MLP": {
+          "age_group": {
+            "attack_acc": 0.8330677290836653,
+            "majority": 0.5173306772908367,
+            "delta_pp": 31.57370517928286,
+            "flag_1pp": true,
+            "elapsed_s": 49.50341510772705
+          },
+          "income": {
+            "attack_acc": 0.8409694555112882,
+            "majority": 0.7543160690571049,
+            "delta_pp": 8.66533864541833,
+            "flag_1pp": true,
+            "elapsed_s": 32.412362575531006
+          },
+          "marital_status": {
+            "attack_acc": 0.9853253652058432,
+            "majority": 0.5230411686586985,
+            "delta_pp": 46.22841965471447,
+            "flag_1pp": true,
+            "elapsed_s": 58.193371295928955
+          },
+          "race": {
+            "attack_acc": 0.9670650730411686,
+            "majority": 0.8612217795484728,
+            "delta_pp": 10.584329349269584,
+            "flag_1pp": true,
+            "elapsed_s": 71.34150576591492
+          },
+          "sex": {
+            "attack_acc": 0.9867197875166003,
+            "majority": 0.6737715803452855,
+            "delta_pp": 31.29482071713148,
+            "flag_1pp": true,
+            "elapsed_s": 61.735668420791626
+          }
+        },
+        "XGB": {
+          "age_group": {
+            "attack_acc": 0.7715803452855245,
+            "majority": 0.5173306772908367,
+            "delta_pp": 25.424966799468784,
+            "flag_1pp": true,
+            "elapsed_s": 45.862037658691406
+          },
+          "income": {
+            "attack_acc": 0.8256972111553785,
+            "majority": 0.7543160690571049,
+            "delta_pp": 7.1381142098273624,
+            "flag_1pp": true,
+            "elapsed_s": 11.828185319900513
+          },
+          "marital_status": {
+            "attack_acc": 0.9542496679946879,
+            "majority": 0.5230411686586985,
+            "delta_pp": 43.12084993359894,
+            "flag_1pp": true,
+            "elapsed_s": 14.147740125656128
+          },
+          "race": {
+            "attack_acc": 0.9201859229747676,
+            "majority": 0.8612217795484728,
+            "delta_pp": 5.896414342629486,
+            "flag_1pp": true,
+            "elapsed_s": 46.79294013977051
+          },
+          "sex": {
+            "attack_acc": 0.9524568393094289,
+            "majority": 0.6737715803452855,
+            "delta_pp": 27.868525896414344,
+            "flag_1pp": true,
+            "elapsed_s": 14.503366231918335
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "n_seeds": 3,
+    "concat_r2_mean": {
+      "race": {
+        "mean_r2": -1.9868214925130207e-08,
+        "max_r2": 5.960464477539063e-08,
+        "n_pass": 3,
+        "n": 3
+      },
+      "sex": {
+        "mean_r2": 2.7815500895182293e-07,
+        "max_r2": 5.364418029785156e-07,
+        "n_pass": 3,
+        "n": 3
+      },
+      "age_group": {
+        "mean_r2": 1.7881393432617188e-07,
+        "max_r2": 4.172325134277344e-07,
+        "n_pass": 3,
+        "n": 3
+      }
+    },
+    "attack_flagged_above_1pp": "10/15",
+    "attack_per_arch_per_attr": {
+      "LR": {
+        "age_group": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "income": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "marital_status": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "race": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "sex": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        }
+      },
+      "MLP": {
+        "age_group": {
+          "mean_delta_pp": 32.72465692784417,
+          "flag_1pp_mean": true
+        },
+        "income": {
+          "mean_delta_pp": 8.497122620628598,
+          "flag_1pp_mean": true
+        },
+        "marital_status": {
+          "mean_delta_pp": 46.05799026117751,
+          "flag_1pp_mean": true
+        },
+        "race": {
+          "mean_delta_pp": 10.128375387339528,
+          "flag_1pp_mean": true
+        },
+        "sex": {
+          "mean_delta_pp": 31.199645861000445,
+          "flag_1pp_mean": true
+        }
+      },
+      "XGB": {
+        "age_group": {
+          "mean_delta_pp": 26.226206285967237,
+          "flag_1pp_mean": true
+        },
+        "income": {
+          "mean_delta_pp": 6.969898185037626,
+          "flag_1pp_mean": true
+        },
+        "marital_status": {
+          "mean_delta_pp": 42.77777777777778,
+          "flag_1pp_mean": true
+        },
+        "race": {
+          "mean_delta_pp": 5.013280212483399,
+          "flag_1pp_mean": true
+        },
+        "sex": {
+          "mean_delta_pp": 27.332890659583892,
+          "flag_1pp_mean": true
+        }
+      }
+    },
+    "per_pair_pass": "24/24"
+  }
+}

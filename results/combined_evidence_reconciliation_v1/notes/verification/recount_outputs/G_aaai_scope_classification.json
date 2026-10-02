@@ -1,0 +1,205 @@
+{
+ "inputs": [
+  {
+   "location": "durable-guarantees@956f5c8:results/fnf_gauntlet_hard_pca16.json",
+   "sha256": "7a4b44197b5152f7124030ee2e3b5dbabbd6a6a1c629200bcf8d0a208308275d"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/fairpca_gauntlet.json",
+   "sha256": "acab79df6be152f218c1559d2b57c55aada3cedf62ec5d83e43287ac93e2c0e9"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/fare_gauntlet.json",
+   "sha256": "be9dc53fd16a1e7a53306f27bba26ecff724bad7b0ead1ce96621945e0407def"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/baseline_gauntlet.json",
+   "sha256": "1d117921bf326959d3bbcf6479c9861bc713f36efa30d0b0f4b57dd5a2fe991b"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/obliviator_gauntlet.json",
+   "sha256": "9813254b3c1bc18828f9e1461650747f118f0b81f51dabb7bd4c9ff7ec51f5e7"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/dp_fullrank.json",
+   "sha256": "76239b8801f1b8ae8817ef676f82445381f7ed2a2e0ba177550338ba40ddb2ba"
+  },
+  {
+   "location": "durable-guarantees@956f5c8:results/audit_scatter_rows.csv",
+   "sha256": "123fe66ffb185aab14aea43f5c2af8339c0aa532c0fc607b1658187f83c9590f"
+  }
+ ],
+ "items": [
+  {
+   "certificate": "Linear R^2 certificate (PCRL in-sample ridge one-hot R^2 <= 0.05 on the full matrix; paper.tex:228-240, 303-305; appendix.tex:237)",
+   "stated_scope": "linear least-squares predictors of s from h, fit and scored on the same rows (fit law / in-sample)",
+   "failure_reported": "59/67 approved configurations recovered at AUC > 0.55 by XGB/MLP (paper.tex:56-59, 414)",
+   "classification": "OUTSIDE scope (nonlinear attackers). 0/59 failures are linear-scope failures; no held-out linear probe was stored for any of the 67, so the certificate was never tested inside its own scope out of sample.",
+   "extra": {
+    "approved_with_attacked_R2_gt_tau": 41,
+    "at_rest_reading_stored": "56/67",
+    "note": "'attacked R^2' = linear R^2 read after a trained rank-8 LoRA+ReLU adapter (falsification_attack/run_attack); it is a nonlinear feature map, so its exceeding tau (41/67; HMDA projections 0.166-0.171, paper.tex:429-431) is also outside the linear certificate's scope. paper.tex:429-430 calls this 'do not even pass the certificate', which mislabels the attacked instrument as the certificate (build_audit_scatter_rows.py docstring itself distinguishes them)."
+   }
+  },
+  {
+   "certificate": "LEACE (concept-erasure library; Table 1 'linear attackers')",
+   "stated_scope": "no linear (affine) predictor of s beats a constant, on the fit distribution",
+   "failure_reported": "Tier-1 .99+ (XGB/MLP/LoRA)",
+   "classification": "OUTSIDE scope; paper says so (paper.tex:679-682). Eraser and LR head are fit on all rows including attacker-test rows (baseline_gauntlet.py:309-323); the battery has no linear attacker, so LEACE's in-scope guarantee is neither tested nor contradicted.",
+   "extra": {
+    "tier1_max_by_cell": [
+     [
+      "hmda/race/loan_decision",
+      0.995
+     ],
+     [
+      "hmda/race/loan_amount_band",
+      0.9967
+     ],
+     [
+      "adult/sex/income",
+      0.9977
+     ]
+    ]
+   }
+  },
+  {
+   "certificate": "Fair PCA (Kleindessner et al.; official code)",
+   "stated_scope": "projected group-conditional means equal (no linear classifier separates groups better than chance); Sec 3.6 variant also matches covariances; binary s only",
+   "failure_reported": "fails Tier 1 at every sweep point incl. 'certified' one (paper.tex:714-716): min 0.677-0.696",
+   "classification": "OUTSIDE scope (nonlinear attackers); mean-equalisation invariant reproduced at 1.5e-16 (fairpca_gauntlet.json gate). Race cells structurally out of scope (binary s).",
+   "extra": {
+    "gate": {
+     "rel_max_mean_gap": 1.4646492163827906e-16,
+     "tol": 1e-06,
+     "passed": true
+    },
+    "applicability": {
+     "multiclass_s_accepted": false,
+     "error": "ValueError: Array with potected attributes must be a 1-dim numpy array with values in {0,1}",
+     "cells_in_scope": [
+      "hard"
+     ],
+     "cells_out_of_scope": {
+      "easy": 5,
+      "middle": 5
+     }
+    }
+   }
+  },
+  {
+   "certificate": "FARE (dp_ub: high-probability upper bound on demographic-parity distance of ANY downstream classifier)",
+   "stated_scope": "binary s; all downstream classifiers on the finite (leaf-cell) representation; population bound w.h.p.",
+   "failure_reported": "'reading 0.000 on the multiclass cell while three configurations leak race pairs at 0.603-0.610' (paper.tex:692-694)",
+   "classification": "OUTSIDE the method's binary scope (5-class race; shipped multiclass/Bonferroni path returns dp_ub=0.000 on every available config and null on the certified middle point). Inside scope (binary hard cell) the certificate is coherent: dp_ub 0.185 vs measured 0.546. Two corrections: (i) 0.603-0.610 are MACRO OvR Tier-1 AUCs of non-certified seed-0 sweep rows, not pairwise AUCs; (ii) docs/fare_results.md's scope argument 'DP is not recovery' is not right for an all-classifier DP bound, which equals total variation and does bound recovery; the valid scope argument is the binary-attribute restriction and the degenerate multiclass extension.",
+   "extra": {
+    "n_rows": 25,
+    "dp_ub_available": 14,
+    "dp_ub_zero": 14,
+    "leaky_rows_macro_ovr_rep_t1": [
+     [
+      "k10_a0.5_ts0",
+      0.6028,
+      0.0
+     ],
+     [
+      "k25_a0.5_ts0",
+      0.6098,
+      0.0
+     ],
+     [
+      "k25_a0.75_ts0",
+      0.6058,
+      0.0
+     ]
+    ]
+   }
+  },
+  {
+   "certificate": "FNF (bound (1+Delta)/2 on balanced accuracy of ANY adversary, Delta = statistical distance under the ESTIMATED densities)",
+   "stated_scope": "all adversaries; conditional on density estimates (Theorem adds TV-to-truth epsilon); binary s; s at inference",
+   "failure_reported": "measured balanced accuracy above FNF's own bound at 4/5 gammas by up to 0.174 (paper.tex:710-714)",
+   "classification": "WITHIN attacker scope, OUTSIDE the precondition (density-estimate accuracy). Also run on a PCA-16 deviation (full-dimension FNF inapplicable). The exceedance is visible in FNF's own logged adversary. Not a refutation of the theorem; a demonstration that the computed certificate is unsound on this cell.",
+   "extra": {
+    "best_bacc_minus_bound_by_gamma": {
+     "0.0": -0.0021,
+     "0.02": 0.0907,
+     "0.1": 0.1437,
+     "0.2": 0.1654,
+     "0.9": 0.1738
+    }
+   }
+  },
+  {
+   "certificate": "Obliviator (official code; kernel-probe stopping criterion)",
+   "stated_scope": "erasure against its RFF-kernel probes",
+   "failure_reported": "Tier-1 .97+",
+   "classification": "WITHIN its own diagnostic: its own stopping probe ('unwanted') reads 0.975-0.996 at the reported point, so the method itself does not claim removal there; not a certificate failure.",
+   "extra": {
+    "[cell, their_unwanted_probe, tier1]": [
+     [
+      "hmda/race/loan_decision",
+      0.9921,
+      0.9833
+     ],
+     [
+      "hmda/race/loan_amount_band",
+      0.9752,
+      0.9683
+     ],
+     [
+      "adult/sex/income",
+      0.9959,
+      0.9969
+     ]
+    ]
+   }
+  },
+  {
+   "certificate": "LAFTR / DANN-scrub / VFAE (Table 1 'own adversary' / 'downstream fairness')",
+   "stated_scope": "adversarial or MMD objectives against their own adversary/criterion; no recoverability certificate",
+   "failure_reported": "Tier-1 failures; VFAE passes easy T1 only",
+   "classification": "NO certificate to be within/outside; failures against higher-capacity adversaries are outside the training adversary class. Official LAFTR is a binary-attribute method run on 5-class race (laftr_official.py), outside its scope on the HMDA cells."
+  },
+  {
+   "certificate": "Prop 1 (paper) - linear maps cannot raise linear R^2",
+   "stated_scope": "population / in-sample OLS, Sigma_h > 0",
+   "failure_reported": "none; used as instrument-blindness argument",
+   "classification": "Algebraic identity (variational multiple R^2); correct in its scope; exact only for unregularised in-sample OLS (ridge certificate differs by 1.7e-5, appendix.tex:76-83)."
+  },
+  {
+   "certificate": "Prop 2 (paper) - second-moment statistics do not identify recoverability",
+   "stated_scope": "population existence: for given class moments a matching distribution exists where a Bayes attacker nearly fully recovers (asymptotic in separation/sigma)",
+   "failure_reported": "used to argue 'no sound certificate computed from these statistics alone can be useful' (paper.tex:271-273, 761-763)",
+   "classification": "Population existence claim; asymptotic regime not reached (dmin/sigma 0.016-0.171, appendix caption). Main-text 'cannot be useful' exceeds what is shown (witness exceeds bar only at the 3 Tier-1 points). Statement conditions on task label Y while the claim concerns s. Note the paper's own Tier-2 LRT is a second-moment (Gaussian class-conditional) reader, so by Prop 2 Tier-2 passes are measurements, not certificates."
+  },
+  {
+   "certificate": "Prop 3 / Corollary (paper) - clipped full-rank Gaussian channel is mu-GDP, AUC <= Phi(mu/sqrt 2)",
+   "stated_scope": "CLIPPED release Pi_C(phi(x)) + sigma Z, one release per input, frozen non-private map, attacker whose only s-informative input is the release; population AUC",
+   "failure_reported": "none claimed; but Table 1 'Ours, full-rank' checkmarks and 'the certified full-rank channel (Prop 3) under Tier 2' (paper.tex:583-584)",
+   "classification": "The Table 1 / Fig. 4 full-rank points are UNCLIPPED (mi_ceiling.py:230-256: P = BN(E(x)) + sigma*randn, no projection), so Prop 3 does not cover them; their Tier-2 pass is empirical. The clipped variant (run_dp_fullrank.py, Table dp) keeps ~0% utility at eps<=3 and was never attacked by the battery. Ceiling below 0.55 only at mu=0.103 (0.529).",
+   "extra": {
+    "dp_fullrank_keys": [
+     "experiment",
+     "bet_file",
+     "bet_commit",
+     "delta",
+     "K_gaussian",
+     "sigmas",
+     "eps_targets",
+     "train_seeds",
+     "clean_lifts",
+     "anchors_pct",
+     "rows",
+     "primary"
+    ]
+   }
+  },
+  {
+   "certificate": "Stadler et al. 2024 (population leakage floor)",
+   "stated_scope": "population statement about representations with high task utility",
+   "failure_reported": "'measured floors ... approach the leakage floor established by Stadler' (paper.tex:472-474)",
+   "classification": "Population claim used interpretively; finite-sample, in-sample-utility attack readings neither confirm nor refute it; 'approach' is not a measured comparison against a computed Stadler bound (none computed)."
+  }
+ ]
+}

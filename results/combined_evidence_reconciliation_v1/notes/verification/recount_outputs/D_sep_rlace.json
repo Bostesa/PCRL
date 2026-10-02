@@ -1,0 +1,144 @@
+{
+ "separate": {
+  "adult": {
+   "seed": 0,
+   "n_pairs": 8,
+   "adj_pass_stored": 0,
+   "adj_pass_recomputed": 0,
+   "r2_pass_lt_0.05": 0,
+   "r2_range": [
+    0.0625,
+    0.1165
+   ],
+   "comparator_pcrl_paper_pass": "6/8",
+   "eff_rank_by_purpose": {
+    "income_prediction": 3.03,
+    "employment_analysis": 3.99,
+    "education_assessment": 5.64
+   },
+   "task_acc": {
+    "income_prediction": {
+     "income": 0.789641
+    },
+    "employment_analysis": {
+     "occupation_group": 0.713811
+    },
+    "education_assessment": {
+     "education_level": 0.793161
+    }
+   }
+  },
+  "hmda": {
+   "seed": 0,
+   "n_pairs": 6,
+   "adj_pass_stored": 0,
+   "adj_pass_recomputed": 0,
+   "r2_pass_lt_0.05": 0,
+   "r2_range": [
+    0.1341,
+    0.1697
+   ],
+   "comparator_pcrl_paper_pass": "5.3/6",
+   "eff_rank_by_purpose": {
+    "underwriting": 2.03,
+    "pricing_analysis": 2.28,
+    "fair_lending_audit": 2.48
+   },
+   "task_acc": {
+    "underwriting": {
+     "loan_decision": 0.892614
+    },
+    "pricing_analysis": {
+     "loan_amount_band": 0.470317
+    },
+    "fair_lending_audit": {
+     "tract_denial_high": 0.634141
+    }
+   }
+  },
+  "diabetes": {
+   "seed": 0,
+   "n_pairs": 6,
+   "adj_pass_stored": 5,
+   "adj_pass_recomputed": 5,
+   "r2_pass_lt_0.05": 5,
+   "r2_range": [
+    0.0,
+    0.0973
+   ],
+   "comparator_pcrl_paper_pass": "5/6",
+   "eff_rank_by_purpose": {
+    "billing_audit": 1.15,
+    "quality_research": 1.0,
+    "clinical_decision_support": 1.03
+   },
+   "task_acc": {
+    "billing_audit": {
+     "primary_diagnosis_category": 0.313292
+    },
+    "quality_research": {
+     "readmission_outcome": 0.911913
+    },
+    "clinical_decision_support": {
+     "medication_change_outcome": 0.999534
+    }
+   }
+  },
+  "total": {
+   "adj_pass": "5/20",
+   "r2_pass": "5/20",
+   "n_seeds": 1
+  }
+ },
+ "rlace": {
+  "seed": 0,
+  "n_pairs": 8,
+  "verdicts": {
+   "GREEN": 7,
+   "YELLOW": 0,
+   "RED": 1
+  },
+  "leace_r2_range": [
+   0.004229,
+   0.009302
+  ],
+  "leace_r2_lt_0.05": 8,
+  "leace_task_drop_pp_range": [
+   0.0,
+   3.33
+  ],
+  "leace_mlp_delta_range": [
+   0.089641,
+   0.459894
+  ],
+  "leace_mlp_delta_lt_0.02": 0,
+  "rlace_r8_r2_lt_0.05": 0,
+  "red_pairs": [
+   [
+    "income_prediction",
+    "sex",
+    0.007334,
+    3.333
+   ]
+  ],
+  "note": "'R-LACE' here is iterative logistic null-space projection at rank 1/4/8 (experiments/rlace_diagnostic.py:117-150), not the Ravfogel et al. 2022 minimax; the backbone is a TRAINED StandardEncoder (train_backbone, :221-270), not PCRL's frozen random backbone; LEACE is concept_erasure.LeaceEraser."
+ },
+ "inputs": [
+  {
+   "location": "Bostesa/PCRL@origin/main:results/adult_SEPARATE/per_purpose_results.json",
+   "sha256": "2fd56fe2c05a9d98e410112288e42f3b51f9087f29a31b2691e5c667c7516608"
+  },
+  {
+   "location": "Bostesa/PCRL@origin/main:results/hmda_SEPARATE/per_purpose_results.json",
+   "sha256": "0e287c70f6b90f86c0448b7505155ff293bcb7e49f864f1f4825da4263dce519"
+  },
+  {
+   "location": "Bostesa/PCRL@origin/main:results/diabetes_SEPARATE/per_purpose_results.json",
+   "sha256": "43ee48fbef321cc148edec481428a1baf716511a471d031646eb733bb5717ee5"
+  },
+  {
+   "location": "Bostesa/PCRL@origin/main:results/rlace_diagnostic.json",
+   "sha256": "624c11d6b2ebd7ee6649227db164299f485ab20459a9873a0116ba5a8c79bc19"
+  }
+ ]
+}

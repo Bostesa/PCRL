@@ -1,0 +1,616 @@
+[
+ {
+  "id": "D1",
+  "question": "INLP/LAFTR/PCRL three-way (NeurIPS App. Q, Table 13): mean R2 0.014/0.038/0.270; strict pass 56/43/15 of 60 (93/72/25%).",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/inlp_benchmark/inlp_results.json",
+    "sha256": "ddacf9ff0702ecc4657926fc9d8b2f19814b6806ea644a11fe3c50ff7085df18"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "sha256": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "sha256": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json",
+    "sha256": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/adult/purpose_0/seed_0/eval_reps.npz",
+    "sha256": "c814af2ae15547067556deb3934fd3b776d2893a6ed62bc1ae58f0e114edcc01"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/diabetes/purpose_0/seed_0/eval_reps.npz",
+    "sha256": "60ba9e956c7c6b15136384a5b8fdbc5cd49f77f13373dcf0ae4e2ec5d27a3995"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/hmda/purpose_0/seed_0/eval_reps.npz",
+    "sha256": "b0b6a4627c820efe7c24fc66d1aab5ece4e0c20fcb0445243d1c3551b8faa61b"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_three_way.json",
+    "sha256": "089bf165b8a59a5d56ceb6c36d0acc608119276087944848319c9b035ede011a"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_three_way.py",
+  "result": {
+   "mean_r2": [
+    0.0136,
+    0.0382,
+    0.2702
+   ],
+   "pass_lt_0.05": [
+    56,
+    43,
+    15
+   ],
+   "by_dataset": {
+    "adult": {
+     "pcrl": "23/24",
+     "inlp": "14/24",
+     "laftr": "0/24"
+    },
+    "diabetes": {
+     "pcrl": "17/18",
+     "inlp": "18/18",
+     "laftr": "15/18"
+    },
+    "hmda": {
+     "pcrl": "16/18",
+     "inlp": "11/18",
+     "laftr": "0/18"
+    }
+   },
+   "pcrl_column_equals_finalpt_DA_audit": true,
+   "inlp_recomputed_from_drive_reps": {
+    "n": 60,
+    "max_abs_diff": 0.029650176590304,
+    "pass_lt_0.05_recomputed": 42,
+    "pass_flips": [
+     [
+      "hmda",
+      "underwriting",
+      2,
+      "ethnicity"
+     ]
+    ],
+    "mean_recomputed": 0.0396
+   },
+   "laftr_adult_recomputed_from_git_history_reps": {
+    "n_rows": 24,
+    "column_vs_metrics_json_mismatches": 0,
+    "recomputed_from_git_history_reps_max_abs_diff": 7.460505901946135e-07,
+    "recomputed_pass_lt_0.05": 0
+   },
+   "laftr_hmda_diabetes": "values in inlp_results.json were joined from an S3 FINAL_BENCHMARK.csv (origin/bios-pcrl-layer12-2026-05-05:infra/inlp/aggregate.py:58-80); no per-seed LAFTR HMDA/Diabetes metrics/reps located in any git ref or drive inventory"
+  },
+  "status": "independently recomputed",
+  "scope": "PCRL column = final.pt one-hot R2 (test split, in-sample OLS). INLP 60 rows recomputed from drive eval_reps (float64): 42/60 vs stored 43/60 (stored values match a float32 solve; 1 flip hmda/underwriting s2 ethnicity 0.039->0.069, R2 carried by directions with relative singular value ~1e-7). LAFTR Adult 24 rows recomputed exactly (0/24). LAFTR HMDA/Diabetes 36 rows: values only in the joined aggregate (from an S3 FINAL_BENCHMARK.csv in the 7-day-lifecycle bucket) -> reported but not independently reproduced for those 36 rows.",
+  "previous_assessment_value": "0.0136/0.0382/0.2702; 56/43/15 reproduce from inlp_results.json; LAFTR HMDA/Diabetes per-seed not committed",
+  "corrected_value_or_confirmation": "Confirmed as stored (56/43/15). Under a float64 recomputation INLP is 42/60 (mean 0.0396). Only 24/60 LAFTR rows are reproducible. Neither INLP (stops on val-split LR accuracy within 1pp of majority) nor LAFTR (adversarial CE, best val task loss) was trained against R2<=0.05; both TRAIN their encoder while PCRL's backbone is a frozen seeded random MLP, so 'the same backbone anchors all three' holds for architecture only."
+ },
+ {
+  "id": "D2",
+  "question": "Task accuracy: 'INLP averages 0.815 across cells and is comparable for PCRL' (App. Q).",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/inlp_benchmark/inlp_results.json",
+    "sha256": "ddacf9ff0702ecc4657926fc9d8b2f19814b6806ea644a11fe3c50ff7085df18"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_adult_ROUND5/per_seed_results.json",
+    "sha256": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_hmda_ROUND5/per_seed_results.json",
+    "sha256": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_diabetes_ROUND7/per_seed_results.json",
+    "sha256": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_three_way.json",
+    "sha256": "089bf165b8a59a5d56ceb6c36d0acc608119276087944848319c9b035ede011a"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_three_way.py  (task_acc_pairs)",
+  "result": {
+   "inlp_mean_27": 0.8152,
+   "pcrl_bestpt_mean_same_27": 0.7785,
+   "cells_inlp_gt_pcrl_by_1pp": 14
+  },
+  "status": "independently recomputed",
+  "scope": "PCRL task accuracies are from per_seed_results.json (best.pt reload); no final.pt task accuracies stored. Test split.",
+  "previous_assessment_value": "not checked",
+  "corrected_value_or_confirmation": "INLP 0.815 confirmed; PCRL on the same 27 cells is 0.779 (best.pt), INLP higher by >1pp in 14/27 cells -> 'comparable' overstates PCRL's utility."
+ },
+ {
+  "id": "D3",
+  "question": "SPLINCE vs PCRL (App. R, Table 14): R2-only 60/60 vs 56/60; +Health 3/60 vs 7/60; +Delta_aud 2/60 vs 3/60.",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/splince_benchmark/adult_s0/metrics.json",
+    "sha256": "cef341357baf5622ba5829c8cecba152d540b61b34c05b728d2d40d9faf8f990"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/splince_benchmark/hmda_s2/metrics.json",
+    "sha256": "87788119e7836e1037ad4f0a889266b7429544e624aae072038c1c135ed910be"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_splince.json",
+    "sha256": "9acf9e68ba548519e05950a407f934034f75a86d1f0640ed5f04cc6024424625"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_splince.py",
+  "result": {
+   "splince": {
+    "r2_only": 60,
+    "r2_health": 3,
+    "r2_health_delta": 2,
+    "adj(r2+delta)": 38,
+    "fallback_to_LEACE": 16,
+    "mean_task_drop_pp": 6.16,
+    "post_per_dim_std_range": [
+     4.827998352670282e-14,
+     968.3627318452243
+    ]
+   },
+   "warm_start": "final.pt of R5 (Adult/HMDA) and R7 (Diabetes)",
+   "pcrl_clean_counts_by_rule": {
+    "final_r2 x best_health (paper rule)": {
+     "collapse": 49,
+     "clean": 7,
+     "failed": 4
+    },
+    "final_r2 x final_health (single ckpt final.pt)": {
+     "collapse": 50,
+     "failed": 4,
+     "clean": 6
+    },
+    "best_r2 x best_health (single ckpt best.pt)": {
+     "collapse": 49,
+     "clean": 5,
+     "failed": 6
+    }
+   }
+  },
+  "status": "independently recomputed",
+  "scope": "SPLINCE side recomputed from per-cell stored metrics (not from representations). SPLINCE is an in-house reimplementation of Holstege et al. Thm 1 (pcrl/baselines/splince.py), fit per (purpose, ONE attribute, seed) - each cell erases only the audited attribute, whereas PCRL's h_p must satisfy all of the purpose's attributes at once. Its input is NOT 'pre-LEACE features': R5/R7 code has no separate LEACE buffer (set_leace_projection added in 940912cb9, after R7), the LEACE map is folded into the trained LoRA, so SPLINCE post-processes PCRL's own final.pt h_p (already constrained/collapsed; pre-projection per_dim_std 0.22-0.58). Health threshold is scale dependent: one SPLINCE cell has per_dim_std 968.",
+  "previous_assessment_value": "not recounted (PCRL 7/60 noted as mixed-checkpoint; 5/60 on best.pt)",
+  "corrected_value_or_confirmation": "SPLINCE 60/3/2 and adj 38/60 confirmed. NEW: SPLINCE pre_health is PCRL final.pt health, giving a single-checkpoint final.pt clean count of 6/60 (hmda underwriting race+ethnicity s2; diabetes billing race+gender s1,s2) vs paper 7/60 (final R2 x best.pt health) vs 5/60 on best.pt. The head-to-head is SPLINCE-on-top-of-PCRL vs PCRL, per-attribute vs per-purpose."
+ },
+ {
+  "id": "D4",
+  "question": "LAFTR-hard-R2 (branch laftr-hard-r2-2026-05-17): are full outputs present; Adult 0/24 COLLAPSED; HMDA/Diabetes?",
+  "inputs": [
+   {
+    "location": "wt-PCRL-superpowers-laftr-hard-r2-2026-05-17.tar::laftr-hard-r2-2026-05-17/results/laftr_hard_r2_adult_LAFTR_HARD_R2/per_seed_results.json",
+    "sha256": "8a784c7510330527e3e22a881d87062f7e0beab3ec08ced7c89f3fa65c874d20"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_adult_ROUND5/per_seed_results.json",
+    "sha256": "78442d408f94107090782f815b5b056f2e02108ac4aed84bae4e7c3a90058d61"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_adult_ROUND5/dominant_axis_audit.json",
+    "sha256": "0d9746fd5682ae95996e2eb8339ffbc5d5677c963607b499ddc6d0db40a05a9f"
+   },
+   {
+    "location": "wt-PCRL-superpowers-laftr-hard-r2-2026-05-17.tar::laftr-hard-r2-2026-05-17/results/laftr_hard_r2_hmda_LAFTR_HARD_R2/per_seed_results.json",
+    "sha256": "4686406d07427bc45460c1b8294dcd791c8f853a4c301f3fc420379c78301085"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_hmda_ROUND5/per_seed_results.json",
+    "sha256": "fbe0b3306a4b630216dcd8700d39bfacd575076309b4a041f938572986be1877"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_hmda_ROUND5/dominant_axis_audit.json",
+    "sha256": "5c854f2fcc8f4ecb7bff74eaa50a097c6c4b82ba30854fdd545343782a48e077"
+   },
+   {
+    "location": "wt-PCRL-superpowers-laftr-hard-r2-2026-05-17.tar::laftr-hard-r2-2026-05-17/results/laftr_hard_r2_diabetes_LAFTR_HARD_R2/per_seed_results.json",
+    "sha256": "5457db690e8511affb175d658c0fbc4ef008f7a1fcf7e856c5dee91cd2056dab"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_diabetes_ROUND7/per_seed_results.json",
+    "sha256": "75c1d93c5071fe5a6d147af125c831aebf76e371082e2493f3de012347dbce25"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/v2_diabetes_ROUND7/dominant_axis_audit.json",
+    "sha256": "785dc5bd25e97789308e4f00815454c9367e0414c1c4e88271ed979432c8900e"
+   },
+   {
+    "location": "wt-PCRL-superpowers-laftr-hard-r2-2026-05-17.tar::laftr-hard-r2-2026-05-17/results/laftr_hard_r2/HEADLINE.txt",
+    "sha256": "88582a1eea8bb812f2b2f459b62de5fd4e414a2808118781b586b96dc25e2da4"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_laftr_hard.json",
+    "sha256": "45442cf372a26fa444b89610a2adcada54ce14293fd6ac95dbdba5d8d5a4919b"
+   }
+  ],
+  "command": "tar -xf <drive>/archives/wt-PCRL-superpowers-laftr-hard-r2-2026-05-17.tar laftr-hard-r2-2026-05-17/results/...; /opt/homebrew/bin/python3 recount_scripts/D_laftr_hard.py",
+  "result": {
+   "adult": {
+    "strict_r2_lt_0.05": 0,
+    "adj_pass(stored: R2<0.05 and delta<0.02)": 0,
+    "clean(R2<0.05, std>=0.5, eff_rank>=2)": 0,
+    "mean_r2": 0.2471,
+    "best_epochs": [
+     11,
+     15,
+     17
+    ],
+    "cotter_selection": [
+     "fallback",
+     "fallback",
+     "fallback"
+    ],
+    "pcrl_comparator_bestpt_strict": 21
+   },
+   "hmda": {
+    "strict_r2_lt_0.05": 17,
+    "adj_pass(stored: R2<0.05 and delta<0.02)": 0,
+    "clean(R2<0.05, std>=0.5, eff_rank>=2)": 0,
+    "mean_r2": 0.0226,
+    "best_epochs": [
+     106,
+     112,
+     95
+    ],
+    "cotter_selection": [
+     "fallback",
+     "fallback",
+     "fallback"
+    ],
+    "pcrl_comparator_bestpt_strict": 16
+   },
+   "diabetes": {
+    "strict_r2_lt_0.05": 18,
+    "adj_pass(stored: R2<0.05 and delta<0.02)": 18,
+    "clean(R2<0.05, std>=0.5, eff_rank>=2)": 0,
+    "mean_r2": 0.0036,
+    "best_epochs": [
+     66,
+     164,
+     77
+    ],
+    "cotter_selection": [
+     "fallback",
+     "fallback",
+     "fallback"
+    ],
+    "pcrl_comparator_bestpt_strict": 17
+   },
+   "totals": {
+    "lh_strict": 35,
+    "lh_adj": 18,
+    "lh_clean": 0,
+    "n": 60,
+    "pcrl_best": 54,
+    "pcrl_final": 56
+   }
+  },
+  "status": "independently recomputed",
+  "scope": "Full 3-seed per_seed_results for all three datasets exist ONLY on the drive (not in any git ref; committed copy is the 1-seed 5-epoch smoke). Counts are on the Cotter-fallback best.pt (0 feasible epochs every seed); Adult selected epochs 11/15/17 of 200 - the same early-epoch fallback that produced PCRL Round-4 Adult 0/24 on best.pt vs 20/24 on final.pt. No final.pt evaluation stored, so the final-iterate count is unknown. 'LAFTR-hard' = PCRL's frozen random backbone + LoRA + LEACE warm-start + proxy-Lagrangian R2 constraint + a fixed-weight adversary: an R2-trained comparator, but an ablation of PCRL rather than LAFTR. HEADLINE's 'LAFTR-Q' HMDA/Diabetes row was copied from the paper table (cb95e2502).",
+  "previous_assessment_value": "unverifiable (only smoke committed; full result reportedly S3 only)",
+  "corrected_value_or_confirmation": "Located and recounted: strict R2<0.05 Adult 0/24, HMDA 17/18, Diabetes 18/18 = 35/60 (vs PCRL 54/60 best.pt / 56/60 final.pt); adj pass 0+0+18 = 18/60; clean 0/60; STATUS COLLAPSED on all three. Adult 0/24 is selection-rule dependent (epoch 11-17)."
+ },
+ {
+  "id": "D5",
+  "question": "LEACE-on-raw threat baseline (App. P): '0/20 pair-seeds pass combined criterion' and 'reduces task accuracy to majority baseline on all three datasets'.",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/adult_LEACE/leace_baseline.json",
+    "sha256": "628aee6909a2aaa3fd9ea914285029620fd2c3b4d65ce4e9cfa46e75c5fc5789"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/adult/purpose_0/seed_0/test_labels.npz",
+    "sha256": "cdbd3add06fb50b113e74f14079e4c53bfc45d2f3898d8d0e207238b59ad6ba5"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/adult_LEACE/erased_income_prediction.pt",
+    "sha256": "ef26abaae1de206a59a271eb389a737ea716c0c010385b5ade8b575e814b7dc7"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/adult_LEACE/erased_employment_analysis.pt",
+    "sha256": "f9f45c6fb3e580e55bce6145314e06b601ddf27f424015fc4526ed9b53e07426"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/adult_LEACE/erased_education_assessment.pt",
+    "sha256": "5d947e4cf0afae43bccc3b8a91e4712204dbc687e4626130962fe59281d7dc67"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/hmda_LEACE/leace_baseline.json",
+    "sha256": "e2267496e665ee4517c10e1e64ebfb8c057708d0b64c81f324be8e04dff9cdb3"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/hmda/purpose_0/seed_0/test_labels.npz",
+    "sha256": "5957f3ab5c76030025db4de79ceff84c2e0a9473a81f8d11e268cb73e886eae0"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/hmda_LEACE/erased_underwriting.pt",
+    "sha256": "df02824edde709208b5d9532c07f269eebc7e0039335eb5fb03308ec61066a10"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/hmda_LEACE/erased_pricing_analysis.pt",
+    "sha256": "e8a07220afb0116bdfaae602e31e8a7a0fdba9234f08c15a5f699ff549cf29e3"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/hmda_LEACE/erased_fair_lending_audit.pt",
+    "sha256": "63a3b6930b612c915c2e6bfd679d00962bca863e4423cb6e69bfdc0fc7612f21"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/diabetes_LEACE/leace_baseline.json",
+    "sha256": "96a2730de584a5a355865f49bbe7b011e3dab27db0a8cfa8328763f5a21835c4"
+   },
+   {
+    "location": "fl-PCRL-main-results-ignored.tar::results/inlp_benchmark/diabetes/purpose_0/seed_0/test_labels.npz",
+    "sha256": "a455a2a34666a20d8b56cfd7add8f2a0389ea6c468160115f9f0536572d4e2ce"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_leace_raw.json",
+    "sha256": "5c7ad939fd3a5ae5d0d9f4ca210329bf93194bdc56d5e2e33d1d1c5666648cd9"
+   }
+  ],
+  "command": "tar -xf <drive>/archives/fl-PCRL-main-results-ignored.tar results/<ds>_LEACE/erased_*.pt; /opt/homebrew/bin/python3 recount_scripts/D_leace_raw.py",
+  "result": {
+   "n_pairs": 20,
+   "max_abs_diff_vs_stored": 0.0,
+   "stored_r2_pass_lt_0.05": 2,
+   "r2_pass_after_1e-3_cutoff": 20,
+   "heldout_LR_at_majority(<=0.5pp)": 20,
+   "delta_lt_2pp(nonlinear auditors)": 3,
+   "combined_pass_stored": 0,
+   "task_acc_minus_majority": "8/9 tasks above majority (Adult income +7.6pp, HMDA amount_band +39.8pp, Diabetes primary_dx +7.5pp); only readmission -0.8pp"
+  },
+  "status": "independently recomputed",
+  "scope": "Official concept_erasure.LeaceFitter, but applied SEQUENTIALLY per attribute (not the joint fit PCRL uses), on raw inputs that contain the protected attributes; single deterministic run, 20 pairs (not pair x seed). Stored R2 reproduced exactly (max diff 0.0) from the stored erased test tensors. 18/20 R2 'failures' live entirely in directions with relative singular value 1e-7..1e-4 (numerical residue of a train-fit eraser re-fit in-sample on test): dropping relative s.v.<1e-3 gives R2<0.03 on 20/20, and a train-fit LR is exactly at majority on 20/20. The robust part of the failure is nonlinear: Delta_aud>=2pp on 17/20.",
+  "previous_assessment_value": "'LEACE-on-raw 0/20 exists only as markdown'",
+  "corrected_value_or_confirmation": "0/20 reproduces from stored per-pair JSON + drive tensors, but the linear leg is numerically fragile (20/20 pass after a 1e-3 spectral cutoff; combined would be 3/20). The task-accuracy sentence is contradicted by the stored per_task JSON (not majority on 8/9 tasks; above PCRL on income, amount_band, primary_dx)."
+ },
+ {
+  "id": "D6",
+  "question": "Per-purpose independent encoders (App. P): 5/20; Adult 0/8 R2 in [0.062,0.117]; HMDA 0/6 [0.134,0.170]; Diabetes passes via collapse.",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/adult_SEPARATE/per_purpose_results.json",
+    "sha256": "2fd56fe2c05a9d98e410112288e42f3b51f9087f29a31b2691e5c667c7516608"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/hmda_SEPARATE/per_purpose_results.json",
+    "sha256": "0e287c70f6b90f86c0448b7505155ff293bcb7e49f864f1f4825da4263dce519"
+   },
+   {
+    "location": "Bostesa/PCRL@origin/main:results/diabetes_SEPARATE/per_purpose_results.json",
+    "sha256": "43ee48fbef321cc148edec481428a1baf716511a471d031646eb733bb5717ee5"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_sep_rlace.json",
+    "sha256": "d591f060d4c09307191b8aedd984bda3c90f4adc016b385c39e614c9a14309b5"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_sep_rlace.py",
+  "result": {
+   "adult": {
+    "seed": 0,
+    "n_pairs": 8,
+    "adj_pass_stored": 0,
+    "adj_pass_recomputed": 0,
+    "r2_pass_lt_0.05": 0,
+    "r2_range": [
+     0.0625,
+     0.1165
+    ],
+    "comparator_pcrl_paper_pass": "6/8",
+    "eff_rank_by_purpose": {
+     "income_prediction": 3.03,
+     "employment_analysis": 3.99,
+     "education_assessment": 5.64
+    },
+    "task_acc": {
+     "income_prediction": {
+      "income": 0.789641
+     },
+     "employment_analysis": {
+      "occupation_group": 0.713811
+     },
+     "education_assessment": {
+      "education_level": 0.793161
+     }
+    }
+   },
+   "hmda": {
+    "seed": 0,
+    "n_pairs": 6,
+    "adj_pass_stored": 0,
+    "adj_pass_recomputed": 0,
+    "r2_pass_lt_0.05": 0,
+    "r2_range": [
+     0.1341,
+     0.1697
+    ],
+    "comparator_pcrl_paper_pass": "5.3/6",
+    "eff_rank_by_purpose": {
+     "underwriting": 2.03,
+     "pricing_analysis": 2.28,
+     "fair_lending_audit": 2.48
+    },
+    "task_acc": {
+     "underwriting": {
+      "loan_decision": 0.892614
+     },
+     "pricing_analysis": {
+      "loan_amount_band": 0.470317
+     },
+     "fair_lending_audit": {
+      "tract_denial_high": 0.634141
+     }
+    }
+   },
+   "diabetes": {
+    "seed": 0,
+    "n_pairs": 6,
+    "adj_pass_stored": 5,
+    "adj_pass_recomputed": 5,
+    "r2_pass_lt_0.05": 5,
+    "r2_range": [
+     0.0,
+     0.0973
+    ],
+    "comparator_pcrl_paper_pass": "5/6",
+    "eff_rank_by_purpose": {
+     "billing_audit": 1.15,
+     "quality_research": 1.0,
+     "clinical_decision_support": 1.03
+    },
+    "task_acc": {
+     "billing_audit": {
+      "primary_diagnosis_category": 0.313292
+     },
+     "quality_research": {
+      "readmission_outcome": 0.911913
+     },
+     "clinical_decision_support": {
+      "medication_change_outcome": 0.999534
+     }
+    }
+   },
+   "total": {
+    "adj_pass": "5/20",
+    "r2_pass": "5/20",
+    "n_seeds": 1
+   }
+  },
+  "status": "independently recomputed",
+  "scope": "Stored per-pair results recounted (no representations). One seed (s0), 20 pairs. Trained with the pre-v2 PCRLTrainer (adversary + lambda_verify=50 soft R2 penalty, best val task loss), not the v2 hard-constraint/LoRA/LEACE stack; the comparator column '6/8, 5/6, 5.3/6' is pre-v2 PCRL, not the 56/60 model. 'Shared frozen backbone is load-bearing' therefore compares two different training stacks.",
+  "previous_assessment_value": "'App. P 5/20 is 20 pairs at one seed against a pre-v2 PCRL'",
+  "corrected_value_or_confirmation": "Confirmed: 5/20 (Diabetes 5/6 with eff_rank 1.0-1.15), Adult 0/8 [0.0625,0.1165], HMDA 0/6 [0.1341,0.1697]."
+ },
+ {
+  "id": "D7",
+  "question": "R-LACE/LEACE diagnostic (results/rlace_diagnostic.json, 7/8 GREEN; cited for the RLACE/LEACE rank-(K-1) threshold).",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/rlace_diagnostic.json",
+    "sha256": "624c11d6b2ebd7ee6649227db164299f485ab20459a9873a0116ba5a8c79bc19"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_sep_rlace.json",
+    "sha256": "d591f060d4c09307191b8aedd984bda3c90f4adc016b385c39e614c9a14309b5"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_sep_rlace.py",
+  "result": {
+   "seed": 0,
+   "n_pairs": 8,
+   "verdicts": {
+    "GREEN": 7,
+    "YELLOW": 0,
+    "RED": 1
+   },
+   "leace_r2_range": [
+    0.004229,
+    0.009302
+   ],
+   "leace_r2_lt_0.05": 8,
+   "leace_task_drop_pp_range": [
+    0.0,
+    3.33
+   ],
+   "leace_mlp_delta_range": [
+    0.089641,
+    0.459894
+   ],
+   "leace_mlp_delta_lt_0.02": 0,
+   "rlace_r8_r2_lt_0.05": 0,
+   "red_pairs": [
+    [
+     "income_prediction",
+     "sex",
+     0.007334,
+     3.333
+    ]
+   ],
+   "note": "'R-LACE' here is iterative logistic null-space projection at rank 1/4/8 (experiments/rlace_diagnostic.py:117-150), not the Ravfogel et al. 2022 minimax; the backbone is a TRAINED StandardEncoder (train_backbone, :221-270), not PCRL's frozen random backbone; LEACE is concept_erasure.LeaceEraser."
+  },
+  "status": "checked against code and recorded aggregates",
+  "scope": "Adult only, one seed, stored per-pair values. 'R-LACE' is INLP-style iterative logistic null-space projection at rank 1/4/8, not the Ravfogel 2022 minimax (script docstring says so). Backbone is a TRAINED StandardEncoder, not PCRL's frozen random one. GREEN ignores nonlinear leakage: LEACE MLP Delta 0.09-0.46, 0/8 < 0.02.",
+  "previous_assessment_value": "memory note: '7/8 GREEN; LEACE crushes R2<0.01 on every pair'",
+  "corrected_value_or_confirmation": "Confirmed 7/8 GREEN and LEACE R2 0.004-0.009 on 8/8 with <=3.3pp task drop - i.e. one-shot official LEACE on a trained backbone meets the linear criterion that PCRL trains for, a comparator absent from Table 13; under Delta_aud<0.02 it passes 0/8."
+ },
+ {
+  "id": "D8",
+  "question": "LAFTR side of the \u00a75.5 cross-purpose comparison: 29/33 absolute, 16/33 incremental.",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:results/cross_purpose_laftr/cross_purpose_laftr_results.json",
+    "sha256": "dc818b52161226e6919bcb80e5beda85c9a3e4741bde5de291e3bd570913e78c"
+   },
+   {
+    "location": "notes/verification/recount_outputs/D_laftr_crosspurpose.json",
+    "sha256": "c3c2bc8eb2dd28c18f88786520d7642599afad32ac33509e9db544c76c3671df"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 recount_scripts/D_laftr_crosspurpose.py",
+  "result": {
+   "absolute_concat_minus_majority_gt_1pp": 29,
+   "incremental_concat_minus_best_single_gt_1pp": 16,
+   "by_dataset_abs_incr": {
+    "adult": [
+     15,
+     9,
+     15
+    ],
+    "hmda": [
+     9,
+     4,
+     9
+    ],
+    "diabetes": [
+     5,
+     3,
+     9
+    ]
+   },
+   "worst_abs": [
+    71.32736763609246,
+    "diabetes",
+    "age_bucket",
+    "MLP"
+   ]
+  },
+  "status": "checked against code and recorded aggregates",
+  "scope": "Recounted from stored per-(dataset,attribute,arch) aggregate rows (mean over 3 seeds); the incremental field exists in the LAFTR aggregate (concat_gain_over_best_single_pp_mean). LAFTR HMDA/Diabetes encoders/reps not located. results/cross_purpose_laftr/HEADLINE.txt records that the criterion (A vs B) was to be chosen to match the existing paper wording ('PAPER INTEGRATION DECISION') - post-hoc criterion selection.",
+  "previous_assessment_value": "29/33 reproduces; LAFTR 16/33 only from DUAL_CRITERIA.json (laftr aggregate lacks gain field)",
+  "corrected_value_or_confirmation": "Both 29/33 and 16/33 recount from the LAFTR aggregate itself (the gain field is present); per-seed LAFTR reps not located."
+ },
+ {
+  "id": "D9",
+  "question": "Implementation provenance: is PCRL's `LEACEEraser` (pcrl/models/baselines.py) LEACE?",
+  "inputs": [
+   {
+    "location": "Bostesa/PCRL@origin/main:pcrl/models/baselines.py:120-190",
+    "sha256": "59c0716cf7b374a100c7eda0d983115ec1f146095b355f5018adab2f4df01ad9"
+   },
+   {
+    "location": "fixtures/D_inhouse_leace_vs_leace.py",
+    "sha256": "3d36b99d550d3a0aab6db520bd90c76de286f7f41e2cf4620b17ed8415e3e797"
+   },
+   {
+    "location": "fixtures/outputs/D_inhouse_leace_vs_leace.json",
+    "sha256": "4e5d8f33c9407d7f2d89a5d6db49689a77439c5bdd11228ad9203ec0e1042ee7"
+   }
+  ],
+  "command": "/opt/homebrew/bin/python3 fixtures/D_inhouse_leace_vs_leace.py > fixtures/outputs/D_inhouse_leace_vs_leace.json",
+  "result": "In-house class = orthogonal projection off span(OLS coefficients); on synthetic non-isotropic data it leaves one-hot R2 0.58-0.65 (raw 0.68-0.79) while the LEACE definition gives 0.0 (cross-cov ~1e-14).",
+  "status": "independently recomputed",
+  "scope": "Synthetic fixture + code reading. The in-house class is used only by legacy pre-v2 scripts (run_extended_baselines, sweep_baselines, run_multi_seed, run_seeds_fixed, run_hmda_seeds, run_diabetes_all, run_leace_postprocess); every v2 path located (PCRL warm-start v2_trainer.leace_warm_start, run_leace_baseline, rlace_diagnostic) and durable-guarantees baseline_gauntlet use the official concept_erasure package. No manuscript number traced to the in-house class.",
+  "previous_assessment_value": "not checked",
+  "corrected_value_or_confirmation": "Misnamed in-house eraser (one INLP-like OLS null-space step), not LEACE; not used by located headline numbers."
+ }
+]

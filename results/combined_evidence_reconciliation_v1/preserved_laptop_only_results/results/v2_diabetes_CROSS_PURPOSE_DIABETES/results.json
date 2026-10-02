@@ -1,0 +1,464 @@
+{
+  "dataset": "diabetes",
+  "tag": "CROSS_PURPOSE_DIABETES",
+  "tau": 0.05,
+  "tau_cross": 0.1,
+  "purpose_names": [
+    "billing_audit",
+    "quality_research",
+    "clinical_decision_support"
+  ],
+  "attrs": [
+    "age_bucket",
+    "gender",
+    "race"
+  ],
+  "cross_attrs": [
+    "race",
+    "gender",
+    "age_bucket"
+  ],
+  "per_seed": [
+    {
+      "seed": 0,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "billing_audit/race": {
+          "r2_onehot_test": -9.179115295410156e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "billing_audit/gender": {
+          "r2_onehot_test": 2.7418136596679688e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/race": {
+          "r2_onehot_test": -8.463859558105469e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/age_bucket": {
+          "r2_onehot_test": -1.3113021850585938e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/race": {
+          "r2_onehot_test": -6.67572021484375e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/gender": {
+          "r2_onehot_test": 1.5497207641601562e-06,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": -7.236003875732422e-05,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "gender": {
+          "r2_onehot_test": -0.00017595291137695312,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_bucket": {
+          "r2_onehot_test": -1.33514404296875e-05,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_bucket": {
+            "attack_acc": 0.25773676360924686,
+            "majority": 0.25773676360924686,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 4.89136004447937
+          },
+          "gender": {
+            "attack_acc": 0.5349552572706935,
+            "majority": 0.5349552572706935,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.11550474166870117
+          },
+          "race": {
+            "attack_acc": 0.7513049962714392,
+            "majority": 0.7513049962714392,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.5456702709198
+          }
+        },
+        "MLP": {
+          "age_bucket": {
+            "attack_acc": 0.8449850857568978,
+            "majority": 0.25773676360924686,
+            "delta_pp": 58.7248322147651,
+            "flag_1pp": true,
+            "elapsed_s": 35.88405704498291
+          },
+          "gender": {
+            "attack_acc": 0.5509880686055183,
+            "majority": 0.5349552572706935,
+            "delta_pp": 1.6032811334824815,
+            "flag_1pp": true,
+            "elapsed_s": 16.376410961151123
+          },
+          "race": {
+            "attack_acc": 0.7512117822520508,
+            "majority": 0.7513049962714392,
+            "delta_pp": -0.009321401938844343,
+            "flag_1pp": false,
+            "elapsed_s": 7.697983026504517
+          }
+        },
+        "XGB": {
+          "age_bucket": {
+            "attack_acc": 0.6256524981357197,
+            "majority": 0.25773676360924686,
+            "delta_pp": 36.79157345264728,
+            "flag_1pp": true,
+            "elapsed_s": 51.41293406486511
+          },
+          "gender": {
+            "attack_acc": 0.5287099179716629,
+            "majority": 0.5349552572706935,
+            "delta_pp": -0.6245339299030594,
+            "flag_1pp": false,
+            "elapsed_s": 6.017496109008789
+          },
+          "race": {
+            "attack_acc": 0.7482289336316182,
+            "majority": 0.7513049962714392,
+            "delta_pp": -0.30760626398209645,
+            "flag_1pp": false,
+            "elapsed_s": 24.32922387123108
+          }
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "billing_audit/race": {
+          "r2_onehot_test": -1.4066696166992188e-05,
+          "tau": 0.05,
+          "pass": true
+        },
+        "billing_audit/gender": {
+          "r2_onehot_test": -2.384185791015625e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/race": {
+          "r2_onehot_test": -5.7220458984375e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/age_bucket": {
+          "r2_onehot_test": 1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/race": {
+          "r2_onehot_test": -1.0728836059570312e-05,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/gender": {
+          "r2_onehot_test": -2.1457672119140625e-06,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": -4.9591064453125e-05,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "gender": {
+          "r2_onehot_test": -1.5139579772949219e-05,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_bucket": {
+          "r2_onehot_test": -4.410743713378906e-06,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_bucket": {
+            "attack_acc": 0.25773676360924686,
+            "majority": 0.25773676360924686,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 5.4154181480407715
+          },
+          "gender": {
+            "attack_acc": 0.5349552572706935,
+            "majority": 0.5349552572706935,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.12894487380981445
+          },
+          "race": {
+            "attack_acc": 0.7513049962714392,
+            "majority": 0.7513049962714392,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.8027470111846924
+          }
+        },
+        "MLP": {
+          "age_bucket": {
+            "attack_acc": 0.8591536167039523,
+            "majority": 0.25773676360924686,
+            "delta_pp": 60.141685309470546,
+            "flag_1pp": true,
+            "elapsed_s": 36.763015270233154
+          },
+          "gender": {
+            "attack_acc": 0.5513609246830723,
+            "majority": 0.5349552572706935,
+            "delta_pp": 1.640566741237881,
+            "flag_1pp": true,
+            "elapsed_s": 11.750161170959473
+          },
+          "race": {
+            "attack_acc": 0.7518642803877703,
+            "majority": 0.7513049962714392,
+            "delta_pp": 0.055928411633110464,
+            "flag_1pp": false,
+            "elapsed_s": 6.963139772415161
+          }
+        },
+        "XGB": {
+          "age_bucket": {
+            "attack_acc": 0.6692766592095452,
+            "majority": 0.25773676360924686,
+            "delta_pp": 41.15398956002983,
+            "flag_1pp": true,
+            "elapsed_s": 50.733628034591675
+          },
+          "gender": {
+            "attack_acc": 0.5362602535421327,
+            "majority": 0.5349552572706935,
+            "delta_pp": 0.13049962714392072,
+            "flag_1pp": false,
+            "elapsed_s": 6.068674087524414
+          },
+          "race": {
+            "attack_acc": 0.7494407158836689,
+            "majority": 0.7513049962714392,
+            "delta_pp": -0.18642803877703118,
+            "flag_1pp": false,
+            "elapsed_s": 24.533006191253662
+          }
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "checkpoint": "best.pt",
+      "per_pair": {
+        "billing_audit/race": {
+          "r2_onehot_test": -1.5497207641601562e-05,
+          "tau": 0.05,
+          "pass": true
+        },
+        "billing_audit/gender": {
+          "r2_onehot_test": -2.1457672119140625e-06,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/race": {
+          "r2_onehot_test": -1.5974044799804688e-05,
+          "tau": 0.05,
+          "pass": true
+        },
+        "quality_research/age_bucket": {
+          "r2_onehot_test": -1.1920928955078125e-07,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/race": {
+          "r2_onehot_test": -1.5497207641601562e-05,
+          "tau": 0.05,
+          "pass": true
+        },
+        "clinical_decision_support/gender": {
+          "r2_onehot_test": -2.5033950805664062e-06,
+          "tau": 0.05,
+          "pass": true
+        }
+      },
+      "concat": {
+        "race": {
+          "r2_onehot_test": -0.0004458427429199219,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "gender": {
+          "r2_onehot_test": -7.62939453125e-06,
+          "tau_cross": 0.1,
+          "pass": true
+        },
+        "age_bucket": {
+          "r2_onehot_test": 1.1920928955078125e-07,
+          "tau_cross": 0.1,
+          "pass": true
+        }
+      },
+      "attack": {
+        "LR": {
+          "age_bucket": {
+            "attack_acc": 0.25773676360924686,
+            "majority": 0.25773676360924686,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 4.825018882751465
+          },
+          "gender": {
+            "attack_acc": 0.5349552572706935,
+            "majority": 0.5349552572706935,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 0.11162281036376953
+          },
+          "race": {
+            "attack_acc": 0.7513049962714392,
+            "majority": 0.7513049962714392,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 3.114326238632202
+          }
+        },
+        "MLP": {
+          "age_bucket": {
+            "attack_acc": 0.8543997017151379,
+            "majority": 0.25773676360924686,
+            "delta_pp": 59.666293810589096,
+            "flag_1pp": true,
+            "elapsed_s": 41.03995609283447
+          },
+          "gender": {
+            "attack_acc": 0.5525727069351231,
+            "majority": 0.5349552572706935,
+            "delta_pp": 1.7617449664429574,
+            "flag_1pp": true,
+            "elapsed_s": 13.100191116333008
+          },
+          "race": {
+            "attack_acc": 0.7513049962714392,
+            "majority": 0.7513049962714392,
+            "delta_pp": 0.0,
+            "flag_1pp": false,
+            "elapsed_s": 9.750942945480347
+          }
+        },
+        "XGB": {
+          "age_bucket": {
+            "attack_acc": 0.6339485458612976,
+            "majority": 0.25773676360924686,
+            "delta_pp": 37.62117822520507,
+            "flag_1pp": true,
+            "elapsed_s": 50.08520007133484
+          },
+          "gender": {
+            "attack_acc": 0.5322520507084265,
+            "majority": 0.5349552572706935,
+            "delta_pp": -0.2703206562266969,
+            "flag_1pp": false,
+            "elapsed_s": 6.141528129577637
+          },
+          "race": {
+            "attack_acc": 0.7485085756897838,
+            "majority": 0.7513049962714392,
+            "delta_pp": -0.2796420581655412,
+            "flag_1pp": false,
+            "elapsed_s": 24.08177924156189
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "n_seeds": 3,
+    "concat_r2_mean": {
+      "race": {
+        "mean_r2": -0.00018926461537679037,
+        "max_r2": -4.9591064453125e-05,
+        "n_pass": 3,
+        "n": 3
+      },
+      "gender": {
+        "mean_r2": -6.624062856038411e-05,
+        "max_r2": -7.62939453125e-06,
+        "n_pass": 3,
+        "n": 3
+      },
+      "age_bucket": {
+        "mean_r2": -5.880991617838542e-06,
+        "max_r2": 1.1920928955078125e-07,
+        "n_pass": 3,
+        "n": 3
+      }
+    },
+    "attack_flagged_above_1pp": "3/9",
+    "attack_per_arch_per_attr": {
+      "LR": {
+        "age_bucket": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "gender": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        },
+        "race": {
+          "mean_delta_pp": 0.0,
+          "flag_1pp_mean": false
+        }
+      },
+      "MLP": {
+        "age_bucket": {
+          "mean_delta_pp": 59.51093711160825,
+          "flag_1pp_mean": true
+        },
+        "gender": {
+          "mean_delta_pp": 1.66853094705444,
+          "flag_1pp_mean": true
+        },
+        "race": {
+          "mean_delta_pp": 0.015535669898088708,
+          "flag_1pp_mean": false
+        }
+      },
+      "XGB": {
+        "age_bucket": {
+          "mean_delta_pp": 38.522247079294054,
+          "flag_1pp_mean": true
+        },
+        "gender": {
+          "mean_delta_pp": -0.25478498632861185,
+          "flag_1pp_mean": false
+        },
+        "race": {
+          "mean_delta_pp": -0.25789212030822295,
+          "flag_1pp_mean": false
+        }
+      }
+    },
+    "per_pair_pass": "18/18"
+  }
+}
