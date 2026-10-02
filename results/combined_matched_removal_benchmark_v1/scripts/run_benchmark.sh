@@ -20,7 +20,7 @@
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 WT=$(cd "$HERE/../../.." && pwd -P)
-PY=${PY:-/Users/nathansamson/PCRL/.venv/bin/python}
+PY=${PY:-$HOME/PCRL/.venv/bin/python}
 BRANCH=research/combined-matched-removal-benchmark-v1
 EXTRA=${BENCH_EXTRA_ARGS:-}
 actual=$(git -C "$WT" rev-parse --abbrev-ref HEAD)

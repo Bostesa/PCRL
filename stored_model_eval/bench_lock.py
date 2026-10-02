@@ -86,6 +86,18 @@ def _inference_pins(eff: dict) -> dict:
                               "sampling_unit", "replicate_summary", "worst_rule")}
 
 
+def home_relative(obj):
+    """Rewrite absolute paths under $HOME as '~/...' (keys and values) so the committed lock holds no private paths."""
+    home = str(Path.home())
+    if isinstance(obj, str):
+        return "~" + obj[len(home):] if obj == home or obj.startswith(home + "/") else obj
+    if isinstance(obj, dict):
+        return {home_relative(k): home_relative(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [home_relative(v) for v in obj]
+    return obj
+
+
 def compute_state(root: Path, index: Path, private_root: Path, eff: dict) -> dict:
     from .bench import Inputs
     inputs = Inputs(index)
@@ -99,7 +111,7 @@ def compute_state(root: Path, index: Path, private_root: Path, eff: dict) -> dic
         errs = []
     else:
         errs = ["effective protocol differs from the frozen BENCH_EFFECTIVE (override allowed for synthetic only)"]
-    return {"effective_protocol_sha256": bench_effective_hash(eff), "effective_protocol_errors": errs,
+    return home_relative({"effective_protocol_sha256": bench_effective_hash(eff), "effective_protocol_errors": errs,
             "code_files": code_files(root), "dependencies": dependencies(),
             "inputs": {"index_path": str(Path(index)), "index_sha256": inputs.sha256, "synthetic": inputs.synthetic,
                        "files_expected": files, "files_actual": data},
@@ -109,7 +121,7 @@ def compute_state(root: Path, index: Path, private_root: Path, eff: dict) -> dic
             "primary_family": primary_family(),
             "inference": _inference_pins(eff),
             "support_rule": {k: eff["support"][k] for k in ("min_attacker_fit", "min_attacker_val", "min_assessment",
-                                                            "min_supported_classes", "min_defense_fit_concept")}}
+                                                            "min_supported_classes", "min_defense_fit_concept")}})
 
 
 def build_bench_lock(root: Path, index: Path, private_root: Path, out: Path, eff: dict | None = None,
@@ -135,7 +147,7 @@ def build_bench_lock(root: Path, index: Path, private_root: Path, out: Path, eff
             "status": "LOCKED before any benchmark eraser/attacker/probe fit (development data; not a confirmation)",
             "worktree_head_at_build_informational": subprocess.run(
                 ["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(),
-            "private_root": str(private_root), "support_frozen_path": str(sf),
+            "private_root": home_relative(str(private_root)), "support_frozen_path": home_relative(str(sf)),
             **{k: v for k, v in st.items() if k != "effective_protocol_errors"}}
     lock["inputs"].pop("files_actual")
     out = Path(out)
@@ -192,4 +204,4 @@ def verify_bench_lock(lock_path: Path, root: Path, index: Path, private_root: Pa
             "n_maps_pinned": len(MapStore(Path(private_root)).pins()["maps"])}
 
 
-__all__ = ["build_bench_lock", "verify_bench_lock", "code_files", "concept_erasure_tree", "LOCK_SCHEMA"]
+__all__ = ["build_bench_lock", "verify_bench_lock", "home_relative", "code_files", "concept_erasure_tree", "LOCK_SCHEMA"]

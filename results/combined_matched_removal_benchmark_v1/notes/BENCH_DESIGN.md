@@ -6,15 +6,15 @@
 - Base: pilot tip 661db8dcbba3abd29bd42d6674c2493c77eb47d8.
 - Ancestors: reconciliation 07a9ca3ffaf27133b6cf955b3b8d526682961e8d; preparation 031860fbfd910b9aaed19b7600d288d15858dbc5.
 - durable-guarantees: 956f5c883f515646aa457db55ecbd74b913768b2.
-- Worktree: `/Users/nathansamson/PCRL/.worktrees/combined-matched-removal-benchmark-v1`. Package: `results/combined_matched_removal_benchmark_v1/`.
+- Worktree: `<repo>/.worktrees/combined-matched-removal-benchmark-v1`. Package: `results/combined_matched_removal_benchmark_v1/`.
 
 **Private root (never in git):** `~/PCRL_eval_cache_private/bench_v1/`.
 - `inputs/`, `units/`, `infer/`, `logs/`, `defenses/`.
 - Reuse `~/PCRL_eval_cache_private/checkpoints/` and the pilot cache read-only.
 
-**Drive:** `/Volumes/YOTUO/NathanSamson-Mac-relocated-2026-09-30/`, exFAT. It can transiently disappear, so retry reads and never write inside `archives/`.
+**Drive:** the connected external drive (relocation archive root), exFAT. It can transiently disappear, so retry reads and never write inside `archives/`.
 
-**Official LEACE:** concept-erasure 0.2.4, as installed in `/Users/nathansamson/PCRL/.venv`.
+**Official LEACE:** concept-erasure 0.2.4, as installed in the repository virtualenv (`<repo>/.venv`).
 - Upstream tag v0.2.4 = 9b18b3d5c73f552798212c51d6533d649fa434cd.
 - Installed `.py` tree sha256 = fffac29d5914f334396f4af1f6b65ba09fcbf658fa8a013972bb50cbc1568597.
 - Use `LeaceFitter` / `LeaceEraser` only. Never `OracleLeaceEraser`, never the in-house `pcrl.models.baselines.LEACEEraser`.

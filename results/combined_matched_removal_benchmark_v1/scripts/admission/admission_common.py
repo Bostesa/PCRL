@@ -8,8 +8,10 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -19,20 +21,19 @@ HERE = Path(__file__).resolve().parent
 WT = HERE.parents[3]  # worktree root
 PKG = WT / "results" / "combined_matched_removal_benchmark_v1"
 NOTES = PKG / "notes" / "admission"
-PCRL_REPO = Path("/Users/nathansamson/PCRL")
+PCRL_REPO = Path(os.environ.get("PCRL_REPO", str(Path.home() / "PCRL")))
 PCRL_DATA = PCRL_REPO / "data"
 B96 = "b96c41256daeed6e644aba1443a47b16e28d089a"
-EXPORT = Path("/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/scratchpad/"
-              "pcrl_b96c412")
+EXPORT = Path(os.environ.get("PCRL_B96_EXPORT", str(Path(tempfile.gettempdir()) / "pcrl_b96c412")))  # scratch export of b96c412
 PRIV = Path.home() / "PCRL_eval_cache_private"
 CKPT_DIR = PRIV / "checkpoints"
 INPUTS = PRIV / "bench_v1" / "inputs"
 STAGING = INPUTS / "_staging"
 PROV_CKPT = INPUTS / "provenance_ckpt"
 PILOT = PRIV / "pilot_adult_s0"
-DRIVE = Path("/Volumes/YOTUO/NathanSamson-Mac-relocated-2026-09-30")
+DRIVE = Path(os.environ.get("PCRL_DRIVE", "/Volumes/DRIVE/relocated"))  # external archive drive (set PCRL_DRIVE)
 CKPT_TAR = DRIVE / "archives" / "fl-PCRL-main-checkpoints.tar"
-INVENTORY = Path("/Users/nathansamson/storage-relocation-20260930/inventories/fl-PCRL-main-checkpoints.json.gz")
+INVENTORY = Path.home() / "storage-relocation-20260930" / "inventories" / "fl-PCRL-main-checkpoints.json.gz"
 ORIGIN_MAIN = "55e4cb1d1b603a52e5ae16fd5c71d41ebb9b3827"
 
 DATASETS = ("adult", "hmda")
