@@ -1,0 +1,153 @@
+{
+  "version": "pilot-protocol-draft-v1-2026-10-02",
+  "status": "DRAFT - not locked; no real-data attacker or probe fitting until approved and locked",
+  "companion_text": "results/combined_evaluation_preparation_v1/PILOT_PROTOCOL.md",
+  "bars": [0.52, 0.55, 0.60],
+  "primary_bar": 0.55,
+  "r2_tau_grid": [0.01, 0.02, 0.05, 0.10],
+  "primary_tau": 0.05,
+  "interval": {
+    "method": "cluster_bootstrap_percentile",
+    "B": 2000,
+    "alpha": 0.05,
+    "sidedness": "one-sided bounds from the two-sided 90% percentile interval",
+    "unit": {
+      "adult": "row",
+      "hmda": "row",
+      "diabetes": "patient_nbr",
+      "acs": "SERIALNO (household)",
+      "celeba": "identity"
+    },
+    "attackers_held_fixed_in_bootstrap": true,
+    "refit_variance": {"attacker_seeds": 3, "stochastic_release_draws_K": 8, "reported": "separately as SD"},
+    "defense_seed_variation": "reported separately as per-seed table; seeds are refit replicates over shared assessment units",
+    "max_statistics": "re-maximise worst-class / worst-pair inside each bootstrap replicate",
+    "permutation_null": {"n_permutations": 200, "same_max_rule": true, "max_over_seeds": false},
+    "bootstrap_seed": 20261002,
+    "survey_weights": {"acs": "PWGTP; report weighted and unweighted", "adult": null, "hmda": null, "diabetes": null, "celeba": null}
+  },
+  "support": {
+    "min_class_n": 100,
+    "min_class_n_roles": ["attacker_fit", "assessment"],
+    "min_class_n_attacker_val": 30,
+    "min_pair_n": 100,
+    "pair_rule": "both classes >= min_pair_n in attacker_fit and assessment",
+    "not_estimable_code": "NE",
+    "ne_reasons": ["class_below_support", "fewer_than_2_supported_classes", "recipe_inputs_missing", "defense_parameters_not_stored", "surface_not_released"],
+    "macro_over": "supported classes only; report coverage"
+  },
+  "roles": {
+    "defense_fit": "historical rows that entered any fitted parameter; fixed by artifact",
+    "attacker_fit": 0.50,
+    "attacker_val": 0.15,
+    "assessment": 0.35,
+    "pool": "rows outside defense_fit (PCRL v2: test split; dg-on-PCRL-R4 cells: PCRL val+test, never read by dg)",
+    "stratify": ["s", "y"],
+    "group_by": "interval.unit",
+    "split_seed": 20261002,
+    "secondary_overlap_arm": "attacker_fit = defense_fit rows; label defense_fit_overlap=true; never pooled",
+    "alignment_assertion": "all surfaces and recipes scored on identical assessment unit IDs"
+  },
+  "numerical": {
+    "precision": "float64",
+    "linear_floor": {"rule": "drop covariance directions with eigenvalue < rel * largest", "rel": 1e-6, "also_report_unfloored": true},
+    "historical_native_float32_reported_beside_float64": true
+  },
+  "metrics": [
+    {"id": "native", "definition": "method's own statistic exactly as defined (PCRL: in-sample pooled one-hot ridge R2, reg 1e-6 on unnormalised centred Gram, clamp 0, pass < 0.05)", "rows": "as historically defined", "scale": "R2"},
+    {"id": "heldout_linear_r2", "definition": "1 - sum||z - zhat||^2 / sum||z - zbar_fit||^2 over one-hot columns; zhat from R02 fit on attacker_fit; intercepts/means from attacker_fit", "rows": "assessment", "scale": "R2"},
+    {"id": "brier_skill", "definition": "1 - SSE(prob vs one-hot) / SSE(prior from attacker_fit)", "rows": "assessment", "scale": "R2"},
+    {"id": "logloss_reduction", "definition": "prior log-loss (attacker_fit frequencies) minus model log-loss", "rows": "assessment", "scale": "nats"},
+    {"id": "macro_ovr_auc", "definition": "mean OvR AUC over supported classes", "rows": "assessment", "scale": "AUC", "report_coverage": true},
+    {"id": "supported_worst_category_auc", "definition": "max over supported classes of OvR AUC", "rows": "assessment", "scale": "AUC"},
+    {"id": "supported_worst_pair_auc", "definition": "max over supported pairs (j,k) of AUC on rows of classes j,k with score p_j/(p_j+p_k)", "rows": "assessment", "scale": "AUC", "report": ["denominator_supported_pairs", "pair_coverage", "row_coverage"]},
+    {"id": "rho1_sq", "definition": "lambda_max(S_YY^-1/2 S_YZ (S_ZZ + eps I)^-1 S_ZY S_YY^-1/2), Y = centred one-hot with one class dropped, eps = 1e-6 tr(S_ZZ)/d; equals max linear-contrast R2", "rows": "in-sample (definitional) and held-out (directions on attacker_fit, correlation on assessment)", "scale": "R2", "role": "contrast diagnostic; not interchangeable with max pair AUC"},
+    {"id": "native_dominant_axis", "definition": "PCRL max per-class OvR ridge R2 (historical)", "rows": "as historically defined", "scale": "R2", "role": "historical reproduction only"}
+  ],
+  "surfaces": [
+    {"id": "rep", "definition": "released representation exactly as the method releases it (deterministic or one fresh draw)"},
+    {"id": "out", "definition": "declared task-output object of the frozen head: hard_label | calibrated_score | logit_vector (declared per cell in lock)"},
+    {"id": "rep+out", "definition": "both, only where the release contract gives both to the same recipient"}
+  ],
+  "attackers": [
+    {"recipe_id": "R00", "family": "native_check", "model": "method's own check", "hyperparameter_grid": {}, "selection_metric": null, "budget": "1 closed-form fit"},
+    {"recipe_id": "R01", "family": "linear", "model": "sklearn LogisticRegression(multinomial, lbfgs, max_iter=5000) after StandardScaler fit on attacker_fit", "hyperparameter_grid": {"C": [0.01, 0.1, 1, 10, 100]}, "selection_metric": "attacker_val log-loss", "budget": "5 configs"},
+    {"recipe_id": "R02", "family": "linear", "model": "affine one-hot least squares with numerical floor and relative ridge lambda = rho * tr(S)/d; means from attacker_fit", "hyperparameter_grid": {"rho": [0.0, 1e-4, 1e-2]}, "selection_metric": "attacker_val held-out R2", "budget": "3 configs", "also_report": ["unfloored_ols", "historical_fixed_ridge_1e-6"]},
+    {"recipe_id": "R03", "family": "nonlinear", "model": "sklearn HistGradientBoostingClassifier (early stopping on internal split of attacker_fit)", "hyperparameter_grid": {"learning_rate": [0.03, 0.1, 0.3], "max_leaf_nodes": [15, 31, 63], "min_samples_leaf": [20, 50, 100], "l2_regularization": [0.0, 1.0], "max_iter": [500]}, "selection_metric": "attacker_val log-loss", "budget": "20 random configs; 3 seeds for selected"},
+    {"recipe_id": "R04", "family": "nonlinear", "model": "sklearn MLPClassifier, 2 hidden layers, StandardScaler, early_stopping (internal split of attacker_fit)", "hyperparameter_grid": {"hidden_layer_sizes": [[64, 64], [128, 128], [256, 256]], "alpha": [1e-5, 1e-4, 1e-3], "learning_rate_init": [1e-3, 3e-3]}, "selection_metric": "attacker_val log-loss", "budget": "18 configs (full grid); 3 seeds for selected"},
+    {"recipe_id": "R05", "family": "label_only", "model": "multinomial LR on one-hot true task label + empirical frequency table", "hyperparameter_grid": {}, "selection_metric": null, "budget": "1 fit"},
+    {"recipe_id": "R06L", "family": "linear", "model": "as R01 on output object", "hyperparameter_grid": {"C": [0.01, 0.1, 1, 10, 100]}, "selection_metric": "attacker_val log-loss", "budget": "5 configs"},
+    {"recipe_id": "R06N", "family": "nonlinear", "model": "as R03 on output object", "hyperparameter_grid": "as R03", "selection_metric": "attacker_val log-loss", "budget": "10 random configs"},
+    {"recipe_id": "R07L", "family": "linear", "model": "as R01 on [rep, out]", "hyperparameter_grid": {"C": [0.01, 0.1, 1, 10, 100]}, "selection_metric": "attacker_val log-loss", "budget": "5 configs; nested slate includes R01, R06L"},
+    {"recipe_id": "R07N", "family": "nonlinear", "model": "R03 and R04 on [rep, out]", "hyperparameter_grid": "as R03 + R04", "selection_metric": "attacker_val log-loss", "budget": "38 configs; nested slate includes R03, R04, R06N"},
+    {"recipe_id": "R08", "family": "nonlinear", "model": "R06N on the untreated model's output object", "hyperparameter_grid": "as R03", "selection_metric": "attacker_val log-loss", "budget": "10 configs", "role": "clean-output reference"},
+    {"recipe_id": "R09", "family": "noise_LRT", "model": "class-conditional Gaussian LRT fit on clean population vectors + known noise covariance (stored dg Tier 2; A4)", "hyperparameter_grid": {}, "selection_metric": null, "budget": "closed form", "applies_to": "noise channels only"},
+    {"recipe_id": "R10", "family": "noise_LRT", "model": "class-conditional Gaussian LRT fit on noised releases with known noise covariance subtracted (A2)", "hyperparameter_grid": {}, "selection_metric": null, "budget": "closed form", "applies_to": "noise channels only"},
+    {"recipe_id": "R11", "family": "adaptive", "model": "R03 + R04 trained on releases simulated by applying the frozen encoder + frozen fitted defense to the attacker's own labelled population (K=8 draws for stochastic channels)", "hyperparameter_grid": "as R03 + R04", "selection_metric": "attacker_val (simulated releases) log-loss", "budget": "38 configs (20 R03 + 18 R04); 3 seeds; <= 1 CPU core-hour per cell-arm", "requires": "stored fitted defense parameters; else NE (defense_parameters_not_stored)"},
+    {"recipe_id": "R12", "family": "adaptive", "model": "average of N independent releases per target, then R11-selected model (or LRT with sigma/sqrt(N))", "hyperparameter_grid": {"N": [1, 4, 16, 64, 256]}, "selection_metric": "as R11", "budget": "as R11 per N", "applies_to": "contracts issuing fresh noise per query; persistent token -> N=1; deterministic -> not applicable"},
+    {"recipe_id": "R13", "family": "adaptive", "model": "R01 + R03 on releases projected onto span(Q) and its complement (Q known)", "hyperparameter_grid": "as R01 + R03", "selection_metric": "attacker_val log-loss", "budget": "25 configs", "applies_to": "subspace (isolate-then-noise) channel only"},
+    {"recipe_id": "R14", "family": "nonlinear", "model": "R01/R03/R04 on concatenated coalition views with nested single/ancestor/prior predictors", "hyperparameter_grid": "as members", "selection_metric": "attacker_val log-loss", "budget": "as members per view set", "applies_to": "multi-purpose scenario only"},
+    {"recipe_id": "R15", "family": "adaptive", "model": "insider stress (target clean representation)", "hyperparameter_grid": {}, "selection_metric": null, "budget": "not run in pilot"}
+  ],
+  "decision_rule": {
+    "established_below": "UCB < bar",
+    "established_above": "LCB > bar",
+    "unresolved": "otherwise",
+    "note": "failure to establish recovery is not evidence of absence; 'established below' is always qualified by recipe and access",
+    "category_mapping": {
+      "C1": "native check fails as the method defines it",
+      "C2": "native passes AND R02 heldout_linear_r2 established above tau",
+      "C3": "native passes AND any out-of-scope recipe established above its bar",
+      "C4": "verified assumptions of a population guarantee AND its bound established exceeded",
+      "C5": "NE or all relevant bounds unresolved"
+    }
+  },
+  "decomposition_factorial": [
+    {"id": "F0", "rows": "in-sample historical", "family": "native", "metric": "R2", "surface": "rep"},
+    {"id": "F1", "rows": "held-out", "family": "linear R02", "metric": "R2", "surface": "rep", "isolates": "generalisation vs F0"},
+    {"id": "F2", "rows": "held-out", "family": "linear R01", "metric": "AUC", "surface": "rep", "isolates": "metric vs F1"},
+    {"id": "F3", "rows": "held-out", "family": "nonlinear R03/R04", "metric": "brier_skill", "surface": "rep", "isolates": "attacker family vs F1"},
+    {"id": "F4", "rows": "held-out", "family": "nonlinear R03/R04", "metric": "AUC", "surface": "rep", "isolates": "historical audit combination vs F0"},
+    {"id": "F5", "rows": "held-out", "family": "R06L/R06N", "metric": "R2 and AUC", "surface": "out", "isolates": "surface vs F2/F4; references R05, R08"},
+    {"id": "F6", "rows": "held-out", "family": "R07L/R07N", "metric": "R2 and AUC", "surface": "rep+out"},
+    {"id": "F7", "rows": "held-out", "family": "adaptive R11-R13", "metric": "R2 and AUC", "surface": "rep (+out if released)", "isolates": "defense knowledge vs F3/F4"}
+  ],
+  "multiplicity": {
+    "primary_family_max_endpoints": 3,
+    "primary_endpoints": [
+      {"id": "P1", "test": "R02 heldout_linear_r2 > 0.05 on native-pass (cell, arm)", "category": "C2"},
+      {"id": "P2", "test": "max(R03,R04) macro_ovr_auc > 0.55 on native-pass (cell, arm)", "category": "C3"},
+      {"id": "P3", "test": "R06N minus R05 macro_ovr_auc > 0 (paired)", "category": "output leakage"}
+    ],
+    "adjustment": "Holm across all primary tests (endpoint x cell x arm); bootstrap p-values",
+    "worst_selection": "bootstrap of the max (not Holm)",
+    "secondary": "unadjusted intervals, labelled exploratory; bars 0.52/0.60 and tau != 0.05 are sensitivity",
+    "intersection_union": "multi-clause conclusions reported as IU decisions; k-of-m is not partial confirmation"
+  },
+  "utility": {
+    "rows": "assessment rows of the same cell",
+    "kinds": {
+      "U1": "frozen deployed head on assessment rows; label rows that entered head/defense fitting",
+      "U2": "independent probe family (R01-style LR + R04-style MLP) fit on attacker_fit, selected on attacker_val",
+      "U3": "retrospective selection label for operating points chosen after inspection",
+      "U4": "fresh confirmation - not authorised"
+    },
+    "metrics": ["accuracy", "log_loss", "auc", "macro_f1_multiclass"],
+    "report": ["absolute", "untreated_reference", "paired_difference_bootstrap"],
+    "normalised_lift_rule": {"min_clean_lift_lcb": 0.03, "max_ci_halfwidth_over_lift": 0.25},
+    "frontier_rule": "only among arms with overlapping utility CIs or within 1pp margin; collapsed/constant releases flagged, never passes"
+  },
+  "multi_purpose": {
+    "headline": false,
+    "permission_table": "deny-by-default; for frozen PCRL artifacts the table each model was trained under (pcrl/data/*.py disallowed lists), copied into the lock",
+    "coalition_targets": "attributes disallowed to every coalition member only",
+    "estimands": ["separate_view", "combined_view", "combination_gain_logloss (unclipped)"],
+    "adaptations_requiring_new_fits": "deferred until approved (e.g. per-recipient LEACE)"
+  },
+  "exposure": {
+    "data_status": "development (spent)",
+    "lock_contents": ["protocol_config.json sha256", "panel slots", "per-role row manifests sha256", "declared output objects", "permission table", "primary family"],
+    "amendments_file": "AMENDMENTS.md (UTC time, change, reason, results seen?)",
+    "new_data": "none; no new state/year/cohort"
+  }
+}

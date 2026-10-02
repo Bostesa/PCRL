@@ -1,0 +1,187 @@
+{
+ "rows_per_role": {
+  "assessment": 4518,
+  "attacker_fit": 7530,
+  "attacker_val": 3012
+ },
+ "attackers": [
+  "linear",
+  "gbt",
+  "mlp"
+ ],
+ "surfaces": [
+  "rep",
+  "outputs",
+  "rep+outputs"
+ ],
+ "synthetic": true,
+ "scores": "<scratch>/timing_meth_contrast/scores.npz",
+ "timing_s": {
+  "rep|linear": 0.12571741687133908,
+  "rep|gbt": 56.16158595890738,
+  "rep|mlp": 3.523121832869947,
+  "outputs|linear": 0.04332104092463851,
+  "outputs|gbt": 20.578963707899675,
+  "outputs|mlp": 2.7531878331210464,
+  "rep+outputs|linear": 0.0959808339830488,
+  "rep+outputs|gbt": 57.864716542186216,
+  "rep+outputs|mlp": 5.44732966599986
+ },
+ "wall_s": 146.6472164581064,
+ "_runtime_s": 147.48,
+ "_protocol": {
+  "source": "results/combined_evaluation_preparation_v1/notes/methodology/protocol_config.json",
+  "sha256": "6dae304f1f395cd5194c09691d010ddfe4aa02319a4f816b1a419bf64f395f9c",
+  "format": "methodology protocol_config.json (translated)",
+  "mapping": [
+   {
+    "from": "bars",
+    "to": "bars",
+    "value": [
+     0.52,
+     0.55,
+     0.6
+    ]
+   },
+   {
+    "from": "primary_tau",
+    "to": "r2.tau",
+    "value": 0.05
+   },
+   {
+    "from": "interval.B",
+    "to": "bootstrap.n_boot",
+    "value": 2000
+   },
+   {
+    "from": "interval.alpha (+sidedness: one-sided bounds = two-sided interval at 2*alpha)",
+    "to": "bootstrap.alpha",
+    "value": 0.1
+   },
+   {
+    "from": "interval.bootstrap_seed",
+    "to": "bootstrap.seed",
+    "value": 20261002
+   },
+   {
+    "from": "interval.unit",
+    "to": "bootstrap.unit_by_dataset",
+    "value": {
+     "adult": "row",
+     "hmda": "row",
+     "diabetes": "patient_nbr",
+     "acs": "SERIALNO (household)",
+     "celeba": "identity"
+    }
+   },
+   {
+    "from": "support.min_class_n",
+    "to": "support.min_class_support",
+    "value": 100
+   },
+   {
+    "from": "support.min_pair_n",
+    "to": "support.min_pair_support",
+    "value": 100
+   },
+   {
+    "from": "support.macro_over",
+    "to": "support.macro_over",
+    "value": "supported"
+   },
+   {
+    "from": "roles.assessment",
+    "to": "roles.score",
+    "value": "assessment"
+   },
+   {
+    "from": "roles.*",
+    "to": "roles.names",
+    "value": [
+     "defense_fit",
+     "attacker_fit",
+     "attacker_val",
+     "assessment"
+    ]
+   },
+   {
+    "from": "attackers.R01",
+    "to": "attackers.linear.C",
+    "value": [
+     0.01,
+     0.1,
+     1,
+     10,
+     100
+    ]
+   },
+   {
+    "from": "attackers.R03",
+    "to": "attackers.gbt.learning_rate",
+    "value": [
+     0.03,
+     0.1,
+     0.3
+    ]
+   },
+   {
+    "from": "attackers.R03",
+    "to": "attackers.gbt.max_leaf_nodes",
+    "value": [
+     15,
+     31,
+     63
+    ]
+   },
+   {
+    "from": "attackers.R03 (no early stopping here)",
+    "to": "attackers.gbt.max_iter",
+    "value": 500
+   },
+   {
+    "from": "attackers.R04",
+    "to": "attackers.mlp.hidden",
+    "value": [
+     [
+      64,
+      64
+     ],
+     [
+      128,
+      128
+     ],
+     [
+      256,
+      256
+     ]
+    ]
+   },
+   {
+    "from": "attackers.R04",
+    "to": "attackers.mlp.alpha",
+    "value": [
+     1e-05,
+     0.0001,
+     0.001
+    ]
+   }
+  ],
+  "not_consumed_by_evaluator": [
+   "companion_text",
+   "decision_rule",
+   "decomposition_factorial",
+   "exposure",
+   "metrics",
+   "multi_purpose",
+   "multiplicity",
+   "numerical",
+   "primary_bar",
+   "r2_tau_grid",
+   "status",
+   "surfaces",
+   "utility",
+   "version"
+  ],
+  "unknown_keys": []
+ }
+}

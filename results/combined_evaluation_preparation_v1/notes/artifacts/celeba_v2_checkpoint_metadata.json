@@ -1,0 +1,489 @@
+{
+  "_description": "Non-sensitive metadata of the durable-guarantees CelebA encoder checkpoint, recovered by frozen loading only (no forward pass, no data).",
+  "generated": "2026-10-02",
+  "drive_note": "/Volumes/YOTUO was reported NOT mounted earlier on 2026-10-02, then briefly disconnected and remounted on 2026-10-02 (coordinator update); the member was extracted read-only (tar -xf ... <member>) into session scratch; nothing on the drive was modified; the extracted copy is not in the repo.",
+  "drive_member": "fl-PCRL-main-checkpoints.tar::checkpoints/celeba_v2/final.pt",
+  "member_mtime_utc_per_inventory": "2026-04-16T07:28:10Z",
+  "sha256": "b0df3fb7fb3f5fa36e7a847d1fd2d16481f08389e76acdd81300648be4fd08fb",
+  "sha256_expected": "b0df3fb7fb3f5fa36e7a847d1fd2d16481f08389e76acdd81300648be4fd08fb",
+  "sha256_matches_expected": true,
+  "size_bytes": 35605887,
+  "loader_primary": "torch.load(weights_only=True) torch==2.10.0",
+  "weights_only_error": null,
+  "loader_fallback_tested": "restricted_unpickler (no code execution; tensors as shape records)",
+  "fallback_agrees_on_tensor_groups": true,
+  "non_allowlisted_globals": {},
+  "top_level_keys": [
+    "encoder",
+    "task_heads",
+    "auditors",
+    "encoder_optimizer",
+    "auditor_optimizer",
+    "state",
+    "history",
+    "config"
+  ],
+  "architecture": {
+    "class_by_state_dict_keys": "pcrl.models.cnn_encoder.CNNEncoder (FiLM conditioning)",
+    "not": "CNNPurposeProjectionEncoder (no purpose_projections.* keys)",
+    "purpose_embedding": [
+      5,
+      32
+    ],
+    "conv_channels": [
+      32,
+      64,
+      128
+    ],
+    "conv_kernel": [
+      3,
+      3
+    ],
+    "film_layers": 3,
+    "repr_proj": "Linear(8192->256) -> ReLU -> Dropout -> Linear(256->128)",
+    "flat_dim": 8192,
+    "implied_input_hw": [
+      64,
+      64
+    ],
+    "repr_dim": 128,
+    "num_purposes": 5
+  },
+  "key_shapes": {
+    "encoder.purpose_embedding.weight": [
+      5,
+      32
+    ],
+    "encoder.film_gamma.0.weight": [
+      32,
+      32
+    ],
+    "encoder.film_gamma.1.weight": [
+      64,
+      32
+    ],
+    "encoder.film_gamma.2.weight": [
+      128,
+      32
+    ],
+    "encoder.repr_proj.0.weight": [
+      256,
+      8192
+    ],
+    "encoder.repr_proj.3.weight": [
+      128,
+      256
+    ]
+  },
+  "tensor_groups": {
+    "encoder": {
+      "n_tensors": 38,
+      "numel": 2239395,
+      "dtypes": [
+        "float32",
+        "int64"
+      ]
+    },
+    "task_heads": {
+      "n_tensors": 24,
+      "numel": 50316,
+      "dtypes": [
+        "float32"
+      ]
+    },
+    "auditors": {
+      "n_tensors": 104,
+      "numel": 2146586,
+      "dtypes": [
+        "float32"
+      ]
+    },
+    "encoder_optimizer": {
+      "n_tensors": 111,
+      "numel": 130557,
+      "dtypes": [
+        "float32"
+      ]
+    },
+    "auditor_optimizer": {
+      "n_tensors": 312,
+      "numel": 4293276,
+      "dtypes": [
+        "float32"
+      ]
+    }
+  },
+  "task_heads": [
+    "age_estimation",
+    "attractiveness_prediction",
+    "expression_analysis.heads.Mouth_Slightly_Open",
+    "expression_analysis.heads.Smiling",
+    "gender_analysis",
+    "smile_detection"
+  ],
+  "task_head_shape": "Linear(128->64)-...-Linear(64->2) per task; expression_analysis has two sub-heads (Smiling, Mouth_Slightly_Open)",
+  "auditor_groups": [
+    "age_estimation",
+    "attractiveness_prediction",
+    "expression_analysis",
+    "gender_analysis",
+    "smile_detection"
+  ],
+  "purposes_found": [
+    "age_estimation",
+    "attractiveness_prediction",
+    "expression_analysis",
+    "gender_analysis",
+    "smile_detection"
+  ],
+  "attributes_found": [
+    "Attractive",
+    "Male",
+    "Mouth_Slightly_Open",
+    "Smiling",
+    "Young"
+  ],
+  "embedded_config": {
+    "lambda_adv": 1.0,
+    "auditor_steps": 10
+  },
+  "state": {
+    "epoch": 39,
+    "global_step": 8000,
+    "best_val_loss": 26.559518814086914,
+    "patience_counter": 5
+  },
+  "epochs_completed": 40,
+  "steps_per_epoch": 200.0,
+  "encoder_optimizer_param_group": {
+    "lr": 0.0,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0001,
+    "amsgrad": false,
+    "maximize": false,
+    "foreach": null,
+    "capturable": false,
+    "differentiable": false,
+    "fused": null,
+    "decoupled_weight_decay": true,
+    "initial_lr": 0.001
+  },
+  "auditor_optimizer_param_group": {
+    "lr": 0.0,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0001,
+    "amsgrad": false,
+    "maximize": false,
+    "foreach": null,
+    "capturable": false,
+    "differentiable": false,
+    "fused": null,
+    "decoupled_weight_decay": true,
+    "initial_lr": 0.001
+  },
+  "encoder_optimizer_step_counts_by_param": {
+    "purpose_embedding.weight": 8000,
+    "conv_layers.0.weight": null,
+    "conv_layers.0.bias": null,
+    "conv_layers.1.weight": null,
+    "conv_layers.1.bias": null,
+    "conv_layers.2.weight": null,
+    "conv_layers.2.bias": null,
+    "film_gamma.0.weight": 8000,
+    "film_gamma.0.bias": 8000,
+    "film_gamma.1.weight": 8000,
+    "film_gamma.1.bias": 8000,
+    "film_gamma.2.weight": 8000,
+    "film_gamma.2.bias": 8000,
+    "film_beta.0.weight": 8000,
+    "film_beta.0.bias": 8000,
+    "film_beta.1.weight": 8000,
+    "film_beta.1.bias": 8000,
+    "film_beta.2.weight": 8000,
+    "film_beta.2.bias": 8000,
+    "bn_layers.0.weight": null,
+    "bn_layers.0.bias": null,
+    "bn_layers.1.weight": null,
+    "bn_layers.1.bias": null,
+    "bn_layers.2.weight": null,
+    "bn_layers.2.bias": null,
+    "repr_proj.0.weight": null,
+    "repr_proj.0.bias": null,
+    "repr_proj.3.weight": null,
+    "repr_proj.3.bias": null,
+    "task_heads.smile_detection.network.0.weight": 1600,
+    "task_heads.smile_detection.network.0.bias": 1600,
+    "task_heads.smile_detection.network.3.weight": 1600,
+    "task_heads.smile_detection.network.3.bias": 1600,
+    "task_heads.age_estimation.network.0.weight": 1600,
+    "task_heads.age_estimation.network.0.bias": 1600,
+    "task_heads.age_estimation.network.3.weight": 1600,
+    "task_heads.age_estimation.network.3.bias": 1600,
+    "task_heads.expression_analysis.heads.Smiling.network.0.weight": 1600,
+    "task_heads.expression_analysis.heads.Smiling.network.0.bias": 1600,
+    "task_heads.expression_analysis.heads.Smiling.network.3.weight": 1600,
+    "task_heads.expression_analysis.heads.Smiling.network.3.bias": 1600,
+    "task_heads.expression_analysis.heads.Mouth_Slightly_Open.network.0.weight": 1600,
+    "task_heads.expression_analysis.heads.Mouth_Slightly_Open.network.0.bias": 1600,
+    "task_heads.expression_analysis.heads.Mouth_Slightly_Open.network.3.weight": 1600,
+    "task_heads.expression_analysis.heads.Mouth_Slightly_Open.network.3.bias": 1600,
+    "task_heads.attractiveness_prediction.network.0.weight": 1600,
+    "task_heads.attractiveness_prediction.network.0.bias": 1600,
+    "task_heads.attractiveness_prediction.network.3.weight": 1600,
+    "task_heads.attractiveness_prediction.network.3.bias": 1600,
+    "task_heads.gender_analysis.network.0.weight": 1600,
+    "task_heads.gender_analysis.network.0.bias": 1600,
+    "task_heads.gender_analysis.network.3.weight": 1600,
+    "task_heads.gender_analysis.network.3.bias": 1600
+  },
+  "encoder_params_without_optimizer_state": [
+    "conv_layers.0.weight",
+    "conv_layers.0.bias",
+    "conv_layers.1.weight",
+    "conv_layers.1.bias",
+    "conv_layers.2.weight",
+    "conv_layers.2.bias",
+    "bn_layers.0.weight",
+    "bn_layers.0.bias",
+    "bn_layers.1.weight",
+    "bn_layers.1.bias",
+    "bn_layers.2.weight",
+    "bn_layers.2.bias",
+    "repr_proj.0.weight",
+    "repr_proj.0.bias",
+    "repr_proj.3.weight",
+    "repr_proj.3.bias"
+  ],
+  "auditor_optimizer_steps": [
+    16000
+  ],
+  "bn_num_batches_tracked": {
+    "bn_layers.0.num_batches_tracked": 42000,
+    "bn_layers.1.num_batches_tracked": 42000,
+    "bn_layers.2.num_batches_tracked": 42000
+  },
+  "history_summary": {
+    "train_loss": {
+      "len": 40,
+      "first": -0.7443,
+      "last": -1.0368,
+      "min": -1.0386,
+      "argmin_epoch_idx": 38,
+      "max": -0.7443
+    },
+    "train_task_loss": {
+      "len": 40,
+      "first": 0.219,
+      "last": 0.3826,
+      "min": 0.219,
+      "argmin_epoch_idx": 0,
+      "max": 0.4024
+    },
+    "train_adversarial_loss": {
+      "len": 40,
+      "first": -1.2988,
+      "last": -1.5878,
+      "min": -1.5939,
+      "argmin_epoch_idx": 27,
+      "max": -1.2988
+    },
+    "train_verification_loss": {
+      "len": 40,
+      "first": 0.6709,
+      "last": 0.3368,
+      "min": 0.3272,
+      "argmin_epoch_idx": 15,
+      "max": 0.6709
+    },
+    "train_task_acc_Young": {
+      "len": 40,
+      "first": 0.8744,
+      "last": 0.7912,
+      "min": 0.7848,
+      "argmin_epoch_idx": 38,
+      "max": 0.8744
+    },
+    "train_task_acc_Attractive": {
+      "len": 40,
+      "first": 0.8046,
+      "last": 0.5625,
+      "min": 0.5545,
+      "argmin_epoch_idx": 13,
+      "max": 0.8046
+    },
+    "train_task_acc_Smiling": {
+      "len": 40,
+      "first": 0.9643,
+      "last": 0.9352,
+      "min": 0.9238,
+      "argmin_epoch_idx": 9,
+      "max": 0.9643
+    },
+    "train_task_acc_Mouth_Slightly_Open": {
+      "len": 40,
+      "first": 0.9289,
+      "last": 0.9075,
+      "min": 0.8901,
+      "argmin_epoch_idx": 6,
+      "max": 0.9289
+    },
+    "train_task_acc_Male": {
+      "len": 40,
+      "first": 0.9835,
+      "last": 0.8981,
+      "min": 0.8721,
+      "argmin_epoch_idx": 2,
+      "max": 0.9835
+    },
+    "train_auditor_acc_Male": {
+      "len": 40,
+      "first": 0.7019,
+      "last": 0.6015,
+      "min": 0.5945,
+      "argmin_epoch_idx": 16,
+      "max": 0.7019
+    },
+    "train_auditor_acc_Attractive": {
+      "len": 40,
+      "first": 0.7014,
+      "last": 0.6366,
+      "min": 0.6204,
+      "argmin_epoch_idx": 8,
+      "max": 0.7014
+    },
+    "train_auditor_acc_Young": {
+      "len": 40,
+      "first": 0.7987,
+      "last": 0.7774,
+      "min": 0.7762,
+      "argmin_epoch_idx": 14,
+      "max": 0.7987
+    },
+    "train_auditor_acc_Smiling": {
+      "len": 40,
+      "first": 0.7026,
+      "last": 0.5749,
+      "min": 0.556,
+      "argmin_epoch_idx": 6,
+      "max": 0.7026
+    },
+    "val_loss": {
+      "len": 40,
+      "first": 63.188,
+      "last": 555.5292,
+      "min": 26.5595,
+      "argmin_epoch_idx": 34,
+      "max": 2103.5281
+    },
+    "val_task_loss": {
+      "len": 40,
+      "first": 26.582,
+      "last": 406.9486,
+      "min": 16.1871,
+      "argmin_epoch_idx": 27,
+      "max": 1233.8245
+    },
+    "val_adversarial_loss": {
+      "len": 40,
+      "first": 36.6059,
+      "last": 148.5806,
+      "min": 10.1154,
+      "argmin_epoch_idx": 28,
+      "max": 1169.8009
+    },
+    "val_verification_loss": {
+      "len": 40,
+      "first": 0.0,
+      "last": 0.0,
+      "min": 0.0,
+      "argmin_epoch_idx": 0,
+      "max": 0.0
+    },
+    "val_task_acc_Smiling": {
+      "len": 40,
+      "first": 0.6273,
+      "last": 0.5197,
+      "min": 0.499,
+      "argmin_epoch_idx": 19,
+      "max": 0.715
+    },
+    "val_task_acc_Young": {
+      "len": 40,
+      "first": 0.7433,
+      "last": 0.7487,
+      "min": 0.434,
+      "argmin_epoch_idx": 25,
+      "max": 0.7503
+    },
+    "val_task_acc_Mouth_Slightly_Open": {
+      "len": 40,
+      "first": 0.477,
+      "last": 0.5277,
+      "min": 0.4733,
+      "argmin_epoch_idx": 8,
+      "max": 0.8997
+    },
+    "val_task_acc_Attractive": {
+      "len": 40,
+      "first": 0.4883,
+      "last": 0.4823,
+      "min": 0.4803,
+      "argmin_epoch_idx": 38,
+      "max": 0.602
+    },
+    "val_task_acc_Male": {
+      "len": 40,
+      "first": 0.95,
+      "last": 0.5593,
+      "min": 0.4403,
+      "argmin_epoch_idx": 6,
+      "max": 0.95
+    },
+    "val_auditor_acc_Male": {
+      "len": 40,
+      "first": 0.4768,
+      "last": 0.5328,
+      "min": 0.44,
+      "argmin_epoch_idx": 7,
+      "max": 0.5483
+    },
+    "val_auditor_acc_Young": {
+      "len": 40,
+      "first": 0.7082,
+      "last": 0.7433,
+      "min": 0.6033,
+      "argmin_epoch_idx": 18,
+      "max": 0.7444
+    },
+    "val_auditor_acc_Attractive": {
+      "len": 40,
+      "first": 0.566,
+      "last": 0.5477,
+      "min": 0.4748,
+      "argmin_epoch_idx": 30,
+      "max": 0.566
+    },
+    "val_auditor_acc_Smiling": {
+      "len": 40,
+      "first": 0.5113,
+      "last": 0.5,
+      "min": 0.5,
+      "argmin_epoch_idx": 8,
+      "max": 0.5677
+    }
+  },
+  "normalisation_or_preprocessing_fields": {},
+  "split_seed_or_row_fields": {},
+  "integer_arrays_that_could_be_row_indices": [],
+  "contains_row_indices_or_split_info": false,
+  "contains_seed": false,
+  "contains_normalisation_stats": "no (only BatchNorm running stats over conv channels)"
+}

@@ -1,0 +1,126 @@
+{
+ "lr_single_release": {
+  "n_disallowed_pair_seeds": 60,
+  "delta_gt_0.01": 4,
+  "delta_gt_0.02": 2,
+  "max_delta": 0.07363907531692765,
+  "by_dataset": {
+   "adult": {
+    "n": 24,
+    "gt_0.02": 1
+   },
+   "hmda": {
+    "n": 18,
+    "gt_0.02": 0
+   },
+   "diabetes": {
+    "n": 18,
+    "gt_0.02": 1
+   }
+  },
+  "checkpoints": [
+   "checkpoints/v2_adult_ROUND5_s0/final.pt",
+   "checkpoints/v2_adult_ROUND5_s1/final.pt",
+   "checkpoints/v2_adult_ROUND5_s2/final.pt",
+   "checkpoints/v2_diabetes_ROUND7_s0/final.pt",
+   "checkpoints/v2_diabetes_ROUND7_s1/final.pt",
+   "checkpoints/v2_diabetes_ROUND7_s2/final.pt",
+   "checkpoints/v2_hmda_ROUND5_s0/final.pt",
+   "checkpoints/v2_hmda_ROUND5_s1/final.pt",
+   "checkpoints/v2_hmda_ROUND5_s2/final.pt"
+  ],
+  "top5": [
+   {
+    "dataset": "diabetes",
+    "seed": 2,
+    "checkpoint": "checkpoints/v2_diabetes_ROUND7_s2/final.pt",
+    "purpose": "quality_research",
+    "attribute": "age_bucket",
+    "lr_heldout_acc": 0.3313758389261745,
+    "test_majority": 0.25773676360924686,
+    "delta": 0.07363907531692765
+   },
+   {
+    "dataset": "adult",
+    "seed": 0,
+    "checkpoint": "checkpoints/v2_adult_ROUND5_s0/final.pt",
+    "purpose": "employment_analysis",
+    "attribute": "marital_status",
+    "lr_heldout_acc": 0.5597609561752988,
+    "test_majority": 0.5230411686586985,
+    "delta": 0.03671978751660021
+   },
+   {
+    "dataset": "adult",
+    "seed": 0,
+    "checkpoint": "checkpoints/v2_adult_ROUND5_s0/final.pt",
+    "purpose": "education_assessment",
+    "attribute": "sex",
+    "lr_heldout_acc": 0.6861221779548473,
+    "test_majority": 0.6737715803452855,
+    "delta": 0.012350597609561809
+   },
+   {
+    "dataset": "hmda",
+    "seed": 1,
+    "checkpoint": "checkpoints/v2_hmda_ROUND5_s1/final.pt",
+    "purpose": "underwriting",
+    "attribute": "race",
+    "lr_heldout_acc": 0.659614962301442,
+    "test_majority": 0.6484151965449089,
+    "delta": 0.011199765756533142
+   },
+   {
+    "dataset": "diabetes",
+    "seed": 0,
+    "checkpoint": "checkpoints/v2_diabetes_ROUND7_s0/final.pt",
+    "purpose": "billing_audit",
+    "attribute": "gender",
+    "lr_heldout_acc": 0.5422259507829977,
+    "test_majority": 0.5349552572706935,
+    "delta": 0.007270693512304249
+   }
+  ]
+ },
+ "crosspurp_heldout_r2": {
+  "model": "Adult cross-purpose-constraint retrain (May 2026), canonical_iterate.pt, 75 epochs",
+  "n_pair_seeds": 24,
+  "gt_0.05": 5,
+  "failing": [
+   [
+    0,
+    "income_prediction/sex",
+    0.0822
+   ],
+   [
+    0,
+    "employment_analysis/marital_status",
+    0.1279
+   ],
+   [
+    0,
+    "education_assessment/sex",
+    0.112
+   ],
+   [
+    2,
+    "income_prediction/sex",
+    0.1012
+   ],
+   [
+    2,
+    "education_assessment/sex",
+    0.0945
+   ]
+  ],
+  "native_insample_check_for_same_checkpoints": "NOT STORED in git; needs a frozen forward pass"
+ },
+ "splince_lr_auditor": {
+  "n_pairs": 60,
+  "native_r2_pass": 60,
+  "lr_delta_gt_0.01_among_native_pass": 0,
+  "lr_delta_gt_0.02_among_native_pass": 0,
+  "max_lr_delta_among_native_pass": 9.300000000000974e-05,
+  "note": "majority_proportion as stored by the benchmark"
+ }
+}

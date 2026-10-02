@@ -1,0 +1,613 @@
+{
+ "generated": "2026-10-02 12:00:32 EDT",
+ "package": "stored_model_eval 0.1.0",
+ "python": "3.13.7",
+ "suite": {
+  "n": 26,
+  "passed": 26,
+  "failed": 0,
+  "skipped": 0,
+  "wall_s_including_startup": 2.14,
+  "returncode": 0,
+  "command": "OMP_NUM_THREADS=2 /Users/nathansamson/PCRL/.venv/bin/python -m pytest stored_model_eval/tests -q"
+ },
+ "tests": [
+  {
+   "id": "T1",
+   "name": "test_positive_control_recovered",
+   "file": "tests.test_01_02_controls",
+   "description": "positive control recovered",
+   "result": "pass",
+   "seconds": 0.03,
+   "numbers": {
+    "auc_point": "0.9989529002686898",
+    "auc_interval": "(0.9975023864113168, 0.9999204342121779)",
+    "decisions": "{'0.52': 'ESTABLISHED_ABOVE', '0.55': 'ESTABLISHED_ABOVE', '0.60': 'ESTABLISHED_ABOVE'}"
+   }
+  },
+  {
+   "id": "T2",
+   "name": "test_null_control_unresolved_not_pass",
+   "file": "tests.test_01_02_controls",
+   "description": "null control unresolved, never pass",
+   "result": "pass",
+   "seconds": 0.244,
+   "numbers": {
+    "linear_point": "0.5021394187912284",
+    "linear_interval": "(0.4354092841898763, 0.5716106283405895)",
+    "linear_decisions": "{'0.52': 'UNRESOLVED', '0.55': 'UNRESOLVED', '0.60': 'ESTABLISHED_BELOW'}",
+    "gbt_point": "0.5385095382421109",
+    "gbt_interval": "(0.47655030817613675, 0.5985075008419009)",
+    "gbt_decisions": "{'0.52': 'UNRESOLVED', '0.55': 'UNRESOLVED', '0.60': 'ESTABLISHED_BELOW'}"
+   }
+  },
+  {
+   "id": "T3",
+   "name": "test_xor_is_c3_not_c4",
+   "file": "tests.test_03_xor_scope",
+   "description": "XOR: zero linear cross-covariance, recovered nonlinearly, C3 not C4",
+   "result": "pass",
+   "seconds": 0.267,
+   "numbers": {
+    "linear_auc": "[0.47966583124477863, (0.42704401581649776, 0.5253466747627421)]",
+    "gbt_auc": "[0.9992425508214982, (0.9978173448217406, 1.0)]",
+    "fit_r2": "0.013816806192861852",
+    "heldout_r2": "-0.033144562292790836",
+    "max_abs_corr_z": "1.545921137215385",
+    "decisions": "{'linear': {'0.52': 'UNRESOLVED', '0.55': 'ESTABLISHED_BELOW', '0.60': 'ESTABLISHED_BELOW'}, 'gbt': {'0.52': 'ESTABLISHED_ABOVE', '0.55': 'ESTABLISHED_ABOVE', '0.60': 'ESTABLISHED_ABOVE'}}"
+   }
+  },
+  {
+   "id": "T4",
+   "name": "test_contrast_hidden_by_averaging_revealed_by_rho2",
+   "file": "tests.test_04_contrast",
+   "description": "class contrast hidden by averaging revealed by rho1^2",
+   "result": "pass",
+   "seconds": 0.043,
+   "numbers": {
+    "pooled_onehot_r2": "0.0230429340017968",
+    "per_class_r2_mean": "0.025069892478570964",
+    "per_class_r2_max": "0.38493406255295215",
+    "rho1_sq": "0.7086906480389519",
+    "canonical_contrast_r2": "0.7086976360516513",
+    "macro_ovr_auc": "0.6015433599962182",
+    "max_pair_auc": "1.0",
+    "max_pair": "(0, 1)",
+    "pair_coverage": "(435, 435)"
+   }
+  },
+  {
+   "id": "T5",
+   "name": "test_unsupported_classes_not_estimable",
+   "file": "tests.test_05_not_estimable",
+   "description": "absent/singleton/unsupported classes NOT_ESTIMABLE",
+   "result": "pass",
+   "seconds": 0.001,
+   "numbers": {}
+  },
+  {
+   "id": "T5",
+   "name": "test_sentinel_is_never_pass_fail_or_number",
+   "file": "tests.test_05_not_estimable",
+   "description": "NOT_ESTIMABLE sentinel cannot be read as pass/fail/number",
+   "result": "pass",
+   "seconds": 0.0,
+   "numbers": {}
+  },
+  {
+   "id": "T6",
+   "name": "test_decomposition_sums_and_is_separate",
+   "file": "tests.test_06_decomposition",
+   "description": "decomposition sums, per-axis, order dependence, scale refusal",
+   "result": "pass",
+   "seconds": 0.0,
+   "numbers": {}
+  },
+  {
+   "id": "T6",
+   "name": "test_decomposition_on_fitted_surfaces",
+   "file": "tests.test_06_decomposition",
+   "description": "decomposition on fitted surfaces (output leakage)",
+   "result": "pass",
+   "seconds": 0.01,
+   "numbers": {
+    "values": "{'rep|linear|macro': 0.49259682853698494, 'rep|linear|worst_class': 0.49259682853698494, 'rep+outputs|linear|macro': 1.0, 'rep+outputs|linear|worst_class': 1.0}",
+    "sequential": "{'surface': 0.5074031714630151, 'attacker': 0.0, 'metric': 0.0}"
+   }
+  },
+  {
+   "id": "T7",
+   "name": "test_rescaling_health_vs_invariants",
+   "file": "tests.test_07_rescaling",
+   "description": "rescaling: health label + fixed ridge move; OLS/rho/AUC invariant",
+   "result": "pass",
+   "seconds": 0.004,
+   "numbers": {
+    "health_labels": "['healthy', 'collapsed']",
+    "per_dim_std": "[0.9400878514223265, 0.009400878514223266]",
+    "ridge_r2": "[0.06953731655809858, 0.06953731647034789]",
+    "ridge_r2_abs_change": "8.775069559874282e-11",
+    "ols_r2_abs_change": "0.0",
+    "heldout_auc": "[0.649387796065837, 0.649387796065837]"
+   }
+  },
+  {
+   "id": "T8",
+   "name": "test_baseline_admitted",
+   "file": "tests.test_08_admission",
+   "description": "admission baseline",
+   "result": "pass",
+   "seconds": 0.008,
+   "numbers": {}
+  },
+  {
+   "id": "T8",
+   "name": "test_equal_length_reordered_rejected",
+   "file": "tests.test_08_admission",
+   "description": "equal-length reordered arrays rejected",
+   "result": "pass",
+   "seconds": 0.002,
+   "numbers": {}
+  },
+  {
+   "id": "T8",
+   "name": "test_id_mismatch_rejected",
+   "file": "tests.test_08_admission",
+   "description": "row/label id mismatch rejected",
+   "result": "pass",
+   "seconds": 0.002,
+   "numbers": {}
+  },
+  {
+   "id": "T8",
+   "name": "test_duplicated_ids_rejected",
+   "file": "tests.test_08_admission",
+   "description": "duplicated ids rejected",
+   "result": "pass",
+   "seconds": 0.002,
+   "numbers": {}
+  },
+  {
+   "id": "T8",
+   "name": "test_values_shuffled_under_intact_ids_caught_by_reference",
+   "file": "tests.test_08_admission",
+   "description": "values shuffled under intact ids caught by reference check",
+   "result": "pass",
+   "seconds": 0.004,
+   "numbers": {}
+  },
+  {
+   "id": "T8",
+   "name": "test_hash_missing_ids_and_role_crossing",
+   "file": "tests.test_08_admission",
+   "description": "hash mismatch, missing ids, unit crossing roles rejected",
+   "result": "pass",
+   "seconds": 0.004,
+   "numbers": {}
+  },
+  {
+   "id": "T9",
+   "name": "test_duplicates_collapse_to_units",
+   "file": "tests.test_09_duplicates",
+   "description": "duplicated records collapse to units in bootstrap",
+   "result": "pass",
+   "seconds": 0.121,
+   "numbers": {
+    "n_units": "[500, 500, 2500]",
+    "boot_sd": "[0.018139717868704944, 0.018139717868704944, 0.008606371536028615]"
+   }
+  },
+  {
+   "id": "T9",
+   "name": "test_seeds_are_refit_replicates_not_units",
+   "file": "tests.test_09_duplicates",
+   "description": "seeds are refit replicates, not units",
+   "result": "pass",
+   "seconds": 0.009,
+   "numbers": {}
+  },
+  {
+   "id": "T10",
+   "name": "test_fresh_noise_repeated_release_gains",
+   "file": "tests.test_10_repeated_release",
+   "description": "repeated release beats single release under fresh noise",
+   "result": "pass",
+   "seconds": 0.047,
+   "numbers": {
+    "auc_single": "0.607613727858293",
+    "auc_N16": "0.7624295491143317"
+   }
+  },
+  {
+   "id": "T10",
+   "name": "test_persistent_token_repeated_release_equals_single",
+   "file": "tests.test_10_repeated_release",
+   "description": "repeated release equals single release under persistent token",
+   "result": "pass",
+   "seconds": 0.043,
+   "numbers": {
+    "auc_single_eq_N16": "0.6198923107890499"
+   }
+  },
+  {
+   "id": "aux",
+   "name": "test_fit_refused_without_flag",
+   "file": "tests.test_11_guards_cli",
+   "description": "attacker fit refused on non-synthetic data without the flag",
+   "result": "pass",
+   "seconds": 0.0,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_cli_refuses_real_manifest_fit_and_blocks_network",
+   "file": "tests.test_11_guards_cli",
+   "description": "CLI refuses real fit; dry-run fits nothing; sockets blocked",
+   "result": "pass",
+   "seconds": 0.007,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_auc_matches_sklearn",
+   "file": "tests.test_11_guards_cli",
+   "description": "weighted rank AUC equals sklearn roc_auc_score (ties)",
+   "result": "pass",
+   "seconds": 0.001,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_defaults_and_override",
+   "file": "tests.test_12_protocol_config",
+   "description": "protocol defaults, override merge, invalid config refused",
+   "result": "pass",
+   "seconds": 0.001,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_methodology_config_translated",
+   "file": "tests.test_12_protocol_config",
+   "description": "methodology protocol_config.json loads (translated)",
+   "result": "pass",
+   "seconds": 0.0,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_permutation_null_for_worst_pair",
+   "file": "tests.test_13_null_and_skill",
+   "description": "permutation null re-selects the max; null worst-pair biased > 0.5",
+   "result": "pass",
+   "seconds": 0.042,
+   "numbers": {}
+  },
+  {
+   "id": "aux",
+   "name": "test_skill_metrics_zero_at_prior_positive_with_signal",
+   "file": "tests.test_13_null_and_skill",
+   "description": "brier skill / log-loss reduction: 0 at prior",
+   "result": "pass",
+   "seconds": 0.0,
+   "numbers": {}
+  }
+ ],
+ "mutation_checks": {
+  "note": "each mutation applied to a scratch copy; suite rerun; every mutation killed by >=1 test",
+  "M1 resolve_units ignores record keys": "killed (T9)",
+  "M2 admission accepts equal-length reordered arrays": "killed (T8)",
+  "M3 UNRESOLVED read as ESTABLISHED_BELOW": "killed (T2)",
+  "M4 repeated-release ignores release contract": "killed (T10)",
+  "M5 support rule disabled": "killed (T5)",
+  "M6 ridge penalty made relative (scale-free)": "killed (T7)"
+ },
+ "recounts": [
+  {
+   "id": "Ra",
+   "name": "AAAI 59/67 audit failure count at bars 0.52/0.55/0.60 from stored held-out probabilities",
+   "result": "match",
+   "previous": {
+    "0.52": 64,
+    "0.55": 59,
+    "0.60": 51
+   },
+   "recomputed": {
+    "0.52": 64,
+    "0.55": 59,
+    "0.60": 51
+   },
+   "from_stored_values": {
+    "0.52": 64,
+    "0.55": 59,
+    "0.60": 51
+   },
+   "with_lora_where_stored": {
+    "0.52": 64,
+    "0.55": 59,
+    "0.60": 51
+   },
+   "distinct_measurements": {
+    "n": 64,
+    "fail_counts": {
+     "0.52": 62,
+     "0.55": 57,
+     "0.60": 51
+    },
+    "shared": {
+     "2167268b3711e90a3ae32e2c3254b018ca586c6398fc41011fb97d3345787ae4|XGB+MLP": [
+      "E2 noise|adult/sex|noise \u03c3=1.0",
+      "E4S1 noise|adult/sex|noise sigma=1.0"
+     ],
+     "73d6d5e7a5de710960de000c74e3bee931d503cb5c8bd647747425ddd174c959|XGB+MLP": [
+      "E2 noise|adult/sex|noise \u03c3=2.0",
+      "E4S1 noise|adult/sex|noise sigma=2.0"
+     ],
+     "2cfc88caa12ee292098ecb58085392b6c6204c28bd982e30ca51ce11032859f5|XGB+MLP": [
+      "E2 noise|adult/sex|noise \u03c3=8.0",
+      "E4S1 noise|adult/sex|noise sigma=8.0"
+     ]
+    }
+   },
+   "max_abs_delta_vs_stored_auc": 1.729466567357285e-05,
+   "inventory_sha256_check": {
+    "n_files": 64,
+    "n_match": 64,
+    "mismatch_or_missing": {}
+   },
+   "scope": "macro OvR AUC per stored draw (mean over draws) x max over XGB/MLP; 67 configs, 64 files; historical_min_support=1 (historical convention); supported quantities at n_min=100 alongside",
+   "outputs": [
+    "notes/evaluator/recount_aaai67_summary.json",
+    "notes/evaluator/recount_aaai67_paper_rule_xgb_mlp.json",
+    "notes/evaluator/recount_aaai67_with_lora_where_stored.json"
+   ]
+  },
+  {
+   "id": "Rb",
+   "name": "PCRL NeurIPS strict R2<=0.05 counts (final.pt / best.pt)",
+   "result": "match",
+   "previous": {
+    "final": "56/60",
+    "best": "54/60"
+   },
+   "recomputed": {
+    "final": "56/60",
+    "best": "54/60",
+    "strict_lt_same": true
+   },
+   "per_dataset": {
+    "adult": {
+     "final": 23,
+     "best": 21,
+     "n": 24,
+     "flips": [
+      [
+       0,
+       "employment_analysis",
+       "age_group",
+       0.0619,
+       0.0054
+      ],
+      [
+       0,
+       "employment_analysis",
+       "marital_status",
+       0.0806,
+       0.0033
+      ]
+     ]
+    },
+    "hmda": {
+     "final": 16,
+     "best": 16,
+     "n": 18,
+     "flips": []
+    },
+    "diabetes": {
+     "final": 17,
+     "best": 17,
+     "n": 18,
+     "flips": []
+    }
+   },
+   "input_hashes_equal_verification_report_A1": true,
+   "scope": "stored R2 values (in-sample one-hot ridge on test-split reps) read via git show origin/main@55e4cb1d1",
+   "outputs": [
+    "notes/evaluator/recount_pcrl_strict.json"
+   ]
+  },
+  {
+   "id": "Rc",
+   "name": "frozen forward-pass smoke, cached Round-4 Adult s0 final.pt",
+   "result": "pass",
+   "numbers": {
+    "deterministic_bitwise_repeat": true,
+    "batch32_vs_batch512_max_abs_diff": 0.0,
+    "max_abs_diff_vs_archived_pcrl_classes": {
+     "rep_p0": {
+      "max_abs": 3.3974647521972656e-06,
+      "max_abs_value": 3.5993616580963135,
+      "rel_to_max": 9.439075938644237e-07,
+      "ours_f32_vs_f64_rel": 9.348364565524596e-07
+     },
+     "logits_income_prediction": {
+      "max_abs": 1.9073486328125e-06,
+      "max_abs_value": 3.052983283996582,
+      "rel_to_max": 6.247491342037392e-07,
+      "ours_f32_vs_f64_rel": 7.632489511158465e-07
+     },
+     "rep_p1": {
+      "max_abs": 7.748603820800781e-07,
+      "max_abs_value": 2.9438419342041016,
+      "rel_to_max": 2.632139910474507e-07,
+      "ours_f32_vs_f64_rel": 3.521722575495383e-07
+     },
+     "logits_employment_analysis": {
+      "max_abs": 3.0517578125e-05,
+      "max_abs_value": 183.2647705078125,
+      "rel_to_max": 1.665217865820523e-07,
+      "ours_f32_vs_f64_rel": 1.8762224713948902e-07
+     },
+     "rep_p2": {
+      "max_abs": 1.1920928955078125e-06,
+      "max_abs_value": 6.303535461425781,
+      "rel_to_max": 1.8911497079443507e-07,
+      "ours_f32_vs_f64_rel": 2.2534030380459937e-07
+     },
+     "logits_education_assessment": {
+      "max_abs": 6.103515625e-05,
+      "max_abs_value": 2212.38330078125,
+      "rel_to_max": 2.7587965689690463e-08,
+      "ours_f32_vs_f64_rel": 2.4250059072407203e-08
+     }
+    },
+    "hash_mismatch_refused": true,
+    "cache_inside_git_refused": true,
+    "outputs": {
+     "rep_p0": [
+      256,
+      64
+     ],
+     "rep_p1": [
+      256,
+      64
+     ],
+     "rep_p2": [
+      256,
+      64
+     ],
+     "logits_income_prediction": [
+      256,
+      2
+     ],
+     "logits_employment_analysis": [
+      256,
+      6
+     ],
+     "logits_education_assessment": [
+      256,
+      4
+     ]
+    },
+    "head_order_matches_purpose_order": true,
+    "row_ids_preserved": true,
+    "finite": true,
+    "total_wall_s": 3.87,
+    "pcrl_commit": "b96c41256daeed6e644aba1443a47b16e28d089a"
+   },
+   "load_mode": "weights_only=True",
+   "checkpoint_state": {
+    "epoch": 204,
+    "global_step": 19475,
+    "best_val_loss": Infinity,
+    "best_epoch": -1
+   },
+   "scope": "256 rows of the local Adult test split (post-dropna positions 0-255); no fitting",
+   "outputs": [
+    "notes/evaluator/forward_smoke_result.json"
+   ]
+  }
+ ],
+ "pilot_estimates": {
+  "default_slate": {
+   "total_cpu_hours": 0.167,
+   "peak_mem_mb": 348.3,
+   "calibration": {
+    "linear": 0.0025725583663361164,
+    "gbt": 0.08108733954083713,
+    "mlp": 0.05309805086168249,
+    "bootstrap_per_1k_rows_per_rep": 8.140278392602429e-05,
+    "source": "measured 2026-10-02 on this Mac (14 cores, 24 GB), OMP_NUM_THREADS=1, synthetic n_fit=7530 d=64; max over direct/null/xor kinds",
+    "multiclass_K5_measured": {
+     "fit_cpu_s_9_fits": 23.999216,
+     "bootstrap_cpu_s_27_stats_2000": 65.112723
+    },
+    "binary_measured": {
+     "fit_wall_s_9_fits_max_kind": 8.72450629179366,
+     "bootstrap_cpu_s_27_stats_2000": 19.86
+    },
+    "peak_rss_mb_measured": 332
+   },
+   "grid_sizes": {
+    "linear": 4,
+    "gbt": 4,
+    "mlp": 4
+   },
+   "label": "ESTIMATE (cost model, not a measurement)",
+   "n_units": 72
+  },
+  "methodology_slate": {
+   "total_cpu_hours": 0.312,
+   "peak_mem_mb": 348.3,
+   "calibration": {
+    "linear": 0.0033391080178310517,
+    "gbt": 0.16735273411504895,
+    "mlp": 0.05198645171713069,
+    "bootstrap_per_1k_rows_per_rep": 8.140278392602429e-05,
+    "source": "measured 2026-10-02, this Mac, OMP_NUM_THREADS=1, synthetic n_fit=7530 d=64, methodology grids (R01 C x5, R03 lr x leaves = 9 configs max_iter 500, R04 hidden x alpha = 9 configs)",
+    "check_gbt_K5_predicted_vs_measured_s": [
+     56.707473954884335,
+     56.16158595890738
+    ],
+    "peak_rss_mb_measured": 333
+   },
+   "grid_sizes": {
+    "linear": 5,
+    "gbt": 9,
+    "mlp": 9
+   },
+   "label": "ESTIMATE (cost model, not a measurement)",
+   "n_units": 72
+  },
+  "scope": "Adult Round-4 seed 0 only, 8 purpose-attribute pairs x 3 surfaces x 3 attackers, n_boot 2000; single-thread CPU; seeds 1-2 PENDING (external drive)"
+ },
+ "coordinator_checks_2026_10_02": [
+  {
+   "id": "OC1",
+   "check": "full test suite incl. owner tests 14-15",
+   "command": "OMP_NUM_THREADS=2 /Users/nathansamson/PCRL/.venv/bin/python -m pytest stored_model_eval/tests -q",
+   "result": "31 passed",
+   "status": "pass"
+  },
+  {
+   "id": "OC2",
+   "check": "fixed-penalty ridge scale dependence vs OLS invariance at penalty-scale eigenvalues",
+   "result": "ridge 0.065->0.194 (scale 0.5->2), OLS 0.208 constant",
+   "status": "pass (test_14)"
+  },
+  {
+   "id": "OC3",
+   "check": "noise release convention, determinism, fresh-vs-persistent queries",
+   "status": "pass (test_14)"
+  },
+  {
+   "id": "OC4",
+   "check": "R02 fit-mean denominator, unclamped, gated behind authorization; refusal without flag on real inputs",
+   "status": "pass (test_15)"
+  },
+  {
+   "id": "OC5",
+   "check": "synthetic end-to-end CLI (fit-attackers --synthetic, infer, report) with methodology config",
+   "result": "rc 0; contrast fixture: native in-sample 0.077, R02 held-out 0.020, held-out rho1^2 0.962",
+   "status": "pass"
+  },
+  {
+   "id": "OC6",
+   "check": "held-out LR recount (methodology HL-04) rerun",
+   "result": "byte-identical output; 4/60 > +1pp, max +7.4pp",
+   "status": "reproduced"
+  },
+  {
+   "id": "OC7",
+   "check": "real pilot inputs: write-inputs, frozen forward (Round-4 Adult s0, sha256 verified), 8 untreated + 144 noise manifests, admission",
+   "result": "152/152 ADMITTED; 15,060 rows, 15,055 units; roles 7,571/2,239/5,250; no fits",
+   "status": "pass"
+  },
+  {
+   "id": "OC8",
+   "check": "backup read-back",
+   "result": "102/102 drive copies == manifest == originals (F_NOCACHE read); cold remount read pending",
+   "status": "pass (cache caveat recorded)"
+  }
+ ]
+}
