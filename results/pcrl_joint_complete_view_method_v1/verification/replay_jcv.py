@@ -1498,7 +1498,8 @@ if "UNIT_MANIFEST.csv" in doc_bad:
                  for a, b in zip(o_rows, n_rows))
         st_only = sum(a[6] != b[6] for a, b in zip(o_rows, n_rows))
         other = len(o_rows) - same_plan - ph
-        last = git("log", "-1", "--format=%h %cI", "--", rel_)
+        last = subprocess.run(["git", "-C", str(WT), "log", "-1", "--format=%h %cI", "--", rel_], capture_output=True,
+                              text=True).stdout.strip()
         doc_note = (f" UNIT_MANIFEST.csv: the locked version (a984a1e) matches the LOCK hash; the current file (commit "
                     f"{last}) has {len(n_rows)} rows vs {len(o_rows)}, planned columns identical in {same_plan} rows, the "
                     f"F0 placeholder 'Z<F-selected>' resolved to 'Z1' in {ph} rows, status column changed in {st_only} rows "

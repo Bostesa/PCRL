@@ -1,14 +1,14 @@
 {
  "schema": "jcv-independent-verification-v1",
- "written_at": "2026-10-03T21:02:29Z",
+ "written_at": "2026-10-03T21:08:18Z",
  "replay_script": "results/pcrl_joint_complete_view_method_v1/verification/replay_jcv.py",
- "replay_script_sha256": "22efd5ebe6e3e917bc3cf6b839a38189243188f5eef2b8e3aa2b37b308b18c39",
+ "replay_script_sha256": "107e212f82879171fd3f7e69b3a0955bb0b0d832ab3aaaa5854cd86ffc8e5a0d",
  "inputs": {
   "private_inputs": "~/PCRL_eval_cache_private/jcv_v1/inputs/adult_jcv.npz",
   "private_inputs_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
   "units_dir": "~/PCRL_eval_cache_private/jcv_v1/run/units",
   "selection_lock_commit": "197f323be81d41e0caef12dca8761bd32f512f78",
-  "worktree_head": "7c3b0a20e0fc489674ed44abc8aac65339001827"
+  "worktree_head": "b3e3048e7122b7a37f0aed06456e74a14998fd5f"
  },
  "forbidden_imports": [
   "jcv",
@@ -312,7 +312,7 @@
   {
    "id": "10c2_A1_probability_wording",
    "status": "WARN",
-   "detail": "AMENDMENT_A1 says probabilities are unchanged, but 138/138 probability arrays changed at round-off level (max 5.55e-17). Root cause: the locked pre-A1 finalize.outputs computed P = exp(predict_log_proba); A1 computes P = predict_proba. Hard decisions are bitwise unchanged (the runner asserts this), every inner, selection and outer result used the post-A1 arrays, so there is no decision effect; the amendment text is imprecise, not the data."
+   "detail": "AMENDMENT_A1 says probabilities are unchanged, but 138/138 probability arrays changed at round-off level (max 5.55e-17). Root cause: the locked pre-A1 finalize.outputs computed P = exp(predict_log_proba); A1 computes P = predict_proba. Hard decisions are bitwise unchanged (the runner asserts this), every inner, selection and outer result used the post-A1 arrays, so there is no decision effect; the amendment text is imprecise, not the data. Also: A1 says 'income, 390 rows each'; the quarantined U units have [195] rows per seed with a zero income probability, i.e. 390 non-finite ENTRIES (2 per row) per seed."
   },
   {
    "id": "10d_selection_lock_artifact_hashes",
@@ -332,7 +332,7 @@
   {
    "id": "10h_lock_document_hashes",
    "status": "WARN",
-   "detail": "5/6 locked protocol documents unchanged (changed: ['UNIT_MANIFEST.csv'])"
+   "detail": "5/6 locked protocol documents unchanged (changed: ['UNIT_MANIFEST.csv']). UNIT_MANIFEST.csv: the locked version (a984a1e) matches the LOCK hash; the current file (commit 7c3b0a20e 2026-10-03T16:51:10-04:00) has 217 rows vs 217, planned columns identical in 211 rows, the F0 placeholder 'Z<F-selected>' resolved to 'Z1' in 6 rows, status column changed in 216 rows (planned -> complete), other differences 0. Post-lock bookkeeping, not a plan change, but the locked document hash no longer verifies."
   },
   {
    "id": "10i_selection_lock_pushed_and_unchanged",
@@ -1218,5 +1218,5 @@
    "attacker_replay": 0.0
   }
  },
- "wall_s": 136.8
+ "wall_s": 136.0
 }
