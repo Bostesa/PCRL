@@ -1,0 +1,57 @@
+{
+ "schema": "oar_archive_index/v1",
+ "drive_location": "<drive>/private_oar_v1_20261003/oar_v1 (connected external drive, relocation archive root)",
+ "local_location": "~/PCRL_eval_cache_private/oar_v1",
+ "copied_with": "ditto (11 min 51 s)",
+ "files": 30624,
+ "SHA256SUMS_sha256": "64bf784af3df89da5b8c8f15f0fc336dd1c85d3996339fcc6f8e802a2b692d10",
+ "files_by_top_level": {
+  "build_fixed.log": 1,
+  "build_official.log": 1,
+  "corrections": 4,
+  "custody": 3,
+  "env_fare_freeze.txt": 1,
+  "env_fare": 23238,
+  "exposure": 3,
+  "gate": 5,
+  "install_start.txt": 1,
+  "oar_sens_buffer_fix.diff": 1,
+  "overflow_probe_fixed.log": 1,
+  "overflow_probe_unfixed.log": 1,
+  "run": 2689,
+  "STATUS.json": 1,
+  "vendor": 4674
+ },
+ "verification": "every file re-read from the drive with F_NOCACHE and sha256-compared: 30624/30624 match, 0 mismatches",
+ "contents": {
+  "run/units": "per-unit predictions (preds.npz, val_preds.npz), fitted attackers/probes/heads (models/*.joblib), records, COMPLETE.json; FARE fit units (model/, cells.npy, rec.json)",
+  "run/selection, certificates, controls, aliases, LEDGER_*, STATUS_*": "run records",
+  "corrections, custody, exposure": "stage 1-2 outputs",
+  "env_fare, vendor, gate, *.log, *.diff, env_fare_freeze.txt": "official FARE environment, sources (eth-sri/fare @89cb1b66, scikit-learn fd60379f), reproduction gate, build logs, buffer-fix diff"
+ },
+ "benchmark_inputs": "read from ~/PCRL_eval_cache_private/bench_v1 (unchanged; its own verified drive copy is <drive>/private_bench_v1_20261003)",
+ "restoration_proof": {
+  "defense": {
+   "unit": "hmda__s0__FAREFIT_c4",
+   "encode": "encode_portable (features only)",
+   "cells_equal_saved": true,
+   "n_cells": 4
+  },
+  "head": {
+   "unit": "hmda__s0__HEAD__F",
+   "max_abs_diff": 0.0
+  },
+  "attacker": {
+   "unit": "hmda__s0__F__rep+head",
+   "model": "NL_as1",
+   "max_abs_diff": 0.0
+  },
+  "loaded_from": "drive copy only",
+  "status": "PASS"
+ },
+ "restore_commands": [
+  "ditto <drive>/private_oar_v1_20261003/oar_v1 ~/PCRL_eval_cache_private/oar_v1",
+  "cd ~/PCRL_eval_cache_private && shasum -a 256 -c <drive>/private_oar_v1_20261003/SHA256SUMS"
+ ],
+ "deleted": "nothing (originals retained; no checkpoints or launch scripts removed)"
+}

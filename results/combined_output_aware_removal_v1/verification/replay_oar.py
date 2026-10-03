@@ -1235,12 +1235,14 @@ def check_certificates(rep, US, W, ds, lock, nominees, agg, inputs=None):
         if len(np.intersect1d(W["row_id"][cr], W["row_id"][W["idx"]["defense_fit"]])) or \
                 len(np.intersect1d(W["unit"][cr], W["unit"][W["idx"]["defense_fit"]])):
             prob.append("cert rows / groups intersect the FARE fit rows (row-identity guard fails)")
-        ndup = None
+        ndup = ndist = None
         if inputs is not None:
             F = np.load(inputs / f"{ds}_s{k}_forward.npz", allow_pickle=False)
             H = np.ascontiguousarray(np.asarray(F[CELLS[ds]["rep"]], np.float64))
             fit_rows = {H[i].tobytes() for i in W["idx"]["defense_fit"]}
-            ndup = int(sum(H[i].tobytes() in fit_rows for i in cr))
+            dup_rows = [H[i].tobytes() for i in cr if H[i].tobytes() in fit_rows]
+            ndup = len(dup_rows)
+            ndist = len(set(dup_rows))
         for who, fu in (("nominee", f"{P}__FAREFIT_c{nsrc}"), ("zero_fairness", f"{P}__FAREFIT_Z")):
             blk = (A.get("amended") or {}).get(who) or {}
             for kind in want:
@@ -1253,10 +1255,19 @@ def check_certificates(rep, US, W, ds, lock, nominees, agg, inputs=None):
                     "status": cert.get("status"), "bound": cert.get("bound"), "reason": cert.get("reason")}
             rd = blk.get("cert_rows_with_feature_vector_equal_to_a_fit_row")
             if ndup is not None and rd != ndup:
-                prob.append(f"{who}: feature-duplicate count {rd} != replay {ndup}")
-        rep.check(sc, f"{P}:certificates_amendment_A1", not prob,
-                  cause="amended certificate inconsistent with its premises or the row-identity guard",
-                  problems=prob[:10], feature_duplicate_cert_rows=ndup)
+                prob.append(f"{who}: field cert_rows_with_feature_vector_equal_to_a_fit_row = {rd}; replay: {ndup} "
+                            f"cert rows ({ndist} distinct vectors)")
+        cause = "amended certificate inconsistent with its premises or the row-identity guard"
+        if prob and all("cert_rows_with_feature_vector" in x for x in prob) and ndist is not None and \
+                all((((A.get("amended") or {}).get(w) or {}).get("cert_rows_with_feature_vector_equal_to_a_fit_row")
+                     == ndist) for w in ("nominee", "zero_fairness")):
+            cause = ("reporting defect in amendment A1: the field 'cert_rows_with_feature_vector_equal_to_a_fit_row' "
+                     "counts DISTINCT feature vectors (fare_official.row_hashes returns np.unique of the row hashes), "
+                     f"not rows; {ndup} cert rows ({ndist} distinct vectors) equal a fit-row feature vector. Premises "
+                     "and cell-presence recomputations agree; the certificate status/bound are not affected by this "
+                     "field")
+        rep.check(sc, f"{P}:certificates_amendment_A1", not prob, cause=cause, problems=prob[:10],
+                  feature_duplicate_cert_rows=ndup, feature_duplicate_distinct_vectors=ndist)
 
 
 def check_controls(rep, run: Path, ds, agg):
@@ -1728,6 +1739,33 @@ def exposure_drop(bench: Path, rep: Report, agg):
     return drop
 
 
+def compare_exposure_public(rep, pkg: Path, agg):
+    """Public EXPOSURE_ENDPOINTS.csv (primary rows): retained values, decisions and STABLE/CHANGED labels."""
+    sc = "exposure_public_table"
+    p = pkg / "EXPOSURE_ENDPOINTS.csv"
+    mine = {r["id"]: r for r in (agg.get("exposure_retained") or []) if r}
+    if not p.exists() or not mine:
+        rep.add(sc, "public_table", "UNRESOLVED", cause="EXPOSURE_ENDPOINTS.csv or replay rows missing")
+        return
+    rows = [r for r in read_csv(p) if str(r.get("kind", "")).startswith("primary")]
+    rep.check(sc, "n_primary_rows_24", len(rows) == 24 == len(mine), cause="public table does not hold 24 primary rows",
+              n=len(rows))
+    for r in rows:
+        m = mine.get(r["id"])
+        if m is None or m.get("point") is None:
+            rep.add(sc, r["id"], "FAIL", cause="row not reproduced")
+            continue
+        dp = abs(fnum(r["retained_point"]) - m["point"])
+        dl = abs(fnum(r["retained_lower"]) - m["lower"])
+        du = abs(fnum(r["retained_upper"]) - m["upper"])
+        tl, tu = 6.5 * m["mc_se_lower"] + 5e-5, 6.5 * m["mc_se_upper"] + 5e-5
+        ok = dp <= 1e-9 and dl <= tl and du <= tu and r["retained_decision"] == m["decision"] and \
+            r.get("status") == m.get("label")
+        rep.check(sc, r["id"], ok, cause="public exposure row differs from replay (value, decision or label)",
+                  abs_diff_point=dp, abs_diff_lower=dl, abs_diff_upper=du, runner_label=r.get("status"),
+                  replay_label=m.get("label"), runner_decision=r["retained_decision"], replay_decision=m["decision"])
+
+
 # ================================================================================================ main
 def load_runner_primary(pkg: Path, path: str | None):
     for p in ([Path(path)] if path else [pkg / "PRIMARY_ENDPOINTS.csv", pkg / "tables" / "PRIMARY_ENDPOINTS.csv"]):
@@ -1882,6 +1920,7 @@ def main(argv=None):
         agg["exposure_runner_table"] = tilde(epath) if epath else None
         bench_primary(rep, bench, bench_pkg, lock, agg, drop, Be, 20261004, "retained", er, original_rows=orig)
         agg["exposure_family_size"] = bfam["size"]
+        compare_exposure_public(rep, pkg, agg)
     agg["timing"] = {**agg.get("timing", {}), "wall_s": time.time() - t_wall, "cpu_s": time.process_time() - t_cpu}
     code_sha = sha_file(Path(__file__))
     out = {"schema": "oar_independent_verification/v1",

@@ -1,0 +1,4718 @@
+{
+ "adult__s0": {
+  "original": {
+   "cert_rows": 1500,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 4 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 4 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.7976349418271982,
+    "zero_fairness": 0.8010680907877169
+   },
+   "n_cells": {
+    "nominee": 10,
+    "zero_fairness": 10
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.49730752832780944,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 10,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 26,
+        "test": 30
+       },
+       "status": "OK",
+       "ub": 0.49730752832780944,
+       "empirical_test": 0.0866065960983291
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.009666916999999997,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "fc4239025b7e24953f0b72b90bcc1eba283f589252127d7a7a3d5fe994f6f95e",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 4
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.5519344965755313,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 10,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 34,
+        "test": 31
+       },
+       "status": "OK",
+       "ub": 0.5519344965755313,
+       "empirical_test": 0.23415592368439908
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.008316166999999985,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "0a613c4d7d769d6758c2e2f6f024e42ea32ee985b887dadbd9948d1a8668993b",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 4
+   }
+  }
+ },
+ "adult__s1": {
+  "original": {
+   "cert_rows": 1500,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.8447453747854282,
+    "zero_fairness": 0.8411214953271028
+   },
+   "n_cells": {
+    "nominee": 50,
+    "zero_fairness": 50
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [0, 1]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 50,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 1
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.0024952500000000044,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "ca782125b3c8c1472089847eecc63af5f77f4f439031cb052ca86cec6224ae57",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 1
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [0, 1]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 50,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 1
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.00247270799999999,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "82e8e3a13c6784b11b1b5fa773f0df01b39fcf3f733312ad958ad1920988dbf8",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 1
+   }
+  }
+ },
+ "adult__s2": {
+  "original": {
+   "cert_rows": 1500,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 2 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 2 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.8233835590310891,
+    "zero_fairness": 0.8432195308029754
+   },
+   "n_cells": {
+    "nominee": 10,
+    "zero_fairness": 10
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.5044656499401665,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 10,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 29,
+        "test": 31
+       },
+       "status": "OK",
+       "ub": 0.5044656499401665,
+       "empirical_test": 0.10532761788120037
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.008981499999999976,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "a614db76996a87cbca2a158bc52031f33d6a5d9988c9a8f07662a3ed02c3ce06",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 2
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.5692992515202597,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1500,
+     "n_val": 750,
+     "n_test": 750,
+     "n_by_group": {
+      "0": 472,
+      "1": 1028
+     },
+     "n_by_group_val": {
+      "0": 219,
+      "1": 531
+     },
+     "n_by_group_test": {
+      "0": 253,
+      "1": 497
+     },
+     "n_fit_by_group": {
+      "0": 7790,
+      "1": 16337
+     },
+     "n_cells": 10,
+     "n_pairs": 1,
+     "groups": [
+      0,
+      1
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.05,
+       "eps_b": 0.005,
+       "eps_c": 0.04000000000000001,
+       "eps_s": 0.005,
+       "n_base": 24127,
+       "n_val": 750,
+       "n_test": 750,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 25,
+        "test": 26
+       },
+       "status": "OK",
+       "ub": 0.5692992515202597,
+       "empirical_test": 0.23279598539855728
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (750) and D_test (750)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 1 pair(s) x (eps_b 0.005 + eps_c 0.04 + eps_s 0.005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.008647707999999976,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1
+      ]
+     },
+     "n_supplied": 1500,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "20068fa0fb219c8e0840f7f40a69a32b8ef250375dfed941f680afed8e15f10a",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 2
+   }
+  }
+ },
+ "hmda__s0": {
+  "original": {
+   "cert_rows": 1385,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.9093198992443325,
+    "zero_fairness": 0.9065910999160369
+   },
+   "n_cells": {
+    "nominee": 4,
+    "zero_fairness": 10
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [3, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 4,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 13,
+        "test": 9
+       },
+       "status": "OK",
+       "ub": 1.3504114254920467,
+       "empirical_test": 0.008073524931451193
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 17,
+        "test": 12
+       },
+       "status": "OK",
+       "ub": 0.4373471522701813,
+       "empirical_test": 0.011043239013554862
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 3.5203686744359164,
+       "empirical_test": 0.07205240174672278
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 10.39001827212466,
+       "empirical_test": 0.07205240174673122
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 1.1630307050105344,
+       "empirical_test": 0.006049200161312163
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 1
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 1
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 3
+       },
+       "status": "OK",
+       "ub": 3.2370081521162763,
+       "empirical_test": 0.06936416184971095
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 3
+       },
+       "status": "OK",
+       "ub": 9.949774913945179,
+       "empirical_test": 0.06936416184971383
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 3
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.05892491700000002,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "63d13771195243c4081e234514399cf83d3d7884b71c51ffdd6a053d8c5df6aa",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 1.0528088117958672,
+     "bound_is_vacuous": true,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 4,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 9
+       },
+       "status": "OK",
+       "ub": 0.9995046675101313,
+       "empirical_test": 0.013436807095343895
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 13,
+        "test": 10
+       },
+       "status": "OK",
+       "ub": 0.3759609474588643,
+       "empirical_test": 0.02350074769246646
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 3,
+        "test": 3
+       },
+       "status": "OK",
+       "ub": 1.0528088117958672,
+       "empirical_test": 0.03232558139534891
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.03489516699999995,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "63d13771195243c4081e234514399cf83d3d7884b71c51ffdd6a053d8c5df6aa",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 6
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 2]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [2, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [2, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [3, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 10,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 7,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 2.8109913915162905,
+       "empirical_test": 0.36853864121052093
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 9,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 0.8696652306035793,
+       "empirical_test": 0.26829391422874016
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 7,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 7.446145538059058,
+       "empirical_test": 0.6924516531503424
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 6,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 21.05947633122353,
+       "empirical_test": 0.9956331877729303
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 0,
+        "val": 4,
+        "test": 3
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 0,
+        "val": 5,
+        "test": 4
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 1
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 1,
+        "val": 6,
+        "test": 7
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.04840574999999997,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "39708607cbb37c1f59ce717d9e1df2fa184faca27a51eb40520302f53e7b30b6",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 2]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 10,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 6,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 2.3247835583016796,
+       "empirical_test": 0.32106430155210663
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 8,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 0.7981194236999993,
+       "empirical_test": 0.2838653122260608
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.024637124999999982,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "39708607cbb37c1f59ce717d9e1df2fa184faca27a51eb40520302f53e7b30b6",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 6
+   }
+  }
+ },
+ "hmda__s1": {
+  "original": {
+   "cert_rows": 1385,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 1 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.8864399664147775,
+    "zero_fairness": 0.894416456759026
+   },
+   "n_cells": {
+    "nominee": 1,
+    "zero_fairness": 9
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 3.1765131028011124,
+     "bound_is_vacuous": true,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 1,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 486,
+        "test": 501
+       },
+       "status": "OK",
+       "ub": 0.40299012627755926,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 637,
+        "test": 631
+       },
+       "status": "OK",
+       "ub": 0.21347011899642743,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 463,
+        "test": 472
+       },
+       "status": "OK",
+       "ub": 0.9082991237453695,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 459,
+        "test": 463
+       },
+       "status": "OK",
+       "ub": 3.1765131028011124,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 221,
+        "test": 216
+       },
+       "status": "OK",
+       "ub": 0.3838544079135333,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 47,
+        "test": 57
+       },
+       "status": "OK",
+       "ub": 0.9582142610066124,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 43,
+        "test": 48
+       },
+       "status": "OK",
+       "ub": 3.007855293412038,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 198,
+        "test": 187
+       },
+       "status": "OK",
+       "ub": 0.8812493727891606,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 194,
+        "test": 178
+       },
+       "status": "OK",
+       "ub": 3.0665703284120163,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 20,
+        "test": 19
+       },
+       "status": "OK",
+       "ub": 2.070463593083698,
+       "empirical_test": 0.0
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.057713374999999956,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "d9586131b063a3aa29449b0e2af0745e771e60fdec748ab9481a7f503ab670a1",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.1753806784698,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 1,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 486,
+        "test": 501
+       },
+       "status": "OK",
+       "ub": 0.10818432762550323,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 645,
+        "test": 623
+       },
+       "status": "OK",
+       "ub": 0.1753806784698,
+       "empirical_test": 0.0
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 215,
+        "test": 222
+       },
+       "status": "OK",
+       "ub": 0.13860251463897177,
+       "empirical_test": 0.0
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.03266825000000001,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "d9586131b063a3aa29449b0e2af0745e771e60fdec748ab9481a7f503ab670a1",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 1
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 2]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [2, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [2, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [3, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 9,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 8,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 2.346474560243874,
+       "empirical_test": 0.23799126637554568
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 8,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 0.6258362743941794,
+       "empirical_test": 0.23799126637554613
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 8,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 6.659572542433608,
+       "empirical_test": 0.23799126637554346
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 8,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 19.47097537411265,
+       "empirical_test": 0.2379912663755528
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.04962929200000005,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "f2ca7c944c342705fd78365a4fbff28557f03db1a3d54fdde92996b41e36ae04",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 2]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 9,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 10,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 1.7982314969335134,
+       "empirical_test": 0.26385809312638586
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 10,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 0.5047176812416079,
+       "empirical_test": 0.2638580931263863
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 8,
+        "val": 8,
+        "test": 8
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.030443416999999973,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "f2ca7c944c342705fd78365a4fbff28557f03db1a3d54fdde92996b41e36ae04",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 1
+   }
+  }
+ },
+ "hmda__s2": {
+  "original": {
+   "cert_rows": 1385,
+   "cert_role": "20% of exposure-cleaned attacker_fit groups (oar-cert-v1)",
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    },
+    "secondary_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "CertificateRefused: 6 certificate rows are identical to fit rows; refusing"
+    }
+   },
+   "tree_own_task_accuracy_assessment": {
+    "nominee": 0.9065910999160369,
+    "zero_fairness": 0.9122586062132662
+   },
+   "n_cells": {
+    "nominee": 4,
+    "zero_fairness": 5
+   }
+  },
+  "amended": {
+   "nominee": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [3, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 4,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 1.3455426840097706,
+       "empirical_test": 0.02696252665786547
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 16,
+        "test": 14
+       },
+       "status": "OK",
+       "ub": 0.4358536726013784,
+       "empirical_test": 0.024282504985233766
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 3.5338442594631836,
+       "empirical_test": 0.050218340611351886
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 10.318132296957263,
+       "empirical_test": 0.072052401746731
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 5
+       },
+       "status": "OK",
+       "ub": 1.2534539424680862,
+       "empirical_test": 0.03468208092485581
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 1
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 0,
+        "val": 1,
+        "test": 1
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 3.4871964970417313,
+       "empirical_test": 0.05780346820809368
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 4
+       },
+       "status": "OK",
+       "ub": 10.498651327270906,
+       "empirical_test": 0.08670520231214174
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.06214470799999999,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "50e7cd60df57fdc1d2f8f23939ddadc9d4ef4fea6fc7d383cb6f3e9d7a890cce",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 0.9467513516249542,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 4,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 8
+       },
+       "status": "OK",
+       "ub": 0.8454285741487297,
+       "empirical_test": 0.029002217294900268
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 15,
+        "test": 12
+       },
+       "status": "OK",
+       "ub": 0.3673811309071593,
+       "empirical_test": 0.02295931521683059
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 3,
+        "test": 5
+       },
+       "status": "OK",
+       "ub": 0.9467513516249542,
+       "empirical_test": 0.04511627906976767
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.038065209000000044,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "50e7cd60df57fdc1d2f8f23939ddadc9d4ef4fea6fc7d383cb6f3e9d7a890cce",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 6
+   },
+   "zero_fairness": {
+    "primary_all_groups": {
+     "status": "UNAVAILABLE",
+     "reason": "pair [1, 3]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [1, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [3, 4]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)",
+     "bound": null,
+     "bound_is_vacuous": false,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1385,
+     "n_val": 692,
+     "n_test": 693,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359,
+      "3": 26,
+      "4": 13
+     },
+     "n_by_group_val": {
+      "0": 451,
+      "1": 35,
+      "2": 186,
+      "3": 12,
+      "4": 8
+     },
+     "n_by_group_test": {
+      "0": 458,
+      "1": 43,
+      "2": 173,
+      "3": 14,
+      "4": 5
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 5,
+     "n_pairs": 10,
+     "groups": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 11,
+        "test": 6
+       },
+       "status": "OK",
+       "ub": 1.7371708163030815,
+       "empirical_test": 0.0561084594292669
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 58064,
+       "n_val": 637,
+       "n_test": 631,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 14,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 0.5064139192659658,
+       "empirical_test": 0.01861574576570657
+      },
+      {
+       "groups": [
+        0,
+        3
+       ],
+       "coding": {
+        "0": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 42453,
+       "n_val": 463,
+       "n_test": 472,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 10,
+        "test": 6
+       },
+       "status": "OK",
+       "ub": 4.735426793071995,
+       "empirical_test": 0.0764192139737987
+      },
+      {
+       "groups": [
+        0,
+        4
+       ],
+       "coding": {
+        "0": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 41613,
+       "n_val": 459,
+       "n_test": 463,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 9,
+        "test": 6
+       },
+       "status": "OK",
+       "ub": 13.267982212323693,
+       "empirical_test": 0.10262008733624528
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 20747,
+       "n_val": 221,
+       "n_test": 216,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 1
+       },
+       "status": "OK",
+       "ub": 1.310470892496789,
+       "empirical_test": 0.040193574405162025
+      },
+      {
+       "groups": [
+        1,
+        3
+       ],
+       "coding": {
+        "1": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 5136,
+       "n_val": 47,
+       "n_test": 57,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        1,
+        4
+       ],
+       "coding": {
+        "1": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 4296,
+       "n_val": 43,
+       "n_test": 48,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 2
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      },
+      {
+       "groups": [
+        2,
+        3
+       ],
+       "coding": {
+        "2": 0,
+        "3": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 18299,
+       "n_val": 198,
+       "n_test": 187,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 4,
+        "test": 1
+       },
+       "status": "OK",
+       "ub": 3.736745166731538,
+       "empirical_test": 0.05780346820809368
+      },
+      {
+       "groups": [
+        2,
+        4
+       ],
+       "coding": {
+        "2": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 17459,
+       "n_val": 194,
+       "n_test": 178,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 3,
+        "test": 1
+       },
+       "status": "OK",
+       "ub": 11.225689225923485,
+       "empirical_test": 0.08670520231214174
+      },
+      {
+       "groups": [
+        3,
+        4
+       ],
+       "coding": {
+        "3": 0,
+        "4": 1
+       },
+       "eps_pair": 0.005,
+       "eps_b": 0.0005,
+       "eps_c": 0.004,
+       "eps_s": 0.0005,
+       "n_base": 1848,
+       "n_val": 20,
+       "n_test": 19,
+       "cells_missing": {
+        "base": 0,
+        "val": 2,
+        "test": 3
+       },
+       "min_cell_n": {
+        "val": 0,
+        "test": 0
+       },
+       "status": "UNAVAILABLE",
+       "ub": null,
+       "reason": "official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233)"
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (692) and D_test (693)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 10 pair(s) x (eps_b 0.0005 + eps_c 0.004 + eps_s 0.0005)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": false,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": false,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.05987970800000003,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": null,
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 0,
+     "model_fingerprint": "1bafa331dac20cc4bd06fefa20e7a935d5cbbd3ce0975e17b9b214410f96331a",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "secondary_groups": {
+     "status": "OK",
+     "reason": null,
+     "bound": 1.1403761381582478,
+     "bound_is_vacuous": true,
+     "metric": "demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, App. D.1); equals the pairwise total-variation distance of the cell distributions",
+     "delta": 0.05,
+     "confidence": 0.95,
+     "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+     "n": 1346,
+     "n_val": 673,
+     "n_test": 673,
+     "n_by_group": {
+      "0": 909,
+      "1": 78,
+      "2": 359
+     },
+     "n_by_group_val": {
+      "0": 458,
+      "1": 28,
+      "2": 187
+     },
+     "n_by_group_test": {
+      "0": 451,
+      "1": 50,
+      "2": 172
+     },
+     "n_fit_by_group": {
+      "0": 41109,
+      "1": 3792,
+      "2": 16955,
+      "3": 1344,
+      "4": 504
+     },
+     "n_cells": 5,
+     "n_pairs": 3,
+     "groups": [
+      0,
+      1,
+      2
+     ],
+     "pairs": [
+      {
+       "groups": [
+        0,
+        1
+       ],
+       "coding": {
+        "0": 0,
+        "1": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 44901,
+       "n_val": 486,
+       "n_test": 501,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 12,
+        "test": 7
+       },
+       "status": "OK",
+       "ub": 1.1403761381582478,
+       "empirical_test": 0.03991130820399169
+      },
+      {
+       "groups": [
+        0,
+        2
+       ],
+       "coding": {
+        "0": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 58064,
+       "n_val": 645,
+       "n_test": 623,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 13,
+        "test": 9
+       },
+       "status": "OK",
+       "ub": 0.41283112587261295,
+       "empirical_test": 0.008134378383953145
+      },
+      {
+       "groups": [
+        1,
+        2
+       ],
+       "coding": {
+        "1": 0,
+        "2": 1
+       },
+       "eps_pair": 0.016666666666666666,
+       "eps_b": 0.0016666666666666666,
+       "eps_c": 0.013333333333333332,
+       "eps_s": 0.0016666666666666666,
+       "n_base": 20747,
+       "n_val": 215,
+       "n_test": 222,
+       "cells_missing": {
+        "base": 0,
+        "val": 0,
+        "test": 0
+       },
+       "min_cell_n": {
+        "val": 3,
+        "test": 2
+       },
+       "status": "OK",
+       "ub": 1.0921655568746451,
+       "empirical_test": 0.0348837209302324
+      }
+     ],
+     "premises": [
+      {
+       "name": "cert_rows_disjoint_from_fit_rows",
+       "holds": true,
+       "how": "checked",
+       "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"
+      },
+      {
+       "name": "lemma52_and_lemma53_rows_disjoint",
+       "holds": true,
+       "how": "checked",
+       "detail": "random split (seed 0) of the certificate rows into D_val (673) and D_test (673)"
+      },
+      {
+       "name": "budget_union_bound",
+       "holds": true,
+       "how": "checked",
+       "detail": "delta=0.05 = 3 pair(s) x (eps_b 0.00166667 + eps_c 0.0133333 + eps_s 0.00166667)"
+      },
+      {
+       "name": "every_cell_present_in_base_val_test_for_every_pair",
+       "holds": true,
+       "how": "checked",
+       "detail": "official assertion in alphabeta_adversary.py"
+      },
+      {
+       "name": "bound_finite",
+       "holds": true,
+       "how": "checked",
+       "detail": "NaN/inf never folded into the max"
+      },
+      {
+       "name": "rows_iid_from_target_distribution",
+       "holds": null,
+       "how": "stated",
+       "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound refers to; not checkable from the data"
+      },
+      {
+       "name": "encoder_independent_of_cert_rows",
+       "holds": null,
+       "how": "stated",
+       "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but rows that share a unit/person with fit rows must be excluded by the caller"
+      },
+      {
+       "name": "scope_representation_only",
+       "holds": null,
+       "how": "stated",
+       "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not classifiers that also see other channels such as clean model outputs"
+      }
+     ],
+     "seconds": 0.03391754200000002,
+     "cert_cfg_used": {
+      "delta": 0.05,
+      "groups": [
+       0,
+       1,
+       2
+      ],
+      "split_seed": 0,
+      "val_fraction": 0.5,
+      "eps_b_fraction": 0.1,
+      "eps_s_fraction": 0.1,
+      "groups_resolved": [
+       0,
+       1,
+       2
+      ]
+     },
+     "n_supplied": 1385,
+     "n_outside_groups_dropped": 39,
+     "model_fingerprint": "1bafa331dac20cc4bd06fefa20e7a935d5cbbd3ce0975e17b9b214410f96331a",
+     "fare_commit": "89cb1b66ed268c16659cbf7428c43e60da2df641"
+    },
+    "cert_rows_with_feature_vector_equal_to_a_fit_row": 6
+   }
+  }
+ }
+}

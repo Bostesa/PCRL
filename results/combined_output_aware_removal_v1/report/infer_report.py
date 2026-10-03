@@ -37,7 +37,7 @@ for ds in ("adult", "hmda"):
             members[name] = {"members": uids, "complete": False}
             return None
         G[name] = cg.group(f"{ds}|{name}", [cg.recovery_of(u, recipe) for u in uids], uids)
-        members[name] = {"members": uids, "complete": True}
+        members[name] = {"members": uids, "complete": True, "recipe": recipe}
         return G[name]
 
     def grp_acc(name, uids):
@@ -143,7 +143,7 @@ for ds in ("adult", "hmda"):
     # worst-class / worst-pair (secondary; simultaneous over K components at level 0.90)
     wtargets = {k: v for k, v in members.items() if k.startswith("R(") and "|" not in k and v["complete"]}
     for name, m in wtargets.items():
-        parts = [cg.worst_parts(u) for u in m["members"]]
+        parts = [cg.worst_parts(u, m.get("recipe", "NL")) for u in m["members"]]
         keys = list(parts[0].keys())
         comp = {kk: cg.g.add(f"{ds}|{name}|{kk}", "mean", [p[kk] for p in parts]) for kk in keys}
         wp, wr, _ = I.bootstrap(cg, list(comp.values()), B_EXPLORATORY, SEED_EXPLORATORY)

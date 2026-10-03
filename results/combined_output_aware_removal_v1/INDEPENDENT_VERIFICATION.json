@@ -1,0 +1,4896 @@
+{
+ "schema": "oar_independent_verification/v1",
+ "generated_at": "2026-10-03T06:50:15Z",
+ "replay_code": {
+  "path": "results/combined_output_aware_removal_v1/verification/replay_oar.py",
+  "sha256": "f4d2a30c51556d33f6b3394e11cac755c0ff4e7e9825a4993005529add33a2d4",
+  "imports_runner_code": false,
+  "numpy": "2.4.2"
+ },
+ "inputs": {
+  "pkg": "~/PCRL/.worktrees/combined-output-aware-removal-v1/results/combined_output_aware_removal_v1",
+  "run": "~/PCRL_eval_cache_private/oar_v1/run",
+  "bench": "~/PCRL_eval_cache_private/bench_v1",
+  "bench_pkg": "~/PCRL/.worktrees/combined-output-aware-removal-v1/results/combined_matched_removal_benchmark_v1",
+  "exposure_dir": "~/PCRL_eval_cache_private/oar_v1/exposure"
+ },
+ "settings": {
+  "B_primary": 20000,
+  "seed_primary": 20261011,
+  "chunk": 500,
+  "quantile": "linear",
+  "alpha_each": 0.004166666666666667,
+  "datasets": [
+   "adult",
+   "hmda"
+  ],
+  "stages": [
+   "c1",
+   "c2",
+   "contracts",
+   "controls",
+   "exposure",
+   "leakage",
+   "membership",
+   "nominee",
+   "primary",
+   "roles"
+  ]
+ },
+ "public_summary": {
+  "counts_by_status": {
+   "PASS": 432,
+   "FAIL": 4,
+   "MC_BORDERLINE": 1
+  },
+  "counts_by_scope": {
+   "contracts": {
+    "PASS": 34,
+    "FAIL": 2
+   },
+   "controls": {
+    "PASS": 2
+   },
+   "corrections_C1": {
+    "PASS": 108
+   },
+   "corrections_C2": {
+    "PASS": 46
+   },
+   "exposure_original_custody": {
+    "PASS": 51,
+    "MC_BORDERLINE": 1
+   },
+   "exposure_retained": {
+    "PASS": 52
+   },
+   "exposure_rule": {
+    "PASS": 4
+   },
+   "leakage": {
+    "PASS": 20
+   },
+   "lock": {
+    "PASS": 5
+   },
+   "membership": {
+    "PASS": 20
+   },
+   "nominee": {
+    "PASS": 26
+   },
+   "primary": {
+    "PASS": 40
+   },
+   "roles": {
+    "PASS": 24,
+    "FAIL": 2
+   }
+  },
+  "non_pass": [
+   {
+    "scope": "roles",
+    "id": "adult:excluded_exposure_rows_field",
+    "status": "FAIL",
+    "cause": "reporting-only defect: oar/study.py casts roles to '<U16' and assigns the 17-character label 'excluded_exposure', which numpy truncates to 'excluded_exposur'; the count of role == 'excluded_exposure' is therefore 0. The rows ARE removed from every scored role (the role-set counts and hashes above match). Truncation reproduced: True",
+    "detail": "ROLES_AND_SUPPORT.json reports excluded_exposure_rows / exposure_groups_removed that differ from the rows actually removed from scored roles"
+   },
+   {
+    "scope": "roles",
+    "id": "hmda:excluded_exposure_rows_field",
+    "status": "FAIL",
+    "cause": "reporting-only defect: oar/study.py casts roles to '<U16' and assigns the 17-character label 'excluded_exposure', which numpy truncates to 'excluded_exposur'; the count of role == 'excluded_exposure' is therefore 0. The rows ARE removed from every scored role (the role-set counts and hashes above match). Truncation reproduced: True",
+    "detail": "ROLES_AND_SUPPORT.json reports excluded_exposure_rows / exposure_groups_removed that differ from the rows actually removed from scored roles"
+   },
+   {
+    "scope": "contracts",
+    "id": "adult__s0:certificates_amendment_A1",
+    "status": "FAIL",
+    "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+    "detail": null
+   },
+   {
+    "scope": "contracts",
+    "id": "hmda__s1:certificates_amendment_A1",
+    "status": "FAIL",
+    "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+    "detail": null
+   },
+   {
+    "scope": "exposure_original_custody",
+    "id": "P-adult-G1-A:vs_runner",
+    "status": "MC_BORDERLINE",
+    "cause": "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced under the mirrored draw, but an independent draw could flip it",
+    "detail": null
+   }
+  ]
+ },
+ "primary_endpoints": [
+  {
+   "id": "P1-adult",
+   "cell": "adult",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.26277841852922734,
+   "side1_point": 0.775705046129914,
+   "side2_point": 0.5129266276006866,
+   "lower": 0.24924374769698407,
+   "upper": 0.27639284317905904,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 0.00013291821894634293,
+   "mc_se_upper": 0.0002921366686732263,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P2-adult",
+   "cell": "adult",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.2618039188336799,
+   "side1_point": 0.8118984301279764,
+   "side2_point": 0.5500945112942964,
+   "lower": 0.24746290429724127,
+   "upper": 0.2760780314294384,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 0.00016934595522005713,
+   "mc_se_upper": 0.000209276205575315,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P3-adult",
+   "cell": "adult",
+   "margin": -0.01,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": -0.006866297921037545,
+   "side1_point": 0.8237014431941,
+   "side2_point": 0.8305677411151375,
+   "lower": -0.0117617140314068,
+   "upper": -0.0020344586432702316,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 3.178841630113727e-05,
+   "mc_se_upper": 9.536524890330078e-05,
+   "decision": "NOT_ESTABLISHED",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 19188
+  },
+  {
+   "id": "P4-adult",
+   "cell": "adult",
+   "margin": -0.01,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": -0.006675567423230944,
+   "side1_point": 0.8237014431941,
+   "side2_point": 0.8303770106173309,
+   "lower": -0.01157098353360042,
+   "upper": -0.001843728145463741,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 6.357683260220688e-05,
+   "mc_se_upper": 5.658494326464449e-05,
+   "decision": "NOT_ESTABLISHED",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 19273
+  },
+  {
+   "id": "P5-adult",
+   "cell": "adult",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.23770457725361882,
+   "side1_point": 0.7877990885479152,
+   "side2_point": 0.5500945112942964,
+   "lower": 0.222727449115851,
+   "upper": 0.25239128023669594,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 0.0001327581421162044,
+   "mc_se_upper": 0.00021484004609911844,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P6-adult",
+   "cell": "adult",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.2670774654109903,
+   "side1_point": 0.8171719767052867,
+   "side2_point": 0.5500945112942964,
+   "lower": 0.2524801755536396,
+   "upper": 0.2816344161939594,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 0.00023308702229885014,
+   "mc_se_upper": 0.0002301975514276966,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P1-hmda",
+   "cell": "hmda",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.26247228156027125,
+   "side1_point": 0.7678960656176296,
+   "side2_point": 0.5054237840573583,
+   "lower": 0.2539526138147939,
+   "upper": 0.27071645251668397,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 8.128233058909973e-05,
+   "mc_se_upper": 0.00011756920754685263,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P2-hmda",
+   "cell": "hmda",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.36281194608362466,
+   "side1_point": 0.8634690918930541,
+   "side2_point": 0.5006571458094294,
+   "lower": 0.35602929901560976,
+   "upper": 0.369208398623478,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 8.999667025666458e-05,
+   "mc_se_upper": 7.155731329705484e-05,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P3-hmda",
+   "cell": "hmda",
+   "margin": -0.01,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": -0.003568429890848157,
+   "side1_point": 0.8993143017072487,
+   "side2_point": 0.9028827315980968,
+   "lower": -0.006228137069126134,
+   "upper": -0.0009796366867806364,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 6.829890369565265e-05,
+   "mc_se_upper": 6.965351389232044e-05,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P4-hmda",
+   "cell": "hmda",
+   "margin": -0.01,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": -0.0028687377553877624,
+   "side1_point": 0.8993143017072487,
+   "side2_point": 0.9021830394626364,
+   "lower": -0.005713612350357629,
+   "upper": -6.995452955582682e-05,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 3.465047168588892e-05,
+   "mc_se_upper": 3.498782672656209e-05,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P5-hmda",
+   "cell": "hmda",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.26670480895339577,
+   "side1_point": 0.767792170161975,
+   "side2_point": 0.5010873612085792,
+   "lower": 0.2576422052473212,
+   "upper": 0.27557025395157586,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 0.0001099485786340837,
+   "mc_se_upper": 0.00011174046652706604,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  },
+  {
+   "id": "P6-hmda",
+   "cell": "hmda",
+   "margin": 0.02,
+   "alpha_each": 0.004166666666666667,
+   "B": 20000,
+   "seed": 20261011,
+   "point": 0.36212072297533215,
+   "side1_point": 0.8632080841839114,
+   "side2_point": 0.5010873612085792,
+   "lower": 0.3550215495595686,
+   "upper": 0.36882314226336727,
+   "n_ne_replicates": 0,
+   "mc_se_lower": 8.448463596855138e-05,
+   "mc_se_upper": 0.0001259520909190348,
+   "decision": "PASS",
+   "status": "DECIDED",
+   "n_replicates_above_margin": 20000
+  }
+ ],
+ "competitive": {
+  "adult": {
+   "conjunction_rows": [
+    "P2-adult",
+    "P3-adult",
+    "P4-adult"
+   ],
+   "all_pass": false,
+   "every_seed_admissible_nominee": true,
+   "competitive_method": false
+  },
+  "hmda": {
+   "conjunction_rows": [
+    "P2-hmda",
+    "P3-hmda",
+    "P4-hmda"
+   ],
+   "all_pass": true,
+   "every_seed_admissible_nominee": true,
+   "competitive_method": true
+  }
+ },
+ "items": [
+  {
+   "scope": "lock",
+   "id": "roles_and_support_hash",
+   "status": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "family_size_and_rows",
+   "status": "PASS",
+   "n_csv": 12,
+   "n_lock": 12,
+   "size_lock": 12
+  },
+  {
+   "scope": "lock",
+   "id": "adult:sigma_star",
+   "status": "PASS"
+  },
+  {
+   "scope": "lock",
+   "id": "adult:vocabulary_vs_protocol",
+   "status": "PASS"
+  },
+  {
+   "scope": "lock",
+   "id": "hmda:sigma_star",
+   "status": "PASS"
+  },
+  {
+   "scope": "lock",
+   "id": "hmda:vocabulary_vs_protocol",
+   "status": "PASS"
+  },
+  {
+   "scope": "roles",
+   "id": "adult:defense_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 24127,
+    "groups": 24113
+   },
+   "reported": {
+    "rows": 24127,
+    "groups": 24113
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:cert:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 1500,
+    "groups": 1500
+   },
+   "reported": {
+    "rows": 1500,
+    "groups": 1500
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:attacker_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 6065,
+    "groups": 6061
+   },
+   "reported": {
+    "rows": 6065,
+    "groups": 6061
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:attacker_val:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 2235,
+    "groups": 2234
+   },
+   "reported": {
+    "rows": 2235,
+    "groups": 2234
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:assessment:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 5243,
+    "groups": 5243
+   },
+   "reported": {
+    "rows": 5243,
+    "groups": 5243
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:head_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 19230,
+    "groups": 19221
+   },
+   "reported": {
+    "rows": 19230,
+    "groups": 19221
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:head_val:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 4897,
+    "groups": 4892
+   },
+   "reported": {
+    "rows": 4897,
+    "groups": 4892
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "adult:exposure_rows_removed",
+   "status": "PASS",
+   "replay": 17,
+   "protocol": 17,
+   "by_role": {
+    "attacker_fit": 6,
+    "attacker_val": 4,
+    "assessment": 7
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "adult:excluded_exposure_rows_field",
+   "status": "FAIL",
+   "detail": "ROLES_AND_SUPPORT.json reports excluded_exposure_rows / exposure_groups_removed that differ from the rows actually removed from scored roles",
+   "cause": "reporting-only defect: oar/study.py casts roles to '<U16' and assigns the 17-character label 'excluded_exposure', which numpy truncates to 'excluded_exposur'; the count of role == 'excluded_exposure' is therefore 0. The rows ARE removed from every scored role (the role-set counts and hashes above match). Truncation reproduced: True",
+   "reported": {
+    "excluded_exposure_rows": 0,
+    "exposure_groups_removed": 0
+   },
+   "replay": {
+    "excluded_exposure_rows": 17,
+    "exposure_groups_removed": 17
+   },
+   "assessment_rows_removed": 7,
+   "true_removed_by_role": {
+    "attacker_fit": 6,
+    "attacker_val": 4,
+    "assessment": 7
+   },
+   "true_groups_removed_by_role": {
+    "attacker_fit": 6,
+    "attacker_val": 4,
+    "assessment": 7
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "adult:cert_group_consistent",
+   "status": "PASS",
+   "n_shared_units": 0
+  },
+  {
+   "scope": "roles",
+   "id": "adult:class_vocabulary",
+   "status": "PASS",
+   "K_s": 2,
+   "K_t": 2
+  },
+  {
+   "scope": "roles",
+   "id": "adult:support_sensitive",
+   "status": "PASS",
+   "replay_supported": [
+    0,
+    1
+   ],
+   "reported_supported": [
+    0,
+    1
+   ],
+   "lock_supported": [
+    0,
+    1
+   ],
+   "thresholds": {
+    "attacker_fit": 100,
+    "attacker_val": 30,
+    "assessment": 100
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "adult:support_task",
+   "status": "PASS",
+   "replay_supported": [
+    0,
+    1
+   ],
+   "reported_supported": [
+    0,
+    1
+   ],
+   "lock_supported": [
+    0,
+    1
+   ],
+   "thresholds": {
+    "attacker_fit": 100,
+    "attacker_val": 30,
+    "assessment": 100
+   }
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:roles_row_disjoint",
+   "status": "PASS",
+   "pairs": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:roles_group_disjoint",
+   "status": "PASS",
+   "pairs": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:head_holdout_inside_defense_fit",
+   "status": "PASS"
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:exposure_rows_in_no_scored_role",
+   "status": "PASS"
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:assessment_rows_equal_roles",
+   "status": "PASS",
+   "n_units": 168,
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:val_rows_equal_attacker_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:no_assessment_row_in_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:labels_match_inputs",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:attack_records_fit_attacker_fit_select_attacker_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "adult:fare_fit_rows_are_defense_fit",
+   "status": "PASS",
+   "n_farefit_units": 21,
+   "problems": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s0:fare_aliases",
+   "status": "PASS",
+   "replay": {},
+   "reported": {}
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s0:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s0:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s0:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s1:fare_aliases",
+   "status": "PASS",
+   "replay": {},
+   "reported": {}
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s1:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s1:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 2,
+    "source": 2,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 2,
+    "source": 2,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s1:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s2:fare_aliases",
+   "status": "PASS",
+   "replay": {},
+   "reported": {}
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s2:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s2:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "adult__s2:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "adult:all_encoder_seeds_have_selection",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:defense_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 63704,
+    "groups": 63586
+   },
+   "reported": {
+    "rows": 63704,
+    "groups": 63586
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:cert:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 1385,
+    "groups": 1385
+   },
+   "reported": {
+    "rows": 1385,
+    "groups": 1385
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:attacker_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 5388,
+    "groups": 5384
+   },
+   "reported": {
+    "rows": 5388,
+    "groups": 5384
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:attacker_val:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 2082,
+    "groups": 2082
+   },
+   "reported": {
+    "rows": 2082,
+    "groups": 2082
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:assessment:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 4764,
+    "groups": 4762
+   },
+   "reported": {
+    "rows": 4764,
+    "groups": 4762
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:head_fit:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 50895,
+    "groups": 50798
+   },
+   "reported": {
+    "rows": 50895,
+    "groups": 50798
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:head_val:rows_groups_hash",
+   "status": "PASS",
+   "replay": {
+    "rows": 12809,
+    "groups": 12788
+   },
+   "reported": {
+    "rows": 12809,
+    "groups": 12788
+   },
+   "hash_equal": true
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:exposure_rows_removed",
+   "status": "PASS",
+   "replay": 42,
+   "protocol": 42,
+   "by_role": {
+    "attacker_fit": 21,
+    "attacker_val": 7,
+    "assessment": 14
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:excluded_exposure_rows_field",
+   "status": "FAIL",
+   "detail": "ROLES_AND_SUPPORT.json reports excluded_exposure_rows / exposure_groups_removed that differ from the rows actually removed from scored roles",
+   "cause": "reporting-only defect: oar/study.py casts roles to '<U16' and assigns the 17-character label 'excluded_exposure', which numpy truncates to 'excluded_exposur'; the count of role == 'excluded_exposure' is therefore 0. The rows ARE removed from every scored role (the role-set counts and hashes above match). Truncation reproduced: True",
+   "reported": {
+    "excluded_exposure_rows": 0,
+    "exposure_groups_removed": 0
+   },
+   "replay": {
+    "excluded_exposure_rows": 42,
+    "exposure_groups_removed": 42
+   },
+   "assessment_rows_removed": 14,
+   "true_removed_by_role": {
+    "attacker_fit": 21,
+    "attacker_val": 7,
+    "assessment": 14
+   },
+   "true_groups_removed_by_role": {
+    "attacker_fit": 21,
+    "attacker_val": 7,
+    "assessment": 14
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:cert_group_consistent",
+   "status": "PASS",
+   "n_shared_units": 0
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:class_vocabulary",
+   "status": "PASS",
+   "K_s": 5,
+   "K_t": 2
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:support_sensitive",
+   "status": "PASS",
+   "replay_supported": [
+    0,
+    1,
+    2
+   ],
+   "reported_supported": [
+    0,
+    1,
+    2
+   ],
+   "lock_supported": [
+    0,
+    1,
+    2
+   ],
+   "thresholds": {
+    "attacker_fit": 100,
+    "attacker_val": 30,
+    "assessment": 100
+   }
+  },
+  {
+   "scope": "roles",
+   "id": "hmda:support_task",
+   "status": "PASS",
+   "replay_supported": [
+    0,
+    1
+   ],
+   "reported_supported": [
+    0,
+    1
+   ],
+   "lock_supported": [
+    0,
+    1
+   ],
+   "thresholds": {
+    "attacker_fit": 100,
+    "attacker_val": 30,
+    "assessment": 100
+   }
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:roles_row_disjoint",
+   "status": "PASS",
+   "pairs": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:roles_group_disjoint",
+   "status": "PASS",
+   "pairs": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:head_holdout_inside_defense_fit",
+   "status": "PASS"
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:exposure_rows_in_no_scored_role",
+   "status": "PASS"
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:assessment_rows_equal_roles",
+   "status": "PASS",
+   "n_units": 162,
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:val_rows_equal_attacker_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:no_assessment_row_in_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:labels_match_inputs",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:attack_records_fit_attacker_fit_select_attacker_val",
+   "status": "PASS",
+   "units": []
+  },
+  {
+   "scope": "leakage",
+   "id": "hmda:fare_fit_rows_are_defense_fit",
+   "status": "PASS",
+   "n_farefit_units": 21,
+   "problems": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s0:fare_aliases",
+   "status": "PASS",
+   "replay": {
+    "6": 5
+   },
+   "reported": {
+    "6": 5
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s0:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s0:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s0:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s1:fare_aliases",
+   "status": "PASS",
+   "replay": {
+    "5": 4,
+    "6": 4
+   },
+   "reported": {
+    "5": 4,
+    "6": 4
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s1:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s1:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 4,
+    "source": 4,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s1:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s2:fare_aliases",
+   "status": "PASS",
+   "replay": {},
+   "reported": {}
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s2:aliases_not_refitted",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s2:nominee",
+   "status": "PASS",
+   "replay": {
+    "nominee": 5,
+    "source": 5,
+    "admissible": true
+   },
+   "reported": {
+    "nominee": 5,
+    "source": 5,
+    "admissible": true
+   }
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda__s2:selection_table_values",
+   "status": "PASS",
+   "configs": []
+  },
+  {
+   "scope": "nominee",
+   "id": "hmda:all_encoder_seeds_have_selection",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ]
+  },
+  {
+   "scope": "membership",
+   "id": "P1-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P2-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P3-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P4-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P5-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P6-adult:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "primary",
+   "id": "adult:auc_point_two_algorithms",
+   "status": "PASS",
+   "max_abs_diff": 0.0
+  },
+  {
+   "scope": "membership",
+   "id": "P1-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P2-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P3-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P4-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P5-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "membership",
+   "id": "P6-hmda:encoder_seeds_paired",
+   "status": "PASS",
+   "seeds_side1": [
+    0,
+    1,
+    2
+   ],
+   "seeds_side2": [
+    0,
+    1,
+    2
+   ],
+   "missing": []
+  },
+  {
+   "scope": "primary",
+   "id": "hmda:auc_point_two_algorithms",
+   "status": "PASS",
+   "max_abs_diff": 0.0
+  },
+  {
+   "scope": "primary",
+   "id": "runner_family_size_12",
+   "status": "PASS",
+   "n_rows": 12,
+   "extra": [],
+   "missing": []
+  },
+  {
+   "scope": "primary",
+   "id": "P1-adult:point",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16,
+   "replay": {
+    "point": 0.26277841852922734,
+    "lower": 0.24924374769698407,
+    "upper": 0.27639284317905904,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.26277841852922745,
+    "lower": 0.2492437476969843,
+    "upper": 0.2763928431790593,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P1-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 2.7755575615628914e-16,
+   "tol_lower": 0.000913968423151229,
+   "tol_upper": 0.0019488883463759708,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P1-adult:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P2-adult:point",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16,
+   "replay": {
+    "point": 0.2618039188336799,
+    "lower": 0.24746290429724127,
+    "upper": 0.2760780314294384,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.26180391883368004,
+    "lower": 0.24746290429724097,
+    "upper": 0.27607803142943815,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P2-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 3.0531133177191805e-16,
+   "abs_diff_upper": 2.220446049250313e-16,
+   "tol_lower": 0.0011507487089303713,
+   "tol_upper": 0.0014102953362395475,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P2-adult:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P3-adult:point",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16,
+   "replay": {
+    "point": -0.006866297921037545,
+    "lower": -0.0117617140314068,
+    "upper": -0.0020344586432702316,
+    "decision": "NOT_ESTABLISHED"
+   },
+   "runner": {
+    "point": -0.006866297921037656,
+    "lower": -0.011761714031406875,
+    "upper": -0.0020344586432702316,
+    "decision": "NOT_ESTABLISHED"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P3-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 7.45931094670027e-17,
+   "abs_diff_upper": 0.0,
+   "tol_lower": 0.00025662470595739226,
+   "tol_upper": 0.0006698741178714551,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P3-adult:decision",
+   "status": "PASS",
+   "replay": "NOT_ESTABLISHED",
+   "runner": "NOT_ESTABLISHED"
+  },
+  {
+   "scope": "primary",
+   "id": "P4-adult:point",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16,
+   "replay": {
+    "point": -0.006675567423230944,
+    "lower": -0.01157098353360042,
+    "upper": -0.001843728145463741,
+    "decision": "NOT_ESTABLISHED"
+   },
+   "runner": {
+    "point": -0.006675567423231055,
+    "lower": -0.01157098353360031,
+    "upper": -0.0018437281454636667,
+    "decision": "NOT_ESTABLISHED"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P4-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 7.43762690325056e-17,
+   "tol_lower": 0.00046324941191434475,
+   "tol_upper": 0.0004178021312201892,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P4-adult:decision",
+   "status": "PASS",
+   "replay": "NOT_ESTABLISHED",
+   "runner": "NOT_ESTABLISHED"
+  },
+  {
+   "scope": "primary",
+   "id": "P5-adult:point",
+   "status": "PASS",
+   "abs_diff": 0.0,
+   "replay": {
+    "point": 0.23770457725361882,
+    "lower": 0.222727449115851,
+    "upper": 0.25239128023669594,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.23770457725361882,
+    "lower": 0.22272744911585088,
+    "upper": 0.2523912802366958,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P5-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "tol_lower": 0.0009129279237553286,
+   "tol_upper": 0.0014464602996442698,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P5-adult:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P6-adult:point",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16,
+   "replay": {
+    "point": 0.2670774654109903,
+    "lower": 0.2524801755536396,
+    "upper": 0.2816344161939594,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.26707746541099053,
+    "lower": 0.2524801755536397,
+    "upper": 0.2816344161939594,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P6-adult:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0,
+   "tol_lower": 0.0015650656449425258,
+   "tol_upper": 0.0015462840842800278,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P6-adult:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P1-hmda:point",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16,
+   "replay": {
+    "point": 0.26247228156027125,
+    "lower": 0.2539526138147939,
+    "upper": 0.27071645251668397,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.262472281560271,
+    "lower": 0.253952613814794,
+    "upper": 0.27071645251668386,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P1-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "tol_lower": 0.0005783351488291482,
+   "tol_upper": 0.0008141998490545421,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P1-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P2-hmda:point",
+   "status": "PASS",
+   "abs_diff": 0.0,
+   "replay": {
+    "point": 0.36281194608362466,
+    "lower": 0.35602929901560976,
+    "upper": 0.369208398623478,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.36281194608362466,
+    "lower": 0.3560292990156098,
+    "upper": 0.36920839862347776,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P2-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 5.551115123125783e-17,
+   "abs_diff_upper": 2.220446049250313e-16,
+   "tol_lower": 0.0006349783566683198,
+   "tol_upper": 0.0005151225364308565,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P2-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P3-hmda:point",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16,
+   "replay": {
+    "point": -0.003568429890848157,
+    "lower": -0.006228137069126134,
+    "upper": -0.0009796366867806364,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": -0.003568429890847935,
+    "lower": -0.006228137069126134,
+    "upper": -0.0009796366867807853,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P3-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.489693784995083e-16,
+   "tol_lower": 0.0004939428740217423,
+   "tol_upper": 0.0005027478403000829,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P3-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P4-hmda:point",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16,
+   "replay": {
+    "point": -0.0028687377553877624,
+    "lower": -0.005713612350357629,
+    "upper": -6.995452955582682e-05,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": -0.0028687377553875404,
+    "lower": -0.005713612350357629,
+    "upper": -6.995452955586337e-05,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P4-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 3.655116573991757e-17,
+   "tol_lower": 0.000275228065958278,
+   "tol_upper": 0.0002774208737226536,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P4-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P5-hmda:point",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16,
+   "replay": {
+    "point": 0.26670480895339577,
+    "lower": 0.2576422052473212,
+    "upper": 0.27557025395157586,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.2667048089533959,
+    "lower": 0.2576422052473211,
+    "upper": 0.2755702539515758,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P5-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 5.551115123125783e-17,
+   "abs_diff_upper": 5.551115123125783e-17,
+   "tol_lower": 0.000764665761121544,
+   "tol_upper": 0.0007763130324259293,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P5-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "primary",
+   "id": "P6-hmda:point",
+   "status": "PASS",
+   "abs_diff": 0.0,
+   "replay": {
+    "point": 0.36212072297533215,
+    "lower": 0.3550215495595686,
+    "upper": 0.36882314226336727,
+    "decision": "PASS"
+   },
+   "runner": {
+    "point": 0.36212072297533215,
+    "lower": 0.35502154955956844,
+    "upper": 0.36882314226336715,
+    "decision": "PASS"
+   }
+  },
+  {
+   "scope": "primary",
+   "id": "P6-hmda:bounds",
+   "status": "PASS",
+   "abs_diff_lower": 1.6653345369377348e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "tol_lower": 0.000599150133795584,
+   "tol_upper": 0.0008686885909737263,
+   "exact_match": false
+  },
+  {
+   "scope": "primary",
+   "id": "P6-hmda:decision",
+   "status": "PASS",
+   "replay": "PASS",
+   "runner": "PASS"
+  },
+  {
+   "scope": "membership",
+   "id": "adult:noise_sigma_and_release_seeds",
+   "status": "PASS",
+   "sigma_star": 2.0,
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "adult:plus_surface_selection_and_alias",
+   "status": "PASS",
+   "counts": {
+    "ignore_out": 12,
+    "GBT/MLP": 18,
+    "ignore_rep": 24
+   },
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "adult:output_alias_reports",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "adult:alias_duplicate_counts",
+   "status": "PASS",
+   "detail": "recorded in aggregate (fare aliases recomputed from cells)",
+   "fare_grid_aliases": 0,
+   "identical_prediction_groups": 2
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s0:certificates_amendment_A1",
+   "status": "FAIL",
+   "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+   "problems": [
+    "nominee: feature-duplicate count 4 != replay 8",
+    "zero_fairness: feature-duplicate count 4 != replay 8"
+   ],
+   "feature_duplicate_cert_rows": 8
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s1:certificates_amendment_A1",
+   "status": "PASS",
+   "problems": [],
+   "feature_duplicate_cert_rows": 1
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "adult__s2:certificates_amendment_A1",
+   "status": "PASS",
+   "problems": [],
+   "feature_duplicate_cert_rows": 2
+  },
+  {
+   "scope": "controls",
+   "id": "adult:flags_consistent",
+   "status": "PASS",
+   "interfaces": []
+  },
+  {
+   "scope": "membership",
+   "id": "hmda:noise_sigma_and_release_seeds",
+   "status": "PASS",
+   "sigma_star": 4.0,
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "hmda:plus_surface_selection_and_alias",
+   "status": "PASS",
+   "counts": {
+    "ignore_out": 8,
+    "GBT/MLP": 19,
+    "ignore_rep": 27
+   },
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "hmda:output_alias_reports",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "membership",
+   "id": "hmda:alias_duplicate_counts",
+   "status": "PASS",
+   "detail": "recorded in aggregate (fare aliases recomputed from cells)",
+   "fare_grid_aliases": 3,
+   "identical_prediction_groups": 11
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2__HEAD__A:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2__HEAD__B:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2__HEAD__F:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2__HEAD__FZ:deterministic_on_features",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s0:certificates_amendment_A1",
+   "status": "PASS",
+   "problems": [],
+   "feature_duplicate_cert_rows": 6
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s1:certificates_amendment_A1",
+   "status": "FAIL",
+   "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+   "problems": [
+    "nominee: feature-duplicate count 1 != replay 1138",
+    "zero_fairness: feature-duplicate count 1 != replay 1138"
+   ],
+   "feature_duplicate_cert_rows": 1138
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2:certificates_with_premises",
+   "status": "PASS",
+   "problems": []
+  },
+  {
+   "scope": "contracts",
+   "id": "hmda__s2:certificates_amendment_A1",
+   "status": "PASS",
+   "problems": [],
+   "feature_duplicate_cert_rows": 6
+  },
+  {
+   "scope": "controls",
+   "id": "hmda:flags_consistent",
+   "status": "PASS",
+   "interfaces": []
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "truncated_groups",
+   "status": "PASS",
+   "truncated": [
+    [
+     "adult__employment_analysis__marital_status",
+     "D_sigma0.5"
+    ],
+    [
+     "adult__employment_analysis__marital_status",
+     "D_sigma1"
+    ],
+    [
+     "adult__employment_analysis__marital_status",
+     "D_sigma2"
+    ],
+    [
+     "adult__employment_analysis__marital_status",
+     "D_sigma4"
+    ],
+    [
+     "adult__employment_analysis__marital_status",
+     "D_sigma8"
+    ]
+   ]
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 3.3306690738754696e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 9.020562075079397e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep+outputs|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep+outputs|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep+outputs|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 3.0531133177191805e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep+outputs|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|G1|r2",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|G1|r2:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|G2|r2",
+   "status": "PASS",
+   "point_abs_diff": 7.28583859910259e-17,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|rep|G2|r2:csv",
+   "status": "PASS",
+   "abs_diff": 7.28583859910259e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U2|U2|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U2|U2|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U2|U2|log_loss",
+   "status": "PASS",
+   "point_abs_diff": 2.7755575615628914e-17,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U2|U2|log_loss:csv",
+   "status": "PASS",
+   "abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U1|U1|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5-A|U1|U1|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5|plus_NL_minus_outputs_NL|macro_auc [D_sigma0.5]",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma0.5|plus_NL_minus_outputs_NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|A|plus_NL_minus_outputs_NL|macro_auc [D_sigma0.5]",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 4.440892098500626e-16,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 4.440892098500626e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.942890293094024e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep+outputs|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep+outputs|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep+outputs|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.3877787807814457e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep+outputs|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|G1|r2",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|G1|r2:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|G2|r2",
+   "status": "PASS",
+   "point_abs_diff": 7.28583859910259e-17,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|rep|G2|r2:csv",
+   "status": "PASS",
+   "abs_diff": 7.28583859910259e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U2|U2|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U2|U2|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U2|U2|log_loss",
+   "status": "PASS",
+   "point_abs_diff": 5.551115123125783e-17,
+   "lower_abs_diff": 5.551115123125783e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U2|U2|log_loss:csv",
+   "status": "PASS",
+   "abs_diff": 5.551115123125783e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U1|U1|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1-A|U1|U1|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1|plus_NL_minus_outputs_NL|macro_auc [D_sigma1]",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma1|plus_NL_minus_outputs_NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|A|plus_NL_minus_outputs_NL|macro_auc [D_sigma1]",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep+outputs|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep+outputs|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep+outputs|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.3877787807814457e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep+outputs|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|G1|r2",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-17,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|G1|r2:csv",
+   "status": "PASS",
+   "abs_diff": 3.469446951953614e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|G2|r2",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|rep|G2|r2:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U2|U2|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U2|U2|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U2|U2|log_loss",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U2|U2|log_loss:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U1|U1|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2-A|U1|U1|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2|plus_NL_minus_outputs_NL|macro_auc [D_sigma2]",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma2|plus_NL_minus_outputs_NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|A|plus_NL_minus_outputs_NL|macro_auc [D_sigma2]",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 2.0816681711721685e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep+outputs|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep+outputs|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep+outputs|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.3877787807814457e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep+outputs|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|G1|r2",
+   "status": "PASS",
+   "point_abs_diff": 3.8163916471489756e-17,
+   "lower_abs_diff": 3.469446951953614e-18
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|G1|r2:csv",
+   "status": "PASS",
+   "abs_diff": 3.8163916471489756e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|G2|r2",
+   "status": "PASS",
+   "point_abs_diff": 7.632783294297951e-17,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|rep|G2|r2:csv",
+   "status": "PASS",
+   "abs_diff": 7.632783294297951e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U2|U2|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U2|U2|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U2|U2|log_loss",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U2|U2|log_loss:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U1|U1|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4-A|U1|U1|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4|plus_NL_minus_outputs_NL|macro_auc [D_sigma4]",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma4|plus_NL_minus_outputs_NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|A|plus_NL_minus_outputs_NL|macro_auc [D_sigma4]",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.6653345369377348e-16,
+   "lower_abs_diff": 5.551115123125783e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.6653345369377348e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 1.5265566588595902e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep+outputs|NL|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 2.7755575615628914e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep+outputs|NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep+outputs|L|macro_auc",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 1.3877787807814457e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep+outputs|L|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|G1|r2",
+   "status": "PASS",
+   "point_abs_diff": 3.8163916471489756e-17,
+   "lower_abs_diff": 3.469446951953614e-18
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|G1|r2:csv",
+   "status": "PASS",
+   "abs_diff": 3.8163916471489756e-17
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|G2|r2",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|rep|G2|r2:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U2|U2|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U2|U2|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U2|U2|log_loss",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U2|U2|log_loss:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U1|U1|accuracy",
+   "status": "PASS",
+   "point_abs_diff": 0.0,
+   "lower_abs_diff": 1.1102230246251565e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8-A|U1|U1|accuracy:csv",
+   "status": "PASS",
+   "abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8|plus_NL_minus_outputs_NL|macro_auc [D_sigma8]",
+   "status": "PASS",
+   "point_abs_diff": 2.220446049250313e-16,
+   "lower_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|D_sigma8|plus_NL_minus_outputs_NL|macro_auc:csv",
+   "status": "PASS",
+   "abs_diff": 2.220446049250313e-16
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "adult__employment_analysis__marital_status|A|plus_NL_minus_outputs_NL|macro_auc [D_sigma8]",
+   "status": "PASS",
+   "point_abs_diff": 1.1102230246251565e-16,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "row_count",
+   "status": "PASS",
+   "runner": 50,
+   "replay": 50
+  },
+  {
+   "scope": "corrections_C1",
+   "id": "original_error_reconstructed",
+   "status": "PASS",
+   "max_abs_diff": 5.551115123125783e-16,
+   "n": 45
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "unit_points",
+   "status": "PASS",
+   "n_replay": 435,
+   "n_runner": 435,
+   "max_abs_diff": 1.1102230246251565e-15,
+   "problems": []
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__income|A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.3877787807814457e-17,
+   "lower_abs_diff": 2.7582103268031233e-16
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__income|B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.8295911660692887e-19,
+   "lower_abs_diff": 3.3881317890172014e-21
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__income|C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.3852447794681098e-18,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__income|C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 2.3852447794681098e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__income__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.913793338554793e-19,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__income__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-17,
+   "lower_abs_diff": 3.191891195797325e-16
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__income__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-18,
+   "lower_abs_diff": 1.0061396160665481e-16
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__income__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.4230153513872246e-19,
+   "lower_abs_diff": 6.352747104407253e-22
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__income__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.6263032587282567e-19,
+   "lower_abs_diff": 3.05990652195616e-20
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__income__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.710505431213761e-19,
+   "lower_abs_diff": 1.1202010727438122e-19
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__income__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 6.776263578034403e-21,
+   "lower_abs_diff": 1.1540823906339842e-20
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__income__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-18,
+   "lower_abs_diff": 3.5128150388530344e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__income__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 3.469446951953614e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__income__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.0357660829594124e-18,
+   "lower_abs_diff": 1.2739375526704677e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__income__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 3.0357660829594124e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__race|A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 6.938893903907228e-18,
+   "lower_abs_diff": 1.5612511283791264e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__race|B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.734723475976807e-18,
+   "lower_abs_diff": 9.324138683375338e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__race|C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.0599841277224584e-18,
+   "lower_abs_diff": 2.4936649967166602e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__race|C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 2.0599841277224584e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__race__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 9.540979117872439e-18,
+   "lower_abs_diff": 6.505213034913027e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__race__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.122502256758253e-17,
+   "lower_abs_diff": 2.706168622523819e-16
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__race__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-18,
+   "lower_abs_diff": 3.903127820947816e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__race__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.8973538018496328e-19,
+   "lower_abs_diff": 7.199780051661553e-21
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__race__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.0357660829594124e-18,
+   "lower_abs_diff": 1.3010426069826053e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__race__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 3.469446951953614e-18,
+   "lower_abs_diff": 3.903127820947816e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__race__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 7.623296525288703e-20,
+   "lower_abs_diff": 1.9058241313221758e-21
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__race__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 6.5052130349130266e-18,
+   "lower_abs_diff": 1.6263032587282567e-19
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__race__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 6.5052130349130266e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__race__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.168404344971009e-19,
+   "lower_abs_diff": 3.3881317890172014e-21
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__race__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 2.168404344971009e-19
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__sex|A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 6.591949208711867e-17,
+   "lower_abs_diff": 3.469446951953614e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__sex|B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.6940658945086007e-19,
+   "lower_abs_diff": 1.7618285302889447e-19
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__sex|C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 7.806255641895632e-18,
+   "lower_abs_diff": 3.0791341698588326e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__education_assessment__sex|C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 7.806255641895632e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__sex__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 5.421010862427522e-18,
+   "lower_abs_diff": 8.673617379884035e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__sex__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.8041124150158794e-16,
+   "lower_abs_diff": 1.3877787807814457e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__sex__A|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.710505431213761e-19,
+   "lower_abs_diff": 1.1858461261560205e-20
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__sex__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.0249098661777034e-19,
+   "lower_abs_diff": 6.850378960919154e-20
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__sex__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 4.743384504624082e-20,
+   "lower_abs_diff": 9.529120656610879e-22
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__sex__B|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 4.472333961502706e-19,
+   "lower_abs_diff": 3.8116482626443515e-21
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s0__education_assessment__sex__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 1.3552527156068805e-19,
+   "lower_abs_diff": 1.317136232980437e-19
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__sex__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 2.2551405187698492e-17,
+   "lower_abs_diff": 0.0
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s1__education_assessment__sex__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 2.2551405187698492e-17
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__sex__C|rep|RHO1|rho1sq",
+   "status": "PASS",
+   "point_abs_diff": 8.673617379884035e-19,
+   "lower_abs_diff": 1.2468324983583301e-18
+  },
+  {
+   "scope": "corrections_C2",
+   "id": "adult__s2__education_assessment__sex__C|rep|RHO1|rho1sq:csv",
+   "status": "PASS",
+   "abs_diff": 8.673617379884035e-19
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "adult:sigma_star_lock_vs_benchmark",
+   "status": "PASS"
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "hmda:sigma_star_lock_vs_benchmark",
+   "status": "PASS"
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "adult__income_prediction__sex:support_retained",
+   "status": "PASS",
+   "sensitive_counts": [
+    1744,
+    3506
+   ],
+   "task_counts": [
+    3934,
+    1316
+   ],
+   "lost": [],
+   "task_lost": []
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-G1-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "hmda__underwriting__race:support_retained",
+   "status": "PASS",
+   "sensitive_counts": [
+    3089,
+    303,
+    1247,
+    93,
+    46
+   ],
+   "task_counts": [
+    544,
+    4234
+   ],
+   "lost": [],
+   "task_lost": []
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-G1-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-G1-A:vs_runner",
+   "status": "MC_BORDERLINE",
+   "cause": "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced under the mirrored draw, but an independent draw could flip it",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.1754682754397912,
+    "lower": -0.9572066169453431,
+    "upper": 0.029433520507432795,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": -0.17546827543979107,
+    "lower": -0.957206616945343,
+    "upper": 0.029433520507432795,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 1.3877787807814457e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8153968651672129,
+    "lower": 0.8039639893404882,
+    "upper": 0.8267624341984162,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8153968651672129,
+    "lower": 0.8039639893404882,
+    "upper": 0.8267624341984163,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.817359415677682,
+    "lower": 0.8055677652870196,
+    "upper": 0.8286751626233458,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8173594156776821,
+    "lower": 0.8055677652870198,
+    "upper": 0.8286751626233458,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8066714160608899,
+    "lower": 0.7944408378639083,
+    "upper": 0.8185556545172601,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8066714160608899,
+    "lower": 0.7944408378639084,
+    "upper": 0.8185556545172601,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rrep-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.5284019474454643,
+    "lower": 0.5201441595111361,
+    "upper": 0.5366227294455055,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": 0.5284019474454646,
+    "lower": 0.5201441595111362,
+    "upper": 0.5366227294455057,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 3.3306690738754696e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 2.220446049250313e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8168627699827817,
+    "lower": 0.8055176684470327,
+    "upper": 0.8279667403454377,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8168627699827818,
+    "lower": 0.8055176684470327,
+    "upper": 0.8279667403454378,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8175821571059485,
+    "lower": 0.8057451315861175,
+    "upper": 0.8291213369660039,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8175821571059486,
+    "lower": 0.8057451315861175,
+    "upper": 0.8291213369660039,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.81345936454937,
+    "lower": 0.8013635460635674,
+    "upper": 0.825513497945499,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8134593645493702,
+    "lower": 0.8013635460635674,
+    "upper": 0.8255134979454989,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-Rplus-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.77842193344975,
+    "lower": 0.7638131439411031,
+    "upper": 0.7927151313974498,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.7784219334497494,
+    "lower": 0.7638131439411034,
+    "upper": 0.7927151313974499,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 5.551115123125783e-16,
+   "abs_diff_lower": 3.3306690738754696e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.0004444444444444695,
+    "lower": -0.0014603174603175324,
+    "upper": 0.0006349206349205438,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": -0.00044444444444458053,
+    "lower": -0.0014603174603176061,
+    "upper": 0.0006349206349205438,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 7.37257477290143e-17,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.02076190476190476,
+    "lower": -0.02615873015873016,
+    "upper": -0.015174603174603174,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.02076190476190476,
+    "lower": -0.02615873015873016,
+    "upper": -0.015174603174603138,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 3.642919299551295e-17
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-adult-U2NI-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.04878306878306882,
+    "lower": -0.057446252204585393,
+    "upper": -0.04008465608465613,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.04878306878306882,
+    "lower": -0.057446252204585505,
+    "upper": -0.04008465608465613,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-G1-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.06257790122937039,
+    "lower": 0.041925195235763345,
+    "upper": 0.07655644934188266,
+    "decision": "UNRESOLVED"
+   },
+   "runner": {
+    "point": 0.0625779012293705,
+    "lower": 0.041925195235763345,
+    "upper": 0.07655644934188267,
+    "decision": "UNRESOLVED"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.3877787807814457e-17
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8702395587452276,
+    "lower": 0.8663791653775932,
+    "upper": 0.8741239756996706,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8702395587452277,
+    "lower": 0.8663791653775933,
+    "upper": 0.8741239756996705,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8632331691080423,
+    "lower": 0.8589760204472314,
+    "upper": 0.8675321842917233,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8632331691080424,
+    "lower": 0.8589760204472315,
+    "upper": 0.8675321842917233,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8628155173493862,
+    "lower": 0.8585229305995796,
+    "upper": 0.8671000111105263,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8628155173493862,
+    "lower": 0.8585229305995798,
+    "upper": 0.8671000111105264,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rrep-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.5130409919618313,
+    "lower": 0.5042417650755374,
+    "upper": 0.5220262424626599,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": 0.5130409919618313,
+    "lower": 0.5042417650755374,
+    "upper": 0.5220262424626598,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8712044939779028,
+    "lower": 0.8674232961829448,
+    "upper": 0.8750223955842665,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8712044939779028,
+    "lower": 0.8674232961829449,
+    "upper": 0.8750223955842666,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8658092683843299,
+    "lower": 0.861793952825145,
+    "upper": 0.8699126512556818,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8658092683843299,
+    "lower": 0.861793952825145,
+    "upper": 0.8699126512556817,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8653959835110447,
+    "lower": 0.8611681056724849,
+    "upper": 0.8694972874897193,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8653959835110449,
+    "lower": 0.8611681056724849,
+    "upper": 0.8694972874897193,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-Rplus-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.7577021299848113,
+    "lower": 0.7494458467757051,
+    "upper": 0.766002846005955,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.7577021299848113,
+    "lower": 0.749445846775705,
+    "upper": 0.7660028460059549,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.0013255197432677779,
+    "lower": -0.0029300962745918424,
+    "upper": 0.0001395576024003642,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": -0.001325519743267889,
+    "lower": -0.002930096274591806,
+    "upper": 0.0001395576024003642,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 3.642919299551295e-17,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.0004883493790985849,
+    "lower": -0.001046536432522794,
+    "upper": 0.0020929259104227604,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": 0.0004883493790986959,
+    "lower": -0.001046536432522794,
+    "upper": 0.0020929259104227604,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_original_custody",
+   "id": "P-hmda-U2NI-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.016673643086367873,
+    "lower": -0.023014167449525735,
+    "upper": -0.01074818537130103,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.016673643086368095,
+    "lower": -0.02301416744952559,
+    "upper": -0.010748185371300881,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.457167719820518e-16,
+   "abs_diff_upper": 1.491862189340054e-16
+  },
+  {
+   "scope": "exposure_rule",
+   "id": "adult:exposed_test_rows_all_roles",
+   "status": "PASS",
+   "replay": 17
+  },
+  {
+   "scope": "exposure_rule",
+   "id": "adult:dropped_rows",
+   "status": "PASS",
+   "exposed_test_rows_all_roles": 17,
+   "exposed_assessment_rows": 7,
+   "groups": 7,
+   "rows_dropped_with_groups": 7
+  },
+  {
+   "scope": "exposure_rule",
+   "id": "hmda:exposed_test_rows_all_roles",
+   "status": "PASS",
+   "replay": 42
+  },
+  {
+   "scope": "exposure_rule",
+   "id": "hmda:dropped_rows",
+   "status": "PASS",
+   "exposed_test_rows_all_roles": 42,
+   "exposed_assessment_rows": 14,
+   "groups": 14,
+   "rows_dropped_with_groups": 14
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "adult:sigma_star_lock_vs_benchmark",
+   "status": "PASS"
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "hmda:sigma_star_lock_vs_benchmark",
+   "status": "PASS"
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "adult__income_prediction__sex:support_retained",
+   "status": "PASS",
+   "sensitive_counts": [
+    1742,
+    3501
+   ],
+   "task_counts": [
+    3928,
+    1315
+   ],
+   "lost": [],
+   "task_lost": []
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-G1-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "hmda__underwriting__race:support_retained",
+   "status": "PASS",
+   "sensitive_counts": [
+    3083,
+    302,
+    1240,
+    93,
+    46
+   ],
+   "task_counts": [
+    541,
+    4223
+   ],
+   "lost": [],
+   "task_lost": []
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-G1-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-A:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-B:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-C:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [],
+   "n_members": 3
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-Dstar:membership",
+   "status": "PASS",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "release_seeds": [
+    0,
+    1,
+    2
+   ],
+   "n_members": 9
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-G1-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.17590457711924506,
+    "lower": -0.9653603631322392,
+    "upper": 0.0292910786306179,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": -0.17590457711924493,
+    "lower": -0.9653603631322392,
+    "upper": 0.0292910786306179,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 1.3877787807814457e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8152953419646946,
+    "lower": 0.8036291670053016,
+    "upper": 0.8267095857349925,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8152953419646946,
+    "lower": 0.8036291670053017,
+    "upper": 0.8267095857349925,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8172826552681773,
+    "lower": 0.8055142859637978,
+    "upper": 0.8288508137117095,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8172826552681776,
+    "lower": 0.8055142859637977,
+    "upper": 0.8288508137117097,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8066455253303787,
+    "lower": 0.7941141597601871,
+    "upper": 0.8186602867277858,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8066455253303788,
+    "lower": 0.794114159760187,
+    "upper": 0.8186602867277859,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rrep-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.5282508352633307,
+    "lower": 0.5197987134706253,
+    "upper": 0.536744794397125,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": 0.5282508352633307,
+    "lower": 0.5197987134706253,
+    "upper": 0.5367447943971249,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8167325873652848,
+    "lower": 0.8053075148673579,
+    "upper": 0.8279770957636673,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.816732587365285,
+    "lower": 0.8053075148673577,
+    "upper": 0.8279770957636676,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 3.3306690738754696e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8174803827485149,
+    "lower": 0.8056310576439586,
+    "upper": 0.8292003521915366,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8174803827485152,
+    "lower": 0.8056310576439585,
+    "upper": 0.8292003521915368,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 3.3306690738754696e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8133906139987557,
+    "lower": 0.8012812563985198,
+    "upper": 0.8254996347836474,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8133906139987558,
+    "lower": 0.8012812563985198,
+    "upper": 0.8254996347836474,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-Rplus-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.7783340946925338,
+    "lower": 0.7636662196888088,
+    "upper": 0.79275759455519,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.7783340946925339,
+    "lower": 0.7636662196888084,
+    "upper": 0.7927575945551905,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 3.3306690738754696e-16,
+   "abs_diff_upper": 4.440892098500626e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.00044503782821536664,
+    "lower": -0.0014622671498505753,
+    "upper": 0.0005721914934198047,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": -0.00044503782821536664,
+    "lower": -0.001462267149850649,
+    "upper": 0.0005721914934198047,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 7.37257477290143e-17,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.02078962426091946,
+    "lower": -0.026384385529912884,
+    "upper": -0.015385593489732341,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.020789624260919237,
+    "lower": -0.026384385529912957,
+    "upper": -0.015385593489732416,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 7.28583859910259e-17,
+   "abs_diff_upper": 7.45931094670027e-17
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-adult-U2NI-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.0488481997160235,
+    "lower": -0.05740987983978648,
+    "upper": -0.03984148176404519,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.04884819971602339,
+    "lower": -0.05740987983978633,
+    "upper": -0.03984148176404519,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.5265566588595902e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-G1-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.062495259843613885,
+    "lower": 0.04208398401969559,
+    "upper": 0.07648075649286079,
+    "decision": "UNRESOLVED"
+   },
+   "runner": {
+    "point": 0.06249525984361404,
+    "lower": 0.04208398401969559,
+    "upper": 0.0764807564928608,
+    "decision": "UNRESOLVED"
+   },
+   "abs_diff_point": 1.5265566588595902e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.3877787807814457e-17
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8703996055676532,
+    "lower": 0.866667325885062,
+    "upper": 0.8741252753481017,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.870399605567653,
+    "lower": 0.8666673258850623,
+    "upper": 0.8741252753481018,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 3.3306690738754696e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8633761510944962,
+    "lower": 0.8590587721209848,
+    "upper": 0.8674596900815513,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8633761510944961,
+    "lower": 0.8590587721209848,
+    "upper": 0.8674596900815513,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8629408695058693,
+    "lower": 0.8585054184813653,
+    "upper": 0.8671362060444167,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8629408695058695,
+    "lower": 0.8585054184813655,
+    "upper": 0.8671362060444167,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rrep-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.5128982375566328,
+    "lower": 0.503977094186579,
+    "upper": 0.5217298751279553,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "runner": {
+    "point": 0.512898237556633,
+    "lower": 0.5039770941865792,
+    "upper": 0.5217298751279554,
+    "decision": "ESTABLISHED_BELOW"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-A:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8713698524239822,
+    "lower": 0.8677043666754328,
+    "upper": 0.8750786731209662,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8713698524239821,
+    "lower": 0.8677043666754329,
+    "upper": 0.8750786731209663,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8659641068602757,
+    "lower": 0.8618654958531181,
+    "upper": 0.869876228191707,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8659641068602754,
+    "lower": 0.8618654958531182,
+    "upper": 0.8698762281917071,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 3.3306690738754696e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.8655676491397619,
+    "lower": 0.8613370731097305,
+    "upper": 0.869693662785188,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.8655676491397618,
+    "lower": 0.8613370731097305,
+    "upper": 0.8696936627851881,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-Rplus-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.7577039946809814,
+    "lower": 0.7493802240230274,
+    "upper": 0.7659628530314384,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "runner": {
+    "point": 0.7577039946809818,
+    "lower": 0.7493802240230268,
+    "upper": 0.7659628530314383,
+    "decision": "ESTABLISHED_ABOVE"
+   },
+   "abs_diff_point": 4.440892098500626e-16,
+   "abs_diff_lower": 5.551115123125783e-16,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-B:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.0013993842709207893,
+    "lower": -0.0029395309899807507,
+    "upper": 1.1102230246251565e-16,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": -0.0013993842709206783,
+    "lower": -0.0029395309899808244,
+    "upper": 2.220446049250313e-16,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 7.37257477290143e-17,
+   "abs_diff_upper": 1.1102230246251565e-16
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-C:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": 0.0004198152812762146,
+    "lower": -0.0011197424592344074,
+    "upper": 0.0020288241895146937,
+    "decision": "NONINFERIOR"
+   },
+   "runner": {
+    "point": 0.00041981528127643664,
+    "lower": -0.0011197424592342964,
+    "upper": 0.0020288241895146564,
+    "decision": "NONINFERIOR"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 3.729655473350135e-17
+  },
+  {
+   "scope": "exposure_retained",
+   "id": "P-hmda-U2NI-Dstar:vs_runner",
+   "status": "PASS",
+   "decision_agrees": true,
+   "replay": {
+    "point": -0.016582703610411476,
+    "lower": -0.02267954640907181,
+    "upper": -0.01077752117013094,
+    "decision": "INFERIOR"
+   },
+   "runner": {
+    "point": -0.016582703610411254,
+    "lower": -0.022679546409071882,
+    "upper": -0.01077752117013094,
+    "decision": "INFERIOR"
+   },
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 7.28583859910259e-17,
+   "abs_diff_upper": 0.0
+  }
+ ]
+}
