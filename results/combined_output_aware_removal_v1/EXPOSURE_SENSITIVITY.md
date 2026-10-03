@@ -25,19 +25,23 @@ Repeated records are not proven identical people. HMDA has no applicant identifi
 **Limit.** The encoder's validation-split rows are not in the admitted arrays, so overlap of test roles with the
 validation split is not measured. The Round-4 `final.pt` was not selected on validation.
 
-**Additional inventory, found after the rule was fixed and not part of it.** Some rows have a feature vector, and
-therefore a representation, byte-identical to a defense_fit row, but a *different* record key: they differ in at least
-one other column, such as the label. Counts in the new study's roles, from the seed-0 representation:
+**Additional inventory, found after the rule was fixed and not part of it.** Some rows' **encoder representation** is
+byte-identical to that of some defense_fit row. The counts depend on the encoder seed, so these are collisions in the
+representation (largely representation collapse), not repeated input records:
 
-| Role | Adult | HMDA |
-|---|---|---|
-| cert | 8 | 6 |
-| attacker_fit | 33 | 18 |
-| attacker_val | 13 | 12 |
-| assessment | 34 | 25 |
+| | Seed 0 | Seed 1 | Seed 2 |
+|---|---|---|---|
+| Adult assessment rows | 34 | 0 | 4 |
+| HMDA assessment rows | 25 | **3,836** | 25 |
+| HMDA cert rows | 6 | **1,138** | 6 |
 
-These are reported, not removed: removing them now would be a post hoc rule chosen after a first sensitivity was
-seen. They are also why the FARE wrapper's feature-hash guard refused certificates (amendment A1).
+Context:
+- HMDA s1 maps its 1,385 certification rows to only 248 distinct vectors.
+- An earlier draft of this file described these rows as feature-identical records with a different key. That was
+  wrong, and it was corrected after the independent verifier's counts.
+- The rows are reported, not removed: removing them would be a post hoc rule.
+- They explain why the FARE wrapper's feature-hash guard refused certificates (amendment A1).
+- They also explain the heavily collapsed HMDA s1 representation behind that seed's single-cell FARE nominee.
 
 ## Sensitivity
 

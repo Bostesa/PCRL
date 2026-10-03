@@ -1680,7 +1680,8 @@ def bench_primary(rep, bench, bench_pkg, lock, agg, drop, B, seed, label, runner
         if original_rows is not None:
             od = (original_rows.get(e["id"]) or {}).get("decision")
             m["original_decision"] = od
-            m["label"] = ("UNRESOLVED" if m.get("decision") in (None, "NE", "UNRESOLVED") or od in (None, "UNRESOLVED")
+            # EXPOSURE_RULE.md: STABLE = same decision, CHANGED = different decision, UNRESOLVED = no decision
+            m["label"] = ("UNRESOLVED" if m.get("decision") in (None, "NE") or od in (None, "NE")
                           else ("STABLE" if od == m.get("decision") else "CHANGED"))
         if runner_rows is None:
             rep.add(sc, f"{e['id']}:vs_runner", "UNRESOLVED", cause="runner values not found")
@@ -1696,7 +1697,7 @@ def bench_primary(rep, bench, bench_pkg, lock, agg, drop, B, seed, label, runner
         tl, tu = 6.5 * m["mc_se_lower"] + 5e-5, 6.5 * m["mc_se_upper"] + 5e-5
         okp = rp is not None and abs(rp - m["point"]) <= 1e-9
         okb = (rl is not None and ru is not None and abs(rl - m["lower"]) <= tl and abs(ru - m["upper"]) <= tu)
-        near = min(abs(m["lower"] - e["bar"]), abs(m["upper"] - e["bar"])) <= max(tl, tu)
+        near = abs(m["lower"] - e["bar"]) <= tl or abs(m["upper"] - e["bar"]) <= tu   # each bound vs its own tolerance
         okd = rd == m["decision"]
         if okp and okb and okd:
             st, cause = ("MC_BORDERLINE", "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced "

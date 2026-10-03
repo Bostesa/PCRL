@@ -29,3 +29,13 @@ Times are UTC on 2026-10-03.
   - **Lock amendment L1:** the lock was rebuilt, and v1 is kept as EXECUTION_LOCK_v1.json. Only oar/study.py changed; no scientific definition changed.
   - Adult is unaffected: its map names are the same under both orders.
 - **Certificates UNAVAILABLE on Adult.** The wrapper refuses when a certification row's feature vector equals a fit row's (4 rows), even though these are distinct records in disjoint roles. This is handled post-run as dated amendment A1: the original UNAVAILABLE results are kept, and the guard is checked by row identity. Certificates are outside the primary family.
+- **HMDA run.** 05:55–06:25Z, 1,820 CPU-s, complete. FARE nominees 4 / 4 / 5, all admissible. Aliases: s0 6→5; s1 5→4, 6→4.
+- **HMDA s1 nominee is a single cell.** This is a constant release: the encoder's representation is heavily collapsed, and its untreated task gain over constant is only 0.6 points. Reported as a qualification of the HMDA result.
+- **Inference.** The first attempt crashed: the report script's worst-class pass called the NL recipe on the LO/const reference units. Fixed in report/infer_report.py, which is outside the lock, and re-run in 170 s.
+- **Certificate amendment A1** applied to both datasets. Results are mostly UNAVAILABLE or vacuous; see NATIVE_TEST_VS_RECOVERY.md.
+- **Backup.** `private_oar_v1_20261003`: 30,624/30,624 files verified with uncached reads. Restore proof PASS (FARE tree, head, attacker).
+- **Independent replay.**
+  - 458 PASS / 4 FAIL / 0 MC_BORDERLINE.
+  - 12/12 primary and 24/24 exposure endpoints agree.
+  - The 4 FAILs are reporting defects: the U16 role truncation (2), and the A1 duplicate field counting distinct vectors instead of rows (2).
+- **Interpretation corrected.** The rows whose representation matches a training row are seed-dependent representation collisions (HMDA s1: 3,836 / 4,764 assessment rows), not repeated input records. EXPOSURE_SENSITIVITY.md and RESEARCH_DECISION.md are corrected.

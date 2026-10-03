@@ -49,9 +49,11 @@ rule fixed in advance, with every predictor held fixed.
 - noise trades away most utility;
 - encoder seeds differ a lot.
 
-**One new exposure caveat** was found after the rule was fixed. Some test rows (for example 34 Adult and 25 HMDA
-assessment rows in the new roles) share a feature vector with an encoder-training row while having a different record
-key. These are reported, not removed.
+**One new caveat**, found after the rule was fixed. Some rows' encoder *representations* coincide with those of
+training rows. Assessment counts are Adult 34 / 0 / 4 and HMDA 25 / **3,836** / 25 across seeds 0 / 1 / 2.
+
+These collisions depend on the encoder seed, so they reflect representation collapse, not repeated records. HMDA s1
+in particular is heavily collapsed. They are reported, not removed.
 
 ## 2. What changes when only the prediction decision is released?
 

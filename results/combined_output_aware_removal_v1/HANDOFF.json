@@ -1,0 +1,158 @@
+{
+ "schema": "oar_handoff/v1",
+ "assignment": "Correct the matched benchmark and test protection of the complete release (official FARE + output contracts)",
+ "date_utc": "2026-10-03",
+ "status": "COMPLETE (all mandatory stages; optional kernelized adversarial erasure not run)",
+ "evidence_class": "development evidence on previously used rows; not fresh confirmation; Texas/New York/other cohorts and unused years unopened",
+ "branch": "research/combined-output-aware-removal-v1",
+ "base": "research/combined-matched-removal-benchmark-v1 @ 70f978ffc0afff55ecdf49cf1a74908cc3db5f49",
+ "locks": {
+  "v1": "3130c8d4e48e4446854d0744e34b22997d985430 (pushed before any new fit)",
+  "amendment_L1": "72445377230fd92aa47ce325c4cf10cbea1115f7 (technical map-id fix before any HMDA fit)"
+ },
+ "unchanged_refs": {
+  "main": "55e4cb1d1b603a52e5ae16fd5c71d41ebb9b3827",
+  "research/combined-matched-removal-benchmark-v1": "70f978ffc0afff55ecdf49cf1a74908cc3db5f49",
+  "research/combined-stored-model-pilot-v1": "661db8dcbba3abd29bd42d6674c2493c77eb47d8",
+  "research/combined-evaluation-preparation-v1": "031860fbfd910b9aaed19b7600d288d15858dbc5",
+  "research/combined-evidence-reconciliation-v1": "07a9ca3ffaf27133b6cf955b3b8d526682961e8d",
+  "research/combined-empirical-preparation-v1": "f381bc266269f8c965c5f6558ec8071eafcab1b6"
+ },
+ "corrections": {
+  "custody_24_primary": "24/24 identical (1e-12)",
+  "C1_seed_pairing_rows": 50,
+  "C2_rho1sq_rows": 9,
+  "C3_monte_carlo_not_errors": 5,
+  "wording": [
+   "W4 noise retains ~40% Adult lift",
+   "W5 measured held-out rho1^2, not a guarantee",
+   "W6 measured AUC not information",
+   "W7 no 'more data cannot change' claim",
+   "W8 affine-lookup claim replaced by observed collision-free partition",
+   "W9 17/42 overlap rows span all test roles"
+  ]
+ },
+ "exposure_sensitivity": {
+  "primary_24": "24/24 STABLE (max point shift 0.00044)",
+  "native_42": "42/42 STABLE",
+  "exploratory_headlines": "97/98 STABLE (1 bound crosses 0 by 1.5e-5)"
+ },
+ "primary_family": {
+  "size": 12,
+  "rows": {
+   "P1-adult": [
+    0.2628,
+    0.2492,
+    "PASS"
+   ],
+   "P2-adult": [
+    0.2618,
+    0.2475,
+    "PASS"
+   ],
+   "P3-adult": [
+    -0.0069,
+    -0.0118,
+    "NOT_ESTABLISHED"
+   ],
+   "P4-adult": [
+    -0.0067,
+    -0.0116,
+    "NOT_ESTABLISHED"
+   ],
+   "P5-adult": [
+    0.2377,
+    0.2227,
+    "PASS"
+   ],
+   "P6-adult": [
+    0.2671,
+    0.2525,
+    "PASS"
+   ],
+   "P1-hmda": [
+    0.2625,
+    0.254,
+    "PASS"
+   ],
+   "P2-hmda": [
+    0.3628,
+    0.356,
+    "PASS"
+   ],
+   "P3-hmda": [
+    -0.0036,
+    -0.0062,
+    "PASS"
+   ],
+   "P4-hmda": [
+    -0.0029,
+    -0.0057,
+    "PASS"
+   ],
+   "P5-hmda": [
+    0.2667,
+    0.2576,
+    "PASS"
+   ],
+   "P6-hmda": [
+    0.3621,
+    0.355,
+    "PASS"
+   ]
+  },
+  "PASS": 10,
+  "NOT_ESTABLISHED": 2,
+  "UNRESOLVED": 0,
+  "competitive_conjunction": {
+   "adult": false,
+   "hmda": "formally true; qualified: s1 nominee is a single-cell constant release on a collapsed encoder; HMDA task lift over constant only ~1.7 pts"
+  }
+ },
+ "headlines": [
+  "Hard predictions cut outputs-only recovery by 0.26 AUC in both cells (0.776->0.513 Adult, 0.768->0.505 HMDA); full logits leak ~0.07 more than probabilities via the per-row logit offset",
+  "Clean task outputs bypass every feature defense (FARE+clean 0.788/0.768 = outputs-only level)",
+  "Official FARE features: recovery 0.550 (Adult) / 0.501 (HMDA) vs target LEACE 0.812/0.864; zero-fairness twin 0.645/0.607",
+  "Adult FARE accuracy -0.0069 vs untreated: non-inferiority within 1 pt not established (LCB -0.0118)",
+  "FARE native certificate unavailable or vacuous at ~1.4-1.5k certification rows (only informative value belongs to the degenerate nominee)"
+ ],
+ "counts": {
+  "planned_units": 378,
+  "completed_units": 372,
+  "aliased_not_fitted": 6,
+  "aliased_configs": 3,
+  "failed_scientific_units": 0,
+  "technical_failures_repaired": 2,
+  "budget_unrun": 0,
+  "control_runs": 14,
+  "model_fits": 10842
+ },
+ "verification": {
+  "items": 462,
+  "PASS": 458,
+  "FAIL": 4,
+  "MC_BORDERLINE": 0,
+  "fail_causes": "reporting only: U16 role-label truncation (2); A1 duplicate field counts distinct vectors (2)",
+  "primary_agree": "12/12",
+  "exposure_agree": "24/24"
+ },
+ "runtime": {
+  "science_cpu_h": 1.8,
+  "verification_cpu_h": 1.2,
+  "aggregate_cpu_h": 3.0,
+  "ceiling_cpu_h": 12,
+  "peak_rss_gb": 2.7,
+  "workers_max": 2,
+  "cloud": "none"
+ },
+ "storage": {
+  "laptop_new_private_gb": 1.7,
+  "drive_copy": "<drive>/private_oar_v1_20261003",
+  "drive_verified": "30624/30624",
+  "restore_proof": "FARE tree + head + attacker exact",
+  "deleted": "nothing"
+ },
+ "replay_command": "OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python results/combined_output_aware_removal_v1/verification/replay_oar.py --exposure-original",
+ "registered_predictions": "scored in RESEARCH_DECISION.md (H9 defense-aware attacker stronger: false; H3/H4/H8 Adult false)",
+ "next_decision": "Treat the release contract (full logits vs probability vs decision; head on protected features) as a primary variable in the combined paper; if FARE is pursued, rerun the same locked protocol on a cell with real task lift and larger certification samples. No new algorithm indicated."
+}

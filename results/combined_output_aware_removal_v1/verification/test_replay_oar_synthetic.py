@@ -724,6 +724,18 @@ def build_bench_tables(root, worlds, bench_pkg, exp_dir, pkg):
     ret = endpoints(drop)
     exp_dir.mkdir(parents=True, exist_ok=True)
     (exp_dir / "INFER_ALL_retained.json").write_text(json.dumps({"primary": {"endpoints": list(ret.values())}}))
+    with open(pkg / "EXPOSURE_ENDPOINTS.csv", "w", newline="") as f:
+        cols = ["kind", "id"] + [f"{w}_{c}" for w in ("original", "retained") for c in ("point", "lower", "upper", "decision")] + ["status"]
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        for e in eps:
+            o, r = orig[e["id"]], ret[e["id"]]
+            row = {"kind": "primary (original family, 24)", "id": e["id"],
+                   "status": "STABLE" if o["decision"] == r["decision"] else "CHANGED"}
+            for wn, src in (("original", o), ("retained", r)):
+                for c in ("point", "lower", "upper", "decision"):
+                    row[f"{wn}_{c}"] = src[c]
+            w.writerow(row)
     # ---- C1
     cell = "adult__employment_analysis__marital_status"
     A = [f"adult__s{k}__employment_analysis__marital_status__A" for k in range(3)]
@@ -1040,7 +1052,19 @@ def d_roles_cert_share(root):
     return "roles", ["hmda:cert:rows_groups_hash"]
 
 
+def d_exposure_label(root):
+    p = root / "pkg" / "EXPOSURE_ENDPOINTS.csv"
+    rows = R.read_csv(p)
+    rows[3]["status"] = "CHANGED" if rows[3]["status"] == "STABLE" else "STABLE"
+    with open(p, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    return "exposure", [rows[3]["id"]]
+
+
 DEFECTS = {
+    "exposure_wrong_stable_label": (d_exposure_label, "exposure"),
     "roles_field_truncated_label": (d_roles_field, "roles"),
     "roles_cert_salt_changed": (d_roles_cert_share, "roles"),
     "wrong_fare_alias": (d_wrong_fare_alias, "roles,leakage,nominee"),

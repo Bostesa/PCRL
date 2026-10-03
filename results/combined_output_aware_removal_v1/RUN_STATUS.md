@@ -11,7 +11,7 @@
 | 4 Output surfaces | DONE | OUTPUT_SURFACES.md |
 | 5 FARE with controls | DONE | METHOD_ADMISSION.md, FARE_FRONTIER.csv, run_records/ |
 | 6 Defense-aware attackers and real-data controls | DONE | EXPLORATORY.csv (CC rows), run_records/controls/ |
-| 7 Verification, backup, handoff | see VALIDATION.md and HANDOFF.json | INDEPENDENT_VERIFICATION.json, ARCHIVE_INDEX.json |
+| 7 Verification, backup, handoff | DONE | VALIDATION.md (12/12 primary and 24/24 exposure agree; 4 reporting FAILs), ARCHIVE_INDEX.json (30,624/30,624; restore PASS), HANDOFF.json |
 
 **Units.**
 - Planned 378; completed 372.
@@ -33,7 +33,9 @@
 | HMDA run | 1,820 |
 | HMDA attempt 1 | 28 |
 | Inference | 169 |
-| **Total science** | **≈ 6,500 CPU-s ≈ 1.8 CPU-h**, plus the replay (VALIDATION.md) |
+| **Total science** | **≈ 6,500 CPU-s ≈ 1.8 CPU-h** |
+| Independent verification (4 replay runs) | ≈ 4,400 CPU-s ≈ 1.2 CPU-h |
+| **Aggregate** | **≈ 3.0 CPU-h** |
 
 FARE setup and compilation is recorded separately (notes/fare). The ceiling was 12 CPU-h.
 

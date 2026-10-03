@@ -1,9 +1,9 @@
 {
  "schema": "oar_independent_verification/v1",
- "generated_at": "2026-10-03T06:50:15Z",
+ "generated_at": "2026-10-03T07:53:32Z",
  "replay_code": {
   "path": "results/combined_output_aware_removal_v1/verification/replay_oar.py",
-  "sha256": "f4d2a30c51556d33f6b3394e11cac755c0ff4e7e9825a4993005529add33a2d4",
+  "sha256": "e3f96bc795fa730efd96c0c941cae3bcbe87e79a1e3c1c415e27a87efc42b08a",
   "imports_runner_code": false,
   "numpy": "2.4.2"
  },
@@ -39,9 +39,8 @@
  },
  "public_summary": {
   "counts_by_status": {
-   "PASS": 432,
-   "FAIL": 4,
-   "MC_BORDERLINE": 1
+   "PASS": 458,
+   "FAIL": 4
   },
   "counts_by_scope": {
    "contracts": {
@@ -58,8 +57,10 @@
     "PASS": 46
    },
    "exposure_original_custody": {
-    "PASS": 51,
-    "MC_BORDERLINE": 1
+    "PASS": 52
+   },
+   "exposure_public_table": {
+    "PASS": 25
    },
    "exposure_retained": {
     "PASS": 52
@@ -106,21 +107,14 @@
     "scope": "contracts",
     "id": "adult__s0:certificates_amendment_A1",
     "status": "FAIL",
-    "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+    "cause": "reporting defect in amendment A1: the field 'cert_rows_with_feature_vector_equal_to_a_fit_row' counts DISTINCT feature vectors (fare_official.row_hashes returns np.unique of the row hashes), not rows; 8 cert rows (4 distinct vectors) equal a fit-row feature vector. Premises and cell-presence recomputations agree; the certificate status/bound are not affected by this field",
     "detail": null
    },
    {
     "scope": "contracts",
     "id": "hmda__s1:certificates_amendment_A1",
     "status": "FAIL",
-    "cause": "amended certificate inconsistent with its premises or the row-identity guard",
-    "detail": null
-   },
-   {
-    "scope": "exposure_original_custody",
-    "id": "P-adult-G1-A:vs_runner",
-    "status": "MC_BORDERLINE",
-    "cause": "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced under the mirrored draw, but an independent draw could flip it",
+    "cause": "reporting defect in amendment A1: the field 'cert_rows_with_feature_vector_equal_to_a_fit_row' counts DISTINCT feature vectors (fare_official.row_hashes returns np.unique of the row hashes), not rows; 1138 cert rows (1 distinct vectors) equal a fit-row feature vector. Premises and cell-presence recomputations agree; the certificate status/bound are not affected by this field",
     "detail": null
    }
   ]
@@ -1905,12 +1899,13 @@
    "scope": "contracts",
    "id": "adult__s0:certificates_amendment_A1",
    "status": "FAIL",
-   "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+   "cause": "reporting defect in amendment A1: the field 'cert_rows_with_feature_vector_equal_to_a_fit_row' counts DISTINCT feature vectors (fare_official.row_hashes returns np.unique of the row hashes), not rows; 8 cert rows (4 distinct vectors) equal a fit-row feature vector. Premises and cell-presence recomputations agree; the certificate status/bound are not affected by this field",
    "problems": [
-    "nominee: feature-duplicate count 4 != replay 8",
-    "zero_fairness: feature-duplicate count 4 != replay 8"
+    "nominee: field cert_rows_with_feature_vector_equal_to_a_fit_row = 4; replay: 8 cert rows (4 distinct vectors)",
+    "zero_fairness: field cert_rows_with_feature_vector_equal_to_a_fit_row = 4; replay: 8 cert rows (4 distinct vectors)"
    ],
-   "feature_duplicate_cert_rows": 8
+   "feature_duplicate_cert_rows": 8,
+   "feature_duplicate_distinct_vectors": 4
   },
   {
    "scope": "contracts",
@@ -1923,7 +1918,8 @@
    "id": "adult__s1:certificates_amendment_A1",
    "status": "PASS",
    "problems": [],
-   "feature_duplicate_cert_rows": 1
+   "feature_duplicate_cert_rows": 1,
+   "feature_duplicate_distinct_vectors": 1
   },
   {
    "scope": "contracts",
@@ -1936,7 +1932,8 @@
    "id": "adult__s2:certificates_amendment_A1",
    "status": "PASS",
    "problems": [],
-   "feature_duplicate_cert_rows": 2
+   "feature_duplicate_cert_rows": 2,
+   "feature_duplicate_distinct_vectors": 2
   },
   {
    "scope": "controls",
@@ -2064,7 +2061,8 @@
    "id": "hmda__s0:certificates_amendment_A1",
    "status": "PASS",
    "problems": [],
-   "feature_duplicate_cert_rows": 6
+   "feature_duplicate_cert_rows": 6,
+   "feature_duplicate_distinct_vectors": 6
   },
   {
    "scope": "contracts",
@@ -2076,12 +2074,13 @@
    "scope": "contracts",
    "id": "hmda__s1:certificates_amendment_A1",
    "status": "FAIL",
-   "cause": "amended certificate inconsistent with its premises or the row-identity guard",
+   "cause": "reporting defect in amendment A1: the field 'cert_rows_with_feature_vector_equal_to_a_fit_row' counts DISTINCT feature vectors (fare_official.row_hashes returns np.unique of the row hashes), not rows; 1138 cert rows (1 distinct vectors) equal a fit-row feature vector. Premises and cell-presence recomputations agree; the certificate status/bound are not affected by this field",
    "problems": [
-    "nominee: feature-duplicate count 1 != replay 1138",
-    "zero_fairness: feature-duplicate count 1 != replay 1138"
+    "nominee: field cert_rows_with_feature_vector_equal_to_a_fit_row = 1; replay: 1138 cert rows (1 distinct vectors)",
+    "zero_fairness: field cert_rows_with_feature_vector_equal_to_a_fit_row = 1; replay: 1138 cert rows (1 distinct vectors)"
    ],
-   "feature_duplicate_cert_rows": 1138
+   "feature_duplicate_cert_rows": 1138,
+   "feature_duplicate_distinct_vectors": 1
   },
   {
    "scope": "contracts",
@@ -2094,7 +2093,8 @@
    "id": "hmda__s2:certificates_amendment_A1",
    "status": "PASS",
    "problems": [],
-   "feature_duplicate_cert_rows": 6
+   "feature_duplicate_cert_rows": 6,
+   "feature_duplicate_distinct_vectors": 6
   },
   {
    "scope": "controls",
@@ -3501,8 +3501,7 @@
   {
    "scope": "exposure_original_custody",
    "id": "P-adult-G1-A:vs_runner",
-   "status": "MC_BORDERLINE",
-   "cause": "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced under the mirrored draw, but an independent draw could flip it",
+   "status": "PASS",
    "decision_agrees": true,
    "replay": {
     "point": -0.1754682754397912,
@@ -4891,6 +4890,300 @@
    "abs_diff_point": 2.220446049250313e-16,
    "abs_diff_lower": 7.28583859910259e-17,
    "abs_diff_upper": 0.0
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "n_primary_rows_24",
+   "status": "PASS",
+   "n": 24
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-G1-A",
+   "status": "PASS",
+   "abs_diff_point": 1.3877787807814457e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_BELOW",
+   "replay_decision": "ESTABLISHED_BELOW"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rrep-A",
+   "status": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rrep-B",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rrep-C",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rrep-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_BELOW",
+   "replay_decision": "ESTABLISHED_BELOW"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rplus-A",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 3.3306690738754696e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rplus-B",
+   "status": "PASS",
+   "abs_diff_point": 3.3306690738754696e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rplus-C",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-Rplus-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 3.3306690738754696e-16,
+   "abs_diff_upper": 4.440892098500626e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-U2NI-B",
+   "status": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_lower": 7.37257477290143e-17,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "NONINFERIOR",
+   "replay_decision": "NONINFERIOR"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-U2NI-C",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 7.28583859910259e-17,
+   "abs_diff_upper": 7.45931094670027e-17,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "INFERIOR",
+   "replay_decision": "INFERIOR"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-adult-U2NI-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.5265566588595902e-16,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "INFERIOR",
+   "replay_decision": "INFERIOR"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-G1-A",
+   "status": "PASS",
+   "abs_diff_point": 1.5265566588595902e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.3877787807814457e-17,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "UNRESOLVED",
+   "replay_decision": "UNRESOLVED"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rrep-A",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 3.3306690738754696e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rrep-B",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rrep-C",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rrep-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 2.220446049250313e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_BELOW",
+   "replay_decision": "ESTABLISHED_BELOW"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rplus-A",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rplus-B",
+   "status": "PASS",
+   "abs_diff_point": 3.3306690738754696e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rplus-C",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 0.0,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-Rplus-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 4.440892098500626e-16,
+   "abs_diff_lower": 5.551115123125783e-16,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "ESTABLISHED_ABOVE",
+   "replay_decision": "ESTABLISHED_ABOVE"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-U2NI-B",
+   "status": "PASS",
+   "abs_diff_point": 1.1102230246251565e-16,
+   "abs_diff_lower": 7.37257477290143e-17,
+   "abs_diff_upper": 1.1102230246251565e-16,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "NONINFERIOR",
+   "replay_decision": "NONINFERIOR"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-U2NI-C",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 1.1102230246251565e-16,
+   "abs_diff_upper": 3.729655473350135e-17,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "NONINFERIOR",
+   "replay_decision": "NONINFERIOR"
+  },
+  {
+   "scope": "exposure_public_table",
+   "id": "P-hmda-U2NI-Dstar",
+   "status": "PASS",
+   "abs_diff_point": 2.220446049250313e-16,
+   "abs_diff_lower": 7.28583859910259e-17,
+   "abs_diff_upper": 0.0,
+   "runner_label": "STABLE",
+   "replay_label": "STABLE",
+   "runner_decision": "INFERIOR",
+   "replay_decision": "INFERIOR"
   }
  ]
 }

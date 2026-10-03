@@ -23,8 +23,10 @@ certificate is not proof that a representation is unsafe.
 Sources: `run/certificates/AMENDMENT_A1.json`, summarised in `certificates/`. δ = 0.05; certification rows are
 Adult 1,500 and HMDA 1,385, split 50/50 into D_val and D_test.
 
-**Original run.** Every certificate is UNAVAILABLE. The wrapper refused because a few certification rows (1–6 per
-encoder seed) have feature vectors byte-identical to fit rows, although they are distinct records in disjoint roles.
+**Original run.** Every certificate is UNAVAILABLE. The wrapper refused because some certification rows' representations are byte-identical to
+those of fit rows, although they are distinct records in disjoint roles. The cert rows affected are Adult 8 / 1 / 2 and
+HMDA 6 / 1,138 / 6 for seeds 0 / 1 / 2; the HMDA s1 representation is collapsed. The amendment field
+`cert_rows_with_feature_vector_equal_to_a_fit_row` counts *distinct vectors*, not rows. Use these row counts instead.
 
 **Amendment A1** (dated, post-run, implementation guard only). The duplicate check uses row identity instead of
 feature hashes; the official computation is otherwise unchanged.
