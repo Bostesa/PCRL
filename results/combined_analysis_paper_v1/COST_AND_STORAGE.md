@@ -33,7 +33,7 @@ None fitted a model.
 |---|---|---|---|
 | `~/PCRL_eval_cache_private/cap_v1` (private) | 180 unit directories (per-person predictions, models), ledger, events, logs, controls, `inference.json` | 112 MB | 955 |
 | `~/PCRL_eval_cache_private/backups/private_cap_v1_20261003` (private, versioned copy) | identical copy, `SHA256SUMS`, `BACKUP_RECORD.json` | 112 MB | 955 + 2 |
-| `<drive>/private_cap_v1_20261003` | **PENDING**: the drive was not mounted; the single command is in `PRIVATE_BACKUP_INDEX.json` | | |
+| `<drive>/private_cap_v1_20261003` | identical copy, verified uncached 955/955; restore replay exact | 112 MB | 955 + 2 |
 | Repository (public) | aggregate tables, code, tests, lock, replay script, figures, manuscript (PDF about 0.3 MB) | small | |
 
 **Nothing was deleted.** No original models, results, other terminals' files or caches were touched. The study created no disposable scratch files beyond the rendered page images in the session scratchpad.

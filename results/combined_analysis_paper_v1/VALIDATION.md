@@ -64,4 +64,4 @@ The final PDF has 10 pages, no overfull boxes and no unresolved references. Ever
 
 - The versioned private copy `private_cap_v1_20261003` holds 955 files. All 955 were re-read uncached (F_NOCACHE) and match.
 - Restored from the copy alone, 4 sampled attackers reproduce their saved predictions exactly (max diff 0).
-- **The external drive was not mounted**, so the drive copy is PENDING. `PRIVATE_BACKUP_INDEX.json` has the single command and the expected hashes.
+- **Drive copy** `<drive>/private_cap_v1_20261003`: 955/955 files re-read uncached and matching. Its SHA256SUMS hash is identical to the local copy's, and the 4 restore replays from the drive copy are exact.
