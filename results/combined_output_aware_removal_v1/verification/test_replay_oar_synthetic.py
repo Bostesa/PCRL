@@ -1017,7 +1017,32 @@ def d_c1_unpaired(root):
     return "c1", [r["id"]]
 
 
+def d_roles_field(root):
+    """The runner's '<U16' truncation: excluded_exposure_rows / exposure_groups_removed reported as 0."""
+    p = root / "pkg" / "ROLES_AND_SUPPORT.json"
+    ras = json.loads(p.read_text())
+    ras["adult"]["roles"]["excluded_exposure_rows"] = 0
+    ras["adult"]["exposure_groups_removed"] = 0
+    p.write_text(json.dumps(ras, indent=1))
+    lp = root / "pkg" / "EXECUTION_LOCK.json"
+    lock = json.loads(lp.read_text())
+    lock["roles_and_support_sha256"] = hashlib.sha256(json.dumps(ras, sort_keys=True).encode()).hexdigest()
+    lp.write_text(json.dumps(lock, indent=1))
+    return "roles", ["adult:excluded_exposure_rows_field"]
+
+
+def d_roles_cert_share(root):
+    """Cert carve-out drawn with another salt: role counts / hashes no longer match ROLES_AND_SUPPORT.json."""
+    lp = root / "pkg" / "EXECUTION_LOCK.json"
+    lock = json.loads(lp.read_text())
+    lock["roles_rule"]["cert"]["salt"] = "oar-cert-v2|"
+    lp.write_text(json.dumps(lock, indent=1))
+    return "roles", ["hmda:cert:rows_groups_hash"]
+
+
 DEFECTS = {
+    "roles_field_truncated_label": (d_roles_field, "roles"),
+    "roles_cert_salt_changed": (d_roles_cert_share, "roles"),
     "wrong_fare_alias": (d_wrong_fare_alias, "roles,leakage,nominee"),
     "wrong_plus_alias": (d_wrong_plus_alias, "roles,nominee,primary,membership"),
     "assessment_rows_leak_into_val": (d_assess_leak, "roles,leakage,nominee"),
@@ -1053,7 +1078,12 @@ def main(argv=None):
            "test_sha256": sha(Path(__file__)), "B": {"primary": B_PRI, "exposure": B_EXP, "corrections": B_COR},
            "build_s": t_build}
     res = run_replay(base, extra=("--exposure-original",))
-    bad = [i for i in res["items"] if i["status"] not in ("PASS",)]
+    # clean tree: everything PASS; MC_BORDERLINE allowed only with identical decisions and bounds equal to 1e-12
+    def exact(i):
+        return (i["status"] == "MC_BORDERLINE" and i.get("decision_agrees") and
+                all((i.get(k) or 0) < 1e-12 for k in ("abs_diff_point", "abs_diff_lower", "abs_diff_upper")))
+    bad = [i for i in res["items"] if i["status"] != "PASS" and not exact(i)]
+    out["baseline_mc_borderline_exact"] = [i["id"] for i in res["items"] if exact(i)]
     out["baseline"] = {"n_items": len(res["items"]), "counts": res["public_summary"]["counts_by_status"],
                        "non_pass": [{k: i.get(k) for k in ("scope", "id", "status", "cause")} for i in bad]}
     # replay nominee agrees with the generator; primary decisions agree

@@ -472,7 +472,9 @@ def check_roles(rep, W, ras, lock, ds):
                 reported={"excluded_exposure_rows": rep_ex, "exposure_groups_removed": rep_gr},
                 replay={"excluded_exposure_rows": n_excl,
                         "exposure_groups_removed": int(len(np.unique(W["unit"][W["excl"]])))},
-                assessment_rows_removed=n_excl_assess)
+                assessment_rows_removed=n_excl_assess, true_removed_by_role=by_role,
+                true_groups_removed_by_role={r: int(len(np.unique(W["unit"][W["excl"] & (W["role0"] == r)])))
+                                             for r in SCORED})
     else:
         rep.add(sc, f"{ds}:excluded_exposure_rows_field", "PASS")
     # cert is a group-level carve-out: no unit may straddle cert / attacker_fit
@@ -961,8 +963,10 @@ def compare_primary(rep, fam, results, runner_rows, B):
             rep.add(sc, f"{fid}:decision", "PASS", replay=md, runner=rd)
         elif near:
             rep.add(sc, f"{fid}:decision", "MC_BORDERLINE", "lower bound within the MC tolerance band of the margin",
-                    cause="Monte Carlo resolution: the bound is within 6.5 MC-SE + 5e-5 of the margin",
-                    replay=md, runner=rd, lower=mine["lower"], margin=mine["margin"], tol=tol_l)
+                    cause=("Monte Carlo resolution: the bound is within 6.5 MC-SE + 5e-5 of the margin; " +
+                           ("the decision is reproduced under the mirrored draw, but an independent draw could flip it"
+                            if same else "the decisions differ inside the Monte Carlo band")),
+                    replay=md, runner=rd, lower=mine["lower"], margin=mine["margin"], tol=tol_l, decision_agrees=same)
         else:
             rep.add(sc, f"{fid}:decision", "FAIL", cause="decision differs and the bound is not near the margin",
                     replay=md, runner=rd, lower=mine["lower"], margin=mine["margin"])
@@ -1138,11 +1142,64 @@ def check_heads(rep, US, W, ds, inputs, bench, nominees, agg, tol=1e-9):
                       cause="view-3 head is not reproduced from the protected features alone", problems=prob)
 
 
-def check_certificates(rep, US, W, ds, lock, nominees, agg):
+def cert_block_problems(cert, who, kind, US, fu, W, ccfg, sec):
+    """A certificate is reported only with its premises: OK needs a bound, premises, every checked premise true and
+    every pair OK; UNAVAILABLE needs a reason and no bound. The every-cell-present premise is recomputed."""
+    prob = []
+    st = cert.get("status")
+    if st == "OK":
+        prem = cert.get("premises") or []
+        if cert.get("bound") is None or not prem:
+            prob.append(f"{who}/{kind}: OK without bound/premises")
+        if any(pp.get("how") == "checked" and pp.get("holds") is not True for pp in prem):
+            prob.append(f"{who}/{kind}: OK but a checked premise fails")
+        if any(pq.get("status") != "OK" for pq in cert.get("pairs", [])):
+            prob.append(f"{who}/{kind}: OK with a non-OK pair")
+    elif st == "UNAVAILABLE":
+        if cert.get("bound") is not None or not cert.get("reason"):
+            prob.append(f"{who}/{kind}: UNAVAILABLE with a bound or without a reason")
+    else:
+        prob.append(f"{who}/{kind}: status {st}")
+    if st in ("OK", "UNAVAILABLE") and cert.get("pairs"):
+        try:
+            cr = W["idx"]["cert"]
+            cells_all = np.load(US.root / fu / "cells.npy", allow_pickle=False).astype(int)
+            model = json.loads((US.root / fu / "model" / "model.json").read_text())
+            gc = np.asarray(model["cell_group_counts"])
+            gcodes = [int(g) for g in model["group_codes"]]
+            kcells = gc.shape[0]
+            s = W["s"][cr]
+            grp = sorted(int(g) for g in (kind == "secondary_groups" and sec or gcodes))
+            keep = np.isin(s, grp)
+            cc, ss = cells_all[cr][keep], s[keep]
+            n = len(ss)
+            perm = np.random.RandomState(int(ccfg["split_seed"])).permutation(n)
+            nv = int(round(float(ccfg["val_fraction"]) * n))
+            va, te = perm[:nv], perm[nv:]
+            for pq in cert["pairs"]:
+                gi, gj = pq["groups"]
+                if gi not in gcodes or gj not in gcodes:
+                    continue
+                miss = {"base": int(kcells - np.count_nonzero(gc[:, gcodes.index(gi)] + gc[:, gcodes.index(gj)]))}
+                for nm, ix in (("val", va), ("test", te)):
+                    mm = (ss[ix] == gi) | (ss[ix] == gj)
+                    miss[nm] = int(kcells - len(np.unique(cc[ix][mm])))
+                if pq.get("cells_missing") is not None and pq["cells_missing"] != miss:
+                    prob.append(f"{who}/{kind} pair {gi}-{gj}: cells_missing {pq['cells_missing']} != {miss}")
+                if any(miss.values()) and pq.get("status") == "OK":
+                    prob.append(f"{who}/{kind} pair {gi}-{gj}: OK although a cell is missing")
+        except Exception as e:  # noqa: BLE001
+            prob.append(f"{who}/{kind}: premise recompute error {e!r}"[:300])
+    return prob
+
+
+def check_certificates(rep, US, W, ds, lock, nominees, agg, inputs=None):
     sc = "contracts"
     cr = W["idx"]["cert"]
     ccfg = lock["fare"]["certificate"]
     sec = (lock["fare"].get("secondary_certificate_groups") or {}).get(ds)
+    amend_p = US.root.parent / "certificates" / "AMENDMENT_A1.json"
+    amend = json.loads(amend_p.read_text()) if amend_p.exists() else None
     for k in SEEDS:
         P = f"{ds}__s{k}"
         p = US.root.parent / "certificates" / f"{P}.json"
@@ -1154,63 +1211,52 @@ def check_certificates(rep, US, W, ds, lock, nominees, agg):
         if C.get("cert_rows") != len(cr):
             prob.append(f"cert_rows {C.get('cert_rows')} != {len(cr)}")
         nj = (nominees.get((ds, k)) or {}).get("runner_nominee")
+        nsrc = (nominees.get((ds, k)) or {}).get("runner_nominee_unit_source")
+        want = ["primary_all_groups"] + (["secondary_groups"] if sec else [])
         for who, fu in (("nominee", f"{P}__FAREFIT_c{nj}"), ("zero_fairness", f"{P}__FAREFIT_Z")):
             block = C.get(who) or {}
-            want = ["primary_all_groups"] + (["secondary_groups"] if sec else [])
             for kind in want:
                 cert = block.get(kind)
                 if cert is None:
                     prob.append(f"{who}/{kind} missing")
                     continue
-                st = cert.get("status")
-                if st == "OK":
-                    prem = cert.get("premises") or []
-                    if cert.get("bound") is None or not prem:
-                        prob.append(f"{who}/{kind}: OK without bound/premises")
-                    if any(pp.get("how") == "checked" and pp.get("holds") is not True for pp in prem):
-                        prob.append(f"{who}/{kind}: OK but a checked premise fails")
-                    if any(pq.get("status") != "OK" for pq in cert.get("pairs", [])):
-                        prob.append(f"{who}/{kind}: OK with a non-OK pair")
-                elif st == "UNAVAILABLE":
-                    if cert.get("bound") is not None or not cert.get("reason"):
-                        prob.append(f"{who}/{kind}: UNAVAILABLE with a bound or without a reason")
-                else:
-                    prob.append(f"{who}/{kind}: status {st}")
-                # recompute the cell-presence premise from cells.npy + labels (no fitting)
-                try:
-                    if st in ("OK", "UNAVAILABLE") and cert.get("pairs"):
-                        cells_all = np.load(US.root / fu / "cells.npy", allow_pickle=False).astype(int)
-                        model = json.loads((US.root / fu / "model" / "model.json").read_text())
-                        gc = np.asarray(model["cell_group_counts"])
-                        gcodes = [int(g) for g in model["group_codes"]]
-                        kcells = gc.shape[0]
-                        s = W["s"][cr]
-                        grp = sorted(int(g) for g in (kind == "secondary_groups" and sec or gcodes))
-                        keep = np.isin(s, grp)
-                        cc, ss = cells_all[cr][keep], s[keep]
-                        n = len(ss)
-                        perm = np.random.RandomState(int(ccfg["split_seed"])).permutation(n)
-                        nv = int(round(float(ccfg["val_fraction"]) * n))
-                        va, te = perm[:nv], perm[nv:]
-                        for pq in cert["pairs"]:
-                            gi, gj = pq["groups"]
-                            if gi not in gcodes or gj not in gcodes:
-                                continue
-                            base = int(kcells - np.count_nonzero(gc[:, gcodes.index(gi)] + gc[:, gcodes.index(gj)]))
-                            miss = {"base": base}
-                            for nm, ix in (("val", va), ("test", te)):
-                                mm = (ss[ix] == gi) | (ss[ix] == gj)
-                                miss[nm] = int(kcells - len(np.unique(cc[ix][mm])))
-                            if pq.get("cells_missing") is not None and pq["cells_missing"] != miss:
-                                prob.append(f"{who}/{kind} pair {gi}-{gj}: cells_missing {pq['cells_missing']} != {miss}")
-                            if any(miss.values()) and pq.get("status") == "OK":
-                                prob.append(f"{who}/{kind} pair {gi}-{gj}: OK although a cell is missing")
-                except Exception as e:  # noqa: BLE001
-                    prob.append(f"{who}/{kind}: premise recompute error {e!r}"[:300])
-                agg.setdefault("certificates", {}).setdefault(P, {})[f"{who}/{kind}"] = {
-                    "status": st, "bound": cert.get("bound"), "reason": cert.get("reason")}
+                prob += cert_block_problems(cert, who, kind, US, fu, W, ccfg, sec)
+                agg.setdefault("certificates", {}).setdefault(P, {})[f"original:{who}/{kind}"] = {
+                    "status": cert.get("status"), "bound": cert.get("bound"), "reason": cert.get("reason")}
         rep.check(sc, f"{P}:certificates_with_premises", not prob,
                   cause="certificate reported without its premises or despite a failed premise", problems=prob[:10])
+        if amend is None or P not in amend:
+            continue
+        # dated amendment A1: row-identity guard instead of the feature-hash guard; originals kept beside
+        A = amend[P]
+        prob = []
+        if A.get("original") != C:
+            prob.append("amendment does not carry the original certificate record unchanged")
+        if len(np.intersect1d(W["row_id"][cr], W["row_id"][W["idx"]["defense_fit"]])) or \
+                len(np.intersect1d(W["unit"][cr], W["unit"][W["idx"]["defense_fit"]])):
+            prob.append("cert rows / groups intersect the FARE fit rows (row-identity guard fails)")
+        ndup = None
+        if inputs is not None:
+            F = np.load(inputs / f"{ds}_s{k}_forward.npz", allow_pickle=False)
+            H = np.ascontiguousarray(np.asarray(F[CELLS[ds]["rep"]], np.float64))
+            fit_rows = {H[i].tobytes() for i in W["idx"]["defense_fit"]}
+            ndup = int(sum(H[i].tobytes() in fit_rows for i in cr))
+        for who, fu in (("nominee", f"{P}__FAREFIT_c{nsrc}"), ("zero_fairness", f"{P}__FAREFIT_Z")):
+            blk = (A.get("amended") or {}).get(who) or {}
+            for kind in want:
+                cert = blk.get(kind)
+                if cert is None:
+                    prob.append(f"amended {who}/{kind} missing")
+                    continue
+                prob += ["amended " + x for x in cert_block_problems(cert, who, kind, US, fu, W, ccfg, sec)]
+                agg.setdefault("certificates", {}).setdefault(P, {})[f"amended_A1:{who}/{kind}"] = {
+                    "status": cert.get("status"), "bound": cert.get("bound"), "reason": cert.get("reason")}
+            rd = blk.get("cert_rows_with_feature_vector_equal_to_a_fit_row")
+            if ndup is not None and rd != ndup:
+                prob.append(f"{who}: feature-duplicate count {rd} != replay {ndup}")
+        rep.check(sc, f"{P}:certificates_amendment_A1", not prob,
+                  cause="amended certificate inconsistent with its premises or the row-identity guard",
+                  problems=prob[:10], feature_duplicate_cert_rows=ndup)
 
 
 def check_controls(rep, run: Path, ds, agg):
@@ -1642,12 +1688,14 @@ def bench_primary(rep, bench, bench_pkg, lock, agg, drop, B, seed, label, runner
         near = min(abs(m["lower"] - e["bar"]), abs(m["upper"] - e["bar"])) <= max(tl, tu)
         okd = rd == m["decision"]
         if okp and okb and okd:
-            st, cause = ("MC_BORDERLINE", "bound within MC tolerance of the bar") if near else ("PASS", None)
+            st, cause = ("MC_BORDERLINE", "a bound is within 6.5 MC-SE + 5e-5 of the bar: the decision is reproduced "
+                         "under the mirrored draw, but an independent draw could flip it") if near else ("PASS", None)
         elif okp and okd is False and near:
             st, cause = "MC_BORDERLINE", "decision differs within the MC tolerance band"
         else:
             st, cause = "FAIL", ("point" if not okp else ("bounds" if not okb else "decision")) + " disagreement"
-        rep.add(sc, f"{e['id']}:vs_runner", st, None, cause, replay={k: m.get(k) for k in ("point", "lower", "upper", "decision")},
+        rep.add(sc, f"{e['id']}:vs_runner", st, None, cause, decision_agrees=bool(okd),
+                replay={k: m.get(k) for k in ("point", "lower", "upper", "decision")},
                 runner={"point": rp, "lower": rl, "upper": ru, "decision": rd},
                 abs_diff_point=None if rp is None else abs(rp - m["point"]),
                 abs_diff_lower=None if rl is None else abs(rl - m["lower"]),
@@ -1816,7 +1864,7 @@ def main(argv=None):
             check_membership(rep, US, roles[ds], ds, lock, uids, agg, inputs)
         if "contracts" in stages:
             check_heads(rep, US, roles[ds], ds, inputs, bench, nominees, agg)
-            check_certificates(rep, US, roles[ds], ds, lock, nominees, agg)
+            check_certificates(rep, US, roles[ds], ds, lock, nominees, agg, inputs)
         if "controls" in stages:
             check_controls(rep, run, ds, agg)
     if "c1" in stages:

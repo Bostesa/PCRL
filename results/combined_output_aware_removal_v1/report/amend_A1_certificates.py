@@ -34,12 +34,10 @@ for ds in ("adult", "hmda"):
         dup = {}
         rec = {"original": orig, "amended": {}}
         for tag, uid in (("nominee", f"{P}__FAREFIT_c{sel['nominee_unit_source']}"), ("zero_fairness", f"{P}__FAREFIT_Z")):
-            m = FO.load_model(S.unit_dir(uid)) if hasattr(FO, "load_model") else None
-            if m is None:
-                raise SystemExit("wrapper has no load_model(); cannot amend")
+            m = FO.FareModel.load(S.unit_dir(uid) / "model")
             n_feat_dup = int(np.isin(FO.row_hashes(H[cr]), m.fit_row_hashes).sum())
             m2 = copy.copy(m)
-            m2.fit_row_hashes = np.array([], dtype=m.fit_row_hashes.dtype)   # feature-hash guard replaced by row-id guard (asserted above)
+            m2.fit_row_hashes = np.array([], dtype=np.uint64)   # feature-hash guard replaced by row-id guard (asserted above)
             res = {"primary_all_groups": FO.certificate(m2, H[cr], W["s"][cr], fare["certificate"])}
             sec = fare.get("secondary_certificate_groups", {}).get(ds)
             if sec:
