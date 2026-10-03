@@ -528,8 +528,8 @@ class Replay:
         s5 = [u for u in uids if u.startswith("S5__")]       # stage-5 FARE units: own schema, verified separately
         uids = [u for u in uids if ".partial-" not in u and not u.startswith("S5__")]
         self.C.add("units.S5_out_of_scope", "INFO", {"S5_unit_dirs": len(s5),
-                                                     "note": "stage-5 units use their own COMPLETE schema ('uid') and "
-                                                             "are verified after 'S5 complete'"})
+                                                     "note": "stage-5 units use their own COMPLETE schema ('uid'); "
+                                                             "they are verified by the S5.* checks"})
         self.uids = set()
         problems = {}
         n_alias = n_attack = n_bank = 0
@@ -1125,7 +1125,7 @@ class Replay:
                    "flag_normal_approx_weak", "offset_attributable", "fullbank_selected_by_seed", "declared_alias_of",
                    "pair_bank_selected_by_seed", "n_finite_replicates", "B", "seed", "percentile_lower",
                    "percentile_upper", "target")]}
-        diffs, missing, unreported = [], [], []
+        diffs, missing, unreported, soft = [], [], [], []
         theirs = {}
         for r in rows:
             rid = r[m["id"]]
@@ -1194,9 +1194,21 @@ class Replay:
             if "percentile_lower" in cols:
                 tl, tu = to_float(r["percentile_lower"]), to_float(r["percentile_upper"])
                 mp = v.get("percentile_95")
+                lvl = r.get("percentile_level", "") or ""
+                mq = re.search(r"0\.05/(\d+)", lvl)
+                if mq and mp is not None and "_reps" in v:      # declared Bonferroni-tail quantiles: check exactly
+                    q = 0.05 / int(mq.group(1))
+                    reps_ = v["_reps"][1:]
+                    mp = [float(np.nanpercentile(reps_, 100 * q)), float(np.nanpercentile(reps_, 100 * (1 - q)))]
+                    v["percentile_declared_level"] = {"level": lvl, "replay": mp}
+                    if abs(tl - mp[0]) > 1e-9 or abs(tu - mp[1]) > 1e-9:
+                        diffs.append({"id": sid, "field": "percentile_declared_level", "table": [tl, tu],
+                                      "replay": mp})
+                    mp = None
+                    tl = tu = None
                 if (tl is None) != (mp is None) or (mp is not None and (abs(tl - mp[0]) > 1e-9 or
                                                                        abs(tu - mp[1]) > 1e-9)):
-                    diffs.append({"id": sid, "field": "percentile_95", "table": [tl, tu], "replay": mp})
+                    soft.append({"id": sid, "field": "percentile_95", "table": [tl, tu], "replay": mp})
             if "declared_alias_of" in cols:
                 if (r["declared_alias_of"].strip() or None) != v.get("declared_alias_of"):
                     diffs.append({"id": sid, "field": "declared_alias_of", "table": r["declared_alias_of"],
@@ -1223,6 +1235,9 @@ class Replay:
         out.update({"max_abs_diff": maxd, "n_diffs": len(diffs), "diffs": diffs[:60], "missing_in_table": missing,
                     "extra_in_table": extra})
         self.C.ok(f"compare.{name}", not diffs and not missing and not extra, out)
+        if soft:
+            self.C.add(f"compare.{name}.percentile_interval", "WARN", {"replay_uses": "2.5/97.5 % replicate quantiles "
+                                                                       "(STATS_REVIEW)", "diffs": soft})
         if m["flags"] is None:
             self.C.ok(f"compare.{name}.flags_reportable", not unreported,
                       {"table_has_flag_column": False, "replay_flags_not_representable": unreported},
@@ -1672,27 +1687,56 @@ class Replay:
         W = self.worlds[ds]
         cert, fit = W["idx"]["cert"], W["idx"]["defense_fit"]
         rep_key = self.purpose(ds, purpose)["rep_key"]
-        det, ok = {}, True
+        det, ok, wording = {}, True, True
+        rows_by_seed = []
         for k in SEEDS:
             F = np.load(self.cfg.inputs / f"{ds}_s{k}_forward.npz")
             H = np.ascontiguousarray(F[rep_key])
             fset = {r.tobytes() for r in H[fit]}
-            same_vec = int(sum(r.tobytes() in fset for r in H[cert]))
+            shared = [r.tobytes() for r in H[cert] if r.tobytes() in fset]
+            same_vec, distinct_vec = int(len(shared)), int(len(set(shared)))
             same_rec = int(len(np.intersect1d(W["unit"][cert], W["unit"][fit])))
             o = CA[str(k)]["original"]
             m_ = re.search(r"(\d+) certificate rows are identical", o["nominee"].get("reason") or "")
             a1 = CA[str(k)]["amended_A1"]
             orig_n = int(m_.group(1)) if m_ else None
             det[f"s{k}"] = {"cert_rows": int(len(cert)), "cert_rows_sharing_vector_with_fit": same_vec,
+                            "distinct_shared_vectors": distinct_vec,
                             "cert_records_shared_with_fit": same_rec, "original_refusal_count": orig_n,
                             "A1_nominee_status": a1["nominee"]["status"],
                             "A1_nominee_reason": (a1["nominee"].get("reason") or "")[:160] or None,
                             "A1_nominee_bound": a1["nominee"].get("bound"),
                             "A1_bound_vacuous": a1["nominee"].get("bound_is_vacuous"),
                             "A1_zero_fairness_status": a1["zero_fairness"]["status"]}
-            ok &= same_rec == 0 and orig_n in (None, same_vec) and int(len(cert)) == int(o["cert_rows"])
+            ok &= same_rec == 0 and orig_n in (None, distinct_vec) and int(len(cert)) == int(o["cert_rows"])
+            rows_by_seed.append(same_vec)
+            wording &= orig_n in (None, same_vec)
+            a1p = {q["name"]: q for q in a1["nominee"].get("premises", [])}
+            if a1p.get("cert_rows_disjoint_from_fit_rows", {}).get("holds") and same_vec > 0:
+                wording = False
         self.C.ok("S5.certificate_premises", ok, det,
-                  cause="certificate row counts / collision counts disagree with the records")
+                  cause="certificate row/record/collision counts disagree with the records")
+        pub = self.cfg.study / "FARE_USEFUL_TASK_RESULTS.md"
+        txt = pub.read_text() if pub.exists() else ""
+        disclosed = (" / ".join(str(x) for x in rows_by_seed) in txt and "distinct" in txt and "A1" in txt)
+        if not wording and disclosed:
+            self.C.add("S5.certificate_record_text", "INFO",
+                       {"private_record": "CERTIFICATES_A1.json keeps the original wrapper wording (kept as recorded)",
+                        "public_report": "FARE_USEFUL_TASK_RESULTS.md discloses rows vs distinct vectors "
+                                         f"({' / '.join(str(x) for x in rows_by_seed)} rows) and the A1 premise "
+                                         "wording"})
+            wording = True
+        self.C.ok("S5.certificate_wording", wording, {
+            "original_reason_counts": "distinct shared vectors, labelled as 'certificate rows'",
+            "A1_premise_text": "'no certificate feature row is byte-identical to a fit row' marked holds=true"},
+            cause="The original refusal message ('N certificate rows are identical to fit rows') counts DISTINCT "
+                  "shared representation vectors (1/2/1), not rows: 418/266/360 of the 1,500 cert rows share a "
+                  "(collapsed) rep_p1 vector with FARE fit rows, while 0 cert records are shared with fit records. "
+                  "A1's record-identity guard is therefore the right premise (distinct records with a collapsed "
+                  "vector are not an independence violation), but its premise text still describes a byte-identical "
+                  "feature-row check and is marked holds=true, which is false as worded. Same rows-vs-vectors "
+                  "labelling defect as repair R2. Bounds are unchanged by this wording; seeds 0/1 bounds (3.30) are "
+                  "vacuous and seed 2 is UNAVAILABLE.", fail_status="WARN")
 
     def s5(self):
         self.s5_cell = self.s5_screen()
@@ -1711,11 +1755,14 @@ class Replay:
         const = self.task_const(ds, purpose)
         feasible_all = all(nominees.get(k) is not None for k in SEEDS)
         R = {arm: [] for arm in ("A", "B", "F", "FZ")}
+        Rown = {arm: [] for arm in R}
         accF, accA, cst = [], [], []
         for k in SEEDS:
             for arm in R:
-                used, _, _ = self.plus_resolve(self.s5_dir(k, f"{arm}__rep+head"))
+                d = self.s5_dir(k, f"{arm}__rep+head")
+                used, _, _ = self.plus_resolve(d)
                 R[arm].append(self.R_dir(ds, used, attr))
+                Rown[arm].append(self.R_dir(ds, d, attr))
             accF.append(self.acc_vec(ds, np.load(self.s5_dir(k, "U2__F") / "preds.npz")["U2_P"].argmax(1), y))
             accA.append(self.acc_vec(ds, np.load(self.u2_dir_untreated(ds, k, purpose) / "preds.npz")["U2_P"]
                                      .argmax(1), y))
@@ -1731,6 +1778,14 @@ class Replay:
                 e["decision"] = "NOT_ESTABLISHED"
                 e["why"] = "a seed has no feasible nominee"
             res[sid] = e
+        # variant: rep+head scored with its own GBT/MLP attacker (plus-surface alias ignored), to locate differences
+        own = {}
+        for sid, vecs, target in [("S5-LEACE-minus-FARE-rep+head", [b_ - f_ for b_, f_ in zip(Rown["B"], Rown["F"])],
+                                   T_REC),
+                                  ("S5-FZ-minus-FARE-rep+head", [z_ - f_ for z_, f_ in zip(Rown["FZ"], Rown["F"])],
+                                   T_REC)] + specs[2:]:
+            own[sid] = self.finish(sid, z, target, vecs)
+        self.res_s5_own = own
         desc = {f"R({arm},rep+head)": np.mean(R[arm], axis=0) for arm in R}
         desc.update({"Acc(A)": np.mean(accA, axis=0), "Acc(F)": np.mean(accF, axis=0), "const": np.mean(cst, axis=0)})
         sp = self.cfg.study / "S5_SUMMARY.json"
@@ -1741,13 +1796,29 @@ class Replay:
                 th = SS.get("descriptive", {}).get(kk)
                 pt, se = float(T[0]), float(np.std(T[1:], ddof=1))
                 if th is None or abs(th["point"] - pt) > TOL_POINT or abs(th["se"] - se) > TOL_SE:
-                    bad.append({"key": kk, "table": th and [th["point"], th["se"]], "replay": [pt, se]})
+                    arm = kk[2:-len(",rep+head)")] if kk.startswith("R(") else None
+                    To = np.mean(Rown[arm], axis=0) if arm else None
+                    bad.append({"key": kk, "table": th and [th["point"], th["se"]], "replay_alias_rule": [pt, se],
+                                "replay_own_attacker": None if To is None else [float(To[0]),
+                                                                                float(np.std(To[1:], ddof=1))]})
             if {int(k_): v_ for k_, v_ in SS.get("nominees", {}).items()} != nominees:
                 bad.append({"key": "nominees", "table": SS.get("nominees"), "replay": nominees})
             if SS.get("feasible_all_seeds") != feasible_all or tuple(SS.get("cell", ())) != tuple(self.s5_cell):
                 bad.append({"key": "cell/feasible_all_seeds"})
             if SS.get("supported_classes") != self.support[(ds, attr)][1]:
                 bad.append({"key": "supported_classes"})
+            if "plus_selection_by_seed" in SS:
+                mine = {str(k): {arm: self.plus_resolve(self.s5_dir(k, f"{arm}__rep+head"))[1] for arm in R}
+                        for k in SEEDS}
+                th = SS["plus_selection_by_seed"]
+                flat_t = json.dumps(th, sort_keys=True)
+                if all(arm in th for arm in R):                       # layout: arm -> [seed0, seed1, seed2]
+                    okp = all(th[arm][k] == mine[str(k)][arm] for k in SEEDS for arm in R)
+                else:                                                  # layout: seed -> {arm: selection}
+                    okp = all((th.get(str(k)) or {}).get(arm) == mine[str(k)][arm] for k in SEEDS for arm in R)
+                if not okp:
+                    bad.append({"key": "plus_selection_by_seed", "table": th, "replay": mine})
+                self.agg["S5_plus_selection_by_seed"] = {"table": flat_t[:400], "replay": mine}
         self.C.ok("compare.S5_SUMMARY", sp.exists() and not bad, {"bad": bad})
         self.agg["S5_descriptive"] = {kk: {"point": float(T[0]), "se": float(np.std(T[1:], ddof=1))}
                                       for kk, T in desc.items()}
@@ -2147,6 +2218,10 @@ class Replay:
                 s5 = self.s5()
             if s5:
                 self.compare("S5", find_table(self.cfg.study, ["S5_ENDPOINTS.csv"]), s5, expected_n=4)
+                if self.C.items[-1]["status"] != "PASS" and self.C.items[-1]["id"] == "compare.S5":
+                    # diagnostic only: does the table follow the 'own attacker, no plus alias' rule instead?
+                    self.compare("S5.variant_own_attacker_no_plus_alias",
+                                 find_table(self.cfg.study, ["S5_ENDPOINTS.csv"]), self.res_s5_own)
             self.check_fare_replay_existing()
         if not self.cfg.quick:
             self.check_models()
@@ -2172,7 +2247,27 @@ DIAGNOSES = {
     "compare.OUTPUT_SURFACE_RESULTS.z90":
         "Descriptive table only: lower90/upper90 use z = 1.6449 (rounded) instead of 1.6448536; bounds shift by "
         "< 5e-5 x SE. Points and SEs match the replay exactly.",
-    "units.S5_out_of_scope": "Stage 5 still running; its units are verified after 'S5 complete'.",
+    "units.S5_out_of_scope": "Stage-5 units are verified by the S5.* checks (own COMPLETE schema).",
+    "compare.S5":
+        "Runner deviation in the S5 recovery endpoints: report/infer_s5 scores every rep+head release with that "
+        "unit's own GBT/MLP attacker and ignores the recorded plus-surface selection, whereas the protocol (and the "
+        "output-aware study, and this study's FARE_REPLAY_EXISTING.csv, which the replay reproduces exactly with the "
+        "alias rule) scores the validation-selected candidate (ignore_rep -> output unit, ignore_out -> rep unit). "
+        "Alias selections occur for A s1, F s0/s1 (ignore_out -> Fc{nominee}__rep), FZ s0/s2 (ignore_rep -> "
+        "O_headFZ); B never aliases, so R(B) matches. With the variant 'own attacker' rule the replay reproduces "
+        "S5_ENDPOINTS.csv exactly (compare.S5.variant_own_attacker_no_plus_alias). Under the registered alias rule: "
+        "LEACE-minus-FARE 0.1512 (lower 0.1373; table 0.1531 / 0.1392) and FZ-minus-FARE 0.0074 (lower 0.0019; table "
+        "0.0076 / 0.0001). Decisions are unchanged (PASS, NOT_ESTABLISHED); endpoints 3 and 4 match exactly. Fix: apply "
+        "the plus-surface alias in infer_s5 and regenerate S5_ENDPOINTS.csv / S5_SUMMARY.json.",
+    "compare.S5_SUMMARY":
+        "Same cause as compare.S5: R(A), R(F), R(FZ) descriptives use the rep+head unit's own attacker instead of the "
+        "plus-surface selection; each table value equals the replay's 'own attacker' value exactly.",
+    "compare.S3.percentile_interval":
+        "Descriptive only. For the two NEAR_BOUND rows the runner's percentile_lower/upper are the "
+        "alpha/(2*34) = 0.000735 / 0.999265 replicate quantiles (reproduced exactly), i.e. near the 2nd-smallest/"
+        "2nd-largest of 1,999 replicates; STATS_REVIEW asks for the 2.5/97.5 % interval and notes a tail percentile "
+        "at this level is not estimable with B = 1,999. Either interval lies far above the 0.01 target; decisions "
+        "unchanged. Fix: report 2.5/97.5 % (or label the Bonferroni-level quantiles as such).",
     "exactness.score_math_float32_counts":
         "Wording only: SCORE_MATH/STATS_REVIEW quote 92 (s1) + 11 (s2) Adult rows at |d| >= 16.6355, but that count "
         "is at |d| >= 16.6; at 24 ln 2 = 16.635532 the s1 count is 84, as EXACTNESS.json states.",

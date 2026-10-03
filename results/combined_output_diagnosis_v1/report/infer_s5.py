@@ -33,7 +33,14 @@ if feasible_all:
         p = np.load(I.ODX_UNITS / u / "preds.npz")
         assert np.array_equal(p["assess_row_id"], W["row_id"][a])
         return D.accuracy(u, p["U2_P"].argmax(1) == p["y_t"])
-    rec = {tag: [D.recovery(f"{P(k)}__{tag}__rep+head", cls) for k in seeds] for tag in ("A", "B", "F", "FZ")}
+    def plus_resolved(uid):
+        """Registered plus-surface rule (output-aware study): a validation-selected ignore-rep / ignore-out candidate is
+        scored by its component unit. Repaired 2026-10-03 after the independent replay found it was not applied."""
+        r = json.loads((I.ODX_UNITS / uid / "record.json").read_text())
+        return r.get("plus_selection", {}).get("alias_source") or uid
+    rec = {tag: [D.recovery(plus_resolved(f"{P(k)}__{tag}__rep+head"), cls) for k in seeds] for tag in ("A", "B", "F", "FZ")}
+    plus_sel = {tag: [json.loads((I.ODX_UNITS / f"{P(k)}__{tag}__rep+head" / "record.json").read_text()).get("plus_selection", {}).get("selected")
+                      for k in seeds] for tag in ("A", "B", "F", "FZ")}
     accA = [accid(f"{ds}__s{k}__{pur}__U2__A") for k in seeds]
     accF = [accid(f"{P(k)}__U2__F") for k in seeds]
     ids["S5-LEACE-minus-FARE-rep+head"] = D.mean("e1", [D.diff(f"e1{k}", rec["B"][i], rec["F"][i]) for i, k in enumerate(seeds)])
@@ -70,7 +77,7 @@ for name, rr in (("S5_ENDPOINTS", rows), ("FARE_USEFUL_TASK_FRONTIER", front)):
     cols = list(dict.fromkeys(k for r in rr for k in r))
     with open(PKG / f"{name}.csv", "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols); w.writeheader(); w.writerows(rr)
-json.dump({"cell": cell["cell"], "supported_classes": cls, "feasible_all_seeds": feasible_all, "descriptive": desc,
+json.dump({"cell": cell["cell"], "supported_classes": cls, "plus_selection_by_seed": plus_sel if feasible_all else None, "feasible_all_seeds": feasible_all, "descriptive": desc,
            "nominees": {k: v["nominee"] for k, v in seeds.items()},
            "certificates": {k: v.get("certificate") for k, v in seeds.items()},
            "tree_own_task_accuracy_assessment": {k: v.get("tree_own_task_accuracy_assessment") for k, v in seeds.items()}},

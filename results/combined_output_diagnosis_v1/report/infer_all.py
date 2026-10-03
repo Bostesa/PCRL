@@ -203,7 +203,7 @@ for ds in ("adult", "hmda"):
             from stored_model_eval.pilot_infer import UnitBootstrap as _UB
             _, reps = _run(D.g, _UB(D.units, F.B_SE, F.SEED_SE, 500), [ids[key]])
             q = F.ALPHA / (2 * F.S3_SIZE)
-            row.update(flag="NEAR_BOUND (per-seed accuracy > 0.99)", percentile_lower=float(np.quantile(reps[ids[key]], q)),
+            row.update(flag="NEAR_BOUND (per-seed accuracy > 0.99)", percentile_level="Bonferroni tail 0.05/68 (about the 2nd extreme of 1,999 replicates; descriptive)", percentile_lower=float(np.quantile(reps[ids[key]], q)),
                        percentile_upper=float(np.quantile(reps[ids[key]], 1 - q)))
         s3.append(row)
     # S4

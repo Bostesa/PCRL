@@ -87,8 +87,9 @@ theorem.
 
 **Not established** (stage 5; Adult employment/age_group, chosen by a validation-only screen; FARE_USEFUL_TASK_RESULTS.md).
 - FARE kept the task: accuracy −0.0004, PASS; retention, PASS.
-- It lowered complete-contract recovery far below target LEACE: 0.560 vs 0.713, PASS.
-- But the zero-fairness tree with the same budget did almost as well: 0.567, a difference of +0.008 (NOT_ESTABLISHED).
+- It lowered complete-contract recovery far below target LEACE: 0.562 vs 0.713, PASS.
+- But the zero-fairness tree with the same budget did almost as well: 0.569, a difference of +0.007 (lower bound 0.002,
+  NOT_ESTABLISHED). Values follow amendment S1.
 
 **Replay of the existing cells.**
 - The HMDA seed-1 nominee is a constant release (0 % of the gain kept).

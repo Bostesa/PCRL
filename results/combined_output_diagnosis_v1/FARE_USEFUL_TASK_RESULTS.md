@@ -38,7 +38,8 @@ gain.
 - **Ineligible:** HMDA underwriting/ethnicity (gain 0.009); HMDA fair_lending (gain 0: a constant head).
 - **Chosen:** **Adult employment_analysis / age_group**. It has the highest mean validation gain (0.68), and ties are
   broken lexicographically, which puts age_group first.
-- **Caveat:** the occupation-group task is close to a recoding of the occupation input column, so it is easy to keep.
+- **Caveat:** the occupation-group task is easy to keep (untreated accuracy about 0.97). Earlier notes call it a
+  near-recoding of the inputs, but the verifier found that no single input column determines it.
 - age_group has 4 classes, all supported. The γ ceiling for this cell is 0.864, so grid settings 4–6 collapse to 1
   cell, as declared beforehand.
 
@@ -55,13 +56,15 @@ contract = features plus own head.
 
 | Endpoint | Point | Lower bound | Decision |
 |---|---|---|---|
-| R(target LEACE) − R(FARE) > 0.02 | +0.153 | +0.139 | **PASS** |
-| R(zero-fairness twin) − R(FARE) > 0.02 | +0.008 | +0.000 | **NOT_ESTABLISHED** |
+| R(target LEACE) − R(FARE) > 0.02 | +0.151 | +0.137 | **PASS** |
+| R(zero-fairness twin) − R(FARE) > 0.02 | +0.007 | +0.002 | **NOT_ESTABLISHED** |
 | Acc(FARE) − Acc(untreated) > −0.01 | −0.0004 | −0.0025 | **PASS** |
 | Retention: mean[A_F − 0.8·A_A − 0.2·const] > 0 | +0.139 | +0.135 | **PASS** |
 
 **Levels:**
-- Complete-contract recovery of age_group: untreated 0.731, LEACE 0.713, FARE 0.560, zero-fairness twin 0.567.
+- Complete-contract recovery of age_group: untreated 0.731, LEACE 0.713, FARE 0.562, zero-fairness twin 0.569.
+- These values follow the registered plus-surface alias rule (amendment S1, `AMENDMENT_S1_2026-10-03.md`): the first S5
+  table had omitted it. No decision changed.
 - Task accuracy: untreated 0.975, FARE 0.974, against a constant of 0.277.
 - The FARE tree's own task accuracy is 0.93–1.00 (a compatibility diagnostic only).
 
@@ -71,8 +74,11 @@ established. The task's structure lets a 5-cell tree keep it while discarding mo
 
 ## Native certificate
 
-- **Original run:** UNAVAILABLE on every seed. The wrapper's feature-hash guard refused because 1–2 distinct records
-  share a feature vector with fit rows.
+- **Original run:** UNAVAILABLE on every seed. The wrapper's feature-hash guard refused; its message counts *distinct
+  shared vectors* (1 / 2 / 1). In rows, 418 / 266 / 360 of the 1,500 cert rows share a collapsed encoder vector with
+  FARE fit rows, while 0 cert records are shared with fit records. This is the same rows-versus-vectors issue as repair
+  R2. The A1 premise text "no certificate row byte-identical to a fit row" is inaccurate as worded; the guard actually
+  applied is record identity.
 - **Under the dated A1 row-identity guard** (`run/s5/CERTIFICATES_A1.json`):
   - nominee: **3.30 and 3.30 (vacuous: > 1)** on seeds 0–1, UNAVAILABLE on seed 2 (a cell missing from a certificate
     split);

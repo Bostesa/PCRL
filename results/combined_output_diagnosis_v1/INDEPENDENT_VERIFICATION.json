@@ -1,8 +1,8 @@
 {
  "schema": "odx_independent_verification/v1",
  "verifier": "independent replay (no runner metric/aggregation/decision code imported)",
- "generated_at": "2026-10-03T09:36:55Z",
- "repo_head": "6b70ac0a192428be6125a3c1912d72f45efda933",
+ "generated_at": "2026-10-03T10:11:45Z",
+ "repo_head": "b924bf169823bdbe81b3535e6c4f858fd61bb3b7",
  "lock_commit_expected": "01ef342f",
  "environment": {
   "python": "3.13.7",
@@ -53,11 +53,10 @@
   }
  },
  "public_summary": {
-  "text": "Primary family: 30 slots; decisions {'PASS': 13, 'NOT_ESTABLISHED': 3, 'NOT_ESTIMABLE': 14}. PASS slots: CH-adult, CH-adult-pair0-1, CH-hmda, CH-hmda-pair0-1, CH-hmda-pair0-2, FC-adult, FC-adult-pair0-1, FC-hmda, FC-hmda-pair0-1, FC-hmda-pair0-2, FC-hmda-pair1-2, U-frozen-adult, U-refit-adult. Aliases FC/CH-adult-pair0-1 checked equal to FC/CH-adult; 14 NOT_ESTIMABLE slots follow from support. S3 (34): {'PASS': 23, 'NOT_ESTABLISHED': 11}. S4 (6): {'PASS': 6}; combination finding by contract: {'full': True, 'centred': True, 'hard': True}. Verifier checks: {'PASS': 67, 'INFO': 5, 'WARN': 1}.",
+  "text": "Primary family: 30 slots; decisions {'PASS': 13, 'NOT_ESTABLISHED': 3, 'NOT_ESTIMABLE': 14}. PASS slots: CH-adult, CH-adult-pair0-1, CH-hmda, CH-hmda-pair0-1, CH-hmda-pair0-2, FC-adult, FC-adult-pair0-1, FC-hmda, FC-hmda-pair0-1, FC-hmda-pair0-2, FC-hmda-pair1-2, U-frozen-adult, U-refit-adult. Aliases FC/CH-adult-pair0-1 checked equal to FC/CH-adult; 14 NOT_ESTIMABLE slots follow from support. S3 (34): {'PASS': 23, 'NOT_ESTABLISHED': 11}. S4 (6): {'PASS': 6}; combination finding by contract: {'full': True, 'centred': True, 'hard': True}. S5 (4) on adult/employment_analysis/age_group: {'PASS': 3, 'NOT_ESTABLISHED': 1}. Verifier checks: {'PASS': 81, 'INFO': 6}.",
   "check_counts": {
-   "PASS": 67,
-   "INFO": 5,
-   "WARN": 1
+   "PASS": 81,
+   "INFO": 6
   }
  },
  "non_pass_items": [
@@ -92,9 +91,9 @@
    "status": "INFO",
    "detail": {
     "S5_unit_dirs": 97,
-    "note": "stage-5 units use their own COMPLETE schema ('uid') and are verified after 'S5 complete'"
+    "note": "stage-5 units use their own COMPLETE schema ('uid'); they are verified by the S5.* checks"
    },
-   "diagnosed_cause": "Stage 5 still running; its units are verified after 'S5 complete'."
+   "diagnosed_cause": "Stage-5 units are verified by the S5.* checks (own COMPLETE schema)."
   },
   {
    "id": "exactness.score_math_float32_counts",
@@ -113,38 +112,20 @@
    "diagnosed_cause": "Wording only: SCORE_MATH/STATS_REVIEW quote 92 (s1) + 11 (s2) Adult rows at |d| >= 16.6355, but that count is at |d| >= 16.6; at 24 ln 2 = 16.635532 the s1 count is 84, as EXACTNESS.json states."
   },
   {
-   "id": "compare.S3.flags_reportable",
-   "status": "WARN",
-   "detail": {
-    "table_has_flag_column": false,
-    "replay_flags_not_representable": [
-     {
-      "id": "S3-U-adult-employment_analysis",
-      "flag": "NEAR_BOUND"
-     },
-     {
-      "id": "S3-U-adult-education_assessment",
-      "flag": "NEAR_BOUND"
-     },
-     {
-      "id": "S3-U-hmda-fair_lending_audit",
-      "flag": "IDENTICAL_BY_CONSTRUCTION"
-     }
-    ]
-   },
-   "diagnosed_cause": "Reporting gap, decisions unaffected. S3_ENDPOINTS.csv has no flag column. (a) S3-U-hmda-fair_lending_audit: the frozen head predicts the attacker_fit-majority class on every assessment row on all three seeds, so the gain is identically 0; the table correctly reports point 0, SE 0, NOT_ESTABLISHED and flag_normal_approx_weak=True, but cannot carry IDENTICAL_BY_CONSTRUCTION. (b) S3-U-adult-employment_analysis and S3-U-adult-education_assessment: frozen-head accuracy exceeds 0.99 on two of three seeds (seed means about 0.96-0.97), so NEAR_BOUND applies under a per-seed reading of the rule; the table has no NEAR_BOUND flag or percentile interval. The replay's 2.5/97.5 percentile intervals lie far above the 0.01 target, so the PASS decisions stand. Fix: add a flag column (and percentile interval for NEAR_BOUND rows) to S3_ENDPOINTS.csv."
-  },
-  {
-   "id": "compare.OUTPUT_SURFACE_RESULTS.z90",
+   "id": "S5.certificate_record_text",
    "status": "INFO",
    "detail": {
-    "implied_z": [
-     1.6449
-    ],
-    "exact_z90": 1.644853626951472,
-    "max_bound_shift": 5.300662169194226e-07
-   },
-   "diagnosed_cause": "Descriptive table only: lower90/upper90 use z = 1.6449 (rounded) instead of 1.6448536; bounds shift by < 5e-5 x SE. Points and SEs match the replay exactly."
+    "private_record": "CERTIFICATES_A1.json keeps the original wrapper wording (kept as recorded)",
+    "public_report": "FARE_USEFUL_TASK_RESULTS.md discloses rows vs distinct vectors (418 / 266 / 360 rows) and the A1 premise wording"
+   }
+  },
+  {
+   "id": "S5.task_deterministic_recoding_note",
+   "status": "INFO",
+   "detail": {
+    "task_is_function_of_input_columns": [],
+    "n_columns": 0
+   }
   }
  ],
  "checks": [
@@ -443,9 +424,9 @@
    "status": "INFO",
    "detail": {
     "S5_unit_dirs": 97,
-    "note": "stage-5 units use their own COMPLETE schema ('uid') and are verified after 'S5 complete'"
+    "note": "stage-5 units use their own COMPLETE schema ('uid'); they are verified by the S5.* checks"
    },
-   "diagnosed_cause": "Stage 5 still running; its units are verified after 'S5 complete'."
+   "diagnosed_cause": "Stage-5 units are verified by the S5.* checks (own COMPLETE schema)."
   },
   {
    "id": "units.integrity",
@@ -625,7 +606,6 @@
      "block",
      "dataset",
      "stat",
-     "target",
      "reason"
     ],
     "max_abs_diff": {
@@ -708,10 +688,12 @@
      "lower": "lower",
      "upper": "upper",
      "decision": "decision",
-     "flags": null,
+     "flags": "flag",
      "z": "z"
     },
-    "not_compared_columns": [],
+    "not_compared_columns": [
+     "percentile_level"
+    ],
     "max_abs_diff": {
      "point": 0.0,
      "se": 0.0,
@@ -723,28 +705,6 @@
     "missing_in_table": [],
     "extra_in_table": []
    }
-  },
-  {
-   "id": "compare.S3.flags_reportable",
-   "status": "WARN",
-   "detail": {
-    "table_has_flag_column": false,
-    "replay_flags_not_representable": [
-     {
-      "id": "S3-U-adult-employment_analysis",
-      "flag": "NEAR_BOUND"
-     },
-     {
-      "id": "S3-U-adult-education_assessment",
-      "flag": "NEAR_BOUND"
-     },
-     {
-      "id": "S3-U-hmda-fair_lending_audit",
-      "flag": "IDENTICAL_BY_CONSTRUCTION"
-     }
-    ]
-   },
-   "diagnosed_cause": "Reporting gap, decisions unaffected. S3_ENDPOINTS.csv has no flag column. (a) S3-U-hmda-fair_lending_audit: the frozen head predicts the attacker_fit-majority class on every assessment row on all three seeds, so the gain is identically 0; the table correctly reports point 0, SE 0, NOT_ESTABLISHED and flag_normal_approx_weak=True, but cannot carry IDENTICAL_BY_CONSTRUCTION. (b) S3-U-adult-employment_analysis and S3-U-adult-education_assessment: frozen-head accuracy exceeds 0.99 on two of three seeds (seed means about 0.96-0.97), so NEAR_BOUND applies under a per-seed reading of the rule; the table has no NEAR_BOUND flag or percentile interval. The replay's 2.5/97.5 percentile intervals lie far above the 0.01 target, so the PASS decisions stand. Fix: add a flag column (and percentile interval for NEAR_BOUND rows) to S3_ENDPOINTS.csv."
   },
   {
    "id": "compare.S4.n_rows",
@@ -806,15 +766,15 @@
   },
   {
    "id": "compare.OUTPUT_SURFACE_RESULTS.z90",
-   "status": "INFO",
+   "status": "PASS",
    "detail": {
     "implied_z": [
-     1.6449
+     1.644853627
     ],
     "exact_z90": 1.644853626951472,
-    "max_bound_shift": 5.300662169194226e-07
+    "max_bound_shift": 0.0
    },
-   "diagnosed_cause": "Descriptive table only: lower90/upper90 use z = 1.6449 (rounded) instead of 1.6448536; bounds shift by < 5e-5 x SE. Points and SEs match the replay exactly."
+   "diagnosed_cause": "descriptive 90% bounds use the critical value rounded to 4 decimals (1.6449)"
   },
   {
    "id": "compare.WORST_PAIR_SUMMARY",
@@ -853,6 +813,218 @@
       "is_max_abs_dev_from_0.5": true
      }
     },
+    "bad": []
+   }
+  },
+  {
+   "id": "S5.screen",
+   "status": "PASS",
+   "detail": {
+    "candidates": 12,
+    "eligible": 9,
+    "chosen_replay": [
+     "adult",
+     "employment_analysis",
+     "age_group"
+    ],
+    "chosen_record": [
+     "adult",
+     "employment_analysis",
+     "age_group"
+    ],
+    "problems": []
+   }
+  },
+  {
+   "id": "S5.grid_and_nominee",
+   "status": "PASS",
+   "detail": {
+    "nominees": {
+     "0": 1,
+     "1": 1,
+     "2": 2
+    },
+    "problems": [],
+    "frontier_rows": 18
+   }
+  },
+  {
+   "id": "S5.units_integrity_and_rows",
+   "status": "PASS",
+   "detail": {
+    "units": 97,
+    "bad": {}
+   }
+  },
+  {
+   "id": "S5.plus_selection_and_nominee_wiring",
+   "status": "PASS",
+   "detail": {
+    "plus_selected": {
+     "s0.A": "GBT/MLP",
+     "s0.B": "GBT/MLP",
+     "s0.F": "ignore_out",
+     "s0.FZ": "ignore_rep",
+     "s1.A": "ignore_out",
+     "s1.B": "GBT/MLP",
+     "s1.F": "ignore_out",
+     "s1.FZ": "GBT/MLP",
+     "s2.A": "GBT/MLP",
+     "s2.B": "GBT/MLP",
+     "s2.F": "GBT/MLP",
+     "s2.FZ": "ignore_rep"
+    },
+    "problems": []
+   }
+  },
+  {
+   "id": "S5.deployed_inputs_reproduce_predictions",
+   "status": "PASS",
+   "detail": {
+    "max_abs_diff": {
+     "s0.Fc1__rep": 0.0,
+     "s0.F__rep+head": 0.0,
+     "s1.Fc1__rep": 0.0,
+     "s1.F__rep+head": 0.0,
+     "s2.Fc2__rep": 0.0,
+     "s2.F__rep+head": 0.0
+    },
+    "errors": {},
+    "input": "one-hot FARE cell (sorted cell ids) [+ HEAD__F outputs]"
+   }
+  },
+  {
+   "id": "S5.certificate_premises",
+   "status": "PASS",
+   "detail": {
+    "s0": {
+     "cert_rows": 1500,
+     "cert_rows_sharing_vector_with_fit": 418,
+     "distinct_shared_vectors": 1,
+     "cert_records_shared_with_fit": 0,
+     "original_refusal_count": 1,
+     "A1_nominee_status": "OK",
+     "A1_nominee_reason": null,
+     "A1_nominee_bound": 3.3039570886745215,
+     "A1_bound_vacuous": true,
+     "A1_zero_fairness_status": "UNAVAILABLE"
+    },
+    "s1": {
+     "cert_rows": 1500,
+     "cert_rows_sharing_vector_with_fit": 266,
+     "distinct_shared_vectors": 2,
+     "cert_records_shared_with_fit": 0,
+     "original_refusal_count": 2,
+     "A1_nominee_status": "OK",
+     "A1_nominee_reason": null,
+     "A1_nominee_bound": 3.2994499898846357,
+     "A1_bound_vacuous": true,
+     "A1_zero_fairness_status": "UNAVAILABLE"
+    },
+    "s2": {
+     "cert_rows": 1500,
+     "cert_rows_sharing_vector_with_fit": 360,
+     "distinct_shared_vectors": 1,
+     "cert_records_shared_with_fit": 0,
+     "original_refusal_count": 1,
+     "A1_nominee_status": "UNAVAILABLE",
+     "A1_nominee_reason": "pair [0, 2]: official premise violated: every cell must appear in the base, D_val and D_test rows of the pair (alphabeta_adversary.py:121,140,209,233); pair [0,",
+     "A1_nominee_bound": null,
+     "A1_bound_vacuous": false,
+     "A1_zero_fairness_status": "UNAVAILABLE"
+    }
+   }
+  },
+  {
+   "id": "S5.certificate_record_text",
+   "status": "INFO",
+   "detail": {
+    "private_record": "CERTIFICATES_A1.json keeps the original wrapper wording (kept as recorded)",
+    "public_report": "FARE_USEFUL_TASK_RESULTS.md discloses rows vs distinct vectors (418 / 266 / 360 rows) and the A1 premise wording"
+   }
+  },
+  {
+   "id": "S5.certificate_wording",
+   "status": "PASS",
+   "detail": {
+    "original_reason_counts": "distinct shared vectors, labelled as 'certificate rows'",
+    "A1_premise_text": "'no certificate feature row is byte-identical to a fit row' marked holds=true"
+   }
+  },
+  {
+   "id": "lock.z_S5",
+   "status": "PASS",
+   "detail": {
+    "lock": 2.497705474412374,
+    "recomputed": 2.497705474412374
+   }
+  },
+  {
+   "id": "compare.S5_SUMMARY",
+   "status": "PASS",
+   "detail": {
+    "bad": []
+   }
+  },
+  {
+   "id": "S5.task_deterministic_recoding_note",
+   "status": "INFO",
+   "detail": {
+    "task_is_function_of_input_columns": [],
+    "n_columns": 0
+   }
+  },
+  {
+   "id": "compare.S5.n_rows",
+   "status": "PASS",
+   "detail": {
+    "rows": 4,
+    "distinct_ids": 4,
+    "expected": 4
+   }
+  },
+  {
+   "id": "compare.S5",
+   "status": "PASS",
+   "detail": {
+    "table": "~/PCRL/.worktrees/combined-output-diagnosis-v1/results/combined_output_diagnosis_v1/S5_ENDPOINTS.csv",
+    "rows": 4,
+    "column_map": {
+     "id": "id",
+     "point": "point",
+     "se": "se",
+     "lower": "lower",
+     "upper": "upper",
+     "decision": "decision",
+     "flags": null,
+     "z": "z"
+    },
+    "not_compared_columns": [],
+    "max_abs_diff": {
+     "point": 0.0,
+     "se": 8.370040771588094e-17,
+     "lower": 1.942890293094024e-16,
+     "upper": 1.942890293094024e-16
+    },
+    "n_diffs": 0,
+    "diffs": [],
+    "missing_in_table": [],
+    "extra_in_table": []
+   }
+  },
+  {
+   "id": "compare.S5.flags_reportable",
+   "status": "PASS",
+   "detail": {
+    "table_has_flag_column": false,
+    "replay_flags_not_representable": []
+   }
+  },
+  {
+   "id": "compare.FARE_REPLAY_EXISTING",
+   "status": "PASS",
+   "detail": {
+    "rows_checked": 24,
     "bad": []
    }
   },
@@ -3440,7 +3612,14 @@
     false,
     false,
     false
-   ]
+   ],
+   "percentile_declared_level": {
+    "level": "Bonferroni tail 0.05/68 (about the 2nd extreme of 1,999 replicates; descriptive)",
+    "replay": [
+     0.6665700859783166,
+     0.7061651763509144
+    ]
+   }
   },
   "S3-U-adult-education_assessment": {
    "id": "S3-U-adult-education_assessment",
@@ -3490,7 +3669,14 @@
     false,
     false,
     false
-   ]
+   ],
+   "percentile_declared_level": {
+    "level": "Bonferroni tail 0.05/68 (about the 2nd extreme of 1,999 replicates; descriptive)",
+    "replay": [
+     0.6108980040614376,
+     0.6503054492825168
+    ]
+   }
   },
   "S3-U-hmda-underwriting": {
    "id": "S3-U-hmda-underwriting",
@@ -3913,6 +4099,80 @@
     "adult__s1__PAIR_income_prediction+employment_analysis__race__FH__hard",
     "adult__s2__PAIR_income_prediction+employment_analysis__race__FH__hard"
    ]
+  }
+ },
+ "S5": {
+  "S5-LEACE-minus-FARE-rep+head": {
+   "id": "S5-LEACE-minus-FARE-rep+head",
+   "point": 0.15122402455625947,
+   "se": 0.005564666180282981,
+   "z": 2.497705474412374,
+   "lower": 0.13732512737448926,
+   "upper": 0.16512292173802967,
+   "target": 0.02,
+   "decision": "PASS",
+   "flags": [],
+   "n_ne_replicates": 0,
+   "per_seed": [
+    0.20243524768736476,
+    0.14473606457357635,
+    0.10650076140783726
+   ],
+   "between_seed_sd": 0.04829520300176701
+  },
+  "S5-FZ-minus-FARE-rep+head": {
+   "id": "S5-FZ-minus-FARE-rep+head",
+   "point": 0.0073720665657917754,
+   "se": 0.002195647730812284,
+   "z": 2.497705474412374,
+   "lower": 0.0018879852086608265,
+   "upper": 0.012856147922922724,
+   "target": 0.02,
+   "decision": "NOT_ESTABLISHED",
+   "flags": [],
+   "n_ne_replicates": 0,
+   "per_seed": [
+    0.004376193980836218,
+    0.007320346012148482,
+    0.010419659704390627
+   ],
+   "between_seed_sd": 0.003022064815601434
+  },
+  "S5-Acc(FARE)-Acc(A)": {
+   "id": "S5-Acc(FARE)-Acc(A)",
+   "point": -0.00044503782821540366,
+   "se": 0.0008173103653780605,
+   "z": 2.497705474412374,
+   "lower": -0.002486438402114163,
+   "upper": 0.0015963627456833556,
+   "target": -0.01,
+   "decision": "PASS",
+   "flags": [],
+   "n_ne_replicates": 0,
+   "per_seed": [
+    -0.0024794964714858203,
+    -0.0011443829868396094,
+    0.0022887659736792187
+   ],
+   "between_seed_sd": 0.002459856586197894
+  },
+  "S5-retained-gain-share": {
+   "id": "S5-retained-gain-share",
+   "point": 0.1391569711996948,
+   "se": 0.0014959777336551832,
+   "z": 2.497705474412374,
+   "lower": 0.13542045942474523,
+   "upper": 0.14289348297464438,
+   "target": 0.0,
+   "decision": "PASS",
+   "flags": [],
+   "n_ne_replicates": 0,
+   "per_seed": [
+    0.14182719816898715,
+    0.1434293343505626,
+    0.13221438107953465
+   ],
+   "between_seed_sd": 0.006065589688438155
   }
  }
 }
