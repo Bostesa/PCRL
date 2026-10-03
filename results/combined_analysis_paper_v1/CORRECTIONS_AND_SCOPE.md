@@ -27,7 +27,16 @@ Every number below was recomputed from the committed endpoint arrays of `researc
 2. **The backbone is seeded and random, not pretrained.**
 3. **No R²-to-accuracy guarantee.** The retired guarantee is not used. Recovery numbers are measured properties of fitted attackers on these rows.
 4. **The `main` branch API is not claimed fixed.** The claims audit found that main ships the retired API.
-5. **Best-validation vs final-checkpoint counts stay separate.** The Round-4/5 evidence has two families of counts (22→8 and 26→19 in the evidence inventory). They are reported in separate rows, never merged.
+5. **Counts that change model, checkpoint rule or criterion stay separate.** "22→8" and "26→19" are cross-purpose flag counts out of 33. Each arrow compares two different models under two different checkpoint rules:
+   - 22 and 26 come from the submitted R5/R7 model at `final.pt`;
+   - 8 and 19 come from the rebuttal model, a single union eraser, at `best.pt`;
+   - 22 and 8 count **incremental** flags; 26 and 19 count **absolute** flags.
+
+   Each number has its own row in `BOTH_REPOS_EVIDENCE_MAP.csv` (EM-029 to EM-032). They are never merged into one count and never described as a checkpoint comparison of one model.
+
+   The genuine same-model checkpoint pairs are 56/60 (`final.pt`) vs 54/60 (best checkpoint) strict, and 6/60 vs 5/60 cleanly compliant. A third count, 7/60, mixes the two rules. These pairs are also kept on separate rows.
+
+   *An earlier draft of this item described 22→8 and 26→19 as best-validation vs final-checkpoint families. That was wrong, and the evidence-map builder caught it.*
 6. **Absolute vs additional recovery.** Cross-purpose (coalition) recovery is reported both as an absolute pair AUC and as the increment over the strongest individual release. The two are never conflated.
 7. **Reused rows.** Every Stage-C number is development evidence on already-used assessment rows.
 8. **"Not significant" is never used** for an interval that excludes zero but fails a larger target (row 1).

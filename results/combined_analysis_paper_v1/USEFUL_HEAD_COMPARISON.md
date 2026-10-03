@@ -13,6 +13,17 @@
 
 Each arm releases the outputs of an **actually deployable task head**: a logistic-regression head from one common family, fitted on that arm's own features only. The heads, LEACE maps and FARE trees are reused unchanged from the output-aware study. **84 new attacker units (3,924 model fits) and 4 real-data controls** were run.
 
+**Reuse disclosure.** The full-logit output-only, features-only, features-plus-full-output and bypass surfaces are
+48 alias units, reused hash-verified from the output-aware study. That study's committed exploratory tables
+(`EXPLORATORY.csv`) had already reported their recovery levels:
+- output-only A 0.774, B 0.755, F 0.548, F0 0.648;
+- features plus own output 0.816 / 0.817 / 0.550 / 0.646;
+- bypass 0.788 / 0.789.
+
+The protocol (§6) disclosed only the head accuracies as "already known". It should also have disclosed these levels,
+because the registered predictions were written while they were in committed files. The centred, probability and hard
+surfaces and all banks are new.
+
 | Arm | Features released to the head |
 |---|---|
 | A | Untreated PCRL `rep_p0` |
@@ -90,9 +101,9 @@ All four heads are genuinely useful: a gain of 7–8 points, about half of high 
 - The decision carries the same accuracy as the scores (it is the same decision), so for decision-only recipients the feature defense makes no measurable privacy difference.
 - **Post hoc, descriptive:** the untreated head's decisions (0.544) leak about as much as FARE's *scores* (0.539; difference +0.005, 90 % interval [−0.003, 0.013]). They are about one point more accurate (+0.0099 [0.007, 0.013]).
 
-**5. The untreated score hides sex from a linear reader but not from a nonlinear one** (post hoc, descriptive).
+**5. The untreated score is nearly uninformative to a linear reader but not to a nonlinear one** (post hoc, descriptive).
 - A linear attacker on the untreated head's margin recovers only 0.515 (on B's margin, 0.510). Nonlinear attackers on the same single number recover 0.773 (and 0.759).
-- This is consistent with PCRL's linear constraint on the representation. It is the same pattern as the benchmark's representation result: the linear check passes, and recovery happens outside its scope.
+- This is consistent with, but does not establish, the reading that the sex signal left in the score is not linearly decodable, and so lies outside a linear eraser's scope.
 
 **6. Secondary family** (33 endpoints; z = 3.1718; `SECONDARY_COMPLETE_RELEASE_ENDPOINTS.csv`):
 - **Features plus own output:** the features dominate. Recovery is A 0.816, B 0.817, F 0.550, F0 0.646, and every A/B-vs-F/F0 contrast passes.
@@ -114,7 +125,7 @@ All four heads are genuinely useful: a gain of 7–8 points, about half of high 
 | Bypass PASS for B, F, F0; not A | F, F0 PASS; A and **B** not | partial (B miss) |
 | Features plus output tracks features only | yes | hit |
 
-**4 of 10 primary recovery predictions were correct.** The misses run in both directions:
+**4 of 10 primary recovery predictions were correct.** As disclosed in §1, full-logit levels for the reused surfaces were already in committed exploratory files when the predictions were registered. The misses run in both directions:
 - LEACE removed less from the head output than predicted.
 - FARE's fairness term removed more than predicted.
 - Hard decisions are near-uninformative for every arm, so no hard contrast could reach 0.02.

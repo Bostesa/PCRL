@@ -1,0 +1,2024 @@
+{
+ "schema": "cap-independent-verification-v1",
+ "verifier": "~/PCRL/.worktrees/combined-analysis-paper-v1/results/combined_analysis_paper_v1/verification/replay_cap.py",
+ "verifier_sha256": "2670b391a43d66a19ebcca7a82d5ae2bf4df1a4790c22206b272705512247931",
+ "verifier_imports_forbidden": [
+  "cap",
+  "odx",
+  "oar",
+  "stored_model_eval",
+  "report",
+  "pcrl"
+ ],
+ "import_guard": true,
+ "forbidden_modules_loaded_at_end": [],
+ "lock_commit": "a0de449539f5753dc75e8927538d7105b7e19fa1",
+ "inputs": {
+  "inference_json": "~/PCRL_eval_cache_private/cap_v1/run/inference.json",
+  "inference_json_sha256": "6a21c9a7620802c5f2acf45369af1959d293542644da457c8a9abd7aafea1a08",
+  "labels": "~/PCRL_eval_cache_private/bench_v1/inputs/adult_labels.npz",
+  "labels_sha256": "786a51f28ae567e7b32339514aeb320f1258c29fe574dde3fb65ba3574482832"
+ },
+ "roles": {
+  "counts": {
+   "attacker_fit": 6065,
+   "attacker_val": 2235,
+   "assessment": 5243,
+   "cert": 1500,
+   "excluded_exposure": 17
+  },
+  "row_id_sha256_sorted": {
+   "attacker_fit": "881eac42ce5f4547784ec2f534671800a7c8ee802e487934623d8fd9318cb810",
+   "attacker_val": "f533da6a43f773d1d749da536bf70b387623c2b0f7a8aac6c98b96404dcb9598",
+   "assessment": "efbe632e9d781eab21db0228bc4ea54f78710f4a573bdbcd2d06cd2481148eb5",
+   "cert": "75c63850902446eacdde8ed4ca30ece00cedb63c3031e868335f5ae8385f9bcf",
+   "excluded_exposure": "8548f0675fc22956c767da7778d0841f33511649bbdaba2c1871bdc226f205a9"
+  },
+  "assessment_groups": 5243
+ },
+ "bootstrap": {
+  "B": 1999,
+  "seed": 20261041,
+  "n_units": 5243,
+  "counts_sha256": "5b5279f1783eca93b890d2f3f2c869c4b5b5f11a5e9c2151de6ff0088cc66db6",
+  "n_base_statistics": 682,
+  "z_primary": 3.0077865564732638,
+  "z_secondary": 3.1717657833516224
+ },
+ "checks": [
+  {
+   "id": "roles.counts",
+   "status": "PASS",
+   "detail": "rebuilt oar-roles-v1: {'attacker_fit': 6065, 'attacker_val': 2235, 'assessment': 5243, 'cert': 1500, 'excluded_exposure': 17}; exposure-excluded scored rows=17; expected {'assessment': 5243, 'attacker_fit': 6065, 'attacker_val': 2235}"
+  },
+  {
+   "id": "roles.groups",
+   "status": "PASS",
+   "detail": "assessment groups=5243, rows=5243; runner n_rows=5243 n_groups=5243"
+  },
+  {
+   "id": "heads.logsumexp",
+   "status": "PASS",
+   "detail": "max |logsumexp(row)| over 12 heads x 39,205 rows",
+   "max_abs_diff": 9.991118215798008e-13
+  },
+  {
+   "id": "heads.offset_identity",
+   "status": "PASS",
+   "detail": "max |c + (softplus(d)+softplus(-d))/2| over 12 heads (offset is a deterministic function of the margin)",
+   "max_abs_diff": 9.983125437429408e-13
+  },
+  {
+   "id": "heads.constant",
+   "status": "PASS",
+   "detail": "majority task class on attacker_fit = 0; constant accuracy on assessment = 0.749189 (protocol 0.7492); minority class=1"
+  },
+  {
+   "id": "heads.utility_vs_inference_json",
+   "status": "PASS",
+   "detail": "accuracy, balanced accuracy, minority recall, log loss, gain, share positive for 12 heads vs inference.json['utility']",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "heads.utility_vs_csv",
+   "status": "PASS",
+   "detail": "ACTUAL_HEAD_UTILITY.csv is printed to 6 decimals: 0 formatted mismatches over 12 heads x 8 fields (max abs diff is the rounding residual)",
+   "max_abs_diff": 4.878886133985461e-07
+  },
+  {
+   "id": "surfaces.hard_rule",
+   "status": "PASS",
+   "detail": "argmax decision equals 1[d>0] on all 12 heads; rows with d==0: 0"
+  },
+  {
+   "id": "features.leace_map_hashes",
+   "status": "PASS",
+   "detail": "LEACE map json/npz sha256 equal LOCK.json admitted hashes; B features computed in numpy as x - ((x - mean_x) @ proj_right.T) @ proj_left.T (the official LeaceEraser formula), no forbidden import"
+  },
+  {
+   "id": "features.fare_nominees",
+   "status": "INFO",
+   "detail": "F nominee_unit_source per seed = [4, 2, 4] (protocol: 4/2/4); one-hot widths F=[10, 50, 10], F0=[10, 50, 10]"
+  },
+  {
+   "id": "replay.saved_attackers",
+   "status": "PASS",
+   "detail": "reloaded NL_as0, NL_as1, NL_as2 and L for all 84 new units and all 48 alias-source units (132 units, 528 models) and predicted on independently rebuilt assessment surfaces (out: surface; features+output: hstack[arm features, surface]; features-only; features+clean logits); bitwise-equal 528/528; failures: []",
+   "max_abs_diff": 0.0,
+   "by_kind": {
+    "new out/dc|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/centred|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/prob|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/hard|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/dc|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/centred|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/prob|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/hard|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/dc|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/centred|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/prob|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/hard|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/dc|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/centred|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/prob|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new out/hard|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/centred|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/prob|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/hard|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/centred|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/prob|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/hard|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/centred|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/prob|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/hard|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/centred|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/prob|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "new feat+out/hard|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat/none|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source out/full|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+out/full|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+clean/full|A": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat/none|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source out/full|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+out/full|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+clean/full|B": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat/none|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source out/full|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+out/full|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+clean/full|F": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat/none|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source out/full|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+out/full|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    },
+    "alias-source feat+clean/full|F0": {
+     "units": 3,
+     "max_abs": 0.0
+    }
+   }
+  },
+  {
+   "id": "replay.B_features",
+   "status": "PASS",
+   "detail": "B-arm units replayed with numpy LEACE (no forbidden import needed); included in replay.saved_attackers"
+  },
+  {
+   "id": "replay.cell_conditional",
+   "status": "INFO",
+   "detail": "CC.joblib (cell-conditional NLDA, descriptive, in no family) not reloaded: its class lives in a forbidden package"
+  },
+  {
+   "id": "selection.val_log_loss_from_val_preds",
+   "status": "PASS",
+   "detail": "recorded val_log_loss.NL vs -mean log of saved VAL__NL__as0 (clip 1e-12, renormalised) on rebuilt attacker_val rows, 132 units; val rows/labels match rebuilt roles: True",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "replay.refit_from_scratch",
+   "status": "INFO",
+   "detail": "cap__s1__B__out__centred: recorded NL family MLP {'hidden_layer_sizes': [64, 64], 'alpha': 1e-05, 'learning_rate_init': 0.003} (saved model params agree: True); refit on 6065 attacker_fit rows in 0.1s CPU; macro AUC refit=0.820970 saved=0.820970; max abs prob diff=0; bitwise=True; val log loss refit=0.4530984317 recorded=0.4530984317",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "selection.banks",
+   "status": "PASS",
+   "detail": "48 banks recomputed (argmin val_log_loss.NL, ties to earlier candidate); mismatches: []; banks with an exact tie at the minimum: 24 ['cap__s0__A__out__fullbank', 'cap__s0__F0__out__iobank', 'cap__s0__F0__out__fullbank', 'cap__s0__F0__feat+out__iobank', 'cap__s0__F0__feat+out__fullbank', 'cap__s1__A__feat+out__iobank', 'cap__s1__A__feat+out__fullbank', 'cap__s1__B__feat+out__fullbank', 'cap__s1__F__out__iobank', 'cap__s1__F__out__fullbank', 'cap__s1__F__feat+out__iobank', 'cap__s1__F__feat+out__fullbank', 'cap__s1__F0__out__iobank', 'cap__s1__F0__out__fullbank', 'cap__s1__F0__feat+out__iobank', 'cap__s1__F0__feat+out__fullbank', 'cap__s2__B__feat+out__iobank', 'cap__s2__B__feat+out__fullbank', 'cap__s2__F__out__iobank', 'cap__s2__F__out__fullbank', 'cap__s2__F__feat+out__iobank', 'cap__s2__F__feat+out__fullbank', 'cap__s2__F0__out__iobank', 'cap__s2__F0__out__fullbank']"
+  },
+  {
+   "id": "selection.plus_rule",
+   "status": "PASS",
+   "detail": "60 features+output units (36 new, 12 aliased features+own full, 12 aliased features+clean) recomputed from the three candidate validation log losses (strict <, ties to earlier listed GBT/MLP, ignore_rep, ignore_out); mismatches: []; selections: {'GBT/MLP': 34, 'ignore_out': 19, 'ignore_rep': 7}; exact ties at the minimum: [\"cap__s0__F__feat+out__prob (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s0__F__feat+out__hard (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s0__F__feat+out__full (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s0__F0__feat+out__centred (['GBT/MLP', 'ignore_rep', 'ignore_out'] -> GBT/MLP)\", \"cap__s0__F0__feat+out__prob (['GBT/MLP', 'ignore_rep', 'ignore_out'] -> GBT/MLP)\", \"cap__s0__F0__feat+out__full (['GBT/MLP', 'ignore_rep', 'ignore_out'] -> GBT/MLP)\", \"cap__s1__A__feat+out__hard (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s1__B__feat+out__hard (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s2__A__feat+out__hard (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\", \"cap__s2__B__feat+out__hard (['GBT/MLP', 'ignore_out'] -> GBT/MLP)\"]"
+  },
+  {
+   "id": "selection.alias_integrity",
+   "status": "PASS",
+   "detail": "48 alias records byte-identical to their source record and source COMPLETE.json sha256 as recorded; bad: []"
+  },
+  {
+   "id": "selection.resolution",
+   "status": "PASS",
+   "detail": "132 runner resolutions compared (scored_dir and chain); mismatches: []; 107 distinct scored directories over 180 uids (incl. 48 descriptive-level uids not in the runner's resolution table)"
+  },
+  {
+   "id": "integrity.complete_hashes",
+   "status": "PASS",
+   "detail": "every file in COMPLETE.json of all cap units and all scored directories hash-verifies; bad: []"
+  },
+  {
+   "id": "roles.assessment_rows_in_units",
+   "status": "PASS",
+   "detail": "assess_row_id / assess_unit / y_s of all 107 scored directories and all 84 new units equal the rebuilt assessment rows (and the 12 head units' assess_row_id / y_t); mismatches: []"
+  },
+  {
+   "id": "recovery.per_seed",
+   "status": "PASS",
+   "detail": "192 per-seed points (180 recovery uids: NL macro AUC over sex classes, mean over as0-as2; 12 head accuracies) vs inference.json['per_seed']",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "recovery.class_symmetry",
+   "status": "INFO",
+   "detail": "max |AUC(class 0) - AUC(class 1)| at as0 over scored dirs (binary: should be ~0)",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "bootstrap.weighted_auc_unit_weights",
+   "status": "PASS",
+   "detail": "weighted AUC with unit weights equals the rank-based Mann-Whitney AUC (ties 0.5) for every base statistic",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "endpoints.primary.points",
+   "status": "PASS",
+   "detail": "19 endpoint points vs inference.json",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "endpoints.primary.se",
+   "status": "PASS",
+   "detail": "bootstrap SE (B=1999, seed 20261041, ddof 1, same draw order); finite replicates all 1999: True",
+   "max_abs_diff": 3.469446951953614e-18
+  },
+  {
+   "id": "endpoints.primary.lower",
+   "status": "PASS",
+   "detail": "lower bounds point - z*SE",
+   "max_abs_diff": 1.0408340855860843e-17
+  },
+  {
+   "id": "endpoints.primary.decisions",
+   "status": "PASS",
+   "detail": "replay decisions {'PASS': 12, 'NOT_ESTABLISHED': 7}; disagreements: []"
+  },
+  {
+   "id": "endpoints.secondary.points",
+   "status": "PASS",
+   "detail": "33 endpoint points vs inference.json",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "endpoints.secondary.se",
+   "status": "PASS",
+   "detail": "bootstrap SE (B=1999, seed 20261041, ddof 1, same draw order); finite replicates all 1999: True",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "endpoints.secondary.lower",
+   "status": "PASS",
+   "detail": "lower bounds point - z*SE",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "endpoints.secondary.decisions",
+   "status": "PASS",
+   "detail": "replay decisions {'NOT_ESTABLISHED': 11, 'PASS': 22}; disagreements: []"
+  },
+  {
+   "id": "endpoints.z",
+   "status": "PASS",
+   "detail": "z primary=3.007786556, secondary=3.171765783"
+  },
+  {
+   "id": "endpoints.csv_consistency",
+   "status": "PASS",
+   "detail": "CSV point/se/lower/upper/z/target/decision equal inference.json at 6 decimals and seed0-2 columns equal replay per-seed contrasts within rounding; mismatches: []",
+   "max_abs_diff": 4.967683498343896e-07
+  },
+  {
+   "id": "levels.points_and_se",
+   "status": "PASS",
+   "detail": "65 descriptive levels: max point diff 0, max SE diff 0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "flags.IDENTICAL_BY_SELECTION",
+   "status": "PASS",
+   "detail": "endpoints whose two sides resolve to the same scored directory on every seed (difference is 0 by construction, SE 0): []",
+   "endpoints": []
+  },
+  {
+   "id": "flags.NEAR_BOUND",
+   "status": "WARN",
+   "detail": "endpoints with |lower - target| < 0.5 SE: [('U-retain-F', 0.323, 'PASS')]",
+   "endpoints": [
+    {
+     "id": "U-retain-F",
+     "family": "primary",
+     "lower": 0.0006408560121149726,
+     "target": 0.0,
+     "se": 0.0019852255026750103,
+     "gap_over_se": 0.3228127037716599,
+     "decision": "PASS"
+    }
+   ]
+  },
+  {
+   "id": "flags.same_dir_some_seeds",
+   "status": "INFO",
+   "detail": "endpoints whose sides share a scored directory on some (not all) seeds: ['S-offset-out-A seeds [1]', 'S-offset-out-B seeds [1, 2]', 'S-offset-out-F seeds [0]', 'S-bypass-A seeds [0]', 'S-bypass-B seeds [2]']"
+  },
+  {
+   "id": "flags.IDENTICAL_BY_CONTENT",
+   "status": "WARN",
+   "detail": "endpoints whose two sides have bitwise-identical saved NL predictions on every seed: ['S-offset-out-F', 'S-offset-out-F0']",
+   "endpoints": [
+    "S-offset-out-F",
+    "S-offset-out-F0"
+   ]
+  },
+  {
+   "id": "flags.identical_content_some_seeds",
+   "status": "INFO",
+   "detail": "endpoints whose sides have bitwise-identical NL predictions on some seeds (per-seed contrast exactly 0): ['S-offset-out-A seeds [0, 1]', 'S-offset-out-B seeds [1, 2]', 'S-bypass-A seeds [0]', 'S-bypass-B seeds [2]']"
+  },
+  {
+   "id": "selection.tie_sensitivity",
+   "status": "INFO",
+   "detail": "34 exact validation ties (banks + plus rule), all broken by candidate order as registered. The alternative tied candidate would score different predictions in 4: [('cap__s0__F__feat+out__prob', 0.0, 'level only'), ('cap__s0__F__feat+out__full', 0.0, 'endpoint'), ('cap__s1__A__feat+out__iobank', 0.000369, 'level only'), ('cap__s1__A__feat+out__fullbank', 0.000369, 'level only')]; ties that would change an endpoint-used recovery AUC: []",
+   "max_abs_diff": 0.00036903785512909515,
+   "ties": [
+    {
+     "unit": "cap__s0__A__out__fullbank",
+     "tied": [
+      "A__out__full",
+      "A__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F__feat+out__prob",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": false,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s0__F__feat+out__hard",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F__feat+out__full",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": false,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F0__out__iobank",
+     "tied": [
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F0__out__fullbank",
+     "tied": [
+      "F0__out__full",
+      "F0__out__dc",
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F0__feat+out__iobank",
+     "tied": [
+      "F0__feat+out__centred",
+      "F0__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s0__F0__feat+out__fullbank",
+     "tied": [
+      "F0__feat+out__full",
+      "F0__feat+out__centred",
+      "F0__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s0__F0__feat+out__centred",
+     "tied": [
+      "GBT/MLP",
+      "ignore_rep",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s0__F0__feat+out__prob",
+     "tied": [
+      "GBT/MLP",
+      "ignore_rep",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s0__F0__feat+out__full",
+     "tied": [
+      "GBT/MLP",
+      "ignore_rep",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__A__feat+out__iobank",
+     "tied": [
+      "A__feat+out__centred",
+      "A__feat+out__prob"
+     ],
+     "bitwise_same_predictions": false,
+     "max_abs_auc_gap": 0.00036903785512909515,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__A__feat+out__fullbank",
+     "tied": [
+      "A__feat+out__full",
+      "A__feat+out__centred",
+      "A__feat+out__prob"
+     ],
+     "bitwise_same_predictions": false,
+     "max_abs_auc_gap": 0.00036903785512909515,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__A__feat+out__hard",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__B__feat+out__fullbank",
+     "tied": [
+      "B__feat+out__full",
+      "B__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__B__feat+out__hard",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__F__out__iobank",
+     "tied": [
+      "F__out__centred",
+      "F__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__F__out__fullbank",
+     "tied": [
+      "F__out__full",
+      "F__out__centred",
+      "F__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__F__feat+out__iobank",
+     "tied": [
+      "F__feat+out__centred",
+      "F__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__F__feat+out__fullbank",
+     "tied": [
+      "F__feat+out__full",
+      "F__feat+out__centred",
+      "F__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__F0__out__iobank",
+     "tied": [
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__F0__out__fullbank",
+     "tied": [
+      "F0__out__full",
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s1__F0__feat+out__iobank",
+     "tied": [
+      "F0__feat+out__centred",
+      "F0__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s1__F0__feat+out__fullbank",
+     "tied": [
+      "F0__feat+out__full",
+      "F0__feat+out__centred",
+      "F0__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s2__A__feat+out__hard",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s2__B__feat+out__iobank",
+     "tied": [
+      "B__feat+out__centred",
+      "B__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s2__B__feat+out__fullbank",
+     "tied": [
+      "B__feat+out__full",
+      "B__feat+out__centred",
+      "B__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s2__B__feat+out__hard",
+     "tied": [
+      "GBT/MLP",
+      "ignore_out"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s2__F__out__iobank",
+     "tied": [
+      "F__out__centred",
+      "F__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s2__F__out__fullbank",
+     "tied": [
+      "F__out__full",
+      "F__out__dc",
+      "F__out__centred",
+      "F__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s2__F__feat+out__iobank",
+     "tied": [
+      "F__feat+out__centred",
+      "F__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s2__F__feat+out__fullbank",
+     "tied": [
+      "F__feat+out__full",
+      "F__feat+out__centred",
+      "F__feat+out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": false
+    },
+    {
+     "unit": "cap__s2__F0__out__iobank",
+     "tied": [
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    },
+    {
+     "unit": "cap__s2__F0__out__fullbank",
+     "tied": [
+      "F0__out__full",
+      "F0__out__dc",
+      "F0__out__centred",
+      "F0__out__prob"
+     ],
+     "bitwise_same_predictions": true,
+     "max_abs_auc_gap": 0.0,
+     "endpoint_uid": true
+    }
+   ]
+  },
+  {
+   "id": "cross_study.odx_RH",
+   "status": "INFO",
+   "detail": "cap A output-only (centred, dc, prob, hard) vs odx RH units: 12 compared, missing []; same assessment rows/labels: True; saved NL predictions bitwise equal (all 3 attacker seeds) in 12/12",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "lock.code_hashes",
+   "status": "PASS",
+   "detail": "53 code files re-hashed; mismatches: []; key cap files all match: True"
+  },
+  {
+   "id": "lock.completed_after_commit",
+   "status": "PASS",
+   "detail": "lock commit a0de449 committed 2026-10-03T17:53:29+00:00; 84 units with completed_at all after it; before: []; without completed_at: 48 alias + 48 bank units, other: []"
+  },
+  {
+   "id": "lock.units_planned",
+   "status": "PASS",
+   "detail": "184 planned, 180 unit dirs present; planned but absent: ['cap__CTL__A__out__centred', 'cap__CTL__B__out__prob', 'cap__CTL__F__feat+out__hard', 'cap__CTL__F__out__hard'] (controls are recorded in controls.json, not as unit dirs); present but unplanned: []"
+  }
+ ],
+ "primary": [
+  {
+   "id": "U-acc-B-vs-A",
+   "target": -0.01,
+   "runner_point": -0.0006357683260219976,
+   "replay_point": -0.0006357683260219976,
+   "runner_se": 0.00030825328028331607,
+   "replay_se": 0.00030825328028331607,
+   "runner_lower": -0.0015629283984469407,
+   "replay_lower": -0.0015629283984469407,
+   "runner_upper": 0.0002913917464029454,
+   "replay_upper": 0.0002913917464029454,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-gain-B",
+   "target": 0.03,
+   "runner_point": 0.08201411405683769,
+   "replay_point": 0.08201411405683769,
+   "runner_se": 0.004927662216221304,
+   "replay_se": 0.004927662216221304,
+   "runner_lower": 0.067192757888046,
+   "replay_lower": 0.067192757888046,
+   "runner_upper": 0.09683547022562937,
+   "replay_upper": 0.09683547022562937,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-retain-B",
+   "target": 0.0,
+   "runner_point": 0.0158942081505499,
+   "replay_point": 0.0158942081505499,
+   "runner_se": 0.0009970787680950136,
+   "replay_se": 0.0009970787680950108,
+   "runner_lower": 0.012895208036128794,
+   "replay_lower": 0.012895208036128803,
+   "runner_upper": 0.018893208264971005,
+   "replay_upper": 0.018893208264970995,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 2.8189256484623115e-18,
+   "abs_diff_lower": 8.673617379884035e-18,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-acc-F-vs-A",
+   "target": -0.01,
+   "runner_point": -0.009917985885943162,
+   "replay_point": -0.009917985885943162,
+   "runner_se": 0.001756531155350064,
+   "replay_se": 0.001756531155350064,
+   "runner_lower": -0.015201256681031533,
+   "replay_lower": -0.015201256681031533,
+   "runner_upper": -0.004634715090854789,
+   "replay_upper": -0.004634715090854789,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-gain-F",
+   "target": 0.03,
+   "runner_point": 0.07273189649691653,
+   "replay_point": 0.07273189649691653,
+   "runner_se": 0.005201451681113833,
+   "replay_se": 0.005201451681113833,
+   "runner_lower": 0.05708704005631708,
+   "replay_lower": 0.05708704005631708,
+   "runner_upper": 0.08837675293751597,
+   "replay_upper": 0.08837675293751597,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-retain-F",
+   "target": 0.0,
+   "runner_point": 0.006611990590628746,
+   "replay_point": 0.006611990590628746,
+   "runner_se": 0.0019852255026750138,
+   "replay_se": 0.0019852255026750103,
+   "runner_lower": 0.0006408560121149622,
+   "replay_lower": 0.0006408560121149726,
+   "runner_upper": 0.01258312516914253,
+   "replay_upper": 0.01258312516914252,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 3.469446951953614e-18,
+   "abs_diff_lower": 1.0408340855860843e-17,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-acc-F0-vs-A",
+   "target": -0.01,
+   "runner_point": -0.004005340453938585,
+   "replay_point": -0.004005340453938585,
+   "runner_se": 0.001511448957596739,
+   "replay_se": 0.001511448957596739,
+   "runner_lower": -0.008551456309393584,
+   "replay_lower": -0.008551456309393584,
+   "runner_upper": 0.0005407754015164142,
+   "replay_upper": 0.0005407754015164142,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-gain-F0",
+   "target": 0.03,
+   "runner_point": 0.0786445419289211,
+   "replay_point": 0.0786445419289211,
+   "runner_se": 0.005073076097311583,
+   "replay_se": 0.005073076097311583,
+   "runner_lower": 0.06338581184346147,
+   "replay_lower": 0.06338581184346147,
+   "runner_upper": 0.09390327201438074,
+   "replay_upper": 0.09390327201438074,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "U-retain-F0",
+   "target": 0.0,
+   "runner_point": 0.012524636022633323,
+   "replay_point": 0.012524636022633323,
+   "runner_se": 0.001742579007524643,
+   "replay_se": 0.0017425790075246397,
+   "runner_lower": 0.00728333031020818,
+   "replay_lower": 0.007283330310208189,
+   "runner_upper": 0.017765941735058466,
+   "replay_upper": 0.017765941735058455,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 3.2526065174565133e-18,
+   "abs_diff_lower": 9.540979117872439e-18,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-centred-A-minus-B",
+   "target": 0.02,
+   "runner_point": 0.014810640912138462,
+   "replay_point": 0.014810640912138462,
+   "runner_se": 0.0014197727608882722,
+   "replay_se": 0.0014197727608882722,
+   "runner_lower": 0.010540267488691787,
+   "replay_lower": 0.010540267488691787,
+   "runner_upper": 0.019081014335585136,
+   "replay_upper": 0.019081014335585136,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-centred-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.23447480371088547,
+   "replay_point": 0.23447480371088547,
+   "runner_se": 0.005842020088395459,
+   "replay_se": 0.005842020088395459,
+   "runner_lower": 0.21690325422636286,
+   "replay_lower": 0.21690325422636286,
+   "runner_upper": 0.2520463531954081,
+   "replay_upper": 0.2520463531954081,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-centred-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.12524671299243162,
+   "replay_point": 0.12524671299243162,
+   "runner_se": 0.004558650734962446,
+   "replay_se": 0.004558650734962446,
+   "runner_lower": 0.1115352645961546,
+   "replay_lower": 0.1115352645961546,
+   "runner_upper": 0.13895816138870862,
+   "replay_upper": 0.13895816138870862,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-centred-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.219664162798747,
+   "replay_point": 0.219664162798747,
+   "runner_se": 0.006165100287827462,
+   "replay_se": 0.006165100287827462,
+   "runner_lower": 0.20112085703371013,
+   "replay_lower": 0.20112085703371013,
+   "runner_upper": 0.2382074685637839,
+   "replay_upper": 0.2382074685637839,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-centred-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.10922809071845385,
+   "replay_point": 0.10922809071845385,
+   "runner_se": 0.005623272701689062,
+   "replay_se": 0.005623272701689062,
+   "runner_lower": 0.09231448668293041,
+   "replay_lower": 0.09231448668293041,
+   "runner_upper": 0.1261416947539773,
+   "replay_upper": 0.1261416947539773,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-hard-A-minus-B",
+   "target": 0.02,
+   "runner_point": -0.0003318443923899794,
+   "replay_point": -0.0003318443923899794,
+   "runner_se": 0.0002916836608187568,
+   "replay_se": 0.0002916836608187568,
+   "runner_lower": -0.0012091665861435434,
+   "replay_lower": -0.0012091665861435434,
+   "runner_upper": 0.0005454778013635846,
+   "replay_upper": 0.0005454778013635846,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-hard-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.00762485115782896,
+   "replay_point": 0.00762485115782896,
+   "runner_se": 0.003855733664017803,
+   "replay_se": 0.003855733664017803,
+   "runner_lower": -0.0039723727221451875,
+   "replay_lower": -0.0039723727221451875,
+   "runner_upper": 0.019222075037803106,
+   "replay_upper": 0.019222075037803106,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-hard-A-minus-F0",
+   "target": 0.02,
+   "runner_point": -0.0020451758739753467,
+   "replay_point": -0.0020451758739753467,
+   "runner_se": 0.0014202785441522396,
+   "replay_se": 0.0014202785441522396,
+   "runner_lower": -0.006317070585523872,
+   "replay_lower": -0.006317070585523872,
+   "runner_upper": 0.0022267188375731783,
+   "replay_upper": 0.0022267188375731783,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-hard-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.00795669555021894,
+   "replay_point": 0.00795669555021894,
+   "runner_se": 0.0038382751202011003,
+   "replay_se": 0.0038382751202011003,
+   "runner_lower": -0.00358801675636773,
+   "replay_lower": -0.00358801675636773,
+   "runner_upper": 0.01950140785680561,
+   "replay_upper": 0.01950140785680561,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "R-out-hard-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.009670027031804307,
+   "replay_point": 0.009670027031804307,
+   "runner_se": 0.0039785730099320335,
+   "replay_se": 0.0039785730099320335,
+   "runner_lower": -0.0022966713814166328,
+   "replay_lower": -0.0022966713814166328,
+   "runner_upper": 0.02163672544502525,
+   "replay_upper": 0.02163672544502525,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.0077865564732638,
+   "replay_z": 3.0077865564732638,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  }
+ ],
+ "secondary": [
+  {
+   "id": "S-out-full-A-minus-B",
+   "target": 0.02,
+   "runner_point": 0.018952515125250424,
+   "replay_point": 0.018952515125250424,
+   "runner_se": 0.0014917762619584543,
+   "replay_se": 0.0014917762619584543,
+   "runner_lower": 0.014220950221154412,
+   "replay_lower": 0.014220950221154412,
+   "runner_upper": 0.023684080029346438,
+   "replay_upper": 0.023684080029346438,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-out-full-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.22546710817119697,
+   "replay_point": 0.22546710817119697,
+   "runner_se": 0.005846009903360473,
+   "replay_se": 0.005846009903360473,
+   "runner_lower": 0.2069249339905835,
+   "replay_lower": 0.2069249339905835,
+   "runner_upper": 0.24400928235181044,
+   "replay_upper": 0.24400928235181044,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-out-full-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.1255048627696954,
+   "replay_point": 0.1255048627696954,
+   "runner_se": 0.004571339309409566,
+   "replay_se": 0.004571339309409566,
+   "runner_lower": 0.11100564516401992,
+   "replay_lower": 0.11100564516401992,
+   "runner_upper": 0.1400040803753709,
+   "replay_upper": 0.1400040803753709,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-out-full-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.20651459304594655,
+   "replay_point": 0.20651459304594655,
+   "runner_se": 0.005807856533745981,
+   "replay_se": 0.005807856533745981,
+   "runner_lower": 0.18809343241759588,
+   "replay_lower": 0.18809343241759588,
+   "runner_upper": 0.22493575367429722,
+   "replay_upper": 0.22493575367429722,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-out-full-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.09996224540150156,
+   "replay_point": 0.09996224540150156,
+   "runner_se": 0.006038837912585157,
+   "replay_se": 0.006038837912585157,
+   "runner_lower": 0.08080846593915743,
+   "replay_lower": 0.08080846593915743,
+   "runner_upper": 0.11911602486384569,
+   "replay_upper": 0.11911602486384569,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-full-A-minus-B",
+   "target": 0.02,
+   "runner_point": -0.0008159970622720891,
+   "replay_point": -0.0008159970622720891,
+   "runner_se": 0.0011522230379579599,
+   "replay_se": 0.0011522230379579599,
+   "runner_lower": -0.004470578668856604,
+   "replay_lower": -0.004470578668856604,
+   "runner_upper": 0.0028385845443124258,
+   "replay_upper": 0.0028385845443124258,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-full-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26626146834871844,
+   "replay_point": 0.26626146834871844,
+   "runner_se": 0.005289200895514129,
+   "replay_se": 0.005289200895514129,
+   "runner_lower": 0.24948536192705398,
+   "replay_lower": 0.24948536192705398,
+   "runner_upper": 0.28303757477038294,
+   "replay_upper": 0.28303757477038294,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-full-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.17036422338319024,
+   "replay_point": 0.17036422338319024,
+   "runner_se": 0.004606261130494336,
+   "replay_se": 0.004606261130494336,
+   "runner_lower": 0.15575424194030574,
+   "replay_lower": 0.15575424194030574,
+   "runner_upper": 0.18497420482607474,
+   "replay_upper": 0.18497420482607474,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-full-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26707746541099053,
+   "replay_point": 0.26707746541099053,
+   "runner_se": 0.0055736692898217975,
+   "replay_se": 0.0055736692898217975,
+   "runner_lower": 0.24939909186981601,
+   "replay_lower": 0.24939909186981601,
+   "runner_upper": 0.28475583895216505,
+   "replay_upper": 0.28475583895216505,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-full-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.0958972449655282,
+   "replay_point": 0.0958972449655282,
+   "runner_se": 0.006381665374229754,
+   "replay_se": 0.006381665374229754,
+   "runner_lower": 0.07565609709074644,
+   "replay_lower": 0.07565609709074644,
+   "runner_upper": 0.11613839284030997,
+   "replay_upper": 0.11613839284030997,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-centred-A-minus-B",
+   "target": 0.02,
+   "runner_point": 0.0013364413695662325,
+   "replay_point": 0.0013364413695662325,
+   "runner_se": 0.0010605070072439546,
+   "replay_se": 0.0010605070072439546,
+   "runner_lower": -0.002027238469014774,
+   "replay_lower": -0.002027238469014774,
+   "runner_upper": 0.004700121208147239,
+   "replay_upper": 0.004700121208147239,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-centred-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.2675977912967771,
+   "replay_point": 0.2675977912967771,
+   "runner_se": 0.00553322185359893,
+   "replay_se": 0.00553322185359893,
+   "runner_lower": 0.25004770754983857,
+   "replay_lower": 0.25004770754983857,
+   "runner_upper": 0.2851478750437156,
+   "replay_upper": 0.2851478750437156,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-centred-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.16911815584263112,
+   "replay_point": 0.16911815584263112,
+   "runner_se": 0.0044886461438491945,
+   "replay_se": 0.0044886461438491945,
+   "runner_lower": 0.15488122158999704,
+   "replay_lower": 0.15488122158999704,
+   "runner_upper": 0.1833550900952652,
+   "replay_upper": 0.1833550900952652,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-centred-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26626134992721084,
+   "replay_point": 0.26626134992721084,
+   "runner_se": 0.005139111930258452,
+   "replay_se": 0.005139111930258452,
+   "runner_lower": 0.249961290550003,
+   "replay_lower": 0.249961290550003,
+   "runner_upper": 0.2825614093044187,
+   "replay_upper": 0.2825614093044187,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-centred-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.09847963545414595,
+   "replay_point": 0.09847963545414595,
+   "runner_se": 0.006180323958513568,
+   "replay_se": 0.006180323958513568,
+   "runner_lower": 0.07887709539250437,
+   "replay_lower": 0.07887709539250437,
+   "runner_upper": 0.11808217551578754,
+   "replay_upper": 0.11808217551578754,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-hard-A-minus-B",
+   "target": 0.02,
+   "runner_point": 0.0013988130666947596,
+   "replay_point": 0.0013988130666947596,
+   "runner_se": 0.0008622255408866699,
+   "replay_se": 0.0008622255408866699,
+   "runner_lower": -0.001335964401421425,
+   "replay_lower": -0.001335964401421425,
+   "runner_upper": 0.004133590534810944,
+   "replay_upper": 0.004133590534810944,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-hard-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26614470474220553,
+   "replay_point": 0.26614470474220553,
+   "runner_se": 0.005568280168141945,
+   "replay_se": 0.005568280168141945,
+   "runner_lower": 0.2484834242327775,
+   "replay_lower": 0.2484834242327775,
+   "runner_upper": 0.2838059852516336,
+   "replay_upper": 0.2838059852516336,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-hard-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.1713624438176483,
+   "replay_point": 0.1713624438176483,
+   "runner_se": 0.004370196522596493,
+   "replay_se": 0.004370196522596493,
+   "runner_lower": 0.15750120402075451,
+   "replay_lower": 0.15750120402075451,
+   "runner_upper": 0.1852236836145421,
+   "replay_upper": 0.1852236836145421,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-hard-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26474589167551077,
+   "replay_point": 0.26474589167551077,
+   "runner_se": 0.00575612854901392,
+   "replay_se": 0.00575612854901392,
+   "runner_lower": 0.246488800099175,
+   "replay_lower": 0.246488800099175,
+   "runner_upper": 0.28300298325184653,
+   "replay_upper": 0.28300298325184653,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat+out-hard-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.09478226092455722,
+   "replay_point": 0.09478226092455722,
+   "runner_se": 0.0060985352201072965,
+   "replay_se": 0.0060985352201072965,
+   "runner_lower": 0.07543913558485614,
+   "replay_lower": 0.07543913558485614,
+   "runner_upper": 0.11412538626425829,
+   "replay_upper": 0.11412538626425829,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat-A-minus-B",
+   "target": 0.02,
+   "runner_point": 0.00456622402164597,
+   "replay_point": 0.00456622402164597,
+   "runner_se": 0.0009317215138557412,
+   "replay_se": 0.0009317215138557412,
+   "runner_lower": 0.001611021604385756,
+   "replay_lower": 0.001611021604385756,
+   "runner_upper": 0.007521426438906185,
+   "replay_upper": 0.007521426438906185,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat-A-minus-F",
+   "target": 0.02,
+   "runner_point": 0.266370142855326,
+   "replay_point": 0.266370142855326,
+   "runner_se": 0.005269995206594024,
+   "replay_se": 0.005269995206594024,
+   "runner_lower": 0.24965495238062402,
+   "replay_lower": 0.24965495238062402,
+   "runner_upper": 0.283085333330028,
+   "replay_upper": 0.283085333330028,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat-A-minus-F0",
+   "target": 0.02,
+   "runner_point": 0.17150465893895261,
+   "replay_point": 0.17150465893895261,
+   "runner_se": 0.0044635127248044745,
+   "replay_se": 0.0044635127248044745,
+   "runner_lower": 0.15734744200486322,
+   "replay_lower": 0.15734744200486322,
+   "runner_upper": 0.185661875873042,
+   "replay_upper": 0.185661875873042,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat-B-minus-F",
+   "target": 0.02,
+   "runner_point": 0.26180391883368004,
+   "replay_point": 0.26180391883368004,
+   "runner_se": 0.005419930001374502,
+   "replay_se": 0.005419930001374502,
+   "runner_lower": 0.24461317030715948,
+   "replay_lower": 0.24461317030715948,
+   "runner_upper": 0.2789946673602006,
+   "replay_upper": 0.2789946673602006,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-feat-F0-minus-F",
+   "target": 0.02,
+   "runner_point": 0.0948654839163734,
+   "replay_point": 0.0948654839163734,
+   "runner_se": 0.006243611660049378,
+   "replay_se": 0.006243611660049378,
+   "runner_lower": 0.07506221008849356,
+   "replay_lower": 0.07506221008849356,
+   "runner_upper": 0.11466875774425322,
+   "replay_upper": 0.11466875774425322,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-offset-out-A",
+   "target": 0.02,
+   "runner_point": -0.00016544395549122903,
+   "replay_point": -0.00016544395549122903,
+   "runner_se": 0.00034758077798359937,
+   "replay_se": 0.00034758077798359937,
+   "runner_lower": -0.0012678887740503464,
+   "replay_lower": -0.0012678887740503464,
+   "runner_upper": 0.0009370008630678883,
+   "replay_upper": 0.0009370008630678883,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-offset-out-B",
+   "target": 0.02,
+   "runner_point": 0.0029802412074855233,
+   "replay_point": 0.0029802412074855233,
+   "runner_se": 0.0012143304846229132,
+   "replay_se": 0.0012143304846229132,
+   "runner_lower": -0.0008713306733222261,
+   "replay_lower": -0.0008713306733222261,
+   "runner_upper": 0.006831813088293273,
+   "replay_upper": 0.006831813088293273,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-offset-out-F",
+   "target": 0.02,
+   "runner_point": 0.0,
+   "replay_point": 0.0,
+   "runner_se": 0.0,
+   "replay_se": 0.0,
+   "runner_lower": 0.0,
+   "replay_lower": 0.0,
+   "runner_upper": 0.0,
+   "replay_upper": 0.0,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-offset-out-F0",
+   "target": 0.02,
+   "runner_point": 0.0,
+   "replay_point": 0.0,
+   "runner_se": 0.0,
+   "replay_se": 0.0,
+   "runner_lower": 0.0,
+   "replay_lower": 0.0,
+   "runner_upper": 0.0,
+   "replay_upper": 0.0,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-bypass-A",
+   "target": 0.02,
+   "runner_point": -0.0009764764237898405,
+   "replay_point": -0.0009764764237898405,
+   "runner_se": 0.00033314575537677136,
+   "replay_se": 0.00033314575537677136,
+   "runner_lower": -0.0020331367315627137,
+   "replay_lower": -0.0020331367315627137,
+   "runner_upper": 8.018388398303277e-05,
+   "replay_upper": 8.018388398303277e-05,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-bypass-B",
+   "target": 0.02,
+   "runner_point": -0.0029386934770044837,
+   "replay_point": -0.0029386934770044837,
+   "runner_se": 0.0012504432506676884,
+   "replay_se": 0.0012504432506676884,
+   "runner_lower": -0.006904806593495233,
+   "replay_lower": -0.006904806593495233,
+   "runner_upper": 0.001027419639486266,
+   "replay_upper": 0.001027419639486266,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-bypass-F",
+   "target": 0.02,
+   "runner_point": 0.23770457725361882,
+   "replay_point": 0.23770457725361882,
+   "runner_se": 0.00573518012444874,
+   "replay_se": 0.00573518012444874,
+   "runner_lower": 0.21951392917353402,
+   "replay_lower": 0.21951392917353402,
+   "runner_upper": 0.2558952253337036,
+   "replay_upper": 0.2558952253337036,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  },
+  {
+   "id": "S-bypass-F0",
+   "target": 0.02,
+   "runner_point": 0.14314033032458906,
+   "replay_point": 0.14314033032458906,
+   "runner_se": 0.004832293485327151,
+   "replay_se": 0.004832293485327151,
+   "runner_lower": 0.12781342719271543,
+   "replay_lower": 0.12781342719271543,
+   "runner_upper": 0.15846723345646269,
+   "replay_upper": 0.15846723345646269,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "abs_diff_point": 0.0,
+   "abs_diff_se": 0.0,
+   "abs_diff_lower": 0.0,
+   "runner_z": 3.1717657833516224,
+   "replay_z": 3.1717657833516224,
+   "n_finite_replicates_runner": 1999,
+   "n_finite_replicates_replay": 1999,
+   "target_matches_lock": true
+  }
+ ],
+ "flags": {
+  "IDENTICAL_BY_SELECTION": [],
+  "NEAR_BOUND": [
+   {
+    "id": "U-retain-F",
+    "family": "primary",
+    "lower": 0.0006408560121149726,
+    "target": 0.0,
+    "se": 0.0019852255026750103,
+    "gap_over_se": 0.3228127037716599,
+    "decision": "PASS"
+   }
+  ]
+ },
+ "summary": {
+  "PASS": 35,
+  "FAIL": 0,
+  "INFO": 8,
+  "WARN": 2
+ },
+ "runtime_s": 64.2,
+ "versions": {
+  "python": "3.13.7",
+  "numpy": "2.4.2",
+  "scikit-learn": "1.8.0",
+  "scipy": "1.17.1",
+  "joblib": "1.5.3"
+ }
+}

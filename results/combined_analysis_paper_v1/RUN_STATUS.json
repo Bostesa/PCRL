@@ -1,13 +1,33 @@
 {
  "schema": "cap-run-status-v1",
  "started_at": "2026-10-03T17:44:55Z",
- "stage": "C-locked-before-fits",
- "updated_at": "2026-10-03T17:53:29Z",
+ "lock_commit": "a0de449539f5753dc75e8927538d7105b7e19fa1",
+ "stage": "COMPLETE (Stages A-D; drive copy pending)",
+ "updated_at": "2026-10-03T18:26:46Z",
  "units": {
   "planned": 184,
-  "complete": 0,
-  "quarantined": 0
+  "complete": 184,
+  "failed": 0,
+  "quarantined": 0,
+  "budget_unrun": 0
  },
- "next_safe_command": "env OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python -m cap.run --lock results/combined_analysis_paper_v1/LOCK.json --stage fits",
- "activity_log": "~/PCRL_eval_cache_private/cap_v1/run/EVENTS.jsonl"
+ "receipts": {
+  "ledger": "~/PCRL_eval_cache_private/cap_v1/run/LEDGER.jsonl",
+  "activity_log": "~/PCRL_eval_cache_private/cap_v1/run/EVENTS.jsonl",
+  "inference": "~/PCRL_eval_cache_private/cap_v1/run/inference.json",
+  "unit_hashes": "each unit COMPLETE.json; LOCK.json admitted inputs"
+ },
+ "elapsed_min_total": 40,
+ "cpu_h_total": 0.25,
+ "peak_rss_gb": 0.71,
+ "model_fits": 3924,
+ "verification": {
+  "independent_replay": "35 PASS / 0 FAIL / 8 INFO / 2 WARN (interpretive)",
+  "manuscript_review": "21 required fixes, all applied"
+ },
+ "backup": {
+  "versioned_local_copy": "955/955 uncached match; restore replay exact",
+  "drive_copy": "PENDING (drive not mounted)"
+ },
+ "next_safe_command": "env OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python results/combined_analysis_paper_v1/report/backup_and_restore.py --dest <drive>"
 }

@@ -55,7 +55,7 @@ def fig_formats_and_pairs():
     ax.set_ylim(0.45, 0.88)
     ax.axhline(0.5, color="0.7", lw=0.6, ls=":")
     ax.set_ylabel("Recovery (macro AUC)")
-    ax.set_title("Frozen PCRL heads: one recipient")
+    ax.set_title("Frozen task heads: one recipient")
     ax.legend(frameon=False, fontsize=7)
     ax = axes[1]
     # S4 (MULTI_RECIPIENT_RESULTS.md / S4_ENDPOINTS.csv): Adult race; income, employment, pair
@@ -64,10 +64,12 @@ def fig_formats_and_pairs():
     for j, (lab, c) in enumerate((("income alone", "#bbbbbb"), ("employment alone", "#888888"), ("pair", "#222222"))):
         ax.bar(x + (j - 1) * 0.27, [s4[f][j] for f in ("full", "centred", "hard")], 0.27, label=lab, color=c)
     ax.set_xticks(x, ["full logits", "centred", "hard decision"])
-    ax.set_ylim(0.45, 1.02)
+    ax.set_ylim(0.45, 1.06)
+    ax.set_yticks([0.5, 0.6, 0.7, 0.8, 0.9])
     ax.axhline(0.5, color="0.7", lw=0.6, ls=":")
     ax.set_title("Adult race: two recipients together")
-    ax.legend(frameon=False, fontsize=7, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.02))
+    ax.legend(frameon=False, fontsize=7, ncol=1, loc="upper right")
+    ax.set_ylabel("Race recovery (macro AUC)")
     fig.tight_layout()
     fig.savefig(OUT / "fig_formats_pairs.pdf")
 
