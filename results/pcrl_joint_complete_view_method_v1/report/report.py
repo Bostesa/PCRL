@@ -21,7 +21,7 @@ def rec(name):
 def diagnostics():
     rows = []
     for d in sorted(R.UNITS.glob("nn__s*")):
-        if not R.done(d.name):
+        if d.name.endswith(".quarantined") or not R.done(d.name):
             continue
         r = rec(d.name)
         g = r.get("diag", {})
@@ -70,6 +70,8 @@ def inner_table():
 def outer_tables():
     util, native = [], []
     for d in sorted(R.UNITS.glob("outer__s*")):
+        if d.name.endswith(".quarantined"):
+            continue
         r = rec(d.name)
         for i, t in enumerate(("income", "occupation_group")):
             u = r["utility_deployed"][str(i)]

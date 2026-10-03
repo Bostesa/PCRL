@@ -80,7 +80,7 @@ def tradeoff():
         ax.set_xlabel("Retained useful gain vs U (worse of the two tasks)")
         ax.set_title(title)
     axes[0].set_ylabel("SEX recovery on assessment (AUC)")
-    axes[1].legend(frameon=False, fontsize=6.5, ncol=2, loc="lower right")
+    axes[0].legend(frameon=False, fontsize=6.5, ncol=3, loc="lower left")
     fig.text(0.5, -0.04, "o: per-seed nominee   x: per-seed INFEASIBLE closest-utility configuration   large: seed mean",
              ha="center", fontsize=6.5)
     fig.tight_layout()
