@@ -1,0 +1,209 @@
+{
+ "schema": "jcv-data-admission-v1",
+ "population": "UCI Adult (development data already used in both repositories)",
+ "raw_files_sha256": {
+  "adult.data": "5b00264637dbfec36bdeaab5676b0b309ff9eb788d63554ca0a249491c86603d",
+  "adult.test": "a2a9044bc167a35b2361efbabec64e89d69ce82d9790d2980119aac5fd7e9c05"
+ },
+ "label_manifest_sha256": "786a51f28ae567e7b32339514aeb320f1258c29fe574dde3fb65ba3574482832",
+ "loader": "pcrl.data.adult.AdultDataset (file unchanged since b96c41256daeed6e644aba1443a47b16e28d089a); post-dropna rows",
+ "row_id_convention": "test rows 0..15059 (adult.test position), train rows 15060+ (80% seed-42 permutation of adult.data)",
+ "record_key_match": "all 39,205 regenerated raw rows match the admitted record keys",
+ "labels": {
+  "income": "binary: '>50K' (trailing '.' of adult.test stripped) -> 1, '<=50K' -> 0; matches admitted task_income",
+  "occupation_group": {
+   "classes": 6,
+   "map": {
+    "Prof-specialty": 0,
+    "Tech-support": 0,
+    "Exec-managerial": 1,
+    "Adm-clerical": 1,
+    "Other-service": 2,
+    "Priv-house-serv": 2,
+    "Protective-serv": 2,
+    "Handlers-cleaners": 2,
+    "Sales": 3,
+    "Machine-op-inspct": 4,
+    "Transport-moving": 4,
+    "Craft-repair": 4,
+    "Farming-fishing": 4,
+    "Armed-Forces": 5
+   },
+   "note": "6-class occupation GROUP (not unemployment); rows with missing occupation were dropped by the loader"
+  },
+  "sex": "Female 0 / Male 1 (primary protected)",
+  "race": {
+   "classes": [
+    "Amer-Indian-Eskimo",
+    "Asian-Pac-Islander",
+    "Black",
+    "Other",
+    "White"
+   ],
+   "note": "secondary stress audit only"
+  }
+ },
+ "removed_columns": {
+  "sex": "protected (primary)",
+  "race": "protected (secondary audit)",
+  "income": "task-1 label",
+  "occupation": "task-2 label source (occupation_group = many-to-one map of occupation)",
+  "fnlwgt": "census sampling weight (record weight), not a person attribute"
+ },
+ "kept_columns": [
+  "age",
+  "education-num",
+  "capital-gain",
+  "capital-loss",
+  "hours-per-week",
+  "workclass",
+  "education",
+  "marital-status",
+  "relationship",
+  "native-country"
+ ],
+ "input_dim": 83,
+ "numeric_standardisation_fit_role": "defense_train",
+ "numeric_norm": {
+  "age": [
+   38.46349453978159,
+   13.187562241619762
+  ],
+  "education-num": [
+   10.104264170566823,
+   2.5585799324679184
+  ],
+  "capital-gain": [
+   1018.570566822673,
+   6949.642533767648
+  ],
+  "capital-loss": [
+   84.94617784711389,
+   396.0463397626865
+  ],
+  "hours-per-week": [
+   40.940457618304734,
+   12.042917757807645
+  ]
+ },
+ "categories": "fixed loader category sets (one-hot)",
+ "shortcut_audit": {
+  "relationship_husband_wife_rows_share": 0.4588700420864686,
+  "sex_given_relationship": {
+   "Husband": {
+    "rows": 16173,
+    "share_male": 0.9999381685525258
+   },
+   "Not-in-family": {
+    "rows": 10151,
+    "share_male": 0.5393557284996552
+   },
+   "Other-relative": {
+    "rows": 1155,
+    "share_male": 0.5523809523809524
+   },
+   "Own-child": {
+    "rows": 5780,
+    "share_male": 0.5565743944636679
+   },
+   "Unmarried": {
+    "rows": 4129,
+    "share_male": 0.24073625575199806
+   },
+   "Wife": {
+    "rows": 1817,
+    "share_male": 0.000550357732526142
+   }
+  },
+  "note_relationship": "relationship in {Husband, Wife} determines SEX for ~46% of rows (Husband ~all male, Wife ~all female). relationship is not an equivalent column of sex (its other four values do not determine it), so under the registered rule it is kept as an ordinary permitted predictor; it is the main direct sex signal the defenses must remove. Disclosed, not repaired.",
+  "occupation_group_given_workclass_max_share": {
+   "Federal-gov": {
+    "rows": 1219,
+    "max_class_share": 0.5397867104183757
+   },
+   "Local-gov": {
+    "rows": 2688,
+    "max_class_share": 0.3515625
+   },
+   "Private": {
+    "rows": 28904,
+    "max_class_share": 0.3015153611956823
+   },
+   "Self-emp-inc": {
+    "rows": 1422,
+    "max_class_share": 0.39662447257383965
+   },
+   "Self-emp-not-inc": {
+    "rows": 3266,
+    "max_class_share": 0.44243723208818125
+   },
+   "State-gov": {
+    "rows": 1687,
+    "max_class_share": 0.35388263189093067
+   },
+   "Without-pay": {
+    "rows": 19,
+    "max_class_share": 0.5263157894736842
+   }
+  },
+  "note_occupation": "occupation (the target source) is removed; no remaining column or combination is a recoding of occupation_group (no workclass value fixes the class); education and workclass are ordinary correlated predictors.",
+  "education_vs_education_num": "education-num is a numeric code of education (duplicate encodings of one permitted fact; kept)"
+ },
+ "roles": {
+  "defense_train": {
+   "rows": 19230,
+   "groups": 19221,
+   "row_id_sha256": "57415ae3a0885640440e68c873f6a7b7a5641ee385a5ef8dd5cd5a4a72fa6977"
+  },
+  "defense_val": {
+   "rows": 4897,
+   "groups": 4892,
+   "row_id_sha256": "a80977aceb5783d0e6b577f0ac64dbdd915da837f98aa12c0bfa7b05110c3862"
+  },
+  "attacker_fit": {
+   "rows": 6065,
+   "groups": 6061,
+   "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0"
+  },
+  "attacker_val": {
+   "rows": 2235,
+   "groups": 2234,
+   "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f"
+  },
+  "assessment": {
+   "rows": 5243,
+   "groups": 5243,
+   "row_id_sha256": "9ba29f949f4bc0e7482d7174ab081d581163d82491bbb104e3301425a764c35b"
+  },
+  "cert": {
+   "rows": 1500,
+   "groups": 1500,
+   "row_id_sha256": "c05fa9806d4155fd6679b2aef4eff9634e5f3ef94146e3a1f8d57edcb37577d1"
+  },
+  "excluded_exposure": {
+   "rows": 17,
+   "groups": 17,
+   "row_id_sha256": "04aede59d0d279a57fd2241f5986fc5783b664500c7fd513c74b2e4eb173f3d3"
+  },
+  "excluded_dup": {
+   "rows": 18,
+   "groups": 17,
+   "row_id_sha256": "b9a0732187327ea74949b7ba27901191fc9899b0228825bdfe0729a3d7c8d787"
+  }
+ },
+ "role_semantics": {
+  "defense_train": "encoders, heads, critics, LEACE maps, FARE trees (oar defense_fit minus head holdout)",
+  "defense_val": "warm-start/head early stopping and defense-side validation (oar head holdout)",
+  "attacker_fit": "inner selection attackers and final audit attackers: fitting",
+  "attacker_val": "inner selection (utility gates + inner recovery) and final audit attacker selection",
+  "assessment": "single outer scoring after SELECTION_LOCK (already-used outer pool; development evidence)",
+  "cert": "FARE certification carve-out (oar-cert-v1)",
+  "excluded_exposure": "test records equal to a training record (excluded from every scored role)",
+  "excluded_dup": "train rows duplicating a test-role record (never used)"
+ },
+ "resampling_unit": "exact-record group (unit = de-duplicated canon_key); Adult has no household identifiers",
+ "private_inputs_npz": "~/PCRL_eval_cache_private/jcv_v1/inputs/adult_jcv.npz",
+ "private_inputs_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+ "X_sha256": "138868f5b8a76dbdc6592740d92eca1137a1b3f3fc5ee81b952921aca4f4d052",
+ "fits_performed": 0
+}
