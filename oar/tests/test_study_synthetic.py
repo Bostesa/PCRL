@@ -126,3 +126,21 @@ def test_fare_stage_end_to_end_synthetic(world, tmp_path, monkeypatch):
     cert = json.loads((S.RUN / "certificates" / "P.json").read_text())
     assert cert["nominee"]["primary_all_groups"]["status"] in ("OK", "UNAVAILABLE")
     assert len(led) >= 3
+
+
+def test_leace_map_ids_match_benchmark_declared_order():
+    """Regression (2026-10-03 HMDA run failure): C-map ids must use the declared disallowed-attribute order of the
+    benchmark (hmda: race+ethnicity), not sorted order; and must equal stored_model_eval.bench.map_id."""
+    import oar.study as S
+    from stored_model_eval.bench_effective import BENCH_EFFECTIVE
+    for ds in ("adult", "hmda"):
+        c = S.CELLS[ds]
+        declared = BENCH_EFFECTIVE["datasets"][ds]["purposes"][c["purpose"]]["disallowed_attrs"]
+        assert c["policy"] == list(declared)
+        assert S.leace_map_id(ds, 0, "C").endswith("C_" + "+".join(declared))
+    assert S.leace_map_id("hmda", 1, "C") == "hmda__s1__underwriting__C_race+ethnicity"
+    root = S.BENCH / "defenses"
+    if root.exists():
+        for ds in ("adult", "hmda"):
+            for kind in ("B", "C"):
+                assert (root / S.leace_map_id(ds, 0, kind) / "map").exists()

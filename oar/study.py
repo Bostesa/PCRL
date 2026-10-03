@@ -102,10 +102,15 @@ def load_seed(ds: str, k: int) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------- releases
+def leace_map_id(ds, k, kind):
+    """Benchmark map naming: C maps join the purpose's disallowed attributes in DECLARED order (not sorted)."""
+    c = CELLS[ds]
+    return f"{ds}__s{k}__{c['purpose']}__" + (f"B_{c['attr']}" if kind == "B" else "C_" + "+".join(c["policy"]))
+
+
 def leace_release(ds, k, kind, H):
     from stored_model_eval.defenses import LeaceMap
-    c = CELLS[ds]
-    mid = f"{ds}__s{k}__{c['purpose']}__" + (f"B_{c['attr']}" if kind == "B" else "C_" + "+".join(sorted(c["policy"])))
+    mid = leace_map_id(ds, k, kind)
     m = LeaceMap.load(BENCH / "defenses" / mid / "map", verify_package=True)
     return np.asarray(m.transform(H), dtype=np.float64), mid
 
