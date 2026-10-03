@@ -61,8 +61,9 @@ for ds, d in idx["datasets"].items():
 out["hash_mismatches"] = mism
 # MAP pins + saved predictions are covered by the benchmark backup SHA256SUMS; check the units/defenses we will reuse
 sums = {}
-for line in (Path("/Volumes/YOTUO/NathanSamson-Mac-relocated-2026-09-30/private_bench_v1_20261003/SHA256SUMS").read_text().splitlines()
-             if Path("/Volumes/YOTUO").exists() else []):
+import os
+DRIVE_SUMS = Path(os.environ.get("PCRL_DRIVE", "/Volumes/DRIVE/relocated")) / "private_bench_v1_20261003" / "SHA256SUMS"
+for line in (DRIVE_SUMS.read_text().splitlines() if DRIVE_SUMS.exists() else []):
     h, r = line.split("  ", 1)
     sums[r] = h
 reuse = [r for r in sums if r.startswith(("bench_v1/defenses/", "bench_v1/units/", "bench_v1/shared/", "bench_v1/infer/SIGMA_STAR.json"))]
