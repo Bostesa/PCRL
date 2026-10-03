@@ -17,3 +17,12 @@
 - The original lock is preserved as `LOCK_v1.json` (commit b67664f). `LOCK.json` re-pins the code with this amendment.
 
 No inner, selection or outer result had been produced when this amendment was made.
+
+## Erratum (added after the independent replay)
+
+"Probabilities are unchanged" is imprecise.
+- **Cause.** The pre-A1 code computed `P = exp(predict_log_proba)`; A1 uses `predict_proba`.
+- **Effect.** All 138 probability arrays changed at round-off level, by at most 5.6e-17.
+- **No decision effect.** Hard decisions are bitwise unchanged (asserted), and every inner, selection and outer result used the post-A1 arrays.
+
+The independent verifier found this (WARN `10c2`).

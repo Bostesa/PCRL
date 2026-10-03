@@ -1,0 +1,1222 @@
+{
+ "schema": "jcv-independent-verification-v1",
+ "written_at": "2026-10-03T21:02:29Z",
+ "replay_script": "results/pcrl_joint_complete_view_method_v1/verification/replay_jcv.py",
+ "replay_script_sha256": "22efd5ebe6e3e917bc3cf6b839a38189243188f5eef2b8e3aa2b37b308b18c39",
+ "inputs": {
+  "private_inputs": "~/PCRL_eval_cache_private/jcv_v1/inputs/adult_jcv.npz",
+  "private_inputs_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+  "units_dir": "~/PCRL_eval_cache_private/jcv_v1/run/units",
+  "selection_lock_commit": "197f323be81d41e0caef12dca8761bd32f512f78",
+  "worktree_head": "7c3b0a20e0fc489674ed44abc8aac65339001827"
+ },
+ "forbidden_imports": [
+  "jcv",
+  "oar",
+  "odx",
+  "cap",
+  "stored_model_eval",
+  "report",
+  "pcrl"
+ ],
+ "import_guard": true,
+ "environment": {
+  "python": "3.13.7",
+  "numpy": "2.4.2",
+  "torch": "2.10.0",
+  "sklearn": "1.8.0",
+  "OMP_NUM_THREADS": "1"
+ },
+ "bootstrap": {
+  "B": 1999,
+  "seed": 20261013,
+  "n_assessment": 5243,
+  "n_groups": 5243,
+  "z_primary": 2.991316115183781,
+  "z_secondary": 3.143980287069073,
+  "distinct_base_statistics": 791
+ },
+ "checks": [
+  {
+   "id": "1a_role_sizes",
+   "status": "PASS",
+   "detail": "role sizes assessment=5243, attacker_fit=6065, attacker_val=2235, cert=1500, defense_train=19230, defense_val=4897, excluded_dup=18, excluded_exposure=17",
+   "role_counts": {
+    "assessment": 5243,
+    "attacker_fit": 6065,
+    "attacker_val": 2235,
+    "cert": 1500,
+    "defense_train": 19230,
+    "defense_val": 4897,
+    "excluded_dup": 18,
+    "excluded_exposure": 17
+   }
+  },
+  {
+   "id": "1a_total_rows",
+   "status": "PASS",
+   "detail": "39205 rows, 39205 unique row ids"
+  },
+  {
+   "id": "1b_record_disjointness",
+   "status": "PASS",
+   "detail": "shared record groups (unit) between roles: defense_train&defense_val=0, defense_train&attacker_fit=0, defense_train&attacker_val=0, defense_train&assessment=0, defense_train&cert=0, attacker_fit&attacker_val=0, attacker_fit&assessment=0, attacker_fit&cert=0, attacker_val&assessment=0, attacker_val&cert=0, assessment&cert=0",
+   "overlaps": {
+    "defense_train&defense_val": 0,
+    "defense_train&attacker_fit": 0,
+    "defense_train&attacker_val": 0,
+    "defense_train&assessment": 0,
+    "defense_train&cert": 0,
+    "attacker_fit&attacker_val": 0,
+    "attacker_fit&assessment": 0,
+    "attacker_fit&cert": 0,
+    "attacker_val&assessment": 0,
+    "attacker_val&cert": 0,
+    "assessment&cert": 0
+   }
+  },
+  {
+   "id": "1b_assessment_groups",
+   "status": "INFO",
+   "detail": "assessment: 5243 rows in 5243 record groups"
+  },
+  {
+   "id": "1c_role_row_hashes_vs_selection_lock",
+   "status": "PASS",
+   "detail": "8/8 role row-id hashes equal SELECTION_LOCK"
+  },
+  {
+   "id": "1d_private_inputs_sha256",
+   "status": "PASS",
+   "detail": "inputs npz sha256 e0d9e54af780f307... vs LOCK admitted e0d9e54af780f307..."
+  },
+  {
+   "id": "2a_feature_names",
+   "status": "PASS",
+   "detail": "83 columns; base columns = ['age', 'capital-gain', 'capital-loss', 'education', 'education-num', 'hours-per-week', 'marital-status', 'native-country', 'relationship', 'workclass']; banned-name hits = []"
+  },
+  {
+   "id": "2b_no_column_equals_protected_label_or_key",
+   "status": "PASS",
+   "detail": "exact-equality hits []; |corr|>0.999 hits {}; max |corr| with income 0.447 (marital-status=Married-civ-spouse), occupation_group 0.418, row_id 0.015"
+  },
+  {
+   "id": "2c_max_abs_corr_with_sex",
+   "status": "INFO",
+   "detail": "max |corr(X_j, SEX)| over all rows = relationship=Husband: 0.580, marital-status=Married-civ-spouse: 0.436, relationship=Unmarried: 0.319; relationship=Husband/Wife is the disclosed permitted proxy",
+   "max_abs_corr_sex": 0.5802122131604235
+  },
+  {
+   "id": "2d_relationship_shortcut",
+   "status": "INFO",
+   "detail": "Husband/Wife rows share 0.459; P(male|Husband)=0.9999, P(male|Wife)=0.0006 (disclosed)"
+  },
+  {
+   "id": "3a_deployment_replay_neural",
+   "status": "PASS",
+   "detail": "51 neural units x 2 recipients, all 39,205 rows, own float32 MLP forward -> .double() -> r = h - ((h - mean_x) Pr^T) Pl^T -> head decision_function/predict_proba: max|dr|=0, max|dc|=0, max|dp|=0, hard mismatches=0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "3b_outputs_depend_only_on_r",
+   "status": "PASS",
+   "detail": "every deployed head is Pipeline[StandardScaler, LogisticRegression] with n_features_in_=16 (= r_i only; no label, row key or pre-erasure output enters); outputs recomputed from the saved r_i alone: max|dc|=0, max|dp|=0, hard mismatches=0; bad heads []; bad state_dicts []",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "3c_fit_role_provenance",
+   "status": "PASS",
+   "detail": "head StandardScaler.mean_ equals mean of r_i over defense_train (max diff 0), n_samples_seen_=19230 for all heads (bad: []); LEACE mean_x equals mean of h_i over defense_train (max diff 4.44e-16); LEACE erasure ranks [1]",
+   "max_abs_diff": 4.440892098500626e-16
+  },
+  {
+   "id": "3d_float32_forward_vs_float64",
+   "status": "INFO",
+   "detail": "runner-style float32 encoder vs a pure float64 forward: max|dh|=1.48e-05 (expected float32 rounding; the release uses the float32 forward)"
+  },
+  {
+   "id": "4a_leace_native_fit_rows",
+   "status": "PASS",
+   "detail": "96 LEACE maps (E,L,J,JP,S12,S21 x 3 seeds x betas x 2 recipients): max relative |Cov(r, onehot SEX)|/(sd_pre(h) sd(Z)) on defense_train = 5.2e-14 (absolute 2.86e-14)",
+   "max_abs_diff": 5.1976180414784556e-14
+  },
+  {
+   "id": "4b_leace_heldout_assessment",
+   "status": "INFO",
+   "detail": "same statistic on held-out assessment rows: median 0.0157, max 0.0333 (nonzero, small; LEACE guarantees only the fitting rows)"
+  },
+  {
+   "id": "3e_deployment_replay_fare",
+   "status": "PASS",
+   "detail": "42 FARE units: r == one-hot(cells) (bad []); head on cells only (bad []; scaler fitted on defense_train, max diff 0); recomputed max|dc|=0, max|dp|=0, hard mismatches=0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "3f_fare_seed_dependence",
+   "status": "INFO",
+   "detail": "selected FARE trees, seeds 1 and 2 vs seed 0 (same cell partition up to relabelling?): p0/c1: s1 same, s2 same, p0/Z1: s1 different, s2 same, p1/c1: s1 same, s2 same, p1/Z1: s1 same, s2 same. Income F (c1) and both occupation trees are the same partition on all three seeds, F0 income differs only on seed 1: the F/F0 'seeds' are close to one deterministic FARE fit, so their seed spread mostly reflects cell labels, attacker refits and the per-seed U gates, not independent FARE fits"
+  },
+  {
+   "id": "5a_inner_utility_from_release",
+   "status": "PASS",
+   "detail": "300 inner utility numbers (attacker_val accuracy of the deployed hard decisions and the defense_train-majority constant) recomputed from release.npz and compared with the inner records",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "5b_selection_replay_vs_lock",
+   "status": "PASS",
+   "detail": "statuses, descriptive closest-utility units/betas (largest worst-gate margin, ties -> smaller beta / lower id), FARE per-purpose selections and C* recomputed from inner records + own gates: all match SELECTION_LOCK. s0: L NO_FEASIBLE_NOMINEE (descr. nn__s0__L__b1, 0/3 feasible), J b0.1, JP b0.1, S12 b10, S21 b0.1, E GATES_FAILED, F p0 c1 NOMINEE, F p1 c1 NO_FEASIBLE_NOMINEE, C*=None; s1: L NO_FEASIBLE_NOMINEE (descr. nn__s1__L__b0.1, 0/3 feasible), J b1, JP b1, S12 b0.1, S21 b0.1, E GATES_FAILED, F p0 c1 NOMINEE, F p1 c1 NO_FEASIBLE_NOMINEE, C*=None; s2: L NO_FEASIBLE_NOMINEE (descr. nn__s2__L__b0.1, 0/3 feasible), J b0.1, JP b1, S12 b0.1, S21 b10, E GATES_FAILED, F p0 c1 NOMINEE, F p1 c1 NO_FEASIBLE_NOMINEE, C*=None",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "5c_gate_feasibility_counts",
+   "status": "INFO",
+   "detail": "configurations passing G1-G3 on attacker_val (of 3 betas): L [0, 0, 0], others {0: {'J': 0, 'JP': 0, 'S12': 0, 'S21': 0}, 1: {'J': 0, 'JP': 0, 'S12': 0, 'S21': 0}, 2: {'J': 0, 'JP': 0, 'S12': 0, 'S21': 0}}; E gates_ok [False, False, False]; FARE occupation configs passing [0, 0, 0]/6, income [1, 1, 1]/6"
+  },
+  {
+   "id": "5d_F0_status_label",
+   "status": "WARN",
+   "detail": "F0's own pair gates pass on every seed but the lock labels it GATES_FAILED: select.finish_fare sets status = NOMINEE only if gates pass AND both F purposes have NOMINEE configs, else 'GATES_FAILED' for F0. Root cause: F has no feasible occupation_group configuration, so 'F's selected configuration' is undefined and F0 is anchored to F's descriptive config 1; the protocol has no status for this case and the code reuses GATES_FAILED. The lock's annotation discloses it. No decision effect (L has no nominee, so C* is None regardless). Per seed: s0: lock GATES_FAILED with gates_ok=True (margin 0.0078); replay gates_ok=True (margin 0.0078); s1: lock GATES_FAILED with gates_ok=True (margin 0.0100); replay gates_ok=True (margin 0.0100); s2: lock GATES_FAILED with gates_ok=True (margin 0.0087); replay gates_ok=True (margin 0.0087)"
+  },
+  {
+   "id": "5e_selection_json_and_inner_table",
+   "status": "PASS",
+   "detail": "runner selection.json vs SELECTION_LOCK: 0 field differences []; INNER_SELECTION_TABLE.csv 93 rows vs replay: 0 gate/status/selected disagreements (only the U rows may be 'selected': no other arm has a nominee)",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "5f_inner_recovery_spot_refit",
+   "status": "PASS",
+   "detail": "inner slate (LR_C1, MLP_64x64, HGB_0.1_31; attacker_fit -> attacker_val log loss; pair bank + ignore-other-view) refitted for the seed-0 L and J descriptive units; v1/v2/pair attacker_val AUC vs inner records. nn__s0__L__b1: pair selected pair:HGB_0.1_31 (record pair:HGB_0.1_31); nn__s0__J__b0.1: pair selected pair:HGB_0.1_31 (record pair:HGB_0.1_31)",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "1e_outer_assessment_rows",
+   "status": "PASS",
+   "detail": "27 outer preds: assess_row_id, assess_unit, SEX and task labels equal the assessment role rows in order; all P_<view> arrays (3 x 5243 x 2) finite and normalised; problems []"
+  },
+  {
+   "id": "1f_race_subset",
+   "status": "PASS",
+   "detail": "race classes with >=30 rows in attacker_fit, attacker_val and assessment: [1, 2, 4]; subset 5142 of 5243 assessment rows; preds race rows equal this subset in every outer unit (bad [])"
+  },
+  {
+   "id": "10e_outer_outputs_from_locked_units",
+   "status": "PASS",
+   "detail": "deployed p1/p2/hard1/hard2 in every outer preds file equal the SELECTION_LOCK unit's release.npz at the assessment rows (bad [])",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "6a_weighted_auc_selftest",
+   "status": "PASS",
+   "detail": "own weighted pair-ordering AUC at unit weights vs sklearn roc_auc_score (ties 0.5) on a sample of base stats",
+   "max_abs_diff": 2.220446049250313e-16
+  },
+  {
+   "id": "6b_critical_values",
+   "status": "PASS",
+   "detail": "z_primary = Phi^-1(1-0.05/36) = 2.991316, z_secondary = Phi^-1(1-0.05/60) = 3.143980 (LOCK 2.991316, 3.14398)"
+  },
+  {
+   "id": "6c_endpoint_points",
+   "status": "PASS",
+   "detail": "48 endpoints (18 primary incl. 3 C*-undefined, 30 secondary) recomputed from outer preds only; max |point diff| vs inference.json 0, vs CSV (6 dp) 4.94e-07",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "6d_endpoint_ses",
+   "status": "PASS",
+   "detail": "own paired multinomial bootstrap (B=1999, seed 20261013, 5243 record groups, ddof 1): max |SE diff| vs inference.json 0, vs CSV 5e-07; max |bound diff| 0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "6e_endpoint_decisions",
+   "status": "PASS",
+   "detail": "decisions ('lower>' iff lower > target, 'upper<' iff upper < target) vs runner: all 48 agree; primary PASS ids ['P02', 'P03', 'P09', 'P18']; secondary PASS ids ['S-out-prob-pair', 'S-out-prob-v1', 'S-out-prob-v2', 'S-out-hard-v1', 'S-proj-acc-occ', 'S-ctrl-U', 'S-ctrl-E', 'S-ctrl-F0']"
+  },
+  {
+   "id": "6f_decision_robustness",
+   "status": "INFO",
+   "detail": "endpoints whose deciding bound is within 0.002 of the target (decision sensitive to tiny changes): [('P02', -0.001, 0.0094, 0.01)]"
+  },
+  {
+   "id": "6g_levels",
+   "status": "PASS",
+   "detail": "423 per-seed / mean levels in inference.json (SEX recovery per view and format, race macro AUC, deployed accuracy): max |point diff| 0, max |SE diff| 0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "6h_headroom",
+   "status": "INFO",
+   "detail": "outer coalition synergy R_pair - max local per seed: {'U': [0.0004, 0.0, -0.013], 'L': [0.0517, 0.0112, -0.0014], 'J': [-0.0007, 0.027, 0.0]}"
+  },
+  {
+   "id": "6i_claims",
+   "status": "PASS",
+   "detail": "claim1: replay NOT_ESTABLISHED (all nine pass=False, nominees on every seed=False, 3/9 clauses) vs runner NOT_ESTABLISHED (3/9); claim2: replay NOT_ESTABLISHED (all nine pass=False, nominees on every seed=False, 1/9 clauses) vs runner NOT_ESTABLISHED (1/9)"
+  },
+  {
+   "id": "7_task_utility_table",
+   "status": "PASS",
+   "detail": "54 rows (27 outer units x 2 tasks): accuracy, balanced accuracy over supported classes (income [0, 1], occupation [0, 1, 2, 3, 4]), minority recall, log loss, Brier, ECE, constant accuracy and useful gain recomputed from preds; max relative diff vs CSV (6 significant digits) 3.55e-06, max abs diff vs outer records 0; minority-class/status disagreements []",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "7b_native_vs_audit_table",
+   "status": "PASS",
+   "detail": "54 rows: LEACE fit-row relative cross-covariance (abs diff 4.97e-20; both ~1e-14) and held-out assessment max |corr(r, SEX)| (max relative diff 3.63e-06) recomputed from the saved maps/releases",
+   "max_abs_diff": 4.971333716298005e-20
+  },
+  {
+   "id": "7c_fare_certificate_reporting",
+   "status": "INFO",
+   "detail": "NATIVE_VS_AUDIT.csv lists all 12 FARE certificate rows as UNAVAILABLE (outer-time refusal: cert rows share feature vectors with fit rows); FARE_CERTIFICATES_A3.json (descriptive re-run under a record-identity guard; no AMENDMENT_A3 document and not listed in LOCK.json amendments) reports 3 OK certificates, all vacuous (bound > 1). No endpoint uses either."
+  },
+  {
+   "id": "8_attacker_replay",
+   "status": "PASS",
+   "detail": "7 SEX + 3 race recorded selections refitted from the attacker name with own estimators (attacker_fit, seeds 0,1,2) and compared with P_<view> on assessment: s0/J/v1: DA_canonical_MLP on view v1, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s0/L/pair: HGB_0.05_31 on view pair, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s0/F/v2: CC_alpha10.0 on view v2, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s0/J/hpair: CC_alpha10.0 on view hpair, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s1/J/pair: HGB_0.05_31 on view pair, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s2/L/p1: DA_canonical_MLP on view p1, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; s0/F/pair: HGB_0.05_15 on view pair, max|dP| over 3 attacker seeds 0, attacker_val log loss diff 0; race s0/J/pair: DA_canonical_MLP on view pair, max|dP| 0, attacker_val log loss diff 0; race s0/F/v2: CC_alpha10.0 on view v2, max|dP| 0, attacker_val log loss diff 0; race s1/L/v1: LR_C1 on view v1, max|dP| 0, attacker_val log loss diff 0",
+   "max_abs_diff": 0.0
+  },
+  {
+   "id": "8b_outer_selection_rule",
+   "status": "PASS",
+   "detail": "324 recorded outer attacker selections (primary, output-only prob/hard, race) equal the attacker_val log-loss argmin of their own recorded tables (ties -> slate order; coalition bank includes the local selections); primary slate has 14 attackers (+3 cell-conditional for FARE); race support [1, 2, 4]; coalition picked a local attacker in 3/27 primary pair views; problems []"
+  },
+  {
+   "id": "8c_coalition_table_recording",
+   "status": "WARN",
+   "detail": "16 coalition selections where an ignore-other-view attacker won: the record stores the local view's table under the coalition key (outer.audit_views writes sel['table'] of the winning source view), so the coalition's own slate losses are absent and the bank decision cannot be audited from records alone. The stored values are internally consistent (selected = local argmin, local loss <= other local). Independent refit of the coalition's own 14-attacker final slate for 2 primary cases confirms the local attacker wins: s2/J: coalition-own best HGB_0.05_31 log loss 0.46924 vs winning local v2:DA_canonical_MLP 0.45894 -> local wins: True; s1/U: coalition-own best MLP_64x64 log loss 0.39781 vs winning local v2:DA_canonical_MLP 0.39355 -> local wins: True Cases: ['s0/F/race/pair->v2', 's0/F0/secondary_prob/ppair->p2', 's0/F0/race/pair->v2', 's1/U/primary/pair->v2', 's1/E/primary/pair->v2', 's1/S12/race/pair->v1', 's1/F/race/pair->v2', 's1/F0/secondary_prob/ppair->p2', 's1/F0/race/pair->v2', 's2/J/primary/pair->v2', 's2/J/secondary_prob/ppair->p2', 's2/J/race/pair->v2', 's2/S21/race/pair->v2', 's2/F/race/pair->v2', 's2/F0/secondary_prob/ppair->p2', 's2/F0/race/pair->v2']"
+  },
+  {
+   "id": "9_controls",
+   "status": "PASS",
+   "detail": "9 views (J, L, F seed 0; v1/v2/pair): label-permutation null AUC max 0.5425 (<= 0.55), planted leak AUC min 0.9083 (> 0.75); public AUDIT_CONTROLS.json identical to private controls.json: True"
+  },
+  {
+   "id": "10a_complete_json_hashes",
+   "status": "PASS",
+   "detail": "303 unit directories (87 quarantined) - every file hash in COMPLETE.json verifies and no unlisted files: bad [], unlisted []"
+  },
+  {
+   "id": "10b_unit_counts",
+   "status": "PASS",
+   "detail": "active units by type {'fare_Z': 6, 'fare_c': 36, 'inner__fare': 36, 'inner__nn': 51, 'inner__pair': 6, 'nn': 51, 'outer': 27, 'warm': 3} (total 216; UNIT_MANIFEST plans 216); quarantined {'quarantined:fare': 36, 'quarantined:nn': 51}"
+  },
+  {
+   "id": "10c_quarantined_vs_current",
+   "status": "PASS",
+   "detail": "87 quarantined (pre-A1) units vs current: model.pt, LEACE maps and heads identical (hash); record differs only by the amendment_A1 key; in release.npz r, hard, cells and row ids are bitwise equal and only output arrays differ: centred logits (pre-A1 had 1170 non-finite entries, in ['nn__s0__U/c1:195 rows', 'nn__s1__U/c1:195 rows', 'nn__s2__U/c1:195 rows']; finite entries differ by <= 9.28e-07) and probabilities (<= 5.55e-17). Problems []",
+   "max_abs_diff": 9.28127500188225e-07
+  },
+  {
+   "id": "10c2_A1_probability_wording",
+   "status": "WARN",
+   "detail": "AMENDMENT_A1 says probabilities are unchanged, but 138/138 probability arrays changed at round-off level (max 5.55e-17). Root cause: the locked pre-A1 finalize.outputs computed P = exp(predict_log_proba); A1 computes P = predict_proba. Hard decisions are bitwise unchanged (the runner asserts this), every inner, selection and outer result used the post-A1 arrays, so there is no decision effect; the amendment text is imprecise, not the data."
+  },
+  {
+   "id": "10d_selection_lock_artifact_hashes",
+   "status": "PASS",
+   "detail": "144 artifact hashes recorded in SELECTION_LOCK.json vs current files: mismatches []"
+  },
+  {
+   "id": "10f_outer_source_units",
+   "status": "PASS",
+   "detail": "27 outer records: source unit(s), status and beta equal SELECTION_LOCK (bad [])"
+  },
+  {
+   "id": "10g_lock_code_hashes",
+   "status": "PASS",
+   "detail": "26/26 LOCK.json code_files match the working tree (mismatches [])"
+  },
+  {
+   "id": "10h_lock_document_hashes",
+   "status": "WARN",
+   "detail": "5/6 locked protocol documents unchanged (changed: ['UNIT_MANIFEST.csv'])"
+  },
+  {
+   "id": "10i_selection_lock_pushed_and_unchanged",
+   "status": "PASS",
+   "detail": "197f323be is on remote branches [origin/research/pcrl-joint-complete-view-method-v1]; last commit touching SELECTION_LOCK.json = 197f323be; working-tree diff vs lock commit: none"
+  },
+  {
+   "id": "10j_timeline",
+   "status": "PASS",
+   "detail": "selection ended 2026-10-03T20:14:32Z; SELECTION_LOCK commit 2026-10-03T20:15:44Z; first outer unit completed 2026-10-03T20:16:18Z, last 2026-10-03T20:33:07Z (27 outer completions); commit time is a lower bound on push time (outer.py refuses to run unless the lock commit is on the remote)"
+  },
+  {
+   "id": "10k_A2_scope",
+   "status": "PASS",
+   "detail": "A2 commit 2026-10-03T20:28:59Z: 14 outer units completed before it (expected the 14 seed-0/2 neural units: True); 13 after (F/F0 seeds 0/2 and all of seed 1). The pre-A2 units ran the cell-conditional attacker only on binary SEX (hard views), where the A2 change (K = max(K, max(y)+1)) is a no-op"
+  },
+  {
+   "id": "10l_E_uses_U_encoders",
+   "status": "PASS",
+   "detail": "E's model.pt is byte-identical to U's on seeds (0, 1, 2): [True, True, True] (E = U encoders + final LEACE + refitted heads)"
+  },
+  {
+   "id": "0_import_guard",
+   "status": "PASS",
+   "detail": "meta_path guard active for ['jcv', 'oar', 'odx', 'cap', 'stored_model_eval', 'report', 'pcrl']; forbidden modules loaded at end: []; blocked attempts: []"
+  }
+ ],
+ "primary": [
+  {
+   "id": "P01",
+   "runner_point": 0.016618727818512962,
+   "replay_point": 0.016618727818512962,
+   "runner_se": 0.002537165976896558,
+   "replay_se": 0.002537165976896558,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.009029262344926287,
+   "replay_upper": 0.02420819329209964
+  },
+  {
+   "id": "P02",
+   "runner_point": -0.0009650624123247464,
+   "replay_point": -0.0009650624123247464,
+   "runner_se": 0.0034509715932072985,
+   "replay_se": 0.0034509715932072985,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.01,
+   "side": "upper<",
+   "replay_lower": -0.011288009352127187,
+   "replay_upper": 0.009357884527477694
+  },
+  {
+   "id": "P03",
+   "runner_point": -0.004900673687203779,
+   "replay_point": -0.004900673687203779,
+   "runner_se": 0.0027602103001217676,
+   "replay_se": 0.0027602103001217676,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.01,
+   "side": "upper<",
+   "replay_lower": -0.013157335239254282,
+   "replay_upper": 0.003355987864846726
+  },
+  {
+   "id": "P04",
+   "runner_point": -0.06847224871256914,
+   "replay_point": -0.06847224871256914,
+   "runner_se": 0.005050732464104838,
+   "replay_se": 0.005050732464104838,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.08358058612592784,
+   "replay_upper": -0.05336391129921045
+  },
+  {
+   "id": "P05",
+   "runner_point": -0.03496725793120986,
+   "replay_point": -0.03496725793120986,
+   "runner_se": 0.004233828754416261,
+   "replay_se": 0.004233828754416261,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.0476319781132237,
+   "replay_upper": -0.022302537749196025
+  },
+  {
+   "id": "P06",
+   "runner_point": -0.04980609066056338,
+   "replay_point": -0.04980609066056338,
+   "runner_se": 0.004034511833763876,
+   "replay_se": 0.004034511833763876,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.0,
+   "side": "lower>",
+   "replay_lower": -0.06187459092580093,
+   "replay_upper": -0.03773759039532583
+  },
+  {
+   "id": "P07",
+   "runner_point": 0.004946277576451126,
+   "replay_point": 0.004946277576451126,
+   "runner_se": 0.003844920120064848,
+   "replay_se": 0.003844920120064848,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.0,
+   "side": "lower>",
+   "replay_lower": -0.006555093940293212,
+   "replay_upper": 0.016447649093195463
+  },
+  {
+   "id": "P08",
+   "runner_point": 0.024858541547460106,
+   "replay_point": 0.024858541547460106,
+   "runner_se": 0.0028813740138973858,
+   "replay_se": 0.0028813740138973858,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.03,
+   "side": "lower>",
+   "replay_lower": 0.016239441025817078,
+   "replay_upper": 0.033477642069103135
+  },
+  {
+   "id": "P09",
+   "runner_point": 0.16460041960709518,
+   "replay_point": 0.16460041960709518,
+   "runner_se": 0.0070148987325708055,
+   "replay_se": 0.0070148987325708055,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.03,
+   "side": "lower>",
+   "replay_lower": 0.14361663998197385,
+   "replay_upper": 0.1855841992322165
+  },
+  {
+   "id": "P10",
+   "runner_point": null,
+   "replay_point": null,
+   "runner_se": null,
+   "replay_se": null,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": null,
+   "replay_upper": null
+  },
+  {
+   "id": "P11",
+   "runner_point": null,
+   "replay_point": null,
+   "runner_se": null,
+   "replay_se": null,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.01,
+   "side": "upper<",
+   "replay_lower": null,
+   "replay_upper": null
+  },
+  {
+   "id": "P12",
+   "runner_point": null,
+   "replay_point": null,
+   "runner_se": null,
+   "replay_se": null,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.01,
+   "side": "upper<",
+   "replay_lower": null,
+   "replay_upper": null
+  },
+  {
+   "id": "P13",
+   "runner_point": -0.06847224871256914,
+   "replay_point": -0.06847224871256914,
+   "runner_se": 0.005050732464104838,
+   "replay_se": 0.005050732464104838,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.08358058612592784,
+   "replay_upper": -0.05336391129921045
+  },
+  {
+   "id": "P14",
+   "runner_point": -0.03496725793120986,
+   "replay_point": -0.03496725793120986,
+   "runner_se": 0.004233828754416261,
+   "replay_se": 0.004233828754416261,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.0476319781132237,
+   "replay_upper": -0.022302537749196025
+  },
+  {
+   "id": "P15",
+   "runner_point": -0.04980609066056338,
+   "replay_point": -0.04980609066056338,
+   "runner_se": 0.004034511833763876,
+   "replay_se": 0.004034511833763876,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.0,
+   "side": "lower>",
+   "replay_lower": -0.06187459092580093,
+   "replay_upper": -0.03773759039532583
+  },
+  {
+   "id": "P16",
+   "runner_point": 0.004946277576451126,
+   "replay_point": 0.004946277576451126,
+   "runner_se": 0.003844920120064848,
+   "replay_se": 0.003844920120064848,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.0,
+   "side": "lower>",
+   "replay_lower": -0.006555093940293212,
+   "replay_upper": 0.016447649093195463
+  },
+  {
+   "id": "P17",
+   "runner_point": 0.024858541547460106,
+   "replay_point": 0.024858541547460106,
+   "runner_se": 0.0028813740138973858,
+   "replay_se": 0.0028813740138973858,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.03,
+   "side": "lower>",
+   "replay_lower": 0.016239441025817078,
+   "replay_upper": 0.033477642069103135
+  },
+  {
+   "id": "P18",
+   "runner_point": 0.16460041960709518,
+   "replay_point": 0.16460041960709518,
+   "runner_se": 0.0070148987325708055,
+   "replay_se": 0.0070148987325708055,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.03,
+   "side": "lower>",
+   "replay_lower": 0.14361663998197385,
+   "replay_upper": 0.1855841992322165
+  }
+ ],
+ "secondary": [
+  {
+   "id": "S-out-prob-pair",
+   "runner_point": 0.03499947657693633,
+   "replay_point": 0.03499947657693633,
+   "runner_se": 0.003671758127950118,
+   "replay_se": 0.003671758127950118,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.023455541403775513,
+   "replay_upper": 0.046543411750097144
+  },
+  {
+   "id": "S-out-prob-v1",
+   "runner_point": 0.017977842352115043,
+   "replay_point": 0.017977842352115043,
+   "runner_se": 0.0052284995302191795,
+   "replay_se": 0.0052284995302191795,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": 0.0015395428981560336,
+   "replay_upper": 0.03441614180607405
+  },
+  {
+   "id": "S-out-prob-v2",
+   "runner_point": 0.009149291225414524,
+   "replay_point": 0.009149291225414524,
+   "runner_se": 0.0033932297112986127,
+   "replay_se": 0.0033932297112986127,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.001518956096405396,
+   "replay_upper": 0.019817538547234444
+  },
+  {
+   "id": "S-out-hard-pair",
+   "runner_point": -0.0015899180519523732,
+   "replay_point": -0.0015899180519523732,
+   "runner_se": 0.004238524873580056,
+   "replay_se": 0.004238524873580056,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.014915756700740005,
+   "replay_upper": 0.011735920596835257
+  },
+  {
+   "id": "S-out-hard-v1",
+   "runner_point": 0.008489100429782606,
+   "replay_point": 0.008489100429782606,
+   "runner_se": 0.0022736789912630733,
+   "replay_se": 0.0022736789912630733,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": 0.0013406985021284096,
+   "replay_upper": 0.015637502357436803
+  },
+  {
+   "id": "S-out-hard-v2",
+   "runner_point": -0.017013809295971738,
+   "replay_point": -0.017013809295971738,
+   "runner_se": 0.0035973047259679628,
+   "replay_se": 0.0035973047259679628,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.028323664440995426,
+   "replay_upper": -0.00570395415094805
+  },
+  {
+   "id": "S-race-pair",
+   "runner_point": 0.0026499087689665357,
+   "replay_point": 0.0026499087689665357,
+   "runner_se": 0.0063142644571115795,
+   "replay_se": 0.0063142644571115795,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.01720201421153317,
+   "replay_upper": 0.022501831749466242
+  },
+  {
+   "id": "S-race-v1",
+   "runner_point": -0.024547132628862028,
+   "replay_point": -0.024547132628862028,
+   "runner_se": 0.007375376111072363,
+   "replay_se": 0.007375376111072363,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.047735169731793696,
+   "replay_upper": -0.0013590955259303594
+  },
+  {
+   "id": "S-race-v2",
+   "runner_point": -0.07231068877429803,
+   "replay_point": -0.07231068877429803,
+   "runner_se": 0.007126296229935459,
+   "replay_se": 0.007126296229935459,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.09471562364102976,
+   "replay_upper": -0.04990575390756629
+  },
+  {
+   "id": "S-proj-pair",
+   "runner_point": -0.04047550571358264,
+   "replay_point": -0.04047550571358264,
+   "runner_se": 0.003459258749803218,
+   "replay_se": 0.003459258749803218,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.05135134703083516,
+   "replay_upper": -0.029599664396330116
+  },
+  {
+   "id": "S-proj-v1",
+   "runner_point": -0.03322570457973136,
+   "replay_point": -0.03322570457973136,
+   "runner_se": 0.004702282079117907,
+   "replay_se": 0.004702282079117907,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.04800958674071624,
+   "replay_upper": -0.018441822418746485
+  },
+  {
+   "id": "S-proj-v2",
+   "runner_point": -0.047971650911322716,
+   "replay_point": -0.047971650911322716,
+   "runner_se": 0.0035674616048503903,
+   "replay_se": 0.0035674616048503903,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.05918767987184814,
+   "replay_upper": -0.03675562195079729
+  },
+  {
+   "id": "S-proj-acc-income",
+   "runner_point": -0.02098035475872591,
+   "replay_point": -0.02098035475872591,
+   "runner_se": 0.0025017182603883606,
+   "replay_se": 0.0025017182603883606,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.02884570765318765,
+   "replay_upper": -0.013115001864264172
+  },
+  {
+   "id": "S-proj-acc-occ",
+   "runner_point": 0.007120605251446366,
+   "replay_point": 0.007120605251446366,
+   "runner_se": 0.002800008324360424,
+   "replay_se": 0.002800008324360424,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": -0.01,
+   "side": "lower>",
+   "replay_lower": -0.0016825657239721136,
+   "replay_upper": 0.015923776226864847
+  },
+  {
+   "id": "S-ctrl-U",
+   "runner_point": 0.05919528613897388,
+   "replay_point": 0.05919528613897388,
+   "runner_se": 0.0030978684398558823,
+   "replay_se": 0.0030978684398558823,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.04945564883213356,
+   "replay_upper": 0.0689349234458142
+  },
+  {
+   "id": "S-ctrl-E",
+   "runner_point": 0.047570575483709056,
+   "replay_point": 0.047570575483709056,
+   "runner_se": 0.003097459698565924,
+   "replay_se": 0.003097459698565924,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.03783222325142688,
+   "replay_upper": 0.057308927715991234
+  },
+  {
+   "id": "S-ctrl-JP",
+   "runner_point": -0.04047550571358264,
+   "replay_point": -0.04047550571358264,
+   "runner_se": 0.003459258749803218,
+   "replay_se": 0.003459258749803218,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.05135134703083516,
+   "replay_upper": -0.029599664396330116
+  },
+  {
+   "id": "S-ctrl-S12",
+   "runner_point": 0.002694262375931178,
+   "replay_point": 0.002694262375931178,
+   "runner_se": 0.0027551485437753123,
+   "replay_se": 0.0027551485437753123,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.005967870333645467,
+   "replay_upper": 0.011356395085507823
+  },
+  {
+   "id": "S-ctrl-S21",
+   "runner_point": 0.0004701789319830156,
+   "replay_point": 0.0004701789319830156,
+   "runner_se": 0.002727193963636596,
+   "replay_se": 0.002727193963636596,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.008104065128704213,
+   "replay_upper": 0.009044422992670243
+  },
+  {
+   "id": "S-ctrl-F",
+   "runner_point": -0.09687243697142789,
+   "replay_point": -0.09687243697142789,
+   "runner_se": 0.0068251779362292556,
+   "replay_se": 0.0068251779362292556,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.11833066185867144,
+   "replay_upper": -0.07541421208418433
+  },
+  {
+   "id": "S-ctrl-F0",
+   "runner_point": 0.060496629195551134,
+   "replay_point": 0.060496629195551134,
+   "runner_se": 0.004222349825859031,
+   "replay_se": 0.004222349825859031,
+   "runner_decision": "PASS",
+   "replay_decision": "PASS",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.047221644577940806,
+   "replay_upper": 0.07377161381316145
+  },
+  {
+   "id": "S-syn-U",
+   "runner_point": -0.004188914879676986,
+   "replay_point": -0.004188914879676986,
+   "runner_se": 0.001166834821281681,
+   "replay_se": 0.001166834821281681,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.007857420556052356,
+   "replay_upper": -0.0005204092033016163
+  },
+  {
+   "id": "S-syn-E",
+   "runner_point": 0.0024188959333288906,
+   "replay_point": 0.0024188959333288906,
+   "runner_se": 0.0015621768210035657,
+   "replay_se": 0.0015621768210035657,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": -0.0024925571968225516,
+   "replay_upper": 0.007330349063480333
+  },
+  {
+   "id": "S-syn-L",
+   "runner_point": 0.020503481610542645,
+   "replay_point": 0.020503481610542645,
+   "runner_se": 0.002728097869133851,
+   "replay_se": 0.002728097869133851,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.011926395688790673,
+   "replay_upper": 0.029080567532294616
+  },
+  {
+   "id": "S-syn-J",
+   "runner_point": 0.008785427479233462,
+   "replay_point": 0.008785427479233462,
+   "runner_se": 0.002172736965698651,
+   "replay_se": 0.002172736965698651,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.0019543852900906307,
+   "replay_upper": 0.015616469668376293
+  },
+  {
+   "id": "S-syn-JP",
+   "runner_point": 0.016281572676973537,
+   "replay_point": 0.016281572676973537,
+   "runner_se": 0.0033309598676682997,
+   "replay_se": 0.0033309598676682997,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.0058091005160061954,
+   "replay_upper": 0.02675404483794088
+  },
+  {
+   "id": "S-syn-S12",
+   "runner_point": 0.025247766032914898,
+   "replay_point": 0.025247766032914898,
+   "runner_se": 0.002435580878293779,
+   "replay_se": 0.002435580878293779,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.01759034776399688,
+   "replay_upper": 0.03290518430183292
+  },
+  {
+   "id": "S-syn-S21",
+   "runner_point": 0.013434100198222998,
+   "replay_point": 0.013434100198222998,
+   "runner_se": 0.002481881592662315,
+   "replay_se": 0.002481881592662315,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.0056311133960530845,
+   "replay_upper": 0.02123708700039291
+  },
+  {
+   "id": "S-syn-F",
+   "runner_point": 0.02408808242749072,
+   "replay_point": 0.02408808242749072,
+   "runner_se": 0.0050706855971927416,
+   "replay_se": 0.0050706855971927416,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.00814594686799167,
+   "replay_upper": 0.040030217986989775
+  },
+  {
+   "id": "S-syn-F0",
+   "runner_point": 0.016873944386126476,
+   "replay_point": 0.016873944386126476,
+   "runner_se": 0.0024885565938131218,
+   "replay_se": 0.0024885565938131218,
+   "runner_decision": "NOT_ESTABLISHED",
+   "replay_decision": "NOT_ESTABLISHED",
+   "target": 0.02,
+   "side": "lower>",
+   "replay_lower": 0.009049971511922264,
+   "replay_upper": 0.024697917260330687
+  }
+ ],
+ "claims": {
+  "claim1": {
+   "replay_decision": "NOT_ESTABLISHED",
+   "runner_decision": "NOT_ESTABLISHED",
+   "all_nine_pass": false,
+   "nominees_all_seeds": false,
+   "clauses_passing_replay": 3,
+   "clauses_passing_runner": 3
+  },
+  "claim2": {
+   "replay_decision": "NOT_ESTABLISHED",
+   "runner_decision": "NOT_ESTABLISHED",
+   "all_nine_pass": false,
+   "nominees_all_seeds": false,
+   "clauses_passing_replay": 1,
+   "clauses_passing_runner": 1
+  }
+ },
+ "selection_replay": {
+  "0": {
+   "C*": null,
+   "U": {
+    "status": "NOMINEE",
+    "unit": "nn__s0__U",
+    "gates_ok": true,
+    "worst_gate_margin": 0.010000000000000009
+   },
+   "E": {
+    "status": "GATES_FAILED",
+    "unit": "nn__s0__E",
+    "gates_ok": false,
+    "worst_gate_margin": -0.04682326621923938
+   },
+   "L": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s0__L__b1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.03921700223713642
+   },
+   "J": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s0__J__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.05219239373601792
+   },
+   "JP": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s0__JP__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.05174496644295301
+   },
+   "S12": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s0__S12__b10",
+    "gates_ok": false,
+    "worst_gate_margin": -0.040111856823266234
+   },
+   "S21": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s0__S21__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.051297539149888105
+   },
+   "F": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": [
+     "fare__s0__p0__c1",
+     "fare__s0__p1__c1"
+    ],
+    "gates_ok": false,
+    "worst_gate_margin": -0.02937360178970916
+   },
+   "F0": {
+    "status": "NO_SELECTED_F_CONFIG",
+    "unit": [
+     "fare__s0__p0__Z1",
+     "fare__s0__p1__Z1"
+    ],
+    "gates_ok": true,
+    "worst_gate_margin": 0.00776286353467559
+   }
+  },
+  "1": {
+   "C*": null,
+   "U": {
+    "status": "NOMINEE",
+    "unit": "nn__s1__U",
+    "gates_ok": true,
+    "worst_gate_margin": 0.010000000000000009
+   },
+   "E": {
+    "status": "GATES_FAILED",
+    "unit": "nn__s1__E",
+    "gates_ok": false,
+    "worst_gate_margin": -0.03563758389261745
+   },
+   "L": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s1__L__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.043243847874720354
+   },
+   "J": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s1__J__b1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.061588366890380386
+   },
+   "JP": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s1__JP__b1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.03519015659955255
+   },
+   "S12": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s1__S12__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.044138702460850165
+   },
+   "S21": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s1__S21__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.034742729306487696
+   },
+   "F": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": [
+     "fare__s1__p0__c1",
+     "fare__s1__p1__c1"
+    ],
+    "gates_ok": false,
+    "worst_gate_margin": -0.02713646532438474
+   },
+   "F0": {
+    "status": "NO_SELECTED_F_CONFIG",
+    "unit": [
+     "fare__s1__p0__Z1",
+     "fare__s1__p1__Z1"
+    ],
+    "gates_ok": true,
+    "worst_gate_margin": 0.010000000000000009
+   }
+  },
+  "2": {
+   "C*": null,
+   "U": {
+    "status": "NOMINEE",
+    "unit": "nn__s2__U",
+    "gates_ok": true,
+    "worst_gate_margin": 0.010000000000000009
+   },
+   "E": {
+    "status": "GATES_FAILED",
+    "unit": "nn__s2__E",
+    "gates_ok": false,
+    "worst_gate_margin": -0.040111856823266234
+   },
+   "L": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s2__L__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.04682326621923938
+   },
+   "J": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s2__J__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.048165548098433986
+   },
+   "JP": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s2__JP__b1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.0423489932885906
+   },
+   "S12": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s2__S12__b0.1",
+    "gates_ok": false,
+    "worst_gate_margin": -0.05174496644295301
+   },
+   "S21": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": "nn__s2__S21__b10",
+    "gates_ok": false,
+    "worst_gate_margin": -0.03161073825503358
+   },
+   "F": {
+    "status": "NO_FEASIBLE_NOMINEE",
+    "unit": [
+     "fare__s2__p0__c1",
+     "fare__s2__p1__c1"
+    ],
+    "gates_ok": false,
+    "worst_gate_margin": -0.028478747203579402
+   },
+   "F0": {
+    "status": "NO_SELECTED_F_CONFIG",
+    "unit": [
+     "fare__s2__p0__Z1",
+     "fare__s2__p1__Z1"
+    ],
+    "gates_ok": true,
+    "worst_gate_margin": 0.008657718120805347
+   }
+  }
+ },
+ "summary": {
+  "PASS": 42,
+  "FAIL": 0,
+  "WARN": 4,
+  "INFO": 10,
+  "total": 56,
+  "max_abs_diff": {
+   "deployment_neural": 0.0,
+   "deployment_fare": 0.0,
+   "leace_native_fit_rows_rel": 5.1976180414784556e-14,
+   "inner_utility": 0.0,
+   "selection_values": 0.0,
+   "inner_recovery_spot": 0.0,
+   "endpoint_points": 0.0,
+   "endpoint_ses": 0.0,
+   "levels_points": 0.0,
+   "levels_ses": 0.0,
+   "utility_vs_records": 0.0,
+   "attacker_replay": 0.0
+  }
+ },
+ "wall_s": 136.8
+}
