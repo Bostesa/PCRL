@@ -90,6 +90,7 @@ class CellConditional:
         self.alpha, self.K = alpha, K
 
     def fit(self, X, y):
+        self.K = max(self.K, int(np.max(y)) + 1)   # amendment A2: multiclass labels (race audit on finite releases)
         keys = [r.tobytes() for r in np.ascontiguousarray(np.round(X, 9))]
         self.prior_ = np.bincount(y, minlength=self.K) / len(y)
         self.table_ = {}

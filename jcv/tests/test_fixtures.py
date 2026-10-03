@@ -86,3 +86,14 @@ def test_centred_logits_finite_under_probability_underflow():
     assert np.isfinite(cen).all() and np.allclose(cen.sum(1), 0)
     assert (P.min() == 0.0) or True
     assert np.array_equal(hard, (head.decision_function(R * 5000) > 0).astype(int))
+
+
+def test_cell_conditional_multiclass_labels():
+    """Regression for amendment A2: the finite-release attacker must accept more than two classes."""
+    rng = np.random.default_rng(4)
+    cells = rng.integers(0, 6, 600)
+    X = np.eye(6)[cells]
+    y = (cells + rng.integers(0, 2, 600)) % 5
+    m = A.CellConditional(1.0).fit(X, y)
+    P = A.proba(m, X, 5)
+    assert P.shape == (600, 5) and np.allclose(P.sum(1), 1)
