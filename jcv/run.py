@@ -170,6 +170,39 @@ def _fare_release(name, k, i, cfg, D, auth, zero=False):
     event("unit complete", unit=name)
 
 
+def refinalize_outputs(name):
+    """Amendment A1: recompute released outputs from the unit's saved head(s) and saved features (no refit).
+    The previous unit version is kept as <name>.quarantined (renamed, never deleted)."""
+    import shutil
+    d = U(name)
+    rec = json.loads((d / "record.json").read_text())
+    if rec.get("amendment_A1"):
+        return False
+    z = dict(np.load(d / "release.npz"))
+    files = {}
+    if "r1" in z:
+        for i in (0, 1):
+            head = joblib.load(d / f"head_{i}.joblib")
+            c, P, hard = FN.outputs(head, z[f"r{i + 1}"])
+            old_hard = z[f"hard{i + 1}"]
+            z.update({f"c{i + 1}": c, f"p{i + 1}": P, f"hard{i + 1}": hard})
+            assert np.array_equal(old_hard, hard), "hard decisions changed"
+    else:
+        head = joblib.load(d / "head.joblib")
+        c, P, hard = FN.outputs(head, z["r"])
+        assert np.array_equal(z["hard"], hard)
+        z.update({"c": c, "p": P, "hard": hard})
+    for p in sorted(d.rglob("*")):
+        rel = str(p.relative_to(d))
+        if p.is_file() and rel not in ("release.npz", "record.json", "COMPLETE.json"):
+            files[rel] = (lambda q, src=p: shutil.copy2(src, q))
+    files["release.npz"] = lambda q: np.savez_compressed(q, **z)
+    rec["amendment_A1"] = "outputs recomputed from saved head + features with the decision-function form"
+    FN.save_unit(d, files, rec)
+    event("unit amended A1", unit=name)
+    return True
+
+
 def stage_fare(D, k):
     from stored_model_eval.guards import FitAuthorization
     auth = FitAuthorization(execute_scientific_fits=True)
@@ -264,7 +297,7 @@ def stage_inner(D, k):
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--lock", required=True)
-    ap.add_argument("--stage", required=True, choices=("warm", "train", "fare", "inner", "select"))
+    ap.add_argument("--stage", required=True, choices=("warm", "train", "fare", "inner", "select", "amend_a1"))
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--arms", nargs="*")
     a = ap.parse_args(argv)
@@ -285,6 +318,10 @@ def main(argv=None):
             stage_fare(D, k)
         elif a.stage == "inner":
             stage_inner(D, k)
+    if a.stage == "amend_a1":
+        for d in sorted(UNITS.glob("*")):
+            if d.is_dir() and (d.name.startswith("nn__") or d.name.startswith("fare__")) and done(d.name):
+                refinalize_outputs(d.name)
     if a.stage == "select":
         from jcv.select import run_selection
         run_selection(D, a.seeds)

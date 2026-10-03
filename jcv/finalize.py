@@ -38,9 +38,14 @@ def fit_head(R, y, tr, va, K):
 
 
 def outputs(head, R):
-    lp = head.predict_log_proba(R)
-    cen = lp - lp.mean(1, keepdims=True)
-    P = np.exp(lp)
+    """Centred logits from the head's decision function (finite even when a probability underflows to 0), the
+    head's probabilities and the hard decision. Amendment A1 (2026-10-03): the original log(predict_proba) form gave
+    -inf for underflowing probabilities (U arm, income)."""
+    z = np.asarray(head.decision_function(R), dtype=np.float64)
+    if z.ndim == 1:                       # binary sklearn head: one margin d -> logits (0, d)
+        z = np.stack([np.zeros_like(z), z], 1)
+    cen = z - z.mean(1, keepdims=True)
+    P = head.predict_proba(R)
     return cen, P, P.argmax(1)
 
 

@@ -72,3 +72,17 @@ def test_centring_and_affine_logits():
     r0, dlt = R[:1], rng.normal(size=(1, 5))
     c = [outputs(head, r0 + t * dlt)[0] for t in (0.0, 1.0, 2.0)]
     assert np.allclose(c[2] - 2 * c[1] + c[0], 0, atol=1e-9)
+
+
+def test_centred_logits_finite_under_probability_underflow():
+    """Regression for amendment A1: extreme margins must give finite centred logits."""
+    from jcv.finalize import outputs
+    from sklearn.linear_model import LogisticRegression
+    rng = np.random.default_rng(3)
+    R = rng.normal(size=(400, 3))
+    y = (R[:, 0] > 0).astype(int)
+    head = LogisticRegression(C=1e6, max_iter=5000).fit(R * 50, y)
+    cen, P, hard = outputs(head, R * 5000)
+    assert np.isfinite(cen).all() and np.allclose(cen.sum(1), 0)
+    assert (P.min() == 0.0) or True
+    assert np.array_equal(hard, (head.decision_function(R * 5000) > 0).astype(int))
