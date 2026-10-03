@@ -16,6 +16,8 @@ PKG = WT / "results/combined_output_diagnosis_v1"
 OAR_UNITS = Path.home() / "PCRL_eval_cache_private/oar_v1/run/units"
 COV = list(csv.DictReader(open(PKG / "COVERAGE_AND_SUPPORT.csv")))
 t0, c0 = time.time(), time.process_time()
+from scipy.stats import norm as _norm
+Z90 = float(_norm.ppf(0.95))
 
 
 def supported(ds, purpose, attr):
@@ -67,7 +69,10 @@ for ds in ("adult", "hmda"):
             per.append(D.diff(f"{ds}|{purpose}|s{k}|gain", D.accuracy(f"{ds}|{purpose}|s{k}|frozen", yh == ta), cst))
             disc.append(int(((yh == ta) != (ta == maj)).sum()))
         ids[f"U-frozen|{purpose}"] = D.mean(f"{ds}|U-frozen|{purpose}", per)
-        meta[f"U-frozen|{purpose}"] = {"discordant_rows_min": min(disc)}
+        accs = [float((np.load(S.BENCH / "inputs" / f"{ds}_s{k}_forward.npz")[p["logits_key"]][a].argmax(1) == ta).mean()) for k in S.SEEDS]
+        consts = [bool(len(np.unique(np.load(S.BENCH / "inputs" / f"{ds}_s{k}_forward.npz")[p["logits_key"]][a].argmax(1))) == 1) for k in S.SEEDS]
+        meta[f"U-frozen|{purpose}"] = {"discordant_rows_min": min(disc), "max_seed_accuracy": max(accs),
+                                       "constant_head_all_seeds": all(consts)}
         if purpose == S.CELLS[ds]["purpose"]:
             per = []
             disc = []
@@ -188,8 +193,19 @@ for ds in ("adult", "hmda"):
                        "fullbank_selected_by_seed": json.dumps(meta[key]["fullbank_selected"])} if con == "FC" and key in meta else {})})
     for purpose in R.purposes(ds):
         key = f"U-frozen|{purpose}"
-        s3.append({"id": f"S3-U-{ds}-{purpose}", "z": z3, **decide(with_z(EST[key], z3), 0.01, z3),
-                   "flag_normal_approx_weak": meta[key]["discordant_rows_min"] < 30})
+        row = {"id": f"S3-U-{ds}-{purpose}", "z": z3, **decide(with_z(EST[key], z3), 0.01, z3),
+               "flag_normal_approx_weak": meta[key]["discordant_rows_min"] < 30}
+        if meta[key]["constant_head_all_seeds"]:
+            row["flag"] = "IDENTICAL_BY_CONSTRUCTION (frozen head predicts the attacker_fit-majority class for every row on every seed)"
+        elif meta[key]["max_seed_accuracy"] > 0.99:
+            # NEAR_BOUND judged per seed (any seed accuracy > 0.99); add a Bonferroni percentile interval
+            from stored_model_eval.bench_infer import run as _run
+            from stored_model_eval.pilot_infer import UnitBootstrap as _UB
+            _, reps = _run(D.g, _UB(D.units, F.B_SE, F.SEED_SE, 500), [ids[key]])
+            q = F.ALPHA / (2 * F.S3_SIZE)
+            row.update(flag="NEAR_BOUND (per-seed accuracy > 0.99)", percentile_lower=float(np.quantile(reps[ids[key]], q)),
+                       percentile_upper=float(np.quantile(reps[ids[key]], 1 - q)))
+        s3.append(row)
     # S4
     if ds == R.COALITION["dataset"]:
         z4 = F.z_two_sided(F.S4_SIZE)
@@ -208,7 +224,7 @@ for ds in ("adult", "hmda"):
     for k_, e in EST.items():
         if k_.startswith(("R|", "PAIR|", "FB-H|")):
             surf_rows.append({"dataset": ds, "key": k_, "point": e["point"], "se": e["se"],
-                              "lower90": e["point"] - 1.6449 * e["se"], "upper90": e["point"] + 1.6449 * e["se"]})
+                              "lower90": e["point"] - Z90 * e["se"], "upper90": e["point"] + Z90 * e["se"]})
     for nm in ("fullbank", "iobank", "hard"):
         ps = {k_: e for k_, e in EST.items() if k_.startswith(f"PAIR|{nm}|")}
         if ps:

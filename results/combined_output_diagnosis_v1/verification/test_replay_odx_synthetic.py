@@ -61,6 +61,8 @@ def write_complete(d: Path, uid, alias=False):
     rec = {"id": uid, "files": files}
     if alias:
         rec["alias"] = True
+    else:
+        rec["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     (d / "COMPLETE.json").write_text(json.dumps(rec, indent=1))
 
 
@@ -408,7 +410,7 @@ class Synth:
         real = json.loads((HERE.parent / "LOCK.json").read_text())
         fam = json.loads(json.dumps(real["families"]))
         fam["bootstrap"]["B"] = B_SYN
-        lock = {"schema": "odx_lock/v1", "pairs": [list(p) for p in R.PAIRS],
+        lock = {"schema": "odx_lock/v1", "built_at": "2000-01-01T00:00:00Z", "pairs": [list(p) for p in R.PAIRS],
                 "primary_cells": [["adult", "income_prediction", "sex"], ["hmda", "underwriting", "race"]],
                 "families": fam, "file_sha256": {"PROTOCOL.md": sha(st / "PROTOCOL.md")},
                 "admitted": {"inputs": {"~/" + str(p.relative_to(self.home)): sha(p) for p in sorted(
@@ -584,7 +586,7 @@ class Reference:
             rows += [self.rec(f"S3-{s}-{ds}-{p}-{a}", ds, p, a, s, z) for s in ("FC", "CH")]
         for ds in ("adult", "hmda"):
             for (p, _, _, _) in PURPOSES[ds]:
-                rows.append(self.use(f"S3-U-frozen-{ds}-{p}", ds, p, "frozen", z))
+                rows.append(self.use(f"S3-U-{ds}-{p}", ds, p, "frozen", z))
         return rows
 
     def s4(self):
@@ -593,7 +595,7 @@ class Reference:
         rows = []
         for c in R.CONTRACTS:
             single = {"full": "fullbank", "centred": "iobank"}.get(c, c)
-            for other, nm in ((pa, "income"), (pb, "employment")):
+            for other, nm in ((pa, pa), (pb, pb)):
                 vecs, ident = [], []
                 for k in self.seeds_used:
                     ps = self.sel(f"{ds}__s{k}__PAIR_{pa}+{pb}__{attr}__FH__{c}__bank")

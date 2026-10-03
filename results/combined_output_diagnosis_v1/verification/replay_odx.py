@@ -525,7 +525,11 @@ class Replay:
         C, cfg = self.C, self.cfg
         uids = sorted(p.name for p in cfg.units.iterdir() if p.is_dir()) if cfg.units.exists() else []
         partial = [u for u in uids if ".partial-" in u]
-        uids = [u for u in uids if ".partial-" not in u]
+        s5 = [u for u in uids if u.startswith("S5__")]       # stage-5 FARE units: own schema, verified separately
+        uids = [u for u in uids if ".partial-" not in u and not u.startswith("S5__")]
+        self.C.add("units.S5_out_of_scope", "INFO", {"S5_unit_dirs": len(s5),
+                                                     "note": "stage-5 units use their own COMPLETE schema ('uid') and "
+                                                             "are verified after 'S5 complete'"})
         self.uids = set()
         problems = {}
         n_alias = n_attack = n_bank = 0
@@ -794,6 +798,26 @@ class Replay:
             self.unit_cache[d] = {k: P[k] for k in P.files}
         return self.unit_cache[d]
 
+    def preds_dir(self, d: Path):
+        if d not in self.unit_cache:
+            P = np.load(d / "preds.npz", allow_pickle=False)
+            self.unit_cache[d] = {k: P[k] for k in P.files}
+        return self.unit_cache[d]
+
+    def R_dir(self, ds, d: Path, attr):
+        key = ("R", str(d), attr)
+        if key not in self.stat_cache:
+            P = self.preds_dir(d)
+            W = self.worlds[ds]
+            y = W["lab"][attr][W["idx"]["assessment"]].astype(int)
+            if not np.array_equal(P["y_s"], y):
+                raise ValueError(f"{d.name}: y_s differs from labels")
+            _, sup = self.support[(ds, attr)]
+            b = self.boot(ds)
+            self.stat_cache[key] = np.mean([np.mean([b.wauc(P[f"P__NL__as{a_}"][:, c], y == c) for c in sup], axis=0)
+                                            for a_ in ATTACKER_SEEDS], axis=0)
+        return self.stat_cache[key]
+
     def R_unit(self, ds, uid, attr):
         """Per attacker seed macro supported-class OvR AUC, then mean over attacker seeds; vector over replicates."""
         key = ("R", str(self.resolve_dir(uid)), attr)
@@ -926,6 +950,7 @@ class Replay:
                  "side_means": [float(np.mean([s[0] for s in sides])), float(np.mean([s[1] for s in sides]))]}
         if side == "FC":
             extra["offset_attributable"] = all(s["fb_offset_using"] for s in sel)
+            extra["fullbank_selected_by_seed"] = [s["fullbank"] for s in sel]
         if pair is not None:
             extra["zero_denominator_rows"] = zden
         return self.finish(sid, z, T_REC, vecs, extra, identical=identical, near=near)
@@ -966,6 +991,8 @@ class Replay:
                           {"max_abs_diff_point_and_replicates": dmax})
             else:
                 self.C.add(f"primary.alias.{a_}", "FAIL", "alias side unavailable")
+        for a_, b_ in DECLARED_ALIASES.items():
+            res[a_]["declared_alias_of"] = b_
         # telescoped sums
         for ds in DATASETS:
             if "_reps" in res[f"FC-{ds}"] and "_reps" in res[f"CH-{ds}"]:
@@ -1004,7 +1031,7 @@ class Replay:
                 res[sid] = self.recovery(sid, ds, purpose, attr, side, z)
         for ds in DATASETS:
             for purpose in self.index["datasets"][ds]["purposes"]:
-                sid = f"S3-U-frozen-{ds}-{purpose}"
+                sid = f"S3-U-{ds}-{purpose}"
                 res[sid] = self.usefulness(sid, ds, purpose, "frozen", z)
         self.C.ok("S3.family_size", len(res) == self.cfg.E["S3_size"], {"n": len(res)})
         # replicate-consistency: the primary cells inside S3 equal the primary family's points/replicates
@@ -1052,8 +1079,8 @@ class Replay:
                   {"problems": bad[:10], "exclusions_rows": Wd["exposure_rows"]})
         for c in CONTRACTS:
             single = {"full": "fullbank", "centred": "iobank"}.get(c, c)
-            for other, pname in ((pa, "income"), (pb, "employment")):
-                sid = f"S4-{c}-pair-minus-{pname}"
+            for other in (pa, pb):
+                sid = f"S4-{c}-pair-minus-{other}"
                 vecs, ident, sel = [], [], []
                 miss = None
                 for k in SEEDS:
@@ -1065,15 +1092,16 @@ class Replay:
                         break
                     vecs.append(self.R_unit(ds, ps, attr) - self.R_unit(ds, ss, attr))
                     ident.append(self.resolve_dir(ps) == self.resolve_dir(ss))
-                    sel.append({"seed": k, "pair_bank_selected": "PAIR" if "PAIR_" in ps else ps.split("__")[2],
-                                "single_selected": ss.split("__")[-1]})
+                    sel.append({"seed": k, "pair_bank_selected": ps, "single_selected": ss,
+                                "identical_this_seed": self.resolve_dir(ps) == self.resolve_dir(ss)})
                 if miss:
                     res[sid] = self.unavailable(sid, z, T_REC, miss)
                     continue
-                res[sid] = self.finish(sid, z, T_REC, vecs, {"selection": sel, "identical_seeds": ident},
+                res[sid] = self.finish(sid, z, T_REC, vecs, {"selection": sel, "identical_seeds": ident,
+                                                             "pair_bank_selected_by_seed": [x["pair_bank_selected"]
+                                                                                            for x in sel]},
                                        identical=all(ident))
-            both = all(res.get(f"S4-{c}-pair-minus-{n}", {}).get("decision") == "PASS" for n in ("income",
-                                                                                                  "employment"))
+            both = all(res.get(f"S4-{c}-pair-minus-{n}", {}).get("decision") == "PASS" for n in (pa, pb))
             self.agg.setdefault("S4_combination_finding", {})[c] = both
         self.C.ok("S4.family_size", len(res) == self.cfg.E["S4_size"], {"n": len(res)})
         self.res_s4 = res
@@ -1093,8 +1121,11 @@ class Replay:
         cols = rows[0].keys() if rows else []
         m = {k: next((c for c in v if c in cols), None) for k, v in self.COLS.items()}
         out = {"table": self.cfg.tilde(path), "rows": len(rows), "column_map": m,
-               "unmapped_columns": [c for c in cols if c not in m.values()]}
-        diffs, missing = [], []
+               "not_compared_columns": [c for c in cols if c not in m.values() and c not in (
+                   "flag_normal_approx_weak", "offset_attributable", "fullbank_selected_by_seed", "declared_alias_of",
+                   "pair_bank_selected_by_seed", "n_finite_replicates", "B", "seed", "percentile_lower",
+                   "percentile_upper", "target")]}
+        diffs, missing, unreported = [], [], []
         theirs = {}
         for r in rows:
             rid = r[m["id"]]
@@ -1129,8 +1160,54 @@ class Replay:
             if m["flags"]:
                 tf = set(x for x in re.split(r"[;,| ]+", r[m["flags"]] or "") if x)
                 for fl in ("IDENTICAL_BY_SELECTION", "IDENTICAL_BY_CONSTRUCTION", "NORMAL_APPROX_WEAK", "NEAR_BOUND"):
+                    if fl == "NORMAL_APPROX_WEAK" and "flag_normal_approx_weak" in cols:
+                        continue
                     if (fl in tf) != (fl in v["flags"]):
                         diffs.append({"id": sid, "field": f"flag:{fl}", "table": fl in tf, "replay": fl in v["flags"]})
+            else:
+                for fl in ("IDENTICAL_BY_SELECTION", "IDENTICAL_BY_CONSTRUCTION", "NEAR_BOUND"):
+                    if fl in v["flags"]:
+                        unreported.append({"id": sid, "flag": fl})
+            if "IDENTICAL_BY_SELECTION" in v["flags"] or "IDENTICAL_BY_CONSTRUCTION" in v["flags"]:
+                if m["se"] and to_float(r[m["se"]]) not in (0.0,):
+                    diffs.append({"id": sid, "field": "identical_requires_SE_0", "table": to_float(r[m["se"]])})
+            if "flag_normal_approx_weak" in cols and r["flag_normal_approx_weak"].strip() != "":
+                tw = r["flag_normal_approx_weak"].strip() == "True"
+                if tw != ("NORMAL_APPROX_WEAK" in v["flags"]):
+                    diffs.append({"id": sid, "field": "flag_normal_approx_weak", "table": tw,
+                                  "replay": "NORMAL_APPROX_WEAK" in v["flags"]})
+            if "offset_attributable" in cols:
+                to_ = r["offset_attributable"].strip()
+                mo = v.get("offset_attributable")
+                if (to_ == "") != (mo is None) or (mo is not None and (to_ == "True") != mo):
+                    diffs.append({"id": sid, "field": "offset_attributable", "table": to_, "replay": mo})
+            if "fullbank_selected_by_seed" in cols:
+                tl = json.loads(r["fullbank_selected_by_seed"]) if r["fullbank_selected_by_seed"].strip() else None
+                if tl != v.get("fullbank_selected_by_seed"):
+                    diffs.append({"id": sid, "field": "fullbank_selected_by_seed", "table": tl,
+                                  "replay": v.get("fullbank_selected_by_seed")})
+            if "pair_bank_selected_by_seed" in cols:
+                tl = json.loads(r["pair_bank_selected_by_seed"]) if r["pair_bank_selected_by_seed"].strip() else None
+                if tl != v.get("pair_bank_selected_by_seed"):
+                    diffs.append({"id": sid, "field": "pair_bank_selected_by_seed", "table": tl,
+                                  "replay": v.get("pair_bank_selected_by_seed")})
+            if "percentile_lower" in cols:
+                tl, tu = to_float(r["percentile_lower"]), to_float(r["percentile_upper"])
+                mp = v.get("percentile_95")
+                if (tl is None) != (mp is None) or (mp is not None and (abs(tl - mp[0]) > 1e-9 or
+                                                                       abs(tu - mp[1]) > 1e-9)):
+                    diffs.append({"id": sid, "field": "percentile_95", "table": [tl, tu], "replay": mp})
+            if "declared_alias_of" in cols:
+                if (r["declared_alias_of"].strip() or None) != v.get("declared_alias_of"):
+                    diffs.append({"id": sid, "field": "declared_alias_of", "table": r["declared_alias_of"],
+                                  "replay": v.get("declared_alias_of")})
+            if "n_finite_replicates" in cols and v.get("point") is not None:
+                tn = to_float(r["n_finite_replicates"])
+                if tn is None or int(tn) != self.cfg.E["B"] - v.get("n_ne_replicates", 0):
+                    diffs.append({"id": sid, "field": "n_finite_replicates", "table": tn})
+            for f, ev in (("B", self.cfg.E["B"]), ("seed", self.cfg.E["seed"])):
+                if f in cols and r[f].strip() and int(float(r[f])) != ev:
+                    diffs.append({"id": sid, "field": f, "table": r[f]})
             # independent sanity of the table's own arithmetic
             if m["point"] and m["se"] and m["lower"] and m["z"]:
                 tp, ts, tl, tz = (to_float(r[m[q]]) for q in ("point", "se", "lower", "z"))
@@ -1146,6 +1223,11 @@ class Replay:
         out.update({"max_abs_diff": maxd, "n_diffs": len(diffs), "diffs": diffs[:60], "missing_in_table": missing,
                     "extra_in_table": extra})
         self.C.ok(f"compare.{name}", not diffs and not missing and not extra, out)
+        if m["flags"] is None:
+            self.C.ok(f"compare.{name}.flags_reportable", not unreported,
+                      {"table_has_flag_column": False, "replay_flags_not_representable": unreported},
+                      cause="the table has no flag column for IDENTICAL_BY_*/NEAR_BOUND flags that the replay raises",
+                      fail_status="WARN")
         self.agg.setdefault("comparisons", {})[name] = out
 
     def compare_seed_selections(self, path: Path):
@@ -1155,6 +1237,594 @@ class Replay:
         rows = list(csv.DictReader(open(path)))
         cols = [c for c in (rows[0].keys() if rows else []) if re.search(r"select", c, re.I)]
         self.agg.setdefault("runner_selection_columns", {})[path.name] = cols
+
+    def R_ref(self, ds, uid, attr, key):
+        """Macro supported-class AUC of a reference predictor (label-only P__LO or constant prior P__const)."""
+        ck = ("REF", str(self.resolve_dir(uid)), attr, key)
+        if ck not in self.stat_cache:
+            P = self.preds(uid)
+            W = self.worlds[ds]
+            y = W["lab"][attr][W["idx"]["assessment"]].astype(int)
+            _, sup = self.support[(ds, attr)]
+            b = self.boot(ds)
+            self.stat_cache[ck] = np.mean([b.wauc(P[key][:, c], y == c) for c in sup], axis=0)
+        return self.stat_cache[ck]
+
+    def surface_vec(self, ds, purpose, attr, st, what):
+        vecs = []
+        for k in SEEDS:
+            base = f"{ds}__s{k}__{purpose}__{attr}__{st}__"
+            if what in ("LO", "const"):
+                ref = f"{ds}__s{k}__{purpose}__{attr}__REF__ref"
+                if ref not in self.uids:
+                    return None
+                vecs.append(self.R_ref(ds, ref, attr, "P__" + what))
+                continue
+            u = self.resolve(base + what)
+            if u is None or u in self.unit_problems:
+                return None
+            vecs.append(self.R_unit(ds, u, attr))
+        return np.mean(vecs, axis=0)
+
+    def check_surface_table(self):
+        p = self.cfg.study / "OUTPUT_SURFACE_RESULTS.csv"
+        if not p.exists():
+            self.C.add("compare.OUTPUT_SURFACE_RESULTS", "SKIPPED", "absent")
+            return
+        z90 = norm.ppf(0.95)
+        bad, n, maxd = [], 0, {"point": 0.0, "se": 0.0}
+        zimp, bshift = set(), 0.0
+        for r in csv.DictReader(open(p)):
+            ds, key = r["dataset"], r["key"].split("|")
+            T = None
+            if key[0] == "R":
+                _, purpose, attr, st, what = key
+                T = self.surface_vec(ds, purpose, attr, st, what)
+            elif key[0] == "FB-H":
+                _, purpose, attr, st = key
+                a_, b_ = self.surface_vec(ds, purpose, attr, st, "fullbank"), self.surface_vec(ds, purpose, attr, st,
+                                                                                               "hard")
+                T = None if a_ is None or b_ is None else a_ - b_
+            elif key[0] == "PAIR":
+                _, side, pr = key
+                i, j = (int(x) for x in pr.split("-"))
+                purpose, attr = PRIMARY[ds]
+                vs = []
+                for k in SEEDS:
+                    u = self.seed_units(ds, purpose, attr, k)[{"fullbank": 0, "iobank": 1, "hard": 2}[side]]
+                    vs.append(self.PAIR_unit(ds, u, attr, i, j)[0])
+                T = np.mean(vs, axis=0)
+            if T is None:
+                bad.append({"key": r["key"], "why": "not recomputable"})
+                continue
+            n += 1
+            pt, se = float(T[0]), float(np.nanstd(T[1:], ddof=1))
+            tp, ts = to_float(r["point"]), to_float(r["se"])
+            dp, dse = abs(tp - pt), abs(ts - se)
+            maxd["point"], maxd["se"] = max(maxd["point"], dp), max(maxd["se"], dse)
+            lo, up = to_float(r["lower90"]), to_float(r["upper90"])
+            if ts and ts > 0:
+                zimp.update({round((tp - lo) / ts, 9), round((up - tp) / ts, 9)})
+            if dp > TOL_POINT or dse > TOL_SE:
+                bad.append({"key": r["key"], "table": [tp, ts], "replay": [pt, se]})
+            elif abs(lo - (pt - z90 * se)) > 1e-8 or abs(up - (pt + z90 * se)) > 1e-8:
+                bshift = max(bshift, abs(lo - (pt - z90 * se)), abs(up - (pt + z90 * se)))
+        self.C.ok("compare.OUTPUT_SURFACE_RESULTS", not bad and n > 0, {"rows_checked": n, "max_abs_diff": maxd,
+                                                                         "bad": bad[:30]})
+        self.C.add("compare.OUTPUT_SURFACE_RESULTS.z90", "PASS" if bshift <= 1e-8 else "INFO" if all(
+            abs(z - z90) < 1e-4 for z in zimp) else "FAIL",
+                   {"implied_z": sorted(zimp), "exact_z90": z90, "max_bound_shift": bshift},
+                   cause="descriptive 90% bounds use the critical value rounded to 4 decimals (1.6449)")
+
+    def check_bank_table(self):
+        p = self.cfg.study / "BANK_SELECTIONS.csv"
+        if not p.exists():
+            self.C.add("compare.BANK_SELECTIONS", "SKIPPED", "absent")
+            return
+        bad, n = [], 0
+        for r in csv.DictReader(open(p)):
+            base = f"{r['dataset']}__s{r['seed']}__{r['purpose']}__{r['attribute']}__{r['stratum']}__"
+            fb, io = self.resolve(base + "fullbank"), self.resolve(base + "iobank")
+            n += 1
+            if fb is None or io is None or fb.split("__")[-1] != r["fullbank_selected"] or \
+                    io.split("__")[-1] != r["iobank_selected"]:
+                bad.append({"row": base, "table": [r["fullbank_selected"], r["iobank_selected"]],
+                            "replay": [fb and fb.split("__")[-1], io and io.split("__")[-1]]})
+            cv = json.loads(r["fullbank_candidates_val_ll"])
+            for c, v in cv.items():
+                if abs(v - self.val_ll(c)) > 1e-12:
+                    bad.append({"row": base, "candidate": c, "table": v, "replay": self.val_ll(c)})
+        self.C.ok("compare.BANK_SELECTIONS", not bad and n > 0, {"rows_checked": n, "bad": bad[:20]})
+
+    def check_worst_pair_table(self):
+        p = self.cfg.study / "WORST_PAIR_SUMMARY.csv"
+        if not p.exists():
+            self.C.add("compare.WORST_PAIR_SUMMARY", "SKIPPED", "absent")
+            return
+        bad, n, rule = [], 0, {}
+        for r in csv.DictReader(open(p)):
+            ds, side = r["dataset"], r["surface"]
+            purpose, attr = PRIMARY[ds]
+            K, sup = self.support[(ds, attr)]
+            pick = {"fullbank": 0, "iobank": 1, "hard": 2}[side]
+            vals = {}
+            for i in sup:
+                for j in sup:
+                    if i < j:
+                        T = np.mean([self.PAIR_unit(ds, self.seed_units(ds, purpose, attr, k)[pick], attr, i, j)[0]
+                                     for k in SEEDS], axis=0)
+                        vals[f"{i}-{j}"] = (float(T[0]), float(np.nanstd(T[1:], ddof=1)))
+            n += 1
+            w = r["worst_supported_pair"]
+            rule[f"{ds}.{side}"] = {"table_pair": w, "is_max_auc": w == max(vals, key=lambda q: vals[q][0]),
+                                    "is_max_abs_dev_from_0.5": w == max(vals, key=lambda q: abs(vals[q][0] - .5))}
+            if w not in vals or abs(vals[w][0] - to_float(r["point"])) > TOL_POINT or \
+                    abs(vals[w][1] - to_float(r["se"])) > TOL_SE or int(r["n_supported_pairs"]) != len(vals):
+                bad.append({"row": f"{ds}.{side}", "table": [w, r["point"], r["se"]], "replay": vals.get(w)})
+        self.C.ok("compare.WORST_PAIR_SUMMARY", not bad and n > 0, {"rows_checked": n, "selection_rule": rule,
+                                                                     "bad": bad})
+
+    def check_lock_history(self, repo: Path):
+        """Stages 2-4 ran under LOCK_v1 (commit 01ef342f); amendment L1 must leave that code unchanged."""
+        p1 = self.cfg.study / "LOCK_v1.json"
+        if not p1.exists():
+            self.C.add("lock.v1_history", "INFO", "no LOCK_v1.json (no amendment)")
+            v1 = self.lock
+        else:
+            v1 = json.loads(p1.read_text())
+            try:
+                at = subprocess.run(["git", "-C", str(repo), "show",
+                                     "01ef342f:results/combined_output_diagnosis_v1/LOCK.json"],
+                                    capture_output=True, timeout=20).stdout
+                self.C.ok("lock.v1_equals_commit_01ef342f", at == p1.read_bytes())
+            except Exception as e:  # noqa: BLE001
+                self.C.add("lock.v1_equals_commit_01ef342f", "SKIPPED", str(e))
+            same = all(self.lock.get(k) == v1.get(k) for k in ("families", "pairs", "primary_cells", "surfaces",
+                                                               "bank_candidates", "reuse", "coalition", "admitted"))
+            shared = {f: h for f, h in v1["code_files"].items() if self.lock["code_files"].get(f) != h}
+            self.C.ok("lock.amendment_preserves_v1", same and not shared,
+                      {"scientific_sections_identical": same, "v1_code_files_changed_in_current_lock": shared,
+                       "added_code_files": sorted(set(self.lock["code_files"]) - set(v1["code_files"]))})
+        bad = {f: "missing" if not (repo / f).exists() else "hash differs"
+               for f, h in v1.get("code_files", {}).items() if not (repo / f).exists() or sha256_file(repo / f) != h}
+        self.C.ok("lock.v1_code_files_unchanged_on_disk", not bad, {"n": len(v1.get("code_files", {})), "bad": bad})
+        # every new attack unit was completed after the v1 lock was built
+        t_lock = v1.get("built_at")
+        if t_lock is None:
+            self.C.add("units.fitted_after_lock", "SKIPPED", "lock has no built_at")
+            return
+        late, n = [], 0
+        for uid in self.uids:
+            d = self.unit_dir(uid)
+            c = json.loads((d / "COMPLETE.json").read_text())
+            if c.get("alias") or "completed_at" not in c:
+                continue
+            n += 1
+            if c["completed_at"] < t_lock:
+                late.append(uid)
+        self.C.ok("units.fitted_after_lock", not late and n > 0, {"timestamped_units": n, "lock_built_at": t_lock,
+                                                                   "before_lock": late[:20]})
+
+
+    # ================================================================ stage 5 (conditional FARE)
+    def s5_dir(self, k, tag):
+        ds, purpose, attr = self.s5_cell
+        return self.cfg.units / f"S5__{ds}__s{k}__{purpose}__{attr}__{tag}"
+
+    def plus_resolve(self, d: Path):
+        """Plus-surface rule: own GBT/MLP vs ignore_rep (output unit) vs ignore_out (rep unit), min attacker_val log
+        loss (ties -> earlier listed); returns (dir used for scoring, own selection, recorded selection)."""
+        r = json.loads((d / "record.json").read_text())
+        ps = r.get("plus_selection")
+        if ps is None:
+            return d, None, None
+        cand = ps["candidates_attacker_val_log_loss"]
+        best = None
+        for c in ("GBT/MLP", "ignore_rep", "ignore_out"):
+            if best is None or cand[c] < cand[best]:
+                best = c
+        if best == "GBT/MLP":
+            return d, best, ps["selected"]
+        return d.parent / ps["alias_source"], best, ps["selected"]
+
+    def task_const(self, ds, purpose):
+        W = self.worlds[ds]
+        t = self.task(ds, purpose)
+        Kt = int(self.purpose(ds, purpose)["task_dim"])
+        return int(np.argmax(np.bincount(t[W["idx"]["attacker_fit"]], minlength=Kt)))
+
+    def u2_dir_untreated(self, ds, k, purpose):
+        d = self.cfg.units / f"{ds}__s{k}__{purpose}__U2__A"
+        if (d / "val_preds.npz").exists():
+            return d
+        if PRIMARY.get(ds, (None,))[0] == purpose:
+            return self.cfg.oar_units / f"{ds}__s{k}__U2__A"
+        return d
+
+    def s5_screen(self):
+        p = self.cfg.run / "s5" / "SCREEN.json"
+        if not p.exists():
+            self.C.add("S5.screen", "SKIPPED", "SCREEN.json absent")
+            return None
+        S = json.loads(p.read_text())
+        rows, bad = [], []
+        theirs = {(r["dataset"], r["purpose"], r["attribute"]): r for r in S["screen"]}
+        for (ds, purpose, attr) in PAIRS:
+            if PRIMARY[ds] == (purpose, attr):
+                continue
+            W = self.worlds[ds]
+            v = W["idx"]["attacker_val"]
+            t = self.task(ds, purpose)
+            const = self.task_const(ds, purpose)
+            cval = float((t[v] == const).mean())
+            fg = [float((self.logits(ds, k, purpose)[v].argmax(1) == t[v]).mean()) - cval for k in SEEDS]
+            ug = []
+            for k in SEEDS:
+                d = self.u2_dir_untreated(ds, k, purpose)
+                V = np.load(d / "val_preds.npz")
+                if not np.array_equal(V["val_row_id"], W["row_id"][v]) or not np.array_equal(V["val_y_t"], t[v]):
+                    bad.append(f"{d.name}: validation rows/labels differ")
+                ug.append(float((V["VAL__U2_P"].argmax(1) == t[v]).mean()) - cval)
+            K, cnt, sup = support_counts(W, attr)
+            dfc = cnt["defense_fit"].tolist()
+            elig = (np.mean(fg) >= 0.03 and sum(g > 0 for g in fg) >= 2 and np.mean(ug) >= 0.03 and
+                    all(g > 0 for g in ug) and min(dfc) >= 100 and len(sup) >= 2)
+            row = {"dataset": ds, "purpose": purpose, "attribute": attr, "frozen_val_gain_by_seed": fg,
+                   "u2_val_gain_by_seed": ug, "defense_fit_class_counts": dfc, "supported_classes": sup,
+                   "constant_val_accuracy": cval, "eligible": bool(elig)}
+            rows.append(row)
+            th = theirs.get((ds, purpose, attr))
+            if th is None:
+                bad.append(f"{ds}/{purpose}/{attr}: missing in SCREEN.json")
+                continue
+            for f in ("frozen_val_gain_by_seed", "u2_val_gain_by_seed"):
+                if max(abs(a_ - b_) for a_, b_ in zip(th[f], row[f])) > 1e-12:
+                    bad.append(f"{ds}/{purpose}/{attr}: {f}")
+            for f in ("defense_fit_class_counts", "supported_classes", "eligible"):
+                if th[f] != row[f]:
+                    bad.append(f"{ds}/{purpose}/{attr}: {f} table={th[f]} replay={row[f]}")
+            if abs(th["constant_val_accuracy"] - cval) > 1e-12:
+                bad.append(f"{ds}/{purpose}/{attr}: constant_val_accuracy")
+        el = [r for r in rows if r["eligible"]]
+        chosen = None
+        if el:
+            top = max(np.mean(r["frozen_val_gain_by_seed"]) for r in el)
+            ties = sorted((r["dataset"], r["purpose"], r["attribute"]) for r in el
+                          if np.mean(r["frozen_val_gain_by_seed"]) == top)
+            chosen = ties[0]
+        tc = S.get("chosen")
+        tc = tuple(tc[k] for k in ("dataset", "purpose", "attribute")) if isinstance(tc, dict) else tuple(tc or ())
+        self.C.ok("S5.screen", not bad and len(rows) == len(theirs) == 12 and chosen == tc,
+                  {"candidates": len(rows), "eligible": len(el), "chosen_replay": chosen, "chosen_record": list(tc),
+                   "problems": bad[:20]})
+        self.agg["S5_screen"] = rows
+        return chosen
+
+    def s5_grid(self):
+        C = json.loads((self.cfg.run / "s5" / "CELL.json").read_text())
+        ds, purpose, attr = self.s5_cell
+        W = self.worlds[ds]
+        v = W["idx"]["attacker_val"]
+        t = self.task(ds, purpose)
+        const = self.task_const(ds, purpose)
+        cval = float((t[v] == const).mean())
+        _, sup = self.support[(ds, attr)]
+        s = W["lab"][attr].astype(int)
+        bad, nominees, grids = [], {}, {}
+        frontier = {}
+        fp = self.cfg.study / "FARE_USEFUL_TASK_FRONTIER.csv"
+        if fp.exists():
+            for r in csv.DictReader(open(fp)):
+                frontier[(int(r["seed"]), int(r["config"]))] = r
+        b1 = Boot(np.arange(len(v)), 1, 0)
+        b1.W = np.ones((1, len(v)))
+        for k in SEEDS:
+            rec = C["seeds"][str(k)]
+            V = np.load(self.u2_dir_untreated(ds, k, purpose) / "val_preds.npz")
+            untreated = float((V["VAL__U2_P"].argmax(1) == t[v]).mean())
+            cells = {}
+            for c in range(1, 7):
+                fd = self.s5_dir(k, f"FAREFIT_c{c}")
+                if (fd / "cells.npy").exists():
+                    cells[c] = np.load(fd / "cells.npy")
+            rows = []
+            for tr in rec["table"]:
+                c = tr["config"]
+                src = tr["alias_of"] or c
+                if tr["alias_of"] is not None and c in cells and src in cells and \
+                        not np.array_equal(cells[c], cells[src]):
+                    bad.append(f"s{k} c{c}: alias_of {src} but cells differ")
+                ncell = int(len(np.unique(cells[c]))) if c in cells else None
+                u2d, repd = self.s5_dir(k, f"U2__Fc{src}"), self.s5_dir(k, f"Fc{src}__rep")
+                Vu = np.load(u2d / "val_preds.npz")
+                vu2 = float((Vu["VAL__U2_P"].argmax(1) == t[v]).mean())
+                Vr = np.load(repd / "val_preds.npz")
+                if not np.array_equal(Vr["val_row_id"], W["row_id"][v]):
+                    bad.append(f"s{k} c{c}: rep val rows differ")
+                ys = s[v]
+                vauc = float(np.mean([b1.wauc(Vr["VAL__NL__as0"][:, q], ys == q)[0] for q in sup]))
+                feas = bool(vu2 >= untreated - 0.01 and (vu2 - cval) >= 0.8 * (untreated - cval))
+                rows.append({"config": c, "alias_of": tr["alias_of"], "val_u2_accuracy": vu2,
+                             "val_nl_macro_auc": vauc, "feasible": feas, "n_cells": ncell})
+                for f, mv in (("val_u2_accuracy", vu2), ("val_nl_macro_auc", vauc)):
+                    if abs(tr[f] - mv) > 1e-12:
+                        bad.append(f"s{k} c{c}: {f} record={tr[f]} replay={mv}")
+                if tr["feasible"] != feas or (ncell is not None and tr["n_cells"] != ncell):
+                    bad.append(f"s{k} c{c}: feasible/n_cells record={tr['feasible']},{tr['n_cells']} "
+                               f"replay={feas},{ncell}")
+                fr = frontier.get((k, c))
+                if fr is not None and (abs(float(fr["val_u2_accuracy"]) - vu2) > 1e-12 or
+                                       abs(float(fr["val_nl_macro_auc"]) - vauc) > 1e-12 or
+                                       (fr["feasible"] == "True") != feas):
+                    bad.append(f"s{k} c{c}: FARE_USEFUL_TASK_FRONTIER row differs")
+            if abs(rec["untreated_val_u2_accuracy"] - untreated) > 1e-12 or \
+                    abs(rec["constant_val_accuracy"] - cval) > 1e-12:
+                bad.append(f"s{k}: untreated/constant val accuracy differ")
+            feasible = [r_ for r_ in rows if r_["feasible"]]
+            nom = min(feasible, key=lambda r_: (r_["val_nl_macro_auc"], r_["config"]))["config"] if feasible else None
+            nominees[k] = nom
+            grids[k] = rows
+            if rec.get("nominee") != nom:
+                bad.append(f"s{k}: nominee record={rec.get('nominee')} replay={nom}")
+            for (kk, c), fr in frontier.items():
+                if kk == k and (fr["selected"] == "True") != (c == nom):
+                    bad.append(f"s{k} c{c}: frontier 'selected' differs")
+        self.C.ok("S5.grid_and_nominee", not bad, {"nominees": nominees, "problems": bad[:30],
+                                                   "frontier_rows": len(frontier)})
+        self.agg["S5_grid"] = grids
+        return nominees
+
+    def s5_units(self, nominees):
+        """Integrity, row identities, plus-surface selections and the deployed-input replay of stage-5 units."""
+        import joblib
+        ds, purpose, attr = self.s5_cell
+        W = self.worlds[ds]
+        a, v = W["idx"]["assessment"], W["idx"]["attacker_val"]
+        t = self.task(ds, purpose)
+        s = W["lab"][attr].astype(int)
+        bad, n = {}, 0
+        for d in sorted(self.cfg.units.glob(f"S5__{ds}__s*__{purpose}__{attr}__*")):
+            c = d / "COMPLETE.json"
+            if not c.exists():
+                bad[d.name] = "no COMPLETE.json"
+                continue
+            rec = json.loads(c.read_text())
+            if (rec.get("id") or rec.get("uid")) != d.name:
+                bad[d.name] = "COMPLETE id/uid mismatch"
+            for f, h in rec["files"].items():
+                if not (d / f).exists() or sha256_file(d / f) != h:
+                    bad[d.name] = f"hash mismatch {f}"
+            n += 1
+            if (d / "preds.npz").exists():
+                P = np.load(d / "preds.npz")
+                if "assess_row_id" in P.files and not np.array_equal(P["assess_row_id"], W["row_id"][a]):
+                    bad[d.name] = "assessment rows differ"
+                if "y_s" in P.files and not np.array_equal(P["y_s"], s[a]):
+                    bad[d.name] = "y_s differs"
+                if "y_t" in P.files and not np.array_equal(P["y_t"], t[a]):
+                    bad[d.name] = "y_t differs"
+            if (d / "val_preds.npz").exists():
+                V = np.load(d / "val_preds.npz")
+                if "val_row_id" in V.files and (not np.array_equal(V["val_row_id"], W["row_id"][v]) or
+                                                len(np.intersect1d(V["val_row_id"], W["row_id"][a]))):
+                    bad[d.name] = "validation rows differ / leak"
+        self.C.ok("S5.units_integrity_and_rows", not bad and n > 0, {"units": n, "bad": bad})
+        bad, sel = [], {}
+        for k in SEEDS:
+            nom = nominees.get(k)
+            for arm in ("A", "B", "F", "FZ"):
+                d = self.s5_dir(k, f"{arm}__rep+head")
+                used, mine, recd = self.plus_resolve(d)
+                sel[f"s{k}.{arm}"] = mine
+                if mine != recd:
+                    bad.append(f"s{k} {arm}: plus selection record={recd} replay={mine}")
+                r = json.loads((d / "record.json").read_text())
+                cand = r["plus_selection"]["candidates_attacker_val_log_loss"]
+                rep_u = self.s5_dir(k, f"Fc{nom}__rep" if arm == "F" else f"{arm}__rep")
+                out_u = self.s5_dir(k, f"O_head{arm}")
+                for nm, u in (("ignore_out", rep_u), ("ignore_rep", out_u)):
+                    vl = json.loads((u / "record.json").read_text())["val_log_loss"]["NL"]
+                    if abs(cand[nm] - vl) > 1e-12:
+                        bad.append(f"s{k} {arm}: {nm} candidate value != that of its component unit")
+                if abs(cand["GBT/MLP"] - r["val_log_loss"]["NL"]) > 1e-12:
+                    bad.append(f"s{k} {arm}: own candidate value differs")
+                if mine == "ignore_out" and used.name != rep_u.name:
+                    bad.append(f"s{k} {arm}: ignore_out alias is {used.name}, expected {rep_u.name}")
+                if mine == "ignore_rep" and used.name != out_u.name:
+                    bad.append(f"s{k} {arm}: ignore_rep alias is {used.name}, expected {out_u.name}")
+            pf = np.load(self.s5_dir(k, "U2__F") / "preds.npz")
+            pc = np.load(self.s5_dir(k, f"U2__Fc{nom}") / "preds.npz")
+            if not np.array_equal(pf["U2_P"], pc["U2_P"]):
+                bad.append(f"s{k}: U2__F != U2__Fc{nom}")
+        self.C.ok("S5.plus_selection_and_nominee_wiring", not bad, {"plus_selected": sel, "problems": bad})
+        diffs, detail = {}, {}
+        for k in SEEDS:
+            nom = nominees[k]
+            cells = np.load(self.s5_dir(k, f"FAREFIT_c{nom}") / "cells.npy")
+            uc, inv = np.unique(cells, return_inverse=True)
+            X1 = np.zeros((len(cells), len(uc)))
+            X1[np.arange(len(cells)), inv] = 1.0
+            H = np.load(self.s5_dir(k, "HEAD__F") / "preds.npz")["head_outputs_all"].astype(np.float64)
+            for tag, X in ((f"Fc{nom}__rep", X1), ("F__rep+head", np.hstack([X1, H]))):
+                d = self.s5_dir(k, tag)
+                P = np.load(d / "preds.npz")
+                m = joblib.load(d / "models" / "NL_as0.joblib")
+                try:
+                    dd = float(np.max(np.abs(self.model_proba(m, X[a], P["P__NL__as0"].shape[1]) - P["P__NL__as0"])))
+                except ValueError as e:
+                    dd = float("inf")
+                    detail[f"s{k}.{tag}"] = str(e)[:160]
+                diffs[f"s{k}.{tag}"] = dd
+        self.C.ok("S5.deployed_inputs_reproduce_predictions", all(x <= 1e-12 for x in diffs.values()),
+                  {"max_abs_diff": diffs, "errors": detail, "input": "one-hot FARE cell (sorted cell ids) [+ HEAD__F "
+                                                                     "outputs]"},
+                  cause="stored S5 attacker predictions not reproduced from one-hot FARE cells (+ own head)")
+
+    def s5_certificates(self, nominees):
+        """Premise checks the verifier can recompute: cert rows vs FARE fit rows (defense_fit) by record identity
+        and by representation vector. The bound itself (official FARE code) is not recomputed."""
+        p = self.cfg.run / "s5" / "CERTIFICATES_A1.json"
+        if not p.exists():
+            self.C.add("S5.certificate_premises", "SKIPPED", "absent")
+            return
+        CA = json.loads(p.read_text())
+        ds, purpose, attr = self.s5_cell
+        W = self.worlds[ds]
+        cert, fit = W["idx"]["cert"], W["idx"]["defense_fit"]
+        rep_key = self.purpose(ds, purpose)["rep_key"]
+        det, ok = {}, True
+        for k in SEEDS:
+            F = np.load(self.cfg.inputs / f"{ds}_s{k}_forward.npz")
+            H = np.ascontiguousarray(F[rep_key])
+            fset = {r.tobytes() for r in H[fit]}
+            same_vec = int(sum(r.tobytes() in fset for r in H[cert]))
+            same_rec = int(len(np.intersect1d(W["unit"][cert], W["unit"][fit])))
+            o = CA[str(k)]["original"]
+            m_ = re.search(r"(\d+) certificate rows are identical", o["nominee"].get("reason") or "")
+            a1 = CA[str(k)]["amended_A1"]
+            orig_n = int(m_.group(1)) if m_ else None
+            det[f"s{k}"] = {"cert_rows": int(len(cert)), "cert_rows_sharing_vector_with_fit": same_vec,
+                            "cert_records_shared_with_fit": same_rec, "original_refusal_count": orig_n,
+                            "A1_nominee_status": a1["nominee"]["status"],
+                            "A1_nominee_reason": (a1["nominee"].get("reason") or "")[:160] or None,
+                            "A1_nominee_bound": a1["nominee"].get("bound"),
+                            "A1_bound_vacuous": a1["nominee"].get("bound_is_vacuous"),
+                            "A1_zero_fairness_status": a1["zero_fairness"]["status"]}
+            ok &= same_rec == 0 and orig_n in (None, same_vec) and int(len(cert)) == int(o["cert_rows"])
+        self.C.ok("S5.certificate_premises", ok, det,
+                  cause="certificate row counts / collision counts disagree with the records")
+
+    def s5(self):
+        self.s5_cell = self.s5_screen()
+        if self.s5_cell is None:
+            return {}
+        nominees = self.s5_grid()
+        self.s5_units(nominees)
+        self.s5_certificates(nominees)
+        ds, purpose, attr = self.s5_cell
+        z = norm.ppf(1 - 0.05 / 8)
+        lz = self.lock.get("families", {}).get("z_S5")
+        self.C.ok("lock.z_S5", lz is not None and abs(lz - z) < 1e-9, {"lock": lz, "recomputed": z})
+        W = self.worlds[ds]
+        a = W["idx"]["assessment"]
+        y = self.task(ds, purpose)[a]
+        const = self.task_const(ds, purpose)
+        feasible_all = all(nominees.get(k) is not None for k in SEEDS)
+        R = {arm: [] for arm in ("A", "B", "F", "FZ")}
+        accF, accA, cst = [], [], []
+        for k in SEEDS:
+            for arm in R:
+                used, _, _ = self.plus_resolve(self.s5_dir(k, f"{arm}__rep+head"))
+                R[arm].append(self.R_dir(ds, used, attr))
+            accF.append(self.acc_vec(ds, np.load(self.s5_dir(k, "U2__F") / "preds.npz")["U2_P"].argmax(1), y))
+            accA.append(self.acc_vec(ds, np.load(self.u2_dir_untreated(ds, k, purpose) / "preds.npz")["U2_P"]
+                                     .argmax(1), y))
+            cst.append(self.acc_vec(ds, np.full(len(y), const), y))
+        res = {}
+        specs = [("S5-LEACE-minus-FARE-rep+head", [b_ - f_ for b_, f_ in zip(R["B"], R["F"])], T_REC),
+                 ("S5-FZ-minus-FARE-rep+head", [z_ - f_ for z_, f_ in zip(R["FZ"], R["F"])], T_REC),
+                 ("S5-Acc(FARE)-Acc(A)", [f_ - a_ for f_, a_ in zip(accF, accA)], -0.01),
+                 ("S5-retained-gain-share", [f_ - 0.8 * a_ - 0.2 * c_ for f_, a_, c_ in zip(accF, accA, cst)], 0.0)]
+        for sid, vecs, target in specs:
+            e = self.finish(sid, z, target, vecs)
+            if not feasible_all:
+                e["decision"] = "NOT_ESTABLISHED"
+                e["why"] = "a seed has no feasible nominee"
+            res[sid] = e
+        desc = {f"R({arm},rep+head)": np.mean(R[arm], axis=0) for arm in R}
+        desc.update({"Acc(A)": np.mean(accA, axis=0), "Acc(F)": np.mean(accF, axis=0), "const": np.mean(cst, axis=0)})
+        sp = self.cfg.study / "S5_SUMMARY.json"
+        bad = []
+        if sp.exists():
+            SS = json.loads(sp.read_text())
+            for kk, T in desc.items():
+                th = SS.get("descriptive", {}).get(kk)
+                pt, se = float(T[0]), float(np.std(T[1:], ddof=1))
+                if th is None or abs(th["point"] - pt) > TOL_POINT or abs(th["se"] - se) > TOL_SE:
+                    bad.append({"key": kk, "table": th and [th["point"], th["se"]], "replay": [pt, se]})
+            if {int(k_): v_ for k_, v_ in SS.get("nominees", {}).items()} != nominees:
+                bad.append({"key": "nominees", "table": SS.get("nominees"), "replay": nominees})
+            if SS.get("feasible_all_seeds") != feasible_all or tuple(SS.get("cell", ())) != tuple(self.s5_cell):
+                bad.append({"key": "cell/feasible_all_seeds"})
+            if SS.get("supported_classes") != self.support[(ds, attr)][1]:
+                bad.append({"key": "supported_classes"})
+        self.C.ok("compare.S5_SUMMARY", sp.exists() and not bad, {"bad": bad})
+        self.agg["S5_descriptive"] = {kk: {"point": float(T[0]), "se": float(np.std(T[1:], ddof=1))}
+                                      for kk, T in desc.items()}
+        note = None
+        fp = self.cfg.inputs / f"{ds}_features.npz"
+        if fp.exists():
+            F = np.load(fp, allow_pickle=False)
+            tt = self.task(ds, purpose)
+            hits = []
+            for kf in F.files:
+                X = F[kf]
+                if X.ndim != 2 or X.shape[0] != len(tt) or not np.issubdtype(X.dtype, np.number):
+                    continue
+                for j in range(X.shape[1]):
+                    col = X[:, j]
+                    uq, inv = np.unique(col, return_inverse=True)
+                    if len(uq) > 200:
+                        continue
+                    pairs = np.unique(np.stack([inv, tt]), axis=1)
+                    if pairs.shape[1] == len(uq):
+                        hits.append(f"{kf}[:, {j}]")
+            note = {"task_is_function_of_input_columns": hits[:10], "n_columns": len(hits)}
+        self.agg["S5_task_recoding"] = note
+        self.C.add("S5.task_deterministic_recoding_note", "INFO", note)
+        self.res_s5 = res
+        return res
+
+    def check_fare_replay_existing(self):
+        """FARE_REPLAY_EXISTING.csv recomputed from the output-aware (oar) units."""
+        p = self.cfg.study / "FARE_REPLAY_EXISTING.csv"
+        if not p.exists():
+            self.C.add("compare.FARE_REPLAY_EXISTING", "SKIPPED", "absent")
+            return
+        bad, n = [], 0
+        rows = list(csv.DictReader(open(p)))
+        gainA = {}
+        for r in rows:
+            ds, k, arm = r["dataset"], int(r["seed"]), r["arm"]
+            purpose, attr = PRIMARY[ds]
+            W = self.worlds[ds]
+            a = W["idx"]["assessment"]
+            y = self.task(ds, purpose)[a]
+            const = self.task_const(ds, purpose)
+            cacc = float((y == const).mean())
+            nom = int(r["fare_nominee"]) if r["fare_nominee"].strip() else None
+            u2 = self.cfg.oar_units / (f"{ds}__s{k}__U2__" + (f"Fc{nom}" if arm == "F" else arm))
+            P2 = np.load(u2 / "preds.npz")
+            if not np.array_equal(P2["assess_row_id"], W["row_id"][a]):
+                bad.append({"row": f"{ds}/s{k}/{arm}", "field": "u2 rows"})
+            acc = float((P2["U2_P"].argmax(1) == y).mean())
+            gain = acc - cacc
+            if arm == "A":
+                gainA[(ds, k)] = gain
+            used, mine, recd = self.plus_resolve(self.cfg.oar_units / f"{ds}__s{k}__{arm}__rep+head")
+            rr = float(self.R_dir(ds, used, attr)[0])
+            n += 1
+            chk = {"u2_accuracy": acc, "constant_accuracy": cacc, "gain_over_constant": gain,
+                   "complete_contract_recovery_macro_auc": rr}
+            if arm == "F":
+                ncell = json.loads((self.cfg.oar_units / f"{ds}__s{k}__FAREFIT_c{nom}" / "rec.json").read_text())[
+                    "n_cells"]
+                chk["fare_n_cells"] = ncell
+                if (r["constant_release"] == "True") != (ncell == 1):
+                    bad.append({"row": f"{ds}/s{k}/{arm}", "field": "constant_release"})
+            for f, mv in chk.items():
+                tv = to_float(r[f])
+                if tv is None or abs(tv - mv) > 1e-12:
+                    bad.append({"row": f"{ds}/s{k}/{arm}", "field": f, "table": tv, "replay": mv})
+            if mine != recd:
+                bad.append({"row": f"{ds}/s{k}/{arm}", "field": "plus_selection", "table": recd, "replay": mine})
+        for r in rows:
+            gA = gainA.get((r["dataset"], int(r["seed"])))
+            g, sh = to_float(r["gain_over_constant"]), to_float(r["share_of_untreated_gain"])
+            if gA and abs(sh - g / gA) > 1e-9:
+                bad.append({"row": f"{r['dataset']}/s{r['seed']}/{r['arm']}", "field": "share", "table": sh,
+                            "replay": g / gA})
+        self.C.ok("compare.FARE_REPLAY_EXISTING", not bad and n > 0, {"rows_checked": n, "bad": bad[:20]})
 
     # ---------------------------------------------------------------- 7. models (surfaces reproduce predictions)
     def surface_for(self, uid):
@@ -1449,9 +2119,16 @@ class Replay:
         t0 = time.time()
         self.check_lock()
         self.check_roles()
+        if "precheck" in stages:            # inputs-only: no unit is opened, no statistic on fitted outputs
+            self.check_exactness()
+            self.check_access(repo)
+            self.agg["runtime_s"] = time.time() - t0
+            return self
         self.check_units()
+        self.check_lock_history(repo)
         self.check_exactness()
         self.check_banks()
+        self.check_bank_table()
         self.check_frozen_head_utility()
         with np.errstate(divide="raise"):      # nothing in the decision path may divide by an SE
             prim = self.primary()
@@ -1463,6 +2140,14 @@ class Replay:
                 s4 = self.s4()
             self.compare("S3", tables.get("S3"), s3, id_map=tables.get("S3_id_map"), expected_n=34)
             self.compare("S4", tables.get("S4"), s4, id_map=tables.get("S4_id_map"), expected_n=6)
+            self.check_surface_table()
+            self.check_worst_pair_table()
+        if "all" in stages and (self.cfg.run / "s5" / "CELL.json").exists():
+            with np.errstate(divide="raise"):
+                s5 = self.s5()
+            if s5:
+                self.compare("S5", find_table(self.cfg.study, ["S5_ENDPOINTS.csv"]), s5, expected_n=4)
+            self.check_fare_replay_existing()
         if not self.cfg.quick:
             self.check_models()
             self.spot_checks()
@@ -1472,6 +2157,26 @@ class Replay:
         self.C.ok("independence.no_runner_modules_loaded", not loaded, {"loaded": loaded})
         self.agg["runtime_s"] = time.time() - t0
         return self
+
+
+DIAGNOSES = {
+    "compare.S3.flags_reportable":
+        "Reporting gap, decisions unaffected. S3_ENDPOINTS.csv has no flag column. (a) S3-U-hmda-fair_lending_audit: "
+        "the frozen head predicts the attacker_fit-majority class on every assessment row on all three seeds, so the "
+        "gain is identically 0; the table correctly reports point 0, SE 0, NOT_ESTABLISHED and "
+        "flag_normal_approx_weak=True, but cannot carry IDENTICAL_BY_CONSTRUCTION. (b) S3-U-adult-employment_analysis "
+        "and S3-U-adult-education_assessment: frozen-head accuracy exceeds 0.99 on two of three seeds (seed means "
+        "about 0.96-0.97), so NEAR_BOUND applies under a per-seed reading of the rule; the table has no NEAR_BOUND "
+        "flag or percentile interval. The replay's 2.5/97.5 percentile intervals lie far above the 0.01 target, so the "
+        "PASS decisions stand. Fix: add a flag column (and percentile interval for NEAR_BOUND rows) to S3_ENDPOINTS.csv.",
+    "compare.OUTPUT_SURFACE_RESULTS.z90":
+        "Descriptive table only: lower90/upper90 use z = 1.6449 (rounded) instead of 1.6448536; bounds shift by "
+        "< 5e-5 x SE. Points and SEs match the replay exactly.",
+    "units.S5_out_of_scope": "Stage 5 still running; its units are verified after 'S5 complete'.",
+    "exactness.score_math_float32_counts":
+        "Wording only: SCORE_MATH/STATS_REVIEW quote 92 (s1) + 11 (s2) Adult rows at |d| >= 16.6355, but that count "
+        "is at |d| >= 16.6; at 24 ln 2 = 16.635532 the s1 count is 84, as EXACTNESS.json states.",
+}
 
 
 def strip(res: dict) -> dict:
@@ -1497,6 +2202,11 @@ def summarize(rp: Replay) -> dict:
         for v in rp.res_s4.values():
             d4[v["decision"]] = d4.get(v["decision"], 0) + 1
         lines.append(f"S4 (6): {d4}; combination finding by contract: {rp.agg.get('S4_combination_finding')}.")
+    if hasattr(rp, "res_s5"):
+        d5 = {}
+        for v in rp.res_s5.values():
+            d5[v["decision"]] = d5.get(v["decision"], 0) + 1
+        lines.append(f"S5 (4) on {'/'.join(rp.s5_cell)}: {d5}.")
     cc = rp.C.counts()
     lines.append(f"Verifier checks: {cc}.")
     return {"text": " ".join(lines), "check_counts": cc}
@@ -1531,6 +2241,7 @@ def main(argv=None):
     ap.add_argument("--s4-table", default=None)
     ap.add_argument("--quick", action="store_true", help="skip model/spot replays")
     ap.add_argument("--primary-only", action="store_true")
+    ap.add_argument("--precheck", action="store_true", help="lock/roles/support/exactness/access only (no units)")
     ap.add_argument("--expect", default=None, help="JSON overrides of protocol constants (synthetic tests only)")
     a = ap.parse_args(argv)
     if os.environ.get("OMP_NUM_THREADS") != "1":
@@ -1542,7 +2253,18 @@ def main(argv=None):
                                                                            "SECONDARY_S3_ENDPOINTS.csv"]),
               "S4": Path(a.s4_table) if a.s4_table else find_table(study, ["S4_ENDPOINTS.csv",
                                                                            "SECONDARY_S4_ENDPOINTS.csv"])}
-    rp = Replay(cfg).run(tables, Path(a.repo), stages=("primary",) if a.primary_only else ("all",))
+    stages = ("precheck",) if a.precheck else ("primary",) if a.primary_only else ("all",)
+    rp = Replay(cfg).run(tables, Path(a.repo), stages=stages)
+    if a.precheck:
+        for it in rp.C.items:
+            print(f"  {it['status']}: {it['id']}" + (f"  {json.dumps(it.get('detail'), default=fnum)[:300]}"
+                                                     if it["status"] != "PASS" else ""))
+        return 1 if any(it["status"] == "FAIL" for it in rp.C.items) else 0
+    for it in rp.C.items:                     # verifier's investigated diagnoses (applied only to non-PASS items)
+        if it["status"] != "PASS" and it["id"] in DIAGNOSES and "diagnosed_cause" not in it:
+            it["diagnosed_cause"] = DIAGNOSES[it["id"]]
+        elif it["status"] != "PASS" and it["id"] in DIAGNOSES:
+            it["diagnosed_cause"] = DIAGNOSES[it["id"]]
     nonpass = [it for it in rp.C.items if it["status"] != "PASS"]
     out = {"schema": "odx_independent_verification/v1",
            "verifier": "independent replay (no runner metric/aggregation/decision code imported)",
@@ -1559,9 +2281,13 @@ def main(argv=None):
     if hasattr(rp, "res_s3"):
         out["S3"] = strip(rp.res_s3)
         out["S4"] = strip(rp.res_s4)
+    if hasattr(rp, "res_s5"):
+        out["S5"] = strip(rp.res_s5)
     agg = {"schema": "odx_replay_aggregate/v1", "primary": strip(rp.res_primary), **{k: v for k, v in rp.agg.items()}}
     if hasattr(rp, "res_s3"):
         agg["S3"], agg["S4"] = strip(rp.res_s3), strip(rp.res_s4)
+    if hasattr(rp, "res_s5"):
+        agg["S5"] = strip(rp.res_s5)
     op = Path(a.out) if a.out else study / "INDEPENDENT_VERIFICATION.json"
     ap_ = Path(a.agg_out) if a.agg_out else study / "verification" / "replay_results_aggregate.json"
     txt = json.dumps(out, indent=1, default=fnum)
