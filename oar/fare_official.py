@@ -27,9 +27,11 @@ Public API
   embed(model, X) -> float64 (n, d) per-cell fit-row medians (the official FARE representation z_i)
   encode_portable(model, X) -> same cell ids from the stored tree arrays in pure numpy (cross-check only)
   cell_table(model) -> list of per-cell dicts (fit counts, decision rule)
-  certificate(model, X_cert, s_cert, delta=0.05, groups=None, ...) -> dict(bound, pairs, premises, ...)
+  certificate(model, X_cert, s_cert, cert_cfg=None) -> dict(status, bound, metric, delta, n, pairs, premises, ...)
   FareModel.save(dir) / FareModel.load(dir) / FareModel.fingerprint
   verify_official_fare() -> dict
+  Coordinator API: official_tree_sha256(), zero_fairness(cfg), fit_encode_cached(uid, X_fit, t_fit, s_fit, X_all,
+  cfg, seed=, auth=, synthetic=, ledger=), own_task_accuracy(model, X, t)
 """
 from __future__ import annotations
 
@@ -86,7 +88,7 @@ CERT_METHOD = "cp"  # Clopper-Pearson, as main.py:390/425
 
 SCHEMA = "oar.fare_official.model/v1"
 # grid entries may carry these descriptive keys; they never reach the official code
-CONFIG_ANNOTATION_KEYS = {"id", "range", "rationale", "source", "label"}
+CONFIG_ANNOTATION_KEYS = {"id", "range", "rationale", "source", "label", "zero_fairness_of"}
 _ALLOWED_INPUTS = {"fit": {"X", "y", "s"}, "encode": {"X"}, "embed": {"X"}, "certificate": {"X", "s"},
                    "verify": set()}
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -522,21 +524,19 @@ def _certificate_impl(model: FareModel, X: np.ndarray, s: np.ndarray, delta: flo
     # Lemma 5.1 base rates from the fit rows, as main.py (z_train = tree training rows); rebuilt from the stored
     # aggregate per-cell group counts (the official code only uses those counts).
     gc = np.asarray(model.meta["cell_group_counts"])
-    gcodes = list(model.meta["group_codes"])
+    gcodes = [int(g) for g in model.meta["group_codes"]]
     pairs = list(itertools.combinations(sorted(int(g) for g in groups), 2))
     n_pairs = len(pairs)
     eps_pair = delta / n_pairs
     eps_b = eps_pair / (1.0 / eps_b_fraction)
     eps_s = eps_pair / (1.0 / eps_s_fraction)
     eps_c = eps_pair - eps_b - eps_s
-    if not (eps_b > 0 and eps_s > 0 and eps_c > 0):
-        raise ValueError("budget decomposition must leave eps_b, eps_c, eps_s > 0")
     out_pairs = []
     for gi, gj in pairs:
-        rec: Dict[str, Any] = {"groups": [gi, gj], "eps_pair": eps_pair, "eps_b": eps_b, "eps_c": eps_c,
-                               "eps_s": eps_s}
+        rec: Dict[str, Any] = {"groups": [gi, gj], "coding": {str(gi): 0, str(gj): 1}, "eps_pair": eps_pair,
+                               "eps_b": eps_b, "eps_c": eps_c, "eps_s": eps_s}
         if gi not in gcodes or gj not in gcodes:
-            rec.update(status="unavailable", reason="group absent from fit rows", ub=None)
+            rec.update(status="UNAVAILABLE", reason="group absent from the fit rows", ub=None)
             out_pairs.append(rec)
             continue
         ci, cj = gcodes.index(gi), gcodes.index(gj)
@@ -547,50 +547,75 @@ def _certificate_impl(model: FareModel, X: np.ndarray, s: np.ndarray, delta: flo
             m = (s[idx] == gi) | (s[idx] == gj)
             split[nm] = (cells[idx][m], (s[idx][m] == gj).astype(int))
         rec.update(n_base=int(len(c_tr)), n_val=int(len(split["val"][1])), n_test=int(len(split["test"][1])))
-        missing = {nm: int(k - len(np.unique(zz))) for nm, (zz, _) in
-                   (("base", (z_tr, None)), ("val", split["val"]), ("test", split["test"]))}
-        rec["cells_missing"] = missing
-        rec["min_cell_n_val"] = int(np.bincount(split["val"][0].ravel().astype(int), minlength=k).min()) \
-            if rec["n_val"] else 0
+        rec["cells_missing"] = {"base": int(k - len(np.unique(z_tr))),
+                                "val": int(k - len(np.unique(split["val"][0]))),
+                                "test": int(k - len(np.unique(split["test"][0])))}
+        rec["min_cell_n"] = {nm: int(np.bincount(zz.ravel().astype(int), minlength=k).min()) if len(zz) else 0
+                             for nm, (zz, _) in split.items()}
+        if any(rec["cells_missing"].values()):
+            # the official code asserts len(np.unique(z)) == k in every split (alphabeta_adversary.py:121,140,
+            # 209,233); we report instead of crashing and never patch the bound
+            rec.update(status="UNAVAILABLE", ub=None,
+                       reason="official premise violated: every cell must appear in the base, D_val and D_test rows "
+                              "of the pair (alphabeta_adversary.py:121,140,209,233)")
+            out_pairs.append(rec)
+            continue
         try:
             r = official_pair_bound(AB, k, z_tr.reshape(-1, 1), c_tr, split["val"][0], split["val"][1],
                                     split["test"][0], split["test"][1], eps_pair, eps_b, eps_s)
-        except AssertionError:
-            rec.update(status="unavailable", ub=None,
-                       reason="official assertion: every cell must appear in base, D_val and D_test rows of the "
-                              "pair (alphabeta_adversary.py:121,140,209,233)")
+        except AssertionError as e:  # pragma: no cover - guarded above
+            rec.update(status="UNAVAILABLE", ub=None, reason=f"official assertion: {e!r}")
             out_pairs.append(rec)
             continue
         if not np.isfinite(r["ub"]):
-            rec.update(status="unavailable", ub=None, reason="official bound is not finite")
+            rec.update(status="UNAVAILABLE", ub=None, reason="official bound is not finite")
         else:
-            rec.update(status="ok", **r)
+            rec.update(status="OK", **r)
         out_pairs.append(rec)
-    ok = all(p["status"] == "ok" for p in out_pairs)
+    ok = all(p["status"] == "OK" for p in out_pairs)
     bound = max(p["ub"] for p in out_pairs) if ok else None
+    reasons = sorted({f"pair {p['groups']}: {p['reason']}" for p in out_pairs if p["status"] != "OK"})
+    s_val, s_te = s[va], s[te]
+    n_by_group = {str(g): int((s == g).sum()) for g in sorted(set(int(v) for v in s))}
+    premises = [
+        {"name": "cert_rows_disjoint_from_fit_rows", "holds": True, "how": "checked",
+         "detail": "no certificate feature row is byte-identical to a fit row (64-bit row hashes); else refused"},
+        {"name": "lemma52_and_lemma53_rows_disjoint", "holds": True, "how": "checked",
+         "detail": f"random split (seed {split_seed}) of the certificate rows into D_val ({len(va)}) and "
+                   f"D_test ({len(te)})"},
+        {"name": "budget_union_bound", "holds": bool(eps_b > 0 and eps_c > 0 and eps_s > 0), "how": "checked",
+         "detail": f"delta={delta} = {n_pairs} pair(s) x (eps_b {eps_b:.6g} + eps_c {eps_c:.6g} + eps_s "
+                   f"{eps_s:.6g})"},
+        {"name": "every_cell_present_in_base_val_test_for_every_pair",
+         "holds": bool(all(not any(p.get("cells_missing", {"x": 1}).values()) for p in out_pairs)),
+         "how": "checked", "detail": "official assertion in alphabeta_adversary.py"},
+        {"name": "bound_finite", "holds": bool(ok), "how": "checked", "detail": "NaN/inf never folded into the max"},
+        {"name": "rows_iid_from_target_distribution", "holds": None, "how": "stated",
+         "detail": "fit (base-rate) rows, D_val and D_test are independent draws from the distribution the bound "
+                   "refers to; not checkable from the data"},
+        {"name": "encoder_independent_of_cert_rows", "holds": None, "how": "stated",
+         "detail": "the tree was fixed before the certificate rows were drawn; exact duplicates are refused, but "
+                   "rows that share a unit/person with fit rows must be excluded by the caller"},
+        {"name": "scope_representation_only", "holds": None, "how": "stated",
+         "detail": "covers any classifier whose input is the FARE representation alone (cell id or median); not "
+                   "classifiers that also see other channels such as clean model outputs"},
+    ]
     return {
-        "status": "ok" if ok else "unavailable",
+        "status": "OK" if ok else "UNAVAILABLE",
+        "reason": None if ok else "; ".join(reasons),
         "bound": bound,
         "bound_is_vacuous": (bound is not None and bound >= 1.0),
-        "metric": "demographic-parity distance of ANY binary classifier of the FARE cell (max over group pairs)",
-        "delta": delta, "confidence": 1.0 - delta, "method": "official AlphaBetaAdversary(method='cp')",
-        "n_cells": k, "pairs": out_pairs,
-        "premises": {
-            "fit_rows_excluded_by_feature_hash": True, "n_cert_rows": int(n), "n_overlap_with_fit_rows": overlap,
-            "split": {"seed": int(split_seed), "val_fraction": float(val_fraction), "n_val": int(len(va)),
-                      "n_test": int(len(te)), "lemma_5_2_rows": "D_val", "lemma_5_3_rows": "D_test"},
-            "base_rate_rows": "fit rows (official: Lemma 5.1 on D_train; q(s) does not depend on the encoder)",
-            "budget": {"delta": delta, "pairs": n_pairs, "per_pair": eps_pair, "eps_b": eps_b, "eps_c": eps_c,
-                       "eps_s": eps_s, "union_bound": "delta = sum over pairs; per pair eps_b+eps_c+eps_s"},
-            "groups": [int(g) for g in groups],
-            "stated_not_checked": [
-                "base, D_val and D_test rows are independent draws from the distribution the bound refers to",
-                "the encoder was fixed before D_val/D_test were drawn and never saw them (enforced only for "
-                "exact feature-row duplicates; rows sharing a unit/person with fit rows must be removed by "
-                "the caller)",
-                "the bound covers classifiers that see only the FARE representation (cell id / median), not "
-                "classifiers that also see other channels (e.g. clean model outputs)"],
-        },
+        "metric": ("demographic-parity distance |P(g(z)=1|s=i) - P(g(z)=1|s=j)| of ANY binary classifier g of the "
+                   "FARE representation z, maximised over the certified group pairs (i, j) (paper Eq. 2, Sec. 5, "
+                   "App. D.1); equals the pairwise total-variation distance of the cell distributions"),
+        "delta": delta, "confidence": 1.0 - delta,
+        "method": "official AlphaBetaAdversary(method='cp').ub_demographic_parity per pair; max over pairs",
+        "n": int(n), "n_val": int(len(va)), "n_test": int(len(te)), "n_by_group": n_by_group,
+        "n_by_group_val": {str(g): int((s_val == g).sum()) for g in sorted(set(int(v) for v in s))},
+        "n_by_group_test": {str(g): int((s_te == g).sum()) for g in sorted(set(int(v) for v in s))},
+        "n_fit_by_group": {str(g): int(gc[:, i].sum()) for i, g in enumerate(gcodes)},
+        "n_cells": k, "n_pairs": n_pairs, "groups": [int(g) for g in groups], "pairs": out_pairs,
+        "premises": premises,
         "seconds": time.perf_counter() - t0,
     }
 
@@ -807,44 +832,202 @@ def embed(model: FareModel, X: np.ndarray) -> np.ndarray:
     return np.asarray(out["z"], dtype=np.float64)
 
 
-def certificate(model: FareModel, X_cert: np.ndarray, s_cert: np.ndarray, delta: float = PAPER_DELTA, *,
-                groups: Optional[Sequence[int]] = None, split_seed: int = 0, val_fraction: float = 0.5,
-                eps_b_fraction: float = EPS_B_FRACTION, eps_s_fraction: float = EPS_S_FRACTION,
-                workdir: Optional[str] = None) -> Dict[str, Any]:
+CERT_CFG_DEFAULTS = {"delta": PAPER_DELTA, "groups": None, "split_seed": 0, "val_fraction": 0.5,
+                     "eps_b_fraction": EPS_B_FRACTION, "eps_s_fraction": EPS_S_FRACTION}
+CERT_CFG_ANNOTATION_KEYS = {"note", "rationale", "source"}
+
+
+def certificate(model: FareModel, X_cert: np.ndarray, s_cert: np.ndarray, cert_cfg: Any = None, *,
+                workdir: Optional[str] = None, **overrides) -> Dict[str, Any]:
     """Official FARE DP-distance certificate on held-out rows (paper Sec. 5, App. D.1; main.py:354-430).
 
+    cert_cfg: dict with keys of CERT_CFG_DEFAULTS (or a float = delta). ``groups`` None -> every group present in
+    the fit rows (HMDA race: 5 groups -> 10 pairs, the paper's class-pair accounting; never binarised).
     X_cert / s_cert must be rows the tree never saw. They are split at random (split_seed) into D_val (Lemma 5.2,
     per-cell bounds) and D_test (Lemma 5.3, Hoeffding sum); Lemma 5.1 (base rates) uses the fit rows' aggregate
-    group counts, as the official code does. For >2 groups the official procedure is run on every pair with
+    group counts, as the official code does. For >2 groups the official procedure runs on every pair with
     delta / #pairs per pair and the bound is the max over pairs; the per-pair decomposition keeps the paper's
-    proportions (eps_b = eps_s = 10%, eps_c = 80%). Refuses (CertificateRefused) any row identical to a fit row.
+    proportions (eps_b = eps_s = 10 %, eps_c = 80 %; at delta = 0.05 and one pair this is exactly 0.005/0.04/0.005).
+    Raises CertificateRefused if any row is identical to a fit row. Returns status "OK" or "UNAVAILABLE" (+reason).
     """
+    if cert_cfg is None:
+        cfg: Dict[str, Any] = {}
+    elif isinstance(cert_cfg, (int, float)) and not isinstance(cert_cfg, bool):
+        cfg = {"delta": float(cert_cfg)}
+    elif isinstance(cert_cfg, dict):
+        cfg = dict(cert_cfg)
+    else:
+        raise TypeError("cert_cfg must be None, a float delta or a dict")
+    cfg.update(overrides)
+    extra = set(cfg) - set(CERT_CFG_DEFAULTS) - CERT_CFG_ANNOTATION_KEYS
+    if extra:
+        raise ValueError(f"unknown certificate config keys: {sorted(extra)}")
+    used = {k: cfg.get(k, v) for k, v in CERT_CFG_DEFAULTS.items()}
     X = _check_features(X_cert, model.n_features, name="X_cert")
     sg = _check_codes(s_cert, X.shape[0], "s_cert")
     overlap = int(np.isin(row_hashes(X), model.fit_row_hashes).sum())
     if overlap:
         raise CertificateRefused(f"{overlap} certificate rows are identical to fit rows; refusing")
+    delta = float(used["delta"])
     if not (0.0 < delta < 1.0):
         raise ValueError("delta must lie in (0, 1)")
-    if not (0.0 < val_fraction < 1.0):
+    if not (0.0 < float(used["val_fraction"]) < 1.0):
         raise ValueError("val_fraction must lie in (0, 1)")
-    grp = sorted(int(g) for g in (groups if groups is not None else model.meta["group_codes"]))
+    grp = sorted(int(g) for g in (used["groups"] if used["groups"] is not None else model.meta["group_codes"]))
     if len(grp) < 2:
         raise ValueError("need at least two groups")
     keep = np.isin(sg, grp)
-    params = {"delta": float(delta), "groups": grp, "split_seed": int(split_seed),
-              "val_fraction": float(val_fraction), "eps_b_fraction": float(eps_b_fraction),
-              "eps_s_fraction": float(eps_s_fraction)}
+    params = {"delta": delta, "groups": grp, "split_seed": int(used["split_seed"]),
+              "val_fraction": float(used["val_fraction"]), "eps_b_fraction": float(used["eps_b_fraction"]),
+              "eps_s_fraction": float(used["eps_s_fraction"])}
     out, _ = _run("certificate", {"X": X[keep], "s": sg[keep]}, params, model, workdir=workdir)
     res = out["result"]
-    res["premises"]["n_cert_rows_supplied"] = int(X.shape[0])
-    res["premises"]["n_cert_rows_outside_groups_dropped"] = int((~keep).sum())
+    res["cert_cfg_used"] = dict(used, groups_resolved=grp)
+    res["n_supplied"] = int(X.shape[0])
+    res["n_outside_groups_dropped"] = int((~keep).sum())
+    res["model_fingerprint"] = model.fingerprint
+    res["fare_commit"] = FARE_COMMIT
     return res
 
 
 def verify_official_fare() -> Dict[str, Any]:
     out, _ = _run("verify", {}, {})
     return out["result"]
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Coordinator-facing API (oar/fare_run.py, oar/lock.py)
+# --------------------------------------------------------------------------------------------------------------
+def official_tree_sha256() -> str:
+    """sha256 over the pinned official *.py tree, recomputed now from the clone at OAR_FARE_ROOT.
+
+    Construction: for every tracked *.py file (``git ls-files '*.py'``; fallback: rglob) with relative paths sorted
+    bytewise, the line "<sha256(file bytes)>  <relpath>\\n"; the result is sha256 of the concatenated lines. Equals
+    FARE_PY_TREE_SHA256 for an unmodified checkout of FARE_COMMIT.
+    """
+    root = fare_root()
+    try:
+        files = subprocess.run(["git", "-C", str(root), "ls-files", "*.py"], capture_output=True, text=True,
+                               check=True).stdout.split("\n")
+        files = [f for f in files if f]
+    except Exception:  # noqa: BLE001
+        files = [str(p.relative_to(root)) for p in root.rglob("*.py") if ".git" not in p.parts]
+    files = sorted(files, key=lambda f: f.encode())
+    manifest = "".join(f"{_sha256_file(root / f)}  {f}\n" for f in files)
+    return hashlib.sha256(manifest.encode()).hexdigest()
+
+
+def zero_fairness(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """The same tree/output budget (max_leaf_nodes, min_samples_leaf, official criterion) with gamma = 0.
+
+    Through the official path: FairGiniDP with alpha = 0 is impurity = Gini_y exactly (sktree/_criterion.pyx
+    FairGiniDP), identical to the plain 'gini' tree (tests: test_b2). Descriptive keys are carried over.
+    """
+    base = FareConfig.from_any(cfg)
+    out = dict(cfg)
+    out.update(asdict(base.zero_fairness()))
+    out["zero_fairness_of"] = base.name or None
+    return out
+
+
+def _sha256_arrays(*arrays) -> str:
+    h = hashlib.sha256()
+    for a in arrays:
+        a = np.ascontiguousarray(a)
+        h.update(str(a.dtype).encode() + str(a.shape).encode())
+        h.update(a.tobytes())
+    return h.hexdigest()
+
+
+def units_root() -> Path:
+    return _path_from_env("OAR_RUN_UNITS", "~/PCRL_eval_cache_private/oar_v1/run/units")
+
+
+def _complete_ok(d: Path) -> bool:
+    p = d / "COMPLETE.json"
+    if not p.exists():
+        return False
+    files = json.loads(p.read_text())["files"]
+    return all((d / f).exists() and _sha256_file(d / f) == h for f, h in files.items())
+
+
+def fit_encode_cached(uid: str, X_fit: np.ndarray, t_fit: np.ndarray, s_fit: np.ndarray, X_all: np.ndarray,
+                      cfg: Dict[str, Any], *, seed: int, auth, synthetic: bool, ledger):
+    """Fit the official FARE tree on (X_fit, t_fit, s_fit) and encode every row of X_all (features only).
+
+    Persists to <units_root>/<uid>/ (model/, cells.npy, rec.json, COMPLETE.json = {file: sha256}). If a complete
+    copy with matching file hashes exists AND its recorded input fingerprint equals the current inputs, it is
+    returned without refitting (no auth check, no ledger entry). A complete copy whose inputs differ raises.
+    Otherwise: auth.check("FARE fit <uid>", synthetic) -> official fit (subprocess) -> official encode of X_all
+    (separate subprocess call whose only input is X_all) -> ledger(uid, cpu_s, 1) -> persist.
+    Returns (model, cells_all int32, rec).
+    """
+    fcfg = FareConfig.from_any(cfg)
+    X = _check_features(X_fit, name="X_fit")
+    t = _check_codes(t_fit, X.shape[0], "t_fit")
+    s = _check_codes(s_fit, X.shape[0], "s_fit")
+    XA = _check_features(X_all, X.shape[1], name="X_all")
+    cfg_canon = json.dumps({k: cfg[k] for k in sorted(cfg)}, sort_keys=True, default=str)
+    inputs_sha = hashlib.sha256("|".join([_sha256_arrays(X), _sha256_arrays(t), _sha256_arrays(s),
+                                          _sha256_arrays(XA), cfg_canon, str(int(seed))]).encode()).hexdigest()
+    d = units_root() / uid
+    if _complete_ok(d):
+        rec = json.loads((d / "rec.json").read_text())
+        if rec.get("inputs_sha256") != inputs_sha:
+            raise RuntimeError(f"unit {uid} exists with different inputs; refusing to overwrite or reuse it")
+        model = FareModel.load(d / "model")
+        cells = np.load(d / "cells.npy", allow_pickle=False)
+        rec = dict(rec, cache_hit=True)
+        return model, cells, rec
+    auth.check(f"FARE fit {uid}", synthetic)
+    model = fit(X, t, s, fcfg, seed)
+    cpu_fit = float(LAST_CALL.get("worker_cpu_seconds", float("nan")))
+    wall_fit = float(LAST_CALL.get("seconds", float("nan")))
+    cells = encode(model, XA)
+    cpu_enc = float(LAST_CALL.get("worker_cpu_seconds", float("nan")))
+    wall_enc = float(LAST_CALL.get("seconds", float("nan")))
+    cpu_s = cpu_fit + cpu_enc
+    n_fit_per_cell = [int(sum(r)) for r in model.meta["cell_task_counts"]]
+    rec = {
+        "uid": uid, "n_cells": model.n_cells, "cfg": dict(cfg), "cfg_official": asdict(fcfg), "seed": int(seed),
+        "random_state": model.meta["random_state"], "cpu_s": cpu_s,
+        "cpu_s_detail": {"fit_worker_cpu": cpu_fit, "encode_worker_cpu": cpu_enc, "fit_wall_incl_spawn": wall_fit,
+                         "encode_wall_incl_spawn": wall_enc, "tree_fit_seconds": model.runtime.get("tree_fit_seconds"),
+                         "fit_peak_rss_bytes": model.runtime.get("peak_rss_bytes")},
+        "fare_commit": FARE_COMMIT, "fare_py_tree_sha256": FARE_PY_TREE_SHA256,
+        "criterion_pyx_sha256": CRITERION_PYX_FIXED_SHA256,
+        "fit_rows_sha256": _sha256_arrays(X), "fit_labels_sha256": _sha256_arrays(t, s),
+        "inputs_sha256": inputs_sha, "n_fit": int(X.shape[0]), "n_all": int(XA.shape[0]),
+        "n_fit_per_cell": n_fit_per_cell, "n_fit_by_group_per_cell": model.meta["cell_group_counts"],
+        "task_classes": model.meta["task_classes"], "group_codes": model.meta["group_codes"],
+        "model_fingerprint": model.fingerprint, "encode": "official DecisionTreeClassifier.apply on X_all only",
+        "cache_hit": False,
+    }
+    tmp = d.parent / (d.name + ".tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    model.save(tmp / "model")
+    np.save(tmp / "cells.npy", cells, allow_pickle=False)
+    (tmp / "rec.json").write_text(json.dumps(rec, indent=1, sort_keys=True, default=_json_default))
+    files = sorted(str(p.relative_to(tmp)) for p in tmp.rglob("*") if p.is_file())
+    (tmp / "COMPLETE.json").write_text(json.dumps({"uid": uid, "files": {f: _sha256_file(tmp / f) for f in files}},
+                                                  indent=1, sort_keys=True))
+    if d.exists():
+        shutil.rmtree(d)
+    tmp.rename(d)
+    ledger(uid, cpu_s, 1)
+    return model, cells, rec
+
+
+def own_task_accuracy(model: FareModel, X: np.ndarray, t: np.ndarray) -> float:
+    """Accuracy of the FARE tree's own task prediction: the fit-row majority class of the row's cell, i.e. the
+    official DecisionTreeClassifier.predict (argmax of the leaf's class counts; ties -> lower class). Cells come
+    from the label-free official encode; labels are used only to score."""
+    cells = encode(model, X)
+    tt = _check_codes(t, cells.shape[0], "t")
+    counts = np.asarray(model.meta["cell_task_counts"])
+    pred = np.asarray(model.meta["task_classes"])[counts.argmax(axis=1)][cells]
+    return float((pred == tt).mean())
 
 
 if __name__ == "__main__":

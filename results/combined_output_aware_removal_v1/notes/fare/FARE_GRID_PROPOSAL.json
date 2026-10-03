@@ -1,0 +1,175 @@
+{
+ "schema": "oar.fare_grid_proposal/v1",
+ "status": "PROPOSAL; the coordinator freezes it in the lock before any real fit",
+ "drafted": "2026-10-03, before any real-data FARE fit (timing calibration ran afterwards and changed nothing here)",
+ "inputs_consulted_for_design": [
+  "paper (ICML 2023) Sec. 6, App. E, App. H.2",
+  "official code/shell/*/run_tree.sh sweeps",
+  "official sktree/_criterion.pyx FairGiniDP",
+  "aggregate task and group frequencies of the defense_fit role (no features, no fit) for the HMDA gamma ceiling"
+ ],
+ "official": {
+  "repo": "https://github.com/eth-sri/fare",
+  "commit": "89cb1b66ed268c16659cbf7428c43e60da2df641",
+  "py_tree_sha256": "56a447007fb963090d5f7ea65de3d8b69b9bcddf1669e86234ebab4a52d89cbd",
+  "sktree_tree_sha256": "2b0c24d89e416fc0b3ff5bef5e7773978485259f3b29de68e0a658aa437c139e",
+  "criterion": "fair_gini_dp (demographic parity)",
+  "wrapper": "oar/fare_official.py",
+  "environment": "~/PCRL_eval_cache_private/oar_v1/env_fare (see notes/fare/FARE_ENV_RECIPE.md)"
+ },
+ "features": "rep_p0 (64-d float64 frozen representation of the income_prediction / underwriting purpose); all continuous, cat_pos = []",
+ "task_for_fit": {
+  "adult": "task_income (binary)",
+  "hmda": "task_loan_decision (binary)"
+ },
+ "sensitive_for_fit": "full_declared",
+ "sensitive_for_fit_detail": {
+  "adult": {
+   "attribute": "sex",
+   "groups": 2
+  },
+  "hmda": {
+   "attribute": "race",
+   "groups": 5,
+   "supported_for_evaluation": [
+    0,
+    1,
+    2
+   ],
+   "note": "official fit supports >2 groups only with the documented buffer-size fix (FARE_ENV_RECIPE.md); groups are recoded to 0..G-1 inside fit; no binarisation"
+  }
+ },
+ "fit_rows": "all defense_fit rows (the certificate uses separate rows the tree never saw)",
+ "seed_base": 0,
+ "seed_mapping": "fit seed = seed_base + encoder seed k (k in {0,1,2}); DecisionTreeClassifier random_state = 43 + seed (official src/tree/main.py:33 hard-codes 43, so seed 0 == official). random_state only orders candidate features, i.e. breaks exact ties.",
+ "grid_shared_by_encoders": true,
+ "grid": [
+  {
+   "id": 1,
+   "name": "F1_task_first_k100_g0.3",
+   "range": "task-first",
+   "max_leaf_nodes": 100,
+   "min_samples_leaf": 100,
+   "gamma": 0.3,
+   "criterion": "fair_gini_dp",
+   "source": "official code/shell/ACSIncome-CA-2014/run_tree.sh sweep 1 (k in {2..200}, ni=100, alpha in {0.1..0.999}); paper App. H.2 'Accurate' gamma=0.3",
+   "rationale": "largest cell budget with a weak fairness weight; n_i raised from H.2's 10 to the official sweep's 100 so every cell keeps certificate mass"
+  },
+  {
+   "id": 2,
+   "name": "F2_task_first_k50_g0.7",
+   "range": "task-first",
+   "max_leaf_nodes": 50,
+   "min_samples_leaf": 100,
+   "gamma": 0.7,
+   "criterion": "fair_gini_dp",
+   "source": "official run_tree.sh sweep 1; k=50/ni=100 is the shipped reproduction-gate configuration (there with alpha=0.9)",
+   "rationale": "mid-high budget, moderate fairness weight"
+  },
+  {
+   "id": 3,
+   "name": "F3_balanced_k20_g0.85",
+   "range": "balanced",
+   "max_leaf_nodes": 20,
+   "min_samples_leaf": 100,
+   "gamma": 0.85,
+   "criterion": "fair_gini_dp",
+   "source": "paper App. H.2 'Balanced' (gamma=0.85, ni=100, v=0.3), k=20 from the H.2 k grid {3,5,8,20,50}",
+   "rationale": "the paper's balanced operating point"
+  },
+  {
+   "id": 4,
+   "name": "F4_protect_k10_g0.9_ni1000",
+   "range": "protection-first",
+   "max_leaf_nodes": 10,
+   "min_samples_leaf": 1000,
+   "gamma": 0.9,
+   "criterion": "fair_gini_dp",
+   "source": "official run_tree.sh sweep 2 (k in {2..10}, ni=1000, alpha in {0.8..0.999}, v=0.5)",
+   "rationale": "small budget, large cells (tight per-cell Clopper-Pearson bounds), strong fairness weight"
+  },
+  {
+   "id": 5,
+   "name": "F5_protect_k5_g0.95_ni1000",
+   "range": "protection-first",
+   "max_leaf_nodes": 5,
+   "min_samples_leaf": 1000,
+   "gamma": 0.95,
+   "criterion": "fair_gini_dp",
+   "source": "official run_tree.sh sweep 2; k=5 from paper App. H.2",
+   "rationale": "stronger fairness weight and fewer cells"
+  },
+  {
+   "id": 6,
+   "name": "F6_protect_k3_g0.95_ni1000",
+   "range": "protection-first",
+   "max_leaf_nodes": 3,
+   "min_samples_leaf": 1000,
+   "gamma": 0.95,
+   "criterion": "fair_gini_dp",
+   "source": "paper App. H.2 'Fair' (gamma=0.999, ni=1000, v=0.5) at k=3; gamma capped at 0.95 (see hmda_gamma_ceiling)",
+   "rationale": "most protective non-degenerate point shared by both encoders"
+  }
+ ],
+ "zero_fairness_control": {
+  "definition": "oar.fare_official.zero_fairness(grid[nominee]): same max_leaf_nodes, min_samples_leaf and criterion, gamma = 0.0",
+  "official_path": "fair_gini_dp with alpha=0 gives impurity = 1*Gini_y + 0*(0.5-Gini_s) = Gini_y exactly; verified identical to criterion='gini' (oar/tests test_b2)",
+  "registered_control": "the twin of the validation-selected nominee (fitting all six twins is cheap but descriptive only)"
+ },
+ "hmda_gamma_ceiling": {
+  "why": "the official criterion uses the binary constant 0.5: FairGini = (1-g) Gini_y + g (0.5 - Gini_s). With 5 race groups Gini_s can exceed 0.5; on defense_fit Gini_s = 0.50868 and Gini_y = 0.19119, so the root FairGini is <= 0 for g >= Gini_y / (Gini_y + Gini_s - 0.5) = 0.9566, and the official builder turns any node with impurity <= EPSILON into a leaf (sktree/_tree.pyx _add_split_node). g >= 0.957 would therefore give a 1-cell (constant) HMDA encoder by construction.",
+  "gamma_star_hmda": 0.9565568733213474,
+  "gamma_cap_used": 0.95,
+  "adult": "binary sex: Gini_s <= 0.5 always, no ceiling",
+  "consequence": "the paper's 'Fair' gamma=0.999 is replaced by 0.95 in F5/F6 so the grid is identical for both encoders"
+ },
+ "not_varied": {
+  "val_split_v": "replaced by the study's separate certificate rows; the tree is fit on all defense_fit rows",
+  "gini_metric": "dp only (eo/eopp criteria exist upstream but are not the study's criterion)",
+  "categorical_handling": "not applicable (no categorical features)"
+ },
+ "certificate": {
+  "delta": 0.05,
+  "groups": null,
+  "split_seed": 0,
+  "val_fraction": 0.5,
+  "eps_b_fraction": 0.1,
+  "eps_s_fraction": 0.1
+ },
+ "certificate_notes": {
+  "function": "oar.fare_official.certificate(model, X_cert, s_cert, cert_cfg)",
+  "meaning": "groups=None -> every group present in the fit rows: Adult 1 pair; HMDA 5 groups -> 10 pairs, delta/10 per pair (paper App. D.1), bound = max over pairs. Per pair eps_b = eps_s = 10%, eps_c = 80% of the pair budget (paper App. E: 0.005/0.04/0.005 of 0.05). Lemma 5.1 on the fit rows' aggregate group counts (official), Lemma 5.2 on D_val, Lemma 5.3 on D_test, a seeded 50/50 split of the cert rows.",
+  "rows": "must be disjoint from (and independent of) the fit rows; refused on exact duplicates; split by unit/person",
+  "unavailable_when": "any pair has a cell absent from its base, D_val or D_test rows (official assertion) or a non-finite bound; reported, never patched",
+  "optional_secondary": {
+   "hmda_groups": [
+    0,
+    1,
+    2
+   ],
+   "note": "3 pairs; declare before the run if wanted. Not a substitute for the full-declared result."
+  },
+  "usage": "pass the 'certificate' dict as-is: oar.fare_official.certificate(model, X_cert, s_cert, prop['certificate'])"
+ },
+ "supported_classes": {
+  "adult": [
+   0,
+   1
+  ],
+  "hmda": [
+   0,
+   1,
+   2
+  ]
+ },
+ "calibration": {
+  "file": "FARE_CALIBRATION.json",
+  "per_encoder_seed_cpu_s": {
+   "adult": 12.8,
+   "hmda": 28.6
+  },
+  "full_study_fits_and_encodes_cpu_s": 71.0,
+  "peak_worker_rss_mb": 202,
+  "structural_note": "HMDA realises fewer cells than k-bar under the fairness weight (F2 22, F4 4, F5 2, F6 2 at seed 0); F5 and F6 give the identical HMDA tree"
+ }
+}

@@ -87,3 +87,42 @@ def test_alias_report_detects_logit_offset():
     O = rng.normal(size=(50, 2))
     rep = S.alias_report(O)
     assert not rep["logit_sum_is_constant"] and rep["prob_determines_centred_logits_maxabs"] < 1e-9
+
+
+def test_fare_stage_end_to_end_synthetic(world, tmp_path, monkeypatch):
+    """FARE stage through the official wrapper on synthetic data: grid -> alias -> validation nominee -> views ->
+    zero-fairness twin -> certificate (cert rows disjoint from fit rows)."""
+    import json
+    from stored_model_eval.guards import FitAuthorization
+    from oar import fare_run as FR
+    S, W, H, O, s, t = world
+    monkeypatch.setenv("OAR_RUN_UNITS", str(tmp_path / "run" / "units"))
+    E, auth = _small_effective(S), FitAuthorization.synthetic_only()
+    # carve a cert role out of attacker_fit for the synthetic world
+    W["idx"]["cert"] = W["idx"]["attacker_fit"][:150]
+    W["idx"]["attacker_fit"] = W["idx"]["attacker_fit"][150:]
+    S.u2_unit("P__U2__A", H, W, t, 2, E, auth, True)
+    S.attack_unit("P__O_full", O, W, s, 2, E, auth, True)
+    grid = [{"id": 1, "max_leaf_nodes": 8, "min_samples_leaf": 20, "gamma": 0.3, "criterion": "fair_gini_dp"},
+            {"id": 2, "max_leaf_nodes": 8, "min_samples_leaf": 20, "gamma": 0.3, "criterion": "fair_gini_dp"},
+            {"id": 3, "max_leaf_nodes": 3, "min_samples_leaf": 50, "gamma": 0.9, "criterion": "fair_gini_dp"}]
+    fare = {"grid": grid, "seed_base": 0, "supported_classes": {"adult": [0, 1]}, "sensitive_for_fit": "full_declared",
+            "certificate": {"delta": 0.05, "groups": None, "split_seed": 0, "val_fraction": 0.5,
+                            "eps_b_fraction": 0.1, "eps_s_fraction": 0.1}}
+    led = []
+
+    def atk(uid, X, finite=False, plus=None, contract=None):
+        return S.attack_unit(uid, X, W, s, 2, E, auth, True, finite=finite, plus=plus, contract=contract)
+
+    def u2(uid, X):
+        return S.u2_unit(uid, X, W, t, 2, E, auth, True)
+
+    sel = FR.run_fare_seed("adult", 0, "P", W, H, O, {"full": O}, {}, {}, fare, E, auth, True, atk, u2,
+                           lambda *a: led.append(a), print)
+    assert sel["aliases"] == {"2": 1}                       # identical config -> alias, not refitted
+    assert sel["nominee"] in (1, 3)
+    for u in ("P__F__rep+clean", "P__F__rep+head", "P__FZ__rep", "P__FZ__rep+head", "P__U2__FZ", "P__HEAD__F"):
+        assert S.unit_complete(u), u
+    cert = json.loads((S.RUN / "certificates" / "P.json").read_text())
+    assert cert["nominee"]["primary_all_groups"]["status"] in ("OK", "UNAVAILABLE")
+    assert len(led) >= 3

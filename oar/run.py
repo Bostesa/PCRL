@@ -105,7 +105,27 @@ def run_dataset(ds: str, lock: dict, log=print):
                 u2(f"{P}__U2__D_rs{rs}", R)
             # ---- FARE: frozen grid, validation-only nominee
             from . import fare_run as FR
-            FR.run_fare_seed(ds, k, P, W, H, O, var, arms, heads, fare, E, auth, syn, atk, u2, led, log)
+            sel = FR.run_fare_seed(ds, k, P, W, H, O, var, arms, heads, fare, E, auth, syn, atk, u2, led, log)
+            if k == S.SEEDS[0]:
+                ctl_inputs = {"O_prob": (var["prob"], False), "O_hard": (var["hard"], True),
+                              "A__rep+head": (np.hstack([H, heads["A"]["outputs"]]), False),
+                              "D_rs0__rep+hard": (np.hstack([S.noise_release(W, H, S.SIGMA_STAR[ds], 0), var["hard"]]), False)}
+                from . import fare_official as FO
+                jsrc = sel["nominee_unit_source"]
+                cells = np.load(S.unit_dir(f"{P}__FAREFIT_c{jsrc}") / "cells.npy")
+                XF = S.onehot(cells, int(cells.max()) + 1)
+                hF = np.load(S.unit_dir(f"{P}__HEAD__F") / "preds.npz")["head_outputs_all"]
+                ctl_inputs.update({"F__rep": (XF, True), "F__rep+clean": (np.hstack([XF, O]), False),
+                                   "F__rep+head": (np.hstack([XF, hF]), False)})
+                ctl = {}
+                for name, (X, fin) in ctl_inputs.items():
+                    guard(f"{P}__CTL__{name}")
+                    import time as _t
+                    t0 = _t.process_time()
+                    ctl[name] = S.null_and_planted(f"{P}__CTL__{name}", X, W, s, K_s, E, auth, syn, finite=fin)
+                    led(f"{P}__CTL__{name}", _t.process_time() - t0, 0)
+                (S.RUN / "controls").mkdir(parents=True, exist_ok=True)
+                (S.RUN / "controls" / f"{ds}.json").write_text(json.dumps(ctl, indent=1))
         status["complete"] = True
     except StopIteration as e:
         status["complete"] = False
