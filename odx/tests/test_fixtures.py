@@ -89,3 +89,15 @@ def test_family_counts():
     from odx import family as F
     assert len(F.PRIMARY) == 30 and F.S3_SIZE == 34 and F.S4_SIZE == 6 and F.S5_SIZE == 4
     assert abs(F.Z_PRIMARY - 3.14398) < 1e-4      # Phi^-1(1 - 0.05/60)
+
+
+def test_canonical_output_utility_example_and_invariance():
+    import doctest
+    import odx.canonical as C
+    assert doctest.testmod(C).failed == 0
+    rng = np.random.default_rng(5)
+    for K in (2, 4, 6):
+        L = rng.normal(size=(500, K)) * 4 + rng.normal(size=(500, 1)) * 10
+        out = C.canonical_logits(L)
+        assert out["softmax_unchanged"] and out["decision_unchanged"]
+        assert np.allclose(out["centred"].sum(1), 0, atol=1e-10)
