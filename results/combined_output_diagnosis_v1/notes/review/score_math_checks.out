@@ -1,0 +1,58 @@
+== A. identities ==
+det A = -1.0  A@Ainv == I: True
+float64 inputs: max |roundtrip - l| = 1.7763568394002505e-15  rows not bit-exact: 631318
+float32-upcast inputs: rows not bit-exact: 0
+max |softmax(l)_1 - sigma(d)| = 1.6653345369377348e-16  max |softmax(l)_0 - sigma(-d)| = 1.6653345369377348e-16
+argmax(l) != 1[d>0] rows (incl. 2 exact ties): 0
+binary: max |softmax(l) - softmax(centred)| = 0.0  centred == l - c rows differing: 349813
+K=3: max|softmax diff|=2.2e-16 max|sum centred|=1.8e-15 recon rows not bit-exact=18330 max recon err=8.9e-16 argmax diff=0
+K=4: max|softmax diff|=0.0e+00 max|sum centred|=0.0e+00 recon rows not bit-exact=0 max recon err=0.0e+00 argmax diff=0
+K=5: max|softmax diff|=4.4e-16 max|sum centred|=3.6e-15 recon rows not bit-exact=25423 max recon err=8.9e-16 argmax diff=0
+K=6: max|softmax diff|=4.4e-16 max|sum centred|=4.4e-15 recon rows not bit-exact=33063 max recon err=8.9e-16 argmax diff=0
+log-prob head: max|d_logprob - d| = 8.881784197001252e-16  max|c - g(d)| = 3.552713678800501e-15  max|g(d)-g(-d)| = 0.0
+== B. float saturation ==
+largest double below 1: 1-2^-53 = 0.9999999999999999  nextafter(1,0) = np.float64(0.9999999999999999)
+53 ln2 = 36.7368005696771  ln(2^54-1) = 37.42994775023705
+float64 expit(d)==1.0 for d >= np.float64(36.73680056967711)  expit just below: np.float64(0.9999999999999998)
+float64 naive 1/(1+e^-d)==1.0 for d >= np.float64(36.73680056967711)
+float64 scipy softmax p1==1.0 for d >= np.float64(36.73680056967711)
+float64 expit(d)==0.0 for d <= - np.float64(709.7827128933841)
+float64 naive (exp overflow) ==0.0 for d <= - np.float64(709.7827128933841)
+float64 expit(d) subnormal for d <= - np.float64(708.3964185322642)  ln(2^-1022) = -708.3964185322641  ln(2^-1075) = -745.1332191019412
+float32 expit(d)==1 for d >= np.float32(16.635532)  24 ln2 = 16.635532333438686
+float32 expit(d)==0 for d <= - np.float32(88.72284)  ln(2^-150) = -103.97207708399179
+d=     5.0  p1=np.float64(0.9933071490757153)  |d - logit(p1)|=1.87e-14  |d - (log p1 - log p0)|=0.00e+00
+d=    15.0  p1=np.float64(0.999999694097773)  |d - logit(p1)|=2.22e-10  |d - (log p1 - log p0)|=0.00e+00
+d=    20.0  p1=np.float64(0.9999999979388463)  |d - logit(p1)|=3.59e-08  |d - (log p1 - log p0)|=0.00e+00
+d=    25.0  p1=np.float64(0.999999999986112)  |d - logit(p1)|=4.18e-06  |d - (log p1 - log p0)|=0.00e+00
+d=    30.0  p1=np.float64(0.9999999999999065)  |d - logit(p1)|=1.02e-03  |d - (log p1 - log p0)|=0.00e+00
+d=    33.0  p1=np.float64(0.9999999999999953)  |d - logit(p1)|=8.69e-04  |d - (log p1 - log p0)|=0.00e+00
+d=    36.0  p1=np.float64(0.9999999999999998)  |d - logit(p1)|=4.37e-02  |d - (log p1 - log p0)|=0.00e+00
+d=    36.7  p1=np.float64(0.9999999999999998)  |d - logit(p1)|=6.56e-01  |d - (log p1 - log p0)|=0.00e+00
+d=    36.8  p1=np.float64(1.0)           |d - logit(p1)|=inf  |d - (log p1 - log p0)|=0.00e+00
+d=    40.0  p1=np.float64(1.0)           |d - logit(p1)|=inf  |d - (log p1 - log p0)|=0.00e+00
+d=   -36.8  p1=np.float64(1.0422287905595918e-16)  |d - logit(p1)|=0.00e+00  |d - (log p1 - log p0)|=0.00e+00
+d=   -40.0  p1=np.float64(4.248354255291589e-18)  |d - logit(p1)|=0.00e+00  |d - (log p1 - log p0)|=0.00e+00
+d=  -700.0  p1=np.float64(9.85967654375977e-305)  |d - logit(p1)|=0.00e+00  |d - (log p1 - log p0)|=0.00e+00
+d=  -740.0  p1=np.float64(0.0)           |d - logit(p1)|=inf  |d - (log p1 - log p0)|=inf
+float64 stable e^d/(1+e^d)==0 for d <= - np.float64(745.1332191019412)
+float64 scipy softmax p1==0 for d <= - np.float64(745.1332191019412)
+float32 softmax p1==1 for d >= np.float32(16.635532)
+float32 softmax p1==0 for d <= - np.float32(103.972084)
+== C. information vs fitted AUC ==
+fixture offset-carries-S: I(S;full)=0.5000 bits  I(S;centred)=0.0000 bits
+public fixed head: I(S;Z)=0.049022  I(S;Z,h(Z))=0.049022
+A: I=0.1000 bits, Bayes AUC=0.595;  B: I=0.0290 bits, Bayes AUC=0.600
+stump GBT on (l0,l1,d): 0.940  -> remove d (a function of (l0,l1)): 0.917
+LR (n_fit=300) on (l0,l1,junk(l)): 0.812  -> remove junk: 0.963
+== D. bootstrap / normal approximation ==
+sampling SD of AUC difference over 400 fresh n=5000 samples: 0.00578  (mean diff 0.0397)
+bootstrap rep 0: SE=0.00621 skew=-0.065 exkurt=-0.017 0.5/99.5% quantiles [0.0314 0.0631] vs normal [0.0313 0.0633];  z*SE=0.0195
+bootstrap rep 1: SE=0.00614 skew=-0.009 exkurt=-0.033 0.5/99.5% quantiles [0.022  0.0542] vs normal [0.0227 0.0543];  z*SE=0.0193
+bootstrap rep 2: SE=0.00618 skew=-0.054 exkurt=+0.118 0.5/99.5% quantiles [0.0217 0.0535] vs normal [0.0211 0.0529];  z*SE=0.0194
+MC relative SD of SE at B=1999 (normal theory): 0.0158
+identical views: SE = 0.0  -> interval [0,0]; lower 0 < 0.02 -> NOT_ESTABLISHED
+6 discordant rows: est=0.00120 boot SE=0.00047 skew=+0.31  lower=-0.00029
+pair 3083 vs 302: point=0.0456 SE=0.0111 skew=+0.030 exkurt=-0.011
+pair score P1/(P0+P1): [0.5        0.5        0.77777778]
+log-domain score: [0.23071076 0.66666667]  ratio score: [0.23071076 0.66666667]
