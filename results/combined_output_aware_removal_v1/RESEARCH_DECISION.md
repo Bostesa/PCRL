@@ -1,5 +1,7 @@
 # Research decision: corrected benchmark and protection of the complete release
 
+> **Repair 2026-10-03 (branch research/combined-output-diagnosis-v1, amendment R).** Two HMDA lower-bound cells in the section 3 table showed upper endpoints. They are corrected from PRIMARY_ENDPOINTS.csv; the decisions are unchanged. See `results/combined_output_diagnosis_v1/ORIGINAL_VS_REPAIRED.csv`. The original file is at f7425b1.
+
 **Status:** development evidence, 2026-10-03. Every row has been used before, so none of this is fresh confirmation.
 
 **Encoders and cells.** Six frozen PCRL Round-4 encoders were used: Adult and HMDA × seeds 0, 1, 2. The mandatory
@@ -84,8 +86,8 @@ The FARE nominee is chosen on validation only, among configurations within 1 poi
 | Primary | Δ | Simultaneous lower bound (α = 0.05/12) | Adult | HMDA |
 |---|---|---|---|---|
 | P2 recovery, LEACE − FARE (features) | Adult +0.262, HMDA +0.363 | 0.248 / 0.356 | PASS | PASS |
-| P3 accuracy, FARE − untreated | −0.0069 / −0.0036 | −0.0118 / −0.0010 | **NOT_ESTABLISHED** | PASS |
-| P4 accuracy, FARE − LEACE | −0.0067 / −0.0029 | −0.0116 / −0.0001 | **NOT_ESTABLISHED** | PASS |
+| P3 accuracy, FARE − untreated | −0.0069 / −0.0036 | −0.0118 / −0.0062 (repaired 2026-10-03; was −0.0010, the upper endpoint) | **NOT_ESTABLISHED** | PASS |
+| P4 accuracy, FARE − LEACE | −0.0067 / −0.0029 | −0.0116 / −0.0057 (repaired 2026-10-03; was −0.0001, the upper endpoint) | **NOT_ESTABLISHED** | PASS |
 | P5 FARE + clean outputs − FARE + own head | +0.238 / +0.267 | 0.223 / 0.258 | PASS | PASS |
 | P6 same contract (features + own head), LEACE − FARE | +0.267 / +0.362 | 0.253 / 0.355 | PASS | PASS |
 

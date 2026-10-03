@@ -60,7 +60,7 @@ def load_world(ds: str) -> dict:
     set. defense_fit is unchanged. No outcome is read to form roles."""
     L = np.load(BENCH / "inputs" / f"{ds}_labels.npz")
     c = CELLS[ds]
-    role0 = L["role"].astype("<U16")
+    role0 = L["role"].astype("<U32")  # repaired 2026-10-03: <U16 truncated "excluded_exposure" (17 chars)
     train_keys = set(L["canon_key"][L["split"] == "train"])
     exposed = (L["split"] == "test") & np.isin(L["canon_key"], list(train_keys))
     role = role0.copy()
