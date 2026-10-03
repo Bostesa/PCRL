@@ -1,0 +1,43 @@
+{
+ "schema": "bench_handoff/v1",
+ "assignment": "Matched attribute-removal benchmark (official LEACE + noise) on frozen PCRL Round-4 Adult/HMDA encoders",
+ "date_utc": "2026-10-03",
+ "status": "COMPLETE (Tier 1 complete; Tier 2 E1/E2 complete; E3 cut by the frozen budget rule)",
+ "evidence_class": "development evidence on already-used rows; not fresh confirmation",
+ "branch": "research/combined-matched-removal-benchmark-v1",
+ "base": "research/combined-stored-model-pilot-v1 @ 661db8dcbba3abd29bd42d6674c2493c77eb47d8",
+ "lock_commit_pushed_before_fits": "3274fe11a45f4e29f458ef7c7eff1e97df133456",
+ "first_fit_utc": "2026-10-02T20:59:19Z",
+ "unchanged_refs_verified": {
+  "main": "55e4cb1d1b603a52e5ae16fd5c71d41ebb9b3827",
+  "research/combined-empirical-preparation-v1": "f381bc266269f8c965c5f6558ec8071eafcab1b6",
+  "research/combined-evidence-reconciliation-v1": "07a9ca3ffaf27133b6cf955b3b8d526682961e8d",
+  "research/combined-evaluation-preparation-v1": "031860fbfd910b9aaed19b7600d288d15858dbc5",
+  "research/combined-stored-model-pilot-v1": "661db8dcbba3abd29bd42d6674c2493c77eb47d8"
+ },
+ "units": {"planned": 882, "completed": 435, "missing": 447, "missing_reason": "E3 budget stop (frozen rule), fixed order, before adult__s2__employment_analysis__marital_status__D_sigma0.5_rs0", "aliased": 0,
+           "by_tier": {"tier1": [126, 126], "E1": [72, 72], "E2": [36, 36], "E3": [201, 648]}},
+ "fits": {"official_leace_maps": 60, "leace_B": 42, "leace_C": 18, "model_fits_logged": 44824},
+ "sigma_star": {"adult": 2.0, "hmda": 4.0, "selected_on": "attacker_val only"},
+ "primary_family": {"size": 24, "decided": 23, "unresolved": 1,
+   "summary": "Nonlinear representation recovery is established above 0.55 for A/B/C in both cells. At sigma*, D falls below 0.55 on the representation alone but stays above 0.55 with clean outputs. U2 is non-inferior for B (both cells) and for C on HMDA; it is inferior for C on Adult and for D on both cells. G1 is established below tau on Adult and unresolved on HMDA."},
+ "headline": [
+  "LEACE passes its own bound on all 60 maps and its linear guarantee transfers to held-out rows (rho1^2 0.0006 Adult, 0.0001 HMDA).",
+  "LEACE leaves nonlinear recovery essentially unchanged (|B-A| <= 0.007 AUC on Tier-1 cells; <= 0.05 on every pair).",
+  "Clean task outputs keep recovery at 0.76-0.78 AUC when noise removes it from the representation; outputs exceed the label-only reference by +0.02 to +0.29 on all 14 pairs.",
+  "Noise at sigma* costs 40% (Adult) to 100% (HMDA) of probe lift.",
+  "PCRL's stored check fails on 12/42 untreated pair x seed combinations; every value reproduces exactly."
+ ],
+ "pilot_pattern_replicated": true,
+ "verification": {"independent_replay": "INDEPENDENT_VERIFICATION.json", "checks": 100954, "primary_pass": "183/183",
+   "fail": 185, "fail_scope": "exploratory only; 143 runner unpaired-seed contrasts in one budget-truncated pair, 34 runner rho1^2 cancellation, 8 MC exceedances; diagnosed in VALIDATION.md",
+   "owner_spot_checks": "4/4 exact"},
+ "runtime": {"science_cpu_h": 5.01, "ceiling_cpu_h": 8.0, "tier1_wall_s": 4786, "tier2_wall_s": 11026, "infer_wall_s": 2304, "replay_wall_s": 4997, "peak_rss_gb": 2.86, "cloud": "none"},
+ "storage": {"private_root": "~/PCRL_eval_cache_private/bench_v1", "size_gb": 5.4, "files": 9764,
+   "drive_copy": "<drive>/private_bench_v1_20261003", "drive_verified": "9765/9765 sha256, uncached reads (after log re-sync)",
+   "restore_proof": "LEACE map + 2 attackers from the drive reproduce the saved outputs exactly (max |diff| 0.0)", "deleted": "nothing"},
+ "replay_command": "OMP_NUM_THREADS=1 /opt/homebrew/bin/python3 results/combined_matched_removal_benchmark_v1/verification/replay_bench.py --root ~/PCRL_eval_cache_private/bench_v1 --report-dir results/combined_matched_removal_benchmark_v1 --out <out>.json --results-out <agg>.json",
+ "not_done_by_scope": ["encoder retraining", "recreating historical MMD/HSIC projections", "new cohorts or unused years (Texas, New York, others unopened)", "cloud", "submissions", "manuscript edits", "merge to main", "Round-5/7 headline checkpoints (inventoried by hash only)", "repeated-query contract"],
+ "known_runner_defects_disclosed": ["unpaired seed composition in contrasts for budget-truncated E3 pair (exploratory)", "rho1^2 precision loss from uncentred moments on adult education arm C (exploratory)"],
+ "recommendation": "Do not scale the same benchmark further. The 14 pairs agree. Next: an output-aware or nonlinear eraser under this matched protocol, then fresh unopened confirmation rows under a frozen protocol."
+}

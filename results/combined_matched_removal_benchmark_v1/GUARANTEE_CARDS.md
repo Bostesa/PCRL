@@ -1,6 +1,6 @@
-# Guarantee cards: matched removal benchmark v1 (DRAFT, method owner)
+# Guarantee cards: matched removal benchmark v1
 
-**Date:** 2026-10-02.
+**Date:** 2026-10-02. Frozen before any fit and unchanged after the run; results are in RESEARCH_DECISION.md.
 **Purpose:** one card per arm (A, B/C, D) and one per reference. Every card is a scope statement, not a verdict.
 
 **Native checks:** each arm's native check is the check named on its own card. A method's criterion is never

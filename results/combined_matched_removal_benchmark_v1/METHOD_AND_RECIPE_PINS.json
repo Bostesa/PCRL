@@ -1,0 +1,517 @@
+{
+ "schema": "bench_method_and_recipe_pins/v1",
+ "lock": {
+  "file": "LOCK.json",
+  "sha256": "3a9002aae1ca45a4600519940b3e511e6176288eda82c2b89f68f8afca0c21f6",
+  "built_at": "2026-10-02T20:57:48Z",
+  "effective_protocol_sha256": "9d04aabf9d0e1efa2ff0921ce866b7ac2d8a88a9bacb06b07398389d22c79056",
+  "pushed_commit": "3274fe11a45f4e29f458ef7c7eff1e97df133456"
+ },
+ "official_leace": {
+  "package": "concept-erasure",
+  "version": "0.2.4",
+  "tree_sha256": "fffac29d5914f334396f4af1f6b65ba09fcbf658fa8a013972bb50cbc1568597",
+  "tree_hash_rule": "sha256 over sorted *.py (excluding __pycache__): update('concept_erasure/'+relpath) then update(file bytes)",
+  "upstream_tag": "v0.2.4",
+  "upstream_commit": "9b18b3d5c73f552798212c51d6533d649fa434cd",
+  "settings": {
+   "method": "leace",
+   "affine": true,
+   "constrain_cov_trace": true,
+   "shrinkage": true,
+   "svd_tol": 0.01
+  },
+  "dtype": "float64",
+  "fit_role": "defense_fit",
+  "concept_B": "onehot(target attribute), all declared classes (no pooling)",
+  "concept_C": "defenses.concat_marginal_onehots of the policy set, in disallowed_attrs order",
+  "wrapper": "stored_model_eval/defenses.py (fit_leace -> concept_erasure.LeaceFitter; verify_official_leace refuses any other tree)",
+  "not_used": [
+   "Oracle LEACE",
+   "in-house LEACE re-implementation",
+   "svd_tol=0 variant"
+  ]
+ },
+ "noise_release": {
+  "api": "defenses.noise_release",
+  "sigmas": [
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0,
+   8.0
+  ],
+  "release_seeds": [
+   0,
+   1,
+   2
+  ],
+  "draw_rows": "scored_roles_ascending_row_id",
+  "description": "one persistent draw per person: default_rng(release seed) over the matrix of scored-role rows (attacker_fit, attacker_val, assessment) in ascending row_id order"
+ },
+ "native_checks": {
+  "A": {
+   "lambda": 1e-06,
+   "rows": "test_split",
+   "variants": [
+    "historical_mixed_precision",
+    "float64"
+   ],
+   "category_variant": "historical_mixed_precision",
+   "tau": 0.05,
+   "reproduce_atol": 0.0001,
+   "historical": {
+    "ref": "origin/main",
+    "ref_commit": "55e4cb1d1b603a52e5ae16fd5c71d41ebb9b3827",
+    "blobs": {
+     "adult": {
+      "path": "results/v2_adult_ROUND4/dominant_axis_audit.json",
+      "blob": "76f485a2147d98b1346dd74abce9c2fc3d024f4f"
+     },
+     "hmda": {
+      "path": "results/v2_hmda_ROUND4/dominant_axis_audit.json",
+      "blob": "e56c885b62282483a672406988f8efe142979b9f"
+     }
+    }
+   },
+   "label": "PCRL historical one-hot ridge R2, in-sample on the test split; compared per seed with dominant_axis_audit.json r2_onehot"
+  },
+  "BC": {
+   "rows": "defense_fit",
+   "primary": "implementation_bound_holds",
+   "primary_rule": "the official implementation's own specified bound: spectral norm of the whitened residual cross-covariance on defense_fit <= svd_tol; failure -> category C1",
+   "descriptive_tol_rel": 1e-06,
+   "descriptive_tol_r2": 1e-06,
+   "descriptive_rule": "exact-zero cross-covariance (crosscov_max_abs_rel_erased <= tol_rel and fit-row OLS R2 <= tol_r2); OUTSIDE_TOLERANCE_SVD_TOL_TRUNCATION is reported as a separate descriptive column, NOT C1",
+   "out_of_support": "per (dataset, seed, purpose): norm of the component of (h - fit mean) outside the range of the defense_fit sample covariance on attacker_fit and assessment rows (label-free); official behaviour = identity there (transfer limitation column)",
+   "label": "LEACE condition on defense_fit, finite-sample scope only"
+  },
+  "D": {
+   "status": "NA",
+   "label": "no native certificate (unclipped Gaussian noise; Prop 3 covers clipped only)"
+  }
+ },
+ "linear_closed_form": {
+  "G1": {
+   "lambda": 1e-06,
+   "fit_role": "attacker_fit",
+   "score_role": "assessment",
+   "dtype": "float64",
+   "clamp": false
+  },
+  "G2": {
+   "rho_grid": [
+    0.0,
+    0.0001,
+    0.01
+   ],
+   "floor_rel": 1e-06,
+   "select_on": "attacker_val",
+   "select_metric": "heldout_r2_fitmean"
+  },
+  "rho1_heldout": {
+   "eps_rel": 1e-06
+  },
+  "cross_cov_heldout": {
+   "arms": [
+    "A",
+    "B",
+    "C"
+   ],
+   "score_role": "assessment",
+   "concepts": [
+    "target",
+    "policy"
+   ],
+   "description": "weighted Frobenius norm and max-abs of cov(released h, concept one-hot) on assessment rows; concept = target one-hot (B scope) and policy concatenated one-hot (C scope)"
+  }
+ },
+ "attackers": {
+  "L": {
+   "C": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+   ],
+   "max_iter": 5000,
+   "solver": "lbfgs",
+   "scaler": "standard",
+   "select_metric": "attacker_val_log_loss",
+   "description": "StandardScaler (fit on attacker_fit) + multinomial LogisticRegression"
+  },
+  "GBT": {
+   "configs": [
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 20,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 50,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 50,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 100,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 100,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 50,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 100,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.03,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 20,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 50,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 50,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 100,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 20,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 50,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.1,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 100,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 15,
+     "min_samples_leaf": 100,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 20,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 100,
+     "l2_regularization": 0.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 31,
+     "min_samples_leaf": 100,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 50,
+     "l2_regularization": 1.0
+    },
+    {
+     "learning_rate": 0.3,
+     "max_leaf_nodes": 63,
+     "min_samples_leaf": 100,
+     "l2_regularization": 1.0
+    }
+   ],
+   "max_iter": 500,
+   "early_stopping": true,
+   "validation_fraction": 0.1,
+   "n_iter_no_change": 10,
+   "scoring": "loss",
+   "random_state": 0,
+   "select_metric": "attacker_val_log_loss",
+   "description": "HistGradientBoostingClassifier; early stopping on an internal split of attacker_fit"
+  },
+  "MLP": {
+   "hidden_layer_sizes": [
+    [
+     64,
+     64
+    ],
+    [
+     128,
+     128
+    ],
+    [
+     256,
+     256
+    ]
+   ],
+   "alpha": [
+    1e-05,
+    0.0001,
+    0.001
+   ],
+   "learning_rate_init": [
+    0.001,
+    0.003
+   ],
+   "max_iter": 200,
+   "early_stopping": true,
+   "validation_fraction": 0.1,
+   "n_iter_no_change": 10,
+   "solver": "adam",
+   "batch_size": "auto",
+   "random_state": 0,
+   "scaler": "standard",
+   "select_metric": "attacker_val_log_loss",
+   "description": "StandardScaler + MLPClassifier, 18 configs"
+  },
+  "NL": {
+   "members": [
+    "GBT",
+    "MLP"
+   ],
+   "select_metric": "attacker_val_log_loss"
+  },
+  "plus_slate": {
+   "NL": [
+    "GBT",
+    "MLP",
+    "ignore_rep",
+    "ignore_out"
+   ],
+   "L": [
+    "L",
+    "ignore_rep",
+    "ignore_out"
+   ],
+   "ignore_rep": "the outputs_only selected model of the same family slot (NL or L)",
+   "ignore_out": "the C_rep selected model of the same family slot (NL or L)",
+   "select_metric": "attacker_val_log_loss"
+  },
+  "attacker_seeds": [
+   0,
+   1,
+   2
+  ],
+  "seed_param": "random_state",
+  "deterministic_alias": [
+   "L"
+  ],
+  "retrain": "the selected recipe (family + hyper-parameters) is refit at each attacker seed; seed 0 is the grid fit itself (random_state 0); the grid is never rerun",
+  "LRT_A2": {
+   "applies_to": "noise",
+   "surface": "rep",
+   "eig_floor_rel": 1e-06,
+   "floor_trace": "released_class_covariance",
+   "cov_ddof": 1,
+   "class_prior": "attacker_fit"
+  },
+  "LRT_A4": {
+   "applies_to": "noise",
+   "surface": "rep",
+   "eig_floor_rel": 1e-06,
+   "floor_trace": "clean_class_covariance",
+   "cov_ddof": 1,
+   "class_prior": "attacker_fit"
+  },
+  "leace_simulation": "alias of the ordinary slate trained on erased attacker-population features (recorded)",
+  "selection_role": "attacker_val",
+  "log_loss_clip": 1e-12
+ },
+ "surfaces": {
+  "C_rep": "rep",
+  "C_rep_plus_clean_out": "rep+outputs",
+  "outputs_only": "outputs",
+  "outputs_kind": "logits",
+  "outputs_share_key": "dataset|encoder_seed|purpose|attribute",
+  "description": "outputs_only is fitted once per (dataset, encoder seed, purpose, attribute) and aliased into every arm; the clean outputs are identical across methods"
+ },
+ "references": {
+  "LO": {
+   "laplace_alpha": 1.0,
+   "fit_role": "attacker_fit"
+  },
+  "constant": {
+   "prior_role": "attacker_fit"
+  }
+ },
+ "utility": {
+  "U1": {
+   "checkpoint_load": "weights_only",
+   "consistency_atol": 0.0001,
+   "scope": "outside LEACE's scope: the frozen head is Linear-ReLU-Linear (nonlinear post-processing can re-create linearly detectable signal)",
+   "description": "frozen purpose head on the transformed representation (compatibility only)"
+  },
+  "U2": {
+   "C": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+   ],
+   "max_iter": 5000,
+   "fit_role": "attacker_fit",
+   "select_role": "attacker_val",
+   "share_key": "dataset|encoder_seed|purpose|release",
+   "description": "common LR probe on the transformed representation; shared across attributes when the release is identical"
+  },
+  "clean_output": {
+   "description": "the clean head's task accuracy and log loss; unchanged across methods"
+  },
+  "metrics_all_rows": [
+   "accuracy",
+   "log_loss"
+  ],
+  "metrics_supported_task_classes": [
+   "macro_f1",
+   "macro_auc"
+  ]
+ },
+ "sigma_star": {
+  "bar": 0.55,
+  "fallback_sigma": 8.0,
+  "attacker_seed": 0,
+  "role": "attacker_val",
+  "statistic": "C_rep NL macro OvR AUC over supported classes",
+  "rule": "smallest sigma whose attacker_val statistic (mean over encoder seeds x release seeds, attacker seed 0) is <= bar; none -> fallback_sigma, flagged"
+ },
+ "inference": {
+  "sampling_unit": "assess_unit",
+  "draw": "rng = numpy.random.default_rng(seed); replicate b: counts = rng.multinomial(n_units, full(n_units, 1/n_units)); row weight = counts[unit index]; unit order = numpy.unique(assess_unit); one draw per dataset re-weights every unit, arm, encoder seed, release seed and attacker seed of that dataset",
+  "quantile_method": "linear",
+  "chunk": 500,
+  "bars": [
+   0.52,
+   0.55,
+   0.6
+  ],
+  "tau": 0.05,
+  "ni_margin": -0.01,
+  "exploratory": {
+   "B": 2000,
+   "seed": 20261003,
+   "level": 0.9
+  },
+  "primary": {
+   "B": 20000,
+   "seed": 20261004,
+   "alpha_family": 0.05,
+   "family_size": 24,
+   "adjustment": "bonferroni_simultaneous_one_sided_bounds",
+   "validity_note": "percentile bounds are asymptotic; each endpoint can err in one direction, so two one-sided bounds at alpha/24 bound the family-wise error by 0.05 (asymptotically)"
+  },
+  "replicate_summary": "mean over encoder seeds x release seeds x attacker seeds, computed within each bootstrap replicate on the same resampled people",
+  "worst_rule": "simultaneous per-class/pair bounds at alpha/K (K = supported classes or pairs): LCB(max) = max_k LCB_k(alpha/K), UCB(max) = max_k UCB_k(alpha/K); point = max_k point_k",
+  "max_ne_replicate_fraction": "the tail probability of the bound; more NE replicates -> NE"
+ },
+ "support": {
+  "min_attacker_fit": 100,
+  "min_attacker_val": 30,
+  "min_assessment": 100,
+  "min_supported_classes": 2,
+  "min_defense_fit_concept": 100,
+  "concept_rule": "an eraser (B or C) is fitted on the FULL declared one-hot of its concept only if every class of every concept attribute has >= min_defense_fit_concept rows in defense_fit; otherwise that unit is NE (nothing is dropped or pooled silently). Coordinator decision 2026-10-02",
+  "pair_rule": "a pair is supported iff both classes are supported",
+  "scoring_rule": "evaluation support is per role (100/30/100 on attacker_fit/attacker_val/assessment), identical for every arm of a cell, frozen in SUPPORT_FROZEN.json before any fit",
+  "task_classes": "the same 100/30/100 rule selects task classes for macro-F1/AUC; accuracy and log loss use all assessment rows"
+ },
+ "budget": {
+  "cpu_hours": 8.0,
+  "inference_reserve_cpu_s_per_unit": 30.0,
+  "stop_rule": "before each Tier-2 unit (fixed order): stop if spent + projected(unit) + inference reserve for all completed-or-started units > cpu_hours*3600; never skip ahead",
+  "projection": "mean measured cpu of completed units of the same dataset and arm kind; calibration estimate until one exists",
+  "tier2_trigger": "every Tier-1 unit COMPLETE and hash-verified, SIGMA_STAR.json present, A native reproduction, B/C native checks pass, U1 consistency ok, no technical failure"
+ },
+ "sanity": {
+  "shuffle_seed": 20261005,
+  "flag_above_auc": 0.55,
+  "description": "fit/validation-only shuffled-label sanity: s permuted within attacker_fit and within attacker_val; C_rep slate fitted and selected through the same code path; assessment never loaded into the fit"
+ },
+ "encoders": {
+  "family": "PCRL Round-4 final.pt (epoch 204, saved lambda == lambdas_final)",
+  "datasets": [
+   "adult",
+   "hmda"
+  ],
+  "seeds": [
+   0,
+   1,
+   2
+  ],
+  "admission": "notes/admission/lineage.json, notes/admission/checkpoint_extraction.json (sha256 per checkpoint)"
+ },
+ "historical_native_blobs": {
+  "adult": {
+   "path": "results/v2_adult_ROUND4/dominant_axis_audit.json",
+   "blob": "76f485a2147d98b1346dd74abce9c2fc3d024f4f",
+   "present": true
+  },
+  "hmda": {
+   "path": "results/v2_hmda_ROUND4/dominant_axis_audit.json",
+   "blob": "e56c885b62282483a672406988f8efe142979b9f",
+   "present": true
+  }
+ },
+ "dependencies": {
+  "python": "3.13.7",
+  "numpy": "2.4.2",
+  "scipy": "1.17.1",
+  "scikit-learn": "1.8.0",
+  "torch": "2.10.0",
+  "joblib": "1.5.3",
+  "concept-erasure": {
+   "version": "0.2.4",
+   "tree_sha256": "fffac29d5914f334396f4af1f6b65ba09fcbf658fa8a013972bb50cbc1568597",
+   "n_files": 15,
+   "path": "~/PCRL/.venv/lib/python3.13/site-packages/concept_erasure"
+  },
+  "machine": "arm64"
+ },
+ "code_files_pinned": 39,
+ "thread_env": "OMP/MKL/OPENBLAS/VECLIB_MAXIMUM_THREADS=1, PYTHONHASHSEED=0"
+}

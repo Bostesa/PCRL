@@ -1,10 +1,11 @@
-#!/Users/nathansamson/PCRL/.venv/bin/python
+#!/usr/bin/env python3
 """Synthetic validation of replay_bench.py (ROLE 4), before any real benchmark output is read.
 
 Builds, in a scratch directory, a private root in the BENCH_DESIGN layout
 (inputs/INPUTS_INDEX.json + record keys / roles / labels / forward caches; units/<unit_id>/{preds.npz,
-supported.json, fit_records.json, COMPLETE.json[, ALIAS.json]}; defenses/<unit_id>/{map.npz, meta.json,
-transformed.npz}) with known ground truth:
+val_preds.npz, supported.json, fit_records.json, COMPLETE.json[, ALIAS.json]};
+defenses/<map_id>/{MAP_RECORD.json, map/leace_map.npz, map/leace_map.json}; shared/{outputs_only,U2}/<key>/preds.npz --
+the runner's real layout, read (names only) from completed Adult units on 2026-10-02) with known ground truth:
 
   * 2 datasets (adult: target sex, policy {race, sex}; hmda: target race, policy {race, ethnicity}),
     2 encoder seeds, arms A / B / C / D (2 sigmas x 2 release seeds), attacker seeds {0, 1, 2};
@@ -31,8 +32,10 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import shutil
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -48,8 +51,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import replay_bench as RB  # noqa: E402  (module under test; numpy only, not a repo import)
 
-DEFAULT_WORK = Path("/private/tmp/claude-501/-Users-nathansamson-PCRL/f1ff337a-0f10-4ee1-bd1d-5817210be5ea/"
-                    "scratchpad/bench_verify")
+DEFAULT_WORK = Path(os.environ.get("BENCH_VERIFY_WORK", str(Path(tempfile.gettempdir()) / "bench_verify")))
 SIGMAS, ENC, RS, AS = (0.5, 2.0), (0, 1), (0, 1), (0, 1, 2)
 SALTS = {"adult": "pilot-roles-v1|", "hmda": "bench-roles-hmda-v1|"}
 CELLS = RB.CELLS
@@ -221,8 +223,9 @@ def save_map(dd, Hf, Z):
     mask = L > (L[-1] * sig.shape[-1] * torch.finfo(L.dtype).eps)
     W = V * torch.where(mask, L.clamp_min(0).rsqrt(), 0.0) @ V.mH
     sv = torch.linalg.svdvals(W @ sxz)
-    np.savez(dd / "map.npz", proj_left=e.proj_left.numpy(), proj_right=e.proj_right.numpy(), mean_x=e.bias.numpy(),
-             mean_z=f.mean_z.numpy(), sigma_xx_used=sig.numpy(), sigma_xz=sxz.numpy(), singular_values=sv.numpy())
+    np.savez(dd / "leace_map.npz", proj_left=e.proj_left.numpy(), proj_right=e.proj_right.numpy(),
+             mean_x=e.bias.numpy(), mean_z=f.mean_z.numpy(), sigma_xx_used=sig.numpy(), sigma_xz=sxz.numpy(),
+             singular_values_whitened_xz=sv.numpy())
     return e.proj_left.numpy(), e.proj_right.numpy(), e.bias.numpy(), e, sv.numpy()
 
 
@@ -237,9 +240,19 @@ def make_scores(rng, y, K, a):
     return softmax(z)
 
 
-def gen_units(name, work, G):
+def map_id(name, s, arm):
     cell = CELLS[name]
-    root_u, root_d = work / "units", work / "defenses"
+    return (f"{name}__s{s}__{cell['purpose']}__B_{cell['target']}" if arm == "B"
+            else f"{name}__s{s}__{cell['purpose']}__C_{'+'.join(cell['policy'])}")
+
+
+def gen_units(name, work, G):
+    """Units, maps and shared stores in the runner's real layout (read from completed Adult units, 2026-10-02):
+    units/<uid>/{preds.npz, val_preds.npz, supported.json, fit_records.json, COMPLETE.json};
+    defenses/<map_id>/{MAP_RECORD.json, map/leace_map.npz, map/leace_map.json};
+    shared/outputs_only/<key>/preds.npz, shared/U2/<key>/preds.npz."""
+    cell = CELLS[name]
+    root_u, root_d, root_s = work / "units", work / "defenses", work / "shared"
     lab, role, rid = G["labels"], G["role"], G["row_id"]
     y, yt = lab[cell["target"]], lab[cell["task"]]
     K = int(y.max()) + 1
@@ -248,48 +261,66 @@ def gen_units(name, work, G):
     v_rows = rng.permutation(np.flatnonzero(role == "attacker_val"))
     fm, dfm = role == "attacker_fit", role == "defense_fit"
     prior = np.array([np.mean(y[fm] == c) for c in range(K)])
+    ZP = np.concatenate([onehot(lab[a], range(G["dims"][a])) for a in cell["policy"]], axis=1)
     truth = {"alias": {}, "maps": {}}
+
+    def vll(P):
+        return float(log_loss(y[v_rows], P, labels=list(range(K))))
+
     for s in ENC:
         H = G["H"][s]
         reps = {"A": H}
         for arm in ("B", "C"):
             attrs = [cell["target"]] if arm == "B" else list(cell["policy"])
-            cls = {a: list(range(G["dims"][a])) for a in attrs}          # full declared one-hot
-            Z = np.concatenate([onehot(lab[a], cls[a]) for a in attrs], axis=1)
-            mid = f"{name}__s{s}__{cell['purpose']}__{cell['target']}__{arm}"
+            Z = np.concatenate([onehot(lab[a], range(G["dims"][a])) for a in attrs], axis=1)
+            mid = map_id(name, s, arm)
             dd = root_d / mid
-            dd.mkdir(parents=True, exist_ok=True)
-            Lm, Rm, b, er, sv = save_map(dd, H[dfm], Z[dfm])
+            (dd / "map").mkdir(parents=True, exist_ok=True)
+            Lm, Rm, b, er, sv = save_map(dd / "map", H[dfm], Z[dfm])
             Xe = er(torch.from_numpy(H)).numpy()
             reps[arm] = Xe
-            te = np.flatnonzero(np.isin(role, ["attacker_fit", "attacker_val", "assessment"]))
-            np.savez(dd / "transformed.npz", row_id=rid[te], H=Xe[te])
-            xc = (Xe[dfm] - Xe[dfm].mean(0)).T @ (Z[dfm] - Z[dfm].mean(0)) / (dfm.sum() - 1)
-            meta = {"concept_spec": {"attributes": attrs, "classes": cls}, "rank": int(np.sum(sv > 0.01)),
-                    "settings": {"svd_tol": 0.01, "shrinkage": True, "method": "leace", "affine": True,
-                                 "constrain_cov_trace": True},
-                    "fit_row_ids_sha256": hashlib.sha256(np.sort(rid[dfm]).astype(np.int64).tobytes()).hexdigest(),
-                    "native_check": {"xcov_maxabs": float(np.max(np.abs(xc)))}}
-            truth["maps"][mid] = {"P": np.eye(D) - Lm @ Rm, "b": b, "Xe": Xe, "scale": max(1.0, np.max(np.abs(H[dfm])))}
-            (dd / "meta.json").write_text(json.dumps(meta))
-        bid = f"{name}__s{s}__{cell['purpose']}__{cell['target']}__B"
-        cid = bid[:-1] + "C"
-        tb, tc = truth["maps"][bid], truth["maps"][cid]
-        alias = np.max(np.abs(tb["Xe"] - tc["Xe"])) / tb["scale"] <= 1e-10      # same action on every row
-        truth["alias"][s] = bool(alias)
-        if alias:
-            m = json.loads((root_d / cid / "meta.json").read_text())
-            m["alias_of"] = bid
-            (root_d / cid / "meta.json").write_text(json.dumps(m))
+            blocks, c0 = [], 0
+            for a in attrs:
+                blocks.append({"name": a, "n_classes": G["dims"][a], "col_start": c0, "col_stop": c0 + G["dims"][a],
+                               "encoding": "marginal one-hot"})
+                c0 += G["dims"][a]
+            fr_sha = hashlib.sha256(rid[dfm].astype("<i8").tobytes()).hexdigest()
+            settings = {"method": "leace", "affine": True, "constrain_cov_trace": True, "shrinkage": True,
+                        "svd_tol": 0.01}
+            (dd / "map" / "leace_map.json").write_text(json.dumps({
+                "concept_spec": blocks, "rank": int(np.sum(sv > 0.01)), "settings_used": settings,
+                "fit_row_ids_sha256": fr_sha, "npz_file": "leace_map.npz"}))
+            (dd / "MAP_RECORD.json").write_text(json.dumps({
+                "map_id": mid, "concept_spec": {"kind": arm, "attributes": attrs, "blocks": blocks},
+                "defense_fit_row_ids_sha256": hashlib.sha256(b"synthetic-record-convention").hexdigest(),
+                "map_metadata": {"settings_used": settings, "rank": int(np.sum(sv > 0.01))}}))
+            truth["maps"][mid] = {"Xe": Xe, "scale": max(1.0, np.max(np.abs(H[dfm])))}
+        tb, tc = truth["maps"][map_id(name, s, "B")], truth["maps"][map_id(name, s, "C")]
+        truth["alias"][s] = bool(np.max(np.abs(tb["Xe"] - tc["Xe"])) / tb["scale"] <= 1e-10)
+        rid_cache = np.sort(rid)[::-1]
+        pos = {int(r): i for i, r in enumerate(rid)}
         for sg in SIGMAS:
             for k in RS:
-                rid_cache = np.sort(rid)[::-1]
-                pos = {int(r): i for i, r in enumerate(rid)}
                 noise = np.random.default_rng(k).normal(0.0, sg, size=H.shape)
                 nl = np.zeros_like(H)
                 nl[[pos[int(r)] for r in rid_cache]] = noise
                 reps[f"D_sigma{fs(sg)}_rs{k}"] = H + nl
         whead = srng(name, "head", s).normal(size=(D, 2))
+        # outputs-only: fitted once per (dataset, encoder seed, purpose, attribute), shared by every method
+        okey = f"{name}__s{s}__{cell['purpose']}__{cell['target']}"
+        a_out = SIG[(name, "*", "outputs")]
+        out = {}
+        vout = {}
+        for fam, mult in (("L", 0.8), ("GBT", 1.0), ("MLP", 0.9)):
+            out[f"P__outputs__{fam}"] = make_scores(srng(name, s, "outputs", fam, 0), y[a_rows], K, np.asarray(a_out) * mult)
+            vout[fam] = make_scores(srng(name, s, "outputs", fam, "val"), y[v_rows], K, np.asarray(a_out) * mult)
+        osel = min(("GBT", "MLP"), key=lambda f_: vll(vout[f_]))
+        for ak in AS:
+            out[f"P__outputs__NL__as{ak}"] = out[f"P__outputs__{osel}"] if ak == 0 else \
+                make_scores(srng(name, s, "outputs", osel, ak), y[a_rows], K, np.asarray(a_out) * (1.0 if osel == "GBT" else 0.9))
+            out[f"P__outputs__L__as{ak}"] = out["P__outputs__L"]
+        (root_s / "outputs_only" / okey).mkdir(parents=True, exist_ok=True)
+        np.savez(root_s / "outputs_only" / okey / "preds.npz", assess_row_id=rid[a_rows], **out)
         U2_A = None
         for arm_key, Hm in reps.items():
             grp = arm_key.split("_rs")[0]
@@ -297,63 +328,81 @@ def gen_units(name, work, G):
             udir = root_u / uid
             udir.mkdir(parents=True, exist_ok=True)
             sup = own_support(y, role)
-            supj = {"sensitive": {"supported_classes": sup,
-                                  "supported_pairs": [[a, b] for i, a in enumerate(sup) for b in sup[i + 1:]]}}
+            supj = {"unit_id": uid, "sensitive": {"supported_classes": sup,
+                                                  "supported_pairs": [[a, b] for i, a in enumerate(sup) for b in sup[i + 1:]]}}
             (udir / "supported.json").write_text(json.dumps(supj))
-            (udir / "fit_records.json").write_text(json.dumps({"unit": uid}))
+            fr = {"unit_id": uid, "info": {"arm": arm_key}, "recipes": [],
+                  "shared": {"outputs_only": {"key": okey}, "U2": {"key": f"{name}__s{s}__{cell['purpose']}__{arm_key}"}}}
+            if arm_key in ("B", "C"):
+                fr["release"] = {"map": {"map_id": map_id(name, s, arm_key)}}
+            if arm_key == "C":
+                fr["alias_check"] = {"alias": truth["alias"][s]}
             if arm_key == "C" and truth["alias"][s]:
-                (udir / "ALIAS.json").write_text(json.dumps({"alias_of": bid}))
+                (udir / "fit_records.json").write_text(json.dumps(fr))
+                (udir / "ALIAS.json").write_text(json.dumps({"alias_of": uid[:-1] + "B"}))
                 (udir / "COMPLETE.json").write_text(json.dumps({"files": {
                     f: sha(udir / f) for f in ("supported.json", "fit_records.json", "ALIAS.json")}}))
                 continue
             pr = {"assess_row_id": rid[a_rows], "assess_unit": G["unit"][a_rows], "y_s": y[a_rows],
-                  "y_task": yt[a_rows], "val_row_id": rid[v_rows], "s_prior_fit": prior,
-                  "t_prior_fit": np.array([np.mean(yt[fm] == c) for c in range(2)])}
-            # attacker slates
-            sel = {}
-            for surf in ("rep", "outputs", "repPLUSoutputs"):
-                a = SIG[(name, "*", "outputs")] if surf == "outputs" else SIG[(name, grp, surf)]
-                cand = {}
-                for fam, mult in (("L", 0.8), ("GBT", 1.0), ("MLP", 0.9)):
-                    seedtag = (name, s, "outputs", fam) if surf == "outputs" else (name, s, arm_key, surf, fam)
-                    for ak in AS:
-                        if fam == "L" and ak > 0:
-                            pr[f"P__{surf}__L__as{ak}"] = pr[f"P__{surf}__L__as0"]
-                            continue
-                        r = srng(*seedtag, ak)
-                        pr[f"P__{surf}__{fam}__as{ak}"] = make_scores(r, y[a_rows], K, np.asarray(a) * mult)
-                        if ak == 0:
-                            pr[f"V__{surf}__{fam}__as0"] = make_scores(srng(*seedtag, "val"), y[v_rows], K,
-                                                                     np.asarray(a) * mult)
-                    cand[fam] = fam
-                if surf == "repPLUSoutputs":
-                    for cnd, src in (("ignore_rep", "outputs"), ("ignore_out", "rep")):
-                        pr[f"P__{surf}__{cnd}__as0"] = pr[f"P__{src}__NL__as0"]
-                        pr[f"V__{surf}__{cnd}__as0"] = pr[f"V__{src}__NL__as0"]
-                        cand[cnd] = cnd
-                lls = {c: log_loss(y[v_rows], pr[f"V__{surf}__{c}__as0"], labels=list(range(K))) for c in cand}
-                best = min(lls, key=lls.get)
-                sel[surf] = best
-                for ak in AS:
-                    if best in ("ignore_rep", "ignore_out"):
-                        src = "outputs" if best == "ignore_rep" else "rep"
-                        pr[f"P__{surf}__NL__as{ak}"] = pr[f"P__{src}__NL__as{ak}"]
-                    else:
-                        pr[f"P__{surf}__NL__as{ak}"] = pr[f"P__{surf}__{best}__as{ak}"]
-                pr[f"V__{surf}__NL__as0"] = pr[f"V__{surf}__{best}__as0"]
-            # held-out G1 / G2 / rho
+                  "y_task": yt[a_rows], "s_prior_fit": prior, "OUT_logits": G["logits"][s][a_rows],
+                  "t_prior_fit": np.array([np.mean(yt[fm] == c) for c in range(2)]), **out}
+            vp = {"val_row_id": rid[v_rows], "val_y_s": y[v_rows]}
+            # C_rep slate: grid L / GBT / MLP; NL = argmin val log loss over {GBT, MLP}; seeds retrain NL
+            a = SIG[(name, grp, "rep")]
+            V = {}
+            for fam, mult in (("L", 0.8), ("GBT", 1.0), ("MLP", 0.9)):
+                pr[f"P__rep__{fam}"] = make_scores(srng(name, s, arm_key, "rep", fam, 0), y[a_rows], K, np.asarray(a) * mult)
+                V[fam] = make_scores(srng(name, s, arm_key, "rep", fam, "val"), y[v_rows], K, np.asarray(a) * mult)
+            cl = {f_: vll(V[f_]) for f_ in ("GBT", "MLP")}
+            rsel = min(cl, key=cl.get)
+            for ak in AS:
+                pr[f"P__rep__NL__as{ak}"] = pr[f"P__rep__{rsel}"] if ak == 0 else make_scores(
+                    srng(name, s, arm_key, "rep", rsel, ak), y[a_rows], K, np.asarray(a) * (1.0 if rsel == "GBT" else 0.9))
+                pr[f"P__rep__L__as{ak}"] = pr["P__rep__L"]
+            vp["VAL__rep__NL__as0"], vp["VAL__rep__L"] = V[rsel], V["L"]
+            fr["recipes"].append({"surface": "rep", "recipe": "NL", "nl_selection": {"selected_family": rsel,
+                                                                                    "candidates": cl}})
+            if arm_key.startswith("D_"):
+                pr["P__rep__LRT_A2"] = make_scores(srng(uid, "A2"), y[a_rows], K, 0.1)
+                pr["P__rep__LRT_A4"] = make_scores(srng(uid, "A4"), y[a_rows], K, 0.3)
+            # C_rep_plus_clean_out slates: NL over {GBT, MLP, ignore_rep, ignore_out}; L over {L, ignore_rep, ignore_out}
+            a = SIG[(name, grp, "repPLUSoutputs")]
+            Vp = {}
+            for fam, mult in (("L", 0.8), ("GBT", 1.0), ("MLP", 0.9)):
+                pr[f"P__repPLUSoutputs__{fam}"] = make_scores(srng(name, s, arm_key, "plus", fam, 0), y[a_rows], K,
+                                                               np.asarray(a) * mult)
+                Vp[fam] = make_scores(srng(name, s, arm_key, "plus", fam, "val"), y[v_rows], K, np.asarray(a) * mult)
+            pr["P__repPLUSoutputs__ignore_rep"] = out["P__outputs__NL__as0"]
+            pr["P__repPLUSoutputs__ignore_out"] = pr["P__rep__NL__as0"]
+            Vp["ignore_rep"], Vp["ignore_out"] = vout[osel], V[rsel]
+            cn = {f_: vll(Vp[f_]) for f_ in ("GBT", "MLP", "ignore_rep", "ignore_out")}
+            psel = min(cn, key=cn.get)
+            for ak in AS:
+                if psel == "ignore_rep":
+                    pr[f"P__repPLUSoutputs__NL__as{ak}"] = out[f"P__outputs__NL__as{ak}"]
+                elif psel == "ignore_out":
+                    pr[f"P__repPLUSoutputs__NL__as{ak}"] = pr[f"P__rep__NL__as{ak}"]
+                else:
+                    pr[f"P__repPLUSoutputs__NL__as{ak}"] = pr[f"P__repPLUSoutputs__{psel}"] if ak == 0 else make_scores(
+                        srng(name, s, arm_key, "plus", psel, ak), y[a_rows], K,
+                        np.asarray(a) * (1.0 if psel == "GBT" else 0.9))
+                pr[f"P__repPLUSoutputs__Lslate__as{ak}"] = pr["P__repPLUSoutputs__L"]
+            fr["recipes"].append({"surface": "rep+outputs", "recipe": "NL", "plus_selection": {
+                "NL": {"selected": psel, "candidates_attacker_val_log_loss": cn},
+                "L": {"selected": "L", "candidates_attacker_val_log_loss": {"L": -1.0}}}})
+            truth.setdefault("selected", {})[uid] = {"rep": rsel, "repPLUSoutputs": psel, "outputs": osel}
+            # held-out G1 / G2 / rho, HX / ZP
             Y = onehot(y, range(K))
-            g1 = Ridge(alpha=1e-6).fit(Hm[fm], Y[fm])
-            pr["G1_pred"] = g1.predict(Hm[a_rows])
+            pr["G1_pred"] = Ridge(alpha=1e-6).fit(Hm[fm], Y[fm]).predict(Hm[a_rows])
             pr["G1_prior"] = Y[fm].mean(0)
-            mu, sd = Hm[fm].mean(0), Hm[fm].std(0)
-            g2 = Ridge(alpha=1.0).fit((Hm[fm] - mu) / sd, Y[fm])
-            pr["G2_pred"] = g2.predict((Hm[a_rows] - mu) / sd)
+            mu, sd = Hm[fm].mean(0), Hm[fm].std(0) + 1e-12
+            pr["G2_pred"] = Ridge(alpha=1.0).fit((Hm[fm] - mu) / sd, Y[fm]).predict((Hm[a_rows] - mu) / sd)
             pr["G2_prior"] = Y[fm].mean(0)
             cca = CCA(n_components=1).fit(Hm[fm], Y[fm][:, :-1])
             u_, v_ = cca.transform(Hm[a_rows], Y[a_rows][:, :-1])
             pr["RHO_u"], pr["RHO_v"] = u_.ravel(), v_.ravel()
-            # label-only (Laplace 1) and utility
+            if arm_key in ("A", "B", "C"):
+                pr["HX"], pr["ZP"] = Hm[a_rows], ZP[a_rows]
             lo = np.empty((len(a_rows), K))
             for t in (0, 1):
                 ss = fm & (yt == t)
@@ -369,10 +418,14 @@ def gen_units(name, work, G):
                 sw = srng(name, s, arm_key, "u2").random(len(a_rows)) < f
                 U2[sw] = U2[sw][:, ::-1]
                 pr["U2_P"] = U2
+            ukey = fr["shared"]["U2"]["key"]
+            (root_s / "U2" / ukey).mkdir(parents=True, exist_ok=True)
+            np.savez(root_s / "U2" / ukey / "preds.npz", U2_P=pr["U2_P"], assess_row_id=rid[a_rows])
             np.savez(udir / "preds.npz", **pr)
+            np.savez(udir / "val_preds.npz", **vp)
+            (udir / "fit_records.json").write_text(json.dumps(fr))
             (udir / "COMPLETE.json").write_text(json.dumps({"files": {
-                f: sha(udir / f) for f in ("preds.npz", "supported.json", "fit_records.json")}}))
-            truth.setdefault("selected", {})[uid] = sel
+                f: sha(udir / f) for f in ("preds.npz", "val_preds.npz", "supported.json", "fit_records.json")}}))
     return truth
 
 
@@ -410,7 +463,7 @@ def ref_unit_points(pr, y, yt, sup, prior):
             tag = "LO"
         else:
             _, surf, rest = k.split("__", 2)
-            tag = "P|" + surf + "|" + rest.replace("__", "|")
+            tag = "P|" + surf + "|" + rest.replace("__", "|") + ("" if "__as" in rest else "|fixed")
         if len(sup) >= 2:
             cl = [roc_auc_score(y == c, P[:, c]) for c in sup]
             out[f"{tag}|AUC_macro"] = float(np.mean(cl))
@@ -529,10 +582,10 @@ def ref_sigma_star(work, G):
             for s in ENC:
                 for k in RS:
                     pr = np.load(work / "units" / f"{ds}__s{s}__{cell['purpose']}__{cell['target']}__D_sigma{fs(sg)}_rs{k}"
-                                 / "preds.npz")
+                                 / "val_preds.npz")
                     yv = G[ds]["labels"][cell["target"]][[pos[int(r)] for r in pr["val_row_id"]]]
                     sup = own_support(G[ds]["labels"][cell["target"]], G[ds]["role"])
-                    vals.append(np.mean([roc_auc_score(yv == c, pr["V__rep__NL__as0"][:, c]) for c in sup]))
+                    vals.append(np.mean([roc_auc_score(yv == c, pr["VAL__rep__NL__as0"][:, c]) for c in sup]))
             curve[sg] = float(np.mean(vals))
         q = [sg for sg in sorted(SIGMAS) if curve[sg] <= 0.55]
         out[ds] = {"sigma_star": q[0] if q else max(SIGMAS), "flagged": not q, "curve": curve}
@@ -866,14 +919,14 @@ def main(argv=None):
           any(v["n_truncated_directions"] > 0 and v["xcov_after_relative"] > 1e-6 for v in maps_.values()),
           {k_: (f"{v['xcov_after_relative']:.1e}", v["n_truncated_directions"]) for k_, v in maps_.items()})
     C.add("LEACE: rank-deficient defense_fit covariance case present (hmda s0 dead unit)",
-          lc["hmda__s0__underwriting__race__B"]["fit_rank_sample_cov"] < D)
+          lc["hmda__s0__underwriting__B_race"]["fit_rank_sample_cov"] < D)
     lci = [i for i in payload["items"] if i["scope"] == "leace" and i["status"] not in ("PASS", "INFO")]
     C.add("LEACE: every leace-scope item PASS/INFO in the clean run", not lci, [i["check"] for i in lci][:5])
     C.add("LEACE: B==C alias determined from saved maps (hmda alias, adult not)",
           all(lc[f"hmda__s{s}__alias"]["alias_replay"] for s in ENC) and
           not any(lc[f"adult__s{s}__alias"]["alias_replay"] for s in ENC))
-    tr_items = [i for i in payload["items"] if "saved transformed rows" in i["check"]]
-    C.add("LEACE: transformed attacker-role rows use the original fitting mean", tr_items and
+    tr_items = [i for i in payload["items"] if "saved HX ==" in i["check"]]
+    C.add("LEACE: saved transformed assessment rows (HX) use the original fitting mean", tr_items and
           all(i["status"] == "PASS" for i in tr_items), len(tr_items))
     g1i = [i for i in payload["items"] if "G1_pred == fixed-ridge" in i["check"]]
     C.add("G1: saved G1_pred re-derived (A raw, B/C via saved map, D via pilot noise convention) on every unit",
@@ -915,21 +968,16 @@ def main(argv=None):
     mutate("supported.json drops a supported class", m_support, r"hmda__s0__underwriting__race__A: supported classes")
 
     def m_transform(md):
-        dd = md / "defenses" / "adult__s1__income_prediction__sex__B"
-        mp = dict(np.load(dd / "map.npz"))
-        mp["mean"] = mp["mean_x"]
-        t = dict(np.load(dd / "transformed.npz"))
+        f = md / "units" / "adult__s1__income_prediction__sex__B" / "preds.npz"
+        d = dict(np.load(f))
+        mp = dict(np.load(md / "defenses" / "adult__s1__income_prediction__B_sex" / "map" / "leace_map.npz"))
         g = G["adult"]
-        pos = {int(r): i for i, r in enumerate(g["row_id"])}
-        idx = np.array([pos[int(r)] for r in t["row_id"]])
+        idx = np.array([int(r) for r in d["assess_row_id"]])          # synthetic row_id == position
         Hh = g["H"][1][idx]
-        out = np.empty_like(Hh)
-        for r_ in np.unique(g["role"][idx]):
-            sel = g["role"][idx] == r_
-            out[sel] = RB.leace_apply(Hh[sel], mp["proj_left"], mp["proj_right"], Hh[sel].mean(0))
-        t["H"] = out
-        np.savez(dd / "transformed.npz", **t)
-    mutate("transform uses each role's own mean", m_transform, r"adult__s1__income_prediction__sex__B: saved transformed")
+        d["HX"] = RB.leace_apply(Hh, mp["proj_left"], mp["proj_right"], Hh.mean(0))
+        np.savez(f, **d)
+    mutate("transform uses the assessment rows' own mean", m_transform,
+           r"adult__s1__income_prediction__sex__B: saved HX")
 
     def m_alias(md):
         u = md / "units" / "adult__s0__income_prediction__sex__C"
@@ -954,25 +1002,25 @@ def main(argv=None):
     mutate("hmda roles hashed with the Adult salt", m_salt, r"hmda: stored test-split roles")
 
     def m_concept(md):
-        dd = md / "defenses" / "adult__s0__income_prediction__sex__B"
+        dd = md / "defenses" / "adult__s0__income_prediction__B_sex" / "map"
         g = G["adult"]
         dfm = g["role"] == "defense_fit"
         save_map(dd, g["H"][0][dfm], onehot(g["labels"]["income"][dfm], [0, 1]))
     mutate("B map fitted on the wrong concept", m_concept,
-           r"adult__s0__income_prediction__sex__B: (saved sigma_xz ==|NATIVE .*recomputed rows|erased defense_fit rows ==)")
+           r"adult__s0__income_prediction__B_sex: (saved sigma_xz ==|NATIVE .*recomputed rows|erased defense_fit rows ==)")
 
     def m_mean(md):
-        dd = md / "defenses" / "hmda__s0__underwriting__race__B"
-        mp = dict(np.load(dd / "map.npz"))
+        dd = md / "defenses" / "hmda__s0__underwriting__B_race" / "map"
+        mp = dict(np.load(dd / "leace_map.npz"))
         g = G["hmda"]
         mp["mean_x"] = g["H"][0][g["role"] == "attacker_fit"].mean(0)
-        np.savez(dd / "map.npz", **mp)
-    mutate("saved mean is not the defense_fit mean", m_mean, r"hmda__s0__underwriting__race__B: saved mean_x")
+        np.savez(dd / "leace_map.npz", **mp)
+    mutate("saved mean is not the defense_fit mean", m_mean, r"hmda__s0__underwriting__B_race: saved mean_x")
 
     def m_ignore(md):
         f = md / "units" / "adult__s1__income_prediction__sex__A" / "preds.npz"
         d = dict(np.load(f))
-        d["P__repPLUSoutputs__ignore_rep__as0"] = d["P__repPLUSoutputs__GBT__as0"]
+        d["P__repPLUSoutputs__ignore_rep"] = d["P__repPLUSoutputs__GBT"]
         np.savez(f, **d)
     mutate("ignore-rep candidate is not the outputs-only model", m_ignore,
            r"adult__s1__income_prediction__sex__A: repPLUSoutputs 'ignore_rep'")
@@ -980,9 +1028,26 @@ def main(argv=None):
     def m_outputs(md):
         f = md / "units" / "hmda__s1__underwriting__race__D_sigma2_rs0" / "preds.npz"
         d = dict(np.load(f))
-        d["P__outputs__GBT__as1"] = d["P__outputs__GBT__as1"][::-1]
+        d["P__outputs__NL__as1"] = d["P__outputs__NL__as1"][::-1]
         np.savez(f, **d)
-    mutate("outputs-only surface not aliased across methods", m_outputs, r"D_sigma2_rs0: outputs/GBT/as1 identical")
+    mutate("outputs-only surface not aliased across methods", m_outputs,
+           r"D_sigma2_rs0: (outputs/NL/as1 identical|outputs_only arrays == shared)")
+
+    def m_sel(md):
+        f = md / "units" / "adult__s0__income_prediction__sex__D_sigma0.5_rs1" / "fit_records.json"
+        j = json.loads(f.read_text())
+        r = j["recipes"][0]["nl_selection"]
+        r["selected_family"] = "MLP" if r["selected_family"] == "GBT" else "GBT"
+        f.write_text(json.dumps(j))
+    mutate("recorded NL selection is not the argmin of the recorded val log losses", m_sel,
+           r"D_sigma0.5_rs1: rep NL (recorded selection|as0 predictions)")
+
+    def m_u2(md):
+        f = md / "shared" / "U2" / "hmda__s1__underwriting__B" / "preds.npz"
+        d = dict(np.load(f))
+        d["U2_P"] = d["U2_P"][:, ::-1]
+        np.savez(f, **d)
+    mutate("unit U2 predictions differ from the shared U2 store", m_u2, r"hmda__s1__underwriting__race__B: U2 arrays")
 
     # ---------------- mutations (runner report): reuse the clean replay results
     def report_mut(name, fn, rx):
@@ -1043,14 +1108,15 @@ def main(argv=None):
     out = {"schema": "pcrl.matched_removal_benchmark.replay_synthetic_validation/v1",
            "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "replay_bench_sha256": sha(HERE / "replay_bench.py"), "test_sha256": sha(Path(__file__)),
-           "workdir": str(work), "B_primary": a.b_prim, "B_exploratory": a.b_expl, "B_reference": a.b_ref,
+           "workdir": "<scratch>/bench_verify", "B_primary": a.b_prim, "B_exploratory": a.b_expl, "B_reference": a.b_ref,
            "clean_replay_seconds": round(t_clean, 1), "clean_replay_summary": summ,
            "clean_replay_non_pass": [(i["check"], i["status"]) for i in nonpass],
            "tolerances_frozen_before_real_run": payload["tolerances"],
            "mutations": mutations, "null_calibration": nc,
            "n_checks": len(C.items), "n_pass": sum(i["pass"] for i in C.items), "checks": C.items,
            "elapsed_s": round(time.time() - t0, 1)}
-    Path(a.out).write_text(json.dumps(RB._jsonable(out), indent=1))
+    txt = RB.scrub_text(json.dumps(RB._jsonable(out), indent=1), extra=[str(work)])
+    Path(a.out).write_text(txt)
     print(f"\n{out['n_pass']}/{out['n_checks']} checks pass; {time.time() - t0:.0f}s", flush=True)
     return 0 if out["n_pass"] == out["n_checks"] else 1
 
