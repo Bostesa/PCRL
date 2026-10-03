@@ -1,0 +1,25 @@
+% Recipient diagram: permitted release paths (solid) and the historical bypass (dashed red).
+\begin{tikzpicture}[
+  font=\footnotesize, >=Latex,
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=9mm, inner sep=3pt},
+  own/.style={box, fill=black!4},
+  rel/.style={box, fill=blue!6},
+  bad/.style={box, fill=red!6, draw=red!60!black}]
+  \node[own] (x) at (0,0) {record $x$};
+  \node[own] (enc) at (2.55,0) {stored encoder\\seeded random\\backbone + LoRA};
+  \node[own] (h) at (4.9,0) {features $h$};
+  \node[rel] (arm) at (7.05,0) {feature arm\\A / B / F / F0};
+  \node[rel] (hd) at (9.45,0) {own task head\\LR on arm\\features only};
+  \node[rel] (out) at (11.9,0) {output format\\full / centred\\prob / hard};
+  \node[box, fill=yellow!12, minimum height=36mm, text width=15mm] (rec) at (14.4,-0.25) {recipient\\(attacker)};
+  \node[bad] (clean) at (4.9,-1.75) {historical clean\\PCRL task logits};
+  \draw[->] (x) -- (enc);
+  \draw[->] (enc) -- (h);
+  \draw[->] (h) -- (arm);
+  \draw[->] (arm) -- (hd);
+  \draw[->] (hd) -- (out);
+  \draw[->, thick] (out) -- node[above]{(1)} (out -| rec.west);
+  \draw[->, thick] (arm.north) |- node[pos=0.72, above]{(2) features, released with the own output} (rec.west |- 0,1.15);
+  \draw[->, dashed, thick, red!70!black] (enc.south) |- (clean.west);
+  \draw[->, dashed, thick, red!70!black] (clean.east) -- node[pos=0.52, above, text=red!60!black]{(3) bypass: features + clean logits (adverse control)} (clean -| rec.west);
+\end{tikzpicture}
