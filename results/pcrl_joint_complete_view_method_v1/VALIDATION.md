@@ -54,3 +54,9 @@ See `INDEPENDENT_VERIFICATION.json` and `verification/replay_jcv.py`. The sectio
 2. **`8c` coalition table recording.** In 16 coalition banks the ignore-other-view attacker won. The outer record then stores the local view's slate table under the coalition key, so the coalition's own slate losses are not in the record. The verifier refit the coalition slate for 2 cases (s2/J, s1/U) and confirmed the local attacker wins on validation log loss. This is a recording gap only.
 3. **`10c2` A1 wording.** The probabilities changed at round-off (≤ 5.6e-17). An erratum has been added to `AMENDMENT_A1_2026-10-03.md`.
 4. **`10h` locked document hash.** `UNIT_MANIFEST.csv` changed after the lock. The change was the post-run `status` column and the replacement of the two `<F-selected>` F0 placeholders per seed by the concrete names. The planned unit list and every other column are unchanged (diffed against `a984a1e`).
+
+**Additional items from the verifier's final report:**
+- **A1 row count.** The erratum is corrected: 195 rows per seed, 390 non-finite entries.
+- **FARE certificate reporting.** The wrapper's refusal (UNAVAILABLE in `NATIVE_VS_AUDIT.csv`) and the descriptive record-identity recomputation (`FARE_CERTIFICATES_A3.json`: vacuous or unavailable) are now documented in `AMENDMENT_A3_2026-10-03.md`.
+- **FARE seeds.** FARE seeds are not independent fits; this is added to the limits.
+- **Scope of check 8c.** The verifier refit non-selected attackers (the coalition's own slate) for two views to audit the bank decision. No defense was trained.

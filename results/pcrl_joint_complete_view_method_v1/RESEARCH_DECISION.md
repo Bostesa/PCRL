@@ -130,6 +130,16 @@ Claim 1 is computed on the INFEASIBLE configurations, so it is descriptive only.
 | C\* | None |
 | Original-PCRL adaptation; isolate-then-noise | Not run (optional): neither the architecture nor the noise semantics were admitted for these corrected inputs. The baseline set is not exhaustive. |
 
+## Additional limits found by the independent replay
+
+- The selected FARE trees are the same cell partition on all three seeds, except F0 income on seed 1. The official tree is effectively deterministic on these inputs, so the F/F0 seed spread does not reflect independent fits.
+- P02's upper bound, 0.0094, is close to its 0.01 target.
+- Per-seed coalition synergy:
+  - L: 0.052, 0.011, −0.001;
+  - J: −0.001, 0.027, 0.000.
+
+  Coalition-specific signal is small and seed-dependent.
+
 ## Next step (prospective; not run)
 
 A future design must either drop the mandatory final linear eraser for tasks whose labels depend on the protected attribute, or register a gate that permits the known parity cost. **Either would be a new protocol on new data**, not a rescoring of these outer results.

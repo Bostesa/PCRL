@@ -26,3 +26,5 @@ No inner, selection or outer result had been produced when this amendment was ma
 - **No decision effect.** Hard decisions are bitwise unchanged (asserted), and every inner, selection and outer result used the post-A1 arrays.
 
 The independent verifier found this (WARN `10c2`).
+
+The affected-row count is also imprecise. It was **195 rows per seed** (each with 2 non-finite centred-logit entries, i.e. 390 entries), not "390 rows each". Finite centred logits moved by at most 9.3e-7 under A1.
