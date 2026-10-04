@@ -1,0 +1,325 @@
+{
+ "schema": "rgj-role-manifest-v1",
+ "study": "pcrl_refreshed_guarded_joint_v1",
+ "produced_by": "results/pcrl_refreshed_guarded_joint_v1/provenance/role_check.py (independent of rgj.data)",
+ "all_rows_historically_exposed": true,
+ "exposure_note": "Every row in every role below has been used by earlier studies (see EXPOSURE_LEDGER.md). DEVELOPMENT_ASSESSMENT is a new development partition, not fresh confirmation.",
+ "source": {
+  "file": "~/PCRL_eval_cache_private/jcv_v1/inputs/adult_jcv.npz",
+  "sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+  "sha256_matches_admitted": true,
+  "arrays_present": [
+   "row_id",
+   "unit",
+   "role",
+   "X",
+   "feature_names",
+   "sex",
+   "race",
+   "y_income",
+   "y_occupation_group"
+  ],
+  "arrays_read_by_this_check": [
+   "role",
+   "unit",
+   "row_id",
+   "feature_names",
+   "X"
+  ],
+  "label_arrays_read_by_this_check": [],
+  "rows_total": 39205,
+  "groups_total": 39168,
+  "predecessor_admission": "results/pcrl_joint_complete_view_method_v1/DATA_ADMISSION.json",
+  "X_sha256_matches_predecessor_admission": true
+ },
+ "rule": {
+  "text": "DEFENSE_FIT = old defense_train; AUDIT_FIT = old attacker_fit; INNER_SELECTION = old attacker_val. Old defense_val is allocated by exact-record group (unit): u = int(sha256('20261004|dev|<unit>')[:16], 16) / 2**64; HEAD_VALIDATION iff u < 0.30, else DEVELOPMENT_ASSESSMENT. DEFENSE_FIT is split by group with the same hash and salt 'critic': CRITIC_FIT u < 0.70, CRITIC_VAL 0.70 <= u < 0.85, CALIB u >= 0.85 (encoders still train on all of DEFENSE_FIT). Old assessment, cert, excluded_exposure and excluded_dup rows are dropped at load. The allocation reads only the old role array and the group ids; no label is read.",
+  "seed": 20261004,
+  "head_share": 0.3,
+  "critic_split": [
+   0.7,
+   0.85
+  ],
+  "hash": "sha256 of the UTF-8 string '<seed>|<salt>|<unit as decimal int>', first 16 hex digits / 2**64",
+  "salts": {
+   "defense_val split": "dev",
+   "DEFENSE_FIT critic subroles": "critic"
+  },
+  "analysis_unit": "exact-record group `unit` (de-duplicated full raw record incl. labels and fnlwgt; Adult has no household identifiers)",
+  "labels_read_to_form_roles": false
+ },
+ "old_roles": {
+  "definition": "oar-roles-v1 as admitted by jcv (defense_val = oar head holdout)",
+  "per_role": {
+   "assessment": {
+    "rows": 5243,
+    "groups": 5243,
+    "row_id_sha256": "9ba29f949f4bc0e7482d7174ab081d581163d82491bbb104e3301425a764c35b",
+    "group_id_set_sha256": "06f3760584badd5dc087c2f4d793c181a140ab1961eec630e9a9730c52373a85"
+   },
+   "attacker_fit": {
+    "rows": 6065,
+    "groups": 6061,
+    "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+    "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c"
+   },
+   "attacker_val": {
+    "rows": 2235,
+    "groups": 2234,
+    "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+    "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b"
+   },
+   "cert": {
+    "rows": 1500,
+    "groups": 1500,
+    "row_id_sha256": "c05fa9806d4155fd6679b2aef4eff9634e5f3ef94146e3a1f8d57edcb37577d1",
+    "group_id_set_sha256": "679db56f8117fa9f63e4c7acf7af41d16aeb7073e1251a35a49b258f3e628c4c"
+   },
+   "defense_train": {
+    "rows": 19230,
+    "groups": 19221,
+    "row_id_sha256": "57415ae3a0885640440e68c873f6a7b7a5641ee385a5ef8dd5cd5a4a72fa6977",
+    "group_id_set_sha256": "5076c5f62d1a4741e44af5ab577445c0d7df19bd5707b674be2d648f03ee26dc"
+   },
+   "defense_val": {
+    "rows": 4897,
+    "groups": 4892,
+    "row_id_sha256": "a80977aceb5783d0e6b577f0ac64dbdd915da837f98aa12c0bfa7b05110c3862",
+    "group_id_set_sha256": "e75c8e089651e43d6ec0720a701cd29e47c63d99447b62ea3df134726e23ab92"
+   },
+   "excluded_dup": {
+    "rows": 18,
+    "groups": 17,
+    "row_id_sha256": "b9a0732187327ea74949b7ba27901191fc9899b0228825bdfe0729a3d7c8d787",
+    "group_id_set_sha256": "ac876a32c12f7f6df6424ab9cb906679feb16dbacffb1151d08608957d3d86a8"
+   },
+   "excluded_exposure": {
+    "rows": 17,
+    "groups": 17,
+    "row_id_sha256": "04aede59d0d279a57fd2241f5986fc5783b664500c7fd513c74b2e4eb173f3d3",
+    "group_id_set_sha256": "ac876a32c12f7f6df6424ab9cb906679feb16dbacffb1151d08608957d3d86a8"
+   }
+  },
+  "matches_predecessor_DATA_ADMISSION": {
+   "assessment": true,
+   "attacker_fit": true,
+   "attacker_val": true,
+   "cert": true,
+   "defense_train": true,
+   "defense_val": true,
+   "excluded_dup": true,
+   "excluded_exposure": true
+  },
+  "groups_spanning_old_roles": {
+   "excluded_dup+excluded_exposure": 17
+  }
+ },
+ "roles": {
+  "DEFENSE_FIT": {
+   "rows": 19230,
+   "groups": 19221,
+   "row_id_sha256": "57415ae3a0885640440e68c873f6a7b7a5641ee385a5ef8dd5cd5a4a72fa6977",
+   "group_id_set_sha256": "5076c5f62d1a4741e44af5ab577445c0d7df19bd5707b674be2d648f03ee26dc",
+   "source": "defense_train",
+   "permitted_use": "encoders, training heads, critics, LEACE maps, FARE trees, input preprocessing"
+  },
+  "HEAD_VALIDATION": {
+   "rows": 1500,
+   "groups": 1499,
+   "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+   "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d",
+   "source": "old defense_val (group-hash split)",
+   "permitted_use": "task-head C selection only"
+  },
+  "DEVELOPMENT_ASSESSMENT": {
+   "rows": 3397,
+   "groups": 3393,
+   "row_id_sha256": "7467112adb6b0483e9967c9d5ba984db4fcc82105297562edf850d230166fa7d",
+   "group_id_set_sha256": "7a48a2ec2e6c0a6680238e6afe5c984d82df17b12f0e612c1173fb32d9930f73",
+   "source": "old defense_val (group-hash split)",
+   "permitted_use": "sealed until EVALUATION_LOCK.json is pushed; counts and row-id hashes only in this manifest (no label statistic)"
+  },
+  "AUDIT_FIT": {
+   "rows": 6065,
+   "groups": 6061,
+   "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+   "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c",
+   "source": "attacker_fit",
+   "permitted_use": "inner and final attacker fitting"
+  },
+  "INNER_SELECTION": {
+   "rows": 2235,
+   "groups": 2234,
+   "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+   "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b",
+   "source": "attacker_val",
+   "permitted_use": "candidate evaluation, nomination, attacker selection"
+  }
+ },
+ "defense_fit_subroles": {
+  "CRITIC_FIT": {
+   "rows": 13543,
+   "groups": 13538,
+   "row_id_sha256": "955476352fde567936f4a92f018a08e3b73966c4db7d44452f538a6212872873",
+   "group_id_set_sha256": "9af1c77c1a3160cb6b77a9e4d533df79e1a58ac8c121d732cf673a8e1cb47865",
+   "source": "DEFENSE_FIT (group-hash split, salt 'critic')",
+   "permitted_use": "critic fitting"
+  },
+  "CRITIC_VAL": {
+   "rows": 2844,
+   "groups": 2843,
+   "row_id_sha256": "ae38cfa1a5720beb6ad3ab307ad650b4dfc9db54d3cd508cfe754fe308e4b12c",
+   "group_id_set_sha256": "cd13e4724ecec8781367a79c00c3b1c5f8058f3223e31626e56e8833f3c52202",
+   "source": "DEFENSE_FIT (group-hash split, salt 'critic')",
+   "permitted_use": "bounded-refit early stopping and attempt choice"
+  },
+  "CALIB": {
+   "rows": 2843,
+   "groups": 2840,
+   "row_id_sha256": "416ffa68e3705bce456f453e502f7b017be6942de8a777ebd3f319b55ecc1740",
+   "group_id_set_sha256": "1383de7349cb31a7f2c108531954725585b0bbba405c3e5347908a5cc5d340f9",
+   "source": "DEFENSE_FIT (group-hash split, salt 'critic')",
+   "permitted_use": "constraint / multiplier calibration rows"
+  }
+ },
+ "dropped_pools": {
+  "pools": [
+   "assessment",
+   "cert",
+   "excluded_exposure",
+   "excluded_dup"
+  ],
+  "rows": {
+   "assessment": 5243,
+   "cert": 1500,
+   "excluded_exposure": 17,
+   "excluded_dup": 18
+  },
+  "rows_total": 6778,
+  "treatment": "excluded from every new fitting, selection, inference and reporting call; their labels are not read and no new prediction is produced for them"
+ },
+ "assertions": {
+  "new_roles_row_disjoint": true,
+  "new_roles_group_disjoint": true,
+  "subroles_row_and_group_disjoint": true,
+  "subroles_partition_DEFENSE_FIT": true,
+  "defense_val_fully_allocated": true,
+  "no_group_spans_two_new_roles_or_a_new_role_and_a_dropped_pool": true,
+  "dropped_rows_receive_no_new_role": true,
+  "float_rule_equals_exact_rational_rule_for_every_group": true
+ },
+ "groups_spanning_dropped_pools_only": 17,
+ "permitted_columns": {
+  "n_columns": 83,
+  "source_columns_kept": [
+   "age",
+   "education-num",
+   "capital-gain",
+   "capital-loss",
+   "hours-per-week",
+   "workclass",
+   "education",
+   "marital-status",
+   "relationship",
+   "native-country"
+  ],
+  "columns_per_source": {
+   "age": 1,
+   "education-num": 1,
+   "capital-gain": 1,
+   "capital-loss": 1,
+   "hours-per-week": 1,
+   "workclass": 8,
+   "education": 16,
+   "marital-status": 7,
+   "relationship": 6,
+   "native-country": 41
+  },
+  "excluded_source_columns": [
+   "sex",
+   "race",
+   "income",
+   "occupation",
+   "fnlwgt",
+   "row id / record key"
+  ],
+  "forbidden_column_names_present": [],
+  "relationship_Husband_present": true,
+  "relationship_Wife_present": true,
+  "proxy_note": "relationship=Husband / relationship=Wife are kept permitted proxies: in the predecessor's shortcut audit (DATA_ADMISSION.json) they determine SEX for about 46% of rows. They are deliberately not dropped; see EXPOSURE_LEDGER.md.",
+  "numeric_standardisation_fit_on_DEFENSE_FIT": true,
+  "numeric_check": {
+   "age": {
+    "defense_fit_mean": 0.0,
+    "defense_fit_std": 1.0
+   },
+   "education-num": {
+    "defense_fit_mean": 0.0,
+    "defense_fit_std": 1.0
+   },
+   "capital-gain": {
+    "defense_fit_mean": 0.0,
+    "defense_fit_std": 1.0
+   },
+   "capital-loss": {
+    "defense_fit_mean": -0.0,
+    "defense_fit_std": 1.0
+   },
+   "hours-per-week": {
+    "defense_fit_mean": -0.0,
+    "defense_fit_std": 1.0
+   }
+  },
+  "categorical_blocks_are_exact_one_hot": true
+ },
+ "input_duplicate_note": {
+  "what": "Groups are exact full-record duplicates. Rows that are identical on the 83 permitted inputs but differ in a removed column (labels, fnlwgt, sex, race) are different groups and can sit in different roles. Count of rows per role whose input vector also occurs in DEFENSE_FIT:",
+  "counts": {
+   "HEAD_VALIDATION": {
+    "rows_whose_X_also_occurs_in_DEFENSE_FIT": 589
+   },
+   "DEVELOPMENT_ASSESSMENT": {
+    "rows_whose_X_also_occurs_in_DEFENSE_FIT": 1385
+   },
+   "AUDIT_FIT": {
+    "rows_whose_X_also_occurs_in_DEFENSE_FIT": 2410
+   },
+   "INNER_SELECTION": {
+    "rows_whose_X_also_occurs_in_DEFENSE_FIT": 859
+   }
+  }
+ },
+ "withheld": "No label statistic of any role is published here; DEVELOPMENT_ASSESSMENT labels are sealed until EVALUATION_LOCK.json. No record keys or row ids are published (hashes only).",
+ "loader_comparison": {
+  "loader": "rgj.data.load() (imported in a separate step, after the independent computation)",
+  "rgj_data_py_sha256": "7b4ba42eecc019654604ad2812087c185f1f05cab677559eb9a2df37f7051679",
+  "row_id_sets_identical": {
+   "DEFENSE_FIT": true,
+   "HEAD_VALIDATION": true,
+   "DEVELOPMENT_ASSESSMENT": true,
+   "AUDIT_FIT": true,
+   "INNER_SELECTION": true,
+   "CRITIC_FIT": true,
+   "CRITIC_VAL": true,
+   "CALIB": true
+  },
+  "rgj_manifest_counts_and_hashes_identical": {
+   "DEFENSE_FIT": true,
+   "HEAD_VALIDATION": true,
+   "DEVELOPMENT_ASSESSMENT": true,
+   "AUDIT_FIT": true,
+   "INNER_SELECTION": true,
+   "CRITIC_FIT": true,
+   "CRITIC_VAL": true,
+   "CALIB": true
+  },
+  "loader_keeps_only_the_five_roles": true,
+  "loader_rows": 32427,
+  "loader_partition_info": {
+   "groups_spanning_dropped_pools_only": 17
+  },
+  "rgj_manifest_withholds_DEVELOPMENT_ASSESSMENT_label_share": true,
+  "note": "rgj.data.manifest() publishes a sex_male_share for non-assessment roles; this manifest does not reproduce it. Only counts and hashes were compared.",
+  "verdict": "MATCH"
+ }
+}
