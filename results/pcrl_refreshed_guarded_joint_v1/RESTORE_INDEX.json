@@ -1,0 +1,47 @@
+{
+ "schema": "rgj-restore-index-v1",
+ "private_local": "~/PCRL_eval_cache_private/rgj_v1",
+ "drive_copy": "<drive>/NathanSamson-Mac-relocated-2026-09-30/private_rgj_v1_20261004/rgj_v1",
+ "checksums": "<drive>/NathanSamson-Mac-relocated-2026-09-30/private_rgj_v1_20261004/SHA256SUMS",
+ "layout": {
+  "run/units/<unit>/": "atomic unit: files + record.json + COMPLETE.json (sha256 of every file)",
+  "ck__*, tl__*, tc__*, lc__*": "model.pt, head_0/1.joblib, release.npz (+ critics.pt / leace_i/)",
+  "fare__*": "re-headed official FARE releases (trees from the predecessor jcv_v1 store / fare_cache)",
+  "run__*": "training receipts: final.pt (theta_T-1, theta_T, critics), captures.pt",
+  "outer__*": "assessment records and per-row predictions (private)",
+  "inner__*, calib__*, track__*, whiten__diag, controls__s0, parity__*": "inner-role records"
+ },
+ "restore": [
+  "copy <drive>/NathanSamson-Mac-relocated-2026-09-30/private_rgj_v1_20261004/rgj_v1 to ~/PCRL_eval_cache_private/rgj_v1",
+  "verify: shasum -a 256 -c SHA256SUMS (run inside the copy's parent)",
+  "predecessor inputs/warm starts/FARE trees: ~/PCRL_eval_cache_private/jcv_v1 (drive copy <drive>/private_jcv_v1_20261003)",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_checks": [
+  {
+   "label": "U",
+   "unit": "tl__s1__e35",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "J-G",
+   "unit": "ck__C__s1__J-G__b0.3__e20",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "L-G",
+   "unit": "ck__C__s1__L-G__b0.3__e20",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "attacker (outer__s1__J-G, pair, AUC-selected)",
+   "attacker": "DA_canonical_MLP",
+   "source_view": "v2",
+   "source": "drive copy release + AUDIT_FIT refit",
+   "max_abs_diff_vs_saved": 0.0
+  }
+ ]
+}

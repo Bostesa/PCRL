@@ -1,5 +1,7 @@
 # Confirmation plan (prospective draft)
 
+**Outcome note (lead, 2026-10-04, after the development assessment): the development label is EXPERIMENTAL_NO_ADVANTAGE** (`RESEARCH_DECISION.md`). Under section 1 of this plan, that means **no confirmation**: every candidate population below stays unspent. The audit of their histories is kept for any future, differently specified method.
+
 **Status: DRAFT. Nothing has been acquired, downloaded or opened.**
 - No confirmation label was read for this plan.
 - No new-population file was requested, not even an HTTP HEAD.
