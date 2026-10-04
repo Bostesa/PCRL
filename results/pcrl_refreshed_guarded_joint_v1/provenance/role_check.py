@@ -15,6 +15,10 @@ Usage (from the worktree root):
       -> writes results/pcrl_refreshed_guarded_joint_v1/ROLE_MANIFEST.json (independent section)
   OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python results/pcrl_refreshed_guarded_joint_v1/provenance/role_check.py --compare-loader
       -> separate step: imports rgj.data, runs its load(), and records an exact comparison in ROLE_MANIFEST.json
+  OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python results/pcrl_refreshed_guarded_joint_v1/provenance/role_check.py --reuse-audit
+      -> read-only receipt/fingerprint audit of the predecessor jcv warm-start and FARE units (printed as JSON; the
+         summary is recorded in SOURCE_INDEX.json "reuse_audit"). Reads DEFENSE_FIT labels only, via rgj.data.load(),
+         and only to re-derive the FARE fit-label hash.
 """
 from __future__ import annotations
 

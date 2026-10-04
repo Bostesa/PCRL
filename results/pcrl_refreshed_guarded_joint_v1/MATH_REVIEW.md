@@ -322,3 +322,135 @@ On the repaired code all 34 pass (the full `rgj/tests` suite: 71 pass). Before t
 **Preserved failing receipts.**
 - **R1.** Moving-head critic views fail `test_block_transform_stays_valid_within_refit_block` (v1 max |z| 5.6 → 226 by step 20).
 - **R2.** Before the repair: protocol C\* = L-R (TASK_ONLY_ALIAS, coalition AUC 0.750); code C\* = J-R (0.785).
+
+## Prior art (bounded)
+
+**Scope.** This was a bounded check of about 30 minutes (prompt §9). It covers the primary sources closest to J-G's components: refreshed critics, per-recipient multipliers, and the coalition penalty.
+
+**How each source was read.**
+- Read in full text from the PMLR PDFs: Madras et al. 2018 and Agarwal et al. 2018 (objectives, theorem statements and procedures checked).
+- Read from the publisher's abstract: Elazar & Goldberg 2018.
+- Read from the arXiv HTML: the WGAN defaults.
+- Checked only through publisher or arXiv abstracts and search metadata, not full text: Song et al. 2019, Cotter et al. 2019, Sadeghi et al. 2019, Moyer et al. 2018, Han et al. 2021, and Song & Shmatikov 2020.
+- From memory, not fetched: Goodfellow et al. 2014.
+
+**Conclusion first.** None of these works establishes J-G's objective or any J-G guarantee. That objective is β(R₁ + R₂ + R₀)/3 + Σᵢ λᵢ(Rᵢ − cᵢ), with budgets set relative to a frozen local reference, a coalition term across two separately released encoders, and frozen-snapshot bounded refits with function-preserving transport. J-G has no population, MI, DP or universal-attacker guarantee. Novelty is evaluated separately from whether the method works, and no novelty claim is needed.
+
+### Madras, Creager, Pitassi & Zemel 2018, LAFTR (ICML, PMLR 80)
+
+Link: https://proceedings.mlr.press/v80/madras18a.html
+
+**What it establishes.**
+- The objective is min over (f, g, k) of max over h of αL_C + βL_Dec + γL_Adv, where the adversary h reads the representation Z.
+- It uses group-normalised ℓ₁ adversarial objectives in place of cross-entropy (§5.4).
+- Theorems (§5.1, §5.2): for an *optimal* adversary h\*, L_Adv^DP(h\*) ≥ Δ_DP(g) for every binary g on Z. The analogous bound for equalized odds holds when the adversary also sees Y.
+- Training alternates single gradient steps: (f, g, k) take one step with h fixed, then h takes one step.
+- Evaluation (Algorithm 1) freezes f and trains a fresh, unconstrained classifier on new data. This is a transfer test, not a retrained-adversary test.
+
+**Relation to J-G.**
+- J-G's critics are LAFTR-type adversaries on [r, centred logits].
+- LAFTR's bounds hold only at the adversary's optimum, which training cannot certify. This is the reason the refit schedule matters, and why J-G's selection uses independent, freshly fitted attackers rather than training critics.
+- J-G's surrogate is the cross-entropy (Edwards & Storkey / Ganin) form that LAFTR argues against. Its target is attribute-recovery AUC, not demographic-parity distance.
+- LAFTR has a single representation, with no per-recipient guards and no coalition term.
+
+**What it does not establish:** J-G's objective, its coalition penalty, or any bound for a bounded, non-optimal critic.
+
+### Agarwal, Beygelzimer, Dudík, Langford & Wallach 2018, A Reductions Approach to Fair Classification (ICML, PMLR 80)
+
+Link: https://proceedings.mlr.press/v80/agarwal18a.html
+
+**What it establishes.**
+- The setting is the Lagrangian L(Q, λ) = err(Q) + λᵀ(Mμ(Q) − ĉ) over randomized classifiers Q, with ‖λ‖₁ ≤ B.
+- The λ-player runs exponentiated gradient. The Q-player plays an exact best response through cost-sensitive classification.
+- Theorem 1: a ν-approximate saddle point is reached within 4ρ²B² log(|K| + 1)/ν² iterations at η = ν/(2ρ²B).
+- Theorem 2: with B ∝ n^α, the returned *randomized average* has near-optimal error and constraint violation Õ(n^{−α}). The bound B controls the trade-off between violation and optimality.
+
+**Relation to J-G.**
+- J-G's per-recipient multipliers are a dual-ascent step on λᵢ, and the 3β cap is an analogue of B.
+- None of the conditions behind the guarantees holds:
+  - the primal is a nonconvex neural encoder, not a best response;
+  - there are only 4 or 5 dual steps, against O(B²/ν²);
+  - J-G uses the last iterate, not an averaged randomized classifier;
+  - the constraint is a critic-based empirical surrogate on CALIB rows, not a linear moment of the classifier.
+- The 3β cap is unreachable (A1), so it plays none of B's role.
+
+**What it does not establish:** any J-G optimality or feasibility property.
+
+### Elazar & Goldberg 2018, Adversarial Removal of Demographic Attributes from Text Data (EMNLP)
+
+Link: https://aclanthology.org/D18-1002/
+
+**What it establishes.** From the abstract: "while the adversarial component achieves chance-level development-set accuracy during training, a post-hoc classifier, trained on the encoded sentences from the first part, still manages to reach substantially higher classification accuracies on the same data."
+
+**Relation to J-G.**
+- This is the published form of the predecessor's critic-gap finding: fresh critics read more SEX than online critics in 45 of 45 cells.
+- It motivates both refreshed critics and the rule that a training critic at chance is no evidence of protection (§6C, with independent inner and final attacker slates).
+- It does not show that periodic refitting closes the gap. That question is what §12 asks this study to measure.
+
+### Arjovsky, Chintala & Bottou 2017, Wasserstein GAN (ICML; arXiv:1701.07875)
+
+**What it establishes.**
+- The default is n_critic = 5 critic iterations per generator iteration.
+- The paper argues that, because the Earth-Mover distance is continuous and differentiable almost everywhere, one "can (and should) train the critic till optimality", and that more critic training gives a more reliable gradient.
+
+**Relation to J-G.**
+- The inherited 5 critic steps per encoder step have the same structure as n_critic.
+- Frozen-snapshot bounded refits push further toward a near-best-response critic.
+- The WGAN argument relies on the Wasserstein critic loss. For cross-entropy adversaries, a near-optimal critic can instead saturate and weaken the encoder's gradient (original GAN, Goodfellow et al. 2014, from memory).
+- So "a stronger critic gives a better encoder gradient" is an empirical question here, not a transferred result.
+
+### Song, Kalluri, Grover, Zhao & Ermon 2019, Learning Controllable Fair Representations (AISTATS, PMLR 89)
+
+Links: https://proceedings.mlr.press/v89/song19a.html and arXiv:1812.04218
+
+**What it establishes** (from the abstract): fair representation learning as an information-theoretic objective subject to user-specified limits on unfairness. Several existing methods optimise approximations to its Lagrangian dual, and duality is used to optimise the parameters and the expressiveness–fairness trade-off together.
+
+**Relation to J-G.** This is the closest precedent for budgeted protection with adaptive multipliers in representation learning. J-G's budgets are instead per-recipient adversarial-surrogate levels taken from a frozen local reference, with a capped dual ascent of a few steps over two separately released encoders. There is no MI bound.
+
+### Cotter, Jiang & Sridharan 2019, Two-Player Games for Efficient Non-Convex Constrained Optimization (ALT, PMLR 98)
+
+Link: arXiv:1804.06500
+
+**What it establishes** (from the abstract): a non-zero-sum "proxy-Lagrangian" for non-differentiable constraints. The θ-player minimises external regret on proxy constraints and the λ-player minimises swap regret. The guarantees are for a distribution over at most m + 1 models.
+
+**Relation to J-G.** J-G uses an ordinary Lagrangian on one differentiable surrogate, with a short heuristic schedule and a last iterate. Cotter et al.'s guarantees, which require randomized solutions and long play, are not obtained.
+
+### Sadeghi, Yu & Boddeti 2019, On the Global Optima of Kernelized Adversarial Representation Learning (ICCV)
+
+Link: arXiv:1910.07423
+
+**What it establishes** (from the abstract): exact closed-form global optima when the encoder and adversary are linear or kernel functions. This is an exact best-response adversary in a restricted class, with analytical utility–invariance bounds.
+
+**Relation to J-G.** It shows what a true best response looks like. For linear critics the analogue is OLS or LEACE, as in the predecessor's erased arms. J-G's bounded MLP refits are only an approximation, and are reported as such ("bounded refit, not convergence").
+
+### Moyer, Gao, Brekelmans, Ver Steeg & Galstyan 2018, Invariant Representations without Adversarial Training (NeurIPS)
+
+Link: arXiv:1805.09458
+
+**What it establishes** (from the abstract): adversarial training is unnecessary and sometimes counter-productive for invariance, and an information-theoretic objective matches or beats adversarial methods.
+
+**Relation to J-G.** It is a non-adversarial alternative that this study does not test.
+
+### Han, Baldwin & Cohn 2021, Diverse Adversaries for Mitigating Bias in Training (EACL)
+
+Link: https://aclanthology.org/2021.eacl-main.239/
+
+**What it establishes** (from the abstract): multiple discriminators encouraged to be diverse (orthogonal hidden representations) improve bias removal and training stability.
+
+**Relation to J-G.** It is related prior art for J-G's two-kind critic bank with a best-of-bank minimum. J-G does not enforce diversity.
+
+### Song & Shmatikov 2020, Overlearning Reveals Sensitive Attributes (ICLR)
+
+Link: arXiv:1905.11742
+
+**What it establishes** (from the abstract): representations learned for one task can reveal sensitive attributes. Censoring cannot always prevent this, and de-censoring can extract it.
+
+**Relation to J-G.** It supports reporting attacks by independent, refitted attackers and avoiding claims of universal protection.
+
+### Coalition penalty
+
+Within the bounded time, no prior work was found that specifically penalises coalition recovery across two separately released encoders, with per-recipient guards set against a frozen local reference. The search was not exhaustive and this is not a novelty claim. The individual ingredients are all established:
+- adversarial representation learning;
+- several critic steps per encoder step;
+- refitted or ensembled adversaries;
+- Lagrangian or dual multipliers for fairness constraints.
