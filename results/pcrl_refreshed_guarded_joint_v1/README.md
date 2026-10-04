@@ -7,6 +7,13 @@ periodically freezes the features so strong critics can relearn them, trains aga
 recipient's protection weight when its own protection slips past a local budget, and is nominated only if it keeps useful
 accuracy on both tasks and is locally no worse than the comparators.
 
+**Result: EXPERIMENTAL_NO_ADVANTAGE.**
+- Both registered claims are NOT_ESTABLISHED, and J-G had no feasible nominee on any seed.
+- The strongest control was the joint arm with the inherited online critics (J-O).
+- Refreshed critics kept pace with fresh bounded critics but did not lower independently audited recovery.
+- The local multipliers never engaged.
+- J-G kept task-only accuracy and lowered coalition recovery relative to the refreshed local control by 0.012 [0.006, 0.018], below the 0.02 target. See `RESEARCH_DECISION.md`.
+
 **Data status.** Already-exposed Adult rows. DEVELOPMENT_ASSESSMENT is a new development partition (70% of the old
 head-validation pool), sealed until `EVALUATION_LOCK.json` was pushed; it is not fresh confirmation.
 
