@@ -22,17 +22,18 @@
 
 ## Results (seed means; the fitted-prior CE is 0.629 in every row)
 
-| Arm, β | View | Online CE | fresh_def CE | Primary gap (range over seeds) | Sensitivity at θ_T, refitted whitener |
+| Arm, β | View | Online CE (best of bank) | fresh_def CE (best of bank) | Primary gap: mean paired difference | Sensitivity at θ_T, refitted whitener |
 |---|---|---|---|---|---|
-| PN 0.1 | v1 / v2 / pair | 0.551 / 0.457 / 0.451 | 0.518 / 0.444 / 0.422 | +0.027 / +0.014 / +0.022 | +0.028 / +0.017 / +0.027 |
-| PN 1 | v1 / v2 / pair | 0.614 / 0.614 / 0.601 | 0.524 / 0.543 / 0.484 | **+0.067 / +0.048 / +0.091** | +0.069 / +0.041 / +0.094 |
+| PN 0.1 | v1 / v2 / pair | 0.551 / 0.457 / 0.451 | 0.518 / 0.444 / 0.422 | +0.026 / +0.014 / +0.022 | +0.028 / +0.017 / +0.027 |
+| PN 1 | v1 / v2 / pair | 0.614 / 0.614 / 0.601 | 0.524 / 0.543 / 0.484 | **+0.067 / +0.048 / +0.091** | +0.068 / +0.041 / +0.094 |
 | PN 10 | v1 / v2 / pair | 0.617 / 0.613 / 0.609 | 0.547 / 0.536 / 0.504 | **+0.048 / +0.051 / +0.081** | +0.037 / +0.052 / +0.088 |
 | LN 0.1 | v1 / v2 | 0.538 / 0.436 | 0.515 / 0.422 | +0.018 / +0.010 | +0.025 / +0.012 |
 | LN 1 | v1 / v2 | 0.606 / 0.609 | 0.506 / 0.546 | **+0.079 / +0.049** | +0.085 / +0.047 |
-| LN 10 | v1 / v2 | 0.619 / 0.614 | 0.556 / 0.540 | **+0.046 / +0.055** | +0.048 / +0.058 |
+| LN 10 | v1 / v2 | 0.619 / 0.614 | 0.556 / 0.539 | **+0.046 / +0.055** | +0.048 / +0.058 |
 
 - **The primary gap is positive for 45 of 45 view × unit cells**, mean **+0.047 nats**. This matches registered prediction 6.
-- The sensitivity rows (θ_T with a refitted whitener) agree within about 0.01.
+- The two CE columns are best-of-bank values. The primary gap pairs each online critic with its fresh counterpart and averages the differences, so it is not the difference of the two columns. In `CRITIC_GAP.csv` the registered statistic is `primary_mean_paired_online_minus_fresh_def`. The best-of-bank difference is kept separately as `best_of_bank_online_minus_fresh_def`; it is also positive in 45 of 45 cells (mean +0.063). The version of the CSV committed in `ec1ae45` carried only the best-of-bank column, under a name that suggested the registered statistic. The independent verifier flagged this (warning 24), and the next commit corrected it. The table above always used the registered statistic. Its cells are now computed directly as seed means of the records, which removed three last-digit double-rounding errors: PN 0.1 v1 primary is +0.026, not +0.027; PN 1 v1 sensitivity is +0.068, not +0.069; LN 10 v2 fresh_def is 0.539, not 0.540.
+- The sensitivity rows (θ_T with a refitted whitener) agree with the primary gap to within 0.011 in the seed means shown, and within 0.023 in individual cells; the sign agrees everywhere.
 
 ## Interpretation
 

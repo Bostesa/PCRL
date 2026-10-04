@@ -5,7 +5,7 @@
 ## Verdict
 
 **Neither registered claim is established.** Both conjunctions miss for two reasons.
-1. **Clause P02 fails.** The income recipient's local guard requires R_v1(PN) − R_v1(LN) < 0.01 on the upper bound. The point is +0.010 and the upper bound 0.019. On seed 2, PN's income view leaked 0.033 more than LN's.
+1. **Clause P02 fails.** The income recipient's local guard requires R_v1(PN) − R_v1(LN) < 0.01 on the upper bound. The point is +0.010 and the upper bound 0.019. The difference is driven by seed 2, where PN's income view leaked 0.032 more than LN's (seeds 0 and 1: +0.004 and −0.005).
 2. **The status requirement fails on seed 0.** PN β = 0.1 passed the utility gates there, but its inner occupation-view recovery (0.827) exceeded the frozen LN's allowance (0.815 + 0.01). PN is therefore NO_FEASIBLE_NOMINEE on seed 0; its β = 0.1 configuration was scored descriptively.
 
 The other eight clauses pass, including a coalition improvement over LN **above** the 0.02 target. That does not make the conjunction a success.
@@ -50,7 +50,7 @@ The other eight clauses pass, including a coalition improvement over LN **above*
    - The contrast also changes penalty mass and bank sizes, so even a pass would not be a pure coupling effect.
 3. **Did it beat the strongest feasible matched control?** C\* = LN on every seed (no other control met the gates and LN's local allowance), so the answer is the same as (2).
    - Descriptively, PN's coalition recovery is lower than U's (−0.033), F0's (−0.034) and E's (−0.021).
-   - It is higher than erased JP's (+0.067) and FARE's (+0.123). Both of those fail the utility gates.
+   - It is higher than erased JP's (+0.067) and FARE's (+0.123). Both of those fail the utility gates. Here JP is the frozen per-seed JP reference, the closest nonzero-β configuration: β = 0.1 on seed 0 and β = 1 on seeds 1 and 2. At matched β = 0.1, PN's coalition AUC is 0.023 higher than JP's (0.840 vs 0.817).
 4. **Were the training critics genuinely weaker on the same metric?** **Yes** (`CRITIC_GAP_DIAGNOSIS.md`).
    - On identical frozen views and rows, fresh critics of the same architecture beat the online critics on validation cross-entropy in 45 of 45 cells, by +0.047 nats on average.
    - At β ≥ 1 the gap is +0.05 to +0.09 nats, with the online critics sitting near the prior.
@@ -63,7 +63,7 @@ The other eight clauses pass, including a coalition improvement over LN **above*
 
 - **Favourable.** At U-level accuracy on both tasks, PN β = 0.1 lowered coalition SEX recovery by 0.029 relative to LN and by 0.033 relative to U, and occupation-view recovery by 0.019 relative to LN. Removing erasure restored 4.3 income points with no resolved change in nonlinear recovery.
 - **Adverse.**
-  - PN shifted leakage toward the income recipient (+0.010 vs LN; +0.033 on seed 2).
+  - PN shifted leakage toward the income recipient (+0.010 vs LN; +0.032 on seed 2).
   - It lost the linear guarantee (coalition R² 0.23).
   - It still leaks heavily in absolute terms (coalition AUC 0.84).
   - FARE and erased JP leak far less, but at a utility cost the gates reject.

@@ -1,0 +1,432 @@
+{
+ "schema": "pnx-handoff-v1",
+ "branch": "research/pcrl-penalty-no-erasure-v1",
+ "parent": "568f970683d11373d717ca112b619fbdde40d0b3",
+ "locks": {
+  "protocol": "f1d1b76fa98af77c61658a9a73d0093e29f4dfff",
+  "selection": "b0b9256e3a3ffbd02324fcd7609c88c3b4dc9cf4"
+ },
+ "status": "EXPLORATORY DEVELOPMENT evidence on reused Adult rows; not fresh confirmation",
+ "model_label": "EXPERIMENTAL_NO_ADVANTAGE",
+ "outcome": {
+  "claim_A_PN_vs_LN": "NOT_ESTABLISHED (P02 income-recipient local guard fails: +0.010 [0.001, 0.019] vs 0.01; seed-0 PN is NO_FEASIBLE_NOMINEE)",
+  "claim_B_PN_vs_Cstar": "NOT_ESTABLISHED (C* = LN on every seed, so identical to claim A)",
+  "clauses_passed": "8 of 9 per claim; a missed conjunction is not a success",
+  "selection": "LN b0.1 NOMINEE on all seeds; PN b0.1 NOMINEE on seeds 1, 2; seed 0 PN v2 inner recovery 0.827 > LN 0.815 + 0.01",
+  "erasure_on_off": "PN - JP beta-matched: income acc +0.043 [0.034, 0.052] ABOVE, occupation acc +0.017 [0.010, 0.024] ABOVE; coalition SEX AUC +0.003 [-0.004, 0.010] NOT_RESOLVED; coalition OLS R^2 0 -> 0.23 (fitting rows)",
+  "critic_gap": "fresh same-architecture critics beat online critics on identical frozen views in 45/45 cells, mean +0.047 nats; at beta >= 1 online CE 0.60-0.62 vs prior 0.63",
+  "descriptive": {
+   "PN_coalition_vs_U": "-0.033",
+   "PN_coalition_vs_F0": "-0.034",
+   "PN_coalition_vs_E": "-0.021",
+   "PN_coalition_vs_JP_reference": "+0.067 (frozen per-seed JP reference: b0.1 seed 0, b1 seeds 1-2; fails utility gates); +0.023 at matched b0.1",
+   "PN_coalition_vs_F": "+0.123 (F fails occupation utility gate)",
+   "decomposition_vs_LN": "+0.029 = worse-local-view +0.019 + synergy +0.010"
+  },
+  "guarantees_lost": "LEACE fitted-row linear guardedness of each release, the primary view and the coalition; evidence is attacker-based only",
+  "bottleneck": "income-recipient local leakage under joint training; online-critic tracking at beta >= 1"
+ },
+ "primary": {
+  "P01": {
+   "stat": "R_pair(LN) - R_pair(PN)",
+   "point": "0.028812",
+   "lower": "0.021087",
+   "upper": "0.036536",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P02": {
+   "stat": "R_v1(PN) - R_v1(LN)",
+   "point": "0.010149",
+   "lower": "0.001012",
+   "upper": "0.019287",
+   "decision": "NOT_ESTABLISHED",
+   "alias_of": ""
+  },
+  "P03": {
+   "stat": "R_v2(PN) - R_v2(LN)",
+   "point": "-0.019202",
+   "lower": "-0.027763",
+   "upper": "-0.010641",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P04": {
+   "stat": "Acc_income(PN) - Acc_income(U)",
+   "point": "-0.000890",
+   "lower": "-0.004544",
+   "upper": "0.002764",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P05": {
+   "stat": "Acc_occ(PN) - Acc_occ(U)",
+   "point": "-0.003179",
+   "lower": "-0.009420",
+   "upper": "0.003062",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P06": {
+   "stat": "Acc_income(PN) - 0.8 Acc_income(U) - 0.2 const_income",
+   "point": "0.017776",
+   "lower": "0.013178",
+   "upper": "0.022375",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P07": {
+   "stat": "Acc_occ(PN) - 0.8 Acc_occ(U) - 0.2 const_occ",
+   "point": "0.036735",
+   "lower": "0.029536",
+   "upper": "0.043934",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P08": {
+   "stat": "Acc_income(PN) - const_income",
+   "point": "0.092441",
+   "lower": "0.074769",
+   "upper": "0.110112",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P09": {
+   "stat": "Acc_occ(PN) - const_occ",
+   "point": "0.196389",
+   "lower": "0.173197",
+   "upper": "0.219581",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P10": {
+   "stat": "R_pair(C*) - R_pair(PN)",
+   "point": "0.028812",
+   "lower": "0.021087",
+   "upper": "0.036536",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P11": {
+   "stat": "R_v1(PN) - R_v1(C*)",
+   "point": "0.010149",
+   "lower": "0.001012",
+   "upper": "0.019287",
+   "decision": "NOT_ESTABLISHED",
+   "alias_of": ""
+  },
+  "P12": {
+   "stat": "R_v2(PN) - R_v2(C*)",
+   "point": "-0.019202",
+   "lower": "-0.027763",
+   "upper": "-0.010641",
+   "decision": "PASS",
+   "alias_of": ""
+  },
+  "P13": {
+   "stat": "Acc_income(PN) - Acc_income(U)",
+   "point": "-0.000890",
+   "lower": "-0.004544",
+   "upper": "0.002764",
+   "decision": "PASS",
+   "alias_of": "P04"
+  },
+  "P14": {
+   "stat": "Acc_occ(PN) - Acc_occ(U)",
+   "point": "-0.003179",
+   "lower": "-0.009420",
+   "upper": "0.003062",
+   "decision": "PASS",
+   "alias_of": "P05"
+  },
+  "P15": {
+   "stat": "Acc_income(PN) - 0.8 Acc_income(U) - 0.2 const_income",
+   "point": "0.017776",
+   "lower": "0.013178",
+   "upper": "0.022375",
+   "decision": "PASS",
+   "alias_of": "P06"
+  },
+  "P16": {
+   "stat": "Acc_occ(PN) - 0.8 Acc_occ(U) - 0.2 const_occ",
+   "point": "0.036735",
+   "lower": "0.029536",
+   "upper": "0.043934",
+   "decision": "PASS",
+   "alias_of": "P07"
+  },
+  "P17": {
+   "stat": "Acc_income(PN) - const_income",
+   "point": "0.092441",
+   "lower": "0.074769",
+   "upper": "0.110112",
+   "decision": "PASS",
+   "alias_of": "P08"
+  },
+  "P18": {
+   "stat": "Acc_occ(PN) - const_occ",
+   "point": "0.196389",
+   "lower": "0.173197",
+   "upper": "0.219581",
+   "decision": "PASS",
+   "alias_of": "P09"
+  }
+ },
+ "secondary": {
+  "S-erase-acc-income": {
+   "stat": "Acc_income(PN_b) - Acc_income(JP_b), mean over b",
+   "point": "0.042808",
+   "lower": "0.033876",
+   "upper": "0.051740",
+   "decision": "ABOVE"
+  },
+  "S-erase-acc-occ": {
+   "stat": "Acc_occ(PN_b) - Acc_occ(JP_b), mean over b",
+   "point": "0.016763",
+   "lower": "0.009758",
+   "upper": "0.023768",
+   "decision": "ABOVE"
+  },
+  "S-erase-rec-pair": {
+   "stat": "R_pair(PN_b) - R_pair(JP_b), mean over b",
+   "point": "0.003109",
+   "lower": "-0.003714",
+   "upper": "0.009932",
+   "decision": "NOT_RESOLVED"
+  },
+  "S-erase-rec-v1": {
+   "stat": "R_v1(PN_b) - R_v1(JP_b), mean over b",
+   "point": "0.005963",
+   "lower": "-0.003037",
+   "upper": "0.014964",
+   "decision": "NOT_RESOLVED"
+  },
+  "S-erase-rec-v2": {
+   "stat": "R_v2(PN_b) - R_v2(JP_b), mean over b",
+   "point": "-0.004153",
+   "lower": "-0.010870",
+   "upper": "0.002565",
+   "decision": "NOT_RESOLVED"
+  },
+  "S-out-prob-pair": {
+   "stat": "R_prob_pair(LN) - R_prob_pair(PN)",
+   "point": "0.022810",
+   "lower": "0.017013",
+   "upper": "0.028606",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-out-prob-v1": {
+   "stat": "R_prob_v1(LN) - R_prob_v1(PN)",
+   "point": "0.016519",
+   "lower": "0.010353",
+   "upper": "0.022685",
+   "decision": "PASS"
+  },
+  "S-out-prob-v2": {
+   "stat": "R_prob_v2(LN) - R_prob_v2(PN)",
+   "point": "0.015334",
+   "lower": "0.006826",
+   "upper": "0.023843",
+   "decision": "PASS"
+  },
+  "S-out-hard-pair": {
+   "stat": "R_hard_pair(LN) - R_hard_pair(PN)",
+   "point": "0.025641",
+   "lower": "0.016518",
+   "upper": "0.034765",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-out-hard-v1": {
+   "stat": "R_hard_v1(LN) - R_hard_v1(PN)",
+   "point": "0.004295",
+   "lower": "0.000813",
+   "upper": "0.007777",
+   "decision": "PASS"
+  },
+  "S-out-hard-v2": {
+   "stat": "R_hard_v2(LN) - R_hard_v2(PN)",
+   "point": "0.024019",
+   "lower": "0.016654",
+   "upper": "0.031385",
+   "decision": "PASS"
+  },
+  "S-race-pair": {
+   "stat": "Rrace_pair(LN) - Rrace_pair(PN)",
+   "point": "0.017731",
+   "lower": "0.002510",
+   "upper": "0.032951",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-race-v1": {
+   "stat": "Rrace_v1(LN) - Rrace_v1(PN)",
+   "point": "0.028889",
+   "lower": "0.010120",
+   "upper": "0.047658",
+   "decision": "PASS"
+  },
+  "S-race-v2": {
+   "stat": "Rrace_v2(LN) - Rrace_v2(PN)",
+   "point": "-0.018473",
+   "lower": "-0.035748",
+   "upper": "-0.001199",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-ctrl-LN": {
+   "stat": "R_pair(LN) - R_pair(PN)",
+   "point": "0.028812",
+   "lower": "0.020693",
+   "upper": "0.036930",
+   "decision": "PASS"
+  },
+  "S-ctrl-U": {
+   "stat": "R_pair(U) - R_pair(PN)",
+   "point": "0.032845",
+   "lower": "0.024356",
+   "upper": "0.041334",
+   "decision": "PASS"
+  },
+  "S-ctrl-E": {
+   "stat": "R_pair(E) - R_pair(PN)",
+   "point": "0.021221",
+   "lower": "0.011778",
+   "upper": "0.030663",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-ctrl-JP": {
+   "stat": "R_pair(JP) - R_pair(PN)",
+   "point": "-0.066825",
+   "lower": "-0.078052",
+   "upper": "-0.055598",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-ctrl-F": {
+   "stat": "R_pair(F) - R_pair(PN)",
+   "point": "-0.123222",
+   "lower": "-0.144185",
+   "upper": "-0.102260",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-ctrl-F0": {
+   "stat": "R_pair(F0) - R_pair(PN)",
+   "point": "0.034147",
+   "lower": "0.022020",
+   "upper": "0.046273",
+   "decision": "PASS"
+  },
+  "S-syn-PN": {
+   "stat": "R_pair(PN) - max(R_v1(PN), R_v2(PN))",
+   "point": "0.016777",
+   "lower": "0.008973",
+   "upper": "0.024581",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-LN": {
+   "stat": "R_pair(LN) - max(R_v1(LN), R_v2(LN))",
+   "point": "0.026387",
+   "lower": "0.018509",
+   "upper": "0.034264",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-U": {
+   "stat": "R_pair(U) - max(R_v1(U), R_v2(U))",
+   "point": "-0.004189",
+   "lower": "-0.007777",
+   "upper": "-0.000601",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-E": {
+   "stat": "R_pair(E) - max(R_v1(E), R_v2(E))",
+   "point": "0.002419",
+   "lower": "-0.002466",
+   "upper": "0.007303",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-JP": {
+   "stat": "R_pair(JP) - max(R_v1(JP), R_v2(JP))",
+   "point": "0.016282",
+   "lower": "0.005716",
+   "upper": "0.026847",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-F": {
+   "stat": "R_pair(F) - max(R_v1(F), R_v2(F))",
+   "point": "0.024088",
+   "lower": "0.008766",
+   "upper": "0.039411",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-syn-F0": {
+   "stat": "R_pair(F0) - max(R_v1(F0), R_v2(F0))",
+   "point": "0.016874",
+   "lower": "0.009043",
+   "upper": "0.024705",
+   "decision": "NOT_ESTABLISHED"
+  },
+  "S-bm-b0.1": {
+   "stat": "R_pair(LN_b0.1) - R_pair(PN_b0.1)",
+   "point": "0.028812",
+   "lower": "0.020693",
+   "upper": "0.036930",
+   "decision": "PASS"
+  },
+  "S-bm-b1": {
+   "stat": "R_pair(LN_b1) - R_pair(PN_b1)",
+   "point": "0.035351",
+   "lower": "0.024687",
+   "upper": "0.046016",
+   "decision": "PASS"
+  },
+  "S-bm-b10": {
+   "stat": "R_pair(LN_b10) - R_pair(PN_b10)",
+   "point": "-0.008988",
+   "lower": "-0.021272",
+   "upper": "0.003296",
+   "decision": "NOT_ESTABLISHED"
+  }
+ },
+ "verification": {
+  "summary": {
+   "counts": {
+    "PASS": 40,
+    "FAIL": 0,
+    "WARN": 0,
+    "INFO": 5
+   },
+   "n_checks": 45,
+   "max_abs_diffs": {
+    "04-deployment-identity-replay": 0.0,
+    "06-deployed-head-refit": 0.0,
+    "07-last-step-update-rule": 0.0,
+    "08-beta0-task-only-loop-replication": 0.0,
+    "10-selection-replay": 0.0,
+    "13-inner-recovery-replay": 1.1102230246251565e-16,
+    "14-inner-utility-replay": 0.0,
+    "15-outer-endpoints": 0.0,
+    "17-outer-levels": 0.0,
+    "18-utility-csv": 4.953271027785533e-07,
+    "19-outer-inputs-consistency": 0.0,
+    "21-predecessor-reproducibility": 0.0,
+    "22-attacker-replay": 0.0,
+    "23-critic-gap-primary-statistic": 0.0,
+    "24-critic-gap-csv": 4.6953383484038547e-07,
+    "24b-critic-gap-diagnosis-table": 0.0004996896796729405,
+    "25-online-critic-reevaluation": 0.0,
+    "26b-control-replay": 0.0,
+    "36-erased-reference-release-replay": 0.0
+   },
+   "failing": [],
+   "warnings": [],
+   "runtime_s": 134.6
+  }
+ },
+ "backup": {
+  "local": "~/PCRL_eval_cache_private/pnx_v1",
+  "drive_copy": "<drive>/private_pnx_v1_20261003/pnx_v1",
+  "files": 561,
+  "SHA256SUMS_sha256": "d2df91c2a76e03039c8923692b7d9b448fa1e441490a9eae8cd4049734c75c6e",
+  "verification": "561/561 match (F_NOCACHE uncached read; no cold unmount)"
+ },
+ "spend": "$0 cloud; about 0.7 CPU-h; about 1.5 h elapsed; peak RSS 0.94 GB",
+ "incomplete_units": [],
+ "deploy": "see QUICKSTART.md (tested bitwise against stored releases)"
+}

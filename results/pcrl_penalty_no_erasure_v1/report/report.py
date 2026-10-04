@@ -92,7 +92,10 @@ def critic_gap():
                          "prior_ce": v["prior_ce"], "online_best_ce": v["online_best_ce"], "fresh_def_best_ce": v["fresh_def_best_ce"],
                          "fresh_att_best_ce": v["fresh_att_best_ce"], "slate_ce": v["slate_ce"], "slate_auc": v["slate_auc"],
                          "deployed_view_slate_ce": v["deployed_view_slate_ce"], "deployed_view_slate_auc": v["deployed_view_slate_auc"],
-                         "gap_online_minus_fresh_def": v["online_best_ce"] - v["fresh_def_best_ce"],
+                         "primary_mean_paired_online_minus_fresh_def": v["primary_mean_paired_online_minus_fresh_def"],
+                         "sensitivity_thetaT_refit_whitener_primary":
+                             v["sensitivity_thetaT_refit_whitener"]["primary_mean_paired_online_minus_fresh_def"],
+                         "best_of_bank_online_minus_fresh_def": v["online_best_ce"] - v["fresh_def_best_ce"],
                          "spectrum_condition": v["spectrum"]["condition"], "feature_scale_min": v["feature_scale"]["min"],
                          "feature_scale_max": v["feature_scale"]["max"]})
     write("CRITIC_GAP.csv", rows)
