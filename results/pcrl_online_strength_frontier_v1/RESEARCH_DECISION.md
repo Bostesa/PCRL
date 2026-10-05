@@ -24,7 +24,7 @@ Means over seeds 0–2 on OSF_DEVELOPMENT_ASSESSMENT (13,936 rows, 13,929 exact-
 | FARE (official) | reference, task-infeasible | 0.705 | 0.685 | 0.634 | 0.844 | 0.451 |
 | LEACE (official) | reference, task-infeasible | 0.871 | 0.846 | 0.864 | 0.794 | 0.436 |
 
-The constant predictor (fitted on OSF_DEFENSE_FIT) scores 0.746 on income and 0.284 on occupation. Full levels for every grid point, seed and view are in `ALL_LEVELS.csv`. The frontier is in `figures/fig_frontier.pdf`.
+The constant predictor (fitted on OSF_DEFENSE_FIT) scores 0.746 on income and 0.284 on occupation. Full levels for every grid point, seed and view are in `ALL_LEVELS.csv`. Secondary slots named N\* or R\* score the descriptive fallback configurations, not valid nominees. The frontier is in `figures/fig_frontier.pdf`.
 
 ## Answers
 
