@@ -110,7 +110,7 @@ Only epoch 20 of the normalized arms is eligible.
 ## 5. Active local feedback (Phase B)
 
 **Controller probes.** At each measurement the probes run on frozen local views:
-- a scale-aware whitened LR (float64 SVD; directions below 1e-5 × s_max are rank-null, because the views are float32-computed);
+- a scale-aware whitened LR on the r block only (float64 SVD; directions below 1e-9 × s_max are rank-null; review R2 — the centred logits are affine in r, so the linear function class is unchanged, and a rotated 1e-6 clue stays readable);
 - an MLP(64).
 
 Both are fitted on CRITIC_FIT. One is selected, and its orientation chosen, on CRITIC_VAL; its AUC is then measured on CONTROLLER_CALIB. The probes never touch AUDIT_FIT or the assessment.
@@ -250,6 +250,8 @@ Zero-direction finding:
 - This is a real data finding: under strong norm-controlled updates the refreshed local reference at ρ = 1.5 pushed its critics below the prior, and protection on that recipient stopped while information remained (v1 inner AUC 0.852). Zero-direction counts are reported per unit in `GRADIENT_MATCHING.csv`.
 
 **Decision.** The preflight did not show dead feedback, so no repair is authorised. The registered additive rule is kept.
+
+The §5 probe description was corrected to the reviewed reader (r block, 1e-9), and the Phase B lock was rewritten before any Phase B fit. The first Phase B lock write (`a1186eb`) carried the stale text.
 
 The reviewer's proposed multiplicative step (P1: w ← clip(w · 2^c, 0.25, 8)) addresses wind-up after common-mode saturation. It is recorded as an advisory and **not adopted**. Saturation and asymmetry counts are reported per unit, so any wind-up shows up in the results.
 
