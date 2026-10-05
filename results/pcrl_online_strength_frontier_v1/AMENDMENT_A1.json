@@ -1,0 +1,14 @@
+{
+ "base_lock": "DATA_AND_ENGINEERING_LOCK",
+ "changes_previously_locked": [
+  "osf/run.py"
+ ],
+ "code_files": {
+  "osf/run.py": "8a71bebf9d6defbd7d15ecdf8e226d5f278a1716191866d61dc0956bbe2ec514"
+ },
+ "name": "AMENDMENT_A1",
+ "parent_commit": "01790335bd08726dc36d4e95fd56b01b8082cf77",
+ "reason": "2026-10-05 engineering amendment 1 of 2 (before the dependent fidelity check is rerun; no bank fit has run). Demonstrated defect: stage_fidelity's frozen-minibatch equivalence used the first minibatch of epoch 2, on which (seed 0, RAW-J beta 0.3, epoch-2 snapshot critics) the constant predictor won on every view, so p_i = 0 for both encoders and the algebra check was vacuous (applicable = 0, receipt fid__s0__RAW-J_b0.3 kept in quarantine). Fix: use the first minibatch of epoch 2 in the salt-0 order on which both proxy gradients are nonzero (bounded scan; skipped batches recorded). Raw fidelity itself passed (bitwise model and critics vs pinned rgj, logged norms within 4.3e-7). Training code is unchanged.",
+ "schema": "osf-amendment-v1",
+ "written_at": "2026-10-05T03:56:49Z"
+}

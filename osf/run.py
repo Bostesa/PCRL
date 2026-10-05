@@ -243,9 +243,18 @@ def stage_fidelity(D, shard_spec=None):
             dev = max((max(abs(np.sqrt((steps["q_norm"][s - 1] ** 2).sum()) - p) / max(p, 1e-30),
                           abs(np.sqrt((steps["t_norm"][s - 1] ** 2).sum()) - tt) / max(tt, 1e-30)) for s, p, tt in logged), default=0.0)
             dev = float(dev) if logged else None    # rgj logs every 20 steps (6 entries on the real 2-epoch run)
-            # frozen-minibatch equivalence on real rows: epoch-2 snapshot, first minibatch of epoch 2 (salt 0)
-            bi = np.random.default_rng([k, T.HP["salt"], 2]).permutation(data.n)[:T.HP["batch"]]
-            eqv = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2])
+            # frozen-minibatch equivalence on real rows: epoch-2 snapshot; the first minibatch of epoch 2 (salt 0 order)
+            # on which both proxy gradients are nonzero (AMENDMENT_A1: a batch where the constant wins every view has
+            # p_i = 0 and makes the algebra check vacuous; skipped batches are counted, the scan is bounded by the epoch)
+            perm = np.random.default_rng([k, T.HP["salt"], 2]).permutation(data.n)
+            skipped = []
+            for s0 in range(0, data.n, T.HP["batch"]):
+                bi = perm[s0:s0 + T.HP["batch"]]
+                eqv = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2])
+                if eqv["applicable"] == 2:
+                    break
+                skipped.append({"batch_index": s0 // T.HP["batch"], "applicable": eqv["applicable"]})
+            eqv["batch_index"], eqv["skipped_inapplicable_batches"] = s0 // T.HP["batch"], skipped
             rr = [e["r_i"] for e in eqv["encoders"]]
             common = float(np.sqrt(np.nanmean(np.square(rr))))
             fail_common = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2],
