@@ -113,8 +113,10 @@ def head(k):
     return T.head_of(load_warm(k))
 
 
-def save_release_unit(name, state, k, D, record, critics=None):
+def save_release_unit(name, state, k, D, record, critics=None, check_against=None):
     out, heads, meta = FN.finalize_model(model_from(state, k), D)
+    if check_against is not None:                  # admitted model: must equal the smf release on every smf row
+        record = {**record, "admitted_release_equal_on_smf_rows": admitted_equal(out, D, check_against)}
     files = {"model.pt": lambda p: torch.save(state, p),
              "release.npz": lambda p: np.savez_compressed(p, row_id=D["row_id"], **out)}
     for i, h in heads.items():
@@ -170,23 +172,20 @@ def stage_admit(D, shard_spec=None):
                                             "admitted_from": f"smf {smf_name(k, cid)}",
                                             "recipe": "smf task line (salt 0)" if cid == "U" else
                                             "rgj.train J-O/L-O unchanged, stage B (salt 0), 40 epochs"},
-                              critics=crit)
-            check_admitted_release(n, src, D)
+                              critics=crit, check_against=src)
 
 
-def check_admitted_release(n, src, D):
-    """The rebuilt release must equal the admitted smf release bitwise on every row the smf release covers."""
-    a = np.load(U(n) / "release.npz")
+def admitted_equal(out, D, src):
+    """The rebuilt release must equal the admitted smf release bitwise on every row the smf release covers
+    (checked before the unit is written; a mismatch refuses the admission)."""
     b = np.load(src / "release.npz")
-    pos = {int(r): j for j, r in enumerate(a["row_id"])}
+    pos = {int(r): j for j, r in enumerate(D["row_id"])}
     ix = np.array([pos[int(r)] for r in b["row_id"]])
-    ok = {key: bool(np.array_equal(a[key][ix], b[key])) for key in b.files if key != "row_id"}
-    r = rec(n)
-    r["admitted_release_equal_on_smf_rows"] = ok
-    (U(n) / "admission_check.json").write_text(json.dumps({"unit": n, "smf_rows": int(len(ix)), "equal": ok}))
+    ok = {key: bool(np.array_equal(np.asarray(out[key])[ix], b[key])) for key in b.files if key != "row_id"}
     if not all(ok.values()):
-        raise SystemExit(f"ADMISSION FAILED {n}: rebuilt release differs from the admitted one: {ok}")
-    event("admission check", unit=n, ok=True)
+        raise SystemExit(f"ADMISSION FAILED {src.name}: rebuilt release differs from the admitted one: {ok}")
+    event("admission check", source=src.name, ok=True, smf_rows=int(len(ix)))
+    return {"smf_rows": int(len(ix)), "equal": ok}
 
 
 # ------------------------------------------------------------------ engineering parity / fidelity / equivalence
@@ -235,8 +234,9 @@ def stage_fidelity(D, shard_spec=None):
             same_critics = all(eq_state(ck[2]["critics"][v][kk], ck2[2]["critics"][v][kk]) for v in RT.VIEWS
                                for kk in RT.KINDS)
             logged = [(e["step"], e["penalty"], e["task"]) for e in d2["norms"]]
-            dev = max(max(abs(np.sqrt((steps["q_norm"][s - 1] ** 2).sum()) - p) / max(p, 1e-30),
-                          abs(np.sqrt((steps["t_norm"][s - 1] ** 2).sum()) - tt) / max(tt, 1e-30)) for s, p, tt in logged)
+            dev = max((max(abs(np.sqrt((steps["q_norm"][s - 1] ** 2).sum()) - p) / max(p, 1e-30),
+                          abs(np.sqrt((steps["t_norm"][s - 1] ** 2).sum()) - tt) / max(tt, 1e-30)) for s, p, tt in logged), default=0.0)
+            dev = float(dev) if logged else None    # rgj logs every 20 steps (6 entries on the real 2-epoch run)
             # frozen-minibatch equivalence on real rows: epoch-2 snapshot, first minibatch of epoch 2 (salt 0)
             bi = np.random.default_rng([k, T.HP["salt"], 2]).permutation(data.n)[:T.HP["batch"]]
             eqv = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2])
@@ -246,9 +246,10 @@ def stage_fidelity(D, shard_spec=None):
                                                rho_override=common)
             fail_cap = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2],
                                             a_max=1e-6)
-            ok = same_model and same_critics and dev < 1e-5 and eqv["equivalent"]
+            ok = same_model and same_critics and (dev is None or dev < 1e-5) and eqv["equivalent"]
             FN.save_unit(U(n), {}, {"seed": k, "config": T.config_id(c), "epochs": 2, "bitwise_model": same_model,
-                                    "bitwise_critics": same_critics, "logged_norm_max_rel_dev": float(dev),
+                                    "bitwise_critics": same_critics, "logged_norm_max_rel_dev": dev,
+                                    "logged_norm_entries": len(logged),
                                     "equivalence": eqv, "expected_failure_common_rho": fail_common,
                                     "expected_failure_cap": fail_cap, "pass": bool(ok),
                                     "check": "osf RAW vs pinned rgj.train (identical warm state, fixed head, salt 0, "
@@ -360,7 +361,11 @@ def main(argv=None):
         fn[a.stage](D, a.shard)
     elif a.stage in LATE:
         mod, f = LATE[a.stage]
-        getattr(importlib.import_module(mod), f)(D, a.shard)
+        fn_late = getattr(importlib.import_module(mod), f)
+        if a.stage == "references":                    # osf.baselines.run_references(D, seeds=..., shard=...)
+            fn_late(D, shard=a.shard)
+        else:
+            fn_late(D, a.shard)
     else:
         raise SystemExit(f"unknown stage {a.stage}")
     event(f"end {a.stage}", shard=a.shard, pid=os.getpid())
