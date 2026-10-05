@@ -243,23 +243,30 @@ def stage_fidelity(D, shard_spec=None):
             dev = max((max(abs(np.sqrt((steps["q_norm"][s - 1] ** 2).sum()) - p) / max(p, 1e-30),
                           abs(np.sqrt((steps["t_norm"][s - 1] ** 2).sum()) - tt) / max(tt, 1e-30)) for s, p, tt in logged), default=0.0)
             dev = float(dev) if logged else None    # rgj logs every 20 steps (6 entries on the real 2-epoch run)
-            # frozen-minibatch equivalence on real rows: epoch-2 snapshot; the first minibatch of epoch 2 (salt 0 order)
-            # on which both proxy gradients are nonzero (AMENDMENT_A1: a batch where the constant wins every view has
-            # p_i = 0 and makes the algebra check vacuous; skipped batches are counted, the scan is bounded by the epoch)
+            # frozen-minibatch equivalence on real rows, epoch-2 model (AMENDMENT_A1/A2). With the ONLINE critics of the
+            # snapshot the constant wins every view on most minibatches (p_i = 0: the algebra check is vacuous); their
+            # applicability over the whole epoch-2 order is recorded as a diagnostic. The check itself uses fresh,
+            # deterministic bounded-refit critics on the frozen epoch-2 model (CRITIC_FIT fit, CRITIC_VAL early stop,
+            # snapshot transform) and the first epoch-2 minibatch (salt 0 order) on which both proxy gradients are nonzero.
             perm = np.random.default_rng([k, T.HP["salt"], 2]).permutation(data.n)
+            batches = [perm[s0:s0 + T.HP["batch"]] for s0 in range(0, data.n, T.HP["batch"])]
+            online_scan = [T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2])["applicable"]
+                           for bi in batches]
+            refit = refit_snapshot(ck[2], data, k)
             skipped = []
-            for s0 in range(0, data.n, T.HP["batch"]):
-                bi = perm[s0:s0 + T.HP["batch"]]
-                eqv = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2])
+            for j, bi in enumerate(batches):
+                eqv = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=refit)
                 if eqv["applicable"] == 2:
                     break
-                skipped.append({"batch_index": s0 // T.HP["batch"], "applicable": eqv["applicable"]})
-            eqv["batch_index"], eqv["skipped_inapplicable_batches"] = s0 // T.HP["batch"], skipped
+                skipped.append({"batch_index": j, "applicable": eqv["applicable"]})
+            eqv.update(batch_index=j, skipped_inapplicable_batches=skipped, critics="bounded refit on the frozen epoch-2 model",
+                       refit_receipts=refit["receipts"],
+                       online_critic_applicability={str(a): online_scan.count(a) for a in (0, 1, 2)})
             rr = [e["r_i"] for e in eqv["encoders"]]
             common = float(np.sqrt(np.nanmean(np.square(rr))))
-            fail_common = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2],
+            fail_common = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=refit,
                                                rho_override=common)
-            fail_cap = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2],
+            fail_cap = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=refit,
                                             a_max=1e-6)
             close = abs(rr[0] - rr[1]) <= 10 * T.EQUIV_RTOL * max(rr)      # review A2: expected failures required
             ok = (same_model and same_critics and (dev is None or dev < 1e-5) and eqv["equivalent"]
@@ -274,6 +281,25 @@ def stage_fidelity(D, shard_spec=None):
             event("fidelity", unit=n, ok=bool(ok))
             if not ok:
                 raise SystemExit(f"FIDELITY FAILED {n}")
+
+
+def refit_snapshot(snap, data, k):
+    """Fresh deterministic critics fitted on a FROZEN model (AMENDMENT_A2; fitting rows only): per view and kind,
+    rgj.train.fit_bounded (Adam 3e-3, batch 256, <= 15 epochs, patience 3) on CRITIC_FIT with CRITIC_VAL early stopping,
+    inputs = the snapshot's transform of the fixed-head views. For the algebra check only; never used in training."""
+    model = model_from(snap["model"], k)
+    V = RT.frozen_views(model, data.X, snap["critic_head"])
+    cf, cv = torch.from_numpy(data.cf), torch.from_numpy(data.cv)
+    crit, rec_ = {}, {}
+    for v in RT.VIEWS:
+        Tv = RT.Transform(state=snap["transforms"][v])
+        Zf, Zv = Tv(V[v][cf]), Tv(V[v][cv])
+        crit[v], rec_[v] = {}, {}
+        for kind in RT.KINDS:
+            c = RT.new_critic(k, v, kind, "equiv-refit")
+            c, rc = RT.fit_bounded(c, Zf, data.S[cf], Zv, data.S[cv], [k, RT._seed(v, kind), 991])
+            crit[v][kind], rec_[v][kind] = c.state_dict(), rc
+    return {"critics": crit, "transforms": snap["transforms"], "receipts": rec_}
 
 
 def stage_replay(D, shard_spec=None):

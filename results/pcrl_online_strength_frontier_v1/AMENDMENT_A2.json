@@ -1,0 +1,14 @@
+{
+ "base_lock": "DATA_AND_ENGINEERING_LOCK",
+ "changes_previously_locked": [
+  "osf/run.py"
+ ],
+ "code_files": {
+  "osf/run.py": "1e35beec73498e5b3fe31159b86e9c988013ea819bc13e7b3943c52f61493b64"
+ },
+ "name": "AMENDMENT_A2",
+ "parent_commit": "ad5d867dea5d9168bf863491de6aee7795a7c81a",
+ "reason": "2026-10-05 engineering amendment 2 of 2 (before the dependent fidelity check is rerun; no bank fit has run). Demonstrated defect after A1: with the snapshot's ONLINE critics the constant predictor wins every view on every epoch-2 minibatch for at least one encoder (seed 0: 42 batches with no proxy gradient, 19 with one; seed 1: all 61 with none), so the frozen-minibatch equivalence remained vacuous (receipts fid__s0/s1 kept in quarantine; raw fidelity itself passed bitwise again). Fix: the algebra check uses fresh deterministic bounded-refit critics fitted on the FROZEN epoch-2 model (CRITIC_FIT fit, CRITIC_VAL early stopping, the snapshot transform; rgj.train.fit_bounded), then the first epoch-2 minibatch with both proxy gradients nonzero; the online-critic applicability over the epoch is recorded as a diagnostic. No training code or trained arm changes.",
+ "schema": "osf-amendment-v1",
+ "written_at": "2026-10-05T03:58:41Z"
+}
