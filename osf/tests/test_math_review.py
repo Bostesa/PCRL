@@ -545,6 +545,39 @@ def test_raw_zero_task_gradient_with_protection_is_flagged_not_zero(syn):
     assert not (rec["realized_ratio"][hit, 0] == 0).any()
 
 
+def test_stale_transform_artifact_requires_aligned_snapshots(syn):
+    """Review A8 / AMENDMENT_A2 context. An epoch checkpoint holds theta_e with the critics AND the floored-ZCA transform
+    of theta_{e-1}. When the representation is rank-deficient (here 52 of 64 second-layer units dead, as can happen on
+    real rows), one SGD step moves r out of the old span and the stale transform amplifies that by ~1e4: the critics
+    then lose to the constant on every batch although training had a gradient on every step. The aligned
+    theta_{T-1} snapshot, or theta_T with the transform recomputed from its own reference rows, is informative."""
+    import torch.nn.functional as F
+    data = syn["data"]
+    warm = {k: v.clone() for k, v in syn["warm"].items()}
+    for i in (0, 1):
+        warm[f"enc.{i}.2.bias"][:52] = -50.0
+    head = T.head_of(warm)
+    m, d, ck, cap, fin, rec = T.train_run(RAW("J", 0.3), warm, data, SEED, head, n_epochs=4, ckpt_epochs=(4,))
+    assert not (rec["zero"] == T.Z_NOGRAD).any()                      # training itself always had a gradient path
+    perm = np.random.default_rng([SEED, 0, 4]).permutation(data.n)
+    bs = [perm[s:s + 256] for s in range(0, data.n, 256)]
+    stale = [T.frozen_equivalence(ck[4]["model"], data, SEED, head, "J", 0.3, b, snapshot=ck[4])["applicable"] for b in bs]
+    sn = fin["theta_T_minus_1"]
+    aligned = [T.frozen_equivalence(sn["model"], data, SEED, head, "J", 0.3, b, snapshot=sn)["applicable"] for b in bs]
+    assert all(a == 0 for a in stale) and all(a == 2 for a in aligned)
+    cal = torch.from_numpy(data.cal)
+    V = T.critic_views(m, data.X[cal], list(VIEWS), head)
+    Vr = T.critic_views(m, data.X[torch.from_numpy(data.ref)], list(VIEWS), head)
+    for v in VIEWS:
+        Ts, Tn = T.Transform(state=ck[4]["transforms"][v]), T.Transform(Vr[v], "floored")
+        c = T.new_critic(SEED, v, "B", "init")
+        c.load_state_dict(ck[4]["critics"][v]["B"])
+        with torch.no_grad():
+            ce_stale = float(F.cross_entropy(c(Ts(V[v])), data.S[cal]))
+            ce_new = float(F.cross_entropy(c(Tn(V[v])), data.S[cal]))
+            assert float(Ts(V[v]).abs().max()) > 1e3 and ce_stale > 50 * ce_new and ce_new < 1.0
+
+
 # ================================================================== 4. raw fidelity, parity, admitted U
 @pytest.mark.parametrize("treat,arm,beta", [("J", "J-O", 0.6), ("L", "L-O", 0.1)])
 def test_raw_bitwise_rgj_other_betas_seed(syn, treat, arm, beta):
@@ -646,11 +679,15 @@ def test_frozen_equivalence_fails_for_zero_task_gradient(syn):
     assert out["encoders"][0]["equivalent"] is False
 
 
-@pytest.mark.parametrize("delta,expect", [(1e-2, False), (2e-4, False), (5e-5, True)])
+@pytest.mark.parametrize("delta,expect", [(1e-2, False), (2e-4, False), (2e-5, True)])
 def test_frozen_equivalence_tolerance_is_relative_L2(syn, monkeypatch, delta, expect):
     """Review A1 (applied): the declared tolerance is ||q_norm - q_raw||_2 <= 1e-4 ||q_raw||_2. A scalar misstatement
-    of 2e-4 must be rejected (the earlier max-abs criterion accepted up to ~3.7e-4 here); 5e-5 is within tolerance."""
+    of 2e-4 must be rejected (the earlier max-abs criterion accepted up to ~3.7e-4 here); 2e-5 is within tolerance.
+    The honest two-pass float32 noise is 2e-5 / 5.2e-5 here (2e-6 to 6e-6 measured on real fitting rows)."""
     snap, b = _frozen(syn)
+    e0 = [e["rel_err"] for e in T.frozen_equivalence(snap["model"], syn["data"], SEED, syn["head"], "J", 0.3, b,
+                                                       snapshot=snap)["encoders"]]
+    assert max(e0) < 1e-4                                           # honest two-pass float32 noise (2e-5, 5.2e-5 here)
     orig = T.normalized_direction
 
     def off(t, p, rho_i, **kw):
@@ -659,8 +696,8 @@ def test_frozen_equivalence_tolerance_is_relative_L2(syn, monkeypatch, delta, ex
     monkeypatch.setattr(T, "normalized_direction", off)
     out = T.frozen_equivalence(snap["model"], syn["data"], SEED, syn["head"], "J", 0.3, b, snapshot=snap)
     assert out["equivalent"] is expect
-    for e in out["encoders"]:
-        assert e["rel_err"] == pytest.approx(delta, abs=1e-5)       # plus float32 noise of separate passes
+    for e, n0 in zip(out["encoders"], e0):                          # triangle inequality around the honest noise
+        assert delta * (1 - n0) - n0 - 1e-9 <= e["rel_err"] <= delta * (1 + n0) + n0 + 1e-9
 
 
 # ================================================================== 6. data roles (synthetic + light real check)

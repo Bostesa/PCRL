@@ -183,6 +183,86 @@ def write_tracking():
     return len(rows)
 
 
+def outer_records():
+    out = {}
+    for d in sorted(R.UNITS.glob("outer__s*")):
+        if R.done(d.name):
+            r = R.rec(d.name)
+            out[(r["seed"], r["label"])] = r
+    return out
+
+
+def write_utility(recs):
+    rows = []
+    for (k, lab), r in sorted(recs.items()):
+        for i, task in ((0, "income"), (1, "occupation_group")):
+            u = r["utility_deployed"][str(i)] if str(i) in r["utility_deployed"] else r["utility_deployed"][i]
+            rows.append({"seed": k, "label": lab, "task": task, "accuracy": u["accuracy"],
+                         "const_accuracy": u["const_accuracy"], "gain_over_const": u["gain_over_const"],
+                         "u_accuracy": u.get("u_accuracy"), "acc_minus_u": u.get("acc_minus_u"),
+                         "gain_retention_stat": u.get("gain_retention"),
+                         "balanced_accuracy_supported": u["balanced_accuracy_supported"],
+                         "minority_class": u["minority_class"], "minority_recall": u["minority_recall"],
+                         "log_loss": u["log_loss"], "brier": u["brier"], "ece_10bin": u["ece_10bin"]})
+    with open(R.PKG / "ACTUAL_TASK_UTILITY.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]), lineterminator="\n")
+        w.writeheader()
+        for q in rows:
+            w.writerow({kk: (f"{v:.6f}" if isinstance(v, float) else v) for kk, v in q.items()})
+    lin = []
+    for (k, lab), r in sorted(recs.items()):
+        L = r["linear_diagnostics"]
+        for blk in ("r1", "r2", "r1+r2"):
+            lin.append({"seed": k, "label": lab, "block": blk, **{kk: v for kk, v in L[blk].items()}})
+    with open(R.PKG / "LINEAR_DIAGNOSTICS.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(lin[0]), lineterminator="\n")
+        w.writeheader()
+        for q in lin:
+            w.writerow({kk: (f"{v:.6f}" if isinstance(v, float) else v) for kk, v in q.items()})
+    return len(rows)
+
+
+def frontier_figure():
+    """Assessment recovery against each task's accuracy: every locked grid point, every seed, references; filled
+    markers = task-feasible on inner selection (all seeds), hollow = infeasible. Descriptive; never a selection bank."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    inf = json.loads((R.RUN / "inference.json").read_text())
+    sel = json.loads((R.RUN / "selection.json").read_text())
+    lev = inf["levels"]
+    labels = sorted({k.split("#")[2] for k in lev if k.startswith("acc#")})
+    feas = {c: r["task_feasible"] for c, r in sel["rows"].items()}
+    fam_col = {"U": "black", "RAW-J": "tab:red", "RAW-L": "tab:orange", "NORM-J": "tab:blue", "NORM-L": "tab:cyan",
+               "E": "tab:green", "F": "tab:purple", "F0": "tab:pink"}
+    fig, ax = plt.subplots(2, 2, figsize=(11, 9))
+    panels = [(0, 0, "pair", 0), (0, 1, "pair", 1), (1, 0, "v1", 0), (1, 1, "v2", 1)]
+    for r_, c_, view, j in panels:
+        a = ax[r_][c_]
+        for lab in labels:
+            fam = lab if lab in ("U", "E", "F", "F0") else lab.split("|")[0]
+            for k in R.SEEDS:
+                x = lev.get(f"acc#{k}#{lab}#{j}", {}).get("point")
+                y = lev.get(f"R#{k}#{lab}#prim#{view}", {}).get("point")
+                if x is None or y is None:
+                    continue
+                f_ = feas.get(lab, False)
+                a.scatter(x, y, s=28, marker="o" if lab.startswith(("RAW", "U")) else "s" if lab.startswith("NORM") else "^",
+                          facecolors=fam_col[fam] if f_ else "none", edgecolors=fam_col[fam], linewidths=1.0)
+        a.set_xlabel(f"{'income' if j == 0 else 'occupation'} accuracy (assessment, deployed head)")
+        a.set_ylabel(f"SEX AUC, {view} view (assessment; lower = less recovery)")
+        a.grid(alpha=0.3)
+    for fam, col in fam_col.items():
+        ax[0][0].scatter([], [], color=col, label=fam)
+    ax[0][0].legend(fontsize=8, loc="best")
+    fig.suptitle("Strength frontier: every locked configuration and seed (filled = task-feasible on inner selection)")
+    fig.tight_layout()
+    (R.PKG / "figures").mkdir(exist_ok=True)
+    fig.savefig(R.PKG / "figures" / "fig_frontier.pdf")
+    fig.savefig(R.PKG / "figures" / "fig_frontier.png", dpi=130)
+    return True
+
+
 def main(argv=None):
     part = (argv or sys.argv[1:] or ["--part", "all"])[-1]
     if part in ("strength", "all"):
@@ -191,6 +271,9 @@ def main(argv=None):
         print("fidelity all_pass", write_fidelity()["all_pass"])
     if part in ("tracking", "all"):
         print("tracking rows", write_tracking())
+    if part in ("outer", "all"):
+        print("utility rows", write_utility(outer_records()))
+        print("frontier figure", frontier_figure())
 
 
 if __name__ == "__main__":

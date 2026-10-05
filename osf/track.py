@@ -2,7 +2,8 @@
 rgj.critic_track.compare). Runs: the capture configurations (incumbent RAW-J beta 0.3, RAW-L beta 0.3, symmetric
 NORM-J rho 3, NORM-L rho 3) on every seed. Snapshots at progress fractions 0, 0.25, 0.5, 0.75 (theta_{s-1} with the
 critics after their step-s updates and the transform in use), the final aligned snapshot theta_{T-1}, and the released
-theta_T read by the same final critics/transform (one encoder step stale). Registered statistic: mean over kinds of
+theta_T read by the same final critics, both through the stale transform of theta_{T-1} (a whitening artifact, review
+A8) and through a transform recomputed on theta_T's reference rows. Registered statistic: mean over kinds of
 CE(online critic) - CE(fresh bounded refit on the same frozen views, transform and rows) on DIAGNOSTIC_CALIB (alias
 CALIB) and INNER_SELECTION rows; best-of-bank and constant-prior CE are reported separately. Diagnostics only: they never
 change a model, a selection or the assessment attack bank.
@@ -39,8 +40,16 @@ def run_tracking(D, shard_spec=None):
         for s, sn in snaps.items():
             res["snapshots"][s] = CT.compare(sn["model"], sn["critics"], sn["transforms"], sn["critic_head"], D, data,
                                              k, s)
-        res["snapshots"]["released_theta_T_stale_critics"] = CT.compare(fin["theta_T"], last["critics"],
-                                                                        last["transforms"], last["critic_head"], D,
-                                                                        data, k, "thetaT")
+        # review A8: theta_T read through the transform of theta_{T-1} mostly measures a stale-whitening artifact
+        # (a floored ZCA of a rank-deficient view amplifies a one-step change); report it under that name, and the
+        # same final critics with the transform recomputed on theta_T's reference rows (the online convention)
+        res["snapshots"]["theta_T_stale_transform_artifact"] = CT.compare(fin["theta_T"], last["critics"],
+                                                                          last["transforms"], last["critic_head"], D,
+                                                                          data, k, "thetaT")
+        mT = R.model_from(fin["theta_T"], k)
+        Vref = RT.critic_views(mT, data.X[torch.from_numpy(data.ref)], list(RT.VIEWS), last["critic_head"])
+        T_new = {v: RT.Transform(Vref[v], "floored").state() for v in RT.VIEWS}
+        res["snapshots"]["theta_T_recomputed_transform"] = CT.compare(fin["theta_T"], last["critics"], T_new,
+                                                                      last["critic_head"], D, data, k, "thetaTr")
         FN.save_unit(R.U(name), {}, res)
         R.event("unit complete", unit=name)

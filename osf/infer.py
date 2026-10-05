@@ -30,7 +30,8 @@ from osf import run as R
 SEEDS = (0, 1, 2)
 KEY = {("prim", "v1"): "v1", ("prim", "v2"): "v2", ("prim", "pair"): "pair", ("prob", "v1"): "p1",
        ("prob", "v2"): "p2", ("prob", "pair"): "ppair", ("hard", "v1"): "h1", ("hard", "v2"): "h2",
-       ("hard", "pair"): "hpair", ("feat", "v1"): "r1", ("feat", "v2"): "r2", ("feat", "pair"): "rpair"}
+       ("hard", "pair"): "hpair", ("feat", "v1"): "r1", ("feat", "v2"): "r2", ("feat", "pair"): "rpair",
+       ("logit", "v1"): "c1", ("logit", "v2"): "c2", ("logit", "pair"): "cpair"}
 ROLES = ("N*", "R*", "L*", "C*")
 
 
@@ -151,7 +152,7 @@ def build(ctx):
     levels = {}
     for k in SEEDS:
         for lab in ctx.labels:
-            for fmt in ("prim", "prob", "hard", "feat"):
+            for fmt in ("prim", "prob", "hard", "feat", "logit"):
                 for v in ("v1", "v2", "pair"):
                     if ctx.has(lab, fmt, v):
                         levels[f"R#{k}#{lab}#{fmt}#{v}"] = ctx.rec(k, lab, fmt, v)

@@ -1,12 +1,29 @@
-INTERIM STATUS (train/data): 0 REQUIRED
-INTERIM STATUS (select/family/infer): 2 REQUIRED (S1 osf/select.py, S2 osf/infer.py) - repair before SELECTION_AND_AUDIT_LOCK; neither touches training, so neither uses the two-amendment training budget. Patches below; both verified on copies (all fixtures pass with them).
+STATUS (train/data): 0 REQUIRED
+STATUS (select/family/infer): 2 REQUIRED (S1 osf/select.py, S2 osf/infer.py) - both APPLIED by the lead in 1b9a2fa (pre-SELECTION_AND_AUDIT_LOCK; no training amendment used); fixtures now pass
+REQUIRED findings: 2 (S1, S2; both repaired and verified)
 
 # Mathematics and design review: online strength frontier
 
-**Role:** design / math reviewer, 2026-10-04. Owns this file and `osf/tests/test_math_review.py`. I edited no
+**Role:** design / math reviewer, 2026-10-04/05. Owns this file and `osf/tests/test_math_review.py`. I edited no
 lead-owned file and no other agent's file. Mutations were injected only into copies in my private scratch space.
 
-**Scope of this interim (train/data).**
+**Final summary.**
+- `osf/train.py`, `osf/data.py`: no REQUIRED defect. RAW is bitwise rgj J-O/L-O; NORM implements the registered
+  formula; receipts are exact and RNG-free; local arms are isolated from the pair critics; roles, exclusions, sealing
+  and preprocessing verified on real counts. Recommended hardening A1-A4 was applied by the lead before
+  DATA_AND_ENGINEERING_LOCK (fixtures updated to the hardened behaviour).
+- `osf/select.py`, `osf/family.py`, `osf/infer.py`: two REQUIRED defects (S1 missing comparator, S2 invalid label),
+  plus RECOMMENDED A7; all three applied by the lead in 1b9a2fa; the failing fixtures now pass.
+- New after the lock (A8, RECOMMENDED, measured on real fitting rows and reproduced synthetically): epoch checkpoints
+  pair theta_e with the transform of theta_{e-1}; with a rank-deficient representation the stale floored-ZCA
+  transform makes the stored critics lose to the constant. This, not weak online critics, made the first
+  frozen-equivalence check vacuous (AMENDMENT_A1/A2). AMENDMENT_A2 (refit critics in the snapshot's transform space)
+  is algebraically valid; its stated cause should be corrected, and `osf/track.py`'s theta_T diagnostic must not
+  attribute this artifact to critic staleness (section 4b).
+- Fixtures: **53 tests in `osf/tests/test_math_review.py`, all pass (~8 s); full `osf/tests`: 109 pass** (at cbe72dd).
+- Injected defects: **53 / 53 caught** (22 train, 6 data, 12 select, 5 family, 8 infer).
+
+**Scope (train/data).**
 - Prompt sections 3, 7, 8, 9, 10, 12, 16 against the ACTUAL code: `osf/train.py`, `osf/data.py`, and the parts of
   `osf/run.py` that drive them (admit, parity, fidelity, replay, timing, bank).
 - Pinned sources read: `rgj/train.py` (J-O / L-O, coefficients, fixed head, Transform, recovery, parameter ordering,
@@ -15,18 +32,22 @@ lead-owned file and no other agent's file. Mutations were injected only into cop
   were produced), and the predecessor `MATH_REVIEW.md` (R1-R4 regressions checked explicitly).
 
 **Checks run.**
-- `osf/tests/test_math_review.py`: **37 tests, all pass, ~5 s** (synthetic CPU fixtures plus two light real-data
-  loader checks that read no assessment label and fit nothing).
+- `osf/tests/test_math_review.py`: **53 tests, all pass, ~8 s** (synthetic CPU fixtures, two light real-data loader
+  checks that read no assessment label and fit nothing, and end-to-end runs of `osf.select` / `osf.infer` on synthetic
+  records redirected to a temporary folder).
   `cd <WORKTREE> && OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m pytest osf/tests/test_math_review.py -q`
 - Independence: own synthetic data (SEX prior ~0.67, model seed 3), own functional forward (encoders, fixed-head views,
   critics, transforms, recovery surrogate with the constant, task losses) and own update algebra. The engine is used only
   to produce trajectories/snapshots; expected values are recomputed from first principles.
-- Mutation receipts: **28 injected defects (22 in a copy of `osf/train.py`, 6 in a copy of `osf/data.py`), 28 caught.**
-- One light real-data check (counts/hashes only, no labels of the assessment, no fit): see "Data roles" below.
+- Mutation receipts: **53 injected defects (22 `osf/train.py`, 6 `osf/data.py`, 12 `osf/select.py`, 5 `osf/family.py`,
+  8 `osf/infer.py`), 53 caught**; runner and JSON receipts kept in private scratch (not committed).
+- Light real-data checks (no assessment label, no bank fit): role counts/invariants (section 6); the frozen-equivalence
+  float-noise floor and the stale-transform artifact on a 2,048-row OSF_DEFENSE_FIT subset with a subset warm start
+  (sections 4b and 5).
 
-**Verdict (train/data): 0 REQUIRED, 5 RECOMMENDED (A1-A4, A6) plus one pinning note (A5), 8 NOTES.** The engine implements the registered RAW, NORM and TASK
-semantics; nothing found justifies an engineering amendment before TRAINING_PROTOCOL_LOCK. The RECOMMENDED items are
-hardening/reporting improvements that change no trained number; the lead may fold any of them in before the lock.
+**Verdict (train/data): 0 REQUIRED; RECOMMENDED A1-A4 (applied), A6 (not applied, noted for VALIDATION), A8 (new);
+A5 pinning note; 8 NOTES.** The engine implements the registered RAW, NORM and TASK semantics. None of the
+recommendations changes a trained number.
 
 ## 1. Gradient semantics: what was verified, and how
 
@@ -34,7 +55,7 @@ hardening/reporting improvements that change no trained number; the lead may fol
 |---|---|---|
 | One step equals the registered formula: theta_s - theta_{s-1} = -lr kappa [t_enc + q, t_head], q from beta p_i (RAW) or stop_grad(rho s_i ‖t_i‖/‖p_i‖) p_i (NORM), declared salt-0 minibatch, fixed warm head, aligned critics/transform; first, middle and last step; RAW-J/L, NORM-J/L, a = 0.5/1/2 | PASS (rel. L2 error of the update <= 2e-3, float32 transform noise; defects move it by O(1)) | `test_one_step_reconstruction_from_first_principles` (6 configs x 3 steps) |
 | Receipts equal independently recomputed ‖t_i‖, ‖p_i‖, ‖q_i‖, ratio, cos, R per view, kappa, pre-clip total (§12) | PASS | same |
-| Normaliser denominator uses encoder blocks only, never task-head gradients (§10) | PASS | same; mutation M01 caught by 9 fixtures |
+| Normaliser denominator uses encoder blocks only, never task-head gradients (§10) | PASS | same; mutation M01 caught by four fixtures (several parametrizations) |
 | Positive scalar: magnitude only, direction never changed (also when capped) (§8, §10) | PASS | `test_cap_changes_magnitude_never_direction`, `test_zero_rule_and_threshold` |
 | Float64 norms (float32 overflow/underflow cases) | PASS | `test_float64_norms_in_the_scalar` |
 | Cap 100 wired; capped steps report the actual (lower) ratio and a cap flag; realized RMS falls short of rho, never inflated | PASS | `test_cap_changes_magnitude_never_direction` |
@@ -91,12 +112,49 @@ hardening/reporting improvements that change no trained number; the lead may fol
   heads are fitted by the same `rgj.finalize.finalize_model` (fit on OSF_DEFENSE_FIT, C on HEAD_VALIDATION) for every
   bank unit and every admitted unit (`osf/run.py` save_release_unit), with admitted releases checked bitwise on smf rows.
 
+### 4b. Stale-transform artifact in epoch checkpoints (RECOMMENDED A8; affects diagnostics, not training)
+
+- `train_run` recomputes the floored-ZCA transform from the current model before every critic update and every penalty,
+  so training is always aligned. An epoch checkpoint (and the release unit's `critics.pt`), however, pairs theta_e with
+  the critics AND the transform of theta_{e-1}. Floored directions are amplified up to 1/√(1e-8) = 1e4 relative to the
+  top direction (cond(W) = 1e4 measured). When the representation is rank-deficient (dead second-layer units, or a span
+  that a single SGD step rotates), the one-step change along formerly floored directions is amplified by ~1e4 and the
+  stored critics become useless on theta_e.
+- Real fitting rows (light check, 2,048 OSF_DEFENSE_FIT rows, subset warm start, RAW-J 0.3, 6 epochs, seeds 0 and 1):
+  training receipts 0% no-gradient steps with R ≈ 0.27-0.45 per view; frozen check with the checkpoint (theta_T + stale
+  transform) 100% and 62.5% of batches with p = 0; aligned `final["theta_T_minus_1"]` 0%; theta_T with the transform
+  recomputed from its own reference rows and the same critics 0%; ‖W_new - W_old‖/‖W_old‖ only 0.4-1.3%.
+- Synthetic reproduction (`test_stale_transform_artifact_requires_aligned_snapshots`): 52 of 64 second-layer units dead;
+  training always had a gradient path, the checkpoint evaluation loses to the constant on every batch (max |Z| > 1e3,
+  critic CE > 50x the recomputed-transform CE), the aligned snapshot is applicable on every batch.
+- Consequences and advice:
+  - AMENDMENT_A1/A2's stated cause ("the constant wins with the online critics") is a misattribution: the online critics
+    were informative in training; the checkpoint evaluation was misaligned. AMENDMENT_A2 (bounded-refit critics fitted
+    and evaluated in the snapshot's transform space) is algebraically valid for the equivalence check, because the
+    identity q = (r ‖t‖/‖p‖) p does not depend on which critics produce p. Correct the description in VALIDATION.md /
+    RAW_FIDELITY.json; no further amendment is needed or recommended (the two-amendment budget is used).
+    Pre-check of the A2 path with the lead's own `osf.run.refit_snapshot` on the same 2,048-row real subset (2 epochs,
+    seeds 0/1/2 x J/L): the first epoch-2 batch was applicable in all 6 cases, all equivalent, honest relative L2 errors
+    1.2e-6 to 1.4e-5 (< 1e-4); the aligned theta_{T-1} snapshot gave the same verdicts (1.2e-6 to 1.2e-5). Measured
+    r_i ranged 0.59-6.98, so the common-rho failure case is discriminating there.
+  - `osf/track.py` "released_theta_T_stale_critics" applies the theta_{T-1} critics with the theta_{T-1} transform to
+    theta_T; on real rows its CE gap will be dominated by this transform artifact, not by one step of critic
+    staleness. Before SELECTION_AND_AUDIT_LOCK, add a variant with the transform recomputed on theta_T's reference rows
+    (`Transform(critic_views(theta_T, X[ref]), "floored")`, the convention training uses at the next step) and label
+    the stale-transform number "stale critics + stale transform (includes transform amplification)". The aligned
+    theta_{T-1} snapshot remains the registered diagnostic.
+  - Never evaluate checkpoint/release `critics.pt` on the checkpoint model without recomputing the transform.
+
 ## 5. Frozen-minibatch equivalence (§10)
 
 - Independent algebra on a frozen RAW-J snapshot: with rho_i = r_i = ‖beta p_i‖/‖t_i‖ the norm expression reconstructs
-  beta p_i with relative L2 error <= 1e-6; a common rho fails when r₁ ≠ r₂ (rel. error > 1e-3); a cap below beta fails;
-  t_1 = 0 (zeroed training head, p_1 ≠ 0) fails (`test_frozen_equivalence_independent_algebra`,
-  `test_frozen_equivalence_fails_for_zero_task_gradient`, `test_frozen_equivalence_tolerance_rejects_one_percent_scalar_error`).
+  beta p_i with relative L2 error <= 1e-6 (same p, float64); a common rho fails when r₁ ≠ r₂ (rel. error > 1e-3); a cap
+  below beta fails; t_1 = 0 (zeroed training head, p_1 ≠ 0) fails (`test_frozen_equivalence_independent_algebra`,
+  `test_frozen_equivalence_fails_for_zero_task_gradient`, `test_frozen_equivalence_tolerance_is_relative_L2`).
+- After A1 (applied) the declared criterion is relative L2: ‖q_norm - q_raw‖₂ <= 1e-4 ‖q_raw‖₂. A 2e-4 scalar
+  misstatement is now rejected (the earlier max-abs criterion accepted up to ~3.7e-4). Honest float32 noise of the two
+  separate backward passes (beta/3-weighted vs unit P): 2.1e-5 and 5.2e-5 on the synthetic snapshot, 2e-6 to 6e-6 on real
+  fitting rows, i.e. a 2x-50x margin under 1e-4.
 - The lead's `frozen_equivalence` reaches the same verdicts in all these cases (M22, a silently per-encoder "common" rho,
   is caught).
 
@@ -119,6 +177,12 @@ Light real-data check (counts and invariants only; no assessment label read, no 
 
 ## RECOMMENDED (train/data; none changes a trained number)
 
+Status: A1, A2, A3, A4 APPLIED by the lead (commit 1b9a2fa, before DATA_AND_ENGINEERING_LOCK); fixtures updated to the
+hardened behaviour (`test_capture_steps_accepts_the_fraction_dict_or_its_values`,
+`test_raw_zero_task_gradient_with_protection_is_flagged_not_zero`, `test_frozen_equivalence_tolerance_is_relative_L2`).
+A5 handled by custody evidence. A6 not applied (noted for VALIDATION; unsealing stays gated by `osf.assess`). A8 new
+(section 4b).
+
 **A1. `frozen_equivalence` tolerance mixes norms.** It accepts when max|q_norm - q_raw| <= 1e-4 ‖q_raw‖₂ (max-abs error
 against an L2 norm). On my synthetic snapshot ‖q‖₂/max|q| ≈ 3.7-4.0, so a scalar misstatement up to ≈3.7e-4 relative is
 accepted (measured: 3e-4 accepted, 5e-4 rejected), while the honest reconstruction error is <= 1e-6. The registered
@@ -133,7 +197,7 @@ failure cases (common rho, cap, t = 0) are still rejected, so this is not a defe
 
 **A3. `capture_steps_for` returns {fraction: step}.** `train_run` tests `step in capture_steps`; passing the dict
 itself compares steps with fractions and captures only step 1 (1 == 1.0). `osf/run.py` passes `.values()`, so no run
-is affected (`test_capture_steps_for_must_be_passed_as_step_values`). Proposed: in `train_run`,
+is affected (now `test_capture_steps_accepts_the_fraction_dict_or_its_values`). Proposed: in `train_run`,
 `capture_steps = set(capture_steps.values()) if isinstance(capture_steps, dict) else set(capture_steps)`.
 
 **A4. RAW receipts at t_i = 0 with q_i ≠ 0 understate strength.** In RAW mode the update applies q_i, but with ‖t_i‖ = 0
@@ -160,7 +224,7 @@ returned by the assess gate, with the assessment row_id hash) and refuse otherwi
 - N2. `diag["nonfinite"]` counts nonfinite privacy gradients that were zeroed (step applied) as well as skipped steps;
   run.py's half-lr retry triggers on either. This is inherited from rgj/smf and applies identically to every arm.
 - N3. Epoch checkpoints store theta_T with the critics/transform last used at step T (aligned to theta_{T-1});
-  document this in METHOD_CARD next to the theta_{T-1}/theta_T diagnostic.
+  superseded by A8 (section 4b), which shows this misalignment is numerically severe on real rows.
 - N4. Realized summaries include non-applied steps (nonfinite total norm); such steps carry nonfinite norms, so they
   surface as NaN rather than silently.
 - N5. `fp64` minibatch fingerprints are 63-bit truncations of SHA-256: identifiers, not proofs.
@@ -168,13 +232,20 @@ returned by the assess gate, with the assessment row_id hash) and refuse otherwi
 - N7. `check_partition` is stricter than the exclusion rule: a pool group overlapping a fitting role is excluded but
   then the loader refuses. On the real data no such overlap exists (0 excluded rows), so this only matters as a loud
   failure mode.
+- N8b. With A4 applied, a RAW step with t_i = 0 and q_i ≠ 0 has realized ratio = inf; `osf/report.py`'s `_stats` drops
+  nonfinite values, so such steps leave the realized statistics with n < steps. Report `diag["undefined_ratio_steps"]`
+  next to STRENGTH_PROFILES (expected 0 on every real run).
 - N8. Admitted smf RAW/U runs lack per-step receipts; `osf/run.py` stage_replay regenerates them by a bitwise replay,
   which is the right design (the admitted checkpoint stays the released model).
 
-## Injected defects (train/data)
+## Injected defects (all reviewed modules)
 
 Each mutation is applied to a copy of the lead file in private scratch space, the full fixture file is run against the
-copy (`OSF_REVIEW_TRAIN` / `OSF_REVIEW_DATA`), and the copy is deleted. **28 / 28 caught.**
+copy (`OSF_REVIEW_TRAIN` / `OSF_REVIEW_DATA` / `OSF_REVIEW_SELECT` / `OSF_REVIEW_FAMILY` / `OSF_REVIEW_INFER`), and the
+copy is deleted. A mutation counts as caught only if a fixture other than the two REQUIRED S1/S2 fixtures fails (those
+failed on the unrepaired code by design). Final run against the current repaired code (commit cbe72dd: S1, S2, A1-A4,
+A7 and AMENDMENT_A1/A2 in place), with the updated fixture file: **53 / 53 caught, no spurious failure.** (An earlier
+run on the pre-repair code also caught 53 / 53.)
 
 | Mutation | Caught by (examples) |
 |---|---|
@@ -206,10 +277,38 @@ copy (`OSF_REVIEW_TRAIN` / `OSF_REVIEW_DATA`), and the copy is deleted. **28 / 2
 | D04 group-overlap exclusion not applied | synthetic union, loud failure |
 | D05 selection may read sealed assessment labels | real sealing / allowlist |
 | D06 ineligible certification pool still admitted | synthetic union |
+| SM01 G1 margin 0.02 instead of 0.01 | selection rules, descriptive fallback |
+| SM02 task feasibility on ANY seed | selection rules, descriptive fallback |
+| SM03 N* ignores the C* guard | selection rules |
+| SM04 guard buffer 0.01 | selection rules, descriptive fallback |
+| SM05 N* tie prefers a far from 1 | selection rules |
+| SM06 R* tie prefers higher beta | selection rules |
+| SM07 C* excludes RAW-J | C* may be RAW-J beta 0.6 |
+| SM08 reference status ignored | C* may be RAW-J, selection rules, fallback |
+| SM09 fallback ranks pair before shortfall | descriptive fallback |
+| SM10 L* tie by id before compute | selection rules |
+| SM11 local guard checks v1 only | selection rules, descriptive fallback |
+| SM12 U validity not checked | U invalid |
+| FM01 Bonferroni over 27 instead of 54 | family/z (also the module's own import assertion) |
+| FM02 coalition margin 0.01 instead of 0.02 | family/z |
+| FM03 claim ignores nominee validity | descriptive fallback cannot pass |
+| FM04 retention target -0.01 | family/z |
+| FM05 local clause one-sided the wrong way | family/z |
+| IM01 non-strict lower threshold | strict thresholds |
+| IM02 row-level instead of group bootstrap | infer endpoints vs independent group bootstrap |
+| IM03 bootstrap seed off by one | infer endpoints |
+| IM04 coalition clause orientation flipped | infer endpoints |
+| IM05 retention weights on U and const swapped | infer endpoints |
+| IM06 U accuracy not paired by seed | infer endpoints |
+| IM07 recovery from attacker refit 0 only | infer endpoints |
+| IM08 SE with ddof 0 | infer endpoints |
+
+(In the earlier run other agents wrote into the public results folder and the selection guard, then hashing the whole
+folder, failed spuriously for M11/M15; the guard now hashes only the three files `osf.select` writes.)
 
 ## 7. Selection, endpoint family and inference (§13, §14) - `osf/select.py`, `osf/family.py`, `osf/infer.py`
 
-Reviewed at commit 9ecdb69 (files as committed by the lead). Fixtures run `osf.select.select_all` end to end on a
+Reviewed at commit 9ecdb69; S1, S2 and A7 re-verified after the lead applied them (commit 1b9a2fa). Fixtures run `osf.select.select_all` end to end on a
 synthetic inner world (every path redirected to a temporary folder; a guard asserts the real results folder is
 byte-identical afterwards) and `osf.infer.main` end to end on synthetic outer predictions with duplicated exact-record
 groups. Nothing real is read except the light loader (for the fitting prior hash and constants).
@@ -232,7 +331,7 @@ groups. Nothing real is read except the light loader (for the fitting prior hash
 | Inherited weighted bootstrap = explicit multinomial resampling of exact-record GROUPS (rows of a group move together), one draw shared by all statistics | PASS (exact to 1e-12) | `test_group_bootstrap_equals_explicit_group_resampling` |
 | `osf.infer` primary points and SEs (P19 coalition, P20 local, P22 accuracy vs U, P24 retention, P26 gain) equal an independent recomputation: mean over attacker refits per seed, per-seed paired differences, mean over seeds, group bootstrap B replicates with seed 20261006, the same draw for every arm and seed, interval point +- z SE | PASS (rel 1e-9) | `test_infer_primary_endpoints_match_independent_group_bootstrap` |
 
-### REQUIRED S1 - a missing guard comparator does not invalidate N* / R* (osf/select.py)
+### REQUIRED S1 - a missing guard comparator does not invalidate N* / R* (osf/select.py) - APPLIED, fixture passes
 
 **Defect.** §13: N* must satisfy local AUC <= L* + 0.005 AND <= C* + 0.005 on every seed; R* must satisfy <= L* + 0.005;
 "missing comparators make affected claims invalid". When no RAW-L/NORM-L configuration is task-feasible (L* =
@@ -256,7 +355,7 @@ Result: L* = NO_FEASIBLE_NOMINEE, N* = NOMINEE NORM-J|r3|a0.5 (`missing_guards =
 The would-be pick stays visible (and scored descriptively via `eval_lock.resolve`), `claim_decision` then refuses
 Claim B, and the deployable best is chosen among valid nominees only. Verified on a copy: all fixtures pass.
 
-### REQUIRED S2 - the study label never becomes INCOMPLETE_OR_INVALID (osf/infer.py)
+### REQUIRED S2 - the study label never becomes INCOMPLETE_OR_INVALID (osf/infer.py) - APPLIED, fixture passes
 
 **Defect.** §13 ("If U fails nontrivial utility ... record the invalid status") and §18 ("INCOMPLETE_OR_INVALID if
 required scientific validity/coverage is missing; separate that from a complete negative"). `osf.infer.main` calls
@@ -280,7 +379,8 @@ ever asserted. Verified on a copy: all fixtures pass.
 
 ### RECOMMENDED / NOTES (selection and inference)
 
-- **A7 (RECOMMENDED).** Per-clause decisions for a descriptive fallback (or an INVALID nominee) are written to
+- **A7 (RECOMMENDED; APPLIED in 1b9a2fa as `DESCRIPTIVE_ONLY` with the numeric verdict kept in `decision_numeric`;
+  checked in `test_infer_primary_endpoints_match_independent_group_bootstrap`).** Per-clause decisions for a descriptive fallback (or an INVALID nominee) are written to
   PRIMARY_ENDPOINTS.csv as PASS / NOT_ESTABLISHED like any other clause. The claim is protected by `claim_decision`, but
   a reader counting clause PASSes could misread a fallback. Proposed: in `infer.main`, set the clause decision to
   `DESCRIPTIVE_ONLY` (keeping point/SE/bounds) whenever the clause's nominee or comparator status is not NOMINEE.
