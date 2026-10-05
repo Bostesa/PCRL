@@ -1,0 +1,21 @@
+{
+ "schema": "dpc-predictions-v1",
+ "registered_before": "any real-data codebook, reference, baseline or attacker fit of this study (committed before ENGINEERING_LOCK)",
+ "status": "predictions, not gates; never revised after outcome-bearing runs",
+ "predictions": [
+  {"id": "PR1", "question": "Does at least one compact (finite-code, m >= 2) policy meet the full inner score contract (accuracy, true-label log loss within 0.01 nats, Brier within 0.005, gain retention, gain >= 0.03) on every seed?",
+   "probability": 0.55,
+   "reasoning": "U-teacher codes preserve U's decisions exactly; with m = 8 cells per predicted class the mean KL to the teacher should be small, but occupation's six-class confidence is finely spread and its true-label log loss may move by more than 0.01; RAW-J-teacher codes start ~0.013 nats worse than U on occupation log loss and are likely ineligible"},
+  {"id": "PR2", "question": "Does a privacy-trained policy (LOCAL, SEQ-12, SEQ-21 or JOINT) beat task-only compression (T*) by more than 0.02 pair AUC (assessment point estimate) while eligible?",
+   "probability": 0.25,
+   "reasoning": "the decisions themselves carry most of the score-only SEX signal (decision-only pair AUC ~0.69-0.74 in the source tables); confidence coarsening can remove only the remainder, and the log-loss allowance limits it"},
+  {"id": "PR3", "question": "Does JOINT beat BOTH sequential orders at matched teacher/rate on mean inner pair AUC (any margin)?",
+   "probability": 0.45,
+   "reasoning": "JOINT's fitting objective dominates its witnesses by construction, but held-out recovery is noisy and plug-in MI on sparse pair tables is optimistic"},
+  {"id": "PR4", "question": "Is the strongest control (T* / C_global) a simple compression (task-only family or class-only) rather than a continuous source or official reference?",
+   "probability": 0.75,
+   "reasoning": "continuous sources include composed code readers and cannot be stronger than their codes; FARE/LEACE references were task-infeasible under the earlier accuracy gates and the new log-loss/Brier gates are stricter"},
+  {"id": "PR5", "question": "Final label",
+   "probabilities": {"EXPERIMENTAL_NO_ADVANTAGE": 0.70, "PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET": 0.12, "JOINT_DEVELOPMENT_CRITERION_MET": 0.06, "INCOMPLETE_OR_INVALID": 0.12}}
+ ]
+}
