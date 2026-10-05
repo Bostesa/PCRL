@@ -54,7 +54,8 @@ def one_step(model, data, crit, head, base, w, rho, seed):
     for i, (lo, hi) in enumerate(((0, n0), (n0, ne))):
         q, info = T.normalized_direction(g[lo:hi], p[lo:hi], rho * s[i])
         qs.append(q)
-        out[f"ratio_{i + 1}"] = info.get("ratio")
+        out[f"ratio_{i + 1}"] = info.get("ratio") if info.get("ratio") is not None else 0.0   # zero direction counts as 0
+        out[f"zero_{i + 1}"] = info.get("zero")
         out[f"p_dir_{i + 1}"] = (p[lo:hi] / p[lo:hi].norm()).detach()
     out["rms_ratio"] = float(np.sqrt(np.mean([out["ratio_1"] ** 2, out["ratio_2"] ** 2])))
     out["alloc"] = list(s)
@@ -101,7 +102,7 @@ def run_preflight(D):
             for tag in ("w_epoch0", "w21", "w22"):
                 x = steps[(base, tag)]
                 rows[f"{base}|{tag}"] = {"alloc": x["alloc"], "ratio_1": x["ratio_1"], "ratio_2": x["ratio_2"],
-                                         "rms_ratio": x["rms_ratio"],
+                                         "rms_ratio": x["rms_ratio"], "zero_events": [x["zero_1"], x["zero_2"]] if (x["zero_1"] or x["zero_2"]) else [],
                                          "cos_q1_vs_w11": cos(x["q"][0], b11["q"][0]), "cos_q2_vs_w11": cos(x["q"][1], b11["q"][1]),
                                          "max_abs_q_diff_vs_w11": max(float((x["q"][i] - b11["q"][i]).abs().max()) for i in (0, 1))}
         res["one_step"] = rows
@@ -111,7 +112,8 @@ def run_preflight(D):
             "local_common_weight_exact_symmetry": rows["local|w22"]["max_abs_q_diff_vs_w11"] == 0.0,
             "joint_common_weight_changes_direction": rows["joint|w22"]["cos_q1_vs_w11"] < 1 - 1e-9,
             "asymmetric_weights_reallocate": rows["local|w21"]["ratio_1"] > rows["local|w21"]["ratio_2"] + 0.1,
-            "rms_identity": all(abs(r["rms_ratio"] - 0.75) < 1e-5 for r in rows.values()),
+            "rms_identity": all(abs(r["rms_ratio"] - 0.75) < 1e-5 for r in rows.values() if not r["zero_events"]),
+            "zero_direction_events": {k_: r["zero_events"] for k_, r in rows.items() if r["zero_events"]},
             "selectivity": T.controller_update(1.0, 0.5, 0.6)[0] == 0.25 and T.controller_update(1.0, 0.7, 0.6)[0] == 2.0}
         short = {}
         ctrl = {"receipt0": c["receipt"], "b": c["b"]}
@@ -140,7 +142,7 @@ def run_preflight(D):
         FN.save_unit(R.U(name), {}, {**res, "summary": summary})
         R.event("unit complete", unit=name)
         pub["seeds"][str(k)] = summary
-    pub["all_checks"] = {kk: all(pub["seeds"][s]["checks"][kk] for s in pub["seeds"]) for kk in
-                         next(iter(pub["seeds"].values()))["checks"]}
+    pub["all_checks"] = {kk: all(bool(pub["seeds"][s]["checks"][kk]) for s in pub["seeds"]) for kk in
+                         next(iter(pub["seeds"].values()))["checks"] if kk != "zero_direction_events"}
     (R.PKG / "PREFLIGHT.json").write_text(json.dumps(pub, indent=1, default=float) + "\n")
     return pub

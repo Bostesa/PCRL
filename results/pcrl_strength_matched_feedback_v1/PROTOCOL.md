@@ -216,3 +216,63 @@ A probe receipt takes 2.3 s, so a Phase B run takes about 70 s.
 - No population, DP, MI, optimality or linear-guardedness claim, and no novelty claim.
 - The controller is a heuristic; it is not Cotter et al.'s proxy-Lagrangian and has none of its guarantees.
 - Norm matching is not direction matching.
+
+## 11. Phase B registration (written before any Phase B fit; PHASE_B_PROTOCOL_LOCK)
+
+**Phase A freeze.** Pushed at `15a9db9`: schedule = REFRESHED (status SELECTED; every schedule had task-feasible joint points on all seeds).
+
+| Schedule | Mean selected inner coalition AUC |
+|---|---|
+| ONLINE | 0.8586 |
+| REFRESHED | 0.8573 |
+| ONLINE_MATCHED | 0.8652 |
+
+Frozen local references:
+- seed 0: NL-REFRESHED ρ = 0.75;
+- seed 1: NL-REFRESHED ρ = 0.75;
+- seed 2: NL-REFRESHED ρ = 1.5.
+
+**Controller preflight** (`PREFLIGHT.json`, under amendment A3, which fixed the preflight's own crash on a zero-direction step).
+
+Controller behaviour:
+- **Initial violation.** +0.01 on every seed and recipient; no floor is active.
+- **Epoch-0 update.** It moves w to (2, 2) on all seeds (common mode).
+- **Selectivity.** Untouched recipients are unaffected.
+- **Local arms.** Equal weights are an exact symmetry (identical updates).
+- **Joint arms.** Equal weights still change the encoder direction (cos 0.987–0.995).
+- **Asymmetric weights.** w = (2, 1) reallocates the relative strengths to 0.95 / 0.47 (RMS 0.75).
+- **2-epoch real runs.** The applied weights became asymmetric in 5 of 6 feedback runs, for example (1, 3) and (3, 1), and the parameters differ from the twins.
+- **Common-mode alias.** One local run stayed common-mode (3, 3); its parameters equal the twin's exactly, which is the designed INACTIVE_OR_ALIAS case.
+
+Zero-direction finding:
+- The single failed check ("asymmetric weights reallocate", seed 2) is not a controller defect.
+- On the fixed minibatch, recipient 1's reference critics lost to the constant predictor, so p_1 = 0 (a zero-direction event).
+- This is a real data finding: under strong norm-controlled updates the refreshed local reference at ρ = 1.5 pushed its critics below the prior, and protection on that recipient stopped while information remained (v1 inner AUC 0.852). Zero-direction counts are reported per unit in `GRADIENT_MATCHING.csv`.
+
+**Decision.** The preflight did not show dead feedback, so no repair is authorised. The registered additive rule is kept.
+
+The reviewer's proposed multiplicative step (P1: w ← clip(w · 2^c, 0.25, 8)) addresses wind-up after common-mode saturation. It is recorded as an advisory and **not adopted**. Saturation and asymmetry counts are reported per unit, so any wind-up shows up in the results.
+
+**Registered activation criterion** (review A1, `CONTROLLER_ACTIVATION.csv` / `CONTROLLER_SUMMARY.json`):
+
+| Arm | Status | Condition |
+|---|---|---|
+| Local feedback | ACTIVE | some applied update makes \|s1 − s2\| > 0.05 |
+| Local feedback | INACTIVE_OR_ALIAS | otherwise |
+| Joint feedback | ACTIVE_ASYMMETRIC | same asymmetry condition |
+| Joint feedback | ACTIVE_COMMON_ONLY | weights moved but stayed equal (only the local/pair balance changed) |
+| Joint feedback | INACTIVE | weights never moved |
+
+- No-feedback twins report their hypothetical weights.
+- If no feedback arm is ACTIVE, the component is FEEDBACK_NOT_TESTABLE.
+
+**Notes kept from review.**
+- **A5:** within a joint p_i, the local/pair mix still follows each term's gradient size, so this part of the scale confound remains.
+- **A7:** the cap at 100 is practically inactive.
+- **A10:** ONLINE_MATCHED still differs from REFRESHED in validation-based restarts, the transform schedule, initialisation, Adam state, refit batch order and the per-block coordinate system.
+- **A12:** a J-F nominee that uses the +0.005 buffer will often fail its final +0.01 clause.
+- Critic Adam state is reset for every Phase B arm alike when the reference critics are inherited.
+
+**Phase B queue.** REFRESHED, so no ONLINE_MATCHED templates are needed.
+- Fits: J-F, L-F, J-N, L-N × ρ {0.25, 0.75, 1.5} × seeds 0–2 (36 runs, 21 probe measurements each).
+- Then: LEACE and FARE refits, the inner audit, selection (controls, C\*, J-F nomination), tracking, EVALUATION_LOCK and the single assessment.
