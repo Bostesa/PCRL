@@ -1,0 +1,828 @@
+{
+ "J-F": {
+  "spec": {
+   "kind": "neural",
+   "unit": "B__s0__J-F__r0.25__e20"
+  },
+  "provenance": {
+   "B__s0__J-F__r0.25__e20": {
+    "complete_sha256": "757e30da603e5a7ea594977b27405edf3b3aa936553d3cd9d233f3ff77a7f6c9",
+    "matches_lock_unit_hashes": null
+   }
+  },
+  "slate": "final",
+  "slate_members": [
+   "LR_C0.01",
+   "LR_C0.1",
+   "LR_C1.0",
+   "LR_C10.0",
+   "LR_C100.0",
+   "MLP_64",
+   "MLP_128",
+   "MLP_64x64",
+   "MLP_128x128",
+   "HGB_0.05_15",
+   "HGB_0.05_31",
+   "HGB_0.1_15",
+   "HGB_0.1_31",
+   "DA_LR",
+   "DA_MLP"
+  ],
+  "control_seed": 20261021,
+  "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+  "split": {
+   "seed": 20261022,
+   "rule": "exact-record group hash, A iff u < 0.5",
+   "rows_A": 1144,
+   "rows_B": 1091,
+   "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+   "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+  },
+  "plant_definition": {
+   "label": "S* = SEX permuted within AUDIT_FIT, half A, half B (the null's label)",
+   "PLANT_ONEHOT": "one-hot(noisy S*), noisy = S* with 20% rows set to a random class",
+   "PLANT_TINY": "1e-06 * (noisy S* - 0.5), one appended column"
+  },
+  "thresholds": {
+   "null_z": 3.5,
+   "null_sd_B": 0.018689821885264708,
+   "null_max_heldout_auc": 0.5654143765984265,
+   "plant_min": 0.75
+  },
+  "statistic": "AUC on half B of the attacker selected on half A (fit AUDIT_FIT); bank maxima are descriptive",
+  "views": {
+   "v1": {
+    "null_heldout_auc_B": 0.4931519995086636,
+    "null_selected_on_A": "own:v1:LR_C0.01",
+    "null_selection_max_auc_A_descriptive": 0.5332302638951143,
+    "null_bank_max_inner_auc_descriptive": 0.5140395604959354,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8856318662336766,
+    "PLANT_ONEHOT_selected_on_A": "own:v1:LR_C0.1",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8980220668123864,
+    "PLANT_TINY_heldout_auc_B": 0.8863074537260953,
+    "PLANT_TINY_selected_on_A": "own:v1:MLP_128x128",
+    "PLANT_TINY_bank_max_inner_auc": 0.8982309356775504,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "v2": {
+    "null_heldout_auc_B": 0.5171699025772127,
+    "null_selected_on_A": "own:v2:MLP_64",
+    "null_selection_max_auc_A_descriptive": 0.5188168842447334,
+    "null_bank_max_inner_auc_descriptive": 0.5178816483051392,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8785151661714917,
+    "PLANT_ONEHOT_selected_on_A": "own:v2:HGB_0.05_31",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8953370025852103,
+    "PLANT_TINY_heldout_auc_B": 0.8785151661714917,
+    "PLANT_TINY_selected_on_A": "own:v2:HGB_0.05_31",
+    "PLANT_TINY_bank_max_inner_auc": 0.8953370025852103,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "pair": {
+    "null_heldout_auc_B": 0.4931519995086636,
+    "null_selected_on_A": "ignore_recipient_2:v1:LR_C0.01",
+    "null_selection_max_auc_A_descriptive": 0.5332302638951143,
+    "null_bank_max_inner_auc_descriptive": 0.5178816483051392,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8816013726709504,
+    "PLANT_ONEHOT_selected_on_A": "coalition:pair:LR_C100.0",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8983262091949937,
+    "PLANT_TINY_heldout_auc_B": 0.8838392562395879,
+    "PLANT_TINY_selected_on_A": "coalition:pair:MLP_128x128",
+    "PLANT_TINY_bank_max_inner_auc": 0.899614233863506,
+    "null_ok": true,
+    "plant_ok": true
+   }
+  },
+  "failures": [],
+  "all_ok": true,
+  "wall_s": 23.6,
+  "rotated_plant": {
+   "slate": "final",
+   "plant_min": 0.75,
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "label": "S* (permuted SEX)",
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "recipients": {
+    "1": {
+     "plant": {
+      "recipient": 1,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261024,
+      "rotation_dim": 17,
+      "clue": "amp * (noisy label - 0.5), noisy share 20%",
+      "max_coordinate_share_of_clue_direction": 0.49847205091714936
+     },
+     "serialisation": {
+      "writer": "rgj.finalize.save_unit + np.savez_compressed",
+      "reread_hash_complete": true,
+      "reread_arrays_identical": true,
+      "transform": "rgj.finalize.views_from_release"
+     },
+     "canon_receipt": {
+      "v1": {
+       "rank_kept": 17,
+       "dim": 19,
+       "tol": 5.352526219234593e-10,
+       "scale": 397.4548241786599,
+       "tol_over_s1": 1.4759695196798202e-12,
+       "max_dropped_over_s1": 1.4604004044100701e-16,
+       "min_kept_over_s1": 1.027119367550943e-07
+      },
+      "pair": {
+       "rank_kept": 33,
+       "dim": 41,
+       "tol": 9.654006169752361e-10,
+       "scale": 716.8636205891047,
+       "tol_over_s1": 2.512555793385651e-12,
+       "max_dropped_over_s1": 1.2219287851069417e-15,
+       "min_kept_over_s1": 9.680555965588857e-08
+      }
+     },
+     "v1": {
+      "selected_on_A": "own:v1:DA_LR",
+      "max_auc_A": 0.9080446688704616,
+      "heldout_auc_B": 0.88443807242605,
+      "bank_max_inner_auc": 0.8963547802571286,
+      "selected_full": "own:v1:DA_LR",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.4890082682696515,
+       "LR_C0.1": 0.4919831563754731,
+       "LR_C1.0": 0.4855881065892812,
+       "LR_C10.0": 0.4882482323406804,
+       "LR_C100.0": 0.49161081554158315,
+       "MLP_64": 0.48211420499474117,
+       "MLP_128": 0.5071378121713228,
+       "MLP_64x64": 0.48231764895552637,
+       "MLP_128x128": 0.4966700446041287,
+       "HGB_0.05_15": 0.5254151408369607,
+       "HGB_0.05_31": 0.5216629432583277,
+       "HGB_0.1_15": 0.5289562173242129,
+       "HGB_0.1_31": 0.5366755721381576,
+       "DA_LR": 0.88443807242605,
+       "DA_MLP": 0.8882344135056082
+      }
+     },
+     "pair": {
+      "selected_on_A": "coalition:pair:DA_LR",
+      "max_auc_A": 0.9112978344912595,
+      "heldout_auc_B": 0.8848104132599399,
+      "bank_max_inner_auc": 0.8983262091949937,
+      "selected_full": "coalition:pair:DA_LR",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.48773386459077056,
+       "LR_C0.1": 0.48018340664993053,
+       "LR_C1.0": 0.48332335306355895,
+       "LR_C10.0": 0.4898604297657707,
+       "LR_C100.0": 0.493629900888244,
+       "MLP_64": 0.510911121859094,
+       "MLP_128": 0.48499312896811686,
+       "MLP_64x64": 0.5084928257214583,
+       "MLP_128x128": 0.4944283224701935,
+       "HGB_0.05_15": 0.5309062084955127,
+       "HGB_0.05_31": 0.550843716652464,
+       "HGB_0.1_15": 0.5522985329003431,
+       "HGB_0.1_31": 0.5338273566871646,
+       "DA_LR": 0.8848104132599399,
+       "DA_MLP": 0.8735327084149028
+      },
+      "coalition_own_max_auc_B": 0.8848104132599399
+     },
+     "ok": true
+    }
+   },
+   "all_ok": true,
+   "wall_s": 6.0
+  }
+ },
+ "L-F": {
+  "spec": {
+   "kind": "neural",
+   "unit": "B__s0__L-F__r0.25__e20"
+  },
+  "provenance": {
+   "B__s0__L-F__r0.25__e20": {
+    "complete_sha256": "5a664ae174cc9d534a32dc26369b0a4027f00a2575362591d2ae5fa3d7e71c39",
+    "matches_lock_unit_hashes": null
+   }
+  },
+  "slate": "final",
+  "slate_members": [
+   "LR_C0.01",
+   "LR_C0.1",
+   "LR_C1.0",
+   "LR_C10.0",
+   "LR_C100.0",
+   "MLP_64",
+   "MLP_128",
+   "MLP_64x64",
+   "MLP_128x128",
+   "HGB_0.05_15",
+   "HGB_0.05_31",
+   "HGB_0.1_15",
+   "HGB_0.1_31",
+   "DA_LR",
+   "DA_MLP"
+  ],
+  "control_seed": 20261021,
+  "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+  "split": {
+   "seed": 20261022,
+   "rule": "exact-record group hash, A iff u < 0.5",
+   "rows_A": 1144,
+   "rows_B": 1091,
+   "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+   "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+  },
+  "plant_definition": {
+   "label": "S* = SEX permuted within AUDIT_FIT, half A, half B (the null's label)",
+   "PLANT_ONEHOT": "one-hot(noisy S*), noisy = S* with 20% rows set to a random class",
+   "PLANT_TINY": "1e-06 * (noisy S* - 0.5), one appended column"
+  },
+  "thresholds": {
+   "null_z": 3.5,
+   "null_sd_B": 0.018689821885264708,
+   "null_max_heldout_auc": 0.5654143765984265,
+   "plant_min": 0.75
+  },
+  "statistic": "AUC on half B of the attacker selected on half A (fit AUDIT_FIT); bank maxima are descriptive",
+  "views": {
+   "v1": {
+    "null_heldout_auc_B": 0.4928717842419218,
+    "null_selected_on_A": "own:v1:LR_C0.01",
+    "null_selection_max_auc_A_descriptive": 0.5338921027566115,
+    "null_bank_max_inner_auc_descriptive": 0.5150225266903262,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8846338392562396,
+    "PLANT_ONEHOT_selected_on_A": "own:v1:LR_C0.1",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.897522796937323,
+    "PLANT_TINY_heldout_auc_B": 0.8860425927205448,
+    "PLANT_TINY_selected_on_A": "own:v1:MLP_128x128",
+    "PLANT_TINY_bank_max_inner_auc": 0.8981869632848843,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "v2": {
+    "null_heldout_auc_B": 0.5145404853481963,
+    "null_selected_on_A": "own:v2:MLP_64",
+    "null_selection_max_auc_A_descriptive": 0.5178573929852085,
+    "null_bank_max_inner_auc_descriptive": 0.5159835066883842,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8843536239894976,
+    "PLANT_ONEHOT_selected_on_A": "own:v2:HGB_0.05_15",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8997892073426567,
+    "PLANT_TINY_heldout_auc_B": 0.8843536239894976,
+    "PLANT_TINY_selected_on_A": "own:v2:HGB_0.05_15",
+    "PLANT_TINY_bank_max_inner_auc": 0.8997892073426567,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "pair": {
+    "null_heldout_auc_B": 0.4928717842419218,
+    "null_selected_on_A": "ignore_recipient_2:v1:LR_C0.01",
+    "null_selection_max_auc_A_descriptive": 0.5338921027566115,
+    "null_bank_max_inner_auc_descriptive": 0.5159835066883842,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8786802244792985,
+    "PLANT_ONEHOT_selected_on_A": "coalition:pair:HGB_0.05_15",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.898046801283261,
+    "PLANT_TINY_heldout_auc_B": 0.8786802244792985,
+    "PLANT_TINY_selected_on_A": "coalition:pair:HGB_0.05_15",
+    "PLANT_TINY_bank_max_inner_auc": 0.8990196904709993,
+    "null_ok": true,
+    "plant_ok": true
+   }
+  },
+  "failures": [],
+  "all_ok": true,
+  "wall_s": 23.5,
+  "rotated_plant": {
+   "slate": "final",
+   "plant_min": 0.75,
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "label": "S* (permuted SEX)",
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "recipients": {
+    "1": {
+     "plant": {
+      "recipient": 1,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261024,
+      "rotation_dim": 17,
+      "clue": "amp * (noisy label - 0.5), noisy share 20%",
+      "max_coordinate_share_of_clue_direction": 0.49847205091714936
+     },
+     "serialisation": {
+      "writer": "rgj.finalize.save_unit + np.savez_compressed",
+      "reread_hash_complete": true,
+      "reread_arrays_identical": true,
+      "transform": "rgj.finalize.views_from_release"
+     },
+     "canon_receipt": {
+      "v1": {
+       "rank_kept": 17,
+       "dim": 19,
+       "tol": 5.355708590667867e-10,
+       "scale": 397.6911329470201,
+       "tol_over_s1": 1.4760341802187387e-12,
+       "max_dropped_over_s1": 1.9192595771858025e-16,
+       "min_kept_over_s1": 1.0265556279328649e-07
+      },
+      "pair": {
+       "rank_kept": 33,
+       "dim": 41,
+       "tol": 9.560748375518403e-10,
+       "scale": 709.9387109871024,
+       "tol_over_s1": 2.491497770708523e-12,
+       "max_dropped_over_s1": 2.6714726575976207e-15,
+       "min_kept_over_s1": 9.693216981096602e-08
+      }
+     },
+     "v1": {
+      "selected_on_A": "own:v1:DA_LR",
+      "max_auc_A": 0.9081041993500673,
+      "heldout_auc_B": 0.8836473279746961,
+      "bank_max_inner_auc": 0.8960213229460771,
+      "selected_full": "own:v1:DA_LR",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.48789892289857745,
+       "LR_C0.1": 0.49088916526559034,
+       "LR_C1.0": 0.48410642038431717,
+       "LR_C10.0": 0.48790276146387523,
+       "LR_C100.0": 0.49210215189970596,
+       "MLP_64": 0.4805173618308421,
+       "MLP_128": 0.5050381169534075,
+       "MLP_64x64": 0.4844595683917179,
+       "MLP_128x128": 0.4950847171361232,
+       "HGB_0.05_15": 0.5114293281743016,
+       "HGB_0.05_31": 0.5256013112539057,
+       "HGB_0.1_15": 0.531245921524371,
+       "HGB_0.1_31": 0.5292364325909549,
+       "DA_LR": 0.8836473279746961,
+       "DA_MLP": 0.8810793277904452
+      }
+     },
+     "pair": {
+      "selected_on_A": "coalition:pair:DA_MLP",
+      "max_auc_A": 0.9120717307261318,
+      "heldout_auc_B": 0.8937849789262764,
+      "bank_max_inner_auc": 0.9030431643999508,
+      "selected_full": "coalition:pair:DA_MLP",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.48838642069140237,
+       "LR_C0.1": 0.48275140683418166,
+       "LR_C1.0": 0.48566487789523793,
+       "LR_C10.0": 0.49266642099848756,
+       "LR_C100.0": 0.49356464527818084,
+       "MLP_64": 0.5120243057954659,
+       "MLP_128": 0.4911002863569712,
+       "MLP_64x64": 0.49546857366590663,
+       "MLP_128x128": 0.48659381069731383,
+       "HGB_0.05_15": 0.5200392301373439,
+       "HGB_0.05_31": 0.518832001351175,
+       "HGB_0.1_15": 0.5276127194699709,
+       "HGB_0.1_31": 0.5284744773793347,
+       "DA_LR": 0.8836204580176112,
+       "DA_MLP": 0.8937849789262764
+      },
+      "coalition_own_max_auc_B": 0.8937849789262764
+     },
+     "ok": true
+    }
+   },
+   "all_ok": true,
+   "wall_s": 5.9
+  }
+ },
+ "U": {
+  "spec": {
+   "kind": "neural",
+   "unit": "tl__s0__e40"
+  },
+  "provenance": {
+   "tl__s0__e40": {
+    "complete_sha256": "411321d77cb2b361e50ad4630f798b9cbe7c5583c5b9276921361d47ff03dcad",
+    "matches_lock_unit_hashes": null
+   }
+  },
+  "slate": "final",
+  "slate_members": [
+   "LR_C0.01",
+   "LR_C0.1",
+   "LR_C1.0",
+   "LR_C10.0",
+   "LR_C100.0",
+   "MLP_64",
+   "MLP_128",
+   "MLP_64x64",
+   "MLP_128x128",
+   "HGB_0.05_15",
+   "HGB_0.05_31",
+   "HGB_0.1_15",
+   "HGB_0.1_31",
+   "DA_LR",
+   "DA_MLP"
+  ],
+  "control_seed": 20261021,
+  "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+  "split": {
+   "seed": 20261022,
+   "rule": "exact-record group hash, A iff u < 0.5",
+   "rows_A": 1144,
+   "rows_B": 1091,
+   "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+   "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+  },
+  "plant_definition": {
+   "label": "S* = SEX permuted within AUDIT_FIT, half A, half B (the null's label)",
+   "PLANT_ONEHOT": "one-hot(noisy S*), noisy = S* with 20% rows set to a random class",
+   "PLANT_TINY": "1e-06 * (noisy S* - 0.5), one appended column"
+  },
+  "thresholds": {
+   "null_z": 3.5,
+   "null_sd_B": 0.018689821885264708,
+   "null_max_heldout_auc": 0.5654143765984265,
+   "plant_min": 0.75
+  },
+  "statistic": "AUC on half B of the attacker selected on half A (fit AUDIT_FIT); bank maxima are descriptive",
+  "views": {
+   "v1": {
+    "null_heldout_auc_B": 0.49599253782906105,
+    "null_selected_on_A": "own:v1:DA_LR",
+    "null_selection_max_auc_A_descriptive": 0.5597178255266697,
+    "null_bank_max_inner_auc_descriptive": 0.5285266316963999,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8839966374167991,
+    "PLANT_ONEHOT_selected_on_A": "own:v1:DA_LR",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8994026167238002,
+    "PLANT_TINY_heldout_auc_B": 0.8839966374167991,
+    "PLANT_TINY_selected_on_A": "own:v1:DA_LR",
+    "PLANT_TINY_bank_max_inner_auc": 0.8999944118417653,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "v2": {
+    "null_heldout_auc_B": 0.4771874064349709,
+    "null_selected_on_A": "own:v2:MLP_64x64",
+    "null_selection_max_auc_A_descriptive": 0.5241746274092336,
+    "null_bank_max_inner_auc_descriptive": 0.533273817921315,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8834534804271555,
+    "PLANT_ONEHOT_selected_on_A": "own:v2:HGB_0.05_15",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.9001277031570346,
+    "PLANT_TINY_heldout_auc_B": 0.8834534804271555,
+    "PLANT_TINY_selected_on_A": "own:v2:HGB_0.05_15",
+    "PLANT_TINY_bank_max_inner_auc": 0.9001277031570346,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "pair": {
+    "null_heldout_auc_B": 0.49599253782906105,
+    "null_selected_on_A": "ignore_recipient_2:v1:DA_LR",
+    "null_selection_max_auc_A_descriptive": 0.5597178255266697,
+    "null_bank_max_inner_auc_descriptive": 0.533273817921315,
+    "PLANT_ONEHOT_heldout_auc_B": 0.880618699954705,
+    "PLANT_ONEHOT_selected_on_A": "coalition:pair:LR_C0.01",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8981095535519616,
+    "PLANT_TINY_heldout_auc_B": 0.8809564937009142,
+    "PLANT_TINY_selected_on_A": "coalition:pair:LR_C0.01",
+    "PLANT_TINY_bank_max_inner_auc": 0.8994438408419249,
+    "null_ok": true,
+    "plant_ok": true
+   }
+  },
+  "failures": [],
+  "all_ok": true,
+  "wall_s": 23.2,
+  "rotated_plant": {
+   "slate": "final",
+   "plant_min": 0.75,
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "label": "S* (permuted SEX)",
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "recipients": {
+    "1": {
+     "plant": {
+      "recipient": 1,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261024,
+      "rotation_dim": 17,
+      "clue": "amp * (noisy label - 0.5), noisy share 20%",
+      "max_coordinate_share_of_clue_direction": 0.49847205091714936
+     },
+     "serialisation": {
+      "writer": "rgj.finalize.save_unit + np.savez_compressed",
+      "reread_hash_complete": true,
+      "reread_arrays_identical": true,
+      "transform": "rgj.finalize.views_from_release"
+     },
+     "canon_receipt": {
+      "v1": {
+       "rank_kept": 17,
+       "dim": 19,
+       "tol": 5.18695924987217e-10,
+       "scale": 385.1605563876381,
+       "tol_over_s1": 1.4915568587141942e-12,
+       "max_dropped_over_s1": 4.400127505541104e-16,
+       "min_kept_over_s1": 1.0714465696163405e-07
+      },
+      "pair": {
+       "rank_kept": 33,
+       "dim": 41,
+       "tol": 8.150840493877395e-10,
+       "scale": 605.2452137012792,
+       "tol_over_s1": 2.204455459374583e-12,
+       "max_dropped_over_s1": 1.2366272754550828e-15,
+       "min_kept_over_s1": 1.0064887360101391e-07
+      }
+     },
+     "v1": {
+      "selected_on_A": "own:v1:DA_LR",
+      "max_auc_A": 0.9133568887270282,
+      "heldout_auc_B": 0.8839966374167991,
+      "bank_max_inner_auc": 0.8991241249035813,
+      "selected_full": "own:v1:DA_LR",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.49217508464036486,
+       "LR_C0.1": 0.4969579370014664,
+       "LR_C1.0": 0.4904515688216372,
+       "LR_C10.0": 0.4937949591960509,
+       "LR_C100.0": 0.4953227081845889,
+       "MLP_64": 0.4799377384708691,
+       "MLP_128": 0.5065812202031369,
+       "MLP_64x64": 0.48429067151861316,
+       "MLP_128x128": 0.4826017027875661,
+       "HGB_0.05_15": 0.4897279992629955,
+       "HGB_0.05_31": 0.4887875507650261,
+       "HGB_0.1_15": 0.4851792993850618,
+       "HGB_0.1_31": 0.5048461886885158,
+       "DA_LR": 0.8839966374167991,
+       "DA_MLP": 0.8814708614508242
+      }
+     },
+     "pair": {
+      "selected_on_A": "ignore_recipient_2:v1:DA_LR",
+      "max_auc_A": 0.9133568887270282,
+      "heldout_auc_B": 0.8839966374167991,
+      "bank_max_inner_auc": 0.8991241249035813,
+      "selected_full": "ignore_recipient_2:v1:DA_LR",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.4979367711524141,
+       "LR_C0.1": 0.49285451069808145,
+       "LR_C1.0": 0.486355819648848,
+       "LR_C10.0": 0.48708130849013875,
+       "LR_C100.0": 0.4867435147439293,
+       "MLP_64": 0.5006352825567916,
+       "MLP_128": 0.4952382597480366,
+       "MLP_64x64": 0.5180623690089592,
+       "MLP_128x128": 0.49722279800701696,
+       "HGB_0.05_15": 0.5141259202960302,
+       "HGB_0.05_31": 0.5203405575132238,
+       "HGB_0.1_15": 0.5131355704491889,
+       "HGB_0.1_31": 0.5356545137689337,
+       "DA_LR": 0.8779125114197318,
+       "DA_MLP": 0.8800045295070514
+      },
+      "coalition_own_max_auc_B": 0.8800045295070514
+     },
+     "ok": true
+    }
+   },
+   "all_ok": true,
+   "wall_s": 5.9
+  }
+ },
+ "F": {
+  "spec": {
+   "kind": "fare",
+   "units": [
+    "fare__s0__p0__c1",
+    "fare__s0__p1__c1"
+   ]
+  },
+  "provenance": {
+   "fare__s0__p0__c1": {
+    "complete_sha256": "5d1fe1163441d1ff55e1a45f06094673187b7cc955baa449d5629f82eec78585",
+    "matches_lock_unit_hashes": null
+   },
+   "fare__s0__p1__c1": {
+    "complete_sha256": "b3a67cc10ce4405fa3926a7cf04a88fe87c09306cd232d18bbe8c7566178b2ce",
+    "matches_lock_unit_hashes": null
+   }
+  },
+  "slate": "final",
+  "slate_members": [
+   "LR_C0.01",
+   "LR_C0.1",
+   "LR_C1.0",
+   "LR_C10.0",
+   "LR_C100.0",
+   "MLP_64",
+   "MLP_128",
+   "MLP_64x64",
+   "MLP_128x128",
+   "HGB_0.05_15",
+   "HGB_0.05_31",
+   "HGB_0.1_15",
+   "HGB_0.1_31",
+   "DA_LR",
+   "DA_MLP"
+  ],
+  "control_seed": 20261021,
+  "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+  "split": {
+   "seed": 20261022,
+   "rule": "exact-record group hash, A iff u < 0.5",
+   "rows_A": 1144,
+   "rows_B": 1091,
+   "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+   "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+  },
+  "plant_definition": {
+   "label": "S* = SEX permuted within AUDIT_FIT, half A, half B (the null's label)",
+   "PLANT_ONEHOT": "one-hot(noisy S*), noisy = S* with 20% rows set to a random class",
+   "PLANT_TINY": "1e-06 * (noisy S* - 0.5), one appended column"
+  },
+  "thresholds": {
+   "null_z": 3.5,
+   "null_sd_B": 0.018689821885264708,
+   "null_max_heldout_auc": 0.5654143765984265,
+   "plant_min": 0.75
+  },
+  "statistic": "AUC on half B of the attacker selected on half A (fit AUDIT_FIT); bank maxima are descriptive",
+  "views": {
+   "v1": {
+    "null_heldout_auc_B": 0.49885802682389435,
+    "null_selected_on_A": "own:v1:MLP_64x64",
+    "null_selection_max_auc_A_descriptive": 0.5004639875616316,
+    "null_bank_max_inner_auc_descriptive": 0.4993889669602435,
+    "PLANT_ONEHOT_heldout_auc_B": 0.868175990541775,
+    "PLANT_ONEHOT_selected_on_A": "own:v1:MLP_128x128",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.892683085469506,
+    "PLANT_TINY_heldout_auc_B": 0.8699110220563961,
+    "PLANT_TINY_selected_on_A": "own:v1:MLP_128",
+    "PLANT_TINY_bank_max_inner_auc": 0.892683085469506,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "v2": {
+    "null_heldout_auc_B": 0.4960885019615069,
+    "null_selected_on_A": "own:v2:MLP_128",
+    "null_selection_max_auc_A_descriptive": 0.4857652117884357,
+    "null_bank_max_inner_auc_descriptive": 0.49459964052568994,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8789930675510722,
+    "PLANT_ONEHOT_selected_on_A": "own:v2:LR_C0.1",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.899373759841113,
+    "PLANT_TINY_heldout_auc_B": 0.8789124576798176,
+    "PLANT_TINY_selected_on_A": "own:v2:LR_C10.0",
+    "PLANT_TINY_bank_max_inner_auc": 0.899373759841113,
+    "null_ok": true,
+    "plant_ok": true
+   },
+   "pair": {
+    "null_heldout_auc_B": 0.4840603576007432,
+    "null_selected_on_A": "coalition:pair:CC_alpha10.0",
+    "null_selection_max_auc_A_descriptive": 0.5234445035858359,
+    "null_bank_max_inner_auc_descriptive": 0.5140139099335467,
+    "PLANT_ONEHOT_heldout_auc_B": 0.8708150041840362,
+    "PLANT_ONEHOT_selected_on_A": "coalition:pair:LR_C0.01",
+    "PLANT_ONEHOT_bank_max_inner_auc": 0.8964720399709049,
+    "PLANT_TINY_heldout_auc_B": 0.871029963840715,
+    "PLANT_TINY_selected_on_A": "coalition:pair:LR_C0.1",
+    "PLANT_TINY_bank_max_inner_auc": 0.8958674195717455,
+    "null_ok": true,
+    "plant_ok": true
+   }
+  },
+  "failures": [],
+  "all_ok": true,
+  "wall_s": 62.5,
+  "rotated_plant": {
+   "slate": "final",
+   "plant_min": 0.75,
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "label": "S* (permuted SEX)",
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "recipients": {
+    "1": {
+     "plant": {
+      "recipient": 1,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261024,
+      "rotation_dim": 83,
+      "clue": "amp * (noisy label - 0.5), noisy share 20%",
+      "max_coordinate_share_of_clue_direction": 0.2749873074262891
+     },
+     "serialisation": {
+      "writer": "rgj.finalize.save_unit + np.savez_compressed",
+      "reread_hash_complete": true,
+      "reread_arrays_identical": true,
+      "transform": "rgj.finalize.views_from_release"
+     },
+     "canon_receipt": {
+      "v1": {
+       "rank_kept": 82,
+       "dim": 85,
+       "tol": 2.371640170431709e-10,
+       "scale": 176.10746558636674,
+       "tol_over_s1": 1.7389852125715016e-12,
+       "max_dropped_over_s1": 8.9876648681828e-16,
+       "min_kept_over_s1": 2.713917048022902e-07
+      },
+      "pair": {
+       "rank_kept": 178,
+       "dim": 188,
+       "tol": 6.33847494206924e-10,
+       "scale": 470.6669973157503,
+       "tol_over_s1": 4.027841483382255e-12,
+       "max_dropped_over_s1": 2.2964034387205083e-14,
+       "min_kept_over_s1": 2.334328563689133e-07
+      }
+     },
+     "v1": {
+      "selected_on_A": "own:v1:CC_alpha10.0",
+      "max_auc_A": 0.9082740363065889,
+      "heldout_auc_B": 0.8764576951718526,
+      "bank_max_inner_auc": 0.8928420273471638,
+      "selected_full": "own:v1:HGB_0.05_15",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.47765571140130664,
+       "LR_C0.1": 0.4786153527257652,
+       "LR_C1.0": 0.47857696707278685,
+       "LR_C10.0": 0.47857696707278685,
+       "LR_C100.0": 0.47857696707278685,
+       "MLP_64": 0.47569804309941116,
+       "MLP_128": 0.4976930222560016,
+       "MLP_64x64": 0.4794713527871822,
+       "MLP_128x128": 0.47548308344273243,
+       "HGB_0.05_15": 0.881173372640242,
+       "HGB_0.05_31": 0.878923973375711,
+       "HGB_0.1_15": 0.8798567447430848,
+       "HGB_0.1_31": 0.8765095158033733,
+       "DA_LR": 0.8643834880275147,
+       "DA_MLP": 0.8721412284944379,
+       "CC_alpha0.1": 0.8766764933938291,
+       "CC_alpha1.0": 0.8759740359443253,
+       "CC_alpha10.0": 0.8764576951718526
+      }
+     },
+     "pair": {
+      "selected_on_A": "coalition:pair:DA_LR",
+      "max_auc_A": 0.9109248935454951,
+      "heldout_auc_B": 0.8711719907567349,
+      "bank_max_inner_auc": 0.8955522840909714,
+      "selected_full": "coalition:pair:DA_MLP",
+      "per_attacker_auc_B": {
+       "LR_C0.01": 0.4858107433765555,
+       "LR_C0.1": 0.48640955956301773,
+       "LR_C1.0": 0.48646329947718736,
+       "LR_C10.0": 0.4863942053018264,
+       "LR_C100.0": 0.4864863308689744,
+       "MLP_64": 0.4839605549029994,
+       "MLP_128": 0.4785673706595423,
+       "MLP_64x64": 0.49324988292375843,
+       "MLP_128x128": 0.5091568975179837,
+       "HGB_0.05_15": 0.8808701259817131,
+       "HGB_0.05_31": 0.8836089423217177,
+       "HGB_0.1_15": 0.8868390950198454,
+       "HGB_0.1_31": 0.8833901440997414,
+       "DA_LR": 0.8711719907567349,
+       "DA_MLP": 0.8847643504763661,
+       "CC_alpha0.1": 0.8638652817123071,
+       "CC_alpha1.0": 0.8695809054407824,
+       "CC_alpha10.0": 0.8760028251840591
+      },
+      "coalition_own_max_auc_B": 0.8868390950198454
+     },
+     "ok": true
+    }
+   },
+   "all_ok": true,
+   "wall_s": 15.4
+  }
+ },
+ "all_ok": true
+}

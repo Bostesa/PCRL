@@ -1,0 +1,47 @@
+{
+ "schema": "smf-restore-index-v1",
+ "private_local": "<PRIVATE_CACHE>/smf_v1",
+ "drive_copy": "<DRIVE_ROOT>/private_smf_v1_20261005/smf_v1",
+ "checksums": "<DRIVE_ROOT>/private_smf_v1_20261005/SHA256SUMS",
+ "layout": {
+  "run/units/<unit>/": "atomic unit: files + record.json + COMPLETE.json (sha256 of every file)",
+  "ck__*, tl__*, tc__*, lc__*": "model.pt, head_0/1.joblib, release.npz (+ critics.pt / leace_i/)",
+  "fare__*": "re-headed official FARE releases (trees from the predecessor jcv_v1 store / fare_cache)",
+  "run__*": "training receipts: final.pt (theta_T-1, theta_T, critics), captures.pt",
+  "outer__*": "assessment records and per-row predictions (private)",
+  "inner__*, calib__*, track__*, whiten__diag, controls__s0, parity__*": "inner-role records"
+ },
+ "restore": [
+  "copy <DRIVE_ROOT>/private_smf_v1_20261005/smf_v1 to <PRIVATE_CACHE>/smf_v1",
+  "verify: shasum -a 256 -c SHA256SUMS (run inside the copy's parent)",
+  "predecessor inputs/warm starts/FARE trees: <PRIVATE_CACHE>/jcv_v1 (drive copy <DRIVE_ROOT>/private_jcv_v1_20261003)",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_checks": [
+  {
+   "label": "U",
+   "unit": "tl__s1__e40",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "J-F",
+   "unit": "B__s1__J-F__r0.25__e20",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "L-F",
+   "unit": "B__s1__L-F__r0.75__e20",
+   "source": "drive copy",
+   "bitwise_equal_to_local_release": true
+  },
+  {
+   "label": "attacker (outer__s1__J-F, pair, AUC-selected)",
+   "attacker": "DA_MLP",
+   "source_view": "pair",
+   "source": "drive copy release + AUDIT_FIT refit",
+   "max_abs_diff_vs_saved": 0.0
+  }
+ ]
+}
