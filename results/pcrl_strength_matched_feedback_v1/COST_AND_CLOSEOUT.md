@@ -30,7 +30,9 @@ Nothing was deleted. Superseded receipts were renamed `*.quarantined_*`: 36 pari
 ## Closeout
 
 - All study workers have exited. The watchdog is stopped at closeout.
-- Private files that change after the backup (activity log, logs) are synced to a `post_backup_sync/` folder on the drive with their own checksums (see VALIDATION.md).
+- **Custody gap.** The drive was detached after the backup and restore checks.
+  - The only private file changed since then is `run/closeout_backup.log`; the watchdog stop line in `run/watchdog.log` is added at closeout. Neither is on the drive.
+  - The independent verifier's own drive restore is PENDING until the drive is reconnected (see VALIDATION.md).
 - **Privacy.**
   - Public files use `<PRIVATE_CACHE>`, `<WORKTREE>` and `<DRIVE_ROOT>`.
   - Every push was preceded by a scan of the staged files that blocks the push on a hit.

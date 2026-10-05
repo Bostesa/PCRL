@@ -1,0 +1,157 @@
+{
+ "schema": "smf-run-status-v1",
+ "started_at": "2026-10-05T00:42:09Z",
+ "stage": "COMPLETE",
+ "updated_at": "2026-10-05T02:15:03Z",
+ "custody": "PARTIAL: drive backup written and read back (2,412 files) and restore checks passed at closeout; the drive was detached afterwards, so the independent verifier's drive restore is PENDING and run/closeout_backup.log plus the watchdog stop line are not on the drive",
+ "locks": {
+  "DATA_AND_ENGINEERING_LOCK": "6f307eefee3176790079fd0dd3a8a637f3d9e503",
+  "PHASE_A_PROTOCOL_LOCK": "65a6eeb4444de45df884523a19fadb9a77d25a2e",
+  "PHASE_A_FREEZE": "15a9db9ff19ab6e583882e7a1bc2546c655ac43d",
+  "PHASE_B_PROTOCOL_LOCK": "90270f0828bdaf403be7b68743e4f76238b17160 (first write a1186ebebb84b5f40a37d33ed64ea82cbc4cfb45; rewritten before any Phase B fit)",
+  "EVALUATION_LOCK": "74af2481fc469bb14b217c23eaeb4730627d853e",
+  "amendments": {
+   "A1": "e95b5ed (numeric-inversion tolerance)",
+   "A2": "15a9db9 (controller preflight locked with the Phase A freeze)",
+   "A3": "a1186eb (preflight zero-direction crash fix; written 01:18:09Z, pushed 01:20:28Z after the final preflight receipts)",
+   "A4": "74af248 (SEX prior published as hash only)"
+  }
+ },
+ "claims": {
+  "A": "NOT_ESTABLISHED (8/9 clauses; J-F NO_FEASIBLE_NOMINEE on every seed; P01 pair 0.006 [0.0006, 0.012] below the 0.02 margin)",
+  "B": "NOT_ESTABLISHED (6/9 clauses; C* = RAW-J on every seed; P10 -0.054, P11 +0.028, P12 +0.050 against J-F)"
+ },
+ "model_label": "EXPERIMENTAL_NO_ADVANTAGE",
+ "best_development_model": "RAW-J (raw penalty, beta 0.3, online critics, epoch 40): pair AUC 0.810 vs U 0.882, income accuracy 0.853 vs 0.852, occupation 0.474 vs 0.480",
+ "accounting": {
+  "planned_manifest": "FIT_MANIFEST.json (locked, unchanged)",
+  "warm_starts": {
+   "planned": 3,
+   "completed": 3
+  },
+  "parity": {
+   "planned": 36,
+   "completed": 36,
+   "bitwise": 36,
+   "superseded_receipts_quarantined": 36,
+   "note": "pre-review receipts renamed *.quarantined_* (kept); final 36 under the Phase A lock"
+  },
+  "task_line_U": {
+   "planned_runs": 3,
+   "checkpoint_units": 6,
+   "completed": 6
+  },
+  "raw_controls": {
+   "planned_runs": 12,
+   "completed_runs": 12,
+   "checkpoint_units": 24,
+   "failed": 0
+  },
+  "phase_A": {
+   "planned_runs": 54,
+   "completed_runs": 54,
+   "failed": 0,
+   "rescued": 0,
+   "selected_schedule": "REFRESHED (all three schedules complete)",
+   "online_matched_templates": "18 ONLINE_MATCHED runs completed; their matched counts come from the paired REFRESHED Phase A units (shared, not refitted)"
+  },
+  "controller_calibration": {
+   "planned": 3,
+   "completed": 3
+  },
+  "controller_preflight": {
+   "planned": 3,
+   "completed": 3,
+   "superseded_receipts_quarantined": 3,
+   "note": "first receipts crashed on a zero direction (TypeError); fixed under AMENDMENT_A3"
+  },
+  "phase_B": {
+   "planned_runs": 36,
+   "completed_runs": 36,
+   "failed": 0,
+   "rescued": 0,
+   "controller_status": "J-F 9/9 active (8 ACTIVE_ASYMMETRIC, 1 ACTIVE_COMMON_ONLY); L-F 8/9 ACTIVE, 1 INACTIVE_OR_ALIAS (parameter-identical to its L-N twin)"
+  },
+  "leace": {
+   "planned": 3,
+   "completed": 3
+  },
+  "fare": {
+   "planned": 42,
+   "completed": 42,
+   "note": "official trees reused; seed-invariant on these inputs (F/F0 seeds not independent replicates)"
+  },
+  "inner_audits": {
+   "completed": 165
+  },
+  "critic_tracking": {
+   "completed": 15
+  },
+  "outer_assessment": {
+   "completed": 51,
+   "rows": 3796,
+   "opened_once": true
+  },
+  "audit_controls": {
+   "completed": 1,
+   "all_ok": true
+  },
+  "training_health": {
+   "nonfinite_steps": 0,
+   "rescues": 0,
+   "clip_hits_normalized_arms": 2,
+   "clip_hits_raw_arms": 18,
+   "zero_direction_events": "concentrated in REFRESHED at rho >= 0.75 (GRADIENT_MATCHING.csv)"
+  },
+  "not_triggered": [
+   "Phase A fallback (REFRESHED complete with a feasible joint point on every seed)",
+   "36 Phase B ONLINE_MATCHED templates (REFRESHED selected)",
+   "U epoch-20 TASK_ONLY_ALIAS fallback (U = epoch 40 on every seed)",
+   "rescue path (no nonfinite run)",
+   "confirmation population (no development advantage)",
+   "ceiling stop (finished well before 10:42Z)"
+  ],
+  "aliased": [
+   "seed C* = RAW-J on all seeds (control, not the candidate)",
+   "P13 aliases P04 by registration (identical point)",
+   "one L-F run INACTIVE_OR_ALIAS of L-N"
+  ],
+  "descriptive_fallback_used": "J-F has no feasible nominee on any seed; the descriptive J-F (rho 0.25) follows the registered descriptive fallback and is not a candidate"
+ },
+ "resources": {
+  "timed_cpu_hours": 1.32,
+  "wall_hours_approx": 2.0,
+  "peak_rss_gb": 1.21,
+  "cloud_cost_usd": 0
+ },
+ "verification": {
+  "file": "INDEPENDENT_VERIFICATION.json",
+  "generated_at": "2026-10-05T02:06:39Z",
+  "top_level": {
+   "PASS": 11,
+   "WARN": 1,
+   "PENDING": 1,
+   "INFO": 1,
+   "FAIL": 0
+  },
+  "nodes": {
+   "PASS": 81,
+   "WARN": 3,
+   "PENDING": 1,
+   "INFO": 1,
+   "FAIL": 0
+  },
+  "independence": "PASS",
+  "outcome_replicated": true,
+  "details": "VALIDATION.md"
+ },
+ "backup": {
+  "file": "BACKUP_VERIFICATION.json",
+  "files": 2412,
+  "uncached_readback_match": 2412,
+  "restore_checks_at_closeout": "U, J-F, L-F bitwise; recorded attacker refit max diff 0",
+  "independent_drive_restore": "PENDING (drive not mounted)"
+ },
+ "previous_branch_exposure": "four earlier commits on the previous branch contain a drive-folder name; not rewritten, not claimed removed",
+ "closeout": "watchdog (pid 20122) stopped 2026-10-05T02:14:56Z; no smf processes remain"
+}

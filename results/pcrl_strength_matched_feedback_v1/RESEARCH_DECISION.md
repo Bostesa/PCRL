@@ -158,7 +158,7 @@ Utility is preserved for J-F: balanced accuracy, minority recall and Brier score
 
 **Superseded receipts.** Kept and quarantined, never deleted: 36 pre-review parity receipts and 3 preflight receipts. Two of the preflight receipts were written by the pre-A3 code before it crashed, and one by the first A3 run, before the full three-seed rerun.
 
-**Custody.** The drive copy holds 2,412/2,412 files, re-read uncached. U, J-F and L-F restore bitwise from it, and a recorded attacker refit reproduces its saved predictions exactly (`BACKUP_VERIFICATION.json`).
+**Custody.** The drive copy holds 2,412/2,412 files, re-read uncached. U, J-F and L-F restore bitwise from it, and a recorded attacker refit reproduces its saved predictions exactly (`BACKUP_VERIFICATION.json`). The drive was then detached, so the independent verifier's drive restore is PENDING and the post-backup closeout log is not on the drive (`VALIDATION.md`).
 
 ## Next research decision
 
