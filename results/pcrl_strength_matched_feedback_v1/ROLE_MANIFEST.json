@@ -1,0 +1,601 @@
+{
+ "schema": "smf-role-manifest-v1",
+ "study": "pcrl_strength_matched_feedback_v1",
+ "produced_by": "results/pcrl_strength_matched_feedback_v1/provenance/role_check.py (independent of smf and rgj)",
+ "role_check_py_sha256": "994b82c156958cc7d0fc8323fa19ee1cb6ace5a167bb52475fb03eeb781e2c72",
+ "all_rows_historically_exposed": true,
+ "exposure_note": "Every row in every role below is a previously used UCI Adult row (EXPOSURE_LEDGER.md). NEW_DEVELOPMENT_ASSESSMENT consists of old defense_train rows that trained every predecessor encoder, warm start, LEACE map and FARE tree. It is withheld from this procedure only; it is not untouched and its results cannot count as fresh confirmation.",
+ "source": {
+  "file": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
+  "sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+  "sha256_matches_admitted": true,
+  "arrays_present": [
+   "row_id",
+   "unit",
+   "role",
+   "X",
+   "feature_names",
+   "sex",
+   "race",
+   "y_income",
+   "y_occupation_group"
+  ],
+  "arrays_read_by_independent_step": [
+   "role",
+   "unit",
+   "row_id",
+   "feature_names",
+   "X"
+  ],
+  "label_arrays_read_by_independent_step": [],
+  "rows_total": 39205,
+  "groups_total": 39168,
+  "predecessor_admission": "results/pcrl_joint_complete_view_method_v1/DATA_ADMISSION.json",
+  "predecessor_admission_sha256": "fa49b4fd1cc72b497fc7f0268d1748bd6bb8da623a46575a0b71d75247591c55",
+  "X_sha256_matches_predecessor_admission": true,
+  "source_pin": "ccdcc5a372d538cd12332e496e08f7753f7c9922",
+  "refreshed_role_manifest_blob_equals_source_pin": true
+ },
+ "rule": {
+  "text": "Start from the refreshed study's roles (seed 20261004; recomputed here from its rule). Its DEFENSE_FIT (= old defense_train) is split by exact-record group: u = int(sha256('20261005|assess|<unit>')[:16], 16) / 2**64; NEW_DEVELOPMENT_ASSESSMENT iff u < 0.20, else NEW_DEFENSE_FIT. HEAD_VALIDATION, AUDIT_FIT and INNER_SELECTION are kept unchanged. NEW_DEFENSE_FIT is split by group with salt 'critic' (seed 20261005): CRITIC_FIT u < 0.70, CRITIC_VAL 0.70 <= u < 0.85, CONTROLLER_CALIB u >= 0.85; encoders and training heads still train on all NEW_DEFENSE_FIT rows. The refreshed DEVELOPMENT_ASSESSMENT, old assessment, cert, excluded_exposure and excluded_dup rows are dropped from every operation. The allocation reads only the old role array and the group ids; no label is read. The 5 numeric columns are re-standardised (population sd) on NEW_DEFENSE_FIT rows only; the 78 one-hot columns use the loader's fixed category sets.",
+  "seed": 20261005,
+  "refreshed_seed": 20261004,
+  "assessment_share": 0.2,
+  "critic_split": [
+   0.7,
+   0.85
+  ],
+  "hash": "sha256 of the UTF-8 string '<seed>|<salt>|<unit as decimal int>', first 16 hex digits / 2**64",
+  "salts": {
+   "refreshed defense_val split (seed 20261004)": "dev",
+   "new assessment split of refreshed DEFENSE_FIT (seed 20261005)": "assess",
+   "NEW_DEFENSE_FIT critic/controller subroles (seed 20261005)": "critic"
+  },
+  "analysis_unit": "exact-record group `unit` (de-duplicated full raw record incl. labels and fnlwgt; Adult has no household identifiers)",
+  "labels_read_to_form_roles": false,
+  "float_vs_exact_rational_disagreements": {
+   "rgj_dev_split": 0,
+   "rgj_critic_split": 0,
+   "new_assess_split": 0,
+   "new_critic_split": 0
+  },
+  "realised_allocation": {
+   "refreshed_DEFENSE_FIT_groups": 19221,
+   "NEW_DEVELOPMENT_ASSESSMENT_group_share": 0.1973,
+   "NEW_DEVELOPMENT_ASSESSMENT_row_share": 0.1974,
+   "nominal_share": 0.2
+  }
+ },
+ "old_roles": {
+  "definition": "oar-roles-v1 as admitted by jcv",
+  "per_role": {
+   "assessment": {
+    "rows": 5243,
+    "groups": 5243,
+    "row_id_sha256": "9ba29f949f4bc0e7482d7174ab081d581163d82491bbb104e3301425a764c35b",
+    "group_id_set_sha256": "06f3760584badd5dc087c2f4d793c181a140ab1961eec630e9a9730c52373a85"
+   },
+   "attacker_fit": {
+    "rows": 6065,
+    "groups": 6061,
+    "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+    "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c"
+   },
+   "attacker_val": {
+    "rows": 2235,
+    "groups": 2234,
+    "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+    "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b"
+   },
+   "cert": {
+    "rows": 1500,
+    "groups": 1500,
+    "row_id_sha256": "c05fa9806d4155fd6679b2aef4eff9634e5f3ef94146e3a1f8d57edcb37577d1",
+    "group_id_set_sha256": "679db56f8117fa9f63e4c7acf7af41d16aeb7073e1251a35a49b258f3e628c4c"
+   },
+   "defense_train": {
+    "rows": 19230,
+    "groups": 19221,
+    "row_id_sha256": "57415ae3a0885640440e68c873f6a7b7a5641ee385a5ef8dd5cd5a4a72fa6977",
+    "group_id_set_sha256": "5076c5f62d1a4741e44af5ab577445c0d7df19bd5707b674be2d648f03ee26dc"
+   },
+   "defense_val": {
+    "rows": 4897,
+    "groups": 4892,
+    "row_id_sha256": "a80977aceb5783d0e6b577f0ac64dbdd915da837f98aa12c0bfa7b05110c3862",
+    "group_id_set_sha256": "e75c8e089651e43d6ec0720a701cd29e47c63d99447b62ea3df134726e23ab92"
+   },
+   "excluded_dup": {
+    "rows": 18,
+    "groups": 17,
+    "row_id_sha256": "b9a0732187327ea74949b7ba27901191fc9899b0228825bdfe0729a3d7c8d787",
+    "group_id_set_sha256": "ac876a32c12f7f6df6424ab9cb906679feb16dbacffb1151d08608957d3d86a8"
+   },
+   "excluded_exposure": {
+    "rows": 17,
+    "groups": 17,
+    "row_id_sha256": "04aede59d0d279a57fd2241f5986fc5783b664500c7fd513c74b2e4eb173f3d3",
+    "group_id_set_sha256": "ac876a32c12f7f6df6424ab9cb906679feb16dbacffb1151d08608957d3d86a8"
+   }
+  },
+  "matches_predecessor_DATA_ADMISSION": {
+   "assessment": true,
+   "attacker_fit": true,
+   "attacker_val": true,
+   "cert": true,
+   "defense_train": true,
+   "defense_val": true,
+   "excluded_dup": true,
+   "excluded_exposure": true
+  }
+ },
+ "refreshed_roles_recomputed": {
+  "per_role": {
+   "DEFENSE_FIT": {
+    "rows": 19230,
+    "groups": 19221,
+    "row_id_sha256": "57415ae3a0885640440e68c873f6a7b7a5641ee385a5ef8dd5cd5a4a72fa6977",
+    "group_id_set_sha256": "5076c5f62d1a4741e44af5ab577445c0d7df19bd5707b674be2d648f03ee26dc"
+   },
+   "HEAD_VALIDATION": {
+    "rows": 1500,
+    "groups": 1499,
+    "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+    "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d"
+   },
+   "DEVELOPMENT_ASSESSMENT": {
+    "rows": 3397,
+    "groups": 3393,
+    "row_id_sha256": "7467112adb6b0483e9967c9d5ba984db4fcc82105297562edf850d230166fa7d",
+    "group_id_set_sha256": "7a48a2ec2e6c0a6680238e6afe5c984d82df17b12f0e612c1173fb32d9930f73"
+   },
+   "AUDIT_FIT": {
+    "rows": 6065,
+    "groups": 6061,
+    "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+    "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c"
+   },
+   "INNER_SELECTION": {
+    "rows": 2235,
+    "groups": 2234,
+    "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+    "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b"
+   },
+   "CRITIC_FIT": {
+    "rows": 13543,
+    "groups": 13538,
+    "row_id_sha256": "955476352fde567936f4a92f018a08e3b73966c4db7d44452f538a6212872873",
+    "group_id_set_sha256": "9af1c77c1a3160cb6b77a9e4d533df79e1a58ac8c121d732cf673a8e1cb47865"
+   },
+   "CRITIC_VAL": {
+    "rows": 2844,
+    "groups": 2843,
+    "row_id_sha256": "ae38cfa1a5720beb6ad3ab307ad650b4dfc9db54d3cd508cfe754fe308e4b12c",
+    "group_id_set_sha256": "cd13e4724ecec8781367a79c00c3b1c5f8058f3223e31626e56e8833f3c52202"
+   },
+   "CALIB": {
+    "rows": 2843,
+    "groups": 2840,
+    "row_id_sha256": "416ffa68e3705bce456f453e502f7b017be6942de8a777ebd3f319b55ecc1740",
+    "group_id_set_sha256": "1383de7349cb31a7f2c108531954725585b0bbba405c3e5347908a5cc5d340f9"
+   }
+  },
+  "matches_published_refreshed_manifest": {
+   "DEFENSE_FIT": true,
+   "HEAD_VALIDATION": true,
+   "DEVELOPMENT_ASSESSMENT": true,
+   "AUDIT_FIT": true,
+   "INNER_SELECTION": true,
+   "CRITIC_FIT": true,
+   "CRITIC_VAL": true,
+   "CALIB": true
+  }
+ },
+ "roles": {
+  "NEW_DEFENSE_FIT": {
+   "rows": 15434,
+   "groups": 15428,
+   "row_id_sha256": "3f6bb936900cfd4226dd2f6240bdb73032dc3fac29144dc6268c9db3d1f2553b",
+   "group_id_set_sha256": "5e6f14fe8ecef5022c39b9bcac320f5cdc7c3dbd7aeb80ab899c4807a594a554",
+   "source": "refreshed DEFENSE_FIT (= old defense_train), groups with u_assess >= 0.20",
+   "permitted_use": "encoders, warm starts, training heads, numeric standardisation, official LEACE maps and FARE / zero-fairness trees (all retrained or refitted from scratch on these rows)"
+  },
+  "NEW_DEVELOPMENT_ASSESSMENT": {
+   "rows": 3796,
+   "groups": 3793,
+   "row_id_sha256": "30655eb8890ee89b4a06812fbf2ad119bacc75a17345caea546f27d7fc22aa53",
+   "group_id_set_sha256": "6efca4a2d790242b34919f4e55029d8190ca5e45badf51b7908e8d2fd915d276",
+   "source": "refreshed DEFENSE_FIT (= old defense_train), groups with u_assess < 0.20",
+   "permitted_use": "withheld from this procedure until EVALUATION_LOCK.json is pushed; labels masked at load; counts and row-id hashes only in this manifest (no label statistic)"
+  },
+  "HEAD_VALIDATION": {
+   "rows": 1500,
+   "groups": 1499,
+   "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+   "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d",
+   "source": "refreshed HEAD_VALIDATION, unchanged (30% of old defense_val groups)",
+   "permitted_use": "deployed task-head C selection only"
+  },
+  "AUDIT_FIT": {
+   "rows": 6065,
+   "groups": 6061,
+   "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+   "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c",
+   "source": "refreshed AUDIT_FIT, unchanged (= old attacker_fit)",
+   "permitted_use": "inner and final attacker fitting"
+  },
+  "INNER_SELECTION": {
+   "rows": 2235,
+   "groups": 2234,
+   "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+   "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b",
+   "source": "refreshed INNER_SELECTION, unchanged (= old attacker_val)",
+   "permitted_use": "candidate evaluation, nomination, attacker and orientation selection"
+  }
+ },
+ "new_defense_fit_subroles": {
+  "CRITIC_FIT": {
+   "rows": 10764,
+   "groups": 10763,
+   "row_id_sha256": "8c70e2d366bd6e69d166cf9e1cd4e714ff3ec25561024ff77df2b5412a6fca57",
+   "group_id_set_sha256": "86fc8c4537fe6228b0aebcea4cb1c1f18114713be1cf712f63c6552d56c18a4f",
+   "source": "NEW_DEFENSE_FIT (group-hash split, seed 20261005, salt 'critic')",
+   "permitted_use": "critic fitting and controller-probe fitting",
+   "share_of_NEW_DEFENSE_FIT_rows": 0.6974
+  },
+  "CRITIC_VAL": {
+   "rows": 2343,
+   "groups": 2339,
+   "row_id_sha256": "cb2ba84decb3a8c657bb822b00aa340bb35aa4e28afc69425dfb655c78f61690",
+   "group_id_set_sha256": "ed0dd34b3bfc77699bc416f567664d88de94a49c0e7f087230cb48362fbf833c",
+   "source": "NEW_DEFENSE_FIT (group-hash split, seed 20261005, salt 'critic')",
+   "permitted_use": "bounded-refit early stopping / attempt choice; controller-probe selection",
+   "share_of_NEW_DEFENSE_FIT_rows": 0.1518
+  },
+  "CONTROLLER_CALIB": {
+   "rows": 2327,
+   "groups": 2326,
+   "row_id_sha256": "4ff8e8b65e5969a881b0ae424d356ef68cf09f5b19b2952fafd6a9cc921a6c11",
+   "group_id_set_sha256": "01fea138c9467ed0c8a9f3326388596de4990287454c2d5e803189d8879d0442",
+   "source": "NEW_DEFENSE_FIT (group-hash split, seed 20261005, salt 'critic')",
+   "permitted_use": "controller calibration AUC (feedback targets and weight updates)",
+   "share_of_NEW_DEFENSE_FIT_rows": 0.1508
+  }
+ },
+ "subrole_note": "The critic/controller subroles are a new draw (seed 20261005) inside NEW_DEFENSE_FIT, not the refreshed study's CRITIC_FIT/CRITIC_VAL/CALIB. Encoders and training heads train on all NEW_DEFENSE_FIT rows, including the CRITIC_VAL and CONTROLLER_CALIB labels; those subroles are held out from critic/controller fitting only.",
+ "overlap_with_refreshed_critic_subroles_rows": {
+  "by_new_role": {
+   "NEW_DEFENSE_FIT": {
+    "CRITIC_FIT": 10864,
+    "CRITIC_VAL": 2278,
+    "CALIB": 2292
+   },
+   "NEW_DEVELOPMENT_ASSESSMENT": {
+    "CRITIC_FIT": 2679,
+    "CRITIC_VAL": 566,
+    "CALIB": 551
+   }
+  },
+  "by_new_subrole": {
+   "CRITIC_FIT": {
+    "CRITIC_FIT": 7622,
+    "CRITIC_VAL": 1577,
+    "CALIB": 1565
+   },
+   "CRITIC_VAL": {
+    "CRITIC_FIT": 1641,
+    "CRITIC_VAL": 349,
+    "CALIB": 353
+   },
+   "CONTROLLER_CALIB": {
+    "CRITIC_FIT": 1601,
+    "CRITIC_VAL": 352,
+    "CALIB": 374
+   }
+  }
+ },
+ "role_partition_fingerprint_sha256": "9f94414b0371b1aa333b75ddd225822e409313b013ecffb11aaf2bcdaa9c8aae",
+ "dropped_pools": {
+  "pools": [
+   "refreshed DEVELOPMENT_ASSESSMENT",
+   "old assessment",
+   "old cert",
+   "old excluded_exposure",
+   "old excluded_dup"
+  ],
+  "rows": {
+   "refreshed DEVELOPMENT_ASSESSMENT": 3397,
+   "old assessment": 5243,
+   "old cert": 1500,
+   "old excluded_exposure": 17,
+   "old excluded_dup": 18
+  },
+  "row_id_sha256": {
+   "refreshed DEVELOPMENT_ASSESSMENT": "7467112adb6b0483e9967c9d5ba984db4fcc82105297562edf850d230166fa7d",
+   "old assessment": "9ba29f949f4bc0e7482d7174ab081d581163d82491bbb104e3301425a764c35b",
+   "old cert": "c05fa9806d4155fd6679b2aef4eff9634e5f3ef94146e3a1f8d57edcb37577d1",
+   "old excluded_exposure": "04aede59d0d279a57fd2241f5986fc5783b664500c7fd513c74b2e4eb173f3d3",
+   "old excluded_dup": "b9a0732187327ea74949b7ba27901191fc9899b0228825bdfe0729a3d7c8d787"
+  },
+  "rows_total": 10175,
+  "treatment": "excluded from every new fitting, selection, inference and reporting call; smf.data.load() drops them before any array leaves the loader"
+ },
+ "assertions": {
+  "new_roles_row_disjoint": true,
+  "new_roles_group_disjoint": true,
+  "subroles_row_and_group_disjoint": true,
+  "subroles_partition_NEW_DEFENSE_FIT": true,
+  "new_fit_and_new_assessment_partition_refreshed_DEFENSE_FIT_and_old_defense_train": true,
+  "kept_roles_identical_to_refreshed_roles": true,
+  "no_group_spans_two_new_roles_or_a_new_role_and_a_dropped_pool": true,
+  "refreshed_DEVELOPMENT_ASSESSMENT_rows_receive_no_new_role": true,
+  "old_dropped_pools_receive_no_new_role": true,
+  "no_new_role_group_occurs_in_any_dropped_pool": true,
+  "dropped_rows_are_exactly_refreshed_assessment_plus_old_dropped_pools": true,
+  "float_rule_equals_exact_rational_rule_for_every_group": true,
+  "refreshed_roles_recomputed_equal_published_refreshed_manifest": true
+ },
+ "groups_spanning_dropped_pools_only": 17,
+ "permitted_columns": {
+  "n_columns": 83,
+  "feature_names_sha256": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+  "source_columns_kept": [
+   "age",
+   "education-num",
+   "capital-gain",
+   "capital-loss",
+   "hours-per-week",
+   "workclass",
+   "education",
+   "marital-status",
+   "relationship",
+   "native-country"
+  ],
+  "columns_per_source": {
+   "age": 1,
+   "education-num": 1,
+   "capital-gain": 1,
+   "capital-loss": 1,
+   "hours-per-week": 1,
+   "workclass": 8,
+   "education": 16,
+   "marital-status": 7,
+   "relationship": 6,
+   "native-country": 41
+  },
+  "excluded_source_columns": [
+   "sex",
+   "race",
+   "income",
+   "occupation",
+   "fnlwgt",
+   "row id / record key / group id"
+  ],
+  "forbidden_column_names_present": [],
+  "relationship_Husband_present": true,
+  "relationship_Wife_present": true,
+  "proxy_note": "relationship=Husband / relationship=Wife are kept permitted proxies; in the predecessor's shortcut audit (DATA_ADMISSION.json) they determine SEX for about 46% of rows. Deliberately not dropped (prompt section 5); see EXPOSURE_LEDGER.md.",
+  "categorical_blocks_are_exact_one_hot_all_rows": true,
+  "unseen_category_rows": 0,
+  "categorical_handling": "fixed loader category sets (pcrl.data.adult.AdultDataset.CATEGORY_VALUES); no fitted vocabulary; an unseen value would give an all-zero block (none occurs)"
+ },
+ "numeric_refit": {
+  "rule": "raw integer values recovered from the admitted normalisation and re-standardised with population mean/sd computed on NEW_DEFENSE_FIT rows only; the transform is then applied to all kept rows",
+  "raw_source": "jcv.data.raw_frames() -> pinned pcrl.data.adult loader on hash-checked adult.data / adult.test; row alignment proven by bitwise equality of all 78 one-hot columns and of the 5 admitted numeric columns re-derived from the raw values",
+  "raw_files_sha256": {
+   "adult.data": "5b00264637dbfec36bdeaab5676b0b309ff9eb788d63554ca0a249491c86603d",
+   "adult.test": "a2a9044bc167a35b2361efbabec64e89d69ce82d9790d2980119aac5fd7e9c05"
+  },
+  "pcrl_data_adult_py_sha256": "90abdfd63a6441f7f5b7409728de09df187439ed0c3b2ca0dd18d984a1c06a47",
+  "jcv_data_py_sha256": "fb6f4dbdb13481d246d19c3e4feee1349e7339ff1cd64e99cc9ae852466979d6",
+  "raw_numeric_columns_integer": true,
+  "onehot_columns_equal_raw_indicators": {
+   "workclass": true,
+   "education": true,
+   "marital-status": true,
+   "relationship": true,
+   "native-country": true
+  },
+  "per_column": {
+   "age": {
+    "admitted_norm_rederived_from_raw_on_old_defense_train": true,
+    "admitted_column_equals_raw_standardised_bitwise": true,
+    "inversion_max_abs_err": 7.832392405759947e-07,
+    "rounded_inversion_equals_raw_integers_all_rows": true,
+    "mean_new_fit": 38.53570040171051,
+    "sd_new_fit": 13.217572143370749,
+    "new_fit_rows": 15434,
+    "refit_differs_from_admitted_norm": true
+   },
+   "education-num": {
+    "admitted_norm_rederived_from_raw_on_old_defense_train": true,
+    "admitted_column_equals_raw_standardised_bitwise": true,
+    "inversion_max_abs_err": 2.1854913434538048e-07,
+    "rounded_inversion_equals_raw_integers_all_rows": true,
+    "mean_new_fit": 10.103796812232734,
+    "sd_new_fit": 2.561460632005635,
+    "new_fit_rows": 15434,
+    "refit_differs_from_admitted_norm": true
+   },
+   "capital-gain": {
+    "admitted_norm_rederived_from_raw_on_old_defense_train": true,
+    "admitted_column_equals_raw_standardised_bitwise": true,
+    "inversion_max_abs_err": 0.0022841740283183753,
+    "rounded_inversion_equals_raw_integers_all_rows": true,
+    "mean_new_fit": 1016.0701697550862,
+    "sd_new_fit": 6916.438745602166,
+    "new_fit_rows": 15434,
+    "refit_differs_from_admitted_norm": true
+   },
+   "capital-loss": {
+    "admitted_norm_rederived_from_raw_on_old_defense_train": true,
+    "admitted_column_equals_raw_standardised_bitwise": true,
+    "inversion_max_abs_err": 9.432798833586276e-05,
+    "rounded_inversion_equals_raw_integers_all_rows": true,
+    "mean_new_fit": 86.2533367889076,
+    "sd_new_fit": 398.72583764034243,
+    "new_fit_rows": 15434,
+    "refit_differs_from_admitted_norm": true
+   },
+   "hours-per-week": {
+    "admitted_norm_rederived_from_raw_on_old_defense_train": true,
+    "admitted_column_equals_raw_standardised_bitwise": true,
+    "inversion_max_abs_err": 2.8154970266314194e-06,
+    "rounded_inversion_equals_raw_integers_all_rows": true,
+    "mean_new_fit": 40.94972139432422,
+    "sd_new_fit": 12.09756080001108,
+    "new_fit_rows": 15434,
+    "refit_differs_from_admitted_norm": true
+   }
+  },
+  "all_ok": true
+ },
+ "input_duplicate_note": {
+  "what": "Groups are exact full-record duplicates. Rows identical on the 83 permitted inputs but differing in a removed column are different groups and can sit in different roles. Rows per role whose input vector also occurs in NEW_DEFENSE_FIT:",
+  "counts": {
+   "NEW_DEVELOPMENT_ASSESSMENT": 1419,
+   "HEAD_VALIDATION": 563,
+   "AUDIT_FIT": 2255,
+   "INNER_SELECTION": 800
+  }
+ },
+ "withheld": "No label statistic of any role is published here. NEW_DEVELOPMENT_ASSESSMENT labels are sealed until EVALUATION_LOCK.json. No row ids, record keys or group ids are published (hashes only).",
+ "loader_comparison": {
+  "loader": "smf.data.load() with its defaults (verify=True, unseal=False), imported in a separate step after the independent computation",
+  "smf_data_py_sha256": "2ee888c5da626c653a74fd242d2da840984978decd029dfc1fe60708dd75c1a5",
+  "row_id_sets_identical": {
+   "NEW_DEFENSE_FIT": true,
+   "NEW_DEVELOPMENT_ASSESSMENT": true,
+   "HEAD_VALIDATION": true,
+   "AUDIT_FIT": true,
+   "INNER_SELECTION": true,
+   "CRITIC_FIT": true,
+   "CRITIC_VAL": true,
+   "CONTROLLER_CALIB": true
+  },
+  "smf_manifest_counts_and_hashes_identical": {
+   "NEW_DEFENSE_FIT": true,
+   "NEW_DEVELOPMENT_ASSESSMENT": true,
+   "HEAD_VALIDATION": true,
+   "AUDIT_FIT": true,
+   "INNER_SELECTION": true,
+   "CRITIC_FIT": true,
+   "CRITIC_VAL": true,
+   "CONTROLLER_CALIB": true
+  },
+  "loader_keeps_only_the_five_roles": true,
+  "loader_rows": 29030,
+  "loader_rows_in_ascending_admitted_order": true,
+  "aliases_point_to_new_roles": {
+   "DEFENSE_FIT": true,
+   "DEVELOPMENT_ASSESSMENT": true,
+   "CALIB": true
+  },
+  "feature_names_identical": true,
+  "X_onehot_columns_unchanged_bitwise": true,
+  "X_numeric_columns_equal_independent_refit_bitwise": {
+   "age": true,
+   "education-num": true,
+   "capital-gain": true,
+   "capital-loss": true,
+   "hours-per-week": true
+  },
+  "X_numeric_max_abs_diff": {
+   "age": 0.0,
+   "education-num": 0.0,
+   "capital-gain": 0.0,
+   "capital-loss": 0.0,
+   "hours-per-week": 0.0
+  },
+  "numeric_refit_mean_sd_and_inversion_error_identical": {
+   "age": true,
+   "education-num": true,
+   "capital-gain": true,
+   "capital-loss": true,
+   "hours-per-week": true
+  },
+  "label_dtypes_from_npy_headers": {
+   "sex": {
+    "dtype": "int64",
+    "signed_integer": true
+   },
+   "race": {
+    "dtype": "int64",
+    "signed_integer": true
+   },
+   "y_income": {
+    "dtype": "int64",
+    "signed_integer": true
+   },
+   "y_occupation_group": {
+    "dtype": "int64",
+    "signed_integer": true
+   }
+  },
+  "assessment_labels_masked_to_minus_one": {
+   "sex": true,
+   "race": true,
+   "y_income": true,
+   "y_occupation_group": true,
+   "y_dict_masked": true,
+   "loader_flag_sealed": true
+  },
+  "no_minus_one_outside_assessment": {
+   "sex": true,
+   "race": true,
+   "y_income": true,
+   "y_occupation_group": true
+  },
+  "note": "Only counts, hashes, bitwise equalities and masking were compared. No label value or label statistic of any role was computed or written.",
+  "verdict": "MATCH"
+ },
+ "historical_checkpoint_exposure": {
+  "method": "read-only; label-free; predecessor FARE tree-cache fingerprints vs adult_jcv.npz inputs",
+  "NEW_DEVELOPMENT_ASSESSMENT_rows_inside_old_defense_train": 3796,
+  "NEW_DEVELOPMENT_ASSESSMENT_rows_by_refreshed_subrole": {
+   "CRITIC_FIT": 2679,
+   "CRITIC_VAL": 566,
+   "CALIB": 551
+  },
+  "jcv_fare_trees": {
+   "trees": 42,
+   "n_fit_19230": 42,
+   "fit_rows_sha256_equals_old_defense_train_inputs": 42
+  },
+  "predecessor_unit_directories_by_kind": {
+   "jcv_v1": {
+    "fare": 78,
+    "inner": 93,
+    "nn": 102,
+    "outer": 27,
+    "warm": 3
+   },
+   "pnx_v1": {
+    "critic": 18,
+    "fare": 42,
+    "inner": 75,
+    "nn": 15,
+    "outer": 39,
+    "parity": 1,
+    "pn": 18,
+    "warm": 3
+   },
+   "rgj_v1": {
+    "calib": 3,
+    "ck": 228,
+    "controls": 1,
+    "fare": 42,
+    "inner": 300,
+    "lc": 3,
+    "outer": 39,
+    "parity": 47,
+    "run": 57,
+    "tc": 3,
+    "tl": 24,
+    "track": 15,
+    "whiten": 1
+   }
+  },
+  "reading": "Every jcv FARE tree (reused by pnx and rgj) was fitted on all 19,230 old defense_train rows, so on every NEW_DEVELOPMENT_ASSESSMENT row. The refreshed study trained its critics on, early-stopped on, or calibrated its multipliers on these rows according to the subrole counts above."
+ }
+}

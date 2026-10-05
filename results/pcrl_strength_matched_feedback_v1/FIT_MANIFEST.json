@@ -1,0 +1,91 @@
+{
+ "schema": "smf-fit-manifest-v1",
+ "status": "PLANNED (written before any nonzero fit)",
+ "units": {
+  "warm_starts": {
+   "planned": 3,
+   "rows": "NEW_DEFENSE_FIT"
+  },
+  "parity": {
+   "planned": 36,
+   "what": "rho=0 / beta=0 vs task-only continuation for RAW-J, RAW-L, NJ/NL x 3 schedules, J-F/L-F/J-N/L-N per seed (engineering)"
+  },
+  "U": {
+   "planned_runs": 3,
+   "checkpoints": [
+    20,
+    40
+   ]
+  },
+  "raw_controls": {
+   "planned_runs": 12,
+   "arms": [
+    "RAW-J",
+    "RAW-L"
+   ],
+   "betas": [
+    0.1,
+    0.3
+   ],
+   "checkpoints": [
+    20,
+    40
+   ]
+  },
+  "phase_A_normalized": {
+   "planned_runs": 54,
+   "bases": [
+    "NJ",
+    "NL"
+   ],
+   "schedules": [
+    "ONLINE",
+    "REFRESHED",
+    "ONLINE_MATCHED"
+   ],
+   "rhos": [
+    0.25,
+    0.75,
+    1.5
+   ],
+   "eligible": "epoch 20 only",
+   "matched_templates": "the paired REFRESHED Phase A unit (shared; not refitted)"
+  },
+  "inner_audits": {
+   "planned": "U e20/e40, raw e20/e40, all Phase A and Phase B finals, LEACE, FARE configs and pairs"
+  },
+  "controller_calibration": {
+   "planned": 3
+  },
+  "controller_preflight": {
+   "planned": "3 real fitting-only receipts + synthetic fixtures"
+  },
+  "phase_B": {
+   "planned_runs": 36,
+   "arms": [
+    "J-F",
+    "L-F",
+    "J-N",
+    "L-N"
+   ],
+   "rhos": [
+    0.25,
+    0.75,
+    1.5
+   ],
+   "probe_measurements_per_run": 21,
+   "templates_if_ONLINE_MATCHED": 36
+  },
+  "official_baselines": {
+   "leace": 3,
+   "fare_trees": "6 configs x 2 purposes x 3 seeds = 36, plus the zero-fairness twin(s) of the selected config"
+  },
+  "critic_tracking": {
+   "planned": "Phase A NJ rho 0.75 x 3 schedules x 3 seeds + Phase B selected J-F and J-N"
+  },
+  "outer": {
+   "planned": "selected J-F, L-F, J-N, L-N, RAW-J, RAW-L, U, E, F, F0 + registered fixed-rho component points, per seed (exact list in EVALUATION_LOCK)"
+  }
+ },
+ "accounting": "RUN_STATUS.json reports planned / completed / failed / reused / aliased / not-triggered separately"
+}
