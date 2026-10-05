@@ -523,14 +523,17 @@ def restore_attacker(drive_units: Path, release_unit: str, seed: int, D):
             "source_view": src, "source": "drive-copy release + AUDIT_FIT refit", "max_abs_diff_vs_saved": d}
 
 
-def backup(dest=None, seed=1, targets_file=None, dry_run=False):
+def backup(dest=None, seed=1, targets_file=None, dry_run=False, local_copy=False):
     files, nbytes = inventory()
+    same_device = False
     if dest:
         vol = Path(dest)
         how = "--dest"
     else:
         vol, _ = locate_smf_drive()
         how = "volume holding the verified smf copy"
+    if vol is None and local_copy:          # lead amendment: same-device versioned copy + restore test, drive pending
+        vol, how, same_device = CACHE, "local same-device copy (drive absent)", True
     date = time.strftime("%Y%m%d", time.gmtime())
     targets, notes = resolve_targets(seed, targets_file)
     plan = {"schema": "osf-closeout-plan-v1", "at": now(), "source": "<PRIVATE_CACHE>/osf_v1", "files": len(files),
@@ -571,7 +574,7 @@ def backup(dest=None, seed=1, targets_file=None, dry_run=False):
         write_public(PKG / "BACKUP_VERIFICATION.json", bv)
         print(json.dumps({k: bv[k] for k in ("status", "files", "local_manifest_sha256")}, indent=1))
         return bv
-    root = versioned(vol, f"private_osf_v1_{date}")
+    root = versioned(vol, f"osf_v1_local_copy_{date}" if same_device else f"private_osf_v1_{date}")
     dst = root / "osf_v1"
     rels = [str(p.relative_to(SRC)) for p in files]
     sums, reread = copy_files(SRC, rels, dst)
@@ -592,14 +595,20 @@ def backup(dest=None, seed=1, targets_file=None, dry_run=False):
         else {"status": "PENDING", "reason": unseal_note}
     del D
     rel = root.name
-    bv = {"schema": "osf-backup-verification-v1", "written_at": now(), "status": "DRIVE_COPY_VERIFIED",
-          "source": "<PRIVATE_CACHE>/osf_v1", "destination": f"<DRIVE_ROOT>/{rel}", "files": len(files),
+    place = "<PRIVATE_CACHE>" if same_device else "<DRIVE_ROOT>"
+    bv = {"schema": "osf-backup-verification-v1", "written_at": now(),
+          "status": ("LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_PENDING" if same_device else "DRIVE_COPY_VERIFIED"),
+          "source": "<PRIVATE_CACHE>/osf_v1", "destination": f"{place}/{rel}", "files": len(files),
           "bytes": nbytes, "copied_now": len(sums), "uncached_readback_match": int(sum(reread.values())),
           "SHA256SUMS_sha256": sha(root / "SHA256SUMS"),
           "read_back": "every copied file re-read with F_NOCACHE (uncached read; not a physical cold-disk read)",
           "restore_seed": seed, "deployable_best": best, "restore_checks": restores, "deleted": "nothing"}
+    if same_device:
+        bv["custody_gap"] = ("the external drive was not mounted at closeout: this copy is on the SAME device; it proves "
+                             "restorability, not off-device custody. Pending: " + plan["pending_command"])
     ri = {"schema": "osf-restore-index-v1", "private_local": "<PRIVATE_CACHE>/osf_v1",
-          "drive_copy": f"<DRIVE_ROOT>/{rel}/osf_v1", "checksums": f"<DRIVE_ROOT>/{rel}/SHA256SUMS",
+          "drive_copy": (f"PENDING (drive absent); same-device copy {place}/{rel}/osf_v1" if same_device else
+                         f"<DRIVE_ROOT>/{rel}/osf_v1"), "checksums": f"{place}/{rel}/SHA256SUMS",
           "layout": {"run/units/<unit>/": "atomic unit: files + record.json + COMPLETE.json (sha256 of every file)",
                      "admitted/<smf unit>/": "admitted smf checkpoints (ADMISSION.json)",
                      "admitted/fare_cache/<uid>/": "admitted official FARE trees"},
@@ -623,13 +632,14 @@ def main(argv=None):
     ap.add_argument("--dest", default=None)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--targets", default=None)
+    ap.add_argument("--local-copy", action="store_true", help="drive absent: same-device copy + restore test")
     a = ap.parse_args(argv)
     if os.environ.get("OMP_NUM_THREADS") != "1":
         raise SystemExit("REFUSED: OMP_NUM_THREADS must be 1")
     if a.job == "predecessor":
         predecessor(restore=a.restore, dry_run=a.dry_run)
     else:
-        backup(a.dest, a.seed, a.targets, a.dry_run)
+        backup(a.dest, a.seed, a.targets, a.dry_run, a.local_copy)
 
 
 if __name__ == "__main__":
