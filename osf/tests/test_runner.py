@@ -36,8 +36,8 @@ def env(tmp_path_factory):
     D = synth_D(n=1200, seed=3)
     data = RT.TData(D)
     k = 0
-    torch.manual_seed(5)
-    warm = T.Model(T.D_IN, T.KS, k).state_dict()
+    from jcv import train as JT
+    warm = JT.warm_start(T.D_IN, T.KS, data, k).state_dict()
     smf = tmp / "smf"
     FN.save_unit(smf / f"warm__s{k}", {"warm.pt": lambda p: torch.save(warm, p)}, {"seed": k})
     tm, _, ck = RT.task_line(warm, data, k, 40, stage="B", save_every=20)
@@ -62,6 +62,8 @@ def wired(env, monkeypatch):
     fake = types.ModuleType("osf.admit")
     fake.admitted_path = lambda name: smf / name
     monkeypatch.setitem(sys.modules, "osf.admit", fake)
+    import osf
+    monkeypatch.setattr(osf, "admit", fake, raising=False)     # `from osf import admit` reads the attribute
     return D
 
 

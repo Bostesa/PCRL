@@ -173,6 +173,7 @@ def train_run(c, init_state, data, seed, critic_head, n_epochs=None, salt=None, 
     checkpoints[e]: state after e epochs; captures[s]: aligned snapshot at global step s (theta_{s-1}, critics after
     their step-s updates, the transform in use); final: theta_{T-1} snapshot and theta_T."""
     n_epochs = HP["epochs"] if n_epochs is None else n_epochs
+    capture_steps = set(capture_steps.values()) if isinstance(capture_steps, dict) else set(capture_steps)  # review A3
     salt = HP["salt"] if salt is None else salt
     lr = HP["sgd_lr"] if lr is None else lr
     ckpt_epochs = HP["ckpt_epochs"] if ckpt_epochs is None else tuple(ckpt_epochs)
@@ -208,6 +209,7 @@ def train_run(c, init_state, data, seed, critic_head, n_epochs=None, salt=None, 
     diag = {"config": config_id(c), "cfg": c, "seed": seed, "salt": salt, "lr": lr, "n_epochs": n_epochs,
             "coefficients": coef, "allocation": list(s_alloc), "encoder_updates": 0, "critic_online_updates": 0,
             "nonfinite": 0, "clip_hits": 0, "cap_hits": [0, 0], "zero_events": [0, 0], "epochs": [],
+            "undefined_ratio_steps": [0, 0],
             "init_state_sha256": state_sha(init_state),
             "critic_init_sha256": critics_sha(banks) if has_critics else None,
             "fixed_head_sha256": (state_sha({f"{i}|{j}": head[i][j] for i in head for j in (0, 1)})
@@ -322,6 +324,9 @@ def train_run(c, init_state, data, seed, critic_head, n_epochs=None, salt=None, 
                     if tn > 0 and zero[i] == Z_NONE:
                         rec["ratio"][j, i] = qn / tn
                         rec["realized_ratio"][j, i] = qn / tn
+                    elif tn == 0 and qn > 0:            # review A4: protection applied with no task gradient
+                        rec["ratio"][j, i] = rec["realized_ratio"][j, i] = np.inf
+                        diag["undefined_ratio_steps"][i] += 1
                     if zero[i] != Z_NONE and zero[i] != Z_OFF:
                         diag["zero_events"][i] += 1
                     rec["zero"][j, i] = zero[i]
@@ -410,14 +415,14 @@ def run_summary(rec):
 
 
 # ------------------------------------------------------------------ frozen-minibatch equivalence (algebra check)
-EQUIV_RTOL = 1e-4      # declared float32 tolerance: max |q_norm - q_raw| <= 1e-4 ||q_raw|| per encoder
+EQUIV_RTOL = 1e-4      # declared float32 tolerance: ||q_norm - q_raw||_2 <= 1e-4 ||q_raw||_2 per encoder (review A1)
 
 
 def frozen_equivalence(model_state, data, seed, head, treat, beta, batch_idx, rtol=EQUIV_RTOL, rho_override=None,
                        a_max=None, snapshot=None):
     """On one frozen minibatch (critics/transforms from `snapshot`, else fresh init critics and the transform of the
     reference rows): RAW q_i = beta p_i (rgj operations) versus the NORM expression with rho_i := r_i =
-    ||beta p_i|| / ||t_i||. Per encoder: 'equivalent' iff t_i, p_i nonzero and max|q_norm - q_raw| <= rtol ||q_raw||;
+    ||beta p_i|| / ||t_i||. Per encoder: 'equivalent' iff t_i, p_i nonzero and ||q_norm - q_raw|| <= rtol ||q_raw||;
     an encoder with p_i = 0 is 'not_applicable' (both expressions give 0). rho_override (a common rho for both
     encoders) and a_max exercise the registered failure cases. Pure function: no RNG."""
     model = Model(D_IN, KS, seed)
@@ -464,10 +469,10 @@ def frozen_equivalence(model_state, data, seed, head, treat, beta, batch_idx, rt
         rho_i = r_i if rho_override is None else rho_override
         qi, info = normalized_direction(gt[lo:hi], p_unit[lo:hi], rho_i if math.isfinite(rho_i) else 0.0,
                                         a_max=HP["A_MAX"] if a_max is None else a_max, zero_tol=HP["ZERO_TOL"])
-        err = float((qi.double() - q_raw[lo:hi].double()).abs().max())
+        err = float((qi.double() - q_raw[lo:hi].double()).norm())          # relative L2 (review A1)
         applicable = qn > 0
         ok = bool(err <= rtol * qn) if applicable else None
-        out["encoders"].append({"t_norm": tn, "q_raw_norm": qn, "r_i": r_i, "rho_used": rho_i, "max_abs_err": err,
+        out["encoders"].append({"t_norm": tn, "q_raw_norm": qn, "r_i": r_i, "rho_used": rho_i, "l2_err": err,
                                 "rel_err": err / qn if qn > 0 else None, "cap": info["cap"], "zero": info["zero"],
                                 "equivalent": ok if applicable else "not_applicable (p_i = 0)"})
         if applicable:

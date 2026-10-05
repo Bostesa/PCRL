@@ -16,6 +16,7 @@ A stage runs only against the LATEST named lock (which must be at least its gove
 (AMENDMENT_A*.json written after it); every locked file must be unchanged; an unlocked file may exist only if it is a
 declared later-locked file; a stage that runs a later file requires it to be locked. Verification refuses unless the
 lock file and every amendment it relies on are byte-identical on origin/<study branch> (prospective registration).
+Later-locked files (LATER) are locked only when named (--include-later) or already locked by the previous lock.
 A later named lock that re-hashes a previously locked file with a different hash must name a reason for every such
 file (--changes file=reason); it is recorded as "changes_previously_locked" in the lock (no silent re-lock).
 """
@@ -40,7 +41,8 @@ GLOBS = ["osf/*.py", "osf/tests/*.py", "smf/*.py", "rgj/*.py", "jcv/*.py", "stor
          "oar/fare_official.py", "oar/study.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
 LATER = {f"osf/{x}.py" for x in ("audit", "assess", "baselines", "select", "family", "infer", "inner", "track",
                                   "eval_lock", "deploy", "report", "closeout")} | \
-        {f"osf/tests/{x}.py" for x in ("test_audit", "test_math_review", "test_late", "test_select", "test_baselines")}
+        {f"osf/tests/{x}.py" for x in ("test_audit", "test_math_review", "test_late", "test_select", "test_baselines",
+                                         "test_closeout")}
 ORDER = ["DATA_AND_ENGINEERING_LOCK", "TRAINING_PROTOCOL_LOCK", "SELECTION_AND_AUDIT_LOCK"]
 STAGE_MIN_LOCK = {"admit": 0, "parity": 0, "fidelity": 0, "replay": 0, "timing": 0, "bank": 1, "references": 1,
                   "inner": 2, "select": 2, "tracking": 2}
@@ -74,9 +76,18 @@ def git(*a):
     return subprocess.run(["git", "-C", str(WT), *a], capture_output=True, text=True).stdout.strip()
 
 
+def cert_verdict():
+    """Review A5: the CERT pool's inclusion is bound to the custody owner's recorded verdict (ROLE_MANIFEST.json)."""
+    from osf import data as DA
+    c = json.loads((PKG / "ROLE_MANIFEST.json").read_text())["cert_eligibility"]
+    assert c["CERT_ELIGIBLE"] == DA.CERT_ELIGIBLE and (c["verdict"] == "ESTABLISHED") == DA.CERT_ELIGIBLE, \
+        "osf.data.CERT_ELIGIBLE disagrees with the custody verdict"
+    return c["verdict"]
+
+
 def inputs():
     from osf import data as DA
-    return {"source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz", "source_npz_sha256": DA.SRC_SHA,
+    return {"cert_eligibility_verdict": cert_verdict(), "source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz", "source_npz_sha256": DA.SRC_SHA,
             "role_rule": "osf.data (smf fitting roles unchanged; consolidated assessment = four named pools minus "
                          "overlapping groups)", "cert_eligible": DA.CERT_ELIGIBLE,
             "pinned_source_commit": "a9951ed2fed9943d445a208a8a7e456a56f39114"}
@@ -102,14 +113,19 @@ def locked_files(lock):
     return out
 
 
-def write_lock(name, protocol=None, changes=None):
+def write_lock(name, protocol=None, changes=None, include_later=()):
     from osf import train as T
     assert name in ORDER
     prev = None
     if ORDER.index(name) > 0:
         prev_name = ORDER[ORDER.index(name) - 1]
         prev = json.loads((PKG / f"{prev_name}.json").read_text())
-    cf = code_files()
+    allf = code_files()
+    bad = [f for f in include_later if f not in LATER or f not in allf]
+    if bad:
+        raise SystemExit(f"REFUSED: not a present later-locked file: {bad}")
+    keep = set(include_later) | (set(locked_files(prev)) if prev is not None else set())
+    cf = {f: h for f, h in allf.items() if f not in LATER or f in keep}
     changed = []
     if prev is not None:
         have = locked_files(prev)
@@ -119,7 +135,7 @@ def write_lock(name, protocol=None, changes=None):
             raise SystemExit(f"REFUSED: previously locked files changed without a stated reason: {missing}")
     lock = {"schema": "osf-lock-v1", "name": name, "written_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "parent_commit": git("rev-parse", "HEAD"), "code_files": cf, "later_locked": sorted(LATER),
-            "unlocked_later_files": sorted(f for f in LATER if f not in cf),
+            "unlocked_later_files_present": {f: h for f, h in allf.items() if f not in cf},
             "changes_previously_locked": {f: (changes or {})[f] for f in changed},
             "dependencies": deps(), "inputs": inputs(),
             "HP": {k: (list(v) if isinstance(v, tuple) else v) for k, v in T.HP.items()},
@@ -201,7 +217,13 @@ if __name__ == "__main__":
                     break
                 f, r = x.split("=", 1)
                 ch[f] = r
-        L = write_lock(sys.argv[2], prot, ch)
+        inc = []
+        if "--include-later" in args:
+            for x in args[args.index("--include-later") + 1:]:
+                if x.startswith("--"):
+                    break
+                inc.append(x)
+        L = write_lock(sys.argv[2], prot, ch, inc)
         print("lock written:", L["name"], len(L["code_files"]), "code files; changed:", L["changes_previously_locked"])
     elif cmd == "amend":
         args = sys.argv[3:]

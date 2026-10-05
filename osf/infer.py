@@ -211,16 +211,24 @@ def main(argv=None):
     for nm, sid in levels.items():
         r = reps[sid]
         out["levels"][nm] = {"point": pts[sid], "se": float(np.std(r[np.isfinite(r)], ddof=1))}
+    for e in out["primary"]:               # review A7: clauses of a non-NOMINEE nominee/comparator are descriptive
+        roles = [e.get("nominee")] + ([e["ref"]] if "ref" in e else [])
+        if e["point"] is not None and any(EL["statuses"].get(x, {}).get("status") != "NOMINEE" for x in roles):
+            e["decision_numeric"], e["decision"] = e["decision"], "DESCRIPTIVE_ONLY"
     dec = {}
     for claim in FAM.CLAIMS:
         d = {e["id"]: e["decision"] for e in out["primary"] if e["claim"] == claim}
         dec[claim] = FAM.claim_decision(claim, d, EL["statuses"])
         out[f"claim{claim}"] = dec[claim]
-    out["label"] = FAM.overall_label(dec)
+    complete = bool(EL.get("U_valid", False)) and not any(str(s.get("status", "")).startswith("INVALID")
+                                                         for s in EL["statuses"].values())
+    out["complete"] = complete
+    out["label"] = FAM.overall_label(dec, complete=complete)          # review S2
     (R.RUN / "inference.json").write_text(json.dumps(out, indent=1, default=float))
     R.PKG.mkdir(parents=True, exist_ok=True)
     for key, fn in (("primary", "PRIMARY_ENDPOINTS.csv"), ("secondary", "SECONDARY_ENDPOINTS.csv")):
-        cols = ["id", "stat", "target", "side", "point", "se", "lower", "upper", "z", "decision", "alias_of", "claim"]
+        cols = ["id", "stat", "target", "side", "point", "se", "lower", "upper", "z", "decision",
+                "decision_numeric", "alias_of", "claim"]
         with open(R.PKG / fn, "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore", lineterminator="\n")
             w.writeheader()

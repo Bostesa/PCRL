@@ -1,0 +1,62 @@
+{
+ "owner": "audit/baseline",
+ "policy": "at most one heavy process at a time; OMP_NUM_THREADS=1; no cloud",
+ "jobs": [
+  {
+   "job": "reference admission + label-free encodes + inner audits + global FARE reselection (osf.baselines.run_references, seeds 0-2)",
+   "status": "EARLY RUN BEFORE TRAINING_PROTOCOL_LOCK - quarantined by the lead; to be re-run post-lock and compared (osf.baselines.compare_unit_dirs)",
+   "start_utc": "2026-10-05T03:32:40Z",
+   "wall_s": 81.9,
+   "cpu_s_self": 69.0,
+   "cpu_s_children_fare_env": 12.7,
+   "peak_rss_bytes": 1007386624,
+   "heavy": true
+  },
+  {
+   "job": "reference selection rewrite (status vocabulary; all units cached, no fit)",
+   "status": "EARLY RUN (quarantined with the above)",
+   "wall_s": 2.2,
+   "cpu_s_self": 2.2,
+   "heavy": false
+  },
+  {
+   "job": "pre-lock checks, first attempt including E/F releases",
+   "status": "ABORTED at the lead's process correction (~31 s CPU); no output used",
+   "wall_s": 35,
+   "cpu_s_self": 31,
+   "heavy": true
+  },
+  {
+   "job": "pre-lock checks, U only (scratch driver, smf originals)",
+   "status": "superseded by the CLI run; numbers identical modulo timing",
+   "wall_s": 159.4,
+   "cpu_s_self": 159.8,
+   "peak_rss_bytes": 869580800,
+   "heavy": true
+  },
+  {
+   "job": "pre-lock checks, U only (python -m osf.audit prelock) -> AUDIT_PRELOCK_CHECKS.json",
+   "status": "COMPLETE",
+   "wall_s": 161.5,
+   "cpu_s_self": 161.9,
+   "peak_rss_bytes": 817889280,
+   "heavy": true
+  },
+  {
+   "job": "smoke checks (U replay, one LEACE, one FARE unit) and pytest osf/tests/test_audit.py (8 runs, ~22 s each)",
+   "status": "light",
+   "wall_s": 190,
+   "cpu_s_self": 190,
+   "heavy": false
+  }
+ ],
+ "total_cpu_s": 626.6,
+ "total_cpu_hours": 0.174,
+ "max_concurrent_heavy_processes": 1,
+ "assessment_estimate": {
+  "per_outer_unit_wall_s": "35-60 (smf outer units took 22-50 s with fewer view families)",
+  "units": "24 releases per seed (21 bank configs + E, F, F0) x 3 seeds = 72",
+  "single_worker_minutes": "45-70",
+  "two_shards_minutes": "25-35"
+ }
+}

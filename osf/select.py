@@ -172,6 +172,9 @@ def select_all(D, shard_spec=None):
         N["guards_used"], Rs["guards_used"] = sorted(gN), sorted(guards)
         N["missing_guards"] = [g for g in ("L*", "C*") if g not in gN]
         Rs["missing_guards"] = [g for g in ("L*",) if g not in guards]
+        for P in (N, Rs):                    # review S1: a missing guard comparator invalidates the nomination
+            if P["missing_guards"] and P["status"] == "NOMINEE":
+                P["status"], P["descriptive_config"], P["config"] = "INVALID_MISSING_COMPARATOR", P["config"], None
         out["statuses"] = {"L*": L, "C*": C, "N*": N, "R*": Rs}
         out["nomination"] = {r["config"]: {kk: r[kk] for kk in ("guard_ok", "guard_excess", "eligible",
                                                                 "nomination_shortfall")}

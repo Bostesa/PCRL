@@ -65,7 +65,7 @@ def test_inference_end_to_end(tmp_path, monkeypatch):
     st = {"N*": {"status": "NO_FEASIBLE_NOMINEE", "config": None, "descriptive_config": "NORM-J|r3|a1"},
           "R*": {"status": "NOMINEE", "config": "RAW-J|b0.3"}, "L*": {"status": "NOMINEE", "config": "RAW-L|b0.3"},
           "C*": {"status": "NOMINEE", "config": "RAW-J|b0.3"}}
-    lock = {"sex_prior_defense_fit_sha256": EL.prior_hash(D), "statuses": st,
+    lock = {"sex_prior_defense_fit_sha256": EL.prior_hash(D), "statuses": st, "U_valid": True,
             "resolved": {x: s.get("config") or s.get("descriptive_config") for x, s in st.items()},
             "seeds": {str(k): {"score": {lab: {} for lab in labels}} for k in (0, 1, 2)}}
     lp = tmp_path / "EL.json"

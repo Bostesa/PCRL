@@ -32,6 +32,7 @@ import joblib
 import numpy as np
 import torch
 
+from jcv import train as JT
 from osf import data as DA
 from osf import train as T
 from rgj import finalize as FN
@@ -157,8 +158,13 @@ def stage_admit(D, shard_spec=None):
         if not done(w):
             src = AD.admitted_path(w) / "warm.pt"
             st = torch.load(src)
+            (rm, wall, cpu) = timed(JT.warm_start, T.D_IN, T.KS, RT.TData(D), k)     # bitwise warm-start replay
+            same = eq_state(rm.state_dict(), st)
+            if not same:
+                raise SystemExit(f"ADMISSION FAILED {w}: the warm-start replay on OSF_DEFENSE_FIT differs")
             FN.save_unit(U(w), {"warm.pt": lambda p, st=st: torch.save(st, p)},
                          {"seed": k, "admitted_from": f"smf {w}", "warm_sha256": T.state_sha(st),
+                          "replay_bitwise": same, "replay_wall_s": wall,
                           "schedule": "jcv.train.warm_start on OSF_DEFENSE_FIT (= smf NEW_DEFENSE_FIT), admitted"})
             event("unit complete", unit=w)
         for cid in admitted_ids():
@@ -246,7 +252,9 @@ def stage_fidelity(D, shard_spec=None):
                                                rho_override=common)
             fail_cap = T.frozen_equivalence(ck[2]["model"], data, k, head(k), t, 0.3, bi, snapshot=ck[2],
                                             a_max=1e-6)
-            ok = same_model and same_critics and (dev is None or dev < 1e-5) and eqv["equivalent"]
+            close = abs(rr[0] - rr[1]) <= 10 * T.EQUIV_RTOL * max(rr)      # review A2: expected failures required
+            ok = (same_model and same_critics and (dev is None or dev < 1e-5) and eqv["equivalent"]
+                  and not fail_cap["equivalent"] and (not fail_common["equivalent"] or close))
             FN.save_unit(U(n), {}, {"seed": k, "config": T.config_id(c), "epochs": 2, "bitwise_model": same_model,
                                     "bitwise_critics": same_critics, "logged_norm_max_rel_dev": dev,
                                     "logged_norm_entries": len(logged),
