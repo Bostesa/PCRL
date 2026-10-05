@@ -102,8 +102,11 @@ def spread(total, S, s):
 
 
 # ------------------------------------------------------------------ controller probes
-CTRL_REL_TOL = 1e-5   # views are float32-computed (eps 1.2e-7); the logit block's exact-null directions carry float32
-                      # rounding noise at ~1e-6 relative scale, so directions below 1e-5 x s_max are treated as rank-null
+CTRL_REL_TOL = 1e-9   # review R2: the whitened LR reads the r block only (16 columns; the centred logits are affine in r,
+                      # so the linear function class is identical) - no float32 logit-block null directions to exclude;
+                      # 1e-9 x s_max keeps a rotated 1e-6 clue (relative singular value ~1e-7) and drops only
+                      # numerically singular directions.
+R_DIM = 16
 
 
 def _whiten_fit(Z):
@@ -115,7 +118,8 @@ def _whiten_fit(Z):
 
 
 def probe_auc(V, S, data, seed, tag):
-    """Controller probe on one frozen local view: whitened LR (scale-aware, float64, eps-rank tolerance) and an MLP,
+    """Controller probe on one frozen local view: whitened LR on the r block (scale-aware, float64, rank tol 1e-9) and
+    an MLP on the full view,
     fitted on CRITIC_FIT, selected (with orientation) by CRITIC_VAL AUC, evaluated on CONTROLLER_CALIB."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import roc_auc_score
@@ -124,8 +128,9 @@ def probe_auc(V, S, data, seed, tag):
     from sklearn.preprocessing import StandardScaler
     V = np.asarray(V, dtype=np.float64)
     cf, cv, cal = data.cf, data.cv, data.cal
-    mu, W = _whiten_fit(V[cf])
-    Zf, Zv, Zc = (V[cf] - mu) @ W, (V[cv] - mu) @ W, (V[cal] - mu) @ W
+    Rb = V[:, :R_DIM]
+    mu, W = _whiten_fit(Rb[cf])
+    Zf, Zv, Zc = (Rb[cf] - mu) @ W, (Rb[cv] - mu) @ W, (Rb[cal] - mu) @ W
     rs = int(RT._seed("rgj-ctrl", seed, tag) % (2 ** 31))
     lr = LogisticRegression(C=1.0, max_iter=3000).fit(Zf, S[cf])
     mlp = make_pipeline(StandardScaler(), MLPClassifier(hidden_layer_sizes=(64,), alpha=1e-4, max_iter=200,
@@ -208,7 +213,7 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
     t0 = time.time()
     for ep in range(n_epochs + 1):
         if ep in ckpt_epochs and ep > 0:
-            checkpoints[ep] = snapshot_state(model, banks, T, w, head) if has_critics else {"model": copy.deepcopy(model.state_dict())}
+            checkpoints[ep] = snap_full(model, banks, T, w, head, opts, w_hyp) if has_critics else {"model": copy.deepcopy(model.state_dict())}
             checkpoints[ep]["step"], checkpoints[ep]["w"] = step, list(w)
         if has_critics and sched == "REFRESHED" and ep in HP["refit_epochs"]:
             rr = refit_banks(model, banks, T, data, seed, ep, "floored", logprior, H, head)
@@ -223,7 +228,7 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
                         diag["restart_chosen" if q["choice"] == "restart" else "continued_chosen"] += 1
             diag["refits"].append(entry)
             if ep == n_epochs:
-                final["refit_critics"] = snapshot_state(model, banks, T, w, head)
+                final["refit_critics"] = snap_full(model, banks, T, w, head, opts, w_hyp)
         if controller is not None and ep <= n_epochs:      # measurement at the start of epoch ep (20 = diagnostic)
             rec = controller["receipt0"] if ep == 0 else probe_receipt(model, data, head, seed, f"{stage}|{ep}")
             aucs = [rec["v1"]["calib_auc"], rec["v2"]["calib_auc"]]
@@ -250,8 +255,9 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
         coef = coefficients(base, w) if spec.get("update") != "task" else {"v1": 0, "v2": 0, "pair": 0}
         s_alloc = allocation(*w)
         ep_log = {"epoch": ep, "ratio": [[], []], "cos": [[], []], "R": {v: [] for v in VIEWS}, "clip": 0,
-                  "t_norm": [[], []], "q_norm": [[], []], "update_norm_post_clip": [], "w": list(w),
-                  "alloc": list(s_alloc)}
+                  "t_norm": [[], []], "q_norm": [[], []], "p_norm": [[], []], "a": [[], []], "update_norm_post_clip": [],
+                  "post_clip_enc_norm": [[], []], "w": list(w), "alloc": list(s_alloc), "n_steps": 0,
+                  "zero": [0, 0], "cap": [0, 0], "nonfinite": 0, "realized_ratio": [[], []]}
         for s in range(0, n, HP["batch"]):
             b_idx = torch.from_numpy(perm[s:s + HP["batch"]])
             step += 1
@@ -289,7 +295,7 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
                                 opts[v][k].step()
                                 diag["critic_matched_extra_updates"] += 1
             if step in capture_steps or step == S_steps:
-                snap = snapshot_state(model, banks, T, w, head) if has_critics else {"model": copy.deepcopy(model.state_dict())}
+                snap = snap_full(model, banks, T, w, head, opts, w_hyp) if has_critics else {"model": copy.deepcopy(model.state_dict())}
                 if step in capture_steps:
                     captures[step] = snap
                 if step == S_steps:
@@ -299,52 +305,84 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
             g = flat_grad(sum(Lt.values()), enc_params + head_params)       # task gradient (rgj ordering)
             d_enc = torch.zeros(ne)
             active = [v for v in VIEWS if coef[v] > 0]
-            if has_critics and active and rho > 0:
+            ep_log["n_steps"] += 1
+            protect = has_critics and bool(active) and rho > 0
+            step_ratio = [0.0, 0.0] if protect else None
+            if protect:
                 V = critic_views(model, data.X[b_idx], active, head, grad=True)
                 P = 0.0
                 for v in active:
                     Rv, _, _ = recovery([banks[v][k](T[v](V[v])) for k in KINDS], data.S[b_idx], logprior, H)
                     ep_log["R"][v].append(float(Rv))
                     P = P + coef[v] * Rv
-                if isinstance(P, torch.Tensor) and P.requires_grad:
+                if not (isinstance(P, torch.Tensor) and P.requires_grad):     # review R1: constant won everywhere
+                    for i in (0, 1):
+                        diag["zero_events"][i] += 1
+                        ep_log["zero"][i] += 1
+                else:
                     pvec = flat_grad(P, enc_params)
                     if not torch.isfinite(pvec).all():
                         diag["nonfinite"] += 1
+                        ep_log["nonfinite"] += 1
                     else:
                         parts = []
                         for i, (lo, hi) in enumerate(((0, n0), (n0, ne))):
                             qi, info = normalized_direction(g[lo:hi], pvec[lo:hi], rho * s_alloc[i])
                             parts.append(qi)
                             diag["cap_hits"][i] += int(info["cap"])
+                            ep_log["cap"][i] += int(info["cap"])
+                            ep_log["p_norm"][i].append(info["p_norm"])
                             if info["zero"]:
                                 diag["zero_events"][i] += 1
+                                ep_log["zero"][i] += 1
                             if info.get("ratio") is not None:
+                                step_ratio[i] = info["ratio"]
                                 ep_log["ratio"][i].append(info["ratio"])
                                 ep_log["t_norm"][i].append(info["t_norm"])
                                 ep_log["q_norm"][i].append(info["ratio"] * info["t_norm"])
+                                ep_log["a"][i].append(info["a"])
                             if info.get("cos") is not None:
                                 ep_log["cos"][i].append(info["cos"])
                         d_enc = torch.cat(parts)
+            if step_ratio is not None:
+                for i in (0, 1):
+                    ep_log["realized_ratio"][i].append(step_ratio[i])
             u = torch.cat([-(g[:ne] + d_enc), -g[ne:]])
             nrm = float(u.norm())
             if not math.isfinite(nrm):
                 diag["nonfinite"] += 1
                 continue
+            kappa = 1.0
             if nrm > HP["clip"]:
-                u = u * (HP["clip"] / nrm)
+                kappa = HP["clip"] / nrm
+                u = u * kappa
                 diag["clip_hits"] += 1
                 ep_log["clip"] += 1
             ep_log["update_norm_post_clip"].append(min(nrm, HP["clip"]))
+            ep_log["post_clip_enc_norm"][0].append(float(u[:n0].norm()))
+            ep_log["post_clip_enc_norm"][1].append(float(u[n0:ne].norm()))
+            ep_log.setdefault("kappa", []).append(kappa)
             assign_add(enc_params + head_params, u, lr)
             diag["encoder_updates"] += 1
-        summ = {"epoch": ep, "w": ep_log["w"], "alloc": ep_log["alloc"], "clip": ep_log["clip"],
-                "update_norm_post_clip_mean": float(np.mean(ep_log["update_norm_post_clip"])) if ep_log["update_norm_post_clip"] else None}
+        def m(x):
+            return float(np.mean(x)) if x else None
+        summ = {"epoch": ep, "w": ep_log["w"], "alloc": ep_log["alloc"], "clip": ep_log["clip"], "n_steps": ep_log["n_steps"],
+                "nonfinite": ep_log["nonfinite"], "update_norm_post_clip_mean": m(ep_log["update_norm_post_clip"]),
+                "kappa_mean": m(ep_log.get("kappa", [])), "kappa_min": min(ep_log.get("kappa", [1.0]))}
         for i in (0, 1):
             r = ep_log["ratio"][i]
-            summ[f"ratio_mean_{i + 1}"] = float(np.mean(r)) if r else None
+            rr = ep_log["realized_ratio"][i]
+            summ[f"ratio_mean_{i + 1}"] = m(r)                       # conditional on a nonzero direction
             summ[f"ratio_rms_{i + 1}"] = float(np.sqrt(np.mean(np.square(r)))) if r else None
-            summ[f"cos_mean_{i + 1}"] = float(np.mean(ep_log["cos"][i])) if ep_log["cos"][i] else None
-            summ[f"t_norm_mean_{i + 1}"] = float(np.mean(ep_log["t_norm"][i])) if ep_log["t_norm"][i] else None
+            summ[f"realized_ratio_mean_{i + 1}"] = m(rr)             # zeros counted (review R1)
+            summ[f"zero_{i + 1}"], summ[f"cap_{i + 1}"] = ep_log["zero"][i], ep_log["cap"][i]
+            summ[f"cos_mean_{i + 1}"] = m(ep_log["cos"][i])
+            summ[f"t_norm_mean_{i + 1}"] = m(ep_log["t_norm"][i])
+            summ[f"q_norm_mean_{i + 1}"] = m(ep_log["q_norm"][i])
+            summ[f"p_norm_mean_{i + 1}"] = m(ep_log["p_norm"][i])
+            summ[f"a_min_{i + 1}"] = min(ep_log["a"][i]) if ep_log["a"][i] else None
+            summ[f"a_max_{i + 1}"] = max(ep_log["a"][i]) if ep_log["a"][i] else None
+            summ[f"post_clip_enc_norm_mean_{i + 1}"] = m(ep_log["post_clip_enc_norm"][i])
         summ["R"] = {v: (float(np.mean(x)) if x else None) for v, x in ep_log["R"].items()}
         diag["epochs"].append(summ)
         if log:
@@ -354,6 +392,14 @@ def train_run(spec, rho, init_state, data, seed, stage, critic_head, n_epochs=20
     final["theta_T"] = copy.deepcopy(model.state_dict())
     diag["wall_s"] = time.time() - t0
     return model, diag, checkpoints, captures, final
+
+
+def snap_full(model, banks, T, w, head, opts, w_hyp):
+    """Review R4: theta, critic states, critic-view head, transforms, critic Adam states and both weight vectors."""
+    sn = snapshot_state(model, banks, T, w, head)
+    sn["opts"] = {v: {k: copy.deepcopy(opts[v][k].state_dict()) for k in KINDS} for v in opts}
+    sn["w_hyp"] = list(w_hyp)
+    return sn
 
 
 def refit_counts(diag):
