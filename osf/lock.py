@@ -1,0 +1,211 @@
+"""Staged code/input locks for the online-strength frontier study (placeholders only; no local paths).
+
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m osf.lock write <NAME> [--protocol protocol.json] [--changes f=reason ...]
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m osf.lock amend <AMENDMENT_An> <files...> --reason "..."
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m osf.lock verify <lock file> [--stage s]
+
+Named locks (results/pcrl_online_strength_frontier_v1/<NAME>.json), each committed AND pushed before its stages run:
+  DATA_AND_ENGINEERING_LOCK   input, roles, exclusions, preprocessing, source pins, budget, architecture, admission,
+                              parity / fidelity / replay / timing procedures      -> admit, parity, fidelity, replay, timing
+  TRAINING_PROTOCOL_LOCK      bank (full/reduced from timing), common trajectory/RNG, formulas, references, predictions,
+                              every repair applied before nonzero fitting         -> bank, references
+  SELECTION_AND_AUDIT_LOCK    selection rules, attackers, endpoint families, inference, support rules, assessment code
+                                                                                  -> inner, select, tracking
+  EVALUATION_LOCK (osf.eval_lock; checked by osf.assess) -> assessment.
+A stage runs only against the LATEST named lock (which must be at least its governing lock) plus dated amendments
+(AMENDMENT_A*.json written after it); every locked file must be unchanged; an unlocked file may exist only if it is a
+declared later-locked file; a stage that runs a later file requires it to be locked. Verification refuses unless the
+lock file and every amendment it relies on are byte-identical on origin/<study branch> (prospective registration).
+A later named lock that re-hashes a previously locked file with a different hash must name a reason for every such
+file (--changes file=reason); it is recorded as "changes_previously_locked" in the lock (no silent re-lock).
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+WT = Path(__file__).resolve().parents[1]
+HOME = Path.home()
+PKG = WT / "results" / "pcrl_online_strength_frontier_v1"
+REL = "results/pcrl_online_strength_frontier_v1"
+BRANCH = "research/pcrl-online-strength-frontier-v1"
+GLOBS = ["osf/*.py", "osf/tests/*.py", "smf/*.py", "rgj/*.py", "jcv/*.py", "stored_model_eval/defenses.py",
+         "stored_model_eval/bench_infer.py", "stored_model_eval/pilot_infer.py", "stored_model_eval/guards.py",
+         "oar/fare_official.py", "oar/study.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
+LATER = {f"osf/{x}.py" for x in ("audit", "assess", "baselines", "select", "family", "infer", "inner", "track",
+                                  "eval_lock", "deploy", "report", "closeout")} | \
+        {f"osf/tests/{x}.py" for x in ("test_audit", "test_math_review", "test_late", "test_select", "test_baselines")}
+ORDER = ["DATA_AND_ENGINEERING_LOCK", "TRAINING_PROTOCOL_LOCK", "SELECTION_AND_AUDIT_LOCK"]
+STAGE_MIN_LOCK = {"admit": 0, "parity": 0, "fidelity": 0, "replay": 0, "timing": 0, "bank": 1, "references": 1,
+                  "inner": 2, "select": 2, "tracking": 2}
+STAGE_REQUIRES = {"references": ["osf/baselines.py", "osf/audit.py"], "inner": ["osf/inner.py", "osf/audit.py"],
+                  "select": ["osf/select.py", "osf/baselines.py"], "tracking": ["osf/track.py"]}
+DOCS = ["PROTOCOL.md", "METHOD_CARD.md", "METHOD_DELTA.md", "ROLE_MANIFEST.json", "EXPOSURE_LEDGER.md",
+        "FIT_MANIFEST.json", "PRECISION_PLANNING.json", "ADMISSION.json", "PRIMARY_FAMILY.json",
+        "SECONDARY_FAMILY.json", "PREDICTIONS.json"]
+
+
+def sha_file(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 22), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def code_files():
+    return {str(p.relative_to(WT)): sha_file(p) for gl in GLOBS for p in sorted(WT.glob(gl))}
+
+
+def deps():
+    import joblib, numpy, scipy, sklearn, torch
+    return {"python": platform.python_version(), "numpy": numpy.__version__, "scipy": scipy.__version__,
+            "scikit-learn": sklearn.__version__, "torch": torch.__version__, "joblib": joblib.__version__,
+            "machine": platform.machine(), "torch_threads": 1, "OMP_NUM_THREADS": "1"}
+
+
+def git(*a):
+    return subprocess.run(["git", "-C", str(WT), *a], capture_output=True, text=True).stdout.strip()
+
+
+def inputs():
+    from osf import data as DA
+    return {"source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz", "source_npz_sha256": DA.SRC_SHA,
+            "role_rule": "osf.data (smf fitting roles unchanged; consolidated assessment = four named pools minus "
+                         "overlapping groups)", "cert_eligible": DA.CERT_ELIGIBLE,
+            "pinned_source_commit": "a9951ed2fed9943d445a208a8a7e456a56f39114"}
+
+
+def amendments():
+    return [json.loads(p.read_text()) for p in sorted(PKG.glob("AMENDMENT_A*.json"))]
+
+
+def latest():
+    for n in reversed(ORDER):
+        p = PKG / f"{n}.json"
+        if p.exists():
+            return json.loads(p.read_text())
+    raise SystemExit("no lock written")
+
+
+def locked_files(lock):
+    out = dict(lock["code_files"])
+    for a in amendments():
+        if a["written_at"] >= lock["written_at"]:
+            out.update(a["code_files"])
+    return out
+
+
+def write_lock(name, protocol=None, changes=None):
+    from osf import train as T
+    assert name in ORDER
+    prev = None
+    if ORDER.index(name) > 0:
+        prev_name = ORDER[ORDER.index(name) - 1]
+        prev = json.loads((PKG / f"{prev_name}.json").read_text())
+    cf = code_files()
+    changed = []
+    if prev is not None:
+        have = locked_files(prev)
+        changed = sorted(f for f, h in have.items() if f in cf and cf[f] != h)
+        missing = [f for f in changed if f not in (changes or {})]
+        if missing:
+            raise SystemExit(f"REFUSED: previously locked files changed without a stated reason: {missing}")
+    lock = {"schema": "osf-lock-v1", "name": name, "written_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "parent_commit": git("rev-parse", "HEAD"), "code_files": cf, "later_locked": sorted(LATER),
+            "unlocked_later_files": sorted(f for f in LATER if f not in cf),
+            "changes_previously_locked": {f: (changes or {})[f] for f in changed},
+            "dependencies": deps(), "inputs": inputs(),
+            "HP": {k: (list(v) if isinstance(v, tuple) else v) for k, v in T.HP.items()},
+            "documents_sha256": {d: sha_file(PKG / d) for d in DOCS if (PKG / d).exists()},
+            "protocol": json.loads(Path(protocol).read_text()) if protocol else (prev or {}).get("protocol"),
+            "budget": {"elapsed_h": 10, "cpu_h": 20, "heavy_workers": 2, "memory_gib": 8, "free_disk_gib_min": 5,
+                       "reserve_final_h": 2, "cloud": "none ($0)",
+                       "start": (HOME / "PCRL_eval_cache_private" / "osf_v1" / "START.txt").read_text().strip()},
+            "statement": "All rows are previously exposed Adult rows; OSF_DEVELOPMENT_ASSESSMENT (four previously used "
+                         "pools) is withheld from this procedure until EVALUATION_LOCK.json: a locked exploratory "
+                         "benchmark, not fresh or prospective confirmation."}
+    (PKG / f"{name}.json").write_text(json.dumps(lock, indent=1, sort_keys=True, default=str) + "\n")
+    return lock
+
+
+def amend(name, files, reason):
+    base = latest()
+    have = locked_files(base)
+    a = {"schema": "osf-amendment-v1", "name": name, "written_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+         "parent_commit": git("rev-parse", "HEAD"), "base_lock": base["name"], "reason": reason, "code_files": {},
+         "changes_previously_locked": []}
+    for f in files:
+        a["code_files"][f] = sha_file(WT / f)
+        if f in have and have[f] != a["code_files"][f]:
+            a["changes_previously_locked"].append(f)
+        elif f not in have and f not in LATER and not (WT / f).name.startswith("test_"):
+            raise SystemExit(f"REFUSED: {f} is neither locked nor a declared later-locked file")
+    (PKG / f"{name}.json").write_text(json.dumps(a, indent=1, sort_keys=True) + "\n")
+    return a
+
+
+def on_origin(rel_path):
+    """True iff the committed file at origin/<BRANCH> is byte-identical to the local file."""
+    subprocess.run(["git", "-C", str(WT), "fetch", "-q", "origin", BRANCH], capture_output=True)
+    r = subprocess.run(["git", "-C", str(WT), "show", f"origin/{BRANCH}:{rel_path}"], capture_output=True)
+    return r.returncode == 0 and r.stdout == (WT / rel_path).read_bytes()
+
+
+def verify_lock(path, stage=None, require_pushed=True) -> dict:
+    path = Path(path)
+    lock = json.loads(path.read_text())
+    lat = latest()
+    mm = []
+    if lock["name"] != lat["name"]:
+        mm.append(f"{lock['name']} is not the latest named lock ({lat['name']})")
+    if stage is not None:
+        if stage not in STAGE_MIN_LOCK:
+            mm.append(f"unknown stage {stage}")
+        elif ORDER.index(lock["name"]) < STAGE_MIN_LOCK[stage]:
+            mm.append(f"stage {stage} needs {ORDER[STAGE_MIN_LOCK[stage]]} or later")
+    have = locked_files(lock)
+    cf = code_files()
+    mm += [f"locked file changed/removed: {f}" for f, h in have.items() if cf.get(f) != h]
+    mm += [f"unlocked file added: {f}" for f in cf if f not in have and f not in LATER]
+    mm += [f"stage {stage} requires locked {f}" for f in STAGE_REQUIRES.get(stage, []) if f not in have]
+    if deps() != lock["dependencies"]:
+        mm.append("dependencies changed")
+    if inputs() != lock["inputs"]:
+        mm.append("inputs changed")
+    pushed = None
+    if require_pushed and not os.environ.get("OSF_LOCAL_ONLY"):
+        rels = [f"{REL}/{lock['name']}.json"] + [f"{REL}/{a['name']}.json" for a in amendments()
+                                                  if a["written_at"] >= lock["written_at"]]
+        pushed = {r: on_origin(r) for r in rels}
+        mm += [f"not on origin (push before running): {r}" for r, ok in pushed.items() if not ok]
+    return {"ok": not mm, "mismatches": mm, "lock": lock["name"], "pushed": pushed,
+            "local_only": bool(os.environ.get("OSF_LOCAL_ONLY"))}
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1]
+    if cmd == "write":
+        args = sys.argv[3:]
+        prot = args[args.index("--protocol") + 1] if "--protocol" in args else None
+        ch = {}
+        if "--changes" in args:
+            for x in args[args.index("--changes") + 1:]:
+                if x.startswith("--"):
+                    break
+                f, r = x.split("=", 1)
+                ch[f] = r
+        L = write_lock(sys.argv[2], prot, ch)
+        print("lock written:", L["name"], len(L["code_files"]), "code files; changed:", L["changes_previously_locked"])
+    elif cmd == "amend":
+        args = sys.argv[3:]
+        print(json.dumps(amend(sys.argv[2], args[:args.index("--reason")], args[args.index("--reason") + 1]), indent=1))
+    else:
+        st = sys.argv[sys.argv.index("--stage") + 1] if "--stage" in sys.argv else None
+        print(json.dumps(verify_lock(Path(sys.argv[2]), st), indent=1))

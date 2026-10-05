@@ -1,0 +1,27 @@
+{
+ "schema": "osf-predictions-v1",
+ "registered_before": "any real-data fit of this study (written before DATA_AND_ENGINEERING_LOCK; carried in TRAINING_PROTOCOL_LOCK)",
+ "status": "predictions, not findings or reasons to change the bank",
+ "predictions": [
+  {"id": "PR1", "question": "Does symmetric NORM-J rho 3 (a = 1) match the incumbent RAW-J beta 0.3 on mean coalition AUC (within +/- 0.01) at task-feasible accuracy?",
+   "direction": "worse than the incumbent (higher coalition AUC) but closer than smf's rho <= 1.5 points",
+   "probabilities": {"within_0.01": 0.35, "better_by_more_than_0.01": 0.15, "worse_by_more_than_0.01": 0.50},
+   "reasoning": "a constant per-encoder ratio of 3 approximates RAW-J's combined 2.6-3.2 in mean, but not its time profile (raw strength is large early and tracks the critics' gradient size) or its per-encoder split"},
+  {"id": "PR2", "question": "Does rho 5 stay task-feasible (all three point gates, every seed, both tasks) for symmetric NORM-J?",
+   "direction": "infeasible on occupation accuracy",
+   "probabilities": {"feasible_NORM-J_rho5": 0.45, "feasible_NORM-L_rho5": 0.50}},
+  {"id": "PR3", "question": "Does a fixed allocation (a = 0.5 or 2) at rho 3 improve mean coalition AUC by more than 0.005 over a = 1 without raising either local AUC by more than 0.005 or failing a task gate?",
+   "direction": "no measurable improvement; it shifts recovery between recipients",
+   "probabilities": {"helps_joint": 0.25, "helps_local": 0.20}},
+  {"id": "PR4", "question": "Does the raw joint comparison (claim C: R* vs L*) pass all nine clauses?",
+   "direction": "not established; the occupation accuracy guard (true loss near 0.006, planning SE about 0.0017 > 0.0013 needed) and the 0.02 pair margin over a strong local control are the binding clauses",
+   "probabilities": {"claim_C_passes": 0.15}},
+  {"id": "PR5", "question": "Do claims A and B (N*) pass?",
+   "probabilities": {"claim_A_passes": 0.10, "claim_B_passes": 0.05, "N_star_valid_on_every_seed": 0.45}},
+  {"id": "PR6", "question": "Which family supplies C*?",
+   "direction": "a RAW-J configuration (beta 0.3 or 0.6)",
+   "probabilities": {"RAW-J": 0.65, "RAW-L": 0.10, "NORM-L": 0.10, "FARE or reference": 0.15}},
+  {"id": "PR7", "question": "Do the instrumented replays reproduce all 12 admitted RAW checkpoints and 3 U checkpoints bitwise?",
+   "probabilities": {"all_bitwise": 0.9}}
+ ]
+}
