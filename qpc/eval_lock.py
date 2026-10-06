@@ -85,7 +85,7 @@ def build():
                                    "identity / tuple with prior and validation-chosen pair fallbacks",
                           "fit": "AUDIT_FIT", "selection": "INNER_SELECTION (AUC primary, CE separate)",
                           "refits": [0, 1, 2], "coalition_bank": "pair + ignore-recipient-1 + ignore-recipient-2",
-                          "composed_source_readers": "SRC|U composes over EVERY fitted code of this study (same seed)"},
+                          "composed_source_readers": "SRC|U composes over EVERY fitted code of the registered release bank (all Stage A DIRECT-TASK and Stage B codes, same seed; the A1 diagnostic releases are excluded)"},
             "endpoints": {"primary": [e["id"] for e in FAM.PRIMARY], "z": FAM.Z_PRIMARY, "B": FAM.B,
                           "boot_seed": FAM.BOOT_SEED, "size": FAM.PRIMARY_SIZE},
             "seeds": {}}

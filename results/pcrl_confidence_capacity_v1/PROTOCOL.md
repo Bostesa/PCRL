@@ -208,7 +208,7 @@ Per-class restarts are counted separately. No neural encoder, randomised token m
 - Unseen local tokens use the pinned fitting SEX prior; unseen pairs use the prespecified, validation-selected fallback. Use is reported on fit, selection and assessment rows.
 
 **Public-map closure.**
-- U continuous-source attack banks include composition with EVERY fitted code of this study, through the cached code-reader candidates.
+- U continuous-source attack banks include composition with EVERY fitted code of this study's registered release bank, through the cached code-reader candidates. That bank is all Stage A DIRECT-TASK codes and all Stage B codes, including CLASS-ONLY: 22 codes per seed. The two A1 diagnostic releases per seed are excluded (math review AU-C1). The 20-round one is the source study's code, and the 200-round one is the A2 (8, 8) source-start receipt, not a registered release.
 - They are assembled before any strongest control or nominee is selected.
 - Protected-code attackers never read continuous probabilities.
 - Final source audits include the full-slate readers of the locked selected codes, and every composed reader selected as a source-bank winner.

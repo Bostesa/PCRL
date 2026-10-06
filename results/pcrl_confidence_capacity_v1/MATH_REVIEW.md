@@ -1,9 +1,10 @@
-INTERIM STATUS (2026-10-06 04:42Z): Stage A review 0 OPEN REQUIRED; Stage B review 0 REQUIRED (section 3);
-selection review SEL-R1 and SEL-R2 found and FIXED by the lead (section 4.1); the audit.py review is pending. Stage A detail: Two REQUIRED runner-binding defects (SA-R1,
+INTERIM STATUS (2026-10-06 04:48Z): 0 OPEN REQUIRED. Stage A: 2 REQUIRED found and fixed (section 2). Stage B: 0
+REQUIRED (section 3). Selection: SEL-R1 and SEL-R2 found and fixed (sections 4.1-4.2). Attackers/assessment: 0
+REQUIRED, 1 RECOMMENDED (section 4.3). Mutation testing follows the locks (section 5). Stage A detail: Two REQUIRED runner-binding defects (SA-R1,
 SA-R2, both in `qpc/run.py`) were found and are already resolved in `qpc/run.py` a64bb028ae5b, re-verified by the
 failing fixture, which now passes. No REQUIRED finding in the mathematics of `qpc/kmeans.py`, `qpc/stagea.py`,
 `qpc/release.py` or `qpc/gate.py`. 4 RECOMMENDED (SA-C1 applied; SA-C2 applied in PROTOCOL section 7), 11 NOTES.
-Reviewer tests: 47/47 pass (about 9.5 s).
+Reviewer tests: 49/49 pass (about 11 s).
 
 # Math, invariants and protocol review: confidence capacity and privacy (qpc)
 
@@ -602,6 +603,144 @@ mislabels the reason. The label (INCOMPLETE_OR_INVALID) is correct.
 
 **SEL-N3.** `pick` rounds the ordering keys to 12 decimals, so exact ties between seed means are resolved by the
 next key, as registered.
+
+### 4.2 Resolution of SEL-R1, SEL-R2 and SEL-C1-C3 (verified 04:36Z)
+
+**SEL-R1. Fixed.**
+- PROTOCOL section 11 has a new paragraph, "Guard-blocked nominees and the J* cell".
+- `LABEL_TRUTH_TABLE.json` `claim_inputs.nominee.TECHNICAL_FAILURE` now covers guard-blocked nominees, and a note
+  covers "no J* cell". The fixture passes.
+
+**SEL-C2. Adopted.**
+- A validly PASSing claim keeps its favourable label. Other claims' coverage gaps are listed in missing_items.
+- With no favourable label, any coverage gap gives INCOMPLETE_OR_INVALID.
+- The original rule is kept as `family.overall_label_stage_a_rule`, and inference reports the label under both
+  rules (PROTOCOL section 11).
+
+**SEL-R2 (REQUIRED, found while re-testing against the amended text). Fixed by the lead at about 04:40Z.**
+- After SEL-C2, PROTOCOL section 11 label item 6 read "... or Q* INVALID". `overall_label` and the truth table also
+  treat an unresolved Q* (NOT_APPLICABLE_NO_Q despite a met gate) as a coverage gap.
+- The text therefore gave EXPERIMENTAL_NO_ADVANTAGE where the code gives INCOMPLETE_OR_INVALID.
+- Item 6 now reads "or Q* INVALID or unresolved (NOT_APPLICABLE_NO_Q despite a met gate)".
+- Fixture: `test_claim_status_and_label_match_protocol_text_exhaustively`. It reads item 6 from the text and passes.
+
+**SEL-C1, SEL-C3 and SEL-N2.**
+- SEL-C1 is documented in the truth table, which names the root cause in missing_items.
+- SEL-C3 is moot, since every reference is admitted.
+- The SEL-N2 reason text now reads "Q*: not resolved despite a met gate".
+
+### 4.3 Attackers, baselines and assessment (role D; review 3 proper, 2026-10-06 04:47Z)
+
+**Reviewed working-tree files:**
+
+| File | sha256 prefix |
+|---|---|
+| `qpc/audit.py` | cac49164e495 |
+| `qpc/baselines.py` | 9266e226768f |
+| `qpc/assess.py` | bde690bb4c6d |
+| `qpc/utility.py` | afa671c41eda |
+| `qpc/data.py` (unseal gate) | e0195efce276 |
+| `qpc/eval_lock.py` (lock fields read by `assess`) | read only |
+
+Imported unchanged: `dpc/audit.py` f2c5a2699f4f and `smf/audit.py` 4b9ac46ddc9a.
+
+**Checked.**
+
+**Fixed orientation.**
+- `dpc.audit.auc1` is the Mann-Whitney AUC of P(S = 1), equal to an independent implementation with ties counted as
+  1/2.
+- An anti-informative reader stays below 0.5 and is never flipped or clamped.
+- `ce1` clips at 1e-12.
+- Composed and slate selection take maxima of these unflipped values.
+- Test: `test_attacker_auc_orientation_ce_clip_and_null_threshold`.
+
+**Separate AUC and CE selection.**
+- `inner_family` selects the AUC winner (highest INNER AUC) and the CE winner (lowest INNER CE) separately on the
+  seed-0 bank.
+- Only those two attackers are refit at seeds 0-2. Cell readers are deterministic.
+- `recovery.auc` is the seed mean of the AUC-selected attacker, and `recovery.ce` that of the CE-selected one.
+- D's tests cover this (`test_auc_and_ce_selection_are_separate`, `test_selected_attackers_refit_at_seeds_...`).
+
+**Composed source closure before selection.** Test: `test_composed_source_bank_winner_rule_matches_transcription`.
+- On 40 random synthetic banks, the per-family, per-view AUC and CE winners, the reported values and the freeze list
+  of `composed_source_bank` equal an independent transcription.
+- The banks include exact seed-0 ties, and policies whose seed-0 value beats the source while their seed mean does
+  not.
+- The transcription selects on seed-0 values with first-bank ties, reports the winner's seed mean, and composes the
+  decisions family only with the class-only code.
+- A record from another slate is refused.
+- Closure refuses missing policy inner units and unexpected release units (D's `test_composed_bank_refuses_without_closure`).
+- `select.py` reads the composed SRC|U record, which is written in the `inner_src` stage after every policy inner
+  unit, so the comparator and guard values include composition before any selection.
+
+**Unseen-token and unseen-pair fallbacks.**
+- An unseen local token gets the AUDIT_FIT SEX prior.
+- An unseen tuple gets the rule in {local_1, local_2, prior} with the lowest CE on the INNER rows whose tuple is
+  unseen, with ties in that order. It is frozen before scoring.
+- This is dpc's reader convention, reviewed with brute-force tests and mutants in the source review. D re-tests it
+  (`test_unseen_local_token_uses_fit_prior_and_unseen_pair_rule_is_inner_selected`).
+- Fallback use is reported per role by `coverage_receipt`.
+
+**Control pass rules.**
+- The null rule is AUC_B <= 0.5 + 3.5 sd0, with sd0 = sqrt((n0 + n1 + 1)/(12 n0 n1)) on held-out half B. This was
+  verified independently.
+- CONF_r1/r2, COLL_r1/r2 and ROT_r1/r2 must exceed 0.75. ROT must also exceed 0.75 on the pair, with bit-exact
+  serialisation.
+- XOR must have pair AUC > 0.75 with both local AUCs <= the null threshold.
+- The 20% re-drawn noisy-S plant has perfect-reader AUC 0.9, verified.
+- The plan is structural and fixed before any control runs. A failed plant is recorded and triggers technical
+  review.
+
+**Assessment gate and unseal path.**
+- `qpc.data.load(unseal=True)` accepts only the caller `qpc.assess`, and only when EVALUATION_LOCK.json is
+  byte-identical on origin.
+- `assess.open_assessment` requires the following: a committed, unmodified, pushed lock; every scoring-chain file at
+  its locked hash; and every loaded worktree module locked.
+- `outer_unit` re-verifies the lock before every unit, and checks the unit file maps when recorded.
+- `load_unsealed` checks the assessment role's rows, groups and row-ID hash against the lock. `eval_lock` always
+  writes `assessment_role`.
+- D's tests cover each refusal (uncommitted, unpushed, modified and misnamed locks; missing chain hashes; unsealing
+  outside assess).
+
+**Utility gates as used by select.**
+- Every inner record carries `qpc.utility.release_inner_utility` of the release and of U of the same seed.
+- `select.py` recomputes `gate_record` against the SRC|U record's utility.
+- My selection transcription recomputes eligibility from raw metrics and agrees on 60 banks (section 4.1).
+
+**Findings.**
+
+**REQUIRED: none.**
+
+**AU-C1 (RECOMMENDED). The A1 diagnostic codes sit outside the composed bank.**
+- The prompt says "U continuous-source attack banks include composition with EVERY fitted code of this study".
+- The composed bank and its closure cover the registered release bank (every `pol__s{k}__U_*` unit in `scored_ids`).
+  They do not cover the two A1 diagnostic releases per seed (`a1__s{k}` src20 and r200), which were also fitted in
+  this study.
+- src20 is the source study's DIRECT-TASK m8 code. r200 is A2's source-start receipt at (8, 8) and is not a
+  registered release.
+- Either state this scope in PROTOCOL section 10 and the EVALUATION_LOCK description ("every fitted code of the
+  registered release bank; A1 diagnostic releases excluded"), or add their inner records to the bank.
+- The effect on a maximum over about 40 banks is expected to be negligible. The point is that the closure claim must
+  say exactly what it covers.
+
+**NOTES.**
+- **AU-N1 (provenance of the reviewed attacker code).** `dpc/audit.py` (f2c5a2699f4f) is the source file after dpc
+  AMENDMENT_A1, which changed only the control plant bits. The dpc review's attacker mutants were run on the
+  pre-amendment file (e024235b4854). The qpc layer is covered by D's tests and the tests above.
+- **AU-N2 (selection optimism).** The composed source AUC is a maximum over the source's own bank plus every code
+  bank of the same seed, about 40 banks per family. It is selection-optimistic. That inflates SRC|U as C_global or T*
+  and loosens the J*/P* guards, as registered and as in dpc.
+- **AU-N3 (fine partitions are public too).** A deployed Stage B policy JSON carries its fine assignment partition,
+  the routing centroids, so a holder of the continuous probabilities can compute fine-cell IDs. The composed bank
+  adds readers of released codes only. The source's own slate on continuous p covers that information, but no
+  categorical fine-ID reader is in the bank. This is a scope statement, not a defect.
+- **AU-N4 (ROT plant).** ROT puts a 1e-6-amplitude clue in a Haar-rotated direction. Its detection depends on how the
+  slate scales features. A failure is a technical-review trigger by design, never a leakage reading.
+- **AU-N5 (null multiplicity).** About 30 view-level null tests at z = 3.5 give roughly a 1% chance of one false
+  exceedance in total, all of which are recorded.
+- **AU-N6 (unseen tokens at larger alphabets).** With occupation codes of up to 64 states per class, unseen-token
+  and unseen-tuple fractions on INNER and assessment rows can be non-trivial. Coverage receipts must accompany the
+  nominee AUCs (prompt section 9). Any unestimable metric blocks its dependent claim.
 
 ## 5. Prior art
 

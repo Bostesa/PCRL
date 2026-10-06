@@ -1899,3 +1899,101 @@ def test_fine_unit_caps_starts_rows_and_deployment():
     for c, sup in enumerate(rec["support"][1]):
         assert sup["cells"] == int(np.sum(f1.cell_class == c)) and sup["rows"] == int(f1.n[f1.cell_class == c].sum())
     assert rec["caps"] == {1: 32, 2: 128}
+
+
+# ---------------------------------------------------------------- attackers (qpc.audit; role D) -- definitions only
+
+def _mw_auc(y, p):
+    """Mann-Whitney AUC with ties counted 1/2 (independent of sklearn); never flipped."""
+    y, p = np.asarray(y), np.asarray(p, float)
+    pos, neg = p[y == 1], p[y == 0]
+    gt = (pos[:, None] > neg[None, :]).sum()
+    eq = (pos[:, None] == neg[None, :]).sum()
+    return (gt + 0.5 * eq) / (len(pos) * len(neg))
+
+
+def test_attacker_auc_orientation_ce_clip_and_null_threshold():
+    """auc1 is the fixed-orientation AUC of P(S = 1) (an anti-informative reader stays below 0.5, never flipped or
+    clamped), ce1 clips at 1e-12, and the control null threshold is 0.5 + 3.5 x the Mann-Whitney null SD
+    sqrt((n0 + n1 + 1) / (12 n0 n1)) on held-out half B; a noisy-S plant (20% re-drawn) has perfect-reader AUC 0.9."""
+    AU = _qpc("audit")
+    from dpc import audit as DA
+    from smf import audit as SA
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 2, 500)
+    good = y + rng.normal(0, 0.8, 500)
+    for p in (good, -good, np.round(good, 1)):
+        assert abs(DA.auc1(y, p) - _mw_auc(y, p)) < 1e-12
+    assert DA.auc1(y, -good) < 0.5
+    p = np.clip(rng.random(500), 0, 1)
+    p[:3] = [0.0, 1.0, 0.5]
+    pt = np.where(y == 1, p, 1 - p)
+    assert abs(DA.ce1(y, p) + np.mean(np.log(np.clip(pt, 1e-12, 1)))) < 1e-12
+    assert SA.NULL_Z == 3.5 and SA.PLANT_MIN == 0.75 and AU.NULL_Z == 3.5 and AU.PLANT_MIN == 0.75
+    for n0, n1 in ((300, 700), (512, 605)):
+        yy = np.r_[np.zeros(n0, int), np.ones(n1, int)]
+        assert abs(SA.null_sd(yy) - math.sqrt((n0 + n1 + 1) / (12 * n0 * n1))) < 1e-15
+    S = rng.integers(0, 2, 200000)
+    noisy = SA.noisy_sex(S, SA.CONTROL_SEED)
+    assert abs(_mw_auc(S[:20000], noisy[:20000]) - 0.9) < 0.01
+
+
+def ref_composed(own, pols, tie=1e-12):
+    """Independent transcription of the composed source rule (PROTOCOL section 10; audit docstring): per family and
+    view, the AUC winner is the first bank (own, then policies in scored_ids order) with the highest SEED-0 selected
+    AUC (strictly better by > 1e-12 to replace), the CE winner likewise on the lowest seed-0 CE, separately; the
+    reported value is the winning bank's seed 0-2 mean; the decisions family composes only with the class-only code."""
+    out, freeze = {}, set()
+    for fam, src in own.items():
+        banks = [("source", src)] + [(c, r) for c, r in pols if fam != "decisions" or "|CLASS|" in c]
+        e = {"auc": {}, "ce": {}, "winner": {}, "ce_winner": {}}
+        for w in ("v1", "v2", "pair"):
+            ia = max(range(len(banks)), key=lambda j: (banks[j][1]["auc_seed0"][w], -j))
+            ic = min(range(len(banks)), key=lambda j: (banks[j][1]["ce_seed0"][w], j))
+            e["auc"][w], e["winner"][w] = banks[ia][1]["auc"][w], banks[ia][0]
+            e["ce"][w], e["ce_winner"][w] = banks[ic][1]["ce"][w], banks[ic][0]
+            freeze |= {banks[ia][0], banks[ic][0]} - {"source"}
+        out[fam] = e
+    return out, freeze
+
+
+def test_composed_source_bank_winner_rule_matches_transcription(monkeypatch):
+    """qpc.audit.composed_source_bank on synthetic bank records (closure and record loading monkeypatched): the
+    AUC and CE winners, reported values and the freeze list equal the independent transcription on 40 random banks,
+    including banks where a policy's seed-0 value beats the source while its 3-seed mean does not (selection is on
+    the seed-0 bank, the report is the winner's seed mean) and exact seed-0 ties (the earlier bank keeps it)."""
+    AU = _qpc("audit")
+    RUN = _qpc("run")
+    fams = ("interface", "complete", "scores", "probs", "decisions")
+    cids = ["U|DIRECT-TASK|i8o64", "U|FINE-TASK|i8o64", "U|LOCAL|i8o64|l0.1", "U|JOINT|i8o64|l1", "U|CLASS|i1o1"]
+    meta = {"sel_row_id_sha256": "a", "fit_row_id_sha256": "b", "slate": "final", "attacker_seeds": [0, 1, 2]}
+
+    def rec(rng):
+        r = {"auc_seed0": {}, "ce_seed0": {}, "auc": {}, "ce": {}, "selected": {}, "ce_selected": {}, **meta}
+        for w in ("v1", "v2", "pair"):
+            a0 = float(np.round(rng.uniform(0.6, 0.9), 3))               # rounded: exact ties occur
+            r["auc_seed0"][w], r["auc"][w] = a0, a0 - float(rng.uniform(0, 0.02))
+            c0 = float(np.round(rng.uniform(0.4, 0.7), 3))
+            r["ce_seed0"][w], r["ce"][w] = c0, c0 + float(rng.uniform(0, 0.02))
+            r["selected"][w], r["ce_selected"][w] = f"att{rng.integers(9)}", f"att{rng.integers(9)}"
+        return r
+    for trial in range(40):
+        rng = np.random.default_rng(trial)
+        store = {RUN.unit_for(0, c): {"recovery": rec(rng), "seed": 0} for c in cids}
+        own = {f: rec(rng) for f in fams}
+        monkeypatch.setattr(AU, "_closure", lambda k, t, e, u=None: {"ok": True, "expected": len(e)})
+        monkeypatch.setattr(AU, "load_inner", lambda name, units_dir=None: (store[name], {}))
+        got = AU.composed_source_bank(0, "U", own, None, policy_cids=cids)
+        ref, freeze = ref_composed(own, [(c, store[RUN.unit_for(0, c)]["recovery"]) for c in cids])
+        for f in fams:
+            for w in ("v1", "v2", "pair"):
+                assert got[f]["winner"][w] == ref[f]["winner"][w], (trial, f, w)
+                assert got[f]["ce_winner"][w] == ref[f]["ce_winner"][w], (trial, f, w)
+                assert got[f]["auc"][w] == ref[f]["auc"][w] and got[f]["ce"][w] == ref[f]["ce"][w]
+        assert set(got["_all"]["freeze"]) == freeze
+        assert got["decisions"]["policies"] == ["U|CLASS|i1o1"]
+    bad = dict(store[RUN.unit_for(0, cids[0])])
+    bad["recovery"] = {**bad["recovery"], "slate": "inner"}
+    store[RUN.unit_for(0, cids[0])] = bad
+    with pytest.raises(SystemExit):                                     # a record from another slate is refused
+        AU.composed_source_bank(0, "U", own, None, policy_cids=cids)
