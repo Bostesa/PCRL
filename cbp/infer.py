@@ -229,6 +229,8 @@ def main(argv=None, check_prior=True, units=None):
         roles = [e["nominee"]] + ([e["ref"]] if "ref" in e else [])
         if any((EL["statuses"].get(x) or {}).get("status") != "NOMINEE" for x in roles):
             row["decision"] = "DESCRIPTIVE_ONLY"
+            row["fallback_rank_status"] = {x: (EL["statuses"].get(x) or {}).get("fallback_rank_status") for x in roles
+                                           if (EL["statuses"].get(x) or {}).get("status") != "NOMINEE"}
         out["primary"].append(row)
     for nm, sid in levels.items():
         r = reps[sid]
@@ -244,7 +246,7 @@ def main(argv=None, check_prior=True, units=None):
     out = R._finite(out)
     (R.RUN / "inference.json").write_text(json.dumps(out, indent=1, allow_nan=False) + "\n")
     cols = ["id", "claim", "kind", "stat", "target", "side", "point", "se", "lower", "upper", "z", "outcome",
-            "decision", "alias_of", "alias_of_by_role"]
+            "decision", "alias_of", "alias_of_by_role", "fallback_rank_status"]
     with open(R.PKG / "PRIMARY_ENDPOINTS.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore", lineterminator="\n")
         w.writeheader()

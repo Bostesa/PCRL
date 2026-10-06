@@ -33,7 +33,7 @@
    "configuration ID (lexicographic)"
   ],
   "tie_tolerance": "keys 1 and 2: each is the float64 seed mean computed as (x_seed0 + x_seed1 + x_seed2) / 3 summed in seed order, then Python round(x, 12); equal rounded values are tied (values less than 1e-12 apart may still fall either side of a rounding boundary); key 3 exact; key 4 lexicographic",
-  "alias_disclosure": "key 4 can decide between configurations whose deployed maps are identical (an unchanged JOINT keeps a same-lambda SEQ/LOCAL witness bitwise, and 'U|JOINT|' sorts first). The ordering is NOT changed; instead P*'s alias set (privacy configurations whose qpc pair_fingerprint equals P*'s on ALL three seeds) and partial per-seed aliases are recorded, the label names cbp.family.simplest_family(alias set) (LOCAL < SEQ-12 = SEQ-21 < JOINT), and the alias set plus the ID tie-break are disclosed; the same alias records are kept for J* and every family winner"
+  "alias_disclosure": "key 4 can decide between configurations whose deployed maps are identical (an unchanged JOINT keeps a same-lambda SEQ/LOCAL witness bitwise, and 'U|JOINT|' sorts first). The ordering is NOT changed; instead P*'s alias set (privacy configurations whose qpc pair_fingerprint equals P*'s on ALL three seeds) and partial per-seed aliases are recorded, the label names cbp.family.simplest_family(alias set) (LOCAL < SEQ-12 = SEQ-21 < JOINT), and the alias set plus the ID tie-break are disclosed; the same alias records are kept for J* and every family winner; aliases with the privacy-untrained DIRECT-TASK / FINE-TASK i8o64 maps (identical deployed maps on all seeds) are flagged identical_to_untrained"
  },
  "roles": {
   "T*": {
@@ -53,7 +53,8 @@
    "candidates": "LOCAL, SEQ-12, SEQ-21, JOINT at every lambda",
    "eligibility": "headroom",
    "guard": "individual inner AUC (recipient 1 and 2) <= T* + 0.005 for EACH recipient and seed",
-   "winning_family": "the family of P* is reported (any family may win)"
+   "winning_family": "the family of P* is reported (any family may win)",
+   "guard_comparison": "decided by the registered inclusive comparison a <= g + 0.005 (not by the normalised shortfall); guard_shortfall is exactly 0.0 iff the guard holds and is used for ranking only"
   },
   "J*": {
    "candidates": "JOINT at every lambda",
@@ -97,7 +98,8 @@
  "invalid_candidates": {
   "decision_preservation": "a decision-preservation failure of any U-derived candidate (on any seed) is a TECHNICAL failure: the candidate's role is INVALID (INVALID_NOMINEE / INVALID_COMPARATOR, reason FIT_OR_ADMISSION_FAILURE), the candidate is never ranked in a fallback, and the cause is recorded (qpc gate_record's eligible=False alone is not used for this case)",
   "non_estimable": "a missing, unreadable or nonfinite inner field (pair/v1/v2 AUC, accuracy, log loss, Brier, constant accuracy, excesses) is a technical failure of the same kind",
-  "references": "C_global's references follow the admission record (SOURCE_ADMISSION.json): an inadmissible reference would be excluded and disclosed (none is: all REF|E, REF|F, REF|F0 and both sources were admitted with parity); an admitted candidate that later fails technically makes the role INVALID_COMPARATOR"
+  "references": "C_global's references follow the admission record (SOURCE_ADMISSION.json): an inadmissible reference would be excluded and disclosed (none is: all REF|E, REF|F, REF|F0 and both sources were admitted with parity); an admitted candidate that later fails technically makes the role INVALID_COMPARATOR",
+  "reason_codes": "FIT_OR_ADMISSION_FAILURE (missing / incomplete unit), DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC; joined with '+' when several apply"
  },
- "missing_guard": "if a required guard comparator has no eligible/valid nominee (status other than NOMINEE): when at least one candidate of the role is eligible (ordinary, plus headroom for P*/J*) the role is INVALID_NOMINEE (MISSING_GUARD_COMPARATOR; no guard rank computed, the blocked candidates listed); when none is eligible the guard is not needed and the role is NO_ELIGIBLE_NOMINEE with its ordinary / headroom reason (fallback ranked by the ordinary and headroom shortfalls, guard shortfall recorded null)"
+ "missing_guard": "if a required guard comparator has no valid nominee (status other than NOMINEE): when at least one candidate of the role is eligible (ordinary, plus headroom for P*/J*) the role is INVALID_NOMINEE (MISSING_GUARD_COMPARATOR; no guard rank computed, the blocked candidates listed); when none is eligible the guard is not needed for the status and the role is NO_ELIGIBLE_NOMINEE with its ordinary / headroom reason, but the fallback rank uses only the ordinary and headroom shortfalls and the ordering keys and is flagged fallback_rank_status = INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field); the flag is carried onto the scored fallback rows"
 }

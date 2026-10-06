@@ -38,7 +38,9 @@
  ],
  "display_rule": "every claim status, its root cause and its failing clauses are always displayed beside the overall label; a legitimately passing claim may be reported even if a separate claim is incomplete, and both are shown",
  "selection_reason_classes": {
-  "FIT_OR_ADMISSION_FAILURE": "a required unit did not fit/admit with parity",
+  "FIT_OR_ADMISSION_FAILURE": "a required unit (release or its inner audit) is missing / not hash-complete (did not fit or admit with parity)",
+  "DECISION_PRESERVATION_FAILURE": "a U-derived candidate failed exact decision preservation on some seed (technical, never a shortfall)",
+  "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess) is missing or nonfinite",
   "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed",
   "HEADROOM_SELECTION_FAILURE": "ordinarily eligible privacy candidates exist but none meets the headroom rule",
   "LOCAL_GUARD_FAILURE": "headroom-eligible candidates exist but none meets the local guards",
@@ -68,5 +70,6 @@
  },
  "root_cause_reporting": "beside the single root cause, cbp.family.cause_by_kind() reports the worst outcome per clause kind (coalition, local, acc, logloss, brier, retain), e.g. 'MEASURED_VIOLATION_SUPPORTED_BY_BOUND[coalition]; ASSESSMENT_PRECISION_FAILURE[logloss]', so a measured pair violation is never read as an established confidence violation (sec. 13 bottleneck reporting); reporting only, never changes a status",
  "winning_family_naming": "the label names cbp.family.simplest_family() over P*'s ALIAS SET: the privacy configurations whose deployed pair maps (qpc pair_fingerprint, which hashes only the deployed maps, not the family or lambda) equal P*'s on all three seeds; order LOCAL < SEQ-12 = SEQ-21 < JOINT; the alias set, partial (per-seed) aliases and the configuration-ID tie-break are disclosed in SELECTION.json",
- "role_level_aliases": "data-dependent role aliases (P* == J*, C_rate == C_global, T* == Q config) are recorded per slot in EVALUATION_LOCK and PRIMARY_ENDPOINTS (alias_of_by_role); slots are kept, prose never counts one comparison twice"
+ "role_level_aliases": "data-dependent role aliases (P* == J*, C_rate == C_global, T* == Q config) are recorded per slot in EVALUATION_LOCK and PRIMARY_ENDPOINTS (alias_of_by_role); slots are kept, prose never counts one comparison twice",
+ "selection_reason_note": "technical reasons of one role are joined with '+' when several apply (e.g. DECISION_PRESERVATION_FAILURE+NON_ESTIMABLE_INNER_METRIC); the claim root cause carries them verbatim"
 }

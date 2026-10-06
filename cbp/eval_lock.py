@@ -133,7 +133,8 @@ def build():
             "locked_code_files": LK.locked_files(LK.latest()),
             "selection_sha256": sha(R.RUN / "selection.json"), "selection_public_sha256": sha(R.PKG / "SELECTION.json"),
             "statuses": {x: {kk: v.get(kk) for kk in ("status", "config", "descriptive_config", "descriptive_only",
-                                                      "winning_family", "config_family", "reason", "aliases")}
+                                                      "winning_family", "config_family", "reason", "aliases",
+                                                      "fallback_rank_status", "missing_guards")}
                          for x, v in S["statuses"].items()},
             "resolved": resolved, "role_aliases": al, "alias_of_by_role": alias_of_by_role(al),
             "scored_labels": labels, "technical_validity": technical_validity(),

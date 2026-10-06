@@ -95,6 +95,7 @@ def test_decision_failure_is_technical_not_a_shortfall(run_sel):
     out = run_sel(*_bank(tw))
     assert out["statuses"]["P*"]["status"] == "INVALID_NOMINEE"
     assert out["statuses"]["P*"]["failed"] == ["U|LOCAL|i8o64|l0.08"]
+    assert out["statuses"]["P*"]["reason"] == "DECISION_PRESERVATION_FAILURE"
     assert out["statuses"]["C_rate"]["status"] == "INVALID_COMPARATOR"
     assert out["claim_role_states"]["C"]["nominee"] == "TECHNICAL_FAILURE"
 
@@ -128,7 +129,8 @@ def test_missing_guard_comparator_is_technical_only_when_needed(run_sel):
     assert p["status"] == "INVALID_NOMINEE" and p["reason"] == "MISSING_GUARD_COMPARATOR"
     p = SEL.pick([rows["U|SEQ-21|i8o64|l0.1"]], guards={"T*": None}, need_headroom=True)
     assert p["status"] == "NO_ELIGIBLE_NOMINEE" and p["reason"] == "HEADROOM_SELECTION_FAILURE"
-    assert p["missing_guards_not_needed"] == ["T*"]
+    assert p["missing_guards"] == ["T*"] and p["fallback_rank_status"] == "INVALID_MISSING_GUARD_COMPARATOR"
+    assert all(e["guard_shortfall"] is None for e in p["evaluated"])
 
 
 def test_local_guard_failure(run_sel):
@@ -141,3 +143,26 @@ def test_local_guard_failure(run_sel):
     assert p["status"] == "NO_ELIGIBLE_NOMINEE" and p["reason"] == "LOCAL_GUARD_FAILURE"
     ev = {e["config"]: e for e in p["evaluated"]}
     assert ev[p["descriptive_config"]]["guard_shortfall"] == pytest.approx(3.0)
+
+
+def test_guard_is_inclusive_at_the_registered_bound(run_sel):
+    import random
+    rnd = random.Random(0)
+    for _ in range(200):
+        g = rnd.uniform(0.55, 0.85)
+        r = {"seeds": {k: {"auc": {"v1": g + 0.005, "v2": g + 0.005}} for k in R.SEEDS}}
+        G = {"T*": {"seeds": {k: {"auc": {"v1": g, "v2": g}} for k in R.SEEDS}}}
+        assert SEL.guard_ok(r, G) and SEL.guard_shortfall(r, G) == 0.0
+
+
+def test_nan_inner_metric_and_untrained_alias(run_sel):
+    def tw(inner, pol):
+        inner[f"inner__{R.unit_for(2, 'REF|E')}"]["recovery"]["auc"]["pair"] = float("nan")
+        for k in R.SEEDS:                                      # SEQ-21 0.04 deploys exactly the FINE-TASK maps
+            pol[R.unit_for(k, "U|FINE-TASK|i8o64")] = dict(pol[R.unit_for(k, "U|SEQ-21|i8o64|l0.04")])
+    out = run_sel(*_bank(tw))
+    st = out["statuses"]
+    assert st["C_global"]["status"] == "INVALID_COMPARATOR" and st["C_global"]["reason"] == "NON_ESTIMABLE_INNER_METRIC"
+    assert st["T*"]["status"] == "NOMINEE"
+    assert st["P*"]["aliases"]["identical_to_untrained"] == ["U|FINE-TASK|i8o64"]
+    assert out["claim_role_states"]["B"]["comparator"] == "TECHNICAL_FAILURE"

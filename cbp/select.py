@@ -81,7 +81,7 @@ def candidate_rows(ids):
         for k in SEEDS:
             n = f"inner__{R.unit_for(k, cid)}"
             if not R.done(n):
-                fail.append(f"{n}: missing or not hash-complete")
+                fail.append({"unit": n, "code": "FIT_OR_ADMISSION_FAILURE", "detail": "missing or not hash-complete"})
                 continue
             r = R.rec(n)
             try:
@@ -95,10 +95,11 @@ def candidate_rows(ids):
                 gr = UT.gate_record(u, anchors[k], pres)
                 assert all(_fin(gr[t][x]) for t in TASKS for x in ("ll_excess", "brier_excess"))
             except Exception as e:                                           # noqa: BLE001
-                fail.append(f"{n}: {type(e).__name__}: {e}")
+                fail.append({"unit": n, "code": "NON_ESTIMABLE_INNER_METRIC", "detail": f"{type(e).__name__}: {e}"})
                 continue
             if not all(pres.values()):
-                fail.append(f"{n}: decision preservation failed (invalid, not a shortfall)")
+                fail.append({"unit": n, "code": "DECISION_PRESERVATION_FAILURE",
+                             "detail": "decision preservation failed (invalid, not a shortfall)"})
                 continue
             ts = r.get("token_states")
             fp = None
@@ -141,10 +142,25 @@ def key(r):
     return (round(r["mean_pair"], 12), round(r["mean_sum_logloss"], 12), st, r["config"])
 
 
+def guard_ok(r, guards):
+    """The registered guard: local inner AUC <= guard comparator local AUC + 0.005 (inclusive), every guard, seed and
+    recipient."""
+    return all(r["seeds"][k]["auc"][w] <= g["seeds"][k]["auc"][w] + BUFFER
+               for g in guards.values() for k in SEEDS for w in ("v1", "v2"))
+
+
 def guard_shortfall(r, guards):
+    """Ranking only; exactly 0.0 iff guard_ok (so float rounding at the bound never decides eligibility)."""
+    if guard_ok(r, guards):
+        return 0.0
     xs = [(r["seeds"][k]["auc"][w] - g["seeds"][k]["auc"][w] - BUFFER) / BUFFER
           for g in guards.values() for k in SEEDS for w in ("v1", "v2")]
-    return max(0.0, max(xs)) if xs else 0.0
+    return max(0.0, max(xs))
+
+
+def _tech_reason(rows):
+    codes = sorted({f["code"] for r in rows for f in r["technical_failure"]})
+    return "+".join(codes) if codes else "FIT_OR_ADMISSION_FAILURE"
 
 
 def pick(rows, guards=None, need_headroom=False, nominee=True):
@@ -153,20 +169,22 @@ def pick(rows, guards=None, need_headroom=False, nominee=True):
     bad = "INVALID_NOMINEE" if nominee else "INVALID_COMPARATOR"
     if not rows:
         return {"status": bad, "config": None, "reason": "FIT_OR_ADMISSION_FAILURE", "detail": "empty candidate set"}
-    tf = [r["config"] for r in rows if not r["ok"]]
+    tf = [r for r in rows if not r["ok"]]
     if tf:
-        return {"status": bad, "config": None, "reason": "FIT_OR_ADMISSION_FAILURE", "failed": tf}
+        return {"status": bad, "config": None, "reason": _tech_reason(tf), "failed": [r["config"] for r in tf],
+                "failures": [f for r in tf for f in r["technical_failure"]]}
     guards = guards or {}
     missing = sorted(g for g, row in guards.items() if row is None)
     live = {g: row for g, row in guards.items() if row is not None}
     ev = []
     for r in rows:
         elig = r["ordinary"] and (r["headroom"] or not need_headroom)
-        gs = None if missing else guard_shortfall(r, live)
+        ok = (not missing) and guard_ok(r, live)
         ev.append({"config": r["config"], "family": r["family"], "ordinary": r["ordinary"], "headroom": r["headroom"],
                    "ordinary_shortfall": r["ordinary_shortfall"],
                    "headroom_shortfall": r["headroom_shortfall"] if need_headroom else 0.0,
-                   "guard_shortfall": gs, "eligible": elig, "guard_ok": gs == 0.0, "nominable": elig and gs == 0.0})
+                   "guard_shortfall": None if missing else guard_shortfall(r, live), "eligible": elig,
+                   "guard_ok": ok, "nominable": elig and ok})
     byc = {r["config"]: r for r in rows}
     if missing and any(e["eligible"] for e in ev):
         return {"status": bad, "config": None, "reason": "MISSING_GUARD_COMPARATOR", "missing_guards": missing,
@@ -177,34 +195,51 @@ def pick(rows, guards=None, need_headroom=False, nominee=True):
     reason = ("ORDINARY_UTILITY_FAILURE" if not any(e["ordinary"] for e in ev) else
               "HEADROOM_SELECTION_FAILURE" if need_headroom and not any(e["eligible"] for e in ev) else
               "LOCAL_GUARD_FAILURE")
-    fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12), round(e["headroom_shortfall"], 12),
-                                round(e["guard_shortfall"] or 0.0, 12)) + key(byc[e["config"]]))
-    out = {"status": none, "config": None, "descriptive_config": fb["config"], "descriptive_only": True,
-           "reason": reason, "evaluated": ev}
-    if missing:
-        out["missing_guards_not_needed"] = missing
+    out = {"status": none, "config": None, "descriptive_only": True, "reason": reason, "evaluated": ev}
+    if missing:      # no guard-based rank is computed; the fallback rank is INVALID for the guard key (sec. 9)
+        fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12), round(e["headroom_shortfall"], 12)) +
+                 key(byc[e["config"]]))
+        out.update({"missing_guards": missing, "fallback_rank_status": "INVALID_MISSING_GUARD_COMPARATOR",
+                    "fallback_rank_keys": ["ordinary_shortfall", "headroom_shortfall", "ordering"],
+                    "missing_guards_note": "not needed for the NO_ELIGIBLE status; needed for the fallback rank, "
+                                           "which is therefore INVALID for the guard key"})
+    else:
+        fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12), round(e["headroom_shortfall"], 12),
+                                    round(e["guard_shortfall"], 12)) + key(byc[e["config"]]))
+        out["fallback_rank_status"] = "VALID"
+    out["descriptive_config"] = fb["config"]
     return out
 
 
+UNTRAINED_ALIAS_CANDIDATES = ("U|DIRECT-TASK|i8o64", "U|FINE-TASK|i8o64")
+
+
 def alias_set(rows, cid):
-    """Privacy configurations whose deployed pair maps equal cid's on ALL seeds (full) or on some seeds (partial)."""
+    """Privacy configurations whose deployed pair maps equal cid's on ALL seeds (full) or on some seeds (partial), and
+    privacy-untrained codes (DIRECT-TASK / FINE-TASK i8o64) with identical deployed maps on all seeds."""
     if not cid or cid not in rows or rows[cid]["family"] not in PRIVACY or not rows[cid]["ok"]:
-        return {"full": [], "partial": {}, "simplest_family": None}
+        return {"full": [], "partial": {}, "simplest_family": None, "identical_to_untrained": []}
     me = rows[cid]["seeds"]
+
+    def same_seeds(r):
+        return [k for k in SEEDS if me[k]["pair_fingerprint"] and me[k]["pair_fingerprint"] ==
+                r["seeds"][k]["pair_fingerprint"]]
     full, part = [], {}
     for c, r in rows.items():
         if r["family"] not in PRIVACY or not r["ok"]:
             continue
-        same = [k for k in SEEDS if me[k]["pair_fingerprint"] and me[k]["pair_fingerprint"] ==
-                r["seeds"][k]["pair_fingerprint"]]
+        same = same_seeds(r)
         if len(same) == len(SEEDS):
             full.append(c)
         elif same:
             part[c] = same
+    untrained = [c for c in UNTRAINED_ALIAS_CANDIDATES if c in rows and rows[c]["ok"] and
+                 len(same_seeds(rows[c])) == len(SEEDS)]
     from cbp import family as FAM
     return {"full": sorted(full), "partial": part,
             "simplest_family": FAM.simplest_family([rows[c]["family"] for c in full]) if full else None,
-            "decided_by_config_id_tiebreak": len({rows[c]["family"] for c in full}) > 1}
+            "decided_by_config_id_tiebreak": len({rows[c]["family"] for c in full}) > 1,
+            "identical_to_untrained": untrained}
 
 
 def _give_up(rows, a, b):
