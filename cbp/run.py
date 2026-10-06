@@ -241,7 +241,13 @@ def stage_fit(D, shard_spec=None):
             fine = json.loads((U(f"fine__s{k}") / "fine.json").read_text())
             for cid in reused_ids():
                 n = unit_for(k, cid)
-                r = FT.endpoint_parity(U(n), T, tr, S_fit, fine)
+                p = parse_id(cid)
+                wr = None
+                if p.get("family") == "JOINT":
+                    wr = {f: rec(unit_for(k, config_id(f, *RATE, None if f == "FINE-TASK" else p["lam"])))
+                          for f in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21")}
+                r = FT.endpoint_parity(U(n), T, tr, S_fit, fine, expected_config=cid, meta=bind_meta(k, cid, D),
+                                       witness_records=wr)
                 par[n] = r
                 if not r.get("ok"):
                     raise SystemExit(f"REUSE PARITY FAILED {n}: {r}")
