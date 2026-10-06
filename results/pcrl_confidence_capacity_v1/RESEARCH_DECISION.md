@@ -123,7 +123,7 @@ Pair recovery rises with capacity: 0.820, 0.834, 0.842 and 0.849.
 
 **7. Joint versus local and both sequential orders.**
 - **At λ 0.1 on the assessment:** JOINT 0.813, SEQ-21 0.816, SEQ-12 0.816, LOCAL 0.834. Joint is within 0.003 of both sequential orders.
-- **Inner selection:** JOINT λ 0.1 breaches the registered guard against SEQ-21 on the occupation recipient (inner v2 0.777 vs 0.768 + 0.005), so J* has no eligible nominee.
+- **Inner selection:** JOINT λ 0.1 breaches the registered guard against SEQ-21 on the occupation recipient (seed means: inner v2 0.777 vs 0.768 + 0.005; the registered guard is per seed, and the largest breach is seed 1: 0.7708 vs 0.7598 + 0.005), so J* has no eligible nominee.
 - **Corrected sequential baseline:** in all 18 sequential units the stage-one map was fitted against the other recipient's class-only release under the actual F_joint. The old D + 1.5λI rule would have chosen a different stage-one map in all 18 (independent verifier).
 - **Optimiser:** JOINT is a local search; it misses one coordinated XOR move on a tiny exhaustive fixture (math review §3). No dominance over DIRECT-TASK is claimed.
 

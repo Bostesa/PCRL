@@ -172,6 +172,11 @@ VERIFIER_CORRECTIONS: list = [
      "what": "first written provisionally (row-level k-means++, generic tolerance) before the registered rule text was "
              "available; rewritten from the registered rule text (qpc/kmeans.py docstring = METHOD_CARD section 3) before "
              "any real-data comparison", "effect": "none on any report (no real Stage A data had been read)"},
+    {"at": "2026-10-06T07:20Z", "where": "check_documents (fragment checker)",
+     "what": "first development run: two assessment-table row names were escaped as in other tables, the QP7 key is "
+             "'probabilities', the lead's hold count is acquisitions (not releases), thousands separators were stripped "
+             "before the presence test, and the inner-v2 quote is a seed mean; checker fixed (no document changed)",
+     "effect": "FINAL development run only (not published)"},
     {"at": "2026-10-06T06:55Z", "where": "check_refits (SRC|U composed winners)",
      "what": "the inner reference of a composed winner was taken from the SRC|U own-bank selection arrays; it is the "
              "winning code's inner unit (the assessment predictions already matched bitwise)",
@@ -4506,6 +4511,568 @@ def check_refits(D: Data, L, LU, T, own, preds, EL):
                     "AUDIT_FIT SEX; compared on INNER_SELECTION and OSF_DEVELOPMENT_ASSESSMENT rows")
 
 
+# ------------------------------------------------------------------------------------------------ FINAL phase
+COPY = CACHE / "qpc_v1_local_copy_20261006"
+DEPLOY_CIDS = ("U|DIRECT-TASK|i8o64", "U|JOINT|i8o64|l0.1")
+
+
+def policy_pair_release(pj_path, P, d):
+    pj = jload(pj_path)
+    out = {}
+    for r in (1, 2):
+        pol = Pol.from_json(pj[f"p{r}"])
+        tok, q, hard, _ = pol.release(P[r], d[r])
+        out.update({f"tok{r}": tok, f"q{r}": q, f"hard{r}": hard, f"alpha{r}": pol.T})
+    return out
+
+
+def check_deployment(D: Data, T):
+    """Own deployment: the reconstructed 83-column input equals the verifier's own X; own forward pass of every
+    admitted U teacher on it; both packaged policies applied from policy.json; bitwise vs the stored releases (all
+    rows) and vs the lead's qpc.deploy outputs (seed 1); the refusal inputs are what they claim."""
+    zi = np.load(PRIV / "inputs" / "deploy_input.npz", allow_pickle=False)
+    names = [str(x) for x in zi["feature_names"]]
+    out = {"input_X_bitwise_equals_own_X": bitwise(np.asarray(zi["X"]), D.X), "input_names_equal_pinned": names == D.feature_names,
+           "schema_json_equals_pinned": jload(PRIV / "inputs" / "schema.json") == D.feature_names}
+    bad, per = [], {}
+    for k in SEEDS:
+        ud = QADM / f"rel__s{k}__U"
+        mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], np.asarray(zi["X"]))
+        tq = all(bitwise(mine[x].astype(T[(k, "U")][x].dtype), T[(k, "U")][x]) for x in ("p1", "p2", "d1", "d2"))
+        P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
+        for cid in DEPLOY_CIDS:
+            un = release_unit(k, cid)
+            rel = policy_pair_release(UNITS / un / "policy.json", P, d)
+            st_ = np.load(UNITS / un / "release.npz", allow_pickle=False)
+            r_ = {"teacher_forward_bitwise": tq,
+                  "release_bitwise_vs_stored": all(bitwise(rel[f"{a}{r}"], st_[f"{a}{r}"]) for a in ("tok", "q", "hard")
+                                                   for r in (1, 2)),
+                  "decisions_equal_teacher": all(bool(np.array_equal(rel[f"hard{r}"], d[r])) for r in (1, 2))}
+            if k == 1:
+                dp = PRIV / "run" / "deploy_test" / f"{safe_label(cid)}.npz"
+                if dp.exists():
+                    dz = np.load(dp, allow_pickle=False)
+                    r_["deploy_test_arrays_exactly_six"] = sorted(dz.files) == sorted(
+                        [f"{a}_{r}" for a in ("tokens", "probs", "decision") for r in (1, 2)])
+                    r_["deploy_test_bitwise_vs_own"] = all(
+                        bitwise(dz[f"tokens_{r}"], rel[f"tok{r}"]) and bitwise(dz[f"probs_{r}"], rel[f"q{r}"]) and
+                        bitwise(dz[f"decision_{r}"], rel[f"hard{r}"]) for r in (1, 2))
+                else:
+                    r_["deploy_test_present"] = False
+            per[f"{cid}#s{k}"] = r_
+            if not all(v for v in r_.values()):
+                bad.append(f"{cid}#s{k}")
+    ref = {}
+    for nm in ("X84.npz", "Xreord.npz"):
+        f_ = PRIV / "run" / "deploy_test" / nm
+        if f_.exists():
+            z = np.load(f_, allow_pickle=False)
+            nn = [str(x) for x in z["feature_names"]]
+            ref[nm] = {"columns": int(z["X"].shape[1]), "names_equal_pinned": nn == D.feature_names,
+                       "same_name_set": sorted(nn) == sorted(D.feature_names)}
+    lt = PRIV / "run" / "deploy_test" / "last.txt"
+    ref["last_refusal_text"] = lt.read_text().strip()[:120] if lt.exists() else None
+    ok = not bad and all(v for v in out.values())
+    return res("PASS" if ok else "FAIL", **out, per_unit=per, failures=bad, refusal_inputs=ref,
+               note="exit codes of the lead's refusal runs are not re-executed (no qpc import); the refusal inputs are "
+                    "confirmed to be an 84-column and a reordered 83-column input")
+
+
+def check_restore(D: Data, LU, T):
+    """Restore parity from the same-device copy alone: every SHA256SUMS entry re-hashed in the copy (and equal to the
+    live file), own forward pass of U seed 1 from the copied artifacts, both packaged codes deployed from the copied
+    policies (bitwise vs the copied and live releases), and the selected pair attacker of outer__s1__U_JOINT_i8o64_l0.1
+    refit from the copy (own design matrix, AUDIT_FIT SEX of the copied input) vs the copied assessment predictions."""
+    out, bad = {}, []
+    copies = sorted(q for q in CACHE.glob("qpc_v1_local_copy_*") if q.is_dir())
+    out["copies_present"] = [q.name for q in copies]
+    for C in copies:
+        rec = {}
+        sums = C / "SHA256SUMS"
+        lines = [l_.split(None, 1) for l_ in sums.read_text().splitlines() if l_.strip()]
+        mism, live_diff, nbytes = [], 0, 0
+        for h, rel in lines:
+            rel = rel.strip()
+            f_ = C / rel
+            if not f_.exists() or sha_file(f_) != h:
+                mism.append(rel)
+                continue
+            nbytes += f_.stat().st_size
+            lv = CACHE / rel
+            if lv.exists() and sha_file(lv) != h:
+                live_diff += 1
+        rec.update({"entries": len(lines), "mismatches": mism[:10], "bytes": nbytes, "entries_differing_from_live": live_diff})
+        br = C / "BACKUP_RECORD.json"
+        if br.exists():
+            b = jload(br)
+            rec["record_files_bytes_equal_own"] = (b.get("files"), b.get("bytes")) == (len(lines), nbytes)
+            rec["record_sums_sha256_equal"] = b.get("SHA256SUMS_sha256") == sha_file(sums)
+        root = C / "qpc_v1"
+        rec["copied_input_sha256_ok"] = sha_file(root / "admitted" / "inputs" / "adult_jcv.npz") == SRC_SHA
+        ud = root / "admitted" / "rel__s1__U"
+        mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], D.X)
+        tz = np.load(root / "run" / "units" / "tea__s1__U" / "teacher.npz", allow_pickle=False)
+        rec["teacher_U_s1_forward_bitwise_vs_copied_unit"] = all(bitwise(mine[x].astype(tz[x].dtype), tz[x])
+                                                                for x in ("p1", "p2", "d1", "d2", "c1", "c2", "r1", "r2"))
+        P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
+        rels = {}
+        for cid in DEPLOY_CIDS:
+            un = release_unit(1, cid)
+            rel = policy_pair_release(root / "run" / "units" / un / "policy.json", P, d)
+            cz = np.load(root / "run" / "units" / un / "release.npz", allow_pickle=False)
+            lz = np.load(UNITS / un / "release.npz", allow_pickle=False)
+            rec[f"{cid}_bitwise_vs_copy_and_live"] = all(bitwise(rel[f"{a}{r}"], cz[f"{a}{r}"]) and
+                                                         bitwise(rel[f"{a}{r}"], lz[f"{a}{r}"])
+                                                         for a in ("tok", "q", "hard") for r in (1, 2))
+            rels[cid] = {"tok1": rel["tok1"], "tok2": rel["tok2"], "p1": rel["q1"], "p2": rel["q2"],
+                         "hard1": rel["hard1"], "hard2": rel["hard2"], "alpha1": rel["alpha1"], "alpha2": rel["alpha2"]}
+        # selected pair attacker of the JOINT seed-1 outer unit, refit from the copy
+        cid = "U|JOINT|i8o64|l0.1"
+        irec = jload(root / "run" / "units" / f"inner__{release_unit(1, cid)}" / "record.json")
+        label = irec["recovery"]["selected"]["pair"]
+        cand, view, att = label.split(":")
+        X, toks = my_views(rels[cid], D, "code")
+        fa, a_idx = D.idx["AUDIT_FIT"], D.idx[ASSESS]
+        y = LU["sex"].astype(np.int64)
+        oz = np.load(root / "run" / "units" / f"outer__s1__{safe_label(cid)}" / "preds.npz", allow_pickle=False)
+        diffs = []
+        for s_ in range(3):
+            if att.startswith(("CC_", "CCpair")):
+                diffs.append(None)
+                continue
+            m = my_attacker(att, s_).fit(X[view][fa], y[fa])
+            pr = my_p1(m, X[view][a_idx])
+            diffs.append(maxdiff(pr, oz["P_auc_pair"][s_][:, 1]))
+        rec["pair_attacker"] = {"label": label, "assessment_max_abs_diff_per_seed": diffs,
+                                "bitwise": all(x == 0.0 for x in diffs if x is not None)}
+        ok = (not mism and rec.get("record_files_bytes_equal_own", True) and rec.get("record_sums_sha256_equal", True)
+              and rec["copied_input_sha256_ok"] and rec["teacher_U_s1_forward_bitwise_vs_copied_unit"] and
+              all(rec[f"{c_}_bitwise_vs_copy_and_live"] for c_ in DEPLOY_CIDS) and rec["pair_attacker"]["bitwise"])
+        if not ok:
+            bad.append(C.name)
+        out[C.name] = rec
+    bv = RES / "BACKUP_VERIFICATION.json"
+    out["backup_verification_status"] = jload(bv).get("status") if bv.exists() else None
+    if not copies:
+        return res("PENDING", reason="no same-device copy present", **out)
+    return res("FAIL" if bad else "PASS", failures=bad, **out,
+               note="a same-device copy proves restorability, not off-device custody (drive absent: PENDING)")
+
+
+def pred_in_table(text, p_):
+    line = next((l_ for l_ in text.splitlines() if l_.startswith(f"| {p_['id']} |")), "")
+    pr = p_.get("probability", p_.get("probabilities"))
+    if isinstance(pr, (int, float)):
+        return f"| {pr} |" in line or f"| {pr:.2f} |" in line
+    if isinstance(pr, dict):
+        return all((f"{k_} {v:.2f}" in line) for k_, v in pr.items() if isinstance(v, (int, float)) and k_ in line)
+    return False
+
+
+def _dec(sh):
+    t = sh.replace("−", "-").replace("+", "").replace(",", "")
+    return t, (len(t.split(".")[1]) if "." in t else 0)
+
+
+def frag_check(text, fragment, pairs):
+    """fragment must occur verbatim; every (shown, own) pair must agree at the printed precision."""
+    if fragment not in text:
+        return {"fragment": fragment[:120], "present": False, "ok": False}
+    bad = []
+    for shown, own in pairs:
+        if isinstance(own, (bool, np.bool_)):
+            if not bool(own):
+                bad.append(f"{shown}: own condition false")
+            continue
+        if shown not in fragment:
+            bad.append(f"{shown}: not in fragment")
+            continue
+        t, dd = _dec(shown)
+        if abs(float(t) - float(own)) > 0.5 * 10 ** (-dd) + 1e-12:
+            bad.append(f"{shown}: own {own:.{dd + 2}f}")
+    return {"fragment": fragment[:120], "present": True, "ok": not bad, "slips": bad}
+
+
+def check_documents(ctx):
+    """Anchor-and-fragment check of the decision documents against the verifier's own numbers."""
+    lev, eps, selm, gcfg, util, a1, sb, oin, bterms, rest, dep, chrono = (
+        ctx["lev"], ctx["eps"], ctx["sel"], ctx["gate_configs"], ctx["util"], ctx["a1"], ctx["stage_b"], ctx["inner"],
+        ctx["b_terms"], ctx["restore"], ctx["deploy"], ctx["chron"])
+    E = {e["id"]: e for e in eps}
+    Rm = lambda lab, w: lev[f"Rmean#{lab}#primary#{w}"][0]  # noqa: E731
+    LX = lambda lab, j: lev[f"llxmean#{lab}#{j}"][0]  # noqa: E731
+    BX = lambda lab, j: lev[f"brxmean#{lab}#{j}"][0]  # noqa: E731
+    AC = lambda lab, j: lev[f"accmean#{lab}#{j}"][0]  # noqa: E731
+    U, Q, T_, J = "SRC|U", "U|DIRECT-TASK|i8o64", "U|FINE-TASK|i8o64", "U|JOINT|i8o64|l0.1"
+    S21, S12, LO = "U|SEQ-21|i8o64|l0.1", "U|SEQ-12|i8o64|l0.1", "U|LOCAL|i8o64|l0.1"
+
+    def inner_llx(cid, k, j):
+        u = util[(cid, k)]
+        return u[j + 1]["logloss"] - util[("SRC|U", k)][j + 1]["logloss"]
+
+    def inner_brx(cid, k, j):
+        u = util[(cid, k)]
+        return u[j + 1]["brier"] - util[("SRC|U", k)][j + 1]["brier"]
+    d2 = {k: (a1[f"s{k}"]["fit_distortion_contrast_own"]["D2"]["src20"], a1[f"s{k}"]["fit_distortion_contrast_own"]["D2"]["r200"])
+          for k in SEEDS}
+    a1x = {k: (util[("A1|src20", k)][2]["logloss"] - util[("SRC|U", k)][2]["logloss"],
+               util[("A1|r200", k)][2]["logloss"] - util[("SRC|U", k)][2]["logloss"]) for k in SEEDS}
+    src20_conv = {k: [sum(bool(x) for x in a1[f"s{k}"]["r200"]["recipient_1"].get("classes_converged_own", []))] for k in SEEDS}
+    fitkl = lambda cid: float(np.mean([util[(cid, k)]["fit"][2]["fit_kl"] for k in SEEDS]))  # noqa: E731
+    ent = lambda cid: float(np.mean([util[(cid, k)]["fit"][2]["entropy_nats"] for k in SEEDS]))  # noqa: E731
+    emit = lambda cid: float(np.mean([util[(cid, k)]["fit"][2]["emitted"] for k in SEEDS]))  # noqa: E731
+    sbu = lambda cid, k: sb["per_unit"][f"{cid}#s{k}"]  # noqa: E731
+    i12 = lambda cid: float(np.mean([bterms[(k, cid)]["I12"] for k in SEEDS]))  # noqa: E731
+    pn12 = lambda cid: float(np.mean([sbu(cid, k)["perm_null_own"]["I12"]["mean"] for k in SEEDS]))  # noqa: E731
+    alph2 = lambda cid: [sbu(cid, k)["recipient_2"]["alphabet"] for k in SEEDS]  # noqa: E731
+    eff2 = lambda cid: [sbu(cid, k)["recipient_2"]["effective_states"] for k in SEEDS]  # noqa: E731
+    npass = lambda c_: sum(1 for e in eps if e["claim"] == c_ and e["decision_numeric"] == "PASS")  # noqa: E731
+    el_seeds = lambda cid: sum(bool(selm["rows"][cid]["seeds"][k]["eligible"]) for k in SEEDS)  # noqa: E731
+    seq_min = min(Rm(S12, "pair"), Rm(S21, "pair"))
+    preds = jload(RES / "PREDICTIONS.json")
+    ratios = [LX(direct_id(8, m), 1) / fitkl(direct_id(8, m)) for m in (8, 16, 32, 64)]
+    docs = {}
+
+    def doc(name, items):
+        text = (RES / name).read_text()
+        rows = [frag_check(text, f_, pr) for f_, pr in items]
+        docs[name] = {"checked": len(rows), "ok": sum(r_["ok"] for r_ in rows),
+                      "slips": [r_ for r_ in rows if not r_["ok"]]}
+
+    def row(lab, txt, cid, v1=True):
+        vals = [Rm(cid, "pair")] + ([Rm(cid, "v1")] if v1 else []) + [Rm(cid, "v2")]
+        return vals
+    tbl = [("U continuous (released interface; composed readers over all 22 codes)", U),
+           ("Q* DIRECT-TASK i8o64", Q), ("T* FINE-TASK i8o64", T_), ("LOCAL i8o64 λ 0.1", LO),
+           ("SEQ-12 i8o64 λ 0.1", S12), ("SEQ-21 i8o64 λ 0.1 (C_rate = C_global)", S21),
+           ("**JOINT i8o64 λ 0.1 (P\\*; J\\* fallback)**", J), ("DIRECT-TASK i8o32", direct_id(8, 32)),
+           ("DIRECT-TASK i8o16", direct_id(8, 16)), ("DIRECT-TASK i8o8", direct_id(8, 8)),
+           ("CLASS-ONLY (decisions alone)", "U|CLASS|i1o1"), ("RAW-J β 0.3 continuous", "SRC|RAW-J_b0.3"),
+           ("FARE (official)", "REF|F"), ("F0 (no-fairness FARE)", "REF|F0"), ("LEACE (official)", "REF|E")]
+    text_rd = (RES / "RESEARCH_DECISION.md").read_text()
+    table_items = []
+    for name, cid in tbl:
+        line = next((l_ for l_ in text_rd.splitlines() if l_.startswith(f"| {name} |")), None)
+        if line is None:
+            table_items.append((f"| {name} |", []))
+            continue
+        cells = [c_.strip().strip("*") for c_ in line.split("|")[2:-1]]
+        own = [Rm(cid, "pair"), Rm(cid, "v1"), Rm(cid, "v2")] + ([0.0, 0.0, 0.0] if cid == U else
+                                                                 [LX(cid, 1), BX(cid, 1), LX(cid, 0)])
+        table_items.append((line, list(zip(cells, own))))
+    doc("RESEARCH_DECISION.md", [
+        ("changed occupation fit distortion by at most 0.0003 nats", [("0.0003", max(abs(b - a) for a, b in d2.values()))]),
+        ("(seed 0: +0.0131 → +0.0133 nats)", [("+0.0131", a1x[0][0]), ("+0.0133", a1x[0][1])]),
+        ("occupation log loss +0.00295 nats [−0.0002, 0.0061]", [("+0.00295", E["P35"]["point"]), ("−0.0002", E["P35"]["lower"]),
+                                                                 ("0.0061", E["P35"]["upper"])]),
+        ("occupation Brier +0.0017 [0.0007, 0.0027]", [("+0.0017", E["P37"]["point"]), ("0.0007", E["P37"]["lower"]),
+                                                      ("0.0027", E["P37"]["upper"])]),
+        ("income log loss +0.0008 [−0.0007, 0.0023]", [("+0.0008", E["P34"]["point"]), ("−0.0007", E["P34"]["lower"]),
+                                                      ("0.0023", E["P34"]["upper"])]),
+        ("income Brier +0.0005 [0.0000, 0.0011]", [("+0.0005", E["P36"]["point"]), ("0.0000", E["P36"]["lower"]),
+                                                  ("0.0011", E["P36"]["upper"])]),
+        ("by 0.034 [0.029, 0.039] relative to the task-only code T* (FINE-TASK)", [("0.034", E["P23"]["point"]),
+                                                                                    ("0.029", E["P23"]["lower"]),
+                                                                                    ("0.039", E["P23"]["upper"])]),
+        ("neither recipient's own AUC rises", [("v1/v2 points <= 0", E["P24"]["point"] <= 0 and E["P25"]["point"] <= 0)]),
+        ("P* costs +0.0081 nats of occupation log loss, with upper bound 0.0121 against the 0.01 allowance. Claim C "
+         "therefore passes 10 of 11 clauses", [("+0.0081", E["P29"]["point"]), ("0.0121", E["P29"]["upper"]),
+                                               ("10 of 11", npass("C") == 10)]),
+        ("leaks 0.003 [0.0001, 0.006] less on the pair than SEQ-21, but more to the occupation recipient (+0.011)",
+         [("0.003", E["P01"]["point"]), ("0.0001", E["P01"]["lower"]), ("0.006", E["P01"]["upper"]),
+          ("+0.011", E["P03"]["point"])]),
+        ("pair SEX AUC 0.849 vs 0.858 for U", [("0.849", Rm(Q, "pair")), ("0.858", Rm(U, "pair"))]),
+        ("Stage B: FINE-TASK i8o64; all four λ 0.01 privacy codes; SEQ-12, SEQ-21 and JOINT at λ 0.1. LOCAL λ 0.1 is "
+         "eligible on 2/3 seeds only; every λ 1 code is ineligible",
+         [("FINE-TASK eligible", selm["rows"][T_]["eligible"]),
+          ("all four λ 0.01 eligible", all(selm["rows"][b_config(f_, 0.01)]["eligible"] for f_ in PRIV_FAMS)),
+          ("SEQ-12/SEQ-21/JOINT λ 0.1 eligible", all(selm["rows"][b_config(f_, 0.1)]["eligible"] for f_ in ("SEQ-12", "SEQ-21", "JOINT"))),
+          ("LOCAL λ 0.1 2/3 seeds", el_seeds(LO) == 2 and not selm["rows"][LO]["eligible"]),
+          ("every λ 1 ineligible", not any(selm["rows"][b_config(f_, 1.0)]["eligible"] for f_ in PRIV_FAMS)),
+          ("Q* only eligible Stage A rate", [c_ for c_ in selm["rows"] if c_.startswith("U|DIRECT") and selm["rows"][c_]["eligible"]] == [Q])]),
+        ("| A | J* (no eligible nominee; fallback JOINT λ 0.1) vs C_rate (SEQ-21 λ 0.1) | NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE | "
+         "8/11 (descriptive) | pair 0.0031 [0.0001, 0.0062]; v2 +0.0112 (guard breached); occupation LL +0.0081 [0.0040, 0.0121] |",
+         [("8/11", npass("A") == 8), ("0.0031", E["P01"]["point"]), ("0.0001", E["P01"]["lower"]), ("0.0062", E["P01"]["upper"]),
+          ("+0.0112", E["P03"]["point"]), ("+0.0081", E["P07"]["point"]), ("0.0040", E["P07"]["lower"]), ("0.0121", E["P07"]["upper"])]),
+        ("| B | J* vs C_global (SEQ-21 λ 0.1) | NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE | 8/11 (descriptive) |", [("8/11", npass("B") == 8)]),
+        ("| 10/11 | pair 0.0336 [0.0286, 0.0387] PASS; v1 −0.0010, v2 −0.0487 PASS; occupation LL +0.0081, upper bound 0.0121, NOT met |",
+         [("0.0336", E["P23"]["point"]), ("0.0286", E["P23"]["lower"]), ("0.0387", E["P23"]["upper"]), ("−0.0010", E["P24"]["point"]),
+          ("−0.0487", E["P25"]["point"]), ("+0.0081", E["P29"]["point"]), ("0.0121", E["P29"]["upper"]), ("10/11", npass("C") == 10)]),
+        ("| PASS | 4/4 | occupation LL +0.00295 [−0.0002, 0.0061]; occupation Brier +0.0017 [0.0007, 0.0027] |",
+         [("4/4", npass("Q") == 4), ("+0.00295", E["P35"]["point"])]),
+        ("Accuracy of every code equals U's: 0.844 income and 0.475 occupation",
+         [("0.844", AC(U, 0)), ("0.475", AC(U, 1)),
+          ("every code equals U", all(abs(AC(c_, j) - AC(U, j)) == 0.0 for c_ in ctx["scored"] if not c_.startswith(("SRC|", "REF|"))
+                                      for j in (0, 1)))]),
+        ("RAW-J reaches occupation accuracy 0.466, FARE 0.451 and F0 0.460. LEACE reaches income accuracy 0.794",
+         [("0.466", AC("SRC|RAW-J_b0.3", 1)), ("0.451", AC("REF|F", 1)), ("0.460", AC("REF|F0", 1)), ("0.794", AC("REF|E", 0))]),
+        ("using at most 78 rounds", [("78", max(max(a1[f"s{k}"]["r200"][f"recipient_{r}"]["passes_own"]) for k in SEEDS for r in (1, 2)))]),
+        ("0.03083 → 0.03076 (seed 0), 0.033856 → 0.033856 (seed 1), 0.03272 → 0.03240 (seed 2)",
+         [("0.03083", d2[0][0]), ("0.03076", d2[0][1]), ("0.033856", d2[1][0]), ("0.03272", d2[2][0]), ("0.03240", d2[2][1])]),
+        ("+0.0131 → +0.0133, +0.0083 → +0.0083, +0.0134 → +0.0142",
+         [("+0.0131", a1x[0][0]), ("+0.0133", a1x[0][1]), ("+0.0083", a1x[1][0]), ("+0.0134", a1x[2][0]), ("+0.0142", a1x[2][1])]),
+        ("worst-seed inner excess +0.0138 and assessment excess +0.0210",
+         [("+0.0138", max(inner_llx(direct_id(8, 8), k, 1) for k in SEEDS)), ("+0.0210", LX(direct_id(8, 8), 1))]),
+    ] + [(f"| {m} | {f1} | {f2} | {f3} |", [(f1, fitkl(direct_id(8, m))), (f2, LX(direct_id(8, m), 1)), (f3, BX(direct_id(8, m), 1))])
+         for m, f1, f2, f3 in ((8, "0.0318", "+0.0210", "+0.0077"), (16, "0.0197", "+0.0107", "+0.0044"),
+                               (32, "0.0124", "+0.0057", "+0.0026"), (64, "0.0078", "+0.0030", "+0.0017"))] + [
+        ("Pair recovery rises with capacity: 0.820, 0.834, 0.842 and 0.849",
+         [("0.820", Rm(direct_id(8, 8), "pair")), ("0.834", Rm(direct_id(8, 16), "pair")), ("0.842", Rm(direct_id(8, 32), "pair")),
+          ("0.849", Rm(direct_id(8, 64), "pair"))]),
+        ("Income at 8 states per class costs +0.0008 nats on the assessment", [("+0.0008", LX(Q, 0))]),
+        ("Income at 4 states costs +0.0051 nats and fails the inner Brier allowance (+0.0053 worst seed)",
+         [("+0.0051", LX(direct_id(4, 64), 0)), ("+0.0053", max(inner_brx(direct_id(4, 64), k, 0) for k in SEEDS))]),
+        ("all 320 occupation cells (5 predicted classes × 64) are emitted on the fitting rows, with fitting-row token entropy 5.31 nats",
+         [("320", emit(Q)), ("5.31", ent(Q))]),
+        ("At caps 32, 16 and 8 the entropy is 4.70, 4.04 and 3.37 nats",
+         [("4.70", ent(direct_id(8, 32))), ("4.04", ent(direct_id(8, 16))), ("3.37", ent(direct_id(8, 8)))]),
+        ("so the alphabet is 321", [("321", util[(Q, 0)]["fit"][2]["alphabet"])]),
+        ("JOINT λ 0.1 emits 269, 298 and 293 occupation tokens by seed (alphabets 270, 299 and 294, including the fallback), "
+         "and JOINT λ 1 emits 99, 114 and 93", [("emitted λ0.1", eff2(J) == [269, 298, 293]), ("alphabets λ0.1", alph2(J) == [270, 299, 294]),
+                                               ("emitted λ1", eff2(b_config("JOINT", 1.0)) == [99, 114, 93])]),
+        ("The excess is roughly 0.4–0.7 × the fit KL on the assessment", [("0.4", min(ratios)), ("0.7", max(ratios))]),
+        ("at 32 states, one seed reached +0.0102 while the assessment mean is +0.0057",
+         [("+0.0102", max(inner_llx(direct_id(8, 32), k, 1) for k in SEEDS)), ("+0.0057", LX(direct_id(8, 32), 1))]),
+        ("Pair recovery: task-only FINE-TASK 0.846 → LOCAL 0.834 → SEQ-12 0.816 / SEQ-21 0.816 → JOINT 0.813",
+         [("0.846", Rm(T_, "pair")), ("0.834", Rm(LO, "pair")), ("0.816", Rm(S12, "pair")), ("0.813", Rm(J, "pair")),
+          ("SEQ-21 0.816", abs(Rm(S21, "pair") - 0.816) <= 0.0005)]),
+        ("Occupation log-loss cost: +0.0031 → +0.0048 → +0.0082 / +0.0084 → +0.0081",
+         [("+0.0031", LX(T_, 1)), ("+0.0048", LX(LO, 1)), ("+0.0082", LX(S12, 1)), ("+0.0084", LX(S21, 1)), ("+0.0081", LX(J, 1))]),
+        ("DIRECT-TASK i8o16 has pair 0.834 at +0.0107 nats", [("0.834", Rm(direct_id(8, 16), "pair")), ("+0.0107", LX(direct_id(8, 16), 1))]),
+        ("JOINT λ 0.1 0.207 nats vs FINE-TASK 0.295. Their permutation nulls are 0.063 and 0.085, so the excess over null is "
+         "0.144 vs 0.210", [("0.207", i12(J)), ("0.295", i12(T_)), ("0.063", pn12(J)), ("0.085", pn12(T_)),
+                            ("0.144", i12(J) - pn12(J)), ("0.210", i12(T_) - pn12(T_))]),
+        ("(mean occupation alphabet 288 vs 321)", [("288", float(np.mean(alph2(J)))), ("321", float(np.mean(alph2(T_))))]),
+        ("JOINT 0.813, SEQ-21 0.816, SEQ-12 0.816, LOCAL 0.834. Joint is within 0.003 of both sequential orders",
+         [("0.813", Rm(J, "pair")), ("0.834", Rm(LO, "pair")), ("0.003", seq_min - Rm(J, "pair")),
+          ("within 0.003", max(abs(Rm(S12, "pair") - Rm(J, "pair")), abs(Rm(S21, "pair") - Rm(J, "pair"))) <= 0.0035)]),
+        ("(inner v2 0.777 vs 0.768 + 0.005)", [("0.777", float(np.mean([selm["rows"][J]["seeds"][k]["auc"]["v2"] for k in SEEDS]))),
+                                               ("0.768", float(np.mean([selm["rows"][S21]["seeds"][k]["auc"]["v2"] for k in SEEDS]))),
+                                               ("per-seed breach exists", max(selm["rows"][J]["seeds"][k]["auc"]["v2"] -
+                                                                              selm["rows"][S21]["seeds"][k]["auc"]["v2"] - BUFFER
+                                                                              for k in SEEDS) > 0)]),
+        ("in all 18 sequential units the stage-one map was fitted against the other recipient's class-only release",
+         [("18 corrected units", sum(1 for k_, v in sb["per_unit"].items() if "|SEQ-" in k_ and v.get("counterpart_is_class_only")) == 18),
+          ("old rule differs in 18", sum(1 for k_, v in sb["per_unit"].items() if "|SEQ-" in k_ and v.get("old_rule_map_differs")) == 18)]),
+        ("The decision vector alone gives pair AUC 0.739 (CLASS-ONLY)", [("0.739", Rm("U|CLASS|i1o1", "pair"))]),
+        ("Every decision-preserving code here sits between 0.739 and the continuous 0.858",
+         [("between", all(Rm("U|CLASS|i1o1", "pair") - 1e-12 <= Rm(c_, "pair") <= Rm(U, "pair") + 1e-12
+                          for c_ in ctx["scored"] if not c_.startswith(("SRC|", "REF|"))))]),
+        ("their assessment excess (+0.0210, +0.0107) would also fail the allowance",
+         [("+0.0210", LX(direct_id(8, 8), 1)), ("+0.0107", LX(direct_id(8, 16), 1)),
+          ("8, 16 ineligible", not gcfg[direct_id(8, 8)]["eligible"] and not gcfg[direct_id(8, 16)]["eligible"])]),
+        ("rate 32 failed the inner gate on one seed (+0.0102 on 2,235 rows) but has assessment mean +0.0057",
+         [("+0.0102", max(inner_llx(direct_id(8, 32), k, 1) for k in SEEDS)), ("+0.0057", LX(direct_id(8, 32), 1)),
+          ("one failing seed", sum(1 for k in SEEDS if not gcfg[direct_id(8, 32)]["per_seed"][k]["eligible"]) == 1)]),
+        ("inner-eligible (worst-seed occupation excess +0.0083) but its assessment upper bound is 0.0121",
+         [("+0.0083", max(oin[(k, J)]["utility"][2]["logloss"] - oin[(k, J)]["U"][2]["logloss"] for k in SEEDS)),
+          ("0.0121", E["P29"]["upper"])]),
+        ("pair SEX AUC −0.0336 [−0.0387, −0.0286]", [("−0.0336", -E["P23"]["point"]), ("−0.0387", -E["P23"]["upper"]),
+                                                     ("−0.0286", -E["P23"]["lower"])]),
+        ("pair 0.849 vs 0.858 for U's continuous scores", [("0.849", Rm(Q, "pair")), ("0.858", Rm(U, "pair"))]),
+        ("FARE leaks least (0.704) but loses 2.4 occupation-accuracy points and 0.046 nats",
+         [("0.704", Rm("REF|F", "pair")), ("2.4", 100 * (AC(U, 1) - AC("REF|F", 1))), ("0.046", LX("REF|F", 1)),
+          ("least", Rm("REF|F", "pair") == min(Rm(c_, "pair") for c_ in ctx["scored"]))]),
+        ("The margin clause passes (0.0286)", [("0.0286", E["P23"]["lower"])]),
+        ("| 0.04 | **No** (0.003) |", [("0.003", seq_min - Rm(J, "pair"))]),
+        ("| Predictions | 03ffe1c (04:05:54Z, before any fit) |", [("predictions pushed 04:05:54Z", chrono["pred_push"] == "2026-10-06T04:05:54Z")]),
+        ("| EVALUATION_LOCK | 4e92ce4 (05:27:48Z); the assessment opened 05:27:55Z, once |",
+         [("EL push 05:27:48Z", chrono["el_push"] == "2026-10-06T05:27:48Z"), ("one EL version", chrono["el_versions"] == 1)]),
+        ("The controls stage refused it at 05:16:07Z, before loading data", [("refusal 05:16", chrono["refusal_1607"])]),
+        ("Real-data controls: all pass, with 0 null exceedances", [("controls", ctx["controls_ok"])]),
+    ] + table_items + [(f"| {p_['id']} | ", [(f"{p_['id']} registered probability", pred_in_table(text_rd, p_))])
+                        for p_ in (preds.get("predictions") or [])])
+    doc("ADVISOR_BRIEF.md", [
+        ("13,936 already-used Adult rows", [("13,936 rows", ctx["n_assess"] == 13936)]),
+        ("changed occupation fit distortion by at most 0.0003 nats", [("0.0003", max(abs(b - a) for a, b in d2.values()))]),
+        ("occupation log loss +0.0030 nats, upper bound 0.0061", [("+0.0030", E["P35"]["point"]), ("0.0061", E["P35"]["upper"])]),
+        ("occupation Brier +0.0017, upper bound 0.0027", [("+0.0017", E["P37"]["point"]), ("0.0027", E["P37"]["upper"])]),
+        ("Pair SEX AUC is 0.849, against 0.858 for U's continuous scores", [("0.849", Rm(Q, "pair")), ("0.858", Rm(U, "pair"))]),
+        ("it lowers pair SEX AUC by 0.034 [0.029, 0.039], clearing the 0.02 margin",
+         [("0.034", E["P23"]["point"]), ("0.029", E["P23"]["lower"]), ("0.039", E["P23"]["upper"])]),
+        ("it costs +0.0081 nats of occupation log loss, upper bound 0.0121, over the 0.01 allowance",
+         [("+0.0081", E["P29"]["point"]), ("0.0121", E["P29"]["upper"])]),
+        ("the privacy claim passes 10 of 11 clauses and is NOT_ESTABLISHED", [("10 of 11", npass("C") == 10)]),
+        ("Joint and both sequential orders are within 0.003", [("0.003", seq_min - Rm(J, "pair"))]),
+        ("The decisions alone still reveal SEX at pair AUC 0.739", [("0.739", Rm("U|CLASS|i1o1", "pair"))]),
+        ("about 0.009 pair AUC below the continuous scores", [("0.009", Rm(U, "pair") - Rm(Q, "pair"))]),
+        ("(16 states gives pair 0.834 at +0.011 nats)", [("0.834", Rm(direct_id(8, 16), "pair")), ("+0.011", LX(direct_id(8, 16), 1))]),
+        ("A same-device verified copy, with restores from the copy alone all passing", [("restore", rest == "PASS")]),
+        ("(`python -m qpc.deploy`, tested bitwise with the required refusals)", [("deploy parity", dep == "PASS")]),
+    ])
+    pa_rows = [("U continuous", U, None), ("Task-only, 8 occupation states", direct_id(8, 8), None),
+               ("Task-only, 16", direct_id(8, 16), None), ("Task-only, 32", direct_id(8, 32), None),
+               ("**Task-only, 64 (Q\\*)**", Q, None), ("FINE-TASK, 64 (T\\*)", T_, None), ("LOCAL, 64, λ 0.1", LO, None),
+               ("**JOINT, 64, λ 0.1 (P\\*)**", J, None), ("Decisions alone", "U|CLASS|i1o1", None), ("FARE (official)", "REF|F", None)]
+    text_pa = (RES / "PAPER_ADDENDUM.md").read_text()
+    pa_items = []
+    for name, cid, _ in pa_rows:
+        line = next((l_ for l_ in text_pa.splitlines() if l_.startswith(f"| {name} |")), None)
+        if line is None:
+            pa_items.append((f"| {name} |", []))
+            continue
+        cells = [c_.strip().strip("*") for c_ in line.split("|")[2:-1]]
+        own = [Rm(cid, "pair"), Rm(cid, "v2")] + ([0.0, 0.0] if cid == U else [LX(cid, 1), BX(cid, 1)])
+        pa_items.append((line, list(zip(cells, own))))
+    seq_line = next((l_ for l_ in text_pa.splitlines() if l_.startswith("| SEQ-12 / SEQ-21")), "")
+    doc("PAPER_ADDENDUM.md", pa_items + [
+        (seq_line or "| SEQ-12 / SEQ-21", [("0.816 / 0.816", abs(Rm(S12, "pair") - 0.816) <= 5e-4 and abs(Rm(S21, "pair") - 0.816) <= 5e-4),
+                                           ("0.782 / 0.771", abs(Rm(S12, "v2") - 0.782) <= 5e-4 and abs(Rm(S21, "v2") - 0.771) <= 5e-4),
+                                           ("+0.0082 / +0.0084", abs(LX(S12, 1) - 0.0082) <= 5e-5 and abs(LX(S21, 1) - 0.0084) <= 5e-5),
+                                           ("+0.0032 / +0.0033", abs(BX(S12, 1) - 0.0032) <= 5e-5 and abs(BX(S21, 1) - 0.0033) <= 5e-5)]),
+        ("66 policy units, 5,170,440 recipient-row checks", [("66 units", ctx["n_pol_units"] == 66),
+                                                             ("5,170,440", ctx["n_pol_units"] * ROWS_KEPT * 2 == 5170440)]),
+        ("Income stays within +0.0018 nats for every code at 8 income states",
+         [("+0.0018", max(LX(c_, 0) for c_ in ctx["scored"] if c_.startswith("U|") and "|i8o" in c_))]),
+        ("37-slot family; z = 3.2048; 1,999 exact-record-group bootstrap replicates", [("3.2048", Z_PRIMARY)]),
+        ("Occupation log loss +0.00295 [−0.0002, 0.0061]; Brier +0.0017 [0.0007, 0.0027]",
+         [("+0.00295", E["P35"]["point"]), ("−0.0002", E["P35"]["lower"]), ("0.0061", E["P35"]["upper"]),
+          ("+0.0017", E["P37"]["point"]), ("0.0007", E["P37"]["lower"]), ("0.0027", E["P37"]["upper"])]),
+        ("Pair recovery is 0.0336 [0.0286, 0.0387] lower, which passes", [("0.0336", E["P23"]["point"]),
+                                                                          ("0.0286", E["P23"]["lower"]), ("0.0387", E["P23"]["upper"])]),
+        ("The occupation log-loss upper bound is 0.0121 against 0.01, which fails", [("0.0121", E["P29"]["upper"])]),
+        ("Descriptively, joint is within 0.003 of sequential", [("0.003", seq_min - Rm(J, "pair"))]),
+        ("The decision vector alone leaves pair AUC about 0.74", [("0.74", Rm("U|CLASS|i1o1", "pair"))]),
+        ("composed source recovery is a maximum over 22 codes", [("22 codes", ctx["n_composed"] == 22)]),
+    ])
+    mm = jload(RES / "MODEL_MANIFEST.json")
+    mm_items = []
+    for key, cid in (("Q_star_confidence_feasible", Q), ("best_inner_selected_eligible_privacy_code", J)):
+        fs = mm["packaged"][key]["files_sha256"]
+        for k in SEEDS:
+            cj = jload(UNITS / release_unit(k, cid) / "COMPLETE.json")["files"]
+            mm_items.append({"item": f"{key} s{k} files_sha256", "ok": fs.get(f"s{k}") == cj})
+    mm_items.append({"item": "statuses equal own selection", "ok": all(
+        (mm["statuses"][x]["status"], mm["statuses"][x].get("config"), mm["statuses"][x].get("descriptive_config")) ==
+        (selm["statuses"][x]["status"], selm["statuses"][x].get("config"), selm["statuses"][x].get("descriptive_config"))
+        for x in selm["statuses"])})
+    mm_items.append({"item": "deployment_test bitwise claims", "ok": mm["deployment_test"]["Q_star_bitwise_equal_stored_release"]
+                     is True and mm["deployment_test"]["P_star_bitwise_equal_stored_release"] is True and dep == "PASS"})
+    mm_text = json.dumps(mm, ensure_ascii=False)
+    for frag, pr in (("assessment pair SEX AUC 0.858", [("0.858", Rm(U, "pair"))]),
+                     ("pair SEX AUC 0.849 (protection over U continuous only 0.009)", [("0.849", Rm(Q, "pair")),
+                                                                                     ("0.009", Rm(U, "pair") - Rm(Q, "pair"))]),
+                     ("lowers pair SEX AUC by 0.034 [0.029, 0.039]", [("0.034", E["P23"]["point"]), ("0.029", E["P23"]["lower"]),
+                                                                      ("0.039", E["P23"]["upper"])]),
+                     ("upper bound is 0.0121 (> 0.01)", [("0.0121", E["P29"]["upper"])])):
+        r_ = frag_check(mm_text, frag, pr)
+        mm_items.append({"item": frag, "ok": r_["ok"], "slips": r_.get("slips")})
+    docs["MODEL_MANIFEST.json"] = {"checked": len(mm_items), "ok": sum(x["ok"] for x in mm_items),
+                                   "slips": [x for x in mm_items if not x["ok"]]}
+    cp = ctx["copy"]
+    doc("QUICKSTART.md", [
+        ("(925 files, 625,755,727 bytes)", [("925", cp.get("entries", 0) == 925), ("625,755,727", cp.get("bytes", 0) == 625755727)]),
+        ("the unit count was unchanged at 243", [("243", ctx["n_units"] == 243)]),
+        ("Both are bitwise equal to the stored releases", [("deploy", dep == "PASS")]),
+        ("`shasum -c` exited 0 on all 925 entries", [("925 rehash", cp.get("entries") == 925 and not cp.get("mismatches"))]),
+        ("teachers U and RAW-J, by an own forward pass, bitwise", [("U s1 own forward", rest == "PASS")]),
+        ("the selected pair attacker, refit from the copy, max diff 0", [("pair attacker", rest == "PASS")]),
+        ("When it is called by file path, add `-P`", [("-P", True)]),
+    ])
+    ct = ctx["cost"]
+    doc("COST_AND_CLOSEOUT.md", [
+        ("| B, compressor (synthetic timing) | 3 | 201 |", [("3", ct["B"][0] == 3), ("201", ct["B"][1])]),
+        ("| D, attacks (synthetic timing) | 4 | 753 |", [("4", ct["D"][0] == 4), ("753", ct["D"][1])]),
+        ("| A, lead (study workers) | 21 | 7,100 |", [("21 holds", ct["A_holds_at_doc"] == 21),
+                                                     ("7,100", abs(ct["A_cpu_at_doc"] - 7100) <= 50)]),
+        ("| C, math review (mutation testing) | 4 | ≈ 1,640 |", [("4 holds", ct["C"][0] == 4),
+                                                               ("≈1,640", abs(ct["C_cpu_plus_unlogged"] - 1640) <= 20)]),
+        ("Peak single process 1.41 GB (assessment shard)", [("1.41", ct["peak_rss_gb"])]),
+        ("Private store 599 MB", [("599", ct["store_mib"])]),
+        ("the science finished at 06:03Z, 2.2 h into the run", [("2.2", ct["science_h"])]),
+        ("Both controls shards refused at 05:16:07Z (\"locked file changed\") before loading any data",
+         [("refusal", chrono["refusal_1607"])]),
+        ("slot reacquired at 05:12:31Z", [("05:12:31", chrono["c_mutation_reacquired"] == "2026-10-06T05:12:31Z")]),
+        ("AMENDMENT_A1, pushed 05:26:55Z before selection", [("A1 push", chrono["a1_push"] == "2026-10-06T05:26:55Z"),
+                                                             ("before select", chrono["a1_before_select"])]),
+    ] + ct["worker_rows"])
+    total = sum(v["checked"] for v in docs.values())
+    okn = sum(v["ok"] for v in docs.values())
+    slips = {n: v["slips"] for n, v in docs.items() if v["slips"]}
+    return res("PASS" if not slips else "WARN", fragments_checked=total, fragments_ok=okn, documents=docs,
+               reason=None if not slips else f"{total - okn} document slips (see documents.*.slips)",
+               rule="every quoted value is tied to an exact text fragment of the CURRENT document and compared with the "
+                    "verifier's own value at the printed precision (half a unit in the last printed place); COST "
+                    "placeholders are skipped")
+
+
+def build_doc_ctx(checks, lev, eps, sel_mine, util, own_in, own_b_terms, EL, gate):
+    sema = jsonl(RUN / "SEMA_LOG.jsonl")
+    ev = jsonl(RUN / "ACTIVITY_LOG.jsonl")
+    rel = [e for e in sema if e.get("event") == "release"]
+    acq = [e for e in sema if e.get("event") == "acquire"]
+
+    def role(r):
+        return [e for e in rel if str(e.get("label", "")).startswith(f"{r}:")]
+    infer_end = max((parse_iso(e["at"]) for e in rel if e.get("label") == "A:infer"), default=None)
+    a_doc = [e for e in role("A") if infer_end and parse_iso(e["at"]) <= infer_end]
+    ca = checks["chronology_assessment"]
+    cs = checks["chronology_stage_a"]
+    unrel = {x["label"]: x for x in cs.get("unreleased_semaphore_holds", [])}
+    # study-worker rows of COST_AND_CLOSEOUT.md from the semaphore log (first successful hold of each stage label)
+    first = {}
+    for e in rel:
+        lab = str(e.get("label", ""))
+        if lab.startswith("A:") and e.get("rc") == 0 and lab not in first and (not infer_end or parse_iso(e["at"]) <= infer_end):
+            first[lab] = e
+    import re as _re
+    peaks = {}
+    for f_ in RUN.glob("work_*.log"):
+        m = _re.findall(r"(\d+)\s+maximum resident set size", f_.read_text())
+        if m:
+            peaks[f_.stem[5:]] = int(m[-1]) / 1e9
+    rows = []
+    text = (RES / "COST_AND_CLOSEOUT.md").read_text()
+    for stage, labs in (("admit", ["A:admit"]), ("stagea", ["A:stagea"]), ("gate", ["A:gate"]),
+                        ("partition", ["A:partition_0of2", "A:partition_1of2"]), ("fit", ["A:fit_0of2", "A:fit_1of2"]),
+                        ("inner", ["A:inner_0of2", "A:inner_1of2"]), ("inner_src", ["A:inner_src"]),
+                        ("controls", ["A:controls_0of2", "A:controls_1of2"]), ("select", ["A:select"]),
+                        ("assessment", ["A:assess_0of2", "A:assess_1of2"]), ("inference", ["A:infer"])):
+        line = next((l_ for l_ in text.splitlines() if l_.startswith(f"| {stage}")), None)
+        if line is None or not all(x in first for x in labs):
+            rows.append((f"| {stage}", []))
+            continue
+        cells = [c_.strip() for c_ in line.split("|")[2:-1]]
+        walls = [x.strip() for x in cells[0].split("+")]
+        cpus = [x.strip() for x in cells[1].split("+")]
+        pairs = [(w_, first[x]["wall_s"]) for w_, x in zip(walls, labs)] + [(c_, first[x]["cpu_s"]) for c_, x in zip(cpus, labs)]
+        rows.append((line, [(a_, b_) for a_, b_ in pairs if a_.replace(",", "").replace(".", "").isdigit()]))
+    store = 0
+    for q in PRIV.rglob("*"):
+        if q.is_file():
+            store += q.stat().st_blocks * 512
+    restore = checks.get("restore_parity", {})
+    copy0 = restore.get("qpc_v1_local_copy_20261006", {}) if isinstance(restore, dict) else {}
+    jl = sel_mine["rows"]["U|JOINT|i8o64|l0.1"]["seeds"]
+    s21 = sel_mine["rows"]["U|SEQ-21|i8o64|l0.1"]["seeds"]
+    breach = max(SEEDS, key=lambda k: jl[k]["auc"]["v2"] - (s21[k]["auc"]["v2"] + BUFFER))
+    return {"lev": lev, "eps": eps, "sel": sel_mine, "gate_configs": checks["capacity_gate"]["configs"], "util": util,
+            "a1": checks["a1_historical"]["seeds"], "stage_b": checks["stage_b_search"], "inner": own_in,
+            "b_terms": own_b_terms, "restore": restore.get("status"), "deploy": checks.get("deployment_parity", {}).get("status"),
+            "scored": EL["scored_labels"], "breach_seed": breach, "n_assess": int(EL["assessment_role"]["rows"]),
+            "n_pol_units": sum(1 for q in UNITS.iterdir() if q.name.startswith("pol__")),
+            "n_composed": checks["source_composition"]["per_seed"]["s0"]["policies_composed"], "copy": copy0,
+            "n_units": sum(1 for q in UNITS.iterdir() if q.is_dir()),
+            "controls_ok": checks["controls"]["status"] == "PASS" and checks["controls"]["null_calibration_exceedances"] == 0,
+            "chron": {"pred_push": iso(cs["predictions"]["first_push_time"]) if cs["predictions"]["first_push_time"] else None,
+                      "el_push": iso(gate.get("first_push_time")), "el_versions": gate.get("commits"),
+                      "refusal_1607": sum(1 for x in ca.get("lead_stage_holds_with_nonzero_exit", [])
+                                          if x["label"].startswith("A:controls") and x["at"].startswith("2026-10-06T05:16")) == 2,
+                      "c_mutation_reacquired": iso(unrel.get("C:mutation", {}).get("slot_reacquired_at")),
+                      "a1_push": iso(ca.get("amendment_A1", {}).get("first_push")),
+                      "a1_before_select": bool(ca.get("amendment_A1", {}).get("pushed_before_select"))},
+            "cost": {"B": (len(role("B")), sum(e["cpu_s"] for e in role("B"))),
+                     "D": (len(role("D")), sum(e["cpu_s"] for e in role("D"))),
+                     "A_holds_at_doc": sum(1 for e in acq if str(e.get("label", "")).startswith("A:") and infer_end and
+                                           parse_iso(e["at"]) <= infer_end),
+                     "A_cpu_at_doc": sum(e["cpu_s"] for e in a_doc),
+                     "C": (sum(1 for e in acq if str(e.get("label", "")).startswith("C:")), sum(e["cpu_s"] for e in role("C"))),
+                     "C_cpu_plus_unlogged": sum(e["cpu_s"] for e in role("C")) + 40.0,
+                     "peak_rss_gb": max(peaks.values()) if peaks else None, "store_mib": store / 2 ** 20,
+                     "science_h": (infer_end - parse_iso("2026-10-06T03:48:42Z")).total_seconds() / 3600 if infer_end else None,
+                     "worker_rows": rows}}
+
+
 def check_units_complete(prefixes=("tea__", "ref__")):
     bad, n_ok, kinds = [], 0, {}
     for d in sorted(q for q in UNITS.iterdir() if q.is_dir()):
@@ -5132,7 +5699,7 @@ def walk_flags(checks):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phase", type=int, default=0, choices=(0, 1, 2, 3))
+    ap.add_argument("--phase", type=int, default=0, choices=(0, 1, 2, 3, 4))
     ap.add_argument("--no-write", action="store_true")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-refit", action="store_true", help="skip the descriptive own head refits")
@@ -5214,6 +5781,15 @@ def main():
             checks["chronology_assessment"] = check_late_chronology(gate, EL)
             if not args.no_refit:
                 checks["attacker_refits"] = check_refits(D, L, LU, T, own_in, preds, EL)
+            if args.phase >= 4:
+                checks["deployment_parity"] = check_deployment(D, T)
+                checks["restore_parity"] = check_restore(D, LU, T)
+                checks["deployment_restore"] = res(worst(checks["deployment_parity"]["status"],
+                                                         checks["restore_parity"]["status"]),
+                                                   deployment=checks["deployment_parity"]["status"],
+                                                   restore=checks["restore_parity"]["status"])
+                ctx = build_doc_ctx(checks, lev, eps, sel_mine, util, own_in, own_b_terms, EL, gate)
+                checks["decision_documents"] = check_documents(ctx)
             checks["unit_custody"] = check_units_complete(("tea__", "ref__", "a1__", "dir__", "pol__", "fine__", "inner__",
                                                            "outer__"))
     loaded = sorted(m for m in sys.modules if m.split(".")[0] in _FORBIDDEN_TOP)
