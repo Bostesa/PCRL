@@ -1,0 +1,225 @@
+{
+ "fitting": {
+  "owner": "role B (compressor)",
+  "written_at": "2026-10-06T04:27:05Z",
+  "data": "SYNTHETIC ONLY (qpc/tests/test_method.py synth: 45,000 rows, first 15,434 = fitting rows; income K=2 with 195 exact 0/1 rows and class imbalance; occupation K=6 with class 5 never predicted; binary S correlated with both scores). No Adult row, task label or SEX was read.",
+  "environment": {
+   "threads": "OMP_NUM_THREADS=1, one process",
+   "semaphore": "every run under qpc.sema (labels B:stagea-synthetic-timing, B:stageB-synthetic-timing-s0, B:stageB-synthetic-timing-3seeds)",
+   "python": "3.13.7",
+   "machine": "arm64"
+  },
+  "measure": "process CPU seconds (time.process_time) inside the worker; wall within 1% of CPU",
+  "stage_a": {
+   "seeds": 3,
+   "a1_unit_cpu_s": [
+    0.468,
+    0.551,
+    0.547
+   ],
+   "recipient_fit_cpu_s": {
+    "income_m4": [
+     0.13,
+     0.15
+    ],
+    "income_m8": [
+     0.22,
+     0.25
+    ],
+    "occupation_m8": [
+     0.39,
+     0.55
+    ],
+    "occupation_m16": [
+     0.62,
+     0.73
+    ],
+    "occupation_m32": [
+     1.29,
+     1.47
+    ],
+    "occupation_m64": [
+     2.03,
+     2.24
+    ]
+   },
+   "pair_units_8_cpu_s": [
+    0.3,
+    0.32
+   ],
+   "per_seed_total_cpu_s_about": 6,
+   "all_winners_converged": true,
+   "max_rounds_used": 100
+  },
+  "stage_b": {
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "lams": [
+    0.01,
+    0.1,
+    1.0
+   ],
+   "rates_timed": [
+    "i8o64",
+    "i8o32"
+   ],
+   "fine_partitions": {
+    "caps": {
+     "income": 32,
+     "occupation": 128
+    },
+    "F": [
+     64,
+     641
+    ],
+    "cpu_s_per_seed": [
+     4.75,
+     5.01,
+     5.3
+    ],
+    "max_rounds_used": 168,
+    "all_converged": true
+   },
+   "class_only_units": {
+    "units": 3,
+    "cpu_total_s": 0.93,
+    "cpu_mean_s": 0.309,
+    "cpu_max_s": 0.35
+   },
+   "per_family_by_rate": {
+    "i8o64": {
+     "FINE-TASK": {
+      "units": 3,
+      "cpu_total_s": 2.24,
+      "cpu_mean_s": 0.747,
+      "cpu_max_s": 0.791
+     },
+     "LOCAL": {
+      "units": 9,
+      "cpu_total_s": 6.53,
+      "cpu_mean_s": 0.725,
+      "cpu_max_s": 0.778
+     },
+     "SEQ-12": {
+      "units": 9,
+      "cpu_total_s": 10.98,
+      "cpu_mean_s": 1.22,
+      "cpu_max_s": 1.379
+     },
+     "SEQ-21": {
+      "units": 9,
+      "cpu_total_s": 11.09,
+      "cpu_mean_s": 1.232,
+      "cpu_max_s": 1.309
+     },
+     "JOINT": {
+      "units": 9,
+      "cpu_total_s": 36.96,
+      "cpu_mean_s": 4.107,
+      "cpu_max_s": 4.608
+     }
+    },
+    "i8o32": {
+     "FINE-TASK": {
+      "units": 3,
+      "cpu_total_s": 2.25,
+      "cpu_mean_s": 0.75,
+      "cpu_max_s": 0.766
+     },
+     "LOCAL": {
+      "units": 9,
+      "cpu_total_s": 7.15,
+      "cpu_mean_s": 0.795,
+      "cpu_max_s": 0.892
+     },
+     "SEQ-12": {
+      "units": 9,
+      "cpu_total_s": 12.4,
+      "cpu_mean_s": 1.377,
+      "cpu_max_s": 1.469
+     },
+     "SEQ-21": {
+      "units": 9,
+      "cpu_total_s": 12.68,
+      "cpu_mean_s": 1.409,
+      "cpu_max_s": 1.511
+     },
+     "JOINT": {
+      "units": 9,
+      "cpu_total_s": 37.58,
+      "cpu_mean_s": 4.176,
+      "cpu_max_s": 4.628
+     }
+    }
+   },
+   "joint_units_with_a_start_not_converged_in_5_sweeps": {
+    "i8o64": 5,
+    "i8o32": 6
+   },
+   "joint_unresolved_local_optima_per_unit": {
+    "i8o64": [
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4
+    ],
+    "i8o32": [
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4,
+     4
+    ]
+   },
+   "joint_winners": {
+    "i8o64": [
+     "FINE-TASK:refined",
+     "LOCAL:refined",
+     "SEQ-12:refined",
+     "SEQ-21:refined"
+    ],
+    "i8o32": [
+     "LOCAL:refined",
+     "SEQ-12:refined",
+     "SEQ-21:refined"
+    ]
+   },
+   "joint_note": "JOINT units received the four witnesses as passed-in policies (no recomputation); SEQ units include the old-rule stage-1 diagnostic fit.",
+   "bank_cpu_s_3_seeds": {
+    "single_rate_i8o64_full_lams": 83.8,
+    "two_rates_i8o64_i8o32_full_lams": 155.8
+   },
+   "peak_rss_bytes": 512622592
+  },
+  "budget_rule": "Allowed reductions (lam -> {0.01, 0.1} or first eligible rate only) apply only if the Stage B fitting would exceed about 2 CPU-hours.",
+  "recommendation": {
+   "bank": "FULL",
+   "lams": [
+    0.01,
+    0.1,
+    1.0
+   ],
+   "rates": "the gate-selected rate(s) unchanged (gate selected exactly one: i8o64)",
+   "reduction_applied": false,
+   "reason": "Measured Stage B fitting for the selected single rate is about 1.4 CPU-minutes for 3 seeds (two rates would be about 2.6 CPU-minutes), far below the 2 CPU-hour threshold; no reduction is permitted or needed.",
+   "expected_real_data_units": {
+    "privacy": 36,
+    "fine_task": 3,
+    "class_only": 3,
+    "fine_partition_jobs": 3
+   }
+  }
+ }
+}

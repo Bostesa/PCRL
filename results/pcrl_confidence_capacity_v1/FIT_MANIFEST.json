@@ -118,7 +118,7 @@
   "note": "the A1 200-round fixed-initialization fit is A2's source-start receipt at (8,8), not an extra nominal unit; per-class restarts counted separately in receipts"
  },
  "stage_b": {
-  "status": "CONDITIONAL on CAPACITY_GATE_MET; NOT_TRIGGERED otherwise",
+  "status": "TRIGGERED (CAPACITY_GATE_MET at U|DIRECT-TASK|i8o64 only); bank recorded in STAGE_B_LOCK",
   "planned_full": {
    "rates": "up to 2 selected Stage A rates",
    "lams": [
@@ -144,7 +144,32 @@
   "allowed_reductions_from_synthetic_timing_only": [
    "lambda -> {0.01, 0.1}",
    "first eligible rate only"
-  ]
+  ],
+  "locked_bank": {
+   "rates": [
+    [
+     8,
+     64
+    ]
+   ],
+   "lams": [
+    0.01,
+    0.1,
+    1.0
+   ],
+   "bank": "full (no reduction; TIMING.json)",
+   "units": {
+    "fine_partitions": [
+     "fine__s0",
+     "fine__s1",
+     "fine__s2"
+    ],
+    "class_only": 3,
+    "fine_task": 3,
+    "privacy_mapping_pairs": 36
+   },
+   "logical_mapping_pair_units_total": "36 privacy + 3 FINE-TASK + 24 Stage A DIRECT-TASK + 3 A1 = 66 (the prompt's 105 assumes two selected rates; only one rate was eligible)"
+  }
  },
  "inner": {
   "candidates": "every Stage A code, every Stage B code, SRC|U, SRC|RAW-J_b0.3, REF|E, REF|F, REF|F0 (x3 seeds)"

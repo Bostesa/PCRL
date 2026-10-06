@@ -658,3 +658,408 @@ def test_deploy_refuses_mismatched_or_old_policies(deployed, capsys, tmp_path):
     zz["kind"] = "dpc.PolicyPair"
     (tmp_path / "old.json").write_text(json.dumps(zz))
     _expect_refusal(D, capsys, _args(D, **{"--policy": str(tmp_path / "old.json")}), "qpc.PolicyPair")
+
+
+# =============================================================================================== Stage B
+from qpc import compress as CP  # noqa: E402
+from qpc import partition as PA  # noqa: E402
+
+
+@pytest.fixture(scope="module")
+def bsmall():
+    P1, P2, S = synth(N=2500, seed=3, underflow=40)
+    d1, d2 = P1.argmax(1), P2.argmax(1)
+    f1, f2, rec = PA.fit_fine_pair(P1, d1, P2, d2, caps={1: 8, 2: 12})
+    return dict(P1=P1, P2=P2, S=S, d1=d1, d2=d2, f1=f1, f2=f2, rec=rec)
+
+
+@pytest.fixture(scope="module")
+def bbank(bsmall):
+    s = bsmall
+    out = {}
+    m1, m2 = 3, 5
+    out[("CLASS", None)] = CP.fit_policy_pair("CLASS", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"],
+                                              1, 1, None)
+    ft = CP.fit_policy_pair("FINE-TASK", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], m1, m2, None)
+    out[("FINE-TASK", None)] = ft
+    for lam in (0.1, 1.0, 10.0):
+        w = {"FINE-TASK": ft[0]}
+        for fam in ("LOCAL", "SEQ-12", "SEQ-21"):
+            out[(fam, lam)] = CP.fit_policy_pair(fam, s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"],
+                                                 m1, m2, lam)
+            w[fam] = out[(fam, lam)][0]
+        out[("JOINT", lam)] = CP.fit_policy_pair("JOINT", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"],
+                                                 s["S"], m1, m2, lam, witnesses=w)
+    return out
+
+
+def test_fine_partitions_caps_starts_and_support(bsmall, tdata):
+    s = bsmall
+    for r, f, cap in ((1, s["f1"], 8), (2, s["f2"], 12)):
+        for c in range(f.K):
+            assert f.cells_of(c).size <= cap
+        pcs = s["rec"][f"r{r}"]["per_class"]
+        for pc in pcs:
+            if not pc["fallback"]:
+                assert [x["start"] for x in pc["starts"]] == list(KM.STARTS)
+                assert pc["winner"] in KM.STARTS
+    assert s["f2"].fallback[s["f2"].cells_of(5)].all()
+    sup = s["rec"]["support"][2]
+    assert sup[5]["fallback"] and sup[0]["cells"] == s["f2"].cells_of(0).size
+    T, tr, _ = tdata
+    rec, files = PA.fine_unit(T, tr, caps={1: 32, 2: 128})
+    KM.json_safe(rec)
+    f1, f2 = PA.load_fine(json.loads(_write_read(files["fine.json"])))
+    assert max(f2.cells_of(c).size for c in range(6)) > 64                  # a real 128-cap fine partition
+    assert np.array_equal(files["assign.npz"]["f2"], DPT.assign_fine(T["p2"], T["d2"], f2))
+    assert set(files["assign.npz"]) == {"row_id", "f1", "f2"}
+
+
+def _labels_merge(lab, a, b):
+    lab = lab.copy()
+    lab[lab == b] = a
+    return lab
+
+
+def _random_state(s, rng):
+    """A random class-respecting coarse grouping of the fine cells of both recipients."""
+    labs = []
+    for f in (s["f1"], s["f2"]):
+        lab = np.arange(f.F)
+        for c in range(f.K):
+            idx = f.cells_of(c)
+            if idx.size > 1:
+                g = rng.integers(0, max(2, idx.size // 2), idx.size)
+                for gg in np.unique(g):
+                    mem = idx[g == gg]
+                    lab[mem] = mem.min()
+        labs.append(lab)
+    return labs
+
+
+def _table(s):
+    a1 = DPT.assign_fine(s["P1"], s["d1"], s["f1"])
+    a2 = DPT.assign_fine(s["P2"], s["d2"], s["f2"])
+    return CP.fine_table(a1, a2, s["S"], s["f1"].F, s["f2"].F)
+
+
+def test_merge_and_move_deltas_vs_bruteforce(bsmall):
+    s = bsmall
+    T = _table(s)
+    rng = np.random.default_rng(7)
+    W = CP.Weights(1.0, 0.7, 0.3, 0.45, 0.9)
+    checked = 0
+    for _ in range(3):
+        l1, l2 = _random_state(s, rng)
+        st = CP.State(s["f1"], s["f2"], T, l1, l2)
+        v0 = st.value(W)
+        for r in (1, 2):
+            for c in range(st.fine[r].K):
+                if st.count(r, c) < 2:
+                    continue
+                labs, ia, ib, delta, dD, dI, dI12 = st.merge_deltas(r, c, W)
+                for j in range(0, ia.size, max(1, ia.size // 4)):
+                    a, b = int(labs[ia[j]]), int(labs[ib[j]])
+                    nl = [l1, l2]
+                    nl[r - 1] = _labels_merge(st.labels(r), a, b)
+                    other = st.labels(2 if r == 1 else 1)
+                    nl[2 - r] = other
+                    v1 = CP.State(s["f1"], s["f2"], T, nl[0], nl[1]).value(W)
+                    assert abs((v1 - v0) - delta[j]) < 1e-12
+                    checked += 1
+            G = st.G(r)
+            for f in range(0, st.fine[r].F, 3):
+                res = st.move_deltas(r, f, W, G)
+                if res is None:
+                    continue
+                B, delta, _, _, _ = res
+                for j in range(B.size):
+                    lab = st.labels(r).copy()
+                    lab[f] = B[j]
+                    lab = np.array([min(np.flatnonzero(lab == lab[g])) for g in range(lab.size)])
+                    nl = [st.labels(1), st.labels(2)]
+                    nl[r - 1] = lab
+                    v1 = CP.State(s["f1"], s["f2"], T, nl[0], nl[1]).value(W)
+                    assert abs((v1 - v0) - delta[j]) < 1e-12
+                    checked += 1
+    assert checked > 200
+    # applied merges/moves keep the incremental tables equal to a fresh rebuild
+    l1, l2 = _random_state(s, rng)
+    st = CP.State(s["f1"], s["f2"], T, l1, l2)
+    labs, ia, ib, *_ = st.merge_deltas(2, 0, W)
+    st.apply_merge(2, int(labs[ia[0]]), int(labs[ib[0]]))
+    G = st.G(1)
+    f = next(f for f in range(st.fine[1].F) if st.move_deltas(1, f, W, G) is not None)
+    st.apply_move(1, f, int(st.move_deltas(1, f, W, G)[0][0]), G)
+    fresh = CP.State(s["f1"], s["f2"], T, st.labels(1), st.labels(2))
+    for k, v in st.terms().items():
+        assert abs(v - fresh.terms()[k]) < 1e-13
+
+
+def test_objective_matches_row_level_all_families(bbank):
+    for key, (pair, rec) in bbank.items():
+        assert rec["row_level_max_abs_diff"] <= 1e-12, key
+        for k in ("D1", "D2", "I1", "I2", "I12"):
+            assert abs(rec["final"][k] - rec["row_level_check"][k]) <= 1e-12
+
+
+def test_at_most_cap_and_extra_merges(bbank, bsmall):
+    s = bsmall
+    caps = {1: 3, 2: 5}
+    extra_seen = 0
+    for (fam, lam), (pair, rec) in bbank.items():
+        m1, m2 = (1, 1) if fam == "CLASS" else (3, 5)
+        assert max(pair.p1.tokens_per_class()) <= m1 and max(pair.p2.tokens_per_class()) <= m2
+        assert rec["r1"]["alphabet"] == pair.p1.T and rec["r2"]["alphabet"] == pair.p2.T
+        merges = [x for st in rec.get("stages", []) for x in st["merges"] + st.get("moves", [])
+                  if x.get("kind") == "extra"]
+        if "starts" in rec:
+            merges += [x for v in rec["starts"].values() for x in v.get("merges", []) + v["moves"]
+                       if x.get("kind") == "extra"]
+        for x in merges:
+            assert x["increment"] < -CP.TOL
+        extra_seen += len(merges)
+        if fam == "FINE-TASK":                    # distortion merges never improve: exactly min(cap, fine cells)
+            for r, pol, f in ((1, pair.p1, s["f1"]), (2, pair.p2, s["f2"])):
+                for c in range(f.K):
+                    assert pol.tokens_per_class()[c] == min(caps[r], f.cells_of(c).size)
+    assert extra_seen > 0
+    lo = bbank[("SEQ-21", 10.0)][0]
+    assert sum(lo.p1.tokens_per_class()) + sum(lo.p2.tokens_per_class()) < 2 * 3 + 5 * 5 + 1
+
+
+def test_sequential_first_stage_conditions_on_other_decision(bbank, bsmall):
+    s = bsmall
+    T = _table(s)
+    for lam in (0.1, 1.0, 10.0):
+        for fam, a, b in (("SEQ-12", 1, 2), ("SEQ-21", 2, 1)):
+            pair, rec = bbank[(fam, lam)]
+            st1, st2 = rec["stages"]
+            assert st1["weights"] == CP.W_joint(lam).__dict__ and st2["weights"] == CP.W_joint(lam).__dict__
+            assert st1["recipients"] == [a] and st2["recipients"] == [b]
+            # stage-one objective = F_joint with the other recipient at its CLASS-ONLY release (brute force)
+            fa = (s["f1"], s["f2"])[a - 1]
+            pol_a = (pair.p1, pair.p2)[a - 1]
+            labs = {a: CP.labels_from_policy(pol_a), b: CP.class_labels((s["f1"], s["f2"])[b - 1])}
+            stc = CP.State(s["f1"], s["f2"], T, labs[1], labs[2])
+            Pa, Pb = (s["P1"], s["P2"]) if a == 1 else (s["P2"], s["P1"])
+            ta, qa, _ = RL.encode(pol_a, Pa)
+            db = Pb.argmax(1)
+            I_joint_cls = DCP.mi_plugin(s["S"], ta * 10 + db)
+            bc = rec["baseline_correction"]
+            assert bc["counterpart"] == "CLASS-ONLY"
+            assert abs(bc["I12_with_class_counterpart"] - I_joint_cls) < 1e-12
+            assert abs(bc["stage1_F_joint_with_class_counterpart"] - CP.F_values(stc.terms(), lam)["F_joint"]) < 1e-12
+            assert bc["conditional_I_S_decision_given_code"] >= -1e-12
+            assert "old_rule_stage1" in bc and "same_map_as_corrected" in bc["old_rule_stage1"]
+            # the first map is frozen: the released first map equals the stage-one result
+            assert abs(st1["after_refine"][f"D{a}"] - rec["final"][f"D{a}"]) < 1e-12
+
+
+def _redundant_fixture(N=4000, seed=0):
+    """Recipient 2's decision carries S; recipient 1's within-class clue u is a noisy copy of S. Under the old
+    surrogate (other recipient constant) the clue looks expensive; given the disclosed decision d2 it adds little."""
+    rng = np.random.default_rng(seed)
+    S = rng.integers(0, 2, N)
+    d2 = np.where(rng.random(N) < 0.97, S, 1 - S)
+    u = np.where(rng.random(N) < 0.9, S, 1 - S)
+    p1 = np.array([0.93, 0.70])[u] + rng.choice([0.0, 0.01], N)
+    P1 = np.stack([p1, 1 - p1], 1)
+    p2 = np.where(d2 == 0, 0.8, 0.2) + rng.choice([0.0, 0.01], N)
+    P2 = np.stack([p2, 1 - p2], 1)
+    return P1, P2, S
+
+
+def test_sequential_correction_changes_stage_one():
+    P1, P2, S = _redundant_fixture()
+    f1, f2, _ = PA.fit_fine_pair(P1, None, P2, None, caps={1: 8, 2: 8})
+    lam = 0.25
+    pair, rec = CP.fit_policy_pair("SEQ-12", f1, f2, P1, None, P2, None, S, 2, 2, lam)
+    bc = rec["baseline_correction"]
+    old = bc["old_rule_stage1"]
+    # the corrected stage one sees that d2 already discloses S: it keeps the clue the old surrogate would remove
+    assert not old["same_map_as_corrected"]
+    assert old["I1"] < bc["I1"]
+    assert bc["stage1_F_joint_with_class_counterpart"] < old["F_joint_with_class_counterpart"]
+
+
+def _xor_fixture(N=4000, seed=0):
+    """S = u XOR v; u (resp. v) is a large within-class confidence difference of recipient 1 (resp. 2); w is a small
+    uninformative difference. Each recipient alone carries ~0 information about S; the coalition carries ~1 bit."""
+    rng = np.random.default_rng(seed)
+    u, v, w1, w2 = (rng.integers(0, 2, N) for _ in range(4))
+    S = u ^ v
+    p1 = np.array([0.95, 0.65])[u] + np.array([0.0, 0.02])[w1]
+    p2 = np.array([0.93, 0.62])[v] + np.array([0.0, 0.02])[w2]
+    return np.stack([p1, 1 - p1], 1), np.stack([p2, 1 - p2], 1), S
+
+
+def test_xor_coalition_fixture():
+    P1, P2, S = _xor_fixture()
+    f1, f2, _ = PA.fit_fine_pair(P1, None, P2, None, caps={1: 8, 2: 8})
+    ft = CP.fit_policy_pair("FINE-TASK", f1, f2, P1, None, P2, None, S, 16, 16, None)[1]["final"]
+    assert ft["I1"] < 0.003 and ft["I2"] < 0.003 and ft["I12"] > 0.6
+    lam = 10.0
+    loc = CP.fit_policy_pair("LOCAL", f1, f2, P1, None, P2, None, S, 2, 2, lam)[1]["final"]
+    jnt = CP.fit_policy_pair("JOINT", f1, f2, P1, None, P2, None, S, 2, 2, lam)[1]["final"]
+    seq = CP.fit_policy_pair("SEQ-12", f1, f2, P1, None, P2, None, S, 2, 2, lam)[1]["final"]
+    assert loc["I12"] > 0.6                                           # local criteria cannot see the coalition
+    assert jnt["I12"] < 0.05 and jnt["F_joint"] < loc["F_joint"]
+    assert seq["I12"] < 0.05                                          # stage two sees the frozen first map
+
+
+def _enumerate_partitions(items, maxblocks):
+    if not items:
+        yield []
+        return
+    first, rest = items[0], items[1:]
+    for part in _enumerate_partitions(rest, maxblocks):
+        for i in range(len(part)):
+            yield part[:i] + [[first] + part[i]] + part[i + 1:]
+        if len(part) < maxblocks:
+            yield [[first]] + part
+
+
+def _all_maps(fine, m):
+    per_class = []
+    for c in range(fine.K):
+        idx = [int(x) for x in fine.cells_of(c)]
+        per_class.append(list(_enumerate_partitions(idx, m)))
+    for combo in itertools.product(*per_class):
+        lab = np.arange(fine.F)
+        for part in combo:
+            for block in part:
+                lab[block] = min(block)
+        yield lab
+
+
+def test_exhaustive_optimiser_gaps_on_tiny_xor():
+    """Tiny XOR fixture: every class-preserving map with <= m cells per class of both recipients is enumerated;
+    every family's fitted objective is compared with the exhaustive optimum of its own objective (gaps recorded)."""
+    rng = np.random.default_rng(12)
+    N = 900
+    u, v = rng.integers(0, 2, N), rng.integers(0, 2, N)
+    w1, w2 = rng.integers(0, 2, N), rng.integers(0, 2, N)
+    S = u ^ v
+    S = np.where(rng.random(N) < 0.1, 1 - S, S)                     # 10% label noise
+    p1 = np.array([0.95, 0.7])[u] + np.array([0.0, 0.05])[w1]
+    p1 = np.where(rng.random(N) < 0.25, 0.3 + 0.1 * w1, p1)            # class 1 rows with two fine values
+    p2 = np.array([0.92, 0.66])[v] + np.array([0.0, 0.05])[w2]
+    P1, P2 = np.stack([p1, 1 - p1], 1), np.stack([p2, 1 - p2], 1)
+    f1, f2, _ = PA.fit_fine_pair(P1, None, P2, None, caps={1: 4, 2: 4})
+    T = CP.fine_table(DPT.assign_fine(P1, None, f1), DPT.assign_fine(P2, None, f2), S, f1.F, f2.F)
+    m1, m2 = 2, 2
+    gaps = {}
+    for lam in (0.05, 0.5, 5.0):
+        best = {"F_task": np.inf, "F_local": np.inf, "F_joint": np.inf}
+        count = 0
+        for l1 in _all_maps(f1, m1):
+            for l2 in _all_maps(f2, m2):
+                fv = CP.F_values(CP.State(f1, f2, T, l1, l2).terms(), lam)
+                count += 1
+                for k in best:
+                    best[k] = min(best[k], fv[k])
+        fits = {}
+        for fam in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT"):
+            lm = None if fam == "FINE-TASK" else lam
+            pair, rec = CP.fit_policy_pair(fam, f1, f2, P1, None, P2, None, S, m1, m2, lm)
+            fv = CP.F_values(rec["final"], lam)
+            key = {"FINE-TASK": "F_task", "LOCAL": "F_local"}.get(fam, "F_joint")
+            gap = fv[key] - best[key]
+            assert gap >= -1e-12
+            fits[fam] = {"objective": key, "fitted": fv[key], "exhaustive_best": best[key], "gap": gap}
+            if fam == "JOINT":
+                assert all(fv["F_joint"] <= rec["witness_dominance"][w]["witness_F_joint"] for w in CP.WITNESSES)
+        gaps[lam] = {"maps": count, **fits}
+    print(json.dumps({"exhaustive_xor_gaps": gaps}, indent=1))
+    assert all(gaps[l]["maps"] > 50 for l in gaps)
+
+
+def test_joint_witness_dominance_and_validation(bbank, bsmall):
+    s = bsmall
+    for lam in (0.1, 1.0, 10.0):
+        jp, jr = bbank[("JOINT", lam)]
+        fj = jr["final"]["F_joint"]
+        for w in CP.WITNESSES:
+            wp = bbank[(w, None if w == "FINE-TASK" else lam)][0]
+            wv = CP._brute_terms(wp, s["P1"], s["d1"], s["P2"], s["d2"], s["S"])[0]
+            assert fj <= CP.F_values(wv, lam)["F_joint"] + 1e-12
+            assert jr["starts"][w]["source"] == "passed_in"
+        assert len(jr["candidates"]) == 9 and jr["winner"]["start"] in CP.JOINT_START_ORDER
+        for u in jr["unresolved_local_optima"]:
+            assert u["gap_to_winner"] > 0
+    # recomputed witnesses give the same JOINT pair as passed-in witnesses
+    rp, rr = CP.fit_policy_pair("JOINT", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], 3, 5, 1.0)
+    assert rp.fingerprint() == bbank[("JOINT", 1.0)][0].fingerprint()
+    assert all(rr["starts"][w]["source"] == "recomputed" for w in CP.WITNESSES)
+    bad = {"LOCAL": bbank[("LOCAL", 0.1)][0]}
+    with pytest.raises(ValueError, match="different family/caps/lam"):
+        CP.fit_policy_pair("JOINT", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], 3, 5, 1.0,
+                           witnesses=bad)
+    with pytest.raises(ValueError, match="unknown witness"):
+        CP.fit_policy_pair("JOINT", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], 3, 5, 1.0,
+                           witnesses={"DIRECT-TASK": bbank[("FINE-TASK", None)][0]})
+
+
+def test_stage_b_determinism_and_label_independence(bsmall, bbank):
+    s = bsmall
+    for fam, lam in (("LOCAL", 1.0), ("SEQ-21", 1.0), ("JOINT", 10.0)):
+        w = None if fam != "JOINT" else {x: bbank[(x, None if x == "FINE-TASK" else lam)][0] for x in CP.WITNESSES}
+        p, r = CP.fit_policy_pair(fam, s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], 3, 5, lam,
+                                  witnesses=w)
+        p0, r0 = bbank[(fam, lam)]
+        assert p.fingerprint() == p0.fingerprint()
+        strip = lambda x: json.dumps({k: v for k, v in x.items() if k not in ("wall_seconds", "cpu_seconds")},  # noqa
+                                     sort_keys=True, default=str)
+        assert strip(r) == strip(r0)
+    Sp = s["S"][np.random.default_rng(0).permutation(s["S"].size)]
+    for fam in ("CLASS", "FINE-TASK"):
+        m = (1, 1) if fam == "CLASS" else (3, 5)
+        p = CP.fit_policy_pair(fam, s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], Sp, *m, None)[0]
+        assert p.fingerprint() == bbank[(fam, None)][0].fingerprint()      # task families never read S
+    # LOCAL with lam = 0 aliases FINE-TASK
+    p = CP.fit_policy_pair("LOCAL", s["f1"], s["f2"], s["P1"], s["d1"], s["P2"], s["d2"], s["S"], 3, 5, 0.0)[0]
+    al = CP.find_aliases({"FINE-TASK": bbank[("FINE-TASK", None)][0], "LOCAL0": p})
+    assert al["pair"]["LOCAL0"] == "FINE-TASK"
+
+
+def test_stage_b_class_preservation_and_restore(bbank, tmp_path):
+    rng = np.random.default_rng(4)
+    for key, (pair, rec) in bbank.items():
+        for pol in pair:
+            P = adversarial_rows(pol.K, rng, 50)
+            tok, q, dec = RL.encode(pol, P)
+            assert np.array_equal(dec, P.argmax(1))
+        RL.save_policy(pair, tmp_path / "p.json")
+        back = RL.load_policy(tmp_path / "p.json")
+        assert back.fingerprint() == pair.fingerprint() and back.config == pair.config
+    # receipts are strict JSON
+    for key, (pair, rec) in bbank.items():
+        KM.json_safe(rec)
+
+
+def test_fit_unit_interface(tdata):
+    T, tr, S = tdata
+    rec, files = PA.fine_unit(T, tr, caps={1: 8, 2: 16})
+    fine = json.loads(_write_read(files["fine.json"]))
+    meta = {**META, "config": "U|FINE-TASK|i4o8"}
+    r_ft, f_ft = CP.fit_unit("FINE-TASK", fine, T, tr, S[tr], 4, 8, None, meta)
+    pol_ft = json.loads(_write_read(f_ft["policy.json"]))
+    wit = {"FINE-TASK": pol_ft}
+    for fam in ("LOCAL", "SEQ-12", "SEQ-21"):
+        r, f = CP.fit_unit(fam, fine, T, tr, S[tr], 4, 8, 0.1, {**META, "config": f"U|{fam}|i4o8|l0.1"})
+        wit[fam] = json.loads(_write_read(f["policy.json"]))
+    r, f = CP.fit_unit("JOINT", fine, T, tr, S[tr], 4, 8, 0.1, {**META, "config": "U|JOINT|i4o8|l0.1"}, wit)
+    assert r["config"] == "U|JOINT|i4o8|l0.1" and all(r["starts"][w]["source"] == "passed_in" for w in CP.WITNESSES)
+    out = f["release.npz"]
+    assert sorted(out) == sorted(["row_id", "tok1", "q1", "hard1", "alpha1", "tok2", "q2", "hard2", "alpha2"])
+    assert np.array_equal(out["hard1"], T["d1"]) and np.array_equal(out["hard2"], T["d2"])
+    pp = RL.PolicyPair.from_dict(json.loads(_write_read(f["policy.json"])))
+    assert pp.config["m1"] == 4 and pp.config["m2"] == 8 and pp.config["lam"] == 0.1
+    assert RL.check_bound(pp)["teacher_model_sha256"] == SHA_T
+    rc, fc = CP.fit_unit("CLASS", fine, T, tr, S[tr], 1, 1, None, {**META, "config": "U|CLASS|i1o1"})
+    assert rc["r2"]["alphabet"] == 6 and rc["config"] == "U|CLASS|i1o1"
+    with pytest.raises(ValueError, match="differs"):
+        CP.fit_unit("LOCAL", fine, T, tr, S[tr], 4, 8, 0.1, {**META, "config": "U|LOCAL|i4o8|l1"})
+    with pytest.raises(ValueError, match="binary"):
+        CP.fit_unit("LOCAL", fine, T, tr, S[tr] + 2, 4, 8, 0.1, META)

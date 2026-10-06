@@ -191,9 +191,117 @@ OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m qpc.deploy --unit <tea
 
 ## 6. Stage B (`qpc/partition.py`, `qpc/compress.py`)
 
-To follow with the Stage B deliverable (06:15Z target).
+### 6.1 Fine partitions (`partition.fine_unit`, `fit_fine_pair`)
 
-## 7. Synthetic timing (Stage A)
+Per teacher/seed, on DEFENSE_FIT probabilities only: `fit_recipient(P_i, d_i, K_i, cap_i)` with caps income 32 and
+occupation 128 per predicted class, the same three starts, the same <= 200-round rule, best coherent iterate, empty
+cell handling, per-class start selection and fallback cell as section 3. Receipts: every per-class start result and
+winner, and per class the support (cells, rows, min and median cell size, singleton and n < 5 cells, fallback).
+`fine_unit(T, tr, caps)` returns `fine.json` (both `qpc.FinePartition` records) and `assign.npz` (`row_id`, `f1`,
+`f2` fine-cell IDs of ALL rows; private fitting state, never released) and asserts the fitting-row assignment counts
+equal the stored statistics. Real-shaped synthetic data gives F1 = 64 and F2 = 641 (5 x 128 + 1 fallback).
+
+### 6.2 Objective (`compress`)
+
+On the N fitting rows, with C_i the complete released token identity of recipient i:
+
+- `D_i = (1/N) sum_t [A_t - S_t . log q_t]`, `q_t = smooth(S_t / n_t, class_t)` (= mean fitting KL(p_i || decoded)).
+- `I_i = I(S; C_i)`, `I_12 = I(S; C_1, C_2)`: plug-in MI of the exact fitting count tables (no smoothing, 0 log 0 = 0),
+  `(1/N)[sum_cols phi(col) - sum_s n_s log n_s + N log N]`, `phi(col) = sum_s x_s log x_s - n_col log n_col`. n log n is
+  read from an exact table `XL[n] = n * log(n)` (n = 0..N; identical values to computing it on the fly).
+- `F_task = D1 + D2`; `F_local = D1 + D2 + lam (I1 + I2)/2`; `F_joint = D1 + D2 + lam ((I1 + I2)/2 + I12)`.
+- The fine table n(s, f1, f2) (int64) is built once from the deployed fine cells of the fitting rows (the partitions
+  are first re-validated: deployment on the fitting rows must reproduce their stored statistics); every coarse table
+  is an exact sum of it. Every reported objective is recomputed from scratch from the final state AND from the
+  released tokens / decoded vectors of the fitting rows (row-wise KL mean and direct plug-in MI); the receipt records
+  the maximum difference (asserted <= 1e-9; observed about 1e-15).
+
+### 6.3 Search engine (`compress.State`, `greedy`, `refine`)
+
+State per recipient: a label per fine cell (label = a member fine index, unique per coarse cell; coarse cells never
+cross predicted classes), per-label `n`, `S` (accumulated over members in increasing fine index), `h = -S . log q`,
+the label count table `n(s, c_i)` and the pair table `n(s, c_1, c_2)`. Exported groupings are canonical (every fine
+cell labelled by the lowest fine index of its coarse cell). Caps: m1 for income, m2 for occupation, per predicted
+class.
+
+1. **Greedy to the caps.** Each step evaluates every merge (same recipient, same predicted class, class above its
+   cap) of the recipients being optimised, with the exact objective increment from summed statistics and summed count
+   columns (including the pair table when the I12 weight is nonzero). The smallest increment is applied; candidates
+   within `TIE_TOL = 1e-12` of it are tied and the first in lexicographic order (recipient, class, label a, label b)
+   wins; the merged cell keeps the lower label. Positive increments are allowed and recorded. Candidate tables are
+   cached per (recipient, class): a merge invalidates its own class and, when the I12 weight is nonzero, every class
+   of the other recipient (exactly the candidates whose increments it changes).
+2. **Objective-improving extra merges ("at most the cap").** Then, repeatedly, the same evaluation over every class
+   with >= 2 coarse cells; the smallest increment is applied only if it is `< -TOL` (`TOL = 1e-12`), with the same tie
+   rule restricted to candidates `< -TOL`; stop when none improves. So a class may end with fewer than its cap; the
+   actual alphabet sizes are recorded. For F_task, merges never decrease distortion, so FINE-TASK keeps exactly
+   min(cap, fine cells) per class (tested).
+3. **Refinement sweeps** (at most `SWEEPS = 5`). A full sweep = (a) the single-fine-cell exchange pass: recipients
+   being optimised in order 1 then 2, fine cells in increasing index; a fine cell whose coarse cell has another member
+   (a move never empties a cell) is evaluated against every other coarse cell of its class with the exact objective
+   change; the best target (ties to the lowest coarse label) is accepted only if `Delta F < -TOL`; then (b) the
+   objective-improving merge pass of step 2. Converged = a sweep with no accepted move and no merge. A JOINT sweep
+   covers both recipients. Coarse labels are fixed during a sweep; tokens are canonicalised at the end.
+4. The search is greedy local search; no global optimality is claimed.
+
+Work counters per unit: greedy candidates and steps, extra-merge candidates and merges, refinement candidates and
+accepted moves; per stage/start: merges, positive-increment merges, moves, sweeps, convergence, stage objectives.
+
+### 6.4 Families (`compress.fit_policy_pair`, `fit_unit`)
+
+All deterministic, on the same fine partitions, caps (m1, m2):
+
+| Family | Exact rule |
+|---|---|
+| CLASS (`U|CLASS|i1o1`) | Every fine cell of a predicted class -> one token (a fallback class keeps its fallback token). |
+| FINE-TASK | Recipient 1: greedy + extra merges on D_1, recipient 2 likewise on D_2; `after_greedy` snapshot; then refinement of each recipient on its own objective. lam = None. |
+| LOCAL | As FINE-TASK with recipient i's objective D_i + lam I_i / 2. |
+| SEQ-12 | **Stage 1:** recipient 1 starts from its fine cells and is optimised (greedy, extra merges, refinement) under the full F_joint with recipient 2 held at its CLASS-ONLY release (one token per predicted class): stage-1 objective = D_1 + D_2(class) + lam((I_1 + I_2(class))/2 + I(S; C_1, d_2)). Freeze recipient 1. **Stage 2:** recipient 2 restarts from its fine cells and is optimised under F_joint given the frozen map. Recipient 1 is never revised (asserted). |
+| SEQ-21 | Mirror (recipient 2 first against recipient 1's class-only release). |
+| JOINT | Starts: (i) JOINT-GREEDY = greedy F_joint where each step may merge on either recipient (each to its own cap), extra merges, joint refinement; (ii) joint refinement (at most 5 sweeps) of the four witnesses FINE-TASK, LOCAL, SEQ-12, SEQ-21 at the same caps and lam (passed in as policies, validated to share the fine partitions, family, caps and lam; a missing slot is recomputed and recorded as `source = recomputed`). Candidates = the five refined starts and the four UNCHANGED witnesses; the lowest from-scratch F_joint wins by exact comparison, ties to the order JOINT-GREEDY, FINE-TASK, LOCAL, SEQ-12, SEQ-21, refined before unchanged. Asserted: final F_joint <= every unchanged witness's F_joint. Reported: each start's initial and refined F_joint, gap to the winner, whether it reached the winner's map, sweeps and convergence; `unresolved_local_optima` = refined starts ending at a different map with a strictly higher F_joint; `starts_not_converged`. |
+
+**Sequential baseline correction (reported in every SEQ unit, `baseline_correction`).** The source dpc stage one
+optimised D_r + 1.5 lam I_r, i.e. F_joint with the other recipient constant, although the contract always discloses
+the other recipient's decision. qpc's stage one uses F_joint with the CLASS-ONLY counterpart; the difference is the
+conditional term `I(S; C_a, d_b) - I(S; C_a) = I(S; d_b | C_a) >= 0`. Each SEQ receipt records, at the corrected
+stage-one map: F_joint with the class counterpart, D_a, I_a, D_b(class), I_b(class), I(S; C_a, d_b), the conditional
+term, and the old surrogate value; and, as a DIAGNOSTIC ONLY (never selected, never released), the stage-one map
+the old surrogate would have chosen, whether it differs, and its F_joint with the class counterpart. A test fixture in
+which d_2 already discloses S shows the correction changing the stage-one map (the corrected stage keeps a clue the old
+surrogate removes, at lower F_joint).
+
+JOINT's dominance holds only within the fine-state family and on the fitting objective. It does not imply better
+held-out recovery, global optimality or containment of DIRECT-TASK, which may lie outside this family.
+
+### 6.5 Sparse-cell and fitted-MI receipts (diagnostic only)
+
+Per unit on fitting rows (`sparsity_fit`): per recipient and for the pair, the full alphabet, occupied cells, unseen
+fraction, singleton cells and their fraction of occupied cells, cells with n < 5, emitted entropy, counts per code.
+`perm_null_mi_fit`: plug-in I1, I2, I12 under 100 fixed permutations of DEFENSE_FIT SEX
+(`rng = np.random.default_rng(20261006)`; successive `rng.permutation(N)`; the same list for every unit with the same
+N), at the same codes: mean, 95th percentile, max. `privacy_term`: lam-weighted privacy terms versus distortion. None
+of these enters an objective, start, selection or lam; a fitted MI decrease is not protection or a population bound.
+
+### 6.6 Runner unit
+
+`fit_unit(family, fine_dict, T, tr, S_fit, m1, m2, lam, meta, witnesses=None)`: `fine_dict` = the `fine.json`
+content; `S_fit` = DEFENSE_FIT SEX aligned with `tr` (binary; refused otherwise); `meta` must carry both bindings;
+`meta.config`, if given, must equal the configuration ID. Returns the receipts (plus `pair_record`: fingerprint,
+alphabets, states emitted on fitting rows, populations) and files `policy.json`, `release.npz` (ALL rows; class
+preservation checked on every row). JOINT takes the four witness `policy.json` dicts.
+
+### 6.7 Fixture certificates (tests; no Adult claim)
+
+- Merge and move increments equal from-scratch recomputation within 1e-12 for random states on both recipients with
+  all five weights nonzero (> 200 candidates checked); incremental tables equal a fresh rebuild after applied moves.
+- XOR coalition fixture (S = u XOR v, u and v within-class confidence clues): fine level I1, I2 < 0.003, I12 > 0.6;
+  LOCAL keeps I12 > 0.6; JOINT and SEQ-12 drive I12 below 0.05; JOINT F_joint < LOCAL F_joint.
+- Exhaustive tiny XOR fixture (10% label noise; 128 maps with <= 2 cells per class on both recipients): the gap of each
+  family to the exhaustive optimum of its own objective is recorded. FINE-TASK and LOCAL: 0 at every lam. Gaps in
+  F_joint at lam = 0.05 / 0.5 / 5: SEQ-12 0 / 0.00946 / 0.00297, SEQ-21 0 / 0.00217 / 0, JOINT 0 / 0.00217 / 0.
+  So JOINT is not globally optimal on this fixture at lam = 0.5. No fixture certificate is an Adult global optimum.
+
+## 7. Synthetic timing (Stage A and Stage B; full record in `TIMING.json`, key `fitting`)
 
 Real-shaped synthetic teacher outputs (15,434 fitting rows of 45,000; income K = 2 with 195 exact 0/1 rows and class
 imbalance; occupation K = 6 with class 5 never predicted), one thread, under the shared semaphore, three seeds:
@@ -209,3 +317,20 @@ imbalance; occupation K = 6 with class 5 never predicted), one thread, under the
 Every synthetic winner converged by assignment fixed point (max 45-100 rounds used); the A1 src20 reproduction had
 exact token IDs and bitwise decoded vectors against a dpc-produced DIRECT-TASK m8 release on all three seeds.
 Stage A fitting cost is negligible (about 20 CPU-seconds for three seeds).
+
+Stage B at (8, 64) with lam in {0.01, 0.1, 1}, three seeds, same synthetic data, one thread, under the semaphore:
+
+| Item | Process CPU (s) |
+|---|---|
+| Fine partitions (income 32, occupation 128; F = 64 / 641; all starts converged, max 168 rounds), per seed | 4.8-5.3 |
+| CLASS unit | 0.31 mean |
+| FINE-TASK / LOCAL unit | 0.75 / 0.73 mean |
+| SEQ-12 / SEQ-21 unit (incl. old-rule stage-1 diagnostic) | 1.22 / 1.23 mean |
+| JOINT unit (four witnesses passed in, five starts) | 4.11 mean, 4.61 max |
+| Full Stage B bank, single rate (8, 64), 3 seeds (3 fine jobs + 3 CLASS + 3 FINE-TASK + 36 privacy units) | 83.8 |
+| Same with two rates (8, 64) and (8, 32) | 155.8 |
+
+Peak RSS about 0.5 GB. Recommendation: the FULL bank (lam {0.01, 0.1, 1}, the gate-selected rate unchanged); no
+reduction is needed or permitted (both allowed reductions apply only above about 2 CPU-hours). Descriptively, on
+synthetic data every JOINT unit had four refined starts at strictly worse local optima, a few JOINT starts did not
+converge within five sweeps, and the JOINT winner was always a refined witness (never JOINT-GREEDY).

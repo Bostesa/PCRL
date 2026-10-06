@@ -868,3 +868,1034 @@ def test_asymmetric_caps_save_restore_and_no_hidden_ids():
     with pytest.raises(ValueError):
         RL.from_dict(z_dpc)
     assert rec["alpha1"] == pair.p1.T and rec["alpha2"] == pair.p2.T == sum(pair.p2.tokens_per_class())
+
+
+# ==================================================================================================================
+# SELECTION, VALIDITY AND INFERENCE (qpc.select, qpc.family, LABEL_TRUTH_TABLE.json) -- synthetic inner records only
+# ==================================================================================================================
+
+U_ANCHOR = {"income": {"acc": 0.8440, "logloss": 0.3380, "brier": 0.2140, "const_acc": 0.7600},
+            "occupation": {"acc": 0.4750, "logloss": 1.2690, "brier": 0.6520, "const_acc": 0.2800}}
+STAGE_A_RATES = [(a, b) for a in (4, 8) for b in (8, 16, 32, 64)]
+LAMS = (0.01, 0.1, 1.0)
+
+
+def _cid(fam, m1=None, m2=None, lam=None):
+    if fam == "CLASS":
+        return "U|CLASS|i1o1"
+    return f"U|{fam}|i{m1}o{m2}" + (f"|l{lam:g}" if fam in ("LOCAL", "SEQ-12", "SEQ-21", "JOINT") else "")
+
+
+def _bank_ids(rates_b):
+    ids = [_cid("DIRECT-TASK", a, b) for a, b in STAGE_A_RATES]
+    for a, b in rates_b:
+        ids.append(_cid("FINE-TASK", a, b))
+        ids += [_cid(f, a, b, lam) for lam in LAMS for f in ("LOCAL", "SEQ-12", "SEQ-21", "JOINT")]
+    return ids + ["U|CLASS|i1o1", "SRC|U", "SRC|RAW-J_b0.3", "REF|E", "REF|F", "REF|F0"]
+
+
+def _fam(cid):
+    return cid.split("|")[0] if cid.startswith(("SRC", "REF")) else cid.split("|")[1]
+
+
+def _rate(cid):
+    if _fam(cid) in ("SRC", "REF", "CLASS"):
+        return None
+    r = cid.split("|")[2]
+    a, b = r[1:].split("o")
+    return int(a), int(b)
+
+
+def _random_bank(seed, rates_b=((8, 32), (4, 64)), p_elig=0.5, priv_shift=0.0):
+    """Synthetic inner records {(k, cid): record} in the qpc.audit inner-record format used by qpc.select."""
+    rng = np.random.default_rng(seed)
+    ids = _bank_ids(rates_b)
+    recs = {}
+    for cid in ids:
+        fam = _fam(cid)
+        elig_cfg = rng.random() < p_elig
+        if fam == "DIRECT-TASK" and _rate(cid) in rates_b:
+            elig_cfg = True                          # Stage B rates are eligible Stage A rates (as registered)
+        base_pair = {"SRC": 0.858, "REF": 0.80, "CLASS": 0.739}.get(fam, 0.80)
+        for k in (0, 1, 2):
+            u = {t: dict(v) for t, v in U_ANCHOR.items()}
+            if cid != "SRC|U":
+                for t in u:
+                    if fam == "REF":
+                        u[t]["acc"] -= float(rng.choice([0.0, 0.004, 0.03]))
+                    bad = (not elig_cfg) and (k == int(rng.integers(3)) or rng.random() < 0.3)
+                    u[t]["logloss"] += float(rng.uniform(0.0105, 0.03) if bad and t == "occupation"
+                                             else rng.uniform(0.0, 0.0095))
+                    u[t]["brier"] += float(rng.uniform(0.0, 0.0045))
+            pair = base_pair + float(rng.normal(0, 0.015))
+            sh = priv_shift if fam in ("LOCAL", "SEQ-12", "SEQ-21") else 0.0
+            sh = priv_shift * 1.5 if fam == "JOINT" else sh
+            recs[(k, cid)] = {"recovery": {"auc": {"v1": 0.69 + sh + float(rng.normal(0, 0.006)),
+                                                   "v2": pair - 0.05 + sh + float(rng.normal(0, 0.008)), "pair": pair}},
+                              "utility": u, "preserved": {"1": True, "2": True},
+                              "token_states": None if fam in ("SRC", "REF") else int(rng.integers(8, 80))}
+    return ids, recs
+
+
+def ref_eligible_seed(u, U, pres=True):
+    for t in ("income", "occupation"):
+        c, a = u[t], U[t]
+        g, ga = c["acc"] - c["const_acc"], a["acc"] - a["const_acc"]
+        if not (c["acc"] >= a["acc"] - 0.01 and c["logloss"] <= a["logloss"] + 0.01 and c["brier"] <= a["brier"] + 0.005
+                and g >= 0.8 * ga and g >= 0.03):
+            return False
+    return bool(pres)
+
+
+def ref_select(ids, recs):
+    """PROTOCOL.md section 11 transcribed (clean banks: every unit present and finite)."""
+    S = (0, 1, 2)
+    U = {k: recs[(k, "SRC|U")]["utility"] for k in S}
+    row = {}
+    for c in ids:
+        rs = [recs[(k, c)] for k in S]
+        el = all(ref_eligible_seed(r["utility"], U[k]) for k, r in zip(S, rs))
+        ne = max(max((r["utility"][t]["logloss"] - U[k][t]["logloss"]) / 0.01,
+                     (r["utility"][t]["brier"] - U[k][t]["brier"]) / 0.005)
+                 for k, r in zip(S, rs) for t in ("income", "occupation"))
+        st = [math.inf if r["token_states"] is None else r["token_states"] for r in rs]
+        row[c] = {"el": el, "ne": ne, "pair": np.mean([r["recovery"]["auc"]["pair"] for r in rs]),
+                  "ll": np.mean([r["utility"]["income"]["logloss"] + r["utility"]["occupation"]["logloss"] for r in rs]),
+                  "states": float(np.mean(st)), "auc": {k: rs[k]["recovery"]["auc"] for k in S}}
+    key = lambda c: (row[c]["pair"], row[c]["ll"], row[c]["states"], c)  # noqa: E731
+
+    def best(cands):
+        e = [c for c in cands if row[c]["el"]]
+        return min(e, key=key) if e else None
+
+    def guard_ok(c, g):
+        return all(row[c]["auc"][k][w] <= row[g]["auc"][k][w] + 0.005 for k in S for w in ("v1", "v2"))
+    out = {}
+    da = [c for c in ids if _fam(c) == "DIRECT-TASK"]
+    qe = [c for c in da if row[c]["el"]]
+    out["Q*"] = min(qe, key=lambda c: (row[c]["ne"], row[c]["states"], c)) if qe else None
+    nonjoint = [c for c in ids if _fam(c) in ("DIRECT-TASK", "FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21")]
+    out["C_global"] = best(nonjoint + [c for c in ids if _fam(c) in ("CLASS", "SRC", "REF")])
+    out["T*"] = best([c for c in ids if _fam(c) in ("DIRECT-TASK", "FINE-TASK", "CLASS", "SRC") or c == "REF|F0"])
+    crate = {r: best([c for c in nonjoint if _rate(c) == r]) for r in {_rate(c) for c in ids if _fam(c) == "JOINT"}}
+    J = [c for c in ids if _fam(c) == "JOINT" and row[c]["el"] and crate[_rate(c)] is not None
+         and guard_ok(c, crate[_rate(c)]) and guard_ok(c, out["C_global"])]
+    out["J*"] = min(J, key=key) if J else None
+
+    def shortfall(c, guards):
+        xs = [row[c]["auc"][k][w] - (row[g]["auc"][k][w] + 0.005) for g in guards if g for k in S
+              for w in ("v1", "v2")]
+        return max(0.0, max(xs)) if xs else 0.0
+
+    def fallback(cands, guards_of):
+        return min(cands, key=lambda c: (0.0 if row[c]["el"] else row[c]["ne"], shortfall(c, guards_of(c))) + key(c))
+    jall = [c for c in ids if _fam(c) == "JOINT"]
+    out["J*_fallback"] = None if J else fallback(jall, lambda c: (crate[_rate(c)], out["C_global"]))
+    pall = [c for c in ids if _fam(c) in ("LOCAL", "SEQ-12", "SEQ-21", "JOINT")]
+    P = [c for c in pall if row[c]["el"] and guard_ok(c, out["T*"])]
+    out["P*"] = min(P, key=key) if P else None
+    out["P*_fallback"] = None if P else fallback(pall, lambda c: (out["T*"],))
+    jcell = out["J*"] or out["J*_fallback"]
+    out["C_rate"] = crate.get(_rate(jcell))
+    return out, row
+
+
+@pytest.fixture
+def synthetic_select(monkeypatch, tmp_path):
+    """Run qpc.select.select_all on synthetic inner records (qpc.run record access monkeypatched; outputs to tmp)."""
+    RUN = _qpc("run")
+    SEL = _qpc("select")
+
+    def go(ids, recs):
+        store = {f"inner__{RUN.unit_for(k, c)}": r for (k, c), r in recs.items()}
+        monkeypatch.setattr(RUN, "scored_ids", lambda protocol=None: list(ids))
+        monkeypatch.setattr(RUN, "rec", lambda n: store[n])
+        monkeypatch.setattr(RUN, "done", lambda n: n in store)
+        monkeypatch.setattr(RUN, "RUN", tmp_path)
+        monkeypatch.setattr(RUN, "PKG", tmp_path)
+        monkeypatch.setattr(RUN, "event", lambda *a, **k: None)
+        return SEL.select_all()
+    return go
+
+
+def test_selection_matches_independent_protocol_transcription(synthetic_select):
+    """Q*, C_global, T*, C_rate(J*), J* and P* chosen by qpc.select equal an independent transcription of PROTOCOL
+    section 11 on 40 random clean banks (eligibility recomputed here from the raw metrics, not via qpc.utility)."""
+    seen = {"J*": 0, "P*": 0}
+    for seed in range(60):
+        ids, recs = _random_bank(seed, priv_shift=0.0 if seed < 20 else -0.03, p_elig=0.5 if seed < 40 else 0.8)
+        out = synthetic_select(ids, recs)
+        ref, _ = ref_select(ids, recs)
+        st = out["statuses"]
+        for role in ("Q*", "C_global", "T*", "J*", "P*", "C_rate"):
+            got = st[role].get("config") if st[role]["status"] == "NOMINEE" else None
+            assert got == ref[role], (seed, role, st[role]["status"], got, ref[role])
+        for role in ("J*", "P*"):                                  # deterministic DESCRIPTIVE_ONLY fallbacks
+            if ref[role] is None:
+                assert st[role]["status"] == "NO_ELIGIBLE_NOMINEE"
+                assert st[role]["descriptive_config"] == ref[role + "_fallback"], (seed, role)
+        assert st["C_global"]["config"] is not None and st["T*"]["config"] is not None
+        if ref["P*"]:
+            assert st["P*"]["winning_family"] == _fam(ref["P*"])
+        for role in seen:
+            seen[role] += ref[role] is not None
+    assert seen["J*"] >= 5 and seen["P*"] >= 5, seen
+
+
+def test_selection_guards_are_per_seed_per_recipient_and_never_dropped(synthetic_select):
+    """A JOINT code eligible and best on pair AUC but 0.006 above C_global on ONE recipient of ONE seed is not J*;
+    a JOINT code exactly at the + 0.005 bound passes (<=). The fallback is DESCRIPTIVE (NO_ELIGIBLE_NOMINEE)."""
+    ids, recs = _random_bank(3, p_elig=0.0)
+    for k in (0, 1, 2):
+        for c in ids:
+            if _fam(c) in ("LOCAL", "SEQ-12", "SEQ-21", "FINE-TASK", "JOINT", "CLASS", "REF"):
+                for t in ("income", "occupation"):
+                    recs[(k, c)]["utility"][t]["logloss"] = U_ANCHOR[t]["logloss"] + 0.02   # ineligible
+    j = _cid("JOINT", 8, 32, 0.1)
+    for k in (0, 1, 2):
+        recs[(k, j)]["utility"] = {t: dict(v) for t, v in U_ANCHOR.items()}
+        recs[(k, j)]["recovery"]["auc"]["pair"] = 0.70
+    out0 = synthetic_select(ids, recs)
+    cg = out0["statuses"]["C_global"]["config"]
+    for k in (0, 1, 2):
+        for w in ("v1", "v2"):
+            recs[(k, j)]["recovery"]["auc"][w] = recs[(k, cg)]["recovery"]["auc"][w] - 0.05
+    for k in (0, 1, 2):
+        cr = _cid("DIRECT-TASK", 8, 32)
+        for w in ("v1", "v2"):
+            recs[(k, cr)]["recovery"]["auc"][w] = max(recs[(k, cr)]["recovery"]["auc"][w],
+                                                      recs[(k, j)]["recovery"]["auc"][w])
+    out = synthetic_select(ids, recs)
+    assert out["statuses"]["J*"]["status"] == "NOMINEE" and out["statuses"]["J*"]["config"] == j
+    recs[(2, j)]["recovery"]["auc"]["v2"] = recs[(2, cg)]["recovery"]["auc"]["v2"] + 0.006
+    out = synthetic_select(ids, recs)
+    assert out["statuses"]["J*"]["status"] == "NO_ELIGIBLE_NOMINEE"
+    assert out["statuses"]["J*"]["descriptive_config"] is not None
+
+
+def test_guard_blocked_nominee_status_is_registered_in_protocol_and_truth_table(synthetic_select):
+    """SEL-R1 fixture (selection review). An ELIGIBLE JOINT code whose own-rate C_rate has candidates but none
+    eligible: qpc.select returns J* INVALID_NOMINEE ('blocked only by a missing guard comparator') and claim A's
+    comparator INVALID_COMPARATOR ('no J* cell'). PROTOCOL section 11's status table and LABEL_TRUTH_TABLE.json
+    define TECHNICAL_FAILURE as a missing/uncomputable candidate set and map 'candidates computed, none eligible' to
+    NO_ELIGIBLE -> NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR; neither states the guard-blocked rule. The executable and
+    the registered text must agree exactly, so the text must state this case (or the code must follow the text)."""
+    import json as _json
+    import pathlib
+    ids, recs = _random_bank(5)
+    rate = (4, 64)
+    for k in (0, 1, 2):
+        for c in ids:
+            if _rate(c) == rate and _fam(c) != "JOINT":
+                recs[(k, c)]["utility"]["occupation"]["logloss"] = U_ANCHOR["occupation"]["logloss"] + 0.02
+        for c in ids:
+            if _fam(c) == "JOINT":
+                recs[(k, c)]["utility"]["occupation"]["logloss"] = U_ANCHOR["occupation"]["logloss"] + 0.02
+        j = _cid("JOINT", 4, 64, 0.1)
+        recs[(k, j)]["utility"] = {t: dict(v) for t, v in U_ANCHOR.items()}
+        for w in ("v1", "v2"):
+            recs[(k, j)]["recovery"]["auc"][w] = 0.5
+    out = synthetic_select(ids, recs)
+    st = out["statuses"]
+    assert st["J*"]["status"] == "INVALID_NOMINEE" and st["J*"].get("blocked") == [_cid("JOINT", 4, 64, 0.1)]
+    assert st["C_rate"]["status"] == "INVALID_COMPARATOR"
+    root = pathlib.Path(__file__).resolve().parents[2] / "results" / "pcrl_confidence_capacity_v1"
+    tt = _json.dumps(_json.loads((root / "LABEL_TRUTH_TABLE.json").read_text())).lower()
+    proto = (root / "PROTOCOL.md").read_text().lower()
+    assert "guard" in tt, "LABEL_TRUTH_TABLE.json does not register the guard-blocked nominee rule"
+    sec11 = proto.split("## 11.")[1].split("## 12.")[0]
+    assert "missing guard" in sec11 or "guard comparator" in sec11 or "blocked" in sec11, \
+        "PROTOCOL.md section 11 does not register the guard-blocked nominee rule"
+
+
+def _protocol_sec11():
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[2] / "results" / "pcrl_confidence_capacity_v1"
+    return (root / "PROTOCOL.md").read_text().split("## 11.")[1].split("## 12.")[0]
+
+
+def test_claim_status_and_label_match_protocol_text_exhaustively():
+    """Every (nominee, comparator, clauses) combination and every overall-label input combination agree with an
+    independent transcription of PROTOCOL.md section 11 AS WRITTEN (status table, precedence, labels 1-8 after the
+    SEL-C2 amendment), and the STAGE_A_LOCK rule (reported beside it) agrees with its own registered text. Whether
+    an unresolved Q* (NOT_APPLICABLE_NO_Q despite a met gate) counts as missing coverage is read from label item 6
+    of the text, so a text/code disagreement on that case fails here (SEL-R2)."""
+    FAM = _qpc("family")
+
+    def ref_claim(n, c, cl):
+        if n == "TECHNICAL_FAILURE" or c == "TECHNICAL_FAILURE":
+            return "INVALID_COMPARATOR" if c == "TECHNICAL_FAILURE" else "INVALID_NOMINEE"
+        if n == "NO_ELIGIBLE":
+            return "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
+        if c == "NO_ELIGIBLE":
+            return "NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR"
+        if cl == "ANY_INVALID":
+            return "INVALID"
+        return "PASS" if cl == "ALL_PASS" else "NOT_ESTABLISHED"
+    for n, c, cl in itertools.product(FAM.ROLE_STATES, FAM.ROLE_STATES, FAM.CLAUSE_STATES):
+        assert FAM.claim_status(n, c, cl) == ref_claim(n, c, cl), (n, c, cl)
+    sec = _protocol_sec11()
+    item6 = next(ln for ln in sec.splitlines() if ln.strip().startswith("6."))
+    q_unresolved_missing = "unresolved" in item6.lower() or "not_applicable_no_q" in item6.lower()
+    statuses = ["PASS", "NOT_ESTABLISHED", "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+                "NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR", "INVALID_COMPARATOR", "INVALID_NOMINEE", "INVALID"]
+    missing = {"NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR", "INVALID_COMPARATOR", "INVALID_NOMINEE", "INVALID"}
+    for sa, gm, tv in itertools.product([True, False], repeat=3):
+        for a, b, c in itertools.product(statuses, repeat=3):
+            for q in ("PASS", "NOT_ESTABLISHED", "INVALID", "NOT_APPLICABLE_NO_Q"):
+                fav = []
+                if a == "PASS" and b == "PASS":
+                    fav.append("JOINT_DEVELOPMENT_CRITERION_MET")
+                if c == "PASS":
+                    fav.append("PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (LOCAL)")
+                gap = bool({a, b, c} & missing) or q == "INVALID" or (q == "NOT_APPLICABLE_NO_Q" and q_unresolved_missing)
+                # amended rule (section 11 items 1-8)
+                if not sa:
+                    exp = "INCOMPLETE_OR_INVALID"
+                elif not gm:
+                    exp = "CAPACITY_GATE_NOT_MET"
+                elif not tv:
+                    exp = "INCOMPLETE_OR_INVALID"
+                elif fav:
+                    exp = " + ".join(fav)
+                elif gap:
+                    exp = "INCOMPLETE_OR_INVALID"
+                elif q == "PASS":
+                    exp = "CONFIDENCE_FEASIBILITY_ESTABLISHED"
+                else:
+                    exp = "EXPERIMENTAL_NO_ADVANTAGE"
+                lab, miss = FAM.overall_label(sa, gm, tv, {"A": a, "B": b, "C": c}, q, "LOCAL")
+                assert lab == exp, ("amended", sa, gm, tv, a, b, c, q, lab, exp)
+                if sa and gm and tv and fav:
+                    for cl_, st_ in (("A", a), ("B", b), ("C", c)):
+                        if st_ in missing:
+                            assert any(cl_ in x for x in miss), "a coverage gap beside a favourable label is listed"
+                # STAGE_A_LOCK rule (any gap first; an unresolved Q* is a gap there, as registered)
+                gap0 = bool({a, b, c} & missing) or q in ("INVALID", "NOT_APPLICABLE_NO_Q") or not tv
+                if not sa:
+                    exp0 = "INCOMPLETE_OR_INVALID"
+                elif not gm:
+                    exp0 = "CAPACITY_GATE_NOT_MET"
+                elif gap0:
+                    exp0 = "INCOMPLETE_OR_INVALID"
+                elif fav:
+                    exp0 = " + ".join(fav)
+                else:
+                    exp0 = "CONFIDENCE_FEASIBILITY_ESTABLISHED" if q == "PASS" else "EXPERIMENTAL_NO_ADVANTAGE"
+                lab0, _ = FAM.overall_label_stage_a_rule(sa, gm, tv, {"A": a, "B": b, "C": c}, q, "LOCAL")
+                assert lab0 == exp0, ("stage_a_rule", sa, gm, tv, a, b, c, q, lab0, exp0)
+
+
+def test_family_37_fixed_slots_and_z():
+    """37 fixed slots P01..P37 (A: 11, B: 11, C: 11, Q: 4), z = NormalDist().inv_cdf(1 - 0.05/74) exactly, strict
+    clause sides and targets as registered."""
+    from statistics import NormalDist
+    FAM = _qpc("family")
+    z = NormalDist().inv_cdf(1 - 0.05 / 74)
+    assert z == FAM.Z_PRIMARY and repr(z) == "3.2048452050105634"
+    assert [e["id"] for e in FAM.PRIMARY] == [f"P{i:02d}" for i in range(1, 38)]
+    cnt = {c: sum(e["claim"] == c for e in FAM.PRIMARY) for c in "ABCQ"}
+    assert cnt == {"A": 11, "B": 11, "C": 11, "Q": 4}
+    exp = [("coalition", 0.02, "lower>"), ("local", 0.01, "upper<"), ("local", 0.01, "upper<"),
+           ("acc", -0.01, "lower>"), ("acc", -0.01, "lower>"), ("logloss", 0.01, "upper<"), ("logloss", 0.01, "upper<"),
+           ("brier", 0.005, "upper<"), ("brier", 0.005, "upper<"), ("retain", 0.0, "lower>"), ("retain", 0.0, "lower>")]
+    for c in "ABC":
+        got = [(e["kind"], e["target"], e["side"]) for e in FAM.PRIMARY if e["claim"] == c]
+        assert got == exp, c
+    q = [(e["kind"], e["task"], e["target"], e["side"]) for e in FAM.PRIMARY if e["claim"] == "Q"]
+    assert q == [("logloss", 0, 0.01, "upper<"), ("logloss", 1, 0.01, "upper<"), ("brier", 0, 0.005, "upper<"),
+                 ("brier", 1, 0.005, "upper<")]
+
+
+# ==================================================================================================================
+# STAGE B: objectives, deltas, search rules, sequential correction, JOINT witnesses (qpc.partition, qpc.compress)
+# ==================================================================================================================
+
+class RefRecip:
+    """One recipient of a finite fixture: fine cells = distinct vectors V (class = argmax), rows -> fine cell f."""
+
+    def __init__(self, V, f):
+        self.V = np.asarray(V, np.float64)
+        self.K = self.V.shape[1]
+        self.cls = self.V.argmax(1)
+        self.f = np.asarray(f, np.int64)
+        self.P = self.V[self.f]
+        self.F = len(self.V)
+        self.n = np.bincount(self.f, minlength=self.F)
+        self.Ssum = np.stack([self.P[self.f == j].sum(0) for j in range(self.F)])
+        self.negent = np.array([sum(p * math.log(p) for p in self.V[j] if p > 0) for j in range(self.F)])
+        self.cells_of = {c: [j for j in range(self.F) if self.cls[j] == c] for c in range(self.K)}
+
+
+def ref_terms_fine(R1, R2, s, lab1, lab2):
+    """D1, D2, I1, I2, I12 from fine-level statistics and exact count tables (own implementation)."""
+    N = len(s)
+    out = {}
+    for name, R, lab in (("1", R1, lab1), ("2", R2, lab2)):
+        D = float(np.dot(R.n, R.negent))
+        for g in np.unique(lab):
+            mem = np.flatnonzero(lab == g)
+            n = R.n[mem].sum()
+            if n == 0:
+                continue
+            S = R.Ssum[mem].sum(0)
+            q = ref_smooth(S / n, R.cls[mem[0]])
+            D -= float(np.dot(S, np.log(q)))
+        out["D" + name] = D / N
+    t1 = np.asarray(lab1)[R1.f]
+    t2 = np.asarray(lab2)[R2.f]
+    out["I1"], out["I2"], out["I12"] = ref_mi(s, t1), ref_mi(s, t2), ref_mi(s, t1, t2)
+    return out
+
+
+def ref_terms_rows(R1, R2, s, lab1, lab2):
+    """The same terms recomputed from the released ROWS (tokens and decoded vectors), the brute-force definition."""
+    out = {}
+    for name, R, lab in (("1", R1, lab1), ("2", R2, lab2)):
+        tok = np.asarray(lab)[R.f]
+        D = 0.0
+        for t in np.unique(tok):
+            w = tok == t
+            q = ref_smooth(R.P[w].mean(0), R.cls[R.f[w][0]])
+            D += sum(ref_kl(p, q) for p in R.P[w])
+        out["D" + name] = D / len(s)
+    t1, t2 = np.asarray(lab1)[R1.f], np.asarray(lab2)[R2.f]
+    out["I1"], out["I2"], out["I12"] = ref_mi(s, t1), ref_mi(s, t2), ref_mi(s, t1, t2)
+    return out
+
+
+def ref_value(t, w):
+    """w = (wD1, wD2, wI1, wI2, w12)."""
+    return w[0] * t["D1"] + w[1] * t["D2"] + w[2] * t["I1"] + w[3] * t["I2"] + w[4] * t["I12"]
+
+
+def W_ref(kind, lam=None, r=None):
+    if kind == "task":
+        return (float(r in (None, 1)), float(r in (None, 2)), 0.0, 0.0, 0.0)
+    if kind == "local":
+        return (float(r in (None, 1)), float(r in (None, 2)), lam / 2 if r in (None, 1) else 0.0,
+                lam / 2 if r in (None, 2) else 0.0, 0.0)
+    if kind == "joint":
+        return (1.0, 1.0, lam / 2, lam / 2, lam)
+    raise ValueError(kind)
+
+
+class RefSearch:
+    """Transcription of the registered Stage B search on label vectors (label = a member fine index at creation;
+    merges keep the lower label; a move gives the moved cell the target label, so a label can become virtual)."""
+
+    def __init__(self, R1, R2, s, labs, w, tol=1e-12, tie=1e-12):
+        self.R = {1: R1, 2: R2}
+        self.s = s
+        self.lab = {1: np.array(labs[0], np.int64), 2: np.array(labs[1], np.int64)}
+        self.w = w
+        self.tol, self.tie = tol, tie
+
+    def val(self, lab=None):
+        lab = lab or self.lab
+        return ref_value(ref_terms_fine(self.R[1], self.R[2], self.s, lab[1], lab[2]), self.w)
+
+    def groups(self, r, c):
+        return sorted({int(self.lab[r][j]) for j in self.R[r].cells_of[c]})
+
+    def _merged(self, r, a, b):
+        lab = {1: self.lab[1].copy(), 2: self.lab[2].copy()}
+        lab[r][lab[r] == b] = a
+        return lab
+
+    def merge_step(self, recips, caps, improving):
+        cur = self.val()
+        cands = []
+        for r in recips:
+            for c in range(self.R[r].K):
+                g = self.groups(r, c)
+                if (improving and len(g) >= 2) or (not improving and len(g) > caps[r]):
+                    for a, b in itertools.combinations(g, 2):
+                        cands.append((self.val(self._merged(r, a, b)) - cur, r, c, a, b))
+        if not cands:
+            return False
+        gmin = min(x[0] for x in cands)
+        if improving and not gmin < -self.tol:
+            return False
+        for x in cands:                                          # (r, c, a, b) lexicographic generation order
+            if x[0] <= gmin + self.tie and (not improving or x[0] < -self.tol):
+                self.lab = self._merged(x[1], x[3], x[4])
+                return True
+        return False
+
+    def greedy(self, recips, caps):
+        while self.merge_step(recips, caps, improving=False):
+            pass
+        while self.merge_step(recips, caps, improving=True):
+            pass
+
+    def refine(self, recips, sweeps=5):
+        for _ in range(sweeps):
+            moved = 0
+            for r in recips:
+                for f in range(self.R[r].F):
+                    a = int(self.lab[r][f])
+                    if np.sum(self.lab[r] == a) <= 1:
+                        continue
+                    c = int(self.R[r].cls[f])
+                    B = [g for g in self.groups(r, c) if g != a]
+                    if not B:
+                        continue
+                    cur = self.val()
+                    deltas = []
+                    for b in B:
+                        lab = {1: self.lab[1].copy(), 2: self.lab[2].copy()}
+                        lab[r][f] = b
+                        deltas.append(self.val(lab) - cur)
+                    j = int(np.argmin(deltas))
+                    if deltas[j] < -self.tol:
+                        self.lab[r][f] = B[j]
+                        moved += 1
+            merged = 0
+            while self.merge_step(recips, None, improving=True):
+                merged += 1
+            if moved == 0 and merged == 0:
+                return True
+        return False
+
+    def canon(self, r):
+        out = np.empty(self.R[r].F, np.int64)
+        for g in np.unique(self.lab[r]):
+            mem = np.flatnonzero(self.lab[r] == g)
+            out[mem] = mem.min()
+        return out
+
+
+def ref_class_labels(R):
+    first = {}
+    return np.array([first.setdefault(int(c), j) for j, c in enumerate(R.cls)], np.int64)
+
+
+def ref_family(fam, R1, R2, s, m1, m2, lam):
+    """Reference FINE-TASK, LOCAL, SEQ-12, SEQ-21 (corrected: stage one under F_joint with the other recipient at its
+    CLASS-ONLY release) and JOINT (5 refined starts + 4 unchanged witnesses, lowest F_joint, fixed tie order)."""
+    caps = {1: m1, 2: m2}
+    ident = (np.arange(R1.F), np.arange(R2.F))
+    if fam in ("FINE-TASK", "LOCAL"):
+        kind = "task" if fam == "FINE-TASK" else "local"
+        X = RefSearch(R1, R2, s, ident, None)
+        for r in (1, 2):
+            X.w = W_ref(kind, lam, r)
+            X.greedy((r,), caps)
+        for r in (1, 2):
+            X.w = W_ref(kind, lam, r)
+            X.refine((r,))
+        return X.canon(1), X.canon(2)
+    if fam in ("SEQ-12", "SEQ-21"):
+        a, b = (1, 2) if fam == "SEQ-12" else (2, 1)
+        labs = {a: np.arange((R1, R2)[a - 1].F), b: ref_class_labels((R1, R2)[b - 1])}
+        X = RefSearch(R1, R2, s, (labs[1], labs[2]), W_ref("joint", lam))
+        X.greedy((a,), caps)
+        X.refine((a,))
+        frozen = X.canon(a)
+        labs = {a: frozen, b: np.arange((R1, R2)[b - 1].F)}
+        Y = RefSearch(R1, R2, s, (labs[1], labs[2]), W_ref("joint", lam))
+        Y.greedy((b,), caps)
+        Y.refine((b,))
+        assert np.array_equal(Y.canon(a), frozen)
+        return Y.canon(1), Y.canon(2)
+    if fam == "JOINT":
+        W = W_ref("joint", lam)
+        X = RefSearch(R1, R2, s, ident, W)
+        X.greedy((1, 2), caps)
+        X.refine((1, 2))
+        cands = [("JOINT-GREEDY", "refined", (X.canon(1), X.canon(2)))]
+        wit = {f: ref_family(f, R1, R2, s, m1, m2, None if f == "FINE-TASK" else lam)
+               for f in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21")}
+        for f, lw in wit.items():
+            Y = RefSearch(R1, R2, s, lw, W)
+            Y.refine((1, 2))
+            cands.append((f, "refined", (Y.canon(1), Y.canon(2))))
+        cands += [(f, "unchanged", lw) for f, lw in wit.items()]
+        vals = [ref_value(ref_terms_fine(R1, R2, s, *c[2]), W) for c in cands]
+        k = int(np.argmin(vals))
+        return cands[k][2]
+    raise ValueError(fam)
+
+
+def _fine_from_recip(R):
+    """qpc FinePartition whose cells are exactly the fixture's distinct vectors (cells in class order)."""
+    KM = _qpc("kmeans")
+    from dpc import partition as DPT
+    order = np.argsort(R.cls, kind="stable")
+    assert np.array_equal(order, np.arange(R.F)), "fixture vectors must be listed in class order"
+    n, S, A = DPT.cell_stats(R.P, R.f, R.F)
+    fine = KM.FinePartition(K=R.K, cell_class=R.cls.astype(np.int64), centroid=DPT.smooth(S / n[:, None], R.cls),
+                            mean=S / n[:, None], n=n, S=S, A=A, fallback=np.zeros(R.F, bool))
+    fine.validate()
+    assert np.array_equal(KM.assign_fine(R.P, R.P.argmax(1), fine), R.f)
+    return fine
+
+
+def sb_fixture(name, seed=0):
+    """Finite Stage B fixtures (rows drawn from distinct vectors listed in class order)."""
+    rng = np.random.default_rng(seed)
+    if name in ("small", "null"):
+        V1 = [[1 - q, q] for q in (0.05, 0.15, 0.30, 0.45, 0.55, 0.70, 0.85, 0.95)]
+        V2 = []
+        for c in range(3):
+            for h in (0.40, 0.65, 0.90):
+                v = np.full(3, (1 - h) / 2)
+                v[c] = h
+                V2.append(v.tolist())
+        N = 360
+        S = rng.integers(0, 2, N)
+        f1 = 4 * rng.integers(0, 2, N) + 2 * rng.integers(0, 2, N) + rng.integers(0, 2, N)
+        b = np.where(rng.random(N) < 0.8, (f1 % 4 >= 2).astype(int) ^ S, rng.integers(0, 2, N))
+        f2 = 3 * rng.integers(0, 3, N) + np.where(rng.random(N) < 0.7, 2 * b, 1)
+        if name == "null":
+            S = np.random.default_rng(10_000 + seed).integers(0, 2, N)
+    elif name == "xor":
+        V1 = [[0.95, 0.05], [0.85, 0.15], [0.65, 0.35], [0.55, 0.45], [0.2, 0.8]]
+        V2 = [[0.93, 0.07], [0.83, 0.17], [0.63, 0.37], [0.53, 0.47], [0.25, 0.75]]
+        f1, f2, S = [], [], []
+        for A in (0, 1):
+            for B_ in (0, 1):
+                for u in range(2):
+                    for v in range(2):
+                        f1 += [2 * A + u] * 20
+                        f2 += [2 * B_ + v] * 20
+                        S += [A ^ B_] * 20
+        f1 += [4] * 30
+        f2 += [4] * 30
+        S += [0] * 15 + [1] * 15
+        f1, f2, S = np.array(f1), np.array(f2), np.array(S)
+    elif name == "six":
+        V1 = [[1 - q, q] for q in (0.1, 0.25, 0.4, 0.6, 0.75, 0.9)]
+        V2 = []
+        for c in range(6):
+            for h in (0.45, 0.85):
+                v = np.full(6, (1 - h) / 5)
+                v[c] = h
+                V2.append(v.tolist())
+        N = 300
+        S = rng.integers(0, 2, N)
+        f1 = np.where(rng.random(N) < 0.6, 3 * S + rng.integers(0, 3, N), rng.integers(0, 6, N))
+        f2 = 2 * rng.integers(0, 6, N) + np.where(rng.random(N) < 0.7, S, rng.integers(0, 2, N))
+    else:
+        raise ValueError(name)
+    R1, R2 = RefRecip(V1, f1), RefRecip(V2, f2)
+    return R1, R2, np.asarray(S, np.int64)
+
+
+def _fit(fam, R1, R2, s, m1, m2, lam, **kw):
+    CP = _qpc("compress")
+    f1, f2 = _fine_from_recip(R1), _fine_from_recip(R2)
+    return CP.fit_policy_pair(fam, f1, f2, R1.P, R1.P.argmax(1), R2.P, R2.P.argmax(1), s, m1, m2, lam, **kw)
+
+
+def _labels(CP, pair):
+    return CP.labels_from_policy(pair.p1), CP.labels_from_policy(pair.p2)
+
+
+SB_SETTINGS = [("small", 2, 2, 0.1), ("small", 2, 3, 1.0), ("small", 1, 2, 10.0), ("xor", 2, 2, 1.0),
+               ("xor", 2, 2, 10.0), ("six", 2, 1, 1.0), ("null", 2, 2, 1.0), ("small", 3, 2, 0.01)]
+
+
+@pytest.mark.parametrize("name,m1,m2,lam", SB_SETTINGS)
+def test_stageb_families_equal_independent_reference(name, m1, m2, lam):
+    """FINE-TASK, LOCAL, SEQ-12, SEQ-21 (corrected) and JOINT solutions equal the independent transcription
+    (identical canonical maps) at asymmetric caps; every receipt term equals the row-level brute force; the caps hold
+    ('at most'); SEQ freezes its first map."""
+    CP = _qpc("compress")
+    R1, R2, s = sb_fixture(name)
+    for fam in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT"):
+        lm = None if fam == "FINE-TASK" else lam
+        pair, rec = _fit(fam, R1, R2, s, m1, m2, lm)
+        got = _labels(CP, pair)
+        exp = ref_family(fam, R1, R2, s, m1, m2, lm)
+        assert np.array_equal(got[0], exp[0]) and np.array_equal(got[1], exp[1]), (name, fam, got, exp)
+        rows = ref_terms_rows(R1, R2, s, *got)
+        for k in ("D1", "D2", "I1", "I2", "I12"):
+            assert abs(rows[k] - rec["final"][k]) <= 1e-12 * max(1.0, abs(rows[k])), (fam, k)
+        for pol, m in ((pair.p1, m1), (pair.p2, m2)):
+            assert max(pol.tokens_per_class()) <= m
+
+
+def test_merge_and_move_deltas_and_tables_against_brute_force():
+    """Every merge and every single-cell move increment (dD, dI_own, dI12 and the weighted total) of
+    qpc.compress.State equals the brute-force difference of row-level objectives, at random intermediate states
+    including virtual labels; tables after apply_merge / apply_move equal recomputation from labels."""
+    CP = _qpc("compress")
+    rng = np.random.default_rng(4)
+    for name in ("small", "six", "xor"):
+        R1, R2, s = sb_fixture(name)
+        f1, f2 = _fine_from_recip(R1), _fine_from_recip(R2)
+        T = CP.fine_table(R1.f, R2.f, s, R1.F, R2.F)
+        st = CP.State(f1, f2, T, np.arange(R1.F), np.arange(R2.F))
+        W = CP.W_joint(0.7)
+        w = (W.wD1, W.wD2, W.wI1, W.wI2, W.w12)
+        for step in range(12):
+            r = int(rng.integers(1, 3))
+            R = (R1, R2)[r - 1]
+            base = {1: st.labels(1), 2: st.labels(2)}
+            t0 = ref_terms_rows(R1, R2, s, base[1], base[2])
+            # merges
+            for c in range(R.K):
+                if st.count(r, c) < 2:
+                    continue
+                labs, ia, ib, delta, dD, dI, dI12 = st.merge_deltas(r, c, W)
+                for j in range(len(ia)):
+                    a, b = int(labs[ia[j]]), int(labs[ib[j]])
+                    lab = {1: st.lab[1].copy(), 2: st.lab[2].copy()}
+                    lab[r][lab[r] == b] = a
+                    t1 = ref_terms_rows(R1, R2, s, lab[1], lab[2])
+                    assert abs(dD[j] - (t1[f"D{r}"] - t0[f"D{r}"])) <= 1e-12
+                    assert abs(dI[j] - (t1[f"I{r}"] - t0[f"I{r}"])) <= 1e-12
+                    assert abs(dI12[j] - (t1["I12"] - t0["I12"])) <= 1e-12
+                    assert abs(delta[j] - (ref_value(t1, w) - ref_value(t0, w))) <= 1e-12
+            # moves
+            G = st.G(r)
+            for f in range(R.F):
+                res = st.move_deltas(r, f, W, G)
+                if res is None:
+                    continue
+                B, delta, dD, dI, dI12 = res
+                for j, b in enumerate(B):
+                    lab = {1: st.lab[1].copy(), 2: st.lab[2].copy()}
+                    lab[r][f] = b
+                    t1 = ref_terms_rows(R1, R2, s, lab[1], lab[2])
+                    assert abs(delta[j] - (ref_value(t1, w) - ref_value(t0, w))) <= 1e-12, (name, r, f, b)
+                    assert abs(dI12[j] - (t1["I12"] - t0["I12"])) <= 1e-12
+            # random update (merge or move), then tables vs recomputation
+            if rng.random() < 0.5:
+                cs = [c for c in range(R.K) if st.count(r, c) >= 2]
+                if cs:
+                    labs = st.class_labels(r, int(rng.choice(cs)))
+                    a, b = sorted(rng.choice(labs, 2, replace=False).tolist())
+                    st.apply_merge(r, int(a), int(b))
+            else:
+                G = st.G(r)
+                movable = [f for f in range(R.F) if st.move_deltas(r, f, W, G) is not None]
+                if movable:
+                    f = int(rng.choice(movable))
+                    B = st.move_deltas(r, f, W, G)[0]
+                    st.apply_move(r, f, int(rng.choice(B)), G)
+            t = st.terms()
+            tr = ref_terms_rows(R1, R2, s, st.labels(1), st.labels(2))
+            for k in t:
+                assert abs(t[k] - tr[k]) <= 1e-12, (name, step, k)
+            T12 = np.zeros_like(st.T12)
+            np.add.at(T12, (s, st.lab[1][R1.f], st.lab[2][R2.f]), 1)
+            assert np.array_equal(T12, st.T12)
+
+
+def test_at_most_cap_extra_merges_and_local_optimality():
+    """'At most the cap': after the search no class exceeds its cap, and when refinement converged no remaining
+    single merge or single-cell move improves the family's objective by more than TOL (so objective-improving merges
+    below the cap were taken). A fixture where an extra merge below the cap is strictly improving shows fewer tokens
+    than the cap."""
+    CP = _qpc("compress")
+    for name, m1, m2, lam in SB_SETTINGS:
+        R1, R2, s = sb_fixture(name)
+        for fam in ("LOCAL", "JOINT"):
+            pair, rec = _fit(fam, R1, R2, s, m1, m2, lam)
+            l1, l2 = _labels(CP, pair)
+            if not rec["summary"]["converged"] or fam == "LOCAL":
+                continue
+            W = W_ref("joint", lam)
+            X = RefSearch(R1, R2, s, (l1, l2), W)
+            assert not X.merge_step((1, 2), None, improving=True), (name, fam)
+            v0 = X.val()
+            for r in (1, 2):
+                R = (R1, R2)[r - 1]
+                for f in range(R.F):
+                    if np.sum(X.lab[r] == X.lab[r][f]) <= 1:
+                        continue
+                    for b in X.groups(r, int(R.cls[f])):
+                        lab = {1: X.lab[1].copy(), 2: X.lab[2].copy()}
+                        lab[r][f] = b
+                        assert X.val(lab) >= v0 - 1e-12
+    R1, R2, s = sb_fixture("small")
+    pair, rec = _fit("LOCAL", R1, R2, s, 4, 3, 50.0)                 # strong privacy weight: merges below the cap
+    assert max(pair.p1.tokens_per_class()) < 4 or max(pair.p2.tokens_per_class()) < 3
+    assert rec["summary"]["extra_merges"] > 0
+
+
+def test_sequential_correction_stage_one_is_F_joint_with_class_only_counterpart():
+    """SEQ stage one optimises the first recipient under the actual F_joint with the other recipient at its CLASS-ONLY
+    release (so the decision it always discloses is accounted for), not dpc's D + 1.5 lam I. On a fixture where the
+    other recipient's decision is informative about S given the first code, the corrected first map differs from the
+    old-rule map and has lower F_joint against the class-only counterpart; the receipt reports the correction."""
+    CP = _qpc("compress")
+    R1, R2, s = sb_fixture("six")
+    lam = 1.0
+    for fam, a, b in (("SEQ-12", 1, 2), ("SEQ-21", 2, 1)):
+        pair, rec = _fit(fam, R1, R2, s, 2, 1, lam)
+        corr = rec["baseline_correction"]
+        assert corr["counterpart"] == "CLASS-ONLY"
+        got = _labels(CP, pair)
+        # stage-one value recomputed from rows with the class-only counterpart
+        lab = {a: got[a - 1], b: ref_class_labels((R1, R2)[b - 1])}
+        t = ref_terms_rows(R1, R2, s, lab[1], lab[2])
+        fj = ref_value(t, W_ref("joint", lam))
+        assert abs(fj - corr["stage1_F_joint_with_class_counterpart"]) <= 1e-12
+        assert abs(corr["I12_with_class_counterpart"] - t["I12"]) <= 1e-12
+        old = corr["old_rule_stage1"]
+        assert old["corrected_minus_old_F_joint"] <= 1e-12                    # corrected is no worse on F_joint
+    # a fixture where the corrections matter: the old rule ignores I(S; d_other | C_first)
+    rng = np.random.default_rng(2)
+    N = 600
+    Sx = rng.integers(0, 2, N)
+    V1 = [[0.95, 0.05], [0.8, 0.2], [0.65, 0.35], [0.55, 0.45], [0.4, 0.6], [0.2, 0.8]]
+    V2 = [[0.7, 0.3], [0.3, 0.7]]
+    d2 = np.where(rng.random(N) < 0.85, Sx, 1 - Sx)                          # recipient 2's DECISION carries S
+    lvl = np.where(rng.random(N) < 0.75, d2 ^ (rng.random(N) < 0.5), rng.integers(0, 2, N))
+    f1 = np.where(lvl == 1, rng.integers(0, 2, N), 2 + rng.integers(0, 2, N))
+    f1 = np.where(rng.random(N) < 0.2, 4 + rng.integers(0, 2, N), f1)
+    R1x, R2x = RefRecip(V1, f1), RefRecip(V2, d2)
+    seen_diff = False
+    for lam in (0.3, 1.0, 3.0):
+        pair, rec = _fit("SEQ-12", R1x, R2x, Sx, 2, 1, lam)
+        old = rec["baseline_correction"]["old_rule_stage1"]
+        assert old["corrected_minus_old_F_joint"] <= 1e-12
+        seen_diff |= not old["same_map_as_corrected"]
+    assert seen_diff, "the correction should change the stage-one map on this fixture (it does at lam = 3)"
+    exp = ref_family("SEQ-12", R1x, R2x, Sx, 2, 1, 1.0)
+    pair, _ = _fit("SEQ-12", R1x, R2x, Sx, 2, 1, 1.0)
+    assert np.array_equal(_labels(CP, pair)[0], exp[0])
+
+
+def test_joint_candidates_and_witness_dominance():
+    """JOINT keeps 9 candidates (5 refined starts + 4 unchanged witnesses), its final F_joint is <= every unchanged
+    witness and every refined start (recomputed from rows), witnesses are the fitted FINE-TASK, LOCAL, SEQ-12 and
+    SEQ-21 policies at the same caps and lam, and unresolved local optima are reported."""
+    CP = _qpc("compress")
+    for name, m1, m2, lam in SB_SETTINGS:
+        R1, R2, s = sb_fixture(name)
+        wits = {f: _fit(f, R1, R2, s, m1, m2, None if f == "FINE-TASK" else lam)[0]
+                for f in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21")}
+        pair, rec = _fit("JOINT", R1, R2, s, m1, m2, lam, witnesses=wits)
+        assert len(rec["candidates"]) == 9
+        assert all(rec["starts"][f]["source"] == "passed_in" for f in wits)
+        W = W_ref("joint", lam)
+        fj = ref_value(ref_terms_rows(R1, R2, s, *_labels(CP, pair)), W)
+        for f, w in wits.items():
+            fw = ref_value(ref_terms_rows(R1, R2, s, *_labels(CP, w)), W)
+            assert fj <= fw + 1e-12, (name, f)
+        for n, srec in rec["starts"].items():
+            assert fj <= srec["refined_F_joint"] + 1e-12
+        assert isinstance(rec["unresolved_local_optima"], list)
+        pair2, rec2 = _fit("JOINT", R1, R2, s, m1, m2, lam)                    # witnesses recomputed: same answer
+        assert pair2.fingerprint() == pair.fingerprint()
+
+
+# ---------------------------------------------------------------- exhaustive optimiser gaps (tiny fixtures only)
+
+def _rgs(n, kmax):
+    """Restricted-growth strings of length n with at most kmax blocks."""
+    out = []
+
+    def rec(prefix, nb):
+        if len(prefix) == n:
+            out.append(tuple(prefix))
+            return
+        for b in range(min(nb + 1, kmax)):
+            rec(prefix + [b], max(nb, b + 1))
+    rec([], 0) if n else out.append(())
+    return out
+
+
+def all_maps(R, m):
+    """Every class-preserving map of R's fine cells with at most m coarse cells per class (canonical labels)."""
+    per = []
+    for c in range(R.K):
+        cells = R.cells_of[c]
+        per.append([(cells, g) for g in _rgs(len(cells), m)] if cells else [([], ())])
+    out = []
+    for combo in itertools.product(*per):
+        lab = np.empty(R.F, np.int64)
+        for cells, g in combo:
+            first = {}
+            for j, b in zip(cells, g):
+                first.setdefault(b, j)
+                lab[j] = first[b]
+        out.append(lab)
+    return out
+
+
+def _fast_parts(R, s, labs):
+    """Per map: D (row mean KL to decoded) and plug-in I(S; C) from fine-level sums; also row tokens."""
+    N = len(s)
+    res = []
+    for lab in labs:
+        D = float(np.dot(R.n, R.negent))
+        for g in np.unique(lab):
+            mem = lab == g
+            n = R.n[mem].sum()
+            S = R.Ssum[mem].sum(0)
+            D -= float(np.dot(S, np.log(ref_smooth(S / n, R.cls[np.flatnonzero(mem)[0]]))))
+        tok = lab[R.f]
+        res.append((D / N, _fast_mi(s, tok), tok))
+    return res
+
+
+def _fast_mi(s, tok):
+    _, t = np.unique(tok, return_inverse=True)
+    tab = np.bincount(s * (t.max() + 1) + t, minlength=2 * (t.max() + 1)).reshape(2, -1).astype(float)
+    N = tab.sum()
+    ns, nc = tab.sum(1, keepdims=True), tab.sum(0, keepdims=True)
+    m = tab > 0
+    return float(np.sum(np.where(m, tab / N * np.log(np.where(m, tab * N, 1) / np.where(m, ns * nc, 1)), 0.0)))
+
+
+def exhaustive_gaps(name, m1, m2, lam):
+    """Global minima over the at-most-cap map space of each family's own objective, and the method's gaps."""
+    CP = _qpc("compress")
+    R1, R2, s = sb_fixture(name)
+    L1, L2 = all_maps(R1, m1), all_maps(R2, m2)
+    p1, p2 = _fast_parts(R1, s, L1), _fast_parts(R2, s, L2)
+    i12 = np.array([[_fast_mi(s, a[2] * (R2.F + 1) + b[2]) for b in p2] for a in p1])
+    D1 = np.array([x[0] for x in p1])[:, None]
+    D2 = np.array([x[0] for x in p2])[None, :]
+    I1 = np.array([x[1] for x in p1])[:, None]
+    I2 = np.array([x[1] for x in p2])[None, :]
+    Fj = D1 + D2 + lam * ((I1 + I2) / 2 + i12)
+    Fl = D1 + D2 + lam * (I1 + I2) / 2
+    Ft = D1 + D2
+    idx1 = {tuple(l): i for i, l in enumerate(L1)}
+    idx2 = {tuple(l): i for i, l in enumerate(L2)}
+    cl1, cl2 = idx1[tuple(ref_class_labels(R1))], idx2[tuple(ref_class_labels(R2))]
+    out = {"fixture": name, "m1": m1, "m2": m2, "lam": lam, "space": [len(L1), len(L2)],
+           "global_min": {"F_task": float(Ft.min()), "F_local": float(Fl.min()), "F_joint": float(Fj.min())}}
+    for fam in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT"):
+        pair, rec = _fit(fam, R1, R2, s, m1, m2, None if fam == "FINE-TASK" else lam)
+        l1, l2 = _labels(CP, pair)
+        i, j = idx1[tuple(l1)], idx2[tuple(l2)]
+        own = {"FINE-TASK": Ft, "LOCAL": Fl}.get(fam, Fj)
+        e = {"value_own": float(own[i, j]), "gap_own": float(own[i, j] - own.min()),
+             "gap_F_joint": float(Fj[i, j] - Fj.min()), "globally_best_own": bool(own[i, j] - own.min() <= 1e-12)}
+        if fam.startswith("SEQ"):
+            if fam == "SEQ-12":
+                st1 = Fj[:, cl2]                                    # stage one: recipient 1 vs class-only 2
+                e["stage1_gap"] = float(st1[i] - st1.min())
+                e["stage2_conditional_gap"] = float(Fj[i, j] - Fj[i, :].min())
+            else:
+                st1 = Fj[cl1, :]
+                e["stage1_gap"] = float(st1[j] - st1.min())
+                e["stage2_conditional_gap"] = float(Fj[i, j] - Fj[:, j].min())
+        out[fam] = e
+    return out
+
+
+EXHAUSTIVE = [("small", 2, 2, 0.1), ("small", 2, 2, 1.0), ("small", 2, 2, 10.0), ("small", 1, 2, 1.0),
+              ("small", 2, 1, 10.0), ("xor", 2, 2, 0.1), ("xor", 2, 2, 1.0), ("xor", 2, 2, 10.0), ("null", 2, 2, 1.0),
+              ("null", 2, 2, 10.0), ("six", 2, 1, 1.0), ("six", 3, 1, 10.0)]
+
+
+@pytest.mark.parametrize("setting", EXHAUSTIVE[:6:5] + EXHAUSTIVE[7:8])
+def test_exhaustive_gaps_are_nonnegative_and_fine_task_is_exact(setting):
+    """On tiny exhaustive fixtures no family beats the global minimum of its own objective (sanity of the search
+    space: at most the cap, class-preserving); FINE-TASK at m = 2 attains its global optimum on these fixtures; gaps
+    of the privacy families are recorded (MATH_REVIEW.md), never promoted to an Adult certificate."""
+    g = exhaustive_gaps(*setting)
+    for fam in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT"):
+        assert g[fam]["gap_own"] >= -1e-12, (setting, fam, g[fam])
+        if fam.startswith("SEQ"):
+            assert g[fam]["stage1_gap"] >= -1e-12 and g[fam]["stage2_conditional_gap"] >= -1e-12
+    assert g["JOINT"]["value_own"] <= min(g[f]["value_own"] if f != "FINE-TASK" else
+                                          g[f]["gap_F_joint"] + g["global_min"]["F_joint"]
+                                          for f in ("FINE-TASK", "SEQ-12", "SEQ-21")) + 1e-12
+
+
+def test_xor_fixture_requires_coordinated_moves():
+    """S = A xor B (A, B = confidence sub-level clues on recipients 1 and 2; each alone independent of S). At m = 2
+    per class JOINT removes the coalition leak by cross-mixing one recipient, but lands on the costlier pairing: its
+    solution is a strict local optimum for every single-cell move and every merge, while the global optimum of
+    F_joint (exhaustive) is lower and differs only by SWAPPING two fine cells between the two coarse cells of one
+    class, i.e. it needs a coordinated two-cell move. The gap is the registered search's limitation on this fixture,
+    recorded in MATH_REVIEW.md; it is not a defect and not an Adult certificate."""
+    CP = _qpc("compress")
+    R1, R2, s = sb_fixture("xor")
+    L1, L2 = all_maps(R1, 2), all_maps(R2, 2)
+    for lam in (1.0, 10.0):
+        W = W_ref("joint", lam)
+        best = min(((ref_value(ref_terms_fine(R1, R2, s, a, b), W), a, b) for a in L1 for b in L2),
+                   key=lambda x: x[0])
+        pair, rec = _fit("JOINT", R1, R2, s, 2, 2, lam)
+        l1, l2 = _labels(CP, pair)
+        X = RefSearch(R1, R2, s, (l1, l2), W)
+        v = X.val()
+        assert v - best[0] > 1e-3                                       # a real gap ...
+        assert not X.merge_step((1, 2), None, improving=True)          # ... at a strict local optimum
+        for r in (1, 2):
+            R = (R1, R2)[r - 1]
+            for f in range(R.F):
+                if np.sum(X.lab[r] == X.lab[r][f]) <= 1:
+                    continue
+                for b in X.groups(r, int(R.cls[f])):
+                    lab = {1: X.lab[1].copy(), 2: X.lab[2].copy()}
+                    lab[r][f] = b
+                    assert X.val(lab) >= v - 1e-12
+
+        def pairs(lab):
+            return {(i, j) for i in range(len(lab)) for j in range(i + 1, len(lab)) if lab[i] == lab[j]}
+        d1, d2 = len(pairs(l1) ^ pairs(best[1])), len(pairs(l2) ^ pairs(best[2]))
+        assert sorted((d1, d2)) == [0, 4]                               # a two-cell swap in one class
+        assert rec["unresolved_local_optima"]                           # reported, not hidden
+        assert v <= min(ref_value(ref_terms_fine(R1, R2, s, *_labels(CP, _fit(f, R1, R2, s, 2, 2, lam)[0])), W)
+                        for f in ("LOCAL", "SEQ-12", "SEQ-21")) + 1e-12
+
+
+def run_exhaustive(out_path=None):
+    res = [exhaustive_gaps(*st) for st in EXHAUSTIVE]
+    if out_path:
+        import json as _json
+        with open(out_path, "w") as fh:
+            _json.dump(res, fh, indent=1)
+    return res
+
+
+if __name__ == "__main__":
+    import sys
+    if "--exhaustive" in sys.argv:
+        path = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else None
+        for r in run_exhaustive(path):
+            print(r["fixture"], r["m1"], r["m2"], r["lam"], r["space"],
+                  {f: (round(r[f]["gap_own"], 6), round(r[f].get("stage1_gap", 0), 6),
+                       round(r[f].get("stage2_conditional_gap", 0), 6)) for f in
+                   ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT")})
+
+
+def test_fine_unit_caps_starts_rows_and_deployment():
+    """qpc.partition.fine_unit: income <= 32 and occupation <= 128 cells per predicted class, fitted on the
+    DEFENSE_FIT rows only, with the Stage A starts and rule (identical to kmeans.fit_recipient at those caps); the
+    private assignment of ALL rows equals deployment, its fitting-row counts equal the stored statistics; support
+    receipts are those of the stored cells; caps are realised (more than 16 / 64 cells on rich classes)."""
+    PT = _qpc("partition")
+    KM = _qpc("kmeans")
+    n, n_fit = 9000, 6000
+    P1 = binary_continuum(n, 7)
+    P2 = teacher_like(n, 6, 8, conc=0.9)
+    P2[:, 5] *= 0.05
+    P2 /= P2.sum(1, keepdims=True)
+    T = {"row_id": np.arange(n) * 5 + 2, "p1": P1, "p2": P2, "d1": P1.argmax(1), "d2": P2.argmax(1)}
+    tr = np.arange(1000, 1000 + n_fit)
+    rec, files = PT.fine_unit(T, tr)
+    import json as _json
+    fd = {}
+    import tempfile
+    import os
+    with tempfile.TemporaryDirectory() as td:
+        files["fine.json"](os.path.join(td, "f.json"))
+        fd = _json.loads(open(os.path.join(td, "f.json")).read())
+    f1, f2 = PT.load_fine(fd)
+    for f, P, d, K, cap in ((f1, P1, T["d1"], 2, 32), (f2, P2, T["d2"], 6, 128)):
+        ref = KM.fit_recipient(P[tr], d[tr], K, cap)
+        assert f.fingerprint() == ref.partition.fingerprint()
+        cnt = [int(np.sum(f.cell_class == c)) for c in range(K)]
+        assert max(cnt) <= cap
+        rich = [c for c in range(K) if np.sum(d[tr] == c) > 4 * cap]
+        assert rich and all(cnt[c] > cap // 2 for c in rich), cnt
+    a = files["assign.npz"]
+    assert np.array_equal(a["f1"], KM.assign_fine(P1, T["d1"], f1)) and np.array_equal(a["f2"], KM.assign_fine(P2, T["d2"], f2))
+    assert np.array_equal(np.bincount(a["f1"][tr], minlength=f1.F), f1.n)
+    assert np.array_equal(np.bincount(a["f2"][tr], minlength=f2.F), f2.n)
+    for c, sup in enumerate(rec["support"][1]):
+        assert sup["cells"] == int(np.sum(f1.cell_class == c)) and sup["rows"] == int(f1.n[f1.cell_class == c].sum())
+    assert rec["caps"] == {1: 32, 2: 128}

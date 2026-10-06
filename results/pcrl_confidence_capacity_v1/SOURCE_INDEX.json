@@ -1,6 +1,6 @@
 {
  "schema": "qpc-source-index-v1",
- "written_at": "2026-10-06T04:20:06Z",
+ "written_at": "2026-10-06T04:42:34Z",
  "study": "pcrl_confidence_capacity_v1",
  "study_branch": "research/pcrl-confidence-capacity-v1",
  "source_study": "pcrl_decision_preserving_compression_v1 (dpc)",
@@ -14,7 +14,7 @@
    "remote_equals_pin": true,
    "remote_tracking_ref": "0a7b05a52746544213742f50efd0a48167efffb1",
    "remote_tracking_equals_pin": true,
-   "checked_at": "2026-10-06T04:20:06Z"
+   "checked_at": "2026-10-06T04:42:35Z"
   },
   "teacher_provenance": {
    "method": "git ls-remote origin refs/heads/research/pcrl-online-strength-frontier-v1 (read-only) and the local remote-tracking ref",
@@ -22,13 +22,17 @@
    "remote_equals_pin": true,
    "remote_tracking_ref": "925e0fddfcb666116c6179575339728a324ed78e",
    "remote_tracking_equals_pin": true,
-   "checked_at": "2026-10-06T04:20:06Z"
+   "checked_at": "2026-10-06T04:42:35Z"
   }
  },
  "study_branch_created_from_pin": true,
- "study_head_at_index": "59cac8423822b68c290b92d9192ea867c05001e1",
+ "study_head_at_index": "42f35aa1a22ded430e70049b72db7c0ec769fd57",
  "reused_code": {
-  "rule": "pinned-package modules imported by qpc/*.py, closed transitively (static scan); reused by import, unchanged; dpc/ is never edited",
+  "rule": "pinned-package modules imported by qpc/*.py, closed transitively (static scan of import statements and literal importlib.import_module calls, plus the DYNAMIC data-named loads); reused by import, unchanged; dpc/ is never edited",
+  "dynamic_loads": {
+   "dpc/report.py": "qpc.closeout dpc-backup -> dpc.closeout.backup -> dpc.closeout.restore_attacker loads the attacker entry point 'dpc.report:refit_selected_attacker' named in <PRIVATE_CACHE>/dpc_v1/run/closeout_targets.json (importlib, module name from data)"
+  },
+  "subprocess_note": "osf.closeout predecessor --restore runs results/pcrl_strength_matched_feedback_v1/verification/replay_smf.py as a SUBPROCESS on the closed smf source worktree at its own pin (not imported from this tree; osf.closeout checks that worktree is clean at the pin before and after)",
   "files": {
    "dpc/admit.py": {
     "present_at_pin": true,
@@ -38,6 +42,7 @@
     "working_tree_equals_pin": true,
     "imported_by": [
      "dpc/closeout.py",
+     "dpc/run.py",
      "qpc/admit.py"
     ]
    },
@@ -49,6 +54,9 @@
     "working_tree_equals_pin": true,
     "imported_by": [
      "dpc/baselines.py",
+     "dpc/report.py",
+     "dpc/run.py",
+     "qpc/assess.py",
      "qpc/audit.py",
      "qpc/baselines.py"
     ]
@@ -82,6 +90,8 @@
     "git_blob_id_at_pin": "12a02fa2819cfb0968357f6ad873b95eb2e103ec",
     "working_tree_equals_pin": true,
     "imported_by": [
+     "dpc/run.py",
+     "qpc/compress.py",
      "qpc/kmeans.py"
     ]
    },
@@ -95,6 +105,7 @@
      "dpc/admit.py",
      "dpc/audit.py",
      "dpc/closeout.py",
+     "dpc/run.py",
      "qpc/closeout.py",
      "qpc/data.py"
     ]
@@ -106,7 +117,18 @@
     "git_blob_id_at_pin": "2d67447d5e18426b238250fd8ca0f6269870facd",
     "working_tree_equals_pin": true,
     "imported_by": [
+     "dpc/run.py",
      "qpc/deploy.py"
+    ]
+   },
+   "dpc/lock.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "d5e36d2a67a03570b4d19559ba939798369aa7dcd42b4c302913bb689a2dce41",
+    "bytes": 12447,
+    "git_blob_id_at_pin": "31f31f853c35ca257bdfc56344bfb3a38f5147be",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "dpc/run.py"
     ]
    },
    "dpc/partition.py": {
@@ -117,6 +139,8 @@
     "working_tree_equals_pin": true,
     "imported_by": [
      "dpc/compress.py",
+     "dpc/run.py",
+     "qpc/compress.py",
      "qpc/kmeans.py",
      "qpc/release.py",
      "qpc/stagea.py"
@@ -132,7 +156,28 @@
      "dpc/closeout.py",
      "dpc/compress.py",
      "dpc/deploy.py",
+     "dpc/run.py",
      "qpc/release.py"
+    ]
+   },
+   "dpc/report.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "543f004dfe22e19b13d83bc4cbf62b6a0c8ac886024d9f45ce8cfc16f41dc5bb",
+    "bytes": 11158,
+    "git_blob_id_at_pin": "482a1f3dcde385f6f480d55477413701290a3098",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "<dynamic: qpc.closeout dpc-backup -> dpc.closeout.backup -> dpc.closeout.restore_attacker loads the attacker entry point 'dpc.report:refit_selected_attacker' named in <PRIVATE_CACHE>/dpc_v1/run/closeout_targets.json (importlib, module name from data)>"
+    ]
+   },
+   "dpc/run.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "d7b811ffad8f45fc1b07c0aee74e14403e95ff6a6f1f924eecad25116b700568",
+    "bytes": 12670,
+    "git_blob_id_at_pin": "a2d05487c3429b10755faaa97e139baa6e0ad540",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "dpc/report.py"
     ]
    },
    "dpc/utility.py": {
@@ -193,6 +238,7 @@
      "jcv/run.py",
      "osf/admit.py",
      "osf/baselines.py",
+     "qpc/assess.py",
      "qpc/audit.py",
      "qpc/baselines.py",
      "qpc/run.py",
@@ -263,7 +309,11 @@
      "jcv/lock.py",
      "jcv/run.py",
      "osf/admit.py",
-     "osf/baselines.py"
+     "osf/baselines.py",
+     "osf/run.py",
+     "osf/train.py",
+     "rgj/train.py",
+     "smf/train.py"
     ]
    },
    "oar/fare_official.py": {
@@ -294,7 +344,8 @@
     "git_blob_id_at_pin": "d50c588a033ac223908321fba96e77ce6893f104",
     "working_tree_equals_pin": true,
     "imported_by": [
-     "osf/baselines.py"
+     "osf/baselines.py",
+     "osf/run.py"
     ]
    },
    "osf/assess.py": {
@@ -305,6 +356,7 @@
     "working_tree_equals_pin": true,
     "imported_by": [
      "dpc/closeout.py",
+     "osf/closeout.py",
      "qpc/closeout.py"
     ]
    },
@@ -331,6 +383,17 @@
      "osf/audit.py"
     ]
    },
+   "osf/closeout.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "062c7b47f4cb5aed64319680fa886855aec8b4263466ba810ad125e9ff87e0ce",
+    "bytes": 36934,
+    "git_blob_id_at_pin": "7b34bd51198dabfec3d6db6ecb53e85f1d505b40",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "dpc/closeout.py",
+     "qpc/closeout.py"
+    ]
+   },
    "osf/data.py": {
     "present_at_pin": true,
     "sha256_at_pin": "389c0633b2802fe8ada7bc77b3f29fabcbcac52c5093b1c1f16d9e53c9f33600",
@@ -340,15 +403,51 @@
     "imported_by": [
      "dpc/closeout.py",
      "dpc/data.py",
+     "dpc/lock.py",
      "osf/admit.py",
      "osf/assess.py",
      "osf/audit.py",
      "osf/baselines.py",
+     "osf/closeout.py",
+     "osf/lock.py",
+     "osf/run.py",
+     "qpc/assess.py",
      "qpc/closeout.py",
      "qpc/data.py",
      "qpc/eval_lock.py"
     ],
     "equals_blob_at_teacher_pin": true
+   },
+   "osf/lock.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "47f6484ed614511eb03fa9620cbfc4c649be0446626f7af7182c482e244e97a9",
+    "bytes": 12487,
+    "git_blob_id_at_pin": "1b6771dec56255243b08244915300e40b1231335",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "osf/run.py"
+    ]
+   },
+   "osf/run.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "1e35beec73498e5b3fe31159b86e9c988013ea819bc13e7b3943c52f61493b64",
+    "bytes": 21363,
+    "git_blob_id_at_pin": "acccc523420b76709573d3520f0b3803b414aa1c",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "osf/closeout.py"
+    ]
+   },
+   "osf/train.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "3f95f89a1bd9e1d262f112a94a3630d1055fe2d420630ce1baec28e097564806",
+    "bytes": 25769,
+    "git_blob_id_at_pin": "072b5a11b70102319a5ead781ee8d6277c4e41fb",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "osf/lock.py",
+     "osf/run.py"
+    ]
    },
    "pcrl/data/adult.py": {
     "present_at_pin": true,
@@ -411,11 +510,26 @@
     "imported_by": [
      "dpc/audit.py",
      "dpc/baselines.py",
+     "dpc/run.py",
      "osf/admit.py",
      "osf/assess.py",
      "osf/audit.py",
      "osf/baselines.py",
+     "osf/closeout.py",
+     "osf/run.py",
      "smf/audit.py"
+    ]
+   },
+   "rgj/train.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "bdf36c09a807bc836ece1159edebe6269d6e5697f39f607b25521920bbda6e51",
+    "bytes": 23734,
+    "git_blob_id_at_pin": "63b09b34bbaab5ad949e8006601b70c59f81db4a",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "osf/run.py",
+     "osf/train.py",
+     "smf/train.py"
     ]
    },
    "smf/audit.py": {
@@ -426,8 +540,10 @@
     "working_tree_equals_pin": true,
     "imported_by": [
      "dpc/audit.py",
+     "dpc/report.py",
      "osf/assess.py",
      "osf/audit.py",
+     "osf/closeout.py",
      "qpc/audit.py"
     ]
    },
@@ -440,6 +556,16 @@
     "imported_by": [
      "osf/data.py",
      "smf/audit.py"
+    ]
+   },
+   "smf/train.py": {
+    "present_at_pin": true,
+    "sha256_at_pin": "deda11d2eeb59202a3670131afa5bd28c1faec76fe939718e54d83a1500597e4",
+    "bytes": 22822,
+    "git_blob_id_at_pin": "2a788077c077b5d878976a2f0979149d59368076",
+    "working_tree_equals_pin": true,
+    "imported_by": [
+     "osf/train.py"
     ]
    },
    "stored_model_eval/bench.py": {
@@ -484,7 +610,8 @@
      "jcv/train.py",
      "oar/study.py",
      "osf/admit.py",
-     "osf/baselines.py"
+     "osf/baselines.py",
+     "osf/closeout.py"
     ]
    },
    "stored_model_eval/guards.py": {

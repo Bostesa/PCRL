@@ -2,7 +2,10 @@
 
 Records which source files qpc reuses and their blob hashes at the source evidence commit 0a7b05a (dpc):
   * reused code: every module of a pinned study package (dpc, osf, smf, rgj, jcv, stored_model_eval, oar, pcrl) that a
-    qpc/*.py file imports, closed transitively over the imports of those source files (static scan, no import);
+    qpc/*.py file imports, closed transitively over the imports of those source files (static scan, no import). The
+    scan covers `import x`, `from x import y` (also inside functions) and literal `importlib.import_module("x")`; loads
+    whose module name comes from DATA (an entry point in a targets file) are listed in DYNAMIC with their reason and
+    seed the same transitive closure;
   * read evidence: the dpc result files the prompt requires (section 2) plus the custody files this study builds on;
   * remote check: origin/<source branch> still equals the pin (git ls-remote, read-only);
   * every reused working-tree file must be byte-identical to its blob at the pin.
@@ -39,6 +42,14 @@ ALSO_READ = [f"{DPC}/{f}" for f in ("ADMISSION.json", "ROLE_MANIFEST.json", "SOU
                                     "COST_AND_CLOSEOUT.md", "METHOD_CARD.md",
                                     "provenance/predecessor_custody/STATUS.json")]
 IMPORT_RE = re.compile(r"^\s*(?:from\s+([\w.]+)\s+import\s+([\w, ]+)|import\s+([\w.]+))", re.M)
+IMPORTLIB_RE = re.compile(r"import_module\(\s*[\"']([\w.]+)[\"']\s*\)")
+# module names that are not literals in any source file: they come from data at run time
+DYNAMIC = {"dpc/report.py": ("qpc.closeout dpc-backup -> dpc.closeout.backup -> dpc.closeout.restore_attacker loads the "
+                             "attacker entry point 'dpc.report:refit_selected_attacker' named in <PRIVATE_CACHE>/dpc_v1/"
+                             "run/closeout_targets.json (importlib, module name from data)")}
+SUBPROCESS_NOTE = ("osf.closeout predecessor --restore runs results/pcrl_strength_matched_feedback_v1/verification/"
+                   "replay_smf.py as a SUBPROCESS on the closed smf source worktree at its own pin (not imported from this "
+                   "tree; osf.closeout checks that worktree is clean at the pin before and after)")
 
 
 def git(*a, text=False):
@@ -60,6 +71,10 @@ def module_files(src: str):
         for c in cands:
             if (WT / c).is_file():
                 out.add(c)
+    for mod in IMPORTLIB_RE.findall(src):
+        c = mod.replace(".", "/") + ".py"
+        if mod.split(".")[0] in PKGS and (WT / c).is_file():
+            out.add(c)
     return out
 
 
@@ -71,6 +86,9 @@ def reused_code():
         for f in module_files(p.read_text()):
             users.setdefault(f, set()).add(str(p.relative_to(WT)))
             todo.append(f)
+    for f, why in DYNAMIC.items():
+        users.setdefault(f, set()).add(f"<dynamic: {why}>")
+        todo.append(f)
     seen = set()
     while todo:
         f = todo.pop()
@@ -115,8 +133,10 @@ def main():
            "study_branch_created_from_pin": subprocess.run(
                ["git", "-C", str(WT), "merge-base", "--is-ancestor", PIN, "HEAD"]).returncode == 0,
            "study_head_at_index": (git("rev-parse", "HEAD", text=True) or "").strip(),
-           "reused_code": {"rule": "pinned-package modules imported by qpc/*.py, closed transitively (static scan); "
-                                   "reused by import, unchanged; dpc/ is never edited",
+           "reused_code": {"rule": "pinned-package modules imported by qpc/*.py, closed transitively (static scan of "
+                                   "import statements and literal importlib.import_module calls, plus the DYNAMIC "
+                                   "data-named loads); reused by import, unchanged; dpc/ is never edited",
+                           "dynamic_loads": DYNAMIC, "subprocess_note": SUBPROCESS_NOTE,
                            "files": code_entries,
                            "all_equal_to_pin": all(v.get("working_tree_equals_pin") for v in code_entries.values())},
            "read_before_implementation (prompt section 2)": {f: entry(f) for f in SECTION_2},

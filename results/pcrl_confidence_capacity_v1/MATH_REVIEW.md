@@ -1,8 +1,9 @@
-INTERIM STATUS (Stage A review, 2026-10-06 04:22Z): 0 OPEN REQUIRED. Two REQUIRED runner-binding defects (SA-R1,
+INTERIM STATUS (2026-10-06 04:42Z): Stage A review 0 OPEN REQUIRED; Stage B review 0 REQUIRED (section 3);
+selection review SEL-R1 and SEL-R2 found and FIXED by the lead (section 4.1); the audit.py review is pending. Stage A detail: Two REQUIRED runner-binding defects (SA-R1,
 SA-R2, both in `qpc/run.py`) were found and are already resolved in `qpc/run.py` a64bb028ae5b, re-verified by the
 failing fixture, which now passes. No REQUIRED finding in the mathematics of `qpc/kmeans.py`, `qpc/stagea.py`,
-`qpc/release.py` or `qpc/gate.py`. 4 RECOMMENDED (SA-C1 applied), 11 NOTES. 25/25 reviewer tests pass. Stage B and
-selection reviews pending.
+`qpc/release.py` or `qpc/gate.py`. 4 RECOMMENDED (SA-C1 applied; SA-C2 applied in PROTOCOL section 7), 11 NOTES.
+Reviewer tests: 47/47 pass (about 9.5 s).
 
 # Math, invariants and protocol review: confidence capacity and privacy (qpc)
 
@@ -346,14 +347,261 @@ lose the fit objective, convergence and work.**
 25 tests in `qpc/tests/test_math_review.py`, all passing (about 3 s). `test_runner_reads_the_keys_that_stagea_writes`,
 the SA-R1/SA-R2 fixture, failed against `run.py` 5cd5ba2f2ed6 and passes against a64bb028ae5b.
 
-## 3. Stage B review (review 2)
+## 3. Stage B review (review 2; 2026-10-06 04:41Z)
 
-Pending: `qpc/partition.py` and `qpc/compress.py`, with mutation testing.
+**Reviewed working-tree files:**
+
+| File | sha256 prefix |
+|---|---|
+| `qpc/partition.py` | a4396381979f |
+| `qpc/compress.py` | 3495e2a88171 |
+| `METHOD_CARD.md` (section 6) | 4bbc2bbff013 |
+| `PROTOCOL.md` (section 8) | 89a10e18b98e |
+
+Mutation testing was moved after the locks at the lead's request (section 5).
+
+### 3.1 What was checked, and how
+
+The reference is an independent transcription of the search on label vectors. It uses its own fine-level objective,
+and a separate row-level brute force computed from the released tokens and decoded vectors.
+
+**Objectives D, I1, I2 and I12** (`test_stageb_families_equal_independent_reference`).
+- Every receipt term equals the row-level brute force within 1e-12 on 8 fixture settings.
+- The settings use asymmetric caps (2,2), (2,3), (1,2), (2,1) and (3,2), lambda from 0.01 to 10, and the small, XOR,
+  null and six-class fixtures.
+
+**Exact merge and move deltas** (`test_merge_and_move_deltas_and_tables_against_brute_force`).
+- At random intermediate states, including virtual labels left by moves, every merge and every single-cell move
+  increment of `State` equals the brute-force difference of row-level objectives within 1e-12.
+- That covers dD, dI_own, dI12 and the weighted total.
+- After every `apply_merge` and `apply_move`, `terms()` and the pair table equal recomputation.
+
+**Search rules.**
+- The canonical maps of FINE-TASK, LOCAL, SEQ-12, SEQ-21 and JOINT are identical to the reference on all 8 settings.
+- The reference rules are:
+  - greedy to the per-recipient caps, smallest increment first, ties within 1e-12 going lexicographically;
+  - then objective-improving extra merges, below -1e-12;
+  - then up to 5 sweeps, each an exchange pass (best target, ties to the lowest label, no emptied cell) followed by an
+    improving-merge pass.
+
+**At most the cap, with objective-improving merges** (`test_at_most_cap_extra_merges_and_local_optimality`).
+- No class exceeds its cap.
+- At every converged JOINT, no single merge or move improves F_joint by more than TOL.
+- A strong-lambda LOCAL fixture ends below its caps through extra merges.
+
+**The sequential correction** (`test_sequential_correction_stage_one_is_F_joint_with_class_only_counterpart`).
+- SEQ-12 and SEQ-21 stage one is F_joint with the other recipient's CLASS-ONLY release. The receipt's stage-one
+  F_joint and I(S; C_a, d_b) equal row recomputation.
+- The corrected stage-one map is never worse on that F_joint than the old D + 1.5 lambda I map.
+- On a designed fixture (recipient 2's decision carries S), the correction changes the stage-one map at lambda = 3
+  and lowers F_joint by 0.00079.
+- The first map is frozen, and stage two equals the reference.
+
+**JOINT starts and witness dominance** (`test_joint_candidates_and_witness_dominance`).
+- There are 9 candidates: 5 refined starts and 4 unchanged witnesses.
+- The final F_joint, recomputed from rows, is at most every unchanged witness and every refined start.
+- Passed-in witnesses give the same pair as recomputed ones.
+- `unresolved_local_optima` is reported.
+
+**Fine partitions** (`test_fine_unit_caps_starts_rows_and_deployment`).
+- `fine_unit` fits only the fitting rows, with the Stage A starts and rule; its fingerprint equals
+  `kmeans.fit_recipient` at caps 32 and 128.
+- Caps are realised on rich classes.
+- The private all-row assignment equals deployment, and its fitting-row counts equal the stored statistics.
+- Support receipts match the stored cells.
+
+**METHOD_CARD section 6 against the code.** Sections 6.1-6.7 describe the code as implemented: objective, n log n
+table, cache invalidation, extra merges, sweep definition, families, correction receipts, permutation-null receipts
+and the runner unit. Two wording points are given below (SB-N1 and SB-N2).
+
+### 3.2 Optimiser gaps on tiny exhaustive fixtures (NOT an Adult certificate)
+
+**Method.**
+- Every class-preserving map with at most m cells per class is enumerated on both recipients, up to 64 x 64 map
+  pairs.
+- Gap = family value minus the global minimum of the family's OWN objective over that space.
+- SEQ arms are measured against F_joint, with their stage-one gap (corrected objective) and conditional stage-two gap
+  listed separately.
+- Runner: `python -m qpc.tests.test_math_review --exhaustive --out <json>`, about 2 s.
+
+**Results.**
+
+| Fixture | m1, m2 | lambda | FINE-TASK | LOCAL | SEQ-12 F_joint gap (stage 1 / stage 2) | SEQ-21 F_joint gap (stage 1 / stage 2) | JOINT |
+|---|---|---|---|---|---|---|---|
+| small | 2, 2 | 0.1 | 0 | 0 | 0 (0 / 0) | 0 (0 / 0) | 0 |
+| small | 2, 2 | 1 | 0 | 0 | 0.0324 (0 / 0) | 0.0025 (0 / 0) | **0.0025** |
+| small | 2, 2 | 10 | 0 | 0 | 0.0145 (0 / 0) | 0 (0 / 0) | 0 |
+| small | 1, 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| small | 2, 1 | 10 | 0 | 0 | 0 | 0 | 0 |
+| xor | 2, 2 | 0.1 | 0 | 0 | 0.00007 (0 / 0) | 0 | 0 |
+| xor | 2, 2 | 1 | 0 | 0 | 0.0058 (0 / 0.0058) | 0.0092 (0 / 0.0061) | **0.0058** |
+| xor | 2, 2 | 10 | 0 | 0 | 0.0058 (0 / 0.0058) | 0.0092 (0 / 0.0061) | **0.0058** |
+| null | 2, 2 | 1 | 0 | 0 | 0 | 0.00009 (0 / 0) | 0 |
+| null | 2, 2 | 10 | 0 | 0 | 0 | 0 | 0 |
+| six | 2, 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| six | 3, 1 | 10 | 0 | 0 | 0 | 0 | 0 |
+
+**Reading the table.**
+- FINE-TASK and LOCAL attain their own global optimum in 12 of 12 settings.
+- The SEQ stage-one gap is 0 everywhere. Their F_joint gaps are structural to sequential design: the first map is
+  fitted before the second exists.
+- JOINT is globally best in 10 of 12 settings. Its gaps are 0.0025 (small, lambda 1) and 0.0058 (XOR, lambda 1 and
+  10).
+
+**XOR coordinated move** (`test_xor_fixture_requires_coordinated_moves`).
+- S = A xor B, with A and B confidence sub-level clues on the two recipients; each alone is independent of S.
+- JOINT removes the coalition leak by cross-mixing recipient 2 into {0,3}/{1,2}.
+- The global optimum is the cheaper pairing {0,2}/{1,3}, which differs by SWAPPING two fine cells of one class.
+- The JOINT solution is a strict local optimum for every single-cell move and every merge, so reaching the optimum
+  needs a coordinated two-cell move that the registered search does not make.
+- The gap is reported in `unresolved_local_optima`. It is the registered optimiser's limitation, not a defect.
+
+### 3.3 Findings
+
+**REQUIRED: none.**
+
+**RECOMMENDED: none blocking.** The two wording points below are NOTES.
+
+**NOTES.**
+- **SB-N1 (METHOD_CARD 6.3, step 2).** "For F_task, merges never decrease distortion" holds exactly only for
+  unsmoothed barycentres.
+  - With eps-smoothing, the first-order eps terms cancel between cells with the same support.
+  - When a cell mean has exact zeros, a merge can lower the smoothed distortion by at most about n eps / N.
+  - The TOL = 1e-12 guard makes this immaterial except on pathological fixtures. Recommend "up to O(eps)".
+- **SB-N2 (labels after moves).** A move can carry a coarse cell's label fine index out of the cell, so internal
+  labels become virtual.
+  - Merge ties in the merge pass that ends a sweep are then ordered by internal labels, not by lowest member.
+  - This is deterministic and transcribed identically in the reference. Exported groupings are canonical.
+  - METHOD_CARD's "label = a member fine index" holds at creation only.
+- **SB-N3 (scope of dominance).** JOINT dominance holds only within the fine-state family and on the fitting
+  objective. It says nothing about held-out recovery, and DIRECT-TASK is not contained (PROTOCOL section 8).
+- **SB-N4 (stage-one objective).** The corrected SEQ stage one is
+  D_a + lambda(I_a/2 + I(S; C_a | d_b)) + constant. It can keep a clue that the old surrogate removes when that clue
+  is redundant with d_b, or the reverse.
+- **SB-N5 (fitted MI at large alphabets).** At the selected Stage B rate (income 8, occupation 64, over 32 and 128
+  fine cells per class), pair alphabets can reach hundreds of occupied cells.
+  - The permutation-null receipts (100 fixed permutations, seed 20261006) must be read beside every fitted MI.
+  - lambda I12 partly penalises alphabet size (section 1.6).
+- **SB-N6 (tolerances).** `fit_policy_pair` asserts receipt-versus-row agreement at 1e-9 (observed about 1e-15).
+  `_optimise` asserts that refinement never raises the stage objective.
 
 ## 4. Selection, validity and inference review (review 3)
 
-Pending: `qpc/select.py`, `qpc/family.py`, `qpc/infer.py`, `LABEL_TRUTH_TABLE.json`, `qpc/audit.py` and
-`qpc/utility.py`.
+### 4.1 Preliminary pass on the lead's files (2026-10-06 04:30Z, before AUDIT_AND_SELECTION_LOCK)
+
+**Reviewed working-tree files:**
+
+| File | sha256 prefix |
+|---|---|
+| `qpc/select.py` | 281b300aee49 |
+| `qpc/family.py` | f38b06e71319 |
+| `qpc/infer.py` | 6b42a9bf2023 |
+| `LABEL_TRUTH_TABLE.json` | bc390107a989 |
+| `PROTOCOL.md` (section 11) | 89a10e18b98e |
+
+`qpc/audit.py` (role D) is reviewed in section 4.3, once ready.
+
+**Checked.**
+
+- `test_selection_matches_independent_protocol_transcription`.
+  - `qpc.select.select_all` was run on 60 random synthetic inner-record banks. `qpc.run`'s record access was
+    monkeypatched, and outputs went to a temp dir.
+  - Each bank has 8 Stage A rates, 2 Stage B rates x (FINE-TASK + 4 families x 3 lambdas), CLASS, both sources
+    and three references.
+  - Q*, C_global, T*, C_rate(J*), J* and P* equal an independent transcription of PROTOCOL section 11.
+    Eligibility in the transcription is recomputed from raw metrics, not through `qpc.utility`.
+  - The deterministic DESCRIPTIVE_ONLY fallbacks of J* and P* also match.
+  - At least 5 banks with a J* nominee and at least 5 with a P* nominee were exercised.
+- `test_selection_guards_are_per_seed_per_recipient_and_never_dropped`.
+  - A JOINT code exactly within + 0.005 of its guards is nominated.
+  - The same code at + 0.006 on one recipient of one seed is not nominated, and gets a descriptive fallback.
+- `test_claim_status_and_label_match_protocol_text_exhaustively`. Every combination of claim inputs and of
+  overall-label inputs agrees with a transcription of the section 11 status table, precedence and label list.
+- `test_family_37_fixed_slots_and_z`.
+  - There are 37 fixed slots: P01-P37, split A 11, B 11, C 11, Q 4.
+  - z = NormalDist().inv_cdf(1 - 0.05/74) = 3.2048452050105634 exactly.
+  - Every clause kind, target and strict side is as registered.
+- **Read** (`infer.py`).
+  - Strict `lower >` and `upper <` decisions.
+  - SE with ddof 1, and a nonfinite replicate makes a primary slot INVALID; nothing is dropped.
+  - DESCRIPTIVE_ONLY whenever a role is not NOMINEE.
+  - The retain clause uses jcv `lin` = X0 - 0.8 X1 - 0.2 X2 on [acc(N), acc(U), acc(const)].
+  - The bootstrap is `UnitBootstrap`: a multinomial over exact-record groups, seed 20261007, with one sequential
+    draw stream shared by every statistic.
+  - Arms are refused if row IDs, groups, SEX, labels or the constant differ across them.
+
+**Findings.**
+
+**SEL-R1 (REQUIRED; PROTOCOL section 11 and `LABEL_TRUTH_TABLE.json` against `qpc/select.py`). The guard-blocked
+nominee rule is executable but not registered.**
+
+What the code does:
+- In `select.py`, an ELIGIBLE JOINT code whose guard comparator is not a NOMINEE makes J* INVALID_NOMINEE ("eligible
+  JOINT blocked only by a missing guard comparator (guards are never dropped)"). The guard comparator is C_rate at
+  its rate or C_global; for example, C_rate may have computed candidates but none eligible.
+- Claim A's comparator then becomes INVALID_COMPARATOR ("no J* cell").
+- P* is INVALID_NOMINEE whenever T* is not a NOMINEE.
+
+What the registered text says:
+- `LABEL_TRUTH_TABLE.json` defines nominee TECHNICAL_FAILURE as "candidate set not computable".
+- It maps a comparator with "candidates computed, none eligible" to NO_ELIGIBLE, that is
+  NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR.
+- PROTOCOL section 11 states neither the guard-blocked rule nor the "no J* cell" consequence.
+
+Why it matters:
+- In this case the per-claim status from the executable (A: INVALID_COMPARATOR, B: INVALID_NOMINEE) differs from
+  what the registered text gives or leaves ambiguous. A text reading would give A NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR,
+  and B NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE or INVALID.
+- The overall label is the same (INCOMPLETE_OR_INVALID) under both readings.
+- This is exactly the dpc NO_FEASIBLE_CONTROL ambiguity the prompt forbids, and `LABEL_TRUTH_TABLE.json` itself says
+  "Any disagreement found later is a defect".
+- It is reachable only if a guard comparator fails, which the truth-table notes expect never to happen, because the
+  DIRECT-TASK code at each Stage B rate is eligible and U is eligible.
+
+Failing fixture: `test_guard_blocked_nominee_status_is_registered_in_protocol_and_truth_table`.
+
+Patch: register the executable rule, which is the smallest change.
+- In PROTOCOL section 11 and `LABEL_TRUTH_TABLE.json` (`claim_inputs.nominee.TECHNICAL_FAILURE`, plus a note), add:
+  "TECHNICAL_FAILURE also covers an otherwise eligible nominee blocked only because one of its guard comparators
+  (C_rate(J) or C_global for J*; T* for P*) is not a NOMINEE; guards are never dropped. Claim A's C_rate is resolved
+  at the J* nominee cell, else at the J* descriptive fallback cell; when J* has neither, C_rate is INVALID_COMPARATOR
+  (no J* cell)."
+- Alternatively, change `select.py` so that claim A reads NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR when the blocking
+  C_rate is NO_ELIGIBLE_COMPARATOR. The text must then say so.
+
+**SEL-C1 (RECOMMENDED). Attribute claim A's failure to the nominee when it originates there.**
+- When J* is INVALID_NOMINEE because a JOINT unit failed technically, claim A reads INVALID_COMPARATOR through the
+  derived "no J* cell" C_rate, because comparator technical failure takes precedence. That holds even when every
+  C_rate candidate is fine.
+- Recommend recording that C_rate state as derived from J*, or reporting claim A as INVALID_NOMINEE in that case. The
+  label is unaffected.
+
+**SEL-C2 (RECOMMENDED; confirm deliberately). A valid PASS on claim C is suppressed when A or B lacks coverage.**
+- `overall_label` returns INCOMPLETE_OR_INVALID whenever any claim lacks coverage. A valid PASS on claim C therefore
+  gets no PRIVACY_COMPRESSION label if claim A or B is NOT_APPLICABLE or INVALID.
+- PROTOCOL section 11 states this, so text and code agree. It is stricter than dpc's adopted R3 rule ("a valid
+  PASSing claim C keeps its label").
+- The prompt's "INCOMPLETE_OR_INVALID: required technical validity or comparator coverage missing" can be read either
+  way, because claim C does not require A's or B's comparators.
+- Confirm the choice before the lock. The per-claim table is published in either case.
+
+**SEL-C3 (RECOMMENDED). Let the reference candidates follow the admission record.**
+- `run.scored_ids()` always includes REF|E, REF|F and REF|F0. If a reference's provenance were invalid, its missing
+  record would make C_global INVALID_COMPARATOR, and T* too through F0. The prompt says references are used "when
+  their source provenance remains valid".
+- All three are present and matching now (`SOURCE_ADMISSION.json`), so the point is moot unless admission fails.
+  Recommend that `scored_ids` follow the admission record.
+
+**SEL-N1.** T* includes SRC|RAW-J_b0.3, as PROTOCOL section 11 states explicitly. "Privacy-untrained" refers to the
+release; the RAW-J teacher itself is privacy-trained. It is expected to be ineligible in any case (+0.013 occupation
+nats in dpc).
+
+**SEL-N2.** `infer.label_from` maps a Q* INVALID_NOMINEE (a technical failure among the Stage A rows) to
+NOT_APPLICABLE_NO_Q. The missing-item text then reads "no eligible Stage A configuration despite a met gate", which
+mislabels the reason. The label (INCOMPLETE_OR_INVALID) is correct.
+
+**SEL-N3.** `pick` rounds the ordering keys to 12 decimals, so exact ties between seed means are resolved by the
+next key, as registered.
 
 ## 5. Prior art
 
