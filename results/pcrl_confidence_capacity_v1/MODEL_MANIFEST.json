@@ -1,0 +1,140 @@
+{
+ "schema": "qpc-model-manifest-v1",
+ "private_root": "<PRIVATE_CACHE>/qpc_v1",
+ "label": "CONFIDENCE_FEASIBILITY_ESTABLISHED",
+ "packaged": {
+  "U_continuous_baseline": {
+   "label": "SRC|U",
+   "teacher_units": [
+    "<PRIVATE_CACHE>/qpc_v1/admitted/rel__s0__U",
+    "<PRIVATE_CACHE>/qpc_v1/admitted/rel__s1__U",
+    "<PRIVATE_CACHE>/qpc_v1/admitted/rel__s2__U"
+   ],
+   "status": "eligible by construction; continuous probabilities; no protection (assessment pair SEX AUC 0.858)"
+  },
+  "Q_star_confidence_feasible": {
+   "label": "U|DIRECT-TASK|i8o64",
+   "units": [
+    "pol__s0__U_DIRECT-TASK_i8o64",
+    "pol__s1__U_DIRECT-TASK_i8o64",
+    "pol__s2__U_DIRECT-TASK_i8o64"
+   ],
+   "status": "inner-eligible on every seed AND all four assessment confidence bounds pass (P34-P37); task-only (no privacy training); preserves every decision; pair SEX AUC 0.849 (protection over U continuous only 0.009)",
+   "deploy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m qpc.deploy --unit <PRIVATE_CACHE>/qpc_v1/admitted/rel__s{k}__U --policy <PRIVATE_CACHE>/qpc_v1/run/units/pol__s{k}__U_DIRECT-TASK_i8o64/policy.json --X <input.npz: X (n,83), feature_names> --schema <schema json or npz> --out <release.npz>",
+   "files_sha256": {
+    "s0": {
+     "policy.json": "0b1c58c4c49a6f4669aab50c3331685421fa198a1bfe3c6f4fc7c9946da851d3",
+     "record.json": "29fee08c7f5a9ee20b5d20c2645c967c073dc830c6f5d4fc1c7f2f7874a2bda2",
+     "release.npz": "e5af20e936eff453a0a3221de8880c9630025276bee46b014dc7cc29f54a2f3a"
+    },
+    "s1": {
+     "policy.json": "ac7d113d872b6d6c5eeb9453c79d33f99635fd5163708e9440167116933ebdd2",
+     "record.json": "16b919b1a8b8ab17ebf2507d73d67f18df580b6c41a8f18e2c99b6e0df24a304",
+     "release.npz": "2b242a6c5b0fd3523c2cfc802be512073de39a995e6e05933ace50370dde4686"
+    },
+    "s2": {
+     "policy.json": "12f47e926c4bc8e7cc21055d2cdab357c698a7d8cb050ae71d031c6744ea826b",
+     "record.json": "26ae1976cba45dba5d34aea7eecdcfc5594b57339551cd4845b8ee638271aea2",
+     "release.npz": "8fcffb9d51ae346045d723d9319ec8adca7647318cfe194f072448034ab95bbc"
+    }
+   }
+  },
+  "best_inner_selected_eligible_privacy_code": {
+   "label": "U|JOINT|i8o64|l0.1",
+   "role": "P* (inner selection)",
+   "units": [
+    "pol__s0__U_JOINT_i8o64_l0.1",
+    "pol__s1__U_JOINT_i8o64_l0.1",
+    "pol__s2__U_JOINT_i8o64_l0.1"
+   ],
+   "status": "inner-eligible on every seed; on the reused assessment it lowers pair SEX AUC by 0.034 [0.029, 0.039] vs the task-only T* but its occupation log-loss excess upper bound is 0.0121 (> 0.01): confidence preservation NOT established; claim C NOT_ESTABLISHED; usable only with that caveat",
+   "deploy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m qpc.deploy --unit <PRIVATE_CACHE>/qpc_v1/admitted/rel__s{k}__U --policy <PRIVATE_CACHE>/qpc_v1/run/units/pol__s{k}__U_JOINT_i8o64_l0.1/policy.json --X <input.npz: X (n,83), feature_names> --schema <schema json or npz> --out <release.npz>",
+   "files_sha256": {
+    "s0": {
+     "policy.json": "acd58d68d89f3a53a8ed111625ae0a0b636c334e9a1f2d66bbdc518d33faf47c",
+     "record.json": "7f789cf5a8aac03a3dbb525891b990dce4e3d05418d73b533c6356923b721307",
+     "release.npz": "e736c063422fe2f788d2e26380c113e799941a5ed1932ed696d3f83db825f317"
+    },
+    "s1": {
+     "policy.json": "4a72d860ef968199f6d566acf1319e50a61bcf9ab19b4addf39b5a5188737c20",
+     "record.json": "d9d6727564b598a093e8d336e571414b5256ef7aea4b27917e53cb9d3e4e1f87",
+     "release.npz": "7f08cb81177f23907cdb7ed07f945c58599c64749cd8e4a65f7be02bf550ad37"
+    },
+    "s2": {
+     "policy.json": "3cfdba0d2e8e536f14526e193f77c27aab89c2ac00078771eb68386c20c28410",
+     "record.json": "63ba18a221bb44b1fef6b7dac3b43d58a215baae878c8615ae14df1713e3cdd1",
+     "release.npz": "3bf3fb2e72f7283b0bcd1bfcc322f8370e4531aee79f9cb0da99c3d42efe37fd"
+    }
+   }
+  }
+ },
+ "deployment_contract": "input: exactly the 83 permitted columns with the pinned names and order; output: tokens_i, probs_i, decision_i only; extra/reordered columns, fine-ID or raw-score exports, mismatched teachers and unknown flags refused (exit 2); policy bound to the teacher model.pt sha256 and the feature-schema sha256",
+ "deployment_test": {
+  "seed": 1,
+  "rows": 39170,
+  "Q_star_bitwise_equal_stored_release": true,
+  "P_star_bitwise_equal_stored_release": true,
+  "refusals_exit_2": [
+   "84 columns",
+   "reordered schema",
+   "--export-fine-ids",
+   "--raw-scores",
+   "seed-0 teacher with a seed-1 policy",
+   "unknown flag --verbose"
+  ]
+ },
+ "not_packaged_as_ready": [
+  "U|SEQ-21|i8o64|l0.1 (C_global/C_rate comparator; descriptive)",
+  "J* fallback (no eligible JOINT nominee)"
+ ],
+ "statuses": {
+  "Q*": {
+   "status": "NOMINEE",
+   "config": "U|DIRECT-TASK|i8o64",
+   "descriptive_config": null,
+   "winning_family": null,
+   "cell": null,
+   "reason": null
+  },
+  "C_global": {
+   "status": "NOMINEE",
+   "config": "U|SEQ-21|i8o64|l0.1",
+   "descriptive_config": null,
+   "winning_family": null,
+   "cell": null,
+   "reason": null
+  },
+  "T*": {
+   "status": "NOMINEE",
+   "config": "U|FINE-TASK|i8o64",
+   "descriptive_config": null,
+   "winning_family": null,
+   "cell": null,
+   "reason": null
+  },
+  "J*": {
+   "status": "NO_ELIGIBLE_NOMINEE",
+   "config": null,
+   "descriptive_config": "U|JOINT|i8o64|l0.1",
+   "winning_family": null,
+   "cell": null,
+   "reason": null
+  },
+  "C_rate": {
+   "status": "NOMINEE",
+   "config": "U|SEQ-21|i8o64|l0.1",
+   "descriptive_config": null,
+   "winning_family": null,
+   "cell": "i8o64",
+   "reason": null
+  },
+  "P*": {
+   "status": "NOMINEE",
+   "config": "U|JOINT|i8o64|l0.1",
+   "descriptive_config": null,
+   "winning_family": "JOINT",
+   "cell": null,
+   "reason": null
+  }
+ }
+}

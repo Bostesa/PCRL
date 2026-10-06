@@ -1,0 +1,43 @@
+{
+ "schema": "qpc-predecessor-custody-v1",
+ "at": "2026-10-06T06:06:03Z",
+ "drive_detection": {
+  "rule": "<volume>/private_smf_v1_20261005/SHA256SUMS exists and has sha256 28705e242f77b6333561f66117934b3ebc427072e31dc5a38b3a9d9e8f02cd05 (closed smf study BACKUP_VERIFICATION.json)",
+  "checked_at": "2026-10-06T06:06:03Z",
+  "skipped_by_name": 2,
+  "candidate_volumes": 0,
+  "matching_volumes": 0,
+  "mounted": false
+ },
+ "diskutil_list_external": {
+  "ran": true,
+  "external_entries": 1,
+  "physical_external_disks": 0,
+  "disk_images": 1,
+  "note": "names withheld; an unrelated read-only installer disk image is expected and never touched"
+ },
+ "routines": [
+  "python -m osf.closeout backup --dest <DRIVE_ROOT>",
+  "python -m osf.closeout predecessor --restore"
+ ],
+ "redirect": {
+  "osf BACKUP_VERIFICATION.json": "results/pcrl_confidence_capacity_v1/provenance/predecessor_custody/osf_BACKUP_VERIFICATION.json",
+  "osf RESTORE_INDEX.json": "results/pcrl_confidence_capacity_v1/provenance/predecessor_custody/osf_RESTORE_INDEX.json",
+  "osf PREDECESSOR_CUSTODY_REPAIR.json": "results/pcrl_confidence_capacity_v1/provenance/predecessor_custody/PREDECESSOR_CUSTODY_REPAIR.json",
+  "smf replay report": "results/pcrl_confidence_capacity_v1/provenance/predecessor_custody/INDEPENDENT_VERIFICATION_DRIVE_RESTORE.json"
+ },
+ "closed_results_never_written": [
+  "results/pcrl_decision_preserving_compression_v1/",
+  "results/pcrl_online_strength_frontier_v1/",
+  "results/pcrl_strength_matched_feedback_v1/"
+ ],
+ "historical_status": "PENDING in dpc provenance/predecessor_custody/STATUS.json at the source commit (unchanged; this file is the qpc receipt)",
+ "status": "PENDING",
+ "reason": "external drive with the verified prior copies not mounted",
+ "pending_command": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m qpc.closeout predecessor --restore   (runs `python -m osf.closeout backup --dest <DRIVE_ROOT>` and `python -m osf.closeout predecessor --restore` in-process, receipts redirected into results/pcrl_confidence_capacity_v1/provenance/predecessor_custody/; covers the osf drive copy, the smf drive restore and the two later smf logs)",
+ "gaps": [
+  "osf has no off-device copy (osf BACKUP_VERIFICATION.json: same-device copy only)",
+  "the smf drive restore (seed-1 U, J-F, L-F by the smf verifier) has not been executed",
+  "the two later smf logs are on the same internal disk only (local custody supplement)"
+ ]
+}

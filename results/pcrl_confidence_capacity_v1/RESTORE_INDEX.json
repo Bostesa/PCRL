@@ -1,0 +1,30 @@
+{
+ "schema": "qpc-restore-index-v1",
+ "written_at": "2026-10-06T06:06:16Z",
+ "private_local": "<PRIVATE_CACHE>/qpc_v1",
+ "copy": "<PRIVATE_CACHE>/qpc_v1_local_copy_20261006/qpc_v1 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/qpc_v1_local_copy_20261006/SHA256SUMS",
+ "layout": {
+  "admitted/rel__s{k}__{t}/": "admitted teachers (model.pt, heads, release, COMPLETE.json; provenance/ADMISSION_RESULT.json)",
+  "admitted/ref__s{k}__{E,F,F0}/": "admitted reference units (verified copies of dpc units)",
+  "admitted/inputs/adult_jcv.npz": "the pinned input (sha256 e0d9e54a...2f12)",
+  "admitted/SHA256SUMS": "admission checksums",
+  "inputs/": "reconstructed derived deploy input (qpc.admit.reconstruct_deploy_input)",
+  "run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json"
+ },
+ "restore": [
+  "copy <PRIVATE_CACHE>/qpc_v1_local_copy_20261006/qpc_v1 to <PRIVATE_CACHE>/qpc_v1 (only if the live store is lost)",
+  "verify: shasum -a 256 -c SHA256SUMS (inside the copy's parent folder)",
+  "verify admission: shasum -a 256 -c SHA256SUMS (inside qpc_v1/admitted)",
+  "re-run the restore checks: OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m qpc.closeout backup --dry-run --targets <targets.json>",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_statuses": {
+  "teacher U (seed 1)": "PASS",
+  "teacher RAW-J_b0.3 (seed 1)": "PASS",
+  "Q* (confidence-feasible task-only code U|DIRECT-TASK|i8o64)": "PASS",
+  "privacy/control code (P* U|JOINT|i8o64|l0.1; inner-eligible, assessment occupation log-loss bound not met)": "PASS",
+  "attacker": "PASS"
+ },
+ "not_off_device": true
+}

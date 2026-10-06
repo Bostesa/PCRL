@@ -1,15 +1,41 @@
-INTERIM STATUS (2026-10-06 04:48Z): 0 OPEN REQUIRED. Stage A: 2 REQUIRED found and fixed (section 2). Stage B: 0
-REQUIRED (section 3). Selection: SEL-R1 and SEL-R2 found and fixed (sections 4.1-4.2). Attackers/assessment: 0
-REQUIRED, 1 RECOMMENDED (section 4.3). Mutation testing follows the locks (section 5). Stage A detail: Two REQUIRED runner-binding defects (SA-R1,
-SA-R2, both in `qpc/run.py`) were found and are already resolved in `qpc/run.py` a64bb028ae5b, re-verified by the
-failing fixture, which now passes. No REQUIRED finding in the mathematics of `qpc/kmeans.py`, `qpc/stagea.py`,
-`qpc/release.py` or `qpc/gate.py`. 4 RECOMMENDED (SA-C1 applied; SA-C2 applied in PROTOCOL section 7), 11 NOTES.
-Reviewer tests: 49/49 pass (about 11 s).
+STATUS (2026-10-06): 0 OPEN REQUIRED. Mutation testing is in section 5.
+
+| Review | REQUIRED found | Open | Other findings |
+|---|---|---|---|
+| 1. Stage A (section 2) | 2 (SA-R1, SA-R2; runner key bindings in `qpc/run.py`) | 0 | 4 RECOMMENDED (SA-C1, SA-C2 applied), 11 NOTES |
+| 2. Stage B (section 3) | 0 | 0 | 6 NOTES; optimiser-gap table on exhaustive fixtures |
+| 3. Selection and validity (sections 4.1-4.2) | 2 (SEL-R1, SEL-R2; protocol and truth-table text) | 0 | 3 RECOMMENDED (SEL-C2 adopted), 3 NOTES |
+| 3. Attackers and assessment (section 4.3) | 0 | 0 | 1 RECOMMENDED (AU-C1), 6 NOTES |
+
+There are no REQUIRED findings in the mathematics of the k-means, release, partition, compression, selection,
+family, inference or attacker code. All four REQUIRED findings concerned agreement between components: runner and
+stage keys, and protocol text and executable rules. Each was fixed by its owner before the governing lock and
+re-verified by the reviewer's failing fixture, which now passes.
+
+**Reviewer tests.**
+- `qpc/tests/test_math_review.py` is locked in AUDIT_AND_SELECTION_LOCK: 49/49 pass, about 11 s on one thread.
+- `qpc/tests/test_math_review_postlock.py` is the post-lock copy with the tests strengthened during mutation
+  testing. It is loaded by no stage, and 51/51 pass.
 
 # Math, invariants and protocol review: confidence capacity and privacy (qpc)
 
-**Role and files.** Role C. This role owns three files: this file, `PRIOR_ART_AND_BASELINE_GAPS.md` and
-`qpc/tests/test_math_review.py`. It edited no other file, committed nothing and pushed nothing.
+**Role and files.** Role C. This role owns four files:
+- this file;
+- `PRIOR_ART_AND_BASELINE_GAPS.md`;
+- `qpc/tests/test_math_review.py`;
+- since AUDIT_AND_SELECTION_LOCK, `qpc/tests/test_math_review_postlock.py`, which the lead created as a verbatim copy
+  for further edits.
+
+It edited no other file, committed nothing and pushed nothing.
+
+**Process deviation (disclosed).**
+- Between 05:13Z and 05:20Z the reviewer strengthened tests in `qpc/tests/test_math_review.py` after that file had
+  been locked in AUDIT_AND_SELECTION_LOCK. The additions were the exact start-selection tie rule and the
+  tolerance/cap stop test.
+- The lead's controls stage then refused to start ("locked file changed") at 05:16Z. This was before any data was
+  loaded, so no output was affected.
+- The lead restored the locked file from git and moved the additions verbatim to `test_math_review_postlock.py`.
+- Every later test edit is made only in the post-lock file.
 
 **Finding classes.**
 - REQUIRED: a demonstrated defect, with a failing fixture and a proposed patch. It blocks the governing lock until
@@ -343,10 +369,42 @@ lose the fit objective, convergence and work.**
 - **SA-N11 (seed identity).** `gate.summarize` checks that the number of seeds is 3, not that they are seeds 0-2. The
   runner always passes 0-2.
 
-### 2.3 Test inventory after review 1
+### 2.3 Test inventory
 
-25 tests in `qpc/tests/test_math_review.py`, all passing (about 3 s). `test_runner_reads_the_keys_that_stagea_writes`,
-the SA-R1/SA-R2 fixture, failed against `run.py` 5cd5ba2f2ed6 and passes against a64bb028ae5b.
+The final file has 49 test cases in 35 functions. The tables below cover every review; section 2.1 lists the
+Stage A tests in detail.
+
+| Area | Tests |
+|---|---|
+| Standard statements (section 1) | `test_decision_containment_and_chain_rule_on_fitting_law`, `test_data_processing_for_deterministic_public_maps`, `test_plugin_mi_bias_grows_with_alphabet_under_null`, `test_smoothed_mean_of_same_class_vectors_keeps_the_class` (x2) |
+| A1 semantics | `test_a1_source_rule_reproduces_dpc_fit_fine_bitwise` (x2), `test_a1_source_kmeans_matches_independent_reference`, `test_a1_unit_parity_with_admitted_source_release_and_alias_of_a2_source_start`, `test_runner_reads_the_keys_that_stagea_writes` |
+| KL k-means++, convergence, coherence | `test_kpp_definition_matches_reference_and_is_deterministic`, `test_kpp_sampling_law_is_divergence_weighted`, `test_kpp_roundoff_guard_and_degenerate_draws`, `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate` (x3 starts), `test_start_selection_is_per_class_lowest_fitting_kl_with_fixed_ties`, `test_training_statistics_equal_deployed_policy_and_release_rows`, `test_empty_cells_keep_centroid_are_reported_and_removed` |
+| Capacity, class preservation, release format | `test_larger_capacity_creates_new_cells_and_never_pretends`, `test_release_class_preservation_ties_underflow_and_absent_class` (x2), `test_asymmetric_caps_save_restore_and_no_hidden_ids` |
+| Gate (A3/A4) | `test_gate_rate_selection_matches_the_registered_rule`, `test_gate_eligibility_needs_every_seed_and_every_gate` |
+| Stage B | `test_stageb_families_equal_independent_reference` (x8 settings), `test_merge_and_move_deltas_and_tables_against_brute_force`, `test_at_most_cap_extra_merges_and_local_optimality`, `test_sequential_correction_stage_one_is_F_joint_with_class_only_counterpart`, `test_joint_candidates_and_witness_dominance`, `test_exhaustive_gaps_are_nonnegative_and_fine_task_is_exact` (x3), `test_xor_fixture_requires_coordinated_moves`, `test_fine_unit_caps_starts_rows_and_deployment` |
+| Selection, validity, family | `test_selection_matches_independent_protocol_transcription` (60 banks), `test_selection_guards_are_per_seed_per_recipient_and_never_dropped`, `test_guard_blocked_nominee_status_is_registered_in_protocol_and_truth_table`, `test_claim_status_and_label_match_protocol_text_exhaustively`, `test_family_37_fixed_slots_and_z` |
+| Attackers | `test_attacker_auc_orientation_ce_clip_and_null_threshold`, `test_composed_source_bank_winner_rule_matches_transcription` (40 banks) |
+
+**Post-lock additions** (in `test_math_review_postlock.py` only; they came out of mutation testing):
+- `test_tolerance_and_cap_stops_match_reference` exercises the relative-tolerance and cap stops, which the
+  registered RTOL rarely triggers on small fixtures, against the reference. It also pins RTOL, PATIENCE, ROUNDS and
+  SELECT_TOL.
+- `test_start_selection_is_per_class_lowest_fitting_kl_with_fixed_ties` now applies the 1e-12 tie rule exactly to
+  the method's verified per-start objectives. It adds a few-distinct-vector class where every start ties exactly, so
+  the source start must win.
+- `test_inference_end_to_end_against_independent_bootstrap` runs `qpc.infer.main` on a synthetic assessment with
+  40 duplicated exact-record groups (240 rows, 200 groups).
+  - All 37 primary slots are compared: point, SE, both bounds, decision, and the DESCRIPTIVE_ONLY override with
+    `decision_numeric`.
+  - Each must equal an independent multinomial group bootstrap with the same B, seed 20261007, one sequential draw
+    stream, weighted Mann-Whitney AUC averaged over attacker seeds, seed-averaged endpoints, SE with ddof 1,
+    z = 3.2048452050105634 and strict sides.
+  - An arm with altered SEX is refused.
+
+**Fixtures that failed before the fixes and pass now:**
+- `test_runner_reads_the_keys_that_stagea_writes` (SA-R1 and SA-R2);
+- `test_guard_blocked_nominee_status_is_registered_in_protocol_and_truth_table` (SEL-R1);
+- `test_claim_status_and_label_match_protocol_text_exhaustively` (SEL-R2).
 
 ## 3. Stage B review (review 2; 2026-10-06 04:41Z)
 
@@ -742,11 +800,22 @@ Imported unchanged: `dpc/audit.py` f2c5a2699f4f and `smf/audit.py` 4b9ac46ddc9a.
   and unseen-tuple fractions on INNER and assessment rows can be non-trivial. Coverage receipts must accompany the
   nominee AUCs (prompt section 9). Any unestimable metric blocks its dependent claim.
 
-## 5. Prior art
+## 5. Mutation testing (copies only; after the locks, at the lead's request)
+
+Pending; see the result table once the semaphore run completes.
+
+## 6. Prior art
 
 See `PRIOR_ART_AND_BASELINE_GAPS.md`.
-- PURIFIER's official repository was still empty on 2026-10-06 (GitHub API: size 0, pushed 2022-11-29; commits
-  endpoint "Git Repository is empty").
+- PURIFIER's official repository was still empty on 2026-10-06 (GitHub API: size 0, pushed 2022-11-29; the commits
+  endpoint returns "Git Repository is empty").
 - No Taylor, Vippathalla and Coon solver code was found.
 - Clustering, output compression, privacy-funnel objectives, data processing and sequential collusion constraints
-  are prior work. Our sequential arms are matched adaptations, not the Taylor solver. No novelty is claimed.
+  are prior work. Our sequential arms, including the class-only correction, are matched adaptations, not the Taylor
+  solver. No novelty is claimed.
+
+## 7. Real-data contact by the reviewer
+
+None. The reviewer read no Adult row, label, SEX value, unit array or receipt of this study's real fits, and ran no
+real-data code. Every test and mutant uses synthetic fixtures. The mutation harness ran under the shared semaphore
+(label `C:mutation`).
