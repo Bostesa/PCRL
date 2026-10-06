@@ -1,0 +1,31 @@
+{
+ "schema": "cbp-predictions-v1",
+ "registered_before": "any new cbp mapping fit, inner audit, selection or assessment (committed and pushed before FIT_LOCK)",
+ "status": "lead's honest forecasts; predictions, not targets; never revised after any outcome-bearing run",
+ "evidence_used": "qpc @9dd06da assessment means: JOINT l0.1 pair 0.813 with occupation LL excess 0.0081 (UB 0.0121); SEQ-12/SEQ-21 l0.1 pair 0.816 with excess 0.0082/0.0084; LOCAL l0.1 0.834 / 0.0048; FINE-TASK 0.846 / 0.0031; DIRECT-TASK i8o64 0.849 / 0.0030; qpc inner worst-seed occupation excess of JOINT l0.1 was 0.0083 and of FINE-TASK 0.0041; qpc assessment occupation LL SE ~0.0013 for P*",
+ "predictions": [
+  {"id": "CP1", "question": "At least one privacy-trained configuration (any family, lambda in the grid) is headroom-eligible (ordinary eligibility + log-loss excess <= 0.006 and Brier excess <= 0.0035 for every task and seed) AND within the T* + 0.005 local guards, so that P* exists.",
+   "probability": 0.80,
+   "reasoning": "qpc lambda 0.01 codes had inner worst-seed occupation excess ~0.004-0.006 and passed guards; intermediate lambdas 0.025-0.04 should also sit under 0.006; the main risk is the per-seed Brier/LL headroom on 2,235 rows"},
+  {"id": "CP2", "question": "Claim C (P* vs T*) passes all 11 clauses on the assessment.",
+   "probability": 0.25,
+   "reasoning": "a headroom-eligible P* is likely an intermediate lambda (0.025-0.06) whose pair benefit vs T* is roughly proportional to lambda; at qpc's lambda 0.1 the benefit was 0.034 (LB 0.029) with occupation LL UB 0.0121; to keep the LL UB < 0.01 the point excess must be <= ~0.006, which on the qpc frontier costs roughly half the privacy benefit, putting the pair LB near the 0.02 margin"},
+  {"id": "CP3", "question": "The winning privacy family (P*) is sequential (SEQ-12 or SEQ-21).",
+   "probability": 0.45,
+   "reasoning": "qpc: SEQ-21/SEQ-12 matched JOINT on pair recovery and JOINT breached a local guard; under headroom the per-family winners will be close; JOINT 0.35, LOCAL 0.20"},
+  {"id": "CP4", "question": "JOINT_DEVELOPMENT_CRITERION_MET (claims A and B both pass).",
+   "probability": 0.03,
+   "reasoning": "C_rate includes both sequential orders at every lambda, which qpc found within 0.003 of JOINT; a >0.02 lower-bound advantage is very unlikely"},
+  {"id": "CP5", "question": "The headroom rule changes the privacy winner relative to ordinary eligibility (the strongest ordinarily eligible privacy configuration differs from P*).",
+   "probability": 0.75,
+   "reasoning": "ordinary eligibility admits lambda 0.1 sequential/joint codes (qpc inner worst-seed excess ~0.0075-0.0083 > 0.006), which headroom excludes"},
+  {"id": "CP6", "question": "Q (DIRECT-TASK i8o64) again passes all four assessment confidence bounds.",
+   "probability": 0.95,
+   "reasoning": "the same admitted code, same rows; qpc bounds 0.0061 / 0.0027 well inside; only the bootstrap seed changes"},
+  {"id": "CP7", "question": "Final label distribution",
+   "probabilities": {"PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET": 0.24, "JOINT_DEVELOPMENT_CRITERION_MET": 0.02,
+                     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION": 0.66, "EXPERIMENTAL_NO_ADVANTAGE": 0.03,
+                     "INCOMPLETE_OR_INVALID": 0.05},
+   "note": "labels follow LABEL_TRUTH_TABLE.json; JOINT_DEVELOPMENT_CRITERION_MET would co-occur with a C pass in most worlds and is listed by its leading label"}
+ ]
+}
