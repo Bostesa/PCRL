@@ -1,0 +1,120 @@
+{
+ "schema": "cbp-handoff-v1",
+ "from_role": "lead (confidence-budgeted privacy study)",
+ "created_utc": "2026-10-06T21:42:02Z",
+ "branch": "research/pcrl-confidence-budgeted-privacy-v1",
+ "evidence_commit": "1e777fbe0c00a173114aaf2b9227d8bbeb387ce4",
+ "remote_verified_full_sha": "1e777fbe0c00a173114aaf2b9227d8bbeb387ce4",
+ "source_pins": {
+  "qpc_evidence": "9dd06da6b64e558e1c079f76e43982b60b327e63",
+  "qpc_handoff_tip": "d0c8a45c879d01fb8b736ccc091ec3e2c3e9b351",
+  "input_adult_jcv_npz_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12"
+ },
+ "locks": {
+  "PREDICTIONS": "357b300 (16:55:08Z, before any fit)",
+  "SOURCE_ADMISSION_LOCK": "5cc8ecb (16:54:10Z)",
+  "FIT_LOCK": "bc0022f (17:20:21Z; pushed and remote-verified before any new fit)",
+  "AUDIT_AND_SELECTION_LOCK": "25d20f2 (17:20:34Z; pushed and remote-verified before any new fit)",
+  "EVALUATION_LOCK": "7611a77 (pushed 18:23:51Z; sha256 1ff1307c7600205ec0371ec3436e2460855195107ed25a885011dfba6855bc97; single opening 18:24:01Z)"
+ },
+ "label": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+ "claim_statuses": {
+  "A": {
+   "status": "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+   "root_cause": "LOCAL_GUARD_FAILURE",
+   "failing": [],
+   "nominee": "U|JOINT|i8o64|l0.04",
+   "comparator": "U|SEQ-21|i8o64|l0.1"
+  },
+  "B": {
+   "status": "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+   "root_cause": "LOCAL_GUARD_FAILURE",
+   "failing": [],
+   "nominee": "U|JOINT|i8o64|l0.04",
+   "comparator": "U|SEQ-21|i8o64|l0.1"
+  },
+  "C": {
+   "status": "NOT_ESTABLISHED",
+   "root_cause": "MEASURED_VIOLATION_SUPPORTED_BY_BOUND",
+   "failing": [
+    "P23"
+   ],
+   "nominee": "U|JOINT|i8o64|l0.01",
+   "comparator": "U|FINE-TASK|i8o64"
+  }
+ },
+ "q_status": {
+  "status": "PASS",
+  "root_cause": "COMPLETE_PASSING_CONJUNCTION",
+  "failing": [],
+  "by_kind": {}
+ },
+ "resolved_roles": {
+  "P*": "U|JOINT|i8o64|l0.01",
+  "J*": "U|JOINT|i8o64|l0.04",
+  "T*": "U|FINE-TASK|i8o64",
+  "C_rate": "U|SEQ-21|i8o64|l0.1",
+  "C_global": "U|SEQ-21|i8o64|l0.1",
+  "Q": "U|DIRECT-TASK|i8o64"
+ },
+ "eligible_configurations": {
+  "ordinary_privacy": "every privacy code except SEQ-21 l0.04, LOCAL l0.08, LOCAL l0.1",
+  "headroom_privacy": [
+   "U|LOCAL|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|JOINT|i8o64|l0.01",
+   "U|JOINT|i8o64|l0.04"
+  ],
+  "P*_nominee": "U|JOINT|i8o64|l0.01 (only headroom-eligible code passing the T* + 0.005 local guards)",
+  "J*": "NO_ELIGIBLE_NOMINEE (LOCAL_GUARD_FAILURE); DESCRIPTIVE_ONLY fallback U|JOINT|i8o64|l0.04"
+ },
+ "strongest_favourable": "P* passed 10/11 clause-C slots incl. occupation log-loss excess 0.00337 [upper 0.00674 < 0.01] (the source JOINT l0.1 could not establish this bound); Q passed P34-P37",
+ "strongest_adverse": "P23 pair benefit P* vs T* = 0.00217 [0.00019, 0.00415] vs required lower > 0.02 (MEASURED_VIOLATION_SUPPORTED_BY_BOUND); headroom gave up 0.0280 inner pair AUC vs the ordinary winner; descriptive J* fallback vs C_rate P01 = -0.0172",
+ "decision": "close the lambda-interpolation / headroom-selection line; do not recommend another lambda tweak on these rows; no joint contribution; no novelty claim",
+ "exposure_statement": "results/pcrl_confidence_budgeted_privacy_v1/EXPOSURE_LEDGER.md (verbatim registered statement): exploratory locked development comparison on reused Adult rows; nominal intervals condition on fitted artifacts and do not account for the adaptive research history; not confirmation; not a population privacy guarantee; no new population opened; no confirmation data spent",
+ "missing_coverage": [
+  "attackers outside the declared matched slate untested",
+  "mechanisms other than lambda interpolation at i8o64 (non-confidence-limited codes, other disclosure contracts) untested",
+  "JOINT not compute-matched (5 starts + 4 witnesses vs one two-stage path per sequential arm)",
+  "per-seed local guards at +0.005 are noisy on 2,235 inner rows (statistics reviewer SEL-N4)"
+ ],
+ "custody": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING; off-device backup and qpc/dpc/osf/smf predecessor custody PENDING (drive absent); command: python -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json",
+ "custody_gaps": [
+  "off-device copy of cbp_v1 PENDING",
+  "qpc/dpc/osf/smf off-device custody PENDING (inherited)"
+ ],
+ "incidents": [
+  "5 assessment units computed twice by overlapping load-balance workers; bitwise identical; first copies quarantined (ASSESSMENT_ATTEMPTS.json)"
+ ],
+ "status_files": [
+  "results/pcrl_confidence_budgeted_privacy_v1/RESEARCH_DECISION.md",
+  "results/pcrl_confidence_budgeted_privacy_v1/ADVISOR_BRIEF.md",
+  "results/pcrl_confidence_budgeted_privacy_v1/PAPER_ADDENDUM.md",
+  "results/pcrl_confidence_budgeted_privacy_v1/VALIDATION.md",
+  "results/pcrl_confidence_budgeted_privacy_v1/INDEPENDENT_VERIFICATION.json",
+  "results/pcrl_confidence_budgeted_privacy_v1/COST_AND_CLOSEOUT.md",
+  "results/pcrl_confidence_budgeted_privacy_v1/BACKUP_VERIFICATION.json",
+  "results/pcrl_confidence_budgeted_privacy_v1/LABEL_RESULT.json"
+ ],
+ "primary_tables": {
+  "primary": "results/pcrl_confidence_budgeted_privacy_v1/PRIMARY_ENDPOINTS.csv (P01-P37)",
+  "levels": "results/pcrl_confidence_budgeted_privacy_v1/ALL_LEVELS.csv",
+  "comparison": "results/pcrl_confidence_budgeted_privacy_v1/ASSESSMENT_COMPARISON.csv",
+  "selection": "results/pcrl_confidence_budgeted_privacy_v1/SELECTION.json",
+  "inner": "results/pcrl_confidence_budgeted_privacy_v1/INNER_SELECTION_TABLE.csv",
+  "headroom_vs_standard": "results/pcrl_confidence_budgeted_privacy_v1/HEADROOM_VS_STANDARD_SELECTION.csv"
+ },
+ "wording": "results/pcrl_confidence_budgeted_privacy_v1/PRIOR_ART_AND_CLAIM_SCOPE.md section 5.3 and results/pcrl_confidence_budgeted_privacy_v1/PAPER_ADDENDUM.md (allowed / not allowed)",
+ "complete": true,
+ "shared_handoffs": [
+  "TO_CLAIMS_CONFIDENCE_BUDGETED_PRIVACY.json",
+  "TO_MANUSCRIPT_CONFIDENCE_BUDGETED_PRIVACY.json"
+ ],
+ "runnable": {
+  "deploy": "python -m cbp.deploy (QUICKSTART.md section 2)",
+  "run": "python -m cbp.run via work.sh",
+  "infer": "python -m cbp.infer --evaluation-lock ...",
+  "closeout": "python -m cbp.closeout ..."
+ }
+}
