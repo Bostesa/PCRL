@@ -1,0 +1,103 @@
+{
+ "schema": "cbp-headroom-selection-rules-v1",
+ "registered_before": "any new cbp fit (frozen in FIT_LOCK and AUDIT_AND_SELECTION_LOCK); executable: cbp/select.py",
+ "rows": "INNER_SELECTION only (attackers fitted on AUDIT_FIT); never assessment values",
+ "ordinary_eligibility": {
+  "scope": "EACH seed (0, 1, 2) and EACH task (income, occupation); no averaging across seeds",
+  "rules": [
+   "accuracy >= U accuracy - 0.01",
+   "true-label log loss <= U log loss + 0.01 nats",
+   "true-label Brier <= U Brier + 0.005",
+   "accuracy gain over the OSF_DEFENSE_FIT-majority constant >= 0.8 x U's gain",
+   "accuracy gain over the constant >= 0.03",
+   "exact decision preservation against the release's own teacher (U-derived codes: U's decisions on every row)"
+  ],
+  "implementation": "qpc.utility.gate_record(code, U anchor of the same seed, preserved)['eligible'] (inclusive comparisons)",
+  "applies_to": "every candidate (codes, continuous sources, references)"
+ },
+ "headroom": {
+  "scope": "privacy NOMINEE candidates only (LOCAL, SEQ-12, SEQ-21, JOINT at every lambda); never used to drop a comparator",
+  "rules": [
+   "ordinary eligibility on every seed",
+   "true-label log-loss excess vs U <= 0.006 nats for EACH task and seed",
+   "true-label Brier excess vs U <= 0.0035 for EACH task and seed"
+  ],
+  "computed_from": "qpc.utility.gate_record per-task ll_excess / brier_excess (NOT qpc's 0.0075 headroom flag)",
+  "status": "an inner selection design choice motivated by the qpc uncertainty (0.004 nats before the unchanged 0.01 assessment limit); not a relaxed assessment threshold, not a confidence guarantee, not a proved optimal cutoff"
+ },
+ "ordering": {
+  "keys": [
+   "mean over seeds of INNER pair AUC (lower first)",
+   "mean over seeds of summed true-label task log loss (lower first)",
+   "mean actual total token states (fewer first; continuous releases count as +infinity for ORDERING only, written null in JSON)",
+   "configuration ID (lexicographic)"
+  ],
+  "tie_tolerance": "keys 1 and 2: each is the float64 seed mean computed as (x_seed0 + x_seed1 + x_seed2) / 3 summed in seed order, then Python round(x, 12); equal rounded values are tied (values less than 1e-12 apart may still fall either side of a rounding boundary); key 3 exact; key 4 lexicographic",
+  "alias_disclosure": "key 4 can decide between configurations whose deployed maps are identical (an unchanged JOINT keeps a same-lambda SEQ/LOCAL witness bitwise, and 'U|JOINT|' sorts first). The ordering is NOT changed; instead P*'s alias set (privacy configurations whose qpc pair_fingerprint equals P*'s on ALL three seeds) and partial per-seed aliases are recorded, the label names cbp.family.simplest_family(alias set) (LOCAL < SEQ-12 = SEQ-21 < JOINT), and the alias set plus the ID tie-break are disclosed; the same alias records are kept for J* and every family winner"
+ },
+ "roles": {
+  "T*": {
+   "candidates": "CLOSED list: U|DIRECT-TASK|i8o64, U|FINE-TASK|i8o64, SRC|U (U continuous), U|CLASS|i1o1, REF|F0",
+   "eligibility": "ordinary",
+   "note": "RAW-J beta 0.3 is privacy-trained historically and is EXCLUDED from T* (correction of the qpc legacy T* list, which included SRC|RAW-J); it remains in C_global"
+  },
+  "C_rate": {
+   "candidates": "U|DIRECT-TASK|i8o64, U|FINE-TASK|i8o64, and LOCAL / SEQ-12 / SEQ-21 at every lambda of the grid (fixed rate i8o64)",
+   "eligibility": "ordinary (NOT headroom)"
+  },
+  "C_global": {
+   "candidates": "every nonjoint release of the declared control bank: all C_rate candidates, U|CLASS|i1o1, SRC|U, SRC|RAW-J_b0.3, REF|E, REF|F, REF|F0 (JOINT excluded)",
+   "eligibility": "ordinary (NOT headroom)"
+  },
+  "P*": {
+   "candidates": "LOCAL, SEQ-12, SEQ-21, JOINT at every lambda",
+   "eligibility": "headroom",
+   "guard": "individual inner AUC (recipient 1 and 2) <= T* + 0.005 for EACH recipient and seed",
+   "winning_family": "the family of P* is reported (any family may win)"
+  },
+  "J*": {
+   "candidates": "JOINT at every lambda",
+   "eligibility": "headroom",
+   "guard": "individual inner AUC <= C_rate + 0.005 AND <= C_global + 0.005 for EACH recipient and seed"
+  },
+  "Q": {
+   "config": "U|DIRECT-TASK|i8o64 (fixed; confidence-feasibility clauses only)",
+   "eligibility": "ordinary (prerequisite)",
+   "consequence": "if U|DIRECT-TASK|i8o64 is not ordinarily eligible on some seed or task, Q is NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE (ORDINARY_UTILITY_FAILURE) and P34-P37 are scored DESCRIPTIVE_ONLY; a technical failure of it makes Q INCOMPLETE_OR_INVALID"
+  }
+ },
+ "global_configuration": "one family/lambda configuration fixed across all three seeds; no per-seed lambda; no assessment-based choice",
+ "statuses": {
+  "nominee_roles": [
+   "NOMINEE",
+   "NO_ELIGIBLE_NOMINEE (fixed fallback scored DESCRIPTIVE_ONLY)",
+   "INVALID_NOMINEE (technical failure, invalid/non-estimable candidate, or an otherwise eligible nominee blocked only by a missing guard comparator)"
+  ],
+  "comparator_roles": [
+   "NOMINEE",
+   "NO_ELIGIBLE_COMPARATOR",
+   "INVALID_COMPARATOR (technical failure / missing)"
+  ]
+ },
+ "fallback_ordering": {
+  "rule": "among the role's candidates when no candidate is nominable: smallest ordinary shortfall, then smallest headroom shortfall, then smallest local-guard shortfall, then the ordering keys",
+  "ordinary_shortfall": "max(0, max over tasks t and seeds k of: (a_U - 0.01 - a)/0.01, (dLL - 0.01)/0.01, (dB - 0.005)/0.005, (0.8*g_U - g)/max(0.8*g_U, 0.03), (0.03 - g)/0.03), where a = accuracy, g = gain over the fitting-majority constant, dLL / dB = log-loss / Brier excess vs U",
+  "headroom_shortfall": "max(0, max over t, k of (dLL - 0.006)/0.006, (dB - 0.0035)/0.0035)  [0 for roles without headroom]",
+  "local_guard_shortfall": "max(0, max over required guards, seeds and recipients of (local AUC - guard comparator local AUC - 0.005)/0.005)",
+  "invalid": "exact decision failure or a non-estimable metric is a separate INVALID status (never a large finite shortfall); if a required guard comparator is missing, no guard-based rank is computed and the dependency is reported invalid; all three shortfalls are recorded separately"
+ },
+ "prespecified_diagnostics": [
+  "ordinary_privacy_winner_no_headroom: the strongest ORDINARILY eligible privacy configuration with the T* guard (same candidates and guard as P*, headroom dropped)",
+  "strongest_ordinary_privacy_unguarded: the strongest ordinarily eligible privacy configuration with no guard (the prompt line names no guard; both readings reported)",
+  "family_headroom_winners: the headroom-selected winner in EACH family (LOCAL, SEQ-12, SEQ-21, JOINT) with the T* guard, or its fixed fallback; the JOINT-family T*-guarded winner is NOT J* (J* is guarded by C_rate and C_global) and both are recorded",
+  "source_lambda_0.1_controls: U|JOINT|i8o64|l0.1, U|SEQ-12|i8o64|l0.1, U|SEQ-21|i8o64|l0.1 (ordinary, headroom, mean AUCs, shortfalls)",
+  "headroom_changes_winner: changed = (P* config != ordinary winner config); give_up = mean inner pair AUC(P*) - mean inner pair AUC(ordinary winner) (>= 0 by nesting: same candidates and guard), plus the per-seed differences; when either is absent a status is written instead of a number; a fallback is used only with a DESCRIPTIVE flag"
+ ],
+ "assessment_note": "the full lambda curve is an INNER figure only; the assessment scores only the locked list (PROTOCOL.md section 12)",
+ "invalid_candidates": {
+  "decision_preservation": "a decision-preservation failure of any U-derived candidate (on any seed) is a TECHNICAL failure: the candidate's role is INVALID (INVALID_NOMINEE / INVALID_COMPARATOR, reason FIT_OR_ADMISSION_FAILURE), the candidate is never ranked in a fallback, and the cause is recorded (qpc gate_record's eligible=False alone is not used for this case)",
+  "non_estimable": "a missing, unreadable or nonfinite inner field (pair/v1/v2 AUC, accuracy, log loss, Brier, constant accuracy, excesses) is a technical failure of the same kind",
+  "references": "C_global's references follow the admission record (SOURCE_ADMISSION.json): an inadmissible reference would be excluded and disclosed (none is: all REF|E, REF|F, REF|F0 and both sources were admitted with parity); an admitted candidate that later fails technically makes the role INVALID_COMPARATOR"
+ },
+ "missing_guard": "if a required guard comparator has no eligible/valid nominee (status other than NOMINEE): when at least one candidate of the role is eligible (ordinary, plus headroom for P*/J*) the role is INVALID_NOMINEE (MISSING_GUARD_COMPARATOR; no guard rank computed, the blocked candidates listed); when none is eligible the guard is not needed and the role is NO_ELIGIBLE_NOMINEE with its ordinary / headroom reason (fallback ranked by the ordinary and headroom shortfalls, guard shortfall recorded null)"
+}
