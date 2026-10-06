@@ -276,7 +276,7 @@ A failed positive control triggers technical review and an amendment, never a re
 3. Any required technical validity failed (a failed positive control without amendment, a verification FAIL on a primary quantity, a missing locked unit) → INCOMPLETE_OR_INVALID.
 4. A and B both PASS → JOINT_DEVELOPMENT_CRITERION_MET (plus PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET if C also passes).
 5. C PASS → PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (winning family named).
-6. No favourable label, and any claim in {NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR, INVALID_COMPARATOR, INVALID_NOMINEE, INVALID} or Q* INVALID → INCOMPLETE_OR_INVALID, listing the missing items.
+6. No favourable label, and any claim in {NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR, INVALID_COMPARATOR, INVALID_NOMINEE, INVALID}, or Q* INVALID or unresolved (NOT_APPLICABLE_NO_Q despite a met gate) → INCOMPLETE_OR_INVALID, listing the missing items.
 7. Q* PASS → CONFIDENCE_FEASIBILITY_ESTABLISHED.
 8. Otherwise → EXPERIMENTAL_NO_ADVANTAGE.
 
