@@ -88,7 +88,16 @@ Standard data-processing and decision-containment facts are stated with their as
 
 ## 7. Stage A: convergence versus capacity (first scientific gate)
 
-Stage A runs before any privacy-trained code is fitted. The k-means rules (starts, KL k-means++, convergence tolerance, coherence, empty cells, fallbacks) are registered in METHOD_CARD.md and locked by STAGE_A_LOCK.
+Stage A runs before any privacy-trained code is fitted. The k-means rules (starts, KL k-means++, convergence tolerance, coherence, empty cells, fallbacks) are registered in METHOD_CARD.md §1–5 and §7 and locked by STAGE_A_LOCK.
+
+**Numeric constants:**
+- relative tolerance RTOL = 1e-9 on the class-total fitted KL, with patience 3 successive passes;
+- cap 200 rounds (20 for the A1 source reproduction);
+- start tie threshold 1e-12·max(|J|, 1), with ties going to the earlier start;
+- k-means++ generator `numpy.random.default_rng([seed, K, c])` with seeds 20261006 and 20261007;
+- KL clip in [−1e-12, 0) applied only to k-means++ sampling weights.
+
+Stop reasons are reported separately everywhere: assignment fixed point, relative tolerance, and cap (non-converged).
 
 **A1, historical convergence diagnostic** (per U seed).
 1. Reproduce the source DIRECT-TASK (income 8, occupation 8) code with its source initialisation and 20-round rule. Parity against the admitted dpc `pol__s{k}__U_DIRECT-TASK_m8` release is REQUIRED; a mismatch is an engineering blocker, not evidence.

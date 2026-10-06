@@ -25,6 +25,8 @@ Use:
 OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python -m qpc.sema --label <role:what> -- <command ...>
 ```
 
+When invoking the wrapper by file path, pass `-P`: `~/PCRL/.venv/bin/python -P <WORKTREE>/qpc/sema.py --label ... -- ...`. Without `-P`, `qpc/select.py` shadows the stdlib `select` module and the wrapper fails before taking a slot. The `-m qpc.sema` form with `PYTHONPATH=.` is unaffected.
+
 The wrapper blocks until one of the two slots is free. **Two study workers plus a verifier is three, and is forbidden.** The semaphore makes that impossible, provided everyone uses it.
 
 Use one BLAS/OpenMP thread per process (`OMP_NUM_THREADS=1`; torch threads 1). Light unit tests and document work need no slot.

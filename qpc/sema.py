@@ -5,7 +5,9 @@ timing). Every heavy command runs as a child of this wrapper, which holds one of
 whole lifetime (released by the kernel if anything dies):
 
     OMP_NUM_THREADS=1 ~/PCRL/.venv/bin/python -m qpc.sema --label <role:what> -- <command ...>
-    ~/PCRL/.venv/bin/python <WORKTREE>/qpc/sema.py --label verifier:phase1 -- <command ...>   (no qpc import needed)
+    ~/PCRL/.venv/bin/python -P <WORKTREE>/qpc/sema.py --label verifier:phase1 -- <command ...>   (no qpc import;
+        -P is REQUIRED when calling by path: otherwise qpc/ is first on sys.path and qpc/select.py shadows the
+        stdlib select module used by subprocess -- reported by the verifier 2026-10-06)
     ~/PCRL/.venv/bin/python -m qpc.sema status
 
 The wrapper blocks (polling every 5 s) until a slot is free. Every acquire/release is appended to

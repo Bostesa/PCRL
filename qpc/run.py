@@ -230,10 +230,12 @@ def stage_stagea(D, shard_spec=None):
             z = np.load(src_dir / "release.npz")
             src = {x: z[x] for x in z.files}
             t0, c0 = time.time(), time.process_time()
-            r, files = SA.a1_unit(T, tr, src, bind_meta(k, "U|DIRECT-TASK|i8o8|A1", D))
+            r, files = SA.a1_unit(T, tr, src, bind_meta(k, "U|DIRECT-TASK|i8o8", D))
             r.update({"seed": k, "wall_s": time.time() - t0, "cpu_s": time.process_time() - c0})
-            if not r.get("source_parity", {}).get("ok", False):
-                raise SystemExit(f"A1 REPRODUCTION MISMATCH (engineering blocker) seed {k}: {r.get('source_parity')}")
+            if r.get("ENGINEERING_BLOCKER") or not r["parity_with_admitted_release"]["ok"]:
+                save(f"{n}__FAILED", files, r)                      # failed output preserved, then stop
+                raise SystemExit(f"A1 REPRODUCTION MISMATCH (engineering blocker) seed {k}: "
+                                 f"{r['parity_with_admitted_release']}")
             save(n, files, r)
         pols = {}
         for i, (K, rates) in ((1, (2, GT.RATES_I)), (2, (6, GT.RATES_O))):
@@ -252,7 +254,7 @@ def stage_stagea(D, shard_spec=None):
                 if done(n):
                     continue
                 t0, c0 = time.time(), time.process_time()
-                r, files = SA.pair_unit(pols[(1, m1)], pols[(2, m2)], T, bind_meta(k, cid, D))
+                r, files = SA.pair_unit(pols[(1, m1)], pols[(2, m2)], T, bind_meta(k, cid, D), tr=tr)
                 r.update({"seed": k, "config": cid, "per_recipient_units": [f"dir__s{k}__r1__m{m1}",
                                                                             f"dir__s{k}__r2__m{m2}"],
                           "wall_s": time.time() - t0, "cpu_s": time.process_time() - c0})
@@ -287,11 +289,19 @@ def stage_gate(D, shard_spec=None):
             cu = UT.release_inner_utility({1: z["q1"], 2: z["q2"]}, {1: z["hard1"], 2: z["hard2"]}, D)
             gr = UT.gate_record(cu, Uu, pres)
             for i, t in ((1, "income"), (2, "occupation")):
-                fit = (a1.get("versions", {}).get(ver, {}).get(f"r{i}", {}))
+                fit = a1[ver]["per_recipient"][str(i)] if str(i) in a1[ver]["per_recipient"] else \
+                    a1[ver]["per_recipient"][i]
+                cls = [c for c in fit["per_class"] if not c["fallback"]]
+                win = [next(s for s in c["starts"] if s["start"] == c["winner"]) for c in cls]
                 a1_rows.append({"seed": k, "version": ver, "recipient": t,
-                                "fit_objective": fit.get("objective"), "rounds_max": fit.get("rounds_max"),
-                                "converged_classes": fit.get("converged_classes"),
-                                "classes": fit.get("classes"), "work_rounds": fit.get("work_rounds"),
+                                "fit_objective_total": fit["objective_total"], "fit_mean_kl": fit["mean_kl_fit"],
+                                "all_converged": fit["all_converged"],
+                                "classes_fitted": len(cls), "classes_converged": sum(bool(w["converged"]) for w in win),
+                                "rounds_used_max": max(int(w["rounds_used"]) for w in win),
+                                "rounds_used_sum": sum(int(w["rounds_used"]) for w in win),
+                                "stop_reasons": ";".join(sorted({str(w["stop_reason"]) for w in win})),
+                                "a1_parity_ids_rule": a1["parity_with_admitted_release"]["ids_rule"],
+                                "a1_parity_q_rule": a1["parity_with_admitted_release"]["q_rule"],
                                 "inner_logloss": cu[t]["logloss"], "inner_brier": cu[t]["brier"],
                                 "inner_ll_excess": gr[t]["ll_excess"], "inner_brier_excess": gr[t]["brier_excess"],
                                 "eligible_seed_both_tasks": bool(gr["eligible"]),
