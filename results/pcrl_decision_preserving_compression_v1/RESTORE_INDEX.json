@@ -1,0 +1,27 @@
+{
+ "schema": "dpc-restore-index-v1",
+ "private_local": "<PRIVATE_CACHE>/dpc_v1",
+ "copy": "<PRIVATE_CACHE>/dpc_v1_local_copy_20261006/dpc_v1 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/dpc_v1_local_copy_20261006/SHA256SUMS",
+ "layout": {
+  "admitted/<unit>/": "admitted osf teacher/reference units (ADMISSION.json), hash-complete",
+  "admitted/fare_cache/<uid>/": "official FARE trees of the admitted F/F0 units",
+  "admitted/inputs/adult_jcv.npz": "the pinned 83-column input (sha256 e0d9e54a...5f12)",
+  "run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json"
+ },
+ "restore": [
+  "copy <PRIVATE_CACHE>/dpc_v1_local_copy_20261006/dpc_v1 to <PRIVATE_CACHE>/dpc_v1",
+  "verify: shasum -a 256 -c SHA256SUMS (inside the copy's parent folder)",
+  "verify admission: shasum -a 256 -c SHA256SUMS (inside dpc_v1/admitted)",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_statuses": {
+  "teacher U (seed 1)": "PASS",
+  "teacher RAW-J_b0.3 (seed 1)": "PASS",
+  "best runnable compact policy (J* descriptive fallback U|JOINT|m8|l0.1; not contract-eligible)": "PASS",
+  "matched comparator (C_match descriptive fallback U|FINE-TASK|m8)": "PASS",
+  "strongest comparator (C_global = T* = U continuous)": "PASS",
+  "RAW-J teacher": "PASS",
+  "final attacker": "PASS"
+ }
+}

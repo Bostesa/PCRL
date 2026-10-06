@@ -1,0 +1,105 @@
+{
+ "schema": "dpc-run-status-v1",
+ "written_at": "2026-10-06",
+ "label": "EXPERIMENTAL_NO_ADVANTAGE",
+ "complete": true,
+ "branch": "research/pcrl-decision-preserving-compression-v1",
+ "evidence_sha": "set in TO_MANUSCRIPT/TO_CLAIMS handoffs (the commit that adds this file and the verification report)",
+ "chronology": {
+  "start": "2026-10-05T23:37:49Z",
+  "predictions_registered": "325cdbb (before any real-data fit)",
+  "ENGINEERING_LOCK": "0b4753b",
+  "TRAINING_LOCK": "01f97f2",
+  "SELECTION_AND_AUDIT_LOCK": "31e2f90",
+  "AMENDMENT_A1": "7049c5d (controls stage only; pushed before the controls rerun)",
+  "AMENDMENT_A2": "919e524 (evaluation-lock writer; pushed before EVALUATION_LOCK was written)",
+  "EVALUATION_LOCK": "3140d4c (committed 01:18:31Z; assessment opened 01:18:45Z)",
+  "stage_starts_from_ACTIVITY_LOG": {
+   "admit": "00:15:50Z",
+   "partition": "00:16:32Z",
+   "fit": "00:16:40Z",
+   "inner": "00:49:45Z",
+   "controls (crashed)": "01:09:32Z",
+   "controls (after A1)": "01:11:14Z",
+   "select": "01:17:26Z",
+   "assessment": "01:18:45Z"
+  },
+  "post_completion_resume_checks": "01:45:34Z partition 0/2 and 01:45:36Z fit 1/2 (QUICKSTART tests; all units skipped)"
+ },
+ "units": {
+  "fine_partitions": 6,
+  "policy_units": 258,
+  "mapping_pair_units": 252,
+  "class_only_units": 6,
+  "teacher_units": 6,
+  "reference_units": 9,
+  "inner_audit_units": 273,
+  "outer_assessment_units": 69,
+  "scored_labels": 23,
+  "alias_groups": 10,
+  "aliased_slots": 14,
+  "alias_rule": "exact aliases (same fingerprint) keep their manifest slots; one physical fit each"
+ },
+ "class_preservation": {
+  "units": 258,
+  "rows_per_unit": 39170,
+  "recipient_row_checks": 20211720,
+  "all_pass": true
+ },
+ "selection": {
+  "J*": "NO_FEASIBLE_NOMINEE (descriptive U|JOINT|m8|l0.1)",
+  "P*": "NO_FEASIBLE_NOMINEE (descriptive U|LOCAL|m8|l0.1)",
+  "T*": "NOMINEE SRC|U",
+  "C_global": "NOMINEE SRC|U",
+  "C_match": "NO_FEASIBLE_CONTROL (descriptive U|FINE-TASK|m8)",
+  "deployable_compact": null
+ },
+ "claims": {
+  "A": "NOT_ESTABLISHED (8/11 clauses numerically pass; descriptive only)",
+  "B": "NOT_ESTABLISHED (9/11; descriptive only)",
+  "C": "NOT_ESTABLISHED (9/11; descriptive only)"
+ },
+ "amendments": [
+  {
+   "id": "A1",
+   "stage": "controls",
+   "defect": "plant bits built from sealed -1 labels produced colliding split tokens; the first controls run crashed before writing results",
+   "fix": "bits outside {0,1} set to 0 before splitting; regression test dpc/tests/test_late.py::test_amendment_a1_plant_bits_ignore_sealed_rows",
+   "quarantine": "<PRIVATE_CACHE>/dpc_v1/quarantine_amendment_A1/work_controls_crashed.log (a copy; the original log is kept in run/)"
+  },
+  {
+   "id": "A2",
+   "stage": "evaluation-lock writer",
+   "defect": "called dpc.data.manifest, which does not exist (AttributeError before any write)",
+   "fix": "uses the pinned osf.data.manifest"
+  }
+ ],
+ "review": {
+  "math_review_required": 0,
+  "recommendations_applied_before_selection_lock": [
+   "R1 F0 in T*",
+   "R2 label equality across arms",
+   "R3 per-claim validity"
+  ],
+  "injected_defects": "52 of 52 non-equivalent caught (53 mutants, 1 equivalent)"
+ },
+ "tests": {
+  "dpc/tests": "158 passed (2026-10-06T01:4xZ, 50 s)"
+ },
+ "controls": {
+  "all_ok": true,
+  "null_exceedances": "0 of 15",
+  "plants_detected": "CONF, COLL, XOR on 3 policies",
+  "decisions_only_audit_misses_confidence_plant": true
+ },
+ "deviations": [
+  "Two-heavy-worker limit exceeded twice: the lead started two study workers while an independent-verifier heavy run was in progress (about 120 s at 00:49:45-00:51:45Z during inner, and about 239 s at 01:18:45-01:22:44Z during the assessment). No result depends on it; peak combined memory stayed far below 8 GiB.",
+  "The controls stage ran twice (the first run crashed before writing anything; AMENDMENT_A1 was pushed before the rerun)."
+ ],
+ "custody": {
+  "new_study_backup": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING",
+  "predecessor_custody": "PENDING (drive absent)",
+  "historical_exposure": "an identifying drive-folder name in earlier committed history is not removed (no history rewrite authorised)"
+ },
+ "resources": "COST_AND_CLOSEOUT.md"
+}

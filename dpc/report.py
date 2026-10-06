@@ -178,6 +178,26 @@ def figure(L, labels):
     fig.savefig(R.PKG / "figures" / "fig_tradeoff.png", dpi=120)
 
 
+def refit_selected_attacker(units_root, D, release_unit, outer_unit, attacker_seed=0):
+    """Closeout restore hook (dpc.closeout targets.json): rebuild the code views of a policy release from the backed-up
+    unit, refit the outer unit's AUC-selected pair attacker (a FINAL-slate member) on AUDIT_FIT with attacker seed
+    `attacker_seed`, and return its assessment-row SEX probabilities (compared with preds.npz P_auc_pair[seed])."""
+    from pathlib import Path
+    from dpc import audit as AU
+    from smf import audit as SA
+    units_root = Path(units_root)
+    rec = json.loads((units_root / outer_unit / "record.json").read_text())
+    sc = rec["families"][rec["primary_family"]]["scored"]["pair"]["auc"]
+    z = np.load(units_root / release_unit / "release.npz")
+    V = AU.policy_views({k: z[k] for k in z.files}, D)
+    X = V["X"][sc["source_view"]]
+    fac = dict(SA.final_slate(False))[sc["attacker"]]
+    fit, a = D["idx"]["AUDIT_FIT"], D["idx"]["OSF_DEVELOPMENT_ASSESSMENT"]
+    seeds = (0, 1, 2) if attacker_seed is None else (attacker_seed,)
+    out = [SA.proba(fac(s).fit(X[fit], np.asarray(D["sex"])[fit]), X[a], 2) for s in seeds]
+    return np.stack(out) if attacker_seed is None else out[0]
+
+
 def main(argv=None):
     part = (argv or sys.argv[1:] or ["--part", "all"])[-1]
     if part in ("fit", "all"):
