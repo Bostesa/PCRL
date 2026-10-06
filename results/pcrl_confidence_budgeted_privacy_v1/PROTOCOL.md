@@ -183,7 +183,9 @@ is not fresh confirmation or a population privacy guarantee."
   4. then the ordering keys.
 
   A fallback is DESCRIPTIVE_ONLY and can never pass. If a required guard comparator is missing and some candidate is
-  eligible, the role is INVALID (MISSING_GUARD_COMPARATOR).
+  eligible, the role is INVALID (MISSING_GUARD_COMPARATOR). If a required guard is missing and nothing is eligible,
+  the role is NO_ELIGIBLE with its ordinary or headroom reason; the fallback is then ranked without the guard key and
+  flagged fallback_rank_status = INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field).
 - **No relaxation:** the headroom rule is not relaxed if nothing passes.
 - **Prespecified diagnostics:**
   - the ordinary privacy winner without headroom, both T\*-guarded and unguarded;
@@ -295,7 +297,8 @@ The scored list, with duplicates scored once and every role mapping kept:
 - each family's headroom winner or fallback;
 - SRC|RAW-J β0.3, REF|F (FARE), REF|F0 and REF|E (LEACE).
 
-The full λ curve is an INNER figure only. The assessment never scores the whole grid.
+The full λ curve is an INNER figure only. The assessment never scores the whole grid. The unguarded strongest-ordinary
+diagnostic is inner-only; the scored list carries the T\*-guarded reading.
 
 ## 13. Diagnostics and figures
 
