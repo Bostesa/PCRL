@@ -4745,64 +4745,6 @@ def check_refits(D: Data, L, LU, T, own, preds, EL):
                     "AUDIT_FIT SEX; compared on INNER_SELECTION and OSF_DEVELOPMENT_ASSESSMENT rows")
 
 
-def check_deployment(D: Data, T):
-    """Own deployment: the admitted 83-column deployment input equals the verifier's own X; own forward pass of every
-    admitted U teacher on it (cbp admitted copies); every packaged policy applied from policy.json; bitwise vs the
-    stored releases (all rows) and vs the lead's deploy outputs (seed 1); the refusal inputs are what they claim."""
-    tp = RUN / "closeout_targets.json"
-    tg = jload(tp) if tp.exists() else {}
-    deploy_cids = [jload(UNITS / u_ / "record.json").get("config") for u_ in (tg.get("policies") or {}).values()
-                   if u_.startswith("pol__") and (UNITS / u_ / "record.json").exists()]
-    if not deploy_cids or not (RUN / "deploy_test").exists():
-        return res("PENDING", reason="packaged codes / deploy tests not yet written (PHASE 3)")
-    zi = np.load(PRIV / "inputs" / "deploy_input.npz", allow_pickle=False)
-    names = [str(x) for x in zi["feature_names"]]
-    out = {"input_X_bitwise_equals_own_X": bitwise(np.asarray(zi["X"]), D.X), "input_names_equal_pinned": names == D.feature_names,
-           "schema_json_equals_pinned": jload(PRIV / "inputs" / "schema.json") == D.feature_names}
-    bad, per = [], {}
-    for k in SEEDS:
-        ud = ADM / f"rel__s{k}__U"
-        mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], np.asarray(zi["X"]))
-        tq = all(bitwise(mine[x].astype(T[(k, "U")][x].dtype), T[(k, "U")][x]) for x in ("p1", "p2", "d1", "d2"))
-        P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
-        for cid in deploy_cids:
-            un = release_unit(k, cid)
-            rel = policy_pair_release(UNITS / un / "policy.json", P, d)
-            st_ = np.load(UNITS / un / "release.npz", allow_pickle=False)
-            r_ = {"teacher_forward_bitwise": tq,
-                  "release_bitwise_vs_stored": all(bitwise(rel[f"{a}{r}"], st_[f"{a}{r}"]) for a in ("tok", "q", "hard")
-                                                   for r in (1, 2)),
-                  "decisions_equal_teacher": all(bool(np.array_equal(rel[f"hard{r}"], d[r])) for r in (1, 2))}
-            if k == 1:
-                dp = PRIV / "run" / "deploy_test" / f"{safe_label(cid)}.npz"
-                if dp.exists():
-                    dz = np.load(dp, allow_pickle=False)
-                    r_["deploy_test_arrays_exactly_six"] = sorted(dz.files) == sorted(
-                        [f"{a}_{r}" for a in ("tokens", "probs", "decision") for r in (1, 2)])
-                    r_["deploy_test_bitwise_vs_own"] = all(
-                        bitwise(dz[f"tokens_{r}"], rel[f"tok{r}"]) and bitwise(dz[f"probs_{r}"], rel[f"q{r}"]) and
-                        bitwise(dz[f"decision_{r}"], rel[f"hard{r}"]) for r in (1, 2))
-                else:
-                    r_["deploy_test_present"] = False
-            per[f"{cid}#s{k}"] = r_
-            if not all(v for v in r_.values()):
-                bad.append(f"{cid}#s{k}")
-    ref = {}
-    for nm in ("X84.npz", "Xreord.npz"):
-        f_ = PRIV / "run" / "deploy_test" / nm
-        if f_.exists():
-            z = np.load(f_, allow_pickle=False)
-            nn = [str(x) for x in z["feature_names"]]
-            ref[nm] = {"columns": int(z["X"].shape[1]), "names_equal_pinned": nn == D.feature_names,
-                       "same_name_set": sorted(nn) == sorted(D.feature_names)}
-    lt = PRIV / "run" / "deploy_test" / "last.txt"
-    ref["last_refusal_text"] = lt.read_text().strip()[:120] if lt.exists() else None
-    ok = not bad and all(v for v in out.values())
-    return res("PASS" if ok else "FAIL", **out, per_unit=per, failures=bad, refusal_inputs=ref,
-               note="exit codes of the lead's refusal runs are not re-executed (no cbp import); the refusal inputs are "
-                    "confirmed to be an 84-column and a reordered 83-column input")
-
-
 def pred_in_table(text, p_):
     line = next((l_ for l_ in text.splitlines() if l_.startswith(f"| {p_['id']} |")), "")
     pr = p_.get("probability", p_.get("probabilities"))
@@ -4839,10 +4781,10 @@ def frag_check(text, fragment, pairs):
 
 # ------------------------------------------------------------------------------------------------ PHASE 3 (cbp)
 def scored_list_rule(sel_mine):
-    """Prompt section 12 scored list from the own selection: P*, J*, T*, C_rate, C_global, Q (or their registered
-    descriptive fallbacks); U continuous and CLASS-ONLY; source JOINT 0.1 and both sequential 0.1 maps; the strongest
-    ordinary privacy winner without headroom; each family's headroom winner or fixed minimum-shortfall fallback;
-    RAW-J, FARE, F0 and LEACE. Exact aliases are deduplicated (role mappings kept by the caller)."""
+    """PROTOCOL section 12 scored list from the own selection: P*, J*, T*, C_rate, C_global, Q (or their registered
+    fallbacks); U continuous and CLASS-ONLY; source JOINT / SEQ-12 / SEQ-21 at lambda 0.1; the T*-guarded ordinary
+    privacy winner without headroom; each family's headroom winner or fixed fallback; RAW-J, FARE, F0 and LEACE.
+    Exact aliases are scored once (role mappings are kept by the lock)."""
     r = sel_mine["resolved"]
     d = sel_mine["diagnostics"]
     want = {v for v in r.values() if v}
@@ -4858,54 +4800,85 @@ def scored_list_rule(sel_mine):
     return sorted(want)
 
 
+def composed_winners_own(own_in):
+    out = {}
+    for k in SEEDS:
+        o = own_in.get((k, "SRC|U")) or {}
+        fr = set()
+        for f_ in (o.get("composed") or {}).values():
+            for crit in ("winner", "ce_winner"):
+                fr |= {v for v in f_[crit].values() if v != "source"}
+        out[k] = sorted(fr)
+    return out
+
+
 def check_eval_lock(D: Data, L, gate, sel_mine, own_in):
-    """EVALUATION_LOCK content vs own selection and scored-list rule, the composed-source winners (every composed
-    reader selected as a U source winner must be retained), unit file hashes, the assessment groups, the immutable
-    inference settings and the lock / amendment hashes. Field names are reconciled with the lead's lock text."""
+    """EVALUATION_LOCK content vs the own selection and scored-list rule, the composed-source winners (every composed
+    reader selected as a U source winner retained), unit file hashes, assessment groups, inference settings, the lock /
+    selection / controls / endpoint-parity hashes and the fitting SEX prior."""
     EL = jload(RES / "EVALUATION_LOCK.json")
     out, bad = {"gate": {k_: gate.get(k_) for k_ in ("ok", "commit", "first_push_time", "commits", "sha256")}}, []
-    res_l = dict(EL.get("resolved") or {})
-    if "Q" not in res_l and "Q*" in res_l:
-        res_l["Q"] = res_l["Q*"]
-    out["resolved_equal_own"] = all(res_l.get(x) == sel_mine["resolved"].get(x) for x in sel_mine["resolved"])
-    sl = EL.get("scored_labels") or EL.get("scored_list") or []
-    out["scored_labels_equal_own_rule"] = sorted(set(sl)) == scored_list_rule(sel_mine)
+    out["resolved_equal_own"] = (EL.get("resolved") or {}) == sel_mine["resolved"]
+    st_l = EL.get("statuses") or {}
+    out["statuses_equal_own"] = all((st_l.get(x) or {}).get(f_) == v.get(f_) for x, v in sel_mine["statuses"].items()
+                                    for f_ in ("status", "config", "descriptive_config", "reason"))
+    sl = EL.get("scored_labels") or []
     out["scored_labels"] = len(sl)
-    freeze = set()
+    out["scored_labels_equal_own_rule"] = sorted(sl) == scored_list_rule(sel_mine) and len(set(sl)) == len(sl)
+    cw = composed_winners_own(own_in)
+    miss = {}
     for k in SEEDS:
-        o = own_in.get((k, "SRC|U"))
-        if o and "composed" in o:
-            for f_ in o["composed"].values():
-                for crit in ("winner", "ce_winner"):
-                    freeze |= {v for v in f_[crit].values() if v != "source"}
-    locked_comp = set()
-    for s_ in (EL.get("seeds") or {}).values():
-        for x in (s_.get("composed_winners") or s_.get("composed_freeze") or s_.get("composed_policies") or []):
-            locked_comp.add(x if isinstance(x, str) else (x.get("cid") or x.get("unit")))
-    locked_comp = {x if x in composition_cids() else next((c_ for c_ in composition_cids() for k in SEEDS
-                                                           if release_unit(k, c_) == x), x) for x in locked_comp}
-    out["composed_source_winners_own"] = sorted(freeze)
-    out["composed_source_winners_missing_from_lock"] = sorted(freeze - locked_comp)
+        se = (EL.get("seeds") or {}).get(str(k)) or {}
+        locked = set(se.get("composed_policies") or [])
+        want_units = {release_unit(k, c_) for c_ in cw[k]}
+        if want_units - locked:
+            miss[f"s{k}"] = sorted(want_units - locked)
+        out.setdefault("composed_policies_closure_38", {})[f"s{k}"] = sorted(locked) == sorted(
+            release_unit(k, c_) for c_ in composition_cids())
+        out.setdefault("score_units_equal_scored_labels", {})[f"s{k}"] = sorted((se.get("score") or {})) == sorted(sl) and \
+            all(v.get("unit") == release_unit(k, lab) for lab, v in (se.get("score") or {}).items())
+    out["composed_source_winners_own"] = {f"s{k}": v for k, v in cw.items()}
+    out["composed_source_winners_missing_from_lock"] = miss
     am = D.mask[ASSESS]
     ar = EL.get("assessment_role") or {}
     out["assessment_groups_ok"] = ar.get("rows") == int(am.sum()) and ar.get("groups") == len(np.unique(D.unit[am])) and \
         ar.get("row_id_sha256") == rowid_hash(D.row_id[am])
     ep = EL.get("endpoints") or {}
     out["inference_settings_ok"] = ep.get("z") == Z_PRIMARY and ep.get("B") == B_BOOT and ep.get("boot_seed") == BOOT_SEED \
-        and ep.get("size") == N_ENDPOINTS
+        and ep.get("size") == N_ENDPOINTS and ep.get("primary") == [f"P{i:02d}" for i in range(1, 38)]
+    out["locks_sha256_ok"] = all((RES / n_).exists() and sha_file(RES / n_) == h for n_, h in (EL.get("locks_sha256") or
+                                                                                            {}).items()) and \
+        sorted(EL.get("locks_sha256") or {}) == ["AUDIT_AND_SELECTION_LOCK.json", "FIT_LOCK.json", "SOURCE_ADMISSION_LOCK.json"]
+    out["amendments_sha256_ok"] = sorted((EL.get("amendments_sha256") or {})) == sorted(q.name for q in RES.glob("AMENDMENT*.json"))
+    out["selection_sha256_ok"] = EL.get("selection_sha256") == sha_file(RUN / "selection.json") and \
+        EL.get("selection_public_sha256") == sha_file(RES / "SELECTION.json")
+    tv = EL.get("technical_validity") or {}
+    out["technical_validity_ok"] = tv.get("ok") is True and tv.get("controls_verdict_sha256") == \
+        sha_file(RES / "AUDIT_PRELOCK_CHECKS.json") and (tv.get("endpoint_parity") or {}).get("sha256") == \
+        sha_file(RUN / "endpoint_parity.json")
+    fit = D.fit_idx
+    out["sex_prior_hash_ok"] = hashlib.sha256(np.bincount(L["sex"][fit], minlength=2).astype(np.int64).tobytes()
+                                              ).hexdigest() == EL.get("sex_prior_defense_fit_sha256")
+    out["alias_of_by_role_ok"] = (EL.get("alias_of_by_role") or {}) == ({f"P{i:02d}": f"P{i - 11:02d}" for i in range(12, 23)}
+                                                                      if sel_mine["resolved"]["C_rate"] ==
+                                                                      sel_mine["resolved"]["C_global"] else {})
     lc = EL.get("locked_code_files") or {}
     out["locked_code_changed_in_worktree"] = [f_ for f_, h in lc.items() if not ((WT / f_).exists() and sha_file(WT / f_) == h)]
     files_ok, n_units = True, 0
-    for s_ in (EL.get("seeds") or {}).values():
-        for u_, h in (s_.get("unit_file_sha256") or {}).items():
+    for se in (EL.get("seeds") or {}).values():
+        for u_, h in (se.get("unit_file_sha256") or {}).items():
             n_units += 1
-            if not (UNITS / u_ / "COMPLETE.json").exists() or h != jload(UNITS / u_ / "COMPLETE.json")["files"]:
+            cpl = UNITS / u_ / "COMPLETE.json"
+            if not cpl.exists() or h != jload(cpl)["files"] or not all(sha_file(UNITS / u_ / f_) == hh for f_, hh in h.items()):
                 files_ok = False
     out.update({"unit_file_hashes_ok": files_ok, "units_hashed": n_units})
     for kk, v in out.items():
         if isinstance(v, bool) and not v:
             bad.append(kk)
-    if out["composed_source_winners_missing_from_lock"]:
+        if isinstance(v, dict) and kk in ("composed_policies_closure_38", "score_units_equal_scored_labels") and \
+                not all(v.values()):
+            bad.append(kk)
+    if miss:
         bad.append("composed-source winner missing from the lock")
     if out["locked_code_changed_in_worktree"]:
         bad.append("locked code changed in worktree")
@@ -4914,19 +4887,23 @@ def check_eval_lock(D: Data, L, gate, sel_mine, own_in):
     return res("FAIL" if bad else "PASS", failures=bad, **out), EL
 
 
-def check_endpoints_cbp(preds, EL, sel_statuses, technical_valid=True):
-    """Own 37 endpoints, decisions and the own label (labels_cbp) vs the lead's inference record and public CSV."""
+def check_endpoints_cbp(preds, EL, technical_valid=True):
+    """Own 37 endpoints (points, SEs, bounds), own clause outcomes and decisions, own claim / Q statuses and the own label
+    (LABEL_TRUTH_TABLE.json) vs the lead's inference record, PRIMARY_ENDPOINTS.csv and LABEL_RESULT.json, plus every
+    reported level (points and SEs)."""
     eps, lev, boot = own_endpoints(preds, EL)
-    st = dict(EL.get("statuses") or sel_statuses)
-    if "Q" not in st and "Q*" in st:
-        st["Q"] = st["Q*"]
+    st = dict(EL.get("statuses") or {})
     for e in eps:
         e["outcome"], e["point_side"] = clause_outcome(e)
+        e["decision_own"] = "DESCRIPTIVE_ONLY" if e["decision"] == "DESCRIPTIVE_ONLY" else e["outcome"]
     lab = labels_cbp(st, eps, technical_valid)
-    out = {"own_label": lab, "endpoints": [{k_: e.get(k_) for k_ in ("id", "claim", "kind", "nominee_config", "ref_config",
-                                                                    "point", "se", "lower", "upper", "target", "side",
-                                                                    "decision", "decision_numeric", "outcome")}
-                                           for e in eps],
+    out = {"own_label": {k_: lab[k_] for k_ in ("label", "claims", "root_causes", "q", "q_root_cause",
+                                                 "incomplete_displayed")},
+           "own_failing_clauses": {c_: sorted(e["id"] for e in eps if e["claim"] == c_ and e["outcome"] != "PASS")
+                                   for c_ in ("A", "B", "C", "Q")},
+           "endpoints": [{k_: e.get(k_) for k_ in ("id", "claim", "kind", "nominee_config", "ref_config", "point", "se",
+                                                    "lower", "upper", "target", "side", "outcome", "decision_own")}
+                         for e in eps],
            "bootstrap": {"B": boot.B, "groups": boot.G, "rows": boot.n, "seed": BOOT_SEED, "z": Z_PRIMARY,
                          "counts_sha256": hashlib.sha256(boot.counts.tobytes()).hexdigest()}}
     inf_p = RUN / "inference.json"
@@ -4944,12 +4921,350 @@ def check_endpoints_cbp(preds, EL, sel_statuses, technical_valid=True):
         mx["point"] = max(mx["point"], abs(e["point"] - r_["point"]))
         mx["se"] = max(mx["se"], abs(e["se"] - r_["se"]))
         mx["bounds"] = max(mx["bounds"], abs(e["lower"] - r_["lower"]), abs(e["upper"] - r_["upper"]))
-        if e["decision"] != r_.get("decision"):
-            dec_bad.append(f"{e['id']}: {e['decision']} vs {r_.get('decision')}")
+        if e["outcome"] != r_.get("outcome") or e["decision_own"] != r_.get("decision"):
+            dec_bad.append(f"{e['id']}: {e['outcome']}/{e['decision_own']} vs {r_.get('outcome')}/{r_.get('decision')}")
+        if e["target"] != r_.get("target") or e["side"] != r_.get("side"):
+            dec_bad.append(f"{e['id']}: slot definition")
+    cs = inf.get("claim_status") or {}
+    claims_eq = all((cs.get(c_) or {}).get("status") == lab["claims"][c_] and
+                    (cs.get(c_) or {}).get("root_cause") == lab["root_causes"][c_] and
+                    sorted((cs.get(c_) or {}).get("failing") or []) == (out["own_failing_clauses"][c_]
+                                                                        if lab["claims"][c_] == "NOT_ESTABLISHED" else [])
+                    for c_ in ("A", "B", "C"))
+    q_eq = (inf.get("q_status") or {}).get("status") == lab["q"] and (inf.get("q_status") or {}).get("root_cause") == \
+        lab["q_root_cause"]
+    lr = jload(RES / "LABEL_RESULT.json") if (RES / "LABEL_RESULT.json").exists() else {}
+    lv_mx, lv_se_mx, lv_missing = 0.0, 0.0, []
+    rl = inf.get("levels", {})
+    for nm, (pt, rp) in lev.items():
+        r_ = rl.get(nm.replace("#None#", "#primary#")) or rl.get(nm)
+        if r_ is None:
+            lv_missing.append(nm)
+            continue
+        lv_mx = max(lv_mx, abs(pt - r_["point"]))
+        lv_se_mx = max(lv_se_mx, abs(float(np.std(rp[np.isfinite(rp)], ddof=1)) - r_["se"]))
+    extra = sorted(set(rl) - {n_.replace("#None#", "#primary#") for n_ in lev})
+    csv_bad = []
+    pe = RES / "PRIMARY_ENDPOINTS.csv"
+    if pe.exists():
+        import csv
+        pub = {r_["id"]: r_ for r_ in csv.DictReader(pe.open())}
+        for e in eps:
+            c_ = pub.get(e["id"])
+            if c_ is None or c_["outcome"] != e["outcome"] or c_["decision"] != e["decision_own"] or \
+                    any(abs(float(c_[f_]) - e[f_]) > 5e-7 + 1e-12 for f_ in ("point", "se", "lower", "upper")):
+                csv_bad.append(e["id"])
     out.update({"max_abs_diff": mx, "decision_mismatches": dec_bad, "recorded_label": inf.get("label"),
-                "label_equal": inf.get("label") == lab["label"]})
-    ok = not dec_bad and out["label_equal"] and mx["point"] <= 1e-12 and mx["se"] <= 1e-12 and mx["bounds"] <= 1e-11
+                "label_equal": inf.get("label") == lab["label"], "claim_statuses_equal": claims_eq,
+                "q_status_equal": q_eq, "technical_valid_recorded": inf.get("technical_valid"),
+                "winning_family_recorded": inf.get("winning_family"),
+                "label_result_json_consistent": lr.get("label") == lab["label"] and
+                (lr.get("displayed_statuses") or {}) == {**lab["claims"], "Q": lab["q"]},
+                "levels_checked": len(lev), "levels_point_max_abs_diff": lv_mx, "levels_se_max_abs_diff": lv_se_mx,
+                "levels_missing_in_record": lv_missing[:10], "levels_only_in_record": extra[:10],
+                "primary_endpoints_csv_mismatches": csv_bad,
+                "inference_settings_recorded_ok": inf.get("B") == B_BOOT and inf.get("seed") == BOOT_SEED and
+                inf.get("z") == Z_PRIMARY and inf.get("n_groups") == boot.G and inf.get("n_assessment") == boot.n})
+    ok = (not dec_bad and out["label_equal"] and claims_eq and q_eq and out["label_result_json_consistent"] and
+          mx["point"] <= 1e-12 and mx["se"] <= 1e-12 and mx["bounds"] <= 1e-11 and lv_mx <= 1e-12 and lv_se_mx <= 1e-12
+          and not lv_missing and not extra and not csv_bad and out["inference_settings_recorded_ok"] and
+          inf.get("technical_valid") is True)
     return res("PASS" if ok else "FAIL", **out), eps, lev
+
+
+def check_tables_cbp(own_in, sel_mine, sel_rows, eps, lev, EL):
+    """Public tables vs own numbers (6-decimal prints: |diff| <= 5e-7; flags and IDs exact): ALL_LEVELS.csv,
+    ASSESSMENT_COMPARISON.csv, INNER_SELECTION_TABLE.csv, HEADROOM_VS_STANDARD_SELECTION.csv,
+    INNER_STATES_VS_RECOVERY.csv. These hold the values plotted in figures 1-4."""
+    import csv
+    out, bad = {}, []
+    tol = 5e-7 + 1e-12
+
+    def cmp(tag, shown, own_v):
+        if shown in ("", None):
+            if own_v is None:
+                return
+            bad.append(f"{tag}: blank vs own {own_v}")
+            return
+        out.setdefault(tag, [0, 0.0])
+        out[tag][0] += 1
+        d_ = abs(float(shown) - float(own_v))
+        out[tag][1] = max(out[tag][1], d_)
+        if d_ > tol:
+            bad.append(f"{tag}: {shown} vs own {own_v:.7f}")
+
+    def flag(tag, shown, own_v):
+        out.setdefault(tag + "_flags", [0, 0])
+        out[tag + "_flags"][0] += 1
+        if str(shown) != str(own_v):
+            out[tag + "_flags"][1] += 1
+            bad.append(f"{tag}: {shown} vs own {own_v}")
+
+    def se(nm):
+        rp = lev[nm][1]
+        return float(np.std(rp[np.isfinite(rp)], ddof=1))
+    f_ = RES / "ALL_LEVELS.csv"
+    n_all = 0
+    if f_.exists():
+        for r_ in csv.DictReader(f_.open()):
+            q_, k_, lab_, det = r_["quantity"], r_["seed"], r_["label"], r_["detail"]
+            if q_ in ("R", "Rmean"):
+                fam, w = det.split("|")
+                nm = f"R#{k_}#{lab_}#{fam}#{w}" if q_ == "R" else f"Rmean#{lab_}#{fam}#{w}"
+                nm2 = nm.replace("#primary#", "#None#")
+                key = nm if nm in lev else nm2
+            elif q_ == "const":
+                key = f"const#{det}"
+            elif q_.endswith("mean"):
+                key = f"{q_}#{lab_}#{det}"
+            else:
+                key = f"{q_}#{k_}#{lab_}#{det}"
+            if key not in lev:
+                bad.append(f"ALL_LEVELS row without own level: {q_},{k_},{lab_},{det}")
+                continue
+            n_all += 1
+            cmp("all_levels_point", r_["point"], lev[key][0])
+            cmp("all_levels_se", r_["se"], se(key))
+    out["all_levels_rows"] = n_all
+    f_ = RES / "ASSESSMENT_COMPARISON.csv"
+    n_ac = 0
+    if f_.exists():
+        for r_ in csv.DictReader(f_.open()):
+            lab_ = r_["release"]
+            n_ac += 1
+            for w in VIEWS:
+                nm = f"Rmean#{lab_}#None#{w}" if f"Rmean#{lab_}#None#{w}" in lev else f"Rmean#{lab_}#primary#{w}"
+                cmp("comparison_auc", r_[f"auc_{w}"], lev[nm][0])
+                cmp("comparison_auc_se", r_[f"auc_{w}_se"], se(nm))
+            for j, t_ in ((0, "income"), (1, "occupation")):
+                cmp("comparison_acc", r_[f"acc_{t_}"], lev[f"accmean#{lab_}#{j}"][0])
+                if lab_ != "SRC|U":
+                    for kk, col in (("llx", "ll_excess"), ("brx", "brier_excess")):
+                        cmp("comparison_excess", r_[f"{col}_{t_}"], lev[f"{kk}mean#{lab_}#{j}"][0])
+                        cmp("comparison_excess_se", r_[f"{col}_{t_}_se"], se(f"{kk}mean#{lab_}#{j}"))
+            if lab_ in sel_rows and sel_rows[lab_].get("valid"):
+                flag("comparison_inner_flags", r_["inner_ordinary"], sel_rows[lab_]["ordinary_eligible"])
+                flag("comparison_inner_flags", r_["inner_headroom"], sel_rows[lab_]["headroom_eligible"])
+    out["assessment_comparison_rows"] = n_ac
+    if n_ac != len(EL.get("scored_labels") or []):
+        bad.append(f"ASSESSMENT_COMPARISON rows {n_ac} vs scored labels {len(EL.get('scored_labels') or [])}")
+    f_ = RES / "INNER_SELECTION_TABLE.csv"
+    n_is = 0
+    cw = {k: (own_in.get((k, "SRC|U")) or {}).get("composed", {}) for k in SEEDS}
+    if f_.exists():
+        for r_ in csv.DictReader(f_.open()):
+            cid, k = r_["config"], int(r_["seed"])
+            m = sel_rows.get(cid)
+            if m is None or not m.get("valid"):
+                bad.append(f"inner table {cid}#s{k}: no valid own row")
+                continue
+            n_is += 1
+            s_ = m["seeds"][k]
+            o = own_in[(k, cid)]
+            for w in VIEWS:
+                cmp("inner_table_auc", r_[f"auc_{w}"], s_["auc"][w])
+            for i, t_ in ((1, "income"), (2, "occupation")):
+                cmp("inner_table_utility", r_[f"ll_{t_}"], o["utility"][i]["logloss"])
+                cmp("inner_table_utility", r_[f"brier_{t_}"], o["utility"][i]["brier"])
+                cmp("inner_table_excess", r_[f"ll_excess_{t_}"], s_["tasks"][i]["excess"]["logloss"])
+                cmp("inner_table_excess", r_[f"brier_excess_{t_}"], s_["tasks"][i]["excess"]["brier"])
+            flag("inner_table", r_["ordinary_seed"], s_["ordinary_ok"])
+            flag("inner_table", r_["headroom_seed"], s_["ordinary_ok"] and s_["headroom_ok"])
+            cmp("inner_table_shortfall", r_["ordinary_shortfall_seed"],
+                max(0.0, max(s_["tasks"][i]["shortfall_ordinary_raw"] for i in (1, 2))))
+            cmp("inner_table_shortfall", r_["headroom_shortfall_seed"],
+                max(0.0, max(s_["tasks"][i]["shortfall_headroom_raw"] for i in (1, 2))))
+            ts = None if o["states"] is None else int(o["states"])
+            flag("inner_table_states", r_["token_states"] or None, ts)
+            if cid == "SRC|U":
+                win = ((cw[k].get(o["primary"]) or {}).get("winner") or {}).get("pair")
+                flag("inner_table_composed_winner", r_["composed_winner_pair"] or None, win)
+    out["inner_selection_rows"] = n_is
+    if n_is != 3 * len(all_cids()):
+        bad.append(f"INNER_SELECTION_TABLE rows {n_is}")
+    f_ = RES / "HEADROOM_VS_STANDARD_SELECTION.csv"
+    d = sel_mine["diagnostics"]
+    stt = sel_mine["statuses"]
+    roles = {"P* (headroom)": stt["P*"], "ordinary privacy winner": d["ordinary_privacy_winner_no_headroom"],
+             "strongest ordinary privacy (unguarded)": d["strongest_ordinary_privacy_unguarded"],
+             "J* (headroom)": stt["J*"], **{f"{f_} headroom winner": v for f_, v in d["family_headroom_winners"].items()}}
+    n_h = 0
+    if f_.exists():
+        for r_ in csv.DictReader(f_.open()):
+            sel_, cfg = r_["selection"], r_["config"]
+            n_h += 1
+            if sel_ in roles:
+                v = roles[sel_]
+                flag("headroom_table_role", r_["status"], v["status"])
+                flag("headroom_table_role", cfg, v.get("config") or v.get("descriptive_config"))
+                flag("headroom_table_role", r_["reason"] or None, v.get("reason"))
+            if cfg in sel_rows and sel_rows[cfg].get("valid"):
+                m = sel_rows[cfg]
+                for col in ("mean_pair", "mean_v1", "mean_v2"):
+                    cmp("headroom_table_means", r_[col], m[col])
+                cmp("headroom_table_worst", r_["worst_ll_excess"], max(m["seeds"][k]["tasks"][i]["excess"]["logloss"]
+                                                                       for k in SEEDS for i in (1, 2)))
+                cmp("headroom_table_worst", r_["worst_brier_excess"], max(m["seeds"][k]["tasks"][i]["excess"]["brier"]
+                                                                          for k in SEEDS for i in (1, 2)))
+                flag("headroom_table_flags", r_["ordinary"], m["ordinary_eligible"])
+                flag("headroom_table_flags", r_["headroom"], m["headroom_eligible"])
+            if sel_ == "headroom changes winner":
+                hc = d["headroom_changes_winner"]
+                flag("headroom_table_change", r_["changed"], hc.get("changed"))
+                cmp("headroom_table_give_up", r_["give_up_mean"], hc.get("give_up_mean_pair_auc"))
+                for k in SEEDS:
+                    cmp("headroom_table_give_up", r_[f"give_up_s{k}"], hc["give_up_per_seed"][f"s{k}"])
+    out["headroom_table_rows"] = n_h
+    f_ = RES / "INNER_STATES_VS_RECOVERY.csv"
+    n_st = 0
+    if f_.exists():
+        for r_ in csv.DictReader(f_.open()):
+            cid = r_["config"]
+            if cid not in sel_rows:
+                bad.append(f"states table {cid}: unknown")
+                continue
+            n_st += 1
+            em = [own_in[(k, cid)].get("emitted") for k in SEEDS]
+            if all(x is not None for x in em):
+                cmp("states_table_occupied", r_["occupied_states_fit_mean"], seed_mean(em))
+            cmp("states_table_pair_auc", r_["inner_pair_auc"], sel_rows[cid]["mean_pair"])
+    out["states_table_rows"] = n_st
+    fig = sorted(q.name for q in (RES / "figures").glob("*")) if (RES / "figures").exists() else []
+    out["figures_present"] = fig
+    return res("FAIL" if bad else "PASS", cells_checked_and_max_abs_diff=out, mismatches=bad[:30],
+               n_mismatches=len(bad), note="figures 1-4 are rendered from these tables (their source values are the "
+                                           "checked cells); the images themselves are not parsed")
+
+
+def check_deployment(D: Data, T):
+    """Own deployment of the packaged codes (Q, P*, the J* fallback; seed 1) on the admitted 83-column deployment input:
+    the input equals the own X; own forward pass of the admitted U teacher; own policy application; bitwise vs the
+    stored releases and vs the lead's cbp.deploy outputs (exactly six arrays). Then the cbp.deploy CLI is exercised as a
+    BLACK BOX in a child process (never imported): one fresh deployment compared bitwise with the own application, and
+    every registered refusal (exit code 2, no output written)."""
+    tp = RUN / "closeout_targets.json"
+    tg = jload(tp) if tp.exists() else {}
+    units = [u_ for u_ in (tg.get("policies") or {}).values() if u_.startswith("pol__")]
+    dt = PRIV / "deploy_test"
+    if not units:
+        return res("PENDING", reason="packaged codes not yet named")
+    zi = np.load(PRIV / "inputs" / "deploy_input.npz", allow_pickle=False)
+    names = [str(x) for x in zi["feature_names"]]
+    out = {"input_X_bitwise_equals_own_X": bitwise(np.asarray(zi["X"]), D.X), "input_names_equal_pinned": names ==
+           D.feature_names, "input_arrays": sorted(zi.files),
+           "schema_json_equals_pinned": jload(PRIV / "inputs" / "schema.json") == D.feature_names}
+    bad, per = [], {}
+    k = int(tg.get("seed", 1))
+    ud = ADM / f"rel__s{k}__U"
+    mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], np.asarray(zi["X"]))
+    P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
+    out["teacher_forward_bitwise"] = all(bitwise(mine[x].astype(T[(k, "U")][x].dtype), T[(k, "U")][x])
+                                         for x in ("p1", "p2", "d1", "d2"))
+    own_rel = {}
+    for un in units:
+        rel = policy_pair_release(UNITS / un / "policy.json", P, d)
+        own_rel[un] = rel
+        st_ = np.load(UNITS / un / "release.npz", allow_pickle=False)
+        r_ = {"release_bitwise_vs_stored": all(bitwise(rel[f"{a}{r}"], st_[f"{a}{r}"]) for a in ("tok", "q", "hard")
+                                               for r in (1, 2)),
+              "decisions_equal_teacher": all(bool(np.array_equal(rel[f"hard{r}"], d[r])) for r in (1, 2))}
+        dp = dt / f"{un.split('__', 2)[2]}.npz"
+        if dp.exists():
+            dz = np.load(dp, allow_pickle=False)
+            r_["lead_deploy_output_exactly_six_arrays"] = sorted(dz.files) == sorted(
+                [f"{a}_{r}" for a in ("tokens", "probs", "decision") for r in (1, 2)])
+            r_["lead_deploy_output_bitwise_vs_own"] = all(
+                bitwise(dz[f"tokens_{r}"], rel[f"tok{r}"]) and bitwise(dz[f"probs_{r}"], rel[f"q{r}"]) and
+                bitwise(dz[f"decision_{r}"], rel[f"hard{r}"]) for r in (1, 2))
+        per[un] = r_
+        if not all(v for v in r_.values()):
+            bad.append(un)
+    out["per_unit"] = per
+    out["lead_deploy_outputs_present"] = sorted(q.name for q in dt.glob("*.npz")) if dt.exists() else []
+    out["black_box_cli"] = deploy_cli_black_box(D, tg, own_rel, k)
+    if out["black_box_cli"]["status"] != "PASS":
+        bad.append("deploy CLI black-box checks")
+    ok = not bad and all(v for v in out.values() if isinstance(v, bool))
+    return res("PASS" if ok else "FAIL", **out, failures=bad)
+
+
+def deploy_cli_black_box(D: Data, tg, own_rel, k):
+    """Run `python -m cbp.deploy` as an external process (the verifier never imports cbp). Inputs are written to a
+    private scratch folder and removed afterwards; only aggregate verdicts are reported."""
+    import shutil as _sh
+    import tempfile
+    py = sys.executable
+    env = {**os.environ, "PYTHONPATH": str(WT), "OMP_NUM_THREADS": "1"}
+    pol = [u_ for u_ in (tg.get("policies") or {}).values() if "JOINT" in u_ and "l0.01" in u_] or \
+        [u_ for u_ in (tg.get("policies") or {}).values() if u_.startswith("pol__")]
+    un = pol[0]
+    zi = np.load(PRIV / "inputs" / "deploy_input.npz", allow_pickle=False)
+    X, names = np.asarray(zi["X"]), [str(x) for x in zi["feature_names"]]
+    tmp = Path(tempfile.mkdtemp(prefix="cbp_F_deploy_"))
+    res_ = {}
+    try:
+        def write_x(nm, Xv, nv, extra=None):
+            p = tmp / nm
+            arrs = {"X": Xv, "feature_names": np.asarray(nv)}
+            if extra:
+                arrs.update(extra)
+            np.savez(p, **arrs)
+            return p
+        good = write_x("x.npz", X, names)
+        perm = list(range(len(names)))
+        perm[0], perm[1] = perm[1], perm[0]
+        cases = {"reordered_columns": write_x("xr.npz", X[:, perm], [names[i] for i in perm]),
+                 "84_columns": write_x("x84.npz", np.hstack([X, X[:, :1]]), names + ["extra_col"]),
+                 "82_columns": write_x("x82.npz", X[:, :-1], names[:-1]),
+                 "extra_input_array": write_x("xe.npz", X, names, {"sex": np.zeros(len(X), dtype=np.int64)})}
+
+        def run(args, out_name):
+            outp = tmp / out_name
+            cmd = [py, "-m", "cbp.deploy", "--unit", str(ADM / f"rel__s{k}__U"), "--policy",
+                   str(UNITS / un / "policy.json"), "--X", str(good), "--schema", str(PRIV / "inputs" / "schema.json"),
+                   "--out", str(outp), "--seed", str(k)] + args
+            r = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=str(tmp), timeout=600)
+            return r.returncode, outp
+
+        rc, outp = run([], "ok.npz")
+        okz = np.load(outp, allow_pickle=False) if outp.exists() else None
+        rel = own_rel[un]
+        res_["fresh_deploy"] = {"rc": rc, "exactly_six_arrays": okz is not None and sorted(okz.files) == sorted(
+            [f"{a}_{r}" for a in ("tokens", "probs", "decision") for r in (1, 2)]),
+            "bitwise_vs_own": okz is not None and all(bitwise(okz[f"tokens_{r}"], rel[f"tok{r}"]) and
+                                                      bitwise(okz[f"probs_{r}"], rel[f"q{r}"]) and
+                                                      bitwise(okz[f"decision_{r}"], rel[f"hard{r}"]) for r in (1, 2))}
+        refusals = {}
+        for fl in ("--include-sex", "--export-fine-ids", "--raw-scores", "--debug", "--foo"):
+            rc, outp = run([fl], f"r{fl.strip('-')}.npz")
+            refusals[f"flag {fl}"] = {"rc": rc, "no_output": not outp.exists()}
+        for nm, p in cases.items():
+            cmd_rc, outp = None, tmp / f"{nm}.npz"
+            r = subprocess.run([py, "-m", "cbp.deploy", "--unit", str(ADM / f"rel__s{k}__U"), "--policy",
+                                str(UNITS / un / "policy.json"), "--X", str(p), "--schema",
+                                str(PRIV / "inputs" / "schema.json"), "--out", str(outp), "--seed", str(k)],
+                               capture_output=True, text=True, env=env, cwd=str(tmp), timeout=600)
+            refusals[nm] = {"rc": r.returncode, "no_output": not outp.exists()}
+        other = 0 if k != 0 else 1
+        outp = tmp / "mismatch.npz"
+        r = subprocess.run([py, "-m", "cbp.deploy", "--unit", str(ADM / f"rel__s{other}__U"), "--policy",
+                            str(UNITS / un / "policy.json"), "--X", str(good), "--schema",
+                            str(PRIV / "inputs" / "schema.json"), "--out", str(outp), "--seed", str(other)],
+                           capture_output=True, text=True, env=env, cwd=str(tmp), timeout=600)
+        refusals["mismatched_teacher"] = {"rc": r.returncode, "no_output": not outp.exists()}
+        outp = tmp / "unreg.npz"
+        r = subprocess.run([py, "-m", "cbp.deploy", "--unit", str(ADM / f"rel__s{k}__U"), "--policy",
+                            str(UNITS / release_unit(k, b_config("JOINT", COMPOSED_EXTRA_LAM)) / "policy.json"), "--X",
+                            str(good), "--schema", str(PRIV / "inputs" / "schema.json"), "--out", str(outp), "--seed",
+                            str(k)], capture_output=True, text=True, env=env, cwd=str(tmp), timeout=600)
+        refusals["unregistered_lambda_1_policy"] = {"rc": r.returncode, "no_output": not outp.exists()}
+        res_["refusals"] = refusals
+    finally:
+        _sh.rmtree(tmp, ignore_errors=True)
+    ok = res_["fresh_deploy"]["rc"] == 0 and res_["fresh_deploy"]["exactly_six_arrays"] and \
+        res_["fresh_deploy"]["bitwise_vs_own"] and all(v["rc"] == 2 and v["no_output"] for v in res_["refusals"].values())
+    return {"status": "PASS" if ok else "FAIL", "unit": un, **res_,
+            "note": "the CLI is executed as an external process; the verifier imports no cbp module"}
 
 
 def check_budget():
@@ -5003,57 +5318,73 @@ def check_budget():
                                               "(e.g. agent reasoning) is outside this ledger and reported separately")
 
 
-def check_tables_pending():
-    names = ("INNER_SELECTION_TABLE.csv", "SELECTION.json", "HEADROOM_VS_STANDARD_SELECTION.csv", "ALL_LEVELS.csv",
-             "PRIMARY_ENDPOINTS.csv", "OPTIMIZATION_RECEIPTS.json", "CLASS_PRESERVATION.json")
-    return res("PENDING", reason="public tables are compared cell by cell in PHASE 3 once written",
-               present=[n_ for n_ in names if (RES / n_).exists()])
-
-
-def restore_from_copy(root: Path, targets: dict, Dlive: "Data"):
-    """Independent restore check from one copy root (folder holding SHA256SUMS and cbp_v1/): every SHA256SUMS entry
-    re-hashed (own); the pinned input in the copy (dependencies/) re-hashed and loaded by this verifier's own role
-    reconstruction; own forward pass of the U teacher from the copied model.pt + heads; own application of the
-    copied Q and P* / fallback policy.json files, bitwise vs the copied and the live releases; the selected attacker
-    refit from the copied release on AUDIT_FIT (own design matrix) vs the saved assessment predictions."""
-    rec, bad = {}, []
-    sums = root / "SHA256SUMS"
-    lines = [l_.split("  ", 1) for l_ in sums.read_text().splitlines() if l_.strip()] if sums.exists() else []
-    mism = [rel.strip() for h, rel in lines if not (root / rel.strip()).is_file() or sha_file(root / rel.strip()) != h]
-    rec.update({"entries": len(lines), "mismatches": mism[:10], "n_mismatches": len(mism)})
-    cp = root / "cbp_v1"
-    dep = next((q for q in (root / "dependencies").rglob("adult_jcv.npz")), None) if (root / "dependencies").exists() else None
-    rec["copied_input_present_and_pinned"] = bool(dep) and sha_file(dep) == SRC_SHA
-    if not rec["copied_input_present_and_pinned"]:
-        bad.append("pinned input not in the copy")
-    k = int(targets.get("seed", 1))
-    Dc = Data(src=dep) if rec["copied_input_present_and_pinned"] else None      # own roles from the COPY's input
-    rec["copy_input_roles_and_X_equal_live"] = Dc is not None and bitwise(Dc.X, Dlive.X) and \
-        all(bitwise(Dc.idx[r_], Dlive.idx[r_]) for r_ in ROLES)
-    if not rec["copy_input_roles_and_X_equal_live"]:
-        bad.append("copy input roles / X")
-    ud = cp / "admitted" / f"rel__s{k}__U"
-    mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], (Dc or Dlive).X)
-    tz = np.load(cp / "run" / "units" / f"tea__s{k}__U" / "teacher.npz", allow_pickle=False)
-    rec["teacher_U_forward_bitwise_vs_copied_unit"] = all(bitwise(mine[x].astype(tz[x].dtype), tz[x])
-                                                         for x in ("p1", "p2", "d1", "d2", "c1", "c2", "r1", "r2"))
-    if not rec["teacher_U_forward_bitwise_vs_copied_unit"]:
-        bad.append("teacher U")
-    P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
-    for lab, un in (targets.get("policies") or {}).items():
-        if not un.startswith("pol__"):
-            continue
-        rel = policy_pair_release(cp / "run" / "units" / un / "policy.json", P, d)
-        cz = np.load(cp / "run" / "units" / un / "release.npz", allow_pickle=False)
-        lz = np.load(UNITS / un / "release.npz", allow_pickle=False)
-        ok = all(bitwise(rel[f"{a}{r}"], cz[f"{a}{r}"]) and bitwise(rel[f"{a}{r}"], lz[f"{a}{r}"])
-                 for a in ("tok", "q", "hard") for r in (1, 2)) and all(np.array_equal(rel[f"hard{r}"], d[r]) for r in (1, 2))
-        rec[f"policy {lab}"] = {"unit": un, "own_application_bitwise_vs_copy_and_live_and_decisions_preserved": ok}
-        if not ok:
-            bad.append(f"policy {lab}")
-    rec["status"] = "FAIL" if bad or mism else "PASS"
-    rec["failures"] = bad
-    return rec
+def check_late_chronology(gate, EL):
+    """Assessment chronology: every assess / outer / infer event after the first EVALUATION_LOCK push; the lock has one
+    version; no non-outer unit completed after the push; the duplicate outer units of the load-balance overlap are
+    bitwise identical to the kept units and were moved (not deleted); post-lock stage starts listed."""
+    ev = jsonl(RUN / "ACTIVITY_LOG.jsonl")
+    push = gate.get("first_push_time")
+    out, bad, warn = {}, [], []
+    a_ev = [(e.get("event"), parse_iso(e["at"])) for e in ev if re.search(r"assess|unseal|outer|infer", str(e.get("event", "")))]
+    out["assessment_events"] = len(a_ev)
+    out["assessment_events_before_push"] = [f"{n_} at {iso(t)}" for n_, t in a_ev if push is None or t < push]
+    if out["assessment_events_before_push"]:
+        bad.append("assessment event before the EVALUATION_LOCK push")
+    out["first_assessment_event"] = iso(min((t for _, t in a_ev), default=None)) if a_ev else None
+    sema = jsonl(RUN / "SEMA_LOG.jsonl")
+    holds = [(e.get("label"), parse_iso(e["at"])) for e in sema if e.get("event") == "acquire" and
+             re.match(r"A:(assess|infer|outer)", str(e.get("label", "")))]
+    out["assessment_semaphore_holds"] = [{"label": lab_, "acquired": iso(t)} for lab_, t in holds]
+    out["assessment_holds_before_push"] = [lab_ for lab_, t in holds if push is None or t < push]
+    out["first_assessment_hold_after_push_s"] = (min(t for _, t in holds) - push).total_seconds() if holds and push else None
+    if out["assessment_holds_before_push"] or not holds:
+        bad.append("assessment semaphore hold before the EVALUATION_LOCK push (or none recorded)")
+    oc = [parse_iso(e["at"]) for e in ev if e.get("event") == "unit complete" and str(e.get("unit", "")).startswith("outer__")]
+    out["outer_unit_complete_events"] = len(oc)
+    if any(push is None or t < push for t in oc):
+        bad.append("outer unit completion event before the push")
+    late = sorted(dd.name for dd in UNITS.iterdir() if (dd / "COMPLETE.json").exists() and
+                  not dd.name.startswith("outer__") and push and utc((dd / "COMPLETE.json").stat().st_mtime) > push)
+    out["non_outer_units_completed_after_push"] = late
+    if late:
+        bad.append("units fitted after the assessment opened")
+    outer = sorted(dd.name for dd in UNITS.iterdir() if dd.name.startswith("outer__"))
+    out["outer_units"] = len(outer)
+    early = [n_ for n_ in outer if push is None or utc((UNITS / n_ / "COMPLETE.json").stat().st_mtime) < push]
+    out["outer_units_completed_before_push"] = early
+    if early:
+        bad.append("outer unit completed before the lock push")
+    out["evaluation_lock_versions"] = gate.get("commits")
+    qd = RUN / "quarantine_assess_duplicates"
+    dup = []
+    if qd.exists():
+        for q in sorted(qd.iterdir()):
+            nm = q.name.replace(".quarantined", "")
+            live = UNITS / nm
+            same = (q / "preds.npz").exists() and (live / "preds.npz").exists() and \
+                sha_file(q / "preds.npz") == sha_file(live / "preds.npz")
+            dup.append({"unit": nm, "preds_bitwise_equal_kept": same})
+            if not same:
+                bad.append(f"duplicate {nm} differs from the kept unit")
+    out["duplicate_outer_units"] = dup
+    att = RES / "ASSESSMENT_ATTEMPTS.json"
+    if att.exists():
+        A = jload(att)
+        out["attempts_record_duplicates"] = len(A.get("duplicates") or [])
+        out["attempts_record_equals_own"] = sorted(x["unit"] for x in A.get("duplicates") or []) == sorted(
+            x["unit"] for x in dup) and all(x.get("bitwise_equal") for x in A.get("duplicates") or [])
+        if not out["attempts_record_equals_own"]:
+            bad.append("ASSESSMENT_ATTEMPTS.json disagrees with the quarantine folder")
+    if dup:
+        warn.append(f"{len(dup)} outer units were computed twice by overlapping load-balance workers (bitwise identical; "
+                    f"first copies quarantined, not deleted)")
+    post = [e for e in ev if str(e.get("event", "")).startswith("start ") and push and parse_iso(e["at"]) > push and
+            e["event"].split(" ", 1)[1] not in ("assess", "outer", "infer")]
+    out["post_assessment_non_assessment_stage_starts"] = [{"stage": e["event"], "at": e["at"]} for e in post]
+    if post and not late:
+        warn.append("a non-assessment stage was started after the assessment opened (no unit created or changed)")
+    st = "FAIL" if bad else ("WARN" if warn else "PASS")
+    return res(st, failures=bad, warnings=warn, reason=warn[0] if warn and not bad else None, **out)
 
 
 def policy_pair_release(pj_path, P, d):
@@ -5066,24 +5397,131 @@ def policy_pair_release(pj_path, P, d):
     return out
 
 
+def restore_from_copy(root: Path, targets: dict, Dlive: "Data"):
+    """Independent restore from one copy root (folder holding SHA256SUMS, cbp_v1/ and the bundled pinned input):
+    every SHA256SUMS entry re-hashed (own); the copy's input loaded by this verifier's own role reconstruction (roles
+    and X equal the live ones); own forward pass of the U teacher from the copied model.pt + heads; own application of
+    every copied target policy.json, bitwise vs the copied and live releases with decisions preserved; the selected
+    attacker of the targets refit from the COPY (own design matrix, AUDIT_FIT SEX of the copy's input) vs the copied
+    and live saved assessment predictions."""
+    rec, bad = {}, []
+    sums = root / "SHA256SUMS"
+    lines = [l_.split("  ", 1) for l_ in sums.read_text().splitlines() if l_.strip()] if sums.exists() else []
+    mism = [rel.strip() for h, rel in lines if not (root / rel.strip()).is_file() or sha_file(root / rel.strip()) != h]
+    rec.update({"entries": len(lines), "mismatches": mism[:10], "n_mismatches": len(mism)})
+    if mism or not lines:
+        bad.append("SHA256SUMS")
+    cp = root / "cbp_v1"
+    dep = next((q for q in (root / "dependencies").rglob("adult_jcv.npz")), None) if (root / "dependencies").exists() else None
+    rec["copied_input_present_and_pinned"] = bool(dep) and sha_file(dep) == SRC_SHA
+    if not rec["copied_input_present_and_pinned"]:
+        bad.append("pinned input not in the copy")
+        return {**rec, "status": "FAIL", "failures": bad}
+    k = int(targets.get("seed", 1))
+    Dc = Data(src=dep)
+    rec["copy_input_roles_and_X_equal_live"] = bitwise(Dc.X, Dlive.X) and all(bitwise(Dc.idx[r_], Dlive.idx[r_])
+                                                                              for r_ in ROLES)
+    if not rec["copy_input_roles_and_X_equal_live"]:
+        bad.append("copy input roles / X")
+    ud = cp / "admitted" / f"rel__s{k}__U"
+    mine = own_teacher(ud / "model.pt", [ud / "head_0.joblib", ud / "head_1.joblib"], Dc.X)
+    tz = np.load(cp / "run" / "units" / f"tea__s{k}__U" / "teacher.npz", allow_pickle=False)
+    rec["teacher_U_forward_bitwise_vs_copied_unit"] = all(bitwise(mine[x].astype(tz[x].dtype), tz[x])
+                                                         for x in ("p1", "p2", "d1", "d2", "c1", "c2", "r1", "r2"))
+    if not rec["teacher_U_forward_bitwise_vs_copied_unit"]:
+        bad.append("teacher U")
+    P, d = {1: mine["p1"], 2: mine["p2"]}, {1: mine["d1"], 2: mine["d2"]}
+    rels = {}
+    for lab, un in (targets.get("policies") or {}).items():
+        if not un.startswith("pol__"):
+            continue
+        rel = policy_pair_release(cp / "run" / "units" / un / "policy.json", P, d)
+        rels[un] = rel
+        cz = np.load(cp / "run" / "units" / un / "release.npz", allow_pickle=False)
+        lz = np.load(UNITS / un / "release.npz", allow_pickle=False)
+        ok = all(bitwise(rel[f"{a}{r}"], cz[f"{a}{r}"]) and bitwise(rel[f"{a}{r}"], lz[f"{a}{r}"])
+                 for a in ("tok", "q", "hard") for r in (1, 2)) and all(np.array_equal(rel[f"hard{r}"], d[r]) for r in (1, 2))
+        rec[f"policy: {lab}"] = {"unit": un, "own_application_bitwise_vs_copy_and_live_decisions_preserved": ok}
+        if not ok:
+            bad.append(f"policy {lab}")
+    at = targets.get("attacker") or {}
+    kw = at.get("kwargs") or {}
+    if kw.get("release_unit") in rels and kw.get("outer_unit"):
+        orec = jload(cp / "run" / "units" / kw["outer_unit"] / "record.json")
+        view = kw.get("view", "pair")
+        sc = orec["families"][orec["primary_family"]]["scored"][view]["auc"]
+        cand, sview, att = sc["label"].split(":")
+        r_ = rels[kw["release_unit"]]
+        X, toks = my_views({"tok1": r_["tok1"], "tok2": r_["tok2"], "p1": r_["q1"], "p2": r_["q2"], "hard1": r_["hard1"],
+                            "hard2": r_["hard2"], "alpha1": r_["alpha1"], "alpha2": r_["alpha2"]}, Dc, "code")
+        Lc = Dc.labels()
+        y = Lc["sex"].astype(np.int64)
+        fa, sel, a_idx = Dc.idx["AUDIT_FIT"], Dc.idx[INNER], Dc.idx[ASSESS]
+        assert (y[fa] >= 0).all() and (y[sel] >= 0).all()
+        pred_idx = np.concatenate([sel, a_idx])
+        key = (at.get("saved") or {}).get("key", f"P_auc_{view}")
+        oc = np.load(cp / "run" / "units" / kw["outer_unit"] / "preds.npz", allow_pickle=False)[key]
+        ol = np.load(UNITS / kw["outer_unit"] / "preds.npz", allow_pickle=False)[key]
+        diffs = []
+        for s_ in range(3):
+            if att.startswith("CCpair"):
+                pr, _ = my_cc_pair(toks["v1"], toks["v2"], y, fa, pred_idx, np.arange(len(sel)), float(att.split("alpha")[1]))
+            elif att.startswith("CC_"):
+                pr = my_cc(toks[sview], y, fa, pred_idx, float(att.split("alpha")[1]))[0]
+            else:
+                pr = my_p1(my_attacker(att, s_).fit(X[sview][fa], y[fa]), X[sview][pred_idx])
+            pa = pr[len(sel):]
+            diffs.append(max(maxdiff(pa, oc[s_][:, 1]), maxdiff(pa, ol[s_][:, 1])))
+        rec["selected_attacker_refit_from_copy"] = {"label": sc["label"], "max_abs_diff_per_seed_vs_copy_and_live": diffs,
+                                                    "bitwise": all(x == 0.0 for x in diffs),
+                                                    "labels_read": "AUDIT_FIT / INNER_SELECTION SEX only"}
+        if not all(x <= 1e-12 for x in diffs):
+            bad.append("attacker refit")
+    else:
+        rec["selected_attacker_refit_from_copy"] = {"status": "PENDING", "reason": "no attacker target"}
+    rec["status"] = "FAIL" if bad else "PASS"
+    rec["failures"] = bad
+    return rec
+
+
 def check_restore(Dlive: "Data"):
-    """Every cbp copy (same-device <PRIVATE_CACHE>/cbp_v1_local_copy_* or, when mounted, the drive copy recorded in
-    BACKUP_VERIFICATION.json) restored independently; the closeout's own receipts are compared, never trusted."""
+    """Every cbp same-device copy restored independently (the closeout's own receipts are compared, never trusted)."""
     copies = sorted(q for q in CACHE.glob("cbp_v1_local_copy_*") if q.is_dir())
     tp = RUN / "closeout_targets.json"
     targets = jload(tp) if tp.exists() else {"seed": 1, "policies": {}}
     out = {"copies_present": [q.name for q in copies], "targets_present": tp.exists()}
     if not copies:
-        return res("PENDING", reason="no cbp copy yet (closeout runs in PHASE 3)", **out)
+        return res("PENDING", reason="no cbp copy yet (closeout)", **out)
     bad = []
     for C in copies:
         r_ = restore_from_copy(C, targets, Dlive)
         out[C.name] = r_
         if r_["status"] != "PASS":
             bad.append(C.name)
+        br = C / "BACKUP_RECORD.json"
+        if br.exists():
+            b = jload(br)
+            r_["backup_record_sums_sha256_equal_own"] = b.get("SHA256SUMS_sha256") == sha_file(C / "SHA256SUMS")
+            r_["backup_record_files_equal_own_entries"] = b.get("files") == r_["entries"]
+            if not (r_["backup_record_sums_sha256_equal_own"] and r_["backup_record_files_equal_own_entries"]):
+                bad.append(f"{C.name}: backup record")
     bv = RES / "BACKUP_VERIFICATION.json"
-    out["backup_verification_status"] = jload(bv).get("status") if bv.exists() else None
-    return res("FAIL" if bad else "PASS", failures=bad, **out)
+    if bv.exists():
+        B = jload(bv)
+        out["backup_verification"] = {k_: B.get(k_) for k_ in ("status", "off_device_backup", "destination", "files",
+                                                               "uncached_readback_match", "required_restores",
+                                                               "restore_all_pass")}
+        newest = copies[-1].name
+        out["backup_verification_points_to_newest_copy"] = newest in str(B.get("destination"))
+        out["backup_verification_states_off_device_pending"] = B.get("status") == \
+            "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING" and str(B.get("off_device_backup", "")).startswith(
+                "PENDING")
+        if not (out["backup_verification_points_to_newest_copy"] and B.get("restore_all_pass") is True):
+            bad.append("BACKUP_VERIFICATION.json")
+    else:
+        bad.append("BACKUP_VERIFICATION.json absent")
+    return res("FAIL" if bad else "PASS", failures=bad, **out,
+               note="a same-device copy proves restorability, not off-device custody (drive absent: PENDING)")
 
 
 def adversarial_rows(K):
@@ -5939,8 +6377,8 @@ PHASE1 = ("pins", "roles", "admitted_custody", "teachers", "references", "direct
           "direct_task_class_preservation", "fine_partitions", "code_search", "code_class_preservation", "unit_custody",
           "chronology", "code_hashes")
 PHASE2 = ("endpoint_parity", "inner_audits", "source_composition", "selection", "controls")
-PHASE3 = ("evaluation_lock", "outer_units", "endpoints", "published_tables", "attacker_refits", "deployment_parity",
-          "restore_parity", "budget")
+PHASE3 = ("evaluation_lock", "outer_units", "endpoints", "published_tables", "chronology_assessment", "attacker_refits",
+          "deployment_parity", "restore_parity", "budget")
 
 
 def main():
@@ -5950,8 +6388,13 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-refit", action="store_true", help="skip the descriptive own head refits")
     ap.add_argument("--label", default=None, help="phase label written to the report (e.g. PHASE_1)")
+    ap.add_argument("--refresh-restore", action="store_true",
+                    help="re-run ONLY the independent restore check on the (refreshed) copy and update that node of the "
+                         "existing report (no other check is recomputed)")
     args = ap.parse_args()
     t0, c0 = time.time(), time.process_time()
+    if args.refresh_restore:
+        return refresh_restore_only(args, t0, c0)
     others_start = heavy_processes()
     report = {"schema": "cbp-independent-verification-v1", "phase": args.label or f"PHASE_{args.phase}",
               "generated_at": iso(datetime.now(timezone.utc)),
@@ -6024,8 +6467,9 @@ def main():
             LU = unsealed_labels(D, gate)
             report["assessment_labels_read"] = True
             checks["outer_units"], preds = check_outer(D, LU, T, refs, own_in, EL, gate)
-            checks["endpoints"], eps, lev = check_endpoints_cbp(preds, EL, sel_mine["statuses"])
-            checks["published_tables"] = check_tables_pending()
+            checks["endpoints"], eps, lev = check_endpoints_cbp(preds, EL)
+            checks["published_tables"] = check_tables_cbp(own_in, sel_mine, sel_rows, eps, lev, EL)
+            checks["chronology_assessment"] = check_late_chronology(gate, EL)
             if not args.no_refit:
                 checks["attacker_refits"] = check_refits(D, L, LU, T, own_in, preds, EL)
             checks["deployment_parity"] = check_deployment(D, T)
@@ -6083,6 +6527,37 @@ def main():
     print(json.dumps(jsonable({"summary": {k_: v for k_, v in report["summary"].items() if k_ != "flagged_fail_warn"},
                                "flagged": report["summary"]["flagged_fail_warn"][:15], "compute": report["compute"]}),
                      indent=1, allow_nan=False))
+
+
+def refresh_restore_only(args, t0, c0):
+    """Update the restore_parity node of the existing report after an incremental refresh of the same-device copy."""
+    dest = Path(args.out) if args.out else OUT
+    report = jload(dest)
+    D = Data()
+    rp = check_restore(D)
+    report["checks"]["restore_parity"] = jsonable(rp)
+    status = {k: (v.get("status") if isinstance(v, dict) else None) for k, v in report["checks"].items()}
+    counts_all, flagged = walk_flags(report["checks"])
+    top = {}
+    for s_ in status.values():
+        top[s_] = top.get(s_, 0) + 1
+    report["summary"].update({"status_by_check": status, "top_level_counts": top, "status_counts_all_nodes": counts_all,
+                              "flagged_fail_warn": flagged,
+                              "overall": worst(*[s_ for s_ in status.values() if s_ not in ("PENDING", "INFO")],
+                                               report["independence"]["status"])})
+    loaded = sorted(m for m in sys.modules if m.split(".")[0] in _FORBIDDEN_TOP)
+    report["restore_refresh"] = {"at": iso(datetime.now(timezone.utc)), "verifier_sha256": sha_file(Path(__file__)),
+                                 "status": rp["status"], "wall_s": round(time.time() - t0, 2),
+                                 "cpu_s": round(time.process_time() - c0, 2), "forbidden_modules_loaded": loaded,
+                                 "note": "only restore_parity was recomputed (after the incremental copy refresh)"}
+    text = json.dumps(jsonable(report), indent=1, allow_nan=False)
+    scrub_check(text)
+    if loaded:
+        raise RuntimeError("independence violated")
+    tmp = dest.with_suffix(".json.tmp")
+    tmp.write_text(text + "\n")
+    tmp.replace(dest)
+    print(json.dumps({"restore_parity": rp["status"], "overall": report["summary"]["overall"]}))
 
 
 if __name__ == "__main__":

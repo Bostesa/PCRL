@@ -1,0 +1,41 @@
+{
+ "schema": "cbp-qpc-custody-v1",
+ "at": "2026-10-06T19:18:18Z",
+ "drive_detection": {
+  "rule": "<volume>/private_smf_v1_20261005/SHA256SUMS exists and has sha256 28705e242f77b6333561f66117934b3ebc427072e31dc5a38b3a9d9e8f02cd05 (closed smf study BACKUP_VERIFICATION.json)",
+  "checked_at": "2026-10-06T19:18:18Z",
+  "skipped_by_name": 2,
+  "candidate_volumes": 0,
+  "matching_volumes": 0,
+  "mounted": false
+ },
+ "documented_command": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m qpc.closeout all --targets <PRIVATE_CACHE>/qpc_v1/run/closeout_targets.json",
+ "how": "qpc.closeout.run_all called in-process from this worktree (qpc / dpc / osf / smf modules byte-identical to the source tip d0c8a45; checked before the call); receipts redirected",
+ "covers": [
+  "dpc off-device backup (python -m dpc.closeout backup --dest <DRIVE_ROOT> --targets <PRIVATE_CACHE>/dpc_v1/run/closeout_targets.json)",
+  "osf drive copy + smf drive restore + the two later smf logs (python -m osf.closeout backup --dest <DRIVE_ROOT>; python -m osf.closeout predecessor --restore)",
+  "qpc drive copy and restore from it (U teacher, Q*, privacy/control code, attacker)"
+ ],
+ "redirect": {
+  "qpc BACKUP_VERIFICATION.json / RESTORE_INDEX.json": "results/pcrl_confidence_budgeted_privacy_v1/provenance/qpc_custody/",
+  "dpc custody receipts": "results/pcrl_confidence_budgeted_privacy_v1/provenance/qpc_custody/dpc_custody/",
+  "osf / smf predecessor receipts": "results/pcrl_confidence_budgeted_privacy_v1/provenance/qpc_custody/predecessor_custody/"
+ },
+ "closed_results_never_written": [
+  "results/pcrl_confidence_capacity_v1/",
+  "results/pcrl_decision_preserving_compression_v1/",
+  "results/pcrl_online_strength_frontier_v1/",
+  "results/pcrl_strength_matched_feedback_v1/"
+ ],
+ "historical_status": "qpc, dpc and osf off-device custody PENDING at their closeouts (drive absent); the qpc closeout's drive steps were dry-run only and are not claimed as executed",
+ "qpc_targets_present": true,
+ "status": "PENDING",
+ "reason": "external drive with the verified prior copies not mounted",
+ "pending_command": "OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.closeout qpc-custody   (the source documented `python -m qpc.closeout all --targets <PRIVATE_CACHE>/qpc_v1/run/closeout_targets.json`, in-process from this worktree, receipts redirected into results/pcrl_confidence_budgeted_privacy_v1/provenance/qpc_custody/)",
+ "gaps": [
+  "qpc: same-device copies only (qpc_v1_local_copy_20261006, _v2); off-device PENDING",
+  "dpc: same-device copy only; off-device PENDING",
+  "osf: no off-device copy; the smf drive restore and the two later smf logs PENDING"
+ ],
+ "note": "no redundant qpc same-device copy is made: qpc already holds two verified same-device copies"
+}

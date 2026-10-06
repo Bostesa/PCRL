@@ -25,6 +25,8 @@ rehearsal, i.e. loads no data). Every job that loads data or restores runs under
                                                   <PRIVATE_CACHE>/qpc_v1/run/closeout_targets.json`, in-process
     backup [--dest D] [--targets T] [--dry-run] [--plan-only]
     all [--targets T] [--qpc-targets T] [--dry-run] [--plan-only]
+    refresh [--targets T] [--dry-run]              bring the newest same-device copy up to date (new files, grown ledgers);
+                                                  deletes nothing, keeps the previous SHA256SUMS, re-reads uncached
 
 `all` with the drive present, in order:
   (1) the pending qpc custody (qpc.closeout.run_all from this worktree, whose qpc / dpc / osf / smf code is byte-identical
@@ -556,6 +558,105 @@ def restore_index(place, root, statuses, same_device):
             "restore_statuses": statuses, "not_off_device": bool(same_device)}
 
 
+# ------------------------------------------------------------------ incremental refresh of an existing copy
+def _is_prefix(old: Path, new: Path):
+    """True iff the bytes of `old` are a prefix of the bytes of `new` (an append-only file that grew)."""
+    so, sn = old.stat().st_size, new.stat().st_size
+    if so > sn:
+        return False
+    with open(old, "rb") as fo, open(new, "rb") as fn:
+        while True:
+            a = fo.read(1 << 20)
+            if not a:
+                return True
+            if fn.read(len(a)) != a:
+                return False
+
+
+def refresh(copy_root=None, src=None, cache=None, out_pkg=None, dry_run=False, protect=()):
+    """Bring an existing versioned copy up to date WITHOUT deleting anything: files new in the live store are copied;
+    files that grew append-only (ledgers) are re-copied; a file whose old copied bytes are NOT a prefix of the live
+    bytes is never overwritten (recorded as refused); files present only in the copy are kept. The previous SHA256SUMS
+    and BACKUP_RECORD.json are preserved beside the new ones; every entry is re-read uncached. `protect` lists copied
+    paths (e.g. the restore targets) whose change makes the earlier restore evidence stale (recorded, never hidden)."""
+    src, cache, out_pkg = Path(src or SRC), Path(cache or CACHE), Path(out_pkg or PKG)
+    roots = sorted(q for q in cache.glob(LOCAL_FOLDER.format(date="*")) if q.is_dir())
+    root = Path(copy_root) if copy_root else (roots[-1] if roots else None)
+    if root is None or not (root / "SHA256SUMS").exists():
+        raise SystemExit("REFUSED: no existing copy with SHA256SUMS to refresh")
+    old = {}
+    for ln in (root / "SHA256SUMS").read_text().splitlines():
+        if ln.strip():
+            h, rel = ln.split("  ", 1)
+            old[rel] = h
+    files, _ = DC.inventory(src)
+    plan = {"new": [], "appended": [], "unchanged": 0, "refused_non_append_change": [], "kept_only_in_copy": []}
+    live = {}
+    for p in files:
+        rel = f"{src.name}/{p.relative_to(src)}"
+        h = sha(p)
+        live[rel] = (p, h)
+        if rel not in old:
+            plan["new"].append(rel)
+        elif old[rel] == h:
+            plan["unchanged"] += 1
+        elif _is_prefix(root / rel, p):
+            plan["appended"].append(rel)
+        else:
+            plan["refused_non_append_change"].append(rel)
+    plan["kept_only_in_copy"] = sorted(r for r in old if r not in live)
+    stale = sorted(r for r in plan["appended"] + plan["refused_non_append_change"] if any(r.startswith(x) for x in protect))
+    summary = {"copy": f"<PRIVATE_CACHE>/{root.name}", "new": len(plan["new"]), "appended": len(plan["appended"]),
+               "unchanged": plan["unchanged"], "refused_non_append_change": plan["refused_non_append_change"],
+               "kept_only_in_copy": len(plan["kept_only_in_copy"]), "restore_evidence_stale_for": stale}
+    if dry_run:
+        print(scrub(json.dumps({"dry_run": True, **summary, "appended_files": plan["appended"]}, indent=1)))
+        return summary
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    shutil.copy2(root / "SHA256SUMS", root / f"SHA256SUMS.before_refresh_{stamp}")
+    if (root / "BACKUP_RECORD.json").exists():
+        shutil.copy2(root / "BACKUP_RECORD.json", root / f"BACKUP_RECORD.before_refresh_{stamp}.json")
+    sums = dict(old)
+    changed_during = []
+    for rel in plan["new"] + plan["appended"]:
+        p, h0 = live[rel]
+        q = root / rel
+        q.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(p, q)
+        hq = sha(q, nocache=True)
+        if hq != h0 or sha(p) != h0:
+            changed_during.append(rel)
+        sums[rel] = hq
+    (root / "SHA256SUMS").write_text("".join(f"{h}  {r}\n" for r, h in sums.items()))
+    vs = verify_sums(root)
+    nbytes = sum((root / r).stat().st_size for r in sums)
+    summary.update({"at": now(), "bytes": nbytes, "previous_SHA256SUMS_sha256": sha(root / f"SHA256SUMS.before_refresh_{stamp}"),
+                    "previous_SHA256SUMS_kept_as": f"SHA256SUMS.before_refresh_{stamp}",
+                    "SHA256SUMS_sha256": vs.get("SHA256SUMS_sha256"), "entries": vs["entries"],
+                    "uncached_readback_match": vs["match"], "pass": vs["pass"],
+                    "live_files_changed_during_refresh": changed_during, "appended_files": plan["appended"],
+                    "deleted": "nothing", "overwritten": "only append-only files whose previous copy is a prefix"})
+    bvp = out_pkg / "BACKUP_VERIFICATION.json"
+    if bvp.exists():
+        bv = jload(bvp)
+        bv.setdefault("refreshes", []).append(summary)
+        bv.update({"files": vs["entries"], "bytes": nbytes, "uncached_readback_match": vs["match"], "SHA256SUMS_sha256":
+                   vs.get("SHA256SUMS_sha256"), "last_refresh_at": summary["at"],
+                   "restore_evidence_note": "the restore checks were run on the copy at its first write; the refresh only "
+                                            "added new files and grown append-only ledgers" +
+                                            (f"; STALE for {stale}" if stale else " (no restore input changed)")})
+        write_public(bvp, bv)
+        (root / "BACKUP_RECORD.json").write_text(json.dumps(bv, indent=1, default=str) + "\n")
+    rip = out_pkg / "RESTORE_INDEX.json"
+    if rip.exists():
+        ri = jload(rip)
+        ri["last_refresh"] = {"at": summary["at"], "SHA256SUMS_sha256": summary["SHA256SUMS_sha256"],
+                              "entries": summary["entries"], "previous_sums_kept_as": summary["previous_SHA256SUMS_kept_as"]}
+        write_public(rip, ri)
+    print(json.dumps({k: summary[k] for k in ("new", "appended", "entries", "uncached_readback_match", "pass")}, indent=1))
+    return summary
+
+
 # ------------------------------------------------------------------ everything, in order
 def run_all(targets_file=None, seed=1, dry_run=False, volumes_root=None, src=None, cache=None, out_pkg=None,
             plan_only=False, qpc_targets=None, deps=None):
@@ -595,7 +696,7 @@ def run_all(targets_file=None, seed=1, dry_run=False, volumes_root=None, src=Non
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m cbp.closeout")
-    ap.add_argument("job", choices=("status", "all", "backup", "qpc-custody"))
+    ap.add_argument("job", choices=("status", "all", "backup", "qpc-custody", "refresh"))
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--plan-only", action="store_true", help="with --dry-run: skip the read-only restore rehearsal")
     ap.add_argument("--dest", default=None)
@@ -616,6 +717,14 @@ def main(argv=None):
         print(scrub(json.dumps(status(), indent=1)))
     elif a.job == "all":
         run_all(a.targets, a.seed, a.dry_run, plan_only=a.plan_only, qpc_targets=a.qpc_targets)
+    elif a.job == "refresh":
+        tg = load_targets(a.targets if a.targets is not None else CBP_TARGETS)
+        k = int(tg.get("seed", a.seed))
+        protect = [f"cbp_v1/run/units/{u}/" for u in (tg.get("policies") or {}).values()] + \
+            [f"cbp_v1/admitted/rel__s{k}__U/", f"cbp_v1/run/units/tea__s{k}__U/"]
+        att = (tg.get("attacker") or {}).get("kwargs") or {}
+        protect += [f"cbp_v1/run/units/{u}/" for u in (att.get("outer_unit"), att.get("release_unit")) if u]
+        refresh(dry_run=a.dry_run, protect=protect)
     elif a.job == "backup":
         backup(a.dest, a.targets, a.seed, a.dry_run, plan_only=a.plan_only)
     else:

@@ -1,0 +1,34 @@
+{
+ "schema": "cbp-restore-index-v1",
+ "written_at": "2026-10-06T19:18:32Z",
+ "private_local": "<PRIVATE_CACHE>/cbp_v1",
+ "copy": "<PRIVATE_CACHE>/cbp_v1_local_copy_20261006/cbp_v1 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/cbp_v1_local_copy_20261006/SHA256SUMS",
+ "layout": {
+  "cbp_v1/admitted/rel__s{k}__{t}/": "admitted teachers (model.pt, heads, release; verified copies of the qpc admitted artifacts) + ADMISSION_RECEIPT.json",
+  "cbp_v1/inputs/": "the authorised 83-column deployment input and schema",
+  "cbp_v1/run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json",
+  "dependencies/jcv_v1/inputs/adult_jcv.npz": "the pinned source input (sha256 e0d9e54a...2f12), bundled so the copy restores alone"
+ },
+ "restore": [
+  "copy <PRIVATE_CACHE>/cbp_v1_local_copy_20261006/cbp_v1 to <PRIVATE_CACHE>/cbp_v1 (only if the live store is lost)",
+  "verify: shasum -a 256 -c SHA256SUMS (inside the copy's folder)",
+  "re-run the restore checks: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.closeout backup --dry-run --targets <targets.json>",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_statuses": {
+  "teacher U (seed 1)": "PASS",
+  "teacher RAW-J_b0.3 (seed 1)": "PASS",
+  "Q (confidence-feasibility code U|DIRECT-TASK|i8o64; task-only)": "PASS",
+  "P* (headroom-selected privacy nominee U|JOINT|i8o64|l0.01)": "PASS",
+  "J* descriptive fallback (U|JOINT|i8o64|l0.04; DESCRIPTIVE_ONLY, no eligible JOINT nominee)": "PASS",
+  "attacker": "PASS"
+ },
+ "not_off_device": true,
+ "last_refresh": {
+  "at": "2026-10-06T20:59:23Z",
+  "SHA256SUMS_sha256": "1f3cc5d3813640e65639c43054745fc3e3675ee2ad13654f1c08e1cf6ec4ed9b",
+  "entries": 1144,
+  "previous_sums_kept_as": "SHA256SUMS.before_refresh_20261006T205923Z"
+ }
+}

@@ -461,3 +461,45 @@ def test_the_copy_input_loader_refuses_a_missing_or_unpinned_file(tmp_path):
     other.write_bytes(b"not the pinned input")
     with pytest.raises(SystemExit, match="pinned hash"):
         CO.load_D_from_input(other)
+
+
+# ------------------------------------------------------------------ incremental refresh of the copy
+def test_refresh_adds_new_files_and_grown_ledgers_and_deletes_nothing(tmp_path, monkeypatch):
+    src = _store(tmp_path)
+    (src / "run" / "SEMA_LOG.jsonl").write_text("a\n")
+    (src / "run" / "units" / "u" / "frozen.bin").write_bytes(b"frozen")
+    out = tmp_path / "pkg"
+    _stub_restore(monkeypatch)
+    CO.backup(src=src, cache=src.parent, volumes_root=_volumes(tmp_path, match=False), out_pkg=out)
+    root = src.parent / f"cbp_v1_local_copy_{DATE}"
+    old_sums = (root / "SHA256SUMS").read_text()
+    (src / "run" / "SEMA_LOG.jsonl").write_text("a\nb\n")                     # append-only ledger grew
+    (src / "run" / "units" / "v").mkdir()
+    (src / "run" / "units" / "v" / "new.bin").write_bytes(b"new")             # a unit written after the copy
+    (src / "run" / "units" / "u" / "frozen.bin").write_bytes(b"CHANGED")      # a non-append change: never overwritten
+    (root / "cbp_v1" / "only_in_copy.txt").write_text("kept")
+    s = CO.refresh(src=src, cache=src.parent, out_pkg=out, protect=["cbp_v1/run/units/u/"])
+    assert s["new"] == 1 and s["appended"] == 1 and s["refused_non_append_change"] == ["cbp_v1/run/units/u/frozen.bin"]
+    assert s["restore_evidence_stale_for"] == ["cbp_v1/run/units/u/frozen.bin"] and s["pass"]
+    assert (root / "cbp_v1" / "run" / "SEMA_LOG.jsonl").read_text() == "a\nb\n"
+    assert (root / "cbp_v1" / "run" / "units" / "u" / "frozen.bin").read_bytes() == b"frozen"
+    assert (root / "cbp_v1" / "only_in_copy.txt").exists() and (root / s["previous_SHA256SUMS_kept_as"]).read_text() == old_sums
+    assert CO.verify_sums(root)["pass"] and s["entries"] == len(old_sums.splitlines()) + 1
+    bv = json.loads((out / "BACKUP_VERIFICATION.json").read_text())
+    assert bv["refreshes"][-1]["appended"] == 1 and bv["files"] == s["entries"] and "STALE" in bv["restore_evidence_note"]
+    assert str(tmp_path) not in (out / "BACKUP_VERIFICATION.json").read_text()
+
+
+def test_refresh_dry_run_writes_nothing(tmp_path, monkeypatch):
+    src = _store(tmp_path)
+    _stub_restore(monkeypatch)
+    CO.backup(src=src, cache=src.parent, volumes_root=_volumes(tmp_path, match=False), out_pkg=tmp_path / "pkg")
+    root = src.parent / f"cbp_v1_local_copy_{DATE}"
+    (src / "run" / "units" / "u" / "late.bin").write_bytes(b"late")
+    before = sorted(str(p) for p in root.rglob("*"))
+    bv0 = (tmp_path / "pkg" / "BACKUP_VERIFICATION.json").read_text()
+    s = CO.refresh(src=src, cache=src.parent, out_pkg=tmp_path / "pkg", dry_run=True)
+    assert s["new"] == 1 and sorted(str(p) for p in root.rglob("*")) == before
+    assert (tmp_path / "pkg" / "BACKUP_VERIFICATION.json").read_text() == bv0
+    with pytest.raises(SystemExit, match="no existing copy"):
+        CO.refresh(src=src, cache=tmp_path / "empty", out_pkg=tmp_path / "pkg")
