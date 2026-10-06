@@ -21,6 +21,7 @@ from dpc import data as DA
 from dpc import family as FAM
 from dpc import lock as LK
 from dpc import run as R
+from osf import data as OD
 
 
 def sha(p):
@@ -51,7 +52,8 @@ def build():
             "statuses": statuses, "resolved": resolved, "deployable_compact": S["deployable_compact"],
             "U_valid": S["U_valid"], "bank": R.locked_bank(), "scored_labels": labels,
             "sex_prior_defense_fit_sha256": prior_hash(D),
-            "assessment_role": {"name": "OSF_DEVELOPMENT_ASSESSMENT", **DA.manifest(D)["OSF_DEVELOPMENT_ASSESSMENT"]},
+            # AMENDMENT_A2: the role manifest function is the pinned osf.data.manifest (dpc.data has none)
+            "assessment_role": {"name": "OSF_DEVELOPMENT_ASSESSMENT", **OD.manifest(D)["OSF_DEVELOPMENT_ASSESSMENT"]},
             "attackers": {"slate": "dpc.audit: pinned smf.audit FINAL slate (LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) on every "
                                    "primary contract; finite codes add cell-conditional readers {0.5, 1, 5} on the exact "
                                    "token identity / tuple with prior and validation-chosen pair fallbacks",
