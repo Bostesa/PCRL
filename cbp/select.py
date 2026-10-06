@@ -356,20 +356,37 @@ def write_tables(out):
     d = out["diagnostics"]
     with open(R.PKG / "HEADROOM_VS_STANDARD_SELECTION.csv", "w", newline="") as f:
         w = csv.writer(f, lineterminator="\n")
-        w.writerow(["selection", "rule", "status", "config", "reason", "mean_pair", "mean_v1", "mean_v2",
-                    "worst_ll_excess", "worst_brier_excess", "ordinary", "headroom"])
+        w.writerow(["selection", "rule", "status", "config", "reason", "descriptive_only", "fallback_rank_status",
+                    "mean_pair", "mean_v1", "mean_v2", "worst_ll_excess", "worst_brier_excess", "ordinary", "headroom",
+                    "changed", "give_up_mean", "give_up_s0", "give_up_s1", "give_up_s2", "give_up_status"])
+        f6 = lambda x: "" if x is None else f"{x:.6f}"                          # noqa: E731
 
-        def put(name, rule, s):
+        def put(name, rule, s, extra=None):
             c = s.get("config") or s.get("descriptive_config")
             r = rows.get(c) if c else None
-            wl = max(x["ll_excess"][t] for x in r["seeds"].values() for t in TASKS) if r and r["ok"] else None
-            wb = max(x["brier_excess"][t] for x in r["seeds"].values() for t in TASKS) if r and r["ok"] else None
-            f6 = lambda x: "" if x is None else f"{x:.6f}"                      # noqa: E731
-            w.writerow([name, rule, s["status"], c or "", s.get("reason") or ""] +
+            ok = bool(r and r.get("ok"))
+            wl = max(x["ll_excess"][t] for x in r["seeds"].values() for t in TASKS) if ok else None
+            wb = max(x["brier_excess"][t] for x in r["seeds"].values() for t in TASKS) if ok else None
+            w.writerow([name, rule, s.get("status", ""), c or "", s.get("reason") or "",
+                        bool(s.get("descriptive_only")), s.get("fallback_rank_status") or ""] +
                        ([f6(r.get("mean_pair")), f6(r.get("mean_v1")), f6(r.get("mean_v2")), f6(wl), f6(wb),
-                         r.get("ordinary"), r.get("headroom")] if r else [""] * 7))
+                         r.get("ordinary"), r.get("headroom")] if ok else [""] * 7) + (extra or [""] * 6))
         put("P* (headroom)", "headroom + T* guard", out["statuses"]["P*"])
         put("ordinary privacy winner", "ordinary + T* guard (no headroom)", d["ordinary_privacy_winner_no_headroom"])
+        put("strongest ordinary privacy (unguarded)", "ordinary, no guard (inner-only diagnostic)",
+            d["strongest_ordinary_privacy_unguarded"])
         for fam, s in d["family_headroom_winners"].items():
             put(f"{fam} headroom winner", "headroom + T* guard", s)
         put("J* (headroom)", "headroom + C_rate and C_global guards", out["statuses"]["J*"])
+        for c in SOURCE_L01:
+            put(f"source control {c}", "fixed lambda 0.1 control (no selection)", {"status": "CONTROL", "config": c})
+        h = d["headroom_changes_winner"]
+        g = h["pair_auc_given_up_by_headroom"]
+        ps = g.get("per_seed") or {}
+        gd = h["descriptive_fallbacks"]["give_up_DESCRIPTIVE"]
+        w.writerow(["headroom changes winner", "P* vs ordinary winner (same candidates and T* guard)",
+                    f"{h['headroom_winner_status']} / {h['ordinary_winner_status']}",
+                    f"{h['headroom_winner'] or ''} vs {h['ordinary_winner'] or ''}", "", "", "", *[""] * 7,
+                    h["changed"], f6(g.get("mean")), *[f6(ps.get(k, ps.get(str(k)))) for k in SEEDS],
+                    g["status"] if g["status"] != "ABSENT" or gd["status"] != "OK" else
+                    f"ABSENT (DESCRIPTIVE fallback give-up {f6(gd['mean'])})"])
