@@ -1,0 +1,487 @@
+{
+ "schema": "qpc-role-manifest-v1",
+ "study": "pcrl_confidence_capacity_v1",
+ "source_study": "pcrl_decision_preserving_compression_v1 (dpc)",
+ "source_evidence_commit": "0a7b05a52746544213742f50efd0a48167efffb1",
+ "teacher_provenance_commit": "925e0fddfcb666116c6179575339728a324ed78e",
+ "source_role_manifests_sha256": {
+  "dpc_at_source_commit": "6353197567d1dd3d6f53aaa5c8641957ec169bb66a1271161190327f84086177",
+  "osf_at_teacher_pin": "619c2823b6a9e7cf91dbf328952d2ec665d47d1bf01beb3bee8eb50b70b1d9ff"
+ },
+ "all_rows_historically_exposed": true,
+ "exposure_note": "Every row is a previously used UCI Adult row and every assessment row has been used historically, including by dpc (EXPOSURE_LEDGER.md). Masking keeps qpc's fitting and selection separate from the assessment rows; it does not make them unseen.",
+ "loader": "qpc.data.load(verify=True, unseal=False) -> dpc.data.load (blob at 0a7b05a) -> osf.data.load (blob at 925e0fd); D returned unchanged; no new role rule",
+ "loader_blobs_equal_pins": {
+  "dpc/data.py": true,
+  "osf/data.py": true
+ },
+ "code_sha256": {
+  "qpc/data.py": "e0195efce27660a3753e2cb9300f0748128340302b6b29c05107a6bb221d467b",
+  "dpc/data.py": "a3431156aeaf38fc84afa16b9ccac345c3a8e4e15780eb41c9297ab40cb92070",
+  "osf/data.py": "389c0633b2802fe8ada7bc77b3f29fabcbcac52c5093b1c1f16d9e53c9f33600"
+ },
+ "input": {
+  "file": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
+  "sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+  "sha256_recomputed_matches": true,
+  "bytes": 19931984
+ },
+ "rows_loaded": 39170,
+ "roles": {
+  "OSF_DEFENSE_FIT": {
+   "rows": 15434,
+   "groups": 15428,
+   "row_id_sha256": "3f6bb936900cfd4226dd2f6240bdb73032dc3fac29144dc6268c9db3d1f2553b",
+   "group_id_set_sha256": "5e6f14fe8ecef5022c39b9bcac320f5cdc7c3dbd7aeb80ab899c4807a594a554",
+   "qpc_use": "Stage A k-means, Stage B fine partitions, prototypes, compression policies and privacy objectives (fit here only; teacher probabilities and, for privacy terms, SEX)"
+  },
+  "OSF_DEVELOPMENT_ASSESSMENT": {
+   "rows": 13936,
+   "groups": 13929,
+   "row_id_sha256": "01a94675d1138afc784d35b2710ff3c4caa40264c88e50604cf42b2ecd7db81a",
+   "group_id_set_sha256": "60c07e8ba255fb151a60dd44f2cdcf488f358418a0a943e965ad9b0999650d46",
+   "qpc_use": "withheld from every qpc fit and selection; labels -1 until the pushed qpc EVALUATION_LOCK; scored once after it (historically exposed)",
+   "by_pool": {
+    "ORIG_ASSESSMENT": {
+     "rows": 5243,
+     "groups": 5243,
+     "row_id_sha256": "9ba29f949f4bc0e7482d7174ab081d581163d82491bbb104e3301425a764c35b"
+    },
+    "RGJ_DEV": {
+     "rows": 3397,
+     "groups": 3393,
+     "row_id_sha256": "7467112adb6b0483e9967c9d5ba984db4fcc82105297562edf850d230166fa7d"
+    },
+    "SMF_DEV": {
+     "rows": 3796,
+     "groups": 3793,
+     "row_id_sha256": "30655eb8890ee89b4a06812fbf2ad119bacc75a17345caea546f27d7fc22aa53"
+    },
+    "CERT": {
+     "rows": 1500,
+     "groups": 1500,
+     "row_id_sha256": "c05fa9806d4155fd6679b2aef4eff9634e5f3ef94146e3a1f8d57edcb37577d1"
+    }
+   }
+  },
+  "HEAD_VALIDATION": {
+   "rows": 1500,
+   "groups": 1499,
+   "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+   "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d",
+   "qpc_use": "historical deployed-head C selection only; no head is refitted, recalibrated or selected in qpc; no label read"
+  },
+  "AUDIT_FIT": {
+   "rows": 6065,
+   "groups": 6061,
+   "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+   "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c",
+   "qpc_use": "attackers fitted here only"
+  },
+  "INNER_SELECTION": {
+   "rows": 2235,
+   "groups": 2234,
+   "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+   "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b",
+   "qpc_use": "Stage A capacity gate (true-label utility), rate selection, attacker and nominee selection here only"
+  }
+ },
+ "defense_fit_subroles": {
+  "CRITIC_FIT": {
+   "rows": 10764,
+   "groups": 10763,
+   "row_id_sha256": "8c70e2d366bd6e69d166cf9e1cd4e714ff3ec25561024ff77df2b5412a6fca57"
+  },
+  "CRITIC_VAL": {
+   "rows": 2343,
+   "groups": 2339,
+   "row_id_sha256": "cb2ba84decb3a8c657bb822b00aa340bb35aa4e28afc69425dfb655c78f61690"
+  },
+  "DIAGNOSTIC_CALIB": {
+   "rows": 2327,
+   "groups": 2326,
+   "row_id_sha256": "4ff8e8b65e5969a881b0ae424d356ef68cf09f5b19b2952fafd6a9cc921a6c11"
+  }
+ },
+ "subrole_note": "OSF_DEFENSE_FIT subroles are inherited from the source studies; qpc fits on all OSF_DEFENSE_FIT rows and uses no subrole.",
+ "equality_with_pinned_manifests": {
+  "osf": {
+   "source": "results/pcrl_online_strength_frontier_v1/ROLE_MANIFEST.json at 925e0fddfcb666116c6179575339728a324ed78e",
+   "checks": {
+    "OSF_DEFENSE_FIT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true,
+     "expected_counts": true
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true,
+     "expected_counts": true
+    },
+    "HEAD_VALIDATION": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true,
+     "expected_counts": true
+    },
+    "AUDIT_FIT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true,
+     "expected_counts": true
+    },
+    "INNER_SELECTION": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true,
+     "expected_counts": true
+    },
+    "CRITIC_FIT": true,
+    "CRITIC_VAL": true,
+    "DIAGNOSTIC_CALIB": true,
+    "pool:ORIG_ASSESSMENT": true,
+    "pool:RGJ_DEV": true,
+    "pool:SMF_DEV": true,
+    "pool:CERT": true,
+    "feature_names_sha256": true,
+    "n_rows": true
+   }
+  },
+  "dpc": {
+   "source": "results/pcrl_decision_preserving_compression_v1/ROLE_MANIFEST.json at 0a7b05a52746544213742f50efd0a48167efffb1",
+   "checks": {
+    "OSF_DEFENSE_FIT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true
+    },
+    "HEAD_VALIDATION": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true
+    },
+    "AUDIT_FIT": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true
+    },
+    "INNER_SELECTION": {
+     "rows": true,
+     "groups": true,
+     "row_id_sha256": true,
+     "group_id_set_sha256": true
+    },
+    "pool:ORIG_ASSESSMENT": true,
+    "pool:RGJ_DEV": true,
+    "pool:SMF_DEV": true,
+    "pool:CERT": true,
+    "feature_names_sha256": true
+   }
+  },
+  "all_equal": true,
+  "mismatches": []
+ },
+ "counts": {
+  "OSF_DEFENSE_FIT": {
+   "rows": 15434,
+   "groups": 15428,
+   "expected": [
+    15434,
+    15428
+   ],
+   "equal": true
+  },
+  "HEAD_VALIDATION": {
+   "rows": 1500,
+   "groups": 1499,
+   "expected": [
+    1500,
+    1499
+   ],
+   "equal": true
+  },
+  "AUDIT_FIT": {
+   "rows": 6065,
+   "groups": 6061,
+   "expected": [
+    6065,
+    6061
+   ],
+   "equal": true
+  },
+  "INNER_SELECTION": {
+   "rows": 2235,
+   "groups": 2234,
+   "expected": [
+    2235,
+    2234
+   ],
+   "equal": true
+  },
+  "OSF_DEVELOPMENT_ASSESSMENT": {
+   "rows": 13936,
+   "groups": 13929,
+   "expected": [
+    13936,
+    13929
+   ],
+   "equal": true
+  }
+ },
+ "group_isolation": {
+  "rule": "no OSF_DEFENSE_FIT exact-record group occurs in an attacker (AUDIT_FIT), selection (INNER_SELECTION) or assessment (OSF_DEVELOPMENT_ASSESSMENT) role; every group lies in one role",
+  "defense_fit_groups_shared_with": {
+   "AUDIT_FIT": 0,
+   "INNER_SELECTION": 0,
+   "OSF_DEVELOPMENT_ASSESSMENT": 0
+  },
+  "shared_group_matrix": {
+   "OSF_DEFENSE_FIT": {
+    "OSF_DEFENSE_FIT": 15428,
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 0
+   },
+   "OSF_DEVELOPMENT_ASSESSMENT": {
+    "OSF_DEFENSE_FIT": 0,
+    "OSF_DEVELOPMENT_ASSESSMENT": 13929,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 0
+   },
+   "HEAD_VALIDATION": {
+    "OSF_DEFENSE_FIT": 0,
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 1499,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 0
+   },
+   "AUDIT_FIT": {
+    "OSF_DEFENSE_FIT": 0,
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 6061,
+    "INNER_SELECTION": 0
+   },
+   "INNER_SELECTION": {
+    "OSF_DEFENSE_FIT": 0,
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 2234
+   }
+  },
+  "nonzero_offdiagonal": {},
+  "pass": true,
+  "analysis_unit": "exact-record group; never split; feature collisions between different groups are different people and are never pooled"
+ },
+ "exclusions": {
+  "dropped_rows": 35,
+  "rule": "osf rule, unchanged (excluded_exposure / excluded_dup and pool rows whose group also occurs in a fitting role or an exclusion)",
+  "pool_admission": {
+   "ORIG_ASSESSMENT": {
+    "nominal_rows": 5243,
+    "excluded_rows_group_overlap": 0
+   },
+   "RGJ_DEV": {
+    "nominal_rows": 3397,
+    "excluded_rows_group_overlap": 0
+   },
+   "SMF_DEV": {
+    "nominal_rows": 3796,
+    "excluded_rows_group_overlap": 0
+   },
+   "CERT": {
+    "nominal_rows": 1500,
+    "excluded_rows_group_overlap": 0,
+    "eligible": true
+   }
+  }
+ },
+ "permitted_columns": {
+  "n_columns": 83,
+  "feature_names_sha256": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+  "equals_pinned": true,
+  "convention": "sha256 of '\\n'.join(names)",
+  "order": [
+   "age",
+   "education-num",
+   "capital-gain",
+   "capital-loss",
+   "hours-per-week",
+   "workclass=Federal-gov",
+   "workclass=Local-gov",
+   "workclass=Never-worked",
+   "workclass=Private",
+   "workclass=Self-emp-inc",
+   "workclass=Self-emp-not-inc",
+   "workclass=State-gov",
+   "workclass=Without-pay",
+   "education=10th",
+   "education=11th",
+   "education=12th",
+   "education=1st-4th",
+   "education=5th-6th",
+   "education=7th-8th",
+   "education=9th",
+   "education=Assoc-acdm",
+   "education=Assoc-voc",
+   "education=Bachelors",
+   "education=Doctorate",
+   "education=HS-grad",
+   "education=Masters",
+   "education=Preschool",
+   "education=Prof-school",
+   "education=Some-college",
+   "marital-status=Divorced",
+   "marital-status=Married-AF-spouse",
+   "marital-status=Married-civ-spouse",
+   "marital-status=Married-spouse-absent",
+   "marital-status=Never-married",
+   "marital-status=Separated",
+   "marital-status=Widowed",
+   "relationship=Husband",
+   "relationship=Not-in-family",
+   "relationship=Other-relative",
+   "relationship=Own-child",
+   "relationship=Unmarried",
+   "relationship=Wife",
+   "native-country=Cambodia",
+   "native-country=Canada",
+   "native-country=China",
+   "native-country=Columbia",
+   "native-country=Cuba",
+   "native-country=Dominican-Republic",
+   "native-country=Ecuador",
+   "native-country=El-Salvador",
+   "native-country=England",
+   "native-country=France",
+   "native-country=Germany",
+   "native-country=Greece",
+   "native-country=Guatemala",
+   "native-country=Haiti",
+   "native-country=Holand-Netherlands",
+   "native-country=Honduras",
+   "native-country=Hong",
+   "native-country=Hungary",
+   "native-country=India",
+   "native-country=Iran",
+   "native-country=Ireland",
+   "native-country=Italy",
+   "native-country=Jamaica",
+   "native-country=Japan",
+   "native-country=Laos",
+   "native-country=Mexico",
+   "native-country=Nicaragua",
+   "native-country=Outlying-US(Guam-USVI-etc)",
+   "native-country=Peru",
+   "native-country=Philippines",
+   "native-country=Poland",
+   "native-country=Portugal",
+   "native-country=Puerto-Rico",
+   "native-country=Scotland",
+   "native-country=South",
+   "native-country=Taiwan",
+   "native-country=Thailand",
+   "native-country=Trinadad&Tobago",
+   "native-country=United-States",
+   "native-country=Vietnam",
+   "native-country=Yugoslavia"
+  ],
+  "X_dtype": "float32",
+  "X_shape": [
+   39170,
+   83
+  ],
+  "proxy_note": "relationship categories (incl. Husband/Wife) are retained permitted proxies, as in the source; preprocessing and order are the pinned osf ones (numeric columns re-standardised on OSF_DEFENSE_FIT)."
+ },
+ "label_sealing": {
+  "assessment_labels_minus_one": {
+   "sex": true,
+   "race": true,
+   "y_income": true,
+   "y_occupation_group": true,
+   "y_dict": true,
+   "loader_flag_sealed": true
+  },
+  "no_minus_one_outside_assessment": {
+   "sex": true,
+   "race": true,
+   "y_income": true,
+   "y_occupation_group": true
+  },
+  "unseal_gate": "load(unseal=True) only from qpc.assess, and only when results/pcrl_confidence_capacity_v1/EVALUATION_LOCK.json is byte-identical on origin/research/pcrl-confidence-capacity-v1",
+  "allowlist": {
+   "fitting": [
+    "OSF_DEFENSE_FIT"
+   ],
+   "head_validation_calibration": [],
+   "inner_audit": [
+    "AUDIT_FIT",
+    "INNER_SELECTION"
+   ],
+   "selection": [
+    "INNER_SELECTION"
+   ],
+   "assessment": [
+    "OSF_DEFENSE_FIT",
+    "AUDIT_FIT",
+    "INNER_SELECTION",
+    "OSF_DEVELOPMENT_ASSESSMENT"
+   ],
+   "permutation_diagnostic": [
+    "OSF_DEFENSE_FIT"
+   ],
+   "stage_a_utility": [
+    "INNER_SELECTION"
+   ],
+   "controls": [
+    "OSF_DEFENSE_FIT",
+    "AUDIT_FIT",
+    "INNER_SELECTION"
+   ]
+  },
+  "procedure_aliases": {
+   "attack": "inner_audit",
+   "audit": "inner_audit"
+  },
+  "dpc_vocabulary_accepted": [
+   "assessment",
+   "fitting",
+   "head_validation_calibration",
+   "inner_audit",
+   "selection"
+  ],
+  "guard_probe": {
+   "fitting:OSF_DEVELOPMENT_ASSESSMENT": "refused (allowlist)",
+   "inner_audit:OSF_DEVELOPMENT_ASSESSMENT": "refused (allowlist)",
+   "selection:OSF_DEVELOPMENT_ASSESSMENT": "refused (allowlist)",
+   "stage_a_utility:OSF_DEVELOPMENT_ASSESSMENT": "refused (allowlist)",
+   "controls:OSF_DEVELOPMENT_ASSESSMENT": "refused (allowlist)",
+   "fitting:AUDIT_FIT": "refused (allowlist)",
+   "fitting:HEAD_VALIDATION": "refused (allowlist)",
+   "head_validation_calibration:HEAD_VALIDATION": "refused (allowlist)",
+   "selection:OSF_DEFENSE_FIT": "refused (allowlist)",
+   "assessment:OSF_DEVELOPMENT_ASSESSMENT": "refused (sealed)"
+  }
+ },
+ "labels_read": "none (manifest uses role, group and row ids only; label arrays are checked for the -1 seal)",
+ "written_at": "2026-10-06T04:08:47Z"
+}

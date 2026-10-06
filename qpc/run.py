@@ -184,6 +184,7 @@ def bind_meta(k, cid, D, t="U"):
 # ------------------------------------------------------------------ admission (SOURCE_ADMISSION_LOCK)
 def stage_admit(D, shard_spec=None):
     from qpc import admit as AD
+    AD.run(D)                           # verified copies + receipts (admission_record), inputs; refuses on any mismatch
     for k in shard(list(SEEDS), shard_spec):
         for t in TEACHERS:
             n = f"tea__s{k}__{t}"
