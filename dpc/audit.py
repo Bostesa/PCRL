@@ -926,6 +926,10 @@ def split_tokens(z, i, bit, collide=True, eta=CONF_ETA):
     t = zp[f"tok{i}"].astype(np.int64)
     a = int(np.asarray(zp[f"alpha{i}"]).ravel()[0])
     b = np.asarray(bit, dtype=np.int64)
+    # AMENDMENT_A1 (lead, 2026-10-06): the planted bit is defined only on rows with a valid 0/1 label (AUDIT_FIT /
+    # INNER_SELECTION); sealed assessment rows carry -1 labels, which produced bits outside {0, 1} and colliding split
+    # tokens (refused by token_decoder_check). Other rows get bit 0; plants are only fitted/scored on inner roles.
+    b = np.where((b == 0) | (b == 1), b, 0)
     zp[f"tok{i}"] = 2 * t + b
     zp[f"alpha{i}"] = np.asarray(2 * a)
     if not collide:

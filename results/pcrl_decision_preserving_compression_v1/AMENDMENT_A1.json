@@ -1,0 +1,16 @@
+{
+ "base_lock": "SELECTION_AND_AUDIT_LOCK",
+ "changes_previously_locked": [
+  "dpc/audit.py",
+  "dpc/tests/test_late.py"
+ ],
+ "code_files": {
+  "dpc/audit.py": "f2c5a2699f4fd7fda46a7bb57ed7b855a890ae04923966402442ad592f275ae8",
+  "dpc/tests/test_late.py": "b415b1cec4eb491602a8859f9e420da2c5fa25b30854c5c1876133239b5096da"
+ },
+ "name": "AMENDMENT_A1",
+ "parent_commit": "31e2f90c2e24d61ac56ac8dd234f9e8451df794c",
+ "reason": "2026-10-06 engineering amendment (controls stage only). Defect: dpc.audit.split_tokens built planted bits from the permuted/noisy SEX of ALL rows; sealed assessment rows carry -1, giving bits outside {0,1}, colliding split tokens and a refused decoder check, so the controls stage crashed at its first plant before writing any output (log kept in <PRIVATE_CACHE>/dpc_v1/quarantine_amendment_A1). Fix: bits outside {0,1} are set to 0 (plants are fitted and scored on AUDIT_FIT / INNER_SELECTION only); regression test in dpc/tests/test_late.py. The change is confined to split_tokens, which only the controls stage calls: the completed inner audits, selection rules, final audit and assessment code paths are unchanged. Affected stage: controls (rerun after this push).",
+ "schema": "dpc-amendment-v1",
+ "written_at": "2026-10-06T01:11:03Z"
+}

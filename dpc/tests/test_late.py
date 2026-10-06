@@ -73,3 +73,21 @@ def test_inference_end_to_end(tmp_path, monkeypatch):
     assert out["claimC"]["decision"] == "NOT_ESTABLISHED" and out["complete"] is True
     assert "R#0#SRC|U#scores#pair" in out["levels"]
     assert len(out["primary"]) == 33
+
+
+def test_amendment_a1_plant_bits_ignore_sealed_rows():
+    """Regression (AMENDMENT_A1): sealed -1 labels must not create bits outside {0,1} or colliding split tokens."""
+    from dpc import audit as AU
+    n = 50
+    rng = np.random.default_rng(1)
+    tok = rng.integers(0, 4, n)
+    q = np.array([[0.7, 0.3], [0.6, 0.4], [0.2, 0.8], [0.4, 0.6]])[tok]
+    z = {"tok1": tok, "q1": q, "hard1": q.argmax(1), "alpha1": np.int64(4)}
+    bit = rng.integers(0, 2, n)
+    bit[:10] = -1                                      # sealed rows
+    bit[10:12] = 2                                     # flipped sealed rows
+    for collide in (True, False):
+        zp = AU.split_tokens(z, 1, bit, collide=collide)
+        assert zp["tok1"].min() >= 0 and zp["tok1"].max() < 8
+        assert AU.token_decoder_check(zp["tok1"], zp["q1"], zp["hard1"])["ok"]
+        assert np.array_equal(zp["tok1"][:12], 2 * tok[:12])
