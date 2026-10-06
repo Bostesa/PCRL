@@ -63,7 +63,7 @@ Plug-in MI is a training criterion only. All claims rest on held-out attacks:
 | U continuous (released interface) | 0.858 | 0.856 | 1.269 | 0.652 |
 | U task-only code, m 8 | 0.825 | 0.786 | 1.289 | 0.660 |
 | U joint code, m 8, λ 0.1 | 0.807 | 0.764 | 1.290 | 0.660 |
-| U sequential codes, m 8, λ 0.1 | 0.807–0.809 | 0.752–0.762 | 1.291–1.292 | 0.660 |
+| U sequential codes, m 8, λ 0.1 | 0.807–0.809 | 0.752–0.763 | 1.291–1.292 | 0.660–0.661 |
 | U class-only (decisions) | 0.739 | 0.687 | 1.379 | 0.693 |
 | FARE (official) | 0.704 | 0.636 | 1.315 | 0.676 |
 
@@ -104,4 +104,5 @@ Our sequential arms are matched, class-preserving adaptations, not the Taylor et
 - **Reused data.** Adult was used before, and the intervals do not correct for adaptive research history.
 - **Fixed teachers.** The two teachers are fixed, and both have near-zero recall on two occupation classes.
 - **No guarantee.** The attack slate is finite, and plug-in MI is not a privacy guarantee.
+- **Matched-control coverage.** Every matched non-joint control was task-ineligible (NO_FEASIBLE_CONTROL). Under the locked per-claim rule the label is EXPERIMENTAL_NO_ADVANTAGE. A stricter reading of the protocol's missing-comparator sentence would give INCOMPLETE_OR_INVALID. Either way, no claim passes.
 - **Custody.** The backup is same-device only (the drive was absent), and predecessor custody repair is pending.

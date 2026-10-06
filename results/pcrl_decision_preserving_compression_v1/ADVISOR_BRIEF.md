@@ -11,7 +11,7 @@ Can such a code, especially one fitted jointly against the two-recipient coaliti
 ## What happened
 
 - **Decisions:** identical to the teacher's on every row of every role, for all 258 fitted codes (independently verified).
-- **Confidence:** income is nearly free (+0.001 nats). Occupation is not: the finest code (8 states per class) costs +0.020 to +0.021 nats and +0.007 to +0.008 Brier, about twice the allowance.
+- **Confidence:** income is nearly free (+0.001 to +0.002 nats). Occupation is not: the finest code (8 states per class) costs +0.020 to +0.021 nats and +0.007 to +0.008 Brier, about twice the allowance.
   - No code met the contract on every inner seed.
   - The class-only code costs +0.11 nats.
 - **Selection:**
@@ -22,7 +22,7 @@ Can such a code, especially one fitted jointly against the two-recipient coaliti
 
   | Release | Pair AUC |
   |---|---:|
-  | Continuous U scores | 0.859 |
+  | Continuous U scores | 0.858 |
   | Task-only code (m 8) | 0.825 |
   | Joint code (m 8, λ 0.1) | 0.807 |
   | Sequential codes | 0.807–0.809 |
@@ -46,6 +46,8 @@ Can such a code, especially one fitted jointly against the two-recipient coaliti
 **Custody:**
 - Backup: a verified same-device copy only. Off-device backup is pending (drive absent).
 - Predecessor custody repair (osf/smf drive copy and smf drive restore): still pending, with exact commands recorded in `QUICKSTART.md`.
+
+**Validity caveat:** every matched task-only control was also ineligible. The locked rule treats that as a coverage failure, giving a valid negative. A strict reading of the protocol's missing-comparator sentence would instead give INCOMPLETE_OR_INVALID. No claim passes either way.
 
 **Disclosed process deviation:** a third heavy process overlapped twice, for about 2 and 4 minutes.
 

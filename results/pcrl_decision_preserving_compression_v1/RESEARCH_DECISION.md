@@ -9,14 +9,14 @@
 
 **Did the prediction classes stay identical? Yes, exactly.** All 258 fitted policies reproduce their own teacher's predicted class for every person in every role. That is 20.2 million row checks, verified independently. Accuracy, confusion matrices and every class recall are therefore unchanged.
 
-**How much useful confidence was lost? Too much for occupation.** Even the finest code (8 states per class, U teacher) adds about +0.020 nats of occupation log loss and +0.007 Brier on the assessment. The registered allowances are 0.01 and 0.005. Income confidence is nearly free: +0.001 nats.
+**How much useful confidence was lost? Too much for occupation.** Even the finest code (8 states per class, U teacher) adds about +0.020 nats of occupation log loss and +0.007 Brier on the assessment. The registered allowances are 0.01 and 0.005. Income confidence is nearly free: +0.001 nats for that task-only code and +0.002 for the joint code.
 
 No finite code met the registered score contract on inner selection on every seed, and the class-only (decision-only) code fails it by about 0.1 nats. The only release meeting the contract is U's continuous output.
 
 **Did the joint design beat the strongest non-joint control? No.**
 - No joint policy was a valid nominee.
 - Its descriptive fallback (U, JOINT, m 8, λ 0.1) leaked 0.018 less on the pair than the matched task-only code, under the required 0.02 margin. It was only marginally better than the two sequential orders (pair 0.807 vs 0.807 and 0.809).
-- It leaked 0.052 less than the continuous scores. Those scores, however, keep the confidence quality the code loses.
+- It leaked 0.051 less than the continuous scores. Those scores, however, keep the confidence quality the code loses.
 
 **What is runnable.**
 - The truthful baseline is U's continuous output, the only release meeting the contract.
@@ -32,13 +32,13 @@ This is an exploratory, locked benchmark on 13,936 previously used Adult rows. I
 | Release | Pair AUC | Income-recipient AUC | Occupation-recipient AUC | Log loss (income / occupation) | Brier (income / occupation) | Accuracy (income / occupation) |
 |---|---:|---:|---:|---|---|---|
 | U: features + scores (old full view) | 0.883 | 0.859 | 0.878 | — | — | 0.844 / 0.475 |
-| U: continuous scores (T\* = C_global; composed code readers) | 0.859 | 0.697 | 0.856 | 0.338 / 1.269 | 0.214 / 0.652 | 0.844 / 0.475 |
+| U: continuous scores (T\* = C_global; composed code readers) | 0.858 | 0.697 | 0.856 | 0.338 / 1.269 | 0.214 / 0.652 | 0.844 / 0.475 |
 | U FINE-TASK m8 (task-only code; C_match fallback) | 0.825 | 0.697 | 0.786 | 0.339 / 1.289 | 0.215 / 0.660 | identical to U |
 | U LOCAL m8 λ 0.1 (P\* fallback) | 0.820 | 0.695 | 0.770 | 0.339 / 1.289 | 0.215 / 0.660 | identical to U |
-| U SEQ-12 / SEQ-21 m8 λ 0.1 | 0.809 / 0.807 | 0.695 / 0.695 | 0.762 / 0.752 | 0.339 / 1.291–1.292 | 0.215 / 0.660 | identical to U |
+| U SEQ-12 / SEQ-21 m8 λ 0.1 | 0.809 / 0.807 | 0.695 / 0.695 | 0.763 / 0.752 | 0.339 / 1.291 and 0.340 / 1.292 | 0.215 / 0.660 and 0.215 / 0.661 | identical to U |
 | **U JOINT m8 λ 0.1 (J\* fallback)** | **0.807** | 0.696 | 0.764 | 0.340 / 1.290 | 0.215 / 0.660 | identical to U |
 | U class-only (decisions alone) | 0.739 | 0.587 | 0.687 | 0.423 / 1.379 | 0.257 / 0.693 | identical to U |
-| RAW-J β 0.3 continuous scores | 0.788 | 0.685 | 0.774 | 0.335 / 1.282 | 0.213 / 0.659 | 0.845 / 0.467 |
+| RAW-J β 0.3 continuous scores | 0.788 | 0.685 | 0.774 | 0.335 / 1.282 | 0.212 / 0.659 | 0.845 / 0.466 |
 | RAW-J FINE-TASK m8 | 0.752 | 0.684 | 0.704 | 0.336 / 1.300 | 0.214 / 0.667 | identical to RAW-J |
 | FARE (official) | 0.704 | 0.685 | 0.636 | 0.352 / 1.315 | 0.224 / 0.676 | 0.844 / 0.451 |
 | F0 (no-fairness FARE) | 0.865 | 0.803 | 0.851 | 0.327 / 1.298 | 0.209 / 0.665 | 0.849 / 0.460 |
@@ -63,7 +63,7 @@ All three claims are NOT_ESTABLISHED: J\* and P\* had no feasible nominee, so ev
 | View | Pair AUC |
 |---|---:|
 | Features + scores | 0.883 |
-| Scores alone | 0.859–0.864 (interface / scores family) |
+| Scores alone | 0.858–0.864 (interface / scores family) |
 | Compact token + decoded score | 0.789–0.825 (task-only m2–m8), 0.807 (joint m8) |
 | Decisions alone | 0.739 |
 
@@ -88,7 +88,7 @@ The joint decision vector alone already reveals SEX at 0.74, and no confidence c
 | SEQ-12 | 0.809 | ≈ 1.291 |
 | LOCAL | 0.820 | ≈ 1.289 |
 
-Joint fitting is marginally below both sequential orders: by 0.0003 and 0.0016 on the assessment. On inner selection it is lowest in 11 of 18 matched teacher/rate/λ cells, by less than 0.007 in every one. This is a tie for practical purposes, not a demonstrated advantage. Coordinating the two maps (joint or sequential) helps relative to independent local maps: joint is below local in 14 of 18 inner cells.
+Joint fitting is marginally below both sequential orders: by 0.0004 and 0.0016 on the assessment. On inner selection it is lowest in 11 of 18 matched teacher/rate/λ cells, by less than 0.007 in every one. This is a tie for practical purposes, not a demonstrated advantage. Coordinating the two maps (joint or sequential) helps relative to independent local maps: joint is below local in 14 of 18 inner cells.
 
 **Fitted objective versus held-out recovery.**
 - At U m8, JOINT λ 0.1 lowers fitted I(S; C1, C2) from 0.201 to 0.178 nats, and inner pair AUC falls 0.825 → 0.805.
@@ -98,7 +98,7 @@ Joint fitting is marginally below both sequential orders: by 0.0003 and 0.0016 o
 **Confidence cost of m = 1.** +0.085 nats (income) and +0.110 nats (occupation). The decision-only release is not confidence-preserving.
 
 **Teacher weak classes (unchanged by construction).**
-- U's occupation recalls (range over seeds) are 0.495–0.497 / 0.466–0.483 / 0.390–0.400 / **0.020–0.024** / 0.703–0.709 / **0.000** for classes 0–5, with balanced accuracy 0.417–0.421. Class 5 is never predicted by any teacher.
+- U's occupation recalls (range over seeds) are 0.495–0.499 / 0.466–0.483 / 0.390–0.400 / **0.020–0.024** / 0.703–0.709 / **0.000** for classes 0–5, with balanced accuracy 0.417–0.421. Class 5 is never predicted by any teacher.
 - RAW-J is similar (class 3 recall 0.015–0.028) and is 0.9 occupation-accuracy points below U.
 - A code that preserves predictions cannot repair these recalls.
 
@@ -116,7 +116,7 @@ Joint fitting is marginally below both sequential orders: by 0.0003 and 0.0016 o
 |---|---|---|---|
 | PR1 | A compact code meets the full inner contract on every seed | 0.55 | **No.** All fail occupation log loss and/or Brier on some seed |
 | PR2 | An eligible privacy-trained code beats T\* by > 0.02 pair AUC | 0.25 | **No.** None is eligible |
-| PR3 | JOINT beats both sequential orders at matched teacher/rate (inner pair AUC, any margin) | 0.45 | **Yes, negligibly.** At the J\* fallback cell, 0.806 vs 0.812 / 0.811; in 11 of 18 cells overall, every margin < 0.007 |
+| PR3 | JOINT beats both sequential orders at matched teacher/rate (inner pair AUC, any margin) | 0.45 | **Yes, negligibly.** At the J\* fallback cell, 0.805 vs 0.812 / 0.811; in 11 of 18 cells overall, every margin < 0.007 |
 | PR4 | The strongest control is a simple compression, not a continuous source or reference | 0.75 | **No.** T\* = C_global = U continuous, because no code was eligible |
 | PR5 | Label EXPERIMENTAL_NO_ADVANTAGE | 0.70 | **Yes** |
 
@@ -139,7 +139,9 @@ The main miss was PR1 and PR4: we expected 8 cells per class to keep occupation 
 
 **Controls.** All pass. Real-data nulls show 0 of 15 exceedances (held-out mean AUC 0.500), and the within-class confidence, decoder-collision and coalition XOR plants are detected. A decisions-only audit misses the confidence plant, as designed.
 
-**Independent verification.** See `VALIDATION.md` and `INDEPENDENT_VERIFICATION.json`.
+**Independent verification.** Two phases, own code with no study imports: 0 FAIL. The single WARN was 11 rounding or transcription slips (each ≤ 0.0025) in these documents, now corrected. See `VALIDATION.md` and `INDEPENDENT_VERIFICATION.json`.
+
+**Matched-control coverage failure (claim A).** C_match is NO_FEASIBLE_CONTROL at all six teacher/rate cells. Every matched non-joint code fails the score contract, for the same occupation-confidence reason as the joint codes. The locked per-claim rule (review R3, `dpc/infer.py`, locked before selection) counts only an INVALID_* (uncomputable) comparator as missing. So claim A is a valid NOT_ESTABLISHED and the computed label is EXPERIMENTAL_NO_ADVANTAGE. PROTOCOL §8's sentence "A missing comparator invalidates the dependent claim" can also be read to cover NO_FEASIBLE_CONTROL. On that stricter reading, claim A is invalid and the overall label would be INCOMPLETE_OR_INVALID. Neither reading changes the outcome. No JOINT policy is task-eligible, so claim A could not pass against any comparator. Claims B and C have a valid, eligible comparator (U continuous) and are NOT_ESTABLISHED. The locked label is kept, not re-chosen after the outcome. J\*'s guard against C_match is recorded as missing (`SELECTION.json` `missing_guards`), not silently dropped.
 
 **Process deviation (disclosed).** On two occasions, for about 2 and 4 minutes, a third heavy process (the verifier) overlapped the two study workers.
 

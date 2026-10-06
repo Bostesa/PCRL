@@ -6,8 +6,8 @@ Everything ran on the laptop: $0 cloud, and no cloud resource was created.
 
 | Limit | Ceiling | Used |
 |---|---|---|
-| Elapsed | 10 h | 2026-10-05T23:37:49Z start (`<PRIVATE_CACHE>/dpc_v1/START.txt`); about 2.4 h at closeout. Watchdog pid armed for 2026-10-06T09:37Z, stopped at closeout |
-| Aggregate CPU | 20 CPU-h | about 1.6 CPU-h measured (study workers 1.27 h, verifier ≥ 0.31 h, lead tests/reports/closeout ~0.05 h) plus ≤ 1 CPU-h estimated for agent-run synthetic tests and mutation runs (not per-process instrumented). Total < 3 CPU-h |
+| Elapsed | 10 h | 2026-10-05T23:37:49Z start (`<PRIVATE_CACHE>/dpc_v1/START.txt`); about 3.2 h at closeout. Watchdog pid armed for 2026-10-06T09:37Z, stopped at closeout |
+| Aggregate CPU | 20 CPU-h | about 2.1 CPU-h measured (study workers 1.27 h, independent verifier 0.82 h over all runs, lead tests/reports/closeout ~0.05 h) plus ≤ 1 CPU-h estimated for agent-run synthetic tests and mutation runs (not per-process instrumented). Total < 3.5 CPU-h |
 | Heavy workers | 2 | **Exceeded twice** (see deviations) |
 | Working memory | 8 GiB combined | Peak single process 1.38 GB (inference); two assessment workers 0.99 + 1.02 GB; combined peak < 3.5 GB |
 | Free disk | ≥ 5 GiB | 126 GiB free throughout. Private store 648 MB; same-device copy 648 MB |
@@ -33,7 +33,7 @@ Everything ran on the laptop: $0 cloud, and no cloud resource was created.
 - `dpc.report`, the backup with restore checks (4 s), the backup dry-run (4 s), the deploy tests (a few seconds each), and closeout status/dry-runs.
 - The 158-test suite: 50 s.
 
-**Verifier.** Phase 1 used about 1,100 CPU-s (`INDEPENDENT_VERIFICATION.json` → `verifier_compute_ledger`). Phase 2 is recorded in the same ledger.
+**Verifier.** 0.82 CPU-h over all runs: Phase 1, the first Phase 2 run, and two full re-runs after document corrections. Every run used one process and is recorded in `INDEPENDENT_VERIFICATION.json` → `verifier_compute_ledger`. The final three Phase 2 runs had 0 lead workers at start and end.
 
 ## Deviations (disclosed)
 
