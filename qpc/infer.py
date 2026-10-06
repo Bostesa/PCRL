@@ -171,9 +171,11 @@ def label_from(out, EL):
     qcl = FAM.clause_state([e["decision"] for e in out["primary"] if e["claim"] == "Q"])
     q = FAM.q_status(FAM.role_state(st.get("Q*")) == "ELIGIBLE", qcl)
     tv = bool(EL.get("technical_validity", {}).get("ok", False))
-    lab, missing = FAM.overall_label(bool(EL.get("stage_a_valid", False)), bool(EL.get("gate_met", False)), tv,
-                                     claims, q, st.get("P*", {}).get("winning_family"))
-    return claims, q, lab, missing
+    args = (bool(EL.get("stage_a_valid", False)), bool(EL.get("gate_met", False)), tv, claims, q,
+            st.get("P*", {}).get("winning_family"))
+    lab, missing = FAM.overall_label(*args)
+    lab0, missing0 = FAM.overall_label_stage_a_rule(*args)
+    return claims, q, lab, missing, {"label": lab0, "missing_items": missing0, "same_as_amended": lab0 == lab}
 
 
 def main(argv=None, check_prior=True):
@@ -216,8 +218,9 @@ def main(argv=None, check_prior=True):
         r = reps[sid]
         out["levels"][nm] = {"point": pts[sid], "se": float(np.std(r[np.isfinite(r)], ddof=1)),
                              "nonfinite": int((~np.isfinite(r)).sum())}
-    claims, q, lab, missing = label_from(out, EL)
+    claims, q, lab, missing, lab_stage_a = label_from(out, EL)
     out.update({"claim_status": claims, "q_status": q, "label": lab, "missing_items": missing,
+                "label_under_stage_a_lock_rule": lab_stage_a,
                 "clauses_passing_numeric": {c: sum((e.get("decision_numeric") or e["decision"]) == "PASS"
                                                    for e in out["primary"] if e["claim"] == c) for c in "ABCQ"}})
     (R.RUN / "inference.json").write_text(json.dumps(out, indent=1, default=float))

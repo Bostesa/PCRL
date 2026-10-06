@@ -67,3 +67,27 @@ def test_stagea_and_gate_synthetic(syn):
     for m1 in (4, 8):
         kl = [r["fit_kl_occupation_mean"] for r in sorted(cc, key=lambda r: r["m2_cap"]) if r["m1_cap"] == m1]
         assert all(b <= a + 1e-12 for a, b in zip(kl, kl[1:]))
+
+
+def test_stageb_partition_and_fit_synthetic(syn, monkeypatch):
+    D, tmp = syn
+    monkeypatch.setattr(R, "lock_protocol", lambda: {"stage_b": {"rates": [[8, 64]], "lams": [0.01, 1.0]}})
+    D["sex"] = np.where(D["sex"] < 0, 0, D["sex"])
+    R.stage_partition(D, "0/2")
+    R.stage_partition(D, "1/2")
+    assert all(R.done(f"fine__s{k}") for k in R.SEEDS)
+    jobs = R.fit_jobs()
+    assert len(jobs) == 3 and all(len(c) == 1 + 1 + 2 * 3 + 2 for _, c in jobs)   # CLASS, FINE, 3 fam x 2 lam, JOINT x 2
+    R.stage_fit(D, "0/2")
+    R.stage_fit(D, "1/2")
+    for k in R.SEEDS:
+        T = R.teacher(k)
+        for cid in R.stage_b_ids():
+            n = R.unit_for(k, cid)
+            assert R.done(n), n
+            z = R.npz(n, "release.npz")
+            assert np.array_equal(z["hard1"], T["d1"]) and np.array_equal(z["hard2"], T["d2"])
+            r = R.rec(n)
+            assert r["config"] == cid
+        j = R.rec(R.unit_for(k, "U|JOINT|i8o64|l1"))
+        assert j["witness_dominance"]                                     # fitted F_joint <= unchanged witnesses

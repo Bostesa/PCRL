@@ -82,3 +82,15 @@ def test_truth_table_document_matches_executable():
     assert tuple(cls["completed_negative"]) == FAM.COMPLETED_NEGATIVE
     assert set(cls["coverage_missing_or_invalid"]) == set(FAM.COVERAGE_MISSING)
     assert cls["favourable"] == ["PASS"]
+
+
+def test_stage_a_rule_differs_only_when_a_passing_claim_coexists_with_a_coverage_gap():
+    statuses = sorted(set(FAM.COMPLETED_NEGATIVE) | set(FAM.COVERAGE_MISSING) | {"PASS"})
+    for a, b, c in itertools.product(statuses, repeat=3):
+        for q in ("PASS", "NOT_ESTABLISHED", "INVALID"):
+            cl = {"A": a, "B": b, "C": c}
+            new = FAM.overall_label(True, True, True, cl, q, "LOCAL")[0]
+            old = FAM.overall_label_stage_a_rule(True, True, True, cl, q, "LOCAL")[0]
+            fav = (a == "PASS" and b == "PASS") or c == "PASS"
+            gap = any(x in FAM.COVERAGE_MISSING for x in (a, b, c)) or q == "INVALID"
+            assert (new != old) == (fav and gap)

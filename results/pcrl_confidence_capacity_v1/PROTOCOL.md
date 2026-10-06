@@ -284,7 +284,7 @@ A validly PASSing claim keeps its favourable label even if another claim lacks c
 
 **Guard-blocked nominees and the J* cell.** TECHNICAL_FAILURE of a nominee also covers an otherwise eligible nominee blocked only because one of its guard comparators (C_rate(J) or C_global for J*; T* for P*) is not a NOMINEE. Guards are never dropped. Claim A's C_rate is resolved at the J* nominee cell, else at the J* descriptive-fallback cell. When J* has neither, C_rate is INVALID_COMPARATOR ("no J* cell"), with the J* failure named as the root cause.
 
-These two clarifications (math review SEL-R1 and SEL-C2) were made before any inner-audit or assessment data existed, and are recorded in STAGE_B_LOCK.
+These two clarifications (math review SEL-R1 and SEL-C2) were made at 04:29:47Z (commit 9090348). That was after STAGE_A_LOCK and after the Stage A gate results were known, but before any SEX-recovery, inner-audit, selection or assessment data existed. They are recorded in STAGE_B_LOCK. Because SEL-C2 changes a registered rule, the final label is reported under BOTH the STAGE_A_LOCK rule (any coverage gap gives INCOMPLETE_OR_INVALID before favourable labels) and the amended rule. If the two differ, both are shown, and the amended one is marked as a post-lock amendment.
 
 The per-claim table is always published. All favourable labels refer to exploratory development only.
 
