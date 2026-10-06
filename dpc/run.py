@@ -207,6 +207,7 @@ def stage_partition(D, shard_spec=None):
 
 def stage_fit(D, shard_spec=None):
     from dpc import compress as CP
+    from dpc import deploy as DP
     from dpc import partition as PT
     from dpc import release as RL
     tr = fit_rows(D)
@@ -223,11 +224,16 @@ def stage_fit(D, shard_spec=None):
         F = json.loads((U(f"fine__s{k}__{c['teacher']}") / "fine.json").read_text())
         fine1, fine2 = PT.from_dict(F["fine1"]), PT.from_dict(F["fine2"])
         t0, c0 = time.time(), time.process_time()
+        trec = rec(f"tea__s{k}__{c['teacher']}")
+        meta = {"teacher": c["teacher"], "seed": k, "config": cid,           # binds the policy for dpc.deploy
+                "teacher_model_sha256": trec["admission"]["complete_files_sha256"]["model.pt"],
+                "feature_names_sha256": DP.schema_sha256([str(x) for x in D["feature_names"]])}
         if c["family"] == "CLASS":
-            pair, receipts = CP.fit_class_only(fine1, fine2, T["p1"][tr], T["d1"][tr], T["p2"][tr], T["d2"][tr], S_fit)
-        else:
+            pair, receipts = CP.fit_class_only(fine1, fine2, T["p1"][tr], T["d1"][tr], T["p2"][tr], T["d2"][tr], S_fit,
+                                               meta=meta)
+        else:                       # JOINT recomputes its four witnesses deterministically (verified against units)
             pair, receipts = CP.fit_policy_pair(c["family"], fine1, fine2, T["p1"][tr], T["d1"][tr], T["p2"][tr],
-                                                T["d2"][tr], S_fit, c["m"], c["lam"])
+                                                T["d2"][tr], S_fit, c["m"], c["lam"], meta=meta)
         out = {"row_id": D["row_id"]}
         for i in (1, 2):
             tok, q, dec = RL.encode(pair[i - 1], T[f"p{i}"], T[f"d{i}"])
