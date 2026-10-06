@@ -117,7 +117,8 @@ def build(ctx):
                 per.append(g.add(f"{e['id']}#{k}", "lin", [ctx.acc(k, nom, j), ctx.acc(k, U, j), ctx.constacc(j)]))
         ids[e["id"]] = g.add(e["id"], "mean", per)
     levels = {}
-    fams = [None, "complete", "scores", "probs", "decisions", "features", "logits", "hard"]
+    fams = [None] + sorted({k[len("P_auc_"):].rsplit("_", 1)[0] for p in ctx.preds.values() for k in p
+                            if k.startswith("P_auc_") and k[len("P_auc_"):] not in ("v1", "v2", "pair")})
     for lab in ctx.labels:
         for k in SEEDS:
             for fam in fams:
