@@ -1,0 +1,255 @@
+"""Staged code/input locks for the confidence-budgeted privacy study (cbp; placeholders only, no local paths).
+
+Adapted from qpc/lock.py at d0c8a45 (provenance: SOURCE_INDEX.json). Stage 1 freezes ALL scientific definitions BEFORE
+any new fit: FIT_LOCK and AUDIT_AND_SELECTION_LOCK are both pushed before the fit stage runs.
+
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m cbp.lock write <NAME> [--protocol protocol.json] [--changes f=reason ...]
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m cbp.lock amend <AMENDMENT_An> <files...> --reason "..."
+    PYTHONPATH=. ~/PCRL/.venv/bin/python -m cbp.lock verify <lock file> [--stage s]
+
+Named locks (results/pcrl_confidence_budgeted_privacy_v1/<NAME>.json), each committed AND pushed (remote-verified) before the
+stages it governs:
+  SOURCE_ADMISSION_LOCK      source pins, hashes, roles, raw-input custody, admission code          -> admit
+  FIT_LOCK                   fixed rate i8o64, lambda grid, fit/reuse code and manifest, protocol, predictions, label
+                             truth table, headroom rules, primary family (all scientific definitions)  -> fit
+  AUDIT_AND_SELECTION_LOCK   attacks, composition, controls, selection, inference, assessment code  -> inner, inner_src,
+                             (pushed together with FIT_LOCK, BEFORE any new fit)                       controls, select
+  EVALUATION_LOCK (cbp.eval_lock; checked by cbp.assess) -> the single assessment opening.
+
+A stage runs only against the LATEST named lock (at least its governing lock) plus dated amendments written after it.
+Rules (stricter than dpc and module-based instead of a hand-written later-file list):
+  * every file locked by the lock (+ amendments) must be unchanged;
+  * every file a stage REQUIRES (STAGE_REQUIRES) must be locked;
+  * cbp.run calls ``check_loaded_modules`` after the stage has imported its code: every module loaded from this
+    worktree (cbp, qpc, dpc, osf, smf, rgj, jcv, stored_model_eval, oar, pcrl, provenance) must be a locked file with the
+    locked hash, so unlocked code can never take part in a real-data stage;
+  * the lock file and every amendment it relies on must be byte-identical on origin/<study branch>.
+A later named lock that re-hashes a previously locked file must name a reason for every such file (--changes f=reason);
+it is recorded as "changes_previously_locked".
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+WT = Path(__file__).resolve().parents[1]
+HOME = Path.home()
+REL = "results/pcrl_confidence_budgeted_privacy_v1"
+PKG = WT / REL
+BRANCH = "research/pcrl-confidence-budgeted-privacy-v1"
+SOURCE_SHA = "9dd06da6b64e558e1c079f76e43982b60b327e63"
+SOURCE_TIP = "d0c8a45c879d01fb8b736ccc091ec3e2c3e9b351"
+GLOBS = ["cbp/*.py", "cbp/tests/*.py", "qpc/*.py", "qpc/tests/*.py", "dpc/*.py", "osf/*.py", "smf/*.py", "rgj/*.py", "jcv/*.py",
+         "stored_model_eval/*.py", "oar/*.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
+ORDER = ["SOURCE_ADMISSION_LOCK", "FIT_LOCK", "AUDIT_AND_SELECTION_LOCK"]
+STAGE_MIN_LOCK = {"admit": 0, "fit": 1, "inner": 2, "inner_src": 2, "controls": 2, "select": 2}
+STAGE_REQUIRES = {"admit": ["cbp/data.py", "cbp/admit.py", "cbp/run.py"],
+                  "fit": ["cbp/fit.py", "cbp/run.py", "qpc/compress.py", "qpc/release.py"],
+                  "inner": ["cbp/audit.py", "cbp/run.py", "qpc/utility.py"],
+                  "inner_src": ["cbp/audit.py", "cbp/run.py"],
+                  "controls": ["cbp/audit.py", "cbp/run.py"],
+                  "select": ["cbp/select.py", "cbp/family.py", "cbp/run.py", "qpc/utility.py"]}
+DOCS = ["PROTOCOL.md", "METHOD_CARD.md", "ROLE_MANIFEST.json", "EXPOSURE_LEDGER.md", "SOURCE_INDEX.json",
+        "SOURCE_ADMISSION.json", "FIT_MANIFEST.json", "PRIMARY_FAMILY.json", "PREDICTIONS.json", "TIMING.json",
+        "LABEL_TRUTH_TABLE.json", "HEADROOM_SELECTION_RULES.json"]
+STATEMENT = ("The design is motivated by opened Adult development results, including the completed qpc confidence-capacity "
+             "study. The fitting, inner-selection and assessment data have all been used historically. This is an "
+             "exploratory, locked development comparison. Its nominal intervals condition on fitted artifacts and do not "
+             "account for the adaptive research history. It is not fresh confirmation or a population privacy guarantee.")
+TOP = ("cbp", "qpc", "dpc", "osf", "smf", "rgj", "jcv", "stored_model_eval", "oar", "pcrl")
+
+
+def sha_file(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 22), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def code_files():
+    return {str(p.relative_to(WT)): sha_file(p) for gl in GLOBS for p in sorted(WT.glob(gl))}
+
+
+def deps():
+    import joblib, numpy, scipy, sklearn, torch
+    return {"python": platform.python_version(), "numpy": numpy.__version__, "scipy": scipy.__version__,
+            "scikit-learn": sklearn.__version__, "torch": torch.__version__, "joblib": joblib.__version__,
+            "machine": platform.machine(), "torch_threads": 1, "OMP_NUM_THREADS": "1"}
+
+
+def git(*a):
+    return subprocess.run(["git", "-C", str(WT), *a], capture_output=True, text=True).stdout.strip()
+
+
+def inputs():
+    return {"source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
+            "source_npz_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+            "role_rule": "osf.data via dpc.data via qpc.data, pinned unchanged (OSF roles; consolidated assessment = four pools)",
+            "source_evidence_commit": SOURCE_SHA,
+            "source_tip": SOURCE_TIP, "teacher_provenance_commit": "925e0fddfcb666116c6179575339728a324ed78e"}
+
+
+def amendments():
+    return [json.loads(p.read_text()) for p in sorted(PKG.glob("AMENDMENT_A*.json"))]
+
+
+def latest():
+    for n in reversed(ORDER):
+        p = PKG / f"{n}.json"
+        if p.exists():
+            return json.loads(p.read_text())
+    raise SystemExit("no lock written")
+
+
+def locked_files(lock):
+    out = dict(lock["code_files"])
+    for a in amendments():
+        if a["written_at"] >= lock["written_at"]:
+            out.update(a["code_files"])
+    return out
+
+
+def start_time():
+    return (HOME / "PCRL_eval_cache_private" / "cbp_v1" / "START.txt").read_text().strip()
+
+
+def write_lock(name, protocol=None, changes=None, exclude=()):
+    """Lock every present code file except explicitly excluded later files (recorded as unlocked_present)."""
+    assert name in ORDER
+    prev = None
+    if ORDER.index(name) > 0:
+        prev = json.loads((PKG / f"{ORDER[ORDER.index(name) - 1]}.json").read_text())
+    allf = code_files()
+    have = locked_files(prev) if prev is not None else {}
+    bad = [f for f in exclude if f in have]
+    if bad:
+        raise SystemExit(f"REFUSED: cannot exclude already locked files: {bad}")
+    cf = {f: h for f, h in allf.items() if f not in set(exclude)}
+    changed = sorted(f for f, h in have.items() if f in cf and cf[f] != h)
+    removed = sorted(f for f in have if f not in allf)
+    missing = [f for f in changed + removed if f not in (changes or {})]
+    if missing:
+        raise SystemExit(f"REFUSED: previously locked files changed/removed without a stated reason: {missing}")
+    lock = {"schema": "cbp-lock-v1", "name": name, "written_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "parent_commit": git("rev-parse", "HEAD"), "code_files": cf,
+            "unlocked_present": {f: h for f, h in allf.items() if f not in cf},
+            "changes_previously_locked": {f: (changes or {})[f] for f in changed + removed},
+            "dependencies": deps(), "inputs": inputs(),
+            "documents_sha256": {d: sha_file(PKG / d) for d in DOCS if (PKG / d).exists()},
+            "protocol": json.loads(Path(protocol).read_text()) if protocol else (prev or {}).get("protocol"),
+            "budget": {"elapsed_h": 10, "cpu_h": 20, "heavy_processes_total": 2, "memory_gib": 8,
+                       "free_disk_gib_min": 5, "reserve_final_h": 2, "reserve_final_cpu_h": 4, "cloud": "none ($0)",
+                       "start": start_time()},
+            "statement": STATEMENT}
+    (PKG / f"{name}.json").write_text(json.dumps(lock, indent=1, sort_keys=True, default=str, allow_nan=False) + "\n")
+    return lock
+
+
+def amend(name, files, reason):
+    base = latest()
+    have = locked_files(base)
+    a = {"schema": "cbp-amendment-v1", "name": name, "written_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+         "parent_commit": git("rev-parse", "HEAD"), "base_lock": base["name"], "reason": reason, "code_files": {},
+         "changes_previously_locked": [], "new_files": []}
+    for f in files:
+        a["code_files"][f] = sha_file(WT / f)
+        if f in have and have[f] != a["code_files"][f]:
+            a["changes_previously_locked"].append(f)
+        elif f not in have:
+            a["new_files"].append(f)
+    (PKG / f"{name}.json").write_text(json.dumps(a, indent=1, sort_keys=True) + "\n")
+    return a
+
+
+def on_origin(rel_path):
+    """True iff the committed file at origin/<BRANCH> is byte-identical to the local file."""
+    subprocess.run(["git", "-C", str(WT), "fetch", "-q", "origin", BRANCH], capture_output=True)
+    r = subprocess.run(["git", "-C", str(WT), "show", f"origin/{BRANCH}:{rel_path}"], capture_output=True)
+    return r.returncode == 0 and r.stdout == (WT / rel_path).read_bytes()
+
+
+def verify_lock(path, stage=None, require_pushed=True) -> dict:
+    path = Path(path)
+    lock = json.loads(path.read_text())
+    lat = latest()
+    mm = []
+    if lock["name"] != lat["name"]:
+        mm.append(f"{lock['name']} is not the latest named lock ({lat['name']})")
+    if stage is not None:
+        if stage not in STAGE_MIN_LOCK:
+            mm.append(f"unknown stage {stage}")
+        elif ORDER.index(lock["name"]) < STAGE_MIN_LOCK[stage]:
+            mm.append(f"stage {stage} needs {ORDER[STAGE_MIN_LOCK[stage]]} or later")
+    have = locked_files(lock)
+    cf = code_files()
+    mm += [f"locked file changed/removed: {f}" for f, h in have.items() if cf.get(f) != h]
+    mm += [f"stage {stage} requires locked {f}" for f in STAGE_REQUIRES.get(stage, []) if f not in have]
+    if deps() != lock["dependencies"]:
+        mm.append("dependencies changed")
+    if inputs() != lock["inputs"]:
+        mm.append("inputs changed")
+    pushed = None
+    if require_pushed and not os.environ.get("CBP_LOCAL_ONLY"):
+        rels = [f"{REL}/{lock['name']}.json"] + [f"{REL}/{a['name']}.json" for a in amendments()
+                                                  if a["written_at"] >= lock["written_at"]]
+        pushed = {r: on_origin(r) for r in rels}
+        mm += [f"not on origin (push before running): {r}" for r, ok in pushed.items() if not ok]
+    return {"ok": not mm, "mismatches": mm, "lock": lock["name"], "pushed": pushed,
+            "local_only": bool(os.environ.get("CBP_LOCAL_ONLY")), "locked_files": have}
+
+
+def check_loaded_modules(locked):
+    """Every loaded module whose file lives in this worktree under a study package must be locked with that hash."""
+    bad = []
+    for name, mod in list(sys.modules.items()):
+        f = getattr(mod, "__file__", None)
+        if not f or name.split(".")[0] not in TOP:
+            continue
+        p = Path(f).resolve()
+        try:
+            rel = str(p.relative_to(WT))
+        except ValueError:
+            continue
+        if not rel.endswith(".py"):
+            continue
+        h = locked.get(rel)
+        if h is None:
+            bad.append(f"loaded but not locked: {rel}")
+        elif sha_file(p) != h:
+            bad.append(f"loaded with changed hash: {rel}")
+    return bad
+
+
+if __name__ == "__main__":
+    cmd = sys.argv[1]
+    if cmd == "write":
+        args = sys.argv[3:]
+        prot = args[args.index("--protocol") + 1] if "--protocol" in args else None
+
+        def _list(flag):
+            out = []
+            if flag in args:
+                for x in args[args.index(flag) + 1:]:
+                    if x.startswith("--"):
+                        break
+                    out.append(x)
+            return out
+        ch = dict(x.split("=", 1) for x in _list("--changes"))
+        L = write_lock(sys.argv[2], prot, ch, _list("--exclude"))
+        print("lock written:", L["name"], len(L["code_files"]), "code files; unlocked present:",
+              sorted(L["unlocked_present"]), "changed:", L["changes_previously_locked"])
+    elif cmd == "amend":
+        args = sys.argv[3:]
+        print(json.dumps(amend(sys.argv[2], args[:args.index("--reason")], args[args.index("--reason") + 1]), indent=1))
+    else:
+        st = sys.argv[sys.argv.index("--stage") + 1] if "--stage" in sys.argv else None
+        v = verify_lock(Path(sys.argv[2]), st)
+        v.pop("locked_files")
+        print(json.dumps(v, indent=1))
