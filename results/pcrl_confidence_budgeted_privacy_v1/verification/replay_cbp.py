@@ -3965,6 +3965,134 @@ def brief_diagnostics(d):
             "headroom_changes_winner": d["headroom_changes_winner"]}
 
 
+def _alias_equal(lead_al, own_al, cid):
+    if not lead_al and not own_al:
+        return True
+    if not lead_al or not own_al or not own_al.get("available"):
+        return False
+    return (sorted(lead_al.get("full") or []) == sorted([cid] + own_al["alias_set"]) and
+            {k_: sorted(v) for k_, v in (lead_al.get("partial") or {}).items()} ==
+            {k_: sorted(v) for k_, v in own_al["partial_aliases"].items()} and
+            lead_al.get("simplest_family") == own_al["simplest_family"] and
+            sorted(lead_al.get("identical_to_untrained") or []) == own_al["identical_to_untrained"])
+
+
+def compare_selection_detail(S, mine, rows):
+    """Field-by-field comparison of the lead's selection record with the own selection: every role's evaluated
+    candidates (eligibility, guard, nominability, the three shortfalls), aliases, fallbacks and every diagnostic."""
+    diffs, n = [], 0
+    tol = 1e-9
+
+    def num(a, b, what):
+        nonlocal n
+        n += 1
+        if (a is None) != (b is None) or (a is not None and abs(float(a) - float(b)) > tol):
+            diffs.append(f"{what}: {a} vs own {b}")
+
+    def eq(a, b, what):
+        nonlocal n
+        n += 1
+        if a != b:
+            diffs.append(f"{what}: {a} vs own {b}")
+    st_l, st_m = S.get("statuses") or {}, mine["statuses"]
+    for x in ("T*", "C_rate", "C_global", "P*", "J*"):
+        L_, M_ = st_l.get(x) or {}, st_m[x]
+        eq(L_.get("reason"), M_.get("reason"), f"{x}.reason")
+        eq(L_.get("fallback_rank_status") if L_.get("fallback_rank_status") != "VALID" else None,
+           M_.get("fallback_rank_status"), f"{x}.fallback_rank_status")
+        own_ev = {e["config"]: e for e in M_.get("evaluated") or []}
+        lead_ev = {e["config"]: e for e in L_.get("evaluated") or []}
+        eq(sorted(lead_ev), sorted(own_ev), f"{x}.evaluated candidates")
+        nominee_role = x in ("P*", "J*")
+        for c_, le in lead_ev.items():
+            me = own_ev.get(c_)
+            if me is None:
+                continue
+            eq(bool(le.get("ordinary")), me["ordinary_eligible"], f"{x}/{c_}.ordinary")
+            eq(bool(le.get("headroom")), me["headroom_eligible"], f"{x}/{c_}.headroom")
+            eq(bool(le.get("eligible")), me["eligible_for_role"], f"{x}/{c_}.eligible")
+            eq(le.get("guard_ok"), me["guard_ok"], f"{x}/{c_}.guard_ok")
+            eq(bool(le.get("nominable")), me["nominable"], f"{x}/{c_}.nominable")
+            num(le.get("ordinary_shortfall"), me["shortfall_ordinary"], f"{x}/{c_}.ordinary_shortfall")
+            if nominee_role:
+                num(le.get("headroom_shortfall"), me["shortfall_headroom"], f"{x}/{c_}.headroom_shortfall")
+            num(le.get("guard_shortfall"), me["shortfall_guard"], f"{x}/{c_}.guard_shortfall")
+        if x in ("P*", "J*"):
+            c_ = M_.get("config") or M_.get("descriptive_config")
+            n += 1
+            if not _alias_equal(L_.get("aliases"), M_.get("aliases"), c_):
+                diffs.append(f"{x}.aliases: {L_.get('aliases')} vs own {M_.get('aliases')}")
+    eq((st_l.get("Q") or {}).get("status"), st_m["Q"]["status"], "Q.status")
+    eq((st_l.get("Q") or {}).get("config"), st_m["Q"].get("config"), "Q.config")
+    DL, DM = S.get("diagnostics") or {}, mine["diagnostics"]
+    for k_ in ("ordinary_privacy_winner_no_headroom", "strongest_ordinary_privacy_unguarded"):
+        for f_ in ("status", "config", "descriptive_config", "reason"):
+            eq((DL.get(k_) or {}).get(f_), DM[k_].get(f_), f"{k_}.{f_}")
+    for f_, v in DM["family_headroom_winners"].items():
+        lv = (DL.get("family_headroom_winners") or {}).get(f_) or {}
+        for g_ in ("status", "config", "descriptive_config", "reason"):
+            eq(lv.get(g_), v.get(g_), f"family_headroom_winners.{f_}.{g_}")
+        n += 1
+        if not _alias_equal(lv.get("aliases"), v.get("aliases"), v.get("config") or v.get("descriptive_config")):
+            diffs.append(f"family_headroom_winners.{f_}.aliases")
+    jn = DL.get("joint_family_winner_is_not_J*") or {}
+    jf = DM["family_headroom_winners"]["JOINT"]
+    eq(jn.get("joint_family_T*_guarded"), jf.get("config") or jf.get("descriptive_config"), "joint family winner")
+    eq(jn.get("J*"), mine["resolved"]["J*"], "J* (descriptive) beside the JOINT family winner")
+    for c_, v in DM["source_lambda_0.1_controls"].items():
+        lv = (DL.get("source_lambda_0.1_controls") or {}).get(c_) or {}
+        eq(bool(lv.get("ordinary")), v["ordinary_eligible"], f"source {c_}.ordinary")
+        eq(bool(lv.get("headroom")), v["headroom_eligible"], f"source {c_}.headroom")
+        for a_, b_ in (("mean_pair", "mean_pair"), ("mean_v1", "mean_v1"), ("mean_v2", "mean_v2"),
+                       ("ordinary_shortfall", "shortfall_ordinary"), ("headroom_shortfall", "shortfall_headroom")):
+            num(lv.get(a_), v[b_], f"source {c_}.{a_}")
+    hl, hm = DL.get("headroom_changes_winner") or {}, DM["headroom_changes_winner"]
+    eq(hl.get("changed"), hm.get("changed"), "headroom_changes_winner.changed")
+    gl = hl.get("pair_auc_given_up_by_headroom") or {}
+    if "give_up_mean_pair_auc" in hm:
+        num(gl.get("mean"), hm["give_up_mean_pair_auc"], "give-up mean")
+        for k in SEEDS:
+            num((gl.get("per_seed") or {}).get(str(k)), hm["give_up_per_seed"][f"s{k}"], f"give-up s{k}")
+    return {"fields_compared": n, "differences": diffs[:30], "n_differences": len(diffs)}
+
+
+def mutation_power_selection(rows, own, S):
+    """Real-data deliberate defects (prompt section 14) applied to the own inner rows: each mutated selection must
+    differ from the lead's recorded resolution (so the comparison above would have caught it). A defect that changes
+    nothing on these data is reported as not exercised, not as detected."""
+    rec = S.get("resolved") or {}
+    out = {}
+    m = my_selection_cbp(rows, reverse=True)["resolved"]
+    out["reversed_best_worst_order"] = m != rec
+    m = my_selection_cbp(rows, headroom_as_ordinary=True)["resolved"]
+    out["headroom_changed_to_ordinary_limit"] = m != rec
+    per = {}
+    for cid in all_cids():
+        per[cid] = {k: {"auc": own[(k, cid)]["fams"][own[(k, cid)]["primary"]]["auc"], "util": own[(k, cid)]["utility"],
+                        "U": own[(k, cid)]["U"], "preserved": own[(k, cid)]["preserved"],
+                        "states": math.inf if own[(k, cid)]["states"] is None else float(own[(k, cid)]["states"])}
+                    for k in SEEDS if (k, cid) in own}
+    avg_rows = {c_: config_row(c_, v, seed_average=True) for c_, v in per.items()}
+    changed = sorted(c_ for c_ in rows if rows[c_].get("valid") and (avg_rows[c_]["ordinary_eligible"],
+                                                                      avg_rows[c_]["headroom_eligible"]) !=
+                     (rows[c_]["ordinary_eligible"], rows[c_]["headroom_eligible"]))
+    m = my_selection_cbp(avg_rows)["resolved"]
+    out["seed_averaged_eligibility"] = {"configs_whose_eligibility_changes": changed, "resolution_changes": m != rec,
+                                        "exercised": bool(changed)}
+    wrong_auc = {}
+    for c_, r in rows.items():
+        r = dict(r)
+        if r.get("valid"):
+            r["seeds"] = {k: {**r["seeds"][k], "auc": {w: 1.0 - v for w, v in r["seeds"][k]["auc"].items()}}
+                          for k in SEEDS}
+            for w, f_ in (("pair", "mean_pair"), ("v1", "mean_v1"), ("v2", "mean_v2")):
+                r[f_] = seed_mean([r["seeds"][k]["auc"][w] for k in SEEDS])
+        wrong_auc[c_] = r
+    out["wrong_auc_orientation"] = my_selection_cbp(wrong_auc)["resolved"] != rec
+    out["all_detected"] = all(v for k_, v in out.items() if isinstance(v, bool))
+    return out
+
+
 def _lead_selection():
     for p in (RUN / "selection.json", RES / "SELECTION.json"):
         if p.exists():
@@ -4046,10 +4174,18 @@ def check_selection(own):
                 for f_, kk in (("ll_excess", "logloss"), ("brier_excess", "brier")):
                     if (ls.get(f_) or {}).get(t_) is not None:
                         mx = max(mx, abs(float(ls[f_][t_]) - ms_["tasks"][i]["excess"][kk]))
+    det = compare_selection_detail(S, mine, rows)
+    pub = jload(RES / "SELECTION.json") if (RES / "SELECTION.json").exists() else {}
+    pub_ok = all(((pub.get("statuses") or {}).get(x) or {}).get("status") == (S.get("statuses") or {}).get(x, {}).get(
+        "status") and ((pub.get("statuses") or {}).get(x) or {}).get("config") == (S.get("statuses") or {}).get(x, {}).get(
+        "config") for x in (S.get("statuses") or {})) if pub else None
     out.update({"lead_record": src, "differences": diffs, "eligibility_differences": elig[:30],
                 "n_eligibility_differences": len(elig), "rows_compared": cmp_n, "row_max_abs_diff": mx,
-                "shortfall_max_abs_diff": sfx})
-    ok = not diffs and not elig and mx <= 1e-12 and sfx <= 1e-9
+                "shortfall_max_abs_diff": sfx, "detail": det, "public_SELECTION_json_consistent": pub_ok,
+                "resolved_equal": (S.get("resolved") or {}) == mine["resolved"],
+                "mutation_power_on_real_rows": mutation_power_selection(rows, own, S)})
+    ok = not diffs and not elig and mx <= 1e-12 and sfx <= 1e-9 and not det["n_differences"] and pub_ok is not False \
+        and out["resolved_equal"] and out["mutation_power_on_real_rows"]["all_detected"]
     return res("PASS" if ok else "FAIL", **out), mine, rows
 
 
@@ -5184,8 +5320,8 @@ def selftest_selection():
     sg = my_selection_cbp(synthetic_bank({b_config("JOINT", 0.04): bump})[0])["statuses"]
     out["one_seed_guard_breach_blocks"] = sg["J*"]["config"] == "U|JOINT|i8o64|l0.025" and \
         sg["P*"]["config"] == "U|JOINT|i8o64|l0.04"
-    r_eq = config_row("x", {k: _seed(auc=(0.765, 0.770, 0.8)) for k in SEEDS})
-    r_g = config_row("g", {k: _seed(auc=(0.760, 0.770, 0.8)) for k in SEEDS})
+    r_eq = config_row(b_config("LOCAL", 0.01), {k: _seed(auc=(0.765, 0.770, 0.8)) for k in SEEDS})
+    r_g = config_row(b_config("FINE-TASK"), {k: _seed(auc=(0.760, 0.770, 0.8)) for k in SEEDS})
     out["guard_inclusive_and_zero_shortfall"] = guard_check(r_eq, [r_g])[0] == (0.765 <= 0.760 + 0.005) and \
         guard_check(r_g, [r_g]) == (True, 0.0) and guard_check(r_eq, [r_g])[1] == (0.0 if guard_check(r_eq, [r_g])[0]
                                                                                  else guard_check(r_eq, [r_g])[1])
