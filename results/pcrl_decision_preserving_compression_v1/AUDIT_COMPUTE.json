@@ -1,0 +1,203 @@
+{
+ "study": "pcrl_decision_preserving_compression_v1",
+ "owner": "audit/baseline",
+ "kind": "SYNTHETIC timing estimates (no real data, no labels); real views may converge differently (MLP early stopping); one process, OMP_NUM_THREADS=1; cpu_s = process CPU time of the measuring process",
+ "fixture": "dpc.audit.synthetic_D (AUDIT_FIT 6,065 / INNER_SELECTION 2,235 rows, P(S=1)=0.68) + synthetic_policy (token states per recipient as listed, SEX-tilted token frequencies) / a U-shaped synthetic teacher (r 16-d, affine logits, softmax probabilities); FINAL slate (LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) + cell readers alpha {0.5, 1, 5} on finite views",
+ "measured": {
+  "policy_inner": [
+   {
+    "states": [
+     16,
+     48
+    ],
+    "dims": {
+     "v1": 20,
+     "v2": 60,
+     "pair": 80
+    },
+    "wall_s": 8.79,
+    "cpu_s": 8.82,
+    "aucs": {
+     "v1": 0.695650163953035,
+     "v2": 0.6112688188973496,
+     "pair": 0.7177929779400322
+    }
+   },
+   {
+    "states": [
+     16,
+     48
+    ],
+    "dims": {
+     "v1": 20,
+     "v2": 60,
+     "pair": 80
+    },
+    "wall_s": 8.79,
+    "cpu_s": 8.82,
+    "aucs": {
+     "v1": 0.6584989188803225,
+     "v2": 0.6348012515722465,
+     "pair": 0.7060082241991383
+    }
+   },
+   {
+    "states": [
+     8,
+     16
+    ],
+    "dims": {
+     "v1": 12,
+     "v2": 28,
+     "pair": 40
+    },
+    "wall_s": 5.71,
+    "cpu_s": 5.72,
+    "aucs": {
+     "v1": 0.6620828168797477,
+     "v2": 0.6508047521663588,
+     "pair": 0.7200495063100406
+    }
+   },
+   {
+    "states": [
+     24,
+     54
+    ],
+    "dims": {
+     "v1": 28,
+     "v2": 66,
+     "pair": 94
+    },
+    "wall_s": 9.65,
+    "cpu_s": 9.71,
+    "aucs": {
+     "v1": 0.6527646820812423,
+     "v2": 0.6552537289932311,
+     "pair": 0.7130336712480754
+    }
+   }
+  ],
+  "source_inner": {
+   "interface": {
+    "dims": {
+     "v1": 4,
+     "v2": 12,
+     "pair": 16
+    },
+    "wall_s": 5.0,
+    "cpu_s": 4.99
+   },
+   "complete": {
+    "dims": {
+     "v1": 18,
+     "v2": 22,
+     "pair": 40
+    },
+    "wall_s": 7.5,
+    "cpu_s": 7.47
+   },
+   "scores": {
+    "dims": {
+     "v1": 2,
+     "v2": 6,
+     "pair": 8
+    },
+    "wall_s": 4.21,
+    "cpu_s": 4.21
+   },
+   "probs": {
+    "dims": {
+     "v1": 2,
+     "v2": 6,
+     "pair": 8
+    },
+    "wall_s": 4.25,
+    "cpu_s": 4.24
+   },
+   "decisions": {
+    "dims": {
+     "v1": 2,
+     "v2": 6,
+     "pair": 8
+    },
+    "wall_s": 2.98,
+    "cpu_s": 2.98
+   },
+   "all_five_families": {
+    "wall_s": 23.94,
+    "cpu_s": 23.89
+   }
+  },
+  "reference_cells_inner": {
+   "alphabets": [
+    82,
+    97
+   ],
+   "dims": {
+    "v1": 86,
+    "v2": 109,
+    "pair": 195
+   },
+   "wall_s": 16.96,
+   "cpu_s": 17.12
+  },
+  "final": {
+   "policy_outer_one_family": {
+    "wall_s": 12.4,
+    "cpu_s": 12.45,
+    "score_rows": 13936
+   },
+   "source_interface_with_2_composed": {
+    "wall_s": 24.7,
+    "cpu_s": 24.8
+   },
+   "source_complete_with_2_composed_memo_reuse": {
+    "wall_s": 7.19,
+    "cpu_s": 7.21
+   }
+  },
+  "machine": {
+   "python": "3.13.7",
+   "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+   "omp_threads": 1,
+   "peak_rss_bytes": 624263168
+  }
+ },
+ "per_unit_cpu_s": {
+  "policy_inner_unit_mean": 8.27,
+  "policy_inner_range": [
+   5.72,
+   9.71
+  ],
+  "source_inner_unit_all_five_families": 23.89,
+  "reference_E_inner_unit_est": 23.9,
+  "reference_F_or_F0_inner_unit_est": 34.0,
+  "fare_cell_family_alone": 17.12,
+  "final_policy_outer_unit": 12.45,
+  "final_source_outer_unit_five_families_2_composed": 53.6
+ },
+ "bank_estimates_cpu_hours": {
+  "full_bank": {
+   "policy_units": 258,
+   "inner_stage_cpu_h": 0.71,
+   "note": "252 mapping-pair units + 6 class-only; + 6 source and 9 reference inner units"
+  },
+  "reduced_bank": {
+   "policy_units": 126,
+   "inner_stage_cpu_h": 0.41
+  },
+  "controls_stage_cpu_h_default_plan": 0.11,
+  "assessment_cpu_h_per_100_policy_like_outer_units": 0.35,
+  "assessment_cpu_h_per_source_outer_unit": 0.015
+ },
+ "recommendation": "Audit cost does not constrain the bank: the full bank's inner audits are about 0.71 CPU-h (one worker; halve the wall time with two shards). Choose the bank on the fitting cost.",
+ "code_sha256": {
+  "dpc/audit.py": "e024235b48544d791ddb5179aaafa38a7ecbc3d0aa02846966f8d27f30ed235e",
+  "dpc/utility.py": "23a07815c74471acc2e8d3154b391a68086bcbe4d1593c21dc1729ede7d88f9c",
+  "dpc/assess.py": "434103381684a0744a6a1e8a0ec9510164ede3402190790066aa0b31aa7bc9fd",
+  "dpc/baselines.py": "2ac7b4b6f130ded034fe9971e703fc148a0c4ed2e40b3e88a878d64d392e806f",
+  "dpc/tests/test_audit.py": "ca94d209e505949ead6f1713163521865bfaf16ed718fb929671adfc4f3d9f34"
+ },
+ "code_note": "hashes after the final docstring edits; the timed code paths are unchanged"
+}
