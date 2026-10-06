@@ -56,6 +56,8 @@ class Ctx:
                 z0 = z0 if z0 is not None else p
                 assert np.array_equal(p["assess_row_id"], z0["assess_row_id"]), "assessment rows differ"
                 assert np.array_equal(p["assess_unit"], z0["assess_unit"]), "assessment groups differ"
+                for key in ("sex", "y_income", "y_occ", "const_class"):          # review R2
+                    assert np.array_equal(p[key], z0[key]), f"{key} differs across arms"
         self.units, self.sex, self.rows = z0["assess_unit"], z0["sex"], z0["assess_row_id"]
         self.y = {0: z0["y_income"], 1: z0["y_occ"]}
         self.const = {j: int(z0["const_class"][j]) for j in (0, 1)}
@@ -192,14 +194,14 @@ def main(argv=None):
         out["levels"][nm] = {"point": pts[sid], "se": float(np.std(r[np.isfinite(r)], ddof=1)),
                              "nonfinite": int((~np.isfinite(r)).sum())}
     dec = {}
-    for claim in FAM.CLAIMS:
+    for claim, (nom, ref) in FAM.CLAIMS.items():            # review R3: validity is recorded per claim
         d = {e["id"]: e["decision"] for e in out["primary"] if e["claim"] == claim}
         dec[claim] = FAM.claim_decision(claim, d, EL["statuses"])
+        dec[claim]["valid"] = bool(EL.get("U_valid", False)) and "INVALID" not in d.values() and not any(
+            str(EL["statuses"].get(x, {}).get("status", "")).startswith("INVALID") for x in (nom, ref))
         out[f"claim{claim}"] = dec[claim]
-    complete = bool(EL.get("U_valid", False)) and not invalid and not any(
-        str(s.get("status", "")).startswith("INVALID") for s in EL["statuses"].values())
-    out["complete"] = complete
-    out["label"] = FAM.overall_label(dec, complete=complete)
+    out["complete"] = all(dec[c]["valid"] for c in dec)
+    out["label"] = FAM.overall_label(dec)
     (R.RUN / "inference.json").write_text(json.dumps(out, indent=1, default=float))
     cols = ["id", "claim", "stat", "target", "side", "point", "se", "lower", "upper", "z", "decision",
             "decision_numeric", "alias_of"]

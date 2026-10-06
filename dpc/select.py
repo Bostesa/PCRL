@@ -15,7 +15,8 @@ Tie rule (every pick): lower mean inner pair AUC, then lower mean task log loss,
   C_match(t, m)  nonjoint policies (FINE-TASK, DIRECT-TASK, LOCAL, SEQ-12, SEQ-21) of teacher t and rate m, all lambda
   C_global       nonjoint policies (all teachers/rates) + CLASS + sources + references
   J*             JOINT, task-eligible, locals <= C_match(t, m) + 0.005 and <= C_global + 0.005 on every seed and recipient
-  T*             privacy-untrained: FINE-TASK, DIRECT-TASK, CLASS, sources (both teachers, all rates)
+  T*             privacy-untrained: FINE-TASK, DIRECT-TASK, CLASS, sources (both teachers, all rates) and the official
+                 no-fairness FARE compression REF|F0 (review R1)
   P*             LOCAL, SEQ-12, SEQ-21, JOINT; task-eligible; locals <= T* + 0.005 on every seed and recipient
 No eligible candidate -> NO_FEASIBLE_NOMINEE (comparators: NO_FEASIBLE_CONTROL) with a deterministic minimum-shortfall
 fallback (summed positive gate shortfalls in native units + guard excess in AUC units, then the tie rule) that is
@@ -164,7 +165,8 @@ def select_all(D, shard_spec=None):
                                         none="NO_FEASIBLE_CONTROL")
     glob = nonjoint + [rows[c] for c in ids if family(c) in ("CLASS", "SRC", "REF")]
     C_global = pick(glob, none="NO_FEASIBLE_CONTROL")
-    T_star = pick([rows[c] for c in ids if family(c) in UNTRAINED + ("SRC",)], none="NO_FEASIBLE_CONTROL")
+    T_star = pick([rows[c] for c in ids if family(c) in UNTRAINED + ("SRC",) or c == "REF|F0"],   # review R1
+                  none="NO_FEASIBLE_CONTROL")
     # J*: per-config guards against its own C_match and C_global
     jrows = []
     for c in pol:

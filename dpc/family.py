@@ -60,12 +60,15 @@ def claim_decision(claim, clause_decisions, status):
             "decision": "PASS" if (all_pass and req) else "NOT_ESTABLISHED"}
 
 
-def overall_label(dec, complete=True):
-    if not complete:
-        return "INCOMPLETE_OR_INVALID"
+def overall_label(dec, complete=None):
+    """A favourable label needs its claim(s) PASS and valid; otherwise INCOMPLETE_OR_INVALID if any claim lacks
+    validity/coverage (per-claim "valid", review R3), else EXPERIMENTAL_NO_ADVANTAGE (a complete valid negative)."""
+    valid = {c: dec[c].get("valid", True if complete is None else complete) for c in dec}
     labels = []
-    if dec["A"]["decision"] == "PASS" and dec["B"]["decision"] == "PASS":
+    if all(dec[c]["decision"] == "PASS" and valid[c] for c in ("A", "B")):
         labels.append("JOINT_DEVELOPMENT_CRITERION_MET")
-    if dec["C"]["decision"] == "PASS":
+    if dec["C"]["decision"] == "PASS" and valid["C"]:
         labels.append("PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET")
-    return " + ".join(labels) if labels else "EXPERIMENTAL_NO_ADVANTAGE"
+    if labels:
+        return " + ".join(labels)
+    return "INCOMPLETE_OR_INVALID" if not all(valid.values()) else "EXPERIMENTAL_NO_ADVANTAGE"
