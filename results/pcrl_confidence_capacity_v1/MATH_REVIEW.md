@@ -1,4 +1,5 @@
-STATUS (2026-10-06): 0 OPEN REQUIRED. Mutation testing is in section 5.
+STATUS (2026-10-06 06:30Z): 0 OPEN REQUIRED. Mutation testing (section 5): 74/76 injected defects caught by the
+final post-lock test file, and 74/74 non-equivalent. The 2 survivors are behaviourally equivalent.
 
 | Review | REQUIRED found | Open | Other findings |
 |---|---|---|---|
@@ -15,7 +16,7 @@ re-verified by the reviewer's failing fixture, which now passes.
 **Reviewer tests.**
 - `qpc/tests/test_math_review.py` is locked in AUDIT_AND_SELECTION_LOCK: 49/49 pass, about 11 s on one thread.
 - `qpc/tests/test_math_review_postlock.py` is the post-lock copy with the tests strengthened during mutation
-  testing. It is loaded by no stage, and 51/51 pass.
+  testing. It is loaded by no stage, and 64/64 pass (about 17 s).
 
 # Math, invariants and protocol review: confidence capacity and privacy (qpc)
 
@@ -371,8 +372,9 @@ lose the fit objective, convergence and work.**
 
 ### 2.3 Test inventory
 
-The final file has 49 test cases in 35 functions. The tables below cover every review; section 2.1 lists the
-Stage A tests in detail.
+The locked `test_math_review.py` has 49 test cases in 35 functions, all passing. The table below covers every
+review; section 2.1 lists the Stage A tests in detail. `test_math_review_postlock.py` contains all of these plus the
+post-lock additions listed after the table, 64 cases in total.
 
 | Area | Tests |
 |---|---|
@@ -400,6 +402,30 @@ Stage A tests in detail.
     stream, weighted Mann-Whitney AUC averaged over attacker seeds, seed-averaged endpoints, SE with ddof 1,
     z = 3.2048452050105634 and strict sides.
   - An arm with altered SEX is refused.
+- `test_search_operation_sequences_equal_reference` covers 7 settings, including a wide fixture and an exact
+  merge-tie fixture.
+  - It compares every merge (to the cap and extra) and every accepted move, in order, of every stage of FINE-TASK,
+    LOCAL, SEQ-12 and SEQ-21.
+  - It does the same for every JOINT start: JOINT-GREEDY, and each witness's joint refinement, compared on its own
+    so that the best-of-nine choice cannot mask a defective start.
+  - Each sequence must equal the reference.
+- `test_greedy_and_refine_from_random_states_equal_reference` drives `compress.greedy` and `compress.refine` from
+  random class-preserving coarse states under task, local and joint weights.
+  - Random starts produce moves with several improving targets, where the first improving target is not the best,
+    and improving merges after moves. Both occur in the test.
+  - The operation logs and final states must equal the reference.
+- `test_registered_objective_weights` pins W_task, W_local, W_joint, the diagnostic old surrogate and F_values to
+  the registered objectives.
+- `test_quick_convergence_round_counts_and_stagea_distortion` checks the round counts of an immediate fixed point
+  against the reference.
+  - It also checks that the Stage A receipts' `fit_distortion` (`recipient_fit`, A1 contrast) equals the row-level
+    mean KL of the released vectors.
+- `test_tie_fixture_has_an_exact_merge_tie` confirms the tie fixture really ties (within 1e-12).
+- `test_infer_decisions_are_strict_at_the_boundary`: for every registered slot, a bound exactly at its target is
+  NOT_ESTABLISHED.
+- `test_selection_designed_banks_F0_in_T_star_and_tie_order` uses designed banks:
+  - REF|F0 is T* when it is the strongest untrained release;
+  - with identical mean pair AUC, lower log loss beats fewer states.
 
 **Fixtures that failed before the fixes and pass now:**
 - `test_runner_reads_the_keys_that_stagea_writes` (SA-R1 and SA-R2);
@@ -802,7 +828,156 @@ Imported unchanged: `dpc/audit.py` f2c5a2699f4f and `smf/audit.py` 4b9ac46ddc9a.
 
 ## 5. Mutation testing (copies only; after the locks, at the lead's request)
 
-Pending; see the result table once the semaphore run completes.
+**Harness** (in the reviewer's scratch directory; nothing in the worktree is mutated).
+- For each mutant, `qpc/` is copied to a scratch root, without `__pycache__`, together with only the two text files
+  the tests read (PROTOCOL.md, LABEL_TRUTH_TABLE.json).
+- One plausible textual defect is applied to the copy. The reviewer's test file is then run from the copy with
+  `PYTHONPATH=<copy root>:<worktree>`, so `qpc` resolves to the mutated copy and `dpc`/`jcv`/`smf` to the pinned
+  tree.
+- An unmutated baseline must pass first, and did in every round.
+- A mutant counts as CAUGHT if any test fails or the run hangs (180 s timeout).
+- Every run went through `qpc.sema` (labels `C:mutation`, `C:mutation2`, `C:mutation3`, one thread).
+- The first attempt at 05:11Z was stopped by the reviewer after 40 CPU-s, at the lead's request (section 7).
+
+**Rounds.**
+
+| Round | Test file at run time | Mutants run | Caught | Survived |
+|---|---|---|---|---|
+| 1 (05:54-06:09Z) | `test_math_review_postlock.py` with 51 tests (the 49 locked tests plus the tolerance/cap and inference tests and the exact tie rule) | 46 completed, then the harness stopped on C20's hang | 36 | 10: K7, K16, SA2, RL4, C3, C4, C5, C9, C10, C16 |
+| 2 (06:14-06:24Z) | postlock, 62 tests (operation sequences, random-state search, weights, quick convergence and stagea distortion added) | 40: the round-1 survivors, C20 and the 29 not yet run | 35 | 5: K7, RL4, S3, S4, I1 |
+| 3 (06:25:56-06:27:41Z) | postlock, 64 tests (strict-boundary decisions and designed selection banks added) | 5 | 3 | 2: K7, RL4 |
+
+**Final result. 74 of 76 mutants are caught by the final post-lock file, and 74 of 74 non-equivalent mutants.**
+
+| Module | Caught |
+|---|---|
+| kmeans | 15/16 (K7 equivalent) |
+| stagea | 4/4 |
+| release | 3/4 (RL4 equivalent) |
+| partition | 3/3 |
+| compress | 21/21 (C20 by hang) |
+| gate | 3/3 |
+| select | 8/8 |
+| family | 4/4 |
+| audit | 5/5 |
+| infer | 8/8 |
+
+**The two survivors are behaviourally equivalent.**
+- **K7** (the qpc rule returns the last iterate instead of the best coherent one): Lloyd steps are monotone up to
+  O(eps) (section 1.4), so the best coherent iterate is the last one on every fixture. The rule only guards against
+  roundoff.
+- **RL4** (the release-row smoothing re-check is disabled): prototypes are produced by the same registered formula in
+  `token_tables`, so the re-check is redundant by construction.
+
+**What the survivors showed about the tests, not the code.** Every baseline passed, and no mutant exposed a code
+defect. The round-1 survivors were gaps in the reviewer's tests, closed in `test_math_review_postlock.py`:
+- **C3, C4** (no greedy extra merges; no merge pass ending each sweep): each defect is compensated by the other merge
+  pass in the final maps, so only an exact operation-sequence comparison exposes them. Closed by
+  `test_search_operation_sequences_equal_reference` and `test_greedy_and_refine_from_random_states_equal_reference`.
+- **C5** (LOCAL weight lambda instead of lambda/2): the tiny fixtures' discrete optima coincided for both weights.
+  Closed by the operation-sequence test and `test_registered_objective_weights`.
+- **C9, C10** (first-improvement refinement; last-candidate merge tie): there were no fixtures with several improving
+  move targets or exact merge ties. Closed by the wide fixture, the tie fixture and the random-start search test.
+- **C16** (merge cache of the other recipient not invalidated): JOINT's best-of-nine choice masked a defective
+  JOINT-GREEDY start. Closed by comparing each JOINT start's own operation log.
+- **K16** (fixed-point stop delayed): no fixture converged within 3 passes. **SA2** (Stage A fit distortion omits
+  the entropy term): that receipt value was never checked. Both are closed by
+  `test_quick_convergence_round_counts_and_stagea_distortion`.
+- **S3, S4** (T* without F0; states ordered before log loss): no random bank made F0 the strongest untrained release
+  or tied the first ordering key. Closed by `test_selection_designed_banks_F0_in_T_star_and_tie_order`.
+- **I1** (non-strict lower bound): no bound sat exactly at its target. Closed by
+  `test_infer_decisions_are_strict_at_the_boundary`.
+- **C20** (extra-merge threshold 0 instead of -TOL) makes the merge loop spin forever. With gmin in (-TOL, 0), no
+  candidate is both within the tie band and below -TOL. It is caught by the hang. The registered code's
+  `gmin < -TOL` exit is what prevents that loop.
+
+**Power of the LOCKED file.** The locked `test_math_review.py` (49 tests) is weaker than the post-lock file. Round 1
+ran with only two post-lock tests added, and its 10 survivors bound what the locked file alone would have missed.
+The locked file therefore should not be cited as having caught 74/76. The 74/76 figure belongs to
+`test_math_review_postlock.py`.
+
+**Per-mutant results** ("round 1" = first-round outcome; "final" = outcome against the final post-lock file;
+"first failing test" from the final run):
+
+| ID | File | Injected defect | Round 1 | Final | First failing test |
+|---|---|---|---|---|---|
+| K1 | `qpc/kmeans.py` | kpp first centre uniform over distinct vectors (ignores multiplicity) | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[kpp:20261006]` |
+| K2 | `qpc/kmeans.py` | kpp weights ignore multiplicities | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[kpp:20261006]` |
+| K3 | `qpc/kmeans.py` | kpp samples proportional to sqrt(KL) instead of KL | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[kpp:20261006]` |
+| K4 | `qpc/kmeans.py` | kpp does not zero already-chosen vectors | CAUGHT | **CAUGHT** | `test_kpp_roundoff_guard_and_degenerate_draws` |
+| K5 | `qpc/kmeans.py` | kpp generator ignores the predicted class | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[kpp:20261006]` |
+| K6 | `qpc/kmeans.py` | best iterate: earlier pass wins exact ties | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[source]` |
+| K7 | `qpc/kmeans.py` | qpc rule returns the last iterate, not the best coherent one | SURVIVED | **SURVIVED** (behaviourally equivalent) | - |
+| K8 | `qpc/kmeans.py` | relative-tolerance patience 2 instead of 3 | CAUGHT | **CAUGHT** | `test_tolerance_and_cap_stops_match_reference` |
+| K9 | `qpc/kmeans.py` | tolerance stop without the final update/assignment | CAUGHT | **CAUGHT** | `test_tolerance_and_cap_stops_match_reference` |
+| K10 | `qpc/kmeans.py` | empty cell re-seeded to the first row instead of keeping its centroid | CAUGHT | **CAUGHT** | `test_empty_cells_keep_centroid_are_reported_and_removed` |
+| K11 | `qpc/kmeans.py` | start selection: later start wins ties | CAUGHT | **CAUGHT** | `test_start_selection_is_per_class_lowest_fitting_kl_with_fixed_ties` |
+| K12 | `qpc/kmeans.py` | source init sorted by p_c ascending | CAUGHT | **CAUGHT** | `test_a1_source_rule_reproduces_dpc_fit_fine_bitwise[4]` |
+| K13 | `qpc/kmeans.py` | KL guard silently clips genuine negative divergences | CAUGHT | **CAUGHT** | `test_kpp_roundoff_guard_and_degenerate_draws` |
+| K14 | `qpc/kmeans.py` | k-means uses one cell more than the cap | CAUGHT | **CAUGHT** | `test_a1_source_rule_reproduces_dpc_fit_fine_bitwise[4]` |
+| K15 | `qpc/kmeans.py` | class objective omits the entropy term (not the KL) | CAUGHT | **CAUGHT** | `test_qpc_iteration_matches_independent_reference_and_returns_best_coherent_iterate[source]` |
+| K16 | `qpc/kmeans.py` | fixed-point stop delayed (needs r > 3) | SURVIVED | **CAUGHT** | `test_quick_convergence_round_counts_and_stagea_distortion` |
+| SA1 | `qpc/stagea.py` | A1 200-round refit uses all three starts (not the source initialisation) | CAUGHT | **CAUGHT** | `test_a1_unit_parity_with_admitted_source_release_and_alias_of_a2_source_start` |
+| SA2 | `qpc/stagea.py` | fit distortion omits the entropy term | SURVIVED | **CAUGHT** | `test_quick_convergence_round_counts_and_stagea_distortion` |
+| SA3 | `qpc/stagea.py` | A1 source reproduction runs 21 rounds | CAUGHT | **CAUGHT** | `test_a1_unit_parity_with_admitted_source_release_and_alias_of_a2_source_start` |
+| SA4 | `qpc/stagea.py` | A1 parity verdict ignores token/decoded-vector parity | CAUGHT | **CAUGHT** | `test_a1_unit_parity_with_admitted_source_release_and_alias_of_a2_source_start` |
+| RL1 | `qpc/release.py` | per-recipient cap check disabled | CAUGHT | **CAUGHT** | `test_asymmetric_caps_save_restore_and_no_hidden_ids` |
+| RL2 | `qpc/release.py` | swapped recipients accepted | CAUGHT | **CAUGHT** | `test_asymmetric_caps_save_restore_and_no_hidden_ids` |
+| RL3 | `qpc/release.py` | dpc records accepted as qpc releases | CAUGHT | **CAUGHT** | `test_asymmetric_caps_save_restore_and_no_hidden_ids` |
+| RL4 | `qpc/release.py` | release smoothing re-check disabled (expected equivalent) | SURVIVED | **SURVIVED** (behaviourally equivalent) | - |
+| PT1 | `qpc/partition.py` | fine caps swapped | CAUGHT | **CAUGHT** | `test_fine_unit_caps_starts_rows_and_deployment` |
+| PT2 | `qpc/partition.py` | fine partitions fitted on all rows (not DEFENSE_FIT) | CAUGHT | **CAUGHT** | `test_fine_unit_caps_starts_rows_and_deployment` |
+| PT3 | `qpc/partition.py` | fine partitions use only the source start | CAUGHT | **CAUGHT** | `test_fine_unit_caps_starts_rows_and_deployment` |
+| C1 | `qpc/compress.py` | SEQ stage one uses the old D + 1.5 lam I surrogate (no correction) | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-1-2-10.0]` |
+| C2 | `qpc/compress.py` | SEQ stage one with the other recipient at its fine cells (not class-only) | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-2-0.1]` |
+| C3 | `qpc/compress.py` | no objective-improving extra merges after the cap | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[small-2-2-1.0]` |
+| C4 | `qpc/compress.py` | refinement sweep without its merge pass | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[wide-3-3-0.3]` |
+| C5 | `qpc/compress.py` | LOCAL weight lam instead of lam / 2 | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[wide-3-3-0.3]` |
+| C6 | `qpc/compress.py` | JOINT pair weight lam / 2 | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| C7 | `qpc/compress.py` | merge dI12 ignored for recipient-2 merges | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| C8 | `qpc/compress.py` | apply_move forgets the pair table on recipient 2 | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[null-2-2-1.0]` |
+| C9 | `qpc/compress.py` | refinement first-improvement instead of best | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[wide-3-2-3.0]` |
+| C10 | `qpc/compress.py` | merge tie goes to the last candidate | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[tie-2-2-1.0]` |
+| C11 | `qpc/compress.py` | JOINT drops the refined SEQ-21 start | CAUGHT | **CAUGHT** | `test_joint_candidates_and_witness_dominance` |
+| C12 | `qpc/compress.py` | JOINT drops the unchanged witnesses (expected equivalent: refinement never worsens) | CAUGHT | **CAUGHT** | `test_joint_candidates_and_witness_dominance` |
+| C13 | `qpc/compress.py` | refinement may empty a coarse cell | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| C14 | `qpc/compress.py` | greedy stops one merge early | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-2-0.1]` |
+| C15 | `qpc/compress.py` | SEQ stage two revises the first recipient | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| C16 | `qpc/compress.py` | merge cache of the other recipient not invalidated | SURVIVED | **CAUGHT** | `test_search_operation_sequences_equal_reference[wide-3-3-0.3]` |
+| C17 | `qpc/compress.py` | SEQ-21 runs the SEQ-12 order | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| C18 | `qpc/compress.py` | merge tie tolerance 1e-3 | CAUGHT | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-3-2-0.01]` |
+| C19 | `qpc/compress.py` | F_joint reported/compared with lam (I1 + I2) instead of lam (I1 + I2) / 2 | CAUGHT | **CAUGHT** | `test_sequential_correction_stage_one_is_F_joint_with_class_only_counterpart` |
+| C20 | `qpc/compress.py` | extra-merge threshold 0 instead of -TOL (expected near-equivalent) | hang (harness timeout) | **CAUGHT** | timeout (hang) |
+| C21 | `qpc/compress.py` | JOINT keeps the worst candidate | not run (harness stopped at C20) | **CAUGHT** | `test_stageb_families_equal_independent_reference[small-2-3-1.0]` |
+| G1 | `qpc/gate.py` | rate selection ignores the headroom preference | not run (harness stopped at C20) | **CAUGHT** | `test_gate_rate_selection_matches_the_registered_rule` |
+| G2 | `qpc/gate.py` | rate key: income log loss before occupation | not run (harness stopped at C20) | **CAUGHT** | `test_gate_rate_selection_matches_the_registered_rule` |
+| G3 | `qpc/gate.py` | eligibility if ANY seed passes / missing seed tolerated | not run (harness stopped at C20) | **CAUGHT** | `test_gate_eligibility_needs_every_seed_and_every_gate` |
+| S1 | `qpc/select.py` | guard buffer 0 | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| S2 | `qpc/select.py` | J* guard drops C_global | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| S3 | `qpc/select.py` | T* excludes F0 | not run (harness stopped at C20) | **CAUGHT** | `test_selection_designed_banks_F0_in_T_star_and_tie_order` |
+| S4 | `qpc/select.py` | ordering: states before log loss | not run (harness stopped at C20) | **CAUGHT** | `test_selection_designed_banks_F0_in_T_star_and_tie_order` |
+| S5 | `qpc/select.py` | eligible if ANY seed passes | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| S6 | `qpc/select.py` | C_global includes JOINT | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| S7 | `qpc/select.py` | Q* ordered by states before normalised excess | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| S8 | `qpc/select.py` | P* guard against T* dropped | not run (harness stopped at C20) | **CAUGHT** | `test_selection_matches_independent_protocol_transcription` |
+| F1 | `qpc/family.py` | no-eligible-nominee rule removed | not run (harness stopped at C20) | **CAUGHT** | `test_claim_status_and_label_match_protocol_text_exhaustively` |
+| F2 | `qpc/family.py` | no eligible comparator relabelled as a completed negative | not run (harness stopped at C20) | **CAUGHT** | `test_claim_status_and_label_match_protocol_text_exhaustively` |
+| F3 | `qpc/family.py` | amended label rule: favourable label suppressed by other claims' gaps | not run (harness stopped at C20) | **CAUGHT** | `test_claim_status_and_label_match_protocol_text_exhaustively` |
+| F4 | `qpc/family.py` | coalition margin 0.01 instead of 0.02 | not run (harness stopped at C20) | **CAUGHT** | `test_family_37_fixed_slots_and_z` |
+| A1 | `qpc/audit.py` | composed AUC winner chosen on seed means instead of the seed-0 bank | not run (harness stopped at C20) | **CAUGHT** | `test_composed_source_bank_winner_rule_matches_transcription` |
+| A2 | `qpc/audit.py` | decisions family composes with every code | not run (harness stopped at C20) | **CAUGHT** | `test_composed_source_bank_winner_rule_matches_transcription` |
+| A3 | `qpc/audit.py` | composed CE winner taken from the AUC criterion | not run (harness stopped at C20) | **CAUGHT** | `test_composed_source_bank_winner_rule_matches_transcription` |
+| A4 | `qpc/audit.py` | composed bank accepts records from other rows / slates | not run (harness stopped at C20) | **CAUGHT** | `test_composed_source_bank_winner_rule_matches_transcription` |
+| A5 | `qpc/audit.py` | freeze list omits CE winners | not run (harness stopped at C20) | **CAUGHT** | `test_composed_source_bank_winner_rule_matches_transcription` |
+| I1 | `qpc/infer.py` | non-strict lower bound | not run (harness stopped at C20) | **CAUGHT** | `test_infer_decisions_are_strict_at_the_boundary` |
+| I2 | `qpc/infer.py` | SE with ddof 0 | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I3 | `qpc/infer.py` | bootstrap seed shifted | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I4 | `qpc/infer.py` | bootstrap over rows instead of exact-record groups | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I5 | `qpc/infer.py` | DESCRIPTIVE_ONLY override removed | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I6 | `qpc/infer.py` | endpoint uses model seed 0 only (no seed averaging) | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I7 | `qpc/infer.py` | dpc z (33 slots) instead of 37 | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+| I8 | `qpc/infer.py` | labels / SEX not checked across arms | not run (harness stopped at C20) | **CAUGHT** | `test_inference_end_to_end_against_independent_bootstrap` |
+
 
 ## 6. Prior art
 
@@ -814,8 +989,24 @@ See `PRIOR_ART_AND_BASELINE_GAPS.md`.
   are prior work. Our sequential arms, including the class-only correction, are matched adaptations, not the Taylor
   solver. No novelty is claimed.
 
-## 7. Real-data contact by the reviewer
+## 7. Real-data contact and resource use by the reviewer
 
-None. The reviewer read no Adult row, label, SEX value, unit array or receipt of this study's real fits, and ran no
-real-data code. Every test and mutant uses synthetic fixtures. The mutation harness ran under the shared semaphore
-(label `C:mutation`).
+**Real data.** None. The reviewer read no Adult row, label, SEX value, unit array or receipt of this study's real
+fits, and ran no real-data code. Every test and mutant uses synthetic fixtures.
+
+**Semaphore runs.**
+
+| Run | Slot | Time (UTC) | CPU | Notes |
+|---|---|---|---|---|
+| `C:mutation` | 1 | 05:11:46-05:12:27Z | about 40 CPU-s | Stopped at the lead's request with SIGTERM to the wrapper and its child at once. No orphan, and no overlap with inner_src, which acquired at 05:12:31Z. The wrapper wrote no release record, which led to the semaphore hardening. |
+| `C:mutation` (round 1) | 0 | 05:53:45-06:08:59Z | 906 CPU-s | |
+| `C:mutation2` (round 2) | 0 | 06:14:35-06:24:35Z | 591 CPU-s | |
+| `C:mutation3` (round 3) | 1 | 06:25:56-06:27:41Z | 103 CPU-s | |
+
+Total semaphored CPU: about 1,640 CPU-s (about 0.46 CPU-h).
+
+**Light unsemaphored work.** Each process was under the 1 CPU-minute threshold, one thread. Some ran while two heavy
+processes held the slots, and are disclosed:
+- two single-mutant checks, at 05:13:12-05:13:37Z (about 25 CPU-s) and 05:16:59-05:17:36Z (about 37 CPU-s);
+- a k-means fixture search (about 14 CPU-s);
+- routine test-suite runs (11-17 CPU-s each).

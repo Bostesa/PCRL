@@ -1267,6 +1267,27 @@ def ref_terms_fine(R1, R2, s, lab1, lab2):
     return out
 
 
+def ref_terms_fast(R1, R2, s, lab1, lab2):
+    """ref_terms_fine with vectorised plug-in MI (same definitions; used inside the reference search)."""
+    N = len(s)
+    out = {}
+    for name, R, lab in (("1", R1, lab1), ("2", R2, lab2)):
+        D = float(np.dot(R.n, R.negent))
+        for g in np.unique(lab):
+            mem = np.flatnonzero(lab == g)
+            n = R.n[mem].sum()
+            if n == 0:
+                continue
+            S = R.Ssum[mem].sum(0)
+            D -= float(np.dot(S, np.log(ref_smooth(S / n, R.cls[mem[0]]))))
+        out["D" + name] = D / N
+    t1 = np.asarray(lab1)[R1.f]
+    t2 = np.asarray(lab2)[R2.f]
+    out["I1"], out["I2"] = _fast_mi(s, t1), _fast_mi(s, t2)
+    out["I12"] = _fast_mi(s, t1 * (R2.F + 1) + t2)
+    return out
+
+
 def ref_terms_rows(R1, R2, s, lab1, lab2):
     """The same terms recomputed from the released ROWS (tokens and decoded vectors), the brute-force definition."""
     out = {}
@@ -1309,10 +1330,11 @@ class RefSearch:
         self.lab = {1: np.array(labs[0], np.int64), 2: np.array(labs[1], np.int64)}
         self.w = w
         self.tol, self.tie = tol, tie
+        self.log = []                                            # ("merge", kind, r, c, a, b) / ("move", r, f, a, b)
 
     def val(self, lab=None):
         lab = lab or self.lab
-        return ref_value(ref_terms_fine(self.R[1], self.R[2], self.s, lab[1], lab[2]), self.w)
+        return ref_value(ref_terms_fast(self.R[1], self.R[2], self.s, lab[1], lab[2]), self.w)
 
     def groups(self, r, c):
         return sorted({int(self.lab[r][j]) for j in self.R[r].cells_of[c]})
@@ -1339,6 +1361,7 @@ class RefSearch:
         for x in cands:                                          # (r, c, a, b) lexicographic generation order
             if x[0] <= gmin + self.tie and (not improving or x[0] < -self.tol):
                 self.lab = self._merged(x[1], x[3], x[4])
+                self.log.append(("merge", "extra" if improving else "to_cap", x[1], x[2], x[3], x[4]))
                 return True
         return False
 
@@ -1369,6 +1392,7 @@ class RefSearch:
                     j = int(np.argmin(deltas))
                     if deltas[j] < -self.tol:
                         self.lab[r][f] = B[j]
+                        self.log.append(("move", r, f, a, int(B[j])))
                         moved += 1
             merged = 0
             while self.merge_step(recips, None, improving=True):
@@ -2199,3 +2223,294 @@ def test_inference_end_to_end_against_independent_bootstrap(tmp_path, monkeypatc
     shutil.move(str(RUN.U("outer__s1__U_FINE-TASK_i8o64__x")), str(RUN.U("outer__s1__U_FINE-TASK_i8o64")))
     with pytest.raises(AssertionError):
         INF.main(["--evaluation-lock", str(lp)], check_prior=False)
+
+
+# ---------------------------------------------------------------- post-lock strengthening (from mutation testing)
+
+def sb_fixture2(name, seed=0):
+    """Extra Stage B fixtures: 'wide' (several targets per move: best != first improvement) and 'tie' (two merges of
+    exactly equal cost decided by the lexicographic tie rule alone)."""
+    rng = np.random.default_rng(20 + seed)
+    if name == "wide":
+        N = 300
+        qs = np.r_[np.linspace(0.03, 0.47, 7), np.linspace(0.53, 0.97, 7)]
+        V1 = [[1 - q, q] for q in qs]
+        S = rng.integers(0, 2, N)
+        f1 = np.where(rng.random(N) < 0.5, rng.integers(0, 14, N),
+                      7 * rng.integers(0, 2, N) + np.clip(S * 4 + rng.integers(0, 3, N), 0, 6))
+        V2 = []
+        for c in range(3):
+            for h in (0.4, 0.55, 0.7, 0.9):
+                v = np.full(3, (1 - h) / 2)
+                v[c] = h
+                V2.append(v.tolist())
+        f2 = 4 * rng.integers(0, 3, N) + np.where(rng.random(N) < 0.6, 2 * S + rng.integers(0, 2, N),
+                                                  rng.integers(0, 4, N))
+    elif name == "tie":
+        V1 = [[0.9, 0.1], [0.2, 0.8]]
+        V2 = [[0.8, 0.1, 0.1], [0.6, 0.3, 0.1], [0.6, 0.1, 0.3], [0.1, 0.8, 0.1], [0.1, 0.1, 0.8]]
+        f1, f2, S = [], [], []
+        for j in range(5):
+            for k in range(40):
+                f2.append(j)
+                f1.append(k % 2)
+                S.append((k // 2) % 2)
+        f1, f2, S = np.array(f1), np.array(f2), np.array(S)
+    else:
+        return sb_fixture(name, seed)
+    return RefRecip(V1, f1), RefRecip(V2, f2), np.asarray(S, np.int64)
+
+
+def _method_ops(merges=(), moves=()):
+    out = []
+    for m in list(merges) + list(moves):
+        if m["kind"] == "move":
+            out.append(("move", m["recipient"], m["fine_cell"], m["from"], m["to"]))
+        else:
+            out.append(("merge", m["kind"], m["recipient"], m["class"], m["a"], m["b"]))
+    return out
+
+
+def ref_family_ops(fam, R1, R2, s, m1, m2, lam):
+    """Reference operation logs per stage/start, in the registered order (see RefSearch / ref_family)."""
+    caps = {1: m1, 2: m2}
+    ident = (np.arange(R1.F), np.arange(R2.F))
+    if fam in ("FINE-TASK", "LOCAL"):
+        kind = "task" if fam == "FINE-TASK" else "local"
+        X = RefSearch(R1, R2, s, ident, None)
+        g, rf = {}, {}
+        for r in (1, 2):
+            X.w = W_ref(kind, lam, r)
+            n0 = len(X.log)
+            X.greedy((r,), caps)
+            g[r] = X.log[n0:]
+        for r in (1, 2):
+            X.w = W_ref(kind, lam, r)
+            n0 = len(X.log)
+            X.refine((r,))
+            rf[r] = X.log[n0:]
+        return {"stages": [g[1] + rf[1], g[2] + rf[2]]}
+    if fam in ("SEQ-12", "SEQ-21"):
+        a, b = (1, 2) if fam == "SEQ-12" else (2, 1)
+        labs = {a: np.arange((R1, R2)[a - 1].F), b: ref_class_labels((R1, R2)[b - 1])}
+        X = RefSearch(R1, R2, s, (labs[1], labs[2]), W_ref("joint", lam))
+        X.greedy((a,), caps)
+        X.refine((a,))
+        labs = {a: X.canon(a), b: np.arange((R1, R2)[b - 1].F)}
+        Y = RefSearch(R1, R2, s, (labs[1], labs[2]), W_ref("joint", lam))
+        Y.greedy((b,), caps)
+        Y.refine((b,))
+        return {"stages": [X.log, Y.log]}
+    W = W_ref("joint", lam)
+    X = RefSearch(R1, R2, s, ident, W)
+    X.greedy((1, 2), caps)
+    X.refine((1, 2))
+    out = {"JOINT-GREEDY": X.log}
+    for f in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21"):
+        lw = ref_family(f, R1, R2, s, m1, m2, None if f == "FINE-TASK" else lam)
+        Y = RefSearch(R1, R2, s, lw, W)
+        Y.refine((1, 2))
+        out[f] = Y.log
+    return out
+
+
+OPS_SETTINGS = [("wide", 3, 3, 0.3), ("wide", 3, 2, 3.0), ("tie", 2, 2, 1.0), ("small", 2, 2, 1.0),
+                ("small", 4, 3, 50.0), ("xor", 2, 2, 10.0), ("six", 2, 1, 1.0)]
+
+
+@pytest.mark.parametrize("name,m1,m2,lam", OPS_SETTINGS)
+def test_search_operation_sequences_equal_reference(name, m1, m2, lam):
+    """Every merge (to the cap, extra) and every accepted move, in order, of every stage of FINE-TASK, LOCAL,
+    SEQ-12, SEQ-21 and of every JOINT start (JOINT-GREEDY and the refinement of each witness) equals the reference
+    transcription: same recipient, class, labels and fine cell. This pins the tie rule (first lexicographic merge;
+    lowest-label move target), best-improvement refinement, the greedy extra-merge pass and the merge pass that ends
+    every sweep, and the cached candidate tables (including their invalidation across recipients when I12 counts),
+    not just the final maps; the JOINT-GREEDY start is compared on its own, so the best-of-nine choice cannot mask it."""
+    CP = _qpc("compress")
+    R1, R2, s = sb_fixture2(name)
+    for fam in ("FINE-TASK", "LOCAL", "SEQ-12", "SEQ-21", "JOINT"):
+        lm = None if fam == "FINE-TASK" else lam
+        pair, rec = _fit(fam, R1, R2, s, m1, m2, lm)
+        ref = ref_family_ops(fam, R1, R2, s, m1, m2, lm)
+        if fam == "JOINT":
+            for start, ops in ref.items():
+                sr = rec["starts"][start]
+                got = _method_ops(sr.get("merges", []), sr["moves"])
+                assert got == ops, (name, fam, start, got, ops)
+        else:
+            for i, st in enumerate(rec["stages"]):
+                got = _method_ops(st["merges"], st.get("moves", []))
+                assert got == ref["stages"][i], (name, fam, i, got, ref["stages"][i])
+        exp = ref_family(fam, R1, R2, s, m1, m2, lm)
+        got = _labels(CP, pair)
+        assert np.array_equal(got[0], exp[0]) and np.array_equal(got[1], exp[1]), (name, fam)
+
+
+def test_tie_fixture_has_an_exact_merge_tie():
+    """The tie fixture really has two merges of equal cost (within 1e-12), so the lexicographic rule decides."""
+    R1, R2, s = sb_fixture2("tie")
+    X = RefSearch(R1, R2, s, (np.arange(R1.F), np.arange(R2.F)), W_ref("task"))
+    cur = X.val()
+    assert abs((X.val(X._merged(2, 0, 1)) - cur) - (X.val(X._merged(2, 0, 2)) - cur)) <= 1e-12
+
+
+def _random_labels(R, rng, max_blocks):
+    lab = np.empty(R.F, np.int64)
+    for c in range(R.K):
+        cells = R.cells_of[c]
+        if not cells:
+            continue
+        g = rng.integers(0, max(1, min(max_blocks, len(cells))), len(cells))
+        first = {}
+        for j, b in zip(cells, g):
+            first.setdefault(int(b), j)
+            lab[j] = first[int(b)]
+    return lab
+
+
+def test_greedy_and_refine_from_random_states_equal_reference():
+    """qpc.compress.greedy and qpc.compress.refine started from random class-preserving coarse states (not only from
+    the fine cells) perform exactly the reference's operations in order (merge to cap / extra merge / move: recipient,
+    class, labels, fine cell) and end in the same state, for task, local and joint weights, single- and
+    two-recipient searches. Random starts create moves with several improving targets (best != first improvement),
+    post-move improving merges (the merge pass ending each sweep) and, for joint weights, cross-recipient table
+    dependence (cache invalidation)."""
+    CP = _qpc("compress")
+    rng = np.random.default_rng(11)
+    first_ne_best = 0
+    for name in ("small", "wide", "six", "xor", "tie"):
+        R1, R2, s = sb_fixture2(name)
+        f1, f2 = _fine_from_recip(R1), _fine_from_recip(R2)
+        T = CP.fine_table(R1.f, R2.f, s, R1.F, R2.F)
+        for trial in range(12):
+            lam = float(rng.choice([0.1, 1.0, 5.0]))
+            kind = ("task", "local", "joint")[trial % 3]
+            recips = (1, 2) if kind == "joint" else (int(rng.integers(1, 3)),)
+            w = W_ref(kind, lam, None if kind == "joint" else recips[0])
+            W = CP.Weights(*w)
+            lab = (_random_labels(R1, rng, 5), _random_labels(R2, rng, 4))
+            st = CP.State(f1, f2, T, lab[0], lab[1])
+            X = RefSearch(R1, R2, s, lab, w)
+            glog, rlog = [], []
+            if trial % 2 == 0:                                  # greedy (to random caps, then extra merges) first
+                caps = {1: int(rng.integers(1, 4)), 2: int(rng.integers(1, 3))}
+                CP.greedy(st, recips, W, caps, glog)
+                X.greedy(recips, caps)
+                assert _method_ops(glog) == X.log, (name, trial, "greedy")
+            n0 = len(X.log)
+            # count moves whose first improving target is not the best one (from the reference's viewpoint)
+            cur = X.val()
+            for r in recips:
+                R = (R1, R2)[r - 1]
+                for f in range(R.F):
+                    a = int(X.lab[r][f])
+                    if np.sum(X.lab[r] == a) <= 1:
+                        continue
+                    ds = []
+                    for b in [g for g in X.groups(r, int(R.cls[f])) if g != a]:
+                        lb = {1: X.lab[1].copy(), 2: X.lab[2].copy()}
+                        lb[r][f] = b
+                        ds.append(X.val(lb) - cur)
+                    imp = [j for j, d in enumerate(ds) if d < -1e-12]
+                    first_ne_best += bool(imp and imp[0] != int(np.argmin(ds)))
+            CP.refine(st, recips, W, rlog)
+            X.refine(recips)
+            assert _method_ops(rlog) == X.log[n0:], (name, trial, "refine")
+            for r in (1, 2):
+                assert np.array_equal(st.labels(r), X.canon(r)), (name, trial, r)
+    assert first_ne_best >= 1
+
+
+def test_registered_objective_weights():
+    """The weights are the registered objectives: F_task = D1 + D2; F_local = D1 + D2 + lam (I1 + I2)/2 (recipient
+    i alone: D_i + lam I_i / 2); F_joint = D1 + D2 + lam ((I1 + I2)/2 + I12); the old dpc surrogate (diagnostic only)
+    D_r + 1.5 lam I_r."""
+    CP = _qpc("compress")
+    lam = 0.37
+    w = lambda W: (W.wD1, W.wD2, W.wI1, W.wI2, W.w12)                 # noqa: E731
+    assert w(CP.W_task()) == (1.0, 1.0, 0.0, 0.0, 0.0)
+    assert w(CP.W_task(1)) == (1.0, 0.0, 0.0, 0.0, 0.0) and w(CP.W_task(2)) == (0.0, 1.0, 0.0, 0.0, 0.0)
+    assert w(CP.W_local(lam)) == (1.0, 1.0, lam / 2, lam / 2, 0.0)
+    assert w(CP.W_local(lam, 1)) == (1.0, 0.0, lam / 2, 0.0, 0.0)
+    assert w(CP.W_local(lam, 2)) == (0.0, 1.0, 0.0, lam / 2, 0.0)
+    assert w(CP.W_joint(lam)) == (1.0, 1.0, lam / 2, lam / 2, lam)
+    assert w(CP.W_old_seq_stage1(lam, 1)) == (1.0, 0.0, 1.5 * lam, 0.0, 0.0)
+    t = {"D1": 0.1, "D2": 0.2, "I1": 0.03, "I2": 0.05, "I12": 0.11}
+    F = CP.F_values(t, lam)
+    assert F["F_task"] == 0.1 + 0.2
+    assert abs(F["F_local"] - (0.3 + lam * 0.04)) < 1e-15 and abs(F["F_joint"] - (0.3 + lam * (0.04 + 0.11))) < 1e-15
+
+
+def test_quick_convergence_round_counts_and_stagea_distortion():
+    """A class with few distinct vectors converges at pass 2 (assignment fixed point at once): rounds and returned
+    pass equal the reference (pins the r > 1 fixed-point rule). The Stage A receipts' fit distortion
+    (recipient_fit, pair_unit, A1 contrast) equals the row-level mean KL of the released vectors."""
+    KM = _qpc("kmeans")
+    SA = _qpc("stagea")
+    RL = _qpc("release")
+    rng = np.random.default_rng(3)
+    lib = np.array([[0.9, 0.1], [0.8, 0.2], [0.7, 0.3], [0.6, 0.4], [0.55, 0.45], [0.3, 0.7], [0.2, 0.8]])
+    P = lib[rng.integers(0, 7, 400)]
+    d = P.argmax(1)
+    for c in (0, 1):
+        Pc = P[d == c]
+        for start in KM.STARTS:
+            kind, sd = KM.parse_start(start)
+            k = int(min(3, np.unique(Pc, axis=0).shape[0], Pc.shape[0]))
+            C0 = ref_source_init(Pc, c, k) if kind == "source" else ref_kpp(Pc, c, k, sd, 2)[0]
+            Q, a, rec = KM.kmeans_class(Pc, c, 3, start)
+            ref = ref_qpc_kmeans(Pc, c, C0)
+            assert rec["rounds_used"] == ref["rounds_used"] and rec["returned_pass"] == ref["returned_pass"]
+            assert rec["stop_reason"] == ref["reason"]
+    T, tr, src, meta = _synthetic_teacher_and_dpc_release()
+    for i, K, m in ((1, 2, 4), (2, 6, 16)):
+        pold, rec = SA.recipient_fit(T[f"p{i}"][tr], T[f"d{i}"][tr], K, m, i)
+        pol = RL.Policy.from_dict(pold)
+        tok, q, _ = RL.encode(pol, T[f"p{i}"][tr], T[f"d{i}"][tr])
+        D = float(np.mean([ref_kl(p, qq) for p, qq in zip(T[f"p{i}"][tr], q)]))
+        assert abs(rec["fit_distortion"] - D) <= 1e-12 * max(1.0, D)
+    rec, _ = SA.a1_unit(T, tr, src, meta)
+    for v in ("src20", "r200"):
+        for i in (1, 2):
+            fd = rec["fit_distortion_contrast"][f"D{i}"][v]
+            assert abs(fd - rec[v]["per_recipient"][i]["mean_kl_fit"]) <= 1e-12 * max(1.0, fd)
+
+
+def test_infer_decisions_are_strict_at_the_boundary():
+    """Registered sides are strict: 'lower bound > target' and 'upper bound < target'; a bound exactly at its
+    target is NOT_ESTABLISHED (both sides, every registered target)."""
+    INF = _qpc("infer")
+    FAM = _qpc("family")
+    for e in FAM.PRIMARY:
+        t = e["target"]
+        if e["side"] == "lower>":
+            assert INF.decide(e, t, t + 1.0) == "NOT_ESTABLISHED"
+            assert INF.decide(e, t + 1e-9, t + 1.0) == "PASS"
+        else:
+            assert INF.decide(e, t - 1.0, t) == "NOT_ESTABLISHED"
+            assert INF.decide(e, t - 1.0, t - 1e-9) == "PASS"
+
+
+def test_selection_designed_banks_F0_in_T_star_and_tie_order(synthetic_select):
+    """(a) REF|F0, eligible and with the lowest pair AUC of the privacy-untrained candidates, is T* (F0 explicitly
+    included). (b) Two eligible controls with IDENTICAL mean pair AUC: the one with lower mean summed log loss wins
+    C_global even though it has more states (order: pair AUC, log loss, states, ID)."""
+    ids, recs = _random_bank(7)
+    for k in (0, 1, 2):
+        recs[(k, "REF|F0")]["utility"] = {t: dict(v) for t, v in U_ANCHOR.items()}
+        recs[(k, "REF|F0")]["recovery"]["auc"]["pair"] = 0.60
+    out = synthetic_select(ids, recs)
+    assert out["statuses"]["T*"]["config"] == "REF|F0"
+    ref, _ = ref_select(ids, recs)
+    assert ref["T*"] == "REF|F0"
+    ids, recs = _random_bank(8)
+    x, y = _cid("DIRECT-TASK", 4, 8), _cid("DIRECT-TASK", 8, 64)
+    for k in (0, 1, 2):
+        for c, ll, stt in ((x, 0.001, 70), (y, 0.004, 10)):
+            u = {t: dict(v) for t, v in U_ANCHOR.items()}
+            u["occupation"]["logloss"] += ll
+            recs[(k, c)]["utility"] = u
+            recs[(k, c)]["recovery"]["auc"]["pair"] = 0.55
+            recs[(k, c)]["token_states"] = stt
+    out = synthetic_select(ids, recs)
+    assert out["statuses"]["C_global"]["config"] == x, out["statuses"]["C_global"]
