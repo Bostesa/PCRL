@@ -273,11 +273,18 @@ A failed positive control triggers technical review and an amendment, never a re
 **Labels, in precedence order:**
 1. Stage A incomplete or invalid → INCOMPLETE_OR_INVALID.
 2. Gate not met → CAPACITY_GATE_NOT_MET.
-3. Any required technical validity failed, or any claim in {NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR, INVALID_COMPARATOR, INVALID_NOMINEE, INVALID}, or Q* INVALID → INCOMPLETE_OR_INVALID, listing the missing items.
+3. Any required technical validity failed (a failed positive control without amendment, a verification FAIL on a primary quantity, a missing locked unit) → INCOMPLETE_OR_INVALID.
 4. A and B both PASS → JOINT_DEVELOPMENT_CRITERION_MET (plus PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET if C also passes).
 5. C PASS → PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (winning family named).
-6. Q* PASS → CONFIDENCE_FEASIBILITY_ESTABLISHED.
-7. Otherwise → EXPERIMENTAL_NO_ADVANTAGE.
+6. No favourable label, and any claim in {NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR, INVALID_COMPARATOR, INVALID_NOMINEE, INVALID} or Q* INVALID → INCOMPLETE_OR_INVALID, listing the missing items.
+7. Q* PASS → CONFIDENCE_FEASIBILITY_ESTABLISHED.
+8. Otherwise → EXPERIMENTAL_NO_ADVANTAGE.
+
+A validly PASSing claim keeps its favourable label even if another claim lacks coverage; that gap is always listed in the missing items and the per-claim table. A missing comparator is never a completed negative.
+
+**Guard-blocked nominees and the J* cell.** TECHNICAL_FAILURE of a nominee also covers an otherwise eligible nominee blocked only because one of its guard comparators (C_rate(J) or C_global for J*; T* for P*) is not a NOMINEE. Guards are never dropped. Claim A's C_rate is resolved at the J* nominee cell, else at the J* descriptive-fallback cell. When J* has neither, C_rate is INVALID_COMPARATOR ("no J* cell"), with the J* failure named as the root cause.
+
+These two clarifications (math review SEL-R1 and SEL-C2) were made before any inner-audit or assessment data existed, and are recorded in STAGE_B_LOCK.
 
 The per-claim table is always published. All favourable labels refer to exploratory development only.
 

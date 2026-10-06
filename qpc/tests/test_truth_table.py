@@ -45,15 +45,17 @@ def test_overall_label_exhaustive():
             for tv in (True, False):
                 lab, miss = FAM.overall_label(True, True, tv, {"A": a, "B": b, "C": c}, q, "LOCAL")
                 cov = any(x in FAM.COVERAGE_MISSING for x in (a, b, c)) or q in ("INVALID", "NOT_APPLICABLE_NO_Q")
-                if not tv or cov:
+                if not tv:
                     assert lab == "INCOMPLETE_OR_INVALID" and miss
                     continue
-                assert not miss
+                assert bool(miss) == cov                      # missing coverage is always listed, never hidden
                 if a == "PASS" and b == "PASS":
                     assert lab.startswith("JOINT_DEVELOPMENT_CRITERION_MET")
                     assert ("PRIVACY_COMPRESSION" in lab) == (c == "PASS")
                 elif c == "PASS":
                     assert lab == "PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (LOCAL)"
+                elif cov:
+                    assert lab == "INCOMPLETE_OR_INVALID"     # never a completed negative with missing coverage
                 elif q == "PASS":
                     assert lab == "CONFIDENCE_FEASIBILITY_ESTABLISHED"
                 else:

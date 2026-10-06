@@ -111,22 +111,23 @@ def overall_label(stage_a_valid: bool, gate_met: bool, technical_valid: bool, cl
         return "INCOMPLETE_OR_INVALID", ["Stage A technically incomplete or invalid"]
     if not gate_met:
         return "CAPACITY_GATE_NOT_MET", []
-    missing = [] if technical_valid else ["required technical validity failed"]
-    missing += [f"claim {c}: {s}" for c, s in sorted(claims.items()) if s in COVERAGE_MISSING]
+    if not technical_valid:
+        return "INCOMPLETE_OR_INVALID", ["required technical validity failed"]
+    missing = [f"claim {c}: {s}" for c, s in sorted(claims.items()) if s in COVERAGE_MISSING]
     if q == "INVALID":
         missing.append("Q*: INVALID")
     if q == "NOT_APPLICABLE_NO_Q":
-        missing.append("Q*: no eligible Stage A configuration despite a met gate")
-    if missing:
-        return "INCOMPLETE_OR_INVALID", missing
-    labels = []
+        missing.append("Q*: not resolved despite a met gate")
+    labels = []                                 # a validly PASSing claim keeps its label; other gaps stay listed
     if claims["A"] == "PASS" and claims["B"] == "PASS":
         labels.append("JOINT_DEVELOPMENT_CRITERION_MET")
     if claims["C"] == "PASS":
         labels.append("PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET"
                       + (f" ({winning_family})" if winning_family else ""))
     if labels:
-        return " + ".join(labels), []
+        return " + ".join(labels), missing
+    if missing:
+        return "INCOMPLETE_OR_INVALID", missing
     if q == "PASS":
         return "CONFIDENCE_FEASIBILITY_ESTABLISHED", []
     return "EXPERIMENTAL_NO_ADVANTAGE", []

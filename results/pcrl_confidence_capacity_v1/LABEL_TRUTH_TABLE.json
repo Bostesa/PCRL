@@ -3,9 +3,21 @@
  "executable": "qpc/family.py: claim_status(), q_status(), overall_label(); tested exhaustively in qpc/tests/test_truth_table.py",
  "agreement": "PROTOCOL.md section 11 states exactly these rules; the protocol text and the executable must agree (unlike dpc, where NO_FEASIBLE_CONTROL was ambiguous). Any disagreement found later is a defect, not an interpretation.",
  "claim_inputs": {
-  "nominee": ["ELIGIBLE (a configured nominee exists)", "NO_ELIGIBLE (no eligible candidate)", "TECHNICAL_FAILURE (candidate set not computable)"],
-  "comparator": ["ELIGIBLE", "NO_ELIGIBLE (candidates computed, none eligible)", "TECHNICAL_FAILURE (missing or uncomputable: absent unit, failed audit, failed control coverage, nonfinite input)"],
-  "clauses": ["ALL_PASS", "SOME_NOT_PASS", "ANY_INVALID (nonfinite primary statistic or unestimable metric)"]
+  "nominee": [
+   "ELIGIBLE (a configured nominee exists)",
+   "NO_ELIGIBLE (no eligible candidate)",
+   "TECHNICAL_FAILURE (candidate set not computable; ALSO an otherwise eligible nominee blocked only because one of its guard comparators -- C_rate(J) or C_global for J*, T* for P* -- is not a NOMINEE: guards are never dropped)"
+  ],
+  "comparator": [
+   "ELIGIBLE",
+   "NO_ELIGIBLE (candidates computed, none eligible)",
+   "TECHNICAL_FAILURE (missing or uncomputable: absent unit, failed audit, failed control coverage, nonfinite input)"
+  ],
+  "clauses": [
+   "ALL_PASS",
+   "SOME_NOT_PASS",
+   "ANY_INVALID (nonfinite primary statistic or unestimable metric)"
+  ]
  },
  "claim_status_rules_in_precedence_order": [
   "comparator == TECHNICAL_FAILURE or nominee == TECHNICAL_FAILURE -> INVALID_COMPARATOR (if the comparator) / INVALID_NOMINEE (if only the nominee); technical failure dominates",
@@ -16,9 +28,19 @@
   "otherwise -> NOT_ESTABLISHED (a completed valid head-to-head negative)"
  ],
  "claim_status_classes": {
-  "favourable": ["PASS"],
-  "completed_negative": ["NOT_ESTABLISHED", "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"],
-  "coverage_missing_or_invalid": ["NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR", "INVALID_COMPARATOR", "INVALID_NOMINEE", "INVALID"]
+  "favourable": [
+   "PASS"
+  ],
+  "completed_negative": [
+   "NOT_ESTABLISHED",
+   "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
+  ],
+  "coverage_missing_or_invalid": [
+   "NOT_APPLICABLE_NO_ELIGIBLE_COMPARATOR",
+   "INVALID_COMPARATOR",
+   "INVALID_NOMINEE",
+   "INVALID"
+  ]
  },
  "q_star_status_rules": [
   "no eligible Stage A configuration -> NOT_APPLICABLE_NO_Q (only possible if the gate failed)",
@@ -30,9 +52,9 @@
   "Stage A technically incomplete or invalid -> INCOMPLETE_OR_INVALID",
   "capacity gate not met (no globally eligible Stage A code) -> CAPACITY_GATE_NOT_MET (privacy stage and assessment not run)",
   "any required technical validity failed (failed positive control without amendment, verification FAIL on a primary quantity, missing locked unit) -> INCOMPLETE_OR_INVALID",
-  "any claim in coverage_missing_or_invalid, or Q* INVALID -> INCOMPLETE_OR_INVALID (the missing items are listed)",
-  "A == PASS and B == PASS -> JOINT_DEVELOPMENT_CRITERION_MET (joined with ' + PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET' if C == PASS)",
-  "C == PASS -> PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (the winning family is stated)",
+  "A == PASS and B == PASS -> JOINT_DEVELOPMENT_CRITERION_MET (joined with ' + PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (<family>)' if C == PASS); any other claim with missing coverage is listed in missing_items, never hidden",
+  "C == PASS -> PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET (<winning family>); claims A/B with missing coverage are listed in missing_items",
+  "no favourable label and any claim in coverage_missing_or_invalid, or Q* INVALID / unresolved -> INCOMPLETE_OR_INVALID (the missing items are listed)",
   "Q* == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED (comparisons completed validly, no method advantage)",
   "otherwise -> EXPERIMENTAL_NO_ADVANTAGE (comparisons completed validly, no method advantage, Q* not established)"
  ],
@@ -40,6 +62,8 @@
   "A favourable claim never passes through a fallback: a fallback nominee is NO_ELIGIBLE and its rows are DESCRIPTIVE_ONLY.",
   "Passing only against continuous U does not establish a joint contribution: JOINT_DEVELOPMENT_CRITERION_MET requires both A (vs C_rate) and B (vs C_global).",
   "C_rate always contains the Stage A DIRECT-TASK code at J*'s rate (selected rates are eligible DIRECT-TASK rates), and C_global/T* always contain U continuous (eligible by construction); NO_ELIGIBLE comparators are therefore expected only if that construction fails, which is itself reported.",
-  "The per-claim table is always published, even when a favourable label exists."
+  "The per-claim table is always published, even when a favourable label exists.",
+  "Claim A's C_rate is resolved at the J* nominee cell, else at the J* descriptive-fallback cell; when J* has neither (J* itself a technical failure), C_rate is INVALID_COMPARATOR ('no J* cell') and the missing items name the J* failure as the root cause.",
+  "A validly PASSing claim keeps its favourable label even when another claim lacks coverage (prompt: INCOMPLETE_OR_INVALID is for REQUIRED validity or coverage); the per-claim table and missing_items always show the gap. Registered before any inner or assessment data (math review SEL-R1/SEL-C2, recorded in STAGE_B_LOCK)."
  ]
 }
