@@ -1,6 +1,6 @@
 {
  "schema": "cbp-run-status-v1",
- "updated": "2026-10-06T17:23:14Z",
+ "updated": "2026-10-06T21:19:56Z",
  "session_start": "2026-10-06T16:44:45Z",
  "hard_ceiling": "2026-10-07T02:44:45Z",
  "reserve_from": "2026-10-07T00:44:45Z",
@@ -26,21 +26,42 @@
   "2_fits": {
    "status": "COMPLETE",
    "endpoint_parity": "33/33 PARITY_PASS (2026-10-06T17:20:53Z)",
-   "new_fits": "48/48 (17:20:54Z-17:22:29Z; 99.5 CPU-s, peak RSS 0.84 GB)"
+   "new_fits": "48/48 (17:20:53Z-17:22:29Z, after endpoint parity; 91.7 CPU-s for the new units, 99.5 CPU-s for the fit stage including 33 parity checks; peak RSS 0.84 GB)"
   },
   "3_inner_and_selection": {
-   "status": "RUNNING",
-   "inner": "2 shards started 2026-10-06T17:22:44Z"
+   "status": "COMPLETE",
+   "inner": "123 units, 2 shards, 17:22:44Z-18:01:53Z, exit 0",
+   "inner_src": "6 composed source units, 2 shards, exit 0 by 18:03:56Z",
+   "controls": "2 shards, exit 0 by 18:12:21Z; AUDIT_PRELOCK_CHECKS verdict all_ok",
+   "select": "exit 0 at 18:12:55Z; inner validation 129/129, 0 defects",
+   "independent_selection_verification": "PHASE_2 PASS 18:19:40Z (commit ecf489d)",
+   "public_tables": "commit d3f12c7"
   },
   "4_evaluation_lock": {
-   "status": "NOT_STARTED"
+   "status": "COMPLETE",
+   "sha256": "1ff1307c7600205ec0371ec3436e2460855195107ed25a885011dfba6855bc97",
+   "commit": "7611a77c4f95b255ccd744f0249d55510533235b",
+   "pushed_and_remote_verified": "2026-10-06T18:23:51Z"
   },
   "5_assessment": {
-   "status": "NOT_STARTED"
+   "status": "COMPLETE",
+   "opening": "single opening 18:24:01Z-19:10:00Z",
+   "outer_units": "48/48 locked units hash-complete",
+   "attempts": "2 shards + 2 load-balancing workers; 5 bitwise-identical duplicates quarantined (ASSESSMENT_ATTEMPTS.json)",
+   "inference": "complete 19:11:58Z",
+   "label": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+   "public_commit": "27e4597"
   },
   "6_verification_deploy_closeout": {
-   "status": "NOT_STARTED"
+   "status": "COMPLETE_WITH_PENDING_OFF_DEVICE_CUSTODY",
+   "independent_verification": "PHASE_3 overall WARN (26 PASS, 2 WARN, 0 FAIL; no result affected), commit 2d5a6b6",
+   "deploy": "Q and P* deployed on seed 1, bitwise; 11 refusals exit 2",
+   "backup": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING; restores PASS",
+   "reports": "decision documents, adversarial document review, post-lock reporting completion (cbp/report_post.py)"
   }
  },
- "incomplete_work": []
+ "incomplete_work": [
+  "off-device backup PENDING (drive absent): python -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json",
+  "qpc/dpc/osf/smf predecessor custody PENDING (same command; provenance/qpc_custody/STATUS.json)"
+ ]
 }
