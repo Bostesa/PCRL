@@ -1,0 +1,15 @@
+{
+ "base_lock": "AUDIT_AND_SELECTION_LOCK",
+ "changes_previously_locked": [
+  "qpc/sema.py"
+ ],
+ "code_files": {
+  "qpc/sema.py": "61de4478c3655cce6ee5a62f8f3815d92de713b34a8e63612a0a4b1a04b6df5b"
+ },
+ "name": "AMENDMENT_A1",
+ "new_files": [],
+ "parent_commit": "1c83e1ba294bea418797135d7eadf93c6903d8cd",
+ "reason": "Engineering fix to the shared heavy-process semaphore (no scientific code): a signalled wrapper now forwards SIGTERM/SIGINT/SIGHUP to its child, reaps it, logs the signal and releases the slot, so a killed wrapper can never orphan a heavy child (independent verifier PHASE_2A WARN: the math-review role's queued C:mutation wrapper acquired slot 1 at 05:11:46Z and was killed without a release record). Tested: SIGTERM -> child terminated, signal + release logged, slot free. The first version of this fix deadlocked (wait inside the handler); it was replaced before use and never ran a study process.",
+ "schema": "qpc-amendment-v1",
+ "written_at": "2026-10-06T05:26:55Z"
+}

@@ -20,6 +20,7 @@ import fcntl
 import json
 import os
 import resource
+import signal
 import subprocess
 import sys
 import time
@@ -81,8 +82,27 @@ def run(label, cmd):
     _log({"event": "acquire", "label": label, "slot": slot, "wrapper_pid": os.getpid(), "waited_s": waited,
           "cmd0": os.path.basename(cmd[0]) if cmd else None})
     rc = None
+    child = None
+    got = []
+
+    def _stop(signum, frame):                    # AMENDMENT_A1: a signalled wrapper never orphans its child; the
+        got.append(int(signum))                  # handler only forwards the signal (no wait: Popen.wait's lock is
+        if child is not None and child.poll() is None:   # held by the interrupted main frame) and the main loop
+            child.terminate()                    # reaps the child, logs the signal and releases the slot
+    for sg in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sg, _stop)
     try:
-        rc = subprocess.call(cmd)
+        child = subprocess.Popen(cmd)
+        while True:
+            try:
+                rc = child.wait(timeout=1.0)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+        if got:
+            _log({"event": "signal", "label": label, "slot": slot, "wrapper_pid": os.getpid(), "signals": got,
+                  "child_rc": rc})
+            rc = 128 + got[0]
     finally:
         r1 = resource.getrusage(resource.RUSAGE_CHILDREN)
         _log({"event": "release", "label": label, "slot": slot, "wrapper_pid": os.getpid(), "rc": rc,
