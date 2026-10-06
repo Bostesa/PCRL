@@ -119,6 +119,81 @@ def _fig_capacity(rows, outer=None):
     fig.savefig(R.PKG / "figures" / "fig_capacity.png", dpi=120)
 
 
+# ------------------------------------------------------------------ stage B part (fitting rows only)
+def class_preservation(D):
+    """Every fitted policy unit (Stage A and Stage B): released decisions equal its teacher's on every row of every
+    role, prototypes' argmax equals the decision, alphabets and fitting-row emitted states."""
+    out = {"rule": "released decision = argmax of the decoded prototype = teacher decision, every row of every role",
+           "units": {}, "all_pass": True, "rows_checked": 0}
+    roles = {r: np.asarray(ix) for r, ix in D["idx"].items() if r in ("DEFENSE_FIT", "HEAD_VALIDATION", "AUDIT_FIT",
+                                                                        "INNER_SELECTION", "OSF_DEVELOPMENT_ASSESSMENT")}
+    tr = np.asarray(D["idx"]["DEFENSE_FIT"])
+    for d in sorted(R.UNITS.glob("pol__s*")):
+        if not R.done(d.name):
+            continue
+        z = R.npz(d.name, "release.npz")
+        rec = R.rec(d.name)
+        k = int(d.name.split("__")[1][1:])
+        T = R.teacher(k)
+        ok, mism = {}, {}
+        for i in (1, 2):
+            eq = (z[f"hard{i}"] == T[f"d{i}"]) & (np.asarray(z[f"q{i}"]).argmax(1) == T[f"d{i}"])
+            ok[i] = bool(eq.all())
+            mism[i] = {r: int((~eq[ix]).sum()) for r, ix in roles.items()}
+            out["rows_checked"] += int(len(eq))
+        out["units"][d.name] = {"config": rec.get("config"), "seed": k, "decisions_equal_teacher": ok,
+                                "mismatches_by_role": mism, "alphabet": [int(z["alpha1"]), int(z["alpha2"])],
+                                "emitted_fit": [int(len(np.unique(z[f"tok{i}"][tr]))) for i in (1, 2)]}
+        out["all_pass"] &= all(ok.values())
+    out["n_units"] = len(out["units"])
+    (R.PKG / "CLASS_PRESERVATION.json").write_text(json.dumps(out, indent=1) + "\n")
+    return out["all_pass"], out["n_units"], out["rows_checked"]
+
+
+def optimization_receipts():
+    out = {"schema": "qpc-optimization-receipts-v1", "stage_a": {}, "fine_partitions": {}, "stage_b": {},
+           "notes": ["objectives are fitting-row training criteria (plug-in MI, KL to the teacher); not privacy bounds",
+                     "plug-in MI at these alphabets is biased upward: read every fitted MI beside its permutation null",
+                     "JOINT is a local search (math review: small optimiser gaps on tiny exhaustive fixtures; XOR needs "
+                     "a coordinated move); final F_joint <= every unchanged witness is asserted per unit",
+                     "stop reasons are reported separately: assignment fixed point, relative tolerance, cap"]}
+    for d in sorted(R.UNITS.glob("dir__s*")):
+        rc = R.rec(d.name)["receipts"]
+        cls = [c for c in rc["per_class"] if not c["fallback"]]
+        win = [next(s for s in c["starts"] if s["start"] == c["winner"]) for c in cls]
+        out["stage_a"][d.name] = {"m": rc["m"], "winners": [c["winner"] for c in cls],
+                                  "stop_reasons": [w["stop_reason"] for w in win],
+                                  "rounds_used": [w["rounds_used"] for w in win],
+                                  "effective_cells": [c["effective_cells"] for c in cls],
+                                  "fallback_classes": rc.get("fallback_classes"), "mean_kl_fit": rc["mean_kl_fit"],
+                                  "all_starts_converged": rc.get("all_converged"),
+                                  "winners_converged": rc.get("winners_converged")}
+    for d in sorted(R.UNITS.glob("fine__s*")):
+        r = R.rec(d.name)
+        out["fine_partitions"][d.name] = {
+            f"r{i}": {"F": r[f"r{i}"]["F"], "winners": [c["winner"] for c in r[f"r{i}"]["per_class"] if not c["fallback"]],
+                      "effective_cells": [c.get("effective_cells") for c in r[f"r{i}"]["per_class"]],
+                      "all_converged": r[f"r{i}"].get("all_converged")} for i in (1, 2)}
+    for d in sorted(R.UNITS.glob("pol__s*")):
+        r = R.rec(d.name)
+        if "DIRECT-TASK" in (r.get("config") or ""):
+            continue
+        e = {"config": r.get("config"), "final": r.get("final"), "row_level_max_abs_diff": r.get("row_level_max_abs_diff"),
+             "alphabets": [r.get("pair_record", {}).get("alpha1"), r.get("pair_record", {}).get("alpha2")],
+             "states_emitted_fit": r.get("pair_record", {}).get("states_emitted_fit"),
+             "sparsity_fit": {i: {x: (r.get("sparsity_fit") or {}).get(i, {}).get(x) for x in
+                                  ("alphabet", "occupied", "singleton_cells", "singleton_fraction_of_occupied",
+                                   "unseen_fraction", "entropy_nats")} for i in ("r1", "r2", "pair")},
+             "perm_null_mi_fit": r.get("perm_null_mi_fit"), "privacy_term": r.get("privacy_term"),
+             "summary": r.get("summary")}
+        for x in ("baseline_correction", "winner", "witness_dominance", "unresolved_local_optima", "starts_not_converged"):
+            if r.get(x) is not None:
+                e[x] = r[x]
+        out["stage_b"][d.name] = e
+    (R.PKG / "OPTIMIZATION_RECEIPTS.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
+    return len(out["stage_a"]), len(out["stage_b"])
+
+
 def main(argv=None):
     part = (argv or sys.argv[1:] or ["--part", "all"])[-1]
     D = None
@@ -126,6 +201,12 @@ def main(argv=None):
         from qpc import data as DA
         D = DA.load()
         print("capacity curve rows", len(capacity_curve(D)))
+    if part in ("stageb", "all"):
+        if D is None:
+            from qpc import data as DA
+            D = DA.load()
+        print("class preservation", class_preservation(D))
+        print("optimization receipts", optimization_receipts())
 
 
 if __name__ == "__main__":
