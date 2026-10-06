@@ -1,0 +1,156 @@
+{
+ "schema": "qpc-fit-manifest-v1",
+ "written_before": "STAGE_A_LOCK and any real-data codebook, partition, attacker or utility computation",
+ "statuses": [
+  "PLANNED",
+  "RUNNING",
+  "COMPLETE",
+  "FAILED",
+  "ALIASED",
+  "NOT_TRIGGERED",
+  "INELIGIBLE",
+  "INVALID",
+  "ADMITTED"
+ ],
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "admission": {
+  "teachers": [
+   "tea__s0__U",
+   "tea__s0__RAW-J_b0.3",
+   "tea__s1__U",
+   "tea__s1__RAW-J_b0.3",
+   "tea__s2__U",
+   "tea__s2__RAW-J_b0.3"
+  ],
+  "references": [
+   "ref__s0__E",
+   "ref__s0__F",
+   "ref__s0__F0",
+   "ref__s1__E",
+   "ref__s1__F",
+   "ref__s1__F0",
+   "ref__s2__E",
+   "ref__s2__F",
+   "ref__s2__F0"
+  ],
+  "note": "frozen; admission and parity only (no fit)"
+ },
+ "stage_a": {
+  "a1_historical_reproduction_units": [
+   "a1__s0",
+   "a1__s1",
+   "a1__s2"
+  ],
+  "per_recipient_fits": [
+   "dir__s0__r1__m4",
+   "dir__s0__r1__m8",
+   "dir__s1__r1__m4",
+   "dir__s1__r1__m8",
+   "dir__s2__r1__m4",
+   "dir__s2__r1__m8",
+   "dir__s0__r2__m8",
+   "dir__s0__r2__m16",
+   "dir__s0__r2__m32",
+   "dir__s0__r2__m64",
+   "dir__s1__r2__m8",
+   "dir__s1__r2__m16",
+   "dir__s1__r2__m32",
+   "dir__s1__r2__m64",
+   "dir__s2__r2__m8",
+   "dir__s2__r2__m16",
+   "dir__s2__r2__m32",
+   "dir__s2__r2__m64"
+  ],
+  "mapping_pair_units": {
+   "U|DIRECT-TASK|i4o8": [
+    "pol__s0__U_DIRECT-TASK_i4o8",
+    "pol__s1__U_DIRECT-TASK_i4o8",
+    "pol__s2__U_DIRECT-TASK_i4o8"
+   ],
+   "U|DIRECT-TASK|i4o16": [
+    "pol__s0__U_DIRECT-TASK_i4o16",
+    "pol__s1__U_DIRECT-TASK_i4o16",
+    "pol__s2__U_DIRECT-TASK_i4o16"
+   ],
+   "U|DIRECT-TASK|i4o32": [
+    "pol__s0__U_DIRECT-TASK_i4o32",
+    "pol__s1__U_DIRECT-TASK_i4o32",
+    "pol__s2__U_DIRECT-TASK_i4o32"
+   ],
+   "U|DIRECT-TASK|i4o64": [
+    "pol__s0__U_DIRECT-TASK_i4o64",
+    "pol__s1__U_DIRECT-TASK_i4o64",
+    "pol__s2__U_DIRECT-TASK_i4o64"
+   ],
+   "U|DIRECT-TASK|i8o8": [
+    "pol__s0__U_DIRECT-TASK_i8o8",
+    "pol__s1__U_DIRECT-TASK_i8o8",
+    "pol__s2__U_DIRECT-TASK_i8o8"
+   ],
+   "U|DIRECT-TASK|i8o16": [
+    "pol__s0__U_DIRECT-TASK_i8o16",
+    "pol__s1__U_DIRECT-TASK_i8o16",
+    "pol__s2__U_DIRECT-TASK_i8o16"
+   ],
+   "U|DIRECT-TASK|i8o32": [
+    "pol__s0__U_DIRECT-TASK_i8o32",
+    "pol__s1__U_DIRECT-TASK_i8o32",
+    "pol__s2__U_DIRECT-TASK_i8o32"
+   ],
+   "U|DIRECT-TASK|i8o64": [
+    "pol__s0__U_DIRECT-TASK_i8o64",
+    "pol__s1__U_DIRECT-TASK_i8o64",
+    "pol__s2__U_DIRECT-TASK_i8o64"
+   ]
+  },
+  "counts": {
+   "global_rate_configurations": 8,
+   "mapping_pair_units": 24,
+   "a1_units": 3,
+   "per_recipient_fits": 18,
+   "starts_per_class_fit": 3,
+   "max_rounds": 200
+  },
+  "note": "the A1 200-round fixed-initialization fit is A2's source-start receipt at (8,8), not an extra nominal unit; per-class restarts counted separately in receipts"
+ },
+ "stage_b": {
+  "status": "CONDITIONAL on CAPACITY_GATE_MET; NOT_TRIGGERED otherwise",
+  "planned_full": {
+   "rates": "up to 2 selected Stage A rates",
+   "lams": [
+    0.01,
+    0.1,
+    1.0
+   ],
+   "families": [
+    "FINE-TASK",
+    "LOCAL",
+    "SEQ-12",
+    "SEQ-21",
+    "JOINT"
+   ],
+   "counts": {
+    "privacy_mapping_pair_units": 72,
+    "fine_task_units": 6,
+    "class_only_units": 3,
+    "fine_partition_units": 3
+   },
+   "logical_mapping_pair_total_with_stage_a_and_a1": 105
+  },
+  "allowed_reductions_from_synthetic_timing_only": [
+   "lambda -> {0.01, 0.1}",
+   "first eligible rate only"
+  ]
+ },
+ "inner": {
+  "candidates": "every Stage A code, every Stage B code, SRC|U, SRC|RAW-J_b0.3, REF|E, REF|F, REF|F0 (x3 seeds)"
+ },
+ "assessment": {
+  "status": "CONDITIONAL on CAPACITY_GATE_MET; scored list frozen in EVALUATION_LOCK (PROTOCOL.md section 13)"
+ },
+ "accounting_rule": "planned, completed, aliased, not-triggered, ineligible, invalid and failed units are counted separately; fitting, attacker and verification work are reported without double counting"
+}

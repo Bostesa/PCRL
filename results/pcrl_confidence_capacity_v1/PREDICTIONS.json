@@ -1,0 +1,57 @@
+{
+ "schema": "qpc-predictions-v1",
+ "registered_before": "Stage A and any real-data codebook, partition, attacker or utility computation of this study (committed and pushed before STAGE_A_LOCK)",
+ "status": "lead's actual beliefs; predictions, not gates; never revised after any outcome-bearing run",
+ "evidence_used": "source study dpc @0a7b05a: U DIRECT-TASK/FINE-TASK m8 occupation log-loss excess ~0.020 nats (assessment), Brier ~0.007; fitting KL D2 ~0.034 at m8; inner shortfall of the nearest m8 code 0.0100 summed over seeds; joint ~ sequential; joint vs matched task-only 0.0176 pair AUC",
+ "predictions": [
+  {
+   "id": "QP1",
+   "question": "Converging the (income 8, occupation 8) DIRECT-TASK compressor alone (same source initialization, up to 200 rounds) passes the original inner confidence contract on every seed.",
+   "probability": 0.07,
+   "reasoning": "the 20-round codes stopped near a local optimum; more rounds should lower fit KL only slightly, while the occupation log-loss gap (~0.02 nats) is about twice the allowance"
+  },
+  {
+   "id": "QP2",
+   "question": "At least one expanded-capacity DIRECT-TASK global rate (m1 in {4,8}, m2 in {8,16,32,64}) passes the inner contract on every seed (capacity gate passes).",
+   "probability": 0.65,
+   "reasoning": "quantization distortion in the occupation simplex should fall roughly as m^(-2/d) with effective dimension d ~3-5, so going from 8 to 64 cells per class should cut fitting KL by ~2-4x; the log-loss excess tracked ~0.6 x fit KL in dpc, so m2 = 64 should land near or below 0.01 nats, and Brier near 0.002-0.003; per-seed worst case and the 2,235-row inner set add risk"
+  },
+  {
+   "id": "QP3",
+   "question": "Q* passes all four assessment confidence bounds (log-loss and Brier excess upper bounds < 0.01 / < 0.005 for both tasks, z = 3.2048).",
+   "probability": 0.4,
+   "reasoning": "conditional on the gate passing (0.65), Q* is the least-excess eligible rate; its assessment upper bound adds ~3.2 SE (~0.004-0.006 nats) to a point excess plausibly ~0.003-0.006, so roughly 0.6 conditional"
+  },
+  {
+   "id": "QP4",
+   "question": "A qualifying privacy-trained code (P*) beats T* on pair AUC with lower bound > 0.02 (claim C coalition clause) and claim C passes.",
+   "probability": 0.12,
+   "reasoning": "T* is the strongest eligible privacy-untrained release (likely the lowest eligible DIRECT-TASK rate); at feasible confidence the privacy objective has limited room; dpc's matched gap was 0.018 at m8; P* must also stay inner-eligible"
+  },
+  {
+   "id": "QP5",
+   "question": "JOINT beats the strongest sequential arm at the J* rate by more than 0.02 pair AUC (point estimate) at useful (eligible) confidence.",
+   "probability": 0.04,
+   "reasoning": "dpc found joint and both sequential orders within 0.002; the corrected sequential baseline (class-only counterpart) should if anything strengthen the sequential arms"
+  },
+  {
+   "id": "QP6",
+   "question": "Final overall method advantage is not established (no JOINT_DEVELOPMENT_CRITERION_MET and no PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET).",
+   "probability": 0.9,
+   "reasoning": "includes the capacity gate failing (0.35 incl. invalid) and a completed comparison without advantage; P(any registered method advantage) ~0.10 = P(gate) 0.65 x P(privacy or joint claim passes | gate) ~0.15"
+  },
+  {
+   "id": "QP7",
+   "question": "Final label distribution",
+   "probabilities": {
+    "CAPACITY_GATE_NOT_MET": 0.33,
+    "CONFIDENCE_FEASIBILITY_ESTABLISHED": 0.3,
+    "EXPERIMENTAL_NO_ADVANTAGE": 0.22,
+    "PRIVACY_COMPRESSION_DEVELOPMENT_CRITERION_MET": 0.08,
+    "JOINT_DEVELOPMENT_CRITERION_MET": 0.02,
+    "INCOMPLETE_OR_INVALID": 0.05
+   },
+   "note": "labels follow LABEL_TRUTH_TABLE.json: CONFIDENCE_FEASIBILITY_ESTABLISHED = gate passed, comparisons completed validly, no method advantage, Q* passes its four bounds (0.65 x 0.6 x ~0.85); EXPERIMENTAL_NO_ADVANTAGE = same but Q* does not pass all four bounds (0.65 x 0.4 x ~0.85)"
+  }
+ ]
+}
