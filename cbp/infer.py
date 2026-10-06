@@ -65,6 +65,9 @@ class Ctx:
                 assert np.array_equal(p["assess_unit"], z0["assess_unit"]), "assessment groups differ"
                 for key in ("sex", "y_income", "y_occ", "const_class"):
                     assert np.array_equal(p[key], z0[key]), f"{key} differs across arms"
+        self.finiteness = {f"s{k}|{lab}": {x: int((~np.isfinite(np.asarray(p[x], dtype=np.float64))).sum())
+                                            for x in p if x.startswith(("P_auc_", "P_ce_", "prob", "hard"))}
+                           for (k, lab), p in self.preds.items()}
         self.units, self.sex, self.rows = z0["assess_unit"], z0["sex"], z0["assess_row_id"]
         self.y = {0: z0["y_income"], 1: z0["y_occ"]}
         self.const = {j: int(z0["const_class"][j]) for j in (0, 1)}
@@ -74,13 +77,17 @@ class Ctx:
             assert prior_hash(DA.load()) == EL["sex_prior_defense_fit_sha256"], "fitting prior differs from the lock"
 
     def lab(self, x):
-        if x in ROLES:
-            return self.EL["resolved"].get(x)
+        x = self.EL["resolved"].get(x) if x in ROLES else x
         return x if x in self.labels else None
 
     def rec(self, k, lab, view, fam=None):
         key = f"P_auc_{view}" if fam is None else f"P_auc_{fam}_{view}"
-        P3 = self.preds[(k, lab)][key]
+        P3 = np.asarray(self.preds[(k, lab)][key], dtype=np.float64)
+        if not np.isfinite(P3[..., 1]).all():          # nonfinite scores are INVALID, never ranked as extreme values
+            nan = lambda WT: np.full(WT.shape[1], np.nan)                       # noqa: E731
+            ids = [self.g.base_once(f"auc#{k}#{lab}#{fam}#{view}#{s}", f"auc#{k}#{lab}#{fam}#{view}#{s}", nan)
+                   for s in range(3)]
+            return self.g.add(f"R#{k}#{lab}#{fam}#{view}", "mean", ids)
         ids = [self.g.base_once(f"auc#{k}#{lab}#{fam}#{view}#{s}", f"auc#{k}#{lab}#{fam}#{view}#{s}",
                                 class_auc(self.sex, P3[s], 1)) for s in range(3)]
         return self.g.add(f"R#{k}#{lab}#{fam}#{view}", "mean", ids)
@@ -241,8 +248,12 @@ def main(argv=None, check_prior=True, units=None):
     out.update({"claim_status": claims, "q_status": q, "label": lab, "displayed_statuses": shown,
                 "technical_valid": tv, "failures_input": failures,
                 "winning_family": (EL["statuses"].get("P*") or {}).get("winning_family"),
-                "clauses_passing": {c: sum(e["outcome"] == "PASS" for e in out["primary"] if e["claim"] == c)
-                                    for c in "ABCQ"}})
+                "clauses_passing_scored": {c: sum(e["decision"] == "PASS" for e in out["primary"] if e["claim"] == c)
+                                           for c in "ABCQ"},
+                "clauses_passing_numeric_including_descriptive": {
+                    c: sum(e["outcome"] == "PASS" for e in out["primary"] if e["claim"] == c) for c in "ABCQ"},
+                "finiteness_receipt": {"nonfinite_counts": ctx.finiteness,
+                                       "all_finite": not any(v for d in ctx.finiteness.values() for v in d.values())}})
     out = R._finite(out)
     (R.RUN / "inference.json").write_text(json.dumps(out, indent=1, allow_nan=False) + "\n")
     cols = ["id", "claim", "kind", "stat", "target", "side", "point", "se", "lower", "upper", "z", "outcome",

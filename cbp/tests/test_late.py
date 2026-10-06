@@ -143,3 +143,50 @@ def test_scored_labels_follow_section_12():
             "SRC|U", "U|CLASS|i1o1", "U|JOINT|i8o64|l0.1", "U|SEQ-12|i8o64|l0.1", "U|LOCAL|i8o64|l0.01",
             "U|SEQ-12|i8o64|l0.04", "U|JOINT|i8o64|l0.04", "SRC|RAW-J_b0.3", "REF|F0", "REF|E"}
     assert set(L) == need
+
+
+def test_nonfinite_attacker_score_is_invalid_never_ranked(tmp_study):
+    from jcv.finalize import save_unit
+    _write(tmp_study, LABELS, STRENGTH)
+    d = R.UNITS / "outer__s1__U_JOINT_i8o64_l0.04"
+    z = dict(np.load(d / "preds.npz"))
+    z["P_auc_pair"][1, 0, 1] = np.nan
+    import shutil
+    shutil.rmtree(d)
+    save_unit(d, {"preds.npz": lambda q: np.savez(q, **z)}, {})
+    st = {"P*": {"status": "NOMINEE", "config": "U|SEQ-21|i8o64|l0.04", "winning_family": "SEQ-21"},
+          "J*": {"status": "NOMINEE", "config": "U|JOINT|i8o64|l0.04"},
+          "T*": {"status": "NOMINEE", "config": "U|DIRECT-TASK|i8o64"},
+          "C_rate": {"status": "NOMINEE", "config": "U|FINE-TASK|i8o64"},
+          "C_global": {"status": "NOMINEE", "config": "SRC|U"},
+          "Q": {"status": "NOMINEE", "config": "U|DIRECT-TASK|i8o64"}}
+    out = INF.main(["--evaluation-lock", str(_lock(tmp_study, st, LABELS))], check_prior=False)
+    o = {e["id"]: e["outcome"] for e in out["primary"]}
+    assert o["P01"] == "INVALID" and o["P12"] == "INVALID" and o["P23"] != "INVALID"
+    assert out["claim_status"]["A"]["status"] == "INCOMPLETE_OR_INVALID"
+    assert out["finiteness_receipt"]["all_finite"] is False
+    assert out["finiteness_receipt"]["nonfinite_counts"]["s1|U|JOINT|i8o64|l0.04"]["P_auc_pair"] == 1
+
+
+def test_outer_report_tables_and_figures(tmp_study):
+    from cbp import report as RP
+    _write(tmp_study, LABELS, STRENGTH)
+    st = {"P*": {"status": "NOMINEE", "config": "U|SEQ-21|i8o64|l0.04", "winning_family": "SEQ-21"},
+          "J*": {"status": "NOMINEE", "config": "U|JOINT|i8o64|l0.04"},
+          "T*": {"status": "NOMINEE", "config": "U|DIRECT-TASK|i8o64"},
+          "C_rate": {"status": "NOMINEE", "config": "U|FINE-TASK|i8o64"},
+          "C_global": {"status": "NOMINEE", "config": "SRC|U"},
+          "Q": {"status": "NOMINEE", "config": "U|DIRECT-TASK|i8o64"}}
+    lp = _lock(tmp_study, st, LABELS)
+    INF.main(["--evaluation-lock", str(lp)], check_prior=False)
+    L = json.loads(lp.read_text())
+    L["scored_labels"] = LABELS
+    (tmp_study / "EVALUATION_LOCK.json").write_text(json.dumps(L))
+    rows = {c: {"family": R.parse_id(c).get("family", "SRC"), "ordinary": True, "headroom": True} for c in LABELS}
+    (tmp_study / "selection.json").write_text(json.dumps({"rows": rows}))
+    assert RP.outer_tables() == len(LABELS)
+    for f in ("fig2_pair_vs_occ_ll", "fig3_individual_vs_pair", "fig4_states_vs_recovery"):
+        assert (tmp_study / "figures" / f"{f}.png").exists()
+    import csv
+    r = list(csv.DictReader(open(tmp_study / "ASSESSMENT_COMPARISON.csv")))
+    assert {x["release"] for x in r} == set(LABELS) and "auc_pair" in r[0] and "ll_excess_occupation" in r[1]

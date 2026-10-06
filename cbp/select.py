@@ -250,6 +250,18 @@ def _give_up(rows, a, b):
             "per_seed": {k: rows[a]["seeds"][k]["auc"]["pair"] - rows[b]["seeds"][k]["auc"]["pair"] for k in SEEDS}}
 
 
+def inner_validation(D):
+    """D5: cbp.audit.validate_all over the whole saved inner bank (stored predictions only; never raises). A defect or a
+    missing unit is a global technical failure carried into EVALUATION_LOCK technical_validity."""
+    if D is None:
+        return {"ok": None, "status": "NOT_RUN (no data handle; synthetic call)"}
+    from cbp import audit as AU
+    v = AU.validate_all(D)
+    (R.RUN / "inner_validation.json").write_text(json.dumps(R._finite(v), indent=1, allow_nan=False) + "\n")
+    return {"ok": bool(v["ok"]), "checked": v["checked"], "n_defects": len(v["defects"]),
+            "n_missing": len(v["missing"]), "defects_head": v["defects"][:5], "missing_head": v["missing"][:5]}
+
+
 def select_all(D=None, shard_spec=None):
     ids = R.scored_ids()
     rows = candidate_rows(ids)
@@ -300,7 +312,7 @@ def select_all(D=None, shard_spec=None):
     claims = {c: {"nominee": _rs(st[n]), "comparator": _rs(st[m])} for c, (n, m) in
               {"A": ("J*", "C_rate"), "B": ("J*", "C_global"), "C": ("P*", "T*")}.items()}
     out = {"schema": "cbp-selection-v1", "rule": "HEADROOM_SELECTION_RULES.json; PROTOCOL.md section 9",
-           "candidates": ids, "statuses": st, "diagnostics": diag, "claim_role_states": claims,
+           "candidates": ids, "inner_validation": inner_validation(D), "statuses": st, "diagnostics": diag, "claim_role_states": claims,
            "resolved": {x: (s.get("config") or s.get("descriptive_config")) for x, s in st.items()},
            "technical_failures": {c: r["technical_failure"] for c, r in rows.items() if r["technical_failure"]},
            "rows": rows}

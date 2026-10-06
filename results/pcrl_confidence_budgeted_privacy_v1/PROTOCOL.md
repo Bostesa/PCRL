@@ -104,7 +104,8 @@ is not fresh confirmation or a population privacy guarantee."
   release.
 - **Not added:** no rescue, occupation-only objective, randomisation, feedback or coordinated-move solver.
 - **Compute asymmetry:** JOINT has 5 search paths and 4 witnesses; SEQ has one two-stage path. This is recorded per unit
-  and not described as matched compute.
+  and not described as matched compute. The sequential arms are matched adaptations of the source's corrected
+  design, not the official Taylor, Vippathalla and Coon solver (PRIOR_ART_AND_CLAIM_SCOPE.md).
 - **Order and resume:** within a (seed, λ) group the fit order is LOCAL, SEQ-12, SEQ-21, then JOINT. Resume is by unit
   hash and status, and valid units are never overwritten.
 
@@ -253,6 +254,8 @@ Inference settings:
   5. Otherwise, Q PASS gives CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION.
   6. Otherwise, EXPERIMENTAL_NO_ADVANTAGE.
 - **Display:** every claim status is always displayed. A per-claim failure affects only that claim.
+- **Winning family:** a local or sequential winner is reported as such. No joint contribution is earned unless A
+  and B both pass.
 - **What a C pass does not mean:** a new algorithm, joint superiority, dominance over published defences, chance-level
   privacy, a population certificate, or general-purpose representation learning.
 

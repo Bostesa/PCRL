@@ -108,6 +108,11 @@ def technical_validity():
         out["endpoint_parity"] = {"units": len(par), "failed": bad, "sha256": sha(ep)}
         if bad or len(par) != 3 * len(R.reused_ids()):
             out["failures"].append({"endpoint_parity": bad or f"{len(par)} units"})
+    sel = R.RUN / "selection.json"
+    iv = json.loads(sel.read_text()).get("inner_validation") if sel.exists() else None
+    out["inner_validation"] = iv
+    if not (iv or {}).get("ok"):
+        out["failures"].append({"inner_validation": iv})
     ad = R.PRIV / "admitted" / "ADMISSION_RECEIPT.json"
     if not ad.exists() or json.loads(ad.read_text()).get("verdict") != "ADMITTED":
         out["failures"].append("admission receipt missing or not ADMITTED")
