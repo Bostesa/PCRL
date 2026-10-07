@@ -141,6 +141,20 @@
    "severity": "NOTE",
    "issue": "hygiene drops columns duplicate only on ATTACK_FIT_NEW; for tokens unseen there readers see the first table's values",
    "disposition": "accepted as registered (PROTOCOL section 5)"
+  },
+  {
+   "id": "A1",
+   "source": "first real control run (role A), 2026-10-07T14:30Z",
+   "severity": "TECHNICAL DEFECT (post-SCIENCE_LOCK)",
+   "issue": "control serialisation exactness compared arrays with np.array_equal (NaN != NaN); real banks carry NaN teacher means for reserved empty tokens, so every fresh plant read serialisation_exact = False and every CONF / COLL / XOR common check failed although the plants were detected (common AUC_B ~0.91)",
+   "disposition": "AMENDMENT_A1 (pushed before the rerun): bitwise exactness (dtype, shape, raw bytes); attempt-1 parts preserved (run/controls_parts_attempt1_preA1, 2 of 6 parts); controls rerun in full; nothing else changed"
+  },
+  {
+   "id": "OPS-1",
+   "source": "role A",
+   "severity": "NOTE (operational)",
+   "issue": "stopping the control run by signalling the semaphore wrapper left the python workers running for ~2 s under /usr/bin/time (PPID 1); they were then stopped directly",
+   "disposition": "recorded; no third heavy process ran in that window (SEMA_LOG); future stops signal the python worker directly"
   }
  ]
 }

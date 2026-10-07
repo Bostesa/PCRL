@@ -1,0 +1,4259 @@
+{
+ "study": "pcrl_heldout_calibration_v1",
+ "stage": "controls (inner roles only; sealed D)",
+ "registered_limits": {
+  "null": "every view: held-out AUC_B <= 0.5 + 3.5 sd0 (sd0 = Mann-Whitney null sd on half B)",
+  "null_z": 3.5,
+  "plant_min": 0.75,
+  "plant_rule": "strictly greater than plant_min",
+  "CONF_r1_CONF_r2": "AUC_B(v_i) > 0.75 and serialisation exact",
+  "COLL_r1_COLL_r2": "AUC_B(v_i) > 0.75 and serialisation exact",
+  "XOR": "AUC_B(pair) > 0.75 and AUC_B(v1) <= null threshold and AUC_B(v2) <= null threshold",
+  "ROT_r1_ROT_r2": "AUC_B(v_i) > 0.75 and AUC_B(pair) > 0.75 and serialisation exact",
+  "null_calibration": "5 permutations (seed CONTROL_SEED + 100 + rep); pass iff no exceedance of 0.5 + 3.5 sd0",
+  "source_realised_null_threshold": 0.5654143765984265,
+  "source_realised_sd0": 0.018689821885264708,
+  "realised_threshold_rule": "the realised null threshold must equal the source's within 1e-12 (fixed split and permutation seeds on the same roles); otherwise a technical failure",
+  "control_seed": 20261021,
+  "rot_amplitude": 1e-06,
+  "conf_eta": 0.05,
+  "plants_in_candidate_bank": "never (in-memory / temporary-directory releases, never saved as units)",
+  "source": "results/pcrl_confidence_capacity_v1/AUDIT_PRELOCK_CHECKS.json thresholds (smf.audit NULL_Z, PLANT_MIN), unchanged (cbp CONTROL_LIMITS)"
+ },
+ "roles": {
+  "legacy_fit": "AUDIT_FIT",
+  "fresh_fit": "ATTACK_FIT_NEW",
+  "rot_fit": "AUDIT_FIT (lra pipeline)",
+  "select_half_A_evaluate_half_B": "INNER_SELECTION",
+  "assessment": "never indexed"
+ },
+ "slate": "final",
+ "slate_members": [
+  "LR_C0.01",
+  "LR_C0.1",
+  "LR_C1.0",
+  "LR_C10.0",
+  "LR_C100.0",
+  "MLP_64",
+  "MLP_128",
+  "MLP_64x64",
+  "MLP_128x128",
+  "HGB_0.05_15",
+  "HGB_0.05_31",
+  "HGB_0.1_15",
+  "HGB_0.1_31",
+  "DA_LR",
+  "DA_MLP"
+ ],
+ "plan": {
+  "codes": [
+   [
+    0,
+    "U|DIRECT-TASK|i8o64"
+   ],
+   [
+    0,
+    "U|JOINT|i8o64|l0.1"
+   ],
+   [
+    0,
+    "U|CLASS|i1o1"
+   ],
+   [
+    0,
+    "U|K-JOINT-PAIR|i8o64"
+   ]
+  ],
+  "tables": {
+   "U|DIRECT-TASK|i8o64": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|JOINT|i8o64|l0.1": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|CLASS|i1o1": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|K-JOINT-PAIR|i8o64": [
+    "D1",
+    "MEAN",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP"
+   ]
+  },
+  "legacy_releases": {
+   "U|DIRECT-TASK|i8o64": [
+    "U|DIRECT-TASK|i8o64",
+    "U|DIRECT-TASK|i8o64|D1"
+   ],
+   "U|JOINT|i8o64|l0.1": [
+    "U|JOINT|i8o64|l0.1",
+    "U|JOINT|i8o64|l0.1|D1"
+   ],
+   "U|CLASS|i1o1": [
+    "U|CLASS|i1o1",
+    "U|CLASS|i1o1|D1"
+   ],
+   "U|K-JOINT-PAIR|i8o64": [
+    "U|K-JOINT-PAIR|i8o64|D1"
+   ]
+  },
+  "code_checks": [
+   "NULL",
+   "CONF_r1",
+   "CONF_r2",
+   "COLL_r1",
+   "COLL_r2",
+   "XOR"
+  ],
+  "null_calibration": [
+   0,
+   "U|DIRECT-TASK|i8o64"
+  ],
+  "null_reps": 5,
+  "rot": [
+   [
+    0,
+    "SRC|U"
+   ]
+  ],
+  "rot_checks": [
+   "NULL",
+   "ROT_r1",
+   "ROT_r2"
+  ],
+  "required": "COMMON-bank verdicts (legacy AUDIT_FIT pipeline + fresh ATTACK_FIT_NEW pipeline), NULL_CALIBRATION on the common bank, ROT; per-pipeline verdicts diagnostic",
+  "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+  "fit_roles": {
+   "legacy": "AUDIT_FIT (lra.audit._split_audit on lra.audit.policy_views of each original release)",
+   "fresh": "ATTACK_FIT_NEW (hcal.bank.fresh_views; S* restricted to these rows)",
+   "rot": "AUDIT_FIT (lra.audit.controls_for_release unchanged: the admitted U reader pipeline)"
+  },
+  "rule": "fixed by structure before any control runs: the task-only code, the JOINT code at the largest registered lambda, the class-only code and the constrained code with the largest registered neighbourhood, each with every original release and every registered lookup table"
+ },
+ "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+ "label": "S* = SEX permuted within AUDIT_FIT, half A and half B (smf.audit.frozen_permutation, CONTROL_SEED, as lra.audit); the fresh pipeline uses S* on ATTACK_FIT_NEW; plants encode noisy S* (20% random), the same bits in every bank",
+ "thresholds": {
+  "null": "AUC_B <= 0.5 + 3.5 sd0",
+  "plant_min": 0.75,
+  "null_z": 3.5,
+  "rot_amplitude": 1e-06,
+  "conf_eta": 0.05,
+  "realised_threshold_required": 0.5654143765984265
+ },
+ "releases": {
+  "U|DIRECT-TASK|i8o64|s0": {
+   "label": "U|DIRECT-TASK|i8o64|s0",
+   "partition": "U|DIRECT-TASK|i8o64",
+   "seed": 0,
+   "tables": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "banks": [
+    "legacy:U|DIRECT-TASK|i8o64",
+    "legacy:U|DIRECT-TASK|i8o64|D1",
+    "fresh"
+   ],
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "null_threshold": 0.5654143765984265,
+   "null_sd_B": 0.018689821885264708,
+   "plant_min": 0.75,
+   "fit_roles": {
+    "legacy": "AUDIT_FIT",
+    "fresh": "ATTACK_FIT_NEW"
+   },
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "required": "common",
+   "checks": {
+    "NULL": {
+     "target_view": null,
+     "serialisation_exact": true,
+     "rule": "AUC_B <= 0.5 + 3.5 sd0 on every view",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.5195610152398027,
+       "heldout_auc_B": 0.5278046477348626,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.49997198565665624,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5002416237113402,
+        "fresh": 0.5195610152398027
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.533005903713428,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5330097422787259,
+        "fresh": 0.5278046477348626
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v2:DA_MLP",
+       "max_auc_A": 0.52869194027342,
+       "heldout_auc_B": 0.5150548530981061,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.52869194027342,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5140754566337966,
+        "fresh": 0.5155707222097714
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5150548530981061,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5162409697751369,
+        "fresh": 0.5149819203574473
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:ignore_recipient_1:v2:DA_MLP",
+       "max_auc_A": 0.52869194027342,
+       "heldout_auc_B": 0.5150548530981061,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.52869194027342,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5140754566337966,
+        "fresh": 0.5195610152398027
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5150548530981061,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5162409697751369,
+        "fresh": 0.5278046477348626
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.49997198565665624,
+        "heldout_auc_B": 0.533005903713428
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.52869194027342,
+        "heldout_auc_B": 0.5150548530981061
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:DA_MLP",
+        "max_auc_A": 0.52869194027342,
+        "heldout_auc_B": 0.5150548530981061
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128x128",
+        "max_auc_A": 0.5002416237113402,
+        "heldout_auc_B": 0.5330097422787259
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.05_15",
+        "max_auc_A": 0.5140754566337966,
+        "heldout_auc_B": 0.5162409697751369
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:HGB_0.05_15",
+        "max_auc_A": 0.5140754566337966,
+        "heldout_auc_B": 0.5162409697751369
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5195610152398027,
+        "heldout_auc_B": 0.5278046477348626
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5155707222097714,
+        "heldout_auc_B": 0.5149819203574473
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_64",
+        "max_auc_A": 0.5195610152398027,
+        "heldout_auc_B": 0.5278046477348626
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      16,
+      321
+     ]
+    },
+    "CONF_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.9035431140744061,
+       "heldout_auc_B": 0.9066403341087235,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9032524652622143,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9030913827879874,
+        "fresh": 0.9035431140744061
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9126246574080472,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9120565497439677,
+        "fresh": 0.9066403341087235
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v2:DA_MLP",
+       "max_auc_A": 0.52869194027342,
+       "heldout_auc_B": 0.5150548530981061,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.52869194027342,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5140754566337966,
+        "fresh": 0.5155707222097714
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5150548530981061,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5162409697751369,
+        "fresh": 0.5149819203574473
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:HGB_0.1_31",
+       "max_auc_A": 0.9060959211116092,
+       "heldout_auc_B": 0.9071105583577084,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9032524652622143,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9030913827879874,
+        "fresh": 0.9060959211116092
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9126246574080472,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9120565497439677,
+        "fresh": 0.9071105583577084
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9032524652622143,
+        "heldout_auc_B": 0.9126246574080472
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.52869194027342,
+        "heldout_auc_B": 0.5150548530981061
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_64x64",
+        "max_auc_A": 0.9032524652622143,
+        "heldout_auc_B": 0.9126246574080472
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9030913827879874,
+        "heldout_auc_B": 0.9120565497439677
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.05_15",
+        "max_auc_A": 0.5140754566337966,
+        "heldout_auc_B": 0.5162409697751369
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_64x64",
+        "max_auc_A": 0.9030913827879874,
+        "heldout_auc_B": 0.9120565497439677
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.9035431140744061,
+        "heldout_auc_B": 0.9066403341087235
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5155707222097714,
+        "heldout_auc_B": 0.5149819203574473
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9060959211116092,
+        "heldout_auc_B": 0.9071105583577084
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      32,
+      321
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "CONF_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.5195610152398027,
+       "heldout_auc_B": 0.5278046477348626,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.49997198565665624,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5002416237113402,
+        "fresh": 0.5195610152398027
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.533005903713428,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5330097422787259,
+        "fresh": 0.5278046477348626
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64|D1",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64|D1:own:v2:LR_C0.1",
+       "max_auc_A": 0.9083213105109816,
+       "heldout_auc_B": 0.9057824147646574,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9078100487449574,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9083213105109816,
+        "fresh": 0.9081147047288212
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9059820201601448,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9057824147646574,
+        "fresh": 0.8910346468903781
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:MLP_128x128",
+       "max_auc_A": 0.9092300257731959,
+       "heldout_auc_B": 0.8941630776081132,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9078100487449574,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9083213105109816,
+        "fresh": 0.9092300257731959
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9059820201601448,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9057824147646574,
+        "fresh": 0.8941630776081132
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.49997198565665624,
+        "heldout_auc_B": 0.533005903713428
+       },
+       "v2": {
+        "selected_on_A": "own:v2:LR_C0.1",
+        "max_auc_A": 0.9078100487449574,
+        "heldout_auc_B": 0.9059820201601448
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:LR_C0.1",
+        "max_auc_A": 0.9078100487449574,
+        "heldout_auc_B": 0.9059820201601448
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128x128",
+        "max_auc_A": 0.5002416237113402,
+        "heldout_auc_B": 0.5330097422787259
+       },
+       "v2": {
+        "selected_on_A": "own:v2:LR_C0.1",
+        "max_auc_A": 0.9083213105109816,
+        "heldout_auc_B": 0.9057824147646574
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:LR_C0.1",
+        "max_auc_A": 0.9083213105109816,
+        "heldout_auc_B": 0.9057824147646574
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5195610152398027,
+        "heldout_auc_B": 0.5278046477348626
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.9081147047288212,
+        "heldout_auc_B": 0.8910346468903781
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128x128",
+        "max_auc_A": 0.9092300257731959,
+        "heldout_auc_B": 0.8941630776081132
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      16,
+      642
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "COLL_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.9037952431645002,
+       "heldout_auc_B": 0.9058726210491566,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9032524652622143,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9030388558942178,
+        "fresh": 0.9037952431645002
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9126246574080472,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9122983793577313,
+        "fresh": 0.9058726210491566
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v2:DA_MLP",
+       "max_auc_A": 0.52869194027342,
+       "heldout_auc_B": 0.5150548530981061,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.52869194027342,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5140754566337966,
+        "fresh": 0.5155707222097714
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5150548530981061,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5162409697751369,
+        "fresh": 0.5149819203574473
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:DA_MLP",
+       "max_auc_A": 0.9050173688928732,
+       "heldout_auc_B": 0.8929308981475084,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9032524652622143,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9041874439713133,
+        "fresh": 0.9050173688928732
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9126246574080472,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9082352579899736,
+        "fresh": 0.8929308981475084
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9032524652622143,
+        "heldout_auc_B": 0.9126246574080472
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.52869194027342,
+        "heldout_auc_B": 0.5150548530981061
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_64x64",
+        "max_auc_A": 0.9032524652622143,
+        "heldout_auc_B": 0.9126246574080472
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9030388558942178,
+        "heldout_auc_B": 0.9122983793577313
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.05_15",
+        "max_auc_A": 0.5140754566337966,
+        "heldout_auc_B": 0.5162409697751369
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9041874439713133,
+        "heldout_auc_B": 0.9082352579899736
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.9037952431645002,
+        "heldout_auc_B": 0.9058726210491566
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5155707222097714,
+        "heldout_auc_B": 0.5149819203574473
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.9050173688928732,
+        "heldout_auc_B": 0.8929308981475084
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      32,
+      321
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:MLP_64x64",
+       "max_auc_A": 0.5125609311967727,
+       "heldout_auc_B": 0.512945561466946
+      },
+      "v2": {
+       "selected_on_A": "own:v2:LR_C0.1",
+       "max_auc_A": 0.5167718371806365,
+       "heldout_auc_B": 0.5402588728436859
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.01",
+       "max_auc_A": 0.5228789640295831,
+       "heldout_auc_B": 0.524808647519903
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "COLL_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.5195610152398027,
+       "heldout_auc_B": 0.5278046477348626,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.49997198565665624,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5002416237113402,
+        "fresh": 0.5195610152398027
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.533005903713428,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5330097422787259,
+        "fresh": 0.5278046477348626
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64|D1",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64|D1:own:v2:LR_C0.1",
+       "max_auc_A": 0.9087660382115643,
+       "heldout_auc_B": 0.9056634192404248,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9080043982519048,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9087660382115643,
+        "fresh": 0.9087030059390407
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9058054461564446,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9056634192404248,
+        "fresh": 0.8909693912803149
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:MLP_128x128",
+       "max_auc_A": 0.9091459827431646,
+       "heldout_auc_B": 0.8940786291715609,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9080043982519048,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9087660382115643,
+        "fresh": 0.9091459827431646
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.9058054461564446,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.9056634192404248,
+        "fresh": 0.8940786291715609
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.49997198565665624,
+        "heldout_auc_B": 0.533005903713428
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_LR",
+        "max_auc_A": 0.9080043982519048,
+        "heldout_auc_B": 0.9058054461564446
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:DA_LR",
+        "max_auc_A": 0.9080043982519048,
+        "heldout_auc_B": 0.9058054461564446
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128x128",
+        "max_auc_A": 0.5002416237113402,
+        "heldout_auc_B": 0.5330097422787259
+       },
+       "v2": {
+        "selected_on_A": "own:v2:LR_C0.1",
+        "max_auc_A": 0.9087660382115643,
+        "heldout_auc_B": 0.9056634192404248
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:LR_C0.1",
+        "max_auc_A": 0.9087660382115643,
+        "heldout_auc_B": 0.9056634192404248
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5195610152398027,
+        "heldout_auc_B": 0.5278046477348626
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.9087030059390407,
+        "heldout_auc_B": 0.8909693912803149
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128x128",
+        "max_auc_A": 0.9091459827431646,
+        "heldout_auc_B": 0.8940786291715609
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      16,
+      642
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:MLP_64x64",
+       "max_auc_A": 0.5125609311967727,
+       "heldout_auc_B": 0.512945561466946
+      },
+      "v2": {
+       "selected_on_A": "own:v2:LR_C0.1",
+       "max_auc_A": 0.5167718371806365,
+       "heldout_auc_B": 0.5402588728436859
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.01",
+       "max_auc_A": 0.5228789640295831,
+       "heldout_auc_B": 0.524808647519903
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "XOR": {
+     "target_view": "pair",
+     "serialisation_exact": true,
+     "rule": "AUC_B(pair) > 0.75 and AUC_B(v1), AUC_B(v2) <= null threshold (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64x64",
+       "max_auc_A": 0.5245230558045719,
+       "heldout_auc_B": 0.5375680385699041,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.4971040172568355,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5004237169430749,
+        "fresh": 0.5245230558045719
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5373799488703103,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5356641101821783,
+        "fresh": 0.5375680385699041
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v2:HGB_0.1_15",
+       "max_auc_A": 0.5199987393545495,
+       "heldout_auc_B": 0.5132967901916979,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5199987393545495,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5171745433662036,
+        "fresh": 0.5037836872478709
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.5132967901916979,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.5130799112523703,
+        "fresh": 0.5249852215236034
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|DIRECT-TASK|i8o64",
+       "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:coalition:pair:DA_MLP",
+       "max_auc_A": 0.8390190777678171,
+       "heldout_auc_B": 0.8138814036865579,
+       "bank_max_auc_A": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.8390190777678171,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.8297498319139399,
+        "fresh": 0.7838343231734648
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|DIRECT-TASK|i8o64": 0.8138814036865579,
+        "legacy:U|DIRECT-TASK|i8o64|D1": 0.8104036635267202,
+        "fresh": 0.7969302993313219
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|DIRECT-TASK|i8o64": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128x128",
+        "max_auc_A": 0.4971040172568355,
+        "heldout_auc_B": 0.5373799488703103
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.1_15",
+        "max_auc_A": 0.5199987393545495,
+        "heldout_auc_B": 0.5132967901916979
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.8390190777678171,
+        "heldout_auc_B": 0.8138814036865579
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|DIRECT-TASK|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128x128",
+        "max_auc_A": 0.5004237169430749,
+        "heldout_auc_B": 0.5356641101821783
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.1_31",
+        "max_auc_A": 0.5171745433662036,
+        "heldout_auc_B": 0.5130799112523703
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.8297498319139399,
+        "heldout_auc_B": 0.8104036635267202
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.5245230558045719,
+        "heldout_auc_B": 0.5375680385699041
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.1_31",
+        "max_auc_A": 0.5037836872478709,
+        "heldout_auc_B": 0.5249852215236034
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:CCpair_alpha5.0",
+        "max_auc_A": 0.7838343231734648,
+        "heldout_auc_B": 0.7969302993313219
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "common_locals_null_ok": true,
+     "alphabets": [
+      32,
+      642
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    }
+   },
+   "failures": [],
+   "diagnostic_failures": [],
+   "all_ok": true,
+   "wall_s": 708.8,
+   "cpu_s": 705.1
+  },
+  "U|JOINT|i8o64|l0.1|s0": {
+   "label": "U|JOINT|i8o64|l0.1|s0",
+   "partition": "U|JOINT|i8o64|l0.1",
+   "seed": 0,
+   "tables": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "banks": [
+    "legacy:U|JOINT|i8o64|l0.1",
+    "legacy:U|JOINT|i8o64|l0.1|D1",
+    "fresh"
+   ],
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "null_threshold": 0.5654143765984265,
+   "null_sd_B": 0.018689821885264708,
+   "plant_min": 0.75,
+   "fit_roles": {
+    "legacy": "AUDIT_FIT",
+    "fresh": "ATTACK_FIT_NEW"
+   },
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "required": "common",
+   "checks": {
+    "NULL": {
+     "target_view": null,
+     "serialisation_exact": true,
+     "rule": "AUC_B <= 0.5 + 3.5 sd0 on every view",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:own:v1:MLP_128",
+       "max_auc_A": 0.5043317178395338,
+       "heldout_auc_B": 0.4905206629969982,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5040550761990139,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5043317178395338,
+        "fresh": 0.49619355109816227
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.4962209324642821,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.4905206629969982,
+        "fresh": 0.52438832461979
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5245598246302108,
+       "heldout_auc_B": 0.5105023146548746,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5245598246302108,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5234672652398028,
+        "fresh": 0.5073169963021067
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5105023146548746,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5110205209700822,
+        "fresh": 0.5087135432260838
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:ignore_recipient_1:v2:MLP_128x128",
+       "max_auc_A": 0.5245598246302108,
+       "heldout_auc_B": 0.5105023146548746,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5245598246302108,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5234672652398028,
+        "fresh": 0.5171692906768266
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5105023146548746,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5110205209700822,
+        "fresh": 0.5208990687640587
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5040550761990139,
+        "heldout_auc_B": 0.4962209324642821
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5245598246302108,
+        "heldout_auc_B": 0.5105023146548746
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128x128",
+        "max_auc_A": 0.5245598246302108,
+        "heldout_auc_B": 0.5105023146548746
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5043317178395338,
+        "heldout_auc_B": 0.4905206629969982
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5234672652398028,
+        "heldout_auc_B": 0.5110205209700822
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128x128",
+        "max_auc_A": 0.5234672652398028,
+        "heldout_auc_B": 0.5110205209700822
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.49619355109816227,
+        "heldout_auc_B": 0.52438832461979
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.5073169963021067,
+        "heldout_auc_B": 0.5087135432260838
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128x128",
+        "max_auc_A": 0.5171692906768266,
+        "heldout_auc_B": 0.5208990687640587
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      14,
+      270
+     ]
+    },
+    "CONF_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64x64",
+       "max_auc_A": 0.9010901081353653,
+       "heldout_auc_B": 0.9032278495589487,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9006698929852085,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9004597854101299,
+        "fresh": 0.9010901081353653
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.8999535533598962,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8993009972592644,
+        "fresh": 0.9032278495589487
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5245598246302108,
+       "heldout_auc_B": 0.5105023146548746,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5245598246302108,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5234672652398028,
+        "fresh": 0.5073169963021067
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5105023146548746,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5110205209700822,
+        "fresh": 0.5087135432260838
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:coalition:pair:HGB_0.1_31",
+       "max_auc_A": 0.9073583174585389,
+       "heldout_auc_B": 0.9005715623728476,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9047424781488123,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9073583174585389,
+        "fresh": 0.9057614998879425
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9029015715086329,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9005715623728476,
+        "fresh": 0.9056806927842649
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.9006698929852085,
+        "heldout_auc_B": 0.8999535533598962
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5245598246302108,
+        "heldout_auc_B": 0.5105023146548746
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9047424781488123,
+        "heldout_auc_B": 0.9029015715086329
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.9004597854101299,
+        "heldout_auc_B": 0.8993009972592644
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5234672652398028,
+        "heldout_auc_B": 0.5110205209700822
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9073583174585389,
+        "heldout_auc_B": 0.9005715623728476
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9010901081353653,
+        "heldout_auc_B": 0.9032278495589487
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.5073169963021067,
+        "heldout_auc_B": 0.5087135432260838
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.05_31",
+        "max_auc_A": 0.9057614998879425,
+        "heldout_auc_B": 0.9056806927842649
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      28,
+      270
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "CONF_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:own:v1:MLP_128",
+       "max_auc_A": 0.5043317178395338,
+       "heldout_auc_B": 0.4905206629969982,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5040550761990139,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5043317178395338,
+        "fresh": 0.49619355109816227
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.4962209324642821,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.4905206629969982,
+        "fresh": 0.52438832461979
+       }
+      },
+      "v2": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v2:MLP_64x64",
+       "max_auc_A": 0.9054130714926042,
+       "heldout_auc_B": 0.9012567462785108,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9037514707530255,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9041541769385926,
+        "fresh": 0.9054130714926042
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.8991321003861596,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.898122557712829,
+        "fresh": 0.9012567462785108
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:coalition:pair:MLP_64x64",
+       "max_auc_A": 0.9090671924025101,
+       "heldout_auc_B": 0.9012087642122879,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9090671924025101,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.906791027005827,
+        "fresh": 0.9054130714926042
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9012087642122879,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8991935174309249,
+        "fresh": 0.9012567462785108
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5040550761990139,
+        "heldout_auc_B": 0.4962209324642821
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_LR",
+        "max_auc_A": 0.9037514707530255,
+        "heldout_auc_B": 0.8991321003861596
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.9090671924025101,
+        "heldout_auc_B": 0.9012087642122879
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5043317178395338,
+        "heldout_auc_B": 0.4905206629969982
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_LR",
+        "max_auc_A": 0.9041541769385926,
+        "heldout_auc_B": 0.898122557712829
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.906791027005827,
+        "heldout_auc_B": 0.8991935174309249
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.49619355109816227,
+        "heldout_auc_B": 0.52438832461979
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.9054130714926042,
+        "heldout_auc_B": 0.9012567462785108
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_64x64",
+        "max_auc_A": 0.9054130714926042,
+        "heldout_auc_B": 0.9012567462785108
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      14,
+      540
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "COLL_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:own:v1:DA_MLP",
+       "max_auc_A": 0.9024523055804572,
+       "heldout_auc_B": 0.8990361362537138,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9024523055804572,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9003477280367548,
+        "fresh": 0.9012161726804124
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.8990361362537138,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8991628089085424,
+        "fresh": 0.9026060019806996
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5245598246302108,
+       "heldout_auc_B": 0.5105023146548746,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5245598246302108,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5234672652398028,
+        "fresh": 0.5073169963021067
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5105023146548746,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5110205209700822,
+        "fresh": 0.5087135432260838
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:coalition:pair:HGB_0.1_31",
+       "max_auc_A": 0.9082617800313761,
+       "heldout_auc_B": 0.8984565128937408,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9033837824966382,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9082617800313761,
+        "fresh": 0.9041261625952486
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9035349347827757,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8984565128937408,
+        "fresh": 0.9071124776403572
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.9024523055804572,
+        "heldout_auc_B": 0.8990361362537138
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5245598246302108,
+        "heldout_auc_B": 0.5105023146548746
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9033837824966382,
+        "heldout_auc_B": 0.9035349347827757
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.9003477280367548,
+        "heldout_auc_B": 0.8991628089085424
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5234672652398028,
+        "heldout_auc_B": 0.5110205209700822
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_31",
+        "max_auc_A": 0.9082617800313761,
+        "heldout_auc_B": 0.8984565128937408
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64x64",
+        "max_auc_A": 0.9012161726804124,
+        "heldout_auc_B": 0.9026060019806996
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.5073169963021067,
+        "heldout_auc_B": 0.5087135432260838
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.1_15",
+        "max_auc_A": 0.9041261625952486,
+        "heldout_auc_B": 0.9071124776403572
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      28,
+      270
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5125504258180189,
+       "heldout_auc_B": 0.49519219696446254
+      },
+      "v2": {
+       "selected_on_A": "own:v2:HGB_0.1_31",
+       "max_auc_A": 0.5160574714253698,
+       "heldout_auc_B": 0.4990134887184566
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.01",
+       "max_auc_A": 0.5349443915284626,
+       "heldout_auc_B": 0.5262385130933462
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "COLL_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:own:v1:MLP_128",
+       "max_auc_A": 0.5043317178395338,
+       "heldout_auc_B": 0.4905206629969982,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5040550761990139,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.5043317178395338,
+        "fresh": 0.49619355109816227
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.4962209324642821,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.4905206629969982,
+        "fresh": 0.52438832461979
+       }
+      },
+      "v2": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v2:MLP_64x64",
+       "max_auc_A": 0.9053570428059164,
+       "heldout_auc_B": 0.89998234259963,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9037969940609591,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.903684936687584,
+        "fresh": 0.9053570428059164
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.8990054277313311,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8979594186876712,
+        "fresh": 0.89998234259963
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1:coalition:pair:MLP_64x64",
+       "max_auc_A": 0.9088991063424473,
+       "heldout_auc_B": 0.900863293335483,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.9088991063424473,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.9084298660914389,
+        "fresh": 0.9053570428059164
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.900863293335483,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.900510145328082,
+        "fresh": 0.89998234259963
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5040550761990139,
+        "heldout_auc_B": 0.4962209324642821
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_LR",
+        "max_auc_A": 0.9037969940609591,
+        "heldout_auc_B": 0.8990054277313311
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.9088991063424473,
+        "heldout_auc_B": 0.900863293335483
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5043317178395338,
+        "heldout_auc_B": 0.4905206629969982
+       },
+       "v2": {
+        "selected_on_A": "own:v2:CC_alpha0.5",
+        "max_auc_A": 0.903684936687584,
+        "heldout_auc_B": 0.8979594186876712
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.9084298660914389,
+        "heldout_auc_B": 0.900510145328082
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.49619355109816227,
+        "heldout_auc_B": 0.52438832461979
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.9053570428059164,
+        "heldout_auc_B": 0.89998234259963
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_64x64",
+        "max_auc_A": 0.9053570428059164,
+        "heldout_auc_B": 0.89998234259963
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      14,
+      540
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5125504258180189,
+       "heldout_auc_B": 0.49519219696446254
+      },
+      "v2": {
+       "selected_on_A": "own:v2:HGB_0.1_31",
+       "max_auc_A": 0.5160574714253698,
+       "heldout_auc_B": 0.4990134887184566
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.01",
+       "max_auc_A": 0.5349443915284626,
+       "heldout_auc_B": 0.5262385130933462
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "XOR": {
+     "target_view": "pair",
+     "serialisation_exact": true,
+     "rule": "AUC_B(pair) > 0.75 and AUC_B(v1), AUC_B(v2) <= null threshold (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.5118255546839983,
+       "heldout_auc_B": 0.5202177234236932,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5066113850291348,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.503494789332138,
+        "fresh": 0.5118255546839983
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5103142249552808,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.512555947089216,
+        "fresh": 0.5202177234236932
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:own:v2:MLP_128",
+       "max_auc_A": 0.51171875,
+       "heldout_auc_B": 0.4916530397598594,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.5115051406320035,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.51171875,
+        "fresh": 0.5084025521066786
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.49113867200994965,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.4916530397598594,
+        "fresh": 0.48733081523449795
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|JOINT|i8o64|l0.1|D1",
+       "selected_on_A": "legacy:U|JOINT|i8o64|l0.1|D1:coalition:pair:DA_MLP",
+       "max_auc_A": 0.8653753221649484,
+       "heldout_auc_B": 0.8632299991555157,
+       "bank_max_auc_A": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.85977245349619,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8653753221649484,
+        "fresh": 0.8297480810174809
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|JOINT|i8o64|l0.1": 0.852704653108854,
+        "legacy:U|JOINT|i8o64|l0.1|D1": 0.8632299991555157,
+        "fresh": 0.8168140675741035
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|JOINT|i8o64|l0.1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5066113850291348,
+        "heldout_auc_B": 0.5103142249552808
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.5115051406320035,
+        "heldout_auc_B": 0.49113867200994965
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.85977245349619,
+        "heldout_auc_B": 0.852704653108854
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|JOINT|i8o64|l0.1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.503494789332138,
+        "heldout_auc_B": 0.512555947089216
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.51171875,
+        "heldout_auc_B": 0.4916530397598594
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.8653753221649484,
+        "heldout_auc_B": 0.8632299991555157
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5118255546839983,
+        "heldout_auc_B": 0.5202177234236932
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.5084025521066786,
+        "heldout_auc_B": 0.48733081523449795
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.8297480810174809,
+        "heldout_auc_B": 0.8168140675741035
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "common_locals_null_ok": true,
+     "alphabets": [
+      28,
+      540
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    }
+   },
+   "failures": [],
+   "diagnostic_failures": [],
+   "all_ok": true,
+   "wall_s": 601.1,
+   "cpu_s": 598.0
+  },
+  "U|CLASS|i1o1|s0": {
+   "label": "U|CLASS|i1o1|s0",
+   "partition": "U|CLASS|i1o1",
+   "seed": 0,
+   "tables": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "banks": [
+    "legacy:U|CLASS|i1o1",
+    "legacy:U|CLASS|i1o1|D1",
+    "fresh"
+   ],
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "null_threshold": 0.5654143765984265,
+   "null_sd_B": 0.018689821885264708,
+   "plant_min": 0.75,
+   "fit_roles": {
+    "legacy": "AUDIT_FIT",
+    "fresh": "ATTACK_FIT_NEW"
+   },
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "required": "common",
+   "checks": {
+    "NULL": {
+     "target_view": null,
+     "serialisation_exact": true,
+     "rule": "AUC_B <= 0.5 + 3.5 sd0 on every view",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5023952263558942,
+        "legacy:U|CLASS|i1o1|D1": 0.5023952263558942,
+        "fresh": 0.5023952263558942
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.4900715508571516,
+        "legacy:U|CLASS|i1o1|D1": 0.4900715508571516,
+        "fresh": 0.4900715508571516
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v2:DA_MLP",
+       "max_auc_A": 0.5179676994621245,
+       "heldout_auc_B": 0.5136077139808225,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5179676994621245,
+        "legacy:U|CLASS|i1o1|D1": 0.5179676994621245,
+        "fresh": 0.5179676994621245
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5136077139808225,
+        "legacy:U|CLASS|i1o1|D1": 0.5136077139808225,
+        "fresh": 0.5136077139808225
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:MLP_128x128",
+       "max_auc_A": 0.5286866875840431,
+       "heldout_auc_B": 0.4839087342714787,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5233044318691171,
+        "legacy:U|CLASS|i1o1|D1": 0.5233044318691171,
+        "fresh": 0.5286866875840431
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5229431047851556,
+        "legacy:U|CLASS|i1o1|D1": 0.5229431047851556,
+        "fresh": 0.4839087342714787
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.5233044318691171,
+        "heldout_auc_B": 0.5229431047851556
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.5233044318691171,
+        "heldout_auc_B": 0.5229431047851556
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128x128",
+        "max_auc_A": 0.5286866875840431,
+        "heldout_auc_B": 0.4839087342714787
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      2,
+      6
+     ]
+    },
+    "CONF_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:MLP_128",
+       "max_auc_A": 0.9034608219408338,
+       "heldout_auc_B": 0.9034869527165527,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.9034608219408338,
+        "legacy:U|CLASS|i1o1|D1": 0.9034608219408338,
+        "fresh": 0.9034608219408338
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.9034869527165527,
+        "legacy:U|CLASS|i1o1|D1": 0.9034869527165527,
+        "fresh": 0.9034869527165527
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v2:DA_MLP",
+       "max_auc_A": 0.5179676994621245,
+       "heldout_auc_B": 0.5136077139808225,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5179676994621245,
+        "legacy:U|CLASS|i1o1|D1": 0.5179676994621245,
+        "fresh": 0.5179676994621245
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5136077139808225,
+        "legacy:U|CLASS|i1o1|D1": 0.5136077139808225,
+        "fresh": 0.5136077139808225
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:LR_C1.0",
+       "max_auc_A": 0.9040491231510533,
+       "heldout_auc_B": 0.9026079212633487,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.9034608219408338,
+        "legacy:U|CLASS|i1o1|D1": 0.9034608219408338,
+        "fresh": 0.9040491231510533
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.9034869527165527,
+        "legacy:U|CLASS|i1o1|D1": 0.9034869527165527,
+        "fresh": 0.9026079212633487
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:LR_C1.0",
+        "max_auc_A": 0.9040491231510533,
+        "heldout_auc_B": 0.9026079212633487
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      4,
+      6
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "CONF_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5023952263558942,
+        "legacy:U|CLASS|i1o1|D1": 0.5023952263558942,
+        "fresh": 0.5023952263558942
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.4900715508571516,
+        "legacy:U|CLASS|i1o1|D1": 0.4900715508571516,
+        "fresh": 0.4900715508571516
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1|D1",
+       "selected_on_A": "legacy:U|CLASS|i1o1|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.9054691001792918,
+       "heldout_auc_B": 0.9005907551993366,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.904775745181533,
+        "legacy:U|CLASS|i1o1|D1": 0.9054691001792918,
+        "fresh": 0.9053255266696548
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.904517607499021,
+        "legacy:U|CLASS|i1o1|D1": 0.9005907551993366,
+        "fresh": 0.9037729258312412
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|CLASS|i1o1|D1",
+       "selected_on_A": "legacy:U|CLASS|i1o1|D1:ignore_recipient_1:v2:MLP_128x128",
+       "max_auc_A": 0.9054691001792918,
+       "heldout_auc_B": 0.9005907551993366,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.904775745181533,
+        "legacy:U|CLASS|i1o1|D1": 0.9054691001792918,
+        "fresh": 0.9053255266696548
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.904517607499021,
+        "legacy:U|CLASS|i1o1|D1": 0.9005907551993366,
+        "fresh": 0.9037729258312412
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.904775745181533,
+        "heldout_auc_B": 0.904517607499021
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128",
+        "max_auc_A": 0.904775745181533,
+        "heldout_auc_B": 0.904517607499021
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.9054691001792918,
+        "heldout_auc_B": 0.9005907551993366
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128x128",
+        "max_auc_A": 0.9054691001792918,
+        "heldout_auc_B": 0.9005907551993366
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64x64",
+        "max_auc_A": 0.9053255266696548,
+        "heldout_auc_B": 0.9037729258312412
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_64x64",
+        "max_auc_A": 0.9053255266696548,
+        "heldout_auc_B": 0.9037729258312412
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      2,
+      12
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "COLL_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:MLP_128",
+       "max_auc_A": 0.9034608219408338,
+       "heldout_auc_B": 0.9034869527165527,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.9034608219408338,
+        "legacy:U|CLASS|i1o1|D1": 0.9034608219408338,
+        "fresh": 0.9034608219408338
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.9034869527165527,
+        "legacy:U|CLASS|i1o1|D1": 0.9034869527165527,
+        "fresh": 0.9034869527165527
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v2:DA_MLP",
+       "max_auc_A": 0.5179676994621245,
+       "heldout_auc_B": 0.5136077139808225,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5179676994621245,
+        "legacy:U|CLASS|i1o1|D1": 0.5179676994621245,
+        "fresh": 0.5179676994621245
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5136077139808225,
+        "legacy:U|CLASS|i1o1|D1": 0.5136077139808225,
+        "fresh": 0.5136077139808225
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:coalition:pair:LR_C1.0",
+       "max_auc_A": 0.9040491231510533,
+       "heldout_auc_B": 0.9026079212633487,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.9034608219408338,
+        "legacy:U|CLASS|i1o1|D1": 0.9034608219408338,
+        "fresh": 0.9040491231510533
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.9034869527165527,
+        "legacy:U|CLASS|i1o1|D1": 0.9034869527165527,
+        "fresh": 0.9026079212633487
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.9034608219408338,
+        "heldout_auc_B": 0.9034869527165527
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.5179676994621245,
+        "heldout_auc_B": 0.5136077139808225
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:LR_C1.0",
+        "max_auc_A": 0.9040491231510533,
+        "heldout_auc_B": 0.9026079212633487
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      4,
+      6
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:DA_MLP",
+       "max_auc_A": 0.5179676994621245,
+       "heldout_auc_B": 0.5136077139808225
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5249922960555805,
+       "heldout_auc_B": 0.5040266549974282
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "COLL_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5023952263558942,
+        "legacy:U|CLASS|i1o1|D1": 0.5023952263558942,
+        "fresh": 0.5023952263558942
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.4900715508571516,
+        "legacy:U|CLASS|i1o1|D1": 0.4900715508571516,
+        "fresh": 0.4900715508571516
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1|D1",
+       "selected_on_A": "legacy:U|CLASS|i1o1|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.9054691001792918,
+       "heldout_auc_B": 0.9005907551993366,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.904775745181533,
+        "legacy:U|CLASS|i1o1|D1": 0.9054691001792918,
+        "fresh": 0.9051784513671
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.904517607499021,
+        "legacy:U|CLASS|i1o1|D1": 0.9005907551993366,
+        "fresh": 0.9037882800924326
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|CLASS|i1o1|D1",
+       "selected_on_A": "legacy:U|CLASS|i1o1|D1:ignore_recipient_1:v2:MLP_128x128",
+       "max_auc_A": 0.9054691001792918,
+       "heldout_auc_B": 0.9005907551993366,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.904775745181533,
+        "legacy:U|CLASS|i1o1|D1": 0.9054691001792918,
+        "fresh": 0.9051784513671
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.904517607499021,
+        "legacy:U|CLASS|i1o1|D1": 0.9005907551993366,
+        "fresh": 0.9037882800924326
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.904775745181533,
+        "heldout_auc_B": 0.904517607499021
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128",
+        "max_auc_A": 0.904775745181533,
+        "heldout_auc_B": 0.904517607499021
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.9054691001792918,
+        "heldout_auc_B": 0.9005907551993366
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128x128",
+        "max_auc_A": 0.9054691001792918,
+        "heldout_auc_B": 0.9005907551993366
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:LR_C0.01",
+        "max_auc_A": 0.5023952263558942,
+        "heldout_auc_B": 0.4900715508571516
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128",
+        "max_auc_A": 0.9051784513671,
+        "heldout_auc_B": 0.9037882800924326
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128",
+        "max_auc_A": 0.9051784513671,
+        "heldout_auc_B": 0.9037882800924326
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      2,
+      12
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:DA_MLP",
+       "max_auc_A": 0.5179676994621245,
+       "heldout_auc_B": 0.5136077139808225
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5249922960555805,
+       "heldout_auc_B": 0.5040266549974282
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "XOR": {
+     "target_view": "pair",
+     "serialisation_exact": true,
+     "rule": "AUC_B(pair) > 0.75 and AUC_B(v1), AUC_B(v2) <= null threshold (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v1:MLP_128",
+       "max_auc_A": 0.5138863598162259,
+       "heldout_auc_B": 0.5024893095956455,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5138863598162259,
+        "legacy:U|CLASS|i1o1|D1": 0.5138863598162259,
+        "fresh": 0.5077407132451816
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5024893095956455,
+        "legacy:U|CLASS|i1o1|D1": 0.5024893095956455,
+        "fresh": 0.4894919274971787
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|CLASS|i1o1",
+       "selected_on_A": "legacy:U|CLASS|i1o1:own:v2:MLP_64",
+       "max_auc_A": 0.5438827179515913,
+       "heldout_auc_B": 0.5045909240962098,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.5438827179515913,
+        "legacy:U|CLASS|i1o1|D1": 0.5396280395562528,
+        "fresh": 0.5255158140968177
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.5045909240962098,
+        "legacy:U|CLASS|i1o1|D1": 0.5071973099334393,
+        "fresh": 0.5077231933792425
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|CLASS|i1o1|D1",
+       "selected_on_A": "legacy:U|CLASS|i1o1|D1:coalition:pair:MLP_128",
+       "max_auc_A": 0.9028164920439266,
+       "heldout_auc_B": 0.8980707370813086,
+       "bank_max_auc_A": {
+        "legacy:U|CLASS|i1o1": 0.9000220612953832,
+        "legacy:U|CLASS|i1o1|D1": 0.9028164920439266,
+        "fresh": 0.8992761794038547
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|CLASS|i1o1": 0.8953031315015701,
+        "legacy:U|CLASS|i1o1|D1": 0.8980707370813086,
+        "fresh": 0.9047997420484121
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|CLASS|i1o1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5138863598162259,
+        "heldout_auc_B": 0.5024893095956455
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.5438827179515913,
+        "heldout_auc_B": 0.5045909240962098
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128",
+        "max_auc_A": 0.9000220612953832,
+        "heldout_auc_B": 0.8953031315015701
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "legacy:U|CLASS|i1o1|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5138863598162259,
+        "heldout_auc_B": 0.5024893095956455
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.5396280395562528,
+        "heldout_auc_B": 0.5071973099334393
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128",
+        "max_auc_A": 0.9028164920439266,
+        "heldout_auc_B": 0.8980707370813086
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5077407132451816,
+        "heldout_auc_B": 0.4894919274971787
+       },
+       "v2": {
+        "selected_on_A": "own:v2:LR_C0.01",
+        "max_auc_A": 0.5255158140968177,
+        "heldout_auc_B": 0.5077231933792425
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:CCpair_alpha1.0",
+        "max_auc_A": 0.8992761794038547,
+        "heldout_auc_B": 0.9047997420484121
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "common_locals_null_ok": true,
+     "alphabets": [
+      4,
+      12
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    }
+   },
+   "failures": [],
+   "diagnostic_failures": [],
+   "all_ok": true,
+   "wall_s": 106.8,
+   "cpu_s": 106.5
+  },
+  "U|K-JOINT-PAIR|i8o64|s0": {
+   "label": "U|K-JOINT-PAIR|i8o64|s0",
+   "partition": "U|K-JOINT-PAIR|i8o64",
+   "seed": 0,
+   "tables": [
+    "D1",
+    "MEAN",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP"
+   ],
+   "banks": [
+    "legacy:U|K-JOINT-PAIR|i8o64|D1",
+    "fresh"
+   ],
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "null_threshold": 0.5654143765984265,
+   "null_sd_B": 0.018689821885264708,
+   "plant_min": 0.75,
+   "fit_roles": {
+    "legacy": "AUDIT_FIT",
+    "fresh": "ATTACK_FIT_NEW"
+   },
+   "split": {
+    "seed": 20261022,
+    "rule": "exact-record group hash, A iff u < 0.5",
+    "rows_A": 1144,
+    "rows_B": 1091,
+    "row_id_sha256_A": "860673d534f5cc14eb442e6124327d3b2365c9e5fe72837375abe504ec68f6db",
+    "row_id_sha256_B": "cc9cc3f39904ccbfa267a92631fd6da2c65ba2cb00bec3a758a4b0259da13d82"
+   },
+   "required": "common",
+   "checks": {
+    "NULL": {
+     "target_view": null,
+     "serialisation_exact": true,
+     "rule": "AUC_B <= 0.5 + 3.5 sd0 on every view",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v1:DA_MLP",
+       "max_auc_A": 0.5199794794935007,
+       "heldout_auc_B": 0.5194116247111479,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5199794794935007,
+        "fresh": 0.5181410382115643
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5194116247111479,
+        "fresh": 0.5223903513822674
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5273052302779022,
+       "heldout_auc_B": 0.5022628342430733,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5273052302779022,
+        "fresh": 0.5252426742492156
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5022628342430733,
+        "fresh": 0.5138821713996177
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:ignore_recipient_1:v2:MLP_128x128",
+       "max_auc_A": 0.5273052302779022,
+       "heldout_auc_B": 0.5022628342430733,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5273052302779022,
+        "fresh": 0.5263299809502465
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5022628342430733,
+        "fresh": 0.5038750316681637
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5199794794935007,
+        "heldout_auc_B": 0.5194116247111479
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5273052302779022,
+        "heldout_auc_B": 0.5022628342430733
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_128x128",
+        "max_auc_A": 0.5273052302779022,
+        "heldout_auc_B": 0.5022628342430733
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5181410382115643,
+        "heldout_auc_B": 0.5223903513822674
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5252426742492156,
+        "heldout_auc_B": 0.5138821713996177
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64x64",
+        "max_auc_A": 0.5263299809502465,
+        "heldout_auc_B": 0.5038750316681637
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      10,
+      165
+     ]
+    },
+    "CONF_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v1:MLP_128",
+       "max_auc_A": 0.9085926994621247,
+       "heldout_auc_B": 0.9110028635697122,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9085926994621247,
+        "fresh": 0.9042924977588527
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9110028635697122,
+        "fresh": 0.9031913831886195
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5273052302779022,
+       "heldout_auc_B": 0.5022628342430733,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5273052302779022,
+        "fresh": 0.5252426742492156
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5022628342430733,
+        "fresh": 0.5138821713996177
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:ignore_recipient_2:v1:MLP_128",
+       "max_auc_A": 0.9085926994621247,
+       "heldout_auc_B": 0.9110028635697122,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9085926994621247,
+        "fresh": 0.9065896739130436
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9110028635697122,
+        "fresh": 0.9034216971064895
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9085926994621247,
+        "heldout_auc_B": 0.9110028635697122
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5273052302779022,
+        "heldout_auc_B": 0.5022628342430733
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9085926994621247,
+        "heldout_auc_B": 0.9110028635697122
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9042924977588527,
+        "heldout_auc_B": 0.9031913831886195
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5252426742492156,
+        "heldout_auc_B": 0.5138821713996177
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.05_31",
+        "max_auc_A": 0.9065896739130436,
+        "heldout_auc_B": 0.9034216971064895
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      20,
+      165
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "CONF_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v1:DA_MLP",
+       "max_auc_A": 0.5199794794935007,
+       "heldout_auc_B": 0.5194116247111479,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5199794794935007,
+        "fresh": 0.5181410382115643
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5194116247111479,
+        "fresh": 0.5223903513822674
+       }
+      },
+      "v2": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v2:MLP_64",
+       "max_auc_A": 0.9084858947781265,
+       "heldout_auc_B": 0.8975621271793454,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9017799613402063,
+        "fresh": 0.9084858947781265
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.8990438133843095,
+        "fresh": 0.8975621271793454
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:ignore_recipient_1:v2:MLP_64",
+       "max_auc_A": 0.9084858947781265,
+       "heldout_auc_B": 0.8975621271793454,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9030493612729719,
+        "fresh": 0.9084858947781265
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.90359827111019,
+        "fresh": 0.8975621271793454
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5199794794935007,
+        "heldout_auc_B": 0.5194116247111479
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.9017799613402063,
+        "heldout_auc_B": 0.8990438133843095
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64",
+        "max_auc_A": 0.9030493612729719,
+        "heldout_auc_B": 0.90359827111019
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5181410382115643,
+        "heldout_auc_B": 0.5223903513822674
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.9084858947781265,
+        "heldout_auc_B": 0.8975621271793454
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_64",
+        "max_auc_A": 0.9084858947781265,
+        "heldout_auc_B": 0.8975621271793454
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      10,
+      330
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    },
+    "COLL_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v1:MLP_128",
+       "max_auc_A": 0.9085926994621247,
+       "heldout_auc_B": 0.9110028635697122,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9085926994621247,
+        "fresh": 0.9042924977588527
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9110028635697122,
+        "fresh": 0.9031913831886195
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5273052302779022,
+       "heldout_auc_B": 0.5022628342430733,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5273052302779022,
+        "fresh": 0.5252426742492156
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5022628342430733,
+        "fresh": 0.5138821713996177
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:ignore_recipient_2:v1:MLP_128",
+       "max_auc_A": 0.9085926994621247,
+       "heldout_auc_B": 0.9110028635697122,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9085926994621247,
+        "fresh": 0.9062149820708202
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9110028635697122,
+        "fresh": 0.9030992576214714
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9085926994621247,
+        "heldout_auc_B": 0.9110028635697122
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5273052302779022,
+        "heldout_auc_B": 0.5022628342430733
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_2:v1:MLP_128",
+        "max_auc_A": 0.9085926994621247,
+        "heldout_auc_B": 0.9110028635697122
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.9042924977588527,
+        "heldout_auc_B": 0.9031913831886195
+       },
+       "v2": {
+        "selected_on_A": "own:v2:DA_MLP",
+        "max_auc_A": 0.5252426742492156,
+        "heldout_auc_B": 0.5138821713996177
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:HGB_0.05_31",
+        "max_auc_A": 0.9062149820708202,
+        "heldout_auc_B": 0.9030992576214714
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      20,
+      165
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C1.0",
+       "max_auc_A": 0.5196293002017033,
+       "heldout_auc_B": 0.5189663511365992
+      },
+      "v2": {
+       "selected_on_A": "own:v2:LR_C1.0",
+       "max_auc_A": 0.5484280451591215,
+       "heldout_auc_B": 0.5119782430118919
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.1",
+       "max_auc_A": 0.5542182597489915,
+       "heldout_auc_B": 0.5048193187314309
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "COLL_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "rule": "AUC_B(v_i) > 0.75 (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v1:DA_MLP",
+       "max_auc_A": 0.5199794794935007,
+       "heldout_auc_B": 0.5194116247111479,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5199794794935007,
+        "fresh": 0.5181410382115643
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5194116247111479,
+        "fresh": 0.5223903513822674
+       }
+      },
+      "v2": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v2:MLP_64",
+       "max_auc_A": 0.9087380238682206,
+       "heldout_auc_B": 0.8972646383687634,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.901804473890632,
+        "fresh": 0.9087380238682206
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.8988864322070982,
+        "fresh": 0.8972646383687634
+       }
+      },
+      "pair": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:ignore_recipient_1:v2:MLP_64",
+       "max_auc_A": 0.9087380238682206,
+       "heldout_auc_B": 0.8972646383687634,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9032104437471986,
+        "fresh": 0.9087380238682206
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.9035637240225094,
+        "fresh": 0.8972646383687634
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:DA_MLP",
+        "max_auc_A": 0.5199794794935007,
+        "heldout_auc_B": 0.5194116247111479
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.901804473890632,
+        "heldout_auc_B": 0.8988864322070982
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_64",
+        "max_auc_A": 0.9032104437471986,
+        "heldout_auc_B": 0.9035637240225094
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5181410382115643,
+        "heldout_auc_B": 0.5223903513822674
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_64",
+        "max_auc_A": 0.9087380238682206,
+        "heldout_auc_B": 0.8972646383687634
+       },
+       "pair": {
+        "selected_on_A": "ignore_recipient_1:v2:MLP_64",
+        "max_auc_A": 0.9087380238682206,
+        "heldout_auc_B": 0.8972646383687634
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "alphabets": [
+      10,
+      330
+     ],
+     "table_values_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C1.0",
+       "max_auc_A": 0.5196293002017033,
+       "heldout_auc_B": 0.5189663511365992
+      },
+      "v2": {
+       "selected_on_A": "own:v2:LR_C1.0",
+       "max_auc_A": 0.5484280451591215,
+       "heldout_auc_B": 0.5119782430118919
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:LR_C0.1",
+       "max_auc_A": 0.5542182597489915,
+       "heldout_auc_B": 0.5048193187314309
+      }
+     },
+     "table_values_only_misses_it": true
+    },
+    "XOR": {
+     "target_view": "pair",
+     "serialisation_exact": true,
+     "rule": "AUC_B(pair) > 0.75 and AUC_B(v1), AUC_B(v2) <= null threshold (serialisation exact)",
+     "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+     "common": {
+      "v1": {
+       "winner": "fresh",
+       "selected_on_A": "fresh:own:v1:MLP_64",
+       "max_auc_A": 0.5207271122814882,
+       "heldout_auc_B": 0.5053835878302125,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5124908953384133,
+        "fresh": 0.5207271122814882
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5132526466907728,
+        "fresh": 0.5053835878302125
+       }
+      },
+      "v2": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:own:v2:MLP_128x128",
+       "max_auc_A": 0.5313498010981623,
+       "heldout_auc_B": 0.5140203597503397,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5313498010981623,
+        "fresh": 0.5270373431196773
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.5140203597503397,
+        "fresh": 0.5085350499397345
+       }
+      },
+      "pair": {
+       "winner": "legacy:U|K-JOINT-PAIR|i8o64|D1",
+       "selected_on_A": "legacy:U|K-JOINT-PAIR|i8o64|D1:coalition:pair:MLP_128x128",
+       "max_auc_A": 0.8884713973554461,
+       "heldout_auc_B": 0.8793346998625793,
+       "bank_max_auc_A": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.8884713973554461,
+        "fresh": 0.8556490923352758
+       },
+       "bank_heldout_auc_B": {
+        "legacy:U|K-JOINT-PAIR|i8o64|D1": 0.8793346998625793,
+        "fresh": 0.8449430740766333
+       }
+      }
+     },
+     "ok": true,
+     "diagnostic": {
+      "legacy:U|K-JOINT-PAIR|i8o64|D1": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_128",
+        "max_auc_A": 0.5124908953384133,
+        "heldout_auc_B": 0.5132526466907728
+       },
+       "v2": {
+        "selected_on_A": "own:v2:MLP_128x128",
+        "max_auc_A": 0.5313498010981623,
+        "heldout_auc_B": 0.5140203597503397
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:MLP_128x128",
+        "max_auc_A": 0.8884713973554461,
+        "heldout_auc_B": 0.8793346998625793
+       },
+       "serialisation_exact": true,
+       "ok": true
+      },
+      "fresh": {
+       "v1": {
+        "selected_on_A": "own:v1:MLP_64",
+        "max_auc_A": 0.5207271122814882,
+        "heldout_auc_B": 0.5053835878302125
+       },
+       "v2": {
+        "selected_on_A": "own:v2:HGB_0.1_31",
+        "max_auc_A": 0.5270373431196773,
+        "heldout_auc_B": 0.5085350499397345
+       },
+       "pair": {
+        "selected_on_A": "coalition:pair:DA_MLP",
+        "max_auc_A": 0.8556490923352758,
+        "heldout_auc_B": 0.8449430740766333
+       },
+       "serialisation_exact": true,
+       "ok": true
+      }
+     },
+     "common_locals_null_ok": true,
+     "alphabets": [
+      20,
+      330
+     ],
+     "decisions_only_audit": {
+      "v1": {
+       "selected_on_A": "own:v1:LR_C0.01",
+       "max_auc_A": 0.5023952263558942,
+       "heldout_auc_B": 0.4900715508571516
+      },
+      "v2": {
+       "selected_on_A": "own:v2:MLP_128x128",
+       "max_auc_A": 0.5185279863290004,
+       "heldout_auc_B": 0.5086789961384034
+      },
+      "pair": {
+       "selected_on_A": "coalition:pair:DA_MLP",
+       "max_auc_A": 0.5239277510085165,
+       "heldout_auc_B": 0.5047982066222928
+      }
+     },
+     "decisions_only_misses_it": true
+    }
+   },
+   "failures": [],
+   "diagnostic_failures": [],
+   "all_ok": true,
+   "wall_s": 272.0,
+   "cpu_s": 271.0
+  },
+  "SRC|U|s0|interface": {
+   "fit_role": "AUDIT_FIT (lra.audit.controls_for_release, unchanged)",
+   "label": "SRC|U|s0|interface",
+   "family": "interface",
+   "permutation_sha256": "f59172c658290a5f592084d62a2f0a4972256179f82fe3e458183e2d85173322",
+   "null_threshold": 0.5654143765984265,
+   "null_sd_B": 0.018689821885264708,
+   "plant_min": 0.75,
+   "checks": {
+    "NULL": {
+     "v1": {
+      "selected_on_A": "own:v1:LR_C0.01",
+      "max_auc_A": 0.5116802302779023,
+      "heldout_auc_B": 0.48606216940356367,
+      "ok": true
+     },
+     "v2": {
+      "selected_on_A": "own:v2:DA_MLP",
+      "max_auc_A": 0.5259185202823846,
+      "heldout_auc_B": 0.508060987125452,
+      "ok": true
+     },
+     "pair": {
+      "selected_on_A": "coalition:pair:MLP_64",
+      "max_auc_A": 0.5342808017705065,
+      "heldout_auc_B": 0.4959810221331675,
+      "ok": true
+     },
+     "rule": "AUC_B <= 0.5 + 3.5 sd0 on every view",
+     "ok": true
+    },
+    "ROT_r1": {
+     "target_view": "v1",
+     "serialisation_exact": true,
+     "plant": {
+      "recipient": 1,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261024,
+      "rotation_dim": 5,
+      "max_coordinate_share_of_clue_direction": 0.6732164167182695
+     },
+     "v1": {
+      "selected_on_A": "own:v1:DA_MLP",
+      "max_auc_A": 0.8995143013222769,
+      "heldout_auc_B": 0.904822773440199
+     },
+     "v2": {
+      "selected_on_A": "own:v2:DA_MLP",
+      "max_auc_A": 0.5259185202823846,
+      "heldout_auc_B": 0.508060987125452
+     },
+     "pair": {
+      "selected_on_A": "ignore_recipient_2:v1:DA_MLP",
+      "max_auc_A": 0.8995143013222769,
+      "heldout_auc_B": 0.904822773440199
+     },
+     "per_attacker_auc_B": {
+      "v1": {
+       "own:v1:LR_C0.01": 0.49578141673768017,
+       "own:v1:LR_C0.1": 0.48580882409390663,
+       "own:v1:LR_C1.0": 0.4863039990173273,
+       "own:v1:LR_C10.0": 0.4862886447561359,
+       "own:v1:LR_C100.0": 0.48630783758262514,
+       "own:v1:MLP_64": 0.4960002149596567,
+       "own:v1:MLP_128": 0.5125290771321311,
+       "own:v1:MLP_64x64": 0.5119456152068602,
+       "own:v1:MLP_128x128": 0.512390888781409,
+       "own:v1:HGB_0.05_15": 0.48239633954413197,
+       "own:v1:HGB_0.05_31": 0.4779762316036758,
+       "own:v1:HGB_0.1_15": 0.47753863515972267,
+       "own:v1:HGB_0.1_31": 0.47729680554595916,
+       "own:v1:DA_LR": 0.8970650329732759,
+       "own:v1:DA_MLP": 0.904822773440199
+      },
+      "pair": {
+       "coalition:pair:LR_C0.01": 0.4973552285097922,
+       "coalition:pair:LR_C0.1": 0.4936164659097016,
+       "coalition:pair:LR_C1.0": 0.49329018785938566,
+       "coalition:pair:LR_C10.0": 0.4933899905571294,
+       "coalition:pair:LR_C100.0": 0.4933477663388532,
+       "coalition:pair:MLP_64": 0.4968408607598824,
+       "coalition:pair:MLP_128": 0.47937538865473645,
+       "coalition:pair:MLP_64x64": 0.5313764327444974,
+       "coalition:pair:MLP_128x128": 0.5231196787888559,
+       "coalition:pair:HGB_0.05_15": 0.5240505308735807,
+       "coalition:pair:HGB_0.05_31": 0.5414968101522375,
+       "coalition:pair:HGB_0.1_15": 0.5316278587715055,
+       "coalition:pair:HGB_0.1_31": 0.5272039122657516,
+       "coalition:pair:DA_LR": 0.9048880290502622,
+       "coalition:pair:DA_MLP": 0.9038439392892512,
+       "ignore_recipient_2:v1:LR_C0.01": 0.49578141673768017,
+       "ignore_recipient_2:v1:LR_C0.1": 0.48580882409390663,
+       "ignore_recipient_2:v1:LR_C1.0": 0.4863039990173273,
+       "ignore_recipient_2:v1:LR_C10.0": 0.4862886447561359,
+       "ignore_recipient_2:v1:LR_C100.0": 0.48630783758262514,
+       "ignore_recipient_2:v1:MLP_64": 0.4960002149596567,
+       "ignore_recipient_2:v1:MLP_128": 0.5125290771321311,
+       "ignore_recipient_2:v1:MLP_64x64": 0.5119456152068602,
+       "ignore_recipient_2:v1:MLP_128x128": 0.512390888781409,
+       "ignore_recipient_2:v1:HGB_0.05_15": 0.48239633954413197,
+       "ignore_recipient_2:v1:HGB_0.05_31": 0.4779762316036758,
+       "ignore_recipient_2:v1:HGB_0.1_15": 0.47753863515972267,
+       "ignore_recipient_2:v1:HGB_0.1_31": 0.47729680554595916,
+       "ignore_recipient_2:v1:DA_LR": 0.8970650329732759,
+       "ignore_recipient_2:v1:DA_MLP": 0.904822773440199,
+       "ignore_recipient_1:v2:LR_C0.01": 0.5016505830780688,
+       "ignore_recipient_1:v2:LR_C0.1": 0.4984914438379511,
+       "ignore_recipient_1:v2:LR_C1.0": 0.4984645738808663,
+       "ignore_recipient_1:v2:LR_C10.0": 0.498633470753971,
+       "ignore_recipient_1:v2:LR_C100.0": 0.4986488250151623,
+       "ignore_recipient_1:v2:MLP_64": 0.4996007892090252,
+       "ignore_recipient_1:v2:MLP_128": 0.4811488058223359,
+       "ignore_recipient_1:v2:MLP_64x64": 0.5141681445143063,
+       "ignore_recipient_1:v2:MLP_128x128": 0.5353148007400754,
+       "ignore_recipient_1:v2:HGB_0.05_15": 0.5416637877426933,
+       "ignore_recipient_1:v2:HGB_0.05_31": 0.5447787834818858,
+       "ignore_recipient_1:v2:HGB_0.1_15": 0.5342745495443623,
+       "ignore_recipient_1:v2:HGB_0.1_31": 0.5401091687970704,
+       "ignore_recipient_1:v2:DA_LR": 0.4943304390550987,
+       "ignore_recipient_1:v2:DA_MLP": 0.508060987125452
+      }
+     },
+     "canon_receipt": {
+      "v1": {
+       "rank_kept": 3,
+       "dim": 5,
+       "tol": 4.180177062720036e-10,
+       "scale": 310.4013827206702,
+       "tol_over_s1": 1.518920209356705e-12,
+       "max_dropped_over_s1": 4.160093063303941e-16,
+       "min_kept_over_s1": 1.3578713827292796e-07
+      },
+      "pair": {
+       "rank_kept": 13,
+       "dim": 17,
+       "tol": 6.486764271599252e-10,
+       "scale": 481.6783043102166,
+       "tol_over_s1": 2.2496520617845762e-12,
+       "max_dropped_over_s1": 5.097391579696122e-16,
+       "min_kept_over_s1": 1.294371341949753e-07
+      }
+     },
+     "rule": "serialisation exact and AUC_B(v1) > 0.75 and AUC_B(pair) > 0.75",
+     "ok": true
+    },
+    "ROT_r2": {
+     "target_view": "v2",
+     "serialisation_exact": true,
+     "plant": {
+      "recipient": 2,
+      "amplitude": 1e-06,
+      "rotation_seed": 20261025,
+      "rotation_dim": 13,
+      "max_coordinate_share_of_clue_direction": 0.4620690082254851
+     },
+     "v1": {
+      "selected_on_A": "own:v1:LR_C0.01",
+      "max_auc_A": 0.5116802302779023,
+      "heldout_auc_B": 0.48606216940356367
+     },
+     "v2": {
+      "selected_on_A": "own:v2:DA_LR",
+      "max_auc_A": 0.8959249635813538,
+      "heldout_auc_B": 0.9057401905463813
+     },
+     "pair": {
+      "selected_on_A": "coalition:pair:DA_LR",
+      "max_auc_A": 0.8986283477140296,
+      "heldout_auc_B": 0.9048880290502622
+     },
+     "per_attacker_auc_B": {
+      "v2": {
+       "own:v2:LR_C0.01": 0.503681184120623,
+       "own:v2:LR_C0.1": 0.5024797131824009,
+       "own:v2:LR_C1.0": 0.501366529246029,
+       "own:v2:LR_C10.0": 0.501458654813177,
+       "own:v2:LR_C100.0": 0.5014279462907943,
+       "own:v2:MLP_64": 0.4955702956462993,
+       "own:v2:MLP_128": 0.4993167353769855,
+       "own:v2:MLP_64x64": 0.5003032466585289,
+       "own:v2:MLP_128x128": 0.49536301312021624,
+       "own:v2:HGB_0.05_15": 0.5396984423102021,
+       "own:v2:HGB_0.05_31": 0.5512525238566834,
+       "own:v2:HGB_0.1_15": 0.5485597703002526,
+       "own:v2:HGB_0.1_31": 0.5469475728751623,
+       "own:v2:DA_LR": 0.9057401905463813,
+       "own:v2:DA_MLP": 0.8969306831878516
+      },
+      "pair": {
+       "coalition:pair:LR_C0.01": 0.49566625977874507,
+       "coalition:pair:LR_C0.1": 0.4979194976085738,
+       "coalition:pair:LR_C1.0": 0.49551655573212955,
+       "coalition:pair:LR_C10.0": 0.49549352434034255,
+       "coalition:pair:LR_C100.0": 0.49544362299147066,
+       "coalition:pair:MLP_64": 0.4952440175959833,
+       "coalition:pair:MLP_128": 0.5097960186400731,
+       "coalition:pair:MLP_64x64": 0.5115924671994595,
+       "coalition:pair:MLP_128x128": 0.495366851685514,
+       "coalition:pair:HGB_0.05_15": 0.5285243787282066,
+       "coalition:pair:HGB_0.05_31": 0.5461299584667235,
+       "coalition:pair:HGB_0.1_15": 0.5403337248669937,
+       "coalition:pair:HGB_0.1_31": 0.5476557881726126,
+       "coalition:pair:DA_LR": 0.9048880290502622,
+       "coalition:pair:DA_MLP": 0.9044120469533306,
+       "ignore_recipient_2:v1:LR_C0.01": 0.48606216940356367,
+       "ignore_recipient_2:v1:LR_C0.1": 0.486357738931497,
+       "ignore_recipient_2:v1:LR_C1.0": 0.48639228601917744,
+       "ignore_recipient_2:v1:LR_C10.0": 0.486380770323284,
+       "ignore_recipient_2:v1:LR_C100.0": 0.48637693175798613,
+       "ignore_recipient_2:v1:MLP_64": 0.5152122342753173,
+       "ignore_recipient_2:v1:MLP_128": 0.5151316244040627,
+       "ignore_recipient_2:v1:MLP_64x64": 0.5203559117744152,
+       "ignore_recipient_2:v1:MLP_128x128": 0.5081415969967065,
+       "ignore_recipient_2:v1:HGB_0.05_15": 0.472064841045011,
+       "ignore_recipient_2:v1:HGB_0.05_31": 0.46794222191513696,
+       "ignore_recipient_2:v1:HGB_0.1_15": 0.46914369285335916,
+       "ignore_recipient_2:v1:HGB_0.1_31": 0.46637032942567386,
+       "ignore_recipient_2:v1:DA_LR": 0.4863769317579862,
+       "ignore_recipient_2:v1:DA_MLP": 0.4987447891476082,
+       "ignore_recipient_1:v2:LR_C0.01": 0.503681184120623,
+       "ignore_recipient_1:v2:LR_C0.1": 0.5024797131824009,
+       "ignore_recipient_1:v2:LR_C1.0": 0.501366529246029,
+       "ignore_recipient_1:v2:LR_C10.0": 0.501458654813177,
+       "ignore_recipient_1:v2:LR_C100.0": 0.5014279462907943,
+       "ignore_recipient_1:v2:MLP_64": 0.4955702956462993,
+       "ignore_recipient_1:v2:MLP_128": 0.4993167353769855,
+       "ignore_recipient_1:v2:MLP_64x64": 0.5003032466585289,
+       "ignore_recipient_1:v2:MLP_128x128": 0.49536301312021624,
+       "ignore_recipient_1:v2:HGB_0.05_15": 0.5396984423102021,
+       "ignore_recipient_1:v2:HGB_0.05_31": 0.5512525238566834,
+       "ignore_recipient_1:v2:HGB_0.1_15": 0.5485597703002526,
+       "ignore_recipient_1:v2:HGB_0.1_31": 0.5469475728751623,
+       "ignore_recipient_1:v2:DA_LR": 0.9057401905463813,
+       "ignore_recipient_1:v2:DA_MLP": 0.8969306831878516
+      }
+     },
+     "canon_receipt": {
+      "v2": {
+       "rank_kept": 11,
+       "dim": 13,
+       "tol": 5.983770276274393e-10,
+       "scale": 444.32820422918394,
+       "tol_over_s1": 4.0223679469660215e-12,
+       "max_dropped_over_s1": 3.40606377157167e-15,
+       "min_kept_over_s1": 2.5102387619006224e-07
+      },
+      "pair": {
+       "rank_kept": 13,
+       "dim": 17,
+       "tol": 6.486764271599249e-10,
+       "scale": 481.6783043102164,
+       "tol_over_s1": 2.2496520617845734e-12,
+       "max_dropped_over_s1": 1.7677352317268598e-15,
+       "min_kept_over_s1": 1.2943713420325398e-07
+      }
+     },
+     "rule": "serialisation exact and AUC_B(v2) > 0.75 and AUC_B(pair) > 0.75",
+     "ok": true
+    }
+   },
+   "failures": [],
+   "all_ok": true,
+   "wall_s": 14.1
+  }
+ },
+ "null_calibration": {
+  "partition": "U|DIRECT-TASK|i8o64|s0",
+  "bank": "common",
+  "summary": {
+   "reps": 5,
+   "tests": 15,
+   "exceedances": 0,
+   "heldout_mean": 0.5085731796883598,
+   "heldout_max": 0.5564729726617379,
+   "z_mean": 0.45870847464409975,
+   "z_sd": 0.9386093767250783,
+   "null_z": 3.5,
+   "banks": [
+    "legacy:U|DIRECT-TASK|i8o64",
+    "legacy:U|DIRECT-TASK|i8o64|D1",
+    "fresh"
+   ],
+   "diagnostic_bank_exceedances": {
+    "legacy:U|DIRECT-TASK|i8o64": 0,
+    "legacy:U|DIRECT-TASK|i8o64|D1": 0,
+    "fresh": 0
+   },
+   "rule": "no COMMON exceedance of 0.5 + 3.5 sd0 (common bank; union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B)"
+  },
+  "rows": [
+   {
+    "rep": 0,
+    "seed": 20261121,
+    "view": "v1",
+    "heldout_auc_B": 0.5564729726617379,
+    "max_auc_A": 0.516444419542806,
+    "winner": "legacy:U|DIRECT-TASK|i8o64|D1",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64|D1:own:v1:MLP_64x64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "628b73ad050243b1878c6d034a91da043c83b425cffdb581dec7a05586f02d4b",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5565151968800142,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5564729726617379,
+     "fresh": 0.5364164689805537
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 0,
+    "seed": 20261121,
+    "view": "v2",
+    "heldout_auc_B": 0.5085005028520541,
+    "max_auc_A": 0.5323810791125057,
+    "winner": "legacy:U|DIRECT-TASK|i8o64|D1",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64|D1:own:v2:MLP_128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "628b73ad050243b1878c6d034a91da043c83b425cffdb581dec7a05586f02d4b",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5143120907129751,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5085005028520541,
+     "fresh": 0.5283382083112615
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 0,
+    "seed": 20261121,
+    "view": "pair",
+    "heldout_auc_B": 0.5137209516571087,
+    "max_auc_A": 0.5491143965710444,
+    "winner": "legacy:U|DIRECT-TASK|i8o64",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:coalition:pair:DA_MLP",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "628b73ad050243b1878c6d034a91da043c83b425cffdb581dec7a05586f02d4b",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5137209516571087,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5085005028520541,
+     "fresh": 0.5127689874632457
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 1,
+    "seed": 20261122,
+    "view": "v1",
+    "heldout_auc_B": 0.49381223273989117,
+    "max_auc_A": 0.5204172036082475,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v1:DA_MLP",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "75084795fde07873d4e3fa08c8a1bd52b9a0fb600200a1156b2443fd41a72e9d",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.48663795419823885,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.49099088724598294,
+     "fresh": 0.49381223273989117
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 1,
+    "seed": 20261122,
+    "view": "v2",
+    "heldout_auc_B": 0.513922476335245,
+    "max_auc_A": 0.5185454952935904,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v2:MLP_128x128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "75084795fde07873d4e3fa08c8a1bd52b9a0fb600200a1156b2443fd41a72e9d",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5231158402235581,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5213155530988738,
+     "fresh": 0.513922476335245
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 1,
+    "seed": 20261122,
+    "view": "pair",
+    "heldout_auc_B": 0.5372782268899177,
+    "max_auc_A": 0.5241273532048409,
+    "winner": "fresh",
+    "selected_on_A": "fresh:coalition:pair:DA_MLP",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "75084795fde07873d4e3fa08c8a1bd52b9a0fb600200a1156b2443fd41a72e9d",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5231158402235581,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5213155530988738,
+     "fresh": 0.5372782268899177
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 2,
+    "seed": 20261123,
+    "view": "v1",
+    "heldout_auc_B": 0.49868337210284286,
+    "max_auc_A": 0.5350687051770506,
+    "winner": "legacy:U|DIRECT-TASK|i8o64",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v1:MLP_128x128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "9da6b2a672cf12131057f6bb93e8322346faa56c671c8a7e890900a568ba3161",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.49868337210284286,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5024490046600183,
+     "fresh": 0.49361262734440375
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 2,
+    "seed": 20261123,
+    "view": "v2",
+    "heldout_auc_B": 0.4979194976085738,
+    "max_auc_A": 0.5284082950470641,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v2:MLP_64x64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "9da6b2a672cf12131057f6bb93e8322346faa56c671c8a7e890900a568ba3161",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.48973183782829327,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.48350568491520607,
+     "fresh": 0.4979194976085738
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 2,
+    "seed": 20261123,
+    "view": "pair",
+    "heldout_auc_B": 0.49868337210284286,
+    "max_auc_A": 0.5350687051770506,
+    "winner": "legacy:U|DIRECT-TASK|i8o64",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:ignore_recipient_2:v1:MLP_128x128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "9da6b2a672cf12131057f6bb93e8322346faa56c671c8a7e890900a568ba3161",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.49868337210284286,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5024490046600183,
+     "fresh": 0.4979194976085738
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 3,
+    "seed": 20261124,
+    "view": "v1",
+    "heldout_auc_B": 0.5052914622630645,
+    "max_auc_A": 0.5125469240251008,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v1:MLP_64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "404e30a8f9329e14fd6d8beecc061a2ba198e5167f631a6dd9a675cca71c63b5",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.4985279102082806,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5001554618945623,
+     "fresh": 0.5052914622630645
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 3,
+    "seed": 20261124,
+    "view": "v2",
+    "heldout_auc_B": 0.4977966635190431,
+    "max_auc_A": 0.5184947192962797,
+    "winner": "legacy:U|DIRECT-TASK|i8o64",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64:own:v2:MLP_128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "404e30a8f9329e14fd6d8beecc061a2ba198e5167f631a6dd9a675cca71c63b5",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.4977966635190431,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.49468358706249954,
+     "fresh": 0.48035806137098197
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 3,
+    "seed": 20261124,
+    "view": "pair",
+    "heldout_auc_B": 0.48980093200365427,
+    "max_auc_A": 0.5358618612729718,
+    "winner": "legacy:U|DIRECT-TASK|i8o64|D1",
+    "selected_on_A": "legacy:U|DIRECT-TASK|i8o64|D1:coalition:pair:MLP_128",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "404e30a8f9329e14fd6d8beecc061a2ba198e5167f631a6dd9a675cca71c63b5",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.491152106988492,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.48980093200365427,
+     "fresh": 0.5052914622630645
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 4,
+    "seed": 20261125,
+    "view": "v1",
+    "heldout_auc_B": 0.501458654813177,
+    "max_auc_A": 0.5165442206409682,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v1:MLP_64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "03169068359da71b789df2a6605ee61abd3a03e5570bc276fea3e57f7f4db887",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5035813814228793,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5035813814228793,
+     "fresh": 0.501458654813177
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 4,
+    "seed": 20261125,
+    "view": "v2",
+    "heldout_auc_B": 0.5137977229630654,
+    "max_auc_A": 0.5072084407216495,
+    "winner": "fresh",
+    "selected_on_A": "fresh:own:v2:MLP_64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "03169068359da71b789df2a6605ee61abd3a03e5570bc276fea3e57f7f4db887",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5232367550304399,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.49273935373914635,
+     "fresh": 0.5137977229630654
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   },
+   {
+    "rep": 4,
+    "seed": 20261125,
+    "view": "pair",
+    "heldout_auc_B": 0.501458654813177,
+    "max_auc_A": 0.5165442206409682,
+    "winner": "fresh",
+    "selected_on_A": "fresh:ignore_recipient_2:v1:MLP_64",
+    "threshold": 0.5654143765984265,
+    "sd0": 0.018689821885264708,
+    "exceeds": false,
+    "permutation_sha256": "03169068359da71b789df2a6605ee61abd3a03e5570bc276fea3e57f7f4db887",
+    "bank_heldout_auc_B": {
+     "legacy:U|DIRECT-TASK|i8o64": 0.5035813814228793,
+     "legacy:U|DIRECT-TASK|i8o64|D1": 0.5035813814228793,
+     "fresh": 0.501458654813177
+    },
+    "bank_exceeds": {
+     "legacy:U|DIRECT-TASK|i8o64": false,
+     "legacy:U|DIRECT-TASK|i8o64|D1": false,
+     "fresh": false
+    }
+   }
+  ]
+ },
+ "verdict": {
+  "all_ok": true,
+  "failures": [],
+  "required": "COMMON-bank checks, NULL_CALIBRATION on the common bank, ROT",
+  "realised_null_thresholds": [
+   0.5654143765984265
+  ],
+  "realised_threshold_matches_source": true,
+  "null_calibration_exceedances": 0,
+  "null_calibration_present": true,
+  "common_checks": {
+   "U|DIRECT-TASK|i8o64|s0": {
+    "NULL": true,
+    "CONF_r1": true,
+    "CONF_r2": true,
+    "COLL_r1": true,
+    "COLL_r2": true,
+    "XOR": true
+   },
+   "U|JOINT|i8o64|l0.1|s0": {
+    "NULL": true,
+    "CONF_r1": true,
+    "CONF_r2": true,
+    "COLL_r1": true,
+    "COLL_r2": true,
+    "XOR": true
+   },
+   "U|CLASS|i1o1|s0": {
+    "NULL": true,
+    "CONF_r1": true,
+    "CONF_r2": true,
+    "COLL_r1": true,
+    "COLL_r2": true,
+    "XOR": true
+   },
+   "U|K-JOINT-PAIR|i8o64|s0": {
+    "NULL": true,
+    "CONF_r1": true,
+    "CONF_r2": true,
+    "COLL_r1": true,
+    "COLL_r2": true,
+    "XOR": true
+   }
+  },
+  "rot_checks": {
+   "SRC|U|s0|interface": {
+    "NULL": true,
+    "ROT_r1": true,
+    "ROT_r2": true
+   }
+  },
+  "diagnostic_per_pipeline": {
+   "U|DIRECT-TASK|i8o64|s0": {
+    "NULL": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    },
+    "CONF_r1": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    },
+    "CONF_r2": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    },
+    "COLL_r1": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    },
+    "COLL_r2": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    },
+    "XOR": {
+     "legacy:U|DIRECT-TASK|i8o64": true,
+     "legacy:U|DIRECT-TASK|i8o64|D1": true,
+     "fresh": true
+    }
+   },
+   "U|JOINT|i8o64|l0.1|s0": {
+    "NULL": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    },
+    "CONF_r1": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    },
+    "CONF_r2": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    },
+    "COLL_r1": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    },
+    "COLL_r2": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    },
+    "XOR": {
+     "legacy:U|JOINT|i8o64|l0.1": true,
+     "legacy:U|JOINT|i8o64|l0.1|D1": true,
+     "fresh": true
+    }
+   },
+   "U|CLASS|i1o1|s0": {
+    "NULL": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    },
+    "CONF_r1": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    },
+    "CONF_r2": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    },
+    "COLL_r1": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    },
+    "COLL_r2": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    },
+    "XOR": {
+     "legacy:U|CLASS|i1o1": true,
+     "legacy:U|CLASS|i1o1|D1": true,
+     "fresh": true
+    }
+   },
+   "U|K-JOINT-PAIR|i8o64|s0": {
+    "NULL": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    },
+    "CONF_r1": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    },
+    "CONF_r2": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    },
+    "COLL_r1": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    },
+    "COLL_r2": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    },
+    "XOR": {
+     "legacy:U|K-JOINT-PAIR|i8o64|D1": true,
+     "fresh": true
+    }
+   }
+  },
+  "diagnostic_failures": [],
+  "diagnostic_null_calibration_bank_exceedances": {
+   "legacy:U|DIRECT-TASK|i8o64": 0,
+   "legacy:U|DIRECT-TASK|i8o64|D1": 0,
+   "fresh": 0
+  },
+  "decisions_only_audit_misses_confidence_plant": {
+   "U|DIRECT-TASK|i8o64|s0": {
+    "CONF_r1": true,
+    "CONF_r2": true
+   },
+   "U|JOINT|i8o64|l0.1|s0": {
+    "CONF_r1": true,
+    "CONF_r2": true
+   },
+   "U|CLASS|i1o1|s0": {
+    "CONF_r1": true,
+    "CONF_r2": true
+   },
+   "U|K-JOINT-PAIR|i8o64|s0": {
+    "CONF_r1": true,
+    "CONF_r2": true
+   }
+  },
+  "on_failure": "a failed positive control triggers technical review and an amendment of the audit; it is never interpreted as low leakage"
+ }
+}
