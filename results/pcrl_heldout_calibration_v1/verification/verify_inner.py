@@ -1614,13 +1614,21 @@ def main():
     check_utility(D, roles, LB)
     audited = [p for p in PARTS if PLAN.get(p, ("PREDECLARED_UTILITY_INELIGIBLE",))[0] !=
                "PREDECLARED_UTILITY_INELIGIBLE"] if PLAN else []
-    if LB is not None and not PLAN:
+    upto = int(sys.argv[sys.argv.index("--upto") + 1]) if "--upto" in sys.argv else 5
+    if upto < 4:
+        for nm, what in (("4_COMMON_RECORDS", "within-bank selections, seed means and union records (codes and U)"),
+                         ("5_SELECTION", "T* and P* with every rejection reason (protocol section 6)")):
+            c = Check(nm, what)
+            c.pend(f"deferred (--upto {upto}): run after the audit, compose, controls, select and replay stages")
+            c.done()
+    elif LB is not None and not PLAN:
         c = Check("4_COMMON_RECORDS", "within-bank selections, seed means and union records (codes and U)")
         c.pend("audit plan not replayed (utility incomplete)")
         c.done()
+        check_selection(audited)
     else:
         check_attacks(D, roles, LB, audited)
-    check_selection(audited)
+        check_selection(audited)
     loaded_hcal = sorted(m for m in sys.modules if m == "hcal" or m.startswith("hcal."))
     worktree_modules = sorted({m.split(".")[0] for m, mod in list(sys.modules.items())
                                if str(getattr(mod, "__file__", "") or "").startswith(str(WT))})
@@ -1646,7 +1654,7 @@ def main():
                                         "numpy", "lra.data (pinned loader; load() only)"]},
            "tolerances": {"utility_auc_ce_tables": TOL, "selections": "exact", "kkt_rel": KKT_REL_TOL,
                           "alpha": ALPHA_TOL, "tie": TIE},
-           "statuses": statuses, "checks": CHECKS, "inputs_status": input_status(),
+           "argv": sys.argv[1:], "statuses": statuses, "checks": CHECKS, "inputs_status": input_status(),
            "inputs_sha256": dict(sorted(INPUT_HASHES.items())),
            "wall_s": round(time.time() - t0, 1), "cpu_s": round(time.process_time() - c0, 1), "verdict": verdict}
     txt = json.dumps(jsafe(out), indent=1, allow_nan=False) + "\n"
