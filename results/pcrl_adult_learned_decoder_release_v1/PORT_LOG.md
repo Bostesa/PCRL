@@ -36,3 +36,12 @@ Pinned unchanged copies:
   configurations. It replaces the earlier diag__ diagnostic idea, which was never run.
 - A, lra/lock.py and lra/run.py (role F R-3): CBP_LOCAL_ONLY can no longer bypass the push check for any stage, and
   engineering_ready() always requires the result on origin.
+- B, lra/fixtures.py: a PORT BUG was caught and fixed. The mechanical rename had turned LAWS_SCHEMA into
+  "lra-fixture-laws-v1", so load_laws() would have refused the pinned FIXTURE_LAWS.json (schema "lcr-fixture-laws-v1").
+  - The source strings are restored. build_laws() reproduces laws_sha256 5c5e3bda… (a static test).
+  - write_law_files() and the old gate_rule() are removed, so nothing can rewrite FIXTURE_LAWS.json.
+  - The lead then checked every other schema comparison in lra/. The others compare only lra-produced artifacts:
+    audit "lra-inner-v1" and decoder "lra-decoder-v1".
+- A, lra/run.py `_fit_args`: U|CLASS|i1o1 is a feasible-only joint witness for K-JOINT-* and W-JOINT, making 30
+  witnesses. Prompt §8 says "feasible source mappings"; role C's question. It is eligible only if it meets the arm's
+  constraints, and it is reported either way.

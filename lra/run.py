@@ -395,7 +395,7 @@ def _fit_args(k, cid):
     from lra import mapper as MP
     p = parse_id(cid)
     src_priv = [d0_id(f, lam) for lam in LAMS for f in PRIVACY]
-    src_fine = [d0_id("FINE-TASK")]
+    src_fine = [d0_id("FINE-TASK"), d0_id("CLASS")]       # CLASS: feasible-only joint witness (prompt section 8)
     ct = ctask_id()
     if p["arm"] == "constrained":
         a = p["base_family"]
