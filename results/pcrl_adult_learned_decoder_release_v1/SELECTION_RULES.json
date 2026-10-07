@@ -1,0 +1,116 @@
+{
+ "schema": "lcr-selection-rules-v1",
+ "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lcr/select.py",
+ "rows": "INNER_SELECTION only (attackers fitted on AUDIT_FIT); never assessment values",
+ "ordinary_eligibility": {
+  "scope": "EACH seed (0, 1, 2) and EACH task (income, occupation); no averaging across seeds; a candidate whose mean hides a failing seed does not qualify",
+  "rules": [
+   "accuracy >= U accuracy - 0.01",
+   "true-label log loss <= U log loss + 0.01 nats",
+   "true-label Brier <= U Brier + 0.005",
+   "accuracy gain over the OSF_DEFENSE_FIT-majority constant >= 0.8 x U's gain",
+   "absolute accuracy gain >= 0.03",
+   "exact decision preservation for U-derived releases"
+  ],
+  "implementation": "qpc.utility.gate_record(code, U anchor of the same seed, preserved)['eligible'] (inclusive)",
+  "applies_to": "every candidate and comparator (codes, D1 decoders, continuous sources, references)"
+ },
+ "no_headroom_buffer": "cbp's 0.006/0.0035 every-seed headroom rule is NOT used (prompt section 10). The explicit 0.005/0.003 budgets act during FITTING only; the unchanged assessment bounds decide whether confidence preservation is established",
+ "ordering": {
+  "keys": [
+   "mean over seeds of INNER pair AUC (lower first)",
+   "mean over seeds of summed true-label task log loss (lower first)",
+   "mean actual total token states (fewer first; continuous releases +infinity for ORDERING only, null in JSON)",
+   "configuration ID (lexicographic)"
+  ],
+  "tie_tolerance": "keys 1 and 2: float64 seed mean (x_seed0 + x_seed1 + x_seed2)/3 in seed order, then Python round(x, 12); equal rounded values tie (values < 1e-12 apart may still fall either side of a rounding boundary); key 3 exact; key 4 lexicographic"
+ },
+ "guard": {
+  "rule": "local inner AUC (recipient 1 and 2) <= guard comparator's local inner AUC + 0.005, inclusive, for EACH recipient and seed",
+  "shortfall": "exactly 0.0 iff the guard holds; otherwise max over guards, seeds, recipients of (a - g - 0.005)/0.005; ranking only"
+ },
+ "roles": {
+  "T*": {
+   "candidates": [
+    "U|C-TASK|i8o64|D1",
+    "U|DIRECT-TASK|i8o64",
+    "U|DIRECT-TASK|i8o64|D1",
+    "U|FINE-TASK|i8o64",
+    "U|FINE-TASK|i8o64|D1",
+    "SRC|U",
+    "U|CLASS|i1o1",
+    "REF|F0"
+   ],
+   "eligibility": "ordinary",
+   "note": "strongest eligible privacy-UNTRAINED release: new C-TASK, D0/D1 DIRECT-TASK and FINE-TASK, U continuous, CLASS-ONLY, F0. RAW-J beta 0.3 is privacy-trained and excluded"
+  },
+  "P*": {
+   "candidates": "every privacy-trained release: D0 privacy maps (24), D1 fixed-map privacy controls (24), weighted controls (24), constrained arms (5)",
+   "eligibility": "ordinary",
+   "guard": "vs T*",
+   "note": "P* may be a control; if it wins it is delivered as the useful method and the new constrained search is reported as adding no demonstrated benefit. P* candidates are the 77 code arms only (24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained); the privacy-trained references RAW-J, FARE and LEACE are not P* candidates (cbp convention; on these inner rows they are ordinarily ineligible)"
+  },
+  "C*": {
+   "candidates": "incumbent/baseline private releases: D0 and D1 fixed-map privacy maps and weighted controls (72); NO constrained arm",
+   "eligibility": "ordinary (comparator; no guard)"
+  },
+  "N*": {
+   "candidates": [
+    "U|K-LOCAL|i8o64|D1",
+    "U|K-SEQ-12|i8o64|D1",
+    "U|K-SEQ-21|i8o64|D1",
+    "U|K-JOINT-SINGLE|i8o64|D1",
+    "U|K-JOINT-PAIR|i8o64|D1"
+   ],
+   "eligibility": "ordinary",
+   "guard": "vs BOTH T* and C*"
+  },
+  "C_pair*": {
+   "candidates": "every scored candidate except U|K-JOINT-PAIR|i8o64|D1 (incl. constrained LOCAL, both sequential arms, JOINT-SINGLE and every incumbent control, sources and references)",
+   "eligibility": "ordinary (comparator; no guard)"
+  },
+  "J*": {
+   "candidates": [
+    "U|K-JOINT-PAIR|i8o64|D1"
+   ],
+   "eligibility": "ordinary",
+   "guard": "vs BOTH T* and C_pair*"
+  },
+  "Q": {
+   "config": "U|DIRECT-TASK|i8o64 (fixed original D0)",
+   "eligibility": "ordinary (prerequisite); otherwise NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE with P34-P37 DESCRIPTIVE_ONLY"
+  }
+ },
+ "privacy_trained_labels": "fixed-map D1 privacy releases remain privacy-trained controls (their maps were privacy-trained); the D1 decoder itself uses no SEX",
+ "global_configuration": "one configuration fixed across all three seeds; no per-seed lambda or family; no assessment-based choice",
+ "statuses": {
+  "nominee_roles": [
+   "NOMINEE",
+   "NO_ELIGIBLE_NOMINEE (fixed fallback scored DESCRIPTIVE_ONLY)",
+   "INVALID_NOMINEE (technical failure; or an eligible nominee blocked only by a missing guard comparator)"
+  ],
+  "comparator_roles": [
+   "NOMINEE",
+   "NO_ELIGIBLE_COMPARATOR",
+   "INVALID_COMPARATOR (technical failure)"
+  ]
+ },
+ "fallback_ordering": {
+  "rule": "when no candidate is nominable: fit-feasible candidates first (an infeasible constrained fit ranks last, review R-5), then smallest ordinary shortfall, then smallest guard shortfall, then the ordering keys; DESCRIPTIVE_ONLY",
+  "ordinary_shortfall": "max(0, max over tasks t and seeds k of (a_U - 0.01 - a)/0.01, (dLL - 0.01)/0.01, (dB - 0.005)/0.005, (0.8 g_U - g)/max(0.8 g_U, 0.03), (0.03 - g)/0.03)",
+  "missing_guard": "a required guard role without a valid nominee: INVALID (MISSING_GUARD_COMPARATOR) if any candidate is eligible; otherwise NO_ELIGIBLE with fallback ranked on the ordinary shortfall and ordering keys only and fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field)",
+  "reason_codes": "FIT_OR_ADMISSION_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC (technical; joined with '+'); ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE (selection); MISSING_GUARD_COMPARATOR; CONSTRAINED_FIT_INFEASIBLE (selection)"
+ },
+ "aliases": "exact release aliases = identical deployed tokens AND released probabilities on all three seeds (sha256 of tok1, q1, tok2, q2); a D1 fixed-map release shares tokens with its D0 map but is NOT an alias. The label names the simplest family and construction among P*'s exact aliases (LABEL_TRUTH_TABLE.json winning_family_naming); partial aliases and the ID tie-break are disclosed",
+ "prespecified_diagnostics": [
+  "best_d1_fixed_privacy: the strongest ordinarily eligible D1 fixed-map privacy control with the T* guard (or its fallback) and its paired D0 release",
+  "best_weighted_privacy: the strongest ordinarily eligible weighted control with the T* guard (or its fallback)",
+  "per_constrained_arm values and C-TASK values",
+  "strongest_ordinary_private_unguarded (inner-only diagnostic)"
+ ],
+ "candidates_per_seed": 88,
+ "display": {
+  "training": "rows carry a display field 'training': privacy-trained code / privacy-untrained code / privacy-trained reference (RAW-J, FARE, LEACE) / privacy-untrained reference (SRC|U, F0); display only, never a role input"
+ },
+ "constrained_fit_feasibility": "a constrained unit (K-*) is eligible only if its fit record has status FEASIBLE and deployed.feasible True on EVERY seed; an infeasible constrained fit (saved by lra.mapper as a descriptive copy) is never a nominee for P*, N* or J*, is excluded from the C_pair* comparator pool, and gives the role reason CONSTRAINED_FIT_INFEASIBLE ('infeasible under this registered decoder') when no feasible candidate exists; it may still be the descriptive fallback (flag fit_feasible false). Consequence (registered): K arms have no restoration phase, so if C-TASK violates a fitting budget on a seed, K-LOCAL (whose only start is C-TASK) is infeasible on that seed by construction"
+}

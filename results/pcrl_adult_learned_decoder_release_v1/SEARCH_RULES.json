@@ -1,0 +1,294 @@
+{
+ "schema": "lcr-mapper-v1",
+ "owner": "role C (mapper)",
+ "module": "lcr/mapper.py",
+ "arms": [
+  "C-TASK",
+  "W-LOCAL",
+  "W-SEQ-12",
+  "W-SEQ-21",
+  "W-JOINT",
+  "K-LOCAL",
+  "K-SEQ-12",
+  "K-SEQ-21",
+  "K-JOINT-SINGLE",
+  "K-JOINT-PAIR"
+ ],
+ "config_ids": {
+  "C-TASK": "U|C-TASK|i8o64|D1",
+  "W-LOCAL": "U|W-LOCAL|i8o64|l0.01|D1",
+  "W-SEQ-12": "U|W-SEQ-12|i8o64|l0.01|D1",
+  "W-SEQ-21": "U|W-SEQ-21|i8o64|l0.01|D1",
+  "W-JOINT": "U|W-JOINT|i8o64|l0.01|D1",
+  "K-LOCAL": "U|K-LOCAL|i8o64|D1",
+  "K-SEQ-12": "U|K-SEQ-12|i8o64|D1",
+  "K-SEQ-21": "U|K-SEQ-21|i8o64|D1",
+  "K-JOINT-SINGLE": "U|K-JOINT-SINGLE|i8o64|D1",
+  "K-JOINT-PAIR": "U|K-JOINT-PAIR|i8o64|D1"
+ },
+ "decoder": {
+  "name": "D1 (lra.decoder.solve_batch)",
+  "kappa": 32.0,
+  "eps": 1e-12,
+  "loss_clip": 1e-12,
+  "token_statistics": "n_t, label counts y_t (exact), teacher sums s_t accumulated from zeros over member fine cells in increasing fine index (= qpc token_tables = lra.decoder.token_stats, bitwise); fallback/empty tokens (n_t = 0) carry no loss and the pinned D0 vector at release"
+ },
+ "fitting_quantities": {
+  "rows": "OSF_DEFENSE_FIT (tr), deployed fine-cell routing of the frozen teacher",
+  "L_i": "(1/N) sum_t sum_k y_t[k] * -log clip(q_t[k], 1e-12, 1) (lra.decoder.token_losses)",
+  "B_i": "(1/N) sum_t sum_k y_t[k] * sum_j (q_t[j] - [j=k])^2 (source multiclass Brier)",
+  "I_i": "plug-in I(SEX; full token of recipient i), exact integer tables, n log n lookup, natural log",
+  "I12": "plug-in I(SEX; (token_1, token_2))",
+  "T": "L_1 + L_2 + 0.5 (B_1 + B_2)",
+  "Phi": "I12 + 0.5 (I1 + I2)",
+  "exact_state_value": "sum of the sorted nonzero per-token (per-cell) contributions (path/label independent)",
+  "incremental": "candidate deltas by vectorised difference formulas from per-token sufficient statistics (n_t, y_t, s_t, SEX counts) and the pair count table; accepted moves re-checked on exact state values and reverted if the exact check fails"
+ },
+ "budgets": {
+  "profile": "one profile, all seeds",
+  "L": "L_i <= L_i(U) + 0.005",
+  "B": "B_i <= B_i(U) + 0.003",
+  "U": "continuous U teacher probabilities on the same fitting rows, dpc per_row conventions",
+  "local_cap": "I_i <= I_i(C-TASK) of the same seed (exact record bits, refs['I_ctask'])",
+  "decision_preservation": "structural: tokens never cross predicted classes; decoder certifies strict argmax = class; release_arrays_d1 re-checks every row",
+  "state_caps": {
+   "income": 8,
+   "occupation": 64,
+   "per": "teacher-predicted class",
+   "rule": "upper bounds; tokens are never created; empty tokens are removed"
+  },
+  "search_margins": {
+   "L_B": 1e-10,
+   "I_cap": 0.0
+  },
+  "deployed_tolerance": 0.0,
+  "budget_values": {
+   "ll": 0.005,
+   "brier": 0.003
+  }
+ },
+ "objectives": {
+  "C-TASK": "T (per recipient L_i + 0.5 B_i); no SEX enters the search; budgets recorded, not enforced",
+  "W-LOCAL": "T + lam (I1 + I2)/2 (per recipient L_i + 0.5 B_i + lam I_i / 2); no hard budget",
+  "W-SEQ-12/21": "T + lam Phi; sequential; no hard budget",
+  "W-JOINT": "T + lam Phi; joint single moves; no hard budget",
+  "K-LOCAL": "min I_i per recipient s.t. its own budgets and local cap",
+  "K-SEQ-12/21": "Phi; stage 1 only the first recipient's budgets + cap (CLASS-ONLY partner never required feasible, never a constant); stage 2 the second's; FINAL must satisfy both",
+  "K-JOINT-SINGLE": "Phi s.t. both budgets + both local caps; single-recipient moves",
+  "K-JOINT-PAIR": "K-JOINT-SINGLE + atomic paired step"
+ },
+ "lam_grid": [
+  0.01,
+  0.025,
+  0.04,
+  0.06,
+  0.08,
+  0.1
+ ],
+ "neighbourhood": {
+  "proposal": "move ONE WHOLE fine cell to an existing alive token of its predicted class (tokens never created; a move may empty its source token, which is then removed)",
+  "targets_per_cell": "union of the 4 nearest targets by KL(fine-cell mean teacher prob || target's current released q) and the 4 targets with the best exact objective change (C-TASK: task objective, no SEX), deduplicated",
+  "ties": "lexicographic (value, target canonical index = lowest member fine index)",
+  "exact_objective_change_evaluated_for": "every alive same-class target (counted as proposal evaluations)",
+  "accept": "best strictly improving (delta < -1e-12) feasible target of the neighbourhood; ties within 1e-12 -> lowest canonical target; applied at once; exact re-check (new exact objective < old, constraints of every enforced recipient on exact values) else reverted",
+  "ordering": "one deterministic ordering per start: recipients 1 then 2 (local: each alone; seq: one per stage), fine cells in increasing index; cells with no fitting rows or in single-token classes have no proposal",
+  "sweeps": 5,
+  "sweep_restart": "each sweep restarts from the coherent accepted state (memo refreshed)",
+  "stop": "a sweep with no accepted single or paired move ('no_change_sweep'), the sweep cap ('sweep_cap') or the unit's proposal-evaluation share ('eval_ceiling')",
+  "feasibility_screen": "constrained arms: neighbourhood candidates are screened on the moved recipient's own budgets and local cap (exact current value + delta, margins above); improving-but-infeasible candidates are counted as rejected_by_budget"
+ },
+ "pair_step": {
+  "arm": "K-JOINT-PAIR only",
+  "order": "after_each_single_sweep",
+  "accepted_per_step": 1,
+  "pool": "every neighbourhood candidate of every fine cell of the recipient at the post-sweep state that satisfies that recipient's own budgets and local cap (non-improving included)",
+  "retain": "4 by exact one-sided Phi change, then 4 more (not already retained) by exact task-loss change L_i + 0.5 B_i; ties (value, fine cell, target canonical index)",
+  "evaluate": "Cartesian product (8 x 8) atomically: both moves applied, joint table and both decoders recomputed, every constraint re-checked on exact values",
+  "accept": "best feasible strict Phi improvement (< -1e-12); ties first in (i, j) order"
+ },
+ "starts": {
+  "C-TASK": [
+   "U|FINE-TASK|i8o64"
+  ],
+  "W-LOCAL": [
+   "U|C-TASK|i8o64|D1"
+  ],
+  "W-SEQ-12": [
+   "U|C-TASK|i8o64|D1",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.025",
+   "U|SEQ-12|i8o64|l0.04",
+   "U|SEQ-12|i8o64|l0.06",
+   "U|SEQ-12|i8o64|l0.08",
+   "U|SEQ-12|i8o64|l0.1"
+  ],
+  "W-SEQ-21": [
+   "U|C-TASK|i8o64|D1",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.025",
+   "U|SEQ-21|i8o64|l0.04",
+   "U|SEQ-21|i8o64|l0.06",
+   "U|SEQ-21|i8o64|l0.08",
+   "U|SEQ-21|i8o64|l0.1"
+  ],
+  "W-JOINT": [
+   "U|C-TASK|i8o64|D1",
+   "U|W-LOCAL|i8o64|l0.01|D1",
+   "U|W-SEQ-12|i8o64|l0.01|D1",
+   "U|W-SEQ-21|i8o64|l0.01|D1",
+   "U|FINE-TASK|i8o64",
+   "U|LOCAL|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|JOINT|i8o64|l0.01",
+   "U|LOCAL|i8o64|l0.025",
+   "U|SEQ-12|i8o64|l0.025",
+   "U|SEQ-21|i8o64|l0.025",
+   "U|JOINT|i8o64|l0.025",
+   "U|LOCAL|i8o64|l0.04",
+   "U|SEQ-12|i8o64|l0.04",
+   "U|SEQ-21|i8o64|l0.04",
+   "U|JOINT|i8o64|l0.04",
+   "U|LOCAL|i8o64|l0.06",
+   "U|SEQ-12|i8o64|l0.06",
+   "U|SEQ-21|i8o64|l0.06",
+   "U|JOINT|i8o64|l0.06",
+   "U|LOCAL|i8o64|l0.08",
+   "U|SEQ-12|i8o64|l0.08",
+   "U|SEQ-21|i8o64|l0.08",
+   "U|JOINT|i8o64|l0.08",
+   "U|LOCAL|i8o64|l0.1",
+   "U|SEQ-12|i8o64|l0.1",
+   "U|SEQ-21|i8o64|l0.1",
+   "U|JOINT|i8o64|l0.1"
+  ],
+  "K-LOCAL": [
+   "U|C-TASK|i8o64|D1"
+  ],
+  "K-SEQ-12": [
+   "U|C-TASK|i8o64|D1",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.025",
+   "U|SEQ-12|i8o64|l0.04",
+   "U|SEQ-12|i8o64|l0.06",
+   "U|SEQ-12|i8o64|l0.08",
+   "U|SEQ-12|i8o64|l0.1"
+  ],
+  "K-SEQ-21": [
+   "U|C-TASK|i8o64|D1",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.025",
+   "U|SEQ-21|i8o64|l0.04",
+   "U|SEQ-21|i8o64|l0.06",
+   "U|SEQ-21|i8o64|l0.08",
+   "U|SEQ-21|i8o64|l0.1"
+  ],
+  "K-JOINT-SINGLE": [
+   "U|C-TASK|i8o64|D1",
+   "U|K-LOCAL|i8o64|D1",
+   "U|K-SEQ-12|i8o64|D1",
+   "U|K-SEQ-21|i8o64|D1",
+   "U|FINE-TASK|i8o64",
+   "U|LOCAL|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|JOINT|i8o64|l0.01",
+   "U|LOCAL|i8o64|l0.025",
+   "U|SEQ-12|i8o64|l0.025",
+   "U|SEQ-21|i8o64|l0.025",
+   "U|JOINT|i8o64|l0.025",
+   "U|LOCAL|i8o64|l0.04",
+   "U|SEQ-12|i8o64|l0.04",
+   "U|SEQ-21|i8o64|l0.04",
+   "U|JOINT|i8o64|l0.04",
+   "U|LOCAL|i8o64|l0.06",
+   "U|SEQ-12|i8o64|l0.06",
+   "U|SEQ-21|i8o64|l0.06",
+   "U|JOINT|i8o64|l0.06",
+   "U|LOCAL|i8o64|l0.08",
+   "U|SEQ-12|i8o64|l0.08",
+   "U|SEQ-21|i8o64|l0.08",
+   "U|JOINT|i8o64|l0.08",
+   "U|LOCAL|i8o64|l0.1",
+   "U|SEQ-12|i8o64|l0.1",
+   "U|SEQ-21|i8o64|l0.1",
+   "U|JOINT|i8o64|l0.1"
+  ],
+  "K-JOINT-PAIR": [
+   "U|C-TASK|i8o64|D1",
+   "U|K-LOCAL|i8o64|D1",
+   "U|K-SEQ-12|i8o64|D1",
+   "U|K-SEQ-21|i8o64|D1",
+   "U|FINE-TASK|i8o64",
+   "U|LOCAL|i8o64|l0.01",
+   "U|SEQ-12|i8o64|l0.01",
+   "U|SEQ-21|i8o64|l0.01",
+   "U|JOINT|i8o64|l0.01",
+   "U|LOCAL|i8o64|l0.025",
+   "U|SEQ-12|i8o64|l0.025",
+   "U|SEQ-21|i8o64|l0.025",
+   "U|JOINT|i8o64|l0.025",
+   "U|LOCAL|i8o64|l0.04",
+   "U|SEQ-12|i8o64|l0.04",
+   "U|SEQ-21|i8o64|l0.04",
+   "U|JOINT|i8o64|l0.04",
+   "U|LOCAL|i8o64|l0.06",
+   "U|SEQ-12|i8o64|l0.06",
+   "U|SEQ-21|i8o64|l0.06",
+   "U|JOINT|i8o64|l0.06",
+   "U|LOCAL|i8o64|l0.08",
+   "U|SEQ-12|i8o64|l0.08",
+   "U|SEQ-21|i8o64|l0.08",
+   "U|JOINT|i8o64|l0.08",
+   "U|LOCAL|i8o64|l0.1",
+   "U|SEQ-12|i8o64|l0.1",
+   "U|SEQ-21|i8o64|l0.1",
+   "U|JOINT|i8o64|l0.1"
+  ]
+ },
+ "starts_notes": {
+  "lam_placeholder": "W-JOINT witnesses are at the SAME lambda as the unit (l0.01 shown)",
+  "maps": "each start/witness is a policy.json map; only its cell->token map is used; D1 recomputed",
+  "local": "C-TASK starts from source FINE-TASK; K-LOCAL / W-LOCAL from C-TASK",
+  "seq": "C-TASK + the six source SEQ-ab maps; per start: stage 1 from the start's first-recipient map with the partner at CLASS-ONLY, stage 2 from the start's second-recipient map with the frozen first map",
+  "joint": "every witness that satisfies all constraints (K- arms; W-JOINT: all) is a candidate UNCHANGED and is refined; an infeasible witness is recorded EXCLUDED_INFEASIBLE_WITNESS and is never eligible by its name",
+  "infeasible_start": "local/seq: a start infeasible for the stage's enforced constraints is not refined (INFEASIBLE_START, ineligible); no restoration phase",
+  "winner": "lowest exact objective among eligible candidates; ties: registered order, refined before unchanged; none eligible -> status INFEASIBLE (descriptive release of the first candidate)"
+ },
+ "equal_work": {
+  "EVAL_CEILING_per_unit": 8000000,
+  "definition": "proposal evaluation = one exact objective change of one (cell, target) candidate, or one atomic pair; pair-pool screening counts",
+  "allocation": "joint: ceiling / #starts per start; seq: ceiling / (2 #starts) per stage per start; local: ceiling / (2 #starts) per recipient",
+  "same_for": "every arm (K-JOINT-SINGLE = K-JOINT-PAIR = K-SEQ-12 = K-SEQ-21 = 8e6 total)",
+  "recorded": "actual evaluations, solves, memo hits/misses and CPU per start and per unit"
+ },
+ "cache": {
+  "rule": "memo of decoder solves per (recipient, class, fine cell, slot); an entry is reused only if its stored (n_t, y_t, s_t) are BITWISE equal to the freshly folded statistics (exact sufficient-statistic key, -0.0 impossible for sums of nonnegative values); never reused across different label counts or teacher sums",
+  "batch": "lra.decoder.solve_batch (rows independent and bitwise equal to solve_token)"
+ },
+ "receipts": [
+  "every accepted move; rejected_by_budget counts (L, B, I); rejected_on_exact_recheck",
+  "sweeps and stop reasons per stage/start",
+  "objective and constraint values of every start, of every refined candidate and of the winner",
+  "coherent final recomputation from the deployed release (row-level L, B; mi_plugin I, I12) with state-vs-deployed parity",
+  "budget slack, local-cap slack, actual token counts per class",
+  "proposal counts, solves, memo hits, CPU per start and unit"
+ ],
+ "tolerances": {
+  "TOL": 1e-12,
+  "TIE_TOL": 1e-12,
+  "BUDGET_MARGIN": 1e-10,
+  "CAP_MARGIN": 0.0,
+  "PARITY_ATOL": 1e-10,
+  "MI_PARITY_ATOL": 1e-12,
+  "DEPLOYED_TOL": 0.0
+ },
+ "randomness": "none",
+ "not_claimed": [
+  "global optimality (greedy local search, <= 5 sweeps)",
+  "a population or SEX-AUC bound",
+  "convexity of the discrete program (only the fixed-token decoder is convex)",
+  "the official Taylor sequential solver"
+ ],
+ "rules_sha256": "ec0fa66cc420759c8e789037e2de1fbd22bb68a9aed379217ca166b32ff0b44c"
+}

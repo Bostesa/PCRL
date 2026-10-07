@@ -1,0 +1,487 @@
+# Math review: the common learned decoder D1, decision containment and the fixture gate (lcr)
+
+**Role and scope.** Role B (decoder/math engineer). This file covers:
+- the per-token decoder problem of prompt section 6 and its exact solver (`lcr/decoder.py`);
+- decision containment of the released vector;
+- the calibrated-teacher null (prompt section 2);
+- the fixed-token information identity;
+- the sufficient-statistic loss identities used by the fitting budgets;
+- the fixture oracle and gate (`lcr/fixtures.py`, `FIXTURE_LAWS.json`, `FIXTURE_GATE_RULE.json`);
+- what is NOT claimed.
+
+The style follows `results/pcrl_confidence_budgeted_privacy_v1/MATH_REVIEW.md`. That file's Theorem 1 (exact decision
+preservation and containment for qpc/cbp codes) is reused, not repeated. Section 3 extends it to D1 vectors.
+
+**Real data.** None. Every check below runs on synthetic data or on the registered known-law fixtures. Each test command
+runs through the shared semaphore (`python -m lcr.sema --label B:<what> -- ...`).
+
+**Reviewed and authored files.** Role B wrote these files; sha256 values are in the role-B handoff:
+- `lcr/decoder.py`
+- `lcr/fixtures.py`
+- `lcr/deploy.py`
+- `lcr/tests/test_decoder.py`
+- `lcr/tests/test_fixtures.py`
+- `lcr/tests/test_deploy.py`
+
+Source modules used unchanged:
+- `qpc/kmeans.py` (`smooth`, `EPS`, `FinePartition`);
+- `qpc/release.py` (`encode`, `Policy`);
+- `qpc/compress.py` (old-objective D0 maps in the fixtures);
+- `qpc/deploy.py` and `cbp/deploy.py` (registration of D0 ids);
+- `dpc/utility.py` (`per_row`: the source loss conventions).
+
+**In-sample caveat (from role F; it applies to every statement about fitting losses).**
+- The U encoders and heads were fitted on OSF_DEFENSE_FIT (osf protocol). D1 therefore calibrates the teacher's
+  IN-SAMPLE outputs on those rows.
+- L_i(U) and B_i(U) on the fitting rows are in-sample values too.
+- Consequence: fitting-row budget slack (L_i <= L_i(U) + 0.005, B_i <= B_i(U) + 0.003) can overstate held-out
+  confidence, in either direction relative to U.
+- The unchanged inner and assessment rules decide confidence preservation. Fitting budgets are a design device, not a
+  confidence certificate.
+
+## 1. The per-token problem
+
+**Notation.**
+- Token t of recipient i has K classes (2 or 6 on Adult; 2 or 3 in the fixtures).
+- n >= 1: the number of fitting rows of the token.
+- y in N^K: their true-label counts, with sum y = n.
+- s: the sum of their teacher probability vectors. Write pbar = s / n.
+- d: the teacher-predicted class shared by every row of the token, so pbar_d >= pbar_k.
+- Fixed constants: eps = 1e-12, kappa = 32, Z = 1 + (K+1) eps and c_k = eps (1 + [k = d]).
+
+**Feasible set.** The class-dominant simplex is
+
+    C_d = {u in R^K : sum_k u_k = 1, u >= 0, u_d >= u_k for all k}.
+
+It is a non-empty, compact, convex polytope. It is the intersection of the simplex with K - 1 half-spaces, and it
+contains e_d.
+
+**Released vector.**
+
+    q(u) = (u + c) / Z,   i.e. q = (u + eps 1 + eps e_d) / (1 + (K+1) eps).
+
+This is the registered source smoothing (`qpc.kmeans.smooth(u, d)`). It is an affine bijection of R^K.
+
+**Objective, as the prompt writes it.**
+
+    F(u) = sum_k y_k (-log q_k) + 0.5 sum_{rows r in t} ||q - e_{Y_r}||^2 + kappa KL(pbar || q).
+
+**Algebra.** Each piece expands as follows:
+- The Brier sum is sum_r ||q - e_{Y_r}||^2 = n ||q||^2 - 2 y.q + n.
+- The KL term is KL(pbar || q) = sum_{pbar_k > 0} pbar_k log pbar_k - sum_k pbar_k log q_k.
+
+So F = f + const, with
+
+    f(u) = sum_k phi_k(u_k),   phi_k(u_k) = -a_k log q_k + 0.5 n q_k^2 - y_k q_k,   a = y + kappa pbar >= 0,
+    const = 0.5 n + kappa sum_{pbar_k > 0} pbar_k log pbar_k,
+
+with 0 log q = 0 where a_k = 0. The certificate reports both f (`obj`) and F (`obj_full`).
+
+Test: `test_objective_algebra_matches_prompt_rowwise` evaluates F row by row on expanded rows and compares it with
+`obj_full` to 1e-10 relative. No SEX enters f.
+
+### 1.1 Convexity (Proposition 1)
+
+**Statement.**
+- (a) f is convex on the open set {u : q(u) > 0}, which contains C_d.
+- (b) For n >= 1, f is strictly convex there, with Hessian diag((a_k / q_k^2 + n) / Z^2), every entry >= n / Z^2 > 0.
+- (c) f has a unique minimiser u* on C_d.
+
+**Proof.**
+- q is affine in u.
+- -a_k log q_k is convex when a_k >= 0, because -log is convex and composition with an affine map preserves
+  convexity.
+- 0.5 n q_k^2 is convex, and -y_k q_k is linear.
+- A sum of convex functions is convex.
+- The second derivative of phi_k with respect to u_k is (a_k / q_k^2 + n) / Z^2, and f is separable, so the Hessian is
+  diagonal. Its diagonal is >= n / Z^2 > 0 whenever n >= 1.
+- On C_d we have q_k >= eps / Z > 0, so f is finite and continuous on the compact set C_d. Hence a minimiser exists,
+  and strict convexity makes it unique.
+
+"Where it matters": every token the decoder actually solves has n >= 1. The n = 0 tokens take the registered fallback
+(section 1.5) and are never solved. Test: `test_convexity_numerical_midpoints`.
+
+### 1.2 KKT conditions (Proposition 2)
+
+The constraints are affine, so the KKT conditions are necessary and sufficient for optimality of the convex problem.
+No constraint qualification is needed beyond affinity.
+
+**Lagrangian.** With multipliers nu (for sum u = 1), lambda_k >= 0 (for u_k >= 0) and mu_k >= 0 (for u_k <= u_d,
+k != d):
+
+    L = f(u) + nu (sum u - 1) - sum_k lambda_k u_k + sum_{k != d} mu_k (u_k - u_d).
+
+Let g_k(x) = phi_k'(x) = (-a_k / q_k(x) + n q_k(x) - y_k) / Z. This is strictly increasing in x.
+
+**KKT system.**
+
+    k != d:   g_k(u_k) + nu - lambda_k + mu_k = 0
+    k = d :   g_d(u_d) + nu - lambda_d - sum_{k != d} mu_k = 0
+    lambda_k u_k = 0,   mu_k (u_d - u_k) = 0,   lambda, mu >= 0,   u in C_d.
+
+u_d >= 1/K > 0 on C_d, so lambda_d = 0.
+
+### 1.3 The exact pooling characterisation used by the solver (Proposition 3)
+
+**Definitions.** Fix t = u_d in [1/K, 1]. Define:
+
+    E_t(nu) = g_d(t) + nu + sum_{k != d} min(0, g_k(t) + nu).
+
+- E_t is continuous and piecewise linear in nu, and strictly increasing (slope >= 1).
+- Let nu(t) be its unique root.
+- Let w_k(nu) be the unique solution of g_k(w) = -nu. It is decreasing in nu.
+- Set u_k(t) = min(t, max(0, w_k(nu(t)))) for k != d, and R(t) = t + sum_{k != d} u_k(t) - 1.
+
+**Claims.**
+- (a) nu(t) = max over m = 0..K-1 of -(g_d(t) + S_m(t)) / (1 + m), where S_m is the sum of the m smallest g_k(t),
+  k != d.
+- (b) Closed form for w_k: q = Z^{-1} (w + c_k) is the unique non-negative root of n q^2 + (nu Z - y_k) q - a_k = 0.
+  The solver evaluates it in the cancellation-free form:
+  - q = 2 a_k / (b + sqrt(b^2 + 4 n a_k)) for b = nu Z - y_k >= 0;
+  - q = (sqrt(b^2 + 4 n a_k) - b) / (2n) for b < 0.
+- (c) R is continuous and strictly increasing on [1/K, 1], with R(1/K) <= 0 <= R(1). So it has a unique root t*.
+- (d) u(t*) = (u_1(t*), ..., t*, ...) is the unique minimiser u*. Its multipliers are:
+  - nu = nu(t*);
+  - mu_k = -(g_k(t*) + nu) for the tied k (w_k >= t*), and 0 otherwise;
+  - lambda_k = g_k(0) + nu for the zero k (w_k <= 0), and 0 otherwise.
+
+**Proof of (a).**
+- The sum of min(0, g_k + nu) over k != d equals min over subsets A of sum_{k in A} (g_k + nu).
+- So E_t = min_A E_A, where each E_A(nu) = g_d + nu + sum_A (g_k + nu) is linear and increasing.
+- For fixed |A| = m, the smallest E_A is attained by the m smallest g_k.
+- An increasing function that is a minimum of increasing lines vanishes exactly where the LARGEST of their roots lies:
+  E(nu) >= 0 iff E_A(nu) >= 0 for all A, iff nu >= nu_A for all A.
+- Hence nu(t) = max_A nu_A, and it suffices to take A ranging over the K sorted prefixes.
+
+**Proof of (b).**
+- Stationarity g_k(w) = -nu reads -a_k / q + n q - y_k = -nu Z. Multiplying by q > 0 gives the quadratic.
+- The product of its roots is -a_k / n <= 0, so exactly one root is non-negative. It is 0 only when a_k = 0 and
+  b >= 0.
+- Neither branch subtracts nearly equal positive numbers.
+
+**Proof of (c).**
+- Each g_k(t) is increasing in t, so E_t(nu) is increasing in t for fixed nu.
+- Hence nu(t) is non-increasing, and strictly decreasing because g_d is strictly increasing.
+- w_k is decreasing in nu, so w_k(nu(t)) is non-decreasing in t.
+- min(t, max(0, .)) is non-decreasing in both arguments, so each u_k(t) is non-decreasing. The leading t gives slope
+  >= 1, so R is strictly increasing.
+- Continuity: nu(t) is continuous, being the root of a jointly continuous and strictly monotone family. w_k is
+  continuous, and clipping is continuous.
+- At t = 1/K, every u_k <= 1/K, so R <= 0. At t = 1, R = sum_{k != d} u_k >= 0.
+
+**Proof of (d).** Check the KKT system at t*:
+- primal: sum u = 1 (R(t*) = 0), u >= 0 and u_k <= t* = u_d.
+- free k (0 < w_k < t*): g_k(u_k) = -nu.
+- tied k: w_k >= t* iff g_k(t*) <= -nu, so mu_k >= 0.
+- zero k: w_k <= 0 iff g_k(0) >= -nu, so lambda_k >= 0.
+- d: g_d(t*) + nu - sum mu = g_d + nu + sum_{tied} (g_k + nu). This equals E_{t*}(nu), because min(0, g_k + nu) is
+  g_k + nu exactly for the tied k and 0 otherwise. And E_{t*}(nu) = 0.
+
+Proposition 2 then gives optimality, and Proposition 1 gives uniqueness.
+
+**Numerical method (registered; `lcr.decoder.solve_batch`).**
+- Bisection on R over [1/K, 1], exactly BISECT_ITERS = 64 halvings. This brackets t* between adjacent float64 values;
+  the certificate reports `bracket_ulps` <= 2.
+- t is the bracket end with the smaller |R| (ties -> the lower end).
+- Every coordinate then satisfies its own KKT equation to rounding by construction. The only primal residual is
+  R(t) (float rounding), which the frozen projection removes (section 3).
+- Every class-wise operation is elementwise IEEE arithmetic on (M, K) arrays, and every reduction over classes is an
+  explicit k-ordered loop. A row's result is therefore independent of the batch it is solved in.
+- `solve_token` is `solve_batch` with M = 1. u and q are bitwise equal between the two (test
+  `test_batch_equals_scalar_bitwise`, which also permutes the batch).
+- The objective uses `np.log`. Its batch/scalar allowance TOL_BATCH_OBJ = 1e-12 (relative) is registered; it is
+  bitwise in practice.
+- The k-vectorised version adopted at C's request was checked BITWISE equal for U, Q and obj against the previous
+  per-k loop on 6,000 fuzz rows.
+
+### 1.4 Independent checks of optimality
+
+`lcr/tests/test_decoder.py` checks against references that do not reuse the pooling or closed-form arithmetic:
+- `test_matches_independent_slsqp_reference`:
+  - scipy SLSQP on the full objective, which is recomputed from the prompt's formula;
+  - best of 3 starts;
+  - K = 2 and 6, n in {1, 2, 5, 37, 400}.
+  - Pass condition: our objective <= SLSQP's + 1e-9 |F|, and |u - u_ref| <= 2e-4.
+- `test_kkt_certificate_and_feasible_direction_probes`:
+  - finite-difference directional derivatives of the full objective along every feasible pairwise transfer;
+  - none is materially negative.
+- `test_fuzz_extremes_class_constraint_on_actual_q`, 150 random cases per K plus hand-made extremes:
+  - n = 1 against a sure teacher;
+  - n = 10^6;
+  - an exactly uniform teacher (exact ties in pbar);
+  - all labels on a non-predicted class.
+  - Checked: every row certified, u class-dominant EXACTLY, q = smooth(u, d) bitwise, strict argmax d on the actual q,
+    and the tie constraint active where labels contradict the teacher.
+
+### 1.5 Fallback (registered before any fit)
+
+A token with n_t = 0 keeps the pinned D0 vector token_proto bitwise. This covers both cases:
+- the qpc absent-class fallback token, smooth(uniform, class);
+- any other token without fitting rows, which a qpc Policy cannot produce, because non-fallback fine cells have n > 0.
+
+No label counts are invented (y_t = 0) and no supervised statistic is attached. `DecoderTable.validate` refuses a
+table whose fallback flags are not exactly {n_t = 0} or whose fallback vectors differ from the policy's token_proto.
+
+## 2. Certificates and tolerances (registered in `lcr.decoder.TOLERANCES`)
+
+The certificate is computed on the FINAL released q and its u, after the projection, never on an intermediate iterate.
+
+| Quantity | Definition | Tolerance (refuse if violated) |
+|---|---|---|
+| bracket_ulps | (hi - lo) / spacing(lo) after 64 halvings | <= 2 |
+| projection_magnitude | max \|u_out - u_in\| of the frozen repair | PROJ_TOL = 1e-9 |
+| sum_q_residual | \|sum q - 1\| | PROTO_SUM_TOL = 1e-12 |
+| margin | q_d - max_{k != d} q_k | > 0 (strict argmax d) |
+| min_u | min_k u_k | >= 0 exactly |
+| stationarity_rel | max over free k of \|g_k + nu\| / scale, nu = -(sum_G g_k) / \|G\|, G = {d} U tie set | STAT_TOL = 1e-9 |
+| dual_infeas_rel | max(0, max_zero -(g_k + nu), max_tie (g_k + nu)) / scale | DUAL_TOL = 1e-9 |
+| scale | max_k (a_k / q_k + n q_k + y_k) / Z, the largest gradient term | n/a |
+| active sets | zero set {u_k == 0}, tie set {u_k == u_d}, exact float equality | reported |
+
+Input checks:
+- sum y == n exactly, with integer y >= 0.
+- s >= 0 and \|sum s - n\| <= 1e-9 n.
+- pbar_d >= max pbar - 1e-9.
+- decode_policy: canonical token sums agree with the row-level sums within 1e-9 n_t, and n_t equals the policy's
+  counts exactly.
+- kappa and eps are fixed. Passing another value raises.
+
+`converged` is the conjunction of all of the above. A non-converged row raises `DecoderError` and is never released.
+
+Observed on the synthetic fuzz:
+- stationarity_rel <= 6e-16;
+- dual_infeas_rel = 0;
+- projection_magnitude <= 1.2e-16.
+
+The registered tolerances are deliberately loose relative to these values. They are not tuned.
+
+## 3. Decision containment of the released vector (Theorem 2)
+
+**Assumptions.**
+- B1: u is the output of `project_class_simplex`. That is, u >= 0 and u_k <= u_d hold EXACTLY as float64 comparisons,
+  and 0 <= u <= 1.
+- B2: q = smooth(u, d) is evaluated in float64 as fl(fl(fl(u_k + eps) + eps [k = d]) / Z).
+- B3: the token's class is d, and routing keeps every row inside its teacher-predicted class (cbp MATH_REVIEW Theorem 1,
+  Lemmas 1-2, unchanged).
+
+**Statement.** Every released row has:
+- (a) q_d > q_k strictly for every k != d;
+- (b) |sum q - 1| <= PROTO_SUM_TOL;
+- (c) released decision = token class = teacher decision.
+
+This holds for every row: fitting, inner, assessment and future rows.
+
+**Proof of (a).**
+- Let x_k = fl(u_k + eps) and x_d = fl(u_d + eps). Rounding is monotone, so u_k <= u_d gives x_k <= x_d.
+- Next, x_d' = fl(x_d + eps). Since x_d <= 1 + 2e-12 < 2, the rounding error is at most ulp(2)/2 = 2.2e-16 < eps.
+  So x_d' > x_d >= x_k.
+- The gap x_d' - x_k >= eps - 2.2e-16, which is about 4.5e3 ulps of the operands.
+- Dividing both by the same Z keeps a gap larger than one rounding error, so fl(x_d'/Z) > fl(x_k/Z).
+
+**Proof of (b).**
+- In exact arithmetic sum q = (1 + (K+1) eps) / Z = 1.
+- The float error is a few ulps, and the release checks it against 1e-12.
+
+**Proof of (c).**
+- By B3, the token of a row with teacher decision d has class d.
+- By (a), the strict argmax of the released vector is that class.
+- `encode_d1` and `release_arrays_d1` assert all three properties pointwise on every row, and refuse otherwise.
+
+**The frozen projection is what makes B1 hold.** A solver residual of 1e-8 on u_k - u_d would overwhelm the 1e-12
+smoothing margin, as prompt section 6 warns. The repair is three steps:
+- (1) clip at 0;
+- (2) cap each k != d at u_d;
+- (3) divide by the k-ordered sum.
+
+Each step keeps the previous properties exactly:
+- division by one positive float is monotone, so it preserves u_k <= u_d and u >= 0;
+- the cap leaves u_d unchanged.
+
+Tests:
+- `test_projection_repairs_tiny_residuals_and_keeps_strict_argmax` covers a residual above u_d, an exact tie
+  u_d = u_k, and the PROJ_TOL refusal path.
+- `test_release_arrays_d1_keys_invariants_and_fixed_token_information` covers a planted vector without a strict argmax,
+  which is refused at release.
+
+**What Theorem 2 does not give.**
+- The decoder cannot change any decision. Accuracy, every class recall and the confusion matrix equal the teacher's
+  under D0 and D1 alike.
+- The fallback vector of an absent class has a margin of about 1e-12 and carries no confidence.
+- Containment is not a privacy property.
+
+## 4. The calibrated-teacher null (Proposition 4; prompt section 2)
+
+**Statement.**
+- Let a token t be any fixed set of permitted inputs: a union of same-class fine cells.
+- Suppose the teacher is the true conditional: P(Y = k | X = x) = p_k(x) for every permitted x.
+- Then P(Y = k | T = t) = E[p_k(X) | T = t] = pbar_t (the population mean).
+- For every q in the simplex:
+
+      E[-log q_Y | t] = H(pbar_t) + KL(pbar_t || q),     E[||q - e_Y||^2 | t] = ||q - pbar_t||^2 + 1 - ||pbar_t||^2.
+
+- So q = pbar_t is the UNIQUE population minimiser of both expected log loss and expected Brier, among all vectors and
+  therefore among all decoders that are functions of t.
+- Replacing the conditional mean cannot improve population proper loss.
+
+**Proof.**
+- The first equality is the tower property.
+- The two decompositions are the standard ones for the log score and the quadratic score: expand -log q_k and
+  ||q - e_k||^2 and average over k ~ pbar_t.
+
+**Consequences for D0 and D1.**
+- D0 releases smooth(pbar_t), within (K+1) eps of pbar_t, so its population excess is O(eps / min_k pbar_k).
+- With labels equal to their exact expectation, y = n pbar_t (the fixture F1 construction), D1's gradient in q-space at
+  q = pbar_t is
+
+      -(n + kappa) pbar_k / q_k + n q_k - n pbar_k = -(n + kappa),
+
+  the same constant for every k.
+- So pbar_t is stationary on the simplex. It is class-dominant, because every row's argmax is d. After the affine
+  smoothing map, D1's optimum is within O(eps) of D0.
+- The small exception is where pbar has ties within eps of d; there the tie constraint binds at the O(eps) level.
+
+**Checks.**
+- Test `test_calibrated_teacher_null_no_population_improvement`: K = 2 and 6, dyadic laws, y = s exactly.
+  - max |q_D1 - q_D0| <= 1e-10;
+  - D1 population log loss and Brier are both >= D0's - 1e-10.
+- Fixture check C2 on F1_CALIBRATED_NULL:
+  - every same-class subset token of both recipients (the tokens of every canonical partition);
+  - every D1 release of every arm.
+  - Pass condition: max |q_D1 - q_D0| <= 1e-9, and D1 law log loss and Brier >= D0's - 1e-12 per row.
+- Power: a deliberately miscalibrated toy law under the same check FAILS C2
+  (`test_calibrated_toy_null_check_runs_and_passes`).
+
+**Why D1 can still be useful.**
+- The real frozen heads are imperfect. They are miscalibrated, and only in-sample calibrated (see the caveat at the
+  top).
+- Learning the decoder can help because the mean is NOT the true conditional, not because an established Bayes rule
+  was wrong.
+- With finite sampled labels, y differs from n pbar, and D1 fits the labels shrunk toward pbar with kappa = 32
+  pseudo-observations. That shrinkage is a regularisation choice, not a Bayes optimum.
+
+## 5. A decoder change on an unchanged token cannot remove information (Proposition 5)
+
+**Statement.**
+- Fix a token map g_i (cell -> token) and ANY deterministic, public decoder delta_i: tokens -> simplex. Examples are
+  D0, D1, or any recalibration that is a function of the token.
+- The complete released interface of recipient i is Z_i = (T_i, delta_i(T_i), gamma(T_i)), where gamma(T_i) is the
+  decision, a function of the token.
+- Z_i is a bijective function of T_i. So sigma(Z_i) = sigma(T_i).
+- Hence I(S; Z_i) = I(S; T_i) and I(S; Z_1, Z_2) = I(S; T_1, T_2) under every law.
+- This includes every fitted plug-in law. The empirical joint of (S, Z) is the same partition of the rows.
+- The Bayes risk of every attacker reading the complete interface is unchanged.
+
+**Proof.**
+- T_i is a coordinate of Z_i, and Z_i is a function of T_i.
+- A bijection preserves the generated sigma-algebra, and MI depends only on it.
+- The pair statement applies the same argument to (T_1, T_2).
+
+**Scope.**
+- (a) The fitted decoder depends on fitting labels. Conditional on the fitted maps it is a fixed public function, and
+  the Markov chain S -> X -> T -> Z holds for every held-out row (cbp DP1).
+- (b) A probability-only view is a coarsening of the token, and the coarsening can differ between D0 and D1. Two tokens
+  with equal D0 vectors may receive distinct D1 vectors, and vice versa. So finite attackers that read only
+  probabilities can score either higher or lower. That change is NOT information removal and must not be credited as
+  such.
+- (c) Any reduction of complete-interface information therefore requires a CHANGED PARTITION.
+
+**Checks.**
+- Fixture check C1: every D0 map against its D1 version. Tokens are identical, I_1, I_2 and I12 are bitwise identical,
+  and I(S; (token, q)) = I(S; token) within 1e-15 for both decoders and for every mapper release.
+- Test `test_release_arrays_d1_keys_invariants_and_fixed_token_information`: the same identities on a synthetic pair,
+  where the D1 vectors do differ from D0.
+
+## 6. Sufficient-statistic identities for the fitting budgets (Proposition 6)
+
+**Statement.** For a token with label counts y and released vector q, the source per-row conventions (`dpc.utility.per_row`)
+sum over the token's rows to:
+
+    sum_rows -log clip(q_{Y_r}, 1e-12, 1) = sum_k y_k (-log clip(q_k, 1e-12, 1)),
+    sum_rows sum_j (q_j - [j = Y_r])^2   = sum_k y_k b_k(q),   b_k(q) = sum_j (q_j - [j = k])^2.
+
+**Proof.** Every row of the token releases the same q, so its per-row term depends only on its label. Grouping the rows
+by label gives the identities. `token_losses` evaluates b_k with the same per-row expression, so only the summation
+order differs.
+
+**Checks.**
+- `test_loss_helpers_match_row_level`: means agree within 1e-12 relative, and per-token totals within 1e-9 absolute.
+  The test includes entries at the eps floor, where the clip binds.
+- Fixture check C5 compares the exhaustive oracle's per-subset row-level totals with `token_losses`.
+
+**Clip versus objective.**
+- The decoder objective uses log q_k unclipped. The source loss clips at 1e-12.
+- They differ only for a row whose label class sits at the floor q_k = eps / Z, which is about 1e-12 (1 - 7e-12). For
+  such a row the difference is log Z, about 7e-12 nats.
+- This cannot happen at a D1 optimum: y_k >= 1 implies a_k >= 1, and then KKT forces u_k > 0. At u_k = 0 we would
+  have g_k(0) ~ -a_k / eps ~ -1e12, so g_k(0) + nu >= 0 would require a multiplier far beyond |g_d| <= (n + kappa) K Z + n.
+- The released losses use the clip, as the source convention does.
+
+## 7. The fixture oracle and gate
+
+**Laws.** `FIXTURE_LAWS.json` was written and sent to the lead before any algorithm ran on it.
+- Four families, each with N = 4096 exact expected counts. Weights are count / 4096.
+- Every atom count is an integer by construction: dyadic teacher vectors, labels split proportionally inside each
+  (f1, f2, s) group, and north-west-corner joint (y1, y2).
+- Fine cells are the allowed observations, one distinct teacher vector per cell. Each is checked to deploy to its own
+  cell.
+- Caps: 2 tokens per predicted class over 4 fine cells per class.
+- Mapping pairs per fixture: 4096, 32768, 4096 and 4096 (<= 100,000).
+
+**Oracle** (`lcr/fixtures.py`, independent of the mapper).
+- Canonical same-class partitions are enumerated as restricted-growth strings per class with at most `cap` blocks.
+  The count equals the sum of Stirling numbers (tested).
+- For every same-class subset token, the oracle computes:
+  - D0 = smooth(mean);
+  - D1 = `solve_token`;
+  - row-level log loss and Brier (dpc conventions);
+  - teacher KL.
+- For every partition: L, B and D under both decoders, and its own plug-in I_i.
+- For every pair: I12 from the exact fine table.
+- Exhaustive optima are computed for every registered own problem (`FIXTURE_GATE_RULE.json`
+  "own_problem_objectives"), together with the minimum feasible I12 with and without local caps.
+
+**Gate.** The trigger, T*, the qualifying rule, the route classification and the mandatory checks C1-C7 are registered
+verbatim in `FIXTURE_GATE_RULE.json`:
+- T* is the strongest feasible task-only D1 compression, including the REFINED C-TASK.
+- A qualifying candidate must also have its own accuracy gain >= 0.03 on both tasks.
+
+Optimisers are labelled EXHAUSTIVE_OPTIMAL or HEURISTIC with their gap (check C6). A heuristic gap is reported, not a
+failure.
+
+**Limits of exhaustive enumeration.**
+- Enumeration is exact over PARTITIONS of these tiny fixtures only.
+- Within each partition, the decoder is a numerical convex solve with the tolerances of section 2. Enumeration does not
+  make the continuous optimisation exact.
+- Fixture MI is the exact MI of these finite laws, because fitting law = population law by construction.
+
+## 8. What is NOT claimed
+
+- **The discrete program is not convex.** The fixed-token decoder is convex. Choosing the token MAP under budgets to
+  minimise Phi (or T + lambda Phi) is a combinatorial program over partitions.
+  - The mapper's sweeps are heuristics that may stop at local optima.
+  - No global optimum is claimed on Adult.
+  - A fixed-token certificate is not a certificate of the discrete search.
+- **Fitted MI is not a population guarantee.**
+  - Plug-in MI on OSF_DEFENSE_FIT is a fitting-law quantity, with the usual upward small-cell bias.
+  - It is not a bound for any attacker, nor for held-out rows.
+  - The fixture laws are exact by construction, and that exactness does not transfer to Adult.
+- **D1 is a registered regularised decoder** (kappa = 32, Brier weight 0.5, eps = 1e-12, none tuned). It is not the
+  unregularised Bayes rule.
+  - A map that violates a budget under D1 is "infeasible under this registered decoder", not mathematically infeasible.
+- **Fitting budgets are not confidence certificates** (see the in-sample caveat). Inner and assessment rules decide.
+- **A decoder change on fixed tokens removes no information** (section 5). Any finite-attacker score change from
+  decoding alone is not privacy.
+- **Decision containment (section 3) is not privacy.** The decision is a disclosure floor:
+  I(S; C) = I(S; d) + I(S; C | d) >= I(S; d), as in the cbp review.
+- **The fixtures test the mechanism on known laws.** A gate pass licenses the registered Adult study only. It is not
+  evidence that the method works on Adult. A gate failure supports no Adult claim either way.
+
+## 9. Test index (role B)
+
+| File | Tests | What |
+|---|---|---|
+| `lcr/tests/test_decoder.py` | 17 | objective algebra; SLSQP reference; KKT probes; fuzz K in {2, 6} with extremes; batch = scalar bitwise; refusals; projection; convexity; calibrated null; miscalibrated improvement; cache keys / stale reuse / tamper; loss helpers vs rows; decode_policy fallback / round trip / stale labels; token_stats canonical; release keys / invariants / fixed-token MI / decoder.json binding |
+| `lcr/tests/test_fixtures.py` | 13 | registered laws static integrity; F1 exact calibration; tamper refusal; enumeration canonical/complete; plug-in MI vs dpc; oracle terms vs row level; gate truth table; trigger rule cases; refusal of real data; toy end to end (all checks pass); toy fixed-token ablation; toy stage writes the gate file; calibrated toy C2 passes and a miscalibrated toy fails C2 |
+| `lcr/tests/test_deploy.py` | 6 | D1 output = stored release (only the six keys; same tokens and decisions as D0; restore copy); D0 without decoder = qpc; new-fit config requires its own decoder; schema violations; export / unknown flags; mismatched teacher, decoder of another map, decoder sha, tampered and stale decoders, unregistered configs |
+
+No test runs an algorithm on the REGISTERED fixture laws. Those run only in the locked fixture stage.

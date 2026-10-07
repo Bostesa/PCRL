@@ -1,0 +1,94 @@
+{
+ "schema": "lcr-label-truth-table-v1",
+ "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lcr/family.py clause_outcome(), claim_status(), q_status(), overall_label(); tested exhaustively in lcr/tests/test_truth_table.py",
+ "agreement": "PROTOCOL.md section 12 states exactly these rules; protocol text and executable must agree; a disagreement is a defect to disclose and resolve; no label edits after inner results",
+ "clause_outcomes": {
+  "PASS": "the registered bound clears the target (lower> : lower bound > target; upper< : upper bound < target)",
+  "NOT_ESTABLISHED_PRECISION": "the point estimate satisfies the target but the registered bound does not (assessment precision failure; NOT an established violation)",
+  "NOT_ESTABLISHED_POINT": "the point estimate fails the target but the interval does not exclude the target on the failing side",
+  "MEASURED_VIOLATION": "the opposite bound excludes the target on the failing side (a violation supported by the interval)",
+  "INVALID": "any nonfinite point or bound (never dropped, never sorted as a success)"
+ },
+ "claim_status_rules_in_precedence_order": [
+  "a failed required control (without an amendment that repairs it) -> INCOMPLETE_OR_INVALID, root cause FAILED_REQUIRED_CONTROL",
+  "comparator technically failed or missing -> INCOMPLETE_OR_INVALID, root cause INVALID_OR_MISSING_COMPARATOR",
+  "nominee technically failed (fit/admission failure, decision-preservation failure, non-estimable candidate, or an eligible nominee blocked only by a missing guard comparator) -> INCOMPLETE_OR_INVALID with that root cause",
+  "no eligible nominee -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE, with the selection reason (ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE or CONSTRAINED_FIT_INFEASIBLE); the fixed fallback is DESCRIPTIVE_ONLY and can never pass",
+  "comparator candidates computed but none eligible -> INCOMPLETE_OR_INVALID, root cause NO_ELIGIBLE_COMPARATOR (never a completed head-to-head negative)",
+  "outcomes empty -> INCOMPLETE_OR_INVALID (NO_CLAUSES); outcomes not exactly the claim's registered 11 slots -> INCOMPLETE_OR_INVALID (MISSING_SLOTS; the family is never shrunk)",
+  "any INVALID clause -> INCOMPLETE_OR_INVALID, root cause NONFINITE_PRIMARY_QUANTITY",
+  "all 11 clauses PASS -> PASS (COMPLETE_PASSING_CONJUNCTION)",
+  "otherwise -> NOT_ESTABLISHED with every failing clause listed and classified; root cause MEASURED_VIOLATION_SUPPORTED_BY_BOUND if any failing clause is a measured violation, ASSESSMENT_PRECISION_FAILURE if every failing clause is a precision failure, else CLAUSE_NOT_ESTABLISHED"
+ ],
+ "q_status_rules": [
+  "Q technically failed / unresolved -> INCOMPLETE_OR_INVALID (Q_NOT_RESOLVED)",
+  "U|DIRECT-TASK|i8o64 not ordinarily eligible on some seed or task -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE (ORDINARY_UTILITY_FAILURE); P34-P37 are scored DESCRIPTIVE_ONLY and can never pass",
+  "outcomes empty -> INCOMPLETE_OR_INVALID (NO_CLAUSES); not exactly P34-P37 -> INCOMPLETE_OR_INVALID (MISSING_SLOTS)",
+  "any INVALID clause -> INCOMPLETE_OR_INVALID (NONFINITE_PRIMARY_QUANTITY)",
+  "all 4 clauses PASS -> PASS (COMPLETE_PASSING_CONJUNCTION)",
+  "otherwise NOT_ESTABLISHED, root cause as for claims: MEASURED_VIOLATION_SUPPORTED_BY_BOUND if any failing clause is a measured violation, ASSESSMENT_PRECISION_FAILURE if every failing clause is a precision failure, else CLAUSE_NOT_ESTABLISHED; failing clauses listed"
+ ],
+ "overall_label_rules_in_precedence_order": [
+  "the registered fixture gate failed before Adult -> MECHANISM_GATE_NOT_MET (no Adult fit, no Adult head-to-head result)",
+  "a technical-validity failure that touches EVERY claim (see failure_scope) -> INCOMPLETE_OR_INVALID",
+  "A == PASS -> PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (<family>; <construction: existing | calibrated | weighted | constrained>) where family/construction are the simplest among P*'s exact release aliases",
+  "B == PASS -> CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (joined with ' + ' to any other passing component)",
+  "C == PASS -> PAIRED_JOINT_INCREMENT_ESTABLISHED (joined with ' + ')",
+  "no passing method claim, Q == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION (prompt sec. 12 literal; every incomplete claim stays displayed beside it)",
+  "no passing method claim and any claim or Q INCOMPLETE_OR_INVALID -> INCOMPLETE_OR_INVALID (root causes listed)",
+  "otherwise (complete valid work, no passing claim and Q not established) -> EXPERIMENTAL_NO_ADVANTAGE"
+ ],
+ "display_rule": "every claim status, its root cause and its failing clauses are always displayed beside the overall label; a legitimately passing claim may be reported even if a separate claim is incomplete, and both are shown",
+ "selection_reason_classes": {
+  "FIT_OR_ADMISSION_FAILURE": "a required unit (release or its inner audit) is missing / not hash-complete (did not fit or admit with parity)",
+  "DECISION_PRESERVATION_FAILURE": "a U-derived candidate failed exact decision preservation on some seed (technical, never a shortfall)",
+  "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess) is missing or nonfinite",
+  "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed",
+  "LOCAL_GUARD_FAILURE": "ordinarily eligible candidates exist but none meets the local guards",
+  "MISSING_GUARD_COMPARATOR": "a required guard comparator is missing (technical; no guard rank computed)",
+  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role failed its registered FITTING budgets/local caps on some seed (infeasible under this registered decoder); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE), not a technical failure"
+ },
+ "failure_scope": {
+  "global (technical_valid=False; blocks every favourable label)": [
+   "admitted U teacher parity or decision-preservation failure of the U anchor",
+   "data seal / verify_D failure at assessment",
+   "a failed shuffled-label (or other required) control of the shared attacker slate",
+   "EVALUATION_LOCK mismatch / unscored locked unit used by every claim (U, the shared anchor)"
+  ],
+  "per claim (that claim's claim_status(required_control_ok=False) -> INCOMPLETE_OR_INVALID FAILED_REQUIRED_CONTROL; other claims unaffected)": [
+   "a missing or unreadable assessment unit of that claim's nominee or comparator",
+   "an independent-verification FAIL on any of that claim's slots",
+   "a role-specific required control failure (e.g. class preservation of that claim's nominee/comparator on the assessment rows)"
+  ],
+  "mapping": "units of P* / T* -> A; N* / C* -> B; J* / C_pair* -> C; Q unit -> Q; U -> every claim and Q (global)"
+ },
+ "root_cause_reporting": "beside the single root cause, cbp.family.cause_by_kind() reports the worst outcome per clause kind (coalition, local, acc, logloss, brier, retain), e.g. 'MEASURED_VIOLATION_SUPPORTED_BY_BOUND[coalition]; ASSESSMENT_PRECISION_FAILURE[logloss]', so a measured pair violation is never read as an established confidence violation (sec. 13 bottleneck reporting); reporting only, never changes a status",
+ "winning_family_naming": "the label names the simplest family and construction over P*'s exact alias set: configurations whose DEPLOYED release (tokens AND released probabilities) equals P*'s on all three seeds; family order LOCAL < SEQ-12 = SEQ-21 < JOINT(-SINGLE) < JOINT-PAIR; construction order existing (D0) < calibrated (D1 fixed-map) < weighted < constrained",
+ "role_level_aliases": "data-dependent role aliases (P* == J*, C_rate == C_global, T* == Q config) are recorded per slot in EVALUATION_LOCK and PRIMARY_ENDPOINTS (alias_of_by_role); slots are kept, prose never counts one comparison twice",
+ "selection_reason_note": "technical reasons of one role are joined with '+' when several apply (e.g. DECISION_PRESERVATION_FAILURE+NON_ESTIMABLE_INNER_METRIC); the claim root cause carries them verbatim",
+ "claims": {
+  "A": "P* vs T*: useful privacy release beyond strong compression",
+  "B": "N* vs C*: added value of constrained search beyond calibration and true-label weighted controls",
+  "C": "J* vs C_pair*: added value of paired joint search",
+  "Q": "fixed original D0 DIRECT-TASK i8o64: four original confidence bounds"
+ },
+ "interpretation": [
+  "A passes alone: a useful privacy release on this reused development benchmark; no new-search or joint claim",
+  "B passes: the registered constrained search adds value over strong controls; novelty separately reviewed",
+  "C passes: evidence for the paired joint component; not a universal superiority theorem",
+  "a fitting-budget certificate does not imply a passing assessment clause",
+  "a point below a limit with an upper bound above it is unresolved preservation, not an established violation"
+ ],
+ "not_implied_by_an_A_pass": [
+  "a new algorithm in the literature",
+  "constrained-search value (needs B)",
+  "joint superiority (needs C)",
+  "dominance over every published defence",
+  "chance-level privacy",
+  "a population certificate",
+  "general-purpose representation learning"
+ ],
+ "report_rules": {
+  "decoder_sentence": "the opening sentence 'Learning the probabilities [did/did not clearly] improve confidence' is decided by the registered identical-token pair on the scored list: the best D1 fixed-map privacy control vs its paired D0 release; paired per-task D1-D0 log-loss and Brier differences on the assessment with the same bootstrap draws and the primary z (nominal, descriptive; lra.infer 'decoder_ablation'); 'did' iff all four upper bounds < 0, otherwise 'did not clearly'"
+ }
+}
