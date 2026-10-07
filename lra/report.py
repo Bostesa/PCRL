@@ -297,6 +297,101 @@ def _part_inner():
 PARTS["inner"] = _part_inner
 
 
+# ------------------------------------------------------------------ assessment tables and figures (after infer)
+def _inference():
+    return json.loads((R.RUN / "inference.json").read_text())
+
+
+def _lv(inf, name):
+    v = inf["levels"].get(name)
+    return (v["point"], v.get("se")) if v else (None, None)
+
+
+def decoder_utility_ablation_assess(inf):
+    """Adds the locked-assessment same-map D1-D0 contrasts (supplementary, nominal 95%) for the INNER-named pairs."""
+    rows = list(csv.DictReader(open(PKG / "DECODER_UTILITY_ABLATION.csv")))
+    sm = {p["d1"]: p for p in inf["same_map_decoder_contrasts"]["pairs"]}
+    for r in rows:
+        p = sm.get(r["d1_config"])
+        for t in ("income", "occupation"):
+            for kind in ("logloss", "brier"):
+                c = (p or {}).get("contrasts", {}).get(f"{kind}_{t}") or {}
+                r[f"assess_{kind}_{t}_mean_over_seeds_point"] = c.get("point")
+                r[f"assess_{kind}_{t}_lower95"] = c.get("lower")
+                r[f"assess_{kind}_{t}_upper95"] = c.get("upper")
+        r["assess_verdict"] = (p or {}).get("verdict", "not an inner-named pair (not scored)")
+    return rows
+
+
+def figures_assess(inf):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    labs = sorted({n.split("#")[1] for n in inf["levels"] if n.startswith("Rmean#")})
+    pts = []
+    for lab in labs:
+        pr, pse = _lv(inf, f"Rmean#{lab}#primary#pair")
+        lx, lse = _lv(inf, f"llxmean#{lab}#1")
+        if pr is None:
+            continue
+        pts.append((lab, pr, pse or 0.0, lx if lx is not None else 0.0, lse or 0.0))
+    z = 1.959963984540054
+    fig, ax = plt.subplots(figsize=(9, 6))
+    for lab, pr, pse, lx, lse in pts:
+        ax.errorbar(lx, pr, xerr=z * lse, yerr=z * pse, fmt="o", ms=4, capsize=2, alpha=0.8)
+        ax.annotate(lab[:28], (lx, pr), fontsize=6, xytext=(3, 3), textcoords="offset points")
+    ax.axvline(0.01, ls="--", c="k", lw=0.8)
+    ax.set_xlabel("occupation log-loss excess over U (assessment, mean over seeds; nominal 95% bars)")
+    ax.set_ylabel("pair AUC (assessment, complete interface; nominal 95% bars)")
+    ax.set_title("Locked assessment trade-off (descriptive intervals; primary verdicts use the 37-slot family)", fontsize=9)
+    fig.tight_layout(); fig.savefig(FIG / "fig2_assessment_tradeoff.png", dpi=130); plt.close(fig)
+    rows = list(csv.DictReader(open(PKG / "DECODER_UTILITY_ABLATION.csv")))
+    named = [p for p in inf["same_map_decoder_contrasts"]["pairs"]]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    xs = ["fit", "inner", "assessment"]
+    for p in named:
+        rr = [r for r in rows if r["d1_config"] == p["d1"]]
+        fit = sum(float(r["fit_dL_occupation"]) for r in rr) / len(rr) if rr else None
+        inn = sum(float(r["inner_dL_occupation"]) for r in rr) / len(rr) if rr else None
+        a = (p.get("contrasts", {}).get("logloss_occupation") or {})
+        ys = [fit, inn, a.get("point")]
+        ax.plot(xs, ys, marker="o", label=f"{p['name']}: {p['d1']}")
+        if a.get("lower") is not None:
+            ax.errorbar(["assessment"], [a["point"]], yerr=[[a["point"] - a["lower"]], [a["upper"] - a["point"]]], fmt="none", capsize=3, c="k")
+    ax.axhline(0, c="k", lw=0.6)
+    ax.set_ylabel("occupation log loss, D1 minus D0 on identical tokens (nats)")
+    ax.set_title("Fixed-token decoder ablation: fitting rows vs held-out rows", fontsize=9)
+    ax.legend(fontsize=6)
+    fig.tight_layout(); fig.savefig(FIG / "fig3_fixed_token_decoder_ablation.png", dpi=130); plt.close(fig)
+    return {"fig2_assessment_tradeoff.png": "locked assessment trade-off with nominal intervals",
+            "fig3_fixed_token_decoder_ablation.png": "fixed-token decoder ablation (fit, inner, assessment)"}
+
+
+def run_status(inf):
+    led = [json.loads(l) for l in (R.RUN / "COMPUTE_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+    return {"schema": "lra-run-status-v1", "label": inf["label"], "label_headline": inf["label_headline"],
+            "claim_status": inf["claim_status"], "q_status": inf["q_status"], "engineering_gate": inf["engineering_gate"],
+            "technical_valid": inf["technical_valid"],
+            "stages_run": [{"stage": e["stage"], "shard": e.get("shard"), "at": e["at"], "cpu_s": e["cpu_s"],
+                            "wall_s": e["wall_s"]} for e in led],
+            "locks": {n: "pushed" for n in ("SOURCE_ADMISSION_LOCK", "CORRECTNESS_LOCK", "SCIENCE_LOCK", "EVALUATION_LOCK")},
+            "finiteness": inf["finiteness_receipt"]}
+
+
+def _part_assess():
+    inf = _inference()
+    _write_csv("DECODER_UTILITY_ABLATION.csv", decoder_utility_ablation_assess(inf))
+    made = figures_assess(inf)
+    idx = FIG / "FIGURES.json"
+    cur = json.loads(idx.read_text()) if idx.exists() else {"schema": "lra-figures-v1", "made": {}}
+    cur["made"].update(made)
+    idx.write_text(json.dumps(cur, indent=1) + "\n")
+    _write_json("RUN_STATUS.json", run_status(inf))
+
+
+PARTS["assess"] = _part_assess
+
+
 if __name__ == "__main__":
     want = sys.argv[1:] or ["all"]
     for p in (PARTS if want == ["all"] else want):
