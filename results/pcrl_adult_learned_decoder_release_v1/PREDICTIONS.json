@@ -1,0 +1,81 @@
+{
+ "schema": "lra-predictions-v1",
+ "written_at": "2026-10-07T04:15:14Z",
+ "registered_before": "CORRECTNESS_LOCK, SCIENCE_LOCK and any Adult label-based fit (only source admission has run)",
+ "status": "forecasts are never launch rules (prompt section 13 stage 2); scored as registered",
+ "evidence_used": [
+  "qpc: task-only i8o64 keeps confidence; JOINT lambda 0.1 about -0.034 pair AUC beyond task-only but occupation LL excess 0.0081 (UB 0.0121 > 0.01)",
+  "cbp: lambda 0.01 kept confidence but pair benefit about 0.002; headroom rule excluded stronger codes",
+  "dpc: class-preserving codes kept decisions but failed occupation confidence (+0.021 nats) -> CLASS likely ineligible on Adult",
+  "lcr: no Adult evidence; fixture F2 decoder gains came from a deliberately miscalibrated law",
+  "U heads were fitted on OSF_DEFENSE_FIT, so fitting-row L(U) is in-sample optimistic and the 0.005/0.003 fitting budgets may bind hard (inherited N-9)"
+ ],
+ "predictions": [
+  {
+   "id": "LA1",
+   "question": "Correctness gate returns ENGINEERING_READY (after at most bounded code-only repairs)",
+   "probability": 0.85,
+   "reasoning": "ported engine passed every lcr correctness check; new checks 6/8/11/12 depend on new persistence and review repairs"
+  },
+  {
+   "id": "LA2",
+   "question": "On the INNER-named unchanged private map(s), D1 lowers held-out (assessment) true-label LL vs D0 on the same tokens (point estimate, both tasks summed)",
+   "probability": 0.6,
+   "reasoning": "D1 fits fitting-row labels with a kappa=32 teacher prior; real heads are imperfect but fitting rows were also the heads' training rows, so part of the gain may not transfer"
+  },
+  {
+   "id": "LA3",
+   "question": "Claim A (P* vs T*) PASSES all 11 clauses",
+   "probability": 0.12,
+   "reasoning": "needs pair AUC LB > 0.02 below the strongest untrained release AND every LL/Brier UB within U+0.01/0.005; qpc's best private code missed the occupation LL bound"
+  },
+  {
+   "id": "LA4",
+   "question": "Claim B (N* vs C*) PASSES",
+   "probability": 0.04,
+   "reasoning": "constrained search must beat calibrated old maps and weighted D1 controls by > 0.02 pair AUC LB"
+  },
+  {
+   "id": "LA5",
+   "question": "Claim C (J* vs C_pair*) PASSES",
+   "probability": 0.02,
+   "reasoning": "no joint-specific advantage established in any predecessor"
+  },
+  {
+   "id": "LA6",
+   "question": "Q (four original confidence bounds on D0 DIRECT-TASK i8o64) PASSES",
+   "probability": 0.8,
+   "reasoning": "qpc established task-only i8o64 confidence feasibility"
+  },
+  {
+   "id": "LA7",
+   "question": "Winning (P*) construction",
+   "distribution": {
+    "calibrated old map (D1 fixed-map)": 0.3,
+    "weighted D1 search": 0.25,
+    "existing D0 map": 0.1,
+    "constrained LOCAL/sequential": 0.12,
+    "constrained JOINT-SINGLE": 0.05,
+    "paired JOINT-PAIR": 0.03,
+    "no eligible nominee": 0.15
+   },
+   "reasoning": "calibration and weighted search use the same decoder with fewer restrictions"
+  },
+  {
+   "id": "LA8",
+   "question": "CLASS (decisions alone) is inner-eligible on every seed under D0",
+   "probability": 0.1,
+   "reasoning": "dpc found occupation confidence failure for class-preserving codes"
+  },
+  {
+   "id": "LA9",
+   "question": "Overall label",
+   "distribution": {
+    "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (any)": 0.12,
+    "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION": 0.6,
+    "EXPERIMENTAL_NO_ADVANTAGE": 0.13,
+    "INCOMPLETE_OR_INVALID / NOT_RUN": 0.15
+   }
+  }
+ ]
+}
