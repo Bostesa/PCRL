@@ -1,11 +1,14 @@
 """[lra port of lcr/fixtures.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md]
-Known-law fixtures and the mechanism gate of the lra study (role B; prompt sec. 9). SYNTHETIC ONLY: no real data.
+Known-law fixtures and the CORRECTNESS-ONLY launch gate of the lra study (role B; prompt sec. 9). SYNTHETIC ONLY: no
+real data is loaded.
 
-    OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lra.fixtures laws [--write]   # build / verify the laws
-    OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lra.fixtures run [--out DIR]  # the fixture stage
-    (the registered stage runs through lra.run --lock FIXTURE_LOCK --stage fixture -> stage_fixture(None, shard))
+    OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lra.fixtures laws          # verify the pinned laws
+    OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lra.fixtures rule [--write] # ENGINEERING_GATE_RULE.json
+    (the registered stage runs through lra.run --lock CORRECTNESS_LOCK --stage correctness -> stage_correctness(None))
 
-LAWS (PKG/FIXTURE_LAWS.json; written and sent to the lead BEFORE any algorithm ran on them)
+LAWS (PKG/FIXTURE_LAWS.json): the predecessor's four laws, copied UNCHANGED (file sha256 24f70745..., laws_sha256
+5c5e3bda...; schema lcr-fixture-laws-v1 kept). They are KNOWN, ALREADY-OPENED regression cases. build_laws() still
+reproduces them byte for byte from SPECS (a static construction, tested); nothing here rewrites the file.
   Four fixed families, N = 4096 exact expected counts (atom weights = count / 4096):
     F1_CALIBRATED_NULL     teacher = true conditional per fine cell; labels = exact expectation
     F2_MISCALIBRATED       over/under-confident teacher, K2 = 3, labels favouring a non-predicted class in some cells
@@ -13,11 +16,18 @@ LAWS (PKG/FIXTURE_LAWS.json; written and sent to the lead BEFORE any algorithm r
     F4_REDUNDANT           the SAME clue bit visible to both recipients: local = pair information
   Each family: per recipient K, fine cells (= the allowed observations: one distinct dyadic teacher vector per cell,
   predicted class = its strict argmax), per-cell label laws, explicit cell-pair counts n(f1, f2), explicit SEX laws
-  P(S = 1 | f1, f2), the label-joint rule and the complete atom list (f1, f2, s, y1, y2, count). Labels are
-  conditionally independent of SEX given (f1, f2) and each recipient's labels are split proportionally inside every
-  (f1, f2, s) group (exact integers by construction); the joint (y1, y2) inside a group is the north-west-corner
-  table of the two integer margins (classes ascending). No gate quantity depends on that y1-y2 coupling (decoders and
-  budgets are per recipient; MI uses tokens and SEX only).
+  P(S = 1 | f1, f2), the label-joint rule and the complete atom list (f1, f2, s, y1, y2, count).
+
+ENGINE (unchanged from lcr): run_fixture = the D0 bank (qpc), D1 decodes of every D0 map, the lra.mapper arms
+(C-TASK, 24 W-, 5 K-; fixture mode), the exhaustive oracle (every canonical same-class partition pair) and the
+predecessor's checks C1-C7.
+
+GATE (new): engineering_gate_rule() -> ENGINEERING_GATE_RULE.json; stage_correctness computes the twelve mandatory
+checks E01..E12 of prompt sec. 9 and engineering_verdict() -> ENGINEERING_READY iff all pass, else
+ENGINEERING_BLOCKED. The old trigger / T* / route logic (trigger, descriptive, gate_from_results) is DESCRIPTIVE
+output only and never decides the verdict. Outputs: PKG/ENGINEERING_GATE_RESULT.json, PKG/correctness_oracle/*.csv and
+the private units cor__<FID> (mapper records and traces, policies, decoders, releases, D0 starts, fine partitions) for
+the independent replay.
 """
 from __future__ import annotations
 
@@ -33,7 +43,7 @@ import numpy as np
 WT = Path(__file__).resolve().parents[1]
 PKG = WT / "results" / "pcrl_adult_learned_decoder_release_v1"
 N_FIX = 4096
-LAWS_SCHEMA = "lra-fixture-laws-v1"
+LAWS_SCHEMA = "lcr-fixture-laws-v1"           # the PINNED source laws keep their source schema (unchanged copy)
 GATE_SCHEMA = "lra-fixture-gate-rule-v1"
 BUDGET = {"ll": 0.005, "brier": 0.003}
 CAPS = (2, 2)                       # tokens per predicted class (recipient 1, recipient 2); 4 fine cells per class
@@ -273,7 +283,7 @@ def build_laws():
                                     "cell); a coarse token is a union of same-class fine cells",
             "sensitive": "SEX in {0, 1}; never an input of any decoder or deployment; used only by privacy-trained "
                          "partition search and by the MI accounting",
-            "decoders": "D0 = smoothed mean teacher vector of the token (qpc); D1 = lra.decoder (kappa = 32, eps = "
+            "decoders": "D0 = smoothed mean teacher vector of the token (qpc); D1 = lcr.decoder (kappa = 32, eps = "
                         "1e-12, class-dominant simplex) from the token's fitting label counts and teacher sums",
             "budgets": {"ll": "L_i <= L_i(U) + 0.005 nats (true-label log loss on the fixture rows, clip 1e-12)",
                         "brier": "B_i <= B_i(U) + 0.003 (source multiclass Brier)",
@@ -283,7 +293,7 @@ def build_laws():
                                              "I_i(C-TASK) of the same fixture"},
             "U": "the continuous teacher release: each row's own teacher vector (its fine cell's vector)",
             "lam_grid": list(LAMS), "families": fams,
-            "construction": "lra/fixtures.py build_laws() (SPECS); stage_fixture re-builds the atoms from the explicit "
+            "construction": "lcr/fixtures.py build_laws() (SPECS); stage_fixture re-builds the atoms from the explicit "
                             "pair_counts / sex_num / label tables stored here and refuses any mismatch",
             "bank_note": "fixed finite bank of exactly these four families, designed by reasoning before any fixture "
                          "algorithm ran; only static law properties (counts, integrality, teacher argmax, constants, "
@@ -325,140 +335,9 @@ MIN_GAIN = 0.03
 TASK_ONLY_D1 = ("U|C-TASK|i8o64|D1", "U|FINE-TASK|i8o64|D1", "U|DIRECT-TASK|i8o64|D1", "U|CLASS|i1o1|D1")
 
 
-def gate_rule():
-    from lra import run as R
-    return {
-        "schema": GATE_SCHEMA,
-        "trigger_verbatim": "At least one fixed nontrivial fixture shows that privacy-trained partitioning with D1 "
-                            "satisfies all utility/local budgets and reduces pair MI by at least 0.01 nats beyond the "
-                            "strongest feasible task-only D1 compression, while both tasks have accuracy gain at least "
-                            "0.03 over their constants.",
-        "not_required": ["joint beating sequential", "constrained search beating a weighted control"],
-        "rows": "each fixture's fitting rows are its atoms replicated by count (N = 4096, exact expected counts, no "
-                "sampling); all rows are fitting rows (tr = all); population law = fitting law",
-        "measurements": {
-            "independence": "every quantity below is recomputed by lra.fixtures from the release rows (tokens, q, "
-                            "decisions) and the fixture labels/SEX with its own code (dpc.utility.per_row conventions "
-                            "for losses, its own plug-in MI); mapper-reported values are only cross-checked",
-            "L_i": "mean true-label log loss of q_i, natural log, clip 1e-12", "B_i": "mean multiclass Brier of q_i",
-            "U": "L_i(U), B_i(U) of each row's own teacher vector",
-            "I_i": "plug-in MI(SEX; full token identity of recipient i), natural log, exact counts",
-            "I12": "plug-in MI(SEX; exact token tuple (t1, t2)), natural log, exact counts",
-            "T": "L_1 + L_2 + 0.5 (B_1 + B_2)", "Phi": "I12 + 0.5 (I_1 + I_2)",
-            "accuracy_gain_i": "accuracy of the teacher decision minus accuracy of the fitting-majority constant (ties "
-                               "-> lower class); identical for every class-preserving release (static law property)"},
-        "feasible": {"rule": "for i = 1, 2: L_i <= L_i(U) + 0.005 + TOL_BUDGET and B_i <= B_i(U) + 0.003 + "
-                             "TOL_BUDGET; released decision == teacher decision on every row; q_i normalised within "
-                             "1e-12 with strict argmax at the decision; tokens per predicted class <= caps[i-1]",
-                     "TOL_BUDGET": TOL_BUDGET},
-        "local_budget": {"rule": "I_i <= I_i(C-TASK release of the same fixture) + TOL_MI, i = 1, 2", "TOL_MI": TOL_MI},
-        "task_only_D1_candidates": list(TASK_ONLY_D1),
-        "task_only_note": "C-TASK = the REFINED map returned by lra.mapper.fit_unit('C-TASK') (its D1-recomputed "
-                          "start, FINE-TASK|D1, is a separate candidate); FINE-TASK|D1 / DIRECT-TASK|D1 / CLASS|D1 = "
-                          "lra.decoder D1 on the D0 maps of the fixture (qpc.compress FINE-TASK / CLASS, qpc.kmeans "
-                          "direct per-class KL k-means at the cap, all three registered starts), assignments unchanged",
-        "T_star": "the FEASIBLE task-only D1 candidate with the smallest I12 (ties -> smaller T -> config id); none "
-                  "feasible -> the fixture cannot trigger (reason NO_FEASIBLE_TASK_ONLY)",
-        "privacy_trained_D1_candidates": {
-            "d1_fixed": [R.d1_id(f, l) for l in LAMS for f in R.PRIVACY],
-            "weighted": [R.weighted_id(f, l) for l in LAMS for f in R.PRIVACY],
-            "constrained": [R.constrained_id(a) for a in R.CONSTRAINED]},
-        "privacy_note": "d1_fixed = D1 on the 24 D0 privacy maps fitted on the fixture rows by the UNCHANGED qpc "
-                        "old-objective search (qpc.compress.fit_policy_pair: LOCAL, SEQ-12, SEQ-21, JOINT x lambda "
-                        "grid, JOINT with its same-lambda FINE-TASK / LOCAL / SEQ witnesses as in cbp), then decoded by "
-                        "lra.decoder with the assignments unchanged; weighted / constrained = lra.mapper fit_unit (meta "
-                        "fixture = True, refs caps = the fixture caps, refs budget = the registered 0.005 / 0.003, "
-                        "starts / witnesses = the full registered sets of mapper.registered_starts). Exhaustive "
-                        "partitions are references, NEVER candidates.",
-        "qualifies": "feasible(R) and local_budget(R) and I12(T_star) - I12(R) >= 0.01 and, for R itself, "
-                     "accuracy_i(R) - constant_accuracy_i >= 0.03 for i = 1 and 2 (accuracy of R's released decisions "
-                     "on the fixture rows; the constant is the fitting-majority class, ties -> lower class)",
-        "trigger_fixture": "some privacy-trained D1 candidate qualifies (nontrivial = both static accuracy gains >= "
-                           "0.03 and I12(T_star) >= 0.01; a trivial fixture cannot trigger)",
-        "gate": {"GATE_MET": "every mandatory correctness check passes on all four fixtures AND trigger_fixture holds "
-                             "for at least one fixture",
-                 "GATE_NOT_MET": "otherwise; reasons listed: CORRECTNESS_FAILURE:<check ids> and/or "
-                                 "NO_FIXTURE_TRIGGERED"},
-        "route_classification": {
-            "applies": "only when GATE_MET; computed per triggered fixture, then combined",
-            "per_fixture": {"Q_fm": "qualifying d1_fixed candidates", "Q_new": "qualifying weighted + constrained",
-                            "best_fm": "min I12 over Q_fm (+inf if empty)", "best_new": "min I12 over Q_new",
-                            "decoder_enabled": "Q_fm nonempty",
-                            "assignment_search_helps": "Q_new nonempty and (Q_fm empty or best_new <= best_fm - 0.01)"},
-            "ASSIGNMENT_SEARCH_ROUTE": "assignment_search_helps on at least one triggered fixture",
-            "DECODER_ENABLED_ROUTE": "otherwise (the trigger is met by an OLD assignment decoded by D1 and new search "
-                                     "adds < 0.01 nats there); Adult then includes all calibration controls",
-            "descriptive_flags": ["d0_version_already_qualifies (the D0-decoded version of a qualifying fixed map is "
-                                  "itself feasible, local-feasible and 0.01 below T_star)",
-                                  "constrained_qualifies", "weighted_qualifies", "best constrained vs best weighted I12",
-                                  "joint vs sequential I12"],
-            "descriptive_definitions": "computed on every fixture (triggered or not) by descriptive(): for each group, min I12 over its privacy-trained D1 arms twice, over all arms and over the eligible ones (feasible() and, when a C-TASK release exists, local_budget()), None when empty. Groups: constrained = the 5 K- arms; weighted = the W- arms; joint vs sequential within each family: d1_fixed JOINT vs SEQ-12/SEQ-21, weighted W-JOINT vs W-SEQ-12/W-SEQ-21, constrained K-JOINT-SINGLE and K-JOINT-PAIR vs K-SEQ-12/K-SEQ-21; differences = best_joint - best_sequential and best_constrained - best_weighted. Descriptive only; never used by the verdict or route."},
-        "mandatory_correctness_checks": {
-            "C1_FIXED_TOKEN_INFORMATION": "for every D0 map and its D1 version: identical token arrays (exact), "
-                                          "identical I_1, I_2, I12 (bitwise), and I(SEX; (token, q)) == I(SEX; token) "
-                                          "within 1e-15 for both decoders (q is a function of the token); the last condition is also checked on every release of every arm (D0, D1 and mapper C-TASK / W- / K-)",
-            "C2_CALIBRATED_NULL": "F1_CALIBRATED_NULL: for every canonical partition of each recipient and every D1 "
-                                  f"release of any arm: max |q_D1 - q_D0| <= {TOL_NULL_Q} per token (oracle subset "
-                                  "solves and every arm's released q against the D0 decoding of the same pair) and the "
-                                  f"law (population) log loss and Brier of D1 >= those of D0 - {TOL_NULL_LOSS} per row",
-            "C3_BUDGET_ENFORCEMENT": "every constrained (K-) mapper release reported FEASIBLE satisfies feasible() and "
-                                     "local_budget() under the independent recomputation; every unconstrained "
-                                     "mapper release (C-TASK, W-) reports FEASIBLE for its own constraints only "
-                                     "(decision preservation and caps; its fitting budgets are not enforced and are "
-                                     "evaluated by feasible() at qualification); mapper-reported L_i(U), B_i(U) "
-                                     "equal the independent values within 1e-12; only K- arms may report INFEASIBLE",
-            "C4_DECISION_PRESERVATION": "every release (D0, D1, mapper): hard_i == teacher decision on every row, q_i "
-                                        "strict argmax at the decision and normalised within 1e-12; release keys "
-                                        "exactly row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2",
-            "C5_TERM_RECONSTRUCTION": "mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, "
-                                      f"Phi) equal the independent reconstruction within {TOL_TERMS}; decoder.json "
-                                      "loads with re-solve verification; the exhaustive table's terms for each arm's "
-                                      f"partition equal the row-level reconstruction within {TOL_TERMS}; the winning "
-                                      "start's INCREMENTAL search-state terms (mapper start records) equal the "
-                                      f"from-scratch final_state_terms within {TOL_TERMS}; decoder.token_losses totals "
-                                      "equal the row-level sums within 1e-9 (absolute, on totals)",
-            "C6_HEURISTIC_LABELLING": "every arm carries EXHAUSTIVE_OPTIMAL (registered objective within "
-                                      f"{TOL_OPT} of the exhaustive optimum of its own registered problem, feasible "
-                                      "where constrained) or HEURISTIC with its gap, or NOT_A_SEARCH for releases "
-                                      "that are not partition searches (own_problem_objectives); a heuristic gap is "
-                                      "reported, not a failure",
-            "C7_LAW_INTEGRITY": "laws hash verifies, atoms rebuild from the explicit tables, 4096 rows, static "
-                                "properties match, mapping pairs <= 100000, fixture rows deploy to their declared "
-                                "fine cells; on the registered run FIXTURE_LAWS.json and FIXTURE_GATE_RULE.json equal "
-                                "the latest lock's documents_sha256, the rule binds the same laws_sha256, and "
-                                "reloaded shard units carry the same laws_sha256"},
-        "check_ids": ["C1_FIXED_TOKEN_INFORMATION", "C2_CALIBRATED_NULL", "C3_BUDGET_ENFORCEMENT",
-                      "C4_DECISION_PRESERVATION", "C5_TERM_RECONSTRUCTION", "C6_HEURISTIC_LABELLING",
-                      "C7_LAW_INTEGRITY"],
-        "check_scope": "C2 is evaluated on F1_CALIBRATED_NULL only; every other check on all four fixtures",
-        "own_problem_objectives": {
-            "D0 FINE-TASK": "min D_1 + D_2 (teacher KL of the smoothed mean decoder, per N) s.t. caps",
-            "D0 LOCAL lam": "min D + lam (I_1 + I_2) / 2 s.t. caps",
-            "D0 SEQ-12 / SEQ-21 / JOINT lam": "min D + lam ((I_1 + I_2) / 2 + I12) s.t. caps",
-            "C-TASK": "min T (D1) s.t. caps", "W-LOCAL lam": "min T + lam (I_1 + I_2) / 2 (D1) s.t. caps",
-            "W-SEQ-12 / W-SEQ-21 / W-JOINT lam": "min T + lam Phi (D1) s.t. caps",
-            "K-LOCAL": "per recipient min I_i s.t. its own budgets and local cap (D1)",
-            "K-SEQ-12 / K-SEQ-21 / K-JOINT-SINGLE / K-JOINT-PAIR": "min Phi s.t. both budgets and both local caps (D1)",
-            "DIRECT-TASK, CLASS": "not partition searches over the fine family (labelled NOT_A_SEARCH)",
-            "D1 fixed-map controls (<D0 map>|D1)": "not searches: the D0 assignment is kept and only the decoder "
-                                                   "changes (labelled NOT_A_SEARCH)"},
-        "tolerances": {"TOL_BUDGET": TOL_BUDGET, "TOL_MI": TOL_MI, "TOL_TERMS": TOL_TERMS, "TOL_NULL_Q": TOL_NULL_Q,
-                       "TOL_NULL_LOSS": TOL_NULL_LOSS, "TOL_OPT": TOL_OPT, "TRIGGER_MI": TRIGGER_MI,
-                       "MIN_GAIN": MIN_GAIN},
-        "verdict_strings": ["GATE_MET", "GATE_NOT_MET"],
-        "scope": "a pass licenses the Adult study only through SCIENCE_LOCK; a failure means MECHANISM_GATE_NOT_MET "
-                 "and no Adult claim. Fixture MI is the exact law MI of these finite laws, not a population guarantee "
-                 "for Adult."}
-
-
-def write_law_files(pkg=PKG):
-    laws = build_laws()
-    (Path(pkg) / "FIXTURE_LAWS.json").write_text(json.dumps(laws, indent=1, allow_nan=False) + "\n")
-    rule = gate_rule()
-    rule["laws_sha256"] = laws["laws_sha256"]
-    (Path(pkg) / "FIXTURE_GATE_RULE.json").write_text(json.dumps(rule, indent=1, allow_nan=False) + "\n")
-    return laws["laws_sha256"]
-
+# gate_rule() (the predecessor's FIXTURE_GATE_RULE.json generator) and write_law_files() were REMOVED in lra: the laws
+# are a pinned unchanged copy (never rewritten) and the old performance gate is replaced by engineering_gate_rule().
+# The old trigger / route functions below remain as DESCRIPTIVE output only.
 
 
 # ----------------------------------------------------------------------------------------------- fixture rows
@@ -803,7 +682,10 @@ def run_mapper_arms(X, fid, bank):
         return files["policy.json"]
 
     def pick(keys, have):
-        return {k: have[k] for k in keys if k in have}
+        miss = [k for k in keys if k not in have]
+        if miss:                                               # the correctness engine passes the FULL registered set
+            raise ValueError(f"{fid}: registered starts/witnesses missing from the fixture bank: {miss}")
+        return {k: have[k] for k in keys}
 
     have = dict(src)
     have[R.ctask_id()] = call("C-TASK", starts=pick(MP.registered_starts("C-TASK"), have))
@@ -915,13 +797,14 @@ def run_fixture(fam, mapper=True):
         add(c1, "d1_fixed" if R.parse_id(c1)["privacy_trained"] else "d1_task", rel1, pair,
             {"decoder_body": body, "d0_of": cid})
     # mapper arms
-    mrecs = {}
+    mrecs, mfiles = {}, {}
     if mapper:
         for cid, (rec, files) in run_mapper_arms(X, fid, bank).items():
             pair = RL.PolicyPair.from_dict(files["policy.json"])
             p = R.parse_id(cid)
             add(cid, p["arm"], files["release.npz"], pair, {"decoder_body": files["decoder.json"], "record": rec})
             mrecs[cid] = rec
+            mfiles[cid] = files
     # exhaustive oracle
     parts1, o1, sub1 = recipient_oracle(X, 1, X["caps"][0])
     parts2, o2, sub2 = recipient_oracle(X, 2, X["caps"][1])
@@ -1061,7 +944,10 @@ def run_fixture(fam, mapper=True):
            "d0_bank_records": {cid: {"final": r.get("final"), "summary": r.get("summary")} for cid, r in d0recs.items()},
            "mapper_status": {cid: {"status": r["status"], "winner": r["winner"]} for cid, r in mrecs.items()},
            "wall_s": time.perf_counter() - t0, "cpu_s": time.process_time() - c0}
-    tables = {"r1": o1, "r2": o2, "I12": I12, "parts1": parts1, "parts2": parts2}
+    tables = {"r1": o1, "r2": o2, "I12": I12, "parts1": parts1, "parts2": parts2,
+              # context for the engineering checks (stage_correctness); not written to the oracle CSVs
+              "X": X, "U": U, "sub1": sub1, "sub2": sub2, "mrecs": mrecs, "mfiles": mfiles, "bank": bank,
+              "d0_records": d0recs, "ref_arrays": arr}
     return res, tables, arms
 
 
@@ -1163,7 +1049,7 @@ def label_arms(arms, ref, arr, o1, o2, ct):
 
 
 def descriptive(arms, ct):
-    """Registered descriptive flags (FIXTURE_GATE_RULE.json descriptive_definitions); never used by the verdict."""
+    """The predecessor's descriptive flags (lcr FIXTURE_GATE_RULE.json descriptive_definitions); DESCRIPTIVE only."""
     from lra import run as R
     groups = {"constrained": [], "weighted": [], "d1_fixed_joint": [], "d1_fixed_seq": [], "weighted_joint": [],
               "weighted_seq": [], "constrained_joint": [], "constrained_seq": []}
@@ -1197,7 +1083,7 @@ def descriptive(arms, ct):
 
 
 def trigger(arms, ct, gains, const_acc):
-    """The registered trigger on one fixture (FIXTURE_GATE_RULE.json)."""
+    """The predecessor's trigger on one fixture (lcr FIXTURE_GATE_RULE.json); DESCRIPTIVE only in lra."""
     out = _trigger(arms, ct, gains, const_acc)
     out["descriptive"] = descriptive(arms, ct)
     return out
@@ -1279,10 +1165,1021 @@ def gate_from_results(results):
             "route": route}
 
 
-# ----------------------------------------------------------------------------------------------- stage
-def _write_tables(out_dir, fid, tables, res):
+# ----------------------------------------------------------------------------------------------- engineering gate
+# The CORRECTNESS-ONLY launch gate of this study (prompt sec. 9). It REPLACES the predecessor's performance gate: the
+# old trigger / route logic above (trigger, descriptive, gate_from_results) is kept as DESCRIPTIVE output only and is
+# never read by engineering_verdict(). Verdicts: ENGINEERING_READY iff every mandatory check E01..E12 passes.
+ENG_RULE_SCHEMA = "lra-engineering-gate-rule-v1"
+ENG_RESULT_SCHEMA = "lra-engineering-gate-result-v1"
+ENG_RULE_FILE = "ENGINEERING_GATE_RULE.json"
+ENG_RESULT_FILE = "ENGINEERING_GATE_RESULT.json"
+VERDICTS = ("ENGINEERING_READY", "ENGINEERING_BLOCKED")
+FIXTURE_IDS = ("F1_CALIBRATED_NULL", "F2_MISCALIBRATED", "F3_COMPLEMENTARY_XOR", "F4_REDUNDANT")
+PINNED_LAWS_FILE_SHA256 = "24f7074519dc9d24afb75a14e3601be61ee0e17929fe150a2fb8ca0db5ce9d9c"
+PINNED_LAWS_SHA256 = "5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434"
+SOURCE_GATE_FILE = "SOURCE_FIXTURE_GATE.json"
+PINNED_SOURCE_GATE_SHA256 = "772f17e35a471d7069a44c707890bcdfe76a3996f1ebab071331655ae5cb325e"
+SOURCE_RESULTS = "results/pcrl_learned_decoder_constrained_release_v1"
+SOURCE_ORACLE_DIR = WT / SOURCE_RESULTS / "fixture_oracle"
+SOURCE_ORACLE_SHA256 = {
+    "F1_CALIBRATED_NULL_arms.csv": "16d8bd36a60209bcf147fb06b2ef1803bec5398dc9f6be66695107a71a3b9be0",
+    "F1_CALIBRATED_NULL_pair_I12.csv": "a16108a182cb0b2ef9c3125c36d17dc018f1e59b426e81d09e5515952a3ccb16",
+    "F1_CALIBRATED_NULL_partitions_r1.csv": "28e5a52ece943326bbd90ebee6082f3546326bffe4ef0c84777958d5687bc38b",
+    "F1_CALIBRATED_NULL_partitions_r2.csv": "0b2401786ab9f1c05a91b7024773157e7a1b0f23d5d787e5e4df8c2e1af8b0f1",
+    "F2_MISCALIBRATED_arms.csv": "ebbd92ce171072c4cd58257b4f2708e3ed930a519de803232b142938da9a1fe2",
+    "F2_MISCALIBRATED_pair_I12.csv": "d0bcc732d0b1ee39558b3d926bb267ba4b881079653073875d8bd8f0e7bb538b",
+    "F2_MISCALIBRATED_partitions_r1.csv": "40fe97b22026a1408e7cdeb6efb4f5748caf8c2d99ae7a8574295b75cf98b8d4",
+    "F2_MISCALIBRATED_partitions_r2.csv": "22c27fab9dc92759b01d4153fa3088a48029db7da59d82b3a263e1c81b0e2f52",
+    "F3_COMPLEMENTARY_XOR_arms.csv": "ec52e4cedf140e50924596fba837860f3839567eda07bea204b509eb9c3a463c",
+    "F3_COMPLEMENTARY_XOR_pair_I12.csv": "19114dbbdcd297050ce0414e552e719d8dbc1128c76cf392d6bc5335991fa3b0",
+    "F3_COMPLEMENTARY_XOR_partitions_r1.csv": "780eddd0f8e2e9d5c97d740b67885b4cae8710c9f7e2076b58158eab963c8862",
+    "F3_COMPLEMENTARY_XOR_partitions_r2.csv": "2deaf44c298217984068a9f9ed4a0f0faa6255a86c581beeebbf95a849adaef4",
+    "F4_REDUNDANT_arms.csv": "e9949fcc8cbf87f4fabd838b0db4a793ff919c3da0d0223be14a6f2cc6c72181",
+    "F4_REDUNDANT_pair_I12.csv": "4b4adab0d9a468dc2eb95f562b6d5c7b617860f499eaaa6eb73d3bfc6f4f182e",
+    "F4_REDUNDANT_partitions_r1.csv": "fb495cd3249eecc602c26263d3f5711e8a9072447c78025843c5221d46238a84",
+    "F4_REDUNDANT_partitions_r2.csv": "10bfd2c62b698d9153ee2a9eb52515d781b56090b2a1ffac1f27fd96bf5dfc75"}
+ORACLE_DIR = "correctness_oracle"
+TOL_FLOOR = 1e-12           # E10: I12(R) >= I12(CLASS) - TOL_FLOOR (plug-in MI summation order only)
+TOL_ROW = 1e-12             # E05: own row-level mean loss vs the source per_row convention (summation order)
+TOL_FW = 1e-9               # E04: independent Frank-Wolfe gap / largest gradient term on the final released vector
+TOL_STATS = 1e-9            # E01: token teacher sums vs the law (x max(n_t, 1)); = decoder.STATS_ROW_TOL
+TOL_REPLAY = 1e-12          # E08: trace terms vs from-scratch (mapper SEARCH_RULES "replay"; abs)
+TOL_ORACLE = TOL_TERMS      # E09: new enumeration vs the published source oracle tables (abs, per entry)
+SEARCH_MARGIN = 1e-10       # E07: the mapper's search feasibility margin (SEARCH_RULES BUDGET_MARGIN); band reported
+CONSTRAINED_ARMS = ("K-LOCAL", "K-SEQ-12", "K-SEQ-21", "K-JOINT-SINGLE", "K-JOINT-PAIR")
+# pytest node IDs wired into E11 (run in one subprocess by the stage; owners in brackets)
+WIRING_TESTS = {
+    "science_stages_refuse_without_ENGINEERING_READY [A, lra/run.py]": ["lra/tests/test_run_gate.py"],
+    "label_truth_table_matches_lra.family.overall_label [D]": [
+        "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable",
+        "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate",
+        "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work",
+        "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped"],
+    "eval_lock_refuses_when_technical_validity_false [D]": [
+        "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag",
+        "lra/tests/test_late.py::test_f13_technical_validity_each_failure_alone",
+        "lra/tests/test_late.py::test_f10_f13_technical_validity_ok_only_with_ready_gate_controls_locks_admission_and_clean_selection"],
+    "assess_and_infer_refuse_without_validity_or_ENGINEERING_READY [D]": [
+        "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses",
+        "lra/tests/test_late.py::test_f13_assess_open_calls_the_validity_check_with_no_override",
+        "lra/tests/test_late.py::test_f10_infer_refuses_without_engineering_ready"],
+    "fit_audit_inner_loaders_never_return_assessment_labels [D]": [
+        "lra/tests/test_audit.py::test_fit_audit_inner_loaders_never_return_assessment_labels"],
+    "synthetic_coverage_of_paired_moves_and_temporary_partner [C, lra/mapper.py]": [
+        "lra/tests/test_mapper.py::test_budgets_and_local_caps_enforced_including_paired",
+        "lra/tests/test_mapper.py::test_paired_step_refuses_infeasible_update",
+        "lra/tests/test_mapper.py::test_sequential_temporary_partner_not_required_feasible"],
+    "engineering_verdict_and_rule_wired_to_code [B]": [
+        "lra/tests/test_fixtures.py::test_engineering_verdict_truth_table",
+        "lra/tests/test_fixtures.py::test_engineering_rule_file_matches_code",
+        "lra/tests/test_fixtures.py::test_stage_correctness_refusals"],
+}
+FINDINGS_FILE = "REVIEW_FINDINGS_DISPOSITION.json"
+N_FINDINGS = 14
+RESOLVED_DISPOSITIONS = ("RESOLVED", "DUPLICATE_CONSOLIDATED_RESOLVED", "SUPERSEDED_RESOLVED")
+NOT_BLOCKING = [
+    "CLASS (the decision-only release) is zero-leakage on a fixture (I12(CLASS) = 0)",
+    "CLASS is affordable (budget-feasible) on a fixture, so no class-preserving release can reveal less pair "
+    "information than it (the decision disclosure floor, E10)",
+    "no fixture shows a superior privacy release (no 0.01-nat gain, no equal-leakage utility gain, no favourable "
+    "forecast)",
+    "a constrained arm ties (or loses to) a weighted control",
+    "a joint arm ties (or loses to) a sequential arm",
+    "the source mechanism gate reads GATE_NOT_MET (SOURCE_FIXTURE_GATE.json, historical)",
+    "a heuristic search arm has a gap to the exhaustive optimum of its own problem (labelled HEURISTIC with the gap)",
+    "a constrained arm is INFEASIBLE under this registered decoder and search (reported as such; not a population or "
+    "mathematical impossibility)",
+    "the old trigger / route classification (descriptive output only)"]
+
+
+def _file_sha(p):
+    p = Path(p)
+    return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+
+
+def engineering_checks_text():
+    from lra import decoder as DC
+    return {
+        "E01_LAW_COUNTS_ROUTING_HASHES": (
+            "FIXTURE_LAWS.json sha256 == PINNED_LAWS_FILE_SHA256 and laws_sha256 == PINNED_LAWS_SHA256 (rule "
+            "binding); load_laws verifies the hash and rebuilds every atom from the explicit tables; every atom count "
+            "is a positive integer and they sum to N = 4096; static properties equal law_properties; per (f1, f2) the "
+            "row counts equal pair_counts and the SEX counts equal n * sex_num / sex_den exactly; per fine cell the "
+            "true-label counts equal count * labels / label_den exactly; fixture rows deploy to their declared fine "
+            "cells; every release routes each row to a token of its teacher-predicted class (token class == teacher "
+            "decision == released decision, strict argmax at the decision, |sum q - 1| <= 1e-12, release keys exactly "
+            "row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2); every D1 decoder table's token counts n_t and "
+            "label counts y_t equal the exact sums of the law counts of its member cells, and its teacher sums s_t "
+            f"agree within {TOL_STATS} * max(n_t, 1)"),
+        "E02_FIXED_TOKEN_INFORMATION": (
+            "for every D0 map and its D1 version: identical token arrays and decisions (exact); I_1, I_2, I12 "
+            "identical (bitwise); and for EVERY release of every arm (D0, D1, mapper): I(SEX; (token_i, q_i)) == "
+            "I(SEX; token_i) and I(SEX; (token_1, q_1, token_2, q_2)) == I12 within 1e-15 (the decoder is a function "
+            "of the token: the complete interface carries exactly the token information)"),
+        "E03_CALIBRATED_NULL": (
+            "F1_CALIBRATED_NULL only: for every same-class subset token of both recipients (every token of every "
+            f"canonical partition) and every D1 release of every arm: max |q_D1 - q_D0| <= {TOL_NULL_Q} per token, "
+            f"and the law (population) log loss and Brier of D1 >= those of D0 - {TOL_NULL_LOSS} per row"),
+        "E04_D1_FINAL_VECTOR_CERTIFICATES": (
+            "every D1 decoder table of every release (D1 fixed maps and every mapper unit) and every oracle subset "
+            "solve: decoder.json reloads with its hash and a BITWISE re-solve of every supervised token; every "
+            "supervised token certificate on the FINAL released vector is converged with stationarity_rel <= "
+            f"{DC.STAT_TOL}, dual_infeas_rel <= {DC.DUAL_TOL}, projection_magnitude <= {DC.PROJ_TOL}, sum_q_residual "
+            f"<= {DC.PROTO_SUM_TOL}, bracket_ulps <= 2, margin > 0, min_u >= 0; independently of the decoder code: u "
+            "lies in the class-dominant simplex EXACTLY (u >= 0, u_k <= u_d), q == smooth(u, d) bitwise, |sum u - 1| "
+            f"<= {DC.PROTO_SUM_TOL}, strict argmax d on q, and the Frank-Wolfe gap of the prompt objective over the "
+            "2^(K-1) vertices of the class-dominant simplex (uniform vectors on subsets containing d), divided by the "
+            f"largest gradient term, is <= {TOL_FW}; fallback tokens (n_t = 0) carry the pinned D0 vector bitwise"),
+        "E05_LOSS_RECONSTRUCTION": (
+            "true-label log loss (clip 1e-12, natural log) and source multiclass Brier of every release and of U "
+            "recomputed row by row by this module's own code equal the source per_row convention within "
+            f"{TOL_ROW} (means); mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, Phi) "
+            f"equal the independent reconstruction within {TOL_TERMS}; the exhaustive table's terms for each arm's "
+            f"partition equal the row-level reconstruction within {TOL_TERMS}; decoder.token_losses totals equal the "
+            "row-level sums within 1e-9 (absolute, on totals); mapper-reported L_i(U), B_i(U) equal the independent "
+            "values within 1e-12"),
+        "E06_ACCEPTED_STATE_BUDGETS": (
+            "for every constrained (K-) unit: every ACCEPTED deployed state in its persisted trace (each single move "
+            "and each atomic paired move, both parts applied before the check), rebuilt by this module from the "
+            "persisted stage start labels and the move parts and decoded from scratch with D1, satisfies, for every "
+            "recipient enforced at that stage (K-LOCAL / K-SEQ stage r: r; K-JOINT-*: both; paired moves: both), "
+            f"L_r <= L_r(U) + 0.005 + {TOL_BUDGET}, B_r <= B_r(U) + 0.003 + {TOL_BUDGET} and I_r <= I_r(C-TASK) + "
+            f"{TOL_MI} by row-level recomputation, with tokens per predicted class <= the caps; every release reported "
+            "FEASIBLE satisfies both recipients' budgets and local caps; unconstrained units (C-TASK, W-) report "
+            "FEASIBLE for decisions and caps only and only K- arms may report INFEASIBLE; mapper.replay_unit reports "
+            "no ENFORCED_CONSTRAINT_VIOLATED, PAIR_INFEASIBLE or FINAL_INFEASIBLE"),
+        "E07_SEQUENTIAL_TEMPORARY_PARTNER": (
+            "for every K-SEQ-12 / K-SEQ-21 start: the stage-1 partner view is exactly the CLASS-ONLY map of the other "
+            "recipient and its constraints are not enforced; stage 1 is refined whenever the first recipient's own "
+            "start satisfies its own budgets and local cap (recomputed here), whatever the partner's confidence "
+            "(the number of starts refined while the CLASS-ONLY partner violates its own budget is reported); the "
+            "stage-2 start keeps the frozen first map; every SEQ release reported FEASIBLE meets BOTH recipients' "
+            "budgets and local caps by row-level recomputation; mapper.replay_unit reports no "
+            "PARTNER_NOT_CLASS_ONLY, PARTNER_REQUIRED_FEASIBLE or FROZEN_MAP_CHANGED"),
+        "E08_INCREMENTAL_REPLAY": (
+            "for every mapper unit (C-TASK, W-, K-): mapper.replay_unit on the PERSISTED record and trace is ok and "
+            f"reports no TERMS_MISMATCH, DELTA_MISMATCH, STATS_HASH_MISMATCH or CACHED_SOLVE_MISMATCH (terms and "
+            "deltas <= 1e-12 abs; statistics and cached q bitwise) and its checks check6 / check7 / check8 are not "
+            "false; every unit's starts_given equals mapper.registered_starts(arm, lam) exactly (the full registered "
+            "start / witness list, no fixture subset); independently, every traced state's terms_after "
+            f"equal this module's from-scratch row-level terms within {TOL_TERMS}; the winning start's incremental "
+            f"search-state terms equal the from-scratch final_state_terms within {TOL_TERMS}; each stage start equals "
+            "the previous stage end; the final labels equal the released policy's labels"),
+        "E09_EXHAUSTIVE_ORACLE": (
+            "the stage's exhaustive enumeration covers every canonical same-class partition pair (count == "
+            "properties.mapping_pairs) and reproduces the published source oracle tables (partitions_r1, "
+            f"partitions_r2, pair_I12; sha256-pinned) entry by entry within {TOL_ORACLE} (index, labels and "
+            "tokens_per_class exact); every arm's partition is in the enumeration; every arm carries "
+            "EXHAUSTIVE_OPTIMAL, HEURISTIC (with its gap) or NOT_A_SEARCH; a labelled HEURISTIC gap is reported, NOT "
+            "a failure; the source arms tables are compared descriptively only"),
+        "E10_DECISION_DISCLOSURE_FLOOR": (
+            "for every release R of every arm and every enumerated partition pair: I12(R) >= I12(CLASS) - "
+            f"{TOL_FLOOR} and I_i(R) >= I_i(CLASS) - {TOL_FLOOR} (data processing: every class-preserving release "
+            "determines both decisions); I12(CLASS) equals the plug-in MI of SEX with the two teacher decisions; "
+            "CLASS|D1 budget feasibility (affordability) is RECORDED, never a failure"),
+        "E11_LAUNCH_WIRING": (
+            "the registered pytest node IDs of WIRING_TESTS, run in one subprocess by the stage, all collect and pass "
+            "(every group non-empty): science stages refuse without a lock-bound pushed ENGINEERING_READY "
+            "(lra/run.py); LABEL_TRUTH_TABLE.json matches lra.family.overall_label (no stale cbp / lcr names); "
+            "lra.eval_lock refuses when technical validity is false; lra.assess and lra.infer refuse without validity "
+            "/ ENGINEERING_READY; fit / audit / inner loaders never return assessment labels; the mapper's synthetic coverage of accepted paired moves and of the "
+            "temporary sequential partner (the fixture laws need not exercise a paired acceptance; E06 reports the "
+            "count); this module's verdict / rule / refusal paths; and ENGINEERING_GATE_RULE.json on disk equals "
+            "engineering_gate_rule() (rule text wired to code)"),
+        "E12_REVIEW_FINDINGS": (
+            f"{FINDINGS_FILE} lists exactly the {N_FINDINGS} inherited findings (ordinals 1..{N_FINDINGS}), each with a "
+            f"disposition in {list(RESOLVED_DISPOSITIONS)} and at least one regression test node ID; every listed "
+            "node ID collects and passes in the same subprocess; no finding is unresolved (an unresolved finding "
+            "whose affects_required_adult_execution is not false would also be named as an Adult-execution "
+            "blocker)"),
+    }
+
+
+def engineering_gate_rule():
+    """ENGINEERING_GATE_RULE.json body (prompt sec. 9). Generated by code; the stage refuses if the file differs."""
+    from lra import decoder as DC
+    checks = engineering_checks_text()
+    return {
+        "schema": ENG_RULE_SCHEMA,
+        "question": "is the implementation correct enough to run the registered Adult development test? (NOT: has a "
+                    "synthetic example already proved superiority?)",
+        "verdict_strings": list(VERDICTS),
+        "verdict_rule": "ENGINEERING_READY iff every mandatory check E01..E12 passes (each of E01, E02 and E04..E10 on "
+                        "all four pinned fixtures, E03 on F1_CALIBRATED_NULL, E11 and E12 once); otherwise "
+                        "ENGINEERING_BLOCKED with the failing check ids (and any fixture that raised) as reasons. "
+                        "Nothing else enters the verdict.",
+        "mandatory_checks": checks,
+        "check_ids": list(checks),
+        "prompt_check_map": {str(i + 1): k for i, k in enumerate(checks)},
+        "must_not_block": NOT_BLOCKING,
+        "descriptive_only": "the predecessor's trigger, T*, qualifying rule, route classification and descriptive "
+                            "flags (lra.fixtures.trigger / descriptive) are computed and written under 'descriptive' "
+                            "per fixture; engineering_verdict() never reads them",
+        "laws": {"file": "FIXTURE_LAWS.json", "file_sha256": PINNED_LAWS_FILE_SHA256,
+                 "laws_sha256": PINNED_LAWS_SHA256, "families": list(FIXTURE_IDS),
+                 "status": "the four lcr laws, copied unchanged (N = 4096 exact expected counts, caps 2/2, budgets "
+                           "0.005 / 0.003, kappa = 32, eps = 1e-12); KNOWN, ALREADY-OPENED regression cases, not "
+                           "fresh mechanism evidence; never edited or replaced to make a check pass"},
+        "source_gate": {"file": SOURCE_GATE_FILE, "sha256": PINNED_SOURCE_GATE_SHA256, "verdict": "GATE_NOT_MET",
+                        "status": "the predecessor's historical performance-gate result (MECHANISM_GATE_NOT_MET); "
+                                  "preserved unchanged; never this study's launch verdict and never a blocker"},
+        "source_oracle_tables": {"dir": f"{SOURCE_RESULTS}/fixture_oracle", "sha256": SOURCE_ORACLE_SHA256,
+                                 "compared": "partitions_r1, partitions_r2, pair_I12 (mandatory, E09); arms "
+                                             "(descriptive)"},
+        "wiring_tests": WIRING_TESTS,
+        "review_findings": {"file": FINDINGS_FILE, "count": N_FINDINGS},
+        "rows": "each fixture's fitting rows are its atoms replicated by count (exact expected counts, no sampling); "
+                "all rows are fitting rows; population law = fitting law",
+        "arms": "D0 bank (FINE-TASK, CLASS, DIRECT-TASK, 24 old-objective privacy maps), their D1 versions with "
+                "assignments unchanged, and lra.mapper C-TASK, 24 W- and 5 K- units (fixture mode: fixture caps and "
+                "the registered 0.005 / 0.003 budgets), as in the predecessor's fixture engine",
+        "enumeration_vs_certificates": "exhaustive enumeration is exact over PARTITIONS of these finite laws only; "
+                                       "within a partition the decoder is a numerical convex solve, certified by E04. "
+                                       "A fixed-token certificate is not discrete-search optimality (E09 labels).",
+        "tolerances": {"TOL_BUDGET": TOL_BUDGET, "TOL_MI": TOL_MI, "TOL_TERMS": TOL_TERMS, "TOL_NULL_Q": TOL_NULL_Q,
+                       "TOL_NULL_LOSS": TOL_NULL_LOSS, "TOL_OPT": TOL_OPT, "TOL_FLOOR": TOL_FLOOR,
+                       "TOL_ROW": TOL_ROW, "TOL_FW": TOL_FW, "TOL_STATS": TOL_STATS, "TOL_REPLAY": TOL_REPLAY,
+                       "TOL_ORACLE": TOL_ORACLE, "decoder": DC.TOLERANCES},
+        "stage": "lra.fixtures.stage_correctness(None, None) through lra.run --stage correctness under the pushed "
+                 "CORRECTNESS_LOCK; one process, no shard; writes ENGINEERING_GATE_RESULT.json, "
+                 f"{ORACLE_DIR}/*.csv and private units cor__<FID> (records, traces, policies, decoders, releases)",
+        "repairs": "if blocked: bounded engineering repairs before real fitting, as dated code-only amendments pushed "
+                   "before reruns; prior attempts kept; no law, objective, comparator bank or success criterion is "
+                   "changed to fix a failing check",
+        "scope": "fixture MI is the exact MI of these finite laws, not a population guarantee for Adult; "
+                 "ENGINEERING_READY licenses the locked Adult study through SCIENCE_LOCK and nothing else",
+    }
+
+
+def write_engineering_rule(pkg=PKG):
+    rule = engineering_gate_rule()
+    (Path(pkg) / ENG_RULE_FILE).write_text(json.dumps(rule, indent=1, allow_nan=False) + "\n")
+    return _file_sha(Path(pkg) / ENG_RULE_FILE)
+
+
+def engineering_verdict(checks, fixtures_expected=FIXTURE_IDS, fixture_errors=None):
+    """(verdict, reasons) from {check_id: {"pass": bool, ...}}. The ONLY input is the mandatory checks (and the
+    completeness of the fixture set); trigger / route / descriptive output is never read."""
+    reasons = []
+    ids = list(engineering_checks_text())
+    for cid in ids:
+        c = checks.get(cid)
+        if c is None:
+            reasons.append(f"MISSING_CHECK:{cid}")
+        elif c.get("pass") is not True:
+            reasons.append(f"CHECK_FAILED:{cid}")
+    for cid in checks:
+        if cid not in ids:
+            reasons.append(f"UNREGISTERED_CHECK:{cid}")
+    for f, e in sorted((fixture_errors or {}).items()):
+        reasons.append(f"FIXTURE_ERROR:{f}:{e}")
+    return ("ENGINEERING_READY" if not reasons else "ENGINEERING_BLOCKED"), reasons
+
+
+# ------------------------------------------------------------------ independent helpers
+def _own_losses(q, y):
+    """Own row-level (mean log loss with clip 1e-12, mean multiclass Brier); no dpc / decoder code."""
+    q = np.asarray(q, dtype=np.float64)
+    y = np.asarray(y, dtype=np.int64)
+    n, K = q.shape
+    py = q[np.arange(n), y]
+    ll = -np.log(np.minimum(np.maximum(py, 1e-12), 1.0))
+    oh = np.zeros((n, K))
+    oh[np.arange(n), y] = 1.0
+    br = ((q - oh) ** 2).sum(1)
+    return float(ll.mean()), float(br.mean())
+
+
+def _canon(lab):
+    """Canonical labels: each cell labelled by the lowest member index of its block."""
+    lab = np.asarray(lab, dtype=np.int64)
+    out = np.empty_like(lab)
+    first = {}
+    for f, v in enumerate(lab):
+        first.setdefault(int(v), f)
+    for f, v in enumerate(lab):
+        out[f] = first[int(v)]
+    return out
+
+
+def _state_metrics(X, labels, need=(1, 2)):
+    """Own from-scratch D1 terms of a labelled state: per recipient tokens, q (decode_policy), L, B (own row-level
+    code), I (own plug-in MI); I12 when both recipients are given. labels: {r: per-cell labels}."""
+    from lra import decoder as DC
+    from qpc import release as RL
+    out, toks, tabs, pols = {}, {}, {}, {}
+    for r in need:
+        lab = _canon(labels[r])
+        pol = RL.make_policy(r, X["fine"][r], lab)
+        tok, _, _ = RL.encode(pol, X["P"][r], X["d"][r])
+        dec = DC.decode_policy(pol, tok, X["P"][r], X["y"][r])
+        q = dec.q[tok]
+        out[f"L{r}"], out[f"B{r}"] = _own_losses(q, X["y"][r])
+        out[f"I{r}"] = plugin_mi(X["s"], tok)
+        out[f"tokens_per_class{r}"] = [int(x) for x in pol.tokens_per_class()]
+        out[f"decisions_ok{r}"] = bool(np.array_equal(dec.token_class[tok], X["d"][r]))
+        toks[r], tabs[r], pols[r] = tok, dec, pol
+    if len(need) == 2:
+        out["I12"] = plugin_mi(X["s"], toks[1], toks[2])
+    return out, toks, tabs, pols
+
+
+def _fw_gap(y, s, n, d, u, q):
+    """Independent Frank-Wolfe certificate of the prompt objective at the released q over the class-dominant simplex
+    (vertices = uniform vectors on subsets containing d). Returns (relative gap, absolute gap, scale)."""
+    from itertools import combinations
+    from lra.decoder import EPS, KAPPA
+    K = len(y)
+    Z = 1.0 + (K + 1) * EPS
+    pbar = np.asarray(s, dtype=np.float64) / float(n)
+    a = np.asarray(y, dtype=np.float64) + KAPPA * pbar
+    q = np.asarray(q, dtype=np.float64)
+    # d/du_k of sum y_k(-log q_k) + 0.5 sum_rows ||q - e_Y||^2 + kappa KL(pbar||q), q = (u + c)/Z
+    g = (-a / q + n * q - np.asarray(y, dtype=np.float64)) / Z
+    scale = float(np.max((a / q + n * q + np.asarray(y, dtype=np.float64)) / Z))
+    others = [k for k in range(K) if k != d]
+    best = float(g[d])
+    for m in range(1, K):
+        for A in combinations(others, m):
+            v = (float(g[d]) + sum(float(g[k]) for k in A)) / (m + 1)
+            best = min(best, v)
+    gap = float(np.dot(g, np.asarray(u, dtype=np.float64))) - best
+    return gap / scale, gap, scale
+
+
+def _arm_tables(a):
+    """(dec1, dec2) DecoderTables of a D1 release (no re-solve here)."""
+    from lra import decoder as DC
+    _, d1, d2, _ = DC.load_decoder_pair(json.loads(json.dumps(a["decoder_body"])), a["pair"], verify_solve=False)
+    return d1, d2
+
+
+def _start_pair(name, bank, mfiles):
+    from qpc import release as RL
+    if name in bank:
+        return bank[name]
+    if name in mfiles:
+        return RL.PolicyPair.from_dict(mfiles[name]["policy.json"])
+    return None
+
+
+def _labels_of(pair):
+    from qpc import compress as QC
+    return {1: _canon(QC.labels_from_policy(pair.p1)), 2: _canon(QC.labels_from_policy(pair.p2))}
+
+
+def _apply_move(lab, parts):
+    """Apply one (single or atomic paired) move to {r: labels}; parts [{"r", "f", "to_canon"}]; canonicalise."""
+    new = {r: np.array(v, dtype=np.int64) for r, v in lab.items()}
+    for p in parts:
+        r, f, to = int(p["r"]), int(p["f"]), int(p["to_canon"])
+        if int(new[r][to]) != to:
+            raise ValueError(f"move target {to} is not a canonical label of recipient {r}")
+        new[r][f] = to
+    return {r: _canon(v) for r, v in new.items()}
+
+
+def _trace_states(trace):
+    """Yield every traced state: (start, stage dict, step, kind, labels {r: array}, terms_after or None, parts)."""
+    for st in trace.get("starts", []):
+        for sg in st.get("stages", []):
+            lab = {int(r): _canon(v) for r, v in sg["start_labels"].items()}
+            yield st, sg, -1, "start", lab, sg.get("start_terms"), []
+            for mv in sg.get("moves", []):
+                lab = _apply_move(lab, mv["parts"])
+                yield st, sg, int(mv["step"]), mv["type"], lab, mv.get("terms_after"), mv["parts"]
+
+
+def _enforced(arm, sg):
+    if arm in ("K-JOINT-SINGLE", "K-JOINT-PAIR"):
+        return (1, 2)
+    if arm in ("K-LOCAL", "K-SEQ-12", "K-SEQ-21"):
+        return tuple(int(r) for r in sg.get("recipients", sg.get("enforced", [])))
+    return ()
+
+
+# ------------------------------------------------------------------ per-fixture engineering checks
+def _guard(fn, *a):
+    try:
+        return fn(*a)
+    except Exception as e:                                     # a crash is a FAILED check, never a silent pass
+        return {"pass": False, "failures": [f"EXCEPTION:{e.__class__.__name__}:{e}"]}
+
+
+def _e01(fam, laws_ok, X, arms, res):
+    fails = list(laws_ok)
+    A = fam["atoms"]
+    if not all(isinstance(a[5], int) and a[5] > 0 for a in A) or sum(a[5] for a in A) != N_FIX:
+        fails.append("atom_counts_not_positive_integers_summing_to_4096")
+    if law_properties(fam) != fam["properties"]:
+        fails.append("static_properties")
+    if X["N"] != N_FIX:
+        fails.append("rows")
+    F1, F2 = X["fine"][1].F, X["fine"][2].F
+    pc = np.zeros((F1, F2), dtype=np.int64)
+    sc = np.zeros((F1, F2), dtype=np.int64)
+    np.add.at(pc, (X["f1"], X["f2"]), 1)
+    np.add.at(sc, (X["f1"], X["f2"]), X["s"])
+    if pc.tolist() != fam["pair_counts"]:
+        fails.append("pair_counts")
+    exp_s = [[Fraction(fam["pair_counts"][a][b] * fam["sex_num"][a][b], fam["sex_den"]) for b in range(F2)]
+             for a in range(F1)]
+    if any(exp_s[a][b] != int(sc[a, b]) for a in range(F1) for b in range(F2)):
+        fails.append("sex_counts")
+    cellY = {}
+    for r in (1, 2):
+        R = fam["recipients"][str(r)]
+        f = X["f1"] if r == 1 else X["f2"]
+        E = np.zeros((len(R["cells"]), R["K"]), dtype=np.int64)
+        for c, cell in enumerate(R["cells"]):
+            got = np.bincount(X["y"][r][f == c], minlength=R["K"])
+            ex = [Fraction(cell["count"] * x, R["label_den"]) for x in cell["labels"]]
+            if any(e.denominator != 1 for e in ex) or [int(e) for e in ex] != got.tolist():
+                fails.append(f"label_counts:r{r}:cell{c}")
+            E[c] = [int(e) for e in ex]
+            if int(X["fine"][r].n[c]) != cell["count"] or int(X["fine"][r].cell_class[c]) != cell["class"]:
+                fails.append(f"fine_cell_count_or_class:r{r}:cell{c}")
+        cellY[r] = E
+    keys = ["row_id", "tok1", "q1", "hard1", "alpha1", "tok2", "q2", "hard2", "alpha2"]
+    n_tables = 0
+    for cid, a in arms.items():
+        rel = a["rel"]
+        if list(rel) != keys:
+            fails.append(f"{cid}:release_keys")
+        for r, pol in ((1, a["pair"].p1), (2, a["pair"].p2)):
+            tok, q, hard = np.asarray(rel[f"tok{r}"]), np.asarray(rel[f"q{r}"]), np.asarray(rel[f"hard{r}"])
+            tc = np.asarray(pol.token_class)[tok]
+            rows = np.arange(q.shape[0])
+            other = q.copy()
+            other[rows, hard] = -np.inf
+            if not (np.array_equal(tc, X["d"][r]) and np.array_equal(hard, X["d"][r])
+                    and np.all(q[rows, hard] > other.max(1)) and np.max(np.abs(q.sum(1) - 1.0)) <= 1e-12):
+                fails.append(f"{cid}:routing_r{r}")
+        if "decoder_body" in a:
+            d1, d2 = _arm_tables(a)
+            for r, pol, tab in ((1, a["pair"].p1, d1), (2, a["pair"].p2, d2)):
+                n_tables += 1
+                ct = np.asarray(pol.cell_token)
+                T = tab.T
+                ny = np.zeros((T, tab.K), dtype=np.int64)
+                nn = np.zeros(T, dtype=np.int64)
+                ss = np.zeros((T, tab.K))
+                R = fam["recipients"][str(r)]
+                for c in range(len(R["cells"])):
+                    ny[ct[c]] += cellY[r][c]
+                    nn[ct[c]] += R["cells"][c]["count"]
+                    ss[ct[c]] += np.asarray(R["cells"][c]["teacher"], dtype=np.float64) * (
+                        R["cells"][c]["count"] / float(R["teacher_den"]))
+                if not (np.array_equal(nn, tab.n) and np.array_equal(ny.astype(np.float64), tab.y)):
+                    fails.append(f"{cid}:decoder_label_counts_r{r}")
+                if np.any(np.abs(ss - tab.s) > TOL_STATS * np.maximum(nn, 1)[:, None]):
+                    fails.append(f"{cid}:decoder_teacher_sums_r{r}")
+    return {"pass": not fails, "failures": fails, "releases": len(arms), "decoder_tables": n_tables}
+
+
+def _e02(X, arms, res):
+    c1 = res["checks"]["C1_FIXED_TOKEN_INFORMATION"]
+    fails = list(c1["failures"])
+    for cid, a in arms.items():
+        if a["kind"] in ("d1_fixed", "d1_task"):
+            b = arms[a["d0_of"]]
+            if not all(np.array_equal(a["rel"][f"hard{i}"], b["rel"][f"hard{i}"]) for i in (1, 2)):
+                fails.append(f"{cid}:decisions_differ_from_d0")
+        rel = a["rel"]
+        full = plugin_mi(X["s"], np.column_stack([rel["tok1"], rel["q1"], rel["tok2"], rel["q2"]]))
+        if abs(full - a["metrics"]["I12"]) > 1e-15:
+            fails.append(f"{cid}:pair_interface")
+    return {"pass": not fails, "failures": fails, "pairs_checked": c1["pairs_checked"], "releases": len(arms)}
+
+
+def _e03(fid, res):
+    if fid != "F1_CALIBRATED_NULL":
+        return {"pass": True, "applicable": False}
+    c2 = res["checks"]["C2_CALIBRATED_NULL"]
+    return {"pass": bool(c2["pass"]), "applicable": True, **{k: v for k, v in c2.items() if k != "pass"}}
+
+
+def _e04(arms, tables):
+    from lra import decoder as DC
+    from qpc.kmeans import smooth
+    fails, worst = [], {"stationarity_rel": 0.0, "dual_infeas_rel": 0.0, "projection_magnitude": 0.0,
+                        "sum_q_residual": 0.0, "fw_rel": 0.0, "sum_u_residual": 0.0}
+    min_margin, n_tok, n_fb, n_tab = None, 0, 0, 0
+
+    def cert_ok(c, tag):
+        nonlocal min_margin
+        bad = (not c.get("converged") or c["stationarity_rel"] > DC.STAT_TOL or c["dual_infeas_rel"] > DC.DUAL_TOL
+               or c["projection_magnitude"] > DC.PROJ_TOL or c["sum_q_residual"] > DC.PROTO_SUM_TOL
+               or c["bracket_ulps"] > 2 or not c["margin"] > 0 or c["min_u"] < 0)
+        for k in ("stationarity_rel", "dual_infeas_rel", "projection_magnitude", "sum_q_residual"):
+            worst[k] = max(worst[k], float(c[k]))
+        min_margin = c["margin"] if min_margin is None else min(min_margin, c["margin"])
+        if bad:
+            fails.append(f"{tag}:certificate")
+
+    def own(y, s, n, d, u, q, tag):
+        u = np.asarray(u, dtype=np.float64)
+        q = np.asarray(q, dtype=np.float64)
+        ok = bool(np.all(u >= 0) and np.all(u <= u[d]))
+        if not np.array_equal(smooth(u[None], np.array([d]), check=False)[0], q):
+            ok = False
+        su = abs(float(sum(float(x) for x in u)) - 1.0)
+        worst["sum_u_residual"] = max(worst["sum_u_residual"], su)
+        oth = np.delete(q, d)
+        if su > DC.PROTO_SUM_TOL or not q[d] > oth.max():
+            ok = False
+        rel, _, _ = _fw_gap(y, s, n, d, u, q)
+        worst["fw_rel"] = max(worst["fw_rel"], rel)
+        if rel > TOL_FW:
+            ok = False
+        if not ok:
+            fails.append(f"{tag}:independent")
+
+    for cid, a in sorted(arms.items()):
+        if "decoder_body" not in a:
+            continue
+        try:
+            _, d1, d2, _ = DC.load_decoder_pair(json.loads(json.dumps(a["decoder_body"])), a["pair"], verify_solve=True)
+        except (ValueError, DC.DecoderError) as e:
+            fails.append(f"{cid}:reload:{e}")
+            continue
+        for r, pol, tab in ((1, a["pair"].p1, d1), (2, a["pair"].p2, d2)):
+            n_tab += 1
+            for t in range(tab.T):
+                c = tab.certs[t]
+                if tab.fallback[t]:
+                    n_fb += 1
+                    if not np.array_equal(tab.q[t], np.asarray(pol.token_proto)[t]):
+                        fails.append(f"{cid}:r{r}:t{t}:fallback")
+                    continue
+                n_tok += 1
+                cert_ok(c, f"{cid}:r{r}:t{t}")
+                own(tab.y[t], tab.s[t], int(tab.n[t]), int(tab.token_class[t]), tab.u[t], tab.q[t], f"{cid}:r{r}:t{t}")
+    n_sub = 0
+    for r, sub in ((1, tables["sub1"]), (2, tables["sub2"])):
+        for key, v in sub.items():
+            n_sub += 1
+            cert_ok(v["cert"], f"oracle:r{r}:{key}")
+    return {"pass": not fails, "failures": fails[:200], "n_failures": len(fails), "decoder_tables": n_tab,
+            "supervised_tokens": n_tok, "fallback_tokens": n_fb, "oracle_subset_solves": n_sub, "worst": worst,
+            "min_margin": min_margin}
+
+
+def _e05(X, arms, res, mrecs):
+    c5 = res["checks"]["C5_TERM_RECONSTRUCTION"]
+    fails = [f for f in c5["failures"] if ":incremental" not in f]
+    worst = 0.0
+    Uown = {}
+    from dpc.utility import per_row
+    for i in (1, 2):
+        Uown[i] = _own_losses(X["P"][i], X["y"][i])
+        pr = per_row(X["P"][i], X["y"][i], X["P"][i].shape[1])
+        for v, w in zip(Uown[i], (float(pr["ll"].mean()), float(pr["br"].mean()))):
+            worst = max(worst, abs(v - w))
+            if abs(v - w) > TOL_ROW:
+                fails.append(f"U:r{i}")
+    for cid, a in arms.items():
+        for i in (1, 2):
+            L, B = _own_losses(np.asarray(a["rel"][f"q{i}"]), X["y"][i])
+            for k, v in ((f"L{i}", L), (f"B{i}", B)):
+                dlt = abs(v - a["metrics"][k])
+                worst = max(worst, dlt)
+                if dlt > TOL_ROW:
+                    fails.append(f"{cid}:own_row:{k}")
+    for cid, rec in mrecs.items():
+        for i in (1, 2):
+            if abs(rec["budgets"]["L_U"][str(i)] - Uown[i][0]) > 1e-12 or \
+                    abs(rec["budgets"]["B_U"][str(i)] - Uown[i][1]) > 1e-12:
+                fails.append(f"{cid}:U{i}_own")
+    return {"pass": not fails, "failures": fails, "max_abs_diff_own_vs_source_rows": worst,
+            "max_abs_diff_terms": c5["max_abs_diff"],
+            "token_loss_helper_max_abs_diff_totals": c5["token_loss_helper_max_abs_diff_totals"]}
+
+
+def _replay(cid, rec, files, X, refs, starts=None):
+    from lra import mapper as MP
+    tr = X["tr"]
+    Y = {1: X["y"][1], 2: X["y"][2]}
+    return MP.replay_unit(rec, X["fine_dict"], X["T"], tr, Y, X["s"], refs, trace=files["trace.json"],
+                          files={"policy.json": files["policy.json"], "release.npz": files["release.npz"]},
+                          starts=starts)
+
+
+def _limits(U, ct_metrics):
+    return ({r: U[r][0] + BUDGET["ll"] for r in (1, 2)}, {r: U[r][1] + BUDGET["brier"] for r in (1, 2)},
+            {r: ct_metrics[f"I{r}"] for r in (1, 2)} if ct_metrics else None)
+
+
+def _ok_r(m, r, limL, limB, cap, caps):
+    v = []
+    if m[f"L{r}"] > limL[r] + TOL_BUDGET:
+        v.append("L")
+    if m[f"B{r}"] > limB[r] + TOL_BUDGET:
+        v.append("B")
+    if cap is not None and m[f"I{r}"] > cap[r] + TOL_MI:
+        v.append("I")
+    if any(t > caps[r - 1] for t in m[f"tokens_per_class{r}"]):
+        v.append("cap")
+    if not m[f"decisions_ok{r}"]:
+        v.append("decisions")
+    return v
+
+
+def _unit_states(cid, arm, files, X, limL, limB, cap):
+    """Own check of every traced state of one unit: (failures, n_states, n_accepted, n_pair, max term diff, per-stage
+    end labels)."""
+    trace = files.get("trace.json")
+    if not isinstance(trace, dict) or not trace.get("starts"):
+        return [f"{cid}:trace_missing"], 0, 0, 0, 0.0, {}
+    fails, n_states, n_acc, n_pair, worst = [], 0, 0, 0, 0.0
+    ends = {}
+    for st, sg, step, kind, lab, terms, parts in _trace_states(trace):
+        n_states += 1
+        if kind != "start":
+            n_acc += 1
+            n_pair += kind == "pair"
+        m, _, _, _ = _state_metrics(X, lab)
+        if terms:
+            for k in ("L1", "L2", "B1", "B2", "I1", "I2", "I12"):
+                if k in terms and terms[k] is not None:
+                    dlt = abs(float(terms[k]) - m[k])
+                    worst = max(worst, dlt)
+                    if dlt > TOL_TERMS:
+                        fails.append(f"{cid}:{st['name']}:{sg['stage']}:{step}:terms:{k}")
+        if arm in CONSTRAINED_ARMS and kind != "start":
+            enf = (1, 2) if kind == "pair" else _enforced(arm, sg)
+            for r in enf:
+                bad = _ok_r(m, r, limL, limB, cap, X["caps"])
+                if bad:
+                    fails.append(f"{cid}:{st['name']}:{sg['stage']}:{step}:{kind}:r{r}:{','.join(bad)}")
+        ends[(st["name"], sg["stage"])] = lab
+    return fails, n_states, n_acc, n_pair, worst, ends
+
+
+def _e06_e07_e08(fid, X, U, arms, mrecs, mfiles, bank):
+    from lra import run as R
+    ct = arms.get(R.ctask_id())
+    limL, limB, cap = _limits(U, ct["metrics"] if ct else None)
+    e6, e7, e8 = [], [], []
+    stats = {"units": len(mrecs), "states": 0, "accepted_states": 0, "paired_accepted": 0, "replay_ok": 0,
+             "max_trace_vs_own": 0.0, "max_replay_abs_diff": 0.0, "seq_starts": 0,
+             "seq_refined_with_partner_over_budget": 0, "partner_class_only_checked": 0}
+    codes6 = {"ENFORCED_CONSTRAINT_VIOLATED", "PAIR_INFEASIBLE", "FINAL_INFEASIBLE"}
+    codes7 = {"PARTNER_NOT_CLASS_ONLY", "PARTNER_REQUIRED_FEASIBLE", "FROZEN_MAP_CHANGED"}
+    codes8 = {"TERMS_MISMATCH", "DELTA_MISMATCH", "STATS_HASH_MISMATCH", "CACHED_SOLVE_MISMATCH"}
+    kref = None
+    if ct is not None:
+        from lra import mapper as MP
+        kref = MP.refs_from_ctask(mrecs[R.ctask_id()])
+    for cid, rec in sorted(mrecs.items()):
+        files = mfiles[cid]
+        arm = rec["arm"]
+        # mapper replay (C) on the persisted record + trace
+        try:
+            sdict = {}
+            for nm in rec.get("starts_given", []):
+                sp = _start_pair(nm, bank, mfiles)
+                if sp is not None:
+                    sdict[nm] = sp.to_dict()
+            rep = _replay(cid, rec, files, X, {"caps": list(X["caps"]), "budget": dict(BUDGET),
+                                                **(kref if arm in CONSTRAINED_ARMS and kref else {})}, sdict)
+            stats["max_replay_abs_diff"] = max(stats["max_replay_abs_diff"], float(rep.get("max_abs_diff") or 0.0))
+            vc = [v["code"] for v in rep.get("violations", [])]
+            if rep.get("ok"):
+                stats["replay_ok"] += 1
+            else:
+                e8.append(f"{cid}:replay_not_ok:{sorted(set(vc))}")
+            rc = rep.get("checks") or {}
+            if rc.get("check6") is False:
+                e6.append(f"{cid}:replay_check6_false")
+            if rc.get("check7") is False and "SEQ" in arm:
+                e7.append(f"{cid}:replay_check7_false")
+            if rc.get("check8") is False:
+                e8.append(f"{cid}:replay_check8_false")
+            e6 += [f"{cid}:replay:{c}" for c in vc if c in codes6]
+            e7 += [f"{cid}:replay:{c}" for c in vc if c in codes7 or (c == "FINAL_INFEASIBLE" and "SEQ" in arm)]
+            e8 += [f"{cid}:replay:{c}" for c in vc if c in codes8]
+        except Exception as e:
+            e8.append(f"{cid}:replay_exception:{e.__class__.__name__}:{e}")
+        e8 += res_incremental_failures(arms, {cid: rec})
+        try:
+            from lra import mapper as MP
+            reg = MP.registered_starts(arm, rec.get("lam"))
+            if list(rec.get("starts_given", [])) != list(reg):
+                e8.append(f"{cid}:starts_given_differ_from_registered_starts")
+        except Exception as e:
+            e8.append(f"{cid}:registered_starts_exception:{e}")
+        # own state-by-state rebuild
+        try:
+            f6, ns, na, npair, worst, ends = _unit_states(cid, arm, files, X, limL, limB, cap)
+        except Exception as e:
+            f6, ns, na, npair, worst, ends = [f"{cid}:own_rebuild_exception:{e.__class__.__name__}:{e}"], 0, 0, 0, 0.0, {}
+        stats["states"] += ns
+        stats["accepted_states"] += na
+        stats["paired_accepted"] += npair
+        stats["max_trace_vs_own"] = max(stats["max_trace_vs_own"], worst)
+        e6 += [f for f in f6 if ":terms:" not in f]
+        e8 += [f for f in f6 if ":terms:" in f or f.endswith("trace_missing")]
+        # final release: feasible claims (both recipients for K- arms)
+        a = arms[cid]
+        if rec["status"] == "FEASIBLE" and arm in CONSTRAINED_ARMS:
+            m, _, _, _ = _state_metrics(X, _labels_of(a["pair"]))
+            for r in (1, 2):
+                bad = _ok_r(m, r, limL, limB, cap, X["caps"])
+                if bad:
+                    (e7 if arm.startswith("K-SEQ") else e6).append(f"{cid}:final:r{r}:{','.join(bad)}")
+        # final labels == released policy labels
+        tr_ = files.get("trace.json") or {}
+        win = (tr_.get("winner") or {}).get("labels")
+        if win is not None:
+            rl = _labels_of(a["pair"])
+            if any(not np.array_equal(_canon(win[str(r)]), rl[r]) for r in (1, 2)):
+                e8.append(f"{cid}:winner_labels_differ_from_release")
+        # stage chaining and start maps (own): each start's labels equal the registered start / witness map
+        for st in tr_.get("starts", []):
+            sp = _start_pair(st["name"], bank, mfiles)
+            if sp is None:
+                e8.append(f"{cid}:{st['name']}:unknown_start")
+                continue
+            sl = _labels_of(sp)
+            if any(not np.array_equal(_canon(st["labels"][str(r)]), sl[r]) for r in (1, 2)):
+                e8.append(f"{cid}:{st['name']}:start_labels_differ_from_start_map")
+            sgs = st.get("stages", [])
+            if arm.startswith("K-SEQ") or arm.startswith("W-SEQ"):
+                a_, b_ = (1, 2) if arm.endswith("12") else (2, 1)
+                if sgs:
+                    s1 = sgs[0]
+                    from qpc import compress as QC
+                    cls_b = _canon(QC.class_labels(X["fine"][b_]))
+                    stats["partner_class_only_checked"] += 1
+                    plab = s1["start_labels"].get(str(b_))
+                    if plab is None:
+                        plab = (s1.get("partner") or {}).get("labels")
+                    if plab is None or not np.array_equal(_canon(plab), cls_b):
+                        e7.append(f"{cid}:{st['name']}:partner_not_class_only")
+                    if (s1.get("partner") or {}).get("constraints_enforced") not in (False,):
+                        e7.append(f"{cid}:{st['name']}:partner_constraints_enforced")
+                if arm.startswith("K-SEQ") and sgs:
+                    stats["seq_starts"] += 1
+                    s1 = sgs[0]
+                    m1, _, _, _ = _state_metrics(X, {r: _canon(v) for r, v in
+                                                     ((int(k), v) for k, v in s1["start_labels"].items())})
+                    own_bad = _ok_r(m1, a_, limL, limB, cap, X["caps"])
+                    strict_ok = not own_bad and m1[f"L{a_}"] <= limL[a_] - SEARCH_MARGIN and \
+                        m1[f"B{a_}"] <= limB[a_] - SEARCH_MARGIN
+                    refined = s1.get("status") == "REFINED"
+                    if strict_ok and not refined:
+                        e7.append(f"{cid}:{st['name']}:stage1_not_refined_with_feasible_own_start")
+                    if own_bad and refined:
+                        e7.append(f"{cid}:{st['name']}:stage1_refined_from_infeasible_own_start")
+                    if not strict_ok and not own_bad:
+                        stats["seq_own_start_in_margin_band"] = stats.get("seq_own_start_in_margin_band", 0) + 1
+                    if refined and _ok_r(m1, b_, limL, limB, None, X["caps"]):
+                        stats["seq_refined_with_partner_over_budget"] += 1
+                    if len(sgs) > 1:
+                        end1 = ends.get((st["name"], s1["stage"]))
+                        if end1 is not None and not np.array_equal(_canon(sgs[1]["start_labels"][str(a_)]),
+                                                                   end1[a_]):
+                            e7.append(f"{cid}:{st['name']}:frozen_map_changed_at_stage2_start")
+    return ({"pass": not e6, "failures": e6, **{k: stats[k] for k in ("units", "states", "accepted_states",
+                                                                      "paired_accepted")}},
+            {"pass": not e7, "failures": e7, **{k: stats[k] for k in ("seq_starts",
+                                                                      "seq_refined_with_partner_over_budget",
+                                                                      "partner_class_only_checked")}},
+            {"pass": not e8 and stats["replay_ok"] == len(mrecs), "failures": e8,
+             **{k: stats[k] for k in ("replay_ok", "max_trace_vs_own", "max_replay_abs_diff")}})
+
+
+def res_incremental_failures(arms, mrecs):
+    """The predecessor's incremental-winner comparison (C5 incremental part, with the A1 NO_SEARCH_STATE scope)."""
+    out = []
+    for cid, rec in mrecs.items():
+        inc = _incremental_terms(rec)
+        if inc is None:
+            out.append(f"{cid}:incremental_terms_missing")
+            continue
+        if inc == NO_SEARCH_STATE:
+            continue
+        for k, v in inc.items():
+            if k in rec["final_state_terms"] and abs(float(v) - float(rec["final_state_terms"][k])) > TOL_TERMS:
+                out.append(f"{cid}:incremental:{k}")
+    return out
+
+
+def _read_oracle_csv(path):
     import csv
-    d = Path(out_dir) / "fixture_oracle"
+    with open(path, newline="") as fh:
+        rows = list(csv.reader(fh))
+    return rows[0], rows[1:]
+
+
+def _e09(fid, fam, tables, res, written, oracle_ref):
+    import csv  # noqa: F401
+    fails, info = [], {}
+    n1, n2 = len(tables["parts1"]), len(tables["parts2"])
+    info["enumerated_pairs"] = n1 * n2
+    if n1 * n2 != fam["properties"]["mapping_pairs"] or tables["I12"].shape != (n1, n2):
+        fails.append("enumeration_coverage")
+    ref_dir, ref_sha = oracle_ref
+    if ref_dir is None:                                        # no reference table: E09 cannot pass vacuously
+        return {"pass": False, "failures": ["no_reference_oracle_tables"], **info}
+    cmp = {}
+    for kind in ("partitions_r1", "partitions_r2", "pair_I12"):
+        name = f"{fid}_{kind}.csv"
+        src = Path(ref_dir) / name
+        if ref_sha is not None and _file_sha(src) != ref_sha.get(name):
+            fails.append(f"source_table_hash:{name}")
+            continue
+        h0, r0 = _read_oracle_csv(src)
+        h1, r1 = _read_oracle_csv(written[name])
+        if h0 != h1 or len(r0) != len(r1):
+            fails.append(f"table_shape:{name}")
+            continue
+        num = [j for j, c in enumerate(h0) if c not in ("index", "index1", "index2", "labels", "tokens_per_class")]
+        worst = 0.0
+        for a, b in zip(r0, r1):
+            for j, (x, y) in enumerate(zip(a, b)):
+                if j in num:
+                    worst = max(worst, abs(float(x) - float(y)))
+                elif x != y:
+                    fails.append(f"table_entry:{name}")
+                    break
+        if worst > TOL_ORACLE:
+            fails.append(f"table_values:{name}:{worst}")
+        cmp[name] = {"max_abs_diff": worst, "byte_identical": _file_sha(src) == _file_sha(written[name])}
+    info["source_tables"] = cmp
+    arms_src = Path(ref_dir) / f"{fid}_arms.csv"
+    if arms_src.exists():
+        h0, r0 = _read_oracle_csv(arms_src)
+        h1, r1 = _read_oracle_csv(written[f"{fid}_arms.csv"])
+        d0 = {r[0]: r for r in r0}
+        same = sum(1 for r in r1 if d0.get(r[0]) == r)
+        info["arms_table_descriptive"] = {"rows_new": len(r1), "rows_source": len(r0), "rows_identical": same}
+    labels = res["checks"]["C6_HEURISTIC_LABELLING"]["labels"]
+    bad = [c for c, v in labels.items() if v.get("label") not in ("EXHAUSTIVE_OPTIMAL", "HEURISTIC", "NOT_A_SEARCH")]
+    if bad:
+        fails.append(f"unlabelled:{bad}")
+    info["heuristic_gaps"] = {c: v.get("gap", v.get("gap_per_recipient")) for c, v in labels.items()
+                              if v.get("label") == "HEURISTIC"}
+    info["label_counts"] = {k: sum(1 for v in labels.values() if v.get("label") == k)
+                            for k in ("EXHAUSTIVE_OPTIMAL", "HEURISTIC", "NOT_A_SEARCH")}
+    info["note"] = "a labelled HEURISTIC gap is reported, not a failure"
+    return {"pass": not fails, "failures": fails, **info}
+
+
+def _e10(X, arms, tables, U):
+    from lra import run as R
+    fails = []
+    cl = arms.get(R.d0_id("CLASS"))
+    if cl is None:
+        return {"pass": False, "failures": ["CLASS release missing"]}
+    i12c = cl["metrics"]["I12"]
+    direct = plugin_mi(X["s"], X["d"][1], X["d"][2])
+    if abs(direct - i12c) > TOL_FLOOR:
+        fails.append("I12(CLASS) != I(SEX; d1, d2)")
+    worst = np.inf
+    for cid, a in arms.items():
+        m = a["metrics"]
+        worst = min(worst, m["I12"] - i12c)
+        if m["I12"] < i12c - TOL_FLOOR:
+            fails.append(f"{cid}:I12_below_CLASS")
+        for i in (1, 2):
+            if m[f"I{i}"] < cl["metrics"][f"I{i}"] - TOL_FLOOR:
+                fails.append(f"{cid}:I{i}_below_CLASS")
+    tmin = float(np.min(tables["I12"]))
+    if tmin < i12c - TOL_FLOOR:
+        fails.append("enumerated_pair_below_CLASS")
+    cd1 = arms.get(R.d0_id("CLASS") + "|D1")
+    afford = {"CLASS|D1_feasible": bool(cd1["feasible"]) if cd1 else None,
+              "CLASS|D1_slack": ({f"L{i}": U[i][0] + BUDGET["ll"] - cd1["metrics"][f"L{i}"] for i in (1, 2)}
+                                 | {f"B{i}": U[i][1] + BUDGET["brier"] - cd1["metrics"][f"B{i}"] for i in (1, 2)})
+              if cd1 else None,
+              "note": "recorded, never a failure: an affordable CLASS comparator can make privacy superiority "
+                      "impossible without making the implementation wrong"}
+    return {"pass": not fails, "failures": fails, "I12_CLASS": i12c, "I12_decisions_direct": direct,
+            "min_release_I12_minus_CLASS": float(worst), "min_enumerated_I12": tmin, "affordability": afford}
+
+
+def engineering_fixture_checks(fid, fam, res, tables, arms, laws_ok, written, oracle_ref):
+    X, U = tables["X"], tables["U"]
+    r678 = _guard(_e06_e07_e08, fid, X, U, arms, tables["mrecs"], tables["mfiles"], tables["bank"])
+    e6, e7, e8 = (r678, r678, r678) if isinstance(r678, dict) else r678
+    out = {"E01_LAW_COUNTS_ROUTING_HASHES": _guard(_e01, fam, laws_ok, X, arms, res),
+           "E02_FIXED_TOKEN_INFORMATION": _guard(_e02, X, arms, res),
+           "E03_CALIBRATED_NULL": _guard(_e03, fid, res),
+           "E04_D1_FINAL_VECTOR_CERTIFICATES": _guard(_e04, arms, tables),
+           "E05_LOSS_RECONSTRUCTION": _guard(_e05, X, arms, res, tables["mrecs"]),
+           "E06_ACCEPTED_STATE_BUDGETS": e6, "E07_SEQUENTIAL_TEMPORARY_PARTNER": e7,
+           "E08_INCREMENTAL_REPLAY": e8,
+           "E09_EXHAUSTIVE_ORACLE": _guard(_e09, fid, fam, tables, res, written, oracle_ref),
+           "E10_DECISION_DISCLOSURE_FLOOR": _guard(_e10, X, arms, tables, U)}
+    # the predecessor's budget-enforcement check C3 is part of E06 (final releases)
+    c3 = res["checks"]["C3_BUDGET_ENFORCEMENT"]
+    if not c3["pass"]:
+        out["E06_ACCEPTED_STATE_BUDGETS"] = {**out["E06_ACCEPTED_STATE_BUDGETS"], "pass": False,
+                                             "failures": out["E06_ACCEPTED_STATE_BUDGETS"]["failures"] + c3["failures"]}
+    if not res["checks"]["C4_DECISION_PRESERVATION"]["pass"]:
+        out["E01_LAW_COUNTS_ROUTING_HASHES"] = {**out["E01_LAW_COUNTS_ROUTING_HASHES"], "pass": False,
+                                                "failures": out["E01_LAW_COUNTS_ROUTING_HASHES"]["failures"]
+                                                + res["checks"]["C4_DECISION_PRESERVATION"]["failures"]}
+    return out
+
+
+# ------------------------------------------------------------------ E11 / E12: registered pytest node IDs
+def _findings(pkg):
+    """(findings list normalised, failures) from REVIEW_FINDINGS_DISPOSITION.json (role D)."""
+    p = Path(pkg) / FINDINGS_FILE
+    if not p.exists():
+        return [], [f"{FINDINGS_FILE} missing"]
+    z = json.loads(p.read_text())
+    items = z.get("findings", z) if isinstance(z, dict) else z
+    out, fails = [], []
+    for f in items if isinstance(items, list) else []:
+        tests = None
+        for k in ("regression_tests", "regression_test", "tests", "test", "node_ids"):
+            if k in f:
+                tests = f[k]
+                break
+        tests = [tests] if isinstance(tests, str) else list(tests or [])
+        tests = [t.split(" ")[0] for t in tests if isinstance(t, str) and t.strip()]
+        ordv = f.get("source_ordinal", f.get("ordinal", f.get("id")))
+        disp = f.get("disposition", f.get("status", f.get("resolution_status")))
+        out.append({"ordinal": ordv, "disposition": disp, "tests": tests,
+                    "affects_required_adult_execution": f.get("affects_required_adult_execution")})
+    ords = sorted(str(f["ordinal"]) for f in out)
+    if len(out) != N_FINDINGS or ords != sorted(str(i) for i in range(1, N_FINDINGS + 1)):
+        fails.append(f"expected ordinals 1..{N_FINDINGS}, got {ords}")
+    for f in out:
+        d = str(f["disposition"] or "")
+        resolved = d in RESOLVED_DISPOSITIONS
+        if not resolved:
+            fails.append(f"finding {f['ordinal']}: disposition {f['disposition']!r} is not one of {RESOLVED_DISPOSITIONS}")
+            if f["affects_required_adult_execution"] is not False:   # an unresolved defect that can touch Adult execution
+                fails.append(f"finding {f['ordinal']}: unresolved and affects (or may affect) required Adult execution")
+        if not f["tests"]:
+            fails.append(f"finding {f['ordinal']}: no regression test node id")
+    return out, fails
+
+
+def run_pytest_nodes(nodes, workdir):
+    """Run pytest node IDs in ONE subprocess (single thread; the caller holds the semaphore slot). Returns {node:
+    {"pass", "cases": [...]}} and the raw summary. A node passes iff it collected >= 1 case and every case passed."""
+    import os
+    import subprocess
+    import xml.etree.ElementTree as ET
+    nodes = sorted(set(nodes))
+    out = {n: {"pass": False, "cases": []} for n in nodes}
+    if not nodes:
+        return out, {"returncode": None, "ran": 0}
+    Path(workdir).mkdir(parents=True, exist_ok=True)
+    jx = Path(workdir) / "wiring_junit.xml"
+    env = {**os.environ, "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
+           "VECLIB_MAXIMUM_THREADS": "1", "PYTHONPATH": str(WT)}
+    cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", f"--junitxml={jx}", *nodes]
+    r = subprocess.run(cmd, cwd=str(WT), env=env, capture_output=True, text=True, timeout=3600)
+    cases = []
+    if jx.exists():
+        for tc in ET.parse(jx).getroot().iter("testcase"):
+            path = tc.get("classname", "").replace(".", "/") + ".py"
+            name = tc.get("name", "")
+            bad = any(ch.tag in ("failure", "error") for ch in tc)
+            skip = any(ch.tag == "skipped" for ch in tc)
+            cases.append({"file": path, "name": name, "ok": not bad and not skip, "skipped": skip})
+    for n in nodes:
+        f, _, t = n.partition("::")
+        hit = [c for c in cases if c["file"] == f and (not t or c["name"] == t or c["name"].startswith(t + "["))]
+        out[n] = {"pass": bool(hit) and all(c["ok"] for c in hit), "cases": [f"{c['file']}::{c['name']}:"
+                                                                          f"{'ok' if c['ok'] else 'FAIL'}" for c in hit]}
+    tail = (r.stdout or "").strip().splitlines()[-1:] if r.stdout else []
+    return out, {"returncode": r.returncode, "ran": len(cases), "summary": tail}
+
+
+def _e11_e12(pkg, runner, workdir, rule_ok):
+    findings, ffails = _findings(pkg)
+    nodes = [n for v in WIRING_TESTS.values() for n in v] + [t for f in findings for t in f["tests"]]
+    res, summ = runner(nodes, workdir)
+    e11f = list(rule_ok)
+    groups = {}
+    for g, ns in WIRING_TESTS.items():
+        groups[g] = {n: res.get(n, {"pass": False}).get("pass") for n in ns}
+        if not ns:
+            e11f.append(f"no registered node id for: {g}")
+        e11f += [f"{g}: {n} did not pass" for n, ok in groups[g].items() if not ok]
+    e12f = list(ffails)
+    per = []
+    for f in findings:
+        ok = {t: res.get(t, {"pass": False}).get("pass") for t in f["tests"]}
+        per.append({**f, "test_results": ok})
+        e12f += [f"finding {f['ordinal']}: {t} did not pass" for t, v in ok.items() if not v]
+    return ({"pass": not e11f, "failures": e11f, "groups": groups, "pytest": summ,
+             "node_results": {n: res[n] for g in WIRING_TESTS.values() for n in g if n in res}},
+            {"pass": not e12f, "failures": e12f, "findings": per, "file_sha256": _file_sha(Path(pkg) / FINDINGS_FILE)})
+
+
+# ------------------------------------------------------------------ outputs
+def _write_tables(out_dir, fid, tables, res, sub=ORACLE_DIR):
+    import csv
+    d = Path(out_dir) / sub
     d.mkdir(parents=True, exist_ok=True)
     for r in ("r1", "r2"):
         with open(d / f"{fid}_partitions_{r}.csv", "w", newline="") as fh:
@@ -1308,93 +2205,153 @@ def _write_tables(out_dir, fid, tables, res):
             w.writerow([cid, a["kind"], a["feasible"], a["local_ok"]] + [repr(a[k]) for k in TERM_KEYS] +
                        [repr(a["T"]), repr(a["Phi"]), " ".join(map(str, a["oracle_index"] or [])),
                         lab.get(cid, {}).get("label")])
-    hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(d.glob(f"{fid}_*"))}
-    return hashes
+    return {p.name: p for p in sorted(d.glob(f"{fid}_*.csv"))}
 
 
-def stage_fixture(D, shard_spec=None, out=None, laws_path=None, save_units=True, families=None):
-    """The registered fixture stage (FIXTURE_LOCK): D must be None (synthetic known laws only). Runs every family
-    (or the shard's families), writes PKG/FIXTURE_GATE.json (when all four are available) and the oracle tables."""
+def _save_unit(fid, laws_sha, res, eng, tables, arms):
+    """Private unit cor__<FID>: everything the independent verifier needs to replay the mapper (records, traces,
+    policies, decoders, releases, the D0 starts and the fine partitions)."""
+    from lra import run as R
+    rel = {}
+    for cid, a in arms.items():
+        for k in ("tok1", "q1", "hard1", "tok2", "q2", "hard2"):
+            rel[f"{R.safe(cid)}__{k}"] = np.asarray(a["rel"][k])
+    files = {"result.json": res, "engineering_checks.json": eng,
+             "mapper_records.json": tables["mrecs"],
+             "mapper_traces.json": {cid: f.get("trace.json") for cid, f in tables["mfiles"].items()},
+             "policies.json": {cid: a["pair"].to_dict() for cid, a in arms.items()},
+             "decoders.json": {cid: a["decoder_body"] for cid, a in arms.items() if "decoder_body" in a},
+             "d0_bank_policies.json": {cid: p.to_dict() for cid, p in tables["bank"].items()},
+             "fine.json": tables["X"]["fine_dict"], "releases.npz": rel}
+    R.save(f"cor__{fid}", files, {"fixture": fid, "laws_sha256": laws_sha,
+                                  "engineering_checks": {k: bool(v.get("pass")) for k, v in eng.items()},
+                                  "n_mapper_units": len(tables["mrecs"]), "n_releases": len(arms)})
+
+
+def stage_correctness(D, shard_spec=None, out=None, laws_path=None, save_units=True, families=None, run_tests=None,
+                      expect_laws=None, oracle_ref=None, pkg=None):
+    """The registered correctness stage (CORRECTNESS_LOCK; prompt sec. 9). D must be None and there is no shard: one
+    process runs the four pinned laws, the twelve mandatory checks and writes ENGINEERING_GATE_RESULT.json,
+    correctness_oracle/*.csv and the private units cor__<FID>. Test-only keywords (toy laws): laws_path, expect_laws
+    = (file_sha256, laws_sha256), oracle_ref = (dir, sha map or None), run_tests, pkg, out."""
     import time
     if D is not None:
-        raise ValueError("REFUSED: the fixture stage loads no real data (D must be None)")
+        raise ValueError("REFUSED: the correctness stage loads no real data (D must be None)")
+    if shard_spec:
+        raise ValueError("REFUSED: the correctness stage runs in one process (no shard)")
     t0, c0 = time.perf_counter(), time.process_time()
-    out_dir = Path(out) if out else PKG
-    laws = load_laws(laws_path)
-    if laws_path is None:                  # the registered run: laws and rule must be exactly the locked documents
+    pkg = Path(pkg) if pkg else PKG
+    out_dir = Path(out) if out else pkg
+    registered = laws_path is None
+    lp = Path(laws_path) if laws_path else pkg / "FIXTURE_LAWS.json"
+    laws = load_laws(lp)
+    rule_path = pkg / ENG_RULE_FILE
+    rule_ok = []
+    if registered:
         from lra import lock as LK
         docs = LK.latest()["documents_sha256"]
-        rule = json.loads((PKG / "FIXTURE_GATE_RULE.json").read_text())
-        for d in ("FIXTURE_LAWS.json", "FIXTURE_GATE_RULE.json"):
-            if docs.get(d) != _file_sha(PKG / d):
-                raise ValueError(f"REFUSED: {d} differs from the locked documents_sha256")
-        if rule.get("laws_sha256") != laws["laws_sha256"]:
-            raise ValueError("REFUSED: the gate rule binds different laws")
-    fams = laws["families"]
-    if families is not None:
-        fams = [f for f in fams if f["id"] in families]
-    if shard_spec:
-        i, n = map(int, shard_spec.split("/"))
-        fams = [f for k, f in enumerate(fams) if k % n == i]
-    results, hashes = [], {}
+        for d in ("FIXTURE_LAWS.json", ENG_RULE_FILE, SOURCE_GATE_FILE, FINDINGS_FILE):
+            if docs.get(d) != _file_sha(pkg / d):
+                raise ValueError(f"REFUSED: {d} differs from the latest lock's documents_sha256 (or is missing)")
+        expect_laws = (PINNED_LAWS_FILE_SHA256, PINNED_LAWS_SHA256)
+        oracle_ref = (SOURCE_ORACLE_DIR, SOURCE_ORACLE_SHA256)
+    if not rule_path.exists():
+        rule_ok.append(f"{ENG_RULE_FILE} missing")
+    else:
+        rule = json.loads(rule_path.read_text())
+        if rule != json.loads(json.dumps(engineering_gate_rule())):
+            rule_ok.append(f"{ENG_RULE_FILE} differs from engineering_gate_rule() (rule text not wired to code)")
+    laws_ok = []
+    if expect_laws is not None:
+        if _file_sha(lp) != expect_laws[0]:
+            laws_ok.append("laws_file_sha256")
+        if laws["laws_sha256"] != expect_laws[1]:
+            laws_ok.append("laws_sha256")
+    if registered:
+        if _file_sha(pkg / SOURCE_GATE_FILE) != PINNED_SOURCE_GATE_SHA256:
+            laws_ok.append("source_gate_sha256")
+        if [f["id"] for f in laws["families"]] != list(FIXTURE_IDS):
+            laws_ok.append("family_ids")
+    fams = laws["families"] if families is None else [f for f in laws["families"] if f["id"] in families]
+    expected = [f["id"] for f in laws["families"]] if registered or families is None else list(families)
+    per_fix, desc, errors, hashes = {}, {}, {}, {}
     for fam in fams:
-        res, tables, _ = run_fixture(fam)
-        res["law_integrity"] = True
-        hashes.update(_write_tables(out_dir, fam["id"], tables, res))
-        results.append(res)
-        if save_units:
-            from lra import run as R
-            R.save(f"fix__{fam['id']}", {"result.json": res}, {"fixture": fam["id"], "laws_sha256": laws["laws_sha256"],
-                                                               "trigger": res["trigger"]["triggered"]})
-    if shard_spec and save_units and len(results) < 4:
-        from lra import run as R
-        have = [json.loads((R.U(f"fix__{f['id']}") / "result.json").read_text())
-                for f in laws["families"] if R.done(f"fix__{f['id']}")
-                and json.loads((R.U(f"fix__{f['id']}") / "record.json").read_text()).get("laws_sha256")
-                == laws["laws_sha256"]]
-        if len(have) == 4:
-            results = have
-    gate = gate_from_results(results) if results else {"verdict": "GATE_NOT_MET", "reasons": ["NO_RESULTS"]}
+        fid = fam["id"]
+        try:
+            res, tables, arms = run_fixture(fam)
+            written = _write_tables(out_dir, fid, tables, res)
+            hashes.update({k: _file_sha(v) for k, v in written.items()})
+            eng = engineering_fixture_checks(fid, fam, res, tables, arms, laws_ok, written,
+                                             oracle_ref or (None, None))
+            per_fix[fid] = eng
+            desc[fid] = {"descriptive_only": True, "old_trigger": res["trigger"],
+                         "predecessor_checks_C1_C7": {k: v["pass"] for k, v in res["checks"].items()},
+                         "mapper_status": res["mapper_status"], "U": res["U"]}
+            if save_units:
+                from lra import run as R
+                _save_unit(fid, laws["laws_sha256"], R._finite(res), R._finite(eng), tables, arms)
+        except Exception as e:                                  # a crashed fixture blocks; it is never skipped
+            errors[fid] = f"{e.__class__.__name__}: {e}"
+    for fid in expected:
+        if fid not in per_fix and fid not in errors:
+            errors[fid] = "not run"
+    checks = {}
+    ids = list(engineering_checks_text())
+    for cid in ids[:10]:
+        rows = {fid: per_fix[fid][cid] for fid in per_fix}
+        ok = bool(rows) and all(r.get("pass") is True for r in rows.values()) and not errors
+        checks[cid] = {"pass": ok, "per_fixture": rows}
+    from lra import run as R
+    runner = run_tests or run_pytest_nodes
+    e11, e12 = _e11_e12(pkg, runner, R.RUN / "correctness", rule_ok)
+    checks["E11_LAUNCH_WIRING"], checks["E12_REVIEW_FINDINGS"] = e11, e12
+    verdict, reasons = engineering_verdict(checks, expected, errors)
     from lra import decoder as DC
-    body = {"schema": "lra-fixture-gate-v1", "verdict": gate["verdict"], "reasons": gate["reasons"],
-            "route": gate.get("route"), "triggered_fixtures": gate.get("triggered_fixtures"),
-            "laws_sha256": laws["laws_sha256"], "gate_rule_sha256": _file_sha(PKG / "FIXTURE_GATE_RULE.json"),
-            "decoder_tolerances": DC.TOLERANCES,
-            "fixtures": [{k: v for k, v in r.items() if k != "references"} | {"references": r["references"]}
-                         for r in results],
-            "oracle_table_sha256": hashes, "synthetic_only": True,
+    body = {"schema": ENG_RESULT_SCHEMA, "verdict": verdict, "reasons": reasons,
+            "verdict_rule": "ENGINEERING_READY iff every mandatory check E01..E12 passes",
+            "checks": {k: checks[k] for k in ids},
+            "check_pass": {k: bool(checks[k]["pass"]) for k in ids},
+            "gate_rule_sha256": _file_sha(rule_path), "laws_file_sha256": _file_sha(lp),
+            "laws_sha256": laws["laws_sha256"], "fixtures": expected, "fixture_errors": errors,
+            "source_gate": {"file": SOURCE_GATE_FILE, "sha256": _file_sha(pkg / SOURCE_GATE_FILE),
+                            "verdict": "GATE_NOT_MET", "role": "historical; never this study's verdict"},
+            "not_blocking": NOT_BLOCKING,
+            "descriptive": desc, "oracle_table_sha256": hashes, "decoder_tolerances": DC.TOLERANCES,
+            "synthetic_only": True, "registered_run": registered,
             "wall_s": time.perf_counter() - t0, "cpu_s": time.process_time() - c0,
-            "scope": "known-law fixtures; fitted MI = exact law MI of these finite laws; heuristic optimisers are "
-                     "labelled against exhaustive references; no Adult claim follows from this file"}
-    from lra.run import _finite
-    if len(results) == 4 or not shard_spec:
-        (out_dir / "FIXTURE_GATE.json").write_text(json.dumps(_finite(body), indent=1, allow_nan=False) + "\n")
+            "scope": "known, already-opened fixture laws; a correctness verdict, not mechanism evidence; fixture MI is "
+                     "exact law MI of finite laws, not a population guarantee; no Adult claim follows"}
+    (out_dir / ENG_RESULT_FILE).write_text(public_text(json.dumps(R._finite(body), indent=1, allow_nan=False)) + "\n")
     return body
 
 
-def _file_sha(p):
-    p = Path(p)
-    return hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+def public_text(txt):
+    """Public files carry no private paths or user names: the private store, the worktree and the home directory
+    are replaced by placeholders (exception texts can embed absolute paths)."""
+    from lra import run as R
+    for real, ph in ((str(R.PRIV.parent), "<PRIVATE_CACHE>"), (str(WT), "<WORKTREE>"), (str(Path.home()), "~")):
+        txt = txt.replace(real, ph)
+    return txt
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m lra.fixtures")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    s1 = sub.add_parser("laws")
-    s1.add_argument("--write", action="store_true")
-    s2 = sub.add_parser("run")
-    s2.add_argument("--out", default=None)
+    sub.add_parser("laws")
+    s2 = sub.add_parser("rule")
+    s2.add_argument("--write", action="store_true")
     a = ap.parse_args(argv)
     if a.cmd == "laws":
-        if a.write:
-            print(write_law_files())
-        else:
-            b = load_laws()
-            print(json.dumps({"ok": True, "laws_sha256": b["laws_sha256"],
-                              "families": [f["id"] for f in b["families"]]}))
+        b = load_laws()
+        print(json.dumps({"ok": True, "laws_sha256": b["laws_sha256"], "file_sha256": _file_sha(PKG / "FIXTURE_LAWS.json"),
+                          "pinned": b["laws_sha256"] == PINNED_LAWS_SHA256 and
+                          _file_sha(PKG / "FIXTURE_LAWS.json") == PINNED_LAWS_FILE_SHA256,
+                          "families": [f["id"] for f in b["families"]]}))
     else:
-        r = stage_fixture(None, None, out=a.out)
-        print(json.dumps({"verdict": r["verdict"], "reasons": r.get("reasons")}))
+        if a.write:
+            print(write_engineering_rule())
+        else:
+            print(json.dumps(engineering_gate_rule(), indent=1))
 
 
 if __name__ == "__main__":

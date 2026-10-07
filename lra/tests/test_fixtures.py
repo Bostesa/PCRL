@@ -1,7 +1,8 @@
 """[lra port of lcr/tests/test_fixtures.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md]
-Role B tests for lra.fixtures. SYNTHETIC only. No algorithm runs on the REGISTERED laws here (FIXTURE_LOCK
-governs that): the registered file is only checked statically; the machinery is exercised on separate TOY laws
-that are not part of the registered bank.
+Role B tests for lra.fixtures. SYNTHETIC only. No fixture algorithm or oracle runs on the PINNED laws here
+(CORRECTNESS_LOCK governs that): the pinned file is only checked statically (hashes, atom rebuild, static
+properties, row construction); the engine and the engineering gate are exercised on separate TOY laws that are not
+part of the registered bank.
 
     cd <WORKTREE> && OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lra.sema --label B:test-fixtures -- \\
         env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python \\
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import json
 from fractions import Fraction
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -65,10 +67,18 @@ def test_registered_laws_static_integrity():
                 assert int(np.argmax(t)) == c["class"] and sorted(t)[-1] > sorted(t)[-2]
         X = FX.fixture_rows(fam)                               # rows deploy to their declared cells (no algorithm)
         assert X["N"] == 4096
-    rule = json.loads((FX.PKG / "FIXTURE_GATE_RULE.json").read_text())
-    assert rule["laws_sha256"] == body["laws_sha256"]
-    assert rule["check_ids"] == list(rule["mandatory_correctness_checks"])
-    assert rule["verdict_strings"] == ["GATE_MET", "GATE_NOT_MET"]
+    assert body["laws_sha256"] == FX.PINNED_LAWS_SHA256
+    assert FX._file_sha(FX.PKG / "FIXTURE_LAWS.json") == FX.PINNED_LAWS_FILE_SHA256
+    assert FX._file_sha(FX.PKG / FX.SOURCE_GATE_FILE) == FX.PINNED_SOURCE_GATE_SHA256
+    assert json.loads((FX.PKG / FX.SOURCE_GATE_FILE).read_text())["verdict"] == "GATE_NOT_MET"   # historical only
+
+
+def test_build_laws_reproduces_the_pinned_laws_statically():
+    """Static law construction (no algorithm): SPECS + build_laws give the pinned laws_sha256 and the same families."""
+    b = FX.build_laws()
+    z = json.loads((FX.PKG / "FIXTURE_LAWS.json").read_text())
+    assert b["laws_sha256"] == z["laws_sha256"] == FX.PINNED_LAWS_SHA256
+    assert b["families"] == z["families"] and b["schema"] == FX.LAWS_SCHEMA == "lcr-fixture-laws-v1"
 
 
 def test_registered_f1_is_exactly_calibrated():
@@ -159,7 +169,7 @@ def _fake(fid, checks_ok=True, triggered=True, helps=False):
             "trigger": {"triggered": triggered, "route": {"assignment_search_helps": helps}}}
 
 
-def test_gate_truth_table():
+def test_predecessor_gate_truth_table_descriptive_only():
     ids = ["F1", "F2", "F3", "F4"]
     g = FX.gate_from_results([_fake(i, triggered=(i == "F3")) for i in ids])
     assert g["verdict"] == "GATE_MET" and g["route"] == "DECODER_ENABLED_ROUTE"
@@ -206,9 +216,21 @@ def test_trigger_rule_cases():
     assert not FX.trigger({**base, "U|W-LOCAL|i8o64|l0.1|D1": _arm(0.0)}, ct, [0.02, 0.3], const)["triggered"]
 
 
-def test_stage_refuses_real_data():
-    with pytest.raises(ValueError):
-        FX.stage_fixture({"idx": {}}, None)
+def test_stage_correctness_refusals(monkeypatch, tmp_path):
+    """Refusal paths only (cheap; also run inside the stage's E11 subprocess): real data, a shard, and a registered
+    run whose locked documents differ. Nothing runs on the pinned laws."""
+    with pytest.raises(ValueError, match="no real data"):
+        FX.stage_correctness({"idx": {}}, None)
+    with pytest.raises(ValueError, match="one process"):
+        FX.stage_correctness(None, "0/2")
+    from lra import lock as LK
+    called = []
+    monkeypatch.setattr(FX, "run_fixture", lambda *a, **k: called.append(1))
+    monkeypatch.setattr(LK, "latest", lambda: {"name": "CORRECTNESS_LOCK", "documents_sha256": {
+        "FIXTURE_LAWS.json": "0" * 64}})
+    with pytest.raises(ValueError, match="REFUSED"):
+        FX.stage_correctness(None, None)
+    assert not called
 
 
 # ----------------------------------------------------------------------------------------------- end to end (toy)
@@ -236,28 +258,6 @@ def test_toy_fixed_token_ablation_and_decisions(toy_run):
                 assert np.array_equal(a["rel"][f"tok{i}"], b["rel"][f"tok{i}"])
                 assert np.array_equal(a["rel"][f"hard{i}"], b["rel"][f"hard{i}"])
             assert a["metrics"]["I12"] == b["metrics"]["I12"]
-
-
-def test_toy_stage_writes_gate(tmp_path, toy, monkeypatch):
-    from lra import run as R
-    monkeypatch.setattr(R, "RUN", tmp_path / "run")
-    monkeypatch.setattr(R, "UNITS", tmp_path / "run" / "units")
-    laws = FX.build_laws()
-    laws["families"] = [toy, FX.build_law(toy_spec("plain"))]
-    for f in laws["families"]:
-        f["id"] = f["id"]
-    laws["laws_sha256"] = FX.laws_hash(laws)
-    lp = tmp_path / "laws.json"
-    lp.write_text(json.dumps(laws))
-    body = FX.stage_fixture(None, None, out=tmp_path, laws_path=lp, save_units=True)
-    for f in laws["families"]:
-        assert R.done(f"fix__{f['id']}")
-        rr = json.loads((R.U(f"fix__{f['id']}") / "result.json").read_text())
-        assert rr["fixture"] == f["id"] and "trigger" in rr
-    assert body["verdict"] == "GATE_NOT_MET" and "INCOMPLETE_FIXTURE_SET" in body["reasons"]
-    z = json.loads((tmp_path / "FIXTURE_GATE.json").read_text())
-    assert z["verdict"] in ("GATE_MET", "GATE_NOT_MET") and z["synthetic_only"]
-    assert (tmp_path / "fixture_oracle" / "TOY_XOR_partitions_r1.csv").exists()
 
 
 def test_calibrated_toy_null_check_runs_and_passes():
@@ -307,3 +307,291 @@ def test_incremental_terms_no_search_state_only_for_all_infeasible_starts():
     partly = {"status": "INFEASIBLE", "winner": {"start": "A", "kind": "unchanged_descriptive"},
               "starts": [{"name": "A", "stage1": {}}, {"name": "B", "final": {"terms": {}}}]}
     assert FX._incremental_terms(partly) is None                   # some start was refined: no exemption
+
+
+# ----------------------------------------------------------------------------------------------- engineering gate (lra)
+def _all_pass():
+    return {k: {"pass": True} for k in FX.engineering_checks_text()}
+
+
+def test_engineering_verdict_truth_table():
+    ids = list(FX.engineering_checks_text())
+    assert len(ids) == 12 and FX.VERDICTS == ("ENGINEERING_READY", "ENGINEERING_BLOCKED")
+    assert FX.engineering_verdict(_all_pass()) == ("ENGINEERING_READY", [])
+    for k in ids:                                            # any single failing mandatory check blocks
+        c = _all_pass()
+        c[k] = {"pass": False}
+        v, why = FX.engineering_verdict(c)
+        assert v == "ENGINEERING_BLOCKED" and why == [f"CHECK_FAILED:{k}"]
+        c[k] = {"pass": None}                                # not exactly True is a failure, never a pass
+        assert FX.engineering_verdict(c)[0] == "ENGINEERING_BLOCKED"
+        del c[k]
+        assert FX.engineering_verdict(c) == ("ENGINEERING_BLOCKED", [f"MISSING_CHECK:{k}"])
+    c = _all_pass()
+    c["C9_OLD_TRIGGER"] = {"pass": True}
+    assert FX.engineering_verdict(c)[0] == "ENGINEERING_BLOCKED"
+    assert FX.engineering_verdict(_all_pass(), fixture_errors={"F2_MISCALIBRATED": "boom"})[0] == "ENGINEERING_BLOCKED"
+    # outcomes that must NOT block: the verdict reads only the mandatory checks (old trigger / affordability /
+    # ties / source GATE_NOT_MET are carried as extra fields and ignored)
+    c = _all_pass()
+    c["E10_DECISION_DISCLOSURE_FLOOR"].update({"affordability": {"CLASS|D1_feasible": True}, "I12_CLASS": 0.0})
+    c["E09_EXHAUSTIVE_ORACLE"].update({"heuristic_gaps": {"U|W-JOINT|i8o64|l0.01|D1": 7e-4}})
+    c["E01_LAW_COUNTS_ROUTING_HASHES"].update({"old_trigger": {"triggered": False}, "source_gate": "GATE_NOT_MET"})
+    assert FX.engineering_verdict(c) == ("ENGINEERING_READY", [])
+    nb = " ".join(FX.NOT_BLOCKING)
+    for phrase in ("zero-leakage", "affordable", "superior privacy release", "weighted control", "sequential arm",
+                   "GATE_NOT_MET"):
+        assert phrase in nb
+
+
+def test_engineering_rule_file_matches_code():
+    rule = FX.engineering_gate_rule()
+    json.dumps(rule, allow_nan=False)
+    assert rule["verdict_strings"] == ["ENGINEERING_READY", "ENGINEERING_BLOCKED"]
+    assert rule["check_ids"] == list(rule["mandatory_checks"]) and len(rule["check_ids"]) == 12
+    assert list(rule["prompt_check_map"]) == [str(i) for i in range(1, 13)]
+    assert rule["laws"]["file_sha256"] == FX.PINNED_LAWS_FILE_SHA256 and rule["laws"]["laws_sha256"] == FX.PINNED_LAWS_SHA256
+    assert rule["source_gate"]["sha256"] == FX.PINNED_SOURCE_GATE_SHA256 and "GATE_MET" not in rule["verdict_strings"]
+    assert rule["tolerances"]["TOL_BUDGET"] == 1e-12 and rule["tolerances"]["TOL_TERMS"] == 1e-10
+    assert rule["tolerances"]["decoder"]["kappa"] == 32.0 and rule["tolerances"]["decoder"]["eps"] == 1e-12
+    for g, nodes in rule["wiring_tests"].items():
+        for n in nodes:
+            assert (FX.WT / n.split("::")[0]).exists(), n
+    p = FX.PKG / FX.ENG_RULE_FILE
+    if p.exists():                                           # once written, the registered file IS the code's rule
+        assert json.loads(p.read_text()) == json.loads(json.dumps(rule))
+
+
+def test_canon_apply_move_and_trace_states():
+    assert FX._canon([3, 3, 0, 0]).tolist() == [0, 0, 2, 2]
+    lab = {1: np.array([0, 0, 2, 2]), 2: np.array([0, 1, 2, 3])}
+    nxt = FX._apply_move(lab, [{"r": 1, "f": 0, "to_canon": 2}])              # cell 0 joins token {2, 3}
+    assert nxt[1].tolist() == [0, 1, 0, 0] and nxt[2].tolist() == [0, 1, 2, 3]
+    with pytest.raises(ValueError):
+        FX._apply_move(lab, [{"r": 1, "f": 0, "to_canon": 3}])               # 3 is not a canonical label
+    tr = {"starts": [{"name": "A", "stages": [{"stage": "joint", "start_labels": {"1": [0, 0, 2, 2], "2": [0, 1, 2, 3]},
+                                                "moves": [{"step": 0, "type": "pair", "parts": [
+                                                    {"r": 1, "f": 0, "to_canon": 2}, {"r": 2, "f": 3, "to_canon": 2}],
+                                                    "terms_after": None}]}]}]}
+    states = list(FX._trace_states(tr))
+    assert [s[3] for s in states] == ["start", "pair"]
+    assert states[1][4][1].tolist() == [0, 1, 0, 0] and states[1][4][2].tolist() == [0, 1, 2, 2]
+
+
+def test_independent_fw_certificate_agrees_with_decoder_and_has_power():
+    from lra import decoder as DC
+    rng = np.random.default_rng(4)
+    for K in (2, 3, 6):
+        for _ in range(20):
+            n = int(rng.integers(1, 300))
+            d = int(rng.integers(K))
+            P = rng.dirichlet(np.ones(K), size=n)
+            P[:, d] += 1.0
+            P = P / P.sum(1, keepdims=True)
+            s = P.sum(0)
+            y = np.bincount(rng.integers(0, K, n), minlength=K).astype(float)
+            sol = DC.solve_token(y, s, n, d)
+            rel, _, _ = FX._fw_gap(y, s, n, d, sol.u, sol.q)
+            assert rel <= FX.TOL_FW
+            u2 = np.full(K, 1.0 / K)
+            u2[d] += 0.0
+            from qpc.kmeans import smooth
+            q2 = smooth(u2[None], np.array([d]), check=False)[0]
+            rel2, _, _ = FX._fw_gap(y, s, n, d, u2, q2)
+            if np.max(np.abs(sol.u - u2)) > 1e-3:
+                assert rel2 > FX.TOL_FW                       # a non-optimal feasible point is detected
+
+
+def test_findings_parser(tmp_path):
+    items = [{"source_ordinal": i, "disposition": "RESOLVED", "regression_tests": [f"lra/tests/x.py::t{i}"]}
+             for i in range(1, 15)]
+    (tmp_path / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items}))
+    f, bad = FX._findings(tmp_path)
+    assert not bad and len(f) == 14 and f[0]["tests"] == ["lra/tests/x.py::t1"]
+    items[3]["disposition"] = "UNRESOLVED"
+    items[4]["regression_tests"] = []
+    (tmp_path / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items[:13] + items[3:4]}))
+    f, bad = FX._findings(tmp_path)
+    assert any("ordinals" in b for b in bad) and any("UNRESOLVED" in b for b in bad) and any("no regression" in b for b in bad)
+    assert FX._findings(tmp_path / "absent")[1] == [f"{FX.FINDINGS_FILE} missing"]
+    # D's semantics: affects_required_adult_execution says what the defect WOULD touch if unresolved; a RESOLVED
+    # finding with affects = true is fine, an unresolved one is named as an Adult-execution blocker
+    items = [{"source_ordinal": i, "disposition": "SUPERSEDED_RESOLVED" if i == 10 else "RESOLVED",
+              "affects_required_adult_execution": True, "regression_tests": [f"lra/tests/x.py::t{i}"]}
+             for i in range(1, 15)]
+    (tmp_path / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items}))
+    assert FX._findings(tmp_path)[1] == []
+    items[5]["disposition"] = "OPEN"
+    (tmp_path / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items}))
+    bad = FX._findings(tmp_path)[1]
+    assert len(bad) == 2 and "Adult execution" in bad[1]
+
+
+def test_run_pytest_nodes_maps_results(tmp_path):
+    ok = "lra/tests/test_fixtures.py::test_canon_apply_move_and_trace_states"
+    missing = "lra/tests/test_fixtures.py::test_does_not_exist"
+    res, summ = FX.run_pytest_nodes([ok], tmp_path)
+    assert res[ok]["pass"] and summ["ran"] == 1
+    res, _ = FX.run_pytest_nodes([ok, missing], tmp_path)
+    assert not res[missing]["pass"]                           # an uncollected node never passes
+
+
+def _fake_runner(nodes, workdir):
+    return {n: {"pass": True, "cases": [n + ":ok"]} for n in nodes}, {"returncode": 0, "ran": len(nodes)}
+
+
+@pytest.fixture(scope="module")
+def toy_stage(tmp_path_factory):
+    """The full engineering stage on TWO TOY laws (not the registered bank) in a temporary package."""
+    import shutil
+    from lra import run as R
+    tmp = tmp_path_factory.mktemp("lracorr")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(R, "RUN", tmp / "run")
+    mp.setattr(R, "UNITS", tmp / "run" / "units")
+    filler = "lra/tests/test_fixtures.py::test_canon_apply_move_and_trace_states"
+    mp.setattr(FX, "WIRING_TESTS", {g: (v or [filler]) for g, v in FX.WIRING_TESTS.items()})   # toy: no empty group
+    laws = FX.build_laws()
+    laws["families"] = [FX.build_law(toy_spec("xor")), FX.build_law(toy_spec("plain"))]
+    laws["laws_sha256"] = FX.laws_hash(laws)
+    pkg = tmp / "pkg"
+    pkg.mkdir()
+    lp = pkg / "FIXTURE_LAWS.json"
+    lp.write_text(json.dumps(laws))
+    FX.write_engineering_rule(pkg)
+    items = [{"source_ordinal": i, "disposition": "RESOLVED",
+              "regression_tests": ["lra/tests/test_fixtures.py::test_canon_apply_move_and_trace_states"]}
+             for i in range(1, 15)]
+    (pkg / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items}))
+    shutil.copy(FX.PKG / FX.SOURCE_GATE_FILE, pkg / FX.SOURCE_GATE_FILE)
+    # first pass writes the oracle tables; the second pass must reproduce them (E09) from scratch
+    ref = tmp / "ref"
+    b1 = FX.stage_correctness(None, None, out=ref, laws_path=lp, save_units=False, run_tests=_fake_runner,
+                              expect_laws=(FX._file_sha(lp), laws["laws_sha256"]), pkg=pkg,
+                              oracle_ref=(tmp / "nonexistent", None))
+    body = FX.stage_correctness(None, None, out=pkg, laws_path=lp, save_units=True, run_tests=_fake_runner,
+                                expect_laws=(FX._file_sha(lp), laws["laws_sha256"]), pkg=pkg,
+                                oracle_ref=(ref / FX.ORACLE_DIR, None))
+    yield {"tmp": tmp, "pkg": pkg, "laws": laws, "first": b1, "body": body, "R": R}
+    mp.undo()
+
+
+def test_toy_engineering_stage_ready_and_outputs(toy_stage):
+    body, pkg, R = toy_stage["body"], toy_stage["pkg"], toy_stage["R"]
+    bad = {k: v.get("failures", v)[:5] if isinstance(v.get("failures", v), list) else v
+           for k, v in body["checks"].items() if not v["pass"]}
+    assert body["verdict"] == "ENGINEERING_READY", (body["reasons"], bad)
+    assert json.loads((pkg / FX.ENG_RESULT_FILE).read_text())["verdict"] == "ENGINEERING_READY"
+    for fid in ("TOY_XOR", "TOY_PLAIN"):
+        assert R.done(f"cor__{fid}")
+        u = R.U(f"cor__{fid}")
+        traces = json.loads((u / "mapper_traces.json").read_text())
+        recs = json.loads((u / "mapper_records.json").read_text())
+        assert set(traces) == set(recs) and len(recs) == 30 and all(t and t.get("starts") for t in traces.values())
+        for k in ("policies.json", "decoders.json", "d0_bank_policies.json", "fine.json", "releases.npz"):
+            assert (u / k).exists()
+        assert (pkg / FX.ORACLE_DIR / f"{fid}_partitions_r1.csv").exists()
+    e9 = body["checks"]["E09_EXHAUSTIVE_ORACLE"]["per_fixture"]["TOY_XOR"]
+    assert all(v["byte_identical"] for v in e9["source_tables"].values())
+    assert body["checks"]["E03_CALIBRATED_NULL"]["per_fixture"]["TOY_XOR"]["applicable"] is False
+    e6 = body["checks"]["E06_ACCEPTED_STATE_BUDGETS"]["per_fixture"]
+    assert e6["TOY_PLAIN"]["accepted_states"] >= 10            # the plain toy law moves cells in K- and W- arms
+    e7 = body["checks"]["E07_SEQUENTIAL_TEMPORARY_PARTNER"]["per_fixture"]["TOY_PLAIN"]
+    assert e7["seq_starts"] >= 2 and e7["partner_class_only_checked"] >= 2
+    e8 = body["checks"]["E08_INCREMENTAL_REPLAY"]["per_fixture"]["TOY_PLAIN"]
+    assert e8["replay_ok"] == 30 and e8["max_trace_vs_own"] <= FX.TOL_TERMS
+    # the old trigger is carried as descriptive output only
+    assert body["descriptive"]["TOY_XOR"]["descriptive_only"] is True and "old_trigger" in body["descriptive"]["TOY_XOR"]
+    assert body["source_gate"]["verdict"] == "GATE_NOT_MET"
+
+
+def test_toy_engineering_stage_first_pass_fails_e09_without_reference(toy_stage):
+    b1 = toy_stage["first"]
+    assert b1["verdict"] == "ENGINEERING_BLOCKED" and "CHECK_FAILED:E09_EXHAUSTIVE_ORACLE" in b1["reasons"]
+
+
+@pytest.fixture(scope="module")
+def toy_plain_run():
+    law = FX.build_law(toy_spec("plain"))
+    res, tables, arms = FX.run_fixture(law)
+    return law, res, tables, arms
+
+
+def test_engineering_checks_have_power(toy_plain_run):
+    """Injected defects are caught by the individual checks (toy law whose arms accept moves; no stage run)."""
+    law, res, tables, arms = toy_plain_run
+    from lra import run as R
+    X, U = tables["X"], tables["U"]
+    assert FX._e10(X, arms, tables, U)["pass"]
+    bad = {**arms, "FAKE": {**arms[R.d0_id("CLASS")], "metrics": {**arms[R.d0_id("CLASS")]["metrics"],
+                                                                 "I12": arms[R.d0_id("CLASS")]["metrics"]["I12"] - 1e-6}}}
+    assert not FX._e10(X, bad, tables, U)["pass"]
+    assert FX._e04(arms, tables)["pass"]
+    cid = R.ctask_id()
+    body = json.loads(json.dumps(arms[cid]["decoder_body"]))
+    body["r1"]["u"][0] = list(reversed(body["r1"]["u"][0]))          # violates the bitwise re-solve / class dominance
+    assert not FX._e04({cid: {**arms[cid], "decoder_body": body}}, {"sub1": {}, "sub2": {}})["pass"]
+    assert FX._e01(law, [], X, arms, res)["pass"]
+    X2 = {**X, "y": {1: X["y"][1].copy(), 2: X["y"][2]}}
+    X2["y"][1][0] = 1 - X2["y"][1][0]                                 # a wrong label count is caught
+    assert not FX._e01(law, [], X2, arms, res)["pass"]
+    assert not FX._e01(law, ["laws_sha256"], X, arms, res)["pass"]
+    assert FX._e05(X, arms, res, tables["mrecs"])["pass"]
+    # an accepted state that breaks the budget is caught by the own state-by-state rebuild
+    kj = R.constrained_id("JOINT-SINGLE")
+    files = json.loads(json.dumps(R._finite(tables["mfiles"][kj]["trace.json"])))
+    ct = arms[cid]["metrics"]
+    limL, limB, cap = FX._limits(U, ct)
+    f_ok = FX._unit_states(kj, "K-JOINT-SINGLE", {"trace.json": files}, X, limL, limB, cap)[0]
+    assert not f_ok
+    tight = {r: -1.0 for r in (1, 2)}
+    f_bad = FX._unit_states(kj, "K-JOINT-SINGLE", {"trace.json": files}, X, tight, limB, cap)[0]
+    n_moves = sum(len(sg["moves"]) for st in files["starts"] for sg in st["stages"])
+    assert n_moves > 0 and len(f_bad) > 0                     # every accepted state now violates the (tight) budget
+    # a tampered incremental term in the persisted trace is caught by the from-scratch rebuild (E08 part)
+    bad_tr = json.loads(json.dumps(files))
+    mv = next(m for st in bad_tr["starts"] for sg in st["stages"] for m in sg["moves"])
+    mv["terms_after"]["I12"] = float(mv["terms_after"]["I12"]) + 1e-6
+    f_t = FX._unit_states(kj, "K-JOINT-SINGLE", {"trace.json": bad_tr}, X, limL, limB, cap)[0]
+    assert any(":terms:I12" in f for f in f_t)
+    # the full E06/E07/E08 computation passes on the honest records
+    e6, e7, e8 = FX._e06_e07_e08("TOY_PLAIN", X, U, arms, tables["mrecs"], tables["mfiles"], tables["bank"])
+    assert e6["pass"] and e7["pass"] and e8["pass"], (e6["failures"][:3], e7["failures"][:3], e8["failures"][:3])
+    assert e6["accepted_states"] >= 10
+    assert FX._unit_states(kj, "K-JOINT-SINGLE", {"trace.json": None}, X, limL, limB, cap)[0] == [f"{kj}:trace_missing"]
+
+
+def test_e11_e12_fail_closed(tmp_path, monkeypatch):
+    items = [{"source_ordinal": i, "disposition": "RESOLVED", "regression_tests": [f"lra/tests/t.py::f{i}"]}
+             for i in range(1, 15)]
+    (tmp_path / FX.FINDINGS_FILE).write_text(json.dumps({"findings": items}))
+    monkeypatch.setattr(FX, "WIRING_TESTS", {"a": ["lra/tests/t.py::g"], "b": []})
+    e11, e12 = FX._e11_e12(tmp_path, _fake_runner, tmp_path / "w", [])
+    assert not e11["pass"] and any("no registered node id" in f for f in e11["failures"]) and e12["pass"]
+    monkeypatch.setattr(FX, "WIRING_TESTS", {"a": ["lra/tests/t.py::g"]})
+
+    def one_fails(nodes, wd):
+        r, s_ = _fake_runner(nodes, wd)
+        r["lra/tests/t.py::f7"]["pass"] = False
+        r["lra/tests/t.py::g"]["pass"] = False
+        return r, s_
+    e11, e12 = FX._e11_e12(tmp_path, one_fails, tmp_path / "w", [])
+    assert not e11["pass"] and not e12["pass"] and any("finding 7" in f for f in e12["failures"])
+    e11, _ = FX._e11_e12(tmp_path, _fake_runner, tmp_path / "w", ["rule differs"])
+    assert not e11["pass"]                                     # a rule file that is not the code's rule blocks
+    e11, e12 = FX._e11_e12(tmp_path / "nofile", _fake_runner, tmp_path / "w", [])
+    assert not e12["pass"] and e12["failures"][0].endswith("missing")
+
+
+def test_public_text_strips_private_paths():
+    from lra import run as R
+    raw = json.dumps({"e": f"FileNotFoundError: {R.PRIV}/run/units/x and {FX.WT}/lra/y.py and {Path.home()}/z"})
+    out = FX.public_text(raw)
+    assert str(Path.home()) not in out and "<PRIVATE_CACHE>/lra_v1/run/units/x" in out and "<WORKTREE>/lra/y.py" in out
+    json.loads(out)
+
+
+def test_e09_without_reference_tables_fails(toy_run):
+    law, res, tables, arms = toy_run
+    out = FX._e09(law["id"], law, tables, res, {}, (None, None))
+    assert not out["pass"] and out["failures"] == ["no_reference_oracle_tables"]

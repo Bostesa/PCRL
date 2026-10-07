@@ -63,6 +63,7 @@ API (role C and the runner code against this):
   cell_label_counts(fine, P_fit, d_fit, y_fit) -> Ycell (F, K) int64
   token_stats(fine, cell_token, Ycell) -> (n (T,), S (T, K), Y (T, K))
   token_losses(Y, Q) -> (ll_total (T,), brier_total (T,));  fit_losses(Y, Q, N) -> (L, B)
+  certificate_summary(tab) / summary_violations(summary) / aggregate_certificates(records) -> DECODER_CERTIFICATES.json
   decode_policy(pol, tok_fit, P_fit, y_fit, config=None, cache=None) -> DecoderTable
   decoder_pair_dict(cid, pair, dec1, dec2) / save_decoder_pair(path, ...) / load_decoder_pair(path, pair=None)
   release_arrays_d1(pair, dec1, dec2, row_id, P1, d1, P2, d2) -> the release.npz dict (TEAM_PLAN keys)
@@ -90,10 +91,12 @@ STATS_ROW_TOL = 1e-9         # decode_policy: |canonical s_t - row-level s_t| <=
 TOL_BATCH_OBJ = 1e-12        # relative |obj_batch - obj_scalar| allowance (np.log only; u and q are bitwise equal)
 LOSS_CLIP = 1e-12            # source log-loss clip (dpc.utility.CLIP)
 SCHEMA = "lra-decoder-v1"
+BRIER_COEF = 0.5             # the fixed Brier coefficient of the per-token objective (prompt sec. 6; not tuned)
 TOLERANCES = {"PROJ_TOL": PROJ_TOL, "STAT_TOL": STAT_TOL, "DUAL_TOL": DUAL_TOL, "PROTO_SUM_TOL": PROTO_SUM_TOL,
               "STATS_SUM_TOL": STATS_SUM_TOL, "TEACHER_CLASS_TOL": TEACHER_CLASS_TOL, "STATS_ROW_TOL": STATS_ROW_TOL,
               "TOL_BATCH_OBJ": TOL_BATCH_OBJ, "BISECT_ITERS": BISECT_ITERS, "LOSS_CLIP": LOSS_CLIP,
-              "kappa": KAPPA, "eps": EPS}
+              "kappa": KAPPA, "eps": EPS, "brier_coefficient": BRIER_COEF, "max_bracket_ulps": 2.0}
+assert KAPPA == 32.0 and EPS == 1e-12 and BRIER_COEF == 0.5      # prompt sec. 6: fixed, never tuned in this study
 CERT_FIELDS = ("obj", "obj_full", "t", "nu", "bracket_ulps", "sum_u_residual", "sum_q_residual", "min_u", "margin",
                "stationarity_rel", "dual_infeas_rel", "scale", "projection_magnitude", "n_zero", "n_tie", "converged")
 
@@ -683,6 +686,67 @@ def certificate_summary(tab: DecoderTable):
             "tokens_with_zero": int(sum(1 for c in sup if c["n_zero"] > 0)),
             "max_bracket_ulps": mx("bracket_ulps"), "stats_hash": tab.stats_hash(), "content_hash": tab.content_hash(),
             "tolerances": TOLERANCES}
+
+
+CERT_SCHEMA = "lra-decoder-certificates-v1"
+
+
+def summary_violations(c):
+    """Registered-tolerance violations of one certificate_summary (empty list = within every tolerance)."""
+    v = []
+    if not c.get("all_converged"):
+        v.append("not_all_converged")
+    if c.get("supervised_tokens"):
+        for key, tol in (("max_stationarity_rel", STAT_TOL), ("max_dual_infeas_rel", DUAL_TOL),
+                         ("max_projection_magnitude", PROJ_TOL), ("max_sum_q_residual", PROTO_SUM_TOL),
+                         ("max_bracket_ulps", 2.0)):
+            x = c.get(key)
+            if x is None or not np.isfinite(x) or x > tol:
+                v.append(key)
+        m = c.get("min_margin")
+        if m is None or not m > 0:
+            v.append("min_margin")
+    return v
+
+
+def aggregate_certificates(items, scope=None):
+    """DECODER_CERTIFICATES.json body from per-unit records. items: iterable of dicts with "unit", "config", "seed"
+    and "certificates" = {"1": certificate_summary, "2": certificate_summary} (the d1 / ctask / fit records carry
+    exactly this). Reads committed records only: no solve, no refit. Every table is listed; the totals say whether
+    every table is within the registered tolerances."""
+    rows = []
+    for it in items:
+        for r in ("1", "2"):
+            c = it["certificates"][r]
+            rows.append({"unit": it.get("unit"), "config": it.get("config"), "seed": it.get("seed"), "recipient": int(r),
+                         **{k: c.get(k) for k in ("tokens", "supervised_tokens", "fallback_tokens", "all_converged",
+                                                  "max_stationarity_rel", "max_dual_infeas_rel",
+                                                  "max_projection_magnitude", "max_sum_q_residual", "min_margin",
+                                                  "tokens_with_tie", "tokens_with_zero", "max_bracket_ulps",
+                                                  "stats_hash", "content_hash")},
+                         "violations": summary_violations(c)})
+
+    def mx(k):
+        vals = [r[k] for r in rows if r[k] is not None]
+        return max(vals) if vals else None
+    margins = [r["min_margin"] for r in rows if r["min_margin"] is not None]
+    return {"schema": CERT_SCHEMA, "scope": scope, "tolerances": TOLERANCES,
+            "units": len({(r["unit"], r["config"], r["seed"]) for r in rows}), "tables": len(rows),
+            "supervised_tokens": int(sum(r["supervised_tokens"] or 0 for r in rows)),
+            "fallback_tokens": int(sum(r["fallback_tokens"] or 0 for r in rows)),
+            "tokens_with_tie_active": int(sum(r["tokens_with_tie"] or 0 for r in rows)),
+            "tokens_with_zero_active": int(sum(r["tokens_with_zero"] or 0 for r in rows)),
+            "all_converged": all(bool(r["all_converged"]) for r in rows),
+            "all_within_tolerances": all(not r["violations"] for r in rows),
+            "tables_with_violations": [f"{r['unit']}:r{r['recipient']}" for r in rows if r["violations"]],
+            "worst": {"max_stationarity_rel": mx("max_stationarity_rel"), "max_dual_infeas_rel": mx("max_dual_infeas_rel"),
+                      "max_projection_magnitude": mx("max_projection_magnitude"),
+                      "max_sum_q_residual": mx("max_sum_q_residual"), "max_bracket_ulps": mx("max_bracket_ulps"),
+                      "min_margin": min(margins) if margins else None},
+            "certified_on": "the FINAL released vector q (after the frozen projection) of every supervised token; "
+                            "fallback tokens (n_t = 0) carry the pinned D0 vector",
+            "not_certified": "a fixed-token certificate is not optimality of the discrete mapping search",
+            "rows": rows}
 
 
 # ----------------------------------------------------------------------------------------------- decoder.json

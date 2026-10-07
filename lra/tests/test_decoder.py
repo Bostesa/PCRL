@@ -481,3 +481,99 @@ def test_release_arrays_d1_keys_invariants_and_fixed_token_information():
     # a decoder of another policy is refused
     with pytest.raises((ValueError, AssertionError)):
         DC.release_arrays_d1(pair, dec2, dec1, np.arange(600), P1, d1, P2, d2)
+
+
+# ----------------------------------------------------------------------------------------------- lra: prompt sec. 6
+def test_section6_constants_are_fixed_and_refused_otherwise():
+    assert DC.KAPPA == 32.0 and DC.EPS == 1e-12 and DC.BRIER_COEF == 0.5
+    assert DC.TOLERANCES["kappa"] == 32.0 and DC.TOLERANCES["eps"] == 1e-12
+    assert DC.TOLERANCES["brier_coefficient"] == 0.5
+    from lra import mapper as MP
+    assert MP.KAPPA == DC.KAPPA and MP.EPS == DC.EPS and MP.LOSS_CLIP == DC.LOSS_CLIP     # one decoder for every arm
+    y, s = np.array([3.0, 1.0]), np.array([3.2, 0.8])
+    for kw in ({"kappa": 16.0}, {"kappa": 32.000001}, {"eps": 1e-9}, {"eps": 0.0}):
+        with pytest.raises(ValueError, match="fixed by the protocol"):
+            DC.solve_token(y, s, 4, 0, **kw)
+    # the released vector is the registered affine smoothing of a class-dominant u (checked on the FINAL q)
+    sol = DC.solve_token(y, s, 4, 0)
+    assert np.array_equal(sol.q, KM.smooth(np.asarray(sol.u)[None], np.array([0]), check=False)[0])
+    assert sol.u[0] >= sol.u[1] and sol.q[0] > sol.q[1] and sol.cert["converged"]
+
+
+def test_d0_and_d1_artifacts_have_distinct_ids_and_never_overwrite():
+    from lra import run as R
+    d0, d1 = R.d0_ids(), R.d1_fixed_ids()
+    assert not set(d0) & set(d1)
+    for c in d1:
+        assert c.endswith("|D1") and c[:-3] in d0
+        assert R.parse_id(c)["decoder"] == "D1" and R.parse_id(c[:-3])["decoder"] == "D0"
+        assert R.unit_for(0, c) != R.unit_for(0, c[:-3])                           # dec__ vs pol__ units
+        assert R.unit_for(0, c).startswith("dec__") and R.unit_for(0, c[:-3]).startswith("pol__")
+    for c in R.new_fit_ids():
+        assert R.parse_id(c)["decoder"] == "D1" and R.unit_for(0, c).startswith("new__")
+    # a D1 decoder record can only carry a D1 id
+    rng = np.random.default_rng(31)
+    p1, P1, d1_, y1 = _synthetic_policy(rng, 2, 300, recipient=1)
+    p2, P2, d2_, y2 = _synthetic_policy(np.random.default_rng(32), 6, 300, recipient=2)
+    meta = {"teacher_model_sha256": "a" * 64, "feature_names_sha256": "b" * 64, "config": "U|FINE-TASK|i8o64"}
+    pair = RL.make_pair(p1, p2, "FINE-TASK", 8, 64, meta=meta)
+    t1, _, _ = RL.encode(pair.p1, P1, d1_)
+    t2, _, _ = RL.encode(pair.p2, P2, d2_)
+    e1, e2 = DC.decode_policy(pair.p1, t1, P1, y1), DC.decode_policy(pair.p2, t2, P2, y2)
+    for bad in ("U|FINE-TASK|i8o64", "U|CLASS|i1o1", "SRC|U"):
+        with pytest.raises((ValueError, KeyError, IndexError)):
+            DC.decoder_pair_dict(bad, pair, e1, e2)
+    # decoding never mutates the D0 policy (the admitted D0 map and its pinned vectors are untouched)
+    before = json.dumps(pair.to_dict(), sort_keys=True)
+    DC.decoder_pair_dict("U|FINE-TASK|i8o64|D1", pair, e1, e2)
+    assert json.dumps(pair.to_dict(), sort_keys=True) == before
+
+
+def test_fallback_is_deterministic_and_defined_before_fitting():
+    """Absent predicted class: the pinned D0 vector (smooth(uniform, class)) bitwise, no labels invented, identical on
+    every call; the supervised solve refuses n = 0 (an empty cell cannot acquire supervised statistics)."""
+    rng = np.random.default_rng(41)
+    pol, P, d, y = _synthetic_policy(rng, 6, 800, absent=2)
+    tok, _, _ = RL.encode(pol, P, d)
+    a = DC.decode_policy(pol, tok, P, y)
+    b = DC.decode_policy(pol, tok, P, y, cache=DC.TokenCache())
+    assert a.content_hash() == b.content_hash() and np.array_equal(a.q, b.q)
+    fb = np.flatnonzero(a.fallback)
+    assert fb.size >= 1
+    for t in fb:
+        c = int(a.token_class[t])
+        uni = np.full(6, 1.0 / 6)
+        assert np.array_equal(a.q[t], KM.smooth(uni[None], np.array([c]))[0])
+        assert np.array_equal(a.q[t], pol.token_proto[t]) and a.n[t] == 0 and not a.y[t].any()
+        assert a.certs[t] == {"fallback": "D0_PINNED_NO_FITTING_ROWS", "converged": True}
+    # labels of OTHER rows never leak into a fallback token
+    y2 = (y + 1) % 6
+    c2 = DC.decode_policy(pol, tok, P, y2)
+    assert np.array_equal(c2.q[fb], a.q[fb])
+    with pytest.raises(ValueError, match="no supervised statistics"):
+        DC.solve_token(np.zeros(6), np.zeros(6), 0, 2)
+    # a token mixing an occupied cell with an empty one uses only the rows it has (the empty cell adds nothing)
+    Yc = DC.cell_label_counts(pol.fine, P, d, y)
+    n, S, Yt = DC.token_stats(pol.fine, pol.cell_token, Yc)
+    assert np.array_equal(n, a.n) and np.array_equal(Yt, a.y)
+
+
+def test_certificate_aggregator_and_violations():
+    rng = np.random.default_rng(51)
+    pol, P, d, y = _synthetic_policy(rng, 6, 700, absent=4)
+    tok, _, _ = RL.encode(pol, P, d)
+    tab = DC.decode_policy(pol, tok, P, y)
+    s = DC.certificate_summary(tab)
+    assert DC.summary_violations(s) == []
+    items = [{"unit": "dec__s0__X", "config": "U|FINE-TASK|i8o64|D1", "seed": 0, "certificates": {"1": s, "2": s}},
+             {"unit": "new__s1__Y", "config": "U|C-TASK|i8o64|D1", "seed": 1, "certificates": {"1": s, "2": s}}]
+    agg = DC.aggregate_certificates(items, scope="synthetic")
+    json.dumps(agg, allow_nan=False)
+    assert agg["schema"] == DC.CERT_SCHEMA and agg["tables"] == 4 and agg["units"] == 2
+    assert agg["all_converged"] and agg["all_within_tolerances"] and not agg["tables_with_violations"]
+    assert agg["supervised_tokens"] == 4 * s["supervised_tokens"] and agg["fallback_tokens"] == 4 * s["fallback_tokens"]
+    bad = dict(s, max_stationarity_rel=1e-6)
+    agg2 = DC.aggregate_certificates([{**items[0], "certificates": {"1": s, "2": bad}}])
+    assert not agg2["all_within_tolerances"] and agg2["tables_with_violations"] == ["dec__s0__X:r2"]
+    assert DC.summary_violations(dict(s, min_margin=0.0)) == ["min_margin"]
+    assert DC.summary_violations(dict(s, all_converged=False)) == ["not_all_converged"]

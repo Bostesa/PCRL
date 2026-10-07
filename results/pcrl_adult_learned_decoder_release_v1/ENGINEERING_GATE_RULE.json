@@ -17,7 +17,7 @@
   "E08_INCREMENTAL_REPLAY": "for every mapper unit (C-TASK, W-, K-): mapper.replay_unit on the PERSISTED record and trace is ok and reports no TERMS_MISMATCH, DELTA_MISMATCH, STATS_HASH_MISMATCH or CACHED_SOLVE_MISMATCH (terms and deltas <= 1e-12 abs; statistics and cached q bitwise) and its checks check6 / check7 / check8 are not false; every unit's starts_given equals mapper.registered_starts(arm, lam) exactly (the full registered start / witness list, no fixture subset); independently, every traced state's terms_after equal this module's from-scratch row-level terms within 1e-10; the winning start's incremental search-state terms equal the from-scratch final_state_terms within 1e-10; each stage start equals the previous stage end; the final labels equal the released policy's labels",
   "E09_EXHAUSTIVE_ORACLE": "the stage's exhaustive enumeration covers every canonical same-class partition pair (count == properties.mapping_pairs) and reproduces the published source oracle tables (partitions_r1, partitions_r2, pair_I12; sha256-pinned) entry by entry within 1e-10 (index, labels and tokens_per_class exact); every arm's partition is in the enumeration; every arm carries EXHAUSTIVE_OPTIMAL, HEURISTIC (with its gap) or NOT_A_SEARCH; a labelled HEURISTIC gap is reported, NOT a failure; the source arms tables are compared descriptively only",
   "E10_DECISION_DISCLOSURE_FLOOR": "for every release R of every arm and every enumerated partition pair: I12(R) >= I12(CLASS) - 1e-12 and I_i(R) >= I_i(CLASS) - 1e-12 (data processing: every class-preserving release determines both decisions); I12(CLASS) equals the plug-in MI of SEX with the two teacher decisions; CLASS|D1 budget feasibility (affordability) is RECORDED, never a failure",
-  "E11_LAUNCH_WIRING": "the registered pytest node IDs of WIRING_TESTS, run in one subprocess by the stage, all collect and pass (every group non-empty): science stages refuse without a lock-bound pushed ENGINEERING_READY (lra/run.py); LABEL_TRUTH_TABLE.json matches lra.family.overall_label; lra.eval_lock refuses when technical validity is false; the mapper's synthetic coverage of accepted paired moves and of the temporary sequential partner (the fixture laws need not exercise a paired acceptance; E06 reports the count); this module's verdict / rule / refusal paths; and ENGINEERING_GATE_RULE.json on disk equals engineering_gate_rule() (rule text wired to code)",
+  "E11_LAUNCH_WIRING": "the registered pytest node IDs of WIRING_TESTS, run in one subprocess by the stage, all collect and pass (every group non-empty): science stages refuse without a lock-bound pushed ENGINEERING_READY (lra/run.py); LABEL_TRUTH_TABLE.json matches lra.family.overall_label (no stale cbp / lcr names); lra.eval_lock refuses when technical validity is false; lra.assess and lra.infer refuse without validity / ENGINEERING_READY; fit / audit / inner loaders never return assessment labels; the mapper's synthetic coverage of accepted paired moves and of the temporary sequential partner (the fixture laws need not exercise a paired acceptance; E06 reports the count); this module's verdict / rule / refusal paths; and ENGINEERING_GATE_RULE.json on disk equals engineering_gate_rule() (rule text wired to code)",
   "E12_REVIEW_FINDINGS": "REVIEW_FINDINGS_DISPOSITION.json lists exactly the 14 inherited findings (ordinals 1..14), each with a disposition in ['RESOLVED', 'DUPLICATE_CONSOLIDATED_RESOLVED', 'SUPERSEDED_RESOLVED'] and at least one regression test node ID; every listed node ID collects and passes in the same subprocess; no finding is unresolved (an unresolved finding whose affects_required_adult_execution is not false would also be named as an Adult-execution blocker)"
  },
  "check_ids": [
@@ -107,12 +107,21 @@
   "label_truth_table_matches_lra.family.overall_label [D]": [
    "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable",
    "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate",
-   "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work"
+   "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work",
+   "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped"
   ],
   "eval_lock_refuses_when_technical_validity_false [D]": [
    "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag",
    "lra/tests/test_late.py::test_f13_technical_validity_each_failure_alone",
    "lra/tests/test_late.py::test_f10_f13_technical_validity_ok_only_with_ready_gate_controls_locks_admission_and_clean_selection"
+  ],
+  "assess_and_infer_refuse_without_validity_or_ENGINEERING_READY [D]": [
+   "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses",
+   "lra/tests/test_late.py::test_f13_assess_open_calls_the_validity_check_with_no_override",
+   "lra/tests/test_late.py::test_f10_infer_refuses_without_engineering_ready"
+  ],
+  "fit_audit_inner_loaders_never_return_assessment_labels [D]": [
+   "lra/tests/test_audit.py::test_fit_audit_inner_loaders_never_return_assessment_labels"
   ],
   "synthetic_coverage_of_paired_moves_and_temporary_partner [C, lra/mapper.py]": [
    "lra/tests/test_mapper.py::test_budgets_and_local_caps_enforced_including_paired",

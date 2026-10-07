@@ -103,14 +103,18 @@ def deployed(tmp_path_factory):
     fc["policy.json"](clp)
     cl = RL.load_policy(clp)
     cld = tmp / "class_decoder.json"
-    DC.save_decoder_pair(cld, "U|CLASS|i1o1|D1", cl, *_decoders(cl, T, tr, Y))
+    cl_decs = _decoders(cl, T, tr, Y)
+    DC.save_decoder_pair(cld, "U|CLASS|i1o1|D1", cl, *cl_decs)
+    rel_cl = DC.release_arrays_d1(cl, *cl_decs, T["row_id"], P1, T["d1"], P2, T["d2"])
+    unit2, _, _ = _synthetic_teacher_unit(tmp / "other", seed=1)          # a DIFFERENT teacher unit (other weights)
     unreg = tmp / "unreg.json"
     _, f2 = CP.fit_unit("LOCAL", fine, T, tr, S, 8, 64, 1.0, dict(meta))
     f2["policy.json"](unreg)
     np.savez(tmp / "schema.npz", feature_names=np.array(names))
     np.savez(tmp / "in.npz", X=X, feature_names=np.array(names))
     return dict(tmp=tmp, unit=unit, X=X, names=names, pol=pol, dec=dec, sha=sha, rel_d0=files["release.npz"],
-                rel_d1=rel_d1, ctp=ctp, ctd=ctd, ctsha=ctsha, clp=clp, cld=cld, unreg=unreg)
+                rel_d1=rel_d1, ctp=ctp, ctd=ctd, ctsha=ctsha, clp=clp, cld=cld, unreg=unreg, rel_cl=rel_cl,
+                unit2=unit2)
 
 
 def _args(D, **kw):
@@ -259,8 +263,9 @@ def test_deploy_refuses_mismatched_teacher_decoder_and_unregistered(deployed, ca
     _refused(capsys, _args(D, **{"--decoder": None, "--decoder-sha256": D["sha"]}), "without --decoder")
     # unregistered configurations
     _refused(capsys, _args(D, **{"--policy": str(D["unreg"]), "--decoder": None}), "not a registered")
-    _refused(capsys, _args(D, **{"--policy": str(D["clp"]), "--decoder": str(D["cld"])}),
-             "not the registered D1 control")
+    # CLASS|D1 IS a registered fixed-map D1 control in lra (role F R-1, lra.run.d1_fixed_ids): it deploys (below);
+    # the CLASS policy with the decoder of ANOTHER map is refused
+    _refused(capsys, _args(D, **{"--policy": str(D["clp"]), "--decoder": str(D["dec"])}), "different policy pair")
     pp = RL.PolicyPair.from_dict(json.loads(D["ctp"].read_text()))
     pp.config["config"] = "U|K-JOINT|i8o64|D1"
     RL.save_policy(pp, tmp_path / "kjoint.json")
@@ -271,3 +276,77 @@ def test_deploy_refuses_mismatched_teacher_decoder_and_unregistered(deployed, ca
     RL.save_policy(pp, tmp_path / "rate.json")
     _refused(capsys, _args(D, **{"--policy": str(tmp_path / "rate.json"), "--decoder": str(D["ctd"])}),
              "inconsistent")
+
+
+# ----------------------------------------------------------------------------------------------- lra additions
+def test_deploy_class_d1_control_is_registered_and_bitwise(deployed, tmp_path, capsys):
+    from lra import deploy as DP
+    from lra import run as R
+    D = deployed
+    assert "U|CLASS|i1o1|D1" in R.d1_fixed_ids()
+    DP.main(_args(D, **{"--policy": str(D["clp"]), "--decoder": str(D["cld"]), "--out": str(tmp_path / "cl.npz")}))
+    info = json.loads(capsys.readouterr().out)
+    assert info["config"] == "U|CLASS|i1o1|D1" and info["decoder"] == "D1" and info["binding"] == "BOUND"
+    z = _read(tmp_path / "cl.npz")
+    for i in (1, 2):
+        assert np.array_equal(z[f"tokens_{i}"], D["rel_cl"][f"tok{i}"])
+        assert np.array_equal(z[f"probs_{i}"], D["rel_cl"][f"q{i}"])
+        assert np.array_equal(z[f"decision_{i}"], D["rel_cl"][f"hard{i}"])
+
+
+def test_deploy_refuses_a_different_teacher_unit(deployed, capsys):
+    """The policy (and its decoder) bound to teacher A is refused on teacher unit B (other weights), with and
+    without the decoder; nothing is written."""
+    D = deployed
+    out = D["tmp"] / "never.npz"
+    for dec in (None, str(D["dec"])):
+        _refused(capsys, _args(D, **{"--unit": str(D["unit2"]), "--decoder": dec, "--out": str(out)}),
+                 "different teacher")
+    assert not out.exists()
+
+
+def test_deploy_refuses_extra_renamed_and_reordered_columns(deployed, capsys):
+    D = deployed
+    X, names = D["X"], D["names"]
+    out = D["tmp"] / "never2.npz"
+    # an extra column even with the pinned names first (84 columns), an extra column replacing one (renamed), and a
+    # full reversal of the column order
+    np.savez(D["tmp"] / "x84.npz", X=np.hstack([X, X[:, :1]]), feature_names=np.array(names + ["f00_copy"]))
+    _refused(capsys, _args(D, **{"--X": str(D["tmp"] / "x84.npz"), "--out": str(out)}), "83 permitted columns")
+    ren = list(names)
+    ren[5] = "sex"
+    np.savez(D["tmp"] / "renamed.npz", X=X, feature_names=np.array(ren))
+    _refused(capsys, _args(D, **{"--X": str(D["tmp"] / "renamed.npz"), "--out": str(out)}), "refused")
+    np.savez(D["tmp"] / "reversed.npz", X=X[:, ::-1], feature_names=np.array(names[::-1]))
+    _refused(capsys, _args(D, **{"--X": str(D["tmp"] / "reversed.npz"), "--out": str(out)}), "refused")
+    np.savez(D["tmp"] / "nan.npz", X=np.where(np.arange(83) == 3, np.nan, X), feature_names=np.array(names))
+    _refused(capsys, _args(D, **{"--X": str(D["tmp"] / "nan.npz"), "--out": str(out)}), "finite")
+    assert not out.exists()
+
+
+def test_deploy_refuses_more_export_flags_and_abbreviations(deployed, capsys):
+    D = deployed
+    out = D["tmp"] / "never3.npz"
+    for flag in ("--raw-score", "--scores", "--teacher-scores", "--export-teacher", "--fine-ids", "--fine-id=1",
+                 "--export-fine", "--logit", "--embedding", "--features", "--with-labels", "--sensitive"):
+        _refused(capsys, _args(D, **{"--out": str(out)}) + [flag], "refused")
+    for flag in ("--deco", "--pol", "--sch", "--decoder-sha", "--kappa", "--eps=1e-9", "--lam=0.1", "--no-check"):
+        _refused(capsys, _args(D, **{"--out": str(out)}) + [flag], "refused")
+    assert not out.exists()
+
+
+def test_deploy_refuses_mismatched_decoder_configs(deployed, tmp_path, capsys):
+    """A decoder relabelled to another configuration (hash recomputed) is still refused: the policy/decoder pair and
+    registration must match exactly."""
+    D = deployed
+    body = json.loads(D["dec"].read_text())
+    body["config"] = "U|LOCAL|i8o64|l0.1|D1"                      # same map, other (registered) configuration
+    body["decoder_sha256"] = DC.decoder_hash(body)
+    (tmp_path / "relabel.json").write_text(json.dumps(body))
+    _refused(capsys, _args(D, **{"--decoder": str(tmp_path / "relabel.json")}), "not the registered D1 control")
+    body = json.loads(D["ctd"].read_text())
+    body["config"] = "U|W-JOINT|i8o64|l0.04|D1"                   # a new-fit decoder relabelled to another new fit
+    body["decoder_sha256"] = DC.decoder_hash(body)
+    (tmp_path / "relabel2.json").write_text(json.dumps(body))
+    _refused(capsys, _args(D, **{"--policy": str(D["ctp"]), "--decoder": str(tmp_path / "relabel2.json")}),
+             "differs from the policy")
