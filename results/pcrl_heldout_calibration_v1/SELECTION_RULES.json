@@ -1,0 +1,27 @@
+{
+ "schema": "hcal-selection-rules-v1",
+ "rows": "INNER_SELECTION (2,235 rows); utility via qpc.utility",
+ "u0_gate": "qpc.utility.gate_record(...)['eligible'] each task each seed: acc >= U0 - 0.01; LL <= U0 + 0.01; Brier <= U0 + 0.005; gain >= 0.8 U0 gain; gain >= 0.03; exact decision preservation",
+ "ucal_gate": "LL <= Ucal* + 0.01 and Brier <= Ucal* + 0.005 each task each seed (inclusive)",
+ "ucal_star": "smallest mean over seeds of INNER income + occupation NLL among identity, H-GLOBAL-TEMP, H-CLASS-TEMP; ties within 1e-12 -> identity, global, class; finite and decision-preserving; one family across seeds; selected BEFORE any privacy selection (utility stage)",
+ "audit_plan": "audit iff some non-diagnostic variant passes both gates every task and seed; plus DIRECT-TASK, FINE-TASK, CLASS, C-TASK, JOINT lambda 0.1; others PREDECLARED_UTILITY_INELIGIBLE",
+ "recovery": "common attack-bank record of the release's partition (identical for every decoder variant); continuous U: composed record; auc = attacker-seed 0-2 mean of the inner-AUC-selected reader",
+ "T*": {
+  "pool": "hcal.ids.task_only_candidate (DIRECT-TASK, FINE-TASK, CLASS, C-TASK with D0/D1/MEAN/H-TOKEN32/H-GLOBAL-TEMP/H-CLASS-TEMP; SRC|U identity / H-GLOBAL-TEMP / H-CLASS-TEMP); T-TOKEN32 excluded; no SEX-trained partition",
+  "order": "mean inner pair AUC, worst-seed normalised excess (both references), mean summed task NLL, registered ID order (each value rounded to 12 decimals)"
+ },
+ "P*": {
+  "pool": "hcal.ids.nominee_capable (privacy-trained partitions: 24 legacy, 24 W-, 5 K-; decoders D0 (legacy), D1, H-TOKEN32, H-GLOBAL-TEMP, H-CLASS-TEMP; MEAN and T-TOKEN32 never)",
+  "guard": "AUC_v(P*) <= AUC_v(T*) + 0.005 for v in (v1, v2) on every seed (inclusive; margin form (AUC_v(T*) + 0.005) - AUC_v(P*) >= 0)",
+  "benefit": "mean over seeds of AUC_pair(T*) - AUC_pair(P*) >= 0.02 (inclusive; fixed before fitting; never reduced)",
+  "order": "as T*",
+  "absent": "NO_ELIGIBLE_COMPETITIVE_NOMINEE; no fallback nominee"
+ },
+ "means": "float64 (s0 + s1 + s2) / 3 over source seeds",
+ "disclosures": [
+  "original decoder wins -> incumbent won, no calibration credit",
+  "LOCAL / sequential map wins -> no joint-design credit",
+  "exact deployed alias of a task-only map -> no privacy-training credit",
+  "the lra P* and this study's P* carry distinct roles and provenance"
+ ]
+}

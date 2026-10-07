@@ -1,0 +1,84 @@
+{
+ "schema": "hcal-queue-manifest-v1",
+ "logical_units": {
+  "partition_seed_units": {
+   "count": 171,
+   "rule": "57 partition pairs x 3 source seeds"
+  },
+  "new_heldout_decoder_pair_units": {
+   "count": 513,
+   "rule": "3 held-out families x 171"
+  },
+  "train_matched_diagnostic_units": {
+   "count": 12
+  },
+  "u_calibration_pair_units": {
+   "count": 6
+  },
+  "admitted_original_release_controls": {
+   "count": 252,
+   "rule": "84 x 3"
+  },
+  "mean_decoded_lra_controls": {
+   "count": 90,
+   "note": "legacy means are aliases of the admitted D0 releases"
+  },
+  "privacy_bank_fits": {
+   "count": "one fresh bank per AUDITED partition/seed (audit plan, after the utility stage); never per decoder variant",
+   "max": 171
+  }
+ },
+ "physical_units": {
+  "cal__s{k}__<partition>": {
+   "stage": "calibrate",
+   "count": 171,
+   "depends_on": "admission bank"
+  },
+  "calU__s{k}": {
+   "stage": "calibrate",
+   "count": 3,
+   "depends_on": "admitted teacher"
+  },
+  "util__s{k}": {
+   "stage": "utility",
+   "count": 3,
+   "depends_on": "every cal__ / calU__ unit of the seed"
+  },
+  "audit_plan.json": {
+   "stage": "utility",
+   "count": 1,
+   "depends_on": "util__s0-2 (Ucal*, gates)"
+  },
+  "fam__s{k}__<partition>, com__s{k}__<partition>": {
+   "stage": "audit",
+   "count": "2 x audited x 3",
+   "depends_on": "audit plan, cal__ unit, admitted lra aud__ units"
+  },
+  "com__s{k}__SRC_U": {
+   "stage": "compose",
+   "count": 3,
+   "depends_on": "every com__ / fam__ unit of the seed, admitted aud__tea__s{k}__U"
+  },
+  "controls.json": {
+   "stage": "controls",
+   "count": 1,
+   "depends_on": "CONTROL_PLAN.json, cal__ units"
+  },
+  "selection.json": {
+   "stage": "select",
+   "count": 1,
+   "depends_on": "util, com, controls"
+  },
+  "replay.json": {
+   "stage": "replay",
+   "count": 1,
+   "depends_on": "selection"
+  },
+  "oprob__s{k}__<release>, oatt__s{k}__<partition key>": {
+   "stage": "assess (after EVALUATION_LOCK)",
+   "count": "scored releases x 3, scored partitions x 3"
+  }
+ },
+ "shards": "calibrate / audit run as two shards under the 2-slot semaphore; every unit atomic and resumable (jcv.finalize.save_unit)",
+ "attacker_and_control_counts": "generated from the frozen slate at run time (records), never invented here"
+}

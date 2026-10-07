@@ -94,7 +94,7 @@ with no lra or older gate. No monkeypatching.
 |---|---|---|
 | calibration | task | CALIBRATION_HELDOUT and TRAIN_MATCHED representatives |
 | selection | task | INNER_SELECTION |
-| fitting | task | OSF_DEFENSE_FIT (the source constant predictor only) |
+| fitting | task | OSF_DEFENSE_FIT: the source constant predictor, and descriptive fitting-row losses for CALIBRATION_GENERALIZATION (never an objective, gate or selection input; registered before SCIENCE_LOCK, role E finding E-S2) |
 | attack | SEX | ATTACK_FIT_NEW (fresh readers), AUDIT_FIT (admitted legacy readers, refit for replay and assessment), INNER_SELECTION |
 | attack_diagnostic | SEX | OSF_DEFENSE_FIT (MI diagnostic only) |
 | assessment | — | only after the hcal unseal |
@@ -246,6 +246,17 @@ decoder variants. Every variant receives the same selected attack predictions, h
      registered public lookup vector of the partition (all decoder variants' tables, in registered order), one-hot
      decision]. The pair view is [v1, v2]. Both ignore-recipient banks are included.
 
+**Fresh-view hygiene.** Registered before SCIENCE_LOCK, after a deterministic LAPACK SVD non-convergence inside the
+pinned DA readers on a synthetic planted fresh view.
+- The rule applies only to fresh views (audit, controls and every refit), on each design matrix (v1, v2, then the pair
+  concatenation).
+- It drops every column that is constant on the attacker fit rows (ATTACK_FIT_NEW; role membership only, no labels),
+  then every exact duplicate on those rows of an earlier kept column.
+- No slate member can learn a weight for a dropped column from the fit rows, so every reader is kept. Cell readers key
+  on token identities and are unaffected.
+- Legacy views are the admitted lra views, unchanged.
+- The kept-column lists and their hashes are recorded.
+
 **Selection.**
 - AUC and CE readers are selected separately on INNER_SELECTION, with fixed orientation P(SEX=1) and first-in-bank-order
   ties (1e-12).
@@ -260,8 +271,9 @@ decoder variants. Every variant receives the same selected attack predictions, h
 - followed by the fresh bank of every audited partition, in registered order.
 
 An attacker holding U's interface can compute every code token and every public decoder table, so every code reader
-composes. Stored predictions are reused, not refit. U's recovery is therefore never capped below an audited code's
-recovery. U's three decoder variants share this one bank: a calibrated continuous vector is a utility change, not
+composes. Stored predictions are reused, not refit. U's bank contains every audited code's bank, so its seed-0
+selection value is never below an audited code's; the reported attacker-seed mean of the selected reader can differ
+(MATH_REVIEW note 4). U's three decoder variants share this one bank: a calibrated continuous vector is a utility change, not
 information removal.
 
 **Audit pruning.** This is the only scientific pruning rule, fixed from utility before any new attack result is seen.
@@ -276,13 +288,25 @@ information removal.
 
 **Real-data controls** (CONTROL_PLAN.json). These use the source rules and limits unchanged: NULL_Z 3.5; PLANT_MIN 0.75
 (strict); the realised null threshold must equal 0.5654143765984265 within 1e-12; CONF η 0.05; ROT amplitude 1e-6.
-- The checks are NULL, NULL_CALIBRATION ×5, CONF_r1/r2, COLL_r1/r2 and XOR. They run on the fresh complete views of
-  U|DIRECT-TASK, U|JOINT λ0.1, U|CLASS and U|K-JOINT-PAIR (seed 0): fit on ATTACK_FIT_NEW with permuted SEX, select on
-  INNER half A, evaluate on half B.
-- ROT_r1/r2 runs on SRC|U through the unchanged lra machinery.
-- Controls are fitted after SCIENCE_LOCK and must pass before nomination.
-- A failed required control is a technical validity issue, not a negative method outcome. Synthetic tests are used for
-  engineering only and never replace the real-data controls.
+- **Registered 2026-10-07, before any real control ran and before SCIENCE_LOCK.** The required controls test the
+  pipeline that produces the primary recovery: the COMMON bank, meaning the admitted legacy complete-code pipeline
+  (fitted on AUDIT_FIT, on each original release view of the partition) plus the fresh pipeline (fitted on
+  ATTACK_FIT_NEW, on the fresh complete view).
+- **One S\* for both pipelines.** S\* is the lra/smf permutation: within AUDIT_FIT, INNER half A and half B. The fresh
+  pipeline uses S\* restricted to ATTACK_FIT_NEW. Plants use the same noisy S\* bits for both pipelines.
+- **Common verdict.** Each check takes the union winner, chosen on half A over the banks in bank order, and evaluates
+  it on half B.
+- **Diagnostics only.** Fresh-only and legacy-only verdicts are reported but are never required.
+- **Why.** A synthetic run at real role sizes showed that the smaller fresh fitting pool alone may miss the XOR plant
+  (0.716). The primary audit never relies on the fresh bank alone.
+- **Checks and plan.**
+  - NULL, NULL_CALIBRATION ×5 (common bank), CONF_r1/r2, COLL_r1/r2 and XOR on U|DIRECT-TASK, U|JOINT λ0.1, U|CLASS
+    and U|K-JOINT-PAIR (seed 0).
+  - ROT_r1/r2 on SRC|U through the unchanged lra machinery.
+- **Timing and failures.**
+  - Controls are fitted after SCIENCE_LOCK and must pass before nomination.
+  - A failed required control is a technical validity issue, not a negative method outcome.
+  - Synthetic tests are used for engineering only and never replace the real-data controls.
 
 **Supplementary.** Token-only recovery (cell readers on ATTACK_FIT_NEW) is supplementary only. Probability-only
 recovery is not computed. Primary protection always uses the complete interface.
@@ -306,6 +330,8 @@ buffer and no relaxation.
   occupation NLL, averaged equally over the 3 seeds.
 - Vectors must be finite and decision preservation verified.
 - Ties within 1e-12 prefer identity, then global, then class.
+- NLL here, and in the "mean summed task NLL" tie key, is the source scoring log loss (true-class probability
+  clipped at 1e-12). The unclipped NLL is only the calibrators' fitting objective.
 - One family across seeds; parameters differ by seed. Locked in SELECTION.json before any privacy selection.
 
 **Calibration-matched gate (added).** Each candidate and comparator must have LL ≤ Ucal\* + 0.01 and Brier ≤ Ucal\* +
@@ -459,12 +485,12 @@ Research deployment is not authorisation to deploy externally.
 
 | Role | Owns |
 |---|---|
-| A (coordinator) | hcal/ids.py, data.py, admit.py, run.py, lock.py, sema.py, select.py, family.py, eval_lock.py, assess.py, infer.py, deploy.py, report code; PROTOCOL.md, SELECTION_RULES.json and every integrated document |
+| A (coordinator) | hcal/ids.py, data.py, admit.py, run.py, lock.py, sema.py, stages.py, select.py, family.py, engineering.py, registry.py, eval_lock.py, assess.py, infer.py, deploy.py, report.py; tests/…/test_data_select.py, test_infer.py, test_deploy.py; PROTOCOL.md, SELECTION_RULES.json and every integrated document |
 | B (math review) | MATH_REVIEW.md (findings only) |
 | C (calibration) | hcal/calib.py, tests/…/test_calib.py |
 | D (attack/control) | hcal/bank.py, hcal/controls.py, tests/…/test_bank.py, test_controls.py |
 | E (verifier) | results/…/verification/ (separately written replay; no import of hcal calibration, runner, metrics, selection or inference) |
-| F (custody, resources, reporting) | BACKUP_VERIFICATION.json, RESTORE_INDEX.json, COST_AND_CLOSEOUT.md (draft), consistency and identity scans |
+| F (custody, resources, reporting) | hcal/closeout.py, tests/…/test_closeout.py, PRIOR_ART_AND_CLAIM_SCOPE.md, TEAM_PLAN.md; BACKUP_VERIFICATION.json, RESTORE_INDEX.json, COST_AND_CLOSEOUT.md (draft), consistency and identity scans |
 
 Reviewers write findings separately and never edit another role's locked file.
 

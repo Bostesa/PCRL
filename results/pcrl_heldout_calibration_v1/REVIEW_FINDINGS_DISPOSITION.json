@@ -1,0 +1,146 @@
+{
+ "schema": "hcal-review-findings-disposition-v1",
+ "owner": "A (integration; reviewers never edit locked files)",
+ "findings": [
+  {
+   "id": "B-1",
+   "source": "MATH_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "Ucal* and the tie key use the clipped scoring log loss while the rule says NLL",
+   "disposition": "FIXED before ENGINEERING_LOCK: PROTOCOL section 6, SELECTION_RULES (select.py docstring) state that 'NLL' in Ucal* and the tie key is the source scoring log loss (true-class probability clipped at 1e-12); the unclipped NLL is only the calibrators' fitting objective"
+  },
+  {
+   "id": "B-2",
+   "source": "MATH_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "U H-CLASS-TEMP normalisation check also applied to alpha = 1 rows (P exactly)",
+   "disposition": "FIXED (role A integration in hcal/calib.py _check_u_out/apply_u): argmax checked on every row, normalisation and finiteness on transformed rows only; regression test tests/pcrl_heldout_calibration_v1/test_data_select.py::test_u_class_temp_identity_rows_pass_through_unnormalised_within_check_probs"
+  },
+  {
+   "id": "B-3",
+   "source": "MATH_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "criteria() could read PASS beside INCOMPLETE_OR_INVALID; selection ignored failed controls",
+   "disposition": "FIXED: hcal.family.criteria takes technical and comparator validity (INVALID_TECHNICAL / INVALID_NO_COMPARATOR); hcal.infer passes them; hcal.select.select_all records every role TECHNICAL_FAILURE when controls are not all_ok; LABEL_TRUTH_TABLE.json regenerated"
+  },
+  {
+   "id": "B-4",
+   "source": "MATH_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "U never capped below an audited code holds for the seed-0 selection value, not necessarily the reported seed mean",
+   "disposition": "PROTOCOL section 5 reworded"
+  },
+  {
+   "id": "B-5",
+   "source": "MATH_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "T* may resolve to continuous U",
+   "disposition": "selection records T*.is_continuous_U; reports must say so if it happens"
+  },
+  {
+   "id": "B-11",
+   "source": "MATH_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "z computed at the float argument differs from the exact quantile by 1.35e-14",
+   "disposition": "registered z is NormalDist().inv_cdf(1 - 0.05/46) as computed; role E told to recompute with that expression or tolerance >= 1e-13"
+  },
+  {
+   "id": "B-13",
+   "source": "MATH_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "deployed decoder.json embeds per-token calibration label counts (n can be 1)",
+   "disposition": "decoder files are private artifacts (private store only, referenced by hash); disclosed in MODEL_MANIFEST.json"
+  },
+  {
+   "id": "B-other",
+   "source": "MATH_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "alias check compares release bytes; MEAN-only eligibility triggers an audit; select docstring rounding; nll_ok headroom; U 1-ulp near ties raise; supplementary repeats D slots; U nll_one on floored P'",
+   "disposition": "accepted as registered (documented): alias = exact deployed bytes per the prompt; a MEAN-eligible lra partition is audited (prompt: 'at least one variant'), harmless; docstring corrected; a U near-tie refusal would be a technical failure, not hidden"
+  },
+  {
+   "id": "D-XOR",
+   "source": "role D hand-back",
+   "severity": "SHOULD-FIX",
+   "issue": "fresh-only XOR plant may miss 0.75 with 4,064 fit rows (synthetic 0.716)",
+   "disposition": "REGISTERED before any real control and before SCIENCE_LOCK: required controls test the COMMON bank (legacy AUDIT_FIT pipeline + fresh ATTACK_FIT_NEW pipeline, one S*, union winner chosen on half A, evaluated on half B); per-pipeline verdicts diagnostic; source limits unchanged (PROTOCOL section 5)"
+  },
+  {
+   "id": "F-load_D_from_copy",
+   "source": "role F hand-back",
+   "severity": "NOTE",
+   "issue": "closeout.load_D_from_copy temporarily rebinds osf.data.SRC",
+   "disposition": "not used: restores load D with the pinned loader on the admitted input whose hash is verified against the copy"
+  },
+  {
+   "id": "D-SVD",
+   "source": "role D hand-back",
+   "severity": "SHOULD-FIX",
+   "issue": "deterministic LinAlgError (SVD did not converge) inside the pinned smf.audit.Canon (DA_LR / DA_MLP) on a synthetic planted fresh view with constant-on-fit and duplicate columns",
+   "disposition": "REGISTERED before SCIENCE_LOCK: fresh-view hygiene (drop columns constant on ATTACK_FIT_NEW, then exact duplicates on those rows of an earlier kept column; label-free, deterministic, recorded); every pinned reader kept; legacy views unchanged (PROTOCOL section 5)"
+  },
+  {
+   "id": "E-B1",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "BLOCKING",
+   "issue": "controls all_ok read at the top level while summarise_controls puts it under verdict (study could never complete; fail safe)",
+   "disposition": "FIXED: hcal.select.controls_all_ok / apply_controls read verdict.all_ok (missing -> False); select_all, eval_lock and stages use it; test_controls_verdict_feeds_selection_and_fails_safe"
+  },
+  {
+   "id": "E-S1",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "guard wording AUC(P*) - AUC(T*) <= 0.005 vs the margin-form code",
+   "disposition": "FIXED: SELECTION_RULES text states AUC_v(P*) <= AUC_v(T*) + 0.005 in the margin form"
+  },
+  {
+   "id": "E-S2",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "fitting-row task labels read for descriptive losses outside the registered allowlist text",
+   "disposition": "AMENDED BEFORE SCIENCE_LOCK: PROTOCOL section 2, hcal.data docstring and EXPOSURE_LEDGER allow OSF_DEFENSE_FIT task labels for the constant predictor AND descriptive fitting-row losses (never an objective, gate or selection input)"
+  },
+  {
+   "id": "E-S3",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "decoder-variant equivalence test was circular",
+   "disposition": "ADDED test_every_variant_resolves_to_its_partitions_single_common_and_attack_record (select / infer / eval_lock resolution)"
+  },
+  {
+   "id": "E-S4",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "missing-comparator test could not fail",
+   "disposition": "ADDED test_no_eligible_task_only_comparator_path (T* NO_ELIGIBLE, P* NOT_SELECTED_NO_COMPARATOR exercised)"
+  },
+  {
+   "id": "E-S5",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "untested ordering / tie keys, inclusive benefit, Ucal boundary, controls -> TECHNICAL_FAILURE",
+   "disposition": "ADDED test_ordering_keys_and_inclusive_boundaries and test_controls_verdict_feeds_selection_and_fails_safe"
+  },
+  {
+   "id": "E-S6",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "no independent K = 6 token32 solve",
+   "disposition": "ADDED test_token32_k6_against_independent_slsqp"
+  },
+  {
+   "id": "E-S7",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "SHOULD-FIX",
+   "issue": "controls loaded bank npz without the admitted-hash check",
+   "disposition": "FIXED: stage_controls passes load_bank_fn = hcal.run.bank (hash-checked)"
+  },
+  {
+   "id": "E-NOTE-hygiene",
+   "source": "verification/E_ENGINEERING_REVIEW.md",
+   "severity": "NOTE",
+   "issue": "hygiene drops columns duplicate only on ATTACK_FIT_NEW; for tokens unseen there readers see the first table's values",
+   "disposition": "accepted as registered (PROTOCOL section 5)"
+  }
+ ]
+}

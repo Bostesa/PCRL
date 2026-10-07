@@ -1,0 +1,74 @@
+{
+ "schema": "hcal-predictions-v1",
+ "registered": "before SCIENCE_LOCK and before any calibration fit or Adult label read",
+ "status": "forecasts only: they never determine execution, gates or labels",
+ "basis": [
+  "lra: the kappa-32 learned decoder fitted on the teacher's own fitting rows improved fitting-row occupation LL by about 0.026 nats but worsened held-out occupation LL on every named same-token map (+0.010 / +0.024)",
+  "admission: the occupation recipient has about 230-270 tokens per map, so 2,000 calibration representatives give about 7-9 rows per occupation token (income: about 14-16 tokens, about 130-140 rows per token); the kappa-32 prior (32 pseudo-observations) therefore dominates most occupation tokens",
+  "the frozen U heads were fitted (and the teacher means computed) on OSF_DEFENSE_FIT; mean decoding pools teacher probabilities within a token, so q0 is the in-sample average of teacher outputs, whose held-out confidence error is unknown",
+  "temperature scaling is a low-variance one-parameter recalibration (Guo et al. 2017) that cannot change decisions",
+  "the common attack bank now takes, per partition, the maximum over the admitted legacy D0/D1 banks and one fresh bank; recovery can only stay equal or rise relative to the lra D0-only inner values",
+  "lra's P* (D0 JOINT lambda 0.1) failed only on occupation LL precision (excess 0.0081, UB 0.0121); calibration of both P* and U may move both sides of that comparison"
+ ],
+ "forecasts": [
+  {
+   "id": "F1",
+   "question": "Fitting role (D01-D04, JOINT lambda 0.1): sign of T-TOKEN32 minus H-TOKEN32",
+   "forecast": "positive point estimates (held-out fitting better) on occupation LL and Brier; income near zero",
+   "probabilities": {
+    "D02 occupation LL point > 0": 0.7,
+    "D02 interval excludes 0 on the positive side": 0.35,
+    "all four D01-D04 SUPPORTS_POSITIVE": 0.1,
+    "any D01-D04 SUPPORTS_NEGATIVE": 0.1
+   }
+  },
+  {
+   "id": "F2",
+   "question": "Parameter sharing (D05-D08, JOINT lambda 0.1): sign of H-TOKEN32 minus H-GLOBAL-TEMP",
+   "forecast": "shared temperature at least as good on occupation LL (positive point); income near zero",
+   "probabilities": {
+    "D06 occupation LL point > 0": 0.6,
+    "D06 interval excludes 0 on the positive side": 0.3,
+    "all four D05-D08 SUPPORTS_POSITIVE": 0.1,
+    "any D05-D08 SUPPORTS_NEGATIVE": 0.2
+   }
+  },
+  {
+   "id": "F3",
+   "question": "Ucal*",
+   "forecast": "a temperature family (global or class) beats U identity on inner summed NLL by a small margin",
+   "probabilities": {
+    "Ucal* = identity": 0.3,
+    "Ucal* = H-GLOBAL-TEMP": 0.35,
+    "Ucal* = H-CLASS-TEMP": 0.35
+   }
+  },
+  {
+   "id": "F4",
+   "question": "Nomination",
+   "forecast": "an eligible competitive P* exists, most likely a legacy JOINT/SEQ map at lambda 0.08-0.1 with a held-out temperature decoder or its original D0",
+   "probabilities": {
+    "P* exists": 0.55,
+    "P* decoder is a held-out calibrator": 0.3,
+    "P* decoder is original (incumbent)": 0.25,
+    "T* is FINE-TASK or DIRECT-TASK (any decoder)": 0.75
+   }
+  },
+  {
+   "id": "F5",
+   "question": "Overall label",
+   "probabilities": {
+    "CALIBRATED_PRIVATE_RELEASE_DEVELOPMENT_CRITERION_ESTABLISHED": 0.15,
+    "ORIGINAL_REQUIREMENTS_MET_CALIBRATED_REFERENCE_NOT_ESTABLISHED": 0.1,
+    "NO_COMPETITIVE_RELEASE_CRITERION_ESTABLISHED": 0.3,
+    "NO_ELIGIBLE_COMPETITIVE_NOMINEE": 0.4,
+    "INCOMPLETE_OR_INVALID": 0.05
+   }
+  },
+  {
+   "id": "F6",
+   "question": "Standard calibrated controls",
+   "forecast": "the held-out hypothesis is plausible but unproved; the calibrated task-only controls and calibrated U may improve as much as the private arm, so the calibration-matched clauses may remove any original-criterion pass"
+  }
+ ]
+}

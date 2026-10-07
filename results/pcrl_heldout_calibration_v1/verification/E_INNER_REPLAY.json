@@ -1,0 +1,405 @@
+{
+ "schema": "hcal-E-inner-replay-v1",
+ "role": "E (independent verifier)",
+ "generated_at": "2026-10-07T13:51:58Z",
+ "script": "results/pcrl_heldout_calibration_v1/verification/verify_inner.py",
+ "script_sha256": "0ac3680912bd7460af8c0169ce6b402f26f043b41403cc0bb305d3dffa67f225",
+ "head": "53f47795864d0f97755ec2a2e745ecc4cdfd1c00",
+ "science_lock": {
+  "pushed": false,
+  "reason": "results/pcrl_heldout_calibration_v1/SCIENCE_LOCK.json does not exist"
+ },
+ "labels_policy": "no label read unless SCIENCE_LOCK.json is byte-identical on origin; then only the reads listed in label_reads (HEAD_VALIDATION and assessment labels never read)",
+ "label_reads": [],
+ "independence": {
+  "hcal_modules_loaded": [],
+  "worktree_top_level_modules_loaded": [
+   "__main__",
+   "dpc",
+   "lra",
+   "osf",
+   "qpc",
+   "rgj",
+   "smf"
+  ],
+  "imports": [
+   "json",
+   "hashlib",
+   "math",
+   "os",
+   "subprocess",
+   "sys",
+   "time",
+   "pathlib",
+   "numpy",
+   "lra.data (pinned loader; load() only)"
+  ]
+ },
+ "tolerances": {
+  "utility_auc_ce_tables": 1e-12,
+  "selections": "exact",
+  "kkt_rel": 1e-09,
+  "alpha": 1e-09,
+  "tie": 1e-12
+ },
+ "statuses": {
+  "1_ROLE_SPLIT": "PASS",
+  "0_FROZEN_BANK": "PASS",
+  "2_CALIBRATION": "PENDING",
+  "3_UTILITY": "PENDING",
+  "4_COMMON_RECORDS": "PENDING",
+  "5_SELECTION": "PENDING"
+ },
+ "checks": {
+  "1_ROLE_SPLIT": {
+   "status": "PASS",
+   "what": "hash-ranked calibration split from D['unit'] / D['row_id'] (no labels)",
+   "compared": 51,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": [],
+   "counts": {
+    "CALIBRATION_HELDOUT": {
+     "rows": 2000,
+     "groups": 2000
+    },
+    "CALIBRATION_HELDOUT_GROUP_ROWS": {
+     "rows": 2001,
+     "groups": 2000
+    },
+    "ATTACK_FIT_NEW": {
+     "rows": 4064,
+     "groups": 4061
+    },
+    "CALIBRATION_TRAIN_MATCHED": {
+     "rows": 2000,
+     "groups": 2000
+    },
+    "CALIBRATION_TRAIN_MATCHED_GROUP_ROWS": {
+     "rows": 2002,
+     "groups": 2000
+    }
+   },
+   "disjointness": {
+    "CALIBRATION_HELDOUT vs OSF_DEFENSE_FIT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_HELDOUT vs HEAD_VALIDATION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_HELDOUT vs ATTACK_FIT_NEW": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_HELDOUT vs INNER_SELECTION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_HELDOUT vs OSF_DEVELOPMENT_ASSESSMENT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "ATTACK_FIT_NEW vs INNER_SELECTION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "ATTACK_FIT_NEW vs OSF_DEVELOPMENT_ASSESSMENT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "ATTACK_FIT_NEW vs OSF_DEFENSE_FIT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "ATTACK_FIT_NEW vs HEAD_VALIDATION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_TRAIN_MATCHED vs INNER_SELECTION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_TRAIN_MATCHED vs OSF_DEVELOPMENT_ASSESSMENT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_TRAIN_MATCHED vs AUDIT_FIT": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    },
+    "CALIBRATION_TRAIN_MATCHED vs HEAD_VALIDATION": {
+     "shared_rows": 0,
+     "shared_groups": 0
+    }
+   },
+   "parent_groups": {
+    "AUDIT_FIT": 6061,
+    "OSF_DEFENSE_FIT": 15428
+   }
+  },
+  "0_FROZEN_BANK": {
+   "status": "PASS",
+   "what": "admitted frozen-bank npz files: hashes and internal consistency (no labels)",
+   "compared": 4108,
+   "max_abs_diff": {
+    "mu=S/n": 0.0,
+    "q0=smooth(mu)": 0.0
+   },
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": []
+  },
+  "2_CALIBRATION": {
+   "status": "PENDING",
+   "what": "H-TOKEN32 / T-TOKEN32 KKT, H-GLOBAL-TEMP / H-CLASS-TEMP own solves, U temperatures",
+   "compared": 0,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [
+    "171 of 171 cal__ units missing",
+    "calU__s0 missing",
+    "calU__s1 missing",
+    "calU__s2 missing"
+   ],
+   "notes": [],
+   "token32_fitted": 0,
+   "token32_fallback": 0,
+   "max_token32_gap_rel": 0.0,
+   "max_token32_feasibility": 0.0,
+   "min_token32_margin": null,
+   "temperature_solves": 0,
+   "temperature_boundaries": 0,
+   "class_fallbacks": 0
+  },
+  "3_UTILITY": {
+   "status": "PENDING",
+   "what": "inner utility of every release and seed, gates, Ucal*, utility table, audit plan",
+   "compared": 0,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [
+    "utility replay needs INNER_SELECTION task labels (SCIENCE_LOCK not pushed)"
+   ],
+   "notes": []
+  },
+  "4_COMMON_RECORDS": {
+   "status": "PENDING",
+   "what": "within-bank selections, seed means and union records (codes and U)",
+   "compared": 0,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [
+    "attack replay needs INNER_SELECTION SEX (SCIENCE_LOCK not pushed)"
+   ],
+   "notes": []
+  },
+  "5_SELECTION": {
+   "status": "PENDING",
+   "what": "T* and P* with every rejection reason (protocol section 6)",
+   "compared": 0,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [
+    "selection replay needs the utility table and every common record"
+   ],
+   "notes": []
+  }
+ },
+ "inputs_status": {
+  "controls.json": "MISSING",
+  "replay.json": "MISSING"
+ },
+ "inputs_sha256": {
+  "<PRIVATE_CACHE>/hcal_v1/admitted/ADMISSION_RECEIPT.json": "11a88b1eaeb990f219bf75f4d537f369d334e3ffaddde0fc8fc0b96a542020ce",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_C-TASK_i8o64.npz": "efa807dec5a46570de34df4ba5bbe34d86ef5995118bedf2d08bac4ab051babd",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_CLASS_i1o1.npz": "f2641f0da198414e7fda49af12934cd13ad9cd41e52fc41b14fe9ea342d45766",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_DIRECT-TASK_i8o64.npz": "45c5a5e46ad6c9cff7de4640f35ebc6e172a09aa556d2e1b7506dff8d817b80d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_FINE-TASK_i8o64.npz": "378888571b86af31334312ec0ceb2be03ebe49256c0ab198d81f05e44351672c",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.01.npz": "dbe97aa41bf7f1990a31ed322e1de345799da82136fa8efbc57f0539b7b90c37",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.025.npz": "59ad983c2e4b85ee989823e98886236b5027a18d40ce46468af117b246191831",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.04.npz": "38f16ed64062a43bbe4a64a05ad7a018e5bebce147e0a73ae8060e530a2bb896",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.06.npz": "6717c50aae239cb228392c6a56e06037fd71546a75d99adaa4e4bd86bd0aa4e3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.08.npz": "362c320be113ed6a962a3c4823e11c92f61c051295653361773011f6a8be3aef",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_JOINT_i8o64_l0.1.npz": "748127a2ef58b809fbbd485c795c1298d6794b526ad75d3d2a3562515a317ea0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_K-JOINT-PAIR_i8o64.npz": "2ce88582a5b5c0095263bd685fbd2dc42615d425ce08ceceebe78de85b5f65e6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_K-JOINT-SINGLE_i8o64.npz": "2ce88582a5b5c0095263bd685fbd2dc42615d425ce08ceceebe78de85b5f65e6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_K-LOCAL_i8o64.npz": "ecdf696fa21984994a183c4a5ebec31b50e1b4adbbf7989995a2494078d61988",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_K-SEQ-12_i8o64.npz": "2a581f061dd3944a80e678a75c5a0677dd81c616fa0957190efc557922cabae6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_K-SEQ-21_i8o64.npz": "7e32b734254ec97b51d2beed0580d1ca68e12eb936fc94a7733268fa7a1d01da",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.01.npz": "19d2ae059b8d1b0e66c9182f5a43e17045ebb5a369749a7e293d140e168186d0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.025.npz": "9e131cf439811ac314c487c0a9540d4bd521adc4ba9fdfd046049cc4bae66fde",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.04.npz": "e02ba77f5f216dce4e1415c1fa121c263aed0671f97de05d1d73c80f66572679",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.06.npz": "09cb117a70e4af1547e1579f5445e3bfd087595c0cc6fc68d895aa44fd2fc4fc",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.08.npz": "5e90119b56e4ccbf844f21bc4b9d01af7fe6aea66dd24c9e017c7c6d72209e07",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_LOCAL_i8o64_l0.1.npz": "1881ea8d9832cfd37bebe2ea70ffdc1abf62e3ea680f0d0c8779f4469bee7ab2",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.01.npz": "dbe97aa41bf7f1990a31ed322e1de345799da82136fa8efbc57f0539b7b90c37",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.025.npz": "c47f1067553f17f8e7ff2c494bb4f10a27da65e07b46da39e2076fc2f41505df",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.04.npz": "9ef84f5c5eeac587fa7d39efdb41475541246c09eb29112f98d9d5d02736e474",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.06.npz": "9abe8c2312bfd30c7a2172144735df20247b2cc8e6d639869b42679766dffcdf",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.08.npz": "b4b1828fb5c681d0aaf0304782720c3fd8bb381621821b955e26265a02649fee",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-12_i8o64_l0.1.npz": "bc8f218fa05bf42fbe2a93ef1894d916cfcbe8afe24fc7921d958603b86c3fac",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.01.npz": "a7811b197c43b7c89cd64c6009e0077d97613406dbc2d3446a5116c4cde0f343",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.025.npz": "3c6d0995c85ea37f20e924c5a2bc16acbfae94b28c277e2d29288643fdd7ea55",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.04.npz": "926aa03b62e403aa7e43dfc4ec2f481dc631b72a42e26aa564d6ce8f18572d7a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.06.npz": "d91ee34c25d2e2806d5f58013284ff18f730f372de372713bff8438131f42dbc",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.08.npz": "d112162a9f9551d5c2482bf053d134388dd66a8e960d20ea3555b05b62f6e3b5",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_SEQ-21_i8o64_l0.1.npz": "12be2287a6b539a310c0c64744f47e65064089e62c84da954e9a9c7d563bd9f3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.01.npz": "ab1a7be5c9e4871684603e0fc97a105b2d201801f2b70a514d407c2c8fa78a19",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.025.npz": "2c1b5b29aa27f7ca32c8a91d229fc677499b4fd296b1181e11942fef784c140f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.04.npz": "1f3c685cf2d35a46dcfa68ff423f4d5a53baebb48b042b9ef49ab97dd01018a2",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.06.npz": "0db7683e2bd720890d8c1e19dfcf10688abde9893b31f2f5bbeb7c7bc0043509",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.08.npz": "0e824940093b345956a660c7aa5ae06efa3813f0c5166f34d2e51504cf6490cb",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-JOINT_i8o64_l0.1.npz": "5df6cf60927ef39427e9eeb13d4dce80834d856c38d585289a97cd491ccf5ae8",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.01.npz": "f7b45798a7ea3f8c39858011a27d9769855e3998bd96ecb1d13093c410769836",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.025.npz": "198f19ab133e8867666f28e1a9afbb2d67ad9c424dd6585a097b62045c278a46",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.04.npz": "d8928182fbc361857af8ad7ff1830344904f30c1bb7a64344a8e26959ae4cad7",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.06.npz": "7c4f87c0f6a7d027916f363881f10a71fb3b20d42c69f46fb8ff135d133668a1",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.08.npz": "45ae3ae6a03e313d57d3973d80d2029d24e3f2071850b3b06fbcfe5958883b16",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-LOCAL_i8o64_l0.1.npz": "1c8ebeca2abd4b4c803717764519d656711829a2f00211e2a6164bd00e5da88f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.01.npz": "480eb8805c237440f3aeb1da6698a5851a40079a8a77db205851aff56f2c0b15",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.025.npz": "723abab621ff47dabf58b105679ba4789426d1966d6c8ed7fbb4d72fadd55312",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.04.npz": "43f2337e6f82a78c675de058c4eec92b93a0cf0f0fccf3ab7f7bc46e34b3ff2c",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.06.npz": "1d11ad3b13c09ee08f136c74932f26b6dd9a13df285dde8ffe9a0cac050f7f2f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.08.npz": "39fc2ca644677cf11327c5cee66d741ca5e05e5699151877e27b7569516a8688",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-12_i8o64_l0.1.npz": "b891a055cd0f93e71a7420720df04dde0e15483750e370dcf2a7deb7701a767b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.01.npz": "ad7ca1d1de2a8db3c61890dda118155f2910ab5881a7f5959bbaab022abda003",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.025.npz": "29c50882f1cde132863c9ee5b70a6741ce08a0475fbce4b8f7951e3d8fec1ae7",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.04.npz": "69f5351f7f63a9569209dfea7f3fa779179e6532e0ea57cb122dc0615a22d6ae",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.06.npz": "df77f032ed0e636e5ca60afe0c09bf17c1289fe22d6cb2c8c0517884c5334d38",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.08.npz": "7a5108dd9135782eeb42f3de9f1af646ff5607b2c9081eb44c0306fec2c57069",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s0__U_W-SEQ-21_i8o64_l0.1.npz": "d074231e5cbb2098d40a9078eaec7481423f1d527c0ab7d1a0eb163c727e11ed",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_C-TASK_i8o64.npz": "0380af98e12a6ffacf474085f42281077e6e3289bb5f56765aebbf84920a820f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_CLASS_i1o1.npz": "b4e654ecba1d1ae1adfdcca06b856c909241ae3e2eb60f1a8149ccac0f371ce5",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_DIRECT-TASK_i8o64.npz": "9f31114482108b383148feb00877789314968fc29b5d0231ccba6ff257a970d4",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_FINE-TASK_i8o64.npz": "790977f0405fd8079d05b8c97647c4d6c301ba7481439d81a6cd7480af80d06a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.01.npz": "310fda66750fe473e5be5c5238af7a8750831e05812c4cf21111616ec157bb15",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.025.npz": "b6b3eece8397c3bdc33ed12e8dba2333ee3a87fd53680b68a8129a647d0315c5",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.04.npz": "76d58197c8d6a1aae69f77725a95ebd543711f940891b3f80cad14ebf109a5a3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.06.npz": "1c804052416d46e30acaa570cf8f63fd1abcb0de3853dd5f43a56971a12bd1dd",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.08.npz": "b5ba7be4c1d5c08835a57a315042530206760c9a37c901791c9ed69fa433d556",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_JOINT_i8o64_l0.1.npz": "9436ebfcd3df2e79e6a84578460bf12525f5c4d3ca6c3494f4ddc61059a80fca",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_K-JOINT-PAIR_i8o64.npz": "bbf52b656aabac2843ee0337a99fb09b6c367341bac2892b108e04e6d7fc39ba",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_K-JOINT-SINGLE_i8o64.npz": "f0e446238421543306df5400e3d14373767fe724220809049a6ab068c8830a79",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_K-LOCAL_i8o64.npz": "8d677f3e183eaf1a36dfea4600949b12b2a4be66a25db543676317766a1fb12b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_K-SEQ-12_i8o64.npz": "60b82b8cdff3b2af22141fd733c9b2e33c3e94f072a0ee29fdaf230ced51275a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_K-SEQ-21_i8o64.npz": "8360e4770987d1e612490c68d9802374dff02dcf0b972c502c8e6f41b67de43f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.01.npz": "3d11918f7d0ebc07da676a50dfe856656b873f701b6d9f5e0d90cf310d3a7e2d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.025.npz": "15c895529db89cd9dda8e418b5e66128879db09ed5dcb5a9c5672f0da3a28031",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.04.npz": "bb8bcdd781e3e5965bf63d8664002a229e909fab146b18a77e0e79e2d08e15f8",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.06.npz": "206068f6580084ddbbfa921ca2041e15aec39c96aec38c66b399d382fd0b29b0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.08.npz": "b0d68f4a54f8a1b386d1d602332fb42494295517ac2db8486a5940f57d829f23",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_LOCAL_i8o64_l0.1.npz": "28c1e85d60cc4220e7509fd9a328f8ddbebe1b264190c4881553b9203e3f9506",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.01.npz": "6570df5a03685c96c7bd6d213110e6d287848916f41f7b1eec2e54d8cec372dc",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.025.npz": "721ad5db06544f240bb6b9a67aa41f8e6d99d6b16d2961eb5e0a31c7dd4e9476",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.04.npz": "558088731ccd15cbadd92c2dc33e00598a34c7e3c18afec8147f82fc5e536d53",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.06.npz": "208e80bff1e415d850e2aa4545342e2bf9185a67d8c5a3e33c2ef6f77a49bf1b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.08.npz": "d9b66816e3d8e477b130727961c71aee14021c57e431cc3df978f7e50031aca6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-12_i8o64_l0.1.npz": "9aeff70976322cf03b07db04c20b8547be1178348f332a7d2551986bf0e46a44",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.01.npz": "ddb7fc9efe923172487fae31e1109b8c1fe9050b540dea6730c408df2d74bd96",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.025.npz": "ec5c6cc80d459f6641eb1e5c33bbd0bb45d513978a6322cb335c2e7a180cbdab",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.04.npz": "bbdeb5fc3548cac62d63001c3708930c302e1ebc7273b39eadde2af3bf308b15",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.06.npz": "a8ae59be2663ef72c128ef0e4f2b8ee61969791455ca1c63e0cd41a4bef988b5",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.08.npz": "defb4f6135ca28ed4b69f9bc1b1da32470f3f1e2fe90032c12605fef2496690e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_SEQ-21_i8o64_l0.1.npz": "7aad7366ac4b77a2b748c4523fdf05286980e2f9619aa4477ef4895a4f71a3d5",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.01.npz": "8ab62fb77478c12fbcb9c3fdd85189e545c39fedc4e2c42c880a924dc8a18c1a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.025.npz": "d8e4e0d200f686acbf218472898d80c3b8981fc21c639c55264dfc42f20bfb1e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.04.npz": "3ce05ab5f405fd9c1e1ca8d1a1b4dcd38d4050e5d892eae87f07e3e990f5ea1b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.06.npz": "44da31fbd47d33adce002c19c9b11c5e2cb54763182ccb86c05b455c5ebe9589",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.08.npz": "8e8bddf87068143ad28f5a595e3adecb8a7e6cebace472c4bf2815f78835101d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-JOINT_i8o64_l0.1.npz": "36da1e297fae4a0f08a5e307a6dc2bf0e62f544bd681bb5cec76bc6add5921d1",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.01.npz": "4d99cd56ddc6b2625a3aea30aaf5b43492ae66ee976ec56bc0a6314f94772003",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.025.npz": "123bc1f4cedac72f3f6b29352e4df5772faf9898ce9aad8aefa5120d66512971",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.04.npz": "ba33b3b51a60cfcdafd298f04c86951f51862b16c2d6e093e768b504e01fddfe",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.06.npz": "f604386886be6c4f4676274446b0d2eaad5d2c027c67600523da09f7ba86c8d8",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.08.npz": "3a29b5ca3768a965f847033814a84e3921c9ca0f33a5cefba1c05af210de7073",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-LOCAL_i8o64_l0.1.npz": "0aa6c3d44a9ffcd43f9015cafbb91890254f2d95dc3dcd6fe0b2f4827eaa4fac",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.01.npz": "8e06cc800a28b42ceaf2a559baaec53ca184952dbe84a2e10216bb83ee8cbc37",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.025.npz": "d8e4e0d200f686acbf218472898d80c3b8981fc21c639c55264dfc42f20bfb1e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.04.npz": "109b42b779a76a680b8cd473362e6d6d390dd1352b987b7af80d289222282dea",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.06.npz": "8c9af1ffc1ca19ef39dffd4477453566d62fe40093f42000d91f7b08986dc39f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.08.npz": "c10e69f8235958743c165545a1c71a4c773604b438b86c5ba3646ce7fa8dd131",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-12_i8o64_l0.1.npz": "3618a9beb9b583d5e0e8bdea6621225e1ef5d1728aa09f3781e6b968409c72d4",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.01.npz": "9d4961744481eb15c00d3a8d233ee7abe5fe73f957f6bf9d5fb889ba903ab3b0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.025.npz": "63b4bd1f93b413a7d3fcf01d79130bd10d8021e9af0aa6ea346229707e5c40b2",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.04.npz": "fa709dbdc61af2bf97bb33b42eacd03e640a1109475f11fd50e66a1c1c508add",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.06.npz": "05d2bfcd24f54b7762a8c9eee581a98d626190673e6365745a5eca734be8c304",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.08.npz": "975ef2b9e390c34c6e17f6abc3de2004c7c198bfe8795278a6742c4d090f9332",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s1__U_W-SEQ-21_i8o64_l0.1.npz": "2083f7f06036b19d4d5fcc44bdd9aad5e5277287700bee446965eee8cdbde1e0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_C-TASK_i8o64.npz": "3d9727de6e80e125bd6aa0cd804650232ef6eb1389afe8d055dfde53123fd068",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_CLASS_i1o1.npz": "7ff80f6d0376a42b5dade04869aa3857924a64b87971607a3c64d0e6ba019b8e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_DIRECT-TASK_i8o64.npz": "24d9be81702f08531f6351af5fe497ceeed913993e7dca596ea9f4773d9c3591",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_FINE-TASK_i8o64.npz": "da627c978c48f4087e88f6961e62090d96ee3af1e36f60a339f27ae98fc7528b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.01.npz": "3e4a283ade04d3eb1131264834d4fd4475d9af464399e0b44c7b14eea84467af",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.025.npz": "72ef3a4d47c45434855495ca5364eab8956b925e2243a6501821fafa9a369d90",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.04.npz": "c4b9e93b6b2f8b6d20aaffbead8ad502f380bc916ee3fd917b3c8bc47018f1f3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.06.npz": "6d0da98dec70d68d460c01d24865630773676411f3659856292cae5dfe872acd",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.08.npz": "19a82ca9b0cbddd117d51f7cb4f9320a56727bf140f6d2cd88917b87e5b7af6f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_JOINT_i8o64_l0.1.npz": "03c261611d8f5c71639cbc28355838fcd98d794d1754c8b7169de80ab7cb061f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_K-JOINT-PAIR_i8o64.npz": "302d08dd72ef17cf8589dadf6355aab75425267c5883897c9cc92c5c84df8265",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_K-JOINT-SINGLE_i8o64.npz": "f06ec1e8f022ed4f1ba2637b8776b0f0fbfc243257034c99bcd9060f328814be",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_K-LOCAL_i8o64.npz": "346b65ef83bd4e0992b32b2c376ad609f2418a417f36a8c57c48e4bf5e1e15b3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_K-SEQ-12_i8o64.npz": "316c16ad6b86397fe4015ff0c3be20b42a44e8d1107dbd9d2e7a954bf89a9112",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_K-SEQ-21_i8o64.npz": "42ec0d0d382b86430ff92de29f45ae96ffdd8f53933203771624dc1b1662fe40",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.01.npz": "df5958a9b3eb3f7f823b4e388e10ceb1d8edce019176dd1577750ad3d2477c60",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.025.npz": "52aafbedec835f61a48e53d8ddef9343d63b9e98aed084cf563f2fc9ee2e0481",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.04.npz": "e6bedfe249263b7c77adeb59898f7ce33d740ba109c158b383b50577f1317dc7",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.06.npz": "a8abd97ab4630013567c9c0b0661dbe199d3c5d1375e0a9e922d9008fe35e065",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.08.npz": "3dede450077be2b878a35776dbcf80ba450c98758e1bedfe241cf87824f7e2d6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_LOCAL_i8o64_l0.1.npz": "3c4928b0249a5ab91403855dedc3cd31c2fba425b2e58ed3b8ff48d50342ae03",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.01.npz": "58db0a9583c0d05be32bbd4cb0390c0baa618e75e4da3d2aaaeffa8994108945",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.025.npz": "8af765ff0d6af13013d89d3e700b8e20fd8fe72a5d7768034a70cf62e0d83dbb",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.04.npz": "1653f3d2a6fab97c135e27d4feb02713b880168f4567c02dcf56f7f3660348e4",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.06.npz": "591f810ed4ebd3b4da1ad9da99096af3a1ca5f4e8d0a9bc31533ee2245fb124e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.08.npz": "f80f77aa37ce690efe068d8b20155fdfee88e4610c1f0ed513fc80e04199832a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-12_i8o64_l0.1.npz": "37fdaad69dbe7f16c13ead26ed1f00ccb6c8fda8402ffbb52b42a917c200b21a",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.01.npz": "54bf598b9565b955e207fde434aec13106f9f339519a821348aafe4a48a105a3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.025.npz": "2cde1dea3da239341002cfa671f2f55e25929cfe3ff4fa9c62b5d70fd71274a3",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.04.npz": "fa00900c4ea9def2dc7d0d75b7b617e4d568bbd8cb13f86a15d47bb2fd56a87d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.06.npz": "5e2cc6ef92cf35ff2ab473964b7e3cb3cf00a7b1d8bb316298f777c66d27ac83",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.08.npz": "409a812bb76da86be2bc9758ac8707a7f6506573979279d6ac4d8ed8765776ec",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_SEQ-21_i8o64_l0.1.npz": "5765d99677cd6b002c8d9e5543ba01a39af0fbcaabcba1f4e61943061dfcdeeb",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.01.npz": "d3ee5114bc6fb502543223424277850977d54433e70da4930f738e908686bf2d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.025.npz": "4f1516d89cfc199b1df8ac41f6d856430613302de085f5734071e1e7fe5212e4",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.04.npz": "8523a011246e7e99759354c05bbc7ddb73d540a46553c9805b864539ca74214c",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.06.npz": "81dbd73d8c183fee753bcd1aed45876b7deb5bf6281ee910fd34eb358d5c057c",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.08.npz": "23affe49f5ca0938a8b78ca5aa2cc6b85f603a9a4d33a8d5557bc6881c349d50",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-JOINT_i8o64_l0.1.npz": "7791fb41dcb1613188bb05afc9a3832256da0272de04c140de67fdba30f15515",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.01.npz": "3a4e94f6d1a4d4acfd53043c37526d9fde9783f39dc52e47b79c20af251d432f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.025.npz": "0169b505b48af445862bd0b2702e696cf32218a8f2254b41638c29dfc2a7b67d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.04.npz": "d8eefcfa3a960a89d095143ac765e542050f0681a4014c32674221d0382488e2",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.06.npz": "25b78c8e426a76d796da33d47a2455c1ca6537645831685a46c598f4d1cc207b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.08.npz": "ac2e2293d2bbad23fdb67225b01aac53fffd83049d9a88db3420dfd1489f31b0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-LOCAL_i8o64_l0.1.npz": "93ab9ba8ae6338d8020ba62b3496acea9cffc80025bcee2f93036d1efb6ed4a0",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.01.npz": "d3ee5114bc6fb502543223424277850977d54433e70da4930f738e908686bf2d",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.025.npz": "b586a563f5b18f8ddf4a6a9155b391f0a3c499130c67649898fdccbd0865e7e2",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.04.npz": "f1cf133a782b5574254c085dcc41c9a7427ecb38b77116bdd3d5a2a1e5524297",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.06.npz": "161605a9b9562ab80566f6a6d0ef97b759ec57d1eca70d988cae214946389b99",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.08.npz": "23affe49f5ca0938a8b78ca5aa2cc6b85f603a9a4d33a8d5557bc6881c349d50",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-12_i8o64_l0.1.npz": "69d5d70170d10fae1859b739b6f24abfd430780d9ca21f290ff7a7bd07cf38b6",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.01.npz": "f938cbd21924564b4e4fb38ad44a9da2f293a4caa2644f6e55b056f476ff4a6f",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.025.npz": "1d65bf29d97eebc8e5f6e5c03c1ffe94eab9b5c546482b70be967ea5fece47de",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.04.npz": "6e6652488dac9a13edaeafbf34c880a9d8e9afa12b6b88ac5ad0d9aeb257f33b",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.06.npz": "94047c82b7d4f165801d8a54bea53ac7ee7f230af6384e5e88d4f52857d3cbac",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.08.npz": "428c8a86463800c1ce4bed302af2e8ba8781c4910ebd4b7b0da2b00f52e9dc46",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/bank/bank__s2__U_W-SEQ-21_i8o64_l0.1.npz": "80b743a519f431a7c7a4a2683bee3c0a86837e1a8ee0d624660c81c6351cea44",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s0__U/record.json": "4fb3f29d2253a4c28e96b30f87b94bda8863a630c5d7689ca7d6ab7816cbe852",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s0__U/teacher.npz": "84b6936f0d3262fc4dd7e971af743cca901d887c5616efc3f2b79223c3dcf254",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s1__U/record.json": "b7c6f78945de0f2290483cbf6d9d12a237c39821dbc2c8846acf3b91fd9bcb9e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s1__U/teacher.npz": "d44f02a99aa7cb557b6757b48dceb5cc9f4a22a51f5a97c20ba47becb23af73e",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s2__U/record.json": "137f11f18f196509350c21ffac1daabb00d141380a096481ca4ada33b1306bf4",
+  "<PRIVATE_CACHE>/hcal_v1/admitted/units/tea__s2__U/teacher.npz": "d30c05742a75d316b7dc050ad9cfed5e2071d4285079ebbd2649ba1538960a04",
+  "<WT>/results/pcrl_heldout_calibration_v1/ROLE_MANIFEST.json": "0994e84d426f2de87f7fe3ad2b70b49b19504bfd209419d308c17337f57f36f0"
+ },
+ "wall_s": 1.0,
+ "cpu_s": 0.9,
+ "verdict": "PENDING"
+}

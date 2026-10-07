@@ -1,0 +1,169 @@
+{
+ "schema": "hcal-control-plan-v1",
+ "module": "hcal/controls.py",
+ "plan": {
+  "codes": [
+   [
+    0,
+    "U|DIRECT-TASK|i8o64"
+   ],
+   [
+    0,
+    "U|JOINT|i8o64|l0.1"
+   ],
+   [
+    0,
+    "U|CLASS|i1o1"
+   ],
+   [
+    0,
+    "U|K-JOINT-PAIR|i8o64"
+   ]
+  ],
+  "tables": {
+   "U|DIRECT-TASK|i8o64": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|JOINT|i8o64|l0.1": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|CLASS|i1o1": [
+    "D0",
+    "D1",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP",
+    "T-TOKEN32"
+   ],
+   "U|K-JOINT-PAIR|i8o64": [
+    "D1",
+    "MEAN",
+    "H-TOKEN32",
+    "H-GLOBAL-TEMP",
+    "H-CLASS-TEMP"
+   ]
+  },
+  "legacy_releases": {
+   "U|DIRECT-TASK|i8o64": [
+    "U|DIRECT-TASK|i8o64",
+    "U|DIRECT-TASK|i8o64|D1"
+   ],
+   "U|JOINT|i8o64|l0.1": [
+    "U|JOINT|i8o64|l0.1",
+    "U|JOINT|i8o64|l0.1|D1"
+   ],
+   "U|CLASS|i1o1": [
+    "U|CLASS|i1o1",
+    "U|CLASS|i1o1|D1"
+   ],
+   "U|K-JOINT-PAIR|i8o64": [
+    "U|K-JOINT-PAIR|i8o64|D1"
+   ]
+  },
+  "code_checks": [
+   "NULL",
+   "CONF_r1",
+   "CONF_r2",
+   "COLL_r1",
+   "COLL_r2",
+   "XOR"
+  ],
+  "null_calibration": [
+   0,
+   "U|DIRECT-TASK|i8o64"
+  ],
+  "null_reps": 5,
+  "rot": [
+   [
+    0,
+    "SRC|U"
+   ]
+  ],
+  "rot_checks": [
+   "NULL",
+   "ROT_r1",
+   "ROT_r2"
+  ],
+  "required": "COMMON-bank verdicts (legacy AUDIT_FIT pipeline + fresh ATTACK_FIT_NEW pipeline), NULL_CALIBRATION on the common bank, ROT; per-pipeline verdicts diagnostic",
+  "common_rule": "union over the banks in bank order [legacy D0, legacy D1 | legacy D1, fresh]: winner = first bank whose half-A-selected AUC beats the running best by more than 1e-12; evaluated on half B",
+  "fit_roles": {
+   "legacy": "AUDIT_FIT (lra.audit._split_audit on lra.audit.policy_views of each original release)",
+   "fresh": "ATTACK_FIT_NEW (hcal.bank.fresh_views; S* restricted to these rows)",
+   "rot": "AUDIT_FIT (lra.audit.controls_for_release unchanged: the admitted U reader pipeline)"
+  },
+  "rule": "fixed by structure before any control runs: the task-only code, the JOINT code at the largest registered lambda, the class-only code and the constrained code with the largest registered neighbourhood, each with every original release and every registered lookup table"
+ },
+ "jobs": [
+  [
+   "code",
+   0,
+   "U|DIRECT-TASK|i8o64"
+  ],
+  [
+   "code",
+   0,
+   "U|JOINT|i8o64|l0.1"
+  ],
+  [
+   "code",
+   0,
+   "U|CLASS|i1o1"
+  ],
+  [
+   "code",
+   0,
+   "U|K-JOINT-PAIR|i8o64"
+  ],
+  [
+   "calibration",
+   0,
+   "U|DIRECT-TASK|i8o64"
+  ],
+  [
+   "rot",
+   0,
+   "SRC|U"
+  ]
+ ],
+ "limits": {
+  "null": "every view: held-out AUC_B <= 0.5 + 3.5 sd0 (sd0 = Mann-Whitney null sd on half B)",
+  "null_z": 3.5,
+  "plant_min": 0.75,
+  "plant_rule": "strictly greater than plant_min",
+  "CONF_r1_CONF_r2": "AUC_B(v_i) > 0.75 and serialisation exact",
+  "COLL_r1_COLL_r2": "AUC_B(v_i) > 0.75 and serialisation exact",
+  "XOR": "AUC_B(pair) > 0.75 and AUC_B(v1) <= null threshold and AUC_B(v2) <= null threshold",
+  "ROT_r1_ROT_r2": "AUC_B(v_i) > 0.75 and AUC_B(pair) > 0.75 and serialisation exact",
+  "null_calibration": "5 permutations (seed CONTROL_SEED + 100 + rep); pass iff no exceedance of 0.5 + 3.5 sd0",
+  "source_realised_null_threshold": 0.5654143765984265,
+  "source_realised_sd0": 0.018689821885264708,
+  "realised_threshold_rule": "the realised null threshold must equal the source's within 1e-12 (fixed split and permutation seeds on the same roles); otherwise a technical failure",
+  "control_seed": 20261021,
+  "rot_amplitude": 1e-06,
+  "conf_eta": 0.05,
+  "plants_in_candidate_bank": "never (in-memory / temporary-directory releases, never saved as units)",
+  "source": "results/pcrl_confidence_capacity_v1/AUDIT_PRELOCK_CHECKS.json thresholds (smf.audit NULL_Z, PLANT_MIN), unchanged (cbp CONTROL_LIMITS)"
+ },
+ "realised_null_threshold_required": 0.5654143765984265,
+ "threshold_tol": 1e-12,
+ "views": {
+  "codes": "the fresh complete view of each control partition with its FULL registered table set (hcal.bank.fresh_views); fit ATTACK_FIT_NEW with permuted SEX, select on INNER half A, evaluate on half B",
+  "rot": "SRC|U interface through lra.audit.controls_for_release unchanged (fit AUDIT_FIT)"
+ },
+ "units": "one control audit per (job, check); planted releases in memory / temporary directories only, never saved as units, never in a candidate bank",
+ "seeds": {
+  "control_seed": 20261021,
+  "null_calibration": "CONTROL_SEED + 100 + rep, rep 0-4"
+ },
+ "timing": "after SCIENCE_LOCK; must pass before nomination / EVALUATION_LOCK; a failure is a technical validity issue, never a negative method outcome; synthetic tests never replace these"
+}

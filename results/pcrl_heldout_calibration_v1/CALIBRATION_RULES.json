@@ -1,0 +1,89 @@
+{
+ "schema": "hcal-calibration-rules-v1",
+ "module": "hcal/calib.py",
+ "rows": {
+  "H-*": "CALIBRATION_HELDOUT representatives (2,000; one per group, smallest row id)",
+  "T-TOKEN32": "CALIBRATION_TRAIN_MATCHED representatives (2,000; inside OSF_DEFENSE_FIT)",
+  "labels": "task labels only; SEX never enters a calibration objective"
+ },
+ "H-TOKEN32": {
+  "objective": "sum_i [-log q(Y_i) + 0.5 ||q - onehot(Y_i)||^2] + 32 KL(mu_t || q) over the class-dominant simplex, q = (u + eps 1 + eps e_d) / (1 + (K+1) eps), eps 1e-12",
+  "prior": "mu_t = admitted token_S / token_n (unsmoothed U mean on OSF_DEFENSE_FIT), fixed",
+  "solver": "lra.decoder internals wrapped unchanged with A = y + 32 mu_t (hcal.calib.token32_solve); bitwise equal to lra.decoder.solve_batch when mu_t = S / n",
+  "fallbacks": {
+   "n_cal = 0": "q0_t exactly, NO_CALIBRATION_OBSERVATIONS",
+   "reserved empty token (n_fit = 0)": "q0_t exactly, RESERVED_EMPTY_ORIGINAL_FALLBACK"
+  },
+  "kappa": 32.0,
+  "eps": 1e-12,
+  "certificate_tolerances": {
+   "PROJ_TOL": 1e-09,
+   "STAT_TOL": 1e-09,
+   "DUAL_TOL": 1e-09,
+   "PROTO_SUM_TOL": 1e-12,
+   "STATS_SUM_TOL": 1e-09,
+   "TEACHER_CLASS_TOL": 1e-09,
+   "STATS_ROW_TOL": 1e-09,
+   "TOL_BATCH_OBJ": 1e-12,
+   "BISECT_ITERS": 64,
+   "LOSS_CLIP": 1e-12,
+   "kappa": 32.0,
+   "eps": 1e-12,
+   "brier_coefficient": 0.5,
+   "max_bracket_ulps": 2.0
+  }
+ },
+ "T-TOKEN32": {
+  "same as": "H-TOKEN32",
+  "partitions": [
+   "U|DIRECT-TASK|i8o64",
+   "U|FINE-TASK|i8o64",
+   "U|CLASS|i1o1",
+   "U|JOINT|i8o64|l0.1"
+  ],
+  "units": "4 partitions x 3 seeds = 12 partition-pair fits",
+  "role": "diagnostic only; never a nominee or T*"
+ },
+ "H-GLOBAL-TEMP": {
+  "map": "q_alpha(t)_k = softmax_k(alpha log q0_tk)",
+  "bounds": [
+   0.25,
+   4.0
+  ],
+  "objective": "mean unclipped NLL on the calibration representatives (stable LSE)",
+  "solver": "bounded bisection on the convex NLL derivative (<= 100 halvings or adjacent floats; the bracket end with the smaller |g|)",
+  "certificate": {
+   "grad_tol_rel": 1e-09,
+   "nll_vs_identity_tol_rel": 1e-15,
+   "boundary": "KKT sign at 0.25 / 4"
+  },
+  "identity": "alpha == 1 returns q0 exactly",
+  "scope": "one alpha per task, map and seed"
+ },
+ "H-CLASS-TEMP": {
+  "map": "the same scalar per predicted class, shared over its tokens",
+  "min_rows": 50,
+  "fallback": "alpha = 1 for a class with fewer than 50 representatives (including absent classes)",
+  "max_parameters": {
+   "income": 2,
+   "occupation": 6
+  }
+ },
+ "continuous U": {
+  "families": [
+   "H-GLOBAL-TEMP",
+   "H-CLASS-TEMP"
+  ],
+  "log_input": "alpha != 1: p' = max(p, 1e-12) renormalised, softmax(alpha log p'); alpha == 1 returns p exactly",
+  "classes": "U's predicted class (teacher decision)",
+  "decision_check": "argmax(q) == teacher decision on every row; any mismatch raises"
+ },
+ "scoring": {
+  "clip": 1e-12,
+  "loss": "natural log",
+  "brier": "multiclass sum_k (p_k - 1[y = k])^2",
+  "recorded": "unclipped fitting NLL, clipped scoring NLL and the clipped-probability count"
+ },
+ "no_grid": "no kappa, temperature-bound, lambda, capacity or sample-split sweep",
+ "prior_art": "temperature scaling: Guo, Pleiss, Sun and Weinberger, ICML 2017 (not a new algorithm)"
+}

@@ -20,7 +20,8 @@ Each selected group must lie wholly inside its parent role (checked). The split 
 LABEL ALLOWLIST (labels_for(D, procedure, role) -> row positions; sealed labels are refused):
   calibration       task labels of CALIBRATION_HELDOUT and CALIBRATION_TRAIN_MATCHED representatives
   selection         task labels of INNER_SELECTION (inherited qpc procedure)
-  fitting           task labels of OSF_DEFENSE_FIT (inherited; the source constant predictor only)
+  fitting           task labels of OSF_DEFENSE_FIT (inherited): the source constant predictor and descriptive
+                    fitting-row losses (CALIBRATION_GENERALIZATION; never an objective, gate or selection input)
   attack            SEX of ATTACK_FIT_NEW (fresh readers), AUDIT_FIT (admitted legacy readers, refit for replay /
                     assessment) and INNER_SELECTION (reader selection)
   attack_diagnostic SEX of OSF_DEFENSE_FIT (plug-in MI diagnostic only; never an objective)

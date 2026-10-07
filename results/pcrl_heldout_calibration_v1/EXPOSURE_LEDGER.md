@@ -25,7 +25,7 @@ it cannot undo previous exposure. No new population is opened."
 
 | Role | Rows / groups | Historical use | hcal use |
 |---|---|---|---|
-| OSF_DEFENSE_FIT | 15,434 / 15,428 | teacher encoders and heads; fine partitions; teacher means; privacy-map search (SEX); lra D1 and C-TASK (task labels) | frozen priors only (no new fit); TRAIN_MATCHED task labels (diagnostic T-TOKEN32); constant predictor |
+| OSF_DEFENSE_FIT | 15,434 / 15,428 | teacher encoders and heads; fine partitions; teacher means; privacy-map search (SEX); lra D1 and C-TASK (task labels) | frozen priors only (no new fit); TRAIN_MATCHED task labels (diagnostic T-TOKEN32); constant predictor; descriptive fitting-row losses (never an objective, gate or selection input) |
 | CALIBRATION_TRAIN_MATCHED (inside OSF_DEFENSE_FIT) | 2,002 / 2,000 (2,000 representatives) | as OSF_DEFENSE_FIT | T-TOKEN32 fitting (4 diagnostic partitions); fitting-role contrast |
 | HEAD_VALIDATION | 1,500 / 1,499 | head selection | never read |
 | AUDIT_FIT | 6,065 / 6,061 | attacker fitting in every earlier study | split below |
