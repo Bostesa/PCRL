@@ -154,3 +154,17 @@ def test_infeasible_constrained_fit_is_never_nominated(run_sel):
     assert R.parse_id(st["P*"]["config"])["arm"] != "constrained"
     assert R.parse_id(st["C_pair*"]["config"])["arm"] != "constrained"
     assert out["claim_role_states"]["B"]["nominee"] == "NO_ELIGIBLE"
+
+
+def test_feasible_fallback_ranks_before_an_infeasible_one(run_sel):
+    def tw(inner, rel):
+        for k in R.SEEDS:
+            for c in R.constrained_ids():          # every constrained arm fails the guard -> no N* nominee
+                inner[R.inner_name(k, c)]["recovery"]["auc"]["v2"] = 0.62
+            inner[R.inner_name(k, "U|K-LOCAL|i8o64|D1")]["utility"] = _util(0.012, 0.004)   # feasible but shortfall > 0
+        for c in R.constrained_ids():
+            if c != "U|K-LOCAL|i8o64|D1":
+                inner[R.unit_for(1, c)] = {"status": "INFEASIBLE", "deployed": {"feasible": False}}
+    out = run_sel(*_bank(tw))
+    n = out["statuses"]["N*"]
+    assert n["status"] == "NO_ELIGIBLE_NOMINEE" and n["descriptive_config"] == "U|K-LOCAL|i8o64|D1"

@@ -245,12 +245,13 @@ def pick(rows, guards=None, nominee=True):
               "ORDINARY_UTILITY_FAILURE" if not any(e["ordinary"] for e in ev) else "LOCAL_GUARD_FAILURE")
     out = {"status": none, "config": None, "descriptive_only": True, "reason": reason, "evaluated": ev}
     if missing:
-        fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12),) + key(byc[e["config"]]))
+        fb = min(ev, key=lambda e: (byc[e["config"]].get("fit_feasible") is False, round(e["ordinary_shortfall"], 12)) +
+                 key(byc[e["config"]]))
         out.update({"missing_guards": missing, "fallback_rank_status": "INVALID_MISSING_GUARD_COMPARATOR",
                     "fallback_rank_keys": ["ordinary_shortfall", "ordering"]})
     else:
-        fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12), round(e["guard_shortfall"], 12)) +
-                 key(byc[e["config"]]))
+        fb = min(ev, key=lambda e: (byc[e["config"]].get("fit_feasible") is False, round(e["ordinary_shortfall"], 12),
+                                    round(e["guard_shortfall"], 12)) + key(byc[e["config"]]))
         out["fallback_rank_status"] = "VALID"
     out["descriptive_config"] = fb["config"]
     return out
