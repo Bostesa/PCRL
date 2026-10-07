@@ -3,15 +3,15 @@
  "written": "before any Adult fit (frozen in SCIENCE_LOCK); generated from lra.run",
  "counts": {
   "d0_admitted": 81,
-  "d1_fixed_map_decodes": 78,
+  "d1_fixed_map_decodes": 81,
   "c_task_fits": 3,
   "weighted_fits": 72,
   "constrained_fits": 15,
   "new_mapping_pair_fits": 90,
-  "new_units_total": 168,
-  "inner_audit_units": 264,
+  "new_units_total": 171,
+  "inner_audit_units": 267,
   "inner_audit_by_kind": {
-   "codes": 249,
+   "codes": 252,
    "sources": 6,
    "references": 9
   },
@@ -19,13 +19,14 @@
   "real_data_control_jobs": "lra.audit.stage_controls (null, CONF, COLL, XOR, ROT, null calibration x5) on D0 DIRECT, D0 JOINT l0.1, CLASS, U|JOINT|i8o64|l0.1|D1, U|K-JOINT-PAIR|i8o64|D1, sources and references; plants in memory only",
   "auxiliary_fine_state_jobs": 0,
   "auxiliary_note": "fine partitions are the admitted label-blind fine__s{k} (income 32 / occupation 128 per predicted class); no fine-state refit",
-  "class_d1_diagnostics": 3
+  "codes_per_seed": 84,
+  "configurations": 89
  },
- "count_semantics": "90 new mapping-pair fits = 72 weighted controls (4 families x 6 lambda x 3 seeds) + 3 C-TASK + 15 constrained (5 arms x 3 seeds); the 78 D1 fixed-map units are decoder solves on unchanged admitted assignments (not mapping fits); exact release aliases (identical tokens and probabilities) are counted after fitting and never add fits; plus 3 CLASS|D1 diagnostic decodes (diag__s{k}__U_CLASS_i1o1_D1; not candidates, not in the 83-code bank, never audited or nominated; PROTOCOL section 6)",
+ "count_semantics": "90 new mapping-pair fits = 72 weighted controls (4 families x 6 lambda x 3 seeds) + 3 C-TASK + 15 constrained (5 arms x 3 seeds); the 78 D1 fixed-map units are decoder solves on unchanged admitted assignments (not mapping fits); exact release aliases (identical tokens and probabilities) are counted after fitting and never add fits; REGISTERED ADDITION: CLASS|D1 (U|CLASS|i1o1|D1) is a fixed-map D1 code on the unchanged decision-only map (prompt section 10: CLASS stays in the comparator pool and its utility is measured after D1; role F R-1): 81 D1 fixed-map units (prompt: 78), 84 codes per seed, 89 configurations, 267 inner units (prompt: 88 / 264)",
  "order": [
   "admit (done)",
   "correctness (CORRECTNESS_LOCK; ENGINEERING_READY required for science)",
-  "d1 (78 fixed-map units + 3 CLASS|D1 diagnostics)",
+  "d1 (81 fixed-map units incl. CLASS|D1)",
   "ctask (3 units)",
   "fit (21 chains: per seed K-LOCAL, K-SEQ-12, K-SEQ-21, K-JOINT-SINGLE, K-JOINT-PAIR; per (seed, lambda) W-LOCAL, W-SEQ-12, W-SEQ-21, W-JOINT; 2 shards)",
   "inner (258 code + reference audits; D0 before D1; 2 shards)",
@@ -1860,23 +1861,26 @@
   {
    "seed": 0,
    "config": "U|CLASS|i1o1|D1",
-   "unit": "diag__s0__U_CLASS_i1o1_D1",
-   "status": "DIAGNOSTIC_TO_FIT",
-   "stage": "d1"
+   "unit": "dec__s0__U_CLASS_i1o1_D1",
+   "status": "TO_FIT",
+   "stage": "d1",
+   "note": "registered addition (role F R-1; prompt section 10)"
   },
   {
    "seed": 1,
    "config": "U|CLASS|i1o1|D1",
-   "unit": "diag__s1__U_CLASS_i1o1_D1",
-   "status": "DIAGNOSTIC_TO_FIT",
-   "stage": "d1"
+   "unit": "dec__s1__U_CLASS_i1o1_D1",
+   "status": "TO_FIT",
+   "stage": "d1",
+   "note": "registered addition (role F R-1; prompt section 10)"
   },
   {
    "seed": 2,
    "config": "U|CLASS|i1o1|D1",
-   "unit": "diag__s2__U_CLASS_i1o1_D1",
-   "status": "DIAGNOSTIC_TO_FIT",
-   "stage": "d1"
+   "unit": "dec__s2__U_CLASS_i1o1_D1",
+   "status": "TO_FIT",
+   "stage": "d1",
+   "note": "registered addition (role F R-1; prompt section 10)"
   }
  ],
  "inner_audit_units": [
@@ -3463,6 +3467,24 @@
    "config": "REF|F0",
    "unit": "aud__ref__s2__F0",
    "of": "ref__s2__F0"
+  },
+  {
+   "seed": 0,
+   "config": "U|CLASS|i1o1|D1",
+   "unit": "aud__dec__s0__U_CLASS_i1o1_D1",
+   "of": "dec__s0__U_CLASS_i1o1_D1"
+  },
+  {
+   "seed": 1,
+   "config": "U|CLASS|i1o1|D1",
+   "unit": "aud__dec__s1__U_CLASS_i1o1_D1",
+   "of": "dec__s1__U_CLASS_i1o1_D1"
+  },
+  {
+   "seed": 2,
+   "config": "U|CLASS|i1o1|D1",
+   "unit": "aud__dec__s2__U_CLASS_i1o1_D1",
+   "of": "dec__s2__U_CLASS_i1o1_D1"
   }
  ],
  "resume": "by unit hash and status (jcv.finalize.unit_complete); valid units are never overwritten",

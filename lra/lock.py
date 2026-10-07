@@ -199,7 +199,9 @@ def verify_lock(path, stage=None, require_pushed=True) -> dict:
     if inputs() != lock["inputs"]:
         mm.append("inputs changed")
     pushed = None
-    if require_pushed and not os.environ.get("CBP_LOCAL_ONLY"):
+    if stage is not None and os.environ.get("CBP_LOCAL_ONLY"):
+        mm.append("CBP_LOCAL_ONLY is set: every stage requires its pushed lock (no local-only bypass)")
+    if require_pushed:
         rels = [f"{REL}/{lock['name']}.json"] + [f"{REL}/{a['name']}.json" for a in amendments()
                                                   if a["written_at"] >= lock["written_at"]]
         pushed = {r: on_origin(r) for r in rels}

@@ -101,7 +101,10 @@ def d0_privacy_ids():
 
 
 def d1_fixed_ids():
-    return [d1_id("DIRECT-TASK"), d1_id("FINE-TASK")] + [d1_id(f, lam) for lam in LAMS for f in PRIVACY]
+    # CLASS|D1 is a registered ADDITION to the prompt's 26 per seed (role F R-1; prompt section 10 "do not remove CLASS
+    # from the comparator pool ... measure that [after D1]"): 27 per seed, 81 units, 84 codes per seed
+    return [d1_id("DIRECT-TASK"), d1_id("FINE-TASK"), d1_id("CLASS")] + \
+        [d1_id(f, lam) for lam in LAMS for f in PRIVACY]
 
 
 def weighted_ids():
@@ -312,14 +315,8 @@ def policy_dict(name):
 CLASS_D1 = "U|CLASS|i1o1|D1"
 
 
-def class_d1_unit(k):
-    """Registered DIAGNOSTIC (not a candidate, not in code_ids, never audited or nominated): the learned decoder on the
-    unchanged decision-only map, for DECISION_FLOOR_AND_FEASIBILITY.csv (prompt sections 10 and 16)."""
-    return f"diag__s{k}__U_CLASS_i1o1_D1"
-
-
 def d1_jobs():
-    return [(k, c) for k in SEEDS for c in d1_fixed_ids()] + [(k, CLASS_D1) for k in SEEDS]
+    return [(k, c) for k in SEEDS for c in d1_fixed_ids()]
 
 
 def stage_d1(D, shard_spec=None):
@@ -328,7 +325,7 @@ def stage_d1(D, shard_spec=None):
     from qpc import release as RL
     tr, Y, S = fit_data(D)
     for k, cid in shard(d1_jobs(), shard_spec):
-        n = class_d1_unit(k) if cid == CLASS_D1 else unit_for(k, cid)
+        n = unit_for(k, cid)
         if done(n):
             continue
         t0, c0 = time.time(), time.process_time()
@@ -355,7 +352,6 @@ def stage_d1(D, shard_spec=None):
         body = DEC.decoder_pair_dict(cid, pair, decs[0], decs[1])
         I12 = plugin_mi(rel["tok1"][tr], S, rel["tok2"][tr])
         r = {"schema": "lra-d1-fixed-v1", "config": cid, "seed": k, "d0_config": d0, "d0_unit": d0u,
-             "diagnostic_only": cid == CLASS_D1,
              "cfg": parse_id(cid), "policy_pair_fingerprint": pair.fingerprint(), "decoder_sha256": body["decoder_sha256"],
              "tokens_bitwise_equal_d0": same_tok, "fitting": fitstats, "I12_fit": I12,
              "certificates": {str(i): DEC.certificate_summary(d) for i, d in ((1, decs[0]), (2, decs[1]))},
@@ -458,7 +454,7 @@ def engineering_ready():
     lat = LK.latest()
     if lat["documents_sha256"].get(GATE_RESULT) != LK.sha_file(p):
         return False, f"{GATE_RESULT} is not the version bound in {lat['name']}"
-    if not os.environ.get("CBP_LOCAL_ONLY") and not LK.on_origin(f"{LK.REL}/{GATE_RESULT}"):
+    if not LK.on_origin(f"{LK.REL}/{GATE_RESULT}"):
         return False, f"{GATE_RESULT} is not on origin"
     return True, "ENGINEERING_READY"
 

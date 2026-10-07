@@ -5,8 +5,8 @@ from lra import run as R
 
 
 def test_config_scheme_and_bank_counts():
-    assert len(R.d0_ids()) == 27 and len(R.d1_fixed_ids()) == 26 and len(R.new_fit_ids()) == 30
-    assert len(R.code_ids()) == 83 == len(set(R.code_ids())) and len(R.scored_ids()) == 88
+    assert len(R.d0_ids()) == 27 and len(R.d1_fixed_ids()) == 27 and len(R.new_fit_ids()) == 30   # +CLASS|D1 (R-1)
+    assert len(R.code_ids()) == 84 == len(set(R.code_ids())) and len(R.scored_ids()) == 89
     assert len(R.weighted_ids()) == 24 and len(R.constrained_ids()) == 5
     p = R.parse_id("U|W-SEQ-12|i8o64|l0.025|D1")
     assert (p["arm"], p["base_family"], p["lam"], p["decoder"], p["privacy_trained"]) == ("weighted", "SEQ-12", 0.025, "D1", True)

@@ -32,3 +32,7 @@ Pinned unchanged copies:
   diag__s{k}__U_CLASS_i1o1_D1 (not a candidate; not in code_ids).
 - A, lra/run.py and lra/lock.py: the same-map D0 diagnostic ids `<D1 cid>|D0SAME` (arm d0_same, unit prefix d0s__,
   diagnostic only) and the `d0same` science stage (lra.select.stage_d0same), as agreed with role D.
+- A, lra/run.py (role F R-1): CLASS|D1 is a registered fixed-map D1 code. That gives 27 per seed, 84 codes and 89
+  configurations. It replaces the earlier diag__ diagnostic idea, which was never run.
+- A, lra/lock.py and lra/run.py (role F R-3): CBP_LOCAL_ONLY can no longer bypass the push check for any stage, and
+  engineering_ready() always requires the result on origin.

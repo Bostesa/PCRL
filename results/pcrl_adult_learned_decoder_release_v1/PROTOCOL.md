@@ -138,10 +138,13 @@ invented.
 **Naming.** D0 (the mean-teacher codebook) and D1 are distinct artifacts. An admitted D0 map is never overwritten. If
 D1 violates a budget, the map is "infeasible under this registered decoder", not mathematically infeasible.
 
-**CLASS|D1 diagnostic (registered).** The learned decoder is also applied to the unchanged decision-only map, as
-`diag__s{k}__U_CLASS_i1o1_D1`. These units are not candidates and not in the 83-code bank. They are never audited or
-nominated. They feed DECISION_FLOOR_AND_FEASIBILITY.csv (fitting and inner utility feasibility of CLASS under D1); the
-measured attacks there are those of the token-identical CLASS release. CLASS (D0) stays in the T\* pool.
+**CLASS|D1 (a registered addition).** The learned decoder is also applied to the unchanged decision-only map,
+U|CLASS|i1o1|D1 (prompt §10: CLASS stays in the comparator pool, and its utility is measured after D1). It is a
+fixed-map D1 code: audited, in the composition bank and in the T\* pool. This gives 81 D1 fixed-map units against
+the prompt's 78, 84 codes per seed, 89 configurations and 267 inner units against the prompt's 88/264.
+
+**Consequence.** If any CLASS variant is eligible, it sits at the decision floor, since I(S; P\*) ≥ I(S; CLASS) for
+every class-preserving P\*. Claim A could then pass only through finite-reader behaviour, and is reported that way.
 
 ## 7. Fitting budgets and the new mapper (lra/mapper.py; SEARCH_RULES.json)
 
@@ -410,8 +413,8 @@ verifier replays the traces with its own engine. This fixes the predecessor's un
 | 0 | — | admission (done), the 14 review repairs (REVIEW_FINDINGS_DISPOSITION.json), port, timing on synthetic shapes |
 | 1 | CORRECTNESS_LOCK | `correctness` → ENGINEERING_GATE_RESULT.json; independent replay (E phase 1) |
 | 2 | SCIENCE_LOCK | everything in §§6–12, code and dependency hashes, FIT_MANIFEST, PREDICTIONS; requires ENGINEERING_READY |
-| 3 | SCIENCE_LOCK | `d1`: 78 fixed-map D1 units plus 3 CLASS\|D1 diagnostic records; `ctask`: 3; `fit`: 72 weighted + 15 constrained |
-| 4 | SCIENCE_LOCK | `inner` (264 units), `inner_src`, `controls`, `select`; E phase 2 replays selection BEFORE the evaluation lock |
+| 3 | SCIENCE_LOCK | `d1`: 81 fixed-map D1 units (incl. CLASS\|D1); `ctask`: 3; `fit`: 72 weighted + 15 constrained |
+| 4 | SCIENCE_LOCK | `inner` (267 units), `inner_src`, `controls`, `select`; E phase 2 replays selection BEFORE the evaluation lock |
 | 5 | EVALUATION_LOCK | built only with valid technical status, controls, admission and the engineering/science locks; no escape flag |
 | 6 | EVALUATION_LOCK | one locked exploratory assessment (`lra.assess`) and inference (`lra.infer`) |
 | 7 | — | E phase 3, deployment, figures, backup, closeout |
