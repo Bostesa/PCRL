@@ -156,7 +156,7 @@ def build():
         for c in labels:
             u = R.unit_for(k, c)
             score[c] = {"kind": R.parse_id(c)["kind"], "unit": u, "cid": c}
-            for n in (u, f"inner__{u}"):
+            for n in (u, R.inner_name(k, c)):
                 files[n] = json.loads((R.U(n) / "COMPLETE.json").read_text())["files"]
         for n in [f"tea__s{k}__U"] + [R.unit_for(k, c) for c in comp]:
             files.setdefault(n, json.loads((R.U(n) / "COMPLETE.json").read_text())["files"])

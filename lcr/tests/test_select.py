@@ -50,7 +50,7 @@ def _bank(tweak=None):
             else:
                 lam = p["lam"] or 0.0
                 r = _inner(_pair_of(cid), util=_util(0.003 + 0.06 * lam, 0.001 + 0.02 * lam), states=336)
-            inner[f"inner__{R.unit_for(k, cid)}"] = r
+            inner[R.inner_name(k, cid)] = r
             if p["kind"] == "policy":
                 rel[(k, cid)] = f"{cid}|{k}"
     if tweak:
@@ -93,14 +93,14 @@ def test_no_headroom_rule_ordinary_only(run_sel):
     # a code with LL excess 0.008 (inside the original 0.01, outside cbp's 0.006 buffer) stays ordinarily eligible
     def tw(inner, rel):
         for k in R.SEEDS:
-            inner[f"inner__{R.unit_for(k, 'U|K-JOINT-PAIR|i8o64|D1')}"]["utility"] = _util(0.008, 0.004)
+            inner[R.inner_name(k, 'U|K-JOINT-PAIR|i8o64|D1')]["utility"] = _util(0.008, 0.004)
     out = run_sel(*_bank(tw))
     assert out["statuses"]["J*"]["status"] == "NOMINEE"
 
 
 def test_failing_seed_is_not_averaged_away(run_sel):
     def tw(inner, rel):
-        inner[f"inner__{R.unit_for(2, 'U|K-JOINT-PAIR|i8o64|D1')}"]["utility"] = _util(0.012, 0.004)
+        inner[R.inner_name(2, 'U|K-JOINT-PAIR|i8o64|D1')]["utility"] = _util(0.012, 0.004)
     out = run_sel(*_bank(tw))
     assert out["statuses"]["J*"]["status"] == "NO_ELIGIBLE_NOMINEE"
     assert out["statuses"]["J*"]["reason"] == "ORDINARY_UTILITY_FAILURE"
@@ -111,7 +111,7 @@ def test_guards_and_missing_comparator(run_sel):
     def tw(inner, rel):
         for k in R.SEEDS:
             for c in R.constrained_ids():
-                inner[f"inner__{R.unit_for(k, c)}"]["recovery"]["auc"]["v2"] = 0.62   # > T* + 0.005
+                inner[R.inner_name(k, c)]["recovery"]["auc"]["v2"] = 0.62   # > T* + 0.005
     out = run_sel(*_bank(tw))
     assert out["statuses"]["N*"]["status"] == "NO_ELIGIBLE_NOMINEE"
     assert out["statuses"]["N*"]["reason"] == "LOCAL_GUARD_FAILURE"
@@ -120,7 +120,7 @@ def test_guards_and_missing_comparator(run_sel):
 
 def test_decision_failure_is_technical(run_sel):
     def tw(inner, rel):
-        inner[f"inner__{R.unit_for(1, 'U|W-LOCAL|i8o64|l0.04|D1')}"]["preserved"]["1"] = False
+        inner[R.inner_name(1, 'U|W-LOCAL|i8o64|l0.04|D1')]["preserved"]["1"] = False
     out = run_sel(*_bank(tw))
     assert out["statuses"]["C*"]["status"] == "INVALID_COMPARATOR"
     assert out["statuses"]["C*"]["reason"] == "DECISION_PRESERVATION_FAILURE"
@@ -130,11 +130,11 @@ def test_decision_failure_is_technical(run_sel):
 def test_exact_release_alias_names_simplest_construction(run_sel):
     def tw(inner, rel):
         for k in R.SEEDS:      # the constrained JOINT-PAIR deploys exactly the weighted W-SEQ-21 0.1 release
-            j, w = R.unit_for(k, SEL.JOINT_PAIR), R.unit_for(k, "U|W-SEQ-21|i8o64|l0.1|D1")
-            inner[f"inner__{j}"] = json.loads(json.dumps(inner[f"inner__{w}"]))
+            j, w = R.inner_name(k, SEL.JOINT_PAIR), R.inner_name(k, "U|W-SEQ-21|i8o64|l0.1|D1")
+            inner[j] = json.loads(json.dumps(inner[w]))
             rel[(k, SEL.JOINT_PAIR)] = rel[(k, "U|W-SEQ-21|i8o64|l0.1|D1")]
-            inner[f"inner__{j}"]["recovery"]["auc"]["pair"] -= 0.05
-            inner[f"inner__{w}"]["recovery"]["auc"]["pair"] -= 0.05
+            inner[j]["recovery"]["auc"]["pair"] -= 0.05
+            inner[w]["recovery"]["auc"]["pair"] -= 0.05
     out = run_sel(*_bank(tw))
     p = out["statuses"]["P*"]
     assert set(p["aliases"]["full"]) == {SEL.JOINT_PAIR, "U|W-SEQ-21|i8o64|l0.1|D1"}

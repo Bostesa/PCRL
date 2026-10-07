@@ -2,7 +2,7 @@
 
 Adapted from cbp/select.py at 7f3ec67 WITHOUT cbp's failed 0.006/0.0035 every-seed headroom buffer (prompt section 10:
 the explicit 0.005/0.003 budgets act during FITTING; nomination uses the ORIGINAL inner eligibility). No assessment value
-is read. Inputs: inner__<unit> records (lcr.audit; attackers fitted on AUDIT_FIT, selected/scored on INNER_SELECTION;
+is read. Inputs: aud__<unit> records (lcr.run.inner_name; lcr.audit; attackers fitted on AUDIT_FIT, selected/scored on INNER_SELECTION;
 utility on INNER_SELECTION via qpc.utility) for every candidate of lcr.run.scored_ids().
 
 Per seed (anchor = SRC|U utility of that seed), with gr = qpc.utility.gate_record(code, U, preserved):
@@ -105,14 +105,14 @@ def candidate_rows(ids):
     anchors = {}
     for k in SEEDS:
         try:
-            anchors[k] = R.rec(f"inner__{R.unit_for(k, 'SRC|U')}")["utility"]
+            anchors[k] = R.rec(R.inner_name(k, "SRC|U"))["utility"]
         except Exception:                                                    # noqa: BLE001
             anchors[k] = None
     rows = {}
     for cid in ids:
         seeds, fail = {}, []
         for k in SEEDS:
-            n = f"inner__{R.unit_for(k, cid)}"
+            n = R.inner_name(k, cid)
             if not R.done(n):
                 fail.append({"unit": n, "code": "FIT_OR_ADMISSION_FAILURE", "detail": "missing or not hash-complete"})
                 continue

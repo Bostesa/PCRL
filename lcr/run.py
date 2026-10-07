@@ -27,7 +27,7 @@ CONFIG IDS (shared contract; every module uses these helpers):
   constrained arms           U|K-{LOCAL,SEQ-12,SEQ-21,JOINT-SINGLE,JOINT-PAIR}|i8o64|D1
   sources / references       SRC|U, SRC|RAW-J_b0.3, REF|E, REF|F, REF|F0
 UNITS: pol__s{k}__<safe> (D0, admitted), dec__s{k}__<safe> (D1 fixed-map), new__s{k}__<safe> (fitted), tea__, ref__,
-fine__, inner__<unit>.
+fine__; lcr inner audits aud__<unit> (run.inner_name); admitted cbp inner__<unit> audits are custody only.
 """
 from __future__ import annotations
 
@@ -162,6 +162,12 @@ def unit_for(k, cid):
         return f"ref__s{k}__{p['label']}"
     prefix = {"d0": "pol", "d1_fixed": "dec"}.get(p["arm"], "new")
     return f"{prefix}__s{k}__{safe(cid)}"
+
+
+def inner_name(k, cid):
+    """lcr inner-audit unit of a release (namespace aud__; the admitted cbp inner__* audits stay untouched as custody and
+    are never read as lcr records)."""
+    return f"aud__{unit_for(k, cid)}"
 
 
 # ------------------------------------------------------------------ units, events, compute ledger
