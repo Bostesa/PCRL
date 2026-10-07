@@ -1,12 +1,12 @@
 {
- "schema": "lcr-primary-family-v1",
- "executable": "lcr/family.py",
+ "schema": "lra-primary-family-v2",
+ "executable": "lra/family.py (PRIMARY, Z_PRIMARY, B, BOOT_SEED); lra/infer.py (bootstrap, endpoints)",
  "size": 37,
  "alpha": 0.05,
  "z": 3.2048452050105634,
- "z_definition": "statistics.NormalDist().inv_cdf(1 - 0.05/74) (verified in code, asserted equal to 3.2048452050105634 within 1e-15)",
+ "z_definition": "statistics.NormalDist().inv_cdf(1 - 0.05/74) (computed in code and asserted equal to 3.2048452050105634 within 1e-15; 74 = 2 x 37 slots)",
  "B": 1999,
- "bootstrap_seed": 20261009,
+ "bootstrap_seed": 20261010,
  "bootstrap": "paired multinomial bootstrap over OSF_DEVELOPMENT_ASSESSMENT exact-record groups; identical draws for every statistic, arm and model seed; SE = sd (ddof 1); interval = point +- z SE",
  "aggregation": "endpoint = equal-weight mean over model seeds 0-2 of the per-seed paired statistic; recovery = SEX AUC of the inner-AUC-selected attacker, mean over attacker seeds 0-2; seeds are not independent populations",
  "claims": {
@@ -440,7 +440,14 @@
   "slots kept after aliases or missing nominees; no post-outcome family reduction",
   "a slot whose role is not NOMINEE is DESCRIPTIVE_ONLY and can never pass",
   "a slot with any nonfinite replicate or point is INVALID",
-  "data-dependent role aliases are recorded per slot (alias_of_by_role)"
+  "data-dependent role aliases (same configuration or exact deployed-release alias on all three seeds, for every role) are recorded per slot (alias_of_by_role)"
  ],
- "conditionality": "nominal conditional intervals; they do not correct for the adaptive research history; not fresh confirmation"
+ "conditionality": "nominal conditional intervals; they do not correct for the adaptive research history; not fresh confirmation",
+ "supplementary": {
+  "what": "same-map D1 - D0 true-label log loss and Brier per task (mean over seeds) for the registered pairs: best D1 fixed-map privacy control vs its D0 map, P* (nominee or fallback) vs its same-map D0 version, C-TASK vs its same-map D0 version",
+  "z": 1.9599639845400534,
+  "z_definition": "NormalDist().inv_cdf(0.975), nominal 95%",
+  "draws": "the same 1,999 exact-record-group bootstrap draws (seed 20261010) as the primary family",
+  "status": "prespecified supplementary diagnostics; NOT primary slots; never change a primary verdict; scoped to the named maps on this development assessment"
+ }
 }

@@ -1,13 +1,13 @@
-# Method card, decoder, fixture and deployment part (role B; the lead merges it into METHOD_CARD.md)
+# Method card, decoder, correctness-gate and deployment part (lra; role B; the lead merges it into METHOD_CARD.md)
 
-Code: `lcr/decoder.py`, `lcr/fixtures.py`, `lcr/deploy.py`. Proofs and checks: `MATH_REVIEW.md`.
-Fixture laws and gate: `FIXTURE_LAWS.json` and `FIXTURE_GATE_RULE.json`. Both were written before any fixture algorithm
-ran; FIXTURE_LOCK governs them.
+Code: `lra/decoder.py`, `lra/fixtures.py`, `lra/deploy.py` (a port of the predecessor's `lcr/` at 091afc2). Proofs and
+checks: `MATH_REVIEW.md`. Fixture laws (pinned, unchanged copy) and the correctness gate: `FIXTURE_LAWS.json` and
+`ENGINEERING_GATE_RULE.json`; CORRECTNESS_LOCK governs them.
 
 ## 1. What D1 is
 
 D1 is the single learned decoder shared by every new arm (C-TASK, the 72 weighted controls, the 15 constrained units)
-and by every fixed-map calibration control (`<D0 id>|D1`). For one token t of one recipient, it turns the token's
+and by every fixed-map calibration control (`<D0 id>|D1`, 27 per seed including the registered CLASS|D1). For one token t of one recipient, it turns the token's
 fitting sufficient statistics into the released probability vector:
 - n_t: fitting count;
 - y_t: true-label counts;
@@ -28,8 +28,8 @@ Here q is the ACTUAL released vector: the source smoothing, applied as an affine
 - No SEX enters the decoder. SEX may influence the partition only, and is never a deployment input.
 
 **Training-label use (disclosed).**
-- D1 reads true task labels of OSF_DEFENSE_FIT rows, through `qpc.data.labels_for(D, "fitting", "OSF_DEFENSE_FIT")`
-  in the runner.
+- D1 reads true task labels of OSF_DEFENSE_FIT rows, through `lra.data.labels_for(D, "fitting", "OSF_DEFENSE_FIT")`
+  in the runner (`lra.run.fit_data`), only after SCIENCE_LOCK.
 - This is a material change from the label-blind D0 codebook.
 
 ## 2. How it is solved
@@ -51,7 +51,7 @@ with no general-purpose solver in the loop.
 - A repair larger than PROJ_TOL = 1e-9 refuses the solve.
 - Every certificate is computed on the final released q.
 
-## 3. Certificates and tolerances (`lcr.decoder.TOLERANCES`; DECODER_CERTIFICATES.json via `certificate_summary`)
+## 3. Certificates and tolerances (`lra.decoder.TOLERANCES`; DECODER_CERTIFICATES.json via `aggregate_certificates`)
 
 **Per token.**
 - primal residuals: |sum u - 1| and |sum q - 1| (the latter <= 1e-12);
@@ -68,12 +68,19 @@ with no general-purpose solver in the loop.
 An uncertified row raises and is never released. Synthetic fuzz values: stationarity <= 6e-16, dual infeasibility 0,
 projection <= 1.2e-16.
 
+**Aggregation.** `certificate_summary(table)` summarises one recipient table. `summary_violations(summary)` lists any
+registered tolerance it misses. `aggregate_certificates(records)` builds the DECODER_CERTIFICATES.json body from the
+d1 / ctask / fit unit records, which already carry `certificates = {"1": summary, "2": summary}`. It reads committed
+records only: no solve and no refit. Every table is listed with its violations, and the totals state whether every
+table is within tolerance.
+
 **Inputs refused.**
 - n = 0 (the fallback applies instead);
 - non-integer labels, or labels not summing to n;
 - teacher sums not summing to n (1e-9 n);
 - d not the teacher's class (1e-9);
-- any kappa or eps other than the registered values.
+- any kappa or eps other than the registered values (kappa = 32, eps = 1e-12 and the Brier coefficient 0.5 are
+  module constants asserted at import).
 
 **Tables.**
 - decode_policy re-encodes the fitting rows, and requires the tokens to be exactly the deployed ones.
@@ -100,7 +107,7 @@ projection <= 1.2e-16.
 
 ## 6. Artefacts and bindings
 
-**decoder.json (`lcr.DecoderPair`).** Per recipient it stores:
+**decoder.json (`lra.DecoderPair`).** Per recipient it stores:
 - K and the token classes;
 - n_t, y_t, s_t, u_t, q_t and the fallback flags;
 - the per-token certificates;
@@ -120,8 +127,10 @@ At the pair level it stores:
 - and it re-solves every supervised token from the stored statistics, which must reproduce u and q bitwise.
 
 **Configuration convention (accepted by the lead).**
-- New fits: policy config = the lcr id (e.g. `U|K-JOINT-PAIR|i8o64|D1`), and decoder config = the same id.
-- Fixed-map D1 controls: policy config = the admitted D0 id, and decoder config = that id + `|D1`.
+- New fits: policy config = the lra id (e.g. `U|K-JOINT-PAIR|i8o64|D1`), and decoder config = the same id.
+- Fixed-map D1 controls: policy config = the admitted D0 id, and decoder config = that id + `|D1`. The D1 artifact
+  never overwrites the D0 map: the unit is `dec__s{k}__<id>` and the D0 map stays in `pol__s{k}__<id>` (distinct ids,
+  tested).
 
 **release.npz (`release_arrays_d1`).**
 - Exactly `row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2`.
@@ -134,7 +143,7 @@ At the pair level it stores:
 - Improve true-label log loss and Brier on a FIXED code when the frozen teacher is miscalibrated. The real heads are
   imperfect.
 - Thereby make a more private (coarser or SEX-mixing) partition usable within the fitting budgets.
-- That is the "decoder-enabled" route of the fixture gate.
+- (The predecessor called this the "decoder-enabled" route; in lra it is measured on Adult, not gated on fixtures.)
 
 **It cannot:**
 - **Remove information from an unchanged token.** The recipient receives the full token identity, and the decoder is
@@ -154,96 +163,94 @@ At the pair level it stores:
 - **Be a Bayes rule.** It is a regularised registered decoder. "Violates a budget under D1" means infeasible under this
   registered decoder, not mathematically infeasible.
 - **Support global-optimality claims.** Its convexity certifies the fixed-token solve only. The discrete partition
-  search (lcr.mapper) is heuristic, and no global optimum is claimed.
+  search (lra.mapper) is heuristic, and no global optimum is claimed.
 
-## 8. Fixture stage and mechanism gate (prompt section 9)
+## 8. Correctness stage and the engineering gate (prompt section 9)
 
-**Laws** (`FIXTURE_LAWS.json`). Four fixed families, each with N = 4096 exact expected counts and atom weights in
-multiples of 1/4096:
+**What changed from the predecessor.** The predecessor's performance gate (trigger: a privacy-trained D1 release
+0.01 nats below the strongest feasible task-only release) could not trigger on its bank: CLASS|D1 was affordable on
+F2–F4, and every class-preserving release has at least the decision-only information (the disclosure floor,
+MATH_REVIEW section 7). Its GATE_NOT_MET is preserved as `SOURCE_FIXTURE_GATE.json`. It is never this study's verdict.
+lra replaces that gate with a CORRECTNESS-ONLY launch gate on the SAME four pinned laws.
+
+**Laws** (`FIXTURE_LAWS.json`, copied unchanged, file sha256 24f70745…, laws_sha256 5c5e3bda…). Four fixed families,
+each with N = 4096 exact expected counts:
 
 | Family | Purpose | Shape | Static task gains | Mapping pairs |
 |---|---|---|---|---|
 | F1_CALIBRATED_NULL | the teacher is the true conditional; labels are the exact expectation | K = 2 / 2 | 0.25 / 0.23 | 4096 |
 | F2_MISCALIBRATED | overconfident binary head; 3-class head with a binding class-dominance cell; SEX only in recipient 2 | K = 2 / 3 | 0.19 / 0.10 | 32768 |
-| F3_COMPLEMENTARY_XOR | SEX = b1 XOR b2 (w.p. 3/4); local information exactly 0; pair 0.1308 nats while both bits are visible | K = 2 / 2 | 0.22 / 0.28 | 4096 |
+| F3_COMPLEMENTARY_XOR | SEX = b1 XOR b2 (w.p. 3/4); local information exactly 0 | K = 2 / 2 | 0.22 / 0.28 | 4096 |
 | F4_REDUNDANT | one clue bit visible to both recipients; local = pair information | K = 2 / 2 | 0.22 / 0.28 | 4096 |
 
-- Each family has 4 fine cells per predicted class, and caps of 2 tokens per class.
-- Budgets: L_i <= L_i(U) + 0.005 and B_i <= B_i(U) + 0.003.
-- The lambda grid is as on Adult.
+They are KNOWN, ALREADY-OPENED regression cases, not fresh mechanism evidence.
 
-**Arms run on every fixture.**
-- D0: FINE-TASK, CLASS, DIRECT-TASK and the 24 old-objective privacy maps (unchanged qpc search).
-- The D1 versions of those exact maps, with assignments unchanged.
-- C-TASK, the 24 W- controls and the 5 K- arms, through `lcr.mapper.fit_unit` in fixture mode with the full registered
-  start and witness sets.
+**Engine (unchanged).**
+- The D0 bank: FINE-TASK, CLASS, DIRECT-TASK and the 24 old-objective privacy maps.
+- Their D1 versions, assignments unchanged.
+- C-TASK, the 24 W- and the 5 K- arms through `lra.mapper.fit_unit` in fixture mode. They now persist traces.
+- The exhaustive canonical-partition oracle.
 
-**Oracle.** Exhaustive canonical same-class partitions, independent of the mapper, with:
-- exact-law MI;
-- row-level losses under D0 and D1;
-- the exhaustive optimum of every registered own problem.
+**Mandatory checks E01–E12** (prompt checks 1–12; exact text and tolerances in `ENGINEERING_GATE_RULE.json`,
+generated by `lra.fixtures.engineering_gate_rule()`):
+- E01: integer atoms, class routing, label counts, law hashes.
+- E02: fixed-token D0/D1 full-interface information.
+- E03: F1 calibrated null.
+- E04: final-vector D1 certificates (class, simplex, KKT, projection, plus an independent Frank-Wolfe gap).
+- E05: LL/Brier row-level reconstruction.
+- E06: budgets and local caps on EVERY accepted deployed state, including atomic paired moves.
+- E07: the temporary CLASS partner of a sequential stage is not required feasible; the final release meets both
+  budgets.
+- E08: incremental terms and cached solves equal a from-scratch replay of the persisted starts and moves.
+- E09: exhaustive enumeration reproduces the published oracle tables, with heuristic gaps labelled (not failures).
+- E10: the decision disclosure floor; CLASS affordability recorded, never a failure.
+- E11: launch, truth-table and refusal wiring, through registered pytest node IDs.
+- E12: the 14 inherited review findings, each with a passing regression test.
 
-**Gate.**
-- T* is the feasible task-only D1 candidate with the smallest I12. The candidates are the refined C-TASK, FINE-TASK|D1,
-  DIRECT-TASK|D1 and CLASS|D1.
-- A privacy-trained D1 candidate qualifies when it meets every condition of section 3 of the execution prompt:
-  - feasible: both budgets, decisions, strict argmax and caps;
-  - within the local caps, I_i <= I_i(C-TASK);
-  - I12(T*) - I12 >= 0.01 nats;
-  - its own accuracy gain >= 0.03 on both tasks.
-- The candidates are the D1 fixed maps of the 24 D0 privacy maps, the W- controls and the K- arms.
-- GATE_MET iff the mandatory checks C1-C7 all pass AND at least one fixture triggers.
+**Verdict.** ENGINEERING_READY iff every mandatory check passes; otherwise ENGINEERING_BLOCKED.
 
-**Route** (only when GATE_MET).
-- ASSIGNMENT_SEARCH_ROUTE iff, on some triggered fixture, a W- or K- arm qualifies and either no D1 fixed map
-  qualifies or the new arm is at least 0.01 nats lower in I12.
-- Otherwise DECODER_ENABLED_ROUTE.
-- A descriptive flag records whether the D0 version of a qualifying fixed map already qualified.
-
-**Mandatory checks.**
-- C1: fixed-token information.
-- C2: calibrated null (F1 only).
-- C3: budget enforcement.
-- C4: decision preservation.
-- C5: term reconstruction.
-- C6: heuristic labelling against exhaustive references.
-- C7: law integrity.
+These outcomes are registered as non-blocking: CLASS zero-leakage or affordable; no superior fixture release;
+constrained ties weighted; joint ties sequential; the source GATE_NOT_MET; heuristic gaps; a constrained arm infeasible
+under this decoder. The old trigger, T* and route are computed as descriptive output only.
 
 **Outputs.**
-- `FIXTURE_GATE.json`: verdict, reasons, route, per-fixture checks, trigger, references, arm table and hashes.
-- `fixture_oracle/<FID>_{partitions_r1,partitions_r2,pair_I12,arms}.csv`.
-- The private units `fix__<FID>`.
+- `ENGINEERING_GATE_RESULT.json`: verdict, reasons, every check with its details, rule, laws and source-gate hashes,
+  and descriptive output.
+- `correctness_oracle/<FID>_{partitions_r1,partitions_r2,pair_I12,arms}.csv`.
+- Private units `cor__<FID>` under `<PRIVATE_CACHE>/lra_v1/run/units/`. Each holds the mapper records and traces, the
+  policies, the decoders, the releases, the D0 start maps and the fine partitions, so the independent verifier can
+  replay every search.
 
-**Command.**
-- The registered stage runs through the lead's `lcr.run --lock <FIXTURE_LOCK> --stage fixture`.
-- `python -m lcr.fixtures laws` verifies the laws file. `python -m lcr.fixtures run --out DIR` runs the same stage
-  code.
+**Command.** The registered stage runs through the lead's `lra.run --lock <CORRECTNESS_LOCK> --stage correctness`
+(one process, no shard, under the semaphore). `python -m lra.fixtures laws` verifies the pinned laws.
+`python -m lra.fixtures rule [--write]` prints or writes the rule.
 
-**Modules the fixture stage loads.**
-- lcr: `lcr.fixtures`, `lcr.decoder`, `lcr.mapper`, `lcr.run`.
+**Modules the stage loads.**
+- lra: `lra.fixtures`, `lra.decoder`, `lra.mapper`, `lra.run`; `lra.lock` for the binding check.
 - qpc: `qpc.compress`, `qpc.kmeans`, `qpc.release`, `qpc.partition`.
 - dpc: `dpc.utility`, `dpc.partition`, `dpc.compress` (through qpc).
+- E11/E12 run their registered pytest node IDs in one child process of the stage.
 
-## 9. Deployment (`python -m lcr.deploy`)
+## 9. Deployment (`python -m lra.deploy`)
 
-    OMP_NUM_THREADS=1 PYTHONPATH=. ~/PCRL/.venv/bin/python -m lcr.deploy --unit <teacher unit> --policy <policy.json> \
+    OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lra.deploy --unit <teacher unit> --policy <policy.json> \
         [--decoder <decoder.json> [--decoder-sha256 <hex>]] --X <input.npz> --schema <schema> --out <release.npz> \
         [--schema-sha256 <hex>] [--seed k]
 
 **What it does.** This is a thin wrapper around `qpc.deploy`: the same 83-column schema checks, teacher forward
 application and output writer.
 - Output is ONLY tokens, decoded probabilities and decision per recipient.
-- D0 configurations deploy without a decoder.
+- D0 configurations deploy without a decoder. CLASS|D1 is a registered fixed-map control and deploys with its decoder.
 - D1 configurations require their own decoder.json, bound to the same policy fingerprint, teacher and schema. Its hash
   and bitwise re-solve are verified.
 
 **Refused (exit code 2):**
-- extra, reordered or missing columns, and extra input arrays;
-- a mismatched teacher;
-- a decoder of another map, or a tampered, stale or hash-mismatched decoder;
-- raw-score, fine-ID, teacher-probability, logit, latent and debug exports;
-- unknown flags;
+- extra, reordered, reversed, renamed or missing columns, non-finite values, and extra input arrays;
+- a mismatched teacher (a re-bound policy, or a different teacher unit with the original policy and decoder);
+- a decoder of another map, or a tampered, stale, hash-mismatched or relabelled decoder;
+- raw-score, fine-ID, teacher-probability, logit, latent, label, sensitive-attribute and debug exports;
+- unknown flags and abbreviations;
 - unregistered configurations: off-bank lambda or caps, a D1 id without a decoder, a decoder for a D0-only id, a
   family inconsistent with its id.
 
-Tests: `lcr/tests/test_deploy.py`, 6 tests on a synthetic teacher (cbp deploy-test pattern).
+Tests: `lra/tests/test_deploy.py`, 11 tests on a synthetic teacher (cbp deploy-test pattern).

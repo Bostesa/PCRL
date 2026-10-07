@@ -24,13 +24,19 @@ the rows fresh. No confirmation population is opened."
 
 ## Material change in label use (stated plainly)
 
-- **Fitting labels.** Task labels and SEX on OSF_DEFENSE_FIT are used for a NEW supervised fitting procedure: learned
-  decoder probabilities, and coarse code assignments chosen under explicit utility and information budgets. The source
-  codebooks were label-blind.
+- **Fitting labels.** The source (qpc/cbp) codebooks never read a TRUE TASK label: their task-only maps read no label,
+  and their privacy maps read SEX on OSF_DEFENSE_FIT. New here, true task labels on OSF_DEFENSE_FIT enter:
+  - every D1 decoder, including the fixed-map calibration controls and CLASS|D1;
+  - C-TASK;
+  - the weighted controls' task objective;
+  - the fitting budgets.
 - **Unchanged.** The fine partitions stay fixed and label-blind. No new encoder, task head or feature extractor is
   fitted.
-- **SEX.** SEX influences only the partition search. It never enters the per-token decoder objective and is not a
-  deployment input.
+- **SEX.** SEX on OSF_DEFENSE_FIT enters three places: the partition search of every privacy arm and weighted control,
+  the local caps I_i(C-TASK), and the fitted and permutation MI diagnostics. It never enters the D1 objective and is
+  not a deployment input.
+- **In-sample fitting.** The U heads were trained on OSF_DEFENSE_FIT, so D1 calibrates against in-sample teacher
+  outputs. The decoders hold fitting-row label counts and stay private.
 
 ## Staged exposure boundaries
 
@@ -41,6 +47,9 @@ the rows fresh. No confirmation population is opened."
 - **Loaders.** The fit-only, audit-only and inner-only loaders never return assessment labels: assessment rows are
   masked to −1, and only `lra.assess` may unseal.
 - **Assessment.** No assessment label is read before EVALUATION_LOCK is pushed.
+- **Predecessor custody.** The predecessor custody chain (cbp → qpc → dpc → osf) DOES unseal
+  OSF_DEVELOPMENT_ASSESSMENT, inside osf.closeout.backup. lra.closeout therefore runs it only after this study's
+  assessment opening (the lock on origin plus a bound outer__ unit). A proof from code alone is not available.
 
 ## Cohorts
 

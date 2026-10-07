@@ -1,7 +1,13 @@
 {
- "schema": "lcr-label-truth-table-v1",
- "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lcr/family.py clause_outcome(), claim_status(), q_status(), overall_label(); tested exhaustively in lcr/tests/test_truth_table.py",
+ "schema": "lra-label-truth-table-v2",
+ "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lra/family.py clause_outcome(), claim_status(), q_status(), overall_label(), status_suffix(), label_headline(); tested exhaustively in lra/tests/test_truth_table.py (whole table: claim statuses x Q x technical validity x engineering-gate verdict x pre-fit blocker)",
  "agreement": "PROTOCOL.md section 12 states exactly these rules; protocol text and executable must agree; a disagreement is a defect to disclose and resolve; no label edits after inner results",
+ "bootstrap_seed": 20261010,
+ "B": 1999,
+ "z_primary": 3.2048452050105634,
+ "z_primary_definition": "NormalDist().inv_cdf(1 - 0.05/74) = 3.2048452050105634 (37 slots, two-sided Bonferroni)",
+ "z_supplementary": 1.9599639845400534,
+ "z_supplementary_definition": "NormalDist().inv_cdf(0.975): nominal 95% intervals of the same-map D1 - D0 confidence contrasts (supplementary, never primary slots, never a verdict input), on the same 1,999 draws",
  "clause_outcomes": {
   "PASS": "the registered bound clears the target (lower> : lower bound > target; upper< : upper bound < target)",
   "NOT_ESTABLISHED_PRECISION": "the point estimate satisfies the target but the registered bound does not (assessment precision failure; NOT an established violation)",
@@ -28,31 +34,55 @@
   "all 4 clauses PASS -> PASS (COMPLETE_PASSING_CONJUNCTION)",
   "otherwise NOT_ESTABLISHED, root cause as for claims: MEASURED_VIOLATION_SUPPORTED_BY_BOUND if any failing clause is a measured violation, ASSESSMENT_PRECISION_FAILURE if every failing clause is a precision failure, else CLAUSE_NOT_ESTABLISHED; failing clauses listed"
  ],
- "overall_label_rules_in_precedence_order": [
-  "the registered fixture gate failed before Adult -> MECHANISM_GATE_NOT_MET (no Adult fit, no Adult head-to-head result)",
-  "a technical-validity failure that touches EVERY claim (see failure_scope) -> INCOMPLETE_OR_INVALID",
-  "A == PASS -> PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (<family>; <construction: existing | calibrated | weighted | constrained>) where family/construction are the simplest among P*'s exact release aliases",
-  "B == PASS -> CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (joined with ' + ' to any other passing component)",
-  "C == PASS -> PAIRED_JOINT_INCREMENT_ESTABLISHED (joined with ' + ')",
-  "no passing method claim, Q == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION (prompt sec. 12 literal; every incomplete claim stays displayed beside it)",
-  "no passing method claim and any claim or Q INCOMPLETE_OR_INVALID -> INCOMPLETE_OR_INVALID (root causes listed)",
-  "otherwise (complete valid work, no passing claim and Q not established) -> EXPERIMENTAL_NO_ADVANTAGE"
+ "engineering_gate_verdicts": [
+  "ENGINEERING_READY",
+  "ENGINEERING_BLOCKED"
  ],
+ "engineering_gate_wiring": "the overall label takes the NEW correctness-gate verdict (ENGINEERING_GATE_RESULT.json, read by lra.run.engineering_ready: verdict ENGINEERING_READY, bound in the latest named lock, on origin) as a REQUIRED argument with no default; lra.run (every Adult science stage), lra.eval_lock (technical_validity), lra.assess (open_assessment / verify_validity) and lra.infer (engineering_gate) all require ENGINEERING_READY and never hard-code readiness (finding F10)",
+ "overall_labels": [
+  "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET",
+  "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED",
+  "PAIRED_JOINT_INCREMENT_ESTABLISHED",
+  "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+  "EXPERIMENTAL_NO_ADVANTAGE",
+  "ENGINEERING_BLOCKED_NOT_RUN",
+  "INCOMPLETE_NOT_RUN",
+  "INCOMPLETE_OR_INVALID"
+ ],
+ "overall_label_rules_in_precedence_order": [
+  "1. a pre-science blocker is NOT RUN, with every A / B / C / Q status NOT_RUN: the engineering-gate verdict ENGINEERING_BLOCKED -> ENGINEERING_BLOCKED_NOT_RUN; otherwise a pre-fit budget / admission blocker, or an engineering-gate verdict that is not a resolved registered verdict -> INCOMPLETE_NOT_RUN (<concrete reason>); all Adult claims NOT RUN; never an Adult negative",
+  "2. an unresolved GLOBAL technical failure after science begins (technical_valid False; see failure_scope) -> INCOMPLETE_OR_INVALID; a separately valid Q (or any claim status) is displayed beside it but never replaces the headline",
+  "3. passing method components, joined with ' + ': A == PASS -> PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (<family>; <construction: existing | calibrated | task-only | weighted | constrained>[; identical to privacy-untrained <ids>]) named by winning_family_naming; B == PASS -> CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (with the N* identical_to_untrained disclosure when present); C == PASS -> PAIRED_JOINT_INCREMENT_ESTABLISHED (with the J* disclosure when present)",
+  "4. no passing method claim, Q == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION (prompt sec. 12 literal); incomplete method claims stay in the label's status suffix",
+  "5. no passing method claim, Q not PASS, any claim or Q INCOMPLETE_OR_INVALID -> INCOMPLETE_OR_INVALID",
+  "6. otherwise (complete valid work, nothing passes) -> EXPERIMENTAL_NO_ADVANTAGE"
+ ],
+ "status_suffix_rule": "EVERY overall label ends with ' [A=<status>; B=<status>; C=<status>; Q=<status>]' (lra.family.status_suffix; finding F14), so no headline -- in particular a Q-only CONFIDENCE_FEASIBILITY label -- can conceal missing method work or a missing required comparison; lra.family.label_headline strips the suffix for display",
  "display_rule": "every claim status, its root cause and its failing clauses are always displayed beside the overall label; a legitimately passing claim may be reported even if a separate claim is incomplete, and both are shown",
  "selection_reason_classes": {
-  "FIT_OR_ADMISSION_FAILURE": "a required unit (release or its inner audit) is missing / not hash-complete (did not fit or admit with parity)",
+  "FIT_OR_ADMISSION_FAILURE": "a required unit (release or its inner audit) is missing / not hash-complete (did not fit or admit with parity); technical",
+  "FIT_RECORD_TECHNICAL_FAILURE": "a constrained fit record is missing, not hash-complete, unreadable, schema-incomplete (status not in {FEASIBLE, INFEASIBLE} or deployed.feasible not boolean) or names another configuration / seed on some seed; technical, never CONSTRAINED_FIT_INFEASIBLE (finding F01)",
   "DECISION_PRESERVATION_FAILURE": "a U-derived candidate failed exact decision preservation on some seed (technical, never a shortfall)",
-  "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess) is missing or nonfinite",
-  "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed",
-  "LOCAL_GUARD_FAILURE": "ordinarily eligible candidates exist but none meets the local guards",
-  "MISSING_GUARD_COMPARATOR": "a required guard comparator is missing (technical; no guard rank computed)",
-  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role failed its registered FITTING budgets/local caps on some seed (infeasible under this registered decoder); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE), not a technical failure"
+  "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess, release identity) is missing or nonfinite, or token_states is not a finite positive integer for a code / not null for a continuous release (finding F06); technical",
+  "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed (selection outcome; fallback_class UTILITY)",
+  "LOCAL_GUARD_FAILURE": "ordinarily eligible candidates exist but none meets the local guards (selection outcome; fallback_class LOCAL_GUARD)",
+  "MISSING_GUARD_COMPARATOR": "a required guard comparator role has no valid nominee: INVALID when some candidate is eligible, with the strongest eligible candidate by the ordering keys as its DESCRIPTIVE_ONLY fallback (finding F04); fallback_class MISSING_COMPARATOR; the claim is INCOMPLETE_OR_INVALID",
+  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role has a complete fit record that is not FEASIBLE with a feasible deployed release on some seed (infeasible under this registered decoder and search); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; fallback_class UTILITY), never a population impossibility"
+ },
+ "fallback_classes": {
+  "UTILITY": "ORDINARY_UTILITY_FAILURE, CONSTRAINED_FIT_INFEASIBLE",
+  "LOCAL_GUARD": "LOCAL_GUARD_FAILURE",
+  "MISSING_COMPARATOR": "MISSING_GUARD_COMPARATOR",
+  "TECHNICAL": "FIT_OR_ADMISSION_FAILURE, FIT_RECORD_TECHNICAL_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC (no fallback; the evaluation lock refuses)"
  },
  "failure_scope": {
-  "global (technical_valid=False; blocks every favourable label)": [
+  "global (technical_valid=False; blocks every favourable label; also blocks the evaluation lock and the assessment opening when present before it, finding F13)": [
    "admitted U teacher parity or decision-preservation failure of the U anchor",
    "data seal / verify_D failure at assessment",
-   "a failed shuffled-label (or other required) control of the shared attacker slate",
+   "a failed or missing real-data control verdict (shuffled SEX, confidence within predicted class, distinct-token/same-probability, coalition XOR, source rotated signal, null calibration)",
+   "an unresolved technical failure recorded by the inner selection (any candidate technical failure; a technically INVALID role)",
+   "an engineering gate that is not ENGINEERING_READY, or a CORRECTNESS_LOCK / SCIENCE_LOCK that is missing, does not verify or changed after the evaluation lock",
+   "a missing or non-ADMITTED admission receipt",
    "EVALUATION_LOCK mismatch / unscored locked unit used by every claim (U, the shared anchor)"
   ],
   "per claim (that claim's claim_status(required_control_ok=False) -> INCOMPLETE_OR_INVALID FAILED_REQUIRED_CONTROL; other claims unaffected)": [
@@ -62,9 +92,9 @@
   ],
   "mapping": "units of P* / T* -> A; N* / C* -> B; J* / C_pair* -> C; Q unit -> Q; U -> every claim and Q (global)"
  },
- "root_cause_reporting": "beside the single root cause, cbp.family.cause_by_kind() reports the worst outcome per clause kind (coalition, local, acc, logloss, brier, retain), e.g. 'MEASURED_VIOLATION_SUPPORTED_BY_BOUND[coalition]; ASSESSMENT_PRECISION_FAILURE[logloss]', so a measured pair violation is never read as an established confidence violation (sec. 13 bottleneck reporting); reporting only, never changes a status",
- "winning_family_naming": "the label names the simplest family and construction over P*'s exact alias set: configurations whose DEPLOYED release (tokens AND released probabilities) equals P*'s on all three seeds; family order LOCAL < SEQ-12 = SEQ-21 < JOINT(-SINGLE) < JOINT-PAIR; construction order existing (D0) < calibrated (D1 fixed-map) < weighted < constrained",
- "role_level_aliases": "data-dependent role aliases (P* == J*, C_rate == C_global, T* == Q config) are recorded per slot in EVALUATION_LOCK and PRIMARY_ENDPOINTS (alias_of_by_role); slots are kept, prose never counts one comparison twice",
+ "root_cause_reporting": "beside the single root cause, lra.family.cause_by_kind() reports the worst outcome per clause kind (coalition, local, acc, logloss, brier, retain), e.g. 'MEASURED_VIOLATION_SUPPORTED_BY_BOUND[coalition]; ASSESSMENT_PRECISION_FAILURE[logloss]', so a measured pair violation is never read as an established confidence violation; reporting only, never changes a status",
+ "winning_family_naming": "the label names the (family; construction) of ONE real representative of P*'s exact alias set (configurations whose DEPLOYED release -- tokens, decoded probabilities, decisions on OSF_DEFENSE_FIT + AUDIT_FIT + INNER_SELECTION rows and declared alphabets -- is byte-identical to P*'s on all three seeds): among the members in P*'s own candidate pool (the privacy-trained codes), the lowest construction rank (existing (D0) < calibrated (D1 fixed-map) < task-only (C-TASK) < weighted < constrained), then family rank (LOCAL < SEQ-12 = SEQ-21 < JOINT = JOINT-SINGLE < JOINT-PAIR), then configuration ID; the name is that member's own family and construction (never independent minima; never an '=' join); every alias is listed separately; privacy-untrained exact aliases are disclosed as '; identical to privacy-untrained <ids>' (no privacy-training credit without a changed release) (findings F02, F03, F09)",
+ "role_level_aliases": "data-dependent role aliases between ANY two of P*, N*, J*, T*, C*, C_pair* and Q (e.g. P* == N*, N* == J*, P* == J*, P* == C*, N* == C*, C* == C_pair*, T* == C_pair*, T* == Q, P* == T* for an untrained alias): the same configuration, or two configurations that are exact deployed-release aliases on all three seeds (alias sets computed for every role, comparators and Q included). Same tokens with a different decoder are NOT aliases; canonical token renamings are recorded separately as informational equivalence. Recorded per slot in EVALUATION_LOCK and PRIMARY_ENDPOINTS (alias_of_by_role); slots are kept; prose never counts one comparison twice (findings F07, F11)",
  "selection_reason_note": "technical reasons of one role are joined with '+' when several apply (e.g. DECISION_PRESERVATION_FAILURE+NON_ESTIMABLE_INNER_METRIC); the claim root cause carries them verbatim",
  "claims": {
   "A": "P* vs T*: useful privacy release beyond strong compression",
@@ -77,7 +107,8 @@
   "B passes: the registered constrained search adds value over strong controls; novelty separately reviewed",
   "C passes: evidence for the paired joint component; not a universal superiority theorem",
   "a fitting-budget certificate does not imply a passing assessment clause",
-  "a point below a limit with an upper bound above it is unresolved preservation, not an established violation"
+  "a point below a limit with an upper bound above it is unresolved preservation, not an established violation",
+  "a nominee release identical to a privacy-untrained release is reported as such; its claim is never credited to privacy training"
  ],
  "not_implied_by_an_A_pass": [
   "a new algorithm in the literature",
@@ -89,6 +120,12 @@
   "general-purpose representation learning"
  ],
  "report_rules": {
-  "decoder_sentence": "the opening sentence 'Learning the probabilities [did/did not clearly] improve confidence' is decided by the registered identical-token pair on the scored list: the best D1 fixed-map privacy control vs its paired D0 release; paired per-task D1-D0 log-loss and Brier differences on the assessment with the same bootstrap draws and the primary z (nominal, descriptive; lra.infer 'decoder_ablation'); 'did' iff all four upper bounds < 0, otherwise 'did not clearly'"
+  "decoder_sentence": "the opening sentence 'Learning the probabilities [did/did not clearly] improve confidence' is decided by the registered identical-token pair on the scored list: the best D1 fixed-map privacy control vs its paired D0 release; paired per-task D1 - D0 log-loss and Brier differences on the assessment with the same bootstrap draws and the SUPPLEMENTARY nominal 95% z (lra.infer same_map_decoder_contrasts / decoder_ablation); 'did' iff all four upper bounds < 0, otherwise 'did not clearly'; scoped to those decoded maps on this development assessment",
+  "same_map_contrasts": "the same contrast is also reported, supplementary and scoped, for P* (nominee or fallback) and its same-map D0 version and for C-TASK and its same-map D0 version; the maps are named on INNER before the assessment; tokens are identical, so no contrast is information removal"
+ },
+ "historical": {
+  "source_label": "MECHANISM_GATE_NOT_MET",
+  "note": "the predecessor (lcr) closed with its registered fixture gate GATE_NOT_MET and the label MECHANISM_GATE_NOT_MET; that verdict is preserved as a source fact (SOURCE_FIXTURE_GATE.json) and never becomes this study's launch verdict or label; the old gate_met wiring (lcr infer gate_met=True, lcr eval_lock FIXTURE_GATE.json GATE_MET) is removed in lra (finding F10)",
+  "superseded_text": "the inherited cbp text named roles C_rate / C_global, the reason HEADROOM_SELECTION_FAILURE and cbp.family.cause_by_kind; all are removed from the registered rules (findings F08, F12)"
  }
 }

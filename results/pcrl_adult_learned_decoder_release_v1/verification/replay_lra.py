@@ -3360,16 +3360,16 @@ def lra_arm(cid):
 LRA_PRIVACY_TRAINED_ARMS = ("d0", "d1_fixed", "weighted", "constrained", "source_private", "reference_private")
 LRA_UNTRAINED_CODE_ARMS = ("d0_task", "d1_task", "ctask", "class", "class_d1")
 LRA_CONSTRUCTION = {"d0": "existing", "d0_task": "existing", "class": "existing", "d1_fixed": "calibrated",
-                    "d1_task": "calibrated", "class_d1": "calibrated", "ctask": "task-only (new supervised)",
+                    "d1_task": "calibrated", "class_d1": "calibrated", "ctask": "task-only",
                     "weighted": "weighted", "constrained": "constrained", "source": "continuous source",
                     "source_private": "privacy-trained continuous source", "reference": "reference",
                     "reference_private": "privacy-trained reference"}
-# deterministic representative ranks (R2/R9): construction existing < calibrated < weighted / task-only < constrained;
-# family LOCAL < SEQ-12 = SEQ-21 < JOINT(-SINGLE) < JOINT-PAIR (task families first)
+# deterministic representative ranks (R2/R9; reconciled with role D 2026-10-07): construction existing 0 < calibrated
+# 1 < task-only 2 < weighted 3 < constrained 4; family LOCAL 0 < SEQ-12 = SEQ-21 1 < JOINT = JOINT-SINGLE 2 <
+# JOINT-PAIR 3, every other family 9; then configuration ID
 LRA_CONSTRUCTION_RANK = {"d0": 0, "d0_task": 0, "class": 0, "d1_fixed": 1, "d1_task": 1, "class_d1": 1, "ctask": 2,
-                         "weighted": 2, "constrained": 3}
-LRA_FAMILY_RANK = {"CLASS": 0, "DIRECT-TASK": 1, "FINE-TASK": 1, "C-TASK": 1, "LOCAL": 2, "SEQ-12": 3, "SEQ-21": 3,
-                   "JOINT": 4, "JOINT-SINGLE": 4, "JOINT-PAIR": 5}
+                         "weighted": 3, "constrained": 4}
+LRA_FAMILY_RANK = {"LOCAL": 0, "SEQ-12": 1, "SEQ-21": 1, "JOINT": 2, "JOINT-SINGLE": 2, "JOINT-PAIR": 3}
 # Finding 5: truthful training metadata of the references, separate from role-pool membership
 LRA_REFERENCE_TRAINING = {"SRC|U": "privacy-untrained continuous source", "REF|F0": "privacy-untrained reference",
                           "SRC|RAW-J_b0.3": "privacy-trained continuous source (RAW-J beta 0.3)",
@@ -3417,18 +3417,24 @@ def _is_int_count(v):
     return isinstance(v, (int, np.integer)) and not isinstance(v, (bool, np.bool_)) and int(v) > 0
 
 
-def lra_fit_seed(rec):
+LRA_FIT_RECORD_TECH = "FIT_RECORD_TECHNICAL_FAILURE"     # reason-code name agreed with role D (lead review R-5)
+
+
+def lra_fit_seed(rec, cid=None, k=None):
     """Constrained fit record of one seed -> (technical_reason or None, fit_feasible or None). R1: a missing,
-    unreadable, incomplete, hash-invalid or internally inconsistent record is TECHNICAL; only a complete valid record
+    unreadable, schema-incomplete, hash-invalid, unknown-status, non-bool deployed.feasible, internally inconsistent
+    or foreign (another config / seed) record is TECHNICAL (FIT_RECORD_TECHNICAL_FAILURE); only a complete valid record
     whose status is INFEASIBLE (and whose deployed state is infeasible) is the selection outcome."""
     if not isinstance(rec, dict):
-        return "FIT_OR_ADMISSION_FAILURE", None
+        return LRA_FIT_RECORD_TECH, None
     if not rec.get("record_ok") or rec.get("status") not in LRA_FIT_STATUSES or \
             not isinstance(rec.get("deployed_feasible"), (bool, np.bool_)):
-        return "FIT_OR_ADMISSION_FAILURE", None
+        return LRA_FIT_RECORD_TECH, None
+    if (cid is not None and rec.get("config", cid) != cid) or (k is not None and rec.get("seed", k) != k):
+        return LRA_FIT_RECORD_TECH, None
     feas = rec["status"] == "FEASIBLE"
     if bool(rec["deployed_feasible"]) != feas:
-        return "FIT_OR_ADMISSION_FAILURE", None          # status and deployed certificate disagree -> technical
+        return LRA_FIT_RECORD_TECH, None                 # status and deployed certificate disagree -> technical
     return None, feas
 
 
@@ -3457,11 +3463,11 @@ def lra_config_row(cid, per_seed, seed_average=False):
             continue
         st_ = s.get("states")
         if code and not _is_int_count(st_):                  # R6: a malformed code count is technical
-            reasons.append("FIT_OR_ADMISSION_FAILURE")
+            reasons.append("NON_ESTIMABLE_INNER_METRIC")
             detail.append(f"s{k}: malformed token-state count {st_!r} for a code release")
             continue
         if not code and st_ is not None:                     # R6: continuous releases carry null
-            reasons.append("FIT_OR_ADMISSION_FAILURE")
+            reasons.append("NON_ESTIMABLE_INNER_METRIC")
             detail.append(f"s{k}: continuous release with a token-state count {st_!r}")
             continue
         if lra_u_derived(cid) and not all(bool((s.get("preserved") or {}).get(i)) for i in (1, 2)):
@@ -3469,7 +3475,7 @@ def lra_config_row(cid, per_seed, seed_average=False):
             detail.append(f"s{k}: exact decision preservation failed")
         ff = True
         if lra_arm(cid) == "constrained":
-            why, ff = lra_fit_seed(s.get("fit"))
+            why, ff = lra_fit_seed(s.get("fit"), cid, k)
             if why:
                 reasons.append(why)
                 detail.append(f"s{k}: constrained fit record missing / unreadable / inconsistent")
@@ -3480,7 +3486,7 @@ def lra_config_row(cid, per_seed, seed_average=False):
                     "sum_ll": float(s["util"][1]["logloss"]) + float(s["util"][2]["logloss"]),
                     "states": (float(st_) if code else math.inf), "pair_fp": s.get("pair_fp"), "tok_fp": s.get("tok_fp"),
                     "canon_fp": s.get("canon_fp"), "fit_feasible": ff}
-    reason = "+".join(dict.fromkeys(reasons)) or None
+    reason = "+".join(sorted(set(reasons))) or None
     row = {"config": cid, "family": lcr_family(cid), "lam": cid_lam(cid), "arm": lra_arm(cid),
            "training": lra_training(cid), "seeds": seeds, "invalid": detail, "invalid_reason": reason,
            "valid": reason is None and len(seeds) == len(SEEDS)}
@@ -3529,8 +3535,8 @@ def lra_pick_role(rows, cands, nominee, guard_names=(), statuses=None, reverse=F
     inval = {c_: (rows.get(c_) or {}).get("invalid_reason") or "FIT_OR_ADMISSION_FAILURE" for c_ in cands
              if not (rows.get(c_) or {}).get("valid")}
     if inval:
-        return {"status": bad, "config": None, "reason": "+".join(dict.fromkeys(
-            x for v in inval.values() for x in v.split("+"))), "invalid_candidates": inval}
+        return {"status": bad, "config": None, "reason": "+".join(sorted({x for v in inval.values() for x in v.split("+")})),
+                "invalid_candidates": inval, "fallback_class": "TECHNICAL"}
     missing_guard = [g_ for g_ in guard_names if (statuses.get(g_) or {}).get("status") != "NOMINEE"]
     guards = [rows[statuses[g_]["config"]] for g_ in guard_names if g_ not in missing_guard]
     ev = []
@@ -3550,9 +3556,12 @@ def lra_pick_role(rows, cands, nominee, guard_names=(), statuses=None, reverse=F
                "fallback_rank_status": "INVALID_MISSING_GUARD_COMPARATOR" if missing_guard else "VALID"}
     if missing_guard and any(e["ordinary_eligible"] for e in ev):
         out = {"status": bad, "config": None, "reason": "MISSING_GUARD_COMPARATOR", "missing_guards": missing_guard,
-               "blocked_eligible": [e["config"] for e in ev if e["ordinary_eligible"]], "evaluated": ev}
-        if not drop_missing_guard_fallback:
-            out.update(fb_info)                              # R4: invalid, but the fixed descriptive fallback stays
+               "blocked_eligible": [e["config"] for e in ev if e["ordinary_eligible"]], "evaluated": ev,
+               "fallback_class": "MISSING_COMPARATOR"}
+        if not drop_missing_guard_fallback:                  # R4: invalid, but the fixed descriptive fallback stays
+            fbe = min((e for e in ev if e["ordinary_eligible"]), key=lambda e: okey(rows[e["config"]]))
+            out.update({**fb_info, "descriptive_config": fbe["config"], "fallback_fit_feasible": fbe["fit_feasible"],
+                        "fallback_shortfalls": {x: fbe[x] for x in ("shortfall_ordinary", "shortfall_guard")}})
         return out
     nom = [e for e in ev if e["nominable"]]
     if nom:
@@ -3564,7 +3573,8 @@ def lra_pick_role(rows, cands, nominee, guard_names=(), statuses=None, reverse=F
         why = "ORDINARY_UTILITY_FAILURE"
     else:
         why = "LOCAL_GUARD_FAILURE"
-    out = {"status": none, "config": None, "reason": why, "evaluated": ev, **fb_info}
+    out = {"status": none, "config": None, "reason": why, "evaluated": ev, **fb_info,
+           "fallback_class": "LOCAL_GUARD" if why == "LOCAL_GUARD_FAILURE" else "UTILITY"}
     if missing_guard:
         out["missing_guards"] = missing_guard
     return out
@@ -3611,7 +3621,7 @@ def lra_alias_record(rows, cid, pool=None, invent_pairing=False):
            "representative_family": lcr_family(rep), "representative_construction": LRA_CONSTRUCTION[lra_arm(rep)],
            "identical_to_untrained": untrained,
            "privacy_training_credited": lra_arm(rep) in LRA_PRIVACY_TRAINED_ARMS and not untrained,
-           "decided_by_rank_tiebreak": len(members) > 1}
+           "decided_by_config_id_tiebreak": sum(1 for c_ in members if rk(c_)[:2] == rk(rep)[:2]) > 1}
     if invent_pairing:                   # DEFECT (R2): independent minima can name a pairing no alias has
         out["representative_family"] = min((lcr_family(c_) for c_ in full),
                                            key=lambda f: (LRA_FAMILY_RANK.get(f, 9), f))

@@ -1,0 +1,168 @@
+{
+ "schema": "lra-engineering-gate-rule-v1",
+ "question": "is the implementation correct enough to run the registered Adult development test? (NOT: has a synthetic example already proved superiority?)",
+ "verdict_strings": [
+  "ENGINEERING_READY",
+  "ENGINEERING_BLOCKED"
+ ],
+ "verdict_rule": "ENGINEERING_READY iff every mandatory check E01..E12 passes (each of E01, E02 and E04..E10 on all four pinned fixtures, E03 on F1_CALIBRATED_NULL, E11 and E12 once); otherwise ENGINEERING_BLOCKED with the failing check ids (and any fixture that raised) as reasons. Nothing else enters the verdict.",
+ "mandatory_checks": {
+  "E01_LAW_COUNTS_ROUTING_HASHES": "FIXTURE_LAWS.json sha256 == PINNED_LAWS_FILE_SHA256 and laws_sha256 == PINNED_LAWS_SHA256 (rule binding); load_laws verifies the hash and rebuilds every atom from the explicit tables; every atom count is a positive integer and they sum to N = 4096; static properties equal law_properties; per (f1, f2) the row counts equal pair_counts and the SEX counts equal n * sex_num / sex_den exactly; per fine cell the true-label counts equal count * labels / label_den exactly; fixture rows deploy to their declared fine cells; every release routes each row to a token of its teacher-predicted class (token class == teacher decision == released decision, strict argmax at the decision, |sum q - 1| <= 1e-12, release keys exactly row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2); every D1 decoder table's token counts n_t and label counts y_t equal the exact sums of the law counts of its member cells, and its teacher sums s_t agree within 1e-09 * max(n_t, 1)",
+  "E02_FIXED_TOKEN_INFORMATION": "for every D0 map and its D1 version: identical token arrays and decisions (exact); I_1, I_2, I12 identical (bitwise); and for EVERY release of every arm (D0, D1, mapper): I(SEX; (token_i, q_i)) == I(SEX; token_i) and I(SEX; (token_1, q_1, token_2, q_2)) == I12 within 1e-15 (the decoder is a function of the token: the complete interface carries exactly the token information)",
+  "E03_CALIBRATED_NULL": "F1_CALIBRATED_NULL only: for every same-class subset token of both recipients (every token of every canonical partition) and every D1 release of every arm: max |q_D1 - q_D0| <= 1e-09 per token, and the law (population) log loss and Brier of D1 >= those of D0 - 1e-12 per row",
+  "E04_D1_FINAL_VECTOR_CERTIFICATES": "every D1 decoder table of every release (D1 fixed maps and every mapper unit) and every oracle subset solve: decoder.json reloads with its hash and a BITWISE re-solve of every supervised token; every supervised token certificate on the FINAL released vector is converged with stationarity_rel <= 1e-09, dual_infeas_rel <= 1e-09, projection_magnitude <= 1e-09, sum_q_residual <= 1e-12, bracket_ulps <= 2, margin > 0, min_u >= 0; independently of the decoder code: u lies in the class-dominant simplex EXACTLY (u >= 0, u_k <= u_d), q == smooth(u, d) bitwise, |sum u - 1| <= 1e-12, strict argmax d on q, and the Frank-Wolfe gap of the prompt objective over the 2^(K-1) vertices of the class-dominant simplex (uniform vectors on subsets containing d), divided by the largest gradient term, is <= 1e-09; fallback tokens (n_t = 0) carry the pinned D0 vector bitwise",
+  "E05_LOSS_RECONSTRUCTION": "true-label log loss (clip 1e-12, natural log) and source multiclass Brier of every release and of U recomputed row by row by this module's own code equal the source per_row convention within 1e-12 (means); mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, Phi) equal the independent reconstruction within 1e-10; the exhaustive table's terms for each arm's partition equal the row-level reconstruction within 1e-10; decoder.token_losses totals equal the row-level sums within 1e-9 (absolute, on totals); mapper-reported L_i(U), B_i(U) equal the independent values within 1e-12",
+  "E06_ACCEPTED_STATE_BUDGETS": "for every constrained (K-) unit: every ACCEPTED deployed state in its persisted trace (each single move and each atomic paired move, both parts applied before the check), rebuilt by this module from the persisted stage start labels and the move parts and decoded from scratch with D1, satisfies, for every recipient enforced at that stage (K-LOCAL / K-SEQ stage r: r; K-JOINT-*: both; paired moves: both), L_r <= L_r(U) + 0.005 + 1e-12, B_r <= B_r(U) + 0.003 + 1e-12 and I_r <= I_r(C-TASK) + 1e-12 by row-level recomputation, with tokens per predicted class <= the caps; every release reported FEASIBLE satisfies both recipients' budgets and local caps; unconstrained units (C-TASK, W-) report FEASIBLE for decisions and caps only and only K- arms may report INFEASIBLE; mapper.replay_unit reports no ENFORCED_CONSTRAINT_VIOLATED, PAIR_INFEASIBLE or FINAL_INFEASIBLE",
+  "E07_SEQUENTIAL_TEMPORARY_PARTNER": "for every K-SEQ-12 / K-SEQ-21 start: the stage-1 partner view is exactly the CLASS-ONLY map of the other recipient and its constraints are not enforced; stage 1 is refined whenever the first recipient's own start satisfies its own budgets and local cap (recomputed here), whatever the partner's confidence (the number of starts refined while the CLASS-ONLY partner violates its own budget is reported); the stage-2 start keeps the frozen first map; every SEQ release reported FEASIBLE meets BOTH recipients' budgets and local caps by row-level recomputation; mapper.replay_unit reports no PARTNER_NOT_CLASS_ONLY, PARTNER_REQUIRED_FEASIBLE or FROZEN_MAP_CHANGED",
+  "E08_INCREMENTAL_REPLAY": "for every mapper unit (C-TASK, W-, K-): mapper.replay_unit on the PERSISTED record and trace is ok and reports no TERMS_MISMATCH, DELTA_MISMATCH, STATS_HASH_MISMATCH or CACHED_SOLVE_MISMATCH (terms and deltas <= 1e-12 abs; statistics and cached q bitwise) and its checks check6 / check7 / check8 are not false; every unit's starts_given equals mapper.registered_starts(arm, lam) exactly (the full registered start / witness list, no fixture subset); independently, every traced state's terms_after equal this module's from-scratch row-level terms within 1e-10; the winning start's incremental search-state terms equal the from-scratch final_state_terms within 1e-10; each stage start equals the previous stage end; the final labels equal the released policy's labels",
+  "E09_EXHAUSTIVE_ORACLE": "the stage's exhaustive enumeration covers every canonical same-class partition pair (count == properties.mapping_pairs) and reproduces the published source oracle tables (partitions_r1, partitions_r2, pair_I12; sha256-pinned) entry by entry within 1e-10 (index, labels and tokens_per_class exact); every arm's partition is in the enumeration; every arm carries EXHAUSTIVE_OPTIMAL, HEURISTIC (with its gap) or NOT_A_SEARCH; a labelled HEURISTIC gap is reported, NOT a failure; the source arms tables are compared descriptively only",
+  "E10_DECISION_DISCLOSURE_FLOOR": "for every release R of every arm and every enumerated partition pair: I12(R) >= I12(CLASS) - 1e-12 and I_i(R) >= I_i(CLASS) - 1e-12 (data processing: every class-preserving release determines both decisions); I12(CLASS) equals the plug-in MI of SEX with the two teacher decisions; CLASS|D1 budget feasibility (affordability) is RECORDED, never a failure",
+  "E11_LAUNCH_WIRING": "the registered pytest node IDs of WIRING_TESTS, run in one subprocess by the stage, all collect and pass (every group non-empty): science stages refuse without a lock-bound pushed ENGINEERING_READY (lra/run.py); LABEL_TRUTH_TABLE.json matches lra.family.overall_label; lra.eval_lock refuses when technical validity is false; the mapper's synthetic coverage of accepted paired moves and of the temporary sequential partner (the fixture laws need not exercise a paired acceptance; E06 reports the count); this module's verdict / rule / refusal paths; and ENGINEERING_GATE_RULE.json on disk equals engineering_gate_rule() (rule text wired to code)",
+  "E12_REVIEW_FINDINGS": "REVIEW_FINDINGS_DISPOSITION.json lists exactly the 14 inherited findings (ordinals 1..14), each with a disposition in ['RESOLVED', 'DUPLICATE_CONSOLIDATED_RESOLVED', 'SUPERSEDED_RESOLVED'] and at least one regression test node ID; every listed node ID collects and passes in the same subprocess; no finding is unresolved (an unresolved finding whose affects_required_adult_execution is not false would also be named as an Adult-execution blocker)"
+ },
+ "check_ids": [
+  "E01_LAW_COUNTS_ROUTING_HASHES",
+  "E02_FIXED_TOKEN_INFORMATION",
+  "E03_CALIBRATED_NULL",
+  "E04_D1_FINAL_VECTOR_CERTIFICATES",
+  "E05_LOSS_RECONSTRUCTION",
+  "E06_ACCEPTED_STATE_BUDGETS",
+  "E07_SEQUENTIAL_TEMPORARY_PARTNER",
+  "E08_INCREMENTAL_REPLAY",
+  "E09_EXHAUSTIVE_ORACLE",
+  "E10_DECISION_DISCLOSURE_FLOOR",
+  "E11_LAUNCH_WIRING",
+  "E12_REVIEW_FINDINGS"
+ ],
+ "prompt_check_map": {
+  "1": "E01_LAW_COUNTS_ROUTING_HASHES",
+  "2": "E02_FIXED_TOKEN_INFORMATION",
+  "3": "E03_CALIBRATED_NULL",
+  "4": "E04_D1_FINAL_VECTOR_CERTIFICATES",
+  "5": "E05_LOSS_RECONSTRUCTION",
+  "6": "E06_ACCEPTED_STATE_BUDGETS",
+  "7": "E07_SEQUENTIAL_TEMPORARY_PARTNER",
+  "8": "E08_INCREMENTAL_REPLAY",
+  "9": "E09_EXHAUSTIVE_ORACLE",
+  "10": "E10_DECISION_DISCLOSURE_FLOOR",
+  "11": "E11_LAUNCH_WIRING",
+  "12": "E12_REVIEW_FINDINGS"
+ },
+ "must_not_block": [
+  "CLASS (the decision-only release) is zero-leakage on a fixture (I12(CLASS) = 0)",
+  "CLASS is affordable (budget-feasible) on a fixture, so no class-preserving release can reveal less pair information than it (the decision disclosure floor, E10)",
+  "no fixture shows a superior privacy release (no 0.01-nat gain, no equal-leakage utility gain, no favourable forecast)",
+  "a constrained arm ties (or loses to) a weighted control",
+  "a joint arm ties (or loses to) a sequential arm",
+  "the source mechanism gate reads GATE_NOT_MET (SOURCE_FIXTURE_GATE.json, historical)",
+  "a heuristic search arm has a gap to the exhaustive optimum of its own problem (labelled HEURISTIC with the gap)",
+  "a constrained arm is INFEASIBLE under this registered decoder and search (reported as such; not a population or mathematical impossibility)",
+  "the old trigger / route classification (descriptive output only)"
+ ],
+ "descriptive_only": "the predecessor's trigger, T*, qualifying rule, route classification and descriptive flags (lra.fixtures.trigger / descriptive) are computed and written under 'descriptive' per fixture; engineering_verdict() never reads them",
+ "laws": {
+  "file": "FIXTURE_LAWS.json",
+  "file_sha256": "24f7074519dc9d24afb75a14e3601be61ee0e17929fe150a2fb8ca0db5ce9d9c",
+  "laws_sha256": "5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434",
+  "families": [
+   "F1_CALIBRATED_NULL",
+   "F2_MISCALIBRATED",
+   "F3_COMPLEMENTARY_XOR",
+   "F4_REDUNDANT"
+  ],
+  "status": "the four lcr laws, copied unchanged (N = 4096 exact expected counts, caps 2/2, budgets 0.005 / 0.003, kappa = 32, eps = 1e-12); KNOWN, ALREADY-OPENED regression cases, not fresh mechanism evidence; never edited or replaced to make a check pass"
+ },
+ "source_gate": {
+  "file": "SOURCE_FIXTURE_GATE.json",
+  "sha256": "772f17e35a471d7069a44c707890bcdfe76a3996f1ebab071331655ae5cb325e",
+  "verdict": "GATE_NOT_MET",
+  "status": "the predecessor's historical performance-gate result (MECHANISM_GATE_NOT_MET); preserved unchanged; never this study's launch verdict and never a blocker"
+ },
+ "source_oracle_tables": {
+  "dir": "results/pcrl_learned_decoder_constrained_release_v1/fixture_oracle",
+  "sha256": {
+   "F1_CALIBRATED_NULL_arms.csv": "16d8bd36a60209bcf147fb06b2ef1803bec5398dc9f6be66695107a71a3b9be0",
+   "F1_CALIBRATED_NULL_pair_I12.csv": "a16108a182cb0b2ef9c3125c36d17dc018f1e59b426e81d09e5515952a3ccb16",
+   "F1_CALIBRATED_NULL_partitions_r1.csv": "28e5a52ece943326bbd90ebee6082f3546326bffe4ef0c84777958d5687bc38b",
+   "F1_CALIBRATED_NULL_partitions_r2.csv": "0b2401786ab9f1c05a91b7024773157e7a1b0f23d5d787e5e4df8c2e1af8b0f1",
+   "F2_MISCALIBRATED_arms.csv": "ebbd92ce171072c4cd58257b4f2708e3ed930a519de803232b142938da9a1fe2",
+   "F2_MISCALIBRATED_pair_I12.csv": "d0bcc732d0b1ee39558b3d926bb267ba4b881079653073875d8bd8f0e7bb538b",
+   "F2_MISCALIBRATED_partitions_r1.csv": "40fe97b22026a1408e7cdeb6efb4f5748caf8c2d99ae7a8574295b75cf98b8d4",
+   "F2_MISCALIBRATED_partitions_r2.csv": "22c27fab9dc92759b01d4153fa3088a48029db7da59d82b3a263e1c81b0e2f52",
+   "F3_COMPLEMENTARY_XOR_arms.csv": "ec52e4cedf140e50924596fba837860f3839567eda07bea204b509eb9c3a463c",
+   "F3_COMPLEMENTARY_XOR_pair_I12.csv": "19114dbbdcd297050ce0414e552e719d8dbc1128c76cf392d6bc5335991fa3b0",
+   "F3_COMPLEMENTARY_XOR_partitions_r1.csv": "780eddd0f8e2e9d5c97d740b67885b4cae8710c9f7e2076b58158eab963c8862",
+   "F3_COMPLEMENTARY_XOR_partitions_r2.csv": "2deaf44c298217984068a9f9ed4a0f0faa6255a86c581beeebbf95a849adaef4",
+   "F4_REDUNDANT_arms.csv": "e9949fcc8cbf87f4fabd838b0db4a793ff919c3da0d0223be14a6f2cc6c72181",
+   "F4_REDUNDANT_pair_I12.csv": "4b4adab0d9a468dc2eb95f562b6d5c7b617860f499eaaa6eb73d3bfc6f4f182e",
+   "F4_REDUNDANT_partitions_r1.csv": "fb495cd3249eecc602c26263d3f5711e8a9072447c78025843c5221d46238a84",
+   "F4_REDUNDANT_partitions_r2.csv": "10bfd2c62b698d9153ee2a9eb52515d781b56090b2a1ffac1f27fd96bf5dfc75"
+  },
+  "compared": "partitions_r1, partitions_r2, pair_I12 (mandatory, E09); arms (descriptive)"
+ },
+ "wiring_tests": {
+  "science_stages_refuse_without_ENGINEERING_READY [A, lra/run.py]": [
+   "lra/tests/test_run_gate.py"
+  ],
+  "label_truth_table_matches_lra.family.overall_label [D]": [
+   "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable",
+   "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate",
+   "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work"
+  ],
+  "eval_lock_refuses_when_technical_validity_false [D]": [
+   "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag",
+   "lra/tests/test_late.py::test_f13_technical_validity_each_failure_alone",
+   "lra/tests/test_late.py::test_f10_f13_technical_validity_ok_only_with_ready_gate_controls_locks_admission_and_clean_selection"
+  ],
+  "synthetic_coverage_of_paired_moves_and_temporary_partner [C, lra/mapper.py]": [
+   "lra/tests/test_mapper.py::test_budgets_and_local_caps_enforced_including_paired",
+   "lra/tests/test_mapper.py::test_paired_step_refuses_infeasible_update",
+   "lra/tests/test_mapper.py::test_sequential_temporary_partner_not_required_feasible"
+  ],
+  "engineering_verdict_and_rule_wired_to_code [B]": [
+   "lra/tests/test_fixtures.py::test_engineering_verdict_truth_table",
+   "lra/tests/test_fixtures.py::test_engineering_rule_file_matches_code",
+   "lra/tests/test_fixtures.py::test_stage_correctness_refusals"
+  ]
+ },
+ "review_findings": {
+  "file": "REVIEW_FINDINGS_DISPOSITION.json",
+  "count": 14
+ },
+ "rows": "each fixture's fitting rows are its atoms replicated by count (exact expected counts, no sampling); all rows are fitting rows; population law = fitting law",
+ "arms": "D0 bank (FINE-TASK, CLASS, DIRECT-TASK, 24 old-objective privacy maps), their D1 versions with assignments unchanged, and lra.mapper C-TASK, 24 W- and 5 K- units (fixture mode: fixture caps and the registered 0.005 / 0.003 budgets), as in the predecessor's fixture engine",
+ "enumeration_vs_certificates": "exhaustive enumeration is exact over PARTITIONS of these finite laws only; within a partition the decoder is a numerical convex solve, certified by E04. A fixed-token certificate is not discrete-search optimality (E09 labels).",
+ "tolerances": {
+  "TOL_BUDGET": 1e-12,
+  "TOL_MI": 1e-12,
+  "TOL_TERMS": 1e-10,
+  "TOL_NULL_Q": 1e-09,
+  "TOL_NULL_LOSS": 1e-12,
+  "TOL_OPT": 1e-10,
+  "TOL_FLOOR": 1e-12,
+  "TOL_ROW": 1e-12,
+  "TOL_FW": 1e-09,
+  "TOL_STATS": 1e-09,
+  "TOL_REPLAY": 1e-12,
+  "TOL_ORACLE": 1e-10,
+  "decoder": {
+   "PROJ_TOL": 1e-09,
+   "STAT_TOL": 1e-09,
+   "DUAL_TOL": 1e-09,
+   "PROTO_SUM_TOL": 1e-12,
+   "STATS_SUM_TOL": 1e-09,
+   "TEACHER_CLASS_TOL": 1e-09,
+   "STATS_ROW_TOL": 1e-09,
+   "TOL_BATCH_OBJ": 1e-12,
+   "BISECT_ITERS": 64,
+   "LOSS_CLIP": 1e-12,
+   "kappa": 32.0,
+   "eps": 1e-12,
+   "brier_coefficient": 0.5,
+   "max_bracket_ulps": 2.0
+  }
+ },
+ "stage": "lra.fixtures.stage_correctness(None, None) through lra.run --stage correctness under the pushed CORRECTNESS_LOCK; one process, no shard; writes ENGINEERING_GATE_RESULT.json, correctness_oracle/*.csv and private units cor__<FID> (records, traces, policies, decoders, releases)",
+ "repairs": "if blocked: bounded engineering repairs before real fitting, as dated code-only amendments pushed before reruns; prior attempts kept; no law, objective, comparator bank or success criterion is changed to fix a failing check",
+ "scope": "fixture MI is the exact MI of these finite laws, not a population guarantee for Adult; ENGINEERING_READY licenses the locked Adult study through SCIENCE_LOCK and nothing else"
+}

@@ -1,7 +1,7 @@
 {
- "schema": "lcr-selection-rules-v1",
- "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lcr/select.py",
- "rows": "INNER_SELECTION only (attackers fitted on AUDIT_FIT); never assessment values",
+ "schema": "lra-selection-rules-v2",
+ "registered_before": "any Adult fit (frozen in SCIENCE_LOCK); executable: lra/select.py; tests lra/tests/test_select.py",
+ "rows": "INNER_SELECTION only for metrics (attackers fitted on AUDIT_FIT); release identities on OSF_DEFENSE_FIT + AUDIT_FIT + INNER_SELECTION rows only; never assessment or HEAD_VALIDATION values",
  "ordinary_eligibility": {
   "scope": "EACH seed (0, 1, 2) and EACH task (income, occupation); no averaging across seeds; a candidate whose mean hides a failing seed does not qualify",
   "rules": [
@@ -23,7 +23,8 @@
    "mean actual total token states (fewer first; continuous releases +infinity for ORDERING only, null in JSON)",
    "configuration ID (lexicographic)"
   ],
-  "tie_tolerance": "keys 1 and 2: float64 seed mean (x_seed0 + x_seed1 + x_seed2)/3 in seed order, then Python round(x, 12); equal rounded values tie (values < 1e-12 apart may still fall either side of a rounding boundary); key 3 exact; key 4 lexicographic"
+  "tie_tolerance": "keys 1 and 2: float64 seed mean (x_seed0 + x_seed1 + x_seed2)/3 in seed order, then Python round(x, 12); equal rounded values tie (values < 1e-12 apart may still fall either side of a rounding boundary); key 3 exact; key 4 lexicographic",
+  "token_states_rule": "a code release must carry a finite positive integer token_states (alpha1 + alpha2) and a continuous release null; anything else is NON_ESTIMABLE_INNER_METRIC (technical, finding F06), never ordered as continuous"
  },
  "guard": {
   "rule": "local inner AUC (recipient 1 and 2) <= guard comparator's local inner AUC + 0.005, inclusive, for EACH recipient and seed",
@@ -39,16 +40,17 @@
     "U|FINE-TASK|i8o64|D1",
     "SRC|U",
     "U|CLASS|i1o1",
+    "U|CLASS|i1o1|D1",
     "REF|F0"
    ],
    "eligibility": "ordinary",
-   "note": "strongest eligible privacy-UNTRAINED release: new C-TASK, D0/D1 DIRECT-TASK and FINE-TASK, U continuous, CLASS-ONLY, F0. RAW-J beta 0.3 is privacy-trained and excluded"
+   "note": "strongest eligible privacy-UNTRAINED release: new C-TASK, D0/D1 DIRECT-TASK and FINE-TASK, U continuous, CLASS-ONLY (D0 and its registered D1 version U|CLASS|i1o1|D1, role F R-1), F0. RAW-J beta 0.3 is privacy-trained and excluded. If a CLASS variant is eligible and strongest it is T*; claim A can then pass only through finite-reader behaviour (every class-preserving release contains the class information), which is disclosed"
   },
   "P*": {
    "candidates": "every privacy-trained release: D0 privacy maps (24), D1 fixed-map privacy controls (24), weighted controls (24), constrained arms (5)",
    "eligibility": "ordinary",
    "guard": "vs T*",
-   "note": "P* may be a control; if it wins it is delivered as the useful method and the new constrained search is reported as adding no demonstrated benefit. P* candidates are the 77 code arms only (24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained); the privacy-trained references RAW-J, FARE and LEACE are not P* candidates (cbp convention; on these inner rows they are ordinarily ineligible)"
+   "note": "P* may be a control; if it wins it is delivered as the useful method and the new constrained search is reported as adding no demonstrated benefit. P* candidates are the 77 privacy-trained CODE arms (24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained; lra.select.private_code). The privacy-trained references RAW-J, FARE and LEACE carry truthful metadata privacy_trained=true (training 'privacy-trained reference') but are NOT members of the registered code-only P*/C* pools (finding F05)"
   },
   "C*": {
    "candidates": "incumbent/baseline private releases: D0 and D1 fixed-map privacy maps and weighted controls (72); NO constrained arm",
@@ -81,13 +83,13 @@
    "eligibility": "ordinary (prerequisite); otherwise NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE with P34-P37 DESCRIPTIVE_ONLY"
   }
  },
- "privacy_trained_labels": "fixed-map D1 privacy releases remain privacy-trained controls (their maps were privacy-trained); the D1 decoder itself uses no SEX",
+ "privacy_trained_labels": "fixed-map D1 privacy releases remain privacy-trained controls (their maps were privacy-trained); the D1 decoder itself uses no SEX. privacy_trained is truthful for every scored id: the 77 privacy-trained codes and the references RAW-J, FARE, LEACE are True; C-TASK, D0/D1 DIRECT-TASK / FINE-TASK / CLASS, U and F0 are False. Pool membership uses private_code (codes only)",
  "global_configuration": "one configuration fixed across all three seeds; no per-seed lambda or family; no assessment-based choice",
  "statuses": {
   "nominee_roles": [
    "NOMINEE",
    "NO_ELIGIBLE_NOMINEE (fixed fallback scored DESCRIPTIVE_ONLY)",
-   "INVALID_NOMINEE (technical failure; or an eligible nominee blocked only by a missing guard comparator)"
+   "INVALID_NOMINEE (technical failure, no fallback; or an eligible nominee blocked only by a missing guard comparator, with its DESCRIPTIVE_ONLY fallback)"
   ],
   "comparator_roles": [
    "NOMINEE",
@@ -96,21 +98,58 @@
   ]
  },
  "fallback_ordering": {
-  "rule": "when no candidate is nominable: fit-feasible candidates first (an infeasible constrained fit ranks last, review R-5), then smallest ordinary shortfall, then smallest guard shortfall, then the ordering keys; DESCRIPTIVE_ONLY",
+  "rule": "when no candidate is nominable: fit-feasible candidates first (an infeasible constrained fit ranks last), then smallest ordinary shortfall, then smallest guard shortfall, then the ordering keys; DESCRIPTIVE_ONLY; never a pass",
   "ordinary_shortfall": "max(0, max over tasks t and seeds k of (a_U - 0.01 - a)/0.01, (dLL - 0.01)/0.01, (dB - 0.005)/0.005, (0.8 g_U - g)/max(0.8 g_U, 0.03), (0.03 - g)/0.03)",
-  "missing_guard": "a required guard role without a valid nominee: INVALID (MISSING_GUARD_COMPARATOR) if any candidate is eligible; otherwise NO_ELIGIBLE with fallback ranked on the ordinary shortfall and ordering keys only and fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field)",
-  "reason_codes": "FIT_OR_ADMISSION_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC (technical; joined with '+'); ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE (selection); MISSING_GUARD_COMPARATOR; CONSTRAINED_FIT_INFEASIBLE (selection)"
+  "missing_guard": "a required guard role without a valid nominee: INVALID (MISSING_GUARD_COMPARATOR) if any candidate is eligible, with the strongest eligible candidate by the ordering keys as its DESCRIPTIVE_ONLY fallback (fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR; finding F04: the role keeps its place on the scored list); otherwise NO_ELIGIBLE with the fallback ranked on fit feasibility, the ordinary shortfall and the ordering keys only and fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field)",
+  "technical": "any candidate of the role with a technical failure (FIT_OR_ADMISSION_FAILURE, FIT_RECORD_TECHNICAL_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC): INVALID, no fallback; the evaluation lock refuses until it is resolved (finding F13)",
+  "reason_codes": [
+   "FIT_OR_ADMISSION_FAILURE",
+   "FIT_RECORD_TECHNICAL_FAILURE",
+   "DECISION_PRESERVATION_FAILURE",
+   "NON_ESTIMABLE_INNER_METRIC",
+   "ORDINARY_UTILITY_FAILURE",
+   "LOCAL_GUARD_FAILURE",
+   "MISSING_GUARD_COMPARATOR",
+   "CONSTRAINED_FIT_INFEASIBLE"
+  ],
+  "fallback_classes": [
+   "LOCAL_GUARD",
+   "MISSING_COMPARATOR",
+   "TECHNICAL",
+   "UTILITY"
+  ],
+  "fallback_class_of_reason": {
+   "ORDINARY_UTILITY_FAILURE": "UTILITY",
+   "CONSTRAINED_FIT_INFEASIBLE": "UTILITY",
+   "LOCAL_GUARD_FAILURE": "LOCAL_GUARD",
+   "MISSING_GUARD_COMPARATOR": "MISSING_COMPARATOR",
+   "FIT_OR_ADMISSION_FAILURE": "TECHNICAL",
+   "FIT_RECORD_TECHNICAL_FAILURE": "TECHNICAL",
+   "DECISION_PRESERVATION_FAILURE": "TECHNICAL",
+   "NON_ESTIMABLE_INNER_METRIC": "TECHNICAL"
+  },
+  "fallback_class_note": "the four registered fallback kinds (prompt sec. 10): UTILITY (ordinary utility, or constrained fitting budgets under this registered decoder), LOCAL_GUARD, MISSING_COMPARATOR, TECHNICAL"
  },
- "aliases": "exact release aliases = identical deployed tokens AND released probabilities on all three seeds (sha256 of tok1, q1, tok2, q2); a D1 fixed-map release shares tokens with its D0 map but is NOT an alias. The label names the simplest family and construction among P*'s exact aliases (LABEL_TRUTH_TABLE.json winning_family_naming); partial aliases and the ID tie-break are disclosed",
+ "aliases": {
+  "identity": "exact release aliases = byte-identical deployed release on all three seeds: sha256 over tok_i, q_i, hard_i restricted to OSF_DEFENSE_FIT + AUDIT_FIT + INNER_SELECTION rows (in that order, with their row-id hash) and the declared alphabets alpha_i (lra.select.release_identity). Assessment bytes never enter a release hash, an alias or a representative. Continuous releases alias by configuration ID only",
+  "not_aliases": "a D1 fixed-map release shares tokens with its D0 map but not probabilities: NOT an alias; same tokens with a different decoder are never full-release aliases (finding F11)",
+  "canonical_equivalence": "a release equal after renaming tokens by first occurrence on the permitted rows is recorded as canonical_equivalent / role_canonical_equivalence: informational, never an alias",
+  "every_role": "alias sets are computed for EVERY role (P*, N*, J*, T*, C*, C_pair*, Q), comparators and Q included, on the role's nominee or fallback; role_aliases pairs two roles resolved to one configuration or to exact release aliases with different configuration IDs (findings F07, F11)",
+  "representative": "one REAL member of the alias set names the family/construction: the members that belong to the role's OWN candidate pool (P*: the 77 privacy-trained codes; N*: the 5 constrained arms; J*: K-JOINT-PAIR; T*: the closed T* list; C*: the 72 incumbents; C_pair*: every candidate except K-JOINT-PAIR and infeasible constrained fits (exactly the pick pools); Q: Q) ranked by construction existing < calibrated < task-only < weighted < constrained, then family LOCAL < SEQ-12 = SEQ-21 < JOINT = JOINT-SINGLE < JOINT-PAIR, then configuration ID; decided_by_config_id_tiebreak is disclosed; the name is the representative's own (family; construction) (findings F02, F09)",
+  "identical_to_untrained": "privacy-untrained exact aliases (C-TASK, D0/D1 DIRECT-TASK / FINE-TASK / CLASS) of P*, N* and J* are listed in identical_to_untrained, disclosed beside the role and in the label ('identical to privacy-untrained <ids>'); privacy training is never credited without a changed release (finding F03)",
+  "partial": "partial aliases (some seeds) are disclosed"
+ },
  "prespecified_diagnostics": [
   "best_d1_fixed_privacy: the strongest ordinarily eligible D1 fixed-map privacy control with the T* guard (or its fallback) and its paired D0 release",
   "best_weighted_privacy: the strongest ordinarily eligible weighted control with the T* guard (or its fallback)",
+  "same_map_decoder_pairs: (best D1 fixed-map control, its D0 map), (P* nominee or fallback, its same-map D0 version: the D0 map itself for a D1 fixed-map P*, <cid>|D0SAME for a C-TASK / weighted / constrained P*; absent with a reason for a D0 P*), (C-TASK, U|C-TASK|i8o64|D1|D0SAME); d0same_targets lists the D1 maps whose D0 version is built by the d0same stage (label-free re-encode of the map's own token_proto; tokens bitwise equal)",
   "per_constrained_arm values and C-TASK values",
   "strongest_ordinary_private_unguarded (inner-only diagnostic)"
  ],
- "candidates_per_seed": 88,
+ "candidates_per_seed": 89,
  "display": {
-  "training": "rows carry a display field 'training': privacy-trained code / privacy-untrained code / privacy-trained reference (RAW-J, FARE, LEACE) / privacy-untrained reference (SRC|U, F0); display only, never a role input"
+  "training": "rows carry a display field 'training': privacy-trained code / privacy-untrained code / privacy-trained reference (RAW-J, FARE, LEACE) / privacy-untrained reference (SRC|U, F0), and the truthful boolean privacy_trained plus the pool flag private_code; never role inputs beyond the registered pools"
  },
- "constrained_fit_feasibility": "a constrained unit (K-*) is eligible only if its fit record has status FEASIBLE and deployed.feasible True on EVERY seed; an infeasible constrained fit (saved by lra.mapper as a descriptive copy) is never a nominee for P*, N* or J*, is excluded from the C_pair* comparator pool, and gives the role reason CONSTRAINED_FIT_INFEASIBLE ('infeasible under this registered decoder') when no feasible candidate exists; it may still be the descriptive fallback (flag fit_feasible false). Consequence (registered): K arms have no restoration phase, so if C-TASK violates a fitting budget on a seed, K-LOCAL (whose only start is C-TASK) is infeasible on that seed by construction"
+ "constrained_fit_feasibility": "a constrained unit (K-*) is eligible only if its fit record has status FEASIBLE and deployed.feasible True on EVERY seed; a complete record that is not (status INFEASIBLE, or deployed.feasible False) is never a nominee for P*, N* or J*, is excluded from the C_pair* comparator pool, and gives the role reason CONSTRAINED_FIT_INFEASIBLE ('infeasible under this registered decoder') when no feasible candidate exists; it may still be the descriptive fallback (flag fit_feasible false). A fit unit that is missing or not hash-complete, an unreadable record, a status outside {FEASIBLE, INFEASIBLE}, a non-boolean or missing deployed.feasible, or a record naming another configuration or seed, on ANY seed, is a TECHNICAL failure (FIT_RECORD_TECHNICAL_FAILURE; fit_feasible null; the role is INVALID_*), never CONSTRAINED_FIT_INFEASIBLE (finding F01). Consequence (registered): K arms have no restoration phase, so if C-TASK violates a fitting budget on a seed, K-LOCAL (whose only start is C-TASK) is infeasible on that seed by construction",
+ "candidates_note": "89 per seed = 84 codes (27 D0, 27 D1 fixed-map incl. CLASS|D1, 30 new fits) + 2 sources + 3 references; 267 inner units"
 }

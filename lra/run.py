@@ -121,7 +121,7 @@ def new_fit_ids():
 
 
 def code_ids():
-    """Every code release of the registered bank (one seed): D0 (27), D1 fixed-map (26), new fits (30) = 83."""
+    """Every code release of the registered bank (one seed): D0 (27), D1 fixed-map (27, incl. CLASS|D1), new fits (30) = 84."""
     return d0_ids() + d1_fixed_ids() + new_fit_ids()
 
 

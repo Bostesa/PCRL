@@ -311,11 +311,11 @@ verifier replays the traces with its own engine. This fixes the predecessor's un
 
   | Role | Definition |
   |---|---|
-  | T\* | Closed privacy-untrained list: C-TASK, D0/D1 DIRECT-TASK and FINE-TASK, U, CLASS-ONLY, F0. RAW-J is excluded. |
+  | T\* | Closed privacy-untrained list: C-TASK, D0/D1 DIRECT-TASK and FINE-TASK, U, CLASS-ONLY (D0 and D1), F0. RAW-J is excluded. |
   | P\* | All privacy-trained arms, including calibrated old maps and weighted controls; guard vs T\* |
   | C\* | D0/D1 old privacy maps and weighted controls; no constrained arm |
   | N\* | Constrained arms; guards vs T\* AND C\* |
-  | C_pair\* | Every release except K-JOINT-PAIR |
+  | C_pair\* | Every release except K-JOINT-PAIR, and except fit-infeasible constrained units |
   | J\* | K-JOINT-PAIR; guards vs T\* AND C_pair\* |
   | Q | Fixed D0 DIRECT-TASK i8o64 |
 
@@ -347,7 +347,7 @@ verifier replays the traces with its own engine. This fixes the predecessor's un
 - **Views.** Recipient complete interfaces (token identity, decoded probabilities, decision) and the pair (both, exact
   tuples, both ignore banks). Token-only and probability-only diagnostic families are reported. Nomination uses the
   COMPLETE interface.
-- **Composition.** U composes through the COMPLETE registered map/decoder bank (all 83 codes per seed) before
+- **Composition.** U composes through the COMPLETE registered map/decoder bank (all 84 codes per seed, including CLASS\|D1) before
   selection. Every source-winning composed reader is frozen for the assessment.
 - **Real-data controls.** With the source limits:
   - shuffled SEX;
@@ -467,7 +467,9 @@ verifier replays the traces with its own engine. This fixes the predecessor's un
     decoder-only baseline and the sequential winner. Each carries its training-label-use disclosure.
 - **Backup.**
   - Off-device if the drive is identified by content; otherwise a verified versioned same-device copy, restored from.
-  - Predecessor custody runs only after this study's evaluation opening.
+  - Predecessor custody runs only after this study's evaluation opening. The chain cbp → qpc → dpc → osf DOES unseal
+    OSF_DEVELOPMENT_ASSESSMENT, inside osf.closeout.backup. lra.closeout therefore runs it only after the lra opening
+    (EVALUATION_LOCK on origin plus a bound outer__ unit). A proof from code alone is not available.
 - **Prior art.** Privacy Funnel (arXiv:1402.1774) and Taylor–Vippathalla–Coon (arXiv:2601.21859v2) are established. No
   novelty is claimed. The joint discrete program is not convex. Fitted MI is not a population guarantee. The sequential
   arms are matched adaptations.

@@ -1,0 +1,542 @@
+{
+ "schema": "lra-review-findings-disposition-v1",
+ "source": {
+  "file": "source_reviews/SELECTION_STACK_REVIEW.json",
+  "sha256": "be779628742449bfdcf351f6ad22407835ec15fde6c139fa4621775b2914dd7c",
+  "ordinal_rule": "stable ordinal IDs 1-14 = the order of result.confirmed; F01-F14 in code comments",
+  "pinned_code": "lcr at 091afc2007164fd928d4b792593d6f9eaf75b17c, ported to lra at 886c6707e (the lra files were unchanged by the port except lcr->lra renames); every finding was re-verified against that pinned code before patching"
+ },
+ "owner": "D (attacker / statistics engineer)",
+ "field_definitions": {
+  "disposition": "RESOLVED | DUPLICATE_CONSOLIDATED_RESOLVED | SUPERSEDED_RESOLVED (no finding is unresolved)",
+  "affects_required_adult_execution": "true if the defect, left unresolved, would change a role, a scored list, a refusal, a label or an inference output of the required Adult execution; false for metadata/text-only defects",
+  "pre_science_commit": "filled by the lead (A) with the commit that contains this resolution before SCIENCE_LOCK"
+ },
+ "findings": [
+  {
+   "source_ordinal": 1,
+   "id": "F01",
+   "source_dim": "nomination",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/select.py",
+   "source_location": "fit_feasible (lines 114-127); candidate_rows line 173",
+   "issue": "A constrained fit record that is unreadable, not hash-complete, or missing `status` / `deployed.feasible` on one seed makes fit_feasible return False. The arm is then counted as CONSTRAINED_FIT_INFEASIBLE, which is a selection outcome, when it should be a technical failure. Claim B or C becomes NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE instead of INCOMPLETE_OR_INVALID. This breaks prompt sec. 10 ('fallbacks distinguishing ... technical failures'), sec. 12 statuses, and the module docstring ('A missing / nonfinite field ... is a TECHNICAL failure ... never a shortfall'). Reachability is limited, hence RECOMMENDED rather than REQUIRED: a missing fit unit directory already fails earlier as technical in release_hash, and the registered mapper always writes both keys. The misclassification needs a fit unit whose record.json is unreadable, half-written or schema-drifted while its release.npz still loads; fit_feasible never checks R.done(unit).",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: fit_feasible caught every exception and returned False, and a record without status / deployed.feasible returned False, so a technical record defect became CONSTRAINED_FIT_INFEASIBLE (lcr/select.py 114-127 = lra port lines 115-128)",
+   "source_patch_applied_verbatim": false,
+   "resolution": "fit_feasible returns (True | False | None, detail). None (TECHNICAL) for a fit unit that is missing or not hash-complete, an unreadable record, a status outside {FEASIBLE, INFEASIBLE}, a missing or non-boolean deployed.feasible, or a record naming another configuration / seed; candidate_rows turns None into the technical reason FIT_RECORD_TECHNICAL_FAILURE (registered in lra.family.SELECTION_REASONS / TECHNICAL_SELECTION_REASONS, LABEL_TRUTH_TABLE.json, SELECTION_RULES.json), the row is not ok and every role whose pool contains it is INVALID_* with fallback_class TECHNICAL. Only a complete record with status INFEASIBLE or deployed.feasible False is the scientific CONSTRAINED_FIT_INFEASIBLE. A technically invalid role blocks the evaluation lock (F13). A release unit that is missing is FIT_OR_ADMISSION_FAILURE first",
+   "affected_files": [
+    "lra/select.py",
+    "lra/family.py",
+    "SELECTION_RULES.json",
+    "LABEL_TRUTH_TABLE.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible",
+    "lra/tests/test_select.py::test_f01_fit_feasible_values",
+    "lra/tests/test_select.py::test_infeasible_constrained_fit_is_never_nominated",
+    "lra/tests/test_select.py::test_missing_release_unit_is_a_fit_or_admission_failure"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible": "PASS (7 cases)",
+     "lra/tests/test_select.py::test_f01_fit_feasible_values": "PASS (1 case)",
+     "lra/tests/test_select.py::test_infeasible_constrained_fit_is_never_nominated": "PASS (1 case)",
+     "lra/tests/test_select.py::test_missing_release_unit_is_a_fit_or_admission_failure": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 2,
+   "id": "F02",
+   "source_dim": "nomination",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/select.py",
+   "source_location": "alias_set (lines 275-280); winning_name (283-288)",
+   "issue": "alias_set picks simplest_family and simplest_construction independently over the full alias set. The resulting '<family>; <construction>' can name a pairing that no alias deploys. family.overall_label puts this string verbatim into the headline label, against prompt sec. 12 ('name the actual family and whether it is an existing/calibrated/weighted/constrained construction'). This is new in lcr: cbp named the family only.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: alias_set took simplest_family and simplest_construction as two independent minima over the alias set (lcr/select.py 275-288)",
+   "source_patch_applied_verbatim": false,
+   "resolution": "consolidated with F09 into ONE representative rule (lra.select.alias_set / winning_name): one real member of the exact alias set, drawn from the role's own pick pool (P*: the privacy-trained codes), ranked by construction (existing < calibrated < task-only < weighted < constrained), family (LOCAL < SEQ-12 = SEQ-21 < JOINT = JOINT-SINGLE < JOINT-PAIR), configuration ID; the label names that member's own '<family>; <construction>' (never independent minima, never an '=' join); every alias is listed in aliases.full; decided_by_config_id_tiebreak is disclosed",
+   "affected_files": [
+    "lra/select.py",
+    "lra/family.py",
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first",
+    "lra/tests/test_select.py::test_f09_equal_rank_aliases_pick_one_by_config_id_never_a_joined_name"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first": "PASS (1 case)",
+     "lra/tests/test_select.py::test_f09_equal_rank_aliases_pick_one_by_config_id_never_a_joined_name": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 3,
+   "id": "F03",
+   "source_dim": "nomination",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/select.py",
+   "source_location": "alias_set (lines 260-280)",
+   "issue": "This is a regression from the verified cbp/select.py, which reported `identical_to_untrained`; lcr drops that disclosure. K-LOCAL's only start is C-TASK, and W-LOCAL l0.01 starts from C-TASK too. Either one, with no accepted move, deploys exactly the privacy-untrained C-TASK release (or D1 FINE-TASK when C-TASK did not move). That release is then nominated as P* or N* and named 'LOCAL; constrained' or 'LOCAL; weighted', and nothing records that it is a privacy-untrained release. The ctask construction ranks 9, so it is never the name. This mirrors the sec. 10 rule that fixed-map D1 privacy maps must not be relabelled task-only: a task-only release must not pass as constrained search.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: lcr alias_set had no identical_to_untrained (a regression from cbp/select.py); a K-LOCAL that never moved from C-TASK would be named 'LOCAL; constrained' silently",
+   "source_patch_applied_verbatim": false,
+   "resolution": "alias_set returns identical_to_untrained = sorted exact aliases whose truthful privacy_trained is False, for every role; P*, N*, J* carry it beside the role (statuses[x].identical_to_untrained, frozen in EVALUATION_LOCK); the P* name gets '; identical to privacy-untrained <ids>' and the B / C label components get '(N*|J* release identical to privacy-untrained <ids>; no privacy-training credit)' (lra.infer -> lra.family.overall_label disclosures); untrained aliases are never the named representative",
+   "affected_files": [
+    "lra/select.py",
+    "lra/infer.py",
+    "lra/family.py",
+    "lra/eval_lock.py",
+    "SELECTION_RULES.json",
+    "LABEL_TRUTH_TABLE.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named",
+    "lra/tests/test_late.py::test_f10_infer_label_carries_the_ready_gate_and_untrained_disclosure",
+    "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named": "PASS (1 case)",
+     "lra/tests/test_late.py::test_f10_infer_label_carries_the_ready_gate_and_untrained_disclosure": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 4,
+   "id": "F04",
+   "source_dim": "nomination",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/select.py",
+   "source_location": "pick, lines 237-239 (MISSING_GUARD_COMPARATOR branch)",
+   "issue": "When a required guard role has no valid nominee but some candidates are ordinarily eligible, pick returns INVALID with no config and no descriptive_config. This breaks prompt sec. 10 ('deterministic minimum-shortfall fallbacks, distinguishing ... missing comparator') and sec. 13 ('P*, N*, J*, T*, C*, C_pair*, Q or their prespecified fallbacks'; 'If a role does not exist, use only its fixed descriptive fallback'). eval_lock.scored_labels then drops P*, the useful-release candidate, from the locked scored list. The T*-guarded diagnostics best_d1_fixed_privacy and best_weighted_privacy lose their entries in the same way, which also removes the registered decoder-ablation pair. One technical failure among the 8 T* candidates (e.g. a missing REF|F0 inner unit) is enough. Claim statuses would not change: the role stays INVALID and the fallback is DESCRIPTIVE_ONLY.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: pick's MISSING_GUARD_COMPARATOR branch returned no config and no descriptive_config, so eval_lock.scored_labels dropped P* (and the T*-guarded diagnostics) from the scored list (lcr/select.py 237-239)",
+   "source_patch_applied_verbatim": false,
+   "resolution": "the branch keeps status INVALID_* (MISSING_GUARD_COMPARATOR; the claim stays INCOMPLETE_OR_INVALID) and adds descriptive_only, descriptive_config = the strongest eligible candidate by the ordering keys, fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR and fallback_class MISSING_COMPARATOR; eval_lock.scored_labels therefore keeps P* and the best D1 / best weighted diagnostics (and their paired D0 versions); a missing guard comparator is a scientific outcome, not a technical failure, so the lock is still built",
+   "affected_files": [
+    "lra/select.py",
+    "lra/eval_lock.py",
+    "SELECTION_RULES.json",
+    "LABEL_TRUTH_TABLE.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f04_missing_guard_comparator_keeps_the_descriptive_fallback_on_the_scored_list",
+    "lra/tests/test_late.py::test_f04_missing_guard_fallback_stays_on_the_scored_list"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f04_missing_guard_comparator_keeps_the_descriptive_fallback_on_the_scored_list": "PASS (1 case)",
+     "lra/tests/test_late.py::test_f04_missing_guard_fallback_stays_on_the_scored_list": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 5,
+   "id": "F05",
+   "source_dim": "nomination",
+   "source_severity": "NOTE",
+   "source_file": "lcr/select.py",
+   "source_location": "privacy_trained (lines 62-64); rows / SELECTION.json (lines 175, 351)",
+   "issue": "This is the requested check of run.parse_id privacy_trained over every id in run.scored_ids(). All 83 code ids are correct: the 24 D0, 24 D1 fixed-map privacy, 24 weighted and 5 constrained ids are True, and D0/D1 DIRECT-TASK and FINE-TASK, CLASS and C-TASK are False. The 5 continuous ids have no privacy_trained key in parse_id, so select.privacy_trained returns False for RAW-J, FARE and LEACE. selection.json and the public SELECTION.json therefore publish privacy_trained=false next to training='privacy-trained reference', which contradicts prompt sec. 10 ('RAW-J is privacy-trained'). The P* and C* pools are correct as registered (77 / 72 code arms), so no role changes. Claims review R-2 added the display field but left the false boolean in place.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: privacy_trained returned False for SRC|RAW-J_b0.3, REF|F and REF|E while training said 'privacy-trained reference'; the P*/C* pools were correct",
+   "source_patch_applied_verbatim": false,
+   "resolution": "privacy_trained is truthful for every scored id (RAW-J, FARE, LEACE True; U and F0 False); pool membership uses the separate private_code (the 77 privacy-trained code arms: 24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained); C* = 72 incumbents; the public SELECTION.json rows carry privacy_trained, private_code and training",
+   "affected_files": [
+    "lra/select.py",
+    "SELECTION_RULES.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f05_reference_metadata_truthful_and_pools_registered"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f05_reference_metadata_truthful_and_pools_registered": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": false,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 6,
+   "id": "F06",
+   "source_dim": "nomination",
+   "source_severity": "NOTE",
+   "source_file": "lcr/select.py",
+   "source_location": "candidate_rows lines 164-170; key line 193",
+   "issue": "A code release whose inner token_states is null (missing, or a nonfinite value turned to null by R._finite) is ordered as a continuous release (+inf states) instead of being a technical failure, contrary to the docstring. The risk is mitigated because lcr.audit.validate_all (inner_validation) checks token_states == alpha1 + alpha2, which feeds global technical validity.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: a null token_states on a code release became mean_states None and was ordered as continuous (+inf) (lcr/select.py 164-171, 193)",
+   "source_patch_applied_verbatim": false,
+   "resolution": "a code release must carry a finite positive integer token_states, a continuous release null; anything else (null, 0, a fraction, a boolean on a code; any value on a continuous release) is NON_ESTIMABLE_INNER_METRIC (technical, the row is not ok); mean_states is None only for continuous releases (+inf for ordering only)",
+   "affected_files": [
+    "lra/select.py",
+    "SELECTION_RULES.json",
+    "LABEL_TRUTH_TABLE.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f06_malformed_token_states_is_technical_not_continuous",
+    "lra/tests/test_select.py::test_f06_states_ordering_finite_for_codes_inf_only_for_continuous"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f06_malformed_token_states_is_technical_not_continuous": "PASS (5 cases)",
+     "lra/tests/test_select.py::test_f06_states_ordering_finite_for_codes_inf_only_for_continuous": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 7,
+   "id": "F07",
+   "source_dim": "nomination",
+   "source_severity": "NOTE",
+   "source_file": "lcr/eval_lock.py",
+   "source_location": "role_aliases (lines 56-63); build line 127",
+   "issue": "Role-level aliases compare resolved config IDs only. They ignore the exact release aliases (tokens AND probabilities) that select.alias_set computes for P*, N* and J*, so alias_of_by_role misses slot aliases between roles that deploy identical bytes under different IDs. Prose could then count one comparison twice, against LABEL_TRUTH_TABLE.role_level_aliases. No verdict changes.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: eval_lock.role_aliases compared resolved configuration IDs only (lcr/eval_lock.py 56-63)",
+   "source_patch_applied_verbatim": false,
+   "resolution": "role aliases use actual release identity across all three seeds: select.role_aliases (and the independent re-derivation eval_lock.role_aliases(resolved, statuses), which must agree or the lock is refused) pairs two roles that resolve to one configuration OR to different configurations that are exact deployed-release aliases; release identity = sha256 of tok_i, q_i, hard_i on the permitted OSF_DEFENSE_FIT + AUDIT_FIT + INNER_SELECTION rows plus alpha_i (select.release_identity; assessment bytes never enter); alias_of_by_role flags the repeated slots",
+   "affected_files": [
+    "lra/select.py",
+    "lra/eval_lock.py",
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role",
+    "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role": "PASS (1 case)",
+     "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 8,
+   "id": "F08",
+   "source_dim": "nomination",
+   "source_severity": "NOTE",
+   "source_file": "results/pcrl_learned_decoder_constrained_release_v1/LABEL_TRUTH_TABLE.json",
+   "source_location": "role_level_aliases",
+   "issue": "The registered text still names cbp roles: 'data-dependent role aliases (P* == J*, C_rate == C_global, T* == Q config)'. lcr has no C_rate or C_global; its comparators are T*, C* and C_pair*. Under sec. 4 a code/text disagreement is a defect to disclose.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin and in the lra copy: role_level_aliases named cbp roles C_rate / C_global; root_cause_reporting named cbp.family.cause_by_kind()",
+   "source_patch_applied_verbatim": false,
+   "resolution": "LABEL_TRUTH_TABLE.json rewritten (schema lra-label-truth-table-v2): role_level_aliases names the lra roles P*, N*, J*, T*, C*, C_pair*, Q with release-identity aliases; root_cause_reporting names lra.family.cause_by_kind(); the superseded cbp names are recorded only under the explicit 'historical' key; a test refuses any C_rate, C_global, HEADROOM_SELECTION_FAILURE, cbp.family, cbp/, lcr/, lcr.family, gate_met or GATE_MET outside that key in LABEL_TRUTH_TABLE.json and SELECTION_RULES.json",
+   "affected_files": [
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json",
+    "lra/family.py"
+   ],
+   "regression_tests": [
+    "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped",
+    "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": false,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 9,
+   "id": "F09",
+   "source_dim": "inference-labels",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/select.py",
+   "source_location": "alias_set() lines ~250-255 (feeds winning_name -> overall_label A component)",
+   "issue": "The P* label name '<family>; <construction>' takes the simplest family and the simplest construction as two independent minima over the alias set. The result can be a pairing that no alias member has. Privacy-untrained aliases (D1 DIRECT-TASK/FINE-TASK, C-TASK, D0 DIRECT-TASK) also count, so they can supply the construction word. The prompt requires naming 'the actual family and whether it is an existing/calibrated/weighted/constrained construction'. Its interpretation rule ('Decoder-only control wins -> withdraw the new optimizer contribution') depends on the construction word.",
+   "duplicate_of": 2,
+   "superseded": null,
+   "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin (same code as F02); in addition privacy-untrained aliases could supply the construction word",
+   "source_patch_applied_verbatim": false,
+   "resolution": "DUPLICATE of F02, consolidated into one tested representative-naming rule (see F02): the representative is drawn from the role's own pool (P*: privacy-trained codes only), deterministically by construction rank, family rank, config ID; all aliases listed separately; untrained aliases disclosed (F03) and never credited with privacy training",
+   "affected_files": [
+    "lra/select.py",
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first",
+    "lra/tests/test_select.py::test_f09_equal_rank_aliases_pick_one_by_config_id_never_a_joined_name",
+    "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first": "PASS (1 case)",
+     "lra/tests/test_select.py::test_f09_equal_rank_aliases_pick_one_by_config_id_never_a_joined_name": "PASS (1 case)",
+     "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 10,
+   "id": "F10",
+   "source_dim": "inference-labels",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/infer.py",
+   "source_location": "label_from() line ~205 (gate_met=True); lcr/eval_lock.py technical_validity() line ~105; lcr/run.py main() stage guard",
+   "issue": "Rule 1 of LABEL_TRUTH_TABLE.json (and prompt section 12) is not wired to any code path: a registered fixture-gate failure should give MECHANISM_GATE_NOT_MET. infer passes gate_met=True unconditionally. eval_lock only turns a non-'GATE_MET' verdict into a global technical failure, which yields INCOMPLETE_OR_INVALID: an Adult-shaped result, which the prompt forbids. No lcr module (including closeout.py) calls overall_label(gate_met=False). No Adult stage refuses on a failed gate: run.py d1/ctask/fit/inner/select check only the lock. The accepted verdict string 'GATE_MET' is not registered anywhere either: FIXTURE_GATE_RULE.json does not exist yet and lcr/fixtures.py is unwritten. If the fixture writer emits a different string, e.g. one that embeds the route, every favourable label is silently blocked.",
+   "duplicate_of": null,
+   "superseded": "SUPERSEDED by the NEW correctness-gate wiring (prompt sec. 9/18.10); the source patch (FIXTURE_GATE.json GATE_MET -> MECHANISM_GATE_NOT_MET, refusing SCIENCE_LOCK on GATE_NOT_MET) is NOT applied: it would let the predecessor's failed performance gate block the newly authorised science",
+   "disposition": "SUPERSEDED_RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: lcr infer.label_from passed gate_met=True unconditionally; lcr eval_lock.technical_validity required FIXTURE_GATE.json verdict GATE_MET; no lcr Adult stage refused on the gate",
+   "source_patch_applied_verbatim": false,
+   "resolution": "every consumer now requires the NEW verdict ENGINEERING_READY and none hard-codes readiness: lra.run.engineering_ready() (lead: ENGINEERING_GATE_RESULT.json verdict ENGINEERING_READY, bound in the latest named lock, on origin) guards every Adult science stage; lra.eval_lock.technical_validity uses it (a not-ready gate is a global technical failure; the old FIXTURE_GATE.json GATE_MET check is removed); lra.assess.verify_validity refuses unless the lock binds ENGINEERING_READY and the gate is still ready with the same sha256; lra.infer.engineering_gate refuses unless the lock binds ENGINEERING_READY and passes the verdict to lra.family.overall_label, whose engineering_gate argument is REQUIRED (no default) and returns ENGINEERING_BLOCKED_NOT_RUN / INCOMPLETE_NOT_RUN for a non-ready gate; MECHANISM_GATE_NOT_MET is never produced (historical only). Closeout (F) and report.py (lead) are re-pointed by their owners",
+   "affected_files": [
+    "lra/family.py",
+    "lra/infer.py",
+    "lra/eval_lock.py",
+    "lra/assess.py",
+    "lra/run.py (lead)",
+    "lra/closeout.py (F)",
+    "lra/report.py (lead)",
+    "LABEL_TRUTH_TABLE.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_late.py::test_f10_infer_refuses_without_engineering_ready",
+    "lra/tests/test_late.py::test_f10_f13_technical_validity_ok_only_with_ready_gate_controls_locks_admission_and_clean_selection",
+    "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses",
+    "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate",
+    "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work",
+    "lra/tests/test_run_gate.py::test_main_refuses_every_science_stage_when_blocked",
+    "lra/tests/test_run_gate.py::test_old_gate_met_string_is_not_ready"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_late.py::test_f10_infer_refuses_without_engineering_ready": "PASS (4 cases)",
+     "lra/tests/test_late.py::test_f10_f13_technical_validity_ok_only_with_ready_gate_controls_locks_admission_and_clean_selection": "PASS (1 case)",
+     "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses": "PASS (10 cases)",
+     "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work": "PASS (1 case)",
+     "lra/tests/test_run_gate.py::test_main_refuses_every_science_stage_when_blocked": "PASS (8 cases)",
+     "lra/tests/test_run_gate.py::test_old_gate_met_string_is_not_ready": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 11,
+   "id": "F11",
+   "source_dim": "inference-labels",
+   "source_severity": "RECOMMENDED",
+   "source_file": "lcr/eval_lock.py",
+   "source_location": "role_aliases() line 56 / build() line ~127; lcr/select.py select_all alias loop line ~298",
+   "issue": "Role aliases, and therefore the per-slot alias_of_by_role, compare config IDs only. SELECTION_RULES.json defines exact aliases as identical DEPLOYED releases (sha256 of tok1/q1/tok2/q2), and the prompt says 'Deduplicate exact aliases but retain roles/slots'. When two roles resolve to different configs with the identical release on all seeds, the same comparison appears in two claims without being flagged. A reachable case: a K-JOINT arm returns its feasible source-JOINT witness unchanged. Its D1 release then equals U|JOINT|i8o64|l0.1|D1, and the config-ID tie-break ('U|J' < 'U|K') makes P* the D1 control while N* = J* = K-JOINT-PAIR. Slots P15-P22 and P26-P33 then repeat P04-P11 but are not marked. Alias sets are also computed only for P*, N* and J*, so comparator release aliases are invisible. Caveat: release_hash compares raw token IDs, so a release that differs only by canonical token relabelling is still missed.",
+   "duplicate_of": 7,
+   "superseded": null,
+   "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: alias sets were computed only for P*, N*, J* (comparator release aliases invisible) and release_hash read every row including assessment rows",
+   "source_patch_applied_verbatim": false,
+   "resolution": "DUPLICATE/EXTENSION of F07, consolidated: alias sets are computed for EVERY role (P*, N*, J*, T*, C*, C_pair*, Q) on its nominee or fallback; same-token / different-decoder releases are never full-release aliases; canonical first-occurrence token renamings are recorded separately as canonical_equivalent / role_canonical_equivalence (informational, never byte identity); hashes use permitted fitting/inner rows only",
+   "affected_files": [
+    "lra/select.py",
+    "lra/eval_lock.py",
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json"
+   ],
+   "regression_tests": [
+    "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role",
+    "lra/tests/test_select.py::test_f11_same_tokens_different_decoder_is_not_an_alias_and_renaming_is_informational",
+    "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role": "PASS (1 case)",
+     "lra/tests/test_select.py::test_f11_same_tokens_different_decoder_is_not_an_alias_and_renaming_is_informational": "PASS (1 case)",
+     "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 12,
+   "id": "F12",
+   "source_dim": "inference-labels",
+   "source_severity": "RECOMMENDED",
+   "source_file": "results/pcrl_learned_decoder_constrained_release_v1/LABEL_TRUTH_TABLE.json",
+   "source_location": "keys root_cause_reporting (line 64) and role_level_aliases (line 66); lcr/tests/test_truth_table.py lines 65-66",
+   "issue": "The registered truth table still carries cbp text. role_level_aliases gives the examples 'P* == J*, C_rate == C_global, T* == Q config'; C_rate and C_global are not lcr roles. root_cause_reporting names 'cbp.family.cause_by_kind()'. PROTOCOL.md says a code/text disagreement is a defect to resolve, and SCIENCE_LOCK is not pushed yet, so this can be fixed now. lcr/tests/test_truth_table.py also still asserts the removed reason HEADROOM_SELECTION_FAILURE: it passes, but it is stale.",
+   "duplicate_of": 8,
+   "superseded": null,
+   "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED in the lra copy: test_truth_table asserted the removed reason HEADROOM_SELECTION_FAILURE; the documents carried cbp text",
+   "source_patch_applied_verbatim": false,
+   "resolution": "DUPLICATE/EXTENSION of F08, consolidated: the stale HEADROOM_SELECTION_FAILURE assertion is replaced by the current reason codes (ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE, CONSTRAINED_FIT_INFEASIBLE as no-eligible-nominee reasons; the four technical codes and MISSING_GUARD_COMPARATOR as INCOMPLETE_OR_INVALID root causes); a test checks every text/code mapping: lra.family.SELECTION_REASONS == LABEL_TRUTH_TABLE.json selection_reason_classes == SELECTION_RULES.json reason_codes, every code emitted by lra/select.py is registered, the fallback-class map is identical in code and text, and the T* list in the text equals the code",
+   "affected_files": [
+    "lra/tests/test_truth_table.py",
+    "LABEL_TRUTH_TABLE.json",
+    "SELECTION_RULES.json",
+    "lra/family.py"
+   ],
+   "regression_tests": [
+    "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped",
+    "lra/tests/test_truth_table.py::test_claim_status_precedence_and_every_single_failed_clause",
+    "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_claim_status_precedence_and_every_single_failed_clause": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": false,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 13,
+   "id": "F13",
+   "source_dim": "inference-labels",
+   "source_severity": "NOTE",
+   "source_file": "lcr/eval_lock.py",
+   "source_location": "__main__ (writes EVALUATION_LOCK regardless of technical_validity.ok); lcr/assess.py does not refuse on it",
+   "issue": "The lock is written, and the single assessment can be opened, even when technical_validity already shows a failed control, a failed or missing gate, failed inner validation or a missing admission. That result is INCOMPLETE_OR_INVALID by construction, so the one locked opening is spent on it. The prompt says a failed control triggers engineering review, and the controls run before the assessment.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: eval_lock __main__ wrote the lock regardless of technical_validity.ok and lcr/assess.py did not refuse on it; the source patch added an --accept-technical-failure escape, which this study does NOT adopt",
+   "source_patch_applied_verbatim": false,
+   "resolution": "the source patch's escape flag is rejected (prompt sec. 13 stage 5/18.13). lra.eval_lock.main refuses (no file written) unless technical_validity is ok: controls verdict all_ok, ENGINEERING_READY bound and on origin, CORRECTNESS_LOCK / SCIENCE_LOCK present and SCIENCE_LOCK verifying, inner validation ok, no selection technical failure (any candidate technical failure or technically INVALID role), admission ADMITTED; any extra argument (e.g. --accept-technical-failure) is refused with a usage error. lra.assess.open_assessment calls verify_validity(lock) before any unsealing: technical_validity.ok True, ENGINEERING_READY bound and still ready with the same sha256, CORRECTNESS/SCIENCE locks byte-identical to the lock's record, the locked control verdict unchanged and all_ok, admission ADMITTED; open_assessment has no parameter that skips it. Resolution of a failure = repair + a new pushed lock",
+   "affected_files": [
+    "lra/eval_lock.py",
+    "lra/assess.py"
+   ],
+   "regression_tests": [
+    "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag",
+    "lra/tests/test_late.py::test_f13_technical_validity_each_failure_alone",
+    "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses",
+    "lra/tests/test_late.py::test_f13_assess_open_calls_the_validity_check_with_no_override"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag": "PASS (1 case)",
+     "lra/tests/test_late.py::test_f13_technical_validity_each_failure_alone": "PASS (6 cases)",
+     "lra/tests/test_late.py::test_f10_f13_assess_verify_validity_refuses": "PASS (10 cases)",
+     "lra/tests/test_late.py::test_f13_assess_open_calls_the_validity_check_with_no_override": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  },
+  {
+   "source_ordinal": 14,
+   "id": "F14",
+   "source_dim": "inference-labels",
+   "source_severity": "NOTE",
+   "source_file": "results/pcrl_learned_decoder_constrained_release_v1/PROTOCOL.md",
+   "source_location": "section 12 'Overall label' bullets (lines ~320-326)",
+   "issue": "The working tree now checks Q PASS before INCOMPLETE (family.overall_label, LABEL_TRUTH_TABLE.json and test_truth_table.py all agree). The PROTOCOL bullet 'Any incomplete work without a passing component: INCOMPLETE_OR_INVALID' does not say whether Q counts as a component, so the text can be read against the code.",
+   "duplicate_of": null,
+   "superseded": null,
+   "disposition": "RESOLVED",
+   "verified_against_pinned_code": "CONFIRMED at the pin: the code evaluated Q PASS before INCOMPLETE but the protocol bullet did not say whether Q counts as a component; the label string did not show A/B/C/Q",
+   "source_patch_applied_verbatim": false,
+   "resolution": "precedence explicit and identical in lra.family.overall_label, LABEL_TRUTH_TABLE.json overall_label_rules_in_precedence_order and PROTOCOL.md sec. 12: (1) pre-science blocker NOT RUN (ENGINEERING_BLOCKED_NOT_RUN, then INCOMPLETE_NOT_RUN with its reason); (2) global technical failure after science INCOMPLETE_OR_INVALID; (3) passing method components; (4) Q-only CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION; (5) remaining incomplete work INCOMPLETE_OR_INVALID; (6) EXPERIMENTAL_NO_ADVANTAGE. EVERY label ends with ' [A=..; B=..; C=..; Q=..]' (status_suffix), so a Q-only headline can never hide missing method work or a claim failure; tested over the whole table",
+   "affected_files": [
+    "lra/family.py",
+    "lra/infer.py",
+    "LABEL_TRUTH_TABLE.json",
+    "PROTOCOL.md section 12 (lead; already states the precedence)"
+   ],
+   "regression_tests": [
+    "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate",
+    "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work",
+    "lra/tests/test_late.py::test_fallback_is_descriptive_and_failures_are_scoped"
+   ],
+   "test_result": {
+    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "all_pass": true,
+    "per_test": {
+     "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate": "PASS (1 case)",
+     "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work": "PASS (1 case)",
+     "lra/tests/test_late.py::test_fallback_is_descriptive_and_failures_are_scoped": "PASS (1 case)"
+    }
+   },
+   "affects_required_adult_execution": true,
+   "pre_science_commit": null
+  }
+ ],
+ "consolidations": {
+  "F02+F09": "one representative-naming rule",
+  "F07+F11": "release-identity aliases for every role",
+  "F08+F12": "current reason codes and stale-text removal"
+ },
+ "test_run": {
+  "command": "env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m lra.sema --label D:tests-mine-full -- env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m pytest -q lra/tests/test_select.py lra/tests/test_truth_table.py lra/tests/test_late.py lra/tests/test_audit.py lra/tests/test_run_gate.py",
+  "result": "153 passed, 0 failed",
+  "synthetic_only": true
+ }
+}
