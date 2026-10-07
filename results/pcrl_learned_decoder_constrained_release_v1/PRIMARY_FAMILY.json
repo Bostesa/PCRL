@@ -1,0 +1,446 @@
+{
+ "schema": "lcr-primary-family-v1",
+ "executable": "lcr/family.py",
+ "size": 37,
+ "alpha": 0.05,
+ "z": 3.2048452050105634,
+ "z_definition": "statistics.NormalDist().inv_cdf(1 - 0.05/74) (verified in code, asserted equal to 3.2048452050105634 within 1e-15)",
+ "B": 1999,
+ "bootstrap_seed": 20261009,
+ "bootstrap": "paired multinomial bootstrap over OSF_DEVELOPMENT_ASSESSMENT exact-record groups; identical draws for every statistic, arm and model seed; SE = sd (ddof 1); interval = point +- z SE",
+ "aggregation": "endpoint = equal-weight mean over model seeds 0-2 of the per-seed paired statistic; recovery = SEX AUC of the inner-AUC-selected attacker, mean over attacker seeds 0-2; seeds are not independent populations",
+ "claims": {
+  "A": {
+   "nominee": "P*",
+   "comparator": "T*",
+   "question": "useful privacy release beyond strong compression"
+  },
+  "B": {
+   "nominee": "N*",
+   "comparator": "C*",
+   "question": "added value of constrained search beyond calibration and true-label weighted controls"
+  },
+  "C": {
+   "nominee": "J*",
+   "comparator": "C_pair*",
+   "question": "added value of paired joint search"
+  },
+  "Q": {
+   "nominee": "U|DIRECT-TASK|i8o64 (fixed original D0)",
+   "question": "four original confidence bounds"
+  }
+ },
+ "slots": [
+  {
+   "id": "P01",
+   "claim": "A",
+   "kind": "coalition",
+   "nominee": "P*",
+   "ref": "T*",
+   "stat": "AUC_pair(T*) - AUC_pair(P*)",
+   "target": 0.02,
+   "side": "lower>"
+  },
+  {
+   "id": "P02",
+   "claim": "A",
+   "kind": "local",
+   "view": "v1",
+   "nominee": "P*",
+   "ref": "T*",
+   "stat": "AUC_v1(P*) - AUC_v1(T*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P03",
+   "claim": "A",
+   "kind": "local",
+   "view": "v2",
+   "nominee": "P*",
+   "ref": "T*",
+   "stat": "AUC_v2(P*) - AUC_v2(T*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P04",
+   "claim": "A",
+   "kind": "acc",
+   "task": 0,
+   "nominee": "P*",
+   "stat": "Acc_income(P*) - Acc_income(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P05",
+   "claim": "A",
+   "kind": "acc",
+   "task": 1,
+   "nominee": "P*",
+   "stat": "Acc_occ(P*) - Acc_occ(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P06",
+   "claim": "A",
+   "kind": "logloss",
+   "task": 0,
+   "nominee": "P*",
+   "stat": "LogLoss_income(P*) - LogLoss_income(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P07",
+   "claim": "A",
+   "kind": "logloss",
+   "task": 1,
+   "nominee": "P*",
+   "stat": "LogLoss_occ(P*) - LogLoss_occ(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P08",
+   "claim": "A",
+   "kind": "brier",
+   "task": 0,
+   "nominee": "P*",
+   "stat": "Brier_income(P*) - Brier_income(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P09",
+   "claim": "A",
+   "kind": "brier",
+   "task": 1,
+   "nominee": "P*",
+   "stat": "Brier_occ(P*) - Brier_occ(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P10",
+   "claim": "A",
+   "kind": "retain",
+   "task": 0,
+   "nominee": "P*",
+   "stat": "Acc_income(P*) - 0.8 Acc_income(U) - 0.2 const_income",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P11",
+   "claim": "A",
+   "kind": "retain",
+   "task": 1,
+   "nominee": "P*",
+   "stat": "Acc_occ(P*) - 0.8 Acc_occ(U) - 0.2 const_occ",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P12",
+   "claim": "B",
+   "kind": "coalition",
+   "nominee": "N*",
+   "ref": "C*",
+   "stat": "AUC_pair(C*) - AUC_pair(N*)",
+   "target": 0.02,
+   "side": "lower>"
+  },
+  {
+   "id": "P13",
+   "claim": "B",
+   "kind": "local",
+   "view": "v1",
+   "nominee": "N*",
+   "ref": "C*",
+   "stat": "AUC_v1(N*) - AUC_v1(C*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P14",
+   "claim": "B",
+   "kind": "local",
+   "view": "v2",
+   "nominee": "N*",
+   "ref": "C*",
+   "stat": "AUC_v2(N*) - AUC_v2(C*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P15",
+   "claim": "B",
+   "kind": "acc",
+   "task": 0,
+   "nominee": "N*",
+   "stat": "Acc_income(N*) - Acc_income(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P16",
+   "claim": "B",
+   "kind": "acc",
+   "task": 1,
+   "nominee": "N*",
+   "stat": "Acc_occ(N*) - Acc_occ(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P17",
+   "claim": "B",
+   "kind": "logloss",
+   "task": 0,
+   "nominee": "N*",
+   "stat": "LogLoss_income(N*) - LogLoss_income(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P18",
+   "claim": "B",
+   "kind": "logloss",
+   "task": 1,
+   "nominee": "N*",
+   "stat": "LogLoss_occ(N*) - LogLoss_occ(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P19",
+   "claim": "B",
+   "kind": "brier",
+   "task": 0,
+   "nominee": "N*",
+   "stat": "Brier_income(N*) - Brier_income(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P20",
+   "claim": "B",
+   "kind": "brier",
+   "task": 1,
+   "nominee": "N*",
+   "stat": "Brier_occ(N*) - Brier_occ(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P21",
+   "claim": "B",
+   "kind": "retain",
+   "task": 0,
+   "nominee": "N*",
+   "stat": "Acc_income(N*) - 0.8 Acc_income(U) - 0.2 const_income",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P22",
+   "claim": "B",
+   "kind": "retain",
+   "task": 1,
+   "nominee": "N*",
+   "stat": "Acc_occ(N*) - 0.8 Acc_occ(U) - 0.2 const_occ",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P23",
+   "claim": "C",
+   "kind": "coalition",
+   "nominee": "J*",
+   "ref": "C_pair*",
+   "stat": "AUC_pair(C_pair*) - AUC_pair(J*)",
+   "target": 0.02,
+   "side": "lower>"
+  },
+  {
+   "id": "P24",
+   "claim": "C",
+   "kind": "local",
+   "view": "v1",
+   "nominee": "J*",
+   "ref": "C_pair*",
+   "stat": "AUC_v1(J*) - AUC_v1(C_pair*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P25",
+   "claim": "C",
+   "kind": "local",
+   "view": "v2",
+   "nominee": "J*",
+   "ref": "C_pair*",
+   "stat": "AUC_v2(J*) - AUC_v2(C_pair*)",
+   "target": 0.01,
+   "side": "upper<"
+  },
+  {
+   "id": "P26",
+   "claim": "C",
+   "kind": "acc",
+   "task": 0,
+   "nominee": "J*",
+   "stat": "Acc_income(J*) - Acc_income(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P27",
+   "claim": "C",
+   "kind": "acc",
+   "task": 1,
+   "nominee": "J*",
+   "stat": "Acc_occ(J*) - Acc_occ(U)",
+   "target": -0.01,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P28",
+   "claim": "C",
+   "kind": "logloss",
+   "task": 0,
+   "nominee": "J*",
+   "stat": "LogLoss_income(J*) - LogLoss_income(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P29",
+   "claim": "C",
+   "kind": "logloss",
+   "task": 1,
+   "nominee": "J*",
+   "stat": "LogLoss_occ(J*) - LogLoss_occ(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P30",
+   "claim": "C",
+   "kind": "brier",
+   "task": 0,
+   "nominee": "J*",
+   "stat": "Brier_income(J*) - Brier_income(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P31",
+   "claim": "C",
+   "kind": "brier",
+   "task": 1,
+   "nominee": "J*",
+   "stat": "Brier_occ(J*) - Brier_occ(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P32",
+   "claim": "C",
+   "kind": "retain",
+   "task": 0,
+   "nominee": "J*",
+   "stat": "Acc_income(J*) - 0.8 Acc_income(U) - 0.2 const_income",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P33",
+   "claim": "C",
+   "kind": "retain",
+   "task": 1,
+   "nominee": "J*",
+   "stat": "Acc_occ(J*) - 0.8 Acc_occ(U) - 0.2 const_occ",
+   "target": 0.0,
+   "side": "lower>",
+   "alias_of": null
+  },
+  {
+   "id": "P34",
+   "claim": "Q",
+   "kind": "logloss",
+   "task": 0,
+   "nominee": "Q",
+   "stat": "LogLoss_income(Q) - LogLoss_income(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P35",
+   "claim": "Q",
+   "kind": "logloss",
+   "task": 1,
+   "nominee": "Q",
+   "stat": "LogLoss_occ(Q) - LogLoss_occ(U)",
+   "target": 0.01,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P36",
+   "claim": "Q",
+   "kind": "brier",
+   "task": 0,
+   "nominee": "Q",
+   "stat": "Brier_income(Q) - Brier_income(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  },
+  {
+   "id": "P37",
+   "claim": "Q",
+   "kind": "brier",
+   "task": 1,
+   "nominee": "Q",
+   "stat": "Brier_occ(Q) - Brier_occ(U)",
+   "target": 0.005,
+   "side": "upper<",
+   "alias_of": null
+  }
+ ],
+ "rules": [
+  "slots kept after aliases or missing nominees; no post-outcome family reduction",
+  "a slot whose role is not NOMINEE is DESCRIPTIVE_ONLY and can never pass",
+  "a slot with any nonfinite replicate or point is INVALID",
+  "data-dependent role aliases are recorded per slot (alias_of_by_role)"
+ ],
+ "conditionality": "nominal conditional intervals; they do not correct for the adaptive research history; not fresh confirmation"
+}
