@@ -164,7 +164,7 @@ def test_scored_labels_follow_section_13():
     need = {"U|W-SEQ-21|i8o64|l0.06|D1", "U|K-SEQ-12|i8o64|D1", "U|K-JOINT-PAIR|i8o64|D1", "U|C-TASK|i8o64|D1",
             "U|DIRECT-TASK|i8o64", "SRC|U", "U|CLASS|i1o1", "U|SEQ-12|i8o64|l0.06|D1", "U|SEQ-12|i8o64|l0.06",
             "U|K-LOCAL|i8o64|D1", "U|K-SEQ-21|i8o64|D1", "U|K-JOINT-SINGLE|i8o64|D1", "SRC|RAW-J_b0.3", "REF|F",
-            "REF|F0", "REF|E", "U|W-SEQ-21|i8o64|l0.06|D1|D0SAME", "U|C-TASK|i8o64|D1|D0SAME"}
+            "REF|F0", "REF|E", "U|W-SEQ-21|i8o64|l0.06|D1|D0SAME", "U|C-TASK|i8o64|D1|D0SAME", "U|CLASS|i1o1|D1"}
     assert set(L) == need
     assert EL.decoder_pair_labels(S) == {"U|SEQ-12|i8o64|l0.06|D1", "U|SEQ-12|i8o64|l0.06", "U|W-SEQ-21|i8o64|l0.06|D1",
                                          "U|W-SEQ-21|i8o64|l0.06|D1|D0SAME", "U|C-TASK|i8o64|D1",

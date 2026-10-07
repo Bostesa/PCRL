@@ -61,13 +61,13 @@
  "display_rule": "every claim status, its root cause and its failing clauses are always displayed beside the overall label; a legitimately passing claim may be reported even if a separate claim is incomplete, and both are shown",
  "selection_reason_classes": {
   "FIT_OR_ADMISSION_FAILURE": "a required unit (release or its inner audit) is missing / not hash-complete (did not fit or admit with parity); technical",
-  "FIT_RECORD_TECHNICAL_FAILURE": "a constrained fit record is missing, not hash-complete, unreadable, schema-incomplete (status not in {FEASIBLE, INFEASIBLE} or deployed.feasible not boolean) or names another configuration / seed on some seed; technical, never CONSTRAINED_FIT_INFEASIBLE (finding F01)",
+  "FIT_RECORD_TECHNICAL_FAILURE": "a constrained fit record is missing, not hash-complete, unreadable, schema-incomplete (status not in {FEASIBLE, INFEASIBLE} or deployed.feasible not boolean), names another configuration / seed, or has a status that disagrees with deployed.feasible, on some seed; technical, never CONSTRAINED_FIT_INFEASIBLE (finding F01)",
   "DECISION_PRESERVATION_FAILURE": "a U-derived candidate failed exact decision preservation on some seed (technical, never a shortfall)",
   "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess, release identity) is missing or nonfinite, or token_states is not a finite positive integer for a code / not null for a continuous release (finding F06); technical",
   "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed (selection outcome; fallback_class UTILITY)",
   "LOCAL_GUARD_FAILURE": "ordinarily eligible candidates exist but none meets the local guards (selection outcome; fallback_class LOCAL_GUARD)",
   "MISSING_GUARD_COMPARATOR": "a required guard comparator role has no valid nominee: INVALID when some candidate is eligible, with the strongest eligible candidate by the ordering keys as its DESCRIPTIVE_ONLY fallback (finding F04); fallback_class MISSING_COMPARATOR; the claim is INCOMPLETE_OR_INVALID",
-  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role has a complete fit record that is not FEASIBLE with a feasible deployed release on some seed (infeasible under this registered decoder and search); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; fallback_class UTILITY), never a population impossibility"
+  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role has, on some seed, a complete and consistent INFEASIBLE fit record (status INFEASIBLE, deployed.feasible False: infeasible under this registered decoder and search); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; fallback_class UTILITY), never a population impossibility"
  },
  "fallback_classes": {
   "UTILITY": "ORDINARY_UTILITY_FAILURE, CONSTRAINED_FIT_INFEASIBLE",
@@ -121,7 +121,7 @@
  ],
  "report_rules": {
   "decoder_sentence": "the opening sentence 'Learning the probabilities [did/did not clearly] improve confidence' is decided by the registered identical-token pair on the scored list: the best D1 fixed-map privacy control vs its paired D0 release; paired per-task D1 - D0 log-loss and Brier differences on the assessment with the same bootstrap draws and the SUPPLEMENTARY nominal 95% z (lra.infer same_map_decoder_contrasts / decoder_ablation); 'did' iff all four upper bounds < 0, otherwise 'did not clearly'; scoped to those decoded maps on this development assessment",
-  "same_map_contrasts": "the same contrast is also reported, supplementary and scoped, for P* (nominee or fallback) and its same-map D0 version and for C-TASK and its same-map D0 version; the maps are named on INNER before the assessment; tokens are identical, so no contrast is information removal"
+  "same_map_contrasts": "the same contrast is also reported, supplementary and scoped, for P* (nominee or fallback) and its same-map D0 version, for C-TASK and its same-map D0 version, and for CLASS|D1 vs the D0 CLASS map (decisions alone; role F R-10); the maps are named on INNER before the assessment; tokens are identical, so no contrast is information removal"
  },
  "historical": {
   "source_label": "MECHANISM_GATE_NOT_MET",

@@ -191,7 +191,8 @@ def test_feasible_fallback_ranks_before_an_infeasible_one(run_sel):
 
 # ------------------------------------------------------------------ F01: technical fit record != infeasible
 @pytest.mark.parametrize("defect", ["missing_unit", "unreadable", "no_status", "status_drift", "feasible_not_bool",
-                                    "no_deployed", "other_config"])
+                                    "no_deployed", "other_config", "feasible_but_deployed_infeasible",
+                                    "infeasible_but_deployed_feasible"])
 def test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible(run_sel, defect):
     victim = "U|K-SEQ-21|i8o64|D1"
 
@@ -203,7 +204,9 @@ def test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible(run
                     "status_drift": {**good, "status": "OK"},
                     "feasible_not_bool": {**good, "deployed": {"feasible": "yes"}},
                     "no_deployed": {"status": "FEASIBLE"},
-                    "other_config": {**good, "config": "U|K-LOCAL|i8o64|D1"}}[defect]
+                    "other_config": {**good, "config": "U|K-LOCAL|i8o64|D1"},
+                    "feasible_but_deployed_infeasible": {**good, "deployed": {"feasible": False}},
+                    "infeasible_but_deployed_feasible": {**good, "status": "INFEASIBLE"}}[defect]
         if defect == "missing_unit":
             del inner[u]
     out = run_sel(*_bank(tw))
@@ -451,5 +454,12 @@ def test_same_map_decoder_pairs_and_d0same_targets(run_sel):
     assert names["C-TASK"]["d0"] == R.ctask_id() + R.D0SAME
     assert names["P*"]["d1"] == SEL.JOINT_PAIR and names["P*"]["d0"] == SEL.JOINT_PAIR + R.D0SAME
     assert names["best_d1_fixed_privacy"]["d0"] == names["best_d1_fixed_privacy"]["d1"][:-3]
+    assert (names["CLASS"]["d1"], names["CLASS"]["d0"]) == ("U|CLASS|i1o1|D1", "U|CLASS|i1o1")      # F R-10
+    b = names["best_d1_fixed_privacy"]                     # inner D1 - D0 on the same map (synthetic bank: lam effect)
+    assert set(b["fit_inner_d1_minus_d0"]["inner"]) == {"income", "occupation"}
+    assert names["CLASS"]["fit_inner_d1_minus_d0"]["inner"]["income"]["logloss"] == 0.0
+    assert names["C-TASK"]["fit_inner_d1_minus_d0"]["inner"] is None
+    assert {"U|CLASS|i1o1", "U|CLASS|i1o1|D1"} <= set(EL.scored_labels(out)) and \
+        {"U|CLASS|i1o1", "U|CLASS|i1o1|D1"} <= EL.decoder_pair_labels(out)
     assert d["d0same_targets"] == sorted([R.ctask_id(), SEL.JOINT_PAIR])
     assert SEL.paired_d0("U|JOINT|i8o64|l0.1") is None and SEL.paired_d0("U|CLASS|i1o1|D1") == "U|CLASS|i1o1"

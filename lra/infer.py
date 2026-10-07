@@ -17,7 +17,8 @@ GATE (F10): inference REFUSES unless the lock's technical_validity.engineering_g
 lra.eval_lock through lra.run.engineering_ready); readiness is never hard-coded. The verdict is passed to
 lra.family.overall_label, whose label always carries the separate A / B / C / Q statuses (F14).
 SUPPLEMENTARY (prompt sec. 14): for every registered same-map pair (lock same_map_decoder_pairs: the best D1 fixed-map
-privacy control and its D0 map, P* and its same-map D0 version, C-TASK and its same-map D0 version) the paired D1 - D0
+privacy control and its D0 map, P* and its same-map D0 version, C-TASK and its same-map D0 version, CLASS|D1 and the D0
+CLASS map) the paired D1 - D0
 true-label log loss and Brier per task, mean over seeds, with nominal 95% intervals (z = NormalDist().inv_cdf(0.975))
 on the same 1,999 draws; never primary slots, never a verdict input.
 

@@ -195,8 +195,8 @@ def fit_feasible(cid):
     """(value, detail). Constrained arms: True iff the fit record is FEASIBLE with deployed.feasible True on EVERY seed;
     False if some seed is a complete, consistent INFEASIBLE record (a selection outcome: CONSTRAINED_FIT_INFEASIBLE);
     None (TECHNICAL -> FIT_RECORD_TECHNICAL_FAILURE) if a fit unit is missing, not hash-complete or unreadable, or its
-    record lacks status in {FEASIBLE, INFEASIBLE} / a boolean deployed.feasible, or names another configuration or seed.
-    Other arms have no fitting-budget requirement: True."""
+    record lacks status in {FEASIBLE, INFEASIBLE} / a boolean deployed.feasible, names another configuration or seed, or
+    has a status that disagrees with deployed.feasible. Other arms have no fitting-budget requirement: True."""
     if arm(cid) != "constrained":
         return True, None
     out = True
@@ -213,6 +213,8 @@ def fit_feasible(cid):
             return None, f"{u}: status {st!r} / deployed.feasible {dep!r} outside the registered schema"
         if f.get("config", cid) != cid or int(f.get("seed", k)) != k:
             return None, f"{u}: record names {f.get('config')!r} seed {f.get('seed')!r}"
+        if (st == "FEASIBLE") != dep:                  # the registered mapper never writes a disagreeing record
+            return None, f"{u}: status {st} disagrees with deployed.feasible {dep} (inconsistent record)"
         out = out and st == "FEASIBLE" and dep is True
     return out, None
 
@@ -482,6 +484,28 @@ def paired_d0(cid):
     return None
 
 
+def same_map_fit_inner(rows, pr):
+    """Prompt sec. 11 (descriptive): D1 - D0 true-label log loss / Brier on the SAME map, per task, on OSF_DEFENSE_FIT
+    (dec__ unit record 'fitting', mean over seeds) and on INNER_SELECTION (inner rows, mean over seeds). Only for pairs
+    whose D0 member is in the bank; the d0same members are reported by their own unit records (build_d0same)."""
+    d1, d0 = pr.get("d1"), pr.get("d0")
+    out = {"fit": None, "inner": None}
+    if not (d1 and d0) or d0.endswith(R.D0SAME):
+        out["note"] = "same-map D0 diagnostic: fit/inner contrasts in the d0s__ unit records (stage d0same)"
+        return out
+    r1, r0 = rows.get(d1), rows.get(d0)
+    if r1 and r0 and r1["ok"] and r0["ok"]:
+        out["inner"] = {t: {m: sum(r1["seeds"][k]["utility"][t][m] - r0["seeds"][k]["utility"][t][m] for k in SEEDS) /
+                            len(SEEDS) for m in ("logloss", "brier")} for t in TASKS}
+    try:
+        fs = [R.rec(R.unit_for(k, d1))["fitting"] for k in SEEDS]
+        out["fit"] = {t: {m: sum(f[str(i)][f"{x}_D1"] - f[str(i)][f"{x}_D0"] for f in fs) / len(SEEDS)
+                          for m, x in (("logloss", "L"), ("brier", "B"))} for i, t in ((1, "income"), (2, "occupation"))}
+    except Exception as e:                                                   # noqa: BLE001  (descriptive only)
+        out["fit_unavailable"] = f"{type(e).__name__}: {e}"
+    return out
+
+
 def _resolved(s):
     return (s or {}).get("config") or (s or {}).get("descriptive_config")
 
@@ -530,8 +554,11 @@ def select_all(D=None, shard_spec=None):
     pairs = [{"name": "best_d1_fixed_privacy", "d1": _resolved(b), "d0": b["paired_d0"], "registered_sentence": True},
              {"name": "P*", "d1": pc, "d0": paired_d0(pc), "registered_sentence": False,
               "role_status": st["P*"]["status"]},
-             {"name": "C-TASK", "d1": R.ctask_id(), "d0": paired_d0(R.ctask_id()), "registered_sentence": False}]
+             {"name": "C-TASK", "d1": R.ctask_id(), "d0": paired_d0(R.ctask_id()), "registered_sentence": False},
+             {"name": "CLASS", "d1": R.d1_id("CLASS"), "d0": R.d0_id("CLASS"), "registered_sentence": False}]
     diag["same_map_decoder_pairs"] = [p for p in pairs if p["d1"] and p["d0"]]
+    for p in diag["same_map_decoder_pairs"]:
+        p["fit_inner_d1_minus_d0"] = same_map_fit_inner(rows, p)
     diag["same_map_decoder_pairs_absent"] = [{**p, "why": "P* is a D0 release (no D1 decoder on that map)"
                                               if p["d1"] else "role unresolved (technical)"}
                                              for p in pairs if not (p["d1"] and p["d0"])]

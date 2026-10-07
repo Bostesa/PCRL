@@ -52,14 +52,16 @@ def _cfg(s):
 
 def scored_labels(S):
     """PROTOCOL.md section 13 (prompt section 13), fixed from the inner selection only: the seven roles (or their
-    registered fallbacks, F04); U continuous and decisions alone; the best D1 fixed-map privacy control and its paired
+    registered fallbacks, F04); U continuous and decisions alone (D0 CLASS) with its fixed D1 version U|CLASS|i1o1|D1
+    (role F R-10: the cleanest same-token D0/D1 pair; DECISION_FLOOR_AND_FEASIBILITY.csv); the best D1 fixed-map privacy
+    control and its paired
     D0 release; the best weighted privacy control; C-TASK; the five constrained arms; RAW-J, FARE, F0 and LEACE; plus
     the same-map D0 decoded versions of the nominated or fallback P* and of C-TASK (diagnostic releases for the
     decoder-only utility contrasts; selection.diagnostics.same_map_decoder_pairs). Duplicates (exact config aliases)
     are scored once; every role mapping is kept."""
     st, d = S["statuses"], S["diagnostics"]
     labels = [_cfg(st.get(x)) for x in ROLES]
-    labels += ["SRC|U", R.d0_id("CLASS")]
+    labels += ["SRC|U", R.d0_id("CLASS"), R.d1_id("CLASS")]       # decisions alone (D0 CLASS) + CLASS|D1 (F R-10)
     labels += [_cfg(d["best_d1_fixed_privacy"]), d["best_d1_fixed_privacy"].get("paired_d0")]
     labels += [_cfg(d["best_weighted_privacy"]), R.ctask_id()] + R.constrained_ids()
     labels += ["SRC|RAW-J_b0.3", "REF|F", "REF|F0", "REF|E"]

@@ -1945,7 +1945,45 @@ def registration_block():
                               "token_family_readers": TOKEN_FAMILY_READERS, "L4b": L4B_RULE},
             "alias_cache": "L5: exact view-fingerprint alias reuse within a seed (path recorded per family; bitwise "
                            "identical to recomputation); opportunistic, no saving assumed in the estimates beyond "
-                           "the D1 token family"}
+                           "the D1 token family",
+            "registered_slate_and_views": {
+                "slate": "the pinned source FINAL slate (smf.audit.final_slate(False): LR x5, MLP x4, HGB x4, DA_LR, "
+                         "DA_MLP) + finite categorical cell readers CC / CCpair with smoothing 0.5, 1, 5; fitted on "
+                         "AUDIT_FIT, AUC- and CE-selected separately on INNER_SELECTION, fixed orientation",
+                "nomination_view": "COMPLETE interface only (family 'code': one-hot full token identity, decoded q_i, "
+                                   "one-hot decision_i; pair = both interfaces, exact token tuples, both "
+                                   "ignore-recipient banks); nomination, composition and every primary result",
+                "diagnostic_views": "token-only (family 'token', exact-token cell readers only: L4b) and "
+                                    "probability-only (family 'prob', full slate + value cells); reported, never "
+                                    "nominated or composed",
+                "composition": f"SRC|U composes through the COMPLETE registered map/decoder bank: all {N_CODES} codes "
+                               "per seed (the prompt's 83 plus the registered CLASS|D1, role F R-1) before strongest-"
+                               "control and nominee selection; every source-winning composed reader frozen for the "
+                               "assessment (composed.freeze); closure refuses missing or stray units",
+                "inner_bank": {"configurations_per_seed": N_CODES + 2 + 3, "seeds": 3,
+                               "units": 3 * (N_CODES + 2 + 3), "namespace": "aud__<release unit> (schema lra-inner-v1)",
+                               "reconciliation": "prompt sec. 8: 88 configurations x 3 = 264 units; the registered "
+                                                 "CLASS|D1 addition (role F R-1) makes 89 x 3 = 267 (252 code + 6 "
+                                                 "source + 9 reference units); no arm is treated as an alias to save "
+                                                 "a unit"}},
+            "real_data_controls": {
+                "shuffled SEX": ["NULL (every registered control release and family)", "NULL_CALIBRATION (5 "
+                                 "permutations on U|DIRECT-TASK|i8o64)"],
+                "confidence signal within the predicted class": ["CONF_r1", "CONF_r2 (token split by noisy S*, the "
+                                                                 "b = 1 copy decodes to (1 - 0.05) q + 0.05 e_d: same "
+                                                                 "decision; decisions-only audit reported)"],
+                "distinct-token / same-probability leak": ["COLL_r1", "COLL_r2 (two token IDs, one decoded vector; the "
+                                                           "probability-only audit is reported and cannot see it)"],
+                "coalition XOR": ["XOR (pair detects, each local view stays at the null)"],
+                "source rotated signal": ["ROT_r1", "ROT_r2 on the continuous U, RAW-J and E interfaces (Haar rotation "
+                                          "of a 1e-6 noisy-S* column; serialisation exact)"],
+                "missing_from_plan": [],
+                "plan": "control_plan(): codes U|DIRECT-TASK|i8o64, U|JOINT|i8o64|l0.1, U|CLASS|i1o1, "
+                        "U|JOINT|i8o64|l0.1|D1, U|K-JOINT-PAIR|i8o64|D1 (NULL + CONF + COLL + XOR each); sources U, "
+                        "RAW-J (NULL + ROT); references E (NULL + ROT), F, F0 (NULL); NULL_CALIBRATION x5",
+                "limits": "the SOURCE limits (registered_control_limits), unchanged",
+                "consequence": "any failed control is a GLOBAL technical failure: lra.eval_lock refuses the lock and "
+                               "lra.assess refuses the opening (finding F13); never evidence of privacy"}}
 
 
 def reestimate(path, bank=None):
@@ -2146,6 +2184,10 @@ def write_timing_key(audit_compute, timing_path):
         tmp.write_text(json.dumps(DA._jsonable(T), indent=1, allow_nan=False) + "\n")
         os.replace(tmp, tp)
         fcntl.flock(lf, fcntl.LOCK_UN)
+    try:
+        lockp.unlink()                                  # the lead's rule: remove TIMING.json.lock after the merge
+    except FileNotFoundError:
+        pass
     return entry
 
 
