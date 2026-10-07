@@ -1,0 +1,118 @@
+{
+ "schema": "lra-handoff-v1",
+ "created_utc": "2026-10-07T08:55:56Z",
+ "branch": "research/pcrl-adult-learned-decoder-release-v1",
+ "evidence_commit": "1dee33253af03bb5efcaa652774cb222df642aa3",
+ "remote_verified_full_sha": "1dee33253af03bb5efcaa652774cb222df642aa3",
+ "source_pins": {
+  "lcr_tip": "091afc2007164fd928d4b792593d6f9eaf75b17c",
+  "lcr_evidence": "418e529c785cb96678ea5c6391fd8534579484e7",
+  "cbp_tip": "7f3ec67b2ecd86d474e2ff27167091af9923f572",
+  "qpc_evidence": "9dd06da",
+  "qpc_tip": "d0c8a45"
+ },
+ "locks": {
+  "SOURCE_ADMISSION_LOCK": "3090d83",
+  "CORRECTNESS_LOCK": "de4495f (pushed 05:07:48Z)",
+  "SCIENCE_LOCK": "15bb242 (pushed 05:22:30Z)",
+  "EVALUATION_LOCK": "186afb6 (pushed 07:47:30Z)"
+ },
+ "engineering_gate": "ENGINEERING_READY (12/12; independently reproduced)",
+ "label": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; C=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; Q=PASS]",
+ "claim_status": {
+  "A": "NOT_ESTABLISHED",
+  "B": "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+  "C": "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
+ },
+ "q_status": "PASS",
+ "resolved_roles": {
+  "Q": [
+   "NOMINEE",
+   "U|DIRECT-TASK|i8o64"
+  ],
+  "T*": [
+   "NOMINEE",
+   "U|FINE-TASK|i8o64"
+  ],
+  "P*": [
+   "NOMINEE",
+   "U|JOINT|i8o64|l0.1"
+  ],
+  "C*": [
+   "NOMINEE",
+   "U|SEQ-21|i8o64|l0.1"
+  ],
+  "N*": [
+   "NO_ELIGIBLE_NOMINEE",
+   "U|K-SEQ-21|i8o64|D1"
+  ],
+  "C_pair*": [
+   "NOMINEE",
+   "U|SEQ-21|i8o64|l0.1"
+  ],
+  "J*": [
+   "NO_ELIGIBLE_NOMINEE",
+   "U|K-JOINT-PAIR|i8o64|D1"
+  ]
+ },
+ "role_aliases": {
+  "C*==C_pair*": "U|SEQ-21|i8o64|l0.1"
+ },
+ "claim_A": {
+  "nominee": "U|JOINT|i8o64|l0.1 (existing cbp D0 privacy map; SEX-trained partition; reads no true task label; adaptive nomination)",
+  "comparator": "U|FINE-TASK|i8o64",
+  "pair_auc_gain": [
+   0.03362740242756227,
+   0.02863666076362,
+   0.03861814409150455
+  ],
+  "failed_clause": {
+   "P07_occupation_ll_excess": [
+    0.00807225054313565,
+    0.004048863015278377,
+    0.012095638070992924
+   ],
+   "outcome": "NOT_ESTABLISHED_PRECISION"
+  },
+  "note": "repeat measurement of qpc's result on the same reused rows"
+ },
+ "strongest_favourable": "existing D0 JOINT lambda 0.1 map: pair AUC 0.0336 [0.0286, 0.0386] below FINE-TASK with identical decisions; 10/11 clauses pass; occupation LL preservation unresolved (UB 0.0121 > 0.01)",
+ "strongest_adverse": "on this development assessment the learned decoder (kappa=32, fitted on teacher-trained rows) worsened held-out confidence on every named same-token contrast (C-TASK occupation LL +0.024 [0.021, 0.027]; inner-named fixed map +0.010 [0.008, 0.012]); 0/57 D1 configurations inner-eligible",
+ "decoder_vs_mapping_attribution": "same tokens: D1 - D0 fitting rows -0.026 vs inner +0.014 occupation LL (81 map-seed units, all positive inner); assignment: C-TASK map with D0 occupation excess 0.015 vs FINE-TASK 0.003; D1 adds +0.024 on C-TASK; constrained vs weighted: both ineligible (B untested head-to-head); paired joint ~ single/sequential (descriptive)",
+ "missing_coverage": [
+  "claims B and C had no eligible nominee (no head-to-head test)",
+  "trace replay sampled 42/90 mapping units (all K and C-TASK + W at lambda 0.025/0.08)",
+  "off-device backup and predecessor custody PENDING (drive absent)"
+ ],
+ "custody": {
+  "status": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING",
+  "copy": "<PRIVATE_CACHE>/lra_v1_local_copy_20261007",
+  "files": 2987,
+  "restores": "teacher, 3 learned decoders, P*, Q, constrained fallback, decoder-only baseline, sequential winner, attacker",
+  "off_device": "PENDING (drive absent)",
+  "predecessor_custody": "PENDING (drive absent; opening has occurred)"
+ },
+ "verification": {
+  "phase": "PHASE_3_FINAL",
+  "summary": "PASS"
+ },
+ "compute": {
+  "cpu_h_semaphore_all_roles": 6.995,
+  "cloud_usd": 0
+ },
+ "closed_utc": "2026-10-07T08:55:56Z",
+ "decision_file": "results/pcrl_adult_learned_decoder_release_v1/RESEARCH_DECISION.md",
+ "complete": true,
+ "from_role": "lead (A)",
+ "to_role": "next owner",
+ "shared_handoffs": [
+  "<SHARED_EVAL>/TO_CLAIMS_ADULT_LEARNED_DECODER_RELEASE.json",
+  "<SHARED_EVAL>/TO_MANUSCRIPT_ADULT_LEARNED_DECODER_RELEASE.json"
+ ],
+ "pending": [
+  "off-device lra backup when a drive is mounted (QUICKSTART section 7)",
+  "predecessor custody cbp -> qpc/dpc/osf/smf (drive; opening already occurred)",
+  "lcr off-device backup (owner command recorded)"
+ ],
+ "next": "close this recipe; any calibration revisit needs held-out calibration rows unseen by the heads (new registration); no confirmation population spent"
+}
