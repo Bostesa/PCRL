@@ -155,11 +155,16 @@ def build():
             "endpoints": {"primary": [e["id"] for e in FAM.PRIMARY], "z": FAM.Z_PRIMARY, "B": FAM.B,
                           "boot_seed": FAM.BOOT_SEED, "size": FAM.PRIMARY_SIZE},
             "seeds": {}}
+    abl_pair = {x for x in (_cfg(S["diagnostics"]["best_d1_fixed_privacy"]),
+                            S["diagnostics"]["best_d1_fixed_privacy"].get("paired_d0")) if x}
     for k in R.SEEDS:
         score, files = {}, {}
         for c in labels:
             u = R.unit_for(k, c)
             score[c] = {"kind": R.parse_id(c)["kind"], "unit": u, "cid": c}
+            if R.parse_id(c)["kind"] == "policy" and c not in abl_pair:
+                score[c]["families"] = ["code"]        # complete interface only; token/prob diagnostics at the
+                #                                        assessment only for the registered decoder-ablation pair
             for n in (u, R.inner_name(k, c)):
                 files[n] = json.loads((R.U(n) / "COMPLETE.json").read_text())["files"]
         for n in [f"tea__s{k}__U"] + [R.unit_for(k, c) for c in comp]:

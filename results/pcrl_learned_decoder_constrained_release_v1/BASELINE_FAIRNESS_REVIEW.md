@@ -33,7 +33,8 @@ that it reviews.
 | 3 | lcr/family.py | A | 97296e8bbd7c4523ef331c2a95458eff9bd35eacc3613ab1524851263d79fb15 |
 | 4 (00:40Z) | PKG/SEARCH_RULES.json | C | 5da202e4daffa9cec5185be2a59c85a3c1705f3a7e975ba100ca3c5e723b1666. It equals `mapper.rules()` plus `rules_sha256` ec0fa66cc420759c8e789037e2de1fbd22bb68a9aed379217ca166b32ff0b44c, compared as parsed JSON |
 | 4 | lcr/mapper.py | C | b3bfd7567edc1b73ed8d2c3fa121d322266c01602c262b0255c49c226403834e. Against the round-2 reading, the changes are: synthetic timing helpers added, the unused `_labels_from` removed, and one redundant slice removed in `_cell`. The search semantics are unchanged |
-| 4 | PKG/FIT_MANIFEST.json | A | PENDING |
+| 4 (00:41Z) | PKG/FIT_MANIFEST.json | A | 0420e92cefab24db91e7b014595dac67dd991a5c3d4031564cd8b14662ca6ed0. 249 code units = `run.code_ids()` × 3 seeds exactly: 81 admitted D0, 78 D1 fixed-map decodes, 3 C-TASK, 72 weighted and 15 constrained, so new mapping-pair fits = 90. Every unit name equals `run.unit_for`. 264 inner audits = `run.scored_ids()` × 3 exactly (249 codes, 6 sources, 9 references). Aliases are recorded after fitting by hash identity and never add fits. There are no auxiliary fine-state jobs (the label-blind fine partitions are admitted). The real-data control jobs are listed. **OK** |
+| 5 (00:44Z, R-5 fix at a3d16bd) | lcr/select.py; PKG/SELECTION_RULES.json | A | e672c15b8946e46c9739cf0ccdbb7865ae1c44f8bb0f412ea367e2b957623eba; 160e4a5acb96ce047d7744b668e803a61c82d5ff775157e74b0e03da91ae115b |
 
 ## 2. Checklist (prompt §7, §8, §10)
 
@@ -49,7 +50,7 @@ that it reviews.
 | S8 | Weighted controls meet the unchanged inner utility rules and guards | §8, §10 | **OK**. They use the same `gate_record` eligibility on every seed and task, and the same T\* guard in P\* |
 | S9 | Original inner eligibility is applied on EVERY seed, with no headroom buffer | §10 | **OK**. The stale cbp reason code has been removed (N-3, resolved) |
 | S10 | Ordering keys and tie rules are frozen | §10 | **OK** |
-| S11 | Fallbacks are deterministic, take the minimum shortfall, and are classified | §10 | **OK**. CONSTRAINED_FIT_INFEASIBLE has been added as a selection reason. Fallback ranking ignores fit feasibility (R-5) |
+| S11 | Fallbacks are deterministic, take the minimum shortfall, and are classified | §10 | **OK**. CONSTRAINED_FIT_INFEASIBLE has been added as a selection reason. Fit-feasible candidates rank first in both fallback branches (R-5, resolved) |
 | S12 | The scored list follows §13 | §13 | **OK** (`eval_lock.scored_labels`) |
 | S13 | The overall-label truth table follows §12 | §12 | **Resolved (R-1)**: the prompt-literal order was adopted in code, the truth table and the tests |
 | M1 | B controls are the D1 versions of the EXACT fixed D0 maps (DIRECT, FINE, the full six-weight privacy bank), with assignments unchanged | §8 | **OK**. `run.stage_d1` fits 26 IDs per seed × 3 = 78 units. It uses the admitted D0 policy.json and `decode_policy` on OSF_DEFENSE_FIT labels, and asserts that tokens are bitwise equal to the D0 release |
@@ -69,7 +70,7 @@ that it reviews.
 |---|---|---|---|
 | R-1 | REQUIRED | The overall-label precedence disagreed with prompt §12 | **RESOLVED** (lead, round 1) |
 | R-4 | REQUIRED | An INFEASIBLE constrained fit can be nominated | **RESOLVED** (commit e227909) |
-| R-5 | RECOMMENDED | Descriptive fallbacks do not rank fit-feasible constrained units first | Open (sent 00:27Z) |
+| R-5 | RECOMMENDED | Descriptive fallbacks do not rank fit-feasible constrained units first | **RESOLVED** (commit a3d16bd) |
 | R-2 | RECOMMENDED | Privacy-trained references were displayed as privacy_trained = False | **RESOLVED** |
 | R-3 | RECOMMENDED | The basis for the §17 decoder sentence was not registered | **RESOLVED** |
 | N-1 | NOTE | Label when B passes without A | Recorded |
@@ -133,7 +134,7 @@ fit_ok = all(rec.get("status") == "FEASIBLE" and (rec.get("deployed") or {}).get
 - The rule is registered in `SELECTION_RULES.constrained_fit_feasibility`, together with the N-9 consequence, and is
   tested in test_select.
 
-### R-5 RECOMMENDED: descriptive fallbacks do not rank fit-feasible units first
+### R-5 RECOMMENDED: descriptive fallbacks do not rank fit-feasible units first. RESOLVED (commit a3d16bd)
 
 - When a role has no nominee, the fallback ranking is `(ordinary_shortfall, guard_shortfall, ordering keys)`.
 - An infeasible constrained fit that is inner-ordinary has `ordinary_shortfall` 0, because the shortfall is computed from
@@ -150,6 +151,11 @@ fb = min(ev, key=lambda e: (byc[e["config"]].get("fit_feasible") is False, round
 
 - Register the change in `SELECTION_RULES.fallback_ordering`.
 - This is descriptive only and never changes a nominee.
+
+**Resolution (verified 00:44Z; select.py e672c15b…, SELECTION_RULES.json 160e4a5a…).**
+- `pick` prefixes both fallback keys (the valid-guard branch and the missing-guard branch) with `fit_feasible is False`.
+- `SELECTION_RULES.fallback_ordering.rule` states that fit-feasible candidates come first.
+- `lcr/tests/test_select.py::test_feasible_fallback_ranks_before_an_infeasible_one` covers it.
 
 ### R-2 RECOMMENDED: privacy-trained references were displayed as privacy_trained = False. RESOLVED
 
@@ -252,6 +258,5 @@ The unused shares of excluded witnesses are not reallocated. That is determinist
 - SEARCH_RULES.json: **done**. It equals `mapper.rules()` of mapper.py b3bfd756…. Any later mapper edit before
   SCIENCE_LOCK must regenerate the file and keep the frozen constants checked above (SWEEPS 5, 4 + 4 neighbourhood, 4 + 4
   pair bank, `EVAL_CEILING` 8e6, TOL/TIE_TOL 1e-12, BUDGET_MARGIN 1e-10, CAP_MARGIN 0).
-- FIT_MANIFEST.json must list all 78 D1 fixed-map units, 3 C-TASK units, 72 weighted units and 15 constrained units, with
-  aliases and auxiliaries.
-- R-5 (RECOMMENDED) is open.
+- FIT_MANIFEST.json: **done** (see §1, round 4). It is complete, and nothing is weakened or omitted.
+- R-5: **resolved**. Every finding is resolved or recorded as a NOTE. Nothing blocks SCIENCE_LOCK from the fairness side.
