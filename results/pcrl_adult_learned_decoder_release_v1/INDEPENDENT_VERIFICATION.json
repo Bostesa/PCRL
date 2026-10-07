@@ -1,11 +1,11 @@
 {
  "schema": "lra-independent-verification-v1",
- "phase": "PHASE_0A",
- "generated_at": "2026-10-07T05:07:10Z",
+ "phase": "PHASE_1",
+ "generated_at": "2026-10-07T07:14:42Z",
  "verifier": "results/pcrl_adult_learned_decoder_release_v1/verification/replay_lra.py",
- "verifier_sha256": "c81c9fb6b74c00baaec744c0f875dfa27466465c7e198fefbf3c0c8ee7ec77dc",
+ "verifier_sha256": "ef7148a1da5162a20f2fbfa21d35162680a2d1e15684b69f66abb9e22118048d",
  "ported_from": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py at 091afc2 (sha256 f6086e808690304ccc202b66ae0d69a03b5c8500c00679c5fd53dc57db35c128)",
- "worktree_head": "af764bc924e5bea378b891ad12d98769bdad5d4e",
+ "worktree_head": "952c3c96ff99fa572978d1a0c8643363c8d86da1",
  "branch": "research/pcrl-adult-learned-decoder-release-v1",
  "source_tip": "091afc2007164fd928d4b792593d6f9eaf75b17c",
  "source_evidence": "418e529c785cb96678ea5c6391fd8534579484e7",
@@ -51,12 +51,24 @@
   "scipy": "1.17.1"
  },
  "exposure": {
-  "fixture_laws_read_for_computation": false,
+  "fixture_laws_read_for_computation": true,
   "fitting_labels_used": false,
   "assessment_labels_read": false,
-  "rule": "PHASE_0 runs the oracle only on OWN synthetic laws; FIXTURE_LAWS.json is never opened for computation before the pushed CORRECTNESS_LOCK"
+  "rule": "PHASE_0 runs the oracle only on OWN synthetic laws; FIXTURE_LAWS.json is never opened for computation before the pushed CORRECTNESS_LOCK",
+  "fixture_rule": "the pinned laws were read for computation only after fixture_laws_unlocked() verified the pushed CORRECTNESS_LOCK"
  },
  "real_data_read": "inputs, roles, sealed labels (no fitting-label use), teacher forward, D0 re-encode",
+ "correctness_lock_gate": {
+  "checked_at": "2026-10-07T07:15:10Z",
+  "git_fetch_ok": true,
+  "exists": true,
+  "commit": "de4495f3a3da1ff2b3c6b6a271aea34fac3ed795",
+  "commits": 1,
+  "origin_show_equals_worktree": true,
+  "commit_on_origin": true,
+  "sha256": "934092a9ca388ab99c6eed21665fea2d38f65e6a2244668f918db92a97172138",
+  "ok": true
+ },
  "assessment_labels_read": false,
  "independence": {
   "status": "PASS",
@@ -227,7 +239,7 @@
       "identity_max_abs": 0.0,
       "sum_residual": 2.220446049250313e-16
      },
-     "ms_per_solve": 0.4905271530151367
+     "ms_per_solve": 0.4831349849700928
     },
     "edge_cases": [
      {
@@ -481,7 +493,7 @@
      "wrong_enforced_set_partner_enforced": {
       "caught": true,
       "evidence": [
-       "start 0: stage structure [('seq1', [1], [1, 2]), ('seq2', [2], [1, 2])] != registered [('seq1', [1], [1]), ('seq2', [2], [1, 2])]",
+       "start 0: stage structure [('seq1', [1], [1, 2]), ('seq2', [2], [2])] != registered [('seq1', [1], [1]), ('seq2', [2], [2])]",
        "start 0 stage seq1: enforced [1, 2] != registered [1]"
       ]
      },
@@ -1785,45 +1797,1996 @@
     "lra/run.py": false
    }
   },
-  "correctness_gate": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "correctness_gate"
+  "correctness_chronology": {
+   "status": "PASS",
+   "lock": {
+    "commit": "de4495f3a3da1ff2b3c6b6a271aea34fac3ed795",
+    "commits": 1,
+    "origin_show_equals_worktree": true,
+    "commit_on_origin": true,
+    "sha256": "934092a9ca388ab99c6eed21665fea2d38f65e6a2244668f918db92a97172138",
+    "ok": true
+   },
+   "lock_first_push": "2026-10-07T05:07:48Z",
+   "correctness_stage_acquires": [
+    {
+     "label": "A:correctness",
+     "at": "2026-10-07T05:07:54Z"
+    }
+   ],
+   "cor_unit_earliest_mtime": {
+    "F1_CALIBRATED_NULL": "2026-10-07T05:08:04Z",
+    "F2_MISCALIBRATED": "2026-10-07T05:08:22Z",
+    "F3_COMPLEMENTARY_XOR": "2026-10-07T05:08:35Z",
+    "F4_REDUNDANT": "2026-10-07T05:08:51Z"
+   },
+   "gate_result_commits": 1,
+   "gate_result_after_lock": true,
+   "gate_result_on_origin_equals_worktree": true,
+   "verifier_phase1_start": "2026-10-07T07:15:11Z",
+   "all_cor_units_after_push": true
   },
-  "fixture_oracle": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "fixture_oracle"
+  "E01_law_counts_routing_hashes": {
+   "status": "PASS",
+   "failures": [],
+   "file_sha256": "24f7074519dc9d24afb75a14e3601be61ee0e17929fe150a2fb8ca0db5ce9d9c",
+   "file_equals_rule_pin": true,
+   "laws_sha256_recomputed": "5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434",
+   "laws_hash_ok": true,
+   "file_equals_lcr_tip_bytes": true,
+   "family_ids": [
+    "F1_CALIBRATED_NULL",
+    "F2_MISCALIBRATED",
+    "F3_COMPLEMENTARY_XOR",
+    "F4_REDUNDANT"
+   ],
+   "families": {
+    "F1_CALIBRATED_NULL": {
+     "status": "PASS",
+     "atoms_rebuilt_as_set": true,
+     "counts_positive_integers_sum_N": true,
+     "static_properties_equal": true,
+     "teacher_argmax_is_declared_class": true,
+     "releases_checked": 84,
+     "release_routing_failures": [],
+     "d1_tables_checked": 114,
+     "d1_table_statistic_failures": []
+    },
+    "F2_MISCALIBRATED": {
+     "status": "PASS",
+     "atoms_rebuilt_as_set": true,
+     "counts_positive_integers_sum_N": true,
+     "static_properties_equal": true,
+     "teacher_argmax_is_declared_class": true,
+     "releases_checked": 84,
+     "release_routing_failures": [],
+     "d1_tables_checked": 114,
+     "d1_table_statistic_failures": []
+    },
+    "F3_COMPLEMENTARY_XOR": {
+     "status": "PASS",
+     "atoms_rebuilt_as_set": true,
+     "counts_positive_integers_sum_N": true,
+     "static_properties_equal": true,
+     "teacher_argmax_is_declared_class": true,
+     "releases_checked": 84,
+     "release_routing_failures": [],
+     "d1_tables_checked": 114,
+     "d1_table_statistic_failures": []
+    },
+    "F4_REDUNDANT": {
+     "status": "PASS",
+     "atoms_rebuilt_as_set": true,
+     "counts_positive_integers_sum_N": true,
+     "static_properties_equal": true,
+     "teacher_argmax_is_declared_class": true,
+     "releases_checked": 84,
+     "release_routing_failures": [],
+     "d1_tables_checked": 114,
+     "d1_table_statistic_failures": []
+    }
+   }
   },
-  "decoder_certificates_fixture": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "decoder_certificates_fixture"
+  "E09_E02_E03_E10_oracle_tables": {
+   "status": "PASS",
+   "failures": [],
+   "csv_byte_identical_to_lcr_tip": {
+    "F1_CALIBRATED_NULL_arms.csv": true,
+    "F1_CALIBRATED_NULL_pair_I12.csv": true,
+    "F1_CALIBRATED_NULL_partitions_r1.csv": true,
+    "F1_CALIBRATED_NULL_partitions_r2.csv": true,
+    "F2_MISCALIBRATED_arms.csv": true,
+    "F2_MISCALIBRATED_pair_I12.csv": true,
+    "F2_MISCALIBRATED_partitions_r1.csv": true,
+    "F2_MISCALIBRATED_partitions_r2.csv": true,
+    "F3_COMPLEMENTARY_XOR_arms.csv": true,
+    "F3_COMPLEMENTARY_XOR_pair_I12.csv": true,
+    "F3_COMPLEMENTARY_XOR_partitions_r1.csv": true,
+    "F3_COMPLEMENTARY_XOR_partitions_r2.csv": true,
+    "F4_REDUNDANT_arms.csv": true,
+    "F4_REDUNDANT_pair_I12.csv": true,
+    "F4_REDUNDANT_partitions_r1.csv": true,
+    "F4_REDUNDANT_partitions_r2.csv": true
+   },
+   "csv_sha_equals_gate_result": true,
+   "families": {
+    "F1_CALIBRATED_NULL": {
+     "status": "PASS",
+     "failures": [],
+     "oracle_tables_max_abs_diff": 2.220446049250313e-16,
+     "enumerated_pairs": 4096,
+     "enumeration_coverage": {
+      "r1": 64,
+      "r2": 64,
+      "stirling_r1": 64,
+      "stirling_r2": 64
+     },
+     "arms": 84,
+     "arm_terms_max_abs_diff": 2.220446049250313e-16,
+     "arm_feasibility_mismatches": [],
+     "label_mismatches": [],
+     "heuristic_gaps": [
+      "U|K-JOINT-PAIR|i8o64|D1",
+      "U|K-JOINT-SINGLE|i8o64|D1",
+      "U|K-LOCAL|i8o64|D1",
+      "U|K-SEQ-12|i8o64|D1",
+      "U|K-SEQ-21|i8o64|D1"
+     ],
+     "e02_d0_d1_same_partition_failures": [],
+     "decision_floor": {
+      "min_I_minus_class_I": {
+       "1": 0.0,
+       "2": 0.0
+      },
+      "min_I12_minus_class_I12": 0.0,
+      "class_I12": 0.0,
+      "class_feasible_D1": false,
+      "class_feasible_D0": false
+     },
+     "calibrated_null": {
+      "max_q_diff": 8.125722317231521e-13,
+      "min_law_loss_gap": -2.220446049250313e-16,
+      "tokens": 480,
+      "ok": true
+     },
+     "own_references": {
+      "C-TASK": {
+       "value": 1.434304795719409,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "feasible_maps": {
+       "1": 1,
+       "2": 0
+      },
+      "K-LOCAL": {
+       "1": {
+        "value": 0.03158394240196326,
+        "index": 27
+       },
+       "2": {
+        "value": null,
+        "index": null
+       }
+      },
+      "K-SEQ/JOINT": {
+       "value": null,
+       "index": null
+      },
+      "most_private_feasible_local_pair_I12": {
+       "value": null,
+       "index": null
+      }
+     },
+     "wall_s": 0.1
+    },
+    "F2_MISCALIBRATED": {
+     "status": "PASS",
+     "failures": [],
+     "oracle_tables_max_abs_diff": 4.440892098500626e-16,
+     "enumerated_pairs": 32768,
+     "enumeration_coverage": {
+      "r1": 64,
+      "r2": 512,
+      "stirling_r1": 64,
+      "stirling_r2": 512
+     },
+     "arms": 84,
+     "arm_terms_max_abs_diff": 4.440892098500626e-16,
+     "arm_feasibility_mismatches": [],
+     "label_mismatches": [],
+     "heuristic_gaps": [],
+     "e02_d0_d1_same_partition_failures": [],
+     "decision_floor": {
+      "min_I_minus_class_I": {
+       "1": 0.0,
+       "2": 0.0
+      },
+      "min_I12_minus_class_I12": 0.0,
+      "class_I12": 0.0,
+      "class_feasible_D1": true,
+      "class_feasible_D0": false
+     },
+     "own_references": {
+      "C-TASK": {
+       "value": 2.120589094445499,
+       "index": [
+        27,
+        165
+       ]
+      },
+      "feasible_maps": {
+       "1": 64,
+       "2": 512
+      },
+      "K-LOCAL": {
+       "1": {
+        "value": 0.0,
+        "index": 0
+       },
+       "2": {
+        "value": 0.0,
+        "index": 0
+       }
+      },
+      "K-SEQ/JOINT": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "most_private_feasible_local_pair_I12": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      }
+     },
+     "wall_s": 0.93
+    },
+    "F3_COMPLEMENTARY_XOR": {
+     "status": "PASS",
+     "failures": [],
+     "oracle_tables_max_abs_diff": 3.3306690738754696e-16,
+     "enumerated_pairs": 4096,
+     "enumeration_coverage": {
+      "r1": 64,
+      "r2": 64,
+      "stirling_r1": 64,
+      "stirling_r2": 64
+     },
+     "arms": 84,
+     "arm_terms_max_abs_diff": 2.220446049250313e-16,
+     "arm_feasibility_mismatches": [],
+     "label_mismatches": [],
+     "heuristic_gaps": [
+      "U|JOINT|i8o64|l0.04",
+      "U|JOINT|i8o64|l0.06",
+      "U|JOINT|i8o64|l0.08",
+      "U|JOINT|i8o64|l0.1",
+      "U|SEQ-12|i8o64|l0.025",
+      "U|SEQ-12|i8o64|l0.04",
+      "U|SEQ-12|i8o64|l0.06",
+      "U|SEQ-12|i8o64|l0.08",
+      "U|SEQ-12|i8o64|l0.1",
+      "U|SEQ-21|i8o64|l0.04",
+      "U|SEQ-21|i8o64|l0.06",
+      "U|SEQ-21|i8o64|l0.08",
+      "U|SEQ-21|i8o64|l0.1",
+      "U|W-SEQ-12|i8o64|l0.04|D1",
+      "U|W-SEQ-12|i8o64|l0.06|D1",
+      "U|W-SEQ-12|i8o64|l0.08|D1",
+      "U|W-SEQ-12|i8o64|l0.1|D1"
+     ],
+     "e02_d0_d1_same_partition_failures": [],
+     "decision_floor": {
+      "min_I_minus_class_I": {
+       "1": 0.0,
+       "2": 0.0
+      },
+      "min_I12_minus_class_I12": 0.0,
+      "class_I12": 0.0,
+      "class_feasible_D1": true,
+      "class_feasible_D0": true
+     },
+     "own_references": {
+      "C-TASK": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "feasible_maps": {
+       "1": 64,
+       "2": 64
+      },
+      "K-LOCAL": {
+       "1": {
+        "value": 0.0,
+        "index": 0
+       },
+       "2": {
+        "value": 0.0,
+        "index": 0
+       }
+      },
+      "K-SEQ/JOINT": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "most_private_feasible_local_pair_I12": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      }
+     },
+     "wall_s": 0.11
+    },
+    "F4_REDUNDANT": {
+     "status": "PASS",
+     "failures": [],
+     "oracle_tables_max_abs_diff": 3.3306690738754696e-16,
+     "enumerated_pairs": 4096,
+     "enumeration_coverage": {
+      "r1": 64,
+      "r2": 64,
+      "stirling_r1": 64,
+      "stirling_r2": 64
+     },
+     "arms": 84,
+     "arm_terms_max_abs_diff": 6.661338147750939e-16,
+     "arm_feasibility_mismatches": [],
+     "label_mismatches": [],
+     "heuristic_gaps": [
+      "U|JOINT|i8o64|l0.025",
+      "U|JOINT|i8o64|l0.04",
+      "U|JOINT|i8o64|l0.06",
+      "U|JOINT|i8o64|l0.08",
+      "U|JOINT|i8o64|l0.1",
+      "U|LOCAL|i8o64|l0.06",
+      "U|LOCAL|i8o64|l0.08",
+      "U|LOCAL|i8o64|l0.1",
+      "U|SEQ-12|i8o64|l0.01",
+      "U|SEQ-12|i8o64|l0.025",
+      "U|SEQ-12|i8o64|l0.04",
+      "U|SEQ-12|i8o64|l0.06",
+      "U|SEQ-12|i8o64|l0.08",
+      "U|SEQ-12|i8o64|l0.1",
+      "U|SEQ-21|i8o64|l0.025",
+      "U|SEQ-21|i8o64|l0.04",
+      "U|SEQ-21|i8o64|l0.06",
+      "U|SEQ-21|i8o64|l0.08",
+      "U|SEQ-21|i8o64|l0.1",
+      "U|W-SEQ-12|i8o64|l0.025|D1",
+      "U|W-SEQ-21|i8o64|l0.025|D1"
+     ],
+     "e02_d0_d1_same_partition_failures": [],
+     "decision_floor": {
+      "min_I_minus_class_I": {
+       "1": 0.0,
+       "2": 0.0
+      },
+      "min_I12_minus_class_I12": 0.0,
+      "class_I12": 0.0,
+      "class_feasible_D1": true,
+      "class_feasible_D0": true
+     },
+     "own_references": {
+      "C-TASK": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "feasible_maps": {
+       "1": 64,
+       "2": 64
+      },
+      "K-LOCAL": {
+       "1": {
+        "value": 0.0,
+        "index": 0
+       },
+       "2": {
+        "value": 0.0,
+        "index": 0
+       }
+      },
+      "K-SEQ/JOINT": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "most_private_feasible_local_pair_I12": {
+       "value": 0.0,
+       "index": [
+        0,
+        0
+       ]
+      }
+     },
+     "wall_s": 0.09
+    }
+   },
+   "solves": {
+    "hits": 4401,
+    "misses": 159
+   }
   },
-  "fixture_traces": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "fixture_traces"
+  "E02_E03_E04_E05_releases_decoders": {
+   "status": "PASS",
+   "failures": [],
+   "families": {
+    "F1_CALIBRATED_NULL": {
+     "status": "PASS",
+     "e02_failures": [],
+     "e03": {
+      "max_q_d1_minus_d0": 8.125722317231521e-13,
+      "min_loss_gain_d1_minus_d0": -3.3306690738754696e-16,
+      "ok": true
+     },
+     "e04_failures": [],
+     "e05_failures": [],
+     "e05_max_diff": 0.0,
+     "e04_tokens": 452,
+     "e04_max_dq_vs_own": 2.7755575615628914e-17,
+     "e04_max_fw_gap_rel": 0.0,
+     "e04_max_stationarity_rel": 0.0,
+     "e04_max_projection": 0.0,
+     "releases": 84
+    },
+    "F2_MISCALIBRATED": {
+     "status": "PASS",
+     "e02_failures": [],
+     "e03": null,
+     "e04_failures": [],
+     "e05_failures": [],
+     "e05_max_diff": 0.0,
+     "e04_tokens": 565,
+     "e04_max_dq_vs_own": 2.220446049250313e-16,
+     "e04_max_fw_gap_rel": 2.153159805333637e-16,
+     "e04_max_stationarity_rel": 4.306319610667274e-16,
+     "e04_max_projection": 0.0,
+     "releases": 84
+    },
+    "F3_COMPLEMENTARY_XOR": {
+     "status": "PASS",
+     "e02_failures": [],
+     "e03": null,
+     "e04_failures": [],
+     "e05_failures": [],
+     "e05_max_diff": 0.0,
+     "e04_tokens": 452,
+     "e04_max_dq_vs_own": 1.1102230246251565e-16,
+     "e04_max_fw_gap_rel": 2.153159805333637e-16,
+     "e04_max_stationarity_rel": 0.0,
+     "e04_max_projection": 0.0,
+     "releases": 84
+    },
+    "F4_REDUNDANT": {
+     "status": "PASS",
+     "e02_failures": [],
+     "e03": null,
+     "e04_failures": [],
+     "e05_failures": [],
+     "e05_max_diff": 2.7755575615628914e-17,
+     "e04_tokens": 452,
+     "e04_max_dq_vs_own": 1.1102230246251565e-16,
+     "e04_max_fw_gap_rel": 2.153159805333637e-16,
+     "e04_max_stationarity_rel": 2.0898315757650005e-16,
+     "e04_max_projection": 0.0,
+     "releases": 84
+    }
+   },
+   "note": "E05 compares the own row-level reconstruction of every stored release with the published arm terms at 1e-11 (exact-count fixture rows; summation-order differences only)"
   },
-  "gate_wiring": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "gate_wiring"
+  "E06_E07_E08_trace_replay": {
+   "status": "PASS",
+   "failures": [],
+   "totals": {
+    "units": 120,
+    "starts": 1384,
+    "stages": 1735,
+    "moves": 2043,
+    "pair_moves": 0,
+    "states_checked": 2043,
+    "fresh_rebuilds": 1365,
+    "q_sha_agree": 1152,
+    "q_sha_compared": 4074
+   },
+   "max_term_diff": 2.4424906541753444e-15,
+   "max_delta_diff": 2.4424906541753444e-15,
+   "families": {
+    "F1_CALIBRATED_NULL": {
+     "status": "PASS",
+     "failing_units": [],
+     "units": {
+      "U|K-LOCAL|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 1,
+       "max_term_diff": 1.1102230246251565e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.0020541216316509736,
+       "min_brier_margin": 0.0010468750000000027,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [],
+       "own_winner": null,
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 1.1102230246251565e-15,
+       "deployed_feasible_own": false,
+       "deployed_record_feasible": false,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-12|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 7,
+       "max_term_diff": 1.1102230246251565e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.0020541216316509736,
+       "min_brier_margin": 0.0010468750000000027,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ],
+       "own_winner": null,
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 1.1102230246251565e-15,
+       "deployed_feasible_own": false,
+       "deployed_record_feasible": false,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-21|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 7,
+       "max_term_diff": 1.1102230246251565e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": null,
+       "min_brier_margin": null,
+       "min_cap_margin": null,
+       "partner_feasible_seq1": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ],
+       "own_winner": null,
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 1.1102230246251565e-15,
+       "deployed_feasible_own": false,
+       "deployed_record_feasible": false,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-SINGLE|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": null,
+       "min_brier_margin": null,
+       "min_cap_margin": null,
+       "partner_feasible_seq1": [],
+       "own_winner": null,
+       "borderline": [],
+       "excluded_witnesses": 30,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 1.1102230246251565e-15,
+       "deployed_feasible_own": false,
+       "deployed_record_feasible": false,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-PAIR|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": null,
+       "min_brier_margin": null,
+       "min_cap_margin": null,
+       "partner_feasible_seq1": [],
+       "own_winner": null,
+       "borderline": [],
+       "excluded_witnesses": 30,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 1.1102230246251565e-15,
+       "deployed_feasible_own": false,
+       "deployed_record_feasible": false,
+       "release_partition_equals_winner": true
+      }
+     },
+     "n_units": 30,
+     "fine_S_bitwise_equal_own": {
+      "1": true,
+      "2": true
+     },
+     "fine_S_max_diff": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "ctask_caps_own": {
+      "1": 0.03158394240196216,
+      "2": 0.010503174752679811
+     },
+     "seq1_partner_class_only_feasible": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "other_failures": []
+    },
+    "F2_MISCALIBRATED": {
+     "status": "PASS",
+     "failing_units": [],
+     "units": {
+      "U|K-LOCAL|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 2,
+       "starts": 1,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.1102230246251565e-15,
+       "min_ll_margin": 0.024080058135276916,
+       "min_brier_margin": 0.018358191744317187,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-12|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 3,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.4432899320127035e-15,
+       "min_ll_margin": 0.023463558457490707,
+       "min_brier_margin": 0.018358191744317187,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-21|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 3,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.6653345369377348e-15,
+       "min_ll_margin": 0.023463558457490707,
+       "min_brier_margin": 0.018358191744317187,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-SINGLE|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 9,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.4432899320127035e-15,
+       "min_ll_margin": 0.0015120083253574723,
+       "min_brier_margin": 0.004946201339767975,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-PAIR|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 9,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.4432899320127035e-15,
+       "min_ll_margin": 0.0015120083253574723,
+       "min_brier_margin": 0.004946201339767975,
+       "min_cap_margin": 9.999986949615902e-13,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      }
+     },
+     "n_units": 30,
+     "fine_S_bitwise_equal_own": {
+      "1": true,
+      "2": true
+     },
+     "fine_S_max_diff": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "ctask_caps_own": {
+      "1": -1.7763568394002505e-15,
+      "2": 0.03237633368369863
+     },
+     "seq1_partner_class_only_feasible": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     "other_failures": []
+    },
+    "F3_COMPLEMENTARY_XOR": {
+     "status": "PASS",
+     "failing_units": [],
+     "units": {
+      "U|K-LOCAL|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 1,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.005152450559507082,
+       "min_brier_margin": 0.003122070312499947,
+       "min_cap_margin": 1e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-12|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1e-12,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|SEQ-12|i8o64|l0.04",
+       "borderline": [
+        "start 2 stage seq2: INFEASIBLE_START feasible only within the 1e-12 band / cap tolerance {2: {'ll_margin': 0.0032929085285167137, 'brier_margin': 0.0018199208238528497, 'cap_margin': 9.982236431605997e-13, 'ok': True}}",
+        "start 2: eligible False vs own True only within the band"
+       ],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-21|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.002733187421695482,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1e-12,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|SEQ-21|i8o64|l0.04",
+       "borderline": [
+        "start 2 stage seq2: INFEASIBLE_START feasible only within the 1e-12 band / cap tolerance {1: {'ll_margin': 0.0035514057669422394, 'brier_margin': 0.0018199271157835484, 'cap_margin': 9.982236431605997e-13, 'ok': True}}",
+        "start 2: eligible False vs own True only within the band"
+       ],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-SINGLE|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|K-SEQ-12|i8o64|D1",
+       "borderline": [
+        "start 11: excluded witness feasible only within the band",
+        "start 12: excluded witness feasible only within the band",
+        "start 13: excluded witness feasible only within the band"
+       ],
+       "excluded_witnesses": 3,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-PAIR|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 0,
+       "starts": 30,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 0.0,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|K-SEQ-12|i8o64|D1",
+       "borderline": [
+        "start 11: excluded witness feasible only within the band",
+        "start 12: excluded witness feasible only within the band",
+        "start 13: excluded witness feasible only within the band"
+       ],
+       "excluded_witnesses": 3,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 8.881784197001252e-16,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      }
+     },
+     "n_units": 30,
+     "fine_S_bitwise_equal_own": {
+      "1": true,
+      "2": true
+     },
+     "fine_S_max_diff": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "ctask_caps_own": {
+      "1": -1.7763568394002505e-15,
+      "2": -1.7763568394002505e-15
+     },
+     "seq1_partner_class_only_feasible": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     "other_failures": []
+    },
+    "F4_REDUNDANT": {
+     "status": "PASS",
+     "failing_units": [],
+     "units": {
+      "U|K-LOCAL|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 8,
+       "starts": 1,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.5543122344752192e-15,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1.0000056338554941e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 0.0,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-12|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 14,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.887379141862766e-15,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1.0000056338554941e-12,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 0.0,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-SEQ-21|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 16,
+       "starts": 7,
+       "max_term_diff": 1.7763568394002505e-15,
+       "max_delta_diff": 1.887379141862766e-15,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1.0000056338554941e-12,
+       "partner_feasible_seq1": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+       ],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 0.0,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-SINGLE|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 64,
+       "starts": 30,
+       "max_term_diff": 2.4424906541753444e-15,
+       "max_delta_diff": 2.4424906541753444e-15,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1.0000056338554941e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 0.0,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      },
+      "U|K-JOINT-PAIR|i8o64|D1": {
+       "ok": true,
+       "failures": [],
+       "moves": 64,
+       "starts": 30,
+       "max_term_diff": 2.4424906541753444e-15,
+       "max_delta_diff": 2.4424906541753444e-15,
+       "min_ll_margin": 0.0023166783652923684,
+       "min_brier_margin": 0.0011689453125000027,
+       "min_cap_margin": 1.0000056338554941e-12,
+       "partner_feasible_seq1": [],
+       "own_winner": "U|C-TASK|i8o64|D1",
+       "borderline": [],
+       "excluded_witnesses": 0,
+       "weights_equal_registered": true,
+       "cap_vs_record_abs_diff": 0.0,
+       "deployed_feasible_own": true,
+       "deployed_record_feasible": true,
+       "release_partition_equals_winner": true
+      }
+     },
+     "n_units": 30,
+     "fine_S_bitwise_equal_own": {
+      "1": true,
+      "2": true
+     },
+     "fine_S_max_diff": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "ctask_caps_own": {
+      "1": 0.13081203594113688,
+      "2": 0.13081203594113688
+     },
+     "seq1_partner_class_only_feasible": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     "other_failures": []
+    }
+   },
+   "rule": "own engine; search constraints L, B <= limit - 1e-10 (+1e-12 summation band), I <= cap + 1e-12 (own MI vs own cap), state caps from the law; terms / deltas within 1e-12"
   },
-  "review_findings_disposition": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "review_findings_disposition"
+  "E12_review_findings_static": {
+   "status": "PASS",
+   "failures": [],
+   "count": 14,
+   "source_confirmed": 14,
+   "ordinals": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "findings": [
+    {
+     "ordinal": 1,
+     "id": "F01",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 4,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 2,
+     "id": "F02",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 2,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 3,
+     "id": "F03",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 3,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 4,
+     "id": "F04",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 2,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 5,
+     "id": "F05",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 1,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 6,
+     "id": "F06",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 2,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 7,
+     "id": "F07",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 2,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 8,
+     "id": "F08",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 2,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 9,
+     "id": "F09",
+     "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+     "duplicate_of": 2,
+     "superseded": null,
+     "tests": 3,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 10,
+     "id": "F10",
+     "disposition": "SUPERSEDED_RESOLVED",
+     "duplicate_of": null,
+     "superseded": "SUPERSEDED by the NEW correctness-gate wiring (prompt sec. 9/18.10); the source patch (FIXTURE_GATE.json GATE_MET -> MECHANISM_GATE_NOT_MET, refusing SCIENCE_LOCK on GATE_NOT_MET) is NOT applied: it would let the predecessor's failed performance gate block the newly authorised science",
+     "tests": 7,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 11,
+     "id": "F11",
+     "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+     "duplicate_of": 7,
+     "superseded": null,
+     "tests": 3,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 12,
+     "id": "F12",
+     "disposition": "DUPLICATE_CONSOLIDATED_RESOLVED",
+     "duplicate_of": 8,
+     "superseded": null,
+     "tests": 3,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 13,
+     "id": "F13",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 4,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    },
+    {
+     "ordinal": 14,
+     "id": "F14",
+     "disposition": "RESOLVED",
+     "duplicate_of": null,
+     "superseded": null,
+     "tests": 3,
+     "missing_tests": [],
+     "test_result": "PASS",
+     "pre_science_commit_ancestor_of_lock": true,
+     "duplicate_mapping_ok": true,
+     "source_text_matches": true,
+     "ok": true
+    }
+   ]
   },
-  "code_hashes": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "code_hashes"
+  "E11_E12_external_tests": {
+   "status": "PASS",
+   "label": "wiring + finding regression nodes",
+   "rc": 0,
+   "summary": [
+    "........................................................................ [ 88%]",
+    ".........                                                                [100%]",
+    "81 passed in 6.51s"
+   ],
+   "nodes": 38,
+   "wall_s": 7.8,
+   "note": "study tests run as an external pytest process; not part of the verifier's own reproduction"
   },
-  "chronology": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
-   "check": "chronology"
+  "E11_launch_wiring": {
+   "status": "PASS",
+   "failures": [],
+   "own_verdict": "ENGINEERING_READY",
+   "published_verdict": "ENGINEERING_READY",
+   "verdict_strings": [
+    "ENGINEERING_READY",
+    "ENGINEERING_BLOCKED"
+   ],
+   "published_check_pass": {
+    "E01_LAW_COUNTS_ROUTING_HASHES": true,
+    "E02_FIXED_TOKEN_INFORMATION": true,
+    "E03_CALIBRATED_NULL": true,
+    "E04_D1_FINAL_VECTOR_CERTIFICATES": true,
+    "E05_LOSS_RECONSTRUCTION": true,
+    "E06_ACCEPTED_STATE_BUDGETS": true,
+    "E07_SEQUENTIAL_TEMPORARY_PARTNER": true,
+    "E08_INCREMENTAL_REPLAY": true,
+    "E09_EXHAUSTIVE_ORACLE": true,
+    "E10_DECISION_DISCLOSURE_FLOOR": true,
+    "E11_LAUNCH_WIRING": true,
+    "E12_REVIEW_FINDINGS": true
+   },
+   "verdict_agrees": true,
+   "verdict_strings_ok": true,
+   "result_verdict_rule_mentions_only_e_checks": true,
+   "hard_coded_engineering_ready_true": [],
+   "engineering_ready_call_sites": {
+    "assess.py": 1,
+    "closeout.py": 1,
+    "eval_lock.py": 1,
+    "run.py": 1
+   },
+   "stale_gate_tokens": {
+    "closeout.py": [
+     "MECHANISM_GATE_NOT_MET"
+    ],
+    "family.py": [
+     "MECHANISM_GATE_NOT_MET"
+    ],
+    "fixtures.py": [
+     "MECHANISM_GATE_NOT_MET",
+     "GATE_MET\""
+    ]
+   },
+   "late_module_refusals": {
+    "run.py": {
+     "calls_engineering_ready": true,
+     "compares_and_raises": false
+    },
+    "eval_lock.py": {
+     "calls_engineering_ready": true,
+     "compares_and_raises": false
+    },
+    "assess.py": {
+     "calls_engineering_ready": true,
+     "compares_and_raises": true
+    },
+    "infer.py": {
+     "calls_engineering_ready": false,
+     "compares_and_raises": true
+    }
+   },
+   "stale_gate_tokens_note": "contexts are historical constants / docstrings (family.HISTORICAL_SOURCE_LABEL, closeout historical_source_label, fixtures' descriptive old trigger); the label set is challenged externally"
+  },
+  "E11_E12_challenge_of_study_branches": {
+   "status": "PASS",
+   "failures": [],
+   "harness_sha256": "418240faca95631963267c98c0cf3540130bd668f0f8e5fd7b3dc7a91fcf7953",
+   "wall_s": 2.1,
+   "selection": {
+    "base": {
+     "agree": true,
+     "diffs": []
+    },
+    "j_guard_failure": {
+     "agree": true,
+     "diffs": []
+    },
+    "missing_guard_T_all_ineligible": {
+     "agree": true,
+     "diffs": []
+    },
+    "technical_missing_seed": {
+     "agree": true,
+     "diffs": []
+    },
+    "constrained_utility_fallback": {
+     "agree": true,
+     "diffs": []
+    },
+    "infeasible_joint_pair": {
+     "agree": true,
+     "diffs": []
+    },
+    "all_constrained_infeasible": {
+     "agree": true,
+     "diffs": []
+    },
+    "fit_record_technical": {
+     "agree": true,
+     "diffs": []
+    },
+    "p_star_is_control": {
+     "agree": true,
+     "diffs": []
+    },
+    "alias_trio": {
+     "agree": true,
+     "diffs": []
+    },
+    "untrained_alias_of_p_star": {
+     "agree": true,
+     "diffs": []
+    },
+    "q_alias_of_t_star": {
+     "agree": true,
+     "diffs": []
+    }
+   },
+   "fit_feasible": {
+    "all_feasible": {
+     "study": true,
+     "own": true,
+     "expected": true,
+     "agree": true,
+     "detail": null
+    },
+    "missing_unit": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: fit unit missing or not hash-complete"
+    },
+    "unreadable": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: fit record unreadable or schema-incomplete (ValueError: unreadable record)"
+    },
+    "schema_incomplete": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: fit record unreadable or schema-incomplete (KeyError: 'deployed')"
+    },
+    "unknown_status": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: status 'TIMEOUT' / deployed.feasible False outside the registered schema"
+    },
+    "non_bool_deployed": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: status 'FEASIBLE' / deployed.feasible 1 outside the registered schema"
+    },
+    "foreign_config": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: record names 'U|K-LOCAL|i8o64|D1' seed 1"
+    },
+    "foreign_seed": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: record names 'U|K-SEQ-12|i8o64|D1' seed 2"
+    },
+    "feasible_but_deployed_infeasible": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: status FEASIBLE disagrees with deployed.feasible False (inconsistent record)"
+    },
+    "infeasible_but_deployed_feasible": {
+     "study": null,
+     "own": null,
+     "expected": null,
+     "agree": true,
+     "detail": "fit__s1__challenge: status INFEASIBLE disagrees with deployed.feasible True (inconsistent record)"
+    },
+    "valid_infeasible_one_seed": {
+     "study": false,
+     "own": false,
+     "expected": false,
+     "agree": true,
+     "detail": null
+    }
+   },
+   "labels": {
+    "all_pass": {
+     "study": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED [A=PASS; B=PASS; C=PASS; Q=PASS]",
+     "own": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED [A=PASS; B=PASS; C=PASS; Q=PASS]",
+     "agree": true
+    },
+    "q_only_B_incomplete": {
+     "study": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=INCOMPLETE_OR_INVALID; C=NOT_ESTABLISHED; Q=PASS]",
+     "own": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=INCOMPLETE_OR_INVALID; C=NOT_ESTABLISHED; Q=PASS]",
+     "agree": true
+    },
+    "global_failure": {
+     "study": "INCOMPLETE_OR_INVALID [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=PASS]",
+     "own": "INCOMPLETE_OR_INVALID [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=PASS]",
+     "agree": true
+    },
+    "none": {
+     "study": "EXPERIMENTAL_NO_ADVANTAGE [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]",
+     "own": "EXPERIMENTAL_NO_ADVANTAGE [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]",
+     "agree": true
+    },
+    "blocked": {
+     "study": "ENGINEERING_BLOCKED_NOT_RUN [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "ENGINEERING_BLOCKED_NOT_RUN [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    },
+    "blocked_prefit": {
+     "study": "ENGINEERING_BLOCKED_NOT_RUN (pre-fit blocker: ADMISSION_PARITY_FAILURE) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "ENGINEERING_BLOCKED_NOT_RUN (pre-fit blocker: ADMISSION_PARITY_FAILURE) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    },
+    "no_gate": {
+     "study": "INCOMPLETE_NOT_RUN (engineering gate verdict None is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "INCOMPLETE_NOT_RUN (engineering gate verdict None is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    },
+    "gate_met": {
+     "study": "INCOMPLETE_NOT_RUN (engineering gate verdict 'GATE_MET' is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "INCOMPLETE_NOT_RUN (engineering gate verdict 'GATE_MET' is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    },
+    "gate_true": {
+     "study": "INCOMPLETE_NOT_RUN (engineering gate verdict True is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "INCOMPLETE_NOT_RUN (engineering gate verdict True is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    },
+    "prefit_only": {
+     "study": "INCOMPLETE_NOT_RUN (pre-fit blocker: BUDGET_CEILING) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "own": "INCOMPLETE_NOT_RUN (pre-fit blocker: BUDGET_CEILING) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "agree": true
+    }
+   },
+   "assessment_refusal": {
+    "tech_false": {
+     "study_refused": true,
+     "why": "REFUSED: the evaluation lock records a technical failure ([\"synthetic\"]); resolve it and push a new lock",
+     "refused_for_the_tested_reason": true
+    },
+    "gate_met": {
+     "study_refused": true,
+     "why": "REFUSED: the evaluation lock does not bind ENGINEERING_READY (got 'GATE_MET')",
+     "refused_for_the_tested_reason": true
+    },
+    "ready_flag_false": {
+     "study_refused": true,
+     "why": "REFUSED: the evaluation lock does not bind ENGINEERING_READY (got 'ENGINEERING_READY')",
+     "refused_for_the_tested_reason": true
+    },
+    "locks_missing": {
+     "study_refused": true,
+     "why": "REFUSED: CORRECTNESS_LOCK.json is missing from the evaluation lock or differs from it now (mismatched engineering/science lock)",
+     "refused_for_the_tested_reason": true
+    },
+    "science_lock_mismatch": {
+     "study_refused": true,
+     "why": "REFUSED: SCIENCE_LOCK.json is missing from the evaluation lock or differs from it now (mismatched engineering/science lock)",
+     "refused_for_the_tested_reason": true
+    }
+   },
+   "note": "the harness imports lra in its OWN process; the verifier never imports lra"
+  },
+  "phase1_wall_s": {
+   "status": "INFO",
+   "wall_s": 18.6
   },
   "d1_fixed_maps": {
    "status": "PENDING",
@@ -1988,14 +3951,16 @@
    "d0_release_reencode": "PASS",
    "loaders_seal_assessment": "PASS",
    "admission_timing": "PASS",
-   "correctness_gate": "PENDING",
-   "fixture_oracle": "PENDING",
-   "decoder_certificates_fixture": "PENDING",
-   "fixture_traces": "PENDING",
-   "gate_wiring": "PENDING",
-   "review_findings_disposition": "PENDING",
-   "code_hashes": "PENDING",
-   "chronology": "PENDING",
+   "correctness_chronology": "PASS",
+   "E01_law_counts_routing_hashes": "PASS",
+   "E09_E02_E03_E10_oracle_tables": "PASS",
+   "E02_E03_E04_E05_releases_decoders": "PASS",
+   "E06_E07_E08_trace_replay": "PASS",
+   "E12_review_findings_static": "PASS",
+   "E11_E12_external_tests": "PASS",
+   "E11_launch_wiring": "PASS",
+   "E11_E12_challenge_of_study_branches": "PASS",
+   "phase1_wall_s": "INFO",
    "d1_fixed_maps": "PENDING",
    "d1_new_units": "PENDING",
    "fitting_budgets_and_caps": "PENDING",
@@ -2017,34 +3982,39 @@
    "budget": "PENDING"
   },
   "top_level_counts": {
-   "PASS": 8,
-   "PENDING": 27
+   "PASS": 17,
+   "INFO": 1,
+   "PENDING": 19
   },
   "status_counts_all_nodes": {
-   "PASS": 40,
-   "INFO": 1,
-   "PENDING": 27
+   "PASS": 65,
+   "INFO": 2,
+   "PENDING": 19
   },
   "flagged_fail_warn": [],
   "independence": "PASS",
   "overall": "PASS"
  },
  "compute": {
-  "wall_s": 27.07,
-  "cpu_s_process": 22.21,
+  "wall_s": 46.94,
+  "cpu_s_process": 31.17,
   "threads": {
    "OMP_NUM_THREADS": "1",
    "OPENBLAS_NUM_THREADS": "1",
    "MKL_NUM_THREADS": "1",
    "torch": 1
   },
-  "other_lra_processes_at_start": 3,
-  "other_lra_processes_at_end": 1,
+  "other_lra_processes_at_start": 4,
+  "other_lra_processes_at_end": 4,
   "semaphore_slots_at_end": {
    "open_acquisitions": [
     {
      "slot": 0,
-     "label": "E:phase0A"
+     "label": "A:inner_0of2"
+    },
+    {
+     "slot": 1,
+     "label": "E:phase1"
     }
    ],
    "unlogged_releases_closed_by_slot_reacquire": []
@@ -2053,29 +4023,21 @@
  "pending": [
   "attacker_refits",
   "budget",
-  "chronology",
-  "code_hashes",
   "controls",
-  "correctness_gate",
   "d1_fixed_maps",
   "d1_new_units",
   "decision_preservation",
-  "decoder_certificates_fixture",
   "deployment_parity",
   "endpoints",
   "evaluation_lock",
   "exposure",
   "figures",
   "fitting_budgets_and_caps",
-  "fixture_oracle",
-  "fixture_traces",
-  "gate_wiring",
   "incremental_trace_replay",
   "inner_audits",
   "outer_units",
   "published_tables",
   "restore_parity",
-  "review_findings_disposition",
   "selection",
   "source_composition"
  ],
@@ -2199,17 +4161,49 @@
     "wall_s": 69.1,
     "cpu_s": 68.4,
     "rc": 0
+   },
+   {
+    "label": "E:phase0A",
+    "released_at": "2026-10-07T05:07:37Z",
+    "wall_s": 28.7,
+    "cpu_s": 27.2,
+    "rc": 0
+   },
+   {
+    "label": "E:phase1-dryrun",
+    "released_at": "2026-10-07T05:18:20Z",
+    "wall_s": 35.6,
+    "cpu_s": 33.1,
+    "rc": 0
+   },
+   {
+    "label": "E:phase1-dryrun",
+    "released_at": "2026-10-07T05:21:10Z",
+    "wall_s": 35.2,
+    "cpu_s": 32.6,
+    "rc": 0
+   },
+   {
+    "label": "E:phase1-dryrun",
+    "released_at": "2026-10-07T05:41:31Z",
+    "wall_s": 39.8,
+    "cpu_s": 37.6,
+    "rc": 0
    }
   ],
-  "semaphore_cpu_s_total": 493.1,
-  "semaphore_wall_s_total": 506.3,
+  "semaphore_cpu_s_total": 623.6,
+  "semaphore_wall_s_total": 645.6,
   "this_run": {
-   "phase": "PHASE_0A",
-   "start": "2026-10-07T05:07:10Z",
-   "wall_s": 27.07,
-   "cpu_s": 22.21
+   "phase": "PHASE_1",
+   "start": "2026-10-07T07:14:42Z",
+   "wall_s": 46.94,
+   "cpu_s": 31.17
   },
   "light_runs_outside_the_semaphore": [],
   "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"
+ },
+ "correctness_oracle_report": {
+  "path": "results/pcrl_adult_learned_decoder_release_v1/CORRECTNESS_ORACLE_REPORT.md",
+  "sha256": "b3d4c56fe8369b9ad9cd1e35cb7fd160b2e65d120bdef744c340cfab15281213"
  }
 }

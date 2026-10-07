@@ -53,8 +53,8 @@ M = {
     "trace_search_margin_zero": ('TR_BUDGET_MARGIN = 1e-10 ', 'TR_BUDGET_MARGIN = 0.0 '),
     "trace_no_strict_improvement": ('                if not nobj < obj:\n', '                if False:\n'),
     "trace_no_stats_hash_check": ('                        if rh[0] != sa or rh[1] != sb:\n', '                        if False:\n'),
-    "trace_partner_held_to_budget": ('return [("seq1", [a], [a] if k else []), ("seq2", [b], [1, 2] if k else [])]',
-                                     'return [("seq1", [a], [1, 2] if k else []), ("seq2", [b], [1, 2] if k else [])]'),
+    "trace_partner_held_to_budget": ('return [("seq1", [a], [a] if k else []), ("seq2", [b], [b] if k else [])]',
+                                     'return [("seq1", [a], [1, 2] if k else []), ("seq2", [b], [b] if k else [])]'),
 }
 
 
