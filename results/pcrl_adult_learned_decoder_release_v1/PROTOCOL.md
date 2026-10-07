@@ -473,3 +473,21 @@ verifier replays the traces with its own engine. This fixes the predecessor's un
 - **Prior art.** Privacy Funnel (arXiv:1402.1774) and Taylor–Vippathalla–Coon (arXiv:2601.21859v2) are established. No
   novelty is claimed. The joint discrete program is not convex. Fitted MI is not a population guarantee. The sequential
   arms are matched adaptations.
+
+**Gate result (recorded before SCIENCE_LOCK).** CORRECTNESS_LOCK was pushed at de4495f, and the correctness stage ran at
+05:07:54–05:08:58Z. All twelve checks pass: **ENGINEERING_READY** (ENGINEERING_GATE_RESULT.json; evidence 0ea0d7c).
+- Checks 6 and 8 replayed 2,043 accepted states from the persisted traces, with a worst difference of 1.5e-15.
+- No paired move was accepted on the fixtures. The paired path is covered by registered synthetic tests through check 11.
+- The oracle tables are byte-identical to lcr's.
+
+The independent replay (role E, phase 1) is recorded in INDEPENDENT_VERIFICATION.json.
+
+**Independent gate check, and a registered numerical behaviour (recorded before SCIENCE_LOCK).**
+- Role E's own replay of checks 1–12 agrees: ENGINEERING_READY, across 120 traces, 2,043 accepted states and 1,921
+  certified D1 vectors (INDEPENDENT_VERIFICATION.json, PHASE_1).
+- The local cap I_i ≤ I_i(C-TASK) is compared on exact float bits (search margin 0). When the true MI equals the cap,
+  float noise of order 1e-16 can exclude a start or witness. On F3, two K-SEQ stage-2 starts and three K-JOINT
+  witnesses were excluded this way.
+- This is conservative: no violating state is ever accepted.
+- The rule is unchanged and applies on Adult as registered. Exclusions at the cap are reported in OPTIMIZATION_RECEIPTS,
+  never relaxed.
