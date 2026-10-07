@@ -232,8 +232,11 @@ def _roundtrip(bank, tables, tmp, tag):
     p = Path(tmp) / f"{tag}.npz"
     np.savez_compressed(p, **arrs)
     z = np.load(p, allow_pickle=False)
-    exact = sorted(z.files) == sorted(arrs) and all(np.array_equal(z[k], arrs[k]) for k in arrs) and \
-        all(z[k].dtype == arrs[k].dtype for k in arrs)
+    # AMENDMENT_A1 (2026-10-07): serialisation exactness is BITWISE (dtype, shape and raw bytes, NaN payloads included).
+    # np.array_equal treats NaN != NaN, and the real frozen banks carry NaN teacher means for reserved empty tokens.
+    exact = sorted(z.files) == sorted(arrs) and all(
+        z[k].dtype == arrs[k].dtype and z[k].shape == arrs[k].shape and
+        np.ascontiguousarray(z[k]).tobytes() == np.ascontiguousarray(arrs[k]).tobytes() for k in arrs)
     bank2 = {k[len("bank__"):]: z[k] for k in z.files if k.startswith("bank__")}
     tables2 = {nm: (z[f"table{j}__r1"], z[f"table{j}__r2"]) for j, nm in enumerate(names)}
     return bank2, tables2, exact

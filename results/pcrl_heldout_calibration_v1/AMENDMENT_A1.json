@@ -1,0 +1,17 @@
+{
+ "base_lock": "SCIENCE_LOCK",
+ "changes_previously_locked": [
+  "hcal/controls.py",
+  "tests/pcrl_heldout_calibration_v1/test_controls.py"
+ ],
+ "code_files": {
+  "hcal/controls.py": "55b37a9282bb664fd9391ad709b1819a34b3897a6b0671acb53be2128a14666c",
+  "tests/pcrl_heldout_calibration_v1/test_controls.py": "1fe68f143344c01354311fd481f44fa731185eff809fa21925381639cf70942b"
+ },
+ "name": "AMENDMENT_A1",
+ "new_files": [],
+ "parent_commit": "05cebd67298a561e74efd8da82fcc83d8139feeb",
+ "reason": "2026-10-07 technical defect found in the first real control run under SCIENCE_LOCK (before any nomination, EVALUATION_LOCK or assessment). CAUSE: hcal.controls._roundtrip judged plant serialisation exactness with np.array_equal, which treats NaN != NaN; the real frozen banks carry NaN teacher means (mu) for the reserved empty tokens (registered representation), so every fresh-pipeline plant reported serialisation_exact = False and therefore every CONF / COLL / XOR common check failed although the plants were detected (common AUC_B about 0.91 on U|DIRECT-TASK and U|JOINT l0.1 s0). Synthetic test banks have no NaN. FIX: exactness is bitwise (dtype, shape and raw bytes, NaN payloads included); regression test test_amendment_a1_roundtrip_is_bitwise_with_nan_teacher_means. AFFECTED: the real-data controls only (run/controls_parts; the 2 completed parts of attempt 1 are preserved as run/controls_parts_attempt1_preA1 and the run was stopped); controls are rerun in full. UNCHANGED: every control rule, limit, plan, permutation, plant and the detection statistics; calibrate, utility, audit-plan, audit and compose outputs; all selection rules, gates, the primary family and every estimand. Substantive post-lock amendment 1 of at most 2.",
+ "schema": "hcal-amendment-v1",
+ "written_at": "2026-10-07T14:32:27Z"
+}

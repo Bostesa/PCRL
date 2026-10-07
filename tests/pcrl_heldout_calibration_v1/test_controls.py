@@ -254,3 +254,18 @@ def test_controls_refuse_unsealed_D_wrong_releases_tables_and_jobs(DC, BANKC, RE
         C.run_control_job(("rot", 0, "SRC|RAW-J_b0.3"), DC, C.control_plan(), lambda k, p: bank,
                           lambda k, p: tables, slate=SLATE)
     assert HD.role_rows(DC, "ATTACK_FIT_NEW").size == 1500
+
+
+def test_amendment_a1_roundtrip_is_bitwise_with_nan_teacher_means(tmp_path):
+    """AMENDMENT_A1 regression: a frozen bank with NaN teacher means (reserved empty tokens, as on the real banks)
+    round-trips EXACTLY (bitwise); before A1 np.array_equal reported such a round trip as inexact."""
+    import numpy as np
+    from hcal import controls as CT
+    rng = np.random.default_rng(0)
+    mu = rng.dirichlet(np.ones(6), 5)
+    mu[4] = np.nan                                              # reserved empty token
+    bank = {"tok1": rng.integers(0, 3, 50), "mu2": mu, "q02": rng.dirichlet(np.ones(6), 5)}
+    tables = {"D0": (rng.dirichlet(np.ones(2), 3), rng.dirichlet(np.ones(6), 5))}
+    b2, t2, exact = CT._roundtrip(bank, tables, tmp_path, "nan_ok")
+    assert exact and np.array_equal(b2["mu2"], mu, equal_nan=True)
+    assert not np.array_equal(b2["mu2"], mu)                   # the pre-A1 comparison would have failed here
