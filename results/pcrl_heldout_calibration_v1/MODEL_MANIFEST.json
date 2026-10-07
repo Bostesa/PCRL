@@ -1,0 +1,88 @@
+{
+ "schema": "hcal-model-manifest-v1",
+ "label": "NO_COMPETITIVE_RELEASE_CRITERION_ESTABLISHED",
+ "packages": [
+  {
+   "role": "U0 (continuous U baseline)",
+   "release": "SRC|U",
+   "status": "admitted frozen teacher; no protection; reference",
+   "training_label_use": "encoders and heads fitted historically on OSF_DEFENSE_FIT task labels; head selection on HEAD_VALIDATION; no SEX (PROVENANCE_REPORT.md)",
+   "model_pt_sha256": {
+    "0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+    "1": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+    "2": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
+   }
+  },
+  {
+   "role": "P* (nominee)",
+   "release": "U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+   "status": "NOMINEE; OriginalCriterion and CalibrationMatchedCriterion NOT_ESTABLISHED (P07, P13 precision); not a criterion-meeting release; existing privacy-trained partition with a new held-out class-temperature decoder",
+   "training_label_use": "partition privacy-trained with SEX on OSF_DEFENSE_FIT (historical); decoder: per-predicted-class inverse temperatures fitted on CALIBRATION_HELDOUT task labels (2,000 representatives); no SEX in the decoder",
+   "teacher_model_sha256": {
+    "0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+    "1": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+    "2": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
+   },
+   "seeds": {
+    "0": {
+     "policy_json_sha256": "acd58d68d89f3a53a8ed111625ae0a0b636c334e9a1f2d66bbdc518d33faf47c",
+     "decoder_sha256": "30f53a7ef4c27631d221f0d28e455060fe8efa54dbd1ad578599280d2d93f717",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s0__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s0__U_JOINT_i8o64_l0.1_H-CLASS-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "policy_json_sha256": "4a72d860ef968199f6d566acf1319e50a61bcf9ab19b4addf39b5a5188737c20",
+     "decoder_sha256": "ac28800e9611bd8864a8664693df88adae844801d6b8870225717033f74a18dd",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s1__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s1__U_JOINT_i8o64_l0.1_H-CLASS-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "policy_json_sha256": "3cfdba0d2e8e536f14526e193f77c27aab89c2ac00078771eb68386c20c28410",
+     "decoder_sha256": "e86631aa3e292e2ece691dfebcd44d38e19b5edbe836d0b65dfb7c543d4c2be7",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s2__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s2__U_JOINT_i8o64_l0.1_H-CLASS-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "T* (strongest useful task-only control; comparator)",
+   "release": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+   "status": "COMPARATOR; task-only; no privacy claim",
+   "training_label_use": "partition: label-free task-only fine map (no SEX); decoder: one inverse temperature per task on CALIBRATION_HELDOUT task labels",
+   "teacher_model_sha256": {
+    "0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+    "1": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+    "2": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
+   },
+   "seeds": {
+    "0": {
+     "policy_json_sha256": "535725e96687083e7a5d345762ea52dd1ded7f5ad12fcb8ee7f4fcc3d6206236",
+     "decoder_sha256": "2d978e76881af4fc6a59432537885f663f1327aaf34ae293a56eb347b6c4a77b",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s0__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s0__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "policy_json_sha256": "7e7bbd694379b21ceee773edd79147b6e4dbc1ea04957cb3daa849747603e0f2",
+     "decoder_sha256": "e8be75312624cf9a76ffb7b518029b1c9594be910c484ea500833b10326de625",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s1__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s1__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "policy_json_sha256": "40d635529e5beb8f634e21f676cb0a66596bbc9913bad2f8b3f61241602096d4",
+     "decoder_sha256": "98468a85d10242ba2df2bb9465f7f7d6419a68c6f0dcfd502eaf510a23e39461",
+     "deploy": "python -m hcal.deploy --unit <PRIVATE_CACHE>/hcal_v1/admitted/rel__s2__U --policy <policy.json> --decoder <PRIVATE_CACHE>/hcal_v1/package/decoder__s2__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "Ucal* (calibrated continuous reference)",
+   "release": "SRC|U|H-GLOBAL-TEMP",
+   "status": "reference (utility only; shares U's privacy bank)",
+   "parameters": "one inverse temperature per task and seed (CALIBRATION_FITS.csv)",
+   "note": "a calibrated continuous vector is a utility change, not information removal"
+  }
+ ],
+ "private_artifact_note": "decoder files hold aggregate per-token / per-class calibration label counts (n can be 1) and stay in the private store; public files cite them by sha256 only (MATH_REVIEW note 13)",
+ "receipt": "DEPLOYMENT_RECEIPT.json (seed 1 deployed bitwise, 10 refusals); RESTORE_INDEX.json (restores from the same-device copy)"
+}

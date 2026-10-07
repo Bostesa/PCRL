@@ -1,0 +1,161 @@
+{
+ "schema": "hcal-E-phase3b-v1",
+ "generated_at": "2026-10-07T15:12:33Z",
+ "script_sha256": "9e07d6d3bb58fb8fdee2b2c3d7b39a12afd1b84d93c5fba76368194c5ffc4b50",
+ "copy": "<PRIVATE_CACHE>/hcal_v1_local_copy_20261007",
+ "seed": 1,
+ "releases": {
+  "P*": "U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+  "T*": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP"
+ },
+ "independence": {
+  "hcal_modules_loaded": [],
+  "imports": [
+   "numpy",
+   "dpc.deploy (load_teacher / teacher_probs)",
+   "lra.data (load)",
+   "subprocess: python -m hcal.deploy"
+  ]
+ },
+ "statuses": {
+  "1_COPY_SHA256SUMS": "PASS",
+  "2_TEACHER_RESTORE": "PASS",
+  "3_DEPLOYMENT": "PASS",
+  "4_CUSTODY": "PASS"
+ },
+ "checks": {
+  "1_COPY_SHA256SUMS": {
+   "status": "PASS",
+   "what": "same-device copy: every listed file re-hashed; no unlisted file",
+   "compared": 5,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": [],
+   "files_listed": 4099,
+   "files_verified": 4099,
+   "label": "SAME_DEVICE_COPY",
+   "copy_at": "2026-10-07T15:07:33Z"
+  },
+  "2_TEACHER_RESTORE": {
+   "status": "PASS",
+   "what": "seed-1 U teacher forward from the copy alone, bitwise vs the copied outputs",
+   "compared": 7,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": [],
+   "model_sha256": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c"
+  },
+  "3_DEPLOYMENT": {
+   "status": "PASS",
+   "what": "real hcal.deploy CLI on the copy vs an own rebuild (bitwise); refusals exit 2",
+   "compared": 54,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": [],
+   "deployed": [
+    "U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+    "U|FINE-TASK|i8o64|H-GLOBAL-TEMP"
+   ],
+   "refusals": {
+    "extra column (84)": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: deployment accepts exactly the 83 permitted columns; got 84"
+     ],
+     "no_output_file": true
+    },
+    "reordered columns": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: input columns are reordered relative to the pinned schema (first difference at column 0: 'native-country=Yugoslavia' vs pinned 'age')"
+     ],
+     "no_output_file": true
+    },
+    "extra array (sex)": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: input npz must contain exactly X and feature_names; got ['X', 'feature_names', 'sex']"
+     ],
+     "no_output_file": true
+    },
+    "tampered table (self-consistent hash)": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: decoder table does not reproduce bitwise from its registered inputs"
+     ],
+     "no_output_file": true
+    },
+    "wrong teacher (RAW-J unit)": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: policy was fitted for a different teacher model.pt"
+     ],
+     "no_output_file": true
+    },
+    "decoder sha256 mismatch": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: decoder sha256 differs from --decoder-sha256"
+     ],
+     "no_output_file": true
+    },
+    "unknown flag": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: unknown flag --foo"
+     ],
+     "no_output_file": true
+    },
+    "raw-score export flag": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: --raw-scores would export a non-released field or bypass a binding (raw, score)"
+     ],
+     "no_output_file": true
+    },
+    "fine-ID export flag": {
+     "rc": 2,
+     "stdout_empty": true,
+     "stderr": [
+      "refused: --fine-ids would export a non-released field or bypass a binding (fine)"
+     ],
+     "no_output_file": true
+    }
+   }
+  },
+  "4_CUSTODY": {
+   "status": "PASS",
+   "what": "off-device custody PENDING (drive absent) and not claimed",
+   "compared": 2,
+   "max_abs_diff": {},
+   "failures": 0,
+   "first_failures": [],
+   "pending": [],
+   "notes": [],
+   "volumes": [
+    "BackgroundSyncService Setup",
+    "Macintosh HD"
+   ],
+   "same_device_copy_off_device_field": "PENDING (this copy is on the SAME device; it is not off-device custody)",
+   "backup_verification": "absent (role F has not written it)",
+   "possible_claims": [],
+   "custody_status": "PENDING (drive absent; not claimed)"
+  }
+ },
+ "wall_s": 8.2,
+ "verdict": "PASS"
+}

@@ -1,0 +1,36 @@
+{
+ "schema": "hcal-restore-index-v1",
+ "written_at": "2026-10-07T15:12:57Z",
+ "private_local": "<PRIVATE_CACHE>/hcal_v1",
+ "copy": "<PRIVATE_CACHE>/hcal_v1_local_copy_20261007 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/hcal_v1_local_copy_20261007/SHA256SUMS",
+ "layout": {
+  "hcal_v1/admitted/": "verified copies of the lra units, teachers, deploy input, frozen bank tables and ADMISSION_RECEIPT.json (never written after admission)",
+  "hcal_v1/run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json",
+  "hcal_v1/run/*.jsonl": "activity, compute and semaphore ledgers",
+  "dependencies/jcv_v1/inputs/adult_jcv.npz": "the pinned source input, bundled so the copy restores alone"
+ },
+ "restore": [
+  "verify: shasum -a 256 -c SHA256SUMS (inside <PRIVATE_CACHE>/hcal_v1_local_copy_20261007)",
+  "copy hcal_v1 back to <PRIVATE_CACHE>/hcal_v1 only if the live store is lost",
+  "re-run the restore hooks of hcal.closeout on the copy root"
+ ],
+ "required_restores": {
+  "U teacher": "PASS",
+  "frozen bank": "PASS",
+  "calibrator families": "PASS",
+  "selected release": "PASS",
+  "control release": "PASS",
+  "selected reader refit": "PASS"
+ },
+ "restore_all_pass": true,
+ "complete": true,
+ "status": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING",
+ "restore_receipts_sha256": {
+  "<PRIVATE_CACHE>/hcal_v1/run/same_device_copy.json": "1f7daefc6ce4006036a2301cf20139a9c648f72a9df6dacd3e360123f2ff75fe",
+  "<PRIVATE_CACHE>/hcal_v1/run/restore_checks.json": "5854514387766dc11da722333ca407236174b0976d5f284cc04521be81b7333a",
+  "<PRIVATE_CACHE>/hcal_v1/run/deploy_receipt_s1.json": "6c0d3e1533adc2f636442e4876ff4419790c242a54f0bf2a79a915f90fa94891"
+ },
+ "off_device_copy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m hcal.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m hcal.closeout offdevice   (finds <DRIVE_ROOT> by content; copies <PRIVATE_CACHE>/hcal_v1 and the pinned input to <DRIVE_ROOT>/private_hcal_v1_<UTC date>[_vN], re-reads every file uncached, then the coordinator runs the restore hooks on that copy)",
+ "layout_note": "outer__ assessment units, if present, are copied byte for byte and never parsed by custody"
+}

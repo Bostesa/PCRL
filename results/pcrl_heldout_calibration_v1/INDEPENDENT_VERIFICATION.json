@@ -1,0 +1,127 @@
+{
+ "schema": "hcal-independent-verification-v1",
+ "role": "E (independent verifier)",
+ "generated_at": "2026-10-07T15:12:33Z",
+ "study": "pcrl_heldout_calibration_v1",
+ "head": "5b2d8ef4bc8ce44e1e41e2a593332319b457837a",
+ "evaluation_lock_sha256": "0cd544919fc504baea905367c675a44de05df4aeb1040ca6556e27fdbdefc065",
+ "phases": {
+  "phase_0_engineering_review": {
+   "document": "verification/E_ENGINEERING_REVIEW.md",
+   "document_sha256": "c8f320ca9896ba1a61efaebfbfef825b2a0cc33ed8a5f42b888638adec26910d",
+   "findings": {
+    "BLOCKING": 1,
+    "SHOULD-FIX": 7,
+    "NOTE": 11
+   },
+   "dispositions": {
+    "E-B1": {
+     "severity": "BLOCKING",
+     "disposition": "FIXED: hcal.select.controls_all_ok / apply_controls read verdict.all_ok (missing -> False); select_all, eval_lock and stages use it; test_controls_verdict_feeds_selection_and_fails_safe"
+    },
+    "E-S1": {
+     "severity": "SHOULD-FIX",
+     "disposition": "FIXED: SELECTION_RULES text states AUC_v(P*) <= AUC_v(T*) + 0.005 in the margin form"
+    },
+    "E-S2": {
+     "severity": "SHOULD-FIX",
+     "disposition": "AMENDED BEFORE SCIENCE_LOCK: PROTOCOL section 2, hcal.data docstring and EXPOSURE_LEDGER allow OSF_DEFENSE_FIT task labels for the constant predictor AND descriptive fitting-row losses (never an objective, gate or selection input)"
+    },
+    "E-S3": {
+     "severity": "SHOULD-FIX",
+     "disposition": "ADDED test_every_variant_resolves_to_its_partitions_single_common_and_attack_record (select / infer / eval_lock resolution)"
+    },
+    "E-S4": {
+     "severity": "SHOULD-FIX",
+     "disposition": "ADDED test_no_eligible_task_only_comparator_path (T* NO_ELIGIBLE, P* NOT_SELECTED_NO_COMPARATOR exercised)"
+    },
+    "E-S5": {
+     "severity": "SHOULD-FIX",
+     "disposition": "ADDED test_ordering_keys_and_inclusive_boundaries and test_controls_verdict_feeds_selection_and_fails_safe"
+    },
+    "E-S6": {
+     "severity": "SHOULD-FIX",
+     "disposition": "ADDED test_token32_k6_against_independent_slsqp"
+    },
+    "E-S7": {
+     "severity": "SHOULD-FIX",
+     "disposition": "FIXED: stage_controls passes load_bank_fn = hcal.run.bank (hash-checked)"
+    },
+    "E-NOTE-hygiene": {
+     "severity": "NOTE",
+     "disposition": "accepted as registered (PROTOCOL section 5)"
+    }
+   },
+   "open_blocking": [],
+   "status": "PASS",
+   "note": "E-B1 (controls verdict key) verified fixed in code: select.controls_all_ok reads verdict.all_ok and eval_lock / stages use it; the inner replay and the assessment confirm controls_all_ok true"
+  },
+  "phase_1_2_inner_replay": {
+   "file": "verification/E_INNER_REPLAY.json",
+   "sha256": "ced38c4c5bd97e550f08e42ba9d2802331b2c8221e99d7148bed3c8073a4360a",
+   "statuses": {
+    "1_ROLE_SPLIT": "PASS",
+    "0_FROZEN_BANK": "PASS",
+    "2_CALIBRATION": "PASS",
+    "3_UTILITY": "PASS",
+    "4_COMMON_RECORDS": "PASS",
+    "5_SELECTION": "PASS"
+   },
+   "verdict": "PASS"
+  },
+  "phase_3_assessment": {
+   "file": "verification/E_PHASE3.json",
+   "sha256": "860c3640fcc6fdb591fc47e9524706df453df3339f83108430cca9921984fe5b",
+   "statuses": {
+    "L_LOCK_AND_UNITS": "PASS",
+    "a_ASSESSMENT_ROLE": "PASS",
+    "b_RELEASES": "PASS",
+    "c_ATTACK_REFITS": "PASS",
+    "d_PRIMARY_FAMILY": "PASS",
+    "e_SUPPLEMENTARY": "PASS"
+   },
+   "verdict": "PASS",
+   "label": "NO_COMPETITIVE_RELEASE_CRITERION_ESTABLISHED"
+  },
+  "phase_3b_deployment_custody": {
+   "file": "verification/E_PHASE3B.json",
+   "statuses": {
+    "1_COPY_SHA256SUMS": "PASS",
+    "2_TEACHER_RESTORE": "PASS",
+    "3_DEPLOYMENT": "PASS",
+    "4_CUSTODY": "PASS"
+   },
+   "verdict": "PASS",
+   "off_device_custody": "PENDING (drive absent; not claimed)"
+  }
+ },
+ "scripts_sha256": {
+  "verify_inner.py": "450f14739864f053bc95e08a30a0c12108e8156e96c513193be9c391aab8f0ff",
+  "selftest_verify_inner.py": "38cc81d519a1a9fba00a0a0bf669588ba967bf4fbdd7387070cce1f52d0c63c7",
+  "verify_phase3.py": "6baf358d6d4797a267cd7e465a335fdd6b85f21f0d7bd43792b10edabe3e1777",
+  "verify_phase3b.py": "9e07d6d3bb58fb8fdee2b2c3d7b39a12afd1b84d93c5fba76368194c5ffc4b50"
+ },
+ "independence": {
+  "statement": "Role E's verifier code imports no hcal module (checked at exit of every script: hcal_modules_loaded = []); formulas, grouping, metrics, selection, union rules, bootstrap, clause outcomes and the label are re-derived; only pinned loaders (lra.data.load, dpc.deploy.load_teacher / teacher_probs) and sklearn / numpy are used; the product CLI hcal.deploy is exercised only as a subprocess. Assessment labels were read only from the hash-complete oprob__ units bound to the pushed EVALUATION_LOCK; no study gate was used or bypassed.",
+  "hcal_modules_loaded": {
+   "verify_inner": [],
+   "verify_phase3": [],
+   "verify_phase3b": []
+  },
+  "worktree_modules_loaded_inner": [
+   "__main__",
+   "dpc",
+   "lra",
+   "osf",
+   "qpc",
+   "rgj",
+   "smf"
+  ]
+ },
+ "scope_limits": [
+  "exploratory development evidence on repeatedly used Adult data (registered exposure statement); verification establishes reproduction, not external validity",
+  "attack refits verified on the registered sample (20 winners), not every winner",
+  "off-device custody PENDING (drive absent)"
+ ],
+ "PHASE_3_FINAL": "PASS"
+}

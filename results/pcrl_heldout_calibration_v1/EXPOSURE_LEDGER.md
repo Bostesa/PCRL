@@ -67,3 +67,18 @@ no calibrator reads SEX.
 - ACS 2016–2018 are spent, and Texas 2018 has a prior reservation. None of them is touched.
 
 The realised use is appended at closeout.
+
+## Realised use (closeout, 2026-10-07)
+
+- **First Adult label read: after SCIENCE_LOCK.** SCIENCE_LOCK was pushed at 13:59Z; calibration started at 13:59:0xZ.
+  Labels read under it:
+  - task labels of CALIBRATION_HELDOUT and CALIBRATION_TRAIN_MATCHED representatives (calibration);
+  - INNER_SELECTION task labels (utility);
+  - OSF_DEFENSE_FIT task labels (constant predictor and descriptive fitting-row losses);
+  - SEX of ATTACK_FIT_NEW (fresh readers), AUDIT_FIT (control pipeline and frozen-winner refits) and INNER_SELECTION.
+- **Not read.** HEAD_VALIDATION labels were never read.
+- **Assessment labels.** Read only by `hcal.assess` after EVALUATION_LOCK was pushed at 15:00:31Z, in one opening
+  (15:00:43–15:04:30Z). Role E's phase 3 then read them from the hash-checked assessment units.
+- **lra assessment artifacts** (`outer__*`): never admitted or opened.
+- **No new population, cohort or year was opened.** Predecessor custody commands that unseal the assessment were not
+  run (drive absent).
