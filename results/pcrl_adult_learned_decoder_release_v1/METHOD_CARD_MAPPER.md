@@ -1,14 +1,14 @@
-# Method card, mapper part (`lcr/mapper.py`, role C)
+# Method card, mapper part (`lra/mapper.py`, role C)
 
-Owner: role C (mapper engineer). Tests: `lcr/tests/test_mapper.py`, run on synthetic data only. Frozen rules:
-`SEARCH_RULES.json`, written by `python -m lcr.mapper rules` (its `rules_sha256` is also recorded in every unit
-record). Role C code reads no Adult row, label or SEX column. The lead runs the real stages (`lcr.run --stage ctask`,
+Owner: role C (mapper engineer). Tests: `lra/tests/test_mapper.py`, run on synthetic data only. Frozen rules:
+`SEARCH_RULES.json`, written by `python -m lra.mapper rules` (its `rules_sha256` is also recorded in every unit
+record). Role C code reads no Adult row, label or SEX column. The lead runs the real stages (`lra.run --stage ctask`,
 `--stage fit`) after SCIENCE_LOCK.
 
 **What is new.** The source study fitted codebook probabilities to the teacher (D0 = smoothed token mean) and swept a
 privacy weight. This mapper:
 
-- decodes every token with the shared learned decoder D1 (`lcr.decoder`, role B);
+- decodes every token with the shared learned decoder D1 (`lra.decoder`, role B);
 - changes the coarse assignments with the actual fitting task losses;
 - enforces explicit fitting budgets and local information caps.
 
@@ -46,15 +46,15 @@ refs_from_ctask(ctask_record) -> {"I_ctask": {"1", "2"}, "ctask_pair_fingerprint
 - `Y_fit` is {1: income, 2: occupation_group}, aligned with `tr`.
 - `S_fit` is binary SEX, aligned with `tr`.
 
-**Starts and witnesses.** These are {config ID: `policy.json` dict}, keyed by `lcr.run` IDs. Only the cell→token map
+**Starts and witnesses.** These are {config ID: `policy.json` dict}, keyed by `lra.run` IDs. Only the cell→token map
 of each is used. Its fine fingerprints must equal `fine_dict`, and its D1 decoder is recomputed.
 
 **Outputs.**
 
 - `policy.json` is the qpc.PolicyPair of the token map. Its `token_proto` are the D0 means, which are **not
-  released**. `config.config` is the lcr ID, m1 = 8, m2 = 64, and both binding hashes are present.
-- `decoder.json` is `lcr.decoder.decoder_pair_dict`.
-- `release.npz` is `lcr.decoder.release_arrays_d1` over all rows. q there is the actual released D1 vector.
+  released**. `config.config` is the lra ID, m1 = 8, m2 = 64, and both binding hashes are present.
+- `decoder.json` is `lra.decoder.decoder_pair_dict`.
+- `release.npz` is `lra.decoder.release_arrays_d1` over all rows. q there is the actual released D1 vector.
 
 **Stable record fields used downstream.** `status` is `FEASIBLE` or `INFEASIBLE`. The others are
 `deployed.feasible`, `final_state_terms`, `winner`, `token_counts` and `pair_fingerprint`.
@@ -83,14 +83,14 @@ teacher. For each token t of recipient i:
 - n_t is its count;
 - y_t holds its exact label counts;
 - s_t is the canonical sum over member fine cells of `fine.S`, accumulated from zeros in increasing fine index. This
-  is bitwise `lcr.decoder.token_stats` and qpc `token_tables`;
+  is bitwise `lra.decoder.token_stats` and qpc `token_tables`;
 - the SEX counts form an exact int64 table, together with the pair table n(s, t1, t2).
 
 The fitting terms are:
 
 | Term | Definition |
 |---|---|
-| q_t | `lcr.decoder.solve_batch(y_t, s_t, n_t, d_t)`, the actual released vector (κ = 32, ε = 1e-12, class-dominant, certified) |
+| q_t | `lra.decoder.solve_batch(y_t, s_t, n_t, d_t)`, the actual released vector (κ = 32, ε = 1e-12, class-dominant, certified) |
 | L_i | (1/N) Σ_t Σ_k y_t[k] · (−log clip(q_t[k], 1e-12, 1)) (`token_losses`) |
 | B_i | (1/N) Σ_t Σ_k y_t[k] · Σ_j (q_t[j] − [j = k])², the source multiclass Brier |
 | I_i, I12 | plug-in MI of SEX with the full token, and with the token pair (natural log, 0 log 0 = 0) |
@@ -266,7 +266,7 @@ of (slot XOR {cell}).
 
 ## 9. Synthetic timing (TIMING.json["fitting"])
 
-`python -m lcr.mapper timing --seeds 0` was run once under `lcr.sema` (label `C:fit-timing`, one thread) on
+`python -m lra.mapper timing --seeds 0` was run once under `lra.sema` (label `C:fit-timing`, one thread) on
 SYNTHETIC real-shaped data, using the final code (`code_sha256_at_start` recorded;
 `code_unchanged_during_run = True`). The shapes are:
 
@@ -327,13 +327,13 @@ not here. Real data could differ, and the per-start stop reasons are recorded.
 - An earlier synthetic run of the same bank, on code before these optimisations, gave per-unit evaluation counts
   that were identical for all 25 units it completed, at 1.77× the CPU.
 
-**Recommendation.** Run the FULL bank, with no reduction. Use 2 shards under `lcr.sema`: the `ctask` stage (3 units)
-first, then `lcr.run.fit_chains`, constrained chains first. The `d1` stage is independent.
+**Recommendation.** Run the FULL bank, with no reduction. Use 2 shards under `lra.sema`: the `ctask` stage (3 units)
+first, then `lra.run.fit_chains`, constrained chains first. The `d1` stage is independent.
 
 
-## 10. Tests (`lcr/tests/test_mapper.py`, synthetic)
+## 10. Tests (`lra/tests/test_mapper.py`, synthetic)
 
-17 tests, all passing (about 4 s, under `lcr.sema`, one thread). The fixture is synthetic: 3,000 rows, 1,600 fitting
+17 tests, all passing (about 4 s, under `lra.sema`, one thread). The fixture is synthetic: 3,000 rows, 1,600 fitting
 rows, fine partitions of 6 / 9 cells per class, caps 3 / 5, and a fixture-mode budget of 0.05 / 0.03, so that the
 constrained arms have feasible starts. All ten arms run on it.
 
