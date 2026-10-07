@@ -1,0 +1,170 @@
+{
+ "schema": "lcr-fixture-gate-rule-v1",
+ "trigger_verbatim": "At least one fixed nontrivial fixture shows that privacy-trained partitioning with D1 satisfies all utility/local budgets and reduces pair MI by at least 0.01 nats beyond the strongest feasible task-only D1 compression, while both tasks have accuracy gain at least 0.03 over their constants.",
+ "not_required": [
+  "joint beating sequential",
+  "constrained search beating a weighted control"
+ ],
+ "rows": "each fixture's fitting rows are its atoms replicated by count (N = 4096, exact expected counts, no sampling); all rows are fitting rows (tr = all); population law = fitting law",
+ "measurements": {
+  "independence": "every quantity below is recomputed by lcr.fixtures from the release rows (tokens, q, decisions) and the fixture labels/SEX with its own code (dpc.utility.per_row conventions for losses, its own plug-in MI); mapper-reported values are only cross-checked",
+  "L_i": "mean true-label log loss of q_i, natural log, clip 1e-12",
+  "B_i": "mean multiclass Brier of q_i",
+  "U": "L_i(U), B_i(U) of each row's own teacher vector",
+  "I_i": "plug-in MI(SEX; full token identity of recipient i), natural log, exact counts",
+  "I12": "plug-in MI(SEX; exact token tuple (t1, t2)), natural log, exact counts",
+  "T": "L_1 + L_2 + 0.5 (B_1 + B_2)",
+  "Phi": "I12 + 0.5 (I_1 + I_2)",
+  "accuracy_gain_i": "accuracy of the teacher decision minus accuracy of the fitting-majority constant (ties -> lower class); identical for every class-preserving release (static law property)"
+ },
+ "feasible": {
+  "rule": "for i = 1, 2: L_i <= L_i(U) + 0.005 + TOL_BUDGET and B_i <= B_i(U) + 0.003 + TOL_BUDGET; released decision == teacher decision on every row; q_i normalised within 1e-12 with strict argmax at the decision; tokens per predicted class <= caps[i-1]",
+  "TOL_BUDGET": 1e-12
+ },
+ "local_budget": {
+  "rule": "I_i <= I_i(C-TASK release of the same fixture) + TOL_MI, i = 1, 2",
+  "TOL_MI": 1e-12
+ },
+ "task_only_D1_candidates": [
+  "U|C-TASK|i8o64|D1",
+  "U|FINE-TASK|i8o64|D1",
+  "U|DIRECT-TASK|i8o64|D1",
+  "U|CLASS|i1o1|D1"
+ ],
+ "task_only_note": "C-TASK = the REFINED map returned by lcr.mapper.fit_unit('C-TASK') (its D1-recomputed start, FINE-TASK|D1, is a separate candidate); FINE-TASK|D1 / DIRECT-TASK|D1 / CLASS|D1 = lcr.decoder D1 on the D0 maps of the fixture (qpc.compress FINE-TASK / CLASS, qpc.kmeans direct per-class KL k-means at the cap, all three registered starts), assignments unchanged",
+ "T_star": "the FEASIBLE task-only D1 candidate with the smallest I12 (ties -> smaller T -> config id); none feasible -> the fixture cannot trigger (reason NO_FEASIBLE_TASK_ONLY)",
+ "privacy_trained_D1_candidates": {
+  "d1_fixed": [
+   "U|LOCAL|i8o64|l0.01|D1",
+   "U|SEQ-12|i8o64|l0.01|D1",
+   "U|SEQ-21|i8o64|l0.01|D1",
+   "U|JOINT|i8o64|l0.01|D1",
+   "U|LOCAL|i8o64|l0.025|D1",
+   "U|SEQ-12|i8o64|l0.025|D1",
+   "U|SEQ-21|i8o64|l0.025|D1",
+   "U|JOINT|i8o64|l0.025|D1",
+   "U|LOCAL|i8o64|l0.04|D1",
+   "U|SEQ-12|i8o64|l0.04|D1",
+   "U|SEQ-21|i8o64|l0.04|D1",
+   "U|JOINT|i8o64|l0.04|D1",
+   "U|LOCAL|i8o64|l0.06|D1",
+   "U|SEQ-12|i8o64|l0.06|D1",
+   "U|SEQ-21|i8o64|l0.06|D1",
+   "U|JOINT|i8o64|l0.06|D1",
+   "U|LOCAL|i8o64|l0.08|D1",
+   "U|SEQ-12|i8o64|l0.08|D1",
+   "U|SEQ-21|i8o64|l0.08|D1",
+   "U|JOINT|i8o64|l0.08|D1",
+   "U|LOCAL|i8o64|l0.1|D1",
+   "U|SEQ-12|i8o64|l0.1|D1",
+   "U|SEQ-21|i8o64|l0.1|D1",
+   "U|JOINT|i8o64|l0.1|D1"
+  ],
+  "weighted": [
+   "U|W-LOCAL|i8o64|l0.01|D1",
+   "U|W-SEQ-12|i8o64|l0.01|D1",
+   "U|W-SEQ-21|i8o64|l0.01|D1",
+   "U|W-JOINT|i8o64|l0.01|D1",
+   "U|W-LOCAL|i8o64|l0.025|D1",
+   "U|W-SEQ-12|i8o64|l0.025|D1",
+   "U|W-SEQ-21|i8o64|l0.025|D1",
+   "U|W-JOINT|i8o64|l0.025|D1",
+   "U|W-LOCAL|i8o64|l0.04|D1",
+   "U|W-SEQ-12|i8o64|l0.04|D1",
+   "U|W-SEQ-21|i8o64|l0.04|D1",
+   "U|W-JOINT|i8o64|l0.04|D1",
+   "U|W-LOCAL|i8o64|l0.06|D1",
+   "U|W-SEQ-12|i8o64|l0.06|D1",
+   "U|W-SEQ-21|i8o64|l0.06|D1",
+   "U|W-JOINT|i8o64|l0.06|D1",
+   "U|W-LOCAL|i8o64|l0.08|D1",
+   "U|W-SEQ-12|i8o64|l0.08|D1",
+   "U|W-SEQ-21|i8o64|l0.08|D1",
+   "U|W-JOINT|i8o64|l0.08|D1",
+   "U|W-LOCAL|i8o64|l0.1|D1",
+   "U|W-SEQ-12|i8o64|l0.1|D1",
+   "U|W-SEQ-21|i8o64|l0.1|D1",
+   "U|W-JOINT|i8o64|l0.1|D1"
+  ],
+  "constrained": [
+   "U|K-LOCAL|i8o64|D1",
+   "U|K-SEQ-12|i8o64|D1",
+   "U|K-SEQ-21|i8o64|D1",
+   "U|K-JOINT-SINGLE|i8o64|D1",
+   "U|K-JOINT-PAIR|i8o64|D1"
+  ]
+ },
+ "privacy_note": "d1_fixed = D1 on the 24 D0 privacy maps fitted on the fixture rows by the UNCHANGED qpc old-objective search (qpc.compress.fit_policy_pair: LOCAL, SEQ-12, SEQ-21, JOINT x lambda grid, JOINT with its same-lambda FINE-TASK / LOCAL / SEQ witnesses as in cbp), then decoded by lcr.decoder with the assignments unchanged; weighted / constrained = lcr.mapper fit_unit (meta fixture = True, refs caps = the fixture caps, refs budget = the registered 0.005 / 0.003, starts / witnesses = the full registered sets of mapper.registered_starts). Exhaustive partitions are references, NEVER candidates.",
+ "qualifies": "feasible(R) and local_budget(R) and I12(T_star) - I12(R) >= 0.01 and, for R itself, accuracy_i(R) - constant_accuracy_i >= 0.03 for i = 1 and 2 (accuracy of R's released decisions on the fixture rows; the constant is the fitting-majority class, ties -> lower class)",
+ "trigger_fixture": "some privacy-trained D1 candidate qualifies (nontrivial = both static accuracy gains >= 0.03 and I12(T_star) >= 0.01; a trivial fixture cannot trigger)",
+ "gate": {
+  "GATE_MET": "every mandatory correctness check passes on all four fixtures AND trigger_fixture holds for at least one fixture",
+  "GATE_NOT_MET": "otherwise; reasons listed: CORRECTNESS_FAILURE:<check ids> and/or NO_FIXTURE_TRIGGERED"
+ },
+ "route_classification": {
+  "applies": "only when GATE_MET; computed per triggered fixture, then combined",
+  "per_fixture": {
+   "Q_fm": "qualifying d1_fixed candidates",
+   "Q_new": "qualifying weighted + constrained",
+   "best_fm": "min I12 over Q_fm (+inf if empty)",
+   "best_new": "min I12 over Q_new",
+   "decoder_enabled": "Q_fm nonempty",
+   "assignment_search_helps": "Q_new nonempty and (Q_fm empty or best_new <= best_fm - 0.01)"
+  },
+  "ASSIGNMENT_SEARCH_ROUTE": "assignment_search_helps on at least one triggered fixture",
+  "DECODER_ENABLED_ROUTE": "otherwise (the trigger is met by an OLD assignment decoded by D1 and new search adds < 0.01 nats there); Adult then includes all calibration controls",
+  "descriptive_flags": [
+   "d0_version_already_qualifies (the D0-decoded version of a qualifying fixed map is itself feasible, local-feasible and 0.01 below T_star)",
+   "constrained_qualifies",
+   "weighted_qualifies",
+   "best constrained vs best weighted I12",
+   "joint vs sequential I12"
+  ]
+ },
+ "mandatory_correctness_checks": {
+  "C1_FIXED_TOKEN_INFORMATION": "for every D0 map and its D1 version: identical token arrays (exact), identical I_1, I_2, I12 (bitwise), and I(SEX; (token, q)) == I(SEX; token) within 1e-15 for both decoders (q is a function of the token)",
+  "C2_CALIBRATED_NULL": "F1_CALIBRATED_NULL: for every canonical partition of each recipient and every D1 release of any arm: max |q_D1 - q_D0| <= 1e-09 per token and the law (population) log loss and Brier of D1 >= those of D0 - 1e-12 per row",
+  "C3_BUDGET_ENFORCEMENT": "every mapper release reported FEASIBLE satisfies feasible() and, for K- arms, local_budget() under the independent recomputation; mapper-reported L_i(U), B_i(U) equal the independent values within 1e-12; only K- arms may report INFEASIBLE",
+  "C4_DECISION_PRESERVATION": "every release (D0, D1, mapper): hard_i == teacher decision on every row, q_i strict argmax at the decision and normalised within 1e-12; release keys exactly row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2",
+  "C5_TERM_RECONSTRUCTION": "mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, Phi) equal the independent reconstruction within 1e-10; decoder.json loads with re-solve verification; the exhaustive table's terms for each arm's partition equal the row-level reconstruction within 1e-10",
+  "C6_HEURISTIC_LABELLING": "every arm carries EXHAUSTIVE_OPTIMAL (registered objective within 1e-10 of the exhaustive optimum of its own registered problem, feasible where constrained) or HEURISTIC with its gap; a heuristic gap is reported, not a failure",
+  "C7_LAW_INTEGRITY": "laws hash verifies, atoms rebuild from the explicit tables, 4096 rows, static properties match, mapping pairs <= 100000, fixture rows deploy to their declared fine cells"
+ },
+ "check_ids": [
+  "C1_FIXED_TOKEN_INFORMATION",
+  "C2_CALIBRATED_NULL",
+  "C3_BUDGET_ENFORCEMENT",
+  "C4_DECISION_PRESERVATION",
+  "C5_TERM_RECONSTRUCTION",
+  "C6_HEURISTIC_LABELLING",
+  "C7_LAW_INTEGRITY"
+ ],
+ "check_scope": "C2 is evaluated on F1_CALIBRATED_NULL only; every other check on all four fixtures",
+ "own_problem_objectives": {
+  "D0 FINE-TASK": "min D_1 + D_2 (teacher KL of the smoothed mean decoder, per N) s.t. caps",
+  "D0 LOCAL lam": "min D + lam (I_1 + I_2) / 2 s.t. caps",
+  "D0 SEQ-12 / SEQ-21 / JOINT lam": "min D + lam ((I_1 + I_2) / 2 + I12) s.t. caps",
+  "C-TASK": "min T (D1) s.t. caps",
+  "W-LOCAL lam": "min T + lam (I_1 + I_2) / 2 (D1) s.t. caps",
+  "W-SEQ-12 / W-SEQ-21 / W-JOINT lam": "min T + lam Phi (D1) s.t. caps",
+  "K-LOCAL": "per recipient min I_i s.t. its own budgets and local cap (D1)",
+  "K-SEQ-12 / K-SEQ-21 / K-JOINT-SINGLE / K-JOINT-PAIR": "min Phi s.t. both budgets and both local caps (D1)",
+  "DIRECT-TASK, CLASS": "not partition searches over the fine family (labelled NOT_A_SEARCH)"
+ },
+ "tolerances": {
+  "TOL_BUDGET": 1e-12,
+  "TOL_MI": 1e-12,
+  "TOL_TERMS": 1e-10,
+  "TOL_NULL_Q": 1e-09,
+  "TOL_NULL_LOSS": 1e-12,
+  "TOL_OPT": 1e-10,
+  "TRIGGER_MI": 0.01,
+  "MIN_GAIN": 0.03
+ },
+ "verdict_strings": [
+  "GATE_MET",
+  "GATE_NOT_MET"
+ ],
+ "scope": "a pass licenses the Adult study only through SCIENCE_LOCK; a failure means MECHANISM_GATE_NOT_MET and no Adult claim. Fixture MI is the exact law MI of these finite laws, not a population guarantee for Adult.",
+ "laws_sha256": "5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434"
+}
