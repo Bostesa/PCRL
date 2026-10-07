@@ -53,3 +53,20 @@ The learned-decoder and constrained-release design was chosen knowing those numb
 
 Earlier committed history on predecessor branches contains an identifying drive-folder name. No history rewrite or
 force-push is authorised. New public files use placeholders only and are scanned before every push.
+
+## Realized use (appended at closeout, 2026-10-07)
+
+The registered mechanism gate failed (MECHANISM_GATE_NOT_MET), so no Adult fit ran. In practice:
+- the authorized material change (OSF_DEFENSE_FIT task labels and SEX for the new supervised fitting) was never
+  exercised;
+- no lcr attacker was trained on AUDIT_FIT;
+- no selection used INNER_SELECTION;
+- the assessment labels were never unsealed, because no EVALUATION_LOCK exists;
+- HEAD_VALIDATION was not repurposed.
+
+The study's real-data operations were limited to three things:
+- source admission: teacher forward passes and release re-encoding;
+- one deployment of the admitted Q map on the 83 permitted columns;
+- custody copying and restoring.
+
+None of them reads a task label or SEX.

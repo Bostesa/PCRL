@@ -454,3 +454,21 @@ Tolerances are registered, verdicts must agree exactly, and hashes, tokens and d
   - The full discrete program is not convex.
   - Fitted MI is not a population guarantee.
   - The sequential arms are matched adaptations, not the official Taylor, Vippathalla and Coon solver.
+
+## 16. Outcome (appended after the gate; the registered text above is unchanged — see FIXTURE_LOCK 9ac4cb7 for the locked version)
+
+**Gate result.**
+- FIXTURE_LOCK was pushed at 9ac4cb7. AMENDMENT_A1_FIXTURE_C5_SCOPE (code-only) was pushed at c9a7150.
+- Attempt 2 of the fixture stage (evidence 18e41ab) returned **GATE_NOT_MET, NO_FIXTURE_TRIGGERED**, with every
+  mandatory check passing on all four fixtures:
+  - F1: no feasible task-only comparator;
+  - F2–F4: T* = CLASS|D1 with I12 = 0, so not nontrivial.
+- This equals the expectation registered in §9 before the stage. Attempt 1 is kept (FIXTURE_ATTEMPTS.json).
+- Role E's independent replay confirms it (INDEPENDENT_VERIFICATION.json, PHASE_1B).
+
+**Consequences.**
+- By §9: no Adult fit, no SCIENCE_LOCK, no EVALUATION_LOCK.
+- Label: **MECHANISM_GATE_NOT_MET** (LABEL_RESULT.json).
+
+**Documents.** RESEARCH_DECISION.md, VALIDATION.md and RUN_STATUS.json record the scope, the fixture-scope reports, the
+disclosed deviations and the open items.
