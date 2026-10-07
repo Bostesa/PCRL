@@ -1,0 +1,998 @@
+{
+ "schema": "lcr-independent-verification-v1",
+ "phase": "PHASE_0",
+ "generated_at": "2026-10-07T00:43:18Z",
+ "verifier": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py",
+ "verifier_sha256": "ca8e1de1fbb59dd2c23517f47c5eaccae72987c788b69670b54c2036a2782593",
+ "adapted_from": "results/pcrl_confidence_budgeted_privacy_v1/verification/replay_cbp.py at 7f3ec67 (sha256 bfac817d4db32da0cba7e84c91d7ef7368e2cc95979213af0a12a5bd66b171a2)",
+ "worktree_head": "577c3fcee29ef8297df5b036d658c11032232b19",
+ "branch": "research/pcrl-learned-decoder-constrained-release-v1",
+ "source_tip": "7f3ec67b2ecd86d474e2ff27167091af9923f572",
+ "inputs": {
+  "source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
+  "lcr_units": "<PRIVATE_CACHE>/lcr_v1/run/units",
+  "lcr_admitted": "<PRIVATE_CACHE>/lcr_v1/admitted",
+  "cbp_units_read_only": "<PRIVATE_CACHE>/cbp_v1/run/units",
+  "cbp_copy_read_only": "<PRIVATE_CACHE>/cbp_v1_local_copy_20261006"
+ },
+ "tolerances": {
+  "lcr_d1_decoder_and_certificate": {
+   "q": 1e-09,
+   "smoothing_identity": 4e-16,
+   "sum": 1e-12,
+   "fw_gap_rel": 1e-10,
+   "stationarity_rel": 1e-08,
+   "objective_rel": 1e-10,
+   "teacher_sum_rel": 1e-09,
+   "loss_mean": 1e-12,
+   "budget_band": 1e-12,
+   "mi": 1e-12
+  },
+  "lcr_d1_note": "q agreement absolute; gap / stationarity / objective relative to max(1, n_t + kappa); dominance and strict argmax of the released q exact",
+  "tokens_decisions_partitions_bindings_hashes": "exact (bitwise / byte-identical)",
+  "decoded_probabilities_teacher_outputs": "exact (bitwise)",
+  "search_increments": 1e-10,
+  "objective_terms": 1e-12,
+  "k-means_receipt_objectives_relative": 1e-10,
+  "fit_distortion_relative": 1e-12,
+  "inner_auc_ce_utility": 1e-12,
+  "endpoint_point_se": 1e-12,
+  "endpoint_bounds": 1e-11,
+  "published_6_decimal_prints": 5e-07,
+  "verdicts_labels_roles": "exact agreement",
+  "selection_ordering_ties": "12-decimal rounding (provisional; reconciled with SELECTION_RULES.json)"
+ },
+ "libraries": {
+  "numpy": "2.4.2",
+  "torch": "2.10.0",
+  "joblib": "1.5.3",
+  "sklearn": "1.8.0",
+  "scipy": "1.17.1"
+ },
+ "real_data_read": false,
+ "assessment_labels_read": false,
+ "independence": {
+  "status": "PASS",
+  "guard": "sys.meta_path finder refusing lcr, cbp, qpc, dpc, osf, smf, rgj, jcv, pnx, oar, stored_model_eval, pcrl (also during joblib unpickling); torch.load(weights_only=True); worktree root removed from sys.path; semaphore invoked by path (-P) as the parent process",
+  "loaded_forbidden_modules": [],
+  "blocked_attempts_during_run": [],
+  "preloaded_before_guard": [],
+  "libraries_used": [
+   "numpy",
+   "scipy",
+   "sklearn",
+   "torch",
+   "joblib",
+   "stdlib"
+  ],
+  "adapted_from_predecessor_verifier": "import guard, role reconstruction, forward pass, KL k-means, search replay, attacker refits, bootstrap, inner / composition replay, chronology"
+ },
+ "checks": {
+  "selftests": {
+   "status": "PASS",
+   "import_guard": {
+    "status": "PASS",
+    "refused": 30,
+    "attempted": 30,
+    "unpickle_refused": {
+     "qpc.kmeans": true,
+     "dpc.partition": true,
+     "cbp.select": true,
+     "lcr.decoder": true,
+     "lcr.mapper": true
+    },
+    "forbidden_loaded": []
+   },
+   "forward_pass": {
+    "status": "PASS",
+    "bitwise_vs_sequential": true,
+    "head_outputs_ok": true
+   },
+   "smoothing": {
+    "status": "PASS",
+    "rule": "(mean + eps 1 + eps e_c) / (1 + (K+1) eps), eps 1e-12"
+   },
+   "kl_rules": {
+    "status": "PASS",
+    "max_abs_diff_vs_direct": 1.1102230246251565e-16,
+    "roundoff_zeroed": 1,
+    "large_negative_refused": true
+   },
+   "sequential_sums": {
+    "status": "PASS"
+   },
+   "source_init": {
+    "status": "PASS",
+    "positions": [
+     1,
+     3
+    ]
+   },
+   "historical_rule_coherent": {
+    "status": "PASS",
+    "fallback_classes": [
+     5
+    ],
+    "cells": 41
+   },
+   "capped_rule_coherent": {
+    "status": "PASS",
+    "D_20": 0.07779900536356713,
+    "D_200": 0.07779900536356713,
+    "stops": [
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point"
+    ]
+   },
+   "stop_rules": {
+    "status": "PASS",
+    "best_iterate": true,
+    "cap_with_final_pass": true,
+    "relative_tolerance": true,
+    "fixed_point": true,
+    "coherent": true,
+    "distinct_counts_equal_np_unique": true,
+    "kpp_distinct_centres": true,
+    "start_tie_tolerance": true,
+    "passes": {
+     "cap2": 3,
+     "full": 9,
+     "tol": 5
+    }
+   },
+   "restarts": {
+    "status": "PASS",
+    "deterministic": true,
+    "winner_is_first_minimum": true,
+    "seeds_differ": true,
+    "same_seed_identical": true,
+    "winners": {
+     "source": 3,
+     "kpp:20261006": 1,
+     "kpp:20261007": 1
+    }
+   },
+   "capacity": {
+    "status": "PASS",
+    "income_cells_by_cap": {
+     "4": 8,
+     "8": 16,
+     "32": 64,
+     "64": 128
+    },
+    "distinct_vector_cap_respected": true,
+    "asymmetric_caps": true
+   },
+   "class_preservation": {
+    "status": "PASS",
+    "cases": "two-way ties, one-hot, 1e-300 underflow, 1e-17 tiny, uniform, absent class"
+   },
+   "plug_in_mi": {
+    "status": "PASS",
+    "vs_entropy_form": 5.551115123125783e-17,
+    "relabelling": 0.0,
+    "coalition_xor": true,
+    "token_collision": true,
+    "null_small": true
+   },
+   "objective_engine": {
+    "status": "PASS",
+    "engine_vs_rows": 6.028164079019405e-17,
+    "merge_delta_vs_brute_force": 2.498001805406602e-16,
+    "stage_one_class_only_counterpart_vs_rows": 0.0
+   },
+   "stage_b_engine": {
+    "status": "PASS",
+    "candidates_checked": 62,
+    "max_abs_increment_error": 3.430415673744136e-16,
+    "SEQ-12_first_map_never_revised": true,
+    "SEQ-21_first_map_never_revised": true,
+    "joint_dominates_witnesses": true,
+    "joint_I12_below_local": true,
+    "telescoping_max_abs_error": 1.1449174941446927e-16,
+    "engine_vs_row_level_max_abs_diff": 6.396792817664476e-16,
+    "xor_fixture": {
+     "local_I1": 0.00023401698550742366,
+     "local_I2": 2.026436463893333e-06,
+     "local_I12": 0.21935644333681636,
+     "joint_I12": 0.00023401698550742366,
+     "joint_F_below_local": true
+    }
+   },
+   "utility_sklearn_parity": {
+    "status": "PASS",
+    "sklearn_parity": true
+   },
+   "cbp_selection_rules_retained": {
+    "status": "PASS",
+    "roles_expected": true,
+    "roles": {
+     "T*": "U|FINE-TASK|i8o64",
+     "C_rate": "U|SEQ-12|i8o64|l0.1",
+     "C_global": "U|SEQ-12|i8o64|l0.1",
+     "P*": "U|JOINT|i8o64|l0.04",
+     "J*": "U|JOINT|i8o64|l0.04",
+     "Q": "U|DIRECT-TASK|i8o64"
+    },
+    "winning_family": true,
+    "no_headroom_winner_is_JOINT_l0.1": true,
+    "headroom_changes_winner": true,
+    "family_winners": true,
+    "role_aliases_recorded": true,
+    "one_seed_guard_breach_blocks": true,
+    "guard_inclusive_and_zero_shortfall": true,
+    "no_eligible_fallback": true,
+    "missing_comparator_invalidates": true,
+    "missing_guard_without_eligible": true,
+    "decision_failure_invalid": true,
+    "non_estimable_invalid": true,
+    "ordinary_failure_reason": true,
+    "guard_failure_reason": true,
+    "alias_simplest_family": true,
+    "simplest_family_order": true,
+    "shortfall_formula": true,
+    "headroom_from_excess": true,
+    "seed_mean_in_seed_order": true
+   },
+   "cbp_label_truth_table_retained": {
+    "status": "PASS",
+    "all_pass": true,
+    "every_single_failed_clause": true,
+    "single_clause_cases": 111,
+    "c_fails_joint_passes": true,
+    "a_fails_c_passes": true,
+    "q_only": true,
+    "no_advantage": true,
+    "incomplete_outranks_q_pass": true,
+    "absent_nominee": true,
+    "absent_comparator_never_passes": true,
+    "no_eligible_comparator_is_incomplete": true,
+    "no_eligible_nominee_precedes_no_eligible_comparator": true,
+    "nonfinite_invalid": true,
+    "missing_slot_incomplete": true,
+    "zero_variance_identity_passes": true,
+    "aliases_keep_slots": true,
+    "global_technical_failure": true,
+    "per_claim_control_failure": true,
+    "mixed_valid_and_incomplete_displayed": true,
+    "q_no_eligible": true,
+    "note": "implemented from LABEL_TRUTH_TABLE.json (FIT_LOCK); the clause-outcome boundaries are strict as registered"
+   },
+   "cbp_deliberate_defects_retained": {
+    "status": "PASS",
+    "reversed_reader_detected": true,
+    "reversed_role_order_detected": true,
+    "wrong_orientation_detected": true,
+    "token_identity_omission_detected": true,
+    "pair_shuffle_detected": true,
+    "appended_clean_probabilities_detected": true,
+    "missing_composed_winner_detected": true,
+    "seed_averaged_eligibility_detected": true,
+    "headroom_relaxed_detected": true,
+    "kl_instead_of_true_label_loss_detected": true,
+    "kl_vs_true_label_excess": {
+     "kl": 0.02162348490706934,
+     "true_label_ll_excess": 0.0843053467645247
+    },
+    "wrong_bootstrap_group_detected": true,
+    "wrong_critical_value_detected": true,
+    "absent_comparator_pass_detected": true,
+    "assessment_rescored_nominee_detected": true,
+    "defects_tested": 12
+   },
+   "lcr_d1_decoder": {
+    "status": "PASS",
+    "random_tokens": {
+     "tokens": 400,
+     "certificate_failures": 0,
+     "with_tied_classes": 262,
+     "with_zero_bounds": 0,
+     "worst": {
+      "fw_gap_rel": 4.202840581205768e-16,
+      "stationarity_rel": 7.800126087246383e-16,
+      "identity_max_abs": 0.0,
+      "sum_residual": 2.220446049250313e-16
+     },
+     "ms_per_solve": 0.48192262649536133
+    },
+    "edge_cases": [
+     {
+      "n": 1,
+      "K": 2,
+      "ok": true,
+      "tied": [],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 50,
+      "K": 3,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 1.3877787807814457e-17
+     },
+     {
+      "n": 40,
+      "K": 4,
+      "ok": true,
+      "tied": [],
+      "zero": [
+       2,
+       3
+      ],
+      "kkt_points": 4,
+      "kkt_dq": 5.051514762044462e-14
+     },
+     {
+      "n": 100000,
+      "K": 3,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 5.551115123125783e-17
+     },
+     {
+      "n": 30,
+      "K": 2,
+      "ok": true,
+      "tied": [],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 10,
+      "K": 2,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 7,
+      "K": 6,
+      "ok": true,
+      "tied": [
+       5
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 2.7755575615628914e-17
+     }
+    ],
+    "slsqp_cross_check": {
+     "tokens": 24,
+     "own_never_worse": true,
+     "max_dq": 4.1146237578226774e-07,
+     "min_f_slsqp_minus_own_rel": -2.900174431673878e-16
+    },
+    "kkt_enumeration": {
+     "tokens": 12,
+     "unique_kkt_point_equals_own": true,
+     "max_dq": 1.1102230246251565e-16,
+     "points_per_token": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "convexity_and_gradient": {
+     "midpoint_convex": true,
+     "max_rel_gradient_error": 8.908494898904545e-11
+    },
+    "projection": {
+     "exact_vs_bruteforce": true,
+     "tiny_residual_repaired_and_strict": true,
+     "unrepaired_residual_breaks_argmax": true,
+     "max_projection_magnitude_euclidean": 5.000005964816978e-11,
+     "max_projection_magnitude_registered_rule": 7.889688902196212e-11
+    },
+    "calibrated_null_token": {
+     "max_abs_D1_minus_D0": 2.8130830997952216e-12,
+     "ok": true
+    }
+   },
+   "lcr_fixture_oracle": {
+    "status": "PASS",
+    "canonical_partition_counts_equal_stirling": true,
+    "exact_law_vs_expanded_rows_max_abs": 2.220446049250313e-16,
+    "calibrated_null_max_population_gain": {
+     "logloss": 1.1102230246251565e-16,
+     "brier": 1.1102230246251565e-16
+    },
+    "miscalibrated": {
+     "max_logloss_gain_same_map": 0.2425319939139251,
+     "full_token_mi_unchanged_and_decisions_kept": true
+    },
+    "xor": {
+     "I1": 0.0,
+     "I2": 0.0,
+     "I12": 0.6931471805599453
+    },
+    "refs_own_calibrated": {
+     "pairs": 32,
+     "feasible_maps": {
+      "1": 1,
+      "2": 1
+     },
+     "task_only_I12": 0.04247475919884932,
+     "private_I12": 0.04247475919884932
+    },
+    "refs_own_miscalibrated": {
+     "pairs": 32,
+     "feasible_maps": {
+      "1": 4,
+      "2": 8
+     },
+     "task_only_I12": 0.04247475919884932,
+     "private_I12": 0.0
+    },
+    "refs_own_xor": {
+     "pairs": 16,
+     "feasible_maps": {
+      "1": 4,
+      "2": 4
+     },
+     "task_only_I12": 0.6931471805599453,
+     "private_I12": 0.0
+    },
+    "solves_cached": {
+     "hits": 134,
+     "misses": 34
+    }
+   },
+   "lcr_engine_incremental": {
+    "status": "PASS",
+    "moves": 14,
+    "max_abs_incremental_vs_scratch": 2.220446049250313e-16,
+    "decoder_change_keeps_full_token_mi": true,
+    "d1_decisions_preserved": true,
+    "release_is_token_function": true,
+    "d0_vs_d1_fit_logloss": {
+     "D0": [
+      0.4393344695204755,
+      1.2669086259252156
+     ],
+     "D1": [
+      0.39181132444308925,
+      1.123296847549975
+     ]
+    },
+    "solves": {
+     "hits": 682,
+     "misses": 70
+    }
+   },
+   "lcr_selection_rules": {
+    "status": "PASS",
+    "resolved": {
+     "T*": "U|C-TASK|i8o64|D1",
+     "C*": "U|JOINT|i8o64|l0.08|D1",
+     "C_pair*": "U|JOINT|i8o64|l0.08|D1",
+     "P*": "U|K-JOINT-PAIR|i8o64|D1",
+     "N*": "U|K-JOINT-PAIR|i8o64|D1",
+     "J*": "U|K-JOINT-PAIR|i8o64|D1",
+     "Q": "U|DIRECT-TASK|i8o64"
+    },
+    "expected_roles": true,
+    "raw_j_excluded_from_T": true,
+    "c_pair_includes_sources_and_references": true,
+    "d1_privacy_not_task_only": true,
+    "d0_large_lambda_ineligible_d1_eligible": true,
+    "no_headroom_buffer": true,
+    "guard_failure": {
+     "J*": "NO_ELIGIBLE_NOMINEE",
+     "reason": "LOCAL_GUARD_FAILURE",
+     "descriptive": "U|K-JOINT-PAIR|i8o64|D1"
+    },
+    "missing_guard_comparator": {
+     "T*": [
+      "NO_ELIGIBLE_COMPARATOR",
+      "ORDINARY_UTILITY_FAILURE"
+     ],
+     "P*": [
+      "INVALID_NOMINEE",
+      "MISSING_GUARD_COMPARATOR"
+     ],
+     "N*": [
+      "INVALID_NOMINEE",
+      "MISSING_GUARD_COMPARATOR"
+     ],
+     "J*": [
+      "INVALID_NOMINEE",
+      "MISSING_GUARD_COMPARATOR"
+     ]
+    },
+    "technical_failure": [
+     "INVALID_NOMINEE",
+     "FIT_OR_ADMISSION_FAILURE"
+    ],
+    "utility_fallback": [
+     "NO_ELIGIBLE_NOMINEE",
+     "ORDINARY_UTILITY_FAILURE",
+     "U|K-JOINT-PAIR|i8o64|D1"
+    ],
+    "tie_rule": true
+   },
+   "lcr_label_truth_table": {
+    "status": "PASS",
+    "z": {
+     "value": 3.2048452050105634,
+     "equals_registered": true,
+     "slots": 37
+    },
+    "all_pass": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED",
+    "A_only": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)",
+    "A_one_precision_failure": [
+     "NOT_ESTABLISHED",
+     "ASSESSMENT_PRECISION_FAILURE",
+     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+    ],
+    "A_measured_violation": [
+     "NOT_ESTABLISHED",
+     "MEASURED_VIOLATION_SUPPORTED_BY_BOUND"
+    ],
+    "B_nonfinite": [
+     "INCOMPLETE_OR_INVALID",
+     "NONFINITE_PRIMARY_QUANTITY",
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + PAIRED_JOINT_INCREMENT_ESTABLISHED"
+    ],
+    "Q_pass_with_incomplete_B": [
+     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+     [
+      "B"
+     ]
+    ],
+    "Q_only": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+    "none": "EXPERIMENTAL_NO_ADVANTAGE",
+    "gate_failed": "MECHANISM_GATE_NOT_MET",
+    "B_no_nominee": [
+     "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)"
+    ]
+   },
+   "lcr_deliberate_defects": {
+    "status": "PASS",
+    "defects_tested": 15,
+    "caught": 15,
+    "baseline_entry_passes": true,
+    "wrong_label_counts": {
+     "caught": true,
+     "counts_exact": false,
+     "max_dq": 0.007944478035166833
+    },
+    "stale_cache_key": {
+     "caught": true,
+     "max_dq": 0.0016612777699503978,
+     "own_full_key_distinguishes": true
+    },
+    "omitted_prior": {
+     "caught": true,
+     "max_dq": 0.002607290268777762,
+     "fw_gap_rel": 0.010896339470906504
+    },
+    "class_constraint_omitted": {
+     "caught": true,
+     "argmax_of_defective_q": 3,
+     "strict_argmax": false
+    },
+    "proxy_kl_for_true_logloss": {
+     "caught": true,
+     "recorded_proxy": 1.353609091554155,
+     "own_true_label": 1.1467251170216317,
+     "abs_diff": 0.20688397453252327
+    },
+    "missing_brier_constraint": {
+     "caught": true,
+     "own_verdict": false,
+     "ll_only_verdict": true
+    },
+    "temporary_partner_required_feasible": {
+     "caught": true,
+     "class_only_partner_feasible": false,
+     "stage1_moves": 12,
+     "feasible_registered_rule": 12,
+     "feasible_defective_rule": 0
+    },
+    "infeasible_paired_update": {
+     "caught": true,
+     "post_recipient2_feasible": false,
+     "post_ll_margin": -0.02835780786547315,
+     "post_brier_margin": 0.03368324074649176
+    },
+    "mean_seed_eligibility": {
+     "caught": true
+    },
+    "missing_comparator": {
+     "caught": true,
+     "statuses": [
+      "INCOMPLETE_OR_INVALID",
+      "INCOMPLETE_OR_INVALID",
+      "INCOMPLETE_OR_INVALID"
+     ]
+    },
+    "reversed_auc": {
+     "caught": true,
+     "auc": 0.3530111111111111
+    },
+    "pair_misalignment": {
+     "caught": true,
+     "aligned_auc": 1.0,
+     "misaligned_auc": 0.5190772333809563
+    },
+    "omitted_token_identities": {
+     "caught": true,
+     "full_interface_auc": 1.0,
+     "probability_only_auc": 0.5029791916766707
+    },
+    "clean_output_bypass": {
+     "caught": true
+    },
+    "missing_source_composition_winner": {
+     "caught": true,
+     "bank_size": 83,
+     "winner": "U|K-JOINT-PAIR|i8o64|D1"
+    }
+   },
+   "lcr_selftest_wall_s": {
+    "status": "INFO",
+    "wall_s": 1.15
+   },
+   "inference_primitives": {
+    "status": "PASS",
+    "z": 3.2048452050105634,
+    "z_equals_registered": true,
+    "slots": 37,
+    "auc_vs_sklearn": true,
+    "bootstrap_deterministic": true,
+    "weighted_auc_equals_expanded": true
+   }
+  },
+  "fixture_gate": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "fixture_gate"
+  },
+  "fixture_oracle": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "fixture_oracle"
+  },
+  "pins": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "pins"
+  },
+  "roles": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "roles"
+  },
+  "admitted_custody": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "admitted_custody"
+  },
+  "teachers": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "teachers"
+  },
+  "references": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "references"
+  },
+  "d0_release_reencode": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "d0_release_reencode"
+  },
+  "code_hashes": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "code_hashes"
+  },
+  "chronology": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after source admission)",
+   "check": "chronology"
+  },
+  "d1_fixed_maps": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "d1_fixed_maps"
+  },
+  "d1_new_units": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "d1_new_units"
+  },
+  "fitting_budgets_and_caps": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "fitting_budgets_and_caps"
+  },
+  "incremental_parity": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "incremental_parity"
+  },
+  "decision_preservation": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "decision_preservation"
+  },
+  "inner_audits": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "inner_audits"
+  },
+  "source_composition": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "source_composition"
+  },
+  "selection": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "selection"
+  },
+  "controls": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after fits, inner audits and select; before the assessment)",
+   "check": "controls"
+  },
+  "evaluation_lock": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "evaluation_lock"
+  },
+  "outer_units": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "outer_units"
+  },
+  "endpoints": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "endpoints"
+  },
+  "published_tables": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "published_tables"
+  },
+  "chronology_assessment": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "chronology_assessment"
+  },
+  "attacker_refits": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "attacker_refits"
+  },
+  "deployment_parity": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "deployment_parity"
+  },
+  "restore_parity": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "restore_parity"
+  },
+  "budget": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment and inference)",
+   "check": "budget"
+  }
+ },
+ "verifier_corrections": [
+  {
+   "phase": "PHASE_0",
+   "item": "cid_lam (adapted cbp helper)",
+   "change": "parse the 'l<value>' segment after the rate; the cbp split('|l') form raised on lcr IDs with a trailing '|D1'"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "SLSQP cross-check",
+   "change": "compare the FEASIBLE projection of the SLSQP point: SLSQP ends infeasible by ~1e-7 on tied dominance constraints, which made its raw objective look lower than the own certified optimum"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "gradient self-test",
+   "change": "Richardson-extrapolated central differences at an interior point (plain h = 1e-6 differences were truncation-limited near small q)"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "projection self-test",
+   "change": "the planted 1e-10 dominance residual now preserves the simplex sum (the first draft perturbed the sum, inflating the reported projection magnitude)"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "roles / labels",
+   "change": "reconciled with SELECTION_RULES.json and LABEL_TRUTH_TABLE.json at a94e944: C_pair* = every scored candidate except JOINT-PAIR (87); Q == PASS is checked before the INCOMPLETE rule; P* named by the simplest family / construction over exact (tokens AND q) aliases"
+  }
+ ],
+ "summary": {
+  "status_by_check": {
+   "selftests": "PASS",
+   "fixture_gate": "PENDING",
+   "fixture_oracle": "PENDING",
+   "pins": "PENDING",
+   "roles": "PENDING",
+   "admitted_custody": "PENDING",
+   "teachers": "PENDING",
+   "references": "PENDING",
+   "d0_release_reencode": "PENDING",
+   "code_hashes": "PENDING",
+   "chronology": "PENDING",
+   "d1_fixed_maps": "PENDING",
+   "d1_new_units": "PENDING",
+   "fitting_budgets_and_caps": "PENDING",
+   "incremental_parity": "PENDING",
+   "decision_preservation": "PENDING",
+   "inner_audits": "PENDING",
+   "source_composition": "PENDING",
+   "selection": "PENDING",
+   "controls": "PENDING",
+   "evaluation_lock": "PENDING",
+   "outer_units": "PENDING",
+   "endpoints": "PENDING",
+   "published_tables": "PENDING",
+   "chronology_assessment": "PENDING",
+   "attacker_refits": "PENDING",
+   "deployment_parity": "PENDING",
+   "restore_parity": "PENDING",
+   "budget": "PENDING"
+  },
+  "top_level_counts": {
+   "PASS": 1,
+   "PENDING": 28
+  },
+  "status_counts_all_nodes": {
+   "PASS": 27,
+   "INFO": 1,
+   "PENDING": 28
+  },
+  "flagged_fail_warn": [],
+  "independence": "PASS",
+  "overall": "PASS"
+ },
+ "compute": {
+  "wall_s": 1.65,
+  "cpu_s_process": 1.61,
+  "threads": {
+   "OMP_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1",
+   "torch": 1
+  },
+  "other_lcr_processes_at_start": 4,
+  "other_lcr_processes_at_end": 4,
+  "semaphore_slots_at_end": {
+   "open_acquisitions": [
+    {
+     "slot": 1,
+     "label": "E:phase0"
+    },
+    {
+     "slot": 0,
+     "label": "C:fit-timing-prelim"
+    }
+   ],
+   "unlogged_releases_closed_by_slot_reacquire": []
+  }
+ },
+ "pending": [
+  "admitted_custody",
+  "attacker_refits",
+  "budget",
+  "chronology",
+  "chronology_assessment",
+  "code_hashes",
+  "controls",
+  "d0_release_reencode",
+  "d1_fixed_maps",
+  "d1_new_units",
+  "decision_preservation",
+  "deployment_parity",
+  "endpoints",
+  "evaluation_lock",
+  "fitting_budgets_and_caps",
+  "fixture_gate",
+  "fixture_oracle",
+  "incremental_parity",
+  "inner_audits",
+  "outer_units",
+  "pins",
+  "published_tables",
+  "references",
+  "restore_parity",
+  "roles",
+  "selection",
+  "source_composition",
+  "teachers"
+ ],
+ "verifier_compute_ledger": {
+  "semaphore_holds_completed": [
+   {
+    "label": "E:p0-devtest",
+    "released_at": "2026-10-07T00:11:57Z",
+    "wall_s": 2.8,
+    "cpu_s": 2.1,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-selftest-dev",
+    "released_at": "2026-10-07T00:22:30Z",
+    "wall_s": 3.7,
+    "cpu_s": 3.0,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-selftest-dev",
+    "released_at": "2026-10-07T00:22:46Z",
+    "wall_s": 3.3,
+    "cpu_s": 2.9,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-devtest",
+    "released_at": "2026-10-07T00:23:31Z",
+    "wall_s": 1.7,
+    "cpu_s": 1.7,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-selftest-dev",
+    "released_at": "2026-10-07T00:24:15Z",
+    "wall_s": 3.8,
+    "cpu_s": 3.4,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-selftest-dev",
+    "released_at": "2026-10-07T00:39:13Z",
+    "wall_s": 3.5,
+    "cpu_s": 3.2,
+    "rc": 0
+   }
+  ],
+  "semaphore_cpu_s_total": 16.3,
+  "semaphore_wall_s_total": 18.8,
+  "this_run": {
+   "phase": 0,
+   "start": "2026-10-07T00:43:18Z",
+   "wall_s": 1.65,
+   "cpu_s": 1.61
+  },
+  "light_runs_outside_the_semaphore": [],
+  "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"
+ }
+}
