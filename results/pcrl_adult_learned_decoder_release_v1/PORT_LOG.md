@@ -45,3 +45,10 @@ Pinned unchanged copies:
 - A, lra/run.py `_fit_args`: U|CLASS|i1o1 is a feasible-only joint witness for K-JOINT-* and W-JOINT, making 30
   witnesses. Prompt §8 says "feasible source mappings"; role C's question. It is eligible only if it meets the arm's
   constraints, and it is reported either way.
+- C, lra/mapper.py (6f619c94), with its test and SEARCH_RULES.json:
+  - every unit persists a trace.json (schema lra-mapper-trace-v1);
+  - `replay_unit` (alias `replay_trace`) replays it and reports checks 6, 7 and 8;
+  - R-4: the pair-step screening is bounded by the evaluation ceiling, stopping at eval_ceiling;
+  - CLASS is a feasible-only joint witness, making 30;
+  - SEARCH_RULES.json is regenerated (rules_sha256 bc8bb48c…; R-7);
+  - TIMING["fitting"] covers the 27-decode bank, at 0.61 CPU-h projected.

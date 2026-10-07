@@ -617,8 +617,21 @@ def test_replay_catches_stale_cache_key(world, monkeypatch):
     tz = copy.deepcopy(files["trace.json"])
     z, g, k, m = _first_move(tz)
     p = m["parts"][0]
-    prev = g["start_stats_sha256"] if k == 0 else None
-    p["stats_sha256"][1] = prev or g["moves"][k - 1]["parts"][0]["stats_sha256"][1]
+    r = p["r"]
+    lab = np.asarray(g["start_labels"][str(r)])
+    for mv in g["moves"][:k]:
+        for q in mv["parts"]:
+            if q["r"] == r:
+                lab[q["f"]] = q["to_canon"]
+                lab = MP.canon_labels(lab)
+    fr = PT.load_fine(w["fine"])[r - 1]
+    Pr, dr = w["T"][f"p{r}"][w["tr"]], w["T"][f"d{r}"][w["tr"]]
+    tok = RL.canonical_tokens(fr, lab)
+    n, Sx, Yx = DEC.token_stats(fr, tok, DEC.cell_label_counts(fr, Pr, dr, w["Y"][r]))
+    t_to = int(tok[p["to_canon"]])
+    stale_key = MP.stats_sha(n[t_to], Yx[t_to], Sx[t_to])          # the target token BEFORE the cell joined it
+    assert stale_key != p["stats_sha256"][1]
+    p["stats_sha256"][1] = stale_key
     rep = _replay(w, _retrace(rec, tz), files, refs, trace=tz)
     assert "STATS_HASH_MISMATCH" in _codes(rep) and not rep["checks"]["check8"]
     # (b) a real defect the search itself does not notice: a cached solve served for the right statistics key but
