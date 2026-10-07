@@ -61,6 +61,13 @@ def privacy_trained(cid):
     return p["kind"] == "policy" and p["privacy_trained"]
 
 
+def training(cid):
+    """Display only (never a role input): privacy-trained / -untrained code or reference."""
+    if R.parse_id(cid)["kind"] == "policy":
+        return "privacy-trained code" if privacy_trained(cid) else "privacy-untrained code"
+    return "privacy-trained reference" if cid in ("SRC|RAW-J_b0.3", "REF|F", "REF|E") else "privacy-untrained reference"
+
+
 def private_all(ids):
     return [c for c in ids if privacy_trained(c)]
 
@@ -145,7 +152,8 @@ def candidate_rows(ids):
                         "composed_winner": (r.get("composed") or {}).get("winner"), "release_hash": rh}
         ok = not fail and len(seeds) == len(SEEDS)
         row = {"config": cid, "arm": arm(cid), "family": (R.parse_id(cid).get("base_family") or arm(cid)),
-               "privacy_trained": privacy_trained(cid), "technical_failure": fail, "ok": ok, "seeds": seeds}
+               "privacy_trained": privacy_trained(cid), "training": training(cid), "technical_failure": fail, "ok": ok,
+               "seeds": seeds}
         if ok:
             mean = lambda f: (f(seeds[0]) + f(seeds[1]) + f(seeds[2])) / 3      # noqa: E731  seed order (rules)
             st = [s["token_states"] for s in seeds.values()]
@@ -314,7 +322,7 @@ def select_all(D=None, shard_spec=None):
     out = R._finite(out)
     (R.RUN / "selection.json").write_text(json.dumps(out, indent=1, allow_nan=False) + "\n")
     pub = {k: v for k, v in out.items() if k != "rows"}
-    pub["rows"] = {c: {x: r.get(x) for x in ("arm", "family", "privacy_trained", "ok", "ordinary", "mean_pair",
+    pub["rows"] = {c: {x: r.get(x) for x in ("arm", "family", "privacy_trained", "training", "ok", "ordinary", "mean_pair",
                                             "mean_v1", "mean_v2", "mean_sum_logloss", "mean_states",
                                             "ordinary_shortfall")} for c, r in out["rows"].items()}
     (R.PKG / "SELECTION.json").write_text(json.dumps(pub, indent=1, allow_nan=False) + "\n")
@@ -329,7 +337,7 @@ def write_tables(out):
     f6 = lambda x: "" if x is None else f"{x:.6f}"                              # noqa: E731
     with open(R.PKG / "INNER_SELECTION_TABLE.csv", "w", newline="") as f:
         w = csv.writer(f, lineterminator="\n")
-        w.writerow(["config", "arm", "family", "lam", "privacy_trained", "seed", "auc_v1", "auc_v2", "auc_pair",
+        w.writerow(["config", "arm", "family", "lam", "training", "seed", "auc_v1", "auc_v2", "auc_pair",
                     "acc_income", "acc_occupation", "ll_income", "ll_occupation", "brier_income", "brier_occupation",
                     "ll_excess_income", "ll_excess_occupation", "brier_excess_income", "brier_excess_occupation",
                     "ordinary_seed", "ordinary_shortfall_seed", "token_states"])
@@ -337,7 +345,7 @@ def write_tables(out):
             p = R.parse_id(c)
             lam = p.get("lam") if p["kind"] == "policy" else None
             for k, s in sorted(r["seeds"].items(), key=lambda x: int(x[0])):
-                w.writerow([c, r["arm"], r["family"], "" if lam is None else f"{lam:g}", r["privacy_trained"], k] +
+                w.writerow([c, r["arm"], r["family"], "" if lam is None else f"{lam:g}", r["training"], k] +
                            [f6(s["auc"][v]) for v in VIEWS] + [f6(s["utility"][t]["acc"]) for t in TASKS] +
                            [f6(s["utility"][t]["logloss"]) for t in TASKS] +
                            [f6(s["utility"][t]["brier"]) for t in TASKS] + [f6(s["ll_excess"][t]) for t in TASKS] +

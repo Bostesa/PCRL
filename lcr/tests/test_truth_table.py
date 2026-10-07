@@ -101,10 +101,10 @@ def test_overall_label_exhaustive_and_mixed():
                     parts.append("PAIRED_JOINT_INCREMENT_ESTABLISHED")
                 if parts:
                     assert lab == " + ".join(parts)
+                elif q == "PASS":                  # prompt sec. 12 literal: Q passes -> feasibility, claims displayed
+                    assert lab == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
                 elif "INCOMPLETE_OR_INVALID" in (a, b, c, q):
                     assert lab == "INCOMPLETE_OR_INVALID"
-                elif q == "PASS":
-                    assert lab == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
                 else:
                     assert lab == "EXPERIMENTAL_NO_ADVANTAGE"
     # gate failure dominates everything (no Adult head-to-head)

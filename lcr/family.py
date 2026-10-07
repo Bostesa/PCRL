@@ -203,8 +203,8 @@ def overall_label(claims, q, technical_valid=True, winning=None, gate_met=True):
         labels.append("PAIRED_JOINT_INCREMENT_ESTABLISHED")
     if labels:
         return " + ".join(labels), shown
+    if q == "PASS":                    # prompt sec. 12: no method claim passes, Q passes (incomplete claims stay shown)
+        return "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION", shown
     if any(s == "INCOMPLETE_OR_INVALID" for s in shown.values()):
         return "INCOMPLETE_OR_INVALID", shown
-    if q == "PASS":
-        return "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION", shown
     return "EXPERIMENTAL_NO_ADVANTAGE", shown

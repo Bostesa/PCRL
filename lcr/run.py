@@ -12,7 +12,8 @@ stage loads is locked with its hash -- lcr.lock.check_loaded_modules):
                                     audits + teacher forward parity + release re-encode parity (lcr.admit)
   FIXTURE_LOCK           fixture    the four registered fixture families: exhaustive references + every arm (lcr.fixtures)
   SCIENCE_LOCK           d1         D1 learned decoders on the EXACT fixed D0 maps (calibration-only controls)
-                         fit        C-TASK, 72 weighted controls, 15 constrained units (lcr.mapper)
+                         ctask      C-TASK per seed (3 units; every other new arm depends on it)
+                         fit        72 weighted controls + 15 constrained units as 21 dependency chains (lcr.mapper)
                          inner      inner audits of every new release (lcr.audit)
                          inner_src  continuous-source inner audits composed over the COMPLETE registered bank
                          controls   real-data null and planted controls
@@ -54,8 +55,8 @@ PRIVACY = ("LOCAL", "SEQ-12", "SEQ-21", "JOINT")
 RATE = (8, 64)
 LAMS = (0.01, 0.025, 0.04, 0.06, 0.08, 0.1)
 CONSTRAINED = ("LOCAL", "SEQ-12", "SEQ-21", "JOINT-SINGLE", "JOINT-PAIR")
-LATE = {"d1": ("lcr.run", "stage_d1"), "fit": ("lcr.run", "stage_fit"), "inner": ("lcr.run", "stage_inner"),
-        "inner_src": ("lcr.run", "stage_inner_src"), "controls": ("lcr.audit", "stage_controls"),
+LATE = {"d1": ("lcr.run", "stage_d1"), "ctask": ("lcr.run", "stage_ctask"), "fit": ("lcr.run", "stage_fit"), "inner": ("lcr.audit", "stage_inner"),
+        "inner_src": ("lcr.audit", "stage_inner_src"), "controls": ("lcr.audit", "stage_controls"),
         "select": ("lcr.select", "select_all"), "fixture": ("lcr.fixtures", "stage_fixture")}
 
 
@@ -267,6 +268,158 @@ def stage_admit(D, shard_spec=None):
           codes=len(r["codes"]))
 
 
+# ------------------------------------------------------------------ fitting data (SCIENCE_LOCK)
+def fit_data(D):
+    """OSF_DEFENSE_FIT rows, true task labels and SEX read through the allowlist (procedure "fitting"; the NEW supervised
+    use of this study, disclosed in EXPOSURE_LEDGER.md)."""
+    from lcr import data as DA
+    tr = np.asarray(DA.labels_for(D, "fitting", "OSF_DEFENSE_FIT"))
+    assert np.array_equal(tr, fit_rows(D))
+    Y = {1: np.asarray(D["y"]["income"])[tr].astype(np.int64), 2: np.asarray(D["y"]["occupation_group"])[tr].astype(np.int64)}
+    S = np.asarray(D["sex"])[tr].astype(np.int64)
+    assert (S >= 0).all() and all((y >= 0).all() for y in Y.values())
+    return tr, Y, S
+
+
+def plugin_mi(a, s, b=None):
+    """Plug-in MI (nats) of binary s with the categorical a (or the aligned pair (a, b))."""
+    a = np.asarray(a, dtype=np.int64)
+    if b is not None:
+        a = a * (int(np.max(b)) + 1) + np.asarray(b, dtype=np.int64)
+    _, inv = np.unique(a, return_inverse=True)
+    J = np.zeros((inv.max() + 1, 2))
+    np.add.at(J, (inv, np.asarray(s, dtype=np.int64)), 1.0)
+    P = J / J.sum()
+    pa, ps = P.sum(1, keepdims=True), P.sum(0, keepdims=True)
+    m = P > 0
+    return float(np.sum(P[m] * np.log(P[m] / (pa @ ps)[m])))
+
+
+def policy_dict(name):
+    return json.loads((U(name) / "policy.json").read_text())
+
+
+def d1_jobs():
+    return [(k, c) for k in SEEDS for c in d1_fixed_ids()]
+
+
+def stage_d1(D, shard_spec=None):
+    """D1 learned decoders on the EXACT admitted D0 maps (calibration-only controls; assignments unchanged)."""
+    from lcr import decoder as DEC
+    from qpc import release as RL
+    tr, Y, S = fit_data(D)
+    for k, cid in shard(d1_jobs(), shard_spec):
+        n = unit_for(k, cid)
+        if done(n):
+            continue
+        t0, c0 = time.time(), time.process_time()
+        d0 = cid[:-3]
+        d0u = unit_for(k, d0)
+        pair = RL.load_policy(U(d0u) / "policy.json")
+        T = teacher(k)
+        decs, fitstats = [], {}
+        for i, pol in ((1, pair.p1), (2, pair.p2)):
+            P = T[f"p{i}"][tr]
+            tok, _, _ = RL.encode(pol, P, T[f"d{i}"][tr])
+            dec = DEC.decode_policy(pol, tok, P, Y[i], config=cid, meta={"seed": k, "d0_unit": d0u})
+            decs.append(dec)
+            L0, B0 = DEC.fit_losses(dec.y, np.asarray(pol.token_proto, dtype=np.float64), len(tr))
+            L1, B1 = DEC.fit_losses(dec.y, dec.q, len(tr))
+            Lu, Bu = DEC.row_losses(P, Y[i])
+            fitstats[str(i)] = {"L_U": Lu, "B_U": Bu, "L_D0": L0, "B_D0": B0, "L_D1": L1, "B_D1": B1, "tokens": int(pol.T),
+                                "occupied_fit": int(np.unique(tok).size), "I_fit": plugin_mi(tok, S)}
+        rel = DEC.release_arrays_d1(pair, decs[0], decs[1], T["row_id"], T["p1"], T["d1"], T["p2"], T["d2"])
+        z0 = npz(d0u, "release.npz")
+        same_tok = all(np.array_equal(rel[f"tok{i}"], z0[f"tok{i}"]) for i in (1, 2))
+        if not same_tok:
+            raise AssertionError(f"{cid}: D1 tokens differ from the admitted D0 release (assignments must be unchanged)")
+        body = DEC.decoder_pair_dict(cid, pair, decs[0], decs[1])
+        I12 = plugin_mi(rel["tok1"][tr], S, rel["tok2"][tr])
+        r = {"schema": "lcr-d1-fixed-v1", "config": cid, "seed": k, "d0_config": d0, "d0_unit": d0u,
+             "cfg": parse_id(cid), "policy_pair_fingerprint": pair.fingerprint(), "decoder_sha256": body["decoder_sha256"],
+             "tokens_bitwise_equal_d0": same_tok, "fitting": fitstats, "I12_fit": I12,
+             "certificates": {str(i): DEC.certificate_summary(d) for i, d in ((1, decs[0]), (2, decs[1]))},
+             "note": "assignments unchanged: full-token information identical to the D0 release by construction",
+             "wall_s": time.time() - t0, "cpu_s": time.process_time() - c0}
+        save(n, {"release.npz": rel, "decoder.json": body, "policy.json": (U(d0u) / "policy.json").read_text()}, r)
+
+
+def _starts(k, cids):
+    return {c: policy_dict(unit_for(k, c)) for c in cids}
+
+
+def stage_ctask(D, shard_spec=None):
+    from lcr import mapper as MP
+    tr, Y, S = fit_data(D)
+    for k in shard(list(SEEDS), shard_spec):
+        cid = ctask_id()
+        n = unit_for(k, cid)
+        if done(n):
+            continue
+        fine = json.loads((U(f"fine__s{k}") / "fine.json").read_text())
+        t0, c0 = time.time(), time.process_time()
+        r, files = MP.fit_unit("C-TASK", fine, teacher(k), tr, Y, S, starts=_starts(k, [d0_id("FINE-TASK")]),
+                               meta=bind_meta(k, cid, D))
+        r.update({"seed": k, "config": cid, "cfg": parse_id(cid), "wall_s": time.time() - t0,
+                  "cpu_s": time.process_time() - c0, "origin": "NEW_FIT"})
+        save(n, files, r)
+
+
+def fit_chains():
+    """21 dependency chains (run in order inside a chain): per (seed, lambda) the weighted W-LOCAL, W-SEQ-12, W-SEQ-21,
+    W-JOINT; per seed the constrained K-LOCAL, K-SEQ-12, K-SEQ-21, K-JOINT-SINGLE, K-JOINT-PAIR. Constrained chains first
+    (heaviest), then weighted, so the two shards balance."""
+    chains = [[(k, constrained_id(a)) for a in CONSTRAINED] for k in SEEDS]
+    chains += [[(k, weighted_id(f, lam)) for f in PRIVACY] for k in SEEDS for lam in LAMS]
+    return chains
+
+
+def _fit_args(k, cid):
+    """(arm, lam, starts, witnesses, refs) for one new unit, exactly as registered in SEARCH_RULES.json."""
+    from lcr import mapper as MP
+    p = parse_id(cid)
+    src_priv = [d0_id(f, lam) for lam in LAMS for f in PRIVACY]
+    src_fine = [d0_id("FINE-TASK")]
+    ct = ctask_id()
+    if p["arm"] == "constrained":
+        a = p["base_family"]
+        refs = MP.refs_from_ctask(rec(unit_for(k, ct)))
+        if a == "LOCAL":
+            return "K-LOCAL", None, _starts(k, [ct]), None, refs
+        if a in ("SEQ-12", "SEQ-21"):
+            return f"K-{a}", None, _starts(k, [ct] + [d0_id(a, lam) for lam in LAMS]), None, refs
+        wit = [ct, constrained_id("LOCAL"), constrained_id("SEQ-12"), constrained_id("SEQ-21")] + src_fine + src_priv
+        return f"K-{a}", None, None, _starts(k, wit), refs
+    a, lam = p["base_family"], p["lam"]
+    if a == "LOCAL":
+        return "W-LOCAL", lam, _starts(k, [ct]), None, None
+    if a in ("SEQ-12", "SEQ-21"):
+        return f"W-{a}", lam, _starts(k, [ct] + [d0_id(a, l2) for l2 in LAMS]), None, None
+    wit = [ct, weighted_id("LOCAL", lam), weighted_id("SEQ-12", lam), weighted_id("SEQ-21", lam)] + src_fine + src_priv
+    return "W-JOINT", lam, None, _starts(k, wit), None
+
+
+def stage_fit(D, shard_spec=None):
+    from lcr import mapper as MP
+    tr, Y, S = fit_data(D)
+    missing = [unit_for(k, ctask_id()) for k in SEEDS if not done(unit_for(k, ctask_id()))]
+    if missing:
+        raise SystemExit(f"REFUSED: run the ctask stage first; missing {missing}")
+    fines = {k: json.loads((U(f"fine__s{k}") / "fine.json").read_text()) for k in SEEDS}
+    for chain in shard(fit_chains(), shard_spec):
+        for k, cid in chain:
+            n = unit_for(k, cid)
+            if done(n):
+                continue
+            arm, lam, starts, wit, refs = _fit_args(k, cid)
+            t0, c0 = time.time(), time.process_time()
+            r, files = MP.fit_unit(arm, fines[k], teacher(k), tr, Y, S, lam=lam, starts=starts, witnesses=wit,
+                                   refs=refs, meta=bind_meta(k, cid, D))
+            r.update({"seed": k, "config": cid, "cfg": parse_id(cid), "wall_s": time.time() - t0,
+                      "cpu_s": time.process_time() - c0, "origin": "NEW_FIT"})
+            save(n, files, r)
+
+
 # ------------------------------------------------------------------ main
 def main(argv=None):
     ap = argparse.ArgumentParser()
@@ -294,7 +447,7 @@ def main(argv=None):
     else:
         raise SystemExit(f"unknown stage {a.stage}")
     for m in {"admit": ["lcr.admit"], "fixture": ["lcr.fixtures", "lcr.decoder", "lcr.mapper"],
-              "d1": ["lcr.decoder"], "fit": ["lcr.mapper", "lcr.decoder"], "inner": ["lcr.audit"],
+              "d1": ["lcr.decoder"], "ctask": ["lcr.mapper", "lcr.decoder"], "fit": ["lcr.mapper", "lcr.decoder"], "inner": ["lcr.audit"],
               "inner_src": ["lcr.audit"], "controls": ["lcr.audit"], "select": ["lcr.select"]}.get(a.stage, []):
         importlib.import_module(m)
     bad = LK.check_loaded_modules(v["locked_files"])

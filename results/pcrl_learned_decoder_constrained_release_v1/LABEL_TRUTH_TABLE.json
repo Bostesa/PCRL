@@ -13,7 +13,7 @@
   "a failed required control (without an amendment that repairs it) -> INCOMPLETE_OR_INVALID, root cause FAILED_REQUIRED_CONTROL",
   "comparator technically failed or missing -> INCOMPLETE_OR_INVALID, root cause INVALID_OR_MISSING_COMPARATOR",
   "nominee technically failed (fit/admission failure, decision-preservation failure, non-estimable candidate, or an eligible nominee blocked only by a missing guard comparator) -> INCOMPLETE_OR_INVALID with that root cause",
-  "no eligible nominee -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE, with the selection reason (ORDINARY_UTILITY_FAILURE, HEADROOM_SELECTION_FAILURE or LOCAL_GUARD_FAILURE); the fixed fallback is DESCRIPTIVE_ONLY and can never pass",
+  "no eligible nominee -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE, with the selection reason (ORDINARY_UTILITY_FAILURE or LOCAL_GUARD_FAILURE); the fixed fallback is DESCRIPTIVE_ONLY and can never pass",
   "comparator candidates computed but none eligible -> INCOMPLETE_OR_INVALID, root cause NO_ELIGIBLE_COMPARATOR (never a completed head-to-head negative)",
   "outcomes empty -> INCOMPLETE_OR_INVALID (NO_CLAUSES); outcomes not exactly the claim's registered 11 slots -> INCOMPLETE_OR_INVALID (MISSING_SLOTS; the family is never shrunk)",
   "any INVALID clause -> INCOMPLETE_OR_INVALID, root cause NONFINITE_PRIMARY_QUANTITY",
@@ -34,8 +34,8 @@
   "A == PASS -> PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (<family>; <construction: existing | calibrated | weighted | constrained>) where family/construction are the simplest among P*'s exact release aliases",
   "B == PASS -> CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (joined with ' + ' to any other passing component)",
   "C == PASS -> PAIRED_JOINT_INCREMENT_ESTABLISHED (joined with ' + ')",
+  "no passing method claim, Q == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION (prompt sec. 12 literal; every incomplete claim stays displayed beside it)",
   "no passing method claim and any claim or Q INCOMPLETE_OR_INVALID -> INCOMPLETE_OR_INVALID (root causes listed)",
-  "no passing method claim, Q == PASS -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
   "otherwise (complete valid work, no passing claim and Q not established) -> EXPERIMENTAL_NO_ADVANTAGE"
  ],
  "display_rule": "every claim status, its root cause and its failing clauses are always displayed beside the overall label; a legitimately passing claim may be reported even if a separate claim is incomplete, and both are shown",
@@ -86,5 +86,8 @@
   "chance-level privacy",
   "a population certificate",
   "general-purpose representation learning"
- ]
+ ],
+ "report_rules": {
+  "decoder_sentence": "the opening sentence 'Learning the probabilities [did/did not clearly] improve confidence' is decided by the registered identical-token pair on the scored list: the best D1 fixed-map privacy control vs its paired D0 release; paired per-task D1-D0 log-loss and Brier differences on the assessment with the same bootstrap draws and the primary z (nominal, descriptive; lcr.infer 'decoder_ablation'); 'did' iff all four upper bounds < 0, otherwise 'did not clearly'"
+ }
 }

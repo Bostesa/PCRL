@@ -5,7 +5,7 @@ committed AND pushed (remote-verified) before the stages it governs:
   SOURCE_ADMISSION_LOCK  source pins, hashes, roles, raw-input custody, admission code              -> admit
   FIXTURE_LOCK           fixture laws, gate rule, decoder objective/tolerances, fixture engine code   -> fixture
   SCIENCE_LOCK           every Adult definition: decoder, budgets, search, controls, manifest, attacks,
-                         selection, primary family, labels, predictions, all scientific code           -> d1, fit, inner,
+                         selection, primary family, labels, predictions, all scientific code           -> d1, ctask, fit, inner,
                                                                                                          inner_src,
                                                                                                          controls, select
   EVALUATION_LOCK (lcr.eval_lock; checked by lcr.assess) -> the single assessment opening.
@@ -42,10 +42,12 @@ QPC_TIP = "d0c8a45c879d01fb8b736ccc091ec3e2c3e9b351"
 GLOBS = ["lcr/*.py", "lcr/tests/*.py", "cbp/*.py", "cbp/tests/*.py", "qpc/*.py", "qpc/tests/*.py", "dpc/*.py", "osf/*.py", "smf/*.py", "rgj/*.py", "jcv/*.py",
          "stored_model_eval/*.py", "oar/*.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
 ORDER = ["SOURCE_ADMISSION_LOCK", "FIXTURE_LOCK", "SCIENCE_LOCK"]
-STAGE_MIN_LOCK = {"admit": 0, "fixture": 1, "d1": 2, "fit": 2, "inner": 2, "inner_src": 2, "controls": 2, "select": 2}
+STAGE_MIN_LOCK = {"admit": 0, "fixture": 1, "d1": 2, "ctask": 2, "fit": 2, "inner": 2, "inner_src": 2, "controls": 2,
+                  "select": 2}
 STAGE_REQUIRES = {"admit": ["lcr/data.py", "lcr/admit.py", "lcr/run.py"],
                   "fixture": ["lcr/decoder.py", "lcr/fixtures.py", "lcr/run.py"],
                   "d1": ["lcr/decoder.py", "lcr/run.py"],
+                  "ctask": ["lcr/decoder.py", "lcr/mapper.py", "lcr/run.py"],
                   "fit": ["lcr/decoder.py", "lcr/mapper.py", "lcr/run.py"],
                   "inner": ["lcr/audit.py", "lcr/run.py"],
                   "inner_src": ["lcr/audit.py", "lcr/run.py"],

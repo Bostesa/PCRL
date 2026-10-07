@@ -52,10 +52,11 @@ def _write(tmp_study, labels, strength, n=400):
     return sex
 
 
-def _lock(tmp_study, st, labels, tv=True):
+def _lock(tmp_study, st, labels, tv=True, abl=None):
     res = {x: s.get("config") or s.get("descriptive_config") for x, s in st.items()}
     al = EL.role_aliases(res)
     lock = {"statuses": st, "resolved": res, "role_aliases": al, "alias_of_by_role": EL.alias_of_by_role(al),
+            "decoder_ablation_pair": abl,
             "seeds": {str(k): {"score": {lab: {} for lab in labels}} for k in (0, 1, 2)},
             "technical_validity": {"ok": tv}}
     lp = tmp_study / "EL.json"
@@ -125,7 +126,9 @@ def test_fallback_is_descriptive_and_failures_are_scoped(tmp_study):
     assert (a["status"], a["root_cause"]) == ("NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE", "LOCAL_GUARD_FAILURE")
     assert out["claim_status"]["B"]["status"] == "INCOMPLETE_OR_INVALID"
     assert out["claim_status"]["B"]["root_cause"] == "FAILED_REQUIRED_CONTROL"
-    assert out["label"] == "INCOMPLETE_OR_INVALID"                     # no favourable claim beside an incomplete one
+    # prompt sec. 12 literal: no method claim passes and Q passes -> feasibility label; the incomplete B stays displayed
+    assert out["label"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+    assert out["displayed_statuses"]["B"] == "INCOMPLETE_OR_INVALID"
     fp.write_text(json.dumps({"global": ["teacher parity"], "per_claim": {}}))
     out = INF.main(["--evaluation-lock", str(lp), "--failures", str(fp)], check_prior=False)
     assert out["technical_valid"] is False and out["label"] == "INCOMPLETE_OR_INVALID"
@@ -165,3 +168,15 @@ def test_nonfinite_attacker_score_is_invalid_never_ranked(tmp_study):
     assert out["claim_status"]["A"]["status"] == "INCOMPLETE_OR_INVALID"
     assert out["finiteness_receipt"]["all_finite"] is False
     assert out["finiteness_receipt"]["nonfinite_counts"]["s1|U|SEQ-21|i8o64|l0.04"]["P_auc_pair"] == 1
+
+
+def test_decoder_ablation_contrast_is_computed(tmp_study):
+    _write(tmp_study, LABELS, STRENGTH)
+    out = INF.main(["--evaluation-lock", str(_lock(tmp_study, ROLES_OK, LABELS,
+                                                   abl=["U|SEQ-21|i8o64|l0.04", "U|JOINT|i8o64|l0.04"]))],
+                   check_prior=False)
+    da = out["decoder_ablation"]
+    assert set(da["contrasts"]) == {"logloss_income", "logloss_occupation", "brier_income", "brier_occupation"}
+    assert da["verdict"] in ("did", "did not clearly")
+    # identical task outputs in the fixture -> zero differences -> not 'did'
+    assert da["verdict"] == "did not clearly" and all(abs(c["point"]) < 1e-12 for c in da["contrasts"].values())

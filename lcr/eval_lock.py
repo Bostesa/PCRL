@@ -138,6 +138,8 @@ def build():
                                                       "fallback_rank_status", "missing_guards")}
                          for x, v in S["statuses"].items()},
             "resolved": resolved, "role_aliases": al, "alias_of_by_role": alias_of_by_role(al),
+            "decoder_ablation_pair": [_cfg(S["diagnostics"]["best_d1_fixed_privacy"]),
+                                      S["diagnostics"]["best_d1_fixed_privacy"].get("paired_d0")],
             "scored_labels": labels, "technical_validity": technical_validity(),
             "sex_prior_defense_fit_sha256": prior_hash(D),
             "assessment_role": {"name": "OSF_DEVELOPMENT_ASSESSMENT", **OD.manifest(D)["OSF_DEVELOPMENT_ASSESSMENT"]},
@@ -145,9 +147,11 @@ def build():
                                    "finite codes add cell-conditional readers on the exact token identity / tuple",
                           "fit": "AUDIT_FIT", "selection": "INNER_SELECTION (AUC primary, CE separate)",
                           "refits": [0, 1, 2], "coalition_bank": "pair + ignore-recipient-1 + ignore-recipient-2",
-                          "composed_source_readers": "SRC|U composes over all 83 registered codes of the same seed (D0, D1 "
-                                                     "fixed-map, C-TASK, weighted, constrained), which contain every "
-                                                     "frozen composed winner"},
+                          "composed_source_readers": "SRC|U composes, at the assessment, over every frozen source-winning "
+                                                     "composed reader of the inner bank (all 83 registered codes per seed "
+                                                     "were composed at the inner stage) plus every scored code; codes "
+                                                     "that lost every inner comparison are not re-scored (exact: the final "
+                                                     "audit re-selects on the same seed-0 inner fits)"},
             "endpoints": {"primary": [e["id"] for e in FAM.PRIMARY], "z": FAM.Z_PRIMARY, "B": FAM.B,
                           "boot_seed": FAM.BOOT_SEED, "size": FAM.PRIMARY_SIZE},
             "seeds": {}}
@@ -160,8 +164,15 @@ def build():
                 files[n] = json.loads((R.U(n) / "COMPLETE.json").read_text())["files"]
         for n in [f"tea__s{k}__U"] + [R.unit_for(k, c) for c in comp]:
             files.setdefault(n, json.loads((R.U(n) / "COMPLETE.json").read_text())["files"])
+        from lcr import audit as AU
+        frozen = list(AU.composed_freeze_list(k, "U"))
+        scored_codes = [c for c in labels if R.parse_id(c)["kind"] == "policy"]
+        comp_k = [c for c in comp if c in set(frozen) | set(scored_codes)]
+        for c in comp_k:
+            files.setdefault(R.unit_for(k, c), json.loads((R.U(R.unit_for(k, c)) / "COMPLETE.json").read_text())["files"])
         lock["seeds"][str(k)] = {"score": score, "unit_file_sha256": files, "u_label": "SRC|U",
-                                 "composed_policies": [R.unit_for(k, c) for c in comp]}
+                                 "composed_frozen_winners": frozen,
+                                 "composed_policies": [R.unit_for(k, c) for c in comp_k]}
     return R._finite(lock)
 
 

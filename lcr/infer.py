@@ -165,7 +165,18 @@ def build(ctx):
                                                           [levels[f"{kk}#{k}#{lab}#{j}"] for k in SEEDS])
     for j in (0, 1):
         levels[f"const#{j}"] = ctx.constacc(j)
-    return ids, levels
+    # registered decoder-ablation contrast (LABEL_TRUTH_TABLE report_rules): best D1 fixed-map privacy control vs its
+    # paired D0 release (identical tokens): paired per-task D1 - D0 log loss and Brier, mean over seeds
+    pair = ctx.EL.get("decoder_ablation_pair") or [None, None]
+    d1, d0 = (ctx.lab(pair[0]) if pair[0] else None), (ctx.lab(pair[1]) if pair[1] else None)
+    abl = {}
+    if d1 and d0:
+        for j in (0, 1):
+            for kind in ("ll", "br"):
+                per = [g.add(f"abl#{kind}#{j}#{k}", "diff", [ctx.loss(k, d1, j, kind), ctx.loss(k, d0, j, kind)])
+                       for k in SEEDS]
+                abl[f"{kind}#{j}"] = g.add(f"abl#{kind}#{j}", "mean", per)
+    return ids, levels, abl
 
 
 def label_from(out, EL, failures=None):
@@ -204,9 +215,9 @@ def main(argv=None, check_prior=True, units=None):
     EL = json.loads(Path(a.evaluation_lock).read_text())
     failures = json.loads(Path(a.failures).read_text()) if a.failures else None
     ctx = Ctx(EL, check_prior=check_prior, units=units)
-    ids, levels = build(ctx)
+    ids, levels, abl = build(ctx)
     boot = UnitBootstrap(ctx.units, FAM.B, FAM.BOOT_SEED, 250)
-    want = [i for i in ids.values() if i] + list(levels.values())
+    want = [i for i in ids.values() if i] + list(levels.values()) + list(abl.values())
     pts, reps = run(ctx.g, boot, list(dict.fromkeys(want)))
     z = FAM.Z_PRIMARY
     alias = EL.get("alias_of_by_role") or {}
@@ -244,6 +255,18 @@ def main(argv=None, check_prior=True, units=None):
         fin = r[np.isfinite(r)]
         out["levels"][nm] = {"point": float(pts[sid]), "se": float(np.std(fin, ddof=1)) if len(fin) > 1 else None,
                              "nonfinite": int((~np.isfinite(r)).sum())}
+    da = {"pair": EL.get("decoder_ablation_pair"), "rule": "did iff all four upper bounds < 0 (nominal, descriptive)",
+          "contrasts": {}}
+    for nm, sid in abl.items():
+        r = reps[sid]
+        pt, se = float(pts[sid]), float(np.std(r, ddof=1)) if np.isfinite(r).all() else None
+        kind, j = nm.split("#")
+        da["contrasts"][f"{'logloss' if kind == 'll' else 'brier'}_{('income', 'occupation')[int(j)]}"] = {
+            "point": pt, "se": se, "lower": None if se is None else pt - z * se, "upper": None if se is None else pt + z * se}
+    ups = [c["upper"] for c in da["contrasts"].values()]
+    da["verdict"] = ("NOT_COMPUTED" if len(ups) != 4 or any(u is None for u in ups) else
+                     "did" if all(u < 0 for u in ups) else "did not clearly")
+    out["decoder_ablation"] = da
     claims, q, lab, shown, tv = label_from(out, EL, failures)
     out.update({"claim_status": claims, "q_status": q, "label": lab, "displayed_statuses": shown,
                 "technical_valid": tv, "failures_input": failures,
