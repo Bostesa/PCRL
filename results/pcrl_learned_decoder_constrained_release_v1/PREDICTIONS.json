@@ -1,0 +1,76 @@
+{
+ "schema": "lcr-predictions-v1",
+ "registered_before": "any algorithm runs on a fixture and any Adult fit (committed and pushed before FIXTURE_LOCK)",
+ "written_at": "2026-10-07T00:05:36Z",
+ "status": "honest forecasts, not success criteria",
+ "evidence_used": [
+  "cbp: lambda 0.1 D0 maps reduce pair AUC ~0.034 vs FINE-TASK with occupation LL excess ~0.008 (upper ~0.012); lambda 0.01 nominee benefit 0.002",
+  "cbp inner rows: several lambda 0.06-0.08 maps met ordinary eligibility and the guards but failed the dropped 0.006 headroom",
+  "D1 uses OSF_DEFENSE_FIT labels with a kappa=32 teacher prior per token (~50 fitting rows per occupation token): moderate calibration gain if the frozen heads are miscalibrated"
+ ],
+ "predictions": [
+  {
+   "id": "LP1",
+   "question": "The registered fixture gate is met (trigger + mandatory correctness)",
+   "probability": 0.85,
+   "reasoning": "fixture 3 (complementary clues) is designed so that a coarser privacy partition exists; correctness checks are engineering"
+  },
+  {
+   "id": "LP2",
+   "question": "Given the gate is met, its route is ASSIGNMENT_SEARCH_ROUTE (new assignment search helps beyond D1 on old maps)",
+   "probability": 0.6
+  },
+  {
+   "id": "LP3",
+   "question": "Claim A (P* vs T*) passes all 11 clauses",
+   "probability": 0.4,
+   "reasoning": "original eligibility admits lambda 0.06-0.1 privacy maps; D1 may pull their occupation LL excess below the bound; the cbp precision margin was ~0.002 nats short"
+  },
+  {
+   "id": "LP4",
+   "question": "P* construction (if P* exists)",
+   "probabilities": {
+    "existing (D0)": 0.1,
+    "calibrated (D1 fixed-map)": 0.35,
+    "weighted": 0.35,
+    "constrained": 0.2
+   }
+  },
+  {
+   "id": "LP5",
+   "question": "Claim B (N* vs C*) passes",
+   "probability": 0.06,
+   "reasoning": "weighted D1 controls at the same decoder and neighbourhood are strong; a >0.02 lower-bound increment is unlikely"
+  },
+  {
+   "id": "LP6",
+   "question": "Claim C (J* vs C_pair*) passes",
+   "probability": 0.03,
+   "reasoning": "qpc/cbp found joint within ~0.003 of sequential"
+  },
+  {
+   "id": "LP7",
+   "question": "Q passes all four bounds",
+   "probability": 0.93
+  },
+  {
+   "id": "LP8",
+   "question": "D1 lowers the mean inner occupation log loss of the fixed D0 lambda 0.1 privacy maps by >= 0.002 nats",
+   "probability": 0.65
+  },
+  {
+   "id": "LP9",
+   "question": "Final label distribution",
+   "probabilities": {
+    "MECHANISM_GATE_NOT_MET": 0.15,
+    "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (A only)": 0.31,
+    "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED": 0.04,
+    "any label including PAIRED_JOINT_INCREMENT_ESTABLISHED": 0.02,
+    "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED without A": 0.01,
+    "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION": 0.37,
+    "EXPERIMENTAL_NO_ADVANTAGE": 0.03,
+    "INCOMPLETE_OR_INVALID": 0.07
+   }
+  }
+ ]
+}
