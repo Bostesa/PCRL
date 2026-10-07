@@ -1,0 +1,127 @@
+{
+ "schema": "lra-deployment-receipt-v1",
+ "run_at": "2026-10-07T08:24Z (lead, lra.sema label A:deploy-checks)",
+ "seed": 1,
+ "command": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <unit>/policy.json [--decoder <unit>/decoder.json] --X <PRIVATE_CACHE>/lra_v1/inputs/deploy_input.npz --schema <PRIVATE_CACHE>/lra_v1/inputs/schema.json --out <release.npz>",
+ "input": "the authorised 83-column input (byte-identical to cbp's deploy input; 39,170 rows)",
+ "deployments": {
+  "Q (D0 DIRECT-TASK i8o64)": {
+   "unit": "pol__s1__U_DIRECT-TASK_i8o64",
+   "exit": 0,
+   "outputs": [
+    "decision_1",
+    "decision_2",
+    "probs_1",
+    "probs_2",
+    "tokens_1",
+    "tokens_2"
+   ],
+   "bitwise_equal_to_stored_release": {
+    "tokens": true,
+    "probs": true,
+    "decisions": true
+   }
+  },
+  "P* (D0 JOINT i8o64 l0.1)": {
+   "unit": "pol__s1__U_JOINT_i8o64_l0.1",
+   "exit": 0,
+   "outputs": [
+    "decision_1",
+    "decision_2",
+    "probs_1",
+    "probs_2",
+    "tokens_1",
+    "tokens_2"
+   ],
+   "bitwise_equal_to_stored_release": {
+    "tokens": true,
+    "probs": true,
+    "decisions": true
+   }
+  },
+  "C-TASK (D1 learned decoder)": {
+   "unit": "new__s1__U_C-TASK_i8o64_D1",
+   "exit": 0,
+   "outputs": [
+    "decision_1",
+    "decision_2",
+    "probs_1",
+    "probs_2",
+    "tokens_1",
+    "tokens_2"
+   ],
+   "bitwise_equal_to_stored_release": {
+    "tokens": true,
+    "probs": true,
+    "decisions": true
+   }
+  },
+  "K-SEQ-21 (constrained, D1; N* fallback)": {
+   "unit": "new__s1__U_K-SEQ-21_i8o64_D1",
+   "exit": 0,
+   "outputs": [
+    "decision_1",
+    "decision_2",
+    "probs_1",
+    "probs_2",
+    "tokens_1",
+    "tokens_2"
+   ],
+   "bitwise_equal_to_stored_release": {
+    "tokens": true,
+    "probs": true,
+    "decisions": true
+   }
+  },
+  "best D1 fixed-map control (JOINT l0.01 D1)": {
+   "unit": "dec__s1__U_JOINT_i8o64_l0.01_D1",
+   "exit": 0,
+   "outputs": [
+    "decision_1",
+    "decision_2",
+    "probs_1",
+    "probs_2",
+    "tokens_1",
+    "tokens_2"
+   ],
+   "bitwise_equal_to_stored_release": {
+    "tokens": true,
+    "probs": true,
+    "decisions": true
+   }
+  }
+ },
+ "refusals_exit_2": {
+  "84 columns": "refused: deployment accepts exactly the 83 permitted columns; got 84",
+  "reordered columns": "refused: input columns are reordered relative to the pinned schema (first difference at column 0: 'native-country=Yugoslavia' vs pinned 'age')",
+  "extra sex array": "refused: input npz must contain exactly X and feature_names; got ['X', 'feature_names', 'sex']",
+  "D1 config without its decoder": "refused: 'U|C-TASK|i8o64|D1' is a D1 configuration; its decoder.json is required (--decoder)",
+  "mismatched decoder (K-SEQ-21 decoder on the C-TASK map)": "refused: decoder failed its integrity/binding check (ValueError: decoder.json is bound to a different policy pair)",
+  "mismatched teacher (RAW-J unit)": "refused: policy was fitted for a different teacher model.pt",
+  "raw-score export flag": "refused: --export-scores would export a non-released field or bypass a binding (score, export); the protected interface is token, decoded probabilities and decision",
+  "fine-ID export flag": "refused: --fine-ids would export a non-released field or bypass a binding (fine); the protected interface is token, decoded probabilities and decision",
+  "unknown flag": "refused: unknown flag --foo"
+ },
+ "refusal_exit_codes": {
+  "84 columns": 2,
+  "reordered columns": 2,
+  "extra sex array": 2,
+  "D1 config without its decoder": 2,
+  "mismatched decoder (K-SEQ-21 decoder on the C-TASK map)": 2,
+  "mismatched teacher (RAW-J unit)": 2,
+  "raw-score export flag": 2,
+  "fine-ID export flag": 2,
+  "unknown flag": 2
+ },
+ "no_output_written_on_refusal": true,
+ "deployed_from_same_device_copy": {
+  "run_at": "2026-10-07T08:40Z (lead, lra.sema label A:deploy-from-copy)",
+  "units": [
+   "dec__s1__U_JOINT_i8o64_l0.01_D1",
+   "new__s1__U_K-SEQ-21_i8o64_D1"
+  ],
+  "inputs": "teacher, policy.json, decoder.json and the 83-column input all read from <PRIVATE_CACHE>/lra_v1_local_copy_20261007",
+  "result": "exit 0 for both; tokens, decoded probabilities and decisions bitwise equal to the live stored releases",
+  "why": "closes role F's disclosed gap (closeout's D1 deploy hook signature differs from lra.deploy.release; the tested CLI was used instead)"
+ }
+}

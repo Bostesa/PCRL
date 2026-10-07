@@ -1,0 +1,278 @@
+{
+ "schema": "lra-model-manifest-v1",
+ "label": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; C=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; Q=PASS]",
+ "packages": [
+  {
+   "role": "U baseline",
+   "status": "admitted frozen teacher (continuous; no protection)",
+   "training_label_use": "historical head training (not refitted by lra)",
+   "seeds": {
+    "0": {
+     "unit": "<PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U",
+     "model_pt_sha256": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7"
+    },
+    "1": {
+     "unit": "<PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U",
+     "model_pt_sha256": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c"
+    },
+    "2": {
+     "unit": "<PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U",
+     "model_pt_sha256": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
+    }
+   }
+  },
+  {
+   "role": "Q",
+   "config": "U|DIRECT-TASK|i8o64",
+   "status": "NOMINEE; Q PASS (four confidence bounds)",
+   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "fitting_and_assessment_status": "admitted; assessed by lra (EVALUATION_LOCK 186afb6)",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "pol__s0__U_DIRECT-TASK_i8o64",
+     "policy_json_sha256": "0b1c58c4c49a6f4669aab50c3331685421fa198a1bfe3c6f4fc7c9946da851d3",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "e5af20e936eff453a0a3221de8880c9630025276bee46b014dc7cc29f54a2f3a",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s0__U_DIRECT-TASK_i8o64/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "pol__s1__U_DIRECT-TASK_i8o64",
+     "policy_json_sha256": "ac7d113d872b6d6c5eeb9453c79d33f99635fd5163708e9440167116933ebdd2",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "2b242a6c5b0fd3523c2cfc802be512073de39a995e6e05933ace50370dde4686",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s1__U_DIRECT-TASK_i8o64/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "unit": "pol__s2__U_DIRECT-TASK_i8o64",
+     "policy_json_sha256": "12f47e926c4bc8e7cc21055d2cdab357c698a7d8cb050ae71d031c6744ea826b",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "8fcffb9d51ae346045d723d9319ec8adca7647318cfe194f072448034ab95bbc",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s2__U_DIRECT-TASK_i8o64/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "P*",
+   "config": "U|JOINT|i8o64|l0.1",
+   "status": "NOMINEE (existing D0 map); claim A NOT_ESTABLISHED: occupation LL upper bound 0.0121 > 0.01; NOT a criterion-meeting release",
+   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "fitting_and_assessment_status": "admitted; inner-selected; assessed by lra",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "pol__s0__U_JOINT_i8o64_l0.1",
+     "policy_json_sha256": "acd58d68d89f3a53a8ed111625ae0a0b636c334e9a1f2d66bbdc518d33faf47c",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "e736c063422fe2f788d2e26380c113e799941a5ed1932ed696d3f83db825f317",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s0__U_JOINT_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "pol__s1__U_JOINT_i8o64_l0.1",
+     "policy_json_sha256": "4a72d860ef968199f6d566acf1319e50a61bcf9ab19b4addf39b5a5188737c20",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "7f08cb81177f23907cdb7ed07f945c58599c64749cd8e4a65f7be02bf550ad37",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s1__U_JOINT_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "unit": "pol__s2__U_JOINT_i8o64_l0.1",
+     "policy_json_sha256": "3cfdba0d2e8e536f14526e193f77c27aab89c2ac00078771eb68386c20c28410",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "3bf3fb2e72f7283b0bcd1bfcc322f8370e4531aee79f9cb0da99c3d42efe37fd",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s2__U_JOINT_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "constrained candidate (N* descriptive fallback)",
+   "config": "U|K-SEQ-21|i8o64|D1",
+   "status": "DESCRIPTIVE_FALLBACK: NO_ELIGIBLE_NOMINEE (ORDINARY_UTILITY_FAILURE); held-out occupation LL violation 0.048",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed descriptively",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "new__s0__U_K-SEQ-21_i8o64_D1",
+     "policy_json_sha256": "62588f8c9ec6e53743328d344b91731bc24109aa3a4c9e2d1acffb78fafc23ca",
+     "decoder_json_sha256": "525a6cf269b53eb319436943fefc68df8b0fe81711dd5729de97f7734f746519",
+     "release_npz_sha256": "a128f5dd9b1ab38e60c1b96849eee8aa1dd45448bb1e85500bec4a1931b26e0d",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s0__U_K-SEQ-21_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s0__U_K-SEQ-21_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "new__s1__U_K-SEQ-21_i8o64_D1",
+     "policy_json_sha256": "86c1d38e3a67bc81e84f71594e1ed82d3ffda1dc2fed4b3bebbb99ca1d417d2a",
+     "decoder_json_sha256": "9d887bd9dfa1e398a69a586d6939dfc676717bb3a82662495b8d04c28cb77e08",
+     "release_npz_sha256": "33c20148acc85c5022844ddf40399475d0ccd7ce0f6dbe36e352d3d1e300c2ea",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s1__U_K-SEQ-21_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s1__U_K-SEQ-21_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "unit": "new__s2__U_K-SEQ-21_i8o64_D1",
+     "policy_json_sha256": "5c145b846d3c9fe515a80bc6fdf558ee3a3a5f380b81832e2b2a2379901f082a",
+     "decoder_json_sha256": "55004dff27bc4ffa1b9ba4a3979b7366b841196c219f9588ae08de3e63f83536",
+     "release_npz_sha256": "6027785de40f1ba61a732513486699a377e3e176b01a1ad7a103111eb4d92650",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s2__U_K-SEQ-21_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s2__U_K-SEQ-21_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "decoder-only baseline (D1 side of the registered ablation pair)",
+   "config": "U|JOINT|i8o64|l0.01|D1",
+   "status": "FIXED diagnostic: same tokens as D0 JOINT l0.01; held-out confidence worse (+0.010 occupation LL)",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "dec__s0__U_JOINT_i8o64_l0.01_D1",
+     "policy_json_sha256": "6c3491740e109258270f2aa7a4f982965a49fbcb427c4f65bf9e5bb2662cdd14",
+     "decoder_json_sha256": "fd0c24995f3b609f354d0ee1bf00329fda44cbd7167d7518b22f2764e0917989",
+     "release_npz_sha256": "1b3022d865d8cda5a8a2050231dd9da8e44b63fa3eeeebdac75a25a182ce1346",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/dec__s0__U_JOINT_i8o64_l0.01_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/dec__s0__U_JOINT_i8o64_l0.01_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "dec__s1__U_JOINT_i8o64_l0.01_D1",
+     "policy_json_sha256": "26f3c8847c1c83fd1860b452e2d6ccac56b595d160577a6d9d4a36364935ce73",
+     "decoder_json_sha256": "be7a26b468ea67a5f865861a012ac3ac9e5884d9a1bc37f1020d20462ec9ffad",
+     "release_npz_sha256": "0f5ebc766a536431f871ddafccc86f96fd505942bfd41b831d04af445bf7e6ba",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/dec__s1__U_JOINT_i8o64_l0.01_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/dec__s1__U_JOINT_i8o64_l0.01_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "unit": "dec__s2__U_JOINT_i8o64_l0.01_D1",
+     "policy_json_sha256": "0e0f2919db3b54ad8635b6a70f6981c1fc9033d076492d1298738b78254a8e26",
+     "decoder_json_sha256": "c57f4318ba17c000a184c19c63c6079a28bbdc09b7c77e174cbe7d870a9f0e63",
+     "release_npz_sha256": "0f48ce0408c06b62858cd9367657470cbc944f7a8095448b5eaa675bafffebba",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/dec__s2__U_JOINT_i8o64_l0.01_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/dec__s2__U_JOINT_i8o64_l0.01_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "decoder-only baseline (D0 side)",
+   "config": "U|JOINT|i8o64|l0.01",
+   "status": "FIXED diagnostic (admitted D0)",
+   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "fitting_and_assessment_status": "admitted; assessed",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "pol__s0__U_JOINT_i8o64_l0.01",
+     "policy_json_sha256": "6c3491740e109258270f2aa7a4f982965a49fbcb427c4f65bf9e5bb2662cdd14",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "98edc4bda3667228dd63f1f510798b30384a9629b7e0a09e0e1df7fcca3e3094",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s0__U_JOINT_i8o64_l0.01/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "pol__s1__U_JOINT_i8o64_l0.01",
+     "policy_json_sha256": "26f3c8847c1c83fd1860b452e2d6ccac56b595d160577a6d9d4a36364935ce73",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "6cc754dbf9645e2fc1a63679b08fc8c89b9a933758d489b5d31605bb59631238",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s1__U_JOINT_i8o64_l0.01/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "2": {
+     "unit": "pol__s2__U_JOINT_i8o64_l0.01",
+     "policy_json_sha256": "0e0f2919db3b54ad8635b6a70f6981c1fc9033d076492d1298738b78254a8e26",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "43559055f8bdb7aa310e672ce0c090d2c461e2b58f59c78d7bcd0b34fd43ed52",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s2__U_JOINT_i8o64_l0.01/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "sequential winner (C* = C_pair*)",
+   "config": "U|SEQ-21|i8o64|l0.1",
+   "status": "NOMINEE as C* and C_pair* (existing D0 map)",
+   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "fitting_and_assessment_status": "admitted; inner-selected; assessed",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "pol__s0__U_SEQ-21_i8o64_l0.1",
+     "policy_json_sha256": "67a6d0f71efade1b43579a88fac0d5515619737dcb803a54510a1c9bfff4270c",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "272313390b531d237dda3592869c9e5f99fe57f3c802ed845e9985bb1c39dcf5",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s0__U_SEQ-21_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "pol__s1__U_SEQ-21_i8o64_l0.1",
+     "policy_json_sha256": "da02bde30d7c458eb39382064f359422780c63ad1c6b9fa346c0df5cf48ed9dd",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "9542215458a1920dd9e05f3bb9eec9d91851b4f2327fc4102e6c90f730845adf",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s1__U_SEQ-21_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "2": {
+     "unit": "pol__s2__U_SEQ-21_i8o64_l0.1",
+     "policy_json_sha256": "df4ef4e27b3333e26780029122bd9b9f4ebac7e13d94b4ea335fe5f4b6e077e2",
+     "decoder_json_sha256": null,
+     "release_npz_sha256": "031b6b100ae6c1e17ba37dcdc3dd4df90b2f6ad411d61c25baf4b52d90e1fb8b",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/pol__s2__U_SEQ-21_i8o64_l0.1/policy.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  },
+  {
+   "role": "supervised task map with learned decoder (C-TASK)",
+   "config": "U|C-TASK|i8o64|D1",
+   "status": "diagnostic (ineligible; held-out occupation LL +0.024 vs its same-map D0)",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
+   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "seeds": {
+    "0": {
+     "unit": "new__s0__U_C-TASK_i8o64_D1",
+     "policy_json_sha256": "7ac6160e796d06153cb20f97f7f2d7c1c5243ac1d699888316d1efc2e798c7d9",
+     "decoder_json_sha256": "77bdbdcb493bb8440bf1d793368191a0250a846c95e3f544aa3d0943cd8ab444",
+     "release_npz_sha256": "42a86b86c9a3b211beb58562f008f4c9d1ec689bd616f88328c6b8ccf498a49b",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s0__U_C-TASK_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s0__U_C-TASK_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    },
+    "1": {
+     "unit": "new__s1__U_C-TASK_i8o64_D1",
+     "policy_json_sha256": "8a85ad9d56cd894488c5bcc32c4b391187c6612b93fd625679b465d00f59a760",
+     "decoder_json_sha256": "83d2a25655c33de97579f3995eac6348a15f1f74eb3b0e864faee06267f0d72c",
+     "release_npz_sha256": "cc7cc64d999077d38d15d467f682072f65c4ddb7fc2fd34300d13b796fab9a06",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s1__U_C-TASK_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s1__U_C-TASK_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": true
+    },
+    "2": {
+     "unit": "new__s2__U_C-TASK_i8o64_D1",
+     "policy_json_sha256": "5b91a0eb2a6da49ca00230a0b4ba615f91293570f3c2db5a161756bef049254b",
+     "decoder_json_sha256": "76566053cee0052aa954ee85b54618c323cbce31fcee32be91a6ebfdcb7e0506",
+     "release_npz_sha256": "6028bf7c65a8fcbce05d9b3ee62e6c1458c6158bd53d3a0a527f43f66c550a75",
+     "deploy": "python -m lra.deploy --unit <PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lra_v1/run/units/new__s2__U_C-TASK_i8o64_D1/policy.json --decoder <PRIVATE_CACHE>/lra_v1/run/units/new__s2__U_C-TASK_i8o64_D1/decoder.json --X <83-column input npz> --schema <pinned schema> --out <release.npz>",
+     "deploy_tested": false
+    }
+   }
+  }
+ ],
+ "receipt": "DEPLOYMENT_RECEIPT.json (seed 1: 5 releases bitwise; 9 refusals exit 2)"
+}

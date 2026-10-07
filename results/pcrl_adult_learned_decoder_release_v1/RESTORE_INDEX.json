@@ -1,0 +1,66 @@
+{
+ "schema": "lra-restore-index-v1",
+ "written_at": "2026-10-07T08:35:02Z",
+ "private_local": "<PRIVATE_CACHE>/lra_v1",
+ "copy": "<PRIVATE_CACHE>/lra_v1_local_copy_20261007/lra_v1 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/lra_v1_local_copy_20261007/SHA256SUMS",
+ "layout": {
+  "lra_v1/admitted/rel__s{k}__{t}/": "admitted teachers (model.pt, heads, release; verified copies of the cbp admitted artifacts) + ADMISSION_RECEIPT.json",
+  "lra_v1/inputs/": "the authorised 83-column deployment input and schema",
+  "lra_v1/run/units/pol__*": "admitted D0 codes (qpc formats; mean-teacher decoder)",
+  "lra_v1/run/units/dec__*, new__*, diag__*": "D1 codes (dec__ fixed-map decodes incl. CLASS|D1, new__ fits, diag__ diagnostics): policy.json (token map; its token_proto are D0 means and are NOT released) + decoder.json (learned decoder: sufficient statistics, released vectors, certificates) + release.npz; new__ units also hold the mapper trace.json (starts, accepted moves, statistic hashes, termination)",
+  "lra_v1/run/units/d0s__*": "same-map D0 diagnostics: the mean-teacher decoder on a new map's unchanged tokens (decoder-only baseline)",
+  "lra_v1/run/units/cor__*": "correctness-stage units (the pinned known laws under CORRECTNESS_LOCK; no Adult data)",
+  "lra_v1/run/units/aud__*, outer__*": "inner audits (AUDIT_FIT / INNER_SELECTION) and the locked assessment units (attacker predictions; private)",
+  "lra_v1/run/units/tea__*, ref__*, fine__*": "teacher outputs, references, label-blind fine partitions",
+  "lra_v1/run/attempts/": "retained stage attempts (never overwritten)",
+  "lra_v1/run/*.jsonl, *.log": "activity, compute and semaphore ledgers, stage logs",
+  "lra_v1/run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json",
+  "dependencies/jcv_v1/inputs/adult_jcv.npz": "the pinned source input (sha256 e0d9e54a...2f12), bundled so the copy restores alone"
+ },
+ "restore": [
+  "copy <PRIVATE_CACHE>/lra_v1_local_copy_20261007/lra_v1 to <PRIVATE_CACHE>/lra_v1 (only if the live store is lost)",
+  "verify: shasum -a 256 -c SHA256SUMS (inside the copy's folder)",
+  "re-run the restore checks: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m lra.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lra.closeout backup --dry-run --targets <targets.json>",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_statuses": {
+  "teacher U (seed 1)": "PASS",
+  "teacher RAW-J_b0.3 (seed 1)": "PASS",
+  "Q [NOMINATED] U|DIRECT-TASK|i8o64": "PASS",
+  "P* [NOMINATED] U|JOINT|i8o64|l0.1": "PASS",
+  "constrained candidate [DESCRIPTIVE_FALLBACK] U|K-SEQ-21|i8o64|D1": "PASS",
+  "decoder-only baseline [FIXED] U|JOINT|i8o64|l0.01": "PASS",
+  "sequential winner [NOMINATED] U|SEQ-21|i8o64|l0.1": "PASS",
+  "best D1 fixed-map privacy control (registered decoder-ablation pair)": "PASS",
+  "C-TASK (learned decoder D1)": "PASS",
+  "U baseline (continuous teacher)": "PASS",
+  "same-map tokens (decoder-only baseline)": "PASS",
+  "attacker": "PASS"
+ },
+ "required_restores": {
+  "U teacher": "PASS",
+  "learned decoder": "PASS",
+  "protected map": "PASS",
+  "Q": "PASS",
+  "constrained candidate": "PASS",
+  "decoder-only baseline": "PASS",
+  "sequential winner": "PASS",
+  "attacker": "PASS"
+ },
+ "unit_inventory": {
+  "aud": 267,
+  "cor": 4,
+  "d0s": 3,
+  "dec": 81,
+  "fine": 3,
+  "inner": 90,
+  "new": 90,
+  "units_with_trace.json": 90,
+  "outer": 63,
+  "pol": 81,
+  "ref": 9,
+  "tea": 6
+ },
+ "not_off_device": true
+}
