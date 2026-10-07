@@ -55,7 +55,7 @@ The SCIENCE_LOCK hashes of these files supersede this table. Round 3 (§5) re-ch
 | M4 | JOINT-SINGLE, SEQ-12 and SEQ-21 get the same TOTAL proposal-evaluation ceiling as JOINT-PAIR; actual work is recorded | §8 | **OK after R-4.** EVAL_CEILING is 8,000,000 for every arm. Joint: 8e6/#witnesses per witness. SEQ: 8e6/(2·#starts) per stage. LOCAL: 8e6/(2·#starts) per recipient. The pair step's pool screening and pair evaluations now both stop at the share (granularity ≤ one cell's targets). Actual evaluations, share and stop reason are recorded per stage and start |
 | M5 | The temporary sequential partner is not required to be feasible and is not a constant | §7 | **OK.** Stage 1 enforces only the first recipient's constraints, with the partner at CLASS-ONLY. Stage 2 enforces the second recipient's with the first frozen, which is equivalent to both, since a frozen recipient's budgets and cap depend only on its own map. The FINAL release is checked against both |
 | M6 | C-TASK starts from no privacy-trained map, keeps the FINE-TASK start and reports its D1 initialisation, refined map and D0 references separately | §7, §8 | **OK, with R-9 open.** The only start is D0 FINE-TASK, and SEX cannot reach the search (`sex=False`). `ctask_report.d0_external_references` is still null (lcr N-8) |
-| M7 | Starts and witnesses are matched; no infeasible witness is eligible by its name | §8 | **OK and matched.** K/W-LOCAL start from {C-TASK}. K/W-SEQ-ab start from {C-TASK, the six D0 SEQ-ab maps}. K-JOINT witnesses are {C-TASK, K-LOCAL, K-SEQ-12, K-SEQ-21, D0 FINE-TASK, the 24 D0 privacy maps}; W-JOINT(λ) uses the same set with W-\*(λ). Infeasible witnesses are EXCLUDED_INFEASIBLE_WITNESS. D0 DIRECT-TASK and CLASS are not witnesses (N-5) |
+| M7 | Starts and witnesses are matched; no infeasible witness is eligible by its name | §8 | **OK and matched.** K/W-LOCAL start from {C-TASK}. K/W-SEQ-ab start from {C-TASK, the six D0 SEQ-ab maps}. K-JOINT witnesses are {C-TASK, K-LOCAL, K-SEQ-12, K-SEQ-21, D0 FINE-TASK, D0 CLASS (feasible-only; lead decision 2026-10-07, N-11), the 24 D0 privacy maps}, 30 in all; W-JOINT(λ) uses the same set with W-\*(λ). Infeasible witnesses are EXCLUDED_INFEASIBLE_WITNESS. D0 DIRECT-TASK is not a witness (N-5) |
 | M8 | Pair bank: 8 own-budget proposals per recipient (non-improving included); 4 by Φ and 4 by task loss; atomic product; only a feasible strict Φ improvement accepted | §8 | **OK** |
 | M9 | Local caps I_i ≤ I_i(C-TASK) of the same seed, recorded exactly before privacy search | §7 | **OK** (`refs_from_ctask`) |
 | M10 | Decoder solves cached only by exact sufficient statistics | §8 | **OK** |
@@ -74,13 +74,14 @@ The SCIENCE_LOCK hashes of these files supersede this table. Round 3 (§5) re-ch
 | R-4 | RECOMMENDED | The pair-step screening ignored the ceiling, so one step could overshoot a share by one screening pass | **RESOLVED in C's working tree** (screening and pairs stop at the share; `rules()["pair_step"]["ceiling"]`) |
 | R-5 | REQUIRED | `fit_feasible` mapped an unreadable fit record to CONSTRAINED_FIT_INFEASIBLE (source finding 1) | **RESOLVED in D's working tree** (FIT_RECORD_TECHNICAL_FAILURE) |
 | R-6 | REQUIRED | Aliases were computed only for P\*, N\*, J\* (findings 7/11) | **RESOLVED in D's working tree** (every role, comparators and Q) |
-| R-7 | REQUIRED | SEARCH_RULES.json is stale against `lra.mapper.rules()` | **OPEN** (C/A): regenerate and verify before SCIENCE_LOCK |
+| R-7 | REQUIRED | SEARCH_RULES.json is stale against `lra.mapper.rules()` | **RESOLVED in the working tree** at 04:55Z: the file equals `rules()` as parsed JSON, rules_sha256 bc8bb48c… (F:fairness-recheck); re-check on the locked bytes |
 | R-8 | RECOMMENDED | PROTOCOL text and code disagree in three places | **OPEN** (A) |
 | R-9 | RECOMMENDED | C-TASK's D0 external references are null (lcr N-8) | **OPEN** (A/C) |
-| R-10 | RECOMMENDED | Score CLASS\|D1 on the assessment beside decisions alone | **OPEN** (D/A) |
+| R-10 | RECOMMENDED | Score CLASS\|D1 on the assessment beside decisions alone | **ADOPTED in the working tree** (`eval_lock.scored_labels` adds `R.d1_id("CLASS")`) |
 | R-11 | RECOMMENDED | Witness lineage work is outside the joint arms' ceiling | **OPEN** (C, reporting only) |
 | R-12 | RECOMMENDED | FIT_MANIFEST should list the d0s__ same-map D0 diagnostic units | **OPEN** (A) |
-| N-5 | NOTE | D0 DIRECT-TASK and CLASS are not JOINT witnesses | Recorded |
+| N-5 | NOTE | D0 DIRECT-TASK is not a JOINT witness | Recorded |
+| N-11 | NOTE | D0 CLASS is a feasible-only JOINT witness (K and W alike) | Recorded; consequence below |
 | N-6 | NOTE | Each neighbourhood's "best 4" uses the arm's own objective | Recorded |
 | N-9 | NOTE | Constrained arms have no restoration phase | Recorded (PROTOCOL §7) |
 | N-10 | NOTE | Acceptance is per cell within a sweep | Recorded |
@@ -184,8 +185,15 @@ List them, with the rule that determines their number, so ACTUAL_WORK_ACCOUNTING
 
 ### Notes carried from lcr (unchanged)
 
-- **N-5.** D0 DIRECT-TASK lies outside the fine-cell family (prompt §5), and CLASS-ONLY is the sequential stage-1
-  partner, not a witness. Both stay T\* candidates.
+- **N-5.** D0 DIRECT-TASK lies outside the fine-cell family (prompt §5). It stays a T\* candidate (D0 and D1).
+- **N-11.** In the round-2 working tree the lead added D0 CLASS as a feasible-only JOINT witness, for both K-JOINT and
+  W-JOINT. That makes 30 witnesses, so a per-witness share is 8e6/30 ≈ 266,667. The addition is matched between the K
+  and W arms.
+  - **Consequence.** CLASS attains the minimum Φ of any class-preserving map (the decision floor). If CLASS|D1 meets a
+    seed's fitting budgets, K-JOINT-SINGLE and K-JOINT-PAIR may return the unchanged CLASS witness.
+  - Such a release is an exact alias of the privacy-untrained CLASS|D1. It must carry the identical_to_untrained
+    disclosure, and no privacy-training credit is given (SELECTION_RULES aliases; PRIOR_ART §6.1).
+  - The same holds for any constrained arm that accepts no move from C-TASK.
 - **N-6.** "Best 4" ranks by each arm's own objective. That is the stronger choice for each weighted control, so it does
   not weaken the controls.
 - **N-9.** If C-TASK violates a fitting budget on a seed, K-LOCAL is infeasible there by construction. Report it; it is
