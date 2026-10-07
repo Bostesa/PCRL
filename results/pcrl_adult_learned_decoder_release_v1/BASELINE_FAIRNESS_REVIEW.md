@@ -69,17 +69,17 @@ The SCIENCE_LOCK hashes of these files supersede this table. Round 3 (§5) re-ch
 | ID | Class | Finding | Status |
 |---|---|---|---|
 | R-1 | REQUIRED | CLASS\|D1 was excluded from the T\* pool and never audited | **RESOLVED** (A at ab81a97; D's T_STAR_CLOSED, audit and composition bank) |
-| R-2 | REQUIRED | `eval_lock.technical_validity` required FIXTURE_GATE.json GATE_MET; `infer` hard-coded `gate_met=True` | **RESOLVED in D's working tree** (engineering_ready / engineering_gate(EL)); re-check in round 3 |
+| R-2 | REQUIRED | `eval_lock.technical_validity` required FIXTURE_GATE.json GATE_MET; `infer` hard-coded `gate_met=True` | **RESOLVED; confirmed on the SCIENCE_LOCK bytes** (§5) |
 | R-3 | REQUIRED | The CBP_LOCAL_ONLY environment variable skipped every pushed-lock check | **RESOLVED** (A at ab81a97) |
-| R-4 | RECOMMENDED | The pair-step screening ignored the ceiling, so one step could overshoot a share by one screening pass | **RESOLVED in C's working tree** (screening and pairs stop at the share; `rules()["pair_step"]["ceiling"]`) |
-| R-5 | REQUIRED | `fit_feasible` mapped an unreadable fit record to CONSTRAINED_FIT_INFEASIBLE (source finding 1) | **RESOLVED in D's working tree** (FIT_RECORD_TECHNICAL_FAILURE) |
-| R-6 | REQUIRED | Aliases were computed only for P\*, N\*, J\* (findings 7/11) | **RESOLVED in D's working tree** (every role, comparators and Q) |
+| R-4 | RECOMMENDED | The pair-step screening ignored the ceiling, so one step could overshoot a share by one screening pass | **RESOLVED; confirmed on the SCIENCE_LOCK bytes** (screening and pairs stop at the share; `rules()["pair_step"]["ceiling"]`) |
+| R-5 | REQUIRED | `fit_feasible` mapped an unreadable fit record to CONSTRAINED_FIT_INFEASIBLE (source finding 1) | **RESOLVED; confirmed on the SCIENCE_LOCK bytes** (FIT_RECORD_TECHNICAL_FAILURE; a status disagreeing with deployed.feasible is technical too) |
+| R-6 | REQUIRED | Aliases were computed only for P\*, N\*, J\* (findings 7/11) | **RESOLVED; confirmed on the SCIENCE_LOCK bytes** (every role, comparators and Q) |
 | R-7 | REQUIRED | SEARCH_RULES.json is stale against `lra.mapper.rules()` | **RESOLVED in the working tree** at 04:55Z: the file equals `rules()` as parsed JSON, rules_sha256 bc8bb48c… (F:fairness-recheck); re-check on the locked bytes |
-| R-8 | RECOMMENDED | PROTOCOL text and code disagree in three places | **OPEN** (A) |
-| R-9 | RECOMMENDED | C-TASK's D0 external references are null (lcr N-8) | **OPEN** (A/C) |
+| R-8 | RECOMMENDED | PROTOCOL text and code disagree in three places | **RESOLVED** at 8b7e823, before both locks (§5) |
+| R-9 | RECOMMENDED | C-TASK's D0 external references are null (lcr N-8) | **ASSIGNED to the report module** (lra/report.py, unlocked, reporting only; reads committed records); verify in the closeout review |
 | R-10 | RECOMMENDED | Score CLASS\|D1 on the assessment beside decisions alone | **ADOPTED in the working tree** (`eval_lock.scored_labels` adds `R.d1_id("CLASS")`) |
-| R-11 | RECOMMENDED | Witness lineage work is outside the joint arms' ceiling | **OPEN** (C, reporting only) |
-| R-12 | RECOMMENDED | FIT_MANIFEST should list the d0s__ same-map D0 diagnostic units | **OPEN** (A) |
+| R-11 | RECOMMENDED | Witness lineage work is outside the joint arms' ceiling | **ASSIGNED to the report module** (OPTIMIZATION_RECEIPTS); verify in the closeout review |
+| R-12 | RECOMMENDED | FIT_MANIFEST should list the d0s__ same-map D0 diagnostic units | **RESOLVED** at 8b7e823 (FIT_MANIFEST lists d0s / D0SAME) |
 | N-5 | NOTE | D0 DIRECT-TASK is not a JOINT witness | Recorded |
 | N-11 | NOTE | D0 CLASS is a feasible-only JOINT witness (K and W alike) | Recorded; consequence below |
 | N-6 | NOTE | Each neighbourhood's "best 4" uses the arm's own objective | Recorded |
@@ -219,7 +219,67 @@ List them, with the rule that determines their number, so ACTUAL_WORK_ACCOUNTING
   - confirming R-2, R-4, R-5 and R-6 in the files actually locked.
 - R-8 to R-12 are recommended.
 
-## 5. Round 3 (re-check of the locked files)
+## 5. Round 3 (re-check of the locked files, 2026-10-07 05:23–05:40Z)
 
-To be filled at SCIENCE_LOCK with the locked hashes of mapper.py, select.py, run.py, eval_lock.py, infer.py,
-SEARCH_RULES.json and SELECTION_RULES.json.
+**Lock.** SCIENCE_LOCK at 15bb242, written 05:22:22Z, pushed and verified by the lead. It locks 238 code files;
+lra/report.py is unlocked as reporting only. Every file below is byte-identical between the working tree and the lock.
+
+| File | Locked sha256 (prefix) |
+|---|---|
+| lra/mapper.py | 6f619c94089b (= 16924cc) |
+| lra/select.py | 46e32c74ac1e |
+| lra/run.py | 9975488a9295 |
+| lra/eval_lock.py | 08f0efb2de9c |
+| lra/infer.py | 782c879f37f0 |
+| lra/family.py | 8fa49f3a464c |
+| lra/audit.py | b671db7cdf1e |
+| lra/assess.py | 0d8983bf9b32 |
+| lra/lock.py | 6b781641f408 |
+| lra/closeout.py / lra/tests/test_closeout.py | c7352df29efd / ac463eff6c5d |
+| SEARCH_RULES.json | 1593c84a454b (= 16924cc; rules_sha256 bc8bb48c…) |
+| SELECTION_RULES.json | 34022201691f |
+| FIT_MANIFEST.json | 2058d5d697bd |
+| LABEL_TRUTH_TABLE.json | c90b78f6a99d |
+| PROTOCOL.md | e97063a0e388 |
+| EXPOSURE_LEDGER.md | 81ad31a2e013 |
+| ENGINEERING_GATE_RESULT.json | cf9d7eda0455 |
+
+**Re-checked on the locked bytes (static reading, plain file reads):**
+- **Pools.**
+  - `T_STAR_CLOSED` has 9 ids, including U|CLASS|i1o1|D1 (R-1).
+  - The P\*, C\*, N\*, C_pair\* and J\* pools are unchanged in logic since round 2. Changes to select.py after D's
+    commit 82bbf7b are limited to `fit_feasible` (a status that disagrees with deployed.feasible is now technical),
+    the descriptive `same_map_fit_inner`, and the CLASS same-map pair.
+- **R-2.** `technical_validity` calls `engineering_ready()` and reads no FIXTURE_GATE. `infer` has no `gate_met=True`.
+- **R-3.** `verify_lock` refuses any stage while CBP_LOCAL_ONLY is set. `run.py` has no bypass.
+- **R-4.** `_pair_step` sets `lim` and tests it during both screening and pair evaluation.
+- **R-5.** `fit_feasible` returns None (TECHNICAL) for a missing, incomplete, unreadable, inconsistent or misnamed
+  record.
+- **R-10.** `scored_labels` adds `R.d1_id("CLASS")`.
+- **R-8.** PROTOCOL now says 84 codes. The C_pair\* row reads "Every release except K-JOINT-PAIR, and except
+  fit-infeasible constrained units". The T\* row reads "CLASS-ONLY (D0 and D1)". PROTOCOL §15 and EXPOSURE_LEDGER state
+  that the predecessor custody chain unseals the assessment and runs only after the lra opening.
+- **EX-1/EX-2.** EXPOSURE_LEDGER no longer calls the source codebooks label-blind. It states that their privacy maps
+  read SEX and lists the new true-task-label uses.
+- **Starts and witnesses (M7, N-11).** In `mapper.registered_starts` and `run._fit_args`, D0 CLASS is a feasible-only
+  JOINT witness for both K and W, giving 30 witnesses. All other starts are unchanged.
+
+**Dynamic check of SEARCH_RULES.json against `lra.mapper.rules()` (R-7).**
+- The round-2 run (label F:fairness-recheck, ~04:50Z) found them equal (rules_sha256 bc8bb48c…).
+- That run was after commit 16924cc (04:47:09Z), and the working tree's mapper.py was unmodified against HEAD at
+  04:52Z.
+- Neither mapper.py nor SEARCH_RULES.json changed after 16924cc, and the locked file still carries rules_sha256
+  bc8bb48c…. So the equality was established on the locked bytes.
+- A confirming re-run on the locked bytes is queued under lra.sema (label F:fairness-round3); both slots are held by
+  the fitting stage. Its result is in the hand-off message to the lead.
+
+**Not in the lock (NOTE).**
+- PREDECESSOR_GATE_DIAGNOSIS.md and PRIOR_ART_AND_CLAIM_SCOPE.md are not among the lock's `documents_sha256`.
+- They were committed at 8b7e823, before CORRECTNESS_LOCK and SCIENCE_LOCK, and are unchanged since:
+  - PREDECESSOR_GATE_DIAGNOSIS.md 516e9579…;
+  - PRIOR_ART_AND_CLAIM_SCOPE.md 9b7a5832….
+- RECOMMENDED: bind both hashes, plus this file's, in EVALUATION_LOCK, so the label wording rules are verifiably fixed
+  before the opening.
+
+**Fairness verdict at SCIENCE_LOCK.** No REQUIRED finding is open. The control bank is complete and matched. R-9 and R-11
+are reporting items for the closeout review.
