@@ -179,9 +179,11 @@ SELECTION_STATUS = {"NOMINATED": ("NOMINEE",), "DESCRIPTIVE_FALLBACK": ("NO_ELIG
 CODE_PROOF_OF_NO_EARLY_READ = {
     "status": "NOT_AVAILABLE",
     "finding": "the predecessor chain DOES read this study's assessment labels: cbp.closeout.run_all -> "
-               "qpc.closeout -> dpc.closeout -> osf.closeout.backup, which calls osf.assess.open_assessment and "
-               "osf.assess.load_unsealed (osf.data.load(unseal=True)) on OSF_DEVELOPMENT_ASSESSMENT, the same role and "
-               "rows as this study's assessment, to refit osf's final attacker (osf/closeout.py backup)",
+               "cbp.closeout.qpc_custody -> qpc.closeout predecessor repair (qpc/closeout.py, OC.backup) -> "
+               "osf.closeout.backup, which calls osf.assess.open_assessment and osf.assess.load_unsealed "
+               "(osf.data.load(unseal=True)) on OSF_DEVELOPMENT_ASSESSMENT, the same role and rows as this study's "
+               "assessment, to refit osf's final attacker; the seal is rebound through cbp (redirected_qpc) and qpc "
+               "to lra.closeout.osf_assessment_sealed_until_lra_opening",
     "consequence": "only the opening route is wired: the predecessor custody runs only after this study's assessment "
                    "opening (lra_assessment_opened)"}
 TEACHERS = ("U", "RAW-J_b0.3")
