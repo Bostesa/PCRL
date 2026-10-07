@@ -58,3 +58,15 @@ the rows fresh. No confirmation population is opened."
 - No other cohort is assumed unexposed.
 
 The realized use is appended at closeout.
+
+## Realized use (appended at closeout, 2026-10-07)
+
+- **OSF_DEFENSE_FIT.** True task labels and SEX were used for the registered new supervised fitting: 81 D1 decoders,
+  3 C-TASK, 72 weighted and 15 constrained fits (SCIENCE_LOCK, from 05:22Z).
+- **AUDIT_FIT and INNER_SELECTION.** AUDIT_FIT trained attackers; INNER_SELECTION selected (267 inner audits, controls,
+  selection).
+- **Assessment.** OSF_DEVELOPMENT_ASSESSMENT was unsealed once, by lra.assess, after EVALUATION_LOCK was pushed
+  (07:47:30Z): 63 outer units, then inference.
+- **HEAD_VALIDATION.** Not repurposed.
+- **Correctness stage.** It ran on the synthetic pinned fixture laws only, after CORRECTNESS_LOCK.
+- **Custody.** The attacker restore refit on AUDIT_FIT only; no assessment label was read in custody.

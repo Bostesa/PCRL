@@ -491,3 +491,14 @@ The independent replay (role E, phase 1) is recorded in INDEPENDENT_VERIFICATION
 - This is conservative: no violating state is ever accepted.
 - The rule is unchanged and applies on Adult as registered. Exclusions at the cap are reported in OPTIMIZATION_RECEIPTS,
   never relaxed.
+
+## 16. Outcome (appended after the assessment; the registered text above is unchanged — see SCIENCE_LOCK 15bb242)
+
+- **Assessment and inference.** The single locked assessment (EVALUATION_LOCK 186afb6) and inference gave:
+  **CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION** [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE;
+  C=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; Q=PASS].
+- **Claim A.** P\* is the existing D0 JOINT λ0.1 map, compared with T\* = D0 FINE-TASK. It fails only P07, occupation LL
+  upper bound 0.0121 ≥ 0.01.
+- **Learned decoder.** On identical tokens it worsened held-out confidence (DECODER_UTILITY_ABLATION.csv), so no D1 or
+  constrained release was inner-eligible.
+- **Further detail.** RESEARCH_DECISION.md, VALIDATION.md and INDEPENDENT_VERIFICATION.json.
