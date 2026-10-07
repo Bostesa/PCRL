@@ -14264,10 +14264,13 @@ def p2_budgets(info_new):
 def _adult_problem(D: Data, L, T, k):
     tr, yfit, sfit = fit_labels(D, L)
     fz = jload(UNITS / f"fine__s{k}" / "fine.json")
-    fines = {i: Fine.from_json(fz[f"r{i}"]) for i in (1, 2)}
+    fines = {i: Fine.from_json(fz[f"fine{i}"]) for i in (1, 2)}
     P = {i: T[(k, "U")][f"p{i}"][tr] for i in (1, 2)}
     d = {i: T[(k, "U")][f"d{i}"][tr] for i in (1, 2)}
     cells = {i: assign(P[i], d[i], fines[i]) for i in (1, 2)}
+    za = np.load(UNITS / f"fine__s{k}" / "assign.npz", allow_pickle=False)
+    stored_assign_equal = bool(np.array_equal(za["row_id"], D.row_id)) and all(
+        np.array_equal(np.asarray(za[f"f{i}"])[tr], cells[i]) for i in (1, 2))
     pb = TrProblem(cells, yfit, P, sfit, {i: fines[i].K for i in (1, 2)}, {i: fines[i].cls for i in (1, 2)},
                    {i: fines[i].F for i in (1, 2)}, S_cells={i: fines[i].S for i in (1, 2)})
     pb.fine_S_bitwise_equal_own = {i: bool(np.array_equal(pb.S_own[i], fines[i].S)) for i in (1, 2)}
@@ -14275,6 +14278,7 @@ def _adult_problem(D: Data, L, T, k):
                          for i in (1, 2)}
     pb.fine_n_equal = {i: bool(np.array_equal(pb.n[i], fines[i].n)) for i in (1, 2)}
     pb.state_caps = dict(TR_STATE_CAPS)
+    pb.stored_assignment_equal_own = stored_assign_equal
     return pb
 
 
@@ -14292,7 +14296,11 @@ def p2_traces(D: Data, L, T):
         cst = tr_state(pb, ct_lab, cache=D1Cache())
         caps = {1: cst["terms"]["I1"], 2: cst["terms"]["I2"]}
         fam = {"fine_S_bitwise_equal_own": pb.fine_S_bitwise_equal_own, "fine_S_max_rel": pb.fine_S_max_rel,
-               "fine_n_equal": pb.fine_n_equal, "ctask_caps_own": caps, "units": {}}
+               "fine_n_equal": pb.fine_n_equal, "stored_assignment_equal_own": pb.stored_assignment_equal_own,
+               "ctask_caps_own": caps, "units": {}}
+        if not (all(pb.fine_n_equal.values()) and pb.stored_assignment_equal_own and
+                max(pb.fine_S_max_rel.values()) <= D1_TOL["teacher_sum_rel"]):
+            bad.append(f"s{k}: own fine-cell assignment / statistics differ from the stored partition")
         for cid in sample:
             un = lra_unit(k, cid)
             tr_ = jload(UNITS / un / "trace.json")
@@ -14357,6 +14365,16 @@ def p2_traces(D: Data, L, T):
                seeds=out, sample="every K-* and C-TASK unit + W-* at lambda " + str(PHASE2_REPLAY_LAMS))
 
 
+def lra_code_ids_registered_order():
+    """The registered code order (lra.run.code_ids(), read from the public SELECTION.json candidate list and checked
+    to be a permutation of the own 84-code bank)."""
+    S = jload(RES / "SELECTION.json")
+    c = [x for x in S["candidates"] if x.startswith("U|")]
+    if sorted(c) != sorted(lra_code_ids()):
+        raise ValueError("SELECTION.json candidates are not the registered 84-code bank")
+    return c
+
+
 def _first_best(vals, maximize=True):
     j = 0
     for i, v in enumerate(vals):
@@ -14372,8 +14390,8 @@ def _release_arrays(k, cid, T):
         z = np.load(UNITS / un / "teacher.npz", allow_pickle=False)
         return {"q1": z["p1"], "hard1": z["d1"], "q2": z["p2"], "hard2": z["d2"]}, None
     if cid.startswith("REF|"):
-        z = np.load(UNITS / un / "release.npz", allow_pickle=False)
-        return {x: np.asarray(z[x]) for x in z.files}, None
+        z = np.load(UNITS / un / "reference.npz", allow_pickle=False)
+        return {"q1": z["p1"], "hard1": z["d1"], "q2": z["p2"], "hard2": z["d2"]}, None
     z = np.load(UNITS / un / "release.npz", allow_pickle=False)
     return {x: np.asarray(z[x]) for x in z.files}, True
 
@@ -14407,14 +14425,15 @@ def p2_inner_and_selection(D: Data, L, T):
     SELECTION.json: statuses, configurations, fallbacks, aliases, representatives and role aliases."""
     sel = D.idx[INNER]
     ys = L["sex"][sel]
-    out, bad, per_seed = {}, [], {}
+    out, bad, per_seed, comp_cov = {}, [], {}, {}
     ycol = {1: "y_income", 2: "y_occ"}
     const = {i: int(np.argmax(np.bincount(L[ycol[i]][D.idx[FIT]], minlength=KS[i - 1]))) for i in (1, 2)}
     worst = {"auc": 0.0, "util": 0.0}
+    code_scores = {}
     for k in SEEDS:
         U = T[(k, "U")]
         rowsK = {}
-        for cid in lra_scored_ids():
+        for cid in lra_scored_ids():                    # codes first, then the sources (composition), references
             un = f"aud__{lra_unit(k, cid)}"
             d = UNITS / un
             if not (d / "COMPLETE.json").exists():
@@ -14425,8 +14444,9 @@ def p2_inner_and_selection(D: Data, L, T):
             f = []
             r = rec["recovery"]
             fam = rec["primary_family"]
+            own_r = r.get("own") or r
             Pk = dict(zip([str(x) for x in arr[f"keys_{fam}"]], arr[f"P_{fam}"]))
-            auc = {}
+            auc, s0 = {}, {}
             for w in ("v1", "v2", "pair"):
                 tab = r["tables"][w]
                 A = [my_auc(ys, Pk[row["pred_key"]]) for row in tab]
@@ -14435,10 +14455,35 @@ def p2_inner_and_selection(D: Data, L, T):
                 if r["selection"][w]["auc"]["pred_key"] != tab[j]["pred_key"]:
                     f.append(f"{w}: AUC-selected reader is not the first best")
                 S3 = np.asarray(arr[f"SEL_{fam}_auc_{w}"])
+                if not np.array_equal(S3[0], Pk[tab[j]["pred_key"]]):
+                    f.append(f"{w}: seed-0 refit is not the selected bank prediction")
                 per = [my_auc(ys, x) for x in S3]
-                auc[w] = seed_mean(per)
-                if abs(auc[w] - float(r["auc"][w])) > 1e-12:
-                    f.append(f"{w}: recovery AUC {r['auc'][w]} != own seed mean {auc[w]}")
+                auc[w], s0[w] = seed_mean(per), A[j]
+                if abs(auc[w] - float(own_r["auc"][w])) > 1e-12 or abs(s0[w] - float(own_r.get("auc_seed0", r.get(
+                        "auc_seed0"))[w])) > 1e-12:
+                    f.append(f"{w}: own-bank recovery {own_r['auc'][w]} != own seed mean {auc[w]}")
+            if cid.startswith("SRC|"):
+                comp_ = r.get("composed") or {}
+                pols = list(comp_.get("policies") or [])
+                if cid == "SRC|U" and pols != lra_code_ids_registered_order():
+                    f.append("composed bank is not the registered 84-code bank in registered order")
+                for w in ("v1", "v2", "pair"):
+                    best, win, val = s0[w], "source", auc[w]
+                    for c_ in pols:
+                        cv = code_scores.get((k, c_))
+                        if cv is None:
+                            f.append(f"composition bank member {c_} has no own rescoring")
+                            continue
+                        if cv["s0"][w] > best + 1e-12:
+                            best, win, val = cv["s0"][w], c_, cv["auc"][w]
+                    if comp_.get("winner", {}).get(w, "source") != win or abs(val - float(r["auc"][w])) > 1e-12:
+                        f.append(f"{w}: composed winner / value (own {win} {val}) != record "
+                                 f"({comp_.get('winner', {}).get(w)} {r['auc'][w]})")
+                    auc[w] = val
+            elif any(abs(auc[w_] - float(r["auc"][w_])) > 1e-12 for w_ in ("v1", "v2", "pair")):
+                f.append("reported recovery differs from the own-bank value of a non-source")
+            if lra_is_code(cid):
+                code_scores[(k, cid)] = {"auc": dict(auc), "s0": dict(s0)}
             rel, is_code = _release_arrays(k, cid, T)
             util = {}
             for i in (1, 2):
@@ -14467,10 +14512,11 @@ def p2_inner_and_selection(D: Data, L, T):
             if cid == "SRC|U":
                 comp = rec.get("composed") or {}
                 cl = comp.get("closure") or {}
-                exp_bank = sorted(lra_code_ids())
-                got = sorted(cl.get("expected") or cl.get("banks") or [])
-                if got != exp_bank or cl.get("ok") is not True:
+                if sorted(comp.get("policies") or []) != sorted(lra_code_ids()) or cl.get("ok") is not True or \
+                        cl.get("expected") != 84 or cl.get("missing_inner_units") or cl.get("missing_release_units"):
                     f.append("composition closure is not the registered 84-code bank")
+                comp_cov[k] = {"policies": len(comp.get("policies") or []), "closure_ok": cl.get("ok"),
+                               "winners": comp.get("winner"), "freeze": comp.get("freeze")}
             UU_ = {i: {x: float(rec["utility"][TASKS[i - 1]][x]) for x in ("acc", "logloss", "brier", "const_acc")}
                    for i in (1, 2)}
             rowsK[cid] = {"auc": auc, "util": util, "preserved": pres, "states": ts, "pair_fp": pfp, "tok_fp": tfp,
@@ -14538,6 +14584,7 @@ def p2_inner_and_selection(D: Data, L, T):
                 cmp_.append(f"{c_}: mean pair AUC differs")
     ok = not bad and not cmp_ and len(out) == 3 * len(lra_scored_ids())
     return res("PASS" if ok else "FAIL", failures=bad[:30], selection_differences=cmp_[:40], units=len(out),
+               composition_coverage=comp_cov,
                expected=3 * len(lra_scored_ids()), worst=worst,
                own_selection={x: {k_: v.get(k_) for k_ in ("status", "config", "descriptive_config", "reason",
                                                             "fallback_class")} | {
@@ -14548,7 +14595,7 @@ def p2_inner_and_selection(D: Data, L, T):
 
 
 
-def phase2(report, part=1):
+def phase2(report, part=1, skip_part1=False):
     D = Data()
     L = D.labels()
     assert all((L[k_][D.mask[ASSESS]] == -1).all() for k_ in LABEL_KEYS), "assessment labels must stay sealed"
@@ -14556,16 +14603,209 @@ def phase2(report, part=1):
     c = {}
     t0 = time.time()
     c["P2_exposure_science_chronology"] = p2_chronology()
-    c["P2_d1_fixed_map_units"], info_fixed = p2_d1_units(D, L, T, "fixed")
-    c["P2_d1_new_units"], info_new = p2_d1_units(D, L, T, "new")
-    c["P2_deployed_budgets_and_caps"] = p2_budgets(info_new)
-    c["P2_incremental_trace_replay"] = p2_traces(D, L, T)
+    if not skip_part1:
+        c["P2_d1_fixed_map_units"], info_fixed = p2_d1_units(D, L, T, "fixed")
+        c["P2_d1_new_units"], info_new = p2_d1_units(D, L, T, "new")
+        c["P2_deployed_budgets_and_caps"] = p2_budgets(info_new)
+        c["P2_incremental_trace_replay"] = p2_traces(D, L, T)
     if part >= 2:
         c["P2_inner_audits_and_selection"], _, _ = p2_inner_and_selection(D, L, T)
     c["phase2_wall_s"] = res("INFO", wall_s=round(time.time() - t0, 1))
     report["real_data_read"] = ("inputs, roles, OSF_DEFENSE_FIT task and SEX labels (fitting replay), "
                                 "INNER_SELECTION labels (inner replay); assessment labels sealed")
     return c
+
+
+def p2_d0same(D: Data, L, T):
+    """Same-map D0 diagnostics (d0s__ units, built after selection): for each D1 target, the D0SAME release has the
+    IDENTICAL tokens and decisions of its D1 release (bitwise on every row) and decodes each token to the smoothed
+    OSF_DEFENSE_FIT mean teacher vector of that token (own recomputation); the token information is therefore
+    unchanged (I(S; tok) identical by construction)."""
+    tr = D.idx[FIT]
+    units = sorted(p_.name for p_ in UNITS.iterdir() if p_.is_dir() and p_.name.startswith("d0s__"))
+    if not units:
+        return pending("d0same", "no d0s__ unit yet")
+    out, bad = {}, []
+    for un in units:
+        k = int(un.split("__")[1][1:])
+        z = np.load(UNITS / un / "release.npz", allow_pickle=False)
+        rec = jload(UNITS / un / "record.json")
+        cid = rec.get("config") or rec.get("cid")
+        base = (cid or "")[:-len("|D0SAME")] if cid else None
+        f = []
+        if not base:
+            f.append("config missing")
+        else:
+            z1 = np.load(UNITS / lra_unit(k, base) / "release.npz", allow_pickle=False)
+            for x in ("tok1", "hard1", "tok2", "hard2"):
+                if not bitwise(np.asarray(z[x]), np.asarray(z1[x])):
+                    f.append(f"{x} differs from the D1 release {base}")
+            P = {1: T[(k, "U")]["p1"], 2: T[(k, "U")]["p2"]}
+            for i in (1, 2):
+                tok = np.asarray(z[f"tok{i}"], np.int64)
+                G = int(max(tok.max() + 1, int(z[f"alpha{i}"])))
+                n = np.bincount(tok[tr], minlength=G).astype(np.float64)
+                S = np.zeros((G, P[i].shape[1]))
+                np.add.at(S, tok[tr], P[i][tr])
+                cls = np.zeros(G, np.int64)
+                cls[tok] = np.asarray(z[f"hard{i}"], np.int64)
+                occ = n > 0
+                q0 = np.zeros_like(S)
+                q0[occ] = smooth(S[occ] / n[occ][:, None], cls[occ])
+                qr = np.asarray(z[f"q{i}"])
+                dq = float(np.max(np.abs(qr[occ[tok]] - q0[tok][occ[tok]]))) if occ[tok].any() else 0.0
+                if dq > 1e-12:
+                    f.append(f"r{i}: D0SAME q differs from the own smoothed mean teacher by {dq:.3g}")
+                if not (strict_argmax_ok(qr, z[f"hard{i}"]) and release_is_token_function(tok, qr)):
+                    f.append(f"r{i}: class preservation / token function")
+        out[un] = {"ok": not f, "config": cid, "failures": f[:6]}
+        if f:
+            bad.append(un)
+    return res("PASS" if not bad else "FAIL", units=len(out), failures=bad, unit_status=out)
+
+
+def p2_evaluation_lock(mine, rows):
+    """EVALUATION_LOCK (before any assessment label): pushed, one version, byte-identical on origin; first push before
+    every outer / assessment unit and every assessment-stage semaphore hold; bound selection hashes equal
+    run/selection.json and SELECTION.json; bound statuses / resolved roles / role aliases equal the own selection;
+    technical validity true with ENGINEERING_READY bound by hash; locks bound by hash; 37 endpoints, z, B, seed; the
+    scored list equals the own prompt-section-13 list."""
+    git_ok("fetch", "-q", "origin", BRANCH)
+    el = _lock_push("EVALUATION_LOCK")
+    out = {"lock": {k_: (iso(v) if isinstance(v, datetime) else v) for k_, v in el.items()}}
+    fails = []
+    if not (el["exists"] and el["on_origin_byte_identical"] and el["versions"] == 1 and el["first_push"]):
+        fails.append("EVALUATION_LOCK not pushed / not byte-identical / several versions")
+        return res("FAIL", failures=fails, **out)
+    L_ = jload(RES / "EVALUATION_LOCK.json")
+    push = el["first_push"]
+    late = [p_ for p_ in UNITS.iterdir() if p_.is_dir() and p_.name.split("__")[0] in ("outer", "asm", "ass", "out")]
+    out["assessment_units"] = len(late)
+    out["assessment_units_before_push"] = sorted(p_.name for p_ in late if utc(min(q.stat().st_mtime for q in
+                                                                              p_.iterdir())) < push)
+    holds = [e for e in jsonl(RUN / "SEMA_LOG.jsonl") if e.get("event") == "acquire" and
+             any(x in str(e.get("label", "")).lower() for x in ("assess", "outer", "infer"))]
+    out["assessment_holds"] = [(e["label"], e["at"]) for e in holds]
+    out["assessment_holds_before_push"] = [e["label"] for e in holds if parse_iso(e["at"]) < push]
+    if out["assessment_units_before_push"] or out["assessment_holds_before_push"]:
+        fails.append("an assessment unit or hold precedes the pushed EVALUATION_LOCK")
+    out["selection_sha_equal"] = {"run/selection.json": L_.get("selection_sha256") == sha_file(RUN / "selection.json"),
+                                  "SELECTION.json": L_.get("selection_public_sha256") == sha_file(RES / "SELECTION.json")}
+    if not all(out["selection_sha_equal"].values()):
+        fails.append("bound selection hashes differ")
+    own_res = mine["resolved"]
+    out["resolved_equal_own"] = {x: L_["resolved"].get(x) == own_res.get(x) for x in own_res}
+    if not all(out["resolved_equal_own"].values()):
+        fails.append("bound roles differ from the own selection")
+    for x in own_res:
+        a, b = mine["statuses"][x], (L_.get("statuses") or {}).get(x) or {}
+        for k_ in ("status", "config", "descriptive_config", "reason"):
+            if (a.get(k_) or None) != (b.get(k_) or None):
+                fails.append(f"{x}.{k_} bound {b.get(k_)!r} vs own {a.get(k_)!r}")
+    own_al = {frozenset(p_) for p_ in mine["role_aliases"]["exact_release_aliases"]}
+    if own_al != {frozenset(k_.split("==")) for k_ in (L_.get("role_aliases") or {})}:
+        fails.append("bound role aliases differ from the own aliases")
+    tv = L_.get("technical_validity") or {}
+    g = tv.get("engineering_gate") or {}
+    out["technical_validity"] = {"ok": tv.get("ok"), "gate": g.get("verdict"), "gate_ready": g.get("ready"),
+                                 "gate_sha_equal": g.get("sha256") == sha_file(RES / "ENGINEERING_GATE_RESULT.json")}
+    if not (tv.get("ok") is True and g.get("verdict") == "ENGINEERING_READY" and g.get("ready") is True and
+            out["technical_validity"]["gate_sha_equal"]):
+        fails.append("technical validity / engineering gate binding")
+    lk = L_.get("locks_sha256") or {}
+    out["locks_equal"] = {n_: lk.get(n_) == sha_file(RES / n_) for n_ in ("SOURCE_ADMISSION_LOCK.json",
+                                                                         "CORRECTNESS_LOCK.json", "SCIENCE_LOCK.json")}
+    if not all(out["locks_equal"].values()):
+        fails.append("bound lock hashes differ")
+    ep = L_.get("endpoints") or {}
+    out["endpoints_ok"] = (ep.get("primary") == [f"P{i:02d}" for i in range(1, 38)] and ep.get("z") == Z_LRA and
+                           ep.get("B") == B_BOOT and ep.get("boot_seed") == BOOT_SEED and L_.get("supplementary_z") ==
+                           NormalDist().inv_cdf(0.975))
+    if not out["endpoints_ok"]:
+        fails.append("endpoint family / z / B / bootstrap seed")
+    # own section-13 scoring list
+    st = mine["statuses"]
+    roles_ = {x: (v.get("config") or v.get("descriptive_config")) for x, v in st.items()}
+    d1p = [L_d1(f, l_) for l_ in LAMS for f in LCR_PRIV]
+    wp = [L_w(f, l_) for l_ in LAMS for f in LCR_PRIV]
+    bd1 = lra_pick_role(rows, d1p, True, ("T*",), st)
+    bw = lra_pick_role(rows, wp, True, ("T*",), st)
+    bd1c, bwc = bd1.get("config") or bd1.get("descriptive_config"), bw.get("config") or bw.get("descriptive_config")
+    own_list = set(v for v in roles_.values() if v)
+    own_list |= {"SRC|U", L_d0("CLASS"), L_d1("CLASS"), L_CTASK, "SRC|RAW-J_b0.3", "REF|F", "REF|F0", "REF|E"}
+    own_list |= {L_k(a) for a in LCR_K}
+    if bd1c:
+        own_list |= {bd1c, bd1c[:-3]}
+    if bwc:
+        own_list.add(bwc)
+    pc = roles_.get("P*")
+    for c_ in (pc, L_CTASK):                      # same-map D0 versions of P* (if a D1 release) and of C-TASK
+        if c_ and lra_arm(c_) in ("weighted", "constrained", "ctask"):
+            own_list.add(c_ + "|D0SAME")
+        elif c_ and c_.endswith("|D1"):
+            own_list.add(c_[:-3])
+    bound = set(L_.get("scored_labels") or [])
+    out["scored_list"] = {"own": sorted(own_list), "bound": sorted(bound), "missing_from_lock": sorted(own_list - bound),
+                          "extra_in_lock": sorted(bound - own_list), "best_d1_fixed_privacy": bd1c,
+                          "best_d1_status": bd1.get("status"), "best_weighted_privacy": bwc,
+                          "best_weighted_status": bw.get("status")}
+    if own_list != bound:
+        fails.append("scored list differs from the own section-13 list")
+    if (L_.get("decoder_ablation_pair") or [None, None]) != [bd1c, bd1c[:-3] if bd1c else None]:
+        fails.append("decoder-ablation pair differs from the own best D1 fixed-map privacy control / its D0")
+    return res("PASS" if not fails else "FAIL", failures=fails, **out)
+
+
+def phase2_supplement(report):
+    """Merge mode: re-run only the post-selection nodes (exposure, inner / selection, same-map D0, EVALUATION_LOCK)
+    into the existing PHASE_2 report."""
+    D = Data()
+    L = D.labels()
+    assert all((L[k_][D.mask[ASSESS]] == -1).all() for k_ in LABEL_KEYS), "assessment labels must stay sealed"
+    _, T = check_teachers_lra(D, L)
+    c = {}
+    c["P2_exposure_science_chronology"] = p2_chronology()
+    c["P2_inner_audits_and_selection"], rows, mine = p2_inner_and_selection(D, L, T)
+    c["P2_same_map_d0_diagnostics"] = p2_d0same(D, L, T)
+    c["P2_evaluation_lock"] = p2_evaluation_lock(mine, rows)
+    return c
+
+
+
+def merge_supplement(args, t0, c0, nodes_fn, label):
+    """Update the existing report with re-run nodes only (the other nodes keep their recorded run); every merge is
+    recorded with its verifier hash, time and compute."""
+    dest = Path(args.out) if args.out else OUT
+    report = jload(dest)
+    nodes = nodes_fn(report)
+    report["checks"].update(jsonable(nodes))
+    status = {k: (v.get("status") if isinstance(v, dict) else None) for k, v in report["checks"].items()}
+    counts_all, flagged = walk_flags(report["checks"])
+    top = {}
+    for s_ in status.values():
+        top[s_] = top.get(s_, 0) + 1
+    loaded = sorted(m for m in sys.modules if m.split(".")[0] in _FORBIDDEN_TOP)
+    if loaded or _BLOCKED:
+        raise RuntimeError("independence violated")
+    report["summary"].update({"status_by_check": status, "top_level_counts": top, "status_counts_all_nodes": counts_all,
+                              "flagged_fail_warn": flagged,
+                              "overall": worst(*[s_ for s_ in status.values() if s_ not in ("PENDING", "INFO")],
+                                               report["independence"]["status"])})
+    report["pending"] = sorted(k for k, v in status.items() if v == "PENDING")
+    report.setdefault("supplements", []).append(
+        {"label": label, "at": iso(datetime.now(timezone.utc)), "verifier_sha256": sha_file(Path(__file__)),
+         "nodes": sorted(nodes), "wall_s": round(time.time() - t0, 2), "cpu_s": round(time.process_time() - c0, 2),
+         "forbidden_modules_loaded": loaded, "assessment_labels_read": False})
+    report["phase"] = label
+    text = json.dumps(jsonable(report), indent=1, allow_nan=False)
+    scrub_check(text)
+    if not args.no_write:
+        tmp = dest.with_suffix(".json.tmp")
+        tmp.write_text(text + "\n")
+        tmp.replace(dest)
+    print(json.dumps({"label": label, "nodes": {k: v.get("status") for k, v in nodes.items() if isinstance(v, dict)},
+                      "overall": report["summary"]["overall"], "flagged": report["summary"]["flagged_fail_warn"][:10]},
+                     indent=1, default=str))
 
 
 PHASE0_ADMISSION = ("roles", "pins", "admitted_custody", "teachers", "d0_release_reencode", "loaders_seal_assessment",
@@ -14586,8 +14826,13 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--label", default=None, help="phase label written to the report (e.g. PHASE_0A)")
     ap.add_argument("--no-tests", action="store_true", help="PHASE_1: skip the external pytest run of study tests")
-    ap.add_argument("--part", type=int, default=1, choices=(1, 2), help="PHASE_2: 1 = pre-selection, 2 = + selection")
+    ap.add_argument("--part", type=int, default=1, choices=(1, 2, 3),
+                    help="PHASE_2: 1 = pre-selection, 2 = + selection, 3 = merge the same-map D0 and EVALUATION_LOCK checks")
+    ap.add_argument("--skip-part1", action="store_true", help="PHASE_2 dry runs only: skip the part-1 checks")
     args = ap.parse_args()
+    if args.phase == 2 and args.part == 3:
+        return merge_supplement(args, time.time(), time.process_time(), phase2_supplement,
+                                "PHASE_2_PART3_EVALUATION_LOCK")
     if args.phase >= 3:
         raise SystemExit("PHASE_%d is not enabled in this build: it waits for the lead's go" % args.phase)
     if args.phase >= 1:
@@ -14646,7 +14891,7 @@ def main():
         for k in PHASE1_LRA:
             checks[k] = pending(k, "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)")
     if args.phase >= 2:
-        checks.update(phase2(report, part=args.part))
+        checks.update(phase2(report, part=args.part, skip_part1=args.skip_part1))
     if args.phase < 2:
         for k in PHASE2_LRA:
             checks[k] = pending(k, "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)")
