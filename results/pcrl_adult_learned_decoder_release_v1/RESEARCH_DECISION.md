@@ -5,12 +5,18 @@
 
 ## Three simple answers
 
-1. **Did learning the probabilities improve Adult confidence on the SAME codes? No: it made held-out confidence
-   worse.**
+1. **Did learning the probabilities improve Adult confidence on the SAME codes?** Learning the probabilities did not
+   clearly improve confidence on the same codes (the registered decoder sentence).
+   - On this development assessment it made held-out confidence worse for the named maps.
+   - The learned decoder D1 (κ = 32, fitted on OSF_DEFENSE_FIT, the rows the frozen U heads were trained on) raised log
+     loss and Brier on all twelve named same-token contrasts. These contrasts use nominal 95% intervals, are
+     supplementary, and sit outside the 37-slot family.
    - On the fitting rows (OSF_DEFENSE_FIT), the learned decoder D1 lowered occupation log loss by about 0.026 nats on
      identical tokens. That is in-sample: the frozen U heads were trained on these rows, and D1 calibrates against them.
-   - On held-out rows it raised occupation log loss. Inner rows, mean over all 81 fixed maps × seeds: +0.014 nats. The
-     assessment's same-map contrasts, D1 − D0 (nominal 95%):
+   - On held-out rows it raised occupation log loss. On inner rows, the mean over the 27 fixed maps × 3 seeds (81
+     map-seed units) is +0.014 nats, and every unit is positive (+0.0001 to +0.022).
+   - The assessment's same-map contrasts, D1 − D0 (nominal 95%, z = 1.96, the same 1,999 draws; supplementary, not
+     primary slots):
 
      | Map | Occupation LL | Income LL | Brier |
      |---|---|---|---|
@@ -18,33 +24,48 @@
      | C-TASK | +0.0238 [0.0209, 0.0267] | | |
      | CLASS | +0.0010 [0.0006, 0.0014] | | |
 
-   - All twelve contrasts are positive, with lower bounds above 0.
+   - All twelve contrasts are positive, with nominal 95% lower bounds above 0.
+   - Scope: these three decoded maps, this decoder (κ = 32, fitted on teacher-trained rows) and this development
+     assessment.
    - The tokens are identical, so the information in these codes is unchanged; this is a utility result only.
 2. **Did any useful private release meet the original full criterion? No.**
-   - The strongest candidate, P\*, is the EXISTING label-blind mean-decoder JOINT λ0.1 map; no new construction.
-   - Against T\* (FINE-TASK) it lowers pair AUC by 0.0336 [0.0286, 0.0386], and 10 of 11 clauses pass.
+   - The nominated P\* is the EXISTING cbp JOINT λ0.1 map with its original mean-teacher decoder (D0); nothing was
+     refitted.
+   - It reads no true task label, but its partition was privacy-trained with SEX on OSF_DEFENSE_FIT, so it is not
+     label-blind.
+   - The learned decoder and the new search added no demonstrated benefit.
+   - The map was nominated by this study's selection rule (original eligibility without cbp's headroom buffer). That
+     rule was chosen after cbp, so the nomination is adaptive.
+   - Against T\* (FINE-TASK) it lowers pair AUC by 0.0336 [0.0286, 0.0386] (registered family-wise bound, z = 3.205,
+     on the registered attacker slate), and 10 of 11 clauses pass.
    - It fails only occupation log-loss preservation: excess over U 0.0081, upper bound 0.0121 > 0.01. That is
-     unresolved preservation (NOT_ESTABLISHED_PRECISION), not an established violation. It reproduces qpc's earlier
-     finding for the same map (0.0081, upper bound 0.0121).
+     unresolved preservation (NOT_ESTABLISHED_PRECISION), not an established violation.
+   - It matches qpc's earlier result for the same map on the same reused assessment rows: excess about 0.0081, upper
+     bound about 0.0121, pair-AUC reduction about 0.034 (prompt §1). That makes it a repeat measurement on
+     already-used rows, not independent evidence.
 3. **Did new constrained or paired joint search add anything beyond the strongest controls? No.**
    - No D1 release (0 of 57) and no constrained arm was ordinarily eligible on inner rows. N\* and J\* have no eligible
      nominee.
-   - Descriptively, the constrained fallbacks lower pair AUC a further ~0.02 below C\* (K-SEQ-21 0.7947 vs C\* SEQ-21
-     λ0.1 0.8157). But they violate occupation confidence outright: log-loss excess 0.048–0.061, MEASURED_VIOLATION.
-   - Paired joint ties single-move joint: K-JOINT-PAIR 0.7922 vs K-JOINT-SINGLE 0.7914.
+   - Descriptively (the fallbacks are ineligible; DESCRIPTIVE_ONLY):
+     - the N\* fallback K-SEQ-21 lowers pair AUC by 0.0209 [0.0167, 0.0252] below C\* (0.7947 vs 0.8157; P12);
+     - the J\* fallback K-JOINT-PAIR lowers it by 0.0234 [0.0191, 0.0278] below C_pair\* (P23).
+   - Both violate occupation confidence: log-loss excess 0.0478 (P18) and 0.0538 (P29), MEASURED_VIOLATION against
+     0.01. Across all five constrained arms the point excess is 0.048–0.061.
+   - Paired joint is descriptively indistinguishable from single-move joint (pair AUC 0.7922 vs 0.7914). Claim C was
+     not tested, because J\* had no eligible nominee.
 
 **Scope.**
 - A decoder-only utility change is not information removal.
 - A fixture result is not an Adult result.
 - An Adult development result is not confirmation.
-- A useful calibrated existing code would not be a newly invented algorithm. Here, the best release is an existing,
-  uncalibrated map.
+- A useful calibrated existing code is not a newly invented algorithm. Here the nominated P\* is an existing,
+  uncalibrated (D0), privacy-trained map, and it did not meet the full criterion.
 - Fewer leaking finite attackers is not a population privacy guarantee.
 
 | Item | Value |
 |---|---|
 | Branch | `research/pcrl-adult-learned-decoder-release-v1`, from the lcr tip 091afc2 (evidence 418e529) |
-| SOURCE_ADMISSION_LOCK | `3090d83e5` (committed 2026-10-07T00:11:31-04:00); the admission ran afterwards, at 04:11:40Z |
+| SOURCE_ADMISSION_LOCK | `3090d83e5` (committed 04:11:31Z, pushed 04:11:32Z); the admission ran afterwards, at 04:11:40Z |
 | CORRECTNESS_LOCK | `de4495f` (pushed 05:07:48Z); correctness stage 05:07:54–05:08:58Z: ENGINEERING_READY |
 | SCIENCE_LOCK | `15bb242` (pushed 05:22:30Z) |
 | EVALUATION_LOCK | `186afb6` (pushed 07:47:30Z) |
@@ -58,7 +79,7 @@
 | Correctness gate | 05:07–05:09Z | 4 pinned lcr fixture laws × 30 mapper units; 2,043 accepted states replayed from persisted traces; 12/12 checks → ENGINEERING_READY. Role E reproduced it independently. |
 | `d1` | 05:22:39–05:23:04Z | 81 fixed-map D1 decoder units: 26 per seed as registered, plus CLASS\|D1 (a registered addition) |
 | `ctask` | –05:23:24Z | 3 C-TASK fits, all feasible on the fitting budgets |
-| `fit` | 05:23:32–05:41:51Z | 72 weighted + 15 constrained mapping-pair fits, all FEASIBLE. 0 evaluation-ceiling hits; paired moves accepted 12/44/43 by seed. Every fit has a persisted trace. |
+| `fit` | 05:23:32–05:41:51Z | 72 weighted + 15 constrained mapping-pair fits, all FEASIBLE. The weighted controls had no enforced budgets, but all 72 met them in-sample. 0 evaluation-ceiling hits; paired moves accepted 12/44/43 by seed. Every fit has a persisted trace. |
 | `inner` | 05:42–07:15Z | 261 code and reference inner audits |
 | `inner_src` | –07:19Z | 6 composed source audits, over 84 codes per seed |
 | `controls` | 07:16–07:37Z | real-data controls (null, confidence, collision, XOR, rotation): all pass |
@@ -78,6 +99,9 @@
 | B | N\* (no eligible nominee; fallback K-SEQ-21 D1) vs C\* = D0 SEQ-21 λ0.1 | NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE | ineligible on inner (ORDINARY_UTILITY_FAILURE). Descriptive: P12 pair gain 0.0209 [0.0167, 0.0252] (precision); P17 income LL 0.0102 (point); P18 occupation LL 0.0478 (violation); P19 income Brier (precision); P20 occupation Brier 0.018 (violation) |
 | C | J\* (no eligible nominee; fallback K-JOINT-PAIR D1) vs C_pair\* = D0 SEQ-21 λ0.1 | NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE | ineligible on inner. Descriptive: P23 pair gain 0.0234 [0.0191, 0.0278] (precision); P28 income LL (point); P29 occupation LL 0.0538 (violation); P30 (precision); P31 occupation Brier (violation) |
 | Q | D0 DIRECT-TASK i8o64 | PASS | none: LL excess income 0.0008 / occupation 0.0030; Brier excess 0.0005 / 0.0017; all four upper bounds within limits |
+
+Q is the fixed original D0 DIRECT-TASK code. Its pass repeats the qpc and cbp outcome on the same reused rows; it is not
+evidence for learned decoders.
 
 Notes:
 - Inference uses z = 3.2048452050105634 (37 slots) on 1,999 paired exact-record-group bootstrap replicates.
@@ -109,19 +133,26 @@ constant accuracies are 0.7458 (income) and 0.2842 (occupation).
 ## 4. Attribution
 
 - **Calibrated old map vs new assignment search.**
-  - Learning the probabilities on unchanged maps worsened held-out confidence (answer 1). The calibrated old maps were
-    therefore never eligible.
-  - The label-supervised assignment search also overfit. C-TASK's map decoded with the old mean decoder has
-    occupation excess 0.0151, against 0.0031 for the label-blind FINE-TASK map. Adding D1 raises it to 0.0388.
-  - The best release is an old, uncalibrated, label-blind map.
+  - On unchanged maps, this learned decoder (κ = 32, fitted on teacher-trained rows) worsened held-out confidence on
+    this development assessment (answer 1). None of the 27 calibrated fixed maps was inner-eligible.
+  - The label-supervised assignment search also lost held-out confidence, consistent with overfitting to the fitting
+    rows. C-TASK's map decoded with the old mean decoder has occupation excess 0.0151, against 0.0031 for the
+    privacy-untrained FINE-TASK map. Adding D1 raises it to 0.0388.
+  - The nominated P\* is an old, uncalibrated (D0), privacy-trained map that reads no true task label. It did not meet
+    the full criterion.
 - **Constrained vs weighted.**
-  - Both fail held-out confidence: every D1 release is ineligible.
+  - Neither produced an inner-eligible release (0 of 57 D1 configurations), so claim B had no eligible nominee. This is
+    not a completed head-to-head loss.
   - The best weighted control (W-SEQ-21 λ0.01, D1) has pair AUC 0.8319 and occupation excess 0.040.
-  - The constrained arms reach lower pair AUC (0.79–0.81) at larger confidence costs (0.048–0.061).
-  - The hard fitting budgets were met in-sample on every seed. They did not transfer to held-out rows.
+  - The constrained arms reach lower pair AUC (0.79–0.81) at larger confidence costs (0.048–0.061, points).
+  - The hard fitting budgets were met in-sample on every seed; held out, they did not hold.
 - **Paired joint vs sequential and single-move.**
-  - K-JOINT-PAIR 0.7922 ≈ K-JOINT-SINGLE 0.7914 ≈ K-SEQ-21 0.7947 ≈ K-SEQ-12 0.7963. There is no joint-specific gain.
-  - The pair step accepted 99 paired moves (the verifier replayed every one); they changed nothing material.
+  - K-JOINT-PAIR 0.7922 ≈ K-JOINT-SINGLE 0.7914 ≈ K-SEQ-21 0.7947 ≈ K-SEQ-12 0.7963. No joint-specific gain was
+    observed; this is descriptive, since claim C had no eligible nominee.
+  - The pair step accepted 99 paired moves (the verifier replayed every one). They did not lower pair AUC materially
+    (descriptive).
+  - Every mapper result is a heuristic local optimum of its registered search. No stage stopped at the evaluation
+    ceiling; 418 search stages stopped at the 5-sweep cap (OPTIMIZATION_RECEIPTS.json; traces).
 - **Decision floor (DECISION_FLOOR_AND_FEASIBILITY.csv).**
   - CLASS is far from eligible under either decoder: inner occupation LL excess about +0.09, fitting slack about −0.13.
   - So CLASS did not sit at T\*, and claim A was a genuine comparison against FINE-TASK.
@@ -130,13 +161,16 @@ constant accuracies are 0.7458 (income) and 0.2842 (occupation).
 
 - **Favourable.**
   - The existing D0 JOINT λ0.1 map cuts pair AUC by 0.0336 [0.0286, 0.0386] below the strongest eligible task-only
-    release.
+    release, on the registered slate.
   - It keeps decisions identical, and income LL/Brier and occupation Brier within bounds.
   - It misses only the occupation LL upper bound (0.0121 vs 0.01).
+  - This is a repeat measurement on rows already used by qpc and cbp, with an adaptively chosen selection rule.
 - **Adverse.**
-  - Learning the probabilities, the study's central mechanism, made held-out confidence significantly worse on every
-    named same-token contrast. On C-TASK: +0.024 [0.021, 0.027] nats occupation.
-  - Every new learned or constrained release was ineligible for that reason.
+  - On this development assessment, the learned decoder (κ = 32, fitted on the rows the frozen heads were trained on)
+    made held-out confidence worse on every named same-token contrast. It was the study's central mechanism. Nominal
+    95% intervals exclude zero (supplementary). On C-TASK: +0.024 [0.021, 0.027] nats occupation.
+  - Every learned-decoder release (57 configurations) was inner-ineligible on confidence. For the new maps the
+    assignment search contributed too: C-TASK with the D0 decoder already had occupation excess 0.015.
 
 ## 6. Predictions (PREDICTIONS.json, registered 04:15:14Z), scored
 
@@ -159,14 +193,20 @@ constant accuracies are 0.7458 (income) and 0.2842 (occupation).
   refused with exit 2.
 - **Commands.** QUICKSTART.md lists only executed commands.
 - **Release status.**
-  - P\* is a usable development-benchmark release that keeps decisions identical and most confidence.
-  - It does NOT meet the full criterion, because occupation log-loss preservation is unresolved.
+  - P\* (existing D0 JOINT λ0.1) is the inner-nominated privacy release. It keeps decisions identical and meets every
+    assessment clause except occupation log-loss preservation (P07: excess 0.0081, upper bound 0.0121 > 0.01,
+    unresolved).
   - It is an existing map (qpc/cbp lineage), not a new construction.
 
 ## 8. Verification, cost, custody
 
-- **Independent verifier** (role E; INDEPENDENT_VERIFICATION.json): phases 0, 1 and 2 PASS; phase 3 is recorded
-  there.
+- **Independent verifier** (role E; INDEPENDENT_VERIFICATION.json): phases 0, 1 and 2 PASS. That covers:
+  - all 81 + 90 decoder units certified;
+  - a trace replay of 42 of the 90 mapping units (every K-\* and C-TASK unit, plus the W-\* units at λ 0.025 and
+    0.08): 185,057 states, including all 99 paired moves;
+  - the selection and EVALUATION_LOCK, reproduced.
+
+  Phase 3 (outer units, endpoints, tables, figures, attacker refits, deployment and restore parity) is VERIFIER_PHASE3_STATUS.
 - **Tests:** 284 pass before the locks (VALIDATION.md).
 - **Compute:** about 6.8 CPU-h at the inference point, with at most 2 concurrent processes; $0 cloud. Final figures
   are in COST_AND_CLOSEOUT.md.
@@ -174,10 +214,13 @@ constant accuracies are 0.7458 (income) and 0.2842 (occupation).
 
 ## 9. Decision
 
-- **Close this recipe.** Per prompt §17, a valid full loss means closing this exact decoder/constrained recipe. No
-  further small λ or κ adjustment is recommended on this assessment.
-- **Why it lost.** The learned decoder and label-supervised assignments overfit the in-sample fitting rows, because the
-  frozen heads were trained there. Held-out confidence got worse, not better.
+- **Close this recipe.** No method claim passed: A was NOT_ESTABLISHED on precision, and B and C had no eligible
+  nominee. Per prompt §17 this closes this exact decoder/constrained recipe (D1 with κ = 32, these budgets,
+  neighbourhoods and λ grid). No further small λ or κ adjustment is recommended on this assessment.
+- **Why it lost (interpretation, not separately tested).** The pattern is lower loss on the fitting rows and higher
+  loss on held-out rows. That is consistent with the learned decoder and the label-supervised assignments overfitting
+  OSF_DEFENSE_FIT, on which the frozen heads were also trained. It is specific to this decoder (κ = 32), these maps and
+  this development assessment. It does not show that calibration cannot help.
 - **If calibration is revisited:** it would need held-out calibration rows the heads never saw. That is a new design
   question for a new registration, not this one.
 - **Confirmation.** No confirmation population is spent: no development claim passed.

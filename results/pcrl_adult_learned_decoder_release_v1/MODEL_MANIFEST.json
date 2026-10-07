@@ -5,7 +5,7 @@
   {
    "role": "U baseline",
    "status": "admitted frozen teacher (continuous; no protection)",
-   "training_label_use": "historical head training (not refitted by lra)",
+   "training_label_use": "encoders and deployed heads fitted historically on OSF_DEFENSE_FIT with true task labels (osf protocol), head selection on HEAD_VALIDATION; no SEX; not refitted by lra",
    "seeds": {
     "0": {
      "unit": "<PRIVATE_CACHE>/lra_v1/admitted/rel__s0__U",
@@ -19,17 +19,21 @@
      "unit": "<PRIVATE_CACHE>/lra_v1/admitted/rel__s2__U",
      "model_pt_sha256": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
     }
-   }
+   },
+   "fitting_and_assessment_status": "admitted (osf/cbp lineage); assessed by lra as SRC|U (EVALUATION_LOCK 186afb6)",
+   "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
+   "teacher_binding": "this package IS the teacher: model.pt and heads, sha256-bound in ADMISSION_RECEIPT.json",
+   "restore": "RESTORE_INDEX.json (own forward pass from the same-device copy, bitwise)"
   },
   {
    "role": "Q",
    "config": "U|DIRECT-TASK|i8o64",
    "status": "NOMINEE; Q PASS (four confidence bounds)",
-   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "training_label_use": "D0 mean-teacher task-only code (qpc lineage): reads no label; admitted, not refitted",
    "fitting_and_assessment_status": "admitted; assessed by lra (EVALUATION_LOCK 186afb6)",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + policy re-encode + deployment from the same-device copy (BOUND, bitwise)",
    "seeds": {
     "0": {
      "unit": "pol__s0__U_DIRECT-TASK_i8o64",
@@ -60,12 +64,12 @@
   {
    "role": "P*",
    "config": "U|JOINT|i8o64|l0.1",
-   "status": "NOMINEE (existing D0 map); claim A NOT_ESTABLISHED: occupation LL upper bound 0.0121 > 0.01; NOT a criterion-meeting release",
-   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "status": "NOMINEE (existing D0 map); claim A NOT_ESTABLISHED: occupation LL upper bound 0.0121 > 0.01; NOT a criterion-meeting release; existing construction, nominated by this study's selection rule chosen after cbp (adaptive); matches qpc's earlier result for the same map on the same rows",
+   "training_label_use": "D0 privacy map (cbp lineage): partition privacy-trained with SEX on OSF_DEFENSE_FIT; reads no true task label; admitted, not refitted",
    "fitting_and_assessment_status": "admitted; inner-selected; assessed by lra",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + policy re-encode + deployment from the same-device copy (BOUND, bitwise)",
    "seeds": {
     "0": {
      "unit": "pol__s0__U_JOINT_i8o64_l0.1",
@@ -96,12 +100,12 @@
   {
    "role": "constrained candidate (N* descriptive fallback)",
    "config": "U|K-SEQ-21|i8o64|D1",
-   "status": "DESCRIPTIVE_FALLBACK: NO_ELIGIBLE_NOMINEE (ORDINARY_UTILITY_FAILURE); held-out occupation LL violation 0.048",
-   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "status": "DESCRIPTIVE_FALLBACK: NO_ELIGIBLE_NOMINEE (ORDINARY_UTILITY_FAILURE); assessment occupation LL excess 0.0478, MEASURED_VIOLATION (P18, bound [0.040, 0.055] vs 0.01)",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior) and the fitting budgets; SEX enters the constrained partition search and the local caps I_i(C-TASK); D1 is fitted on the rows the U heads were trained on (in-sample calibration); neither labels nor SEX are deployment inputs",
    "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed descriptively",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + D1 decoder re-certification (bitwise re-solve; statistics recomputed from the copy) + release re-encode; CLI deployment from the copy bitwise (DEPLOYMENT_RECEIPT.json) where tested",
    "seeds": {
     "0": {
      "unit": "new__s0__U_K-SEQ-21_i8o64_D1",
@@ -132,12 +136,12 @@
   {
    "role": "decoder-only baseline (D1 side of the registered ablation pair)",
    "config": "U|JOINT|i8o64|l0.01|D1",
-   "status": "FIXED diagnostic: same tokens as D0 JOINT l0.01; held-out confidence worse (+0.010 occupation LL)",
-   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "status": "FIXED diagnostic: same tokens as D0 JOINT l0.01; held-out confidence worse on this development assessment (+0.010 [0.008, 0.012] occupation LL, nominal 95%; this decoder, kappa=32, fitted on teacher-trained rows)",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior) on the UNCHANGED admitted cbp JOINT lambda 0.01 partition (privacy-trained with SEX by cbp; no lra partition search, no local cap); D1 is fitted on the rows the U heads were trained on; neither labels nor SEX are deployment inputs",
    "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + D1 decoder re-certification (bitwise re-solve; statistics recomputed from the copy) + release re-encode; CLI deployment from the copy bitwise (DEPLOYMENT_RECEIPT.json) where tested",
    "seeds": {
     "0": {
      "unit": "dec__s0__U_JOINT_i8o64_l0.01_D1",
@@ -169,11 +173,11 @@
    "role": "decoder-only baseline (D0 side)",
    "config": "U|JOINT|i8o64|l0.01",
    "status": "FIXED diagnostic (admitted D0)",
-   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "training_label_use": "D0 privacy map (cbp lineage): partition privacy-trained with SEX on OSF_DEFENSE_FIT; reads no true task label; admitted, not refitted",
    "fitting_and_assessment_status": "admitted; assessed",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + policy re-encode + deployment from the same-device copy (BOUND, bitwise)",
    "seeds": {
     "0": {
      "unit": "pol__s0__U_JOINT_i8o64_l0.01",
@@ -205,11 +209,11 @@
    "role": "sequential winner (C* = C_pair*)",
    "config": "U|SEQ-21|i8o64|l0.1",
    "status": "NOMINEE as C* and C_pair* (existing D0 map)",
-   "training_label_use": "D0 mean-teacher codebook from the qpc/cbp lineage: label-blind task maps; privacy maps read SEX on OSF_DEFENSE_FIT; no true task label (admitted, not refitted)",
+   "training_label_use": "D0 privacy map (cbp lineage): partition privacy-trained with SEX on OSF_DEFENSE_FIT; reads no true task label; admitted, not refitted",
    "fitting_and_assessment_status": "admitted; inner-selected; assessed",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + policy re-encode + deployment from the same-device copy (BOUND, bitwise)",
    "seeds": {
     "0": {
      "unit": "pol__s0__U_SEQ-21_i8o64_l0.1",
@@ -240,12 +244,12 @@
   {
    "role": "supervised task map with learned decoder (C-TASK)",
    "config": "U|C-TASK|i8o64|D1",
-   "status": "diagnostic (ineligible; held-out occupation LL +0.024 vs its same-map D0)",
-   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior); SEX enters the partition search and local caps; neither is a deployment input",
+   "status": "diagnostic (ineligible); held-out occupation LL +0.024 [0.021, 0.027] vs its same-map D0 on this development assessment (nominal 95%; this decoder, kappa=32, fitted on teacher-trained rows)",
+   "training_label_use": "NEW in lra: true task labels on OSF_DEFENSE_FIT enter the D1 decoder (kappa=32 teacher prior) and the supervised assignment search; no SEX enters the C-TASK search (privacy-untrained; SEX is used only afterwards to record I_i(C-TASK) as the constrained arms' local caps); D1 is fitted on the rows the U heads were trained on; neither labels nor SEX are deployment inputs",
    "fitting_and_assessment_status": "fitted under SCIENCE_LOCK; assessed",
    "allowed_schema": "exactly the 83 permitted columns in pinned order (schema.json beside the deploy input)",
    "teacher_binding": "U teacher rel__s{k}__U (model.pt / heads hash-bound in policy.json)",
-   "restore": "RESTORE_INDEX.json (from the same-device copy; teacher forward + policy re-encode + decoder re-solve)",
+   "restore": "RESTORE_INDEX.json: teacher forward + D1 decoder re-certification (bitwise re-solve; statistics recomputed from the copy) + release re-encode; CLI deployment from the copy bitwise (DEPLOYMENT_RECEIPT.json) where tested",
    "seeds": {
     "0": {
      "unit": "new__s0__U_C-TASK_i8o64_D1",
