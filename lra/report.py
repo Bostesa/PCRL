@@ -160,6 +160,143 @@ PARTS = {"fit": lambda: (_write_csv("DECODER_ONLY_ABLATION.csv", decoder_only_ab
          "work": lambda: _write_json("ACTUAL_WORK_ACCOUNTING.json", actual_work_accounting())}
 
 
+# ------------------------------------------------------------------ inner-row tables and figures (after select)
+def _inner_rows():
+    rows = list(csv.DictReader(open(PKG / "INNER_SELECTION_TABLE.csv")))
+    by = {}
+    for r in rows:
+        by.setdefault(r["config"], {})[int(r["seed"])] = r
+    return by
+
+
+def _f(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def decoder_utility_ablation_inner():
+    """Same tokens, D0 vs D1: fitting-row losses (dec__ records) and inner-row losses (INNER_SELECTION_TABLE), every
+    fixed map and seed; roles named by the inner selection are marked (assessment contrasts are added by 'assess')."""
+    by = _inner_rows()
+    sel = json.loads((R.RUN / "selection.json").read_text())
+    named = {p["d1"]: p["name"] for p in sel["diagnostics"]["same_map_decoder_pairs"]}
+    out = []
+    for cid in R.d1_fixed_ids():
+        d0 = cid[:-3]
+        for k in R.SEEDS:
+            r = _rec(R.unit_for(k, cid))
+            a1, a0 = by.get(cid, {}).get(k, {}), by.get(d0, {}).get(k, {})
+            row = {"d1_config": cid, "d0_config": d0, "seed": k, "named_pair": named.get(cid, ""),
+                   "tokens_bitwise_equal": r["tokens_bitwise_equal_d0"] if r else None,
+                   "exposure": "fit = OSF_DEFENSE_FIT (in-sample for the U heads and for D1); inner = INNER_SELECTION (held out)"}
+            for i, t in (("1", "income"), ("2", "occupation")):
+                f = r["fitting"][i] if r else {}
+                row.update({f"fit_dL_{t}": (f["L_D1"] - f["L_D0"]) if f else None,
+                            f"fit_dB_{t}": (f["B_D1"] - f["B_D0"]) if f else None,
+                            f"inner_dL_{t}": (_f(a1.get(f"ll_{t}")) - _f(a0.get(f"ll_{t}"))) if a1 and a0 else None,
+                            f"inner_dB_{t}": (_f(a1.get(f"brier_{t}")) - _f(a0.get(f"brier_{t}"))) if a1 and a0 else None,
+                            f"inner_ll_excess_{t}_D0": _f(a0.get(f"ll_excess_{t}")),
+                            f"inner_ll_excess_{t}_D1": _f(a1.get(f"ll_excess_{t}"))})
+            row.update({"inner_pair_auc_D0": _f(a0.get("auc_pair")), "inner_pair_auc_D1": _f(a1.get("auc_pair")),
+                        "inner_ordinary_D0": a0.get("ordinary_seed"), "inner_ordinary_D1": a1.get("ordinary_seed")})
+            out.append(row)
+    return out
+
+
+def decision_floor_and_feasibility():
+    """CLASS (decisions alone) under D0 and D1: fitting-budget feasibility, inner utility eligibility and MEASURED inner
+    attacks. Measured AUCs are finite-attacker scores, never an MI guarantee; the fitted plug-in I12 is reported
+    separately (fitting rows)."""
+    by = _inner_rows()
+    out = []
+    for cid in (R.d0_id("CLASS"), R.CLASS_D1):
+        for k in R.SEEDS:
+            a = by.get(cid, {}).get(k, {})
+            r = _rec(R.unit_for(k, R.CLASS_D1))
+            row = {"config": cid, "decoder": "D1" if cid.endswith("|D1") else "D0", "seed": k,
+                   "fitted_I12_plugin_fit_rows": r["I12_fit"] if r else None}
+            for i, t in (("1", "income"), ("2", "occupation")):
+                f = r["fitting"][i] if r else {}
+                L, B = (f.get("L_D1"), f.get("B_D1")) if row["decoder"] == "D1" else (f.get("L_D0"), f.get("B_D0"))
+                row.update({f"fit_L_{t}_slack": (f["L_U"] + 0.005 - L) if f else None,
+                            f"fit_B_{t}_slack": (f["B_U"] + 0.003 - B) if f else None,
+                            f"inner_ll_excess_{t}": _f(a.get(f"ll_excess_{t}")),
+                            f"inner_brier_excess_{t}": _f(a.get(f"brier_excess_{t}")),
+                            f"inner_acc_{t}": _f(a.get(f"acc_{t}"))})
+            row.update({"inner_auc_v1": _f(a.get("auc_v1")), "inner_auc_v2": _f(a.get("auc_v2")),
+                        "inner_auc_pair": _f(a.get("auc_pair")), "inner_ordinary_seed": a.get("ordinary_seed"),
+                        "note": "decision disclosure floor: every class-preserving release has fitted I12 >= this CLASS value; "
+                                "measured AUCs are finite-attacker scores, not MI bounds"})
+            out.append(row)
+    return out
+
+
+def figures_inner():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    FIG.mkdir(exist_ok=True)
+    by = _inner_rows()
+    pts = []
+    for c, seeds in by.items():
+        v = list(seeds.values())
+        p = R.parse_id(c)
+        pts.append({"c": c, "arm": p.get("arm", p["kind"]), "dec": p.get("decoder", "-"),
+                    "pair": sum(_f(x["auc_pair"]) for x in v) / len(v), "v1": sum(_f(x["auc_v1"]) for x in v) / len(v),
+                    "v2": sum(_f(x["auc_v2"]) for x in v) / len(v),
+                    "llx": max(_f(x["ll_excess_occupation"]) for x in v),
+                    "ok": all(x["ordinary_seed"] == "True" for x in v),
+                    "states": sum(_f(x["token_states"]) or 0 for x in v) / len(v) if all(_f(x["token_states"]) is not None for x in v) else None})
+    made = {}
+    fig, ax = plt.subplots(figsize=(8, 5.5))
+    colors = {"d0": "tab:gray", "d1_fixed": "tab:blue", "ctask": "tab:green", "weighted": "tab:orange", "constrained": "tab:red",
+              "source": "k", "reference": "tab:purple"}
+    for a, col in colors.items():
+        q = [x for x in pts if x["arm"] == a]
+        if q:
+            ax.scatter([x["llx"] for x in q], [x["pair"] for x in q], c=col, s=[40 if x["ok"] else 14 for x in q],
+                       marker="o", alpha=0.75, label=a, edgecolors=["k" if x["ok"] else "none" for x in q])
+    ax.axvline(0.01, ls="--", c="k", lw=0.8)
+    ax.text(0.0102, ax.get_ylim()[0] + 0.005, "original inner LL limit (U + 0.01)", fontsize=7)
+    ax.set_xlabel("occupation inner log-loss excess over U (worst seed)")
+    ax.set_ylabel("mean inner pair AUC (complete interface)")
+    ax.set_title("Inner trade-off (large outlined markers = ordinarily eligible on every seed)", fontsize=9)
+    ax.legend(fontsize=7)
+    fig.tight_layout(); fig.savefig(FIG / "fig1_inner_tradeoff.png", dpi=130); plt.close(fig)
+    made["fig1_inner_tradeoff.png"] = "inner trade-off with the original utility limit"
+    fig, ax = plt.subplots(figsize=(7, 5))
+    q = [x for x in pts if x["arm"] not in ("source", "reference")]
+    ax.scatter([x["v1"] for x in q], [x["pair"] for x in q], s=12, label="recipient 1 (income) vs pair", alpha=0.7)
+    ax.scatter([x["v2"] for x in q], [x["pair"] for x in q], s=12, label="recipient 2 (occupation) vs pair", alpha=0.7)
+    ax.set_xlabel("individual inner AUC"); ax.set_ylabel("pair inner AUC"); ax.legend(fontsize=7)
+    ax.set_title("Individual and pair recovery (inner, complete interface)", fontsize=9)
+    fig.tight_layout(); fig.savefig(FIG / "fig4_recovery_inner.png", dpi=130); plt.close(fig)
+    made["fig4_recovery_inner.png"] = "individual/pair recovery on inner rows"
+    fig, ax = plt.subplots(figsize=(7, 5))
+    q = [x for x in pts if x["states"] is not None]
+    ax.scatter([x["states"] for x in q], [x["pair"] for x in q], s=12, c=[colors.get(x["arm"], "k") for x in q], alpha=0.7)
+    ax.set_xscale("log"); ax.set_xlabel("actual total token states (mean over seeds)"); ax.set_ylabel("mean inner pair AUC")
+    ax.set_title("Actual token/support counts", fontsize=9)
+    fig.tight_layout(); fig.savefig(FIG / "fig5_token_counts.png", dpi=130); plt.close(fig)
+    made["fig5_token_counts.png"] = "actual token/support counts"
+    return made
+
+
+def _part_inner():
+    _write_csv("DECODER_UTILITY_ABLATION.csv", decoder_utility_ablation_inner())
+    _write_csv("DECISION_FLOOR_AND_FEASIBILITY.csv", decision_floor_and_feasibility())
+    made = figures_inner()
+    idx = FIG / "FIGURES.json"
+    cur = json.loads(idx.read_text()) if idx.exists() else {"schema": "lra-figures-v1", "made": {}}
+    cur["made"].update(made)
+    idx.write_text(json.dumps(cur, indent=1) + "\n")
+
+
+PARTS["inner"] = _part_inner
+
+
 if __name__ == "__main__":
     want = sys.argv[1:] or ["all"]
     for p in (PARTS if want == ["all"] else want):
