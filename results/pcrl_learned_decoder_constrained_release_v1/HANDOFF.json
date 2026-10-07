@@ -1,0 +1,100 @@
+{
+ "schema": "lcr-handoff-v1",
+ "created_utc": "2026-10-07T02:41:50Z",
+ "branch": "research/pcrl-learned-decoder-constrained-release-v1",
+ "evidence_commit": "418e529c785cb96678ea5c6391fd8534579484e7",
+ "remote_verified_full_sha": "418e529c785cb96678ea5c6391fd8534579484e7",
+ "source_pins": {
+  "cbp_tip": "7f3ec67b2ecd86d474e2ff27167091af9923f572",
+  "qpc_evidence": "9dd06da",
+  "qpc_tip": "d0c8a45"
+ },
+ "locks": {
+  "SOURCE_ADMISSION_LOCK": "4a91947",
+  "FIXTURE_LOCK": "9ac4cb7",
+  "AMENDMENT_A1_FIXTURE_C5_SCOPE": "c9a7150",
+  "SCIENCE_LOCK": "not written (gate failed)",
+  "EVALUATION_LOCK": "not written (gate failed)"
+ },
+ "label": "MECHANISM_GATE_NOT_MET",
+ "gate": {
+  "verdict": "GATE_NOT_MET",
+  "reasons": [
+   "NO_FIXTURE_TRIGGERED"
+  ],
+  "evidence_commit": "18e41ab",
+  "per_fixture": {
+   "F1_CALIBRATED_NULL": {
+    "T_star": null,
+    "T_star_I12": null,
+    "reason": "NO_FEASIBLE_TASK_ONLY",
+    "checks_pass": true
+   },
+   "F2_MISCALIBRATED": {
+    "T_star": "U|CLASS|i1o1|D1",
+    "T_star_I12": 0.0,
+    "reason": "not nontrivial (I12(T*) = 0 < 0.01)",
+    "checks_pass": true
+   },
+   "F3_COMPLEMENTARY_XOR": {
+    "T_star": "U|CLASS|i1o1|D1",
+    "T_star_I12": 0.0,
+    "reason": "not nontrivial (I12(T*) = 0 < 0.01)",
+    "checks_pass": true
+   },
+   "F4_REDUNDANT": {
+    "T_star": "U|CLASS|i1o1|D1",
+    "T_star_I12": 0.0,
+    "reason": "not nontrivial (I12(T*) = 0 < 0.01)",
+    "checks_pass": true
+   }
+  },
+  "cause": "structural, registered before the stage (PREDICTIONS LP1-U1, PROTOCOL section 9): every class-preserving release determines (c1, c2), so I12(R) >= I12(CLASS|D1); in all four laws I12(CLASS|D1) = 0 and CLASS|D1 is budget-feasible on F2-F4; F1 has no feasible task-only map; laws deliberately not amended"
+ },
+ "claim_statuses": {
+  "A": "NOT_RUN",
+  "B": "NOT_RUN",
+  "C": "NOT_RUN",
+  "Q": "NOT_RUN"
+ },
+ "adult_numbers": "none produced; any Adult number quoted (cbp decision-only pair AUC 0.739) is cbp's and labelled as such",
+ "strongest_favourable": "fixture-scope engineering: C1-C7 pass on all fixtures; on the miscalibrated fixture D1 lowers log loss 0.033-0.083 nats on identical tokens (MI bitwise unchanged) and makes 27/27 old maps budget-feasible vs 0/27 under D0; 228 D1 decoders certified; constrained arms EXHAUSTIVE_OPTIMAL on F2-F4. UNREGISTERED post-hoc: at equal zero pair MI, decoded privacy maps keep 0.042 (F2) / 0.004 (F3) nats more task utility than the decision-only release",
+ "strongest_adverse": "the registered gate was unattainable on the registered fixture bank (design defect identified before the stage); original forecast LP1 0.85 missed; no Adult evidence of any kind; pre-lock oracle run disclosed; A1 needed for a spurious check failure (attempt 1 kept)",
+ "decoder_vs_mapping_attribution": "fixture-only and UNREGISTERED: on F2 the decoded OLD JOINT map is within 0.0006 nats of the best constrained release at equal leakage; on F3 they tie; i.e. the utility comes from the decoder, not the new assignment search. No Adult attribution exists.",
+ "missing_coverage": [
+  "every Adult stage (d1, ctask, fit, inner, controls, select, evaluation lock, assess, infer)",
+  "Adult decoder-only ablation",
+  "Adult D1 deployment (D1 path synthetic-only)",
+  "14 selection-stack review findings not applied (code never executed)"
+ ],
+ "custody": {
+  "status": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING",
+  "copy": "<PRIVATE_CACHE>/lcr_v1_local_copy_20261007",
+  "files": 754,
+  "off_device": "PENDING (drive absent)",
+  "cbp_custody": "PENDING (would open osf assessment rows; owner's decision)"
+ },
+ "verification": {
+  "phase": "PHASE_3",
+  "summary": "WARN"
+ },
+ "compute": {
+  "cpu_h_semaphore_all_roles": 1.687,
+  "cloud_usd": 0
+ },
+ "closed_utc": "2026-10-07T02:41:50Z",
+ "decision_file": "results/pcrl_learned_decoder_constrained_release_v1/RESEARCH_DECISION.md",
+ "complete": true,
+ "from_role": "lead (A)",
+ "to_role": "next owner",
+ "shared_handoffs": [
+  "<SHARED_EVAL>/TO_CLAIMS_LEARNED_DECODER_CONSTRAINED_RELEASE.json",
+  "<SHARED_EVAL>/TO_MANUSCRIPT_LEARNED_DECODER_CONSTRAINED_RELEASE.json"
+ ],
+ "pending": [
+  "off-device lcr backup when a drive is mounted (QUICKSTART section 6)",
+  "cbp custody (owner decision; opens osf assessment rows)",
+  "selection-stack review findings must be applied before any future use of select/infer/eval_lock"
+ ],
+ "next_study_requirement": "a NEW registered study with a new fixture bank written before any algorithm runs, with at least one fixture whose decision-only release is budget-infeasible or whose decisions carry SEX information; it must state up front whether equal-leakage utility gains count"
+}
