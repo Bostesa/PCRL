@@ -33,9 +33,13 @@ The final figures are recomputed at closeout from SEMA_LOG.jsonl (HANDOFF.json `
 - **Worktree.** It is left clean. Private outputs live only under `<PRIVATE_CACHE>/lcr_v1/`. Review-only scratch tests
   were moved out of the tree into the private store; nothing was deleted.
 - **Custody.**
-  - Versioned same-device copy `<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/` of the store as of 01:49Z, verified
-    uncached and restored from (BACKUP_VERIFICATION.json, RESTORE_INDEX.json). Refreshed at closeout: see
-    BACKUP_VERIFICATION.json for the refresh record.
+  - Versioned same-device copy `<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/`.
+    - Taken at 01:49Z with 731 files, verified uncached and restored from.
+    - Refreshed at 02:28:12Z: 23 new files and 1 grown ledger; 754/754 read back uncached; nothing deleted; the previous
+      SHA256SUMS is kept (BACKUP_VERIFICATION.json `refreshes`, RESTORE_INDEX.json).
+    - Restore evidence was not stale.
+    - Private writes after the refresh are not in the copy: the semaphore log lines of the refresh itself and of role
+      E's final verification run.
   - Status: LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING. The off-device drive was absent. Pending
     command: QUICKSTART.md §6.
 - **cbp custody: PENDING** (provenance/cbp_custody/STATUS.json). It carries the pending qpc, dpc, osf and smf

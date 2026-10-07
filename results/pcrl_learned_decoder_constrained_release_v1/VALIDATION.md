@@ -155,9 +155,10 @@ verify calls).
 - **Custody.** `shasum -c` gives 731/731 OK. E restored from the copy alone, and the teacher and Q re-encode are
   bitwise. STATUS.json is PENDING with osf_assessment_opened false.
 - **Budget.** At most 2 concurrent holds; 1.61 CPU-h measured across roles at E's run.
-- **WARN 1 (custody).** The review scratch tests, moved into the private store after the 01:49Z copy, were not in the
-  copy. They now sit at `<PRIVATE_CACHE>/lcr_v1/run/review_scratch/`. The closeout refresh adds them
-  (BACKUP_VERIFICATION.json).
+- **WARN 1 (custody), resolved afterwards.** The review scratch tests, moved into the private store after the 01:49Z
+  copy, were not in it. Role F's refresh at 02:28:12Z added them, now at `<PRIVATE_CACHE>/lcr_v1/run/review_scratch/`,
+  together with the deploy test output and the grown ledger. The copy holds 754 files, 754/754 OK. The final
+  verification run re-checks this (below).
 - **WARN 2 (documents).** E checked 58 claims and found four minor mismatches, all corrected:
   - the lock push time (01:38:50Z, not 01:38:38Z);
   - "about 0.0006" (0.000616);

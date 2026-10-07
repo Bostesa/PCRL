@@ -93,9 +93,10 @@ env $TENV <python> -m lcr.sema --label F:closeout -- env $TENV <python> -m lcr.c
 
 **Tested.**
 - `status`: the drive is absent, and the installer image is skipped by name.
-- `all`: a versioned same-device copy of 731 files, verified uncached and restored from. The U and RAW-J teachers,
+- `all`: a versioned same-device copy of 731 files (01:49Z), verified uncached and restored from. The U and RAW-J teachers,
   the Q release and the Q deployment are all bitwise. Status: LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING.
-- `refresh`: brings that copy up to date at closeout (BACKUP_VERIFICATION.json).
+- `refresh`: run at 02:28:12Z. It added 23 new files and re-copied 1 grown ledger, so the copy holds 754 files, all read back
+  uncached. It deleted nothing and kept the previous SHA256SUMS (BACKUP_VERIFICATION.json `refreshes`).
 - Off-device, when a drive is mounted:
   `lcr.closeout backup --dest <DRIVE_ROOT> --targets <PRIVATE_CACHE>/lcr_v1/run/closeout_targets.json`. **Not run:**
   there was no drive.

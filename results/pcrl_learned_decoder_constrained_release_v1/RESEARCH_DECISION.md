@@ -156,7 +156,7 @@ labelled as cbp's.
     the largest child at 1.3 GiB.
   - $0 cloud.
 - **Custody:**
-  - Same-device copy (731 files, store as of 01:49Z): verified uncached and restored from (teachers, Q release and
+  - Same-device copy (731 files at 01:49Z; refreshed at 02:28Z to 754 files, all read back uncached): verified uncached and restored from (teachers, Q release and
     deployment, all bitwise). It proves restorability, not off-device custody.
   - Status: LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING; the drive is absent.
   - cbp custody is PENDING (it carries the pending qpc, dpc, osf and smf off-device custody), because it would open
