@@ -143,6 +143,25 @@ D1 violates a budget, the map is "infeasible under this registered decoder", not
 
 These FITTING budgets are a design choice, not a population certificate, and do not replace the inner/assessment rules.
 
+**Registered consequence (N-9).** There is no restoration phase.
+- The U teacher heads were fitted on OSF_DEFENSE_FIT, so L_i(U) and B_i(U) on the fitting rows are in-sample.
+- If C-TASK exceeds a fitting budget on some seed, then on that seed:
+  - K-LOCAL, whose only start is C-TASK, is INFEASIBLE by construction;
+  - K-SEQ and K-JOINT depend on feasible source starts and witnesses.
+- C-TASK's deployed budget slack is read right after the ctask stage. It is a pre-registered diagnostic, never a tuning
+  point.
+- Selection treats an infeasible constrained fit as CONSTRAINED_FIT_INFEASIBLE (SELECTION_RULES.json).
+
+**Search design choices registered in SEARCH_RULES.json (lcr.mapper.rules()).**
+- "Nearest" target: KL(fine-cell mean teacher probability ‖ the target token's current released q).
+- Pair pool: the neighbourhood candidates that satisfy the recipient's own budgets.
+- At most one accepted pair per paired step.
+- Pair task-loss ranking: L_i + 0.5 B_i.
+- Margins: a search margin of 1e-10 on L/B; the deployed check has zero tolerance.
+- Infeasible units: an INFEASIBLE constrained unit writes a descriptive release of its first candidate.
+- Decoder cache: a per-state memo re-folded on every applied move. It requires bitwise-equal (n, y, s) and is never
+  reused across different label counts or teacher sums.
+
 **Arms.**
 - **C-TASK.**
   - D1 decoding.
