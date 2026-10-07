@@ -8542,7 +8542,13 @@ def check_fixture_gate_replay(tabs):
                       if c_ in own and own[c_]["feasible"])
         tr = {"accuracy_gain": gains}
         if not task:
-            tr.update({"T_star": None, "triggered": False, "reason": "NO_FEASIBLE_TASK_ONLY"})
+            tr.update({"T_star": None, "triggered": False, "reason": "NO_FEASIBLE_TASK_ONLY", "nontrivial": False})
+            lt = fx.get("trigger") or {}
+            for k_ in ("T_star", "triggered", "reason", "nontrivial"):
+                if lt.get(k_) != tr.get(k_):
+                    ff.append(f"trigger.{k_} differs (lead {lt.get(k_)}, own {tr.get(k_)})")
+            if lt.get("qualifying"):
+                ff.append("qualifying set nonempty without a task-only reference")
         else:
             i12t, _, tstar = task[0]
             qual = []
@@ -8569,7 +8575,7 @@ def check_fixture_gate_replay(tabs):
                        "best_new_I12": bnew, "d0_version_already_qualifies": d0_ok,
                        "exhaustive_most_private_feasible_local_I12": ref["most_private_feasible_local_pair_I12"]["value"]})
             lt = fx.get("trigger") or {}
-            for k_ in ("T_star", "triggered"):
+            for k_ in ("T_star", "triggered", "nontrivial"):
                 if lt.get(k_) != tr.get(k_):
                     ff.append(f"trigger.{k_} differs (lead {lt.get(k_)}, own {tr.get(k_)})")
             if sorted(q["cid"] for q in lt.get("qualifying") or []) != sorted(tr["qualifying"]):
@@ -8649,6 +8655,420 @@ def check_fixture_gate_replay(tabs):
     return res("PASS" if ok else "FAIL", failures=fails, **out)
 
 
+# ================================================================================================ lcr PHASE 1B: fixture gate
+FIXTURE_RULE_SHA = "6f3bb44a3f4fd9db6aa986e697929689e1e49c43d9e5f88ae2136a482b0ed844"   # re-bound (FIXTURE_LOCK 9ac4cb7)
+FIXTURE_LAWS_SHA_FILE = "24f7074519dc9d24afb75a14e3601be61ee0e17929fe150a2fb8ca0db5ce9d9c"
+FIX_ATT1 = RUN / "attempts" / "fixture_attempt1"
+MAPPER_BUDGET_MARGIN = 1e-10        # registered search feasibility margin (SEARCH_RULES / mapper text), L and B
+
+
+def _lock_doc_ok(lock_name, rel_doc):
+    p = RES / f"{lock_name}.json"
+    if not p.exists():
+        return None
+    L_ = jload(p)
+    h = (L_.get("documents_sha256") or {}).get(rel_doc)
+    return h is not None and h == sha_file(RES / rel_doc)
+
+
+def _push_time(commit):
+    t = first_remote(commit, remote_reflog())
+    return iso(t) if isinstance(t, datetime) else t
+
+
+def check_fixture_binding():
+    """C7 re-binding (rule text 6f3bb44a): laws and rule equal FIXTURE_LOCK documents_sha256; the lock and A1 are on
+    origin before the attempts ran; FIXTURE_GATE.json binds the same rule / laws; oracle table hashes re-hash; every
+    fix__ unit (attempts 1 and 2) carries the laws hash and a consistent COMPLETE.json."""
+    out, f = {}, []
+    out["rule_sha256"] = sha_file(RES / "FIXTURE_GATE_RULE.json")
+    out["rule_equals_rebound"] = out["rule_sha256"] == FIXTURE_RULE_SHA
+    out["laws_file_sha256"] = sha_file(RES / "FIXTURE_LAWS.json")
+    out["laws_equal_lock_documents"] = _lock_doc_ok("FIXTURE_LOCK", "FIXTURE_LAWS.json")
+    out["rule_equals_lock_documents"] = _lock_doc_ok("FIXTURE_LOCK", "FIXTURE_GATE_RULE.json")
+    laws = jload(RES / "FIXTURE_LAWS.json")
+    rule = jload(RES / "FIXTURE_GATE_RULE.json")
+    out["laws_hash_rule_ok"] = registered_laws_hash(laws) == laws["laws_sha256"] == rule.get("laws_sha256")
+    out["laws_unchanged_since_dd1cf23"] = git_show_bytes("dd1cf2373", f"{REL_RES}/FIXTURE_LAWS.json") == \
+        (RES / "FIXTURE_LAWS.json").read_bytes()
+    lock_c = git("log", "--format=%H", "-1", "--", f"{REL_RES}/FIXTURE_LOCK.json")
+    am_c = git("log", "--format=%H", "-1", "--", f"{REL_RES}/AMENDMENT_A1_FIXTURE_C5_SCOPE.json")
+    out["lock_commit"], out["a1_commit"] = lock_c, am_c
+    out["lock_on_origin_byte_identical"] = git_show_bytes(f"origin/{BRANCH}", f"{REL_RES}/FIXTURE_LOCK.json") == \
+        (RES / "FIXTURE_LOCK.json").read_bytes()
+    out["a1_on_origin_byte_identical"] = git_show_bytes(f"origin/{BRANCH}",
+                                                        f"{REL_RES}/AMENDMENT_A1_FIXTURE_C5_SCOPE.json") == \
+        (RES / "AMENDMENT_A1_FIXTURE_C5_SCOPE.json").read_bytes()
+    out["lock_first_push"] = _push_time(lock_c) if lock_c else None
+    out["a1_first_push"] = _push_time(am_c) if am_c else None
+    att = jload(RES / "FIXTURE_ATTEMPTS.json")
+    runs = {a["attempt"]: a["ran"].split("/") for a in att["attempts"]}
+    out["attempt_runs"] = runs
+    out["lock_pushed_before_attempt1"] = bool(out["lock_first_push"]) and parse_iso(out["lock_first_push"]) <= \
+        parse_iso(runs[1][0])
+    out["a1_pushed_before_attempt2"] = bool(out["a1_first_push"]) and parse_iso(out["a1_first_push"]) <= \
+        parse_iso(runs[2][0])
+    G = jload(RES / "FIXTURE_GATE.json")
+    out["gate_binds_rule_and_laws"] = G.get("gate_rule_sha256") == out["rule_sha256"] and G.get(
+        "laws_sha256") == laws["laws_sha256"]
+    out["gate_file_sha_equals_ledger"] = sha_file(RES / "FIXTURE_GATE.json") == att["attempts"][1]["file_sha256"]
+    out["attempt1_file_sha_equals_ledger"] = sha_file(RES / "fixture_attempts" / "attempt1" / "FIXTURE_GATE.json") == \
+        att["attempts"][0]["file_sha256"]
+    oh = G.get("oracle_table_sha256") or {}
+    out["oracle_tables_rehash"] = bool(oh) and all(sha_file(RES / "fixture_oracle" / n_) == h for n_, h in oh.items())
+    units = {}
+    for base, tag in ((UNITS, "attempt2"), (FIX_ATT1, "attempt1")):
+        for fam in laws["families"]:
+            d = base / f"fix__{fam['id']}"
+            cu, _ = complete_ok(d) if d.exists() else ({"id_ok": False, "rehash_ok": False, "unlisted": []}, {})
+            rec = jload(d / "record.json") if d.exists() else {}
+            units[f"{tag}:{fam['id']}"] = bool(cu["id_ok"] and cu["rehash_ok"] and not cu["unlisted"] and
+                                               rec.get("laws_sha256") == laws["laws_sha256"])
+    out["fix_units_complete_and_bound"] = units
+    for k_, v in out.items():
+        if isinstance(v, bool) and not v:
+            f.append(k_)
+    if not all(units.values()):
+        f.append("fix units")
+    return res("PASS" if not f else "FAIL", failures=f, **out)
+
+
+def _arms_of(fx):
+    return fx.get("arms") or {}
+
+
+def _diff_paths(a, b, path="", skip=("wall_s", "cpu_s"), out=None, limit=200):
+    out = [] if out is None else out
+    if len(out) >= limit:
+        return out
+    if isinstance(a, dict) and isinstance(b, dict):
+        for k in sorted(set(a) | set(b)):
+            if k in skip:
+                continue
+            if k not in a or k not in b:
+                out.append(f"{path}.{k}:missing")
+                continue
+            _diff_paths(a[k], b[k], f"{path}.{k}", skip, out, limit)
+    elif isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            out.append(f"{path}:len")
+        for i_, (x, y) in enumerate(zip(a, b)):
+            _diff_paths(x, y, f"{path}[{i_}]", skip, out, limit)
+    elif a != b:
+        out.append(path)
+    return out
+
+
+def check_fixture_extras(tabs):
+    """C1-C4 / descriptive flags / structural bound / A1 cause + correction / attempt identity, by own code from the
+    re-bound rule (6f3bb44a) on the registered result (attempt 2)."""
+    G = jload(RES / "FIXTURE_GATE.json")
+    G1 = jload(RES / "fixture_attempts" / "attempt1" / "FIXTURE_GATE.json")
+    node = {}
+    c1f, c2f, c3f, c4f, desc_f, struct_f = [], [], [], [], [], []
+    desc_own, struct = {}, {}
+    for fx in G["fixtures"]:
+        fid = fx["fixture"]
+        law, tab = tabs[fid]["law"], tabs[fid]["tab"]
+        arms = _arms_of(fx)
+        od = RES / "fixture_oracle"
+        bp = {}
+        for i in (1, 2):
+            rows = _read_csv(od / f"{fid}_partitions_r{i}.csv")
+            if [int(r["index"]) for r in rows] != list(range(len(rows))):
+                c1f.append(f"{fid}: r{i} partition index column is not 0..n-1")
+            bp[i] = [part_key([int(x) for x in r["labels"].split()]) for r in rows]
+
+        def own_j(a):
+            k1, k2 = a["oracle_index"]
+            return tab["keys"][1][bp[1][k1]], tab["keys"][2][bp[2][k2]]
+        # C1: every D1 version of a D0 map has the same partition (tokens), bitwise-identical I1, I2, I12 and fingerprint
+        for cid, a in arms.items():
+            if cid.endswith("|D1") and lcr_arm(cid) == "d1_fixed":
+                b = arms.get(cid[:-3])
+                if b is None:
+                    c1f.append(f"{fid}:{cid}: D0 map absent")
+                    continue
+                if a["oracle_index"] != b["oracle_index"] or any(a[k_] != b[k_] for k_ in ("I1", "I2", "I12")) or \
+                        a["pair_fingerprint"] != b["pair_fingerprint"]:
+                    c1f.append(f"{fid}:{cid}")
+        # C2 (F1): every D1 arm vs the D0 decoding of the same partition (own tables), population loss per row
+        if fid == "F1_CALIBRATED_NULL":
+            gmin = 0.0
+            for cid, a in arms.items():
+                if not cid.endswith("|D1"):
+                    continue
+                j1, j2 = own_j(a)
+                for i, j in ((1, j1), (2, j2)):
+                    r = tab["per"][i][j]
+                    g_ = min(r["L_D1"] - r["L_D0"], r["B_D1"] - r["B_D0"])
+                    gmin = min(gmin, g_)
+                    if g_ < -GATE_TOL["TOL_NULL_LOSS"]:
+                        c2f.append(f"{cid}:r{i}")
+            node["C2_per_arm_min_D1_minus_D0"] = gmin
+        # C3: mapper statuses (only K- may be INFEASIBLE; K- FEASIBLE must be own-feasible and local-ok); U values
+        ms = fx.get("mapper_status") or {}
+        for i in (1, 2):
+            if abs(fx["U"][str(i)]["L"] - tab["U"][i]["L"]) > 1e-12 or abs(fx["U"][str(i)]["B"] - tab["U"][i]["B"]) > 1e-12:
+                c3f.append(f"{fid}: U{i} differs from own")
+        ct = arms.get(L_CTASK)
+        capI = None
+        if ct:
+            j1, j2 = own_j(ct)
+            capI = {1: tab["per"][1][j1]["I"], 2: tab["per"][2][j2]["I"]}
+        for cid, st in ms.items():
+            arm = lcr_arm(cid)
+            if st["status"] == "INFEASIBLE" and arm != "constrained":
+                c3f.append(f"{fid}:{cid}: INFEASIBLE on an unconstrained arm")
+            if st["status"] == "FEASIBLE" and arm == "constrained":
+                j1, j2 = own_j(arms[cid])
+                ok_ = all(fix_feasible(tab, i, j) and tab["per"][i][j]["I"] <= capI[i] + GATE_TOL["TOL_MI"]
+                          for i, j in ((1, j1), (2, j2)))
+                if not ok_:
+                    c3f.append(f"{fid}:{cid}: reported FEASIBLE, own infeasible")
+        # C4: decisions / caps parts of every arm (B's) and own D1 strict argmax on every partition
+        for cid, a in arms.items():
+            fp_ = a.get("feasible_parts") or {}
+            if not all(fp_.get(f"{x}{i}") for x in ("dec", "cap") for i in (1, 2)):
+                c4f.append(f"{fid}:{cid}")
+        if not all(r["d1_strict"] for i in (1, 2) for r in tab["per"][i]):
+            c4f.append(f"{fid}: own D1 strict argmax")
+        # descriptive flags (own recomputation of the registered definition)
+        groups = {"constrained": lambda c_: lcr_arm(c_) == "constrained",
+                  "weighted": lambda c_: lcr_arm(c_) == "weighted",
+                  "d1_fixed_joint": lambda c_: lcr_arm(c_) == "d1_fixed" and lcr_family(c_) == "JOINT",
+                  "d1_fixed_seq": lambda c_: lcr_arm(c_) == "d1_fixed" and lcr_family(c_) in ("SEQ-12", "SEQ-21"),
+                  "weighted_joint": lambda c_: lcr_arm(c_) == "weighted" and lcr_family(c_) == "JOINT",
+                  "weighted_seq": lambda c_: lcr_arm(c_) == "weighted" and lcr_family(c_) in ("SEQ-12", "SEQ-21"),
+                  "constrained_joint": lambda c_: lcr_arm(c_) == "constrained" and lcr_family(c_) in ("JOINT-SINGLE",
+                                                                                                    "JOINT-PAIR"),
+                  "constrained_seq": lambda c_: lcr_arm(c_) == "constrained" and lcr_family(c_) in ("SEQ-12", "SEQ-21")}
+        bi = {}
+        for gname, fn in groups.items():
+            mem = [c_ for c_ in arms if c_.endswith("|D1") and fn(c_)]
+            vals, el = [], []
+            for c_ in mem:
+                j1, j2 = own_j(arms[c_])
+                v = float(tab["I12"][j1, j2])
+                vals.append(v)
+                feas = fix_feasible(tab, 1, j1) and fix_feasible(tab, 2, j2)
+                loc = capI is None or all(tab["per"][i][j]["I"] <= capI[i] + GATE_TOL["TOL_MI"] for i, j in
+                                          ((1, j1), (2, j2)))
+                if feas and loc:
+                    el.append(v)
+            bi[gname] = {"all": min(vals) if vals else None, "eligible": min(el) if el else None, "n": len(vals),
+                         "n_eligible": len(el)}
+
+        def dif(a_, b_):
+            return {x: (None if bi[a_][x] is None or bi[b_][x] is None else bi[a_][x] - bi[b_][x])
+                    for x in ("all", "eligible")}
+        own_d = {"best_I12": bi, "constrained_minus_weighted": dif("constrained", "weighted"),
+                 "joint_minus_sequential": {"d1_fixed": dif("d1_fixed_joint", "d1_fixed_seq"),
+                                            "weighted": dif("weighted_joint", "weighted_seq"),
+                                            "constrained": dif("constrained_joint", "constrained_seq")}}
+        desc_own[fid] = own_d
+        ld = (fx.get("trigger") or {}).get("descriptive") or {}
+
+        def close(x, y):
+            return (x is None and y is None) or (x is not None and y is not None and abs(x - y) <= GATE_TOL["TOL_TERMS"])
+        for gname, v in bi.items():
+            lv = (ld.get("best_I12") or {}).get(gname) or {}
+            if not (close(v["all"], lv.get("all")) and close(v["eligible"], lv.get("eligible")) and v["n"] == lv.get("n")
+                    and v["n_eligible"] == lv.get("n_eligible")):
+                desc_f.append(f"{fid}:{gname}")
+        # structural bound: I(S; d1, d2) exactly 0 (integer table), CLASS pair I12 == 0, every pair I12 >= it
+        cnt = {}
+        for d1_, d2_, s_, c_ in zip(law.d[1].tolist(), law.d[2].tolist(), law.s.tolist(), law.c.tolist()):
+            cnt[(d1_, d2_, s_)] = cnt.get((d1_, d2_, s_), 0) + c_
+        ns = {s_: sum(v for (a_, b_, t_), v in cnt.items() if t_ == s_) for s_ in (0, 1)}
+        cells = {(a_, b_) for (a_, b_, _) in cnt}
+        exact_zero = all(Fraction(cnt.get((a_, b_, s_), 0) * law.N) == Fraction(ns[s_]) *
+                         (cnt.get((a_, b_, 0), 0) + cnt.get((a_, b_, 1), 0)) for (a_, b_) in cells for s_ in (0, 1))
+        jc1, jc2 = tab["keys"][1][tabs[fid]["class_key"][1]], tab["keys"][2][tabs[fid]["class_key"][2]]
+        i12_class = float(tab["I12"][jc1, jc2])
+        min_all = float(tab["I12"].min())
+        arm_min = min(float(a["I12"]) for a in arms.values())
+        struct[fid] = {"I_S_given_decision_pair_exactly_zero": bool(exact_zero), "I12_CLASS": i12_class,
+                       "min_I12_over_all_enumerated_pairs": min_all, "min_reported_arm_I12": arm_min,
+                       "pairs_with_I12_below_CLASS": int(np.sum(tab["I12"] < i12_class - 1e-15)),
+                       "CLASS_D1_budget_feasible": bool(fix_feasible(tab, 1, jc1) and fix_feasible(tab, 2, jc2))}
+        if not (exact_zero and abs(i12_class) <= 1e-15 and min_all >= i12_class - 1e-15 and arm_min >= -1e-15):
+            struct_f.append(fid)
+    node["C1_d1_vs_d0_identity"] = {"failures": c1f}
+    node["C2_per_arm"] = {"failures": c2f}
+    node["C3_mapper_status_and_U"] = {"failures": c3f}
+    node["C4_decisions_caps"] = {"failures": c4f}
+    node["descriptive_flags"] = {"failures": desc_f, "own": desc_own}
+    node["structural_bound"] = {"failures": struct_f, "per_fixture": struct,
+                                "argument": "every class-preserving token refines the teacher-predicted class, so the "
+                                            "token tuple determines (d1, d2) and I(S; t1, t2) >= I(S; d1, d2) = "
+                                            "I12(CLASS) by data processing; checked exhaustively on every enumerated "
+                                            "pair and exactly (integer table) for I(S; d1, d2)"}
+    # A1: cause and correction
+    a1 = {}
+    fx1 = {f_["fixture"]: f_ for f_ in G["fixtures"]}
+    fx0 = {f_["fixture"]: f_ for f_ in G1["fixtures"]}
+    nsl = {fid: (f_["checks"]["C5_TERM_RECONSTRUCTION"].get("incremental_not_applicable_no_search_state") or [])
+           for fid, f_ in fx1.items()}
+    a1["no_search_state_lists_attempt2"] = nsl
+    a1["attempt1_C5_failures"] = {fid: f_["checks"]["C5_TERM_RECONSTRUCTION"].get("failures") for fid, f_ in fx0.items()}
+    ms1 = fx1["F1_CALIBRATED_NULL"]["mapper_status"]
+    a1["F1_constrained_mapper_status"] = {c_: {"status": v["status"], "winner_kind": v["winner"]["kind"],
+                                               "winner_start": v["winner"]["start"]} for c_, v in ms1.items()
+                                          if lcr_arm(c_) == "constrained"}
+    # own derivation of the cause from the registered sequential driver and the own oracle
+    tab, law = tabs["F1_CALIBRATED_NULL"]["tab"], tabs["F1_CALIBRATED_NULL"]["law"]
+    arms1 = _arms_of(fx1["F1_CALIBRATED_NULL"])
+    bp1 = {i: [part_key([int(x) for x in r["labels"].split()]) for r in
+               _read_csv(RES / "fixture_oracle" / f"F1_CALIBRATED_NULL_partitions_r{i}.csv")] for i in (1, 2)}
+
+    def own_j1(a):
+        return tab["keys"][1][bp1[1][a["oracle_index"][0]]], tab["keys"][2][bp1[2][a["oracle_index"][1]]]
+    ctj = own_j1(arms1[L_CTASK])
+    cap1 = {1: tab["per"][1][ctj[0]]["I"], 2: tab["per"][2][ctj[1]]["I"]}
+
+    def search_feasible(i, j):
+        r, U_ = tab["per"][i][j], tab["U"][i]
+        return (r["L_D1"] <= U_["L"] + FIT_BUDGET["ll"] - MAPPER_BUDGET_MARGIN and
+                r["B_D1"] <= U_["B"] + FIT_BUDGET["brier"] - MAPPER_BUDGET_MARGIN and r["I"] <= cap1[i])
+    a1["F1_recipient2_maps_search_feasible"] = int(sum(search_feasible(2, j) for j in range(len(tab["per"][2]))))
+    a1["F1_recipient1_maps_search_feasible"] = int(sum(search_feasible(1, j) for j in range(len(tab["per"][1]))))
+    starts = {}
+    for arm in ("SEQ-12", "SEQ-21"):
+        first = 1 if arm == "SEQ-12" else 2
+        rows = []
+        for sc in [L_CTASK] + [L_d0(arm, l_) for l_ in LAMS]:
+            a = arms1.get(sc)
+            if a is None:
+                rows.append({"start": sc, "present": False})
+                continue
+            j1, j2 = own_j1(a)
+            jf = j1 if first == 1 else j2
+            st1 = search_feasible(first, jf)
+            rows.append({"start": sc, "present": True, "stage1_recipient": first, "stage1_feasible": bool(st1),
+                         "stage2_recipient": 3 - first,
+                         "stage2_can_be_feasible": bool(a1["F1_recipient2_maps_search_feasible"] > 0
+                                                        if first == 1 else st1),
+                         "reaches_final": False})
+        starts[f"K-{arm}"] = rows
+    a1["own_stage_analysis"] = starts
+    a1["no_start_can_reach_a_refined_final"] = all(
+        not r.get("stage1_feasible") or not r.get("stage2_can_be_feasible") for v in starts.values() for r in v)
+    a1["mismatch_with_amendment_wording"] = [
+        f"{arm}: start {r['start']} is stage-1 feasible (recipient 1) and fails at stage 2 (recipient 2), not at stage 1"
+        for arm, v in starts.items() for r in v if r.get("stage1_feasible")]
+    a1["applies_exactly_to_K_SEQ"] = nsl == {"F1_CALIBRATED_NULL": [L_k("SEQ-12"), L_k("SEQ-21")],
+                                             "F2_MISCALIBRATED": [], "F3_COMPLEMENTARY_XOR": [], "F4_REDUNDANT": []}
+    a1["other_F1_constrained_have_state"] = {
+        L_k("LOCAL"): ms1[L_k("LOCAL")]["winner"]["kind"] == "refined_descriptive",
+        L_k("JOINT-SINGLE"): "joint driver records an 'unchanged' block per witness (terms exist)",
+        L_k("JOINT-PAIR"): "joint driver records an 'unchanged' block per witness (terms exist)"}
+    # attempt identity outside C5 and timings
+    d_gate = _diff_paths(G1, G, skip=("wall_s", "cpu_s"))
+    d_gate_nc5 = [p_ for p_ in d_gate if "C5_TERM_RECONSTRUCTION" not in p_ and p_ not in (".verdict", ".reasons",
+                                                                                           ".reasons[0]", ".reasons:len")]
+    a1["gate_json_differing_paths"] = d_gate
+    a1["gate_json_differences_outside_C5_and_verdict_reasons"] = d_gate_nc5
+    csv_same = {}
+    for p_ in sorted((RES / "fixture_oracle").glob("*.csv")):
+        q_ = RES / "fixture_attempts" / "attempt1" / "fixture_oracle" / p_.name
+        csv_same[p_.name] = q_.exists() and q_.read_bytes() == p_.read_bytes()
+    a1["oracle_csv_byte_identical"] = all(csv_same.values()) and len(csv_same) == 16
+    ud = {}
+    for fid in fx1:
+        r2 = jload(UNITS / f"fix__{fid}" / "result.json")
+        r1 = jload(FIX_ATT1 / f"fix__{fid}" / "result.json")
+        ud[fid] = [p_ for p_ in _diff_paths(r1, r2) if "C5_TERM_RECONSTRUCTION" not in p_]
+    a1["fix_unit_results_differences_outside_C5_and_timing"] = ud
+    a1["attempt1_reasons"] = G1.get("reasons")
+    a1["attempt2_reasons"] = G.get("reasons")
+    a1["code_change_files"] = sorted((git("diff", "--name-only", "cc0083aaf", "c9a7150c1") or "").split())
+    a1["rule_and_laws_unchanged_by_A1"] = all(
+        git_show_bytes("cc0083aaf", f"{REL_RES}/{d_}") == git_show_bytes("c9a7150c1", f"{REL_RES}/{d_}")
+        for d_ in ("FIXTURE_GATE_RULE.json", "FIXTURE_LAWS.json"))
+    a1_ok = (a1["applies_exactly_to_K_SEQ"] and a1["no_start_can_reach_a_refined_final"] and
+             a1["F1_recipient2_maps_search_feasible"] == 0 and not d_gate_nc5 and a1["oracle_csv_byte_identical"] and
+             not any(ud.values()) and a1["rule_and_laws_unchanged_by_A1"] and
+             all(v["status"] == "INFEASIBLE" for v in a1["F1_constrained_mapper_status"].values()) and
+             all(a1["F1_constrained_mapper_status"][L_k(x)]["winner_kind"] == "unchanged_descriptive"
+                 for x in ("SEQ-12", "SEQ-21")) and
+             a1["attempt1_C5_failures"]["F1_CALIBRATED_NULL"] == [f"{L_k('SEQ-12')}:incremental_terms_missing",
+                                                                  f"{L_k('SEQ-21')}:incremental_terms_missing"])
+    node["amendment_A1"] = res("PASS" if a1_ok else "FAIL", **a1)
+    fails = c1f + c2f + c3f + c4f + desc_f + struct_f
+    st = "PASS" if not fails and a1_ok else "FAIL"
+    if a1_ok and a1["mismatch_with_amendment_wording"] and not fails:
+        st = "PASS"
+    return res(st, failures=fails[:30], **node)
+
+
+def check_code_hashes_lcr():
+    """Locked code: every FIXTURE_LOCK / A1 code file equals its blob at the lock (amendment) commit; the code at the
+    attempt-1 / attempt-2 evidence commits equals the lock (attempt 1) and lock + A1 (attempt 2) for the files the
+    fixture stage loads; the worktree still equals the latest locked value (else WARN: changed after the stage)."""
+    out, f, w = {}, [], []
+    L_ = jload(RES / "FIXTURE_LOCK.json")
+    A_ = jload(RES / "AMENDMENT_A1_FIXTURE_C5_SCOPE.json")
+    lc = git("log", "--format=%H", "-1", "--", f"{REL_RES}/FIXTURE_LOCK.json")
+    ac = git("log", "--format=%H", "-1", "--", f"{REL_RES}/AMENDMENT_A1_FIXTURE_C5_SCOPE.json")
+    sha_at = (lambda c, f_: (lambda b: None if b is None else hashlib.sha256(b).hexdigest())(git_show_bytes(c, f_)))
+    bad_lock = [f_ for f_, h in L_["code_files"].items() if sha_at(lc, f_) != h]
+    bad_am = [f_ for f_, h in A_["code_files"].items() if sha_at(ac, f_) != h]
+    latest = {**L_["code_files"], **A_["code_files"]}
+    stage = [f_ for f_ in latest if f_.startswith(("lcr/fixtures.py", "lcr/decoder.py", "lcr/mapper.py", "lcr/run.py",
+                                                    "lcr/lock.py", "lcr/sema.py")) or not f_.startswith("lcr/")]
+    att1 = [f_ for f_ in stage if sha_at("cc0083aaf", f_) != L_["code_files"][f_]]
+    att2 = [f_ for f_ in stage if sha_at("18e41ab13", f_) != latest[f_]]
+    wt = [f_ for f_, h in latest.items() if not (WT / f_).exists() or sha_file(WT / f_) != h]
+    out.update({"fixture_lock_code_files": len(L_["code_files"]), "fixture_lock_mismatch_at_commit": bad_lock,
+                "a1_code_files": sorted(A_["code_files"]), "a1_mismatch_at_commit": bad_am,
+                "stage_files_checked": len(stage), "attempt1_evidence_code_differs_from_lock": att1,
+                "attempt2_evidence_code_differs_from_lock_plus_a1": att2,
+                "worktree_differs_from_latest_locked": wt,
+                "a1_changes_only": sorted(A_.get("changes_previously_locked") or []),
+                "unlocked_present_at_fixture_lock": sorted((L_.get("unlocked_present") or {}).keys())})
+    if bad_lock or bad_am or att1 or att2:
+        f.append("locked code mismatch")
+    if wt:
+        w.append("locked files changed in the worktree after the fixture stage")
+    if sorted(A_.get("changes_previously_locked") or []) != ["lcr/fixtures.py", "lcr/tests/test_fixtures.py"]:
+        f.append("A1 scope")
+    return res("FAIL" if f else ("WARN" if w else "PASS"), failures=f, warnings=w, **out)
+
+
+def check_chronology_lcr():
+    """Stage chronology from the private ACTIVITY_LOG vs first push of each governing lock; no stage other than admit /
+    fixture has run; no SCIENCE_LOCK / EVALUATION_LOCK (Adult not launched); assessment labels never unsealed."""
+    ev = jsonl(RUN / "ACTIVITY_LOG.jsonl")
+    starts = [(e["at"], e["event"].split(" ", 1)[1], e.get("lock")) for e in ev if str(e.get("event", "")).startswith("start ")]
+    push = {}
+    for nm in ("SOURCE_ADMISSION_LOCK", "FIXTURE_LOCK", "AMENDMENT_A1_FIXTURE_C5_SCOPE"):
+        c = git("log", "--format=%H", "--reverse", "--", f"{REL_RES}/{nm}.json")
+        c = (c or "").split()[0] if c else None
+        push[nm] = _push_time(c) if c else None
+    rows, f = [], []
+    for at, stg, lk in starts:
+        need = {"admit": ["SOURCE_ADMISSION_LOCK"], "fixture": ["FIXTURE_LOCK"]}.get(stg)
+        if need is None:
+            f.append(f"unexpected stage {stg} at {at}")
+            continue
+        if stg == "fixture" and parse_iso(at) > parse_iso(push["AMENDMENT_A1_FIXTURE_C5_SCOPE"] or "2100-01-01T00:00:00Z"):
+            need = need + ["AMENDMENT_A1_FIXTURE_C5_SCOPE"]
+        ok = all(push.get(n_) and parse_iso(push[n_]) <= parse_iso(at) for n_ in need)
+        rows.append({"stage": stg, "started": at, "governing": need, "governing_first_push": [push.get(n_) for n_ in need],
+                     "after_push": bool(ok)})
+        if not ok:
+            f.append(f"{stg} at {at} before its lock reached origin")
+    later = [p_.name for p_ in RES.glob("*.json") if p_.name in ("SCIENCE_LOCK.json", "EVALUATION_LOCK.json")]
+    unsealed = [e for e in ev if "unseal" in str(e.get("event", "")).lower() or "assess" in str(e.get("event", "")).lower()]
+    if later:
+        f.append(f"later locks present: {later}")
+    if unsealed:
+        f.append("an assessment / unseal event exists")
+    return res("PASS" if not f else "FAIL", failures=f, stages=rows, lock_first_push=push, later_locks_present=later,
+               assessment_events=len(unsealed))
+
+
 FIXTURE_TABS: dict = {}
 
 
@@ -8696,7 +9116,7 @@ def write_oracle_report(orc, gate, path=ORACLE_REPORT):
         ref = f.get("exhaustive_references_without_local_caps") or {}
         for k_ in ("C-TASK", "D0 FINE-TASK"):
             if k_ in ref:
-                L.append(f"- Exhaustive {k_}: value {_fmt(ref[k_]['value'])} at partitions {ref[k_]['index']}.")
+                L.append(f"- Exhaustive {k_}: value {_fmt(ref[k_]['value'])} at own-enumeration partition indices {ref[k_]['index']}.")
         g = gf.get(fid)
         if g:
             L.append(f"- Replay vs FIXTURE_GATE.json ({g.get('status')}): oracle tables max |diff| "
@@ -8714,7 +9134,81 @@ def write_oracle_report(orc, gate, path=ORACLE_REPORT):
             if g.get("failures"):
                 L.append(f"- Disagreements: {g['failures']}")
         L.append("")
+    ex = (gate or {}).get("checks_c1_c4_descriptive_structural_a1") or {}
+    bd = (gate or {}).get("binding") or {}
     if gate and gate.get("status") != "PENDING":
+        L += ["## Binding and chronology", "",
+              f"- Rule FIXTURE_GATE_RULE.json sha256 `{bd.get('rule_sha256')}` (re-bound; equals the FIXTURE_LOCK "
+              f"documents_sha256: {bd.get('rule_equals_lock_documents')}); FIXTURE_LAWS.json equals the lock documents: "
+              f"{bd.get('laws_equal_lock_documents')}; laws unchanged since dd1cf23: {bd.get('laws_unchanged_since_dd1cf23')}.",
+              f"- FIXTURE_LOCK {str(bd.get('lock_commit'))[:7]} first on origin {bd.get('lock_first_push')}; attempt 1 ran "
+              f"{(bd.get('attempt_runs') or {}).get(1)}; AMENDMENT_A1 {str(bd.get('a1_commit'))[:7]} first on origin "
+              f"{bd.get('a1_first_push')}; attempt 2 ran {(bd.get('attempt_runs') or {}).get(2)}. Lock before attempt 1: "
+              f"{bd.get('lock_pushed_before_attempt1')}; amendment before attempt 2: {bd.get('a1_pushed_before_attempt2')}.",
+              f"- FIXTURE_GATE.json binds the rule and laws: {bd.get('gate_binds_rule_and_laws')}; its oracle-table hashes "
+              f"re-hash: {bd.get('oracle_tables_rehash')}; fix__ units of both attempts complete and bound to the laws hash: "
+              f"{all((bd.get('fix_units_complete_and_bound') or {}).values())}.", "",
+              "## Registered expectation vs result", "",
+              "| Fixture | Registered expectation (PROTOCOL sec. 9, before the stage) | Lead result | Own replay |",
+              "|---|---|---|---|"]
+        exp = {"F1_CALIBRATED_NULL": "NO_FEASIBLE_TASK_ONLY (no budget-feasible task-only map)"}
+        for fid, g in gf.items():
+            tr = g.get("own_trigger") or {}
+            own_txt = (tr.get("reason") or f"T* = {tr.get('T_star')}, I12(T*) = {_fmt(tr.get('T_star_I12'))}, "
+                                              f"nontrivial {tr.get('nontrivial')}") + f"; triggered {tr.get('triggered')}"
+            L.append(f"| {fid} | {exp.get(fid, 'T* = CLASS|D1 with I12 = 0: not nontrivial')} | as own (replay "
+                     f"{g.get('status')}) | {own_txt} |")
+        L.append("")
+        sb = (ex.get("structural_bound") or {}).get("per_fixture") or {}
+        if sb:
+            L += ["## Structural bound I12(R) >= I12(CLASS|D1)", "",
+                  "Every class-preserving token refines the teacher-predicted class, so the token tuple determines (d1, d2) "
+                  "and I(S; t1, t2) >= I(S; d1, d2) = I12(CLASS) (data processing). Checked exactly and exhaustively:", "",
+                  "| Fixture | I(S; d1, d2) = 0 exactly (integer table) | I12(CLASS) | min I12 over every enumerated pair | "
+                  "pairs below CLASS | min reported arm I12 | CLASS|D1 budget-feasible |", "|---|---|---|---|---|---|---|"]
+            for fid, v in sb.items():
+                L.append(f"| {fid} | {v['I_S_given_decision_pair_exactly_zero']} | {_fmt(v['I12_CLASS'])} | "
+                         f"{_fmt(v['min_I12_over_all_enumerated_pairs'])} | {v['pairs_with_I12_below_CLASS']} | "
+                         f"{_fmt(v['min_reported_arm_I12'])} | {v['CLASS_D1_budget_feasible']} |")
+            L += ["", "Consequence: on F2-F4 the feasible task-only reference already has I12 = 0, so no release (not even "
+                      "the exhaustive most-private feasible local pair, I12 = 0) can reduce pair MI by 0.01; on F1 no "
+                      "task-only candidate is feasible. The registered fixtures could not trigger; this is not evidence "
+                      "about the mechanism on Adult.", ""]
+        dfl = (ex.get("descriptive_flags") or {}).get("own") or {}
+        if dfl:
+            L += ["## Descriptive flags (own recomputation; never used by the verdict)", "",
+                  "| Fixture | best I12 constrained (all / eligible) | best I12 weighted (all / eligible) | constrained - "
+                  "weighted (eligible) | joint - sequential (d1 / weighted / constrained, eligible) |", "|---|---|---|---|---|"]
+            for fid, v in dfl.items():
+                bi = v["best_I12"]
+                jm = v["joint_minus_sequential"]
+                L.append(f"| {fid} | {_fmt(bi['constrained']['all'])} / {_fmt(bi['constrained']['eligible'])} | "
+                         f"{_fmt(bi['weighted']['all'])} / {_fmt(bi['weighted']['eligible'])} | "
+                         f"{_fmt(v['constrained_minus_weighted']['eligible'])} | {_fmt(jm['d1_fixed']['eligible'])} / "
+                         f"{_fmt(jm['weighted']['eligible'])} / {_fmt(jm['constrained']['eligible'])} |")
+            L.append("")
+        a1 = ex.get("amendment_A1") or {}
+        if a1:
+            L += ["## Amendment A1 (C5 scope): cause and correction", "",
+                  f"- Status {a1.get('status')}. Attempt 1 C5 failures on F1: {a1.get('attempt1_C5_failures', {}).get('F1_CALIBRATED_NULL')}; "
+                  f"attempt 2 NO_SEARCH_STATE lists: {a1.get('no_search_state_lists_attempt2')} (exactly K-SEQ-12 and "
+                  f"K-SEQ-21 on F1: {a1.get('applies_exactly_to_K_SEQ')}).",
+                  f"- F1 constrained mapper statuses (persisted fix__ unit): {a1.get('F1_constrained_mapper_status')}.",
+                  f"- Own cause derivation (own oracle + the registered sequential driver): recipient-2 maps that pass "
+                  f"the search feasibility (budgets - 1e-10, local cap) on F1: {a1.get('F1_recipient2_maps_search_feasible')}; "
+                  f"recipient-1 maps: {a1.get('F1_recipient1_maps_search_feasible')}. K-SEQ-21 (recipient 2 first) "
+                  f"is infeasible at stage 1 from every start; K-SEQ-12 is feasible at stage 1 from every start and "
+                  f"infeasible at stage 2. No start can reach a refined final: {a1.get('no_start_can_reach_a_refined_final')}. "
+                  "K-LOCAL refines recipient 1 (refined_descriptive) and the joint drivers record an 'unchanged' witness "
+                  "block, so a state exists for them; NO_SEARCH_STATE can apply only to the sequential arms.",
+                  f"- Wording disagreement (does not affect the correction): the amendment says both arms hit "
+                  f"INFEASIBLE_START at stage 1; for K-SEQ-12 the failure is at stage 2 ({len(a1.get('mismatch_with_amendment_wording') or [])} starts).",
+                  f"- Identity: FIXTURE_GATE.json attempt 1 vs 2 differ only at {a1.get('gate_json_differing_paths')} "
+                  f"(outside C5 / reasons: {a1.get('gate_json_differences_outside_C5_and_verdict_reasons')}); oracle CSVs "
+                  f"byte-identical: {a1.get('oracle_csv_byte_identical')}; fix__ results identical outside C5 and timing: "
+                  f"{not any((a1.get('fix_unit_results_differences_outside_C5_and_timing') or {}).values())}; rule and laws "
+                  f"unchanged by A1: {a1.get('rule_and_laws_unchanged_by_A1')}; code files changed: "
+                  f"{[f_ for f_ in a1.get('code_change_files') or [] if f_.startswith('lcr/')]}.", ""]
         L += ["## Gate", "",
               f"- Lead verdict {gate.get('lead_verdict')}, route {gate.get('lead_route')}, reasons {gate.get('lead_reasons')}.",
               f"- Own verdict {gate.get('own_verdict')}, route {gate.get('own_route')}, triggered {gate.get('own_triggered')}.",
@@ -8740,7 +9234,13 @@ def check_fixture_gate():
         return pending("fixture_gate", "awaiting the laws"), pending("fixture_oracle", "awaiting the laws")
     orc, tabs = check_fixture_laws()
     FIXTURE_TABS.update(tabs)
-    return check_fixture_gate_replay(tabs), orc
+    gate = check_fixture_gate_replay(tabs)
+    if gate.get("status") == "PENDING":
+        return gate, orc
+    gate["binding"] = check_fixture_binding()
+    gate["checks_c1_c4_descriptive_structural_a1"] = check_fixture_extras(tabs)
+    gate["status"] = worst(gate["status"], gate["binding"]["status"], gate["checks_c1_c4_descriptive_structural_a1"]["status"])
+    return gate, orc
 
 
 # ================================================================================================ lcr PHASE 2: D1 units
@@ -9293,6 +9793,17 @@ def main():
         checks["teachers"], T = check_teachers_lcr(D, L)
         checks["d0_release_reencode"] = check_d0_reencode(D, T)
         checks["fixture_gate"], checks["fixture_oracle"] = check_fixture_gate()
+        checks["code_hashes"] = check_code_hashes_lcr()
+        checks["chronology"] = check_chronology_lcr()
+        checks["references"] = res("INFO", note="admitted REF|E / REF|F / REF|F0 units are custody-verified by hash in "
+                                                "admitted_custody; their numeric recheck belongs to the Adult inner / "
+                                                "assessment replay")
+        if checks["fixture_gate"].get("own_verdict") == "GATE_NOT_MET" and \
+                checks["fixture_gate"].get("lead_verdict") == "GATE_NOT_MET":
+            why = ("the registered fixture gate is not met (own replay agrees: GATE_NOT_MET); no Adult fit is launched "
+                   "(prompt section 9), so this Adult replay has no object")
+            for k_ in PHASE2 + ("evaluation_lock", "outer_units", "endpoints", "chronology_assessment", "attacker_refits"):
+                checks[k_] = res("NOT_APPLICABLE", reason=why)
         if checks["fixture_oracle"].get("status") != "PENDING" and not args.no_write and args.out is None:
             report["fixture_oracle_report"] = {"path": f"{REL_RES}/FIXTURE_ORACLE_REPORT.md",
                                                "sha256": write_oracle_report(checks["fixture_oracle"],
