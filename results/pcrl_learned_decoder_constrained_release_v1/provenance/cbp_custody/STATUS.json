@@ -1,0 +1,51 @@
+{
+ "schema": "lcr-cbp-custody-v1",
+ "at": "2026-10-07T01:49:10Z",
+ "drive_detection": {
+  "rule": "<volume>/private_smf_v1_20261005/SHA256SUMS exists and has sha256 28705e242f77b6333561f66117934b3ebc427072e31dc5a38b3a9d9e8f02cd05 (closed smf study BACKUP_VERIFICATION.json)",
+  "checked_at": "2026-10-07T01:49:10Z",
+  "skipped_by_name": 2,
+  "candidate_volumes": 0,
+  "matching_volumes": 0,
+  "mounted": false
+ },
+ "documented_command": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json",
+ "how": "cbp.closeout.run_all called in-process from this worktree under the shared lcr semaphore (cbp / qpc / dpc / osf / smf modules byte-identical to the cbp tip 7f3ec67; checked before the call); receipts redirected; osf's assessment sealed until the lcr EVALUATION_LOCK is on origin",
+ "covers": [
+  "cbp drive copy and restore from it (U teacher, Q, P*, the J* fallback, attacker)",
+  "through cbp: the qpc custody (qpc drive copy + restore), the dpc off-device backup, the osf drive copy, the smf drive restore and the two later smf logs"
+ ],
+ "redirect": {
+  "cbp BACKUP_VERIFICATION.json / RESTORE_INDEX.json": "results/pcrl_learned_decoder_constrained_release_v1/provenance/cbp_custody/",
+  "qpc custody receipts": "results/pcrl_learned_decoder_constrained_release_v1/provenance/cbp_custody/qpc_custody/",
+  "dpc custody receipts": "results/pcrl_learned_decoder_constrained_release_v1/provenance/cbp_custody/qpc_custody/dpc_custody/",
+  "osf / smf predecessor receipts": "results/pcrl_learned_decoder_constrained_release_v1/provenance/cbp_custody/qpc_custody/predecessor_custody/"
+ },
+ "closed_results_never_written": [
+  "results/pcrl_confidence_budgeted_privacy_v1/",
+  "results/pcrl_confidence_capacity_v1/",
+  "results/pcrl_decision_preserving_compression_v1/",
+  "results/pcrl_online_strength_frontier_v1/",
+  "results/pcrl_strength_matched_feedback_v1/"
+ ],
+ "historical_status": "cbp, qpc, dpc and osf off-device custody PENDING at their closeouts (drive absent); cbp holds a verified same-device copy (cbp_v1_local_copy_20261006)",
+ "cbp_targets_present": true,
+ "osf_assessment_opened": false,
+ "lcr_assessment_state": {
+  "evaluation_lock_pushed": false,
+  "evaluation_lock_state": "EVALUATION_LOCK.json does not exist",
+  "fixture_gate": "GATE_NOT_MET",
+  "assessment_opened_by_this_study": false,
+  "note": "MECHANISM_GATE_NOT_MET: no Adult fit, no EVALUATION_LOCK; the assessment rows were never opened"
+ },
+ "status": "PENDING",
+ "reason": "external drive with the verified prior copies not mounted; and the cbp custody reaches osf.closeout.backup, which opens osf's assessment (OSF_DEVELOPMENT_ASSESSMENT, the SAME rows as this study's assessment) to refit osf's final attacker; this study never opened those rows and keeps them sealed: it runs the cbp custody only after its own EVALUATION_LOCK is on origin",
+ "pending_command": "cd <CBP_WORKTREE> && OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json   (the cbp documented `python -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json`, run in the cbp worktree at 7f3ec67 under cbp's own semaphore; it covers the cbp drive copy and restore and, through cbp, the pending qpc / dpc / osf / smf custody. It OPENS osf's assessment rows (the same rows as this study's never-opened assessment) inside osf.closeout.backup: a decision for the owner of those rows. This study did not run it)",
+ "gaps": [
+  "cbp: same-device copy only (cbp_v1_local_copy_20261006); off-device PENDING",
+  "qpc: same-device copies only; off-device PENDING",
+  "dpc: same-device copy only; off-device PENDING",
+  "osf: no off-device copy; the smf drive restore and the two later smf logs PENDING"
+ ],
+ "note": "no redundant cbp same-device copy is made: cbp already holds a verified same-device copy"
+}

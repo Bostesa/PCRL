@@ -38,8 +38,9 @@ i.e. loads no data). Every job that loads data or restores runs under the SHARED
                                                    uncached; a changed restore input is recorded as STALE evidence
 
 `all` with the drive present, in order:
-  (1) the pending cbp custody (requires this study's EVALUATION_LOCK on origin; otherwise DEFERRED): the cbp drive copy
-      and restore from it, which itself runs the pending qpc / dpc / osf / smf custody. Receipts go to
+  (1) the pending cbp custody (requires this study's EVALUATION_LOCK on origin; otherwise recorded PENDING with the seal
+      reason and the cbp owner's command, never run): the cbp drive copy and restore from it, which itself runs the
+      pending qpc / dpc / osf / smf custody. Receipts go to
       provenance/cbp_custody/ (qpc_custody/, qpc_custody/dpc_custody/, qpc_custody/predecessor_custody/);
   (2) this study: <DRIVE_ROOT>/private_lcr_v1_<UTC date>[_vN]/{lcr_v1, dependencies/jcv_v1/inputs/adult_jcv.npz,
       SHA256SUMS} (a new folder; never reused);
@@ -60,9 +61,13 @@ targets.json (written by the lead after the assessment; <PRIVATE_CACHE>/lcr_v1/r
                   "P* (<family>; <construction> <config>)": "dec__s1__<safe>" | "new__s1__<safe>" | "pol__s1__<safe>",
                   "N* ...": "new__s1__U_K-<ARM>_i8o64_D1", ...},
      "deploy": "lcr.deploy:<fn>",                                        # optional
+     "not_applicable": {"protected map": "<reason>", "learned decoder": "<reason>", "attacker": "<reason>"},
+                                                                         # optional: classes that cannot exist
      "attacker": {"fn": "lcr.<module>:<refit function>", "kwargs": {...},
                   "saved": {"unit": "<outer unit>", "file": "preds.npz", "key": "<array>"}, "tolerance": 0.0}}
-A label beginning "P*" or "fallback" is the protected map; "Q" is Q. pol__ units are D0 codes (qpc formats); dec__ and
+A label beginning "P*" or "fallback" is the protected map; "Q" is Q. A class listed in not_applicable is reported as
+NOT_APPLICABLE (<reason>) instead of PENDING (never for the U teacher, and refused if a target for it is also given);
+for the attacker, no restore is attempted. pol__ units are D0 codes (qpc formats); dec__ and
 new__ units are D1 codes (policy.json token map + decoder.json + release.npz). Entry points must be lcr.*, cbp.* or qpc.*.
 """
 from __future__ import annotations
@@ -121,24 +126,32 @@ STATUS_DRIVE = "DRIVE_COPY_VERIFIED"
 SEMA = ("OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.sema --label "
         "F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.closeout")
 CBP_DOCUMENTED = "python -m cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json"
+CBP_OWNER_COMMAND = ("cd <CBP_WORKTREE> && OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. "
+                     "<python> -m cbp.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m "
+                     "cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json")
+SEAL_REASON = ("the cbp custody reaches osf.closeout.backup, which opens osf's assessment (OSF_DEVELOPMENT_ASSESSMENT, the "
+               "SAME rows as this study's assessment) to refit osf's final attacker; this study never opened those rows "
+               "and keeps them sealed: it runs the cbp custody only after its own EVALUATION_LOCK is on origin")
 PENDING = {
     "everything_when_the_drive_is_mounted": f"{SEMA} all --targets <PRIVATE_CACHE>/lcr_v1/run/closeout_targets.json   "
-                                            "(finds <DRIVE_ROOT> by content; runs the cbp custody, the lcr drive copy, "
-                                            "the uncached re-read and the restores, in order; needs the lcr "
-                                            "EVALUATION_LOCK on origin)",
+                                            "(finds <DRIVE_ROOT> by content; the lcr drive copy, the uncached re-read "
+                                            "and the restores, in order; the cbp custody runs only if the lcr "
+                                            "EVALUATION_LOCK is on origin, otherwise it is recorded PENDING)",
     "lcr_off_device_backup_and_restore": f"{SEMA} backup --dest <DRIVE_ROOT> --targets "
                                          "<PRIVATE_CACHE>/lcr_v1/run/closeout_targets.json",
-    "cbp_qpc_dpc_osf_smf_pending_custody": f"{SEMA} cbp-custody   (the source documented `{CBP_DOCUMENTED}`, run "
-                                           "in-process from this worktree with the cbp / qpc / dpc / osf / smf code "
-                                           f"verified byte-identical to the cbp tip {CBP_TIP[:7]}; receipts redirected "
-                                           f"into {REL}/provenance/cbp_custody/)",
-    "equivalent_in_the_cbp_worktree_NOT_recommended": "cd <CBP_WORKTREE> && OMP_NUM_THREADS=1 PYTHONPATH=. <python> -P "
-                                                      "<WORKTREE>/lcr/sema.py --label F:cbp-custody -- env "
-                                                      "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m cbp.closeout all "
-                                                      "--targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json   "
-                                                      "(writes its receipts into the closed cbp results of that "
-                                                      "worktree and does NOT keep osf's assessment sealed until the "
-                                                      "lcr EVALUATION_LOCK; use the redirected form above)"}
+    "cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner": CBP_OWNER_COMMAND + "   (the cbp documented `"
+                                                         f"{CBP_DOCUMENTED}`, run in the cbp worktree at {CBP_TIP[:7]} "
+                                                         "under cbp's own semaphore; it covers the cbp drive copy and "
+                                                         "restore and, through cbp, the pending qpc / dpc / osf / smf "
+                                                         "custody. It OPENS osf's assessment rows (the same rows as "
+                                                         "this study's never-opened assessment) inside "
+                                                         "osf.closeout.backup: a decision for the owner of those rows. "
+                                                         "This study did not run it)",
+    "in_process_variant_from_this_worktree": f"{SEMA} cbp-custody   (the same cbp code, verified byte-identical to "
+                                             f"{CBP_TIP[:7]}, with receipts redirected into {REL}/provenance/"
+                                             "cbp_custody/; it keeps osf's assessment sealed until the lcr "
+                                             "EVALUATION_LOCK is on origin, so without that lock it only records "
+                                             "PENDING)"}
 
 now = DC.now
 sha = DC.sha
@@ -189,6 +202,20 @@ def lcr_lock_pushed():
     """(ok, reason): this study's EVALUATION_LOCK.json committed and byte-identical on origin (fetched now)."""
     from lcr import data as LD
     return LD.evaluation_lock_pushed()
+
+
+def lcr_assessment_state():
+    """This study's assessment state for custody receipts: lock on origin, the registered fixture gate verdict."""
+    ok, why = lcr_lock_pushed()
+    gate = None
+    try:
+        gate = jload(PKG / "FIXTURE_GATE.json").get("verdict")
+    except (OSError, ValueError):
+        pass
+    return {"evaluation_lock_pushed": bool(ok), "evaluation_lock_state": why, "fixture_gate": gate,
+            "assessment_opened_by_this_study": bool(ok),
+            "note": ("MECHANISM_GATE_NOT_MET: no Adult fit, no EVALUATION_LOCK; the assessment rows were never opened"
+                     if gate == "GATE_NOT_MET" else None)}
 
 
 def source_code_identity():
@@ -310,10 +337,15 @@ def cbp_custody(dry_run=False, volumes_root=None, out_dir=None, cbp_targets=None
             "closed_results_never_written": [_rel(p) + "/" for p in CLOSED_RESULTS.values()],
             "historical_status": "cbp, qpc, dpc and osf off-device custody PENDING at their closeouts (drive absent); "
                                  "cbp holds a verified same-device copy (cbp_v1_local_copy_20261006)",
-            "cbp_targets_present": ct.exists()}
+            "cbp_targets_present": ct.exists(), "osf_assessment_opened": False}
+    state = lcr_assessment_state()
+    base["lcr_assessment_state"] = state
     if vol is None:
-        rec = {**base, "status": "PENDING", "reason": "external drive with the verified prior copies not mounted",
-               "pending_command": PENDING["cbp_qpc_dpc_osf_smf_pending_custody"],
+        reasons = ["external drive with the verified prior copies not mounted"]
+        if not state["evaluation_lock_pushed"]:
+            reasons.append(SEAL_REASON)
+        rec = {**base, "status": "PENDING", "reason": "; and ".join(reasons),
+               "pending_command": PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"],
                "gaps": ["cbp: same-device copy only (cbp_v1_local_copy_20261006); off-device PENDING",
                         "qpc: same-device copies only; off-device PENDING",
                         "dpc: same-device copy only; off-device PENDING",
@@ -324,11 +356,10 @@ def cbp_custody(dry_run=False, volumes_root=None, out_dir=None, cbp_targets=None
         else:
             write_public(out_dir / "STATUS.json", rec)
         return rec
-    ok_lock, why_lock = lcr_lock_pushed()
+    ok_lock, why_lock = state["evaluation_lock_pushed"], state["evaluation_lock_state"]
     if not ok_lock:
-        rec = {**base, "status": "DEFERRED", "reason": f"the lcr EVALUATION_LOCK is not on origin ({why_lock}); the "
-               "cbp custody reaches osf's assessment, which holds this study's assessment rows",
-               "pending_command": PENDING["cbp_qpc_dpc_osf_smf_pending_custody"]}
+        rec = {**base, "status": "PENDING", "reason": f"{SEAL_REASON} (lcr EVALUATION_LOCK: {why_lock})",
+               "pending_command": PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"]}
         if dry_run:
             print(scrub(json.dumps(rec, indent=1)))
         else:
@@ -396,6 +427,7 @@ def _entry(spec):
 
 
 ENTRY = re.compile(r"^(lcr|cbp|qpc)\.[a-z_]+:[A-Za-z_][A-Za-z0-9_]*$")
+RESTORE_CLASSES = ("U teacher", "learned decoder", "protected map", "Q", "attacker")
 UNIT = re.compile(r"^(pol|dec|new|tea)__s\d__[A-Za-z0-9_.\-]+$")
 
 
@@ -409,6 +441,21 @@ def load_targets(targets_file):
     for spec in (t.get("deploy"), (t.get("attacker") or {}).get("fn")):
         if spec and not ENTRY.match(spec):
             raise SystemExit("REFUSED: entry points must be lcr / cbp / qpc module functions")
+    na = t.get("not_applicable") or {}
+    if not isinstance(na, dict) or not all(isinstance(v, str) and v for v in na.values()):
+        raise SystemExit("REFUSED: not_applicable must map restore classes to a stated reason")
+    bad = sorted(set(na) - set(RESTORE_CLASSES) | ({"U teacher"} & set(na)))
+    if bad:
+        raise SystemExit(f"REFUSED: not_applicable classes {bad} (the U teacher restore is always required)")
+    labels = list((t.get("policies") or {}))
+    clash = [c for c, pre in (("protected map", ("P*", "fallback")), ("Q", ("Q",))) if c in na and
+             any(lb.startswith(pre) for lb in labels)]
+    if "attacker" in na and (t.get("attacker") or {}).get("fn"):
+        clash.append("attacker")
+    if "learned decoder" in na and any(u.startswith(("dec__", "new__")) for u in (t.get("policies") or {}).values()):
+        clash.append("learned decoder")
+    if clash:
+        raise SystemExit(f"REFUSED: {clash} marked not applicable but a target for it is given")
     return t
 
 
@@ -586,12 +633,16 @@ def restore_all(copy: Path, live: Path, targets: dict, seed: int, input_path: Pa
             kk, t = int(m.group(1)), m.group(2)
             checks[lab] = {"unit": u, "status": checks.get(f"teacher {t} (seed {kk})", {}).get("status", "FAIL"),
                            "rebuild": f"teacher {t} seed {kk} restored above (own forward pass from the copy)"}
-    checks["attacker"] = DC.restore_attacker(copy, live, targets.get("attacker"), D)
+    na = targets.get("not_applicable") or {}
+    if "attacker" in na:
+        checks["attacker"] = {"status": "NOT_APPLICABLE", "reason": na["attacker"]}
+    else:
+        checks["attacker"] = DC.restore_attacker(copy, live, targets.get("attacker"), D)
     del D
     return checks, {"wall_s": round(time.time() - t0, 1), "cpu_s": round(time.process_time() - c0, 1)}
 
 
-def required_targets_status(statuses, checks=None):
+def required_targets_status(statuses, checks=None, not_applicable=None):
     """The required restore classes: U teacher, learned decoder, protected map (P* or the registered fallback),
     attacker; Q is reported beside them."""
     checks = checks or {}
@@ -600,12 +651,16 @@ def required_targets_status(statuses, checks=None):
     d1 = {k: (checks.get(k) or {}).get("decoder_recertified_from_copy", {}).get("status") for k in pol
           if "decoder_recertified_from_copy" in (checks.get(k) or {})}
     dec = ("PASS" if d1 and all(v == "PASS" for v in d1.values()) else "FAIL" if d1 else "PENDING (no D1 target)")
-    return {"U teacher": "PASS" if have_u else "FAIL",
-            "learned decoder": dec,
-            "protected map": next((v for k, v in pol.items() if k.startswith(("P*", "fallback"))),
-                                  "PENDING (no P* / fallback target)"),
-            "Q": next((v for k, v in pol.items() if k.startswith("Q")), "PENDING (no Q target)"),
-            "attacker": statuses.get("attacker", "PENDING")}
+    out = {"U teacher": "PASS" if have_u else "FAIL",
+           "learned decoder": dec,
+           "protected map": next((v for k, v in pol.items() if k.startswith(("P*", "fallback"))),
+                                 "PENDING (no P* / fallback target)"),
+           "Q": next((v for k, v in pol.items() if k.startswith("Q")), "PENDING (no Q target)"),
+           "attacker": statuses.get("attacker", "PENDING")}
+    for c, why in (not_applicable or {}).items():
+        if c in out and c != "U teacher" and str(out[c]).startswith(("PENDING", "NOT_APPLICABLE")):
+            out[c] = f"NOT_APPLICABLE ({why})"
+    return out
 
 
 def rehearse(src: Path, targets: dict, seed: int):
@@ -617,7 +672,8 @@ def rehearse(src: Path, targets: dict, seed: int):
         return {"status": "NOT_RUN", "reason": scrub_safe(e)}
     st = {k: v.get("status") for k, v in checks.items()}
     return {"note": "live store used as the 'copy' (no copy exists in a dry run); rehearses code paths only",
-            "statuses": st, "required": required_targets_status(st, checks), "cost": cost}
+            "statuses": st, "required": required_targets_status(st, checks, targets.get("not_applicable")),
+            "cost": cost}
 
 
 # ------------------------------------------------------------------ (3) this study's copy
@@ -659,9 +715,9 @@ def backup(dest=None, targets_file=None, seed=1, dry_run=False, src=None, cache=
     copy, cp = copy_study(src, root, deps)
     checks, cost = restore_all(copy, src, targets, seed, root / next(iter(deps)) if deps else INPUT)
     statuses = {k: v.get("status") for k, v in checks.items()}
-    req = required_targets_status(statuses, checks)
+    req = required_targets_status(statuses, checks, targets.get("not_applicable"))
     restored_ok = all(s == "PASS" for k, s in statuses.items() if k != "attacker") and \
-        statuses.get("attacker") in ("PASS", "PENDING")
+        statuses.get("attacker") in ("PASS", "PENDING", "NOT_APPLICABLE")
     bv = {"schema": "lcr-backup-verification-v1", "written_at": now(),
           "status": STATUS_LOCAL if same_device else STATUS_DRIVE,
           "off_device_backup": "PENDING (external drive not mounted)" if same_device else "DONE (this study)",
@@ -673,7 +729,8 @@ def backup(dest=None, targets_file=None, seed=1, dry_run=False, src=None, cache=
                            "off-device custody)" if same_device else "restore from the drive copy alone"),
           "restore_seed": seed, "restore_targets": targets.get("policies"), "restore_checks": checks,
           "restore_statuses": statuses, "required_restores": req, "restore_all_pass": bool(restored_ok),
-          "restore_cost": cost, "drive_detection": ev, "deleted": "nothing", "moved": "nothing"}
+          "restore_cost": cost, "drive_detection": ev, "lcr_assessment_state": lcr_assessment_state(),
+          "unit_inventory": unit_inventory(copy), "deleted": "nothing", "moved": "nothing"}
     if same_device:
         bv["custody_gap"] = ("The external drive was not mounted: this copy is on the SAME device and is not "
                              "off-device custody. Pending (exact commands): " + "; ".join(PENDING.values()))
@@ -681,13 +738,28 @@ def backup(dest=None, targets_file=None, seed=1, dry_run=False, src=None, cache=
     if components:
         bv["components"] = components
     write_public(out_pkg / "BACKUP_VERIFICATION.json", bv)
-    write_public(out_pkg / "RESTORE_INDEX.json", restore_index(place, root, statuses, same_device))
+    write_public(out_pkg / "RESTORE_INDEX.json", restore_index(place, root, statuses, same_device, req,
+                                                               unit_inventory(copy)))
     (root / "BACKUP_RECORD.json").write_text(json.dumps(bv, indent=1, default=str) + "\n")
     print(json.dumps({k: bv[k] for k in ("status", "files", "uncached_readback_match", "required_restores")}, indent=1))
     return bv
 
 
-def restore_index(place, root, statuses, same_device):
+def unit_inventory(store: Path):
+    """Unit counts per name prefix in a (copied) store, e.g. {"pol": 81, "fix": 4} (names only; no content)."""
+    u = Path(store) / "run" / "units"
+    out = {}
+    for d in (sorted(u.iterdir()) if u.is_dir() else []):
+        if d.is_dir():
+            pre = d.name.split("__")[0]
+            out[pre] = out.get(pre, 0) + 1
+    att = Path(store) / "run" / "attempts"
+    if att.is_dir():
+        out["run/attempts"] = sorted(p.name for p in att.iterdir() if p.is_dir())
+    return out
+
+
+def restore_index(place, root, statuses, same_device, required=None, inventory=None):
     return {"schema": "lcr-restore-index-v1", "written_at": now(), "private_local": "<PRIVATE_CACHE>/lcr_v1",
             "copy": f"{place}/{root.name}/lcr_v1" + (" (same device; off-device copy PENDING)" if same_device else ""),
             "checksums": f"{place}/{root.name}/SHA256SUMS",
@@ -699,13 +771,18 @@ def restore_index(place, root, statuses, same_device):
                                                           "means and are NOT released) + decoder.json (learned decoder: "
                                                           "sufficient statistics, released vectors, certificates) + "
                                                           "release.npz",
+                       "lcr_v1/run/units/fix__*": "fixture-stage units (synthetic known laws under FIXTURE_LOCK; no "
+                                                  "Adult data)",
+                       "lcr_v1/run/attempts/": "retained stage attempts (never overwritten)",
+                       "lcr_v1/run/*.jsonl, *.log": "activity, compute and semaphore ledgers, stage logs",
                        "lcr_v1/run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json",
                        DEP_REL: "the pinned source input (sha256 e0d9e54a...2f12), bundled so the copy restores alone"},
             "restore": [f"copy {place}/{root.name}/lcr_v1 to <PRIVATE_CACHE>/lcr_v1 (only if the live store is lost)",
                         "verify: shasum -a 256 -c SHA256SUMS (inside the copy's folder)",
                         f"re-run the restore checks: {SEMA} backup --dry-run --targets <targets.json>",
                         "then follow QUICKSTART.md"],
-            "restore_statuses": statuses, "not_off_device": bool(same_device)}
+            "restore_statuses": statuses, "required_restores": required, "unit_inventory": inventory,
+            "not_off_device": bool(same_device)}
 
 
 # ------------------------------------------------------------------ incremental refresh of an existing copy

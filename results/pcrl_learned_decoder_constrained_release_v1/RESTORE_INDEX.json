@@ -1,0 +1,49 @@
+{
+ "schema": "lcr-restore-index-v1",
+ "written_at": "2026-10-07T01:49:13Z",
+ "private_local": "<PRIVATE_CACHE>/lcr_v1",
+ "copy": "<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/lcr_v1 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/SHA256SUMS",
+ "layout": {
+  "lcr_v1/admitted/rel__s{k}__{t}/": "admitted teachers (model.pt, heads, release; verified copies of the cbp admitted artifacts) + ADMISSION_RECEIPT.json",
+  "lcr_v1/inputs/": "the authorised 83-column deployment input and schema",
+  "lcr_v1/run/units/pol__*": "admitted D0 codes (qpc formats; mean-teacher decoder)",
+  "lcr_v1/run/units/dec__*, new__*": "D1 codes: policy.json (token map; its token_proto are D0 means and are NOT released) + decoder.json (learned decoder: sufficient statistics, released vectors, certificates) + release.npz",
+  "lcr_v1/run/units/fix__*": "fixture-stage units (synthetic known laws under FIXTURE_LOCK; no Adult data)",
+  "lcr_v1/run/attempts/": "retained stage attempts (never overwritten)",
+  "lcr_v1/run/*.jsonl, *.log": "activity, compute and semaphore ledgers, stage logs",
+  "lcr_v1/run/units/<unit>/": "atomic study units: files + record.json + COMPLETE.json",
+  "dependencies/jcv_v1/inputs/adult_jcv.npz": "the pinned source input (sha256 e0d9e54a...2f12), bundled so the copy restores alone"
+ },
+ "restore": [
+  "copy <PRIVATE_CACHE>/lcr_v1_local_copy_20261007/lcr_v1 to <PRIVATE_CACHE>/lcr_v1 (only if the live store is lost)",
+  "verify: shasum -a 256 -c SHA256SUMS (inside the copy's folder)",
+  "re-run the restore checks: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.sema --label F:closeout -- env OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.closeout backup --dry-run --targets <targets.json>",
+  "then follow QUICKSTART.md"
+ ],
+ "restore_statuses": {
+  "teacher U (seed 1)": "PASS",
+  "teacher RAW-J_b0.3 (seed 1)": "PASS",
+  "Q (fixed original D0 DIRECT-TASK i8o64; admitted from cbp unchanged)": "PASS",
+  "attacker": "NOT_APPLICABLE"
+ },
+ "required_restores": {
+  "U teacher": "PASS",
+  "learned decoder": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no Adult D1 decoder was fitted (the d1 stage never ran); the synthetic fixture-stage decoders are covered by the fix__ units' uncached hash read-back)",
+  "protected map": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET (registered fixture gate GATE_NOT_MET, NO_FIXTURE_TRIGGERED); no Adult fit ran, so no P*, N*, J* or descriptive fallback exists)",
+  "Q": "PASS",
+  "attacker": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no lcr attacker was fitted (no inner or outer audit ran); the admitted cbp inner audits are custody copies only)"
+ },
+ "unit_inventory": {
+  "fine": 3,
+  "fix": 4,
+  "inner": 90,
+  "pol": 81,
+  "ref": 9,
+  "tea": 6,
+  "run/attempts": [
+   "fixture_attempt1"
+  ]
+ },
+ "not_off_device": true
+}

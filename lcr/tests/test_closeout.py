@@ -137,9 +137,10 @@ def test_same_device_copy_bundles_the_input_is_labelled_pending_and_restored_fro
     assert "not a drive restore" in bv["restore_kind"] and bv["off_device_backup"].startswith("PENDING")
     assert "not off-device custody" in bv["custody_gap"]
     assert bv["pending"] == CO.PENDING and "<DRIVE_ROOT>" in CO.PENDING["lcr_off_device_backup_and_restore"]
-    assert all(v.startswith(CO.SEMA) for k, v in CO.PENDING.items() if not k.endswith("NOT_recommended"))
-    assert "cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json" in \
-        CO.PENDING["cbp_qpc_dpc_osf_smf_pending_custody"]
+    assert all(v.startswith(CO.SEMA) for k, v in CO.PENDING.items() if not k.startswith("cbp_"))
+    own = CO.PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"]
+    assert own.startswith("cd <CBP_WORKTREE> && ") and "-m cbp.sema" in own and \
+        "cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json" in own and "OPENS osf" in own
     assert bv["files"] == 3 and bv["store_files"] == 2 and bv["dependency_files"] == 1 and bv["uncached_readback_match"] == 3
     root = src.parent / f"lcr_v1_local_copy_{DATE}"
     assert (root / "lcr_v1" / "START.txt").exists() and not (root / "lcr_v1/run/units/u/f.bin.tmp").exists()
@@ -216,6 +217,47 @@ def test_failed_restore_is_not_reported_as_passing(tmp_path, monkeypatch):
     _stub_restore(monkeypatch, dec="FAIL")
     bv = CO.backup(src=src, cache=src.parent, volumes_root=_volumes(tmp_path / "b", match=False), out_pkg=tmp_path / "pkg")
     assert bv["restore_all_pass"] is False and bv["required_restores"]["learned decoder"] == "FAIL"
+
+
+def test_not_applicable_classes_are_reported_not_failed(tmp_path, monkeypatch):
+    """MECHANISM_GATE_NOT_MET: no P*, no Adult D1 decoder, no lcr attacker. Those classes are NOT_APPLICABLE with the
+    reason (never a failure, never silently PENDING); the U teacher can never be marked not applicable; a class marked
+    not applicable may not also have a target."""
+    na = {"protected map": "MECHANISM_GATE_NOT_MET; no Adult fit", "learned decoder": "no Adult D1 decoder fitted",
+          "attacker": "no lcr attacker fitted"}
+    st = {"teacher U (seed 1)": "PASS", "Q (D0 DIRECT-TASK i8o64)": "PASS", "attacker": "NOT_APPLICABLE"}
+    req = CO.required_targets_status(st, {}, na)
+    assert req == {"U teacher": "PASS", "learned decoder": "NOT_APPLICABLE (no Adult D1 decoder fitted)",
+                   "protected map": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no Adult fit)", "Q": "PASS",
+                   "attacker": "NOT_APPLICABLE (no lcr attacker fitted)"}
+    t = tmp_path / "t.json"
+    t.write_text(json.dumps({"seed": 1, "policies": {"Q (D0 DIRECT-TASK i8o64)": "pol__s1__U_DIRECT-TASK_i8o64"},
+                             "not_applicable": na}))
+    assert CO.load_targets(t)["not_applicable"] == na
+    for bad in ({"policies": {}, "not_applicable": {"U teacher": "x"}},
+                {"policies": {}, "not_applicable": {"protected map": ""}},
+                {"policies": {"P* (x)": "dec__s1__U_LOCAL_i8o64_l0.06_D1"}, "not_applicable": {"protected map": "x"}},
+                {"policies": {}, "attacker": {"fn": "lcr.assess:x"}, "not_applicable": {"attacker": "x"}}):
+        t.write_text(json.dumps(bad))
+        with pytest.raises(SystemExit):
+            CO.load_targets(t)
+    # a full backup with these targets passes; the attacker restore is not attempted
+    src = _store(tmp_path)
+    seen = {}
+
+    def fake(copy, live, targets, seed, input_path):
+        seen["na"] = targets.get("not_applicable")
+        return ({"teacher U (seed 1)": {"status": "PASS"}, "Q (D0 DIRECT-TASK i8o64)": {"status": "PASS"},
+                 "attacker": {"status": "NOT_APPLICABLE", "reason": na["attacker"]}}, {"wall_s": 0.0, "cpu_s": 0.0})
+    monkeypatch.setattr(CO, "restore_all", fake)
+    t.write_text(json.dumps({"seed": 1, "policies": {"Q (D0 DIRECT-TASK i8o64)": "pol__s1__U_DIRECT-TASK_i8o64"},
+                             "not_applicable": na}))
+    bv = CO.backup(targets_file=t, src=src, cache=src.parent, volumes_root=_volumes(tmp_path, match=False),
+                   out_pkg=tmp_path / "pkg")
+    assert bv["restore_all_pass"] is True and seen["na"] == na
+    assert bv["required_restores"]["protected map"].startswith("NOT_APPLICABLE")
+    ri = json.loads((tmp_path / "pkg" / "RESTORE_INDEX.json").read_text())
+    assert ri["required_restores"] == bv["required_restores"] and ri["unit_inventory"] == {"u": 1}
 
 
 def test_required_restore_classes():
@@ -333,14 +375,24 @@ def test_cbp_custody_pending_without_drive_never_calls_the_source_closeout(tmp_p
     assert "Owner" not in txt and str(tmp_path) not in txt
 
 
-def test_cbp_custody_is_deferred_until_the_lcr_evaluation_lock_is_pushed(tmp_path, monkeypatch, _isolate):
-    """With the drive present, the cbp custody reaches osf's assessment (this study's assessment rows): it never runs
-    before the lcr EVALUATION_LOCK is on origin."""
+def test_cbp_custody_stays_pending_without_the_lcr_evaluation_lock_even_with_the_drive(tmp_path, monkeypatch, _isolate):
+    """With the drive present, the cbp custody reaches osf's assessment (this study's assessment rows): without the lcr
+    EVALUATION_LOCK (e.g. MECHANISM_GATE_NOT_MET: it will never exist) it is recorded PENDING, never run, and osf's
+    assessment is never opened."""
     monkeypatch.setattr(CO, "source_code_identity", lambda: {"identical": True, "files": 1, "differing_from_cbp_tip": []})
+    (CO.PKG).mkdir(parents=True, exist_ok=True)
+    (CO.PKG / "FIXTURE_GATE.json").write_text(json.dumps({"verdict": "GATE_NOT_MET"}))
     called = []
+    from osf import assess as AS
+    monkeypatch.setattr(AS, "open_assessment", lambda *a, **k: called.append("OPENED"))
     rec = CO.cbp_custody(volumes_root=_volumes(tmp_path), CBmod=types.SimpleNamespace(run_all=lambda **k: called.append(1)))
-    assert rec["status"] == "DEFERRED" and not called and "EVALUATION_LOCK" in rec["reason"]
-    assert json.loads((CO.CBP_CUSTODY_DIR / "STATUS.json").read_text())["status"] == "DEFERRED"
+    assert rec["status"] == "PENDING" and not called and "EVALUATION_LOCK" in rec["reason"]
+    assert "never opened" in rec["reason"] and rec["osf_assessment_opened"] is False
+    assert rec["lcr_assessment_state"]["fixture_gate"] == "GATE_NOT_MET"
+    assert rec["pending_command"] == CO.PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"]
+    assert json.loads((CO.CBP_CUSTODY_DIR / "STATUS.json").read_text())["status"] == "PENDING"
+    rec2 = CO.cbp_custody(volumes_root=_volumes(tmp_path / "x", match=False))      # drive absent: both reasons
+    assert rec2["status"] == "PENDING" and "not mounted" in rec2["reason"] and "never opened" in rec2["reason"]
 
 
 def _fake_cbp(tmp_path, write_closed=None):
