@@ -270,8 +270,12 @@ lra/report.py is unlocked as reporting only. Every file below is byte-identical 
   04:52Z.
 - Neither mapper.py nor SEARCH_RULES.json changed after 16924cc, and the locked file still carries rules_sha256
   bc8bb48c…. So the equality was established on the locked bytes.
-- A confirming re-run on the locked bytes is queued under lra.sema (label F:fairness-round3); both slots are held by
-  the fitting stage. Its result is in the hand-off message to the lead.
+- **Confirmed on the locked bytes.** The re-run under lra.sema (label F:fairness-round3) waited 340 s for a slot and
+  ran 05:40:46–05:40:48Z, 1.5 CPU-s, on mapper.py 6f619c94 and SEARCH_RULES.json 1593c84a.
+  - SEARCH_RULES.json equals `rules()` (rules_sha256 bc8bb48c…).
+  - code_ids = 84, scored ids = 89, P\* pool = 77, C\* pool = 72, T\* = 9 including CLASS|D1.
+  - JOINT witnesses = 30 (K and W); SEQ starts = 7; LOCAL starts = 1.
+  - EVAL_CEILING 8e6, SWEEPS 5, neighbourhood 4 + 4, pair bank 4 + 4, TOL 1e-12, BUDGET_MARGIN 1e-10, CAP_MARGIN 0.
 
 **Not in the lock (NOTE).**
 - PREDECESSOR_GATE_DIAGNOSIS.md and PRIOR_ART_AND_CLAIM_SCOPE.md are not among the lock's `documents_sha256`.
