@@ -1,4 +1,5 @@
-"""[lra port of lcr/infer.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md]
+"""[lra port of lcr/infer.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md and
+REVIEW_FINDINGS_DISPOSITION.json (F03/F10/F14)]
 Inference from saved OSF_DEVELOPMENT_ASSESSMENT predictions and EVALUATION_LOCK.json only (no refits, no selection).
 
 Adapted from cbp/infer.py at 7f3ec67; the family (37 slots, z = 3.2048452050105634), clause classifier and label truth
@@ -8,9 +9,17 @@ inner-AUC-selected final attacker, averaged over attacker seeds 0-2; accuracy = 
 U = the task-only teacher's continuous output (label "SRC|U"). Roles (P*, N*, J*, T*, C*, C_pair*, Q) are GLOBAL
 configurations resolved from the lock; a registered fallback is scored but its rows are DESCRIPTIVE_ONLY and can never
 pass. Endpoint = mean over seeds of the per-seed paired statistic. SE = sd (ddof 1) over B = 1999 paired multinomial
-bootstrap replicates of exact-record groups (seed 20261009; the same draws for every statistic, arm and seed);
+bootstrap replicates of exact-record groups (seed 20261010; the same draws for every statistic, arm and seed);
 interval = point +- z SE. Every slot gets a clause outcome (PASS / NOT_ESTABLISHED_PRECISION / NOT_ESTABLISHED_POINT /
 MEASURED_VIOLATION / INVALID); a slot with any nonfinite replicate is INVALID (never dropped).
+
+GATE (F10): inference REFUSES unless the lock's technical_validity.engineering_gate is ENGINEERING_READY (bound by
+lra.eval_lock through lra.run.engineering_ready); readiness is never hard-coded. The verdict is passed to
+lra.family.overall_label, whose label always carries the separate A / B / C / Q statuses (F14).
+SUPPLEMENTARY (prompt sec. 14): for every registered same-map pair (lock same_map_decoder_pairs: the best D1 fixed-map
+privacy control and its D0 map, P* and its same-map D0 version, C-TASK and its same-map D0 version) the paired D1 - D0
+true-label log loss and Brier per task, mean over seeds, with nominal 95% intervals (z = NormalDist().inv_cdf(0.975))
+on the same 1,999 draws; never primary slots, never a verdict input.
 
 Technical failures found after the lock (e.g. an independent-verification FAIL) are passed with --failures FILE:
 {"global": [...], "per_claim": {"A": [...], ...}}; global entries block every favourable label, per-claim entries make
@@ -109,6 +118,15 @@ class Ctx:
         return self.g.base_once(f"const#{j}", f"const#{j}", acc_stat(self.y[j] == self.const[j]))
 
 
+def decoder_pairs(EL):
+    """The registered same-map D1/D0 pairs of the lock (older locks: the single decoder_ablation_pair)."""
+    pairs = list(EL.get("same_map_decoder_pairs") or [])
+    if not pairs and EL.get("decoder_ablation_pair") and all(EL["decoder_ablation_pair"]):
+        a, b = EL["decoder_ablation_pair"]
+        pairs = [{"name": "best_d1_fixed_privacy", "d1": a, "d0": b, "registered_sentence": True}]
+    return pairs
+
+
 def build(ctx):
     g, ids = ctx.g, {}
     U = "SRC|U"
@@ -166,18 +184,29 @@ def build(ctx):
                                                           [levels[f"{kk}#{k}#{lab}#{j}"] for k in SEEDS])
     for j in (0, 1):
         levels[f"const#{j}"] = ctx.constacc(j)
-    # registered decoder-ablation contrast (LABEL_TRUTH_TABLE report_rules): best D1 fixed-map privacy control vs its
-    # paired D0 release (identical tokens): paired per-task D1 - D0 log loss and Brier, mean over seeds
-    pair = ctx.EL.get("decoder_ablation_pair") or [None, None]
-    d1, d0 = (ctx.lab(pair[0]) if pair[0] else None), (ctx.lab(pair[1]) if pair[1] else None)
+    # registered same-map decoder contrasts (supplementary, prompt sec. 14): D1 - D0 log loss and Brier per task, mean
+    # over seeds, for every lock same_map_decoder_pairs entry (the first registered_sentence pair also feeds the legacy
+    # 'decoder_ablation' summary); identical tokens by construction
     abl = {}
-    if d1 and d0:
+    for pr in decoder_pairs(ctx.EL):
+        d1, d0 = (ctx.lab(pr["d1"]) if pr.get("d1") else None), (ctx.lab(pr["d0"]) if pr.get("d0") else None)
+        if not (d1 and d0):
+            continue
         for j in (0, 1):
             for kind in ("ll", "br"):
-                per = [g.add(f"abl#{kind}#{j}#{k}", "diff", [ctx.loss(k, d1, j, kind), ctx.loss(k, d0, j, kind)])
-                       for k in SEEDS]
-                abl[f"{kind}#{j}"] = g.add(f"abl#{kind}#{j}", "mean", per)
+                per = [g.add(f"abl#{pr['name']}#{kind}#{j}#{k}", "diff",
+                             [ctx.loss(k, d1, j, kind), ctx.loss(k, d0, j, kind)]) for k in SEEDS]
+                abl[(pr["name"], kind, j)] = g.add(f"abl#{pr['name']}#{kind}#{j}", "mean", per)
     return ids, levels, abl
+
+
+def engineering_gate(EL):
+    """The engineering-gate verdict bound in the lock (F10). Inference REFUSES unless it is ENGINEERING_READY."""
+    g = ((EL.get("technical_validity") or {}).get("engineering_gate") or {})
+    if g.get("verdict") != "ENGINEERING_READY" or g.get("ready") is not True:
+        raise SystemExit(f"REFUSED: the evaluation lock does not bind ENGINEERING_READY (got {g.get('verdict')!r}); "
+                         "inference requires the new correctness gate")
+    return g["verdict"]
 
 
 def label_from(out, EL, failures=None):
@@ -202,8 +231,14 @@ def label_from(out, EL, failures=None):
     qs, qc, qf = FAM.q_status("TECHNICAL_FAILURE" if per_claim.get("Q") else FAM.role_state(st.get("Q")), qo)
     q = {"status": qs, "root_cause": qc, "failing": qf, "by_kind": FAM.cause_by_kind(qo)[0]}
     tv = bool(EL.get("technical_validity", {}).get("ok", False)) and not failures.get("global")
+    gate = engineering_gate(EL)
+    disc = {}
+    for claim, role in (("A", "P*"), ("B", "N*"), ("C", "J*")):
+        un = (st.get(role) or {}).get("identical_to_untrained") or []
+        if un:
+            disc[claim] = f"{role} release identical to privacy-untrained {', '.join(un)}; no privacy-training credit"
     lab, shown = FAM.overall_label({c: v["status"] for c, v in claims.items()}, qs, tv,
-                                   (st.get("P*") or {}).get("winning"), gate_met=True)
+                                   (st.get("P*") or {}).get("winning"), engineering_gate=gate, disclosures=disc)
     return claims, q, lab, shown, tv
 
 
@@ -214,6 +249,7 @@ def main(argv=None, check_prior=True, units=None):
     ap.add_argument("--failures", default=None)
     a = ap.parse_args(argv)
     EL = json.loads(Path(a.evaluation_lock).read_text())
+    engineering_gate(EL)                                  # F10: refuse before reading any prediction
     failures = json.loads(Path(a.failures).read_text()) if a.failures else None
     ctx = Ctx(EL, check_prior=check_prior, units=units)
     ids, levels, abl = build(ctx)
@@ -256,21 +292,35 @@ def main(argv=None, check_prior=True, units=None):
         fin = r[np.isfinite(r)]
         out["levels"][nm] = {"point": float(pts[sid]), "se": float(np.std(fin, ddof=1)) if len(fin) > 1 else None,
                              "nonfinite": int((~np.isfinite(r)).sum())}
-    da = {"pair": EL.get("decoder_ablation_pair"), "rule": "did iff all four upper bounds < 0 (nominal, descriptive)",
-          "contrasts": {}}
-    for nm, sid in abl.items():
+    z95 = FAM.Z_SUPPLEMENTARY
+    sm = {}
+    for (name, kind, j), sid in abl.items():
         r = reps[sid]
-        pt, se = float(pts[sid]), float(np.std(r, ddof=1)) if np.isfinite(r).all() else None
-        kind, j = nm.split("#")
-        da["contrasts"][f"{'logloss' if kind == 'll' else 'brier'}_{('income', 'occupation')[int(j)]}"] = {
-            "point": pt, "se": se, "lower": None if se is None else pt - z * se, "upper": None if se is None else pt + z * se}
-    ups = [c["upper"] for c in da["contrasts"].values()]
-    da["verdict"] = ("NOT_COMPUTED" if len(ups) != 4 or any(u is None for u in ups) else
-                     "did" if all(u < 0 for u in ups) else "did not clearly")
-    out["decoder_ablation"] = da
+        pt = float(pts[sid])
+        se = float(np.std(r, ddof=1)) if np.isfinite(r).all() and np.isfinite(pt) else None
+        sm.setdefault(name, {})[f"{'logloss' if kind == 'll' else 'brier'}_{('income', 'occupation')[j]}"] = {
+            "point": pt, "se": se, "lower": None if se is None else pt - z95 * se,
+            "upper": None if se is None else pt + z95 * se}
+    smd = {"z": z95, "z_definition": "NormalDist().inv_cdf(0.975) (nominal 95%; supplementary, not primary slots)",
+           "B": FAM.B, "seed": FAM.BOOT_SEED, "pairs": []}
+    for pr in decoder_pairs(EL):
+        c = sm.get(pr["name"]) or {}
+        ups = [v["upper"] for v in c.values()]
+        smd["pairs"].append({**pr, "contrasts": c, "verdict": (
+            "NOT_COMPUTED" if len(ups) != 4 or any(u is None for u in ups) else
+            "did" if all(u < 0 for u in ups) else "did not clearly"),
+            "scope": "these decoded maps on this development assessment only; tokens identical (no information "
+                     "removal)"})
+    out["same_map_decoder_contrasts"] = smd
+    reg = next((p for p in smd["pairs"] if p.get("registered_sentence")), None)
+    out["decoder_ablation"] = {"pair": [reg["d1"], reg["d0"]] if reg else EL.get("decoder_ablation_pair"),
+                               "rule": "did iff all four upper bounds < 0 (nominal 95%, descriptive)",
+                               "contrasts": (reg or {}).get("contrasts") or {},
+                               "verdict": (reg or {}).get("verdict", "NOT_COMPUTED")}
     claims, q, lab, shown, tv = label_from(out, EL, failures)
     out.update({"claim_status": claims, "q_status": q, "label": lab, "displayed_statuses": shown,
                 "technical_valid": tv, "failures_input": failures,
+                "label_headline": FAM.label_headline(lab), "engineering_gate": engineering_gate(EL),
                 "winning": (EL["statuses"].get("P*") or {}).get("winning"),
                 "clauses_passing_scored": {c: sum(e["decision"] == "PASS" for e in out["primary"] if e["claim"] == c)
                                            for c in "ABCQ"},

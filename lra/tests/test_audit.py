@@ -6,7 +6,7 @@ Synthetic tests of lra.audit / lra.baselines / lra.assess (role D; no real data,
         lra/tests/test_audit.py
 
 Adapted from cbp/tests/test_audit.py (views, readers, unit contract, closure, controls, assessment) plus the lra checks:
-the binding to lra.run (aud__ inner namespace, schema lra-inner-v1), the registered 83-code composition bank and its
+the binding to lra.run (aud__ inner namespace, schema lra-inner-v1), the registered 84-code composition bank and its
 closure (missing / stray release or inner units refused), D1 fixed-map releases audited with full token identities
 (and refused if their tokens differ from the D0 map), the token-only / probability-only diagnostic families (a
 probability-only family differs from the complete family when probabilities coincide across distinct tokens), the
@@ -107,8 +107,9 @@ def test_bound_to_lra_run_store_and_aud_namespace():
     chk = A.registration_check()
     assert chk["ok"], chk
     U = A.expected_policies("U")
-    assert len(U) == 83 and U == R.code_ids() and A.COMPOSED_EXTRA == ()
-    assert U[:27] == R.d0_ids() and U[27:53] == R.d1_fixed_ids() and U[53:] == R.new_fit_ids()
+    assert len(U) == 84 and U == R.code_ids() and A.COMPOSED_EXTRA == ()
+    assert U[:27] == R.d0_ids() and U[27:54] == R.d1_fixed_ids() and U[54:] == R.new_fit_ids()
+    assert "U|CLASS|i1o1|D1" in U and A.is_class_only("U|CLASS|i1o1|D1")                 # role F R-1
     assert A.expected_policies("RAW-J_b0.3") == []
     assert A.d0_of("U|JOINT|i8o64|l0.1|D1") == "U|JOINT|i8o64|l0.1" and A.d0_of("U|C-TASK|i8o64|D1") is None
     assert [c for c in R.scored_ids() if R.parse_id(c)["kind"] == "policy"] == U
@@ -124,7 +125,7 @@ def test_registration_drift_is_refused(monkeypatch):
         A.expected_policies("U")
     fake.code_ids = R.code_ids
     fake.scored_ids = lambda: R.scored_ids() + ["U|LOCAL|i8o64|l1"]        # an unregistered code made a candidate
-    assert "scored_ids (policy part) != the 83 registered codes" in A.registration_check(fake)["mismatches"]
+    assert "scored_ids (policy part) != the 84 registered codes" in A.registration_check(fake)["mismatches"]
 
 
 # ====================================================================== views and readers (source slate unchanged)
@@ -454,10 +455,11 @@ def test_inner_job_names_and_stage_src_refuses_open_bank(store, DS, monkeypatch)
     saved = json.loads((store / name / A.SIDECAR).read_text())
     assert saved["view_fingerprints"] == rec["view_fingerprints"] and A._lra_inner_ok(name, store)
     jobs = A.inner_jobs()
-    assert len(jobs) == 3 * 83 + 9 and jobs[:81] == [(k, c) for c in R.d0_ids() for k in (0, 1, 2)]
-    assert jobs[81:159] == [(k, c) for c in R.d1_fixed_ids() for k in (0, 1, 2)]
+    assert len(jobs) == 3 * 84 + 9 and jobs[:81] == [(k, c) for c in R.d0_ids() for k in (0, 1, 2)]
+    assert jobs[81:162] == [(k, c) for c in R.d1_fixed_ids() for k in (0, 1, 2)]
+    assert len(jobs) + len(A.source_jobs()) == 267                         # 89 configurations x 3 seeds
     assert A.source_jobs() == [(k, s) for k in (0, 1, 2) for s in ("SRC|U", "SRC|RAW-J_b0.3")]
-    with pytest.raises(SystemExit, match="need the closed 83-code bank"):
+    with pytest.raises(SystemExit, match="need the closed 84-code bank"):
         A.stage_inner_src(DS, None, units_dir=store, save=lambda *a: None, slate="tiny")
 
 
@@ -537,8 +539,9 @@ def test_cbp_parity_receipt_records_only(store, DS):
         A.cbp_parity(0, "U|JOINT|i2o4|l0.1|D1", store)
 
 
-# ====================================================================== the registered 83-code composition bank
-REG_KIND = {"U|JOINT|i8o64|l0.1": "leaky", "U|JOINT|i8o64|l0.1|D1": "leaky_d1", "U|CLASS|i1o1": "cls"}
+# ====================================================================== the registered 84-code composition bank
+REG_KIND = {"U|JOINT|i8o64|l0.1": "leaky", "U|JOINT|i8o64|l0.1|D1": "leaky_d1", "U|CLASS|i1o1": "cls",
+            "U|CLASS|i1o1|D1": "cls_d1"}
 
 
 def _reg_kind(cid):
@@ -549,7 +552,7 @@ def _reg_kind(cid):
 
 @pytest.fixture(scope="module")
 def reg_template(tmp_path_factory, DS, TS):
-    """lra-named store with the REGISTERED 83-code bank of U at seed 0. Six distinct releases are audited (a plain D0
+    """lra-named store with the REGISTERED 84-code bank of U at seed 0. Six distinct releases are audited (a plain D0
     code, a SEX-tilted D0 JOINT l0.1, their D1 versions, the class-only code, a new fit); every other registered name
     reuses the release and inner record of its kind (composition reads records only; D1 names keep their D0 tokens)."""
     DA.SLATES.setdefault("tiny", lambda: [("LR_C1", lambda s: JA._lr(1.0, s)), ("MLP_16", lambda s: JA._mlp((16,), s)),
@@ -562,6 +565,7 @@ def reg_template(tmp_path_factory, DS, TS):
     plain, leaky = A.synthetic_release(DS, TS, 2, 4), A.synthetic_release(DS, TS, 2, 4, sex_tilt=0.6)
     rel = {"plain": plain, "leaky": leaky, "plain_d1": A.synthetic_d1(plain), "leaky_d1": A.synthetic_d1(leaky),
            "cls": A.synthetic_release(DS, TS, 1, 1), "new": A.synthetic_release(DS, TS, 2, 4, sex_tilt=0.1, seed=5)}
+    rel["cls_d1"] = A.synthetic_d1(rel["cls"])
     for cid in A.registered_code_bank():
         _save(units, A.unit_of(0, cid), {"release.npz": rel[_reg_kind(cid)]}, {})
     recs = {}
@@ -583,15 +587,15 @@ def reg_store(reg_template, tmp_path):
     return dst
 
 
-def test_source_composes_over_the_registered_83_bank_in_order(reg_store, DS):
+def test_source_composes_over_the_registered_84_bank_in_order(reg_store, DS):
     src = A.inner_unit("source", 0, "SRC|U", DS, units_dir=reg_store, slate="tiny")
     c = src["composed"]
-    assert c["policies"] == A.registered_code_bank() == R.code_ids() and len(c["policies"]) == 83
-    assert c["closure"]["ok"] and c["closure"]["expected"] == 83 and c["closure"]["release_units_on_disk"] == 83
-    assert c["closure"]["inner_units_on_disk"] == 83 and c["composition_only"] == []
+    assert c["policies"] == A.registered_code_bank() == R.code_ids() and len(c["policies"]) == 84
+    assert c["closure"]["ok"] and c["closure"]["expected"] == 84 and c["closure"]["release_units_on_disk"] == 84
+    assert c["closure"]["inner_units_on_disk"] == 84 and c["composition_only"] == []
     assert c["policy_list_source"].startswith("registered")
     assert c["winner"]["v2"] in ("U|JOINT|i8o64|l0.1", "U|JOINT|i8o64|l0.1|D1")     # the leaky code's reader wins
-    assert all(w in ("source", "U|DIRECT-TASK|i8o64", "U|JOINT|i8o64|l0.1", "U|CLASS|i1o1",
+    assert all(w in ("source", "U|DIRECT-TASK|i8o64", "U|JOINT|i8o64|l0.1", "U|CLASS|i1o1", "U|CLASS|i1o1|D1",
                      "U|DIRECT-TASK|i8o64|D1", "U|JOINT|i8o64|l0.1|D1", "U|C-TASK|i8o64|D1")
                for f in c["per_family"].values() for w in f["winner"].values())     # first in registered order
     assert A.validate_inner(_pub(src), _arr(src), DS, registered=True)["ok"]
@@ -607,7 +611,7 @@ def test_registered_closure_refuses_a_missing_unit(reg_store, DS, victim, kind):
 
 
 @pytest.mark.parametrize("stray", ["pol__s0__U_JOINT_i8o64_l0.2", "new__s0__U_K-JOINT-TRIPLE_i8o64_D1",
-                                   "dec__s0__U_CLASS_i1o1_D1"])
+                                   "dec__s0__U_CLASS_i2o2_D1"])
 def test_registered_closure_refuses_a_planted_or_stray_release(reg_store, DS, TS, stray):
     z = DA.split_tokens(A.synthetic_release(DS, TS, 2, 4), 2, np.asarray(DS["sex"]).clip(0), collide=True)
     _save(reg_store, stray, {"release.npz": z}, {})
@@ -625,7 +629,7 @@ def test_validate_all_over_the_saved_registered_bank(reg_store, DS, TS):
     for cid in ("SRC|U", "SRC|RAW-J_b0.3", "REF|F"):
         _save_inner(reg_store, A.inner_unit(A.parse_cid(cid)["kind"], 0, cid, DS, units_dir=reg_store, slate="tiny"))
     v = A.validate_all(DS, reg_store, seeds=(0,))
-    assert v["checked"] == 83 + 3 and not v["defects"], v["defects"][:2]
+    assert v["checked"] == 84 + 3 and not v["defects"], v["defects"][:2]
     assert sorted(v["missing"]) == ["aud__ref__s0__E", "aud__ref__s0__F0"] and not v["ok"]
     _save(reg_store, A.unit_of(0, "U|W-LOCAL|i8o64|l0.08|D1"),
           {"release.npz": A.synthetic_release(DS, TS, 2, 4, sex_tilt=0.2)}, {})
@@ -856,12 +860,12 @@ def _meas():
 
 def test_estimates_cover_the_lra_bank_and_are_finite():
     e = A.estimates(_meas())
-    assert e["inner_units"] == 249 + 6 + 9
-    assert e["inner_cpu_s_per_seed_parts"]["codes"] == 26 * 63 + 12 + 26 * 41 + 30 * 63
+    assert e["inner_units"] == 252 + 6 + 9 == 267                         # 89 configurations x 3 seeds
+    assert e["inner_cpu_s_per_seed_parts"]["codes"] == 26 * 63 + 12 + 26 * 41 + 12 + 30 * 63
     assert e["inner_cpu_h_without_token_reuse"] > e["inner_cpu_h"]
     assert e["assessment_cpu_h_diagnostics_on_every_code"] > e["assessment_cpu_h_with_code_diagnostics"]
     assert e["d0_recompute_extra_cpu_h"] == round(3 * (26 * 30 + 5 + 25 + 2 * 34) / 3600, 3)
-    assert e["assessment_cpu_h_upper_all_83_composed"] > e["assessment_cpu_h_with_code_diagnostics"] > \
+    assert e["assessment_cpu_h_upper_all_composed"] > e["assessment_cpu_h_with_code_diagnostics"] > \
         e["assessment_cpu_h"]
     assert e["total_cpu_h"] > 0 and e["budget_with_x2_margin_cpu_h"] == round(2 * e["total_cpu_h"], 2)
     json.dumps(e, allow_nan=False)
@@ -875,7 +879,7 @@ def test_reestimate_refreshes_the_registered_rules(tmp_path):
     assert d["estimates"] == e and d["code_families"]["L4b"]["id"] == "L4b"
     assert d["code_families"]["token_family_readers"] == "cells_only"
     assert d["registered_control_limits"]["null_z"] == 3.5
-    assert d["registered_composition_bank"]["n"] == 83 and len(d["control_plan"]["policies"]) == 5
+    assert d["registered_composition_bank"]["n"] == 84 and len(d["control_plan"]["policies"]) == 5
 
 
 def test_timing_key_merge_keeps_other_keys(tmp_path):
@@ -1031,6 +1035,7 @@ def test_outer_unit_end_to_end_composed_freeze_registered_bank_and_restore_hook(
     _push(repo)
     Du = _unsealed(DS)
     monkeypatch.setitem(DA.SLATES, "final", DA.SLATES["tiny"])           # fast synthetic run (pinned slate untouched)
+    monkeypatch.setattr(AS, "verify_validity", lambda lock: {"stubbed": "covered by test_late refusal tests"})
     L = AS.open_assessment(p, repo, check_code=False)
     try:
         with pytest.raises(SystemExit, match="not frozen in the lock"):     # the composed winner must be locked
@@ -1107,3 +1112,43 @@ def test_utility_contract_is_qpcs():
     assert g["eligible"]
     for task in ("income", "occupation"):
         assert {"acc", "logloss", "brier", "const_acc"} <= set(u[task])
+
+
+# ====================================================================== sealed-loader audit (prompt sec. 5 / 13)
+def test_fit_audit_inner_loaders_never_return_assessment_labels():
+    """The fit-only, audit-only and inner-only loaders cannot return OSF_DEVELOPMENT_ASSESSMENT labels: every
+    non-assessment procedure refuses the assessment role, the 'assessment' procedure refuses on a sealed D, every
+    allowed row set is disjoint from the assessment rows, and no lra module except lra.assess unseals."""
+    import re
+    from qpc import data as QD
+    from lra import data as LD
+    from lra import select as SEL
+    D = UT.synthetic_task_D(n_fit=300, n_head=40, n_audit=120, n_sel=80, n_assess=200, seed=4)
+    ASSESS = "OSF_DEVELOPMENT_ASSESSMENT"
+    a = set(D["idx"][ASSESS].tolist())
+    D["idx"]["DEFENSE_FIT"] = D["idx"]["OSF_DEFENSE_FIT"]
+    for proc in QD.ALLOW:
+        with pytest.raises(PermissionError):
+            LD.labels_for(D, proc, ASSESS)                    # sealed, or not an allowed role of the procedure
+        for role in QD.ALLOW[proc]:
+            if role == ASSESS:
+                continue
+            rows = LD.labels_for(D, proc, role)
+            assert not (set(np.asarray(rows).tolist()) & a), (proc, role)
+    for proc, role in (("inner_audit", "AUDIT_FIT"), ("selection", "INNER_SELECTION"), ("fitting", "OSF_DEFENSE_FIT"),
+                       ("permutation_diagnostic", "OSF_DEFENSE_FIT")):
+        rows, S = A.sex_rows(D, proc, role)
+        assert not (set(rows.tolist()) & a) and S.min() >= 0
+    with pytest.raises(PermissionError):
+        A.sex_rows(D, "inner_audit", ASSESS)
+    with pytest.raises(PermissionError):
+        UT.release_inner_utility({1: np.zeros((1, 2)), 2: np.zeros((1, 6))}, {1: [0], 2: [0]}, D, rows=ASSESS)
+    tr, Y, S = R.fit_data(D)
+    assert not (set(np.asarray(tr).tolist()) & a) and min(Y[1].min(), Y[2].min(), S.min()) >= 0
+    assert not (set(SEL.permitted_rows(D)["pos"].tolist()) & a)
+    with pytest.raises((PermissionError, SystemExit), match="only lra.assess"):
+        LD.load(unseal=True)
+    for f in sorted((R.WT / "lra").glob("*.py")):
+        if f.name in ("assess.py", "data.py", "closeout.py"):
+            continue
+        assert not re.search(r"load\([^)]*unseal\s*=\s*True", f.read_text()), f.name

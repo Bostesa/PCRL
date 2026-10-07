@@ -1,4 +1,5 @@
-"""[lra port of lcr/assess.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md]
+"""[lra port of lcr/assess.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md and
+REVIEW_FINDINGS_DISPOSITION.json (F10/F13: S9 below)]
 The single locked assessment opening on OSF_DEVELOPMENT_ASSESSMENT for the learned-decoder constrained-release study
 (lra; role D; prompt sections 11, 12, 13 Stage 6).
 
@@ -16,7 +17,7 @@ DOCUMENTED DIFF against cbp/assess.py:
       rgj/data.py and smf/data.py, which osf.data imports);
   S4  code release units are pol__ (D0), dec__ (D1 fixed-map) and new__ (fitted) s{k}__<cid>; a unit name is mapped to
       its config id through the REGISTERED lra bank only (never by string surgery); composed_for REFUSES a composed
-      code outside the registered 83-code composition bank of its teacher (lra.audit L3; none for RAW-J) and reads
+      code outside the registered 84-code composition bank of its teacher (lra.audit L3; none for RAW-J) and reads
       the composed winners from the lra source inner unit lra.run.inner_name(k, "SRC|<teacher>") = aud__tea__...;
   S5  code releases are scored with all three lra.audit families by default (code = complete interface, PRIMARY;
       token-only and probability-only diagnostics; spec["families"] may restrict to a subset that contains the
@@ -29,6 +30,12 @@ DOCUMENTED DIFF against cbp/assess.py:
       (lra.audit.final_audit_cells: CC / CCpair on the exact token identities, same dual selection and
       (3, n, 2) prediction contract); the complete-interface (primary) and probability-only families use
       dpc.audit.final_audit with the full FINAL slate, unchanged.
+  S9  (F10/F13) open_assessment REFUSES, after the pushed-lock and code checks and before any unsealing, unless
+      verify_validity(lock) passes: lock technical_validity.ok is True; the lock binds the engineering gate as
+      ENGINEERING_READY and lra.run.engineering_ready() still holds NOW with the same ENGINEERING_GATE_RESULT.json
+      sha256; the CORRECTNESS_LOCK and SCIENCE_LOCK recorded in the lock exist and are byte-identical now; the
+      real-data control verdict is the locked one and all_ok; the admission receipt is ADMITTED. There is no flag or
+      parameter that skips this check (no --accept-technical-failure).
 Everything else -- outer-unit contents (P_auc / P_ce arrays of shape (3, n, 2) per view and family, utility arrays,
 labels, U anchor), the composed-winner freeze check, jobs_from_lock (only the locked list), load_outer and the restore
 hook refit_selected_attacker(units_root, D, release_unit, outer_unit, view="pair", attacker_seed=None) -- is the cbp
@@ -66,7 +73,7 @@ LOCK SCHEMA READ (written by the lead's lra.eval_lock):
   (S4). The decisions family composes only with the class-only code. Exactness note (role D): every code outside the
   freeze list lost every inner (family, view, criterion) comparison on the SAME seed-0 AUDIT_FIT fits and
   INNER_SELECTION rows that final_audit reselects on, so composing with the freeze list plus the scored codes selects
-  the same final attackers as composing with all 83 (and costs far less); composing with all 83 remains valid.
+  the same final attackers as composing with all 84 (and costs far less); composing with all 84 remains valid.
 
 PER RELEASE (dpc.audit.final_audit: the same FINAL slate + cell readers; attackers FITTED on AUDIT_FIT, SELECTED on
 INNER_SELECTION over the whole bank (own + composed), the AUC- and CE-selected attackers refit at attacker seeds 0, 1, 2
@@ -179,15 +186,51 @@ def verify_code(lock, repo=WT, chain=CHAIN, check_modules=True):
     return rec
 
 
+def verify_validity(lock):
+    """S9 (F10/F13): the assessment opens only on a technically valid lock with the NEW engineering gate READY and the
+    engineering/science locks unchanged. Returns a receipt; raises SystemExit otherwise. No override exists."""
+    from lra import run as R
+    tv = lock.get("technical_validity") or {}
+    if tv.get("ok") is not True:
+        raise SystemExit("REFUSED: the evaluation lock records a technical failure "
+                         f"({json.dumps(tv.get('failures'), default=str)[:1000]}); resolve it and push a new lock")
+    g = tv.get("engineering_gate") or {}
+    if g.get("verdict") != "ENGINEERING_READY" or g.get("ready") is not True:
+        raise SystemExit(f"REFUSED: the evaluation lock does not bind ENGINEERING_READY (got {g.get('verdict')!r})")
+    ok, why = R.engineering_ready()
+    if not ok:
+        raise SystemExit(f"REFUSED: the engineering gate is not ready now: {why}")
+    gp = R.PKG / R.GATE_RESULT
+    if not gp.exists() or _sha(gp) != g.get("sha256"):
+        raise SystemExit("REFUSED: ENGINEERING_GATE_RESULT.json differs from the version bound in the evaluation lock")
+    locks = lock.get("locks_sha256") or {}
+    for n in ("CORRECTNESS_LOCK.json", "SCIENCE_LOCK.json"):
+        lp = R.PKG / n
+        if n not in locks or not lp.exists() or _sha(lp) != locks[n]:
+            raise SystemExit(f"REFUSED: {n} is missing from the evaluation lock or differs from it now "
+                             "(mismatched engineering/science lock)")
+    cp = R.PKG / "AUDIT_PRELOCK_CHECKS.json"
+    if not cp.exists() or _sha(cp) != tv.get("controls_verdict_sha256") or \
+            (json.loads(cp.read_text()).get("verdict") or {}).get("all_ok") is not True:
+        raise SystemExit("REFUSED: the real-data control verdict is missing, failed or differs from the locked one")
+    ad = R.PRIV / "admitted" / "ADMISSION_RECEIPT.json"
+    if not ad.exists() or json.loads(ad.read_text()).get("verdict") != "ADMITTED":
+        raise SystemExit("REFUSED: the admission receipt is missing or not ADMITTED")
+    return {"technical_validity": True, "engineering_gate": g["verdict"], "engineering_gate_sha256": g["sha256"],
+            "locks": {n: locks[n] for n in ("CORRECTNESS_LOCK.json", "SCIENCE_LOCK.json")}}
+
+
 def open_assessment(lock_path, repo=WT, branch=STUDY_BRANCH, rel_required=LOCK_REL, check_code=True, chain=CHAIN,
                     fetch=True):
-    """Verify the pushed lock and the locked code, then open the assessment for this process."""
+    """Verify the pushed lock, the locked code and the lock's technical validity (S9), then open the assessment for
+    this process."""
     global _OPENED
     v = lock_is_pushed(lock_path, repo, branch, rel_required, fetch)
     if not v["ok"]:
         raise SystemExit(f"REFUSED: {LOCK_NAME} is not committed and pushed ({v['reason']})")
     lock = json.loads(Path(lock_path).read_text())
     v["code"] = verify_code(lock, repo, chain) if check_code else "not checked (test)"
+    v["validity"] = verify_validity(lock)
     v.update({"rel_required": rel_required, "lock": lock, "fetch": fetch})
     _OPENED = v
     return lock

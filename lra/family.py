@@ -1,13 +1,16 @@
-"""[lra port of lcr/family.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md]
+"""[lra port of lcr/family.py at 091afc2: lcr->lra renames; later edits are listed in PORT_LOG.md and
+REVIEW_FINDINGS_DISPOSITION.json (F08/F10/F12/F14)]
 Registered primary family, clause classifier and label truth table (LABEL_TRUTH_TABLE.json; frozen in SCIENCE_LOCK).
 
-Adapted from cbp/family.py at 7f3ec67 (same clause kinds, margins, classifier and precedence); new bootstrap seed
-20261009; new claims and labels (prompt section 12):
+Adapted from cbp/family.py at 7f3ec67 (same clause kinds, margins, classifier and claim-status precedence); NEW bootstrap
+seed 20261010; new claims and labels (prompt section 12):
   Claim A: P* vs T*        11 clauses   useful privacy release beyond strong compression
   Claim B: N* vs C*        11 clauses   added value of constrained search beyond calibration + weighted controls
   Claim C: J* vs C_pair*   11 clauses   added value of paired joint search
   Q: fixed original D0 DIRECT-TASK i8o64 confidence reference, 4 clauses
-z = NormalDist().inv_cdf(1 - 0.05/(2*37)) (verified, not copied); B = 1999 paired exact-record-group bootstrap replicates.
+z = NormalDist().inv_cdf(1 - 0.05/74) (verified, not copied); B = 1999 paired exact-record-group bootstrap replicates.
+Supplementary same-map D1-minus-D0 contrasts use nominal 95% intervals, Z_SUPPLEMENTARY = NormalDist().inv_cdf(0.975),
+on the same draws; they are not primary slots.
 Method-claim clauses for nominee N and comparator C (recovery = SEX AUC of the inner-AUC-selected attacker, mean over
 attacker seeds 0-2; U = continuous teacher; const = OSF_DEFENSE_FIT majority class):
   1      AUC_pair(C) - AUC_pair(N)                      lower bound > 0.02
@@ -17,16 +20,25 @@ attacker seeds 0-2; U = continuous teacher; const = OSF_DEFENSE_FIT majority cla
   8-9    Brier_t(N) - Brier_t(U)                        upper bound < 0.005
   10-11  Acc_t(N) - 0.8 Acc_t(U) - 0.2 Acc_t(const)     lower bound > 0
 Q: LogLoss_t(Q) - LogLoss_t(U) upper bound < 0.01; Brier_t(Q) - Brier_t(U) upper bound < 0.005 (t = income, occupation).
+
+Overall label (overall_label; precedence, F10/F14): a pre-science blocker is NOT RUN (ENGINEERING_BLOCKED_NOT_RUN when
+the NEW correctness gate is not ENGINEERING_READY, INCOMPLETE_NOT_RUN for a pre-fit budget / admission blocker); an
+unresolved global technical failure after science is INCOMPLETE_OR_INVALID; otherwise the passing method components,
+then a Q-only result, then INCOMPLETE_OR_INVALID for remaining incomplete work, then EXPERIMENTAL_NO_ADVANTAGE. Every
+label carries the separate A / B / C / Q statuses (" [A=..; B=..; C=..; Q=..]"). Readiness is never assumed: the
+engineering-gate verdict is a required argument. The source MECHANISM_GATE_NOT_MET is historical and is not produced.
 """
 from statistics import NormalDist
 
 ALPHA = 0.05
-B, BOOT_SEED = 1999, 20261009
+B, BOOT_SEED = 1999, 20261010
 TASKS = ("income", "occ")
 CLAIMS = {"A": ("P*", "T*"), "B": ("N*", "C*"), "C": ("J*", "C_pair*")}
 PRIMARY_SIZE = 37
 Z_PRIMARY = NormalDist().inv_cdf(1 - ALPHA / (2 * PRIMARY_SIZE))
+assert 2 * PRIMARY_SIZE == 74 and Z_PRIMARY == NormalDist().inv_cdf(1 - 0.05 / 74)
 assert abs(Z_PRIMARY - 3.2048452050105634) < 1e-15
+Z_SUPPLEMENTARY = NormalDist().inv_cdf(0.975)            # same-map D1 - D0 contrasts (nominal 95%, prompt sec. 14)
 
 PRIMARY = []
 for ci, (claim, (nom, ref)) in enumerate(CLAIMS.items()):
@@ -82,9 +94,11 @@ def clause_outcome(side, target, point, lower, upper):
 
 # ------------------------------------------------------------------ truth table
 ROLE_STATES = ("ELIGIBLE", "NO_ELIGIBLE", "TECHNICAL_FAILURE")
-SELECTION_REASONS = ("FIT_OR_ADMISSION_FAILURE", "DECISION_PRESERVATION_FAILURE", "NON_ESTIMABLE_INNER_METRIC",
-                     "ORDINARY_UTILITY_FAILURE", "LOCAL_GUARD_FAILURE", "MISSING_GUARD_COMPARATOR",
-                     "CONSTRAINED_FIT_INFEASIBLE", None)
+SELECTION_REASONS = ("FIT_OR_ADMISSION_FAILURE", "FIT_RECORD_TECHNICAL_FAILURE", "DECISION_PRESERVATION_FAILURE",
+                     "NON_ESTIMABLE_INNER_METRIC", "ORDINARY_UTILITY_FAILURE", "LOCAL_GUARD_FAILURE",
+                     "MISSING_GUARD_COMPARATOR", "CONSTRAINED_FIT_INFEASIBLE", None)
+TECHNICAL_SELECTION_REASONS = ("FIT_OR_ADMISSION_FAILURE", "FIT_RECORD_TECHNICAL_FAILURE",
+                               "DECISION_PRESERVATION_FAILURE", "NON_ESTIMABLE_INNER_METRIC")
 CLAIM_STATUSES = ("PASS", "NOT_ESTABLISHED", "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE", "INCOMPLETE_OR_INVALID")
 
 
@@ -172,41 +186,77 @@ def q_status(q_state, outcomes):
     return "NOT_ESTABLISHED", _cause(bad), sorted(bad)
 
 
-# simplest-story family order for aliased winners (no reward for a more complex name)
+# family order of the alias representative (lra.select._rep_key; no reward for a more complex name)
 FAMILY_SIMPLICITY = {"LOCAL": 0, "SEQ-12": 1, "SEQ-21": 1, "JOINT": 2, "JOINT-SINGLE": 2, "JOINT-PAIR": 3}
-CONSTRUCTION_SIMPLICITY = {"d0": 0, "d1_fixed": 1, "weighted": 2, "constrained": 3}
-CONSTRUCTION_NAME = {"d0": "existing", "d1_fixed": "calibrated", "weighted": "weighted", "constrained": "constrained"}
+CONSTRUCTION_SIMPLICITY = {"d0": 0, "d1_fixed": 1, "ctask": 2, "weighted": 3, "constrained": 4}
+CONSTRUCTION_NAME = {"d0": "existing", "d1_fixed": "calibrated", "ctask": "task-only", "weighted": "weighted",
+                     "constrained": "constrained"}
 
 
 def simplest_family(families):
-    """Among exact aliases (identical deployed release on every seed): LOCAL < SEQ-12 = SEQ-21 < JOINT(-SINGLE) <
-    JOINT-PAIR; equally simple families are joined with '='."""
+    """Reporting helper only (the label names ONE real representative, lra.select.alias_set): the simplest of the
+    given families; equally simple families are joined with '='."""
     fs = sorted(set(families), key=lambda f: (FAMILY_SIMPLICITY.get(f, 9), f))
     lo = FAMILY_SIMPLICITY.get(fs[0], 9)
     return "=".join(f for f in fs if FAMILY_SIMPLICITY.get(f, 9) == lo)
 
 
-def overall_label(claims, q, technical_valid=True, winning=None, gate_met=True):
-    """claims: {"A","B","C": status}; q: Q status; winning: "<family>; <construction>" of P* (named when A passes).
-    Returns (label, displayed_statuses). A gate failure before Adult -> MECHANISM_GATE_NOT_MET (no Adult head-to-head).
-    Favourable components are reported even when another claim is incomplete; every status is always displayed. A
-    technical-validity failure touching every claim blocks every favourable label."""
-    shown = {**claims, "Q": q}
-    if not gate_met:
-        return "MECHANISM_GATE_NOT_MET", shown
-    if not technical_valid:
-        return "INCOMPLETE_OR_INVALID", shown
+ENGINEERING_VERDICTS = ("ENGINEERING_READY", "ENGINEERING_BLOCKED")
+OVERALL_LABELS = ("PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET", "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED",
+                  "PAIRED_JOINT_INCREMENT_ESTABLISHED", "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+                  "EXPERIMENTAL_NO_ADVANTAGE", "ENGINEERING_BLOCKED_NOT_RUN", "INCOMPLETE_NOT_RUN",
+                  "INCOMPLETE_OR_INVALID")
+HISTORICAL_SOURCE_LABEL = "MECHANISM_GATE_NOT_MET"       # lcr's verdict; historical only, never produced here
+NOT_RUN = "NOT_RUN"
+COMPONENTS = ("A", "B", "C", "Q")
+
+
+def status_suffix(shown):
+    """The separate A / B / C / Q statuses carried by EVERY overall label (F14)."""
+    return " [" + "; ".join(f"{c}={shown[c]}" for c in COMPONENTS) + "]"
+
+
+def label_headline(label):
+    """The overall label without its mandatory status suffix."""
+    return label.split(" [A=", 1)[0]
+
+
+def overall_label(claims, q, technical_valid, winning, engineering_gate, prefit_blocker=None, disclosures=None):
+    """claims: {"A","B","C": status}; q: Q status; technical_valid: global technical validity after science;
+    winning: "<family>; <construction>" of P*'s representative (named when A passes); engineering_gate: the verdict of
+    ENGINEERING_GATE_RESULT.json as read by the caller (required; no default readiness); prefit_blocker: concrete reason
+    of a pre-fit budget / admission blocker or None; disclosures: {"A"|"B"|"C": text} (e.g. a nominee release identical
+    to a privacy-untrained release), appended to that passing component.
+    Returns (label, displayed_statuses); the label always ends with the A / B / C / Q status suffix."""
+    disclosures = disclosures or {}
+    if engineering_gate != "ENGINEERING_READY" or prefit_blocker:
+        shown = {c: NOT_RUN for c in COMPONENTS}
+        reasons = []
+        if engineering_gate == "ENGINEERING_BLOCKED":
+            head = "ENGINEERING_BLOCKED_NOT_RUN"
+        else:
+            head = "INCOMPLETE_NOT_RUN"
+            if engineering_gate != "ENGINEERING_READY":
+                reasons.append(f"engineering gate verdict {engineering_gate!r} is not a resolved registered verdict")
+        if prefit_blocker:
+            reasons.append(f"pre-fit blocker: {prefit_blocker}")
+        return head + (f" ({'; '.join(reasons)})" if reasons else "") + status_suffix(shown), shown
+    shown = {**{c: claims.get(c) for c in ("A", "B", "C")}, "Q": q}
+    if not technical_valid:                  # global technical failure after science: nothing favourable, Q shown
+        return "INCOMPLETE_OR_INVALID" + status_suffix(shown), shown
     labels = []
     if claims.get("A") == "PASS":
         labels.append("PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET" + (f" ({winning})" if winning else ""))
     if claims.get("B") == "PASS":
-        labels.append("CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED")
+        labels.append("CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED" +
+                      (f" ({disclosures['B']})" if disclosures.get("B") else ""))
     if claims.get("C") == "PASS":
-        labels.append("PAIRED_JOINT_INCREMENT_ESTABLISHED")
+        labels.append("PAIRED_JOINT_INCREMENT_ESTABLISHED" +
+                      (f" ({disclosures['C']})" if disclosures.get("C") else ""))
     if labels:
-        return " + ".join(labels), shown
+        return " + ".join(labels) + status_suffix(shown), shown
     if q == "PASS":                    # prompt sec. 12: no method claim passes, Q passes (incomplete claims stay shown)
-        return "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION", shown
-    if any(s == "INCOMPLETE_OR_INVALID" for s in shown.values()):
-        return "INCOMPLETE_OR_INVALID", shown
-    return "EXPERIMENTAL_NO_ADVANTAGE", shown
+        return "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" + status_suffix(shown), shown
+    if any(v == "INCOMPLETE_OR_INVALID" for v in shown.values()):
+        return "INCOMPLETE_OR_INVALID" + status_suffix(shown), shown
+    return "EXPERIMENTAL_NO_ADVANTAGE" + status_suffix(shown), shown

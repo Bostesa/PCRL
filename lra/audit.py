@@ -21,20 +21,23 @@ DOCUMENTED DIFF against cbp/audit.py (everything not listed is the cbp logic, un
       audits are custody only: every lra reader of an inner unit REQUIRES schema "lra-inner-v1" (load_inner), so a
       cbp record can never pass as an lra record.
   L3  REGISTERED COMPOSITION BANK (prompt sec. 11, lead decision 2026-10-07): SRC|U composes, per seed, over the
-      COMPLETE registered lra code bank = exactly lra.run.code_ids(), 83 codes in this order:
+      COMPLETE registered lra code bank = exactly lra.run.code_ids(), 84 codes in this order:
         D0 admitted (27)   U|DIRECT-TASK|i8o64, U|FINE-TASK|i8o64, U|CLASS|i1o1, then the 24 privacy maps in lambda
                            order (0.01, 0.025, 0.04, 0.06, 0.08, 0.1) x family order (LOCAL, SEQ-12, SEQ-21, JOINT);
-        D1 fixed-map (26)  the same DIRECT-TASK, FINE-TASK and 24 privacy maps with suffix |D1 (same tokens as their
+        D1 fixed-map (27)  the same DIRECT-TASK, FINE-TASK, CLASS-ONLY (CLASS|D1, role F R-1, registered addition)
+                           and 24 privacy maps with suffix |D1 (same tokens as their
                            D0 map, different decoded q: a DISTINCT public map, kept as such);
         new fits (30)      U|C-TASK|i8o64|D1, U|W-{family}|i8o64|l{lam}|D1 (same lambda x family order),
                            U|K-{LOCAL,SEQ-12,SEQ-21,JOINT-SINGLE,JOINT-PAIR}|i8o64|D1.
       The registration lives HERE (REG_*) and must equal lra.run.code_ids() and the policy part of scored_ids()
       exactly, or the bank is REFUSED. cbp's 11 qpc composition-only extras (COMPOSED_EXTRA) are NOT part of the lra
       bank: they are not admitted to the lra store and none of them was a cbp composed winner (cbp
-      INDEPENDENT_VERIFICATION freeze_own lists, seeds 0-2); COMPOSED_EXTRA = () here. CLOSURE: every one of the 83
+      INDEPENDENT_VERIFICATION freeze_own lists, seeds 0-2); COMPOSED_EXTRA = () here. CLOSURE: every one of the 84
       release units (pol__ / dec__ / new__ s{k}__U_*) must be complete on disk with its complete lra inner unit
       (aud__..., schema lra-inner-v1); any completed release unit or lra inner unit of that teacher and seed outside
-      the 83 is a STRAY and is REFUSED, as is any missing one. RAW-J has no codes: its composed bank is its own bank.
+      the 84 is a STRAY and is REFUSED, as is any missing one. RAW-J has no codes: its composed bank is its own bank.
+      Same-map D0 diagnostics (d0s__ units, lra.run D0SAME) are not codes of the bank: never composed, never
+      nominated, never audited at the inner stage; their prefix is outside CODE_PREFIXES, so they are not strays.
   L4  CODE VIEW FAMILIES (prompt sec. 11). Every code release (D0, D1 fixed-map, new fit; identical release.npz keys)
       is audited with THREE families, each with AUC/CE selection and seed refits (full FINAL slate + cell readers,
       except the token-only family: cell readers only, L4b):
@@ -132,7 +135,7 @@ map reads only p_i, which every source family except decisions determines exactl
 function of the token. So an attacker holding the source output can apply ANY registered code of the same teacher and
 seed (its complete code interface). `composed_source_bank` forms, per source family and view, the union of the
 source's own bank and the PRIMARY (complete code) reader banks of EVERY code of that teacher and seed in the
-registered bank (L3: the 83 lra codes in lra.run.code_ids() order), reusing each code's stored inner records (no
+registered bank (L3: the 84 lra codes in lra.run.code_ids() order), reusing each code's stored inner records (no
 refit; the composed attacker A(g(p)) equals the code attacker A on the same rows and AUDIT_FIT fit). The decisions
 family composes only with the class-only code (its tokens are functions of d_i). Composed selection uses the same rule
 at the bank level: per view the winning bank is the first (own, then codes in registered order) whose seed-0 selected
@@ -230,8 +233,8 @@ REG_PRIVACY = ("LOCAL", "SEQ-12", "SEQ-21", "JOINT")
 REG_CONSTRAINED = ("LOCAL", "SEQ-12", "SEQ-21", "JOINT-SINGLE", "JOINT-PAIR")
 REG_TASK = ("U|DIRECT-TASK|i8o64", "U|FINE-TASK|i8o64", "U|CLASS|i1o1")
 COMPOSED_EXTRA = ()                              # cbp's 11 qpc extras are not part of the lra bank (L3)
-N_D0, N_D1, N_NEW = 27, 26, 30
-N_CODES = N_D0 + N_D1 + N_NEW                    # 83
+N_D0, N_D1, N_NEW = 27, 27, 30                   # D1 includes CLASS|D1 (role F R-1, registered addition)
+N_CODES = N_D0 + N_D1 + N_NEW                    # 84
 
 # Registered control pass limits (the source's; see the module docstring). Written before any fit.
 SOURCE_NULL_THRESHOLD = 0.5654143765984265       # results/pcrl_confidence_capacity_v1/AUDIT_PRELOCK_CHECKS.json
@@ -268,7 +271,7 @@ def registered_d0():
 
 
 def registered_d1():
-    return [c + "|D1" for c in registered_d0() if c != "U|CLASS|i1o1"]
+    return [c + "|D1" for c in registered_d0()]
 
 
 def registered_new():
@@ -278,12 +281,12 @@ def registered_new():
 
 
 def registered_code_bank():
-    """The 83 registered lra codes (L3), in lra.run.code_ids() order: D0 (27), D1 fixed-map (26), new fits (30)."""
+    """The 84 registered lra codes (L3), in lra.run.code_ids() order: D0 (27), D1 fixed-map (27), new fits (30)."""
     return registered_d0() + registered_d1() + registered_new()
 
 
 def registered_composition_bank():
-    """The public code maps SRC|U composes with (L3): exactly the 83 registered codes (no composition-only extras)."""
+    """The public code maps SRC|U composes with (L3): exactly the 84 registered codes (no composition-only extras)."""
     return registered_code_bank() + list(COMPOSED_EXTRA)
 
 
@@ -292,17 +295,17 @@ def registration_check(R=None):
     R = R or _R()
     bad = []
     if list(R.code_ids()) != registered_code_bank():
-        bad.append("code_ids != the 83 registered codes (order included)")
+        bad.append(f"code_ids != the {N_CODES} registered codes (order included)")
     for nm, want in (("d0_ids", registered_d0()), ("d1_fixed_ids", registered_d1()), ("new_fit_ids", registered_new())):
         if hasattr(R, nm) and list(getattr(R, nm)()) != want:
             bad.append(f"{nm} != the registered {nm}")
     scored_codes = [c for c in R.scored_ids() if R.parse_id(c)["kind"] == "policy"]
     if scored_codes != registered_code_bank():
-        bad.append("scored_ids (policy part) != the 83 registered codes")
+        bad.append(f"scored_ids (policy part) != the {N_CODES} registered codes")
     if len(registered_code_bank()) != N_CODES or len(set(registered_code_bank())) != N_CODES:
-        bad.append("registered bank size is not 83 distinct codes")
+        bad.append(f"registered bank size is not {N_CODES} distinct codes")
     if (len(registered_d0()), len(registered_d1()), len(registered_new())) != (N_D0, N_D1, N_NEW):
-        bad.append("registered bank parts are not 27 + 26 + 30")
+        bad.append(f"registered bank parts are not {N_D0} + {N_D1} + {N_NEW}")
     units = {R.unit_for(0, c) for c in registered_code_bank()}
     if len(units) != N_CODES:
         bad.append("two registered codes share a release unit name")
@@ -659,7 +662,7 @@ def _pub(rec):
 
 # ------------------------------------------------------------------ composed source bank
 def expected_policies(teacher, protocol=None):
-    """L3: every public code map of `teacher` in the REGISTERED composition order (U: the 83 lra codes; RAW-J: none).
+    """L3: every public code map of `teacher` in the REGISTERED composition order (U: the 84 lra codes; RAW-J: none).
     REFUSED unless lra.run agrees exactly with the registration."""
     chk = registration_check()
     if not chk["ok"]:
@@ -769,7 +772,7 @@ def composed_source_bank(k, teacher, own, D, policy_cids=None, units_dir=None, p
         out[fam] = rec
     out["_all"] = {"freeze": sorted(freeze, key=expected.index), "closure": clo, "teacher": teacher, "seed": k,
                    "policies": expected,
-                   "policy_list_source": "registered (L3: the 83 lra codes = lra.run.code_ids())"
+                   "policy_list_source": f"registered (L3: the {N_CODES} lra codes = lra.run.code_ids())"
                    if registered else "EXPLICIT list (not the registered bank; tests / replay only)",
                    "composition_only": [c for c in expected if c in COMPOSED_EXTRA],
                    "rule": "per view: first bank (own, then codes in registered order) whose seed-0 selected value "
@@ -1251,7 +1254,7 @@ def validate_inner(rec, arrays, D, release=None, registered=True, tol=1e-12):
                    registered release keys (appended clean probabilities refused) and view fingerprints of all three
                    families equal to those rebuilt from the release (omitted token identities, appended
                    probabilities or a misaligned pair view change them); token_states = alpha1 + alpha2;
-      sources      token_states null; validate_composed (every composed winner frozen; registered 83-code bank when
+      sources      token_states null; validate_composed (every composed winner frozen; registered 84-code bank when
                    `registered`);
       JSON         every float finite."""
     bad = []
@@ -1425,13 +1428,13 @@ def stage_inner(D, shard_spec=None, units_dir=None, save=None, slate="final"):
 
 
 def stage_inner_src(D, shard_spec=None, units_dir=None, save=None, slate="final"):
-    """Composed-source stage: REFUSES unless every seed's 83-code bank is closed (releases + lra inner units)."""
+    """Composed-source stage: REFUSES unless every seed's 84-code bank is closed (releases + lra inner units)."""
     R = _R()
     save = save or R.save
     for k in (0, 1, 2):
         clo = _closure(k, "U", expected_policies("U"), units_dir)
         if not clo["ok"]:
-            raise SystemExit(f"REFUSED: composed source banks need the closed 83-code bank first (s{k}): "
+            raise SystemExit(f"REFUSED: composed source banks need the closed {N_CODES}-code bank first (s{k}): "
                              f"{ {x: v for x, v in clo.items() if x != 'ok'} }")
     for k, cid in R.shard(source_jobs(), shard_spec):
         if _lra_done(inner_of(k, cid), units_dir):
@@ -1813,27 +1816,29 @@ def synthetic_reference_cells(D, t, ncell=(40, 60), seed=0):
 
 LRA_BANK = {
     "seeds": 3,
-    "codes_per_seed": {"d0_i8o64": 26, "d0_i1o1": 1, "d1_i8o64": 26, "new_i8o64": 30},
-    "codes_note": "83 registered codes per seed (lra.run.code_ids()): D0 27 (DIRECT-TASK, FINE-TASK, CLASS-ONLY i1o1, "
-                  "24 privacy maps), D1 fixed-map 26 (same tokens as D0, learned q), new fits 30 (C-TASK, 24 weighted, "
+    "codes_per_seed": {"d0_i8o64": 26, "d0_i1o1": 1, "d1_i8o64": 26, "d1_i1o1": 1, "new_i8o64": 30},
+    "codes_note": "84 registered codes per seed (lra.run.code_ids()): D0 27 (DIRECT-TASK, FINE-TASK, CLASS-ONLY i1o1, "
+                  "24 privacy maps), D1 fixed-map 27 (the same 27 maps incl. CLASS|D1, role F R-1; same tokens as D0, "
+                  "learned q), new fits 30 (C-TASK, 24 weighted, "
                   "5 constrained); every code at most 8 / 64 states per predicted class (i8o64 shapes). Each code "
                   "inner unit audits three families (code primary + token-only + probability-only diagnostics); a D1 "
                   "unit reuses its D0 map's token family (L5)",
     "sources": 2, "references": {"continuous_E": 1, "cells_F_F0": 2},
-    "composed_codes_per_source_seed": {"SRC|U": 83, "SRC|RAW-J_b0.3": 0},
-    "inner_units": {"codes": 249, "of_which_d0_recomputed": 81, "sources": 6, "references": 9},
+    "composed_codes_per_source_seed": {"SRC|U": 84, "SRC|RAW-J_b0.3": 0},
+    "inner_units": {"codes": 252, "of_which_d0_recomputed": 81, "sources": 6, "references": 9},
     "control_plan": {"codes": 5, "source_families": 10, "reference_families": 15, "rot_views": 3,
                      "null_calibration_reps": 5},
-    "assessment": {"labels_per_seed": 20, "codes_per_seed": 15, "codes_with_diagnostics_per_seed": 2,
+    "assessment": {"labels_per_seed": 22, "codes_per_seed": 17, "codes_with_diagnostics_per_seed": 6,
                    "sources_per_seed": 2, "references_per_seed": 3,
-                   "src_u_composed_codes_freeze_plus_scored": 20, "src_u_composed_codes_upper": 83,
-                   "note": "about 20 locked labels per seed (lead): ~15 codes (P*, N*, J*, T*, C*, C_pair*, Q, best "
-                           "D1 control + its D0, best weighted, C-TASK, 5 constrained arms; aliases deduplicated), "
-                           "SRC|U, SRC|RAW-J, E, F, F0. SRC|U is costed (a) with the freeze list + the scored codes "
-                           "(~20; exact, see recommendation) and (b) with all 83 codes (upper bound). Token-only / "
-                           "probability-only diagnostics are scored only for the registered decoder-ablation pair (the "
-                           "best D1 fixed-map control and its D0 map; lead's lra.eval_lock); every other code scores "
-                           "the primary family only"}}
+                   "src_u_composed_codes_freeze_plus_scored": 20, "src_u_composed_codes_upper": 84,
+                   "note": "upper count of locked labels per seed (lra.eval_lock.scored_labels): <= 17 codes (P*, N*, "
+                           "J*, T*, C*, C_pair*, Q, CLASS, best D1 control + its D0, best weighted, C-TASK, 5 "
+                           "constrained arms, plus the same-map D0 diagnostics of P* and C-TASK; aliases "
+                           "deduplicated), SRC|U, SRC|RAW-J, E, F, F0. SRC|U is costed (a) with the freeze list + the "
+                           "scored codes (~20; exact, see recommendation) and (b) with all 84 codes (upper bound). "
+                           "Token-only / probability-only diagnostics are scored for the registered same-map pairs "
+                           "only (best D1 fixed-map control + its D0 map, P* + its D0 version, C-TASK + its D0 "
+                           "version: <= 6 codes); every other code scores the primary family only"}}
 # cbp's measured real study-worker CPU over its synthetic estimate (results/pcrl_confidence_budgeted_privacy_v1/
 # COST_AND_CLOSEOUT.md lead stages: inner + inner_src 79.9 CPU-min vs its estimate 0.951 CPU-h; assessment 90.3 CPU-min
 # vs 1.608 CPU-h); controls use qpc's ratio (cbp did not separate them). Planning figures only.
@@ -1859,7 +1864,8 @@ def estimates(meas, bank=None):
     fam = pin["d0_i8o64"]["family_cpu_s"]
     d1 = pin["d1_i8o64_token_reused"]["unit_cpu_s"]
     cls = pin["d0_i1o1"]["unit_cpu_s"]
-    codes = cps["d0_i8o64"] * full + cps["d0_i1o1"] * cls + cps["d1_i8o64"] * d1 + cps["new_i8o64"] * full
+    codes = (cps["d0_i8o64"] * full + cps["d0_i1o1"] * cls + cps["d1_i8o64"] * d1 + cps.get("d1_i1o1", 0) * cls +
+             cps["new_i8o64"] * full)
     codes_no_reuse = codes + cps["d1_i8o64"] * fam["token"]     # the D1 token family computed instead of reused
     src = meas["source_unit"]["SRC|U_cpu_s"] + meas["source_unit"]["SRC|RAW-J_cpu_s"]
     refs = meas["reference_unit"]["E_cpu_s"] + bank["references"]["cells_F_F0"] * meas["reference_unit"]["F_cpu_s"]
@@ -1873,14 +1879,15 @@ def estimates(meas, bank=None):
            "inner_cpu_h_without_token_reuse": round(bank["seeds"] * (codes_no_reuse + src + refs) / 3600, 3),
            "inner_cpu_h_primary_family_only": round(bank["seeds"] * (
                (cps["d0_i8o64"] + cps["d1_i8o64"] + cps["new_i8o64"]) * fam["code"] +
-               pin["d0_i1o1"]["family_cpu_s"]["code"] + src + refs) / 3600, 3),
+               (cps["d0_i1o1"] + cps.get("d1_i1o1", 0)) * pin["d0_i1o1"]["family_cpu_s"]["code"] + src + refs) /
+               3600, 3),
            "d0_recompute_extra_cpu_h": round(bank["seeds"] * d0_extra / 3600, 3),
            "d0_recompute_extra_basis": "what reusing the admitted cbp audits would have saved: the primary code family "
                                        "of the 27 D0 codes and the 3 references per seed (the token-only and "
                                        "probability-only diagnostics are needed under either choice)",
            "per_unit_cpu_s": {k: v["unit_cpu_s"] for k, v in pin.items()},
            "per_family_cpu_s_i8o64": fam,
-           "composed_assembly_cpu_s_83_codes": meas["source_unit"].get("composed_assembly_cpu_s")}
+           "composed_assembly_cpu_s_all_codes": meas["source_unit"].get("composed_assembly_cpu_s")}
     if meas.get("controls"):
         cp, c = bank["control_plan"], meas["controls"]
         fam_null = meas["source_unit"]["SRC|RAW-J_cpu_s"] / 5          # one family's null ~ one family's inner audit
@@ -1902,7 +1909,7 @@ def estimates(meas, bank=None):
             lo + a["codes_with_diagnostics_per_seed"] * diag_f) / 3600, 3)
         est["assessment_cpu_h_diagnostics_on_every_code"] = round(bank["seeds"] * (lo + a["codes_per_seed"] * diag_f)
                                                                   / 3600, 3)
-        est["assessment_cpu_h_upper_all_83_composed"] = round(bank["seeds"] * (hi + a["codes_per_seed"] * diag_f) /
+        est["assessment_cpu_h_upper_all_composed"] = round(bank["seeds"] * (hi + a["codes_per_seed"] * diag_f) /
                                                               3600, 3)
         est["assessment_basis"] = (
             f"per seed: {a['codes_per_seed']} codes x the primary family at the i8o64 cost (+ token (cells only, "
@@ -1915,7 +1922,7 @@ def estimates(meas, bank=None):
     total = est["inner_cpu_h"] + est.get("controls_cpu_h", 0) + est.get("assessment_cpu_h_with_code_diagnostics", 0)
     est["total_cpu_h"] = round(total, 3)
     est["total_cpu_h_upper"] = round(est["inner_cpu_h_without_token_reuse"] + est.get("controls_cpu_h", 0) +
-                                     est.get("assessment_cpu_h_upper_all_83_composed", 0), 3)
+                                     est.get("assessment_cpu_h_upper_all_composed", 0), 3)
     cal = CBP_CALIBRATION["real_over_synthetic"]
     ct = (est["inner_cpu_h"] * cal["inner"] + est.get("controls_cpu_h", 0) * cal["controls"] +
           est.get("assessment_cpu_h_with_code_diagnostics", 0) * cal["assessment"])
@@ -1964,7 +1971,7 @@ def _save_unit(root, name, files, rec):
 
 
 def _timing_store(root, D, t, rels, slate, meas):
-    """Synthetic lra-named store: teachers, references, the 83 registered codes. Measured inner units: one D0 i8o64
+    """Synthetic lra-named store: teachers, references, the 84 registered codes. Measured inner units: one D0 i8o64
     code (all three families), its D1 version (token family reused, L5), the class-only code; the other registered
     names reuse the measured record of their kind (composition reads records only; the closure is real)."""
     _save_unit(root, "tea__s0__U", {"teacher.npz": t}, {"t": "U"})
@@ -2004,7 +2011,7 @@ def timing(slate="final", seed=0, out_path=None, bank=None, controls=True, final
     """L9: CPU seconds on study-shaped synthetic data at the study's real row counts and alphabets (income 8 per class x
     2, occupation 64 per class x 5 predicted classes + 1 reserved token): full inner units (three families, attack
     bank + seed refits + utility + coverage + MI) of a D0 code, its D1 version (token family reused) and the
-    class-only code; both sources with the REGISTERED 83-code composition (real closure and registration checks); E-
+    class-only code; both sources with the REGISTERED 84-code composition (real closure and registration checks); E-
     and F-like references; controls; final audits. Writes AUDIT_COMPUTE.json (finite JSON, registered control
     limits)."""
     import platform
@@ -2081,7 +2088,7 @@ def timing(slate="final", seed=0, out_path=None, bank=None, controls=True, final
                       "synthetic_d1 (same tokens, learned-style q); FINAL slate (LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) "
                       "+ cell readers {0.5, 1, 5}; the AUC- and CE-selected attackers refit at attacker seeds 0-2; "
                       "three code families (code / token / prob); a temporary lra-named unit store with the "
-                      "registered 83-code composition bank (real registration and closure checks); token-only "
+                      "registered 84-code composition bank (real registration and closure checks); token-only "
                       "family with the cell readers only (L4b)",
            **registration_block(),
            "d0_reuse_decision": "RECOMPUTE: the admitted cbp inner audits lack the token-only and probability-only "
@@ -2123,7 +2130,7 @@ def write_timing_key(audit_compute, timing_path):
                                  e["d0_recompute_extra_cpu_h"], "controls": e.get("controls_cpu_h"),
                                  "assessment": e.get("assessment_cpu_h"),
                                  "assessment_with_code_diagnostics": e.get("assessment_cpu_h_with_code_diagnostics"),
-                                 "assessment_upper_all_83_composed": e.get("assessment_cpu_h_upper_all_83_composed"),
+                                 "assessment_upper_all_composed": e.get("assessment_cpu_h_upper_all_composed"),
                                  "total": e["total_cpu_h"], "total_upper": e["total_cpu_h_upper"],
                                  "cbp_calibrated_total": e["cbp_calibrated_total_cpu_h"],
                                  "with_x2_margin": e["budget_with_x2_margin_cpu_h"],
