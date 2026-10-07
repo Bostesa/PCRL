@@ -707,9 +707,25 @@ def test_refresh_adds_new_files_and_grown_ledgers_and_deletes_nothing(tmp_path, 
     assert (root / "lcr_v1" / "run" / "units" / "u" / "frozen.bin").read_bytes() == b"frozen"
     assert (root / "lcr_v1" / "only_in_copy.txt").exists() and (root / s["previous_SHA256SUMS_kept_as"]).read_text() == old_sums
     assert CO.verify_sums(root)["pass"] and s["entries"] == len(old_sums.splitlines()) + 1
+    assert s["kept_only_in_copy"] == 0 and s["bundled_dependencies_kept"] == 1     # the bundled input is not "lost"
     bv = json.loads((out / "BACKUP_VERIFICATION.json").read_text())
     assert bv["refreshes"][-1]["appended"] == 1 and bv["files"] == s["entries"] and "STALE" in bv["restore_evidence_note"]
     assert str(tmp_path) not in (out / "BACKUP_VERIFICATION.json").read_text()
+
+
+def test_refresh_reports_store_files_missing_from_the_live_store_but_not_the_bundled_input(tmp_path, monkeypatch):
+    """A store file that disappeared from the live store after the copy is counted (and kept in the copy); the bundled
+    pinned input, which never lives in the store, is reported separately and never as a missing store file."""
+    src = _store(tmp_path)
+    _stub_restore(monkeypatch)
+    CO.backup(src=src, cache=src.parent, volumes_root=_volumes(tmp_path, match=False), out_pkg=tmp_path / "pkg")
+    root = src.parent / f"lcr_v1_local_copy_{DATE}"
+    s0 = CO.refresh(src=src, cache=src.parent, out_pkg=tmp_path / "pkg", dry_run=True)
+    assert s0["kept_only_in_copy"] == 0 and s0["kept_only_in_copy_files"] == [] and s0["bundled_dependencies_kept"] == 1
+    (src / "START.txt").unlink()                                              # gone from the live store
+    s1 = CO.refresh(src=src, cache=src.parent, out_pkg=tmp_path / "pkg")
+    assert s1["kept_only_in_copy"] == 1 and s1["kept_only_in_copy_files"] == ["lcr_v1/START.txt"]
+    assert (root / "lcr_v1" / "START.txt").exists() and (root / CO.DEP_REL).exists() and s1["pass"]
 
 
 def test_refresh_never_picks_another_studys_copy_and_dry_run_writes_nothing(tmp_path, monkeypatch):

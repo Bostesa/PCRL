@@ -1,7 +1,8 @@
 # Quickstart — lcr
 
 The study ended at the mechanism gate (MECHANISM_GATE_NOT_MET), so no Adult fit command was ever run. Every command
-below was executed in this study, and each is marked **Tested** with what it did. Run everything from the worktree
+marked **Tested** below was executed in this study, with what it did. The one command marked **Not run** (off-device
+backup) is stated as such. Run everything from the worktree
 root. `<python>` is the pinned venv interpreter and `<PRIVATE_CACHE>` is the private store root. Numerical commands go
 through the shared two-slot semaphore (`lcr.sema`) with one thread.
 
@@ -78,7 +79,7 @@ env $TENV <python> -m lcr.sema --label A:deploy -- env $TENV <python> -m lcr.dep
 env $TENV <python> -m lcr.sema --label A:test-all -- env $TENV <python> -m pytest -q -p no:cacheprovider lcr/tests
 ```
 
-**Tested.** All 172 pass. They use synthetic data and the registered fixture laws; no real labels are read.
+**Tested.** All 173 pass. They use synthetic data and the registered fixture laws; no real labels are read.
 
 ## 6. Custody
 
@@ -101,7 +102,22 @@ env $TENV <python> -m lcr.sema --label F:closeout -- env $TENV <python> -m lcr.c
 
 ## 7. Independent verification (role E; imports no study module)
 
-The command and its result are in VALIDATION.md §2 (INDEPENDENT_VERIFICATION.json, FIXTURE_ORACLE_REPORT.md).
+```
+OMP_NUM_THREADS=1 <python> -P lcr/sema.py --label E:phase3 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 <python> results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py \
+    --phase 3 --label PHASE_3
+```
+
+**Tested** by role E at 02:19:44Z (42.5 s wall). Result: PHASE_3, WARN with 0 FAIL, written to
+INDEPENDENT_VERIFICATION.json (VALIDATION.md §6). Add `--out <file>` to write nothing to the package.
+
+## Run / resume and inference
+
+- **Fixture stage: no resume step.** It recomputes all four fixtures in one process (about 27 CPU-s), so a re-run is
+  the resume.
+- **Adult stages: resume never exercised.** Their unit-level resume (`lcr.run` skips units whose COMPLETE.json
+  verifies) never ran on Adult.
+- **Inference: not run.** `lcr.infer` needs an assessment, and none exists. No command for these is listed as tested.
 
 ## Not runnable as an Adult result
 

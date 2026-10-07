@@ -1,6 +1,6 @@
 # Fixture oracle report (role E, independent verifier)
 
-Verifier: `results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py` (sha256 `c7edb1bd479a8b27f288cba3f33973c7f961f11f9eedf628a9f0eda2ef8bcdcf`); generated 2026-10-07T01:58:47Z. Own code only: no lcr / cbp / qpc module was imported.
+Verifier: `results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py` (sha256 `fd5a332c56c6ba4c0acc3acf995eeebbebdcad197ae115cac83d47af04894cc8`); generated 2026-10-07T02:20:21Z. Own code only: no lcr / cbp / qpc module was imported.
 
 Laws: FIXTURE_LAWS.json, laws_sha256 `5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434`. Hash recomputed by the registered rule: verified. Gate rule binds the same laws: True. Registered tolerances equal: True.
 

@@ -8,7 +8,9 @@
   "N*": "NOT_APPLICABLE",
   "J*": "NOT_APPLICABLE",
   "Adult D1 decoders": "NOT_APPLICABLE",
-  "C-TASK / weighted / constrained Adult maps": "NOT_APPLICABLE"
+  "C-TASK / weighted / constrained Adult maps": "NOT_APPLICABLE",
+  "decoder_only_baseline (Adult)": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no Adult fit)",
+  "sequential winner (Adult)": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no Adult fit)"
  },
  "deployable_adult": [
   {
@@ -23,7 +25,10 @@
    "release_npz_sha256": "e5af20e936eff453a0a3221de8880c9630025276bee46b014dc7cc29f54a2f3a",
    "decoder": "D0 (pinned mean vectors; no decoder.json)",
    "deploy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.deploy --unit <PRIVATE_CACHE>/lcr_v1/admitted/rel__s0__U --policy <PRIVATE_CACHE>/lcr_v1/run/units/pol__s0__U_DIRECT-TASK_i8o64/policy.json --X <PRIVATE_CACHE>/lcr_v1/inputs/deploy_input.npz --schema <PRIVATE_CACHE>/lcr_v1/inputs/schema.json --out <release.npz>",
-   "deploy_tested": false
+   "deploy_tested": false,
+   "training_label_use": "D0 codebook from cbp: label-blind fine partition plus mean-teacher vectors (no lcr label use)",
+   "fitting_and_assessment_status": "admitted by verified copy; assessed historically in cbp; NOT re-assessed by lcr",
+   "restore": "RESTORE_INDEX.json (teacher forward plus D0 re-encode plus deploy from the same-device copy, bitwise)"
   },
   {
    "role": "Q (D0 DIRECT-TASK i8o64; admitted from cbp, not refitted)",
@@ -37,7 +42,10 @@
    "release_npz_sha256": "2b242a6c5b0fd3523c2cfc802be512073de39a995e6e05933ace50370dde4686",
    "decoder": "D0 (pinned mean vectors; no decoder.json)",
    "deploy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.deploy --unit <PRIVATE_CACHE>/lcr_v1/admitted/rel__s1__U --policy <PRIVATE_CACHE>/lcr_v1/run/units/pol__s1__U_DIRECT-TASK_i8o64/policy.json --X <PRIVATE_CACHE>/lcr_v1/inputs/deploy_input.npz --schema <PRIVATE_CACHE>/lcr_v1/inputs/schema.json --out <release.npz>",
-   "deploy_tested": true
+   "deploy_tested": true,
+   "training_label_use": "D0 codebook from cbp: label-blind fine partition plus mean-teacher vectors (no lcr label use)",
+   "fitting_and_assessment_status": "admitted by verified copy; assessed historically in cbp; NOT re-assessed by lcr",
+   "restore": "RESTORE_INDEX.json (teacher forward plus D0 re-encode plus deploy from the same-device copy, bitwise)"
   },
   {
    "role": "Q (D0 DIRECT-TASK i8o64; admitted from cbp, not refitted)",
@@ -51,7 +59,10 @@
    "release_npz_sha256": "8fcffb9d51ae346045d723d9319ec8adca7647318cfe194f072448034ab95bbc",
    "decoder": "D0 (pinned mean vectors; no decoder.json)",
    "deploy": "OMP_NUM_THREADS=1 PYTHONPATH=. <python> -m lcr.deploy --unit <PRIVATE_CACHE>/lcr_v1/admitted/rel__s2__U --policy <PRIVATE_CACHE>/lcr_v1/run/units/pol__s2__U_DIRECT-TASK_i8o64/policy.json --X <PRIVATE_CACHE>/lcr_v1/inputs/deploy_input.npz --schema <PRIVATE_CACHE>/lcr_v1/inputs/schema.json --out <release.npz>",
-   "deploy_tested": false
+   "deploy_tested": false,
+   "training_label_use": "D0 codebook from cbp: label-blind fine partition plus mean-teacher vectors (no lcr label use)",
+   "fitting_and_assessment_status": "admitted by verified copy; assessed historically in cbp; NOT re-assessed by lcr",
+   "restore": "RESTORE_INDEX.json (teacher forward plus D0 re-encode plus deploy from the same-device copy, bitwise)"
   }
  ],
  "fixture_units": {
@@ -59,5 +70,34 @@
   "public": "FIXTURE_GATE.json, fixture_oracle/*.csv, DECODER_CERTIFICATES.json (228 fixture D1 decoders)"
  },
  "pinned_input_schema": "83 permitted columns in pinned order (schema.json beside the deploy input; byte-identical to cbp's)",
- "receipt": "DEPLOYMENT_RECEIPT.json (seed 1 tested: BOUND, bitwise equal to the admitted release; 6 refusals exit 2)"
+ "receipt": "DEPLOYMENT_RECEIPT.json (seed 1 tested: BOUND, bitwise equal to the admitted release; 6 refusals exit 2)",
+ "U_continuous_baseline": [
+  {
+   "seed": 0,
+   "teacher_unit": "<PRIVATE_CACHE>/lcr_v1/admitted/rel__s0__U",
+   "model_pt_sha256": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+   "head_0_sha256": "3fd34f9b85582e41153f7f9791186131b9cff0e8f5d4397acb007810ff2f93da",
+   "head_1_sha256": "d7508d985941f7e5bbd9ee20fefa407374d70bf1bdc2924624ba184ea71ada44",
+   "status": "admitted frozen teacher (no protection); not assessed by lcr",
+   "restore": "own forward pass from the copy, bitwise (RESTORE_INDEX.json; seed 1)"
+  },
+  {
+   "seed": 1,
+   "teacher_unit": "<PRIVATE_CACHE>/lcr_v1/admitted/rel__s1__U",
+   "model_pt_sha256": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+   "head_0_sha256": "93f10e84ba5abd12c95db1ec20ea5161405ff210af4a273e64769c923592b7d0",
+   "head_1_sha256": "bfd5da45d1400cac10e986c20d128db011029774de3f776245e41242d8881bcf",
+   "status": "admitted frozen teacher (no protection); not assessed by lcr",
+   "restore": "own forward pass from the copy, bitwise (RESTORE_INDEX.json; seed 1)"
+  },
+  {
+   "seed": 2,
+   "teacher_unit": "<PRIVATE_CACHE>/lcr_v1/admitted/rel__s2__U",
+   "model_pt_sha256": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15",
+   "head_0_sha256": "d7a6f923c18fd64b30e000d5c44bf5a7a57bfc8297ccc94d498fa9bb17d1bf19",
+   "head_1_sha256": "d5e7ad6f5fc60e882db5d4456936622a561804d6e6536070fbbada95da7aae72",
+   "status": "admitted frozen teacher (no protection); not assessed by lcr",
+   "restore": "own forward pass from the copy, bitwise (RESTORE_INDEX.json; seed 1)"
+  }
+ ]
 }

@@ -214,7 +214,10 @@ def post_hoc_equal_leakage(out, gate):
             "C_TASK_T": ct["T"], "C_TASK_I12": ct["I12"],
             "n_privacy_D1_at_or_below_T_star_I12": len(cands),
             "best": None if not cands else {"config": cands[0][1], "arm": cands[0][2], "T": cands[0][0],
-                                            "T_star_T_minus_best_T": ts["T"] - cands[0][0]},
+                                            "T_star_T_minus_best_T": ts["T"] - cands[0][0],
+                                            "best_tie_set": sorted(c for T, c, _ in cands if T == cands[0][0]),
+                                            "units": "T = L1 + L2 + 0.5 (B1 + B2): log loss (nats) plus half the Brier "
+                                                     "score, a mixed-unit task objective"},
             "best_by_arm": best_by_arm}
     return body
 
@@ -230,8 +233,11 @@ def run_status(gate):
                       "AMENDMENT_A1_FIXTURE_C5_SCOPE": "pushed (c9a7150)",
                       "SCIENCE_LOCK": "NOT WRITTEN (" + NOT_RUN_REASON + ")",
                       "EVALUATION_LOCK": "NOT WRITTEN (no Adult fit; assessment labels never unsealed)"},
-            "adult_labels_used": "none beyond source admission (task labels / SEX were never read by an lcr fit); "
-                                 "assessment rows never unsealed"}
+            "adult_labels_used": ("none: source admission loaded the input but read no task label or SEX; no stage "
+                                  "that reads task labels or SEX for fitting, audit or selection ran; lcr never unsealed "
+                                  "the assessment rows"),
+            "claim_status_convention": ("NOT_RUN is a display convention for the gate-failure path, not a registered "
+                                        "status; the 37 primary slots were never instantiated")}
 
 
 def not_run_stubs():

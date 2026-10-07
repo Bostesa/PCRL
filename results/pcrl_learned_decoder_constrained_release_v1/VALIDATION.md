@@ -15,11 +15,11 @@
 | lcr/tests/test_select.py | 8 | A |
 | lcr/tests/test_truth_table.py | 8 | A |
 | lcr/tests/test_late.py | 5 | A |
-| lcr/tests/test_closeout.py | 32 | F |
-| **Total** | **172, all pass** | `lcr.sema --label A:test-all … pytest -q lcr/tests` (about 98 s) |
+| lcr/tests/test_closeout.py | 33 | F |
+| **Total** | **173, all pass** | `lcr.sema --label A:test-all … pytest -q lcr/tests` (about 96 s, final run at closeout) |
 
 **Injected defects.** Role E's verifier injects each of the 15 defects named in the prompt and catches all 15
-(INDEPENDENT_VERIFICATION.json, phase 0 self-tests, 27/27 pass):
+(INDEPENDENT_VERIFICATION.json; self-tests 26 PASS plus 1 timing INFO):
 - omitted token identities;
 - clean-output bypass;
 - reversed AUC;
@@ -45,8 +45,8 @@ winner.
 - **Phase 0 / 1A.**
   - Self-tests pass.
   - Admission replay: source hashes, groups and the verified copy.
-  - E's own exhaustive fixture oracle: law integrity, static properties, and 159 certified D1 solves via an independent
-    trusted solver.
+  - E's own exhaustive fixture oracle: law integrity, static properties, and 159 of E's own D1 solves, each certified
+    by E's FW/KKT certificate, with KKT-enumeration and SLSQP cross-checks on samples.
 - **Phase 1B (fixture gate): PASS.** 10 PASS / 0 WARN / 0 FAIL / 1 INFO top-level, 53 PASS nodes. E checked:
   - **Binding:** the rule and laws are bound to the FIXTURE_LOCK documents.
   - **Chronology:** both locks were on origin before each attempt started (01:38:50Z → 01:39:00Z; 01:42:28Z →
@@ -90,21 +90,37 @@ winner.
   and E.
 - **Claims review** (role F): of RESEARCH_DECISION, ADVISOR_BRIEF, PAPER_ADDENDUM, METHOD_CARD and COST_AND_CLOSEOUT
   against the claim scope (§6).
+- **Closeout completeness critic** (reviews/CLOSEOUT_COMPLETENESS_REVIEW.json; 3 lenses, with a skeptic per gap). It
+  checked the package against every prompt requirement and the evidence files. Each confirmed gap was fixed before the
+  final commit, or was a closeout step completed afterwards: the handoffs, the custody refresh, the final CPU total and
+  close time, and the push. Its refuted items and notes are recorded there.
 
 ## 4. Disclosed deviations and corrections
 
 1. **Pre-lock oracle run.** Role E's independent oracle ran on the registered laws before FIXTURE_LOCK was pushed, which
    deviates from "push FIXTURE_LOCK before algorithms run on them". Its counts informed the pre-stage update LP1-U1.
    The laws were not changed in response.
-2. **Pre-lock rule clarifications.** The rule changes listed in §3 were made before the lock. No study algorithm had run
-   on the laws.
+2. **Pre-lock rule clarifications.** The rule changes listed in §3 (47beb1f) were made before the lock.
+   - No study algorithm had run on the laws.
+   - Role E's exhaustive oracle HAD enumerated them (01:11–01:12Z).
+   - The clarifications changed correctness checks and descriptive definitions only: not the laws, the trigger, T* or
+     the candidate lists.
+   - FIXTURE_LAWS.json's bank note ("written before any algorithm runs") was accurate when written at dd1cf23. The
+     laws themselves are unchanged since then.
 3. **Amendment A1.** A defect in the lead's own pre-lock C5 check produced a spurious CORRECTNESS_FAILURE in attempt 1.
    - A1 is code-only and was pushed before attempt 2. Both attempts are kept.
    - The A1 reason text says both F1 K-SEQ arms hit INFEASIBLE_START at stage 1. In fact K-SEQ-12 fails at stage 2. This
      wording error, found by E, is disclosed in FIXTURE_ATTEMPTS.json; the pushed amendment file is unchanged.
 4. **Post-hoc analysis.** POST_HOC_EQUAL_LEAKAGE_UTILITY.json was defined after the gate ran. It is labelled
    UNREGISTERED and cannot affect the gate or the label.
-5. **Process note.** A tracked empty file, lcr/review_tests/__init__.py (committed with the admission lock), was briefly
+5. **FIT_MANIFEST.json.** It was frozen only by FIXTURE_LOCK (9ac4cb7, as a hashed document), never by a SCIENCE_LOCK,
+   because none was written.
+6. **Replay timing fields.** `lcr.report all` re-runs the mapper. Its measured CPU-time fields (`cpu_s_starts` in
+   OPTIMIZATION_RECEIPTS.json) therefore differ between replays; every other field is identical.
+7. **Learned-decoder restore.** The custody restore covers the teachers and the Q release and deployment. No learned
+   decoder file exists to restore: there is no Adult D1, and fixture decoders are not persisted as units. They are
+   regenerated deterministically by `lcr.report all`, which checks them against the registered gate.
+8. **Process note.** A tracked empty file, lcr/review_tests/__init__.py (committed with the admission lock), was briefly
    removed when the review scratch tests were moved out of the tree. It was restored from git before any commit, so no
    tracked file is missing.
 
@@ -119,4 +135,52 @@ analogue is DECODER_ONLY_ABLATION.csv.
 
 ## 6. Phase-3 verification and claims review
 
-(filled from role E's PHASE_3 record and role F's claims review; see below)
+**Role E, PHASE_3 (final): WARN, 0 FAIL.** 15 PASS / 2 WARN / 1 INFO top-level; 14 NOT_APPLICABLE (Adult); 64 PASS
+nodes. Independence passes: the study CLI ran only as external subprocesses (one lcr.deploy refusal, two lcr.lock
+verify calls).
+- **Report tables, reproduced from E's own oracle.**
+  - DECODER_ONLY_ABLATION.csv: 216 rows, max |diff| 4.4e-16.
+  - BUDGET_FEASIBILITY.csv: 336 rows, max |diff| 6.7e-16. Feasible counts F1 0, F2 57, F3 84, F4 84 of 84.
+  - CLASS_PRESERVATION, RUN_STATUS, POST_HOC_EQUAL_LEAKAGE_UTILITY and OPTIMIZATION_RECEIPTS: all match.
+- **Decoder certificates.**
+  - All 456 stats hashes are reproduced exactly.
+  - All 1,921 supervised tokens are re-solved and certified (FW gap ≤ 2.8e-16, stationarity ≤ 4.3e-16).
+  - 45 binding-tie tokens, with minimum margin 9.99978e-13 (the ε-level separation).
+  - A trusted KKT-enumeration spot check gives the same point.
+- **Figures.** Every plotted series equals E's recomputation.
+- **Deployment.**
+  - The CLI output is bitwise equal to the admitted Q release and to E's own deployment.
+  - The input is byte-identical to cbp's.
+  - The 84-column refusal exits with code 2 and writes nothing.
+- **Custody.** `shasum -c` gives 731/731 OK. E restored from the copy alone, and the teacher and Q re-encode are
+  bitwise. STATUS.json is PENDING with osf_assessment_opened false.
+- **Budget.** At most 2 concurrent holds; 1.61 CPU-h measured across roles at E's run.
+- **WARN 1 (custody).** The review scratch tests, moved into the private store after the 01:49Z copy, were not in the
+  copy. They now sit at `<PRIVATE_CACHE>/lcr_v1/run/review_scratch/`. The closeout refresh adds them
+  (BACKUP_VERIFICATION.json).
+- **WARN 2 (documents).** E checked 58 claims and found four minor mismatches, all corrected:
+  - the lock push time (01:38:50Z, not 01:38:38Z);
+  - "about 0.0006" (0.000616);
+  - the CPU total (about 1.6, not 1.5).
+- **Note.** The C5 incremental-terms maximum is lcr.fixtures' own figure. The mapper start records are not persisted,
+  so E could not recompute it independently.
+
+Verifier commands (from the worktree root; each phase re-runs the earlier ones; `--out <file>` writes nothing to PKG):
+```
+OMP_NUM_THREADS=1 <python> -P lcr/sema.py --label E:phase3 -- env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 <python> results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py \
+    --phase 3 --label PHASE_3
+```
+Phases 0, 1A and 1B used `--phase 0 --label PHASE_0`, `--phase 1 --label PHASE_1A` and `--phase 1 --label PHASE_1B`.
+
+**Role F, claims review.** It found no novelty claim, no "fixed fixtures" wording, and the post-hoc block labelled.
+These REQUIRED items were applied:
+- the short answer reworded so it cannot read as an Adult test;
+- "no clause evaluated" in the claims table;
+- the F2 generalisations scoped to that fixture;
+- one unlabelled post-hoc sentence labelled;
+- "never opened" scoped to this study;
+- the custody wording tied to the 01:49Z copy and its closeout refresh.
+
+The recommended scope edits (convexity per fixed token, exhaustive-optimal only on the small fixtures, the
+predecessor custody, prior art in the brief) were also applied.

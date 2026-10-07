@@ -3,22 +3,22 @@
 **Label: MECHANISM_GATE_NOT_MET.** No Adult fit was run, so there is no Adult result in either direction.
 
 **Short answer.**
-- Learning the probabilities did not improve confidence on Adult, because it was never tried there: the registered
-  mechanism gate failed first.
-- On the known-law fixtures, it improved confidence on identical tokens in the miscalibrated fixture and changed
-  nothing in the calibrated null.
-- None of changing the assignments, the calibrated existing method or a weighted baseline produced usable protection
-  here, because no Adult release was fitted.
-- The full development criterion did not pass.
+- Learning the probabilities was not tested on Adult. The registered mechanism gate failed first, so no Adult decoder
+  was fitted and the registered decoder-sentence contrast does not exist.
+- On the known-law fixtures (a descriptive diagnostic on exact laws), it improved confidence on identical tokens in
+  the miscalibrated fixture F2 and changed nothing in the calibrated null F1.
+- No release was assessed for usable protection. Changing the assignments, the calibrated existing method and the
+  weighted baselines were never fitted on Adult.
+- The full development criterion was not evaluated (claim A not run); it is not met.
 
 | Item | Value |
 |---|---|
 | Branch | `research/pcrl-learned-decoder-constrained-release-v1` |
 | Started from | cbp final tip `7f3ec67` |
 | SOURCE_ADMISSION_LOCK | `4a91947` (pushed) |
-| Predictions | `f0b78f6` (pushed before any run); pre-stage update LP1-U1 in `47beb1f` |
+| Predictions | `f0b78f6` (pushed before any fixture or Adult fit run, after the source-admission stage); pre-stage update LP1-U1 in `47beb1f` |
 | Fixture laws and gate rule first registered | `dd1cf23` |
-| FIXTURE_LOCK | `9ac4cb7` (pushed 2026-10-07T01:38:38Z) |
+| FIXTURE_LOCK | `9ac4cb7` (written 2026-10-07T01:38:38Z; first on origin 01:38:50Z) |
 | AMENDMENT_A1_FIXTURE_C5_SCOPE | `c9a7150` (pushed) |
 | Gate result (attempt 2) | `18e41ab`; attempt 1 kept at `cc0083a` |
 | SCIENCE_LOCK / EVALUATION_LOCK | never written; no Adult fit was launched |
@@ -31,7 +31,11 @@
 2. **Pre-registration.** The fixture laws, the gate rule and predictions LP1–LP9 were pushed before any study
    algorithm ran on the laws.
 3. **Pre-lock review.** A text-versus-code review of the gate rule found disagreements in C1, C2, C3, C5, C6, C7 and the
-   descriptive flags. All were resolved before the lock with the laws unchanged (PROTOCOL.md §9).
+   descriptive flags.
+   - All were resolved before the lock with the laws unchanged (PROTOCOL.md §9).
+   - The clarifications (47beb1f) were made AFTER role E's oracle had enumerated the registered laws (01:11:54Z).
+   - They changed correctness checks and descriptive definitions only; the trigger, T*, the candidate lists and the
+     laws were unchanged.
 4. **Structural problem found before the stage.** The same review found that the registered laws could not trigger the
    gate (§3). This expectation was registered before the stage (PREDICTIONS.json LP1-U1; PROTOCOL.md §9). The laws
    were deliberately not amended.
@@ -73,7 +77,7 @@ Verdict: **GATE_NOT_MET**, reasons `["NO_FIXTURE_TRIGGERED"]`; the route is not 
   - On F2–F4, CLASS|D1 is within budget. Its smallest slack is 0.0015 nats of log loss for F2 recipient 2, and
     0.0023–0.0027 nats on F3/F4.
   - On F1, no task-only map is within budget for recipient 2.
-  - The trigger was therefore unattainable before anything ran.
+  - The trigger was therefore unattainable on the registered bank by construction, whatever any algorithm returned.
 - **Why the laws were not changed.** Role E's independent oracle had already enumerated the laws before FIXTURE_LOCK,
   which is a disclosed deviation from "push FIXTURE_LOCK before algorithms run on them". Changing the laws would have
   been the outcome-informed hunt for a favourable example that the prompt forbids. The original forecast LP1 (gate
@@ -91,35 +95,36 @@ Verdict: **GATE_NOT_MET**, reasons `["NO_FIXTURE_TRIGGERED"]`; the route is not 
 
 | Finding | Evidence |
 |---|---|
-| Implementation correctness | C1–C7 pass on every fixture. 228 D1 decoders were all certified and reloaded with a bitwise re-solve: stationarity ≤ 3.1e-16, simplex residual ≤ 2.2e-16, no fallback token (DECODER_CERTIFICATES.json). Decisions are preserved in every release (CLASS_PRESERVATION.json). The incremental search terms of every refined mapper winner match the from-scratch rebuild within 1.6e-15. |
+| Implementation correctness | C1–C7 pass on every fixture. 228 D1 decoders were all certified and reloaded with a bitwise re-solve: stationarity ≤ 3.1e-16, simplex residual ≤ 2.2e-16, no fallback token (DECODER_CERTIFICATES.json). Decisions are preserved in every release (CLASS_PRESERVATION.json). The incremental search terms of every refined mapper winner match the from-scratch rebuild (C5 maximum over all its comparisons: 1.6e-15, as computed by lcr.fixtures; the mapper start records are not persisted, so role E could not recompute the incremental part independently). |
 | Calibrated null | D1 = D0 within 8.1e-13 per token. No loss change on identical tokens (\|ΔL\| ≤ 4e-16). |
 | Decoder on identical tokens (F2, miscalibrated) | D1 lowers log loss by 0.076–0.083 nats (recipient 1) and 0.033–0.038 (recipient 2), and Brier by 0.024–0.049. Token arrays and I1, I2, I12 are identical (bitwise). All 27 fixed maps become budget-feasible, against 0 of 27 under the mean decoder (DECODER_ONLY_ABLATION.csv). |
 | Decoder on identical tokens (F3, F4) | Changes ≤ 7e-5 nats (nearly calibrated teachers). |
 | Search quality | Every constrained arm and C-TASK on F2–F4 is EXHAUSTIVE_OPTIMAL against the exhaustive reference for its own registered problem. On F1 the constrained arms correctly report INFEASIBLE. They are labelled HEURISTIC there because no feasible reference exists. Some unconstrained searches are HEURISTIC on F3/F4: the old mean-decoder SEQ/JOINT/LOCAL searches and some weighted D1 arms, 17 and 21 arms respectively. Their gaps in their own objectives are ≤ 7.0e-4, reported and not failures (OPTIMIZATION_RECEIPTS.json; FIXTURE_GATE.json C6). |
-| Constrained vs weighted (descriptive flag) | F2: best constrained I12 = 0 against best weighted 0.0216, so the registered λ grid does not push the weighted arms to zero. F3, F4: both reach 0. |
+| Constrained vs weighted (descriptive flag) | F2: best constrained I12 = 0 against best weighted 0.0216, so the registered λ grid does not push the weighted arms to zero. F3, F4: both reach 0. Both are bounded below by I12(CLASS\|D1) = 0, which the decision-only release already attains; this is a descriptive flag, not a claim-B result. |
 | Joint vs sequential (descriptive flag) | 0 difference in every family on every fixture. |
 
 **Post-hoc, UNREGISTERED** (POST_HOC_EQUAL_LEAKAGE_UTILITY.json; it cannot change the verdict or the label). Among
-budget- and local-feasible privacy-trained D1 releases, the lowest task loss with pair MI no larger than T*'s:
-- **F2:** 0.042 nats below CLASS|D1, from K-JOINT-PAIR (constrained). The decoded old JOINT λ0.025 map is within
-  0.0006 nats of it.
-- **F3:** 0.0038 nats below CLASS|D1. Decoded old maps, weighted and constrained arms all tie.
+budget- and local-feasible privacy-trained D1 releases with pair MI no larger than T*'s, the lowest task objective
+T = L1 + L2 + ½(B1 + B2). T is a mixed-unit objective: log loss in nats plus half the Brier score.
+- **F2:** T is 0.042 below CLASS|D1, from the constrained arms. All five tie exactly, and no paired move was evaluated on
+  F2. The decoded old JOINT λ0.025 map is about 0.0006 (0.000616) above them in T.
+- **F3:** T is 0.0038 below CLASS|D1, with a 17-way tie of decoded old maps, weighted and constrained arms.
 - **F4:** no difference.
 
-So on these laws, privacy-trained D1 releases match the decision-only leakage while keeping more task utility. Almost
-all of that is available from old maps once they are decoded with D1. The registered trigger measures only pair-MI
-reduction, so this is not a gate result.
+Post-hoc and UNREGISTERED: on these laws, privacy-trained D1 releases match the decision-only pair leakage while keeping
+more task utility, and almost all of that is available from old fixture maps once they are decoded with D1. The
+registered trigger measures only pair-MI reduction, so this is neither a gate result nor evidence about Adult.
 
 ## 5. Claims and clauses
 
-| Claim | Status | Exact failed clause |
+| Claim | Status | Failed clause or reason |
 |---|---|---|
 | Gate (mechanism) | NOT MET | no fixture triggered: F1 has no feasible task-only comparator; F2–F4 are not nontrivial because I12(T*) = 0 |
-| A: P* vs T* (privacy release) | NOT RUN | gate not met; no Adult fit |
-| B: N* vs C* (constrained increment) | NOT RUN | gate not met |
-| C: J* vs C_pair* (paired joint increment) | NOT RUN | gate not met |
-| Q (confidence feasibility) | NOT RUN | gate not met |
-| Decoder-only ablation on Adult | NOT RUN | gate not met; the fixture analogue is in §4 |
+| A: P* vs T* (privacy release) | NOT RUN | no clause evaluated: gate not met; no Adult fit |
+| B: N* vs C* (constrained increment) | NOT RUN | no clause evaluated: gate not met; no Adult fit |
+| C: J* vs C_pair* (paired joint increment) | NOT RUN | no clause evaluated: gate not met; no Adult fit |
+| Q (confidence feasibility) | NOT RUN | no clause evaluated: gate not met; no Adult fit |
+| Decoder-only ablation on Adult | NOT RUN | no clause evaluated: gate not met; no Adult fit; the fixture analogue is in §4 |
 
 No Adult AUC, accuracy, log-loss or Brier figure is produced or implied. The ones quoted here come from cbp and are
 labelled as cbp's.
@@ -141,21 +146,21 @@ labelled as cbp's.
 
 - **Tests:**
   - test_admit 3, test_decoder 17, test_fixtures 15, test_deploy 6, test_mapper 17;
-  - test_audit 61, test_select 8, test_truth_table 8, test_late 5, test_closeout 32;
-  - all 172 pass (VALIDATION.md).
+  - test_audit 61, test_select 8, test_truth_table 8, test_late 5, test_closeout 33;
+  - all 173 pass (VALIDATION.md).
 - **Independent verification:** role E's replay imports no study module (INDEPENDENT_VERIFICATION.json,
   FIXTURE_ORACLE_REPORT.md).
 - **Work and cost:**
   - Fixture stage: about 27 CPU-s per attempt.
-  - Whole study: about 1.5 CPU-h through the shared semaphore, against the 20 CPU-h cap. At most 2 heavy processes, with
+  - Whole study: about 1.6 CPU-h through the shared semaphore, against the 20 CPU-h cap. At most 2 heavy processes, with
     the largest child at 1.3 GiB.
   - $0 cloud.
 - **Custody:**
-  - Same-device copy (731 files): verified uncached and restored from (teachers, Q release and deployment, all
-    bitwise).
+  - Same-device copy (731 files, store as of 01:49Z): verified uncached and restored from (teachers, Q release and
+    deployment, all bitwise). It proves restorability, not off-device custody.
   - Status: LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING; the drive is absent.
-  - cbp custody is PENDING, because it would open osf's assessment rows, the same rows as this study's never-opened
-    assessment.
+  - cbp custody is PENDING (it carries the pending qpc, dpc, osf and smf off-device custody), because it would open
+    osf's assessment rows, the same rows as this study's never-opened assessment.
 
 ## 8. Decision
 
@@ -170,9 +175,12 @@ labelled as cbp's.
   - Otherwise the "beyond the strongest task-only compression" trigger is unattainable by the data-processing floor.
   - That is a design consequence of this failure. It must not be a re-run under this registration.
 - **Carry forward.**
-  - The decoder (convex, certified, class-preserving, with a calibrated null).
-  - The constrained mapper (exhaustive-optimal on the fixtures).
-  - The decoder-only ablation finding: on a miscalibrated teacher, D1 makes old maps budget-usable at identical
-    information.
+  - The decoder (convex for a fixed token, certified, class-preserving, with a calibrated null).
+  - The constrained mapper. It was EXHAUSTIVE_OPTIMAL on F2–F4, where the registered optimum is the zero-MI floor
+    (Φ = 0), and INFEASIBLE / HEURISTIC on F1. The paired-move step was exercised only on F4 (2,368 pair evaluations,
+    0 accepted). It is a greedy heuristic in general; no global optimum is claimed.
+  - The decoder-only ablation finding: on the miscalibrated fixture F2, D1 made all 27 of the fixture's fixed
+    mean-decoder maps (task-only and privacy-trained) budget-feasible at identical full-token information. Whether this
+    happens on Adult was not tested.
   - All three are engineering facts on known laws, not privacy evidence.
 - **Confirmation.** No confirmation population is spent.

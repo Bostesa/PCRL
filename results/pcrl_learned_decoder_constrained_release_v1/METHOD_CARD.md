@@ -9,7 +9,7 @@ fit was run.
 | Component | What it ran on |
 |---|---|
 | Decoder (D1) | the four known-law fixtures (228 certified decoders); synthetic tests |
-| Mapper | the fixtures (constrained and C-TASK arms EXHAUSTIVE_OPTIMAL on F2–F4); synthetic tests and timing |
+| Mapper | the fixtures (constrained and C-TASK arms EXHAUSTIVE_OPTIMAL against their own exhaustive references on F2–F4; a heuristic in general); synthetic tests and timing |
 | Deployment | the admitted D0 Q map on Adult (DEPLOYMENT_RECEIPT.json); the D1 path on synthetic data only |
 
 Every Adult statement below describes how the code WOULD run on Adult. None of it is an observed Adult result.
@@ -17,8 +17,8 @@ Every Adult statement below describes how the code WOULD run on Adult. None of i
 **What D1 can and cannot do.**
 - Changing the decoder of an unchanged token removes no information (C1 holds bitwise on every fixture).
 - In the calibrated-teacher null, D1 equals the mean decoder within 8.1e-13 (C2).
-- D1 can make an old private map budget-usable when the teacher is miscalibrated (F2: 27 of 27 fixed maps feasible
-  under D1, against 0 under D0, at identical information).
+- On the miscalibrated fixture F2, D1 made all 27 of the fixture's fixed mean-decoder maps (task-only and
+  privacy-trained) budget-feasible, against 0 under D0, at identical information. This was not tested on Adult.
 
 **Prior art.** Hard utility constraints, privacy-funnel objectives (arXiv:1402.1774), proper-loss calibration, greedy
 partition search and sequential collusion accounting (Taylor, Vippathalla and Coon, arXiv:2601.21859 v2) are
@@ -29,8 +29,10 @@ decoder is.
 # Part A — decoder, fixtures and deployment (role B)
 
 Code: `lcr/decoder.py`, `lcr/fixtures.py`, `lcr/deploy.py`. Proofs and checks: `MATH_REVIEW.md`.
-Fixture laws and gate: `FIXTURE_LAWS.json` and `FIXTURE_GATE_RULE.json`. Both were written before any fixture algorithm
-ran; FIXTURE_LOCK governs them.
+Fixture laws and gate: `FIXTURE_LAWS.json` and `FIXTURE_GATE_RULE.json`. The laws (dd1cf23) predate every algorithm
+run on them. The gate rule was first registered at dd1cf23 and clarified at 47beb1f, after role E's oracle had
+enumerated the laws (correctness checks and descriptive definitions only; VALIDATION.md §4). FIXTURE_LOCK governs
+both. (Merged-card note; role B's original wording is kept in METHOD_CARD_DECODER.md.)
 
 ### 1. What D1 is
 

@@ -64,9 +64,11 @@ The registered mechanism gate failed (MECHANISM_GATE_NOT_MET), so no Adult fit r
 - the assessment labels were never unsealed, because no EVALUATION_LOCK exists;
 - HEAD_VALIDATION was not repurposed.
 
-The study's real-data operations were limited to three things:
+The study's real-data operations were limited to four things:
 - source admission: teacher forward passes and release re-encoding;
-- one deployment of the admitted Q map on the 83 permitted columns;
-- custody copying and restoring.
+- deployments of the admitted Q map on the 83 permitted columns: the lead's CLI test and role E's own re-deployment;
+- custody copying and restoring;
+- role E's independent admission and fixture replay.
 
-None of them reads a task label or SEX.
+The loaders read the non-assessment label and SEX arrays into memory, with the assessment rows masked to −1. No task
+label or SEX entered any lcr computation or output, and no assessment label was read.

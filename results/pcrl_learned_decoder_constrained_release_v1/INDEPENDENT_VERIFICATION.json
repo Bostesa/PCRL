@@ -1,11 +1,11 @@
 {
  "schema": "lcr-independent-verification-v1",
- "phase": "PHASE_1B",
- "generated_at": "2026-10-07T01:58:09Z",
+ "phase": "PHASE_3",
+ "generated_at": "2026-10-07T02:19:44Z",
  "verifier": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py",
- "verifier_sha256": "c7edb1bd479a8b27f288cba3f33973c7f961f11f9eedf628a9f0eda2ef8bcdcf",
+ "verifier_sha256": "fd5a332c56c6ba4c0acc3acf995eeebbebdcad197ae115cac83d47af04894cc8",
  "adapted_from": "results/pcrl_confidence_budgeted_privacy_v1/verification/replay_cbp.py at 7f3ec67 (sha256 bfac817d4db32da0cba7e84c91d7ef7368e2cc95979213af0a12a5bd66b171a2)",
- "worktree_head": "331d070c4b7460440180ccb8d752bfaca313d788",
+ "worktree_head": "dab7ec64952b5acf7b48d3c6115e487364a2d287",
  "branch": "research/pcrl-learned-decoder-constrained-release-v1",
  "source_tip": "7f3ec67b2ecd86d474e2ff27167091af9923f572",
  "inputs": {
@@ -53,7 +53,7 @@
  "assessment_labels_read": false,
  "fixture_oracle_report": {
   "path": "results/pcrl_learned_decoder_constrained_release_v1/FIXTURE_ORACLE_REPORT.md",
-  "sha256": "bae0484015a97f4fac72b416622f6185aba3d9baa224ffa881114c9ce5a02173"
+  "sha256": "4e9a3bee704522c168ccedbd3a2870d3177d45fcf6cdd88e5afba932dccb55f9"
  },
  "independence": {
   "status": "PASS",
@@ -300,7 +300,7 @@
       "identity_max_abs": 0.0,
       "sum_residual": 2.220446049250313e-16
      },
-     "ms_per_solve": 0.47601044178009033
+     "ms_per_solve": 0.4858875274658203
     },
     "edge_cases": [
      {
@@ -674,7 +674,7 @@
    },
    "lcr_selftest_wall_s": {
     "status": "INFO",
-    "wall_s": 1.12
+    "wall_s": 1.15
    },
    "inference_primitives": {
     "status": "PASS",
@@ -2084,7 +2084,7 @@
       "1": true,
       "2": true
      },
-     "wall_s": 0.9
+     "wall_s": 0.89
     },
     "F3_COMPLEMENTARY_XOR": {
      "status": "PASS",
@@ -3483,9 +3483,235 @@
    "reason": "the registered fixture gate is not met (own replay agrees: GATE_NOT_MET); no Adult fit is launched (prompt section 9), so this Adult replay has no object"
   },
   "published_tables": {
-   "status": "PENDING",
-   "reason": "PHASE 3 (after the assessment and inference)",
-   "check": "published_tables"
+   "status": "PASS",
+   "decoder_only_ablation": {
+    "status": "PASS",
+    "rows": 216,
+    "failures": [],
+    "n_failures": 0,
+    "max_abs_diff": 4.440892098500626e-16,
+    "all_tokens_identical": true,
+    "all_mi_identical": true,
+    "max_logloss_gain_D1": 0.08293977981718292,
+    "max_logloss_loss_D1": 2.220446049250313e-16
+   },
+   "budget_feasibility": {
+    "status": "PASS",
+    "rows": 336,
+    "failures": [],
+    "n_failures": 0,
+    "max_abs_diff": 6.661338147750939e-16,
+    "feasible_by_fixture": {
+     "F1_CALIBRATED_NULL": 0,
+     "F2_MISCALIBRATED": 57,
+     "F3_COMPLEMENTARY_XOR": 84,
+     "F4_REDUNDANT": 84
+    },
+    "limits_rule": "L_i(U) + 0.005, B_i(U) + 0.003; slack = limit - value"
+   },
+   "class_preservation": {
+    "status": "PASS",
+    "failures": []
+   },
+   "post_hoc_equal_leakage": {
+    "status": "PASS",
+    "failures": [],
+    "own": {
+     "F1_CALIBRATED_NULL": {
+      "T_star": null
+     },
+     "F2_MISCALIBRATED": {
+      "T_star_T": 2.1694692010712866,
+      "C_TASK_T": 2.120589094445499,
+      "C_TASK_I12": 0.03237633368369923,
+      "n": 23,
+      "best_T": 2.1271811783117713,
+      "gap": 0.042288022759515265,
+      "best_tie_set": [
+       "U|K-JOINT-PAIR|i8o64|D1",
+       "U|K-JOINT-SINGLE|i8o64|D1",
+       "U|K-LOCAL|i8o64|D1",
+       "U|K-SEQ-12|i8o64|D1",
+       "U|K-SEQ-21|i8o64|D1"
+      ],
+      "best_by_arm": {
+       "constrained": {
+        "config": "U|K-JOINT-PAIR|i8o64|D1",
+        "T": 2.1271811783117713
+       },
+       "d1_fixed": {
+        "config": "U|JOINT|i8o64|l0.025|D1",
+        "T": 2.1277970262177326
+       }
+      }
+     },
+     "F3_COMPLEMENTARY_XOR": {
+      "T_star_T": 1.4924982172404335,
+      "C_TASK_T": 1.4852608644849372,
+      "C_TASK_I12": 0.1308120359411369,
+      "n": 28,
+      "best_T": 1.4886566901227487,
+      "gap": 0.0038415271176848176,
+      "best_tie_set": [
+       "U|JOINT|i8o64|l0.04|D1",
+       "U|JOINT|i8o64|l0.06|D1",
+       "U|JOINT|i8o64|l0.08|D1",
+       "U|JOINT|i8o64|l0.1|D1",
+       "U|K-SEQ-21|i8o64|D1",
+       "U|SEQ-21|i8o64|l0.04|D1",
+       "U|SEQ-21|i8o64|l0.06|D1",
+       "U|SEQ-21|i8o64|l0.08|D1",
+       "U|SEQ-21|i8o64|l0.1|D1",
+       "U|W-JOINT|i8o64|l0.04|D1",
+       "U|W-JOINT|i8o64|l0.06|D1",
+       "U|W-JOINT|i8o64|l0.08|D1",
+       "U|W-JOINT|i8o64|l0.1|D1",
+       "U|W-SEQ-21|i8o64|l0.04|D1",
+       "U|W-SEQ-21|i8o64|l0.06|D1",
+       "U|W-SEQ-21|i8o64|l0.08|D1",
+       "U|W-SEQ-21|i8o64|l0.1|D1"
+      ],
+      "best_by_arm": {
+       "d1_fixed": {
+        "config": "U|JOINT|i8o64|l0.04|D1",
+        "T": 1.4886566901227487
+       },
+       "constrained": {
+        "config": "U|K-SEQ-21|i8o64|D1",
+        "T": 1.4886566901227487
+       },
+       "weighted": {
+        "config": "U|W-JOINT|i8o64|l0.04|D1",
+        "T": 1.4886566901227487
+       }
+      }
+     },
+     "F4_REDUNDANT": {
+      "T_star_T": 1.4924982172404335,
+      "C_TASK_T": 1.4852608644849372,
+      "C_TASK_I12": 0.13081203594113694,
+      "n": 37,
+      "best_T": 1.4924982172404335,
+      "gap": 0.0,
+      "best_tie_set": [
+       "U|JOINT|i8o64|l0.04|D1",
+       "U|JOINT|i8o64|l0.06|D1",
+       "U|JOINT|i8o64|l0.08|D1",
+       "U|JOINT|i8o64|l0.1|D1",
+       "U|K-JOINT-PAIR|i8o64|D1",
+       "U|K-JOINT-SINGLE|i8o64|D1",
+       "U|K-LOCAL|i8o64|D1",
+       "U|K-SEQ-12|i8o64|D1",
+       "U|K-SEQ-21|i8o64|D1",
+       "U|LOCAL|i8o64|l0.08|D1",
+       "U|LOCAL|i8o64|l0.1|D1",
+       "U|SEQ-12|i8o64|l0.025|D1",
+       "U|SEQ-12|i8o64|l0.04|D1",
+       "U|SEQ-12|i8o64|l0.06|D1",
+       "U|SEQ-12|i8o64|l0.08|D1",
+       "U|SEQ-12|i8o64|l0.1|D1",
+       "U|SEQ-21|i8o64|l0.025|D1",
+       "U|SEQ-21|i8o64|l0.04|D1",
+       "U|SEQ-21|i8o64|l0.06|D1",
+       "U|SEQ-21|i8o64|l0.08|D1",
+       "U|SEQ-21|i8o64|l0.1|D1",
+       "U|W-JOINT|i8o64|l0.04|D1",
+       "U|W-JOINT|i8o64|l0.06|D1",
+       "U|W-JOINT|i8o64|l0.08|D1",
+       "U|W-JOINT|i8o64|l0.1|D1",
+       "U|W-LOCAL|i8o64|l0.08|D1",
+       "U|W-LOCAL|i8o64|l0.1|D1",
+       "U|W-SEQ-12|i8o64|l0.025|D1",
+       "U|W-SEQ-12|i8o64|l0.04|D1",
+       "U|W-SEQ-12|i8o64|l0.06|D1",
+       "U|W-SEQ-12|i8o64|l0.08|D1",
+       "U|W-SEQ-12|i8o64|l0.1|D1",
+       "U|W-SEQ-21|i8o64|l0.025|D1",
+       "U|W-SEQ-21|i8o64|l0.04|D1",
+       "U|W-SEQ-21|i8o64|l0.06|D1",
+       "U|W-SEQ-21|i8o64|l0.08|D1",
+       "U|W-SEQ-21|i8o64|l0.1|D1"
+      ],
+      "best_by_arm": {
+       "d1_fixed": {
+        "config": "U|JOINT|i8o64|l0.04|D1",
+        "T": 1.4924982172404335
+       },
+       "constrained": {
+        "config": "U|K-JOINT-PAIR|i8o64|D1",
+        "T": 1.4924982172404335
+       },
+       "weighted": {
+        "config": "U|W-JOINT|i8o64|l0.04|D1",
+        "T": 1.4924982172404335
+       }
+      }
+     }
+    },
+    "lead_message_numbers_checked": {
+     "F2_gap": 0.042288022759515265,
+     "F2_d1_fixed_JOINT_l0.025_minus_best": 0.0006158479059612532,
+     "F3_gap": 0.0038415271176848176,
+     "F3_tie_set": [
+      "U|JOINT|i8o64|l0.04|D1",
+      "U|JOINT|i8o64|l0.06|D1",
+      "U|JOINT|i8o64|l0.08|D1",
+      "U|JOINT|i8o64|l0.1|D1",
+      "U|K-SEQ-21|i8o64|D1",
+      "U|SEQ-21|i8o64|l0.04|D1",
+      "U|SEQ-21|i8o64|l0.06|D1",
+      "U|SEQ-21|i8o64|l0.08|D1",
+      "U|SEQ-21|i8o64|l0.1|D1",
+      "U|W-JOINT|i8o64|l0.04|D1",
+      "U|W-JOINT|i8o64|l0.06|D1",
+      "U|W-JOINT|i8o64|l0.08|D1",
+      "U|W-JOINT|i8o64|l0.1|D1",
+      "U|W-SEQ-21|i8o64|l0.04|D1",
+      "U|W-SEQ-21|i8o64|l0.06|D1",
+      "U|W-SEQ-21|i8o64|l0.08|D1",
+      "U|W-SEQ-21|i8o64|l0.1|D1"
+     ],
+     "F4_gap": 0.0
+    },
+    "status_in_file": "UNREGISTERED_POST_HOC_DESCRIPTIVE"
+   },
+   "optimization_receipts": {
+    "status": "PASS",
+    "failures": [],
+    "n_failures": 0,
+    "F1_K_SEQ_stage1_statuses": {
+     "U|K-SEQ-12|i8o64|D1": [
+      "REFINED",
+      "REFINED",
+      "REFINED",
+      "REFINED",
+      "REFINED",
+      "REFINED",
+      "REFINED"
+     ],
+     "U|K-SEQ-21|i8o64|D1": [
+      "INFEASIBLE_START",
+      "INFEASIBLE_START",
+      "INFEASIBLE_START",
+      "INFEASIBLE_START",
+      "INFEASIBLE_START",
+      "INFEASIBLE_START",
+      "INFEASIBLE_START"
+     ]
+    },
+    "note": "stage-1 statuses of the persisted receipts confirm the own A1 cause analysis: K-SEQ-12 refines stage 1 from every start and fails at stage 2; K-SEQ-21 is INFEASIBLE_START at stage 1"
+   },
+   "run_status": {
+    "status": "PASS",
+    "failures": [],
+    "not_run_stubs": {
+     "INNER_SELECTION_TABLE.csv": true,
+     "PRIMARY_ENDPOINTS.csv": true,
+     "ALL_LEVELS.csv": true,
+     "SELECTION.json": true
+    },
+    "ledger_entries": 3
+   }
   },
   "chronology_assessment": {
    "status": "NOT_APPLICABLE",
@@ -3496,19 +3722,791 @@
    "reason": "the registered fixture gate is not met (own replay agrees: GATE_NOT_MET); no Adult fit is launched (prompt section 9), so this Adult replay has no object"
   },
   "deployment_parity": {
-   "status": "PENDING",
-   "reason": "PHASE 3 (after the assessment and inference)",
-   "check": "deployment_parity"
+   "status": "PASS",
+   "failures": [],
+   "output_sha256": "8ae79f82b1a3c0104c5d6d395e64aebf5190636474a0582f65440ed32b10f3bd",
+   "cli_output_bitwise_equal_admitted_release": {
+    "tokens_1": true,
+    "probs_1": true,
+    "decision_1": true,
+    "tokens_2": true,
+    "probs_2": true,
+    "decision_2": true
+   },
+   "output_keys_only_released_fields": true,
+   "rows_and_alphabets": {
+    "rows": 39170,
+    "alpha": [
+     16,
+     321
+    ]
+   },
+   "receipt_matches": true,
+   "input_equals_cbp_byte_for_byte": true,
+   "input_X_equals_own_X": true,
+   "own_deployment_bitwise_equal_cli": true,
+   "refusal_84_columns": {
+    "rc": 2,
+    "no_output_written": true,
+    "message_tail": "refused: deployment accepts exactly the 83 permitted columns; got 84",
+    "matches_receipt": true
+   },
+   "receipt_refusals_listed": [
+    "82 columns",
+    "84 columns",
+    "extra sex array",
+    "forbidden flag --export-logits",
+    "unknown flag --foo",
+    "wrong teacher (RAW-J unit with a U policy)"
+   ]
   },
   "restore_parity": {
-   "status": "PENDING",
-   "reason": "PHASE 3 (after the assessment and inference)",
-   "check": "restore_parity"
+   "status": "WARN",
+   "failures": [],
+   "SHA256SUMS_sha256_equals_receipt": true,
+   "shasum_c": {
+    "rc": 0,
+    "lines": 731,
+    "OK": 731,
+    "failed": 0
+   },
+   "files_listed": 731,
+   "bytes_listed": 326564025,
+   "store_files": 730,
+   "dependency_files": 1,
+   "counts_match_receipt": true,
+   "dependency_is_pinned_input": true,
+   "live_unit_inventory": {
+    "pol": 81,
+    "inner": 90,
+    "tea": 6,
+    "ref": 9,
+    "fine": 3,
+    "fix": 4
+   },
+   "inventory_matches_restore_index": true,
+   "attempts_in_restore_index": [
+    "fixture_attempt1"
+   ],
+   "attempts_live": [
+    "fixture_attempt1",
+    "review_scratch"
+   ],
+   "attempts_missing_from_live": [],
+   "live_dirs_newer_than_copy_not_indexed": [
+    "review_scratch"
+   ],
+   "indexed_attempts_in_copy": true,
+   "status_pending_and_sealed": true,
+   "receipt_status": "LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING",
+   "own_restore_teacher_bitwise": true,
+   "own_restore_Q_bitwise": true,
+   "own_restore_fixture_units_hash": true,
+   "warning": "live run/attempts/ holds directories created after the 01:49Z copy that neither the copy nor RESTORE_INDEX.json lists: review_scratch; the closeout refresh must copy them and update the index (they are review scratch tests, not stage attempts)",
+   "note": "same-device copy verified and restored from; off-device backup and cbp predecessor custody PENDING"
   },
   "budget": {
-   "status": "PENDING",
-   "reason": "PHASE 3 (after the assessment and inference)",
-   "check": "budget"
+   "status": "PASS",
+   "completed_holds": 126,
+   "open_holds": 1,
+   "max_concurrent_holds": 2,
+   "cpu_h_measured_in_holds": 1.606,
+   "by_role": {
+    "A": {
+     "holds": 23,
+     "cpu_s": 377.4,
+     "wall_s": 391.3
+    },
+    "B": {
+     "holds": 12,
+     "cpu_s": 158.4,
+     "wall_s": 161.3
+    },
+    "E": {
+     "holds": 19,
+     "cpu_s": 395.9,
+     "wall_s": 423.0
+    },
+    "F": {
+     "holds": 10,
+     "cpu_s": 21.7,
+     "wall_s": 27.4
+    },
+    "R": {
+     "holds": 35,
+     "cpu_s": 149.8,
+     "wall_s": 159.3
+    },
+    "D": {
+     "holds": 15,
+     "cpu_s": 2551.1,
+     "wall_s": 2553.5
+    },
+    "C": {
+     "holds": 12,
+     "cpu_s": 2129.1,
+     "wall_s": 2645.3
+    }
+   },
+   "elapsed_h_at_last_release": 2.606,
+   "limits": {
+    "heavy_processes": 2,
+    "cpu_h": 20,
+    "elapsed_h": 10
+   },
+   "note": "measured CPU of semaphore-held children (getrusage deltas); agent reasoning time is not process CPU"
+  },
+  "decoder_certificates": {
+   "status": "PASS",
+   "failures": [],
+   "n_failures": 0,
+   "releases": 228,
+   "tables": 456,
+   "aggregate_in_file": {
+    "releases": 228,
+    "tables": 456,
+    "supervised_tokens": 1921,
+    "fallback_tokens": 0,
+    "all_converged": true,
+    "max_stationarity_rel": 3.0827271983332526e-16,
+    "max_dual_infeas_rel": 0.0,
+    "max_projection_magnitude": 1.1102230246251565e-16,
+    "max_sum_q_residual": 2.220446049250313e-16,
+    "min_margin": 9.999778782798785e-13,
+    "tokens_with_tie": 45
+   },
+   "aggregate_recomputed_from_entries_equal": true,
+   "own": {
+    "supervised_tokens": 1921,
+    "tokens_with_tie": 45,
+    "min_margin": 9.999778782798785e-13,
+    "max_fw_gap_rel": 2.842170943040401e-16,
+    "max_stationarity_rel": 4.306319610667274e-16,
+    "max_sum_residual": 2.220446049250313e-16,
+    "hash_matches": 456
+   },
+   "max_min_margin_abs_diff": 2.220446049250313e-16,
+   "lead_claims": {
+    "stationarity_le_3.1e-16": true,
+    "simplex_sum_le_2.2e-16": true,
+    "ties_45": true,
+    "min_margin_eps_level": true,
+    "releases_228": true,
+    "supervised_1921": true
+   },
+   "trusted_spot_check": {
+    "distinct_tokens": 13,
+    "kkt_unique_and_equal": true,
+    "kkt_max_dq": 1.1102230246251565e-16,
+    "slsqp_never_better_rel": true
+   },
+   "note": "content_hash binds B's exact u / q bits and is not reproduced (different floating algorithm); the stats_hash match makes the statistics byte-identical, the own certificate proves the optimum for them, and B's released losses equal the own ones within 4.4e-16 (fixture replay)"
+  },
+  "figures": {
+   "status": "PASS",
+   "failures": [],
+   "png_valid": {
+    "fig1_fixture_tradeoff.png": true,
+    "fig3_fixed_token_decoder_ablation.png": true,
+    "fig4_fixture_individual_pair_information.png": true,
+    "fig5_fixture_token_counts.png": true
+   },
+   "png_sha256": {
+    "fig1_fixture_tradeoff.png": "b099b815c40f4ee01aed00b07f5f22bab95912d955a5b4fb21810bada53f7df9",
+    "fig3_fixed_token_decoder_ablation.png": "9c48863cb98912ea2d4bcb839379ab85c562b7ce902f157e29cd339cf09160a9",
+    "fig4_fixture_individual_pair_information.png": "5a0828362d5b900675f34c6a756313480917e9ee421288c2d3cfe7056abf1248",
+    "fig5_fixture_token_counts.png": "217000ab76d7002067a7fb7f26f4699b49c4c7089b66ce132daac2957562c149"
+   },
+   "series_sizes": {
+    "fig1:F1_CALIBRATED_NULL:d1_fixed:True": 0,
+    "fig1:F1_CALIBRATED_NULL:d1_fixed:False": 27,
+    "fig1:F1_CALIBRATED_NULL:weighted:True": 0,
+    "fig1:F1_CALIBRATED_NULL:weighted:False": 24,
+    "fig1:F1_CALIBRATED_NULL:constrained:True": 0,
+    "fig1:F1_CALIBRATED_NULL:constrained:False": 5,
+    "fig1:F1_CALIBRATED_NULL:ctask:True": 0,
+    "fig1:F1_CALIBRATED_NULL:ctask:False": 1,
+    "fig3:F1_CALIBRATED_NULL": 54,
+    "fig4:F1_CALIBRATED_NULL": 57,
+    "fig5:F1_CALIBRATED_NULL": {
+     "4": 1,
+     "8": 56
+    },
+    "fig1:F2_MISCALIBRATED:d1_fixed:True": 27,
+    "fig1:F2_MISCALIBRATED:d1_fixed:False": 0,
+    "fig1:F2_MISCALIBRATED:weighted:True": 24,
+    "fig1:F2_MISCALIBRATED:weighted:False": 0,
+    "fig1:F2_MISCALIBRATED:constrained:True": 5,
+    "fig1:F2_MISCALIBRATED:constrained:False": 0,
+    "fig1:F2_MISCALIBRATED:ctask:True": 1,
+    "fig1:F2_MISCALIBRATED:ctask:False": 0,
+    "fig3:F2_MISCALIBRATED": 54,
+    "fig4:F2_MISCALIBRATED": 57,
+    "fig5:F2_MISCALIBRATED": {
+     "5": 1,
+     "10": 56
+    },
+    "fig1:F3_COMPLEMENTARY_XOR:d1_fixed:True": 27,
+    "fig1:F3_COMPLEMENTARY_XOR:d1_fixed:False": 0,
+    "fig1:F3_COMPLEMENTARY_XOR:weighted:True": 24,
+    "fig1:F3_COMPLEMENTARY_XOR:weighted:False": 0,
+    "fig1:F3_COMPLEMENTARY_XOR:constrained:True": 5,
+    "fig1:F3_COMPLEMENTARY_XOR:constrained:False": 0,
+    "fig1:F3_COMPLEMENTARY_XOR:ctask:True": 1,
+    "fig1:F3_COMPLEMENTARY_XOR:ctask:False": 0,
+    "fig3:F3_COMPLEMENTARY_XOR": 54,
+    "fig4:F3_COMPLEMENTARY_XOR": 57,
+    "fig5:F3_COMPLEMENTARY_XOR": {
+     "4": 1,
+     "8": 56
+    },
+    "fig1:F4_REDUNDANT:d1_fixed:True": 27,
+    "fig1:F4_REDUNDANT:d1_fixed:False": 0,
+    "fig1:F4_REDUNDANT:weighted:True": 24,
+    "fig1:F4_REDUNDANT:weighted:False": 0,
+    "fig1:F4_REDUNDANT:constrained:True": 5,
+    "fig1:F4_REDUNDANT:constrained:False": 0,
+    "fig1:F4_REDUNDANT:ctask:True": 1,
+    "fig1:F4_REDUNDANT:ctask:False": 0,
+    "fig3:F4_REDUNDANT": 54,
+    "fig4:F4_REDUNDANT": 57,
+    "fig5:F4_REDUNDANT": {
+     "4": 1,
+     "8": 56
+    }
+   },
+   "method": "data check: the plotting code (lcr/report.py figures(), read for its series definitions only) draws these exact series from the two CSVs; both CSVs equal the own recomputation; not re-rendered"
+  },
+  "documents": {
+   "status": "WARN",
+   "documents_checked_sha256": {
+    "RESEARCH_DECISION.md": "e05db47a80ce6eecd74967e9db81c941a3fb54ff774fc8eab2c2d5a6d75eded2",
+    "ADVISOR_BRIEF.md": "ed51fc9da0bfe2092097d849a75eeec14291c6c6ef13585fa1f42652f9b7ce8d",
+    "PAPER_ADDENDUM.md": "6a0f5315412e511df7878ebb077b2f6c2833dc90260df0dcfb49d000c769028d",
+    "QUICKSTART.md": "e1122a1f6537248de5881bfd4a5281cfe3f0264b4243db3f11aa5f8b1cd1b106",
+    "COST_AND_CLOSEOUT.md": "81fa4f727d40899bdc75a6430d1813b3fddbcbf5236bab75b831e02ecd0c6d2d",
+    "MODEL_MANIFEST.json": "61ba99b169927b2e690824e0f49896888653f2c968c1a995e4a32b212a659c2d",
+    "VALIDATION.md": "840827f5e0a80a99d0ae1cbf70fee48d62428b04ff7ef27344aa86cb5135ee3f"
+   },
+   "documents_equal_HEAD": {
+    "RESEARCH_DECISION.md": false,
+    "ADVISOR_BRIEF.md": false,
+    "PAPER_ADDENDUM.md": false,
+    "QUICKSTART.md": true,
+    "COST_AND_CLOSEOUT.md": false,
+    "MODEL_MANIFEST.json": true,
+    "VALIDATION.md": true
+   },
+   "claims_checked": 58,
+   "mismatches": [
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 21,
+     "needle": "FIXTURE_LOCK | `9ac4cb7` (pushed 2026-10-07T01:38:38Z)",
+     "evidence": "FIXTURE_LOCK.json written_at 01:38:38Z; first on origin 2026-10-07T01:38:50Z (remote reflog)",
+     "severity": "minor"
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 105,
+     "needle": "0.0006 nats of it",
+     "evidence": "decoded old JOINT l0.025 minus K-JOINT-PAIR T = 0.000616 (> 0.0006; '0.0006' is a rounding of 0.00062: write 'about 0.0006' or 'within 0.0007')",
+     "severity": "minor"
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 150,
+     "needle": "about 1.5 CPU-h through the shared semaphore",
+     "evidence": "SEMA_LOG releases total 1.606 CPU-h (all roles, incl. E) -> 'about 1.6' (COST_AND_CLOSEOUT says 1.6)",
+     "severity": "minor"
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 77,
+     "needle": "About 1.5 CPU-h of the 20 allowed",
+     "evidence": "measured 1.606 CPU-h -> 'about 1.6'",
+     "severity": "minor"
+    }
+   ],
+   "sema_totals": {
+    "total_cpu_h": 1.6065,
+    "by_role_cpu_h": {
+     "A": 0.1048,
+     "B": 0.044,
+     "E": 0.11,
+     "F": 0.006,
+     "R": 0.0416,
+     "D": 0.7086,
+     "C": 0.5914
+    },
+    "max_child_rss_gib": 1.3027
+   },
+   "claims": [
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 18,
+     "needle": "SOURCE_ADMISSION_LOCK | `4a91947`",
+     "ok": true,
+     "evidence": "first commit of SOURCE_ADMISSION_LOCK.json",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 19,
+     "needle": "Predictions | `f0b78f6`",
+     "ok": true,
+     "evidence": "first commit of PREDICTIONS.json; LP1-U1 present",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 20,
+     "needle": "first registered | `dd1cf23`",
+     "ok": true,
+     "evidence": "first commit of FIXTURE_LAWS.json",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 21,
+     "needle": "FIXTURE_LOCK | `9ac4cb7` (pushed 2026-10-07T01:38:38Z)",
+     "ok": false,
+     "evidence": "FIXTURE_LOCK.json written_at 01:38:38Z; first on origin 2026-10-07T01:38:50Z (remote reflog)",
+     "severity": "minor"
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 28,
+     "needle": "189 cbp units were admitted",
+     "ok": true,
+     "evidence": "admitted_custody: 189 units, 6/6 teachers, 81/81 codes (PHASE_1A)",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 38,
+     "needle": "in one process (~27 CPU-s)",
+     "ok": true,
+     "evidence": "COMPUTE_LEDGER fixture cpu_s [26.6, 26.0]",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 60,
+     "needle": "| F2 miscalibrated | all pass | CLASS\\|D1 | 0 |",
+     "ok": true,
+     "evidence": "gate table vs FIXTURE_GATE.json and the own replay",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 73,
+     "needle": "Its smallest slack is 0.0015 nats",
+     "ok": true,
+     "evidence": "own CLASS|D1 log-loss slacks {\"F1_CALIBRATED_NULL\": {\"1\": -0.021836, \"2\": -0.048227}, \"F2_MISCALIBRATED\": {\"1\": 0.088591, \"2\": 0.001512}, \"F3_COMPLEMENTARY_XOR\": {\"1\": 0.002733, \"2\": 0.002317}, \"F4_REDUNDANT\": {\"1\": 0.002733, \"2\": 0.002317}}",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 79,
+     "needle": "The original forecast LP1 (gate",
+     "ok": true,
+     "evidence": "PREDICTIONS.json LP1 0.85, LP1-U1 0.01",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 87,
+     "needle": "0.739 with its slate",
+     "ok": true,
+     "evidence": "cbp INNER_SELECTION_TABLE.csv U|CLASS|i1o1 auc_pair seeds 0.734453 / 0.734688 / 0.747534, mean 0.738892",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 94,
+     "needle": "stationarity \u2264 3.1e-16, simplex residual \u2264 2.2e-16",
+     "ok": true,
+     "evidence": "DECODER_CERTIFICATES aggregate 3.08e-16 / 2.22e-16",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 94,
+     "needle": "within 1.6e-15",
+     "ok": true,
+     "evidence": "max C5 max_abs_diff over fixtures 1.6e-15 (B-reported; mapper start records are not persisted, so the incremental part is not independently reproducible)",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 95,
+     "needle": "D1 = D0 within 8.1e-13 per token",
+     "ok": true,
+     "evidence": "C2 max_q_diff 8.13e-13; own oracle 8.13e-13",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 95,
+     "needle": "(\\|\u0394L\\| \u2264 4e-16)",
+     "ok": true,
+     "evidence": "own/file max |dL| on F1 3.33e-16",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 96,
+     "needle": "D1 lowers log loss by 0.076\u20130.083 nats",
+     "ok": true,
+     "evidence": "F2 dL r1 [0.0758, 0.0829], r2 [0.0332, 0.0375], dB [0.0239, 0.0488]; feasible D1 27/27, D0 0/27",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 97,
+     "needle": "Changes \u2264 7e-5 nats",
+     "ok": true,
+     "evidence": "max |dL|, |dB| on F3/F4 6.54e-05",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 98,
+     "needle": "Every constrained arm and C-TASK on F2\u2013F4 is EXHAUSTIVE_OPTIMAL",
+     "ok": true,
+     "evidence": "own C6: F3 HEURISTIC 17, F4 21 (kinds ['d0', 'weighted']); max gap 0.000697",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 99,
+     "needle": "best constrained I12 = 0 against best weighted 0.0216",
+     "ok": true,
+     "evidence": "descriptive flags reproduced (PHASE_1B)",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 104,
+     "needle": "0.042 nats below CLASS|D1, from K-JOINT-PAIR",
+     "ok": true,
+     "evidence": "post-hoc F2 gap 0.042288",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 105,
+     "needle": "0.0006 nats of it",
+     "ok": false,
+     "evidence": "decoded old JOINT l0.025 minus K-JOINT-PAIR T = 0.000616 (> 0.0006; '0.0006' is a rounding of 0.00062: write 'about 0.0006' or 'within 0.0007')",
+     "severity": "minor"
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 106,
+     "needle": "0.0038 nats below CLASS|D1",
+     "ok": true,
+     "evidence": "post-hoc F3 gap 0.0038415; d1_fixed / weighted / constrained tie",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 107,
+     "needle": "**F4:** no difference",
+     "ok": true,
+     "evidence": "post-hoc F4 gap 0",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 133,
+     "needle": "seed 1, 39,170 rows",
+     "ok": true,
+     "evidence": "DEPLOYMENT_RECEIPT",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 134,
+     "needle": "Six refusal cases",
+     "ok": true,
+     "evidence": "6 refusals in the receipt",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 145,
+     "needle": "all 172 pass",
+     "ok": true,
+     "evidence": "sum of the listed suites = 172 (consistent with VALIDATION.md; the suite was not re-run by E)",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 150,
+     "needle": "about 1.5 CPU-h through the shared semaphore",
+     "ok": false,
+     "evidence": "SEMA_LOG releases total 1.606 CPU-h (all roles, incl. E) -> 'about 1.6' (COST_AND_CLOSEOUT says 1.6)",
+     "severity": "minor"
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 151,
+     "needle": "the largest child at 1.3 GiB",
+     "ok": true,
+     "evidence": "max child_maxrss 1.303 GiB",
+     "severity": null
+    },
+    {
+     "file": "RESEARCH_DECISION.md",
+     "line": 154,
+     "needle": "Same-device copy (731 files, store as of 01:49Z)",
+     "ok": true,
+     "evidence": "BACKUP_VERIFICATION files 731, written 01:49:13Z",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 28,
+     "needle": "Our original forecast (85%",
+     "ok": true,
+     "evidence": "LP1 0.85; LP1-U1 0.01",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 44,
+     "needle": "lowers log loss by 0.033\u20130.083 nats",
+     "ok": true,
+     "evidence": "F2 combined range",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 49,
+     "needle": "keep 0.042 nats more task",
+     "ok": true,
+     "evidence": "F2 0.0423, F3 0.0038",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 52,
+     "needle": "0.0006 nats.",
+     "ok": true,
+     "evidence": "0.000616 ('about 0.0006')",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 59,
+     "needle": "decision-only pair AUC of 0.739",
+     "ok": true,
+     "evidence": "cbp mean 0.738892",
+     "severity": null
+    },
+    {
+     "file": "ADVISOR_BRIEF.md",
+     "line": 77,
+     "needle": "About 1.5 CPU-h of the 20 allowed",
+     "ok": false,
+     "evidence": "measured 1.606 CPU-h -> 'about 1.6'",
+     "severity": "minor"
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 22,
+     "needle": "max \\|\u0394q\\| 8.1e-13 per token",
+     "ok": true,
+     "evidence": "C2 8.13e-13",
+     "severity": null
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 23,
+     "needle": "log loss \u22120.033 to \u22120.083 nats, Brier \u22120.024 to \u22120.049",
+     "ok": true,
+     "evidence": "own ablation ranges and feasibility counts",
+     "severity": null
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 24,
+     "needle": "228 releases, all certified; stationarity \u2264 3.1e-16",
+     "ok": true,
+     "evidence": "certificates aggregate + own stats_hash / certificate replay",
+     "severity": null
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 26,
+     "needle": "LP1 (gate met) 0.85",
+     "ok": true,
+     "evidence": "PREDICTIONS.json",
+     "severity": null
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 30,
+     "needle": "keep 0.042 (F2) and 0.004 (F3)",
+     "ok": true,
+     "evidence": "post-hoc file and own recomputation",
+     "severity": null
+    },
+    {
+     "file": "PAPER_ADDENDUM.md",
+     "line": 53,
+     "needle": "ever ran (ACTIVITY_LOG.jsonl, SEMA_LOG.jsonl)",
+     "ok": true,
+     "evidence": "COMPUTE_LEDGER stages ['admit', 'fixture']; ACTIVITY_LOG starts only admit / fixture (chronology node)",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 32,
+     "needle": "about 27 CPU-s, 0.4 GiB",
+     "ok": true,
+     "evidence": "attempt 2 cpu_s 26.0; work_fixture.log max RSS 406519808 bytes (0.38 GiB)",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 64,
+     "needle": "Q on seed 1, 39,170 rows: exit 0, BOUND",
+     "ok": true,
+     "evidence": "DEPLOYMENT_RECEIPT",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 95,
+     "needle": "a versioned same-device copy of 731 files",
+     "ok": true,
+     "evidence": "BACKUP_VERIFICATION",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 81,
+     "needle": "All 172 pass",
+     "ok": true,
+     "evidence": "consistent with VALIDATION.md (not re-run by E)",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 8,
+     "needle": "about 1.6 CPU-h measured",
+     "ok": true,
+     "evidence": "measured 1.606",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 10,
+     "needle": "largest single child about 1.3 GiB",
+     "ok": true,
+     "evidence": "1.303 GiB",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 11,
+     "needle": "about 120 GiB free throughout",
+     "ok": true,
+     "evidence": "work_fixture.log",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 14,
+     "needle": "about 0.61 CPU-h for fitting, 3.7 CPU-h",
+     "ok": true,
+     "evidence": "TIMING 0.6129; AUDIT inner 2.624 x cbp calibration 1.4 = 3.674; assessment 1.145",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 21,
+     "needle": "| A (lead) |",
+     "ok": true,
+     "evidence": "A 0.105",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 22,
+     "needle": "| B | decoder and fixture tests | 0.04 |",
+     "ok": true,
+     "evidence": "B 0.044",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 23,
+     "needle": "| C | mapper tests",
+     "ok": true,
+     "evidence": "C 0.591",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 24,
+     "needle": "| D | audit tests",
+     "ok": true,
+     "evidence": "D 0.709",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 26,
+     "needle": "| F | custody",
+     "ok": true,
+     "evidence": "F 0.0060",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 27,
+     "needle": "| R | review",
+     "ok": true,
+     "evidence": "R 0.042",
+     "severity": null
+    },
+    {
+     "file": "COST_AND_CLOSEOUT.md",
+     "line": 7,
+     "needle": "closed at about 02:30Z (about 2.8 h)",
+     "ok": true,
+     "evidence": "arithmetic 23:42:46Z -> 02:30Z = 2.79 h (a planned close time)",
+     "severity": null
+    },
+    {
+     "file": "MODEL_MANIFEST.json",
+     "line": null,
+     "needle": "deployable_adult hashes / adult_models_fitted",
+     "ok": true,
+     "evidence": "['s0 ok', 's1 ok', 's2 ok']; no new__/dec__/aud__ units: True",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 18,
+     "needle": "It returns `\"ok\": true`",
+     "ok": true,
+     "evidence": "external lcr.lock verify --stage fixture: {'rc': 0, 'ok_true': True, 'refused_needs_science': False}",
+     "severity": null
+    },
+    {
+     "file": "QUICKSTART.md",
+     "line": 114,
+     "needle": "needs SCIENCE_LOCK or later",
+     "ok": true,
+     "evidence": "external lcr.lock verify --stage d1: {'rc': 0, 'ok_true': False, 'refused_needs_science': True}",
+     "severity": null
+    }
+   ]
   }
  },
  "verifier_corrections": [
@@ -3563,32 +4561,51 @@
    "evaluation_lock": "NOT_APPLICABLE",
    "outer_units": "NOT_APPLICABLE",
    "endpoints": "NOT_APPLICABLE",
-   "published_tables": "PENDING",
+   "published_tables": "PASS",
    "chronology_assessment": "NOT_APPLICABLE",
    "attacker_refits": "NOT_APPLICABLE",
-   "deployment_parity": "PENDING",
-   "restore_parity": "PENDING",
-   "budget": "PENDING"
+   "deployment_parity": "PASS",
+   "restore_parity": "WARN",
+   "budget": "PASS",
+   "decoder_certificates": "PASS",
+   "figures": "PASS",
+   "documents": "WARN"
   },
   "top_level_counts": {
-   "PASS": 10,
+   "PASS": 15,
    "INFO": 1,
    "NOT_APPLICABLE": 14,
-   "PENDING": 4
+   "WARN": 2
   },
   "status_counts_all_nodes": {
-   "PASS": 53,
+   "PASS": 64,
    "INFO": 2,
    "NOT_APPLICABLE": 14,
-   "PENDING": 4
+   "WARN": 2
   },
-  "flagged_fail_warn": [],
+  "flagged_fail_warn": [
+   {
+    "path": "restore_parity",
+    "status": "WARN",
+    "cause": "live run/attempts/ holds directories created after the 01:49Z copy that neither the copy nor RESTORE_INDEX.json lists: review_scratch; the closeout refresh must copy them and update the index (they are review scratch tests, not stage attempts)"
+   },
+   {
+    "path": "documents",
+    "status": "WARN",
+    "cause": [
+     "RESEARCH_DECISION.md:21 FIXTURE_LOCK.json written_at 01:38:38Z; first on origin 2026-10-07T01:38:50Z (remote reflog)",
+     "RESEARCH_DECISION.md:105 decoded old JOINT l0.025 minus K-JOINT-PAIR T = 0.000616 (> 0.0006; '0.0006' is a rounding of 0.00062: write 'about 0.0006' or 'within 0.0007')",
+     "RESEARCH_DECISION.md:150 SEMA_LOG releases total 1.606 CPU-h (all roles, incl. E) -> 'about 1.6' (COST_AND_CLOSEOUT says 1.6)",
+     "ADVISOR_BRIEF.md:77 measured 1.606 CPU-h -> 'about 1.6'"
+    ]
+   }
+  ],
   "independence": "PASS",
-  "overall": "PASS"
+  "overall": "WARN"
  },
  "compute": {
-  "wall_s": 37.62,
-  "cpu_s_process": 30.41,
+  "wall_s": 42.5,
+  "cpu_s_process": 29.94,
   "threads": {
    "OMP_NUM_THREADS": "1",
    "OPENBLAS_NUM_THREADS": "1",
@@ -3601,18 +4618,13 @@
    "open_acquisitions": [
     {
      "slot": 0,
-     "label": "E:phase1B"
+     "label": "E:phase3"
     }
    ],
    "unlogged_releases_closed_by_slot_reacquire": []
   }
  },
- "pending": [
-  "budget",
-  "deployment_parity",
-  "published_tables",
-  "restore_parity"
- ],
+ "pending": [],
  "verifier_compute_ledger": {
   "semaphore_holds_completed": [
    {
@@ -3719,15 +4731,43 @@
     "wall_s": 40.1,
     "cpu_s": 38.2,
     "rc": 0
+   },
+   {
+    "label": "E:phase1B",
+    "released_at": "2026-10-07T01:58:47Z",
+    "wall_s": 39.6,
+    "cpu_s": 37.9,
+    "rc": 0
+   },
+   {
+    "label": "E:phase3-dev",
+    "released_at": "2026-10-07T02:15:33Z",
+    "wall_s": 46.7,
+    "cpu_s": 42.3,
+    "rc": 0
+   },
+   {
+    "label": "E:phase3",
+    "released_at": "2026-10-07T02:17:47Z",
+    "wall_s": 45.6,
+    "cpu_s": 42.3,
+    "rc": 0
+   },
+   {
+    "label": "E:phase3",
+    "released_at": "2026-10-07T02:19:06Z",
+    "wall_s": 45.9,
+    "cpu_s": 42.8,
+    "rc": 0
    }
   ],
-  "semaphore_cpu_s_total": 230.6,
-  "semaphore_wall_s_total": 245.2,
+  "semaphore_cpu_s_total": 395.9,
+  "semaphore_wall_s_total": 423.0,
   "this_run": {
-   "phase": 1,
-   "start": "2026-10-07T01:58:09Z",
-   "wall_s": 37.62,
-   "cpu_s": 30.41
+   "phase": 3,
+   "start": "2026-10-07T02:19:44Z",
+   "wall_s": 42.5,
+   "cpu_s": 29.94
   },
   "light_runs_outside_the_semaphore": [],
   "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"

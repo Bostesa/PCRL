@@ -817,12 +817,14 @@ def refresh(copy_root=None, src=None, cache=None, out_pkg=None, dry_run=False, p
             plan["appended"].append(rel)
         else:
             plan["refused_non_append_change"].append(rel)
-    plan["kept_only_in_copy"] = sorted(r for r in old if r not in live)
+    plan["kept_only_in_copy"] = sorted(r for r in old if r not in live and r.startswith(f"{src.name}/"))
+    deps_kept = sorted(r for r in old if not r.startswith(f"{src.name}/"))       # bundled dependencies, never live
     stale = sorted(r for r in plan["appended"] + plan["refused_non_append_change"] if any(r.startswith(x) for x in protect))
     place = "<PRIVATE_CACHE>" if Path(root).parent == cache else "<DRIVE_ROOT>"
     summary = {"copy": f"{place}/{root.name}", "new": len(plan["new"]), "appended": len(plan["appended"]),
                "unchanged": plan["unchanged"], "refused_non_append_change": plan["refused_non_append_change"],
-               "kept_only_in_copy": len(plan["kept_only_in_copy"]), "restore_evidence_stale_for": stale}
+               "kept_only_in_copy": len(plan["kept_only_in_copy"]), "kept_only_in_copy_files": plan["kept_only_in_copy"],
+               "bundled_dependencies_kept": len(deps_kept), "restore_evidence_stale_for": stale}
     if dry_run:
         print(scrub(json.dumps({"dry_run": True, **summary, "appended_files": plan["appended"]}, indent=1)))
         return summary

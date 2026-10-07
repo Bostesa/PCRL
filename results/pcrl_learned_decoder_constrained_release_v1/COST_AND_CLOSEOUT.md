@@ -33,11 +33,13 @@ The final figures are recomputed at closeout from SEMA_LOG.jsonl (HANDOFF.json `
 - **Worktree.** It is left clean. Private outputs live only under `<PRIVATE_CACHE>/lcr_v1/`. Review-only scratch tests
   were moved out of the tree into the private store; nothing was deleted.
 - **Custody.**
-  - Versioned same-device copy `<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/`, verified uncached and restored from
-    (BACKUP_VERIFICATION.json, RESTORE_INDEX.json), then refreshed at closeout.
+  - Versioned same-device copy `<PRIVATE_CACHE>/lcr_v1_local_copy_20261007/` of the store as of 01:49Z, verified
+    uncached and restored from (BACKUP_VERIFICATION.json, RESTORE_INDEX.json). Refreshed at closeout: see
+    BACKUP_VERIFICATION.json for the refresh record.
   - Status: LOCAL_SAME_DEVICE_COPY_VERIFIED_OFF_DEVICE_BACKUP_PENDING. The off-device drive was absent. Pending
     command: QUICKSTART.md §6.
-- **cbp custody: PENDING** (provenance/cbp_custody/STATUS.json).
+- **cbp custody: PENDING** (provenance/cbp_custody/STATUS.json). It carries the pending qpc, dpc, osf and smf
+  off-device custody.
   - It opens osf's assessment rows, which are the same rows as this study's never-opened assessment, so it is the row
     owner's decision. The exact command is recorded there.
 - **Other worktrees, branches and main.** Untouched. No merge, no history rewrite, no manuscript edit, no outside
@@ -48,4 +50,4 @@ The final figures are recomputed at closeout from SEMA_LOG.jsonl (HANDOFF.json `
   - The material label-use change (OSF_DEFENSE_FIT task labels and SEX for supervised fitting) was authorized but never
     exercised: no Adult fit ran.
   - AUDIT_FIT and INNER_SELECTION were never read by an lcr attacker.
-  - The assessment rows were never unsealed.
+  - lcr never unsealed the assessment rows (they were opened historically by qpc and cbp).
