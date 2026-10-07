@@ -4,8 +4,8 @@
 
 | Resource | Cap | Used | Source |
 |---|---|---|---|
-| Elapsed | 10 h from 2026-10-06T23:42:46Z (ceiling 2026-10-07T09:42:46Z) | closed at about 02:30Z (about 2.8 h) | START.txt, git log |
-| CPU | 20 CPU-h (4 reserved for closeout) | about 1.6 CPU-h measured through the semaphore, all roles (§2) | SEMA_LOG.jsonl |
+| Elapsed | 10 h from 2026-10-06T23:42:46Z (ceiling 2026-10-07T09:42:46Z) | evidence closed 2026-10-07T02:41:41Z (2.98 h); the handoff commit follows (HANDOFF.json `closed_utc`) | START.txt, git log |
+| CPU | 20 CPU-h (4 reserved for closeout) | 1.687 CPU-h measured through the semaphore, all roles, after the last numerical run (§2) | SEMA_LOG.jsonl |
 | Heavy processes | at most 2 at once, one thread each | at most 2 slots used; every numerical job went through `lcr.sema` | SEMA_LOG.jsonl |
 | Memory | 8 GiB aggregate | largest single child about 1.3 GiB | SEMA_LOG.jsonl |
 | Disk | keep ≥ 5 GiB free | about 120 GiB free throughout | work logs |
@@ -18,15 +18,16 @@ The registered Adult plan was projected at about 0.61 CPU-h for fitting, 3.7 CPU
 
 | Role | What | CPU-h |
 |---|---|---|
-| A (lead) | admission, both fixture attempts, report replays, deployment checks, test runs | about 0.10 |
+| A (lead) | admission, both fixture attempts, report replays, deployment checks, test runs | 0.14 |
 | B | decoder and fixture tests | 0.04 |
 | C | mapper tests and synthetic timing | 0.59 |
 | D | audit tests and synthetic timing | 0.71 |
-| E | verifier self-tests and fixture oracle | see VALIDATION.md |
-| F | custody status, backup and restore | < 0.01 |
+| E | verifier self-tests, fixture oracle, phase 1A/1B/3 replays | 0.16 |
+| F | custody status, backup, restore and refresh | 0.01 |
 | R | review-workflow test runs | 0.04 |
 
-The final figures are recomputed at closeout from SEMA_LOG.jsonl (HANDOFF.json `compute`).
+The figures are the final SEMA_LOG.jsonl releases (133 holds; the last at 02:39:23Z). No numerical process ran after that
+(HANDOFF.json `compute`).
 
 ## Closeout state
 

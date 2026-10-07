@@ -109,7 +109,8 @@ OMP_NUM_THREADS=1 <python> -P lcr/sema.py --label E:phase3 -- env OMP_NUM_THREAD
     --phase 3 --label PHASE_3
 ```
 
-**Tested** by role E at 02:19:44Z (42.5 s wall). Result: PHASE_3, WARN with 0 FAIL, written to
+**Tested** by role E: final run at 02:38:42Z (40.2 s wall); an earlier run was at 02:19:44Z. Result: PHASE_3, WARN with
+0 FAIL, written to
 INDEPENDENT_VERIFICATION.json (VALIDATION.md §6). Add `--out <file>` to write nothing to the package.
 
 ## Run / resume and inference

@@ -102,7 +102,7 @@ winner.
    The laws were not changed in response.
 2. **Pre-lock rule clarifications.** The rule changes listed in §3 (47beb1f) were made before the lock.
    - No study algorithm had run on the laws.
-   - Role E's exhaustive oracle HAD enumerated them (01:11–01:12Z).
+   - Role E's exhaustive oracle HAD enumerated them (01:10–01:12Z).
    - The clarifications changed correctness checks and descriptive definitions only: not the laws, the trigger, T* or
      the candidate lists.
    - FIXTURE_LAWS.json's bank note ("written before any algorithm runs") was accurate when written at dd1cf23. The
@@ -135,7 +135,8 @@ analogue is DECODER_ONLY_ABLATION.csv.
 
 ## 6. Phase-3 verification and claims review
 
-**Role E, PHASE_3 (final): WARN, 0 FAIL.** 15 PASS / 2 WARN / 1 INFO top-level; 14 NOT_APPLICABLE (Adult); 64 PASS
+**Role E, PHASE_3 (final run 02:38:42Z at bb9a093; an earlier run at 02:19:44Z was superseded): WARN, 0 FAIL.**
+15 PASS / 2 WARN / 1 INFO top-level; 14 NOT_APPLICABLE (Adult); 64 PASS
 nodes. Independence passes: the study CLI ran only as external subprocesses (one lcr.deploy refusal, two lcr.lock
 verify calls).
 - **Report tables, reproduced from E's own oracle.**
@@ -152,17 +153,23 @@ verify calls).
   - The CLI output is bitwise equal to the admitted Q release and to E's own deployment.
   - The input is byte-identical to cbp's.
   - The 84-column refusal exits with code 2 and writes nothing.
-- **Custody.** `shasum -c` gives 731/731 OK. E restored from the copy alone, and the teacher and Q re-encode are
-  bitwise. STATUS.json is PENDING with osf_assessment_opened false.
-- **Budget.** At most 2 concurrent holds; 1.61 CPU-h measured across roles at E's run.
-- **WARN 1 (custody), resolved afterwards.** The review scratch tests, moved into the private store after the 01:49Z
-  copy, were not in it. Role F's refresh at 02:28:12Z added them, now at `<PRIVATE_CACHE>/lcr_v1/run/review_scratch/`,
-  together with the deploy test output and the grown ledger. The copy holds 754 files, 754/754 OK. The final
-  verification run re-checks this (below).
-- **WARN 2 (documents).** E checked 58 claims and found four minor mismatches, all corrected:
-  - the lock push time (01:38:50Z, not 01:38:38Z);
-  - "about 0.0006" (0.000616);
-  - the CPU total (about 1.6, not 1.5).
+- **Custody.** On the refreshed copy, `shasum -c` gives 754/754 OK (327,597,534 bytes). The refresh accounting adds up
+  (23 new + 1 appended + 727 unchanged + 2 refused semaphore lock files + 1 dependency). E restored from the copy alone,
+  and the teacher and Q re-encode are bitwise. STATUS.json is PENDING with osf_assessment_opened false.
+- **Budget.** At most 2 concurrent holds; 1.676 CPU-h measured across roles at E's final run (1.687 after its own release).
+- **WARN 1 (custody receipt field), corrected afterwards.**
+  - In the first PHASE_3 run, the review scratch tests were missing from the copy. Role F's refresh added them, and the
+    final run confirms they are present.
+  - In the final run, BACKUP_VERIFICATION.json's top-level `store_files` / `dependency_files` still read 730 / 1 from
+    the 01:49Z copy. The lead corrected them to 753 / 1, matching the refreshed SHA256SUMS; `files` already read 754.
+- **WARN 2 (documents).**
+  - The first run checked 58 claims and found four minor mismatches: the lock push time, "about 0.0006", the CPU total
+    and the solver wording. All four were corrected.
+  - The final run checked 82 claims; 75 pass. The rest were timestamp or total updates, all applied:
+    - the oracle start times (first 01:10:30Z, recorded 01:11:52Z);
+    - role A's CPU (0.14);
+    - the study CPU total (about 1.7);
+    - the citation of this final run.
 - **Note.** The C5 incremental-terms maximum is lcr.fixtures' own figure. The mapper start records are not persisted,
   so E could not recompute it independently.
 

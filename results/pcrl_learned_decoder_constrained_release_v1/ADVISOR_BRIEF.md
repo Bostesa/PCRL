@@ -74,7 +74,7 @@ MECHANISM_GATE_NOT_MET. It is not an Adult result in either direction.
 
 ## Cost and custody
 
-- About 1.6 CPU-h of the 20 allowed, $0 cloud.
+- About 1.7 CPU-h of the 20 allowed, $0 cloud.
 - Verified same-device copy with a restore; off-device backup pending (no drive). The predecessor custody (cbp, and
   through it qpc, dpc, osf and smf) also stays PENDING, because it would open the shared assessment rows.
 - This study never opened the assessment rows (earlier studies did; EXPOSURE_LEDGER.md).

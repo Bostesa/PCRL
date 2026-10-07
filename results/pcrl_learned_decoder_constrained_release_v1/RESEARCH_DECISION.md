@@ -33,7 +33,8 @@
 3. **Pre-lock review.** A text-versus-code review of the gate rule found disagreements in C1, C2, C3, C5, C6, C7 and the
    descriptive flags.
    - All were resolved before the lock with the laws unchanged (PROTOCOL.md §9).
-   - The clarifications (47beb1f) were made AFTER role E's oracle had enumerated the registered laws (01:11:54Z).
+   - The clarifications (47beb1f) were made AFTER role E's oracle had enumerated the registered laws (first 01:10:30Z; recorded run
+     01:11:52Z).
    - They changed correctness checks and descriptive definitions only; the trigger, T*, the candidate lists and the
      laws were unchanged.
 4. **Structural problem found before the stage.** The same review found that the registered laws could not trigger the
@@ -152,7 +153,7 @@ labelled as cbp's.
   FIXTURE_ORACLE_REPORT.md).
 - **Work and cost:**
   - Fixture stage: about 27 CPU-s per attempt.
-  - Whole study: about 1.6 CPU-h through the shared semaphore, against the 20 CPU-h cap. At most 2 heavy processes, with
+  - Whole study: about 1.7 CPU-h (1.687 measured) through the shared semaphore, against the 20 CPU-h cap. At most 2 heavy processes, with
     the largest child at 1.3 GiB.
   - $0 cloud.
 - **Custody:**

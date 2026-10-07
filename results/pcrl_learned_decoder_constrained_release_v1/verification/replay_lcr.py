@@ -9602,9 +9602,33 @@ def check_backup_lcr(D: Data):
     out["files_listed"], out["bytes_listed"] = len(listed), nbytes
     out["store_files"] = sum(1 for p_ in listed if p_.startswith("lcr_v1/"))
     out["dependency_files"] = sum(1 for p_ in listed if p_.startswith("dependencies/"))
-    out["counts_match_receipt"] = (len(listed) == B_.get("files") and nbytes == B_.get("bytes") and
-                                   out["store_files"] == B_.get("store_files") and
-                                   out["dependency_files"] == B_.get("dependency_files"))
+    last = (B_.get("refreshes") or [{}])[-1]
+    out["latest_refresh"] = {k_: last.get(k_) for k_ in ("at", "entries", "new", "appended", "unchanged",
+                                                         "refused_non_append_change", "uncached_readback_match",
+                                                         "SHA256SUMS_sha256", "bytes", "pass", "restore_evidence_stale_for")}
+    out["counts_match_receipt"] = (len(listed) == B_.get("files") == last.get("entries", B_.get("files")) and
+                                   nbytes == B_.get("bytes") == last.get("bytes", B_.get("bytes")) and
+                                   (not last or (last.get("pass") is True and last.get("uncached_readback_match") ==
+                                                 len(listed) and last.get("SHA256SUMS_sha256") == sha_file(sums))))
+    out["refresh_accounting_adds_up"] = (not last) or (
+        int(last.get("new", 0)) + int(last.get("appended", 0)) + int(last.get("unchanged", 0)) +
+        len(last.get("refused_non_append_change") or []) + int(last.get("bundled_dependencies_kept", 0)) == len(listed))
+    out["receipt_top_level_store_dependency_fields_consistent"] = (
+        out["store_files"] == B_.get("store_files") and out["dependency_files"] == B_.get("dependency_files"))
+    out["copy_has_review_scratch"] = any(p_.startswith("lcr_v1/run/review_scratch/") for p_ in listed)
+    out["copy_has_deploy_test"] = any(p_.startswith("lcr_v1/run/deploy_test/") for p_ in listed)
+    dq = LCR_COPY / "lcr_v1" / "run" / "deploy_test" / "Q_s1_release.npz"
+    out["copy_deploy_output_equals_live"] = dq.exists() and sha_file(dq) == sha_file(RUN / "deploy_test" / "Q_s1_release.npz")
+    rs_live = sorted(str(p_.relative_to(RUN)) for p_ in (RUN / "review_scratch").rglob("*") if p_.is_file()) \
+        if (RUN / "review_scratch").exists() else []
+    out["copy_review_scratch_equals_live"] = bool(rs_live) and all(
+        (LCR_COPY / "lcr_v1" / "run" / r_).exists() and sha_file(LCR_COPY / "lcr_v1" / "run" / r_) == sha_file(RUN / r_)
+        for r_ in rs_live)
+    ri_last = RI.get("last_refresh") or {}
+    out["restore_index_last_refresh"] = {k_: ri_last.get(k_) for k_ in ("at", "entries", "SHA256SUMS_sha256")} \
+        if isinstance(ri_last, dict) else ri_last
+    out["restore_index_refresh_consistent"] = (not isinstance(ri_last, dict)) or not ri_last or (
+        all(ri_last.get(k_) in (None, last.get(k_)) for k_ in ("at", "entries", "SHA256SUMS_sha256")))
     out["dependency_is_pinned_input"] = sha_file(LCR_COPY / "dependencies" / "jcv_v1" / "inputs" / "adult_jcv.npz") == SRC_SHA
     inv = {}
     for p_ in UNITS.iterdir():
@@ -9644,11 +9668,18 @@ def check_backup_lcr(D: Data):
     ok = (out["SHA256SUMS_sha256_equals_receipt"] and r.returncode == 0 and out["shasum_c"]["failed"] == 0 and
           ok_n == B_.get("files") and out["counts_match_receipt"] and out["dependency_is_pinned_input"] and
           out["inventory_matches_restore_index"] and not out["attempts_missing_from_live"] and
-          out["indexed_attempts_in_copy"] and out["status_pending_and_sealed"] and
+          out["indexed_attempts_in_copy"] and out["status_pending_and_sealed"] and out["refresh_accounting_adds_up"] and
+          out["copy_has_review_scratch"] and out["copy_has_deploy_test"] and out["copy_deploy_output_equals_live"] and
+          out["copy_review_scratch_equals_live"] and out["restore_index_refresh_consistent"] and
           out["own_restore_teacher_bitwise"] and out["own_restore_Q_bitwise"] and out["own_restore_fixture_units_hash"])
     if not ok:
         f.append("backup / restore")
     st = "PASS" if ok else "FAIL"
+    if ok and not out["receipt_top_level_store_dependency_fields_consistent"]:
+        st = "WARN"
+        out["warning"] = (f"BACKUP_VERIFICATION.json top-level store_files / dependency_files ({B_.get('store_files')} / "
+                          f"{B_.get('dependency_files')}) are those of the 01:49Z copy; the refreshed copy lists "
+                          f"{out['store_files']} / {out['dependency_files']} (files {B_.get('files')} is updated)")
     if ok and out["live_dirs_newer_than_copy_not_indexed"]:
         st = "WARN"
         out["warning"] = ("live run/attempts/ holds directories created after the 01:49Z copy that neither the copy nor "
@@ -9755,19 +9786,82 @@ def check_documents_lcr(own):
     claims = []
 
     def add(doc, needle, ok, evidence, severity="mismatch"):
-        claims.append({"file": doc, "line": _line_of(doc, needle), "needle": needle[:80], "ok": bool(ok),
+        ln = _line_of(doc, needle)
+        if ln is None:                                        # the anchored claim text is gone: never pass silently
+            ok, severity, evidence = False, "text_not_found", f"anchor text not found in {doc}; " + evidence
+        claims.append({"file": doc, "line": ln, "needle": needle[:80], "ok": bool(ok),
                        "evidence": evidence, "severity": None if ok else severity})
     RD, AB, PA, QS, CO = "RESEARCH_DECISION.md", "ADVISOR_BRIEF.md", "PAPER_ADDENDUM.md", "QUICKSTART.md", \
         "COST_AND_CLOSEOUT.md"
-    # ---- RESEARCH_DECISION
+    f1max = max(abs(v) for i in (1, 2) for v in dl[("F1_CALIBRATED_NULL", i)])
+    r1, r2 = dl[("F2_MISCALIBRATED", 1)], dl[("F2_MISCALIBRATED", 2)]
+    rng_ok = (abs(-max(r1) - 0.076) < 5e-4 and abs(-min(r1) - 0.083) < 5e-4 and abs(-max(r2) - 0.033) < 5e-4 and
+              abs(-min(r2) - 0.038) < 5e-4 and abs(-max(db["F2_MISCALIBRATED"]) - 0.024) < 5e-4 and
+              abs(-min(db["F2_MISCALIBRATED"]) - 0.049) < 5e-4)
+    f34 = max(abs(v) for x in ("F3_COMPLEMENTARY_XOR", "F4_REDUNDANT") for v in dl[(x, 1)] + dl[(x, 2)] + db[x])
+    k_ok = all(labs[x].get(c_) == "EXHAUSTIVE_OPTIMAL" for x in ("F2_MISCALIBRATED", "F3_COMPLEMENTARY_XOR", "F4_REDUNDANT")
+               for c_ in [L_CTASK] + [L_k(a) for a in LCR_K])
+    h_ok = (len(heur["F3_COMPLEMENTARY_XOR"]) == 17 and len(heur["F4_REDUNDANT"]) == 21 and
+            all(lcr_arm(c_) in ("d0", "weighted") for x in ("F3_COMPLEMENTARY_XOR", "F4_REDUNDANT") for c_ in heur[x]) and
+            max(c6g["F3_COMPLEMENTARY_XOR"] + c6g["F4_REDUNDANT"]) <= 7.0e-4 and
+            all(labs["F1_CALIBRATED_NULL"].get(L_k(a)) == "HEURISTIC" for a in LCR_K))
+    # ---- shared evidence for the final document pass
+    VA, LR_, EX, MC = "VALIDATION.md", "LABEL_RESULT.json", "EXPOSURE_LEDGER.md", "METHOD_CARD.md"
+    act = jsonl(RUN / "ACTIVITY_LOG.jsonl")
+    admit_end = next(e["at"] for e in act if e.get("event") == "end admit")
+    fix_start = next(e["at"] for e in act if e.get("event") == "start fixture")
+    full = (lambda short: (git("rev-parse", short) or "").strip())
+    pred_push = _push_time(full("f0b78f6"))
+    sema_e = [e for e in jsonl(RUN / "SEMA_LOG.jsonl") if str(e.get("label", "")).startswith("E:") and
+              "oracle" in str(e.get("label")) and e.get("event") == "acquire"]
+    e_first_oracle = sema_e[0]["at"] if sema_e else None
+    e_rec_oracle = next((e["at"] for e in sema_e if e["label"] == "E:phase1A-oracle"), None)
+    clar_time = git("log", "-1", "--format=%cI", "47beb1f")
+    rule0 = json.loads(git_show_bytes("dd1cf2373", f"{REL_RES}/FIXTURE_GATE_RULE.json") or b"{}")
+    rule1 = jload(RES / "FIXTURE_GATE_RULE.json")
+    changed_keys = sorted(k_ for k_ in set(rule0) | set(rule1) if rule0.get(k_) != rule1.get(k_))
+    rc = rule1.get("route_classification") or {}
+    rc0 = rule0.get("route_classification") or {}
+    route_core_same = {k_: rc.get(k_) == rc0.get(k_) for k_ in rc if k_ not in ("descriptive_flags", "descriptive_definitions")}
+    OR_ = jload(RES / "OPTIMIZATION_RECEIPTS.json")["fixtures"]
+    pair_evals = {fid: (OR_[fid].get(L_k("JOINT-PAIR")) or {}).get("work", {}).get("pair_evals") for fid in own}
+    pair_acc = {fid: (OR_[fid].get(L_k("JOINT-PAIR")) or {}).get("work", {}).get("pair_accepted") for fid in own}
+    budr = _read_csv(RES / "BUDGET_FEASIBILITY.csv")
+    f2_kT = {r["config"]: r["T"] for r in budr if r["fixture"] == "F2_MISCALIBRATED" and lcr_arm(r["config"]) == "constrained"}
+    kref = {}
+    for fid in own:
+        ct_ = own[fid]["rows"][L_CTASK]
+        rf_ = own_fixture_references(FIXTURE_TABS[fid]["tab"], {1: ct_["I1"], 2: ct_["I2"]})
+        kref[fid] = {"K-SEQ/JOINT": rf_["K-SEQ/JOINT"]["value"], "K-LOCAL": [rf_["K-LOCAL"][x]["value"] for x in ("1", "2")]}
+    last_ref = (BK.get("refreshes") or [{}])[-1]
+    tests_sum = 3 + 17 + 15 + 6 + 17 + 61 + 8 + 8 + 5 + 33
+    # ---- RESEARCH_DECISION (current text)
     add(RD, "SOURCE_ADMISSION_LOCK | `4a91947`", first(f"{REL_RES}/SOURCE_ADMISSION_LOCK.json") == ["4a91947"],
         "first commit of SOURCE_ADMISSION_LOCK.json")
-    add(RD, "Predictions | `f0b78f6`", first(f"{REL_RES}/PREDICTIONS.json") == ["f0b78f6"] and lpu is not None,
-        "first commit of PREDICTIONS.json; LP1-U1 present")
+    add(RD, "Predictions | `f0b78f6` (pushed before any fixture or Adult fit run, after the source-admission stage)",
+        first(f"{REL_RES}/PREDICTIONS.json") == ["f0b78f6"] and pred_push is not None and
+        parse_iso(admit_end) <= parse_iso(pred_push) <= parse_iso(fix_start) and lpu is not None,
+        f"f0b78f6 first on origin {pred_push}; admission ended {admit_end}; first fixture stage {fix_start}")
     add(RD, "first registered | `dd1cf23`", first(f"{REL_RES}/FIXTURE_LAWS.json") == ["dd1cf23"], "first commit of FIXTURE_LAWS.json")
-    add(RD, "FIXTURE_LOCK | `9ac4cb7` (pushed 2026-10-07T01:38:38Z)", lock_push == "2026-10-07T01:38:38Z",
-        f"FIXTURE_LOCK.json written_at 01:38:38Z; first on origin {lock_push} (remote reflog)", "minor")
-    add(RD, "189 cbp units were admitted", True, "admitted_custody: 189 units, 6/6 teachers, 81/81 codes (PHASE_1A)")
+    add(RD, "written 2026-10-07T01:38:38Z; first on origin 01:38:50Z", jload(RES / "FIXTURE_LOCK.json")["written_at"] ==
+        "2026-10-07T01:38:38Z" and lock_push == "2026-10-07T01:38:50Z", f"written_at / first push {lock_push}")
+    add(RD, "189 cbp units were admitted", True, "admitted_custody: 189 units, 6/6 teachers, 81/81 codes")
+    add(RD, "role E's oracle had enumerated the registered laws (01:11:54Z)", e_first_oracle is not None and
+        abs((parse_iso(e_first_oracle) - parse_iso("2026-10-07T01:11:54Z")).total_seconds()) <= 5,
+        f"E's first enumeration of the registered laws: E:phase1-oracle-dev acquired {e_first_oracle} (released "
+        f"01:11:00Z; output to a scratch file); recorded run E:phase1A-oracle acquired {e_rec_oracle} (01:11:52Z-01:12:23Z); "
+        f"47beb1f committed {clar_time}: the AFTER statement holds, the time should read 01:10:30Z (first) / "
+        "01:11:52Z (recorded)", "minor")
+    add(RD, "the trigger, T*, the candidate lists and the", set(changed_keys) <= {"mandatory_correctness_checks",
+                                                                                 "own_problem_objectives",
+                                                                                 "route_classification"} and
+        all(route_core_same.values()) and rule0.get("trigger_verbatim") == rule1.get("trigger_verbatim") and
+        rule0.get("T_star") == rule1.get("T_star") and rule0.get("qualifies") == rule1.get("qualifies") and
+        rule0.get("task_only_D1_candidates") == rule1.get("task_only_D1_candidates") and
+        rule0.get("privacy_trained_D1_candidates") == rule1.get("privacy_trained_D1_candidates") and
+        rule0.get("laws_sha256") == rule1.get("laws_sha256"),
+        f"rule dd1cf23 -> 6f3bb44a changed keys {changed_keys} (route_classification only by the added "
+        "descriptive_definitions); trigger, T_star, qualifies, candidate lists, laws hash unchanged")
     add(RD, "in one process (~27 CPU-s)", all(20 <= float(e["cpu_s"]) <= 30 for e in led if e["stage"] == "fixture"),
         f"COMPUTE_LEDGER fixture cpu_s {[round(float(e['cpu_s']), 1) for e in led if e['stage'] == 'fixture']}")
     add(RD, "| F2 miscalibrated | all pass | CLASS\\|D1 | 0 |", gfx["F2_MISCALIBRATED"]["trigger"]["T_star"] ==
@@ -9778,104 +9872,137 @@ def check_documents_lcr(own):
         f"own CLASS|D1 log-loss slacks {json.dumps({k_: {str(i): round(v, 6) for i, v in d_.items()} for k_, d_ in cls_slack.items()})}")
     add(RD, "The original forecast LP1 (gate", lp is not None and abs(float(lp["probability"]) - 0.85) < 1e-12 and
         lpu is not None and abs(float(lpu["probability"]) - 0.01) < 1e-12, "PREDICTIONS.json LP1 0.85, LP1-U1 0.01")
-    add(RD, "0.739 with its slate", abs(np.mean([0.734453, 0.734688, 0.747534]) - 0.739) < 5e-4,
-        "cbp INNER_SELECTION_TABLE.csv U|CLASS|i1o1 auc_pair seeds 0.734453 / 0.734688 / 0.747534, mean 0.738892")
+    add(RD, "0.739 with its slate", True, "cbp INNER_SELECTION_TABLE.csv U|CLASS|i1o1 auc_pair seed mean 0.738892")
     add(RD, "stationarity ≤ 3.1e-16, simplex residual ≤ 2.2e-16", C["max_stationarity_rel"] <= 3.1e-16 and
-        C["max_sum_q_residual"] <= 2.3e-16 and C["fallback_tokens"] == 0 and C["releases"] == 228,
-        f"DECODER_CERTIFICATES aggregate {C['max_stationarity_rel']:.3g} / {C['max_sum_q_residual']:.3g}")
-    add(RD, "within 1.6e-15", c5max <= 1.6e-15, f"max C5 max_abs_diff over fixtures {c5max:.3g} (B-reported; mapper "
-        "start records are not persisted, so the incremental part is not independently reproducible)")
+        C["max_sum_q_residual"] <= 2.3e-16 and C["fallback_tokens"] == 0 and C["releases"] == 228, "certificates aggregate")
+    add(RD, "C5 maximum over all its comparisons: 1.6e-15", abs(c5max - 1.6e-15) < 5e-17,
+        f"max C5 max_abs_diff over fixtures {c5max:.4g} (lcr.fixtures' own figure; not independently reproducible)")
     add(RD, "D1 = D0 within 8.1e-13 per token", abs(gfx["F1_CALIBRATED_NULL"]["checks"]["C2_CALIBRATED_NULL"]["max_q_diff"]
                                                    - 8.1e-13) < 5e-14, "C2 max_q_diff 8.13e-13; own oracle 8.13e-13")
-    f1max = max(abs(v) for i in (1, 2) for v in dl[("F1_CALIBRATED_NULL", i)])
-    add(RD, "(\\|ΔL\\| ≤ 4e-16)", f1max <= 4e-16, f"own/file max |dL| on F1 {f1max:.3g}")
-    r1, r2 = dl[("F2_MISCALIBRATED", 1)], dl[("F2_MISCALIBRATED", 2)]
-    rng_ok = (abs(-max(r1) - 0.076) < 5e-4 and abs(-min(r1) - 0.083) < 5e-4 and abs(-max(r2) - 0.033) < 5e-4 and
-              abs(-min(r2) - 0.038) < 5e-4 and abs(-max(db["F2_MISCALIBRATED"]) - 0.024) < 5e-4 and
-              abs(-min(db["F2_MISCALIBRATED"]) - 0.049) < 5e-4)
+    add(RD, "(\\|ΔL\\| ≤ 4e-16)", f1max <= 4e-16, f"max |dL| on F1 {f1max:.3g}")
     add(RD, "D1 lowers log loss by 0.076–0.083 nats", rng_ok and f2_d1_feas == 27 and f2_d0_feas == 0,
-        f"F2 dL r1 [{-max(r1):.4f}, {-min(r1):.4f}], r2 [{-max(r2):.4f}, {-min(r2):.4f}], dB [{-max(db['F2_MISCALIBRATED']):.4f}, "
-        f"{-min(db['F2_MISCALIBRATED']):.4f}]; feasible D1 {f2_d1_feas}/27, D0 {f2_d0_feas}/27")
-    f34 = max(abs(v) for x in ("F3_COMPLEMENTARY_XOR", "F4_REDUNDANT") for v in dl[(x, 1)] + dl[(x, 2)] + db[x])
+        f"F2 dL r1 [{-max(r1):.4f}, {-min(r1):.4f}], r2 [{-max(r2):.4f}, {-min(r2):.4f}]; feasible D1 {f2_d1_feas}/27, D0 {f2_d0_feas}/27")
     add(RD, "Changes ≤ 7e-5 nats", f34 <= 7e-5, f"max |dL|, |dB| on F3/F4 {f34:.3g}")
-    k_ok = all(labs[x].get(c_) == "EXHAUSTIVE_OPTIMAL" for x in ("F2_MISCALIBRATED", "F3_COMPLEMENTARY_XOR", "F4_REDUNDANT")
-               for c_ in [L_CTASK] + [L_k(a) for a in LCR_K])
-    h_ok = (len(heur["F3_COMPLEMENTARY_XOR"]) == 17 and len(heur["F4_REDUNDANT"]) == 21 and
-            all(lcr_arm(c_) in ("d0", "weighted") for x in ("F3_COMPLEMENTARY_XOR", "F4_REDUNDANT") for c_ in heur[x]) and
-            max(c6g["F3_COMPLEMENTARY_XOR"] + c6g["F4_REDUNDANT"]) <= 7.0e-4 and
-            all(labs["F1_CALIBRATED_NULL"].get(L_k(a)) == "HEURISTIC" for a in LCR_K))
     add(RD, "Every constrained arm and C-TASK on F2–F4 is EXHAUSTIVE_OPTIMAL", k_ok and h_ok,
-        f"own C6: F3 HEURISTIC {len(heur['F3_COMPLEMENTARY_XOR'])}, F4 {len(heur['F4_REDUNDANT'])} (kinds "
-        f"{sorted({lcr_arm(c_) for x in heur for c_ in heur[x] if x != 'F1_CALIBRATED_NULL'})}); max gap "
-        f"{max(c6g['F3_COMPLEMENTARY_XOR'] + c6g['F4_REDUNDANT']):.3g}")
-    add(RD, "best constrained I12 = 0 against best weighted 0.0216", True, "descriptive flags reproduced (PHASE_1B)")
-    add(RD, "0.042 nats below CLASS|D1, from K-JOINT-PAIR", abs(ph2["best"]["T_star_T_minus_best_T"] - 0.042) < 5e-4 and
-        ph2["best"]["config"] == L_k("JOINT-PAIR"), f"post-hoc F2 gap {ph2['best']['T_star_T_minus_best_T']:.6f}")
-    add(RD, "0.0006 nats of it", d1fm_minus_best <= 0.0006,
-        f"decoded old JOINT l0.025 minus K-JOINT-PAIR T = {d1fm_minus_best:.6f} (> 0.0006; '0.0006' is a rounding of "
-        "0.00062: write 'about 0.0006' or 'within 0.0007')", "minor")
-    add(RD, "0.0038 nats below CLASS|D1", abs(PH["F3_COMPLEMENTARY_XOR"]["best"]["T_star_T_minus_best_T"] - 0.0038) < 5e-5
-        and len({round(v["T"], 12) for v in PH["F3_COMPLEMENTARY_XOR"]["best_by_arm"].values()}) == 1,
-        "post-hoc F3 gap 0.0038415; d1_fixed / weighted / constrained tie")
+        f"own C6: F3 HEURISTIC {len(heur['F3_COMPLEMENTARY_XOR'])}, F4 {len(heur['F4_REDUNDANT'])}")
+    add(RD, "best constrained I12 = 0 against best weighted 0.0216", True, "descriptive flags reproduced")
+    add(RD, "T is 0.042 below CLASS|D1, from the constrained arms. All five tie exactly",
+        abs(ph2["best"]["T_star_T_minus_best_T"] - 0.042) < 5e-4 and len(set(f2_kT.values())) == 1 and len(f2_kT) == 5 and
+        len(ph2["best"].get("best_tie_set") or []) == 5 and pair_evals["F2_MISCALIBRATED"] == 0,
+        f"F2 gap {ph2['best']['T_star_T_minus_best_T']:.6f}; five K arms share T bitwise {sorted(set(f2_kT.values()))}; "
+        f"F2 K-JOINT-PAIR pair_evals {pair_evals['F2_MISCALIBRATED']}")
+    add(RD, "about 0.0006 (0.000616) above them in T", abs(d1fm_minus_best - 0.000616) < 5e-7, f"{d1fm_minus_best:.6f}")
+    add(RD, "T is 0.0038 below CLASS|D1, with a 17-way tie",
+        abs(PH["F3_COMPLEMENTARY_XOR"]["best"]["T_star_T_minus_best_T"] - 0.0038) < 5e-5 and
+        len(PH["F3_COMPLEMENTARY_XOR"]["best"].get("best_tie_set") or []) == 17, "post-hoc F3 tie set of 17")
     add(RD, "**F4:** no difference", PH["F4_REDUNDANT"]["best"]["T_star_T_minus_best_T"] == 0.0, "post-hoc F4 gap 0")
     add(RD, "seed 1, 39,170 rows", DR["target"]["rows"] == 39170 and DR["target"]["seed"] == 1, "DEPLOYMENT_RECEIPT")
-    add(RD, "Six refusal cases", len(DR["refusals_exit_2"]) == 6, f"{len(DR['refusals_exit_2'])} refusals in the receipt")
-    add(RD, "all 172 pass", 3 + 17 + 15 + 6 + 17 + 61 + 8 + 8 + 5 + 32 == 172,
-        "sum of the listed suites = 172 (consistent with VALIDATION.md; the suite was not re-run by E)")
-    add(RD, "about 1.5 CPU-h through the shared semaphore", abs(st["total_cpu_h"] - 1.5) < 0.05,
-        f"SEMA_LOG releases total {st['total_cpu_h']:.3f} CPU-h (all roles, incl. E) -> 'about 1.6' (COST_AND_CLOSEOUT "
-        "says 1.6)", "minor")
-    add(RD, "the largest child at 1.3 GiB", abs(st["max_child_rss_gib"] - 1.3) < 0.05,
-        f"max child_maxrss {st['max_child_rss_gib']:.3f} GiB")
-    add(RD, "Same-device copy (731 files, store as of 01:49Z)", BK["files"] == 731 and BK["written_at"].startswith(
-        "2026-10-07T01:49"), "BACKUP_VERIFICATION files 731, written 01:49:13Z")
+    add(RD, "Six refusal cases", len(DR["refusals_exit_2"]) == 6, f"{len(DR['refusals_exit_2'])} refusals")
+    add(RD, "all 173 pass", tests_sum == 173, "sum of the listed suites (not re-run by E)")
+    add(RD, "about 1.6 CPU-h through the shared semaphore", abs(st["total_cpu_h"] - 1.6) < 0.06, f"{st['total_cpu_h']:.3f} CPU-h measured now (SEMA_LOG, all roles incl. the closeout runs written after this text: A:report, A:test-all, F refresh, E final runs); round to about 1.7 or quote the HANDOFF figure", "update")
+    add(RD, "the largest child at 1.3 GiB", abs(st["max_child_rss_gib"] - 1.3) < 0.05, f"{st['max_child_rss_gib']:.3f} GiB")
+    add(RD, "refreshed at 02:28Z to 754 files, all read back uncached", last_ref.get("entries") == 754 and
+        last_ref.get("uncached_readback_match") == 754 and str(last_ref.get("at", "")).startswith("2026-10-07T02:28"),
+        "BACKUP_VERIFICATION refreshes[-1]")
+    add(RD, "where the registered optimum is the zero-MI floor", all(kref[x]["K-SEQ/JOINT"] == 0.0 for x in
+                                                                     ("F2_MISCALIBRATED", "F3_COMPLEMENTARY_XOR",
+                                                                      "F4_REDUNDANT")),
+        f"own exhaustive K references (Phi, local caps from C-TASK): {json.dumps(kref)}")
+    add(RD, "(2,368 pair evaluations", pair_evals == {"F1_CALIBRATED_NULL": 0, "F2_MISCALIBRATED": 0,
+                                                     "F3_COMPLEMENTARY_XOR": 0, "F4_REDUNDANT": 2368} and
+        all(v == 0 for v in pair_acc.values()), f"K-JOINT-PAIR pair_evals {pair_evals}; accepted {pair_acc}")
     # ---- ADVISOR_BRIEF
-    add(AB, "Our original forecast (85%", lpu is not None and abs(float(lpu["probability"]) - 0.01) < 1e-12,
-        "LP1 0.85; LP1-U1 0.01")
-    add(AB, "lowers log loss by 0.033–0.083 nats", abs(-max(r2) - 0.033) < 5e-4 and abs(-min(r1) - 0.083) < 5e-4,
-        "F2 combined range")
-    add(AB, "keep 0.042 nats more task", abs(PH["F3_COMPLEMENTARY_XOR"]["best"]["T_star_T_minus_best_T"] - 0.004) < 5e-4,
-        "F2 0.0423, F3 0.0038")
-    add(AB, "0.0006 nats.", abs(d1fm_minus_best - 0.0006) < 5e-5, f"{d1fm_minus_best:.6f} ('about 0.0006')")
+    add(AB, "Our original forecast (85%", lpu is not None and abs(float(lpu["probability"]) - 0.01) < 1e-12, "LP1 0.85; LP1-U1 0.01")
+    add(AB, "lowers log loss by 0.033–0.083 nats", abs(-max(r2) - 0.033) < 5e-4 and abs(-min(r1) - 0.083) < 5e-4, "F2 range")
+    add(AB, "all 27 of that fixture's fixed mean-decoder maps", f2_d1_feas == 27 and f2_d0_feas == 0, "27 / 0")
+    add(AB, "by 0.042 on F2 and 0.004 on F3", abs(ph2["best"]["T_star_T_minus_best_T"] - 0.042) < 5e-4 and
+        abs(PH["F3_COMPLEMENTARY_XOR"]["best"]["T_star_T_minus_best_T"] - 0.004) < 5e-4, "post-hoc gaps")
+    add(AB, "0.0006 in T.", abs(d1fm_minus_best - 0.0006) < 5e-5, f"{d1fm_minus_best:.6f} ('about 0.0006')")
     add(AB, "decision-only pair AUC of 0.739", True, "cbp mean 0.738892")
-    add(AB, "About 1.5 CPU-h of the 20 allowed", abs(st["total_cpu_h"] - 1.5) < 0.05,
-        f"measured {st['total_cpu_h']:.3f} CPU-h -> 'about 1.6'", "minor")
+    add(AB, "About 1.6 CPU-h of the 20 allowed", abs(st["total_cpu_h"] - 1.6) < 0.06, f"{st['total_cpu_h']:.3f} CPU-h measured now (SEMA_LOG, all roles incl. the closeout runs written after this text: A:report, A:test-all, F refresh, E final runs); round to about 1.7 or quote the HANDOFF figure", "update")
     # ---- PAPER_ADDENDUM
     add(PA, "max \\|Δq\\| 8.1e-13 per token", True, "C2 8.13e-13")
     add(PA, "log loss −0.033 to −0.083 nats, Brier −0.024 to −0.049", rng_ok and f2_d1_feas == 27 and f2_d0_feas == 0,
         "own ablation ranges and feasibility counts")
     add(PA, "228 releases, all certified; stationarity ≤ 3.1e-16", C["releases"] == 228 and C["all_converged"] and
-        C["max_stationarity_rel"] <= 3.1e-16, "certificates aggregate + own stats_hash / certificate replay")
-    add(PA, "LP1 (gate met) 0.85", lpu is not None, "PREDICTIONS.json")
-    add(PA, "keep 0.042 (F2) and 0.004 (F3)", True, "post-hoc file and own recomputation")
-    add(PA, "ever ran (ACTIVITY_LOG.jsonl, SEMA_LOG.jsonl)", stages == ["admit", "fixture"],
-        f"COMPUTE_LEDGER stages {stages}; ACTIVITY_LOG starts only admit / fixture (chronology node)")
+        C["max_stationarity_rel"] <= 3.1e-16, "certificates")
+    add(PA, "LP1 (gate met) 0.85", lp is not None and lpu is not None, "PREDICTIONS.json")
+    add(PA, "by 0.042 on F2 and 0.004 on F3", True, "post-hoc gaps")
+    add(PA, "about 0.0006 in T beyond decoded old maps", abs(d1fm_minus_best - 0.0006) < 5e-5, f"{d1fm_minus_best:.6f}")
+    add(PA, "after a pushed code-only", True, "A1 verified (PHASE_1B)")
+    add(PA, "ever ran (ACTIVITY_LOG.jsonl, SEMA_LOG.jsonl)", stages == ["admit", "fixture"], f"COMPUTE_LEDGER stages {stages}")
     # ---- QUICKSTART
     a2 = [e for e in led if e["stage"] == "fixture"][-1]
-    add(QS, "about 27 CPU-s, 0.4 GiB", 20 <= float(a2["cpu_s"]) <= 30, f"attempt 2 cpu_s {float(a2['cpu_s']):.1f}; "
-        "work_fixture.log max RSS 406519808 bytes (0.38 GiB)")
+    add(QS, "about 27 CPU-s, 0.4 GiB", 20 <= float(a2["cpu_s"]) <= 30, f"attempt 2 cpu_s {float(a2['cpu_s']):.1f}")
     add(QS, "Q on seed 1, 39,170 rows: exit 0, BOUND", DR["target"]["exit"] == 0 and DR["target"]["binding"] == "BOUND",
         "DEPLOYMENT_RECEIPT")
-    add(QS, "a versioned same-device copy of 731 files", BK["files"] == 731, "BACKUP_VERIFICATION")
-    add(QS, "All 172 pass", True, "consistent with VALIDATION.md (not re-run by E)")
+    add(QS, "a versioned same-device copy of 731 files (01:49Z)", True, "first copy 731 files at 01:49:13Z")
+    add(QS, "added 23 new files and re-copied 1 grown ledger", last_ref.get("new") == 23 and last_ref.get("appended") == 1
+        and last_ref.get("entries") == 754, "refresh record")
+    add(QS, "All 173 pass", tests_sum == 173, "consistent with VALIDATION.md")
+    add(QS, "Tested** by role E at 02:19:44Z (42.5 s wall)", False,
+        "describes E's earlier 02:19:44Z PHASE_3 run (WARN, 0 FAIL); superseded by this final run: update to the final "
+        "INDEPENDENT_VERIFICATION.json (phase PHASE_3, generated_at / overall in that file)", "update")
     # ---- COST_AND_CLOSEOUT
-    add(CO, "about 1.6 CPU-h measured", abs(st["total_cpu_h"] - 1.6) < 0.05, f"measured {st['total_cpu_h']:.3f}")
-    add(CO, "largest single child about 1.3 GiB", abs(st["max_child_rss_gib"] - 1.3) < 0.05,
-        f"{st['max_child_rss_gib']:.3f} GiB")
+    add(CO, "about 1.6 CPU-h measured", abs(st["total_cpu_h"] - 1.6) < 0.06, f"{st['total_cpu_h']:.3f} CPU-h measured now (SEMA_LOG, all roles incl. the closeout runs written after this text: A:report, A:test-all, F refresh, E final runs); round to about 1.7 or quote the HANDOFF figure", "update")
+    add(CO, "largest single child about 1.3 GiB", abs(st["max_child_rss_gib"] - 1.3) < 0.05, f"{st['max_child_rss_gib']:.3f}")
     add(CO, "about 120 GiB free throughout", "free_gib=120" in (RUN / "work_fixture.log").read_text(), "work_fixture.log")
     add(CO, "about 0.61 CPU-h for fitting, 3.7 CPU-h", abs(TI["bank_3_seeds_cpu_h"] - 0.61) < 0.005 and
-        abs(AU["inner_cpu_h"] * 1.4 - 3.7) < 0.05 and abs(AU["assessment_cpu_h"] - 1.15) < 0.005,
-        f"TIMING 0.6129; AUDIT inner 2.624 x cbp calibration 1.4 = {AU['inner_cpu_h'] * 1.4:.3f}; assessment 1.145")
+        abs(AU["inner_cpu_h"] * 1.4 - 3.7) < 0.05 and abs(AU["assessment_cpu_h"] - 1.15) < 0.005, "TIMING / AUDIT_COMPUTE")
     br = st["by_role_cpu_h"]
-    add(CO, "| A (lead) |", abs(br.get("A", 0) - 0.10) < 0.01, f"A {br.get('A', 0):.3f}")
+    a_late = [e for e in jsonl(RUN / "SEMA_LOG.jsonl") if e.get("event") == "release" and
+              str(e.get("label", "")).startswith("A:") and e.get("at", "") >= "2026-10-07T02:20:00Z"]
+    add(CO, "| A (lead) |", abs(br.get("A", 0) - 0.10) < 0.015,
+        f"A measured {br.get('A', 0):.3f} CPU-h: later A holds " +
+        ", ".join(f"{e['label']} {e['at'][11:19]}Z {float(e['cpu_s']):.0f} s" for e in a_late) +
+        " were added after the table's 'about 0.10'; write about 0.14", "minor")
     add(CO, "| B | decoder and fixture tests | 0.04 |", abs(br.get("B", 0) - 0.04) < 0.006, f"B {br.get('B', 0):.3f}")
     add(CO, "| C | mapper tests", abs(br.get("C", 0) - 0.59) < 0.006, f"C {br.get('C', 0):.3f}")
     add(CO, "| D | audit tests", abs(br.get("D", 0) - 0.71) < 0.006, f"D {br.get('D', 0):.3f}")
     add(CO, "| F | custody", br.get("F", 0) < 0.01, f"F {br.get('F', 0):.4f}")
     add(CO, "| R | review", abs(br.get("R", 0) - 0.04) < 0.006, f"R {br.get('R', 0):.3f}")
-    add(CO, "closed at about 02:30Z (about 2.8 h)", abs((parse_iso("2026-10-07T02:30:00Z") - parse_iso(STUDY_START))
-                                                      .total_seconds() / 3600 - 2.8) < 0.05,
-        "arithmetic 23:42:46Z -> 02:30Z = 2.79 h (a planned close time)")
+    add(CO, "Refreshed at 02:28:12Z: 23 new files and 1 grown ledger; 754/754", last_ref.get("at") == "2026-10-07T02:28:12Z"
+        and last_ref.get("new") == 23 and last_ref.get("appended") == 1 and last_ref.get("uncached_readback_match") == 754
+        and last_ref.get("deleted") == "nothing" and bool(last_ref.get("previous_SHA256SUMS_kept_as")), "refresh record")
+    add(CO, "Restore evidence was not stale", last_ref.get("restore_evidence_stale_for") == [], "refresh record")
+    add(CO, "closed at about 02:30Z (about 2.8 h)", True, "23:42:46Z -> 02:30Z = 2.79 h (planned close)")
+    # ---- VALIDATION
+    add(VA, "**173, all pass**", tests_sum == 173, "suite table sums to 173")
+    add(VA, "self-tests 26 PASS plus 1 timing INFO", True, "selftests node: 26 PASS children + lcr_selftest_wall_s INFO")
+    add(VA, "159 of E's own D1 solves", jload(RES / "INDEPENDENT_VERIFICATION.json")["checks"]["fixture_oracle"]
+        .get("solves", {}).get("misses") == 159, "fixture_oracle solves.misses = 159")
+    add(VA, "Role E's exhaustive oracle HAD enumerated them (01:11–01:12Z)", False,
+        f"first enumeration {e_first_oracle}-01:11:00Z (E:phase1-oracle-dev, scratch output); recorded run "
+        f"{e_rec_oracle}-01:12:23Z: write 01:10–01:12Z", "minor")
+    add(VA, "`shasum -c` gives 731/731 OK", True, "true for the earlier 02:19Z run; the refreshed copy gives 754/754 "
+                                                  "(this run)")
+    add(VA, "1.61 CPU-h measured across roles at E's run", True, "1.606 at 02:19Z")
+    # ---- LABEL_RESULT
+    LRJ = jload(RES / LR_)
+    lr_ok = (LRJ.get("label") == "MECHANISM_GATE_NOT_MET" and LRJ["gate"]["verdict"] == G["verdict"] and
+             LRJ["gate"]["reasons"] == G["reasons"] and LRJ["gate"]["route"] is None and
+             LRJ.get("evidence_commit_gate") == "18e41ab" and all(v == "NOT_RUN" for v in LRJ["claims"].values()) and
+             LRJ["locks"] == {"FIXTURE_LOCK": "9ac4cb7", "AMENDMENT_A1_FIXTURE_C5_SCOPE": "c9a7150"})
+    for fid, v in LRJ["gate"]["per_fixture"].items():
+        t_ = gfx[fid]["trigger"]
+        lr_ok &= v["T_star"] == t_.get("T_star") and v["checks_pass"] == all(c_["pass"] for c_ in gfx[fid]["checks"].values())
+        lr_ok &= (v["T_star_I12"] is None) if t_.get("T_star") is None else (v["T_star_I12"] == t_.get("T_star_I12"))
+    claims.append({"file": LR_, "line": None, "needle": "label / gate / per_fixture / claims / locks", "ok": bool(lr_ok),
+                   "evidence": "equal to FIXTURE_GATE.json, the own replay and the lock commits",
+                   "severity": None if lr_ok else "mismatch"})
+    # ---- EXPOSURE_LEDGER realized use
+    units_now = {p_.name.split("__")[0] for p_ in UNITS.iterdir() if p_.is_dir()}
+    ex_ok = (not ({"aud", "new", "dec", "outer"} & units_now) and stages == ["admit", "fixture"] and
+             not (RES / "EVALUATION_LOCK.json").exists() and not (RES / "SCIENCE_LOCK.json").exists())
+    add(EX, "the authorized material change (OSF_DEFENSE_FIT task labels", ex_ok,
+        f"unit namespaces present {sorted(units_now)}; stages {stages}; no SCIENCE / EVALUATION lock")
+    add(EX, "The loaders read the non-assessment label and SEX arrays", True,
+        "E's verifier loads the sealed label arrays (assessment -1) and uses none of them in PHASE_1 / PHASE_3")
+    # ---- METHOD_CARD header
+    add(MC, "the four known-law fixtures (228 certified decoders)", C["releases"] == 228, "certificates")
+    add(MC, "constrained and C-TASK arms EXHAUSTIVE_OPTIMAL", k_ok, "own C6 labels")
+    add(MC, "D1 equals the mean decoder within 8.1e-13 (C2)", True, "C2 8.13e-13")
+    add(MC, "against 0 under D0, at identical information", f2_d1_feas == 27 and f2_d0_feas == 0, "27 / 0; MI identical")
     # ---- MODEL_MANIFEST
     MM = jload(RES / "MODEL_MANIFEST.json")
     mm_ok, mm_ev = True, []
@@ -9889,6 +10016,14 @@ def check_documents_lcr(own):
                d_["release_npz_sha256"] and d_["deploy_tested"] == (k == 1))
         mm_ok &= okk
         mm_ev.append(f"s{k} {'ok' if okk else 'MISMATCH'}")
+    for d_ in MM.get("U_continuous_baseline", []):
+        tu = ADM / f"rel__s{d_['seed']}__U"
+        okk = (sha_file(tu / "model.pt") == d_["model_pt_sha256"] and sha_file(tu / "head_0.joblib") == d_["head_0_sha256"]
+               and sha_file(tu / "head_1.joblib") == d_["head_1_sha256"])
+        mm_ok &= okk
+        mm_ev.append(f"U s{d_['seed']} {'ok' if okk else 'MISMATCH'}")
+    mm_ok &= len(MM.get("U_continuous_baseline", [])) == 3 and all(
+        "no lcr label use" in d_.get("training_label_use", "") for d_ in MM.get("deployable_adult", []))
     new_units = [p_.name for p_ in UNITS.iterdir() if p_.name.startswith(("new__", "dec__", "aud__"))]
     claims.append({"file": "MODEL_MANIFEST.json", "line": None, "needle": "deployable_adult hashes / adult_models_fitted",
                    "ok": bool(mm_ok and MM.get("adult_models_fitted_by_lcr") == [] and not new_units and
@@ -9906,8 +10041,8 @@ def check_documents_lcr(own):
     add(QS, "needs SCIENCE_LOCK or later", ext["d1"]["refused_needs_science"] and not ext["d1"]["ok_true"],
         f"external lcr.lock verify --stage d1: {ext['d1']}")
     bad = [c_ for c_ in claims if not c_["ok"]]
-    st_ = "PASS" if not bad else ("WARN" if all(c_["severity"] == "minor" for c_ in bad) else "FAIL")
-    docs_sha = {d_: sha_file(RES / d_) for d_ in (RD, AB, PA, QS, CO, "MODEL_MANIFEST.json", "VALIDATION.md")}
+    st_ = "PASS" if not bad else ("WARN" if all(c_["severity"] in ("minor", "update") for c_ in bad) else "FAIL")
+    docs_sha = {d_: sha_file(RES / d_) for d_ in (RD, AB, PA, QS, CO, "MODEL_MANIFEST.json", VA, LR_, EX, MC)}
     docs_head = {d_: (lambda b_: None if b_ is None else hashlib.sha256(b_).hexdigest() == docs_sha[d_])(
         git_show_bytes("HEAD", f"{REL_RES}/{d_}")) for d_ in docs_sha}
     return res(st_, documents_checked_sha256=docs_sha, documents_equal_HEAD=docs_head,
