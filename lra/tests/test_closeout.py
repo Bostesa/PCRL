@@ -55,6 +55,7 @@ def _isolate(tmp_path, monkeypatch):
     """Marker, lock states, closed trees, receipt folders and the pinned input all point into tmp_path."""
     monkeypatch.setattr(CO, "smf_marker_sha", lambda: WANT)
     monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (False, "not pushed (test)"))
+    monkeypatch.setattr(CO, "_engineering_ready", lambda: (False, "no gate result (test)"))
     monkeypatch.setattr(CBC, "cbp_lock_pushed", lambda: (True, "pushed (test)"))
     closed = {k: tmp_path / "closed" / k for k in ("cbp_results", "qpc_results", "dpc_results", "osf_results",
                                                    "smf_results")}
@@ -71,6 +72,7 @@ def _isolate(tmp_path, monkeypatch):
     monkeypatch.setattr(CO, "INPUT", inp)
     monkeypatch.setattr(CO, "INPUT_SHA", hashlib.sha256(INPUT_BYTES).hexdigest())
     monkeypatch.setattr(CO, "LRA_TARGETS", tmp_path / "no_targets.json")
+    monkeypatch.setattr(CO, "SRC", tmp_path / "no_live_store")
     monkeypatch.setattr(CO, "CBP_TARGETS", tmp_path / "no_cbp_targets.json")
     return closed
 
@@ -118,6 +120,14 @@ def test_skipped_installer_image_is_never_read(tmp_path, monkeypatch):
     assert "BackgroundSyncService Setup" in CO.SKIP_VOLUMES
 
 
+def test_status_reports_the_gate_the_opening_and_the_science_state_without_writing(tmp_path):
+    before = sorted(p.name for p in tmp_path.iterdir())
+    st = CO.status(volumes_root=_volumes(tmp_path / "v", match=False))
+    assert st["mounted"] is False and st["lra_state"]["assessment_opened_by_this_study"] is False
+    assert st["lra_state"]["study_label"] is None and st["science"]["science_ran"] is False
+    assert "Background" not in json.dumps(st) and sorted(p.name for p in tmp_path.iterdir()) == sorted(before + ["v"])
+
+
 def test_marker_is_read_at_the_pin():
     assert REAL_MARKER() == "28705e242f77b6333561f66117934b3ebc427072e31dc5a38b3a9d9e8f02cd05"
 
@@ -138,7 +148,8 @@ def test_same_device_copy_bundles_the_input_is_labelled_pending_and_restored_fro
     assert "not a drive restore" in bv["restore_kind"] and bv["off_device_backup"].startswith("PENDING")
     assert "not off-device custody" in bv["custody_gap"]
     assert bv["pending"] == CO.PENDING and "<DRIVE_ROOT>" in CO.PENDING["lra_off_device_backup_and_restore"]
-    assert all(v.startswith(CO.SEMA) for k, v in CO.PENDING.items() if not k.startswith("cbp_"))
+    assert all(v.startswith(CO.SEMA) for k, v in CO.PENDING.items() if not k.endswith("_for_its_owner"))
+    assert CO.PENDING["lcr_off_device_backup_for_its_owner"].startswith("cd <LCR_WORKTREE> && ")
     own = CO.PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"]
     assert own.startswith("cd <CBP_WORKTREE> && ") and "-m cbp.sema" in own and \
         "cbp.closeout all --targets <PRIVATE_CACHE>/cbp_v1/run/closeout_targets.json" in own and "OPENS osf" in own
@@ -155,7 +166,10 @@ def test_same_device_copy_bundles_the_input_is_labelled_pending_and_restored_fro
     chk = bv["restore_checks"]["teacher U (seed 1)"]
     assert chk["copy_seen"] and chk["copy_is_not_live"] and chk["input_in_copy"]
     assert bv["required_restores"] == {"U teacher": "PASS", "learned decoder": "PASS", "protected map": "PASS",
-                                       "Q": "PASS", "attacker": "PASS"}
+                                       "Q": "PASS", "constrained candidate": "PENDING (no constrained candidate target)",
+                                       "decoder-only baseline": "PENDING (no decoder-only baseline target)",
+                                       "sequential winner": "PENDING (no sequential winner target)", "attacker": "PASS"}
+    assert bv["restore_all_pass"] is True and bv["science"]["science_ran"] is False
     assert bv["read_capability"]["F_NOCACHE_uncached_read"] == "available"
     assert "not performed" in bv["read_capability"]["physical_cold_read"]
     assert (root / "BACKUP_RECORD.json").exists()
@@ -220,26 +234,54 @@ def test_failed_restore_is_not_reported_as_passing(tmp_path, monkeypatch):
     assert bv["restore_all_pass"] is False and bv["required_restores"]["learned decoder"] == "FAIL"
 
 
+def _roles(over=None, drop=()):
+    """A truthful, structurally valid role-target set for seed 1 (synthetic unit names; nothing is restored)."""
+    r = {"Q": {"status": "NOMINATED", "unit": "pol__s1__U_DIRECT-TASK_i8o64", "config": "U|DIRECT-TASK|i8o64"},
+         "P*": {"status": "NOMINATED", "unit": "dec__s1__U_LOCAL_i8o64_l0.06_D1", "config": "U|LOCAL|i8o64|l0.06|D1",
+                "family": "LOCAL", "construction": "calibrated"},
+         "constrained candidate": {"status": "DESCRIPTIVE_FALLBACK", "unit": "new__s1__U_K-JOINT-PAIR_i8o64_D1",
+                                   "config": "U|K-JOINT-PAIR|i8o64|D1", "selection_role": "N*",
+                                   "reason": "CONSTRAINED_FIT_INFEASIBLE"},
+         "decoder-only baseline": {"status": "FIXED", "unit": "pol__s1__U_LOCAL_i8o64_l0.06",
+                                   "config": "U|LOCAL|i8o64|l0.06", "paired_with": "P*"},
+         "sequential winner": {"status": "FIXED", "unit": "new__s1__U_K-SEQ-12_i8o64_D1",
+                               "config": "U|K-SEQ-12|i8o64|D1"}}
+    for k, v in (over or {}).items():
+        r[k] = v
+    for k in drop:
+        r.pop(k)
+    return r
+
+
+def _write(t, obj):
+    t.write_text(json.dumps(obj))
+    return t
+
+
 def test_not_applicable_classes_are_reported_not_failed(tmp_path, monkeypatch):
-    """MECHANISM_GATE_NOT_MET: no P*, no Adult D1 decoder, no lra attacker. Those classes are NOT_APPLICABLE with the
-    reason (never a failure, never silently PENDING); the U teacher can never be marked not applicable; a class marked
-    not applicable may not also have a target."""
-    na = {"protected map": "MECHANISM_GATE_NOT_MET; no Adult fit", "learned decoder": "no Adult D1 decoder fitted",
-          "attacker": "no lra attacker fitted"}
-    st = {"teacher U (seed 1)": "PASS", "Q (D0 DIRECT-TASK i8o64)": "PASS", "attacker": "NOT_APPLICABLE"}
-    req = CO.required_targets_status(st, {}, na)
+    """Before any Adult science (e.g. ENGINEERING_BLOCKED_NOT_RUN): roles without a release carry a truthful status
+    (NOT_RUN / ABSENT + reason) and are NOT_APPLICABLE (never a failure, never silently PENDING); the decoder and the
+    attacker may be marked not applicable only while no Adult D1 unit exists; the U teacher never can."""
+    why = "ENGINEERING_BLOCKED_NOT_RUN: no Adult fit"
+    roles = {"Q": {"status": "FIXED", "unit": "pol__s1__U_DIRECT-TASK_i8o64", "config": "U|DIRECT-TASK|i8o64"},
+             **{r: {"status": "NOT_RUN", "reason": why} for r in CO.ROLES if r != "Q"}}
+    na = {"learned decoder": "no Adult D1 decoder fitted", "attacker": "no lra attacker fitted"}
+    st = {"teacher U (seed 1)": "PASS", "Q [FIXED] U|DIRECT-TASK|i8o64": "PASS", "attacker": "NOT_APPLICABLE"}
+    req = CO.required_targets_status(st, {}, na, roles)
     assert req == {"U teacher": "PASS", "learned decoder": "NOT_APPLICABLE (no Adult D1 decoder fitted)",
-                   "protected map": "NOT_APPLICABLE (MECHANISM_GATE_NOT_MET; no Adult fit)", "Q": "PASS",
+                   "protected map": f"NOT_APPLICABLE (NOT_RUN: {why})", "Q": "PASS",
+                   "constrained candidate": f"NOT_APPLICABLE (NOT_RUN: {why})",
+                   "decoder-only baseline": f"NOT_APPLICABLE (NOT_RUN: {why})",
+                   "sequential winner": f"NOT_APPLICABLE (NOT_RUN: {why})",
                    "attacker": "NOT_APPLICABLE (no lra attacker fitted)"}
-    t = tmp_path / "t.json"
-    t.write_text(json.dumps({"seed": 1, "policies": {"Q (D0 DIRECT-TASK i8o64)": "pol__s1__U_DIRECT-TASK_i8o64"},
-                             "not_applicable": na}))
+    t = _write(tmp_path / "t.json", {"seed": 1, "roles": roles, "not_applicable": na})
     assert CO.load_targets(t)["not_applicable"] == na
-    for bad in ({"policies": {}, "not_applicable": {"U teacher": "x"}},
-                {"policies": {}, "not_applicable": {"protected map": ""}},
-                {"policies": {"P* (x)": "dec__s1__U_LOCAL_i8o64_l0.06_D1"}, "not_applicable": {"protected map": "x"}},
-                {"policies": {}, "attacker": {"fn": "lra.assess:x"}, "not_applicable": {"attacker": "x"}}):
-        t.write_text(json.dumps(bad))
+    for bad in ({"seed": 1, "roles": roles, "not_applicable": {"U teacher": "x"}},
+                {"seed": 1, "roles": roles, "not_applicable": {"protected map": ""}},
+                {"seed": 1, "roles": _roles(), "not_applicable": {"protected map": "x"}},
+                {"seed": 1, "roles": roles, "attacker": {"fn": "lra.assess:x"}, "not_applicable": {"attacker": "x"}},
+                {"seed": 1, "roles": _roles(), "not_applicable": {"learned decoder": "x"}}):
+        _write(t, bad)
         with pytest.raises(SystemExit):
             CO.load_targets(t)
     # a full backup with these targets passes; the attacker restore is not attempted
@@ -248,28 +290,124 @@ def test_not_applicable_classes_are_reported_not_failed(tmp_path, monkeypatch):
 
     def fake(copy, live, targets, seed, input_path):
         seen["na"] = targets.get("not_applicable")
-        return ({"teacher U (seed 1)": {"status": "PASS"}, "Q (D0 DIRECT-TASK i8o64)": {"status": "PASS"},
+        return ({"teacher U (seed 1)": {"status": "PASS"}, "Q [FIXED] U|DIRECT-TASK|i8o64": {"status": "PASS"},
                  "attacker": {"status": "NOT_APPLICABLE", "reason": na["attacker"]}}, {"wall_s": 0.0, "cpu_s": 0.0})
     monkeypatch.setattr(CO, "restore_all", fake)
-    t.write_text(json.dumps({"seed": 1, "policies": {"Q (D0 DIRECT-TASK i8o64)": "pol__s1__U_DIRECT-TASK_i8o64"},
-                             "not_applicable": na}))
+    _write(t, {"seed": 1, "roles": roles, "not_applicable": na})
     bv = CO.backup(targets_file=t, src=src, cache=src.parent, volumes_root=_volumes(tmp_path, match=False),
                    out_pkg=tmp_path / "pkg")
     assert bv["restore_all_pass"] is True and seen["na"] == na
-    assert bv["required_restores"]["protected map"].startswith("NOT_APPLICABLE")
+    assert bv["required_restores"]["protected map"].startswith("NOT_APPLICABLE (NOT_RUN")
+    assert bv["role_statuses"]["P*"] == {"status": "NOT_RUN", "reason": why}
     ri = json.loads((tmp_path / "pkg" / "RESTORE_INDEX.json").read_text())
     assert ri["required_restores"] == bv["required_restores"] and ri["unit_inventory"] == {"u": 1}
+    # once the store holds an Adult D1 unit, the decoder and the attacker can no longer be marked not applicable
+    d = src / "run" / "units" / "dec__s1__U_LOCAL_i8o64_l0.06_D1"
+    d.mkdir(parents=True)
+    _complete(d)
+    assert CO.science_state(src)["science_ran"]
+    with pytest.raises(SystemExit, match="cannot be marked not applicable"):
+        CO.backup(targets_file=t, src=src, cache=src.parent, volumes_root=_volumes(tmp_path / "b", match=False),
+                  out_pkg=tmp_path / "pkg")
 
 
 def test_required_restore_classes():
     st = {"teacher U (seed 1)": "PASS", "Q (DIRECT-TASK i8o64)": "PASS", "fallback (INELIGIBLE) U|K-JOINT-PAIR": "FAIL",
           "attacker": "PENDING"}
     checks = {"fallback (INELIGIBLE) U|K-JOINT-PAIR": {"decoder_recertified_from_copy": {"status": "PASS"}}}
-    assert CO.required_targets_status(st, checks) == {"U teacher": "PASS", "learned decoder": "PASS",
-                                                      "protected map": "FAIL", "Q": "PASS", "attacker": "PENDING"}
+    req = CO.required_targets_status(st, checks)
+    assert {k: req[k] for k in ("U teacher", "learned decoder", "protected map", "Q", "attacker")} == \
+        {"U teacher": "PASS", "learned decoder": "PASS", "protected map": "FAIL", "Q": "PASS", "attacker": "PENDING"}
+    assert set(req) == set(CO.RESTORE_CLASSES)
     empty = CO.required_targets_status({})
     assert empty["Q"].startswith("PENDING") and empty["protected map"].startswith("PENDING")
     assert empty["learned decoder"].startswith("PENDING") and empty["U teacher"] == "FAIL"
+    # after the science ran: no D1 target and no attacker restore are FAILURES, never PENDING
+    sci = CO.required_targets_status({"teacher U (seed 1)": "PASS", "attacker": "PENDING"}, {}, science_ran=True)
+    assert sci["learned decoder"].startswith("FAIL") and sci["attacker"].startswith("FAIL")
+    ok = {k: "PASS" for k in CO.RESTORE_CLASSES}
+    assert CO.restore_passed({"teacher U (seed 1)": "PASS", "attacker": "PASS"}, ok, science_ran=True)
+    assert not CO.restore_passed({"teacher U (seed 1)": "PASS", "attacker": "PENDING"}, ok, science_ran=True)
+    assert CO.restore_passed({"teacher U (seed 1)": "PASS", "attacker": "PENDING"}, ok, science_ran=False)
+    assert not CO.restore_passed({"teacher U (seed 1)": "PASS", "attacker": "PASS"}, ok, truthful=False)
+    pend = {**ok, "sequential winner": "PENDING (no sequential winner target)"}
+    assert not CO.restore_passed({"teacher U (seed 1)": "PASS", "attacker": "PASS"}, pend, science_ran=True)
+    # a failed same-map token check fails the decoder-only baseline even when its own restore passed
+    st2 = {"teacher U (seed 1)": "PASS", "decoder-only baseline [FIXED] x": "PASS", CO.SAME_MAP_CHECK: "FAIL"}
+    assert CO.required_targets_status(st2)["decoder-only baseline"].startswith("FAIL")
+
+
+def test_role_targets_require_every_role_with_a_truthful_status(tmp_path):
+    t = tmp_path / "t.json"
+    good = {"seed": 1, "roles": _roles(), "deploy": "lra.deploy:release_d1",
+            "attacker": {"fn": "lra.assess:refit_selected_attacker"}, "policies": {"U baseline": "tea__s1__U"}}
+    tg = CO.load_targets(_write(t, good))
+    labs = [lab for lab, _ in CO.role_targets(tg)]
+    assert labs[:5] == [CO.role_label(r, _roles()[r]) for r in CO.ROLES] and labs[5] == "U baseline"
+    assert labs[1] == "P* [NOMINATED] U|LOCAL|i8o64|l0.06|D1" and CO.paired_unit(tg)[1] == "dec__s1__U_LOCAL_i8o64_l0.06_D1"
+    fb = {"status": "DESCRIPTIVE_FALLBACK", "unit": "new__s1__U_K-LOCAL_i8o64_D1", "config": "U|K-LOCAL|i8o64|D1",
+          "selection_role": "N*", "reason": "LOCAL_GUARD_FAILURE"}
+    bad = [_roles(drop=("sequential winner",)),                                          # a role omitted
+           {**_roles(), "extra": {"status": "FIXED"}},                                   # an unregistered role
+           _roles({"P*": {"status": "WON", "unit": "x", "config": "y"}}),               # unknown status
+           _roles({"P*": {**_roles()["P*"], "status": "FIXED"}}),                        # status not allowed for P*
+           _roles({"P*": {"status": "NOMINATED", "config": "U|LOCAL|i8o64|l0.06|D1"}}),  # nominee without a unit
+           _roles({"P*": {"status": "NOT_RUN", "reason": "x", "unit": "dec__s1__U_LOCAL_i8o64_l0.06_D1"}}),
+           _roles({"P*": {"status": "ABSENT"}}),                                         # no reason
+           _roles({"constrained candidate": {**fb, "reason": ""}}),                      # fallback without a reason
+           _roles({"Q": {"status": "NOMINATED", "unit": "dec__s1__U_DIRECT-TASK_i8o64_D1",
+                         "config": "U|DIRECT-TASK|i8o64|D1"}}),                          # Q is the fixed D0 code
+           _roles({"P*": {"status": "NOMINATED", "unit": "new__s1__U_C-TASK_i8o64_D1",
+                          "config": "U|C-TASK|i8o64|D1"}}),                              # C-TASK is privacy-untrained
+           _roles({"P*": {"status": "NOMINATED", "unit": "dec__s1__U_CLASS_i1o1_D1",
+                          "config": "U|CLASS|i1o1|D1"}}),                                # CLASS|D1 is privacy-untrained
+           _roles({"P*": {**_roles()["P*"], "unit": "dec__s2__U_LOCAL_i8o64_l0.06_D1"}}),  # another seed
+           _roles({"P*": {**_roles()["P*"], "unit": "dec__s1__U_JOINT_i8o64_l0.1_D1"}}),   # unit/config mismatch
+           _roles({"constrained candidate": {**fb, "unit": "new__s1__U_W-LOCAL_i8o64_l0.01_D1",
+                                             "config": "U|W-LOCAL|i8o64|l0.01|D1"}}),     # a weighted control
+           _roles({"constrained candidate": {k: v for k, v in fb.items() if k != "selection_role"}}),
+           _roles({"decoder-only baseline": {**_roles()["decoder-only baseline"], "paired_with": "Q"}}),  # pairs D0
+           _roles({"decoder-only baseline": {**_roles()["decoder-only baseline"], "paired_with": None}}),
+           _roles({"decoder-only baseline": {"status": "FIXED", "unit": "dec__s1__U_LOCAL_i8o64_l0.06_D1",
+                                             "config": "U|LOCAL|i8o64|l0.06|D1", "paired_with": "P*"}}),  # not D0
+           _roles({"sequential winner": {"status": "FIXED", "unit": "new__s1__U_K-LOCAL_i8o64_D1",
+                                         "config": "U|K-LOCAL|i8o64|D1"}})]               # not a SEQ release
+    for roles in bad:
+        _write(t, {"seed": 1, "roles": roles})
+        with pytest.raises(SystemExit, match="REFUSED"):
+            CO.load_targets(t)
+    _write(t, {"seed": 1, "policies": {"Q": "pol__s1__U_DIRECT-TASK_i8o64"}})     # the legacy format is refused
+    with pytest.raises(SystemExit, match="roles"):
+        CO.load_targets(t)
+    ok = _roles({"constrained candidate": fb, "sequential winner": {
+        "status": "INVALID", "reason": "FIT_RECORD_TECHNICAL_FAILURE on seed 2"},
+        "decoder-only baseline": {"status": "FIXED", "unit": "d0s__s1__U_K-LOCAL_i8o64_D1_D0SAME",
+                                  "config": "U|K-LOCAL|i8o64|D1|D0SAME", "paired_with": "constrained candidate"}})
+    assert CO.load_targets(_write(t, {"seed": 1, "roles": ok}))["roles"]["sequential winner"]["status"] == "INVALID"
+
+
+def test_role_statuses_are_checked_against_the_inner_selection(tmp_path):
+    roles = _roles()
+    sel = {"statuses": {"Q": {"status": "NOMINEE", "config": "U|DIRECT-TASK|i8o64"},
+                        "P*": {"status": "NOMINEE", "config": "U|LOCAL|i8o64|l0.06|D1"},
+                        "N*": {"status": "NO_ELIGIBLE_NOMINEE", "config": None,
+                               "descriptive_config": "U|K-JOINT-PAIR|i8o64|D1", "reason": "CONSTRAINED_FIT_INFEASIBLE"}}}
+    assert CO.check_targets_against_selection({"roles": roles}, sel) == []
+    lie = {**sel, "statuses": {**sel["statuses"], "P*": {"status": "NO_ELIGIBLE_NOMINEE", "config": None,
+                                                         "descriptive_config": "U|LOCAL|i8o64|l0.06|D1"}}}
+    mm = CO.check_targets_against_selection({"roles": roles}, lie)
+    assert len(mm) == 1 and mm[0].startswith("P*: status NOMINATED but selection P* is NO_ELIGIBLE_NOMINEE")
+    other = {**sel, "statuses": {**sel["statuses"], "P*": {"status": "NOMINEE", "config": "U|JOINT|i8o64|l0.1|D1"}}}
+    assert "names 'U|JOINT|i8o64|l0.1|D1'" in CO.check_targets_against_selection({"roles": roles}, other)[0]
+    gone = {"statuses": {k: v for k, v in sel["statuses"].items() if k != "N*"}}
+    assert CO.check_targets_against_selection({"roles": roles}, gone) == ["constrained candidate: selection has no role N*"]
+    # through the store: an untruthful status fails the restore verdict (the copy is still made and verified)
+    src = tmp_path / "store"
+    (src / "run").mkdir(parents=True)
+    (src / "run" / "selection.json").write_text(json.dumps(lie))
+    tr = CO.targets_truthfulness({"roles": roles}, src)
+    assert tr["pass"] is False and tr["checked_against"] == "run/selection.json"
+    assert CO.targets_truthfulness({"roles": roles}, tmp_path / "none")["pass"] is True
 
 
 # ------------------------------------------------------------------ dry runs, targets, sums, live files
@@ -309,13 +447,15 @@ def test_targets_must_be_lra_unit_names_and_entry_points(tmp_path):
     for bad in ({"policies": {"x": "../../etc/passwd"}}, {"policies": {"x": "ref__s1__F"}},
                 {"policies": {"x": "inner__new__s1__U_K-LOCAL_i8o64_D1"}},
                 {"policies": {}, "deploy": "os:system"}, {"policies": {}, "attacker": {"fn": "subprocess:run"}},
-                {"policies": {}, "attacker": {"fn": "dpc.audit:x"}}):
-        t.write_text(json.dumps(bad))
+                {"policies": {}, "attacker": {"fn": "dpc.audit:x"}},
+                {"roles": _roles({"P*": {**_roles()["P*"], "unit": "../dec__s1__U_LOCAL_i8o64_l0.06_D1"}})}):
+        t.write_text(json.dumps({"seed": 1, "roles": _roles(), **bad}))
         with pytest.raises(SystemExit):
             CO.load_targets(t)
-    good = {"seed": 1, "policies": {"Q (D0 DIRECT-TASK i8o64)": "pol__s1__U_DIRECT-TASK_i8o64",
-                                    "P* (LOCAL; calibrated)": "dec__s1__U_LOCAL_i8o64_l0.06_D1",
-                                    "N* (K-LOCAL)": "new__s1__U_K-LOCAL_i8o64_D1"},
+    good = {"seed": 1, "roles": _roles(), "policies": {"N* (K-LOCAL)": "new__s1__U_K-LOCAL_i8o64_D1",
+                                                       "CLASS|D1 (T* pool)": "dec__s1__U_CLASS_i1o1_D1",
+                                                       "same-map D0 of C-TASK": "d0s__s1__U_C-TASK_i8o64_D1_D0SAME",
+                                                       "diagnostic": "diag__s1__U_CLASS_i1o1_D1"},
             "deploy": "lra.deploy:release_d1", "attacker": {"fn": "lra.assess:refit_selected_attacker"}}
     t.write_text(json.dumps(good))
     assert CO.load_targets(t)["policies"]["N* (K-LOCAL)"] == "new__s1__U_K-LOCAL_i8o64_D1"
@@ -376,24 +516,64 @@ def test_cbp_custody_pending_without_drive_never_calls_the_source_closeout(tmp_p
     assert "Owner" not in txt and str(tmp_path) not in txt
 
 
-def test_cbp_custody_stays_pending_without_the_lra_evaluation_lock_even_with_the_drive(tmp_path, monkeypatch, _isolate):
-    """With the drive present, the cbp custody reaches osf's assessment (this study's assessment rows): without the lra
-    EVALUATION_LOCK (e.g. MECHANISM_GATE_NOT_MET: it will never exist) it is recorded PENDING, never run, and osf's
-    assessment is never opened."""
+def _open_assessment(tmp_path, monkeypatch, bind=True, complete=True):
+    """A synthetic opening: EVALUATION_LOCK.json in the package, the lock reported on origin, and one assessment unit
+    outer__s1__x in the live store whose record binds the lock's sha256 (bind) and is hash-complete (complete)."""
+    CO.PKG.mkdir(parents=True, exist_ok=True)
+    (CO.PKG / "EVALUATION_LOCK.json").write_text('{"schema": "lra-evaluation-lock-v1"}')
+    monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (True, "pushed (test)"))
+    src = tmp_path / "live_store"
+    u = src / "run" / "units" / "outer__s1__x"
+    u.mkdir(parents=True, exist_ok=True)
+    sha = hashlib.sha256((CO.PKG / "EVALUATION_LOCK.json").read_bytes()).hexdigest()
+    (u / "record.json").write_text(json.dumps({"evaluation_lock": {"commit": "c" * 40,
+                                                                   "sha256": sha if bind else "0" * 64}}))
+    if complete:
+        _complete(u)
+    monkeypatch.setattr(CO, "SRC", src)
+    return src
+
+
+def test_assessment_opening_needs_the_pushed_lock_and_a_bound_assessment_unit(tmp_path, monkeypatch):
+    ok, why, ev = CO.lra_assessment_opened()
+    assert ok is False and "not verified on origin" in why and ev["bound_assessment_units"] == 0
+    _open_assessment(tmp_path / "a", monkeypatch, bind=False)
+    ok, why, _ = CO.lra_assessment_opened()
+    assert ok is False and "has not been opened" in why                      # a unit bound to another lock
+    _open_assessment(tmp_path / "b", monkeypatch, complete=False)
+    assert CO.lra_assessment_opened()[0] is False                             # not hash-complete
+    _open_assessment(tmp_path / "c", monkeypatch)
+    ok, why, ev = CO.lra_assessment_opened()
+    assert ok is True and ev["bound_assessment_units"] == 1 and len(ev["evaluation_lock_sha256"]) == 64
+    (CO.PKG / "EVALUATION_LOCK.json").write_text('{"schema": "lra-evaluation-lock-v1", "changed": true}')
+    assert CO.lra_assessment_opened()[0] is False                             # the bound lock is not this lock
+
+
+def test_cbp_custody_stays_pending_before_this_studys_assessment_opening_even_with_the_drive(tmp_path, monkeypatch,
+                                                                                               _isolate):
+    """With the drive present, the cbp custody reaches osf's assessment (this study's assessment rows). Before this
+    study's assessment opening it is recorded PENDING, never run, and osf's assessment is never opened: with no lock
+    (e.g. ENGINEERING_BLOCKED_NOT_RUN: it will never exist) and also with the lock pushed but no bound assessment unit."""
     monkeypatch.setattr(CO, "source_code_identity", lambda: {"identical": True, "files": 1, "differing_from_cbp_tip": []})
-    (CO.PKG).mkdir(parents=True, exist_ok=True)
-    (CO.PKG / "FIXTURE_GATE.json").write_text(json.dumps({"verdict": "GATE_NOT_MET"}))
+    CO.PKG.mkdir(parents=True, exist_ok=True)
+    (CO.PKG / "ENGINEERING_GATE_RESULT.json").write_text(json.dumps({"verdict": "ENGINEERING_BLOCKED"}))
     called = []
     from osf import assess as AS
     monkeypatch.setattr(AS, "open_assessment", lambda *a, **k: called.append("OPENED"))
     rec = CO.cbp_custody(volumes_root=_volumes(tmp_path), CBmod=types.SimpleNamespace(run_all=lambda **k: called.append(1)))
     assert rec["status"] == "PENDING" and not called and "EVALUATION_LOCK" in rec["reason"]
-    assert "never opened" in rec["reason"] and rec["osf_assessment_opened"] is False
-    assert rec["lra_assessment_state"]["fixture_gate"] == "GATE_NOT_MET"
+    assert "not yet opened" in rec["reason"] and rec["osf_assessment_opened"] is False
+    assert rec["lra_assessment_state"]["study_label"] == "ENGINEERING_BLOCKED_NOT_RUN"
+    assert rec["code_proof_of_no_early_read"]["status"] == "NOT_AVAILABLE"
     assert rec["pending_command"] == CO.PENDING["cbp_qpc_dpc_osf_smf_pending_custody_for_its_owner"]
     assert json.loads((CO.CBP_CUSTODY_DIR / "STATUS.json").read_text())["status"] == "PENDING"
     rec2 = CO.cbp_custody(volumes_root=_volumes(tmp_path / "x", match=False))      # drive absent: both reasons
-    assert rec2["status"] == "PENDING" and "not mounted" in rec2["reason"] and "never opened" in rec2["reason"]
+    assert rec2["status"] == "PENDING" and "not mounted" in rec2["reason"] and "not yet opened" in rec2["reason"]
+    _open_assessment(tmp_path, monkeypatch, bind=False)                           # lock pushed, nothing opened
+    rec3 = CO.cbp_custody(volumes_root=_volumes(tmp_path / "y"), CBmod=types.SimpleNamespace(
+        run_all=lambda **k: called.append(1)))
+    assert rec3["status"] == "PENDING" and not called and "has not been opened" in rec3["reason"]
+    assert rec3["lra_assessment_state"]["evaluation_lock_pushed"] is True
 
 
 def _fake_cbp(tmp_path, write_closed=None):
@@ -418,7 +598,7 @@ def _fake_cbp(tmp_path, write_closed=None):
 
 def test_cbp_custody_with_drive_redirects_every_receipt_and_restores_bindings(tmp_path, monkeypatch, _isolate):
     monkeypatch.setattr(CO, "source_code_identity", lambda: {"identical": True, "files": 1, "differing_from_cbp_tip": []})
-    monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (True, "pushed (test)"))
+    _open_assessment(tmp_path, monkeypatch)
     tg = tmp_path / "cbp_targets.json"
     tg.write_text("{}")
     keys = ("PKG", "PROV", "QPC_CUSTODY_DIR", "CLOSED_RESULTS", "write_public", "osf_assessment_sealed_until_cbp_lock")
@@ -429,7 +609,8 @@ def test_cbp_custody_with_drive_redirects_every_receipt_and_restores_bindings(tm
     out = CO.CBP_CUSTODY_DIR
     assert rec["status"] == "RUN" and rec["closed_results_unchanged"], rec
     assert seen["out_pkg"] == out and seen["pkg"] == out and seen["qpc_dir"] == out / "qpc_custody"
-    assert seen["seal"] is CO.osf_assessment_sealed_until_lra_lock and "cbp_results" in seen["closed"]
+    assert seen["seal"] is CO.osf_assessment_sealed_until_lra_opening and "cbp_results" in seen["closed"]
+    assert rec["lra_assessment_state"]["assessment_opened_by_this_study"] is True
     assert seen["targets"] == str(tg)
     for f in ("qpc_custody/STATUS.json", "qpc_custody/dpc_custody/STATUS.json",
               "qpc_custody/predecessor_custody/STATUS.json", "BACKUP_VERIFICATION.json", "STATUS.json"):
@@ -441,7 +622,7 @@ def test_cbp_custody_with_drive_redirects_every_receipt_and_restores_bindings(tm
 
 def test_cbp_custody_refuses_a_write_into_a_closed_tree(tmp_path, monkeypatch, _isolate):
     monkeypatch.setattr(CO, "source_code_identity", lambda: {"identical": True, "files": 1, "differing_from_cbp_tip": []})
-    monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (True, "pushed (test)"))
+    _open_assessment(tmp_path, monkeypatch)
     before = {k: CO.tree_state(v) for k, v in _isolate.items()}
     fake, _ = _fake_cbp(tmp_path, write_closed=_isolate["cbp_results"])
     orig_q = QC.write_public
@@ -453,7 +634,7 @@ def test_cbp_custody_refuses_a_write_into_a_closed_tree(tmp_path, monkeypatch, _
 
 
 def test_cbp_custody_refuses_when_a_pinned_package_differs(tmp_path, monkeypatch):
-    monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (True, "pushed (test)"))
+    _open_assessment(tmp_path, monkeypatch)
     monkeypatch.setattr(CO, "source_code_identity", lambda: {"identical": False, "files": 9,
                                                              "differing_from_cbp_tip": ["cbp/closeout.py"]})
     called = []
@@ -461,21 +642,62 @@ def test_cbp_custody_refuses_when_a_pinned_package_differs(tmp_path, monkeypatch
     assert rec["status"] == "REFUSED" and not called
 
 
-def test_osf_assessment_stays_sealed_until_the_lra_lock_is_pushed(monkeypatch):
+def test_osf_assessment_stays_sealed_until_this_studys_assessment_opening(tmp_path, monkeypatch):
     from osf import assess as AS
-    orig = AS.open_assessment
-    with CO.osf_assessment_sealed_until_lra_lock() as ok:                 # lra lock not pushed (fixture)
+    from osf import data as OD
+    orig, orig_load = AS.open_assessment, OD.load
+    calls = []
+    monkeypatch.setattr(OD, "load", lambda verify=True, unseal=False: calls.append(unseal) or {"sealed": not unseal})
+    stub = OD.load
+    with CO.osf_assessment_sealed_until_lra_opening() as ok:              # no lock, no opening
         assert ok is False
         with pytest.raises(SystemExit, match="sealed by lra custody"):
             AS.open_assessment()
-    assert AS.open_assessment is orig
-    monkeypatch.setattr(CO, "lra_lock_pushed", lambda: (True, "pushed"))
+        with pytest.raises(SystemExit, match="sealed by lra custody"):
+            OD.load(unseal=True)                                          # the root of every unsealing loader
+        with pytest.raises(SystemExit, match="sealed by lra custody"):
+            OD.load(True, True)
+        assert OD.load(verify=True)["sealed"] is True and calls == [False]   # sealed loads pass through
+    assert AS.open_assessment is orig and OD.load is stub
+    _open_assessment(tmp_path, monkeypatch, bind=False)                   # lock pushed but not opened: still sealed
+    with CO.osf_assessment_sealed_until_lra_opening() as ok:
+        assert ok is False
+    _open_assessment(tmp_path / "o", monkeypatch)
     monkeypatch.setattr(CBC, "cbp_lock_pushed", lambda: (False, "cbp lock missing"))
-    with CO.osf_assessment_sealed_until_lra_lock() as ok:
+    with CO.osf_assessment_sealed_until_lra_opening() as ok:
         assert ok is False
     monkeypatch.setattr(CBC, "cbp_lock_pushed", lambda: (True, "pushed"))
-    with CO.osf_assessment_sealed_until_lra_lock() as ok:
-        assert ok is True and AS.open_assessment is orig
+    with CO.osf_assessment_sealed_until_lra_opening() as ok:
+        assert ok is True and AS.open_assessment is orig and OD.load is stub
+    monkeypatch.setattr(OD, "load", orig_load)
+
+
+def test_study_label_follows_the_new_engineering_gate(tmp_path, monkeypatch):
+    """ENGINEERING_BLOCKED -> ENGINEERING_BLOCKED_NOT_RUN; ENGINEERING_READY (verified) -> the locked inference label;
+    no gate yet or no inference yet -> no label. The lcr MECHANISM_GATE_NOT_MET is never this study's label."""
+    CO.PKG.mkdir(parents=True, exist_ok=True)
+    gate = CO.PKG / "ENGINEERING_GATE_RESULT.json"
+    assert CO.study_label()[0] is None                                    # the correctness stage has not run
+    gate.write_text(json.dumps({"verdict": "ENGINEERING_BLOCKED"}))
+    lab, why = CO.study_label()
+    assert lab == "ENGINEERING_BLOCKED_NOT_RUN" and "NOT RUN" in why
+    gate.write_text(json.dumps({"verdict": "ENGINEERING_READY"}))
+    assert CO.study_label()[0] is None                                    # READY but not verified (not pushed / bound)
+    monkeypatch.setattr(CO, "_engineering_ready", lambda: (True, "ENGINEERING_READY"))
+    src = tmp_path / "store"
+    assert CO.study_label(src=src) == (None, "no study label yet: the locked inference has not run "
+                                             "(run/inference.json absent)")
+    (src / "run").mkdir(parents=True)
+    (src / "run" / "inference.json").write_text(json.dumps({"label": "EXPERIMENTAL_NO_ADVANTAGE [A=x; B=y; C=z; Q=w]"}))
+    assert CO.study_label(src=src)[0] == "EXPERIMENTAL_NO_ADVANTAGE [A=x; B=y; C=z; Q=w]"
+
+    def boom():
+        raise SystemExit("no lock written")
+    monkeypatch.setattr(CO, "_engineering_ready", boom)
+    st = CO.engineering_gate_state()
+    assert st["engineering_ready"] is False and "did not verify" in st["state"]
+    for lab in (CO.study_label(src=src)[0], CO.lra_assessment_state(src)["study_label"]):
+        assert lab != "MECHANISM_GATE_NOT_MET"
 
 
 # ------------------------------------------------------------------ the full sequence
@@ -675,6 +897,77 @@ def test_d0_policy_targets_still_restore_through_the_pinned_qpc_path(tmp_path, m
                            copy.parent / CO.DEP_REL)
     assert ch["Q (synthetic D0)"]["status"] == "PASS" and ch["P*"]["status"] == "PASS", ch
     assert ch["Q (synthetic D0)"]["deployment_from_copy"]["binding"] == "BOUND"
+
+
+def test_role_targets_restore_from_the_copy_and_the_decoder_only_baseline_shares_the_tokens(tmp_path, monkeypatch):
+    """Role targets restore from the copy: P* (a D1 unit, learned decoder re-certified) and its decoder-only baseline (a
+    d0s__ same-map D0 unit through the pinned qpc path) carry bitwise identical tokens and decisions; their decoded
+    vectors differ. A role with no release is NOT_APPLICABLE with its truthful status."""
+    live, D, T, name, pair, decs = _synthetic_d1_world(tmp_path, monkeypatch)
+    from qpc import release as RL
+    d0 = "d0s__s1__U_DIRECT-TASK_i2o2_D1_D0SAME"
+    u = live / "run" / "units" / d0
+    u.mkdir(parents=True)
+    p0 = RL.load_policy(live / "run" / "units" / name / "policy.json")
+    p0.config["config"] = "U|DIRECT-TASK|i2o2|D1|D0SAME"
+    RL.save_policy(p0, u / "policy.json")
+    np.savez(u / "release.npz", **RL.release_arrays(p0, D["row_id"], T["p1"], T["d1"], T["p2"], T["d2"]))
+    (u / "record.json").write_text(json.dumps({"seed": 1, "teacher": "U", "config": "U|DIRECT-TASK|i2o2|D1|D0SAME"}))
+    _complete(u)
+    roles = {"P*": {"status": "NOMINATED", "unit": name, "config": "U|DIRECT-TASK|i2o2|D1"},
+             "decoder-only baseline": {"status": "FIXED", "unit": d0, "config": "U|DIRECT-TASK|i2o2|D1|D0SAME",
+                                       "paired_with": "P*"},
+             "sequential winner": {"status": "ABSENT", "reason": "synthetic world: no sequential arm"}}
+    targets = {"seed": 1, "roles": roles}
+    copy, _ = CO.copy_study(live, tmp_path / "copies" / "lra_v1_local_copy_t", {CO.DEP_REL: CO.INPUT})
+    checks, _ = CO.restore_all(copy, live, targets, 1, copy.parent / CO.DEP_REL)
+    st = {k: v.get("status") for k, v in checks.items()}
+    lab_p, lab_b = CO.role_label("P*", roles["P*"]), CO.role_label("decoder-only baseline", roles["decoder-only baseline"])
+    assert st[lab_p] == "PASS" and st[lab_b] == "PASS" and st[CO.SAME_MAP_CHECK] == "PASS", checks
+    sm = checks[CO.SAME_MAP_CHECK]
+    assert all(sm["identical"].values()) and sm["decoded_vectors_differ"]["q2"] is True
+    assert checks[lab_b]["deployment_from_copy"]["binding"] == "BOUND"
+    req = CO.required_targets_status(st, checks, None, roles, science_ran=True)
+    assert req["protected map"] == "PASS" and req["decoder-only baseline"] == "PASS" and req["learned decoder"] == "PASS"
+    assert req["sequential winner"] == "NOT_APPLICABLE (ABSENT: synthetic world: no sequential arm)"
+    assert req["attacker"].startswith("FAIL")                    # the science ran: an attacker restore is required
+
+
+def test_same_map_tokens_refuses_a_different_partition(tmp_path):
+    units = tmp_path / "c" / "run" / "units"
+    rows = np.arange(6, dtype=np.int64)
+    base = {"row_id": rows, "tok1": np.array([0, 0, 1, 1, 2, 2]), "tok2": np.array([0, 1, 0, 1, 0, 1]),
+            "hard1": np.array([0, 0, 1, 1, 1, 1]), "hard2": np.array([0, 1, 0, 1, 0, 1]),
+            "q1": np.full((6, 2), 0.5), "q2": np.full((6, 6), 1 / 6)}
+    for n, over in (("d0s__s1__a", {}), ("dec__s1__a", {"q1": np.full((6, 2), 0.4)}),
+                    ("dec__s1__b", {"tok1": np.array([0, 1, 1, 1, 2, 2])})):
+        (units / n).mkdir(parents=True)
+        np.savez(units / n / "release.npz", **{**base, **over})
+    ok = CO.same_map_tokens(tmp_path / "c", "d0s__s1__a", "dec__s1__a")
+    assert ok["status"] == "PASS" and ok["decoded_vectors_differ"] == {"q1": True, "q2": False}
+    bad = CO.same_map_tokens(tmp_path / "c", "d0s__s1__a", "dec__s1__b")
+    assert bad["status"] == "FAIL" and bad["identical"]["tok1"] is False
+    assert CO.same_map_tokens(tmp_path / "c", "d0s__s1__a", "dec__s1__missing")["status"] == "FAIL"
+    assert CO.same_map_tokens(tmp_path / "c", "d0s__s1__a", None)["status"] == "FAIL"
+
+
+def test_inventory_and_science_state_cover_the_new_namespaces(tmp_path):
+    store = tmp_path / "s"
+    for n in ("pol__s0__a", "dec__s0__a", "new__s0__U_K-LOCAL_i8o64_D1", "d0s__s0__a", "diag__s0__a", "cor__F1",
+              "aud__dec__s0__a", "outer__s0__x"):
+        (store / "run" / "units" / n).mkdir(parents=True)
+    (store / "run" / "units" / "new__s0__U_K-LOCAL_i8o64_D1" / "trace.json").write_text("{}")
+    inv = CO.unit_inventory(store)
+    assert {k: inv[k] for k in ("pol", "dec", "new", "d0s", "diag", "cor", "aud", "outer")} == {
+        "pol": 1, "dec": 1, "new": 1, "d0s": 1, "diag": 1, "cor": 1, "aud": 1, "outer": 1}
+    assert inv["units_with_trace.json"] == 1
+    assert CO.science_state(store)["science_ran"] is False                    # no hash-complete D1 unit yet
+    _complete(store / "run" / "units" / "new__s0__U_K-LOCAL_i8o64_D1")
+    assert CO.science_state(store) == {"adult_d1_fixed_map_units": 0, "adult_new_fit_units": 1, "science_ran": True}
+    ri = CO.restore_index("<PRIVATE_CACHE>", tmp_path / "lra_v1_local_copy_x", {}, True)
+    lay = json.dumps(ri["layout"])
+    assert all(x in lay for x in ("d0s__", "diag__", "cor__", "trace.json", "outer__", "aud__"))
+    assert "fix__" not in lay
 
 
 def test_the_copy_input_loader_refuses_a_missing_or_unpinned_file(tmp_path):
