@@ -25,3 +25,8 @@ Pinned unchanged copies:
   the correctness stage; the new DOCS list; the verbatim exposure statement; lcr added to GLOBS and TOP, so an
   accidental lcr import must be locked.
 - A, lra/run.py: the `fixture` stage became `correctness` (lra.fixtures.stage_correctness).
+- A, lra/admit.py: lcr_manifest_check (each planned unit and admitted dir must equal lcr SOURCE_ADMISSION.json at
+  091afc2, read via git show); the result is recorded in the receipt.
+- A, lra/run.py: SCIENCE_STAGES require engineering_ready(), meaning a lock-bound, pushed ENGINEERING_GATE_RESULT.json
+  with verdict ENGINEERING_READY (tests: lra/tests/test_run_gate.py). Also the CLASS|D1 diagnostic decode as
+  diag__s{k}__U_CLASS_i1o1_D1 (not a candidate; not in code_ids).

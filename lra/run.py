@@ -300,8 +300,17 @@ def policy_dict(name):
     return json.loads((U(name) / "policy.json").read_text())
 
 
+CLASS_D1 = "U|CLASS|i1o1|D1"
+
+
+def class_d1_unit(k):
+    """Registered DIAGNOSTIC (not a candidate, not in code_ids, never audited or nominated): the learned decoder on the
+    unchanged decision-only map, for DECISION_FLOOR_AND_FEASIBILITY.csv (prompt sections 10 and 16)."""
+    return f"diag__s{k}__U_CLASS_i1o1_D1"
+
+
 def d1_jobs():
-    return [(k, c) for k in SEEDS for c in d1_fixed_ids()]
+    return [(k, c) for k in SEEDS for c in d1_fixed_ids()] + [(k, CLASS_D1) for k in SEEDS]
 
 
 def stage_d1(D, shard_spec=None):
@@ -310,7 +319,7 @@ def stage_d1(D, shard_spec=None):
     from qpc import release as RL
     tr, Y, S = fit_data(D)
     for k, cid in shard(d1_jobs(), shard_spec):
-        n = unit_for(k, cid)
+        n = class_d1_unit(k) if cid == CLASS_D1 else unit_for(k, cid)
         if done(n):
             continue
         t0, c0 = time.time(), time.process_time()
@@ -337,6 +346,7 @@ def stage_d1(D, shard_spec=None):
         body = DEC.decoder_pair_dict(cid, pair, decs[0], decs[1])
         I12 = plugin_mi(rel["tok1"][tr], S, rel["tok2"][tr])
         r = {"schema": "lra-d1-fixed-v1", "config": cid, "seed": k, "d0_config": d0, "d0_unit": d0u,
+             "diagnostic_only": cid == CLASS_D1,
              "cfg": parse_id(cid), "policy_pair_fingerprint": pair.fingerprint(), "decoder_sha256": body["decoder_sha256"],
              "tokens_bitwise_equal_d0": same_tok, "fitting": fitstats, "I12_fit": I12,
              "certificates": {str(i): DEC.certificate_summary(d) for i, d in ((1, decs[0]), (2, decs[1]))},
@@ -422,6 +432,28 @@ def stage_fit(D, shard_spec=None):
 
 
 # ------------------------------------------------------------------ main
+SCIENCE_STAGES = ("d1", "ctask", "fit", "inner", "inner_src", "controls", "select")
+GATE_RESULT = "ENGINEERING_GATE_RESULT.json"
+
+
+def engineering_ready():
+    """Prompt section 9 / finding 10: every Adult science stage requires the correctness stage's ENGINEERING_READY
+    result, pushed to origin and bound (sha256) into the latest named lock's documents. Never hard-coded True."""
+    from lra import lock as LK
+    p = PKG / GATE_RESULT
+    if not p.exists():
+        return False, f"{GATE_RESULT} missing"
+    r = json.loads(p.read_text())
+    if r.get("verdict") != "ENGINEERING_READY":
+        return False, f"verdict is {r.get('verdict')!r}, not ENGINEERING_READY"
+    lat = LK.latest()
+    if lat["documents_sha256"].get(GATE_RESULT) != LK.sha_file(p):
+        return False, f"{GATE_RESULT} is not the version bound in {lat['name']}"
+    if not os.environ.get("CBP_LOCAL_ONLY") and not LK.on_origin(f"{LK.REL}/{GATE_RESULT}"):
+        return False, f"{GATE_RESULT} is not on origin"
+    return True, "ENGINEERING_READY"
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--lock", required=True)
@@ -434,6 +466,10 @@ def main(argv=None):
     v = LK.verify_lock(Path(a.lock), stage=a.stage)
     if not v["ok"]:
         raise SystemExit("REFUSED: lock does not verify: " + "; ".join(v["mismatches"][:10]))
+    if a.stage in SCIENCE_STAGES:
+        ok, why = engineering_ready()
+        if not ok:
+            raise SystemExit("REFUSED: Adult science stages require ENGINEERING_READY: " + why)
     D = None
     if a.stage != "correctness":                 # fixtures are synthetic known laws: no real data is loaded
         from lra import data as DA

@@ -170,11 +170,37 @@ def reencode_parity(unit, k):
     return res
 
 
+LCR_MANIFEST_REL = "results/pcrl_learned_decoder_constrained_release_v1/SOURCE_ADMISSION.json"
+LCR_TIP = "091afc2007164fd928d4b792593d6f9eaf75b17c"
+
+
+def lcr_manifest_check(pl):
+    """lra reuses the lcr admission manifest (prompt section 5): every planned unit's file hashes and every admitted
+    teacher directory must equal the lcr SOURCE_ADMISSION.json read at the pinned lcr tip (git show, not the worktree)."""
+    raw = subprocess.run(["git", "-C", str(WT), "show", f"{LCR_TIP}:{LCR_MANIFEST_REL}"], capture_output=True, check=True).stdout
+    man = json.loads(raw)
+    bad = []
+    for u, rec in pl["units"].items():
+        m = man["units"].get(u)
+        if m is None or m["files_sha256"] != rec["files"]:
+            bad.append(f"unit {u}")
+    extra = sorted(set(man["units"]) - set(pl["units"]))
+    for a in admitted_dirs():
+        if man["admitted_teacher_dirs"].get(a) != pl["admitted"].get(a):
+            bad.append(f"admitted {a}")
+    return {"manifest": LCR_MANIFEST_REL, "manifest_sha256": hashlib.sha256(raw).hexdigest(), "at_commit": LCR_TIP,
+            "units_checked": len(pl["units"]), "admitted_checked": len(admitted_dirs()), "mismatches": bad,
+            "manifest_units_not_planned": extra, "ok": not bad and not extra}
+
+
 def run(D):
     """Verified copies + parity. Refuses (SystemExit) on any mismatch. Writes the private receipt and returns it."""
     pl = plan()
     if pl["bad"]:
         raise SystemExit("ADMISSION REFUSED (hash mismatch): " + "; ".join(pl["bad"][:10]))
+    lcr_check = lcr_manifest_check(pl)
+    if not lcr_check["ok"]:
+        raise SystemExit(f"ADMISSION REFUSED: differs from the lcr admission manifest: {lcr_check}")
     (LRA / "run" / "units").mkdir(parents=True, exist_ok=True)
     (LRA / "admitted").mkdir(parents=True, exist_ok=True)
     copied = []
@@ -198,7 +224,8 @@ def run(D):
            "source_evidence": SRC_EVIDENCE, "hash_sources": ["cbp unit COMPLETE.json",
                                                              "cbp same-device copy SHA256SUMS",
                                                              "cbp EVALUATION_LOCK unit_file_sha256 (scored units)"],
-           "copied_now": copied, "teachers": {}, "codes": {}, "units": sorted(pl["units"])}
+           "copied_now": copied, "teachers": {}, "codes": {}, "units": sorted(pl["units"]),
+           "lcr_manifest_check": lcr_check}
     for k in SEEDS:
         for t in TEACHERS:
             r = teacher_parity(k, t, D)
@@ -224,5 +251,8 @@ def admission_record():
 if __name__ == "__main__":
     if sys.argv[1:] == ["plan"]:
         pl = plan()
+        lc = lcr_manifest_check(pl)
         print(json.dumps({"units": len(pl["units"]), "admitted_dirs": len(pl["admitted"]), "inputs": sorted(pl["inputs"]),
-                          "bad": pl["bad"][:20], "precheck_ok": not pl["bad"]}, indent=1))
+                          "bad": pl["bad"][:20], "precheck_ok": not pl["bad"], "lcr_manifest_ok": lc["ok"],
+                          "lcr_mismatches": lc["mismatches"][:20], "lcr_extra": lc["manifest_units_not_planned"][:20]},
+                         indent=1))
