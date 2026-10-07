@@ -52,3 +52,12 @@ Pinned unchanged copies:
   - CLASS is a feasible-only joint witness, making 30;
   - SEARCH_RULES.json is regenerated (rules_sha256 bc8bb48c…; R-7);
   - TIMING["fitting"] covers the 27-decode bank, at 0.61 CPU-h projected.
+- D, the selection stack (frozen at the "Freeze the selection stack" commit):
+  - select: F01–F07, F09, F11; CLASS|D1 in T*; the d0same stage; release identity on permitted rows; same-map
+    decoder pairs, including CLASS|D1 vs CLASS.
+  - family: bootstrap seed 20261010, z95, the new engineering-gate labels with the A/B/C/Q suffix, and no gate_met.
+  - eval_lock: refusal on technical failure with no escape flag; the scored list plus D0SAME and CLASS|D1; alias
+    re-derivation.
+  - infer: gate refusal, disclosures and the z95 same-map contrasts.
+  - assess: verify_validity (S9).
+  - audit: the 84-code bank and the real-data control mapping (REVIEW_FINDINGS_DISPOSITION.json).

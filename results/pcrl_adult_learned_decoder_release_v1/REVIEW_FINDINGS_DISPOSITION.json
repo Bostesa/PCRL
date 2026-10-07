@@ -26,7 +26,7 @@
    "disposition": "RESOLVED",
    "verified_against_pinned_code": "CONFIRMED at the pin: fit_feasible caught every exception and returned False, and a record without status / deployed.feasible returned False, so a technical record defect became CONSTRAINED_FIT_INFEASIBLE (lcr/select.py 114-127 = lra port lines 115-128)",
    "source_patch_applied_verbatim": false,
-   "resolution": "fit_feasible returns (True | False | None, detail). None (TECHNICAL) for a fit unit that is missing or not hash-complete, an unreadable record, a status outside {FEASIBLE, INFEASIBLE}, a missing or non-boolean deployed.feasible, or a record naming another configuration / seed; candidate_rows turns None into the technical reason FIT_RECORD_TECHNICAL_FAILURE (registered in lra.family.SELECTION_REASONS / TECHNICAL_SELECTION_REASONS, LABEL_TRUTH_TABLE.json, SELECTION_RULES.json), the row is not ok and every role whose pool contains it is INVALID_* with fallback_class TECHNICAL. Only a complete record with status INFEASIBLE or deployed.feasible False is the scientific CONSTRAINED_FIT_INFEASIBLE. A technically invalid role blocks the evaluation lock (F13). A release unit that is missing is FIT_OR_ADMISSION_FAILURE first",
+   "resolution": "fit_feasible returns (True | False | None, detail). None (TECHNICAL) for a fit unit that is missing or not hash-complete, an unreadable record, a status outside {FEASIBLE, INFEASIBLE}, a missing or non-boolean deployed.feasible, a record naming another configuration / seed, or a status that disagrees with deployed.feasible (FEASIBLE with False or INFEASIBLE with True; the registered mapper never writes either); candidate_rows turns None into the technical reason FIT_RECORD_TECHNICAL_FAILURE (registered in lra.family.SELECTION_REASONS / TECHNICAL_SELECTION_REASONS, LABEL_TRUTH_TABLE.json, SELECTION_RULES.json), the row is not ok and every role whose pool contains it is INVALID_* with fallback_class TECHNICAL. Only a complete, consistent INFEASIBLE record (status INFEASIBLE with deployed.feasible False) is the scientific CONSTRAINED_FIT_INFEASIBLE. A technically invalid role blocks the evaluation lock (F13). A release unit that is missing is FIT_OR_ADMISSION_FAILURE first",
    "affected_files": [
     "lra/select.py",
     "lra/family.py",
@@ -40,17 +40,17 @@
     "lra/tests/test_select.py::test_missing_release_unit_is_a_fit_or_admission_failure"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
-     "lra/tests/test_select.py::test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible": "PASS (7 cases)",
+     "lra/tests/test_select.py::test_f01_unreadable_or_incomplete_fit_record_is_technical_not_infeasible": "PASS (9 cases)",
      "lra/tests/test_select.py::test_f01_fit_feasible_values": "PASS (1 case)",
      "lra/tests/test_select.py::test_infeasible_constrained_fit_is_never_nominated": "PASS (1 case)",
      "lra/tests/test_select.py::test_missing_release_unit_is_a_fit_or_admission_failure": "PASS (1 case)"
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 2,
@@ -77,7 +77,7 @@
     "lra/tests/test_select.py::test_f09_equal_rank_aliases_pick_one_by_config_id_never_a_joined_name"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first": "PASS (1 case)",
@@ -85,7 +85,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 3,
@@ -115,7 +115,7 @@
     "lra/tests/test_truth_table.py::test_overall_label_required_gate_argument_and_q_never_hides_incomplete_work"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named": "PASS (1 case)",
@@ -124,7 +124,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 4,
@@ -151,7 +151,7 @@
     "lra/tests/test_late.py::test_f04_missing_guard_fallback_stays_on_the_scored_list"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f04_missing_guard_comparator_keeps_the_descriptive_fallback_on_the_scored_list": "PASS (1 case)",
@@ -159,7 +159,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 5,
@@ -183,14 +183,14 @@
     "lra/tests/test_select.py::test_f05_reference_metadata_truthful_and_pools_registered"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f05_reference_metadata_truthful_and_pools_registered": "PASS (1 case)"
     }
    },
    "affects_required_adult_execution": false,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 6,
@@ -216,7 +216,7 @@
     "lra/tests/test_select.py::test_f06_states_ordering_finite_for_codes_inf_only_for_continuous"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f06_malformed_token_states_is_technical_not_continuous": "PASS (5 cases)",
@@ -224,7 +224,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 7,
@@ -251,7 +251,7 @@
     "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role": "PASS (1 case)",
@@ -259,7 +259,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 8,
@@ -285,7 +285,7 @@
     "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped": "PASS (1 case)",
@@ -293,7 +293,7 @@
     }
    },
    "affects_required_adult_execution": false,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 9,
@@ -320,7 +320,7 @@
     "lra/tests/test_select.py::test_f03_untrained_exact_alias_is_disclosed_and_never_named"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f02_f09_label_names_one_real_alias_construction_first": "PASS (1 case)",
@@ -329,7 +329,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 10,
@@ -365,7 +365,7 @@
     "lra/tests/test_run_gate.py::test_old_gate_met_string_is_not_ready"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_late.py::test_f10_infer_refuses_without_engineering_ready": "PASS (4 cases)",
@@ -378,7 +378,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 11,
@@ -406,7 +406,7 @@
     "lra/tests/test_select.py::test_release_identity_on_permitted_rows_only"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_select.py::test_f07_f11_role_aliases_use_release_identity_for_every_role": "PASS (1 case)",
@@ -415,7 +415,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 12,
@@ -443,7 +443,7 @@
     "lra/tests/test_truth_table.py::test_truth_table_document_matches_executable"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_truth_table.py::test_f08_f12_no_stale_cbp_or_lcr_names_and_every_reason_code_mapped": "PASS (1 case)",
@@ -452,7 +452,7 @@
     }
    },
    "affects_required_adult_execution": false,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 13,
@@ -479,7 +479,7 @@
     "lra/tests/test_late.py::test_f13_assess_open_calls_the_validity_check_with_no_override"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_late.py::test_f13_eval_lock_main_refuses_technical_failure_and_has_no_escape_flag": "PASS (1 case)",
@@ -489,7 +489,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   },
   {
    "source_ordinal": 14,
@@ -517,7 +517,7 @@
     "lra/tests/test_late.py::test_fallback_is_descriptive_and_failures_are_scoped"
    ],
    "test_result": {
-    "run": "lra.sema D:tests-mine-full, 2026-10-07T04:46:07Z",
+    "run": "lra.sema D:tests-mine-frozen, 2026-10-07T05:03:36Z",
     "all_pass": true,
     "per_test": {
      "lra/tests/test_truth_table.py::test_overall_label_whole_truth_table_with_engineering_gate": "PASS (1 case)",
@@ -526,7 +526,7 @@
     }
    },
    "affects_required_adult_execution": true,
-   "pre_science_commit": "82bbf7b41e6fd540cbbbb47510dd726857d816e4"
+   "pre_science_commit": "6274abef3b0b74e07b236e0d4758474673026613"
   }
  ],
  "consolidations": {
@@ -535,9 +535,9 @@
   "F08+F12": "current reason codes and stale-text removal"
  },
  "test_run": {
-  "command": "env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m lra.sema --label D:tests-mine-full -- env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m pytest -q lra/tests/test_select.py lra/tests/test_truth_table.py lra/tests/test_late.py lra/tests/test_audit.py lra/tests/test_run_gate.py",
-  "result": "153 passed, 0 failed",
+  "command": "env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m lra.sema --label D:tests-mine-frozen -- env OMP_NUM_THREADS=1 PYTHONPATH=. <venv>/python -m pytest -q lra/tests/test_select.py lra/tests/test_truth_table.py lra/tests/test_late.py lra/tests/test_audit.py lra/tests/test_run_gate.py",
+  "result": "155 passed, 0 failed",
   "synthetic_only": true
  },
- "pre_science_commit_note": "the commit containing every repair and its regression test, before CORRECTNESS_LOCK and SCIENCE_LOCK"
+ "pre_science_commit_note": "the commit at which every repair and its regression test is in its final (frozen) form, before CORRECTNESS_LOCK and SCIENCE_LOCK; earlier partial repairs at 82bbf7b"
 }
