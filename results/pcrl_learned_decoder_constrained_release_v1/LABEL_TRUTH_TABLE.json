@@ -13,7 +13,7 @@
   "a failed required control (without an amendment that repairs it) -> INCOMPLETE_OR_INVALID, root cause FAILED_REQUIRED_CONTROL",
   "comparator technically failed or missing -> INCOMPLETE_OR_INVALID, root cause INVALID_OR_MISSING_COMPARATOR",
   "nominee technically failed (fit/admission failure, decision-preservation failure, non-estimable candidate, or an eligible nominee blocked only by a missing guard comparator) -> INCOMPLETE_OR_INVALID with that root cause",
-  "no eligible nominee -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE, with the selection reason (ORDINARY_UTILITY_FAILURE or LOCAL_GUARD_FAILURE); the fixed fallback is DESCRIPTIVE_ONLY and can never pass",
+  "no eligible nominee -> NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE, with the selection reason (ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE or CONSTRAINED_FIT_INFEASIBLE); the fixed fallback is DESCRIPTIVE_ONLY and can never pass",
   "comparator candidates computed but none eligible -> INCOMPLETE_OR_INVALID, root cause NO_ELIGIBLE_COMPARATOR (never a completed head-to-head negative)",
   "outcomes empty -> INCOMPLETE_OR_INVALID (NO_CLAUSES); outcomes not exactly the claim's registered 11 slots -> INCOMPLETE_OR_INVALID (MISSING_SLOTS; the family is never shrunk)",
   "any INVALID clause -> INCOMPLETE_OR_INVALID, root cause NONFINITE_PRIMARY_QUANTITY",
@@ -45,7 +45,8 @@
   "NON_ESTIMABLE_INNER_METRIC": "a required inner field (AUC, accuracy, log loss, Brier, constant accuracy, excess) is missing or nonfinite",
   "ORDINARY_UTILITY_FAILURE": "no candidate of the role is ordinarily eligible on every seed",
   "LOCAL_GUARD_FAILURE": "ordinarily eligible candidates exist but none meets the local guards",
-  "MISSING_GUARD_COMPARATOR": "a required guard comparator is missing (technical; no guard rank computed)"
+  "MISSING_GUARD_COMPARATOR": "a required guard comparator is missing (technical; no guard rank computed)",
+  "CONSTRAINED_FIT_INFEASIBLE": "every candidate of a constrained role failed its registered FITTING budgets/local caps on some seed (infeasible under this registered decoder); a selection outcome (NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE), not a technical failure"
  },
  "failure_scope": {
   "global (technical_valid=False; blocks every favourable label)": [

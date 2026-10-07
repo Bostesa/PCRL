@@ -53,6 +53,8 @@ def _bank(tweak=None):
             inner[R.inner_name(k, cid)] = r
             if p["kind"] == "policy":
                 rel[(k, cid)] = f"{cid}|{k}"
+                if p["arm"] == "constrained":
+                    inner[R.unit_for(k, cid)] = {"status": "FEASIBLE", "deployed": {"feasible": True}}
     if tweak:
         tweak(inner, rel)
     return inner, rel
@@ -139,3 +141,16 @@ def test_exact_release_alias_names_simplest_construction(run_sel):
     p = out["statuses"]["P*"]
     assert set(p["aliases"]["full"]) == {SEL.JOINT_PAIR, "U|W-SEQ-21|i8o64|l0.1|D1"}
     assert p["winning"] == "SEQ-21; weighted"
+
+
+def test_infeasible_constrained_fit_is_never_nominated(run_sel):
+    def tw(inner, rel):
+        for c in R.constrained_ids():
+            inner[R.unit_for(1, c)] = {"status": "INFEASIBLE", "deployed": {"feasible": False}}
+    out = run_sel(*_bank(tw))
+    st = out["statuses"]
+    assert st["N*"]["status"] == "NO_ELIGIBLE_NOMINEE" and st["N*"]["reason"] == "CONSTRAINED_FIT_INFEASIBLE"
+    assert st["J*"]["reason"] == "CONSTRAINED_FIT_INFEASIBLE"
+    assert R.parse_id(st["P*"]["config"])["arm"] != "constrained"
+    assert R.parse_id(st["C_pair*"]["config"])["arm"] != "constrained"
+    assert out["claim_role_states"]["B"]["nominee"] == "NO_ELIGIBLE"

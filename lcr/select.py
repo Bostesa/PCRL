@@ -19,7 +19,10 @@ Roles (prompt section 10):
   C*      strongest eligible incumbent/baseline private release (D0 / D1 fixed-map privacy maps, weighted controls;
           NO constrained arm); comparator: ordinary eligibility only
   N*      strongest eligible NEW constrained release (any of the 5 arms), guards vs BOTH T* and C*
-  C_pair* strongest eligible release other than K-JOINT-PAIR (every scored candidate except it); comparator
+  C_pair* strongest eligible release other than K-JOINT-PAIR (every scored candidate except it and except infeasible
+          constrained fits); comparator
+  Constrained arms are eligible only when their fit is FEASIBLE on every seed (fit_feasible; review R-4); otherwise
+  the role reason is CONSTRAINED_FIT_INFEASIBLE ("infeasible under this registered decoder"), a selection outcome.
   J*      strongest eligible K-JOINT-PAIR release, guards vs BOTH T* and C_pair*
   Q       fixed D0 U|DIRECT-TASK|i8o64 (ordinary eligibility prerequisite)
 Ordering: mean INNER pair AUC, mean summed true-label log loss (both float64 seed means (s0+s1+s2)/3 in seed order, then
@@ -108,6 +111,22 @@ def release_hash(k, cid):
     return h.hexdigest()
 
 
+def fit_feasible(cid):
+    """Constrained arms are eligible only if their fit is FEASIBLE on every seed (status FEASIBLE and the deployed
+    release feasible under the registered decoder and budgets; review R-4). An infeasible constrained unit is saved as a
+    descriptive copy by lcr.mapper and is never a nominee; other arms have no fitting-budget requirement (True)."""
+    if arm(cid) != "constrained":
+        return True
+    for k in SEEDS:
+        try:
+            f = R.rec(R.unit_for(k, cid))
+        except Exception:                                                    # noqa: BLE001
+            return False
+        if not (f.get("status") == "FEASIBLE" and (f.get("deployed") or {}).get("feasible") is True):
+            return False
+    return True
+
+
 def candidate_rows(ids):
     anchors = {}
     for k in SEEDS:
@@ -151,7 +170,8 @@ def candidate_rows(ids):
                         "token_states": float(ts) if ts is not None else None,
                         "composed_winner": (r.get("composed") or {}).get("winner"), "release_hash": rh}
         ok = not fail and len(seeds) == len(SEEDS)
-        row = {"config": cid, "arm": arm(cid), "family": (R.parse_id(cid).get("base_family") or arm(cid)),
+        fit_ok = fit_feasible(cid) if ok else None
+        row = {"fit_feasible": fit_ok, "config": cid, "arm": arm(cid), "family": (R.parse_id(cid).get("base_family") or arm(cid)),
                "privacy_trained": privacy_trained(cid), "training": training(cid), "technical_failure": fail, "ok": ok,
                "seeds": seeds}
         if ok:
@@ -162,7 +182,8 @@ def candidate_rows(ids):
                         "mean_sum_logloss": mean(lambda s: s["utility"]["income"]["logloss"] +
                                                  s["utility"]["occupation"]["logloss"]),
                         "mean_states": None if any(x is None for x in st) else sum(st) / len(st),
-                        "ordinary": all(s["ordinary"] for s in seeds.values()),
+                        "ordinary_inner": all(s["ordinary"] for s in seeds.values()),
+                        "ordinary": all(s["ordinary"] for s in seeds.values()) and bool(fit_ok),
                         "ordinary_shortfall": max(s["ordinary_shortfall"] for s in seeds.values())})
         rows[cid] = row
     return rows
@@ -208,6 +229,7 @@ def pick(rows, guards=None, nominee=True):
     for r in rows:
         ok = (not missing) and guard_ok(r, live)
         ev.append({"config": r["config"], "arm": r["arm"], "family": r["family"], "ordinary": r["ordinary"],
+                   "fit_feasible": r.get("fit_feasible"), "ordinary_inner": r.get("ordinary_inner"),
                    "ordinary_shortfall": r["ordinary_shortfall"],
                    "guard_shortfall": None if missing else guard_shortfall(r, live), "eligible": r["ordinary"],
                    "guard_ok": ok, "nominable": r["ordinary"] and ok})
@@ -218,7 +240,9 @@ def pick(rows, guards=None, nominee=True):
     el = [byc[e["config"]] for e in ev if e["nominable"]]
     if el:
         return {"status": "NOMINEE", "config": min(el, key=key)["config"], "evaluated": ev}
-    reason = "ORDINARY_UTILITY_FAILURE" if not any(e["ordinary"] for e in ev) else "LOCAL_GUARD_FAILURE"
+    feas = [byc[e["config"]].get("fit_feasible") is not False for e in ev]
+    reason = ("CONSTRAINED_FIT_INFEASIBLE" if not any(feas) else
+              "ORDINARY_UTILITY_FAILURE" if not any(e["ordinary"] for e in ev) else "LOCAL_GUARD_FAILURE")
     out = {"status": none, "config": None, "descriptive_only": True, "reason": reason, "evaluated": ev}
     if missing:
         fb = min(ev, key=lambda e: (round(e["ordinary_shortfall"], 12),) + key(byc[e["config"]]))
@@ -293,7 +317,8 @@ def select_all(D=None, shard_spec=None):
     st["P*"] = pick(get(private_all(ids)), guards={"T*": gv("T*")})
     st["C*"] = pick(get(incumbent_private(ids)), nominee=False)
     st["N*"] = pick(get(constrained(ids)), guards={"T*": gv("T*"), "C*": gv("C*")})
-    st["C_pair*"] = pick(get([c for c in ids if c != JOINT_PAIR]), nominee=False)
+    st["C_pair*"] = pick(get([c for c in ids if c != JOINT_PAIR and rows[c].get("fit_feasible") is not False]),
+                         nominee=False)
     st["J*"] = pick(get([JOINT_PAIR]), guards={"T*": gv("T*"), "C_pair*": gv("C_pair*")})
     for x in ("P*", "N*", "J*"):
         st[x]["aliases"] = alias_set(rows, st[x].get("config") or st[x].get("descriptive_config"))
@@ -322,7 +347,8 @@ def select_all(D=None, shard_spec=None):
     out = R._finite(out)
     (R.RUN / "selection.json").write_text(json.dumps(out, indent=1, allow_nan=False) + "\n")
     pub = {k: v for k, v in out.items() if k != "rows"}
-    pub["rows"] = {c: {x: r.get(x) for x in ("arm", "family", "privacy_trained", "training", "ok", "ordinary", "mean_pair",
+    pub["rows"] = {c: {x: r.get(x) for x in ("arm", "family", "privacy_trained", "training", "ok", "fit_feasible",
+                                            "ordinary_inner", "ordinary", "mean_pair",
                                             "mean_v1", "mean_v2", "mean_sum_logloss", "mean_states",
                                             "ordinary_shortfall")} for c, r in out["rows"].items()}
     (R.PKG / "SELECTION.json").write_text(json.dumps(pub, indent=1, allow_nan=False) + "\n")

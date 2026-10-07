@@ -99,7 +99,7 @@
   "rule": "when no candidate is nominable: smallest ordinary shortfall, then smallest guard shortfall, then the ordering keys; DESCRIPTIVE_ONLY",
   "ordinary_shortfall": "max(0, max over tasks t and seeds k of (a_U - 0.01 - a)/0.01, (dLL - 0.01)/0.01, (dB - 0.005)/0.005, (0.8 g_U - g)/max(0.8 g_U, 0.03), (0.03 - g)/0.03)",
   "missing_guard": "a required guard role without a valid nominee: INVALID (MISSING_GUARD_COMPARATOR) if any candidate is eligible; otherwise NO_ELIGIBLE with fallback ranked on the ordinary shortfall and ordering keys only and fallback_rank_status INVALID_MISSING_GUARD_COMPARATOR (never a zero guard field)",
-  "reason_codes": "FIT_OR_ADMISSION_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC (technical; joined with '+'); ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE (selection); MISSING_GUARD_COMPARATOR"
+  "reason_codes": "FIT_OR_ADMISSION_FAILURE, DECISION_PRESERVATION_FAILURE, NON_ESTIMABLE_INNER_METRIC (technical; joined with '+'); ORDINARY_UTILITY_FAILURE, LOCAL_GUARD_FAILURE (selection); MISSING_GUARD_COMPARATOR; CONSTRAINED_FIT_INFEASIBLE (selection)"
  },
  "aliases": "exact release aliases = identical deployed tokens AND released probabilities on all three seeds (sha256 of tok1, q1, tok2, q2); a D1 fixed-map release shares tokens with its D0 map but is NOT an alias. The label names the simplest family and construction among P*'s exact aliases (LABEL_TRUTH_TABLE.json winning_family_naming); partial aliases and the ID tie-break are disclosed",
  "prespecified_diagnostics": [
@@ -111,5 +111,6 @@
  "candidates_per_seed": 88,
  "display": {
   "training": "rows carry a display field 'training': privacy-trained code / privacy-untrained code / privacy-trained reference (RAW-J, FARE, LEACE) / privacy-untrained reference (SRC|U, F0); display only, never a role input"
- }
+ },
+ "constrained_fit_feasibility": "a constrained unit (K-*) is eligible only if its fit record has status FEASIBLE and deployed.feasible True on EVERY seed; an infeasible constrained fit (saved by lcr.mapper as a descriptive copy) is never a nominee for P*, N* or J*, is excluded from the C_pair* comparator pool, and gives the role reason CONSTRAINED_FIT_INFEASIBLE ('infeasible under this registered decoder') when no feasible candidate exists; it may still be the descriptive fallback (flag fit_feasible false). Consequence (registered): K arms have no restoration phase, so if C-TASK violates a fitting budget on a seed, K-LOCAL (whose only start is C-TASK) is infeasible on that seed by construction"
 }
