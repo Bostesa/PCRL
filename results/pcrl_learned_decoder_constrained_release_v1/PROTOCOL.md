@@ -248,6 +248,39 @@ New mapping-pair fits: 72 weighted + 18 C-TASK/constrained = 90. The full manife
 **Route classification** (frozen): DECODER_ENABLED_ROUTE if the trigger passes only because D1 makes an old private map
 usable; ASSIGNMENT_SEARCH_ROUTE if new assignment search also helps.
 
+**Pre-lock clarifications of FIXTURE_GATE_RULE.json (registered at dd1cf23; changed before FIXTURE_LOCK, laws
+unchanged).** A text/code review before the lock found disagreements. Each was resolved before any study algorithm ran:
+- **C3:** the text now matches the intended and implemented scope. The budget part of feasible() binds the constrained
+  (K-) arms. Unconstrained arms (C-TASK, W-) report FEASIBLE for their own constraints only (decisions and caps); their
+  budgets are evaluated at qualification.
+- **C5:** the winning start's incrementally updated search-state terms are now compared with the from-scratch rebuild.
+  Before, C5 compared two from-scratch computations. The token-loss helper condition is now registered.
+- **C7:** on the registered run, the laws and the rule must equal the lock's documents_sha256, and reloaded shard units
+  must carry the same laws hash.
+- **C2:** the per-arm released q is compared with the D0 decoding of the same pair.
+- **C1, C6:** the extra C1 condition (every release of every arm) and the NOT_A_SEARCH label for D1 fixed-map
+  controls are now registered.
+- **Descriptive flags:** the two descriptive flags (best constrained vs best weighted I12; joint vs sequential I12) are
+  now defined and computed on every fixture. They never enter the verdict.
+
+**Registered expectation before the stage runs (structural, not a fit result).**
+- **Bound.** Every class-preserving release determines both predicted classes (c1, c2). So I12(R) ≥ I12(CLASS|D1) for
+  every release R.
+- **Consequence.** Whenever CLASS|D1 is budget-feasible, it is the strongest feasible task-only compression, and no
+  release can reduce pair MI below it. A triggering fixture therefore needs CLASS|D1 to violate a fitting budget.
+- **Laws.** In all four registered laws, SEX is balanced within every predicted-class pair, so I12(CLASS|D1) = 0
+  exactly.
+- **E's oracle counts.** Role E's independent oracle was run on the registered laws BEFORE this lock. That is a
+  deviation from "push FIXTURE_LOCK before algorithms run on them"; it is disclosed here. Its counts:
+  - CLASS|D1 is budget-feasible on F2, F3 and F4;
+  - F1 has no budget-feasible task-only map.
+- **Expected verdict.** GATE_NOT_MET with NO_FIXTURE_TRIGGERED: F1 for NO_FEASIBLE_TASK_ONLY; F2–F4 because T* =
+  CLASS|D1 with I12 = 0, so they are not nontrivial.
+- **Laws not amended.** The prompt requires the laws to be written before fixture algorithms run and forbids a hunt
+  for a favourable example, and the outcome was already predictable from E's counts. The gate is run exactly as
+  registered. Its failure is reported with this precise scope: the registered fixtures could not trigger. It is not
+  evidence that the mechanism fails on Adult.
+
 **If the gate fails:**
 - no Adult fit;
 - finish the fixture decision, oracle replay and deployment/backup;

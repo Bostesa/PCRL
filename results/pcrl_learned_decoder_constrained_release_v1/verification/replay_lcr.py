@@ -3092,24 +3092,75 @@ def lcr_task_check(u, uU):
 
 
 def lcr_config_row(cid, per_seed, seed_average=False):
-    """Every-seed, every-task ordinary eligibility; seed_average=True is the deliberate defect."""
+    """Every-seed, every-task ordinary eligibility; seed_average=True is the deliberate defect. A constrained (K-) arm
+    is eligible only if its fit is FEASIBLE (status FEASIBLE and deployed feasible) on EVERY seed (SELECTION_RULES
+    constrained_fit_feasibility, review R-4): per_seed[k]["fit_feasible"]; other arms carry no fitting requirement."""
     r = config_row(cid, per_seed, headroom={"ll_excess": GATE["ll_excess"], "brier_excess": GATE["brier_excess"]},
                    seed_average=seed_average)
-    r["family"], r["lam"], r["arm"] = lcr_family(cid), None, lcr_arm(cid)
+    r["family"], r["lam"], r["arm"] = lcr_family(cid), cid_lam(cid), lcr_arm(cid)
     r.pop("headroom_eligible", None)
     r.pop("shortfall_headroom", None)
-    r["headroom_eligible"] = r.get("ordinary_eligible", False)     # pick_role compatibility (no headroom in lcr)
-    r["shortfall_headroom"] = 0.0
+    if lcr_arm(cid) == "constrained":
+        r["fit_feasible"] = bool(r.get("valid")) and all(bool((per_seed.get(k) or {}).get("fit_feasible")) for k in SEEDS)
+    else:
+        r["fit_feasible"] = True
+    r["ordinary_inner"] = r.get("ordinary_eligible", False)
+    r["ordinary_eligible"] = bool(r["ordinary_inner"] and r["fit_feasible"])
     return r
 
 
 def lcr_pick_role(rows, cands, nominee, guard_names=(), statuses=None, reverse=False):
-    st = pick_role(rows, cands, nominee, False, guard_names, statuses, reverse=reverse)
-    for e in st.get("evaluated", []) or []:
-        e.pop("headroom_eligible", None)
-        e.pop("shortfall_headroom", None)
-    st.pop("fallback_shortfalls", None) if st.get("status") == "NOMINEE" else None
-    return st
+    """One role (SELECTION_RULES.json roles / statuses / fallback_ordering / constrained_fit_feasibility; own code).
+    reverse=True is the deliberate defect 'reversed best / worst'."""
+    none = "NO_ELIGIBLE_NOMINEE" if nominee else "NO_ELIGIBLE_COMPARATOR"
+    bad = "INVALID_NOMINEE" if nominee else "INVALID_COMPARATOR"
+    statuses = statuses or {}
+    if not cands:
+        return {"status": bad, "config": None, "reason": "FIT_OR_ADMISSION_FAILURE", "detail": "empty candidate set"}
+    inval = {c_: (rows.get(c_) or {}).get("invalid_reason") or "FIT_OR_ADMISSION_FAILURE" for c_ in cands
+             if not (rows.get(c_) or {}).get("valid")}
+    if inval:
+        return {"status": bad, "config": None, "reason": "+".join(dict.fromkeys(
+            x for v in inval.values() for x in v.split("+"))), "invalid_candidates": inval}
+    missing_guard = [g_ for g_ in guard_names if (statuses.get(g_) or {}).get("status") != "NOMINEE"]
+    guards = [rows[statuses[g_]["config"]] for g_ in guard_names if g_ not in missing_guard]
+    ev = []
+    for c_ in cands:
+        r = rows[c_]
+        el = r["ordinary_eligible"]
+        gok, gs = guard_check(r, guards)
+        e = {"config": c_, "ordinary_eligible": el, "ordinary_inner": r["ordinary_inner"], "fit_feasible": r["fit_feasible"],
+             "shortfall_ordinary": r["shortfall_ordinary"]}
+        if missing_guard:
+            e.update({"guard_ok": None, "shortfall_guard": None, "nominable": False,
+                      "fallback_key": (not r["fit_feasible"], round(r["shortfall_ordinary"], ORDER_DECIMALS)) + okey(r)})
+        else:
+            e.update({"guard_ok": gok, "shortfall_guard": gs, "nominable": el and gok,
+                      "fallback_key": (not r["fit_feasible"], round(r["shortfall_ordinary"], ORDER_DECIMALS),
+                                       round(gs, ORDER_DECIMALS)) + okey(r)})
+        ev.append(e)
+    if missing_guard and any(e["ordinary_eligible"] for e in ev):
+        return {"status": bad, "config": None, "reason": "MISSING_GUARD_COMPARATOR", "missing_guards": missing_guard,
+                "blocked_eligible": [e["config"] for e in ev if e["ordinary_eligible"]], "evaluated": ev}
+    nom = [e for e in ev if e["nominable"]]
+    if nom:
+        best = (max if reverse else min)(nom, key=lambda e: okey(rows[e["config"]]))
+        return {"status": "NOMINEE", "config": best["config"], "evaluated": ev}
+    if not any(e["fit_feasible"] for e in ev):
+        why = "CONSTRAINED_FIT_INFEASIBLE"
+    elif not any(e["ordinary_eligible"] for e in ev):
+        why = "ORDINARY_UTILITY_FAILURE"
+    else:
+        why = "LOCAL_GUARD_FAILURE"
+    fb = min(ev, key=lambda e: e["fallback_key"])
+    out = {"status": none, "config": None, "descriptive_config": fb["config"], "reason": why, "evaluated": ev,
+           "fallback_fit_feasible": fb["fit_feasible"],
+           "fallback_shortfalls": {x: fb[x] for x in ("shortfall_ordinary", "shortfall_guard")}}
+    if missing_guard:
+        out.update({"missing_guards": missing_guard, "fallback_rank_status": "INVALID_MISSING_GUARD_COMPARATOR"})
+    else:
+        out["fallback_rank_status"] = "VALID"
+    return out
 
 
 def my_selection_lcr(rows, reverse=False, private_extra=(), guard_overrides=None):
@@ -3118,6 +3169,7 @@ def my_selection_lcr(rows, reverse=False, private_extra=(), guard_overrides=None
     G = {"T*": (), "C*": (), "P*": ("T*",), "N*": ("T*", "C*"), "C_pair*": (), "J*": ("T*", "C_pair*")}
     if guard_overrides:
         G.update(guard_overrides)
+    L["C_pair*"] = [c_ for c_ in L["C_pair*"] if (rows.get(c_) or {}).get("fit_feasible") is not False]   # R-4
     st = {}
     for role in ("T*", "C*", "C_pair*", "P*", "N*", "J*"):
         st[role] = lcr_pick_role(rows, L[role], role in ("P*", "N*", "J*"), G[role], st, reverse=reverse)
@@ -7457,7 +7509,8 @@ def synthetic_bank_lcr(overrides=None):
             rows_in[L_w(f_, lam)] = {k: _seed((0.0005, ll1[lam] + 0.0005), (0.0003, 0.002), (0.760, 0.770, p_ + 0.001),
                                               290.0) for k in SEEDS}
     for a_, p_ in zip(LCR_K, (0.834, 0.826, 0.827, 0.823, 0.817)):
-        rows_in[L_k(a_)] = {k: _seed((0.0005, 0.006), (0.0003, 0.002), (0.760, 0.770, p_), 280.0) for k in SEEDS}
+        rows_in[L_k(a_)] = {k: {**_seed((0.0005, 0.006), (0.0003, 0.002), (0.760, 0.770, p_), 280.0), "fit_feasible": True}
+                            for k in SEEDS}
     rows_in[L_CTASK] = {k: _seed((0.0004, 0.0020), (0.0003, 0.0012), (0.762, 0.790, 0.845), 320.0) for k in SEEDS}
     rows_in[L_d0("DIRECT-TASK")] = {k: _seed((0.0008, 0.0030), (0.0005, 0.0017), (0.762, 0.790, 0.849), 328.0) for k in SEEDS}
     rows_in[L_d0("FINE-TASK")] = {k: _seed((0.0008, 0.0031), (0.0005, 0.0017), (0.761, 0.788, 0.846), 329.0) for k in SEEDS}
@@ -7538,7 +7591,33 @@ def selftest_selection_lcr():
     ra["mean_sum_logloss"] = rb["mean_sum_logloss"] = 1.0
     ra["mean_states"] = rb["mean_states"] = 280.0
     tie_ok = min([ra, rb], key=okey)["config"] == min(a_, b_)
-    ok = (out["expected_roles"] and out["raw_j_excluded_from_T"] and out["c_pair_includes_sources_and_references"] and
+    # R-4: an infeasible constrained fit (best pair AUC) is never a nominee, leaves C_pair*, and gives
+    # CONSTRAINED_FIT_INFEASIBLE when no candidate of the role is fit-feasible; R-5: fit-feasible fallbacks first
+    infeas = (lambda v: {k: {**x, "fit_feasible": k != 1} for k, x in v.items()})
+    rows_f, _ = synthetic_bank_lcr({L_k("JOINT-PAIR"): infeas, L_k("JOINT-SINGLE"): lambda v: {
+        k: {**x, "auc": {**x["auc"], "pair": 0.810}} for k, x in v.items()}})
+    Sf = my_selection_lcr(rows_f)
+    r4_ok = (Sf["statuses"]["J*"]["status"] == "NO_ELIGIBLE_NOMINEE" and
+             Sf["statuses"]["J*"]["reason"] == "CONSTRAINED_FIT_INFEASIBLE" and
+             Sf["statuses"]["J*"]["descriptive_config"] == L_k("JOINT-PAIR") and
+             Sf["resolved"]["N*"] == L_k("JOINT-SINGLE") and Sf["resolved"]["P*"] == L_k("JOINT-SINGLE") and
+             Sf["resolved"]["C_pair*"] == L_k("JOINT-SINGLE") and rows_f[L_k("JOINT-PAIR")]["ordinary_inner"] and
+             not rows_f[L_k("JOINT-PAIR")]["ordinary_eligible"])
+    out["r4_infeasible_constrained_fit"] = {x: Sf["resolved"][x] for x in ("P*", "N*", "C_pair*", "J*")} | {
+        "J*_reason": Sf["statuses"]["J*"].get("reason")}
+    bad_util_s1 = (lambda v: {k: {**x, "util": {1: x["util"][1], 2: {**x["util"][2], "logloss": x["util"][2]["logloss"] +
+                                                                    (0.006 if k == 1 else 0.0)}}} for k, x in v.items()})
+    ov = {L_k(a_): bad_util_s1 for a_ in LCR_K if a_ != "LOCAL"}
+    ov[L_k("LOCAL")] = lambda v: {k: {**x, "fit_feasible": False} for k, x in v.items()}
+    rows_r5, _ = synthetic_bank_lcr(ov)
+    S5 = my_selection_lcr(rows_r5)
+    r5_ok = (S5["statuses"]["N*"]["status"] == "NO_ELIGIBLE_NOMINEE" and S5["statuses"]["N*"]["reason"] ==
+             "ORDINARY_UTILITY_FAILURE" and S5["statuses"]["N*"]["descriptive_config"] != L_k("LOCAL") and
+             S5["statuses"]["N*"]["fallback_fit_feasible"] is True)
+    out["r5_fit_feasible_fallback_first"] = (S5["statuses"]["N*"].get("reason"), S5["statuses"]["N*"].get(
+        "descriptive_config"))
+    ok = (r4_ok and r5_ok and out["expected_roles"] and out["raw_j_excluded_from_T"] and
+          out["c_pair_includes_sources_and_references"] and
           out["d1_privacy_not_task_only"] and
           out["d0_large_lambda_ineligible_d1_eligible"] and out["no_headroom_buffer"] and g_ok and m_ok and t_ok and
           u_ok and tie_ok)
@@ -7710,9 +7789,9 @@ def selftest_defects_lcr(rng):
 
     def one_bad_seed(v):
         v = {k: dict(x) for k, x in v.items()}
-        v[1] = _seed((0.0005, 0.0125), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0)
-        v[0] = _seed((0.0005, 0.0020), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0)
-        v[2] = _seed((0.0005, 0.0020), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0)
+        v[1] = {**_seed((0.0005, 0.0125), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0), "fit_feasible": True}
+        v[0] = {**_seed((0.0005, 0.0020), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0), "fit_feasible": True}
+        v[2] = {**_seed((0.0005, 0.0020), (0.0003, 0.002), (0.760, 0.770, 0.800), 300.0), "fit_feasible": True}
         return v
     _, rin = synthetic_bank_lcr({L_k("JOINT-PAIR"): one_bad_seed})
     right = lcr_config_row(L_k("JOINT-PAIR"), rin[L_k("JOINT-PAIR")])
@@ -8057,15 +8136,767 @@ def check_d0_reencode(D: Data, T):
                     "cell->token map, prototypes recomputed from the cell sums) bitwise vs release.npz on every row")
 
 
+# ================================================================================================ lcr PHASE 1: fixture replay
+# Written from FIXTURE_LAWS.json / FIXTURE_GATE_RULE.json (registered at dd1cf23); lcr.fixtures is never imported. The
+# registered format conventions used here (laws hash = sha256 of the sorted-key JSON body without its own hash field;
+# atoms [f1, f2, s, y1, y2, count]; north-west-corner joint labels, classes ascending) are read from the files' own text.
+GATE_TOL = {"TOL_BUDGET": 1e-12, "TOL_MI": 1e-12, "TOL_TERMS": 1e-10, "TOL_NULL_Q": 1e-9, "TOL_NULL_LOSS": 1e-12,
+            "TOL_OPT": 1e-10, "TRIGGER_MI": 0.01, "MIN_GAIN": 0.03}
+FIX_TASK_ONLY = ("U|C-TASK|i8o64|D1", "U|FINE-TASK|i8o64|D1", "U|DIRECT-TASK|i8o64|D1", "U|CLASS|i1o1|D1")
+
+
+def registered_laws_hash(body):
+    z = {k: v for k, v in body.items() if k != "laws_sha256"}
+    return hashlib.sha256(json.dumps(z, sort_keys=True, allow_nan=False).encode()).hexdigest()
+
+
+def nw_corner(m1, m2):
+    """North-west-corner joint table of two integer margins (classes ascending)."""
+    a, b = [int(x) for x in m1], [int(x) for x in m2]
+    if sum(a) != sum(b):
+        raise ValueError("margins differ")
+    out, i, j = {}, 0, 0
+    while i < len(a) and j < len(b):
+        x = min(a[i], b[j])
+        if x > 0:
+            out[(i, j)] = out.get((i, j), 0) + x
+        a[i] -= x
+        b[j] -= x
+        if a[i] == 0:
+            i += 1
+        else:
+            j += 1
+    return out
+
+
+def rebuild_atoms(fam):
+    """Own rebuild of the atoms from the explicit tables: (f1, f2) groups of pair_counts rows, SEX split by
+    sex_num / sex_den, per-recipient label margins g * labels / label_den (exact integers), NW-corner joint."""
+    R = {i: fam["recipients"][str(i)] for i in (1, 2)}
+    pc, sn, sd = fam["pair_counts"], fam["sex_num"], int(fam["sex_den"])
+    atoms = []
+    for f1, row in enumerate(pc):
+        for f2, g in enumerate(row):
+            g = int(g)
+            if g == 0:
+                continue
+            g1 = Fraction(g * int(sn[f1][f2]), sd)
+            if g1.denominator != 1:
+                raise ValueError("non-integer SEX split")
+            for s_, gs in ((0, g - int(g1)), (1, int(g1))):
+                if gs == 0:
+                    continue
+                marg = {}
+                for i, f_ in ((1, f1), (2, f2)):
+                    lab, den = R[i]["cells"][f_]["labels"], int(R[i]["label_den"])
+                    m_ = [Fraction(gs * int(v), den) for v in lab]
+                    if any(x.denominator != 1 for x in m_):
+                        raise ValueError("non-integer label split")
+                    marg[i] = [int(x) for x in m_]
+                for (y1, y2), c_ in sorted(nw_corner(marg[1], marg[2]).items()):
+                    atoms.append([f1, f2, s_, y1, y2, int(c_)])
+    return atoms
+
+
+def law_static_properties(fam, atoms):
+    """Own static properties (the C7 comparison): rows, per recipient cell counts, label counts, constant class
+    (fitting majority, ties -> lower class) and accuracy, teacher-decision accuracy, gain, cells per class, canonical
+    partitions under the cap; mapping pairs; SEX counts."""
+    A = np.asarray(atoms, dtype=np.int64)
+    out = {"rows": int(A[:, 5].sum())}
+    npart = {}
+    for i in (1, 2):
+        Rr = fam["recipients"][str(i)]
+        K = int(Rr["K"])
+        cells = Rr["cells"]
+        f_ = A[:, i - 1]
+        y_ = A[:, 2 + i]
+        cc = np.bincount(f_, weights=A[:, 5], minlength=len(cells)).astype(np.int64)
+        lc = np.bincount(y_, weights=A[:, 5], minlength=K).astype(np.int64)
+        const = int(np.argmax(lc))
+        cls = np.asarray([c_["class"] for c_ in cells])
+        dec = cls[f_]
+        acc = Fraction(int(A[dec == y_, 5].sum()), out["rows"])
+        cacc = Fraction(int(lc[const]), out["rows"])
+        per_class = [int(np.sum(cls == c_)) for c_ in range(K)]
+        parts = 1
+        for m_ in per_class:
+            parts *= stirling2_capped(m_, int(fam["caps"][i - 1]))
+        npart[i] = parts
+        out[f"r{i}"] = {"cell_counts": cc.tolist(), "cell_counts_match_declared": cc.tolist() == [int(c_["count"]) for c_ in
+                                                                                            cells],
+                        "label_counts": lc.tolist(), "constant_class": const, "constant_acc": float(cacc),
+                        "teacher_decision_acc": float(acc), "accuracy_gain": float(acc - cacc),
+                        "cells_per_class": per_class, "canonical_partitions": parts,
+                        "teacher_strict_argmax_is_declared_class": all(
+                            int(np.argmax(c_["teacher"])) == int(c_["class"]) and sorted(c_["teacher"])[-1] >
+                            sorted(c_["teacher"])[-2] for c_ in cells)}
+    out["mapping_pairs"] = npart[1] * npart[2]
+    out["sex_counts"] = np.bincount(A[:, 2], weights=A[:, 5], minlength=2).astype(np.int64).tolist()
+    return out
+
+
+def law_of_family(fam):
+    atoms = []
+    R = {i: fam["recipients"][str(i)] for i in (1, 2)}
+    for f1, f2, s_, y1, y2, c_ in fam["atoms"]:
+        atoms.append({"count": c_, "f1": f1, "f2": f2, "s": s_, "y1": y1, "y2": y2,
+                      "p1": [f"{v}/{R[1]['teacher_den']}" for v in R[1]["cells"][f1]["teacher"]],
+                      "p2": [f"{v}/{R[2]['teacher_den']}" for v in R[2]["cells"][f2]["teacher"]]})
+    return Law(atoms, {1: int(R[1]["K"]), 2: int(R[2]["K"])}, {1: int(fam["caps"][0]), 2: int(fam["caps"][1])},
+               N=int(fam["N"]), name=fam["id"])
+
+
+def part_key(cell_labels):
+    """Canonical partition key from per-cell labels (blocks = cells sharing a label)."""
+    blocks = {}
+    for f_, l_ in enumerate(cell_labels):
+        blocks.setdefault(l_, []).append(f_)
+    return tuple(sorted(tuple(b) for b in blocks.values()))
+
+
+def own_fixture_tables(law: Law, cache=None):
+    """Own exhaustive tables of one registered law: per canonical map of each recipient the exact L / B under D0 and
+    D1, the teacher KL distortion D of the D0 decoder (per N), I_i, tokens per class, D1 class preservation and the
+    calibrated-null quantities per token; the pair I12 matrix (vectorised exact counts)."""
+    cache = cache or D1Cache()
+    per, toks, keys = {}, {}, {}
+    null = {"max_q_diff": 0.0, "min_law_loss_gap": 0.0, "tokens": 0}
+    for i in (1, 2):
+        rows, tk = [], []
+        Ki = law.K[i]
+        for mp in law.maps(i):
+            tok = law.tokens(i, mp)
+            n, Y, S, cls = law.stats(i, tok)
+            Q0 = smooth(S / n[:, None], cls)
+            Q1 = np.stack([cache.solve(n[t_], Y[t_], S[t_], int(cls[t_]))[1] for t_ in range(len(n))])
+            E = np.eye(Ki)
+            L0 = float(np.sum(Y * -np.log(np.clip(Q0, LL_CLIP, 1.0)))) / law.N
+            L1 = float(np.sum(Y * -np.log(np.clip(Q1, LL_CLIP, 1.0)))) / law.N
+            B0 = float(sum(Y[t_, y_] * float(np.sum((Q0[t_] - E[y_]) ** 2)) for t_ in range(len(n)) for y_ in range(Ki)
+                           if Y[t_, y_] > 0)) / law.N
+            B1 = float(sum(Y[t_, y_] * float(np.sum((Q1[t_] - E[y_]) ** 2)) for t_ in range(len(n)) for y_ in range(Ki)
+                           if Y[t_, y_] > 0)) / law.N
+            p = law.p[i]
+            q0r = Q0[tok]
+            m = p > 0
+            Dkl = float(np.sum(law.c[:, None] * np.where(m, p * (np.log(np.where(m, p, 1.0)) - np.log(q0r)), 0.0)))
+            for t_ in range(len(n)):
+                null["tokens"] += 1
+                null["max_q_diff"] = max(null["max_q_diff"], float(np.max(np.abs(Q1[t_] - Q0[t_]))))
+                l0 = float(np.sum(Y[t_] * -np.log(Q0[t_])))
+                l1 = float(np.sum(Y[t_] * -np.log(Q1[t_])))
+                b0 = float(n[t_] * (Q0[t_] @ Q0[t_]) - 2 * (Y[t_] @ Q0[t_]) + n[t_])
+                b1 = float(n[t_] * (Q1[t_] @ Q1[t_]) - 2 * (Y[t_] @ Q1[t_]) + n[t_])
+                null["min_law_loss_gap"] = min(null["min_law_loss_gap"], (l1 - l0) / n[t_], (b1 - b0) / n[t_])
+            cell_lab = [None] * len(law.cells[i])
+            for f_, t_ in mp.items():
+                cell_lab[f_] = t_
+            k_ = part_key(cell_lab)
+            rows.append({"key": k_, "L_D1": L1, "B_D1": B1, "L_D0": L0, "B_D0": B0, "D": Dkl / law.N, "I": law.mi(tok),
+                         "alpha": int(len(n)), "tokens_per_class": [int(np.sum(cls == c_)) for c_ in range(Ki)],
+                         "d1_strict": bool(all(strict_argmax_ok(Q1[t_], cls[t_]) for t_ in range(len(n))))})
+            tk.append(tok)
+        per[i], toks[i] = rows, np.stack(tk)
+        keys[i] = {r["key"]: j for j, r in enumerate(rows)}
+    G2 = int(toks[2].max()) + 1
+    I12 = np.zeros((len(per[1]), len(per[2])))
+    w = law.c.astype(np.float64)
+    for a_ in range(len(per[1])):
+        base = toks[1][a_] * G2
+        for b_ in range(len(per[2])):
+            key = (base + toks[2][b_]) * 2 + law.s
+            cnt = np.bincount(key, weights=w)
+            tab = cnt.reshape(-1, 2).T if cnt.size % 2 == 0 else np.r_[cnt, 0.0].reshape(-1, 2).T
+            tab = tab[:, tab.sum(0) > 0]
+            I12[a_, b_] = mi_counts(tab)
+    U = law.u_losses(1), law.u_losses(2)
+    return {"per": per, "I12": I12, "keys": keys, "U": {1: U[0], 2: U[1]}, "null": null,
+            "acc": {i: float(np.sum(law.c * (law.d[i] == law.y[i])) / law.N) for i in (1, 2)},
+            "pairs": len(per[1]) * len(per[2])}
+
+
+def fix_feasible(tab, i, j):
+    r, U_ = tab["per"][i][j], tab["U"][i]
+    return (r["L_D1"] <= U_["L"] + FIT_BUDGET["ll"] + GATE_TOL["TOL_BUDGET"] and
+            r["B_D1"] <= U_["B"] + FIT_BUDGET["brier"] + GATE_TOL["TOL_BUDGET"] and r["d1_strict"])
+
+
+def own_fixture_references(tab, caps_local=None):
+    """Exhaustive optimum of every registered own problem (FIXTURE_GATE_RULE own_problem_objectives), first canonical
+    pair on ties; K- references use the local caps I_i <= caps_local[i] + TOL_MI (the C-TASK release's I_i)."""
+    p1, p2, I12 = tab["per"][1], tab["per"][2], tab["I12"]
+    n1, n2 = len(p1), len(p2)
+    A = lambda k_, i: np.asarray([r[k_] for r in tab["per"][i]])  # noqa: E731
+    D = A("D", 1)[:, None] + A("D", 2)[None, :]
+    T = (A("L_D1", 1) + 0.5 * A("B_D1", 1))[:, None] + (A("L_D1", 2) + 0.5 * A("B_D1", 2))[None, :]
+    Is = 0.5 * (A("I", 1)[:, None] + A("I", 2)[None, :])
+    Phi = I12 + Is
+    out = {}
+
+    def best(V, mask=None):
+        V = np.where(mask, V, np.inf) if mask is not None else V
+        if not np.isfinite(V).any():
+            return {"value": None, "index": None}
+        j = int(np.argmin(V))
+        return {"value": float(V.flat[j]), "index": [j // n2, j % n2]}
+    out["D0 FINE-TASK"] = best(D)
+    out["C-TASK"] = best(T)
+    for lam in LAMS:
+        out[f"D0 LOCAL|l{lam:g}"] = best(D + lam * Is)
+        out[f"D0 SEQ/JOINT|l{lam:g}"] = best(D + lam * (Is + I12))
+        out[f"W-LOCAL|l{lam:g}"] = best(T + lam * Is)
+        out[f"W-SEQ/JOINT|l{lam:g}"] = best(T + lam * Phi)
+    F1 = np.asarray([fix_feasible(tab, 1, j) for j in range(n1)])
+    F2 = np.asarray([fix_feasible(tab, 2, j) for j in range(n2)])
+    out["feasible_maps"] = {"1": int(F1.sum()), "2": int(F2.sum())}
+    if caps_local is not None:
+        L1 = F1 & (A("I", 1) <= caps_local[1] + GATE_TOL["TOL_MI"])
+        L2 = F2 & (A("I", 2) <= caps_local[2] + GATE_TOL["TOL_MI"])
+        out["K-LOCAL"] = {str(i): ({"value": float(np.min(np.where(Lm, A("I", i), np.inf))),
+                                    "index": int(np.argmin(np.where(Lm, A("I", i), np.inf)))} if Lm.any() else
+                                   {"value": None, "index": None}) for i, Lm in ((1, L1), (2, L2))}
+        out["K-SEQ/JOINT"] = best(Phi, L1[:, None] & L2[None, :])
+        out["most_private_feasible_local_pair_I12"] = best(I12, L1[:, None] & L2[None, :])
+    return out
+
+
+def class_map_key(law: Law, i):
+    """CLASS map: every fine cell of a predicted class in one token."""
+    by = {}
+    for f_, c_ in law.cells[i].items():
+        by.setdefault(c_, []).append(f_)
+    return tuple(sorted(tuple(sorted(v)) for v in by.values()))
+
+
+def own_direct_key(law: Law, i):
+    """Own DIRECT-TASK map on the fixture rows: own per-class KL k-means at the cap (registered starts, qpc rule) on
+    the rows' teacher vectors; each fine cell has one vector, so the clusters are a partition of the fine cells."""
+    rep = np.repeat(np.arange(len(law.c)), law.c)
+    P, d = law.p[i][rep], law.d[i][rep]
+    fp = fit_partition(P, d, law.K[i], law.caps[i], starts=START_ORDER, rule="qpc")
+    cl = assign(P, d, fp)
+    f_rows = law.f[i][rep]
+    lab = {}
+    for f_, c_ in zip(f_rows.tolist(), cl.tolist()):
+        if lab.setdefault(f_, c_) != c_:
+            raise ValueError("a fine cell split across k-means cells")
+    return part_key([lab[f_] for f_ in range(len(law.cells[i]))])
+
+
+def check_fixture_laws():
+    """C7 law integrity and own exhaustive tables / references for the four registered laws (before FIXTURE_GATE)."""
+    p = RES / "FIXTURE_LAWS.json"
+    body = jload(p)
+    out, fails, tabs = {"laws_sha256": body.get("laws_sha256")}, [], {}
+    out["hash_ok"] = registered_laws_hash(body) == body.get("laws_sha256")
+    rule = jload(RES / "FIXTURE_GATE_RULE.json")
+    out["gate_rule_binds_same_laws"] = rule.get("laws_sha256") == body.get("laws_sha256")
+    out["tolerances_equal_registered"] = {k: rule["tolerances"].get(k) == v for k, v in GATE_TOL.items()}
+    out["task_only_candidates_equal"] = tuple(rule.get("task_only_D1_candidates") or ()) == FIX_TASK_ONLY
+    fams = {}
+    cache = D1Cache()
+    for fam in body["families"]:
+        fid = fam["id"]
+        own_atoms = rebuild_atoms(fam)
+        st = law_static_properties(fam, own_atoms)
+        props = fam["properties"]
+        cmp_keys = ("cell_counts", "cell_counts_match_declared", "label_counts", "constant_class", "constant_acc",
+                    "teacher_decision_acc", "accuracy_gain", "cells_per_class", "canonical_partitions")
+        prop_ok = (st["rows"] == props["rows"] == FIXTURE_N and st["mapping_pairs"] == props["mapping_pairs"] and
+                   st["sex_counts"] == props["sex_counts"] and
+                   all(st[f"r{i}"][k_] == props[f"r{i}"][k_] for i in (1, 2) for k_ in cmp_keys))
+        law = law_of_family(fam)
+        t0 = time.time()
+        tab = own_fixture_tables(law, cache)
+        ref = own_fixture_references(tab)
+        dk = {i: own_direct_key(law, i) for i in (1, 2)}
+        ck = {i: class_map_key(law, i) for i in (1, 2)}
+        f = {"atoms_rebuilt_exactly": own_atoms == fam["atoms"],
+             "atoms_rebuilt_as_set": sorted(map(tuple, own_atoms)) == sorted(map(tuple, fam["atoms"])),
+             "static_properties_equal": prop_ok, "rows": st["rows"], "mapping_pairs": st["mapping_pairs"],
+             "pairs_within_cap": st["mapping_pairs"] <= FIXTURE_MAX_PAIRS,
+             "teacher_argmax_ok": all(st[f"r{i}"]["teacher_strict_argmax_is_declared_class"] for i in (1, 2)),
+             "enumerated_pairs": tab["pairs"], "enumeration_equals_static_count": tab["pairs"] == st["mapping_pairs"],
+             "d1_class_preserved_every_partition": all(r["d1_strict"] for i in (1, 2) for r in tab["per"][i]),
+             "U": {str(i): tab["U"][i] for i in (1, 2)}, "teacher_acc": tab["acc"],
+             "feasible_maps": ref["feasible_maps"],
+             "exhaustive_references_without_local_caps": {k_: v for k_, v in ref.items() if k_ != "feasible_maps"},
+             "own_class_map_I": {str(i): tab["per"][i][tab["keys"][i][ck[i]]]["I"] for i in (1, 2)},
+             "own_direct_task_map_in_family": {str(i): dk[i] in tab["keys"][i] for i in (1, 2)},
+             "wall_s": round(time.time() - t0, 2)}
+        if fid == "F1_CALIBRATED_NULL":
+            f["calibrated_null"] = {**tab["null"], "ok": tab["null"]["max_q_diff"] <= GATE_TOL["TOL_NULL_Q"] and
+                                    tab["null"]["min_law_loss_gap"] >= -GATE_TOL["TOL_NULL_LOSS"]}
+        ok = (f["atoms_rebuilt_as_set"] and prop_ok and f["pairs_within_cap"] and f["teacher_argmax_ok"] and
+              f["enumeration_equals_static_count"] and f["d1_class_preserved_every_partition"] and
+              f.get("calibrated_null", {"ok": True})["ok"])
+        if not ok:
+            fails.append(fid)
+        fams[fid] = res("PASS" if ok else "FAIL", **f)
+        tabs[fid] = {"law": law, "tab": tab, "direct_key": dk, "class_key": ck}
+    out["families"] = fams
+    ok = (out["hash_ok"] and out["gate_rule_binds_same_laws"] and all(out["tolerances_equal_registered"].values()) and
+          out["task_only_candidates_equal"] and not fails and len(fams) == 4)
+    out["solves"] = {"hits": cache.hits, "misses": cache.miss}
+    return res("PASS" if ok else "FAIL", failures=fails, **out), tabs
+
+
+def _read_csv(p):
+    import csv
+    with open(p, newline="") as fh:
+        return list(csv.DictReader(fh))
+
+
+def check_fixture_gate_replay(tabs):
+    """After the fixture stage: B's oracle tables row by row vs the own tables (partitions matched by key), every arm's
+    terms from the own tables via its partition, feasibility / local budget / T_star / qualifying / trigger / route /
+    verdict recomputed from the registered rule, C1-C7 replayed where the own data allows."""
+    gp = RES / "FIXTURE_GATE.json"
+    if not gp.exists():
+        return pending("fixture_gate", "awaiting FIXTURE_GATE.json")
+    G = jload(gp)
+    od = RES / "fixture_oracle"
+    out, fails = {"lead_verdict": G.get("verdict"), "lead_route": G.get("route"), "lead_reasons": G.get("reasons")}, []
+    trig_any, helps_any, per_fix = [], [], {}
+    for fx in G.get("fixtures", []):
+        fid = fx["fixture"]
+        if fid not in tabs:
+            fails.append(f"{fid}: unknown fixture")
+            continue
+        law, tab = tabs[fid]["law"], tabs[fid]["tab"]
+        fo, ff = {}, []
+        # oracle tables
+        bparts = {}
+        worst = 0.0
+        for i in (1, 2):
+            rows = _read_csv(od / f"{fid}_partitions_r{i}.csv")
+            bparts[i] = [part_key([int(x) for x in r["labels"].split()]) for r in rows]
+            if sorted(bparts[i]) != sorted(tab["keys"][i]):
+                ff.append(f"r{i}: partition sets differ")
+                continue
+            for r, k_ in zip(rows, bparts[i]):
+                mine = tab["per"][i][tab["keys"][i][k_]]
+                for col, mk in (("L_D1", "L_D1"), ("B_D1", "B_D1"), ("L_D0", "L_D0"), ("B_D0", "B_D0"),
+                                ("D_teacher_kl", "D"), ("I", "I")):
+                    worst = max(worst, abs(float(r[col]) - mine[mk]))
+        pi = _read_csv(od / f"{fid}_pair_I12.csv")
+        for r in pi:
+            a_, b_ = bparts[1][int(r["index1"])], bparts[2][int(r["index2"])]
+            worst = max(worst, abs(float(r["I12"]) - float(tab["I12"][tab["keys"][1][a_], tab["keys"][2][b_]])))
+        fo["oracle_tables_max_abs_diff"] = worst
+        if worst > GATE_TOL["TOL_TERMS"]:
+            ff.append("oracle table values")
+        # arms from the own tables
+        arms = fx.get("arms") or {}
+        ct = arms.get(L_CTASK)
+        own = {}
+        for cid, a in arms.items():
+            k1, k2 = (a.get("oracle_index") or [None, None])
+            if k1 is None:
+                ff.append(f"{cid}: no oracle index")
+                continue
+            j1, j2 = tab["keys"][1][bparts[1][k1]], tab["keys"][2][bparts[2][k2]]
+            dec = "D1" if cid.endswith("|D1") else "D0"
+            r1, r2 = tab["per"][1][j1], tab["per"][2][j2]
+            m = {"L1": r1[f"L_{dec}"], "B1": r1[f"B_{dec}"], "L2": r2[f"L_{dec}"], "B2": r2[f"B_{dec}"], "I1": r1["I"],
+                 "I2": r2["I"], "I12": float(tab["I12"][j1, j2])}
+            m["T"] = m["L1"] + m["L2"] + 0.5 * (m["B1"] + m["B2"])
+            m["Phi"] = phi_of(m["I1"], m["I2"], m["I12"])
+            caps_ok = all(max(r_["tokens_per_class"]) <= law.caps[i] for i, r_ in ((1, r1), (2, r2)))
+            feas = (all(m[f"L{i}"] <= tab["U"][i]["L"] + FIT_BUDGET["ll"] + GATE_TOL["TOL_BUDGET"] and
+                        m[f"B{i}"] <= tab["U"][i]["B"] + FIT_BUDGET["brier"] + GATE_TOL["TOL_BUDGET"] for i in (1, 2))
+                    and caps_ok and (dec == "D0" or (r1["d1_strict"] and r2["d1_strict"])))
+            own[cid] = {"m": m, "feasible": bool(feas), "j": (j1, j2)}
+            dmax = max(abs(m[k_] - float(a[k_])) for k_ in ("L1", "L2", "B1", "B2", "I1", "I2", "I12", "T", "Phi"))
+            if dmax > GATE_TOL["TOL_TERMS"]:
+                ff.append(f"{cid}: terms differ by {dmax:.3g}")
+            if bool(a["feasible"]) != own[cid]["feasible"]:
+                ff.append(f"{cid}: feasibility differs (lead {a['feasible']}, own {own[cid]['feasible']})")
+        fo["arms_checked"] = len(own)
+        ident = {}
+        for c_, keyf in (("U|CLASS|i1o1", "class_key"), ("U|DIRECT-TASK|i8o64", "direct_key")):
+            a = arms.get(c_)
+            if a and a.get("oracle_index"):
+                ident[c_] = all(bparts[i][a["oracle_index"][i - 1]] == tabs[fid][keyf][i] for i in (1, 2))
+                if not ident[c_]:
+                    ff.append(f"{c_}: partition differs from the own construction")
+        fo["own_partition_identity"] = ident
+        if ct is None or L_CTASK not in own:
+            ff.append("C-TASK arm absent")
+            per_fix[fid] = res("FAIL", failures=ff, **fo)
+            fails.append(fid)
+            continue
+        cap = {1: own[L_CTASK]["m"]["I1"], 2: own[L_CTASK]["m"]["I2"]}
+        lok = {cid: all(o["m"][f"I{i}"] <= cap[i] + GATE_TOL["TOL_MI"] for i in (1, 2)) for cid, o in own.items()}
+        for cid, a in arms.items():
+            if cid in lok and a.get("local_ok") is not None and bool(a["local_ok"]) != lok[cid]:
+                ff.append(f"{cid}: local_ok differs")
+        ref = own_fixture_references(tab, cap)
+        fo["own_references_with_local_caps"] = {k_: ref[k_] for k_ in ("K-LOCAL", "K-SEQ/JOINT",
+                                                                       "most_private_feasible_local_pair_I12")}
+        # trigger (registered rule)
+        const = {i: tab["U"][i]["const_acc"] for i in (1, 2)}
+        gains = [tab["acc"][i] - const[i] for i in (1, 2)]
+        task = sorted((own[c_]["m"]["I12"], own[c_]["m"]["T"], c_) for c_ in FIX_TASK_ONLY
+                      if c_ in own and own[c_]["feasible"])
+        tr = {"accuracy_gain": gains}
+        if not task:
+            tr.update({"T_star": None, "triggered": False, "reason": "NO_FEASIBLE_TASK_ONLY"})
+        else:
+            i12t, _, tstar = task[0]
+            qual = []
+            for c_, o in sorted(own.items()):
+                arm = lcr_arm(c_)
+                if arm not in ("d1_fixed", "weighted", "constrained") or not c_.endswith("|D1"):
+                    continue
+                if lcr_family(c_) in ("DIRECT-TASK", "FINE-TASK", "CLASS"):
+                    continue
+                if o["feasible"] and lok[c_] and i12t - o["m"]["I12"] >= GATE_TOL["TRIGGER_MI"] and \
+                        min(gains) >= GATE_TOL["MIN_GAIN"]:
+                    qual.append({"cid": c_, "arm": arm, "I12": o["m"]["I12"], "reduction": i12t - o["m"]["I12"]})
+            nontriv = min(gains) >= GATE_TOL["MIN_GAIN"] and i12t >= GATE_TOL["TRIGGER_MI"]
+            fm = [q for q in qual if q["arm"] == "d1_fixed"]
+            new = [q for q in qual if q["arm"] in ("weighted", "constrained")]
+            bfm = min((q["I12"] for q in fm), default=None)
+            bnew = min((q["I12"] for q in new), default=None)
+            helps = bool(new) and (not fm or bnew <= bfm - GATE_TOL["TRIGGER_MI"])
+            d0_ok = [q["cid"][:-3] for q in fm if q["cid"][:-3] in own and own[q["cid"][:-3]]["feasible"] and
+                     lok[q["cid"][:-3]] and i12t - own[q["cid"][:-3]]["m"]["I12"] >= GATE_TOL["TRIGGER_MI"]]
+            tr.update({"T_star": tstar, "T_star_I12": i12t, "nontrivial": bool(nontriv),
+                       "triggered": bool(nontriv and qual), "qualifying": [q["cid"] for q in qual],
+                       "decoder_enabled": bool(fm), "assignment_search_helps": bool(helps), "best_fm_I12": bfm,
+                       "best_new_I12": bnew, "d0_version_already_qualifies": d0_ok,
+                       "exhaustive_most_private_feasible_local_I12": ref["most_private_feasible_local_pair_I12"]["value"]})
+            lt = fx.get("trigger") or {}
+            for k_ in ("T_star", "triggered"):
+                if lt.get(k_) != tr.get(k_):
+                    ff.append(f"trigger.{k_} differs (lead {lt.get(k_)}, own {tr.get(k_)})")
+            if sorted(q["cid"] for q in lt.get("qualifying") or []) != sorted(tr["qualifying"]):
+                ff.append("qualifying set differs")
+            lr = lt.get("route") or {}
+            for k_ in ("decoder_enabled", "assignment_search_helps"):
+                if lr.get(k_) is not None and bool(lr.get(k_)) != bool(tr[k_]):
+                    ff.append(f"route.{k_} differs")
+        fo["own_trigger"] = tr
+        if tr.get("triggered"):
+            trig_any.append(fid)
+            helps_any.append(bool(tr.get("assignment_search_helps")))
+        # C2 own (F1 only) and C1 (decoder change keeps every token: identical partition => identical MI by construction)
+        if fid == "F1_CALIBRATED_NULL":
+            fo["own_C2"] = tab["null"]
+        lead_checks = {k_: bool(v.get("pass")) for k_, v in (fx.get("checks") or {}).items()}
+        fo["lead_checks"] = lead_checks
+        # C6 own labels: each searched arm's own-problem objective vs the own exhaustive optimum
+        c6 = {}
+        for c_, o in own.items():
+            key, val = None, None
+            arm, lam = lcr_arm(c_), cid_lam(c_)
+            m = o["m"]
+            Is = 0.5 * (m["I1"] + m["I2"])
+            Dv = tab["per"][1][o["j"][0]]["D"] + tab["per"][2][o["j"][1]]["D"]
+            fam_ = lcr_family(c_)
+            if arm == "d0" and fam_ == "FINE-TASK":
+                key, val = "D0 FINE-TASK", Dv
+            elif arm == "d0" and fam_ == "LOCAL":
+                key, val = f"D0 LOCAL|l{lam:g}", Dv + lam * Is
+            elif arm == "d0" and fam_ in ("SEQ-12", "SEQ-21", "JOINT"):
+                key, val = f"D0 SEQ/JOINT|l{lam:g}", Dv + lam * (Is + m["I12"])
+            elif arm == "ctask":
+                key, val = "C-TASK", m["T"]
+            elif arm == "weighted":
+                key = f"W-LOCAL|l{lam:g}" if fam_ == "LOCAL" else f"W-SEQ/JOINT|l{lam:g}"
+                val = m["T"] + lam * (Is if fam_ == "LOCAL" else m["Phi"])
+            elif arm == "constrained" and fam_ != "LOCAL":
+                key, val = "K-SEQ/JOINT", m["Phi"]
+            elif arm == "constrained" and fam_ == "LOCAL":
+                gaps = {str(i): (None if ref["K-LOCAL"][str(i)]["value"] is None else
+                                 m[f"I{i}"] - ref["K-LOCAL"][str(i)]["value"]) for i in (1, 2)}
+                feas = o["feasible"] and lok[c_]
+                lab = "EXHAUSTIVE_OPTIMAL" if feas and all(v is not None and v <= GATE_TOL["TOL_OPT"] for v in
+                                                           gaps.values()) else "HEURISTIC"
+                c6[c_] = {"label": lab, "gap": max([v for v in gaps.values() if v is not None] or [0.0])}
+                ll = (((fx.get("checks") or {}).get("C6_HEURISTIC_LABELLING") or {}).get("labels") or {}).get(c_, {})
+                if ll.get("label") and ll["label"] != lab:
+                    ff.append(f"{c_}: C6 label differs (lead {ll['label']}, own {lab})")
+                continue
+            if key is None:
+                continue
+            rv = ref[key]["value"]
+            feas = (o["feasible"] and lok[c_]) if arm == "constrained" else True
+            lab = "EXHAUSTIVE_OPTIMAL" if (feas and rv is not None and val - rv <= GATE_TOL["TOL_OPT"]) else "HEURISTIC"
+            c6[c_] = {"label": lab, "gap": None if rv is None else val - rv}
+            ll = (((fx.get("checks") or {}).get("C6_HEURISTIC_LABELLING") or {}).get("labels") or {}).get(c_, {})
+            if ll.get("label") and ll["label"] != lab:
+                ff.append(f"{c_}: C6 label differs (lead {ll['label']}, own {lab})")
+        fo["own_C6"] = {"labels": {l_: sum(1 for v in c6.values() if v["label"] == l_) for l_ in
+                                   ("EXHAUSTIVE_OPTIMAL", "HEURISTIC")}, "max_heuristic_gap": max(
+            [v["gap"] for v in c6.values() if v["gap"] is not None] or [0.0])}
+        per_fix[fid] = res("FAIL" if ff else "PASS", failures=ff[:30], n_failures=len(ff), **fo)
+        if ff:
+            fails.append(fid)
+    lead_bad = sorted({f"{fx['fixture']}:{k_}" for fx in G.get("fixtures", []) for k_, v in (fx.get("checks") or {}).items()
+                       if not v.get("pass")})
+    met = not lead_bad and bool(trig_any) and len(per_fix) == 4 and not fails
+    own_verdict = "GATE_MET" if (not lead_bad and trig_any and len(per_fix) == 4) else "GATE_NOT_MET"
+    own_route = ("ASSIGNMENT_SEARCH_ROUTE" if any(helps_any) else "DECODER_ENABLED_ROUTE") if own_verdict == "GATE_MET" \
+        else None
+    out.update({"own_verdict": own_verdict, "own_route": own_route, "own_triggered": trig_any,
+                "lead_correctness_failures": lead_bad, "fixtures": per_fix,
+                "verdict_agrees": own_verdict == G.get("verdict"), "route_agrees": own_route == G.get("route")})
+    ok = not fails and out["verdict_agrees"] and out["route_agrees"] and len(per_fix) == 4
+    _ = met
+    return res("PASS" if ok else "FAIL", failures=fails, **out)
+
+
+FIXTURE_TABS: dict = {}
+
+
+def _fmt(x, nd=6):
+    return "n/a" if x is None else (f"{x:.{nd}f}" if isinstance(x, float) else str(x))
+
+
+def write_oracle_report(orc, gate, path=ORACLE_REPORT):
+    """FIXTURE_ORACLE_REPORT.md from the own oracle (fixture_oracle) and the replay (fixture_gate); aggregates only."""
+    L = ["# Fixture oracle report (role E, independent verifier)", "",
+         f"Verifier: `{REL_RES}/verification/replay_lcr.py` (sha256 `{sha_file(Path(__file__))}`); generated "
+         f"{iso(datetime.now(timezone.utc))}. Own code only: no lcr / cbp / qpc module was imported.", "",
+         f"Laws: FIXTURE_LAWS.json, laws_sha256 `{orc.get('laws_sha256')}`. Hash recomputed by the registered rule: "
+         f"{'verified' if orc.get('hash_ok') else 'MISMATCH'}. Gate rule binds the same laws: "
+         f"{orc.get('gate_rule_binds_same_laws')}. Registered tolerances equal: "
+         f"{all((orc.get('tolerances_equal_registered') or {}).values())}.", "",
+         "## Method", "",
+         "- Atoms rebuilt from the explicit tables (pair counts, SEX numerators, per-cell label laws, north-west-corner "
+         "joint labels), compared with the stored atoms; static properties recomputed from own atoms.",
+         "- Every canonical same-class partition of each recipient's fine cells under the per-class cap enumerated as "
+         "restricted-growth strings (counts checked against Stirling sums); all mapping pairs evaluated.",
+         "- Exact law quantities from integer tables at N = 4096: plug-in MI of SEX with full token identities; D0 = "
+         "smoothed token-mean teacher; D1 = own dual water-filling solve (kappa 32, eps 1e-12, class-dominant simplex) "
+         "from exact expected counts, certified by the own Frank-Wolfe gap / KKT certificate; log loss (clip 1e-12), "
+         "multiclass Brier, teacher KL of the D0 decoder.",
+         "- Exhaustive optimum of every registered own-problem objective; arms' values recomputed from their "
+         "partitions; feasibility, local budget, T_star, qualifying set, trigger, route and verdict recomputed from "
+         "FIXTURE_GATE_RULE.json by own code.",
+         "- Continuous optimisation is certified numerically (registered tolerances); exhaustive enumeration makes the "
+         "DISCRETE references exact, not the convex solves.", "", "## Per fixture", ""]
+    fams = orc.get("families") or {}
+    gf = (gate or {}).get("fixtures") or {}
+    for fid, f in fams.items():
+        L.append(f"### {fid}")
+        L.append("")
+        L.append(f"- Law integrity ({f.get('status')}): atoms rebuilt exactly {f.get('atoms_rebuilt_exactly')} "
+                 f"(as a set {f.get('atoms_rebuilt_as_set')}); static properties equal {f.get('static_properties_equal')}; "
+                 f"rows {f.get('rows')}; mapping pairs {f.get('mapping_pairs')} enumerated {f.get('enumerated_pairs')}.")
+        L.append(f"- D1 class preservation on every partition: {f.get('d1_class_preserved_every_partition')}; "
+                 f"feasible maps under the fitting budgets (D1): {f.get('feasible_maps')}.")
+        if f.get("calibrated_null"):
+            cn = f["calibrated_null"]
+            L.append(f"- Calibrated null: max |q_D1 - q_D0| = {cn['max_q_diff']:.3g} over {cn['tokens']} token "
+                     f"evaluations; min (D1 - D0) law loss per row = {cn['min_law_loss_gap']:.3g} (ok {cn['ok']}).")
+        ref = f.get("exhaustive_references_without_local_caps") or {}
+        for k_ in ("C-TASK", "D0 FINE-TASK"):
+            if k_ in ref:
+                L.append(f"- Exhaustive {k_}: value {_fmt(ref[k_]['value'])} at partitions {ref[k_]['index']}.")
+        g = gf.get(fid)
+        if g:
+            L.append(f"- Replay vs FIXTURE_GATE.json ({g.get('status')}): oracle tables max |diff| "
+                     f"{_fmt(g.get('oracle_tables_max_abs_diff'), 3)}; arms checked {g.get('arms_checked')}; "
+                     f"partition identity (own CLASS / DIRECT-TASK) {g.get('own_partition_identity')}.")
+            tr = g.get("own_trigger") or {}
+            L.append(f"- Own trigger: T_star {tr.get('T_star')} (I12 {_fmt(tr.get('T_star_I12'))}); nontrivial "
+                     f"{tr.get('nontrivial')}; triggered {tr.get('triggered')}; qualifying {len(tr.get('qualifying') or [])}; "
+                     f"decoder_enabled {tr.get('decoder_enabled')}; assignment_search_helps "
+                     f"{tr.get('assignment_search_helps')}; best fixed-map I12 {_fmt(tr.get('best_fm_I12'))}; best new I12 "
+                     f"{_fmt(tr.get('best_new_I12'))}; exhaustive most-private feasible local pair I12 "
+                     f"{_fmt(tr.get('exhaustive_most_private_feasible_local_I12'))}.")
+            c6 = g.get("own_C6") or {}
+            L.append(f"- Own heuristic labelling: {c6.get('labels')}; max heuristic gap {_fmt(c6.get('max_heuristic_gap'), 3)}.")
+            if g.get("failures"):
+                L.append(f"- Disagreements: {g['failures']}")
+        L.append("")
+    if gate and gate.get("status") != "PENDING":
+        L += ["## Gate", "",
+              f"- Lead verdict {gate.get('lead_verdict')}, route {gate.get('lead_route')}, reasons {gate.get('lead_reasons')}.",
+              f"- Own verdict {gate.get('own_verdict')}, route {gate.get('own_route')}, triggered {gate.get('own_triggered')}.",
+              f"- Verdict agrees: {gate.get('verdict_agrees')}; route agrees: {gate.get('route_agrees')}; replay status "
+              f"{gate.get('status')}.", ""]
+    else:
+        L += ["## Gate", "", "- PENDING: FIXTURE_GATE.json not yet written (own references precomputed).", ""]
+    L += ["## Scope", "",
+          "Fixture MI is the exact law MI of these finite laws, not a population guarantee for Adult. Optimisers that "
+          "differ from the exhaustive references are labelled HEURISTIC with their gap; that is a report, not a failure.",
+          ""]
+    text = "\n".join(L)
+    scrub_check(text)
+    path.write_text(text)
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
 def check_fixture_gate():
-    """PHASE 1 fixture replay (filled in after FIXTURE_LOCK: FIXTURE_LAWS.json / FIXTURE_GATE_RULE.json /
-    FIXTURE_GATE.json are parsed, every law is re-enumerated by the own oracle, the arms' reported values and the gate
-    verdict / route are recomputed)."""
-    need = [RES / f_ for f_ in ("FIXTURE_LAWS.json", "FIXTURE_GATE_RULE.json", "FIXTURE_GATE.json")]
-    missing = [p_.name for p_ in need if not p_.exists()]
-    if missing:
-        return pending("fixture_gate", f"awaiting {missing}"), pending("fixture_oracle", "awaiting the fixture stage")
-    return pending("fixture_gate", "fixture replay not yet adapted"), pending("fixture_oracle", "not yet adapted")
+    """PHASE 1 fixture half: own law rebuild / hash / static properties / exhaustive oracle (fixture_oracle) and, once
+    the fixture stage has written FIXTURE_GATE.json, the replay of B's tables, arms, trigger, verdict and route
+    (fixture_gate)."""
+    if not (RES / "FIXTURE_LAWS.json").exists() or not (RES / "FIXTURE_GATE_RULE.json").exists():
+        return pending("fixture_gate", "awaiting the laws"), pending("fixture_oracle", "awaiting the laws")
+    orc, tabs = check_fixture_laws()
+    FIXTURE_TABS.update(tabs)
+    return check_fixture_gate_replay(tabs), orc
+
+
+# ================================================================================================ lcr PHASE 2: D1 units
+def lcr_unit(k, cid):
+    if cid.startswith("SRC|"):
+        return f"tea__s{k}__{cid.split('|')[1]}"
+    if cid.startswith("REF|"):
+        return f"ref__s{k}__{cid.split('|')[1]}"
+    pre = {"d0": "pol", "d1_fixed": "dec"}.get(lcr_arm(cid), "new")
+    return f"{pre}__s{k}__{cid.replace('|', '_')}"
+
+
+def lcr_d1_ids():
+    fixed = [L_d1("DIRECT-TASK"), L_d1("FINE-TASK")] + [L_d1(f, l_) for l_ in LAMS for f in LCR_PRIV]
+    new = [L_CTASK] + [L_w(f, l_) for l_ in LAMS for f in LCR_PRIV] + [L_k(a) for a in LCR_K]
+    return fixed, new
+
+
+def registered_decoder_hash(body):
+    z = {k: v for k, v in body.items() if k != "decoder_sha256"}
+    return hashlib.sha256(json.dumps(z, sort_keys=True, allow_nan=False).encode()).hexdigest()
+
+
+def fit_labels(D: Data, L):
+    tr = D.idx[FIT]
+    y = {1: L["y_income"][tr], 2: L["y_occ"][tr]}
+    assert all((y[i] >= 0).all() for i in (1, 2)) and (L["sex"][tr] >= 0).all()
+    return tr, y, L["sex"][tr]
+
+
+def check_one_d1_unit(un, k, cid, D, L, T, cache, tr, yfit, sfit, d0_rel=None):
+    """One D1 unit: binding and hash of decoder.json; per recipient: exact recount of n_t / y_t from the fitting rows,
+    teacher sums, own re-solve (q within 1e-9), own certificate of the STORED released q, fallback tokens = the pinned
+    D0 vector, release rows = table[tok] bitwise, decisions = teacher, token function; tokens equal the D0 release
+    (fixed maps) or the own re-encode of policy.json (new units); fitting L_i, B_i, I_i, I12, T, Phi from the release."""
+    d = UNITS / un
+    body = jload(d / "decoder.json")
+    rec = jload(d / "record.json")
+    z = np.load(d / "release.npz", allow_pickle=False)
+    P = {1: T[(k, "U")]["p1"], 2: T[(k, "U")]["p2"]}
+    dd = {1: T[(k, "U")]["d1"], 2: T[(k, "U")]["d2"]}
+    own = policy_pair_release(d / "policy.json", P, dd)
+    f, info = [], {}
+    if body.get("decoder_sha256") != registered_decoder_hash(body):
+        f.append("decoder_sha256")
+    if body.get("config") != cid:
+        f.append("decoder config binding")
+    if frozenset(z.files) != RELEASE_KEYS_LCR or not np.array_equal(z["row_id"], D.row_id):
+        f.append("release keys / rows")
+    worst = {"dq": 0.0, "fw_gap_rel": 0.0, "stat_rel": 0.0, "S": 0.0, "proj_reported": 0.0}
+    terms = {}
+    ntok = nfb = 0
+    for i in (1, 2):
+        tab = body[f"r{i}"]
+        K = int(tab["K"])
+        tc = np.asarray(tab["token_class"], np.int64)
+        n_ = np.asarray(tab["n"], np.float64)
+        Y_ = np.asarray(tab["y"], np.float64).reshape(-1, K)
+        S_ = np.asarray(tab["s"], np.float64).reshape(-1, K)
+        U_ = np.asarray(tab["u"], np.float64).reshape(-1, K)
+        Q_ = np.asarray(tab["q"], np.float64).reshape(-1, K)
+        fb = np.asarray(tab["fallback"], bool)
+        Tn = len(tc)
+        tok = np.asarray(z[f"tok{i}"], np.int64)
+        if d0_rel is not None and not np.array_equal(tok, d0_rel[f"tok{i}"]):
+            f.append(f"r{i}: tokens differ from the D0 release")
+        if not np.array_equal(tok, own[f"tok{i}"]):
+            f.append(f"r{i}: tokens differ from the own re-encode of policy.json")
+        if not np.array_equal(z[f"hard{i}"], dd[i]):
+            f.append(f"r{i}: decisions differ from the teacher")
+        if int(z[f"alpha{i}"]) != Tn:
+            f.append(f"r{i}: alphabet")
+        if not np.array_equal(z[f"q{i}"], Q_[tok]):
+            f.append(f"r{i}: release rows differ from the decoder table")
+        nt, Yt, St = token_stats(tok[tr], yfit[i], P[i][tr], K, Tn)
+        if not (np.array_equal(nt, n_) and np.array_equal(Yt, Y_)):
+            f.append(f"r{i}: n_t / y_t differ from the own recount on OSF_DEFENSE_FIT")
+        worst["S"] = max(worst["S"], float(np.max(np.abs(St - S_) / np.maximum(1.0, n_)[:, None])))
+        if not np.array_equal(fb, n_ == 0):
+            f.append(f"r{i}: fallback flags")
+        own_pol = Pol.from_json(jload(d / "policy.json")[f"p{i}"])     # own D0 prototypes of the same map
+        if not np.array_equal(own_pol.token_class, tc):
+            f.append(f"r{i}: token classes differ from the own policy")
+        for t_ in range(Tn):
+            if fb[t_]:
+                nfb += 1
+                if not np.array_equal(Q_[t_], own_pol.proto[t_]):
+                    f.append(f"r{i} t{t_}: fallback is not the pinned D0 vector")
+                continue
+            ntok += 1
+            _, q_own, _ = cache.solve(n_[t_], Y_[t_], S_[t_], int(tc[t_]))
+            dq = float(np.max(np.abs(Q_[t_] - q_own)))
+            c = d1_certificate(U_[t_], Q_[t_], n_[t_], Y_[t_], S_[t_], int(tc[t_]))
+            worst["dq"] = max(worst["dq"], dq)
+            worst["fw_gap_rel"] = max(worst["fw_gap_rel"], float(c.get("fw_gap_rel") or 0.0))
+            worst["stat_rel"] = max(worst["stat_rel"], float(c.get("stationarity_rel") or 0.0))
+            if dq > D1_TOL["q"] or not c["ok"]:
+                f.append(f"r{i} t{t_}: {'q' if dq > D1_TOL['q'] else 'certificate'} (dq {dq:.2e})")
+        for ce in tab.get("certs") or []:
+            if isinstance(ce, dict) and ce.get("projection_magnitude") is not None:
+                worst["proj_reported"] = max(worst["proj_reported"], float(ce["projection_magnitude"]))
+        Lr, Br = fit_losses(np.asarray(z[f"q{i}"])[tr], yfit[i])
+        LU, BU = fit_losses(P[i][tr], yfit[i])
+        terms[i] = {"L": Lr, "B": Br, "L_U": LU, "B_U": BU, "I": mi_of(sfit, tok[tr]),
+                    "budget": budget_check(Lr, Br, LU, BU), "tok": tok[tr]}
+        if not (strict_argmax_ok(z[f"q{i}"], z[f"hard{i}"]) and release_is_token_function(tok, z[f"q{i}"])):
+            f.append(f"r{i}: class preservation / token function")
+    if worst["S"] > D1_TOL["teacher_sum_rel"]:
+        f.append(f"teacher sums differ by {worst['S']:.2e} relative")
+    I12 = mi_of(sfit, terms[1]["tok"], terms[2]["tok"])
+    own_terms = {"L1": terms[1]["L"], "L2": terms[2]["L"], "B1": terms[1]["B"], "B2": terms[2]["B"],
+                 "I1": terms[1]["I"], "I2": terms[2]["I"], "I12": I12}
+    own_terms["T"] = own_terms["L1"] + own_terms["L2"] + 0.5 * (own_terms["B1"] + own_terms["B2"])
+    own_terms["Phi"] = phi_of(own_terms["I1"], own_terms["I2"], I12)
+    info.update({"tokens_solved": ntok, "fallback_tokens": nfb, "worst": worst, "own_terms": own_terms,
+                 "budgets": {str(i): {x: terms[i][x] for x in ("L", "B", "L_U", "B_U")} | {
+                     "ok": terms[i]["budget"]["ok"], "ll_margin": terms[i]["budget"]["ll_margin"],
+                     "brier_margin": terms[i]["budget"]["brier_margin"],
+                     "borderline": terms[i]["budget"]["borderline"]} for i in (1, 2)},
+                 "pair_fp": hashlib.sha256(b"".join(np.ascontiguousarray(np.asarray(z[x])).tobytes() for x in
+                                                    ("tok1", "q1", "tok2", "q2"))).hexdigest()})
+    return f, info, rec
+
+
+def check_d1_units(D: Data, L, T, which="fixed"):
+    """PHASE 2: every D1 unit of the registered bank (26 fixed-map controls or 30 new fits per seed)."""
+    tr, yfit, sfit = fit_labels(D, L)
+    fixed, new = lcr_d1_ids()
+    cids = fixed if which == "fixed" else new
+    cache = D1Cache()
+    out, bad, info_all = {}, [], {}
+    for k in SEEDS:
+        for cid in cids:
+            un = lcr_unit(k, cid)
+            if not (UNITS / un / "COMPLETE.json").exists():
+                bad.append(f"{un}: absent")
+                continue
+            cu, _ = complete_ok(UNITS / un)
+            d0_rel = None
+            if which == "fixed":
+                z0 = np.load(UNITS / lcr_pol_unit(k, cid[:-3]) / "release.npz", allow_pickle=False)
+                d0_rel = {x: z0[x] for x in z0.files}
+            f, info, rec = check_one_d1_unit(un, k, cid, D, L, T, cache, tr, yfit, sfit, d0_rel)
+            if not (cu["id_ok"] and cu["rehash_ok"] and not cu["unlisted"]):
+                f.append("COMPLETE.json")
+            info_all[(k, cid)] = info
+            out[un] = {"ok": not f, "failures": f[:8]}
+            if f:
+                bad.append(un)
+    worst = {x: max([v["worst"][x] for v in info_all.values()] or [0.0]) for x in
+             ("dq", "fw_gap_rel", "stat_rel", "S", "proj_reported")}
+    ntok = sum(v["tokens_solved"] for v in info_all.values())
+    exp = len(cids) * len(SEEDS)
+    return res("PASS" if not bad and len(out) == exp else "FAIL", units=len(out), expected=exp, failures=bad[:30],
+               tokens_certified=ntok, worst=worst, solves={"hits": cache.hits, "misses": cache.miss},
+               unit_status={u: v for u, v in out.items() if not v["ok"]}), info_all
 
 
 def nominee_matches_inner(lock_resolved, own_resolved):
@@ -8462,6 +9293,10 @@ def main():
         checks["teachers"], T = check_teachers_lcr(D, L)
         checks["d0_release_reencode"] = check_d0_reencode(D, T)
         checks["fixture_gate"], checks["fixture_oracle"] = check_fixture_gate()
+        if checks["fixture_oracle"].get("status") != "PENDING" and not args.no_write and args.out is None:
+            report["fixture_oracle_report"] = {"path": f"{REL_RES}/FIXTURE_ORACLE_REPORT.md",
+                                               "sha256": write_oracle_report(checks["fixture_oracle"],
+                                                                             checks["fixture_gate"])}
         if args.phase >= 2:
             raise SystemExit("PHASE_2+ of the lcr verifier is adapted after the fits (not yet)")
     if False:

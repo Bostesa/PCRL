@@ -119,16 +119,17 @@
    "weighted_qualifies",
    "best constrained vs best weighted I12",
    "joint vs sequential I12"
-  ]
+  ],
+  "descriptive_definitions": "computed on every fixture (triggered or not) by descriptive(): for each group, min I12 over its privacy-trained D1 arms twice, over all arms and over the eligible ones (feasible() and, when a C-TASK release exists, local_budget()), None when empty. Groups: constrained = the 5 K- arms; weighted = the W- arms; joint vs sequential within each family: d1_fixed JOINT vs SEQ-12/SEQ-21, weighted W-JOINT vs W-SEQ-12/W-SEQ-21, constrained K-JOINT-SINGLE and K-JOINT-PAIR vs K-SEQ-12/K-SEQ-21; differences = best_joint - best_sequential and best_constrained - best_weighted. Descriptive only; never used by the verdict or route."
  },
  "mandatory_correctness_checks": {
-  "C1_FIXED_TOKEN_INFORMATION": "for every D0 map and its D1 version: identical token arrays (exact), identical I_1, I_2, I12 (bitwise), and I(SEX; (token, q)) == I(SEX; token) within 1e-15 for both decoders (q is a function of the token)",
-  "C2_CALIBRATED_NULL": "F1_CALIBRATED_NULL: for every canonical partition of each recipient and every D1 release of any arm: max |q_D1 - q_D0| <= 1e-09 per token and the law (population) log loss and Brier of D1 >= those of D0 - 1e-12 per row",
-  "C3_BUDGET_ENFORCEMENT": "every mapper release reported FEASIBLE satisfies feasible() and, for K- arms, local_budget() under the independent recomputation; mapper-reported L_i(U), B_i(U) equal the independent values within 1e-12; only K- arms may report INFEASIBLE",
+  "C1_FIXED_TOKEN_INFORMATION": "for every D0 map and its D1 version: identical token arrays (exact), identical I_1, I_2, I12 (bitwise), and I(SEX; (token, q)) == I(SEX; token) within 1e-15 for both decoders (q is a function of the token); the last condition is also checked on every release of every arm (D0, D1 and mapper C-TASK / W- / K-)",
+  "C2_CALIBRATED_NULL": "F1_CALIBRATED_NULL: for every canonical partition of each recipient and every D1 release of any arm: max |q_D1 - q_D0| <= 1e-09 per token (oracle subset solves and every arm's released q against the D0 decoding of the same pair) and the law (population) log loss and Brier of D1 >= those of D0 - 1e-12 per row",
+  "C3_BUDGET_ENFORCEMENT": "every constrained (K-) mapper release reported FEASIBLE satisfies feasible() and local_budget() under the independent recomputation; every unconstrained mapper release (C-TASK, W-) reports FEASIBLE for its own constraints only (decision preservation and caps; its fitting budgets are not enforced and are evaluated by feasible() at qualification); mapper-reported L_i(U), B_i(U) equal the independent values within 1e-12; only K- arms may report INFEASIBLE",
   "C4_DECISION_PRESERVATION": "every release (D0, D1, mapper): hard_i == teacher decision on every row, q_i strict argmax at the decision and normalised within 1e-12; release keys exactly row_id, tok1, q1, hard1, alpha1, tok2, q2, hard2, alpha2",
-  "C5_TERM_RECONSTRUCTION": "mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, Phi) equal the independent reconstruction within 1e-10; decoder.json loads with re-solve verification; the exhaustive table's terms for each arm's partition equal the row-level reconstruction within 1e-10",
-  "C6_HEURISTIC_LABELLING": "every arm carries EXHAUSTIVE_OPTIMAL (registered objective within 1e-10 of the exhaustive optimum of its own registered problem, feasible where constrained) or HEURISTIC with its gap; a heuristic gap is reported, not a failure",
-  "C7_LAW_INTEGRITY": "laws hash verifies, atoms rebuild from the explicit tables, 4096 rows, static properties match, mapping pairs <= 100000, fixture rows deploy to their declared fine cells"
+  "C5_TERM_RECONSTRUCTION": "mapper final_state_terms and deployed terms (L1, L2, B1, B2, I1, I2, I12, T, Phi) equal the independent reconstruction within 1e-10; decoder.json loads with re-solve verification; the exhaustive table's terms for each arm's partition equal the row-level reconstruction within 1e-10; the winning start's INCREMENTAL search-state terms (mapper start records) equal the from-scratch final_state_terms within 1e-10; decoder.token_losses totals equal the row-level sums within 1e-9 (absolute, on totals)",
+  "C6_HEURISTIC_LABELLING": "every arm carries EXHAUSTIVE_OPTIMAL (registered objective within 1e-10 of the exhaustive optimum of its own registered problem, feasible where constrained) or HEURISTIC with its gap, or NOT_A_SEARCH for releases that are not partition searches (own_problem_objectives); a heuristic gap is reported, not a failure",
+  "C7_LAW_INTEGRITY": "laws hash verifies, atoms rebuild from the explicit tables, 4096 rows, static properties match, mapping pairs <= 100000, fixture rows deploy to their declared fine cells; on the registered run FIXTURE_LAWS.json and FIXTURE_GATE_RULE.json equal the latest lock's documents_sha256, the rule binds the same laws_sha256, and reloaded shard units carry the same laws_sha256"
  },
  "check_ids": [
   "C1_FIXED_TOKEN_INFORMATION",
@@ -149,7 +150,8 @@
   "W-SEQ-12 / W-SEQ-21 / W-JOINT lam": "min T + lam Phi (D1) s.t. caps",
   "K-LOCAL": "per recipient min I_i s.t. its own budgets and local cap (D1)",
   "K-SEQ-12 / K-SEQ-21 / K-JOINT-SINGLE / K-JOINT-PAIR": "min Phi s.t. both budgets and both local caps (D1)",
-  "DIRECT-TASK, CLASS": "not partition searches over the fine family (labelled NOT_A_SEARCH)"
+  "DIRECT-TASK, CLASS": "not partition searches over the fine family (labelled NOT_A_SEARCH)",
+  "D1 fixed-map controls (<D0 map>|D1)": "not searches: the D0 assignment is kept and only the decoder changes (labelled NOT_A_SEARCH)"
  },
  "tolerances": {
   "TOL_BUDGET": 1e-12,

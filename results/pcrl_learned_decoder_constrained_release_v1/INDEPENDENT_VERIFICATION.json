@@ -1,11 +1,11 @@
 {
  "schema": "lcr-independent-verification-v1",
- "phase": "PHASE_0",
- "generated_at": "2026-10-07T00:43:18Z",
+ "phase": "PHASE_1A",
+ "generated_at": "2026-10-07T01:11:54Z",
  "verifier": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py",
- "verifier_sha256": "ca8e1de1fbb59dd2c23517f47c5eaccae72987c788b69670b54c2036a2782593",
+ "verifier_sha256": "ffce2881de7fa600d28a2215b26313d98cf1d70dd1c92d848df23606927acc8b",
  "adapted_from": "results/pcrl_confidence_budgeted_privacy_v1/verification/replay_cbp.py at 7f3ec67 (sha256 bfac817d4db32da0cba7e84c91d7ef7368e2cc95979213af0a12a5bd66b171a2)",
- "worktree_head": "577c3fcee29ef8297df5b036d658c11032232b19",
+ "worktree_head": "244ea3ef5a2c5eef51089b4884c0991d950b3175",
  "branch": "research/pcrl-learned-decoder-constrained-release-v1",
  "source_tip": "7f3ec67b2ecd86d474e2ff27167091af9923f572",
  "inputs": {
@@ -49,8 +49,12 @@
   "sklearn": "1.8.0",
   "scipy": "1.17.1"
  },
- "real_data_read": false,
+ "real_data_read": true,
  "assessment_labels_read": false,
+ "fixture_oracle_report": {
+  "path": "results/pcrl_learned_decoder_constrained_release_v1/FIXTURE_ORACLE_REPORT.md",
+  "sha256": "c117255947f1682b3c63a1a236b0f61883e95de2082ed2541614022ea15e4e7c"
+ },
  "independence": {
   "status": "PASS",
   "guard": "sys.meta_path finder refusing lcr, cbp, qpc, dpc, osf, smf, rgj, jcv, pnx, oar, stored_model_eval, pcrl (also during joblib unpickling); torch.load(weights_only=True); worktree root removed from sys.path; semaphore invoked by path (-P) as the parent process",
@@ -296,7 +300,7 @@
       "identity_max_abs": 0.0,
       "sum_residual": 2.220446049250313e-16
      },
-     "ms_per_solve": 0.48192262649536133
+     "ms_per_solve": 0.5027902126312256
     },
     "edge_cases": [
      {
@@ -535,6 +539,17 @@
      "ORDINARY_UTILITY_FAILURE",
      "U|K-JOINT-PAIR|i8o64|D1"
     ],
+    "r4_infeasible_constrained_fit": {
+     "P*": "U|K-JOINT-SINGLE|i8o64|D1",
+     "N*": "U|K-JOINT-SINGLE|i8o64|D1",
+     "C_pair*": "U|K-JOINT-SINGLE|i8o64|D1",
+     "J*": "U|K-JOINT-PAIR|i8o64|D1",
+     "J*_reason": "CONSTRAINED_FIT_INFEASIBLE"
+    },
+    "r5_fit_feasible_fallback_first": [
+     "ORDINARY_UTILITY_FAILURE",
+     "U|K-JOINT-PAIR|i8o64|D1"
+    ],
     "tie_rule": true
    },
    "lcr_label_truth_table": {
@@ -659,7 +674,7 @@
    },
    "lcr_selftest_wall_s": {
     "status": "INFO",
-    "wall_s": 1.15
+    "wall_s": 1.21
    },
    "inference_primitives": {
     "status": "PASS",
@@ -673,33 +688,1745 @@
   },
   "fixture_gate": {
    "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
+   "reason": "awaiting FIXTURE_GATE.json",
    "check": "fixture_gate"
   },
   "fixture_oracle": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "fixture_oracle"
+   "status": "PASS",
+   "failures": [],
+   "laws_sha256": "5c5e3bda08c971d50513093179207546059fe2259e8707ca866fd0e162942434",
+   "hash_ok": true,
+   "gate_rule_binds_same_laws": true,
+   "tolerances_equal_registered": {
+    "TOL_BUDGET": true,
+    "TOL_MI": true,
+    "TOL_TERMS": true,
+    "TOL_NULL_Q": true,
+    "TOL_NULL_LOSS": true,
+    "TOL_OPT": true,
+    "TRIGGER_MI": true,
+    "MIN_GAIN": true
+   },
+   "task_only_candidates_equal": true,
+   "families": {
+    "F1_CALIBRATED_NULL": {
+     "status": "PASS",
+     "atoms_rebuilt_exactly": true,
+     "atoms_rebuilt_as_set": true,
+     "static_properties_equal": true,
+     "rows": 4096,
+     "mapping_pairs": 4096,
+     "pairs_within_cap": true,
+     "teacher_argmax_ok": true,
+     "enumerated_pairs": 4096,
+     "enumeration_equals_static_count": true,
+     "d1_class_preserved_every_partition": true,
+     "U": {
+      "1": {
+       "L": 0.535499334786669,
+       "B": 0.35546875,
+       "acc": 0.75,
+       "const_acc": 0.5,
+       "const": 0
+      },
+      "2": {
+       "L": 0.5256318462892426,
+       "B": 0.353515625,
+       "acc": 0.734375,
+       "const_acc": 0.5,
+       "const": 0
+      }
+     },
+     "teacher_acc": {
+      "1": 0.75,
+      "2": 0.734375
+     },
+     "feasible_maps": {
+      "1": 1,
+      "2": 0
+     },
+     "exhaustive_references_without_local_caps": {
+      "D0 FINE-TASK": {
+       "value": 0.013147572976831045,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "C-TASK": {
+       "value": 1.434304795719409,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.01": {
+       "value": 0.01335800856260426,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.01": {
+       "value": 0.0137862245831565,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.01": {
+       "value": 1.4345152313051823,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.01": {
+       "value": 1.4349434473257345,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.025": {
+       "value": 0.013673661941264082,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.025": {
+       "value": 0.014744201992644685,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.025": {
+       "value": 1.434830884683842,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.025": {
+       "value": 1.4359014247352226,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.04": {
+       "value": 0.013989315319923904,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.04": {
+       "value": 0.01570217940213287,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.04": {
+       "value": 1.435146538062502,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.04": {
+       "value": 1.436859402144711,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.06": {
+       "value": 0.014410186491470333,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.06": {
+       "value": 0.016979482614783784,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.06": {
+       "value": 1.4355674092340482,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.06": {
+       "value": 1.4381367053573617,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.08": {
+       "value": 0.014831057663016763,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.08": {
+       "value": 0.018256785827434695,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.08": {
+       "value": 1.4359882804055948,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.08": {
+       "value": 1.4394140085700127,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 LOCAL|l0.1": {
+       "value": 0.015251928834563194,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "D0 SEQ/JOINT|l0.1": {
+       "value": 0.019534089040085606,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-LOCAL|l0.1": {
+       "value": 1.436409151577141,
+       "index": [
+        27,
+        63
+       ]
+      },
+      "W-SEQ/JOINT|l0.1": {
+       "value": 1.4406913117826636,
+       "index": [
+        27,
+        63
+       ]
+      }
+     },
+     "own_class_map_I": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "own_direct_task_map_in_family": {
+      "1": true,
+      "2": true
+     },
+     "wall_s": 0.11,
+     "calibrated_null": {
+      "max_q_diff": 8.125722317231521e-13,
+      "min_law_loss_gap": -2.220446049250313e-16,
+      "tokens": 480,
+      "ok": true
+     }
+    },
+    "F2_MISCALIBRATED": {
+     "status": "PASS",
+     "atoms_rebuilt_exactly": true,
+     "atoms_rebuilt_as_set": true,
+     "static_properties_equal": true,
+     "rows": 4096,
+     "mapping_pairs": 32768,
+     "pairs_within_cap": true,
+     "teacher_argmax_ok": true,
+     "enumerated_pairs": 32768,
+     "enumeration_equals_static_count": true,
+     "d1_class_preserved_every_partition": true,
+     "U": {
+      "1": {
+       "L": 0.704684361894894,
+       "B": 0.47265625,
+       "acc": 0.6875,
+       "const_acc": 0.5,
+       "const": 0
+      },
+      "2": {
+       "L": 1.0214443491875027,
+       "B": 0.619140625,
+       "acc": 0.5,
+       "const_acc": 0.3984375,
+       "const": 0
+      }
+     },
+     "teacher_acc": {
+      "1": 0.6875,
+      "2": 0.5
+     },
+     "feasible_maps": {
+      "1": 64,
+      "2": 512
+     },
+     "exhaustive_references_without_local_caps": {
+      "D0 FINE-TASK": {
+       "value": 0.01819275167852091,
+       "index": [
+        27,
+        227
+       ]
+      },
+      "C-TASK": {
+       "value": 2.120589094445499,
+       "index": [
+        27,
+        165
+       ]
+      },
+      "D0 LOCAL|l0.01": {
+       "value": 0.018246712234660407,
+       "index": [
+        27,
+        227
+       ]
+      },
+      "D0 SEQ/JOINT|l0.01": {
+       "value": 0.018354633346939406,
+       "index": [
+        27,
+        227
+       ]
+      },
+      "W-LOCAL|l0.01": {
+       "value": 2.1207509761139174,
+       "index": [
+        27,
+        165
+       ]
+      },
+      "W-SEQ/JOINT|l0.01": {
+       "value": 2.1210638153509076,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "D0 LOCAL|l0.025": {
+       "value": 0.018327653068869656,
+       "index": [
+        27,
+        227
+       ]
+      },
+      "D0 SEQ/JOINT|l0.025": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "W-LOCAL|l0.025": {
+       "value": 2.1209937986165452,
+       "index": [
+        27,
+        165
+       ]
+      },
+      "W-SEQ/JOINT|l0.025": {
+       "value": 2.121549460356163,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "D0 LOCAL|l0.04": {
+       "value": 0.018408593903078904,
+       "index": [
+        27,
+        227
+       ]
+      },
+      "D0 SEQ/JOINT|l0.04": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "W-LOCAL|l0.04": {
+       "value": 2.1211717364631864,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "W-SEQ/JOINT|l0.04": {
+       "value": 2.1220351053614186,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "D0 LOCAL|l0.06": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "D0 SEQ/JOINT|l0.06": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "W-LOCAL|l0.06": {
+       "value": 2.1213875786877443,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "W-SEQ/JOINT|l0.06": {
+       "value": 2.1226826320350924,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "D0 LOCAL|l0.08": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "D0 SEQ/JOINT|l0.08": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "W-LOCAL|l0.08": {
+       "value": 2.1216034209123023,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "W-SEQ/JOINT|l0.08": {
+       "value": 2.1233301587087663,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "D0 LOCAL|l0.1": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "D0 SEQ/JOINT|l0.1": {
+       "value": 0.01848903144882453,
+       "index": [
+        27,
+        219
+       ]
+      },
+      "W-LOCAL|l0.1": {
+       "value": 2.1218192631368606,
+       "index": [
+        27,
+        157
+       ]
+      },
+      "W-SEQ/JOINT|l0.1": {
+       "value": 2.1239776853824406,
+       "index": [
+        27,
+        157
+       ]
+      }
+     },
+     "own_class_map_I": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "own_direct_task_map_in_family": {
+      "1": true,
+      "2": true
+     },
+     "wall_s": 0.98
+    },
+    "F3_COMPLEMENTARY_XOR": {
+     "status": "PASS",
+     "atoms_rebuilt_exactly": true,
+     "atoms_rebuilt_as_set": true,
+     "static_properties_equal": true,
+     "rows": 4096,
+     "mapping_pairs": 4096,
+     "pairs_within_cap": true,
+     "teacher_argmax_ok": true,
+     "enumerated_pairs": 4096,
+     "enumeration_equals_static_count": true,
+     "d1_class_preserved_every_partition": true,
+     "U": {
+      "1": {
+       "L": 0.591863210146534,
+       "B": 0.4024658203125,
+       "acc": 0.71875,
+       "const_acc": 0.5,
+       "const": 0
+      },
+      "2": {
+       "L": 0.5226379978808873,
+       "B": 0.3399658203125,
+       "acc": 0.78125,
+       "const_acc": 0.5,
+       "const": 0
+      }
+     },
+     "teacher_acc": {
+      "1": 0.71875,
+      "2": 0.78125
+     },
+     "feasible_maps": {
+      "1": 64,
+      "2": 64
+     },
+     "exhaustive_references_without_local_caps": {
+      "D0 FINE-TASK": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "C-TASK": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.01": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.01": {
+       "value": 0.00164211379014492,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-LOCAL|l0.01": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.01": {
+       "value": 1.4865689848443486,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.025": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.025": {
+       "value": 0.002548190569303514,
+       "index": [
+        9,
+        45
+       ]
+      },
+      "W-LOCAL|l0.025": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.025": {
+       "value": 1.4885311653834656,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.04": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.04": {
+       "value": 0.002602275590464849,
+       "index": [
+        27,
+        45
+       ]
+      },
+      "W-LOCAL|l0.04": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.04": {
+       "value": 1.4886566901227487,
+       "index": [
+        0,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.06": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.06": {
+       "value": 0.002602275590464849,
+       "index": [
+        27,
+        45
+       ]
+      },
+      "W-LOCAL|l0.06": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.06": {
+       "value": 1.4886566901227487,
+       "index": [
+        0,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.08": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.08": {
+       "value": 0.002602275590464849,
+       "index": [
+        27,
+        45
+       ]
+      },
+      "W-LOCAL|l0.08": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.08": {
+       "value": 1.4886566901227487,
+       "index": [
+        0,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.1": {
+       "value": 0.00033399343073355075,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.1": {
+       "value": 0.002602275590464849,
+       "index": [
+        27,
+        45
+       ]
+      },
+      "W-LOCAL|l0.1": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.1": {
+       "value": 1.4886566901227487,
+       "index": [
+        0,
+        45
+       ]
+      }
+     },
+     "own_class_map_I": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "own_direct_task_map_in_family": {
+      "1": true,
+      "2": true
+     },
+     "wall_s": 0.11
+    },
+    "F4_REDUNDANT": {
+     "status": "PASS",
+     "atoms_rebuilt_exactly": true,
+     "atoms_rebuilt_as_set": true,
+     "static_properties_equal": true,
+     "rows": 4096,
+     "mapping_pairs": 4096,
+     "pairs_within_cap": true,
+     "teacher_argmax_ok": true,
+     "enumerated_pairs": 4096,
+     "enumeration_equals_static_count": true,
+     "d1_class_preserved_every_partition": true,
+     "U": {
+      "1": {
+       "L": 0.591863210146534,
+       "B": 0.4024658203125,
+       "acc": 0.71875,
+       "const_acc": 0.5,
+       "const": 0
+      },
+      "2": {
+       "L": 0.5226379978808873,
+       "B": 0.3399658203125,
+       "acc": 0.78125,
+       "const_acc": 0.5,
+       "const": 0
+      }
+     },
+     "teacher_acc": {
+      "1": 0.71875,
+      "2": 0.78125
+     },
+     "feasible_maps": {
+      "1": 64,
+      "2": 64
+     },
+     "exhaustive_references_without_local_caps": {
+      "D0 FINE-TASK": {
+       "value": 0.0003339934307335506,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "C-TASK": {
+       "value": 1.4852608644849372,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.01": {
+       "value": 0.0016421137901449201,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.01": {
+       "value": 0.0029502341495562896,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-LOCAL|l0.01": {
+       "value": 1.4865689848443486,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.01": {
+       "value": 1.48787710520376,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.025": {
+       "value": 0.0036042943292619745,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 SEQ/JOINT|l0.025": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "W-LOCAL|l0.025": {
+       "value": 1.4885311653834656,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.025": {
+       "value": 1.491801466281994,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "D0 LOCAL|l0.04": {
+       "value": 0.004524603001474392,
+       "index": [
+        9,
+        9
+       ]
+      },
+      "D0 SEQ/JOINT|l0.04": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "W-LOCAL|l0.04": {
+       "value": 1.4904933459225826,
+       "index": [
+        45,
+        45
+       ]
+      },
+      "W-SEQ/JOINT|l0.04": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "D0 LOCAL|l0.06": {
+       "value": 0.005226214696309713,
+       "index": [
+        27,
+        9
+       ]
+      },
+      "D0 SEQ/JOINT|l0.06": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "W-LOCAL|l0.06": {
+       "value": 1.4924915522871678,
+       "index": [
+        0,
+        36
+       ]
+      },
+      "W-SEQ/JOINT|l0.06": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "D0 LOCAL|l0.08": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "D0 SEQ/JOINT|l0.08": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "W-LOCAL|l0.08": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "W-SEQ/JOINT|l0.08": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "D0 LOCAL|l0.1": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "D0 SEQ/JOINT|l0.1": {
+       "value": 0.00528863845585841,
+       "index": [
+        27,
+        27
+       ]
+      },
+      "W-LOCAL|l0.1": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      },
+      "W-SEQ/JOINT|l0.1": {
+       "value": 1.4924982172404335,
+       "index": [
+        0,
+        0
+       ]
+      }
+     },
+     "own_class_map_I": {
+      "1": 0.0,
+      "2": 0.0
+     },
+     "own_direct_task_map_in_family": {
+      "1": true,
+      "2": true
+     },
+     "wall_s": 0.09
+    }
+   },
+   "solves": {
+    "hits": 4401,
+    "misses": 159
+   }
   },
   "pins": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "pins"
+   "status": "PASS",
+   "failures": [],
+   "input_sha256_ok": true,
+   "branch_base_is_cbp_tip": true,
+   "source_index_files": 162,
+   "source_index_mismatches": [],
+   "source_results_hashes": 32,
+   "source_results_mismatches_at_cbp_tip": [],
+   "source_tip_field_ok": true,
+   "pinned_packages_edited_in_this_branch": [],
+   "source_admission_lock": {
+    "committed": true,
+    "versions": 1,
+    "on_origin_byte_identical": true,
+    "first_commit": "4a919470b724ad0ccfa81fa223b8d594c34a77ce",
+    "first_push_time": "2026-10-06T23:57:28Z",
+    "code_files": 197,
+    "code_files_differing_at_lock_commit": [],
+    "statement_equals_prompt": true,
+    "input_pin_ok": true,
+    "evidence_pin_ok": true,
+    "parent_is_cbp_tip": true,
+    "budget_ok": true,
+    "documents_at_lock_commit": {
+     "EXPOSURE_LEDGER.md": true,
+     "ROLE_MANIFEST.json": true,
+     "SOURCE_ADMISSION.json": true,
+     "SOURCE_INDEX.json": true
+    }
+   },
+   "source_admission_doc": {
+    "units": 189,
+    "units_equal_own_list": true,
+    "counts": {
+     "units": 189,
+     "by_kind": {
+      "fine": 3,
+      "inner": 90,
+      "pol": 81,
+      "ref": 9,
+      "tea": 6
+     },
+     "admitted_teacher_dirs": 6
+    },
+    "verdict_field_free": true
+   }
   },
   "roles": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "roles"
+   "status": "PASS",
+   "source_sha256_ok": true,
+   "float_vs_exact_disagreements": {
+    "rgj_dev_split": 0,
+    "smf_assess_split": 0,
+    "smf_critic_split": 0
+   },
+   "pool_rows_with_a_fitting_role_before_exclusion": 0,
+   "expected_counts_hold": {
+    "OSF_DEFENSE_FIT": true,
+    "OSF_DEVELOPMENT_ASSESSMENT": true,
+    "HEAD_VALIDATION": true,
+    "AUDIT_FIT": true,
+    "INNER_SELECTION": true
+   },
+   "counts": {
+    "OSF_DEFENSE_FIT": {
+     "rows": 15434,
+     "groups": 15428
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "rows": 13936,
+     "groups": 13929
+    },
+    "HEAD_VALIDATION": {
+     "rows": 1500,
+     "groups": 1499
+    },
+    "AUDIT_FIT": {
+     "rows": 6065,
+     "groups": 6061
+    },
+    "INNER_SELECTION": {
+     "rows": 2235,
+     "groups": 2234
+    }
+   },
+   "role_hashes": {
+    "OSF_DEFENSE_FIT": {
+     "row_id_sha256": "3f6bb936900cfd4226dd2f6240bdb73032dc3fac29144dc6268c9db3d1f2553b",
+     "group_id_set_sha256": "5e6f14fe8ecef5022c39b9bcac320f5cdc7c3dbd7aeb80ab899c4807a594a554"
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "row_id_sha256": "01a94675d1138afc784d35b2710ff3c4caa40264c88e50604cf42b2ecd7db81a",
+     "group_id_set_sha256": "60c07e8ba255fb151a60dd44f2cdcf488f358418a0a943e965ad9b0999650d46"
+    },
+    "HEAD_VALIDATION": {
+     "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+     "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d"
+    },
+    "AUDIT_FIT": {
+     "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+     "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c"
+    },
+    "INNER_SELECTION": {
+     "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+     "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b"
+    }
+   },
+   "manifests": {
+    "lcr_ROLE_MANIFEST": {
+     "roles_match": {
+      "OSF_DEFENSE_FIT": true,
+      "OSF_DEVELOPMENT_ASSESSMENT": true,
+      "HEAD_VALIDATION": true,
+      "AUDIT_FIT": true,
+      "INNER_SELECTION": true
+     },
+     "subroles_match": null
+    },
+    "cbp_ROLE_MANIFEST_at_tip": {
+     "roles_match": {
+      "OSF_DEFENSE_FIT": true,
+      "OSF_DEVELOPMENT_ASSESSMENT": true,
+      "HEAD_VALIDATION": true,
+      "AUDIT_FIT": true,
+      "INNER_SELECTION": true
+     },
+     "subroles_match": null
+    }
+   },
+   "pinned_osf_role_partition_fingerprint_match": true,
+   "role_partition_fingerprint_sha256": "d6835fdb71e17562094c37b836cfb39301545627de6d86de26914913ece67226",
+   "roles_group_disjoint": true,
+   "defense_fit_groups_shared_with_other_roles": {
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 0
+   },
+   "subroles_partition_fit": true,
+   "no_exclusion_row_kept": true,
+   "no_kept_group_in_a_dropped_row": true,
+   "dropped_rows": 35,
+   "feature_names_sha256": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+   "n_columns": 83,
+   "forbidden_columns_present": [],
+   "numeric_inversion_ok": {
+    "age": true,
+    "education-num": true,
+    "capital-gain": true,
+    "capital-loss": true,
+    "hours-per-week": true
+   },
+   "rows_kept": 39170
   },
   "admitted_custody": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "admitted_custody"
+   "status": "PASS",
+   "failures": [],
+   "n_failures": 0,
+   "units": 189,
+   "files": 651,
+   "kinds": {
+    "tea": 6,
+    "ref": 9,
+    "fine": 3,
+    "pol": 81,
+    "inner": 90
+   },
+   "scored_units_checked_against_cbp_evaluation_lock": 138,
+   "admitted_teacher_dirs_equal": {
+    "rel__s0__U": true,
+    "rel__s0__RAW-J_b0.3": true,
+    "rel__s1__U": true,
+    "rel__s1__RAW-J_b0.3": true,
+    "rel__s2__U": true,
+    "rel__s2__RAW-J_b0.3": true
+   },
+   "inputs_equal": {
+    "deploy_input.npz": true,
+    "schema.json": true
+   },
+   "receipt_verdict": "ADMITTED",
+   "receipt_teacher_parity_all_ok": true,
+   "receipt_code_parity_all_ok": true,
+   "unexpected_admitted_namespace_units": [],
+   "rule": "own SHA-256 of every file of the lcr admitted units vs the live cbp store, the cbp copy SHA256SUMS and (scored units) the cbp EVALUATION_LOCK at 7f3ec67"
   },
   "teachers": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "teachers"
+   "status": "PASS",
+   "units": {
+    "U|s0": {
+     "status": "PASS",
+     "unit": "rel__s0__U",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12195,
+        3239
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 3.3945115659828633e-06,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2332,
+        4458,
+        2557,
+        184,
+        5903,
+        0
+       ]
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s0": {
+     "status": "PASS",
+     "unit": "rel__s0__RAW-J_b0.3",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12332,
+        3102
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 5.062559646840515e-07,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2187,
+        4390,
+        2457,
+        152,
+        6248,
+        0
+       ]
+      }
+     },
+     "failures": []
+    },
+    "U|s1": {
+     "status": "PASS",
+     "unit": "rel__s1__U",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12269,
+        3165
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 1.2121679795732848e-06,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2264,
+        4378,
+        2588,
+        218,
+        5986,
+        0
+       ]
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s1": {
+     "status": "PASS",
+     "unit": "rel__s1__RAW-J_b0.3",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12461,
+        2973
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 6.77735390479793e-07,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2243,
+        4149,
+        2585,
+        195,
+        6262,
+        0
+       ]
+      }
+     },
+     "failures": []
+    },
+    "U|s2": {
+     "status": "PASS",
+     "unit": "rel__s2__U",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12221,
+        3213
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 1.3538627942647967e-06,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2342,
+        4362,
+        2481,
+        203,
+        6046,
+        0
+       ]
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s2": {
+     "status": "PASS",
+     "unit": "rel__s2__RAW-J_b0.3",
+     "custody": {
+      "lcr_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "cbp_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "lcr_files_equal_cbp": true,
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "r2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "c2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "p2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d1": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      },
+      "d2": {
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "admitted_release": true,
+       "max_abs_diff_lcr_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        12244,
+        3190
+       ]
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 8.170024337085305e-09,
+       "rows_with_exact_max_ties": 0,
+       "predicted_class_counts_fit": [
+        2333,
+        4302,
+        2451,
+        135,
+        6213,
+        0
+       ]
+      }
+     },
+     "failures": []
+    }
+   },
+   "note": "own forward pass on own X (83 permitted columns) from the lcr admitted copies"
   },
   "references": {
    "status": "PENDING",
@@ -707,9 +2434,10 @@
    "check": "references"
   },
   "d0_release_reencode": {
-   "status": "PENDING",
-   "reason": "PHASE 1 (after source admission)",
-   "check": "d0_release_reencode"
+   "status": "PASS",
+   "units": 81,
+   "failures": [],
+   "rule": "own qpc-convention re-encode (own assignment of the own teacher to the fine partition, the stored cell->token map, prototypes recomputed from the cell sums) bitwise vs release.npz on every row"
   },
   "code_hashes": {
    "status": "PENDING",
@@ -843,13 +2571,13 @@
   "status_by_check": {
    "selftests": "PASS",
    "fixture_gate": "PENDING",
-   "fixture_oracle": "PENDING",
-   "pins": "PENDING",
-   "roles": "PENDING",
-   "admitted_custody": "PENDING",
-   "teachers": "PENDING",
+   "fixture_oracle": "PASS",
+   "pins": "PASS",
+   "roles": "PASS",
+   "admitted_custody": "PASS",
+   "teachers": "PASS",
    "references": "PENDING",
-   "d0_release_reencode": "PENDING",
+   "d0_release_reencode": "PASS",
    "code_hashes": "PENDING",
    "chronology": "PENDING",
    "d1_fixed_maps": "PENDING",
@@ -872,21 +2600,21 @@
    "budget": "PENDING"
   },
   "top_level_counts": {
-   "PASS": 1,
-   "PENDING": 28
+   "PASS": 7,
+   "PENDING": 22
   },
   "status_counts_all_nodes": {
-   "PASS": 27,
+   "PASS": 43,
    "INFO": 1,
-   "PENDING": 28
+   "PENDING": 22
   },
   "flagged_fail_warn": [],
   "independence": "PASS",
   "overall": "PASS"
  },
  "compute": {
-  "wall_s": 1.65,
-  "cpu_s_process": 1.61,
+  "wall_s": 28.48,
+  "cpu_s_process": 24.36,
   "threads": {
    "OMP_NUM_THREADS": "1",
    "OPENBLAS_NUM_THREADS": "1",
@@ -894,30 +2622,28 @@
    "torch": 1
   },
   "other_lcr_processes_at_start": 4,
-  "other_lcr_processes_at_end": 4,
+  "other_lcr_processes_at_end": 6,
   "semaphore_slots_at_end": {
    "open_acquisitions": [
     {
-     "slot": 1,
-     "label": "E:phase0"
+     "slot": 0,
+     "label": "E:phase1A-oracle"
     },
     {
-     "slot": 0,
-     "label": "C:fit-timing-prelim"
+     "slot": 1,
+     "label": "D:audit-timing"
     }
    ],
    "unlogged_releases_closed_by_slot_reacquire": []
   }
  },
  "pending": [
-  "admitted_custody",
   "attacker_refits",
   "budget",
   "chronology",
   "chronology_assessment",
   "code_hashes",
   "controls",
-  "d0_release_reencode",
   "d1_fixed_maps",
   "d1_new_units",
   "decision_preservation",
@@ -926,18 +2652,14 @@
   "evaluation_lock",
   "fitting_budgets_and_caps",
   "fixture_gate",
-  "fixture_oracle",
   "incremental_parity",
   "inner_audits",
   "outer_units",
-  "pins",
   "published_tables",
   "references",
   "restore_parity",
-  "roles",
   "selection",
-  "source_composition",
-  "teachers"
+  "source_composition"
  ],
  "verifier_compute_ledger": {
   "semaphore_holds_completed": [
@@ -982,15 +2704,43 @@
     "wall_s": 3.5,
     "cpu_s": 3.2,
     "rc": 0
+   },
+   {
+    "label": "E:phase0",
+    "released_at": "2026-10-07T00:43:20Z",
+    "wall_s": 4.0,
+    "cpu_s": 3.3,
+    "rc": 0
+   },
+   {
+    "label": "E:phase1A",
+    "released_at": "2026-10-07T00:46:00Z",
+    "wall_s": 26.1,
+    "cpu_s": 24.6,
+    "rc": 0
+   },
+   {
+    "label": "E:p0-selftest-dev",
+    "released_at": "2026-10-07T01:10:27Z",
+    "wall_s": 3.7,
+    "cpu_s": 3.5,
+    "rc": 0
+   },
+   {
+    "label": "E:phase1-oracle-dev",
+    "released_at": "2026-10-07T01:11:00Z",
+    "wall_s": 29.9,
+    "cpu_s": 28.7,
+    "rc": 0
    }
   ],
-  "semaphore_cpu_s_total": 16.3,
-  "semaphore_wall_s_total": 18.8,
+  "semaphore_cpu_s_total": 76.4,
+  "semaphore_wall_s_total": 82.5,
   "this_run": {
-   "phase": 0,
-   "start": "2026-10-07T00:43:18Z",
-   "wall_s": 1.65,
-   "cpu_s": 1.61
+   "phase": 1,
+   "start": "2026-10-07T01:11:54Z",
+   "wall_s": 28.48,
+   "cpu_s": 24.36
   },
   "light_runs_outside_the_semaphore": [],
   "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"
