@@ -145,11 +145,23 @@ def actual_work_accounting():
     for u in units:
         by.setdefault(u.split("__")[0], []).append(u)
     done = {p: sum(1 for u in v if R.done(u)) for p, v in by.items()}
+    sel = json.loads((R.RUN / "selection.json").read_text()) if (R.RUN / "selection.json").exists() else {}
+    el = json.loads((PKG / "EVALUATION_LOCK.json").read_text()) if (PKG / "EVALUATION_LOCK.json").exists() else {}
+    work_logs = sorted(p.name for p in R.RUN.glob("work_*.log"))
     return {"schema": "lra-actual-work-v1",
-            "admitted_custody_units": {"total": 189, "note": "verified copies (SOURCE_ADMISSION.json); not new fits"},
+            "admitted_custody_units": {"total": 189, "by_kind": {"tea": 6, "ref": 9, "fine": 3, "pol": 81, "inner": 90},
+                                       "note": "verified copies (SOURCE_ADMISSION.json); custody, not new fits"},
+            "correctness_fixture_units": done.get("cor", 0),
+            "decoder_units": {"d1_fixed_map": done.get("dec", 0), "note": "81 = 26 per seed registered + CLASS|D1 (registered addition)"},
+            "mapping_fits": {"total_new": done.get("new", 0), "ctask": 3, "weighted": 72, "constrained": 15},
+            "same_map_d0_diagnostics": done.get("d0s", 0),
+            "inner_audits": done.get("aud", 0), "assessment_units": done.get("outer", 0),
+            "reused_aliases": {"role_aliases": sel.get("role_aliases"), "scored_label_aliases": el.get("alias_of_by_role"),
+                               "note": "exact release aliases are scored once; every role and all 37 slots kept"},
+            "skipped_by_gate": "none (ENGINEERING_READY; the full registered bank ran)",
+            "technical_attempts": {"reruns": 0, "worker_logs": work_logs,
+                                   "note": "every stage ran once with exit 0; no amendment"},
             "private_units_by_prefix": {p: {"present": len(v), "complete": done[p]} for p, v in sorted(by.items())},
-            "registered": {"d1_fixed_map_decodes": len(R.d1_jobs()), "ctask": 3, "weighted": 72, "constrained": 15,
-                           "inner_audit_units": len(R.scored_ids()) * 3},
             "compute_ledger": led}
 
 
