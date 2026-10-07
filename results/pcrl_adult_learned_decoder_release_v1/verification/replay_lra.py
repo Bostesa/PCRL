@@ -14808,6 +14808,739 @@ def merge_supplement(args, t0, c0, nodes_fn, label):
                      indent=1, default=str))
 
 
+# ================================================================================================ lra PHASE 3: assessment
+def unsealed_labels_lra(D: Data, gate):
+    """Assessment labels are read ONLY after evaluation_lock_gate() verified the pushed EVALUATION_LOCK."""
+    if not gate.get("ok"):
+        raise SystemExit("REFUSED: EVALUATION_LOCK not verified on origin; assessment labels stay sealed")
+    z = np.load(D.src, allow_pickle=False)
+    return {k: z[v].astype(np.int64)[D.keep] for k, v in LABEL_KEYS.items()}
+
+
+def _safe_lab(lab):
+    return lab.replace("|", "_")
+
+
+def p3_outer(D: Data, LU, T, EL):
+    """Every scored assessment unit (21 labels x 3 seeds): bound to the pushed lock; assessment rows and exact-record
+    groups equal the own role reconstruction; SEX / task labels equal the own unsealed labels; fitting-majority constants
+    own; released probabilities / decisions equal the own release arrays on the assessment rows (codes: stored release
+    re-checked by the own re-encode in PHASE_2; sources: own teacher forward; references: the admitted score file); row
+    losses own; the U anchor arrays equal the own teacher; the selected readers equal the inner selection; every score
+    finite."""
+    ia = D.idx[ASSESS]
+    labels = list(EL["seeds"]["0"]["score"])
+    preds, bad, info = {}, [], {}
+    ycol = {1: "y_income", 2: "y_occ"}
+    const = {i: int(np.argmax(np.bincount(LU[ycol[i]][D.idx[FIT]], minlength=KS[i - 1]))) for i in (1, 2)}
+    el_sha = sha_file(RES / "EVALUATION_LOCK.json")
+    el_commit = (git("log", "--format=%H", "--", f"{REL_RES}/EVALUATION_LOCK.json") or "").splitlines()[-1:]
+    for k in SEEDS:
+        if list(EL["seeds"][str(k)]["score"]) != labels:
+            bad.append(f"s{k}: scored labels differ across seeds")
+        for lab in labels:
+            un = f"outer__s{k}__{_safe_lab(lab)}"
+            d = UNITS / un
+            f = []
+            if not (d / "COMPLETE.json").exists():
+                bad.append(f"{un}: absent")
+                continue
+            rec = jload(d / "record.json")
+            z = np.load(d / "preds.npz", allow_pickle=False)
+            p = {x: np.asarray(z[x]) for x in z.files}
+            preds[(k, lab)] = p
+            if (rec.get("evaluation_lock") or {}).get("sha256") != el_sha or \
+                    (rec.get("evaluation_lock") or {}).get("commit") not in el_commit:
+                f.append("not bound to the pushed EVALUATION_LOCK")
+            if not np.array_equal(p["assess_row_id"], D.row_id[ia]):
+                f.append("assessment rows differ from the own role reconstruction")
+            if not np.array_equal(p["assess_unit"], D.unit[ia]):
+                f.append("assessment groups differ")
+            if not (np.array_equal(p["sex"], LU["sex"][ia]) and np.array_equal(p["y_income"], LU["y_income"][ia]) and
+                    np.array_equal(p["y_occ"], LU["y_occ"][ia])):
+                f.append("assessment labels differ from the own unsealed labels")
+            if [int(x) for x in np.asarray(p["const_class"]).ravel()[:2]] != [const[1], const[2]]:
+                f.append("fitting-majority constants differ")
+            rel, is_code = _release_arrays(k, lab, T) if not lab.endswith("|D0SAME") else (
+                {x: np.asarray(v) for x, v in np.load(UNITS / lra_unit(k, lab) / "release.npz").items()}, True)
+            for i in (1, 2):
+                if not (bitwise(np.asarray(rel[f"q{i}"], dtype=np.float64)[ia], np.asarray(p[f"prob{i}"], dtype=np.float64))
+                        and np.array_equal(np.asarray(rel[f"hard{i}"])[ia], p[f"hard{i}"])):
+                    f.append(f"r{i}: released probabilities / decisions differ from the own release arrays")
+                yv = LU[ycol[i]][ia]
+                pr = np.asarray(p[f"prob{i}"], dtype=np.float64)
+                ll = -np.log(np.clip(pr[np.arange(len(yv)), yv], LL_CLIP, 1.0))
+                br = np.sum((pr - np.eye(pr.shape[1])[yv]) ** 2, 1)
+                if maxdiff(ll, p[f"ll{i}"]) > 1e-15 or maxdiff(br, p[f"br{i}"]) > 1e-15:
+                    f.append(f"r{i}: row losses differ")
+                if not (bitwise(np.asarray(T[(k, "U")][f"p{i}"])[ia], np.asarray(p[f"u_prob{i}"], dtype=np.float64)) and
+                        np.array_equal(T[(k, "U")][f"d{i}"][ia], p[f"u_hard{i}"])):
+                    f.append(f"r{i}: U anchor arrays differ from the own teacher")
+            if lab.startswith("U|") and not lab.endswith("|D0SAME"):
+                for i in (1, 2):
+                    if not np.array_equal(p[f"hard{i}"], T[(k, "U")][f"d{i}"][ia]):
+                        f.append(f"r{i}: decisions not preserved on the assessment rows")
+            nonfin = sum(int((~np.isfinite(np.asarray(v, dtype=np.float64))).sum()) for x, v in p.items()
+                         if x.startswith(("P_auc_", "P_ce_")))
+            if nonfin:
+                f.append(f"{nonfin} nonfinite reader scores")
+            prim = rec.get("primary_family")
+            arec = jload(UNITS / f"aud__{lra_unit(k, lab)}" / "record.json") if \
+                (UNITS / f"aud__{lra_unit(k, lab)}").exists() else None
+            if arec is not None:
+                sel_out = ((rec.get("families") or {}).get(prim) or {}).get("selected")
+                if sel_out != arec["recovery"].get("selected"):
+                    f.append("assessment readers differ from the inner AUC selection")
+            info[un] = {"ok": not f, "failures": f[:6]}
+            if f:
+                bad.append(un)
+    return res("PASS" if not bad and len(info) == 3 * len(labels) else "FAIL", units=len(info), expected=3 * len(labels),
+               failures=bad[:30], unit_status={u: v for u, v in info.items() if not v["ok"]}), preds
+
+
+def own_endpoints_lra(preds, EL, boot=None, z=Z_LRA):
+    """Own 37 endpoints (prompt section 12) from the stored assessment predictions: A P* vs T*, B N* vs C*, C J* vs
+    C_pair* (11 clauses each), Q (4); paired exact-record-group bootstrap (1999, seed 20261010, the same draws for every
+    arm and seed); per model seed the mean over the three attacker refits; the reported point is the equal-seed mean;
+    SE = sd (ddof 1) of the replicate seed means; bounds point +- z SE. Descriptive when a role is not a NOMINEE."""
+    labels = list(EL["seeds"]["0"]["score"])
+    p0 = preds[(0, labels[0])]
+    sex, units = p0["sex"], p0["assess_unit"]
+    y = {0: p0["y_income"], 1: p0["y_occ"]}
+    const = {j: int(np.asarray(p0["const_class"]).ravel()[j]) for j in (0, 1)}
+    boot = OwnBoot(units) if boot is None else boot
+    S_ = Stats(boot)
+
+    def R(k, lab, w):
+        P3 = preds[(k, lab)][f"P_auc_{w}"]
+        return [S_.add(f"auc#{k}#{lab}#{w}#{s_}", WAuc(np.asarray(P3[s_], dtype=np.float64)[:, 1], sex == 1))
+                for s_ in range(3)]
+
+    def acc(k, lab, j):
+        return S_.add(f"acc#{k}#{lab}#{j}", WMean(preds[(k, lab)][f"hard{j + 1}"] == y[j]))
+
+    def loss(k, lab, j, kind):
+        pr = np.asarray(preds[(k, lab)][f"prob{j + 1}"], dtype=np.float64)
+        ll = -np.log(np.clip(pr[np.arange(len(y[j])), y[j]], LL_CLIP, 1.0))
+        br = np.sum((pr - np.eye(pr.shape[1])[y[j]]) ** 2, 1)
+        return S_.add(f"{kind}#{k}#{lab}#{j}", WMean(ll if kind == "ll" else br))
+
+    def constacc(j):
+        return S_.add(f"const#{j}", WMean(y[j] == const[j]))
+
+    res_ = dict(EL["resolved"])
+    slots, i_ = [], 1
+    for claim, (nom, ref) in (("A", ("P*", "T*")), ("B", ("N*", "C*")), ("C", ("J*", "C_pair*"))):
+        slots.append({"id": f"P{i_:02d}", "claim": claim, "kind": "coalition", "nominee": nom, "ref": ref,
+                      "target": MARGIN_PAIR, "side": "lower>"})
+        i_ += 1
+        for w in ("v1", "v2"):
+            slots.append({"id": f"P{i_:02d}", "claim": claim, "kind": "local", "view": w, "nominee": nom, "ref": ref,
+                          "target": MARGIN_LOCAL, "side": "upper<"})
+            i_ += 1
+        for kind, tgt, side in (("acc", -0.01, "lower>"), ("logloss", 0.01, "upper<"), ("brier", 0.005, "upper<"),
+                                ("retain", 0.0, "lower>")):
+            for j in (0, 1):
+                slots.append({"id": f"P{i_:02d}", "claim": claim, "kind": kind, "task": j, "nominee": nom,
+                              "target": tgt, "side": side})
+                i_ += 1
+    for kind, tgt in (("logloss", 0.01), ("brier", 0.005)):
+        for j in (0, 1):
+            slots.append({"id": f"P{i_:02d}", "claim": "Q", "kind": kind, "task": j, "nominee": "Q", "target": tgt,
+                          "side": "upper<"})
+            i_ += 1
+    assert len(slots) == 37
+    U = "SRC|U"
+    combos = {}
+    for e in slots:
+        nom, ref = res_.get(e["nominee"]), res_.get(e.get("ref")) if e.get("ref") else None
+        per = []
+        for k in SEEDS:
+            j = e.get("task")
+            if e["kind"] == "coalition":
+                per.append(("diff", R(k, ref, "pair"), R(k, nom, "pair")))
+            elif e["kind"] == "local":
+                per.append(("diff", R(k, nom, e["view"]), R(k, ref, e["view"])))
+            elif e["kind"] == "acc":
+                per.append(("diff", [acc(k, nom, j)], [acc(k, U, j)]))
+            elif e["kind"] in ("logloss", "brier"):
+                kd = "ll" if e["kind"] == "logloss" else "br"
+                per.append(("diff", [loss(k, nom, j, kd)], [loss(k, U, j, kd)]))
+            else:
+                per.append(("lin", [acc(k, nom, j)], [acc(k, U, j)], [constacc(j)]))
+        combos[e["id"]] = per
+    S_.evaluate([x for per in combos.values() for c_ in per for part in c_[1:] for x in part])
+
+    def m3(ks, which):
+        return np.mean([S_.val[x][which] for x in ks], axis=0)
+    out = []
+    for e in slots:
+        pts, reps = [], []
+        for c_ in combos[e["id"]]:
+            if c_[0] == "diff":
+                pts.append(m3(c_[1], 0) - m3(c_[2], 0))
+                reps.append(m3(c_[1], 1) - m3(c_[2], 1))
+            else:
+                pts.append(m3(c_[1], 0) - 0.8 * m3(c_[2], 0) - 0.2 * m3(c_[3], 0))
+                reps.append(m3(c_[1], 1) - 0.8 * m3(c_[2], 1) - 0.2 * m3(c_[3], 1))
+        pt = float(np.mean(pts))
+        rp = np.mean(np.stack(reps), axis=0)
+        nonfin = int((~np.isfinite(rp)).sum())
+        se = float(np.std(rp, ddof=1))
+        lo, hi = pt - z * se, pt + z * se
+        outc = clause_outcome({"point": pt, "lower": lo, "upper": hi, "target": e["target"], "side": e["side"],
+                               "nonfinite": nonfin})[0]
+        rl = [e["nominee"]] + ([e["ref"]] if e.get("ref") else [])
+        descriptive = any((EL["statuses"].get(x) or {}).get("status") != "NOMINEE" for x in rl)
+        out.append({**e, "point": pt, "se": se, "lower": lo, "upper": hi, "outcome": outc,
+                    "decision": "DESCRIPTIVE_ONLY" if descriptive and outc != "INVALID" else outc,
+                    "nominee_config": res_.get(e["nominee"]),
+                    "ref_config": res_.get(e.get("ref")) if e.get("ref") else None})
+    return out, S_, boot
+
+
+def _el_statuses_for_labels(EL):
+    """The bound role statuses in the own label-function vocabulary (aliases: representative family / construction /
+    identical_to_untrained)."""
+    st = {}
+    for x, v in (EL.get("statuses") or {}).items():
+        a = v.get("aliases") or {}
+        st[x] = {"status": v.get("status"), "config": v.get("config"), "reason": v.get("reason"),
+                 "aliases": {"available": bool(a.get("representative")),
+                             "representative_family": a.get("representative_family"),
+                             "representative_construction": a.get("representative_construction"),
+                             "identical_to_untrained": a.get("identical_to_untrained") or []}}
+    return st
+
+
+def p3_endpoints(preds, EL):
+    """Own endpoints / outcomes / statuses / overall label vs run/inference.json and PRIMARY_ENDPOINTS.csv."""
+    own, S_, boot = own_endpoints_lra(preds, EL)
+    inf = jload(RUN / "inference.json") if (RUN / "inference.json").exists() else None
+    out, f = {"boot": {"groups": int(boot.G), "B": int(boot.B), "seed": BOOT_SEED}}, []
+    if inf is None:
+        return res("PENDING", reason="run/inference.json absent"), own
+    pub = {e["id"]: e for e in inf.get("primary") or []}
+    worst = {"point": 0.0, "se": 0.0, "bound": 0.0}
+    for e in own:
+        p_ = pub.get(e["id"])
+        if p_ is None:
+            f.append(f"{e['id']}: missing from inference.json")
+            continue
+        worst["point"] = max(worst["point"], abs(e["point"] - float(p_["point"])))
+        worst["se"] = max(worst["se"], abs(e["se"] - float(p_["se"])))
+        worst["bound"] = max(worst["bound"], abs(e["lower"] - float(p_["lower"])), abs(e["upper"] - float(p_["upper"])))
+        if p_.get("outcome") != e["outcome"] or p_.get("decision") != e["decision"]:
+            f.append(f"{e['id']}: outcome / decision own {e['outcome']}/{e['decision']} vs {p_.get('outcome')}/"
+                     f"{p_.get('decision')}")
+    out["worst_abs_diff"] = worst
+    if worst["point"] > 1e-12 or worst["se"] > 1e-12 or worst["bound"] > 1e-11:
+        f.append(f"endpoint values differ {worst}")
+    st = _el_statuses_for_labels(EL)
+    gate = (EL.get("technical_validity") or {}).get("engineering_gate", {}).get("verdict")
+    lab = lra_labels(st, own, gate, technical_valid=bool(inf.get("technical_valid", True)))
+    out["own_label"] = lab["label"]
+    out["published_label"] = inf.get("label")
+    out["own_claims"] = {**lab["claims"], "Q": lab["q"]}
+    out["published_claims"] = {**(inf.get("claim_status") or {}), "Q": inf.get("q_status")}
+    if out["own_label"] != out["published_label"]:
+        f.append("overall label differs")
+    for c_ in ("A", "B", "C"):
+        pc = (inf.get("claim_status") or {}).get(c_)
+        pc = pc.get("status") if isinstance(pc, dict) else pc
+        if pc != lab["claims"][c_]:
+            f.append(f"claim {c_}: own {lab['claims'][c_]} vs {pc}")
+    pq = inf.get("q_status")
+    pq = pq.get("status") if isinstance(pq, dict) else pq
+    if pq != lab["q"]:
+        f.append(f"Q: own {lab['q']} vs {pq}")
+    out["own_root_causes"] = lab.get("root_causes")
+    out["z"] = Z_LRA
+    # PRIMARY_ENDPOINTS.csv (6-decimal prints)
+    rows = _read_csv(RES / "PRIMARY_ENDPOINTS.csv") if (RES / "PRIMARY_ENDPOINTS.csv").exists() else []
+    bad_csv = []
+    byid = {e["id"]: e for e in own}
+    for r in rows:
+        e = byid.get(r["id"])
+        if e is None:
+            bad_csv.append(r["id"])
+            continue
+        for col in ("point", "se", "lower", "upper"):
+            if r.get(col) not in (None, "") and abs(float(r[col]) - e[col]) > 5e-7:
+                bad_csv.append(f"{r['id']}.{col}")
+        if r.get("decision") != e["decision"]:
+            bad_csv.append(f"{r['id']}.decision")
+    out["primary_endpoints_csv_rows"] = len(rows)
+    out["primary_endpoints_csv_mismatches"] = bad_csv
+    if len(rows) != 37 or bad_csv:
+        f.append("PRIMARY_ENDPOINTS.csv")
+    # same-map D1 - D0 contrasts (supplementary, nominal 95%)
+    z95 = NormalDist().inv_cdf(0.975)
+    sm, smf = {}, []
+    U = "SRC|U"
+    for pr in (EL.get("same_map_decoder_pairs") or []):
+        if not (pr.get("d1") and pr.get("d0")):
+            continue
+        c = {}
+        for j in (0, 1):
+            for kd, nm in (("ll", "logloss"), ("br", "brier")):
+                for k in SEEDS:
+                    for lab in (pr["d1"], pr["d0"]):
+                        pp = np.asarray(preds[(k, lab)][f"prob{j + 1}"], dtype=np.float64)
+                        yy = preds[(k, lab)]["y_income" if j == 0 else "y_occ"]
+                        v = -np.log(np.clip(pp[np.arange(len(yy)), yy], LL_CLIP, 1.0)) if kd == "ll" else \
+                            np.sum((pp - np.eye(pp.shape[1])[yy]) ** 2, 1)
+                        S_.add(f"{kd}#{k}#{lab}#{j}", WMean(v))
+                keys1 = [f"{kd}#{k}#{pr['d1']}#{j}" for k in SEEDS]
+                keys0 = [f"{kd}#{k}#{pr['d0']}#{j}" for k in SEEDS]
+                S_.evaluate(keys1 + keys0)
+                pt = float(np.mean([S_.val[a][0] - S_.val[b][0] for a, b in zip(keys1, keys0)]))
+                rp = np.mean([S_.val[a][1] - S_.val[b][1] for a, b in zip(keys1, keys0)], axis=0)
+                se = float(np.std(rp, ddof=1))
+                c[f"{nm}_{('income', 'occupation')[j]}"] = {"point": pt, "se": se, "lower": pt - z95 * se,
+                                                            "upper": pt + z95 * se}
+        ups = [v["upper"] for v in c.values()]
+        verdict = "did" if all(u < 0 for u in ups) else "did not clearly"
+        sm[pr["name"]] = {"contrasts": c, "verdict": verdict}
+        pubp = next((x for x in ((inf.get("same_map_decoder_contrasts") or {}).get("pairs") or [])
+                     if x.get("name") == pr["name"]), None)
+        if pubp is None:
+            smf.append(f"{pr['name']}: absent from inference.json")
+            continue
+        for key, v in c.items():
+            pv = (pubp.get("contrasts") or {}).get(key) or {}
+            if any(pv.get(x) is None or abs(float(pv[x]) - v[x]) > 1e-11 for x in ("point", "se", "lower", "upper")):
+                smf.append(f"{pr['name']}.{key}")
+        if pubp.get("verdict") != verdict:
+            smf.append(f"{pr['name']}: verdict own {verdict} vs {pubp.get('verdict')}")
+    out["same_map_contrasts_own"] = sm
+    out["same_map_mismatches"] = smf
+    if smf:
+        f.append("same-map D1 - D0 contrasts")
+    del U
+    return res("PASS" if not f else "FAIL", failures=f, **out), own
+
+
+
+def phase3_endpoints_supplement(report):
+    """PHASE_3 (part 1): the evaluation-lock gate, then the assessment units and the 37 endpoints / labels /
+    same-map contrasts / PRIMARY_ENDPOINTS.csv."""
+    gate = evaluation_lock_gate(fetch=True)
+    report["assessment_label_gate"] = {k_: gate.get(k_) for k_ in ("checked_at", "git_fetch_ok", "exists", "commit",
+                                                                   "commit_time", "first_push_time",
+                                                                   "origin_show_equals_worktree", "commit_on_origin",
+                                                                   "commits", "sha256", "ok")}
+    D = Data()
+    L = D.labels()
+    _, T = check_teachers_lra(D, L)
+    LU = unsealed_labels_lra(D, gate)
+    report["assessment_labels_read"] = True
+    EL = jload(RES / "EVALUATION_LOCK.json")
+    c = {}
+    c["P3_outer_units"], preds = p3_outer(D, LU, T, EL)
+    c["P3_endpoints_labels"], _ = p3_endpoints(preds, EL)
+    return c
+
+
+def _num(x):
+    try:
+        v = float(x)
+        return v if math.isfinite(v) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def p3_all_levels(preds, EL, boot):
+    """ALL_LEVELS.csv: every per-seed / seed-mean recovery, accuracy, log-loss, Brier and excess level recomputed own
+    (same draws) and compared with the 6-decimal prints (5e-7)."""
+    rows = _read_csv(RES / "ALL_LEVELS.csv")
+    S_ = Stats(boot)
+    labels = list(EL["seeds"]["0"]["score"])
+    p0 = preds[(0, labels[0])]
+    sex = p0["sex"]
+    y = {0: p0["y_income"], 1: p0["y_occ"]}
+    const = {j: int(np.asarray(p0["const_class"]).ravel()[j]) for j in (0, 1)}
+    U = "SRC|U"
+
+    def key_R(k, lab, fam, w):
+        nm = f"P_auc_{w}" if fam == "primary" else f"P_auc_{fam}_{w}"
+        P3 = preds[(k, lab)].get(nm)
+        if P3 is None:
+            return None
+        return [S_.add(f"R#{k}#{lab}#{fam}#{w}#{s_}", WAuc(np.asarray(P3[s_], dtype=np.float64)[:, 1], sex == 1))
+                for s_ in range(3)]
+
+    def key_u(k, lab, j, kd):
+        p = preds[(k, lab)]
+        if kd == "acc":
+            return S_.add(f"acc#{k}#{lab}#{j}", WMean(p[f"hard{j + 1}"] == y[j]))
+        pr = np.asarray(p[f"prob{j + 1}"], dtype=np.float64)
+        v = -np.log(np.clip(pr[np.arange(len(y[j])), y[j]], LL_CLIP, 1.0)) if kd == "ll" else \
+            np.sum((pr - np.eye(pr.shape[1])[y[j]]) ** 2, 1)
+        return S_.add(f"{kd}#{k}#{lab}#{j}", WMean(v))
+    plan = []
+    for r in rows:
+        q_, sd, lab, det = r["quantity"], r["seed"], r["label"], r["detail"]
+        ks = list(SEEDS) if sd == "mean" else ([int(sd)] if sd not in ("", None) else [])
+        if q_ in ("R", "Rmean"):
+            fam, w = det.split("|")
+            parts = [key_R(k, lab, fam, w) for k in ks]
+            plan.append((r, "R", parts))
+        elif q_ in ("acc", "ll", "br", "accmean", "llmean", "brmean"):
+            kd = q_.replace("mean", "")
+            j = int(det.split("|")[-1]) if det else 0
+            plan.append((r, "U", [[key_u(k, lab, j, kd)] for k in ks]))
+        elif q_ in ("llx", "brx", "llxmean", "brxmean"):
+            kd = q_.replace("mean", "")[:2]
+            j = int(det.split("|")[-1]) if det else 0
+            plan.append((r, "X", [([key_u(k, lab, j, kd)], [key_u(k, U, j, kd)]) for k in ks]))
+        elif q_ == "const":
+            j = int(det.split("|")[-1]) if det else int(lab or 0)
+            plan.append((r, "C", [[S_.add(f"const#{j}", WMean(y[j] == const[j]))]]))
+        else:
+            plan.append((r, "?", []))
+    flat = []
+    for _, kind, parts in plan:
+        for p_ in parts:
+            if p_ is None:
+                continue
+            if kind == "X":
+                flat += p_[0] + p_[1]
+            else:
+                flat += p_
+    S_.evaluate(flat)
+    bad, worst, n_ok, unmapped = [], 0.0, 0, []
+    for r, kind, parts in plan:
+        if kind == "?" or any(p_ is None for p_ in parts) or not parts:
+            unmapped.append(f"{r['quantity']}|{r['seed']}|{r['label']}|{r['detail']}")
+            continue
+        if kind == "X":
+            pt = float(np.mean([np.mean([S_.val[a][0] for a in p_[0]]) - np.mean([S_.val[b][0] for b in p_[1]])
+                                for p_ in parts]))
+            rp = np.mean([np.mean([S_.val[a][1] for a in p_[0]], axis=0) - np.mean([S_.val[b][1] for b in p_[1]], axis=0)
+                          for p_ in parts], axis=0)
+        else:
+            pt = float(np.mean([np.mean([S_.val[a][0] for a in p_]) for p_ in parts]))
+            rp = np.mean([np.mean([S_.val[a][1] for a in p_], axis=0) for p_ in parts], axis=0)
+        se = float(np.std(rp, ddof=1))
+        dv = max(abs(pt - (_num(r["point"]) or math.inf)), abs(se - (_num(r["se"]) or math.inf)))
+        worst = max(worst, dv)
+        if dv > 5e-7:
+            bad.append(f"{r['quantity']}|{r['seed']}|{r['label']}|{r['detail']}: {dv:.2g}")
+        else:
+            n_ok += 1
+    ok = not bad and not unmapped
+    return res("PASS" if ok else "FAIL", rows=len(rows), rows_reproduced=n_ok, mismatches=bad[:20],
+               unmapped=unmapped[:20], worst_abs_diff=worst,
+               rule="own statistic on the same 1999 group draws; 6-decimal prints within 5e-7")
+
+
+def p3_tables(D: Data, L, LU, T, preds, EL, info_fixed, info_new, inner_rows):
+    """The report tables re-derived from own quantities: BUDGET_FEASIBILITY (own deployed FIT terms of every new
+    unit), DECODER_ONLY_ABLATION (own D0 / D1 FIT losses on identical tokens), DECODER_UTILITY_ABLATION (own fit /
+    inner / assessment D1 - D0), DECISION_FLOOR_AND_FEASIBILITY (own CLASS fitted I12, slacks, inner excesses and AUCs),
+    DECODER_CERTIFICATES aggregate, ACTUAL_WORK_ACCOUNTING unit counts, RUN_STATUS label, FIGURES presence."""
+    out, fails = {}, []
+    tr, yfit, sfit = fit_labels(D, L)
+    # BUDGET_FEASIBILITY.csv
+    bf = _read_csv(RES / "BUDGET_FEASIBILITY.csv")
+    worst, mism = 0.0, []
+    for r in bf:
+        k, cid = int(r["seed"]), r["config"]
+        inf = info_new.get((k, cid))
+        if inf is None:
+            mism.append(f"{cid} s{k}: no own unit")
+            continue
+        ot = inf["own_terms"]
+        for col, ov in (("L1", ot["L1"]), ("L2", ot["L2"]), ("B1", ot["B1"]), ("B2", ot["B2"]), ("I1", ot["I1"]),
+                        ("I2", ot["I2"]), ("I12", ot["I12"]), ("T", ot["T"]), ("Phi", ot["Phi"]),
+                        ("L1_U", inf["budgets"]["1"]["L_U"]), ("L2_U", inf["budgets"]["2"]["L_U"]),
+                        ("B1_U", inf["budgets"]["1"]["B_U"]), ("B2_U", inf["budgets"]["2"]["B_U"])):
+            pv = _num(r.get(col))
+            if pv is None:
+                mism.append(f"{cid} s{k}.{col} missing")
+                continue
+            worst = max(worst, abs(pv - ov))
+            if abs(pv - ov) > 1e-10:
+                mism.append(f"{cid} s{k}.{col}: {abs(pv - ov):.2g}")
+        if (r.get("deployed_feasible") == "True") != (inf["record"].get("deployed") or {}).get("feasible", True):
+            mism.append(f"{cid} s{k}: deployed_feasible column vs record")
+    out["BUDGET_FEASIBILITY"] = {"rows": len(bf), "worst_abs_diff": worst, "mismatches": mism[:12]}
+    if len(bf) != 90 or mism:
+        fails.append("BUDGET_FEASIBILITY.csv")
+    # DECODER_ONLY_ABLATION.csv (fitting rows; D0 losses from the D0 release, D1 from the dec__ release)
+    do = _read_csv(RES / "DECODER_ONLY_ABLATION.csv")
+    worst, mism = 0.0, []
+    for r in do:
+        k, i = int(r["seed"]), int(r["recipient"])
+        d0, d1 = r["d0_config"], r["d1_config"]
+        z0 = np.load(UNITS / lra_unit(k, d0) / "release.npz", allow_pickle=False)
+        z1 = np.load(UNITS / lra_unit(k, d1) / "release.npz", allow_pickle=False)
+        y_ = yfit[i]
+        L0, B0 = fit_losses(np.asarray(z0[f"q{i}"])[tr], y_)
+        L1, B1 = fit_losses(np.asarray(z1[f"q{i}"])[tr], y_)
+        LU_, BU_ = fit_losses(T[(k, "U")][f"p{i}"][tr], y_)
+        tokeq = bool(np.array_equal(z0[f"tok{i}"], z1[f"tok{i}"]))
+        for col, ov in (("L_U", LU_), ("L_D0", L0), ("L_D1", L1), ("dL_D1_minus_D0", L1 - L0), ("B_U", BU_),
+                        ("B_D0", B0), ("B_D1", B1), ("dB_D1_minus_D0", B1 - B0),
+                        ("I_fit", mi_of(sfit, np.asarray(z1[f"tok{i}"])[tr]))):
+            pv = _num(r.get(col))
+            if pv is None or abs(pv - ov) > 1e-10:
+                mism.append(f"{d1} s{k} r{i}.{col}")
+            else:
+                worst = max(worst, abs(pv - ov))
+        if (r.get("tokens_bitwise_equal_d0") == "True") != tokeq or not tokeq:
+            mism.append(f"{d1} s{k} r{i}: tokens not identical to D0")
+        bu = budget_check(L0, B0, LU_, BU_)["ok"], budget_check(L1, B1, LU_, BU_)["ok"]
+        if (r.get("fit_budget_ok_D0") == "True", r.get("fit_budget_ok_D1") == "True") != bu:
+            mism.append(f"{d1} s{k} r{i}: budget flags")
+    out["DECODER_ONLY_ABLATION"] = {"rows": len(do), "worst_abs_diff": worst, "mismatches": mism[:12]}
+    if mism or not do:
+        fails.append("DECODER_ONLY_ABLATION.csv")
+    # DECODER_UTILITY_ABLATION.csv (fit / inner / assessment D1 - D0 on identical tokens)
+    du = _read_csv(RES / "DECODER_UTILITY_ABLATION.csv")
+    sel = D.idx[INNER]
+    ycol = {1: "y_income", 2: "y_occ"}
+    worst, mism = 0.0, []
+    for r in du:
+        k = int(r["seed"]) if r.get("seed") not in (None, "") else None
+        d1, d0 = r["d1_config"], r["d0_config"]
+        if k is None:
+            continue
+        z0 = np.load(UNITS / lra_unit(k, d0) / "release.npz", allow_pickle=False)
+        z1 = np.load(UNITS / lra_unit(k, d1) / "release.npz", allow_pickle=False)
+        for i, tn in ((1, "income"), (2, "occupation")):
+            Lf0, Bf0 = fit_losses(np.asarray(z0[f"q{i}"])[tr], yfit[i])
+            Lf1, Bf1 = fit_losses(np.asarray(z1[f"q{i}"])[tr], yfit[i])
+            yi = L[ycol[i]][sel]
+            Li0, Bi0 = fit_losses(np.asarray(z0[f"q{i}"])[sel], yi)
+            Li1, Bi1 = fit_losses(np.asarray(z1[f"q{i}"])[sel], yi)
+            for col, ov, tol in ((f"fit_dL_{tn}", Lf1 - Lf0, 1e-10), (f"fit_dB_{tn}", Bf1 - Bf0, 1e-10),
+                                 (f"inner_dL_{tn}", Li1 - Li0, 5e-6), (f"inner_dB_{tn}", Bi1 - Bi0, 5e-6)):
+                pv = _num(r.get(col))
+                if pv is None or abs(pv - ov) > tol:
+                    mism.append(f"{d1} s{k}.{col}")
+                else:
+                    worst = max(worst, abs(pv - ov) if tol < 1e-9 else 0.0)
+        if (r.get("tokens_bitwise_equal") == "True") != all(np.array_equal(z0[f"tok{i}"], z1[f"tok{i}"]) for i in (1, 2)):
+            mism.append(f"{d1} s{k}: tokens_bitwise_equal")
+    out["DECODER_UTILITY_ABLATION"] = {"rows": len(du), "worst_fit_abs_diff": worst, "mismatches": mism[:12],
+                                       "note": "inner columns are 6-decimal prints (5e-6 incl. difference rounding)"}
+    if mism or not du:
+        fails.append("DECODER_UTILITY_ABLATION.csv")
+    # DECISION_FLOOR_AND_FEASIBILITY.csv
+    dfl = _read_csv(RES / "DECISION_FLOOR_AND_FEASIBILITY.csv")
+    mism = []
+    for r in dfl:
+        k, cid = int(r["seed"]), r["config"] + ("|D1" if r.get("decoder") == "D1" and not r["config"].endswith("|D1") else "")
+        z = np.load(UNITS / lra_unit(k, cid) / "release.npz", allow_pickle=False)
+        I12 = mi_of(sfit, np.asarray(z["tok1"])[tr], np.asarray(z["tok2"])[tr])
+        if abs(I12 - (_num(r.get("fitted_I12_plugin_fit_rows")) or math.inf)) > 1e-12:
+            mism.append(f"{cid} s{k}: fitted I12")
+        for i, tn in ((1, "income"), (2, "occupation")):
+            Lq, Bq = fit_losses(np.asarray(z[f"q{i}"])[tr], yfit[i])
+            LU_, BU_ = fit_losses(T[(k, "U")][f"p{i}"][tr], yfit[i])
+            if abs((LU_ + FIT_BUDGET["ll"] - Lq) - (_num(r.get(f"fit_L_{tn}_slack")) or math.inf)) > 1e-10 or \
+                    abs((BU_ + FIT_BUDGET["brier"] - Bq) - (_num(r.get(f"fit_B_{tn}_slack")) or math.inf)) > 1e-10:
+                mism.append(f"{cid} s{k}: fit slacks {tn}")
+        ir = (inner_rows.get(cid) or {}).get("seeds", {}).get(k)
+        if ir is not None:
+            for w in ("v1", "v2", "pair"):
+                if abs(ir["auc"][w] - (_num(r.get(f"inner_auc_{w}")) or math.inf)) > 5e-7:
+                    mism.append(f"{cid} s{k}: inner AUC {w}")
+            if (r.get("inner_ordinary_seed") == "True") != bool(ir["ordinary_ok"]):
+                mism.append(f"{cid} s{k}: inner ordinary flag")
+    out["DECISION_FLOOR_AND_FEASIBILITY"] = {"rows": len(dfl), "mismatches": mism[:12]}
+    if mism or not dfl:
+        fails.append("DECISION_FLOOR_AND_FEASIBILITY.csv")
+    # DECODER_CERTIFICATES.json aggregate vs own certification
+    dc = jload(RES / "DECODER_CERTIFICATES.json")
+    n_units = len(dc.get("units") or {})
+    out["DECODER_CERTIFICATES"] = {"units_listed": n_units, "own_units": len(info_fixed) + len(info_new),
+                                   "own_tokens_certified": sum(v["tokens_solved"] for v in list(info_fixed.values()) +
+                                                               list(info_new.values())),
+                                   "aggregate": {k_: v for k_, v in (dc.get("aggregate") or {}).items()
+                                                 if not isinstance(v, (dict, list))}}
+    if n_units < len(info_fixed) + len(info_new):
+        fails.append("DECODER_CERTIFICATES.json does not list every D1 unit")
+    # ACTUAL_WORK_ACCOUNTING.json vs own unit inventory
+    aw = jload(RES / "ACTUAL_WORK_ACCOUNTING.json")
+    own_counts = {}
+    for p_ in UNITS.iterdir():
+        if p_.is_dir() and (p_ / "COMPLETE.json").exists():
+            pre = p_.name.split("__")[0]
+            own_counts[pre] = own_counts.get(pre, 0) + 1
+    pub = aw.get("private_units_by_prefix") or {}
+    diff = {k_: ((pub.get(k_) or {}).get("complete"), v) for k_, v in own_counts.items()
+            if (pub.get(k_) or {}).get("complete") != v}
+    diff.update({k_: (v.get("complete"), own_counts.get(k_)) for k_, v in pub.items() if k_ not in own_counts})
+    exp = {"pol": 81, "dec": 81, "new": 90, "aud": 267, "outer": 63, "d0s": 3, "cor": 4, "tea": 6, "ref": 9, "fine": 3,
+           "inner": 90}
+    diff.update({f"registered:{k_}": (v, own_counts.get(k_)) for k_, v in exp.items() if own_counts.get(k_) != v})
+    out["ACTUAL_WORK_ACCOUNTING"] = {"own_counts": own_counts, "published": pub, "differences": diff}
+    if diff:
+        fails.append("ACTUAL_WORK_ACCOUNTING.json unit counts")
+    rs = jload(RES / "RUN_STATUS.json")
+    inf = jload(RUN / "inference.json")
+    out["RUN_STATUS"] = {"label_equals_inference": rs.get("label") == inf.get("label"),
+                         "gate": rs.get("engineering_gate"), "technical_valid": rs.get("technical_valid")}
+    if not out["RUN_STATUS"]["label_equals_inference"]:
+        fails.append("RUN_STATUS label")
+    fj = jload(RES / "figures" / "FIGURES.json")
+    figs = {}
+    for name in fj.get("made") or {}:
+        fp = RES / "figures" / name
+        ok_ = fp.exists() and fp.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n" and fp.stat().st_size > 2000
+        figs[name] = {"present_png": ok_, "sha256": sha_file(fp) if fp.exists() else None}
+    out["FIGURES"] = {"figures": figs, "count": len(figs),
+                      "note": "images are produced by the report from committed tables verified above; checked for "
+                              "presence and integrity only"}
+    if len(figs) < 5 or not all(v["present_png"] for v in figs.values()):
+        fails.append("figures")
+    return res("PASS" if not fails else "FAIL", failures=fails, **out)
+
+
+def p3_deployment(D: Data, T):
+    """Deployment bindings and refusals: every private CLI output of the receipt re-hashed and compared bitwise with
+    the stored release AND with an own deployment (own forward pass of the admitted seed-1 U teacher on the pinned
+    deployment input, own re-encode of the policy, the decoder table looked up by token); output keys only the
+    released fields; the receipt's refusals re-run as EXTERNAL subprocesses of `python -m lra.deploy` (rc 2, no output
+    file); the verifier never imports lra."""
+    import tempfile
+    rc = jload(RUN / "deploy_test_receipt.json")
+    out, fails = {}, []
+    pin = PRIV / "inputs" / "deploy_input.npz"
+    schema = PRIV / "inputs" / "schema.json"
+    zi = np.load(pin, allow_pickle=False)
+    Xd = np.asarray(zi["X"])
+    out["input_X_equals_own_X"] = bool(np.array_equal(Xd, D.X)) and [str(s_) for s_ in zi["feature_names"]] == \
+        D.feature_names
+    k = int(rc.get("seed", 1))
+    own_t = own_teacher(ADM / f"rel__s{k}__U" / "model.pt", [ADM / f"rel__s{k}__U" / f"head_{j}.joblib" for j in (0, 1)],
+                        Xd)
+    files = {"Q (D0 DIRECT-TASK i8o64)": "Q.npz", "P* (D0 JOINT i8o64 l0.1)": "Pstar.npz",
+             "C-TASK (D1 learned decoder)": "CTASK_D1.npz", "K-SEQ-21 (constrained, D1; N* fallback)": "KSEQ21.npz",
+             "best D1 fixed-map control (JOINT l0.01 D1)": "JOINT001_D1.npz"}
+    dep = {}
+    for name, rec in (rc.get("deployments") or {}).items():
+        un = rec["unit"]
+        fp = RUN / "deploy_test" / files.get(name, "")
+        r_ = {"unit": un, "output_present": fp.exists()}
+        if not fp.exists():
+            fails.append(f"{name}: output missing")
+            dep[name] = r_
+            continue
+        zq = np.load(fp, allow_pickle=False)
+        zr = np.load(UNITS / un / "release.npz", allow_pickle=False)
+        r_["keys_only_released"] = sorted(zq.files) == sorted(f"{a}_{i}" for a in ("tokens", "probs", "decision")
+                                                              for i in (1, 2))
+        r_["bitwise_equal_stored_release"] = all(
+            bool(np.array_equal(zq[f"{b}_{i}"], zr[f"{a}{i}"])) for a, b in (("tok", "tokens"), ("q", "probs"),
+                                                                             ("hard", "decision")) for i in (1, 2))
+        mine = policy_pair_release(UNITS / un / "policy.json", {1: own_t["p1"], 2: own_t["p2"]},
+                                   {1: own_t["d1"], 2: own_t["d2"]})
+        if (UNITS / un / "decoder.json").exists():
+            body = jload(UNITS / un / "decoder.json")
+            for i in (1, 2):
+                Qt = np.asarray(body[f"r{i}"]["q"], dtype=np.float64).reshape(-1, int(body[f"r{i}"]["K"]))
+                mine[f"q{i}"] = Qt[np.asarray(mine[f"tok{i}"], np.int64)]
+        r_["own_deployment_bitwise_equal"] = all(
+            bool(np.array_equal(np.asarray(mine[f"{a}{i}"]).astype(zq[f"{b}_{i}"].dtype), zq[f"{b}_{i}"]))
+            for a, b in (("tok", "tokens"), ("q", "probs"), ("hard", "decision")) for i in (1, 2))
+        r_["decisions_equal_own_teacher"] = all(bool(np.array_equal(zq[f"decision_{i}"], own_t[f"d{i}"])) for i in (1, 2))
+        if not (r_["keys_only_released"] and r_["bitwise_equal_stored_release"] and r_["own_deployment_bitwise_equal"]
+                and r_["decisions_equal_own_teacher"]):
+            fails.append(f"{name}: deployment parity")
+        dep[name] = r_
+    out["deployments"] = dep
+    # external refusals (own constructions)
+    td = Path(tempfile.mkdtemp(prefix="lraE_"))
+    env = dict(os.environ, OMP_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", MKL_NUM_THREADS="1", PYTHONPATH=str(WT))
+    teach = str(ADM / f"rel__s{k}__U")
+    ct = UNITS / f"new__s{k}__U_C-TASK_i8o64_D1"
+    ks = UNITS / f"new__s{k}__U_K-SEQ-21_i8o64_D1"
+    q_ = UNITS / f"pol__s{k}__U_DIRECT-TASK_i8o64"
+    names = [str(s_) for s_ in zi["feature_names"]]
+    x84, xro, xsex = td / "x84.npz", td / "xro.npz", td / "xsex.npz"
+    np.savez(x84, X=np.hstack([Xd[:100], np.zeros((100, 1), Xd.dtype)]), feature_names=np.asarray(names + ["extra"]))
+    perm = list(range(len(names)))[::-1]
+    np.savez(xro, X=Xd[:100][:, perm], feature_names=np.asarray([names[j] for j in perm]))
+    np.savez(xsex, X=Xd[:100], feature_names=np.asarray(names), sex=np.zeros(100, np.int64))
+    small = td / "x100.npz"
+    np.savez(small, X=Xd[:100], feature_names=np.asarray(names))
+    base = ["--unit", teach, "--X", str(small), "--schema", str(schema)]
+    cases = {
+        "84_columns": ["--unit", teach, "--policy", str(q_ / "policy.json"), "--X", str(x84), "--schema", str(schema)],
+        "reordered_columns": ["--unit", teach, "--policy", str(q_ / "policy.json"), "--X", str(xro), "--schema",
+                              str(schema)],
+        "extra_sex_array": ["--unit", teach, "--policy", str(q_ / "policy.json"), "--X", str(xsex), "--schema",
+                            str(schema)],
+        "d1_without_decoder": base + ["--policy", str(ct / "policy.json")],
+        "mismatched_decoder": base + ["--policy", str(ct / "policy.json"), "--decoder", str(ks / "decoder.json")],
+        "mismatched_teacher": ["--unit", str(ADM / f"rel__s{k}__RAW-J_b0.3"), "--policy", str(q_ / "policy.json"),
+                               "--X", str(small), "--schema", str(schema)],
+        "raw_score_export": base + ["--policy", str(q_ / "policy.json"), "--export-scores"],
+        "fine_id_export": base + ["--policy", str(q_ / "policy.json"), "--fine-ids"],
+        "teacher_probs_flag": base + ["--policy", str(q_ / "policy.json"), "--emit-teacher-probs"],
+        "unknown_flag": base + ["--policy", str(q_ / "policy.json"), "--foo"],
+        "accept_unbound": base + ["--policy", str(q_ / "policy.json"), "--allow-unbound"]}
+    refs = {}
+    try:
+        for name, args_ in cases.items():
+            dest = td / f"out_{name}.npz"
+            cmd = [sys.executable, "-m", "lra.deploy", *args_, "--out", str(dest)]
+            r = subprocess.run(cmd, cwd=WT, env=env, capture_output=True, text=True, timeout=600)
+            msg = ((r.stderr or r.stdout or "").strip().splitlines() or [""])[-1]
+            refs[name] = {"rc": r.returncode, "no_output_written": not dest.exists(),
+                          "message_tail": msg[-160:].replace(str(td), "<TMP>").replace(str(Path.home()), "~")}
+            if r.returncode != 2 or dest.exists():
+                fails.append(f"refusal {name}: rc {r.returncode}")
+        # one positive CLI run (Q) by this verifier
+        dest = td / "out_ok.npz"
+        r = subprocess.run([sys.executable, "-m", "lra.deploy", *base, "--policy", str(q_ / "policy.json"), "--out",
+                            str(dest)], cwd=WT, env=env, capture_output=True, text=True, timeout=600)
+        ok_run = r.returncode == 0 and dest.exists()
+        if ok_run:
+            zq = np.load(dest, allow_pickle=False)
+            mine = policy_pair_release(q_ / "policy.json", {1: own_t["p1"][:100], 2: own_t["p2"][:100]},
+                                       {1: own_t["d1"][:100], 2: own_t["d2"][:100]})
+            ok_run = all(bool(np.array_equal(np.asarray(mine[f"{a}{i}"]).astype(zq[f"{b}_{i}"].dtype), zq[f"{b}_{i}"]))
+                         for a, b in (("tok", "tokens"), ("q", "probs"), ("hard", "decision")) for i in (1, 2))
+        out["own_positive_cli_run_Q_100_rows"] = {"rc": r.returncode, "bitwise_equal_own": bool(ok_run)}
+        if not ok_run:
+            fails.append("own positive CLI run")
+    finally:
+        for p_ in td.glob("*"):
+            p_.unlink()
+        td.rmdir()
+    out["refusals_external"] = refs
+    out["receipt_refusals"] = sorted((rc.get("refusals") or {}).keys())
+    if not out["input_X_equals_own_X"]:
+        fails.append("deployment input")
+    return res("PASS" if not fails else "FAIL", failures=fails, **out)
+
+
+def phase3_tables_supplement(report):
+    D = Data()
+    L = D.labels()
+    gate = evaluation_lock_gate(fetch=True)
+    _, T = check_teachers_lra(D, L)
+    LU = unsealed_labels_lra(D, gate)
+    report["assessment_labels_read"] = True
+    EL = jload(RES / "EVALUATION_LOCK.json")
+    c = {}
+    _, preds = p3_outer(D, LU, T, EL)
+    labels = list(EL["seeds"]["0"]["score"])
+    boot = OwnBoot(preds[(0, labels[0])]["assess_unit"])
+    c["P3_all_levels"] = p3_all_levels(preds, EL, boot)
+    _, info_fixed = p2_d1_units(D, L, T, "fixed")
+    _, info_new = p2_d1_units(D, L, T, "new")
+    _, inner_rows, _ = p2_inner_and_selection(D, L, T)
+    c["P3_tables_figures"] = p3_tables(D, L, LU, T, preds, EL, info_fixed, info_new, inner_rows)
+    c["P3_deployment"] = p3_deployment(D, T)
+    return c
+
+
 PHASE0_ADMISSION = ("roles", "pins", "admitted_custody", "teachers", "d0_release_reencode", "loaders_seal_assessment",
                     "admission_timing")
 PHASE1_LRA = ("correctness_gate", "fixture_oracle", "decoder_certificates_fixture", "fixture_traces", "gate_wiring",
@@ -14830,6 +15563,12 @@ def main():
                     help="PHASE_2: 1 = pre-selection, 2 = + selection, 3 = merge the same-map D0 and EVALUATION_LOCK checks")
     ap.add_argument("--skip-part1", action="store_true", help="PHASE_2 dry runs only: skip the part-1 checks")
     args = ap.parse_args()
+    if args.phase == 3 and args.part == 2:
+        return merge_supplement(args, time.time(), time.process_time(), phase3_tables_supplement,
+                                "PHASE_3_PART2_TABLES_DEPLOYMENT")
+    if args.phase == 3 and args.part == 1:
+        return merge_supplement(args, time.time(), time.process_time(), phase3_endpoints_supplement,
+                                "PHASE_3_PART1_ENDPOINTS")
     if args.phase == 2 and args.part == 3:
         return merge_supplement(args, time.time(), time.process_time(), phase2_supplement,
                                 "PHASE_2_PART3_EVALUATION_LOCK")
