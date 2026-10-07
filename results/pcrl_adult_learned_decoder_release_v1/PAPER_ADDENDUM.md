@@ -40,7 +40,7 @@ This is reused development evidence, not confirmation. Nominal intervals conditi
 | Claims B and C | no eligible nominee: every D1 release fails inner confidence. Descriptive pair gains 0.021 / 0.023 with occupation LL violations of 0.048 / 0.054 (fallbacks K-SEQ-21 / K-JOINT-PAIR vs C\* = C_pair\* = D0 SEQ-21 λ0.1; ineligible on inner) | PRIMARY_ENDPOINTS.csv |
 | Q | all four upper bounds within limits | PRIMARY_ENDPOINTS.csv |
 | Same-token D1 − D0 | fitting rows −0.026 (occupation LL, mean over 27 fixed maps × 3 seeds); inner +0.014 (the same 81 map-seed units); assessment +0.010 / +0.024 / +0.001 for the three named pairs (nominal 95% lower bounds > 0) | DECODER_UTILITY_ABLATION.csv |
-| Independent reproduction of the assessment endpoints | VERIFIER_PHASE3_STATUS | INDEPENDENT_VERIFICATION.json |
+| Independent reproduction of the assessment endpoints | PASS (PHASE_3_FINAL): all 37 endpoints and the label reproduced exactly | INDEPENDENT_VERIFICATION.json |
 
 ## May be said only with its qualifier
 

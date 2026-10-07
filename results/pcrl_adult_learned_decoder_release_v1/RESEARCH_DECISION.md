@@ -206,7 +206,11 @@ constant accuracies are 0.7458 (income) and 0.2842 (occupation).
     0.08): 185,057 states, including all 99 paired moves;
   - the selection and EVALUATION_LOCK, reproduced.
 
-  Phase 3 (outer units, endpoints, tables, figures, attacker refits, deployment and restore parity) is VERIFIER_PHASE3_STATUS.
+  - Phase 3 PASSES (PHASE_3_FINAL: 32 PASS, 0 FAIL/WARN/PENDING):
+    - all 63 outer units, all 37 endpoints and the label reproduced exactly (max difference 0);
+    - every table and figure;
+    - the deployment bindings and 11 refusals;
+    - backup and restore from the copy alone (teacher, learned decoders, P\*, attacker).
 - **Tests:** 284 pass before the locks (VALIDATION.md).
 - **Compute:** about 6.8 CPU-h at the inference point, with at most 2 concurrent processes; $0 cloud. Final figures
   are in COST_AND_CLOSEOUT.md.

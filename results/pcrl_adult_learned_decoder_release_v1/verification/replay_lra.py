@@ -277,6 +277,24 @@ VERIFIER_CORRECTIONS: list = [
     {"phase": "lra PHASE_0", "item": "own trace replay engine", "change": "added (lra-mapper-trace-v1; HASH_RULE stats / "
      "state hashes; terms and deltas 1e-12; search constraints limit - 1e-10, caps margin 0; final deployed margin 0); "
      "self-tested on own synthetic traces with 11 injected trace defects"},
+    {"phase": "lra PHASE_1", "item": "trace replay conventions (read from the persisted traces, mathematics own)",
+     "change": "the sequential second stage RECORDS only the optimised recipient as enforced (the first is frozen); the "
+     "own replay additionally checks BOTH recipients on every second-stage state; the trace winner is keyed 'start'; "
+     "unrefined joint witnesses (no stages) are accepted only as EXCLUDED_INFEASIBLE_WITNESS and checked infeasible by "
+     "the own engine; a 1e-12 summation band on L / B and a 1e-12 cap tolerance (own MI vs own cap) with feasible-only-"
+     "within-the-band states reported as BORDERLINE (F3: five starts / witnesses excluded by exact-bit MI noise)"},
+    {"phase": "lra PHASE_1", "item": "E11 wiring", "change": "infer.py refuses through an explicit comparison with "
+     "'ENGINEERING_READY' bound in the lock (not an engineering_ready() call); the static check accepts either form"},
+    {"phase": "lra PHASE_1", "item": "challenge harness", "change": "assess.verify_validity reads the real gate result "
+     "and locks: the harness restores the real package paths around that read-only call (the first draft refused for "
+     "the wrong reason); the refusal reason is now checked; a continuous T* representative's naming is informational"},
+    {"phase": "lra PHASE_2", "item": "file formats", "change": "fine partitions under fine1 / fine2; references in "
+     "reference.npz; source recoveries are composed (own replay of the first-better composition rule over the own "
+     "code rescoring, registered order from SELECTION.json candidates)"},
+    {"phase": "lra PHASE_2", "item": "alignment with role D", "change": "a technically invalid Q has no descriptive "
+     "fallback; a missing guard comparator with no eligible candidate has fallback_class MISSING_COMPARATOR"},
+    {"phase": "lra PHASE_3", "item": "ACTUAL_WORK_ACCOUNTING", "change": "published counts are {present, complete} per "
+     "top-level prefix; compared on 'complete' and against the registered unit counts"},
     # ---- inherited from the lcr verifier (kept for the record)
 
     {"phase": "PHASE_0", "item": "cid_lam (adapted cbp helper)", "change": "parse the 'l<value>' segment after the rate; "
@@ -14797,6 +14815,8 @@ def merge_supplement(args, t0, c0, nodes_fn, label):
          "nodes": sorted(nodes), "wall_s": round(time.time() - t0, 2), "cpu_s": round(time.process_time() - c0, 2),
          "forbidden_modules_loaded": loaded, "assessment_labels_read": False})
     report["phase"] = label
+    report["verifier_corrections"] = VERIFIER_CORRECTIONS
+    report["verifier_sha256_current"] = sha_file(Path(__file__))
     text = json.dumps(jsonable(report), indent=1, allow_nan=False)
     scrub_check(text)
     if not args.no_write:
@@ -15541,6 +15561,186 @@ def phase3_tables_supplement(report):
     return c
 
 
+LRA_COPY = CACHE / "lra_v1_local_copy_20261007"
+
+
+def p3_restore(Dlive: Data):
+    """Backup and restore FROM THE COPY ALONE (prompt section 15): shasum -c of the copy's SHA256SUMS (external tool),
+    counts / bytes / SHA256SUMS hash vs BACKUP_VERIFICATION.json; the bundled input pinned; own role reconstruction
+    from the copied input (roles and X equal the live ones); the TEACHER (own forward pass of the copied seed-1 U teacher
+    vs the copied and live teacher units); the LEARNED DECODERS (C-TASK D1 and JOINT l0.01 D1: own re-solve of every
+    token from the copied sufficient statistics, own recount on the copied fitting rows, own re-encode of the copied
+    policy with the copied table) vs the copied and live releases; the PROTECTED MAP P* (own re-encode); P*'s SELECTED
+    ATTACKER (coalition pair HGB_0.05_15, own design matrix and own refit on AUDIT_FIT for attacker seeds 0-2,
+    predictions on the assessment rows) vs the copied and live stored predictions; the receipts; the copy deployments."""
+    out, f = {}, []
+    C = LRA_COPY
+    cp = C / "lra_v1"
+    B_ = jload(RES / "BACKUP_VERIFICATION.json")
+    RI = jload(RES / "RESTORE_INDEX.json")
+    sums = C / "SHA256SUMS"
+    out["SHA256SUMS_sha256_equals_receipt"] = sha_file(sums) == B_.get("SHA256SUMS_sha256")
+    r = subprocess.run(["shasum", "-a", "256", "-c", "SHA256SUMS"], cwd=C, capture_output=True, text=True, timeout=3600)
+    lines = [l_ for l_ in r.stdout.splitlines() if l_.strip()]
+    ok_n = sum(1 for l_ in lines if l_.endswith(": OK"))
+    listed = [l_.split("  ", 1)[1] for l_ in sums.read_text().splitlines() if l_.strip()]
+    nbytes = sum((C / p_).stat().st_size for p_ in listed)
+    out["shasum_c"] = {"rc": r.returncode, "lines": len(lines), "OK": ok_n, "failed": len(lines) - ok_n}
+    out["counts"] = {"files": len(listed), "bytes": nbytes, "receipt_files": B_.get("files"), "receipt_bytes": B_.get("bytes")}
+    out["counts_match_receipt"] = len(listed) == B_.get("files") == ok_n and nbytes == B_.get("bytes")
+    dep = C / "dependencies" / "jcv_v1" / "inputs" / "adult_jcv.npz"
+    out["bundled_input_pinned"] = dep.exists() and sha_file(dep) == SRC_SHA
+    if not (out["SHA256SUMS_sha256_equals_receipt"] and r.returncode == 0 and out["shasum_c"]["failed"] == 0 and
+            out["counts_match_receipt"] and out["bundled_input_pinned"]):
+        f.append("copy integrity / receipt counts")
+    # own role reconstruction from the copied input alone
+    Dc = Data(src=dep)
+    out["copy_roles_and_X_equal_live"] = bool(np.array_equal(Dc.row_id, Dlive.row_id) and np.array_equal(Dc.X, Dlive.X)
+                                               and all(np.array_equal(Dc.mask[r_], Dlive.mask[r_]) for r_ in ROLES))
+    Lc = Dc.labels()
+    k = 1
+    U_ = UNITS
+    # teacher
+    tdir = cp / "admitted" / f"rel__s{k}__U"
+    own = own_teacher(tdir / "model.pt", [tdir / f"head_{j}.joblib" for j in (0, 1)], Dc.X)
+    tcp = np.load(cp / "run" / "units" / f"tea__s{k}__U" / "teacher.npz", allow_pickle=False)
+    tlv = np.load(U_ / f"tea__s{k}__U" / "teacher.npz", allow_pickle=False)
+    out["teacher_bitwise_copy_and_live"] = all(bool(np.array_equal(own[x].astype(z_[x].dtype), z_[x]))
+                                               for z_ in (tcp, tlv) for x in ("p1", "p2", "d1", "d2", "r1", "r2", "c1", "c2"))
+    P = {1: own["p1"], 2: own["p2"]}
+    d = {1: own["d1"], 2: own["d2"]}
+    tr = Dc.idx[FIT]
+    yfit = {1: Lc["y_income"][tr], 2: Lc["y_occ"][tr]}
+    # learned decoders and maps
+
+    def restore_unit(un, decoder):
+        res_u = {}
+        pol = cp / "run" / "units" / un / "policy.json"
+        mine = policy_pair_release(pol, P, d)
+        if decoder:
+            body = jload(cp / "run" / "units" / un / "decoder.json")
+            res_u["decoder_hash_ok"] = body.get("decoder_sha256") == registered_decoder_hash(body)
+            dq, cert_ok, recount_ok, ntok = 0.0, True, True, 0
+            for i in (1, 2):
+                tb = body[f"r{i}"]
+                K = int(tb["K"])
+                n_ = np.asarray(tb["n"], np.float64)
+                Y_ = np.asarray(tb["y"], np.float64).reshape(-1, K)
+                S_ = np.asarray(tb["s"], np.float64).reshape(-1, K)
+                Q_ = np.asarray(tb["q"], np.float64).reshape(-1, K)
+                U2 = np.asarray(tb["u"], np.float64).reshape(-1, K)
+                tc = np.asarray(tb["token_class"], np.int64)
+                tok = np.asarray(mine[f"tok{i}"], np.int64)
+                nt, Yt, St = token_stats(tok[tr], yfit[i], P[i][tr], K, len(tc))
+                recount_ok &= bool(np.array_equal(nt, n_) and np.array_equal(Yt, Y_) and
+                                   float(np.max(np.abs(St - S_) / np.maximum(1.0, n_)[:, None])) <= D1_TOL["teacher_sum_rel"])
+                for t_ in range(len(tc)):
+                    if n_[t_] == 0:
+                        continue
+                    ntok += 1
+                    _, qo, _ = own_d1_solve(n_[t_], Y_[t_], S_[t_], int(tc[t_]))
+                    dq = max(dq, float(np.max(np.abs(qo - Q_[t_]))))
+                    cert_ok &= d1_certificate(U2[t_], Q_[t_], n_[t_], Y_[t_], S_[t_], int(tc[t_]))["ok"]
+                mine[f"q{i}"] = Q_[tok]
+            res_u.update({"tokens_resolved": ntok, "max_dq_own_resolve": dq, "certificates_ok": bool(cert_ok),
+                          "recount_on_copy_fit_rows_ok": bool(recount_ok)})
+            if dq > D1_TOL["q"] or not cert_ok or not recount_ok or not res_u["decoder_hash_ok"]:
+                f.append(f"{un}: learned-decoder restore")
+        zc = np.load(cp / "run" / "units" / un / "release.npz", allow_pickle=False)
+        zl = np.load(U_ / un / "release.npz", allow_pickle=False)
+        res_u["release_bitwise_copy_and_live"] = all(
+            bool(np.array_equal(np.asarray(mine[x]).astype(z_[x].dtype), z_[x]))
+            for z_ in (zc, zl) for x in ("tok1", "q1", "hard1", "tok2", "q2", "hard2"))
+        if not res_u["release_bitwise_copy_and_live"]:
+            f.append(f"{un}: release restore")
+        return res_u, mine
+    out["learned_decoder_C-TASK"], _ = restore_unit(f"new__s{k}__U_C-TASK_i8o64_D1", True)
+    out["learned_decoder_JOINT_l0.01_D1"], _ = restore_unit(f"dec__s{k}__U_JOINT_i8o64_l0.01_D1", True)
+    out["protected_map_P*"], relP = restore_unit(f"pol__s{k}__U_JOINT_i8o64_l0.1", False)
+    # P*'s selected attacker (coalition pair HGB_0.05_15) refit on AUDIT_FIT from the copy
+    zc = np.load(cp / "run" / "units" / f"pol__s{k}__U_JOINT_i8o64_l0.1" / "release.npz", allow_pickle=False)
+    rel = {"tok1": zc["tok1"], "p1": zc["q1"], "hard1": zc["hard1"], "alpha1": int(zc["alpha1"]),
+           "tok2": zc["tok2"], "p2": zc["q2"], "hard2": zc["hard2"], "alpha2": int(zc["alpha2"])}
+    Xv, _ = my_views(rel, Dc, "code")
+    fa, ia = Dc.idx["AUDIT_FIT"], Dc.idx[ASSESS]
+    ys = Lc["sex"][fa]
+    occ = jload(cp / "run" / "units" / f"aud__pol__s{k}__U_JOINT_i8o64_l0.1" / "record.json")
+    seeds_att = occ["recovery"].get("attacker_seeds") or [0, 1, 2]
+    stored_c = np.load(cp / "run" / "units" / f"outer__s{k}__U_JOINT_i8o64_l0.1" / "preds.npz", allow_pickle=False)["P_auc_pair"]
+    stored_l = np.load(U_ / f"outer__s{k}__U_JOINT_i8o64_l0.1" / "preds.npz", allow_pickle=False)["P_auc_pair"]
+    diffs = []
+    for s_i, sd in enumerate(seeds_att):
+        m = my_attacker("HGB_0.05_15", int(sd)).fit(Xv["pair"][fa], ys)
+        p1 = my_p1(m, Xv["pair"][ia])
+        diffs.append(max(float(np.max(np.abs(p1 - np.asarray(stored_c[s_i])[:, 1]))),
+                         float(np.max(np.abs(p1 - np.asarray(stored_l[s_i])[:, 1])))))
+    out["attacker_P*_pair_HGB_0.05_15"] = {"seeds": seeds_att, "max_abs_diff_vs_copy_and_live": diffs,
+                                           "copy_equals_live_stored": bool(np.array_equal(stored_c, stored_l)),
+                                           "rule": "own design matrix (occurrence-ordered token one-hots, decoded "
+                                                   "probabilities, decision one-hots, both recipients) and own "
+                                                   "HistGradientBoosting refit on AUDIT_FIT; tolerance 1e-12"}
+    if max(diffs) > 1e-12 or not out["attacker_P*_pair_HGB_0.05_15"]["copy_equals_live_stored"]:
+        f.append("attacker restore")
+    # receipts and copy deployments
+    out["restore_index_required_restores"] = RI.get("required_restores")
+    if not all(v == "PASS" for v in (RI.get("required_restores") or {}).values()):
+        f.append("RESTORE_INDEX required restores")
+    out["receipt_status"] = B_.get("status")
+    cd = {}
+    for name, un in (("copy_dec__s1__U_JOINT_i8o64_l0.01_D1.npz", f"dec__s{k}__U_JOINT_i8o64_l0.01_D1"),
+                     ("copy_new__s1__U_K-SEQ-21_i8o64_D1.npz", f"new__s{k}__U_K-SEQ-21_i8o64_D1")):
+        fp = RUN / "deploy_test" / name
+        if not fp.exists():
+            cd[name] = None
+            f.append(f"{name} missing")
+            continue
+        zq = np.load(fp, allow_pickle=False)
+        zl = np.load(U_ / un / "release.npz", allow_pickle=False)
+        cd[name] = all(bool(np.array_equal(zq[f"{b}_{i}"], zl[f"{a}{i}"])) for a, b in
+                       (("tok", "tokens"), ("q", "probs"), ("hard", "decision")) for i in (1, 2))
+        if not cd[name]:
+            f.append(f"{name}: not bitwise equal to the live release")
+    out["copy_deployments_bitwise_equal_live"] = cd
+    out["off_device"] = B_.get("off_device_backup")
+    st = "PASS" if not f else "FAIL"
+    return res(st, failures=f, **out,
+               note="same-device copy verified and restored from; off-device backup PENDING (drive not mounted)")
+
+
+def phase3_restore_supplement(report):
+    D = Data()
+    return {"P3_backup_restore": p3_restore(D), "P3_budget_and_processes": check_budget_lra()}
+
+
+def check_budget_lra():
+    """SEMA_LOG audit: at most two concurrent holds at every instant, holds per role, the verifier's own holds (E:*),
+    CPU / wall totals (measured, child rusage) and the study clock from START.txt."""
+    ev = jsonl(RUN / "SEMA_LOG.jsonl")
+    open_, maxc, per_role, e_cpu, e_wall, tot_cpu = {}, 0, {}, 0.0, 0.0, 0.0
+    for e in ev:
+        key = (e.get("wrapper_pid"), e.get("slot"))
+        if e.get("event") == "acquire":
+            for k2 in [k2 for k2 in open_ if k2[1] == e.get("slot")]:
+                open_.pop(k2)
+            open_[key] = e.get("label")
+            maxc = max(maxc, len(open_))
+        elif e.get("event") == "release":
+            open_.pop(key, None)
+            role = str(e.get("label", "?")).split(":")[0]
+            per_role[role] = round(per_role.get(role, 0.0) + float(e.get("cpu_s") or 0.0), 1)
+            tot_cpu += float(e.get("cpu_s") or 0.0)
+            if str(e.get("label", "")).startswith("E:"):
+                e_cpu += float(e.get("cpu_s") or 0.0)
+                e_wall += float(e.get("wall_s") or 0.0)
+    start = parse_iso((PRIV / "START.txt").read_text().strip())
+    now = datetime.now(timezone.utc)
+    out = {"max_concurrent_holds": maxc, "cpu_s_by_role": per_role, "verifier_cpu_s": round(e_cpu, 1),
+           "verifier_wall_s": round(e_wall, 1), "total_measured_cpu_h": round(tot_cpu / 3600, 2),
+           "elapsed_h_at_check": round((now - start).total_seconds() / 3600, 2), "open_at_check": list(open_.values())}
+    ok = maxc <= 2 and out["total_measured_cpu_h"] <= 20 and out["elapsed_h_at_check"] <= 10
+    return res("PASS" if ok else "FAIL", **out, rule="at most 2 concurrent semaphore holds; <= 20 CPU-h; <= 10 h")
+
+
 PHASE0_ADMISSION = ("roles", "pins", "admitted_custody", "teachers", "d0_release_reencode", "loaders_seal_assessment",
                     "admission_timing")
 PHASE1_LRA = ("correctness_gate", "fixture_oracle", "decoder_certificates_fixture", "fixture_traces", "gate_wiring",
@@ -15559,10 +15759,26 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--label", default=None, help="phase label written to the report (e.g. PHASE_0A)")
     ap.add_argument("--no-tests", action="store_true", help="PHASE_1: skip the external pytest run of study tests")
-    ap.add_argument("--part", type=int, default=1, choices=(1, 2, 3),
+    ap.add_argument("--part", type=int, default=1, choices=(1, 2, 3, 4),
                     help="PHASE_2: 1 = pre-selection, 2 = + selection, 3 = merge the same-map D0 and EVALUATION_LOCK checks")
     ap.add_argument("--skip-part1", action="store_true", help="PHASE_2 dry runs only: skip the part-1 checks")
     args = ap.parse_args()
+    if args.phase == 3 and args.part == 4:
+        cover = {"evaluation_lock": ["P2_evaluation_lock"], "outer_units": ["P3_outer_units"],
+                 "endpoints": ["P3_endpoints_labels"], "published_tables": ["P3_all_levels", "P3_tables_figures"],
+                 "figures": ["P3_tables_figures"], "attacker_refits": ["P3_backup_restore"],
+                 "deployment_parity": ["P3_deployment"], "restore_parity": ["P3_backup_restore"],
+                 "budget": ["P3_budget_and_processes"]}
+
+        def _index(report):
+            st = {k_: (report["checks"].get(k_) or {}).get("status") for v in cover.values() for k_ in v}
+            return {k_: res("INFO", covered_by=v, covered_status={x: st.get(x) for x in v},
+                            note="placeholder of the PHASE_2 run; the check ran under the covering node(s)")
+                    for k_, v in cover.items()}
+        return merge_supplement(args, time.time(), time.process_time(), _index, "PHASE_3_FINAL")
+    if args.phase == 3 and args.part == 3:
+        return merge_supplement(args, time.time(), time.process_time(), phase3_restore_supplement,
+                                "PHASE_3_PART3_RESTORE")
     if args.phase == 3 and args.part == 2:
         return merge_supplement(args, time.time(), time.process_time(), phase3_tables_supplement,
                                 "PHASE_3_PART2_TABLES_DEPLOYMENT")

@@ -58,7 +58,8 @@ not a general negative for learned decoders or constrained search.
    - It replayed 185,057 search states in 42 of the 90 mapping units, including all 99 paired moves. That covers all
      constrained and C-TASK units, plus the weighted controls at λ 0.025 and 0.08.
    - It also reproduced every selection value and the evaluation lock, and all real-data controls passed.
-   - Independent reproduction of the assessment endpoints (verifier phase 3): VERIFIER_PHASE3_STATUS.
+   - Independent reproduction of the assessment (verifier phase 3): PASS. All 37 endpoints and the label are reproduced
+     exactly, and every restore from the backup copy passes.
 
 ## Scope (prompt §17)
 

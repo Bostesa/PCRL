@@ -79,7 +79,17 @@
 
 ## 7. Independent phase 3
 
-The results are recorded in INDEPENDENT_VERIFICATION.json and summarized in COST_AND_CLOSEOUT.md / HANDOFF.json.
+**PHASE_3_FINAL: PASS.** 32 PASS, 0 FAIL/WARN/PENDING. Independence passes: no lra, lcr or study module was loaded.
+- **Assessment units.** All 63 outer units are bound to the pushed EVALUATION_LOCK. Rows and groups (13,929) and
+  labels are reconstructed independently, and releases are bitwise equal.
+- **Endpoints.** All 37 endpoints and the label are reproduced exactly (max difference 0) on E's own 1,999 draws. The
+  same-map z95 contrasts agree within 1e-11.
+- **Tables.** ALL_LEVELS (1,462 rows), BUDGET_FEASIBILITY, DECODER_ONLY_ABLATION, DECODER_UTILITY_ABLATION,
+  DECISION_FLOOR_AND_FEASIBILITY, DECODER_CERTIFICATES and ACTUAL_WORK_ACCOUNTING are all reproduced.
+- **Deployment.** All 5 deployments are bitwise equal to E's own deployment, and 11 external refusals exit with code 2.
+- **Custody.** `shasum -c` gives 2,985/2,985. Teacher, learned decoders, P\* and P\*'s attacker restore bitwise
+  from the copy alone.
+- **Budget.** At most 2 concurrent holds.
 
 ## 8. Disclosed deviations and corrections
 
