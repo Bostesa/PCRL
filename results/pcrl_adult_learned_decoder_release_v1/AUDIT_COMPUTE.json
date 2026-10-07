@@ -2,7 +2,7 @@
  "study": "pcrl_adult_learned_decoder_release_v1",
  "owner": "D (attacker / statistics engineer)",
  "kind": "SYNTHETIC timing estimates (no real data, no labels); real views may converge differently (MLP early stopping); one process under lra.sema, OMP_NUM_THREADS=1; cpu_s = process CPU time of the measuring process",
- "fixture": "lra.audit.synthetic_D (OSF_DEFENSE_FIT 15,434 / AUDIT_FIT 6,065 / INNER_SELECTION 2,235 / assessment 13,936 rows, P(S=1) = 0.68) + synthetic_release i8o64 (income 8 per class x 2, occupation 64 per class x 5 predicted classes + 1 reserved token; SEX-tilted 10%) and its synthetic_d1 (same tokens, learned-style q); FINAL slate (LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) + cell readers {0.5, 1, 5}; the AUC- and CE-selected attackers refit at attacker seeds 0-2; three code families (code / token / prob); a temporary lcr-named unit store with the registered 83-code composition bank (real registration and closure checks); token-only family with the cell readers only (L4b)",
+ "fixture": "lra.audit.synthetic_D (OSF_DEFENSE_FIT 15,434 / AUDIT_FIT 6,065 / INNER_SELECTION 2,235 / assessment 13,936 rows, P(S=1) = 0.68) + synthetic_release i8o64 (income 8 per class x 2, occupation 64 per class x 5 predicted classes + 1 reserved token; SEX-tilted 10%) and its synthetic_d1 (same tokens, learned-style q); FINAL slate (LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) + cell readers {0.5, 1, 5}; the AUC- and CE-selected attackers refit at attacker seeds 0-2; three code families (code / token / prob); a temporary lra-named unit store with the registered 84-code composition bank (real registration and closure checks); token-only family with the cell readers only (L4b)",
  "registered_control_limits": {
   "null": "every view: held-out AUC_B <= 0.5 + 3.5 sd0 (sd0 = Mann-Whitney null sd on half B)",
   "null_z": 3.5,
@@ -109,6 +109,7 @@
    "U|JOINT|i8o64|l0.1",
    "U|DIRECT-TASK|i8o64|D1",
    "U|FINE-TASK|i8o64|D1",
+   "U|CLASS|i1o1|D1",
    "U|LOCAL|i8o64|l0.01|D1",
    "U|SEQ-12|i8o64|l0.01|D1",
    "U|SEQ-21|i8o64|l0.01|D1",
@@ -165,7 +166,7 @@
    "U|K-JOINT-PAIR|i8o64|D1"
   ],
   "composition_only": [],
-  "n": 83
+  "n": 84
  },
  "code_families": {
   "primary": "code",
@@ -184,6 +185,44 @@
   }
  },
  "alias_cache": "L5: exact view-fingerprint alias reuse within a seed (path recorded per family; bitwise identical to recomputation); opportunistic, no saving assumed in the estimates beyond the D1 token family",
+ "registered_slate_and_views": {
+  "slate": "the pinned source FINAL slate (smf.audit.final_slate(False): LR x5, MLP x4, HGB x4, DA_LR, DA_MLP) + finite categorical cell readers CC / CCpair with smoothing 0.5, 1, 5; fitted on AUDIT_FIT, AUC- and CE-selected separately on INNER_SELECTION, fixed orientation",
+  "nomination_view": "COMPLETE interface only (family 'code': one-hot full token identity, decoded q_i, one-hot decision_i; pair = both interfaces, exact token tuples, both ignore-recipient banks); nomination, composition and every primary result",
+  "diagnostic_views": "token-only (family 'token', exact-token cell readers only: L4b) and probability-only (family 'prob', full slate + value cells); reported, never nominated or composed",
+  "composition": "SRC|U composes through the COMPLETE registered map/decoder bank: all 84 codes per seed (the prompt's 83 plus the registered CLASS|D1, role F R-1) before strongest-control and nominee selection; every source-winning composed reader frozen for the assessment (composed.freeze); closure refuses missing or stray units",
+  "inner_bank": {
+   "configurations_per_seed": 89,
+   "seeds": 3,
+   "units": 267,
+   "namespace": "aud__<release unit> (schema lra-inner-v1)",
+   "reconciliation": "prompt sec. 8: 88 configurations x 3 = 264 units; the registered CLASS|D1 addition (role F R-1) makes 89 x 3 = 267 (252 code + 6 source + 9 reference units); no arm is treated as an alias to save a unit"
+  }
+ },
+ "real_data_controls": {
+  "shuffled SEX": [
+   "NULL (every registered control release and family)",
+   "NULL_CALIBRATION (5 permutations on U|DIRECT-TASK|i8o64)"
+  ],
+  "confidence signal within the predicted class": [
+   "CONF_r1",
+   "CONF_r2 (token split by noisy S*, the b = 1 copy decodes to (1 - 0.05) q + 0.05 e_d: same decision; decisions-only audit reported)"
+  ],
+  "distinct-token / same-probability leak": [
+   "COLL_r1",
+   "COLL_r2 (two token IDs, one decoded vector; the probability-only audit is reported and cannot see it)"
+  ],
+  "coalition XOR": [
+   "XOR (pair detects, each local view stays at the null)"
+  ],
+  "source rotated signal": [
+   "ROT_r1",
+   "ROT_r2 on the continuous U, RAW-J and E interfaces (Haar rotation of a 1e-6 noisy-S* column; serialisation exact)"
+  ],
+  "missing_from_plan": [],
+  "plan": "control_plan(): codes U|DIRECT-TASK|i8o64, U|JOINT|i8o64|l0.1, U|CLASS|i1o1, U|JOINT|i8o64|l0.1|D1, U|K-JOINT-PAIR|i8o64|D1 (NULL + CONF + COLL + XOR each); sources U, RAW-J (NULL + ROT); references E (NULL + ROT), F, F0 (NULL); NULL_CALIBRATION x5",
+  "limits": "the SOURCE limits (registered_control_limits), unchanged",
+  "consequence": "any failed control is a GLOBAL technical failure: lra.eval_lock refuses the lock and lra.assess refuses the opening (finding F13); never evidence of privacy"
+ },
  "d0_reuse_decision": "RECOMPUTE: the admitted cbp inner audits lack the token-only and probability-only families, so the exact parity rule fails; all 81 D0 code and 9 reference inner units are recomputed (aud__ namespace); cbp_parity compares the recomputed primary family with the admitted cbp record",
  "slate": "final",
  "slate_members": [
@@ -214,20 +253,21 @@
    "d0_i8o64": 26,
    "d0_i1o1": 1,
    "d1_i8o64": 26,
+   "d1_i1o1": 1,
    "new_i8o64": 30
   },
-  "codes_note": "83 registered codes per seed (lra.run.code_ids()): D0 27 (DIRECT-TASK, FINE-TASK, CLASS-ONLY i1o1, 24 privacy maps), D1 fixed-map 26 (same tokens as D0, learned q), new fits 30 (C-TASK, 24 weighted, 5 constrained); every code at most 8 / 64 states per predicted class (i8o64 shapes). Each code inner unit audits three families (code primary + token-only + probability-only diagnostics); a D1 unit reuses its D0 map's token family (L5)",
+  "codes_note": "84 registered codes per seed (lra.run.code_ids()): D0 27 (DIRECT-TASK, FINE-TASK, CLASS-ONLY i1o1, 24 privacy maps), D1 fixed-map 27 (the same 27 maps incl. CLASS|D1, role F R-1; same tokens as D0, learned q), new fits 30 (C-TASK, 24 weighted, 5 constrained); every code at most 8 / 64 states per predicted class (i8o64 shapes). Each code inner unit audits three families (code primary + token-only + probability-only diagnostics); a D1 unit reuses its D0 map's token family (L5)",
   "sources": 2,
   "references": {
    "continuous_E": 1,
    "cells_F_F0": 2
   },
   "composed_codes_per_source_seed": {
-   "SRC|U": 83,
+   "SRC|U": 84,
    "SRC|RAW-J_b0.3": 0
   },
   "inner_units": {
-   "codes": 249,
+   "codes": 252,
    "of_which_d0_recomputed": 81,
    "sources": 6,
    "references": 9
@@ -240,75 +280,75 @@
    "null_calibration_reps": 5
   },
   "assessment": {
-   "labels_per_seed": 20,
-   "codes_per_seed": 15,
-   "codes_with_diagnostics_per_seed": 2,
+   "labels_per_seed": 22,
+   "codes_per_seed": 17,
+   "codes_with_diagnostics_per_seed": 6,
    "sources_per_seed": 2,
    "references_per_seed": 3,
    "src_u_composed_codes_freeze_plus_scored": 20,
-   "src_u_composed_codes_upper": 83,
-   "note": "about 20 locked labels per seed (lead): ~15 codes (P*, N*, J*, T*, C*, C_pair*, Q, best D1 control + its D0, best weighted, C-TASK, 5 constrained arms; aliases deduplicated), SRC|U, SRC|RAW-J, E, F, F0. SRC|U is costed (a) with the freeze list + the scored codes (~20; exact, see recommendation) and (b) with all 83 codes (upper bound). Token-only / probability-only diagnostics are scored only for the registered decoder-ablation pair (the best D1 fixed-map control and its D0 map; lead's lra.eval_lock); every other code scores the primary family only"
+   "src_u_composed_codes_upper": 84,
+   "note": "upper count of locked labels per seed (lra.eval_lock.scored_labels): <= 17 codes (P*, N*, J*, T*, C*, C_pair*, Q, CLASS, best D1 control + its D0, best weighted, C-TASK, 5 constrained arms, plus the same-map D0 diagnostics of P* and C-TASK; aliases deduplicated), SRC|U, SRC|RAW-J, E, F, F0. SRC|U is costed (a) with the freeze list + the scored codes (~20; exact, see recommendation) and (b) with all 84 codes (upper bound). Token-only / probability-only diagnostics are scored for the registered same-map pairs only (best D1 fixed-map control + its D0 map, P* + its D0 version, C-TASK + its D0 version: <= 6 codes); every other code scores the primary family only"
   }
  },
  "measured": {
   "policy_inner": {
    "d0_i8o64": {
-    "unit_cpu_s": 35.38,
-    "unit_wall_s": 35.28,
+    "unit_cpu_s": 33.71,
+    "unit_wall_s": 33.58,
     "family_cpu_s": {
-     "code": 31.29,
+     "code": 29.6,
      "token": 0.02,
-     "prob": 3.56
+     "prob": 3.61
     },
     "reused_families": []
    },
    "d1_i8o64_token_reused": {
-    "unit_cpu_s": 39.5,
-    "unit_wall_s": 39.55,
+    "unit_cpu_s": 37.66,
+    "unit_wall_s": 37.52,
     "family_cpu_s": {
-     "code": 35.24,
+     "code": 33.61,
      "token": 0.01,
-     "prob": 3.8
+     "prob": 3.56
     },
     "reused_families": [
      "token"
     ]
    },
    "d0_i1o1": {
-    "unit_cpu_s": 8.6,
+    "unit_cpu_s": 8.61,
     "unit_wall_s": 8.62,
     "family_cpu_s": {
-     "code": 4.52,
+     "code": 4.56,
      "token": 0.02,
-     "prob": 3.91
+     "prob": 3.86
     },
     "reused_families": []
    }
   },
   "source_unit": {
-   "SRC|U_cpu_s": 23.95,
-   "SRC|U_wall_s": 24.06,
-   "SRC|U_composed_banks": 83,
+   "SRC|U_cpu_s": 23.85,
+   "SRC|U_wall_s": 23.97,
+   "SRC|U_composed_banks": 84,
    "SRC|U_closure_ok": true,
-   "composed_assembly_cpu_s": 0.47,
-   "SRC|RAW-J_cpu_s": 22.34,
-   "SRC|RAW-J_wall_s": 22.39
+   "composed_assembly_cpu_s": 0.49,
+   "SRC|RAW-J_cpu_s": 22.48,
+   "SRC|RAW-J_wall_s": 22.5
   },
   "reference_unit": {
-   "E_cpu_s": 21.58,
-   "F_cpu_s": 32.32
+   "E_cpu_s": 21.31,
+   "F_cpu_s": 33.62
   },
   "controls": {
-   "code_null_and_5_plants_cpu_s": 269.99,
-   "code_null_only_cpu_s": 27.9,
-   "source_interface_null_and_2_rot_cpu_s": 13.09
+   "code_null_and_5_plants_cpu_s": 278.33,
+   "code_null_only_cpu_s": 28.92,
+   "source_interface_null_and_2_rot_cpu_s": 13.26
   },
   "final": {
-   "code_i8o64_one_family_cpu_s": 33.42,
-   "code_i8o64_prob_family_cpu_s": 4.7,
+   "code_i8o64_one_family_cpu_s": 35.22,
+   "code_i8o64_prob_family_cpu_s": 4.74,
    "code_i8o64_token_family_cpu_s": 0.05,
-   "source_own_five_families_cpu_s": 27.59,
-   "source_interface_with_2_composed_cpu_s": 70.23,
+   "source_own_five_families_cpu_s": 28.47,
+   "source_interface_with_2_composed_cpu_s": 72.5,
    "score_rows": 13936
   },
   "shapes": {
@@ -363,38 +403,38 @@
   }
  },
  "estimates": {
-  "inner_units": 264,
-  "inner_cpu_s_per_seed": 3149.4,
+  "inner_units": 267,
+  "inner_cpu_s_per_seed": 3019.0,
   "inner_cpu_s_per_seed_parts": {
-   "codes": 3016.9,
+   "codes": 2884.1,
    "sources_incl_composition": 46.3,
-   "references": 86.2
+   "references": 88.5
   },
-  "inner_cpu_h": 2.624,
-  "inner_cpu_h_without_token_reuse": 2.625,
-  "inner_cpu_h_primary_family_only": 2.252,
-  "d0_recompute_extra_cpu_h": 0.754,
+  "inner_cpu_h": 2.516,
+  "inner_cpu_h_without_token_reuse": 2.516,
+  "inner_cpu_h_primary_family_only": 2.143,
+  "d0_recompute_extra_cpu_h": 0.719,
   "d0_recompute_extra_basis": "what reusing the admitted cbp audits would have saved: the primary code family of the 27 D0 codes and the 3 references per seed (the token-only and probability-only diagnostics are needed under either choice)",
   "per_unit_cpu_s": {
-   "d0_i8o64": 35.38,
-   "d1_i8o64_token_reused": 39.5,
-   "d0_i1o1": 8.6
+   "d0_i8o64": 33.71,
+   "d1_i8o64_token_reused": 37.66,
+   "d0_i1o1": 8.61
   },
   "per_family_cpu_s_i8o64": {
-   "code": 31.29,
+   "code": 29.6,
    "token": 0.02,
-   "prob": 3.56
+   "prob": 3.61
   },
-  "composed_assembly_cpu_s_83_codes": 0.47,
-  "controls_cpu_h": 0.456,
-  "assessment_cpu_h": 1.145,
-  "assessment_cpu_h_with_code_diagnostics": 1.153,
-  "assessment_cpu_h_diagnostics_on_every_code": 1.205,
-  "assessment_cpu_h_upper_all_83_composed": 2.959,
-  "assessment_basis": "per seed: 15 codes x the primary family at the i8o64 cost (+ token (cells only, L4b) / prob diagnostics for 2 codes in the _with_code_diagnostics figure, for all codes in _diagnostics_on_every_code); both sources' five own families; SRC|U composed with 20 codes (freeze list + scored codes; the composed code bank is fitted once per unit and shared across the four composing families by the content memo) or all 83 (upper); E / F / F0 at the five-family source cost plus one cells family each for F / F0",
-  "total_cpu_h": 4.233,
-  "total_cpu_h_upper": 6.04,
-  "cbp_calibrated_total_cpu_h": 5.037,
+  "composed_assembly_cpu_s_all_codes": 0.49,
+  "controls_cpu_h": 0.469,
+  "assessment_cpu_h": 1.263,
+  "assessment_cpu_h_with_code_diagnostics": 1.287,
+  "assessment_cpu_h_diagnostics_on_every_code": 1.331,
+  "assessment_cpu_h_upper_all_composed": 3.21,
+  "assessment_basis": "per seed: 17 codes x the primary family at the i8o64 cost (+ token (cells only, L4b) / prob diagnostics for 6 codes in the _with_code_diagnostics figure, for all codes in _diagnostics_on_every_code); both sources' five own families; SRC|U composed with 20 codes (freeze list + scored codes; the composed code bank is fitted once per unit and shared across the four composing families by the content memo) or all 84 (upper); E / F / F0 at the five-family source cost plus one cells family each for F / F0",
+  "total_cpu_h": 4.272,
+  "total_cpu_h_upper": 6.195,
+  "cbp_calibrated_total_cpu_h": 5.02,
   "cbp_calibration": {
    "real_over_synthetic": {
     "inner": 1.4,
@@ -403,15 +443,15 @@
    },
    "source": "results/pcrl_confidence_budgeted_privacy_v1/COST_AND_CLOSEOUT.md (lead stages) and AUDIT_COMPUTE.json (estimates); controls: results/pcrl_confidence_capacity_v1"
   },
-  "budget_with_x2_margin_cpu_h": 8.47,
-  "wall_h_two_workers": 2.12,
+  "budget_with_x2_margin_cpu_h": 8.54,
+  "wall_h_two_workers": 2.14,
   "safety_note": "synthetic MLP early stopping converges fast; cbp's synthetic estimate (2.89 CPU-h) against about 2.8 CPU-h measured for its lead's audit stages; the x2 margin is the scheduling budget"
  },
  "machine": {
   "python": "3.13.7",
   "omp_threads": 1,
   "platform": "arm64",
-  "peak_rss_bytes": 1299628032
+  "peak_rss_bytes": 1398276096
  },
- "written_at": "2026-10-07T01:26:31Z"
+ "written_at": "2026-10-07T05:00:56Z"
 }
