@@ -1,0 +1,17 @@
+{
+ "base_lock": "FIXTURE_LOCK",
+ "changes_previously_locked": [
+  "lcr/fixtures.py",
+  "lcr/tests/test_fixtures.py"
+ ],
+ "code_files": {
+  "lcr/fixtures.py": "35a75c29f70b25f1a71cb827eb81bf5ffc0d184fa13f9ea969953b318a0e801f",
+  "lcr/tests/test_fixtures.py": "8af4f1aee6ab4162111eb3b9afbdcb0d6e79dc563d3fb2e4eea0ffc29b188989"
+ },
+ "name": "AMENDMENT_A1_FIXTURE_C5_SCOPE",
+ "new_files": [],
+ "parent_commit": "cc0083aaf395430c5fbab1b9806440d20f43d8ac",
+ "reason": "Engineering defect in the C5 incremental-terms check added before FIXTURE_LOCK (not a mapper defect). On F1, K-SEQ-12 and K-SEQ-21 found every start infeasible (INFEASIBLE_START at stage 1), so no start was refined. By the registered mapper rule the release is the unchanged descriptive copy of the first start, and no incremental search state exists. The check required one, reported incremental_terms_missing, and attempt 1 (fixture_attempts/attempt1, kept) listed a spurious CORRECTNESS_FAILURE:F1:C5. The fix marks exactly this case NOT_APPLICABLE (status INFEASIBLE, winner unchanged_descriptive, no start record with a refined final) and lists it. A refined winner without its state, or a partly refined unit, still fails. The locked rule text and the laws are unchanged: the locked C5 compares the winning start's incremental state, which does not exist here. Same locked estimand; the fixture stage is re-run as attempt 2.",
+ "schema": "lcr-amendment-v1",
+ "written_at": "2026-10-07T01:42:12Z"
+}

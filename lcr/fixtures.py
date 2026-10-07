@@ -1007,10 +1007,14 @@ def run_fixture(fam, mapper=True):
             for k, mine in (("T", a["T"]), ("Phi", a["Phi"])):
                 if k in t and abs(float(t[k]) - mine) > TOL_TERMS:
                     c5.append(f"{cid}:{blk}:{k}")
+    no_state = []
     for cid, rec in mrecs.items():           # incremental search state of the winner vs its from-scratch rebuild
         inc = _incremental_terms(rec)
         if inc is None:
             c5.append(f"{cid}:incremental_terms_missing")
+            continue
+        if inc == NO_SEARCH_STATE:
+            no_state.append(cid)
             continue
         for k, v in inc.items():
             if k in rec["final_state_terms"]:
@@ -1038,6 +1042,7 @@ def run_fixture(fam, mapper=True):
     if helper > 1e-9:
         c5.append(f"token_loss_helper:{helper}")
     checks["C5_TERM_RECONSTRUCTION"] = {"pass": not c5, "failures": c5, "max_abs_diff": worst,
+                                        "incremental_not_applicable_no_search_state": no_state,
                                         "token_loss_helper_max_abs_diff_totals": helper}
     # C7 law integrity (the laws were verified by load_laws before this call; rows deploy to declared cells)
     checks["C7_LAW_INTEGRITY"] = {"pass": bool(X["N"] == N_FIX and props["mapping_pairs"] <= MAX_PAIRS and
@@ -1059,15 +1064,25 @@ def run_fixture(fam, mapper=True):
     return res, tables, arms
 
 
+NO_SEARCH_STATE = "NO_SEARCH_STATE"
+
+
 def _incremental_terms(rec):
-    """Terms of the winning start's incrementally updated search state (mapper start records), or None."""
+    """Terms of the winning start's incrementally updated search state (mapper start records); NO_SEARCH_STATE when
+    the release is the unchanged descriptive copy of the first start of an INFEASIBLE constrained unit in which no
+    start was ever refined (every start infeasible: no incremental state exists); otherwise None (a failure)."""
     name, kind = rec["winner"]["start"], rec["winner"]["kind"].replace("_descriptive", "")
     for s in rec["starts"]:
         nm = s.get("name") or (s.get("start") or {}).get("name")
         if nm != name:
             continue
         blk = s.get("final") if kind == "refined" else (s.get("unchanged") or s.get("start"))
-        return None if not blk else blk.get("terms")
+        if blk:
+            return blk.get("terms")
+        break
+    if (rec["status"] == "INFEASIBLE" and rec["winner"]["kind"] == "unchanged_descriptive"
+            and not any("final" in s for s in rec["starts"])):
+        return NO_SEARCH_STATE
     return None
 
 

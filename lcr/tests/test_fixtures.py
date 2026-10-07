@@ -291,3 +291,18 @@ def test_descriptive_flags_registered_groups():
     assert sum(g["n"] for k, g in b.items() if k in ("constrained", "weighted")) == 4   # CLASS is not privacy-trained
     t = FX.trigger(arms, None, [0.3, 0.3], [0.5, 0.5])
     assert t["reason"] == "NO_C_TASK" and "descriptive" in t
+
+
+def test_incremental_terms_no_search_state_only_for_all_infeasible_starts():
+    seq_infeasible = {"status": "INFEASIBLE", "winner": {"start": "A", "kind": "unchanged_descriptive"},
+                      "starts": [{"name": "A", "stage1": {"status": "INFEASIBLE_START"}},
+                                 {"name": "B", "stage1": {"status": "INFEASIBLE_START"}}]}
+    assert FX._incremental_terms(seq_infeasible) == FX.NO_SEARCH_STATE
+    refined = {"status": "FEASIBLE", "winner": {"start": "A", "kind": "refined"},
+               "starts": [{"name": "A", "final": {"terms": {"L1": 1.0}}}]}
+    assert FX._incremental_terms(refined) == {"L1": 1.0}
+    missing = {"status": "FEASIBLE", "winner": {"start": "A", "kind": "refined"}, "starts": [{"name": "A"}]}
+    assert FX._incremental_terms(missing) is None                  # a refined winner without its state still fails
+    partly = {"status": "INFEASIBLE", "winner": {"start": "A", "kind": "unchanged_descriptive"},
+              "starts": [{"name": "A", "stage1": {}}, {"name": "B", "final": {"terms": {}}}]}
+    assert FX._incremental_terms(partly) is None                   # some start was refined: no exemption
