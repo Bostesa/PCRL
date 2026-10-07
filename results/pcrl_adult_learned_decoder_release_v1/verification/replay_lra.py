@@ -267,6 +267,16 @@ VERIFIER_CORRECTIONS: list = [
     {"phase": "lra PHASE_0", "item": "own C_pair* pool test", "change": "own mutation self-check showed the removal of "
      "fit-infeasible constrained arms from C_pair* was not exercised; a test with an inner-best infeasible JOINT-SINGLE "
      "was added"},
+    {"phase": "lra PHASE_0", "item": "reconciliation with role D (2026-10-07)", "change": "representative ranks "
+     "(construction existing 0 / calibrated 1 / task-only 2 / weighted 3 / constrained 4; family LOCAL 0 / SEQ 1 / JOINT "
+     "2 / JOINT-PAIR 3 / other 9), decided_by_config_id_tiebreak, label strings ('identical to privacy-untrained', the "
+     "B / C no-credit notes, the ' [A=..; B=..; C=..; Q=..]' suffix, 'INCOMPLETE_NOT_RUN (<reasons>)'; an unregistered "
+     "gate value is NOT RUN instead of an exception), reason codes FIT_RECORD_TECHNICAL_FAILURE and "
+     "NON_ESTIMABLE_INNER_METRIC (malformed count), sorted '+' joins, missing-guard fallback = min over the eligible by "
+     "ordering key, fallback_class"},
+    {"phase": "lra PHASE_0", "item": "own trace replay engine", "change": "added (lra-mapper-trace-v1; HASH_RULE stats / "
+     "state hashes; terms and deltas 1e-12; search constraints limit - 1e-10, caps margin 0; final deployed margin 0); "
+     "self-tested on own synthetic traces with 11 injected trace defects"},
     # ---- inherited from the lcr verifier (kept for the record)
 
     {"phase": "PHASE_0", "item": "cid_lam (adapted cbp helper)", "change": "parse the 'l<value>' segment after the rate; "
@@ -3726,28 +3736,39 @@ def lra_display(claims, q):
         str(q) + "]"
 
 
+def _untrained_note(st_, role):
+    al = (st_ or {}).get("aliases") or {}
+    ids = al.get("identical_to_untrained") if al.get("available") else None
+    return f" ({role} release identical to privacy-untrained {', '.join(ids)}; no privacy-training credit)" if ids else ""
+
+
 def lra_labels(statuses, eps, gate, prefit_blocker=None, technical_valid=True, control_ok=None):
-    """Own section-12 label truth table. gate: exactly 'ENGINEERING_READY' or 'ENGINEERING_BLOCKED' (or None when the
-    correctness stage never completed); any other value (the historical GATE_MET / GATE_NOT_MET, a boolean, PASS)
-    is REFUSED so the verdict can never depend on the predecessor's mechanism gate. Precedence:
-      1 gate ENGINEERING_BLOCKED                         -> ENGINEERING_BLOCKED_NOT_RUN (A / B / C / Q NOT_RUN)
-      2 a pre-fit budget / admission blocker, or no gate -> INCOMPLETE_NOT_RUN (concrete reason; all NOT_RUN)
-      3 a global technical failure after science began   -> INCOMPLETE_OR_INVALID (claims still shown)
-      4 passing method claims A, B, C (joined ' + '; A names P*'s real representative)
-      5 no method pass, Q PASS                           -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION
-      6 any claim or Q INCOMPLETE_OR_INVALID             -> INCOMPLETE_OR_INVALID
-      7 otherwise                                        -> EXPERIMENTAL_NO_ADVANTAGE
-    Every result carries the A / B / C / Q statuses and a label_with_statuses string (finding 14)."""
-    if gate is not None and (not isinstance(gate, str) or gate not in LRA_GATE_VERDICTS):
-        raise ValueError(f"REFUSED: launch verdict {gate!r} is not ENGINEERING_READY / ENGINEERING_BLOCKED")
+    """Own section-12 label truth table (string format reconciled with role D 2026-10-07). gate: the launch verdict;
+    only 'ENGINEERING_READY' runs Adult claims. Precedence:
+      1 gate ENGINEERING_BLOCKED                          -> ENGINEERING_BLOCKED_NOT_RUN (A / B / C / Q NOT_RUN)
+      2 a pre-fit budget / admission blocker, no gate, or ANY other gate value (the historical GATE_MET /
+        GATE_NOT_MET, a boolean, PASS, ...)              -> INCOMPLETE_NOT_RUN (<reasons>) (all NOT_RUN)
+      3 a global technical failure after science began    -> INCOMPLETE_OR_INVALID (claims still shown)
+      4 passing method claims A, B, C joined ' + ' (A names P*'s ONE real representative; untrained aliases disclosed)
+      5 no method pass, Q PASS                            -> CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION
+      6 any claim or Q INCOMPLETE_OR_INVALID              -> INCOMPLETE_OR_INVALID
+      7 otherwise                                         -> EXPERIMENTAL_NO_ADVANTAGE
+    EVERY label carries the suffix ' [A=<s>; B=<s>; C=<s>; Q=<s>]' (finding 14); label_head is the part before it."""
+    registered = isinstance(gate, str) and gate in LRA_GATE_VERDICTS
     nr = {c_: "NOT_RUN" for c_ in ("A", "B", "C")}
-    if gate == "ENGINEERING_BLOCKED" or gate is None or prefit_blocker:
-        label = "ENGINEERING_BLOCKED_NOT_RUN" if gate == "ENGINEERING_BLOCKED" else "INCOMPLETE_NOT_RUN"
-        reason = ("ENGINEERING_BLOCKED" if gate == "ENGINEERING_BLOCKED" else
-                  (prefit_blocker or "ENGINEERING_GATE_NOT_RESOLVED"))
-        return {"label": label, "label_with_statuses": f"{label} {lra_display(nr, 'NOT_RUN')}", "claims": nr,
-                "q": "NOT_RUN", "root_causes": {c_: reason for c_ in nr}, "q_root_cause": reason,
-                "not_run_reason": reason, "prefit_blocker": prefit_blocker, "adult_claims_run": False,
+    if not registered or gate != "ENGINEERING_READY" or prefit_blocker:
+        pf = ([f"pre-fit blocker: {x}" for x in (prefit_blocker if isinstance(prefit_blocker, (list, tuple))
+                                                 else [prefit_blocker])] if prefit_blocker else [])
+        if registered and gate == "ENGINEERING_BLOCKED":
+            reasons = pf
+            head = "ENGINEERING_BLOCKED_NOT_RUN" + (f" ({'; '.join(pf)})" if pf else "")
+            reasons = ["ENGINEERING_BLOCKED"] + pf
+        else:                                    # reason texts agreed with role D (2026-10-07)
+            reasons = ([] if registered else [f"engineering gate verdict {gate!r} is not a resolved registered verdict"]) + pf
+            head = f"INCOMPLETE_NOT_RUN ({'; '.join(reasons)})"
+        return {"label": f"{head} {lra_display(nr, 'NOT_RUN')}", "label_head": head, "claims": nr, "q": "NOT_RUN",
+                "root_causes": {c_: "; ".join(reasons) for c_ in nr}, "q_root_cause": "; ".join(reasons),
+                "not_run_reasons": reasons, "prefit_blocker": prefit_blocker, "adult_claims_run": False,
                 "incomplete_displayed": []}
     control_ok = control_ok or {}
     oc = {e["id"]: clause_outcome(e)[0] for e in eps}
@@ -3766,23 +3787,24 @@ def lra_labels(statuses, eps, gate, prefit_blocker=None, technical_valid=True, c
         if al.get("available"):
             name = f"{al['representative_family']}; {al['representative_construction']}"
             if al.get("identical_to_untrained"):
-                name += "; identical to untrained " + ", ".join(al["identical_to_untrained"])
+                name += "; identical to privacy-untrained " + ", ".join(al["identical_to_untrained"])
         else:
             name = f"{lcr_family(p_st['config'])}; {LRA_CONSTRUCTION[lra_arm(p_st['config'])]}"
     if not technical_valid:
-        label = "INCOMPLETE_OR_INVALID"
+        head = "INCOMPLETE_OR_INVALID"
     else:
-        parts = [LCR_METHOD_LABEL[c_] + (f" ({name})" if c_ == "A" and name else "") for c_ in ("A", "B", "C")
-                 if claims[c_] == "PASS"]
+        comp = {"A": f" ({name})" if name else "", "B": _untrained_note(statuses.get("N*"), "N*"),
+                "C": _untrained_note(statuses.get("J*"), "J*")}
+        parts = [LCR_METHOD_LABEL[c_] + comp[c_] for c_ in ("A", "B", "C") if claims[c_] == "PASS"]
         if parts:
-            label = " + ".join(parts)
+            head = " + ".join(parts)
         elif q == "PASS":
-            label = "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+            head = "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
         elif any(v == "INCOMPLETE_OR_INVALID" for v in shown.values()):
-            label = "INCOMPLETE_OR_INVALID"
+            head = "INCOMPLETE_OR_INVALID"
         else:
-            label = "EXPERIMENTAL_NO_ADVANTAGE"
-    return {"label": label, "label_with_statuses": f"{label} {lra_display(claims, q)}", "claims": claims,
+            head = "EXPERIMENTAL_NO_ADVANTAGE"
+    return {"label": f"{head} {lra_display(claims, q)}", "label_head": head, "claims": claims,
             "root_causes": roots, "q": q, "q_root_cause": q_root, "adult_claims_run": True,
             "incomplete_displayed": sorted(k_ for k_, v in shown.items() if v == "INCOMPLETE_OR_INVALID"),
             "clause_outcomes": oc}
@@ -8432,6 +8454,849 @@ def selftest_defects_lcr(rng):
                baseline_entry_passes=bool(base_ok), **out)
 
 
+# ================================================================================================ lra: own trace replay
+# Own engine for the persisted mapper traces (schema lra-mapper-trace-v1, layout told by the lead / read from the
+# lra.mapper HASH_RULE and MOVE_FIELDS text; nothing of lra is imported). Every state is rebuilt by this verifier from
+# per-fine-cell sufficient statistics: canonical labels, member folds, own D1 solves (cache keyed by the COMPLETE
+# sufficient statistic), own token losses, own plug-in MI from integer tables. Prompt section 9 checks 6, 7 and 8.
+TRACE_SCHEMA_LRA = "lra-mapper-trace-v1"
+TR_TERM_ATOL = 1e-12          # |trace term - own term| (L1 L2 B1 B2 I1 I2 I12 Phi T) on every state
+TR_DELTA_ATOL = 1e-12         # |trace delta - own difference| per term; objective delta * (1 + sum |w|)
+TR_BUDGET_MARGIN = 1e-10      # search feasibility: L, B <= limit - 1e-10; I <= cap (margin 0)
+TR_ROW_ATOL = 1e-10           # |state term - row-level term| on the final deployed state (budgets then exact, margin 0)
+TR_TERMS = ("L1", "L2", "B1", "B2", "I1", "I2", "I12", "Phi", "T")
+TR_STOPS = ("no_change_sweep", "sweep_cap", "eval_ceiling")
+TR_STATE_CAPS = {1: 8, 2: 64}  # tokens per teacher-predicted class (upper bounds)
+
+
+def tr_weights(arm, lam=None):
+    """Registered objective weights (wL, wB, wI, w12) over (L1+L2, B1+B2, I1+I2, I12) from prompt sections 7-8:
+    C-TASK T; W-LOCAL T + lam (I1+I2)/2; W-SEQ / W-JOINT T + lam Phi; K-LOCAL I_i; K-SEQ / K-JOINT Phi."""
+    if arm == "C-TASK":
+        return (1.0, 0.5, 0.0, 0.0)
+    if arm == "W-LOCAL":
+        return (1.0, 0.5, lam / 2.0, 0.0)
+    if arm in ("W-SEQ-12", "W-SEQ-21", "W-JOINT"):
+        return (1.0, 0.5, lam * 0.5, lam)
+    if arm == "K-LOCAL":
+        return (0.0, 0.0, 1.0, 0.0)
+    if arm in ("K-SEQ-12", "K-SEQ-21", "K-JOINT-SINGLE", "K-JOINT-PAIR"):
+        return (0.0, 0.0, 0.5, 1.0)
+    raise ValueError(arm)
+
+
+def tr_objective(t, w):
+    return w[0] * (t["L1"] + t["L2"]) + w[1] * (t["B1"] + t["B2"]) + w[2] * (t["I1"] + t["I2"]) + w[3] * t["I12"]
+
+
+def tr_expected_stages(arm):
+    """Own reading of the registered stage structure: (stage name, optimised recipients, ENFORCED recipients). The
+    sequential first stage enforces ONLY the first recipient (the CLASS-ONLY partner is not required feasible); the
+    unconstrained arms (C-TASK, W-*) enforce no fitting budget."""
+    if arm in ("C-TASK", "W-LOCAL"):
+        return [("r1", [1], []), ("r2", [2], [])]
+    if arm == "K-LOCAL":
+        return [("r1", [1], [1]), ("r2", [2], [2])]
+    if arm in ("W-SEQ-12", "W-SEQ-21", "K-SEQ-12", "K-SEQ-21"):
+        a, b = (1, 2) if arm.endswith("12") else (2, 1)
+        k = arm.startswith("K-")
+        return [("seq1", [a], [a] if k else []), ("seq2", [b], [1, 2] if k else [])]
+    if arm in ("W-JOINT", "K-JOINT-SINGLE", "K-JOINT-PAIR"):
+        return [("joint", [1, 2], [1, 2] if arm.startswith("K-") else [])]
+    raise ValueError(arm)
+
+
+def own_canon(lab):
+    lab = np.asarray(lab, dtype=np.int64)
+    mins = {}
+    for f_, g_ in enumerate(lab.tolist()):
+        mins.setdefault(g_, f_)
+    return np.array([mins[g_] for g_ in lab.tolist()], dtype=np.int64)
+
+
+def _h(*arrs):
+    h = hashlib.sha256()
+    for a in arrs:
+        h.update(np.ascontiguousarray(a).tobytes())
+    return h.hexdigest()
+
+
+def tr_stats_sha(n, Y, S):
+    return _h(np.asarray(n, dtype="<i8").reshape(1), np.asarray(Y, dtype="<f8"), np.asarray(S, dtype="<f8"))
+
+
+def tr_q_sha(q):
+    return _h(np.asarray(q, dtype="<f8"))
+
+
+def _xlogx(x):
+    x = np.asarray(x, dtype=np.float64)
+    return np.where(x > 0, x * np.log(np.where(x > 0, x, 1.0)), 0.0)
+
+
+def own_table_mi(X, N):
+    """Plug-in MI (nats) of SEX with a code from the integer table X[s, t] (own formula, fsum)."""
+    X = np.asarray(X, dtype=np.int64)
+    ns, nt = X.sum(1), X.sum(0)
+    v = math.fsum(_xlogx(X).ravel().tolist()) - math.fsum(_xlogx(ns).tolist()) - math.fsum(_xlogx(nt).tolist()) + \
+        float(_xlogx(np.array([N]))[0])
+    return v / N
+
+
+class TrProblem:
+    """Fixed per-unit fitting data at fine-cell resolution: n_f (int), label counts Y_f, teacher sums S_f (own
+    row-order sums, or the stored fine-partition sums when supplied and checked), the class of every cell, the SEX
+    tables, the U losses, budgets and local caps."""
+
+    def __init__(self, cells, y, P, s, K, cell_class, F, S_cells=None, caps_I=None, budget=None):
+        self.K, self.F, self.N = dict(K), dict(F), int(len(s))
+        self.cls = {r: np.asarray(cell_class[r], dtype=np.int64) for r in (1, 2)}
+        self.n, self.Y, self.S, self.S_own = {}, {}, {}, {}
+        self.LU, self.BU = {}, {}
+        b = budget or FIT_BUDGET
+        for r in (1, 2):
+            c = np.asarray(cells[r], dtype=np.int64)
+            self.n[r] = np.bincount(c, minlength=F[r]).astype(np.int64)
+            Yc = np.zeros((F[r], K[r]))
+            np.add.at(Yc, (c, np.asarray(y[r], dtype=np.int64)), 1.0)
+            self.Y[r] = Yc
+            So = np.zeros((F[r], K[r]))
+            np.add.at(So, c, np.asarray(P[r], dtype=np.float64))
+            self.S_own[r] = So
+            self.S[r] = np.asarray(S_cells[r], dtype=np.float64) if S_cells is not None else So
+            u = my_utility(P[r], np.argmax(P[r], 1), y[r], K[r], 0)
+            self.LU[r], self.BU[r] = u["logloss"], u["brier"]
+        self.limL = {r: self.LU[r] + b["ll"] for r in (1, 2)}
+        self.limB = {r: self.BU[r] + b["brier"] for r in (1, 2)}
+        s = np.asarray(s, dtype=np.int64)
+        c1, c2 = np.asarray(cells[1], dtype=np.int64), np.asarray(cells[2], dtype=np.int64)
+        T = np.zeros((2, F[1], F[2]), dtype=np.int64)
+        np.add.at(T, (s, c1, c2), 1)
+        self.Tfine = T
+        self.tf = {1: T.sum(2), 2: T.sum(1)}
+        self.caps_I = dict(caps_I or {1: None, 2: None})
+        self.rows = {"cells": {1: c1, 2: c2}, "y": {r: np.asarray(y[r], dtype=np.int64) for r in (1, 2)}, "s": s}
+        self.cache = D1Cache()
+
+    def class_only(self, r):
+        return own_canon(self.cls[r])
+
+
+def tr_state(pb: TrProblem, labels, cache=None):
+    """From the canonical labels of both recipients: tokens (members sorted, n, Y, S folded in member order, class,
+    own D1 q, token losses, hashes), terms and per-class token counts. Raises on class mixing / non-canonical labels."""
+    cache = cache if cache is not None else pb.cache
+    out = {"tok": {}, "lab": {}, "counts": {}}
+    t = {}
+    for r in (1, 2):
+        lab = np.asarray(labels[r], dtype=np.int64)
+        if lab.shape != (pb.F[r],):
+            raise ValueError(f"recipient {r}: label length {lab.shape} != {pb.F[r]}")
+        if not np.array_equal(own_canon(lab), lab):
+            raise ValueError(f"recipient {r}: labels are not canonical (lowest member fine index)")
+        toks = {}
+        for g_ in sorted(set(lab.tolist())):
+            mem = np.flatnonzero(lab == g_)
+            cl = np.unique(pb.cls[r][mem])
+            if cl.size != 1:
+                raise ValueError(f"recipient {r}: token {g_} mixes predicted classes")
+            n = int(pb.n[r][mem].sum())
+            Y = pb.Y[r][mem[0]].copy()
+            S = pb.S[r][mem[0]].copy()
+            for m_ in mem[1:]:
+                Y = Y + pb.Y[r][m_]
+                S = S + pb.S[r][m_]
+            d = int(cl[0])
+            if n > 0:
+                u, q, _ = cache.solve(n, Y, S, d)
+                ll = -math.fsum((Y * np.log(np.clip(q, LL_CLIP, 1.0))).tolist())
+                br = n * float(q @ q) - 2.0 * float(Y @ q) + n
+                qs = tr_q_sha(q)
+            else:
+                q, ll, br, qs = None, 0.0, 0.0, None
+            toks[int(g_)] = {"members": mem, "n": n, "Y": Y, "S": S, "d": d, "q": q, "ll": ll, "br": br,
+                             "stats_sha": tr_stats_sha(n, Y, S), "q_sha": qs}
+        out["tok"][r], out["lab"][r] = toks, lab
+        out["counts"][r] = {int(c_): sum(1 for v in toks.values() if v["d"] == c_) for c_ in range(pb.K[r])}
+        t[f"L{r}"] = math.fsum(v["ll"] for v in toks.values()) / pb.N
+        t[f"B{r}"] = math.fsum(v["br"] for v in toks.values()) / pb.N
+    for r in (1, 2):
+        G = {g_: j for j, g_ in enumerate(sorted(out["tok"][r]))}
+        X = np.zeros((2, len(G)), dtype=np.int64)
+        for f_ in range(pb.F[r]):
+            X[:, G[int(out["lab"][r][f_])]] += pb.tf[r][:, f_]
+        t[f"I{r}"] = own_table_mi(X, pb.N)
+    G1 = {g_: j for j, g_ in enumerate(sorted(out["tok"][1]))}
+    G2 = {g_: j for j, g_ in enumerate(sorted(out["tok"][2]))}
+    i1 = np.array([G1[int(g_)] for g_ in out["lab"][1]])
+    i2 = np.array([G2[int(g_)] for g_ in out["lab"][2]])
+    A = np.zeros((2, len(G1), pb.F[2]), dtype=np.int64)
+    np.add.at(A, (slice(None), i1), pb.Tfine)
+    B = np.zeros((2, len(G1), len(G2)), dtype=np.int64)
+    np.add.at(B.transpose(0, 2, 1), (slice(None), i2), A.transpose(0, 2, 1))
+    t["I12"] = own_table_mi(B.reshape(2, -1), pb.N)
+    t["Phi"] = t["I12"] + 0.5 * (t["I1"] + t["I2"])
+    t["T"] = t["L1"] + t["L2"] + 0.5 * (t["B1"] + t["B2"])
+    out["terms"] = t
+    return out
+
+
+def tr_state_hashes(state):
+    """HASH_RULE state_stats_sha256 / state_q_sha256 over recipients 1, 2 and their tokens in increasing canonical label."""
+    hs, hq = hashlib.sha256(), hashlib.sha256()
+    for r in (1, 2):
+        for g_ in sorted(state["tok"][r]):
+            v = state["tok"][r][g_]
+            c = np.asarray(g_, dtype="<i8").reshape(1).tobytes()
+            hs.update(c + np.asarray(v["n"], dtype="<i8").reshape(1).tobytes() + np.asarray(v["Y"], dtype="<f8").tobytes()
+                      + np.asarray(v["S"], dtype="<f8").tobytes())
+            if v["n"] > 0:
+                hq.update(c + np.asarray(v["q"], dtype="<f8").tobytes())
+    return hs.hexdigest(), hq.hexdigest()
+
+
+def tr_apply(labels, part):
+    """Apply one move part (whole fine cell f of recipient r to the same-class token to_canon); returns new canonical
+    labels or raises if the part is incoherent with the state (from_canon / to_canon / class / self-move)."""
+    r, f_ = int(part["r"]), int(part["f"])
+    lab = np.asarray(labels[r], dtype=np.int64).copy()
+    if int(lab[f_]) != int(part["from_canon"]):
+        raise ValueError(f"part r{r} f{f_}: from_canon {part['from_canon']} != state label {int(lab[f_])}")
+    tc = int(part["to_canon"])
+    if tc == int(lab[f_]) or tc not in set(lab.tolist()):
+        raise ValueError(f"part r{r} f{f_}: to_canon {tc} is the own token or not an existing token")
+    lab[f_] = tc
+    out = {1: np.asarray(labels[1], dtype=np.int64), 2: np.asarray(labels[2], dtype=np.int64)}
+    out[r] = own_canon(lab)
+    return out
+
+
+def tr_feasible(pb, terms, enforced, margin=TR_BUDGET_MARGIN):
+    """(ok, detail) of the fitting budgets and local caps for the ENFORCED recipients."""
+    det, ok = {}, True
+    for r in enforced:
+        cap = pb.caps_I.get(r)
+        okL = terms[f"L{r}"] <= pb.limL[r] - margin
+        okB = terms[f"B{r}"] <= pb.limB[r] - margin
+        okI = cap is None or terms[f"I{r}"] <= cap
+        det[r] = {"ll_margin": pb.limL[r] - terms[f"L{r}"], "brier_margin": pb.limB[r] - terms[f"B{r}"],
+                  "cap_margin": (cap - terms[f"I{r}"]) if cap is not None else None, "ok": bool(okL and okB and okI)}
+        ok &= det[r]["ok"]
+    return bool(ok), det
+
+
+def _labels_of(js, pb):
+    return {r: np.asarray(js[str(r)] if str(r) in js else js[r], dtype=np.int64) for r in (1, 2)}
+
+
+def replay_trace(trace, pb: TrProblem, arm, lam=None, ceiling=None, sample_every=50, record_sha=None,
+                 required_partner_feasible=False):
+    """Replay one persisted trace with the own engine. Returns a result dict with every failure listed.
+    required_partner_feasible=True is the deliberate defect (the sequential CLASS-ONLY partner held to its budget)."""
+    fails, info = [], {"starts": 0, "stages": 0, "moves": 0, "pair_moves": 0, "states_checked": 0,
+                       "q_sha_agree": 0, "q_sha_compared": 0, "fresh_rebuilds": 0, "max_term_diff": 0.0,
+                       "max_delta_diff": 0.0, "min_ll_margin": None, "min_brier_margin": None, "min_cap_margin": None,
+                       "partner_feasible_seq1": []}
+    w = tr_weights(arm, lam)
+    wsum = 1.0 + sum(abs(x) for x in w)
+    exp = tr_expected_stages(arm)
+    if trace.get("schema") != TRACE_SCHEMA_LRA:
+        fails.append(f"schema {trace.get('schema')!r}")
+    if record_sha is not None:
+        body = {k_: v for k_, v in trace.items()}
+        if hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest() \
+                != record_sha:
+            fails.append("trace_sha256 differs from the record")
+
+    def tdiff(own_t, rec_t, where):
+        for k_ in TR_TERMS:
+            if k_ not in rec_t:
+                continue
+            dv = abs(float(rec_t[k_]) - own_t[k_])
+            info["max_term_diff"] = max(info["max_term_diff"], dv)
+            if not dv <= TR_TERM_ATOL:
+                fails.append(f"{where}: term {k_} differs by {dv:.3g}")
+
+    def margins(det):
+        for d_ in det.values():
+            for key, nm in (("ll_margin", "min_ll_margin"), ("brier_margin", "min_brier_margin"),
+                            ("cap_margin", "min_cap_margin")):
+                if d_[key] is not None:
+                    info[nm] = d_[key] if info[nm] is None else min(info[nm], d_[key])
+
+    def caps_ok(st, where):
+        for r in (1, 2):
+            for c_, n_ in st["counts"][r].items():
+                if n_ > TR_STATE_CAPS[r]:
+                    fails.append(f"{where}: recipient {r} class {c_} has {n_} tokens > cap {TR_STATE_CAPS[r]}")
+
+    finals = []
+    for si, start in enumerate(trace.get("starts") or []):
+        info["starts"] += 1
+        stages = start.get("stages") or []
+        names = [(s_.get("stage"), list(s_.get("recipients") or []), sorted(s_.get("enforced") or [])) for s_ in stages]
+        exp_names = [(a, b, sorted(c)) for a, b, c in exp]
+        if names != exp_names[:len(names)] or not names:
+            fails.append(f"start {si}: stage structure {names} != registered {exp_names}")
+        try:
+            lab0 = _labels_of(start["labels"], pb)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"start {si}: labels unreadable ({e})")
+            continue
+        prev_final = None
+        for gi, stg in enumerate(stages):
+            info["stages"] += 1
+            where = f"start {si} stage {stg.get('stage')}"
+            try:
+                cur_lab = _labels_of(stg["start_labels"], pb)
+                cur = tr_state(pb, cur_lab)
+            except Exception as e:  # noqa: BLE001
+                fails.append(f"{where}: start state invalid ({e})")
+                break
+            # stage chaining: the first stage starts from the start's labels (seq1: the partner is CLASS-ONLY);
+            # later stages start from the previous stage's final labels for the frozen / earlier recipient
+            if stg.get("stage") == "seq1":
+                a = stg["recipients"][0]
+                b = 3 - a
+                if not np.array_equal(cur_lab[a], lab0[a]):
+                    fails.append(f"{where}: optimised recipient does not start from the start's labels")
+                if not np.array_equal(cur_lab[b], pb.class_only(b)):
+                    fails.append(f"{where}: partner is not the CLASS-ONLY view")
+                pf, _ = tr_feasible(pb, cur["terms"], [b])
+                info["partner_feasible_seq1"].append(bool(pf))
+                if (stg.get("partner") or {}).get("constraints_enforced") not in (False, None):
+                    fails.append(f"{where}: partner record says its constraints are enforced")
+            elif gi == 0:
+                if not all(np.array_equal(cur_lab[r], lab0[r]) for r in (1, 2)):
+                    fails.append(f"{where}: stage does not start from the start's labels")
+            if stg.get("stage") == "seq2" and prev_final is not None:
+                a = stages[0]["recipients"][0]
+                b = 3 - a
+                if not np.array_equal(cur_lab[a], prev_final[a]):
+                    fails.append(f"{where}: frozen recipient differs from the first-stage result")
+                if not np.array_equal(cur_lab[b], lab0[b]):
+                    fails.append(f"{where}: second recipient does not start from the start's labels")
+            if stg.get("stage") == "r2" and prev_final is not None:
+                if not np.array_equal(cur_lab[1], prev_final[1]) or not np.array_equal(cur_lab[2], lab0[2]):
+                    fails.append(f"{where}: local stage 2 does not chain from stage 1")
+            tdiff(cur["terms"], stg.get("start_terms") or {}, f"{where} start")
+            hs, hq = tr_state_hashes(cur)
+            if stg.get("start_stats_sha256") is not None and stg["start_stats_sha256"] != hs:
+                fails.append(f"{where}: start_stats_sha256 differs")
+            caps_ok(cur, f"{where} start")
+            enforced = sorted(stg.get("enforced") or [])
+            exp_enf = sorted(dict((a, c) for a, _, c in exp).get(stg.get("stage"), []))
+            if required_partner_feasible and stg.get("stage") == "seq1":
+                enforced = [1, 2]                                    # DEFECT
+            elif enforced != exp_enf:
+                fails.append(f"{where}: enforced {enforced} != registered {exp_enf}")
+            f0, det0 = tr_feasible(pb, cur["terms"], enforced)
+            if stg.get("status") == "INFEASIBLE_START":
+                if f0:
+                    fails.append(f"{where}: INFEASIBLE_START but the own start state is feasible")
+                if stg.get("moves"):
+                    fails.append(f"{where}: an infeasible start has moves")
+                prev_final = cur_lab
+                continue
+            if stg.get("status") != "REFINED":
+                fails.append(f"{where}: status {stg.get('status')!r}")
+            if enforced and not f0:
+                fails.append(f"{where}: REFINED from an infeasible start")
+            margins(det0)
+            obj = tr_objective(cur["terms"], w)
+            obj0 = obj
+            last_sweep, n_pairs = 0, 0
+            for mi_, mv in enumerate(stg.get("moves") or []):
+                info["moves"] += 1
+                wm = f"{where} move {mi_}"
+                if mv.get("step") != mi_:
+                    fails.append(f"{wm}: step {mv.get('step')} out of order")
+                sw = int(mv.get("sweep", 0))
+                if sw < last_sweep or not 1 <= sw <= LCR_SWEEPS:
+                    fails.append(f"{wm}: sweep {sw} out of order / beyond the cap")
+                last_sweep = sw
+                parts = mv.get("parts") or []
+                if mv.get("type") == "pair":
+                    n_pairs += 1
+                    info["pair_moves"] += 1
+                    if arm != "K-JOINT-PAIR":
+                        fails.append(f"{wm}: a paired move in arm {arm}")
+                    if sorted(int(p_["r"]) for p_ in parts) != [1, 2]:
+                        fails.append(f"{wm}: a paired move must move one cell of each recipient")
+                elif mv.get("type") != "single" or len(parts) != 1:
+                    fails.append(f"{wm}: malformed single move")
+                for p_ in parts:
+                    if int(p_["r"]) not in stg.get("recipients", []):
+                        fails.append(f"{wm}: moves a recipient that is not optimised in this stage")
+                try:
+                    new_lab = cur_lab
+                    one_sided = []
+                    for p_ in parts:
+                        one_sided.append(tr_apply(cur_lab, p_))
+                        new_lab = tr_apply(new_lab, p_)
+                    new = tr_state(pb, new_lab)
+                except Exception as e:  # noqa: BLE001
+                    fails.append(f"{wm}: incoherent ({e})")
+                    break
+                info["states_checked"] += 1
+                tdiff(new["terms"], mv.get("terms_after") or {}, wm)
+                nobj = tr_objective(new["terms"], w)
+                if mv.get("objective_after") is not None and not abs(float(mv["objective_after"]) - nobj) <= TR_DELTA_ATOL * wsum:
+                    fails.append(f"{wm}: objective_after differs by {abs(float(mv['objective_after']) - nobj):.3g}")
+                if not nobj < obj:
+                    fails.append(f"{wm}: accepted move does not strictly improve the objective ({nobj - obj:.3g})")
+                ok_f, det = tr_feasible(pb, new["terms"], enforced)
+                if not ok_f:
+                    fails.append(f"{wm}: accepted state violates a fitting budget / local cap {det}")
+                margins(det)
+                caps_ok(new, wm)
+                for pi_, p_ in enumerate(parts):
+                    r = int(p_["r"])
+                    ref = new if len(parts) == 1 else tr_state(pb, one_sided[pi_])
+                    dd_ = {"dL": ref["terms"][f"L{r}"] - cur["terms"][f"L{r}"],
+                           "dB": ref["terms"][f"B{r}"] - cur["terms"][f"B{r}"],
+                           "dI": ref["terms"][f"I{r}"] - cur["terms"][f"I{r}"],
+                           "dI12": ref["terms"]["I12"] - cur["terms"]["I12"]}
+                    if len(parts) > 1:
+                        dd_["dPhi_one_sided"] = ref["terms"]["Phi"] - cur["terms"]["Phi"]
+                        dd_["dTask"] = (ref["terms"][f"L{r}"] + 0.5 * ref["terms"][f"B{r}"]) - \
+                            (cur["terms"][f"L{r}"] + 0.5 * cur["terms"][f"B{r}"])
+                        okr, _ = tr_feasible(pb, ref["terms"], [r])
+                        if not okr:
+                            fails.append(f"{wm}: pair part of recipient {r} is not own-budget feasible on its own")
+                    else:
+                        dd_["delta"] = nobj - obj
+                    for k_, v_ in dd_.items():
+                        if p_.get(k_) is None:
+                            continue
+                        tol = TR_DELTA_ATOL * (wsum if k_ == "delta" else 1.0)
+                        dv = abs(float(p_[k_]) - v_)
+                        info["max_delta_diff"] = max(info["max_delta_diff"], dv)
+                        if not dv <= tol:
+                            fails.append(f"{wm}: part r{r} {k_} differs by {dv:.3g}")
+                    fa, ta = int(p_["from_canon"]), int(p_["to_canon"])
+                    # the two affected tokens after the move: the remaining members of the from-token, the to-token
+                    lab_r = new["lab"][r]
+                    rest = [int(x) for x in np.flatnonzero(cur["lab"][r] == fa) if int(x) != int(p_["f"])]
+                    ca = int(lab_r[rest[0]]) if rest else None
+                    cb = int(lab_r[int(p_["f"])])
+                    if len(parts) == 1:
+                        sa = new["tok"][r][ca]["stats_sha"] if ca is not None else None
+                        sb = new["tok"][r][cb]["stats_sha"]
+                        rh = p_.get("stats_sha256") or [None, None]
+                        if rh[0] != sa or rh[1] != sb:
+                            fails.append(f"{wm}: stats_sha256 of the affected tokens differs (stale statistics)")
+                        qh = p_.get("q_sha256") or [None, None]
+                        for own_q, rec_q in ((new["tok"][r][ca]["q_sha"] if ca is not None else None, qh[0]),
+                                             (new["tok"][r][cb]["q_sha"], qh[1])):
+                            if rec_q is not None or own_q is not None:
+                                info["q_sha_compared"] += 1
+                                info["q_sha_agree"] += int(rec_q == own_q)
+                if sample_every and info["states_checked"] % sample_every == 0:
+                    fresh = tr_state(pb, new_lab, cache=D1Cache())
+                    info["fresh_rebuilds"] += 1
+                    for k_ in TR_TERMS:
+                        if fresh["terms"][k_] != new["terms"][k_]:
+                            fails.append(f"{wm}: own cached state differs from a fresh rebuild ({k_})")
+                cur_lab, cur, obj = new_lab, new, nobj
+            term = stg.get("termination") or {}
+            if term.get("accepted") != len(stg.get("moves") or []) or term.get("pairs_accepted", 0) != n_pairs:
+                fails.append(f"{where}: termination accepted / pairs_accepted inconsistent with the moves")
+            if term.get("stop") not in TR_STOPS:
+                fails.append(f"{where}: stop {term.get('stop')!r}")
+            if not 1 <= int(term.get("sweeps") or 0) <= LCR_SWEEPS or \
+                    (term.get("stop") == "sweep_cap" and term.get("sweeps") != LCR_SWEEPS):
+                fails.append(f"{where}: sweeps {term.get('sweeps')} inconsistent")
+            if ceiling is not None and int(term.get("ceiling_share") or 0) > ceiling:
+                fails.append(f"{where}: ceiling share above the registered total")
+            if term.get("evals") is not None and term.get("ceiling_share") is not None and \
+                    term.get("stop") != "eval_ceiling" and int(term["evals"]) > int(term["ceiling_share"]):
+                fails.append(f"{where}: evaluations above the ceiling share")
+            for k_, v_ in (("objective_start", obj0), ("objective_end", obj)):
+                if term.get(k_) is not None and not abs(float(term[k_]) - v_) <= TR_DELTA_ATOL * wsum:
+                    fails.append(f"{where}: termination {k_} differs")
+            prev_final = cur_lab
+        if prev_final is None:
+            continue
+        fl = start.get("final_labels")
+        if fl is not None and not all(np.array_equal(_labels_of(fl, pb)[r], prev_final[r]) for r in (1, 2)):
+            fails.append(f"start {si}: final_labels differ from the replayed result")
+        fin = tr_state(pb, prev_final, cache=D1Cache())
+        info["fresh_rebuilds"] += 1
+        all_enf = sorted({r for _, _, c in exp for r in c})
+        el_own, _ = tr_feasible(pb, fin["terms"], all_enf, margin=0.0)
+        if start.get("eligible") is not None and bool(start["eligible"]) != el_own:
+            fails.append(f"start {si}: eligible {start['eligible']} != own {el_own}")
+        finals.append({"pos": si, "name": start.get("name"), "labels": prev_final, "objective": tr_objective(fin["terms"], w),
+                       "eligible": el_own, "terms": fin["terms"]})
+    win = trace.get("winner")
+    own_win = None
+    elig = [x for x in finals if x["eligible"]]
+    if elig:
+        best = min(x["objective"] for x in elig)
+        own_win = min((x for x in elig if x["objective"] <= best + TR_DELTA_ATOL * wsum), key=lambda x: x["pos"])
+    if win is not None and own_win is not None:
+        wname = win.get("name") if isinstance(win, dict) else win
+        if wname != own_win["name"]:
+            fails.append(f"winner {wname!r} != own {own_win['name']!r}")
+    info["own_winner"] = own_win["name"] if own_win else None
+    info["finals"] = [{k_: v for k_, v in x.items() if k_ != "labels"} for x in finals]
+    info["q_sha_note"] = ("q hashes compare the study's released D1 bits with this verifier's own solver bits; a "
+                          "different algorithm legitimately differs in the last bits, so agreement is informational; "
+                          "the q values are certified separately on the released tables")
+    return {"ok": not fails, "failures": fails[:40], "n_failures": len(fails), **info,
+            "final_state": own_win and {"labels": {r: own_win["labels"][r].tolist() for r in (1, 2)}}}
+
+
+def tr_deployed_check(pb: TrProblem, labels, arm, cache=None):
+    """Final deployed state at ROW level (own release of every fitting row: token of its fine cell, own D1 q of the
+    token): L, B by my_utility, I and I12 by mi_of on the row tokens; equals the state terms within 1e-10; budgets and
+    local caps then with margin 0 for every recipient the arm constrains."""
+    st = tr_state(pb, labels, cache=cache or D1Cache())
+    out, fails = {}, []
+    tokrows = {}
+    for r in (1, 2):
+        lab = st["lab"][r]
+        cell = pb.rows["cells"][r]
+        g_ = lab[cell]
+        Q = np.stack([st["tok"][r][int(x)]["q"] for x in g_.tolist()]) if len(g_) else np.zeros((0, pb.K[r]))
+        u = my_utility(Q, np.argmax(Q, 1), pb.rows["y"][r], pb.K[r], 0)
+        tokrows[r] = g_
+        out[f"L{r}"], out[f"B{r}"] = u["logloss"], u["brier"]
+        out[f"I{r}"] = mi_of(pb.rows["s"], g_)
+        out[f"argmax_is_class_r{r}"] = bool(np.array_equal(np.argmax(Q, 1), pb.cls[r][cell]))
+    out["I12"] = mi_of(pb.rows["s"], tokrows[1], tokrows[2])
+    for k_ in ("L1", "L2", "B1", "B2", "I1", "I2", "I12"):
+        if not abs(out[k_] - st["terms"][k_]) <= TR_ROW_ATOL:
+            fails.append(f"row-level {k_} differs from the state term by {abs(out[k_] - st['terms'][k_]):.3g}")
+    enf = sorted({r for _, _, c in tr_expected_stages(arm) for r in c})
+    ok, det = tr_feasible(pb, out, enf, margin=0.0)
+    if not ok:
+        fails.append(f"deployed budgets / caps violated {det}")
+    if not (out["argmax_is_class_r1"] and out["argmax_is_class_r2"]):
+        fails.append("decision preservation fails on the fitting rows")
+    return {"ok": not fails, "failures": fails, "row_terms": out, "deployed_feasible": ok, "detail": det}
+
+
+# ---- synthetic trace generator (own greedy search in the registered schema) and the replay self-test
+def _synth_tr_problem(rng, n=3000, budget=None):
+    """Own synthetic fitting problem with known structure: within each teacher-predicted class the fine cells come in
+    near-duplicate pairs (same label profile, opposite SEX rates). Merging duplicates is cheap in loss and lowers MI;
+    merging different profiles (or collapsing to CLASS-ONLY) costs far more than the budget."""
+    K = {1: 2, 2: 3}
+    F = {1: 8, 2: 9}
+    cls = {1: np.array([0, 0, 0, 0, 1, 1, 1, 1]), 2: np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])}
+    typ = {1: np.array([0, 0, 1, 1, 2, 2, 3, 3]), 2: np.array([0, 0, 1, 2, 2, 3, 4, 4, 5])}
+    prof = {1: np.array([[0.95, 0.05], [0.62, 0.38], [0.40, 0.60], [0.08, 0.92]]),
+            2: np.array([[0.90, 0.05, 0.05], [0.50, 0.30, 0.20], [0.05, 0.90, 0.05], [0.30, 0.45, 0.25],
+                         [0.05, 0.05, 0.90], [0.25, 0.30, 0.45]])}
+    sexr = {1: np.array([0.3, 0.7] * 4), 2: np.array([0.3, 0.7, 0.5, 0.3, 0.7, 0.5, 0.3, 0.7, 0.5])}
+    c1 = rng.integers(0, F[1], n)
+    s = (rng.random(n) < sexr[1][c1]).astype(np.int64)
+    c2 = np.where(rng.random(n) < 0.5, rng.integers(0, F[2], n),
+                  np.array([rng.choice(np.flatnonzero(sexr[2] > 0.5) if s_ else np.flatnonzero(sexr[2] < 0.5))
+                            for s_ in s]))
+    cells, P, y = {1: c1, 2: c2}, {}, {}
+    for r in (1, 2):
+        c = cells[r]
+        base = prof[r][typ[r][c]]
+        Pr = 0.85 * base + 0.15 * np.eye(K[r])[cls[r][c]] + 0.01 * rng.random((n, K[r]))
+        Pr /= Pr.sum(1, keepdims=True)
+        y[r] = np.array([rng.choice(K[r], p=b_) for b_ in 0.8 * base + 0.2 * np.full(K[r], 1.0 / K[r])])
+        P[r] = Pr
+    return TrProblem(cells, y, P, s, K, cls, F, budget=budget or {"ll": 0.01, "brier": 0.006})
+
+
+def _merged_dups():
+    return {1: own_canon(np.array([0, 0, 2, 2, 4, 4, 6, 6])), 2: own_canon(np.array([0, 0, 2, 3, 3, 5, 6, 6, 8]))}
+
+
+def _gen_stage(pb, lab, stage, recips, enforced, w, max_sweeps=LCR_SWEEPS, pair=False):
+    cur_lab = {r: lab[r].copy() for r in (1, 2)}
+    cur = tr_state(pb, cur_lab)
+    hs, hq = tr_state_hashes(cur)
+    rec = {"stage": stage, "recipients": list(recips), "enforced": list(enforced),
+           "start_labels": {str(r): cur_lab[r].tolist() for r in (1, 2)}, "start_terms": dict(cur["terms"]),
+           "start_stats_sha256": hs, "start_q_sha256": hq, "status": "REFINED", "moves": [], "termination": None}
+    if enforced and not tr_feasible(pb, cur["terms"], enforced)[0]:
+        rec["status"] = "INFEASIBLE_START"
+        rec["termination"] = {"stop": "no_change_sweep", "sweeps": 1, "evals": 0, "ceiling_share": 1000,
+                              "accepted": 0, "pairs_accepted": 0, "pair_steps": 0,
+                              "objective_start": tr_objective(cur["terms"], w), "objective_end": tr_objective(cur["terms"], w)}
+        return rec, cur_lab
+    obj0 = obj = tr_objective(cur["terms"], w)
+    stop, sweeps, evals = "sweep_cap", 0, 0
+    for sweep in range(1, max_sweeps + 1):
+        sweeps, changed = sweep, 0
+        if pair:                                     # own synthetic order: one paired step at the start of a sweep
+            bank = {}
+            for r in (1, 2):
+                props = []
+                for f_ in range(pb.F[r]):
+                    for tc in sorted(set(cur_lab[r].tolist())):
+                        if tc == cur_lab[r][f_] or pb.cls[r][tc] != pb.cls[r][f_]:
+                            continue
+                        p_ = {"r": r, "f": f_, "from_canon": int(cur_lab[r][f_]), "to_canon": int(tc)}
+                        o_ = tr_apply(cur_lab, p_)
+                        os_ = tr_state(pb, o_)
+                        if tr_feasible(pb, os_["terms"], [r])[0]:
+                            props.append((os_["terms"]["Phi"] - cur["terms"]["Phi"], f_, tc, p_, o_, os_))
+                bank[r] = sorted(props, key=lambda x: x[:3])[:4]
+            bestp = None
+            for x1 in bank[1]:
+                for x2 in bank[2]:
+                    nl = tr_apply(x1[4], x2[3])
+                    ns = tr_state(pb, nl)
+                    v = tr_objective(ns["terms"], w)
+                    if v < obj - 1e-12 and tr_feasible(pb, ns["terms"], enforced)[0] and (bestp is None or v < bestp[0]):
+                        bestp = (v, x1, x2, nl, ns)
+            if bestp:
+                v, x1, x2, nl, ns = bestp
+                parts = []
+                for x_ in (x1, x2):
+                    p_, os_ = x_[3], x_[5]
+                    r_ = p_["r"]
+                    parts.append(dict(p_, from_slot=0, to_slot=0, dL=os_["terms"][f"L{r_}"] - cur["terms"][f"L{r_}"],
+                                      dB=os_["terms"][f"B{r_}"] - cur["terms"][f"B{r_}"],
+                                      dI=os_["terms"][f"I{r_}"] - cur["terms"][f"I{r_}"],
+                                      dI12=os_["terms"]["I12"] - cur["terms"]["I12"],
+                                      dPhi_one_sided=os_["terms"]["Phi"] - cur["terms"]["Phi"],
+                                      dTask=(os_["terms"][f"L{r_}"] + 0.5 * os_["terms"][f"B{r_}"]) -
+                                      (cur["terms"][f"L{r_}"] + 0.5 * cur["terms"][f"B{r_}"]),
+                                      stats_sha256=[None, None], q_sha256=[None, None]))
+                rec["moves"].append({"step": len(rec["moves"]), "sweep": sweep, "type": "pair", "parts": parts,
+                                     "terms_after": dict(ns["terms"]), "objective_after": v})
+                cur_lab, cur, obj, changed = nl, ns, v, changed + 1
+        for r in recips:
+            for f_ in range(pb.F[r]):
+                best = None
+                for tc in sorted(set(cur_lab[r].tolist())):
+                    if tc == cur_lab[r][f_] or pb.cls[r][tc] != pb.cls[r][f_]:
+                        continue
+                    part = {"r": r, "f": f_, "from_canon": int(cur_lab[r][f_]), "to_canon": int(tc)}
+                    nl = tr_apply(cur_lab, part)
+                    ns = tr_state(pb, nl)
+                    evals += 1
+                    v = tr_objective(ns["terms"], w)
+                    if v < obj - 1e-12 and tr_feasible(pb, ns["terms"], enforced)[0] and (best is None or v < best[0]):
+                        best = (v, part, nl, ns)
+                if best:
+                    v, part, nl, ns = best
+                    r_ = part["r"]
+                    rest = [int(x) for x in np.flatnonzero(cur_lab[r_] == part["from_canon"]) if int(x) != f_]
+                    ca = int(ns["lab"][r_][rest[0]]) if rest else None
+                    cb = int(ns["lab"][r_][f_])
+                    part.update({"from_slot": 0, "to_slot": 0, "delta": v - obj,
+                                 "dL": ns["terms"][f"L{r_}"] - cur["terms"][f"L{r_}"],
+                                 "dB": ns["terms"][f"B{r_}"] - cur["terms"][f"B{r_}"],
+                                 "dI": ns["terms"][f"I{r_}"] - cur["terms"][f"I{r_}"],
+                                 "dI12": ns["terms"]["I12"] - cur["terms"]["I12"],
+                                 "stats_sha256": [ns["tok"][r_][ca]["stats_sha"] if ca is not None else None,
+                                                  ns["tok"][r_][cb]["stats_sha"]],
+                                 "q_sha256": [ns["tok"][r_][ca]["q_sha"] if ca is not None else None,
+                                              ns["tok"][r_][cb]["q_sha"]]})
+                    rec["moves"].append({"step": len(rec["moves"]), "sweep": sweep, "type": "single", "parts": [part],
+                                         "terms_after": dict(ns["terms"]), "objective_after": v})
+                    cur_lab, cur, obj, changed = nl, ns, v, changed + 1
+        if changed == 0:
+            stop = "no_change_sweep"
+            break
+    rec["termination"] = {"stop": stop, "sweeps": sweeps, "evals": evals, "ceiling_share": 10 ** 6,
+                          "accepted": len(rec["moves"]), "pairs_accepted": sum(m["type"] == "pair" for m in rec["moves"]),
+                          "pair_steps": sweeps if pair else 0, "objective_start": obj0, "objective_end": obj}
+    return rec, cur_lab
+
+
+def synth_trace(pb, arm, lam=None, start_labels=None):
+    w = tr_weights(arm, lam)
+    lab0 = start_labels or {r: np.arange(pb.F[r], dtype=np.int64) for r in (1, 2)}
+    stages, lab = [], {r: lab0[r].copy() for r in (1, 2)}
+    for name, recips, enf in tr_expected_stages(arm):
+        if name == "seq1":
+            a = recips[0]
+            st_lab = {a: lab0[a].copy(), 3 - a: pb.class_only(3 - a)}
+            rec, fin = _gen_stage(pb, st_lab, name, recips, enf, w)
+            rec["partner"] = {"view": "CLASS-ONLY", "constraints_enforced": False}
+            lab = {a: fin[a], 3 - a: lab0[3 - a].copy()}
+        else:
+            rec, fin = _gen_stage(pb, lab, name, recips, enf, w, pair=(arm == "K-JOINT-PAIR"))
+            if name == "seq2":
+                rec["frozen"] = [3 - recips[0]]
+            lab = fin
+        stages.append(rec)
+    fin_state = tr_state(pb, lab, cache=D1Cache())
+    enf_all = sorted({r for _, _, c in tr_expected_stages(arm) for r in c})
+    el = tr_feasible(pb, fin_state["terms"], enf_all, margin=0.0)[0]
+    tr = {"schema": TRACE_SCHEMA_LRA, "arm": arm,
+          "starts": [{"name": "start0", "position": 0, "labels": {str(r): lab0[r].tolist() for r in (1, 2)},
+                      "stages": stages, "final_labels": {str(r): lab[r].tolist() for r in (1, 2)}, "eligible": el,
+                      "joint_witness": False}],
+          "winner": {"name": "start0"} if el else None}
+    return tr
+
+
+def selftest_trace_replay(rng):
+    """Own engine on own synthetic traces: (i) own-engine identities (fold vs row-level, MI vs mi_of, canonical
+    relabelling); (ii) replay of correct traces of K-SEQ-12, K-JOINT-PAIR and C-TASK passes; (iii) injected trace
+    defects are caught: perturbed term, stale statistics hash, non-improving move, budget-violating accepted state,
+    partner wrongly required feasible, an infeasible paired update, an incoherent move, wrong final labels, wrong
+    enforced set, a paired move in a single-move arm."""
+    import copy
+    out = {}
+    pb = _synth_tr_problem(rng)
+    ctask = synth_trace(pb, "C-TASK")
+    fin_c = _labels_of(ctask["starts"][0]["final_labels"], pb)
+    stc = tr_state(pb, fin_c, cache=D1Cache())
+    pb.caps_I = {1: stc["terms"]["I1"], 2: stc["terms"]["I2"]}
+    dep = tr_deployed_check(pb, fin_c, "C-TASK")
+    out["own_engine_row_level_parity"] = {"ok": dep["ok"] or all("row-level" not in f_ for f_ in dep["failures"]),
+                                          "failures": [f_ for f_ in dep["failures"] if "row-level" in f_]}
+    lab_perm = {1: own_canon(np.array([0, 0, 2, 2, 4, 5, 5, 4])), 2: own_canon(np.array([0, 1, 0, 3, 3, 5, 6, 6, 6]))}
+    sa = tr_state(pb, lab_perm, cache=D1Cache())
+    out["own_engine_canonical"] = {"ok": bool(np.array_equal(own_canon(np.array([3, 3, 1, 1])), np.array([0, 0, 2, 2])))
+                                   and abs(sa["terms"]["I12"] - mi_of(pb.rows["s"], sa["lab"][1][pb.rows["cells"][1]],
+                                                                      sa["lab"][2][pb.rows["cells"][2]])) < 1e-12}
+    good = {}
+    for arm, lam in (("C-TASK", None), ("K-SEQ-12", None), ("K-JOINT-PAIR", None), ("W-JOINT", 0.06)):
+        st_ = None if arm == "C-TASK" else fin_c
+        tr = synth_trace(pb, arm, lam, start_labels=st_)
+        r_ = replay_trace(tr, pb, arm, lam, record_sha=hashlib.sha256(json.dumps(
+            tr, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest())
+        good[arm] = {"ok": r_["ok"], "moves": r_["moves"], "pair_moves": r_["pair_moves"],
+                     "failures": r_["failures"][:3], "partner_feasible_seq1": r_["partner_feasible_seq1"]}
+        good[arm]["trace"] = tr
+    out["correct_traces_pass"] = {k_: {x: v[x] for x in v if x != "trace"} for k_, v in good.items()}
+    seq, jp = good["K-SEQ-12"]["trace"], good["K-JOINT-PAIR"]["trace"]
+    defects = {}
+
+    def caught(tr, arm, lam=None, **kw):
+        r_ = replay_trace(tr, pb, arm, lam, **kw)
+        return (not r_["ok"]), r_["failures"][:2]
+
+    def first_move(tr, kind="single"):
+        for st_ in tr["starts"][0]["stages"]:
+            for mv in st_["moves"]:
+                if mv["type"] == kind:
+                    return st_, mv
+        return None, None
+    t1 = copy.deepcopy(seq)
+    _, mv = first_move(t1)
+    if mv:
+        mv["terms_after"]["L1"] += 1e-9
+    defects["perturbed_term"] = caught(t1, "K-SEQ-12") if mv else (False, ["no move"])
+    t2 = copy.deepcopy(seq)
+    _, mv = first_move(t2)
+    if mv:
+        mv["parts"][0]["stats_sha256"][1] = "0" * 64
+    defects["stale_statistics_hash"] = caught(t2, "K-SEQ-12") if mv else (False, ["no move"])
+    t3 = copy.deepcopy(seq)
+    st3 = t3["starts"][0]["stages"][1]
+    if st3["moves"]:
+        mv = st3["moves"][-1]
+        p_ = mv["parts"][0]
+        p_["to_canon"], p_["from_canon"] = p_["from_canon"], p_["to_canon"]
+    defects["incoherent_move"] = caught(t3, "K-SEQ-12") if st3["moves"] else (False, ["no move"])
+    t4 = copy.deepcopy(seq)
+    t4["starts"][0]["stages"][0]["enforced"] = [1, 2]
+    defects["wrong_enforced_set_partner_enforced"] = caught(t4, "K-SEQ-12")
+    t5 = copy.deepcopy(seq)
+    t5["starts"][0]["final_labels"]["2"] = list(range(pb.F[2]))
+    defects["final_labels_differ"] = caught(t5, "K-SEQ-12")
+    # non-improving / budget-violating accepted moves: a one-move trace whose recorded move is fully coherent but
+    # (a) improves Phi while violating a fitting budget (tight budgets, identity start) or (b) worsens the objective
+    # (generous budgets, merged-duplicates start)
+    w = tr_weights("K-JOINT-SINGLE")
+
+    def find_move(pb_, lab0_, want):
+        s0_ = tr_state(pb_, lab0_)
+        o0 = tr_objective(s0_["terms"], w)
+        for r in (1, 2):
+            for f_ in range(pb_.F[r]):
+                for tc in sorted(set(lab0_[r].tolist())):
+                    if tc == lab0_[r][f_] or pb_.cls[r][tc] != pb_.cls[r][f_]:
+                        continue
+                    part = {"r": r, "f": f_, "from_canon": int(lab0_[r][f_]), "to_canon": int(tc)}
+                    ns = tr_state(pb_, tr_apply(lab0_, part))
+                    v = tr_objective(ns["terms"], w)
+                    fz = tr_feasible(pb_, ns["terms"], [1, 2])[0]
+                    if (want == "bad" and v < o0 and not fz) or (want == "worse" and v > o0 and fz):
+                        return part, ns, v, s0_
+        return None
+
+    def one_move_trace(pb_, lab0_, cand):
+        part, ns, v, s0_ = cand
+        r_ = part["r"]
+        hs, hq = tr_state_hashes(s0_)
+        rest = [int(x) for x in np.flatnonzero(lab0_[r_] == part["from_canon"]) if int(x) != part["f"]]
+        ca = int(ns["lab"][r_][rest[0]]) if rest else None
+        cb = int(ns["lab"][r_][part["f"]])
+        o0 = tr_objective(s0_["terms"], w)
+        p_ = dict(part, from_slot=0, to_slot=0, delta=v - o0,
+                  dL=ns["terms"][f"L{r_}"] - s0_["terms"][f"L{r_}"], dB=ns["terms"][f"B{r_}"] - s0_["terms"][f"B{r_}"],
+                  dI=ns["terms"][f"I{r_}"] - s0_["terms"][f"I{r_}"], dI12=ns["terms"]["I12"] - s0_["terms"]["I12"],
+                  stats_sha256=[ns["tok"][r_][ca]["stats_sha"] if ca is not None else None,
+                                ns["tok"][r_][cb]["stats_sha"]], q_sha256=[None, None])
+        stg = {"stage": "joint", "recipients": [1, 2], "enforced": [1, 2],
+               "start_labels": {str(r): lab0_[r].tolist() for r in (1, 2)}, "start_terms": s0_["terms"],
+               "start_stats_sha256": hs, "status": "REFINED",
+               "moves": [{"step": 0, "sweep": 1, "type": "single", "parts": [p_], "terms_after": dict(ns["terms"]),
+                          "objective_after": v}],
+               "termination": {"stop": "no_change_sweep", "sweeps": 2, "evals": 10, "ceiling_share": 100, "accepted": 1,
+                               "pairs_accepted": 0, "pair_steps": 0, "objective_start": o0, "objective_end": v}}
+        return {"schema": TRACE_SCHEMA_LRA, "starts": [{"name": "s", "labels": stg["start_labels"], "stages": [stg],
+                                                        "final_labels": {str(r): ns["lab"][r].tolist() for r in (1, 2)}}]}
+    ident = {r: np.arange(pb.F[r], dtype=np.int64) for r in (1, 2)}
+    pb_tight = _synth_tr_problem(np.random.default_rng(7))
+    s_id = tr_state(pb_tight, ident)["terms"]           # limits just above the identity state: cross-profile merges
+    pb_tight.limL = {r: s_id[f"L{r}"] + 0.003 for r in (1, 2)}          # cost more than the budget
+    pb_tight.limB = {r: s_id[f"B{r}"] + 0.0015 for r in (1, 2)}
+    pb_loose = _synth_tr_problem(np.random.default_rng(7), budget={"ll": 0.5, "brier": 0.3})
+    cb_ = find_move(pb_tight, ident, "bad") if tr_feasible(pb_tight, tr_state(pb_tight, ident)["terms"], [1, 2])[0] else None
+    cw_ = find_move(pb_loose, _merged_dups(), "worse")
+    if cb_:
+        r_b = replay_trace(one_move_trace(pb_tight, ident, cb_), pb_tight, "K-JOINT-SINGLE")
+        defects["budget_violating_accepted_state"] = (not r_b["ok"] and any("violates" in f_ for f_ in r_b["failures"]),
+                                                      r_b["failures"][:2])
+    else:
+        defects["budget_violating_accepted_state"] = (False, ["no candidate"])
+    if cw_:
+        r_w = replay_trace(one_move_trace(pb_loose, _merged_dups(), cw_), pb_loose, "K-JOINT-SINGLE")
+        defects["non_improving_accepted_move"] = (not r_w["ok"] and any("strictly improve" in f_ for f_ in r_w["failures"]),
+                                                  r_w["failures"][:2])
+    else:
+        defects["non_improving_accepted_move"] = (False, ["no candidate"])
+    # infeasible paired update: tighten the budgets so a recorded paired post-state violates recipient 2's budget
+    t7 = copy.deepcopy(jp)
+    stp, mvp = first_move(t7, "pair")
+    if mvp:
+        pb_t = copy.copy(pb)
+        pb_t.limB = dict(pb.limB)
+        pb_t.limB[2] = mvp["terms_after"]["B2"] + TR_BUDGET_MARGIN / 2      # post-state now above limit - margin
+        r7 = replay_trace(t7, pb_t, "K-JOINT-PAIR")
+        tag = f"stage {stp['stage']} move {stp['moves'].index(mvp)}: accepted state violates"
+        defects["infeasible_paired_update"] = (not r7["ok"] and any(tag in f_ for f_ in r7["failures"]),
+                                               r7["failures"][:2])
+    else:
+        defects["infeasible_paired_update"] = (False, ["no paired move in the synthetic trace"])
+    t8 = copy.deepcopy(jp)
+    defects["paired_move_in_single_arm"] = caught(t8, "K-JOINT-SINGLE") if mvp else (False, ["no pair"])
+    # the sequential partner rule: the registered replay accepts the CLASS-ONLY partner even when it fails its own
+    # budget; the defective rule (partner required feasible) rejects the same correct trace
+    pf = good["K-SEQ-12"]["partner_feasible_seq1"]
+    rdef = replay_trace(seq, pb, "K-SEQ-12", required_partner_feasible=True)
+    defects["temporary_partner_required_feasible"] = (
+        bool(good["K-SEQ-12"]["ok"] and pf == [False] and not rdef["ok"]), rdef["failures"][:2])
+    t9 = copy.deepcopy(seq)
+    t9["starts"][0]["stages"][0]["start_labels"]["2"] = list(range(pb.F[2]))
+    defects["seq_partner_not_class_only"] = caught(t9, "K-SEQ-12")
+    out["defects"] = {k_: {"caught": bool(v[0]), "evidence": v[1]} for k_, v in defects.items()}
+    out["synthetic_moves"] = {k_: (v["moves"], v["pair_moves"]) for k_, v in good.items()}
+    ok = (out["own_engine_row_level_parity"]["ok"] and out["own_engine_canonical"]["ok"] and
+          all(v["ok"] for v in good.values()) and good["K-JOINT-PAIR"]["pair_moves"] >= 1 and
+          all(v["moves"] >= 1 for v in good.values()) and all(v["caught"] for v in out["defects"].values()))
+    return res("PASS" if ok else "FAIL", **out)
+
+
 # ================================================================================================ lra self-tests (PHASE_0)
 def _kfit(status="FEASIBLE", deployed=None, record_ok=True):
     return {"status": status, "deployed_feasible": (status == "FEASIBLE") if deployed is None else deployed,
@@ -8589,14 +9454,17 @@ def selftest_repairs_lra():
               "incomplete": {"record_ok": True, "status": None, "deployed_feasible": None},
               "hash_invalid": {"record_ok": False, "status": "INFEASIBLE", "deployed_feasible": False},
               "status_vs_deployed_inconsistent": {"record_ok": True, "status": "FEASIBLE", "deployed_feasible": False},
-              "unknown_status": {"record_ok": True, "status": "TIMEOUT", "deployed_feasible": False}}
+              "unknown_status": {"record_ok": True, "status": "TIMEOUT", "deployed_feasible": False},
+              "non_bool_deployed": {"record_ok": True, "status": "FEASIBLE", "deployed_feasible": 1},
+              "foreign_record": {"record_ok": True, "status": "FEASIBLE", "deployed_feasible": True,
+                                 "config": "U|K-OTHER|i8o64|D1", "seed": 7}}
     r1 = {}
     for name, rec in broken.items():
         rows_b, _ = synthetic_bank_lra({L_k(a_): (lambda v, rec=rec: {k: {**x, "fit": rec} for k, x in v.items()})
                                         for a_ in LCR_K})
         Sb = my_selection_lra(rows_b)
         r1[name] = (Sb["statuses"]["N*"]["status"] == "INVALID_NOMINEE" and
-                    Sb["statuses"]["N*"]["reason"] == "FIT_OR_ADMISSION_FAILURE" and
+                    Sb["statuses"]["N*"]["reason"] == "FIT_RECORD_TECHNICAL_FAILURE" and
                     Sb["statuses"]["J*"]["status"] == "INVALID_NOMINEE" and
                     Sb["statuses"]["C_pair*"]["status"] == "INVALID_COMPARATOR")
     rows_i, _ = synthetic_bank_lra({L_k(a_): (lambda v: {k: {**x, "fit": _kfit("INFEASIBLE")} for k, x in v.items()})
@@ -8647,7 +9515,7 @@ def selftest_repairs_lra():
     for name, val in (("float", 280.0), ("inf", math.inf), ("none", None), ("zero", 0), ("bool", True)):
         rws, _ = synthetic_bank_lra({L_k("LOCAL"): (lambda v, val=val: {k: {**x, "states": val} for k, x in v.items()})})
         r6[f"code_{name}_is_technical"] = (not rws[L_k("LOCAL")]["valid"] and
-                                          rws[L_k("LOCAL")]["invalid_reason"] == "FIT_OR_ADMISSION_FAILURE")
+                                          rws[L_k("LOCAL")]["invalid_reason"] == "NON_ESTIMABLE_INNER_METRIC")
     rws, _ = synthetic_bank_lra({"SRC|U": lambda v: {k: {**x, "states": 5} for k, x in v.items()}})
     r6["continuous_with_count_is_technical"] = not rws["SRC|U"]["valid"]
     r6["code_count_finite_in_json"] = base[L_k("LOCAL")]["states_json"] == [280, 280, 280]
@@ -8679,24 +9547,29 @@ def selftest_repairs_lra():
     st_ = my_selection_lra(base)["statuses"]
     eps = synthetic_endpoints_lcr()
     refused = []
+    NR4 = " [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]"
     for bad_gate in ("GATE_MET", "GATE_NOT_MET", "MECHANISM_GATE_NOT_MET", True, False, "PASS", "engineering_ready", 1):
-        try:
-            lra_labels(st_, eps, bad_gate)
-            refused.append(False)
-        except ValueError:
-            refused.append(True)
+        lb = lra_labels(st_, eps, bad_gate)
+        refused.append(lb["label_head"] == f"INCOMPLETE_NOT_RUN (engineering gate verdict {bad_gate!r} is not a "
+                       "resolved registered verdict)" and
+                       not lb["adult_claims_run"] and lb["label"].endswith(NR4))
     blocked = lra_labels(st_, eps, "ENGINEERING_BLOCKED")
     nogate = lra_labels(st_, eps, None)
     prefit = lra_labels(st_, eps, "ENGINEERING_READY", prefit_blocker="BUDGET_CEILING_EXCEEDED_IN_TIMING")
     both = lra_labels(st_, eps, "ENGINEERING_BLOCKED", prefit_blocker="ADMISSION_PARITY_FAILURE")
     ready = lra_labels(st_, eps, "ENGINEERING_READY")
     out["R10_gate_wiring"] = {
-        "refused_values": refused, "blocked": blocked["label"], "no_gate": nogate["label"], "prefit": prefit["label"],
-        "ok": (all(refused) and blocked["label"] == "ENGINEERING_BLOCKED_NOT_RUN" and
+        "unregistered_values_not_run": refused, "blocked": blocked["label"], "no_gate": nogate["label"],
+        "prefit": prefit["label"],
+        "ok": (all(refused) and blocked["label"] == "ENGINEERING_BLOCKED_NOT_RUN" + NR4 and
                set(blocked["claims"].values()) == {"NOT_RUN"} and blocked["q"] == "NOT_RUN" and
-               nogate["label"] == "INCOMPLETE_NOT_RUN" and prefit["label"] == "INCOMPLETE_NOT_RUN" and
-               prefit["not_run_reason"] == "BUDGET_CEILING_EXCEEDED_IN_TIMING" and
-               both["label"] == "ENGINEERING_BLOCKED_NOT_RUN" and ready["adult_claims_run"] and
+               nogate["label"] == ("INCOMPLETE_NOT_RUN (engineering gate verdict None is not a resolved registered "
+                                   "verdict)" + NR4) and
+               prefit["label"] == "INCOMPLETE_NOT_RUN (pre-fit blocker: BUDGET_CEILING_EXCEEDED_IN_TIMING)" + NR4 and
+               both["label_head"] == "ENGINEERING_BLOCKED_NOT_RUN (pre-fit blocker: ADMISSION_PARITY_FAILURE)" and
+               lra_labels(st_, eps, "GATE_MET", prefit_blocker="X")["label_head"] ==
+               "INCOMPLETE_NOT_RUN (engineering gate verdict 'GATE_MET' is not a resolved registered verdict; "
+               "pre-fit blocker: X)" and ready["adult_claims_run"] and
                "MECHANISM" not in json.dumps(ready))}
     ref = {}
     good = dict(technical_valid=True, controls_ok=True, admission_ok=True, gate="ENGINEERING_READY",
@@ -8712,10 +9585,11 @@ def selftest_repairs_lra():
     qinc = lra_labels(st_, synthetic_endpoints_lcr(nonfinite_id="P13", pass_claims=("Q",)), "ENGINEERING_READY")
     glob = lra_labels(st_, synthetic_endpoints_lcr(pass_claims=("Q",)), "ENGINEERING_READY", technical_valid=False)
     out["R14_precedence_display"] = {
-        "q_only_with_incomplete_B": qinc["label_with_statuses"], "global_failure_with_Q_pass": glob["label_with_statuses"],
-        "ok": (qinc["label"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" and
-               "B=INCOMPLETE_OR_INVALID" in qinc["label_with_statuses"] and qinc["incomplete_displayed"] == ["B"] and
-               glob["label"] == "INCOMPLETE_OR_INVALID" and "Q=PASS" in glob["label_with_statuses"])}
+        "q_only_with_incomplete_B": qinc["label"], "global_failure_with_Q_pass": glob["label"],
+        "ok": (qinc["label_head"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" and
+               qinc["label"].endswith("[A=NOT_ESTABLISHED; B=INCOMPLETE_OR_INVALID; C=NOT_ESTABLISHED; Q=PASS]") and
+               qinc["incomplete_displayed"] == ["B"] and
+               glob["label_head"] == "INCOMPLETE_OR_INVALID" and "Q=PASS" in glob["label"])}
     flat = lambda d_: all(v for v in d_.values() if isinstance(v, bool))  # noqa: E731
     ok = (all(r1.values()) and out["R2_real_representative"]["ok"] and out["R3_identical_to_untrained"]["ok"] and
           out["R4_missing_guard_fallback"]["ok"] and all(r6.values()) and out["R7_R11_role_aliases"]["ok"] and
@@ -8732,11 +9606,11 @@ def selftest_labels_lra():
     out["z"] = {"value": z, "equals_registered": z == Z_LRA, "slots": sum(len(v) for v in LCR_SLOTS.values()),
                 "z_primary_fn": z_primary() == z, "boot_seed": BOOT_SEED, "boot_reps": B_BOOT}
     lab = lra_labels(st, synthetic_endpoints_lcr(), G)
-    a_only = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("A",)), G)["label"]
+    a_only = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("A",)), G)["label_head"]
     one = lra_labels(st, synthetic_endpoints_lcr(fail_id="P05", pass_claims=("A", "Q")), G)
     viol = lra_labels(st, synthetic_endpoints_lcr(fail_id="P07", how="violation", pass_claims=("A",)), G)
     nf = lra_labels(st, synthetic_endpoints_lcr(nonfinite_id="P13"), G)
-    qonly = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("Q",)), G)["label"]
+    qonly = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("Q",)), G)["label_head"]
     none_ = lra_labels(st, synthetic_endpoints_lcr(pass_claims=()), G)
     nom_none = {**st, "N*": {"status": "NO_ELIGIBLE_NOMINEE", "config": None, "reason": "ORDINARY_UTILITY_FAILURE"}}
     nn = lra_labels(nom_none, synthetic_endpoints_lcr(pass_claims=("A",)), G)
@@ -8746,6 +9620,10 @@ def selftest_labels_lra():
     q_noelig = {**st, "Q": {"status": "NO_ELIGIBLE_NOMINEE", "config": None, "descriptive_config": L_Q}}
     qn = lra_labels(q_noelig, synthetic_endpoints_lcr(pass_claims=("Q",)), G)
     ctl = lra_labels(st, synthetic_endpoints_lcr(), G, control_ok={"C": False})
+    st_u = {**st, "N*": {**st["N*"], "aliases": {"available": True, "identical_to_untrained": [L_CTASK]}},
+            "P*": {**st["P*"], "aliases": {**st["P*"]["aliases"], "identical_to_untrained": [L_CTASK]}}}
+    un = lra_labels(st_u, synthetic_endpoints_lcr(pass_claims=("A", "B")), G)
+    out["untrained_alias_wording"] = un["label_head"]
     out.update({"all_pass": lab["label"], "A_only": a_only,
                 "A_one_precision_failure": (one["claims"]["A"], one["root_causes"]["A"], one["label"]),
                 "A_measured_violation": (viol["claims"]["A"], viol["root_causes"]["A"]),
@@ -8759,16 +9637,19 @@ def selftest_labels_lra():
           and "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED" in lab["label"] and "PAIRED_JOINT_INCREMENT_ESTABLISHED" in lab["label"]
           and a_only == f"PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET ({rep})"
           and one["claims"]["A"] == "NOT_ESTABLISHED" and one["root_causes"]["A"] == "ASSESSMENT_PRECISION_FAILURE"
-          and one["label"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+          and one["label_head"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
           and viol["root_causes"]["A"] == "MEASURED_VIOLATION_SUPPORTED_BY_BOUND"
           and nf["claims"]["B"] == "INCOMPLETE_OR_INVALID" and "B" in nf["incomplete_displayed"]
-          and "B=INCOMPLETE_OR_INVALID" in nf["label_with_statuses"]
+          and "B=INCOMPLETE_OR_INVALID" in nf["label"]
           and qonly == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" and none_["label"] ==
-          "EXPERIMENTAL_NO_ADVANTAGE" and nn["claims"]["B"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
-          and b_only["label"] == "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED"          # a passing B does not need A
+          "EXPERIMENTAL_NO_ADVANTAGE [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]" and nn["claims"]["B"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
+          and b_only["label_head"] == "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED"          # a passing B does not need A
           and ms["claims"]["C"] == "INCOMPLETE_OR_INVALID" and ms["root_causes"]["C"] == "MISSING_SLOTS"
-          and qn["q"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE" and qn["label"] == "EXPERIMENTAL_NO_ADVANTAGE"
-          and ctl["claims"]["C"] == "INCOMPLETE_OR_INVALID" and "PAIRED_JOINT" not in ctl["label"])
+          and qn["q"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE" and qn["label_head"] == "EXPERIMENTAL_NO_ADVANTAGE"
+          and ctl["claims"]["C"] == "INCOMPLETE_OR_INVALID" and "PAIRED_JOINT" not in ctl["label"]
+          and un["label_head"] == (f"PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET ({rep}; identical to privacy-untrained "
+                                   f"{L_CTASK}) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (N* release identical to "
+                                   f"privacy-untrained {L_CTASK}; no privacy-training credit)"))
     return res("PASS" if ok else "FAIL", **out)
 
 
@@ -11624,6 +12505,7 @@ def selftests():
     out["d1_decoder"] = selftest_decoder(rl)
     out["oracle_on_own_synthetic_laws"] = selftest_oracle(rl)
     out["engine_incremental"] = selftest_engine(rl)
+    out["trace_replay_engine"] = selftest_trace_replay(np.random.default_rng(20261010))
     out["lra_selection_rules"] = selftest_selection_lra()
     out["lra_label_truth_table"] = selftest_labels_lra()
     out["lra_section18_repairs"] = selftest_repairs_lra()

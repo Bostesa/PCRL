@@ -1,11 +1,11 @@
 {
  "schema": "lra-independent-verification-v1",
  "phase": "PHASE_0A",
- "generated_at": "2026-10-07T04:35:52Z",
+ "generated_at": "2026-10-07T05:07:10Z",
  "verifier": "results/pcrl_adult_learned_decoder_release_v1/verification/replay_lra.py",
- "verifier_sha256": "da035f57106577a41f0f2728b953a374895dad6283a072949f2e22faf1a8e409",
+ "verifier_sha256": "c81c9fb6b74c00baaec744c0f875dfa27466465c7e198fefbf3c0c8ee7ec77dc",
  "ported_from": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py at 091afc2 (sha256 f6086e808690304ccc202b66ae0d69a03b5c8500c00679c5fd53dc57db35c128)",
- "worktree_head": "ab81a9769982f97519201b51d21cab990827bb30",
+ "worktree_head": "af764bc924e5bea378b891ad12d98769bdad5d4e",
  "branch": "research/pcrl-adult-learned-decoder-release-v1",
  "source_tip": "091afc2007164fd928d4b792593d6f9eaf75b17c",
  "source_evidence": "418e529c785cb96678ea5c6391fd8534579484e7",
@@ -227,7 +227,7 @@
       "identity_max_abs": 0.0,
       "sum_residual": 2.220446049250313e-16
      },
-     "ms_per_solve": 0.48062682151794434
+     "ms_per_solve": 0.4905271530151367
     },
     "edge_cases": [
      {
@@ -417,6 +417,139 @@
      "misses": 70
     }
    },
+   "trace_replay_engine": {
+    "status": "PASS",
+    "own_engine_row_level_parity": {
+     "ok": true,
+     "failures": []
+    },
+    "own_engine_canonical": {
+     "ok": true
+    },
+    "correct_traces_pass": {
+     "C-TASK": {
+      "ok": true,
+      "moves": 1,
+      "pair_moves": 0,
+      "failures": [],
+      "partner_feasible_seq1": []
+     },
+     "K-SEQ-12": {
+      "ok": true,
+      "moves": 9,
+      "pair_moves": 0,
+      "failures": [],
+      "partner_feasible_seq1": [
+       false
+      ]
+     },
+     "K-JOINT-PAIR": {
+      "ok": true,
+      "moves": 7,
+      "pair_moves": 1,
+      "failures": [],
+      "partner_feasible_seq1": []
+     },
+     "W-JOINT": {
+      "ok": true,
+      "moves": 6,
+      "pair_moves": 0,
+      "failures": [],
+      "partner_feasible_seq1": []
+     }
+    },
+    "defects": {
+     "perturbed_term": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage seq1 move 0: term L1 differs by 1e-09"
+      ]
+     },
+     "stale_statistics_hash": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage seq1 move 0: stats_sha256 of the affected tokens differs (stale statistics)"
+      ]
+     },
+     "incoherent_move": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage seq2 move 4: incoherent (part r2 f6: from_canon 7 != state label 6)",
+       "start 0 stage seq2: termination objective_end differs"
+      ]
+     },
+     "wrong_enforced_set_partner_enforced": {
+      "caught": true,
+      "evidence": [
+       "start 0: stage structure [('seq1', [1], [1, 2]), ('seq2', [2], [1, 2])] != registered [('seq1', [1], [1]), ('seq2', [2], [1, 2])]",
+       "start 0 stage seq1: enforced [1, 2] != registered [1]"
+      ]
+     },
+     "final_labels_differ": {
+      "caught": true,
+      "evidence": [
+       "start 0: final_labels differ from the replayed result"
+      ]
+     },
+     "budget_violating_accepted_state": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage joint move 0: accepted state violates a fitting budget / local cap {1: {'ll_margin': -0.010803077144364681, 'brier_margin': -0.00950828859211822, 'cap_margin': None, 'ok': False}, 2: {'ll_margin': 0.0030000000000000027, 'brier_margin': 0.0015000000000000013, 'cap_margin': None, 'ok': True}}"
+      ]
+     },
+     "non_improving_accepted_move": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage joint move 0: accepted move does not strictly improve the objective (0.0139)"
+      ]
+     },
+     "infeasible_paired_update": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage joint move 0: accepted state violates a fitting budget / local cap {1: {'ll_margin': 0.04536879050583387, 'brier_margin': 0.021185060355525642, 'cap_margin': 0.026837723706117686, 'ok': True}, 2: {'ll_margin': 0.05931323306856795, 'brier_margin': 5.000000413701855e-11, 'cap_margin': 0.06030081825184608, 'ok': False}}",
+       "start 0 stage joint move 0: pair part of recipient 2 is not own-budget feasible on its own"
+      ]
+     },
+     "paired_move_in_single_arm": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage joint move 0: a paired move in arm K-JOINT-SINGLE"
+      ]
+     },
+     "temporary_partner_required_feasible": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage seq1: REFINED from an infeasible start",
+       "start 0 stage seq1 move 0: accepted state violates a fitting budget / local cap {1: {'ll_margin': 0.03392776792218488, 'brier_margin': 0.01249203869412524, 'cap_margin': 0.001272708178313528, 'ok': True}, 2: {'ll_margin': 0.00254539562605427, 'brier_margin': -0.011749739856337316, 'cap_margin': 0.15595791153522562, 'ok': False}}"
+      ]
+     },
+     "seq_partner_not_class_only": {
+      "caught": true,
+      "evidence": [
+       "start 0 stage seq1: partner is not the CLASS-ONLY view",
+       "start 0 stage seq1 start: term L2 differs by 0.0572"
+      ]
+     }
+    },
+    "synthetic_moves": {
+     "C-TASK": [
+      1,
+      0
+     ],
+     "K-SEQ-12": [
+      9,
+      0
+     ],
+     "K-JOINT-PAIR": [
+      7,
+      1
+     ],
+     "W-JOINT": [
+      6,
+      0
+     ]
+    }
+   },
    "lra_selection_rules": {
     "status": "PASS",
     "resolved": {
@@ -472,12 +605,13 @@
      "boot_seed": 20261010,
      "boot_reps": 1999
     },
-    "all_pass": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED",
+    "untrained_alias_wording": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained; identical to privacy-untrained U|C-TASK|i8o64|D1) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED (N* release identical to privacy-untrained U|C-TASK|i8o64|D1; no privacy-training credit)",
+    "all_pass": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED [A=PASS; B=PASS; C=PASS; Q=PASS]",
     "A_only": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)",
     "A_one_precision_failure": [
      "NOT_ESTABLISHED",
      "ASSESSMENT_PRECISION_FAILURE",
-     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=PASS]"
     ],
     "A_measured_violation": [
      "NOT_ESTABLISHED",
@@ -486,26 +620,26 @@
     "B_nonfinite": [
      "INCOMPLETE_OR_INVALID",
      "NONFINITE_PRIMARY_QUANTITY",
-     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + PAIRED_JOINT_INCREMENT_ESTABLISHED"
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + PAIRED_JOINT_INCREMENT_ESTABLISHED [A=PASS; B=INCOMPLETE_OR_INVALID; C=PASS; Q=PASS]"
     ],
     "Q_only": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
-    "none": "EXPERIMENTAL_NO_ADVANTAGE",
+    "none": "EXPERIMENTAL_NO_ADVANTAGE [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]",
     "B_no_nominee": [
      "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
-     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)"
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) [A=PASS; B=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]"
     ],
-    "B_only": "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED",
+    "B_only": "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED [A=NOT_ESTABLISHED; B=PASS; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED]",
     "missing_slot_C": [
      "INCOMPLETE_OR_INVALID",
      "MISSING_SLOTS"
     ],
     "Q_no_eligible": [
      "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
-     "EXPERIMENTAL_NO_ADVANTAGE"
+     "EXPERIMENTAL_NO_ADVANTAGE [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE]"
     ],
     "control_failure_C": [
      "INCOMPLETE_OR_INVALID",
-     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED"
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED [A=PASS; B=PASS; C=INCOMPLETE_OR_INVALID; Q=PASS]"
     ]
    },
    "lra_section18_repairs": {
@@ -517,6 +651,8 @@
      "hash_invalid": true,
      "status_vs_deployed_inconsistent": true,
      "unknown_status": true,
+     "non_bool_deployed": true,
+     "foreign_record": true,
      "valid_infeasible_is_selection_outcome": true
     },
     "R2_real_representative": {
@@ -607,7 +743,7 @@
      "ok": true
     },
     "R10_gate_wiring": {
-     "refused_values": [
+     "unregistered_values_not_run": [
       true,
       true,
       true,
@@ -617,9 +753,9 @@
       true,
       true
      ],
-     "blocked": "ENGINEERING_BLOCKED_NOT_RUN",
-     "no_gate": "INCOMPLETE_NOT_RUN",
-     "prefit": "INCOMPLETE_NOT_RUN",
+     "blocked": "ENGINEERING_BLOCKED_NOT_RUN [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "no_gate": "INCOMPLETE_NOT_RUN (engineering gate verdict None is not a resolved registered verdict) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
+     "prefit": "INCOMPLETE_NOT_RUN (pre-fit blocker: BUDGET_CEILING_EXCEEDED_IN_TIMING) [A=NOT_RUN; B=NOT_RUN; C=NOT_RUN; Q=NOT_RUN]",
      "ok": true
     },
     "R13_assessment_refusal": {
@@ -736,7 +872,7 @@
    },
    "lra_selftest_wall_s": {
     "status": "INFO",
-    "wall_s": 1.43
+    "wall_s": 1.64
    },
    "inference_primitives": {
     "status": "PASS",
@@ -1623,6 +1759,16 @@
    "later_admission_code_commits": [
     {
      "file": "lra/run.py",
+     "commit": "8b7e823f0fb79ca00e795ff14ac17da73d044680",
+     "time": "2026-10-07T04:46:54Z"
+    },
+    {
+     "file": "lra/run.py",
+     "commit": "9264fb539af767f618556f51c22cf26ab6e4354e",
+     "time": "2026-10-07T04:44:51Z"
+    },
+    {
+     "file": "lra/run.py",
      "commit": "ab81a9769982f97519201b51d21cab990827bb30",
      "time": "2026-10-07T04:20:57Z"
     },
@@ -1797,6 +1943,16 @@
    "change": "own mutation self-check showed the removal of fit-infeasible constrained arms from C_pair* was not exercised; a test with an inner-best infeasible JOINT-SINGLE was added"
   },
   {
+   "phase": "lra PHASE_0",
+   "item": "reconciliation with role D (2026-10-07)",
+   "change": "representative ranks (construction existing 0 / calibrated 1 / task-only 2 / weighted 3 / constrained 4; family LOCAL 0 / SEQ 1 / JOINT 2 / JOINT-PAIR 3 / other 9), decided_by_config_id_tiebreak, label strings ('identical to privacy-untrained', the B / C no-credit notes, the ' [A=..; B=..; C=..; Q=..]' suffix, 'INCOMPLETE_NOT_RUN (<reasons>)'; an unregistered gate value is NOT RUN instead of an exception), reason codes FIT_RECORD_TECHNICAL_FAILURE and NON_ESTIMABLE_INNER_METRIC (malformed count), sorted '+' joins, missing-guard fallback = min over the eligible by ordering key, fallback_class"
+  },
+  {
+   "phase": "lra PHASE_0",
+   "item": "own trace replay engine",
+   "change": "added (lra-mapper-trace-v1; HASH_RULE stats / state hashes; terms and deltas 1e-12; search constraints limit - 1e-10, caps margin 0; final deployed margin 0); self-tested on own synthetic traces with 11 injected trace defects"
+  },
+  {
    "phase": "PHASE_0",
    "item": "cid_lam (adapted cbp helper)",
    "change": "parse the 'l<value>' segment after the rate; the cbp split('|l') form raised on lcr IDs with a trailing '|D1'"
@@ -1865,7 +2021,7 @@
    "PENDING": 27
   },
   "status_counts_all_nodes": {
-   "PASS": 39,
+   "PASS": 40,
    "INFO": 1,
    "PENDING": 27
   },
@@ -1874,8 +2030,8 @@
   "overall": "PASS"
  },
  "compute": {
-  "wall_s": 26.15,
-  "cpu_s_process": 21.39,
+  "wall_s": 27.07,
+  "cpu_s_process": 22.21,
   "threads": {
    "OMP_NUM_THREADS": "1",
    "OPENBLAS_NUM_THREADS": "1",
@@ -1987,15 +2143,71 @@
     "wall_s": 50.5,
     "cpu_s": 49.7,
     "rc": 0
+   },
+   {
+    "label": "E:phase0A",
+    "released_at": "2026-10-07T04:36:18Z",
+    "wall_s": 27.7,
+    "cpu_s": 26.3,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-dryrun",
+    "released_at": "2026-10-07T04:48:29Z",
+    "wall_s": 4.2,
+    "cpu_s": 3.7,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-dryrun",
+    "released_at": "2026-10-07T05:01:02Z",
+    "wall_s": 4.0,
+    "cpu_s": 3.8,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-synthetic-debug",
+    "released_at": "2026-10-07T05:01:24Z",
+    "wall_s": 1.7,
+    "cpu_s": 1.6,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-dryrun",
+    "released_at": "2026-10-07T05:01:45Z",
+    "wall_s": 4.2,
+    "cpu_s": 3.6,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T05:03:31Z",
+    "wall_s": 64.3,
+    "cpu_s": 63.7,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T05:05:23Z",
+    "wall_s": 68.7,
+    "cpu_s": 67.6,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T05:07:08Z",
+    "wall_s": 69.1,
+    "cpu_s": 68.4,
+    "rc": 0
    }
   ],
-  "semaphore_cpu_s_total": 254.4,
-  "semaphore_wall_s_total": 262.4,
+  "semaphore_cpu_s_total": 493.1,
+  "semaphore_wall_s_total": 506.3,
   "this_run": {
    "phase": "PHASE_0A",
-   "start": "2026-10-07T04:35:52Z",
-   "wall_s": 26.15,
-   "cpu_s": 21.39
+   "start": "2026-10-07T05:07:10Z",
+   "wall_s": 27.07,
+   "cpu_s": 22.21
   },
   "light_runs_outside_the_semaphore": [],
   "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"
