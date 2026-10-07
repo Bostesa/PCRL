@@ -1,0 +1,2003 @@
+{
+ "schema": "lra-independent-verification-v1",
+ "phase": "PHASE_0A",
+ "generated_at": "2026-10-07T04:35:52Z",
+ "verifier": "results/pcrl_adult_learned_decoder_release_v1/verification/replay_lra.py",
+ "verifier_sha256": "da035f57106577a41f0f2728b953a374895dad6283a072949f2e22faf1a8e409",
+ "ported_from": "results/pcrl_learned_decoder_constrained_release_v1/verification/replay_lcr.py at 091afc2 (sha256 f6086e808690304ccc202b66ae0d69a03b5c8500c00679c5fd53dc57db35c128)",
+ "worktree_head": "ab81a9769982f97519201b51d21cab990827bb30",
+ "branch": "research/pcrl-adult-learned-decoder-release-v1",
+ "source_tip": "091afc2007164fd928d4b792593d6f9eaf75b17c",
+ "source_evidence": "418e529c785cb96678ea5c6391fd8534579484e7",
+ "inputs": {
+  "source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
+  "lra_units": "<PRIVATE_CACHE>/lra_v1/run/units",
+  "lra_admitted": "<PRIVATE_CACHE>/lra_v1/admitted",
+  "lcr_units_read_only": "<PRIVATE_CACHE>/lcr_v1/run/units",
+  "lcr_copy_read_only": "<PRIVATE_CACHE>/lcr_v1_local_copy_20261007",
+  "cbp_units_read_only": "<PRIVATE_CACHE>/cbp_v1/run/units",
+  "cbp_copy_read_only": "<PRIVATE_CACHE>/cbp_v1_local_copy_20261006"
+ },
+ "tolerances": {
+  "d1_decoder_and_certificate": {
+   "q": 1e-09,
+   "smoothing_identity": 4e-16,
+   "sum": 1e-12,
+   "fw_gap_rel": 1e-10,
+   "stationarity_rel": 1e-08,
+   "objective_rel": 1e-10,
+   "teacher_sum_rel": 1e-09,
+   "loss_mean": 1e-12,
+   "budget_band": 1e-12,
+   "mi": 1e-12
+  },
+  "d1_note": "q agreement absolute; gap / stationarity / objective relative to max(1, n_t + kappa); dominance and strict argmax of the released q exact",
+  "tokens_decisions_partitions_bindings_hashes": "exact (bitwise / byte-identical)",
+  "decoded_probabilities_teacher_outputs": "exact (bitwise)",
+  "trace_terms_and_deltas": 1e-12,
+  "trace_constraints_search": "L, B <= limit - 1e-10; I <= cap",
+  "trace_constraints_final": "L, B <= limit; I <= cap (margin 0)",
+  "inner_auc_ce_utility": 1e-12,
+  "endpoint_point_se": 1e-12,
+  "endpoint_bounds": 1e-11,
+  "verdicts_labels_roles": "exact agreement",
+  "selection_ordering_ties": "Python round(seed mean, 12) on keys 1-2; key 3 exact; key 4 lexicographic"
+ },
+ "libraries": {
+  "numpy": "2.4.2",
+  "torch": "2.10.0",
+  "joblib": "1.5.3",
+  "sklearn": "1.8.0",
+  "scipy": "1.17.1"
+ },
+ "exposure": {
+  "fixture_laws_read_for_computation": false,
+  "fitting_labels_used": false,
+  "assessment_labels_read": false,
+  "rule": "PHASE_0 runs the oracle only on OWN synthetic laws; FIXTURE_LAWS.json is never opened for computation before the pushed CORRECTNESS_LOCK"
+ },
+ "real_data_read": "inputs, roles, sealed labels (no fitting-label use), teacher forward, D0 re-encode",
+ "assessment_labels_read": false,
+ "independence": {
+  "status": "PASS",
+  "guard": "sys.meta_path finder refusing lra, lcr, cbp, qpc, dpc, osf, smf, rgj, jcv, pnx, oar, stored_model_eval, pcrl (also during joblib unpickling); torch.load(weights_only=True); worktree root removed from sys.path; semaphore invoked by path (-P) as the parent process",
+  "loaded_forbidden_modules": [],
+  "blocked_attempts_during_run": [],
+  "preloaded_before_guard": [],
+  "libraries_used": [
+   "numpy",
+   "scipy",
+   "sklearn",
+   "torch",
+   "joblib",
+   "stdlib"
+  ]
+ },
+ "checks": {
+  "selftests": {
+   "status": "PASS",
+   "import_guard": {
+    "status": "PASS",
+    "refused": 45,
+    "attempted": 45,
+    "unpickle_refused": {
+     "qpc.kmeans": true,
+     "dpc.partition": true,
+     "cbp.select": true,
+     "lcr.decoder": true,
+     "lcr.mapper": true,
+     "lra.decoder": true,
+     "lra.mapper": true
+    },
+    "forbidden_loaded": []
+   },
+   "forward_pass": {
+    "status": "PASS",
+    "bitwise_vs_sequential": true,
+    "head_outputs_ok": true
+   },
+   "smoothing": {
+    "status": "PASS",
+    "rule": "(mean + eps 1 + eps e_c) / (1 + (K+1) eps), eps 1e-12"
+   },
+   "kl_rules": {
+    "status": "PASS",
+    "max_abs_diff_vs_direct": 1.1102230246251565e-16,
+    "roundoff_zeroed": 1,
+    "large_negative_refused": true
+   },
+   "sequential_sums": {
+    "status": "PASS"
+   },
+   "source_init": {
+    "status": "PASS",
+    "positions": [
+     1,
+     3
+    ]
+   },
+   "historical_rule_coherent": {
+    "status": "PASS",
+    "fallback_classes": [
+     5
+    ],
+    "cells": 41
+   },
+   "capped_rule_coherent": {
+    "status": "PASS",
+    "D_20": 0.07779900536356713,
+    "D_200": 0.07779900536356713,
+    "stops": [
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point",
+     "assignment_fixed_point"
+    ]
+   },
+   "stop_rules": {
+    "status": "PASS",
+    "best_iterate": true,
+    "cap_with_final_pass": true,
+    "relative_tolerance": true,
+    "fixed_point": true,
+    "coherent": true,
+    "distinct_counts_equal_np_unique": true,
+    "kpp_distinct_centres": true,
+    "start_tie_tolerance": true,
+    "passes": {
+     "cap2": 3,
+     "full": 9,
+     "tol": 5
+    }
+   },
+   "restarts": {
+    "status": "PASS",
+    "deterministic": true,
+    "winner_is_first_minimum": true,
+    "seeds_differ": true,
+    "same_seed_identical": true,
+    "winners": {
+     "source": 3,
+     "kpp:20261006": 1,
+     "kpp:20261007": 1
+    }
+   },
+   "capacity": {
+    "status": "PASS",
+    "income_cells_by_cap": {
+     "4": 8,
+     "8": 16,
+     "32": 64,
+     "64": 128
+    },
+    "distinct_vector_cap_respected": true,
+    "asymmetric_caps": true
+   },
+   "class_preservation": {
+    "status": "PASS",
+    "cases": "two-way ties, one-hot, 1e-300 underflow, 1e-17 tiny, uniform, absent class"
+   },
+   "plug_in_mi": {
+    "status": "PASS",
+    "vs_entropy_form": 5.551115123125783e-17,
+    "relabelling": 0.0,
+    "coalition_xor": true,
+    "token_collision": true,
+    "null_small": true
+   },
+   "objective_engine": {
+    "status": "PASS",
+    "engine_vs_rows": 6.028164079019405e-17,
+    "merge_delta_vs_brute_force": 2.498001805406602e-16,
+    "stage_one_class_only_counterpart_vs_rows": 0.0
+   },
+   "stage_b_engine": {
+    "status": "PASS",
+    "candidates_checked": 62,
+    "max_abs_increment_error": 3.430415673744136e-16,
+    "SEQ-12_first_map_never_revised": true,
+    "SEQ-21_first_map_never_revised": true,
+    "joint_dominates_witnesses": true,
+    "joint_I12_below_local": true,
+    "telescoping_max_abs_error": 1.1449174941446927e-16,
+    "engine_vs_row_level_max_abs_diff": 6.396792817664476e-16,
+    "xor_fixture": {
+     "local_I1": 0.00023401698550742366,
+     "local_I2": 2.026436463893333e-06,
+     "local_I12": 0.21935644333681636,
+     "joint_I12": 0.00023401698550742366,
+     "joint_F_below_local": true
+    }
+   },
+   "utility_sklearn_parity": {
+    "status": "PASS",
+    "sklearn_parity": true
+   },
+   "d1_decoder": {
+    "status": "PASS",
+    "random_tokens": {
+     "tokens": 400,
+     "certificate_failures": 0,
+     "with_tied_classes": 262,
+     "with_zero_bounds": 0,
+     "worst": {
+      "fw_gap_rel": 4.202840581205768e-16,
+      "stationarity_rel": 7.800126087246383e-16,
+      "identity_max_abs": 0.0,
+      "sum_residual": 2.220446049250313e-16
+     },
+     "ms_per_solve": 0.48062682151794434
+    },
+    "edge_cases": [
+     {
+      "n": 1,
+      "K": 2,
+      "ok": true,
+      "tied": [],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 50,
+      "K": 3,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 1.3877787807814457e-17
+     },
+     {
+      "n": 40,
+      "K": 4,
+      "ok": true,
+      "tied": [],
+      "zero": [
+       2,
+       3
+      ],
+      "kkt_points": 4,
+      "kkt_dq": 5.051514762044462e-14
+     },
+     {
+      "n": 100000,
+      "K": 3,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 5.551115123125783e-17
+     },
+     {
+      "n": 30,
+      "K": 2,
+      "ok": true,
+      "tied": [],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 10,
+      "K": 2,
+      "ok": true,
+      "tied": [
+       1
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 0.0
+     },
+     {
+      "n": 7,
+      "K": 6,
+      "ok": true,
+      "tied": [
+       5
+      ],
+      "zero": [],
+      "kkt_points": 1,
+      "kkt_dq": 2.7755575615628914e-17
+     }
+    ],
+    "slsqp_cross_check": {
+     "tokens": 24,
+     "own_never_worse": true,
+     "max_dq": 4.1146237578226774e-07,
+     "min_f_slsqp_minus_own_rel": -2.900174431673878e-16
+    },
+    "kkt_enumeration": {
+     "tokens": 12,
+     "unique_kkt_point_equals_own": true,
+     "max_dq": 1.1102230246251565e-16,
+     "points_per_token": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    "convexity_and_gradient": {
+     "midpoint_convex": true,
+     "max_rel_gradient_error": 8.908494898904545e-11
+    },
+    "projection": {
+     "exact_vs_bruteforce": true,
+     "tiny_residual_repaired_and_strict": true,
+     "unrepaired_residual_breaks_argmax": true,
+     "max_projection_magnitude_euclidean": 5.000005964816978e-11,
+     "max_projection_magnitude_registered_rule": 7.889688902196212e-11
+    },
+    "calibrated_null_token": {
+     "max_abs_D1_minus_D0": 2.8130830997952216e-12,
+     "ok": true
+    }
+   },
+   "oracle_on_own_synthetic_laws": {
+    "status": "PASS",
+    "canonical_partition_counts_equal_stirling": true,
+    "exact_law_vs_expanded_rows_max_abs": 2.220446049250313e-16,
+    "calibrated_null_max_population_gain": {
+     "logloss": 1.1102230246251565e-16,
+     "brier": 1.1102230246251565e-16
+    },
+    "miscalibrated": {
+     "max_logloss_gain_same_map": 0.2425319939139251,
+     "full_token_mi_unchanged_and_decisions_kept": true
+    },
+    "xor": {
+     "I1": 0.0,
+     "I2": 0.0,
+     "I12": 0.6931471805599453
+    },
+    "refs_own_calibrated": {
+     "pairs": 32,
+     "feasible_maps": {
+      "1": 1,
+      "2": 1
+     },
+     "task_only_I12": 0.04247475919884932,
+     "private_I12": 0.04247475919884932
+    },
+    "refs_own_miscalibrated": {
+     "pairs": 32,
+     "feasible_maps": {
+      "1": 4,
+      "2": 8
+     },
+     "task_only_I12": 0.04247475919884932,
+     "private_I12": 0.0
+    },
+    "refs_own_xor": {
+     "pairs": 16,
+     "feasible_maps": {
+      "1": 4,
+      "2": 4
+     },
+     "task_only_I12": 0.6931471805599453,
+     "private_I12": 0.0
+    },
+    "solves_cached": {
+     "hits": 134,
+     "misses": 34
+    }
+   },
+   "engine_incremental": {
+    "status": "PASS",
+    "moves": 14,
+    "max_abs_incremental_vs_scratch": 2.220446049250313e-16,
+    "decoder_change_keeps_full_token_mi": true,
+    "d1_decisions_preserved": true,
+    "release_is_token_function": true,
+    "d0_vs_d1_fit_logloss": {
+     "D0": [
+      0.4393344695204755,
+      1.2669086259252156
+     ],
+     "D1": [
+      0.39181132444308925,
+      1.123296847549975
+     ]
+    },
+    "solves": {
+     "hits": 682,
+     "misses": 70
+    }
+   },
+   "lra_selection_rules": {
+    "status": "PASS",
+    "resolved": {
+     "T*": "U|C-TASK|i8o64|D1",
+     "C*": "U|JOINT|i8o64|l0.08|D1",
+     "C_pair*": "U|JOINT|i8o64|l0.08|D1",
+     "P*": "U|K-JOINT-PAIR|i8o64|D1",
+     "N*": "U|K-JOINT-PAIR|i8o64|D1",
+     "J*": "U|K-JOINT-PAIR|i8o64|D1",
+     "Q": "U|DIRECT-TASK|i8o64"
+    },
+    "expected_roles": true,
+    "pool_sizes": {
+     "T*": 9,
+     "P*": 77,
+     "C*": 72,
+     "N*": 5,
+     "C_pair*": 88,
+     "J*": 1
+    },
+    "pool_sizes_ok": true,
+    "raw_j_fare_leace_not_in_T_or_P": true,
+    "reference_training_truthful": true,
+    "d1_privacy_not_task_only": true,
+    "no_headroom_buffer": true,
+    "d0_large_lambda_ineligible_d1_eligible": true,
+    "every_seed_rule": true,
+    "ordering": {
+     "config_id": true,
+     "states": true,
+     "logloss": true,
+     "rounding_12": true,
+     "continuous_inf_for_ordering_null_in_json": true
+    },
+    "branches": {
+     "guard_failure": true,
+     "utility_fallback": true,
+     "technical_failure": true,
+     "constrained_fit_infeasible": true,
+     "fit_feasible_fallback_first": true,
+     "infeasible_fit_outside_c_pair_pool": true
+    },
+    "p_star_may_be_control": true,
+    "class_kept_in_T_pool": true
+   },
+   "lra_label_truth_table": {
+    "status": "PASS",
+    "z": {
+     "value": 3.2048452050105634,
+     "equals_registered": true,
+     "slots": 37,
+     "z_primary_fn": true,
+     "boot_seed": 20261010,
+     "boot_reps": 1999
+    },
+    "all_pass": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED + PAIRED_JOINT_INCREMENT_ESTABLISHED",
+    "A_only": "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)",
+    "A_one_precision_failure": [
+     "NOT_ESTABLISHED",
+     "ASSESSMENT_PRECISION_FAILURE",
+     "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+    ],
+    "A_measured_violation": [
+     "NOT_ESTABLISHED",
+     "MEASURED_VIOLATION_SUPPORTED_BY_BOUND"
+    ],
+    "B_nonfinite": [
+     "INCOMPLETE_OR_INVALID",
+     "NONFINITE_PRIMARY_QUANTITY",
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + PAIRED_JOINT_INCREMENT_ESTABLISHED"
+    ],
+    "Q_only": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION",
+    "none": "EXPERIMENTAL_NO_ADVANTAGE",
+    "B_no_nominee": [
+     "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained)"
+    ],
+    "B_only": "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED",
+    "missing_slot_C": [
+     "INCOMPLETE_OR_INVALID",
+     "MISSING_SLOTS"
+    ],
+    "Q_no_eligible": [
+     "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE",
+     "EXPERIMENTAL_NO_ADVANTAGE"
+    ],
+    "control_failure_C": [
+     "INCOMPLETE_OR_INVALID",
+     "PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET (JOINT-PAIR; constrained) + CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED"
+    ]
+   },
+   "lra_section18_repairs": {
+    "status": "PASS",
+    "R1_technical_vs_infeasible": {
+     "missing": true,
+     "unreadable": true,
+     "incomplete": true,
+     "hash_invalid": true,
+     "status_vs_deployed_inconsistent": true,
+     "unknown_status": true,
+     "valid_infeasible_is_selection_outcome": true
+    },
+    "R2_real_representative": {
+     "full": [
+      "U|JOINT|i8o64|l0.08|D1",
+      "U|K-JOINT-PAIR|i8o64|D1",
+      "U|W-LOCAL|i8o64|l0.04|D1"
+     ],
+     "representative": "U|JOINT|i8o64|l0.08|D1",
+     "named": [
+      "JOINT",
+      "calibrated"
+     ],
+     "ok": true
+    },
+    "R3_identical_to_untrained": {
+     "identical_to_untrained": [
+      "U|C-TASK|i8o64|D1"
+     ],
+     "privacy_training_credited": false,
+     "ok": true
+    },
+    "R4_missing_guard_fallback": {
+     "statuses": {
+      "T*": [
+       "NO_ELIGIBLE_COMPARATOR",
+       "ORDINARY_UTILITY_FAILURE",
+       "SRC|U"
+      ],
+      "P*": [
+       "INVALID_NOMINEE",
+       "MISSING_GUARD_COMPARATOR",
+       "U|K-JOINT-PAIR|i8o64|D1"
+      ],
+      "N*": [
+       "INVALID_NOMINEE",
+       "MISSING_GUARD_COMPARATOR",
+       "U|K-JOINT-PAIR|i8o64|D1"
+      ],
+      "J*": [
+       "INVALID_NOMINEE",
+       "MISSING_GUARD_COMPARATOR",
+       "U|K-JOINT-PAIR|i8o64|D1"
+      ]
+     },
+     "defect_drops_roles": [
+      "J*",
+      "N*",
+      "P*"
+     ],
+     "ok": true
+    },
+    "R6_state_counts": {
+     "code_float_is_technical": true,
+     "code_inf_is_technical": true,
+     "code_none_is_technical": true,
+     "code_zero_is_technical": true,
+     "code_bool_is_technical": true,
+     "continuous_with_count_is_technical": true,
+     "code_count_finite_in_json": true,
+     "continuous_null_in_json": true
+    },
+    "R7_R11_role_aliases": {
+     "exact": [
+      [
+       "C*",
+       "C_pair*"
+      ],
+      [
+       "J*",
+       "P*"
+      ],
+      [
+       "Q",
+       "T*"
+      ]
+     ],
+     "by_id_defect": [
+      [
+       "C*",
+       "C_pair*"
+      ],
+      [
+       "J*",
+       "P*"
+      ]
+     ],
+     "ok": true
+    },
+    "R10_gate_wiring": {
+     "refused_values": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     "blocked": "ENGINEERING_BLOCKED_NOT_RUN",
+     "no_gate": "INCOMPLETE_NOT_RUN",
+     "prefit": "INCOMPLETE_NOT_RUN",
+     "ok": true
+    },
+    "R13_assessment_refusal": {
+     "all_good_opens": true,
+     "refuses_technical_valid=False": true,
+     "refuses_controls_ok=False": true,
+     "refuses_admission_ok=False": true,
+     "refuses_gate=ENGINEERING_BLOCKED": true,
+     "refuses_gate=GATE_MET": true,
+     "refuses_science_lock_ok=False": true,
+     "refuses_evaluation_lock_ok=False": true,
+     "no_acceptance_escape_defect_differs": true
+    },
+    "R14_precedence_display": {
+     "q_only_with_incomplete_B": "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION [A=NOT_ESTABLISHED; B=INCOMPLETE_OR_INVALID; C=NOT_ESTABLISHED; Q=PASS]",
+     "global_failure_with_Q_pass": "INCOMPLETE_OR_INVALID [A=NOT_ESTABLISHED; B=NOT_ESTABLISHED; C=NOT_ESTABLISHED; Q=PASS]",
+     "ok": true
+    }
+   },
+   "lra_injected_defects": {
+    "status": "PASS",
+    "defects_tested": 15,
+    "caught": 15,
+    "baseline_entry_passes": true,
+    "omitted_token_identities": {
+     "caught": true,
+     "full_interface_auc": 1.0,
+     "probability_only_auc": 0.4950015807650903
+    },
+    "clean_output_bypass": {
+     "caught": true
+    },
+    "reversed_auc": {
+     "caught": true,
+     "auc": 0.3345255367727278,
+     "flipped_would_report": 0.6654744632272722
+    },
+    "pair_misalignment": {
+     "caught": true,
+     "aligned_auc": 1.0,
+     "misaligned_auc": 0.47645080572515264
+    },
+    "wrong_label_counts": {
+     "caught": true,
+     "counts_exact": false,
+     "max_dq": 0.007955003501903396
+    },
+    "stale_cache_key": {
+     "caught": true,
+     "max_dq": 0.0017381181638562726,
+     "own_full_key_distinguishes": true
+    },
+    "omitted_prior": {
+     "caught": true,
+     "max_dq": 0.0027572022441712946,
+     "fw_gap_rel": 0.015171031429819282
+    },
+    "class_constraint_omitted": {
+     "caught": true,
+     "argmax_of_defective_q": 3,
+     "strict_argmax": false
+    },
+    "proxy_kl_for_true_logloss": {
+     "caught": true,
+     "recorded_proxy": 1.373477035062281,
+     "own_true_label": 1.1867184856946218,
+     "abs_diff": 0.18675854936765912
+    },
+    "missing_brier_constraint": {
+     "caught": true,
+     "own_verdict": false,
+     "ll_only_verdict": true
+    },
+    "temporary_partner_required_feasible": {
+     "caught": true,
+     "class_only_partner_feasible": false,
+     "stage1_moves": 12,
+     "feasible_registered_rule": 12,
+     "feasible_defective_rule": 0
+    },
+    "infeasible_paired_update": {
+     "caught": true,
+     "post_recipient2_feasible": false,
+     "post_ll_margin": -0.08346037192279931,
+     "post_brier_margin": 0.01042901330820245
+    },
+    "mean_seed_eligibility": {
+     "caught": true
+    },
+    "missing_comparator": {
+     "caught": true,
+     "statuses": [
+      "INCOMPLETE_OR_INVALID",
+      "INCOMPLETE_OR_INVALID",
+      "INCOMPLETE_OR_INVALID"
+     ]
+    },
+    "missing_source_composition_winner": {
+     "caught": true,
+     "bank_size": 84,
+     "winner": "U|K-JOINT-PAIR|i8o64|D1"
+    }
+   },
+   "fixture_law_exposure_guard": {
+    "status": "PASS",
+    "refused": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "allowed_flag": false,
+    "rule": "every computation path on the pinned laws refuses before the pushed CORRECTNESS_LOCK"
+   },
+   "lra_selftest_wall_s": {
+    "status": "INFO",
+    "wall_s": 1.43
+   },
+   "inference_primitives": {
+    "status": "PASS",
+    "z": 3.2048452050105634,
+    "z_equals_registered": true,
+    "slots": 37,
+    "auc_vs_sklearn": true,
+    "bootstrap_deterministic": true,
+    "weighted_auc_equals_expanded": true
+   }
+  },
+  "roles": {
+   "status": "PASS",
+   "source_sha256_ok": true,
+   "float_vs_exact_disagreements": {
+    "rgj_dev_split": 0,
+    "smf_assess_split": 0,
+    "smf_critic_split": 0
+   },
+   "pool_rows_with_a_fitting_role_before_exclusion": 0,
+   "expected_counts_hold": {
+    "OSF_DEFENSE_FIT": true,
+    "OSF_DEVELOPMENT_ASSESSMENT": true,
+    "HEAD_VALIDATION": true,
+    "AUDIT_FIT": true,
+    "INNER_SELECTION": true
+   },
+   "counts": {
+    "OSF_DEFENSE_FIT": {
+     "rows": 15434,
+     "groups": 15428
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "rows": 13936,
+     "groups": 13929
+    },
+    "HEAD_VALIDATION": {
+     "rows": 1500,
+     "groups": 1499
+    },
+    "AUDIT_FIT": {
+     "rows": 6065,
+     "groups": 6061
+    },
+    "INNER_SELECTION": {
+     "rows": 2235,
+     "groups": 2234
+    }
+   },
+   "role_hashes": {
+    "OSF_DEFENSE_FIT": {
+     "row_id_sha256": "3f6bb936900cfd4226dd2f6240bdb73032dc3fac29144dc6268c9db3d1f2553b",
+     "group_id_set_sha256": "5e6f14fe8ecef5022c39b9bcac320f5cdc7c3dbd7aeb80ab899c4807a594a554"
+    },
+    "OSF_DEVELOPMENT_ASSESSMENT": {
+     "row_id_sha256": "01a94675d1138afc784d35b2710ff3c4caa40264c88e50604cf42b2ecd7db81a",
+     "group_id_set_sha256": "60c07e8ba255fb151a60dd44f2cdcf488f358418a0a943e965ad9b0999650d46"
+    },
+    "HEAD_VALIDATION": {
+     "row_id_sha256": "a802cbdc97f3b07e992fc1e65a6a1515ec7de394a3da9f64f38e5edbb8397781",
+     "group_id_set_sha256": "05d9d14da8ed8528252079f3f525d6e09eebcb429fc3cb8f819a33d135a3778d"
+    },
+    "AUDIT_FIT": {
+     "row_id_sha256": "36f0393bbfd78d8cc528534101eeb76069bf6b7f7210e25d309fbb52a11d9bf0",
+     "group_id_set_sha256": "d8b65f7f8658456f6bf5ca8509f6e168e330c8f469eec565435a85714fb3a25c"
+    },
+    "INNER_SELECTION": {
+     "row_id_sha256": "a11edc913e3937236b2b8cb0eceb629a79e919f9125aec35372db8d01681b85f",
+     "group_id_set_sha256": "21179627072fa281e5f338aebbe6efceac7f90f5d74e8df081ef9fc28487b74b"
+    }
+   },
+   "manifests": {
+    "lra_ROLE_MANIFEST": {
+     "roles_match": {
+      "OSF_DEFENSE_FIT": true,
+      "OSF_DEVELOPMENT_ASSESSMENT": true,
+      "HEAD_VALIDATION": true,
+      "AUDIT_FIT": true,
+      "INNER_SELECTION": true
+     },
+     "subroles_match": null
+    },
+    "lcr_ROLE_MANIFEST_at_tip": {
+     "roles_match": {
+      "OSF_DEFENSE_FIT": true,
+      "OSF_DEVELOPMENT_ASSESSMENT": true,
+      "HEAD_VALIDATION": true,
+      "AUDIT_FIT": true,
+      "INNER_SELECTION": true
+     },
+     "subroles_match": null
+    },
+    "cbp_ROLE_MANIFEST_at_tip": {
+     "roles_match": {
+      "OSF_DEFENSE_FIT": true,
+      "OSF_DEVELOPMENT_ASSESSMENT": true,
+      "HEAD_VALIDATION": true,
+      "AUDIT_FIT": true,
+      "INNER_SELECTION": true
+     },
+     "subroles_match": null
+    }
+   },
+   "pinned_osf_role_partition_fingerprint_match": true,
+   "role_partition_fingerprint_sha256": "d6835fdb71e17562094c37b836cfb39301545627de6d86de26914913ece67226",
+   "roles_group_disjoint": true,
+   "defense_fit_groups_shared_with_other_roles": {
+    "OSF_DEVELOPMENT_ASSESSMENT": 0,
+    "HEAD_VALIDATION": 0,
+    "AUDIT_FIT": 0,
+    "INNER_SELECTION": 0
+   },
+   "subroles_partition_fit": true,
+   "no_exclusion_row_kept": true,
+   "no_kept_group_in_a_dropped_row": true,
+   "dropped_rows": 35,
+   "feature_names_sha256": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+   "n_columns": 83,
+   "forbidden_columns_present": [],
+   "numeric_inversion_ok": {
+    "age": true,
+    "education-num": true,
+    "capital-gain": true,
+    "capital-loss": true,
+    "hours-per-week": true
+   },
+   "rows_kept": 39170
+  },
+  "pins": {
+   "status": "PASS",
+   "failures": [],
+   "input_sha256_ok": true,
+   "branch_base_is_lcr_tip": true,
+   "lcr_evidence_full_sha": true,
+   "lcr_evidence_ancestor_of_tip": true,
+   "source_index_files": 163,
+   "source_index_mismatches": [],
+   "source_results_hashes": 29,
+   "source_results_mismatches_at_lcr_tip": [],
+   "source_index_pins": {
+    "lcr_tip": true,
+    "lcr_evidence": true,
+    "cbp_tip": true,
+    "qpc_evidence": true,
+    "qpc_tip": true
+   },
+   "pinned_packages_edited_in_this_branch": [],
+   "lcr_results_changed_on_branch": [],
+   "source_admission_lock": {
+    "committed": true,
+    "versions": 1,
+    "on_origin_byte_identical": true,
+    "first_commit": "3090d83e5cb8ee638c03c9d5da24e579b705891a",
+    "first_push_time": "2026-10-07T04:11:32Z",
+    "code_files": 217,
+    "code_files_differing_at_lock_commit": [],
+    "admission_code_locked": true,
+    "admission_code_equal_now": false,
+    "statement_equals_prompt": true,
+    "input_pin_ok": true,
+    "evidence_pins_ok": true,
+    "budget_ok": true,
+    "documents_at_lock_commit": {
+     "EXPOSURE_LEDGER.md": true,
+     "FIT_MANIFEST.json": true,
+     "FIXTURE_LAWS.json": true,
+     "LABEL_TRUTH_TABLE.json": true,
+     "PRIMARY_FAMILY.json": true,
+     "ROLE_MANIFEST.json": true,
+     "SEARCH_RULES.json": true,
+     "SELECTION_RULES.json": true,
+     "SOURCE_FIXTURE_GATE.json": true,
+     "SOURCE_INDEX.json": true,
+     "TIMING.json": true
+    },
+    "lock_json_finite": true
+   }
+  },
+  "admitted_custody": {
+   "status": "PASS",
+   "failures": [],
+   "n_failures": 0,
+   "units": 189,
+   "files": 651,
+   "kinds": {
+    "tea": 6,
+    "ref": 9,
+    "fine": 3,
+    "pol": 81,
+    "inner": 90
+   },
+   "own_expected_units": 189,
+   "scored_units_checked_against_cbp_evaluation_lock": 138,
+   "lcr_manifest": {
+    "sha256": "cd33423249d94d542a8551e3745c04a92ca7319d08fd9ace57b24245e831f09a",
+    "units": 189,
+    "units_equal_own_list": true
+   },
+   "lra_public_admission": {
+    "units": 189,
+    "units_equal_own_list": true,
+    "nonfinite_constants": [],
+    "counts": {
+     "units": 189,
+     "by_kind": {
+      "fine": 3,
+      "inner": 90,
+      "pol": 81,
+      "ref": 9,
+      "tea": 6
+     },
+     "admitted_teacher_dirs": 6
+    }
+   },
+   "lcr_copy_sums_present": true,
+   "admitted_teacher_dirs": {
+    "rel__s0__U": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    },
+    "rel__s0__RAW-J_b0.3": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    },
+    "rel__s1__U": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    },
+    "rel__s1__RAW-J_b0.3": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    },
+    "rel__s2__U": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    },
+    "rel__s2__RAW-J_b0.3": {
+     "equal_cbp": true,
+     "equal_lcr_store": true,
+     "equal_cbp_copy_sums": true,
+     "equal_lcr_manifest": true
+    }
+   },
+   "inputs_equal": {
+    "deploy_input.npz": true,
+    "schema.json": true
+   },
+   "receipt_verdict": "ADMITTED",
+   "receipt_teacher_parity_all_ok": true,
+   "receipt_code_parity_all_ok": true,
+   "receipt_lcr_manifest_check": {
+    "ok": true,
+    "units_checked": 189,
+    "manifest_sha256_equals_own": true
+   },
+   "unexpected_admitted_namespace_units": [],
+   "outer_units_present": [],
+   "rule": "own SHA-256 of every file of the lra admitted units vs the live cbp store, the cbp copy SHA256SUMS, the cbp EVALUATION_LOCK at 7f3ec67, the lcr SOURCE_ADMISSION.json at 091afc2, the lcr store and the lcr copy SHA256SUMS"
+  },
+  "teachers": {
+   "status": "PASS",
+   "units": {
+    "U|s0": {
+     "status": "PASS",
+     "unit": "rel__s0__U",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 3.3945115659828633e-06,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s0": {
+     "status": "PASS",
+     "unit": "rel__s0__RAW-J_b0.3",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 5.062559646840515e-07,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    },
+    "U|s1": {
+     "status": "PASS",
+     "unit": "rel__s1__U",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 1.2121679795732848e-06,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s1": {
+     "status": "PASS",
+     "unit": "rel__s1__RAW-J_b0.3",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 6.77735390479793e-07,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    },
+    "U|s2": {
+     "status": "PASS",
+     "unit": "rel__s2__U",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 1.3538627942647967e-06,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    },
+    "RAW-J_b0.3|s2": {
+     "status": "PASS",
+     "unit": "rel__s2__RAW-J_b0.3",
+     "custody": {
+      "lra_copy_complete": {
+       "id_ok": true,
+       "rehash_ok": true,
+       "unlisted": []
+      },
+      "files_equal_pinned_osf_manifest": true
+     },
+     "row_order_equals_own": true,
+     "parity": {
+      "r1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "r2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "c2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "p2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d1": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      },
+      "d2": {
+       "lra_unit": true,
+       "lcr_unit": true,
+       "cbp_unit": true,
+       "dtype_equal_lra": true,
+       "admitted_release": true,
+       "max_abs_diff_lra_unit": 0.0
+      }
+     },
+     "record_model_sha_equals_own": true,
+     "heads": {
+      "recipient_1": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 0.0,
+       "rows_with_exact_max_ties": 0
+      },
+      "recipient_2": {
+       "pipeline_scaler_logreg": true,
+       "scaler_moments_bitwise_OSF_DEFENSE_FIT": true,
+       "finite": true,
+       "min_probability": 8.170024337085305e-09,
+       "rows_with_exact_max_ties": 0
+      }
+     },
+     "failures": []
+    }
+   },
+   "note": "own forward pass on own X (83 permitted columns) from the lra admitted copies; bitwise vs the lra, lcr and cbp teacher units"
+  },
+  "d0_release_reencode": {
+   "status": "PASS",
+   "units": 81,
+   "failures": [],
+   "rule": "own qpc-convention re-encode (own assignment of the own teacher to the fine partition, the stored cell->token map, prototypes recomputed from the cell sums) bitwise vs release.npz on every row"
+  },
+  "loaders_seal_assessment": {
+   "status": "PASS",
+   "unseal_true_call_sites": {
+    "assess.py": [
+     259
+    ],
+    "data.py": [
+     83
+    ]
+   },
+   "call_sites_outside_data_and_assess": [],
+   "data_unseal_caller_gate": "lra.assess",
+   "note": "static parse of the current lra code; re-run at each later phase; the verifier's own Data() seals assessment labels at load and asserts it"
+  },
+  "admission_timing": {
+   "status": "PASS",
+   "receipt_at": "2026-10-07T04:11:43Z",
+   "lock_commit": "3090d83e5cb8ee638c03c9d5da24e579b705891a",
+   "lock_commit_time": "2026-10-07T04:11:31Z",
+   "admission_after_lock_commit": true,
+   "later_admission_code_commits": [
+    {
+     "file": "lra/run.py",
+     "commit": "ab81a9769982f97519201b51d21cab990827bb30",
+     "time": "2026-10-07T04:20:57Z"
+    },
+    {
+     "file": "lra/run.py",
+     "commit": "df90e6ad738499cbd1d9d2c38ef3be10460c3453",
+     "time": "2026-10-07T04:16:50Z"
+    }
+   ],
+   "admission_before_every_later_change": true,
+   "equal_to_lock_now": {
+    "lra/admit.py": true,
+    "lra/data.py": true,
+    "lra/run.py": false
+   }
+  },
+  "correctness_gate": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "correctness_gate"
+  },
+  "fixture_oracle": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "fixture_oracle"
+  },
+  "decoder_certificates_fixture": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "decoder_certificates_fixture"
+  },
+  "fixture_traces": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "fixture_traces"
+  },
+  "gate_wiring": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "gate_wiring"
+  },
+  "review_findings_disposition": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "review_findings_disposition"
+  },
+  "code_hashes": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "code_hashes"
+  },
+  "chronology": {
+   "status": "PENDING",
+   "reason": "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)",
+   "check": "chronology"
+  },
+  "d1_fixed_maps": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "d1_fixed_maps"
+  },
+  "d1_new_units": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "d1_new_units"
+  },
+  "fitting_budgets_and_caps": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "fitting_budgets_and_caps"
+  },
+  "incremental_trace_replay": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "incremental_trace_replay"
+  },
+  "decision_preservation": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "decision_preservation"
+  },
+  "inner_audits": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "inner_audits"
+  },
+  "source_composition": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "source_composition"
+  },
+  "selection": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "selection"
+  },
+  "controls": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "controls"
+  },
+  "exposure": {
+   "status": "PENDING",
+   "reason": "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)",
+   "check": "exposure"
+  },
+  "evaluation_lock": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "evaluation_lock"
+  },
+  "outer_units": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "outer_units"
+  },
+  "endpoints": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "endpoints"
+  },
+  "published_tables": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "published_tables"
+  },
+  "figures": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "figures"
+  },
+  "attacker_refits": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "attacker_refits"
+  },
+  "deployment_parity": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "deployment_parity"
+  },
+  "restore_parity": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "restore_parity"
+  },
+  "budget": {
+   "status": "PENDING",
+   "reason": "PHASE 3 (after the assessment)",
+   "check": "budget"
+  }
+ },
+ "verifier_corrections": [
+  {
+   "phase": "lra PHASE_0",
+   "item": "port",
+   "change": "lcr -> lra paths, branch, start time, bootstrap seed 20261010; lra added to the import guard; CORRECTNESS_ORACLE_REPORT.md replaces FIXTURE_ORACLE_REPORT.md; public-path scrubbing reduced to generic <PRIVATE_CACHE> / <WORKTREE> placeholders (the lcr version mapped its own store to cbp_v1)"
+  },
+  {
+   "phase": "lra PHASE_0",
+   "item": "selection / labels",
+   "change": "new lra_* rules (section 10, 12, 18): R1 technical fit records, R2/R9 one real representative, R3 identical_to_untrained, R4 fallback kept on a missing guard, R6 state counts, R7/R11 identity-based role aliases, gate input restricted to ENGINEERING_READY / ENGINEERING_BLOCKED with ENGINEERING_BLOCKED_NOT_RUN and INCOMPLETE_NOT_RUN; the cbp headroom / C_rate / C_global self-tests are no longer run (stale for lra)"
+  },
+  {
+   "phase": "lra PHASE_0",
+   "item": "registered change ab81a97",
+   "change": "U|CLASS|i1o1|D1 joins the code bank (84 codes, 89 scored per seed) and the T* pool (9 candidates); C_pair* has 88 candidates"
+  },
+  {
+   "phase": "lra PHASE_0",
+   "item": "own C_pair* pool test",
+   "change": "own mutation self-check showed the removal of fit-infeasible constrained arms from C_pair* was not exercised; a test with an inner-best infeasible JOINT-SINGLE was added"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "cid_lam (adapted cbp helper)",
+   "change": "parse the 'l<value>' segment after the rate; the cbp split('|l') form raised on lcr IDs with a trailing '|D1'"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "SLSQP cross-check",
+   "change": "compare the FEASIBLE projection of the SLSQP point: SLSQP ends infeasible by ~1e-7 on tied dominance constraints, which made its raw objective look lower than the own certified optimum"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "gradient self-test",
+   "change": "Richardson-extrapolated central differences at an interior point (plain h = 1e-6 differences were truncation-limited near small q)"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "projection self-test",
+   "change": "the planted 1e-10 dominance residual now preserves the simplex sum (the first draft perturbed the sum, inflating the reported projection magnitude)"
+  },
+  {
+   "phase": "PHASE_0",
+   "item": "roles / labels",
+   "change": "reconciled with SELECTION_RULES.json and LABEL_TRUTH_TABLE.json at a94e944: C_pair* = every scored candidate except JOINT-PAIR (87); Q == PASS is checked before the INCOMPLETE rule; P* named by the simplest family / construction over exact (tokens AND q) aliases"
+  }
+ ],
+ "summary": {
+  "status_by_check": {
+   "selftests": "PASS",
+   "roles": "PASS",
+   "pins": "PASS",
+   "admitted_custody": "PASS",
+   "teachers": "PASS",
+   "d0_release_reencode": "PASS",
+   "loaders_seal_assessment": "PASS",
+   "admission_timing": "PASS",
+   "correctness_gate": "PENDING",
+   "fixture_oracle": "PENDING",
+   "decoder_certificates_fixture": "PENDING",
+   "fixture_traces": "PENDING",
+   "gate_wiring": "PENDING",
+   "review_findings_disposition": "PENDING",
+   "code_hashes": "PENDING",
+   "chronology": "PENDING",
+   "d1_fixed_maps": "PENDING",
+   "d1_new_units": "PENDING",
+   "fitting_budgets_and_caps": "PENDING",
+   "incremental_trace_replay": "PENDING",
+   "decision_preservation": "PENDING",
+   "inner_audits": "PENDING",
+   "source_composition": "PENDING",
+   "selection": "PENDING",
+   "controls": "PENDING",
+   "exposure": "PENDING",
+   "evaluation_lock": "PENDING",
+   "outer_units": "PENDING",
+   "endpoints": "PENDING",
+   "published_tables": "PENDING",
+   "figures": "PENDING",
+   "attacker_refits": "PENDING",
+   "deployment_parity": "PENDING",
+   "restore_parity": "PENDING",
+   "budget": "PENDING"
+  },
+  "top_level_counts": {
+   "PASS": 8,
+   "PENDING": 27
+  },
+  "status_counts_all_nodes": {
+   "PASS": 39,
+   "INFO": 1,
+   "PENDING": 27
+  },
+  "flagged_fail_warn": [],
+  "independence": "PASS",
+  "overall": "PASS"
+ },
+ "compute": {
+  "wall_s": 26.15,
+  "cpu_s_process": 21.39,
+  "threads": {
+   "OMP_NUM_THREADS": "1",
+   "OPENBLAS_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1",
+   "torch": 1
+  },
+  "other_lra_processes_at_start": 3,
+  "other_lra_processes_at_end": 1,
+  "semaphore_slots_at_end": {
+   "open_acquisitions": [
+    {
+     "slot": 0,
+     "label": "E:phase0A"
+    }
+   ],
+   "unlogged_releases_closed_by_slot_reacquire": []
+  }
+ },
+ "pending": [
+  "attacker_refits",
+  "budget",
+  "chronology",
+  "code_hashes",
+  "controls",
+  "correctness_gate",
+  "d1_fixed_maps",
+  "d1_new_units",
+  "decision_preservation",
+  "decoder_certificates_fixture",
+  "deployment_parity",
+  "endpoints",
+  "evaluation_lock",
+  "exposure",
+  "figures",
+  "fitting_budgets_and_caps",
+  "fixture_oracle",
+  "fixture_traces",
+  "gate_wiring",
+  "incremental_trace_replay",
+  "inner_audits",
+  "outer_units",
+  "published_tables",
+  "restore_parity",
+  "review_findings_disposition",
+  "selection",
+  "source_composition"
+ ],
+ "verifier_compute_ledger": {
+  "semaphore_holds_completed": [
+   {
+    "label": "E:phase0-dryrun",
+    "released_at": "2026-10-07T04:26:42Z",
+    "wall_s": 4.1,
+    "cpu_s": 3.4,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-dryrun",
+    "released_at": "2026-10-07T04:27:04Z",
+    "wall_s": 3.9,
+    "cpu_s": 3.3,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0A-dryrun",
+    "released_at": "2026-10-07T04:27:50Z",
+    "wall_s": 26.9,
+    "cpu_s": 25.1,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation-selfcheck",
+    "released_at": "2026-10-07T04:30:00Z",
+    "wall_s": 44.5,
+    "cpu_s": 44.1,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation-selfcheck",
+    "released_at": "2026-10-07T04:30:38Z",
+    "wall_s": 7.5,
+    "cpu_s": 6.9,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T04:32:29Z",
+    "wall_s": 48.8,
+    "cpu_s": 47.9,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T04:33:36Z",
+    "wall_s": 48.9,
+    "cpu_s": 48.1,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0A",
+    "released_at": "2026-10-07T04:34:03Z",
+    "wall_s": 27.3,
+    "cpu_s": 25.9,
+    "rc": 0
+   },
+   {
+    "label": "E:phase0-mutation",
+    "released_at": "2026-10-07T04:35:50Z",
+    "wall_s": 50.5,
+    "cpu_s": 49.7,
+    "rc": 0
+   }
+  ],
+  "semaphore_cpu_s_total": 254.4,
+  "semaphore_wall_s_total": 262.4,
+  "this_run": {
+   "phase": "PHASE_0A",
+   "start": "2026-10-07T04:35:52Z",
+   "wall_s": 26.15,
+   "cpu_s": 21.39
+  },
+  "light_runs_outside_the_semaphore": [],
+  "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; the current run's hold is released after this file is written"
+ }
+}

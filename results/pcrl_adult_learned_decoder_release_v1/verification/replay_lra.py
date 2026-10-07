@@ -254,6 +254,21 @@ D1_TOL = {"q": 1e-9, "smoothing_identity": 4e-16, "sum": 1e-12, "fw_gap_rel": 1e
 OWN_REL: dict = {}
 # every correction made to this verifier's own code (kept; disclosed in the report)
 VERIFIER_CORRECTIONS: list = [
+    {"phase": "lra PHASE_0", "item": "port", "change": "lcr -> lra paths, branch, start time, bootstrap seed 20261010; lra "
+     "added to the import guard; CORRECTNESS_ORACLE_REPORT.md replaces FIXTURE_ORACLE_REPORT.md; public-path scrubbing "
+     "reduced to generic <PRIVATE_CACHE> / <WORKTREE> placeholders (the lcr version mapped its own store to cbp_v1)"},
+    {"phase": "lra PHASE_0", "item": "selection / labels", "change": "new lra_* rules (section 10, 12, 18): R1 technical "
+     "fit records, R2/R9 one real representative, R3 identical_to_untrained, R4 fallback kept on a missing guard, R6 "
+     "state counts, R7/R11 identity-based role aliases, gate input restricted to ENGINEERING_READY / ENGINEERING_BLOCKED "
+     "with ENGINEERING_BLOCKED_NOT_RUN and INCOMPLETE_NOT_RUN; the cbp headroom / C_rate / C_global self-tests are no "
+     "longer run (stale for lra)"},
+    {"phase": "lra PHASE_0", "item": "registered change ab81a97", "change": "U|CLASS|i1o1|D1 joins the code bank (84 codes, "
+     "89 scored per seed) and the T* pool (9 candidates); C_pair* has 88 candidates"},
+    {"phase": "lra PHASE_0", "item": "own C_pair* pool test", "change": "own mutation self-check showed the removal of "
+     "fit-infeasible constrained arms from C_pair* was not exercised; a test with an inner-best infeasible JOINT-SINGLE "
+     "was added"},
+    # ---- inherited from the lcr verifier (kept for the record)
+
     {"phase": "PHASE_0", "item": "cid_lam (adapted cbp helper)", "change": "parse the 'l<value>' segment after the rate; "
      "the cbp split('|l') form raised on lcr IDs with a trailing '|D1'"},
     {"phase": "PHASE_0", "item": "SLSQP cross-check", "change": "compare the FEASIBLE projection of the SLSQP point: SLSQP "
@@ -684,9 +699,9 @@ def check_roles(D: Data, manifests):
           and out["n_columns"] == 83 and not out["forbidden_columns_present"] and sum(D.disagree.values()) == 0
           and D.pool_overlap_with_role == 0 and out["rows_kept"] == ROWS_KEPT and all(out["numeric_inversion_ok"].values()))
     st = "PASS" if ok else "FAIL"
-    if ok and manifests.get("lcr_ROLE_MANIFEST") is None:
+    if ok and manifests.get("lra_ROLE_MANIFEST") is None:
         st = "WARN"
-        out["note"] = "lcr ROLE_MANIFEST.json not present; checked against the pinned cbp manifest only"
+        out["note"] = "lra ROLE_MANIFEST.json not present; checked against the pinned source manifests only"
     return res(st, **out)
 
 
@@ -3305,13 +3320,17 @@ Z_LRA = 3.2048452050105634    # NormalDist().inv_cdf(1 - 0.05/74), verified in t
 
 
 def lra_code_ids():
-    """The 83 code releases per seed (prompt section 8): 27 D0 (DIRECT-TASK, FINE-TASK, CLASS, 24 privacy maps), 26 D1
-    fixed-map decodings (DIRECT-TASK, FINE-TASK, 24 privacy maps), C-TASK, 24 weighted and 5 constrained."""
-    return lcr_code_ids()
+    """The 84 code releases per seed (prompt section 8; registered change ab81a97): 27 D0 (DIRECT-TASK, FINE-TASK,
+    CLASS, 24 privacy maps), 27 D1 fixed-map decodings (DIRECT-TASK, FINE-TASK, CLASS, 24 privacy maps), C-TASK, 24
+    weighted and 5 constrained."""
+    ids = lcr_code_ids()
+    i = ids.index(L_d1("FINE-TASK")) + 1
+    return ids[:i] + [L_d1("CLASS")] + ids[i:]
 
 
 def lra_scored_ids():
-    """The 88 inner candidates per seed (prompt section 8: 88 configurations x 3 seeds = 264 inner units)."""
+    """The 89 inner candidates per seed (88 registered in prompt section 8 plus U|CLASS|i1o1|D1 at ab81a97: 267 inner
+    units)."""
     return lra_code_ids() + ["SRC|U", "SRC|RAW-J_b0.3", "REF|E", "REF|F", "REF|F0"]
 
 
@@ -3376,16 +3395,16 @@ def lra_u_derived(cid):
 
 
 def lra_role_lists(private_extra=()):
-    """Candidate pools of prompt section 10. T*: privacy-untrained (C-TASK, D0 / D1 DIRECT-TASK and FINE-TASK, U, CLASS,
-    F0; RAW-J excluded). P*: every declared private code arm (24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained = 77).
+    """Candidate pools of prompt section 10. T*: privacy-untrained (C-TASK, D0 / D1 DIRECT-TASK and FINE-TASK, U, D0 / D1
+    CLASS (CLASS|D1 registered at ab81a97), F0; RAW-J excluded). P*: every declared private code arm (24 D0, 24 D1 fixed-map, 24 weighted, 5 constrained = 77).
     C*: the 72 incumbent / baseline private maps (no constrained arm). N*: the 5 constrained arms. C_pair*: every scored
-    candidate except JOINT-PAIR (87; fit-infeasible constrained arms are removed at selection time). J*: JOINT-PAIR."""
+    candidate except JOINT-PAIR (88; fit-infeasible constrained arms are removed at selection time). J*: JOINT-PAIR."""
     d0p = [L_d0(f, l_) for l_ in LAMS for f in LCR_PRIV]
     d1p = [L_d1(f, l_) for l_ in LAMS for f in LCR_PRIV]
     w = [L_w(f, l_) for l_ in LAMS for f in LCR_PRIV]
     k = [L_k(a) for a in LCR_K]
     T = [L_CTASK, L_d0("DIRECT-TASK"), L_d0("FINE-TASK"), L_d1("DIRECT-TASK"), L_d1("FINE-TASK"), "SRC|U",
-         L_d0("CLASS"), "REF|F0"]
+         L_d0("CLASS"), L_d1("CLASS"), "REF|F0"]
     return {"T*": T, "P*": d0p + d1p + w + k + list(private_extra), "C*": d0p + d1p + w + list(private_extra),
             "N*": k, "C_pair*": [x for x in lra_scored_ids() if x != L_k("JOINT-PAIR")], "J*": [L_k("JOINT-PAIR")]}
 
@@ -3472,7 +3491,8 @@ def lra_config_row(cid, per_seed, seed_average=False):
     row.update({"mean_pair": sm(lambda s: s["auc"]["pair"]), "mean_v1": sm(lambda s: s["auc"]["v1"]),
                 "mean_v2": sm(lambda s: s["auc"]["v2"]), "mean_sum_logloss": sm(lambda s: s["sum_ll"]),
                 "mean_states": (sm(lambda s: s["states"]) if code else math.inf),
-                "states_json": ([int(seeds[k]["states"]) for k in SEEDS] if code else None)})
+                "states_json": ([int(seeds[k]["states"]) if math.isfinite(seeds[k]["states"]) else None for k in SEEDS]
+                                if code else None)})
     if seed_average:                    # DEFECT: seed-averaged eligibility (a failing seed averaged away)
         avg = {i: {q: seed_mean([per_seed[k]["util"][i][q] for k in SEEDS]) for q in ("acc", "logloss", "brier")}
                for i in (1, 2)}
@@ -3815,10 +3835,21 @@ def fixture_laws_unlocked(fetch=True):
 FIXTURE_LAWS_ALLOWED = [False]      # set True only by PHASE_1+ after fixture_laws_unlocked()["ok"]
 
 
+def _require_fixture_unlock():
+    if not FIXTURE_LAWS_ALLOWED[0]:
+        raise RuntimeError("REFUSED: no computation on the pinned fixture laws before the pushed CORRECTNESS_LOCK")
+
+
 def read_fixture_laws_for_computation():
     if not FIXTURE_LAWS_ALLOWED[0]:
         raise RuntimeError("REFUSED: fixture laws are not used before the pushed CORRECTNESS_LOCK")
     return jload(RES / "FIXTURE_LAWS.json")
+
+
+def lra_composition_closure_ok(ids):
+    """Composition through the COMPLETE registered lra map / decoder bank (84 codes per seed): nothing missing, nothing
+    extra."""
+    return sorted(ids) == sorted(lra_code_ids())
 
 
 def lcr_composition_closure_ok(ids, per_seed_bank=None):
@@ -8391,6 +8422,403 @@ def selftest_defects_lcr(rng):
                baseline_entry_passes=bool(base_ok), **out)
 
 
+# ================================================================================================ lra self-tests (PHASE_0)
+def _kfit(status="FEASIBLE", deployed=None, record_ok=True):
+    return {"status": status, "deployed_feasible": (status == "FEASIBLE") if deployed is None else deployed,
+            "record_ok": record_ok}
+
+
+def _lra_seed(cid, k, base):
+    """Attach the lra per-seed fields to a synthetic seed record: integer token-state counts for codes and null for
+    continuous releases (R6), own release fingerprints (tok_fp shared by a D0 map and its D1 decoding), a fit record
+    for constrained arms."""
+    x = dict(base)
+    code = lra_is_code(cid)
+    x["states"] = int(round(float(base["states"]))) if code else None
+    x.pop("fit_feasible", None)
+    base_map = cid[:-3] if cid.endswith("|D1") and lra_arm(cid) in ("d1_fixed", "d1_task") else cid
+    x["tok_fp"] = f"tok:{base_map}:s{k}" if code else None
+    x["canon_fp"] = x["tok_fp"]
+    x["pair_fp"] = f"rel:{cid}:s{k}"
+    if lra_arm(cid) == "constrained":
+        x["fit"] = base.get("fit", _kfit("FEASIBLE" if base.get("fit_feasible", True) else "INFEASIBLE"))
+    return x
+
+
+def synthetic_bank_lra(overrides=None, raw_overrides=None):
+    """The 89 lra candidates on 3 seeds (the lcr synthetic bank with the lra per-seed fields; CLASS|D1 added)."""
+    _, rin = synthetic_bank_lcr()
+    rin[L_d1("CLASS")] = {k: _seed((0.02, 0.15), (0.015, 0.08), (0.70, 0.70, 0.739), 8.0) for k in SEEDS}
+    rows_in = {c_: {k: _lra_seed(c_, k, v[k]) for k in SEEDS} for c_, v in rin.items()}
+    for c_, f_ in (overrides or {}).items():
+        rows_in[c_] = f_(rows_in[c_])
+    rows = {c_: lra_config_row(c_, v) for c_, v in rows_in.items()}
+    for c_, f_ in (raw_overrides or {}).items():
+        rows[c_] = f_(rows[c_])
+    return rows, rows_in
+
+
+def _alias(cids, onto):
+    """Overrides making every cid release-identical (pair_fp, tok_fp, canon_fp) to `onto` on all seeds."""
+    def f(v, onto=onto):
+        return {k: {**x, "pair_fp": f"rel:{onto}:s{k}", "tok_fp": f"tok:{onto}:s{k}", "canon_fp": f"tok:{onto}:s{k}"}
+                for k, x in v.items()}
+    return {c_: f for c_ in cids}
+
+
+LRA_EXPECTED = {"T*": L_CTASK, "C*": L_d1("JOINT", 0.08), "C_pair*": L_d1("JOINT", 0.08), "P*": L_k("JOINT-PAIR"),
+                "N*": L_k("JOINT-PAIR"), "J*": L_k("JOINT-PAIR"), "Q": L_Q}
+
+
+def selftest_selection_lra():
+    out = {}
+    rows, rin = synthetic_bank_lra()
+    S = my_selection_lra(rows)
+    out["resolved"] = S["resolved"]
+    out["expected_roles"] = S["resolved"] == LRA_EXPECTED
+    Ls = lra_role_lists()
+    out["pool_sizes"] = {x: len(v) for x, v in Ls.items()}
+    out["pool_sizes_ok"] = out["pool_sizes"] == {"T*": 9, "P*": 77, "C*": 72, "N*": 5, "C_pair*": 88, "J*": 1} and \
+        len(lra_scored_ids()) == 89 and len(lra_code_ids()) == 84 and len(set(lra_scored_ids())) == 89
+    out["raw_j_fare_leace_not_in_T_or_P"] = all(x not in Ls["T*"] + Ls["P*"] + Ls["C*"] for x in
+                                                ("SRC|RAW-J_b0.3", "REF|E", "REF|F"))
+    out["reference_training_truthful"] = (lra_training("SRC|RAW-J_b0.3").startswith("privacy-trained") and
+                                          lra_training("REF|E").startswith("privacy-trained") and
+                                          lra_training("REF|F").startswith("privacy-trained") and
+                                          lra_training("REF|F0").startswith("privacy-untrained") and
+                                          lra_training("SRC|U").startswith("privacy-untrained") and
+                                          lra_training(L_d1("JOINT", 0.1)) == "privacy-trained code" and
+                                          lra_training(L_CTASK) == "privacy-untrained code")
+    out["d1_privacy_not_task_only"] = all(c_ not in Ls["T*"] for c_ in [L_d1(f, l_) for f in LCR_PRIV for l_ in LAMS])
+    out["no_headroom_buffer"] = rows[L_d1("JOINT", 0.08)]["ordinary_eligible"]       # LL excess 0.0088 > cbp 0.006
+    out["d0_large_lambda_ineligible_d1_eligible"] = (not rows[L_d0("JOINT", 0.08)]["ordinary_eligible"]) and \
+        rows[L_d1("JOINT", 0.08)]["ordinary_eligible"]
+    # every-seed eligibility: one failing seed of the best D1 control removes it
+    one_bad = (lambda v: {k: ({**x, "util": {1: x["util"][1], 2: {**x["util"][2], "logloss": x["util"][2]["logloss"] +
+                                                                  (0.006 if k == 2 else 0.0)}}}) for k, x in v.items()})
+    rows_e, _ = synthetic_bank_lra({L_d1("JOINT", 0.08): one_bad})
+    out["every_seed_rule"] = my_selection_lra(rows_e)["resolved"]["C*"] != L_d1("JOINT", 0.08)
+    # ordering keys and ties
+    a_, b_ = L_k("SEQ-12"), L_k("SEQ-21")
+    ra, rb = dict(rows[a_]), dict(rows[b_])
+    ra["mean_pair"] = rb["mean_pair"] = 0.8
+    ra["mean_sum_logloss"] = rb["mean_sum_logloss"] = 1.0
+    ra["mean_states"] = rb["mean_states"] = 280.0
+    tie_id = min([ra, rb], key=okey)["config"] == min(a_, b_)
+    rb2 = dict(rb, mean_states=279.0)
+    tie_states = min([ra, rb2], key=okey)["config"] == b_
+    rb3 = dict(rb, mean_sum_logloss=1.0 - 1e-6)
+    tie_ll = min([ra, rb3], key=okey)["config"] == b_
+    rb4 = dict(rb, mean_pair=0.8 + 4e-13)          # below the 12-decimal rounding: a tie on key 1
+    tie_round = okey(ra)[0] == okey(rb4)[0]
+    cont = rows["SRC|U"]["mean_states"] == math.inf and rows["SRC|U"]["states_json"] is None
+    out["ordering"] = {"config_id": tie_id, "states": tie_states, "logloss": tie_ll, "rounding_12": tie_round,
+                       "continuous_inf_for_ordering_null_in_json": cont}
+    # guard failure of J*; utility fallback; technical failure; R4 / R5 infeasible fits
+    guard_bad = (lambda v: {k: {**x, "auc": {**x["auc"], "v1": 0.80}} for k, x in v.items()})
+    Sg = my_selection_lra(synthetic_bank_lra({L_k("JOINT-PAIR"): guard_bad})[0])
+    g_ok = Sg["statuses"]["J*"]["status"] == "NO_ELIGIBLE_NOMINEE" and Sg["statuses"]["J*"]["reason"] == \
+        "LOCAL_GUARD_FAILURE" and Sg["statuses"]["J*"]["descriptive_config"] == L_k("JOINT-PAIR")
+    one_bad_s1 = (lambda v: {k: ({**x, "util": {1: x["util"][1], 2: {**x["util"][2], "logloss": x["util"][2]["logloss"] +
+                                                                     (0.006 if k == 1 else 0.0)}}}) for k, x in v.items()})
+    Su = my_selection_lra(synthetic_bank_lra({L_k(a_): one_bad_s1 for a_ in LCR_K})[0])
+    u_ok = Su["statuses"]["N*"]["status"] == "NO_ELIGIBLE_NOMINEE" and Su["statuses"]["N*"]["reason"] == \
+        "ORDINARY_UTILITY_FAILURE" and Su["statuses"]["N*"]["descriptive_config"] in [L_k(a_) for a_ in LCR_K]
+    St = my_selection_lra(synthetic_bank_lra({L_k("JOINT-SINGLE"): lambda v: {k: x for k, x in v.items()
+                                                                              if k != 2}})[0])
+    t_ok = St["statuses"]["N*"]["status"] == "INVALID_NOMINEE" and "FIT_OR_ADMISSION_FAILURE" in \
+        St["statuses"]["N*"]["reason"] and St["statuses"]["C_pair*"]["status"] == "INVALID_COMPARATOR"
+    infeas = (lambda v: {k: {**x, "fit": _kfit("FEASIBLE" if k != 1 else "INFEASIBLE")} for k, x in v.items()})
+    better_single = (lambda v: {k: {**x, "auc": {**x["auc"], "pair": 0.810}} for k, x in v.items()})
+    rows_f, _ = synthetic_bank_lra({L_k("JOINT-PAIR"): infeas, L_k("JOINT-SINGLE"): better_single})
+    Sf = my_selection_lra(rows_f)
+    r_inf = (Sf["statuses"]["J*"]["status"] == "NO_ELIGIBLE_NOMINEE" and
+             Sf["statuses"]["J*"]["reason"] == "CONSTRAINED_FIT_INFEASIBLE" and
+             Sf["statuses"]["J*"]["descriptive_config"] == L_k("JOINT-PAIR") and
+             Sf["statuses"]["J*"]["fallback_fit_feasible"] is False and
+             Sf["resolved"]["N*"] == L_k("JOINT-SINGLE") and Sf["resolved"]["P*"] == L_k("JOINT-SINGLE") and
+             Sf["resolved"]["C_pair*"] == L_k("JOINT-SINGLE") and rows_f[L_k("JOINT-PAIR")]["ordinary_inner"] and
+             not rows_f[L_k("JOINT-PAIR")]["ordinary_eligible"])
+    ov = {L_k(a_): one_bad_s1 for a_ in LCR_K if a_ != "LOCAL"}
+    ov[L_k("LOCAL")] = lambda v: {k: {**x, "fit": _kfit("INFEASIBLE")} for k, x in v.items()}
+    S5 = my_selection_lra(synthetic_bank_lra(ov)[0])
+    r5 = (S5["statuses"]["N*"]["status"] == "NO_ELIGIBLE_NOMINEE" and S5["statuses"]["N*"]["reason"] ==
+          "ORDINARY_UTILITY_FAILURE" and S5["statuses"]["N*"]["descriptive_config"] != L_k("LOCAL") and
+          S5["statuses"]["N*"]["fallback_fit_feasible"] is True)
+    # an infeasible constrained fit (best pair AUC, inner-eligible) never enters the C_pair* pool
+    best_infeasible = (lambda v: {k: {**x, "auc": {**x["auc"], "pair": 0.700}, "fit": _kfit("INFEASIBLE")}
+                                  for k, x in v.items()})
+    Sx = my_selection_lra(synthetic_bank_lra({L_k("JOINT-SINGLE"): best_infeasible})[0])
+    r_pool = (L_k("JOINT-SINGLE") not in [e["config"] for e in Sx["statuses"]["C_pair*"]["evaluated"]] and
+              Sx["resolved"]["C_pair*"] != L_k("JOINT-SINGLE") and Sx["resolved"]["P*"] != L_k("JOINT-SINGLE"))
+    out["branches"] = {"guard_failure": g_ok, "utility_fallback": u_ok, "technical_failure": t_ok,
+                       "constrained_fit_infeasible": r_inf, "fit_feasible_fallback_first": r5,
+                       "infeasible_fit_outside_c_pair_pool": r_pool}
+    # P* may be a control: with all constrained arms worse, P* = the strongest calibrated D1 control
+    worse = (lambda v: {k: {**x, "auc": {**x["auc"], "pair": 0.90}} for k, x in v.items()})
+    Sc = my_selection_lra(synthetic_bank_lra({L_k(a_): worse for a_ in LCR_K})[0])
+    out["p_star_may_be_control"] = Sc["resolved"]["P*"] == L_d1("JOINT", 0.08) and \
+        Sc["statuses"]["P*"]["construction_of_config"] == "calibrated"
+    # CLASS stays in the T* pool even when it is utility-feasible and strongest (no removal to manufacture a win)
+    cls_good = (lambda v: {k: {**x, "util": UU, "auc": {"v1": 0.70, "v2": 0.70, "pair": 0.739}} for k, x in v.items()})
+    Scl = my_selection_lra(synthetic_bank_lra({L_d0("CLASS"): cls_good})[0])
+    out["class_kept_in_T_pool"] = Scl["resolved"]["T*"] == L_d0("CLASS")
+    ok = (out["expected_roles"] and out["pool_sizes_ok"] and out["raw_j_fare_leace_not_in_T_or_P"] and
+          out["reference_training_truthful"] and out["d1_privacy_not_task_only"] and out["no_headroom_buffer"] and
+          out["d0_large_lambda_ineligible_d1_eligible"] and out["every_seed_rule"] and all(out["ordering"].values())
+          and all(out["branches"].values()) and out["p_star_may_be_control"] and out["class_kept_in_T_pool"])
+    return res("PASS" if ok else "FAIL", **out)
+
+
+def selftest_repairs_lra():
+    """The section-18 repair branches, each as an own rule with the defective variant shown to differ."""
+    out = {}
+    base, _ = synthetic_bank_lra()
+    # R1: technical vs CONSTRAINED_FIT_INFEASIBLE, every way a record can be broken
+    broken = {"missing": None, "unreadable": {"record_ok": False, "status": "FEASIBLE", "deployed_feasible": True},
+              "incomplete": {"record_ok": True, "status": None, "deployed_feasible": None},
+              "hash_invalid": {"record_ok": False, "status": "INFEASIBLE", "deployed_feasible": False},
+              "status_vs_deployed_inconsistent": {"record_ok": True, "status": "FEASIBLE", "deployed_feasible": False},
+              "unknown_status": {"record_ok": True, "status": "TIMEOUT", "deployed_feasible": False}}
+    r1 = {}
+    for name, rec in broken.items():
+        rows_b, _ = synthetic_bank_lra({L_k(a_): (lambda v, rec=rec: {k: {**x, "fit": rec} for k, x in v.items()})
+                                        for a_ in LCR_K})
+        Sb = my_selection_lra(rows_b)
+        r1[name] = (Sb["statuses"]["N*"]["status"] == "INVALID_NOMINEE" and
+                    Sb["statuses"]["N*"]["reason"] == "FIT_OR_ADMISSION_FAILURE" and
+                    Sb["statuses"]["J*"]["status"] == "INVALID_NOMINEE" and
+                    Sb["statuses"]["C_pair*"]["status"] == "INVALID_COMPARATOR")
+    rows_i, _ = synthetic_bank_lra({L_k(a_): (lambda v: {k: {**x, "fit": _kfit("INFEASIBLE")} for k, x in v.items()})
+                                    for a_ in LCR_K})
+    Si = my_selection_lra(rows_i)
+    r1["valid_infeasible_is_selection_outcome"] = (Si["statuses"]["N*"]["status"] == "NO_ELIGIBLE_NOMINEE" and
+                                                   Si["statuses"]["N*"]["reason"] == "CONSTRAINED_FIT_INFEASIBLE" and
+                                                   Si["statuses"]["C_pair*"]["status"] == "NOMINEE")
+    out["R1_technical_vs_infeasible"] = r1
+    # R2 / R9: one real representative; the defective independent-minima rule invents a pairing
+    trio = [L_d1("JOINT", 0.08), L_w("LOCAL", 0.04), L_k("JOINT-PAIR")]
+    rows_a, _ = synthetic_bank_lra(_alias(trio[:2], L_k("JOINT-PAIR")))
+    al = lra_alias_record(rows_a, L_k("JOINT-PAIR"), pool=lra_role_lists()["P*"])
+    bad = lra_alias_record(rows_a, L_k("JOINT-PAIR"), pool=lra_role_lists()["P*"], invent_pairing=True)
+    out["R2_real_representative"] = {
+        "full": al["full"], "representative": al["representative"],
+        "named": (al["representative_family"], al["representative_construction"]),
+        "ok": (al["representative"] == L_d1("JOINT", 0.08) and al["representative_construction"] == "calibrated" and
+               al["representative_family"] == "JOINT" and lra_alias_is_real(rows_a, al) and
+               (bad["representative_family"], bad["representative_construction"]) == ("LOCAL", "calibrated") and
+               not lra_alias_is_real(rows_a, bad))}
+    # R3: identical_to_untrained (a weighted fit that accepted no move from C-TASK)
+    rows_u, _ = synthetic_bank_lra(_alias([L_w("JOINT", 0.01)], L_CTASK))
+    alu = lra_alias_record(rows_u, L_w("JOINT", 0.01), pool=lra_role_lists()["P*"])
+    out["R3_identical_to_untrained"] = {"identical_to_untrained": alu["identical_to_untrained"],
+                                        "privacy_training_credited": alu["privacy_training_credited"],
+                                        "ok": alu["identical_to_untrained"] == [L_CTASK] and
+                                        not alu["privacy_training_credited"] and alu["representative"] == L_w("JOINT", 0.01)}
+    # R4: missing guard comparator -> INVALID but the fixed descriptive fallback remains on the scoring list
+    bad_util = (lambda v: {k: {**x, "util": {1: x["util"][1], 2: {**x["util"][2], "logloss": x["util"][2]["logloss"] + 0.05}}}
+                           for k, x in v.items()})
+    rows_m, _ = synthetic_bank_lra({c_: bad_util for c_ in lra_role_lists()["T*"]})
+    Sm = my_selection_lra(rows_m)
+    Sd = my_selection_lra(rows_m, drop_missing_guard_fallback=True)
+    keep = all(Sm["statuses"][x]["status"] == "INVALID_NOMINEE" and Sm["statuses"][x]["reason"] ==
+               "MISSING_GUARD_COMPARATOR" and Sm["statuses"][x].get("descriptive_config") and
+               Sm["statuses"][x]["fallback_rank_status"] == "INVALID_MISSING_GUARD_COMPARATOR" and
+               Sm["statuses"][x]["fallback_shortfalls"]["shortfall_guard"] is None for x in ("P*", "N*", "J*"))
+    sl, sl_bad = lra_scoring_list(Sm), lra_scoring_list(Sd)
+    out["R4_missing_guard_fallback"] = {"statuses": {x: (Sm["statuses"][x]["status"], Sm["statuses"][x].get("reason"),
+                                                         Sm["statuses"][x].get("descriptive_config"))
+                                                     for x in ("T*", "P*", "N*", "J*")},
+                                        "defect_drops_roles": sl_bad["missing_roles"],
+                                        "ok": keep and not sl["missing_roles"] and set(sl_bad["missing_roles"]) >=
+                                        {"P*", "N*", "J*"}}
+    # R6: state counts
+    r6 = {}
+    for name, val in (("float", 280.0), ("inf", math.inf), ("none", None), ("zero", 0), ("bool", True)):
+        rws, _ = synthetic_bank_lra({L_k("LOCAL"): (lambda v, val=val: {k: {**x, "states": val} for k, x in v.items()})})
+        r6[f"code_{name}_is_technical"] = (not rws[L_k("LOCAL")]["valid"] and
+                                          rws[L_k("LOCAL")]["invalid_reason"] == "FIT_OR_ADMISSION_FAILURE")
+    rws, _ = synthetic_bank_lra({"SRC|U": lambda v: {k: {**x, "states": 5} for k, x in v.items()}})
+    r6["continuous_with_count_is_technical"] = not rws["SRC|U"]["valid"]
+    r6["code_count_finite_in_json"] = base[L_k("LOCAL")]["states_json"] == [280, 280, 280]
+    r6["continuous_null_in_json"] = base["SRC|U"]["states_json"] is None
+    out["R6_state_counts"] = r6
+    # R7 / R11: role aliases by release identity on all seeds, comparators and Q included; same tokens + other decoder
+    #           is not an alias; canonical renaming is informational
+    rows7, _ = synthetic_bank_lra(_alias([L_d0("DIRECT-TASK")], L_CTASK))
+    res7 = {"T*": L_CTASK, "Q": L_d0("DIRECT-TASK"), "P*": L_k("JOINT-PAIR"), "J*": L_k("JOINT-PAIR"),
+            "C*": L_d1("JOINT", 0.08), "C_pair*": L_d1("JOINT", 0.08)}
+    ra7 = lra_role_aliases(rows7, res7)
+    rb7 = lra_role_aliases(rows7, res7, by_config_id=True)
+    ren = {L_d1("SEQ-12", 0.01): lambda v: {k: {**x, "canon_fp": f"tok:{L_d0('SEQ-12', 0.01)}:s{k}"} for k, x in v.items()}}
+    rows_r, _ = synthetic_bank_lra(ren)
+    rr = lra_role_aliases(rows_r, {"X": L_d0("SEQ-12", 0.01), "Y": L_d1("SEQ-12", 0.01)})
+    al_d01 = lra_alias_record(base, L_d1("SEQ-12", 0.01))
+    partial = {L_w("SEQ-21", 0.06): lambda v: {k: ({**x, "pair_fp": f"rel:{L_k('SEQ-21')}:s{k}"} if k == 0 else x)
+                                               for k, x in v.items()}}
+    rows_p, _ = synthetic_bank_lra(partial)
+    rp = lra_role_aliases(rows_p, {"N*": L_k("SEQ-21"), "C*": L_w("SEQ-21", 0.06)})
+    out["R7_R11_role_aliases"] = {
+        "exact": ra7["exact_release_aliases"], "by_id_defect": rb7["exact_release_aliases"],
+        "ok": (("Q", "T*") in ra7["exact_release_aliases"] and ("J*", "P*") in ra7["exact_release_aliases"] and
+               ("C*", "C_pair*") in ra7["exact_release_aliases"] and ("Q", "T*") not in rb7["exact_release_aliases"] and
+               rr["exact_release_aliases"] == [] and rr["canonical_renaming_equivalence"] == [("X", "Y")] and
+               L_d0("SEQ-12", 0.01) in al_d01["same_tokens_other_decoder"] and L_d0("SEQ-12", 0.01) not in al_d01["full"]
+               and rp["exact_release_aliases"] == [])}
+    # R10: gate wiring; R13: assessment refusal; R14: display
+    st_ = my_selection_lra(base)["statuses"]
+    eps = synthetic_endpoints_lcr()
+    refused = []
+    for bad_gate in ("GATE_MET", "GATE_NOT_MET", "MECHANISM_GATE_NOT_MET", True, False, "PASS", "engineering_ready", 1):
+        try:
+            lra_labels(st_, eps, bad_gate)
+            refused.append(False)
+        except ValueError:
+            refused.append(True)
+    blocked = lra_labels(st_, eps, "ENGINEERING_BLOCKED")
+    nogate = lra_labels(st_, eps, None)
+    prefit = lra_labels(st_, eps, "ENGINEERING_READY", prefit_blocker="BUDGET_CEILING_EXCEEDED_IN_TIMING")
+    both = lra_labels(st_, eps, "ENGINEERING_BLOCKED", prefit_blocker="ADMISSION_PARITY_FAILURE")
+    ready = lra_labels(st_, eps, "ENGINEERING_READY")
+    out["R10_gate_wiring"] = {
+        "refused_values": refused, "blocked": blocked["label"], "no_gate": nogate["label"], "prefit": prefit["label"],
+        "ok": (all(refused) and blocked["label"] == "ENGINEERING_BLOCKED_NOT_RUN" and
+               set(blocked["claims"].values()) == {"NOT_RUN"} and blocked["q"] == "NOT_RUN" and
+               nogate["label"] == "INCOMPLETE_NOT_RUN" and prefit["label"] == "INCOMPLETE_NOT_RUN" and
+               prefit["not_run_reason"] == "BUDGET_CEILING_EXCEEDED_IN_TIMING" and
+               both["label"] == "ENGINEERING_BLOCKED_NOT_RUN" and ready["adult_claims_run"] and
+               "MECHANISM" not in json.dumps(ready))}
+    ref = {}
+    good = dict(technical_valid=True, controls_ok=True, admission_ok=True, gate="ENGINEERING_READY",
+                science_lock_ok=True, evaluation_lock_ok=True)
+    ref["all_good_opens"] = lra_assessment_open_ok(**good)[0]
+    for k_, v_ in (("technical_valid", False), ("controls_ok", False), ("admission_ok", False),
+                   ("gate", "ENGINEERING_BLOCKED"), ("gate", "GATE_MET"), ("science_lock_ok", False),
+                   ("evaluation_lock_ok", False)):
+        ref[f"refuses_{k_}={v_}"] = not lra_assessment_open_ok(**{**good, k_: v_})[0]
+    ref["no_acceptance_escape_defect_differs"] = (not lra_assessment_open_ok(**{**good, "technical_valid": False})[0]) \
+        and lra_assessment_open_ok(**{**good, "technical_valid": False}, accept_technical_failure=True)[0]
+    out["R13_assessment_refusal"] = ref
+    qinc = lra_labels(st_, synthetic_endpoints_lcr(nonfinite_id="P13", pass_claims=("Q",)), "ENGINEERING_READY")
+    glob = lra_labels(st_, synthetic_endpoints_lcr(pass_claims=("Q",)), "ENGINEERING_READY", technical_valid=False)
+    out["R14_precedence_display"] = {
+        "q_only_with_incomplete_B": qinc["label_with_statuses"], "global_failure_with_Q_pass": glob["label_with_statuses"],
+        "ok": (qinc["label"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" and
+               "B=INCOMPLETE_OR_INVALID" in qinc["label_with_statuses"] and qinc["incomplete_displayed"] == ["B"] and
+               glob["label"] == "INCOMPLETE_OR_INVALID" and "Q=PASS" in glob["label_with_statuses"])}
+    flat = lambda d_: all(v for v in d_.values() if isinstance(v, bool))  # noqa: E731
+    ok = (all(r1.values()) and out["R2_real_representative"]["ok"] and out["R3_identical_to_untrained"]["ok"] and
+          out["R4_missing_guard_fallback"]["ok"] and all(r6.values()) and out["R7_R11_role_aliases"]["ok"] and
+          out["R10_gate_wiring"]["ok"] and flat(ref) and out["R14_precedence_display"]["ok"])
+    return res("PASS" if ok else "FAIL", **out)
+
+
+def selftest_labels_lra():
+    rows, _ = synthetic_bank_lra()
+    st = my_selection_lra(rows)["statuses"]
+    G = "ENGINEERING_READY"
+    out = {}
+    z = NormalDist().inv_cdf(1 - 0.05 / 74)
+    out["z"] = {"value": z, "equals_registered": z == Z_LRA, "slots": sum(len(v) for v in LCR_SLOTS.values()),
+                "z_primary_fn": z_primary() == z, "boot_seed": BOOT_SEED, "boot_reps": B_BOOT}
+    lab = lra_labels(st, synthetic_endpoints_lcr(), G)
+    a_only = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("A",)), G)["label"]
+    one = lra_labels(st, synthetic_endpoints_lcr(fail_id="P05", pass_claims=("A", "Q")), G)
+    viol = lra_labels(st, synthetic_endpoints_lcr(fail_id="P07", how="violation", pass_claims=("A",)), G)
+    nf = lra_labels(st, synthetic_endpoints_lcr(nonfinite_id="P13"), G)
+    qonly = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("Q",)), G)["label"]
+    none_ = lra_labels(st, synthetic_endpoints_lcr(pass_claims=()), G)
+    nom_none = {**st, "N*": {"status": "NO_ELIGIBLE_NOMINEE", "config": None, "reason": "ORDINARY_UTILITY_FAILURE"}}
+    nn = lra_labels(nom_none, synthetic_endpoints_lcr(pass_claims=("A",)), G)
+    b_only = lra_labels(st, synthetic_endpoints_lcr(pass_claims=("B",)), G)
+    missing_slot = [e for e in synthetic_endpoints_lcr() if e["id"] != "P30"]
+    ms = lra_labels(st, missing_slot, G)
+    q_noelig = {**st, "Q": {"status": "NO_ELIGIBLE_NOMINEE", "config": None, "descriptive_config": L_Q}}
+    qn = lra_labels(q_noelig, synthetic_endpoints_lcr(pass_claims=("Q",)), G)
+    ctl = lra_labels(st, synthetic_endpoints_lcr(), G, control_ok={"C": False})
+    out.update({"all_pass": lab["label"], "A_only": a_only,
+                "A_one_precision_failure": (one["claims"]["A"], one["root_causes"]["A"], one["label"]),
+                "A_measured_violation": (viol["claims"]["A"], viol["root_causes"]["A"]),
+                "B_nonfinite": (nf["claims"]["B"], nf["root_causes"]["B"], nf["label"]), "Q_only": qonly,
+                "none": none_["label"], "B_no_nominee": (nn["claims"]["B"], nn["label"]),
+                "B_only": b_only["label"], "missing_slot_C": (ms["claims"]["C"], ms["root_causes"]["C"]),
+                "Q_no_eligible": (qn["q"], qn["label"]), "control_failure_C": (ctl["claims"]["C"], ctl["label"])})
+    rep = "JOINT-PAIR; constrained"
+    ok = (out["z"]["equals_registered"] and out["z"]["slots"] == 37 and out["z"]["z_primary_fn"] and BOOT_SEED == 20261010
+          and lab["label"].startswith(f"PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET ({rep})")
+          and "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED" in lab["label"] and "PAIRED_JOINT_INCREMENT_ESTABLISHED" in lab["label"]
+          and a_only == f"PRIVACY_RELEASE_DEVELOPMENT_CRITERION_MET ({rep})"
+          and one["claims"]["A"] == "NOT_ESTABLISHED" and one["root_causes"]["A"] == "ASSESSMENT_PRECISION_FAILURE"
+          and one["label"] == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION"
+          and viol["root_causes"]["A"] == "MEASURED_VIOLATION_SUPPORTED_BY_BOUND"
+          and nf["claims"]["B"] == "INCOMPLETE_OR_INVALID" and "B" in nf["incomplete_displayed"]
+          and "B=INCOMPLETE_OR_INVALID" in nf["label_with_statuses"]
+          and qonly == "CONFIDENCE_FEASIBILITY_ESTABLISHED_NO_METHOD_CRITERION" and none_["label"] ==
+          "EXPERIMENTAL_NO_ADVANTAGE" and nn["claims"]["B"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE"
+          and b_only["label"] == "CONSTRAINED_SEARCH_INCREMENT_ESTABLISHED"          # a passing B does not need A
+          and ms["claims"]["C"] == "INCOMPLETE_OR_INVALID" and ms["root_causes"]["C"] == "MISSING_SLOTS"
+          and qn["q"] == "NOT_ESTABLISHED_NO_ELIGIBLE_NOMINEE" and qn["label"] == "EXPERIMENTAL_NO_ADVANTAGE"
+          and ctl["claims"]["C"] == "INCOMPLETE_OR_INVALID" and "PAIRED_JOINT" not in ctl["label"])
+    return res("PASS" if ok else "FAIL", **out)
+
+
+def selftest_defects_lra(rng):
+    """The 15 injected defects of prompt section 14 (in the prompt's order), each CAUGHT by the verifier's own check.
+    Decoder / engine / attacker defects reuse the ported own checks; the selection, comparator and composition defects
+    run against the lra rules."""
+    base = selftest_defects_lcr(rng)          # own decoder / engine / attacker checks (ported)
+    out = {}
+    for k_ in ("omitted_token_identities", "clean_output_bypass", "pair_misalignment", "wrong_label_counts",
+               "stale_cache_key", "omitted_prior", "class_constraint_omitted", "proxy_kl_for_true_logloss",
+               "missing_brier_constraint", "temporary_partner_required_feasible", "infeasible_paired_update"):
+        out[k_] = base[k_]
+    # reversed AUC: orientation and best / worst on the lra roles
+    ys = rng.integers(0, 2, 600)
+    sc = rng.normal(size=600) - 0.6 * ys
+    a_ = my_auc(ys, sc)
+    rows, rin = synthetic_bank_lra()
+    rev_role = my_selection_lra(rows, reverse=True)["resolved"]["P*"] != my_selection_lra(rows)["resolved"]["P*"]
+    flipped = max(a_, 1 - a_)
+    out["reversed_auc"] = {"caught": bool(a_ < 0.5 and abs(my_auc(ys, -sc) - (1 - a_)) < 1e-12 and flipped != a_
+                                          and rev_role), "auc": a_, "flipped_would_report": flipped}
+    # mean-seed eligibility (lra row)
+
+    def one_bad_seed(v):
+        v = {k: dict(x) for k, x in v.items()}
+        for k in SEEDS:
+            v[k] = _lra_seed(L_k("JOINT-PAIR"), k, {**_seed((0.0005, 0.0125 if k == 1 else 0.0020), (0.0003, 0.002),
+                                                           (0.760, 0.770, 0.800), 300.0)})
+        return v
+    _, rin9 = synthetic_bank_lra({L_k("JOINT-PAIR"): one_bad_seed})
+    right = lra_config_row(L_k("JOINT-PAIR"), rin9[L_k("JOINT-PAIR")])
+    wrong = lra_config_row(L_k("JOINT-PAIR"), rin9[L_k("JOINT-PAIR")], seed_average=True)
+    out["mean_seed_eligibility"] = {"caught": (not right["ordinary_eligible"]) and wrong["ordinary_eligible"]}
+    # missing comparator: every clause passing but no valid comparator is never PASS
+    stt = my_selection_lra(rows)["statuses"]
+    passing = {sid: "PASS" for sid in LCR_SLOTS["B"]}
+    mc = [lra_claim_status(stt["N*"], c_, passing, "B")[0] for c_ in
+          ({"status": "INVALID_COMPARATOR", "config": None}, {"status": "NO_ELIGIBLE_COMPARATOR", "config": None}, None)]
+    out["missing_comparator"] = {"caught": all(x == "INCOMPLETE_OR_INVALID" for x in mc) and
+                                 lra_claim_status(stt["N*"], stt["C*"], passing, "B")[0] == "PASS", "statuses": mc}
+    # missing source composition winner
+    bank = lra_code_ids()
+    cand = [(c_, 0.80 + (0.07 if c_ == L_k("JOINT-PAIR") else 0.0)) for c_ in bank]
+    w_full = compose_first_better(0.85, cand)[0]
+    w_miss = compose_first_better(0.85, [x for x in cand if x[0] != w_full])[0]
+    out["missing_source_composition_winner"] = {
+        "caught": bool(lra_composition_closure_ok(bank) and not lra_composition_closure_ok([c_ for c_ in bank
+                                                                                            if c_ != w_full])
+                       and w_full != w_miss), "bank_size": len(bank), "winner": w_full}
+    order = ["omitted_token_identities", "clean_output_bypass", "reversed_auc", "pair_misalignment", "wrong_label_counts",
+             "stale_cache_key", "omitted_prior", "class_constraint_omitted", "proxy_kl_for_true_logloss",
+             "missing_brier_constraint", "temporary_partner_required_feasible", "infeasible_paired_update",
+             "mean_seed_eligibility", "missing_comparator", "missing_source_composition_winner"]
+    out = {k_: out[k_] for k_ in order}
+    ok = len(out) == 15 and all(v["caught"] for v in out.values()) and base.get("baseline_entry_passes")
+    return res("PASS" if ok else "FAIL", defects_tested=len(out), caught=sum(bool(v["caught"]) for v in out.values()),
+               baseline_entry_passes=bool(base.get("baseline_entry_passes")), **out)
+
+
 # ================================================================================================ lcr PHASE 1: source admission
 STATEMENT_LCR = ("This study is motivated by opened Adult development results from qpc and cbp and the earlier PCRL lineage. "
                  "All real-data roles have been used historically. This is exploratory development evidence. Nominal "
@@ -8703,6 +9131,7 @@ def nw_corner(m1, m2):
 
 
 def rebuild_atoms(fam):
+    _require_fixture_unlock()
     """Own rebuild of the atoms from the explicit tables: (f1, f2) groups of pair_counts rows, SEX split by
     sex_num / sex_den, per-recipient label margins g * labels / label_den (exact integers), NW-corner joint."""
     R = {i: fam["recipients"][str(i)] for i in (1, 2)}
@@ -8770,6 +9199,7 @@ def law_static_properties(fam, atoms):
 
 
 def law_of_family(fam):
+    _require_fixture_unlock()
     atoms = []
     R = {i: fam["recipients"][str(i)] for i in (1, 2)}
     for f1, f2, s_, y1, y2, c_ in fam["atoms"]:
@@ -8919,8 +9349,7 @@ def own_direct_key(law: Law, i):
 
 def check_fixture_laws():
     """C7 law integrity and own exhaustive tables / references for the four registered laws (before FIXTURE_GATE)."""
-    p = RES / "FIXTURE_LAWS.json"
-    body = jload(p)
+    body = read_fixture_laws_for_computation()
     out, fails, tabs = {"laws_sha256": body.get("laws_sha256")}, [], {}
     out["hash_ok"] = registered_laws_hash(body) == body.get("laws_sha256")
     rule = jload(RES / "FIXTURE_GATE_RULE.json")
@@ -9220,7 +9649,7 @@ def check_fixture_binding():
     out["laws_file_sha256"] = sha_file(RES / "FIXTURE_LAWS.json")
     out["laws_equal_lock_documents"] = _lock_doc_ok("FIXTURE_LOCK", "FIXTURE_LAWS.json")
     out["rule_equals_lock_documents"] = _lock_doc_ok("FIXTURE_LOCK", "FIXTURE_GATE_RULE.json")
-    laws = jload(RES / "FIXTURE_LAWS.json")
+    laws = read_fixture_laws_for_computation()
     rule = jload(RES / "FIXTURE_GATE_RULE.json")
     out["laws_hash_rule_ok"] = registered_laws_hash(laws) == laws["laws_sha256"] == rule.get("laws_sha256")
     out["laws_unchanged_since_dd1cf23"] = git_show_bytes("dd1cf2373", f"{REL_RES}/FIXTURE_LAWS.json") == \
@@ -10926,7 +11355,9 @@ def selftests():
     # ---- import guard (also for unpickling a project class reference)
     _IN_SELFTEST[0] = True
     tried = []
-    for m in ("lcr", "lcr.run", "lcr.decoder", "lcr.mapper", "lcr.fixtures", "lcr.select", "lcr.audit", "lcr.sema",
+    for m in ("lra", "lra.run", "lra.decoder", "lra.mapper", "lra.fixtures", "lra.select", "lra.family", "lra.audit",
+              "lra.sema", "lra.lock", "lra.deploy", "lra.admit", "lra.assess", "lra.infer", "lra.eval_lock",
+              "lcr", "lcr.run", "lcr.decoder", "lcr.mapper", "lcr.fixtures", "lcr.select", "lcr.audit", "lcr.sema",
               "lcr.lock", "lcr.deploy", "cbp", "cbp.run", "cbp.select", "cbp.sema", "cbp.lock", "qpc", "qpc.kmeans",
               "qpc.compress", "qpc.utility", "qpc.sema", "dpc", "dpc.partition", "osf.data", "smf.audit", "rgj.finalize",
               "jcv.train", "pnx", "oar.study", "stored_model_eval.pilot_infer", "pcrl"):
@@ -10938,7 +11369,8 @@ def selftests():
     unp = {}
     for blob, nm in ((b"cqpc.kmeans\nfit\n.", "qpc.kmeans"), (b"cdpc.partition\nFinePartition\n.", "dpc.partition"),
                      (b"ccbp.select\nselect_all\n.", "cbp.select"), (b"clcr.decoder\nsolve\n.", "lcr.decoder"),
-                     (b"clcr.mapper\nPolicyPair\n.", "lcr.mapper")):
+                     (b"clcr.mapper\nPolicyPair\n.", "lcr.mapper"), (b"clra.decoder\nsolve\n.", "lra.decoder"),
+                     (b"clra.mapper\nPolicyPair\n.", "lra.mapper")):
         try:
             pickle.loads(blob)
             unp[nm] = False
@@ -11176,19 +11608,29 @@ def selftests():
     sk_ok = abs(u["logloss"] - sk_log_loss(y, Pu, labels=list(range(6)))) < 1e-12 and \
         abs(u["brier"] - float(np.mean(np.sum((Pu - Y) ** 2, 1)))) < 1e-15
     out["utility_sklearn_parity"] = res("PASS" if sk_ok else "FAIL", sklearn_parity=bool(sk_ok))
-    out["cbp_selection_rules_retained"] = selftest_selection()      # the adapted cbp machinery still behaves
-    out["cbp_label_truth_table_retained"] = selftest_labels()
-    out["cbp_deliberate_defects_retained"] = selftest_defects(rng)
-    # ---- lcr (prompt sections 6-14)
+    # ---- lra (prompt sections 6-14 and 18); the cbp headroom / C_rate / C_global machinery is NOT exercised (stale)
     rl = np.random.default_rng(20261007)
     t_ = time.time()
-    out["lcr_d1_decoder"] = selftest_decoder(rl)
-    out["lcr_fixture_oracle"] = selftest_oracle(rl)
-    out["lcr_engine_incremental"] = selftest_engine(rl)
-    out["lcr_selection_rules"] = selftest_selection_lcr()
-    out["lcr_label_truth_table"] = selftest_labels_lcr()
-    out["lcr_deliberate_defects"] = selftest_defects_lcr(rl)
-    out["lcr_selftest_wall_s"] = res("INFO", wall_s=round(time.time() - t_, 2))
+    out["d1_decoder"] = selftest_decoder(rl)
+    out["oracle_on_own_synthetic_laws"] = selftest_oracle(rl)
+    out["engine_incremental"] = selftest_engine(rl)
+    out["lra_selection_rules"] = selftest_selection_lra()
+    out["lra_label_truth_table"] = selftest_labels_lra()
+    out["lra_section18_repairs"] = selftest_repairs_lra()
+    out["lra_injected_defects"] = selftest_defects_lra(np.random.default_rng(20261007))
+    refused = []
+    for fn_, arg_ in ((read_fixture_laws_for_computation, ()), (law_of_family, ({},)), (rebuild_atoms, ({},)),
+                      (check_fixture_laws, ())):
+        try:
+            fn_(*arg_)
+            refused.append(False)
+        except RuntimeError as e_:
+            refused.append("CORRECTNESS_LOCK" in str(e_))
+    out["fixture_law_exposure_guard"] = res("PASS" if all(refused) and not FIXTURE_LAWS_ALLOWED[0] else "FAIL",
+                                            refused=refused, allowed_flag=bool(FIXTURE_LAWS_ALLOWED[0]),
+                                            rule="every computation path on the pinned laws refuses before the pushed "
+                                                 "CORRECTNESS_LOCK")
+    out["lra_selftest_wall_s"] = res("INFO", wall_s=round(time.time() - t_, 2))
     # ---- inference constants, AUC, group bootstrap
     zc = z_primary()
     ys = rng.integers(0, 2, 800)
@@ -11241,6 +11683,399 @@ def walk_flags(checks):
     return counts_all, flagged
 
 
+# ================================================================================================ lra PHASE 0: admission replay
+STATEMENT_LRA = ("This study is motivated by opened Adult development results from qpc, cbp and the earlier PCRL lineage, "
+                 "plus the opened known-law fixture results of lcr. lcr did not fit or assess this Adult method. All "
+                 "real-data roles have been used historically. This is exploratory development evidence. Nominal "
+                 "intervals condition on fitted artifacts and do not correct for the adaptive research history. A masked "
+                 "assessment prevents additional selection leakage but does not make the rows fresh. No confirmation "
+                 "population is opened.")                         # prompt section 4, verbatim
+PINNED_TOPS = ("lcr", "cbp", "qpc", "dpc", "osf", "smf", "rgj", "jcv", "stored_model_eval", "oar")
+
+
+def _json_strict(raw: bytes):
+    """Parse JSON refusing NaN / Infinity (new lra JSON must be finite-or-null; prompt section 5)."""
+    bad = []
+
+    def pc(x):
+        bad.append(x)
+        return None
+    obj = json.loads(raw, parse_constant=pc)
+    return obj, bad
+
+
+def check_pins_lra():
+    """Input pin; branch base = the lcr verified final source commit; SOURCE_INDEX (each pinned file equal to the lcr-tip
+    blob and to the worktree; source result hashes at the lcr tip); no pinned source package edited on this branch;
+    SOURCE_ADMISSION_LOCK (committed, byte-identical on origin, code hashes at its first commit, the verbatim
+    section-4 statement, input pins, budget, start time); the lcr evidence commit resolves to its full SHA."""
+    out, fails = {}, []
+    out["input_sha256_ok"] = sha_file(SRC) == SRC_SHA
+    out["branch_base_is_lcr_tip"] = git("merge-base", "HEAD", LCR_TIP) == LCR_TIP
+    out["lcr_evidence_full_sha"] = git("rev-parse", "418e529") == LCR_EVIDENCE
+    out["lcr_evidence_ancestor_of_tip"] = git_ok("merge-base", "--is-ancestor", LCR_EVIDENCE, LCR_TIP)
+    si = jload(RES / "SOURCE_INDEX.json") if (RES / "SOURCE_INDEX.json").exists() else None
+    if si is None:
+        fails.append("SOURCE_INDEX.json absent")
+    else:
+        bad = []
+        for f_, v in (si.get("files") or {}).items():
+            blob = git_show_bytes(LCR_TIP, f_)
+            own = sha_file(WT / f_) if (WT / f_).exists() else None
+            if blob is None or hashlib.sha256(blob).hexdigest() != v.get("sha256") or own != v.get("sha256"):
+                bad.append(f_)
+        rbad = []
+        for f_, h in (si.get("source_results_hashes") or {}).items():
+            rel = f_ if f_.startswith("results/") else f"results/{f_}"
+            blob = git_show_bytes(LCR_TIP, rel)
+            if blob is None or hashlib.sha256(blob).hexdigest() != (h.get("sha256") if isinstance(h, dict) else h):
+                rbad.append(f_)
+        out.update({"source_index_files": len(si.get("files") or {}), "source_index_mismatches": bad,
+                    "source_results_hashes": len(si.get("source_results_hashes") or {}),
+                    "source_results_mismatches_at_lcr_tip": rbad,
+                    "source_index_pins": {k_: v_ == {"lcr_tip": LCR_TIP, "lcr_evidence": LCR_EVIDENCE,
+                                                     "cbp_tip": CBP_TIP}.get(k_, v_)
+                                          for k_, v_ in (si.get("source") or {}).items()}})
+        if bad or rbad or not si.get("all_equal_to_source_tip") or not all(out["source_index_pins"].values()):
+            fails.append("SOURCE_INDEX")
+    edited = []
+    for top in PINNED_TOPS:
+        for p in sorted((WT / top).rglob("*.py")) if (WT / top).exists() else []:
+            if "__pycache__" in p.parts:
+                continue
+            rel = str(p.relative_to(WT))
+            blob = git_show_bytes(LCR_TIP, rel)
+            if blob is None or blob != p.read_bytes():
+                edited.append(rel)
+    out["pinned_packages_edited_in_this_branch"] = edited
+    if edited:
+        fails.append("pinned package edited")
+    lcr_res_changed = git("diff", "--name-only", LCR_TIP, "HEAD", "--", LCR_REL) or ""
+    out["lcr_results_changed_on_branch"] = [x for x in lcr_res_changed.splitlines() if x]
+    if out["lcr_results_changed_on_branch"]:
+        fails.append("lcr results edited")
+    sl = RES / "SOURCE_ADMISSION_LOCK.json"
+    if not sl.exists():
+        fails.append("SOURCE_ADMISSION_LOCK absent")
+    else:
+        L_ = jload(sl)
+        rel = f"{REL_RES}/SOURCE_ADMISSION_LOCK.json"
+        git_ok("fetch", "-q", "origin", BRANCH)
+        shown = git_show_bytes(f"origin/{BRANCH}", rel)
+        commits = [l_.split("|") for l_ in (git("log", "--format=%H|%cI", "--", rel) or "").splitlines() if l_]
+        c0 = commits[-1][0] if commits else None
+        mism = [f_ for f_, h in (L_.get("code_files") or {}).items()
+                if (lambda b: b is None or hashlib.sha256(b).hexdigest() != h)(git_show_bytes(c0, f_) if c0 else None)]
+        b = L_.get("budget") or {}
+        inp = L_.get("inputs") or {}
+        req = ("lra/data.py", "lra/admit.py", "lra/run.py")
+        sa = {"committed": bool(c0), "versions": len(commits),
+              "on_origin_byte_identical": shown is not None and shown == sl.read_bytes(), "first_commit": c0,
+              "first_push_time": first_remote(c0, remote_reflog()) if c0 else None,
+              "code_files": len(L_.get("code_files") or {}), "code_files_differing_at_lock_commit": mism,
+              "admission_code_locked": all(f_ in (L_.get("code_files") or {}) for f_ in req),
+              "admission_code_equal_now": all(sha_file(WT / f_) == (L_.get("code_files") or {}).get(f_) for f_ in req),
+              "statement_equals_prompt": L_.get("statement") == STATEMENT_LRA,
+              "input_pin_ok": inp.get("source_npz_sha256") == SRC_SHA,
+              "evidence_pins_ok": inp.get("source_evidence_commit") == LCR_EVIDENCE and inp.get("source_tip") == LCR_TIP,
+              "budget_ok": (b.get("elapsed_h") == 10 and b.get("cpu_h") == 20 and b.get("heavy_processes_total") == 2 and
+                            b.get("memory_gib") == 8 and b.get("reserve_final_h") == 2 and
+                            b.get("reserve_final_cpu_h") == 4 and b.get("start") == STUDY_START and
+                            b.get("free_disk_gib_min") == 5)}
+        docs = L_.get("documents_sha256") or {}
+        sa["documents_at_lock_commit"] = {d_: (lambda bb: bb is not None and hashlib.sha256(bb).hexdigest() == h)(
+            git_show_bytes(c0, f"{REL_RES}/{d_}") if c0 else None) for d_, h in docs.items()}
+        sa["lock_json_finite"] = not _json_strict(sl.read_bytes())[1]
+        out["source_admission_lock"] = sa
+        if not (sa["committed"] and sa["on_origin_byte_identical"] and not mism and sa["statement_equals_prompt"] and
+                sa["input_pin_ok"] and sa["evidence_pins_ok"] and sa["budget_ok"] and sa["first_push_time"] and
+                sa["admission_code_locked"] and all(sa["documents_at_lock_commit"].values()) and sa["lock_json_finite"]):
+            fails.append("SOURCE_ADMISSION_LOCK")
+    ok = not fails and out["input_sha256_ok"] and out["branch_base_is_lcr_tip"] and out["lcr_evidence_full_sha"]
+    return res("PASS" if ok else "FAIL", failures=fails, **out)
+
+
+def check_custody_lra():
+    """Every lra admitted unit (189), admitted teacher directory (6) and deployment input (2): own SHA-256 of the lra
+    bytes vs (1) the live cbp store, (2) the cbp same-device copy SHA256SUMS, (3) the cbp EVALUATION_LOCK pin at
+    7f3ec67 (scored units), (4) the lcr SOURCE_ADMISSION.json read at the lcr tip 091afc2 (git show), (5) the lcr store
+    and (6) the lcr same-device copy SHA256SUMS; each unit's COMPLETE.json internally consistent; the lra public
+    SOURCE_ADMISSION.json lists exactly the same units and hashes (finite JSON); the private receipt says ADMITTED with
+    6 teacher and 81 code parities and its own lcr-manifest check; no unexpected unit in the admitted namespaces."""
+    sums = copy_sums(CBP_COPY)
+    lsums = copy_sums(LCR_COPY)
+    el = json.loads(git_show_bytes(CBP_TIP, f"{CBP_REL}/EVALUATION_LOCK.json") or b"{}")
+    lockf = {}
+    for s_ in (el.get("seeds") or {}).values():
+        lockf.update(s_.get("unit_file_sha256") or {})
+    lcr_raw = git_show_bytes(LCR_TIP, f"{LCR_REL}/SOURCE_ADMISSION.json") or b"{}"
+    lcr_man = json.loads(lcr_raw)
+    lcr_units = lcr_man.get("units") or {}
+    pub_p = RES / "SOURCE_ADMISSION.json"
+    pub_raw = pub_p.read_bytes() if pub_p.exists() else b"{}"
+    pub_obj, pub_nonfinite = _json_strict(pub_raw)
+    pub = pub_obj.get("units") or {}
+    out, bad = {"units": 0, "files": 0, "kinds": {}}, []
+    expected = [u for k in SEEDS for u in lcr_admitted_units(k)]
+    out["own_expected_units"] = len(expected)
+    for u in expected:
+        ld = UNITS / u
+        if not ld.exists():
+            bad.append(f"{u}: absent from the lra store")
+            continue
+        lh = dir_hashes(ld)
+        ch = dir_hashes(CBP_UNITS / u) if (CBP_UNITS / u).exists() else {}
+        rh = dir_hashes(LCR_UNITS / u) if (LCR_UNITS / u).exists() else {}
+        out["units"] += 1
+        out["files"] += len(lh)
+        kd = u.split("__")[0]
+        out["kinds"][kd] = out["kinds"].get(kd, 0) + 1
+        if lh != ch:
+            bad.append(f"{u}: bytes differ from the live cbp store")
+        if lh != rh:
+            bad.append(f"{u}: bytes differ from the lcr store")
+        for f_, h in lh.items():
+            if sums.get(f"cbp_v1/run/units/{u}/{f_}") != h:
+                bad.append(f"{u}/{f_}: differs from / absent in the cbp copy SHA256SUMS")
+            if lsums and lsums.get(f"lcr_v1/run/units/{u}/{f_}") != h:
+                bad.append(f"{u}/{f_}: differs from / absent in the lcr copy SHA256SUMS")
+        if u in lockf and lockf[u] != {f_: lh.get(f_) for f_ in lockf[u]}:
+            bad.append(f"{u}: differs from the cbp EVALUATION_LOCK pin")
+        if (lcr_units.get(u) or {}).get("files_sha256") != lh:
+            bad.append(f"{u}: differs from / absent in the lcr SOURCE_ADMISSION.json at {LCR_TIP[:7]}")
+        cu, _ = complete_ok(ld)
+        if not (cu["id_ok"] and cu["rehash_ok"] and not cu["unlisted"]):
+            bad.append(f"{u}: COMPLETE.json inconsistent")
+        if (pub.get(u) or {}).get("files_sha256") != lh:
+            bad.append(f"{u}: differs from / absent in the lra SOURCE_ADMISSION.json")
+    out["scored_units_checked_against_cbp_evaluation_lock"] = sum(1 for u in expected if u in lockf)
+    out["lcr_manifest"] = {"sha256": hashlib.sha256(lcr_raw).hexdigest(), "units": len(lcr_units),
+                           "units_equal_own_list": set(lcr_units) == set(expected)}
+    out["lra_public_admission"] = {"units": len(pub), "units_equal_own_list": set(pub) == set(expected),
+                                   "nonfinite_constants": pub_nonfinite,
+                                   "counts": pub_obj.get("counts")}
+    out["lcr_copy_sums_present"] = bool(lsums)
+    if not out["lcr_manifest"]["units_equal_own_list"]:
+        bad.append("lcr manifest unit list differs from the own list")
+    if not out["lra_public_admission"]["units_equal_own_list"] or pub_nonfinite:
+        bad.append("lra SOURCE_ADMISSION.json units / finiteness")
+    adm = {}
+    lcr_adm_man = lcr_man.get("admitted_teacher_dirs") or {}
+    for k in SEEDS:
+        for t in TEACHERS:
+            a_ = f"rel__s{k}__{t}"
+            lh = dir_hashes(ADM / a_) if (ADM / a_).exists() else {}
+            ch = dir_hashes(CBP_ADM / a_) if (CBP_ADM / a_).exists() else {}
+            rh = dir_hashes(LCR_ADM / a_) if (LCR_ADM / a_).exists() else {}
+            m_ = lcr_adm_man.get(a_) if isinstance(lcr_adm_man, dict) else None
+            adm[a_] = {"equal_cbp": lh == ch and bool(lh), "equal_lcr_store": lh == rh,
+                       "equal_cbp_copy_sums": all(sums.get(f"cbp_v1/admitted/{a_}/{f_}") == h for f_, h in lh.items()),
+                       "equal_lcr_manifest": (m_ == lh) if m_ is not None else None}
+            if not (adm[a_]["equal_cbp"] and adm[a_]["equal_lcr_store"] and adm[a_]["equal_cbp_copy_sums"] and
+                    adm[a_]["equal_lcr_manifest"] is not False):
+                bad.append(f"admitted {a_}: differs from the cbp / lcr copies")
+    out["admitted_teacher_dirs"] = adm
+    inp = {}
+    for f_ in ("deploy_input.npz", "schema.json"):
+        p, q = PRIV / "inputs" / f_, CBP_PRIV / "inputs" / f_
+        inp[f_] = p.exists() and q.exists() and sha_file(p) == sha_file(q) == sums.get(f"cbp_v1/inputs/{f_}")
+        if not inp[f_]:
+            bad.append(f"inputs/{f_}")
+    out["inputs_equal"] = inp
+    rc = jload(ADM / "ADMISSION_RECEIPT.json") if (ADM / "ADMISSION_RECEIPT.json").exists() else {}
+    out["receipt_verdict"] = rc.get("verdict")
+    out["receipt_teacher_parity_all_ok"] = len(rc.get("teachers") or {}) == 6 and all(
+        v.get("ok") for v in rc["teachers"].values())
+    out["receipt_code_parity_all_ok"] = len(rc.get("codes") or {}) == 81 and all(v.get("ok") for v in rc["codes"].values())
+    lc = rc.get("lcr_manifest_check") or {}
+    out["receipt_lcr_manifest_check"] = {"ok": lc.get("ok"), "units_checked": lc.get("units_checked"),
+                                         "manifest_sha256_equals_own": lc.get("manifest_sha256") ==
+                                         hashlib.sha256(lcr_raw).hexdigest()}
+    if rc.get("verdict") != "ADMITTED" or not out["receipt_teacher_parity_all_ok"] or \
+            not out["receipt_code_parity_all_ok"] or not lc.get("ok") or \
+            not out["receipt_lcr_manifest_check"]["manifest_sha256_equals_own"]:
+        bad.append("admission receipt")
+    present = sorted(q.name for q in UNITS.iterdir() if q.is_dir()) if UNITS.exists() else []
+    unexpected = [n_ for n_ in present if n_.startswith(("tea__", "ref__", "fine__", "pol__", "inner__")) and
+                  n_ not in set(expected)]
+    out["unexpected_admitted_namespace_units"] = unexpected
+    out["outer_units_present"] = [n_ for n_ in present if n_.startswith("outer__")]
+    if unexpected or out["outer_units_present"]:
+        bad.append(f"unexpected units {(unexpected + out['outer_units_present'])[:5]}")
+    ok = not bad and out["units"] == 189 and out["kinds"] == LCR_ADMITTED_COUNTS
+    return res("PASS" if ok else "FAIL", failures=bad[:30], n_failures=len(bad), **out,
+               rule="own SHA-256 of every file of the lra admitted units vs the live cbp store, the cbp copy SHA256SUMS, "
+                    "the cbp EVALUATION_LOCK at 7f3ec67, the lcr SOURCE_ADMISSION.json at 091afc2, the lcr store and the "
+                    "lcr copy SHA256SUMS")
+
+
+def check_teachers_lra(D: Data, L):
+    """Own forward application of every admitted teacher (lra admitted copy) on own X vs the lra, lcr and cbp tea__
+    units and the admitted release; custody vs the pinned osf MODEL_MANIFEST; head structure and scaler moments. An
+    unchanged teacher forward pass is inference (no fit)."""
+    man = pinned_osf_manifest()
+    entries = {(u["label"], u["seed"], u["unit"]): u for u in man.get("units", [])}
+    out, T = {}, {}
+    tr = D.idx[FIT]
+    for k in SEEDS:
+        for t in TEACHERS:
+            name = f"rel__s{k}__{t}"
+            ld = ADM / name
+            info, fails = {"unit": name}, []
+            entry = entries.get((TEACHER_LABEL[t], k, name))
+            cl, fl = complete_ok(ld)
+            info["custody"] = {"lra_copy_complete": cl,
+                               "files_equal_pinned_osf_manifest": bool(entry) and fl == entry.get("complete_files_sha256")}
+            if not (cl["id_ok"] and cl["rehash_ok"] and not cl["unlisted"] and
+                    info["custody"]["files_equal_pinned_osf_manifest"]):
+                fails.append("custody")
+            mine = own_teacher(ld / "model.pt", [ld / "head_0.joblib", ld / "head_1.joblib"], D.X)
+            zs = {"lra": np.load(UNITS / f"tea__s{k}__{t}" / "teacher.npz", allow_pickle=False),
+                  "lcr": np.load(LCR_UNITS / f"tea__s{k}__{t}" / "teacher.npz", allow_pickle=False),
+                  "cbp": np.load(CBP_UNITS / f"tea__s{k}__{t}" / "teacher.npz", allow_pickle=False)}
+            rel = np.load(ld / "release.npz", allow_pickle=False)
+            trec = jload(UNITS / f"tea__s{k}__{t}" / "record.json")
+            info["row_order_equals_own"] = all(bool(np.array_equal(z["row_id"], D.row_id)) for z in (*zs.values(), rel))
+            if not info["row_order_equals_own"]:
+                fails.append("row order")
+            par = {}
+            for key in ("r1", "r2", "c1", "c2", "p1", "p2", "d1", "d2"):
+                a = mine[key]
+                rk = key if key[0] != "d" else f"hard{key[1]}"
+                par[key] = {f"{n_}_unit": bitwise(a.astype(z[key].dtype), z[key]) for n_, z in zs.items()}
+                par[key]["dtype_equal_lra"] = a.dtype == zs["lra"][key].dtype
+                par[key]["admitted_release"] = (rk not in rel.files) or bitwise(a.astype(rel[rk].dtype), rel[rk])
+                par[key]["max_abs_diff_lra_unit"] = maxdiff(a, zs["lra"][key])
+            info["parity"] = par
+            if not all(v["lra_unit"] and v["lcr_unit"] and v["cbp_unit"] and v["admitted_release"] and v["dtype_equal_lra"]
+                       for v in par.values()):
+                fails.append("forward parity")
+            info["record_model_sha_equals_own"] = trec.get("model_sha256") == sha_file(ld / "model.pt") == fl.get("model.pt")
+            if not info["record_model_sha_equals_own"]:
+                fails.append("teacher binding hash")
+            heads = {}
+            for i in (0, 1):
+                j = i + 1
+                head = mine[f"head{j}"]
+                ref = StandardScaler().fit(mine[f"r{j}"][tr])
+                P = mine[f"p{j}"]
+                hi = {"pipeline_scaler_logreg": isinstance(head, Pipeline) and len(head.steps) == 2,
+                      "scaler_moments_bitwise_OSF_DEFENSE_FIT": bool(np.array_equal(head[0].mean_, ref.mean_) and
+                                                                     np.array_equal(head[0].var_, ref.var_)),
+                      "finite": bool(np.isfinite(P).all()), "min_probability": float(P.min()),
+                      "rows_with_exact_max_ties": int(np.sum((P == P.max(1, keepdims=True)).sum(1) > 1))}
+                if not all(v for v in hi.values() if isinstance(v, bool)):
+                    fails.append(f"recipient {j} head")
+                heads[f"recipient_{j}"] = hi
+            info["heads"] = heads
+            info["failures"] = fails
+            T[(k, t)] = {kk: mine[kk] for kk in ("p1", "p2", "d1", "d2")}
+            T[(k, t)]["model_sha"] = fl.get("model.pt")
+            out[f"{t}|s{k}"] = res("FAIL" if fails else "PASS", **info)
+    st = worst(*[v["status"] for v in out.values()]) if len(out) == 6 else "FAIL"
+    return res(st, units=out, note="own forward pass on own X (83 permitted columns) from the lra admitted copies; "
+                                   "bitwise vs the lra, lcr and cbp teacher units"), T
+
+
+def check_d0_reencode_lra(D: Data, T):
+    """Every admitted D0 code (27 per seed, 81): own re-encode from its policy.json and the own U teacher equals the
+    stored lra release.npz bitwise; decisions equal the teacher's; strict class preservation; q a token function."""
+    out, bad = {}, []
+    for k in SEEDS:
+        P = {1: T[(k, "U")]["p1"], 2: T[(k, "U")]["p2"]}
+        d = {1: T[(k, "U")]["d1"], 2: T[(k, "U")]["d2"]}
+        for cid in lcr_d0_codes():
+            un = lcr_pol_unit(k, cid)
+            z = np.load(UNITS / un / "release.npz", allow_pickle=False)
+            mine = policy_pair_release(UNITS / un / "policy.json", P, d)
+            r = {"keys_equal": frozenset(z.files) == RELEASE_KEYS_LCR,
+                 "row_id": bool(np.array_equal(z["row_id"], D.row_id))}
+            for x in ("tok1", "q1", "hard1", "tok2", "q2", "hard2"):
+                r[x] = bitwise(np.asarray(mine[x]).astype(z[x].dtype), z[x])
+            r["alpha"] = int(z["alpha1"]) == int(mine["alpha1"]) and int(z["alpha2"]) == int(mine["alpha2"])
+            r["decisions_equal_teacher"] = bool(np.array_equal(z["hard1"], d[1]) and np.array_equal(z["hard2"], d[2]))
+            r["strict_argmax"] = strict_argmax_ok(z["q1"], z["hard1"]) and strict_argmax_ok(z["q2"], z["hard2"])
+            r["token_function"] = release_is_token_function(z["tok1"], z["q1"]) and \
+                release_is_token_function(z["tok2"], z["q2"])
+            if not all(r.values()):
+                bad.append(un)
+            out[un] = all(r.values())
+            OWN_REL[(k, cid)] = {x: np.asarray(z[x]) for x in z.files}
+    return res("PASS" if not bad and len(out) == 81 else "FAIL", units=len(out), failures=bad,
+               rule="own qpc-convention re-encode (own assignment of the own teacher to the fine partition, the stored "
+                    "cell->token map, prototypes recomputed from the cell sums) bitwise vs release.npz on every row")
+
+
+def check_loaders_no_assessment_labels():
+    """Static exposure inspection (prompt section 5), by parsing (ast; nothing is imported or executed): every call with
+    the keyword unseal=True in lra/*.py and its enclosing module; lra.data's caller gate constant. Only lra.data (the
+    gate itself) and lra.assess (after the pushed EVALUATION_LOCK) may request unsealed assessment labels."""
+    import ast as _ast
+    calls, gate_caller = {}, None
+    for p in sorted((WT / "lra").glob("*.py")):
+        tree = _ast.parse(p.read_text())
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Call):
+                for kw in node.keywords:
+                    if kw.arg == "unseal" and isinstance(kw.value, _ast.Constant) and kw.value.value is True:
+                        calls.setdefault(p.name, []).append(node.lineno)
+            if p.name == "data.py" and isinstance(node, _ast.Assign):
+                for t_ in node.targets:
+                    if isinstance(t_, _ast.Name) and t_.id == "UNSEAL_CALLER" and isinstance(node.value, _ast.Constant):
+                        gate_caller = node.value.value
+    outside = sorted(n_ for n_ in calls if n_ not in ("data.py", "assess.py"))
+    ok = gate_caller == "lra.assess" and not outside
+    return res("PASS" if ok else "FAIL", unseal_true_call_sites=calls, call_sites_outside_data_and_assess=outside,
+               data_unseal_caller_gate=gate_caller,
+               note="static parse of the current lra code; re-run at each later phase; the verifier's own Data() seals "
+                    "assessment labels at load and asserts it")
+
+
+def check_admission_timing():
+    """The admission ran with the locked admission code: the private receipt time precedes every later commit that
+    changed lra/admit.py, lra/data.py or lra/run.py after the SOURCE_ADMISSION_LOCK commit; admit.py and data.py are
+    still byte-equal to the lock."""
+    L_ = jload(RES / "SOURCE_ADMISSION_LOCK.json")
+    rc = jload(ADM / "ADMISSION_RECEIPT.json") if (ADM / "ADMISSION_RECEIPT.json").exists() else {}
+    rel = f"{REL_RES}/SOURCE_ADMISSION_LOCK.json"
+    commits = [l_.split("|") for l_ in (git("log", "--format=%H|%cI", "--", rel) or "").splitlines() if l_]
+    c0 = commits[-1][0] if commits else None
+    later = []
+    for f_ in ("lra/admit.py", "lra/data.py", "lra/run.py"):
+        for line in (git("log", "--format=%H|%cI", f"{c0}..HEAD", "--", f_) or "").splitlines():
+            h, t_ = line.split("|")
+            later.append({"file": f_, "commit": h, "time": iso(parse_iso(t_))})
+    at = rc.get("at")
+    before = bool(at) and all(parse_iso(at) < parse_iso(x["time"]) for x in later)
+    eq = {f_: sha_file(WT / f_) == (L_.get("code_files") or {}).get(f_) for f_ in ("lra/admit.py", "lra/data.py",
+                                                                                 "lra/run.py")}
+    lock_t = git("log", "-1", "--format=%cI", c0) if c0 else None
+    after_lock = bool(at and lock_t) and parse_iso(at) >= parse_iso(lock_t)
+    ok = before and after_lock and eq["lra/admit.py"] and eq["lra/data.py"]
+    return res("PASS" if ok else "FAIL", receipt_at=at, lock_commit=c0, lock_commit_time=iso(parse_iso(lock_t)) if lock_t
+               else None, admission_after_lock_commit=after_lock, later_admission_code_commits=later,
+               admission_before_every_later_change=before, equal_to_lock_now=eq)
+
+
+def admission_replay(report):
+    D = Data()
+    L = D.labels()
+    assert all((L[k_][D.mask[ASSESS]] == -1).all() for k_ in LABEL_KEYS), "assessment labels must stay sealed"
+    man = {"lra_ROLE_MANIFEST": jload(RES / "ROLE_MANIFEST.json") if (RES / "ROLE_MANIFEST.json").exists() else None,
+           "lcr_ROLE_MANIFEST_at_tip": json.loads(git_show_bytes(LCR_TIP, f"{LCR_REL}/ROLE_MANIFEST.json") or b"null"),
+           "cbp_ROLE_MANIFEST_at_tip": json.loads(git_show_bytes(CBP_TIP, f"{CBP_REL}/ROLE_MANIFEST.json") or b"null")}
+    c = {}
+    c["roles"] = check_roles(D, man)
+    c["pins"] = check_pins_lra()
+    c["admitted_custody"] = check_custody_lra()
+    c["teachers"], T = check_teachers_lra(D, L)
+    c["d0_release_reencode"] = check_d0_reencode_lra(D, T)
+    c["loaders_seal_assessment"] = check_loaders_no_assessment_labels()
+    c["admission_timing"] = check_admission_timing()
+    report["real_data_read"] = "inputs, roles, sealed labels (no fitting-label use), teacher forward, D0 re-encode"
+    return c
+
+
 PHASE1 = ("fixture_gate", "fixture_oracle", "pins", "roles", "admitted_custody", "teachers", "references",
           "d0_release_reencode", "code_hashes", "chronology")
 PHASE2 = ("d1_fixed_maps", "d1_new_units", "fitting_budgets_and_caps", "incremental_parity", "decision_preservation",
@@ -11249,142 +12084,78 @@ PHASE3 = ("evaluation_lock", "outer_units", "endpoints", "published_tables", "ch
           "deployment_parity", "restore_parity", "budget")
 
 
+PHASE0_ADMISSION = ("roles", "pins", "admitted_custody", "teachers", "d0_release_reencode", "loaders_seal_assessment",
+                    "admission_timing")
+PHASE1_LRA = ("correctness_gate", "fixture_oracle", "decoder_certificates_fixture", "fixture_traces", "gate_wiring",
+              "review_findings_disposition", "code_hashes", "chronology")
+PHASE2_LRA = ("d1_fixed_maps", "d1_new_units", "fitting_budgets_and_caps", "incremental_trace_replay",
+              "decision_preservation", "inner_audits", "source_composition", "selection", "controls", "exposure")
+PHASE3_LRA = ("evaluation_lock", "outer_units", "endpoints", "published_tables", "figures", "attacker_refits",
+              "deployment_parity", "restore_parity", "budget")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--phase", type=int, default=0, choices=(0, 1, 2, 3))
+    ap.add_argument("--admission", action="store_true", help="PHASE_0: also replay the source admission")
     ap.add_argument("--no-write", action="store_true")
     ap.add_argument("--out", default=None)
-    ap.add_argument("--no-refit", action="store_true", help="skip the descriptive own head refits")
-    ap.add_argument("--label", default=None, help="phase label written to the report (e.g. PHASE_1)")
-    ap.add_argument("--refresh-restore", action="store_true",
-                    help="re-run ONLY the independent restore check on the (refreshed) copy and update that node of the "
-                         "existing report (no other check is recomputed)")
+    ap.add_argument("--label", default=None, help="phase label written to the report (e.g. PHASE_0A)")
     args = ap.parse_args()
+    if args.phase >= 1:
+        raise SystemExit("PHASE_%d is not enabled in this build: it waits for the lead's go (CORRECTNESS_LOCK pushed "
+                         "for PHASE_1)" % args.phase)
     t0, c0 = time.time(), time.process_time()
-    if args.refresh_restore:
-        return refresh_restore_only(args, t0, c0)
     others_start = heavy_processes()
-    report = {"schema": "lcr-independent-verification-v1", "phase": args.label or f"PHASE_{args.phase}",
+    report = {"schema": "lra-independent-verification-v1",
+              "phase": args.label or ("PHASE_0A" if args.admission else "PHASE_0"),
               "generated_at": iso(datetime.now(timezone.utc)),
-              "verifier": f"{REL_RES}/verification/replay_lcr.py", "verifier_sha256": sha_file(Path(__file__)),
-              "adapted_from": f"{CBP_REL}/verification/replay_cbp.py at {CBP_TIP[:7]} (sha256 " +
-                              (sha_file(WT / CBP_REL / "verification" / "replay_cbp.py")
-                               if (WT / CBP_REL / "verification" / "replay_cbp.py").exists() else "absent") + ")",
-              "worktree_head": git("rev-parse", "HEAD"), "branch": BRANCH, "source_tip": CBP_TIP,
+              "verifier": f"{REL_RES}/verification/replay_lra.py", "verifier_sha256": sha_file(Path(__file__)),
+              "ported_from": f"{LCR_REL}/verification/replay_lcr.py at {LCR_TIP[:7]} (sha256 " +
+                             (hashlib.sha256(git_show_bytes(LCR_TIP, f"{LCR_REL}/verification/replay_lcr.py") or b"").hexdigest())
+                             + ")",
+              "worktree_head": git("rev-parse", "HEAD"), "branch": BRANCH, "source_tip": LCR_TIP,
+              "source_evidence": LCR_EVIDENCE,
               "inputs": {"source_npz": "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz",
-                         "lcr_units": "<PRIVATE_CACHE>/lcr_v1/run/units", "lcr_admitted": "<PRIVATE_CACHE>/lcr_v1/admitted",
+                         "lra_units": "<PRIVATE_CACHE>/lra_v1/run/units", "lra_admitted": "<PRIVATE_CACHE>/lra_v1/admitted",
+                         "lcr_units_read_only": "<PRIVATE_CACHE>/lcr_v1/run/units",
+                         "lcr_copy_read_only": "<PRIVATE_CACHE>/" + LCR_COPY.name,
                          "cbp_units_read_only": "<PRIVATE_CACHE>/cbp_v1/run/units",
-                         "cbp_copy_read_only": "<PRIVATE_CACHE>/cbp_v1_local_copy_20261006"},
-              "tolerances": {"lcr_d1_decoder_and_certificate": D1_TOL,
-                             "lcr_d1_note": "q agreement absolute; gap / stationarity / objective relative to "
-                                            "max(1, n_t + kappa); dominance and strict argmax of the released q exact",
+                         "cbp_copy_read_only": "<PRIVATE_CACHE>/" + CBP_COPY.name},
+              "tolerances": {"d1_decoder_and_certificate": D1_TOL,
+                             "d1_note": "q agreement absolute; gap / stationarity / objective relative to max(1, n_t + "
+                                        "kappa); dominance and strict argmax of the released q exact",
                              "tokens_decisions_partitions_bindings_hashes": "exact (bitwise / byte-identical)",
                              "decoded_probabilities_teacher_outputs": "exact (bitwise)",
-                             "search_increments": LOG_TOL_B, "objective_terms": OBJ_TOL_B,
-                             "k-means_receipt_objectives_relative": RECEIPT_REL_TOL, "fit_distortion_relative": 1e-12,
+                             "trace_terms_and_deltas": 1e-12, "trace_constraints_search": "L, B <= limit - 1e-10; I <= cap",
+                             "trace_constraints_final": "L, B <= limit; I <= cap (margin 0)",
                              "inner_auc_ce_utility": 1e-12, "endpoint_point_se": 1e-12, "endpoint_bounds": 1e-11,
-                             "published_6_decimal_prints": 5e-7, "verdicts_labels_roles": "exact agreement",
-                             "selection_ordering_ties": f"{ORDER_DECIMALS}-decimal rounding (provisional; reconciled "
-                                                        "with SELECTION_RULES.json)"},
+                             "verdicts_labels_roles": "exact agreement",
+                             "selection_ordering_ties": f"Python round(seed mean, {ORDER_DECIMALS}) on keys 1-2; key 3 "
+                                                        "exact; key 4 lexicographic"},
               "libraries": {"numpy": np.__version__, "torch": torch.__version__, "joblib": joblib.__version__,
-                            "sklearn": __import__("sklearn").__version__, "scipy": __import__("scipy").__version__}}
+                            "sklearn": __import__("sklearn").__version__, "scipy": __import__("scipy").__version__},
+              "exposure": {"fixture_laws_read_for_computation": False, "fitting_labels_used": False,
+                           "assessment_labels_read": False,
+                           "rule": "PHASE_0 runs the oracle only on OWN synthetic laws; FIXTURE_LAWS.json is never "
+                                   "opened for computation before the pushed CORRECTNESS_LOCK"}}
     checks = {}
     st = selftests()
     checks["selftests"] = {"status": worst(*[v["status"] for v in st.values()]), **st}
-    for k in PHASE1:
-        checks[k] = pending(k, "PHASE 1 (after source admission)")
-    for k in PHASE2:
-        checks[k] = pending(k, "PHASE 2 (after fits, inner audits and select; before the assessment)")
-    for k in PHASE3:
-        checks[k] = pending(k, "PHASE 3 (after the assessment and inference)")
-    report["real_data_read"] = args.phase >= 1
+    report["real_data_read"] = False
+    if args.admission:
+        checks.update(admission_replay(report))
+    else:
+        for k in PHASE0_ADMISSION:
+            checks[k] = pending(k, "PHASE_0 --admission (after the lead's admit)")
+    for k in PHASE1_LRA:
+        checks[k] = pending(k, "PHASE 1 (after the pushed CORRECTNESS_LOCK and the lead's go)")
+    for k in PHASE2_LRA:
+        checks[k] = pending(k, "PHASE 2 (after the Adult fits, inner audits and selection; before EVALUATION_LOCK)")
+    for k in PHASE3_LRA:
+        checks[k] = pending(k, "PHASE 3 (after the assessment)")
+    report["exposure"]["fixture_laws_read_for_computation"] = bool(FIXTURE_LAWS_ALLOWED[0])
     report["assessment_labels_read"] = False
-    if args.phase >= 1:
-        D = Data()
-        L = D.labels()
-        assert all((L[k_][D.mask[ASSESS]] == -1).all() for k_ in LABEL_KEYS), "assessment labels must stay sealed"
-        man = {"lcr_ROLE_MANIFEST": jload(RES / "ROLE_MANIFEST.json") if (RES / "ROLE_MANIFEST.json").exists() else None,
-               "cbp_ROLE_MANIFEST_at_tip": json.loads(git_show_bytes(CBP_TIP, f"{CBP_REL}/ROLE_MANIFEST.json") or b"null")}
-        checks["roles"] = check_roles(D, man)
-        checks["pins"] = check_pins_lcr()
-        checks["admitted_custody"] = check_custody_lcr()
-        checks["teachers"], T = check_teachers_lcr(D, L)
-        checks["d0_release_reencode"] = check_d0_reencode(D, T)
-        checks["fixture_gate"], checks["fixture_oracle"] = check_fixture_gate()
-        checks["code_hashes"] = check_code_hashes_lcr()
-        checks["chronology"] = check_chronology_lcr()
-        checks["references"] = res("INFO", note="admitted REF|E / REF|F / REF|F0 units are custody-verified by hash in "
-                                                "admitted_custody; their numeric recheck belongs to the Adult inner / "
-                                                "assessment replay")
-        if checks["fixture_gate"].get("own_verdict") == "GATE_NOT_MET" and \
-                checks["fixture_gate"].get("lead_verdict") == "GATE_NOT_MET":
-            why = ("the registered fixture gate is not met (own replay agrees: GATE_NOT_MET); no Adult fit is launched "
-                   "(prompt section 9), so this Adult replay has no object")
-            for k_ in PHASE2 + ("evaluation_lock", "outer_units", "endpoints", "chronology_assessment", "attacker_refits"):
-                checks[k_] = res("NOT_APPLICABLE", reason=why)
-        if checks["fixture_oracle"].get("status") != "PENDING" and not args.no_write and args.out is None:
-            report["fixture_oracle_report"] = {"path": f"{REL_RES}/FIXTURE_ORACLE_REPORT.md",
-                                               "sha256": write_oracle_report(checks["fixture_oracle"],
-                                                                             checks["fixture_gate"])}
-        if args.phase >= 3:
-            own_rows = own_fixture_arm_rows()
-            checks["published_tables"], bud_rows, abl_dl = check_tables_fixture(own_rows)
-            checks["decoder_certificates"] = check_certificates_fixture(own_rows)
-            checks["figures"] = check_figures_fixture(bud_rows, abl_dl)
-            checks["deployment_parity"] = check_deployment_lcr(D)
-            checks["restore_parity"] = check_backup_lcr(D)
-            checks["budget"] = check_budget_lcr()
-            checks["documents"] = check_documents_lcr(own_rows)
-        elif args.phase >= 2:
-            raise SystemExit("PHASE_2 is not applicable: the registered fixture gate was not met (no Adult fit)")
-    if False:
-        D = Data()
-        L = D.labels()
-        assert all((L[k_][D.mask[ASSESS]] == -1).all() for k_ in LABEL_KEYS), "assessment labels must stay sealed"
-        man = {"cbp_ROLE_MANIFEST": jload(RES / "ROLE_MANIFEST.json") if (RES / "ROLE_MANIFEST.json").exists() else None,
-               "qpc_ROLE_MANIFEST_at_evidence": json.loads(git_show_bytes(QPC_EVIDENCE, f"{QPC_REL}/ROLE_MANIFEST.json")
-                                                           or b"null"),
-               "dpc_ROLE_MANIFEST_at_source_sha": json.loads(git_show_bytes(SOURCE_SHA, f"{DPC_REL}/ROLE_MANIFEST.json")
-                                                             or b"null")}
-        checks["roles"] = check_roles(D, man)
-        checks["pins"] = check_pins()
-        checks["admitted_custody"] = check_reuse_custody()
-        checks["teachers"], T = check_teachers(D, L, refit=not args.no_refit)
-        refs = {}
-        checks["references"] = check_references(D, T, keep=refs)
-        checks.update(check_direct(D, L, T))
-        lams = (REUSED_LAMS + (COMPOSED_EXTRA_LAM,)) if args.phase == 1 else (LAMS + (COMPOSED_EXTRA_LAM,))
-        cc, own_maps, own_terms = check_codes(D, L, T, lams)
-        checks.update(cc)
-        checks["unit_custody"] = check_units_complete(("tea__", "ref__", "fine__", "pol__"))
-        checks["chronology"] = check_chronology()
-        checks["code_hashes"] = check_code_hashes()
-        if args.phase >= 2:
-            checks["endpoint_parity"] = check_endpoint_parity(D)
-            if any(UNITS.glob("inner__*")):
-                checks["inner_audits"], checks["source_composition"], own_in = check_inner(D, L, T, refs)
-                checks["selection"], sel_mine, sel_rows = check_selection(own_in)
-            checks["controls"] = check_controls(D, L, {})
-            checks["unit_custody"] = check_units_complete(("tea__", "ref__", "fine__", "pol__", "inner__"))
-        if args.phase >= 3:
-            gate = evaluation_lock_gate(fetch=True)
-            report["assessment_label_gate"] = {k_: gate.get(k_) for k_ in ("checked_at", "git_fetch_ok", "exists",
-                                                                         "commit", "commit_time", "first_push_time",
-                                                                         "origin_show_equals_worktree", "commit_on_origin",
-                                                                         "commits", "sha256", "ok")}
-            checks["evaluation_lock"], EL = check_eval_lock(D, L, gate, sel_mine, own_in)
-            LU = unsealed_labels(D, gate)
-            report["assessment_labels_read"] = True
-            checks["outer_units"], preds = check_outer(D, LU, T, refs, own_in, EL, gate)
-            checks["endpoints"], eps, lev = check_endpoints_cbp(preds, EL)
-            checks["published_tables"] = check_tables_cbp(own_in, sel_mine, sel_rows, eps, lev, EL)
-            checks["chronology_assessment"] = check_late_chronology(gate, EL)
-            if not args.no_refit:
-                checks["attacker_refits"] = check_refits(D, L, LU, T, own_in, preds, EL)
-            checks["deployment_parity"] = check_deployment(D, T)
-            checks["restore_parity"] = check_restore(D)
-            checks["budget"] = check_budget()
-            checks["unit_custody"] = check_units_complete(("tea__", "ref__", "fine__", "pol__", "inner__", "outer__"))
     loaded = sorted(m for m in sys.modules if m.split(".")[0] in _FORBIDDEN_TOP)
     report["independence"] = res("PASS" if not loaded and not _BLOCKED and not _PRELOADED else "FAIL",
                                  guard="sys.meta_path finder refusing " + ", ".join(_FORBIDDEN_TOP) +
@@ -11392,10 +12163,7 @@ def main():
                                        "removed from sys.path; semaphore invoked by path (-P) as the parent process",
                                  loaded_forbidden_modules=loaded, blocked_attempts_during_run=_BLOCKED,
                                  preloaded_before_guard=_PRELOADED,
-                                 libraries_used=["numpy", "scipy", "sklearn", "torch", "joblib", "stdlib"],
-                                 adapted_from_predecessor_verifier="import guard, role reconstruction, forward pass, "
-                                                                   "KL k-means, search replay, attacker refits, "
-                                                                   "bootstrap, inner / composition replay, chronology")
+                                 libraries_used=["numpy", "scipy", "sklearn", "torch", "joblib", "stdlib"])
     report["checks"] = checks
     report["verifier_corrections"] = VERIFIER_CORRECTIONS
     status = {k: (v.get("status") if isinstance(v, dict) else None) for k, v in checks.items()}
@@ -11411,8 +12179,8 @@ def main():
                          "threads": {"OMP_NUM_THREADS": os.environ.get("OMP_NUM_THREADS"),
                                      "OPENBLAS_NUM_THREADS": os.environ.get("OPENBLAS_NUM_THREADS"),
                                      "MKL_NUM_THREADS": os.environ.get("MKL_NUM_THREADS"), "torch": torch.get_num_threads()},
-                         "other_lcr_processes_at_start": len(others_start),
-                         "other_lcr_processes_at_end": len(heavy_processes()), "semaphore_slots_at_end": sema_status()}
+                         "other_lra_processes_at_start": len(others_start),
+                         "other_lra_processes_at_end": len(heavy_processes()), "semaphore_slots_at_end": sema_status()}
     report["pending"] = sorted(k for k, v in status.items() if v == "PENDING")
     sema_runs = [{"label": e.get("label"), "released_at": e.get("at"), "wall_s": e.get("wall_s"), "cpu_s": e.get("cpu_s"),
                   "rc": e.get("rc")} for e in jsonl(RUN / "SEMA_LOG.jsonl")
@@ -11421,7 +12189,7 @@ def main():
         "semaphore_holds_completed": sema_runs,
         "semaphore_cpu_s_total": round(sum(float(r["cpu_s"] or 0) for r in sema_runs), 1),
         "semaphore_wall_s_total": round(sum(float(r["wall_s"] or 0) for r in sema_runs), 1),
-        "this_run": {"phase": args.phase, "start": report["generated_at"], "wall_s": report["compute"]["wall_s"],
+        "this_run": {"phase": report["phase"], "start": report["generated_at"], "wall_s": report["compute"]["wall_s"],
                      "cpu_s": report["compute"]["cpu_s_process"]},
         "light_runs_outside_the_semaphore": VERIFIER_RUNS,
         "note": "every verifier process, including the synthetic self-tests, runs inside a semaphore hold labelled E:*; "
