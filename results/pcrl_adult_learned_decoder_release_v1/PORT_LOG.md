@@ -30,3 +30,5 @@ Pinned unchanged copies:
 - A, lra/run.py: SCIENCE_STAGES require engineering_ready(), meaning a lock-bound, pushed ENGINEERING_GATE_RESULT.json
   with verdict ENGINEERING_READY (tests: lra/tests/test_run_gate.py). Also the CLASS|D1 diagnostic decode as
   diag__s{k}__U_CLASS_i1o1_D1 (not a candidate; not in code_ids).
+- A, lra/run.py and lra/lock.py: the same-map D0 diagnostic ids `<D1 cid>|D0SAME` (arm d0_same, unit prefix d0s__,
+  diagnostic only) and the `d0same` science stage (lra.select.stage_d0same), as agreed with role D.

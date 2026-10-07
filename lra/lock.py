@@ -45,7 +45,7 @@ GLOBS = ["lra/*.py", "lra/tests/*.py", "lcr/*.py", "cbp/*.py", "cbp/tests/*.py",
          "stored_model_eval/*.py", "oar/*.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
 ORDER = ["SOURCE_ADMISSION_LOCK", "CORRECTNESS_LOCK", "SCIENCE_LOCK"]
 STAGE_MIN_LOCK = {"admit": 0, "correctness": 1, "d1": 2, "ctask": 2, "fit": 2, "inner": 2, "inner_src": 2, "controls": 2,
-                  "select": 2}
+                  "select": 2, "d0same": 2}
 STAGE_REQUIRES = {"admit": ["lra/data.py", "lra/admit.py", "lra/run.py"],
                   "correctness": ["lra/decoder.py", "lra/fixtures.py", "lra/mapper.py", "lra/run.py"],
                   "d1": ["lra/decoder.py", "lra/run.py"],
@@ -54,7 +54,8 @@ STAGE_REQUIRES = {"admit": ["lra/data.py", "lra/admit.py", "lra/run.py"],
                   "inner": ["lra/audit.py", "lra/run.py"],
                   "inner_src": ["lra/audit.py", "lra/run.py"],
                   "controls": ["lra/audit.py", "lra/run.py"],
-                  "select": ["lra/select.py", "lra/family.py", "lra/run.py"]}
+                  "select": ["lra/select.py", "lra/family.py", "lra/run.py"],
+                  "d0same": ["lra/select.py", "lra/run.py"]}
 DOCS = ["PROTOCOL.md", "METHOD_CARD.md", "ROLE_MANIFEST.json", "EXPOSURE_LEDGER.md", "SOURCE_INDEX.json",
         "SOURCE_ADMISSION.json", "FIXTURE_LAWS.json", "SOURCE_FIXTURE_GATE.json", "ENGINEERING_GATE_RULE.json",
         "ENGINEERING_GATE_RESULT.json", "REVIEW_FINDINGS_DISPOSITION.json", "FIT_MANIFEST.json", "PRIMARY_FAMILY.json",

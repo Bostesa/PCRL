@@ -58,7 +58,8 @@ LAMS = (0.01, 0.025, 0.04, 0.06, 0.08, 0.1)
 CONSTRAINED = ("LOCAL", "SEQ-12", "SEQ-21", "JOINT-SINGLE", "JOINT-PAIR")
 LATE = {"d1": ("lra.run", "stage_d1"), "ctask": ("lra.run", "stage_ctask"), "fit": ("lra.run", "stage_fit"), "inner": ("lra.audit", "stage_inner"),
         "inner_src": ("lra.audit", "stage_inner_src"), "controls": ("lra.audit", "stage_controls"),
-        "select": ("lra.select", "select_all"), "correctness": ("lra.fixtures", "stage_correctness")}
+        "select": ("lra.select", "select_all"), "d0same": ("lra.select", "stage_d0same"),
+        "correctness": ("lra.fixtures", "stage_correctness")}
 
 
 def g(x):
@@ -126,7 +127,15 @@ def scored_ids():
     return code_ids() + [f"SRC|{t}" for t in TEACHERS] + [f"REF|{r}" for r in REFS]
 
 
+D0SAME = "|D0SAME"
+
+
 def parse_id(cid):
+    if cid.endswith(D0SAME):
+        # same-map D0 diagnostic (prompt section 13 stage 5): the mean-teacher decoded version of the EXACT map of a
+        # D1 release; label-free; never a candidate, never composed, never audited for nomination
+        base = parse_id(cid[:-len(D0SAME)])
+        return {**base, "arm": "d0_same", "decoder": "D0", "of": cid[:-len(D0SAME)], "diagnostic_only": True}
     if cid.startswith("SRC|"):
         return {"kind": "source", "teacher": cid.split("|")[1]}
     if cid.startswith("REF|"):
@@ -162,7 +171,7 @@ def unit_for(k, cid):
         return f"tea__s{k}__{p['teacher']}"
     if p["kind"] == "reference":
         return f"ref__s{k}__{p['label']}"
-    prefix = {"d0": "pol", "d1_fixed": "dec"}.get(p["arm"], "new")
+    prefix = {"d0": "pol", "d1_fixed": "dec", "d0_same": "d0s"}.get(p["arm"], "new")
     return f"{prefix}__s{k}__{safe(cid)}"
 
 
@@ -432,7 +441,7 @@ def stage_fit(D, shard_spec=None):
 
 
 # ------------------------------------------------------------------ main
-SCIENCE_STAGES = ("d1", "ctask", "fit", "inner", "inner_src", "controls", "select")
+SCIENCE_STAGES = ("d1", "ctask", "fit", "inner", "inner_src", "controls", "select", "d0same")
 GATE_RESULT = "ENGINEERING_GATE_RESULT.json"
 
 
