@@ -1,6 +1,6 @@
 # Team D: post-hoc nonlinear repair of frozen task features
 
-Status: pre-lock design, 2026-10-08. Adult fitting is authorized by the continuation but remains gated on S2's admitted role-only export, source checkpoint verification, S1's effective lock, revised-source numerical checks, and S3 compute admission.
+Status: pre-lock design, 2026-10-08. S2/S4 have admitted role-only files and verified the frozen U checkpoint hashes. Adult D fitting remains gated on S1's effective local science lock, exact preprivacy encoder and 83-column parity receipt, revised control/attack numerical checks, and S3 compute admission.
 
 ## Question
 
