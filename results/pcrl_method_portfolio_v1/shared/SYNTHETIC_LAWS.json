@@ -1,0 +1,74 @@
+{
+  "schema": "pcrl-method-portfolio-synthetic-laws-v1",
+  "status": "FROZEN_BEFORE_ALGORITHM_RUNS",
+  "owner": "S1",
+  "date_utc": "2026-10-08",
+  "interpretation": "Fully specified symbolic finite distributions. XOR is Boolean. Conditional Bernoulli draws use the stated conditional probability. Other latent variables are independent unless stated. No Adult data used.",
+  "laws": [
+    {
+      "id": "L1_FEASIBLE_NULL",
+      "latent": "S,B1,B2 independent Bernoulli(1/2)",
+      "x1": "B1",
+      "x2": "B2",
+      "y1": "B1",
+      "y2": "B2",
+      "score1": "0.9 if B1=1 else 0.1",
+      "score2": "0.9 if B2=1 else 0.1",
+      "analytic_premise": "Each full view is independent of S; constant sensitive reader is optimal."
+    },
+    {
+      "id": "L2_REMOVABLE_DISTINCTION",
+      "latent": "S,B1,B2 independent Bernoulli(1/2)",
+      "x1": "(B1,S)",
+      "x2": "(B2,S)",
+      "y1": "B1",
+      "y2": "B2",
+      "score1": "0.80+0.10*S if B1=1 else 0.20-0.10*S",
+      "score2": "0.80+0.10*S if B2=1 else 0.20-0.10*S",
+      "analytic_premise": "Discarding S from both views keeps the decision and task labels and removes the explicit sensitive clue."
+    },
+    {
+      "id": "L3_COMPLEMENTARY_XOR",
+      "latent": "S,B1,B2,U independent Bernoulli(1/2)",
+      "x1": "(B1,U)",
+      "x2": "(B2,U XOR S)",
+      "y1": "B1",
+      "y2": "B2",
+      "score1": "0.80+0.10*U if B1=1 else 0.20-0.10*U",
+      "score2": "0.80+0.10*(U XOR S) if B2=1 else 0.20-0.10*(U XOR S)",
+      "analytic_premise": "Either local clue is independent of S; paired clues recover S exactly."
+    },
+    {
+      "id": "L4_NO_COMPLEMENTARITY",
+      "latent": "S,B1,B2 independent Bernoulli(1/2); E independent Bernoulli(1/5); C=S XOR E",
+      "x1": "(B1,C)",
+      "x2": "(B2,C)",
+      "y1": "B1",
+      "y2": "B2",
+      "score1": "0.80+0.10*C if B1=1 else 0.20-0.10*C",
+      "score2": "0.80+0.10*C if B2=1 else 0.20-0.10*C",
+      "analytic_premise": "The same noisy sensitive clue occurs in both views; joining adds no clue beyond either one."
+    },
+    {
+      "id": "L5_CONFIDENCE_VS_CLASS",
+      "latent": "H independent Bernoulli(1/2); S=H; Y1 conditional Bernoulli(0.60 if H=0 else 0.95); Y2 independent Bernoulli(1/2)",
+      "x1": "H",
+      "x2": "Y2",
+      "y1": "Y1",
+      "y2": "Y2",
+      "score1": "0.60 if H=0 else 0.95",
+      "score2": "0.90 if Y2=1 else 0.10",
+      "analytic_premise": "Recipient 1 always predicts class 1; calibrated probabilities 0.60/0.95 have better expected NLL and Brier than the class-only probability 0.775, while revealing S."
+    }
+  ],
+  "required_checks": [
+    "exact enumeration normalization and nonnegative masses",
+    "null leakage floor",
+    "removable distinction and task preservation",
+    "paired complementarity and local independence",
+    "no-complementarity redundancy",
+    "decision-only utility shortfall for L5",
+    "complete-view metadata consistency and deployment locality"
+  ],
+  "rule": "No modification after candidate synthetic outcomes; amendment gets a new ID and preserves this file."
+}

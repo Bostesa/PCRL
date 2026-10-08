@@ -1,0 +1,51 @@
+{
+  "schema": "pcrl-method-portfolio-data-access-v1",
+  "status": "BLOCKED_NO_VERIFIED_ROLE_ONLY_X_LABEL_EXPORTS",
+  "source": {
+    "hcal_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "hcal_evidence": "159537dcb61d030c870ae42e7addff4796651723",
+    "role_manifest": "results/pcrl_heldout_calibration_v1/ROLE_MANIFEST.json",
+    "columns": 83,
+    "feature_names_sha256_newline_join": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+    "assessment_person_level_access": "forbidden",
+    "head_validation_label_access": "forbidden"
+  },
+  "inherited_loader_audit": {
+    "path": "ccm.data._source -> hcal.data.load -> lra.data.load -> qpc.data.load -> dpc.data.load -> osf.data.load",
+    "finding": "osf.data.load reads z[k][keep].copy() for sex, race, y_income and y_occupation_group with assessment in keep, then masks assessment values; later returned-object guards cannot prevent the transient read",
+    "synthetic_sentinel_result": "TRANSIENT_FORBIDDEN_READ_CONFIRMED: all four label entries requested with assessment index before returned values were masked",
+    "scientific_use_inference": "none: transient read is a custody deviation, not evidence that CCM used assessment labels for geometry or fit",
+    "portfolio_rule": "never call this loader chain, ccm.data.load/reference, or all-row teacher parity paths"
+  },
+  "role_hash_convention": "sha256 of dtype + shape + C-order bytes on sorted int64 row IDs and unique int64 group IDs, as in hcal.data.sha_arr",
+  "roles": {
+    "OSF_DEFENSE_FIT": {"rows": 15434, "groups": 15428, "row_id_sha256": "2fa6d03e663ee2816fe5616cc1a2b92e7b9c101d19efa908383f238f92b40329", "group_id_sha256": "27627c99a3ef66fb45ad3a83900c352fb06a1cd69f0cdcc36a871c7c174947cc"},
+    "CALIBRATION_HELDOUT": {"rows": 2000, "groups": 2000, "row_id_sha256": "a8580d855cd1c6a80146fe240b8decd61f5a96e7878e2c71949e3245e021553b", "group_id_sha256": "b25b1a9a652853c23e1451e2edffeb8d943c873750a50cba1b3724ed3db2cc09"},
+    "ATTACK_FIT_NEW": {"rows": 4064, "groups": 4061, "row_id_sha256": "22a36fc44e0932eb497644533345215bdaf0be0cc206bbcff38fcc028495acb8", "group_id_sha256": "f2eb454261a4e3dd7a9f6bbb0f0265304dd35b5c32351993e6a69e6c3132f65a"},
+    "INNER_SELECTION": {"rows": 2235, "groups": 2234, "row_id_sha256": "f533da6a43f773d1d749da536bf70b387623c2b0f7a8aac6c98b96404dcb9598", "group_id_sha256": "388125bd7312d515151068303b4c6be799d3e59a562f205e5e53507eb643df6b"}
+  },
+  "label_allowlist": {
+    "defense_fit": {"OSF_DEFENSE_FIT": ["income", "occupation", "sex"]},
+    "calibration": {"CALIBRATION_HELDOUT": ["income", "occupation"]},
+    "attack": {"ATTACK_FIT_NEW": ["sex"]},
+    "screen": {"INNER_SELECTION": ["income", "occupation", "sex"]}
+  },
+  "real_file_specs": {},
+  "real_file_admission_rule": "S2 must verify an already existing role-specific private export contains only the declared role/label and exact rows; S1 must bind its path and hashes in a pushed campaign lock before any real fit. Do not open the all-role source to create an export.",
+  "safe_existing_scores_only": {
+    "path_pattern": "<PRIVATE_CACHE>/ccm_v1/ref/ref__s{k}.npz",
+    "seeds": [0, 1, 2],
+    "rows_per_seed": 23733,
+    "roles": ["OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT", "ATTACK_FIT_NEW", "INNER_SELECTION"],
+    "content": "U0/Ucal score vectors, decisions, row IDs and positions; no X or task/SEX labels per CCM receipt",
+    "restriction": "existing historical cache may support score engineering after independent hash check; do not call CCM recomputation/parity code"
+  },
+  "forbidden_sources": [
+    "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz (all-role)",
+    "all-row admitted teacher.npz and release/prediction arrays",
+    "old assessment person-level arrays, labels and predictions",
+    "HEAD_VALIDATION labels"
+  ],
+  "access_test_gate": "shared/safe_data_guard.py plus shared/test_safe_data_guard.py must pass against sentinel-only fixtures before any admitted file is added",
+  "remote_status": "GitHub DNS unavailable at audit; local remote-tracking pins are not fresh remote verification"
+}

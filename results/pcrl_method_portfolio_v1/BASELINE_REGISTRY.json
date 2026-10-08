@@ -1,0 +1,66 @@
+{
+  "schema": "pcrl-method-portfolio-baseline-registry-v1",
+  "owner": "S3 scheduler and immutable cache owner",
+  "status": "PREFIT_DRAFT_NO_NEW_BASELINE_FITS",
+  "identity_fields": [
+    "source_commit",
+    "code_hash",
+    "split_role_hashes",
+    "seed",
+    "column_names_and_order",
+    "preprocessing_hash",
+    "architecture",
+    "calibration_family_and_fits",
+    "output_view",
+    "compute_budget"
+  ],
+  "references": [
+    {
+      "id": "U0",
+      "source": "hcal admitted SRC|U identity",
+      "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+      "source_manifest": "results/pcrl_heldout_calibration_v1/MODEL_MANIFEST.json",
+      "source_seeds": [0, 1, 2],
+      "track": "score reference; utility comparator for both tracks",
+      "new_fit": false
+    },
+    {
+      "id": "Ucal",
+      "source": "hcal held-out global-temperature calibration of admitted SRC|U",
+      "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+      "source_manifest": "results/pcrl_heldout_calibration_v1/MODEL_MANIFEST.json",
+      "source_seeds": [0, 1, 2],
+      "track": "score reference; calibration-matched utility comparator for both tracks",
+      "new_fit": false
+    },
+    {
+      "id": "historical_score_Pstar",
+      "source": "hcal U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+      "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+      "source_manifest": "results/pcrl_heldout_calibration_v1/MODEL_MANIFEST.json",
+      "source_seeds": [0, 1, 2],
+      "track": "score historical context only until fresh complete-view matched evaluation",
+      "new_fit": false
+    },
+    {
+      "id": "historical_score_Tstar",
+      "source": "hcal U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+      "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+      "source_manifest": "results/pcrl_heldout_calibration_v1/MODEL_MANIFEST.json",
+      "source_seeds": [0, 1, 2],
+      "track": "score historical context only until fresh complete-view matched evaluation",
+      "new_fit": false
+    }
+  ],
+  "new_arms": "See team PLANNED_UNITS.json files. All are planned and not fitted.",
+  "aliases": [],
+  "source_sequential_code": {
+    "source_tip": "976202546a100f2b89a863cb3785c3465cf76c6a",
+    "source_evidence": "1dee33253af03bb5efcaa652774cb222df642aa3",
+    "status": "available for compatible score controls; no portfolio fit or alias asserted"
+  },
+  "private_cache_rule": "Historical admitted units and decoder packages remain read-only. Assessment person-level arrays, predictions and labels are excluded; no new fit may read them.",
+  "alias_rule": "No new-to-historical alias is registered. An alias requires every identity field and bitwise outputs to match; similarity of predictions or metrics is insufficient.",
+  "strongest_control_rule": "Within track, choose lowest complete-view coalition SEX AUC among point-utility-eligible controls meeting local caps; ties within 1e-12 by lower summed NLL then registered ID. All required controls still reported.",
+  "remote_status": "UNVERIFIED_DNS_BLOCKED"
+}

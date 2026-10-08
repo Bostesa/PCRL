@@ -1,0 +1,111 @@
+{
+  "schema": "pcrl-method-portfolio-resource-receipts-v1",
+  "owner": "S3 scheduler and immutable cache owner",
+  "recorded_utc": "2026-10-08T09:38:06Z",
+  "host": {
+    "online_logical_cpus": 14,
+    "physical_memory_gib": 24,
+    "memory_pressure_free_percent_snapshots": [36, 42, 47],
+    "free_disk_gib_snapshots": [101, 100, 98],
+    "latest_free_disk_gib": 98,
+    "source_commands": ["getconf NPROCESSORS_ONLN", "memory_pressure -Q", "df -h ."],
+    "interpretation": "Memory and disk readings changed during the inventory. Free percentage is a host signal, not a per-job guarantee."
+  },
+  "process_inventory": {
+    "latest_snapshot_utc": "2026-10-08T09:37:38Z",
+    "source": "lsof -n -P -c Python -a -d cwd",
+    "observed_python": [
+      {"pid": 69623, "classification": "PCRL temporary mock directory", "ownership": "unconfirmed", "heavy_status": "unknown"},
+      {"pid": 74615, "classification": "other active project temporary work directory", "ownership": "other session", "heavy_status": "unknown"}
+    ],
+    "additional_snapshot": "At 09:15 UTC another Python process in the other project's work directory was visible and its output log was actively updated; it was absent in the latest snapshot. A transient portfolio worktree Python process was visible at 09:21 UTC but absent at 09:27. The two persistent unclassified processes remained visible at 09:37 UTC. The other-project log changed at 09:26 UTC.",
+    "command_limitations": [
+      "ps, pgrep and top were denied by the sandbox",
+      "Activity Monitor computer-use access was denied",
+      "lsof identifies open files and process working directories but does not establish CPU usage",
+      "Other executable names and unwrapped jobs may be missed"
+    ],
+    "external_heavy_reserved_slots": 2,
+    "admission_consequence": "No portfolio heavy process may start until a fresh permitted inventory and ownership check supports a smaller reservation. No other process was stopped."
+  },
+  "legacy_study_semaphores": {
+    "read_only_probe": "fcntl nonblocking flock on existing slot files",
+    "studies_probed": ["ccm_v1", "hcal_v1", "lra_v1", "cbp_v1", "qpc_v1"],
+    "finding": "Both slots in every probed study-specific semaphore were free at the probe; this does not prove whole-machine capacity.",
+    "coordination_gap": "Each predecessor uses a separate semaphore store; those locks do not enforce a shared limit across studies."
+  },
+  "portfolio_queue": {
+    "implementation": "results/pcrl_method_portfolio_v1/shared/compute_queue.py",
+    "private_runtime": "<PORTFOLIO_WORKTREE>/results/pcrl_method_portfolio_v1/shared/.private/compute",
+    "global_heavy_slots": 2,
+    "initial_state": "CLOSED",
+    "verified_runtime_state": "CLOSED by explicit gate and external_heavy=2; zero queued jobs; 180 conservative CPU seconds charged for prequeue engineering deviations",
+    "phase1_queue_index": {
+      "path": "results/pcrl_method_portfolio_v1/PHASE1_QUEUE_INDEX.json",
+      "sha256": "62e58f08761fe7095bb9a5511bb6517722030c6df8b7a47d400d819e46be7713",
+      "shared_law_sha256": "b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53",
+      "registered_test_and_source_files": 17,
+      "hash_mismatches": 0,
+      "gate_parse": "PASS at 2026-10-08T09:38:06Z; no numerical candidate was run"
+    },
+    "real_data_opening_conditions": ["S2 safe-input receipt", "pushed CAMPAIGN_LOCK.json receipt", "fresh machine occupancy receipt"],
+    "prelock_synthetic_opening_conditions": ["PHASE1_LOCK law and team test hashes verified", "data_access NONE declared", "max 120 s wall and 1.5 GiB RSS reservation", "fresh machine occupancy receipt"],
+    "occupancy_ttl_s": 120,
+    "external_reservation_initial": 2,
+    "max_portfolio_memory_gib": 6,
+    "free_disk_floor_gib": 5,
+    "numerical_threads_per_unit": 1,
+    "unit_accounting": "Every fit, attacker, calibration, preprocessing, forward, smoke, replay and numerical verification job needs an immutable queue unit. Unit receipt charges max(child CPU, elapsed wall), a conservative fallback when descendant accounting is incomplete.",
+    "signal_rule": "Only the launched campaign process group may be signalled. A timed-out or interrupted unit is retained as incomplete."
+  },
+  "campaign_budget": {
+    "elapsed_h": 10,
+    "cpu_h": 20,
+    "cloud_usd": 0,
+    "allocation_cpu_h": {"shared_setup": 3, "screens_total": 6, "finalists_total": 8, "independent_replay_closeout": 3},
+    "allocation_note": "Allocations guide the prelock unit plan; they are not measured forecasts or grounds to weaken required controls."
+  },
+  "historical_timing_evidence": {
+    "hcal_source": "results/pcrl_heldout_calibration_v1/TIMING.json at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "fresh_five_table_attack_family_cpu_s_synthetic": 22.8,
+    "fresh_family_peak_rss_gib_synthetic": 1.27,
+    "hcal_closeout_source": "results/pcrl_heldout_calibration_v1/COST_AND_CLOSEOUT.md at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "hcal_captured_cpu_h": 2.12,
+    "hcal_uncaptured_control_attempt_upper_cpu_h": 0.43,
+    "hcal_peak_child_rss_gib_two_workers": [2.88, 1.65],
+    "transfer_limit": "These are score-release/calibration timings, not estimates for new bottleneck, mask-search or nonlinear-repair fits. Synthetic smoke timing is required before CAMPAIGN_LOCK."
+  },
+  "baseline_cache_inventory": {
+    "hcal_private_store_gib_approx": 1.3,
+    "lra_private_store_gib_approx": 1.4,
+    "hcal_admitted_lra_units": 540,
+    "hcal_admitted_unit_kinds": {"aud": 267, "new": 90, "pol": 81, "dec": 81, "ref": 9, "tea": 6, "fine": 3, "d0s": 3},
+    "hcal_private_decoder_packages": 7,
+    "hcal_excluded": ["outer__* old-assessment predictions and labels", "inner__* CBP custody", "cor__* fixtures"],
+    "historical_score_controls": ["U0 SRC|U", "Ucal SRC|U|H-GLOBAL-TEMP", "T* U|FINE-TASK|i8o64|H-GLOBAL-TEMP", "P* U|JOINT|i8o64|l0.1|H-CLASS-TEMP", "CLASS", "LOCAL", "SEQ-12", "SEQ-21"],
+    "reuse_rule": "A baseline is an alias only if source/code, split, seed, columns, preprocessing, architecture, calibration, output view and budget identities all match exactly. No portfolio aliases have been asserted yet. Private arrays and checkpoints remain private and read-only."
+  },
+  "actions": {
+    "heavy_jobs_launched_by_S3": 0,
+    "external_jobs_stopped": 0,
+    "new_data_acquired": false,
+    "cloud_resources_launched": false
+  },
+  "unqueued_engineering_checks": {
+    "status": "DEVIATION_RETAINED",
+    "scope": "Short synthetic-only or static-import tests run before all teams received the queue rule; no Adult array or model fit reported.",
+    "receipts": [
+      {"role": "A", "detail": "8 red TDD synthetic tests", "reported_wall_s": 0.05},
+      {"role": "B designer", "detail": "one focused pytest collection; missing SavedRelease import, no numerical execution", "reported_wall_s": 1.10},
+      {"role": "B implementer", "detail": "seven small Torch pytest commands; four reached numerical assertions, three stopped at import collection; no optimizer fit", "reported_wall_s_approx": 8},
+      {"role": "C", "detail": "14 initial synthetic tests; timing not supplied", "reported_wall_s": null},
+      {"role": "C designer", "detail": "15 synthetic tests passed; no Adult arrays or fit", "reported_wall_s": 0.2049},
+      {"role": "D", "detail": "13 initial synthetic tests; timing not supplied", "reported_wall_s": null},
+      {"role": "S2", "detail": "6 guard tests", "reported_wall_s": 0.015},
+      {"role": "S3", "detail": "queue engineering tests with trivial subprocess, repeated during red/green checks", "reported_wall_s": null}
+    ],
+    "conservative_setup_cpu_charge_s": 180,
+    "charge_basis": "Known tests total under 10 seconds wall; 180 seconds reserves substantial allowance for untimed C/D/S3 checks and import overhead. This is a budget charge, not a measured CPU result.",
+    "future_rule": "Every further numerical test, including synthetic verification, enters the common queue after its applicable gate opens."
+  }
+}
