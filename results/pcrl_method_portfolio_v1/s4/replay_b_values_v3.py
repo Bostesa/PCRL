@@ -58,7 +58,9 @@ def verify_b_values(campaign: Path, attempt: Path, probe_root: Path, *,
     if manifest.get("status") != "ROLE_FILES_ADMITTED_S4_VERIFIED":
         raise PermissionError("B role-only files lack independent admission")
 
-    role_fields = (("ATTACK_FIT_NEW", "features"), ("ATTACK_FIT_NEW", "sex"),
+    role_fields = (("OSF_DEFENSE_FIT", "income"),
+                   ("OSF_DEFENSE_FIT", "occupation"),
+                   ("ATTACK_FIT_NEW", "features"), ("ATTACK_FIT_NEW", "sex"),
                    ("INNER_SELECTION", "features"), ("INNER_SELECTION", "sex"),
                    ("INNER_SELECTION", "income"),
                    ("INNER_SELECTION", "occupation"),
@@ -67,6 +69,10 @@ def verify_b_values(campaign: Path, attempt: Path, probe_root: Path, *,
         raise PermissionError("B independent role allowlist differs")
     data = {f"{role}:{field}": _role(campaign, manifest, role, field)
             for role, field in role_fields}
+    fit_id, fit_group = _same_people(
+        data["OSF_DEFENSE_FIT:income"], data["OSF_DEFENSE_FIT:occupation"])
+    if (len(fit_id), len(np.unique(fit_group))) != (15434, 15428):
+        raise ValueError("B FIT task-reference row/group geometry differs")
     att = data["ATTACK_FIT_NEW:features"]
     inner = data["INNER_SELECTION:features"]
     ref = data[f"INNER_SELECTION:references_s{seed}"]
@@ -192,7 +198,22 @@ def verify_b_values(campaign: Path, attempt: Path, probe_root: Path, *,
         utility[purpose] = _task_result(
             q, label, {reference: np.asarray(ref[f"{reference}_{suffix}"], dtype=np.float64)
                        for reference in ("U0", "Ucal")})
+        fit_label = np.asarray(data[f"OSF_DEFENSE_FIT:{purpose}"][purpose],
+                               dtype=np.int64)
+        if fit_label.ndim != 1 or np.any((fit_label < 0) | (fit_label >= q.shape[1])):
+            raise ValueError("B FIT task-reference class differs")
+        majority = int(np.argmax(np.bincount(fit_label, minlength=q.shape[1])))
+        utility[purpose]["fit_majority_constant_baseline"] = {
+            "status": "FIT_MAJORITY_REPLAYED", "predicted_class": majority,
+            "accuracy": float(np.mean(label == majority))}
         _check_aggregate_task(utility[purpose], aggregate["task"], purpose)
+        _match_number(utility[purpose]["fit_majority_constant_baseline"]["accuracy"],
+                      aggregate["task"][purpose]["candidate"]["constant_accuracy"],
+                      f"{purpose}/FIT-majority constant accuracy")
+        _match_number(utility[purpose]["accuracy"] -
+                      utility[purpose]["fit_majority_constant_baseline"]["accuracy"],
+                      aggregate["task"][purpose]["candidate"]["accuracy_gain_over_constant"],
+                      f"{purpose}/FIT-majority constant gain")
     recovery = {}
     for view in ("income", "occupation", "pair"):
         by_reader = {name: max(auc(sex_inner, prediction),

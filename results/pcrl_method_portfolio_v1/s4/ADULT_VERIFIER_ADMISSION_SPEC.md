@@ -26,12 +26,14 @@ recompute from its saved models, labels, views and vectors.
 
 ## Role allowlist
 
-B replay may read admitted ATTACK_FIT_NEW features and SEX, INNER_SELECTION
+B replay may read admitted OSF_DEFENSE_FIT income and occupation labels solely
+to derive the FIT-majority constant accuracy on INNER_SELECTION. B replay may
+also read admitted ATTACK_FIT_NEW features and SEX, INNER_SELECTION
 features, SEX, income, occupation, and the seed-specific U0/Ucal references.
 The feature anchor also needs ATTACK_FIT_NEW references. The role files must
 match `DATA_ACCESS_MANIFEST.json` by full file SHA, exact NPZ members and
 ordered row/unit pair hash before their values are used. The old assessment,
-HEAD_VALIDATION, all-role archive and FIT/CAL label values are out of scope.
+HEAD_VALIDATION, all-role archive, FIT SEX and CAL labels are out of scope.
 
 The anchor alone may read the pinned source U checkpoint and public heads from
 the admitted hcal cache. B replay may read only its frozen fit checkpoint,

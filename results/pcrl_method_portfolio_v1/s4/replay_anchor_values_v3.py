@@ -71,7 +71,9 @@ def verify_anchor_values(campaign: Path, anchor_root: Path, probe_root: Path,
     if sha_file(model) != source_sha:
         raise ValueError("anchor source U model bytes differ")
 
-    role_fields = [("ATTACK_FIT_NEW", field) for field in
+    role_fields = [("OSF_DEFENSE_FIT", "income"),
+                   ("OSF_DEFENSE_FIT", "occupation")] + \
+                  [("ATTACK_FIT_NEW", field) for field in
                    ("features", f"references_s{seed}", "sex")] + \
                   [("INNER_SELECTION", field) for field in
                    ("features", f"references_s{seed}", "sex", "income", "occupation")]
@@ -81,8 +83,14 @@ def verify_anchor_values(campaign: Path, anchor_root: Path, probe_root: Path,
     for role, field in role_fields:
         key = f"{role}:{field}"
         data[key] = _role(campaign, manifest, role, field)
-        if anchor["role_file_sha256"][key] != manifest["real_file_specs"][key]["sha256"]:
+        if (role != "OSF_DEFENSE_FIT" and
+                anchor["role_file_sha256"][key] !=
+                manifest["real_file_specs"][key]["sha256"]):
             raise ValueError("anchor runner used a different admitted role file")
+    fit_id, fit_group = _same_people(
+        data["OSF_DEFENSE_FIT:income"], data["OSF_DEFENSE_FIT:occupation"])
+    if (len(fit_id), np.unique(fit_group).size) != (15434, 15428):
+        raise ValueError("anchor FIT task-reference row/group geometry differs")
     att_features = data["ATTACK_FIT_NEW:features"]
     att_ref = data[f"ATTACK_FIT_NEW:references_s{seed}"]
     att_sex = data["ATTACK_FIT_NEW:sex"]
@@ -162,6 +170,13 @@ def verify_anchor_values(campaign: Path, anchor_root: Path, probe_root: Path,
         utility[task] = _task_result(
             q, label, {name: np.asarray(inner_ref[f"{name}_{recipient}"], dtype=np.float64)
                        for name in ("U0", "Ucal")})
+        fit_label = np.asarray(data[f"OSF_DEFENSE_FIT:{task}"][task], dtype=np.int64)
+        if fit_label.ndim != 1 or np.any((fit_label < 0) | (fit_label >= q.shape[1])):
+            raise ValueError("anchor FIT task-reference class differs")
+        majority = int(np.argmax(np.bincount(fit_label, minlength=q.shape[1])))
+        utility[task]["fit_majority_constant_baseline"] = {
+            "status": "FIT_MAJORITY_REPLAYED", "predicted_class": majority,
+            "accuracy": float(np.mean(label == majority))}
     labels = np.asarray(inner_sex["sex"], dtype=np.int64)
     recovery = {}
     for view in ("r1", "r2", "pair"):
