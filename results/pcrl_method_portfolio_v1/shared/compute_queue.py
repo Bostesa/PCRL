@@ -668,6 +668,15 @@ class Queue:
                 spec.get("data_access") != "A_ROLE_ONLY_REFERENCES_PREPROCESS" or
                 spec.get("deps") != []):
                 return "a_score_bank_scope_invalid"
+            caps = lock.get("a_score_bank_unit_caps")
+            fixed_cap = {"max_wall_s": 300, "cpu_reserve_s": 300, "max_rss_gib": 1.5}
+            if (not isinstance(caps, dict) or set(caps) != set(expected_ids) or
+                any(caps.get(unit_id) != fixed_cap for unit_id in expected_ids)):
+                return "a_score_bank_caps_not_locked"
+            if (float(spec["max_wall_s"]) > caps[uid]["max_wall_s"] or
+                float(spec["cpu_reserve_s"]) > caps[uid]["cpu_reserve_s"] or
+                float(spec["max_rss_gib"]) > caps[uid]["max_rss_gib"]):
+                return "a_score_bank_resource_limit_exceeded"
             script_sha = lock.get("a_score_bank_runner_sha256")
             if (spec.get("runner_sha256") != script_sha or
                 not exact_script("results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py", script_sha)):

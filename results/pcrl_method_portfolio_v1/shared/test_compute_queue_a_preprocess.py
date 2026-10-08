@@ -33,6 +33,11 @@ class AScoreBankAdmissionTests(unittest.TestCase):
         self.queue_root = self.shared / ".private" / "compute"
         self.queue_root.mkdir(parents=True)
         self.unit_id = "S2-A-SCORE-BANK-TSTAR-S0"
+        unit_ids = [
+            f"S2-A-SCORE-BANK-{key.upper().replace('_', '-')}-S{seed}"
+            for key in ("tstar", "pstar", "lra_seq21", "hcal_local_d0", "hcal_seq12_d0")
+            for seed in (0, 1)
+        ]
         self.lock = self.campaign / "CAMPAIGN_LOCK.json"
         self.lock.write_text(json.dumps({
             "status": "LOCAL_GIT_SEALED_EFFECTIVE",
@@ -40,11 +45,11 @@ class AScoreBankAdmissionTests(unittest.TestCase):
             "fit_admission": "B_ONLY",
             "families": {"A": {"preprocessing_admission": "ALLOWED",
                                "fit_admission": "DENIED"}},
-            "admitted_a_score_bank_unit_ids": [
-                f"S2-A-SCORE-BANK-{key.upper().replace('_', '-')}-S{seed}"
-                for key in ("tstar", "pstar", "lra_seq21", "hcal_local_d0", "hcal_seq12_d0")
-                for seed in (0, 1)
-            ],
+            "admitted_a_score_bank_unit_ids": unit_ids,
+            "a_score_bank_unit_caps": {
+                uid: {"max_wall_s": 300, "cpu_reserve_s": 300, "max_rss_gib": 1.5}
+                for uid in unit_ids
+            },
             "a_score_bank_runner_sha256": sha(self.script),
             "a_score_bank_cache_root": "../source_cache",
             "data_admission": {"manifest_sha256": sha(self.manifest)},
@@ -109,6 +114,19 @@ class AScoreBankAdmissionTests(unittest.TestCase):
         wrong_cache = dict(self.spec, argv=[x if x != str(self.cache) else str(self.repo / "wrong")
                                                   for x in self.spec["argv"]])
         self.assertIsNotNone(self.reason(wrong_cache))
+
+    def test_each_unit_has_locked_cpu_wall_and_memory_caps(self):
+        for change in (
+            {"max_wall_s": 301, "cpu_reserve_s": 301},
+            {"cpu_reserve_s": 301},
+            {"max_rss_gib": 1.51},
+        ):
+            with self.subTest(change=change):
+                self.assertIsNotNone(self.reason(dict(self.spec, **change)))
+        queue = Queue(Path(self.temp.name) / "oversized-queue")
+        with mock.patch.object(Queue, "_local_seal_ok", return_value=True):
+            with self.assertRaises(ValueError):
+                queue.enqueue(dict(self.spec, max_wall_s=301, cpu_reserve_s=301))
 
 
 if __name__ == "__main__":
