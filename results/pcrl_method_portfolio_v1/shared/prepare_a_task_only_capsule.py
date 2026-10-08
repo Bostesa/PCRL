@@ -26,6 +26,7 @@ CAMPAIGN = Path(__file__).resolve().parent.parent
 PRIVATE = Path(__file__).resolve().parent / ".private"
 BANK_RELEASE_ID = "U|FINE-TASK|i8o64|H-GLOBAL-TEMP"
 S4_SCHEMA = "pcrl-s4-a-score-bank-verification-v1"
+DATA_ACCESS = "A_FIT_OWN_TASK_AND_REFERENCES_CAPSULE"
 
 
 def _arg(argv: list[str], name: str) -> str:
@@ -52,6 +53,7 @@ def _running_unit(seed: int, recipient: int, lock_sha: str,
                 spec.get("unit_id") != unit_id or spec.get("mode") != "real_data" or
                 spec.get("family") != "SHARED" or spec.get("team") != "SHARED" or
                 spec.get("stage") != "a_task_capsule_preprocess" or
+                spec.get("data_access") != DATA_ACCESS or
                 spec.get("seed") != seed or spec.get("recipient") != recipient or
                 spec.get("runner_sha256") != sha_file(Path(__file__)) or
                 spec.get("outputs") != [str(output)] or

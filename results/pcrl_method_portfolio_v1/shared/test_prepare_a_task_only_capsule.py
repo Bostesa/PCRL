@@ -51,6 +51,7 @@ class ProducerTests(unittest.TestCase):
                                      "spec": {"unit_id": unit_id, "mode": "real_data",
                                               "family": "SHARED", "team": "SHARED",
                                               "stage": "a_task_capsule_preprocess",
+                                              "data_access": producer.DATA_ACCESS,
                                               "seed": 0, "recipient": 1,
                                               "runner_sha256": sha_file(Path(producer.__file__)),
                                               "outputs": [str(output)],
