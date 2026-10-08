@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -23,6 +24,16 @@ class ComputeQueueTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.queue = Queue(self.root)
         self.marker = self.root / "ran.txt"
+        self.synthetic_test = self.root / "test_fixture.py"
+        self.synthetic_test.write_text("# fixed queue fixture\n")
+        law = self.root / "law.json"
+        law.write_text("{}")
+        self.phase1_lock = self.root / "PHASE1_INDEX.json"
+        self.phase1_lock.write_text(json.dumps({
+            "shared_laws": {"path": law.name, "sha256": hashlib.sha256(law.read_bytes()).hexdigest()},
+            "pre_algorithm_tests": {"S3_FIXTURE": [{"path": self.synthetic_test.name,
+                                                  "sha256": hashlib.sha256(self.synthetic_test.read_bytes()).hexdigest()}]},
+        }))
         self.spec = {
             "unit_id": "synthetic_smoke_s0",
             "argv": [sys.executable, "-c", f"from pathlib import Path; Path({str(self.marker)!r}).write_text('ok')"],
@@ -32,8 +43,19 @@ class ComputeQueueTests(unittest.TestCase):
             "cpu_reserve_s": 4,
             "max_rss_gib": 0.25,
             "stage": "setup",
+            "mode": "prelock_synthetic", "team": "S3_FIXTURE", "data_access": "NONE",
+            "test_file": str(self.synthetic_test),
+            "test_sha256": hashlib.sha256(self.synthetic_test.read_bytes()).hexdigest(),
         }
         self.queue.enqueue(self.spec)
+        self.queue.update_gate(safe_inputs=False, lock_pushed=False, occupancy_confirmed=False,
+                               external_heavy=2, phase1_lock_path=str(self.phase1_lock),
+                               phase1_lock_sha256=hashlib.sha256(self.phase1_lock.read_bytes()).hexdigest())
+
+    def _suppress_default_fixture(self):
+        state = self.queue.status()
+        state["units"]["synthetic_smoke_s0"]["status"] = "skipped"
+        self.queue._save(state)
 
     def test_gate_is_closed_until_all_admissions_are_recorded(self):
         self.assertEqual(self.queue.run_once()["status"], "gate_closed")
@@ -171,7 +193,9 @@ class ComputeQueueTests(unittest.TestCase):
         spec = dict(self.spec, unit_id="crash_job", cwd=str(root), max_wall_s=3, cpu_reserve_s=3)
         queue.enqueue(spec)
         queue.enqueue(dict(self.spec, unit_id="later_job", cwd=str(root), max_wall_s=3, cpu_reserve_s=3))
-        queue.update_gate(safe_inputs=True, lock_pushed=True, occupancy_confirmed=True, external_heavy=1)
+        queue.update_gate(safe_inputs=True, lock_pushed=True, occupancy_confirmed=True, external_heavy=1,
+                          phase1_lock_path=str(self.phase1_lock),
+                          phase1_lock_sha256=hashlib.sha256(self.phase1_lock.read_bytes()).hexdigest())
         script = str(Path(__file__).parent / "compute_queue.py")
         worker = subprocess.Popen([sys.executable, script, "--root", str(root), "run-once"],
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -204,6 +228,7 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertEqual(state["budget_epoch"]["used_cpu_s"], 2)
 
     def test_reviewed_single_role_export_has_separate_gate(self):
+        self._suppress_default_fixture()
         script = self.root / "export_roles.py"
         script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('exported')\n")
         digest = hashlib.sha256(script.read_bytes()).hexdigest()
@@ -247,6 +272,7 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertFalse(self.marker.exists())
 
     def test_independent_role_audit_requires_export_and_exact_reviewed_script(self):
+        self._suppress_default_fixture()
         script = self.root / "audit.py"
         script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('audited')\n")
         digest = hashlib.sha256(script.read_bytes()).hexdigest()
@@ -283,6 +309,7 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.run_once()["status"], "done")
 
     def test_role_only_byte_replay_requires_independent_audit(self):
+        self._suppress_default_fixture()
         script = self.root / "replay.py"
         script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('replayed')\n")
         digest = hashlib.sha256(script.read_bytes()).hexdigest()
@@ -299,6 +326,7 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.run_once()["status"], "done")
 
     def test_second_export_requires_preserved_first_and_exact_original_script(self):
+        self._suppress_default_fixture()
         script = self.root / "export_once.py"
         script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('second')\n")
         digest = hashlib.sha256(script.read_bytes()).hexdigest()
@@ -321,6 +349,7 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertEqual(self.queue.run_once()["status"], "done")
 
     def test_independent_replay_compare_requires_second_export(self):
+        self._suppress_default_fixture()
         script = self.root / "compare.py"
         script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('compared')\n")
         digest = hashlib.sha256(script.read_bytes()).hexdigest()
@@ -358,6 +387,11 @@ class ComputeQueueTests(unittest.TestCase):
         repo = self.root / "repo"
         campaign = repo / "results/pcrl_method_portfolio_v1"
         campaign.mkdir(parents=True)
+        marker = self.root / "sealed_ran.txt"
+        script = campaign / "teams/b/screen_driver.py"
+        script.parent.mkdir(parents=True)
+        script.write_text(f"from pathlib import Path\nPath({str(marker)!r}).write_text('ok')\n")
+        script_sha = hashlib.sha256(script.read_bytes()).hexdigest()
         manifest = campaign / "DATA_ACCESS_MANIFEST.json"
         manifest.write_text('{"status":"ROLE_FILES_ADMITTED_S4_VERIFIED"}')
         audit = campaign / "S4_ROLE_EXPORT_VERIFICATION.json"
@@ -365,6 +399,14 @@ class ComputeQueueTests(unittest.TestCase):
         lock = campaign / "CAMPAIGN_LOCK.json"
         lock.write_text(json.dumps({
             "status": "LOCAL_GIT_SEALED_EFFECTIVE", "adult_fit_permission": True,
+            "fit_admission": "B_ONLY", "admitted_arms": {"B": ["B-JVIB"]},
+            "families": {k: ({"fit_admission": "ALLOWED",
+                              "screen_unit_ids": {"B-JVIB:s0": "real_fit_fixture",
+                                                  "B-JVIB:s1": "later_real_fit_fixture"},
+                              "real_control_unit_ids": {},
+                              "screen_driver_sha256": script_sha}
+                             if k == "B" else {"fit_admission": "DENIED"})
+                         for k in "ABCD"},
             "data_admission": {
                 "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
                 "s4_audit_receipt_sha256": hashlib.sha256(audit.read_bytes()).hexdigest()},
@@ -377,26 +419,29 @@ class ComputeQueueTests(unittest.TestCase):
         commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
         lock_hash = hashlib.sha256(lock.read_bytes()).hexdigest()
         review = campaign / "S4_PREFIT_SEAL_REVIEW.json"
-        review.write_text(json.dumps({"status": "PASS", "lock_commit_sha": commit,
+        review.write_text(json.dumps({"status": "PASS", "fit_admission": "B_ONLY", "lock_commit_sha": commit,
                                       "lock_sha256": lock_hash}))
         receipt = campaign / "LOCAL_SEAL_RECEIPT.json"
-        receipt.write_text(json.dumps({"status": "PASS", "commit_sha": commit,
+        receipt.write_text(json.dumps({"status": "PASS", "fit_admission": "B_ONLY", "commit_sha": commit,
                                        "lock_commit_sha": commit,
                                        "campaign_lock_sha256": lock_hash,
                                        "lock_sha256": lock_hash,
                                        "review_path": "S4_PREFIT_SEAL_REVIEW.json",
                                        "review_sha256": hashlib.sha256(review.read_bytes()).hexdigest()}))
         queue = Queue(self.root / "sealed_queue")
-        marker = self.root / "sealed_ran.txt"
-        unit = dict(self.spec, unit_id="real_fit_fixture", cwd=str(repo),
-                    argv=[sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).write_text('ok')"])
-        queue.enqueue(unit)
+        unit = dict(self.spec, unit_id="real_fit_fixture", mode="real_data", family="B", arm_id="B-JVIB",
+                    team="B", arm="B-JVIB", seed=0, stage="screen", cwd=str(repo),
+                    argv=[sys.executable, str(script), "--arm", "B-JVIB", "--seed", "0",
+                          "--unit-id", "real_fit_fixture"])
         queue.update_gate(safe_inputs=True, lock_pushed=False, occupancy_confirmed=True,
                           external_heavy=0, local_seal_path=str(receipt),
                           local_seal_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest())
+        queue.enqueue(unit)
         self.assertEqual(queue.run_once()["status"], "done")
         self.assertEqual(marker.read_text(), "ok")
-        queue.enqueue(dict(unit, unit_id="later_real_fit_fixture"))
+        queue.enqueue(dict(unit, unit_id="later_real_fit_fixture", seed=1,
+                           argv=[sys.executable, str(script), "--arm", "B-JVIB", "--seed", "1",
+                                 "--unit-id", "later_real_fit_fixture"]))
         complete_receipt = json.loads(receipt.read_text())
         for missing_key in ("lock_commit_sha", "lock_sha256"):
             incomplete = dict(complete_receipt)
@@ -412,6 +457,168 @@ class ComputeQueueTests(unittest.TestCase):
                           local_seal_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest())
         lock.write_text(lock.read_text() + "\n")
         self.assertEqual(queue.run_once()["status"], "local_seal_invalid")
+
+    def test_b_only_seal_rejects_non_b_and_unlisted_arms_at_enqueue(self):
+        repo = self.root / "b_only_repo"
+        campaign = repo / "results/pcrl_method_portfolio_v1"
+        campaign.mkdir(parents=True)
+        marker = self.root / "b_only_ran.txt"
+        script = campaign / "teams/b/screen_driver.py"
+        script.parent.mkdir(parents=True)
+        script.write_text(f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n")
+        script_sha = hashlib.sha256(script.read_bytes()).hexdigest()
+        manifest = campaign / "DATA_ACCESS_MANIFEST.json"
+        manifest.write_text('{"status":"ROLE_FILES_ADMITTED_S4_VERIFIED"}')
+        audit = campaign / "S4_ROLE_EXPORT_VERIFICATION.json"
+        audit.write_text('{"status":"PASS"}')
+        lock = campaign / "CAMPAIGN_LOCK.json"
+        lock.write_text(json.dumps({
+            "status": "LOCAL_GIT_SEALED_EFFECTIVE", "adult_fit_permission": True,
+            "fit_admission": "B_ONLY",
+            "admitted_arms": {"B": ["B-JVIB", "B-TASK"]},
+            "families": {k: ({"fit_admission": "ALLOWED",
+                              "screen_unit_ids": {"B-JVIB:s0": "b_admitted"},
+                              "real_control_unit_ids": {},
+                              "screen_driver_sha256": script_sha,
+                              "real_control_probe_sha256": "1" * 64}
+                             if k == "B" else {"fit_admission": "DENIED"})
+                         for k in "ABCD"},
+            "data_admission": {
+                "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                "s4_audit_receipt_sha256": hashlib.sha256(audit.read_bytes()).hexdigest()},
+        }))
+        subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+        subprocess.run(["git", "-C", str(repo), "add", "results"], check=True)
+        env = dict(os.environ, GIT_AUTHOR_NAME="Queue Test", GIT_AUTHOR_EMAIL="queue@test.invalid",
+                   GIT_COMMITTER_NAME="Queue Test", GIT_COMMITTER_EMAIL="queue@test.invalid")
+        subprocess.run(["git", "-C", str(repo), "commit", "-qm", "b-only fixture"], check=True, env=env)
+        commit = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+        lock_sha = hashlib.sha256(lock.read_bytes()).hexdigest()
+        review = campaign / "S4_PREFIT_SEAL_REVIEW.json"
+        review.write_text(json.dumps({"status": "PASS", "fit_admission": "B_ONLY",
+                                      "lock_commit_sha": commit, "lock_sha256": lock_sha}))
+        receipt = campaign / "LOCAL_SEAL_RECEIPT.json"
+        receipt.write_text(json.dumps({"status": "PASS", "fit_admission": "B_ONLY",
+                                       "commit_sha": commit, "lock_commit_sha": commit,
+                                       "campaign_lock_sha256": lock_sha, "lock_sha256": lock_sha,
+                                       "review_path": review.name,
+                                       "review_sha256": hashlib.sha256(review.read_bytes()).hexdigest()}))
+        queue = Queue(self.root / "b_only_queue")
+        queue.update_gate(safe_inputs=True, lock_pushed=True, occupancy_confirmed=True,
+                          external_heavy=0, local_seal_path=str(receipt),
+                          local_seal_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest())
+        base = dict(self.spec, mode="real_data", cwd=str(repo),
+                    team="B", arm="B-JVIB", seed=0, stage="screen",
+                    argv=[sys.executable, str(script), "--arm", "B-JVIB", "--seed", "0",
+                          "--unit-id", "b_admitted"])
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="a_denied", family="A", arm_id="A-JOINT-STOCH"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="b_unlisted", family="B", arm_id="B-RAWJ"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="missing_scope"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="extra_b_fit", family="B", arm_id="B-JVIB",
+                               team="B", arm="B-JVIB", seed=0, stage="screen"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="wrong_stage", family="B", arm_id="B-JVIB",
+                               team="B", arm="B-JVIB", seed=0, stage="postrelease_control"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="wrong_seed", family="B", arm_id="B-JVIB",
+                               team="B", arm="B-JVIB", seed=1, stage="screen"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="mismatched_team", family="B", arm_id="B-JVIB",
+                               team="A", arm="B-JVIB"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="mismatched_arm", family="B", arm_id="B-JVIB",
+                               team="B", arm="B-TASK"))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="script_only_decoy", family="B", arm_id="B-JVIB",
+                               argv=[sys.executable, "-c", "pass", str(script)]))
+        with self.assertRaises(ValueError):
+            queue.enqueue(dict(base, unit_id="b_admitted", family="B", arm_id="B-JVIB",
+                               argv=[sys.executable, str(script), "--arm", "B-JVIB", "--seed", "1",
+                                     "--unit-id", "b_admitted"]))
+        queue.enqueue(dict(base, unit_id="b_admitted", family="B", arm_id="B-JVIB"))
+        self.assertEqual(queue.run_once()["status"], "done")
+        self.assertEqual(marker.read_text(), "ran")
+        # A previously queued non-B unit must also be refused at launch.
+        state = queue.status()
+        state["units"]["a_legacy"] = {"spec": dict(base, unit_id="a_legacy", family="A",
+                                                     team="A", arm="A-JOINT-STOCH",
+                                                     arm_id="A-JOINT-STOCH"), "status": "planned"}
+        queue._save(state)
+        self.assertEqual(queue.run_once()["status"], "family_not_admitted")
+
+    def test_role_probe_requires_admitted_role_manifest_and_audit(self):
+        self._suppress_default_fixture()
+        script = self.root / "results/pcrl_method_portfolio_v1/shared/probe_att_group_split.py"
+        script.parent.mkdir(parents=True)
+        script.write_text(f"from pathlib import Path\nPath({str(self.marker)!r}).write_text('probed')\n")
+        digest = hashlib.sha256(script.read_bytes()).hexdigest()
+        sex_file = self.root / "shared/.private/role_export_v1/ATTACK_FIT_NEW/sex.npz"
+        sex_file.parent.mkdir(parents=True)
+        sex_file.write_bytes(b"fixed admitted role fixture")
+        manifest = self.root / "DATA_ACCESS_MANIFEST.json"
+        manifest.write_text(json.dumps({"status":"ROLE_FILES_ADMITTED_S4_VERIFIED",
+                                        "roles":{"ATTACK_FIT_NEW":{"rows":4}},
+                                        "real_file_specs":{"ATTACK_FIT_NEW:sex":{
+                                            "role":"ATTACK_FIT_NEW", "field":"sex",
+                                            "members":["row_id","unit","sex"],
+                                            "path":str(sex_file.relative_to(self.root)),
+                                            "sha256":hashlib.sha256(sex_file.read_bytes()).hexdigest()}}}))
+        audit = self.root / "S4_ROLE_EXPORT_VERIFICATION.json"
+        audit.write_text('{"status":"PASS","roles":{"ATTACK_FIT_NEW":{"rows":4}}}')
+        index = json.loads(self.phase1_lock.read_text())
+        index["source_code_hashes"] = {"ATT_PROBE": [{"path":"shared/probe_att_group_split.py",
+                                                       "sha256":digest}]}
+        self.phase1_lock.write_text(json.dumps(index))
+        probe = dict(self.spec, unit_id="att_role_probe", mode="role_probe",
+                     team="ATT_PROBE", cwd=str(self.root),
+                     argv=[sys.executable, str(script)],
+                     data_access="ADMITTED_ATTACK_FIT_SEX_ONLY",
+                     reviewed_script=str(script), reviewed_sha256=digest,
+                     admission_manifest_path=str(manifest),
+                     admission_manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                     s4_audit_path=str(audit),
+                     s4_audit_sha256=hashlib.sha256(audit.read_bytes()).hexdigest())
+        self.queue.enqueue(probe)
+        self.queue.update_gate(safe_inputs=False, lock_pushed=False, occupancy_confirmed=True,
+                               external_heavy=0, phase1_lock_path=str(self.phase1_lock),
+                               phase1_lock_sha256=hashlib.sha256(self.phase1_lock.read_bytes()).hexdigest())
+        self.assertEqual(self.queue.run_once()["status"], "role_audit_not_complete")
+        state = self.queue.status()
+        state["units"]["S4-INDEPENDENT-ROLE-AUDIT-V1"] = {"spec": {}, "status": "done"}
+        self.queue._save(state)
+        self.assertEqual(self.queue.run_once()["status"], "done")
+        self.assertEqual(self.marker.read_text(), "probed")
+
+    def test_shared_anchor_binds_seed_id_script_and_argv(self):
+        repo = self.root / "anchor_repo"
+        script = repo / "results/pcrl_method_portfolio_v1/shared/run_feature_ref_raw83_u.py"
+        script.parent.mkdir(parents=True)
+        script.write_text("# synthetic anchor script\n")
+        lock = script.parent.parent / "CAMPAIGN_LOCK.json"
+        lock.write_text(json.dumps({
+            "fit_admission": "B_ONLY",
+            "families": {k: {"fit_admission": "ALLOWED" if k == "B" else "DENIED"}
+                         for k in "ABCD"},
+            "admitted_shared_unit_ids": ["S2-FEATURE-REF-RAW83-U-S0", "S2-FEATURE-REF-RAW83-U-S1"],
+            "shared_anchor_runner_sha256": hashlib.sha256(script.read_bytes()).hexdigest(),
+        }))
+        gate = {"safe_inputs": True, "local_seal_path": str(lock.parent / "LOCAL_SEAL_RECEIPT.json")}
+        spec = dict(self.spec, mode="real_data", cwd=str(repo), family="SHARED", team="SHARED",
+                    arm_id="FEATURE_REF_RAW83_U", arm="FEATURE_REF_RAW83_U", seed=0,
+                    stage="feature_anchor", unit_id="S2-FEATURE-REF-RAW83-U-S0",
+                    argv=[sys.executable, str(script), "--seed", "0"])
+        with mock.patch.object(Queue, "_local_seal_ok", return_value=True):
+            self.assertIsNone(Queue._real_admission_reason(gate, spec))
+            self.assertEqual(Queue._real_admission_reason(gate, dict(spec, argv=[sys.executable, str(script), "--seed", "1"])),
+                             "shared_seed_argv_mismatch")
+            self.assertEqual(Queue._real_admission_reason(gate, dict(spec, unit_id="unlisted")),
+                             "shared_unit_not_admitted")
+            self.assertEqual(Queue._real_admission_reason(gate, dict(spec, argv=[sys.executable, "-c", "pass", str(script), "--seed", "0"])),
+                             "shared_script_not_admitted")
 
 
 if __name__ == "__main__":

@@ -273,10 +273,28 @@ class Queue:
                 raise ValueError("reviewed comparison script must appear in argv")
             if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 0.5:
                 raise ValueError("comparison exceeds bounded ceiling")
+        elif spec["mode"] == "role_probe":
+            if spec.get("data_access") != "ADMITTED_ATTACK_FIT_SEX_ONLY":
+                raise ValueError("role probe may read only admitted ATTACK_FIT_NEW SEX")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("role probe script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed role probe script must appear in argv")
+            if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 1.0:
+                raise ValueError("role probe exceeds bounded ceiling")
         elif spec["mode"] != "real_data":
             raise ValueError("unknown unit mode")
+        if spec["mode"] == "real_data":
+            if spec.get("family") not in ("A", "B", "C", "D", "SHARED") or not isinstance(spec.get("arm_id"), str):
+                raise ValueError("real_data unit requires explicit family and arm_id")
         with self._mutex():
             state = self._read()
+            if spec["mode"] == "real_data":
+                reason = self._real_admission_reason(state["gate"], spec)
+                if reason:
+                    raise ValueError(reason)
             old = state["units"].get(spec["unit_id"])
             if old:
                 if canonical(old["spec"]) != canonical(spec):
@@ -403,6 +421,24 @@ class Queue:
             lock = json.loads(lock_path.read_text())
             if lock.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or lock.get("adult_fit_permission") is not True:
                 return False
+            scope = lock.get("fit_admission")
+            if scope not in ("B_ONLY", "ALL_FAMILIES") or review.get("fit_admission") != scope or receipt.get("fit_admission") != scope:
+                return False
+            families = lock.get("families", {})
+            if set(families) != set("ABCD"):
+                return False
+            if scope == "B_ONLY" and (families["B"].get("fit_admission") != "ALLOWED" or
+                                      any(families[k].get("fit_admission") != "DENIED" for k in "ACD")):
+                return False
+            admitted = lock.get("admitted_arms", {})
+            if not isinstance(admitted, dict) or not all(isinstance(v, list) and len(v) == len(set(v))
+                                                         for v in admitted.values()):
+                return False
+            if scope == "B_ONLY" and (not admitted.get("B") or any(admitted.get(k) for k in "ACD")):
+                return False
+            shared_ids = lock.get("admitted_shared_unit_ids", [])
+            if not isinstance(shared_ids, list) or len(shared_ids) != len(set(shared_ids)):
+                return False
             admission = lock.get("data_admission", {})
             manifest = receipt_path.parent / "DATA_ACCESS_MANIFEST.json"
             audit = receipt_path.parent / "S4_ROLE_EXPORT_VERIFICATION.json"
@@ -421,8 +457,86 @@ class Queue:
             ancestor = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, "HEAD"],
                                       capture_output=True, check=False, timeout=10)
             return ancestor.returncode == 0
-        except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+        except (OSError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
             return False
+
+    @classmethod
+    def _real_admission_reason(cls, gate: dict, spec: dict) -> str | None:
+        if not gate.get("safe_inputs") or not cls._local_seal_ok(gate):
+            return "local_seal_invalid"
+        lock = json.loads((Path(gate["local_seal_path"]).parent / "CAMPAIGN_LOCK.json").read_text())
+        family = spec.get("family")
+        arm_id = spec.get("arm_id")
+        seed = spec.get("seed")
+        if type(seed) is not int or seed not in (0, 1):
+            return "seed_not_admitted"
+
+        def exact_script(relative_path: str, expected_sha: object) -> bool:
+            script = Path(spec["cwd"]) / relative_path
+            try:
+                script = script.resolve(strict=True)
+            except OSError:
+                return False
+            if (not isinstance(expected_sha, str) or
+                not re.fullmatch(r"[0-9a-f]{64}", expected_sha) or
+                sha256_file(script) != expected_sha):
+                return False
+            argv = spec.get("argv", ())
+            return (len(argv) >= 2 and
+                    re.fullmatch(r"python(?:3(?:\.\d+)?)?", Path(argv[0]).name) is not None and
+                    (Path(spec["cwd"]) / argv[1]).resolve() == script)
+
+        def flag_value(flag: str) -> str | None:
+            argv = spec.get("argv", ())
+            values = []
+            for i, arg in enumerate(argv[2:], start=2):
+                if arg == flag and i + 1 < len(argv):
+                    values.append(argv[i + 1])
+                elif arg.startswith(flag + "="):
+                    values.append(arg[len(flag) + 1:])
+            return values[0] if len(values) == 1 else None
+
+        if family == "SHARED":
+            expected_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
+            if (arm_id != "FEATURE_REF_RAW83_U" or spec.get("arm") != arm_id or
+                spec.get("team") != "SHARED" or spec.get("stage") != "feature_anchor" or
+                spec.get("unit_id") != expected_id or
+                expected_id not in lock.get("admitted_shared_unit_ids", [])):
+                return "shared_unit_not_admitted"
+            if not exact_script("results/pcrl_method_portfolio_v1/shared/run_feature_ref_raw83_u.py",
+                                lock.get("shared_anchor_runner_sha256")):
+                return "shared_script_not_admitted"
+            if flag_value("--seed") != str(seed):
+                return "shared_seed_argv_mismatch"
+            return None
+        if family not in ("A", "B", "C", "D") or lock["families"][family].get("fit_admission") != "ALLOWED":
+            return "family_not_admitted"
+        if arm_id not in lock.get("admitted_arms", {}).get(family, []):
+            return "arm_not_admitted"
+        if spec.get("team") != family or spec.get("arm") != arm_id:
+            return "arm_alias_mismatch"
+        if family == "B" and lock.get("fit_admission") == "B_ONLY":
+            b = lock["families"]["B"]
+            stage = spec.get("stage")
+            if stage == "screen":
+                unit_map = b.get("screen_unit_ids", {})
+                script_name = "screen_driver.py"
+                script_sha = b.get("screen_driver_sha256")
+            elif stage == "postrelease_control":
+                unit_map = b.get("real_control_unit_ids", {})
+                script_name = "real_control_probe.py"
+                script_sha = b.get("real_control_probe_sha256")
+            else:
+                return "stage_not_admitted"
+            if (not isinstance(unit_map, dict) or
+                unit_map.get(f"{arm_id}:s{seed}") != spec.get("unit_id")):
+                return "unit_id_not_admitted"
+            if not exact_script(f"results/pcrl_method_portfolio_v1/teams/b/{script_name}", script_sha):
+                return "script_not_admitted"
+            if (flag_value("--arm") != arm_id or flag_value("--seed") != str(seed) or
+                flag_value("--unit-id") != spec.get("unit_id")):
+                return "unit_argv_mismatch"
+        return None
 
     def _gate_status(self, state: dict, spec: dict) -> str | None:
         gate = state["gate"]
@@ -486,6 +600,43 @@ class Queue:
                 return "compare_review_missing"
             if state["units"].get("S2-SAFE-ROLE-EXPORT-REPLAY-V1", {}).get("status") != "done":
                 return "second_export_not_complete"
+        elif spec.get("mode", "real_data") == "role_probe":
+            if state["units"].get("S4-INDEPENDENT-ROLE-AUDIT-V1", {}).get("status") != "done":
+                return "role_audit_not_complete"
+            script = Path(spec["reviewed_script"])
+            if not script.is_file() or sha256_file(script) != spec.get("reviewed_sha256"):
+                return "role_probe_script_changed"
+            manifest = Path(spec.get("admission_manifest_path", ""))
+            audit = Path(spec.get("s4_audit_path", ""))
+            if (not manifest.is_file() or not audit.is_file() or
+                manifest.name != "DATA_ACCESS_MANIFEST.json" or audit.name != "S4_ROLE_EXPORT_VERIFICATION.json" or
+                manifest.parent != audit.parent or
+                sha256_file(manifest) != spec.get("admission_manifest_sha256") or
+                sha256_file(audit) != spec.get("s4_audit_sha256")):
+                return "role_probe_admission_changed"
+            data = json.loads(manifest.read_text())
+            review = json.loads(audit.read_text())
+            sex = data.get("real_file_specs", {}).get("ATTACK_FIT_NEW:sex", {})
+            sex_path = manifest.parent / sex.get("path", "")
+            if (data.get("status") != "ROLE_FILES_ADMITTED_S4_VERIFIED" or review.get("status") != "PASS" or
+                sex.get("role") != "ATTACK_FIT_NEW" or sex.get("field") != "sex" or
+                set(sex.get("members", [])) != {"row_id", "unit", "sex"} or
+                not sex_path.is_file() or sha256_file(sex_path) != sex.get("sha256") or
+                data.get("roles", {}).get("ATTACK_FIT_NEW", {}).get("rows") != review.get("roles", {}).get("ATTACK_FIT_NEW", {}).get("rows")):
+                return "role_probe_admission_invalid"
+            lock_path = gate.get("phase1_lock_path")
+            lock_sha = gate.get("phase1_lock_sha256")
+            if not lock_path or not Path(lock_path).is_file() or sha256_file(Path(lock_path)) != lock_sha:
+                return "phase1_lock_unverified"
+            index = json.loads(Path(lock_path).read_text())
+            sources = index.get("source_code_hashes", {}).get(spec.get("team"), [])
+            if not any((script.resolve() == (Path(spec["cwd"]) / "results/pcrl_method_portfolio_v1" / entry.get("path", "")).resolve()
+                        and entry.get("sha256") == spec.get("reviewed_sha256")) for entry in sources):
+                return "role_probe_unregistered"
+            for source in sources:
+                path = Path(spec["cwd"]) / "results/pcrl_method_portfolio_v1" / source.get("path", "")
+                if not path.is_file() or sha256_file(path) != source.get("sha256"):
+                    return "phase1_source_changed"
         elif spec.get("mode", "real_data") in ("prelock_synthetic", "preseal_smoke"):
             lock_path = gate.get("phase1_lock_path")
             lock_hash = gate.get("phase1_lock_sha256")
@@ -517,10 +668,8 @@ class Queue:
                 source_path = Path(spec["cwd"]) / "results" / "pcrl_method_portfolio_v1" / source.get("path", "")
                 if not source_path.is_file() or sha256_file(source_path) != source.get("sha256"):
                     return "phase1_source_changed"
-        elif not gate["safe_inputs"]:
-            return "gate_closed"
-        elif not gate["lock_pushed"] and not self._local_seal_ok(gate):
-            return "local_seal_invalid"
+        elif spec.get("mode", "real_data") == "real_data":
+            return self._real_admission_reason(gate, spec)
         return None
 
     def _orphan_unresolved(self, state: dict) -> bool:
