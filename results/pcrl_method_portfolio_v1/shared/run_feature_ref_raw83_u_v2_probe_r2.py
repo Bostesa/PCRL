@@ -1,4 +1,4 @@
-"""Queued V2 controls on the frozen feature-track anchor's saved complete views.
+"""Versioned R2 V2 controls on the frozen feature anchor's saved complete views.
 
 This unit fits only the six V2 engineering LR probes. It neither refits the
 anchor's U source nor any of its main readers. Person arrays remain private.
@@ -53,11 +53,32 @@ def _write_json_once(path: Path, obj: dict) -> str:
     return sha_file(path)
 
 
-def _running_unit(seed: int, argv_identity: dict[str, str], queue_root: Path,
+def _r2_unit_id(seed: int) -> str:
+    return f"S2-FEATURE-REF-RAW83-U-S{seed}-V2-PROBE-R2"
+
+
+def _r2_output(seed: int) -> Path:
+    return PRIVATE / f"feature_ref_raw83_u_s{seed}_v2_probe_r2" / "V2_ANCHOR_PROBE_RECEIPT.json"
+
+
+def _require_reader_receipt_binding(unit_spec: dict, parent: dict) -> None:
+    """Bind the immutable unit spec to all three parent fitted-reader receipts."""
+    actual = unit_spec.get("reader_receipt_sha256")
+    expected = parent.get("reader_receipt_sha256")
+    if (not isinstance(actual, dict) or not isinstance(expected, dict) or
+            set(actual) != set(VIEWS) or set(expected) != set(VIEWS) or
+            any(not isinstance(actual[view], str) or
+                re.fullmatch(r"[0-9a-f]{64}", actual[view]) is None
+                for view in VIEWS) or actual != expected):
+        raise PermissionError("queued V2 parent reader receipt binding differs")
+
+
+def _running_unit(seed: int, unit_id: str, argv_identity: dict[str, str], queue_root: Path,
                   parent_anchor_sha: str) -> tuple[dict, dict]:
     """Check the actual running S3 child and its immutable parent bindings."""
     queue = Queue(queue_root)
-    unit_id = f"S2-FEATURE-REF-RAW83-U-S{seed}-V2-PROBE"
+    if unit_id != _r2_unit_id(seed):
+        raise PermissionError("R2 V2 anchor unit identity differs")
     parent_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
     deadline = time.monotonic() + 5.0
     while True:
@@ -68,7 +89,8 @@ def _running_unit(seed: int, argv_identity: dict[str, str], queue_root: Path,
             raise PermissionError("V2 anchor or parent lacks an admitted running/done S3 unit")
         spec = unit.get("spec", {})
         argv = spec.get("argv", [])
-        if (spec.get("unit_id") != unit_id or spec.get("mode") != "real_data" or
+        if (len(argv) < 2 or Path(argv[1]).resolve() != Path(__file__).resolve() or
+                spec.get("unit_id") != unit_id or spec.get("mode") != "real_data" or
                 spec.get("family") != "SHARED" or spec.get("team") != "SHARED" or
                 spec.get("stage") != "postrelease_control_v2" or
                 spec.get("data_access") != "ATTACK_INNER_FEATURES_AND_SEX_V2_CONTROL" or
@@ -92,12 +114,13 @@ def _running_unit(seed: int, argv_identity: dict[str, str], queue_root: Path,
         time.sleep(0.02)
 
 
-def _sealed_inputs(seed: int, control_lock_sha: str, control_seal_sha: str,
+def _sealed_inputs(seed: int, unit_id: str, control_lock_sha: str, control_seal_sha: str,
                    manifest_sha: str, parent_anchor_sha: str,
                    queue_state: dict, unit_spec: dict) -> tuple[SafeRoleStore, Path, dict, dict]:
-    unit_id = f"S2-FEATURE-REF-RAW83-U-S{seed}-V2-PROBE"
+    if unit_id != _r2_unit_id(seed):
+        raise PermissionError("R2 V2 anchor unit identity differs")
     parent_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
-    expected_output = PRIVATE / f"feature_ref_raw83_u_s{seed}_v2_probe" / "V2_ANCHOR_PROBE_RECEIPT.json"
+    expected_output = _r2_output(seed)
     if unit_spec.get("outputs") != [str(expected_output)]:
         raise PermissionError("V2 anchor output differs from S3 immutable unit")
     lock_path = CAMPAIGN / "CONTROL_V2_LOCK.json"
@@ -193,9 +216,9 @@ def _sealed_inputs(seed: int, control_lock_sha: str, control_seal_sha: str,
             parent.get("arm") != ARM or parent.get("seed") != seed or
             parent.get("campaign_lock_sha256") not in lock.get("accepted_fit_lock_sha256", []) or
             parent.get("data_access_manifest_sha256") != manifest_sha or
-            lock.get("parent_anchor_receipt_sha256_by_unit", {}).get(parent_id) != parent_anchor_sha or
-            unit_spec.get("reader_receipt_sha256") != parent.get("reader_receipt_sha256")):
+            lock.get("parent_anchor_receipt_sha256_by_unit", {}).get(parent_id) != parent_anchor_sha):
         raise PermissionError("parent anchor/source-reader binding differs")
+    _require_reader_receipt_binding(unit_spec, parent)
     for view_name in VIEWS:
         reader_path = anchor_root / f"readers_{view_name}" / "READERS_RECEIPT.json"
         if sha_file(reader_path) != parent["reader_receipt_sha256"][view_name]:
@@ -236,18 +259,19 @@ def _restore_view(directory: Path, reader_receipt: dict, role: str) -> AttackVie
     return view
 
 
-def run(seed: int, control_lock_sha: str, control_seal_sha: str,
+def run(seed: int, unit_id: str, control_lock_sha: str, control_seal_sha: str,
         manifest_sha: str, parent_anchor_sha: str, queue_root: Path) -> dict:
-    argv_identity = {"--seed": str(seed), "--control-lock-sha256": control_lock_sha,
+    argv_identity = {"--seed": str(seed), "--unit-id": unit_id,
+                     "--control-lock-sha256": control_lock_sha,
                      "--control-seal-sha256": control_seal_sha,
                      "--data-manifest-sha256": manifest_sha,
                      "--parent-anchor-receipt-sha256": parent_anchor_sha,
                      "--queue-root": str(queue_root)}
-    queue_state, unit_spec = _running_unit(seed, argv_identity, queue_root, parent_anchor_sha)
+    queue_state, unit_spec = _running_unit(seed, unit_id, argv_identity, queue_root, parent_anchor_sha)
     store, anchor_root, parent, lock = _sealed_inputs(
-        seed, control_lock_sha, control_seal_sha, manifest_sha,
+        seed, unit_id, control_lock_sha, control_seal_sha, manifest_sha,
         parent_anchor_sha, queue_state, unit_spec)
-    output = PRIVATE / f"feature_ref_raw83_u_s{seed}_v2_probe"
+    output = _r2_output(seed).parent
     if output.exists():
         raise FileExistsError("V2 anchor probe is write-once")
     output.mkdir(parents=True, mode=0o700)
@@ -286,7 +310,7 @@ def run(seed: int, control_lock_sha: str, control_seal_sha: str,
         custody_sha[view_name] = custody["private_receipt_sha256"]
     receipt = {"schema": "pcrl-feature-ref-raw83-u-v2-probe-receipt-v1",
                "status": "PASS" if all(r["status"] == "PASS" for r in reports.values()) else "FAIL",
-               "arm": ARM, "seed": seed,
+               "arm": ARM, "seed": seed, "s3_unit_id": unit_id,
                "control_lock_sha256": control_lock_sha,
                "control_seal_sha256": control_seal_sha,
                "data_access_manifest_sha256": manifest_sha,
@@ -312,6 +336,7 @@ if __name__ == "__main__":
     os.umask(0o077)
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, choices=(0, 1), required=True)
+    parser.add_argument("--unit-id", required=True)
     parser.add_argument("--control-lock-sha256", required=True)
     parser.add_argument("--control-seal-sha256", required=True)
     parser.add_argument("--data-manifest-sha256", required=True)
@@ -319,7 +344,7 @@ if __name__ == "__main__":
     parser.add_argument("--queue-root", type=Path, required=True)
     args = parser.parse_args()
     try:
-        result = run(args.seed, args.control_lock_sha256, args.control_seal_sha256,
+        result = run(args.seed, args.unit_id, args.control_lock_sha256, args.control_seal_sha256,
                      args.data_manifest_sha256, args.parent_anchor_receipt_sha256,
                      args.queue_root)
     except BaseException as exc:
