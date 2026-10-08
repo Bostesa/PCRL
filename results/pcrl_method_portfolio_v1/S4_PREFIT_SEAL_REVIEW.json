@@ -24,11 +24,29 @@
     "threefold_margin_cpu_h": 2.889
   },
   "campaign_lock_path": "CAMPAIGN_LOCK.json",
-  "committed_lock_blob_sha256": "81df6e4e6d65e32cb73b5a3256eb82c4fb285c516c21bf7922df4f3c39bac87d",
+  "committed_lock_blob_sha256": "a7c6ed18f75335437a9c0601c2a11a44b1a77d14388d5741dfc5e0d215e8552d",
   "fit_admission": "B_ONLY",
-  "lock_commit_sha": "5d582a592a1bb7a82b41cdfe0b322950d71db344",
-  "lock_sha256": "81df6e4e6d65e32cb73b5a3256eb82c4fb285c516c21bf7922df4f3c39bac87d",
-  "next_required_gate": "S1 writes LOCAL_SEAL_RECEIPT.json binding this exact S4 review hash, B_ONLY and lock commit; S3 rechecks before every real unit.",
+  "lock_commit_sha": "7eb31595707c44fbf825084befaf5998c2550d28",
+  "lock_sha256": "a7c6ed18f75335437a9c0601c2a11a44b1a77d14388d5741dfc5e0d215e8552d",
+  "next_required_gate": "S1 writes an amended LOCAL_SEAL_RECEIPT.json binding this exact S4 review hash, B_ONLY and amended lock commit; S3 refreshes occupancy/resources and rechecks every real unit at enqueue and launch.",
+  "post_lock_amendment_review": {
+    "amendment_id": "PHASE2_AMENDMENT_001",
+    "amendment_commit_sha": "7eb31595707c44fbf825084befaf5998c2550d28",
+    "classification": "engineering queue path retry before any Adult role read",
+    "prior_lock_sha256": "81df6e4e6d65e32cb73b5a3256eb82c4fb285c516c21bf7922df4f3c39bac87d",
+    "prior_s4_review_sha256": "477ef432e82b1dd73c7dbfd82a951c9e47f759650938c4763898f3c7655e9e4d",
+    "lock_json_diff": "Only families.B.screen_unit_ids.B-TASK:s0 changes to the R1 ID, plus a dated post_lock_amendment object; all scientific fields match prior committed lock.",
+    "failed_unit_id": "B-SCREEN-B-TASK-S0",
+    "failed_unit_receipt_sha256": "52554d2c921becd6ffbf11f49d7688660fff84b42f1e0083b14e42551a285517",
+    "failed_unit_result": "returncode 1, 2.399 charged CPU seconds, no output or private attempt; pre-role config path byte-identity gate refused absent B-worktree path",
+    "replacement_unit_id": "B-SCREEN-B-TASK-S0-R1",
+    "v2_private_spec_hashes_sha256": "276e0150491026814449393e5ebef86d14f37698b5b24bf8a2d2d99451ef16d7",
+    "v2_private_plan_sha256": "df9f04a4ff311c03246ef289ef41cd762e72fc78bf9fa36f53c77c2884b885a8",
+    "v2_prefit_occupancy_receipt_sha256": "d73e1b84ffca11ffa74fcef007f3734a73f32b9e157898cd64c6ed486d55e92e",
+    "v2_prefit_occupancy": "At 2026-10-08T16:53:38Z, one external archive process group reserved one heavy slot; one portfolio slot available, 93 GiB disk and 45 percent memory free. S3 must refresh at enqueue and launch.",
+    "independent_spec_checks": "All 16 B screen and two SHARED feature-anchor specs match amended lock unit IDs, arm/seed/stage/script hashes, exact amended lock argv and one-thread resource bounds; all B screen specs use existing canonical coordinator SCREEN_CONFIG SHA ba8867893ea87f6fd0a63d204aa48ef4393bbd78aa17ab2afdfbcddfbd446eb3; all declared outputs absent at review. The original failed spec/receipt remains in queue history.",
+    "result": "PASS for amended B_ONLY static prefit scope; no endpoint or deployment replay"
+  },
   "queued_prefit_receipts": {
     "att_group_class_probe_receipt_sha256": {
       "receipt_sha256": "c698f25b20402d40fa3ac903b683310a76d067f3e87c3bcb1d914fdd68aae679",
@@ -62,11 +80,11 @@
     }
   },
   "review_type": "STATIC_PREFIT_B_ONLY_SCOPE_NO_ADULT_METHOD_REPLAY",
-  "reviewed_utc": "2026-10-08T16:48:36Z",
+  "reviewed_utc": "2026-10-08T16:54:00Z",
   "reviewer": "S4 independent math, claims and replay auditor",
   "schema": "pcrl-s4-prefit-seal-review-v1",
   "scientific_limitations": [
-    "No Adult B arm, anchor or real postrelease control has run under this seal.",
+    "The only Adult B screen attempt under the earlier seal stopped before role read; no Adult B arm, anchor or real postrelease control has fitted under this amended seal.",
     "No fitted reader, complete release, utility/recovery endpoint, winner, finalist, or deployment was independently replayed.",
     "All B results will be development evidence on repeatedly used Adult roles; this review is not confirmation.",
     "A/C/D remain denied; later admission needs a dated amendment and new scope review.",
@@ -118,7 +136,7 @@
       "B-SCREEN-B-SEQ12-S1",
       "B-SCREEN-B-SEQ21-S0",
       "B-SCREEN-B-SEQ21-S1",
-      "B-SCREEN-B-TASK-S0",
+      "B-SCREEN-B-TASK-S0-R1",
       "B-SCREEN-B-TASK-S1"
     ],
     "allowed_shared_unit_ids": [
