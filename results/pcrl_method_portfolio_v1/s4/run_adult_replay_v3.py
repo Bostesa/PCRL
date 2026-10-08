@@ -277,9 +277,18 @@ def _admit(args: argparse.Namespace, argv: list[str]) -> tuple[dict, dict, Path,
     control_spec = control_lock.get("unit_specs", {}).get(control_id, {})
     control_parent = (control_spec.get("screen_unit_id") if unit["kind"] == "B_SCREEN"
                       else control_spec.get("parent_unit_id"))
+    parent_fit_seal = control_lock.get("parent_fit_seal_by_unit", {}).get(parent_id, {})
+    expected_attempt = (control_lock.get("parent_attempt_index_sha256", {}).get(
+        f"{unit['arm']}:s{unit['seed']}") if unit["kind"] == "B_SCREEN"
+        else control_lock.get("parent_anchor_receipt_sha256_by_unit", {}).get(parent_id))
     _need(unit["fit_lock_sha256"] in
           control_lock.get("accepted_fit_lock_sha256", []) and
           control_parent == parent_id and
+          control_lock.get("parent_queue_receipt_sha256_by_unit", {}).get(parent_id) ==
+          unit["parent_queue_receipt_sha256"] and
+          parent_fit_seal.get("lock_sha256") == unit["fit_lock_sha256"] and
+          parent_fit_seal.get("commit_sha") == unit["fit_lock_commit_sha"] and
+          expected_attempt == parent_sha and
           control_spec.get("seed") == unit["seed"] and
           control_spec.get("arm") == unit["arm"] and
           control_spec.get("stage") == "postrelease_control_v2" and
