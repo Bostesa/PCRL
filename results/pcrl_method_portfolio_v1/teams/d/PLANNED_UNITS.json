@@ -1,7 +1,7 @@
 {
   "schema": "pcrl-portfolio-team-d-units-continuation-v2",
-  "status": "PRELOCK_CONDITIONAL_ALL_ADULT_UNITS_BLOCKED",
-  "reason_blocked": "S2 has not validated a role-specific safe Adult export; inherited all-role loader transiently materializes forbidden assessment arrays. No real-data D fit, calibration, forward pass or attacker fit is authorized through that loader.",
+  "status": "ROLE_FILES_S4_ADMITTED_SCIENCE_GATE_PENDING_NO_ADULT_FITS",
+  "reason_blocked": "S2's role-only exports have S4 admission under DATA_ACCESS_MANIFEST status ROLE_FILES_ADMITTED_S4_VERIFIED. No D real-data fit, calibration, forward pass or attacker fit runs until S1's effective science lock and S3's global queue gate admit its exact unit. The inherited all-role loader remains forbidden.",
   "seed_plan_proposed": {
     "screen_source_seeds": [0, 1],
     "full_pilot_source_seeds_if_promoted": [0, 1, 2],
@@ -40,7 +40,8 @@
     {"id": "D_RAW_J", "source_encoder_fits": 0, "source_encoder_checkpoint_aliases": 2, "normalizer_fits": 2, "transform_or_joint_training_fits": 0, "separate_head_fits": 2, "calibration_fits": 2, "code_arm": false, "open_identity": "Admit the historical OSF_DEFENSE_FIT RAW-J beta 0.3 purpose encoders by source-model hashes and role-only forward pass; retrain equal D heads on permitted role features and recalibrate. If source identity or exact feature contract fails, this control is INCOMPLETE; no new raw training is silently substituted."}
   ],
   "per_source_seed_learning_counts": {
-    "frozen_source_encoder_checkpoint_aliases": 4,
+    "frozen_source_encoder_purpose_aliases": 4,
+    "frozen_source_encoder_checkpoint_files": 2,
     "shared_d_normalizer_fit_calls": 1,
     "shared_d_normalizer_purpose_transforms": 2,
     "raw_joint_feature_normalizer_fit_calls": 1,
@@ -55,13 +56,18 @@
     "total_model_and_map_fits_excluding_preprocessing_and_calibration": 18,
     "calibration_fits": 20,
     "exact_alias_rule": "Call controls_fit.prepare_control_cache once per source seed on identical permitted fit rows: one pooled KMeans plus one purpose-specific KMeans each. Pass its same pooled (normalizer,centers) initializer to D_VQ_JOINT and all three task-only train_d calls, and pass its same normalizer/purpose tensors to LOCAL, SEQ12, SEQ21, UNCHANGED and LEACE. The ten logical VQ initializations therefore use three physical KMeans fits and seven exact cache aliases. If this wiring or complete cache identity is absent, record all actual KMeans/normalizer refits instead; similar deterministic outputs are not aliases. No model-training output is aliased.",
-    "note": "Each VQ training fit contains its head. Local and sequential stages are separately charged. PurposeNormalizer.fit is one physical call that estimates two purpose transformations for D; RAW-J likewise has one physical feature-normalizer call estimating two purpose transformations. Arm-level normalizer_fits counts above denote estimated purpose transformations, not physical calls. Charge CPU once per physical call. RAW-J source encoder/checkpoint and preprocessing are historical aliases only after S2/S4 hash admission; two new heads and calibration fits are charged."
+    "note": "Each VQ training fit contains its head. Local and sequential stages are separately charged. PurposeNormalizer.fit is one physical call that estimates two purpose transformations for D; RAW-J likewise has one physical feature-normalizer call estimating two purpose transformations. Arm-level normalizer_fits counts above denote estimated purpose transformations, not physical calls. Charge CPU once per physical call. One admitted U model.pt and one admitted RAW-J model.pt each contain two purpose encoders, so four purpose-encoder aliases are two checkpoint files per source seed; their separate forwards are charged. RAW-J source encoder/checkpoint and preprocessing are historical aliases only after S2/S4 hash admission; two new heads and calibration fits are charged."
   },
   "forward_units_per_source_seed": {
-    "frozen_source_encoder_role_batches": 16,
-    "deployed_recipient_arm_role_batches": 80,
-    "attack_view_preprocessing_builds": 30,
-    "derivation": "4 frozen encoders (two U, two RAW-J) x 4 allowed roles; 10 arms x 2 recipients x 4 allowed roles; 10 arms x 3 local/pair view builders using ATTACK_FIT_NEW-only vocab/scale plus INNER apply. Internal epoch/minibatch forwards and per-reader scaler/PCA fits are included within their training/reader fits and must be timed there."
+    "distinct_source_encoder_role_purpose_slots": 16,
+    "distinct_cal_attack_inner_recipient_outputs_all_10_arms": 60,
+    "physical_u_purpose_encoder_forwards_9_implemented_arms_including_init": 146,
+    "physical_raw_joint_purpose_encoder_forwards_if_admitted": 16,
+    "physical_purpose_encoder_forwards_all_10_if_raw_joint_admitted": 162,
+    "physical_head_forwards_9_implemented_arms_excluding_training_minibatches": 126,
+    "physical_head_forwards_all_10_if_raw_joint_admitted_excluding_training_minibatches": 140,
+    "attack_view_preprocessing_builds": 60,
+    "derivation": "16 slots = four historical purpose encoders (two U, two RAW-J) x four permitted roles, not physical calls or checkpoint files. Each of ten arms has two distinct CAL, ATTACK and INNER recipient outputs (60 total); FIT is a training role, not a scored recipient release. The executable nine U-source arms each do two FIT purpose encoder forwards, six CAL forwards (two before calibration plus four in the parity/deployment role package), and eight ATTACK/INNER forwards (four per role package), for 9x16=144; the shared INIT has two more, giving 146. RAW-J would add 16 if its separate source adapter is admitted. Each arm has six CAL and eight ATTACK/INNER postfit head forwards (14 total); nine U arms give 126, ten would give 140. Thirty local/pair views for ATTACK plus thirty for INNER are sixty preprocessing builds. Internal epoch/minibatch forwards and per-reader scaler fits are included inside their charged fitting units."
   },
   "attack_slate_proposed_not_yet_frozen": {
     "continuous_arms": ["D_U_FROZEN", "D_LEACE", "D_RAW_J"],
@@ -101,11 +107,14 @@
     "vq_kmeans_exact_aliases": 14,
     "model_and_map_fits": 36,
     "calibration_fits": 40,
-    "frozen_encoder_role_batches": 32,
-    "deployed_recipient_arm_role_batches": 160,
-    "attack_view_preprocessing_builds": 60,
+    "physical_u_purpose_encoder_forwards": 292,
+    "conditional_raw_joint_purpose_encoder_forwards": 32,
+    "physical_head_forwards_9_u_arms": 252,
+    "conditional_raw_joint_head_forwards": 28,
+    "distinct_cal_attack_inner_recipient_outputs_all_10_arms": 120,
+    "attack_view_preprocessing_builds": 120,
     "fixed_reader_fit_units_at_one_attacker_seed": 366,
-    "all_status_now": "BLOCKED_NOT_RUN"
+    "all_status_now": "NOT_RUN_SCIENCE_GATE_PENDING"
   },
   "full_pilot_if_d_promoted_and_access_cleared": {
     "source_seeds": 3,
@@ -117,9 +126,12 @@
     "total_vq_kmeans_exact_aliases": 21,
     "total_model_and_map_fits": 54,
     "total_calibration_fits": 60,
-    "total_frozen_encoder_role_batches": 48,
-    "total_deployed_recipient_arm_role_batches": 240,
-    "total_attack_view_preprocessing_builds": 90,
+    "total_physical_u_purpose_encoder_forwards": 438,
+    "conditional_total_raw_joint_purpose_encoder_forwards": 48,
+    "total_physical_head_forwards_9_u_arms": 378,
+    "conditional_total_raw_joint_head_forwards": 42,
+    "total_distinct_cal_attack_inner_recipient_outputs_all_10_arms": 180,
+    "total_attack_view_preprocessing_builds": 180,
     "total_fixed_reader_fit_units_at_three_attacker_seeds": 1647,
     "incremental_after_identical_completed_screen": {
       "new_normalizer_fit_calls": 2,
@@ -129,12 +141,15 @@
       "vq_kmeans_exact_aliases": 7,
       "model_and_map_fits": 18,
       "calibration_fits": 20,
-      "frozen_encoder_role_batches": 16,
-      "deployed_recipient_arm_role_batches": 80,
-      "attack_view_preprocessing_builds": 30,
+      "physical_u_purpose_encoder_forwards": 146,
+      "conditional_raw_joint_purpose_encoder_forwards": 16,
+      "physical_head_forwards_9_u_arms": 126,
+      "conditional_raw_joint_head_forwards": 14,
+      "distinct_cal_attack_inner_recipient_outputs_all_10_arms": 60,
+      "attack_view_preprocessing_builds": 60,
       "fixed_reader_fit_units": 1281
     },
-    "all_status_now": "BLOCKED_NOT_RUN"
+    "all_status_now": "NOT_RUN_SCIENCE_GATE_PENDING"
   },
   "controls_and_verification": {
     "generic_pooled_compression": "Three task-only pooled 1024-code fits at beta_rec 0, 0.25, 1 are fully charged. The CAL-only fixed matching selector chooses one task-and-per-purpose-distortion match without SEX recovery. D_VQ_TASK is the beta_rec=0.25 member, not a fourth fit. If no CAL match or the frozen match fails on INNER, compression/component and joint-novelty attribution are unresolved.",
@@ -142,8 +157,11 @@
     "null_shuffled_planted": "D and S2 must assign control-owner IDs and exact attack fits before lock; no control is silently omitted or counted twice.",
     "synthetic_law_units": "shared S1/S4 law and oracle manifest, not charged as Adult fits; D adapter correctness checks separately recorded",
     "independent_replay": "owned and charged by S4, no D self-verification credit",
+    "role_sized_smoke_011": {"receipt_id": "D-ROLE-SIZED-SMOKE-011", "queued_wall_and_charged_seconds": 14.583, "peak_rss_bytes": 630915072, "pooled_1024_kmeans_seconds": 2.836, "task_only_2_epoch_seconds": 4.564, "protected_2_epoch_seconds": 4.174, "two_6299_row_release_forwards_seconds_combined": 0.424, "scope": "Synthetic 15434-row paired latents; did not time any fresh reader, calibration, official LEACE, local/sequential fit, RAW-J parity, or full 20 epochs."},
+    "shared_four_reader_role_smoke_023": {"receipt_id": "S2-FOUR-READER-ROLE-SMOKE-023", "feature_pair_four_reader_child_cpu_seconds": 12.893636, "queued_wrapper_maxrss_upper_bound_bytes": 910376960, "maxrss_scope": "wrapper_child_maximum; cumulative upper bound when run_once reused in one wrapper process", "whole_queued_unit_charged_seconds": 18.499, "scope": "Synthetic 2108-column D-like pair view at role sizes; four S2 learned readers only. This does not measure every D view or all ten arms."},
+    "d_specialist_smoke_026_r1": {"receipt_id": "D-SPECIALIST-SMOKE-026-R1", "summary_sha256": "4d11dea555182602b9b247035d2da80e91d6142abc86b83433e9c8b4df8fdc9d", "nine_reader_loop_cpu_seconds": 0.120105, "whole_queued_unit_charged_seconds": 1.608, "queued_wrapper_maxrss_upper_bound_bytes": 198492160, "script_peak_rss_raw_platform_units": 198328320, "maxrss_scope": "wrapper_child_maximum; cumulative upper bound when run_once reused in one wrapper process", "scope": "Synthetic ATTACK_FIT_NEW 4064 rows/4061 groups and INNER_SELECTION 2235 rows/2234 groups, fixed 1024-code alphabet; three alphas each for two local and one pair view. Original D-SPECIALIST-SMOKE-026 refused owner-only custody before any reader fit; failure receipt preserved."},
     "cpu_seconds": null,
-    "cpu_reason": "Smoke timings and source identity are not yet available; do not assert budget feasibility from unmeasured counts."
+    "cpu_reason": "D-ROLE-SIZED-SMOKE-011 measures preprocessing/2-epoch timing; S2-FOUR-READER-ROLE-SMOKE-023 measures one D-like pair view's four learned readers; D-SPECIALIST-SMOKE-026-R1 measures nine direct CellReaders. Full 20-epoch local/sequential and LEACE fits, calibrators, all 183 readers/source/attacker seed under complete arm views, and RAW-J parity remain unmeasured. Do not extrapolate the synthetic timings silently."
   },
-  "decision": "Do not put these conditional counts in CAMPAIGN_LOCK as executable D units until S2 certifies safe inputs, S1 freezes the common attack slate and RAW_J identity, and S3 times a representative smoke unit. If unavailable, retain BLOCKED status and continue synthetic engineering only."
+  "decision": "S2/S4 admit role-only inputs, but D units are not executable until S1's effective science lock fixes the common attack slate and RAW_J identity, S3 times the representative smoke unit, and S3's science gate admits each exact queued unit. Preserve NOT_RUN status until receipts exist."
 }

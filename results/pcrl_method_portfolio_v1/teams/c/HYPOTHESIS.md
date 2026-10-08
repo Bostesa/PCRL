@@ -31,7 +31,7 @@ No Team C design is a confirmation study. Adult outcomes and source designs have
 
 ## Phase I synthetic disposition, 2026-10-08
 
-The frozen depth-two CART SEX proxy did not recover the planted balanced XOR clue in the registered Team C scorecard test: reversible AUC was 0.6123299693 against the predeclared threshold above 0.90. The tree can express XOR, but its greedy root split did not reliably find it. Preserve that failed result. The separate exact L3 enumeration tests a supplied exact scorecard and does not validate this fitted proxy.
+The frozen depth-two CART SEX proxy did not recover the planted balanced XOR clue in the registered Team C scorecard test: reversible AUC was 0.6123299693 against the predeclared threshold above 0.90. The tree can express XOR, but its greedy root split did not reliably find it. Preserve that failed result. The separate queued `C-FINITE-LAWS-016` exact L3 enumeration tested a supplied exact scorecard: the selector removed U from both masks and attained coalition AUC 1/2, equal to the exact feasible optimum (gap 0) among 25 pairs, 16 task-feasible. That engineering result does not validate the fitted proxy.
 
 No additional interaction proxy or third prototype enters this bounded lane. Team C may still test global grouped removal and retrained heads as a transparent feature-selection baseline, using fresh nonlinear complete-view attacks and all matched controls. Under this fixed scorecard, Team C cannot claim reliable complementary-clue handling or a joint-design contribution from an Adult screen, even if the named overlap heuristic has a favourable exploratory result. The fixed `relationship` exclusion and mean-utility limits remain as stated above.
 

@@ -1,4 +1,27 @@
-# Team C: strongest matched controls (pre-lock design)
+# Team C: strongest controls
+
+## Active C-SIMPLE scope after the 2026-10-08 Phase I failure
+
+The queued `C-TEST-SCORECARD-BUILDER-016` XOR premise failed (depth-two proxy reversible AUC 0.6123299693; predeclared check >0.90). `C-JOINT-GROUP` is `PREFIT_PREMISE_FAILED` and its dependent `C-INDEP-GROUP` is `SKIPPED_DEPENDS_FAILED_PROTOTYPE`; both have zero real-data fits. Their older design and comparator rules below are historical only. The active scope is seven fixed grouped-mask/retraining baselines. Privacy-aware arms use one FULL nine-atom scorecard (ten masks, forty proxy fits per seed). The task-only arm uses a separate task-label-only FULL scorecard (ten masks, twenty task proxy fits per seed), with no SEX argument or SEX-dependent split repair. This is computational label independence: the shared runner reads SEX for the other arms, but task-only selection does not receive it:
+
+| Exact arm ID | One-atom or fixed-mask rule |
+|---|---|
+| `C-SIMPLE-FULL` | All nine atoms for both tasks; external capacity reference. |
+| `C-SIMPLE-REL0` | Drop relationship for both tasks; fixed attribution reference. |
+| `C-SIMPLE-TASK-SHARED1` | Drop one common atom minimizing the sum of normalized task proxy costs; no SEX proxy or cap filtering in selection. |
+| `C-SIMPLE-INDEP1` | Each purpose independently drops one local SEX proxy atom under its own surrogate task caps, with fixed least-cost fallback. |
+| `C-SIMPLE-COMMON1` | Drop one shared atom maximizing SEX proxy reduction under both surrogate task caps, with fixed least-cost fallback. |
+| `C-SIMPLE-SEQ-IO1` | Income selects one local atom first; occupation removes the same atom if surrogate-feasible, otherwise its own locally selected atom. |
+| `C-SIMPLE-SEQ-OI1` | Reverse committed order, with the same second-stage rule. |
+
+The primary design budget is **one of nine semantic atoms removed per recipient**. Report recipient and coalition encoded-column counts, actual float32 raw-feature payload bits (32 per released column), any cap fallback and any union mismatch. A different-width deletion is a frontier point, not an exact-capacity comparator. For the **Team C internal** matched comparison, require a utility-eligible arm with the same feature disclosure and both recipient and coalition semantic **and encoded** capacities. For any evaluated C-SIMPLE arm, choose the eligible *other* nonalias C-SIMPLE control with the lowest complete-view coalition SEX AUC under S1/S2's fixed rule; exclude the arm itself and exact release/head/mask aliases. If no such Team C comparator exists, report the internal comparison `INCOMPLETE`; do not infer a matched-budget method win. S1 applies the campaign's strongest-control rule across all compatible feature-track arms, including other teams where the disclosure and capacity match. These standard baselines and the failed joint premise cannot establish joint-design novelty.
+
+The complete fresh attack slate for each local and coalition view is `LR_C1`, `MLP_64x32`, `HGB_15x200`, `DA_MLP_64x32`, `RAW_LR_C1`, and `RAW_HGB_15x200`, fitted on `ATTACK_FIT_NEW` with INNER scoring under S2. The raw-only readers receive exactly each view's transmitted selected raw values. The defense-aware reader adds public-head pre-calibration probabilities recomputed only from those disclosed values. Fixed global masks, head/calibrator identities and empty flags are bound as wire constants; there is no person-varying metadata reader under this contract. Six readers × three views × seven active arms = 126 fresh reader fits per seed, 252 across two paired screen seeds before exact aliases and separate engineering controls. Ignore-the-other-recipient routes are local-view prediction aliases. A result with a missing reader, package, role or capacity receipt is incomplete.
+
+The privacy fit worker opens only FIT/CAL role files while it selects masks and freezes task heads, calibrators and packages. A separate task-only OS worker opens FIT/CAL features and task labels only, never the SEX export or privacy scorecard. Each fit writes an immutable mask/package handoff. A later forward worker verifies that handoff before opening ATTACK_FIT_NEW/INNER_SELECTION **feature** files; it writes private complete-wire NPZ and JSON receipts. The S2 attack job restores those artifacts and reads SEX labels separately. The worker scope and PID must be recorded; no in-memory Admission or role rows cross workers. C's private fit lock serializes exact head/package identities across workers.
+
+## Historical pre-016 design, retained for audit only
+
 
 ## Scope and interface
 
@@ -39,3 +62,5 @@ For every arm and seed, fit the same fresh linear and nonlinear readers on (a) r
 ## Attribution
 
 `C-JOINT-GROUP` beating `C-FULL-FEATURE` alone is insufficient. If either task-only arm, `C-DROP-RELATIONSHIP`, either independent arm, `C-COMMON-MASK`, a compatible prior control, or either sequential order explains the complete-view result at comparable utility and capacity, report the simpler method. Selection of fewer raw facts is a useful empirical result but not by itself a novel algorithm. No method can remove SEX information already disclosed by its selected raw features; a weaker fitted attacker is not a guarantee.
+
+The 2026-10-08 queued Phase I XOR check exposed a limitation of the fixed scorecard: its depth-two raw SEX tree returned reversible AUC 0.6123299693 in a complementary-clue law that required >0.90. `C-JOINT-GROUP` has status `PREFIT_PREMISE_FAILED` and no Adult release or raw-union result. Its historical pair-aware comparison was never run; any future complementarity design needs a new identity and lock.

@@ -124,3 +124,50 @@ def test_disjoint_local_masks_still_require_identical_private_person_order():
         assert "misaligned" in str(exc).lower()
     else:
         raise AssertionError("person permutation was accepted")
+
+
+def test_rejects_unregistered_local_and_coalition_wire_fields():
+    for view_name in ("income", "occupation_group", "coalition"):
+        release = sample_views()
+        release[view_name]["unregistered_person_hint"] = np.array([0, 1, 0, 1])
+        try:
+            attack_views_from_release(release, alignment())
+        except ValueError as exc:
+            assert "unexpected" in str(exc).lower() or "wire" in str(exc).lower()
+        else:
+            raise AssertionError(f"{view_name} extra transmitted field was ignored")
+
+
+def test_rejects_matching_local_coalition_decisions_that_conflict_with_probabilities():
+    release = sample_views()
+    opposite = 1 - int(release["income"]["decisions"][0])
+    release["income"]["decisions"] = release["income"]["decisions"].copy()
+    release["coalition"]["income_decisions"] = release["coalition"][
+        "income_decisions"
+    ].copy()
+    release["income"]["decisions"][0] = opposite
+    release["coalition"]["income_decisions"][0] = opposite
+    try:
+        attack_views_from_release(release, alignment())
+    except ValueError as exc:
+        assert "decision" in str(exc).lower()
+    else:
+        raise AssertionError("mutated decisions inconsistent with probabilities were accepted")
+
+
+def test_coalition_declared_recipient_groups_must_match_and_be_in_attack_metadata():
+    release = sample_views()
+    release["coalition"]["income_groups"] = ("capital-gain",)
+    try:
+        attack_views_from_release(release, alignment())
+    except ValueError as exc:
+        assert "group" in str(exc).lower()
+    else:
+        raise AssertionError("false coalition recipient group declaration was accepted")
+
+    views = attack_views_from_release(sample_views(), alignment())
+    assert views["income"].public_metadata["selected_groups"] == ("age",)
+    assert views["coalition"].public_metadata["income_groups"] == ("age",)
+    assert views["coalition"].public_metadata["occupation_group_groups"] == (
+        "capital-gain",
+    )

@@ -53,6 +53,18 @@ class AttackViewTests(unittest.TestCase):
         del bad["metadata"]["calibrator_sha256"]
         with self.assertRaises(ValueError):
             validate_recipient_release(bad, 4, 0)
+        bad = release(0, [0, 0, 1, 1])
+        bad["metadata"]["kind"] = np.asarray(["a", "b", "a", "b"])
+        with self.assertRaises(ValueError):
+            validate_recipient_release(bad, 4, 0)
+        bad = release(0, [0, 0, 1, 1])
+        bad["metadata"]["calibration"] = ["H-GLOBAL-TEMP"] * 4
+        with self.assertRaises(ValueError):
+            validate_recipient_release(bad, 4, 0)
+        bad = release(0, [0, 0, 1, 1])
+        bad["probabilities"][0, 0] += 1e-7
+        with self.assertRaises(ValueError):
+            validate_recipient_release(bad, 4, 0)
         with self.assertRaises(ValueError):
             AlignedDViews(ids, ids, ids, ids, release(0, [0, 0, 1, 1], calibration="UNFITTED"),
                           r1, "a" * 64)

@@ -2,6 +2,9 @@
 
 import hashlib
 import json
+import subprocess
+import sys
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import numpy as np
@@ -9,10 +12,12 @@ import pytest
 
 import control_run
 from control_run import (
-    RoleData, _check_seal, _fit_or_restore_calibrator, _fit_or_restore_head, _sha_spec,
-    _write_json_once, admit_control_roles, run_controls,
+    ArmOutput, RoleData, _check_seal, _fit_or_restore_calibrator, _fit_or_restore_head, _sha_spec,
+    _team_c_fit_lock, _write_json_once, admit_control_roles, run_controls,
+    run_task_only_control,
 )
 from prototype import AdultGroupedSchema
+from selector import TaskDelta
 from training import HeadSpec
 
 
@@ -62,6 +67,7 @@ def test_runner_rejects_draft_before_queue_or_role_read(tmp_path):
             local_seal_receipt_path=tmp_path / "LOCAL_SEAL_RECEIPT.json",
             fit_calibrator=no_call, save_calibrator=no_call,
             load_calibrator=no_call, apply_global_temperature=no_call,
+            attack_view_type=no_call,
             heavy_slot=no_call, private_checkpoint_root=tmp_path / ".private",
         )
 
@@ -176,3 +182,182 @@ def test_calibrator_refuses_wrong_heldout_identity_before_save(tmp_path):
             load_calibrator=lambda *args: None,
         )
     assert save_calls == []
+
+
+def test_task_only_worker_never_requests_sensitive_label(tmp_path, monkeypatch):
+    roles = ("OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT",
+             "ATTACK_FIT_NEW", "INNER_SELECTION")
+    fields = {
+        "OSF_DEFENSE_FIT": ("features", "income", "occupation"),
+        "CALIBRATION_HELDOUT": ("features", "income", "occupation"),
+        "ATTACK_FIT_NEW": ("features",),
+        "INNER_SELECTION": ("features",),
+    }
+    manifest = {
+        "schema": "pcrl-method-portfolio-data-access-v1",
+        "status": "ROLE_FILES_ADMITTED_S4_VERIFIED",
+        "custodian_export": {"s4_report_sha256": "b" * 64},
+        "source": {"source_npz_sha256": (
+            "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12"
+        )},
+        "real_file_specs": {
+            f"{role}:{field}": {"sha256": "a" * 64}
+            for role in roles for field in fields[role]
+        },
+    }
+    manifest_path = tmp_path / "DATA_ACCESS_MANIFEST.json"
+    manifest_path.write_text(json.dumps(manifest))
+    schema = AdultGroupedSchema()
+
+    class SentinelStore:
+        def __init__(self):
+            self.manifest_path = manifest_path
+            self.manifest = manifest
+            self.read_calls = []
+
+        def read(self, role, field, procedure=None):
+            self.read_calls.append((role, field, procedure))
+            if field == "sex":
+                raise AssertionError("task-only worker requested SEX")
+            if role in ("ATTACK_FIT_NEW", "INNER_SELECTION"):
+                raise AssertionError("task-only fitting worker opened screen rows")
+            base = 1000 * roles.index(role)
+            row_id = base + np.arange(12, dtype=np.int64)
+            unit = row_id.copy()
+            if field == "features":
+                return {
+                    "row_id": row_id, "unit": unit,
+                    "X": np.zeros((12, 83), dtype=np.float32),
+                    "feature_names": schema.feature_names,
+                }
+            return {
+                "row_id": row_id, "unit": unit,
+                field: (np.arange(12, dtype=np.int64) %
+                        (2 if field == "income" else 6)),
+            }
+
+    store = SentinelStore()
+    atoms = tuple(sorted(schema.atoms))
+    task_deltas = {
+        task: {atom: TaskDelta(0.0, 0.0, 0.0) for atom in atoms}
+        for task in ("income", "occupation_group")
+    }
+    monkeypatch.setattr(control_run, "_check_seal", lambda *a, **k: "b" * 64)
+    monkeypatch.setattr(control_run, "build_task_scorecard", lambda *a, **k:
+        SimpleNamespace(optional_atoms=atoms, task_deltas=task_deltas,
+                        fit_counts={"task_proxy": 20, "sensitive_proxy": 0, "total": 20},
+                        split_receipt={"sensitive_label_input": False}))
+
+    def no_fit(admission, plan, **kwargs):
+        assert "sex" not in admission.roles["OSF_DEFENSE_FIT"].labels
+        assert "sex" not in admission.roles["OSF_DEFENSE_FIT"].file_hashes
+        assert set(admission.roles) == {"OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT"}
+        assert tuple(a.arm_id for a in plan.arms) == ("C-SIMPLE-TASK-SHARED1",)
+        assert kwargs["forward"] is False
+        arm = plan.arms[0]
+        return {arm.arm_id: ArmOutput(
+            arm, "FROZEN_PACKAGE_READY_FOR_FORWARD", None, None, None, None,
+            ("head1", "head2"), ("cal1", "cal2"),
+            {"package_units": ({"purpose": "income"},
+                               {"purpose": "occupation_group"})},
+        )}
+
+    monkeypatch.setattr(control_run, "_fit_and_calibrate", no_fit)
+    monkeypatch.setattr(control_run, "_publish_fit_handoff", lambda *a, **k: (
+        tmp_path / ".private" / "task-handoff.json", "d" * 64,
+    ))
+    spec = HeadSpec()
+    no_call = lambda *args, **kwargs: None
+    result = run_task_only_control(
+        store, seed=7, head_spec=spec,
+        expected_head_spec_sha256=_sha_spec(spec),
+        expected_manifest_sha256=_sha(manifest_path),
+        campaign_lock_path=tmp_path / "CAMPAIGN_LOCK.json",
+        campaign_lock_sha256="c" * 64,
+        local_seal_receipt_path=tmp_path / "LOCAL_SEAL_RECEIPT.json",
+        fit_calibrator=no_call, save_calibrator=no_call,
+        load_calibrator=no_call, apply_global_temperature=no_call,
+        attack_view_type=no_call, heavy_slot=lambda _: nullcontext(),
+        private_checkpoint_root=tmp_path / ".private",
+    )
+    assert result.scorecard_receipt["worker_scope"] == "TASK_ONLY_NO_SEX_READ"
+    assert result.scorecard_receipt["fit_counts"]["total"] == 20
+    assert not any(field == "sex" for _, field, _ in store.read_calls)
+    assert len(store.read_calls) == 6
+    assert {role for role, _, _ in store.read_calls} == {
+        "OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT",
+    }
+    assert not any(key.endswith(":sex") for key in result.role_file_hashes)
+    assert result.scorecard_receipt["worker_pid"] > 0
+
+
+def test_privacy_fit_admission_defers_attack_and_inner_features(tmp_path):
+    roles = ("OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT",
+             "ATTACK_FIT_NEW", "INNER_SELECTION")
+    fields = {
+        "OSF_DEFENSE_FIT": ("features", "income", "occupation", "sex"),
+        "CALIBRATION_HELDOUT": ("features", "income", "occupation"),
+        "ATTACK_FIT_NEW": ("features",),
+        "INNER_SELECTION": ("features",),
+    }
+    manifest = {
+        "schema": "pcrl-method-portfolio-data-access-v1",
+        "status": "ROLE_FILES_ADMITTED_S4_VERIFIED",
+        "custodian_export": {"s4_report_sha256": "b" * 64},
+        "source": {"source_npz_sha256": (
+            "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12"
+        )},
+        "real_file_specs": {
+            f"{role}:{field}": {"sha256": "a" * 64}
+            for role in roles for field in fields[role]
+        },
+    }
+    path = tmp_path / "DATA_ACCESS_MANIFEST.json"
+    path.write_text(json.dumps(manifest))
+    schema = AdultGroupedSchema()
+    reads = []
+
+    def read(role, field, procedure=None):
+        reads.append((role, field, procedure))
+        if role in ("ATTACK_FIT_NEW", "INNER_SELECTION"):
+            raise AssertionError("screen-role feature opened before fit handoff")
+        row_id = np.arange(12, dtype=np.int64) + 1000 * roles.index(role)
+        if field == "features":
+            return {"row_id": row_id, "unit": row_id.copy(),
+                    "X": np.zeros((12, 83), dtype=np.float32),
+                    "feature_names": schema.feature_names}
+        return {"row_id": row_id, "unit": row_id.copy(),
+                field: np.arange(12, dtype=np.int64) %
+                (6 if field == "occupation" else 2)}
+
+    store = SimpleNamespace(manifest_path=path, manifest=manifest, read=read)
+    admission = admit_control_roles(
+        store, expected_manifest_sha256=_sha(path), scope="privacy",
+    )
+    assert set(admission.roles) == {"OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT"}
+    assert "sex" in admission.roles["OSF_DEFENSE_FIT"].labels
+    assert len(reads) == 7
+    assert not any(role in ("ATTACK_FIT_NEW", "INNER_SELECTION") for role, _, _ in reads)
+
+
+def test_fit_lock_refuses_a_second_identity_writer(tmp_path):
+    root = tmp_path / ".private"
+    lock_sha = "a" * 64
+    path = root / "team_c" / lock_sha / "fit.lock"
+    probe = (
+        "import fcntl, os, sys\n"
+        "fd = os.open(sys.argv[1], os.O_RDWR)\n"
+        "try:\n"
+        "    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
+        "except BlockingIOError:\n"
+        "    sys.exit(11)\n"
+        "finally:\n"
+        "    os.close(fd)\n"
+    )
+    with _team_c_fit_lock(root, lock_sha):
+        blocked = subprocess.run([sys.executable, "-c", probe, str(path)],
+                                 check=False, capture_output=True)
+        assert blocked.returncode == 11
+    acquired = subprocess.run([sys.executable, "-c", probe, str(path)],
+                              check=False, capture_output=True)
+    assert acquired.returncode == 0

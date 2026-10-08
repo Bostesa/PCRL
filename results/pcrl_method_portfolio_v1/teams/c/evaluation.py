@@ -14,6 +14,20 @@ import numpy as np
 from prototype import AdultGroupedSchema
 
 
+LOCAL_WIRE_KEYS = frozenset((
+    "selected_values", "feature_names", "selected_groups", "mask_id",
+    "head_id", "calibrator_id", "flags", "probabilities", "decisions",
+))
+COALITION_WIRE_KEYS = frozenset((
+    "selected_values", "feature_names", "selected_groups", "income_groups",
+    "occupation_group_groups", "income_mask_id", "occupation_group_mask_id",
+    "income_head_id", "occupation_group_head_id", "income_calibrator_id",
+    "occupation_group_calibrator_id", "flags", "income_probabilities",
+    "occupation_group_probabilities", "income_decisions",
+    "occupation_group_decisions",
+))
+
+
 @dataclass(frozen=True)
 class AttackView:
     name: str
@@ -167,6 +181,13 @@ def attack_views_from_release(
     income, occupation, coalition = (
         release["income"], release["occupation_group"], release["coalition"]
     )
+    for name, view, registered in (
+        ("income", income, LOCAL_WIRE_KEYS),
+        ("occupation_group", occupation, LOCAL_WIRE_KEYS),
+        ("coalition", coalition, COALITION_WIRE_KEYS),
+    ):
+        if set(view) != registered:
+            raise ValueError(f"{name} wire has missing or unexpected transmitted fields")
     raw_i, names_i = _features(income, name="income")
     raw_o, names_o = _features(occupation, name="occupation_group")
     raw_c, names_c = _features(coalition, name="coalition")
@@ -176,6 +197,9 @@ def attack_views_from_release(
     groups_c = _validate_group_names(schema, coalition, names_c, label="coalition")
     if set(groups_c) != set(groups_i) | set(groups_o):
         raise ValueError("coalition selected groups do not equal local union")
+    if (tuple(coalition["income_groups"]) != groups_i
+            or tuple(coalition["occupation_group_groups"]) != groups_o):
+        raise ValueError("coalition recipient group declarations disagree with local groups")
     rows = len(raw_i)
     if len(raw_o) != rows or len(raw_c) != rows:
         raise ValueError("recipient and coalition rows are not aligned")
@@ -200,14 +224,26 @@ def attack_views_from_release(
     cpo = _prob(coalition["occupation_group_probabilities"], name="coalition occupation probabilities", rows=rows, classes=6)
     cdi = _vector(coalition["income_decisions"], name="coalition income decisions", rows=rows, classes=2)
     cdo = _vector(coalition["occupation_group_decisions"], name="coalition occupation decisions", rows=rows, classes=6)
+    for name, decisions, probabilities in (
+        ("income", di, pi), ("occupation_group", do, po),
+        ("coalition income", cdi, cpi),
+        ("coalition occupation_group", cdo, cpo),
+    ):
+        if not np.array_equal(decisions, probabilities.argmax(axis=1)):
+            raise ValueError(f"{name} decisions disagree with disclosed probabilities")
     if not np.array_equal(cpi, pi) or not np.array_equal(cpo, po):
         raise ValueError("coalition probabilities differ from recipient probabilities")
     if not np.array_equal(cdi, di) or not np.array_equal(cdo, do):
         raise ValueError("coalition decisions differ from recipient decisions")
 
-    metadata_i = _metadata(income, ("mask_id", "head_id", "calibrator_id", "flags"))
-    metadata_o = _metadata(occupation, ("mask_id", "head_id", "calibrator_id", "flags"))
+    metadata_i = _metadata(income, (
+        "selected_groups", "mask_id", "head_id", "calibrator_id", "flags",
+    ))
+    metadata_o = _metadata(occupation, (
+        "selected_groups", "mask_id", "head_id", "calibrator_id", "flags",
+    ))
     metadata_c = _metadata(coalition, (
+        "selected_groups", "income_groups", "occupation_group_groups",
         "income_mask_id", "occupation_group_mask_id", "income_head_id",
         "occupation_group_head_id", "income_calibrator_id",
         "occupation_group_calibrator_id", "flags",

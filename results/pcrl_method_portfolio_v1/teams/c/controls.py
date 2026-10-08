@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import combinations
 from math import isfinite
+from typing import Mapping
 
 from prototype import ATOM_ORDER, AdultGroupedSchema
 from selector import (
@@ -25,6 +26,12 @@ ARM_IDS = (
     "C-DROP-RELATIONSHIP", "C-TASK-ONLY-REL0", "C-TASK-ONLY-ALL",
     "C-INDEP-ALL", "C-SEQ-INCOME-FIRST", "C-SEQ-OCCUPATION-FIRST",
     "C-COMMON-MASK", "C-PRIOR-COALITION-SELECTOR",
+)
+SIMPLE_ARM_IDS = (
+    "C-JOINT-GROUP", "C-INDEP-GROUP",
+    "C-SIMPLE-FULL", "C-SIMPLE-REL0", "C-SIMPLE-TASK-SHARED1",
+    "C-SIMPLE-INDEP1", "C-SIMPLE-COMMON1", "C-SIMPLE-SEQ-IO1",
+    "C-SIMPLE-SEQ-OI1",
 )
 
 
@@ -139,6 +146,38 @@ def _cost(deltas: dict[str, TaskDelta], removed: tuple[str, ...]) -> float:
         deltas[a].nll / 0.010 + deltas[a].brier / 0.005
         - deltas[a].accuracy / 0.010 for a in removed
     )
+
+
+def select_task_shared1(
+    atoms: tuple[str, ...],
+    task_deltas: Mapping[str, Mapping[str, TaskDelta]],
+) -> tuple[str, str, float]:
+    """Task-only one-atom removal; SEX scores are absent from this API."""
+    atoms = tuple(sorted(atoms))
+    if (set(task_deltas) != {"income", "occupation_group"}
+            or not atoms or len(atoms) != len(set(atoms))
+            or any(set(task_deltas[task]) != set(atoms)
+                   for task in ("income", "occupation_group"))):
+        raise ValueError("task-only card requires both tasks and exact atom keys")
+
+    def cost(task: str, atom: str) -> float:
+        d = task_deltas[task][atom]
+        return d.nll / 0.010 + d.brier / 0.005 - d.accuracy / 0.010
+
+    def eligible(task: str, atom: str) -> bool:
+        d = task_deltas[task][atom]
+        return d.nll <= 0.010 and d.brier <= 0.005 and d.accuracy >= -0.010
+
+    chosen = min(atoms, key=lambda atom: (
+        cost("income", atom) + cost("occupation_group", atom), atom,
+    ))
+    total_cost = cost("income", chosen) + cost("occupation_group", chosen)
+    if not isfinite(total_cost):
+        raise ValueError("nonfinite task-only proxy cost")
+    status = ("TASK_ONLY_SURROGATE_FEASIBLE" if all(
+        eligible(task, chosen) for task in ("income", "occupation_group")
+    ) else "TASK_ONLY_SURROGATE_CAP_SHORTFALL")
+    return chosen, status, -total_cost
 
 
 def _independent_at_counts(
@@ -372,3 +411,171 @@ def build_control_plan(
         raise AssertionError("control arm registry changed")
     return ControlPlan(tuple(plans), target, scorecard_fit_units=72,
                        selector_operations=14)
+
+
+def build_simple_plan(
+    full_card: Scorecard,
+    *,
+    task_only_deltas: Mapping[str, Mapping[str, TaskDelta]] | None = None,
+    schema: AdultGroupedSchema | None = None,
+) -> ControlPlan:
+    """Seven fixed grouped-mask baselines after the joint XOR premise failed.
+
+    Privacy-aware arms use the nine-atom FULL scorecard. The task-only arm
+    requires a separate task-label-only scorecard fitted on its own split;
+    without that card its slot is deferred to the separate task-only worker.
+    Every active selector removes exactly one semantic atom per recipient.
+    Different encoded widths remain explicit capacity mismatches; neither the
+    scorecard nor these baselines support a joint-design attribution.
+    """
+    if set(full_card.optional_atoms) != set(ATOM_ORDER):
+        raise ValueError("C-SIMPLE requires exactly the full nine-atom scorecard")
+    schema = schema or AdultGroupedSchema()
+    target = _budget(schema, REL0_ATOMS, REL0_ATOMS)
+    plans: list[ArmPlan] = []
+    atoms = tuple(sorted(full_card.optional_atoms))
+
+    def selected(removed: str | None) -> tuple[str, ...]:
+        return _selected(schema, ATOM_ORDER, () if removed is None else (removed,))
+
+    def add(
+        arm_id: str, removed_i: str | None, removed_o: str | None,
+        *, basis: str, status: str, note: str = "", objective: float = 0.0,
+        arithmetic: int = 0,
+    ) -> None:
+        if status.startswith(("PREFIT", "SKIPPED", "DEFERRED")):
+            income = occupation = ()
+            selection = None
+        else:
+            income, occupation = selected(removed_i), selected(removed_o)
+            selection = None if removed_i is None and removed_o is None else Selection(
+                () if removed_i is None else (removed_i,),
+                () if removed_o is None else (removed_o,),
+                objective, arithmetic, arithmetic, arithmetic,
+            )
+        budget = _budget(schema, income, occupation)
+        prior = (None if status.startswith(("PREFIT", "SKIPPED", "DEFERRED")) else
+                 next((a.arm_id for a in plans
+                       if not a.capacity_status.startswith(("PREFIT", "SKIPPED", "DEFERRED"))
+                       and a.mask_pair == (income, occupation)), None))
+        plans.append(ArmPlan(
+            arm_id, income, occupation, selection, budget,
+            _matching(budget, target), basis, status, None, prior, note,
+        ))
+
+    add("C-JOINT-GROUP", None, None, basis="FAILED_PHASE_I_LAW",
+        status="PREFIT_PREMISE_FAILED",
+        note="Queued XOR scorecard proxy AUC 0.6123299693, below the predeclared 0.90 check")
+    add("C-INDEP-GROUP", None, None, basis="FAILED_PROTOTYPE_ABLATION",
+        status="SKIPPED_DEPENDS_FAILED_PROTOTYPE")
+    add("C-SIMPLE-FULL", None, None, basis="FIXED_FULL",
+        status="EXTERNAL_CAPACITY_REFERENCE")
+    add("C-SIMPLE-REL0", "relationship", "relationship", basis="FIXED_REL0",
+        status="ATTRIBUTION_REFERENCE", arithmetic=0)
+
+    def task_cost(task: str, atom: str) -> float:
+        return _cost(full_card.task_deltas[task], (atom,))
+
+    def both_cost(atom: str) -> float:
+        return task_cost("income", atom) + task_cost("occupation_group", atom)
+
+    if task_only_deltas is None:
+        add("C-SIMPLE-TASK-SHARED1", None, None,
+            basis="SEPARATE_TASK_ONLY_WORKER",
+            status="DEFERRED_TO_TASK_ONLY_WORKER",
+            note="No privacy-worker SEX access is transferred to task-only selection")
+    else:
+        task_atom, task_status, task_objective = select_task_shared1(
+            atoms, task_only_deltas,
+        )
+        add("C-SIMPLE-TASK-SHARED1", task_atom, task_atom,
+            basis="FULL_TASK_SHARED_ONE", status=task_status,
+            objective=task_objective, arithmetic=len(atoms))
+
+    def local_choice(task: str) -> tuple[str, str]:
+        feasible = tuple(atom for atom in atoms
+                         if _local_eligible(full_card, task, (atom,)))
+        if feasible:
+            chosen = min(feasible, key=lambda atom: (
+                -full_card.auc_drop[atom], task_cost(task, atom), atom,
+            ))
+            return chosen, "SURROGATE_FEASIBLE"
+        chosen = min(atoms, key=lambda atom: (
+            task_cost(task, atom), -full_card.auc_drop[atom], atom,
+        ))
+        return chosen, "SURROGATE_CAP_SHORTFALL"
+
+    local_i, status_i = local_choice("income")
+    local_o, status_o = local_choice("occupation_group")
+    independent_status = ";".join((status_i, status_o))
+    if local_i != local_o:
+        independent_status += ";UNION_CAPACITY_MISMATCH"
+    add("C-SIMPLE-INDEP1", local_i, local_o, basis="FULL_LOCAL_ONE",
+        status=independent_status,
+        objective=full_card.auc_drop[local_i] + full_card.auc_drop[local_o],
+        arithmetic=2 * len(atoms))
+
+    both_feasible = tuple(atom for atom in atoms if all(
+        _local_eligible(full_card, task, (atom,))
+        for task in ("income", "occupation_group")
+    ))
+    if both_feasible:
+        common_atom = min(both_feasible, key=lambda atom: (
+            -full_card.auc_drop[atom], both_cost(atom), atom,
+        ))
+        common_status = "SURROGATE_FEASIBLE"
+    else:
+        common_atom = min(atoms, key=lambda atom: (
+            both_cost(atom), -full_card.auc_drop[atom], atom,
+        ))
+        common_status = "SURROGATE_CAP_SHORTFALL"
+    add("C-SIMPLE-COMMON1", common_atom, common_atom,
+        basis="FULL_COMMON_ONE", status=common_status,
+        objective=full_card.auc_drop[common_atom], arithmetic=len(atoms))
+
+    for first, arm_id in (
+        ("income", "C-SIMPLE-SEQ-IO1"),
+        ("occupation_group", "C-SIMPLE-SEQ-OI1"),
+    ):
+        second = "occupation_group" if first == "income" else "income"
+        first_atom, first_status = local_choice(first)
+        if _local_eligible(full_card, second, (first_atom,)):
+            second_atom, second_status = first_atom, "SECOND_MATCHED_UNION"
+        else:
+            second_atom, second_status = local_choice(second)
+        removed_i, removed_o = (
+            (first_atom, second_atom) if first == "income"
+            else (second_atom, first_atom)
+        )
+        status = ";".join((first_status, second_status))
+        if first_atom != second_atom:
+            status += ";UNION_CAPACITY_MISMATCH_AFTER_FIRST"
+        add(arm_id, removed_i, removed_o,
+            basis="FULL_SEQUENTIAL_ONE", status=status,
+            objective=full_card.auc_drop[removed_i] + full_card.auc_drop[removed_o],
+            arithmetic=2 * len(atoms))
+    if tuple(arm.arm_id for arm in plans) != SIMPLE_ARM_IDS:
+        raise AssertionError("C-SIMPLE arm registry changed")
+    return ControlPlan(tuple(plans), target,
+                       scorecard_fit_units=40 if task_only_deltas is None else 60,
+                       selector_operations=7 if task_only_deltas is None else 8)
+
+
+def build_task_only_plan(
+    task_deltas: Mapping[str, Mapping[str, TaskDelta]],
+    *, schema: AdultGroupedSchema | None = None,
+) -> ControlPlan:
+    """One-arm plan that can be constructed without a SEX-aware scorecard."""
+    schema = schema or AdultGroupedSchema()
+    atoms = tuple(sorted(ATOM_ORDER))
+    removed, status, objective = select_task_shared1(atoms, task_deltas)
+    selected = _selected(schema, ATOM_ORDER, (removed,))
+    budget = _budget(schema, selected, selected)
+    target = _budget(schema, REL0_ATOMS, REL0_ATOMS)
+    arm = ArmPlan(
+        "C-SIMPLE-TASK-SHARED1", selected, selected,
+        Selection((removed,), (removed,), objective, len(atoms), len(atoms), len(atoms)),
+        budget, _matching(budget, target), "TASK_ONLY_SEPARATE_WORKER", status,
+        None, None, "Task-label-only split and proxy fits; no SEX file request",
+    )
+    return ControlPlan((arm,), target, scorecard_fit_units=20, selector_operations=1)

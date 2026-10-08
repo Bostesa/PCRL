@@ -30,4 +30,18 @@
 | Utility point estimates meet caps but simultaneous intervals cross a boundary | `PRECISION_LIMITED`, eligible for promotion under the frozen rule but not a passed criterion. |
 | Any claimed improvement relies on a selected seed, post-outcome budget, different calibrator, or changed attacker bank | Invalid comparison; preserve outputs and record a dated amendment before rerun. |
 
+## Dated Phase I disposition: 2026-10-08
+
+The queued `C-TEST-SCORECARD-BUILDER-016` fixed XOR clue check failed: the declared depth-two raw SEX tree attained reversible AUC 0.6123299693 against a predeclared >0.90 check. The other seven scorecard tests passed. A greedy depth-two split can miss a clue whose individual coordinates have no marginal SEX signal. The original failed receipt and law remain intact. Team C therefore cannot claim reliable complementary-clue detection or a joint-design advantage from this scorecard. It may proceed only as a transparent, fixed grouped-mask and retraining baseline, with fresh raw-union and complete-view attacks. No post-outcome proxy change or utility-threshold change is admitted under the current candidate identity.
+
+S1's prospective C-SIMPLE register has seven active standard arms (`C-SIMPLE-FULL`, `C-SIMPLE-REL0`, `C-SIMPLE-TASK-SHARED1`, `C-SIMPLE-INDEP1`, `C-SIMPLE-COMMON1`, `C-SIMPLE-SEQ-IO1`, `C-SIMPLE-SEQ-OI1`) plus the two zero-fit failed/skipped prototype slots. The active controls and encoded-capacity rule are in STRONGEST_CONTROL.md. Raw-only and defense-aware fresh attacks remain required; missing them blocks a complete comparison.
+
+## Dated prefit task-only custody correction: 2026-10-08
+
+The active task-only control now fits a separate ten-mask scorecard using only features, income, occupation and group IDs from the admitted defense-fit role. Its internal group split and class-support repair receive only the two task labels. The selector consumes only this card's task deltas. Charge twenty additional task proxy fits per seed, for sixty active scorecard fits per seed including the original privacy card. A test checks the builder's missing SEX argument and the class-repair label keys. If the runner uses task deltas from the privacy scorecard, task-only custody fails and the affected arm is invalid; preserve the original receipts and rerun only under S1's dated amendment.
+
+## Dated prefit worker and view-custody correction: 2026-10-08
+
+The separate task-only OS worker must not request the FIT SEX file or import the privacy scorecard builder. Both Team C fit workers initially read FIT/CAL roles only; opening ATTACK_FIT_NEW or INNER_SELECTION features before the mask, heads, calibrators and packages are frozen fails the role boundary. A postfit forward worker verifies an immutable handoff before reading ATT/INNER features only. S2's later attack job reads their SEX labels. Synthetic sentinels refuse forbidden reads, a second process tests the private fit lock, and complete-wire NPZ/JSON round trips must reproduce every local and coalition AttackView and task probability vector. A missing or changed handoff, role/arm/seed, source hash, package hash, wire field, person order or restored decision blocks the affected C result.
+
 No item above grants permission to open the old assessment. These are repeatedly used Adult development roles, and any favourable result remains exploratory.

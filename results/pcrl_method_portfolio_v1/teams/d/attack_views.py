@@ -34,6 +34,15 @@ def validate_recipient_release(release: Mapping, n: int, purpose: int) -> dict:
     meta = release["metadata"]
     if not isinstance(meta, Mapping) or not set(meta) <= PUBLIC_METADATA_FIELDS:
         raise ValueError("unknown or malformed public metadata must be registered")
+    if any(isinstance(value, (np.ndarray, list, tuple, dict)) for value in meta.values()):
+        raise ValueError("this D wire admits only arm-constant scalar metadata")
+    if ("kind" in meta and (not isinstance(meta["kind"], str) or not meta["kind"])):
+        raise ValueError("public kind must be a registered scalar string")
+    if (not isinstance(meta.get("calibration"), str)
+            or type(meta.get("purpose")) is not int
+            or type(meta.get("code_length_bits")) is not int
+            or type(meta.get("block_count")) is not int):
+        raise ValueError("public release metadata has non-scalar or wrong-typed fields")
     if meta.get("purpose") != purpose or not all(k in meta for k in
                                                   ("fallback", "stochastic", "code_length_bits",
                                                    "block_count", "calibration")):
@@ -51,7 +60,7 @@ def validate_recipient_release(release: Mapping, n: int, purpose: int) -> dict:
             or probability.ndim != 2 or probability.shape[0] != n or probability.shape[1] < 2
             or decision.shape != (n,) or not np.issubdtype(decision.dtype, np.integer)
             or not np.isfinite(feature).all() or not np.isfinite(probability).all()
-            or np.any(probability < 0) or not np.allclose(probability.sum(1), 1, rtol=0, atol=1e-6)
+            or np.any(probability < 0) or not np.allclose(probability.sum(1), 1, rtol=0, atol=1e-8)
             or not np.array_equal(decision, probability.argmax(1))):
         raise ValueError("invalid complete D release arrays")
     if ids.shape[1] == 1 and (int(meta["code_length_bits"]) != 10
@@ -139,7 +148,9 @@ def view_matrix(views: AlignedDViews, view: str) -> np.ndarray:
                 raise ValueError("code IDs outside fixed 1024-cell alphabet")
             parts.append(np.eye(1024, dtype=np.float32)[ids[:, 0]])
         parts.append(np.asarray(r["decoded"], dtype=np.float32))
-        parts.append(np.asarray(r["probabilities"], dtype=np.float32))
+        # The calibrated wire carries float64 confidence; do not round it in
+        # a fresh reader's complete view.
+        parts.append(np.asarray(r["probabilities"], dtype=np.float64))
         parts.append(np.eye(r["probabilities"].shape[1], dtype=np.float32)[r["decision"]])
         meta = r["metadata"]
         parts.append(np.tile(np.asarray([float(meta["purpose"]), float(meta["code_length_bits"]),
