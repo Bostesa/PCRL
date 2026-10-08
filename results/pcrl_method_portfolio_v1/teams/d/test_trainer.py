@@ -12,6 +12,12 @@ from trainer import DTrainConfig, DTrainingData, make_sign_tables, mmd_terms, su
 
 
 class TrainerGradientTests(unittest.TestCase):
+    def test_reconstruction_weight_is_explicit_and_bounded(self):
+        self.assertEqual(DTrainConfig().reconstruction_weight, 0.25)
+        self.assertEqual(DTrainConfig(reconstruction_weight=1.0).reconstruction_weight, 1.0)
+        with self.assertRaises(ValueError):
+            DTrainConfig(reconstruction_weight=-0.1)
+
     def test_hard_forward_assignment_has_codebook_gradient_but_frozen_input_does_not(self):
         h = torch.tensor([[0.1, 0.0], [1.9, 0.0]], dtype=torch.float32)
         centroids = torch.nn.Parameter(torch.tensor([[0.0, 0.0], [2.0, 0.0], [9.0, 9.0]]))

@@ -28,11 +28,13 @@ class DTrainConfig:
     batch_size: int = 256
     learning_rate: float = 0.001
     pair_features: int = 128
+    reconstruction_weight: float = 0.25
 
     def __post_init__(self) -> None:
         if (self.codes < 2 or self.codes & (self.codes - 1) or self.hidden < 1
                 or self.epochs < 1 or self.batch_size < 2 or self.learning_rate <= 0
-                or self.pair_features < 1):
+                or self.pair_features < 1 or not np.isfinite(self.reconstruction_weight)
+                or self.reconstruction_weight < 0):
             raise ValueError("invalid fixed VQ training configuration")
 
 
@@ -199,7 +201,8 @@ class TorchDRelease:
                 "probabilities": probabilities.numpy().copy(),
                 "decision": torch.argmax(probabilities, dim=1).numpy().copy(),
                 "metadata": {"purpose": purpose, "code_length_bits": self.code_length_bits,
-                             "block_count": 1, "fallback": False, "stochastic": False},
+                             "block_count": 1, "fallback": False, "stochastic": False,
+                             "calibration": "UNFITTED"},
             }
 
 
@@ -212,6 +215,7 @@ class DFitResult:
     protected: bool
     fit_rows: int
     fit_code_change: dict
+    config: DTrainConfig
 
 
 def code_change_receipt(
@@ -264,8 +268,12 @@ def train_d(
     Each minibatch uses one aligned index vector for the two purposes and SEX.
     The final iterate is returned without task/leakage-based epoch selection.
     """
-    if data.role == "OSF_DEFENSE_FIT" and (data.h0.shape[1] != 16 or config != DTrainConfig()):
-        raise ValueError("Adult candidate is fixed to 16-D and the registered configuration")
+    if data.role == "OSF_DEFENSE_FIT":
+        shared = DTrainConfig(reconstruction_weight=config.reconstruction_weight)
+        permitted_weight = (config.reconstruction_weight == 0.25 if protected
+                            else config.reconstruction_weight in (0.0, 0.25, 1.0))
+        if data.h0.shape[1] != 16 or config != shared or not permitted_weight:
+            raise ValueError("Adult D and task-only grid require registered 16-D configurations")
     torch.set_num_threads(1)
     torch.manual_seed(int(seed))
     normalizer, initial = initializer if initializer is not None else pooled_initializer(data, seed, config.codes)
@@ -299,10 +307,10 @@ def train_d(
             logits0, logits1 = head0(z0), head1(z1)
             task0 = (F.cross_entropy(logits0, y0[ix])
                      + 0.5 * F.kl_div(F.log_softmax(logits0, dim=1), u0[ix], reduction="batchmean")
-                     + 0.25 * ((x0[ix] - z0) ** 2).sum(dim=1).mean() / d)
+                     + config.reconstruction_weight * ((x0[ix] - z0) ** 2).sum(dim=1).mean() / d)
             task1 = (F.cross_entropy(logits1, y1[ix])
                      + 0.5 * F.kl_div(F.log_softmax(logits1, dim=1), u1[ix], reduction="batchmean")
-                     + 0.25 * ((x1[ix] - z1) ** 2).sum(dim=1).mean() / d)
+                     + config.reconstruction_weight * ((x1[ix] - z1) ** 2).sum(dim=1).mean() / d)
             task = (task0 + task1) / 2
             if protected:
                 mmd0, mmd1, mmd_pair = mmd_terms(code0, code1, sex[ix], sign_tables)
@@ -323,4 +331,4 @@ def train_d(
     fit_code_change = code_change_receipt(data.h0, data.h1, normalizer, initial, codebook)
     return DFitResult(release=release, history=history, role=data.role,
                       seed=int(seed), protected=bool(protected), fit_rows=len(x0),
-                      fit_code_change=fit_code_change)
+                      fit_code_change=fit_code_change, config=config)
