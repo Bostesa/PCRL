@@ -195,21 +195,23 @@ def candidate_pair(
     occupation_head: ProbabilityHead,
     income_head_id: str,
     occupation_head_id: str,
-    calibrator_id: str,
+    calibrator_ids: tuple[str, str],
     income_calibrator: ProbabilityCalibrator,
     occupation_calibrator: ProbabilityCalibrator,
 ) -> tuple[PurposeRelease, PurposeRelease]:
     """Construct the predeclared proxy-excluding Team C candidate interface."""
     if "relationship" in income_atoms or "relationship" in occupation_atoms:
         raise ValueError("relationship is excluded from Team C candidate masks")
+    if len(calibrator_ids) != 2:
+        raise ValueError("separate income and occupation calibrator IDs are required")
     return (
         PurposeRelease(
             schema, income_atoms, income_head, "income", income_head_id,
-            calibrator_id, income_calibrator,
+            calibrator_ids[0], income_calibrator,
         ),
         PurposeRelease(
             schema, occupation_atoms, occupation_head, "occupation_group",
-            occupation_head_id, calibrator_id, occupation_calibrator,
+            occupation_head_id, calibrator_ids[1], occupation_calibrator,
         ),
     )
 
