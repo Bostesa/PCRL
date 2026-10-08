@@ -1,6 +1,6 @@
 {
   "schema": "pcrl-method-portfolio-artifact-map-v1",
-  "scope": "campaign inputs and outputs relevant to hcal, lra and CCM; identifiers are relative to named roots and contain no home or drive path",
+  "scope": "campaign inputs and outputs relevant to hcal, lra, CCM and the locally sealed portfolio continuation; identifiers are relative to named roots and contain no home or drive path",
   "roots": {
     "repo": "Git worktree root",
     "private_cache": "PCRL private evaluation cache root",
@@ -37,7 +37,7 @@
     {
       "root": "repo",
       "path": "results/pcrl_method_portfolio_v1/",
-      "includes": ["new protocol, candidate/agent registries, synthetic laws, aggregate results and verification when available"],
+      "includes": ["locally sealed protocol and amendments, candidate/agent registries, synthetic laws, B and C Adult development aggregates, S4 verification scope, queue/resource and custody hashes"],
       "access": "campaign-owned; no private rows, predictions, labels, checkpoints, or identifying local paths"
     }
   ],
@@ -46,7 +46,7 @@
       "root": "private_cache",
       "path": "jcv_v1/inputs/adult_jcv.npz",
       "contents": "all-role historically exposed Adult source, including task and sensitive labels",
-      "access": "FORBIDDEN for portfolio opening or filtering; not a safe export"
+      "access": "Continuation amendment allowed one isolated deterministic custodian exporter to transiently deserialize mixed-role storage and select only admitted roles; excluded values were not inspected, summarized, logged, exported or scientifically used. Scientific workers remain forbidden to open this source. See DATA_EXPORT_MANIFEST.json for the actual transient-read deviation and guards."
     },
     {
       "root": "private_cache",
@@ -86,21 +86,23 @@
     }
   ],
   "required_private_portfolio_files": {
-    "status": "ABSENT_OR_UNVERIFIED",
-    "description": "pre-existing role-only exports of permitted 83-column X and OSF_DEFENSE_FIT, CALIBRATION_HELDOUT, ATTACK_FIT_NEW and INNER_SELECTION labels; no such export was verified",
-    "consequence": "all new Adult defense, calibration, attacker and endpoint fits are BLOCKED; synthetic prototypes remain allowed"
+    "status": "ROLE_ONLY_EXPORTS_ADMITTED_S4_VERIFIED",
+    "path": "results/pcrl_method_portfolio_v1/shared/.private/role_export_v1/{role}/{allowed_member}.npz",
+    "description": "83 permitted predictor columns and only authorized role-specific labels/references for OSF_DEFENSE_FIT, CALIBRATION_HELDOUT, ATTACK_FIT_NEW and INNER_SELECTION; exact 25 file hashes and roles are in DATA_ACCESS_MANIFEST.json and DATA_EXPORT_MANIFEST.json",
+    "excluded": "No HEAD_VALIDATION labels or old-assessment people/features/labels/predictions in scientific role exports"
   },
-  "future_private_outputs_if_unblocked": [
-    "role-only fitted models, masks, channels, codebooks and checkpoints",
-    "per-person sampled releases, predictions and task/SEX labels on permitted roles",
-    "attack model weights, selection predictions and seed-level bootstrap replicates",
+  "private_portfolio_outputs": [
+    "B and C fitted models, calibrators, masks and private checkpoints on admitted roles",
+    "per-person permitted-role releases, predictions, task/SEX labels and attack model weights",
+    "B and C saved reader selections, V2 real-control probes, screen/endpoint arrays and S3 receipts",
+    "C R1 private finalizer and 135-unit custody registry; S4 independent replay artifacts when admitted",
     "private resource and restore records containing identifying paths"
   ],
   "custody": {
     "hcal": "public RESTORE_INDEX and BACKUP_VERIFICATION report verified same-device copy; off-device custody must be checked anew",
     "ccm": "public RESTORE_INDEX reports same-device copy and 5/5 representative restores; off-device custody pending",
-    "portfolio": "no new private fitted artifacts yet; future backup must hash uncached reads and representative restores without deleting originals"
+    "portfolio": "B and C private fitted artifacts exist under versioned local custody; same-device restore is being refreshed after closeout, off-device custody pending"
   },
-  "inventory_method": "reviewed committed source/admission/restore manifests and private-cache filenames, and ZIP member names of the CCM verifier roles file; did not open the all-role input or assessment arrays",
-  "remote_verification": "blocked by GitHub DNS during S2 audit; local remote-tracking refs are not fresh remote verification"
+  "inventory_method": "reviewed committed source/admission/restore manifests and private-cache filenames; the isolated exporter later transiently deserialized mixed-role source as explicitly amended, while scientific workers used role-only exports",
+  "remote_verification": "GitHub DNS failures and sandbox-denied local-origin unpack prevent live research-branch tip verification; local commits and bundles are not remote proof"
 }
