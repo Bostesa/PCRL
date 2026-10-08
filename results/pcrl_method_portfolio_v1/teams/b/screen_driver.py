@@ -108,11 +108,16 @@ def _check_gate(args) -> tuple[dict, dict]:
     receipt_path = Path(args.synthetic_attack_plumbing_receipt)
     unit = state["units"].get(synthetic.get("s3_unit_id"))
     if (not receipt_path.is_file()
+            or receipt_path.resolve() != (queue.root / "units" / str(synthetic.get("s3_unit_id"))
+                                           / "stdout.log").resolve()
             or _sha(receipt_path) != args.synthetic_attack_plumbing_sha256
             or synthetic.get("receipt_sha256") != args.synthetic_attack_plumbing_sha256
             or not unit or unit.get("status") != "done" or unit.get("returncode") != 0
-            or unit["spec"].get("mode") != "prelock_synthetic"
-            or unit["spec"].get("team") != "S2"
+            or unit["spec"].get("unit_id") != synthetic.get("s3_unit_id")
+            or not isinstance(synthetic.get("s3_unit_mode"), str)
+            or not isinstance(synthetic.get("s3_unit_team"), str)
+            or unit["spec"].get("mode") != synthetic["s3_unit_mode"]
+            or unit["spec"].get("team") != synthetic["s3_unit_team"]
             or unit["spec"].get("test_sha256") != synthetic.get("smoke_script_sha256")):
         raise PermissionError("Queued synthetic attack-plumbing smoke is not admitted")
     smoke_script = Path(unit["spec"]["test_file"])
