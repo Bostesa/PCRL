@@ -1,0 +1,59 @@
+{
+ "schema": "ccm-predictions-v1",
+ "registered": "before FEASIBILITY_LOCK and before any real-array geometry or oracle evaluation",
+ "status": "forecasts only; they never determine execution, gates or labels",
+ "basis": [
+  "under the pointwise NLL guard every admissible bin satisfies sum_k max p_k <= e^d, so its total-variation diameter is at most e^d - 1 = 0.0050125 (d = 0.005); the all-label Brier guard (b = 0.0025) restricts coordinate deficits further",
+  "teacher probability vectors of 15,434 people vary continuously; in a 5-dimensional simplex nearest-neighbour distances at this sample size are typically much larger than 0.005",
+  "income references span a wide range of the [0, 1] interval; 8 bins per class of width <= 0.005 cover at most about 0.08 of the score range",
+  "hcal / qpc capacity results: average-loss codes needed i8o64 to keep confidence and then barely protected"
+ ],
+ "forecasts": [
+  {
+   "id": "F1",
+   "question": "Occupation geometry under G",
+   "forecast": "near identity: F1 compression ratio > 0.5 and F3 coverage at capacity well below 0.95 on every seed",
+   "probabilities": {
+    "occupation F3 coverage < 0.95 (all seeds)": 0.92,
+    "occupation compression ratio > 0.5": 0.75
+   }
+  },
+  {
+   "id": "F2",
+   "question": "Income geometry under G",
+   "probabilities": {
+    "income F3 coverage < 0.95 (all seeds)": 0.85
+   }
+  },
+  {
+   "id": "F3",
+   "question": "Held-out fallback under G",
+   "probabilities": {
+    "F4 fallback > 0.05 for occupation": 0.93
+   }
+  },
+  {
+   "id": "F4",
+   "question": "Go rule",
+   "probabilities": {
+    "go rule fails (no pilot; PREMISE_NOT_SUPPORTED)": 0.88
+   }
+  },
+  {
+   "id": "F5",
+   "question": "Secondary teacher-expected guard G_exp (diagnostic only)",
+   "probabilities": {
+    "occupation F3 coverage >= 0.95 at capacity under G_exp": 0.3
+   }
+  },
+  {
+   "id": "F6",
+   "question": "Finite laws",
+   "forecast": "POSITIVE law: local / joint arms strictly reduce MI versus task-only; NULL law: every eligible arm equals task-only; COMPLEMENTARY: joint <= best sequential; NO_COALITION: coalition MI equals the better local",
+   "probabilities": {
+    "POSITIVE shows headroom": 0.9,
+    "NULL shows none": 0.95
+   }
+  }
+ ]
+}
