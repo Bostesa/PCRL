@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 
 import numpy as np
 
@@ -28,6 +29,41 @@ CAMPAIGN = Path(__file__).resolve().parent.parent
 ROOT = Path(__file__).resolve().parent / ".private"
 READERS = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32",
            "RAW_LR_C1", "RAW_HGB_15x200")
+
+
+def _queued_argument(argv: list[str], flag: str) -> str:
+    positions = [i for i, value in enumerate(argv) if value == flag]
+    if len(positions) != 1 or positions[0] + 1 >= len(argv):
+        raise PermissionError("queued seed mismatch")
+    return str(argv[positions[0] + 1])
+
+
+def _assert_running_anchor_unit(seed: int, lock_sha: str, queue_root: Path) -> None:
+    """Bind this process to the exact S3 unit before any admitted role read."""
+    queue = Queue(queue_root)
+    unit_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
+    deadline = time.monotonic() + 5.0
+    while True:
+        unit = queue.status().get("units", {}).get(unit_id)
+        if not unit or unit.get("status") != "running":
+            raise PermissionError("feature anchor has no running S3 unit")
+        spec = unit.get("spec", {})
+        argv = spec.get("argv", [])
+        if (spec.get("unit_id") != unit_id or spec.get("seed") != seed or
+                spec.get("mode") != "real_data" or spec.get("family") != "SHARED" or
+                spec.get("team") != "SHARED" or spec.get("stage") != "feature_anchor" or
+                spec.get("arm_id") != ARM_ID or spec.get("arm") != ARM_ID or
+                _queued_argument(argv, "--seed") != str(seed) or
+                _queued_argument(argv, "--campaign-lock-sha256") != lock_sha):
+            raise PermissionError("queued seed mismatch")
+        child_pgid = unit.get("child_pgid")
+        if child_pgid is not None:
+            if child_pgid != os.getpgrp():
+                raise PermissionError("feature anchor process group differs from S3 unit")
+            return
+        if time.monotonic() >= deadline:
+            raise PermissionError("S3 child process group receipt is unavailable")
+        time.sleep(0.02)
 
 
 def _write_json_once(path: Path, obj: dict) -> str:
@@ -91,6 +127,7 @@ def _seal_and_source(seed: int, store: SafeRoleStore, lock_sha: str,
 
 
 def run(seed: int, lock_sha: str, cache_root: Path) -> dict:
+    _assert_running_anchor_unit(seed, lock_sha, ROOT / "compute")
     store = SafeRoleStore(CAMPAIGN / "DATA_ACCESS_MANIFEST.json")
     source_sha = _seal_and_source(seed, store, lock_sha, cache_root)
     output = ROOT / f"feature_ref_raw83_u_s{seed}_v1"
