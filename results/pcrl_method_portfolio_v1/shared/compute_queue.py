@@ -216,6 +216,10 @@ class Queue:
             rss_cap = PRELOCK_MAX_RSS_GIB if spec["mode"] == "prelock_synthetic" else PRESEAL_SMOKE_MAX_RSS_GIB
             if float(spec["max_wall_s"]) > wall_cap or float(spec["max_rss_gib"]) > rss_cap:
                 raise ValueError("synthetic unit exceeds its predeclared wall/RSS limits")
+        elif spec["mode"] == "verifier_synthetic":
+            reason = self._verifier_synthetic_reason(spec)
+            if reason:
+                raise ValueError(reason)
         elif spec["mode"] == "role_export":
             if spec.get("data_access") != "S4_REVIEWED_SINGLE_PASS_SOURCE_ZIP":
                 raise ValueError("role export needs exact S4-reviewed data access")
@@ -392,6 +396,85 @@ class Queue:
     def _free_disk_gib(self) -> float:
         fs = os.statvfs(self.root)
         return fs.f_bavail * fs.f_frsize / 1024**3
+
+    @staticmethod
+    def _verifier_synthetic_reason(spec: dict) -> str | None:
+        """Bind a no-data S4 test to its own committed, immutable index."""
+        registered_indexes = {
+            "S4_VERIFIER_QUEUE_INDEX_V3.json": "928c6d00b859263e79a5cb8a8e65ccf573e29e89ac2cb1ea8128acd655c10ad6",
+            "S4_VERIFIER_QUEUE_INDEX_V5.json": "ac3103d2514cc939d9520aa633852d66dfa4de4c9cb38996276ee1d510e89fb1",
+        }
+        if (spec.get("mode") != "verifier_synthetic" or
+            spec.get("family") != "S4" or spec.get("team") != "S4" or
+            spec.get("data_access") != "NONE" or
+            spec.get("deps") != [] or spec.get("outputs") != []):
+            return "verifier_scope_invalid"
+        try:
+            cwd = Path(spec["cwd"]).resolve(strict=True)
+            index_path = Path(spec["verifier_index_path"]).resolve(strict=True)
+            expected_index = cwd / "results/pcrl_method_portfolio_v1/s4" / index_path.name
+            index_sha = registered_indexes.get(index_path.name)
+            if (index_path != expected_index or index_sha is None or
+                spec.get("verifier_index_sha256") != index_sha or
+                sha256_file(index_path) != index_sha):
+                return "verifier_index_unregistered"
+            committed = subprocess.run(
+                ["git", "-C", str(cwd), "show", f"HEAD:results/pcrl_method_portfolio_v1/s4/{index_path.name}"],
+                capture_output=True, check=False, timeout=10)
+            if committed.returncode or hashlib.sha256(committed.stdout).hexdigest() != index_sha:
+                return "verifier_index_uncommitted"
+            index = json.loads(index_path.read_text())
+            units = index.get("units", {})
+            registered = units.get(spec.get("unit_id"))
+            if (index.get("schema") != "pcrl-s4-verifier-synthetic-index-v2" or
+                index.get("status") != "REGISTERED_SYNTHETIC_ONLY" or
+                index.get("adult_role_access") is not False or
+                index.get("cwd") != "coordinator_worktree" or
+                index.get("data_access") != "NONE" or
+                index.get("interpreter") != "PCRL_PROJECT_VENV_PYTHON" or
+                not isinstance(registered, dict) or
+                registered.get("mode") != "verifier_synthetic" or
+                registered.get("family") != "S4" or registered.get("team") != "S4" or
+                registered.get("data_access") != "NONE" or
+                spec.get("stage") != registered.get("stage")):
+                return "verifier_unit_unregistered"
+            test_path = (cwd / registered["test_path"]).resolve(strict=True)
+            if (Path(spec.get("test_file", "")).resolve() != test_path or
+                spec.get("test_sha256") != registered.get("test_sha256") or
+                sha256_file(test_path) != registered.get("test_sha256")):
+                return "verifier_test_changed"
+            source_map = registered.get("source_sha256_by_file")
+            if not isinstance(source_map, dict) or spec.get("source_sha256_by_file", {}) != source_map:
+                return "verifier_sources_unregistered"
+            for relative, expected_sha in source_map.items():
+                source = (cwd / relative).resolve(strict=True)
+                if (not source.is_relative_to(cwd) or
+                    not isinstance(expected_sha, str) or
+                    sha256_file(source) != expected_sha):
+                    return "verifier_source_changed"
+            venv = cwd.parent.parent / ".venv/bin/python"
+            argv = list(registered.get("argv_template", ()))
+            if not argv or argv[0] != "<PCRL_PROJECT_VENV_PYTHON>":
+                return "verifier_argv_unregistered"
+            argv[0] = str(venv)
+            if spec.get("argv") != argv or not venv.is_file():
+                return "verifier_argv_mismatch"
+            expected_env = dict(index.get("env", {}))
+            expected_env["PYTHONPATH"] = str(cwd / expected_env["PYTHONPATH"])
+            actual_env = spec.get("env", {})
+            if (not isinstance(actual_env, dict) or
+                any(actual_env.get(key) != value for key, value in expected_env.items()) or
+                any(key not in expected_env and (key != "PYTHONDONTWRITEBYTECODE" or value != "1")
+                    for key, value in actual_env.items())):
+                return "verifier_env_mismatch"
+            if (float(spec["max_wall_s"]) > registered["max_wall_seconds"] or
+                float(spec["cpu_reserve_s"]) > registered["max_wall_seconds"] or
+                float(spec["max_rss_gib"]) * 1024**3 > registered["max_rss_bytes"] or
+                registered.get("threads") != 1):
+                return "verifier_resource_limit_mismatch"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, IndexError, subprocess.TimeoutExpired):
+            return "verifier_index_or_spec_invalid"
 
     @staticmethod
     def _local_seal_ok(gate: dict) -> bool:
@@ -949,6 +1032,8 @@ class Queue:
                 source_path = Path(spec["cwd"]) / "results" / "pcrl_method_portfolio_v1" / source.get("path", "")
                 if not source_path.is_file() or sha256_file(source_path) != source.get("sha256"):
                     return "phase1_source_changed"
+        elif spec.get("mode", "real_data") == "verifier_synthetic":
+            return self._verifier_synthetic_reason(spec)
         elif spec.get("mode", "real_data") == "real_data":
             reason = self._real_admission_reason(gate, spec)
             return reason or self._v2_parent_reason(state, spec)
