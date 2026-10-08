@@ -218,6 +218,10 @@ class Queue:
             rss_cap = PRELOCK_MAX_RSS_GIB if spec["mode"] == "prelock_synthetic" else PRESEAL_SMOKE_MAX_RSS_GIB
             if float(spec["max_wall_s"]) > wall_cap or float(spec["max_rss_gib"]) > rss_cap:
                 raise ValueError("synthetic unit exceeds its predeclared wall/RSS limits")
+        elif spec["mode"] == "aggregate_metadata":
+            reason = self._aggregate_metadata_reason(spec)
+            if reason:
+                raise ValueError(reason)
         elif spec["mode"] == "verifier_synthetic":
             reason = self._verifier_synthetic_reason(spec)
             if reason:
@@ -501,6 +505,86 @@ class Queue:
             return None
         except (OSError, ValueError, TypeError, KeyError, IndexError, subprocess.TimeoutExpired):
             return "verifier_index_or_spec_invalid"
+
+    @staticmethod
+    def _aggregate_metadata_reason(spec: dict) -> str | None:
+        """Admit one hash-bound Team B aggregate diagnostic after S4 18/18 PASS."""
+        try:
+            team = Path(spec["cwd"]).resolve(strict=True)
+            if team.name != "pcrl-method-portfolio-b" or team.parent.name != ".worktrees":
+                return "aggregate_metadata_worktree_invalid"
+            coord = (team.parent / "pcrl-method-portfolio-v1").resolve(strict=True)
+            project = team.parent.parent
+            if coord.parent != team.parent or not (project / ".venv/bin/python").is_file():
+                return "aggregate_metadata_worktree_invalid"
+            campaign = Path("results/pcrl_method_portfolio_v1")
+            script_rel = campaign / "teams/b/stage_b_screen_comparison.py"
+            pins_rel = campaign / "teams/b/B_AGGREGATE_STAGE_PINS.json"
+            s4_rel = campaign / "S4_INDEPENDENT_NUMERICAL_REPLAY_INDEX.json"
+            script, pins_path, s4_path = team / script_rel, team / pins_rel, coord / s4_rel
+            lock_path = coord / campaign / "CAMPAIGN_LOCK.json"
+            script_sha = "a11a9b490725cb64cde46a062e8015e2a4546c7382f89e65ba405d65de0f6126"
+            pins_sha = "342e5f789bcacd0747fd3119e7267223ca2fe4a4a355e6e42aacc38e780b9234"
+            s4_sha = "d6275ab9133fcafabbea3f6584fa579e77c7c86391b45571bf5d0458050985eb"
+            lock_sha = "956061db72ee4cef6893e0e3f98d6ad4a85b57c4e6aa0a15856c084d5653c39e"
+            private = team / campaign / "teams/b/.private"
+            output = private / "b_aggregate_stage_verified_001"
+            expected_outputs = [str(output / name) for name in (
+                "STAGED_18_ROWS.json", "STAGED_18_ROWS.csv", "CONTROL_SELECTION.json")]
+            expected_argv = [
+                str(project / ".venv/bin/python"), str(script),
+                "--coord-root", str(coord), "--team-root", str(team),
+                "--pins", str(pins_path), "--s4-index-sha256", s4_sha,
+                "--output-dir", str(output),
+            ]
+            if (spec.get("unit_id") != "B-AGGREGATE-VERIFIED-STAGE-083" or
+                spec.get("mode") != "aggregate_metadata" or
+                spec.get("stage") != "verified_aggregate_stage" or
+                spec.get("family") != "B" or spec.get("team") != "B" or
+                spec.get("arm") != "B_MATCHED_POOL" or
+                spec.get("arm_id") != "B_MATCHED_POOL" or
+                spec.get("seed", "missing") is not None or
+                spec.get("data_access") != "FROZEN_B_AND_S4_AGGREGATES_ONLY" or
+                spec.get("deps") != [] or spec.get("cwd") != str(team) or
+                spec.get("argv") != expected_argv or
+                spec.get("outputs") != expected_outputs or
+                spec.get("runner_sha256") != script_sha or
+                spec.get("pins_sha256") != pins_sha or
+                spec.get("s4_index_sha256") != s4_sha or
+                spec.get("campaign_lock_sha256") != lock_sha):
+                return "aggregate_metadata_scope_invalid"
+            if (float(spec["max_wall_s"]) > 600 or
+                float(spec["cpu_reserve_s"]) > 600 or
+                float(spec["max_rss_gib"]) > 2.0 or
+                spec.get("env") != {**THREAD_ENV, "PYTHONDONTWRITEBYTECODE": "1"}):
+                return "aggregate_metadata_resource_invalid"
+            if (not private.is_dir() or output.exists() or
+                any(Path(path).exists() for path in expected_outputs) or
+                any(not path.is_file() or sha256_file(path) != expected
+                    for path, expected in ((script, script_sha), (pins_path, pins_sha),
+                                           (s4_path, s4_sha), (lock_path, lock_sha)))):
+                return "aggregate_metadata_input_changed"
+            for repo, relative, expected in (
+                (team, script_rel, script_sha), (team, pins_rel, pins_sha),
+                (coord, s4_rel, s4_sha), (coord, campaign / "CAMPAIGN_LOCK.json", lock_sha)):
+                blob = subprocess.run(["git", "-C", str(repo), "show", f"HEAD:{relative}"],
+                                      capture_output=True, check=False, timeout=10)
+                if blob.returncode or hashlib.sha256(blob.stdout).hexdigest() != expected:
+                    return "aggregate_metadata_git_blob_changed"
+            pins = json.loads(pins_path.read_text())
+            s4 = json.loads(s4_path.read_text())
+            if (pins.get("schema") != "pcrl-team-b-aggregate-stage-pins-v1" or
+                pins.get("campaign_lock_sha256") != lock_sha or
+                s4.get("schema") != "pcrl-s4-independent-numerical-replay-index-v1" or
+                s4.get("status") != "PASS_18_OF_18" or
+                len(s4.get("unit_specs", {})) != 18 or
+                any(entry.get("status") != "REPLAYED_V2_PASS"
+                    for entry in s4["unit_specs"].values())):
+                return "aggregate_metadata_provenance_invalid"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, AttributeError,
+                subprocess.TimeoutExpired):
+            return "aggregate_metadata_invalid"
 
     @staticmethod
     def _local_seal_ok(gate: dict) -> bool:
@@ -905,7 +989,220 @@ class Queue:
             return "s4_parent_identity_invalid"
 
     @classmethod
+    def _c_admission_reason(cls, gate: dict, spec: dict,
+                            allow_existing_outputs: bool = False) -> str | None:
+        """Match one C unit to a sealed, private, metadata-only queue template."""
+        if not gate.get("safe_inputs") or not cls._local_seal_ok(gate):
+            return "c_local_seal_invalid"
+        try:
+            campaign = Path(gate["local_seal_path"]).parent
+            lock_path = campaign / "CAMPAIGN_LOCK.json"
+            lock_sha = sha256_file(lock_path)
+            lock = json.loads(lock_path.read_text())
+            family = lock["families"]["C"]
+            if (lock.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                lock.get("fit_admission") != "ALL_FAMILIES" or
+                lock.get("adult_fit_permission") is not True or
+                family.get("fit_admission") != "ALLOWED" or
+                lock.get("scheduler_source_sha256") != sha256_file(Path(__file__))):
+                return "c_campaign_scope_invalid"
+            relative = "results/pcrl_method_portfolio_v1/teams/c/C_SIMPLE_LOCK_SPEC_8ARM.json"
+            if family.get("simple_lock_spec_relative_path") != relative:
+                return "c_public_spec_path_invalid"
+            cwd = Path(spec["cwd"]).resolve(strict=True)
+            cdir = cwd / "results/pcrl_method_portfolio_v1/teams/c"
+            public_path = cwd / relative
+            if (not public_path.is_file() or
+                sha256_file(public_path) != family.get("simple_lock_spec_sha256")):
+                return "c_public_spec_changed"
+            public = json.loads(public_path.read_text())
+            if (public.get("schema") != "team-c-simple-lock-spec-v1" or
+                lock.get("admitted_arms", {}).get("C") != public.get("admitted_arms_C") or
+                lock.get("execution_unit_aliases", {}).get("C") != public.get("execution_unit_aliases_C") or
+                lock.get("screen_seed_identifiers") != public.get("screen_seed_identifiers") or
+                lock.get("data_admission", {}).get("manifest_sha256") != public.get("data_access_manifest_sha256") or
+                sha256_file(campaign / "DATA_ACCESS_MANIFEST.json") != public.get("data_access_manifest_sha256") or
+                sha256_file(cdir / "METHOD_SPEC.md") != public.get("method_spec_sha256")):
+                return "c_public_lock_mismatch"
+            shared_hashes = public["required_global_source_sha256"]
+            if (shared_hashes.get("attack_eval.py") !=
+                    lock.get("attack_protocol", {}).get("source_module_sha256") or
+                shared_hashes.get("common_eval.py") !=
+                    lock.get("endpoint_protocol", {}).get("source_module_hashes", {}).get("common_eval.py") or
+                shared_hashes.get("compute_queue.py") != lock.get("scheduler_source_sha256") or
+                public.get("shared_loader_sha256") !=
+                    sha256_file(campaign / "shared/safe_data_guard.py")):
+                return "c_shared_lock_source_mismatch"
+            for lock_key, public_key in (
+                ("privacy_batch_arm_ids", "privacy_batch_arm_ids"),
+                ("worker_unit_ids", "worker_unit_ids"),
+                ("worker_data_access", "worker_data_access"),
+                ("worker_runner_sha256", "worker_runner_sha256"),
+                ("shared_loader_sha256", "shared_loader_sha256"),
+                ("screen_orchestration", "screen_orchestration"),
+                ("head_spec_sha256", "head_spec_sha256"),
+                ("method_spec_sha256", "method_spec_sha256"),
+                ("data_access_manifest_sha256", "data_access_manifest_sha256"),
+                ("queue_stage_caps", "queue_stage_caps"),
+                ("queue_template_sha256", "queue_template_sha256"),
+                ("private_queue_manifest_sha256", "private_queue_manifest_sha256"),
+                ("source_code_sha256", "source_code_sha256"),
+            ):
+                if family.get(lock_key) != public.get(public_key):
+                    return "c_family_lock_mismatch"
+            for name, expected in public["source_code_sha256"].items():
+                if (Path(name).name != name or sha256_file(cdir / name) != expected):
+                    return "c_source_changed"
+            for name, expected in public["required_global_source_sha256"].items():
+                if (Path(name).name != name or sha256_file(campaign / "shared" / name) != expected):
+                    return "c_shared_source_changed"
+            manifest_name = public["private_queue_manifest_basename"]
+            if (Path(manifest_name).name != manifest_name or
+                not manifest_name.startswith("C_QUEUE_MANIFEST_") or
+                not manifest_name.endswith(".json")):
+                return "c_private_manifest_name_invalid"
+            manifest_path = cdir / ".private" / manifest_name
+            if sha256_file(manifest_path) != public["private_queue_manifest_sha256"]:
+                return "c_private_manifest_changed"
+            manifest = json.loads(manifest_path.read_text())
+            units = manifest["units"]
+            if (manifest.get("schema") != "team-c-simple-queue-manifest-v1" or
+                manifest.get("status") != "TEMPLATES_ONLY_NO_ENQUEUE_NO_ADULT_READ" or
+                len(units) != manifest.get("template_count") or
+                len(units) != public.get("queue_unit_count") or
+                hashlib.sha256(canonical(units).encode()).hexdigest() != public.get("queue_template_sha256") or
+                manifest.get("template_sha256") != public.get("queue_template_sha256") or
+                {stage: sum(unit.get("stage") == stage for unit in units.values())
+                 for stage in public["queue_stage_counts"]} != public["queue_stage_counts"] or
+                sum(float(unit["cpu_reserve_s"]) for unit in units.values()) !=
+                    public.get("queue_cpu_reserve_total_s")):
+                return "c_private_manifest_invalid"
+            uid = spec["unit_id"]
+            if uid not in units:
+                return "c_unit_not_locked"
+            template = units[uid]
+            stage, arm, seed = template["stage"], template["arm_id"], template["seed"]
+            if (template.get("mode") != "real_data" or template.get("family") != "C" or
+                template.get("team") != "C" or
+                (seed is None) != (stage == "screen_finalize") or
+                (seed is not None and seed not in public["screen_seed_identifiers"]) or
+                (arm == "C-SIMPLE-PRIVACY-BATCH") != (stage == "privacy_fit_cal_batch") or
+                (arm == "C-AGGREGATE") != (stage == "screen_finalize") or
+                (arm not in public["admitted_arms_C"] and
+                 arm not in public["execution_unit_aliases_C"]) or
+                template["data_access"] != public["queue_stage_caps"][stage]["data_access"]):
+                return "c_template_scope_invalid"
+            for field in ("max_wall_s", "cpu_reserve_s", "max_rss_gib"):
+                if template[field] != public["queue_stage_caps"][stage][field]:
+                    return "c_template_cap_invalid"
+            if stage in ("screen_reader", "postrelease_control_v2", "screen_score", "screen_finalize"):
+                expected_sha = public["screen_orchestration"]["queue_spec_template_sha256"].get(uid)
+                if expected_sha != hashlib.sha256(canonical(template).encode()).hexdigest():
+                    return "c_screen_template_changed"
+
+            def replace(value: object, token: str, replacement: str) -> object:
+                if isinstance(value, str):
+                    return value.replace(token, replacement)
+                if isinstance(value, list):
+                    return [replace(item, token, replacement) for item in value]
+                if isinstance(value, dict):
+                    return {key: replace(item, token, replacement) for key, item in value.items()}
+                return value
+
+            expected = replace(template, "<LOCK_SHA256>", lock_sha)
+            if "<FIT_HANDOFF_SHA256>" in canonical(expected):
+                path = (cdir / ".private/team_c" / lock_sha / "fit_handoff" /
+                        f"{arm}__s{seed}.json")
+                handoff = json.loads(path.read_text())
+                if (handoff.get("schema") != "team-c-fit-handoff-v1" or
+                    handoff.get("arm_id") != arm or handoff.get("seed") != seed or
+                    handoff.get("campaign_lock_sha256") != lock_sha):
+                    return "c_fit_handoff_invalid"
+                expected = replace(expected, "<FIT_HANDOFF_SHA256>", sha256_file(path))
+            if "<INPUT_SHA256>" in canonical(expected):
+                path = (cdir / ".private/team_c" / lock_sha / "screen/inputs" /
+                        f"{uid}.json")
+                argv = expected["argv"]
+                if (argv[argv.index("--input") + 1] != str(path) or
+                    not path.is_file()):
+                    return "c_screen_input_invalid"
+                expected = replace(expected, "<INPUT_SHA256>", sha256_file(path))
+            if (any(token in canonical(expected) for token in
+                    ("<LOCK_SHA256>", "<FIT_HANDOFF_SHA256>", "<INPUT_SHA256>")) or
+                canonical(expected) != canonical(spec)):
+                return "c_spec_not_exact_template"
+            script = Path(expected["argv"][1]).resolve(strict=True)
+            if (not script.is_relative_to(cdir) or
+                sha256_file(script) != expected["runner_sha256"] or
+                public["source_code_sha256"].get(script.name) != expected["runner_sha256"] or
+                (not allow_existing_outputs and
+                 any(Path(path).exists() for path in expected["outputs"]))):
+                return "c_runner_or_output_changed"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, IndexError, AttributeError):
+            return "c_admission_invalid"
+
+    def _c_v2_parent_reason(self, state: dict, spec: dict) -> str | None:
+        """Bind C V2 to a completed frozen same-view reader and its S3 receipt."""
+        try:
+            if len(spec.get("deps", [])) != 1:
+                return "c_v2_parent_not_complete"
+            parent_id = spec["deps"][0]
+            parent = state["units"].get(parent_id)
+            if (not parent or parent.get("status") != "done" or
+                parent.get("returncode") != 0):
+                return "c_v2_parent_not_complete"
+            parent_spec = parent["spec"]
+            if self._c_admission_reason(state["gate"], parent_spec,
+                                        allow_existing_outputs=True) is not None:
+                return "c_v2_parent_spec_changed"
+            if (parent_spec.get("stage") != "screen_reader" or
+                parent_spec.get("family") != "C" or
+                parent_spec.get("team") != "C" or
+                parent_spec.get("arm_id") != spec.get("arm_id") or
+                parent_spec.get("seed") != spec.get("seed") or
+                parent_spec.get("view") != spec.get("view") or
+                len(parent_spec.get("outputs", [])) != 1):
+                return "c_v2_parent_scope_invalid"
+            output_path = Path(parent_spec["outputs"][0])
+            output_sha = sha256_file(output_path)
+            recorded = parent.get("output_sha256", {})
+            receipt_path = self.root / "units" / parent_id / "RECEIPT.json"
+            complete_path = self.root / "units" / parent_id / "COMPLETE.json"
+            receipt = json.loads(receipt_path.read_text())
+            complete = json.loads(complete_path.read_text())
+            if (recorded.get(str(output_path)) != output_sha or
+                receipt != complete or
+                receipt.get("unit_id") != parent_id or
+                receipt.get("status") != "done" or
+                receipt.get("returncode") != 0 or
+                receipt.get("output_sha256") != recorded):
+                return "c_v2_parent_receipt_changed"
+            reader = json.loads(output_path.read_text())
+            if (reader.get("schema") != "team-c-reader-stage-v1" or
+                reader.get("status") != "FROZEN" or
+                reader.get("queue_unit_id") != parent_id or
+                reader.get("arm_id") != spec.get("arm_id") or
+                reader.get("seed") != spec.get("seed") or
+                reader.get("view") != spec.get("view")):
+                return "c_v2_reader_output_invalid"
+            argv = spec["argv"]
+            input_path = Path(argv[argv.index("--input") + 1])
+            child_input = json.loads(input_path.read_text())
+            if (child_input.get("unit", {}).get("arm_id") != spec.get("arm_id") or
+                child_input.get("unit", {}).get("seed") != spec.get("seed") or
+                child_input.get("unit", {}).get("view") != spec.get("view") or
+                child_input.get("unit", {}).get("reader_receipt_sha256") != output_sha or
+                any(Path(path).exists() for path in spec.get("outputs", []))):
+                return "c_v2_child_input_or_output_invalid"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, IndexError, AttributeError):
+            return "c_v2_parent_invalid"
+
+    @classmethod
     def _real_admission_reason(cls, gate: dict, spec: dict) -> str | None:
+        if spec.get("family") == "C":
+            return cls._c_admission_reason(gate, spec)
         if spec.get("stage") == "postrelease_control_v2":
             return cls._v2_admission_reason(gate, spec)
         if not gate.get("safe_inputs") or not cls._local_seal_ok(gate):
@@ -1141,6 +1438,8 @@ class Queue:
         return None
 
     def _v2_parent_reason(self, state: dict, spec: dict) -> str | None:
+        if spec.get("family") == "C" and spec.get("stage") == "postrelease_control_v2":
+            return self._c_v2_parent_reason(state, spec)
         if spec.get("stage") != "postrelease_control_v2":
             return None
         parent_id = spec.get("parent_unit_id")
@@ -1335,6 +1634,8 @@ class Queue:
                 source_path = Path(spec["cwd"]) / "results" / "pcrl_method_portfolio_v1" / source.get("path", "")
                 if not source_path.is_file() or sha256_file(source_path) != source.get("sha256"):
                     return "phase1_source_changed"
+        elif spec.get("mode") == "aggregate_metadata":
+            return self._aggregate_metadata_reason(spec)
         elif spec.get("mode", "real_data") == "verifier_synthetic":
             return self._verifier_synthetic_reason(spec)
         elif spec.get("mode") == "s4_adult_replay":
