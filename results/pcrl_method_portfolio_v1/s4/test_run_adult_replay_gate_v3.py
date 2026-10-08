@@ -23,7 +23,7 @@ def digest(path: Path) -> str:
 class AdultReplayPreaccessTest(unittest.TestCase):
     def test_parent_receipt_binds_single_immutable_private_output(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             output = root / ".private" / "attempt" / "ATTEMPT_INDEX.json"
             output.parent.mkdir(parents=True)
             output.write_text('{"status":"FROZEN_FOR_INDEPENDENT_REPLAY"}\n')
@@ -51,7 +51,7 @@ class AdultReplayPreaccessTest(unittest.TestCase):
 
     def test_running_s3_unit_requires_exact_script_argv_scope_and_pgid(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             script = root / "run_adult_replay_v3.py"
             script.write_text("# synthetic script path\n")
             report = root / ".private" / "s4_report.json"
@@ -60,7 +60,8 @@ class AdultReplayPreaccessTest(unittest.TestCase):
                     "--private-report", str(report)]
             unit_spec = {
                 "unit_id": unit_id, "kind": "B_SCREEN", "arm": "B-TASK",
-                "seed": 0, "data_access": "S4_B_ATT_INNER_ROLE_ONLY_REPLAY",
+                "seed": 0,
+                "data_access": "S4_B_FIT_TASK_ATT_INNER_ROLE_ONLY_REPLAY",
             }
             state = {"gate": {"safe_inputs": True,
                               "occupancy_confirmed": True,
