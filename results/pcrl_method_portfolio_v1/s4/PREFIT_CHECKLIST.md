@@ -1,0 +1,44 @@
+# S4 independent prefit seal checklist — 2026-10-08
+
+This is a static gate. A checked item permits only the specified development fit. It is not an independent Adult endpoint, fitted-reader, deployment, finalist or confirmation replay.
+
+## Effective seal and data custody
+
+- [ ] S1 commits one complete effective `CAMPAIGN_LOCK.json` locally, records its full Git commit and file SHA, verifies the local seal receipt, and identifies pending remote push separately. Every scientific runner and preprocessing adapter checks that same seal before reading role values; a mutable JSON status flag alone is insufficient.
+- [x] S2's admitted role-only export has an S4 identity/schema PASS and exact 26-file same-source replay PASS. The two mechanical mixed-source deserializations are disclosed. Scientific workers read only the admitted role-specific files through `SafeRoleStore`.
+- [ ] S1 binds exact source, U0/Ucal, hcal bank, role-file, calibrator, architecture, package, code, sampler and view-builder hashes. A score-bank processing output requires its own S4 cell/token/bank replay after its queued run.
+- [ ] S3 rechecks live occupancy, available memory/disk, numerical thread limits, two-slot global semaphore, exact unit ledger and remaining CPU-hour/elapsed budget immediately before admission.
+
+## Shared evaluation and inference
+
+- [ ] The exact S2 attack evaluator, endpoint, inference, controls and saved-array schema bytes are in the lock; queued synthetic tests and role-size smoke pass at those hashes. Every attack view is independently checked against the actual transmitted local and coalition release fields, including code IDs, raw selected values, flags, fallbacks, calibrated outputs and public constants.
+- [ ] The ATTACK_FIT_NEW group train/tune split, fixed reader applicability and seed, positive/reverse zero-fit aliases, validation winner, INNER max envelope and pair ignore-recipient aliases are frozen. No INNER label enters fitting or orientation. Raw-only readers are required for Team C's disclosed raw values.
+- [ ] Every candidate/control/draw has ordered private saved release, complete ATT/INNER view, model artifact, frozen reader prediction and SHA receipts. S2's 12 utility plus three-per-control margin family and S4's independent NumPy-only scorer use identical registered names/order; primary A inference uses draw0 only, with eight actual draws descriptive.
+- [ ] Null, group-shuffle and planted-leak controls pass. A failure blocks the affected result. S4 later independently reloads fitted readers and public release parameters and replays predictions/endpoints without importing candidate or S2 scoring/selection code.
+
+## Arms, controls and claims
+
+- [ ] S1 binds active arm IDs, all planned/aliased/skipped/failed units, two paired seeds, exact architecture/input/feature-or-bank capacity, calibrator rule, source sequential implementations, per-family fit/attack budget and strongest-control eligibility independently of candidate outcomes. A missing required matched control makes the competitive clause incomplete.
+- [ ] Team A releases actual sampled code/bank probability/decision; task-only workers get only one task's data; final sequential outputs both pass class and mean-utility replay; deterministic greedy flat-face strengthening is frozen and tested. Its bounded heuristic cannot prove deterministic optimality or randomness necessity.
+- [ ] Team B scored saved releases preserve float64 S2-calibrated probabilities exactly; raw CAL adapters cannot become deployable saved releases; actual stochastic/private sampling, public logits/latent/output and both sequential orders are replayable.
+- [ ] Team C preserves the failed XOR premise and runs only seven C-SIMPLE grouped-mask/retraining baselines. A true task-only control needs a task-only split/scorecard independent of SEX, or must be marked incomplete. Raw-only views contain exactly transmitted selected values. Encoded and union capacity mismatch limits competitive attribution; no joint-design claim survives the failed premise.
+- [ ] Team D saved hard IDs, decoded vectors, protected-head probabilities and metadata match its public codebook/head/calibrator; complete code/pair-ID and defense-aware attacks, task-only code controls and both sequential orders are present. The hard-ID sketch is an optimization heuristic, not a privacy guarantee.
+- [ ] Before any promotion, report each seed, task, reference, recipient and coalition; selection uses only the frozen within-track rule. A point-feasible or wide interval is not a passed clause. No development interval is described as independent confirmation.
+
+## Current S4 verdict
+
+At this checklist's creation, the campaign lock remains an ineffective blocking draft. The admitted role export and S4 synthetic endpoint test are verified, but no Adult method fit or finalist has been independently replayed. S4 will issue a dated seal verdict after the exact final hashes, queued receipts, control table and resource timing are available.
+
+## B-only staged admission addendum (prefit proposal)
+
+A first B screen may be admitted under one complete four-family science lock only with a **B_ONLY** scope. This admits a specific set of jobs, not a full four-family scientific comparison or promotion.
+
+- [ ] The effective committed lock freezes all four family specs, source/model hashes, admitted roles, reference identities, both-reference utility caps, local/pair attack endpoints, two paired screen seeds, bootstrap and selection rules, control eligibility, full unit table and shared budget. Its `fit_admission` is exactly `B_ONLY`; `admitted_arms.B` is the eight frozen B IDs (`B-JVIB`, `B-DVIB`, `B-TASK`, `B-RAW-TASK`, `B-LOCAL`, `B-SEQ12`, `B-SEQ21`, `B-RAWJ`); B is `ALLOWED`, A/C/D are `DENIED`. No prefit B outcome may silently revise another family or the shared comparator rule.
+- [ ] S3's queue checks exact B family, arm ID, seed, stage, unit ID and registered script hash at enqueue and immediately before each real job: only the 16 locked B screen units and 16 paired postrelease probe units may run. Missing fields fail closed. Only exact S2 shared real unit IDs in `admitted_shared_unit_ids` may run under B_ONLY, initially `S2-FEATURE-REF-RAW83-U-S0` and `S2-FEATURE-REF-RAW83-U-S1`, with matching seed; later shared probes need prelocked exact IDs. `lock_pushed` cannot bypass the current local seal or B scope. B's worker checks the same lock, source, admitted data and queue receipt.
+- [ ] S4's `S4_PREFIT_SEAL_REVIEW.json` has `status: PASS` solely for the queue's legacy parser, an explicit `fit_admission: B_ONLY`, exact lock commit/file SHA, complete admitted B/shared ID lists, source/test hashes and remaining limitations. `LOCAL_SEAL_RECEIPT.json` repeats B_ONLY and the review SHA. S3 verifies both scopes and IDs; a generic PASS is insufficient.
+- [ ] B scored ReleaseAdapter and SavedRelease preserve every top-level wire field or fail closed on extras, preserve metadata, and replay float64 S2-calibrated probabilities/decisions from public sampled z and head. B task-only workers cannot read FIT SEX; protected workers use only FIT SEX; ATT/INNER features and labels are opened after fitted model/calibrator custody. Both sequential orders replay their frozen first-purpose draws.
+- [ ] S3 synthetic B suite, saved-release planted-field negative test, private ATTEMPT_INDEX test, and queued synthetic null/shuffle/planted plumbing smoke pass at exact registered hashes. The fixed ATT group split has both SEX classes in fit and tune. Real role null/shuffle/planted probes run after release and before any scientific B endpoint is accepted.
+- [ ] FEATURE_REF_RAW83_U is the fixed local-cap anchor and gets its own exact two queued shared units (six trained readers on each of three views per seed), private models/predictions and S4 source U0/Ucal/raw83 parity. It is not a capacity-matched B competitor. All eight B arms and the anchor must complete their required fresh reader slate, raw/DA applicability, pair ignore-recipient aliases, calibration, forwards and complete saved views. A missing anchor or matched control makes competitive interpretation incomplete even if B training finishes.
+- [ ] S3 verifies live external occupancy, two total heavy slots, disk/memory floor, exact 20 CPU-hour and 10 elapsed-hour remainder and a conservative B plus shared-unit forecast. B screen status cannot trigger promotion until A/C/D admission or documented no-go/ceiling dispositions. Later A/C/D admissions require dated committed amendments, verified pushes where available or documented local-seal fallback, preserved B exposure and a new S4 scope review.
+
+S4 will call this a **static B-only prefit pass** only after checking those artifacts. It will not certify Adult utility, privacy, fitted-reader, deployment or finalist results before independent replay.
