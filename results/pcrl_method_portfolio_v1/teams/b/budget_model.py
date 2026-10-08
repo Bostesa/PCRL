@@ -25,6 +25,7 @@ def required_smoke_keys(steps_per_encoder: int) -> tuple[str, ...]:
         + [f"attack:{view}:{model}" for view in VIEWS for model in ATTACK_MODELS]
         + [f"calibrate:{purpose}" for purpose in ("income", "occupation")]
         + [f"forward:{role}" for role in ROLES]
+        + ["forward:CALIBRATION_HELDOUT_REPLAY"]
         + ["forward:OSF_DEFENSE_FIT_FIRST_STAGE"]
         + ["control:constant_reader", "control:shuffled_attacker", "control:planted_attacker"]
     )
@@ -61,7 +62,8 @@ def estimate(smoke: dict, *, steps_per_encoder: int, finalist: bool) -> dict:
     defense_cpu_s = seed_count * training_one_seed
     attack_cpu_s = seed_count * release_arm_count * attacks_one_arm_seed
     calibration_cpu_s = seed_count * release_arm_count * calibration_one_arm_seed
-    forward_cpu_s = (seed_count * release_arm_count * forwards_one_arm_seed
+    forward_cpu_s = (seed_count * release_arm_count *
+                     (forwards_one_arm_seed + smoke["forward:CALIBRATION_HELDOUT_REPLAY"])
                      + seed_count * 2 * smoke["forward:OSF_DEFENSE_FIT_FIRST_STAGE"])
     total_cpu_s = sum((defense_cpu_s, attack_cpu_s, calibration_cpu_s, forward_cpu_s, control_cpu_s))
     return {

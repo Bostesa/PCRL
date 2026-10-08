@@ -9,11 +9,24 @@ import pytest
 
 from bottleneck import model_fingerprint
 from control_artifacts import critic_fingerprint
+import control_pipeline
 from control_pipeline import FitAdmissionSeal, fit_arm
 from test_control_artifacts import fixtures
+from train_bottleneck import FitData
 
 
-def admitted(data, tmp_path):
+def task_only_data(data):
+    return FitData(
+        x=data.x, feature_names=data.feature_names,
+        permitted_feature_names=data.feature_names,
+        expected_schema_sha256=data.feature_schema_sha256,
+        labels=data.labels, teacher_probabilities=data.teacher_probabilities,
+        sex=None, row_ids=data.row_ids, group_ids=data.group_ids,
+        teacher_identity=data.teacher_identity,
+    )
+
+
+def admitted(data, tmp_path, *, include_sex=True):
     rows = np.asarray(data.row_ids, dtype=np.int64)
     groups = np.asarray(data.group_ids, dtype=np.int64)
     row_hash = FitAdmissionSeal._sha_arr(np.sort(rows))
@@ -22,7 +35,10 @@ def admitted(data, tmp_path):
     root = tmp_path / "admission"
     root.mkdir(exist_ok=True)
     specs = {}
-    for field in ("features", "income", "occupation", "sex", "references_s0"):
+    fields = (["features", "income", "occupation", "sex", "references_s0"]
+              if include_sex else
+              ["features", "income", "occupation", "references_s0"])
+    for field in fields:
         path = root / f"{field}.npz"
         path.write_bytes(f"synthetic admitted {field}".encode())
         specs[f"OSF_DEFENSE_FIT:{field}"] = {
@@ -71,11 +87,14 @@ def admitted(data, tmp_path):
 ])
 def test_registered_arm_completes_with_private_provenance(tmp_path, arm, stage_count):
     base, critics, data, hyper = fixtures()
+    task_only = arm in ("B-TASK", "B-RAW-TASK")
+    if task_only:
+        data = task_only_data(data)
     root = tmp_path / ".private" / arm
     result = fit_arm(
         arm, 0, data=data, base_model=base, base_critics=critics,
         hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
-        admitted_fit=admitted(data, tmp_path),
+        admitted_fit=admitted(data, tmp_path, include_sex=not task_only),
         private_attempt_dir=root,
         expected_base_model_sha256=model_fingerprint(base),
         expected_base_critics_sha256=critic_fingerprint(critics),
@@ -96,12 +115,13 @@ def test_registered_arm_completes_with_private_provenance(tmp_path, arm, stage_c
 
 def test_wrong_common_seed_identity_refuses_before_creating_attempt(tmp_path):
     base, critics, data, hyper = fixtures()
+    data = task_only_data(data)
     root = tmp_path / ".private" / "bad"
     with pytest.raises(ValueError, match="common per-seed"):
         fit_arm(
             "B-TASK", 0, data=data, base_model=base, base_critics=critics,
             hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
-            admitted_fit=admitted(data, tmp_path),
+            admitted_fit=admitted(data, tmp_path, include_sex=False),
             private_attempt_dir=root,
             expected_base_model_sha256="0" * 64,
             expected_base_critics_sha256=critic_fingerprint(critics),
@@ -110,8 +130,9 @@ def test_wrong_common_seed_identity_refuses_before_creating_attempt(tmp_path):
 
 def test_wrong_fit_membership_refuses_before_creating_attempt(tmp_path):
     base, critics, data, hyper = fixtures()
+    data = task_only_data(data)
     root = tmp_path / ".private" / "wrong-membership"
-    original = admitted(data, tmp_path)
+    original = admitted(data, tmp_path, include_sex=False)
     tampered = FitAdmissionSeal(
         **{**vars(original), "row_order_sha256": "0" * 64}
     )
@@ -124,3 +145,38 @@ def test_wrong_fit_membership_refuses_before_creating_attempt(tmp_path):
             expected_base_critics_sha256=critic_fingerprint(critics),
         )
     assert not root.exists()
+
+
+@pytest.mark.parametrize("arm", ["B-TASK", "B-RAW-TASK"])
+def test_task_only_arm_never_hashes_sex_file(tmp_path, monkeypatch, arm):
+    base, critics, full_data, hyper = fixtures()
+    data = task_only_data(full_data)
+    seal = admitted(data, tmp_path, include_sex=True)
+    original_hash = control_pipeline.file_sha256
+
+    def refuse_sex(path):
+        if str(path).endswith("sex.npz"):
+            raise AssertionError("Task-only arm read the SEX role-only file")
+        return original_hash(path)
+
+    monkeypatch.setattr(control_pipeline, "file_sha256", refuse_sex)
+    fit_arm(
+        arm, 0, data=data, base_model=base, base_critics=critics,
+        hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
+        admitted_fit=seal, private_attempt_dir=tmp_path / ".private" / arm,
+        expected_base_model_sha256=model_fingerprint(base),
+        expected_base_critics_sha256=critic_fingerprint(critics),
+    )
+
+
+def test_task_only_arm_rejects_sex_materialized_by_caller(tmp_path):
+    base, critics, data, hyper = fixtures()
+    with pytest.raises(ValueError, match="SEX fitting access"):
+        fit_arm(
+            "B-TASK", 0, data=data, base_model=base, base_critics=critics,
+            hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
+            admitted_fit=admitted(data, tmp_path),
+            private_attempt_dir=tmp_path / ".private" / "wrong-sex",
+            expected_base_model_sha256=model_fingerprint(base),
+            expected_base_critics_sha256=critic_fingerprint(critics),
+        )

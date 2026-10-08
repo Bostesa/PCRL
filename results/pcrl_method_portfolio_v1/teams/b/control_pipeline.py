@@ -74,7 +74,8 @@ class FitAdmissionSeal:
         digest.update(arr.tobytes())
         return digest.hexdigest()
 
-    def check(self, data: FitData, *, source_id: str, role_id: str, seed: int) -> None:
+    def check(self, data: FitData, *, source_id: str, role_id: str, seed: int,
+              need_sex: bool) -> None:
         if self.source_id != source_id or self.role_id != role_id:
             raise ValueError("Fitting source or role differs from S2 admission seal")
         if self.reference_seed != seed or seed not in (0, 1, 2):
@@ -124,7 +125,9 @@ class FitAdmissionSeal:
         if names_hash != manifest["source"]["feature_names_sha256_newline_join"]:
             raise ValueError("Feature-name identity differs from S2 admission")
         specs = manifest["real_file_specs"]
-        required = ("features", "income", "occupation", "sex", f"references_s{seed}")
+        required = (("features", "income", "occupation", "sex", f"references_s{seed}")
+                    if need_sex else
+                    ("features", "income", "occupation", f"references_s{seed}"))
         for field in required:
             spec = specs[f"{self.role_id}:{field}"]
             declared = Path(spec["path"])
@@ -203,7 +206,11 @@ def fit_arm(arm: str, seed: int, *, data: FitData,
         raise ValueError("Unknown Team B arm")
     if role_id != "OSF_DEFENSE_FIT" or not source_id:
         raise ValueError("An admitted defense-fitting role identity is required")
-    admitted_fit.check(data, source_id=source_id, role_id=role_id, seed=seed)
+    need_sex = arm not in ("B-TASK", "B-RAW-TASK")
+    if (need_sex and data.sex is None) or (not need_sex and data.sex is not None):
+        raise ValueError("SEX fitting access differs from arm's locked task-only/privacy objective")
+    admitted_fit.check(data, source_id=source_id, role_id=role_id, seed=seed,
+                       need_sex=need_sex)
     if (base_model.feature_names != data.feature_names
             or schema_fingerprint(base_model.feature_names) != data.feature_schema_sha256):
         raise ValueError("Base model does not match S2's ordered permitted feature schema")

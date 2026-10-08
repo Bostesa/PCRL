@@ -18,6 +18,6 @@ def test_known_unit_times_scale_to_exact_screen_counts():
     assert result["defense_cpu_s"] == 22
     assert result["attack_cpu_s"] == 192
     assert result["calibration_cpu_s"] == 32
-    assert result["forward_cpu_s"] == 52
+    assert result["forward_cpu_s"] == 68
     assert result["control_cpu_s"] == 54
-    assert result["total_cpu_s"] == 352
+    assert result["total_cpu_s"] == 368

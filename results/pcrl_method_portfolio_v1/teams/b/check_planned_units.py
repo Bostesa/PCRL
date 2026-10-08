@@ -40,6 +40,8 @@ def check() -> None:
             raise AssertionError(f"{section}: encoder optimizer updates differ")
         if actual["critic_optimizer_updates"] != expected["critic_optimizer_updates_if_T600"]:
             raise AssertionError(f"{section}: critic optimizer updates differ")
+        if expected["calibration_replay_paired_forward_passes"] != len(seeds) * len(ARMS):
+            raise AssertionError(f"{section}: full CAL replay forward count differs")
     one = suite_unit_counts((0,), t)
     for actual_name, expected_name in (
         ("training_process_jobs", "training_process_jobs"),
@@ -52,6 +54,8 @@ def check() -> None:
     ):
         if one[actual_name] != planned["per_seed"][expected_name]:
             raise AssertionError(f"per_seed: {actual_name} differs")
+    if planned["per_seed"]["calibration_replay_paired_forward_passes"] != len(ARMS):
+        raise AssertionError("per_seed: full CAL replay forward count differs")
 
 
 if __name__ == "__main__":
