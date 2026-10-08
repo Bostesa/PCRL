@@ -11,7 +11,7 @@ The finite-channel implementation is finite_channel.py. It reads no files or Adu
 
 ## Commands and outcomes
 
-1. Red TDD check: /Users/nathansamson/PCRL/.venv/bin/python -m pytest -q results/pcrl_method_portfolio_v1/teams/a/test_finite_channel.py in the Team A worktree. Eight tests failed on deliberate NotImplementedError stubs; no candidate algorithm or numerical solver ran. This preceded the global queue-closure notice and is an unqueued engineering check.
+1. Red TDD check: ../../.venv/bin/python -m pytest -q results/pcrl_method_portfolio_v1/teams/a/test_finite_channel.py from the Team A worktree root. Eight tests failed on deliberate NotImplementedError stubs; no candidate algorithm or numerical solver ran. This preceded the global queue-closure notice and is an unqueued engineering check.
 2. Static syntax check: python3 with ast.parse on the implementation and all three test files. All four parsed.
 3. Green and supplementary synthetic tests: **queued/pending** while S3's global numerical queue is closed. No green result is claimed.
 
