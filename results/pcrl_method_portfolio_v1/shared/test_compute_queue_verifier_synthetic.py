@@ -15,7 +15,9 @@ S4 = REPO / "results/pcrl_method_portfolio_v1/s4"
 VENV = REPO.parent.parent / ".venv/bin/python"
 INDEX_NAMES = ("S4_VERIFIER_QUEUE_INDEX_V3.json", "S4_VERIFIER_QUEUE_INDEX_V5.json",
                "S4_VERIFIER_QUEUE_INDEX_V6.json", "S4_VERIFIER_QUEUE_INDEX_V7.json",
-               "S4_VERIFIER_QUEUE_INDEX_V8.json", "S4_VERIFIER_QUEUE_INDEX_V9.json")
+               "S4_VERIFIER_QUEUE_INDEX_V10.json")
+HISTORICAL_SHARED_TEST_INDEXES = ("S4_VERIFIER_QUEUE_INDEX_V8.json",
+                                  "S4_VERIFIER_QUEUE_INDEX_V9.json")
 
 
 def sha(path: Path) -> str:
@@ -69,6 +71,13 @@ class VerifierSyntheticAdmissionTests(unittest.TestCase):
                 altered = dict(spec, **change)
                 with self.assertRaises((ValueError, KeyError)):
                     Queue(Path(self.temp.name) / f"negative-{len(str(change))}").enqueue(altered)
+
+    def test_historical_shared_test_bytes_are_no_longer_current(self):
+        for name in HISTORICAL_SHARED_TEST_INDEXES:
+            with self.subTest(index=name):
+                spec = registered_spec(name)
+                self.assertEqual(Queue._verifier_synthetic_reason(spec),
+                                 "verifier_test_changed")
 
     def test_green_source_map_is_exact(self):
         spec = registered_spec(INDEX_NAMES[2])
