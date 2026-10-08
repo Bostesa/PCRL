@@ -1,6 +1,6 @@
 # Team B rate and frozen-law premises
 
-**Scope:** prefit mathematics for the declared ideal sampler and S1's frozen five finite laws. This is not a fitted-model result, a SEX-AUC guarantee, or a theorem about a particular saved batch. S1's `shared/SYNTHETIC_LAWS.json` is frozen at SHA-256 `b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53`. The exact enumeration checker is separately frozen at SHA-256 `43de24d94b9da09e62f417e1a3506075a1d79459bd0bc087406df51d7f7fee93`; it must run only after S3 admission.
+**Scope:** prefit mathematics for the declared ideal sampler and S1's frozen five finite laws. This is not a fitted-model result, a SEX-AUC guarantee, or a theorem about a particular saved batch. S1's `shared/SYNTHETIC_LAWS.json` is frozen at SHA-256 `b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53`. The exact enumeration checker is separately frozen at SHA-256 `43de24d94b9da09e62f417e1a3506075a1d79459bd0bc087406df51d7f7fee93`. S3 admitted and ran that checker as `B-FROZEN-LAWS-009`; it exited 0. This verifies the analytic law definitions, not the neural optimizer or an Adult outcome.
 
 ## What the Gaussian KL actually bounds
 

@@ -24,7 +24,7 @@
 
 The coefficients are a single scale-based design choice, not a tuned grid. A typical fitted KL of order 10 nats would contribute roughly 0.01 to the objective at `beta=0.001`; that is only a heuristic for the choice, not an observed Adult quantity or a guarantee. Actual KL values, task losses and critic losses must be reported. The common accuracy/NLL/Brier gates remain separate held-out development measurements against both U0 and Ucal.
 
-S2's planned isolated exporter provides `U0_1`, `U0_2`, `Ucal_1`, `Ucal_2` for each allowed role after source hashes and exact row membership are verified. The trainer may read only the admitted defense-fit reference file. If Ucal fitting-row scores fail identity checks, the B fit is blocked until a prefit amendment selects a valid teacher; it must not silently substitute U0 or an all-role archive.
+S2's planned isolated exporter provides `U0_1`, `U0_2`, `Ucal_1`, `Ucal_2` for each allowed role after source hashes and exact row membership are verified. The trainer may read only the admitted defense-fit reference file. Its input contract must bind the **ordered feature names**, S2's exact permitted-schema hash, role ID, row and group order, and teacher identity to the fit and checkpoint. A matrix with 83 columns but a different ordering or a task/SEX column in place of a permitted predictor must be refused before an optimizer step. If Ucal fitting-row scores fail identity checks, the B fit is blocked until a prefit amendment selects a valid teacher; it must not silently substitute U0 or an all-role archive.
 
 ## Update schedule and matching
 
