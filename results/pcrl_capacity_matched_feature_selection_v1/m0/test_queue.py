@@ -114,6 +114,9 @@ class FocusedQueueTests(unittest.TestCase):
         manifest_path = study / "m1" / "DATA_ACCESS_MANIFEST.json"
         manifest_path.write_text(json.dumps(manifest))
         manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        protocol_path = study / "COMMON_PROTOCOL.md"
+        protocol_path.write_text("fixed synthetic protocol\n")
+        protocol_sha = hashlib.sha256(protocol_path.read_bytes()).hexdigest()
         spec = self.spec("real")
         spec.update(script=str(script), script_sha256=hashlib.sha256(script.read_bytes()).hexdigest(),
                     argv=[sys.executable, str(script)], cwd=str(repo), outputs=[str(output)],
@@ -132,6 +135,8 @@ class FocusedQueueTests(unittest.TestCase):
             "private_unit_registry_sha256": registry_sha,
             "source_map_sha256": manifest_sha,
             "governed_source_sha256_by_path": {"worker.py": spec["script_sha256"]},
+            "governed_protocol_sha256_by_relative_path": {
+                "COMMON_PROTOCOL.md": protocol_sha},
             "prior_package_relative_to_worktree": "prior",
             "allowed_roles": ["OSF_DEFENSE_FIT"]}))
         lock_sha = hashlib.sha256(lock.read_bytes()).hexdigest()
@@ -157,6 +162,8 @@ class FocusedQueueTests(unittest.TestCase):
         queue.enqueue(spec)
         self.assertEqual(queue.run_once()["status"], "DONE")
         self.assertEqual(output.read_text(), "ok")
+        protocol_path.write_text("mutated after real unit\n")
+        self.assertFalse(FocusedQueue._seal_ok(seal, seal_sha))
 
     def test_derived_only_real_stage_needs_no_role_file(self) -> None:
         study = self.base / "repo" / "results" / "study"

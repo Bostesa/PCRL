@@ -159,6 +159,11 @@ class FocusedQueue:
                 source = (repo / relative).resolve(strict=True)
                 if not source.is_relative_to(repo) or sha256(source) != expected:
                     return False
+            for relative, expected in lock.get(
+                    "governed_protocol_sha256_by_relative_path", {}).items():
+                document = (study / relative).resolve(strict=True)
+                if not document.is_relative_to(study) or sha256(document) != expected:
+                    return False
             relative = lock_path.relative_to(repo)
             shown = subprocess.run(["git", "-C", str(repo), "show",
                                     f"{commit}:{relative}"],
