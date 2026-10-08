@@ -1,51 +1,486 @@
 {
-  "schema": "pcrl-method-portfolio-data-access-v1",
-  "status": "BLOCKED_NO_VERIFIED_ROLE_ONLY_X_LABEL_EXPORTS",
-  "source": {
-    "hcal_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
-    "hcal_evidence": "159537dcb61d030c870ae42e7addff4796651723",
-    "role_manifest": "results/pcrl_heldout_calibration_v1/ROLE_MANIFEST.json",
-    "columns": 83,
-    "feature_names_sha256_newline_join": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
-    "assessment_person_level_access": "forbidden",
-    "head_validation_label_access": "forbidden"
-  },
-  "inherited_loader_audit": {
-    "path": "ccm.data._source -> hcal.data.load -> lra.data.load -> qpc.data.load -> dpc.data.load -> osf.data.load",
-    "finding": "osf.data.load reads z[k][keep].copy() for sex, race, y_income and y_occupation_group with assessment in keep, then masks assessment values; later returned-object guards cannot prevent the transient read",
-    "synthetic_sentinel_result": "TRANSIENT_FORBIDDEN_READ_CONFIRMED: all four label entries requested with assessment index before returned values were masked",
-    "scientific_use_inference": "none: transient read is a custody deviation, not evidence that CCM used assessment labels for geometry or fit",
-    "portfolio_rule": "never call this loader chain, ccm.data.load/reference, or all-row teacher parity paths"
-  },
-  "role_hash_convention": "sha256 of dtype + shape + C-order bytes on sorted int64 row IDs and unique int64 group IDs, as in hcal.data.sha_arr",
-  "roles": {
-    "OSF_DEFENSE_FIT": {"rows": 15434, "groups": 15428, "row_id_sha256": "2fa6d03e663ee2816fe5616cc1a2b92e7b9c101d19efa908383f238f92b40329", "group_id_sha256": "27627c99a3ef66fb45ad3a83900c352fb06a1cd69f0cdcc36a871c7c174947cc"},
-    "CALIBRATION_HELDOUT": {"rows": 2000, "groups": 2000, "row_id_sha256": "a8580d855cd1c6a80146fe240b8decd61f5a96e7878e2c71949e3245e021553b", "group_id_sha256": "b25b1a9a652853c23e1451e2edffeb8d943c873750a50cba1b3724ed3db2cc09"},
-    "ATTACK_FIT_NEW": {"rows": 4064, "groups": 4061, "row_id_sha256": "22a36fc44e0932eb497644533345215bdaf0be0cc206bbcff38fcc028495acb8", "group_id_sha256": "f2eb454261a4e3dd7a9f6bbb0f0265304dd35b5c32351993e6a69e6c3132f65a"},
-    "INNER_SELECTION": {"rows": 2235, "groups": 2234, "row_id_sha256": "f533da6a43f773d1d749da536bf70b387623c2b0f7a8aac6c98b96404dcb9598", "group_id_sha256": "388125bd7312d515151068303b4c6be799d3e59a562f205e5e53507eb643df6b"}
-  },
-  "label_allowlist": {
-    "defense_fit": {"OSF_DEFENSE_FIT": ["income", "occupation", "sex"]},
-    "calibration": {"CALIBRATION_HELDOUT": ["income", "occupation"]},
-    "attack": {"ATTACK_FIT_NEW": ["sex"]},
-    "screen": {"INNER_SELECTION": ["income", "occupation", "sex"]}
-  },
-  "real_file_specs": {},
-  "real_file_admission_rule": "S2 must verify an already existing role-specific private export contains only the declared role/label and exact rows; S1 must bind its path and hashes in a pushed campaign lock before any real fit. Do not open the all-role source to create an export.",
-  "safe_existing_scores_only": {
-    "path_pattern": "<PRIVATE_CACHE>/ccm_v1/ref/ref__s{k}.npz",
-    "seeds": [0, 1, 2],
-    "rows_per_seed": 23733,
-    "roles": ["OSF_DEFENSE_FIT", "CALIBRATION_HELDOUT", "ATTACK_FIT_NEW", "INNER_SELECTION"],
-    "content": "U0/Ucal score vectors, decisions, row IDs and positions; no X or task/SEX labels per CCM receipt",
-    "restriction": "existing historical cache may support score engineering after independent hash check; do not call CCM recomputation/parity code"
+  "access_test_gate": "shared/safe_data_guard.py plus shared/test_safe_data_guard.py must pass against sentinel-only fixtures before any admitted file is added",
+  "custodian_export": {
+    "determinism_scope": "fixed-byte synthetic test passed; S3 role-only 25/25 byte reserialization passed without mixed source; two S3 queued executions of the identical reviewed exporter produced 25/25 identical NPZs and identical private receipt, independently compared 26/26 by S4",
+    "exporter_sha256": "75a945486f510d5280897da219038ea75c7b0d045185454d837583b33fac0d69",
+    "file_count": 25,
+    "mechanical_transient_deserialization": "On each of two queued mechanical exporter executions, source X and selected label members deserialized full arrays before direct positional selection; no excluded values were inspected, computed on, logged or exported; race member was never requested. These are two transient source-value reads, not zero.",
+    "numeric_admission_sha256": "fa49b4fd1cc72b497fc7f0268d1748bd6bb8da623a46575a0b71d75247591c55",
+    "private_receipt": "shared/.private/role_export_v1/EXPORT_RECEIPT.json",
+    "role_manifest_sha256": "0994e84d426f2de87f7fe3ad2b70b49b19504bfd209419d308c17337f57f36f0",
+    "s3_queue_unit": "S2-SAFE-ROLE-EXPORT-V1",
+    "s3_replay_queue_unit": "S2-SAFE-ROLE-EXPORT-REPLAY-V1",
+    "s3_role_only_byte_replay_queue_unit": "S2-ROLE-ONLY-BYTE-REPLAY-V1",
+    "s4_full_replay_compare_unit": "S4-INDEPENDENT-EXPORT-REPLAY-COMPARE-V1",
+    "s4_full_replay_compare_report_sha256": "314fd7dd86ee815d084abf95581f8c6d7711e58110c188e32e09408c6f5dd8e0",
+    "s4_audit_unit": "S4-INDEPENDENT-ROLE-AUDIT-V1",
+    "s4_report_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9",
+    "source_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12",
+    "status": "S4_INDEPENDENT_ROLE_AUDIT_PASS"
   },
   "forbidden_sources": [
-    "<PRIVATE_CACHE>/jcv_v1/inputs/adult_jcv.npz (all-role)",
+    "private_cache/jcv_v1/inputs/adult_jcv.npz (mixed-role; custodian exporter exception only; scientific use forbidden)",
     "all-row admitted teacher.npz and release/prediction arrays",
     "old assessment person-level arrays, labels and predictions",
     "HEAD_VALIDATION labels"
   ],
-  "access_test_gate": "shared/safe_data_guard.py plus shared/test_safe_data_guard.py must pass against sentinel-only fixtures before any admitted file is added",
-  "remote_status": "GitHub DNS unavailable at audit; local remote-tracking pins are not fresh remote verification"
+  "inherited_loader_audit": {
+    "finding": "osf.data.load reads z[k][keep].copy() for sex, race, y_income and y_occupation_group with assessment in keep, then masks assessment values; later returned-object guards cannot prevent the transient read",
+    "path": "ccm.data._source -> hcal.data.load -> lra.data.load -> qpc.data.load -> dpc.data.load -> osf.data.load",
+    "portfolio_rule": "never call this loader chain, ccm.data.load/reference, or all-row teacher parity paths",
+    "scientific_use_inference": "none: transient read is a custody deviation, not evidence that CCM used assessment labels for geometry or fit",
+    "synthetic_sentinel_result": "TRANSIENT_FORBIDDEN_READ_CONFIRMED: all four label entries requested with assessment index before returned values were masked"
+  },
+  "label_allowlist": {
+    "attack": {
+      "ATTACK_FIT_NEW": [
+        "sex"
+      ]
+    },
+    "calibration": {
+      "CALIBRATION_HELDOUT": [
+        "income",
+        "occupation"
+      ]
+    },
+    "defense_fit": {
+      "OSF_DEFENSE_FIT": [
+        "income",
+        "occupation",
+        "sex"
+      ]
+    },
+    "screen": {
+      "INNER_SELECTION": [
+        "income",
+        "occupation",
+        "sex"
+      ]
+    }
+  },
+  "real_file_admission_rule": "Continuation permits one isolated mechanical custodian export from the pinned mixed-role source. Files become science-admitted only after S4 independent membership/schema audit and S1 effective local seal; scientific workers use SafeRoleStore only.",
+  "real_file_specs": {
+    "ATTACK_FIT_NEW:features": {
+      "field": "features",
+      "members": [
+        "X",
+        "feature_names",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/ATTACK_FIT_NEW/features.npz",
+      "role": "ATTACK_FIT_NEW",
+      "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+      "sha256": "5e25c922d811ebdc83e6f04c11e0bd706616f3e066f49c6fed926817bf4d2f97"
+    },
+    "ATTACK_FIT_NEW:references_s0": {
+      "field": "references_s0",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/ATTACK_FIT_NEW/references_s0.npz",
+      "role": "ATTACK_FIT_NEW",
+      "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+      "sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262"
+    },
+    "ATTACK_FIT_NEW:references_s1": {
+      "field": "references_s1",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/ATTACK_FIT_NEW/references_s1.npz",
+      "role": "ATTACK_FIT_NEW",
+      "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+      "sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b"
+    },
+    "ATTACK_FIT_NEW:references_s2": {
+      "field": "references_s2",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/ATTACK_FIT_NEW/references_s2.npz",
+      "role": "ATTACK_FIT_NEW",
+      "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+      "sha256": "bbc20206a2209ffec37f226defe88aa3e8051e4194077c735f2af527209ff1d4"
+    },
+    "ATTACK_FIT_NEW:sex": {
+      "field": "sex",
+      "members": [
+        "row_id",
+        "sex",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/ATTACK_FIT_NEW/sex.npz",
+      "role": "ATTACK_FIT_NEW",
+      "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+      "sha256": "9c150865ab9dc5bd916c029f3b16aad6115485c2a4e2d98f302f5429d81fa8b8"
+    },
+    "CALIBRATION_HELDOUT:features": {
+      "field": "features",
+      "members": [
+        "X",
+        "feature_names",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/features.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "4328442ed3b78050a8356268c28d04b66b45fdc2735ec4c7bf025cbe8f6407e7"
+    },
+    "CALIBRATION_HELDOUT:income": {
+      "field": "income",
+      "members": [
+        "income",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/income.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "ccd47a7c9f104f75798946d4bdb570cdf1e7d9bf81319df364c6b2efd1896c9b"
+    },
+    "CALIBRATION_HELDOUT:occupation": {
+      "field": "occupation",
+      "members": [
+        "occupation",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/occupation.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "cd96f09568f3e151c71812879499875d2ea61463909c663509f096f0f2795d21"
+    },
+    "CALIBRATION_HELDOUT:references_s0": {
+      "field": "references_s0",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/references_s0.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "c4b9b05301641d9061ae50188f1a22a7cf0782c922d0908a5ffef19eda502974"
+    },
+    "CALIBRATION_HELDOUT:references_s1": {
+      "field": "references_s1",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/references_s1.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "e13e9c53f1c7fb9201caf027162c1097214b8f2cef5cf250bbb214bbe0b1980b"
+    },
+    "CALIBRATION_HELDOUT:references_s2": {
+      "field": "references_s2",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/CALIBRATION_HELDOUT/references_s2.npz",
+      "role": "CALIBRATION_HELDOUT",
+      "row_unit_pair_sha256": "2480c48bf3b36d22c3f156d26bc0b7eb34c515484a2d1646f02cbfc786d2485c",
+      "sha256": "67068247b3a98cfeb61e98717475dfa591256c4990bc2373f8a91f9341589f95"
+    },
+    "INNER_SELECTION:features": {
+      "field": "features",
+      "members": [
+        "X",
+        "feature_names",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/features.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "1fd99139fb7f98064c96e45a31f935709627c0e492388ab60eb551a6b4c69375"
+    },
+    "INNER_SELECTION:income": {
+      "field": "income",
+      "members": [
+        "income",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/income.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "7c4d6eb91a20bf4c96c761b181a092672f412bcd7e479012d281ed2edac263f4"
+    },
+    "INNER_SELECTION:occupation": {
+      "field": "occupation",
+      "members": [
+        "occupation",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/occupation.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "b631efaf406e48d4ec67f94736c121c30b1c251a8cd60700f7f4262be5f910b1"
+    },
+    "INNER_SELECTION:references_s0": {
+      "field": "references_s0",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/references_s0.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0"
+    },
+    "INNER_SELECTION:references_s1": {
+      "field": "references_s1",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/references_s1.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c"
+    },
+    "INNER_SELECTION:references_s2": {
+      "field": "references_s2",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/references_s2.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "a13be610ee7232d6446cb6e4ea09c7c8d5b66c578b99871228a8f8cfbd07d09b"
+    },
+    "INNER_SELECTION:sex": {
+      "field": "sex",
+      "members": [
+        "row_id",
+        "sex",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/INNER_SELECTION/sex.npz",
+      "role": "INNER_SELECTION",
+      "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+      "sha256": "ed5f69bc1532ff58ddfc73ba0a1f0037e6443738f8db30240190f2db4d2d933b"
+    },
+    "OSF_DEFENSE_FIT:features": {
+      "field": "features",
+      "members": [
+        "X",
+        "feature_names",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/features.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "c2b6eb1173f60294ffb981ecf26afb1eab9f62ad333f71116fb13f306980090c"
+    },
+    "OSF_DEFENSE_FIT:income": {
+      "field": "income",
+      "members": [
+        "income",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/income.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "c980abb7483c70f4cb0693265eee1c1431948fdd68217260ebf97ce576dbd7d7"
+    },
+    "OSF_DEFENSE_FIT:occupation": {
+      "field": "occupation",
+      "members": [
+        "occupation",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/occupation.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "03c654e212cd5ce0840cc29a170f4b35dc2c0ef7830f97e1ba6f6675a8b85e14"
+    },
+    "OSF_DEFENSE_FIT:references_s0": {
+      "field": "references_s0",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/references_s0.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7"
+    },
+    "OSF_DEFENSE_FIT:references_s1": {
+      "field": "references_s1",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/references_s1.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0"
+    },
+    "OSF_DEFENSE_FIT:references_s2": {
+      "field": "references_s2",
+      "members": [
+        "U0_1",
+        "U0_2",
+        "Ucal_1",
+        "Ucal_2",
+        "d_1",
+        "d_2",
+        "row_id",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/references_s2.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "2e0b7fce7e3a96bd05af179cfd7d4fc5134e17f433a8f7854dc63aa5ae3fb469"
+    },
+    "OSF_DEFENSE_FIT:sex": {
+      "field": "sex",
+      "members": [
+        "row_id",
+        "sex",
+        "unit"
+      ],
+      "path": "shared/.private/role_export_v1/OSF_DEFENSE_FIT/sex.npz",
+      "role": "OSF_DEFENSE_FIT",
+      "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+      "sha256": "220f85b2606d7803001d1cc9dd1f5dc61777d1589c69e8adf81cd5b1303726b9"
+    }
+  },
+  "remote_status": "GitHub DNS unavailable at audit; local remote-tracking pins are not fresh remote verification",
+  "role_hash_convention": "sha256 of dtype + shape + C-order bytes on sorted int64 row IDs and unique int64 group IDs, as in hcal.data.sha_arr",
+  "roles": {
+    "ATTACK_FIT_NEW": {
+      "group_id_sha256": "f2eb454261a4e3dd7a9f6bbb0f0265304dd35b5c32351993e6a69e6c3132f65a",
+      "groups": 4061,
+      "row_id_sha256": "22a36fc44e0932eb497644533345215bdaf0be0cc206bbcff38fcc028495acb8",
+      "rows": 4064
+    },
+    "CALIBRATION_HELDOUT": {
+      "group_id_sha256": "b25b1a9a652853c23e1451e2edffeb8d943c873750a50cba1b3724ed3db2cc09",
+      "groups": 2000,
+      "row_id_sha256": "a8580d855cd1c6a80146fe240b8decd61f5a96e7878e2c71949e3245e021553b",
+      "rows": 2000
+    },
+    "INNER_SELECTION": {
+      "group_id_sha256": "388125bd7312d515151068303b4c6be799d3e59a562f205e5e53507eb643df6b",
+      "groups": 2234,
+      "row_id_sha256": "f533da6a43f773d1d749da536bf70b387623c2b0f7a8aac6c98b96404dcb9598",
+      "rows": 2235
+    },
+    "OSF_DEFENSE_FIT": {
+      "group_id_sha256": "27627c99a3ef66fb45ad3a83900c352fb06a1cd69f0cdcc36a871c7c174947cc",
+      "groups": 15428,
+      "row_id_sha256": "2fa6d03e663ee2816fe5616cc1a2b92e7b9c101d19efa908383f238f92b40329",
+      "rows": 15434
+    }
+  },
+  "safe_existing_scores_only": {
+    "content": "U0/Ucal score vectors, decisions, row IDs and positions; no X or task/SEX labels per CCM receipt",
+    "path_pattern": "<PRIVATE_CACHE>/ccm_v1/ref/ref__s{k}.npz",
+    "restriction": "existing historical cache may support score engineering after independent hash check; do not call CCM recomputation/parity code",
+    "roles": [
+      "OSF_DEFENSE_FIT",
+      "CALIBRATION_HELDOUT",
+      "ATTACK_FIT_NEW",
+      "INNER_SELECTION"
+    ],
+    "rows_per_seed": 23733,
+    "seeds": [
+      0,
+      1,
+      2
+    ]
+  },
+  "schema": "pcrl-method-portfolio-data-access-v1",
+  "science_fit_gate": "S1 effective seal and S3 queue remain required after data admission",
+  "source": {
+    "assessment_person_level_access": "custodian may transiently deserialize source X/required label members solely for mechanical extraction; scientific workers forbidden",
+    "columns": 83,
+    "feature_names_sha256_newline_join": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+    "hcal_evidence": "159537dcb61d030c870ae42e7addff4796651723",
+    "hcal_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "head_validation_label_access": "forbidden",
+    "role_manifest": "results/pcrl_heldout_calibration_v1/ROLE_MANIFEST.json",
+    "source_npz_sha256": "e0d9e54af780f30788ee29cfe6795ec82cbdcadc127b1978c69a3891485d2f12"
+  },
+  "status": "ROLE_FILES_ADMITTED_S4_VERIFIED"
 }
