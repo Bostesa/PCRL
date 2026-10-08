@@ -1,0 +1,44 @@
+{
+  "schema": "pcrl-s4-control-failure-review-v1",
+  "status": "REVIEWED_CONTROL_FAIL",
+  "scope": "Read-only audit of B-DVIB seed 0 frozen screen and mandatory real-control aggregates; no person arrays, rerun, refit, or threshold change.",
+  "campaign_lock_sha256": "6d82822f5fe54c16f76e6140eb7e780251f4d7cb288af0166855187ec5069dfa",
+  "arm": "B-DVIB",
+  "seed": 0,
+  "screen_unit_id": "B-SCREEN-B-DVIB-S0",
+  "screen_queue_receipt_sha256": "07dae7225639e81715b1f2ffef716bb1f6fb532e8da3c8dfbe79539028eb54d4",
+  "attempt_index_sha256": "b431449c28f6b1c4e4e0ade6b3932217e373bc4f84ab5304d06589958472b7ac",
+  "real_probe_unit_id": "B-REAL-PROBES-B-DVIB-S0",
+  "real_probe_queue_receipt_sha256": "dadea283f8059832e7af1523bcd1fe4463145dd2b66f39bc8b5702c8dcf5bea7",
+  "real_control_index_sha256": "8661324c6780cbeb86e92751e9f1319296f7edb967486adda7da00ae4b095c7f",
+  "frozen_control_source_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
+  "view_checks": {
+    "income": {
+      "control_report_sha256": "4956202cd097123e4e91a970bba6b89c5805dd70265587e4a071775425cff1f2",
+      "screen_probe_att_and_inner_view_content_hashes_equal": true,
+      "screen_probe_att_and_inner_row_unit_pair_hashes_equal": true,
+      "null_auc": 0.5,
+      "shuffled_auc": 0.6372369214195022,
+      "shuffled_cap": 0.6,
+      "planted_auc": 1.0,
+      "status": "FAIL"
+    },
+    "occupation": {
+      "control_report_sha256": "7cdfcdd64e88e738ee5e2b9fbd3f316a44e94e6cd8369eef49d625997a9cd8e9",
+      "screen_probe_att_and_inner_view_content_hashes_equal": true,
+      "screen_probe_att_and_inner_row_unit_pair_hashes_equal": true,
+      "shuffled_auc": 0.5935723355020274,
+      "status": "PASS"
+    },
+    "pair": {
+      "control_report_sha256": "4a8550f7818a6faaf45cd5094e66a017d7908fc3d2b0f3d100ff9e23a0bb9d1f",
+      "screen_probe_att_and_inner_view_content_hashes_equal": true,
+      "screen_probe_att_and_inner_row_unit_pair_hashes_equal": true,
+      "shuffled_auc": 0.5825664120542986,
+      "status": "PASS"
+    }
+  },
+  "finding": "The frozen income shuffled-label LR control fails. The probe uses the same ordered ATT/INNER people and complete attack matrices as the screen. Static inspection found no matrix-swap or shared implementation fault. It permutes whole ATT fit-group SEX label vectors within group-size buckets, fits LR on those labels, and scores true INNER SEX with the predeclared positive/reverse AUC envelope. A high shuffled score can arise from chance or feature geometry; this single result does not identify its cause.",
+  "disposition": "B-DVIB seed 0 fails a mandatory engineering control. Do not claim its affected income or full-arm comparison as independently valid, rerun it, or change the cap. Preserve the screen and failure receipts. Unrelated frozen B arms may continue under the unchanged evaluator and their own mandatory control gates.",
+  "independent_adult_numerical_replay": "PENDING_SEPARATE_S4_QUEUE_ADMISSION"
+}
