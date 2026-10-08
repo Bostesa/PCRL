@@ -115,6 +115,19 @@ class TrainerGradientTests(unittest.TestCase):
                           np.array([0, 1, 0, 1]),
                           np.arange(4), np.array([1, 0, 2, 3]), role="SYNTHETIC")
 
+    def test_task_only_fit_needs_no_sensitive_labels(self):
+        h = np.array([[0., 0.], [0., 2.], [2., 0.], [2., 2.]], dtype=np.float32)
+        y = np.array([0, 0, 1, 1], dtype=np.int64)
+        teacher = np.array([[.9, .1], [.9, .1], [.1, .9], [.1, .9]], dtype=np.float32)
+        data = DTrainingData(h, h, y, y, teacher, teacher,
+                             None, np.arange(4), np.arange(4), role="SYNTHETIC")
+        cfg = DTrainConfig(codes=2, hidden=4, epochs=1, batch_size=4, pair_features=8)
+        fit = train_d(data, seed=5, protected=False, config=cfg)
+        self.assertFalse(fit.protected)
+        self.assertEqual(fit.fit_rows, 4)
+        with self.assertRaises(ValueError):
+            train_d(data, seed=5, protected=True, config=cfg)
+
 
 if __name__ == "__main__":
     unittest.main()

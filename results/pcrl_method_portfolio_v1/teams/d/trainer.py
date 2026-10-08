@@ -46,7 +46,7 @@ class DTrainingData:
     y1: np.ndarray
     teacher0: np.ndarray
     teacher1: np.ndarray
-    sex: np.ndarray
+    sex: np.ndarray | None
     row_id0: np.ndarray
     row_id1: np.ndarray
     role: str
@@ -75,13 +75,14 @@ class DTrainingData:
                 raise ValueError("task labels and teacher probabilities are invalid")
             ys.append(y.astype(np.int64, copy=True))
             teachers.append(p.copy())
-        sex = np.asarray(self.sex)
-        if sex.shape != (n,) or not np.isin(sex, (0, 1)).all() or len(np.unique(sex)) != 2:
-            raise ValueError("both binary SEX groups are required on fitting rows")
+        sex = None if self.sex is None else np.asarray(self.sex)
+        if sex is not None and (sex.shape != (n,) or not np.isin(sex, (0, 1)).all()
+                                or len(np.unique(sex)) != 2):
+            raise ValueError("both binary SEX groups are required when SEX is supplied")
         for name, value in (("h0", h0.copy()), ("h1", h1.copy()),
                             ("y0", ys[0]), ("y1", ys[1]),
                             ("teacher0", teachers[0]), ("teacher1", teachers[1]),
-                            ("sex", sex.astype(np.int64, copy=True)),
+                            ("sex", None if sex is None else sex.astype(np.int64, copy=True)),
                             ("row_id0", row0.copy()), ("row_id1", row1.copy())):
             object.__setattr__(self, name, value)
 
@@ -274,6 +275,10 @@ def train_d(
                             else config.reconstruction_weight in (0.0, 0.25, 1.0))
         if data.h0.shape[1] != 16 or config != shared or not permitted_weight:
             raise ValueError("Adult D and task-only grid require registered 16-D configurations")
+    if protected and data.sex is None:
+        raise ValueError("protected D fitting requires fitting-role SEX labels")
+    if not protected and data.sex is not None:
+        raise ValueError("task-only control must be constructed without SEX labels")
     torch.set_num_threads(1)
     torch.manual_seed(int(seed))
     normalizer, initial = initializer if initializer is not None else pooled_initializer(data, seed, config.codes)
@@ -285,7 +290,7 @@ def train_d(
     x1 = torch.from_numpy(normalizer.transform(1, data.h1).astype(np.float32))
     y0, y1 = torch.from_numpy(data.y0), torch.from_numpy(data.y1)
     u0, u1 = torch.from_numpy(data.teacher0), torch.from_numpy(data.teacher1)
-    sex = torch.from_numpy(data.sex)
+    sex = torch.from_numpy(data.sex) if protected else None
     codebook = nn.Parameter(torch.from_numpy(initial.copy()))
     head0 = _Head(d, config.hidden, u0.shape[1])
     head1 = _Head(d, config.hidden, u1.shape[1])
