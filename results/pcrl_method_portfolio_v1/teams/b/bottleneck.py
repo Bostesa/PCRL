@@ -80,26 +80,33 @@ class BottleneckPair(nn.Module):
         self.class_counts = dict(class_counts)
         self.encoders = nn.ModuleDict({
             purpose: GaussianEncoder(len(names), hidden_dim, latent_dim, self.log_variance_bounds)
-            for purpose in class_counts
+            for purpose in ("income", "occupation")
         })
         self.heads = nn.ModuleDict({
-            purpose: nn.Linear(latent_dim, count)
-            for purpose, count in class_counts.items()
+            purpose: nn.Linear(latent_dim, class_counts[purpose])
+            for purpose in ("income", "occupation")
         })
 
     def training_outputs(
-        self, x: torch.Tensor, *, stochastic: bool, generator: torch.Generator
+        self, x: torch.Tensor, *, stochastic: bool,
+        generator: torch.Generator | Mapping[str, torch.Generator],
+        purposes: tuple[str, ...] = ("income", "occupation"),
     ) -> dict[str, dict[str, torch.Tensor]]:
         """Produce the exact sampled features used by heads and critics."""
         if x.ndim != 2 or x.shape[1] != len(self.feature_names):
             raise ValueError("Training input must have the pinned 83 columns")
         if not torch.isfinite(x).all():
             raise FloatingPointError("Training input contains nonfinite values")
+        if not purposes or len(set(purposes)) != len(purposes) or any(
+            purpose not in self.encoders for purpose in purposes
+        ):
+            raise ValueError("A nonempty unique purpose subset is required")
         outputs = {}
-        for purpose in ("income", "occupation"):
+        for purpose in purposes:
             mean, log_variance = self.encoders[purpose](x)
             if stochastic:
-                noise = torch.randn(mean.shape, generator=generator, device=mean.device)
+                own_generator = generator[purpose] if isinstance(generator, Mapping) else generator
+                noise = torch.randn(mean.shape, generator=own_generator, device=mean.device)
                 z = mean + torch.exp(0.5 * log_variance) * noise
             else:
                 z = mean
@@ -135,14 +142,17 @@ def complete_view_tensor(
     """
     if set(outputs) != {"income", "occupation"}:
         raise ValueError("Both purpose outputs are required for the coalition")
-    local = {}
-    for purpose in ("income", "occupation"):
-        out = outputs[purpose]
-        decisions = F.one_hot(
-            out["probabilities"].argmax(dim=1), num_classes=out["probabilities"].shape[1]
-        ).to(out["probabilities"].dtype)
-        local[purpose] = torch.cat((out["z"], out["logits"], out["probabilities"], decisions), dim=1)
+    local = {purpose: local_view_tensor(outputs[purpose])
+             for purpose in ("income", "occupation")}
     return local, torch.cat((local["income"], local["occupation"]), dim=1)
+
+
+def local_view_tensor(output: Mapping[str, torch.Tensor]) -> torch.Tensor:
+    """One recipient's exact numeric critic view without evaluating its peer."""
+    probabilities = output["probabilities"]
+    decisions = F.one_hot(probabilities.argmax(dim=1),
+                          num_classes=probabilities.shape[1]).to(probabilities.dtype)
+    return torch.cat((output["z"], output["logits"], probabilities, decisions), dim=1)
 
 
 class SexCritics(nn.Module):
