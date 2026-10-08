@@ -4,10 +4,15 @@ These tests exercise release and loss plumbing, not Adult outcomes or a
 scientific synthetic law. No real-data loader is imported.
 """
 
+import copy
+import hashlib
+import json
+
 import numpy as np
 import pytest
 import torch
 from torch.nn import functional as F
+import common_eval
 
 from bottleneck import (
     BottleneckPair,
@@ -18,9 +23,11 @@ from bottleneck import (
     complete_view_tensor,
     diagonal_gaussian_kl,
     model_fingerprint,
+    purpose_model_fingerprint,
     schema_fingerprint,
     training_terms,
 )
+from train_bottleneck import FitData, FrozenPurposeView
 
 FEATURE_NAMES = tuple(f"f{i}" for i in range(83))
 FORBIDDEN_NAMES = ("SEX", "income_label", "occupation_label")
@@ -36,13 +43,34 @@ def pair():
     )
 
 
+def _synthetic_calibration(temperatures):
+    records, hashes = {}, {}
+    for purpose in ("income", "occupation"):
+        record = {"schema": "pcrl-portfolio-global-temp-v1", "task": purpose,
+                  "alpha": 1.0 / temperatures[purpose]}
+        records[purpose] = record
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+        hashes[purpose] = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return records, hashes
+
+
+def _secret(seed):
+    return hashlib.sha256(f"team-b-synthetic-test-key:{seed}".encode("ascii")).digest()
+
+
 def adapter(model=None, *, stochastic=True, seed=3, temperatures=TEMPERATURES):
     model = model or pair()
+    valid = set(temperatures) == {"income", "occupation"} and all(
+        value > 0 for value in temperatures.values()
+    )
+    records, hashes = _synthetic_calibration(temperatures) if valid else (None, None)
     return ReleaseAdapter(
-        model, stochastic=stochastic, sampler_secret=bytes([seed]) * 32,
+        model, stochastic=stochastic, sampler_secret=_secret(seed),
         temperatures=temperatures, source_id="synthetic-test-source",
         expected_model_sha256=model_fingerprint(model),
         expected_schema_sha256=schema_fingerprint(model.feature_names),
+        calibration_records=records, calibration_record_sha256=hashes,
+        raw_mode=not valid,
     )
 
 
@@ -132,6 +160,45 @@ def test_stochastic_draw_is_local_to_person_purpose_and_private_key():
     assert "private-a" not in repr(first)
 
 
+@pytest.mark.parametrize("first_purpose,second_purpose", [
+    ("income", "occupation"), ("occupation", "income"),
+])
+def test_sequential_first_fixed_draw_survives_other_purpose_training(
+    first_purpose, second_purpose,
+):
+    """The final combined model replays stage 1's one draw in either order."""
+    stage1 = pair()
+    x = np.linspace(-0.5, 0.5, 83, dtype=np.float32)
+    data = FitData(
+        x=torch.from_numpy(x[None, :]),
+        labels={"income": torch.tensor([0]), "occupation": torch.tensor([2])},
+        teacher_probabilities={"income": torch.tensor([[0.6, 0.4]]),
+                               "occupation": torch.tensor([[0.1, 0.1, 0.5, 0.1, 0.1, 0.1]])},
+        sex=torch.tensor([0]), feature_names=FEATURE_NAMES,
+        permitted_feature_names=FEATURE_NAMES,
+        expected_schema_sha256=schema_fingerprint(FEATURE_NAMES),
+        row_ids=("private-a",), group_ids=("group-a",),
+        teacher_identity={"income": "Ucal_1", "occupation": "Ucal_2"},
+    )
+    frozen = FrozenPurposeView.from_model(
+        stage1, data, purpose=first_purpose, source_id="synthetic-test-source",
+        first_checkpoint_sha256="a" * 64, sampler_plan_sha256="b" * 64,
+        sampler_secret=_secret(7),
+    )
+    final = copy.deepcopy(stage1)
+    with torch.no_grad():
+        final.heads[second_purpose].weight.add_(0.25)
+    assert model_fingerprint(final) != model_fingerprint(stage1)
+    assert purpose_model_fingerprint(final, first_purpose) == purpose_model_fingerprint(stage1, first_purpose)
+    released = adapter(final, seed=7).release(first_purpose, "private-a", x, columns=FEATURE_NAMES)
+    np.testing.assert_array_equal(released["features"], frozen.z[0].numpy())
+    np.testing.assert_array_equal(released["logits"], frozen.logits[0].numpy())
+    assert released["metadata"]["purpose_model_sha256"] == purpose_model_fingerprint(stage1, first_purpose)
+    with torch.no_grad():
+        final.heads[first_purpose].weight.add_(0.25)
+    assert purpose_model_fingerprint(final, first_purpose) != purpose_model_fingerprint(stage1, first_purpose)
+
+
 def test_finalized_batch_replays_exact_views_from_private_immutable_file(tmp_path):
     """Catches accidental support for a repeated-query release interface."""
     builder = adapter(seed=4)
@@ -149,7 +216,7 @@ def test_finalized_batch_replays_exact_views_from_private_immutable_file(tmp_pat
     changed["metadata"]["log_variance_bounds"][0] = 999.0
     np.testing.assert_array_equal(replay.get("income", "private-a")["features"], income["features"])
     assert replay.get("income", "private-a")["metadata"]["log_variance_bounds"][0] == -8.0
-    assert (bytes([4]) * 32).hex() not in saved_path.read_text()
+    assert hashlib.sha256(b"team-b-synthetic-test-key:4").hexdigest() not in saved_path.read_text()
     with pytest.raises(FileExistsError):
         adapter(seed=99).finalize(saved_path)
     with pytest.raises(RuntimeError, match="finalized"):
@@ -227,6 +294,63 @@ def test_calibration_scalars_are_required_and_positive():
         adapter(model, temperatures={"income": 0.0, "occupation": 1.0})
 
 
+def test_deployed_calibration_uses_s2_floor_law_exactly(tmp_path):
+    """A tiny raw class probability is clipped by S2's fitted law on release."""
+    model = pair()
+    with torch.no_grad():
+        model.heads["income"].weight.zero_()
+        model.heads["income"].bias.copy_(torch.tensor([0.0, -40.0]))
+    builder = adapter(model, stochastic=False)
+    release = builder.release(
+        "income", "private-a", np.zeros(83, dtype=np.float32), columns=FEATURE_NAMES
+    )
+    raw = torch.softmax(torch.from_numpy(release["logits"]).to(torch.float64), dim=0).numpy()
+    assert raw.min() < 1e-12
+    record = _synthetic_calibration(TEMPERATURES)[0]["income"]
+    expected = common_eval.apply_global_temperature(raw.reshape(1, -1), record)[0]
+    np.testing.assert_array_equal(release["probabilities"], expected)
+    assert release["metadata"]["calibration_record_sha256"] == _synthetic_calibration(TEMPERATURES)[1]["income"]
+    builder.release("occupation", "private-a", np.zeros(83, dtype=np.float32),
+                    columns=FEATURE_NAMES)
+    saved_path = tmp_path / "floor-release.json"
+    builder.finalize(saved_path)
+    np.testing.assert_array_equal(SavedRelease(saved_path).get("income", "private-a")["probabilities"], expected)
+
+
+def test_unfitted_raw_calibration_batch_cannot_be_finalized(tmp_path):
+    model = pair()
+    raw = ReleaseAdapter(
+        model, stochastic=False, sampler_secret=_secret(4),
+        temperatures={"income": 1.0, "occupation": 1.0},
+        source_id="synthetic-test-source",
+        expected_model_sha256=model_fingerprint(model),
+        expected_schema_sha256=schema_fingerprint(model.feature_names),
+        raw_mode=True,
+    )
+    x = np.zeros(83, dtype=np.float32)
+    for purpose in ("income", "occupation"):
+        raw.release(purpose, "private-a", x, columns=FEATURE_NAMES)
+    with pytest.raises(ValueError, match="cannot be finalized"):
+        raw.finalize(tmp_path / "raw-release.json")
+
+
+def test_saved_release_refuses_planted_extra_top_level_wire_field(tmp_path):
+    """Private restore must not silently erase a field that an attacker should see."""
+    builder = adapter(seed=14)
+    x = np.zeros(83, dtype=np.float32)
+    for purpose in ("income", "occupation"):
+        builder.release(purpose, "private-a", x, columns=FEATURE_NAMES)
+    path = tmp_path / "private-release.json"
+    builder.finalize(path)
+    wrapped = json.loads(path.read_text())
+    wrapped["payload"]["records"][0]["view"]["planted_sensitive_clue"] = 1.0
+    canonical = json.dumps(wrapped["payload"], sort_keys=True, separators=(",", ":"))
+    wrapped["payload_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    path.write_text(json.dumps(wrapped, sort_keys=True, separators=(",", ":")))
+    with pytest.raises(ValueError, match="unexpected transmitted view field"):
+        SavedRelease(path)
+
+
 def test_log_variance_is_bounded_and_nonfinite_release_is_refused():
     """Catches Gaussian overflow and publishing a NaN score as a release."""
     model = pair()
@@ -247,11 +371,15 @@ def test_deployment_rejects_wrong_pinned_model_or_schema():
     with pytest.raises(ValueError, match="model identity"):
         ReleaseAdapter(model, stochastic=True, sampler_secret=b"x" * 32, temperatures=TEMPERATURES,
                        source_id="synthetic-test-source", expected_model_sha256="0" * 64,
-                       expected_schema_sha256=schema_fingerprint(model.feature_names))
+                       expected_schema_sha256=schema_fingerprint(model.feature_names),
+                       calibration_records=_synthetic_calibration(TEMPERATURES)[0],
+                       calibration_record_sha256=_synthetic_calibration(TEMPERATURES)[1])
     with pytest.raises(ValueError, match="schema identity"):
         ReleaseAdapter(model, stochastic=True, sampler_secret=b"x" * 32, temperatures=TEMPERATURES,
                        source_id="synthetic-test-source", expected_model_sha256=model_fingerprint(model),
-                       expected_schema_sha256="0" * 64)
+                       expected_schema_sha256="0" * 64,
+                       calibration_records=_synthetic_calibration(TEMPERATURES)[0],
+                       calibration_record_sha256=_synthetic_calibration(TEMPERATURES)[1])
 
 
 def test_stochastic_adapter_requires_private_sampler_key():
@@ -260,4 +388,6 @@ def test_stochastic_adapter_requires_private_sampler_key():
     with pytest.raises(ValueError, match="private sampler key"):
         ReleaseAdapter(model, stochastic=True, sampler_secret=b"short", temperatures=TEMPERATURES,
                        source_id="synthetic-test-source", expected_model_sha256=model_fingerprint(model),
-                       expected_schema_sha256=schema_fingerprint(model.feature_names))
+                       expected_schema_sha256=schema_fingerprint(model.feature_names),
+                       calibration_records=_synthetic_calibration(TEMPERATURES)[0],
+                       calibration_record_sha256=_synthetic_calibration(TEMPERATURES)[1])

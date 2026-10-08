@@ -191,6 +191,7 @@ class FrozenPurposeView:
             source_id=source_id,
             expected_model_sha256=model_fingerprint(model),
             expected_schema_sha256=schema_fingerprint(model.feature_names),
+            raw_mode=True,
         )
         views = [adapter.release(
             purpose, person_key, data.x[index].numpy(), columns=model.feature_names

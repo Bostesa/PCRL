@@ -91,7 +91,7 @@ def fit_calibration(
         model, stochastic=stochastic, sampler_secret=sampler_secret,
         temperatures={"income": 1.0, "occupation": 1.0},
         source_id=source_id, expected_model_sha256=expected_model_sha256,
-        expected_schema_sha256=expected_schema_sha256,
+        expected_schema_sha256=expected_schema_sha256, raw_mode=True,
     )
     raw = {purpose: [] for purpose in ("income", "occupation")}
     raw_z = {purpose: [] for purpose in ("income", "occupation")}
@@ -102,8 +102,6 @@ def fit_calibration(
             raw[purpose].append(wire["probabilities"])
             raw_z[purpose].append(wire["features"])
     raw = {purpose: np.asarray(values, dtype=np.float64) for purpose, values in raw.items()}
-    if any(np.min(probabilities) <= 1e-12 for probabilities in raw.values()):
-        raise ValueError("Raw calibration probability hits S2 clipping floor; release law needs amendment")
     records, hashes, temperatures = {}, {}, {}
     for purpose in ("income", "occupation"):
         record = fit_global_temperature(
@@ -123,6 +121,7 @@ def fit_calibration(
         temperatures=temperatures, source_id=source_id,
         expected_model_sha256=expected_model_sha256,
         expected_schema_sha256=expected_schema_sha256,
+        calibration_records=records, calibration_record_sha256=hashes,
     )
     replay_max_error = {}
     for purpose in ("income", "occupation"):
@@ -143,6 +142,7 @@ def fit_calibration(
         temperatures=temperatures, source_id=source_id,
         expected_model_sha256=expected_model_sha256,
         expected_schema_sha256=expected_schema_sha256,
+        calibration_records=records, calibration_record_sha256=hashes,
     )
     return CalibrationResult(
         adapter=final_adapter, records=records, record_file_sha256=hashes,

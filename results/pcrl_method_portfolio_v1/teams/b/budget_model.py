@@ -27,6 +27,7 @@ def required_smoke_keys(steps_per_encoder: int) -> tuple[str, ...]:
         + [f"forward:{role}" for role in ROLES]
         + ["forward:CALIBRATION_HELDOUT_REPLAY"]
         + ["forward:OSF_DEFENSE_FIT_FIRST_STAGE"]
+        + ["forward:OSF_DEFENSE_FIT_FINAL_FIRST_REPLAY"]
         + ["control:constant_reader", "control:shuffled_attacker", "control:planted_attacker"]
     )
 
@@ -51,12 +52,12 @@ def estimate(smoke: dict, *, steps_per_encoder: int, finalist: bool) -> dict:
     attacks_one_arm_seed = sum(smoke[f"attack:{view}:{model}"] for view in VIEWS for model in ATTACK_MODELS)
     calibration_one_arm_seed = sum(smoke[f"calibrate:{purpose}"] for purpose in ("income", "occupation"))
     forwards_one_arm_seed = sum(smoke[f"forward:{role}"] for role in ROLES)
-    # The registered control battery is two adapter classes × three views ×
-    # four fits per shuffled/plant condition, plus six constant scorings.
+    # Real-role postrelease controls run for every arm/view/seed with no
+    # cross-arm alias: one shuffled and one planted LR fit plus one null score.
     control_cpu_s = (
-        24 * smoke["control:shuffled_attacker"]
-        + 24 * smoke["control:planted_attacker"]
-        + 6 * smoke["control:constant_reader"]
+        seed_count * len(ARMS) * len(VIEWS) * smoke["control:shuffled_attacker"]
+        + seed_count * len(ARMS) * len(VIEWS) * smoke["control:planted_attacker"]
+        + seed_count * len(ARMS) * len(VIEWS) * smoke["control:constant_reader"]
     )
     release_arm_count = len(ARMS)
     defense_cpu_s = seed_count * training_one_seed
@@ -64,7 +65,8 @@ def estimate(smoke: dict, *, steps_per_encoder: int, finalist: bool) -> dict:
     calibration_cpu_s = seed_count * release_arm_count * calibration_one_arm_seed
     forward_cpu_s = (seed_count * release_arm_count *
                      (forwards_one_arm_seed + smoke["forward:CALIBRATION_HELDOUT_REPLAY"])
-                     + seed_count * 2 * smoke["forward:OSF_DEFENSE_FIT_FIRST_STAGE"])
+                     + seed_count * 2 * smoke["forward:OSF_DEFENSE_FIT_FIRST_STAGE"]
+                     + seed_count * 2 * smoke["forward:OSF_DEFENSE_FIT_FINAL_FIRST_REPLAY"])
     total_cpu_s = sum((defense_cpu_s, attack_cpu_s, calibration_cpu_s, forward_cpu_s, control_cpu_s))
     return {
         "source": "S3 measured one-seed unit receipts; extrapolation conditional on same fixed architecture and rows",

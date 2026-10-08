@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import torch
 import common_eval
 
 from bottleneck import ReleaseAdapter, model_fingerprint, schema_fingerprint
@@ -39,7 +40,7 @@ def test_fixed_calibration_uses_actual_released_draw(tmp_path):
         model, stochastic=True, sampler_secret=secret,
         temperatures={"income": 1.0, "occupation": 1.0},
         source_id="synthetic-source", expected_model_sha256=model_sha,
-        expected_schema_sha256=schema_sha,
+        expected_schema_sha256=schema_sha, raw_mode=True,
     )
     for purpose in ("income", "occupation"):
         raw = raw_adapter.release(purpose, "1", x[0], columns=model.feature_names)
@@ -102,3 +103,44 @@ def test_calibration_rejects_permuted_label_record_and_columns(tmp_path):
     features["feature_names"] = features["feature_names"][::-1]
     with pytest.raises(ValueError, match="ordered schema"):
         fit_calibration(model, **kwargs)
+
+
+def test_calibration_uses_s2_clipping_law_on_saturated_probs(tmp_path):
+    model = _model()
+    with torch.no_grad():
+        model.heads["income"].bias.copy_(torch.tensor([0.0, -1000.0]))
+        model.heads["occupation"].bias.copy_(torch.tensor([0.0] + [-1000.0] * 5))
+    ids = np.arange(1, 9, dtype=np.int64)
+    groups = ids + 10
+    x = np.zeros((len(ids), 83), dtype=np.float32)
+    result = fit_calibration(
+        model, arm_id="B-FLOOR-SYNTHETIC", model_seed=0,
+        feature_record={"X": x, "row_id": ids, "unit": groups,
+                        "feature_names": np.asarray(model.feature_names)},
+        task_label_records={
+            "income": {"row_id": ids, "unit": groups,
+                       "income": np.array([0, 1] * 4, dtype=np.int64)},
+            "occupation": {"row_id": ids, "unit": groups,
+                           "occupation": np.arange(8, dtype=np.int64) % 6},
+        },
+        source_id="synthetic-source", stochastic=False, sampler_secret=b"s" * 32,
+        expected_model_sha256=model_fingerprint(model),
+        expected_schema_sha256=schema_fingerprint(model.feature_names),
+        admitted_cal_pair_sha256=_sha_arr(np.column_stack((ids, groups))),
+        private_directory=tmp_path / ".private" / "floor-s0",
+    )
+    raw_adapter = ReleaseAdapter(
+        model, stochastic=False, sampler_secret=b"s" * 32,
+        temperatures={"income": 1.0, "occupation": 1.0}, raw_mode=True,
+        source_id="synthetic-source", expected_model_sha256=model_fingerprint(model),
+        expected_schema_sha256=schema_fingerprint(model.feature_names),
+    )
+    for purpose in ("income", "occupation"):
+        raw = raw_adapter.release(purpose, "1", x[0], columns=model.feature_names)
+        assert np.min(raw["probabilities"]) == 0
+        final = result.adapter.release(purpose, "1", x[0], columns=model.feature_names)
+        expected = common_eval.apply_global_temperature(
+            raw["probabilities"][None, :], result.records[purpose]
+        )[0]
+        assert np.array_equal(final["probabilities"], expected)
+        assert final["metadata"]["calibration_record_sha256"] == result.record_file_sha256[purpose]

@@ -12,6 +12,7 @@
   "recipient_view_fields": ["actual_latent_or_code", "raw_head_logits", "calibrated_probability", "decision", "all_transmitted_sampling_calibration_fallback_and_model_metadata"],
   "roles_for_release_forward": ["CALIBRATION_HELDOUT", "ATTACK_FIT_NEW", "INNER_SELECTION"],
   "attack_bank_provisional": ["LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32"],
+  "s2_attack_applicability_reconciliation": "S2 ATTACK_READER_APPLICABILITY_DRAFT.json SHA256 3455cc1b91592af94858b768c8dbd0108760cff87d7cfc4fbfc6b964b171c7f7 includes all eight Team B arms, including distinct B-RAW-TASK. Each arm has three views times four required trained readers = 12 fits per seed; total 96 per seed, 192 for the two-seed screen. B-RAW-TASK has separate fitted weights/release from stochastic B-TASK and no cross-arm attack alias. Pair ignore-recipient score readers are zero-fit aliases of the two local views after identity checks.",
   "attack_split": "ATTACK_FIT_NEW groups deterministically partitioned by S2 into attack_fit and attack_tune, disjoint by group. Exact membership hashes required in effective lock.",
   "attack_selection": "Fit four fixed model configurations per view on attack_fit, freeze validation-selected reader and orientation on attack_tune. Predeclare P(SEX=1) and 1−P(SEX=1) as score readers; primary INNER AUC is fixed-slate max. Report every reader and tune-selected winner. Pair slate includes all local score-reader aliases only with identity receipts.",
   "same_role_selection_warning": "Scientific candidate/control selection on INNER_SELECTION remains exploratory, but attack reader/hyperparameter/orientation selection must finish on disjoint ATTACK_FIT_NEW tune groups.",
@@ -36,8 +37,11 @@
     "critic_optimizer_updates_if_T600": 14400,
     "calibration_scalar_fits": 16,
     "fresh_attacker_model_fits": 96,
+    "postrelease_real_control_reader_fits": 48,
+    "postrelease_real_control_null_scorings": 24,
     "ignore_recipient_prediction_aliases": 128,
     "frozen_first_stage_defense_fit_forward_passes": 2,
+    "sequential_final_defense_fit_first_purpose_replay_passes": 2,
     "paired_role_forward_passes": 24,
     "calibration_replay_paired_forward_passes": 8,
     "recipient_role_forward_passes": 48
@@ -52,8 +56,11 @@
     "critic_optimizer_updates_if_T600": 28800,
     "calibration_scalar_fits": 32,
     "fresh_attacker_model_fits": 192,
+    "postrelease_real_control_reader_fits": 96,
+    "postrelease_real_control_null_scorings": 48,
     "ignore_recipient_prediction_aliases": 256,
     "frozen_first_stage_defense_fit_forward_passes": 4,
+    "sequential_final_defense_fit_first_purpose_replay_passes": 4,
     "paired_role_forward_passes": 48,
     "calibration_replay_paired_forward_passes": 16,
     "recipient_role_forward_passes": 96
@@ -68,8 +75,11 @@
     "critic_optimizer_updates_if_T600": 43200,
     "calibration_scalar_fits": 48,
     "fresh_attacker_model_fits": 288,
+    "postrelease_real_control_reader_fits": 144,
+    "postrelease_real_control_null_scorings": 72,
     "ignore_recipient_prediction_aliases": 384,
     "frozen_first_stage_defense_fit_forward_passes": 6,
+    "sequential_final_defense_fit_first_purpose_replay_passes": 6,
     "paired_role_forward_passes": 72,
     "calibration_replay_paired_forward_passes": 24,
     "recipient_role_forward_passes": 144
@@ -84,20 +94,26 @@
     "critic_optimizer_updates_if_T600": 14400,
     "calibration_scalar_fits": 16,
     "fresh_attacker_model_fits": 96,
+    "postrelease_real_control_reader_fits": 48,
+    "postrelease_real_control_null_scorings": 24,
     "ignore_recipient_prediction_aliases": 128,
     "frozen_first_stage_defense_fit_forward_passes": 2,
+    "sequential_final_defense_fit_first_purpose_replay_passes": 2,
     "paired_role_forward_passes": 24,
     "calibration_replay_paired_forward_passes": 8,
     "recipient_role_forward_passes": 48
   },
-  "control_battery_provisional": {
-    "adapters": ["B-JVIB stochastic", "B-DVIB deterministic"],
-    "seed": 0,
-    "views_per_adapter": 3,
-    "shuffled_sex_attacker_fits": 24,
-    "planted_leak_attacker_fits": 24,
-    "constant_reader_scorings": 6,
-    "total_extra_attacker_fits": 48,
+  "postrelease_real_control_plan": {
+    "scope": "one separate S3 compound unit per B arm and seed, after its saved release",
+    "views_per_arm_seed": 3,
+    "shuffled_sex_LR_fits_per_view": 1,
+    "planted_leak_LR_fits_per_view": 1,
+    "null_reader_scorings_per_view": 1,
+    "fresh_reader_fits_per_arm_seed": 6,
+    "fresh_reader_fits_per_seed": 48,
+    "fresh_reader_fits_two_seed_screen": 96,
+    "cross_arm_aliases": 0,
+    "failure_effect": "Blocks the affected arm/view scientific endpoint; saved engineering reports remain private",
     "engineering_copy_only": true
   },
   "not_yet_counted_pending_shared_contract": [
@@ -108,5 +124,5 @@
     "Any expanded full attacker slate or repeated-query attack; amend counts before CAMPAIGN_LOCK.",
     "Synthetic correctness and exact tiny-law oracles; S3 must time and charge their CPU cost."
   ],
-  "arithmetic": "Eight release arms (two prototypes plus six controls) × three views × four fresh model configurations = 96 attack fits/seed. Each model contributes both fixed output orientations, giving 192 fresh score readers/seed; each of two local views contributes eight additional zero-fit ignore-recipient score aliases to the pair bank, giving 128 aliases/seed across eight arms. Eight arms × two tasks = 16 calibration scalars/seed; eight arms × three allowed evaluation roles = 24 paired forward passes/seed, plus eight additional paired CAL role replays that verify the final adapter on the same fixed draw, and two frozen first-stage defense-fit forwards. The portfolio registry's 16 candidate-by-seed slots refers to eight prototypes across four families at two seeds; Team B's 16 *arm-by-seed* screen cells include controls and are a different count. These are proposed exact units for this fixed design, subject to S1/S2 pre-lock revision after smoke timing; no real Adult unit has run."
+  "arithmetic": "Eight release arms (two prototypes plus six controls) × three views × four fresh model configurations = 96 primary attack fits/seed. Each model contributes both fixed output orientations, giving 192 fresh score readers/seed; each of two local views contributes eight additional zero-fit ignore-recipient score aliases to the pair bank, giving 128 aliases/seed across eight arms. Separate postrelease real-role controls add one shuffled and one planted LR fit plus one null scoring per arm/view: 8 × 3 × 2 = 48 additional fits/seed, with no cross-arm alias. Eight arms × two tasks = 16 calibration scalars/seed; eight arms × three allowed evaluation roles = 24 paired forward passes/seed, plus eight additional paired CAL role replays that verify the final adapter on the same fixed draw, two frozen first-stage defense-fit forwards, and two final-model first-purpose defense-fit replay passes for sequential deployment equality. The portfolio registry's 16 candidate-by-seed slots refers to eight prototypes across four families at two seeds; Team B's 16 *arm-by-seed* screen cells include controls and are a different count. These are proposed exact units for this fixed design, subject to S1/S2 pre-lock revision after smoke timing; no real Adult unit has run."
 }

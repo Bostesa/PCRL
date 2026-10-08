@@ -262,6 +262,25 @@ def model_fingerprint(model: BottleneckPair) -> str:
     return digest.hexdigest()
 
 
+def purpose_model_fingerprint(model: BottleneckPair, purpose: str) -> str:
+    """Stable sampler identity for one unchanged encoder and its task head."""
+    if purpose not in ("income", "occupation"):
+        raise ValueError("Unknown purpose")
+    digest = hashlib.sha256()
+    digest.update(b"TeamBPurposeModelV1")
+    digest.update(purpose.encode("ascii"))
+    digest.update(schema_fingerprint(model.feature_names).encode("ascii"))
+    for module_name in ("encoders", "heads"):
+        module = getattr(model, module_name)[purpose]
+        for name, value in sorted(module.state_dict().items()):
+            array = value.detach().cpu().contiguous().numpy()
+            digest.update(f"{module_name}.{purpose}.{name}".encode("utf-8"))
+            digest.update(str(array.shape).encode("ascii"))
+            digest.update(str(array.dtype).encode("ascii"))
+            digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
 class ReleaseAdapter:
     """Build a single aligned release batch, caching one draw per row and purpose.
 
@@ -280,6 +299,9 @@ class ReleaseAdapter:
         source_id: str,
         expected_model_sha256: str,
         expected_schema_sha256: str,
+        calibration_records: Mapping[str, Mapping] | None = None,
+        calibration_record_sha256: Mapping[str, str] | None = None,
+        raw_mode: bool = False,
     ):
         if set(temperatures) != {"income", "occupation"} or any(
             not math.isfinite(value) or value <= 0 for value in temperatures.values()
@@ -295,8 +317,42 @@ class ReleaseAdapter:
         self.stochastic = bool(stochastic)
         self._sampler_secret = sampler_secret
         self.temperatures = dict(temperatures)
+        self.raw_mode = bool(raw_mode)
+        if self.raw_mode:
+            if calibration_records is not None or calibration_record_sha256 is not None or any(
+                value != 1.0 for value in self.temperatures.values()
+            ):
+                raise ValueError("Explicit raw mode requires T=1 and no fitted calibrator")
+            self.calibration_records = None
+            self.calibration_record_sha256 = None
+        else:
+            if (calibration_records is None or calibration_record_sha256 is None
+                    or set(calibration_records) != {"income", "occupation"}
+                    or set(calibration_record_sha256) != {"income", "occupation"}):
+                raise ValueError("Scored deployment requires both fitted S2 calibrator records and hashes")
+            from common_eval import CAL_SCHEMA, TEMP_BOUNDS
+            self.calibration_records = copy.deepcopy(dict(calibration_records))
+            self.calibration_record_sha256 = dict(calibration_record_sha256)
+            for purpose in ("income", "occupation"):
+                record = self.calibration_records[purpose]
+                if record.get("schema") != CAL_SCHEMA or record.get("task") != purpose:
+                    raise ValueError("Wrong fitted S2 calibrator identity")
+                alpha = float(record["alpha"])
+                if (not math.isfinite(alpha) or not TEMP_BOUNDS[0] <= alpha <= TEMP_BOUNDS[1]
+                        or not math.isclose(self.temperatures[purpose], 1.0 / alpha,
+                                            rel_tol=0, abs_tol=1e-12)):
+                    raise ValueError("Temperature differs from fitted S2 calibrator")
+                canonical = json.dumps(record, sort_keys=True, separators=(",", ":"),
+                                       allow_nan=False) + "\n"
+                actual_sha = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+                if self.calibration_record_sha256[purpose] != actual_sha:
+                    raise ValueError("Fitted S2 calibrator SHA mismatch")
         self.source_id = source_id
         self.model_sha256 = model_fingerprint(self.model)
+        self.purpose_model_sha256 = {
+            purpose: purpose_model_fingerprint(self.model, purpose)
+            for purpose in ("income", "occupation")
+        }
         self.schema_sha256 = schema_fingerprint(self.model.feature_names)
         if self.model_sha256 != expected_model_sha256:
             raise ValueError("Pinned model identity mismatch")
@@ -338,7 +394,8 @@ class ReleaseAdapter:
             mean, log_variance = self.model.encoders[purpose](tensor)
             if self.stochastic:
                 domain = json.dumps(
-                    ["TeamB", self.source_id, self.model_sha256, purpose, person_key],
+                    ["TeamBPurposeDrawV1", self.source_id,
+                     self.purpose_model_sha256[purpose], purpose, person_key],
                     separators=(",", ":"),
                 ).encode("utf-8")
                 seed_bytes = hmac.new(self._sampler_secret, domain, hashlib.sha256).digest()[:8]
@@ -348,24 +405,38 @@ class ReleaseAdapter:
             else:
                 z = mean
             logits = self.model.heads[purpose](z)
-            probabilities = torch.softmax(logits / self.temperatures[purpose], dim=1)
-            if not all(torch.isfinite(tensor).all() for tensor in (mean, log_variance, z, logits, probabilities)):
+            raw_probabilities = torch.softmax(logits.to(torch.float64), dim=1)
+            if not all(torch.isfinite(tensor).all() for tensor in (mean, log_variance, z, logits, raw_probabilities)):
                 raise FloatingPointError("Release model produced nonfinite values")
+            raw_array = raw_probabilities.squeeze(0).numpy().astype(np.float64)
+            if self.raw_mode:
+                probabilities = raw_array
+            else:
+                from common_eval import apply_global_temperature
+                probabilities = apply_global_temperature(
+                    raw_array.reshape(1, -1), self.calibration_records[purpose]
+                )[0]
+            if not np.isfinite(probabilities).all():
+                raise FloatingPointError("Release calibration produced nonfinite values")
         view = {
             "features": z.squeeze(0).numpy().copy(),
             "logits": logits.squeeze(0).numpy().copy(),
-            "probabilities": probabilities.squeeze(0).numpy().copy(),
-            "decision": int(probabilities.argmax(dim=1).item()),
+            "probabilities": probabilities.copy(),
+            "decision": int(np.argmax(probabilities)),
             "metadata": {
                 "purpose": purpose,
                 "stochastic": self.stochastic,
                 "draws_per_person": 1 if self.stochastic else 0,
                 "latent_dim": self.model.latent_dim,
                 "log_variance_bounds": self.model.log_variance_bounds,
-                "calibration_family": "global_temperature",
+                "calibration_family": "raw_unfitted" if self.raw_mode else "global_temperature",
                 "temperature": self.temperatures[purpose],
+                "calibration_record_sha256": (None if self.raw_mode else
+                                               self.calibration_record_sha256[purpose]),
                 "source_id": self.source_id,
                 "model_sha256": self.model_sha256,
+                "purpose_model_sha256": self.purpose_model_sha256[purpose],
+                "sampler_domain": "TeamBPurposeDrawV1",
                 "schema_sha256": self.schema_sha256,
                 "release_contract": "immutable_one_shot_batch",
             },
@@ -382,6 +453,8 @@ class ReleaseAdapter:
         """
         if self.closed:
             raise RuntimeError("This one-shot release batch has been finalized")
+        if self.raw_mode:
+            raise ValueError("Unfitted raw calibration views cannot be finalized for deployment")
         target = Path(path)
         if target.exists():
             raise FileExistsError(target)
@@ -410,8 +483,11 @@ class ReleaseAdapter:
             "format": "TeamBPrivateReleaseV1",
             "source_id": self.source_id,
             "model_sha256": self.model_sha256,
+            "purpose_model_sha256": self.purpose_model_sha256,
             "schema_sha256": self.schema_sha256,
             "temperatures": self.temperatures,
+            "raw_mode": self.raw_mode,
+            "calibration_record_sha256": self.calibration_record_sha256,
             "stochastic": self.stochastic,
             "records": records,
         }
@@ -457,10 +533,12 @@ class SavedRelease:
             if key in self.records:
                 raise ValueError("Duplicate saved person and purpose")
             raw = record["view"]
+            if set(raw) != {"features", "logits", "probabilities", "decision", "metadata"}:
+                raise ValueError("Saved release contains an unexpected transmitted view field")
             view = {
                 "features": np.asarray(raw["features"], dtype=np.float32),
                 "logits": np.asarray(raw["logits"], dtype=np.float32),
-                "probabilities": np.asarray(raw["probabilities"], dtype=np.float32),
+                "probabilities": np.asarray(raw["probabilities"], dtype=np.float64),
                 "decision": int(raw["decision"]),
                 "metadata": dict(raw["metadata"]),
             }
