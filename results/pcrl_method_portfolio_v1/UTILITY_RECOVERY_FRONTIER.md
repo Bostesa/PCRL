@@ -21,7 +21,7 @@ The contextual raw83/Ucal anchor has r1/r2/coalition AUC 0.896971 / 0.896785 / 0
 
 ## Team C: disclosed selected raw features
 
-Team C completed all 135 corrected queue units; its independent S4 saved-model replay remains pending. Capacities, per-seed utility, per-class recall and simultaneous intervals are in `C_R1_AGGREGATE_FINDINGS.md` and its companion CSVs. The coalition receives the union of the selected raw feature values.
+Team C completed all 135 corrected queue units; its independent S4 R3 saved-model and aggregate replay passed 17/17 units. Capacities, per-seed utility, per-class recall and simultaneous intervals are in `C_R1_AGGREGATE_FINDINGS.md` and its companion CSVs. The coalition receives the union of the selected raw feature values.
 
 | Arm | Encoded columns r1 / r2 / union | Paired AUC r1 / r2 / coalition | Point utility both seeds |
 |---|---|---|---|
@@ -34,6 +34,6 @@ Team C completed all 135 corrected queue units; its independent S4 saved-model r
 | C-SIMPLE-SEQ-OI1 | 76 / 76 / 76 | 0.894818 / 0.894818 / 0.895252 | Yes |
 | C-SIMPLE-TASK-PAIR1 | seed-dependent / seed-dependent / 83 | 0.896361 / 0.898911 / 0.898928 | Yes |
 
-For TASK-PAIR1, the exact encoded widths are 42/82/83 in seed 0 and 76/42/83 in seed 1. None of the eight C arms has a distinct exact semantic-and-encoded-capacity nonalias comparator in both seeds. REL0 versus FULL is a descriptive, width-unmatched 0.095610 coalition AUC reduction with an occupation utility point shortfall. Among seven point-utility-feasible arms, the lowest coalition AUC is only 0.001609 below FULL. The C common-criterion result remains incomplete until S4 numerical replay and matched-capacity comparison.
+For TASK-PAIR1, the exact encoded widths are 42/82/83 in seed 0 and 76/42/83 in seed 1. None of the eight C arms has a distinct exact semantic-and-encoded-capacity nonalias comparator in both seeds. REL0 versus FULL is a descriptive, width-unmatched 0.095610 coalition AUC reduction with an occupation utility point shortfall. Among seven point-utility-feasible arms, the lowest coalition AUC is only 0.001609 below FULL. The C competitive common-criterion comparison remains incomplete because no distinct exact matched-capacity control exists; S4 numerical replay passed.
 
 Team A's score-only channel and Team D's latent repair have no Adult method-fit/attack endpoints. Their missing rows are not negative results. No finalist was selected from this frontier.
