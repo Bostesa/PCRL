@@ -1,111 +1,630 @@
 {
-  "schema": "pcrl-method-portfolio-resource-receipts-v1",
-  "owner": "S3 scheduler and immutable cache owner",
-  "recorded_utc": "2026-10-08T09:38:06Z",
+  "actions": {
+    "cloud_resources_launched": false,
+    "external_jobs_stopped": 0,
+    "heavy_jobs_launched_by_S3": 29,
+    "new_data_acquired": false
+  },
+  "backup_custody": {
+    "external_drive": "/Volumes/YOTUO mounted exFAT, 677 GiB reported free",
+    "permission": "Sandbox test -w returned false; write outside approved roots unavailable",
+    "status": "OFF_DEVICE_PENDING; no attempted write or deletion"
+  },
+  "baseline_cache_inventory": {
+    "hcal_admitted_lra_units": 540,
+    "hcal_admitted_unit_kinds": {
+      "aud": 267,
+      "d0s": 3,
+      "dec": 81,
+      "fine": 3,
+      "new": 90,
+      "pol": 81,
+      "ref": 9,
+      "tea": 6
+    },
+    "hcal_excluded": [
+      "outer__* old-assessment predictions and labels",
+      "inner__* CBP custody",
+      "cor__* fixtures"
+    ],
+    "hcal_private_decoder_packages": 7,
+    "hcal_private_store_gib_approx": 1.3,
+    "historical_score_controls": [
+      "U0 SRC|U",
+      "Ucal SRC|U|H-GLOBAL-TEMP",
+      "T* U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+      "P* U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+      "CLASS",
+      "LOCAL",
+      "SEQ-12",
+      "SEQ-21"
+    ],
+    "lra_private_store_gib_approx": 1.4,
+    "reuse_rule": "A baseline is an alias only if source/code, split, seed, columns, preprocessing, architecture, calibration, output view and budget identities all match exactly. No portfolio aliases have been asserted yet. Private arrays and checkpoints remain private and read-only."
+  },
+  "campaign_budget": {
+    "allocation_cpu_h": {
+      "finalists_total": 8,
+      "independent_replay_closeout": 3,
+      "screens_total": 6,
+      "shared_setup": 3
+    },
+    "allocation_note": "Allocations guide the prelock unit plan; they are not measured forecasts or grounds to weaken required controls.",
+    "cloud_usd": 0,
+    "cpu_h": 20,
+    "elapsed_h": 10
+  },
+  "historical_timing_evidence": {
+    "fresh_family_peak_rss_gib_synthetic": 1.27,
+    "fresh_five_table_attack_family_cpu_s_synthetic": 22.8,
+    "hcal_captured_cpu_h": 2.12,
+    "hcal_closeout_source": "results/pcrl_heldout_calibration_v1/COST_AND_CLOSEOUT.md at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "hcal_peak_child_rss_gib_two_workers": [
+      2.88,
+      1.65
+    ],
+    "hcal_source": "results/pcrl_heldout_calibration_v1/TIMING.json at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "hcal_uncaptured_control_attempt_upper_cpu_h": 0.43,
+    "transfer_limit": "These are score-release/calibration timings, not estimates for new bottleneck, mask-search or nonlinear-repair fits. Synthetic smoke timing is required before CAMPAIGN_LOCK."
+  },
   "host": {
+    "free_disk_gib_snapshots": [
+      101,
+      100,
+      98,
+      97
+    ],
+    "interpretation": "Memory and disk readings changed during the inventory. Free percentage is a host signal, not a per-job guarantee.",
+    "latest_free_disk_gib": 95.89,
+    "memory_pressure_free_percent_snapshots": [
+      36,
+      42,
+      47,
+      43
+    ],
     "online_logical_cpus": 14,
     "physical_memory_gib": 24,
-    "memory_pressure_free_percent_snapshots": [36, 42, 47],
-    "free_disk_gib_snapshots": [101, 100, 98],
-    "latest_free_disk_gib": 98,
-    "source_commands": ["getconf NPROCESSORS_ONLN", "memory_pressure -Q", "df -h ."],
-    "interpretation": "Memory and disk readings changed during the inventory. Free percentage is a host signal, not a per-job guarantee."
+    "source_commands": [
+      "getconf NPROCESSORS_ONLN",
+      "memory_pressure -Q",
+      "df -h ."
+    ]
+  },
+  "legacy_study_semaphores": {
+    "coordination_gap": "Each predecessor uses a separate semaphore store; those locks do not enforce a shared limit across studies.",
+    "finding": "Both slots in every probed study-specific semaphore were free at the probe; this does not prove whole-machine capacity.",
+    "read_only_probe": "fcntl nonblocking flock on existing slot files",
+    "studies_probed": [
+      "ccm_v1",
+      "hcal_v1",
+      "lra_v1",
+      "cbp_v1",
+      "qpc_v1"
+    ]
+  },
+  "owner": "S3 scheduler and immutable cache owner",
+  "portfolio_queue": {
+    "continuation_epoch": {
+      "budget_cpu_s": 72000,
+      "budget_wall_s": 36000,
+      "prior_campaign_used_cpu_s": 180.0,
+      "start_utc": "2026-10-08T15:10:00+00:00",
+      "used_cpu_s": 83.92011166131124
+    },
+    "custody_checks": {
+      "first_export": "S2-SAFE-ROLE-EXPORT-V1 done",
+      "role_only_byte_replay": "S2-ROLE-ONLY-BYTE-REPLAY-V1 done, 25 byte-identical files",
+      "s4_independent_tree_compare": "S4-INDEPENDENT-EXPORT-REPLAY-COMPARE-V1 done, 26 files byte-identical, public report PASS",
+      "s4_membership_audit": "S4-INDEPENDENT-ROLE-AUDIT-V1 done, report PASS",
+      "second_same_exporter_run": "S2-SAFE-ROLE-EXPORT-REPLAY-V1 done; repeated transient source X/required-label deserialization for custody only"
+    },
+    "deviations": {
+      "continuation-c-direct-11-tests": {
+        "charged_cpu_s": 2.0,
+        "note": "C analyst direct synthetic 11-test pytest, 0.05s test execution, no Adult; conservative setup charge"
+      },
+      "continuation-s2-direct-shared-45-tests": {
+        "charged_cpu_s": 4.0,
+        "note": "S2 direct synthetic-only shared unittest discovery, 45 PASS; reported unittest 1.976 s and exec wall 3.1 s; conservative 4.0 s charge; not an admitted verification gate"
+      },
+      "continuation-s3-queue-bootstrap": {
+        "charged_cpu_s": 10.0,
+        "note": "Conservative setup charge for 12 scheduler safety tests including owned child crash test; no Adult data"
+      },
+      "prequeue-light-tests": {
+        "charged_cpu_s": 180.0,
+        "note": "Synthetic-only engineering checks before all agents received queue rule; see RESOURCE_RECEIPTS.json"
+      }
+    },
+    "external_reservation_initial": 2,
+    "free_disk_floor_gib": 5,
+    "global_heavy_slots": 2,
+    "implementation": "results/pcrl_method_portfolio_v1/shared/compute_queue.py",
+    "initial_state": "CLOSED",
+    "latest_phase1_result_notes": {
+      "A-EXACT-CLASS-SUPPORT-RED-017": "Expected RED: 1e-10 off-class mass was accepted; charged 0.755 s",
+      "A-LP-SHAPE-SYSTEM314-017": "PASS HiGHS optimal under system Python3.14; 55681 variables, 511107 inequality nonzeros, charged 1.930 s, RSS 434651136 bytes",
+      "C-ROLE-SIZED-SMOKE-016": "FAILED before timing output: 2000-row synthetic occupation calibration probabilities rejected by shared row-sum check; charged 3.228 s, RSS 517373952 bytes",
+      "C-TEST-SCORECARD-BUILDER-016": "FAILED: planted XOR proxy AUC 0.61233 vs >0.90; C narrowed to exploratory grouped-mask baseline",
+      "S2-direct-45-tests": "Unqueued engineering deviation, 45/45 tests, conservatively charged 4.0 s; not an admission gate",
+      "S4-INDEPENDENT-ENDPOINTS-019": "PASS 2/2 tests; charged 0.964 s",
+      "SHARED-BOOTSTRAP-SMOKE-018": "PASS 64 synthetic replicates; 2048 forecast 59.647 child CPU-s per one candidate/control contrast before fresh attacks; charged 2.984 s"
+    },
+    "max_portfolio_memory_gib": 6,
+    "numerical_threads_per_unit": 1,
+    "occupancy_ttl_s": 120,
+    "phase1_queue_index": {
+      "gate_parse": "Amendments 017 A, 018 SHARED, 019 S4 indexed and exact source/test bytes checked at admission. Two earlier A test files changed after their historical registration; neither was run under 017.",
+      "hash_mismatches": 0,
+      "path": "results/pcrl_method_portfolio_v1/PHASE1_QUEUE_INDEX.json",
+      "registered_test_and_source_files": 17,
+      "sha256": "5a28b1810d3653e756dae1b57e71b142a2f4c4928767b3aab6b172c356df182a",
+      "shared_law_sha256": "b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53"
+    },
+    "prelock_synthetic_opening_conditions": [
+      "PHASE1_LOCK law and team test hashes verified",
+      "data_access NONE declared",
+      "max 120 s wall and 1.5 GiB RSS reservation",
+      "fresh machine occupancy receipt"
+    ],
+    "private_runtime": "<PORTFOLIO_WORKTREE>/results/pcrl_method_portfolio_v1/shared/.private/compute",
+    "real_data_opening_conditions": [
+      "S2 role-only data manifest and S4 role audit PASS",
+      "effective local Git CAMPAIGN_LOCK seal with matching S4_PREFIT_SEAL_REVIEW and LOCAL_SEAL_RECEIPT, or verified pushed lock",
+      "fresh machine occupancy receipt"
+    ],
+    "remaining_continuation_cpu_s": 71950.58379387832,
+    "safety_tests": "21/21 pass, including duplicate concurrent worker, stale lock file, child-held lock after worker SIGKILL, orphan fail-closed, imported-source hash, continuation epoch, synthetic smoke, custody modes and effective local Git seal validation.",
+    "science_fit_gate": "CLOSED; effective S1 local Git/hash seal and S4 review not yet bound in queue; no Adult method fit",
+    "signal_rule": "Only the launched campaign process group may be signalled. A timed-out or interrupted unit is retained as incomplete.",
+    "source_hash_correction": "At 15:19 UTC, added registered source-code hash check. A units run earlier under 009 passed as engineering checks on observed bytes, not frozen-source Phase I evidence; rerun after amendment 010.",
+    "synthetic_smokes": {
+      "A": "A-SMOKE-LP-SHAPE-013; HiGHS optimal; 1.775 charged CPU s; 446431232 peak RSS bytes; 55681 variables, 13061 inequalities, 511107 inequality nonzeros",
+      "B": "pending final registered source/test/timing hashes",
+      "C": "pending final registered source/test/timing hashes",
+      "D": "D-ROLE-SIZED-SMOKE-011; 14.583 charged CPU s; 630915072 peak RSS bytes; 1024-code KMeans 2.836 s, two 2-epoch train jobs 4.564/4.174 s, two forwards 0.424 s"
+    },
+    "unit_accounting": "Every fit, attacker, calibration, preprocessing, forward, smoke, replay and numerical verification job needs an immutable queue unit. Unit receipt charges max(child CPU, elapsed wall), a conservative fallback when descendant accounting is incomplete.",
+    "unit_totals": {
+      "done": 23,
+      "failed": 6,
+      "incomplete": 0,
+      "planned": 0,
+      "running": 0
+    },
+    "units": {
+      "A-BANK-COVERAGE-013": {
+        "charged_cpu_s": 0.757,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.757
+      },
+      "A-CONTROLS-RED-009": {
+        "charged_cpu_s": 0.944,
+        "returncode": 2,
+        "status": "failed",
+        "wall_s": 0.944
+      },
+      "A-EXACT-CLASS-SUPPORT-RED-017": {
+        "charged_cpu_s": 0.755,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 0.755
+      },
+      "A-FINITE-CHANNEL-009": {
+        "charged_cpu_s": 0.716,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.716
+      },
+      "A-FINITE-EXT-009": {
+        "charged_cpu_s": 0.705,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.705
+      },
+      "A-L2-OPTIMUM-013": {
+        "charged_cpu_s": 0.511,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.511
+      },
+      "A-L2-WITNESS-009": {
+        "charged_cpu_s": 0.438,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.438
+      },
+      "A-LP-SHAPE-SYSTEM314-017": {
+        "charged_cpu_s": 1.93,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.93
+      },
+      "A-PIPELINE-009": {
+        "charged_cpu_s": 0.508,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.508
+      },
+      "A-RED-DETERMINISTIC-013": {
+        "charged_cpu_s": 0.506,
+        "returncode": 2,
+        "status": "failed",
+        "wall_s": 0.506
+      },
+      "A-RED-PARITY-013": {
+        "charged_cpu_s": 0.511,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 0.511
+      },
+      "A-RED-REVIEW-COLLISION-013": {
+        "charged_cpu_s": 0.458,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 0.458
+      },
+      "A-RED-TASK-ACCESS-013": {
+        "charged_cpu_s": 0.515,
+        "returncode": 2,
+        "status": "failed",
+        "wall_s": 0.515
+      },
+      "A-RED-VARIABLE-META-013": {
+        "charged_cpu_s": 0.505,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 0.505
+      },
+      "A-REVIEWER-009": {
+        "charged_cpu_s": 0.509,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.509
+      },
+      "A-SMOKE-LP-SHAPE-013": {
+        "charged_cpu_s": 1.775,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.775
+      },
+      "B-CHECK-PLANNED-UNITS-015": {
+        "charged_cpu_s": 0.079,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.079
+      },
+      "B-FROZEN-LAWS-009": {
+        "charged_cpu_s": 0.04,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.04
+      },
+      "B-ROLE-SIZED-SMOKE-015": {
+        "charged_cpu_s": 3.824,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 3.824
+      },
+      "B-TEST-ATTACK-VIEWS-015": {
+        "charged_cpu_s": 0.379,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.379
+      },
+      "B-TEST-B4-INVARIANTS-015": {
+        "charged_cpu_s": 1.861,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.861
+      },
+      "B-TEST-BOTTLENECK-015": {
+        "charged_cpu_s": 0.908,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 0.908
+      },
+      "B-TEST-BUDGET-MODEL-015": {
+        "charged_cpu_s": 0.254,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.254
+      },
+      "B-TEST-CONTROL-ARTIFACTS-015": {
+        "charged_cpu_s": 1.457,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.457
+      },
+      "B-TEST-CONTROL-PIPELINE-015": {
+        "charged_cpu_s": 1.554,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.554
+      },
+      "B-TEST-CONTROL-PLAN-015": {
+        "charged_cpu_s": 0.251,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.251
+      },
+      "B-TEST-CONTROL-RUNNER-015": {
+        "charged_cpu_s": 0.893,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.893
+      },
+      "B-TEST-TRAIN-BOTTLENECK-015": {
+        "charged_cpu_s": 1.416,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.416
+      },
+      "C-FINITE-LAWS-016": {
+        "charged_cpu_s": 0.309,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.309
+      },
+      "C-ROLE-SIZED-SMOKE-016": {
+        "charged_cpu_s": 3.228,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 3.228
+      },
+      "C-TEST-CONTROL-RUN-016": {
+        "charged_cpu_s": 0.506,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.506
+      },
+      "C-TEST-CONTROLS-016": {
+        "charged_cpu_s": 0.255,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.255
+      },
+      "C-TEST-EVALUATION-016": {
+        "charged_cpu_s": 0.256,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.256
+      },
+      "C-TEST-PROTOTYPE-016": {
+        "charged_cpu_s": 0.263,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.263
+      },
+      "C-TEST-RELEASE-PACKAGE-016": {
+        "charged_cpu_s": 1.31,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.31
+      },
+      "C-TEST-REVIEW-CONTROLS-016": {
+        "charged_cpu_s": 0.253,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.253
+      },
+      "C-TEST-SCORECARD-BUILDER-016": {
+        "charged_cpu_s": 2.796,
+        "returncode": 1,
+        "status": "failed",
+        "wall_s": 2.796
+      },
+      "C-TEST-SELECTOR-016": {
+        "charged_cpu_s": 0.253,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.253
+      },
+      "C-TEST-TRAINING-016": {
+        "charged_cpu_s": 1.567,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.567
+      },
+      "D-ATTACK-VIEWS-012": {
+        "charged_cpu_s": 0.191,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.191
+      },
+      "D-CHECKPOINT-010": {
+        "charged_cpu_s": 1.665,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 1.665
+      },
+      "D-CONTROL-MATCH-012": {
+        "charged_cpu_s": 0.13,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.13
+      },
+      "D-CONTROLS-FIT-012": {
+        "charged_cpu_s": 3.062,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 3.062
+      },
+      "D-ENCODER-ADAPTER-012": {
+        "charged_cpu_s": 0.638,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.638
+      },
+      "D-LOCKED-LAWS-010": {
+        "charged_cpu_s": 0.191,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.191
+      },
+      "D-PROTOTYPE-010": {
+        "charged_cpu_s": 0.591,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.591
+      },
+      "D-ROLE-SIZED-SMOKE-011": {
+        "charged_cpu_s": 14.583,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 14.583
+      },
+      "D-TRAINER-010": {
+        "charged_cpu_s": 4.192,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 4.192
+      },
+      "S2-ROLE-ONLY-BYTE-REPLAY-V1": {
+        "charged_cpu_s": 0.529,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.529
+      },
+      "S2-SAFE-ROLE-EXPORT-REPLAY-V1": {
+        "charged_cpu_s": 0.765,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.765
+      },
+      "S2-SAFE-ROLE-EXPORT-V1": {
+        "charged_cpu_s": 0.766,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.766
+      },
+      "S4-INDEPENDENT-ENDPOINTS-019": {
+        "charged_cpu_s": 0.964,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.964
+      },
+      "S4-INDEPENDENT-EXPORT-REPLAY-COMPARE-V1": {
+        "charged_cpu_s": 0.071,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.071
+      },
+      "S4-INDEPENDENT-ROLE-AUDIT-V1": {
+        "charged_cpu_s": 0.643,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 0.643
+      },
+      "SHARED-BOOTSTRAP-SMOKE-018": {
+        "charged_cpu_s": 2.984,
+        "returncode": 0,
+        "status": "done",
+        "wall_s": 2.984
+      }
+    },
+    "verified_runtime_state": "One synthetic/custody slot under fresh occupancy; science-fit gate closed. Amendment 017-019 units closed; no running or planned unit."
+  },
+  "private_stream_custody": {
+    "contents_published": false,
+    "files": [
+      {
+        "bytes": 7502,
+        "id": "A_ONE_SHOT_STREAM_MANIFEST_V1",
+        "local_copy_uncached_hash_verified": true,
+        "representative_restore_hash_verified": true,
+        "sha256": "26f3a781cd79049c7079a2594bb999834e25aa2b6576022a79a9f15cff089dd9"
+      },
+      {
+        "bytes": 5151,
+        "id": "A_ONE_SHOT_STREAM_SEED2_SUPPLEMENT_V1",
+        "local_copy_uncached_hash_verified": true,
+        "representative_restore_hash_verified": true,
+        "sha256": "b5088b1089d19551124db463bb02595d291b56728eb829f1d6482e23ea825f9b"
+      }
+    ],
+    "off_device_backup": "PENDING: mounted drive write unavailable in sandbox",
+    "root": "shared/.private/custody (Git ignored)"
   },
   "process_inventory": {
-    "latest_snapshot_utc": "2026-10-08T09:37:38Z",
-    "source": "lsof -n -P -c Python -a -d cwd",
-    "observed_python": [
-      {"pid": 69623, "classification": "PCRL temporary mock directory", "ownership": "unconfirmed", "heavy_status": "unknown"},
-      {"pid": 74615, "classification": "other active project temporary work directory", "ownership": "other session", "heavy_status": "unknown"}
-    ],
     "additional_snapshot": "At 09:15 UTC another Python process in the other project's work directory was visible and its output log was actively updated; it was absent in the latest snapshot. A transient portfolio worktree Python process was visible at 09:21 UTC but absent at 09:27. The two persistent unclassified processes remained visible at 09:37 UTC. The other-project log changed at 09:26 UTC.",
+    "admission_consequence": "One portfolio slot available only after each fresh lsof occupancy check; PID 69623 archive/hash group reserves other slot. CPU/RSS of external group are unavailable because ps/top are OS-denied. No external process stopped.",
     "command_limitations": [
       "ps, pgrep and top were denied by the sandbox",
       "Activity Monitor computer-use access was denied",
       "lsof identifies open files and process working directories but does not establish CPU usage",
       "Other executable names and unwrapped jobs may be missed"
     ],
-    "external_heavy_reserved_slots": 2,
-    "admission_consequence": "No portfolio heavy process may start until a fresh permitted inventory and ownership check supports a smaller reservation. No other process was stopped."
-  },
-  "legacy_study_semaphores": {
-    "read_only_probe": "fcntl nonblocking flock on existing slot files",
-    "studies_probed": ["ccm_v1", "hcal_v1", "lra_v1", "cbp_v1", "qpc_v1"],
-    "finding": "Both slots in every probed study-specific semaphore were free at the probe; this does not prove whole-machine capacity.",
-    "coordination_gap": "Each predecessor uses a separate semaphore store; those locks do not enforce a shared limit across studies."
-  },
-  "portfolio_queue": {
-    "implementation": "results/pcrl_method_portfolio_v1/shared/compute_queue.py",
-    "private_runtime": "<PORTFOLIO_WORKTREE>/results/pcrl_method_portfolio_v1/shared/.private/compute",
-    "global_heavy_slots": 2,
-    "initial_state": "CLOSED",
-    "verified_runtime_state": "CLOSED by explicit gate and external_heavy=2; zero queued jobs; 180 conservative CPU seconds charged for prequeue engineering deviations",
-    "phase1_queue_index": {
-      "path": "results/pcrl_method_portfolio_v1/PHASE1_QUEUE_INDEX.json",
-      "sha256": "62e58f08761fe7095bb9a5511bb6517722030c6df8b7a47d400d819e46be7713",
-      "shared_law_sha256": "b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53",
-      "registered_test_and_source_files": 17,
-      "hash_mismatches": 0,
-      "gate_parse": "PASS at 2026-10-08T09:38:06Z; no numerical candidate was run"
-    },
-    "real_data_opening_conditions": ["S2 safe-input receipt", "pushed CAMPAIGN_LOCK.json receipt", "fresh machine occupancy receipt"],
-    "prelock_synthetic_opening_conditions": ["PHASE1_LOCK law and team test hashes verified", "data_access NONE declared", "max 120 s wall and 1.5 GiB RSS reservation", "fresh machine occupancy receipt"],
-    "occupancy_ttl_s": 120,
-    "external_reservation_initial": 2,
-    "max_portfolio_memory_gib": 6,
-    "free_disk_floor_gib": 5,
-    "numerical_threads_per_unit": 1,
-    "unit_accounting": "Every fit, attacker, calibration, preprocessing, forward, smoke, replay and numerical verification job needs an immutable queue unit. Unit receipt charges max(child CPU, elapsed wall), a conservative fallback when descendant accounting is incomplete.",
-    "signal_rule": "Only the launched campaign process group may be signalled. A timed-out or interrupted unit is retained as incomplete."
-  },
-  "campaign_budget": {
-    "elapsed_h": 10,
-    "cpu_h": 20,
-    "cloud_usd": 0,
-    "allocation_cpu_h": {"shared_setup": 3, "screens_total": 6, "finalists_total": 8, "independent_replay_closeout": 3},
-    "allocation_note": "Allocations guide the prelock unit plan; they are not measured forecasts or grounds to weaken required controls."
-  },
-  "historical_timing_evidence": {
-    "hcal_source": "results/pcrl_heldout_calibration_v1/TIMING.json at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
-    "fresh_five_table_attack_family_cpu_s_synthetic": 22.8,
-    "fresh_family_peak_rss_gib_synthetic": 1.27,
-    "hcal_closeout_source": "results/pcrl_heldout_calibration_v1/COST_AND_CLOSEOUT.md at 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
-    "hcal_captured_cpu_h": 2.12,
-    "hcal_uncaptured_control_attempt_upper_cpu_h": 0.43,
-    "hcal_peak_child_rss_gib_two_workers": [2.88, 1.65],
-    "transfer_limit": "These are score-release/calibration timings, not estimates for new bottleneck, mask-search or nonlinear-repair fits. Synthetic smoke timing is required before CAMPAIGN_LOCK."
-  },
-  "baseline_cache_inventory": {
-    "hcal_private_store_gib_approx": 1.3,
-    "lra_private_store_gib_approx": 1.4,
-    "hcal_admitted_lra_units": 540,
-    "hcal_admitted_unit_kinds": {"aud": 267, "new": 90, "pol": 81, "dec": 81, "ref": 9, "tea": 6, "fine": 3, "d0s": 3},
-    "hcal_private_decoder_packages": 7,
-    "hcal_excluded": ["outer__* old-assessment predictions and labels", "inner__* CBP custody", "cor__* fixtures"],
-    "historical_score_controls": ["U0 SRC|U", "Ucal SRC|U|H-GLOBAL-TEMP", "T* U|FINE-TASK|i8o64|H-GLOBAL-TEMP", "P* U|JOINT|i8o64|l0.1|H-CLASS-TEMP", "CLASS", "LOCAL", "SEQ-12", "SEQ-21"],
-    "reuse_rule": "A baseline is an alias only if source/code, split, seed, columns, preprocessing, architecture, calibration, output view and budget identities all match exactly. No portfolio aliases have been asserted yet. Private arrays and checkpoints remain private and read-only."
-  },
-  "actions": {
-    "heavy_jobs_launched_by_S3": 0,
-    "external_jobs_stopped": 0,
-    "new_data_acquired": false,
-    "cloud_resources_launched": false
-  },
-  "unqueued_engineering_checks": {
-    "status": "DEVIATION_RETAINED",
-    "scope": "Short synthetic-only or static-import tests run before all teams received the queue rule; no Adult array or model fit reported.",
-    "receipts": [
-      {"role": "A", "detail": "8 red TDD synthetic tests", "reported_wall_s": 0.05},
-      {"role": "B designer", "detail": "one focused pytest collection; missing SavedRelease import, no numerical execution", "reported_wall_s": 1.10},
-      {"role": "B implementer", "detail": "seven small Torch pytest commands; four reached numerical assertions, three stopped at import collection; no optimizer fit", "reported_wall_s_approx": 8},
-      {"role": "C", "detail": "14 initial synthetic tests; timing not supplied", "reported_wall_s": null},
-      {"role": "C designer", "detail": "15 synthetic tests passed; no Adult arrays or fit", "reported_wall_s": 0.2049},
-      {"role": "D", "detail": "13 initial synthetic tests; timing not supplied", "reported_wall_s": null},
-      {"role": "S2", "detail": "6 guard tests", "reported_wall_s": 0.015},
-      {"role": "S3", "detail": "queue engineering tests with trivial subprocess, repeated during red/green checks", "reported_wall_s": null}
+    "external_heavy_reserved_slots": 1,
+    "latest_snapshot_utc": "2026-10-08T15:50:10Z",
+    "observed_python": [
+      {
+        "classification": "PCRL temporary archive/hash process group with bash/cat/tee/zstd/sha256sum/bsdtar children",
+        "heavy_status": "reserved as one heavy group",
+        "ownership": "other session, not stopped",
+        "pid": 69623
+      }
     ],
-    "conservative_setup_cpu_charge_s": 180,
+    "source": "read-only lsof -n -P -a -d cwd"
+  },
+  "recorded_utc": "2026-10-08T15:53:51+00:00",
+  "schema": "pcrl-method-portfolio-resource-receipts-v1",
+  "unqueued_engineering_checks": {
     "charge_basis": "Known tests total under 10 seconds wall; 180 seconds reserves substantial allowance for untimed C/D/S3 checks and import overhead. This is a budget charge, not a measured CPU result.",
-    "future_rule": "Every further numerical test, including synthetic verification, enters the common queue after its applicable gate opens."
+    "conservative_setup_cpu_charge_s": 180,
+    "continuation_s3_queue_bootstrap_charge_s": 10,
+    "continuation_total_extra_charge_s": 12,
+    "future_rule": "Every further numerical test, including synthetic verification, enters the common queue after its applicable gate opens.",
+    "receipts": [
+      {
+        "detail": "8 red TDD synthetic tests",
+        "reported_wall_s": 0.05,
+        "role": "A"
+      },
+      {
+        "detail": "one focused pytest collection; missing SavedRelease import, no numerical execution",
+        "reported_wall_s": 1.1,
+        "role": "B designer"
+      },
+      {
+        "detail": "seven small Torch pytest commands; four reached numerical assertions, three stopped at import collection; no optimizer fit",
+        "reported_wall_s_approx": 8,
+        "role": "B implementer"
+      },
+      {
+        "detail": "14 initial synthetic tests; timing not supplied",
+        "reported_wall_s": null,
+        "role": "C"
+      },
+      {
+        "detail": "15 synthetic tests passed; no Adult arrays or fit",
+        "reported_wall_s": 0.2049,
+        "role": "C designer"
+      },
+      {
+        "detail": "13 initial synthetic tests; timing not supplied",
+        "reported_wall_s": null,
+        "role": "D"
+      },
+      {
+        "detail": "6 guard tests",
+        "reported_wall_s": 0.015,
+        "role": "S2"
+      },
+      {
+        "detail": "queue engineering tests with trivial subprocess, repeated during red/green checks",
+        "reported_wall_s": null,
+        "role": "S3"
+      },
+      {
+        "conservative_cpu_charge_s": 2,
+        "detail": "11 tiny direct synthetic tests; no Adult data or model fit",
+        "reported_test_execution_s": 0.05,
+        "role": "C analyst continuation"
+      }
+    ],
+    "scope": "Short synthetic-only or static-import tests run before all teams received the queue rule; no Adult array or model fit reported.",
+    "status": "DEVIATION_RETAINED"
   }
 }

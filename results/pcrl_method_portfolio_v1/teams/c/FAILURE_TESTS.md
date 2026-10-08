@@ -11,7 +11,7 @@
 ## Real-data engineering controls
 
 - **Full-view serialization:** For each recipient and aligned pair, round-trip raw selected values, probability vectors, decisions, mask/feature names, head/calibrator identity and every flag. Independently hash views and compare with deployment output. A score-only serialization fails the feature contract.
-- **Shortcut probe:** When relationship is retained (`C_FULL`), the attacker must see Husband/Wife one-hot values. Report their coverage and SEX recovery within those rows. For every selected raw feature, test a raw-only reader. If complete-view AUC is implausibly below a raw-only AUC or below an ignore-one-recipient route, treat it as an attack or serialization failure.
+- **Shortcut probe:** When relationship is retained (`C-FULL-FEATURE`), the attacker must see Husband/Wife one-hot values. Report their coverage and SEX recovery within those rows. For every selected raw feature, test a raw-only reader. If complete-view AUC is implausibly below a raw-only AUC or below an ignore-one-recipient route, treat it as an attack or serialization failure.
 - **Leak controls:** Shuffled SEX must give null recovery by the frozen threshold; a constant reader establishes prevalence; a planted SEX bit in a separate engineering copy must be found by the same attack pipeline. Mask identity is supplied to defense-aware readers even though it is global within an arm. A failed control invalidates the affected attack result.
 - **Independent coalition check:** Rebuild the raw union from both transmitted vectors, deduplicate shared atoms, keep aligned people, append both outputs/metadata, and verify neither local view contains the other party's private fields. Report three attack AUCs, including ignore-recipient alternatives. Do not reduce coalition recovery to a difference between local AUCs.
 - **Utility:** Report accuracy, mean NLL, multiclass Brier, per-class recall, and confidence against both frozen U0 and Ucal, for both tasks and each paired seed. Fit the same H-GLOBAL-TEMP family for every arm. A point estimate within cap is only promotion-eligible; a crossing simultaneous interval is `UNRESOLVED`.
@@ -23,8 +23,8 @@
 |---|---|
 | All privacy-reducing masks violate either task's mean utility cap against U0 or Ucal | Stop Team C real-data development; report utility shortfall. |
 | Raw-only or complete-view fresh nonlinear coalition attack removes the apparent privacy gain | Stop the claimed privacy result; keep code/results as development evidence. |
-| `C_DROP_REL` matches the candidate at usable utility | Attribute the result to simple removal of a known proxy; no joint selector claim. |
-| Either task-only arm, either independent arm, `C_GENERIC` or either sequential order matches the candidate under equal recipient/union capacity | Report the winning simpler/known control; no joint-design lead. |
+| `C-DROP-RELATIONSHIP` matches the candidate at usable utility | Attribute the result to simple removal of a known proxy; no joint selector claim. |
+| Either task-only arm, either independent arm, a compatible prior control, or either sequential order matches the candidate under equal recipient/union capacity | Report the winning simpler/known control; no joint-design lead. |
 | Local SEX AUC increases by more than the common 0.010 cap while coalition AUC decreases | Failure of the no-leakage-shift objective. |
 | Candidate has lower measured leakage only because it transmits fewer raw facts or scores a different view | Mark comparison invalid; restore matched capacity/view before interpreting. |
 | Utility point estimates meet caps but simultaneous intervals cross a boundary | `PRECISION_LIMITED`, eligible for promotion under the frozen rule but not a passed criterion. |

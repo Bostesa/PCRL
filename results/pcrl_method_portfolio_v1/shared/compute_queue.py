@@ -48,6 +48,8 @@ DISK_FLOOR_GIB = 5.0
 OCCUPANCY_TTL_S = 120
 PRELOCK_MAX_WALL_S = 120
 PRELOCK_MAX_RSS_GIB = 1.5
+PRESEAL_SMOKE_MAX_WALL_S = 1800
+PRESEAL_SMOKE_MAX_RSS_GIB = 2.0
 UNIT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
@@ -111,6 +113,18 @@ class Queue:
                         "manually_closed": False,
                         "phase1_lock_path": None,
                         "phase1_lock_sha256": None,
+                        "export_authorized": False,
+                        "export_reviewed_sha256": None,
+                        "audit_authorized": False,
+                        "audit_reviewed_sha256": None,
+                        "replay_authorized": False,
+                        "replay_reviewed_sha256": None,
+                        "export_replay_authorized": False,
+                        "export_replay_reviewed_sha256": None,
+                        "compare_authorized": False,
+                        "compare_reviewed_sha256": None,
+                        "local_seal_path": None,
+                        "local_seal_sha256": None,
                     },
                     "units": {},
                     "deviations": {},
@@ -142,8 +156,35 @@ class Queue:
         with self._mutex():
             state = self._read()
             state["elapsed_wall_s"] = max(0.0, (dt.datetime.now(dt.timezone.utc) - parse_utc(state["campaign_start_utc"])).total_seconds())
+            if "budget_epoch" in state:
+                state["budget_epoch"]["elapsed_wall_s"] = max(0.0, (dt.datetime.now(dt.timezone.utc) - parse_utc(state["budget_epoch"]["start_utc"])).total_seconds())
             state["free_disk_gib"] = self._free_disk_gib()
             return state
+
+    def begin_continuation(self, start_utc: str) -> dict:
+        """Start one new authorized budget epoch without erasing campaign history."""
+        parsed = parse_utc(start_utc)
+        if parsed.tzinfo is None:
+            raise ValueError("continuation start must include UTC offset")
+        with self._mutex():
+            state = self._read()
+            if any(u["status"] == "running" for u in state["units"].values()):
+                raise RuntimeError("cannot change budget epoch while a unit runs")
+            old = state.get("budget_epoch")
+            if old:
+                if old["start_utc"] != start_utc:
+                    raise ValueError("continuation epoch is immutable")
+                return old
+            state["budget_epoch"] = {
+                "start_utc": start_utc,
+                "budget_cpu_s": CPU_BUDGET_S,
+                "budget_wall_s": WALL_BUDGET_S,
+                "used_cpu_s": 0.0,
+                "prior_campaign_used_cpu_s": state["used_cpu_s"],
+            }
+            self._save(state)
+            self._receipt("continuation_epoch", epoch=state["budget_epoch"])
+            return state["budget_epoch"]
 
     def enqueue(self, spec: dict) -> dict:
         needed = ("unit_id", "argv", "cwd", "deps", "max_wall_s", "cpu_reserve_s", "max_rss_gib", "stage")
@@ -168,11 +209,70 @@ class Queue:
         spec.setdefault("mode", "real_data")
         if not isinstance(spec["outputs"], list) or not isinstance(spec["env"], dict):
             raise ValueError("outputs or env malformed")
-        if spec["mode"] == "prelock_synthetic":
+        if spec["mode"] in ("prelock_synthetic", "preseal_smoke"):
             if spec.get("data_access") != "NONE" or not all(spec.get(k) for k in ("team", "test_file", "test_sha256")):
-                raise ValueError("prelock synthetic unit needs NONE data access, team, and frozen test identity")
-            if float(spec["max_wall_s"]) > PRELOCK_MAX_WALL_S or float(spec["max_rss_gib"]) > PRELOCK_MAX_RSS_GIB:
-                raise ValueError("prelock synthetic unit exceeds its short wall/RSS limits")
+                raise ValueError("synthetic unit needs NONE data access, team, and frozen test identity")
+            wall_cap = PRELOCK_MAX_WALL_S if spec["mode"] == "prelock_synthetic" else PRESEAL_SMOKE_MAX_WALL_S
+            rss_cap = PRELOCK_MAX_RSS_GIB if spec["mode"] == "prelock_synthetic" else PRESEAL_SMOKE_MAX_RSS_GIB
+            if float(spec["max_wall_s"]) > wall_cap or float(spec["max_rss_gib"]) > rss_cap:
+                raise ValueError("synthetic unit exceeds its predeclared wall/RSS limits")
+        elif spec["mode"] == "role_export":
+            if spec.get("data_access") != "S4_REVIEWED_SINGLE_PASS_SOURCE_ZIP":
+                raise ValueError("role export needs exact S4-reviewed data access")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("role export script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed export script must appear in argv")
+            if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 1.0:
+                raise ValueError("role export exceeds S4-reviewed ceiling")
+        elif spec["mode"] == "role_audit":
+            if spec.get("data_access") != "IDENTITY_ONLY_SOURCE_AND_ALLOWED_ROLE_EXPORT":
+                raise ValueError("role audit needs exact identity-only access declaration")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("role audit script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed audit script must appear in argv")
+            if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 1.0:
+                raise ValueError("role audit exceeds bounded ceiling")
+        elif spec["mode"] == "role_replay":
+            if spec.get("data_access") != "ADMITTED_ROLE_EXPORT_ONLY":
+                raise ValueError("role replay must read only admitted role exports")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("role replay script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed replay script must appear in argv")
+            if float(spec["max_wall_s"]) > 60 or float(spec["max_rss_gib"]) > 0.5:
+                raise ValueError("role replay exceeds bounded ceiling")
+        elif spec["mode"] == "role_export_replay":
+            if spec.get("data_access") != "S4_REVIEWED_REPEAT_FOR_BYTE_DETERMINISM":
+                raise ValueError("repeat export needs explicit S4-reviewed source access")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("repeat exporter script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed exporter must appear in argv")
+            if not spec.get("preserved_first_path") or not spec.get("replay_output_path"):
+                raise ValueError("repeat export needs first and second paths")
+            if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 1.0:
+                raise ValueError("repeat export exceeds bounded ceiling")
+        elif spec["mode"] == "role_compare":
+            if spec.get("data_access") != "TWO_ALLOWED_EXPORT_TREES_ONLY":
+                raise ValueError("comparison may read only two allowed export trees")
+            reviewed = Path(spec.get("reviewed_script", ""))
+            if not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256"):
+                raise ValueError("comparison script/hash mismatch")
+            argv_paths = [(Path(spec["cwd"]) / arg).resolve() for arg in spec["argv"]]
+            if reviewed.resolve() not in argv_paths:
+                raise ValueError("reviewed comparison script must appear in argv")
+            if float(spec["max_wall_s"]) > 120 or float(spec["max_rss_gib"]) > 0.5:
+                raise ValueError("comparison exceeds bounded ceiling")
         elif spec["mode"] != "real_data":
             raise ValueError("unknown unit mode")
         with self._mutex():
@@ -182,6 +282,8 @@ class Queue:
                 if canonical(old["spec"]) != canonical(spec):
                     raise ValueError("unit ID is immutable; use a new ID for a changed command or scope")
                 return old
+            if spec["mode"] in ("role_export", "role_audit", "role_replay", "role_export_replay", "role_compare") and any(u["spec"].get("mode") == spec["mode"] for u in state["units"].values()):
+                raise ValueError(f"single {spec['mode']} already registered")
             state["units"][spec["unit_id"]] = {"spec": spec, "status": "planned"}
             self._save(state)
             self._receipt("enqueue", unit_id=spec["unit_id"], stage=spec["stage"], spec_sha256=hashlib.sha256(canonical(spec).encode()).hexdigest())
@@ -201,13 +303,21 @@ class Queue:
                 return old
             state["deviations"][deviation_id] = record
             state["used_cpu_s"] += charged_cpu_s
+            if "budget_epoch" in state:
+                state["budget_epoch"]["used_cpu_s"] += charged_cpu_s
             self._save(state)
             self._receipt("deviation_charge", deviation_id=deviation_id, **record)
             return record
 
     def update_gate(self, *, safe_inputs: bool, lock_pushed: bool, occupancy_confirmed: bool,
                     external_heavy: int, evidence: dict | None = None, manually_closed: bool = False,
-                    phase1_lock_path: str | None = None, phase1_lock_sha256: str | None = None) -> dict:
+                    phase1_lock_path: str | None = None, phase1_lock_sha256: str | None = None,
+                    export_authorized: bool = False, export_reviewed_sha256: str | None = None,
+                    audit_authorized: bool = False, audit_reviewed_sha256: str | None = None,
+                    replay_authorized: bool = False, replay_reviewed_sha256: str | None = None,
+                    export_replay_authorized: bool = False, export_replay_reviewed_sha256: str | None = None,
+                    compare_authorized: bool = False, compare_reviewed_sha256: str | None = None,
+                    local_seal_path: str | None = None, local_seal_sha256: str | None = None) -> dict:
         if external_heavy not in (0, 1, 2):
             raise ValueError("external_heavy must be 0, 1, or 2")
         if phase1_lock_path is not None:
@@ -218,6 +328,9 @@ class Queue:
             law_path = Path(phase1_lock_path).parent / laws.get("path", "")
             if not law_path.is_file() or sha256_file(law_path) != laws.get("sha256"):
                 raise ValueError("PHASE1_LOCK law file/hash mismatch")
+        if local_seal_path is not None:
+            if not local_seal_sha256 or sha256_file(Path(local_seal_path)) != local_seal_sha256:
+                raise ValueError("local seal receipt file/hash mismatch")
         with self._mutex():
             state = self._read()
             if any(u["status"] == "running" for u in state["units"].values()):
@@ -232,6 +345,18 @@ class Queue:
                 "manually_closed": bool(manually_closed),
                 "phase1_lock_path": phase1_lock_path or state["gate"].get("phase1_lock_path"),
                 "phase1_lock_sha256": phase1_lock_sha256 or state["gate"].get("phase1_lock_sha256"),
+                "export_authorized": bool(export_authorized),
+                "export_reviewed_sha256": export_reviewed_sha256,
+                "audit_authorized": bool(audit_authorized),
+                "audit_reviewed_sha256": audit_reviewed_sha256,
+                "replay_authorized": bool(replay_authorized),
+                "replay_reviewed_sha256": replay_reviewed_sha256,
+                "export_replay_authorized": bool(export_replay_authorized),
+                "export_replay_reviewed_sha256": export_replay_reviewed_sha256,
+                "compare_authorized": bool(compare_authorized),
+                "compare_reviewed_sha256": compare_reviewed_sha256,
+                "local_seal_path": local_seal_path,
+                "local_seal_sha256": local_seal_sha256,
             }
             self._save(state)
             self._receipt("gate", gate=state["gate"])
@@ -240,6 +365,64 @@ class Queue:
     def _free_disk_gib(self) -> float:
         fs = os.statvfs(self.root)
         return fs.f_bavail * fs.f_frsize / 1024**3
+
+    @staticmethod
+    def _local_seal_ok(gate: dict) -> bool:
+        """Verify current lock, S2 admission, S4 review, and committed Git blob."""
+        receipt_path = Path(gate.get("local_seal_path") or "")
+        receipt_sha = gate.get("local_seal_sha256")
+        if not receipt_sha or not receipt_path.is_file() or sha256_file(receipt_path) != receipt_sha:
+            return False
+        try:
+            receipt = json.loads(receipt_path.read_text())
+            commit = receipt.get("commit_sha") or receipt.get("lock_commit_sha")
+            lock_sha = receipt.get("campaign_lock_sha256") or receipt.get("lock_sha256")
+            if (receipt.get("status") != "PASS" or
+                not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit) or
+                not isinstance(lock_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", lock_sha)):
+                return False
+            if receipt.get("commit_sha", commit) != commit or receipt.get("lock_commit_sha", commit) != commit:
+                return False
+            if receipt.get("campaign_lock_sha256", lock_sha) != lock_sha or receipt.get("lock_sha256", lock_sha) != lock_sha:
+                return False
+            review_name = receipt.get("review_path") or receipt.get("s4_review_path")
+            review_sha = receipt.get("review_sha256") or receipt.get("s4_review_sha256")
+            if review_name != "S4_PREFIT_SEAL_REVIEW.json" or not isinstance(review_sha, str):
+                return False
+            review_path = receipt_path.parent / review_name
+            if not review_path.is_file() or sha256_file(review_path) != review_sha:
+                return False
+            review = json.loads(review_path.read_text())
+            if (review.get("status") != "PASS" or
+                (review.get("lock_commit_sha") or review.get("commit_sha")) != commit or
+                (review.get("lock_sha256") or review.get("campaign_lock_sha256")) != lock_sha):
+                return False
+            lock_path = receipt_path.parent / "CAMPAIGN_LOCK.json"
+            if not lock_path.is_file() or sha256_file(lock_path) != lock_sha:
+                return False
+            lock = json.loads(lock_path.read_text())
+            if lock.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or lock.get("adult_fit_permission") is not True:
+                return False
+            admission = lock.get("data_admission", {})
+            manifest = receipt_path.parent / "DATA_ACCESS_MANIFEST.json"
+            audit = receipt_path.parent / "S4_ROLE_EXPORT_VERIFICATION.json"
+            if (not manifest.is_file() or not audit.is_file() or
+                sha256_file(manifest) != admission.get("manifest_sha256") or
+                sha256_file(audit) != admission.get("s4_audit_receipt_sha256") or
+                json.loads(manifest.read_text()).get("status") != "ROLE_FILES_ADMITTED_S4_VERIFIED" or
+                json.loads(audit.read_text()).get("status") != "PASS"):
+                return False
+            repo = receipt_path.parent.parent.parent
+            relative = lock_path.relative_to(repo)
+            committed = subprocess.run(["git", "-C", str(repo), "show", f"{commit}:{relative}"],
+                                       capture_output=True, check=False, timeout=10)
+            if committed.returncode or hashlib.sha256(committed.stdout).hexdigest() != lock_sha:
+                return False
+            ancestor = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, "HEAD"],
+                                      capture_output=True, check=False, timeout=10)
+            return ancestor.returncode == 0
+        except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+            return False
 
     def _gate_status(self, state: dict, spec: dict) -> str | None:
         gate = state["gate"]
@@ -250,13 +433,60 @@ class Queue:
             return "occupancy_stale"
         if gate["external_heavy"] >= SLOTS:
             return "external_capacity_full"
-        if (dt.datetime.now(dt.timezone.utc) - parse_utc(state["campaign_start_utc"])).total_seconds() >= state["budget_wall_s"]:
+        epoch = state.get("budget_epoch")
+        epoch_start = epoch["start_utc"] if epoch else state["campaign_start_utc"]
+        epoch_wall_budget = epoch["budget_wall_s"] if epoch else state["budget_wall_s"]
+        epoch_cpu_budget = epoch["budget_cpu_s"] if epoch else state["budget_cpu_s"]
+        epoch_cpu_used = epoch["used_cpu_s"] if epoch else state["used_cpu_s"]
+        if (dt.datetime.now(dt.timezone.utc) - parse_utc(epoch_start)).total_seconds() >= epoch_wall_budget:
             return "wall_budget_exhausted"
-        if state["used_cpu_s"] >= state["budget_cpu_s"]:
+        if epoch_cpu_used >= epoch_cpu_budget:
             return "cpu_budget_exhausted"
         if self._free_disk_gib() < state["disk_floor_gib"]:
             return "disk_floor_reached"
-        if spec.get("mode", "real_data") == "prelock_synthetic":
+        if spec.get("mode", "real_data") == "role_export":
+            reviewed = Path(spec["reviewed_script"])
+            if (not gate.get("export_authorized") or
+                gate.get("export_reviewed_sha256") != spec.get("reviewed_sha256") or
+                not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256")):
+                return "export_review_missing"
+        elif spec.get("mode", "real_data") == "role_audit":
+            reviewed = Path(spec["reviewed_script"])
+            if (not gate.get("audit_authorized") or
+                gate.get("audit_reviewed_sha256") != spec.get("reviewed_sha256") or
+                not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256")):
+                return "audit_review_missing"
+            if state["units"].get("S2-SAFE-ROLE-EXPORT-V1", {}).get("status") != "done":
+                return "export_not_complete"
+        elif spec.get("mode", "real_data") == "role_replay":
+            reviewed = Path(spec["reviewed_script"])
+            if (not gate.get("replay_authorized") or
+                gate.get("replay_reviewed_sha256") != spec.get("reviewed_sha256") or
+                not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256")):
+                return "replay_review_missing"
+            if state["units"].get("S4-INDEPENDENT-ROLE-AUDIT-V1", {}).get("status") != "done":
+                return "role_audit_not_complete"
+        elif spec.get("mode", "real_data") == "role_export_replay":
+            reviewed = Path(spec["reviewed_script"])
+            first = state["units"].get("S2-SAFE-ROLE-EXPORT-V1", {})
+            if (not gate.get("export_replay_authorized") or
+                gate.get("export_replay_reviewed_sha256") != spec.get("reviewed_sha256") or
+                first.get("status") != "done" or
+                first.get("spec", {}).get("reviewed_sha256") != spec.get("reviewed_sha256") or
+                not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256")):
+                return "export_replay_review_missing"
+            if (not Path(spec["preserved_first_path"]).is_dir() or
+                Path(spec["replay_output_path"]).exists()):
+                return "first_export_not_preserved"
+        elif spec.get("mode", "real_data") == "role_compare":
+            reviewed = Path(spec["reviewed_script"])
+            if (not gate.get("compare_authorized") or
+                gate.get("compare_reviewed_sha256") != spec.get("reviewed_sha256") or
+                not reviewed.is_file() or sha256_file(reviewed) != spec.get("reviewed_sha256")):
+                return "compare_review_missing"
+            if state["units"].get("S2-SAFE-ROLE-EXPORT-REPLAY-V1", {}).get("status") != "done":
+                return "second_export_not_complete"
+        elif spec.get("mode", "real_data") in ("prelock_synthetic", "preseal_smoke"):
             lock_path = gate.get("phase1_lock_path")
             lock_hash = gate.get("phase1_lock_sha256")
             if not lock_path or not lock_hash or not Path(lock_path).is_file() or sha256_file(Path(lock_path)) != lock_hash:
@@ -283,14 +513,97 @@ class Queue:
                     break
             if not matched:
                 return "phase1_test_unregistered"
-        elif not gate["safe_inputs"] or not gate["lock_pushed"]:
+            for source in lock.get("source_code_hashes", {}).get(spec.get("team"), []):
+                source_path = Path(spec["cwd"]) / "results" / "pcrl_method_portfolio_v1" / source.get("path", "")
+                if not source_path.is_file() or sha256_file(source_path) != source.get("sha256"):
+                    return "phase1_source_changed"
+        elif not gate["safe_inputs"]:
             return "gate_closed"
+        elif not gate["lock_pushed"] and not self._local_seal_ok(gate):
+            return "local_seal_invalid"
         return None
+
+    def _orphan_unresolved(self, state: dict) -> bool:
+        """Fail closed if a recorded running unit has lost its slot lock."""
+        for unit in state["units"].values():
+            if unit["status"] != "running":
+                continue
+            slot = unit.get("slot")
+            if slot not in range(SLOTS):
+                return True
+            with (self.root / f"slot{slot}.lock").open("a+") as probe:
+                try:
+                    fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    continue
+                else:
+                    fcntl.flock(probe, fcntl.LOCK_UN)
+                    return True
+        return False
+
+    def recover_orphan(self, unit_id: str, note: str) -> dict:
+        """Close a dead own-worker claim after proving slot and process group are gone.
+
+        Recovery never reruns the original unit and charges its full CPU reserve.
+        The caller must separately register a new unit for any retry.
+        """
+        if not note.strip():
+            raise ValueError("orphan recovery needs an evidence note")
+
+        def alive(pid: int | None, *, group: bool = False) -> bool:
+            if not isinstance(pid, int) or pid <= 0:
+                return False
+            try:
+                if group:
+                    os.killpg(pid, 0)
+                else:
+                    os.kill(pid, 0)
+            except ProcessLookupError:
+                return False
+            except PermissionError:
+                return True
+            return True
+
+        with self._mutex():
+            state = self._read()
+            unit = state["units"].get(unit_id)
+            if not unit or unit["status"] != "running":
+                raise ValueError("unit is not an unresolved running claim")
+            slot = unit.get("slot")
+            if slot not in range(SLOTS):
+                raise RuntimeError("invalid slot claim needs separate investigation")
+            with (self.root / f"slot{slot}.lock").open("a+") as probe:
+                try:
+                    fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError as exc:
+                    raise RuntimeError("slot or child still holds lock") from exc
+                finally:
+                    # The context closes the probe; no external process is signalled.
+                    pass
+                fcntl.flock(probe, fcntl.LOCK_UN)
+            if alive(unit.get("worker_pid")) or alive(unit.get("child_pgid"), group=True):
+                raise RuntimeError("owned worker or child process group still exists")
+            charge = float(unit["spec"]["cpu_reserve_s"])
+            receipt = {"unit_id": unit_id, "status": "incomplete", "reason": "orphan_recovered",
+                       "evidence_note": note, "charged_cpu_s": charge,
+                       "recovered_utc": utc_now(), "slot": slot,
+                       "worker_pid": unit.get("worker_pid"),
+                       "child_pgid": unit.get("child_pgid")}
+            unit.update(receipt)
+            state["used_cpu_s"] += charge
+            if "budget_epoch" in state:
+                state["budget_epoch"]["used_cpu_s"] += charge
+            self._save(state)
+            self._receipt("orphan_recovery", **receipt)
+            atomic_json(self.root / "units" / unit_id / "RECOVERY.json", receipt)
+            return receipt
 
     def run_once(self) -> dict:
         # A slot is held by flock until the launched process group has exited.
         with self._mutex():
             state = self._read()
+            if self._orphan_unresolved(state):
+                return {"status": "orphan_unresolved"}
             planned = [u["spec"] for u in state["units"].values() if u["status"] == "planned"]
             if not planned:
                 return {"status": "empty"}
@@ -314,6 +627,8 @@ class Queue:
         try:
             with self._mutex():
                 state = self._read()
+                if self._orphan_unresolved(state):
+                    return {"status": "orphan_unresolved"}
                 if slot >= SLOTS - state["gate"]["external_heavy"]:
                     return {"status": "external_capacity_full"}
                 running_rss = sum(float(u["spec"]["max_rss_gib"]) for u in state["units"].values() if u["status"] == "running")
@@ -326,10 +641,15 @@ class Queue:
                         continue
                     if not all(state["units"].get(dep, {}).get("status") == "done" for dep in spec["deps"]):
                         continue
-                    elapsed = (dt.datetime.now(dt.timezone.utc) - parse_utc(state["campaign_start_utc"])).total_seconds()
-                    if state["used_cpu_s"] + sum(float(u["spec"]["cpu_reserve_s"]) for u in state["units"].values() if u["status"] == "running") + float(spec["cpu_reserve_s"]) > state["budget_cpu_s"]:
+                    epoch = state.get("budget_epoch")
+                    epoch_start = epoch["start_utc"] if epoch else state["campaign_start_utc"]
+                    epoch_cpu_used = epoch["used_cpu_s"] if epoch else state["used_cpu_s"]
+                    epoch_cpu_budget = epoch["budget_cpu_s"] if epoch else state["budget_cpu_s"]
+                    epoch_wall_budget = epoch["budget_wall_s"] if epoch else state["budget_wall_s"]
+                    elapsed = (dt.datetime.now(dt.timezone.utc) - parse_utc(epoch_start)).total_seconds()
+                    if epoch_cpu_used + sum(float(u["spec"]["cpu_reserve_s"]) for u in state["units"].values() if u["status"] == "running") + float(spec["cpu_reserve_s"]) > epoch_cpu_budget:
                         continue
-                    if elapsed + float(spec["max_wall_s"]) > state["budget_wall_s"]:
+                    if elapsed + float(spec["max_wall_s"]) > epoch_wall_budget:
                         continue
                     if running_rss + float(spec["max_rss_gib"]) > state["memory_budget_gib"]:
                         continue
@@ -343,12 +663,12 @@ class Queue:
                 unit.update(status="running", slot=slot, worker_pid=os.getpid(), started_utc=utc_now())
                 self._save(state)
                 self._receipt("start", unit_id=uid, slot=slot, worker_pid=os.getpid())
-            return self._run_unit(uid, unit["spec"], slot)
+            return self._run_unit(uid, unit["spec"], slot, slot_handle)
         finally:
             fcntl.flock(slot_handle, fcntl.LOCK_UN)
             slot_handle.close()
 
-    def _run_unit(self, uid: str, spec: dict, slot: int) -> dict:
+    def _run_unit(self, uid: str, spec: dict, slot: int, slot_handle) -> dict:
         unit_dir = self.root / "units" / uid
         unit_dir.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()
@@ -381,7 +701,12 @@ class Queue:
             with (unit_dir / "stdout.log").open("ab") as out, (unit_dir / "stderr.log").open("ab") as err:
                 process = subprocess.Popen(spec["argv"], cwd=spec["cwd"], env=env,
                                            stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-                                           start_new_session=True)
+                                           start_new_session=True, pass_fds=(slot_handle.fileno(),))
+                with self._mutex():
+                    state = self._read()
+                    state["units"][uid]["child_pgid"] = process.pid
+                    self._save(state)
+                    self._receipt("child_started", unit_id=uid, child_pgid=process.pid)
                 deadline = start_wall + float(spec["max_wall_s"])
                 while True:
                     try:
@@ -454,6 +779,7 @@ class Queue:
                 "charged_cpu_s": round(charge_s, 3),
                 "maxrss_raw": r1.ru_maxrss,
                 "maxrss_platform": platform.system(),
+                "maxrss_scope": "wrapper_child_maximum; cumulative upper bound when run_once reused in one wrapper process",
                 "output_sha256": output_hashes,
                 "timed_out": timed_out,
                 "interrupted": interrupted,
@@ -462,6 +788,8 @@ class Queue:
             with self._mutex():
                 state = self._read()
                 state["used_cpu_s"] += charge_s
+                if "budget_epoch" in state:
+                    state["budget_epoch"]["used_cpu_s"] += charge_s
                 state["units"][uid].update(receipt)
                 self._save(state)
                 self._receipt("finish", **receipt)
@@ -487,11 +815,26 @@ def main(argv: list[str] | None = None) -> int:
     gate.add_argument("--close", action="store_true")
     gate.add_argument("--phase1-lock-path")
     gate.add_argument("--phase1-lock-sha256")
+    gate.add_argument("--export-authorized", action="store_true")
+    gate.add_argument("--export-reviewed-sha256")
+    gate.add_argument("--audit-authorized", action="store_true")
+    gate.add_argument("--audit-reviewed-sha256")
+    gate.add_argument("--replay-authorized", action="store_true")
+    gate.add_argument("--replay-reviewed-sha256")
+    gate.add_argument("--export-replay-authorized", action="store_true")
+    gate.add_argument("--export-replay-reviewed-sha256")
+    gate.add_argument("--compare-authorized", action="store_true")
+    gate.add_argument("--compare-reviewed-sha256")
+    gate.add_argument("--local-seal-path")
+    gate.add_argument("--local-seal-sha256")
     sub.add_parser("run-once")
     charge = sub.add_parser("charge")
     charge.add_argument("deviation_id")
     charge.add_argument("charged_cpu_s", type=float)
     charge.add_argument("note")
+    recovery = sub.add_parser("recover-orphan")
+    recovery.add_argument("unit_id")
+    recovery.add_argument("note")
     args = parser.parse_args(argv)
     queue = Queue(args.root)
     if args.action == "status":
@@ -505,9 +848,23 @@ def main(argv: list[str] | None = None) -> int:
                                    external_heavy=args.external_heavy, evidence=evidence,
                                    manually_closed=args.close,
                                    phase1_lock_path=args.phase1_lock_path,
-                                   phase1_lock_sha256=args.phase1_lock_sha256)
+                                   phase1_lock_sha256=args.phase1_lock_sha256,
+                                   export_authorized=args.export_authorized,
+                                   export_reviewed_sha256=args.export_reviewed_sha256,
+                                   audit_authorized=args.audit_authorized,
+                                   audit_reviewed_sha256=args.audit_reviewed_sha256,
+                                   replay_authorized=args.replay_authorized,
+                                   replay_reviewed_sha256=args.replay_reviewed_sha256,
+                                   export_replay_authorized=args.export_replay_authorized,
+                                   export_replay_reviewed_sha256=args.export_replay_reviewed_sha256,
+                                   compare_authorized=args.compare_authorized,
+                                   compare_reviewed_sha256=args.compare_reviewed_sha256,
+                                   local_seal_path=args.local_seal_path,
+                                   local_seal_sha256=args.local_seal_sha256)
     elif args.action == "charge":
         result = queue.record_deviation(args.deviation_id, args.charged_cpu_s, args.note)
+    elif args.action == "recover-orphan":
+        result = queue.recover_orphan(args.unit_id, args.note)
     else:
         result = queue.run_once()
     print(json.dumps(result, indent=2, sort_keys=True))

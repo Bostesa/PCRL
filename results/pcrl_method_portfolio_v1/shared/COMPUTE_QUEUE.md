@@ -4,7 +4,7 @@ S3 owns this single queue. Every fit, attacker, calibration, preprocessing, forw
 
 The private runtime is `<PORTFOLIO_WORKTREE>/results/pcrl_method_portfolio_v1/shared/.private/compute`, ignored by Git. All team worktrees must pass that same absolute directory to `--root`. The queue uses two `flock` slots, immutable unit specifications, append-only receipts, atomic per-unit status, one-thread numerical environment variables, a 20 CPU-hour ledger and a 10 elapsed-hour deadline. A conservative CPU charge uses the greater of child CPU and wall time. This avoids undercounting descendants after a signal but can overcharge idle time.
 
-The queue begins closed, with two external slots reserved. `lsof` can inventory some processes, but it cannot measure their CPU use. S3 records the external reservation and refreshes the occupancy check within 120 seconds of each admission. Uncooperative external jobs cannot be controlled by this queue. It never signals their PIDs.
+The queue begins closed, with two external slots reserved. `lsof` can inventory some processes, but it cannot measure their CPU use. S3 records the external reservation and refreshes the occupancy check within 120 seconds of each admission. Uncooperative external jobs cannot be controlled by this queue. It never signals their PIDs. The 2026-10-08 15:10 UTC continuation has its own 10-hour/20-CPU-hour budget epoch; earlier charges remain in the cumulative ledger.
 
 ## Commands
 
@@ -16,7 +16,9 @@ Run from the campaign worktree, using the same `<QUEUE_ROOT>` in every team:
 <python> results/pcrl_method_portfolio_v1/shared/compute_queue.py --root <QUEUE_ROOT> run-once
 ```
 
-S3 opens **prelock synthetic admission** only after verifying the fixed Phase I law and team test hashes, plus a fresh occupancy receipt. The S1 cumulative Phase I queue index preserves the original lock and dated amendments. A prelock unit declares `mode: "prelock_synthetic"`, `data_access: "NONE"`, `team`, `test_file`, `test_sha256`, at most 120 seconds wall and 1.5 GiB RSS. It cannot read Adult data. The code checks file hashes and the registered path suffix across isolated team worktrees; S3 separately reviews imports and runtime inputs.
+S3 opens **prelock synthetic admission** only after verifying the fixed Phase I law and team test **and imported source** hashes, plus a fresh occupancy receipt. The S1 cumulative Phase I queue index preserves the original lock and dated amendments. A prelock unit declares `mode: "prelock_synthetic"`, `data_access: "NONE"`, `team`, `test_file`, `test_sha256`, at most 120 seconds wall and 1.5 GiB RSS. It cannot read Adult data. The code checks file hashes against the registered paths across isolated team worktrees; S3 separately reviews imports and runtime inputs. A role-sized synthetic timing unit uses `mode: "preseal_smoke"`, with the same hash/data guard and at most 1800 seconds wall and 2 GiB RSS reservation.
+
+The single S2 source-to-role export uses `mode: "role_export"`, exact S4-reviewed script hash, 120 seconds/1 GiB, and a separate admission gate. The independent S4 role membership audit uses `mode: "role_audit"`, exact script hash, and requires the export unit to finish. The S4 audit streamed the whole compressed source file for its SHA-256 and decompressed only its `row_id`, `unit`, and `role` members. Neither mode opens the science-fit gate. Export and audit authorizations close after their one-time units.
 
 ```sh
 <python> results/pcrl_method_portfolio_v1/shared/compute_queue.py --root <QUEUE_ROOT> gate \
@@ -25,7 +27,7 @@ S3 opens **prelock synthetic admission** only after verifying the fixed Phase I 
   --evidence <OCCUPANCY_RECEIPT.json>
 ```
 
-S3 opens **real-data admission** only after S2's safe-input guard receipt and a remote-verified pushed CAMPAIGN_LOCK, with fresh machine occupancy. Those evidence identities belong in the gate receipt. The old assessment remains embargoed regardless of gate state.
+S3 opens **real-data science admission** only after S2's safe-input guard receipt, the effective immutable campaign science seal with S4 review, and fresh machine occupancy. A remotely verified pushed lock qualifies; the continuation protocol also permits a verified local Git/hash seal during GitHub DNS failure. For the local seal, the queue rechecks the exact committed CAMPAIGN_LOCK bytes, its effective status and adult-fit permission, the S4 prefit review and LOCAL_SEAL_RECEIPT hash/commit aliases, and the admitted S2/S4 data manifest hashes at every admission. Those evidence identities belong in the gate receipt. The old assessment remains embargoed regardless of gate state.
 
 ```sh
 <python> results/pcrl_method_portfolio_v1/shared/compute_queue.py --root <QUEUE_ROOT> gate \
@@ -33,4 +35,4 @@ S3 opens **real-data admission** only after S2's safe-input guard receipt and a 
   --evidence <ADMISSION_RECEIPT.json>
 ```
 
-At a ceiling, S3 stops admitting new units and allows the wrapper to interrupt only its own campaign process group. Failed or interrupted units retain logs and receipts; retries need a new identity or a dated amendment. The public `RESOURCE_RECEIPTS.json` summarizes capacity and budget without publishing private command paths or per-person artifacts.
+The local-seal evidence branch is implemented and tested with an isolated temporary Git repository. It remains closed until S1 and S4 write the effective campaign lock, prefit review, and receipt. At a ceiling, S3 stops admitting new units and allows the wrapper to interrupt only its own campaign process group. Failed or interrupted units retain logs and receipts; retries need a new identity or a dated amendment. A child inherits its slot lock; if its wrapper dies, an orphaned running claim blocks new admission until reviewed. The public `RESOURCE_RECEIPTS.json` summarizes capacity and budget without publishing private command paths or per-person artifacts.
