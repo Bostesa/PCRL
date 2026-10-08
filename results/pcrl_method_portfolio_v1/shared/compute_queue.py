@@ -375,15 +375,15 @@ class Queue:
             return False
         try:
             receipt = json.loads(receipt_path.read_text())
-            commit = receipt.get("commit_sha") or receipt.get("lock_commit_sha")
-            lock_sha = receipt.get("campaign_lock_sha256") or receipt.get("lock_sha256")
+            commit = receipt.get("commit_sha")
+            lock_sha = receipt.get("campaign_lock_sha256")
             if (receipt.get("status") != "PASS" or
                 not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit) or
                 not isinstance(lock_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", lock_sha)):
                 return False
-            if receipt.get("commit_sha", commit) != commit or receipt.get("lock_commit_sha", commit) != commit:
+            if receipt.get("lock_commit_sha") != commit:
                 return False
-            if receipt.get("campaign_lock_sha256", lock_sha) != lock_sha or receipt.get("lock_sha256", lock_sha) != lock_sha:
+            if receipt.get("lock_sha256") != lock_sha:
                 return False
             review_name = receipt.get("review_path") or receipt.get("s4_review_path")
             review_sha = receipt.get("review_sha256") or receipt.get("s4_review_sha256")

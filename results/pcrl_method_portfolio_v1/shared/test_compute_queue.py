@@ -381,7 +381,9 @@ class ComputeQueueTests(unittest.TestCase):
                                       "lock_sha256": lock_hash}))
         receipt = campaign / "LOCAL_SEAL_RECEIPT.json"
         receipt.write_text(json.dumps({"status": "PASS", "commit_sha": commit,
+                                       "lock_commit_sha": commit,
                                        "campaign_lock_sha256": lock_hash,
+                                       "lock_sha256": lock_hash,
                                        "review_path": "S4_PREFIT_SEAL_REVIEW.json",
                                        "review_sha256": hashlib.sha256(review.read_bytes()).hexdigest()}))
         queue = Queue(self.root / "sealed_queue")
@@ -395,6 +397,19 @@ class ComputeQueueTests(unittest.TestCase):
         self.assertEqual(queue.run_once()["status"], "done")
         self.assertEqual(marker.read_text(), "ok")
         queue.enqueue(dict(unit, unit_id="later_real_fit_fixture"))
+        complete_receipt = json.loads(receipt.read_text())
+        for missing_key in ("lock_commit_sha", "lock_sha256"):
+            incomplete = dict(complete_receipt)
+            del incomplete[missing_key]
+            receipt.write_text(json.dumps(incomplete))
+            queue.update_gate(safe_inputs=True, lock_pushed=False, occupancy_confirmed=True,
+                              external_heavy=0, local_seal_path=str(receipt),
+                              local_seal_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest())
+            self.assertEqual(queue.run_once()["status"], "local_seal_invalid")
+        receipt.write_text(json.dumps(complete_receipt))
+        queue.update_gate(safe_inputs=True, lock_pushed=False, occupancy_confirmed=True,
+                          external_heavy=0, local_seal_path=str(receipt),
+                          local_seal_sha256=hashlib.sha256(receipt.read_bytes()).hexdigest())
         lock.write_text(lock.read_text() + "\n")
         self.assertEqual(queue.run_once()["status"], "local_seal_invalid")
 
