@@ -81,8 +81,18 @@ class FittedTaskHead:
         self.model.eval()
         with torch.no_grad():
             tensor = torch.as_tensor(np.ascontiguousarray(selected, dtype=np.float32))
-            probabilities = torch.softmax(self.model(tensor), dim=1).cpu().numpy()
-        return probabilities.astype(np.float64)
+            # The trained network is float32, but S2's fixed calibrator
+            # requires every probability row to sum within 1e-8. Casting an
+            # already rounded float32 softmax to float64 cannot repair that
+            # drift. Softmax the fixed logits in float64 instead.
+            logits = self.model(tensor).to(dtype=torch.float64)
+            probabilities = torch.softmax(logits, dim=1).cpu().numpy()
+        if (not np.isfinite(probabilities).all()
+                or np.any(probabilities < 0)
+                or np.any(probabilities > 1)
+                or np.max(np.abs(probabilities.sum(axis=1) - 1.0), initial=0.0) > 1e-12):
+            raise ValueError("head returned probabilities outside the strict simplex")
+        return probabilities
 
 
 def _train_one_epoch(model, optimizer, X, y, train_rows, *, batch_size, shuffle_seed):

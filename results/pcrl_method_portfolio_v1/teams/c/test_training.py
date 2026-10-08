@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from prototype import AdultGroupedSchema
-from training import HeadSpec, fit_task_head, restore_head, save_head
+from training import FittedTaskHead, HeadSpec, _network, fit_task_head, restore_head, save_head
 
 
 def occupation_rows():
@@ -53,3 +53,26 @@ def test_head_refuses_task_label_as_extra_predictor_before_fit():
             ("hours-per-week",), purpose="occupation_group",
             model_id="should-refuse", seed=19, spec=HeadSpec(),
         )
+
+
+def test_six_class_inference_meets_s2_strict_simplex_and_keeps_argmax():
+    import torch
+
+    torch.manual_seed(71)
+    model = _network(1, 6, 64)
+    head = FittedTaskHead(
+        "occupation_group", "synthetic-simplex-71", ("age",), 1,
+        HeadSpec(), {}, model,
+    )
+    selected = np.linspace(-5, 5, 2_000, dtype=np.float32).reshape(-1, 1)
+    probabilities = head.predict_proba(selected)
+    assert probabilities.shape == (2_000, 6)
+    assert probabilities.dtype == np.float64
+    assert np.isfinite(probabilities).all()
+    assert np.all((probabilities >= 0) & (probabilities <= 1))
+    assert np.max(np.abs(probabilities.sum(axis=1) - 1.0)) <= 1e-12
+    with torch.no_grad():
+        logits = model(torch.as_tensor(selected))
+    np.testing.assert_array_equal(
+        probabilities.argmax(axis=1), logits.argmax(dim=1).numpy()
+    )
