@@ -19,7 +19,7 @@ import numpy as np
 from attack_eval import add_ignore_recipient_aliases, fit_slate, save_fitted_slate
 from attack_controls import run_control_probes
 from common_eval import assert_same_people
-from compute_queue import ComputeQueue
+from compute_queue import Queue
 from reference_views import ARM_ID, feature_ref_raw83_u
 from safe_data_guard import SafeRoleStore, sha_file
 
@@ -70,8 +70,8 @@ def _seal_and_source(seed: int, store: SafeRoleStore, lock_sha: str,
             lock.get("shared_attack_controls_sha256") != controls_sha:
         raise PermissionError("shared attacker or real-control code differs from science lock")
     seal_path = CAMPAIGN / "LOCAL_SEAL_RECEIPT.json"
-    if not ComputeQueue._local_seal_ok({"local_seal_path": str(seal_path),
-                                        "local_seal_sha256": sha_file(seal_path)}):
+    if not Queue._local_seal_ok({"local_seal_path": str(seal_path),
+                                "local_seal_sha256": sha_file(seal_path)}):
         raise PermissionError("committed local science seal absent")
     manifest_path = CAMPAIGN.parent / "pcrl_heldout_calibration_v1" / "MODEL_MANIFEST.json"
     source_lock = lock.get("source_model_admission", {})
