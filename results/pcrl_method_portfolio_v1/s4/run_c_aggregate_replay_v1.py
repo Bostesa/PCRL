@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 import numpy as np
@@ -24,6 +26,7 @@ ARMS = (
     "C-SIMPLE-INDEP1", "C-SIMPLE-COMMON1", "C-SIMPLE-SEQ-IO1",
     "C-SIMPLE-SEQ-OI1", "C-SIMPLE-TASK-PAIR1",
 )
+ARM_RESULT_INDEX = CAMPAIGN / "S4_C_R1_ARM_RESULT_HASH_REGISTRY.json"
 ARTIFACT_MEMBERS = {"row_id", "unit", "income", "occupation", "sex",
                     "prob_1", "prob_2"} | {
     f"reader_{view}__{reader}"
@@ -60,16 +63,24 @@ def _s3_done(state: dict, queue_root: Path, entry: dict, *, team: str,
     unit = state.get("units", {}).get(unit_id, {})
     spec = unit.get("spec", {})
     receipt_path = queue_root / "units" / unit_id / "RECEIPT.json"
-    _need(_sha(receipt_path) == entry.get("queue_receipt_sha256"),
-          "C aggregate parent S3 receipt SHA differs")
+    receipt_sha = _sha(receipt_path)
+    if entry.get("queue_receipt_sha256") is not None:
+        _need(receipt_sha == entry["queue_receipt_sha256"],
+              "C aggregate pinned parent S3 receipt SHA differs")
     receipt = _read(receipt_path)
     output = spec.get("outputs")
+    output_sha = (receipt.get("output_sha256", {}).get(output[0])
+                  if isinstance(output, list) and len(output) == 1 else None)
+    if entry.get("output_sha256") is not None:
+        _need(output_sha == entry["output_sha256"],
+              "C aggregate pinned parent output SHA differs")
     _need(unit.get("status") == receipt.get("status") == "done" and
           unit.get("returncode") == receipt.get("returncode") == 0 and
           receipt.get("unit_id") == unit_id and
           spec.get("mode") == mode and spec.get("team") == team and
           isinstance(output, list) and len(output) == 1 and
-          receipt.get("output_sha256") == {output[0]: entry.get("output_sha256")} and
+          isinstance(output_sha, str) and len(output_sha) == 64 and
+          receipt.get("output_sha256") == {output[0]: output_sha} and
           unit.get("output_sha256") == receipt["output_sha256"],
           "C aggregate parent did not complete exact frozen output")
     argv = spec.get("argv", [])
@@ -77,7 +88,7 @@ def _s3_done(state: dict, queue_root: Path, entry: dict, *, team: str,
           _sha(Path(argv[1])) == spec.get("runner_sha256"),
           "C aggregate parent script source differs")
     path = Path(output[0]).resolve(strict=True)
-    _need(path.is_file() and _sha(path) == entry["output_sha256"],
+    _need(path.is_file() and _sha(path) == output_sha,
           "C aggregate parent output changed")
     return path, spec
 
@@ -192,6 +203,27 @@ def _preaccess(args: argparse.Namespace, state: dict, runtime_argv: list[str]) -
     queue_root = args.queue_root.resolve(strict=True)
     _need(Path(_one_argument(argv, "--queue-root")).resolve() == queue_root,
           "C aggregate queue root differs")
+    _need(args.arm_result_index.resolve() == ARM_RESULT_INDEX and
+          _one_argument(argv, "--arm-result-index-sha256") ==
+          args.arm_result_index_sha256 and
+          Path(_one_argument(argv, "--arm-result-index")).resolve() ==
+          ARM_RESULT_INDEX and
+          _sha(ARM_RESULT_INDEX) == args.arm_result_index_sha256,
+          "C aggregate post-arm registry path/SHA differs")
+    registry_blob = subprocess.run([
+        "git", "-C", str(REPO), "show",
+        "HEAD:results/pcrl_method_portfolio_v1/S4_C_R1_ARM_RESULT_HASH_REGISTRY.json"],
+        capture_output=True, timeout=10)
+    _need(registry_blob.returncode == 0 and
+          hashlib.sha256(registry_blob.stdout).hexdigest() ==
+          args.arm_result_index_sha256,
+          "C aggregate post-arm registry is not committed")
+    registry = _read(ARM_RESULT_INDEX)
+    _need(registry.get("schema") == "pcrl-s4-c-r1-arm-result-hash-registry-v1" and
+          registry.get("status") == "S4_HASH_CHECKED_16_OF_16" and
+          registry.get("admission_sha256") == args.admission_sha256 and
+          set(registry.get("units", {})) == set(spec["parents"]["arm_reports"]),
+          "C aggregate post-arm registry scope differs")
     final_entry = spec["parents"]["c_finalizer"]
     final_id = final_entry.get("unit_id")
     _need(final_id == "C-R1-SCREEN-FINALIZE", "C aggregate R1 finalizer ID differs")
@@ -206,13 +238,34 @@ def _preaccess(args: argparse.Namespace, state: dict, runtime_argv: list[str]) -
         arms[arm] = {}
         for seed in (0, 1):
             unit_id = f"S4-C-R1-{arm}-S{seed}"
-            entry = spec["parents"]["arm_reports"][unit_id]
+            entry = {"unit_id": unit_id,
+                     "queue_receipt_sha256": registry["units"][unit_id][
+                         "queue_receipt_sha256"],
+                     "output_sha256": registry["units"][unit_id][
+                         "report_sha256"]}
             path, parent_spec = _s3_done(state, queue_root, entry,
                 team="S4", mode="s4_c_adult_replay", expected_id=unit_id)
+            admitted = admission["unit_specs"][unit_id]
+            parent_argv = parent_spec.get("argv", [])
             _need(parent_spec.get("stage") == "independent_c_r1_arm_replay" and
-                  parent_spec.get("arm") == arm and parent_spec.get("seed") == seed and
+                  parent_spec.get("arm") == parent_spec.get("arm_id") == arm and
+                  parent_spec.get("seed") == seed and
+                  parent_spec.get("data_access") == admitted["data_access"] and
+                  parent_spec.get("max_wall_s") == admitted["max_wall_s"] and
+                  parent_spec.get("cpu_reserve_s") == admitted["cpu_reserve_s"] and
+                  parent_spec.get("max_rss_gib") == admitted["max_rss_gib"] and
+                  isinstance(parent_spec.get("deps"), list) and
+                  len(parent_spec["deps"]) == 9 and
+                  set(parent_spec["deps"]) == {
+                      item["unit_id"] for item in admitted["parents"].values()} and
                   parent_spec.get("runner_sha256") ==
-                  sources["results/pcrl_method_portfolio_v1/s4/run_c_adult_replay_v1.py"],
+                  sources["results/pcrl_method_portfolio_v1/s4/run_c_adult_replay_v1.py"] and
+                  _one_argument(parent_argv, "--admission-sha256") ==
+                  args.admission_sha256 and
+                  _one_argument(parent_argv, "--local-seal-sha256") ==
+                  args.local_seal_sha256 and
+                  path.is_relative_to((HERE / ".private").resolve()) and
+                  path.name == f"{unit_id}.json",
                   "C aggregate S4 arm parent stage/source differs")
             arms[arm][seed] = path
     return admission, fit, final_path, final_spec, arms
@@ -250,10 +303,12 @@ def _reference(seed: int, truth: dict, manifest: dict) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("unit-id", "admission", "admission-sha256", "local-seal",
-                 "local-seal-sha256", "queue-root", "private-report"):
+                 "local-seal-sha256", "queue-root", "private-report",
+                 "arm-result-index", "arm-result-index-sha256"):
         parser.add_argument(f"--{name}", required=True)
     args = parser.parse_args()
-    for name in ("admission", "local_seal", "queue_root", "private_report"):
+    for name in ("admission", "local_seal", "queue_root", "private_report",
+                 "arm_result_index"):
         setattr(args, name, Path(getattr(args, name)))
     state = _read(args.queue_root / "QUEUE.json")
     admission, fit, final_path, final_spec, arm_paths = _preaccess(args, state, sys.argv)
@@ -325,6 +380,7 @@ def main() -> None:
         "status": "REPLAYED_C_R1_17_OF_17_PASS",
         "unit_id": args.unit_id,
         "admission_sha256": args.admission_sha256,
+        "arm_result_registry_sha256": args.arm_result_index_sha256,
         "fit_lock_sha256": admission["lock_sha256"],
         "finalizer_receipt_sha256": _sha(final_path),
         "arm_report_sha256_by_arm_seed": {
