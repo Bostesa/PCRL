@@ -48,12 +48,16 @@ class AScoreBankSpecsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             lock_path = Path(directory) / "CAMPAIGN_LOCK.json"
             lock_path.write_text(json.dumps(_future_lock(plan)))
-            specs = builder.build_specs(PLAN, lock_path, sha_file(lock_path),
-                                        ROOT, Path(directory) / "queue")
+            lock_sha = sha_file(lock_path)
+            queue_root = (Path(directory) / "queue").resolve()
+            specs = builder.build_specs(PLAN, lock_path, lock_sha,
+                                        ROOT, queue_root)
         self.assertEqual(len(specs), 10)
         self.assertEqual({spec["unit_id"] for spec in specs},
                          set(plan["required_lock"]["admitted_a_score_bank_unit_ids"]))
+        by_id = {unit["unit_id"]: unit for unit in plan["units"]}
         for spec in specs:
+            unit = by_id[spec["unit_id"]]
             self.assertEqual(spec["mode"], "real_data")
             self.assertEqual(spec["stage"], "a_score_bank_preprocess")
             self.assertEqual(spec["data_access"], "A_ROLE_ONLY_REFERENCES_PREPROCESS")
@@ -65,8 +69,17 @@ class AScoreBankSpecsTests(unittest.TestCase):
                               spec["max_rss_gib"]), (300, 300, 1.5))
             self.assertEqual(spec["runner_sha256"], plan["runner_sha256"])
             self.assertEqual(spec["preprocess_plan_sha256"], builder.PLAN_SHA256)
-            self.assertEqual(len(spec["outputs"]), 1)
-            self.assertTrue(spec["outputs"][0].endswith("BANK_ADMISSION_RECEIPT.json"))
+            self.assertEqual(spec["cwd"], str(ROOT))
+            self.assertEqual(spec["argv"], [
+                str((ROOT / "../../.venv/bin/python").resolve()),
+                str((ROOT / plan["runner_relative_to_coordinator"]).resolve()),
+                "--cache-root", str((ROOT / plan["cache_root_relative_to_coordinator"]).resolve()),
+                "--seed", str(unit["seed"]), "--release", unit["release_key"],
+                "--campaign-lock-sha256", lock_sha, "--queue-root", str(queue_root)])
+            self.assertEqual(spec["outputs"], [
+                str((ROOT / unit["private_output_receipt_relative_to_coordinator"]).resolve())])
+            self.assertEqual(spec["env"]["OMP_NUM_THREADS"], "1")
+            self.assertEqual(spec["env"]["OPENBLAS_NUM_THREADS"], "1")
             self.assertNotIn("sex", json.dumps(spec).lower())
             self.assertNotIn("assessment", json.dumps(spec).lower())
 
@@ -80,6 +93,10 @@ class AScoreBankSpecsTests(unittest.TestCase):
             with self.assertRaises((PermissionError, ValueError)):
                 builder.build_specs(PLAN, lock_path, sha_file(lock_path),
                                     ROOT, Path(directory) / "queue")
+
+    def test_private_spec_write_requires_committed_seal(self) -> None:
+        with self.assertRaises(PermissionError):
+            builder.write_specs([], "a" * 64, "0" * 64, Path("/synthetic/queue"))
 
 
 if __name__ == "__main__":
