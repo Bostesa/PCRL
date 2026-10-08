@@ -72,6 +72,12 @@ S4_C_R2_SOURCE_NAMES = (
     "replay_c_endpoints_v1", "replay_c_attempt_v2",
     "replay_c_inference_v1", "replay_v2_controls",
 )
+S4_C_R3_SOURCE_NAMES = (
+    "run_c_adult_replay_v3", "run_c_aggregate_replay_v3",
+    "replay_c_values_v1", "replay_c_release_v1", "replay_c_readers_v2",
+    "replay_c_endpoints_v1", "replay_c_attempt_v3",
+    "replay_c_inference_v1", "replay_v2_controls",
+)
 
 
 def utc_now() -> str:
@@ -152,6 +158,8 @@ class Queue:
                         "s4_c_local_seal_sha256": None,
                         "s4_c_r2_local_seal_path": None,
                         "s4_c_r2_local_seal_sha256": None,
+                        "s4_c_r3_local_seal_path": None,
+                        "s4_c_r3_local_seal_sha256": None,
                         "s4_c_diag_local_seal_path": None,
                         "s4_c_diag_local_seal_sha256": None,
                         "s4_c_bank_diag_local_seal_path": None,
@@ -273,6 +281,12 @@ class Queue:
                     "S4_C_R2_ATT_INNER_FEATURES_TASK_SEX_REPLAY",
                     "S4_C_R2_VERIFIED_PRIVATE_AGGREGATE")):
                 raise ValueError("s4_c_r2_scope_invalid")
+        elif spec["mode"] == "s4_c_r3_adult_replay":
+            if (spec.get("family") != "S4" or spec.get("team") != "S4" or
+                spec.get("data_access") not in (
+                    "S4_C_R3_ATT_INNER_FEATURES_TASK_SEX_REPLAY",
+                    "S4_C_R3_VERIFIED_PRIVATE_AGGREGATE")):
+                raise ValueError("s4_c_r3_scope_invalid")
         elif spec["mode"] == "s4_c_reader_diagnostic":
             if (spec.get("family") != "S4" or spec.get("team") != "S4" or
                 spec.get("data_access") !=
@@ -382,6 +396,12 @@ class Queue:
                     reason = self._s4_c_r2_parent_reason(state, spec)
                 if reason:
                     raise ValueError(reason)
+            elif spec["mode"] == "s4_c_r3_adult_replay":
+                reason = self._s4_c_r3_admission_reason(state["gate"], spec)
+                if reason is None:
+                    reason = self._s4_c_r3_parent_reason(state, spec)
+                if reason:
+                    raise ValueError(reason)
             elif spec["mode"] == "s4_c_reader_diagnostic":
                 reason = self._s4_c_diag_admission_reason(state["gate"], spec)
                 if reason is None:
@@ -443,6 +463,8 @@ class Queue:
                     s4_c_local_seal_sha256: str | None = None,
                     s4_c_r2_local_seal_path: str | None = None,
                     s4_c_r2_local_seal_sha256: str | None = None,
+                    s4_c_r3_local_seal_path: str | None = None,
+                    s4_c_r3_local_seal_sha256: str | None = None,
                     s4_c_diag_local_seal_path: str | None = None,
                     s4_c_diag_local_seal_sha256: str | None = None,
                     s4_c_bank_diag_local_seal_path: str | None = None,
@@ -475,6 +497,11 @@ class Queue:
                 sha256_file(Path(s4_c_r2_local_seal_path)) !=
                     s4_c_r2_local_seal_sha256):
                 raise ValueError("S4 C R2 local seal receipt file/hash mismatch")
+        if s4_c_r3_local_seal_path is not None:
+            if (not s4_c_r3_local_seal_sha256 or
+                sha256_file(Path(s4_c_r3_local_seal_path)) !=
+                    s4_c_r3_local_seal_sha256):
+                raise ValueError("S4 C R3 local seal receipt file/hash mismatch")
         if s4_c_diag_local_seal_path is not None:
             if (not s4_c_diag_local_seal_sha256 or
                 sha256_file(Path(s4_c_diag_local_seal_path)) != s4_c_diag_local_seal_sha256):
@@ -518,6 +545,8 @@ class Queue:
                 "s4_c_local_seal_sha256": s4_c_local_seal_sha256,
                 "s4_c_r2_local_seal_path": s4_c_r2_local_seal_path,
                 "s4_c_r2_local_seal_sha256": s4_c_r2_local_seal_sha256,
+                "s4_c_r3_local_seal_path": s4_c_r3_local_seal_path,
+                "s4_c_r3_local_seal_sha256": s4_c_r3_local_seal_sha256,
                 "s4_c_diag_local_seal_path": s4_c_diag_local_seal_path,
                 "s4_c_diag_local_seal_sha256": s4_c_diag_local_seal_sha256,
                 "s4_c_bank_diag_local_seal_path": s4_c_bank_diag_local_seal_path,
@@ -1715,6 +1744,500 @@ class Queue:
         except (OSError, ValueError, TypeError, KeyError, AttributeError,
                 subprocess.CalledProcessError, subprocess.TimeoutExpired):
             return "s4_c_r2_parent_identity_invalid"
+
+    @staticmethod
+    def _s4_c_r3_local_seal_ok(gate: dict) -> bool:
+        """Verify the separate R3 replay seal without reopening older lanes."""
+        seal_path = Path(gate.get("s4_c_r3_local_seal_path") or "")
+        seal_sha = gate.get("s4_c_r3_local_seal_sha256")
+        if (not seal_path.is_absolute() or
+            seal_path.name != "S4_C_R3_REPLAY_LOCAL_SEAL_RECEIPT.json" or
+            not isinstance(seal_sha, str) or not seal_path.is_file() or
+            sha256_file(seal_path) != seal_sha):
+            return False
+        try:
+            campaign = seal_path.parent.resolve(strict=True)
+            repo = campaign.parents[1]
+            admission_path = campaign / "S4_C_R3_REPLAY_ADMISSION.json"
+            review_path = campaign / "S4_C_R3_REPLAY_PREFIT_REVIEW.json"
+            admission_sha = sha256_file(admission_path)
+            review_sha = sha256_file(review_path)
+            admission = json.loads(admission_path.read_text())
+            review = json.loads(review_path.read_text())
+            seal = json.loads(seal_path.read_text())
+            commit = seal.get("admission_commit_sha")
+            scope = "S4_C_R3_ADULT_REPLAY"
+            if (admission.get("schema") != "pcrl-s4-c-r3-replay-admission-v3" or
+                admission.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                admission.get("scope") != scope or
+                admission.get("adult_role_access") is not True or
+                review.get("schema") != "pcrl-s4-c-r3-replay-prefit-review-v3" or
+                review.get("status") != "PASS" or review.get("scope") != scope or
+                review.get("admission_sha256") != admission_sha or
+                review.get("admission_commit_sha") != commit or
+                seal.get("schema") != "pcrl-s4-c-r3-replay-local-seal-v3" or
+                seal.get("status") != "PASS" or seal.get("scope") != scope or
+                seal.get("admission_sha256") != admission_sha or
+                seal.get("review_sha256") != review_sha or
+                not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit)):
+                return False
+
+            def committed(relative: str, commit_sha: str, digest: str) -> bool:
+                if (not isinstance(commit_sha, str) or
+                    not re.fullmatch(r"[0-9a-f]{40}", commit_sha) or
+                    not isinstance(digest, str) or
+                    not re.fullmatch(r"[0-9a-f]{64}", digest)):
+                    return False
+                blob = subprocess.run(
+                    ["git", "-C", str(repo), "show", f"{commit_sha}:{relative}"],
+                    capture_output=True, check=False, timeout=10)
+                ancestor = subprocess.run(
+                    ["git", "-C", str(repo), "merge-base", "--is-ancestor",
+                     commit_sha, "HEAD"], capture_output=True, check=False, timeout=10)
+                return (blob.returncode == 0 and ancestor.returncode == 0 and
+                        hashlib.sha256(blob.stdout).hexdigest() == digest)
+
+            if (not committed("results/pcrl_method_portfolio_v1/" + admission_path.name,
+                              commit, admission_sha) or
+                admission.get("queue_source_sha256") != sha256_file(Path(__file__)) or
+                not committed("results/pcrl_method_portfolio_v1/shared/compute_queue.py",
+                              admission.get("queue_source_commit_sha"),
+                              admission.get("queue_source_sha256")) or
+                admission.get("unit_schema_sha256") !=
+                    "484c28bc9a64774d089a0c16273ce8482bed2c85558beed69fcfc0b6c348fbe4" or
+                sha256_file(campaign / "s4/S4_C_R3_REPLAY_UNIT_SCHEMA.json") !=
+                    admission.get("unit_schema_sha256") or
+                sha256_file(campaign / "DATA_ACCESS_MANIFEST.json") !=
+                    admission.get("data_manifest_sha256")):
+                return False
+            historical_paths = {
+                "prior_r1_admission_sha256": campaign / "S4_C_REPLAY_ADMISSION.json",
+                "prior_r1_review_sha256": campaign / "S4_C_REPLAY_PREFIT_REVIEW.json",
+                "prior_r1_seal_sha256": campaign / "S4_C_REPLAY_LOCAL_SEAL_RECEIPT.json",
+                "prior_r2_admission_sha256": campaign / "S4_C_R2_REPLAY_ADMISSION.json",
+                "prior_r2_review_sha256": campaign / "S4_C_R2_REPLAY_PREFIT_REVIEW.json",
+                "prior_r2_seal_sha256": campaign / "S4_C_R2_REPLAY_LOCAL_SEAL_RECEIPT.json",
+                "diagnostic_v2_admission_sha256":
+                    campaign / "S4_C_READER_BANK_DIAGNOSTIC_V2_ADMISSION.json",
+                "diagnostic_v2_review_sha256":
+                    campaign / "S4_C_READER_BANK_DIAGNOSTIC_V2_PREFIT_REVIEW.json",
+                "diagnostic_v2_seal_sha256":
+                    campaign / "S4_C_READER_BANK_DIAGNOSTIC_V2_LOCAL_SEAL_RECEIPT.json",
+            }
+            if any(sha256_file(path) != admission.get(key)
+                   for key, path in historical_paths.items()):
+                return False
+            old = json.loads(historical_paths["prior_r1_admission_sha256"].read_text())
+            old_review = json.loads(historical_paths["prior_r1_review_sha256"].read_text())
+            old_seal = json.loads(historical_paths["prior_r1_seal_sha256"].read_text())
+            old_r2 = json.loads(historical_paths["prior_r2_admission_sha256"].read_text())
+            old_r2_review = json.loads(historical_paths[
+                "prior_r2_review_sha256"].read_text())
+            old_r2_seal = json.loads(historical_paths["prior_r2_seal_sha256"].read_text())
+            diagnostic = json.loads(historical_paths[
+                "diagnostic_v2_admission_sha256"].read_text())
+            diagnostic_review = json.loads(historical_paths[
+                "diagnostic_v2_review_sha256"].read_text())
+            diagnostic_seal = json.loads(historical_paths[
+                "diagnostic_v2_seal_sha256"].read_text())
+            if (old.get("schema") != "pcrl-s4-c-replay-admission-v1" or
+                old.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                old_review.get("status") != "PASS" or
+                old_review.get("admission_sha256") !=
+                    admission["prior_r1_admission_sha256"] or
+                old_seal.get("status") != "PASS" or
+                old_seal.get("review_sha256") !=
+                    admission["prior_r1_review_sha256"] or
+                diagnostic.get("schema") != "pcrl-s4-c-reader-bank-diagnostic-admission-v2" or
+                diagnostic.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                diagnostic_review.get("status") != "PASS" or
+                diagnostic_review.get("admission_sha256") !=
+                    admission["diagnostic_v2_admission_sha256"] or
+                diagnostic_seal.get("status") != "PASS" or
+                diagnostic_seal.get("review_sha256") !=
+                    admission["diagnostic_v2_review_sha256"] or
+                old_seal.get("admission_sha256") !=
+                    admission["prior_r1_admission_sha256"] or
+                old_r2.get("schema") != "pcrl-s4-c-r2-replay-admission-v2" or
+                old_r2.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                old_r2_review.get("status") != "PASS" or
+                old_r2_review.get("admission_sha256") !=
+                    admission["prior_r2_admission_sha256"] or
+                old_r2_seal.get("status") != "PASS" or
+                old_r2_seal.get("admission_sha256") !=
+                    admission["prior_r2_admission_sha256"] or
+                old_r2_seal.get("review_sha256") !=
+                    admission["prior_r2_review_sha256"] or
+                diagnostic_seal.get("admission_sha256") !=
+                    admission["diagnostic_v2_admission_sha256"] or
+                not committed("results/pcrl_method_portfolio_v1/S4_C_REPLAY_ADMISSION.json",
+                              old_seal.get("admission_commit_sha"),
+                              admission["prior_r1_admission_sha256"]) or
+                not committed("results/pcrl_method_portfolio_v1/S4_C_R2_REPLAY_ADMISSION.json",
+                              old_r2_seal.get("admission_commit_sha"),
+                              admission["prior_r2_admission_sha256"]) or
+                not committed(
+                    "results/pcrl_method_portfolio_v1/S4_C_READER_BANK_DIAGNOSTIC_V2_ADMISSION.json",
+                    diagnostic_seal.get("admission_commit_sha"),
+                    admission["diagnostic_v2_admission_sha256"]) or
+                admission.get("lock_sha256") != old.get("lock_sha256") or
+                admission.get("lock_sha256") != old_r2.get("lock_sha256") or
+                admission.get("lock_commit_sha") != old.get("lock_commit_sha") or
+                admission.get("lock_commit_sha") != old_r2.get("lock_commit_sha") or
+                admission.get("data_manifest_sha256") != old.get("data_manifest_sha256") !=
+                    diagnostic.get("data_manifest_sha256") or
+                not committed("results/pcrl_method_portfolio_v1/CAMPAIGN_LOCK.json",
+                              admission.get("lock_commit_sha"),
+                              admission.get("lock_sha256"))):
+                return False
+            r2_receipts = admission.get("prior_r2_queue_receipt_sha256_by_unit")
+            r2_expected = {f"S4-C-R2-{arm}-S{seed}"
+                           for arm, seed in (("C-SIMPLE-FULL", 0),
+                                             ("C-SIMPLE-FULL", 1),
+                                             ("C-SIMPLE-REL0", 0),
+                                             ("C-SIMPLE-REL0", 1),
+                                             ("C-SIMPLE-TASK-SHARED1", 0))}
+            if not isinstance(r2_receipts, dict) or set(r2_receipts) != r2_expected:
+                return False
+            for uid, digest in r2_receipts.items():
+                receipt_path = campaign / "shared/.private/compute/units" / uid / "RECEIPT.json"
+                prior = json.loads(receipt_path.read_text())
+                finished = uid != "S4-C-R2-C-SIMPLE-TASK-SHARED1-S0"
+                if (sha256_file(receipt_path) != digest or
+                    prior.get("unit_id") != uid or
+                    prior.get("status") != ("done" if finished else "failed") or
+                    prior.get("returncode") != (0 if finished else 1) or
+                    (not finished and prior.get("output_sha256") != {})):
+                    return False
+                if finished:
+                    output = campaign / "s4/.private/c_r2_replay_v2" / f"{uid}.json"
+                    digest_map = prior.get("output_sha256")
+                    if (not isinstance(digest_map, dict) or
+                        digest_map != {str(output): sha256_file(output)} or
+                        json.loads(output.read_text()).get("status") !=
+                            "REPLAYED_C_R2_PASS"):
+                        return False
+            fit_seal_name = admission.get("fit_seal_relative_path")
+            fit_review_name = admission.get("fit_review_relative_path")
+            if (not isinstance(fit_seal_name, str) or
+                Path(fit_seal_name).name != fit_seal_name or
+                not isinstance(fit_review_name, str) or
+                Path(fit_review_name).name != fit_review_name):
+                return False
+            fit_seal_path = campaign / fit_seal_name
+            fit_review_path = campaign / fit_review_name
+            fit_seal = json.loads(fit_seal_path.read_text())
+            fit_review = json.loads(fit_review_path.read_text())
+            if (sha256_file(fit_seal_path) != admission.get("fit_seal_sha256") or
+                sha256_file(fit_review_path) != admission.get("fit_review_sha256") or
+                fit_seal.get("status") != "PASS" or
+                fit_seal.get("commit_sha") != admission["lock_commit_sha"] or
+                fit_seal.get("lock_sha256") != admission["lock_sha256"] or
+                fit_seal.get("review_sha256") != admission["fit_review_sha256"] or
+                fit_review.get("schema") != "pcrl-s4-prefit-seal-review-v1" or
+                fit_review.get("status") != "PASS" or
+                fit_review.get("lock_commit_sha") != admission["lock_commit_sha"] or
+                fit_review.get("lock_sha256") != admission["lock_sha256"]):
+                return False
+            failed_path = campaign / (
+                "shared/.private/compute/units/S4-C-R1-C-SIMPLE-FULL-S0/RECEIPT.json")
+            diagnostic_id = "S4-C-R1-READER-BANK-DIAG-FULL-S0-R1-R2"
+            diagnostic_receipt = (campaign / "shared/.private/compute/units" /
+                                  diagnostic_id / "RECEIPT.json")
+            diagnostic_report = (campaign / "s4/.private/c_r1_reader_bank_diag_v2" /
+                                 f"{diagnostic_id}.json")
+            report = json.loads(diagnostic_report.read_text())
+            receipt = json.loads(diagnostic_receipt.read_text())
+            failed_receipt = json.loads(failed_path.read_text())
+            if (sha256_file(failed_path) !=
+                    admission.get("prior_r1_failed_queue_receipt_sha256") or
+                failed_receipt.get("status") != "failed" or
+                failed_receipt.get("returncode") != 1 or
+                sha256_file(diagnostic_receipt) !=
+                    admission.get("diagnostic_v2_queue_receipt_sha256") or
+                sha256_file(diagnostic_report) !=
+                    admission.get("diagnostic_v2_report_sha256") or
+                receipt.get("status") != "done" or receipt.get("returncode") != 0 or
+                receipt.get("output_sha256") != {
+                    str(diagnostic_report):
+                    admission["diagnostic_v2_report_sha256"]} or
+                report.get("status") != "DIAGNOSTIC_RECORDED_NO_TOLERANCE_DECISION" or
+                report.get("summary", {}).get("first_mismatch_reader") != "RAW_LR_C1" or
+                report.get("summary", {}).get("exact_mismatch_readers") != ["RAW_LR_C1"]):
+                return False
+            names = {f"results/pcrl_method_portfolio_v1/s4/{name}.py"
+                     for name in S4_C_R3_SOURCE_NAMES}
+            sources = admission.get("source_sha256_by_path")
+            if not isinstance(sources, dict) or set(sources) != names:
+                return False
+            for relative, digest in sources.items():
+                source = (repo / relative).resolve(strict=True)
+                if (not source.is_relative_to(repo) or
+                    not isinstance(digest, str) or
+                    not re.fullmatch(r"[0-9a-f]{64}", digest) or
+                    sha256_file(source) != digest):
+                    return False
+            for source_map in (old["source_sha256_by_path"],
+                               old_r2["source_sha256_by_path"],
+                               diagnostic["source_sha256_by_path"]):
+                if any(sha256_file(repo / relative) != digest
+                       for relative, digest in source_map.items()):
+                    return False
+            units = admission.get("unit_specs")
+            expected_ids = {f"S4-C-R3-{arm}-S{seed}"
+                            for arm in S4_C_ARMS for seed in (0, 1)}
+            expected_ids.add("S4-C-R3-AGGREGATE")
+            if (not isinstance(units, dict) or set(units) != expected_ids or
+                admission.get("unit_count") != 17 or
+                admission.get("parent_c_unit_count") != 135 or
+                admission.get("cpu_reserve_s") != 3900 or
+                admission.get("post_arm_registry_builder_sha256") !=
+                    "cac72a3df7f2db75b05d7cc57289e2b25ba7cf33f1e26eceded77375f56b2f3e" or
+                sha256_file(campaign / "s4/build_c_arm_result_registry_v3.py") !=
+                    admission.get("post_arm_registry_builder_sha256")):
+                return False
+            for arm in S4_C_ARMS:
+                for seed in (0, 1):
+                    uid = f"S4-C-R3-{arm}-S{seed}"
+                    old_uid = f"S4-C-R1-{arm}-S{seed}"
+                    old_r2_uid = f"S4-C-R2-{arm}-S{seed}"
+                    unit = units[uid]
+                    cap = 600 if (arm, seed) == ("C-SIMPLE-FULL", 0) else 180
+                    if (unit.get("arm") != arm or unit.get("seed") != seed or
+                        unit.get("stage") != "independent_c_r3_arm_replay" or
+                        unit.get("data_access") !=
+                            "S4_C_R3_ATT_INNER_FEATURES_TASK_SEX_REPLAY" or
+                        unit.get("max_wall_s") != cap or
+                        unit.get("cpu_reserve_s") != cap or
+                        unit.get("max_rss_gib") != 2 or
+                        unit.get("parents") != old["unit_specs"][old_uid]["parents"] or
+                        unit.get("parents") != old_r2["unit_specs"][old_r2_uid]["parents"]):
+                        return False
+            aggregate = units["S4-C-R3-AGGREGATE"]
+            if (aggregate.get("arm") != "C-AGGREGATE" or
+                aggregate.get("seed", object()) is not None or
+                aggregate.get("stage") != "independent_c_r3_aggregate" or
+                aggregate.get("data_access") !=
+                    "S4_C_R3_VERIFIED_PRIVATE_AGGREGATE" or
+                aggregate.get("max_wall_s") != 600 or
+                aggregate.get("cpu_reserve_s") != 600 or
+                aggregate.get("max_rss_gib") != 2 or
+                aggregate.get("parents", {}).get("arm_reports") !=
+                    [f"S4-C-R3-{arm}-S{seed}"
+                     for arm in S4_C_ARMS for seed in (0, 1)] or
+                aggregate.get("parents", {}).get("c_finalizer") !=
+                    old["unit_specs"]["S4-C-R1-AGGREGATE"]["parents"]["c_finalizer"] or
+                aggregate.get("parents", {}).get("c_finalizer") !=
+                    old_r2["unit_specs"]["S4-C-R2-AGGREGATE"]["parents"]["c_finalizer"]):
+                return False
+            return True
+        except (OSError, ValueError, TypeError, KeyError, AttributeError,
+                subprocess.TimeoutExpired):
+            return False
+
+    def _s4_c_r3_admission_reason(self, gate: dict, spec: dict) -> str | None:
+        """Bind a fresh R3 arm or aggregate to its own Git seal and CLI."""
+        if not gate.get("safe_inputs") or not self._s4_c_r3_local_seal_ok(gate):
+            return "s4_c_r3_local_seal_invalid"
+        try:
+            seal = Path(gate["s4_c_r3_local_seal_path"]).resolve(strict=True)
+            campaign = seal.parent
+            repo = campaign.parents[1]
+            admission_path = campaign / "S4_C_R3_REPLAY_ADMISSION.json"
+            admission = json.loads(admission_path.read_text())
+            uid = spec["unit_id"]
+            unit = admission["unit_specs"].get(uid)
+            if not isinstance(unit, dict):
+                return "s4_c_r3_unit_not_admitted"
+            aggregate = uid == "S4-C-R3-AGGREGATE"
+            if (spec.get("mode") != "s4_c_r3_adult_replay" or
+                spec.get("team") != "S4" or spec.get("family") != "S4" or
+                spec.get("stage") != unit.get("stage") or
+                spec.get("arm") != unit.get("arm") or
+                spec.get("arm_id") != unit.get("arm") or
+                spec.get("seed", object()) != unit.get("seed", object()) or
+                (not aggregate and type(spec.get("seed")) is not int) or
+                (aggregate and spec.get("seed", object()) is not None) or
+                spec.get("data_access") != unit.get("data_access") or
+                spec.get("admission_unit_sha256") !=
+                    hashlib.sha256(canonical(unit).encode()).hexdigest()):
+                return "s4_c_r3_unit_scope_mismatch"
+            if (float(spec["max_wall_s"]) != unit["max_wall_s"] or
+                float(spec["cpu_reserve_s"]) != unit["cpu_reserve_s"] or
+                float(spec["max_rss_gib"]) != unit["max_rss_gib"]):
+                return "s4_c_r3_resource_limit_mismatch"
+            if Path(spec["cwd"]).resolve(strict=True) != repo:
+                return "s4_c_r3_cwd_mismatch"
+            if self.root != campaign / "shared/.private/compute":
+                return "s4_c_r3_queue_root_mismatch"
+            parents = unit["parents"]
+            deps = ([parents["c_finalizer"]["unit_id"], *parents["arm_reports"]]
+                    if aggregate else
+                    [parents[label]["unit_id"] for label in S4_C_PARENT_LABELS])
+            if spec.get("deps") != deps:
+                return "s4_c_r3_parent_dependencies_changed"
+            relative = ("run_c_aggregate_replay_v3.py" if aggregate else
+                        "run_c_adult_replay_v3.py")
+            runner = campaign / "s4" / relative
+            runner_sha = admission["source_sha256_by_path"][
+                f"results/pcrl_method_portfolio_v1/s4/{relative}"]
+            if spec.get("runner_sha256") != runner_sha or sha256_file(runner) != runner_sha:
+                return "s4_c_r3_runner_changed"
+            report = campaign / "s4/.private/c_r3_replay_v3" / f"{uid}.json"
+            if (spec.get("outputs") != [str(report)] or report.exists() or
+                (not aggregate and report.with_suffix(".npz").exists())):
+                return "s4_c_r3_output_changed"
+            venv = repo.parent.parent / ".venv/bin/python"
+            argv = [str(venv), str(runner), "--unit-id", uid,
+                    "--admission", str(admission_path),
+                    "--admission-sha256", sha256_file(admission_path),
+                    "--local-seal", str(seal),
+                    "--local-seal-sha256", gate["s4_c_r3_local_seal_sha256"],
+                    "--queue-root", str(self.root),
+                    "--private-report", str(report)]
+            if aggregate:
+                registry = campaign / "S4_C_R3_ARM_RESULT_HASH_REGISTRY.json"
+                registry_sha = spec.get("arm_result_index_sha256")
+                if (not isinstance(registry_sha, str) or
+                    not re.fullmatch(r"[0-9a-f]{64}", registry_sha) or
+                    not registry.is_file() or sha256_file(registry) != registry_sha):
+                    return "s4_c_r3_arm_result_registry_invalid"
+                argv += ["--arm-result-index", str(registry),
+                         "--arm-result-index-sha256", registry_sha]
+            if spec.get("argv") != argv or not venv.is_file():
+                return "s4_c_r3_argv_mismatch"
+            expected_env = {name: "1" for name in (
+                "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "TORCH_NUM_THREADS")}
+            expected_env.update(PYTHONDONTWRITEBYTECODE="1",
+                                PYTHONPATH=str(campaign / "s4"))
+            if spec.get("env") != expected_env:
+                return "s4_c_r3_env_mismatch"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            return "s4_c_r3_admission_or_spec_invalid"
+
+    def _s4_c_r3_parent_reason(self, state: dict, spec: dict) -> str | None:
+        """Recheck C parents or the completed sixteen-arm result registry."""
+        try:
+            seal = Path(state["gate"]["s4_c_r3_local_seal_path"]).resolve(strict=True)
+            campaign = seal.parent
+            admission_path = campaign / "S4_C_R3_REPLAY_ADMISSION.json"
+            admission = json.loads(admission_path.read_text())
+            unit = admission["unit_specs"][spec["unit_id"]]
+            if spec["unit_id"] != "S4-C-R3-AGGREGATE":
+                old_uid = f"S4-C-R1-{unit['arm']}-S{unit['seed']}"
+                original = dict(state)
+                original_gate = dict(state["gate"])
+                original_gate["s4_c_local_seal_path"] = str(
+                    campaign / "S4_C_REPLAY_LOCAL_SEAL_RECEIPT.json")
+                original["gate"] = original_gate
+                return self._s4_c_parent_reason(
+                    original, {"unit_id": old_uid, "mode": "s4_c_adult_replay"})
+
+            def completed(parent_id: str, receipt_sha: str,
+                          output_sha: str) -> tuple[str | None, dict | None, Path | None]:
+                parent = state["units"].get(parent_id)
+                receipt_path = self.root / "units" / parent_id / "RECEIPT.json"
+                if (not parent or parent.get("status") != "done" or
+                    parent.get("returncode") != 0 or not receipt_path.is_file() or
+                    sha256_file(receipt_path) != receipt_sha):
+                    return "s4_c_r3_parent_not_complete", None, None
+                receipt = json.loads(receipt_path.read_text())
+                outputs = parent.get("spec", {}).get("outputs", [])
+                if (receipt.get("unit_id") != parent_id or
+                    receipt.get("status") != "done" or receipt.get("returncode") != 0 or
+                    not isinstance(outputs, list) or len(outputs) != 1 or
+                    not Path(outputs[0]).is_absolute() or
+                    receipt.get("output_sha256") != {outputs[0]: output_sha} or
+                    parent.get("output_sha256") != receipt["output_sha256"] or
+                    not Path(outputs[0]).is_file() or
+                    sha256_file(Path(outputs[0])) != output_sha):
+                    return "s4_c_r3_parent_output_changed", None, None
+                return None, parent["spec"], Path(outputs[0])
+
+            final = unit["parents"]["c_finalizer"]
+            if final.get("unit_id") != "C-R1-SCREEN-FINALIZE":
+                return "s4_c_r3_finalizer_id_changed"
+            reason, final_spec, _ = completed(
+                final["unit_id"], final["queue_receipt_sha256"], final["output_sha256"])
+            if reason:
+                return reason
+            fit = json.loads(subprocess.run(
+                ["git", "-C", str(campaign.parents[1]), "show",
+                 f"{admission['lock_commit_sha']}:results/pcrl_method_portfolio_v1/CAMPAIGN_LOCK.json"],
+                capture_output=True, check=True, timeout=10).stdout)
+            screen_sha = fit["families"]["C"]["screen_orchestration"]["source_sha256"]
+            final_argv = final_spec.get("argv", [])
+            if (final_spec.get("stage") != "screen_finalize" or
+                final_spec.get("team") != "C" or
+                final_spec.get("mode") != "real_data" or
+                final_spec.get("runner_sha256") != screen_sha or
+                len(final_argv) < 2 or not Path(final_argv[1]).is_file() or
+                sha256_file(Path(final_argv[1])) != screen_sha):
+                return "s4_c_r3_finalizer_changed"
+            registry_path = campaign / "S4_C_R3_ARM_RESULT_HASH_REGISTRY.json"
+            registry_sha = spec.get("arm_result_index_sha256")
+            if (not isinstance(registry_sha, str) or
+                not registry_path.is_file() or sha256_file(registry_path) != registry_sha):
+                return "s4_c_r3_arm_result_registry_invalid"
+            repo = campaign.parents[1]
+            registry_blob = subprocess.run(
+                ["git", "-C", str(repo), "show",
+                 "HEAD:results/pcrl_method_portfolio_v1/S4_C_R3_ARM_RESULT_HASH_REGISTRY.json"],
+                capture_output=True, check=False, timeout=10)
+            if (registry_blob.returncode or
+                hashlib.sha256(registry_blob.stdout).hexdigest() != registry_sha):
+                return "s4_c_r3_arm_result_registry_uncommitted"
+            registry = json.loads(registry_path.read_text())
+            arm_ids = unit["parents"]["arm_reports"]
+            if (registry.get("status") != "S4_HASH_CHECKED_16_OF_16" or
+                registry.get("schema") !=
+                    "pcrl-s4-c-r3-arm-result-hash-registry-v3" or
+                registry.get("admission_sha256") != sha256_file(admission_path) or
+                registry.get("fit_lock_sha256") != admission["lock_sha256"] or
+                registry.get("registry_builder_sha256") !=
+                    admission.get("post_arm_registry_builder_sha256") or
+                set(registry.get("units", {})) != set(arm_ids)):
+                return "s4_c_r3_arm_result_registry_scope_changed"
+            builder = campaign / "s4/build_c_arm_result_registry_v3.py"
+            if sha256_file(builder) != admission["post_arm_registry_builder_sha256"]:
+                return "s4_c_r3_arm_result_registry_builder_changed"
+            for parent_id in arm_ids:
+                entry = registry["units"][parent_id]
+                reason, parent_spec, report_path = completed(
+                    parent_id, entry["queue_receipt_sha256"],
+                    entry["report_sha256"])
+                if reason:
+                    return reason
+                admitted = admission["unit_specs"][parent_id]
+                if (parent_spec.get("mode") != "s4_c_r3_adult_replay" or
+                    parent_spec.get("team") != "S4" or
+                    parent_spec.get("family") != "S4" or
+                    parent_spec.get("stage") != "independent_c_r3_arm_replay" or
+                    parent_spec.get("arm") != admitted["arm"] or
+                    parent_spec.get("seed") != admitted["seed"] or
+                    parent_spec.get("data_access") != admitted["data_access"] or
+                    parent_spec.get("runner_sha256") != admission[
+                        "source_sha256_by_path"][
+                            "results/pcrl_method_portfolio_v1/s4/run_c_adult_replay_v3.py"] or
+                    report_path != campaign / "s4/.private/c_r3_replay_v3" / f"{parent_id}.json"):
+                    return "s4_c_r3_arm_report_parent_changed"
+                report = json.loads(report_path.read_text())
+                artifact = report_path.with_suffix(".npz")
+                if (report.get("status") != "REPLAYED_C_R3_PASS" or
+                    report.get("unit_id") != parent_id or
+                    report.get("arm") != admitted["arm"] or
+                    report.get("seed") != admitted["seed"] or
+                    report.get("verified_inner_artifacts", {}).get("sha256") !=
+                        entry["artifact_npz_sha256"] or
+                    not artifact.is_file() or
+                    sha256_file(artifact) != entry["artifact_npz_sha256"]):
+                    return "s4_c_r3_arm_artifact_changed"
+            return None
+        except (OSError, ValueError, TypeError, KeyError, AttributeError,
+                subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            return "s4_c_r3_parent_identity_invalid"
 
     @staticmethod
     def _s4_c_diag_local_seal_ok(gate: dict) -> bool:
@@ -3178,6 +3701,9 @@ class Queue:
         elif spec.get("mode") == "s4_c_r2_adult_replay":
             reason = self._s4_c_r2_admission_reason(gate, spec)
             return reason or self._s4_c_r2_parent_reason(state, spec)
+        elif spec.get("mode") == "s4_c_r3_adult_replay":
+            reason = self._s4_c_r3_admission_reason(gate, spec)
+            return reason or self._s4_c_r3_parent_reason(state, spec)
         elif spec.get("mode") == "s4_c_reader_diagnostic":
             reason = self._s4_c_diag_admission_reason(gate, spec)
             return reason or self._s4_c_diag_parent_reason(state, spec)
@@ -3501,6 +4027,8 @@ def main(argv: list[str] | None = None) -> int:
     gate.add_argument("--s4-c-local-seal-sha256")
     gate.add_argument("--s4-c-r2-local-seal-path")
     gate.add_argument("--s4-c-r2-local-seal-sha256")
+    gate.add_argument("--s4-c-r3-local-seal-path")
+    gate.add_argument("--s4-c-r3-local-seal-sha256")
     gate.add_argument("--s4-c-diag-local-seal-path")
     gate.add_argument("--s4-c-diag-local-seal-sha256")
     gate.add_argument("--s4-c-bank-diag-local-seal-path")
@@ -3547,6 +4075,8 @@ def main(argv: list[str] | None = None) -> int:
                                    s4_c_local_seal_sha256=args.s4_c_local_seal_sha256,
                                    s4_c_r2_local_seal_path=args.s4_c_r2_local_seal_path,
                                    s4_c_r2_local_seal_sha256=args.s4_c_r2_local_seal_sha256,
+                                   s4_c_r3_local_seal_path=args.s4_c_r3_local_seal_path,
+                                   s4_c_r3_local_seal_sha256=args.s4_c_r3_local_seal_sha256,
                                    s4_c_diag_local_seal_path=args.s4_c_diag_local_seal_path,
                                    s4_c_diag_local_seal_sha256=args.s4_c_diag_local_seal_sha256,
                                    s4_c_bank_diag_local_seal_path=args.s4_c_bank_diag_local_seal_path,
