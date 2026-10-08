@@ -71,17 +71,19 @@
   "control_eligibility": {
     "A_matched_pool": [
       "HCAL_TSTAR_FINE_TASK_H_GLOBAL",
+      "A-JOINT-STOCH",
+      "A-JOINT-DET",
       "A-TASK-DET",
       "A-TASK-RD",
       "A-LOCAL-STOCH",
       "A-SEQ-12",
-      "A-SEQ-21",
-      "A-JOINT-DET"
+      "A-SEQ-21"
     ],
     "B_matched_pool": [
+      "B-JVIB",
+      "B-DVIB",
       "B-TASK",
       "B-RAW-TASK",
-      "B-DVIB",
       "B-LOCAL",
       "B-SEQ12",
       "B-SEQ21",
@@ -89,6 +91,7 @@
     ],
     "C_rule": "exact semantic and encoded-column capacities; report incomplete if no distinct exact match",
     "D_matched_pool": [
+      "D_VQ_JOINT",
       "D_VQ_TASK_B0",
       "D_VQ_TASK",
       "D_VQ_TASK_B1",
@@ -96,7 +99,9 @@
       "D_VQ_SEQ12",
       "D_VQ_SEQ21"
     ],
+    "candidate_pool_rule": "For candidate c, consider every other registered point-eligible same-interface arm, including the other prototype, with required task-only, local, both sequential orders, non-joint and deterministic ablations present; remove c itself. No self-comparison. Exclude broad contextual arms from matched pool unless exact matching demonstrated.",
     "cross_family_rule": "frontier context only; no incompatible matched-control substitution",
+    "local_cap": "Control recipient AUC must be <= corresponding frozen unprotected same-track anchor AUC + 0.010, inclusive, before candidate-dependent selection; no adverse local shift control eligibility by candidate.",
     "rule": "both-task point utility against U0 and Ucal, useful retention, full controls/readers/deployment, local AUC cap vs named same-track unprotected anchor independent of candidate; select minimum paired-seed fixed-slate coalition AUC among eligible matched controls, tie within 1e-12 by lower summed NLL then ID"
   },
   "data_access_manifest_sha256": "c228dfdbef8a8e0a46281716e89c986e888fb4f64553fc35b3573020c0c83a11",
@@ -155,8 +160,8 @@
         "A-JOINT-DET"
       ],
       "prototype_limit": 2,
-      "strongest_control_sha256": "900029f6b15d00424db7cce0a60f6bdfe87d012972d02d2fcd3ea3beda84fdff",
-      "team_branch_tip_at_draft": "e120cd68d5d6f60385b8ac84e60f17d45794e04b"
+      "strongest_control_sha256": "41e4bb3ac852647407a3eb8e0188d9704ed9b76ec64fab80da91012859acdcaa",
+      "team_branch_tip_at_draft": "1bd5b7a3767abd7cf9d3cc965e0d8c751ec1d3c6"
     },
     "B": {
       "code_sha256_by_file": {
@@ -172,8 +177,8 @@
         "control_plan.py": "690afd49ea3d7172da66aa7ff87bbe45a3c8b462deca711dc156b652bfc47be1",
         "control_runner.py": "cb6cbe34b090e5715c6c7e6d7b7b6583c1ac9971f0e85db6fc4fb688122ea840",
         "fit_input_bridge.py": "5bcd4eec5a030dbe2e12c925bd96bea78dea693b1ac89dd4ba831ca8202a4ced",
-        "real_control_probe.py": "47b04ccc5c57e640e0c863f46e12127b7e4a0d711f5027d811a98f6efb516c14",
-        "screen_driver.py": "2d29e8dede12615d0278ca0b844a90416c798c114280f3f1331de13f21b08f30",
+        "real_control_probe.py": "17b6b94760d0412b614a66342877852ad95921966de9914d2141e0ef27732a4f",
+        "screen_driver.py": "7a613d075895469479133b126b1d58643d517e8284b72fbc3dc721726d14f374",
         "time_train_bottleneck.py": "b0d59545792620ef08c4d824cb2ea725d409ca42da854c50677cdfc384862b11",
         "train_bottleneck.py": "613d71682d6e0c69277e3e4b515e5a28456e52bc69e93b6625a712da84d0be62"
       },
@@ -190,29 +195,49 @@
         "B-DVIB"
       ],
       "prototype_limit": 2,
+      "real_control_probe_sha256": "17b6b94760d0412b614a66342877852ad95921966de9914d2141e0ef27732a4f",
+      "real_control_unit_ids": {
+        "B-DVIB:s0": "B-REAL-PROBES-B-DVIB-S0",
+        "B-DVIB:s1": "B-REAL-PROBES-B-DVIB-S1",
+        "B-JVIB:s0": "B-REAL-PROBES-B-JVIB-S0",
+        "B-JVIB:s1": "B-REAL-PROBES-B-JVIB-S1",
+        "B-LOCAL:s0": "B-REAL-PROBES-B-LOCAL-S0",
+        "B-LOCAL:s1": "B-REAL-PROBES-B-LOCAL-S1",
+        "B-RAW-TASK:s0": "B-REAL-PROBES-B-RAW-TASK-S0",
+        "B-RAW-TASK:s1": "B-REAL-PROBES-B-RAW-TASK-S1",
+        "B-RAWJ:s0": "B-REAL-PROBES-B-RAWJ-S0",
+        "B-RAWJ:s1": "B-REAL-PROBES-B-RAWJ-S1",
+        "B-SEQ12:s0": "B-REAL-PROBES-B-SEQ12-S0",
+        "B-SEQ12:s1": "B-REAL-PROBES-B-SEQ12-S1",
+        "B-SEQ21:s0": "B-REAL-PROBES-B-SEQ21-S0",
+        "B-SEQ21:s1": "B-REAL-PROBES-B-SEQ21-S1",
+        "B-TASK:s0": "B-REAL-PROBES-B-TASK-S0",
+        "B-TASK:s1": "B-REAL-PROBES-B-TASK-S1"
+      },
       "required_postrelease_real_probes": "one per arm/seed, 3 views, 2 fresh LR fits/view; no alias until S4 exact identity",
       "screen_config_path": "teams/b/SCREEN_CONFIG.json",
       "screen_config_sha256": "ba8867893ea87f6fd0a63d204aa48ef4393bbd78aa17ab2afdfbcddfbd446eb3",
-      "screen_unit_ids": [
-        "B-SCREEN-B-JVIB-S0",
-        "B-SCREEN-B-DVIB-S0",
-        "B-SCREEN-B-TASK-S0",
-        "B-SCREEN-B-RAW-TASK-S0",
-        "B-SCREEN-B-LOCAL-S0",
-        "B-SCREEN-B-SEQ12-S0",
-        "B-SCREEN-B-SEQ21-S0",
-        "B-SCREEN-B-RAWJ-S0",
-        "B-SCREEN-B-JVIB-S1",
-        "B-SCREEN-B-DVIB-S1",
-        "B-SCREEN-B-TASK-S1",
-        "B-SCREEN-B-RAW-TASK-S1",
-        "B-SCREEN-B-LOCAL-S1",
-        "B-SCREEN-B-SEQ12-S1",
-        "B-SCREEN-B-SEQ21-S1",
-        "B-SCREEN-B-RAWJ-S1"
-      ],
+      "screen_driver_sha256": "7a613d075895469479133b126b1d58643d517e8284b72fbc3dc721726d14f374",
+      "screen_unit_ids": {
+        "B-DVIB:s0": "B-SCREEN-B-DVIB-S0",
+        "B-DVIB:s1": "B-SCREEN-B-DVIB-S1",
+        "B-JVIB:s0": "B-SCREEN-B-JVIB-S0",
+        "B-JVIB:s1": "B-SCREEN-B-JVIB-S1",
+        "B-LOCAL:s0": "B-SCREEN-B-LOCAL-S0",
+        "B-LOCAL:s1": "B-SCREEN-B-LOCAL-S1",
+        "B-RAW-TASK:s0": "B-SCREEN-B-RAW-TASK-S0",
+        "B-RAW-TASK:s1": "B-SCREEN-B-RAW-TASK-S1",
+        "B-RAWJ:s0": "B-SCREEN-B-RAWJ-S0",
+        "B-RAWJ:s1": "B-SCREEN-B-RAWJ-S1",
+        "B-SEQ12:s0": "B-SCREEN-B-SEQ12-S0",
+        "B-SEQ12:s1": "B-SCREEN-B-SEQ12-S1",
+        "B-SEQ21:s0": "B-SCREEN-B-SEQ21-S0",
+        "B-SEQ21:s1": "B-SCREEN-B-SEQ21-S1",
+        "B-TASK:s0": "B-SCREEN-B-TASK-S0",
+        "B-TASK:s1": "B-SCREEN-B-TASK-S1"
+      },
       "strongest_control_sha256": "f6127499571bcea3b8c9d0120bceaa6ef36fedf62de8d9a51e218ed1b483af66",
-      "team_branch_tip_at_draft": "fdb27eb13c6057446733d129889b227305cd2163"
+      "team_branch_tip_at_draft": "206d97b44a04ee86fb7ad2a661366489543ab291"
     },
     "C": {
       "fit_admission": "DENIED",
@@ -230,7 +255,7 @@
       ],
       "prototype_limit": 2,
       "strongest_control_sha256": "d2467e9c82d4d05d49743615b91064638947b31e52eefcea9ac56c1e0511c800",
-      "team_branch_tip_at_draft": "5c3e99a8277df1357c2b7b2420017be5bbb098e9"
+      "team_branch_tip_at_draft": "ffc0c0363ed8a64bfe5de62bab14f9f439199062"
     },
     "D": {
       "fit_admission": "DENIED",
@@ -239,7 +264,7 @@
       "method_spec_sha256": "17e61440869b705b01af4a3db1edbd8390407821a52d0852deb6d3878b160a20",
       "method_spec_sha256_at_draft": "f1278752e76e0174502cc2f6df1d9aafac12a308e4c890d3fe8b1e990b83606c",
       "planned_units_path": "teams/d/PLANNED_UNITS.json",
-      "planned_units_sha256": "17372fc3797834556ac4f71a76b86c8521aea354b23ad4f529147cce927bbdac",
+      "planned_units_sha256": "59eb60ac491a6ebe3fe50ed6f8ed96fc705acf7c249203a74cc95806b0649729",
       "planned_units_sha256_at_draft": "bb431f61025851e5c4aff40647d047c80635e9fc0a8f77e871084d2774b94b7c",
       "prototype_ids": [
         "D_VQ_JOINT",
@@ -247,7 +272,7 @@
       ],
       "prototype_limit": 2,
       "strongest_control_sha256": "85c974b64ee439f1fe2746c3d13ca834dc6dc43077d746bd05519713c408f4e2",
-      "team_branch_tip_at_draft": "3dccbd7c955f9c9a452e26ed035c7f72afe8099e"
+      "team_branch_tip_at_draft": "b074d1545766e99661ec7dbe3ac0586ac5bc2d27"
     }
   },
   "finalist_seed_identifiers_if_promoted": [
@@ -261,20 +286,23 @@
     "bootstrap_replicates": 2048,
     "bootstrap_rule": "group resample jointly across arms and seeds; recompute max frozen-reader envelope inside every replicate; seed mean",
     "bounds": "cost/local PASS iff simultaneous upper<=cap, violation iff lower>cap; benefit/accuracy PASS iff lower>=threshold, violation iff upper<threshold; crossing unresolved",
+    "numerical_zero_label": "NUMERICALLY_CONSTANT",
+    "numerical_zero_tolerance": 1e-12,
+    "numpy_version": "2.4.4",
     "rng": "NumPy PCG64DXSM",
     "scope": "conditional on fitted models and portfolio selection; development only",
-    "seed_public_hash": "d1c3d94b",
-    "simultaneous_family": "12 utility margins vs U0/Ucal for two tasks plus coalition-benefit and two local-worsening margins per candidate/control comparison; max statistic over predeclared margins",
+    "seed_public_sha256": "d1c3d94b05e449b93ed2ae0b2d705fab36ad5a58516b3b8699de9aceb511b475",
+    "simultaneous_family": "For each candidate, 12 utility margins plus 3 privacy margins against EACH registered potentially eligible matched control, all included before strongest-control selection; two-sided max-|t| 95% simultaneous family; 2048 paired-group PCG64DXSM replicates.",
+    "studentization_floor": 1e-12,
     "unit": "paired people/groups across source seeds; seeds are not independent populations"
   },
   "old_assessment_permission": false,
   "owner": "S1",
-  "phase1_queue_index_sha256": "62e58f08761fe7095bb9a5511bb6517722030c6df8b7a47d400d819e46be7713",
+  "phase1_queue_index_sha256": "3a728ff4e30405d242a9120d7838daa8b4fbfa6c9a4f2e715b2037851b89c8d2",
   "pre_fit_gates": [
-    "S3 027 numerical endpoints/probe PASS",
-    "S3 028 B-only gate GREEN",
-    "B 029 direct gate regression PASS",
-    "S3 B-only resource forecast",
+    "S3 exact B screen/probe/anchor unit and script target gate GREEN",
+    "S3 ATT group split aggregate role probe PASS",
+    "S3 anchor import/gate synthetic PASS",
     "S4 B-only prefit scope PASS",
     "local Git seal receipt committed"
   ],
@@ -286,6 +314,7 @@
   },
   "promotion": "at most one score and one feature slot initially; unused slot to next eligible within same track ranking; no incompatible-track ranking",
   "purpose": "B-only initial fit scope after all prefit gates; other families remain denied pending dated prefit amendments. Development use only.",
+  "queue_real_unit_admission": "B only: exact 16 screen and 16 postrelease control unit IDs keyed by arm:seed, stage/seed/arm/script SHA; exact two shared anchor IDs/script SHA; require current local seal at enqueue and run, no push bypass.",
   "reference_identities": {
     "feature_local_cap": "FEATURE_REF_RAW83_U, exact permitted 83 raw values plus frozen Ucal head; local-cap anchor, not a B matched control",
     "role_reference_files_sha256": {
@@ -330,12 +359,15 @@
     "screen": "INNER_SELECTION"
   },
   "s4_role_export_verification_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9",
+  "scheduler_source_sha256": "46804099ee3fbef75fca716a9753453db3d9a4c3dc22ef75dac9c71b9c40c440",
   "schema": "pcrl-method-portfolio-campaign-lock-v1",
   "screen_seed_identifiers": [
     0,
     1
   ],
   "seal_rule": "Verified local Git commit and S4 prefit review suffice when remote DNS is unavailable; remote status remains pending. Alternative hash seal only if local Git metadata is actually denied.",
+  "shared_anchor_runner_sha256": "e4800c2f2593f4f35bc4086b5a897d2d402f22865b2ba07a258bdb0ab9a225e2",
+  "shared_attack_controls_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
   "source_model_admission": {
     "U_model_pt_sha256_by_seed": {
       "s0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
@@ -349,7 +381,13 @@
   },
   "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
   "status": "PREFIT_CANDIDATE_NOT_EFFECTIVE",
-  "synthetic_attack_plumbing": "PENDING_S3_RECEIPT_027",
+  "synthetic_attack_plumbing": {
+    "attack_controls_module_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
+    "receipt_sha256": "70a94b99eaf231dbfc1b88d5a4fb404168205bb80dfc2030cc3ca814a51a574c",
+    "s3_unit_id": "S2-PLUMBING-027-SMOKE-ATTACK-CONTROLS",
+    "smoke_script_sha256": "25ccbc79c66dd1ee9b66d695d69eec637a18cac70a8896dd56dc49e0f904de3d",
+    "verification_status": "S3_SYNTHETIC_PASS; real postrelease controls required"
+  },
   "tracks": [
     "score",
     "feature"
