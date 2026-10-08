@@ -1,0 +1,30 @@
+{
+  "schema": "pcrl-s4-control-v2-spec-audit-amendment-v1",
+  "date_utc": "2026-10-08",
+  "status": "ANCHOR_SPEC_NO_GO",
+  "scope": "B_CONTROL_V2",
+  "original_audit_sha256": "226f9e08b953146b15a17cbfd19d28d72722adef0e3e887246357c1c9b81828d",
+  "control_lock_sha256": "3347779eedcf9db6982cbab983bff063ec262231e8d87fb9d9b6383156ba399d",
+  "selected_private_plan_sha256": "f555675a74f6ab95e1ca0422ff226ae0355a991e982a128889cd727d7732b64a",
+  "finding": "The two SHARED anchor V2 specs omit reader_receipt_sha256, while the frozen anchor runner requires that spec field to equal the parent ANCHOR_RECEIPT reader_receipt_sha256 map before SafeRoleStore construction.",
+  "affected_unit_ids": [
+    "S2-FEATURE-REF-RAW83-U-S0-V2-PROBE",
+    "S2-FEATURE-REF-RAW83-U-S1-V2-PROBE"
+  ],
+  "observed_first_unit": {
+    "unit_id": "S2-FEATURE-REF-RAW83-U-S0-V2-PROBE",
+    "queue_receipt_sha256": "761ae4c80462bf478c275daca37d39c11f73fc0b23443a47ba48e70988f7d899",
+    "returncode": 1,
+    "stderr_sha256": "11f4ab63f40962b76bd5a9f956c92f7bdef533d899e23d0be671461912b41316",
+    "output_files": 0,
+    "failure_stage": "PRE_ROLE_PERMISSION_ERROR"
+  },
+  "interpretation": "This is a runner/spec identity contract defect, not a V2 scientific control result. The 16 B V2 probes that completed before the anchor remain preserved under their original lock and receipts.",
+  "correction_requirements": [
+    "Preserve the failed s0 receipt and the original selected spec plan.",
+    "S1 must record a dated engineering amendment and bind a corrected anchor source/spec/queue identity before another attempt; a failed unit ID is not reused.",
+    "S3 must apply its global resource and exact parent gates at each new enqueue/launch.",
+    "S4 must review the corrected anchor runner/spec key correspondence before role access and later replay the V2 numerical outputs independently."
+  ],
+  "adult_person_arrays_read_by_s4": false
+}
