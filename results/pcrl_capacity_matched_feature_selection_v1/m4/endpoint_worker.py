@@ -15,13 +15,15 @@ from pathlib import Path
 
 import numpy as np
 
-from common_eval import fit_constant_probability
-from endpoint_index import REFERENCES, RULES, VIEWS, score_selected_rule
-from safe_data_guard import SafeRoleStore, sha_arr
+# worker installs the lock-pinned inherited C/shared and focused M2 source
+# roots before importing any of those modules in this standalone queue CLI.
 from worker import (
     STUDY, _bank, _fit_receipt, _pair, _packages, _prior_manifest_path,
     _restore_package_record, _sha,
 )
+from common_eval import fit_constant_probability
+from endpoint_index import REFERENCES, RULES, VIEWS, score_selected_rule
+from safe_data_guard import SafeRoleStore, sha_arr
 from release_bundle import restore_release_role
 from attack_eval import AttackView
 from prototype import AdultGroupedSchema

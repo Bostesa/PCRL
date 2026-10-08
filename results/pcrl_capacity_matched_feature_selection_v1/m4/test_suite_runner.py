@@ -14,6 +14,13 @@ from pathlib import Path
 
 import pytest
 
+# Import this queue CLI first in a fresh interpreter. Test order must not hide
+# a missing inherited-source path in its standalone startup sequence.
+from endpoint_worker import PHASE_SEEDS
+
+if set(PHASE_SEEDS) != {"FIRST", "SCREEN", "FINALIST"}:
+    raise RuntimeError("standalone endpoint worker phase registry differs")
+
 
 HERE = Path(__file__).resolve().parent
 TESTS = (
@@ -41,7 +48,7 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     output = Path(args.output).resolve()
-    expected = HERE.parent / ".private/m4/tests/M4_TEST_RECEIPT.json"
+    expected = HERE.parent / ".private/m4/tests/M4_TEST_RECEIPT_R2.json"
     if output != expected or output.exists():
         raise PermissionError("M4 data-free test receipt path is not fresh/fixed")
     result = pytest.main([str(HERE / name) for name in TESTS] + ["-q"])
