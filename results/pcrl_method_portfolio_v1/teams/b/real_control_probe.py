@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import stat
+import time
 from pathlib import Path
 
 import numpy as np
@@ -79,8 +80,13 @@ def _gate(args):
             or index.get("screen_config_sha256") != args.config_sha256
             or index.get("data_manifest_sha256") != args.manifest_sha256):
         raise PermissionError("B real-control unit is absent from the effective S1 seal")
-    state = Queue(args.queue_root).status()
-    unit = state["units"].get(args.unit_id)
+    queue = Queue(args.queue_root)
+    for _ in range(30):
+        state = queue.status()
+        unit = state["units"].get(args.unit_id)
+        if unit and unit.get("child_pgid") == os.getpgrp():
+            break
+        time.sleep(0.1)
     parent = state["units"].get(args.screen_unit_id)
     if (not unit or unit.get("status") != "running"
             or unit.get("child_pgid") != os.getpgrp()
