@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from types import SimpleNamespace
 
 
 def _sha(payload):
@@ -85,3 +86,34 @@ def test_pre_sensitive_t_skips_ineligible_mask_and_refuses_empty_task():
         assert "no utility-feasible" in str(error)
     else:
         raise AssertionError("T selected an ineligible task mask")
+
+
+def test_pre_sensitive_no_go_has_all_rule_slots_without_critic_or_sex_input():
+    from task_only import build_pre_sensitive_no_go_control_plan
+
+    table = _table()
+    table["income_masks"] = [_mask("A", 0.30, feasible=False),
+                             _mask("B", 0.31, feasible=False)]
+    table["task_table_sha256"] = _sha({key: value for key, value in table.items()
+                                      if key != "task_table_sha256"})
+    bank = SimpleNamespace(bank_sha256=table["bank_sha256"], masks=(
+        SimpleNamespace(mask_id="A", mask_sha256="a" * 64),
+        SimpleNamespace(mask_id="B", mask_sha256="b" * 64),
+    ))
+    plan = build_pre_sensitive_no_go_control_plan(
+        table, bank, reason="NO_UTILITY_FEASIBLE_TASK_MASK")
+    assert plan["status"] == "NO_FEASIBLE_J"
+    assert plan["joint_pair_id"] is None and plan["task_only_pair_id"] is None
+    assert plan["table_sha256"] is None
+    assert plan["task_table_sha256"] == table["task_table_sha256"]
+    assert len(plan["rules"]) == 10
+    assert all(rule["status"] == "INVALID_NO_UTILITY_FEASIBLE_PAIR"
+               for rule in plan["rules"].values())
+    assert len(plan["selection_receipt_sha256"]) == 64
+    try:
+        build_pre_sensitive_no_go_control_plan(
+            _table(), bank, reason="NO_UTILITY_FEASIBLE_TASK_MASK")
+    except ValueError as error:
+        assert "feasible" in str(error)
+    else:
+        raise AssertionError("a feasible T mask was treated as no-go")

@@ -27,7 +27,7 @@ def _full_sha(value):
             and all(char in "0123456789abcdef" for char in value))
 
 
-def _masks(rows, purpose):
+def _masks(rows, purpose, *, require_feasible=True):
     if not isinstance(rows, list) or not rows:
         raise ValueError(f"task-only {purpose} mask list is empty")
     if len({row.get("mask_id") for row in rows}) != len(rows):
@@ -61,13 +61,13 @@ def _masks(rows, purpose):
                 row["utility_feasible"] != all(value >= 0 for value in values)):
             raise ValueError("task-only utility status differs from margins")
     feasible = [row for row in rows if row["utility_feasible"]]
-    if not feasible:
+    if not feasible and require_feasible:
         raise ValueError(f"no utility-feasible task-only {purpose} mask")
-    return min(feasible, key=lambda row: (row["metrics"]["nll"], row["mask_sha256"]))
+    return (min(feasible, key=lambda row: (row["metrics"]["nll"], row["mask_sha256"]))
+            if feasible else None)
 
 
-def select_task_only_pre_sensitive(task_table):
-    """Choose T from task metrics only; fail on every unregistered field."""
+def _validated_table(task_table):
     if (not isinstance(task_table, dict) or set(task_table) != {
         "schema", "bank_sha256", "split_receipt", "income_masks",
         "occupation_masks", "task_table_sha256",
@@ -81,6 +81,12 @@ def select_task_only_pre_sensitive(task_table):
     if not _full_sha(task_table["task_table_sha256"]) or \
             task_table["task_table_sha256"] != _sha(content):
         raise ValueError("task-only table SHA differs from contents")
+    return task_table
+
+
+def select_task_only_pre_sensitive(task_table):
+    """Choose T from task metrics only; fail on every unregistered field."""
+    task_table = _validated_table(task_table)
     first = _masks(task_table["income_masks"], "income")
     second = _masks(task_table["occupation_masks"], "occupation")
     selection = {
@@ -96,3 +102,41 @@ def select_task_only_pre_sensitive(task_table):
                      "occupation_group": second["head_id"]},
     }
     return {**selection, "selection_receipt_sha256": _sha(selection)}
+
+
+def build_pre_sensitive_no_go_control_plan(task_table, bank, *, reason):
+    """Record task infeasibility before any protected-label read or critic fit."""
+    if reason != "NO_UTILITY_FEASIBLE_TASK_MASK":
+        raise ValueError("no-go reason differs from frozen task-only failure")
+    task_table = _validated_table(task_table)
+    if task_table["bank_sha256"] != bank.bank_sha256:
+        raise ValueError("task-only table and mask bank identities differ")
+    first = _masks(task_table["income_masks"], "income", require_feasible=False)
+    second = _masks(task_table["occupation_masks"], "occupation", require_feasible=False)
+    by_id = {mask.mask_id: mask.mask_sha256 for mask in bank.masks}
+    for purpose in ("income_masks", "occupation_masks"):
+        if {row["mask_id"]: row["mask_sha256"] for row in task_table[purpose]} != by_id:
+            raise ValueError("task-only no-go masks differ from sealed bank")
+    if first is not None and second is not None:
+        raise ValueError("feasible task-only pair exists; no-go is invalid")
+    rule_ids = ("J", "T", "I", "S12", "S21", "SHARED",
+                "T_U", "I_U", "S12_U", "S21_U")
+    plan = {
+        "schema": "pcrl-focused-m3-control-plan-v1",
+        "status": "NO_FEASIBLE_J", "reason": reason,
+        "bank_sha256": task_table["bank_sha256"],
+        "task_table_sha256": task_table["task_table_sha256"],
+        "table_sha256": None,
+        "joint_pair_id": None, "task_only_pair_id": None,
+        "joint_union_quota": None,
+        "main_control_order": ["T", "I", "S12", "S21", "SHARED",
+                               "T_U", "I_U", "S12_U", "S21_U"],
+        "attribution_control_order": ["T_U", "I_U", "S12_U", "S21_U",
+                                      "T", "I", "S12", "S21", "SHARED"],
+        "rules": {rule_id: {"status": "INVALID_NO_UTILITY_FEASIBLE_PAIR",
+                            "reason": reason, "pair_id": None}
+                  for rule_id in rule_ids},
+        "dropped_invalid_rules": list(rule_ids),
+        "release_alias_status": "NOT_APPLICABLE_NO_SELECTED_RELEASE",
+    }
+    return {**plan, "selection_receipt_sha256": _sha(plan)}
