@@ -21,6 +21,13 @@ def sha(path: Path) -> str:
 
 
 class IndependentCReplayGateSynthetic(unittest.TestCase):
+    def test_only_coordinator_s3_queue_root_is_accepted(self):
+        self.assertEqual(gate._queue_root(gate.QUEUE_ROOT),
+                         gate.QUEUE_ROOT.resolve(strict=True))
+        with tempfile.TemporaryDirectory() as scratch:
+            with self.assertRaisesRegex(PermissionError, "coordinator queue root"):
+                gate._queue_root(Path(scratch))
+
     def test_parent_stage_and_source_before_role(self):
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch).resolve()

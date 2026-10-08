@@ -24,6 +24,7 @@ REPO = CAMPAIGN.parents[1]
 ADMISSION = CAMPAIGN / "S4_C_REPLAY_ADMISSION.json"
 REVIEW = CAMPAIGN / "S4_C_REPLAY_PREFIT_REVIEW.json"
 SEAL = CAMPAIGN / "S4_C_REPLAY_LOCAL_SEAL_RECEIPT.json"
+QUEUE_ROOT = CAMPAIGN / "shared/.private/compute"
 SOURCE_FILES = frozenset(
     f"results/pcrl_method_portfolio_v1/s4/{name}.py" for name in (
         "run_c_adult_replay_v1", "replay_c_values_v1", "replay_c_release_v1",
@@ -43,6 +44,14 @@ ROLE_FIELDS = (
 def _need(ok: bool, why: str) -> None:
     if not ok:
         raise PermissionError(why)
+
+
+def _queue_root(path: Path) -> Path:
+    """Bind the running child to the coordinator's one S3 ledger."""
+    root = path.resolve(strict=True)
+    _need(root == QUEUE_ROOT.resolve(strict=True),
+          "S4 C coordinator queue root differs")
+    return root
 
 
 def _sha(path: Path) -> str:
@@ -336,6 +345,7 @@ def main() -> None:
     args = parser.parse_args()
     for name in ("admission", "local_seal", "queue_root", "private_report"):
         setattr(args, name, Path(getattr(args, name)))
+    args.queue_root = _queue_root(args.queue_root)
     state = _read(args.queue_root / "QUEUE.json")
     admission, unit, private_root, parents = admit(args, state, sys.argv)
     manifest = _read(CAMPAIGN / "DATA_ACCESS_MANIFEST.json")

@@ -17,7 +17,8 @@ from replay_c_inference_v1 import prepare, simultaneous
 from replay_c_values_v1 import sha_array
 from run_c_adult_replay_v1 import (
     ADMISSION, CAMPAIGN, HERE, REVIEW, REPO, SEAL, SOURCE_FILES,
-    _git_blob, _need, _one_argument, _read, _role_file, _sha, _write_once,
+    _git_blob, _need, _one_argument, _queue_root, _read, _role_file, _sha,
+    _write_once,
 )
 
 
@@ -310,6 +311,7 @@ def main() -> None:
     for name in ("admission", "local_seal", "queue_root", "private_report",
                  "arm_result_index"):
         setattr(args, name, Path(getattr(args, name)))
+    args.queue_root = _queue_root(args.queue_root)
     state = _read(args.queue_root / "QUEUE.json")
     admission, fit, final_path, final_spec, arm_paths = _preaccess(args, state, sys.argv)
     final = _read(final_path)

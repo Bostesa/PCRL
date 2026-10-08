@@ -14,9 +14,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 CAMPAIGN = HERE.parent
-SCHEMA_PATH = HERE / "S4_C_REPLAY_UNIT_SCHEMA_DRAFT.json"
+SCHEMA_PATH = HERE / "S4_C_REPLAY_UNIT_SCHEMA_V2.json"
 QUEUE_ROOT = CAMPAIGN / "shared/.private/compute"
-OUT = CAMPAIGN / "S4_C_REPLAY_ADMISSION_CANDIDATE.json"
+OUT = CAMPAIGN / "S4_C_REPLAY_ADMISSION_CANDIDATE_R2.json"
 
 
 def sha(path: Path) -> str:
@@ -108,6 +108,8 @@ def build() -> dict:
         "source_sha256_by_path": schema["source_sha256_by_path"],
         "queue_source_sha256": "PENDING_SEPARATE_S3_ROUTE",
         "verifier_synthetic_v12_index_sha256": sha(HERE / "S4_VERIFIER_QUEUE_INDEX_V12.json"),
+        "verifier_synthetic_v13_index_sha256": sha(HERE / "S4_VERIFIER_QUEUE_INDEX_V13.json"),
+        "verifier_synthetic_v14_index_sha256": sha(HERE / "S4_VERIFIER_QUEUE_INDEX_V14.json"),
         "unit_specs": units,
         "unit_count": 17,
         "parent_c_unit_count": 135,
