@@ -5,7 +5,9 @@ have completed under two preserved B-only fit locks. All 16 B V2 control
 probes passed their frozen engineering gates. The first shared-anchor V2 s0
 unit failed before role access because its queued spec omitted parent reader
 receipt hashes; the old s1 unit was not run. A dated R2 engineering retry for
-both anchors is pending. Independent Adult numerical replay has not run.
+both anchors completed with reported PASS gates. S4 checked the R2 receipt,
+parent and custody file hashes without opening person arrays. Independent
+Adult numerical replay has not run.
 Prefit and V2 control seals check custody and admission; they do not verify
 fitted endpoints.
 
