@@ -403,6 +403,8 @@ class Queue:
         registered_indexes = {
             "S4_VERIFIER_QUEUE_INDEX_V3.json": "928c6d00b859263e79a5cb8a8e65ccf573e29e89ac2cb1ea8128acd655c10ad6",
             "S4_VERIFIER_QUEUE_INDEX_V5.json": "ac3103d2514cc939d9520aa633852d66dfa4de4c9cb38996276ee1d510e89fb1",
+            "S4_VERIFIER_QUEUE_INDEX_V6.json": "e74504d76b34c169d2261f88a9a1845709e0ee394fbd6d73675a0e94787df3f2",
+            "S4_VERIFIER_QUEUE_INDEX_V7.json": "c39cb299b6218f28dae372babb4c44eec8117d23b67667a333f2173b0f9a3cc7",
         }
         if (spec.get("mode") != "verifier_synthetic" or
             spec.get("family") != "S4" or spec.get("team") != "S4" or

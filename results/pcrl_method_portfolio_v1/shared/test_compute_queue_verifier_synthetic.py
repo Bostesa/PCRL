@@ -13,7 +13,8 @@ from compute_queue import Queue
 REPO = Path(__file__).resolve().parents[3]
 S4 = REPO / "results/pcrl_method_portfolio_v1/s4"
 VENV = REPO.parent.parent / ".venv/bin/python"
-INDEX_NAMES = ("S4_VERIFIER_QUEUE_INDEX_V3.json", "S4_VERIFIER_QUEUE_INDEX_V5.json")
+INDEX_NAMES = ("S4_VERIFIER_QUEUE_INDEX_V3.json", "S4_VERIFIER_QUEUE_INDEX_V5.json",
+               "S4_VERIFIER_QUEUE_INDEX_V6.json", "S4_VERIFIER_QUEUE_INDEX_V7.json")
 
 
 def sha(path: Path) -> str:
@@ -37,6 +38,7 @@ def registered_spec(index_name: str) -> dict:
         "deps": [], "outputs": [],
         "max_wall_s": 120, "cpu_reserve_s": 120, "max_rss_gib": 1.0,
         "test_file": str(test_path), "test_sha256": registered["test_sha256"],
+        "source_sha256_by_file": registered["source_sha256_by_file"],
         "verifier_index_path": str(index_path), "verifier_index_sha256": sha(index_path),
     }
 
@@ -47,7 +49,7 @@ class VerifierSyntheticAdmissionTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.queue = Queue(Path(self.temp.name) / "queue")
 
-    def test_registered_v3_and_v5_units_enqueue_without_adult_seal(self):
+    def test_registered_red_and_green_units_enqueue_without_adult_seal(self):
         for name in INDEX_NAMES:
             with self.subTest(index=name):
                 spec = registered_spec(name)
@@ -66,6 +68,13 @@ class VerifierSyntheticAdmissionTests(unittest.TestCase):
                 altered = dict(spec, **change)
                 with self.assertRaises((ValueError, KeyError)):
                     Queue(Path(self.temp.name) / f"negative-{len(str(change))}").enqueue(altered)
+
+    def test_green_source_map_is_exact(self):
+        spec = registered_spec(INDEX_NAMES[2])
+        wrong = dict(spec, source_sha256_by_file={
+            "results/pcrl_method_portfolio_v1/s4/verifier_identity_v3.py": "0" * 64})
+        with self.assertRaises(ValueError):
+            self.queue.enqueue(wrong)
 
 
 if __name__ == "__main__":
