@@ -1,0 +1,33 @@
+{
+  "schema": "pcrl-s4-shuffled-control-premise-review-v1",
+  "status": "FROZEN_CONTROL_PREMISE_INVALID_FOR_MANDATORY_NULL",
+  "campaign_lock_sha256": "6d82822f5fe54c16f76e6140eb7e780251f4d7cb288af0166855187ec5069dfa",
+  "frozen_control_source_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
+  "scope": "Analytic premise audit and read-only aggregate/hash inspection. No person-level array, new fit, rerun, threshold change or post hoc approval of failed units.",
+  "old_control_rule": "Fit LR to group-size-preserving shuffled ATTACK_TRAIN SEX labels, predict on INNER_SELECTION view, score against true INNER_SELECTION SEX as max(AUC, 1-AUC), require <=0.60.",
+  "counterexample": "If a disclosed one-dimensional feature equals true SEX, many correctly shuffled ATTACK_TRAIN label permutations yield a nonzero fitted LR coefficient. For any such coefficient, its held-out score ranks the feature forward or backward. Scored against true INNER_SELECTION SEX, max(AUC,1-AUC)=1 in either case. The mandatory <=0.60 rule can therefore fail under a correct shuffle and correct evaluator; its null premise is false.",
+  "observed_failures": [
+    {
+      "arm": "B-DVIB", "seed": 0, "view": "income",
+      "attempt_index_sha256": "b431449c28f6b1c4e4e0ade6b3932217e373bc4f84ab5304d06589958472b7ac",
+      "real_control_index_sha256": "8661324c6780cbeb86e92751e9f1319296f7edb967486adda7da00ae4b095c7f",
+      "shuffled_auc": 0.6372369214195022,
+      "screen_probe_complete_view_and_row_unit_hashes_equal": true,
+      "old_gate_status": "FAIL"
+    },
+    {
+      "arm": "B-RAW-TASK", "seed": 0, "view": "occupation",
+      "screen_queue_receipt_sha256": "936565c033ed6424ac51640967fa1bfff131a548012d0d40d498673adc958513",
+      "probe_queue_receipt_sha256": "d04e855d7470af5bfebbe493578cddd134d826a9851dc49eecc76d2b99b6877d",
+      "attempt_index_sha256": "e035bf94bc53038173aa98a9bf5af28d44f53286f7df37173013b5963c622213",
+      "real_control_index_sha256": "1f4f30d9a65ca5834756ec8a47747f248d413c77ff43545331eef4c071084be9",
+      "shuffled_auc": 0.606386623598151,
+      "screen_probe_complete_view_and_row_unit_hashes_equal": true,
+      "old_gate_status": "FAIL"
+    }
+  ],
+  "interpretation": "The counterexample establishes a defect in the control's claimed null, not that either observed failure is harmless or that either candidate's privacy result passes. A high old shuffled AUC can arise from actual sensitive structure in the transmitted view despite correctly shuffled fit labels. The full-view fresh readers already measure that structure separately.",
+  "recommended_prospective_amendment": "Preserve all old reports and FAIL statuses. Before any replacement-control work, S1 should freeze and push a dated protocol with new probe IDs and charged fits. Continue to report shuffled-ATT/true-INNER AUC descriptively. For a mandatory null, score the shuffled-fit predictions against an independently group-size-preserving shuffled INNER_SELECTION SEX vector fixed before candidate outcomes, or use a fixed group-permutation null distribution. Keep constant/null and planted-leak controls, exact row/view custody and source-label-use checks. Apply the new rule to all candidate and matched control arms under a common version; do not silently grandfather old PASS reports.",
+  "unrelated_work": "Unrelated prelocked units may continue under the unchanged original evaluator and their own recorded gates while S1 decides a prospective amendment. Original failures cannot enter an old-protocol competitive pass.",
+  "independent_adult_numerical_replay": "PENDING_SEPARATE_S4_QUEUE_ADMISSION"
+}
