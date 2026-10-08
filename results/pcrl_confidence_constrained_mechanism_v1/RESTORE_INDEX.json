@@ -1,0 +1,28 @@
+{
+ "schema": "ccm-restore-index-v1",
+ "written_at": "2026-10-08T08:55:45Z",
+ "private_local": "<PRIVATE_CACHE>/ccm_v1",
+ "copy": "<PRIVATE_CACHE>/ccm_v1_local_copy_20261008 (same device; off-device copy PENDING)",
+ "checksums": "<PRIVATE_CACHE>/ccm_v1_local_copy_20261008/SHA256SUMS",
+ "layout": {
+  "ccm_v1/ref/ref__s{k}.npz|json": "label-free Ucal/U0 reference vectors of the permitted roles (cache tied to the sha256 of ccm/data.py)",
+  "ccm_v1/run/geometry/{G,G_exp}__s{k}__r{i}.json": "private geometry records (bins, representatives, member indices)",
+  "ccm_v1/run/*.jsonl": "activity, compute and semaphore ledgers",
+  "ccm_v1/run_*.log": "stage logs with /usr/bin/time -l",
+  "dependencies/jcv_v1/inputs/adult_jcv.npz": "the pinned source input, bundled"
+ },
+ "restore": [
+  "verify: shasum -a 256 -c SHA256SUMS (inside <PRIVATE_CACHE>/ccm_v1_local_copy_20261008)",
+  "copy ccm_v1 back to <PRIVATE_CACHE>/ccm_v1 only if the live store is lost",
+  "PYTHONPATH=. <python> -m ccm.custody restore <PRIVATE_CACHE>/ccm_v1_local_copy_20261008"
+ ],
+ "note": "the Ucal cache is rebuilt from the hcal admitted teacher (<PRIVATE_CACHE>/hcal_v1) if lost; that store has its own same-device copy (hcal RESTORE_INDEX.json)",
+ "required_restores": {
+  "pinned_input_equals_copy": "PASS",
+  "store_resolved_inside_copy": "PASS",
+  "geometry_G_recomputed_from_copy": "PASS",
+  "oracle_recomputed": "PASS",
+  "copy_unchanged_by_restore": "PASS"
+ },
+ "restore_all_pass": true
+}
