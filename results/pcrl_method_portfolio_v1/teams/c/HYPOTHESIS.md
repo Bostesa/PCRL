@@ -1,6 +1,6 @@
 # Team C: purpose-specific grouped feature selection
 
-Status: Phase I design draft, 2026-10-08. No Adult fit or screen result is claimed here.
+Status: original joint prototype failed its Phase I fitted-proxy premise; see the dated disposition and active simple-control scope below. No Adult fit or screen result is claimed here.
 
 ## Question
 
@@ -28,3 +28,13 @@ The candidate earns an exploratory method lead only under the common protocol's 
 - The selected mask accidentally includes a label, SEX, or an incomplete categorical/education fact group.
 
 No Team C design is a confirmation study. Adult outcomes and source designs have already been used repeatedly.
+
+## Phase I synthetic disposition, 2026-10-08
+
+The frozen depth-two CART SEX proxy did not recover the planted balanced XOR clue in the registered Team C scorecard test: reversible AUC was 0.6123299693 against the predeclared threshold above 0.90. The tree can express XOR, but its greedy root split did not reliably find it. Preserve that failed result. The separate exact L3 enumeration tests a supplied exact scorecard and does not validate this fitted proxy.
+
+No additional interaction proxy or third prototype enters this bounded lane. Team C may still test global grouped removal and retrained heads as a transparent feature-selection baseline, using fresh nonlinear complete-view attacks and all matched controls. Under this fixed scorecard, Team C cannot claim reliable complementary-clue handling or a joint-design contribution from an Adult screen, even if the named overlap heuristic has a favourable exploratory result. The fixed `relationship` exclusion and mean-utility limits remain as stated above.
+
+## S1 bounded-screen decision, 2026-10-08
+
+S1 subsequently applied the predeclared Phase I premise rule. `C-JOINT-GROUP` is `PREFIT_PREMISE_FAILED` and receives no Adult fit; its dependent `C-INDEP-GROUP` prototype is skipped. The active Team C screen, if science gates open, contains separately registered simple grouped-mask controls: fixed full and relationship-removed heads, one-atom task-only and sensitive-aware selectors, and both sequential orders. These are standard feature-selection baselines, not a third prototype. A simple arm may earn an exploratory method lead under the frozen feature-track comparison, without joint or complementary-clue attribution.
