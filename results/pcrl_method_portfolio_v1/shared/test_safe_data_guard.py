@@ -43,7 +43,8 @@ class GuardTest(unittest.TestCase):
         np.savez(path, row_id=self.ids, unit=self.groups, **arrays)
         self.manifest["real_file_specs"][f"OSF_DEFENSE_FIT:{field}"] = {
             "role": "OSF_DEFENSE_FIT", "field": field, "path": str(path),
-            "sha256": sha_file(path), "members": ["row_id", "unit", *arrays]
+            "sha256": sha_file(path), "members": ["row_id", "unit", *arrays],
+            "row_unit_pair_sha256": sha_arr(np.column_stack((self.ids, self.groups)).astype(np.int64))
         }
         return path
 
@@ -79,6 +80,14 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(set(features), {"row_id", "unit", "X", "feature_names"})
         self.assertEqual(set(label), {"row_id", "unit", "income"})
         np.testing.assert_array_equal(features["row_id"], label["row_id"])
+
+    def test_row_to_group_swap_rejected_despite_separate_hashes(self):
+        path = self.admit("income", income=np.array([0, 1, 0], dtype=np.int64))
+        np.savez(path, row_id=self.ids, unit=np.array([2, 1, 3], dtype=np.int64),
+                 income=np.array([0, 1, 0], dtype=np.int64))
+        self.manifest["real_file_specs"]["OSF_DEFENSE_FIT:income"]["sha256"] = sha_file(path)
+        with self.assertRaisesRegex(AccessRefused, "pairing"):
+            self.store().read("OSF_DEFENSE_FIT", "income", "defense_fit")
 
     def test_known_all_role_filename_refused_before_hash(self):
         path = self.admit("income", income=np.array([0, 1, 0], dtype=np.int64))

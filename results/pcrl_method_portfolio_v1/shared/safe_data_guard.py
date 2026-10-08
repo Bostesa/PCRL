@@ -1,9 +1,7 @@
-"""Fail-closed access to pre-existing, role-only PCRL exports.
+"""Fail-closed access to verified, role-only PCRL exports.
 
-No real export is admitted yet. This module never imports the inherited loaders and
-never constructs an export from the all-role archive. ``real_file_specs`` remains
-empty until provenance and hashes for independently existing role-only files are
-reviewed and bound by a pushed campaign lock.
+This scientific loader never imports the inherited loaders or the isolated
+custodian exporter. It reads only files admitted in DATA_ACCESS_MANIFEST.json.
 """
 
 from __future__ import annotations
@@ -39,6 +37,7 @@ def sha_arr(value) -> str:
 class SafeRoleStore:
     def __init__(self, manifest_path: str | Path | None = None):
         manifest_path = Path(manifest_path or Path(__file__).resolve().parent.parent / "DATA_ACCESS_MANIFEST.json")
+        self.manifest_path = manifest_path.resolve()
         self.manifest = json.loads(manifest_path.read_text())
         if self.manifest.get("schema") != "pcrl-method-portfolio-data-access-v1":
             raise AccessRefused("unrecognized data-access manifest")
@@ -46,9 +45,9 @@ class SafeRoleStore:
     def _authorize(self, role: str, field: str, procedure: str | None) -> dict:
         if role not in self.manifest["roles"]:
             raise AccessRefused("role is not admitted")
-        if field == "features":
+        if field == "features" or field in {f"references_s{k}" for k in (0, 1, 2)}:
             if procedure is not None:
-                raise AccessRefused("feature request must not name a label procedure")
+                raise AccessRefused("feature/reference request must not name a label procedure")
         else:
             allowed = self.manifest["label_allowlist"].get(procedure or "", {}).get(role, [])
             if field not in allowed:
@@ -64,7 +63,8 @@ class SafeRoleStore:
     def read(self, role: str, field: str, procedure: str | None = None) -> dict:
         """Return only the requested role and field; refusal occurs before file access."""
         spec = self._authorize(role, field, procedure)
-        path = Path(spec["path"]).resolve()
+        declared_path = Path(spec["path"])
+        path = (declared_path if declared_path.is_absolute() else self.manifest_path.parent / declared_path).resolve()
         # Exact manifest entries are necessary but not sufficient: deny the known
         # all-row names even if accidentally entered in a proposed manifest.
         if path.name in {"adult_jcv.npz", "teacher.npz", "release.npz", "u.npz"}:
@@ -73,7 +73,12 @@ class SafeRoleStore:
             raise AccessRefused("role-only archive is absent or has wrong format")
         if sha_file(path) != spec.get("sha256"):
             raise AccessRefused("role-only archive hash mismatch")
-        required = {"row_id", "unit", "X", "feature_names"} if field == "features" else {"row_id", "unit", field}
+        if field == "features":
+            required = {"row_id", "unit", "X", "feature_names"}
+        elif field.startswith("references_s"):
+            required = {"row_id", "unit", "U0_1", "U0_2", "Ucal_1", "Ucal_2", "d_1", "d_2"}
+        else:
+            required = {"row_id", "unit", field}
         if set(spec.get("members", [])) != required:
             raise AccessRefused("declared members differ from the exact role-only schema")
         # ZIP directory inspection does not decompress a member. Reject extra
@@ -99,6 +104,9 @@ class SafeRoleStore:
             raise AccessRefused("role row-ID hash mismatch")
         if sha_arr(np.unique(groups)) != expected["group_id_sha256"]:
             raise AccessRefused("role group-ID hash mismatch")
+        pair_hash = sha_arr(np.column_stack((ids, groups)).astype(np.int64))
+        if pair_hash != spec.get("row_unit_pair_sha256"):
+            raise AccessRefused("role row-to-group pairing mismatch")
         if field == "features":
             x = out["X"]
             names = [str(v) for v in out["feature_names"]]
@@ -110,6 +118,18 @@ class SafeRoleStore:
             if any(name.lower().split("=")[0] in {"sex", "race", "income", "occupation", "fnlwgt"}
                    for name in names):
                 raise AccessRefused("forbidden predictor column")
+        elif field.startswith("references_s"):
+            for recipient, width in ((1, 2), (2, 6)):
+                decision = out[f"d_{recipient}"]
+                if decision.shape != ids.shape or not np.issubdtype(decision.dtype, np.integer):
+                    raise AccessRefused("reference decision schema mismatch")
+                for kind in ("U0", "Ucal"):
+                    p = out[f"{kind}_{recipient}"]
+                    if p.shape != (ids.size, width) or not np.all(np.isfinite(p)) or np.any(p < 0) or \
+                            not np.allclose(p.sum(axis=1), 1, atol=1e-8):
+                        raise AccessRefused("reference probability schema mismatch")
+                    if not np.array_equal(np.argmax(p, axis=1), decision):
+                        raise AccessRefused("reference decision mismatch")
         else:
             y = out[field]
             cap = {"income": 2, "occupation": 6, "sex": 2}[field]
