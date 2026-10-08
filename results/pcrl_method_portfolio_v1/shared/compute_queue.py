@@ -565,6 +565,54 @@ class Queue:
                     values.append(arg[len(flag) + 1:])
             return values[0] if len(values) == 1 else None
 
+        if spec.get("stage") == "a_score_bank_preprocess":
+            releases = ("tstar", "pstar", "lra_seq21", "hcal_local_d0", "hcal_seq12_d0")
+            release = spec.get("release_key")
+            expected_ids = [f"S2-A-SCORE-BANK-{key.upper().replace('_', '-')}-S{s}"
+                            for key in releases for s in (0, 1)]
+            uid = (f"S2-A-SCORE-BANK-{release.upper().replace('_', '-')}-S{seed}"
+                   if isinstance(release, str) else None)
+            family_a = lock.get("families", {}).get("A", {})
+            if (lock.get("fit_admission") != "B_ONLY" or
+                family_a.get("preprocessing_admission") != "ALLOWED" or
+                family_a.get("fit_admission") != "DENIED" or
+                lock.get("admitted_a_score_bank_unit_ids") != expected_ids or
+                release not in releases or spec.get("unit_id") != uid or
+                spec.get("family") != "SHARED" or spec.get("team") != "SHARED" or
+                spec.get("arm_id") != "A_SCORE_BANK_PREPROCESS" or
+                spec.get("arm") != "A_SCORE_BANK_PREPROCESS" or
+                spec.get("mode") != "real_data" or
+                spec.get("data_access") != "A_ROLE_ONLY_REFERENCES_PREPROCESS" or
+                spec.get("deps") != []):
+                return "a_score_bank_scope_invalid"
+            script_sha = lock.get("a_score_bank_runner_sha256")
+            if (spec.get("runner_sha256") != script_sha or
+                not exact_script("results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py", script_sha)):
+                return "a_score_bank_script_invalid"
+            campaign = Path(gate["local_seal_path"]).parent
+            lock_path = campaign / "CAMPAIGN_LOCK.json"
+            manifest = campaign / "DATA_ACCESS_MANIFEST.json"
+            output = (campaign / "shared/.private" / f"{release}_score_bank_s{seed}_v1" /
+                      "BANK_ADMISSION_RECEIPT.json")
+            cache_rel = lock.get("a_score_bank_cache_root")
+            if not isinstance(cache_rel, str) or Path(cache_rel).is_absolute():
+                return "a_score_bank_cache_invalid"
+            try:
+                cache = (Path(spec["cwd"]) / cache_rel).resolve(strict=True)
+                argv_cache = Path(flag_value("--cache-root") or "").resolve(strict=True)
+            except (OSError, TypeError):
+                return "a_score_bank_cache_invalid"
+            if (not cache.is_dir() or argv_cache != cache or
+                Path(spec.get("cache_root", "")).resolve() != cache or
+                spec.get("outputs") != [str(output)] or output.exists() or
+                not manifest.is_file() or
+                sha256_file(manifest) != lock.get("data_admission", {}).get("manifest_sha256") or
+                flag_value("--seed") != str(seed) or flag_value("--release") != release or
+                flag_value("--campaign-lock-sha256") != sha256_file(lock_path) or
+                flag_value("--queue-root") != str(campaign / "shared/.private/compute")):
+                return "a_score_bank_input_or_output_invalid"
+            return None
+
         if family == "SHARED":
             expected_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
             if (arm_id != "FEATURE_REF_RAW83_U" or spec.get("arm") != arm_id or
