@@ -113,7 +113,7 @@ def build_specs(plan_path: Path, lock_path: Path, expected_lock_sha256: str,
                    "cpu_reserve_s": 300, "max_rss_gib": 1.5}
     for unit in plan["units"]:
         key, seed = unit["release_key"], unit["seed"]
-        if (key, seed) not in expected_pairs or (key, seed) in seen_pairs or
+        if ((key, seed) not in expected_pairs or (key, seed) in seen_pairs or
                 unit.get("unit_id") != _expected_unit_id(key, seed) or
                 unit.get("s3") != expected_s3):
             raise ValueError("A unit ID, pair or S3 limits differ")
