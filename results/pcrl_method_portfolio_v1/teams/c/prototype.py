@@ -145,9 +145,21 @@ class PurposeRelease:
             raise ValueError("purpose must be income or occupation_group")
         if not self.head_id or not self.calibrator_id:
             raise ValueError("head and calibrator IDs must be explicit")
-        object.__setattr__(
-            self, "selected_atoms", self.schema.normalize_atoms(self.selected_atoms)
-        )
+        atoms = self.schema.normalize_atoms(self.selected_atoms)
+        object.__setattr__(self, "selected_atoms", atoms)
+        # Scientific heads carry this metadata. Synthetic protocol heads lack
+        # all four attributes, but a partially described head fails closed.
+        fields = ("purpose", "selected_atoms", "selected_columns", "model_id")
+        present = [hasattr(self.head, field) for field in fields]
+        if any(present):
+            if not all(present):
+                raise ValueError("fitted head metadata is incomplete")
+            if (self.head.purpose != self.purpose
+                    or tuple(self.head.selected_atoms) != atoms
+                    or self.head.selected_columns != len(self.schema.column_indices(atoms))
+                    or self.head_id not in (self.head.model_id,)
+                    and not self.head_id.startswith(f"{self.head.model_id}:")):
+                raise ValueError("fitted head purpose, mask, or public ID mismatch")
 
     def view(self, X: np.ndarray, feature_names: tuple[str, ...]) -> dict:
         self.schema.validate_feature_names(feature_names)
@@ -247,9 +259,9 @@ def release_pair(
         "income_calibrator_id": income.calibrator_id,
         "occupation_group_calibrator_id": occupation.calibrator_id,
         "flags": (),
-        "income_probabilities": first["probabilities"],
-        "occupation_group_probabilities": second["probabilities"],
-        "income_decisions": first["decisions"],
-        "occupation_group_decisions": second["decisions"],
+        "income_probabilities": first["probabilities"].copy(),
+        "occupation_group_probabilities": second["probabilities"].copy(),
+        "income_decisions": first["decisions"].copy(),
+        "occupation_group_decisions": second["decisions"].copy(),
     }
     return {"income": first, "occupation_group": second, "coalition": coalition}

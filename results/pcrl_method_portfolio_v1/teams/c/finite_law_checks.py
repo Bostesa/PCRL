@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 
 from prototype import AdultGroupedSchema, IdentityCalibrator, PurposeRelease, release_pair
+from selector import Scorecard, TaskDelta, select_joint
 
 
 FROZEN_LAWS_SHA256 = "b2e68f5dec7dd690afa9389c44c0c2f98a78b30cde25c20a48751665f35fdc53"
@@ -61,6 +62,128 @@ class OccupationClueHead:
         clue, bit = selected[:, 0], selected[:, 1]
         p1 = np.where(bit == 1, 0.80 + 0.10 * clue, 0.20 - 0.10 * clue)
         return np.column_stack((1 - p1, p1, np.zeros((len(p1), 4))))
+
+
+def l3_common_mask_selector_check():
+    """Enumerate Team C's common-feature-mask adaptation of locked L3.
+
+    The frozen L3 *recipient* example remains (B1,U)/(B2,V). Here the same
+    latent law supplies four provider atoms to both global purpose masks.
+    Retrained task-optimal heads use their retained task bit only. This is a
+    separate selector premise check, not a changed version of S1's law.
+    """
+    atoms = ("B1", "B2", "U", "V")
+    states = [
+        {"S": s, "B1": b1, "B2": b2, "U": u, "V": u ^ s}
+        for s, b1, b2, u in itertools.product((0, 1), repeat=4)
+    ]
+    mass = Fraction(1, 16)
+
+    def raw_auc(kept):
+        keep_set = set(kept)
+        kept = tuple(a for a in atoms if a in keep_set)
+        return exact_auc([
+            record(mass, state["S"], *(state[a] for a in kept))
+            for state in states
+        ])
+
+    base_auc = raw_auc(atoms)
+    drops = {atom: base_auc - raw_auc(a for a in atoms if a != atom) for atom in atoms}
+    assert base_auc == 1
+    assert drops == {"B1": 0, "B2": 0, "U": Fraction(1, 2), "V": Fraction(1, 2)}
+    zero = TaskDelta(0.0, 0.0, 0.0)
+    lost_task_bit = TaskDelta(math.log(2), 0.5, -0.5)
+    scorecard = Scorecard(
+        optional_atoms=atoms,
+        auc_drop={atom: float(drops[atom]) for atom in atoms},
+        task_deltas={
+            "income": {atom: lost_task_bit if atom == "B1" else zero for atom in atoms},
+            "occupation_group": {
+                atom: lost_task_bit if atom == "B2" else zero for atom in atoms
+            },
+        },
+    )
+    selected = select_joint(scorecard, max_removals=1)
+
+    def exact_complete_auc(income_removed, occupation_removed, view):
+        income_kept = tuple(a for a in atoms if a not in income_removed)
+        occupation_kept = tuple(a for a in atoms if a not in occupation_removed)
+        union_kept = tuple(a for a in atoms if a in set(income_kept) | set(occupation_kept))
+        records = []
+        for state in states:
+            income_probability = (
+                state["B1"] if "B1" in income_kept else Fraction(1, 2)
+            )
+            occupation_probability = (
+                state["B2"] if "B2" in occupation_kept else Fraction(1, 2)
+            )
+            if view == "income":
+                disclosed = (tuple(state[a] for a in income_kept), income_probability, income_kept)
+            elif view == "occupation_group":
+                disclosed = (
+                    tuple(state[a] for a in occupation_kept),
+                    occupation_probability, occupation_kept,
+                )
+            else:
+                disclosed = (
+                    tuple(state[a] for a in union_kept),
+                    income_probability, occupation_probability,
+                    income_kept, occupation_kept,
+                )
+            records.append(record(mass, state["S"], disclosed))
+        return exact_auc(records)
+
+    choices = ((), *((atom,) for atom in atoms))
+    rows = []
+    for income_removed, occupation_removed in itertools.product(choices, repeat=2):
+        feasible = "B1" not in income_removed and "B2" not in occupation_removed
+        row = {
+            "income_removed": list(income_removed),
+            "occupation_removed": list(occupation_removed),
+            "task_feasible": feasible,
+        }
+        row["coalition_auc"] = str(exact_complete_auc(
+            income_removed, occupation_removed, "coalition"
+        ))
+        row["income_auc"] = str(exact_complete_auc(
+            income_removed, occupation_removed, "income"
+        ))
+        row["occupation_auc"] = str(exact_complete_auc(
+            income_removed, occupation_removed, "occupation_group"
+        ))
+        rows.append(row)
+    feasible_rows = [row for row in rows if row["task_feasible"]]
+    best_auc = min(Fraction(row["coalition_auc"]) for row in feasible_rows)
+    chosen = next(row for row in feasible_rows if (
+        row["income_removed"] == list(selected.income_removed)
+        and row["occupation_removed"] == list(selected.occupation_removed)
+    ))
+    chosen_auc = Fraction(chosen["coalition_auc"])
+    assert len(rows) == 25 and len(feasible_rows) == 16
+    assert selected.evaluated_pairs == 25 and selected.feasible_pairs == 16
+    assert best_auc == Fraction(1, 2)  # Decision/task-bit disclosure floor here.
+    assert chosen_auc >= best_auc
+    return {
+        "latent_law": "L3_COMPLEMENTARY_XOR",
+        "adapter": "Team C common provider atoms; task-optimal retrained bit heads",
+        "frozen_l3_recipient_views_unchanged": True,
+        "base_raw_auc": str(base_auc),
+        "one_atom_exact_auc_drop": {atom: str(drops[atom]) for atom in atoms},
+        "task_delta_if_own_bit_removed": {
+            "nll": math.log(2), "multiclass_brier": 0.5, "accuracy": -0.5,
+        },
+        "searched_pairs": selected.evaluated_pairs,
+        "task_feasible_pairs": selected.feasible_pairs,
+        "selected_income_removed": list(selected.income_removed),
+        "selected_occupation_removed": list(selected.occupation_removed),
+        "selected_coalition_auc": str(chosen_auc),
+        "selected_income_auc": chosen["income_auc"],
+        "selected_occupation_auc": chosen["occupation_auc"],
+        "exact_feasible_optimum_coalition_auc": str(best_auc),
+        "selector_auc_gap": str(chosen_auc - best_auc),
+        "all_mask_pairs": rows,
+        "scope": "Exact on this finite law only; additive scorecard is not a general oracle.",
+    }
 
 
 def main(law_path: Path):
@@ -168,6 +291,7 @@ def main(law_path: Path):
         "L2_auc_before_after": [1.0, 0.5],
         "L3_auc_local1_local2_coalition": [0.5, 0.5, 1.0],
         "L3_actual_adapter_complete_view_auc": [0.5, 0.5, 1.0],
+        "L3_team_c_mask_selector": l3_common_mask_selector_check(),
         "L4_auc_local1_local2_coalition": [0.8, 0.8, 0.8],
         "L5_class_only_nll_excess": class_only_nll - confidence_nll,
         "L5_class_only_multiclass_brier_excess": class_only_brier - confidence_brier,

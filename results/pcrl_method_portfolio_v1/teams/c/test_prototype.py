@@ -166,6 +166,26 @@ def test_wrong_purpose_head_width_is_rejected_before_release():
         wrong.view(X, schema.feature_names)
 
 
+def test_fitted_head_metadata_refuses_same_width_wrong_mask_and_public_id():
+    class MetadataHead(SumHead):
+        purpose = "income"
+        selected_atoms = ("age",)
+        selected_columns = 1
+        model_id = "fit-age"
+
+    schema = AdultGroupedSchema()
+    with pytest.raises(ValueError, match="fitted head purpose, mask, or public ID"):
+        PurposeRelease(
+            schema, ("capital-gain",), MetadataHead(), "income", "fit-age",
+            "cal", IdentityCalibrator(),
+        )
+    with pytest.raises(ValueError, match="fitted head purpose, mask, or public ID"):
+        PurposeRelease(
+            schema, ("age",), MetadataHead(), "income", "fit-other",
+            "cal", IdentityCalibrator(),
+        )
+
+
 def test_pair_refuses_swapped_purpose_heads():
     schema = AdultGroupedSchema()
     X = np.zeros((1, 83), dtype=float)
@@ -190,3 +210,19 @@ def test_transmitted_scores_are_actual_calibrated_selected_head_outputs():
     view = release.view(X, schema.feature_names)
     np.testing.assert_array_equal(view["probabilities"], np.array([[0.8, 0.2]]))
     np.testing.assert_array_equal(view["decisions"], np.array([0]))
+
+
+def test_coalition_view_keeps_independent_copies_for_consistency_audit():
+    schema = AdultGroupedSchema()
+    first, second = make_candidate(schema, ("age",), ("capital-gain",))
+    views = release_pair(np.zeros((1, 83)), schema.feature_names, first, second)
+    coalition_probability = views["coalition"]["income_probabilities"].copy()
+    coalition_decision = views["coalition"]["occupation_group_decisions"].copy()
+    views["income"]["probabilities"][0, 0] = 0.0
+    views["occupation_group"]["decisions"][0] = 5
+    np.testing.assert_array_equal(
+        views["coalition"]["income_probabilities"], coalition_probability
+    )
+    np.testing.assert_array_equal(
+        views["coalition"]["occupation_group_decisions"], coalition_decision
+    )
