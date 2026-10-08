@@ -1,6 +1,6 @@
 # Team D: post-hoc nonlinear repair of frozen task features
 
-Status: pre-lock design, 2026-10-08. No Adult fit has been authorized by a safe role-specific feature export.
+Status: pre-lock design, 2026-10-08. Adult fitting is authorized by the continuation but remains gated on S2's admitted role-only export, source checkpoint verification, S1's effective lock, revised-source numerical checks, and S3 compute admission.
 
 ## Question
 
