@@ -293,6 +293,8 @@ class Queue:
             state = self._read()
             if spec["mode"] == "real_data":
                 reason = self._real_admission_reason(state["gate"], spec)
+                if reason is None:
+                    reason = self._v2_parent_reason(state, spec)
                 if reason:
                     raise ValueError(reason)
             old = state["units"].get(spec["unit_id"])
@@ -335,7 +337,9 @@ class Queue:
                     replay_authorized: bool = False, replay_reviewed_sha256: str | None = None,
                     export_replay_authorized: bool = False, export_replay_reviewed_sha256: str | None = None,
                     compare_authorized: bool = False, compare_reviewed_sha256: str | None = None,
-                    local_seal_path: str | None = None, local_seal_sha256: str | None = None) -> dict:
+                    local_seal_path: str | None = None, local_seal_sha256: str | None = None,
+                    v2_local_seal_path: str | None = None,
+                    v2_local_seal_sha256: str | None = None) -> dict:
         if external_heavy not in (0, 1, 2):
             raise ValueError("external_heavy must be 0, 1, or 2")
         if phase1_lock_path is not None:
@@ -349,6 +353,9 @@ class Queue:
         if local_seal_path is not None:
             if not local_seal_sha256 or sha256_file(Path(local_seal_path)) != local_seal_sha256:
                 raise ValueError("local seal receipt file/hash mismatch")
+        if v2_local_seal_path is not None:
+            if not v2_local_seal_sha256 or sha256_file(Path(v2_local_seal_path)) != v2_local_seal_sha256:
+                raise ValueError("V2 local seal receipt file/hash mismatch")
         with self._mutex():
             state = self._read()
             if any(u["status"] == "running" for u in state["units"].values()):
@@ -375,6 +382,8 @@ class Queue:
                 "compare_reviewed_sha256": compare_reviewed_sha256,
                 "local_seal_path": local_seal_path,
                 "local_seal_sha256": local_seal_sha256,
+                "v2_local_seal_path": v2_local_seal_path,
+                "v2_local_seal_sha256": v2_local_seal_sha256,
             }
             self._save(state)
             self._receipt("gate", gate=state["gate"])
@@ -460,8 +469,68 @@ class Queue:
         except (OSError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
             return False
 
+    @staticmethod
+    def _local_v2_seal_ok(gate: dict) -> bool:
+        """Verify the separate committed S1/S4 V2 control lock and receipt."""
+        receipt_path = Path(gate.get("v2_local_seal_path") or "")
+        receipt_sha = gate.get("v2_local_seal_sha256")
+        if (receipt_path.name != "CONTROL_V2_LOCAL_SEAL_RECEIPT.json" or
+            not isinstance(receipt_sha, str) or
+            not re.fullmatch(r"[0-9a-f]{64}", receipt_sha) or
+            not receipt_path.is_file() or sha256_file(receipt_path) != receipt_sha):
+            return False
+        try:
+            receipt = json.loads(receipt_path.read_text())
+            commit = receipt.get("commit_sha")
+            lock_sha = receipt.get("control_lock_sha256")
+            if (receipt.get("schema") != "pcrl-control-v2-local-seal-receipt-v1" or
+                receipt.get("status") != "PASS" or receipt.get("scope") != "B_CONTROL_V2" or
+                not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit) or
+                not isinstance(lock_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", lock_sha) or
+                receipt.get("lock_commit_sha") != commit or receipt.get("lock_sha256") != lock_sha or
+                receipt.get("review_path") != "S4_CONTROL_V2_PREFIT_REVIEW.json"):
+                return False
+            review_sha = receipt.get("review_sha256")
+            review_path = receipt_path.parent / receipt["review_path"]
+            if (not isinstance(review_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", review_sha) or
+                not review_path.is_file() or sha256_file(review_path) != review_sha):
+                return False
+            review = json.loads(review_path.read_text())
+            if (review.get("status") != "PASS" or review.get("scope") != "B_CONTROL_V2" or
+                review.get("lock_commit_sha") != commit or review.get("lock_sha256") != lock_sha or
+                review.get("control_lock_sha256") != lock_sha):
+                return False
+            lock_path = receipt_path.parent / "CONTROL_V2_LOCK.json"
+            if not lock_path.is_file() or sha256_file(lock_path) != lock_sha:
+                return False
+            lock = json.loads(lock_path.read_text())
+            if (lock.get("schema") != "pcrl-control-v2-lock-v1" or
+                lock.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
+                lock.get("scope") != "B_CONTROL_V2" or
+                lock.get("control_version") != 2 or
+                lock.get("adult_probe_permission") is not True or
+                not isinstance(lock.get("probe_unit_ids"), dict) or
+                not isinstance(lock.get("accepted_fit_lock_sha256"), list) or
+                not lock["accepted_fit_lock_sha256"] or
+                any(not isinstance(x, str) or not re.fullmatch(r"[0-9a-f]{64}", x)
+                    for x in lock["accepted_fit_lock_sha256"])):
+                return False
+            repo = receipt_path.parent.parent.parent
+            relative = lock_path.relative_to(repo)
+            committed = subprocess.run(["git", "-C", str(repo), "show", f"{commit}:{relative}"],
+                                       capture_output=True, check=False, timeout=10)
+            if committed.returncode or hashlib.sha256(committed.stdout).hexdigest() != lock_sha:
+                return False
+            ancestor = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", commit, "HEAD"],
+                                      capture_output=True, check=False, timeout=10)
+            return ancestor.returncode == 0
+        except (OSError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
+            return False
+
     @classmethod
     def _real_admission_reason(cls, gate: dict, spec: dict) -> str | None:
+        if spec.get("stage") == "postrelease_control_v2":
+            return cls._v2_admission_reason(gate, spec)
         if not gate.get("safe_inputs") or not cls._local_seal_ok(gate):
             return "local_seal_invalid"
         lock = json.loads((Path(gate["local_seal_path"]).parent / "CAMPAIGN_LOCK.json").read_text())
@@ -536,6 +605,158 @@ class Queue:
             if (flag_value("--arm") != arm_id or flag_value("--seed") != str(seed) or
                 flag_value("--unit-id") != spec.get("unit_id")):
                 return "unit_argv_mismatch"
+        return None
+
+    @classmethod
+    def _v2_admission_reason(cls, gate: dict, spec: dict) -> str | None:
+        """Admit only one exact, sealed B or shared-anchor V2 probe unit."""
+        if not gate.get("safe_inputs") or not cls._local_v2_seal_ok(gate):
+            return "v2_local_seal_invalid"
+        lock_path = Path(gate["v2_local_seal_path"]).parent / "CONTROL_V2_LOCK.json"
+        lock = json.loads(lock_path.read_text())
+        family = spec.get("family")
+        arm = spec.get("arm_id")
+        seed = spec.get("seed")
+        uid = spec.get("unit_id")
+        if (family not in ("B", "SHARED") or spec.get("team") != family or
+            not isinstance(arm, str) or spec.get("arm") != arm or
+            type(seed) is not int or seed not in (0, 1) or
+            spec.get("stage") != "postrelease_control_v2" or
+            spec.get("mode") != "real_data" or
+            spec.get("data_access") != "ATTACK_INNER_FEATURES_AND_SEX_V2_CONTROL"):
+            return "v2_scope_invalid"
+        key = f"{arm}:s{seed}"
+        target = lock.get("unit_specs", {}).get(uid)
+        if (lock.get("probe_unit_ids", {}).get(key) != uid or not isinstance(target, dict)):
+            return "v2_unit_not_admitted"
+
+        argv = spec.get("argv", ())
+        def flag(name: str) -> str | None:
+            values = []
+            for i, arg in enumerate(argv[2:], start=2):
+                if arg == name and i + 1 < len(argv):
+                    values.append(argv[i + 1])
+                elif arg.startswith(name + "="):
+                    values.append(arg[len(name) + 1:])
+            return values[0] if len(values) == 1 else None
+
+        def exact_script(relative: str, expected_sha: object) -> bool:
+            try:
+                path = (Path(spec["cwd"]) / relative).resolve(strict=True)
+                actual = (Path(spec["cwd"]) / argv[1]).resolve(strict=True)
+                return (len(argv) >= 2 and actual == path and
+                        re.fullmatch(r"python(?:3(?:\.\d+)?)?", Path(argv[0]).name) is not None and
+                        isinstance(expected_sha, str) and sha256_file(path) == expected_sha)
+            except (OSError, IndexError, TypeError):
+                return False
+
+        receipt_sha = gate["v2_local_seal_sha256"]
+        control_sha = sha256_file(lock_path)
+        if family == "B":
+            if (not arm.startswith("B-") or
+                not exact_script("results/pcrl_method_portfolio_v1/teams/b/real_control_probe_v2.py",
+                                 lock.get("probe_runner_sha256"))):
+                return "v2_script_not_admitted"
+            parent_id = target.get("screen_unit_id")
+            if (target.get("arm") != arm or target.get("seed") != seed or
+                target.get("stage") != "postrelease_control_v2" or
+                target.get("v1_probe_index_sha256", object()) != spec.get("v1_probe_index_sha256", object()) or
+                spec.get("parent_unit_id") != parent_id or
+                flag("--arm") != arm or flag("--seed") != str(seed) or
+                flag("--unit-id") != uid or flag("--screen-unit-id") != parent_id or
+                flag("--attempt-index-sha256") != spec.get("parent_attempt_index_sha256") or
+                flag("--parent-fit-lock-sha256") != spec.get("parent_fit_lock_sha256") or
+                flag("--control-v2-lock-sha256") != control_sha or
+                flag("--v2-local-seal-sha256") != receipt_sha or
+                flag("--control-v2-lock") != str(lock_path) or
+                flag("--v2-local-seal-receipt") != gate["v2_local_seal_path"] or
+                flag("--config-sha256") != lock.get("screen_config_sha256") or
+                flag("--manifest-sha256") != lock.get("data_access_manifest_sha256")):
+                return "v2_argv_or_target_mismatch"
+            expected_output = f"real_probe_v2__{arm}__s{seed}__{parent_id}"
+            outputs = spec.get("outputs", [])
+            private_root = Path(spec["cwd"]) / "results/pcrl_method_portfolio_v1/teams/b/.private"
+            if (len(outputs) != 1 or Path(outputs[0]).name != "REAL_CONTROL_V2_INDEX.json" or
+                Path(outputs[0]).parent.name != expected_output or
+                Path(outputs[0]).parent.parent.resolve() != private_root.resolve() or
+                ".private" not in Path(outputs[0]).parts or
+                flag("--private-output") != str(Path(outputs[0]).parent) or
+                flag("--v1-probe-index-sha256") != target.get("v1_probe_index_sha256")):
+                return "v2_output_or_v1_mismatch"
+        else:
+            if (arm != "FEATURE_REF_RAW83_U" or
+                not exact_script("results/pcrl_method_portfolio_v1/shared/run_feature_ref_raw83_u_v2_probe.py",
+                                 lock.get("anchor_probe_runner_sha256"))):
+                return "v2_anchor_script_not_admitted"
+            parent_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
+            expected = {"family": "SHARED", "arm": arm, "seed": seed,
+                        "stage": "postrelease_control_v2", "parent_unit_id": parent_id}
+            output = lock_path.parent / "shared/.private" / f"feature_ref_raw83_u_s{seed}_v2_probe" / "V2_ANCHOR_PROBE_RECEIPT.json"
+            if (target != expected or spec.get("parent_unit_id") != parent_id or
+                spec.get("outputs") != [str(output)] or
+                spec.get("runner_sha256") != lock.get("anchor_probe_runner_sha256") or
+                flag("--seed") != str(seed) or
+                flag("--control-lock-sha256") != control_sha or
+                flag("--control-seal-sha256") != receipt_sha or
+                flag("--data-manifest-sha256") != lock.get("data_access_manifest_sha256") or
+                flag("--parent-anchor-receipt-sha256") != spec.get("parent_anchor_receipt_sha256")):
+                return "v2_anchor_target_mismatch"
+        if spec.get("deps") != [parent_id]:
+            return "v2_parent_dependency_mismatch"
+        return None
+
+    def _v2_parent_reason(self, state: dict, spec: dict) -> str | None:
+        if spec.get("stage") != "postrelease_control_v2":
+            return None
+        parent_id = spec.get("parent_unit_id")
+        parent = state["units"].get(parent_id)
+        if (not parent or parent.get("status") != "done" or parent.get("returncode") != 0 or
+            parent.get("spec", {}).get("seed") != spec.get("seed") or
+            spec.get("deps") != [parent_id]):
+            return "v2_parent_not_complete"
+        receipt = self.root / "units" / parent_id / "RECEIPT.json"
+        if (not receipt.is_file() or
+            sha256_file(receipt) != spec.get("parent_receipt_sha256")):
+            return "v2_parent_receipt_mismatch"
+        lock_path = Path(state["gate"]["v2_local_seal_path"]).parent / "CONTROL_V2_LOCK.json"
+        lock = json.loads(lock_path.read_text())
+        if lock.get("parent_queue_receipt_sha256_by_unit", {}).get(parent_id) != spec.get("parent_receipt_sha256"):
+            return "v2_parent_receipt_not_locked"
+        outputs = parent["spec"].get("outputs", [])
+        if len(outputs) != 1 or not Path(outputs[0]).is_file():
+            return "v2_parent_output_missing"
+        output_sha = sha256_file(Path(outputs[0]))
+        if parent.get("output_sha256", {}).get(outputs[0]) != output_sha:
+            return "v2_parent_output_changed"
+        if spec.get("family") == "B":
+            key = f"{spec['arm_id']}:s{spec['seed']}"
+            if (parent["spec"].get("team") != "B" or parent["spec"].get("stage") != "screen" or
+                parent["spec"].get("arm") != spec["arm_id"] or
+                lock.get("parent_attempt_index_sha256", {}).get(key) != output_sha or
+                spec.get("parent_attempt_index_sha256") != output_sha):
+                return "v2_parent_attempt_mismatch"
+            child_argv = spec.get("argv", [])
+            attempt_args = [child_argv[i + 1] for i, arg in enumerate(child_argv[:-1]) if arg == "--attempt"]
+            if attempt_args != [str(Path(outputs[0]).parent)]:
+                return "v2_parent_attempt_path_mismatch"
+            parent_flag = "--lock-sha256"
+        else:
+            if (parent["spec"].get("team") != "SHARED" or parent["spec"].get("stage") != "feature_anchor" or
+                lock.get("parent_anchor_receipt_sha256_by_unit", {}).get(parent_id) != output_sha or
+                spec.get("parent_anchor_receipt_sha256") != output_sha):
+                return "v2_parent_anchor_mismatch"
+            parent_flag = "--campaign-lock-sha256"
+        argv = parent["spec"].get("argv", [])
+        matches = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg == parent_flag]
+        if (len(matches) != 1 or matches[0] not in lock.get("accepted_fit_lock_sha256", []) or
+            spec.get("parent_fit_lock_sha256") != matches[0]):
+            return "v2_parent_fit_lock_mismatch"
+        child_argv = spec.get("argv", [])
+        roots = [child_argv[i + 1] for i, arg in enumerate(child_argv[:-1]) if arg == "--queue-root"]
+        if roots != [str(self.root)]:
+            return "v2_queue_root_mismatch"
+        if any(Path(path).exists() for path in spec.get("outputs", [])):
+            return "v2_output_already_exists"
         return None
 
     def _gate_status(self, state: dict, spec: dict) -> str | None:
@@ -669,7 +890,8 @@ class Queue:
                 if not source_path.is_file() or sha256_file(source_path) != source.get("sha256"):
                     return "phase1_source_changed"
         elif spec.get("mode", "real_data") == "real_data":
-            return self._real_admission_reason(gate, spec)
+            reason = self._real_admission_reason(gate, spec)
+            return reason or self._v2_parent_reason(state, spec)
         return None
 
     def _orphan_unresolved(self, state: dict) -> bool:
@@ -976,6 +1198,8 @@ def main(argv: list[str] | None = None) -> int:
     gate.add_argument("--compare-reviewed-sha256")
     gate.add_argument("--local-seal-path")
     gate.add_argument("--local-seal-sha256")
+    gate.add_argument("--v2-local-seal-path")
+    gate.add_argument("--v2-local-seal-sha256")
     sub.add_parser("run-once")
     charge = sub.add_parser("charge")
     charge.add_argument("deviation_id")
@@ -1009,7 +1233,9 @@ def main(argv: list[str] | None = None) -> int:
                                    compare_authorized=args.compare_authorized,
                                    compare_reviewed_sha256=args.compare_reviewed_sha256,
                                    local_seal_path=args.local_seal_path,
-                                   local_seal_sha256=args.local_seal_sha256)
+                                   local_seal_sha256=args.local_seal_sha256,
+                                   v2_local_seal_path=args.v2_local_seal_path,
+                                   v2_local_seal_sha256=args.v2_local_seal_sha256)
     elif args.action == "charge":
         result = queue.record_deviation(args.deviation_id, args.charged_cpu_s, args.note)
     elif args.action == "recover-orphan":
