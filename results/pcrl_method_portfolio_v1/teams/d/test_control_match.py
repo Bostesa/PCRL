@@ -4,13 +4,13 @@ import unittest
 
 import numpy as np
 
-from control_match import (BETAS, MatchObservation, gaps, recheck_inner,
+from control_match import (BETAS, METRIC_CONVENTION_ID, MatchObservation, gaps, recheck_inner,
                            select_match, utility_observation)
 
 
 CAL_SHA = "a" * 64
 INNER_SHA = "b" * 64
-CONVENTION = "common-natural-log-nll-clip1e-12-brier-sum-v1"
+CONVENTION = METRIC_CONVENTION_ID
 FIT_IDS = {b: f"fit-beta-{b}" for b in BETAS}
 CAL_IDS = {b: f"cal-beta-{b}" for b in BETAS}
 
@@ -72,6 +72,8 @@ class ControlMatchTests(unittest.TestCase):
             recheck_inner(candidate, obs(), **(kwargs | {"observed_control_fit_id": "wrong"}))
         with self.assertRaises(ValueError):
             recheck_inner(candidate, obs(), **(kwargs | {"role": "CALIBRATION_HELDOUT"}))
+        with self.assertRaises(ValueError):
+            recheck_inner(candidate, obs(), **(kwargs | {"metric_convention_id": "other"}))
 
     def test_multiclass_brier_is_class_sum(self):
         y = (np.array([0], dtype=np.int64), np.array([1], dtype=np.int64))

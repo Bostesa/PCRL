@@ -20,6 +20,7 @@ TASK_TOLERANCE = np.array((0.002, 0.002, 0.001), dtype=np.float64)
 DISTORTION_REL_TOLERANCE = 0.10
 DISTORTION_DENOMINATOR_FLOOR = 1e-6
 METRICS = ("accuracy", "nll", "brier_sum")
+METRIC_CONVENTION_ID = "S2-ARGMAX_FIRST-NLL_NAT_CLIP1E-12-BRIER_SUM-v1"
 
 
 @dataclass(frozen=True)
@@ -120,6 +121,8 @@ def select_match(
            *control_fit_ids.values(), *control_calibration_ids.values()]
     if any(not isinstance(x, str) or not x for x in ids):
         raise ValueError("all fit/calibration/convention IDs must be nonempty")
+    if metric_convention_id != METRIC_CONVENTION_ID:
+        raise ValueError("matching must use S2's pinned common metric convention")
     if not isinstance(row_order_sha256, str) or re.fullmatch(r"[0-9a-f]{64}", row_order_sha256) is None:
         raise ValueError("a full admitted CAL row/order SHA-256 is required")
     rows = []
@@ -153,6 +156,8 @@ def recheck_inner(candidate: MatchObservation, chosen: MatchObservation, *, role
     """Report a frozen CAL-selected control's INNER gaps without reselection."""
     if role != "INNER_SELECTION":
         raise ValueError("match recheck may use INNER_SELECTION only")
+    if metric_convention_id != METRIC_CONVENTION_ID:
+        raise ValueError("INNER matching must use S2's pinned common metric convention")
     if frozen_receipt.get("status") != "MATCHED":
         raise ValueError("there is no frozen CAL match to recheck")
     required = {
