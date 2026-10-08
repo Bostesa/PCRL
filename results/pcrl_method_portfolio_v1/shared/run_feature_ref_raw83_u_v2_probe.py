@@ -71,6 +71,7 @@ def _running_unit(seed: int, argv_identity: dict[str, str], queue_root: Path,
         if (spec.get("unit_id") != unit_id or spec.get("mode") != "real_data" or
                 spec.get("family") != "SHARED" or spec.get("team") != "SHARED" or
                 spec.get("stage") != "postrelease_control_v2" or
+                spec.get("data_access") != "ATTACK_INNER_FEATURES_AND_SEX_V2_CONTROL" or
                 spec.get("arm") != ARM or spec.get("arm_id") != ARM or
                 spec.get("seed") != seed or spec.get("parent_unit_id") != parent_id or
                 parent_id not in spec.get("deps", []) or

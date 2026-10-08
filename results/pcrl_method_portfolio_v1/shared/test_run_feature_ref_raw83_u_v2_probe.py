@@ -30,6 +30,7 @@ class AnchorV2ProbeTests(unittest.TestCase):
                                       "spec": {"unit_id": unit_id, "mode": "real_data",
                                                "family": "SHARED", "team": "SHARED",
                                                "stage": "postrelease_control_v2",
+                                               "data_access": "ATTACK_INNER_FEATURES_AND_SEX_V2_CONTROL",
                                                "arm": runner.ARM, "arm_id": runner.ARM,
                                                "seed": 0, "parent_unit_id": parent_id,
                                                "deps": [parent_id],
