@@ -14,7 +14,8 @@ REPO = Path(__file__).resolve().parents[3]
 S4 = REPO / "results/pcrl_method_portfolio_v1/s4"
 VENV = REPO.parent.parent / ".venv/bin/python"
 INDEX_NAMES = ("S4_VERIFIER_QUEUE_INDEX_V3.json", "S4_VERIFIER_QUEUE_INDEX_V5.json",
-               "S4_VERIFIER_QUEUE_INDEX_V6.json", "S4_VERIFIER_QUEUE_INDEX_V7.json")
+               "S4_VERIFIER_QUEUE_INDEX_V6.json", "S4_VERIFIER_QUEUE_INDEX_V7.json",
+               "S4_VERIFIER_QUEUE_INDEX_V8.json")
 
 
 def sha(path: Path) -> str:

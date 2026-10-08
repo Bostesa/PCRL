@@ -405,6 +405,7 @@ class Queue:
             "S4_VERIFIER_QUEUE_INDEX_V5.json": "ac3103d2514cc939d9520aa633852d66dfa4de4c9cb38996276ee1d510e89fb1",
             "S4_VERIFIER_QUEUE_INDEX_V6.json": "e74504d76b34c169d2261f88a9a1845709e0ee394fbd6d73675a0e94787df3f2",
             "S4_VERIFIER_QUEUE_INDEX_V7.json": "c39cb299b6218f28dae372babb4c44eec8117d23b67667a333f2173b0f9a3cc7",
+            "S4_VERIFIER_QUEUE_INDEX_V8.json": "840b95c254a66ebe902310e87cebc2af3437b412e1c168ab92bb7dc3b5b5decb",
         }
         if (spec.get("mode") != "verifier_synthetic" or
             spec.get("family") != "S4" or spec.get("team") != "S4" or
