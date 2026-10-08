@@ -1,0 +1,121 @@
+{
+  "schema": "pcrl-portfolio-team-d-units-draft-v1",
+  "status": "PRELOCK_CONDITIONAL_ALL_ADULT_UNITS_BLOCKED",
+  "reason_blocked": "S2 has not validated a role-specific safe Adult export; inherited all-role loader transiently materializes forbidden assessment arrays. No real-data D fit, calibration, forward pass or attacker fit is authorized through that loader.",
+  "seed_plan_proposed": {
+    "screen_source_seeds": [0, 1],
+    "full_pilot_source_seeds_if_promoted": [0, 1, 2],
+    "screen_attacker_seed_per_source_seed": [0],
+    "full_pilot_attacker_seeds_per_source_seed": [0, 1, 2],
+    "note": "S1 must freeze identifiers before any real fit; attacker seed 0 screen artifacts can alias pilot artifacts only if all complete identities match exactly."
+  },
+  "roles_read_proposed": [
+    "OSF_DEFENSE_FIT",
+    "CALIBRATION_HELDOUT",
+    "ATTACK_FIT_NEW",
+    "INNER_SELECTION"
+  ],
+  "forbidden_role_reads": ["HEAD_VALIDATION", "OSF_DEVELOPMENT_ASSESSMENT"],
+  "architecture_proposed": {
+    "source_latents_per_recipient": 16,
+    "fit_only_normalization": "two purpose-specific mean/standard-deviation transforms, shared across D arms",
+    "codebook": "one shared full-vector 16-dimensional codebook with 1024 centroids; one 10-bit categorical code per recipient",
+    "code_assignment": "minimum squared Euclidean distance, lowest-index tie",
+    "head": "16 decoded coordinates -> 64 GELU -> purpose class logits",
+    "vq_fit": "Adam 0.001, batch 256, 20 epochs, final iterate; task CE + 0.5 KL(Ucal teacher||head) + 0.25 normalized reconstruction; protected arm adds lambda=1 times mean of exact local1/local2 1024-cell hard-ID one-hot SEX frequency squared differences and a fixed 128-feature factorized Rademacher pair-ID sketch squared difference; hard one-hot forward with temperature-1 distance-softmax straight-through backward to codebook C; frozen h is never updated",
+    "privacy_objective_random_features": "Two seeded independent 1024x128 Rademacher sign tables for aligned pair IDs; local one-hot terms are exact and have no sketch. Pair sketch has a nullspace and requires fresh direct pair-ID attack.",
+    "assignment_churn_diagnostic": "Count fit/inner people whose hard IDs changed from seeded k-means initialization; a decoded-vector move without hard-ID change is a failed protection mechanism check.",
+    "calibration": "one fixed held-out global temperature per task/arm/source seed, no grid"
+  },
+  "arms_per_source_seed": [
+    {"id": "D_U_FROZEN", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 0, "separate_head_fits": 2, "calibration_fits": 2, "code_arm": false},
+    {"id": "D_VQ_TASK", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 1, "separate_head_fits": 0, "calibration_fits": 2, "code_arm": true},
+    {"id": "D_VQ_JOINT", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 1, "separate_head_fits": 0, "calibration_fits": 2, "code_arm": true},
+    {"id": "D_VQ_LOCAL", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 2, "separate_head_fits": 0, "calibration_fits": 2, "code_arm": true},
+    {"id": "D_VQ_SEQ12", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 2, "separate_head_fits": 0, "calibration_fits": 2, "code_arm": true},
+    {"id": "D_VQ_SEQ21", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 2, "separate_head_fits": 0, "calibration_fits": 2, "code_arm": true},
+    {"id": "D_LEACE", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 2, "separate_head_fits": 2, "calibration_fits": 2, "code_arm": false},
+    {"id": "D_RAW_J", "source_encoder_fits": 0, "normalizer_fits": 0, "transform_or_joint_training_fits": 1, "separate_head_fits": 2, "calibration_fits": 2, "code_arm": false, "open_identity": "New matched raw joint control is budgeted as one joint encoder/critic training process plus two head refits; S1 must pin actual source/architecture and internal critic update counts before lock. Historic RAW-J beta 0.3 remains descriptive unless its identity is an exact alias."}
+  ],
+  "per_source_seed_learning_counts": {
+    "frozen_source_encoder_checkpoint_aliases": 2,
+    "shared_d_normalizer_fits": 2,
+    "raw_input_preprocessor_fit_for_D_RAW_J": 1,
+    "vq_kmeans_initialization_fits": 8,
+    "transform_or_joint_training_fits": 11,
+    "separate_head_fits": 6,
+    "total_model_and_map_fits_excluding_preprocessing_and_calibration": 17,
+    "calibration_fits": 16,
+    "no_cross_arm_alias_assumed": true,
+    "note": "Each VQ training fit contains its head. Local and sequential stages are separately charged. Exact duplicate checkpoint aliases may later reduce run count only with an explicit hash-matched baseline-registry identity; planned units stay visible."
+  },
+  "forward_units_per_source_seed": {
+    "frozen_source_encoder_role_batches": 8,
+    "deployed_recipient_arm_role_batches": 64,
+    "attack_view_preprocessing_builds": 24,
+    "derivation": "2 frozen encoders x 4 allowed roles; 8 arms x 2 recipients x 4 allowed roles; 8 arms x 3 local/pair view builders using ATTACK_FIT_NEW-only vocab/scale plus INNER apply. Internal epoch/minibatch forwards and per-reader scaler/PCA fits are included within their training/reader fits and must be timed there."
+  },
+  "attack_slate_proposed_not_yet_frozen": {
+    "continuous_arms": ["D_U_FROZEN", "D_LEACE", "D_RAW_J"],
+    "code_arms": ["D_VQ_TASK", "D_VQ_JOINT", "D_VQ_LOCAL", "D_VQ_SEQ12", "D_VQ_SEQ21"],
+    "learned_readers_per_view": ["LR", "MLP", "HGB", "defense_aware_MLP"],
+    "code_cell_readers_per_view": ["CC_alpha_0.5", "CC_alpha_1", "CC_alpha_5"],
+    "code_cell_rule": "Direct hard-ID readers locally and aligned pair-ID readers for coalition; smoothing alphas are fixed reader identities, with any model/restart tuning inside ATTACK_FIT_NEW only. Prelock unseen-code/pair fallback and structured marginal alternative. INNER_SELECTION labels are for score/report, never choosing alpha or restart.",
+    "views": ["recipient_1", "recipient_2", "aligned_pair"],
+    "ignore_other_recipient": "exact predictions from already fitted recipient readers, no extra fit; evaluate them as pair-bank candidates",
+    "learned_fits_per_continuous_arm_attacker_seed": 12,
+    "learned_plus_cell_fits_per_code_arm_attacker_seed": 21,
+    "fits_all_arms_per_source_seed_per_attacker_seed": 141,
+    "derivation": "3 continuous arms x (4 readers x 3 views) + 5 code arms x ((4 learned + 3 cell readers) x 3 views) = 141",
+    "caution": "S2/S1 must freeze the actual common slate before fit. A 1024-cell single-code reader and up-to-1024^2 pair-code reader need sparse-cell fallback fixed before attack fitting. An altered slate requires this ledger to be rederived before campaign lock."
+  },
+  "screen_if_access_cleared": {
+    "source_seeds": 2,
+    "arms": 16,
+    "normalizer_fits": 4,
+    "raw_preprocessor_fits": 2,
+    "vq_kmeans_initialization_fits": 16,
+    "model_and_map_fits": 34,
+    "calibration_fits": 32,
+    "frozen_encoder_role_batches": 16,
+    "deployed_recipient_arm_role_batches": 128,
+    "attack_view_preprocessing_builds": 48,
+    "attack_fits_at_one_attacker_seed": 282,
+    "all_status_now": "BLOCKED_NOT_RUN"
+  },
+  "full_pilot_if_d_promoted_and_access_cleared": {
+    "source_seeds": 3,
+    "arms_all_controls": 24,
+    "total_normalizer_fits": 6,
+    "total_raw_preprocessor_fits": 3,
+    "total_vq_kmeans_initialization_fits": 24,
+    "total_model_and_map_fits": 51,
+    "total_calibration_fits": 48,
+    "total_frozen_encoder_role_batches": 24,
+    "total_deployed_recipient_arm_role_batches": 192,
+    "total_attack_view_preprocessing_builds": 72,
+    "total_attack_fits_at_three_attacker_seeds": 1269,
+    "incremental_after_identical_completed_screen": {
+      "normalizer_fits": 2,
+      "raw_preprocessor_fits": 1,
+      "vq_kmeans_initialization_fits": 8,
+      "model_and_map_fits": 17,
+      "calibration_fits": 16,
+      "frozen_encoder_role_batches": 8,
+      "deployed_recipient_arm_role_batches": 64,
+      "attack_view_preprocessing_builds": 24,
+      "attack_fits": 987
+    },
+    "all_status_now": "BLOCKED_NOT_RUN"
+  },
+  "controls_and_verification": {
+    "generic_pooled_compression": "D_VQ_TASK exact alias, same fixed 1024-code capacity, compute and normalized reconstruction coefficient. D currently lacks a prelocked realized-distortion-matched pooled compression fit; before Adult fitting S1 must define and charge one, or leave compression/component and joint-novelty attribution unresolved.",
+    "hard_id_counterexample": "Engineering fixture moves decoded centroids and lowers decoded-vector dependence while hard IDs remain unchanged; this is not a scientific-law outcome.",
+    "null_shuffled_planted": "D and S2 must assign control-owner IDs and exact attack fits before lock; no control is silently omitted or counted twice.",
+    "synthetic_law_units": "shared S1/S4 law and oracle manifest, not charged as Adult fits; D adapter correctness checks separately recorded",
+    "independent_replay": "owned and charged by S4, no D self-verification credit",
+    "cpu_seconds": null,
+    "cpu_reason": "Smoke timings and source identity are not yet available; do not assert budget feasibility from unmeasured counts."
+  },
+  "decision": "Do not put these conditional counts in CAMPAIGN_LOCK as executable D units until S2 certifies safe inputs, S1 freezes the common attack slate and RAW_J identity, and S3 times a representative smoke unit. If unavailable, retain BLOCKED status and continue synthetic engineering only."
+}
