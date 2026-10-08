@@ -143,28 +143,34 @@ def verify_attempt(campaign: Path, attempt: Path, probe_dir: Path,
     probe_index_path = probe_dir / "REAL_CONTROL_INDEX.json"
     probe_index = _json(probe_index_path)
     expected_probe_unit = lock["families"]["B"]["real_control_unit_ids"][f"{arm}:s{seed}"]
-    if (probe_index.get("status") != "PASS" or probe_index.get("arm") != arm
+    if (probe_index.get("status") not in {"PASS", "FAIL"} or probe_index.get("arm") != arm
             or probe_index.get("seed") != seed or probe_index.get("screen_unit_id") != expected_screen_unit
             or probe_index.get("queue_unit_id") != expected_probe_unit
             or probe_index.get("attempt_index_sha256") != index_sha):
-        raise ValueError("real postrelease controls are absent or failed")
+        raise ValueError("real postrelease control custody differs")
     admitted = verifier.get("unit_specs", {}).get(verifier.get("active_unit_id"), {})
     if (admitted.get("arm") != arm or admitted.get("seed") != seed
             or admitted.get("screen_unit_id") != expected_screen_unit
             or admitted.get("attempt_index_sha256") != index_sha
             or admitted.get("real_control_index_sha256") != sha_file(probe_index_path)):
         raise PermissionError("S4 verifier seal does not bind this completed attempt/probe")
+    original_control_status = {}
     for view in ("income", "occupation", "pair"):
         p = probe_dir / f"REAL_CONTROL__{view}.json"
         if sha_file(p) != probe_index["view_report_sha256"][view]:
             raise ValueError("real control report hash differs")
         report = _json(p)
         gates = report.get("probe", {}).get("gates", {})
-        if report.get("status") != "PASS" or report.get("attempt_index_sha256") != index_sha or \
-                report.get("view") != view or report.get("probe", {}).get("status") != "PASS" or \
+        expected_status = "PASS" if all(gates.values()) else "FAIL"
+        if report.get("status") != expected_status or report.get("attempt_index_sha256") != index_sha or \
+                report.get("view") != view or report.get("probe", {}).get("status") != expected_status or \
                 set(gates) != {"null_exact", "shuffled_at_most_0.60", "planted_at_least_0.99"} or \
-                not all(gates.values()):
-            raise ValueError("real null/shuffle/planted control did not pass")
+                gates.get("null_exact") is not True or gates.get("planted_at_least_0.99") is not True:
+            raise ValueError("real null/shuffle/planted control receipt is inconsistent")
+        original_control_status[view] = expected_status
+    if probe_index["status"] != ("PASS" if all(s == "PASS" for s in
+                                                original_control_status.values()) else "FAIL"):
+        raise ValueError("control index status differs from its three frozen view reports")
 
     data = {f"{role}:{field}": _role(campaign, manifest, role, field)
             for role, field in ROLE_FIELDS}
@@ -290,7 +296,8 @@ def verify_attempt(campaign: Path, attempt: Path, probe_dir: Path,
                           "reader_auc_fixed_alias": reader_auc,
                           "validation_winner": outputs[view]["validation_winner"]}
     return {"schema": "pcrl-s4-independent-b-attempt-replay-v1",
-            "status": "PASS", "arm": arm, "seed": seed,
+            "status": "REPLAYED_OLD_CONTROL_PASS" if probe_index["status"] == "PASS" else
+            "REPLAYED_OLD_CONTROL_FAIL", "arm": arm, "seed": seed,
             "screen_unit_id": expected_screen_unit,
             "real_probe_unit_id": expected_probe_unit,
             "campaign_lock_sha256": lock_sha,
@@ -305,7 +312,8 @@ def verify_attempt(campaign: Path, attempt: Path, probe_dir: Path,
                                 "tune_sex_counts": outputs["income"]["att_tune_sex_counts"]},
             "complete_wire_public_head_encoder_sampler_calibration": "PASS",
             "all_frozen_reader_predictions_and_ignore_aliases": "PASS",
-            "real_null_shuffle_planted_controls": "PASS",
+            "original_control_protocol_v1": {"status": probe_index["status"],
+                                             "view_status": original_control_status},
             "utility": tasks, "recovery": recovery,
             "scope": "single arm/seed on reused INNER_SELECTION; no competitive/control selection or confidence interval"}
 

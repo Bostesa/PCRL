@@ -7,8 +7,9 @@ seal checks custody and admission; it does not verify a fitted result.
 ## Admission and custody
 
 For each completed B screen, require the exact S3 unit in the effective lock,
-exit 0, matching arm/seed, a completed postrelease real-control unit, and all
-null, group-shuffle and planted-leak gates passing. Preserve failed and partial
+exit 0, matching arm/seed, and a completed postrelease real-control unit.
+Replay numerical custody even when that control failed, while preserving its
+FAIL status and prohibiting a competitive pass. Preserve failed and partial
 attempts. Hash `ATTEMPT_INDEX.json`, its listed fit checkpoints, both saved
 release files, calibration records, reader receipts, `ENDPOINT_INPUTS` files
 and `AGGREGATE.json`. Join ordered `(row_id, unit)` independently to the
