@@ -1,19 +1,23 @@
 # S4 independent Adult replay plan
 
 Status on 2026-10-08: all 16 paired-seed B screens and both feature anchors
-have completed under two preserved B-only fit locks. Uniform V2 real control
-probes are being run under a separate committed lock after the original
-shuffled-label control was found unsuitable as a mandatory null. Independent
-Adult numerical replay has not run. Prefit and V2 control seals check custody
-and admission; they do not verify fitted endpoints.
+have completed under two preserved B-only fit locks. All 16 B V2 control
+probes passed their frozen engineering gates. The first shared-anchor V2 s0
+unit failed before role access because its queued spec omitted parent reader
+receipt hashes; the old s1 unit was not run. A dated R2 engineering retry for
+both anchors is pending. Independent Adult numerical replay has not run.
+Prefit and V2 control seals check custody and admission; they do not verify
+fitted endpoints.
 
 ## Admission and custody
 
 For each completed B screen, require its exact historical or amended S3 unit,
 the specific committed fit-lock blob and archived S4 review/local seal, exit 0,
-matching arm/seed and a completed uniform V2 postrelease control unit. Match
-each `ATTEMPT_INDEX.json` and V2 index to the separate verifier admission by
-full SHA. Preserve V1 probe outcomes only as historical diagnostics. Replay
+matching arm/seed and a completed uniform V2 postrelease control unit. Bind
+each V2 unit to its own original or R2 committed control lock and S4 review/local
+seal. Match each `ATTEMPT_INDEX.json` and V2 index to the separate verifier
+admission by full SHA. Preserve V1 probe outcomes and the failed original
+anchor s0 V2 unit only as historical diagnostics. Replay
 numerical custody even when a V2 control failed, while retaining its FAIL
 status and prohibiting a competitive pass. Preserve failed and partial
 attempts. Hash the attempt index, listed fit checkpoints, both saved releases,
@@ -78,7 +82,8 @@ is exploratory on reused Adult rows, even when an interval clears a target.
 
 S4 numerical replay requires a separate immutable verifier index, lock, S4
 prefit review and S1 local seal. Its admission names both accepted fit-lock
-SHAs, the V2 control lock SHA, every parent attempt/anchor and V2 index SHA,
+SHAs, the exact original or R2 V2 control-lock SHA for each unit, every parent
+attempt/anchor and V2 index SHA,
 allowed role-only fields, exact S4 source/test hashes and output unit IDs. S3
 first runs the test-first synthetic RED/GREEN under a `data_access=NONE`
 verifier mode after the active V2 queue drains, then admits Adult replay in a
