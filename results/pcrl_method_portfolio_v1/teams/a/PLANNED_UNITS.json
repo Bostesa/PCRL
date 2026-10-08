@@ -1,0 +1,35 @@
+{
+  "schema": "pcrl-portfolio-a-planned-units-v1",
+  "status": "DRAFT_NOT_CAMPAIGN_LOCK",
+  "owner": "Team A designer",
+  "track": "SCORE",
+  "candidate_prototypes": ["A-JOINT-STOCH", "A-JOINT-DET"],
+  "screen_seeds": "two paired seed identifiers to be bound by S1 before real-data fit",
+  "source_alias_rule": "A source/calibration/forward/arm is an alias only after exact full-identity and complete-view parity, not similar output metrics",
+  "per_seed_optimizer_invocations": [
+    {"arm": "A-JOINT-STOCH", "logical_calls": 1, "matrix_artifacts": 2, "notes": "alternating two LP blocks; every block and restart charged internally"},
+    {"arm": "A-JOINT-DET", "logical_calls": 1, "matrix_artifacts": 2, "notes": "matched one-hot ablation; MILP/block search status and time charged"},
+    {"arm": "A-TASK-RD", "logical_calls": 2, "matrix_artifacts": 2, "notes": "one privacy-blind I(T_r;Z_r) constrained fit per recipient"},
+    {"arm": "A-TASK-DET", "logical_calls": 2, "matrix_artifacts": 2, "notes": "one matched-bank task-only deterministic fit per recipient; exact hcal alias only after identity check"},
+    {"arm": "A-LOCAL-STOCH", "logical_calls": 2, "matrix_artifacts": 2, "notes": "one local privacy-constrained fit per recipient; pair constructed without further fitting"},
+    {"arm": "A-SEQ-12", "logical_calls": 2, "matrix_artifacts": 2, "notes": "stage 1 local fit, stage 2 fit with first frozen; exact first-stage alias possible"},
+    {"arm": "A-SEQ-21", "logical_calls": 2, "matrix_artifacts": 2, "notes": "stage 1 local fit, stage 2 fit with first frozen; exact first-stage alias possible"}
+  ],
+  "logical_optimizer_calls_per_seed": 12,
+  "logical_optimizer_calls_two_seed_screen": 24,
+  "new_paired_release_arms_per_seed": 7,
+  "optimizer_aliases": "Potential first-stage/local aliases and matched hcal task-only aliases are pending identity proof; no executed-call reduction is claimed yet",
+  "other_required_units_per_seed": [
+    {"type": "source forward", "logical_count": 2, "note": "one per recipient unless exact immutable cache identity is verified; count all rows forwarded"},
+    {"type": "score preprocessing and fine-bin assignment", "logical_count": 2, "note": "one per recipient; source fine partition may be exact alias, assignment pass still counted if run"},
+    {"type": "bank admission", "logical_count": 2, "note": "one per recipient; validate all predicted classes, vectors, IDs, hashes and calibration source"},
+    {"type": "calibration fit", "logical_count": 0, "conditional": "Use frozen hcal H-GLOBAL-TEMP only on exact admitted alias. If identity fails, S1 must bind two new shared-family fits per seed before fit; do not silently refit."},
+    {"type": "sample and utility evaluation", "logical_count": 7, "note": "one registered draw/evaluation per new paired arm; count each additional prelocked variance draw separately"},
+    {"type": "attack view materialization", "logical_count": 21, "note": "7 new arms x 3 views, with ID/probability/decision/metadata; aliases only for identical complete views"}
+  ],
+  "attack_fit_formula": "7 new paired arms x 3 views x S2's frozen reader configurations x each prelocked attack-fit seed. Count linear, nonlinear, categorical, defense-aware and ignore-recipient configurations separately; exact number awaits S2's frozen slate, so this draft cannot be used as CAMPAIGN_LOCK.",
+  "historical_comparators": "CLASS, U0, Ucal, hcal FINE-TASK, qpc/lra/hcal LOCAL/SEQ-12/SEQ-21/JOINT and compatible stronger controls; each exact alias or rerun is an explicit registry unit",
+  "finalist_if_promoted": "one A finalist at most, three paired seeds and full shared attack/control coverage; FINALIST_LOCK binds the exact additional calls and reuses screen artifacts only on exact identity",
+  "cpu_accounting": "Count preprocessing, calibration, optimizers including all starts/children, source forward passes, sampling, attacker fits, checks and independent replay against one global 20 CPU-hour campaign ceiling and two-heavy-process semaphore. Team A's initial 1.5 CPU-hour screen allocation is a ceiling proposal, not proof the units fit; smoke timing may force a prelock scale-down.",
+  "skipped_unit_rule": "Every planned unit receives run, aliased, skipped, failed or incomplete state with reason and CPU receipt. No fit starts before safe-role loader test and pushed CAMPAIGN_LOCK."
+}
