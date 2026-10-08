@@ -1,0 +1,50 @@
+{
+  "schema": "pcrl-focused-guard-control-references-v1",
+  "status": "PREFIT_DRAFT_FOR_LOCAL_SEAL",
+  "track": "FEATURE",
+  "roles": {
+    "defense_fit": "OSF_DEFENSE_FIT",
+    "calibration": "CALIBRATION_HELDOUT",
+    "attack_fit_tune": "ATTACK_FIT_NEW",
+    "screen_and_finalist_development": "INNER_SELECTION",
+    "barred": ["HEAD_VALIDATION", "OSF_DEVELOPMENT_ASSESSMENT"]
+  },
+  "seeds": {"screen": [0, 1], "conditional_finalist": 2},
+  "references": {
+    "U0": "SRC|U original continuous source task scores by seed; hcal pinned model manifest",
+    "Ucal": "SRC|U|H-GLOBAL-TEMP continuous source scores with hcal global calibration by seed",
+    "F": "FOCUSED full-83 purpose heads, same architecture/training/calibration family as all masked heads, per seed"
+  },
+  "metric_directions": {
+    "accuracy_loss": "reference_accuracy_minus_release_accuracy",
+    "nll_excess": "release_nll_minus_reference_nll",
+    "brier_excess": "release_brier_minus_reference_brier",
+    "coalition_benefit": "selected_control_auc_minus_J_auc",
+    "recipient_worsening": "J_auc_minus_selected_control_auc"
+  },
+  "inclusive_point_caps": {"accuracy_loss": 0.01, "nll_excess": 0.01, "brier_excess": 0.005, "recipient_worsening": 0.01},
+  "inclusive_lower_target": {"coalition_benefit": 0.02},
+  "fitting_local_guard": {
+    "reference_rule": "T",
+    "T_identity": "AUC-free TASK_TABLE/T receipt durably written before FIT SEX read",
+    "cap": "oriented_local_search_AUC_of_rule_at_most_corresponding_T_plus_0.010",
+    "applies_to": ["I", "S12", "S21", "SHARED", "J", "T_U", "I_U", "S12_U", "S21_U"]
+  },
+  "main_pool_order": ["T", "I", "S12", "S21", "SHARED", "T_U", "I_U", "S12_U", "S21_U"],
+  "attribution_pool_order": ["T_U", "I_U", "S12_U", "S21_U", "T", "I", "S12", "S21", "SHARED"],
+  "eligibility": "Each control independently passes every task accuracy/NLL/Brier point cap against U0,Ucal,F on every evaluated seed and matches both recipient profile capacities; attribution also requires J's actual union group count and encoded width. An exact alias remains eligible.",
+  "strongest_rule": "Within each pool choose the eligible rule with the lowest paired-seed mean frozen-reader-envelope coalition AUC; only exact numerical equality uses listed rule order. Never require a distinct mask or release.",
+  "inference": {
+    "replicates": 2048,
+    "random_generator": "PCG64DXSM",
+    "resampling_unit": "whole INNER_SELECTION group, same draw across all arms and seeds",
+    "family": "J-versus-each of all nine registered control rules coalition and two local clauses plus every J/control task/reference utility clause, registered before scoring; invalid/missing arms remain UNRESOLVED slots, all defined clauses enter two-sided 95% max-absolute-studentized bounds and complete fixed-reader envelopes are recomputed inside each draw",
+    "upper_cap_pass": "upper<=cap",
+    "upper_cap_violation": "lower>cap",
+    "lower_target_pass": "lower>=target",
+    "lower_target_shortfall": "upper<target",
+    "otherwise": "UNRESOLVED"
+  },
+  "promotion": "At most one J configuration after seeds 0 and 1; every seed must meet all three references' point utility caps for both tasks and both local no-worsening point caps against the main strongest eligible control selected on paired screen seeds. Attribution winner is reported but is not an additional nomination gate. A crossing interval alone is not a veto. If no eligible J, no seed-2 finalist.",
+  "joint_attribution": "Requires simultaneous lower-bound coalition benefit at least 0.020 over both sequential orders and the strongest non-joint rule, with all utility and local caps retained."
+}

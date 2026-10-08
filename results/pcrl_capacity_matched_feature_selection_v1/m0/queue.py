@@ -27,6 +27,7 @@ WALL_BUDGET_S = 36000
 THREAD_ENV = {k: "1" for k in (
     "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "BLIS_NUM_THREADS")}
+ROLE_FREE_STAGES = frozenset(("simultaneous_inference", "independent_aggregate"))
 
 
 def sha256(path: Path) -> str:
@@ -258,7 +259,8 @@ class FocusedQueue:
         if spec["mode"] == "synthetic" and (spec.get("data_access") != "NONE" or spec["inputs"]):
             raise ValueError("synthetic inputs must be empty and data access NONE")
         if spec["mode"] == "real":
-            if not all(spec.get(k) for k in ("stage", "role_access", "source_map_sha256")):
+            if not spec.get("stage") or not spec.get("source_map_sha256") or \
+                    not isinstance(spec.get("role_access"), list):
                 raise ValueError("real unit missing stage/role/source map")
             if spec.get("allow_child_processes") is not False:
                 raise ValueError("real worker may not spawn child processes")
@@ -272,8 +274,12 @@ class FocusedQueue:
             if expected_spec != spec:
                 raise ValueError("real unit differs from sealed private registry")
             role_inputs = spec.get("role_inputs")
-            if not isinstance(role_inputs, dict) or not role_inputs:
+            role_free = spec["stage"] in ROLE_FREE_STAGES
+            if not isinstance(role_inputs, dict) or (not role_free and not role_inputs):
                 raise ValueError("role input declaration invalid")
+            if role_free and (role_inputs or spec["role_access"] or spec["inputs"] or
+                              spec.get("data_access") != "NONE_PRIVATE_DERIVED_ONLY"):
+                raise ValueError("derived-only stage may not declare role inputs")
             manifest = json.loads((study / "m1" / "DATA_ACCESS_MANIFEST.json").read_text())
             repo = study.parents[1]
             if cwd != repo:

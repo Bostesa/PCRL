@@ -158,6 +158,46 @@ class FocusedQueueTests(unittest.TestCase):
         self.assertEqual(queue.run_once()["status"], "DONE")
         self.assertEqual(output.read_text(), "ok")
 
+    def test_derived_only_real_stage_needs_no_role_file(self) -> None:
+        study = self.base / "repo" / "results" / "study"
+        private = study / ".private"
+        (study / "m1").mkdir(parents=True)
+        private.mkdir()
+        manifest = study / "m1/DATA_ACCESS_MANIFEST.json"
+        manifest.write_text(json.dumps({"role_file_relative_path": {},
+                                        "role_file_sha256": {}}))
+        script = self.base / "repo" / "inference.py"
+        output = private / "derived.json"
+        script.write_text(f"import pathlib\npathlib.Path({str(output)!r}).write_text('derived')\n")
+        spec = self.spec("real")
+        spec.update(unit_id="DERIVED-ONE", stage="simultaneous_inference",
+                    data_access="NONE_PRIVATE_DERIVED_ONLY", role_inputs={},
+                    role_access=[], inputs={}, outputs=[str(output)],
+                    script=str(script), argv=[sys.executable, str(script)],
+                    cwd=str(self.base / "repo"),
+                    script_sha256=hashlib.sha256(script.read_bytes()).hexdigest(),
+                    source_map_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                    allow_child_processes=False,
+                    seal_sha256="$LOCAL_SEAL_SHA256")
+        (private / "UNIT_SPECS.json").write_text(json.dumps({"unit_specs": {
+            "DERIVED-ONE": spec}}))
+        (study / "CAMPAIGN_LOCK.json").write_text(json.dumps({
+            "prior_package_relative_to_worktree": "prior",
+            "source_map_sha256": spec["source_map_sha256"],
+            "allowed_roles": [],
+            "governed_source_sha256_by_path": {
+                "inference.py": spec["script_sha256"]}}))
+        (self.base / "repo" / "prior").mkdir()
+        seal = study / "LOCAL_SEAL_RECEIPT.json"
+        seal.write_text('{"status":"PASS"}')
+        queue = FocusedQueue(private / "queue", self.slot, epoch_start_utc=self.start)
+        with patch.object(FocusedQueue, "_seal_ok", return_value=True):
+            queue.admit_science(seal_path=seal, seal_sha256="derived-seal",
+                                external_heavy=1, evidence="derived-only fixture")
+            queue.enqueue({**spec, "seal_sha256": "derived-seal"})
+            self.assertEqual(queue.run_once()["status"], "DONE")
+        self.assertEqual(output.read_text(), "derived")
+
     def test_synthetic_worker_uses_shared_slot_and_single_thread(self) -> None:
         self.q.admit_synthetic(external_heavy=1, evidence="test-only observation")
         self.q.enqueue(self.spec())

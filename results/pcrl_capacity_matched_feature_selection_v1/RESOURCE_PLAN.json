@@ -1,0 +1,166 @@
+{
+  "schema": "pcrl-focused-resource-plan-v1",
+  "status": "PREFIT_DRAFT_FOR_LOCAL_SEAL",
+  "epoch_start_utc": "2026-10-08T23:18:01+00:00",
+  "wall_ceiling_s": 36000,
+  "cpu_ceiling_s": 72000,
+  "cloud_spend": 0,
+  "host_heavy_limit": 2,
+  "external_heavy_reserved": 1,
+  "focused_slot_count": 1,
+  "explicit_numerical_threads": 1,
+  "scientific_child_processes_allowed": false,
+  "memory_ceiling_gib_per_focused_worker": 3,
+  "smokes": {
+    "m2_role_sized": {
+      "unit_id": "SYN-M2-FIT-ROLE-SIZED-001",
+      "charged_cpu_s": 5.894228999968618,
+      "peak_rss_bytes": 622264320,
+      "head_packages": 24,
+      "neural_subfits": 48,
+      "calibration_fits": 24,
+      "raw_search_reader_fits": 22,
+      "output_sha256": "06ba8b9724346e566bf34d66bb8f2a2221eb78a4373f3c343ed05a0ba36235bf"
+    },
+    "m4_role_sized": {
+      "unit_id": "SYN-M4-ROLE-SIZED-001",
+      "charged_cpu_s": 8.308783917222172,
+      "peak_rss_bytes": 335069184,
+      "raw_reader_fits": 6,
+      "complete_view_reader_fits": 12,
+      "v2_reader_fits": 6,
+      "coalition_reader_count_including_local_transports": 18,
+      "output_sha256": "7479c434d75de949eb0e9434d9dd4221f46ed779211b3a159245ca5c544853c3"
+    },
+    "m3_role_sized": {
+      "unit_id": "SYN-M3-INFERENCE-ROLE-SIZED-001",
+      "charged_cpu_s": 409.6188010838814,
+      "peak_rss_bytes": 199016448,
+      "paired_seeds": 2,
+      "registered_clauses": 207,
+      "bootstrap_replicates": 2048,
+      "output_sha256": "cb0885aaeaf9c91f87b706fc5a1b2ef1046a096f36f95415b0b44d8c791b9a23"
+    },
+    "m4_data_free_tests": {
+      "unit_id": "SYN-M4-DATA-FREE-TESTS-002",
+      "charged_cpu_s": 1.735,
+      "tests_passed": 31,
+      "tests_failed": 0,
+      "receipt_sha256": "cdf8466629ba08f55a1127de06167a4e7dcf00ce86a5676376da1a7c19f3a81b"
+    },
+    "m2_validation_registry_tests": {
+      "first_unit_id": "SYN-M2-VALIDATION-REGISTRY-002",
+      "first_result": "FAILED_4_OF_10_MISSING_PATH_IMPORT_PRESERVED",
+      "corrected_unit_id": "SYN-M2-VALIDATION-REGISTRY-003",
+      "corrected_result": "PASSED_10_OF_10",
+      "corrected_charged_cpu_s": 0.321,
+      "receipt_sha256": "7c614880dd45c6c0fd956e9e34065e04f1f8c782a5edf61e78377e8e75232e42"
+    }
+  },
+  "unit_caps": {
+    "fit_bank": {
+      "cpu_reserve_s": 600,
+      "wall_limit_s": 600,
+      "max_rss_gib": 2
+    },
+    "raw_union": {
+      "cpu_reserve_s": 60,
+      "wall_limit_s": 60,
+      "max_rss_gib": 2
+    },
+    "release": {
+      "cpu_reserve_s": 60,
+      "wall_limit_s": 60,
+      "max_rss_gib": 2
+    },
+    "attack_view": {
+      "cpu_reserve_s": 120,
+      "wall_limit_s": 120,
+      "max_rss_gib": 2
+    },
+    "v2_probe": {
+      "cpu_reserve_s": 60,
+      "wall_limit_s": 60,
+      "max_rss_gib": 2
+    },
+    "endpoint_index": {
+      "cpu_reserve_s": 300,
+      "wall_limit_s": 300,
+      "max_rss_gib": 3
+    },
+    "simultaneous_inference": {
+      "cpu_reserve_s": 1200,
+      "wall_limit_s": 1200,
+      "max_rss_gib": 3
+    },
+    "independent_replay": {
+      "cpu_reserve_s": 120,
+      "wall_limit_s": 120,
+      "max_rss_gib": 3
+    },
+    "independent_aggregate": {
+      "cpu_reserve_s": 1200,
+      "wall_limit_s": 1200,
+      "max_rss_gib": 3
+    }
+  },
+  "planning_upper_counts": {
+    "selected_rule_pair_ids_per_seed": 10,
+    "raw_union_ids_per_seed": 6,
+    "screen_seeds": 2,
+    "conditional_finalist_seed": 1,
+    "fit_units_all_three_seeds": 3,
+    "raw_union_units_all_three_seeds": 18,
+    "release_units_all_three_seeds": 30,
+    "complete_view_attack_units_all_three_seeds": 90,
+    "v2_units_all_three_seeds": 90,
+    "pair_replay_units_all_three_seeds": 30,
+    "screen_and_finalist_endpoint_inference_aggregate_units": [
+      {
+        "unit_id": "M4-ENDPOINTS-FIRST",
+        "stage": "endpoint_index",
+        "cap_s": 300
+      },
+      {
+        "unit_id": "M4-ENDPOINTS-SCREEN",
+        "stage": "endpoint_index",
+        "cap_s": 300
+      },
+      {
+        "unit_id": "M3-INFERENCE-SCREEN",
+        "stage": "simultaneous_inference",
+        "cap_s": 1200
+      },
+      {
+        "unit_id": "M5-REPLAY-AGGREGATE-SCREEN",
+        "stage": "independent_aggregate",
+        "cap_s": 1200
+      },
+      {
+        "unit_id": "M4-ENDPOINTS-FINALIST",
+        "stage": "endpoint_index",
+        "cap_s": 300
+      },
+      {
+        "unit_id": "M3-INFERENCE-FINALIST",
+        "stage": "simultaneous_inference",
+        "cap_s": 1200
+      },
+      {
+        "unit_id": "M5-REPLAY-AGGREGATE-FINALIST",
+        "stage": "independent_aggregate",
+        "cap_s": 1200
+      }
+    ],
+    "conservative_sum_of_caps_s_if_all_upper_counts_run": 30180,
+    "interpretation": "A planning bound on registered unit caps, not a measured runtime prediction; actual selected pair aliases and third-seed nomination may reduce units. Random synthetic labels can shorten fit training.",
+    "seven_aggregate_unit_cap_sum_s": 5700
+  },
+  "historical_portfolio_usage": "Separate prior portfolio receipts remain in results/pcrl_method_portfolio_v1; not charged to this new epoch.",
+  "unit_accounting_formula": {
+    "fresh_attack_and_probe_fits_per_seed": "18*P+2*U; P selected distinct pair IDs (<=10), U selected canonical unions (<=6); coalition transports 12 same-pair local scores with zero fits",
+    "purpose_head_forward_calls_per_seed": "32*P + 2*R + 2; P selected distinct pair IDs, R selected rule IDs scored by endpoint (<=10), final +2 is full-input F; FIRST J/T endpoint repeats its two rule forwards",
+    "first_milestone": "J and T seed0 included in subsequent screen; FIRST endpoint is one additional 300s unit, no extra defense/attacker fit if identities alias",
+    "fit_bank_per_seed": "24 head packages (48 neural training stages), 24 fixed H-GLOBAL calibrations, 22 raw search critic fits in feasible path; AUC-free TASK_TABLE and T precede FIT SEX access"
+  }
+}
