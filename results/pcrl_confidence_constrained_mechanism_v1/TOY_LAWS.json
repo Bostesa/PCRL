@@ -1,0 +1,6771 @@
+{
+ "schema": "ccm-toy-laws-v1",
+ "study": "pcrl_confidence_constrained_mechanism_v1",
+ "owner": "role F",
+ "written_at": "2026-10-08T08:08:42Z",
+ "status": "pinned before any candidate code (ccm.guard / ccm.geometry / ccm.oracle) evaluates them; never changed after a candidate result",
+ "contract": {
+  "name": "G(d, b)",
+  "d": "1/200",
+  "b": "1/400",
+  "NLL": "q_k >= exp(-d) p_k for every class k",
+  "Brier": "sum_k q_k^2 - sum_k p_k^2 - 2 (q_y - p_y) <= b for every label y",
+  "Class": "q has the strict argmax d(p) (numpy argmax of p, first index)",
+  "bin": "admissible iff one q satisfies G for every member; necessary: sum_k max_member p_k <= exp(d)"
+ },
+ "conventions": {
+  "recipients": "recipient 1 stands for income (K = 2); recipient 2 stands for occupation, with K = 3 in every law (the real occupation recipient has K = 6)",
+  "reference_vectors": "exact rationals (strings) with their float64 values (p*_float = float(rational)); every vector is positive with a strict argmax",
+  "partition_domain": "a release partitions the DISTINCT reference values of a recipient (inputs with equal vectors always share a token)",
+  "capacity": "8 tokens per predicted class (recipient 1) / 64 (recipient 2); no law has more than 6 inputs, so the capacity bound never binds",
+  "sex": "sex1 = P(SEX = 1 | x); P = P(x); exact rationals",
+  "measures": "plug-in mutual information in nats (natural log) and exact Bayes accuracy of SEX from t1, t2, (t1, t2)",
+  "capability_not_prevalence": "purpose-built fixtures: they show that the oracles can detect each situation, not how often it occurs in real data"
+ },
+ "laws": {
+  "NULL": {
+   "name": "NULL",
+   "intended_property": "Privacy cannot usefully improve under G: every SEX-informative distinction lies between reference vectors too far apart to merge (sum_k max p_k > e^d), in both recipients; every admissible bin is SEX-homogeneous, so every admissible deterministic partition (and every stochastic channel whose supported outputs satisfy G) leaves I(S;t1), I(S;t2) and I(S;t1,t2) at their identity values.",
+   "design": "x0/x1 (SEX law 4/5) and x2/x3 (1/5) are mergeable pairs (TV 0.001-0.002) in both recipients; every pair with different SEX laws is >= 0.018 apart in total variation (sum_k max >= 1.018 > e^d = 1.0050125) or has a different decision (x4, x5 are class 1 in recipient 1 and class 2 in recipient 2, 0.02 apart).",
+   "recipients": {
+    "1": {
+     "K": 2,
+     "stands_for": "income (K=2)"
+    },
+    "2": {
+     "K": 3,
+     "stands_for": "occupation (real K=6; K=3 in the laws)"
+    }
+   },
+   "inputs": [
+    {
+     "id": "x0",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "800/1000",
+      "150/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.8,
+      0.15,
+      0.05
+     ]
+    },
+    {
+     "id": "x1",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "902/1000",
+      "98/1000"
+     ],
+     "p1_float": [
+      0.902,
+      0.098
+     ],
+     "p2": [
+      "801/1000",
+      "149/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.801,
+      0.149,
+      0.05
+     ]
+    },
+    {
+     "id": "x2",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "920/1000",
+      "80/1000"
+     ],
+     "p1_float": [
+      0.92,
+      0.08
+     ],
+     "p2": [
+      "780/1000",
+      "170/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.78,
+      0.17,
+      0.05
+     ]
+    },
+    {
+     "id": "x3",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "921/1000",
+      "79/1000"
+     ],
+     "p1_float": [
+      0.921,
+      0.079
+     ],
+     "p2": [
+      "781/1000",
+      "169/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.781,
+      0.169,
+      0.05
+     ]
+    },
+    {
+     "id": "x4",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "3/5",
+     "sex1_float": 0.6,
+     "p1": [
+      "100/1000",
+      "900/1000"
+     ],
+     "p1_float": [
+      0.1,
+      0.9
+     ],
+     "p2": [
+      "100/1000",
+      "150/1000",
+      "750/1000"
+     ],
+     "p2_float": [
+      0.1,
+      0.15,
+      0.75
+     ]
+    },
+    {
+     "id": "x5",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "3/10",
+     "sex1_float": 0.3,
+     "p1": [
+      "120/1000",
+      "880/1000"
+     ],
+     "p1_float": [
+      0.12,
+      0.88
+     ],
+     "p2": [
+      "120/1000",
+      "150/1000",
+      "730/1000"
+     ],
+     "p2_float": [
+      0.12,
+      0.15,
+      0.73
+     ]
+    }
+   ]
+  },
+  "POSITIVE": {
+   "name": "POSITIVE",
+   "intended_property": "Admissible coarsening removes an unnecessary sensitive distinction: in each recipient x1 and x2 differ in SEX law (1/5 vs 4/5) but their reference vectors are mergeable under G; the privacy-aware local partition {x0},{x1,x2},{x3} halves the SEX information of the chain, while the unique fewest-token (task-only) partition {x0,x1},{x2,x3} keeps it.",
+   "design": "x0..x3 form a chain in each recipient (consecutive TV 0.003: sum_k max = 1.003 <= e^d, mergeable; two steps apart TV 0.006: sum_k max = 1.006 > e^d, certified infeasible), so the admissible bins of the chain are the three adjacent pairs; the fewest-token partition of the chain is unique ({x0,x1},{x2,x3}, SEX-homogeneous). x4/x5 (SEX law 1/2, decision class 1) are a SEX-neutral mergeable pair.",
+   "recipients": {
+    "1": {
+     "K": 2,
+     "stands_for": "income (K=2)"
+    },
+    "2": {
+     "K": 3,
+     "stands_for": "occupation (real K=6; K=3 in the laws)"
+    }
+   },
+   "inputs": [
+    {
+     "id": "x0",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "800/1000",
+      "150/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.8,
+      0.15,
+      0.05
+     ]
+    },
+    {
+     "id": "x1",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "903/1000",
+      "97/1000"
+     ],
+     "p1_float": [
+      0.903,
+      0.097
+     ],
+     "p2": [
+      "803/1000",
+      "147/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.803,
+      0.147,
+      0.05
+     ]
+    },
+    {
+     "id": "x2",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "906/1000",
+      "94/1000"
+     ],
+     "p1_float": [
+      0.906,
+      0.094
+     ],
+     "p2": [
+      "806/1000",
+      "144/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.806,
+      0.144,
+      0.05
+     ]
+    },
+    {
+     "id": "x3",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "909/1000",
+      "91/1000"
+     ],
+     "p1_float": [
+      0.909,
+      0.091
+     ],
+     "p2": [
+      "809/1000",
+      "141/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.809,
+      0.141,
+      0.05
+     ]
+    },
+    {
+     "id": "x4",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/2",
+     "sex1_float": 0.5,
+     "p1": [
+      "150/1000",
+      "850/1000"
+     ],
+     "p1_float": [
+      0.15,
+      0.85
+     ],
+     "p2": [
+      "200/1000",
+      "700/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.2,
+      0.7,
+      0.1
+     ]
+    },
+    {
+     "id": "x5",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/2",
+     "sex1_float": 0.5,
+     "p1": [
+      "151/1000",
+      "849/1000"
+     ],
+     "p1_float": [
+      0.151,
+      0.849
+     ],
+     "p2": [
+      "200/1000",
+      "701/1000",
+      "99/1000"
+     ],
+     "p2_float": [
+      0.2,
+      0.701,
+      0.099
+     ]
+    }
+   ]
+  },
+  "COMPLEMENTARY": {
+   "name": "COMPLEMENTARY",
+   "intended_property": "XOR coalition clue: recipient 1 is forced to disclose a (x0,x1 vs x2,x3; non-mergeable) and recipient 2 is forced to disclose b (x0,x2 vs x1,x3; different decisions); SEX law 9/10 if a = b and 1/10 otherwise. Each recipient alone leaks SEX through mergeable sub-distinctions, which admissible (local) merging removes completely, but the pair (t1, t2) still reveals (a, b) and hence SEX for every admissible pair of partitions.",
+   "design": "a = 0 for x0, x1 and a = 1 for x2, x3; b = 0 for x0, x2 and b = 1 for x1, x3. Recipient 1: within-a pairs are 0.002 apart (mergeable), across a >= 0.048 apart (certified infeasible), one decision class (CLASS ineligible). Recipient 2: within-b pairs 0.001 apart (mergeable), b = 0 is class 0 and b = 1 is class 1 (CLASS eligible).",
+   "recipients": {
+    "1": {
+     "K": 2,
+     "stands_for": "income (K=2)"
+    },
+    "2": {
+     "K": 3,
+     "stands_for": "occupation (real K=6; K=3 in the laws)"
+    }
+   },
+   "inputs": [
+    {
+     "id": "x0",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "9/10",
+     "sex1_float": 0.9,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "700/1000",
+      "200/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.7,
+      0.2,
+      0.1
+     ]
+    },
+    {
+     "id": "x1",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "1/10",
+     "sex1_float": 0.1,
+     "p1": [
+      "902/1000",
+      "98/1000"
+     ],
+     "p1_float": [
+      0.902,
+      0.098
+     ],
+     "p2": [
+      "150/1000",
+      "750/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.15,
+      0.75,
+      0.1
+     ]
+    },
+    {
+     "id": "x2",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "1/10",
+     "sex1_float": 0.1,
+     "p1": [
+      "950/1000",
+      "50/1000"
+     ],
+     "p1_float": [
+      0.95,
+      0.05
+     ],
+     "p2": [
+      "701/1000",
+      "199/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.701,
+      0.199,
+      0.1
+     ]
+    },
+    {
+     "id": "x3",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "9/10",
+     "sex1_float": 0.9,
+     "p1": [
+      "952/1000",
+      "48/1000"
+     ],
+     "p1_float": [
+      0.952,
+      0.048
+     ],
+     "p2": [
+      "150/1000",
+      "751/1000",
+      "99/1000"
+     ],
+     "p2_float": [
+      0.15,
+      0.751,
+      0.099
+     ]
+    }
+   ]
+  },
+  "NO_COALITION": {
+   "name": "NO_COALITION",
+   "intended_property": "No extra coalition clue: SEX depends only on a, recipient 1 sees only a, recipient 2 sees only b, and b is independent of (a, SEX); for every admissible pair of partitions I(S;t1,t2) = I(S;t1) = the better single release. Recipient 1 still has local headroom (a = 0 and a = 1 are mergeable).",
+   "design": "inputs (a, b): x0 (0,0), x1 (0,1), x2 (1,0), x3 (1,1), x4 (2,0), x5 (2,1); P uniform, so a and b are independent. p1 depends on a only (a = 0, 1 mergeable, 0.002 apart; a = 2 class 1); p2 depends on b only (b = 0 class 0, b = 1 class 2). SEX law 4/5, 1/5, 3/5 for a = 0, 1, 2.",
+   "recipients": {
+    "1": {
+     "K": 2,
+     "stands_for": "income (K=2)"
+    },
+    "2": {
+     "K": 3,
+     "stands_for": "occupation (real K=6; K=3 in the laws)"
+    }
+   },
+   "inputs": [
+    {
+     "id": "x0",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "600/1000",
+      "300/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.6,
+      0.3,
+      0.1
+     ]
+    },
+    {
+     "id": "x1",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "200/1000",
+      "300/1000",
+      "500/1000"
+     ],
+     "p2_float": [
+      0.2,
+      0.3,
+      0.5
+     ]
+    },
+    {
+     "id": "x2",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "902/1000",
+      "98/1000"
+     ],
+     "p1_float": [
+      0.902,
+      0.098
+     ],
+     "p2": [
+      "600/1000",
+      "300/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.6,
+      0.3,
+      0.1
+     ]
+    },
+    {
+     "id": "x3",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "1/5",
+     "sex1_float": 0.2,
+     "p1": [
+      "902/1000",
+      "98/1000"
+     ],
+     "p1_float": [
+      0.902,
+      0.098
+     ],
+     "p2": [
+      "200/1000",
+      "300/1000",
+      "500/1000"
+     ],
+     "p2_float": [
+      0.2,
+      0.3,
+      0.5
+     ]
+    },
+    {
+     "id": "x4",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "3/5",
+     "sex1_float": 0.6,
+     "p1": [
+      "100/1000",
+      "900/1000"
+     ],
+     "p1_float": [
+      0.1,
+      0.9
+     ],
+     "p2": [
+      "600/1000",
+      "300/1000",
+      "100/1000"
+     ],
+     "p2_float": [
+      0.6,
+      0.3,
+      0.1
+     ]
+    },
+    {
+     "id": "x5",
+     "P": "1/6",
+     "P_float": 0.16666666666666666,
+     "sex1": "3/5",
+     "sex1_float": 0.6,
+     "p1": [
+      "100/1000",
+      "900/1000"
+     ],
+     "p1_float": [
+      0.1,
+      0.9
+     ],
+     "p2": [
+      "200/1000",
+      "300/1000",
+      "500/1000"
+     ],
+     "p2_float": [
+      0.2,
+      0.3,
+      0.5
+     ]
+    }
+   ]
+  },
+  "JOINT_HEADROOM": {
+   "name": "JOINT_HEADROOM",
+   "intended_property": "Coordination headroom: the best admissible JOINT pair of partitions has strictly lower coalition MI I(S; t1, t2) than the local design and than BOTH non-adaptive sequential designs (1->2 and 2->1), for every tie choice. The only coalition-reducing move hides the x1/x2 distinction (SEX law 1/10 vs 4/5) from BOTH recipients; each recipient on its own prefers a different merge that the other recipient's geometry makes useless to the coalition, so local, 1->2 and 2->1 all leave the coalition at I(S;X).",
+   "design": "Recipient 1 (K = 2): chain x2 - x1 - x3 at (0.900, 0.100), (0.903, 0.097), (0.906, 0.094) (consecutive sum_k max = 1.003, mergeable; two steps 1.006, certified infeasible); x0 at (0.950, 0.050) is >= 0.044 away (certified infeasible with every chain value). Recipient 2 (K = 3): chain {x1} - {x0, x2} - {x3} at (0.800, 0.150, 0.050), (0.803, 0.147, 0.050), (0.806, 0.144, 0.050) (x0 and x2 share one reference vector). Own-MI optima: recipient 1 merges {x1, x3}; recipient 2 merges {x0, x2} with {x3}. Neither merge can reduce the coalition (recipient 2 never merges x1 with x3; recipient 1 never merges x0, x2, x3 together), and each first mover's own optimum keeps x1 and x2 apart, so the second mover cannot help. The joint optimum merges {x1, x2} for recipient 1 and {x1} with {x0, x2} for recipient 2.",
+   "capacity": "the registered i8o64 bound: at most 8 tokens per predicted class for recipient 1 and 64 for recipient 2 (never binds: recipient 1 has 4 values in one class, recipient 2 has 3)",
+   "tie_rule": "own-MI argmins are compared within 1e-12; every tied choice is evaluated and the claim must hold against the most favourable one (here every own-MI argmin and the joint argmin are unique, so no tie-break is involved); the second mover's coalition-MI minimum is a single value",
+   "arms": {
+    "local": "each recipient its own-MI minimum",
+    "sequential_1_to_2": "recipient 1 its own-MI minimum, then recipient 2 the partition minimising I(S; t1, t2) given recipient 1's PARTITION (non-adaptive)",
+    "sequential_2_to_1": "symmetric",
+    "joint": "minimum of I(S; t1, t2) over all admissible pairs"
+   },
+   "report": [
+    "joint_argmin_partitions"
+   ],
+   "recipients": {
+    "1": {
+     "K": 2,
+     "stands_for": "income (K=2)"
+    },
+    "2": {
+     "K": 3,
+     "stands_for": "occupation (real K=6; K=3 in the laws)"
+    }
+   },
+   "inputs": [
+    {
+     "id": "x0",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "1/10",
+     "sex1_float": 0.1,
+     "p1": [
+      "950/1000",
+      "50/1000"
+     ],
+     "p1_float": [
+      0.95,
+      0.05
+     ],
+     "p2": [
+      "803/1000",
+      "147/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.803,
+      0.147,
+      0.05
+     ]
+    },
+    {
+     "id": "x1",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "1/10",
+     "sex1_float": 0.1,
+     "p1": [
+      "903/1000",
+      "97/1000"
+     ],
+     "p1_float": [
+      0.903,
+      0.097
+     ],
+     "p2": [
+      "800/1000",
+      "150/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.8,
+      0.15,
+      0.05
+     ]
+    },
+    {
+     "id": "x2",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "4/5",
+     "sex1_float": 0.8,
+     "p1": [
+      "900/1000",
+      "100/1000"
+     ],
+     "p1_float": [
+      0.9,
+      0.1
+     ],
+     "p2": [
+      "803/1000",
+      "147/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.803,
+      0.147,
+      0.05
+     ]
+    },
+    {
+     "id": "x3",
+     "P": "1/4",
+     "P_float": 0.25,
+     "sex1": "9/10",
+     "sex1_float": 0.9,
+     "p1": [
+      "906/1000",
+      "94/1000"
+     ],
+     "p1_float": [
+      0.906,
+      0.094
+     ],
+     "p2": [
+      "806/1000",
+      "144/1000",
+      "50/1000"
+     ],
+     "p2_float": [
+      0.806,
+      0.144,
+      0.05
+     ]
+    }
+   ]
+  }
+ },
+ "construction_check_rule": "ccm.data.toy_law_check (role F; independent of ccm.guard/geometry/oracle): every subset of distinct reference values is CERTIFIED (q given; exact rational check with a rigorous bracket of exp(-d) AND float64 check with no tolerance, every member and every label), INFEASIBLE_CLASS or INFEASIBLE_NLL (sum_k max > exp(d)); zero UNDECIDED subsets is required. MI ties within 1e-12 are reported as ranges. Reproduce with `PYTHONPATH=. python -m ccm.data toy-laws-check`.",
+ "construction_check": {
+  "COMPLEMENTARY": {
+   "I_S_X_nats": 0.3680642071684971,
+   "P_sex1": "1/2",
+   "coalition": {
+    "admissible_pairs": 16,
+    "gain_range_over_all_admissible_pairs": [
+     0.0,
+     0.3680642071684971
+    ],
+    "identity_pair": {
+     "bayes": "9/10",
+     "gain_over_better_single": 0.0,
+     "mi": 0.3680642071684971
+    },
+    "joint_argmin_pairs": 16,
+    "joint_bayes_range": [
+     "9/10",
+     "9/10"
+    ],
+    "joint_min_mi": 0.3680642071684971,
+    "local_pair_bayes_range": [
+     "9/10",
+     "9/10"
+    ],
+    "local_pair_gain_range": [
+     0.3680642071684971,
+     0.3680642071684971
+    ],
+    "local_pair_mi_range": [
+     0.3680642071684971,
+     0.3680642071684971
+    ],
+    "max_pair_mi_over_admissible": 0.3680642071684971,
+    "sequential_1_to_2_mi_range": [
+     0.3680642071684971,
+     0.3680642071684971
+    ],
+    "sequential_2_to_1_mi_range": [
+     0.3680642071684971,
+     0.3680642071684971
+    ],
+    "task_only_pair_mi_range": [
+     0.3680642071684971,
+     0.3680642071684971
+    ]
+   },
+   "inputs": 4,
+   "intended_property": {
+    "holds": true,
+    "predicates": {
+     "coalition gain over the better single local release > 0.3": true,
+     "each identity single release is informative (MI > 0.05)": true,
+     "each local single release is uninformative (MI <= 1e-12)": true,
+     "local pair reveals SEX (coalition MI > 0.3)": true,
+     "the clue is forced: joint min == local pair MI": true
+    }
+   },
+   "recipients": {
+    "1": {
+     "K": 2,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 4,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "1/2",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 4,
+     "identity": {
+      "bayes": "9/10",
+      "mi": 0.3680642071684971,
+      "tokens": 4
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "1/2",
+       "1/2"
+      ],
+      "mi": 0.0,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.3680642071684971,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "min_brier_slack": 0.001708,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "9/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.9,
+        0.1
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.002,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": true,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.048,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": true,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.052,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.052,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.002108,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "19/20",
+        "1/20"
+       ],
+       "q_float": [
+        0.95,
+        0.05
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.002,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.052,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.052,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "1/2",
+       "1/2"
+      ],
+      "mi_range": [
+       0.0,
+       0.0
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ]
+       ]
+      ],
+      "tokens": 2
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ]
+     ]
+    },
+    "2": {
+     "K": 3,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 4,
+     "class": {
+      "bayes": "1/2",
+      "eligible": true,
+      "mi": 0.0
+     },
+     "decision_only": {
+      "bayes": "1/2",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 4,
+     "identity": {
+      "bayes": "9/10",
+      "mi": 0.3680642071684971,
+      "tokens": 4
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "1/2",
+       "1/2"
+      ],
+      "mi": 0.0,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2"
+        ],
+        [
+         "x1",
+         "x3"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.3680642071684971,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.55,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "min_brier_slack": 0.001502,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "7/10",
+        "1/5",
+        "1/10"
+       ],
+       "q_float": [
+        0.7,
+        0.2,
+        0.1
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": true,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.551,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.551,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": true,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.551,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "min_brier_slack": 0.001802,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "3/20",
+        "3/4",
+        "1/10"
+       ],
+       "q_float": [
+        0.15,
+        0.75,
+        0.1
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.551,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.552,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.552,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.552,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.552,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "1/2",
+       "1/2"
+      ],
+      "mi_range": [
+       0.0,
+       0.0
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2"
+        ],
+        [
+         "x1",
+         "x3"
+        ]
+       ]
+      ],
+      "tokens": 2
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ]
+     ]
+    }
+   }
+  },
+  "JOINT_HEADROOM": {
+   "I_S_X_nats": 0.32298382327694686,
+   "P_sex1": "19/40",
+   "coalition": {
+    "admissible_pairs": 9,
+    "gain_range_over_all_admissible_pairs": [
+     0.0,
+     0.18403210358424857
+    ],
+    "identity_pair": {
+     "bayes": "7/8",
+     "gain_over_better_single": 0.0,
+     "mi": 0.32298382327694686
+    },
+    "joint_argmin_pairs": 1,
+    "joint_bayes_range": [
+     "29/40",
+     "29/40"
+    ],
+    "joint_min_mi": 0.1852857656525617,
+    "local_pair_bayes_range": [
+     "7/8",
+     "7/8"
+    ],
+    "local_pair_gain_range": [
+     0.18403210358424857,
+     0.18403210358424857
+    ],
+    "local_pair_mi_range": [
+     0.32298382327694686,
+     0.32298382327694686
+    ],
+    "max_pair_mi_over_admissible": 0.32298382327694686,
+    "sequential_1_to_2_mi_range": [
+     0.32298382327694686,
+     0.32298382327694686
+    ],
+    "sequential_2_to_1_mi_range": [
+     0.32298382327694686,
+     0.32298382327694686
+    ],
+    "task_only_pair_mi_range": [
+     0.1852857656525617,
+     0.32298382327694686
+    ],
+    "witnesses": {
+     "joint_argmin": [
+      {
+       "bayes": "29/40",
+       "mi": 0.1852857656525617,
+       "recipient_1": [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ]
+       ],
+       "recipient_2": [
+        [
+         "x0",
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ]
+       ]
+      }
+     ],
+     "local_pairs": [
+      {
+       "bayes": "7/8",
+       "mi": 0.32298382327694686,
+       "recipient_1": [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x3"
+        ],
+        [
+         "x2"
+        ]
+       ],
+       "recipient_2": [
+        [
+         "x0",
+         "x2",
+         "x3"
+        ],
+        [
+         "x1"
+        ]
+       ]
+      }
+     ],
+     "sequential_1_to_2": [
+      {
+       "coalition_mi": 0.32298382327694686,
+       "first": [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x3"
+        ],
+        [
+         "x2"
+        ]
+       ],
+       "second_best": [
+        [
+         [
+          "x0",
+          "x2",
+          "x3"
+         ],
+         [
+          "x1"
+         ]
+        ],
+        [
+         [
+          "x0",
+          "x1",
+          "x2"
+         ],
+         [
+          "x3"
+         ]
+        ],
+        [
+         [
+          "x0",
+          "x2"
+         ],
+         [
+          "x1"
+         ],
+         [
+          "x3"
+         ]
+        ]
+       ]
+      }
+     ],
+     "sequential_2_to_1": [
+      {
+       "coalition_mi": 0.32298382327694686,
+       "first": [
+        [
+         "x0",
+         "x2",
+         "x3"
+        ],
+        [
+         "x1"
+        ]
+       ],
+       "second_best": [
+        [
+         [
+          "x0"
+         ],
+         [
+          "x1",
+          "x3"
+         ],
+         [
+          "x2"
+         ]
+        ],
+        [
+         [
+          "x0"
+         ],
+         [
+          "x1",
+          "x2"
+         ],
+         [
+          "x3"
+         ]
+        ],
+        [
+         [
+          "x0"
+         ],
+         [
+          "x1"
+         ],
+         [
+          "x2"
+         ],
+         [
+          "x3"
+         ]
+        ]
+       ]
+      }
+     ],
+     "tie_rule": "every own-MI argmin of the first mover (ties within 1e-12) is listed; the second mover's coalition-MI minimum is a single value whatever its tie-break"
+    }
+   },
+   "inputs": 4,
+   "intended_property": {
+    "holds": true,
+    "predicates": {
+     "each recipient's own-MI argmin is unique (no tie-break involved)": true,
+     "joint Bayes accuracy < local pair Bayes accuracy": true,
+     "joint argmin pair is unique": true,
+     "joint min < local pair - 0.05 (every tie choice)": true,
+     "joint min < sequential 1->2 - 0.05 (every tie choice)": true,
+     "joint min < sequential 2->1 - 0.05 (every tie choice)": true
+    }
+   },
+   "recipients": {
+    "1": {
+     "K": 2,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 3,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "21/40",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 4,
+     "identity": {
+      "bayes": "7/8",
+      "mi": 0.32298382327694686,
+      "tokens": 4
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "27/40",
+       "27/40"
+      ],
+      "mi": 0.1389517196926983,
+      "partitions": [
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x3"
+        ],
+        [
+         "x2"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.32298382327694686,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "sex_homogeneous": true,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.047,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "min_brier_slack": 0.001318,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "9/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.9,
+        0.1
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.044,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "min_brier_slack": 0.001354,
+       "min_nll_slack": 0.0004837895183098156,
+       "q": [
+        "903/1000",
+        "97/1000"
+       ],
+       "q_float": [
+        0.903,
+        0.097
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.047,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.05,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 2,
+      "bayes_range": [
+       "27/40",
+       "29/40"
+      ],
+      "mi_range": [
+       0.1389517196926983,
+       0.1852857656525617
+      ],
+      "partitions": [
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x3"
+        ],
+        [
+         "x2"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ]
+       ]
+      ],
+      "tokens": 3
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ]
+     ]
+    },
+    "2": {
+     "K": 3,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 3,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "21/40",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 3,
+     "identity": {
+      "bayes": "29/40",
+      "mi": 0.1852857656525617,
+      "tokens": 3
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "27/40",
+       "27/40"
+      ],
+      "mi": 0.10586716560027556,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2",
+         "x3"
+        ],
+        [
+         "x1"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.1852857656525617,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "min_brier_slack": 0.000418,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "4/5",
+        "3/20",
+        "1/20"
+       ],
+       "q_float": [
+        0.8,
+        0.15,
+        0.05
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.000454,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "803/1000",
+        "147/1000",
+        "1/20"
+       ],
+       "q_float": [
+        0.803,
+        0.147,
+        0.05
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 2,
+      "bayes_range": [
+       "27/40",
+       "29/40"
+      ],
+      "mi_range": [
+       0.10586716560027556,
+       0.13324028963610834
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2",
+         "x3"
+        ],
+        [
+         "x1"
+        ]
+       ],
+       [
+        [
+         "x0",
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ]
+       ]
+      ],
+      "tokens": 2
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0
+     ],
+     "value_inputs": [
+      [
+       "x0",
+       "x2"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x3"
+      ]
+     ]
+    }
+   }
+  },
+  "NO_COALITION": {
+   "I_S_X_nats": 0.13298447128527402,
+   "P_sex1": "8/15",
+   "coalition": {
+    "admissible_pairs": 2,
+    "gain_range_over_all_admissible_pairs": [
+     0.0,
+     0.0
+    ],
+    "identity_pair": {
+     "bayes": "11/15",
+     "gain_over_better_single": 0.0,
+     "mi": 0.13298447128527402
+    },
+    "joint_argmin_pairs": 1,
+    "joint_bayes_range": [
+     "8/15",
+     "8/15"
+    ],
+    "joint_min_mi": 0.004487966604102342,
+    "local_pair_bayes_range": [
+     "8/15",
+     "8/15"
+    ],
+    "local_pair_gain_range": [
+     0.0,
+     0.0
+    ],
+    "local_pair_mi_range": [
+     0.004487966604102342,
+     0.004487966604102342
+    ],
+    "max_pair_mi_over_admissible": 0.13298447128527402,
+    "sequential_1_to_2_mi_range": [
+     0.004487966604102342,
+     0.004487966604102342
+    ],
+    "sequential_2_to_1_mi_range": [
+     0.004487966604102342,
+     0.004487966604102342
+    ],
+    "task_only_pair_mi_range": [
+     0.004487966604102342,
+     0.004487966604102342
+    ]
+   },
+   "inputs": 6,
+   "intended_property": {
+    "holds": true,
+    "predicates": {
+     "joint min == local pair MI": true,
+     "pair MI == better single MI for every admissible pair": true,
+     "recipient 1 has headroom (local < identity - 0.05)": true,
+     "recipient 2 alone is uninformative (max MI <= 1e-12)": true
+    }
+   },
+   "recipients": {
+    "1": {
+     "K": 2,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 1,
+     "admissible_partitions": 2,
+     "class": {
+      "bayes": "8/15",
+      "eligible": true,
+      "mi": 0.004487966604102342
+     },
+     "decision_only": {
+      "bayes": "8/15",
+      "confidence_eligible": false,
+      "mi": 0.004487966604102342
+     },
+     "distinct_values": 3,
+     "identity": {
+      "bayes": "11/15",
+      "mi": 0.13298447128527402,
+      "tokens": 3
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "8/15",
+       "8/15"
+      ],
+      "mi": 0.004487966604102342,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1",
+         "x2",
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.13298447128527402,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.001708,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "9/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.9,
+        0.1
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.002,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "8/15",
+       "8/15"
+      ],
+      "mi_range": [
+       0.004487966604102342,
+       0.004487966604102342
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1",
+         "x2",
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 2
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      1
+     ],
+     "value_inputs": [
+      [
+       "x0",
+       "x1"
+      ],
+      [
+       "x2",
+       "x3"
+      ],
+      [
+       "x4",
+       "x5"
+      ]
+     ]
+    },
+    "2": {
+     "K": 3,
+     "admissible_bins_all_sex_homogeneous": true,
+     "admissible_multi_value_bins": 0,
+     "admissible_partitions": 1,
+     "class": {
+      "bayes": "8/15",
+      "eligible": true,
+      "mi": 0.0
+     },
+     "decision_only": {
+      "bayes": "8/15",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 2,
+     "identity": {
+      "bayes": "8/15",
+      "mi": 0.0,
+      "tokens": 2
+     },
+     "local_min_mi": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "8/15",
+       "8/15"
+      ],
+      "mi": 0.0,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2",
+         "x4"
+        ],
+        [
+         "x1",
+         "x3",
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.0,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.4,
+       "values": [
+        0,
+        1
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "8/15",
+       "8/15"
+      ],
+      "mi_range": [
+       0.0,
+       0.0
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x2",
+         "x4"
+        ],
+        [
+         "x1",
+         "x3",
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 2
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      2
+     ],
+     "value_inputs": [
+      [
+       "x0",
+       "x2",
+       "x4"
+      ],
+      [
+       "x1",
+       "x3",
+       "x5"
+      ]
+     ]
+    }
+   }
+  },
+  "NULL": {
+   "I_S_X_nats": 0.14501057820849572,
+   "P_sex1": "29/60",
+   "coalition": {
+    "admissible_pairs": 16,
+    "gain_range_over_all_admissible_pairs": [
+     0.0,
+     0.0
+    ],
+    "identity_pair": {
+     "bayes": "3/4",
+     "gain_over_better_single": 0.0,
+     "mi": 0.14501057820849572
+    },
+    "joint_argmin_pairs": 16,
+    "joint_bayes_range": [
+     "3/4",
+     "3/4"
+    ],
+    "joint_min_mi": 0.14501057820849572,
+    "local_pair_bayes_range": [
+     "3/4",
+     "3/4"
+    ],
+    "local_pair_gain_range": [
+     0.0,
+     0.0
+    ],
+    "local_pair_mi_range": [
+     0.14501057820849572,
+     0.14501057820849572
+    ],
+    "max_pair_mi_over_admissible": 0.14501057820849572,
+    "sequential_1_to_2_mi_range": [
+     0.14501057820849572,
+     0.14501057820849572
+    ],
+    "sequential_2_to_1_mi_range": [
+     0.14501057820849572,
+     0.14501057820849572
+    ],
+    "task_only_pair_mi_range": [
+     0.14501057820849572,
+     0.14501057820849572
+    ]
+   },
+   "inputs": 6,
+   "intended_property": {
+    "holds": true,
+    "predicates": {
+     "SEX is informative (I(S;X) > 0.05 nats)": true,
+     "every admissible bin is SEX-homogeneous (both recipients)": true,
+     "joint min coalition MI == identity pair MI": true,
+     "local min MI == identity MI (both)": true,
+     "some admissible multi-value bin exists (both recipients)": true
+    }
+   },
+   "recipients": {
+    "1": {
+     "K": 2,
+     "admissible_bins_all_sex_homogeneous": true,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 4,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "31/60",
+      "confidence_eligible": false,
+      "mi": 0.0011137971334862957
+     },
+     "distinct_values": 6,
+     "identity": {
+      "bayes": "3/4",
+      "mi": 0.14501057820849572,
+      "tokens": 6
+     },
+     "local_min_mi": {
+      "argmin_partitions": 4,
+      "bayes_range": [
+       "3/4",
+       "3/4"
+      ],
+      "mi": 0.14501057820849572,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1"
+        ],
+        [
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.14501057820849572,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "min_brier_slack": 0.001708,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "9/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.9,
+        0.1
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.002,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.018,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.019,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.002182,
+       "min_nll_slack": 0.0003990016645854149,
+       "q": [
+        "23/25",
+        "2/25"
+       ],
+       "q_float": [
+        0.92,
+        0.08
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.019,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        0,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        0,
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        0,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        0,
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.78,
+       "values": [
+        0,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.782,
+       "values": [
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.782,
+       "values": [
+        0,
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        0,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        0,
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        0,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        0,
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        0,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.801,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.8,
+       "values": [
+        0,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.802,
+       "values": [
+        0,
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        0,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.82,
+       "values": [
+        0,
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.821,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "3/4",
+       "3/4"
+      ],
+      "mi_range": [
+       0.14501057820849572,
+       0.14501057820849572
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 4
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ],
+      [
+       "x4"
+      ],
+      [
+       "x5"
+      ]
+     ]
+    },
+    "2": {
+     "K": 3,
+     "admissible_bins_all_sex_homogeneous": true,
+     "admissible_multi_value_bins": 2,
+     "admissible_partitions": 4,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "31/60",
+      "confidence_eligible": false,
+      "mi": 0.0011137971334862957
+     },
+     "distinct_values": 6,
+     "identity": {
+      "bayes": "3/4",
+      "mi": 0.14501057820849572,
+      "tokens": 6
+     },
+     "local_min_mi": {
+      "argmin_partitions": 4,
+      "bayes_range": [
+       "3/4",
+       "3/4"
+      ],
+      "mi": 0.14501057820849572,
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1"
+        ],
+        [
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.14501057820849572,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "min_brier_slack": 0.001802,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "4/5",
+        "3/20",
+        "1/20"
+       ],
+       "q_float": [
+        0.8,
+        0.15,
+        0.05
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.019,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.001722,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "39/50",
+        "17/100",
+        "1/20"
+       ],
+       "q_float": [
+        0.78,
+        0.17,
+        0.05
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.021,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        0,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        0,
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        0,
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.719,
+       "values": [
+        0,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.68,
+       "values": [
+        0,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.681,
+       "values": [
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.681,
+       "values": [
+        0,
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.68,
+       "values": [
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        0,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        0,
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.68,
+       "values": [
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.699,
+       "values": [
+        0,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        0,
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.681,
+       "values": [
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        0,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.02,
+       "values": [
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        0,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        0,
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        0,
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.7,
+       "values": [
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.719,
+       "values": [
+        0,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.701,
+       "values": [
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.72,
+       "values": [
+        0,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.721,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "3/4",
+       "3/4"
+      ],
+      "mi_range": [
+       0.14501057820849572,
+       0.14501057820849572
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 4
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0,
+      2,
+      2
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ],
+      [
+       "x4"
+      ],
+      [
+       "x5"
+      ]
+     ]
+    }
+   }
+  },
+  "POSITIVE": {
+   "I_S_X_nats": 0.12849650468117169,
+   "P_sex1": "1/2",
+   "coalition": {
+    "admissible_pairs": 100,
+    "gain_range_over_all_admissible_pairs": [
+     0.0,
+     0.0
+    ],
+    "identity_pair": {
+     "bayes": "7/10",
+     "gain_over_better_single": 0.0,
+     "mi": 0.12849650468117169
+    },
+    "joint_argmin_pairs": 4,
+    "joint_bayes_range": [
+     "3/5",
+     "3/5"
+    ],
+    "joint_min_mi": 0.06424825234058584,
+    "local_pair_bayes_range": [
+     "3/5",
+     "3/5"
+    ],
+    "local_pair_gain_range": [
+     0.0,
+     0.0
+    ],
+    "local_pair_mi_range": [
+     0.06424825234058584,
+     0.06424825234058584
+    ],
+    "max_pair_mi_over_admissible": 0.12849650468117169,
+    "sequential_1_to_2_mi_range": [
+     0.06424825234058584,
+     0.06424825234058584
+    ],
+    "sequential_2_to_1_mi_range": [
+     0.06424825234058584,
+     0.06424825234058584
+    ],
+    "task_only_pair_mi_range": [
+     0.12849650468117169,
+     0.12849650468117169
+    ]
+   },
+   "inputs": 6,
+   "intended_property": {
+    "holds": true,
+    "predicates": {
+     "CLASS ineligible for recipient 1": true,
+     "joint min coalition MI < identity pair MI - 0.05": true,
+     "local min MI < identity MI - 0.05 (both)": true,
+     "task-only fewest-token partition is unique and keeps identity MI (both)": true
+    }
+   },
+   "recipients": {
+    "1": {
+     "K": 2,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 4,
+     "admissible_partitions": 10,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "1/2",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 6,
+     "identity": {
+      "bayes": "7/10",
+      "mi": 0.12849650468117169,
+      "tokens": 6
+     },
+     "local_min_mi": {
+      "argmin_partitions": 2,
+      "bayes_range": [
+       "3/5",
+       "3/5"
+      ],
+      "mi": 0.06424825234058584,
+      "partitions": [
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.12849650468117169,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "min_brier_slack": 0.001318,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "9/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.9,
+        0.1
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "min_brier_slack": 0.001354,
+       "min_nll_slack": 0.0004837895183098156,
+       "q": [
+        "903/1000",
+        "97/1000"
+       ],
+       "q_float": [
+        0.903,
+        0.097
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.00139,
+       "min_nll_slack": 0.00046882695588786256,
+       "q": [
+        "453/500",
+        "47/500"
+       ],
+       "q_float": [
+        0.906,
+        0.094
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.75,
+       "values": [
+        0,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.753,
+       "values": [
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.753,
+       "values": [
+        0,
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        0,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        0,
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.749,
+       "values": [
+        0,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.752,
+       "values": [
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.752,
+       "values": [
+        0,
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.755,
+       "values": [
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.755,
+       "values": [
+        0,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.755,
+       "values": [
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.755,
+       "values": [
+        0,
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        0,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        0,
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        0,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.758,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x4",
+        "x5"
+       ],
+       "min_brier_slack": 0.001898,
+       "min_nll_slack": 0.0007531156419049706,
+       "q": [
+        "151/1000",
+        "849/1000"
+       ],
+       "q_float": [
+        0.151,
+        0.849
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.75,
+       "values": [
+        0,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.753,
+       "values": [
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.753,
+       "values": [
+        0,
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        0,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.756,
+       "values": [
+        0,
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.759,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "7/10",
+       "7/10"
+      ],
+      "mi_range": [
+       0.12849650468117169,
+       0.12849650468117169
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 3
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ],
+      [
+       "x4"
+      ],
+      [
+       "x5"
+      ]
+     ]
+    },
+    "2": {
+     "K": 3,
+     "admissible_bins_all_sex_homogeneous": false,
+     "admissible_multi_value_bins": 4,
+     "admissible_partitions": 10,
+     "class": {
+      "eligible": false
+     },
+     "decision_only": {
+      "bayes": "1/2",
+      "confidence_eligible": false,
+      "mi": 0.0
+     },
+     "distinct_values": 6,
+     "identity": {
+      "bayes": "7/10",
+      "mi": 0.12849650468117169,
+      "tokens": 6
+     },
+     "local_min_mi": {
+      "argmin_partitions": 2,
+      "bayes_range": [
+       "3/5",
+       "3/5"
+      ],
+      "mi": 0.06424825234058584,
+      "partitions": [
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ],
+       [
+        [
+         "x0"
+        ],
+        [
+         "x1",
+         "x2"
+        ],
+        [
+         "x3"
+        ],
+        [
+         "x4"
+        ],
+        [
+         "x5"
+        ]
+       ]
+      ]
+     },
+     "max_mi_over_admissible": 0.12849650468117169,
+     "subsets": [
+      {
+       "inputs": [
+        "x0",
+        "x1"
+       ],
+       "min_brier_slack": 0.000418,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "4/5",
+        "3/20",
+        "1/20"
+       ],
+       "q_float": [
+        0.8,
+        0.15,
+        0.05
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        0,
+        1
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        0,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2"
+       ],
+       "min_brier_slack": 0.000454,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "803/1000",
+        "147/1000",
+        "1/20"
+       ],
+       "q_float": [
+        0.803,
+        0.147,
+        0.05
+       ],
+       "sex_homogeneous": false,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        0,
+        1,
+        2
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        1,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3"
+       ],
+       "min_brier_slack": 0.00049,
+       "min_nll_slack": 0.00024937604036588435,
+       "q": [
+        "403/500",
+        "18/125",
+        "1/20"
+       ],
+       "q_float": [
+        0.806,
+        0.144,
+        0.05
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.003,
+       "values": [
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.006,
+       "values": [
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_NLL",
+       "sum_max": 1.009,
+       "values": [
+        0,
+        1,
+        2,
+        3
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.6,
+       "values": [
+        0,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.603,
+       "values": [
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.603,
+       "values": [
+        0,
+        1,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        0,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        0,
+        1,
+        2,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        1,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.6,
+       "values": [
+        0,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.603,
+       "values": [
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.603,
+       "values": [
+        0,
+        1,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        0,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.606,
+       "values": [
+        0,
+        1,
+        2,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        1,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.609,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x4",
+        "x5"
+       ],
+       "min_brier_slack": 0.001702,
+       "min_nll_slack": 0.0004987520807317687,
+       "q": [
+        "1/5",
+        "7/10",
+        "1/10"
+       ],
+       "q_float": [
+        0.2,
+        0.7,
+        0.1
+       ],
+       "sex_homogeneous": true,
+       "status": "CERTIFIED",
+       "sum_max": 1.001,
+       "values": [
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.601,
+       "values": [
+        0,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.604,
+       "values": [
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.604,
+       "values": [
+        0,
+        1,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.607,
+       "values": [
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.607,
+       "values": [
+        0,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.607,
+       "values": [
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.607,
+       "values": [
+        0,
+        1,
+        2,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        0,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        0,
+        1,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        0,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      },
+      {
+       "inputs": [
+        "x0",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+       ],
+       "sex_homogeneous": false,
+       "status": "INFEASIBLE_CLASS",
+       "sum_max": 1.61,
+       "values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+       ]
+      }
+     ],
+     "task_only_fewest_tokens": {
+      "argmin_partitions": 1,
+      "bayes_range": [
+       "7/10",
+       "7/10"
+      ],
+      "mi_range": [
+       0.12849650468117169,
+       0.12849650468117169
+      ],
+      "partitions": [
+       [
+        [
+         "x0",
+         "x1"
+        ],
+        [
+         "x2",
+         "x3"
+        ],
+        [
+         "x4",
+         "x5"
+        ]
+       ]
+      ],
+      "tokens": 3
+     },
+     "undecided_subsets": 0,
+     "value_decisions": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1
+     ],
+     "value_inputs": [
+      [
+       "x0"
+      ],
+      [
+       "x1"
+      ],
+      [
+       "x2"
+      ],
+      [
+       "x3"
+      ],
+      [
+       "x4"
+      ],
+      [
+       "x5"
+      ]
+     ]
+    }
+   }
+  }
+ },
+ "amendments": [
+  {
+   "id": "A1",
+   "at": "2026-10-08T08:17:06Z",
+   "requested_by": "role A",
+   "change": "added the law JOINT_HEADROOM (coordination headroom: joint < local, sequential 1->2 and 2->1)",
+   "reason": "the four original laws contain no fixture in which the joint arm strictly beats the local and both sequential arms (COMPLEMENTARY's coalition clue is forced), so the coalition-aware arms were tested only as equalities; added before any candidate code evaluated any law",
+   "previous_file_sha256": "bdb8b0fe48ab2c19201c6545b9453f5c1ac3d35e0798c815d2fb1463c6b03c12",
+   "unchanged_laws_canonical_sha256": {
+    "NULL": "8733f94376e2399598949e8a78aba53bb76ff1f75865bcda2ccc6f72947ca28b",
+    "POSITIVE": "02ba772f5f2f1af349f93df4d32429f3044542d86b51959c8ddecd3f510f9431",
+    "COMPLEMENTARY": "b171f17f2d3e534bc49e0283c5024f9e680291e4487c3e14e5c645b21fb56fd9",
+    "NO_COALITION": "e16e7fd415e0ee01c6cb0b7410f79d8195ee345042f430f6b427f604c256b501"
+   },
+   "unchanged_construction_checks_canonical_sha256": {
+    "COMPLEMENTARY": "305144be81ecdef92aaeff45dd06f6360b8cb27d829b897f6458d28a91ef3611",
+    "NO_COALITION": "b0068f3dbaacb9eada6b9bb154b8e067ef2f3a652c8b23f6f5c88b3197578cde",
+    "NULL": "89a29d6c3270bba6f344c0fe08b6fa159c42f57d2967cacd3e4d9f2c740f1d0a",
+    "POSITIVE": "65cba382533949774858b71d782aed9af523fbee09ecc3b8da248c9c5f75ace9"
+   },
+   "canonical": "sha256 of json.dumps(obj, sort_keys=True, separators=(',', ':'))"
+  }
+ ]
+}

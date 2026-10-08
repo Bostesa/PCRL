@@ -79,7 +79,13 @@ CALIBRATION_TRAIN_MATCHED. The 83 permitted columns, row order and group identit
   version (1e-12) also holds; B verifies this.
 - **(Brier)** Σ_k q_k² − Σ_k p_k² − 2(q_y − p_y) ≤ b for EVERY label y. This is the full multiclass Brier, with no
   factor ½, as in the source convention.
-- **(Class)** q has the strict argmax d(p), the source decision: q_d > q_k for every k ≠ d.
+- **(Class)** q has the strict argmax d(p), the source decision: q_d > q_k for every k ≠ d. Ucal preserves the
+  first-index argmax but not strictness: tied Ucal tops are possible and are counted label-free.
+- **Float64 semantics** (UTILITY_CONTRACT.md §6, after MATH_REVIEW.md B2):
+  - the canonical predicate is `ccm.guard.check_release`, with E = exp(−d), NLL `q >= E*p`, numpy-sum Brier and
+    simplex tolerance 1e-12;
+  - representatives are built against E·p·(1 + 1e-9), b − 1e-9 and a 1e-9 class gap, then checked at d and b;
+  - closed forms use the conservative margin e^d·(1 + 1e-12).
 
 **Scope.**
 - The guarantee is all-label and pointwise per input. It is not an expected or average guarantee, and it is a utility
@@ -88,13 +94,18 @@ CALIBRATION_TRAIN_MATCHED. The 83 permitted columns, row order and group identit
 - **Randomised releases:** the conditions must hold for EVERY supported output.
 
 **Bins.** A bin (a token with one representative q) is admissible iff one q satisfies G for all its members.
-- **Necessary condition:** Σ_k max_{p∈bin} p_k ≤ exp(d). Pairwise overlap is not sufficient for a whole bin.
-- **Certification:** a returned q is checked against every member and label in float64 with no tolerance.
-- **Infeasibility:** certified by the closed-form necessary condition only.
+- **Necessary condition:** Σ_k max_{p∈bin} p_k ≤ exp(d). Pairwise overlap is not sufficient for a whole bin when
+  K ≥ 3; for K = 2 pairwise (extreme-pair) feasibility suffices (MATH_REVIEW.md R4.7).
+- **Certification:** a returned q is checked against every member and label with the canonical predicate.
+- **Infeasibility:** certified by the closed-form necessary condition only (declared iff Σ_k max p_k > e^d·(1 + 1e-12)).
+- **Representative choice:** an input is served by the FIRST representative, in the registered cover order, of its
+  decision class that certifies it. The rule is p-only.
 
 **Unseen inputs.** For a deployment-time input with no admissible registered representative, the contract defines a
-DISCLOSED FALLBACK: release Ucal(p) itself, which satisfies G trivially. A fallback flag is sent. Fallback flags and
-continuous outputs are part of the recipient's view and must be attacked. Refusal is NOT used.
+DISCLOSED FALLBACK with a fallback flag. Refusal is NOT used.
+- If the Ucal top is strict, the fallback releases Ucal(p) itself; Ucal(p) satisfies G iff its top is strict.
+- If the top is tied, it releases (1 − η)·Ucal(p) + η·e_d with the fixed η = 1e-6, admissible by MATH_REVIEW.md R3.3.
+- Fallback flags and continuous outputs are part of the recipient's view and must be attacked.
 
 ## 4. Capacity bound [frozen at FEASIBILITY_LOCK]
 
@@ -110,15 +121,24 @@ Per seed, recipient and predicted class, on Ucal vectors:
 | Metric | Definition |
 |---|---|
 | F1 cover | certified greedy admissible cover of all OSF_DEFENSE_FIT rows (fixed label-free order: decreasing max probability, then row id). Reports the number of bins (upper bound), the bin-size distribution and the compression ratio bins/rows. |
-| F2 packing | lower bound on the minimum number of bins: a greedy set of rows that are pairwise NLL-infeasible (Σ_k max(p_k, p'_k) > exp(d)) in the same order. Every such row needs its own bin. |
-| F3 capacity coverage | with the registered capacity, the largest fraction of OSF_DEFENSE_FIT rows covered by at most 8 / 64 certified bins per class (greedy maximum coverage over the F1 bins). |
-| F4 held-out fallback | the fraction of CALIBRATION_HELDOUT representatives (2,000) whose Ucal vector satisfies G with NO registered representative from F3: the deployment fallback rate. |
+| F2 packing | lower bound on the minimum number of bins: a greedy set of rows that are pairwise NLL-infeasible (Σ_k max(p_k, p'_k) > e^d·(1 + 1e-12)) in the same order. Every such row needs its own bin. |
+| F3 capacity coverage | the fraction of OSF_DEFENSE_FIT rows covered by at most 8 / 64 certified bins per class. For occupation (K = 6) it is a constructive lower bound: greedy maximum coverage over the F1 bins. For income (K = 2) it is the EXACT maximum (F3x): an O(nC) dynamic program over the sorted score, which uses the one-dimensional interval structure of K = 2 admissibility (MATH_REVIEW.md R4.7, R5.5) with the tightened construction targets; every chosen bin is then certified by an exhibited q. The income greedy value is reported as F3_greedy. |
+| F3u certified coverage bound | an upper bound on the coverage ANY admissible code can reach at the registered capacity. For each row r, N(r) is the number of rows r′ of its class with Σ_k max(p_k, p′_k) ≤ e^d·(1 + 1e-12) (every bin containing r lies in this NLL neighbourhood). Then F3u = Σ over classes of the sum of the C largest N(r) (C = 8 or 64), divided by the rows, capped at 1. It can be loose (MATH_REVIEW.md R5). A second valid bound, F3u_packing = 1 − Σ_c max(0, \|F2 pack_c\| − C)/n, holds because every packed row needs its own bin. It was added before the lock after role C found the neighbourhood bound vacuous (1.0) on synthetic data. The REGISTERED bound is F3u_registered = min(F3u, F3u_packing). |
+| F4 held-out fallback | the fraction of CALIBRATION_HELDOUT representatives (2,000) whose Ucal vector satisfies G with NO registered representative from F3 (representative choice rule above): the deployment fallback rate. Tied-top counts are reported for both roles. |
 | F5 decision floor and CLASS | the decision-only release carries no confidence vector, so it is confidence-INELIGIBLE under G (premise check). CLASS (one token per predicted class) is eligible iff each whole class is an admissible bin (checked). |
 
 **Go rule (registered; correctness-independent; no privacy outcome involved).** A nontrivial admissible channel exists
 under the declared contract iff, for EVERY seed and BOTH recipients:
 - F4 held-out fallback ≤ 0.05; and
 - F3 capacity coverage ≥ 0.95.
+
+If the rule fails, a bound says whether the failure is intrinsic to the contract or could be a construction
+limitation:
+- **Income (K = 2):** F3 is exact (F3x), so F3 < 0.95 is intrinsic.
+- **Occupation (K = 6):** F3u_registered < 0.95 for some seed is intrinsic: no admissible code at the registered
+  capacity can cover 95% of fitting rows. F3u_registered ≥ 0.95 with F3 < 0.95 is reported as INCOMPLETE for that
+  recipient.
+- **F4 > 0.05:** reported as FALLBACK_DOMINATED irrespective of the bounds.
 
 Otherwise the mechanism is NEAR_IDENTITY or FALLBACK_DOMINATED under G. There is then no pilot, and the sprint label is
 PREMISE_NOT_SUPPORTED.
@@ -130,6 +150,11 @@ F1–F4 are also computed under the TEACHER-EXPECTED guard G_exp(d, b):
 - class preserved.
 
 This informs which contract a next study could use. Its validity rests on calibration and is weaker than G.
+- It never reuses the G neighbourhood or the NLL closed forms (MATH_REVIEW.md R7.4).
+- Its F3u is either a G_exp-valid bound or null with a reason.
+
+**Theoretical expectation (MATH_REVIEW.md R6, recorded before any real-array run).** If P(SEX | p) is L-Lipschitz in
+total variation, every admissible arm has SEX Bayes accuracy within L·(e^d − 1) ≈ 0.005·L of releasing p itself.
 
 ## 6. Finite-law oracles [laws pinned by role F before any candidate code evaluates them]
 
@@ -137,7 +162,10 @@ This informs which contract a next study could use. Its validity rests on calibr
 - NULL: privacy cannot usefully improve under G;
 - POSITIVE: admissible coarsening can remove an unnecessary sensitive distinction;
 - COMPLEMENTARY: combining the two releases creates a coalition clue;
-- NO_COALITION: no extra coalition clue.
+- NO_COALITION: no extra coalition clue;
+- JOINT_HEADROOM: purpose-built so that joint design beats both non-adaptive sequential orders. It was added by role F
+  before any candidate code evaluated the laws (TOY_LAWS.json amendment A1). It is a capability fixture, not evidence
+  of headroom on real data.
 
 Each law lists inputs x with probabilities, SEX laws, and reference vectors p₁(x), p₂(x). Construction notes are
 recorded. Laws are never changed after a candidate result.
@@ -148,10 +176,13 @@ Arms:
 - CLASS (eligibility check);
 - task-only (SEX-blind: fewest admissible tokens, ties by a fixed label-free order);
 - local (each recipient minimises its own MI);
-- sequential 1→2 and 2→1 (the first recipient local, the second minimising coalition MI given the first);
+- sequential 1→2 and 2→1 (the first recipient local, the second minimising coalition MI given the first). These are
+  NON-ADAPTIVE designs: the second partition is chosen given the first PARTITION, not conditioned on realised tokens.
+  They are not Taylor et al.'s adaptive algorithm (PRIOR_WORK_AND_NOVELTY.md);
 - joint (minimises coalition MI over admissible pairs);
 - stochastic local (an LP minimising each recipient's own Bayes SEX accuracy over channels whose every supported output
-  satisfies G).
+  satisfies G). Every law has at most 6 inputs, so capacity never binds and the LP is uncapped and exact. A law that
+  could bind capacity is refused rather than relaxed (MATH_REVIEW.md R9.5).
 
 **Measures.** Exact plug-in mutual information (nats) and Bayes accuracy of SEX from t₁, t₂ and (t₁, t₂).
 

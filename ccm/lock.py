@@ -28,7 +28,7 @@ SOURCE_TIP = "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5"   # hcal final tip (work
 LCR_TIP = "091afc2007164fd928d4b792593d6f9eaf75b17c"
 CBP_TIP = "7f3ec67b2ecd86d474e2ff27167091af9923f572"
 GLOBS = ["ccm/*.py", "tests/pcrl_confidence_constrained_mechanism_v1/*.py", "hcal/*.py", "tests/pcrl_heldout_calibration_v1/*.py", "lra/*.py", "lra/tests/*.py", "lcr/*.py", "cbp/*.py", "cbp/tests/*.py", "qpc/*.py", "qpc/tests/*.py", "dpc/*.py", "osf/*.py", "smf/*.py", "rgj/*.py", "jcv/*.py",
-         "stored_model_eval/*.py", "oar/*.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py"]
+         "stored_model_eval/*.py", "oar/*.py", "pcrl/data/adult.py", f"{REL}/provenance/*.py", f"{REL}/math_review/*.py"]
 ORDER = ["FEASIBILITY_LOCK", "PILOT_LOCK"]
 STAGE_MIN_LOCK = {"geometry": 0, "oracle": 0, "pilot": 1}
 STAGE_REQUIRES = {"geometry": ["ccm/guard.py", "ccm/geometry.py", "ccm/data.py", "ccm/run.py", "ccm/ids.py"],
@@ -36,11 +36,13 @@ STAGE_REQUIRES = {"geometry": ["ccm/guard.py", "ccm/geometry.py", "ccm/data.py",
                   "pilot": ["ccm/run.py"]}
 DOCS = ["PROTOCOL.md", "EXPOSURE_STATEMENT.md", "DATA_ACCESS_MANIFEST.json", "TOY_LAWS.json", "TOY_LAWS_CONSTRUCTION.md",
         "PREDICTIONS.json", "UTILITY_CONTRACT.md", "MATH_REVIEW.md", "PRIOR_WORK_AND_NOVELTY.md", "INCUMBENT_TRIAGE.md",
-        "SOURCE_INDEX.json", "MECHANISM_DECISION.md", "PILOT_PLAN.json"]
+        "SOURCE_INDEX.json", "MECHANISM_TABLE.md", "MECHANISM_DECISION.md", "PILOT_PLAN.json"]
 STATEMENT = ("This sprint is motivated by repeatedly used Adult development results and by an inner comparison observed "
              "after those results. Existing models, partitions, thresholds and past outcomes are known. Any real-data "
              "prototype result is exploratory development evidence. New procedural locks do not undo historical exposure. "
              "No old assessment is reopened and no new confirmation population is opened.")
+FROZEN_DOCS = ["PROTOCOL.md", "UTILITY_CONTRACT.md", "TOY_LAWS.json", "PREDICTIONS.json", "DATA_ACCESS_MANIFEST.json",
+               "MATH_REVIEW.md", "EXPOSURE_STATEMENT.md", "MECHANISM_TABLE.md"]   # verify_lock refuses if any of these changed after the lock
 TOP = ("ccm", "hcal", "lra", "lcr", "cbp", "qpc", "dpc", "osf", "smf", "rgj", "jcv", "stored_model_eval", "oar", "pcrl")
 
 
@@ -172,12 +174,18 @@ def verify_lock(path, stage=None, require_pushed=True) -> dict:
     cf = code_files()
     mm += [f"locked file changed/removed: {f}" for f, h in have.items() if cf.get(f) != h]
     mm += [f"stage {stage} requires locked {f}" for f in STAGE_REQUIRES.get(stage, []) if f not in have]
+    for d_ in FROZEN_DOCS:
+        h = lock.get("documents_sha256", {}).get(d_)
+        if h is None:
+            mm.append(f"frozen document not bound by the lock: {d_}")
+        elif not (PKG / d_).exists() or sha_file(PKG / d_) != h:
+            mm.append(f"frozen document changed/removed after the lock: {d_}")
     if deps() != lock["dependencies"]:
         mm.append("dependencies changed")
     if inputs() != lock["inputs"]:
         mm.append("inputs changed")
     pushed = None
-    if stage is not None and (os.environ.get("CBP_LOCAL_ONLY") or os.environ.get("HCAL_LOCAL_ONLY")):
+    if stage is not None and (os.environ.get("CCM_LOCAL_ONLY") or os.environ.get("CBP_LOCAL_ONLY") or os.environ.get("HCAL_LOCAL_ONLY")):
         mm.append("a local-only flag is set: every stage requires its pushed lock (no local-only bypass)")
     if require_pushed:
         rels = [f"{REL}/{lock['name']}.json"] + [f"{REL}/{a['name']}.json" for a in amendments()
@@ -185,7 +193,7 @@ def verify_lock(path, stage=None, require_pushed=True) -> dict:
         pushed = {r: on_origin(r) for r in rels}
         mm += [f"not on origin (push before running): {r}" for r, ok in pushed.items() if not ok]
     return {"ok": not mm, "mismatches": mm, "lock": lock["name"], "pushed": pushed,
-            "local_only": bool(os.environ.get("CBP_LOCAL_ONLY") or os.environ.get("HCAL_LOCAL_ONLY")), "locked_files": have}
+            "local_only": bool(os.environ.get("CCM_LOCAL_ONLY") or os.environ.get("CBP_LOCAL_ONLY") or os.environ.get("HCAL_LOCAL_ONLY")), "locked_files": have}
 
 
 def check_loaded_modules(locked):
