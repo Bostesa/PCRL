@@ -1,0 +1,710 @@
+{
+  "admission_after_run": "Producer receipt is staged only. S4 independent per-seed/per-release cell/token/bank parity and output file hashes are required before any A fit or task capsule.",
+  "cache_root_relative_to_coordinator": "../../../PCRL_eval_cache_private",
+  "data_access_manifest_sha256": "c228dfdbef8a8e0a46281716e89c986e888fb4f64553fc35b3573020c0c83a11",
+  "forbidden_role_values": [
+    "HEAD_VALIDATION",
+    "OSF_DEVELOPMENT_ASSESSMENT"
+  ],
+  "purpose": "Ten fixed role-only source score-bank preparation units; no defense or attacker fit.",
+  "required_lock": {
+    "a_score_bank_cache_root": "../../../PCRL_eval_cache_private",
+    "a_score_bank_runner_sha256": "0c134d1b9b7fc497e98d13791d45d34cc72a6d60a5ba2a2ad123946b77e5d16c",
+    "admitted_a_score_bank_unit_ids": [
+      "S2-A-SCORE-BANK-TSTAR-S0",
+      "S2-A-SCORE-BANK-TSTAR-S1",
+      "S2-A-SCORE-BANK-PSTAR-S0",
+      "S2-A-SCORE-BANK-PSTAR-S1",
+      "S2-A-SCORE-BANK-LRA-SEQ21-S0",
+      "S2-A-SCORE-BANK-LRA-SEQ21-S1",
+      "S2-A-SCORE-BANK-HCAL-LOCAL-D0-S0",
+      "S2-A-SCORE-BANK-HCAL-LOCAL-D0-S1",
+      "S2-A-SCORE-BANK-HCAL-SEQ12-D0-S0",
+      "S2-A-SCORE-BANK-HCAL-SEQ12-D0-S1"
+    ],
+    "families.A.fit_admission": "DENIED",
+    "families.A.preprocessing_admission": "ALLOWED"
+  },
+  "reserved_cpu_hours_total": 0.8333333333333334,
+  "reserved_cpu_seconds_total": 3000,
+  "roles_allowed": [
+    "OSF_DEFENSE_FIT",
+    "ATTACK_FIT_NEW",
+    "INNER_SELECTION"
+  ],
+  "runner_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+  "runner_sha256": "0c134d1b9b7fc497e98d13791d45d34cc72a6d60a5ba2a2ad123946b77e5d16c",
+  "schema": "pcrl-a-score-bank-preprocess-plan-v1",
+  "source_manifests_sha256": {
+    "hcal_MODEL_MANIFEST": "52451ae3d99fa9c1182b820bd534b48feb7a926057b3b4a2a0175a9c9cd76c5a",
+    "hcal_SOURCE_ADMISSION": "1e03b084499a175edf64a4cd2527cd56059a3088ac0aaa80c94550664d2e435b",
+    "lra_MODEL_MANIFEST": "67f6865e308fdf743cccb04c8fa77bb1604d9a5d8cd20a522b59f75a61fd47fc"
+  },
+  "status": "DRAFT_NO_ADULT_ACCESS",
+  "units": [
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "0",
+        "--release",
+        "tstar",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "H-GLOBAL-TEMP",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/tstar_score_bank_s0_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+      "release_key": "tstar",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s0",
+          "role_file_sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s0",
+          "role_file_sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s0",
+          "role_file_sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 0,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s0__U/model.pt": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+        "hcal_v1/admitted/units/fine__s0/fine.json": "f92bcd9bf313a937ff9caa79d5bd0779b44d583d0f732a7df8cad50a8f7cfa27",
+        "hcal_v1/admitted/units/pol__s0__U_FINE-TASK_i8o64/policy.json": "535725e96687083e7a5d345762ea52dd1ded7f5ad12fcb8ee7f4fcc3d6206236",
+        "hcal_v1/package/decoder__s0__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json": "83b88643ba3b81207558bd2936b15a0ea9a59ea3346dcf34b756a325cfcb6d9d"
+      },
+      "unit_id": "S2-A-SCORE-BANK-TSTAR-S0"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "1",
+        "--release",
+        "tstar",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "H-GLOBAL-TEMP",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/tstar_score_bank_s1_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+      "release_key": "tstar",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s1",
+          "role_file_sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s1",
+          "role_file_sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s1",
+          "role_file_sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 1,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s1__U/model.pt": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+        "hcal_v1/admitted/units/fine__s1/fine.json": "6ab9ef7dd31375bd4c7733134b24b5192523ebbfd32011d47690a3ebe0d1432a",
+        "hcal_v1/admitted/units/pol__s1__U_FINE-TASK_i8o64/policy.json": "7e7bbd694379b21ceee773edd79147b6e4dbc1ea04957cb3daa849747603e0f2",
+        "hcal_v1/package/decoder__s1__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json": "0d534c671ff3a62e2e08dd5f04eb6704627fb784c9212e58bdaec864f9f224ae"
+      },
+      "unit_id": "S2-A-SCORE-BANK-TSTAR-S1"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "0",
+        "--release",
+        "pstar",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "H-CLASS-TEMP",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/pstar_score_bank_s0_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+      "release_key": "pstar",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s0",
+          "role_file_sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s0",
+          "role_file_sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s0",
+          "role_file_sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 0,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s0__U/model.pt": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+        "hcal_v1/admitted/units/fine__s0/fine.json": "f92bcd9bf313a937ff9caa79d5bd0779b44d583d0f732a7df8cad50a8f7cfa27",
+        "hcal_v1/admitted/units/pol__s0__U_JOINT_i8o64_l0.1/policy.json": "acd58d68d89f3a53a8ed111625ae0a0b636c334e9a1f2d66bbdc518d33faf47c",
+        "hcal_v1/package/decoder__s0__U_JOINT_i8o64_l0.1_H-CLASS-TEMP.json": "a1a5f7fb45a9f61f89f0809d86ef072461cf40efde5c5660a1c6a4b642de2841"
+      },
+      "unit_id": "S2-A-SCORE-BANK-PSTAR-S0"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "1",
+        "--release",
+        "pstar",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "H-CLASS-TEMP",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/pstar_score_bank_s1_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|JOINT|i8o64|l0.1|H-CLASS-TEMP",
+      "release_key": "pstar",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s1",
+          "role_file_sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s1",
+          "role_file_sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s1",
+          "role_file_sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 1,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s1__U/model.pt": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+        "hcal_v1/admitted/units/fine__s1/fine.json": "6ab9ef7dd31375bd4c7733134b24b5192523ebbfd32011d47690a3ebe0d1432a",
+        "hcal_v1/admitted/units/pol__s1__U_JOINT_i8o64_l0.1/policy.json": "4a72d860ef968199f6d566acf1319e50a61bcf9ab19b4addf39b5a5188737c20",
+        "hcal_v1/package/decoder__s1__U_JOINT_i8o64_l0.1_H-CLASS-TEMP.json": "89d2c1e1df8bb0f4c52cb32e336792ecd9fbaa2574d2add7b8123c117f5cc4b8"
+      },
+      "unit_id": "S2-A-SCORE-BANK-PSTAR-S1"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "0",
+        "--release",
+        "lra_seq21",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/lra_seq21_score_bank_s0_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|SEQ-21|i8o64|l0.1",
+      "release_key": "lra_seq21",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s0",
+          "role_file_sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s0",
+          "role_file_sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s0",
+          "role_file_sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 0,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s0__U/model.pt": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+        "hcal_v1/admitted/units/fine__s0/fine.json": "f92bcd9bf313a937ff9caa79d5bd0779b44d583d0f732a7df8cad50a8f7cfa27",
+        "lra_v1/run/units/pol__s0__U_SEQ-21_i8o64_l0.1/policy.json": "67a6d0f71efade1b43579a88fac0d5515619737dcb803a54510a1c9bfff4270c"
+      },
+      "unit_id": "S2-A-SCORE-BANK-LRA-SEQ21-S0"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "1",
+        "--release",
+        "lra_seq21",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/lra_seq21_score_bank_s1_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|SEQ-21|i8o64|l0.1",
+      "release_key": "lra_seq21",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s1",
+          "role_file_sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s1",
+          "role_file_sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s1",
+          "role_file_sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 1,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s1__U/model.pt": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+        "hcal_v1/admitted/units/fine__s1/fine.json": "6ab9ef7dd31375bd4c7733134b24b5192523ebbfd32011d47690a3ebe0d1432a",
+        "lra_v1/run/units/pol__s1__U_SEQ-21_i8o64_l0.1/policy.json": "da02bde30d7c458eb39382064f359422780c63ad1c6b9fa346c0df5cf48ed9dd"
+      },
+      "unit_id": "S2-A-SCORE-BANK-LRA-SEQ21-S1"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "0",
+        "--release",
+        "hcal_local_d0",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/hcal_local_d0_score_bank_s0_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|LOCAL|i8o64|l0.1",
+      "release_key": "hcal_local_d0",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s0",
+          "role_file_sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s0",
+          "role_file_sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s0",
+          "role_file_sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 0,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s0__U/model.pt": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+        "hcal_v1/admitted/units/fine__s0/fine.json": "f92bcd9bf313a937ff9caa79d5bd0779b44d583d0f732a7df8cad50a8f7cfa27",
+        "hcal_v1/admitted/units/pol__s0__U_LOCAL_i8o64_l0.1/policy.json": "e0673ec6dc430b5d036f2c617fe336293d405ae2616e9839ecdae3a2c845e6ba"
+      },
+      "unit_id": "S2-A-SCORE-BANK-HCAL-LOCAL-D0-S0"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "1",
+        "--release",
+        "hcal_local_d0",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/hcal_local_d0_score_bank_s1_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|LOCAL|i8o64|l0.1",
+      "release_key": "hcal_local_d0",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s1",
+          "role_file_sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s1",
+          "role_file_sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s1",
+          "role_file_sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 1,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s1__U/model.pt": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+        "hcal_v1/admitted/units/fine__s1/fine.json": "6ab9ef7dd31375bd4c7733134b24b5192523ebbfd32011d47690a3ebe0d1432a",
+        "hcal_v1/admitted/units/pol__s1__U_LOCAL_i8o64_l0.1/policy.json": "2ed3843cd04d81230572ccf8623307b275c853d8c20b3bd4a6e17458b215eb6c"
+      },
+      "unit_id": "S2-A-SCORE-BANK-HCAL-LOCAL-D0-S1"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "0",
+        "--release",
+        "hcal_seq12_d0",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/hcal_seq12_d0_score_bank_s0_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|SEQ-12|i8o64|l0.1",
+      "release_key": "hcal_seq12_d0",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s0",
+          "role_file_sha256": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s0",
+          "role_file_sha256": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s0",
+          "role_file_sha256": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 0,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s0__U/model.pt": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+        "hcal_v1/admitted/units/fine__s0/fine.json": "f92bcd9bf313a937ff9caa79d5bd0779b44d583d0f732a7df8cad50a8f7cfa27",
+        "hcal_v1/admitted/units/pol__s0__U_SEQ-12_i8o64_l0.1/policy.json": "dc06383267942182fee5047eb9ac7f4f11f84ed8a418598ffe298eae7c52cee2"
+      },
+      "unit_id": "S2-A-SCORE-BANK-HCAL-SEQ12-D0-S0"
+    },
+    {
+      "argv_template": [
+        "../../.venv/bin/python",
+        "results/pcrl_method_portfolio_v1/shared/admit_a_score_bank.py",
+        "--cache-root",
+        "${RESOLVED_PRIVATE_CACHE_ROOT}",
+        "--seed",
+        "1",
+        "--release",
+        "hcal_seq12_d0",
+        "--campaign-lock-sha256",
+        "${EFFECTIVE_CAMPAIGN_LOCK_SHA256}",
+        "--queue-root",
+        "${PRIVATE_S3_QUEUE_ROOT}"
+      ],
+      "family": "D0",
+      "private_output_npz_names": [
+        "bank_r1.npz",
+        "bank_r2.npz",
+        "tokens_OSF_DEFENSE_FIT.npz",
+        "tokens_ATTACK_FIT_NEW.npz",
+        "tokens_INNER_SELECTION.npz"
+      ],
+      "private_output_receipt_relative_to_coordinator": "results/pcrl_method_portfolio_v1/shared/.private/hcal_seq12_d0_score_bank_s1_v1/BANK_ADMISSION_RECEIPT.json",
+      "release_id": "U|SEQ-12|i8o64|l0.1",
+      "release_key": "hcal_seq12_d0",
+      "role_inputs": {
+        "ATTACK_FIT_NEW": {
+          "field": "references_s1",
+          "role_file_sha256": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+          "row_unit_pair_sha256": "e2de0109a93a6240062ff29eb1af4b73785e2ca04c2149f822eb2c8ec13a83e9",
+          "rows": 4064
+        },
+        "INNER_SELECTION": {
+          "field": "references_s1",
+          "role_file_sha256": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+          "row_unit_pair_sha256": "097f5f867be8a9b04ae7cd847d4d1a308aaa5f38693c5a4b6d6316f73c3030c3",
+          "rows": 2235
+        },
+        "OSF_DEFENSE_FIT": {
+          "field": "references_s1",
+          "role_file_sha256": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0",
+          "row_unit_pair_sha256": "8dc63c5c35cfaebe8f348262d7f55be8c8c04412ee3f55798de549e3276aeb7f",
+          "rows": 15434
+        }
+      },
+      "s3": {
+        "arm": "A_SCORE_BANK_PREPROCESS",
+        "arm_id": "A_SCORE_BANK_PREPROCESS",
+        "cpu_reserve_s": 300,
+        "data_access": "A_ROLE_ONLY_REFERENCES_PREPROCESS",
+        "family": "SHARED",
+        "max_rss_gib": 1.5,
+        "max_wall_s": 300,
+        "mode": "real_data",
+        "stage": "a_score_bank_preprocess",
+        "team": "SHARED"
+      },
+      "seed": 1,
+      "source_files_sha256": {
+        "hcal_v1/admitted/rel__s1__U/model.pt": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+        "hcal_v1/admitted/units/fine__s1/fine.json": "6ab9ef7dd31375bd4c7733134b24b5192523ebbfd32011d47690a3ebe0d1432a",
+        "hcal_v1/admitted/units/pol__s1__U_SEQ-12_i8o64_l0.1/policy.json": "7f1dcdfb2728057e97776a9263624b2279eec791c6c53df4f5654b56eeba9ae5"
+      },
+      "unit_id": "S2-A-SCORE-BANK-HCAL-SEQ12-D0-S1"
+    }
+  ]
+}
