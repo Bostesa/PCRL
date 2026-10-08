@@ -23,7 +23,7 @@ def sha(path: Path) -> str:
 class IndependentCReplayGateSynthetic(unittest.TestCase):
     def test_parent_stage_and_source_before_role(self):
         with tempfile.TemporaryDirectory() as scratch:
-            root = Path(scratch)
+            root = Path(scratch).resolve()
             private = root / "teams/c/.private"
             output = private / "source.json"
             output.parent.mkdir(parents=True)
@@ -71,7 +71,7 @@ class IndependentCReplayGateSynthetic(unittest.TestCase):
                           "sha256": sha(artifact_path),
                           "member_sha256": {"row_id": sha_array(arrays["row_id"])}}}
             report_path.write_text(json.dumps(report))
-            with self.assertRaisesRegex(PermissionError, "members"):
+            with self.assertRaisesRegex(PermissionError, "array custody"):
                 _load_arm(report_path, "C-SIMPLE-FULL", 0)
 
     def test_aggregate_comparison_rejects_changed_interval(self):
