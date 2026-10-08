@@ -35,7 +35,8 @@ def make_release(schema, atoms, head, purpose="income"):
 def make_candidate(schema, income_atoms, occupation_atoms):
     return candidate_pair(
         schema, income_atoms, occupation_atoms, SumHead(), SixClassHead(),
-        "i-head", "o-head", "cal", IdentityCalibrator(), IdentityCalibrator(),
+        "i-head", "o-head", ("i-cal", "o-cal"),
+        IdentityCalibrator(), IdentityCalibrator(),
     )
 
 
@@ -142,15 +143,18 @@ def test_complete_views_expose_head_calibrator_and_mask_identifiers():
     X = np.zeros((1, 83), dtype=float)
     first, second = candidate_pair(
         schema, ("age",), ("capital-gain",),
-        SumHead(), SixClassHead(), "income-fit-0", "occupation-fit-0", "shared-cal-0",
+        SumHead(), SixClassHead(), "income-fit-0", "occupation-fit-0",
+        ("income-cal-0", "occupation-cal-0"),
         IdentityCalibrator(), IdentityCalibrator(),
     )
     views = release_pair(X, schema.feature_names, first, second)
     assert views["income"]["head_id"] == "income-fit-0"
-    assert views["occupation_group"]["calibrator_id"] == "shared-cal-0"
+    assert views["occupation_group"]["calibrator_id"] == "occupation-cal-0"
     assert views["income"]["mask_id"] == "age"
     assert views["coalition"]["income_head_id"] == "income-fit-0"
     assert views["coalition"]["occupation_group_mask_id"] == "capital-gain"
+    assert views["coalition"]["income_calibrator_id"] == "income-cal-0"
+    assert views["coalition"]["occupation_group_calibrator_id"] == "occupation-cal-0"
     assert views["coalition"]["flags"] == ()
 
 
