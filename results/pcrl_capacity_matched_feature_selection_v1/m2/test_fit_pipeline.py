@@ -51,10 +51,19 @@ def test_task_only_receipt_is_published_before_sensitive_label_is_requested():
         events.append(("fit", stage, purpose, mask["mask_id"]))
         return _Package(purpose, mask["mask_id"], stage)
 
-    def on_task(table, choice):
+    def on_task(table, choice, validation_packages):
         assert not any(key == "local_search_auc" for row in
                        table["income_masks"] for key in row)
         assert choice["pair_id"] in {pair.pair_id for pair in bank.pairs}
+        assert set(validation_packages) == {"income", "occupation_group"}
+        for purpose in validation_packages:
+            assert set(validation_packages[purpose]) == {
+                "F_FULL83", *(mask.mask_id for mask in bank.masks)}
+            for mask_id, package in validation_packages[purpose].items():
+                assert package["stage"] == "validation"
+                assert package["purpose"] == purpose
+                assert package["mask_id"] == mask_id
+                assert package["receipt_sha256"] == "e" * 64
         events.append(("task_receipt", table["task_table_sha256"]))
 
     def read_sex():
@@ -83,6 +92,7 @@ def test_task_only_receipt_is_published_before_sensitive_label_is_requested():
     assert len(result.final_packages["income"]) == 5
     assert len(result.final_packages["occupation_group"]) == 5
     assert set(result.full_f_packages) == {"income", "occupation_group"}
+    assert sum(map(len, result.validation_packages.values())) == 12
     assert events.index(("read_sex",)) > 0
     assert events[-1][0] == "fit" and events[-1][1] == "final"
 
@@ -115,8 +125,9 @@ def test_m3_task_only_selector_consumes_m2_table_before_sex():
     x, rid, unit, income, occupation, refs = _data()
     state = {"sealed": False, "selected": None}
 
-    def task_sink(table, choice):
+    def task_sink(table, choice, validation_packages):
         assert choice == select_task_only_pre_sensitive(table)
+        assert sum(map(len, validation_packages.values())) == 12
         state["sealed"] = True
         state["selected"] = choice["pair_id"]
 
@@ -161,11 +172,12 @@ def test_no_utility_feasible_t_is_a_reportable_prefit_no_go():
         fit_package=lambda p, m, s, r: _Package(p, m["mask_id"], s),
         read_sex=read_sex, fit_raw_search_auc=lambda *args: 0.7,
         select_task_only=lambda table, bank: select_task_only_pre_sensitive(table),
-        on_task_complete=lambda table, choice: seen.append(
+        on_task_complete=lambda table, choice, validation_packages: seen.append(
             "task_no_go_published" if choice["status"] == "NO_UTILITY_FEASIBLE_T"
             else "unexpected"),
     )
     assert result.task_only_choice["pair_id"] is None
     assert result.pair_table is None
     assert result.final_packages == {}
+    assert sum(map(len, result.validation_packages.values())) == 12
     assert seen == ["task_no_go_published"]

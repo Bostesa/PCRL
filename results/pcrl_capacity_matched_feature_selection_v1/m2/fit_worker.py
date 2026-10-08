@@ -19,7 +19,7 @@ import numpy as np
 
 from bank import build_shared_bank
 from fit_pipeline import _array_sha, run_fit_pipeline
-from head_pool import (_file_sha, _write_once_json, fit_or_restore_task_package,
+from head_pool import (_file_sha, _sha, _write_once_json, fit_or_restore_task_package,
                        make_head_cache_identity)
 
 
@@ -157,8 +157,67 @@ def _role_file_hashes(manifest: dict, purpose: str) -> dict[str, str]:
     }
 
 
+def _validate_validation_packages(bank, table: dict, packages: dict,
+                                  lock_sha: str) -> None:
+    """Require all twelve hash-bound validation heads before first SEX read."""
+    ids = {"F_FULL83", *(mask.mask_id for mask in bank.masks)}
+    if not isinstance(packages, dict) or set(packages) != {"income", "occupation_group"}:
+        raise ValueError("validation package registry must have both purposes")
+    seen_cache_keys = set()
+    for purpose, table_key in (("income", "income_masks"),
+                               ("occupation_group", "occupation_masks")):
+        entries = packages[purpose]
+        if not isinstance(entries, dict) or set(entries) != ids:
+            raise ValueError("validation package registry must have six heads per purpose")
+        table_heads = {row.get("mask_id"): row.get("head_id")
+                       for row in table[table_key]}
+        for mask_id, entry in entries.items():
+            if (not isinstance(entry, dict)
+                    or entry.get("stage") != "validation"
+                    or entry.get("purpose") != purpose
+                    or entry.get("mask_id") != mask_id
+                    or not isinstance(entry.get("model_id"), str)
+                    or not entry["model_id"]
+                    or (mask_id != "F_FULL83"
+                        and table_heads.get(mask_id) != entry["model_id"])):
+                raise ValueError("validation package identity differs from task table")
+            for key in ("cache_key", "head_sha256", "calibrator_sha256",
+                        "package_sha256", "receipt_sha256",
+                        "head_pool_receipt_sha256"):
+                value = entry.get(key)
+                if (not isinstance(value, str) or len(value) != 64
+                        or any(ch not in "0123456789abcdef" for ch in value)):
+                    raise ValueError("validation package SHA is malformed")
+            if entry["receipt_sha256"] != entry["head_pool_receipt_sha256"]:
+                raise ValueError("validation package HEAD_POOL_RECEIPT SHA differs")
+            if entry["cache_key"] in seen_cache_keys:
+                raise ValueError("validation package cache key is reused")
+            seen_cache_keys.add(entry["cache_key"])
+            package_path = Path(entry.get("relative_package_path", ""))
+            receipt_path = Path(entry.get("head_pool_receipt_relative_path", ""))
+            if (package_path.is_absolute() or ".." in package_path.parts
+                    or package_path.parts !=
+                    (lock_sha, "head_pool", entry["cache_key"], "release_package.json")
+                    or receipt_path.is_absolute()
+                    or ".." in receipt_path.parts
+                    or receipt_path != package_path.parent / "HEAD_POOL_RECEIPT.json"):
+                raise ValueError("validation package private path is malformed")
+
+
+def _validation_receipt_fields(output_dir: Path, packages: dict) -> dict:
+    """Recheck the pre-SEX file before binding it into either FIT outcome."""
+    saved = json.loads((output_dir / "TASK_ONLY_RECEIPT.json").read_text())
+    digest = _sha(packages)
+    if (saved.get("validation_head_packages") != packages
+            or saved.get("validation_head_packages_sha256") != digest):
+        raise RuntimeError("validation package registry differs from pre-SEX receipt")
+    return {"validation_head_packages": packages,
+            "validation_head_packages_sha256": digest}
+
+
 def _publish_task_only(output_dir: Path, unit_id: str, seed: int,
-                       lock_sha: str, bank, table: dict, choice: dict) -> str:
+                       lock_sha: str, bank, table: dict, choice: dict,
+                       validation_packages: dict) -> str:
     """Write and rehash the full pre-sensitive T chain before any SEX read."""
     expected = [{"mask_id": mask.mask_id, "mask_sha256": mask.mask_sha256}
                 for mask in bank.masks]
@@ -175,6 +234,7 @@ def _publish_task_only(output_dir: Path, unit_id: str, seed: int,
                     for row in table.get(key, [])] != expected
                    for key in ("income_masks", "occupation_masks"))):
         raise ValueError("task-only table must bind all five mask IDs and SHAs")
+    _validate_validation_packages(bank, table, validation_packages, lock_sha)
     output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     table_path = output_dir / "TASK_TABLE.json"
     table_sha = _write_once_json(table_path, table)
@@ -189,6 +249,8 @@ def _publish_task_only(output_dir: Path, unit_id: str, seed: int,
         "task_table_sha256": table_sha,
         "selection": choice,
         "split_receipt": table["split_receipt"],
+        "validation_head_packages": validation_packages,
+        "validation_head_packages_sha256": _sha(validation_packages),
     }
     receipt_path = output_dir / "TASK_ONLY_RECEIPT.json"
     receipt_sha = _write_once_json(receipt_path, receipt)
@@ -342,9 +404,9 @@ def run_worker(*, unit_id: str, seed: int, lock_path: Path,
     selected_task = {}
     selected_pair = {}
 
-    def task_sink(table, choice):
+    def task_sink(table, choice, validation_packages):
         _publish_task_only(output_dir, unit_id, seed, lock_sha,
-                           bank, table, choice)
+                           bank, table, choice, validation_packages)
         selected_task.update(choice)
 
     def read_sex():
@@ -384,6 +446,7 @@ def run_worker(*, unit_id: str, seed: int, lock_path: Path,
             "prior_data_manifest_sha256": prior_manifest_sha,
             "bank_sha256": bank.bank_sha256,
             "task_only_receipt_sha256": _file_sha(output_dir / "TASK_ONLY_RECEIPT.json"),
+            **_validation_receipt_fields(output_dir, result.validation_packages),
             "task_table_sha256": _file_sha(output_dir / "TASK_TABLE.json"),
             "task_table_relative_path": (output_dir / "TASK_TABLE.json").relative_to(expected_private).as_posix(),
             "control_plan_sha256": no_go["control_plan_sha256"],
@@ -413,6 +476,7 @@ def run_worker(*, unit_id: str, seed: int, lock_path: Path,
         "prior_data_manifest_sha256": prior_manifest_sha,
         "bank_sha256": bank.bank_sha256,
         "task_only_receipt_sha256": _file_sha(output_dir / "TASK_ONLY_RECEIPT.json"),
+        **_validation_receipt_fields(output_dir, result.validation_packages),
         "task_table_sha256": _file_sha(output_dir / "TASK_TABLE.json"),
         "task_table_relative_path": (output_dir / "TASK_TABLE.json").relative_to(expected_private).as_posix(),
         "pair_table_sha256": selected_pair["pair_table_sha256"],

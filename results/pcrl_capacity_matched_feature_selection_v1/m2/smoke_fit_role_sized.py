@@ -100,7 +100,9 @@ def run(output: Path, private_root: Path) -> dict:
         )
 
     task_seen = []
-    def task_sink(table, choice):
+    def task_sink(table, choice, validation_packages):
+        if sum(map(len, validation_packages.values())) != 12:
+            raise RuntimeError("synthetic validation package registry is incomplete")
         task_seen.append(table["task_table_sha256"])
 
     def sex_source():

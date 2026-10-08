@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Mapping
 
 import numpy as np
@@ -137,10 +138,20 @@ def _package_record(package) -> dict:
     )}
 
 
+def _validation_package_record(package, purpose: str, mask_id: str) -> dict:
+    record = _package_record(package)
+    receipt_path = Path(record["relative_package_path"]).parent / "HEAD_POOL_RECEIPT.json"
+    record["head_pool_receipt_sha256"] = record["receipt_sha256"]
+    record["head_pool_receipt_relative_path"] = receipt_path.as_posix()
+    return {"stage": "validation", "purpose": purpose, "mask_id": mask_id,
+            **record}
+
+
 @dataclass(frozen=True)
 class FitPipelineResult:
     task_table: dict
     task_only_choice: dict
+    validation_packages: dict[str, dict[str, dict]]
     pair_table: PairTable | None
     final_packages: dict[str, dict[str, dict]]
     full_f_packages: dict[str, dict]
@@ -180,6 +191,9 @@ def run_fit_pipeline(*, bank: SharedBank, seed: int,
     full = _full_mask(bank)
     refs: dict[str, dict[str, TaskMetrics]] = {}
     f_validation = {}
+    validation_packages: dict[str, dict[str, dict]] = {
+        "income": {}, "occupation_group": {},
+    }
     for purpose, index, width in (("income", 1, 2),
                                    ("occupation_group", 2, 6)):
         for kind in ("U0", "Ucal"):
@@ -189,6 +203,8 @@ def run_fit_pipeline(*, bank: SharedBank, seed: int,
             refs.setdefault(purpose, {})[kind] = _task_metrics(p[val_rows], y[purpose][val_rows])
         f_package = fit_package(purpose, full, "validation", fit_rows)
         f_validation[purpose] = f_package
+        validation_packages[purpose]["F_FULL83"] = _validation_package_record(
+            f_package, purpose, "F_FULL83")
         f_q = f_package.restored_release.view(x[val_rows], feature_names)["probabilities"]
         refs[purpose]["F"] = _task_metrics(f_q, y[purpose][val_rows])
     task_rows = {"income": [], "occupation_group": []}
@@ -196,6 +212,8 @@ def run_fit_pipeline(*, bank: SharedBank, seed: int,
     for purpose in ("income", "occupation_group"):
         for mask in bank.masks:
             package = fit_package(purpose, mask.public_record(), "validation", fit_rows)
+            validation_packages[purpose][mask.mask_id] = _validation_package_record(
+                package, purpose, mask.mask_id)
             q = package.restored_release.view(x[val_rows], feature_names)["probabilities"]
             metrics = _task_metrics(q, y[purpose][val_rows])
             row_score = _task_row(mask, package, metrics, refs[purpose])
@@ -230,12 +248,13 @@ def run_fit_pipeline(*, bank: SharedBank, seed: int,
                 and choice.get("pair_id") not in
                 {pair.pair_id for pair in bank.pairs})):
         raise ValueError("pre-sensitive T did not yield a frozen pair or explicit no-go")
-    on_task_complete(task_table, dict(choice))
+    on_task_complete(task_table, dict(choice), validation_packages)
 
     if choice.get("status") == "NO_UTILITY_FEASIBLE_T":
         # The task premise has failed. No protected-label read or privacy
         # search is justified, and no final release package is produced.
-        return FitPipelineResult(task_table, dict(choice), None, {}, {},
+        return FitPipelineResult(task_table, dict(choice), validation_packages,
+                                 None, {}, {},
                                  split_receipt, {"status": "NOT_RUN_TASK_NO_GO"})
 
     # This is the first point at which a protected FIT label may be requested.
@@ -285,6 +304,7 @@ def run_fit_pipeline(*, bank: SharedBank, seed: int,
         "sex_fit_class_counts": np.bincount(sex[fit_rows], minlength=2).tolist(),
         "sex_validation_class_counts": np.bincount(sex[val_rows], minlength=2).tolist(),
     }
-    return FitPipelineResult(task_table, dict(choice), pair_table,
+    return FitPipelineResult(task_table, dict(choice), validation_packages,
+                             pair_table,
                              final_packages, full_f, split_receipt,
                              search_receipt)

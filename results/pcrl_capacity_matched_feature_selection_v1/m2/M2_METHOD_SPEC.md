@@ -32,7 +32,11 @@ heads, both calibrated probability vectors, decisions and public metadata.
    those same people. Apply the original inclusive caps: accuracy drop ≤.010,
    NLL excess ≤.010, Brier excess ≤.005 against all three references.
 4. Publish a write-once, fsynced task-only table and M3 T selection receipt,
-   binding all five mask IDs/SHAs, split and head IDs. Only after their bytes
+   binding all five mask IDs/SHAs, split, head IDs, and the exact registry of
+   12 validation packages (purpose, mask, stage, cache key, model ID, package
+   SHA, HEAD_POOL_RECEIPT SHA and private relative path). The FIT receipt
+   repeats and hashes this registry in both feasible and no-go outcomes.
+   Only after the task-only bytes
    rehash successfully does the worker load FIT SEX. If no task-only mask is
    utility-feasible for either purpose, publish an all-invalid ten-rule
    control plan and a `NO_FEASIBLE_J` FIT receipt, then stop before SEX.
