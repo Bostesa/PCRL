@@ -1,0 +1,79 @@
+{
+  "status": "PRE_LOCK_DRAFT_BLOCKED_SAFE_INPUT",
+  "owner": "B3 matched-control and evaluation analyst",
+  "safe_input_gate": "No new Adult fit until S2 verifies a role-specific loader that does not materialize forbidden arrays.",
+  "seeds": {"screen": [0, 1], "finalist_if_promoted": [0, 1, 2]},
+  "release_arms": ["B-JVIB", "B-DVIB", "B-TASK", "B-LOCAL", "B-SEQ12", "B-SEQ21", "B-RAWJ"],
+  "recipients_per_arm": 2,
+  "views_per_arm": ["recipient_1", "recipient_2", "aligned_pair"],
+  "recipient_view_fields": ["actual_latent_or_code", "raw_head_logits", "calibrated_probability", "decision", "all_transmitted_sampling_calibration_fallback_and_model_metadata"],
+  "roles_for_release_forward": ["CALIBRATION_HELDOUT", "ATTACK_FIT_NEW", "INNER_SELECTION"],
+  "attack_bank_provisional": ["LR_C1", "MLP_64x64", "HGB_100_leaf15", "DEFENSE_AWARE_MLP_64x64"],
+  "attack_selection": "AUC and CE separately on INNER_SELECTION; first-in-bank ties within 1e-12; all eight local-reader predictions enter the pair bank as exact ignore-recipient aliases only with identity receipts.",
+  "same_role_selection_warning": "Reader selection and reporting on INNER_SELECTION are exploratory and can be optimistic.",
+  "encoder_optimizer_updates_per_encoder": "T, exact numeric value required from S1 before lock",
+  "critic_update_schedule": "JVIB/DVIB/RAWJ: each local T and pair 2T. SEQ12/SEQ21: first local T, second local T, second-stage pair 2T. LOCAL: each local 2T. TASK: none. Total 24T across seven arms per seed.",
+  "critic_updates_per_arm_seed_in_T": {"B-JVIB": 4, "B-DVIB": 4, "B-TASK": 0, "B-LOCAL": 4, "B-SEQ12": 4, "B-SEQ21": 4, "B-RAWJ": 4},
+  "arm_seed_cells": {"screen": 14, "full_three_seed_unique_if_B_finalist": 21},
+  "training_jobs_per_seed_by_arm": {"B-JVIB": 1, "B-DVIB": 1, "B-TASK": 1, "B-LOCAL": 2, "B-SEQ12": 2, "B-SEQ21": 2, "B-RAWJ": 1},
+  "encoder_fit_stages_per_seed_by_arm": {"B-JVIB": 2, "B-DVIB": 2, "B-TASK": 2, "B-LOCAL": 2, "B-SEQ12": 2, "B-SEQ21": 2, "B-RAWJ": 2},
+  "critic_model_paths_per_seed_by_arm": {"B-JVIB": 3, "B-DVIB": 3, "B-TASK": 0, "B-LOCAL": 2, "B-SEQ12": 3, "B-SEQ21": 3, "B-RAWJ": 3},
+  "per_seed": {
+    "training_process_jobs": 10,
+    "encoder_fit_stages": 14,
+    "critic_model_paths": 17,
+    "calibration_scalar_fits": 14,
+    "fresh_attacker_model_fits": 84,
+    "ignore_recipient_prediction_aliases": 56,
+    "paired_role_forward_passes": 21,
+    "recipient_role_forward_passes": 42
+  },
+  "screen_two_seed_unique": {
+    "training_process_jobs": 20,
+    "encoder_fit_stages": 28,
+    "critic_model_paths": 34,
+    "calibration_scalar_fits": 28,
+    "fresh_attacker_model_fits": 168,
+    "ignore_recipient_prediction_aliases": 112,
+    "paired_role_forward_passes": 42,
+    "recipient_role_forward_passes": 84
+  },
+  "full_three_seed_unique_if_B_is_finalist": {
+    "training_process_jobs": 30,
+    "encoder_fit_stages": 42,
+    "critic_model_paths": 51,
+    "calibration_scalar_fits": 42,
+    "fresh_attacker_model_fits": 252,
+    "ignore_recipient_prediction_aliases": 168,
+    "paired_role_forward_passes": 63,
+    "recipient_role_forward_passes": 126
+  },
+  "additional_seed_2_if_finalist": {
+    "training_process_jobs": 10,
+    "encoder_fit_stages": 14,
+    "critic_model_paths": 17,
+    "calibration_scalar_fits": 14,
+    "fresh_attacker_model_fits": 84,
+    "ignore_recipient_prediction_aliases": 56,
+    "paired_role_forward_passes": 21,
+    "recipient_role_forward_passes": 42
+  },
+  "control_battery_provisional": {
+    "adapters": ["B-JVIB stochastic", "B-DVIB deterministic"],
+    "seed": 0,
+    "views_per_adapter": 3,
+    "shuffled_sex_attacker_fits": 24,
+    "planted_leak_attacker_fits": 24,
+    "constant_reader_scorings": 6,
+    "total_extra_attacker_fits": 48,
+    "engineering_copy_only": true
+  },
+  "not_yet_counted_pending_shared_contract": [
+    "Shared source teacher/cache admission or regeneration; count only on exact immutable identity.",
+    "Shared 83-column preprocessing fit and any attacker preprocessing fits inside the model-fit records.",
+    "Noise-off B-JVIB diagnostic: if reported, add one forward and four attacker fits per view per seed, plus calibration if its probability differs.",
+    "Any expanded full attacker slate or repeated-query attack; amend counts before CAMPAIGN_LOCK.",
+    "Synthetic correctness and exact tiny-law oracles; S3 must time and charge their CPU cost."
+  ],
+  "arithmetic": "Seven arms × three views × four fresh readers = 84 attack fits/seed; seven arms × two tasks = 14 calibration scalars/seed; seven arms × three allowed evaluation roles = 21 paired forward passes/seed. All controls and candidate arms are included. These are proposed exact units for this fixed design, subject to S1/S2 pre-lock revision after smoke timing; no real unit has run."
+}
