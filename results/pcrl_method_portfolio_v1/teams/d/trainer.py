@@ -28,11 +28,13 @@ class DTrainConfig:
     batch_size: int = 256
     learning_rate: float = 0.001
     pair_features: int = 128
+    reconstruction_weight: float = 0.25
 
     def __post_init__(self) -> None:
         if (self.codes < 2 or self.codes & (self.codes - 1) or self.hidden < 1
                 or self.epochs < 1 or self.batch_size < 2 or self.learning_rate <= 0
-                or self.pair_features < 1):
+                or self.pair_features < 1 or not np.isfinite(self.reconstruction_weight)
+                or self.reconstruction_weight < 0):
             raise ValueError("invalid fixed VQ training configuration")
 
 
@@ -44,7 +46,7 @@ class DTrainingData:
     y1: np.ndarray
     teacher0: np.ndarray
     teacher1: np.ndarray
-    sex: np.ndarray
+    sex: np.ndarray | None
     row_id0: np.ndarray
     row_id1: np.ndarray
     role: str
@@ -73,13 +75,14 @@ class DTrainingData:
                 raise ValueError("task labels and teacher probabilities are invalid")
             ys.append(y.astype(np.int64, copy=True))
             teachers.append(p.copy())
-        sex = np.asarray(self.sex)
-        if sex.shape != (n,) or not np.isin(sex, (0, 1)).all() or len(np.unique(sex)) != 2:
-            raise ValueError("both binary SEX groups are required on fitting rows")
+        sex = None if self.sex is None else np.asarray(self.sex)
+        if sex is not None and (sex.shape != (n,) or not np.isin(sex, (0, 1)).all()
+                                or len(np.unique(sex)) != 2):
+            raise ValueError("both binary SEX groups are required when SEX is supplied")
         for name, value in (("h0", h0.copy()), ("h1", h1.copy()),
                             ("y0", ys[0]), ("y1", ys[1]),
                             ("teacher0", teachers[0]), ("teacher1", teachers[1]),
-                            ("sex", sex.astype(np.int64, copy=True)),
+                            ("sex", None if sex is None else sex.astype(np.int64, copy=True)),
                             ("row_id0", row0.copy()), ("row_id1", row1.copy())):
             object.__setattr__(self, name, value)
 
@@ -199,7 +202,8 @@ class TorchDRelease:
                 "probabilities": probabilities.numpy().copy(),
                 "decision": torch.argmax(probabilities, dim=1).numpy().copy(),
                 "metadata": {"purpose": purpose, "code_length_bits": self.code_length_bits,
-                             "block_count": 1, "fallback": False, "stochastic": False},
+                             "block_count": 1, "fallback": False, "stochastic": False,
+                             "calibration": "UNFITTED"},
             }
 
 
@@ -212,6 +216,7 @@ class DFitResult:
     protected: bool
     fit_rows: int
     fit_code_change: dict
+    config: DTrainConfig
 
 
 def code_change_receipt(
@@ -264,8 +269,16 @@ def train_d(
     Each minibatch uses one aligned index vector for the two purposes and SEX.
     The final iterate is returned without task/leakage-based epoch selection.
     """
-    if data.role == "OSF_DEFENSE_FIT" and (data.h0.shape[1] != 16 or config != DTrainConfig()):
-        raise ValueError("Adult candidate is fixed to 16-D and the registered configuration")
+    if data.role == "OSF_DEFENSE_FIT":
+        shared = DTrainConfig(reconstruction_weight=config.reconstruction_weight)
+        permitted_weight = (config.reconstruction_weight == 0.25 if protected
+                            else config.reconstruction_weight in (0.0, 0.25, 1.0))
+        if data.h0.shape[1] != 16 or config != shared or not permitted_weight:
+            raise ValueError("Adult D and task-only grid require registered 16-D configurations")
+    if protected and data.sex is None:
+        raise ValueError("protected D fitting requires fitting-role SEX labels")
+    if not protected and data.sex is not None:
+        raise ValueError("task-only control must be constructed without SEX labels")
     torch.set_num_threads(1)
     torch.manual_seed(int(seed))
     normalizer, initial = initializer if initializer is not None else pooled_initializer(data, seed, config.codes)
@@ -277,7 +290,7 @@ def train_d(
     x1 = torch.from_numpy(normalizer.transform(1, data.h1).astype(np.float32))
     y0, y1 = torch.from_numpy(data.y0), torch.from_numpy(data.y1)
     u0, u1 = torch.from_numpy(data.teacher0), torch.from_numpy(data.teacher1)
-    sex = torch.from_numpy(data.sex)
+    sex = torch.from_numpy(data.sex) if protected else None
     codebook = nn.Parameter(torch.from_numpy(initial.copy()))
     head0 = _Head(d, config.hidden, u0.shape[1])
     head1 = _Head(d, config.hidden, u1.shape[1])
@@ -299,10 +312,10 @@ def train_d(
             logits0, logits1 = head0(z0), head1(z1)
             task0 = (F.cross_entropy(logits0, y0[ix])
                      + 0.5 * F.kl_div(F.log_softmax(logits0, dim=1), u0[ix], reduction="batchmean")
-                     + 0.25 * ((x0[ix] - z0) ** 2).sum(dim=1).mean() / d)
+                     + config.reconstruction_weight * ((x0[ix] - z0) ** 2).sum(dim=1).mean() / d)
             task1 = (F.cross_entropy(logits1, y1[ix])
                      + 0.5 * F.kl_div(F.log_softmax(logits1, dim=1), u1[ix], reduction="batchmean")
-                     + 0.25 * ((x1[ix] - z1) ** 2).sum(dim=1).mean() / d)
+                     + config.reconstruction_weight * ((x1[ix] - z1) ** 2).sum(dim=1).mean() / d)
             task = (task0 + task1) / 2
             if protected:
                 mmd0, mmd1, mmd_pair = mmd_terms(code0, code1, sex[ix], sign_tables)
@@ -323,4 +336,4 @@ def train_d(
     fit_code_change = code_change_receipt(data.h0, data.h1, normalizer, initial, codebook)
     return DFitResult(release=release, history=history, role=data.role,
                       seed=int(seed), protected=bool(protected), fit_rows=len(x0),
-                      fit_code_change=fit_code_change)
+                      fit_code_change=fit_code_change, config=config)
