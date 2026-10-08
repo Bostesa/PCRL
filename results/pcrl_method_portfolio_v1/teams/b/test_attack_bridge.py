@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 import torch
+import attack_eval
 
 from attack_bridge import build_attack_view
 from bottleneck import BottleneckPair, model_fingerprint, schema_fingerprint
@@ -112,7 +113,6 @@ def test_bridge_rejects_shuffled_people_and_clean_probability_bypass():
 
 
 def test_bridge_meets_actual_s2_attack_view_contract():
-    attack_eval = pytest.importorskip("attack_eval")
     model = _model()
     rows = [("1", _views(False, model)), ("2", _views(True, model))]
     actual = build_attack_view(

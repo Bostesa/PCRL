@@ -2,6 +2,7 @@
 
 import numpy as np
 import pytest
+import common_eval
 
 from bottleneck import ReleaseAdapter, model_fingerprint, schema_fingerprint
 from calibration_bridge import _sha_arr, fit_calibration
@@ -9,7 +10,6 @@ from test_attack_bridge import _model
 
 
 def test_fixed_calibration_uses_actual_released_draw(tmp_path):
-    common_eval = pytest.importorskip("common_eval")
     model = _model()
     ids = np.arange(1, 9, dtype=np.int64)
     groups = ids + 10
@@ -52,7 +52,6 @@ def test_fixed_calibration_uses_actual_released_draw(tmp_path):
 
 
 def test_calibration_refuses_wrong_admitted_pair(tmp_path):
-    pytest.importorskip("common_eval")
     model = _model()
     ids = np.arange(1, 3, dtype=np.int64)
     with pytest.raises(ValueError, match="admitted role"):
@@ -77,7 +76,6 @@ def test_calibration_refuses_wrong_admitted_pair(tmp_path):
 
 
 def test_calibration_rejects_permuted_label_record_and_columns(tmp_path):
-    pytest.importorskip("common_eval")
     model = _model()
     ids = np.arange(1, 3, dtype=np.int64)
     features = {"X": np.zeros((2, 83), dtype=np.float32),
