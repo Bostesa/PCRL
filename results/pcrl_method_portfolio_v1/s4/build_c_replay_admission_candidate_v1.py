@@ -113,6 +113,7 @@ def build() -> dict:
         "parent_c_unit_count": 135,
         "cpu_reserve_s": 3900,
         "post_arm_registry_schema": "pcrl-s4-c-r1-arm-result-hash-registry-v1",
+        "post_arm_registry_builder_sha256": sha(HERE / "build_c_arm_result_registry_v1.py"),
         "scientific_scope": "Exploratory development only; all eight C arms and both paired seeds, frozen controls and 2048 paired group intervals; no old assessment.",
     }
 
