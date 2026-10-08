@@ -1,0 +1,477 @@
+{
+  "activation_rule": "The status and adult_fit_permission fields in this committed lock are necessary but not sufficient; S3 and B runner must verify current S4 PASS review and local seal receipt before any real-data unit starts.",
+  "admitted_arms": {
+    "B": [
+      "B-JVIB",
+      "B-DVIB",
+      "B-TASK",
+      "B-RAW-TASK",
+      "B-LOCAL",
+      "B-SEQ12",
+      "B-SEQ21",
+      "B-RAWJ"
+    ]
+  },
+  "admitted_shared_unit_ids": [
+    "S2-FEATURE-REF-RAW83-U-S0",
+    "S2-FEATURE-REF-RAW83-U-S1"
+  ],
+  "adult_fit_permission": true,
+  "attack_protocol": {
+    "applicability_sha256": "ca508de5aa1e327e6f67d8d6c4cd792cc55aee8d4c7dbbc0e37c34566263c6f1",
+    "b_fixed_readers": [
+      "LR_C1",
+      "MLP_64x32",
+      "HGB_15x200",
+      "DA_MLP_64x32"
+    ],
+    "c_raw_only_readers": [
+      "RAW_LR_C1",
+      "RAW_HGB_15x200"
+    ],
+    "d_cell_alphas": [
+      0.5,
+      1.0,
+      5.0
+    ],
+    "engineering_controls": "For every release/view/seed, constant/null AUC exactly 0.5; shuffled ATT SEX group permutation reader INNER envelope <=0.60; planted true SEX transmitted in engineering copy LR AUC >=0.99; two fresh LR fits/view/arm/seed; control failure blocks affected endpoint.",
+    "feature_anchor_raw_only_readers": [
+      "RAW_LR_C1",
+      "RAW_HGB_15x200"
+    ],
+    "fit_tune_rule": "fixed one fit per configured reader/view/arm/seed on ATTACK_TRAIN; TUNE selects orientation and separate deployable reader; primary INNER statistic max of both orientations over fixed slate; ignore recipient pair aliases zero-fit; no INNER tuning",
+    "group_class_probe": {
+      "attack_train_groups": 3046,
+      "attack_train_sex_counts": [
+        976,
+        2072
+      ],
+      "groups": 4061,
+      "no_model_fit": true,
+      "queue_receipt_sha256": "c698f25b20402d40fa3ac903b683310a76d067f3e87c3bcb1d914fdd68aae679",
+      "rows": 4064,
+      "stdout_sha256": "11d8fb5262e28a968d782d69457d32f478bbd3e6d0f4a786bddb0e2c4b610bc7",
+      "tune_group_id_sha256": "b7c619584991b44b9796a6a5f6bcd56ea2ddfc98199a6c1e3320959f82473ae0",
+      "tune_groups": 1015,
+      "tune_sex_counts": [
+        342,
+        674
+      ],
+      "unit_id": "S2-ATT-GROUP-CLASS-PROBE-027"
+    },
+    "score_cell_reader": "CELL_A1",
+    "shared_fixed_readers": [
+      "LR_C1",
+      "MLP_64x32",
+      "HGB_15x200",
+      "DA_MLP_64x32"
+    ],
+    "source_module_sha256": "45c087836da1f7df3ad5d2476d1a4637ce3c6a57a1afa9bf05c57b22ceab7759",
+    "split_role": "ATTACK_FIT_NEW",
+    "split_rule": "rank 4061 unique int group IDs by SHA256(UTF8(pcrl-method-portfolio-v1|attack-tune|20261008| + decimal_group_id)); ties by int ID; first 1015 groups TUNE, remaining 3046 ATTACK_TRAIN; all rows per group",
+    "train_groups": 3046,
+    "tune_groups": 1015
+  },
+  "budgets": {
+    "cloud_usd": 0,
+    "cpu_hours": 20,
+    "elapsed_hours": 10,
+    "max_machine_heavy_processes": 2,
+    "scope": "new continuation allowance from 2026-10-08T15:10:00Z; earlier campaign usage retained separately"
+  },
+  "calibration_protocol": {
+    "A": "inherited hcal FINE-TASK H-GLOBAL bank alias; no post-channel temperature",
+    "B_C_D": "one H-GLOBAL-TEMP scalar per arm/seed/task on CALIBRATION_HELDOUT, alpha in [0.25,4], bounded derivative bisection NLL, no grid",
+    "U0": "original continuous U",
+    "Ucal": "source hcal H-GLOBAL U transform"
+  },
+  "continuation_amendment": "CONTINUATION_AMENDMENT.md",
+  "continuation_started_utc": "2026-10-08T15:10:00Z",
+  "control_eligibility": {
+    "A_matched_pool": [
+      "HCAL_TSTAR_FINE_TASK_H_GLOBAL",
+      "A-JOINT-STOCH",
+      "A-JOINT-DET",
+      "A-TASK-DET",
+      "A-TASK-RD",
+      "A-LOCAL-STOCH",
+      "A-SEQ-12",
+      "A-SEQ-21"
+    ],
+    "B_matched_pool": [
+      "B-JVIB",
+      "B-DVIB",
+      "B-TASK",
+      "B-RAW-TASK",
+      "B-LOCAL",
+      "B-SEQ12",
+      "B-SEQ21",
+      "B-RAWJ"
+    ],
+    "C_rule": "exact semantic and encoded-column capacities; report incomplete if no distinct exact match",
+    "D_matched_pool": [
+      "D_VQ_JOINT",
+      "D_VQ_TASK_B0",
+      "D_VQ_TASK",
+      "D_VQ_TASK_B1",
+      "D_VQ_LOCAL",
+      "D_VQ_SEQ12",
+      "D_VQ_SEQ21"
+    ],
+    "candidate_pool_rule": "For candidate c, consider every other registered point-eligible same-interface arm, including the other prototype, with required task-only, local, both sequential orders, non-joint and deterministic ablations present; remove c itself. No self-comparison. Exclude broad contextual arms from matched pool unless exact matching demonstrated.",
+    "cross_family_rule": "frontier context only; no incompatible matched-control substitution",
+    "local_cap": "Control recipient AUC must be <= corresponding frozen unprotected same-track anchor AUC + 0.010, inclusive, before candidate-dependent selection; no adverse local shift control eligibility by candidate.",
+    "rule": "both-task point utility against U0 and Ucal, useful retention, full controls/readers/deployment, local AUC cap vs named same-track unprotected anchor independent of candidate; select minimum paired-seed fixed-slate coalition AUC among eligible matched controls, tie within 1e-12 by lower summed NLL then ID"
+  },
+  "data_access_manifest_sha256": "c228dfdbef8a8e0a46281716e89c986e888fb4f64553fc35b3573020c0c83a11",
+  "data_admission": {
+    "manifest_sha256": "c228dfdbef8a8e0a46281716e89c986e888fb4f64553fc35b3573020c0c83a11",
+    "s4_audit_receipt_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9"
+  },
+  "endpoint_protocol": {
+    "accuracy_difference_min": -0.01,
+    "brier_excess_max": 0.005,
+    "coalition_benefit_min": 0.02,
+    "constant_baseline": "FIT task-label frequencies",
+    "local_worsening_max": 0.01,
+    "nll_excess_max": 0.01,
+    "per_class_recall": true,
+    "retention": true,
+    "roles": {
+      "attack": "ATTACK_FIT_NEW",
+      "calibration": "CALIBRATION_HELDOUT",
+      "fit": "OSF_DEFENSE_FIT",
+      "report": "INNER_SELECTION"
+    },
+    "source_module_hashes": {
+      "common_endpoints.py": "a0a8dd27c15476ee6db8d681aeab6ca5624bcccb99f08c40d5e7276464e0b243",
+      "common_eval.py": "fd5016ee0c041ffc18fc8d02fc31f57eb270bdc9977298efd9958f43cff5851e",
+      "paired_inference.py": "b1554451e985ed985cb1890cfbddd4e313730a1fd9828cd6fb1f28b071edb5c7"
+    },
+    "tasks": [
+      "income",
+      "occupation"
+    ],
+    "utility_clause": "both tasks; both references; accuracy difference >= -0.010, NLL excess <=0.010, summed Brier excess <=0.005, inclusive",
+    "utility_metrics": [
+      "accuracy",
+      "mean_natural_log_NLL",
+      "mean_summed_multiclass_Brier"
+    ],
+    "utility_references": [
+      "U0",
+      "Ucal"
+    ]
+  },
+  "exposure": "development search on repeatedly reused Adult outcomes; no independent confirmation",
+  "families": {
+    "A": {
+      "fit_admission": "DENIED",
+      "hypothesis_sha256": "f2203b5012a93ea971fc46f7125c0971e71093fc7ff27d1410fecca0641642f3",
+      "method_spec_path": "teams/a/METHOD_SPEC.md",
+      "method_spec_sha256": "2591c84e511493f69fb8a9e630bd5b8d19a3d599d160932a1a58f3d8c2dcaf54",
+      "planned_units_path": "teams/a/PLANNED_UNITS.json",
+      "planned_units_sha256": "2246644c82a813771c575adbdb940dc6e7aac2d20e8862317e3bf83f3346fcb7",
+      "prototype_ids": [
+        "A-JOINT-STOCH",
+        "A-JOINT-DET"
+      ],
+      "prototype_limit": 2,
+      "strongest_control_sha256": "41e4bb3ac852647407a3eb8e0188d9704ed9b76ec64fab80da91012859acdcaa",
+      "team_branch_tip_at_draft": "1bd5b7a3767abd7cf9d3cc965e0d8c751ec1d3c6"
+    },
+    "B": {
+      "code_sha256_by_file": {
+        "attack_bridge.py": "9c333b3926fed501df4f66208830680c5879842941258d9acbec4f21926f92d7",
+        "attack_views.py": "e8ce8da05c0cc61bad5362023e6ff31dac582010af0477f91c6c1e4b8f69c09f",
+        "bottleneck.py": "168d4160a970f71686b61d701a879ea9fddd984c64b1b4298f93ccbffc9f8096",
+        "budget_model.py": "52fcac0e13e96c2f909d1a53c9dd1b89b188b83646ad2cc73c01d2ce9d3cf289",
+        "calibration_bridge.py": "91287915791669ca44570451dfc4890a1f5520bb35b32c7e809710f8dd9cbfb4",
+        "check_planned_units.py": "cbe28838afcb909875af50ee2f020eb8b78d81aacc6b6ef0e0cd3ffbea1fa5b6",
+        "check_synthetic_laws.py": "43de24d94b9da09e62f417e1a3506075a1d79459bd0bc087406df51d7f7fee93",
+        "control_artifacts.py": "ca8f0a714d4d7683c5c4afeee69b48eca12cec532f79ef2919364a18f004710c",
+        "control_pipeline.py": "de563d1dc6cc0d540834f73b2f4541cbb7b60c5fc6f466cd817b52bd4f4f8e3e",
+        "control_plan.py": "690afd49ea3d7172da66aa7ff87bbe45a3c8b462deca711dc156b652bfc47be1",
+        "control_runner.py": "cb6cbe34b090e5715c6c7e6d7b7b6583c1ac9971f0e85db6fc4fb688122ea840",
+        "fit_input_bridge.py": "5bcd4eec5a030dbe2e12c925bd96bea78dea693b1ac89dd4ba831ca8202a4ced",
+        "real_control_probe.py": "17b6b94760d0412b614a66342877852ad95921966de9914d2141e0ef27732a4f",
+        "screen_driver.py": "52446a0520d293e414284949b6211a7f3f1ed3cebf94b31e795ca66fd2d7bdcd",
+        "time_train_bottleneck.py": "b0d59545792620ef08c4d824cb2ea725d409ca42da854c50677cdfc384862b11",
+        "train_bottleneck.py": "613d71682d6e0c69277e3e4b515e5a28456e52bc69e93b6625a712da84d0be62"
+      },
+      "fit_admission": "ALLOWED",
+      "hypothesis_sha256": "4f3ccc9f76543dc213a799a29d686e8cfd22ecadfff91f25d8c703342a14c88d",
+      "method_spec_path": "teams/b/METHOD_SPEC.md",
+      "method_spec_sha256": "30e0cf2db937ab6c25c0ef9e1759dd5dc0cd53c96f45d2cdd894f57cfaaa8e76",
+      "planned_units_path": "teams/b/PLANNED_UNITS.json",
+      "planned_units_sha256": "d74b13629861c1ba7b86ef9690f1653b7f9b205f80a2471f406b47d30d165e53",
+      "prefit_gate_regression": {
+        "queue_receipt_sha256": "d5554c6d9d836adaedc7e901aa151d6983635705741f3f085b118b74f15fb294",
+        "scope": "synthetic live S2 metadata; occupancy/local seal/current B child simulated; first FIT role read intercepted before values",
+        "screen_driver_sha256": "52446a0520d293e414284949b6211a7f3f1ed3cebf94b31e795ca66fd2d7bdcd",
+        "stdout_sha256": "35d45a4f4c6bbf1cadfbde0064c07df6e7df8c99c8973cfa0a04596e4c2ddcfb",
+        "test_sha256": "f1a1258c14de9f21315083018349e53ebb512635d6751f25e2206110644e584d",
+        "unit_id": "B-GATE-PREFIT-R2-GREEN-035"
+      },
+      "prototype_ids": [
+        "B-JVIB",
+        "B-DVIB"
+      ],
+      "prototype_limit": 2,
+      "real_control_probe_sha256": "17b6b94760d0412b614a66342877852ad95921966de9914d2141e0ef27732a4f",
+      "real_control_unit_ids": {
+        "B-DVIB:s0": "B-REAL-PROBES-B-DVIB-S0",
+        "B-DVIB:s1": "B-REAL-PROBES-B-DVIB-S1",
+        "B-JVIB:s0": "B-REAL-PROBES-B-JVIB-S0",
+        "B-JVIB:s1": "B-REAL-PROBES-B-JVIB-S1",
+        "B-LOCAL:s0": "B-REAL-PROBES-B-LOCAL-S0",
+        "B-LOCAL:s1": "B-REAL-PROBES-B-LOCAL-S1",
+        "B-RAW-TASK:s0": "B-REAL-PROBES-B-RAW-TASK-S0",
+        "B-RAW-TASK:s1": "B-REAL-PROBES-B-RAW-TASK-S1",
+        "B-RAWJ:s0": "B-REAL-PROBES-B-RAWJ-S0",
+        "B-RAWJ:s1": "B-REAL-PROBES-B-RAWJ-S1",
+        "B-SEQ12:s0": "B-REAL-PROBES-B-SEQ12-S0",
+        "B-SEQ12:s1": "B-REAL-PROBES-B-SEQ12-S1",
+        "B-SEQ21:s0": "B-REAL-PROBES-B-SEQ21-S0",
+        "B-SEQ21:s1": "B-REAL-PROBES-B-SEQ21-S1",
+        "B-TASK:s0": "B-REAL-PROBES-B-TASK-S0",
+        "B-TASK:s1": "B-REAL-PROBES-B-TASK-S1"
+      },
+      "required_postrelease_real_probes": "one per arm/seed, 3 views, 2 fresh LR fits/view; no alias until S4 exact identity",
+      "screen_config_path": "teams/b/SCREEN_CONFIG.json",
+      "screen_config_sha256": "ba8867893ea87f6fd0a63d204aa48ef4393bbd78aa17ab2afdfbcddfbd446eb3",
+      "screen_driver_sha256": "52446a0520d293e414284949b6211a7f3f1ed3cebf94b31e795ca66fd2d7bdcd",
+      "screen_unit_ids": {
+        "B-DVIB:s0": "B-SCREEN-B-DVIB-S0",
+        "B-DVIB:s1": "B-SCREEN-B-DVIB-S1",
+        "B-JVIB:s0": "B-SCREEN-B-JVIB-S0",
+        "B-JVIB:s1": "B-SCREEN-B-JVIB-S1",
+        "B-LOCAL:s0": "B-SCREEN-B-LOCAL-S0",
+        "B-LOCAL:s1": "B-SCREEN-B-LOCAL-S1",
+        "B-RAW-TASK:s0": "B-SCREEN-B-RAW-TASK-S0",
+        "B-RAW-TASK:s1": "B-SCREEN-B-RAW-TASK-S1",
+        "B-RAWJ:s0": "B-SCREEN-B-RAWJ-S0",
+        "B-RAWJ:s1": "B-SCREEN-B-RAWJ-S1",
+        "B-SEQ12:s0": "B-SCREEN-B-SEQ12-S0",
+        "B-SEQ12:s1": "B-SCREEN-B-SEQ12-S1",
+        "B-SEQ21:s0": "B-SCREEN-B-SEQ21-S0",
+        "B-SEQ21:s1": "B-SCREEN-B-SEQ21-S1",
+        "B-TASK:s0": "B-SCREEN-B-TASK-S0-R2",
+        "B-TASK:s1": "B-SCREEN-B-TASK-S1"
+      },
+      "strongest_control_sha256": "f6127499571bcea3b8c9d0120bceaa6ef36fedf62de8d9a51e218ed1b483af66",
+      "team_branch_tip_at_draft": "206d97b44a04ee86fb7ad2a661366489543ab291"
+    },
+    "C": {
+      "fit_admission": "DENIED",
+      "hypothesis_sha256": "3fa1e0e626b6ce05c53ae64a68d563542e25b3b645ab8a76054af9a550bd5219",
+      "method_spec_path": "teams/c/METHOD_SPEC.md",
+      "method_spec_sha256": "a4fb553f01e6d9f93d7ef8505b4439943af40c84830e08a386caf8af5c71c940",
+      "planned_units_path": "teams/c/PLANNED_UNITS.json",
+      "planned_units_sha256": "b857752bd12017ba2ea3753a83eb8094f14bddb12b47aebb1987e6028cbce426",
+      "premise_status": "ORIGINAL_XOR_PROXY_FAILED; simple selection baseline may be admitted by later prefit amendment",
+      "prototype_ids": [
+        "C-JOINT-GROUP",
+        "C-INDEP-GROUP"
+      ],
+      "prototype_limit": 2,
+      "strongest_control_sha256": "d2467e9c82d4d05d49743615b91064638947b31e52eefcea9ac56c1e0511c800",
+      "team_branch_tip_at_draft": "ffc0c0363ed8a64bfe5de62bab14f9f439199062"
+    },
+    "D": {
+      "fit_admission": "DENIED",
+      "hypothesis_sha256": "24d229906f355a00ed396f411621466fcf86361b5146132fcf950970dc3cb179",
+      "method_spec_path": "teams/d/METHOD_SPEC.md",
+      "method_spec_sha256": "17e61440869b705b01af4a3db1edbd8390407821a52d0852deb6d3878b160a20",
+      "planned_units_path": "teams/d/PLANNED_UNITS.json",
+      "planned_units_sha256": "59eb60ac491a6ebe3fe50ed6f8ed96fc705acf7c249203a74cc95806b0649729",
+      "prototype_ids": [
+        "D_VQ_JOINT",
+        "D_VQ_TASK"
+      ],
+      "prototype_limit": 2,
+      "strongest_control_sha256": "85c974b64ee439f1fe2746c3d13ca834dc6dc43077d746bd05519713c408f4e2",
+      "team_branch_tip_at_draft": "b074d1545766e99661ec7dbe3ac0586ac5bc2d27"
+    }
+  },
+  "finalist_seed_identifiers_if_promoted": [
+    0,
+    1,
+    2
+  ],
+  "fit_admission": "B_ONLY",
+  "inference": "simultaneous conditional intervals; cost/local cap PASS iff upper<=cap, violation iff lower>cap; benefit/accuracy PASS iff lower>=threshold, violation iff upper<threshold; crossing unresolved",
+  "inference_protocol": {
+    "bootstrap_replicates": 2048,
+    "bootstrap_rule": "group resample jointly across arms and seeds; recompute max frozen-reader envelope inside every replicate; seed mean",
+    "bounds": "cost/local PASS iff simultaneous upper<=cap, violation iff lower>cap; benefit/accuracy PASS iff lower>=threshold, violation iff upper<threshold; crossing unresolved",
+    "numerical_zero_label": "NUMERICALLY_CONSTANT",
+    "numerical_zero_tolerance": 1e-12,
+    "numpy_version": "2.4.4",
+    "rng": "NumPy PCG64DXSM",
+    "scope": "conditional on fitted models and portfolio selection; development only",
+    "seed_public_sha256": "d1c3d94b05e449b93ed2ae0b2d705fab36ad5a58516b3b8699de9aceb511b475",
+    "simultaneous_family": "For each candidate, 12 utility margins plus 3 privacy margins against EACH registered potentially eligible matched control, all included before strongest-control selection; two-sided max-|t| 95% simultaneous family; 2048 paired-group PCG64DXSM replicates.",
+    "studentization_floor": 1e-12,
+    "unit": "paired people/groups across source seeds; seeds are not independent populations"
+  },
+  "old_assessment_permission": false,
+  "owner": "S1",
+  "phase1_queue_index_sha256": "7e5b6208e4a7dd5d5362f5b07677fc25d8dece576067aa1d4cf8b0d19e382bf2",
+  "post_lock_amendment": {
+    "failed_unit_id": "B-SCREEN-B-TASK-S0-R1",
+    "gate_regression_receipt_sha256": "d5554c6d9d836adaedc7e901aa151d6983635705741f3f085b118b74f15fb294",
+    "id": "PHASE2_AMENDMENT_002",
+    "previous_lock_commit": "7eb31595707c44fbf825084befaf5998c2550d28",
+    "previous_lock_sha256": "a7c6ed18f75335437a9c0601c2a11a44b1a77d14388d5741dfc5e0d215e8552d",
+    "prior_amendment_id": "PHASE2_AMENDMENT_001",
+    "replacement_unit_id": "B-SCREEN-B-TASK-S0-R2",
+    "scientific_change": false,
+    "screen_driver_sha256": "52446a0520d293e414284949b6211a7f3f1ed3cebf94b31e795ca66fd2d7bdcd",
+    "type": "ENGINEERING_SYNTHETIC_QUEUE_VOCABULARY_RETRY"
+  },
+  "pre_fit_gates": [
+    "All code/data/attack/scheduler prefit receipts pinned in prefit_evidence",
+    "S4_PREFIT_SEAL_REVIEW.json PASS binding this committed lock SHA and B_ONLY scope",
+    "LOCAL_SEAL_RECEIPT.json PASS binding lock commit, S4 review and exact hashes; S3 verifies at enqueue and run"
+  ],
+  "prefit_evidence": {
+    "att_group_class_probe_receipt_sha256": "c698f25b20402d40fa3ac903b683310a76d067f3e87c3bcb1d914fdd68aae679",
+    "b_prefit_gate_regression_receipt_sha256": "d5554c6d9d836adaedc7e901aa151d6983635705741f3f085b118b74f15fb294",
+    "s2_role_export_audit_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9",
+    "s2_synthetic_attack_plumbing_queue_receipt_sha256": "a8b167fcd17fd2215f405441fac03555a46088c4ad1d30d29207f491f3218422",
+    "s3_anchor_gate_receipt_sha256": "0fa1f04e19be6b7ebe622e2ec5be6b320bc734bbfdcb71e5765124c04d66b476",
+    "s3_anchor_gate_unit": "S2-ANCHOR-GATE-GREEN-034",
+    "s3_b_gate_planned_units_receipt_sha256": "4c76eaa832bbb498323ff2e22f5e1fdc6208ebee11ffbe61ed15758fbb77a590",
+    "s3_b_gate_tests_receipt_sha256": "9e8fe4b95dcf92bb1a621cbeeaac5a66c5ecc6ab001889d97b8e7a0fdb985705",
+    "s3_b_gate_tests_unit": "B-GATE-TESTS-033",
+    "s3_exact_unit_gate_receipt_sha256": "f88cec98461748f753636d286cccaf9ee24d8d28eb12dfd118c4d62029f27403",
+    "s3_exact_unit_gate_unit": "S3-EXACT-UNIT-GREEN-034",
+    "scope": "prefit numerical/synthetic/aggregate only; zero new Adult method fits at lock"
+  },
+  "privacy": {
+    "coalition_auc_benefit_min": 0.02,
+    "fixed_slate_attack_contract_status": "FROZEN_FOR_B_ONLY_CORE_BY_THIS_LOCK; S2 exact reader source/applicability SHA and ATT split probe pinned; broader historical source-slate sensitivity separate/unrun",
+    "local_auc_worsening_max": 0.01,
+    "strongest_control_rule": "Control utility eligibility vs frozen U0 and Ucal; any control local cap vs named frozen unprotected reference within track, independent of candidate; fixed-slate reader-envelope coalition AUC minimum among eligible matched controls; ties within 1e-12 by summed NLL then ID. Candidate local worsening vs selected control."
+  },
+  "promotion": "at most one score and one feature slot initially; unused slot to next eligible within same track ranking; no incompatible-track ranking",
+  "purpose": "One complete prefit B-only development screen on admitted role-only Adult data; A/C/D fit denied until separately dated prefit admission. Current Git commit plus independent S4 review and local seal receipt are all required for runtime activation.",
+  "queue_real_unit_admission": "B only: exact 16 screen and 16 postrelease control unit IDs keyed by arm:seed, stage/seed/arm/script SHA; exact two shared anchor IDs/script SHA; require current local seal at enqueue and run, no push bypass.",
+  "reference_identities": {
+    "feature_local_cap": "FEATURE_REF_RAW83_U, exact permitted 83 raw values plus frozen Ucal head; local-cap anchor, not a B matched control",
+    "role_reference_files_sha256": {
+      "ATTACK_FIT_NEW:references_s0": "d2fbceaac79e9c45cac9832c3753ffd4a6d08d83c4114fb35aa702e4fac21262",
+      "ATTACK_FIT_NEW:references_s1": "7b9e9f81655c9dbc5730eaf3641ce9ecd5b79edd88e9d77acea282b1f1a3fc9b",
+      "CALIBRATION_HELDOUT:references_s0": "c4b9b05301641d9061ae50188f1a22a7cf0782c922d0908a5ffef19eda502974",
+      "CALIBRATION_HELDOUT:references_s1": "e13e9c53f1c7fb9201caf027162c1097214b8f2cef5cf250bbb214bbe0b1980b",
+      "INNER_SELECTION:references_s0": "43e9e5e2c19c5e91d1823060726e928a3d7ac81d1937b9c03aae33b29d243ba0",
+      "INNER_SELECTION:references_s1": "309cb632a6e77d6067ef68fe7d9e52136457183c95c588de2ca9dbd01026658c",
+      "OSF_DEFENSE_FIT:references_s0": "c86d19ee7bc0ad3037374b431e693d146166a1feea6acbedab4e2a9a1c027aa7",
+      "OSF_DEFENSE_FIT:references_s1": "d07a7d5981ef4187d6fb18ba5e04d9cd0f67bffe568362794f7b1e77fd776be0"
+    },
+    "score_local_cap": "SCORE_REF_U, U0 complete scores/decisions with public Ucal transform; local-cap anchor"
+  },
+  "release_contracts": {
+    "B": "one fixed per-person draw; separate private per-purpose sampler; public z/logits/calibrated probabilities/decisions and metadata; no SEX/other-party inputs at runtime",
+    "feature": "actual released purpose features, head probabilities and decisions computed only from those features, code/mask/flags and all metadata",
+    "score": "actual one-shot sampled public bank probabilities, decisions, code IDs and all transmitted metadata; no repeated query claim"
+  },
+  "remote_status": "PENDING; GitHub DNS failed, no remote verification",
+  "resource_forecast": {
+    "continuation_cpu_budget_hours": 20,
+    "elapsed_budget_hours": 10,
+    "external_heavy_processes_at_forecast": 1,
+    "machine_heavy_processes_max": 2,
+    "measured_shape_extrapolation_cpu_seconds": 3466,
+    "numerical_threads_per_process": 1,
+    "scope": "B-only two-seed screen, 22 training jobs, 32 encoder stages, 32 calibrations, 336 main reader/real probe fits, forwards and 32 bootstrap contrasts",
+    "source": "S3 synthetic 023/026 timing and 033/034 queue receipts; actual Adult runtime may differ",
+    "three_times_margin_cpu_hours": 2.9
+  },
+  "role_files": {
+    "exporter_sha256": "75a945486f510d5280897da219038ea75c7b0d045185454d837583b33fac0d69",
+    "forbidden": [
+      "HEAD_VALIDATION labels",
+      "old assessment person arrays/predictions/labels",
+      "inherited mixed-role loader"
+    ],
+    "manifest_sha256": "c228dfdbef8a8e0a46281716e89c986e888fb4f64553fc35b3573020c0c83a11",
+    "numeric_admission_sha256": "fa49b4fd1cc72b497fc7f0268d1748bd6bb8da623a46575a0b71d75247591c55",
+    "role_manifest_sha256": "0994e84d426f2de87f7fe3ad2b70b49b19504bfd209419d308c17337f57f36f0",
+    "s4_report_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9",
+    "scientific_loader": "shared.safe_data_guard.SafeRoleStore only"
+  },
+  "roles": {
+    "attack_fit": "ATTACK_FIT_NEW",
+    "calibration": "CALIBRATION_HELDOUT",
+    "fit": "OSF_DEFENSE_FIT",
+    "forbidden": [
+      "HEAD_VALIDATION labels",
+      "OSF_DEVELOPMENT_ASSESSMENT person-level arrays, labels and predictions"
+    ],
+    "screen": "INNER_SELECTION"
+  },
+  "s4_role_export_verification_sha256": "5d455806634fbe3046d5d6487f9b9c411c600344f72e1374c1d66f3c19ebd9e9",
+  "scheduler_source_sha256": "46804099ee3fbef75fca716a9753453db3d9a4c3dc22ef75dac9c71b9c40c440",
+  "schema": "pcrl-method-portfolio-campaign-lock-v1",
+  "screen_seed_identifiers": [
+    0,
+    1
+  ],
+  "seal_rule": "Verified local Git commit and S4 prefit review suffice when remote DNS is unavailable; remote status remains pending. Alternative hash seal only if local Git metadata is actually denied.",
+  "shared_anchor_runner_sha256": "e4800c2f2593f4f35bc4086b5a897d2d402f22865b2ba07a258bdb0ab9a225e2",
+  "shared_attack_controls_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
+  "source_model_admission": {
+    "U_model_pt_sha256_by_seed": {
+      "s0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+      "s1": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c",
+      "s2": "60928c8caefbe8d09c5dc5a1390f9f73a76336a18617a825652a6ac2923d1c15"
+    },
+    "ccm_tip": "d85f0a6f44415f2f9e334870f4e68504cd6b6080",
+    "hcal_model_manifest_sha256": "52451ae3d99fa9c1182b820bd534b48feb7a926057b3b4a2a0175a9c9cd76c5a",
+    "hcal_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+    "lra_tip": "976202546a100f2b89a863cb3785c3465cf76c6a"
+  },
+  "source_tip": "1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5",
+  "status": "LOCAL_GIT_SEALED_EFFECTIVE",
+  "synthetic_attack_plumbing": {
+    "attack_controls_module_sha256": "13cc0eaac4030ad89e23b623468d9e58a4148727cc706fb49820a33c59923800",
+    "receipt_sha256": "70a94b99eaf231dbfc1b88d5a4fb404168205bb80dfc2030cc3ca814a51a574c",
+    "s3_unit_id": "S2-PLUMBING-027-SMOKE-ATTACK-CONTROLS",
+    "s3_unit_mode": "preseal_smoke",
+    "s3_unit_team": "S2_PLUMBING_027",
+    "smoke_script_sha256": "25ccbc79c66dd1ee9b66d695d69eec637a18cac70a8896dd56dc49e0f904de3d",
+    "verification_status": "S3_SYNTHETIC_PASS; real postrelease controls required"
+  },
+  "tracks": [
+    "score",
+    "feature"
+  ],
+  "unit_plan": {
+    "B_only_two_seed_main_readers": 228,
+    "B_only_two_seed_real_probe_fits": 108,
+    "B_only_two_seed_total_attack_and_probe_fits": 336,
+    "B_planned_units_sha256": "d74b13629861c1ba7b86ef9690f1653b7f9b205f80a2471f406b47d30d165e53",
+    "B_two_seed_calibration_fits": 32,
+    "B_two_seed_encoder_fit_stages": 32,
+    "B_two_seed_paired_role_forward_passes": 48,
+    "B_two_seed_training_jobs": 22,
+    "aliases_require_S4_exact_identity": true,
+    "full_attack_unit_table_sha256": "a57b8fa684877e90bc26dac4f0b8b3be0488fb913ab97543290f8de612e5c153",
+    "full_two_seed_attack_readers": 1260,
+    "full_two_seed_real_probe_fits_no_alias": 480,
+    "full_two_seed_total_trained_attack_and_probe_fits": 1740,
+    "zero_fit_null_and_ignore_aliases_charged_separately": true
+  },
+  "utility": {
+    "accuracy_difference_min": -0.01,
+    "complete_pass_requires_both_references": true,
+    "multiclass_brier_excess_max": 0.005,
+    "nll_excess_max": 0.01,
+    "references": [
+      "U0",
+      "Ucal"
+    ]
+  }
+}
