@@ -1,0 +1,63 @@
+{
+  "schema": "pcrl-s4-b-verifier-admission-draft-v1",
+  "status": "DRAFT_NOT_ADMITTED",
+  "effective_fit_lock_sha256": "6d82822f5fe54c16f76e6140eb7e780251f4d7cb288af0166855187ec5069dfa",
+  "synthetic_index_candidate": {
+    "schema": "pcrl-s4-verifier-queue-index-v1",
+    "status": "DRAFT_NOT_ADMITTED",
+    "unit_id": "S4-B-RELEASE-REPLAY-SYN-001",
+    "mode": "s4_synthetic_replay",
+    "script": "s4/test_replay_b_release.py",
+    "test_sha256": "8ee53ef3b59e91354e940c518fd36897c823412d09706a4eab19ed8f8edbc7e7",
+    "source_sha256_by_file": {
+      "replay_b_release.py": "97c08ef7f40c611e658978d3c0390002291158443f90c9098b3280ae83e7c79d"
+    },
+    "runner": "PCRL .venv Python 3.13.7, NumPy 2.4.2, Torch 2.10; python -m pytest -q s4/test_replay_b_release.py",
+    "adult_source_access": false,
+    "max_heavy_slots": 1,
+    "threads": 1
+  },
+  "adult_lock_candidate": {
+    "schema": "pcrl-s4-b-verifier-admission-v1",
+    "status": "DRAFT_NOT_ADMITTED",
+    "accepted_fit_lock_sha256": "6d82822f5fe54c16f76e6140eb7e780251f4d7cb288af0166855187ec5069dfa",
+    "active_unit_id": "S4-B-ATTEMPT-REPLAY-B-TASK-S0-R2",
+    "unit_specs": {
+      "S4-B-ATTEMPT-REPLAY-B-TASK-S0-R2": {
+        "arm": "B-TASK",
+        "seed": 0,
+        "screen_unit_id": "B-SCREEN-B-TASK-S0-R2",
+        "attempt_index_sha256": "74bd8539aa405ff67bd7a4364707c15faf57666319027aa4ff8c1e876e102d99",
+        "real_control_index_sha256": "c531b3a133d83f741a5fc74a15a442ae29ce8ae5d4db3e0bfb9fa50d7f2df040"
+      }
+    },
+    "allowed_role_fields": [
+      "ATTACK_FIT_NEW:features",
+      "ATTACK_FIT_NEW:sex",
+      "INNER_SELECTION:features",
+      "INNER_SELECTION:income",
+      "INNER_SELECTION:occupation",
+      "INNER_SELECTION:sex",
+      "INNER_SELECTION:references_s0"
+    ],
+    "source_sha256_by_file": {
+      "replay_b_attempt.py": "4dddf48ecc3708a804e24596444ec47a46dafeb0d215e93f080979806ee64354",
+      "replay_b_release.py": "97c08ef7f40c611e658978d3c0390002291158443f90c9098b3280ae83e7c79d",
+      "replay_b_readers.py": "d987565b15048825da4ba8a868449534698587bb04e86c5f65eaa401c73d2457",
+      "independent_endpoints.py": "63d725516c4194753bbb55528bfb151ee8ad2ccc789c60ca8d8f6eb441d4666b"
+    },
+    "queue_contract": {
+      "mode": "s4_adult_replay",
+      "family": "S4",
+      "team": "S4",
+      "stage": "independent_b_attempt_replay",
+      "unit_id": "S4-B-ATTEMPT-REPLAY-B-TASK-S0-R2",
+      "script": "s4/replay_b_attempt.py",
+      "one_thread": true,
+      "wall_seconds_max": 1800,
+      "rss_bytes_max": 2147483648,
+      "private_report_write_once": true
+    }
+  },
+  "note": "S1 must seal a separate verifier index/lock after synthetic GREEN; S3 must add and test a narrowly scoped queue mode after active B fit units finish. This draft authorizes no Adult read. Public admission contains no private attempt path."
+}
