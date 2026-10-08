@@ -1,6 +1,8 @@
 """Synthetic full-arm orchestration; run only through the S3 numerical queue."""
 
 import stat
+import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -11,20 +13,50 @@ from control_pipeline import FitAdmissionSeal, fit_arm
 from test_control_artifacts import fixtures
 
 
-def admitted(data):
+def admitted(data, tmp_path):
     rows = np.asarray(data.row_ids, dtype=np.int64)
     groups = np.asarray(data.group_ids, dtype=np.int64)
+    row_hash = FitAdmissionSeal._sha_arr(np.sort(rows))
+    group_hash = FitAdmissionSeal._sha_arr(np.unique(groups))
+    pair_hash = FitAdmissionSeal._sha_arr(np.column_stack((rows, groups)).astype(np.int64))
+    root = tmp_path / "admission"
+    root.mkdir(exist_ok=True)
+    specs = {}
+    for field in ("features", "income", "occupation", "sex", "references_s0"):
+        path = root / f"{field}.npz"
+        path.write_bytes(f"synthetic admitted {field}".encode())
+        specs[f"OSF_DEFENSE_FIT:{field}"] = {
+            "role": "OSF_DEFENSE_FIT", "field": field, "path": str(path),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "row_unit_pair_sha256": pair_hash,
+        }
+    manifest = {
+        "schema": "pcrl-method-portfolio-data-access-v1",
+        "status": "ROLE_FILES_ADMITTED_S4_VERIFIED",
+        "source": {
+            "source_npz_sha256": "c" * 64,
+            "feature_names_sha256_newline_join": hashlib.sha256(
+                "\n".join(data.feature_names).encode()).hexdigest(),
+        },
+        "roles": {"OSF_DEFENSE_FIT": {
+            "rows": len(rows), "groups": np.unique(groups).size,
+            "row_id_sha256": row_hash, "group_id_sha256": group_hash,
+        }},
+        "real_file_specs": specs,
+    }
+    manifest_path = root / "DATA_ACCESS_MANIFEST.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     return FitAdmissionSeal(
         source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
-        role_only_export_sha256="e" * 64,
-        reference_export_sha256="d" * 64,
+        reference_seed=0, admission_manifest_path=str(manifest_path),
+        role_only_export_sha256=specs["OSF_DEFENSE_FIT:features"]["sha256"],
+        reference_export_sha256=specs["OSF_DEFENSE_FIT:references_s0"]["sha256"],
         source_npz_sha256="c" * 64,
-        admission_manifest_sha256="f" * 64,
+        admission_manifest_sha256=hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         admitted_rows=len(rows), admitted_groups=np.unique(groups).size,
-        admitted_row_id_sha256=FitAdmissionSeal._sha_arr(np.sort(rows)),
-        admitted_group_id_sha256=FitAdmissionSeal._sha_arr(np.unique(groups)),
-        admitted_row_unit_pair_sha256=FitAdmissionSeal._sha_arr(
-            np.column_stack((rows, groups)).astype(np.int64)),
+        admitted_row_id_sha256=row_hash,
+        admitted_group_id_sha256=group_hash,
+        admitted_row_unit_pair_sha256=pair_hash,
         data_sha256=data.sha256, row_order_sha256=data.row_order_sha256,
         group_order_sha256=data.group_order_sha256,
         feature_schema_sha256=data.feature_schema_sha256,
@@ -43,7 +75,7 @@ def test_registered_arm_completes_with_private_provenance(tmp_path, arm, stage_c
     result = fit_arm(
         arm, 0, data=data, base_model=base, base_critics=critics,
         hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
-        admitted_fit=admitted(data),
+        admitted_fit=admitted(data, tmp_path),
         private_attempt_dir=root,
         expected_base_model_sha256=model_fingerprint(base),
         expected_base_critics_sha256=critic_fingerprint(critics),
@@ -69,7 +101,7 @@ def test_wrong_common_seed_identity_refuses_before_creating_attempt(tmp_path):
         fit_arm(
             "B-TASK", 0, data=data, base_model=base, base_critics=critics,
             hyper=hyper, source_id="synthetic-source", role_id="OSF_DEFENSE_FIT",
-            admitted_fit=admitted(data),
+            admitted_fit=admitted(data, tmp_path),
             private_attempt_dir=root,
             expected_base_model_sha256="0" * 64,
             expected_base_critics_sha256=critic_fingerprint(critics),
@@ -79,7 +111,7 @@ def test_wrong_common_seed_identity_refuses_before_creating_attempt(tmp_path):
 def test_wrong_fit_membership_refuses_before_creating_attempt(tmp_path):
     base, critics, data, hyper = fixtures()
     root = tmp_path / ".private" / "wrong-membership"
-    original = admitted(data)
+    original = admitted(data, tmp_path)
     tampered = FitAdmissionSeal(
         **{**vars(original), "row_order_sha256": "0" * 64}
     )

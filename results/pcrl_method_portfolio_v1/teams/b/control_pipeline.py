@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import hashlib
+import json
 import os
 import re
 import stat
@@ -48,6 +49,8 @@ class FitAdmissionSeal:
 
     source_id: str
     role_id: str
+    reference_seed: int
+    admission_manifest_path: str
     role_only_export_sha256: str
     reference_export_sha256: str
     source_npz_sha256: str
@@ -71,9 +74,11 @@ class FitAdmissionSeal:
         digest.update(arr.tobytes())
         return digest.hexdigest()
 
-    def check(self, data: FitData, *, source_id: str, role_id: str) -> None:
+    def check(self, data: FitData, *, source_id: str, role_id: str, seed: int) -> None:
         if self.source_id != source_id or self.role_id != role_id:
             raise ValueError("Fitting source or role differs from S2 admission seal")
+        if self.reference_seed != seed or seed not in (0, 1, 2):
+            raise ValueError("Fitting teacher reference seed differs from S2 admission seal")
         for field in ("role_only_export_sha256", "reference_export_sha256",
                       "source_npz_sha256", "admission_manifest_sha256",
                       "admitted_row_id_sha256", "admitted_group_id_sha256",
@@ -100,6 +105,40 @@ class FitAdmissionSeal:
                 or self._sha_arr(np.column_stack((rows, groups)).astype(np.int64))
                 != self.admitted_row_unit_pair_sha256):
             raise ValueError("Fitting membership differs from S2 admitted role")
+        manifest_path = Path(self.admission_manifest_path).resolve()
+        if not manifest_path.is_file() or file_sha256(manifest_path) != self.admission_manifest_sha256:
+            raise ValueError("S2 admission manifest file differs from sealed bytes")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if (manifest.get("schema") != "pcrl-method-portfolio-data-access-v1"
+                or manifest.get("status") != "ROLE_FILES_ADMITTED_S4_VERIFIED"):
+            raise ValueError("S2 role-only manifest is not independently admitted")
+        if manifest["source"]["source_npz_sha256"] != self.source_npz_sha256:
+            raise ValueError("Source identity differs from S2 admission")
+        admitted_role = manifest["roles"][self.role_id]
+        if (admitted_role["rows"] != self.admitted_rows
+                or admitted_role["groups"] != self.admitted_groups
+                or admitted_role["row_id_sha256"] != self.admitted_row_id_sha256
+                or admitted_role["group_id_sha256"] != self.admitted_group_id_sha256):
+            raise ValueError("Role membership hashes differ from S2 admission")
+        names_hash = hashlib.sha256("\n".join(data.feature_names).encode()).hexdigest()
+        if names_hash != manifest["source"]["feature_names_sha256_newline_join"]:
+            raise ValueError("Feature-name identity differs from S2 admission")
+        specs = manifest["real_file_specs"]
+        required = ("features", "income", "occupation", "sex", f"references_s{seed}")
+        for field in required:
+            spec = specs[f"{self.role_id}:{field}"]
+            declared = Path(spec["path"])
+            path = (declared if declared.is_absolute() else manifest_path.parent / declared).resolve()
+            if spec["role"] != self.role_id or spec["field"] != field or not path.is_file():
+                raise ValueError("S2 role-only field identity or file is missing")
+            if file_sha256(path) != spec["sha256"]:
+                raise ValueError("S2 role-only file bytes differ from admission")
+            if spec["row_unit_pair_sha256"] != self.admitted_row_unit_pair_sha256:
+                raise ValueError("S2 role-only field has different person/group pairing")
+        if (specs[f"{self.role_id}:features"]["sha256"] != self.role_only_export_sha256
+                or specs[f"{self.role_id}:references_s{seed}"]["sha256"]
+                != self.reference_export_sha256):
+            raise ValueError("Feature or teacher export differs from S2 admission seal")
 
 
 def _utc() -> str:
@@ -164,7 +203,7 @@ def fit_arm(arm: str, seed: int, *, data: FitData,
         raise ValueError("Unknown Team B arm")
     if role_id != "OSF_DEFENSE_FIT" or not source_id:
         raise ValueError("An admitted defense-fitting role identity is required")
-    admitted_fit.check(data, source_id=source_id, role_id=role_id)
+    admitted_fit.check(data, source_id=source_id, role_id=role_id, seed=seed)
     if (base_model.feature_names != data.feature_names
             or schema_fingerprint(base_model.feature_names) != data.feature_schema_sha256):
         raise ValueError("Base model does not match S2's ordered permitted feature schema")

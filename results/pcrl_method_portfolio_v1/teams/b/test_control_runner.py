@@ -26,6 +26,7 @@ def hyper():
 ])
 def test_paired_arm_config_matches_locked_schedule(arm, stochastic, kl, local, pair):
     config = stage_config(stages_for_arm(arm, 0, 10)[0], hyper())
+    assert config.fit_role_id == "OSF_DEFENSE_FIT"
     assert config.stochastic is stochastic
     assert config.weights.bottleneck_kl == kl
     assert config.local_critic_updates == local

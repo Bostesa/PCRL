@@ -13,7 +13,7 @@ from pathlib import Path
 
 from control_plan import ARMS, suite_stages, suite_unit_counts
 
-ATTACK_MODELS = ("LR_C1", "MLP_64x64", "HGB_100_leaf15", "DEFENSE_AWARE_MLP_64x64")
+ATTACK_MODELS = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32")
 VIEWS = ("income", "occupation", "pair")
 ROLES = ("CALIBRATION_HELDOUT", "ATTACK_FIT_NEW", "INNER_SELECTION")
 
