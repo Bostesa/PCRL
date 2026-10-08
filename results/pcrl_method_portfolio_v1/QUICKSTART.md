@@ -1,36 +1,38 @@
-# Quickstart and executed checks
+# Quickstart and commands used
 
-Work from the `research/pcrl-method-portfolio-v1` worktree. The campaign remains blocked for Adult fits. `CAMPAIGN_LOCK.json` has `adult_fit_permission: false`; this page does not grant permission to change that gate.
+Work in the isolated `research/pcrl-method-portfolio-v1` worktree. The existing virtual environment is two directory levels above that worktree. Every real fit, preprocessing job, attack, score and independent numerical replay entered the durable S3 queue; the one-slot admission accounts for the unrelated heavy process on the same machine. A direct worker invocation is not an admitted reproduction.
 
-## Commands executed in this campaign
+## Read the result
+
+Start with `START_HERE.md`, `RESEARCH_DECISION.md`, `COMMON_PROTOCOL.md`, `INTERFACE_CONTRACTS.md`, `DATA_ACCESS_MANIFEST.json` and `CANDIDATE_REGISTRY.json`. The full B and C screen rows are in `SCREEN_RESULTS.csv` and `ALL_ARMS.csv`; additional B and C aggregate/per-class files are named there. S4 evidence is in `INDEPENDENT_VERIFICATION.json` and `s4/`. The effective C-R1 fit lock is `CAMPAIGN_LOCK.json` at SHA-256 `98365edba38b01e100f50e4ca3c3d21abea931fb0b8534a9b188d35f179beb54`. Its 135 exact R1 units are complete; the earlier failed C reader and 22 successful engineering units remain archived separately.
+
+## Reproduce custody checks
+
+These commands were run in the worktree, or with the same arguments by S3's queued runner:
 
 ```sh
 git rev-parse HEAD
 git cat-file -t 1baf5bbdaf59cfa6a664cae07d652a4712bdfdc5
-git cat-file -t 159537dcb61d030c870ae42e7addff4796651723
 git cat-file -t d85f0a6f44415f2f9e334870f4e68504cd6b6080
-git cat-file -t d5337e552e78b31830f94d85ef1cc4b335b1b8ec
-git cat-file -t dc57711a1d80fe4868f93008339ff2d02d467f7b
+shasum -a 256 results/pcrl_method_portfolio_v1/CAMPAIGN_LOCK.json
+git diff --check
 ```
 
-The local object checks succeeded. `git ls-remote` and research-branch pushes to GitHub failed on DNS resolution, so current remote tips were not verified.
-
-From `results/pcrl_method_portfolio_v1/shared`, the fail-closed guard suite was executed successfully with the repository source on `PYTHONPATH`:
+The role-only data gate and queue synthetic regressions ran under S3 receipts. This read-only suite was run from the shared directory:
 
 ```sh
+cd results/pcrl_method_portfolio_v1/shared
 PYTHONPATH="$(cd ../../.. && pwd)" python3 -m unittest -v test_safe_data_guard
 ```
 
-All six synthetic tests passed. S3 also ran seven `test_compute_queue.py` engineering tests and verified the hashes in `PHASE1_QUEUE_INDEX.json`; see `RESOURCE_RECEIPTS.json`. Some teams ran small synthetic checks before the global queue rule was in place. Those deviations and their conservative CPU charge are recorded there. The final A/B/C/D numerical checks have **not** run and must enter the shared queue when a fresh occupancy receipt opens it.
+The durable queue was driven with the equivalent of:
 
-Static checks used `python3 -m py_compile` or AST parsing for team code, `python3 -m json.tool` for structured files, and `git diff --check`. These do not establish numerical correctness.
+```sh
+../../.venv/bin/python results/pcrl_method_portfolio_v1/shared/compute_queue.py --root results/pcrl_method_portfolio_v1/shared/.private/compute run-once
+```
 
-## Safe continuation order
+Each unit has an immutable spec, admitted parent hashes, resource cap and S3 receipt under the private queue root. The C-R1 manifest, finalizer, and 135-unit registry are listed in `RESOURCE_RECEIPTS.json`. To replay historical C-R1 units, use the queue source byte identity `969a09daf86872bdfd0ec9499c3d5e2041e653aad4d56590ecffb89945818b09` pinned in Git; later S4 queue amendments do not alter that fit receipt.
 
-1. Find and independently verify a **pre-existing** private export containing only allowed role rows, permitted features and needed labels. Never open the all-role NPZ to construct one. Bind hashes and role fields through `shared/safe_data_guard.py`.
-2. Refresh the machine-wide process inventory and reopen `shared/compute_queue.py` only if the two-heavy-process limit has capacity. Do not stop other sessions' jobs.
-3. Run the queued synthetic law, adapter and trainer checks through that queue. Fill the D distortion-matched control and the common attack slate. Smoke-time every architecture and close the exact unit table within the 20 CPU-hour budget.
-4. Replace the blocking draft with a complete `CAMPAIGN_LOCK.json`, commit and push it, and verify its remote tip before any Adult fit. If GitHub remains unavailable, keep fit permission false.
-5. If all gates pass, run the two paired-seed development screen, apply the frozen within-track promotion rule, and create `FINALIST_LOCK.json` only for selected candidates. Report every attempted unit.
+S4's B replay checked 18 arm/anchor outputs and 822 aggregate values without importing the candidate scorer. C's independent replay is pending a separate, dated queue admission. Public aggregate extraction does not require reopening role arrays. Old assessment person arrays and HEAD_VALIDATION labels remain embargoed.
 
-The old assessment person-level arrays and HEAD_VALIDATION labels remain embargoed. The source hcal/CCM and team artifacts are historical or prefit evidence, not new endpoints.
+The local `origin` is a filesystem path whose research-branch pushes fail with a remote unpack error in the current sandbox. The `github` remote also failed DNS resolution. Local branch commits and same-device restore are the current custody; neither is a verified remote tip. Off-device backup is pending.
