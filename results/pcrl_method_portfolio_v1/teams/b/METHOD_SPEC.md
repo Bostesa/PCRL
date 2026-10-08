@@ -1,0 +1,56 @@
+# Team B method specification: variational task-sufficient feature release
+
+**Draft for S1/S2 review before CAMPAIGN_LOCK.json. No real-data fit is authorized by this file alone.** Team B is on the **FEATURE TRACK**. S2's common protocol controls exact rows, labels, columns, reference identities, calibration, attackers, inference and boundary conventions.
+
+## Input and deployment contract
+
+The provider receives one person's 83 permitted, source-pinned preprocessed Adult predictors `x`. The source raw schema excludes SEX, race, income/occupation target columns, weight, identifiers and other forbidden columns. S2 must independently verify the source loader and role-specific export before any fit. Protected SEX and both task labels are fitting-only; they are never deployment inputs. Each encoder reads only that person's permitted `x`, never the other recipient's output or unavailable private per-person inputs. Public parameters, architecture and calibration maps are assumed known to attackers.
+
+For recipient `i`, with income `i=1` and six-class occupation group `i=2`:
+
+```
+q_i(z_i | x) = Normal(mu_i(x), diag(exp(logvar_i(x))))
+epsilon_i ~ Normal(0, I), independently conditional on x
+z_i = mu_i(x) + exp(logvar_i(x)/2) * epsilon_i
+logits_i = h_i(z_i)
+p_i = softmax(Cal_i(logits_i))
+v_i = (z_i, logits_i, p_i, argmax(p_i), public model/version and release metadata)
+v_pair = (v_1, v_2) aligned for the same person
+```
+
+`mu_i, logvar_i` use two separate 83→64→64→32 ReLU MLPs, split into 16 mean and 16 log-variance coordinates; each task head is affine 16→K. Proposed `Cal_i(logits)=logits/T_i` uses one positive scalar temperature per purpose, fitted on **one frozen sampled draw per calibration person** in S2's allowed held-out role under its shared procedure. Fitting temperature to an average over hidden draws would calibrate a different interface. The adapter requires these fitted scalars; it cannot use fitting labels or refit at inference. Raw logits from the **sampled-code head** are transmitted and are part of every attack view even though they are deterministic from public weights and `z_i`. Numerical log-variance bounds, optimizer, epoch count, batch size, loss weights, seeds, calibration family and code hash must be fixed in the campaign lock after engineering smoke timing. These are required configuration fields, never silently selected on INNER_SELECTION. No raw `x`, encoder mean, variance, teacher score, clean/unprotected head, LEACE input, adversary output, fallback value or hidden code is appended. If implementation transmits anything else, it is part of every attack view.
+
+The interface supplies **one fixed sampled release per person per model version**. The prototype builds an immutable private batch and replays it from `SavedRelease` after restart; it does not expose a redraw endpoint. Its sampler requires a private key of at least 32 bytes, with HMAC domain separation by source, model version, purpose and private person key. The sampler key is never transmitted or saved in the release batch. The batch file is private with mode `0600`, and a restart must serve the identical saved draw. Recipients and the aligned coalition can observe and save their actual `z_i`, raw sampled-code logits, calibrated probabilities, decisions, version and metadata. The contract does not promise protection against unrestricted fresh repeated draws. If stable one-draw deployment cannot be implemented, mark it invalid rather than silently switching to repeated sampling. All utility and privacy endpoints score the actual sampled release; evaluating an averaged probability is a separate diagnostic and cannot nominate this arm. S2 freezes a sampling-variance plan before fitting.
+
+## Fitting objective
+
+Fit both encoders and heads end to end on allowed defense-fitting rows. The frozen teacher supplies task probabilities only on permitted fitting/calibration rows. `CE(y_i,p_i)` is supervised multiclass log loss. `KD(t_i,p_i)` is teacher-to-student cross-entropy or KL with a common fixed convention. Both heads consume the same sampled `z_i` that would be released. For `r(z)=Normal(0,I)` define `K_i=E_x KL(q_i(z|x)||r(z))`; for diagonal Gaussians this is analytic.
+
+The proposed **B-JVIB** encoder/head objective uses an explicit normalization matching the prototype's `training_terms()`:
+
+`w_task*mean_i CE_i + rho*mean_i KD_i + beta*mean_i K_i - lambda_local*mean_i CE(a_i(S|v_i)) - lambda_pair*CE(a_pair(S|v_pair))`,
+
+where the critics minimize their own SEX cross-entropy on the same fitting role while the encoders maximize it. During training, critics see `z`, raw head logits, uncalibrated `softmax(logits)` at `T=1`, and a one-hot decision; the held-out temperature does not exist until the encoder is frozen. Since these are all public deterministic functions of the transmitted `z`, this surrogate loses no ideal-reader information, but its finite optimization need not match a reader of the deployed calibrated view. Every **fresh** attacker therefore sees the full deployed view including calibrated probabilities, decisions and any metadata. Set `w_task=1` unless S1 declares a prelock correction. The constant prior reader and fresh later attackers are separate. Normalize each task/critic term by its declared support and freeze `rho`, `beta`, `lambda_local`, `lambda_pair`, optimizer update counts and seeds in the campaign lock. Proposed matched exposure is `T` encoder updates per purpose: joint arms update each local critic `T` times and the pair critic `2T` times; each sequential order gives its first and second local critics `T` times each and its second-stage pair critic `2T` times; the local-only arm gives each local critic `2T` times. S3 times a complete representative job before S1 fixes numeric `T`. The proposal requires **one** protected configuration, not an outcome-driven coefficient grid. The optimizer may be heuristic; no saddle-point or utility-feasibility theorem is claimed. No per-person utility guard is used.
+
+For the stochastic law, with conditional-independent `z_1,z_2`, `K_1+K_2 = E_x KL(q(z_1,z_2|x)||r(z_1)r(z_2))`, which upper-bounds `I(X;Z_1,Z_2)` for the modeled input distribution. This is a general rate bound, often loose; it does not imply a SEX-AUC cap, independence, or held-out validity. The released heads are functions of `z` and public maps, so they add no Shannon information beyond `z` under this precise interface. Their numeric values remain in attacker input to test implementation and finite-reader behavior. Deterministic `z=mu(x)` does **not** inherit the stochastic KL information bound.
+
+## Required arms and attribution
+
+| Arm | Operation | Role |
+|---|---|
+| `B-JVIB` | Joint stochastic VIB above, local and coalition critics | One primary Team B prototype. |
+| `B-DVIB` | Same Gaussian-parameter architecture, KL formula/coefficient, tasks, distillation and critics, but train and release `z=mu(x)` | The sole structural prototype/ablation for sampling. Here log-variance is driven toward zero by KL, leaving approximately `0.5*||mu||²` as mean-release regularization. This is not an information bound: deterministic real-valued means can retain fine distinctions. |
+| `B-TASK` | Identical stochastic VIB and task/distillation/KL terms, no SEX critics | Matched task-only capacity and confidence control. |
+| `B-LOCAL` | Separate stochastic VIBs with local SEX critics only, trained separately and attacked together | Non-joint private control. |
+| `B-SEQ12`, `B-SEQ21` | Fit first recipient with task/local terms; freeze it; fit second with task/local and complete pair critic, in both orders | Matched sequential controls. Both tasks are known to all arms; per-encoder optimizer steps and budgets match B-JVIB. Not Taylor's exact method. |
+| `B-RAWJ` | Ordinary raw joint adversarial control at the same permitted input, latent width, task heads, full view and critic/compute budget, without stochastic KL bottleneck | Checks whether old-style penalty explains the result. Reuse only under exact identity; otherwise fit anew. |
+
+The zero-cost `B-JVIB` mean-inference view can diagnose whether deployed noise changes behavior, but it is not a selectable release or a replacement for the trained `B-DVIB` ablation. If ordinary `B-RAWJ` duplicates `B-DVIB` after implementation, record an exact alias rather than claiming two controls. Optional HSIC/MMD is at most a fixed dependence-objective ablation if S1 admits it before lock; it is not another family or certificate.
+
+All arms use identical permitted inputs, role splits, teacher identity, calibration family, latent width, head family, comparable update/restarter budget and full-view fresh attack slate. Calibration acts only on `h_i(z_i)` outputs, never original teacher logits. Task-only and privacy arms get the same held-out calibration procedure. Comparisons are within FEATURE TRACK and against both U0 and Ucal common utility references; score-only controls are contextual, not automatically eligible feature comparators.
+
+## Premise checks and kill conditions
+
+Before fits, freeze five independent synthetic laws: feasible null, removable sensitive distinction, genuine complementary clue, no coalition complementarity, and confidence-useful versus decision-only. Verify local/pair view construction, conditional-independent samplers, KL formula, head dependence on sampled `z`, and identical replay of the one-draw adapter. An exact finite-law oracle may test a tiny law; the neural optimizer itself is not an exact oracle. Preserve failed/duplicate runs.
+
+Stop this lane if no useful arm meets both task mean-utility limits, a fresh complete-view attacker removes any privacy gain, sampled releases require raw-score fallback, or deterministic/local/sequential/ordinary raw controls explain the gain. A point-estimate utility-feasible screen may be precision-limited and still considered under the common frozen promotion rule; it is never called a passed clause when its simultaneous interval crosses the boundary.
