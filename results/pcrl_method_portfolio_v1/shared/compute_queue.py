@@ -685,17 +685,18 @@ class Queue:
                 return "v2_output_or_v1_mismatch"
         else:
             if (arm != "FEATURE_REF_RAW83_U" or
-                not exact_script("results/pcrl_method_portfolio_v1/shared/run_feature_ref_raw83_u_v2_probe.py",
+                not exact_script("results/pcrl_method_portfolio_v1/shared/run_feature_ref_raw83_u_v2_probe_r2.py",
                                  lock.get("anchor_probe_runner_sha256"))):
                 return "v2_anchor_script_not_admitted"
             parent_id = f"S2-FEATURE-REF-RAW83-U-S{seed}"
             expected = {"family": "SHARED", "arm": arm, "seed": seed,
                         "stage": "postrelease_control_v2", "parent_unit_id": parent_id}
-            output = lock_path.parent / "shared/.private" / f"feature_ref_raw83_u_s{seed}_v2_probe" / "V2_ANCHOR_PROBE_RECEIPT.json"
+            output = lock_path.parent / "shared/.private" / f"feature_ref_raw83_u_s{seed}_v2_probe_r2" / "V2_ANCHOR_PROBE_RECEIPT.json"
             if (target != expected or spec.get("parent_unit_id") != parent_id or
                 spec.get("outputs") != [str(output)] or
                 spec.get("runner_sha256") != lock.get("anchor_probe_runner_sha256") or
                 flag("--seed") != str(seed) or
+                flag("--unit-id") != uid or
                 flag("--control-lock-sha256") != control_sha or
                 flag("--control-seal-sha256") != receipt_sha or
                 flag("--data-manifest-sha256") != lock.get("data_access_manifest_sha256") or
@@ -745,6 +746,17 @@ class Queue:
                 lock.get("parent_anchor_receipt_sha256_by_unit", {}).get(parent_id) != output_sha or
                 spec.get("parent_anchor_receipt_sha256") != output_sha):
                 return "v2_parent_anchor_mismatch"
+            try:
+                parent_reader_shas = json.loads(Path(outputs[0]).read_text()).get("reader_receipt_sha256")
+            except (OSError, ValueError, TypeError, AttributeError):
+                return "v2_parent_reader_receipts_mismatch"
+            child_reader_shas = spec.get("reader_receipt_sha256")
+            if (not isinstance(parent_reader_shas, dict) or
+                set(parent_reader_shas) != {"r1", "r2", "pair"} or
+                any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+                    for value in parent_reader_shas.values()) or
+                child_reader_shas != parent_reader_shas):
+                return "v2_parent_reader_receipts_mismatch"
             parent_flag = "--campaign-lock-sha256"
         argv = parent["spec"].get("argv", [])
         matches = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg == parent_flag]
