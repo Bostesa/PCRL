@@ -1,21 +1,35 @@
 # S4 independent Adult replay plan
 
-Status: B-TASK seed 0 and B-JVIB seed 0 screens and real control probes have
-completed. Independent Adult numerical replay has not run. The B-only prefit
-seal checks custody and admission; it does not verify a fitted result.
+Status on 2026-10-08: all 16 paired-seed B screens and both feature anchors
+have completed under two preserved B-only fit locks. Uniform V2 real control
+probes are being run under a separate committed lock after the original
+shuffled-label control was found unsuitable as a mandatory null. Independent
+Adult numerical replay has not run. Prefit and V2 control seals check custody
+and admission; they do not verify fitted endpoints.
 
 ## Admission and custody
 
-For each completed B screen, require the exact S3 unit in the effective lock,
-exit 0, matching arm/seed, and a completed postrelease real-control unit.
-Replay numerical custody even when that control failed, while preserving its
-FAIL status and prohibiting a competitive pass. Preserve failed and partial
-attempts. Hash `ATTEMPT_INDEX.json`, its listed fit checkpoints, both saved
-release files, calibration records, reader receipts, `ENDPOINT_INPUTS` files
-and `AGGREGATE.json`. Join ordered `(row_id, unit)` independently to the
-admitted role-only ATTACK_FIT_NEW and INNER_SELECTION files. Recompute the
-fixed ATTACK_TRAIN/TUNE group split from role IDs and check counts, disjointness
-and both SEX classes. Read no all-role or old-assessment person arrays.
+For each completed B screen, require its exact historical or amended S3 unit,
+the specific committed fit-lock blob and archived S4 review/local seal, exit 0,
+matching arm/seed and a completed uniform V2 postrelease control unit. Match
+each `ATTEMPT_INDEX.json` and V2 index to the separate verifier admission by
+full SHA. Preserve V1 probe outcomes only as historical diagnostics. Replay
+numerical custody even when a V2 control failed, while retaining its FAIL
+status and prohibiting a competitive pass. Preserve failed and partial
+attempts. Hash the attempt index, listed fit checkpoints, both saved releases,
+calibration records, reader receipts, `ENDPOINT_INPUTS` files and aggregate.
+Join ordered `(row_id, unit)` independently to admitted role-only ATTACK_FIT_NEW
+and INNER_SELECTION files. Recompute the fixed ATTACK_TRAIN/TUNE group split
+from role IDs and check counts, disjointness and both SEX classes. Read no
+all-role or old-assessment person arrays.
+
+Independently replay V2's two LR probes on every view: check frozen ATT fit
+and INNER matrices against rebuilt complete views, one groupwise ATT SEX
+shuffle and one independently groupwise INNER SEX shuffle under the registered
+salts, private fitted model predictions, and null, independent shuffle and
+planted AUC gates. The shuffled-fit AUC against true INNER SEX stays
+descriptive. A view-level V2 failure blocks the affected arm; no retry, salt
+change or threshold change follows an outcome.
 
 ## Complete release and readers
 
@@ -62,15 +76,20 @@ is exploratory on reused Adult rows, even when an interval clears a target.
 
 ## Queue and outputs
 
-S4 numerical replay is a separately registered S3 queue unit, with its own
-script hash, one numerical thread, explicit CPU/RSS ceiling, and private
-person-array output. First run a single completed B arm/seed custody replay;
-run the full endpoint/bootstrap replay once all required outputs exist. Public
+S4 numerical replay requires a separate immutable verifier index, lock, S4
+prefit review and S1 local seal. Its admission names both accepted fit-lock
+SHAs, the V2 control lock SHA, every parent attempt/anchor and V2 index SHA,
+allowed role-only fields, exact S4 source/test hashes and output unit IDs. S3
+first runs the test-first synthetic RED/GREEN under a `data_access=NONE`
+verifier mode after the active V2 queue drains, then admits Adult replay in a
+different exact mode. Each numerical unit has one thread, explicit CPU/RSS
+ceiling and private person-array custody. Smoke-time the first attempt and
+anchor before reserving the remaining replay budget. Public
 `INDEPENDENT_VERIFICATION.json` records only aggregates, hashes, checks and
 limits. No S4 code imports the candidate's evaluator or selector.
 
 The first two B-TASK:s0 queue attempts failed before role access because of
 an absent config path and then a mismatched synthetic-smoke identity. Their
 receipts remain failed attempts. The R2 screen completed under dated
-amendments, followed by real controls. The separate S4 verifier queue mode
-and lock remain pending; no Adult S4 role arrays have been opened.
+amendments. The separate S4 verifier queue mode and lock remain pending; no
+Adult S4 role arrays have been opened.
