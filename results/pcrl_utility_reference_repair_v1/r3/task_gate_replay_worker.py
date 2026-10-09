@@ -293,6 +293,7 @@ def replay(spec: dict, private_root: Path, export_root: Path,
             if (package["seed"] != seed or package["task"] != task
                     or package["selected_recipe"] != selection["selected_recipe"]
                     or package["selection_lock_sha256"] != file_sha(selection_path)
+                    or package["feature_schema_sha256"] != manifest["source_schema_sha256"]
                     or package["fit_row_unit_sha256"] != receipt["fit_row_unit_sha256"]
                     or package["calibration_row_unit_sha256"] !=
                     receipt["calibration_row_unit_sha256"]
@@ -306,6 +307,16 @@ def replay(spec: dict, private_root: Path, export_root: Path,
         for i, (task, _, label_key) in enumerate(TASKS):
             entry = receipt["packages"][f"calibrator_{task}"]
             cal_rec = _private_json(spec, _resolve_private(private_root, entry["relative_path"]))
+            expected_arm = (f"UTILITY-REPAIR:{selection['selected_recipe']}:s{seed}:"
+                            f"{task}:full_fit:F_FULL83")
+            if (cal_rec.get("schema") != "pcrl-portfolio-global-temp-v1"
+                    or cal_rec.get("arm_id") != expected_arm
+                    or cal_rec.get("fit_role") != "CALIBRATION_HELDOUT"
+                    or cal_rec.get("fit_row_unit_pair_sha256") !=
+                    receipt["calibration_row_unit_sha256"]
+                    or cal_rec.get("input_probability_sha256") != array_sha(raw_cal[i])
+                    or cal_rec.get("task_label_sha256") != array_sha(cal[label_key])):
+                raise PermissionError("F calibrator is not fitted to frozen CAL inputs/labels")
             own_alpha = fit_inverse_temperature(raw_cal[i], cal[label_key])
             alpha_differences[task] = abs(own_alpha - float(cal_rec["alpha"]))
             if alpha_differences[task] > 1e-8:
