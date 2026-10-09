@@ -246,6 +246,18 @@ def replay(spec: dict, private_root: Path, export_root: Path,
             fit_prior = np.bincount(y[outer_fit], minlength=2 if task == "income" else 6)
             constant_class = int(np.argmax(fit_prior))
             constant_accuracy = float(np.mean(y[outer_val] == constant_class))
+            baseline = receipt["constant_task_baseline"][task]
+            if (baseline["majority_class"] != constant_class
+                    or baseline["fitting_class_counts"] != fit_prior.tolist()
+                    or not _close(baseline["constant_accuracy"], constant_accuracy)):
+                raise ValueError("FIT-only constant task control differs")
+            for recipe in ("A", "B"):
+                recipe_accuracy = selected["per_seed"][seed][recipe][task]["accuracy"]
+                recipe_gain = recipe_accuracy - constant_accuracy
+                if (not _close(baseline["accuracy_gain"][recipe], recipe_gain)
+                        or baseline["point_useful"][recipe] is not
+                        (recipe_gain >= 0.010)):
+                    raise ValueError("screen task usefulness differs")
             chosen_accuracy = selected["per_seed"][seed][selection["selected_recipe"]][task]["accuracy"]
             usefulness[str(seed)][task] = {
                 "fit_constant_accuracy": constant_accuracy,
