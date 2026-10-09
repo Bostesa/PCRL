@@ -1,6 +1,6 @@
-# Focused capacity-matched Family C study: effective prefit protocol draft
+# Focused capacity-matched Family C study: prefit protocol
 
-**Status:** Draft awaiting the complete unit registry, synthetic timing, M5 prefit review and local Git seal. No Adult fit is admitted by this file alone.
+**Status:** Effective only with the complete unit registry, synthetic timing, M5 prefit review and local Git seal. This file alone does not admit an Adult fit.
 
 ## Scope and exposure
 
