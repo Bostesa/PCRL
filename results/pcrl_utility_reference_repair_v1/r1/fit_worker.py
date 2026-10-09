@@ -152,6 +152,25 @@ def _metrics(prob: tuple[np.ndarray, ...], yi: np.ndarray, yo: np.ndarray):
             for i, ((task, label, _), y) in enumerate(zip(TASKS, (yi, yo)))}
 
 
+def constant_task_baseline(fit_y: np.ndarray, val_y: np.ndarray,
+                           predictions: dict[str, np.ndarray], classes: int) -> dict:
+    """FIT-only majority task control, with lowest-class tie break."""
+    counts = np.bincount(fit_y, minlength=classes)
+    majority = int(np.argmax(counts))
+    constant_accuracy = float(np.mean(val_y == majority))
+    gain = {recipe: float(np.mean(prob.argmax(axis=1) == val_y)
+                          - constant_accuracy)
+            for recipe, prob in predictions.items()}
+    return {
+        "majority_class": majority,
+        "fitting_class_counts": counts.tolist(),
+        "constant_accuracy": constant_accuracy,
+        "accuracy_gain": gain,
+        "point_useful": {recipe: bool(value >= 0.010)
+                         for recipe, value in gain.items()},
+    }
+
+
 def screen(store: RoleOnlyStore, seed: int, root: Path, output: Path) -> dict:
     fit = _role(store, "OSF_DEFENSE_FIT")
     f, yi, yo, _ = fit
@@ -193,12 +212,19 @@ def screen(store: RoleOnlyStore, seed: int, root: Path, output: Path) -> dict:
         for i, (task, _, _) in enumerate(TASKS):
             arrays[f"{recipe}_{task}"] = raw[recipe][i]
     pred_sha = _write_once_npz(pred_path, **arrays)
+    constant_baseline = {}
+    for i, (task, _, classes) in enumerate(TASKS):
+        y = yi if task == "income" else yo
+        constant_baseline[task] = constant_task_baseline(
+            y[outer_fit], y[outer_val],
+            {recipe: raw[recipe][i] for recipe in ("A", "B")}, classes)
     receipt = {
         "schema": "pcrl-utility-recipe-screen-v1", "seed": seed,
         "outer_split": outer_receipt, "B_inner_split": inner_receipt,
         "predictions_relative_path": str(pred_path.relative_to(root)),
         "predictions_sha256": pred_sha,
         "packages": packages,
+        "constant_task_baseline": constant_baseline,
         "metrics": {recipe: _metrics(raw[recipe], yi[outer_val], yo[outer_val])
                     for recipe in ("A", "B")},
         "task_only_selection_score": {

@@ -5,7 +5,7 @@ import json
 
 import numpy as np
 
-from fit_worker import gate, refit, screen
+from fit_worker import constant_task_baseline, gate, refit, screen
 from fit_splits import outer_split
 from prototype import AdultGroupedSchema
 
@@ -68,7 +68,42 @@ def test_screen_uses_fit_only_and_saves_raw_predictions(tmp_path):
         for recipe in ("A", "B"):
             assert z[f"{recipe}_income"].shape == (receipt["outer_split"]["validation_rows"], 2)
             assert z[f"{recipe}_occupation_group"].shape == (receipt["outer_split"]["validation_rows"], 6)
+        fit_idx, val_idx, _ = outer_split(store.feature["unit"],
+                                          store.income["income"],
+                                          store.occupation["occupation"], 0)
+        for task, label, classes in (("income", "income", 2),
+                                     ("occupation_group", "occupation", 6)):
+            y = store.income[label] if label == "income" else store.occupation[label]
+            counts = np.bincount(y[fit_idx], minlength=classes)
+            majority = int(np.flatnonzero(counts == counts.max())[0])
+            constant_accuracy = float(np.mean(y[val_idx] == majority))
+            record = receipt["constant_task_baseline"][task]
+            assert record["majority_class"] == majority
+            assert record["fitting_class_counts"] == counts.tolist()
+            assert record["constant_accuracy"] == constant_accuracy
+            for recipe in ("A", "B"):
+                candidate_accuracy = float(np.mean(
+                    z[f"{recipe}_{task}"].argmax(axis=1) == y[val_idx]))
+                gain = candidate_accuracy - constant_accuracy
+                assert abs(record["accuracy_gain"][recipe] - gain) < 1e-15
+                assert record["point_useful"][recipe] == (gain >= 0.010)
     assert hashlib.sha256(output.read_bytes()).hexdigest()
+
+
+def test_constant_task_baseline_ties_to_lowest_class():
+    fit_y = np.array([0, 1, 1, 2, 2], dtype=np.int64)
+    val_y = np.array([1, 2, 1, 0], dtype=np.int64)
+    predictions = {
+        "A": np.eye(3)[[1, 2, 1, 0]],
+        "B": np.eye(3)[[1, 1, 0, 0]],
+    }
+    assert constant_task_baseline(fit_y, val_y, predictions, 3) == {
+        "majority_class": 1,
+        "fitting_class_counts": [1, 2, 2],
+        "constant_accuracy": 0.5,
+        "accuracy_gain": {"A": 0.5, "B": 0.0},
+        "point_useful": {"A": True, "B": False},
+    }
 
 
 def test_outer_split_uses_prior_frozen_group_geometry():
