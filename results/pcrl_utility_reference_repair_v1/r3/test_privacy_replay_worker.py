@@ -1,6 +1,7 @@
 """Data-free checks for independent frozen-model privacy replay custody."""
 
 import hashlib
+import json
 from pathlib import Path
 
 import joblib
@@ -8,7 +9,7 @@ import numpy as np
 import pytest
 
 from results.pcrl_utility_reference_repair_v1.r3.privacy_replay_worker import (
-    CORE, _reforward_core_models, _sex,
+    CORE, _expected_output, _reforward_core_models, _semantic_bank_sha, _sex,
 )
 from results.pcrl_utility_reference_repair_v1.r3.task_replay import array_sha
 
@@ -67,3 +68,32 @@ def test_sex_role_requires_manifest_person_and_group_identity(tmp_path):
     manifest["roles"]["INNER_SELECTION"]["groups"] = 4
     with pytest.raises(PermissionError, match="person/label geometry"):
         _sex(spec, export, manifest, "INNER_SELECTION")
+
+
+def test_semantic_bank_sha_is_not_public_bank_file_sha(tmp_path):
+    public = tmp_path / "MASK_BANK.json"
+    public.write_text('{"public geometry": true}\n')
+    semantic_sha = "7" * 64
+    assert semantic_sha != _sha(public)
+    receipt = tmp_path / "pair_select/seed0/PAIR_SELECT_RECEIPT.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps({
+        "schema": "pcrl-utility-pair-selection-receipt-v1",
+        "seed": 0, "full_input_gate_sha256": "a" * 64,
+        "bank_sha256": semantic_sha,
+    }) + "\n")
+    spec = {"inputs": {str(receipt): _sha(receipt)}}
+    audit = {"by_seed": {"0": {"pair_receipt_sha256": _sha(receipt)}}}
+    assert _semantic_bank_sha(spec, tmp_path, 0, audit, "a" * 64) == semantic_sha
+    audit["by_seed"]["0"]["pair_receipt_sha256"] = "0" * 64
+    with pytest.raises(PermissionError, match="independent audit"):
+        _semantic_bank_sha(spec, tmp_path, 0, audit, "a" * 64)
+
+
+def test_retry_has_distinct_write_once_output(tmp_path):
+    assert _expected_output(tmp_path, "R3_PRIVACY_REPLAY") != _expected_output(
+        tmp_path, "R3_PRIVACY_REPLAY_RETRY")
+    assert _expected_output(tmp_path, "R3_PRIVACY_REPLAY_RETRY").name == (
+        "PRIVACY_REPLAY_RETRY.json")
+    with pytest.raises(PermissionError, match="unit identity"):
+        _expected_output(tmp_path, "R3_PRIVACY_REPLAY_UNSEALED")

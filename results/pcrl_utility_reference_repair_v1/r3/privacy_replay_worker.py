@@ -96,6 +96,28 @@ def _metric_same(own: float, saved: float, label: str) -> float:
     return difference
 
 
+def _semantic_bank_sha(spec: dict, root: Path, seed: int,
+                       audit: dict, gate_sha: str) -> str:
+    """Bind the bank's semantic digest to R3's frozen q13 receipt audit.
+
+    The public MASK_BANK file SHA is separately bound by the q21 science
+    lock. Its semantic SharedBank digest is a distinct quantity.
+    """
+    path = root / "pair_select" / f"seed{seed}" / "PAIR_SELECT_RECEIPT.json"
+    expected = audit["by_seed"][str(seed)]["pair_receipt_sha256"]
+    _check(_require(spec, path) == expected,
+           "q13 pair-selection receipt differs from independent audit")
+    receipt = _json(spec, path)
+    digest = receipt.get("bank_sha256")
+    _check(receipt.get("schema") == "pcrl-utility-pair-selection-receipt-v1"
+           and receipt.get("seed") == seed
+           and receipt.get("full_input_gate_sha256") == gate_sha
+           and isinstance(digest, str) and len(digest) == 64
+           and all(char in "0123456789abcdef" for char in digest),
+           "q13 semantic bank identity differs")
+    return digest
+
+
 def _view_equals_release(spec: dict, root: Path, seed: int, pair_id: str,
                          view: str, role: str, frozen: dict) -> None:
     release = root / "releases" / f"seed{seed}" / pair_id / f"{role}.npz"
@@ -356,6 +378,8 @@ def replay(spec: dict, root: Path, export: Path, manifest_path: Path,
     by_seed: dict[str, dict] = {}
     all_controls_pass = True
     for seed in (0, 1):
+        semantic_bank_sha = _semantic_bank_sha(
+            spec, root, seed, audit, file_sha(gate_path))
         score_dir = root / "privacy_score" / f"seed{seed}"
         score_path = score_dir / "PRIVACY_SCORES.json"
         receipt = _json(spec, score_dir / "PRIVACY_SCORE_RECEIPT.json")
@@ -372,7 +396,7 @@ def replay(spec: dict, root: Path, export: Path, manifest_path: Path,
                audit["by_seed"][str(seed)]["pair_receipt_sha256"] and
                scores.get("schema") == "pcrl-utility-seed-privacy-scores-v1" and
                scores.get("seed") == seed and
-               scores.get("bank_sha256") == file_sha(bank_path) and
+               scores.get("bank_sha256") == semantic_bank_sha and
                scores.get("full_input_gate_sha256") == file_sha(gate_path) and
                scores.get("pair_selection_receipt_sha256") ==
                audit["by_seed"][str(seed)]["pair_receipt_sha256"] and
@@ -451,6 +475,14 @@ def _write_once(path: Path, value: dict) -> None:
         Path(temporary).unlink(missing_ok=True)
 
 
+def _expected_output(root: Path, unit_id: str) -> Path:
+    names = {"R3_PRIVACY_REPLAY": "PRIVACY_REPLAY.json",
+             "R3_PRIVACY_REPLAY_RETRY": "PRIVACY_REPLAY_RETRY.json"}
+    if unit_id not in names:
+        raise PermissionError("independent privacy replay unit identity differs")
+    return root / "r3" / names[unit_id]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     for name in ("unit-id", "queue-root", "lock", "manifest", "export-root",
@@ -465,7 +497,7 @@ def main() -> None:
         raise PermissionError("independent privacy replay requires one thread")
     root = Path(args.private_root).resolve(strict=True)
     if (root != STUDY / ".private" or
-            output.resolve() != root / "r3/PRIVACY_REPLAY.json" or
+            output.resolve() != _expected_output(root, args.unit_id) or
             spec["outputs"] != [str(output)] or
             set(spec.get("role_inputs", {})) !=
             {"ATTACK_FIT_NEW:sex", "INNER_SELECTION:sex"}):
