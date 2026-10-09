@@ -35,6 +35,10 @@ def build(study: Path, python: Path) -> dict:
     registry_path = study / ".private/UNIT_SPECS.json"
     if lock_path.exists() or registry_path.exists():
         raise FileExistsError("effective lock or potential registry already exists")
+    if not python.is_absolute() or not python.is_file():
+        raise ValueError("a concrete absolute Python launcher is required")
+    subprocess.run([str(python), "-c", "import psutil,numpy,sklearn,torch"],
+                   check=True, timeout=30)
     prior_relative = Path("../pcrl-method-portfolio-v1/results/pcrl_method_portfolio_v1")
     prior = (repo / prior_relative).resolve(strict=True)
     manifest_path = study / "m1/DATA_ACCESS_MANIFEST.json"
@@ -61,6 +65,16 @@ def build(study: Path, python: Path) -> dict:
         registry.update(part)
     if len(registry) != 628:
         raise ValueError("frozen potential unit roster is incomplete")
+    if any(spec["argv"][0] != str(python) for spec in registry.values()):
+        raise ValueError("a unit escaped the admitted Python launcher")
+    archive = study / ".private/queue_pre_import_failure_20261009T0012Z/QUEUE.json"
+    old = json.loads(archive.read_text())
+    if (sha256(archive) != "4300bde5ce246d570f2ff6c5050f476d89c4dbb51d8a55d04809c0addc0d14a5" or
+            old["units"]["M2-FIT-S0"]["status"] != "FAILED" or
+            abs(old["used_cpu_s"] - 589.4801633341704) > 1e-6 or
+            sha256(study / "amendments/CAMPAIGN_LOCK_PRE_IMPORT_FAILURE.json") !=
+            "7349da11b2dc228663e7bb8f43996bd34e1e029b47f9feece2586f8a8319cb34"):
+        raise ValueError("failed-attempt archive identity differs")
     governed = {}
     source_roots = (study, repo / "results/pcrl_method_portfolio_v1/shared",
                     repo / "results/pcrl_method_portfolio_v1/teams/c")
@@ -81,6 +95,7 @@ def build(study: Path, python: Path) -> dict:
         "m1/CAPACITY_SPEC.json", "m1/DATA_ACCESS_MANIFEST.json",
         "m2/M2_METHOD_SPEC.md", "m3/M3_CONTROL_SPEC.md",
         "m3/M3_INFERENCE_SPEC.md", "EXECUTION_PLAN.md",
+        "amendments/AMENDMENT_20261009_INTERPRETER.md",
     ):
         file_hashes[relative] = sha256(study / relative)
     # Finish source/protocol preflight before either one-shot seal artifact is
@@ -97,6 +112,14 @@ def build(study: Path, python: Path) -> dict:
         "created_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "source_branch": "research/pcrl-capacity-matched-feature-selection-v1",
         "source_tip_before_lock": source_tip,
+        "amendment": {
+            "id": "2026-10-09-interpreter-launcher",
+            "previous_lock_sha256": sha256(study / "amendments/CAMPAIGN_LOCK_PRE_IMPORT_FAILURE.json"),
+            "previous_seal_sha256": sha256(study / "amendments/LOCAL_SEAL_RECEIPT_PRE_IMPORT_FAILURE.json"),
+            "failed_queue_sha256": sha256(archive),
+            "carried_cpu_s": old["used_cpu_s"],
+            "retry_identity_rule": "lock_sha256 + seal_sha256 + queue_generation + logical_unit_id",
+        },
         "prior_portfolio_tip": "38d641189d3e253ddff0ca372d295a034752017f",
         "prior_package_relative_to_worktree": prior_relative.as_posix(),
         "prior_data_manifest_sha256": sha256(prior_manifest),

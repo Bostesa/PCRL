@@ -2,18 +2,26 @@
 
 import hashlib
 import json
+import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from results.pcrl_capacity_matched_feature_selection_v1.m0.unit_plan import (
-    ROLE_FIELDS, build_core_unit_specs, build_endpoint_inference_specs,
+    ROLE_FIELDS, _interpreter_path, build_core_unit_specs, build_endpoint_inference_specs,
     build_replay_specs,
 )
 
 
 class UnitPlanTests(unittest.TestCase):
+    def test_venv_launcher_symlink_is_preserved(self):
+        with tempfile.TemporaryDirectory() as location:
+            launcher = Path(location) / "python"
+            launcher.symlink_to(Path(sys.executable).resolve(strict=True))
+            self.assertEqual(_interpreter_path(launcher), os.path.abspath(launcher))
+            self.assertNotEqual(_interpreter_path(launcher), str(launcher.resolve()))
+
     def test_independent_replay_potential_roster(self):
         with tempfile.TemporaryDirectory() as location:
             base = Path(location)

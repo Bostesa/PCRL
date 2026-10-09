@@ -116,6 +116,41 @@ class FocusedQueue:
         with self._mutex():
             return self._read()
 
+    def carry_forward_archived_budget(self, archived_root: str | Path) -> dict:
+        """Charge a fresh sealed queue for every unit in an immutable prior queue.
+
+        The archive remains on disk. A fresh queue can use the same logical
+        worker IDs only because its lock, seal and queue generation differ.
+        """
+        archived = Path(archived_root).resolve(strict=True)
+        if archived == self.root or archived.parent != self.root.parent:
+            raise ValueError("archive must be a sibling queue generation")
+        old_path = archived / "QUEUE.json"
+        old_sha = sha256(old_path)
+        old = json.loads(old_path.read_text())
+        if (old.get("epoch_start_utc") != self.start.isoformat() or
+                old.get("global_slot") != str(self.slot) or
+                any(row.get("status") in ("RUNNING", "QUEUED")
+                    for row in old.get("units", {}).values())):
+            raise ValueError("archived queue is not complete in this epoch/slot")
+        charged = sum(row["charged_cpu_s"] for row in old["units"].values())
+        if abs(charged - old["used_cpu_s"]) > 1e-6:
+            raise ValueError("archived CPU ledger does not reconcile")
+        with self._mutex():
+            state = self._read()
+            if state["units"] or state["used_cpu_s"] != 0 or state.get("carry_forward"):
+                raise ValueError("budget may only be carried into a fresh queue")
+            state["used_cpu_s"] = old["used_cpu_s"]
+            state["carry_forward"] = {
+                "archived_queue_relative": archived.name,
+                "archived_queue_sha256": old_sha,
+                "charged_cpu_s": old["used_cpu_s"],
+                "unit_count": len(old["units"]),
+            }
+            _atomic_json(self.state_path, state)
+            self._event("carry_forward", **state["carry_forward"])
+        return state["carry_forward"]
+
     def admit_synthetic(self, *, external_heavy: int, evidence: str) -> None:
         if external_heavy != 1 or not evidence:
             raise ValueError("one external heavy reservation and evidence required")

@@ -47,6 +47,23 @@ class FocusedQueueTests(unittest.TestCase):
             "cpu_reserve_s": 10, "wall_limit_s": 10, "max_rss_gib": 1,
         }
 
+    def test_archived_queue_carries_failed_unit_and_full_cpu_charge(self) -> None:
+        self.q.admit_synthetic(external_heavy=1, evidence="test fixture")
+        self.script.write_text("raise SystemExit(1)\n")
+        bad = self.spec()
+        self.q.enqueue(bad)
+        self.assertEqual(self.q.run_once()["status"], "FAILED")
+        old = self.q.status()
+        archived = self.base / "study-queue-first-attempt"
+        self.root.rename(archived)
+        next_q = FocusedQueue(self.root, self.slot, epoch_start_utc=self.start)
+        carry = next_q.carry_forward_archived_budget(archived)
+        self.assertEqual(carry["charged_cpu_s"], old["used_cpu_s"])
+        self.assertEqual(next_q.status()["used_cpu_s"], old["used_cpu_s"])
+        self.assertEqual(next_q.status()["units"], {})
+        with self.assertRaisesRegex(ValueError, "fresh queue"):
+            next_q.carry_forward_archived_budget(archived)
+
     def test_real_unit_cannot_run_without_science_seal(self) -> None:
         with self.assertRaisesRegex(ValueError, "science gate"):
             self.q.enqueue(self.spec("real"))

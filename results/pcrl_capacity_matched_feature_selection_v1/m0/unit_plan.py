@@ -8,6 +8,7 @@ role paths; only its SHA and aggregate count are published in the lock.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -35,6 +36,14 @@ ROLE_FIELDS = {
         "INNER_SELECTION:occupation", "INNER_SELECTION:sex",
         f"INNER_SELECTION:references_s{s}"),
 }
+
+
+def _interpreter_path(python: Path | None) -> str:
+    """Keep a venv launcher path; resolving its symlink escapes the venv."""
+    path = Path(os.path.abspath(python or sys.executable))
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return str(path)
 VIEW_TAGS = {"income": "INCOME", "occupation_group": "OCCUPATION",
              "coalition": "COALITION"}
 
@@ -87,7 +96,7 @@ def build_core_unit_specs(*, worktree: Path, study: Path, prior: Path,
     worktree = worktree.resolve(strict=True)
     study = study.resolve(strict=True)
     prior = prior.resolve(strict=True)
-    interpreter = str((python or Path(sys.executable)).resolve(strict=True))
+    interpreter = _interpreter_path(python)
     m2_script = (study / "m2/fit_worker.py").resolve(strict=True)
     m4_script = (study / "m4/worker.py").resolve(strict=True)
     queue = study / ".private/queue"
@@ -193,7 +202,7 @@ def build_endpoint_inference_specs(*, worktree: Path, study: Path, prior: Path,
     worktree = worktree.resolve(strict=True)
     study = study.resolve(strict=True)
     prior = prior.resolve(strict=True)
-    interpreter = str((python or Path(sys.executable)).resolve(strict=True))
+    interpreter = _interpreter_path(python)
     endpoint_script = (study / "m4/endpoint_worker.py").resolve(strict=True)
     inference_script = (study / "m3/inference_cli.py").resolve(strict=True)
     private = study / ".private"
@@ -243,7 +252,7 @@ def build_replay_specs(*, worktree: Path, study: Path, prior: Path,
     worktree = worktree.resolve(strict=True)
     study = study.resolve(strict=True)
     prior = prior.resolve(strict=True)
-    interpreter = str((python or Path(sys.executable)).resolve(strict=True))
+    interpreter = _interpreter_path(python)
     pair_script = (study / "m5/replay_worker.py").resolve(strict=True)
     aggregate_script = (study / "m5/replay_aggregate.py").resolve(strict=True)
     private = study / ".private"
