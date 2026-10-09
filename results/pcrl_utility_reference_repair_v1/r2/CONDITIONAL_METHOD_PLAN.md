@@ -29,7 +29,9 @@ Fit the unchanged `M_DROP_NATIVE_COUNTRY` (42 encoded columns) and
 different realized capacities and are reported separately. Use the *same
 selected recipe* as F, fit on the entire permitted OSF_DEFENSE_FIT role after
 its internal selection, and apply the same fixed global-temperature procedure
-using CALIBRATION_HELDOUT. The head receives only selected per-person raw
+using CALIBRATION_HELDOUT for the final release. FIT outer-validation mask
+ranking uses raw, uncalibrated NLL, matching R1's recipe selection; CAL is
+not read for proposal ranking. The head receives only selected per-person raw
 values. If the selected recipe requires an 83-column input, a public adapter
 may fill absent columns with fixed constants learned only on defense fitting;
 it cannot read withheld per-person values. Its constants, column order and
@@ -103,9 +105,9 @@ predeclared simultaneous inference; seeds are not independent populations.
 | Conditional stage | Two-seed maximum | Exact dependency |
 | --- | ---: | --- |
 | Lead purpose head packages | 8 outer + 8 final | Full-input gate passes |
-| Lead fixed CAL calibrations | 16 | For outer ranking and final utility |
+| Lead fixed CAL calibrations | 8 | Final utility and release only |
 | Remaining bank purpose head packages | 12 outer + 12 final | A two-purpose lead qualifies |
-| Remaining fixed CAL calibrations | 24 | For outer ranking and final utility |
+| Remaining fixed CAL calibrations | 12 | Final utility and release only |
 | Fitting-role raw search readers | 44 | Bank completed |
 | Pair table and rule selections | 2 tables, 20 rule slots | Search readers complete |
 | Canonical raw-union reader fits | `2*U` per seed, `U <= 6` | Selected pairs |
@@ -115,7 +117,7 @@ predeclared simultaneous inference; seeds are not independent populations.
 The two-seed final reader ceiling is `2*(18*10 + 2*6) = 384` fitted
 readers, before exact pair/union aliases. Ignore-recipient readers are verified
 transports, not additional fits. A conditional third seed requires its own F
-gate, 10 outer and 10 final purpose packages with 20 calibrations for the
+gate, 10 outer and 10 final purpose packages with 10 calibrations for the
 full bank, 22 fitting search
 readers, and at most 192 final reader fits; it runs only after a finalist is
 frozen and the complete required control/replay budget remains. R0's actual
@@ -131,9 +133,9 @@ internal epoch selection and full-role refit are counted separately. Under
 the source-style joint task recipe B, each masked encoder stage is trained
 jointly for two permitted task labels. Its inner-train encoder supports
 held-out C selection on inner-val. A fresh outer-fit encoder and two heads
-then provide the FIT outer-val task ranking, with fixed CAL calibration. A
-third fresh all-FIT encoder and two heads provide the common-role utility
-and deployment release, with their own fixed CAL calibration. Thus each
+then provide the FIT outer-val task ranking using raw NLL. A third fresh
+all-FIT encoder and two heads provide the common-role utility and deployment
+release, with one fixed CAL calibration per task. Thus each
 mask/seed has three encoder fits and four task-head packages, counting the
 outer and final outputs separately. For
 recipe B, every mask gets the same five-value logistic-regularization search
@@ -141,10 +143,10 @@ opportunity as F, using only the same frozen FIT internal group split and
 task NLL selection rule. This is ten tuning fits and two final logistic fits
 per mask/seed, with no INNER_SELECTION adjustment. Across both seeds, the
 lead stage therefore has 12 encoder fits, 40 tuning fits, 8 outer heads,
-8 final heads and 16 calibrations; bank completion adds 18 encoder fits,
-60 tuning fits, 12 outer heads, 12 final heads and 24 calibrations. The full
+8 final heads and 8 calibrations; bank completion adds 18 encoder fits,
+60 tuning fits, 12 outer heads, 12 final heads and 12 calibrations. The full
 five-mask/two-seed maximum is 30 encoder fits, 100 C-grid logistic fits,
-20 outer logistic heads, 20 final logistic heads and 40 calibrations, plus
+20 outer logistic heads, 20 final logistic heads and 20 calibrations, plus
 all required forward passes. Recipe A mirrors its inherited task-head epoch
 selection, outer-fit scoring and all-FIT final refit, counting each stage and
 calibration separately. A freezes the FIT-only epoch-selection *algorithm*
