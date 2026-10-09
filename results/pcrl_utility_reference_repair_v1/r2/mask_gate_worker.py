@@ -74,6 +74,26 @@ def _role(store: RoleOnlyStore, seed: int):
     return feature, income["income"], occupation["occupation"], references
 
 
+def fit_source_lock_for_mask(lock: dict, mask_id: str,
+                             current_lock_sha256: str) -> str:
+    """Resolve the fit-stage source lock without a self-hash in the lock."""
+    literal = lock.get("mask_fit_source_lock_sha256")
+    mapping = lock.get("mask_fit_source_lock_sha256_by_id")
+    if literal is not None and mapping is not None:
+        raise PermissionError("mask fit lock source has two conflicting forms")
+    if mapping is not None:
+        if not isinstance(mapping, dict) or mask_id not in mapping:
+            raise PermissionError("mask fit source lock mapping is incomplete")
+        value = mapping[mask_id]
+    else:
+        value = literal
+    source = current_lock_sha256 if value == "CURRENT_LOCK" else value
+    if (not isinstance(source, str) or len(source) != 64
+            or any(char not in "0123456789abcdef" for char in source)):
+        raise PermissionError("mask fit source lock SHA is malformed")
+    return source
+
+
 def _f_predictions(path: Path, expected_sha256: str, seed: int,
                    common_row_unit_sha256: str) -> dict[str, np.ndarray]:
     if sha_file(path) != expected_sha256:
@@ -100,14 +120,16 @@ def _f_predictions(path: Path, expected_sha256: str, seed: int,
 def gate_mask_unit(store: RoleOnlyStore, mask, seed: int, recipe: str,
                    private_root: Path, output: Path, *, fit_receipt_sha256: str,
                    f_gate_receipt_sha256: str, gate_sha256: str,
-                   lock_sha256: str, common_row_unit_sha256: str) -> dict:
+                   lock_sha256: str, fit_source_lock_sha256: str,
+                   common_row_unit_sha256: str) -> dict:
     fit_path = private_root / "masks" / mask.mask_id / f"seed{seed}" / "MASK_FIT_RECEIPT.json"
     fit_record = {"relative_path": str(fit_path.relative_to(private_root)),
                   "sha256": fit_receipt_sha256}
     releases = {
         task: restore_mask_task_release(
             private_root, fit_record, mask, task, seed, recipe,
-            gate_sha256=gate_sha256, conditional_lock_sha256=lock_sha256)
+            gate_sha256=gate_sha256,
+            conditional_lock_sha256=fit_source_lock_sha256)
         for task, _, _ in TASKS
     }
     f_receipt_path = private_root / "r1" / "gate" / f"seed_{seed}" / "GATE_RECEIPT.json"
@@ -179,6 +201,7 @@ def gate_mask_unit(store: RoleOnlyStore, mask, seed: int, recipe: str,
         "selected_recipe": recipe,
         "full_input_gate_sha256": gate_sha256,
         "conditional_lock_sha256": lock_sha256,
+        "mask_fit_source_lock_sha256": fit_source_lock_sha256,
         "mask_fit_receipt_sha256": fit_receipt_sha256,
         "R1_gate_receipt_sha256": f_gate_receipt_sha256,
         "common_role": "INNER_SELECTION",
@@ -234,6 +257,8 @@ def main() -> None:
     bank = load_frozen_bank(MASK_BANK, expected_sha256=lock["mask_bank_sha256"])
     if args.mask_id not in lock.get("admitted_mask_ids", []):
         raise PermissionError("R2 gate mask is outside sealed branch")
+    fit_source_lock_sha = fit_source_lock_for_mask(
+        lock, args.mask_id, lock_sha)
     mask = bank.mask(args.mask_id)
     pred = expected.parent / "MASK_GATE_PREDICTIONS.npz"
     if set(spec["outputs"]) != {str(expected), str(pred)}:
@@ -250,6 +275,7 @@ def main() -> None:
         private_root, expected, fit_receipt_sha256=fit_sha,
         f_gate_receipt_sha256=f_gate_sha,
         gate_sha256=admitted.gate_sha256, lock_sha256=lock_sha,
+        fit_source_lock_sha256=fit_source_lock_sha,
         common_row_unit_sha256=admitted.common_row_unit_pair_sha256)
 
 

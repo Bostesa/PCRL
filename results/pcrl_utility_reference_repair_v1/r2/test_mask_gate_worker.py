@@ -94,17 +94,21 @@ def _fixture(tmp_path):
 
 def test_mask_gate_matches_all_three_references_without_sex(tmp_path, monkeypatch):
     private, arrays, mask, output, f_receipt, common_sha = _fixture(tmp_path)
-    monkeypatch.setattr(gate, "restore_mask_task_release",
-                        lambda root, record, actual_mask, task, seed, recipe,
-                        **kwargs: _Release(task, actual_mask))
+    def fake_restore(root, record, actual_mask, task, seed, recipe, **kwargs):
+        assert kwargs["conditional_lock_sha256"] == "d" * 64
+        return _Release(task, actual_mask)
+
+    monkeypatch.setattr(gate, "restore_mask_task_release", fake_restore)
     store = _RoleStore(arrays)
     receipt = gate.gate_mask_unit(
         store, mask, 0, "A", private, output,
         fit_receipt_sha256="a" * 64,
         f_gate_receipt_sha256=gate.sha_file(f_receipt),
         gate_sha256="b" * 64, lock_sha256="c" * 64,
+        fit_source_lock_sha256="d" * 64,
         common_row_unit_sha256=common_sha)
     assert receipt["all_task_reference_points_eligible"] is True
+    assert receipt["mask_fit_source_lock_sha256"] == "d" * 64
     assert set(receipt["point_eligibility"]["income"]["references"]) == {
         "U0", "Ucal", "F"}
     assert store.calls == [("INNER_SELECTION", field) for field in (
@@ -121,3 +125,16 @@ def test_gate_prediction_reader_rejects_extra_member_before_load(tmp_path):
     np.savez_compressed(path, **copies)
     with pytest.raises(PermissionError, match="members differ"):
         gate._f_predictions(path, gate.sha_file(path), 0, common_sha)
+
+
+def test_gate_resolves_separate_fit_and_current_gate_locks():
+    assert gate.fit_source_lock_for_mask(
+        {"mask_fit_source_lock_sha256": "a" * 64}, "M", "b" * 64) == "a" * 64
+    assert gate.fit_source_lock_for_mask(
+        {"mask_fit_source_lock_sha256_by_id": {"M": "CURRENT_LOCK"}},
+        "M", "b" * 64) == "b" * 64
+    with pytest.raises(PermissionError, match="conflicting"):
+        gate.fit_source_lock_for_mask({
+            "mask_fit_source_lock_sha256": "a" * 64,
+            "mask_fit_source_lock_sha256_by_id": {"M": "b" * 64},
+        }, "M", "b" * 64)
