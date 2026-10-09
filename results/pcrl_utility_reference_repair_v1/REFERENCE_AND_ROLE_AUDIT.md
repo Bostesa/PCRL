@@ -78,11 +78,24 @@ cap. Income NLL improved by 0.0211500 versus U0 in seed 1. The complete
 eight-row task/reference table, including class counts and recalls, is in
 `FULL_INPUT_UTILITY.csv`.
 
-This is a **point utility gate** for conditional method testing. Simultaneous
-development intervals remain pending. Reused Adult and INNER exposure make
-even a later interval descriptive and conditional on selected fitted models;
-it will not turn this result into independent confirmation. No mask, SEX
-reader or coalition result follows from this gate.
+This is a **point utility gate** for conditional method testing. The separately
+sealed, 2,048-draw paired-group bootstrap assessed all 24 F-versus-U0/Ucal
+accuracy, NLL and Brier costs together: 10 clauses PASS, 14 are UNRESOLVED,
+and none shows a VIOLATION. The complete conjunction is therefore
+**precision unresolved** despite point feasibility. For example, seed 1
+occupation Brier excess versus U0 was 0.0038394, with a simultaneous upper
+bound of 0.0099956 against the 0.005 cap. Seed 1 income NLL excess versus U0
+was -0.0211500, with upper bound -0.0011534 against the 0.010 cap. R3
+independently recomputed the entire group-resampling family and all 24
+statuses; its maximum interval-value difference from R1 was 1.33e-15.
+The public 24-row table is `FULL_INPUT_UTILITY_INTERVALS.csv`, with hash and
+replay summary in `r1/UTILITY_INTERVAL_VERIFICATION.json` and independent
+verification in `r3/UTILITY_INTERVAL_NUMERICAL_VERIFICATION.json`.
+
+These one-sided simultaneous bounds are descriptive and conditional on the
+selected fitted models. They do not account for portfolio selection or turn
+reused Adult and INNER outcomes into independent confirmation. No mask, SEX
+reader or coalition result follows from the full-input utility gate.
 
 ## Same-role historical F diagnostic
 
@@ -98,5 +111,8 @@ also differ. It will not enter recipe choice or the conditional mask gate.
 Evidence: `m1/DATA_ACCESS_MANIFEST.json`, `r3/ROLE_OVERLAP.json`,
 `REFERENCE_PARITY.json`, `RECIPE_SELECTION.json`, `F_ARTIFACT_LOCK.json`,
 `FULL_INPUT_GATE.json`, `r3/FULL_INPUT_TASK_NUMERICAL_VERIFICATION.json`, and
-the pinned private queue receipts. Public files contain aggregates and hashes;
-person-level labels, predictions and checkpoints remain private.
+the pinned private queue receipts. `r1/INTERVAL_ACCESS_NOTE_20261009.md`
+records a preseal hash read of two previously admitted INNER task archives and
+the correction made before the interval worker ran. Public files contain
+aggregates and hashes; person-level labels, predictions and checkpoints
+remain private.
