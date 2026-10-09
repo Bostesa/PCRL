@@ -136,12 +136,36 @@ def admit_conditional_gate(
     if (not isinstance(package_records, dict)
             or set(package_records) != set(SEEDS)):
         raise PermissionError("F package seed coverage differs")
+    receipt_records = gate.get("f_receipts")
+    if (not isinstance(receipt_records, dict)
+            or set(receipt_records) != set(SEEDS)):
+        raise PermissionError("F package receipt seed coverage differs")
     root = Path(private_root).resolve(strict=True)
     if root.name != ".private":
         raise PermissionError("F package root must be study private custody")
     packages = []
     package_identities = set()
     for seed in SEEDS:
+        receipt_record = receipt_records[seed]
+        if (not isinstance(receipt_record, dict)
+                or set(receipt_record) != {"relative_path", "sha256"}):
+            raise PermissionError("F package receipt identity is incomplete")
+        receipt_path = _private_file(
+            root, receipt_record["relative_path"], receipt_record["sha256"],
+            "F package receipt")
+        expected_receipt = root / "r1" / "full" / f"seed_{seed}" / "F_PACKAGE_RECEIPT.json"
+        if receipt_path != expected_receipt:
+            raise PermissionError("F package receipt path differs from R1 custody")
+        receipt = json.loads(receipt_path.read_text())
+        if (receipt.get("schema") != "pcrl-utility-full-F-package-v1"
+                or receipt.get("seed") != int(seed)
+                or receipt.get("selected_recipe") != gate["selected_recipe"]
+                or not all(_full_sha(receipt.get(key)) for key in (
+                    "selection_lock_sha256", "fit_row_unit_sha256",
+                    "calibration_row_unit_sha256"))
+                or not isinstance(receipt.get("packages"), dict)
+                or set(receipt.get("task_packages", {})) != set(TASKS)):
+            raise PermissionError("F package receipt content differs")
         tasks = package_records[seed]
         if not isinstance(tasks, dict) or set(tasks) != set(TASKS):
             raise PermissionError("F package task coverage differs")
@@ -151,11 +175,23 @@ def admit_conditional_gate(
                     or set(record) != {"relative_path", "sha256"}
                     or not _full_sha(record["sha256"])):
                 raise PermissionError("F package identity is incomplete")
+            if record != receipt["task_packages"][task]:
+                raise PermissionError("F package receipt/task identity differs")
             package = _private_file(
                 root, record["relative_path"], record["sha256"], "F package")
-            package_identities.add(_check_f_manifest(
+            identity = _check_f_manifest(
                 package, root, seed=int(seed), task=task,
-                recipe=gate["selected_recipe"]))
+                recipe=gate["selected_recipe"])
+            content = json.loads(package.read_text())
+            model_key = task if gate["selected_recipe"] == "A" else "B_source_bundle"
+            if (receipt["selection_lock_sha256"] != identity[0]
+                    or receipt["fit_row_unit_sha256"] != identity[2]
+                    or receipt["calibration_row_unit_sha256"] != identity[3]
+                    or receipt["packages"].get(model_key) != content["model"]
+                    or receipt["packages"].get(f"calibrator_{task}") !=
+                    content["calibrator"]):
+                raise PermissionError("F package receipt/component identity differs")
+            package_identities.add(identity)
             packages.append((seed, task, package, record["sha256"]))
     if len(package_identities) != 1:
         raise PermissionError("F packages disagree on source, selection or roles")
