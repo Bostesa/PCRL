@@ -210,7 +210,9 @@ def _historical_fit_receipt(source: dict, seed: int) -> str:
     archive_rel = Path(source["archived_queue_relative_path"])
     old_lock_rel = Path(source["archived_lock_relative_path"])
     old_seal_rel = Path(source["archived_seal_relative_path"])
-    if any(path.is_absolute() for path in (archive_rel, old_lock_rel, old_seal_rel)):
+    old_review_rel = Path(source["archived_review_relative_path"])
+    if any(path.is_absolute() for path in
+           (archive_rel, old_lock_rel, old_seal_rel, old_review_rel)):
         raise PermissionError("M5 historical FIT path is absolute")
     archive_path = _under_private(STUDY / archive_rel)
     archive = archive_path.parent
@@ -218,13 +220,20 @@ def _historical_fit_receipt(source: dict, seed: int) -> str:
         raise PermissionError("M5 historical queue is current or absent")
     old_lock = (STUDY / old_lock_rel).resolve(strict=True)
     old_seal = (STUDY / old_seal_rel).resolve(strict=True)
+    old_review = (STUDY / old_review_rel).resolve(strict=True)
     if (not old_lock.is_relative_to(STUDY / "amendments")
             or not old_seal.is_relative_to(STUDY / "amendments")
+            or not old_review.is_relative_to(STUDY / "amendments")
             or _sha(old_lock) != source["lock_sha256"]
             or _sha(old_seal) != source["local_seal_sha256"]
             or _sha(archive_path) != source["archived_queue_sha256"]):
         raise PermissionError("M5 historical FIT lock, seal or queue SHA differs")
     archived_seal = json.loads(old_seal.read_text())
+    if (_sha(old_review) != source["archived_review_sha256"]
+            or archived_seal.get("m5_review_sha256") !=
+            source["archived_review_sha256"]
+            or json.loads(old_review.read_text()).get("status") != "PASS"):
+        raise PermissionError("M5 historical FIT review differs")
     if (archived_seal.get("lock_sha256") != source["lock_sha256"]
             or archived_seal.get("status") != "PASS"):
         raise PermissionError("M5 historical FIT seal is not PASS")

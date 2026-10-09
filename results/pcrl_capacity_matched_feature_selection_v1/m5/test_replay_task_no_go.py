@@ -94,10 +94,13 @@ def test_historical_fit_receipt_requires_archived_done_spec_and_seal(tmp_path, m
     fit = study / ".private/m2/fit/seed_0/FIT_RECEIPT.json"
     lock = study / "amendments/CAMPAIGN_LOCK_SCIENCE_NOGO.json"
     seal = study / "amendments/LOCAL_SEAL_RECEIPT_SCIENCE_NOGO.json"
-    for path in (spec, fit, lock, seal):
+    review = study / "amendments/PREFIT_REVIEW_SCIENCE_NOGO.json"
+    for path in (spec, fit, lock, seal, review):
         path.parent.mkdir(parents=True, exist_ok=True)
     lock.write_text("{}\n")
-    seal.write_text(json.dumps({"status": "PASS", "lock_sha256": _sha(lock)}))
+    review.write_text('{"status":"PASS"}\n')
+    seal.write_text(json.dumps({"status": "PASS", "lock_sha256": _sha(lock),
+                                "m5_review_sha256": _sha(review)}))
     fit.write_text('{"status":"NO_FEASIBLE_J"}\n')
     spec.write_text(json.dumps({"unit_id": "M2-FIT-S0", "stage": "fit_bank",
                                 "seal_sha256": _sha(seal)}))
@@ -110,10 +113,16 @@ def test_historical_fit_receipt_requires_archived_done_spec_and_seal(tmp_path, m
               "archived_lock_relative_path": "amendments/CAMPAIGN_LOCK_SCIENCE_NOGO.json",
               "archived_seal_relative_path": "amendments/LOCAL_SEAL_RECEIPT_SCIENCE_NOGO.json",
               "lock_sha256": _sha(lock), "local_seal_sha256": _sha(seal),
+              "archived_review_relative_path": "amendments/PREFIT_REVIEW_SCIENCE_NOGO.json",
+              "archived_review_sha256": _sha(review),
               "by_seed": {"0": {"spec_sha256": _sha(spec),
                                 "fit_receipt_sha256": _sha(fit)}}}
     monkeypatch.setattr(replay_task_no_go, "STUDY", study)
     assert _historical_fit_receipt(source, 0) == _sha(fit)
+    review.write_text('{"status":"FAIL"}\n')
+    with pytest.raises(PermissionError, match="review"):
+        _historical_fit_receipt(source, 0)
+    review.write_text('{"status":"PASS"}\n')
     spec.write_text(spec.read_text() + "\n")
     with pytest.raises(PermissionError, match="spec changed"):
         _historical_fit_receipt(source, 0)
