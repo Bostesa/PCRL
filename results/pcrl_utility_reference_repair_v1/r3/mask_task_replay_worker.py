@@ -198,6 +198,15 @@ def replay(spec: dict, root: Path, export_root: Path, manifest: dict,
                         or package.get("mask_sha256") != mask["mask_sha256"]
                         or package.get("selected_atoms") != mask["atoms"]
                         or package.get("source_indices") != mask["column_indices"]
+                        or package.get("source_schema_sha256") !=
+                        bank["source_schema_sha256"]
+                        or package.get("gate_sha256") != file_sha(gate_path)
+                        or package.get("conditional_lock_sha256") !=
+                        fit["conditional_lock_sha256"]
+                        or package.get("fit_row_unit_sha256") !=
+                        fit["fit_row_unit_sha256"]
+                        or package.get("calibration_row_unit_sha256") !=
+                        fit["calibration_row_unit_sha256"]
                         or package.get("model") !=
                         fit["model_stages"]["final"][task]
                         or package.get("calibrator") != fit["calibrators"][task]
