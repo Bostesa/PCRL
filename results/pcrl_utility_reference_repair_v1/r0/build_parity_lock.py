@@ -139,8 +139,13 @@ def main() -> None:
     p.add_argument("--python", type=Path, default=Path(sys.executable))
     p.add_argument("--slot", type=Path, required=True)
     args = p.parse_args()
+    # Keep the venv launcher path. Resolving its symlink points at the base
+    # framework Python, which has no project-installed numerical packages.
+    python = args.python.absolute()
+    if not python.is_file():
+        raise FileNotFoundError(python)
     print(json.dumps(build(args.repo.resolve(strict=True), args.hcal_private,
-                           args.python.resolve(strict=True), args.slot.resolve(strict=True)),
+                           python, args.slot.resolve(strict=True)),
                      indent=2, sort_keys=True))
 
 
