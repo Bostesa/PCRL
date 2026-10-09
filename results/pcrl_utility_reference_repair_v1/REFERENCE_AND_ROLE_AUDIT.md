@@ -101,12 +101,22 @@ reader or coalition result follows from the full-input utility gate.
 
 The prior validation-stage F checkpoints and calibrators for both tasks and
 seeds have been inventoried and hash-verified without opening the old
-assessment release. A separate post-gate diagnostic worker is committed but
-has no reported numerical result in this audit yet. If admitted, it will
-score those unchanged heads on the same INNER people as the new F, retain
-private predictions and obtain an independent R3 replay. Its old-versus-new
-contrast will be observational: fitting-label exposure and selected epochs
-also differ. It will not enter recipe choice or the conditional mask gate.
+assessment release. A separately sealed post-gate diagnostic scored those
+unchanged heads on the same 2,235 INNER people as the new F. R3 independently
+recomputed both tasks, seeds, reference metrics, class counts and recall from
+the aligned frozen predictions. The old heads used 11,574/11,575 task-label
+FIT rows by seed; the new heads used all 15,434. The old-versus-new contrast
+is observational because fitting exposure and pipeline choices differ.
+
+The tradeoff is mixed. New F minus old F on income NLL was -0.002242 in seed 0
+and -0.004173 in seed 1, while accuracy moved -0.003132 and +0.002685.
+Occupation NLL moved +0.000485 and -0.000232, with accuracy +0.002685 and
+-0.004027. Neither head is uniformly better. The eight-row
+`OLD_F_SAME_INNER_DIAGNOSTIC.csv` gives every task, seed and U0/Ucal margin;
+`r1/OLD_F_SAME_INNER_VERIFICATION.json` binds the queues, seals, receipts and
+R3 replay, and `r3/OLD_F_INNER_NUMERICAL_VERIFICATION.json` reports the
+independent PASS. This diagnostic did not enter recipe choice or the
+conditional mask gate. It supplies no causal repair or SEX-privacy result.
 
 Evidence: `m1/DATA_ACCESS_MANIFEST.json`, `r3/ROLE_OVERLAP.json`,
 `REFERENCE_PARITY.json`, `RECIPE_SELECTION.json`, `F_ARTIFACT_LOCK.json`,
