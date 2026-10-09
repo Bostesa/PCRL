@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 
 import numpy as np
 import pytest
@@ -51,3 +52,39 @@ def test_privacy_role_store_rejects_extra_member_before_array_load(tmp_path):
     store = PrivacyRoleStore(root, manifest, stage="r2_pair_select")
     with pytest.raises(PermissionError, match="members differ"):
         store.read("OSF_DEFENSE_FIT", "sex")
+
+
+def test_privacy_role_store_reads_only_att_feature_export_in_raw_stage(tmp_path):
+    root = tmp_path / "role_export_v1"
+    path = root / "ATTACK_FIT_NEW" / "features.npz"
+    path.parent.mkdir(parents=True)
+    row = np.arange(20, 26, dtype=np.int64)
+    unit = row.copy()
+    names = np.array([f"x_{i}" for i in range(83)])
+    X = np.zeros((len(row), 83), dtype=np.float32)
+    np.savez_compressed(path, row_id=row, unit=unit, X=X,
+                        feature_names=names)
+    manifest = {
+        "schema": "pcrl-utility-repair-role-admission-v1",
+        "source_schema_sha256": hashlib.sha256(
+            "\n".join(names).encode()).hexdigest(),
+        "role_file_sha256": {"ATTACK_FIT_NEW:features": sha_file(path)},
+        "roles": {"ATTACK_FIT_NEW": {
+            "rows": len(row), "groups": len(row),
+            "row_unit_pair_sha256": array_sha(np.column_stack((row, unit))),
+        }},
+    }
+    manifest_path = tmp_path / "DATA_ACCESS_MANIFEST.json"
+    manifest_path.write_text(json.dumps(manifest))
+    for stage in ("r2_release", "r2_raw_union", "r2_attack_fit"):
+        store = PrivacyRoleStore(root, manifest_path, stage=stage)
+        result = store.read("ATTACK_FIT_NEW", "features")
+        assert np.array_equal(result["X"], X)
+        assert tuple(result["feature_names"]) == tuple(names)
+        for forbidden_role, forbidden_field in (
+                ("INNER_SELECTION", "sex"),
+                ("ATTACK_FIT_NEW", "income"),
+                ("ATTACK_FIT_NEW", "references_s0")):
+            with pytest.raises(PermissionError,
+                               match="outside this sealed privacy stage"):
+                store.read(forbidden_role, forbidden_field)

@@ -76,3 +76,21 @@ def test_q16_requires_completed_independent_interval_carry(tmp_path):
     with pytest.raises(PermissionError, match="incomplete"):
         build_release_raw_lock.validate_interval_predecessors(
             q14, q15, "a" * 64, "b" * 64, replay, "c" * 64, replay_path)
+
+
+def test_q16_charges_archived_failed_loader_attempt_separately():
+    carry = {"archived_queue_relative": "queue_g15",
+             "archived_queue_sha256": "a" * 64,
+             "charged_cpu_s": 100.0, "unit_count": 1}
+    failed = {"carry_forward": carry, "used_cpu_s": 100.225,
+              "units": {"R2_RAW_UNION_S0_X": {
+                  "status": "FAILED", "charged_cpu_s": 0.225,
+                  "output_sha256": {}},
+                  "R2_RELEASE_S0_PAIR": {"status": "QUEUED"}}}
+    debit = build_release_raw_lock.failed_loader_debit(
+        failed, carry, {"R2_RAW_UNION_S0_X", "R2_RELEASE_S0_PAIR"})
+    assert debit == 0.225
+    failed["units"]["R2_RELEASE_S0_PAIR"]["status"] = "DONE"
+    with pytest.raises(PermissionError, match="failed loader"):
+        build_release_raw_lock.failed_loader_debit(
+            failed, carry, {"R2_RAW_UNION_S0_X", "R2_RELEASE_S0_PAIR"})

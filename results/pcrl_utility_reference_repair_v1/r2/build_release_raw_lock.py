@@ -46,6 +46,7 @@ PROTOCOL_FILES = (
     "r2/RAW_UNION_ACCOUNTING_AMENDMENT.md",
     "r2/PRIVACY_SCORE_ACCESS_AMENDMENT.md",
     "r2/R2_ACCESS_DEVIATION_20261009.md",
+    "r2/ATT_FEATURE_LOADER_AMENDMENT_20261009.md",
     "LOCK_AMENDMENTS.md",
     "r3/PAIR_SELECTION_AUDIT.json", "r1/UTILITY_INTERVAL_PROTOCOL.md",
 )
@@ -171,6 +172,30 @@ def validate_interval_predecessors(
             "charged_cpu_s": float(q15["used_cpu_s"]), "unit_count": 1}
 
 
+def failed_loader_debit(failed: dict, carry: dict,
+                        expected_uids: set[str]) -> float:
+    """Count the unrun archived q16 failure outside the fresh queue carry."""
+    units = failed.get("units", {})
+    failures = [(uid, row) for uid, row in units.items()
+                if row.get("status") == "FAILED"]
+    if (set(units) != expected_uids or failed.get("carry_forward") != carry
+            or len(failures) != 1
+            or not failures[0][0].startswith("R2_RAW_UNION_")
+            or any(row.get("status") not in ("FAILED", "QUEUED")
+                   for row in units.values())
+            or any(row.get("output_sha256") not in (None, {})
+                   for row in units.values())):
+        raise PermissionError("archived failed loader attempt differs")
+    charge = failures[0][1].get("charged_cpu_s")
+    total = failed.get("used_cpu_s")
+    if (not isinstance(charge, (int, float)) or not math.isfinite(charge)
+            or charge <= 0
+            or not isinstance(total, (int, float)) or not math.isfinite(total)
+            or abs(total - carry["charged_cpu_s"] - charge) > 1e-5):
+        raise PermissionError("archived failed loader CPU debit differs")
+    return float(charge)
+
+
 def build(repo: Path, python: Path, slot: Path, *, generation: str = "q16") -> dict:
     """R0-only write-once q16 builder; never run while q15 is incomplete."""
     if generation != "q16":
@@ -253,6 +278,36 @@ def build(repo: Path, python: Path, slot: Path, *, generation: str = "q16") -> d
             or json.loads(q15_lock_path.read_text()).get("full_input_gate_sha256") !=
             sha(gate_path)):
         raise PermissionError("utility intervals changed reference gate")
+    failed_root = private / "lock_attempts/q16_att_feature_loader"
+    failed_queue_path = failed_root / "queue_g16/QUEUE.json"
+    failed_lock_path = failed_root / "CAMPAIGN_LOCK.json"
+    failed_registry_path = failed_root / "UNIT_SPECS.json"
+    failed_review_path = failed_root / "PREFIT_REVIEW.json"
+    failed_seal_path = failed_root / "LOCAL_SEAL_RECEIPT.json"
+    failed_queue = json.loads(failed_queue_path.read_text())
+    failed_lock = json.loads(failed_lock_path.read_text())
+    failed_review = json.loads(failed_review_path.read_text())
+    failed_seal = json.loads(failed_seal_path.read_text())
+    expected_failed_uids = {uid for uid, entry in proposal["unit_map"].items()
+                            if entry["stage"] in STAGES}
+    failed_debit = failed_loader_debit(
+        failed_queue, carry, expected_failed_uids)
+    if (abs(failed_debit - 0.2250022920779884) > 1e-8
+            or failed_lock.get("stage") !=
+            "selected_release_and_raw_reader_custody"
+            or failed_lock.get("downstream_unit_proposal_sha256") !=
+            sha(proposal_path)
+            or failed_lock.get("full_input_gate_sha256") != sha(gate_path)
+            or failed_lock.get("required_queue_carry_forward") != carry
+            or failed_lock.get("private_unit_registry_sha256") !=
+            sha(failed_registry_path)
+            or failed_review.get("status") != "PASS"
+            or failed_review.get("lock_sha256") != sha(failed_lock_path)
+            or failed_seal.get("status") != "PASS"
+            or failed_seal.get("lock_sha256") != sha(failed_lock_path)
+            or failed_queue.get("gate", {}).get("seal_sha256") !=
+            sha(failed_seal_path)):
+        raise PermissionError("archived q16 failed attempt custody differs")
     # Existing admitted model/task bytes may be rehashed here. Role-only
     # exports are declared solely from the sealed manifest until q16 admission.
     shared = {}
@@ -262,7 +317,10 @@ def build(repo: Path, python: Path, slot: Path, *, generation: str = "q16") -> d
                  pair_audit_path, q13_path, pair_lock_path,
                  q14_path, q14_lock_path, q15_path, q15_lock_path,
                  replay_path,
-                 private / "r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json"):
+                 private / "r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json",
+                 failed_queue_path, failed_lock_path, failed_registry_path,
+                 failed_review_path, failed_seal_path,
+                 study / "r2/ATT_FEATURE_LOADER_AMENDMENT_20261009.md"):
         _add(shared, path)
     units = {}
     for uid, entry in proposal["unit_map"].items():
@@ -355,6 +413,13 @@ def build(repo: Path, python: Path, slot: Path, *, generation: str = "q16") -> d
         "prior_interval_queue_state_sha256": sha(q14_path),
         "prior_interval_replay_queue_state_sha256": sha(q15_path),
         "prior_interval_replay_sha256": sha(replay_path),
+        "failed_attempt_queue_state_sha256": sha(failed_queue_path),
+        "failed_attempt_science_lock_sha256": sha(failed_lock_path),
+        "failed_attempt_debit_cpu_s": failed_debit,
+        "effective_campaign_used_cpu_s_at_q16_start":
+        carry["charged_cpu_s"] + failed_debit,
+        "att_feature_loader_amendment_sha256": sha(
+            study / "r2/ATT_FEATURE_LOADER_AMENDMENT_20261009.md"),
         "interval_family_status": replay["family_status"],
         "required_queue_carry_forward": carry,
         "release_units": 4, "canonical_raw_union_units": 7,
