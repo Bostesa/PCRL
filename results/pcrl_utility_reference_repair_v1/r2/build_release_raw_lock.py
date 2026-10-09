@@ -9,11 +9,13 @@ import argparse
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 
 STUDY_RELATIVE = Path("results/pcrl_utility_reference_repair_v1")
-PROPOSAL_SHA256 = "ffac532f3c42eb81de7987a0a8a1afcf04ce1527fb2eb6be94aa0b02dcaf3012"
+PROPOSAL_SHA256 = "79bfaae53e3cdf2415e1147740f52f3e0a8ae42ada3a0cef041009c7f175933a"
+QUEUE_UID = re.compile(r"[A-Z0-9][A-Z0-9_-]{2,119}\Z")
 STAGES = {"r2_release": "r2/release_worker.py",
           "r2_raw_union": "r2/raw_union_worker.py"}
 SOURCE_MODULES = (
@@ -44,6 +46,7 @@ PROTOCOL_FILES = (
     "r2/RAW_UNION_ACCOUNTING_AMENDMENT.md",
     "r2/PRIVACY_SCORE_ACCESS_AMENDMENT.md",
     "r2/R2_ACCESS_DEVIATION_20261009.md",
+    "LOCK_AMENDMENTS.md",
     "r3/PAIR_SELECTION_AUDIT.json", "r1/UTILITY_INTERVAL_PROTOCOL.md",
 )
 
@@ -194,7 +197,14 @@ def build(repo: Path, python: Path, slot: Path, *, generation: str = "q16") -> d
             or proposal.get("status") !=
             "PROSPECTIVE_AFTER_FIXED_PAIR_SELECTION_BEFORE_ATT_OR_INNER_SEX"
             or proposal.get("unit_count_by_stage") != expected_counts
-            or proposal.get("new_att_fit_count") != 86):
+            or proposal.get("new_att_fit_count") != 86
+            or not proposal.get("unit_id_convention", "").startswith(
+                "Uppercase ASCII queue IDs")
+            or any(not QUEUE_UID.fullmatch(uid) or record.get("unit_id") != uid
+                   for uid, record in proposal.get("unit_map", {}).items())
+            or any(dep not in proposal["unit_map"] or not QUEUE_UID.fullmatch(dep)
+                   for record in proposal["unit_map"].values()
+                   for dep in record.get("deps", []))):
         raise PermissionError("selected downstream design or counted units differ")
     gate_path = study / "FULL_INPUT_GATE.json"
     manifest_path = study / "m1/DATA_ACCESS_MANIFEST.json"

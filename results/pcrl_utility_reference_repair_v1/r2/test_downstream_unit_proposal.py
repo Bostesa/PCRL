@@ -1,5 +1,7 @@
 """Proposal planning must not open role arrays before their sealed stage."""
 
+import json
+import re
 from pathlib import Path
 
 from results.pcrl_utility_reference_repair_v1.r2 import build_downstream_unit_proposal as proposal
@@ -20,3 +22,16 @@ def test_role_input_uses_manifest_sha_without_opening_role_file(tmp_path, monkey
             "sha256": "a" * 64,
             "source": "FROZEN_MANIFEST_ROLE_METADATA",
         }}
+
+
+def test_all_frozen_unit_ids_and_dependencies_are_queue_safe():
+    frozen = json.loads(proposal.OUTPUT.read_text())
+    units = frozen["unit_map"]
+    pattern = re.compile(r"[A-Z0-9][A-Z0-9_-]{2,119}\Z")
+    assert all(pattern.fullmatch(uid) for uid in units)
+    assert all(record["unit_id"] == uid for uid, record in units.items())
+    assert all(set(record["deps"]) <= set(units) for record in units.values())
+    assert all(pattern.fullmatch(input_record["producer_unit"])
+               for record in units.values()
+               for input_record in record["inputs"].values()
+               if "producer_unit" in input_record)

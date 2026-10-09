@@ -5,6 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import argparse
+import tempfile
 from pathlib import Path
 
 from results.pcrl_utility_reference_repair_v1.r2.attack_fit import (
@@ -23,7 +26,17 @@ BANK_PATH = REPO / "results/pcrl_capacity_matched_feature_selection_v1/MASK_BANK
 GATE_PATH = STUDY / "FULL_INPUT_GATE.json"
 MANIFEST_PATH = STUDY / "m1/DATA_ACCESS_MANIFEST.json"
 OUTPUT = STUDY / "r2/DOWNSTREAM_UNIT_PROPOSAL.json"
+ARCHIVED_INVALID_UID_PROPOSAL_SHA256 = "ffac532f3c42eb81de7987a0a8a1afcf04ce1527fb2eb6be94aa0b02dcaf3012"
 VIEWS = ("income", "occupation_group", "coalition")
+QUEUE_UID = re.compile(r"[A-Z0-9][A-Z0-9_-]{2,119}\Z")
+
+
+def queue_uid(value: str) -> str:
+    """Keep scientific pair/path spelling while satisfying durable queue IDs."""
+    uid = value.upper()
+    if not QUEUE_UID.fullmatch(uid):
+        raise PermissionError("downstream unit ID is not queue-safe")
+    return uid
 
 
 def sha(path: Path) -> str:
@@ -175,7 +188,7 @@ def build() -> dict:
         }
         release_ids, raw_ids, attack_ids = {}, {}, {}
         for pair_id in selected:
-            uid = f"R2_RELEASE_S{seed}_{pair_id}"
+            uid = queue_uid(f"R2_RELEASE_S{seed}_{pair_id}")
             pair = bank_pairs[pair_id]
             inputs = dict(common)
             selected_inputs(inputs, seed, selection)
@@ -188,7 +201,7 @@ def build() -> dict:
                 seed=seed, pair_id=pair_id)
             release_ids[pair_id] = uid
         for union_sha in unions:
-            uid = f"R2_RAW_UNION_S{seed}_{union_sha}"
+            uid = queue_uid(f"R2_RAW_UNION_S{seed}_{union_sha}")
             inputs = dict(common)
             selected_inputs(inputs, seed, selection)
             for key in ("ATTACK_FIT_NEW:features", "ATTACK_FIT_NEW:sex",
@@ -205,7 +218,7 @@ def build() -> dict:
             diagonal = {item.income_mask_id: item for item in bank.pairs
                         if item.income_mask_id == item.occupation_mask_id}
             for view in VIEWS:
-                uid = f"R2_ATT_S{seed}_{pair_id}_{view}"
+                uid = queue_uid(f"R2_ATT_S{seed}_{pair_id}_{view}")
                 union = (pair if view == "coalition" else diagonal[
                     pair.income_mask_id if view == "income" else
                     pair.occupation_mask_id])
@@ -232,7 +245,7 @@ def build() -> dict:
                     seed=seed, pair_id=pair_id, view=view,
                     canonical_union_sha256=union.union_sha256)
                 attack_ids[(pair_id, view)] = uid
-        score_uid = f"R2_PRIVACY_SCORE_S{seed}"
+        score_uid = queue_uid(f"R2_PRIVACY_SCORE_S{seed}")
         inputs = dict(common)
         selected_inputs(inputs, seed, selection)
         role_input(inputs, manifest, "INNER_SELECTION:sex")
@@ -275,6 +288,7 @@ def build() -> dict:
             for stage in ("r2_release", "r2_raw_union", "r2_attack_fit",
                           "r2_privacy_score")},
         "unit_map": dict(sorted(units.items())),
+        "unit_id_convention": "Uppercase ASCII queue IDs; scientific pair, union, view and file paths retain original spelling.",
         "hash_convention": "Existing paths have SHA256; later outputs name their producer and must be hashed into the next sealed stage lock after completion.",
         "path_convention": "All paths are worktree-relative; private role files and predictions remain uncommitted.",
         "new_att_fit_count": 6 * sum(u["stage"] == "r2_attack_fit" for u in units.values())
@@ -284,12 +298,32 @@ def build() -> dict:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--correct-invalid-queue-uids", action="store_true")
+    args = parser.parse_args()
     value = build()
-    with OUTPUT.open("x") as stream:
-        json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
-        stream.write("\n")
-        stream.flush()
-        os.fsync(stream.fileno())
+    if args.correct_invalid_queue_uids:
+        if (not OUTPUT.is_file() or
+                sha(OUTPUT) != ARCHIVED_INVALID_UID_PROPOSAL_SHA256):
+            raise PermissionError("archived invalid-ID proposal source differs")
+        fd, temporary = tempfile.mkstemp(prefix=".DOWNSTREAM_UNIT_PROPOSAL.",
+                                         dir=OUTPUT.parent)
+        try:
+            with os.fdopen(fd, "w") as stream:
+                json.dump(value, stream, sort_keys=True, indent=2,
+                          allow_nan=False)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, OUTPUT)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+    else:
+        with OUTPUT.open("x") as stream:
+            json.dump(value, stream, sort_keys=True, indent=2, allow_nan=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
     print(json.dumps({"sha256": sha(OUTPUT),
                       "unit_count_by_stage": value["unit_count_by_stage"],
                       "new_att_fit_count": value["new_att_fit_count"]},
