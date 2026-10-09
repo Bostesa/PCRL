@@ -161,7 +161,10 @@ def main() -> None:
     inner_union = canonical_raw_union(sources["INNER_SELECTION"],
                                       source_columns=columns, feature_names=names)
     dependencies = None
+    local_source_lock = None
     if args.view == "coalition":
+        local_source_lock = _source_lock(
+            lock, "local_attack_source_lock_sha256", lock_sha)
         dependencies = {
             local: (path, sha, view_att[local], view_inner[local])
             for local, (path, sha) in local_paths.items()}
@@ -172,7 +175,8 @@ def main() -> None:
         raw_index_sha256=raw_sha, release_index_sha256=release_sha,
         seed=args.seed, pair_id=args.pair_id, view_name=args.view,
         lock_sha256=lock_sha, manifest_sha256=manifest_sha,
-        private_output=output.parent, local_dependencies=dependencies)
+        private_output=output.parent, local_dependencies=dependencies,
+        local_attack_source_lock_sha256=local_source_lock)
 
 
 if __name__ == "__main__":

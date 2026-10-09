@@ -127,11 +127,18 @@ def fit_complete_attack_view(
     release_index_sha256: str, seed: int, pair_id: str, view_name: str,
     lock_sha256: str, manifest_sha256: str, private_output: Path,
     local_dependencies: Mapping[str, tuple] | None = None,
+    local_attack_source_lock_sha256: str | None = None,
 ) -> dict:
     """Fit, orient on ATT tune, and save predictions without INNER labels."""
     if (view_name not in VIEWS or seed not in (0, 1, 2)
             or (view_name == "coalition") != (local_dependencies is not None)):
         raise ValueError("complete attack view/dependency identity differs")
+    if local_dependencies is not None and (
+            not isinstance(local_attack_source_lock_sha256, str)
+            or len(local_attack_source_lock_sha256) != 64
+            or any(char not in "0123456789abcdef"
+                   for char in local_attack_source_lock_sha256)):
+        raise ValueError("coalition local ATT source lock is incomplete")
     out = Path(private_output).resolve()
     if ".private" not in out.parts or out.exists():
         raise PermissionError("complete attack output must be new private custody")
@@ -173,7 +180,8 @@ def fit_complete_attack_view(
                 release_sha=release_index_sha256,
                 att_view=att_local, inner_view=inner_local,
                 coalition_att=att_view, coalition_inner=inner_view,
-                lock_sha=lock_sha256, manifest_sha=manifest_sha256)
+                lock_sha=local_attack_source_lock_sha256,
+                manifest_sha=manifest_sha256)
             for reader in CORE + RAW:
                 alias = f"IGNORE_{ignored}__{reader}"
                 joined["predictions_tune"][alias] = tune[reader]
@@ -206,6 +214,7 @@ def fit_complete_attack_view(
         "schema": SCHEMA, "status": "FROZEN", "seed": seed,
         "pair_id": pair_id, "view_name": view_name,
         "lock_sha256": lock_sha256,
+        "local_attack_source_lock_sha256": local_attack_source_lock_sha256,
         "manifest_sha256": manifest_sha256,
         "release_index_sha256": release_index_sha256,
         "raw_index_sha256": raw_index_sha256,
