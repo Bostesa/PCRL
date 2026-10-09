@@ -31,6 +31,7 @@ PROTOCOL_FILES = (
     "m1/DATA_ACCESS_MANIFEST.json", "REFERENCE_PARITY.json",
     "CONDITIONAL_UNIT_PLAN.json", "RECIPE_SELECTION.json",
     "r1/REFERENCE_PROVENANCE.md", "r3/ROLE_OVERLAP.json",
+    "r3/RECIPE_SELECTION_AUDIT.json",
     "r3/PREFIT_SOURCE_AND_EXPOSURE_AUDIT.md",
 )
 
@@ -66,6 +67,11 @@ def build(repo: Path, python: Path, slot: Path) -> dict:
             or selection.get("selected_recipe") not in ("A", "B")
             or set(selection.get("screen_output_sha256_by_seed", {})) != {"0", "1"}):
         raise PermissionError("recipe selection is not frozen")
+    independent = json.loads((study / "r3/RECIPE_SELECTION_AUDIT.json").read_text())
+    if (independent.get("status") != "PASS_AGGREGATE_ARITHMETIC"
+            or independent.get("selection_sha256") != sha(selection_path)
+            or selection.get("screen_queue_state_sha256") != sha(prior)):
+        raise PermissionError("FIT-only selection lacks independent aggregate audit")
     screen_receipts = {}
     for seed in (0, 1):
         p = private / "r1/screen" / f"seed_{seed}" / "SCREEN_RECEIPT.json"
