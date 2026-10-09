@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from results.pcrl_utility_reference_repair_v1.r3.privacy_math import (
-    alias_auc, attack_tune_indices, rank_auc,
+    alias_auc, attack_tune_indices, rank_auc, independent_group_shuffle,
 )
 
 
@@ -28,3 +28,14 @@ def test_fixed_att_group_split_is_disjoint_and_deterministic():
     np.testing.assert_array_equal(a_tune, b_tune)
     assert not np.intersect1d(a_fit, a_tune).size
     assert len(np.union1d(a_fit, a_tune)) == 4061
+
+
+def test_group_shuffle_preserves_whole_equal_size_vectors():
+    groups = np.array([10, 10, 20, 20, 30, 30, 40], dtype=np.int64)
+    labels = np.array([0, 1, 1, 1, 0, 0, 1], dtype=np.int64)
+    first = independent_group_shuffle(labels, groups)
+    second = independent_group_shuffle(labels, groups)
+    np.testing.assert_array_equal(first, second)
+    assert first[6] == 1  # the size-one bucket can only map to itself
+    assert sorted(tuple(first[i:i + 2]) for i in (0, 2, 4)) == [
+        (0, 0), (0, 1), (1, 1)]

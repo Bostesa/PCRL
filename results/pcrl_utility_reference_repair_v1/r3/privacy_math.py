@@ -11,6 +11,7 @@ import numpy as np
 
 
 SPLIT_SALT = "pcrl-method-portfolio-v1|attack-tune|20261008|"
+INNER_SHUFFLE_SALT = "pcrl-method-portfolio-v1|independent-inner-sex-null|20261008|v2"
 
 
 def rank_auc(label: np.ndarray, score: np.ndarray) -> float:
@@ -59,3 +60,25 @@ def attack_tune_indices(groups: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     if not tune_flag.any() or tune_flag.all():
         raise ValueError("ATT tune split is empty")
     return np.flatnonzero(~tune_flag), np.flatnonzero(tune_flag)
+
+
+def independent_group_shuffle(label: np.ndarray, groups: np.ndarray) -> np.ndarray:
+    """Permute entire protected-label vectors within equal-size group buckets."""
+    y = np.asarray(label)
+    unit = np.asarray(groups)
+    if (y.dtype != np.int64 or unit.dtype != np.int64 or y.ndim != 1
+            or unit.shape != y.shape or not np.isin(y, (0, 1)).all()):
+        raise ValueError("binary label and group vectors required")
+    seed = int.from_bytes(hashlib.sha256(INNER_SHUFFLE_SALT.encode()).digest()[:16],
+                          "big")
+    random = np.random.Generator(np.random.PCG64DXSM(seed))
+    buckets: dict[int, list[np.ndarray]] = {}
+    for group in np.unique(unit):
+        index = np.flatnonzero(unit == group)
+        buckets.setdefault(len(index), []).append(index)
+    result = np.empty_like(y)
+    for size in sorted(buckets):
+        peers = buckets[size]
+        for target, source in zip(peers, random.permutation(len(peers))):
+            result[target] = y[peers[int(source)]]
+    return result
