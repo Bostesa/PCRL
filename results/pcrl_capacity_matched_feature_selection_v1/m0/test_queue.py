@@ -217,6 +217,28 @@ class FocusedQueueTests(unittest.TestCase):
         self.assertEqual(json.loads(self.out.read_text()), {"threads": "1"})
         self.assertGreaterEqual(self.q.status()["used_cpu_s"], 0)
 
+    def test_requested_unit_cannot_launch_an_earlier_queued_unit(self) -> None:
+        self.q.admit_synthetic(external_heavy=1, evidence="data-free fixture")
+        foreign = self.spec()
+        foreign["unit_id"] = "FOREIGN-ONE"
+        self.q.enqueue(foreign)
+        second_output = self.base / "second.json"
+        second_script = self.base / "second.py"
+        second_script.write_text(
+            f"import pathlib\npathlib.Path({str(second_output)!r}).write_text('second')\n")
+        target = self.spec()
+        target.update(unit_id="TARGET-ONE", script=str(second_script),
+                      script_sha256=hashlib.sha256(second_script.read_bytes()).hexdigest(),
+                      argv=[sys.executable, str(second_script)],
+                      outputs=[str(second_output)])
+        self.q.enqueue(target)
+        denied = self.q.run_once(expected_unit_id="TARGET-ONE")
+        self.assertEqual(denied["status"], "UNEXPECTED_PENDING")
+        self.assertEqual(denied["unit_id"], "FOREIGN-ONE")
+        self.assertFalse(self.out.exists())
+        self.assertFalse(second_output.exists())
+        self.assertEqual(self.q.status()["units"]["TARGET-ONE"]["status"], "QUEUED")
+
     def test_changed_script_is_rejected_before_launch(self) -> None:
         self.q.admit_synthetic(external_heavy=1, evidence="test-only observation")
         self.q.enqueue(self.spec())

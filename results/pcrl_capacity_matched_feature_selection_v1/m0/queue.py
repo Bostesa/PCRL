@@ -326,13 +326,16 @@ class FocusedQueue:
         except (OSError, KeyError, TypeError):
             return False
 
-    def run_once(self) -> dict:
+    def run_once(self, *, expected_unit_id: str | None = None) -> dict:
         with self._mutex():
             state = self._read()
             pending = [(uid, rec) for uid, rec in state["units"].items() if rec["status"] == "QUEUED"]
             if not pending:
                 return {"status": "IDLE"}
             uid, rec = pending[0]
+            if expected_unit_id is not None and uid != expected_unit_id:
+                return {"status": "UNEXPECTED_PENDING", "unit_id": uid,
+                        "expected_unit_id": expected_unit_id}
             path = Path(rec["spec_path"])
             if sha256(path) != rec["spec_sha256"]:
                 return {"status": "SPEC_IDENTITY_CHANGED", "unit_id": uid}
