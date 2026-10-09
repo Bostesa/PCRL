@@ -1,0 +1,74 @@
+{
+  "schema": "pcrl-utility-r2-downstream-resource-forecast-v1",
+  "status": "PROSPECTIVE_BEFORE_FIT_SEX_PAIR_SEARCH",
+  "epoch_start_utc": "2026-10-09T11:36:10Z",
+  "deadline_utc": "2026-10-09T21:36:10Z",
+  "forecast_asof_utc": "2026-10-09T12:40:49Z",
+  "queue_charged_cpu_seconds_asof": 90.62253254069947,
+  "remaining_wall_seconds_asof": 32121,
+  "remaining_cpu_seconds_asof": 71909.3774674593,
+  "measured_anchors": [
+    {
+      "source": "prior focused RESOURCE_RECEIPTS.json/SYN-M4-ROLE-SIZED-001",
+      "status": "DONE",
+      "charged_cpu_seconds": 8.308783917222172,
+      "role_size": "4064 ATT rows and 2235 INNER rows",
+      "work": "one distinct pair, three complete views, six RAW_ONLY fits, twelve complete-reader fits, six engineering-control fits; 24 fits total",
+      "caveat": "synthetic inputs and prior source implementation; use as a timing anchor only"
+    },
+    {
+      "source": "prior focused RESOURCE_RECEIPTS.json/SYN-M3-INFERENCE-ROLE-SIZED-001",
+      "status": "DONE",
+      "charged_cpu_seconds": 409.6188010838814,
+      "work": "two seeds, ten rules, 207 registered clauses, 2048 paired-group replicates",
+      "caveat": "synthetic inference timing, not an Adult endpoint result"
+    },
+    {
+      "source": "prior focused RESOURCE_RECEIPTS.json/SYN-M5-INFERENCE-ROLE-SIZED-001",
+      "status": "DONE",
+      "charged_cpu_seconds": 161.05325208301656,
+      "work": "independent role-sized inference timing",
+      "caveat": "synthetic verifier timing"
+    }
+  ],
+  "actual_att_role_geometry": {
+    "rows": 4064,
+    "groups": 4061,
+    "source": "current sealed DATA_ACCESS_MANIFEST.json"
+  },
+  "complete_two_seed_ceiling": {
+    "pair_search_units": 2,
+    "pair_search_raw_reader_fits": 44,
+    "selected_distinct_pairs_per_seed_max": 10,
+    "selected_canonical_unions_per_seed_max": 6,
+    "release_units": 20,
+    "raw_union_units": 12,
+    "raw_union_reader_fits": 24,
+    "fresh_complete_view_units": 60,
+    "fresh_core_reader_fits": 240,
+    "fresh_engineering_control_fits": 120,
+    "fresh_att_reader_and_control_fits_total": 384,
+    "ignore_recipient_reader_fits": 0,
+    "raw_reader_transport_fits": 0,
+    "privacy_score_units": 2,
+    "independent_replay_and_aggregate_units": "separately enumerated by R3/R0 before seal"
+  },
+  "forecast_cpu_seconds": {
+    "fresh_att_reader_and_control_fits": 2660,
+    "fit_sex_pair_search": 3600,
+    "inference_and_independent_replay": 1200,
+    "release_custody_hashing_and_closeout_contingency": 3600,
+    "sum_conservative": 11060,
+    "twofold_stress_total": 22120
+  },
+  "basis": "Fresh ATT estimate is 20 times the same-row synthetic 24-fit rate scaled to 384 fits. The search and remaining stages have separate large reserves because their input roles and code paths differ. This is a capacity forecast, not a runtime promise.",
+  "decision": "The full matched control envelope currently fits the remaining wall and CPU ceilings on the measured anchors. Do not launch a candidate-only comparison. Reforecast from the first sealed real pair-search, raw-union and complete-view ATT receipts before launching the remaining units.",
+  "stop_or_reforecast_triggers": [
+    "first pair-search unit exceeds 1800 charged CPU seconds",
+    "first RAW_ONLY union unit exceeds 300 charged CPU seconds",
+    "first complete-view ATT unit exceeds 120 charged CPU seconds",
+    "observed RSS exceeds the sealed 3 GiB worker cap",
+    "projected complete required controls and independent replay no longer fit remaining 10-hour wall or 20-CPU-hour campaign ceilings"
+  ],
+  "scope": "Exploratory reused Adult people; budget feasibility does not imply scientific success or confirmation."
+}
