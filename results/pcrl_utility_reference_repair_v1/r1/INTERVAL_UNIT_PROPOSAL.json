@@ -1,0 +1,109 @@
+{
+  "interpretation": "post-selection reused Adult development intervals; no independent confirmation",
+  "lock_dependencies": {
+    "r1": [
+      "committed_protocol_and_source",
+      "R3_prefit_static_review",
+      "completed_FULL_INPUT_GATE_SHA",
+      "all_shared_input_SHAs",
+      "host_slot0"
+    ],
+    "r3": [
+      "committed_R1_output_SHA",
+      "R3_separate_prefit_review",
+      "same_role_input_SHAs",
+      "host_slot0"
+    ]
+  },
+  "purpose": "conditional descriptive 24-clause full-input utility uncertainty",
+  "r1_unit": {
+    "allow_child_processes": false,
+    "argv_suffix": [
+      "--manifest",
+      "m1/DATA_ACCESS_MANIFEST.json",
+      "--export-root",
+      ".private/role_export_v1",
+      "--private-root",
+      ".private",
+      "--full-input-gate",
+      "FULL_INPUT_GATE.json",
+      "--output",
+      ".private/r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json"
+    ],
+    "cpu_reserve_s": 300,
+    "max_rss_gib": 1,
+    "numerical_threads": 1,
+    "output": ".private/r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json",
+    "private_prediction_access": [
+      ".private/r1/gate/seed_0/GATE_PREDICTIONS.npz",
+      ".private/r1/gate/seed_1/GATE_PREDICTIONS.npz"
+    ],
+    "role_access": [
+      "INNER_SELECTION:income",
+      "INNER_SELECTION:occupation"
+    ],
+    "script": "r1/utility_intervals.py",
+    "stage": "r1_utility_intervals",
+    "unit_id": "R1_UTILITY_INTERVALS",
+    "wall_limit_s": 600
+  },
+  "r3_replay_unit": {
+    "additional_input": ".private/r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json",
+    "allow_child_processes": false,
+    "argv_suffix": [
+      "--manifest",
+      "m1/DATA_ACCESS_MANIFEST.json",
+      "--export-root",
+      ".private/role_export_v1",
+      "--private-root",
+      ".private",
+      "--full-input-gate",
+      "FULL_INPUT_GATE.json",
+      "--r1-interval-output",
+      ".private/r1/intervals/SIMULTANEOUS_UTILITY_INTERVALS.json",
+      "--output",
+      ".private/r3/UTILITY_INTERVAL_REPLAY.json"
+    ],
+    "cpu_reserve_s": 300,
+    "max_rss_gib": 1,
+    "numerical_threads": 1,
+    "output": ".private/r3/UTILITY_INTERVAL_REPLAY.json",
+    "requires_post_r1_output_sha256_lock": true,
+    "role_access": [
+      "INNER_SELECTION:income",
+      "INNER_SELECTION:occupation"
+    ],
+    "script": "r3/utility_interval_replay_worker.py",
+    "stage": "r3_utility_interval_replay",
+    "unit_id": "R3_UTILITY_INTERVAL_REPLAY",
+    "wall_limit_s": 600
+  },
+  "schema": "pcrl-utility-interval-unit-proposal-v1",
+  "shared_inputs_sha256_by_study_relative_path": {
+    ".private/r1/gate/seed_0/GATE_PREDICTIONS.npz": "314343cc0c7fe7471adb7bcca5e41bdbd854fa2fdd9815eaee4d8014a8a389c6",
+    ".private/r1/gate/seed_0/GATE_RECEIPT.json": "1de240bc6bb0a3643a020f868f47256e0eadbb7973bf65d0865fe8e3fb2689c2",
+    ".private/r1/gate/seed_1/GATE_PREDICTIONS.npz": "7e35f5b8f7c8a08ce377ee4f6a3146eee6c6791dd522abfab32a7a83c4962138",
+    ".private/r1/gate/seed_1/GATE_RECEIPT.json": "1c5e18391062961d49cd3968faf03c193c44fca5b506de2780e2163754d9e447",
+    ".private/role_export_v1/INNER_SELECTION/income.npz": "7c4d6eb91a20bf4c96c761b181a092672f412bcd7e479012d281ed2edac263f4",
+    ".private/role_export_v1/INNER_SELECTION/occupation.npz": "b631efaf406e48d4ec67f94736c121c30b1c251a8cd60700f7f4262be5f910b1",
+    "FULL_INPUT_GATE.json": "852678fbea6f86767aaa29ba077d51eb6d516d7ea3831a8ef7e4161bb820fd7a",
+    "m1/DATA_ACCESS_MANIFEST.json": "605bcdc9111f8d228a8526a649aa5cdec34c3f932d798d65e0cdf9672d86c45c"
+  },
+  "source_sha256_by_study_relative_path": {
+    "r0/admission.py": "ad4a4f0d9b7459ac7184cddd42422afc7f689fb9999738fdb3af179cd28805bf",
+    "r0/queue_adapter.py": "f003d0e7cb732f28c5f7d92f5c806ea4592c7ac774b93dd8febf6b09389ae94c",
+    "r1/UTILITY_INTERVAL_PROTOCOL.md": "0f5f3438b61e20b1cd2961ce92726d368f57fa88830c1f89e45318d2de258563",
+    "r1/fit_splits.py": "7940beea56b5e17a123cd893305928451ffca68eec10df118453454848630e06",
+    "r1/role_store.py": "f878584adf32a6c8e04bc5efdf98c2619fc42c6b64e1120888b530a9d3678051",
+    "r1/utility_intervals.py": "53cd4bb1ff079fbe92f1a529adc6612bbf43908fef76b795421c01abbe8bce02",
+    "r3/source_reference.py": "357a01f1f835bf2bbbd04f6dce182710285c5706265896b330d41bf125d1cda2",
+    "r3/task_gate_replay_worker.py": "6e58602a248ae271c234095896ee4b11924c2c2391d3d0df1b6cfa165d8143a2",
+    "r3/task_replay.py": "8bb634fc3cc0a5c38ac2dbed670feaccb93c68055efa1ff9079769d22c973683",
+    "r3/utility_interval_replay_worker.py": "72a8e7b4fcb25fc1dccb19ea7b99ebd8674f6ff940cc98751af5701718a05a34"
+  },
+  "stage_order": [
+    "r1_utility_intervals",
+    "r3_utility_interval_replay"
+  ],
+  "status": "PROPOSED_UNRUN"
+}
