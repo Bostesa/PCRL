@@ -181,8 +181,14 @@ class FocusedQueue:
             lock = json.loads(lock_path.read_text())
             review = json.loads(review_path.read_text())
             commit = seal["lock_commit_sha"]
+            permitted_scope = (
+                (lock.get("adult_fit_permission") is True and
+                 lock.get("verification_only") is not True) or
+                (lock.get("adult_fit_permission") is False and
+                 lock.get("verification_only") is True)
+            )
             if (lock.get("status") != "LOCAL_GIT_SEALED_EFFECTIVE" or
-                    lock.get("adult_fit_permission") is not True or
+                    not permitted_scope or
                     review.get("status") != "PASS" or
                     review.get("lock_sha256") != seal["lock_sha256"] or
                     review.get("lock_commit_sha") != commit):
@@ -314,6 +320,9 @@ class FocusedQueue:
                 raise ValueError("real worker may not spawn child processes")
             study = Path(state["gate"]["seal_path"]).parent
             lock = json.loads((study / "CAMPAIGN_LOCK.json").read_text())
+            if (lock.get("verification_only") is True and
+                    spec["stage"] != "independent_task_no_go"):
+                raise ValueError("verification-only lock denies method fits")
             private_registry = json.loads((study / ".private" / "UNIT_SPECS.json").read_text())
             expected_spec = private_registry.get("unit_specs", {}).get(spec["unit_id"])
             if not isinstance(expected_spec, dict) or expected_spec.get("seal_sha256") != "$LOCAL_SEAL_SHA256":

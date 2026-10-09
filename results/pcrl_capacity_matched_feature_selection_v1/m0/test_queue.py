@@ -203,6 +203,20 @@ class FocusedQueueTests(unittest.TestCase):
         queue._validate_spec(spec, queue.status())
         self.assertEqual(queue.run_once()["status"], "DONE")
         self.assertEqual(output.read_text(), "ok")
+        output.unlink()
+        verification_lock = json.loads(lock.read_text())
+        verification_lock.update(adult_fit_permission=False,
+                                 verification_only=True)
+        lock.write_text(json.dumps(verification_lock))
+        with self.assertRaisesRegex(ValueError, "verification-only lock denies"):
+            queue._validate_spec(spec, queue.status())
+        replay_spec = {**spec, "stage": "independent_task_no_go"}
+        registry.write_text(json.dumps({"unit_specs": {
+            "TEST-ONE": {**replay_spec, "seal_sha256": "$LOCAL_SEAL_SHA256"}}}))
+        verification_lock["private_unit_registry_sha256"] = hashlib.sha256(
+            registry.read_bytes()).hexdigest()
+        lock.write_text(json.dumps(verification_lock))
+        queue._validate_spec(replay_spec, queue.status())
         protocol_path.write_text("mutated after real unit\n")
         self.assertFalse(FocusedQueue._seal_ok(seal, seal_sha))
         with patch("results.pcrl_capacity_matched_feature_selection_v1.m0.queue.resource.getrlimit",
