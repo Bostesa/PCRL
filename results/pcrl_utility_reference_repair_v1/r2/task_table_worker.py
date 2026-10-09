@@ -11,7 +11,6 @@ import tempfile
 
 from results.pcrl_utility_reference_repair_v1.r0.admission import assert_running_unit
 from results.pcrl_utility_reference_repair_v1.r1.role_store import sha_file
-from results.pcrl_utility_reference_repair_v1.r2.admission import admit_conditional_gate
 from results.pcrl_utility_reference_repair_v1.r2.frozen_bank import load_frozen_bank
 from results.pcrl_utility_reference_repair_v1.r2.task_table import (
     build_pre_sensitive_task_table,
@@ -45,10 +44,133 @@ def _write_once_json(path: Path, record: dict) -> str:
 
 
 def _input_receipt(path: Path, spec: dict) -> dict:
+    if path.suffix != ".json":
+        raise PermissionError("task-only aggregate stage reads JSON only")
     expected = spec.get("inputs", {}).get(str(path))
     if expected is None or sha_file(path) != expected:
         raise PermissionError("task-only predecessor receipt differs from sealed unit")
     return json.loads(path.read_text())
+
+
+def _full_sha(value: object) -> bool:
+    return (isinstance(value, str) and len(value) == 64
+            and all(char in "0123456789abcdef" for char in value))
+
+
+def admit_aggregate_task_gate(gate_path: Path, private_root: Path,
+                              lock: dict, spec: dict, seed: int) -> dict:
+    """Admit only hash-bound F/R3 JSON aggregates, with no NPZ component read."""
+    gate = _input_receipt(gate_path, spec)
+    gate_sha = sha_file(gate_path)
+    if (gate_sha != lock.get("full_input_gate_sha256")
+            or gate.get("schema") != "pcrl-utility-full-input-gate-v1"
+            or gate.get("status") != "PASS_FULL_INPUT_POINT_GATE"
+            or gate.get("selected_recipe") != "A"
+            or gate.get("common_role") != "INNER_SELECTION"
+            or gate.get("source_science_lock_sha256") !=
+            lock.get("source_science_lock_sha256")
+            or gate.get("common_row_unit_pair_sha256") !=
+            lock.get("common_row_unit_pair_sha256")
+            or lock.get("selected_recipe") != "A"):
+        raise PermissionError("aggregate-only F gate identity differs")
+    eligibility = gate.get("per_seed_task")
+    if (not isinstance(eligibility, dict) or set(eligibility) != {"0", "1"}
+            or any(set(eligibility[paired_seed]) != set(TASKS)
+                   or any(eligibility[paired_seed][task] !=
+                          {"U0": True, "Ucal": True} for task in TASKS)
+                   for paired_seed in ("0", "1"))):
+        raise PermissionError("aggregate-only F point flags are incomplete")
+    source_lock = private_root / "stage_seals/gate/CAMPAIGN_LOCK.json"
+    _input_receipt(source_lock, spec)
+    if sha_file(source_lock) != lock.get("source_science_lock_sha256"):
+        raise PermissionError("archived full-input source lock differs")
+    artifact_path = STUDY / "F_ARTIFACT_LOCK.json"
+    artifact = _input_receipt(artifact_path, spec)
+    artifact_sha = sha_file(artifact_path)
+    if (artifact_sha != lock.get("f_artifact_lock_sha256")
+            or artifact_sha != gate.get("F_artifact_lock_sha256")
+            or artifact.get("schema") != "pcrl-utility-f-artifact-lock-v1"
+            or artifact.get("status") != "FROZEN"
+            or artifact.get("selected_recipe") != "A"
+            or artifact.get("common_role") != "INNER_SELECTION"
+            or artifact.get("recipe_selection_sha256") !=
+            gate.get("recipe_selection_sha256")):
+        raise PermissionError("archived F artifact lock differs")
+    packages = gate.get("f_packages")
+    declared = artifact.get("f_package_sha256_by_seed_task")
+    if (not isinstance(packages, dict) or set(packages) != {"0", "1"}
+            or not isinstance(declared, dict) or set(declared) != {"0", "1"}
+            or any(set(packages[key]) != set(TASKS)
+                   or set(declared[key]) != set(TASKS)
+                   or any(packages[key][task].get("sha256") != declared[key][task]
+                          or not _full_sha(declared[key][task]) for task in TASKS)
+                   for key in ("0", "1"))):
+        raise PermissionError("archived F task package SHA map differs")
+    numerical_path = STUDY / "r3/FULL_INPUT_TASK_NUMERICAL_VERIFICATION.json"
+    numerical = _input_receipt(numerical_path, spec)
+    replay_path = private_root / "r3/TASK_GATE_REPLAY.json"
+    replay = _input_receipt(replay_path, spec)
+    replay_sha = sha_file(replay_path)
+    if (sha_file(numerical_path) != lock.get(
+            "r3_full_input_numerical_verification_sha256")
+            or sha_file(numerical_path) !=
+            gate.get("r3_numerical_verification_sha256")
+            or replay_sha != lock.get("r3_full_input_replay_sha256")
+            or replay_sha != gate.get("r3_numerical_replay_sha256")
+            or numerical.get("schema") !=
+            "pcrl-utility-r3-full-input-task-numerical-verification-v1"
+            or numerical.get("status") != "PASS_POINT_GATE_REPLAY"
+            or numerical.get("private_replay_output_sha256") != replay_sha
+            or numerical.get("full_input", {}).get(
+                "all_seed_task_reference_point_clauses_pass") is not True
+            or replay.get("schema") != "pcrl-utility-r3-task-gate-replay-v1"
+            or replay.get("selected_recipe") != "A"
+            or replay.get("F_artifact_lock_sha256") != artifact_sha
+            or replay.get("conditional_admission_eligible") is not True
+            or replay.get("point_eligible_all_seed_task_reference_clauses")
+            is not True):
+        raise PermissionError("independent full-input aggregate replay differs")
+    r1_path = private_root / "r1/gate" / f"seed_{seed}" / "GATE_RECEIPT.json"
+    r1 = _input_receipt(r1_path, spec)
+    r1_sha = sha_file(r1_path)
+    if (r1_sha != gate.get("r1_gate_receipt_sha256_by_seed", {}).get(str(seed))
+            or r1.get("schema") != "pcrl-utility-full-input-gate-result-v1"
+            or r1.get("seed") != seed
+            or r1.get("selected_recipe") != "A"
+            or r1.get("inner_row_unit_sha256") !=
+            gate["common_row_unit_pair_sha256"]
+            or r1.get("F_artifact_lock_sha256") != artifact_sha
+            or r1.get("predictions_sha256") !=
+            gate.get("r1_gate_prediction_sha256_by_seed", {}).get(str(seed))):
+        raise PermissionError("R1 full-input task aggregate identity differs")
+    return {"selected_recipe": "A", "gate_sha256": gate_sha,
+            "common_row_unit_pair_sha256": gate["common_row_unit_pair_sha256"],
+            "r1_gate_receipt_sha256": r1_sha}
+
+
+def model_identity_from_json(fit: dict, package: dict, mask: object,
+                             task: str, seed: int) -> str:
+    """Bind an already independently replayed model without opening its NPZ."""
+    model = package.get("model")
+    expected = (f"masks/{mask.mask_id}/seed{seed}/"
+                f"final_{task}_head.npz")
+    if (not isinstance(model, dict)
+            or model != fit.get("model_stages", {}).get("final", {}).get(task)
+            or model.get("relative_path") != expected
+            or not _full_sha(model.get("sha256"))
+            or not isinstance(package.get("model_id"), str)
+            or not package["model_id"]
+            or model.get("model_id") != package["model_id"]
+            or model.get("training_receipt", {}).get("model_id") !=
+            package["model_id"]
+            or model.get("training_receipt", {}).get("purpose") != task
+            or model.get("training_receipt", {}).get("seed") != seed
+            or model.get("training_receipt", {}).get("selected_atoms") !=
+            list(mask.atoms)
+            or model.get("training_receipt", {}).get("selected_columns") !=
+            len(mask.column_indices)):
+        raise PermissionError("task-only model JSON identity differs")
+    return f"{package['model_id']}:SHA256:{model['sha256']}"
 
 
 def _private_record_file(root: Path, record: dict, label: str) -> Path:
@@ -59,6 +181,8 @@ def _private_record_file(root: Path, record: dict, label: str) -> Path:
     relative = Path(record["relative_path"])
     if relative.is_absolute() or ".." in relative.parts:
         raise PermissionError(f"{label} path escapes private root")
+    if relative.suffix != ".json":
+        raise PermissionError(f"{label} requires JSON-only derived input")
     path = (root / relative).resolve(strict=True)
     if not path.is_relative_to(root) or sha_file(path) != record["sha256"]:
         raise PermissionError(f"{label} path or bytes differ")
@@ -114,15 +238,14 @@ def publish_task_table(bank, seed: int, private_root: Path, output: Path,
             if (package.get("schema") != "pcrl-utility-masked-task-package-v1"
                     or package.get("task") != task
                     or package.get("mask_id") != mask_id
+                    or package.get("mask_sha256") != mask.mask_sha256
                     or package.get("seed") != seed
                     or package.get("conditional_lock_sha256") !=
                     gate["mask_fit_source_lock_sha256"]
                     or package.get("selected_recipe") != "A"):
                 raise PermissionError("task-only head package identity differs")
-            model = package["model"]
-            _private_record_file(private_root, model,
-                                 "task-only head checkpoint")
-            heads[mask_id][task] = f"{package['model_id']}:SHA256:{model['sha256']}"
+            heads[mask_id][task] = model_identity_from_json(
+                fit, package, mask, task, seed)
     table, t_choice = build_pre_sensitive_task_table(
         bank, seed, common_row_unit_sha256, gates, heads, shas,
         full_input_gate_sha256=gate_sha256, selected_recipe="A",
@@ -183,12 +306,9 @@ def main() -> None:
     lock_sha = sha_file(args.lock)
     if lock.get("mask_bank_sha256") != sha_file(MASK_BANK):
         raise PermissionError("task-only table mask bank differs")
-    admitted = admit_conditional_gate(
-        args.gate, expected_gate_sha256=lock["full_input_gate_sha256"],
-        expected_source_lock_sha256=lock["source_science_lock_sha256"],
-        expected_common_row_unit_pair_sha256=lock["common_row_unit_pair_sha256"],
-        private_root=private_root)
-    if (admitted.selected_recipe != "A"
+    admitted = admit_aggregate_task_gate(
+        args.gate, private_root, lock, spec, args.seed)
+    if (admitted["selected_recipe"] != "A"
             or lock.get("selected_recipe") != "A"):
         raise PermissionError("task-only table requires the selected A recipe")
     bank = load_frozen_bank(MASK_BANK, expected_sha256=lock["mask_bank_sha256"])
@@ -214,11 +334,10 @@ def main() -> None:
         raise PermissionError("task-only table output inventory differs")
     publish_task_table(
         bank, args.seed, private_root, expected, spec,
-        admitted.common_row_unit_pair_sha256,
-        gate_sha256=admitted.gate_sha256, lock_sha256=lock_sha,
+        admitted["common_row_unit_pair_sha256"],
+        gate_sha256=admitted["gate_sha256"], lock_sha256=lock_sha,
         source_locks=source_locks,
-        r1_gate_receipt_sha256={key: sha for key, _, sha in
-                                admitted.r1_gate_receipt_paths}[str(args.seed)],
+        r1_gate_receipt_sha256=admitted["r1_gate_receipt_sha256"],
         mask_lock_source_spec=lock["mask_lock_sha256_by_id"])
 
 
