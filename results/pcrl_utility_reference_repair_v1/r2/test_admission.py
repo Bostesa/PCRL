@@ -16,7 +16,7 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _fixture(tmp_path):
+def _fixture(tmp_path, recipe="A"):
     private = tmp_path / ".private"
     private.mkdir()
     packages = {}
@@ -26,7 +26,41 @@ def _fixture(tmp_path):
             relative = f"r1/F_{seed}_{task}.json"
             path = private / relative
             path.parent.mkdir(exist_ok=True)
-            content = f"{seed}:{task}:weights".encode()
+            model_path = private / f"r1/model_{seed}_{task}.npz"
+            model_data = f"{seed}:{task}:weights".encode()
+            if recipe == "A":
+                model_path.write_bytes(model_data)
+                model_record = {
+                    "relative_path": str(model_path.relative_to(private)),
+                    "sha256": _sha(model_data),
+                }
+            else:
+                bundle = private / f"r1/bundle_{seed}_{task}"
+                bundle.mkdir()
+                hashes = {}
+                for filename in ("encoder.pt", "head_0.joblib", "head_1.joblib"):
+                    payload = model_data + filename.encode()
+                    (bundle / filename).write_bytes(payload)
+                    hashes[filename] = _sha(payload)
+                model_record = {
+                    "relative_directory": str(bundle.relative_to(private)),
+                    "sha256": hashes,
+                }
+            cal_path = private / f"r1/cal_{seed}_{task}.json"
+            cal_data = f"{seed}:{task}:calibration".encode()
+            cal_path.write_bytes(cal_data)
+            manifest = {
+                "schema": "pcrl-utility-full-F-task-package-v1",
+                "seed": seed, "task": task, "selected_recipe": recipe,
+                "selection_lock_sha256": "f" * 64,
+                "model": model_record,
+                "calibrator": {"relative_path": str(cal_path.relative_to(private)),
+                               "sha256": _sha(cal_data)},
+                "feature_schema_sha256": "c" * 64,
+                "fit_row_unit_sha256": "d" * 64,
+                "calibration_row_unit_sha256": "e" * 64,
+            }
+            content = (json.dumps(manifest, sort_keys=True) + "\n").encode()
             path.write_bytes(content)
             packages[str(seed)][task] = {
                 "relative_path": relative, "sha256": _sha(content),
@@ -34,7 +68,7 @@ def _fixture(tmp_path):
     gate = {
         "schema": "pcrl-utility-full-input-gate-v1",
         "status": "PASS_FULL_INPUT_POINT_GATE",
-        "selected_recipe": "B",
+        "selected_recipe": recipe,
         "common_role": "INNER_SELECTION",
         "common_row_unit_pair_sha256": "b" * 64,
         "source_science_lock_sha256": "a" * 64,
@@ -60,7 +94,7 @@ def test_conditional_gate_admits_only_a_complete_hashed_f_receipt(tmp_path):
         expected_common_row_unit_pair_sha256="b" * 64,
         private_root=private,
     )
-    assert admitted.selected_recipe == "B"
+    assert admitted.selected_recipe == "A"
     assert len(admitted.f_package_paths) == 4
     assert admitted.gate_sha256 == gate_sha
 
@@ -110,3 +144,32 @@ def test_conditional_gate_rejects_escape_and_wrong_receipt_sha(tmp_path):
             private_root=private,
         )
 
+
+def test_conditional_gate_rehashes_model_component_inside_f_manifest(tmp_path):
+    gate_path, private, _, gate_sha = _fixture(tmp_path)
+    (private / "r1/model_0_income.npz").write_text("mutated weights")
+    with pytest.raises(PermissionError, match="F model component"):
+        admit_conditional_gate(
+            gate_path, expected_gate_sha256=gate_sha,
+            expected_source_lock_sha256="a" * 64,
+            expected_common_row_unit_pair_sha256="b" * 64,
+            private_root=private,
+        )
+
+
+def test_conditional_gate_rehashes_all_B_bundle_files(tmp_path):
+    gate_path, private, _, gate_sha = _fixture(tmp_path, recipe="B")
+    assert admit_conditional_gate(
+        gate_path, expected_gate_sha256=gate_sha,
+        expected_source_lock_sha256="a" * 64,
+        expected_common_row_unit_pair_sha256="b" * 64,
+        private_root=private,
+    ).selected_recipe == "B"
+    (private / "r1/bundle_0_income/head_1.joblib").write_text("mutated")
+    with pytest.raises(PermissionError, match="F model component"):
+        admit_conditional_gate(
+            gate_path, expected_gate_sha256=gate_sha,
+            expected_source_lock_sha256="a" * 64,
+            expected_common_row_unit_pair_sha256="b" * 64,
+            private_root=private,
+        )

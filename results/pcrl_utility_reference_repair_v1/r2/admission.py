@@ -30,6 +30,57 @@ def _full_sha(value: object) -> bool:
             and all(char in "0123456789abcdef" for char in value))
 
 
+def _private_file(root: Path, relative_value: object, expected_sha: object,
+                  label: str) -> Path:
+    if not isinstance(relative_value, str) or not _full_sha(expected_sha):
+        raise PermissionError(f"{label} identity is incomplete")
+    relative = Path(relative_value)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        raise PermissionError(f"{label} path escapes private root")
+    path = (root / relative).resolve(strict=True)
+    if not path.is_relative_to(root):
+        raise PermissionError(f"{label} path escapes private root")
+    if _sha256(path) != expected_sha:
+        raise PermissionError(f"{label} bytes differ from receipt")
+    return path
+
+
+def _check_f_manifest(package: Path, root: Path, *, seed: int, task: str,
+                      recipe: str) -> tuple[str, str, str, str]:
+    content = json.loads(package.read_text())
+    if (content.get("schema") != "pcrl-utility-full-F-task-package-v1"
+            or content.get("seed") != seed or content.get("task") != task
+            or content.get("selected_recipe") != recipe
+            or not all(_full_sha(content.get(key)) for key in (
+                "selection_lock_sha256", "feature_schema_sha256",
+                "fit_row_unit_sha256", "calibration_row_unit_sha256"))):
+        raise PermissionError("F package task, recipe or training identity differs")
+    model = content.get("model")
+    if not isinstance(model, dict):
+        raise PermissionError("F model component identity is incomplete")
+    if recipe == "A":
+        _private_file(root, model.get("relative_path"), model.get("sha256"),
+                      "F model component")
+    else:
+        relative = model.get("relative_directory")
+        hashes = model.get("sha256")
+        if (not isinstance(relative, str) or not isinstance(hashes, dict)
+                or set(hashes) != {"encoder.pt", "head_0.joblib", "head_1.joblib"}):
+            raise PermissionError("F model component bundle is incomplete")
+        for name, digest in hashes.items():
+            _private_file(root, str(Path(relative) / name), digest,
+                          "F model component")
+    calibrator = content.get("calibrator")
+    if not isinstance(calibrator, dict):
+        raise PermissionError("F calibrator component identity is incomplete")
+    _private_file(root, calibrator.get("relative_path"),
+                  calibrator.get("sha256"), "F calibrator component")
+    return tuple(content[key] for key in (
+        "selection_lock_sha256", "feature_schema_sha256",
+        "fit_row_unit_sha256", "calibration_row_unit_sha256",
+    ))
+
+
 @dataclass(frozen=True)
 class GateAdmission:
     selected_recipe: str
@@ -89,6 +140,7 @@ def admit_conditional_gate(
     if root.name != ".private":
         raise PermissionError("F package root must be study private custody")
     packages = []
+    package_identities = set()
     for seed in SEEDS:
         tasks = package_records[seed]
         if not isinstance(tasks, dict) or set(tasks) != set(TASKS):
@@ -99,16 +151,14 @@ def admit_conditional_gate(
                     or set(record) != {"relative_path", "sha256"}
                     or not _full_sha(record["sha256"])):
                 raise PermissionError("F package identity is incomplete")
-            relative = Path(record["relative_path"])
-            if (relative.is_absolute() or ".." in relative.parts
-                    or not relative.parts):
-                raise PermissionError("F package path escapes private root")
-            package = (root / relative).resolve(strict=True)
-            if not package.is_relative_to(root):
-                raise PermissionError("F package path escapes private root")
-            if _sha256(package) != record["sha256"]:
-                raise PermissionError("F package bytes differ from full-input gate")
+            package = _private_file(
+                root, record["relative_path"], record["sha256"], "F package")
+            package_identities.add(_check_f_manifest(
+                package, root, seed=int(seed), task=task,
+                recipe=gate["selected_recipe"]))
             packages.append((seed, task, package, record["sha256"]))
+    if len(package_identities) != 1:
+        raise PermissionError("F packages disagree on source, selection or roles")
     return GateAdmission(
         selected_recipe=gate["selected_recipe"],
         gate_sha256=actual_sha,
@@ -116,4 +166,3 @@ def admit_conditional_gate(
         common_row_unit_pair_sha256=expected_common_row_unit_pair_sha256,
         f_package_paths=tuple(packages),
     )
-
