@@ -102,8 +102,10 @@ predeclared simultaneous inference; seeds are not independent populations.
 
 | Conditional stage | Two-seed maximum | Exact dependency |
 | --- | ---: | --- |
-| Lead masked-head packages and calibrations | 8 + 8 | Full-input gate passes |
-| Remaining bank masked-head packages and calibrations | 12 + 12 | A two-purpose lead qualifies |
+| Lead purpose head packages | 8 outer + 8 final | Full-input gate passes |
+| Lead fixed CAL calibrations | 16 | For outer ranking and final utility |
+| Remaining bank purpose head packages | 12 outer + 12 final | A two-purpose lead qualifies |
+| Remaining fixed CAL calibrations | 24 | For outer ranking and final utility |
 | Fitting-role raw search readers | 44 | Bank completed |
 | Pair table and rule selections | 2 tables, 20 rule slots | Search readers complete |
 | Canonical raw-union reader fits | `2*U` per seed, `U <= 6` | Selected pairs |
@@ -113,7 +115,8 @@ predeclared simultaneous inference; seeds are not independent populations.
 The two-seed final reader ceiling is `2*(18*10 + 2*6) = 384` fitted
 readers, before exact pair/union aliases. Ignore-recipient readers are verified
 transports, not additional fits. A conditional third seed requires its own F
-gate, 10 masked packages/calibrations for the full bank, 22 fitting search
+gate, 10 outer and 10 final purpose packages with 20 calibrations for the
+full bank, 22 fitting search
 readers, and at most 192 final reader fits; it runs only after a finalist is
 frozen and the complete required control/replay budget remains. R0's actual
 queue plan must include preprocessing, forward passes, calibration, attacks,
@@ -125,18 +128,31 @@ The package counts above are purpose outputs, not an assertion that both
 candidate architectures have the same fit count. Under the inherited C MLP
 recipe A, each purpose/mask package has its own neural head; each head's
 internal epoch selection and full-role refit are counted separately. Under
-the source-style joint task recipe B, one masked encoder is trained per
-mask/seed using the two permitted task labels, then both task heads are fitted
-on that encoder; thus the eight lead packages share four encoder fits, and
-the twelve remaining packages share six additional encoder fits. Both tasks'
-head, calibration, forward-pass and serialization work still counts. For
+the source-style joint task recipe B, each masked encoder stage is trained
+jointly for two permitted task labels. Its inner-train encoder supports
+held-out C selection on inner-val. A fresh outer-fit encoder and two heads
+then provide the FIT outer-val task ranking, with fixed CAL calibration. A
+third fresh all-FIT encoder and two heads provide the common-role utility
+and deployment release, with their own fixed CAL calibration. Thus each
+mask/seed has three encoder fits and four task-head packages, counting the
+outer and final outputs separately. For
 recipe B, every mask gets the same five-value logistic-regularization search
 opportunity as F, using only the same frozen FIT internal group split and
 task NLL selection rule. This is ten tuning fits and two final logistic fits
 per mask/seed, with no INNER_SELECTION adjustment. Across both seeds, the
-lead stage therefore has 4 encoder fits, 40 tuning fits, 8 final logistic
-fits and 8 calibrations; bank completion adds 6 encoders, 60 tuning fits,
-12 final logistic fits and 12 calibrations. The exact queued stage count and
+lead stage therefore has 12 encoder fits, 40 tuning fits, 8 outer heads,
+8 final heads and 16 calibrations; bank completion adds 18 encoder fits,
+60 tuning fits, 12 outer heads, 12 final heads and 24 calibrations. The full
+five-mask/two-seed maximum is 30 encoder fits, 100 C-grid logistic fits,
+20 outer logistic heads, 20 final logistic heads and 40 calibrations, plus
+all required forward passes. Recipe A mirrors its inherited task-head epoch
+selection, outer-fit scoring and all-FIT final refit, counting each stage and
+calibration separately. A freezes the FIT-only epoch-selection *algorithm*
+per call, so outer and final fits may select different numeric epochs; both
+are reported. B freezes the numeric C selected from the nested outer-FIT
+fold and reuses it for both outer-fit and all-FIT heads, with no new final
+C grid. This A/B checkpoint asymmetry is part of the prospective recipe
+contract. The exact queued stage count and
 timing must follow whichever recipe R1 selects.
 
 No old assessment or HEAD_VALIDATION label arrays are admitted. All outputs

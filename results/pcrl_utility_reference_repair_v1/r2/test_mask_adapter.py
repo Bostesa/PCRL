@@ -7,7 +7,10 @@ import hashlib
 import numpy as np
 import pytest
 
-from results.pcrl_method_portfolio_v1.teams.c.prototype import AdultGroupedSchema
+from results.pcrl_method_portfolio_v1.teams.c.prototype import (
+    AdultGroupedSchema,
+    PurposeRelease,
+)
 from results.pcrl_utility_reference_repair_v1.r2.mask_adapter import (
     FixedFillSelectedHead,
     fit_public_fill_constants,
@@ -19,6 +22,11 @@ class _UsesLastColumn:
         assert full_input.shape[1] == 83
         positive = 1.0 / (1.0 + np.exp(-full_input[:, 82]))
         return np.column_stack((1.0 - positive, positive))
+
+
+class _IdentityCalibrator:
+    def transform(self, probability):
+        return probability
 
 
 def _mask():
@@ -99,3 +107,27 @@ def test_adapter_identity_binds_the_underlying_weight_sha():
     second = FixedFillSelectedHead(**kwargs, base_model_sha256="b" * 64)
     assert first.model_id != second.model_id
     assert first.base_model_sha256 == "a" * 64
+
+
+def test_inherited_release_emits_only_selected_values_and_masked_scores():
+    schema, atoms, columns = _mask()
+    source_sha = hashlib.sha256("\n".join(schema.feature_names).encode()).hexdigest()
+    constants = np.zeros(83, dtype=np.float32)
+    constants[82] = 2.0
+    head = FixedFillSelectedHead(
+        purpose="income", selected_atoms=atoms, source_indices=columns,
+        full_input_head=_UsesLastColumn(), base_model_id="B-TEST",
+        base_model_sha256="a" * 64, fill_constants=constants,
+        source_schema_sha256=source_sha,
+    )
+    release = PurposeRelease(
+        schema, atoms, head, "income", head.model_id,
+        "CAL-TEST", _IdentityCalibrator(),
+    )
+    people = np.zeros((2, 83), dtype=np.float32)
+    people[:, 82] = np.array([-100.0, 100.0], dtype=np.float32)
+    view = release.view(people, schema.feature_names)
+    assert view["selected_values"].shape == (2, len(columns))
+    assert 82 not in columns
+    assert np.array_equal(view["probabilities"][0], view["probabilities"][1])
+    assert view["head_id"] == head.model_id
