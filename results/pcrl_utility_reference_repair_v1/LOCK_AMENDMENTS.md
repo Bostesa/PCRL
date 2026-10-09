@@ -47,3 +47,18 @@ and `.private/lock_attempts/lead_replay_stale_worker_before_review/`.
 The corrected lock binds the final worker bytes. The two lead masks, rows,
 task references, numeric gates, inputs and output inventory are unchanged.
 R3 must review the corrected committed lock before independent replay.
+
+## 2026-10-09: derived-only task table queue admission, before T selection
+
+The inherited queue admits real units only when a role archive is declared.
+The fixed five-mask task table reads previously sealed fit and gate aggregates,
+and does not need a row archive. Before any task-table unit was locked or run,
+the study's `RepairQueue` gained a narrow `r2_task_table` validation path with
+empty role access and a committed exact input hash map. It excludes role export
+files, checks every derived input and three private outputs, and retains the
+same science seal, resource caps, process containment and shared slot.
+
+A synthetic sealed queue fixture ran this role-free stage end to end. Earlier
+stage locks and code remain in Git history; this adapter version applies only
+to later seals. The task utility rules, masks, rows and SEX embargo did not
+change. R3 must review the later committed stage before T selection runs.

@@ -169,3 +169,91 @@ def test_real_stage_admission_enqueues_and_runs(tmp_path):
     outcome = queue.run_once(expected_unit_id="REFERENCE_PARITY_FIXTURE")
     assert outcome["status"] == "DONE", (outcome, (queue_root / "REFERENCE_PARITY_FIXTURE.stderr").read_text())
     assert output.read_bytes() == role.read_bytes()
+
+
+def test_derived_task_table_admission_has_no_role_files(tmp_path):
+    """A sealed aggregate-only unit runs without declaring unused role data."""
+    repo = tmp_path / "repo"
+    study = repo / "results" / "pcrl_utility_reference_repair_v1"
+    for part in ("m1", "r2", "r3", ".private"):
+        (study / part).mkdir(parents=True, exist_ok=True)
+    aggregate = study / ".private" / "aggregate.json"
+    aggregate.write_text('{"task":"income"}\n')
+    manifest = study / "m1" / "DATA_ACCESS_MANIFEST.json"
+    manifest.write_text('{"schema":"synthetic"}\n')
+    worker = study / "r2" / "worker.py"
+    actual_repo = Path(__file__).resolve().parents[3]
+    worker.write_text(
+        "import sys\nfrom pathlib import Path\n"
+        f"sys.path.insert(0, {str(actual_repo)!r})\n"
+        "from results.pcrl_utility_reference_repair_v1.r0.admission "
+        "import assert_running_unit\n"
+        "u,q,l,a,o1,o2,o3 = sys.argv[1:]\n"
+        "spec = assert_running_unit(u,q,l,'r2_task_table',o1)\n"
+        "assert spec['role_inputs'] == {}\n"
+        "for o in (o1,o2,o3): Path(o).write_bytes(Path(a).read_bytes())\n")
+    slot = tmp_path / "shared-slot.lock"
+    slot.touch()
+    queue_root = study / ".private" / "queue"
+    outputs = [study / ".private" / name for name in
+               ("table.json", "choice.json", "receipt.json")]
+    lock_path = study / "CAMPAIGN_LOCK.json"
+    spec = {
+        "unit_id": "DERIVED_TASK_TABLE_FIXTURE", "mode": "real",
+        "stage": "r2_task_table", "script": str(worker),
+        "script_sha256": _sha(worker), "cwd": str(repo),
+        "argv": [sys.executable, str(worker), "DERIVED_TASK_TABLE_FIXTURE",
+                 str(queue_root), str(lock_path), str(aggregate),
+                 *(str(path) for path in outputs)],
+        "cpu_reserve_s": 60, "wall_limit_s": 30, "max_rss_gib": 1,
+        "inputs": {str(aggregate): _sha(aggregate)},
+        "outputs": [str(path) for path in outputs], "deps": [],
+        "source_map_sha256": _sha(manifest), "role_access": [],
+        "role_inputs": {}, "allow_child_processes": False,
+        "data_access": "PRIVATE_DERIVED_TASK_AGGREGATES_ONLY",
+        "seal_sha256": "$LOCAL_SEAL_SHA256",
+    }
+    registry = study / ".private" / "UNIT_SPECS.json"
+    registry.write_text(json.dumps({"unit_specs": {spec["unit_id"]: spec}},
+                                   sort_keys=True) + "\n")
+    lock_path.write_text(json.dumps({
+        "schema": "pcrl-utility-campaign-lock-v1",
+        "status": "LOCAL_GIT_SEALED_EFFECTIVE",
+        "adult_fit_permission": True, "verification_only": False,
+        "private_unit_registry_sha256": _sha(registry),
+        "source_map_sha256": _sha(manifest),
+        "prior_package_relative_to_worktree":
+            "results/pcrl_utility_reference_repair_v1",
+        "allowed_roles": [],
+        "derived_input_sha256_by_path": {str(aggregate): _sha(aggregate)},
+        "governed_source_sha256_by_path": {
+            "results/pcrl_utility_reference_repair_v1/r2/worker.py": _sha(worker)},
+        "governed_protocol_sha256_by_relative_path": {},
+    }, sort_keys=True) + "\n")
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@example.invalid"], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "results"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "seal"], check=True)
+    commit = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
+    review = study / "r3" / "PREFIT_REVIEW.json"
+    review.write_text(json.dumps({"status": "PASS", "lock_sha256": _sha(lock_path),
+                                  "lock_commit_sha": commit}) + "\n")
+    seal = study / "LOCAL_SEAL_RECEIPT.json"
+    seal.write_text(json.dumps({
+        "schema": "pcrl-utility-local-seal-v1", "status": "PASS",
+        "lock_sha256": _sha(lock_path), "lock_commit_sha": commit,
+        "r3_review_sha256": _sha(review),
+    }) + "\n")
+    queue = RepairQueue(queue_root, slot,
+        epoch_start_utc=(dt.datetime.now(dt.timezone.utc) -
+                         dt.timedelta(seconds=1)).isoformat())
+    queue.admit_science(seal_path=seal, seal_sha256=_sha(seal),
+                        external_heavy=1, evidence="synthetic derived fixture")
+    spec["seal_sha256"] = _sha(seal)
+    queue.enqueue(spec)
+    outcome = queue.run_once(expected_unit_id="DERIVED_TASK_TABLE_FIXTURE")
+    assert outcome["status"] == "DONE", (
+        outcome, (queue_root / "DERIVED_TASK_TABLE_FIXTURE.stderr").read_text())
+    assert all(path.read_bytes() == aggregate.read_bytes() for path in outputs)
