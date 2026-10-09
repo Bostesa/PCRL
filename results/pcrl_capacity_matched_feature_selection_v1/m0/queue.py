@@ -133,7 +133,8 @@ class FocusedQueue:
                 any(row.get("status") in ("RUNNING", "QUEUED")
                     for row in old.get("units", {}).values())):
             raise ValueError("archived queue is not complete in this epoch/slot")
-        charged = sum(row["charged_cpu_s"] for row in old["units"].values())
+        inherited = old.get("carry_forward", {}).get("charged_cpu_s", 0.0)
+        charged = inherited + sum(row["charged_cpu_s"] for row in old["units"].values())
         if abs(charged - old["used_cpu_s"]) > 1e-6:
             raise ValueError("archived CPU ledger does not reconcile")
         with self._mutex():
@@ -164,7 +165,8 @@ class FocusedQueue:
             self._event("synthetic_gate", evidence=evidence)
 
     @staticmethod
-    def _seal_ok(path: Path, expected_sha: str) -> bool:
+    def _seal_ok(path: Path, expected_sha: str, *, contained_worker: bool = False) -> bool:
+        """Verify local hashes; only the parent may spawn Git for blob replay."""
         try:
             if sha256(path) != expected_sha:
                 return False
@@ -199,6 +201,11 @@ class FocusedQueue:
                 document = (study / relative).resolve(strict=True)
                 if not document.is_relative_to(study) or sha256(document) != expected:
                     return False
+            if contained_worker:
+                # The queue parent checks the committed blob at admission and
+                # again immediately before launch. This contained child may
+                # not spawn Git under its intentional RLIMIT_NPROC=(0, 0).
+                return resource.getrlimit(resource.RLIMIT_NPROC) == (0, 0)
             relative = lock_path.relative_to(repo)
             shown = subprocess.run(["git", "-C", str(repo), "show",
                                     f"{commit}:{relative}"],

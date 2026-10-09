@@ -53,3 +53,31 @@ M5, sealed or used for a fit. Its bytes are retained as
 retained privately. The builder now reads the original committed lock under
 its verified SHA and copies its exact 32-byte seed. The effective amendment
 will be reviewed anew. This correction does not change an endpoint or mask.
+
+## Second contained-worker admission correction
+
+The independently reviewed interpreter retry reached worker admission, then
+failed in 0.16947962483391166 charged seconds. `assert_running_unit` called
+the local seal verifier, which attempted `git show` even though the worker's
+intentional `RLIMIT_NPROC=(0,0)` forbids child processes. M1, M2 and M5
+reviewed the traceback: the worker had not constructed `SafeRoleStore` or
+deserialized any Adult role member. The queue had again hashed declared NPZ
+containers as opaque bytes. No model, task receipt or other FIT output exists.
+
+The second committed lock (`144cc12e16f950362dab75f6dec3804ff547f992d963c52b8d59b7cbd82d7158`),
+seal (`285f878dde10264cb8d91c0fccf12657935e9ed0f649a89e2035d892c35e191d`),
+review (`4c1c9e7413466b7d05ec34b8a8786dc8d99ad0abda7fc51910d5ca36534691be`),
+registry (`0eaae64a41ac7a279db3048596ce4b0d607f2523ffaacc958fd5b7876f7ae9f2`)
+and failed queue (`8d2cd63682bfd3c4e4b327c190287e3bfaf0d71199482095d4c8044180ff9c51`)
+are retained under distinct versioned paths. The second queue's total charge
+is 589.6496429590043 seconds, including the entire first generation. The
+same epoch and ceilings persist.
+
+The queue parent still checks the committed Git blob at science admission,
+enqueue and immediately before worker launch. The contained worker repeats
+seal, review, lock, registry, source, protocol, PID, process-group, spec,
+dependency and input hashes without spawning Git. Its no-spawn path requires
+the zero-child limit. Tests check the positive contained path and a tampered
+protocol rejection. A new lock, independent M5 review and local seal precede
+another retry under a third queue generation. Scientific choices and the
+original bootstrap seed remain unchanged.

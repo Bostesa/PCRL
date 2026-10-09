@@ -23,7 +23,7 @@ class FocusedQueueTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.base = Path(self.temp.name)
+        self.base = Path(self.temp.name).resolve(strict=True)
         self.slot = self.base / "shared-slot0.lock"
         self.slot.touch()
         self.root = self.base / "study-queue"
@@ -63,6 +63,11 @@ class FocusedQueueTests(unittest.TestCase):
         self.assertEqual(next_q.status()["units"], {})
         with self.assertRaisesRegex(ValueError, "fresh queue"):
             next_q.carry_forward_archived_budget(archived)
+        second_archive = self.base / "study-queue-second-attempt"
+        self.root.rename(second_archive)
+        third_q = FocusedQueue(self.root, self.slot, epoch_start_utc=self.start)
+        nested = third_q.carry_forward_archived_budget(second_archive)
+        self.assertEqual(nested["charged_cpu_s"], old["used_cpu_s"])
 
     def test_real_unit_cannot_run_without_science_seal(self) -> None:
         with self.assertRaisesRegex(ValueError, "science gate"):
@@ -172,6 +177,13 @@ class FocusedQueueTests(unittest.TestCase):
                                     "lock_commit_sha": commit,
                                     "m5_review_sha256": hashlib.sha256(review.read_bytes()).hexdigest()}))
         seal_sha = hashlib.sha256(seal.read_bytes()).hexdigest()
+        self.assertTrue(FocusedQueue._seal_ok(seal, seal_sha))
+        with patch("results.pcrl_capacity_matched_feature_selection_v1.m0.queue.resource.getrlimit",
+                   return_value=(0, 0)), patch(
+                   "results.pcrl_capacity_matched_feature_selection_v1.m0.queue.subprocess.run",
+                   side_effect=AssertionError("contained worker must not spawn Git")):
+            self.assertTrue(FocusedQueue._seal_ok(
+                seal, seal_sha, contained_worker=True))
         queue = FocusedQueue(private / "queue", self.slot, epoch_start_utc=self.start)
         queue.admit_science(seal_path=seal, seal_sha256=seal_sha,
                             external_heavy=1, evidence="synthetic local git fixture")
@@ -181,6 +193,10 @@ class FocusedQueueTests(unittest.TestCase):
         self.assertEqual(output.read_text(), "ok")
         protocol_path.write_text("mutated after real unit\n")
         self.assertFalse(FocusedQueue._seal_ok(seal, seal_sha))
+        with patch("results.pcrl_capacity_matched_feature_selection_v1.m0.queue.resource.getrlimit",
+                   return_value=(0, 0)):
+            self.assertFalse(FocusedQueue._seal_ok(
+                seal, seal_sha, contained_worker=True))
 
     def test_derived_only_real_stage_needs_no_role_file(self) -> None:
         study = self.base / "repo" / "results" / "study"

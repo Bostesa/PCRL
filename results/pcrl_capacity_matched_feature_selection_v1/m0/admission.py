@@ -52,7 +52,8 @@ def assert_running_unit(unit_id: str, queue_root: str | Path,
     gate = state.get("gate", {})
     if (not gate.get("science") or Path(gate.get("seal_path", "")).resolve() != seal_path or
             spec.get("seal_sha256") != gate.get("seal_sha256") or
-            not FocusedQueue._seal_ok(seal_path, gate["seal_sha256"])):
+            not FocusedQueue._seal_ok(seal_path, gate["seal_sha256"],
+                                         contained_worker=True)):
         raise RuntimeError("local science seal invalid")
     if (lock != root.parent.parent / "CAMPAIGN_LOCK.json" or
             sha256(lock) != json.loads(seal_path.read_text()).get("lock_sha256")):

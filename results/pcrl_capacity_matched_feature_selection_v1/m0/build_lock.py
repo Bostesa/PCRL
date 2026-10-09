@@ -76,6 +76,15 @@ def build(study: Path, python: Path) -> dict:
             sha256(original_lock_path) !=
             "7349da11b2dc228663e7bb8f43996bd34e1e029b47f9feece2586f8a8319cb34"):
         raise ValueError("failed-attempt archive identity differs")
+    latest_archive = study / ".private/queue_pre_git_show_failure_20261009T0018Z/QUEUE.json"
+    latest = json.loads(latest_archive.read_text())
+    if (sha256(latest_archive) != "8d2cd63682bfd3c4e4b327c190287e3bfaf0d71199482095d4c8044180ff9c51" or
+            latest["units"]["M2-FIT-S0"]["status"] != "FAILED" or
+            latest["carry_forward"]["archived_queue_sha256"] != sha256(archive) or
+            abs(latest["used_cpu_s"] - 589.6496429590043) > 1e-6 or
+            sha256(study / "amendments/CAMPAIGN_LOCK_PRE_GIT_SHOW_FAILURE.json") !=
+            "144cc12e16f950362dab75f6dec3804ff547f992d963c52b8d59b7cbd82d7158"):
+        raise ValueError("contained-worker seal failure archive identity differs")
     governed = {}
     source_roots = (study, repo / "results/pcrl_method_portfolio_v1/shared",
                     repo / "results/pcrl_method_portfolio_v1/teams/c")
@@ -114,11 +123,14 @@ def build(study: Path, python: Path) -> dict:
         "source_branch": "research/pcrl-capacity-matched-feature-selection-v1",
         "source_tip_before_lock": source_tip,
         "amendment": {
-            "id": "2026-10-09-interpreter-launcher",
+            "id": "2026-10-09-interpreter-and-contained-seal-repair",
             "previous_lock_sha256": sha256(study / "amendments/CAMPAIGN_LOCK_PRE_IMPORT_FAILURE.json"),
             "previous_seal_sha256": sha256(study / "amendments/LOCAL_SEAL_RECEIPT_PRE_IMPORT_FAILURE.json"),
-            "failed_queue_sha256": sha256(archive),
-            "carried_cpu_s": old["used_cpu_s"],
+            "first_failed_queue_sha256": sha256(archive),
+            "previous_fit_lock_sha256": sha256(study / "amendments/CAMPAIGN_LOCK_PRE_GIT_SHOW_FAILURE.json"),
+            "previous_fit_seal_sha256": sha256(study / "amendments/LOCAL_SEAL_RECEIPT_PRE_GIT_SHOW_FAILURE.json"),
+            "failed_queue_sha256": sha256(latest_archive),
+            "carried_cpu_s": latest["used_cpu_s"],
             "intermediate_unreviewed_lock_sha256": sha256(
                 study / "amendments/CAMPAIGN_LOCK_PRE_SEED_REPAIR.json"),
             "retry_identity_rule": "lock_sha256 + seal_sha256 + queue_generation + logical_unit_id",
