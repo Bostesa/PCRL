@@ -54,8 +54,8 @@ The inherited queue admits real units only when a role archive is declared.
 The fixed five-mask task table reads previously sealed fit and gate aggregates,
 and does not need a row archive. Before any task-table unit was locked or run,
 the study's `RepairQueue` gained a narrow `r2_task_table` validation path with
-empty role access and a committed exact input hash map. It excludes role export
-files, checks every derived input and three private outputs, and retains the
+empty role access and a committed exact JSON input hash map. It excludes role
+export files, checks every derived input and three private outputs, and retains the
 same science seal, resource caps, process containment and shared slot.
 
 A synthetic sealed queue fixture ran this role-free stage end to end. Earlier

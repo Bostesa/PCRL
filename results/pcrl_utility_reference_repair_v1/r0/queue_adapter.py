@@ -85,6 +85,7 @@ class RepairQueue(FocusedQueue):
             path = Path(name).resolve(strict=True)
             if (str(path) != name or allowed[name] != expected_sha
                     or sha256(path) != expected_sha
+                    or path.suffix != ".json"
                     or not (path.is_relative_to(study) or path == bank)
                     or path.is_relative_to(private / "role_export_v1")):
                 raise ValueError("task table input identity or custody invalid")
