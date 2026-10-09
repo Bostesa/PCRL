@@ -39,6 +39,23 @@ MASK_FIELDS = {"row_id", "unit", "income", "occupation", "MASK_income",
 F_FIELDS = {"row_id", "unit", "income", "occupation", "F_income",
             "F_occupation_group", "U0_1", "U0_2", "Ucal_1", "Ucal_2"}
 TOLERANCE = 2e-7
+LEAD_MASKS = frozenset(("M_DROP_NATIVE_COUNTRY", "M_DROP_MARITAL_STATUS"))
+BANK_MASKS = frozenset(("M_DROP_EDUCATION_FACT", "M_DROP_RELATIONSHIP",
+                        "M_DROP_WORKCLASS"))
+
+
+def _expected_output(private_root: Path, admitted: list[str]) -> Path:
+    """Bind the historical lead and new remaining-bank replays separately."""
+    if len(admitted) != len(set(admitted)):
+        raise PermissionError("replay mask IDs are duplicated")
+    mask_set = frozenset(admitted)
+    if mask_set == LEAD_MASKS:
+        name = "LEAD_MASK_TASK_REPLAY.json"
+    elif mask_set == BANK_MASKS:
+        name = "BANK_MASK_TASK_REPLAY.json"
+    else:
+        raise PermissionError("replay mask cohort is not predeclared")
+    return private_root / "r3" / name
 
 
 def _json(spec: dict, path: Path) -> dict:
@@ -326,6 +343,9 @@ def main() -> None:
     _require(spec, args.manifest)
     manifest = json.loads(args.manifest.read_text())
     lock = json.loads(args.lock.read_text())
+    if args.output.resolve() != _expected_output(
+            root, lock.get("admitted_mask_ids", [])):
+        raise PermissionError("independent masked replay output cohort differs")
     result = replay(spec, root, args.export_root.resolve(strict=True), manifest,
                     args.full_input_gate, args.mask_bank, lock)
     _write_once(args.output, result)

@@ -6,8 +6,9 @@ import numpy as np
 import torch
 
 from results.pcrl_utility_reference_repair_v1.r3.mask_task_replay_worker import (
-    _a_forward, _network, _point,
+    _a_forward, _expected_output, _network, _point,
 )
+import pytest
 from results.pcrl_utility_reference_repair_v1.r3.source_reference import file_sha
 
 
@@ -44,3 +45,16 @@ def test_point_caps_are_inclusive():
     assert _point(candidate, baseline)["point_eligible"] is True
     candidate["brier"] += 1e-6
     assert _point(candidate, baseline)["point_eligible"] is False
+
+
+def test_lead_and_remaining_bank_outputs_are_distinct_and_fixed(tmp_path):
+    root = tmp_path / ".private"
+    assert _expected_output(root, ["M_DROP_NATIVE_COUNTRY", "M_DROP_MARITAL_STATUS"]) == \
+        root / "r3/LEAD_MASK_TASK_REPLAY.json"
+    assert _expected_output(root, ["M_DROP_WORKCLASS", "M_DROP_RELATIONSHIP",
+                                   "M_DROP_EDUCATION_FACT"]) == \
+        root / "r3/BANK_MASK_TASK_REPLAY.json"
+    with pytest.raises(PermissionError):
+        _expected_output(root, ["M_DROP_WORKCLASS", "M_DROP_WORKCLASS"])
+    with pytest.raises(PermissionError):
+        _expected_output(root, ["M_DROP_WORKCLASS"])
