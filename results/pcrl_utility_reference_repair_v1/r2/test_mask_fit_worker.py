@@ -7,9 +7,11 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from results.pcrl_utility_reference_repair_v1.r2 import mask_fit_worker as worker
 from results.pcrl_utility_reference_repair_v1.r2 import mask_train
+from results.pcrl_utility_reference_repair_v1.r2 import release_loader
 from results.pcrl_utility_reference_repair_v1.r2.frozen_bank import load_frozen_bank
 
 
@@ -115,6 +117,30 @@ def test_A_mask_fit_custody_and_calibration_open_order(tmp_path, monkeypatch):
     assert package["source_indices"] == list(mask.column_indices)
     assert package["model"]["sha256"] == worker.sha_file(
         output.parent / "final_income_head.npz")
+    class RestoredHead(_Head):
+        def __init__(self):
+            super().__init__("income", "final")
+            self.model_id = package["model_id"]
+            self.selected_atoms = mask.atoms
+            self.selected_columns = len(mask.column_indices)
+
+    monkeypatch.setattr(release_loader, "restore_head",
+                        lambda path, *, expected_sha256, private_root: RestoredHead())
+    fit_record = {"relative_path": str(output.relative_to(private)),
+                  "sha256": worker.sha_file(output)}
+    restored = release_loader.restore_mask_task_release(
+        private, fit_record, mask, "income", 0, "A",
+        gate_sha256="a" * 64, conditional_lock_sha256="b" * 64)
+    view = restored.view(np.zeros((3, 83), dtype=np.float32),
+                         tuple(mask_train.AdultGroupedSchema().feature_names))
+    assert view["selected_values"].shape == (3, 42)
+    assert view["mask_id"] == mask.mask_id
+    assert view["task_package_sha256"] == receipt["task_packages"]["income"]["sha256"]
+    (output.parent / "final_income_head.npz").write_text("changed")
+    with pytest.raises(PermissionError, match="A masked checkpoint"):
+        release_loader.restore_mask_task_release(
+            private, fit_record, mask, "income", 0, "A",
+            gate_sha256="a" * 64, conditional_lock_sha256="b" * 64)
 
 
 def test_recipe_specific_output_inventories_are_closed(tmp_path):

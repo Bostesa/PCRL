@@ -21,6 +21,7 @@ def _fixture(tmp_path, recipe="A"):
     private.mkdir()
     packages = {}
     receipts = {}
+    r1_gate_shas = {}
     for seed in (0, 1):
         packages[str(seed)] = {}
         components = {}
@@ -84,6 +85,22 @@ def _fixture(tmp_path, recipe="A"):
             "relative_path": str(receipt_path.relative_to(private)),
             "sha256": _sha(receipt_bytes),
         }
+        gate_folder = private / f"r1/gate/seed_{seed}"
+        gate_folder.mkdir(parents=True)
+        prediction_path = gate_folder / "GATE_PREDICTIONS.npz"
+        prediction_bytes = f"synthetic-gate-predictions-{seed}".encode()
+        prediction_path.write_bytes(prediction_bytes)
+        r1_gate_path = gate_folder / "GATE_RECEIPT.json"
+        r1_gate = {
+            "schema": "pcrl-utility-full-input-gate-result-v1",
+            "seed": seed, "selected_recipe": recipe,
+            "inner_row_unit_sha256": "b" * 64,
+            "predictions_relative_path": str(prediction_path.relative_to(private)),
+            "predictions_sha256": _sha(prediction_bytes),
+        }
+        r1_gate_bytes = (json.dumps(r1_gate, sort_keys=True) + "\n").encode()
+        r1_gate_path.write_bytes(r1_gate_bytes)
+        r1_gate_shas[str(seed)] = _sha(r1_gate_bytes)
     gate = {
         "schema": "pcrl-utility-full-input-gate-v1",
         "status": "PASS_FULL_INPUT_POINT_GATE",
@@ -99,6 +116,7 @@ def _fixture(tmp_path, recipe="A"):
         },
         "f_packages": packages,
         "f_receipts": receipts,
+        "r1_gate_receipt_sha256_by_seed": r1_gate_shas,
     }
     path = tmp_path / "FULL_INPUT_GATE.json"
     raw = (json.dumps(gate, sort_keys=True) + "\n").encode()
@@ -116,6 +134,7 @@ def test_conditional_gate_admits_only_a_complete_hashed_f_receipt(tmp_path):
     )
     assert admitted.selected_recipe == "A"
     assert len(admitted.f_package_paths) == 4
+    assert len(admitted.r1_gate_receipt_paths) == 2
     assert admitted.gate_sha256 == gate_sha
 
 
@@ -199,6 +218,18 @@ def test_conditional_gate_rehashes_f_receipt_before_task_arrays(tmp_path):
     gate_path, private, _, gate_sha = _fixture(tmp_path)
     (private / "r1/full/seed_1/F_PACKAGE_RECEIPT.json").write_text("changed")
     with pytest.raises(PermissionError, match="F package receipt"):
+        admit_conditional_gate(
+            gate_path, expected_gate_sha256=gate_sha,
+            expected_source_lock_sha256="a" * 64,
+            expected_common_row_unit_pair_sha256="b" * 64,
+            private_root=private,
+        )
+
+
+def test_conditional_gate_rehashes_r1_common_prediction_bytes(tmp_path):
+    gate_path, private, _, gate_sha = _fixture(tmp_path)
+    (private / "r1/gate/seed_1/GATE_PREDICTIONS.npz").write_text("changed")
+    with pytest.raises(PermissionError, match="R1 common-role gate prediction"):
         admit_conditional_gate(
             gate_path, expected_gate_sha256=gate_sha,
             expected_source_lock_sha256="a" * 64,

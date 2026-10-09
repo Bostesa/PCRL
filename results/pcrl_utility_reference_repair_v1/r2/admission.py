@@ -88,6 +88,7 @@ class GateAdmission:
     source_science_lock_sha256: str
     common_row_unit_pair_sha256: str
     f_package_paths: tuple[tuple[str, str, Path, str], ...]
+    r1_gate_receipt_paths: tuple[tuple[str, Path, str], ...]
 
 
 def admit_conditional_gate(
@@ -140,12 +141,34 @@ def admit_conditional_gate(
     if (not isinstance(receipt_records, dict)
             or set(receipt_records) != set(SEEDS)):
         raise PermissionError("F package receipt seed coverage differs")
+    r1_gate_shas = gate.get("r1_gate_receipt_sha256_by_seed")
+    if (not isinstance(r1_gate_shas, dict)
+            or set(r1_gate_shas) != set(SEEDS)
+            or not all(_full_sha(value) for value in r1_gate_shas.values())):
+        raise PermissionError("R1 common-role gate receipt coverage differs")
     root = Path(private_root).resolve(strict=True)
     if root.name != ".private":
         raise PermissionError("F package root must be study private custody")
     packages = []
     package_identities = set()
+    r1_gate_receipts = []
     for seed in SEEDS:
+        r1_gate_path = root / "r1" / "gate" / f"seed_{seed}" / "GATE_RECEIPT.json"
+        if _sha256(r1_gate_path) != r1_gate_shas[seed]:
+            raise PermissionError("R1 common-role gate receipt bytes differ")
+        r1_gate = json.loads(r1_gate_path.read_text())
+        pred_path = root / "r1" / "gate" / f"seed_{seed}" / "GATE_PREDICTIONS.npz"
+        if (r1_gate.get("schema") != "pcrl-utility-full-input-gate-result-v1"
+                or r1_gate.get("seed") != int(seed)
+                or r1_gate.get("selected_recipe") != gate["selected_recipe"]
+                or r1_gate.get("inner_row_unit_sha256") !=
+                expected_common_row_unit_pair_sha256
+                or r1_gate.get("predictions_relative_path") !=
+                str(pred_path.relative_to(root))
+                or not _full_sha(r1_gate.get("predictions_sha256"))
+                or _sha256(pred_path) != r1_gate["predictions_sha256"]):
+            raise PermissionError("R1 common-role gate prediction identity differs")
+        r1_gate_receipts.append((seed, r1_gate_path, r1_gate_shas[seed]))
         receipt_record = receipt_records[seed]
         if (not isinstance(receipt_record, dict)
                 or set(receipt_record) != {"relative_path", "sha256"}):
@@ -201,4 +224,5 @@ def admit_conditional_gate(
         source_science_lock_sha256=expected_source_lock_sha256,
         common_row_unit_pair_sha256=expected_common_row_unit_pair_sha256,
         f_package_paths=tuple(packages),
+        r1_gate_receipt_paths=tuple(r1_gate_receipts),
     )
