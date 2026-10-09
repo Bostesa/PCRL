@@ -155,6 +155,8 @@ def replay(spec: dict, root: Path, export_root: Path, manifest: dict,
                     or receipt.get("mask_id") != mask_id
                     or receipt.get("mask_sha256") != mask["mask_sha256"]
                     or receipt.get("full_input_gate_sha256") != file_sha(gate_path)
+                    or receipt.get("conditional_lock_sha256") !=
+                    lock.get("prior_lead_gate_lock_sha256")
                     or receipt.get("mask_fit_receipt_sha256") != file_sha(fit_path)
                     or receipt.get("R1_gate_receipt_sha256") !=
                     file_sha(f_dir / "GATE_RECEIPT.json")
