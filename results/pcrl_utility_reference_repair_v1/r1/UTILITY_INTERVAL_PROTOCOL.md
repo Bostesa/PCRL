@@ -4,6 +4,12 @@ This file is prospective to the interval worker's first Adult run. It fixes
 the method, data role and complete endpoint family. R0 must commit a new
 stage lock and R3 must review the worker and inputs before admission.
 
+Prospective correction, 2026-10-09, before any Adult interval run: a synthetic
+test showed that an unbounded signed max-t quantile could be negative and put
+a one-sided bound inside its point estimate. Commit `219e40eec` clamped each
+critical value below at zero. The endpoint family, draws, roles and caps were
+unchanged; this correction was committed before the interval science seal.
+
 - Input: the already frozen selected F `GATE_PREDICTIONS.npz` in seeds 0 and 1,
   the matching gate receipts, `FULL_INPUT_GATE.json`, and role-only
   INNER_SELECTION income/occupation task labels. No new fit, calibrator,
