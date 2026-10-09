@@ -17,6 +17,7 @@ CAPS = {"accuracy": 0.010, "nll": 0.010, "brier": 0.005}
 GATE_KEYS = {
     "schema", "seed", "mask_id", "mask_sha256", "selected_recipe",
     "full_input_gate_sha256", "conditional_lock_sha256",
+    "mask_fit_source_lock_sha256",
     "mask_fit_receipt_sha256", "R1_gate_receipt_sha256",
     "common_role", "common_row_unit_pair_sha256",
     "prediction_relative_path", "prediction_sha256", "metrics",

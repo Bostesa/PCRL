@@ -93,10 +93,11 @@ def publish_task_table(bank, seed: int, private_root: Path, output: Path,
         fit = _input_receipt(fit_path, spec)
         if (gate.get("full_input_gate_sha256") != gate_sha256
                 or gate.get("conditional_lock_sha256") != source_locks[mask_id]
+                or gate.get("mask_fit_source_lock_sha256") !=
+                fit.get("conditional_lock_sha256")
                 or gate.get("mask_fit_receipt_sha256") != sha_file(fit_path)
                 or fit.get("mask_id") != mask_id
                 or fit.get("seed") != seed
-                or fit.get("conditional_lock_sha256") != source_locks[mask_id]
                 or set(fit.get("task_packages", {})) != set(TASKS)):
             raise PermissionError("mask gate and fit package identities differ")
         gates[mask_id] = gate
@@ -111,7 +112,8 @@ def publish_task_table(bank, seed: int, private_root: Path, output: Path,
                     or package.get("task") != task
                     or package.get("mask_id") != mask_id
                     or package.get("seed") != seed
-                    or package.get("conditional_lock_sha256") != source_locks[mask_id]
+                    or package.get("conditional_lock_sha256") !=
+                    gate["mask_fit_source_lock_sha256"]
                     or package.get("selected_recipe") != "A"):
                 raise PermissionError("task-only head package identity differs")
             model = package["model"]

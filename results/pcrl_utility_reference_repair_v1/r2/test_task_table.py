@@ -42,6 +42,7 @@ def _fixture():
             "mask_sha256": mask.mask_sha256,
             "selected_recipe": "A", "full_input_gate_sha256": "a" * 64,
             "conditional_lock_sha256": "b" * 64,
+            "mask_fit_source_lock_sha256": "c" * 64,
             "mask_fit_receipt_sha256": "c" * 64,
             "R1_gate_receipt_sha256": "d" * 64,
             "common_role": "INNER_SELECTION",
