@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import secrets
 import subprocess
 from pathlib import Path
 
@@ -69,10 +68,12 @@ def build(study: Path, python: Path) -> dict:
         raise ValueError("a unit escaped the admitted Python launcher")
     archive = study / ".private/queue_pre_import_failure_20261009T0012Z/QUEUE.json"
     old = json.loads(archive.read_text())
+    original_lock_path = study / "amendments/CAMPAIGN_LOCK_PRE_IMPORT_FAILURE.json"
+    original_lock = json.loads(original_lock_path.read_text())
     if (sha256(archive) != "4300bde5ce246d570f2ff6c5050f476d89c4dbb51d8a55d04809c0addc0d14a5" or
             old["units"]["M2-FIT-S0"]["status"] != "FAILED" or
             abs(old["used_cpu_s"] - 589.4801633341704) > 1e-6 or
-            sha256(study / "amendments/CAMPAIGN_LOCK_PRE_IMPORT_FAILURE.json") !=
+            sha256(original_lock_path) !=
             "7349da11b2dc228663e7bb8f43996bd34e1e029b47f9feece2586f8a8319cb34"):
         raise ValueError("failed-attempt archive identity differs")
     governed = {}
@@ -118,6 +119,8 @@ def build(study: Path, python: Path) -> dict:
             "previous_seal_sha256": sha256(study / "amendments/LOCAL_SEAL_RECEIPT_PRE_IMPORT_FAILURE.json"),
             "failed_queue_sha256": sha256(archive),
             "carried_cpu_s": old["used_cpu_s"],
+            "intermediate_unreviewed_lock_sha256": sha256(
+                study / "amendments/CAMPAIGN_LOCK_PRE_SEED_REPAIR.json"),
             "retry_identity_rule": "lock_sha256 + seal_sha256 + queue_generation + logical_unit_id",
         },
         "prior_portfolio_tip": "38d641189d3e253ddff0ca372d295a034752017f",
@@ -132,7 +135,7 @@ def build(study: Path, python: Path) -> dict:
         "governed_source_sha256_by_path": governed,
         "governed_protocol_sha256_by_relative_path": file_hashes,
         "screen_seeds": [0, 1], "conditional_finalist_seed": 2,
-        "inference": {"bootstrap_seed_hex": secrets.token_hex(32),
+        "inference": {"bootstrap_seed_hex": original_lock["inference"]["bootstrap_seed_hex"],
                       "replicates": 2048,
                       "family": "fixed-10-rule-207-clause-paired-max-t"},
         "budget": {"epoch_start_utc": resource["epoch_start_utc"],

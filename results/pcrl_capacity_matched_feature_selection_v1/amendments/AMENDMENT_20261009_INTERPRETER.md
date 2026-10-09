@@ -42,3 +42,14 @@ must identify the lock/seal generation, not an unqualified logical unit ID.
 
 This is an engineering correction before any model fit, not a new method or
 utility threshold. A subsequent failure requires another recorded amendment.
+
+## Prefit audit correction
+
+M5 found that the first replacement lock, committed at
+`6e113ff811da4a24c4437ea3994a85c4d36e3b8f`, had inadvertently drawn a
+new uncertainty bootstrap seed. That intermediate lock was never approved by
+M5, sealed or used for a fit. Its bytes are retained as
+`CAMPAIGN_LOCK_PRE_SEED_REPAIR.json`; the replacement registry bytes are also
+retained privately. The builder now reads the original committed lock under
+its verified SHA and copies its exact 32-byte seed. The effective amendment
+will be reviewed anew. This correction does not change an endpoint or mask.
