@@ -72,9 +72,13 @@ def sealed_common_input_paths(
     common = {str(gate_path), str(manifest_path), str(bank_path), str(sex_path)}
     for path, label in ((gate_path, "full input gate"),
                         (manifest_path, "role manifest"),
-                        (bank_path, "frozen mask bank"),
-                        (sex_path, "INNER SEX")):
+                        (bank_path, "frozen mask bank")):
         _input(spec, path, label)
+    manifest = json.loads(manifest_path.read_text())
+    sex_sha = manifest.get("role_file_sha256", {}).get("INNER_SELECTION:sex")
+    if (not isinstance(sex_sha, str) or len(sex_sha) != 64
+            or spec.get("inputs", {}).get(str(sex_path)) != sex_sha):
+        raise PermissionError("INNER SEX sealed role identity differs")
     gate = json.loads(gate_path.read_text())
     if gate.get("selected_recipe") != "A":
         raise PermissionError("privacy score full-input recipe differs")

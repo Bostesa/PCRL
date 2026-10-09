@@ -23,8 +23,11 @@ def _fixture(tmp_path):
     bank_path = tmp_path / "MASK_BANK.json"
     sex_path = export / "INNER_SELECTION" / "sex.npz"
     inputs = {}
-    for path in (manifest_path, bank_path, sex_path):
+    for path in (bank_path, sex_path):
         inputs[str(path)] = _put(path, path.name.encode())
+    inputs[str(manifest_path)] = _put(manifest_path, json.dumps({
+        "role_file_sha256": {"INNER_SELECTION:sex": inputs[str(sex_path)]},
+    }).encode())
     gate = {"selected_recipe": "A", "f_receipts": {}, "f_packages": {},
             "r1_gate_receipt_sha256_by_seed": {},
             "r1_gate_prediction_sha256_by_seed": {}}
@@ -87,3 +90,18 @@ def test_common_inputs_fail_on_mutated_f_model_bytes(tmp_path):
     with pytest.raises(PermissionError, match="F model"):
         privacy_score_worker.sealed_common_input_paths(
             spec, gate, manifest, bank, export, root)
+
+
+def test_common_inventory_does_not_read_inner_sex_before_gate(tmp_path, monkeypatch):
+    spec, gate, manifest, bank, export, root, sex = _fixture(tmp_path)
+    original_open = Path.open
+
+    def forbid_sex_read(path, *args, **kwargs):
+        if path.resolve() == sex:
+            raise AssertionError("INNER SEX was opened before F gate admission")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", forbid_sex_read)
+    paths = privacy_score_worker.sealed_common_input_paths(
+        spec, gate, manifest, bank, export, root)
+    assert str(sex) in paths
