@@ -86,7 +86,9 @@ def audit(study: Path) -> dict:
                 or receipt.get("seed") != seed
                 or receipt.get("sex_read") is not False
                 or receipt.get("conditional_lock_sha256") != sha_file(lock_path)
-                or receipt.get("bank_sha256") != sha_file(bank_path)
+                or receipt.get("bank_sha256") != table.get("bank_sha256")
+                or not isinstance(receipt.get("bank_sha256"), str)
+                or len(receipt["bank_sha256"]) != 64
                 or receipt.get("task_table_file_sha256") !=
                 sha_file(paths["TASK_ONLY_TABLE.json"])
                 or receipt.get("T_selection_sha256") !=
@@ -147,6 +149,7 @@ def audit(study: Path) -> dict:
         expected_pair = f"{first['mask_id']}__{second['mask_id']}"
         if (choice.get("schema") != "pcrl-focused-pre-sensitive-T-v1"
                 or choice.get("task_table_sha256") != table["task_table_sha256"]
+                or choice.get("bank_sha256") != table["bank_sha256"]
                 or choice.get("pair_id") != expected_pair
                 or choice.get("income_mask_id") != first["mask_id"]
                 or choice.get("occupation_mask_id") != second["mask_id"]
