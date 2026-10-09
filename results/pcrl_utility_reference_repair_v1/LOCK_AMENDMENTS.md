@@ -32,3 +32,18 @@ class ID on ties), its accuracy on the corresponding outer validation fold,
 and A/B accuracy gains. The selection rule, role access, utility caps and
 conditional branch remain unchanged. R3 must review the corrected committed
 lock before any recipe fit.
+
+## 2026-10-09: independent lead replay package identity, before admission
+
+The first lead replay lock at commit `5670bce20` and SHA-256
+`8717fa0b879dcc487a60d3058108fb9e0a32f19e519c9e2ac371b2dff4a5ef66`
+bound replay worker SHA `baca55bb3faa7fa366ae33e8302db8f0b74449f233cbecdf1d8967eb0e86029f`.
+Before R3 prefit approval, its reviewer strengthened package identity checks
+and committed worker SHA `5df4bfcf115592349b909b26d1aa2933e002635431cea5efd35cb654a3ec4907`.
+The first lock therefore failed its source hash and was never sealed,
+admitted or run. Its lock and private unit registry remain in Git history
+and `.private/lock_attempts/lead_replay_stale_worker_before_review/`.
+
+The corrected lock binds the final worker bytes. The two lead masks, rows,
+task references, numeric gates, inputs and output inventory are unchanged.
+R3 must review the corrected committed lock before independent replay.
