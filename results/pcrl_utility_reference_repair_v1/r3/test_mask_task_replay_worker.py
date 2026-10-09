@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from results.pcrl_utility_reference_repair_v1.r3.mask_task_replay_worker import (
-    _a_forward, _expected_output, _network, _point,
+    _a_forward, _expected_output, _gate_source_lock, _network, _point,
 )
 import pytest
 from results.pcrl_utility_reference_repair_v1.r3.source_reference import file_sha
@@ -58,3 +58,18 @@ def test_lead_and_remaining_bank_outputs_are_distinct_and_fixed(tmp_path):
         _expected_output(root, ["M_DROP_WORKCLASS", "M_DROP_WORKCLASS"])
     with pytest.raises(PermissionError):
         _expected_output(root, ["M_DROP_WORKCLASS"])
+
+
+def test_replay_gate_lock_lineage_is_cohort_specific():
+    leads = {"M_DROP_NATIVE_COUNTRY", "M_DROP_MARITAL_STATUS"}
+    bank = {"M_DROP_EDUCATION_FACT", "M_DROP_RELATIONSHIP",
+            "M_DROP_WORKCLASS"}
+    old = "a" * 64
+    new = "b" * 64
+    assert _gate_source_lock({"prior_lead_gate_lock_sha256": old}, leads) == old
+    assert _gate_source_lock({"prior_mask_gate_lock_sha256": new}, bank) == new
+    with pytest.raises(PermissionError):
+        _gate_source_lock({"prior_lead_gate_lock_sha256": old}, bank)
+    with pytest.raises(PermissionError):
+        _gate_source_lock({"prior_lead_gate_lock_sha256": old,
+                           "prior_mask_gate_lock_sha256": new}, leads)

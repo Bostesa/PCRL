@@ -58,6 +58,24 @@ def _expected_output(private_root: Path, admitted: list[str]) -> Path:
     return private_root / "r3" / name
 
 
+def _gate_source_lock(lock: dict, admitted: set[str]) -> str:
+    """Allow the archived q8 key only for leads; bind q11's bank gate SHA."""
+    current = lock.get("prior_mask_gate_lock_sha256")
+    historical = lock.get("prior_lead_gate_lock_sha256")
+    if admitted == LEAD_MASKS:
+        if current is not None and historical is not None and current != historical:
+            raise PermissionError("lead gate source lock keys conflict")
+        value = current if current is not None else historical
+    elif admitted == BANK_MASKS:
+        value = current
+    else:
+        raise PermissionError("mask gate lock cohort differs")
+    if (not isinstance(value, str) or len(value) != 64
+            or any(char not in "0123456789abcdef" for char in value)):
+        raise PermissionError("masked gate source lock SHA is missing")
+    return value
+
+
 def _json(spec: dict, path: Path) -> dict:
     _require(spec, path)
     return json.loads(path.read_text())
@@ -132,6 +150,7 @@ def replay(spec: dict, root: Path, export_root: Path, manifest: dict,
     if (not admitted or not admitted <= set(masks)
             or len(admitted) != len(lock["admitted_mask_ids"])):
         raise PermissionError("masked replay bank coverage differs")
+    source_gate_lock_sha256 = _gate_source_lock(lock, admitted)
     inner = _role(spec, export_root, manifest, "INNER_SELECTION",
                   ("features", "income", "occupation",
                    "references_s0", "references_s1"))
@@ -173,7 +192,7 @@ def replay(spec: dict, root: Path, export_root: Path, manifest: dict,
                     or receipt.get("mask_sha256") != mask["mask_sha256"]
                     or receipt.get("full_input_gate_sha256") != file_sha(gate_path)
                     or receipt.get("conditional_lock_sha256") !=
-                    lock.get("prior_lead_gate_lock_sha256")
+                    source_gate_lock_sha256
                     or receipt.get("mask_fit_receipt_sha256") != file_sha(fit_path)
                     or receipt.get("R1_gate_receipt_sha256") !=
                     file_sha(f_dir / "GATE_RECEIPT.json")
