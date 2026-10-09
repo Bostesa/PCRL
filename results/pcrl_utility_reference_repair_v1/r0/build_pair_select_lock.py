@@ -186,7 +186,7 @@ def build(repo: Path, python: Path, slot: Path) -> dict:
                      "--private-root", str(private), "--output", str(receipt_path)],
             "script": str(script), "script_sha256": sha(script),
             "cwd": str(repo), "cpu_reserve_s": 5400,
-            "wall_limit_s": 5400, "max_rss_gib": 4,
+            "wall_limit_s": 5400, "max_rss_gib": 3,
             "inputs": inputs, "outputs": [str(path) for path in outputs],
             "deps": [], "source_map_sha256": sha(manifest_path),
             "role_access": ["OSF_DEFENSE_FIT"], "role_inputs": role_inputs,

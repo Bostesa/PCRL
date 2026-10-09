@@ -62,3 +62,17 @@ A synthetic sealed queue fixture ran this role-free stage end to end. Earlier
 stage locks and code remain in Git history; this adapter version applies only
 to later seals. The task utility rules, masks, rows and SEX embargo did not
 change. R3 must review the later committed stage before T selection runs.
+
+## 2026-10-09: pair-search worker memory ceiling, before FIT SEX access
+
+The first pair-search lock at commit `1a0885c31` and SHA-256
+`0b97a5d964bab89d57df6d34eb0799ea5a04fa2d9b8e1f1afc4da2e72d2144f5`
+set each unit's `max_rss_gib` to 4. R2 noticed before R3 approval or any
+pair-search execution that `RESOURCE_PLAN.json` fixes the worker ceiling at
+3 GiB. The unrun lock and private registry remain in Git history and
+`.private/lock_attempts/q13_unrun_4gib/`.
+
+The corrected unit cap is 3 GiB. The five masks, paired seeds, fit labels,
+task-only T, 22 fixed raw proxy reader fits per seed, matching rules and
+endpoint definitions are unchanged. R3 must review the corrected committed
+lock and registry before the first FIT SEX read.
