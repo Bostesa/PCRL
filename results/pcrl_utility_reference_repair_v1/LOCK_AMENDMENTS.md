@@ -115,3 +115,15 @@ with exact role-file, member, row/group and 83-column schema validation. The
 base repair-learner allowlist stays closed. A failing-before/passing-after
 regression test and R3 source review are required before a new q16 lock and
 seal. Selected releases, controls, input roles and endpoints are unchanged.
+
+## 2026-10-09: governed q19 protocol byte interruption, no unit failure
+
+After the first of four coalition ATT units finished, a prospective q20
+custody paragraph was temporarily appended to the q19-governed
+`r2/ATT_STAGE_SPLIT_AMENDMENT.md`. The queue rejected the next science
+admission before a worker launched because that file no longer matched the
+q19 lock hash. R2 restored the exact committed bytes; the science seal then
+verified again, and the remaining three coalition units completed. No q19
+output was changed, discarded or rerun. The q20 custody explanation belongs
+in a new file outside the q19 seal. This was an operational hash interruption,
+not a changed method or endpoint.
