@@ -297,7 +297,7 @@ def main() -> None:
                             args.replay_unit_id)
     import io
     buffer = io.StringIO(newline="")
-    writer = csv.DictWriter(buffer, fieldnames=FIELDS)
+    writer = csv.DictWriter(buffer, fieldnames=FIELDS, lineterminator="\n")
     writer.writeheader()
     writer.writerows(rows)
     csv_bytes = buffer.getvalue().encode()
