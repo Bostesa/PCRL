@@ -41,3 +41,17 @@ def test_simultaneous_one_sided_boundaries_keep_unresolved_cost():
     assert result["rows"][0]["lower"] == result["rows"][0]["upper"] == 0.0
     assert result["rows"][1]["lower"] == result["rows"][1]["upper"] == 0.02
     assert result["rows"][2]["lower"] < 0.01 < result["rows"][2]["upper"]
+
+
+def test_one_sided_criticals_cannot_put_bounds_inside_point():
+    interval = importlib.import_module("utility_intervals")
+    high = interval.simultaneous_cost_bounds(
+        np.array([0.0]), np.array([[1.0], [2.0], [3.0], [4.0]]),
+        np.array([0.01]))
+    low = interval.simultaneous_cost_bounds(
+        np.array([0.0]), np.array([[-1.0], [-2.0], [-3.0], [-4.0]]),
+        np.array([0.01]))
+    assert high["upper_critical"] == 0.0
+    assert high["rows"][0]["upper"] == 0.0
+    assert low["lower_critical"] == 0.0
+    assert low["rows"][0]["lower"] == 0.0

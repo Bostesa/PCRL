@@ -31,8 +31,10 @@ stage lock and R3 must review the worker and inputs before admission.
   its point estimate; otherwise define the upper pivot in each draw as
   `(point-bootstrap)/SD` and the lower pivot as `(bootstrap-point)/SD`. Across
   all nonzero-SD costs, take the maximum pivot per draw. Use the 0.95
-  quantile with NumPy `method="higher"` for each maximum. Set simultaneous
-  upper=`point + upper_critical*SD`, lower=`point - lower_critical*SD`.
+  quantile with NumPy `method="higher"` for each maximum, then clamp each
+  critical value below at zero so neither bound falls inside its point
+  estimate. Set simultaneous upper=`point + upper_critical*SD`,
+  lower=`point - lower_critical*SD`.
   This yields separate familywise one-sided upper and lower descriptive
   bounds. The two sets together are not claimed to have 95% two-sided
   simultaneous coverage.

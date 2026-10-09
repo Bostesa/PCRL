@@ -87,8 +87,10 @@ def simultaneous_cost_bounds(point: np.ndarray, bootstrap: np.ndarray,
     if np.any(nonzero):
         upper_pivot = np.max((value[nonzero] - boot[:, nonzero]) / sd[nonzero], axis=1)
         lower_pivot = np.max((boot[:, nonzero] - value[nonzero]) / sd[nonzero], axis=1)
-        critical_upper = float(np.quantile(upper_pivot, 0.95, method="higher"))
-        critical_lower = float(np.quantile(lower_pivot, 0.95, method="higher"))
+        critical_upper = max(0.0, float(np.quantile(upper_pivot, 0.95,
+                                                    method="higher")))
+        critical_lower = max(0.0, float(np.quantile(lower_pivot, 0.95,
+                                                    method="higher")))
     else:
         critical_upper = critical_lower = 0.0
     upper = value + critical_upper * sd
