@@ -95,3 +95,23 @@ downstream unit map and its dependencies. Paths, selected pairs, input roles,
 models, reader designs, utility criteria and scientific comparison remain
 unchanged. R3 must independently review the corrected proposal and new q16
 lock before any worker runs.
+
+## 2026-10-09: ATT feature reader dispatch, after one failed raw-reader attempt
+
+The corrected release/raw lock at commit `c9be947eb` and SHA-256
+`d83cafaa72267304e377d43515cf13666a21b172cdaa2fdd965ac09d39dcc113`
+passed prefit review. Its first raw-union worker failed before any output:
+`PrivacyRoleStore.read("ATTACK_FIT_NEW", "features")` delegated to
+`RoleOnlyStore.read`, whose repair-learner allowlist excludes the ATT role.
+The other ten units remained queued. The failed unit consumed
+`0.2250022920779884` charged CPU seconds. The lock, seal, review, registry,
+failed queue receipt and stderr are preserved in
+`.private/lock_attempts/q16_att_feature_loader/`; no failed-stage output
+exists. This failed charge remains in the campaign resource total even though
+the fresh science queue carries the earlier q15 total.
+
+The repair is limited to the privacy-stage reader's admitted ATT feature path,
+with exact role-file, member, row/group and 83-column schema validation. The
+base repair-learner allowlist stays closed. A failing-before/passing-after
+regression test and R3 source review are required before a new q16 lock and
+seal. Selected releases, controls, input roles and endpoints are unchanged.
