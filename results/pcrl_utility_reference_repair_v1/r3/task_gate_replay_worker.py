@@ -149,6 +149,28 @@ def _close(a: float, b: float, tolerance: float = 1e-10) -> bool:
     return bool(abs(float(a) - float(b)) <= tolerance)
 
 
+def _constant_task_gain(fit_labels: np.ndarray, inner_labels: np.ndarray,
+                        candidate_accuracy: float, width: int) -> dict:
+    """Fit a majority decision on FIT and evaluate usefulness on INNER."""
+    y_fit = np.asarray(fit_labels)
+    y_inner = np.asarray(inner_labels)
+    if (y_fit.ndim != 1 or y_inner.ndim != 1 or len(y_fit) == 0
+            or len(y_inner) == 0 or y_fit.dtype != np.int64
+            or y_inner.dtype != np.int64 or np.any(y_fit < 0)
+            or np.any(y_fit >= width) or np.any(y_inner < 0)
+            or np.any(y_inner >= width)):
+        raise ValueError("constant task control needs admitted integer labels")
+    counts = np.bincount(y_fit, minlength=width)
+    majority = int(np.argmax(counts))  # lower class wins an exact tie
+    constant_accuracy = float(np.mean(y_inner == majority))
+    gain = float(candidate_accuracy) - constant_accuracy
+    return {"FIT_class_counts": [int(value) for value in counts],
+            "FIT_majority_class": majority,
+            "INNER_constant_accuracy": constant_accuracy,
+            "F_accuracy_gain": gain,
+            "F_useful_at_0_010": bool(gain >= 0.010)}
+
+
 def replay(spec: dict, private_root: Path, export_root: Path,
            manifest: dict, selection_path: Path, f_lock_path: Path) -> dict:
     fit = _role(spec, export_root, manifest, "OSF_DEFENSE_FIT",
@@ -359,9 +381,16 @@ def replay(spec: dict, private_root: Path, export_root: Path,
                                   gate_receipt["metrics"][arm][task][metric]):
                         raise ValueError("task metric differs from runner receipt")
         all_eligible &= scored["point_feasible"]
+        constant_task_comparison = {
+            task: _constant_task_gain(
+                fit[label_key], inner[label_key],
+                scored["metrics"]["F"][task]["accuracy"], width)
+            for task, width, label_key in TASKS
+        }
         gate_out[str(seed)] = {
             "point_feasible": scored["point_feasible"],
             "metrics": scored["metrics"], "margins": scored["margins"],
+            "constant_task_comparison": constant_task_comparison,
             "F_restore_max_abs_difference": f_deltas,
             "independent_cal_alpha_abs_difference": alpha_differences,
         }

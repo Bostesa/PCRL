@@ -6,7 +6,7 @@ from results.pcrl_utility_reference_repair_v1.r1.fit_splits import (
     inner_split, outer_split,
 )
 from results.pcrl_utility_reference_repair_v1.r3.task_gate_replay_worker import (
-    _own_split,
+    _constant_task_gain, _own_split,
 )
 
 
@@ -27,3 +27,17 @@ def test_independent_group_split_matches_sealed_recipe_geometry():
             unit[own_fit], income[own_fit], occupation[own_fit], seed)
         assert np.array_equal(inner_fit, r1_inner_fit)
         assert np.array_equal(inner_val, r1_inner_val)
+
+
+def test_full_fit_majority_constant_is_scored_on_common_role():
+    # FIT has a class-count tie, so the lower class must be the fixed choice.
+    fit = np.array([0, 0, 1, 1], dtype=np.int64)
+    common = np.array([0, 1, 1, 1], dtype=np.int64)
+    result = _constant_task_gain(fit, common, 0.75, 2)
+    assert result == {
+        "FIT_class_counts": [2, 2],
+        "FIT_majority_class": 0,
+        "INNER_constant_accuracy": 0.25,
+        "F_accuracy_gain": 0.5,
+        "F_useful_at_0_010": True,
+    }
