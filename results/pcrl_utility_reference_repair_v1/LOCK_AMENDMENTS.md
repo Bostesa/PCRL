@@ -76,3 +76,22 @@ The corrected unit cap is 3 GiB. The five masks, paired seeds, fit labels,
 task-only T, 22 fixed raw proxy reader fits per seed, matching rules and
 endpoint definitions are unchanged. R3 must review the corrected committed
 lock and registry before the first FIT SEX read.
+
+## 2026-10-09: downstream queue unit IDs, before release or attack execution
+
+The first selected release/raw lock at commit `50c4cbf99` and SHA-256
+`6568ef548ff7fc1a877cc574ff81331a28d9d09301b007ad211adcf752801288`
+declared seven raw-union unit IDs containing lowercase hexadecimal characters.
+The scheduler accepts only uppercase letters, digits, underscores and hyphens
+in unit IDs. Four release units were enqueued, then admission rejected the
+first raw-union ID. No q16 worker started; the four units remained queued and
+no release, raw-reader or attack output was written. The unrun lock, seal,
+review, registry and queue are preserved in
+`.private/lock_attempts/q16_invalid_uid/`, and the public lock remains in Git
+history.
+
+The engineering correction will use scheduler-valid IDs throughout the
+downstream unit map and its dependencies. Paths, selected pairs, input roles,
+models, reader designs, utility criteria and scientific comparison remain
+unchanged. R3 must independently review the corrected proposal and new q16
+lock before any worker runs.
