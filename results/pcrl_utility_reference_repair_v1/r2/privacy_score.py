@@ -136,6 +136,7 @@ def score_saved_attack_view(
     seed: int, pair_id: str, view_name: str,
     attack_fit_lock_sha256: str, manifest_sha256: str,
     release_index_sha256: str,
+    local_attack_source_lock_sha256: str,
 ) -> dict:
     """Return reader/control aggregates; no reader fit or selection occurs."""
     root = Path(private_root).resolve(strict=True)
@@ -148,6 +149,9 @@ def score_saved_attack_view(
             or index.get("seed") != seed or index.get("pair_id") != pair_id
             or index.get("view_name") != view_name
             or index.get("lock_sha256") != attack_fit_lock_sha256
+            or index.get("local_attack_source_lock_sha256") != (
+                local_attack_source_lock_sha256 if view_name == "coalition"
+                else None)
             or index.get("manifest_sha256") != manifest_sha256
             or index.get("release_index_sha256") != release_index_sha256
             or index.get("fresh_fit_count") != 6

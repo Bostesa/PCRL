@@ -105,3 +105,17 @@ def test_common_inventory_does_not_read_inner_sex_before_gate(tmp_path, monkeypa
     paths = privacy_score_worker.sealed_common_input_paths(
         spec, gate, manifest, bank, export, root)
     assert str(sex) in paths
+
+
+def test_score_uses_distinct_sealed_local_and_coalition_attack_locks():
+    lock = {"local_attack_source_lock_sha256": "a" * 64,
+            "coalition_attack_source_lock_sha256": "b" * 64}
+    assert privacy_score_worker.attack_source_lock_for_view(
+        lock, "income") == "a" * 64
+    assert privacy_score_worker.attack_source_lock_for_view(
+        lock, "occupation_group") == "a" * 64
+    assert privacy_score_worker.attack_source_lock_for_view(
+        lock, "coalition") == "b" * 64
+    with pytest.raises(PermissionError, match="source lock"):
+        privacy_score_worker.attack_source_lock_for_view(
+            {"local_attack_source_lock_sha256": "a" * 64}, "coalition")

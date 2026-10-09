@@ -39,6 +39,19 @@ def _source_lock(lock: dict, name: str, current: str) -> str:
     return source
 
 
+def attack_source_lock_for_view(lock: dict, view: str) -> str:
+    """Use q18 local or q19 coalition science identity as actually fitted."""
+    if view not in VIEWS:
+        raise PermissionError("ATT source lock view is unknown")
+    name = ("coalition_attack_source_lock_sha256" if view == "coalition"
+            else "local_attack_source_lock_sha256")
+    source = lock.get(name)
+    if (not isinstance(source, str) or len(source) != 64
+            or any(char not in "0123456789abcdef" for char in source)):
+        raise PermissionError("ATT source lock is incomplete")
+    return source
+
+
 def _input(spec: dict, path: Path, label: str) -> str:
     expected = spec.get("inputs", {}).get(str(path))
     if expected is None or sha_file(path) != expected:
@@ -195,7 +208,8 @@ def main() -> None:
                     if row["status"] == "SELECTED"})
     if not pairs or not set(pairs) <= {pair.pair_id for pair in bank.pairs}:
         raise PermissionError("privacy score pair inventory is incomplete")
-    attack_lock = _source_lock(lock, "attack_fit_source_lock_sha256", lock_sha)
+    attack_locks = {view: attack_source_lock_for_view(lock, view)
+                    for view in VIEWS}
     release_lock = _source_lock(lock, "release_source_lock_sha256", lock_sha)
     required_inputs = common_inputs | {str(selection_path), str(plan_path)}
     indices = {}
@@ -216,6 +230,16 @@ def main() -> None:
             path = root / "attacks" / f"seed{args.seed}" / pair_id / view / "ATTACK_FIT_INDEX.json"
             required_inputs.update(attack_output_paths(path))
             attack_sha = _input(spec, path, "ATT reader")
+            attack_index = json.loads(path.read_text())
+            if (attack_index.get("schema") !=
+                "pcrl-utility-complete-att-fit-v1"
+                    or attack_index.get("seed") != args.seed
+                    or attack_index.get("pair_id") != pair_id
+                    or attack_index.get("view_name") != view
+                    or attack_index.get("lock_sha256") != attack_locks[view]
+                    or attack_index.get("local_attack_source_lock_sha256") !=
+                    (attack_locks["income"] if view == "coalition" else None)):
+                raise PermissionError("ATT local/coalition source lock differs")
             indices[(pair_id, view)] = (path, attack_sha, release_sha)
     if set(spec.get("inputs", {})) != required_inputs:
         raise PermissionError("privacy score sealed input inventory differs")
@@ -233,7 +257,8 @@ def main() -> None:
             scores[pair_id][view] = score_saved_attack_view(
                 path, attack_sha, sex_inner, private_root=root,
                 seed=args.seed, pair_id=pair_id, view_name=view,
-                attack_fit_lock_sha256=attack_lock,
+                attack_fit_lock_sha256=attack_locks[view],
+                local_attack_source_lock_sha256=attack_locks["income"],
                 manifest_sha256=manifest_sha,
                 release_index_sha256=release_sha)
     score_payload = {
@@ -242,6 +267,7 @@ def main() -> None:
         "bank_sha256": bank.bank_sha256,
         "full_input_gate_sha256": admitted.gate_sha256,
         "pair_selection_receipt_sha256": selection_sha,
+        "attack_source_lock_sha256_by_view": attack_locks,
         "pairs": scores,
         "selected_rule_pair_ids": {
             rule: row["pair_id"] if row["status"] == "SELECTED" else None
@@ -259,7 +285,7 @@ def main() -> None:
         "pair_selection_receipt_sha256": selection_sha,
         "full_input_gate_sha256": admitted.gate_sha256,
         "conditional_lock_sha256": lock_sha,
-        "attack_fit_source_lock_sha256": attack_lock,
+        "attack_source_lock_sha256_by_view": attack_locks,
         "release_source_lock_sha256": release_lock,
         "role_inputs": ["INNER_SELECTION:sex"],
         "development_only": True,
