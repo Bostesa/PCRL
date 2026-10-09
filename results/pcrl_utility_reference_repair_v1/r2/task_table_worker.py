@@ -68,10 +68,13 @@ def _private_record_file(root: Path, record: dict, label: str) -> Path:
 def resolve_mask_lock_lineage(lock: dict, bank, current_sha256: str) -> dict[str, str]:
     mapping = lock.get("mask_lock_sha256_by_id")
     mask_ids = {mask.mask_id for mask in bank.masks}
-    if (not isinstance(mapping, dict) or set(mapping) != mask_ids
-            or any((value != "CURRENT_LOCK" if mask_id not in LEADS else
-                    not (isinstance(value, str) and len(value) == 64
-                         and all(char in "0123456789abcdef" for char in value)))
+    def full_sha(value: object) -> bool:
+        return (isinstance(value, str) and len(value) == 64
+                and all(char in "0123456789abcdef" for char in value))
+    if (not full_sha(current_sha256)
+            or not isinstance(mapping, dict) or set(mapping) != mask_ids
+            or any(not (full_sha(value) or
+                        (value == "CURRENT_LOCK" and mask_id not in LEADS))
                    for mask_id, value in mapping.items())):
         raise PermissionError("bank mask-to-lock lineage map differs")
     return {mask_id: (current_sha256 if value == "CURRENT_LOCK" else value)

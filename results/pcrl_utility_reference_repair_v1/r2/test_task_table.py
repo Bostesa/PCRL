@@ -102,7 +102,7 @@ def test_task_only_table_rejects_protected_field_and_reference_drift():
             mask_lock_sha256_by_id={mask.mask_id: "b" * 64 for mask in bank.masks})
 
 
-def test_bank_lock_lineage_resolves_only_new_masks_to_current_hash():
+def test_bank_lock_lineage_accepts_archived_bank_gate_after_new_table_seal():
     bank, _, _, _ = _fixture()
     leads = {"M_DROP_NATIVE_COUNTRY", "M_DROP_MARITAL_STATUS"}
     mapping = {mask.mask_id: ("a" * 64 if mask.mask_id in leads else
@@ -112,10 +112,21 @@ def test_bank_lock_lineage_resolves_only_new_masks_to_current_hash():
     assert {resolved[mask_id] for mask_id in leads} == {"a" * 64}
     assert {resolved[mask.mask_id] for mask in bank.masks
             if mask.mask_id not in leads} == {"b" * 64}
+    archived = {mask.mask_id: ("a" * 64 if mask.mask_id in leads else
+                               "c" * 64) for mask in bank.masks}
+    resolved = resolve_mask_lock_lineage(
+        {"mask_lock_sha256_by_id": archived}, bank, "b" * 64)
+    assert {resolved[mask_id] for mask_id in leads} == {"a" * 64}
+    assert {resolved[mask.mask_id] for mask in bank.masks
+            if mask.mask_id not in leads} == {"c" * 64}
     mapping["M_DROP_NATIVE_COUNTRY"] = "CURRENT_LOCK"
     with pytest.raises(PermissionError, match="lineage"):
         resolve_mask_lock_lineage(
             {"mask_lock_sha256_by_id": mapping}, bank, "b" * 64)
+    archived["M_DROP_EDUCATION_FACT"] = "bad"
+    with pytest.raises(PermissionError, match="lineage"):
+        resolve_mask_lock_lineage(
+            {"mask_lock_sha256_by_id": archived}, bank, "b" * 64)
 
 
 def test_task_table_rejects_private_path_escape(tmp_path):
