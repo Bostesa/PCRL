@@ -20,6 +20,6 @@ J and task-only T are the same pair in **both seeds**. J's paired mean coalition
 
 ## Scope and next step
 
-All results are exploratory on repeatedly used Adult people. The two paired model seeds share the same 2,235 INNER people; they are not two populations. The attack slate measures recovery by fitted readers, not a population privacy guarantee. Full task interval coverage is unresolved, and no simultaneous post-selection privacy interval can turn the exact J=T method tie into a joint result. The prior study remains `INCOMPLETE_MATCHED_COMPARISON`; its no-go has not been rewritten as a privacy failure.
+All results are exploratory on repeatedly used Adult people. The two paired model seeds share the same 2,235 INNER people; they are not two populations. The attack slate measures recovery by fitted readers, not a population privacy guarantee. Full task interval coverage is unresolved. No selection-aware privacy interval was computed after the observed control shortfall; the exact J=T pair identity already rules out a joint-design gain in this screen. The prior study remains `INCOMPLETE_MATCHED_COMPARISON`; its no-go has not been rewritten as a privacy failure.
 
 **Next step:** freeze a genuinely different feature-track method and its complete interface, controls and inference before testing on a separately authorized, unexposed population. Repeating mask selection or adding another seed on this reused role is not an independent confirmation step.
