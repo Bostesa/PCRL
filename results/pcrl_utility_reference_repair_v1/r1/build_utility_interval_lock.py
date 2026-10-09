@@ -93,6 +93,37 @@ def _add(inputs: dict[str, str], path: Path, expected: str | None = None) -> str
     return actual
 
 
+def launcher_path(path: Path) -> Path:
+    """Keep the project venv's symlink path as the queued executable."""
+    literal = path.absolute()
+    if (literal.name != "python" or literal.parent.name != "bin"
+            or literal.parent.parent.name != ".venv" or not literal.is_file()):
+        raise FileNotFoundError("project venv launcher missing")
+    return literal
+
+
+def bind_inner_task_role(study: Path, manifest: dict, proposal: dict,
+                         field: str, inputs: dict[str, str]) -> dict[str, str]:
+    """Bind sealed manifest metadata; do not read unsealed role archive bytes."""
+    if field not in ("income", "occupation"):
+        raise PermissionError("only INNER task labels belong in interval stage")
+    key = f"INNER_SELECTION:{field}"
+    relative = manifest["role_file_relative_path"][key]
+    expected_relative = f".private/role_export_v1/INNER_SELECTION/{field}.npz"
+    if relative != expected_relative:
+        raise PermissionError("INNER task role path differs")
+    path = _relative_file(study, relative)
+    if path != (study / expected_relative).absolute():
+        raise PermissionError("INNER task role symlink differs")
+    digest = manifest["role_file_sha256"][key]
+    if (len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)
+            or proposal["shared_inputs_sha256_by_study_relative_path"].get(relative)
+            != digest):
+        raise PermissionError("role identity differs between manifest and proposal")
+    inputs[str(path)] = digest
+    return {"path": str(path), "sha256": digest}
+
+
 def _write_once(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x") as stream:
@@ -147,7 +178,13 @@ def build(repo: Path, python: Path, slot: Path) -> dict:
     if manifest.get("schema") != "pcrl-utility-repair-role-admission-v1":
         raise PermissionError("role-only admission manifest differs")
     inputs: dict[str, str] = {}
+    deferred_role_paths = {
+        ".private/role_export_v1/INNER_SELECTION/income.npz",
+        ".private/role_export_v1/INNER_SELECTION/occupation.npz",
+    }
     for name, expected in proposal["shared_inputs_sha256_by_study_relative_path"].items():
+        if name in deferred_role_paths:
+            continue  # queue admission verifies these only after the stage seal
         _add(inputs, _relative_file(study, name), expected)
     for name, expected in proposal["source_sha256_by_study_relative_path"].items():
         _add(inputs, _relative_file(study, name), expected)
@@ -159,10 +196,8 @@ def build(repo: Path, python: Path, slot: Path) -> dict:
     role_inputs = {}
     for field in ("income", "occupation"):
         key = f"INNER_SELECTION:{field}"
-        path = _relative_file(study, manifest["role_file_relative_path"][key])
-        digest = manifest["role_file_sha256"][key]
-        _add(inputs, path, digest)
-        role_inputs[key] = {"path": str(path), "sha256": digest}
+        role_inputs[key] = bind_inner_task_role(study, manifest, proposal,
+                                                field, inputs)
     if (sha(gate_path) != proposal["shared_inputs_sha256_by_study_relative_path"]["FULL_INPUT_GATE.json"]
             or sha(manifest_path) != proposal["shared_inputs_sha256_by_study_relative_path"]["m1/DATA_ACCESS_MANIFEST.json"]
             or gate["r3_numerical_replay_sha256"] != sha(private / "r3/TASK_GATE_REPLAY.json")):
@@ -246,5 +281,5 @@ if __name__ == "__main__":
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--slot", type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(build(args.repo.resolve(strict=True), args.python.resolve(strict=True),
+    print(json.dumps(build(args.repo.resolve(strict=True), launcher_path(args.python),
                            args.slot.resolve(strict=True)), sort_keys=True))
