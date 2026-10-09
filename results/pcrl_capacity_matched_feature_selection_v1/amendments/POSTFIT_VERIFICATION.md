@@ -28,3 +28,11 @@ The verifier was written after FIT results were known. Its numerical check is
 independent of M2/M3/M4 selection and scoring code, but it cannot turn the
 reused Adult development rows into confirmation. M1 reviews the verifier's
 role and lock boundary separately from M5's numerical implementation.
+
+Before verifier admission, M5 identified that the first committed
+verification-only lock bound the archived scientific lock, seal, queue and FIT
+receipts but omitted the archived scientific prefit review. That lock was
+never independently approved or sealed and ran no replay. Its exact bytes and
+registry are preserved under `VERIFICATION_PRE_REVIEW_BIND` archive names.
+The effective verification lock additionally binds the archived review path
+and SHA; the worker checks it against the archived seal before any role read.

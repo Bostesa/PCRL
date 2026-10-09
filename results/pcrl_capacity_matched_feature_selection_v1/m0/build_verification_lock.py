@@ -22,6 +22,7 @@ ROLE = "OSF_DEFENSE_FIT"
 ARCHIVE_QUEUE = ".private/queue_science_no_go_20261009T0025Z/QUEUE.json"
 SCIENCE_LOCK = "amendments/CAMPAIGN_LOCK_SCIENCE_NOGO.json"
 SCIENCE_SEAL = "amendments/LOCAL_SEAL_RECEIPT_SCIENCE_NOGO.json"
+SCIENCE_REVIEW = "amendments/PREFIT_REVIEW_SCIENCE_NOGO.json"
 
 
 def _write_new(path: Path, payload: dict) -> None:
@@ -57,7 +58,7 @@ def build(study: Path, python: Path) -> dict:
     original = json.loads(science_lock_path.read_text())
     old_seal = json.loads(science_seal_path.read_text())
     old_queue = json.loads(archived_queue_path.read_text())
-    old_review = study / "amendments/PREFIT_REVIEW_SCIENCE_NOGO.json"
+    old_review = study / SCIENCE_REVIEW
     old_commit_blob = subprocess.check_output([
         "git", "-C", str(repo), "show",
         f"{old_seal['lock_commit_sha']}:{(study / 'CAMPAIGN_LOCK.json').relative_to(repo)}",
@@ -148,6 +149,8 @@ def build(study: Path, python: Path) -> dict:
         "archived_lock_relative_path": SCIENCE_LOCK,
         "local_seal_sha256": sha256(science_seal_path),
         "archived_seal_relative_path": SCIENCE_SEAL,
+        "archived_review_sha256": sha256(old_review),
+        "archived_review_relative_path": SCIENCE_REVIEW,
         "archived_queue_relative_path": ARCHIVE_QUEUE,
         "archived_queue_sha256": sha256(archived_queue_path),
         "by_seed": by_seed,
