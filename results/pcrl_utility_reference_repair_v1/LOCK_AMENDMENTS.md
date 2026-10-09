@@ -127,3 +127,22 @@ verified again, and the remaining three coalition units completed. No q19
 output was changed, discarded or rerun. The q20 custody explanation belongs
 in a new file outside the q19 seal. This was an operational hash interruption,
 not a changed method or endpoint.
+
+## 2026-10-09: independent privacy replay identity correction
+
+The first q21 R3 privacy replay was sealed at lock commit `00ac96157` and
+started after both q20 score units finished. It failed before writing any replay
+result. The failed unit used `1.0158803339581937` charged CPU seconds, preserved
+in `.private/queue_g21/` with stdout, stderr and its immutable unit spec. Its
+lock, seal, R3 prefit review and registry are preserved at
+`.private/stage_seals/privacy_replay_failed/`. The public q20 score outputs
+remain frozen.
+
+The sole failing inventory predicate compared the score's semantic frozen-bank
+digest (`7e10e6401c48fb50c62b4d2fb2190aeb602c1b653d0eae6f3d7989478fa3558e`)
+to the MASK_BANK.json file-byte digest
+(`a52750191a1e16051367cade59537bc65ed797d69efcb375e0b1cc2e9364722c`).
+They identify different objects. R3's correction must retain the file-byte
+lock check and independently bind the semantic digest to the frozen q13 pair
+selection receipts. It must be tested and resealed as a new queue generation.
+No R2 score, selected pair, release, attacker, comparator or endpoint changes.
