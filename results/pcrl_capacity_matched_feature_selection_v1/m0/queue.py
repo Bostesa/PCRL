@@ -299,7 +299,8 @@ class FocusedQueue:
             if output.exists():
                 raise ValueError("output already exists")
             if any(path in json.loads(Path(rec["spec_path"]).read_text())["outputs"]
-                   for rec in state["units"].values()):
+                   for other_id, rec in state["units"].items()
+                   if other_id != spec["unit_id"]):
                 raise ValueError("output collides with registered unit")
             if spec["mode"] == "real" and not output.resolve().is_relative_to(self.root.parent):
                 raise ValueError("real output outside study private root")

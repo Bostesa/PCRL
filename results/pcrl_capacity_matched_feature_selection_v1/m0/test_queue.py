@@ -130,7 +130,16 @@ class FocusedQueueTests(unittest.TestCase):
         role_sha = hashlib.sha256(source.read_bytes()).hexdigest()
         output = private / "completed.json"
         script = repo / "worker.py"
-        script.write_text(f"import pathlib\npathlib.Path({str(output)!r}).write_text('ok')\n")
+        real_source_root = Path(__file__).resolve().parents[3]
+        script.write_text(
+            "import pathlib,sys\n"
+            f"sys.path.insert(0,{str(real_source_root)!r})\n"
+            "from results.pcrl_capacity_matched_feature_selection_v1.m0.admission "
+            "import assert_running_unit\n"
+            f"assert_running_unit('TEST-ONE',{str(private / 'queue')!r},"
+            f"{str(study / 'CAMPAIGN_LOCK.json')!r},'FIT',{str(output)!r})\n"
+            f"pathlib.Path({str(output)!r}).write_text('ok')\n"
+        )
         manifest = {"role_file_relative_path": {"OSF_DEFENSE_FIT:features": "role.npz"},
                     "role_file_sha256": {"OSF_DEFENSE_FIT:features": role_sha}}
         manifest_path = study / "m1" / "DATA_ACCESS_MANIFEST.json"
@@ -189,6 +198,9 @@ class FocusedQueueTests(unittest.TestCase):
                             external_heavy=1, evidence="synthetic local git fixture")
         spec["seal_sha256"] = seal_sha
         queue.enqueue(spec)
+        # The contained worker revalidates its own RUNNING spec; its output
+        # reservation must not be mistaken for a different unit's collision.
+        queue._validate_spec(spec, queue.status())
         self.assertEqual(queue.run_once()["status"], "DONE")
         self.assertEqual(output.read_text(), "ok")
         protocol_path.write_text("mutated after real unit\n")

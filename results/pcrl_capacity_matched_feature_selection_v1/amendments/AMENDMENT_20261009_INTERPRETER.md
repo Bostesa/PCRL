@@ -81,3 +81,27 @@ the zero-child limit. Tests check the positive contained path and a tampered
 protocol rejection. A new lock, independent M5 review and local seal precede
 another retry under a third queue generation. Scientific choices and the
 original bootstrap seed remain unchanged.
+
+## Third worker self-collision correction
+
+The third FIT attempt passed the contained seal check, then failed in
+0.17329954192973673 charged seconds during worker-side unit validation.
+The output collision scan included its own registered RUNNING spec and rejected
+its reserved output. M1 and M5 verified that this happened before the FIT
+role loader, with no NPZ member, task label or SEX value deserialized and no
+FIT output. The queue again hashed admitted containers as opaque bytes.
+
+Its lock (`ab7818e22fe19fd33dcaa0ab4bf29e24a6e3ced4b9ec610109fa14d7d956c3d5`),
+seal (`5ebf98ca3fb9f8e930b57dc993395c4aa12375fb2df7c0ca80d79ebaad370bbc`),
+review (`086db3e86cd149866e6aa2aada3a67176c5db98188405db97ef2be5264bbd965`)
+and queue (`2f658642570bab40a20a8643ab55547f7a5023ae20f5aa49c5c99f13ca074f5e`)
+are preserved under separate versioned paths. The total charged CPU is now
+589.822942500934 seconds, retaining every prior unit and failure.
+
+The collision scan now excludes only the current unit ID. The queue still
+rejects duplicate IDs at enqueue and still rejects another unit reserving the
+same output. A real fixture worker now exercises `assert_running_unit` inside
+the zero-child process limit and revalidates its own registered spec. All 22
+M0 data-free tests pass. The fourth queue/lock generation will receive another
+independent M5 review and local seal before FIT retry. The original scientific
+choices, bootstrap seed, epoch and budget remain unchanged.
