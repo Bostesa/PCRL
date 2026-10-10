@@ -4,7 +4,7 @@ from fractions import Fraction
 import unittest
 
 from joint_law_compiler import (compile_joint_actions, compile_both_orders,
-                                verify_fitted_rows)
+                                verify_admitted_rows, verify_fitted_rows)
 
 
 class JointLawCompilerTest(unittest.TestCase):
@@ -88,6 +88,27 @@ class JointLawCompilerTest(unittest.TestCase):
         rows = [([(3, 11, Fraction(1)), (4, 12, Fraction(0))],
                  (3, 4), (11, 12))]
         self.assertEqual(verify_fitted_rows(rows)["max_pair_replay_residual"], 0.0)
+
+    def test_admitted_rows_bind_complete_order_and_decision_classes(self):
+        rows = [
+            ("person-a", 0, 1, [(0, 2, Fraction(1))], (0, 1), (2,)),
+            ("person-b", 1, 0, [(2, 0, Fraction(1))], (2,), (0, 1)),
+        ]
+        receipt = verify_admitted_rows(
+            rows, expected_row_ids=("person-a", "person-b"),
+            bank_decision1=(0, 0, 1), bank_decision2=(0, 0, 1))
+        self.assertEqual(receipt["rows"], 2)
+        self.assertEqual(len(receipt["row_order_sha256"]), 64)
+        self.assertEqual(receipt["max_pair_replay_residual"], 0.0)
+
+    def test_admitted_rows_refuse_wrong_order_missing_row_and_wrong_class(self):
+        good = ("person-a", 0, 1, [(0, 2, 1.0)], (0, 1), (2,))
+        bad_class = ("person-b", 1, 0, [(2, 0, 1.0)], (2,), (0, 2))
+        kwargs = dict(expected_row_ids=("person-a", "person-b"),
+                      bank_decision1=(0, 0, 1), bank_decision2=(0, 0, 1))
+        for rows in ((good,), (bad_class, good), (good, bad_class)):
+            with self.subTest(rows=rows), self.assertRaises(ValueError):
+                verify_admitted_rows(rows, **kwargs)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
+import hashlib
 import math
 from numbers import Integral
 from typing import Iterable
@@ -177,4 +178,70 @@ def verify_fitted_rows(
         "max_row_sum_residual": max_mass_residual,
         "max_pair_replay_residual": max_pair_residual,
         "tolerance": tolerance,
+    }
+
+
+def verify_admitted_rows(
+    rows: Iterable[tuple[
+        str, int, int, Iterable[tuple[int, int, Fraction | float]],
+        Iterable[int], Iterable[int]
+    ]],
+    *,
+    expected_row_ids: Iterable[str],
+    bank_decision1: Iterable[int],
+    bank_decision2: Iterable[int],
+    tolerance: float = 1e-12,
+) -> dict:
+    """Bind complete FIT row order and class support to both law aliases.
+
+    Each row has ``(private_row_id, input_class1, input_class2, actions,
+    allowed1, allowed2)``. Only a hash of private IDs enters the receipt.
+    The caller must obtain the expected IDs and decisions from R01's sealed
+    role/source manifest; passing a caller-invented sequence is not admission.
+    """
+    expected = tuple(expected_row_ids)
+    decisions = (tuple(bank_decision1), tuple(bank_decision2))
+    if (not expected or len(set(expected)) != len(expected)
+            or any(not isinstance(value, str) or not value for value in expected)):
+        raise ValueError("exact nonempty unique admitted FIT row IDs are required")
+    for bank in decisions:
+        if (not bank or any(isinstance(value, bool) or not isinstance(value, Integral)
+                            or value < 0 for value in bank)):
+            raise ValueError("bank decisions must be complete nonnegative integer classes")
+    row_hash = hashlib.sha256()
+
+    def law_rows():
+        count = 0
+        for index, row in enumerate(rows):
+            if index >= len(expected):
+                raise ValueError(f"row {index}: more fitted rows than admitted FIT IDs")
+            try:
+                row_id, class1, class2, actions, allowed1, allowed2 = row
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"row {index}: malformed admitted row") from exc
+            if row_id != expected[index]:
+                raise ValueError(f"row {index}: FIT row identity or order changed")
+            if (isinstance(class1, bool) or isinstance(class2, bool)
+                    or not isinstance(class1, Integral) or not isinstance(class2, Integral)):
+                raise ValueError(f"row {index}: input predicted class must be integer")
+            choices = (tuple(allowed1), tuple(allowed2))
+            for recipient, (allowed, bank, predicted) in enumerate(
+                zip(choices, decisions, (class1, class2)), start=1
+            ):
+                if (not allowed or any(isinstance(code, bool) or not isinstance(code, Integral)
+                                       or code < 0 or code >= len(bank)
+                                       or bank[code] != predicted for code in allowed)):
+                    raise ValueError(f"row {index}: recipient {recipient} action class changed")
+            encoded = row_id.encode("utf-8")
+            row_hash.update(len(encoded).to_bytes(8, "big"))
+            row_hash.update(encoded)
+            count += 1
+            yield actions, choices[0], choices[1]
+        if count != len(expected):
+            raise ValueError(f"row {count}: admitted FIT row stream ended early")
+
+    receipt = verify_fitted_rows(law_rows(), tolerance=tolerance)
+    return receipt | {
+        "row_order_sha256": row_hash.hexdigest(),
+        "class_restricted_actions_checked": True,
     }
