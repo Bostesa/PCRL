@@ -16,6 +16,17 @@ Both releases transmitted a 10-bit hard code per recipient, a probability vector
 | T | .710718 | .795267 | .832582 |
 | D-K | .671178 | .753706 | .805905 |
 
-D-K reduced coalition recovery relative to T by **.026676 AUC** in this seed, while both individual recoveries also fell. It failed the prespecified point utility caps against both U0 and Ucal: income Brier excess was .006970/.006160 (cap .005); occupation accuracy loss was .016555 (cap .010), with NLL and Brier excesses also above their caps. T itself failed occupation NLL and Brier caps. Thus D-K's privacy difference is a descriptive tradeoff, not an eligible win. The prespecified two-seed matched-control comparison and simultaneous intervals are still pending.
+D-K reduced coalition recovery relative to T by **.026676 AUC** in this seed, while both individual recoveries also fell. It failed the prespecified point utility caps against both U0 and Ucal: income Brier excess was .006970/.006160 (cap .005); occupation accuracy loss was .016555 (cap .010), with NLL and Brier excesses also above their caps. T itself failed occupation NLL and Brier caps. Thus D-K's privacy difference is a descriptive tradeoff, not an eligible win.
+
+## Second paired seed, independently replayed
+
+The separate seed-1 R04 receipt is `r04/FIRST_PAIR_S1_INDEPENDENT_REPLAY.json` (SHA-256 `64e8d7cadd68cc73bae543c5d9c598e20081797de9e601b60d410d985e580bec`). It reproduced raw input through public wire, both tasks and all complete-view attacks exactly.
+
+| Arm | Income accuracy | Income NLL | Income Brier | Occupation accuracy | Occupation NLL | Occupation Brier | R1 SEX AUC | R2 SEX AUC | Pair SEX AUC |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| T | .850559 | .333215 | .209372 | .474720 | 1.285697 | .657246 | .703878 | .807146 | .835960 |
+| D-K | .851007 | .336102 | .210315 | .475168 | 1.297551 | .663328 | .678322 | .749381 | .793778 |
+
+Seed-1 D-K reduced pair AUC by **.042181** and both local AUCs, but lost .016555 occupation accuracy against U0/Ucal and exceeded their occupation NLL caps by .033061/.034602 (allowance .010). T also failed occupation accuracy, NLL and Brier caps. Both paired seeds therefore show a privacy reduction with an ineligible utility tradeoff. The five additional controls per seed have been fitted; their fresh attacks, all-arm replay and simultaneous intervals remain pending. These reused development rows do not supply independent confirmation.
 
 First source attempt `D_FIRST_T_DK_S0` failed before a role read because it pointed to the tracked copy of a manifest with no adjacent private exports. Dated amendment `AMENDMENT_20261010_D_FIRST_MANIFEST_PATH.json` preserved that attempt and bound the corrected predecessor worktree manifest. Replacement `D_FIRST_T_DK_S0_R1` completed. No method, data role, or endpoint changed.
