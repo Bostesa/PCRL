@@ -187,8 +187,9 @@ def run(args: argparse.Namespace) -> dict:
     if remaining_cpu <= 0 or elapsed_wall >= float(unit["wall_seconds"]):
         raise TimeoutError("A arm resource ceiling exhausted during admitted source binding")
     recipe = _recipe(amendment, unit, remaining_cpu)
-    output = Path(args.private_output).absolute()
-    if (output.exists() or not output.parent.is_dir() or output.parent.is_symlink() or
+    output = Path(args.private_output).resolve(strict=False)
+    if (Path(args.private_output).is_symlink() or ".private" not in output.parts or
+            output.exists() or not output.parent.is_dir() or output.parent.is_symlink() or
             stat.S_IMODE(output.parent.stat().st_mode) & 0o077):
         raise PermissionError("A fit output must be a fresh owner-only private directory")
     output.mkdir(mode=0o700)

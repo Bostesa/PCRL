@@ -71,7 +71,7 @@ class AdmittedFitTest(unittest.TestCase):
 
     def test_effective_amendment_latest_and_source_hash_required(self):
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             lock = root / "CAMPAIGN_LOCK.json"
             lock.write_text(json.dumps({
                 "schema": "pcrl-latent-and-sampled-campaign-lock-v1",
@@ -81,7 +81,8 @@ class AdmittedFitTest(unittest.TestCase):
                     "r01/SOURCE_AUDIT.json": "b" * 64,
                     "r03/compute_queue.py": hashlib.sha256(b"source\n").hexdigest()}}))
             amendment = root / "A_STAGE.json"
-            output = root / "private-output"
+            output = root / ".private" / "private-output"
+            output.parent.mkdir(mode=0o700)
             sources = {}
             for relative in MANDATORY_IMPLEMENTATION:
                 source = root / relative
@@ -140,6 +141,15 @@ class AdmittedFitTest(unittest.TestCase):
                                            output_dir=output)
                 self.assertEqual(got["unit_plan"]["A-JOINT-STOCH-S0"]["seed"], 0)
                 self.assertEqual(unit["stage"], "a")
+                public = root / "public-fit-output"
+                spec["outputs"] = [str(public / "FIT_RECEIPT.json")]
+                (queue / "state.json").write_text(json.dumps(state))
+                with self.assertRaisesRegex(PermissionError, "owner-only private"):
+                    admit_fit_unit(unit_id="A-JOINT-STOCH-S0", lock_path=lock,
+                                   amendment_path=amendment,
+                                   amendment_sha256=sha(amendment), output_dir=public)
+                spec["outputs"] = [str(output / "FIT_RECEIPT.json")]
+                (queue / "state.json").write_text(json.dumps(state))
                 spec["outputs"] = [str(output.resolve())]
                 (queue / "state.json").write_text(json.dumps(state))
                 with self.assertRaisesRegex(PermissionError, "unit/amendment/output"):

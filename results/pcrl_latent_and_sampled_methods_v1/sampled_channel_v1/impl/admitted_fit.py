@@ -12,6 +12,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import RoleOnlyStore
 from results.pcrl_latent_and_sampled_methods_v1.r03.compute_queue import assert_active_from_env
@@ -57,7 +58,13 @@ def admit_fit_unit(*, unit_id: str, lock_path, amendment_path,
     active = assert_active_from_env(unit_id=unit_id, stage="a")
     lock = Path(lock_path).resolve(strict=True)
     amendment_file = Path(amendment_path).resolve(strict=True)
-    output = Path(output_dir).resolve(strict=False)
+    supplied_output = Path(output_dir)
+    output = supplied_output.resolve(strict=False)
+    if (supplied_output.is_symlink() or supplied_output.parent.is_symlink() or
+            ".private" not in output.parts or output.exists() or
+            not output.parent.is_dir() or output.parent.is_symlink() or
+            stat.S_IMODE(output.parent.stat().st_mode) & 0o077):
+        raise PermissionError("A FIT output requires a new owner-only private directory")
     if (type(amendment_sha256) is not str or
             HEX64.fullmatch(amendment_sha256) is None or
             _sha(amendment_file) != amendment_sha256 or

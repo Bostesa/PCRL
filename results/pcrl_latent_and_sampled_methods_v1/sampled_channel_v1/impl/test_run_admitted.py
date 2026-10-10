@@ -31,7 +31,7 @@ class RunnerCustodyTest(unittest.TestCase):
     def _run(self, *, feasible):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            private = root / "private"
+            private = root / ".private"
             private.mkdir(mode=0o700)
             output = private / "joint_s0"
             policy = self._policy()
