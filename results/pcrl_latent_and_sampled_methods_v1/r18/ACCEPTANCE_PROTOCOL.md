@@ -28,7 +28,11 @@ purpose/seed pin before load. Run both purposes against the same admitted raw
 row through their own frozen encoders. Require ten binary `uint8` bits per
 recipient, at most 1,024 states, and exactly `code`, `probabilities`,
 `decision`, and fixed `metadata` on the wire. Recompute probability and
-decision from the public code and pinned code-only head; compare exactly.
+decision from a separately loaded, hash-pinned code-only head, the inherited
+H-GLOBAL-TEMP calibration record, and its documented float64 transform;
+compare exactly. Require public `source_sha256`, `model_sha256`,
+`head_sha256`, `calibrator_sha256`, `calibration_family`, and bit order to
+equal the sealed service manifest.
 Repeat the deterministic service call and compare every public byte. Mutate
 column order, add an excluded field, change checkpoint SHA, and attempt a
 latent/teacher/soft-bit export; each must refuse before a release is recorded.
@@ -38,9 +42,12 @@ No teacher scores or source latent features are transmitted.
 
 R12's provisional service takes both frozen score vectors at a central
 provider, samples one joint action, and caches that joint realization under
-an opaque provider key plus source-input digest. Both recipient outputs must
-contain only `code_id`, its sealed bank `probability`, `decision`, and globally
-constant metadata. Check each ID against the **global** bank, with no
+an opaque provider key `(release_id, source_seed, role, realization, unit)`
+plus a source-input digest binding both score vectors and fine cells. Both
+recipient outputs must have exactly `schema`, `recipient`, `code_id`,
+`probability`, `decision`, `release_id`, and `public_metadata`, with schema
+`SCV1-score-release-v1` and globally constant metadata. Check each ID against
+the **global** bank for that seed and recipient, with no
 input-local action alias. Repeat the same request and require byte-identical
 outputs for both recipients. A mismatched input digest or incompatible bank,
 source, or policy pin must refuse rather than return a stale release. Reject
@@ -60,3 +67,9 @@ ceilings and a fresh R03 receipt. R18 will bind R07/R12's final API and
 checkpoint/bank manifests before requesting those units. If A is not fitted
 or no sampled bank exists, mark its real unit untriggered under the sealed
 condition; do not describe a synthetic fixture as a deployed result.
+
+The current R07 `HardCodeRelease` is an uncalibrated provisional service and
+does not yet carry the R06 H-GLOBAL-TEMP calibration marker/SHA or head/model
+hashes. The strict D acceptance fixture is intentionally expected to fail
+until R07's versioned service and independent head/calibrator reconstruction
+are implemented. No real D deployment PASS is inferred from its present code.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -17,8 +18,12 @@ import numpy as np
 FEATURE_NAMES_SHA256 = "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975"
 EXCLUDED_SOURCE_COLUMNS = frozenset({"sex", "race", "income", "occupation", "fnlwgt"})
 D_FIELDS = frozenset({"code", "probabilities", "decision", "metadata"})
-A_FIELDS = frozenset({"code_id", "probability", "decision", "metadata"})
-D_METADATA_FIELDS = frozenset({"schema", "purpose", "bits", "capacity_states", "version", "source_sha256"})
+A_FIELDS = frozenset({"schema", "recipient", "code_id", "probability", "decision",
+                      "release_id", "public_metadata"})
+D_METADATA_FIELDS = frozenset({"schema", "purpose", "bits", "bit_order",
+                               "capacity_states", "version", "source_sha256",
+                               "model_sha256", "head_sha256",
+                               "calibration_family", "calibrator_sha256"})
 
 
 def sha256_file(path: Path) -> str:
@@ -41,7 +46,8 @@ def check_raw_schema(row: np.ndarray, columns: Sequence[str],
         raise ValueError("pinned predictor-name digest differs")
     if names != expected:
         raise ValueError("predictor order or membership differs")
-    if any(name.casefold() in EXCLUDED_SOURCE_COLUMNS for name in names):
+    if any(EXCLUDED_SOURCE_COLUMNS.intersection(re.split(r"[^a-z0-9]+", name.casefold()))
+           for name in names):
         raise ValueError("excluded source column reached deployment")
     x = np.asarray(row)
     if x.shape != (1, 83) or x.dtype != np.float32 or not np.isfinite(x).all():
@@ -64,8 +70,8 @@ def _probability(value: Any, rows: int = 1) -> np.ndarray:
 
 
 def check_d_public_release(release: Mapping[str, Any], purpose: int,
-                           expected_source_sha256: str,
-                           code_only_head: Callable[[int, np.ndarray], np.ndarray]) -> None:
+                           expected_metadata: Mapping[str, Any],
+                           independent_code_reconstruction: Callable[[int, np.ndarray], np.ndarray]) -> None:
     """Require ten hard bits and exactly code-derived public task output."""
     if set(release) != D_FIELDS:
         raise ValueError("D release has missing or hidden public fields")
@@ -73,14 +79,20 @@ def check_d_public_release(release: Mapping[str, Any], purpose: int,
     if code.shape != (1, 10) or code.dtype != np.uint8 or not np.isin(code, (0, 1)).all():
         raise ValueError("D public code must be ten hard bits")
     metadata = release["metadata"]
-    if (not isinstance(metadata, Mapping) or set(metadata) != D_METADATA_FIELDS
+    if (not isinstance(metadata, Mapping) or set(metadata) != set(expected_metadata)
+            or dict(metadata) != dict(expected_metadata)
+            or not D_METADATA_FIELDS.issubset(metadata)
             or metadata["schema"] != "latent-repair-hardbits-v1"
             or metadata["purpose"] != purpose or metadata["bits"] != 10
             or metadata["capacity_states"] != 1024
-            or metadata["source_sha256"] != expected_source_sha256):
+            or metadata["calibration_family"] != "H-GLOBAL-TEMP"
+            or any(not isinstance(metadata[key], str) or len(metadata[key]) != 64
+                   or any(character not in "0123456789abcdef" for character in metadata[key])
+                   for key in ("source_sha256", "model_sha256", "head_sha256",
+                               "calibrator_sha256"))):
         raise ValueError("D public metadata differs from the source and capacity pin")
     probability = _probability(release["probabilities"])
-    reconstructed = _probability(code_only_head(purpose, code))
+    reconstructed = _probability(independent_code_reconstruction(purpose, code))
     if not np.array_equal(probability, reconstructed):
         raise ValueError("D probabilities do not come only from the public code")
     decision = np.asarray(release["decision"])
@@ -91,10 +103,15 @@ def check_d_public_release(release: Mapping[str, Any], purpose: int,
 
 def check_a_public_release(release: Mapping[str, Any],
                            bank: Mapping[Any, tuple[Sequence[float], int]],
-                           expected_metadata: Mapping[str, Any]) -> None:
+                           expected_recipient: int, expected_release_id: str,
+                           expected_public_metadata: Mapping[str, Any]) -> None:
     """Require a globally named sampled bank entry and no fine-token fields."""
     if set(release) != A_FIELDS:
         raise ValueError("A release has missing or hidden public fields")
+    if (release["schema"] != "SCV1-score-release-v1"
+            or release["recipient"] != expected_recipient
+            or release["release_id"] != expected_release_id):
+        raise ValueError("A release identity differs from the sealed service")
     code_id = release["code_id"]
     if code_id not in bank:
         raise ValueError("A code ID is not in the frozen global public bank")
@@ -106,7 +123,7 @@ def check_a_public_release(release: Mapping[str, Any],
         raise ValueError("A sampled probability differs from the public bank")
     if release["decision"] != expected_decision:
         raise ValueError("A decision differs from the selected public bank entry")
-    if release["metadata"] != expected_metadata:
+    if release["public_metadata"] != expected_public_metadata:
         raise ValueError("A metadata is not the sealed global constant")
 
 
@@ -118,3 +135,18 @@ def check_cached_pair(first: tuple[Mapping[str, Any], Mapping[str, Any]],
     if json.dumps(first, sort_keys=True, separators=(",", ":")) != json.dumps(
             repeated, sort_keys=True, separators=(",", ":")):
         raise ValueError("repeat request did not return the cached joint release")
+
+
+def check_a_cached_service(call_with_input_digest: Callable[[str],
+                           tuple[Mapping[str, Any], Mapping[str, Any]]],
+                           admitted_digest: str, changed_digest: str) -> None:
+    """Require stable requery and refusal of changed input under one cache key."""
+    if admitted_digest == changed_digest:
+        raise ValueError("cache challenge digests must differ")
+    first = call_with_input_digest(admitted_digest)
+    check_cached_pair(first, call_with_input_digest(admitted_digest))
+    try:
+        call_with_input_digest(changed_digest)
+    except (ValueError, PermissionError):
+        return
+    raise ValueError("changed input digest reused or redrew a cached release")
