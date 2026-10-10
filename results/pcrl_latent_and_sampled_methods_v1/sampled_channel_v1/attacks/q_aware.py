@@ -34,6 +34,7 @@ from .wire import PublicBank
 
 DERIVED_NAME = "q_uniform_proto_v1"
 SCHEMA = "SCV1-q-uniform-prototype-v1"
+ZERO_SUPPORT_RULE = "all_zero_features_with_zero_support_v1"
 
 
 def _canonical_json(value: object) -> bytes:
@@ -166,6 +167,7 @@ def compile_uniform_prototype_features(
                 "centroid_array_sha256": _digest_arrays(c1, c2),
                 "centroid_shape": [list(c1.shape), list(c2.shape)],
                 "uniform_prior": True, "prototype_count": n,
+                "zero_support_rule": ZERO_SUPPORT_RULE,
                 "output_shape": [len(bank1.probability), len(bank2.probability)]}
     if expected_identity is not None and dict(expected_identity) != identity:
         raise ValueError("public Q source identity differs from predeclared artifact")
@@ -234,8 +236,13 @@ def with_q_features(batch: WireBatch, table: PrototypeFeatureTable, *, view: str
         value, mass = table.pair, table.pair_mass
     if any(np.any((a < 0) | (a >= size)) for a, size in zip(codes, mass.shape)):
         raise ValueError("actual emitted code lies outside public Q output table")
-    if np.any(mass[codes] <= 0):
-        raise ValueError("actual emitted code has zero public prototype support")
+    if table.identity.get("zero_support_rule") != ZERO_SUPPORT_RULE:
+        raise ValueError("public Q zero-support rule differs from frozen identity")
+    # The prototype grid is only an approximate prior. An actual within-cell
+    # score may emit a valid public code that no centroid emitted. Its fixed
+    # all-zero row has support fraction zero; retain the actual wire/person.
+    if np.any(value[codes][mass[codes] == 0] != 0):
+        raise ValueError("public Q zero-support feature row is not all zero")
     prefix = "r1." if view == "pair" else ""
     second_prefix = "r2." if view == "pair" else ""
     expected = table.identity
@@ -269,6 +276,30 @@ def with_q_features(batch: WireBatch, table: PrototypeFeatureTable, *, view: str
     return WireBatch(batch.row_id, batch.unit, batch.fields, batch.code_fields, derived)
 
 
+def validate_reference_q_lookup(batch: WireBatch, table: PrototypeFeatureTable,
+                                *, view: str) -> None:
+    """Recompute deterministic-reference Q columns from observed public IDs."""
+    if view not in ("r1", "r2", "pair"):
+        raise ValueError("fixed reference Q reader view differs")
+    names = ("r1.code_id", "r2.code_id") if view == "pair" else ("code_id",)
+    values = {"r1": table.r1, "r2": table.r2, "pair": table.pair}[view]
+    masses = {"r1": table.r1_mass, "r2": table.r2_mass,
+              "pair": table.pair_mass}[view]
+    if (table.identity.get("zero_support_rule") != ZERO_SUPPORT_RULE or
+            batch.public_derived is None or DERIVED_NAME not in batch.public_derived or
+            any(name not in batch.fields for name in names)):
+        raise ValueError("fixed reference Q public lookup is absent")
+    codes = tuple(np.asarray(batch.fields[name].values) for name in names)
+    if (any(code.dtype != np.int64 or code.shape != (len(batch.row_id),)
+            for code in codes) or
+            any(np.any((code < 0) | (code >= size))
+                for code, size in zip(codes, masses.shape)) or
+            np.any(values[codes][masses[codes] == 0] != 0) or
+            not np.array_equal(np.asarray(batch.public_derived[DERIVED_NAME]),
+                               values[codes])):
+        raise ValueError("fixed reference Q features differ from emitted code")
+
+
 def fit_q_posterior_reader(
     att_batch: WireBatch, inner_batch: WireBatch,
     sex_att: dict, table: PrototypeFeatureTable,
@@ -276,6 +307,7 @@ def fit_q_posterior_reader(
     lock_path: str | Path, lock_sha256: str, expected_table_sha256: str,
     queue_unit_id: str,
     queue_guard: Callable[[], None],
+    prevalidated_reference: bool = False,
 ) -> dict:
     """ATT-only Q_POST_LR_C1; return the R02 external-reader record.
 
@@ -297,8 +329,18 @@ def fit_q_posterior_reader(
     out = Path(private_dir)
     if ".private" not in out.resolve().parts or out.exists():
         raise ValueError("Q reader custody must be a new private directory")
-    att = with_q_features(att_batch, table, view=view)
-    inner = with_q_features(inner_batch, table, view=view)
+    if type(prevalidated_reference) is not bool:
+        raise ValueError("fixed reference Q reader flag differs")
+    if prevalidated_reference:
+        # The caller has already checked the deterministic reference wire and
+        # full public banks. Recheck the actual code-indexed values here; a
+        # caller cannot substitute arbitrary derived columns for this reader.
+        for batch in (att_batch, inner_batch):
+            validate_reference_q_lookup(batch, table, view=view)
+        att, inner = att_batch, inner_batch
+    else:
+        att = with_q_features(att_batch, table, view=view)
+        inner = with_q_features(inner_batch, table, view=view)
     prepared = prepare_views(att, inner)
     x_att = np.asarray(att.public_derived[DERIVED_NAME], dtype=np.float64)
     x_inner = np.asarray(inner.public_derived[DERIVED_NAME], dtype=np.float64)
