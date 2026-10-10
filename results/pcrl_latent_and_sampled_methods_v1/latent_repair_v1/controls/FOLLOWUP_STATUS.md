@@ -16,10 +16,13 @@ latest R03 amendment affecting `d_followup`. A2 must bind
 `controls_worker_sha256`, `first_receipt_sha256_by_seed[str(seed)]`,
 `role_manifest_sha256`, and `source_seed_sha256_by_seed[str(seed)]`; the queue
 unit spec must bind A2's byte hash. Seed-1 T/D-K used a separate seed-1 worker
-and A1 amendment before A2. The seed-0 controls fit completed under R03;
-its public `D_FOLLOWUP_CONTROLS_S0_RECEIPT.json` has SHA-256
-`a1901a87cd808215fddd0943befc0e5add4cc0c987013f6b0dd54c5ea24697ac`.
-The public per-seed receipts and R03 queue state give the current fit status.
+and A1 amendment before A2. Both controls fits completed under R03. Public
+receipts `D_FOLLOWUP_CONTROLS_S0_RECEIPT.json` and
+`D_FOLLOWUP_CONTROLS_S1_RECEIPT.json` have SHA-256 values
+`a1901a87cd808215fddd0943befc0e5add4cc0c987013f6b0dd54c5ea24697ac`
+and `b3f8153f0e8b2ecac6d11a47c20c4077f134b8c15c13ed6e6cd64a52c396e2e4`,
+respectively. Each contains C/F/L/S12/S21 packages and ATT/INNER releases.
+Fresh attacks and independent all-arm replay remain separate queue work.
 
 `f_adapter.py` passes F's full scaled 16-dimensional latent, probabilities,
 decisions, and all public metadata into R02's complete view. F uses
