@@ -115,8 +115,11 @@ def run(config_path: Path) -> dict:
     with TemporaryDirectory(dir=HERE / ".private", prefix="snapshot_restore_") as temp_name:
         temp = Path(temp_name)
         clone = temp / "checkout"
+        if manifest.get("source_branch") != "research/pcrl-code-utility-witness-v1":
+            raise PermissionError("snapshot source branch differs")
         _command(["git", "-c", "pack.threads=1", "-c", "index.threads=1",
                   "-c", "checkout.workers=1", "clone", "--quiet",
+                  "--branch", manifest["source_branch"],
                   str(snapshot / "git/campaign.bundle"), str(clone)], cwd=temp)
         tip = _command(["git", "rev-parse", "HEAD"], cwd=clone)
         if tip != manifest["git_tip"]:
