@@ -12,7 +12,8 @@ from .independent_a_source import sha_file
 
 HERE = Path(__file__).resolve().parent
 WORKTREE = HERE.parents[2]
-UNIT = "R04-A-FIT-NULL-JOINT-S0-001"
+UNIT_BY_SEED = {0: "R04-A-FIT-NULL-JOINT-S0-001",
+                1: "R04-A-FIT-NULL-JOINT-S1-001"}
 
 
 def main() -> None:
@@ -27,13 +28,18 @@ def main() -> None:
     fit_dir = paths["fit-dir"]
     fit_path = fit_dir / "FIT_RECEIPT.json"
     fit = json.loads(fit_path.read_text())
+    seed = fit.get("source_seed")
+    if seed not in UNIT_BY_SEED:
+        raise ValueError("A null FIT source seed differs")
+    unit = UNIT_BY_SEED[seed]
     if (fit.get("status") != "COMPLETE_NO_FEASIBLE_POLICY" or
             fit.get("selected") is not None or
-            fit.get("unit_id") != "A-FIT-A_JOINT_STOCH-S0-R1" or
+            fit.get("unit_id") != ("A-FIT-A_JOINT_STOCH-S0-R1" if seed == 0 else
+                                   "A-FIT-A_JOINT_STOCH-S1") or
             fit.get("a_amendment_sha256") != sha_file(paths["a-amendment"])):
         raise ValueError("A null-selected retry FIT receipt differs")
     portfolio = paths["portfolio-package"]
-    bank_root = portfolio / "shared/.private/tstar_score_bank_s0_v1"
+    bank_root = portfolio / f"shared/.private/tstar_score_bank_s{seed}_v1"
     role_manifest = json.loads(paths["role-manifest"].read_text())
     role_root = paths["role-manifest"].parent.parent
     source = [paths[name] for name in paths
@@ -46,7 +52,7 @@ def main() -> None:
                HERE / "independent_a_source.py", HERE / "independent_a_inputs.py",
                HERE / "independent_a_law.py", HERE / "independent_a_fit.py",
                HERE / "replay_a_prefit.py", HERE / "replay_a_null_fit.py"]
-    for field in ("references_s0", "income", "occupation", "sex"):
+    for field in (f"references_s{seed}", "income", "occupation", "sex"):
         key = f"OSF_DEFENSE_FIT:{field}"
         source.append(role_root / role_manifest["role_file_relative_path"][key])
     for start in ("identity_biased", "uniform_logit"):
@@ -58,10 +64,10 @@ def main() -> None:
     source = [path.resolve(strict=True) for path in source]
     if len(source) != len(set(source)):
         raise ValueError("A null FIT source list repeats a path")
-    output = HERE / "A_FIT_A_JOINT_STOCH_S0_NULL_CHECKPOINT_REPLAY.json"
+    output = HERE / f"A_FIT_A_JOINT_STOCH_S{seed}_NULL_CHECKPOINT_REPLAY.json"
     spec_dir = HERE / ".private"
     spec_dir.mkdir(mode=0o700, exist_ok=True)
-    spec_path = spec_dir / f"{UNIT}_SPEC.json"
+    spec_path = spec_dir / f"{unit}_SPEC.json"
     if output.exists() or spec_path.exists():
         raise FileExistsError("A null FIT replay spec or receipt exists")
     argv = [sys.executable, "-m",
@@ -74,7 +80,7 @@ def main() -> None:
                        ("role-manifest", paths["role-manifest"]),
                        ("source-audit", paths["source-audit"])):
         argv.extend(("--" + name + "-sha256", sha_file(path)))
-    spec = {"unit_id": UNIT, "stage": "verification", "mode": "real_data",
+    spec = {"unit_id": unit, "stage": "verification", "mode": "real_data",
             "deps": [fit["unit_id"]], "argv": argv, "cwd": str(WORKTREE),
             "max_wall_s": 900, "cpu_reserve_s": 900, "max_rss_gib": 3,
             "projected_output_bytes": 150000,
