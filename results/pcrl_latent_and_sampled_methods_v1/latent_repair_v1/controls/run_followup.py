@@ -71,15 +71,21 @@ def _amendment_guard(args: argparse.Namespace, queue: dict, seal: Path) -> None:
             or queue["seal_sha256"] != args.seal_sha256):
         raise PermissionError("R03 does not bind the latest D controls amendment")
     amendment = json.loads(amendment_path.read_text())
+    receipts = amendment.get("first_receipt_sha256_by_seed", {})
+    sources = amendment.get("source_seed_sha256_by_seed", {})
     if (amendment.get("schema") != "pcrl-d-followup-amendment-v1"
             or amendment.get("status") != "LOCALLY_SEALED_D_FOLLOWUP"
             or amendment.get("effective_seal_sha256") != args.seal_sha256
             or amendment.get("controls_worker_sha256") != sha_file(Path(__file__))
-            or amendment.get("first_receipt_sha256_by_seed", {}).get(str(args.seed))
-            != args.first_receipt_sha256
+            or set(receipts) != {"0", "1"}
+            or any(not isinstance(value, str) or len(value) != 64
+                   for value in receipts.values())
+            or receipts.get(str(args.seed)) != args.first_receipt_sha256
             or amendment.get("role_manifest_sha256") != args.role_manifest_sha256
-            or amendment.get("source_seed_sha256_by_seed", {}).get(str(args.seed))
-            != args.source_sha256):
+            or set(sources) != {"0", "1"}
+            or any(not isinstance(value, str) or len(value) != 64
+                   for value in sources.values())
+            or sources.get(str(args.seed)) != args.source_sha256):
         raise PermissionError("A2 amendment does not bind controls and seed sources")
 
 

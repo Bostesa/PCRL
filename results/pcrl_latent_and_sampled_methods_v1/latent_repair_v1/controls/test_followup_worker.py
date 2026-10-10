@@ -75,6 +75,21 @@ def test_followup_requires_latest_registered_a2_and_exact_pins(tmp_path, monkeyp
                      role_manifest_sha256="d" * 64,
                      source_sha256="e" * 64)
     _amendment_guard(args, {"seal_sha256": "a" * 64}, seal)
+    del payload["first_receipt_sha256_by_seed"]["1"]
+    amendment.write_text(json.dumps(payload))
+    changed_digest = hashlib.sha256(amendment.read_bytes()).hexdigest()
+    state["amendments"][0]["sha256"] = changed_digest
+    state["units"]["ctl"]["spec"]["amendment_sha256"] = changed_digest
+    (root / "state.json").write_text(json.dumps(state))
+    args.amendment_sha256 = changed_digest
+    with pytest.raises(PermissionError, match="A2 amendment"):
+        _amendment_guard(args, {"seal_sha256": "a" * 64}, seal)
+    payload["first_receipt_sha256_by_seed"]["1"] = "c" * 64
+    amendment.write_text(json.dumps(payload))
+    state["amendments"][0]["sha256"] = digest
+    state["units"]["ctl"]["spec"]["amendment_sha256"] = digest
+    args.amendment_sha256 = digest
+    (root / "state.json").write_text(json.dumps(state))
     state["amendments"].append({"path": str(tmp_path / "A3.json"),
                                 "sha256": "0" * 64, "stages": ["d_followup"]})
     (root / "state.json").write_text(json.dumps(state))
