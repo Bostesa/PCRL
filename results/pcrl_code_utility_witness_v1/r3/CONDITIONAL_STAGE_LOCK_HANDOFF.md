@@ -1,6 +1,6 @@
 # R3 protection stage lock handoff
 
-R0 is the only writer of the effective stage lock. The worker source is committed at `3d37bdeb8`; its SHA-256 is `53327d84523de5a798eae1ea95b143ea0c9fa3be7cd1c69d749f524ac909dc7c`. No real protection fit has run. Use this handoff only after the learned T0 point gate passes at one sealed capacity on both seeds/tasks and R5 checks the gate.
+R0 is the only writer of the effective stage lock. The worker source is committed at `5e85ad127`; its SHA-256 is `0484c450f033cd188d3e0eb75e3a61df53d851c3d5f5ac45a041fd9df4483a4c`. No real protection fit has run. The B10 and B16 learned T0 gates both returned `POINT_FAIL`, so this stage is `NOT_RUN` in the present campaign. The following contract remains a conditional runnable artifact for a separately sealed later study; it does not authorize a new fit under this campaign.
 
 The worker accepts a public committed lock with schema `pcrl-code-utility-protection-lock-v1`, status `LOCALLY_SEALED_PROTECTION`, and these exact fields:
 
