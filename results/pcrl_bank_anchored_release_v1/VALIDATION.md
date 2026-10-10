@@ -1,0 +1,5 @@
+# Validation
+
+The independent audit is [R5's verification report](r5/INDEPENDENT_VERIFICATION.json) and [narrative](r5/VALIDATION.md). R5 used separately written numerical code to replay the selected FIT packages, original INNER utility, complete public attack views, fixed selection, recovery intervals and restored raw-input deployment. The restored V3 audit matched eight recipient wires and 32 B0 reader predictions exactly. Seven FIT proxy clauses remain unresolved at floating-point boundaries. The selected coalition and recipient recovery intervals cross their targets. This is a verified development replay, not confirmation on new people.
+
+The R0 aggregate [endpoint](PRIMARY_ENDPOINTS.csv) and [comparison](HEADLINE_COMPARISONS.csv) tables were independently checked row for row by [R5](r5/HEADLINE_TABLE_AUDIT.json). The 13 targeted R2 data-free tests run at closeout passed. [UNIT_ACCOUNTING.json](UNIT_ACCOUNTING.json) and [RESOURCE_CLOSEOUT.json](RESOURCE_CLOSEOUT.json) record the shared queue, including failed and superseded jobs. [BACKUP_VERIFICATION.json](BACKUP_VERIFICATION.json) records local custody and the pending external copy.
