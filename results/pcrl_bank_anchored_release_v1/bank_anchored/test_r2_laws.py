@@ -14,6 +14,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.fact
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import (
     IdentityPolicy, BoundaryJointPolicy, BoundaryFactorPolicy,
     identity_pair, mix_joint, mix_product, offline_factor_uniforms,
+    wire_fixed_bank_and_actions,
 )
 
 
@@ -35,6 +36,23 @@ def _factor(input_width):
 
 
 class BankBoundaryTests(unittest.TestCase):
+    def test_source_action_choices_remap_to_original_public_token_ids(self):
+        # The source canonical sorter changes these original row IDs.
+        table = np.array([[.8, .2], [.7, .3], [.2, .8], [.3, .7]], dtype=np.float64)
+        token_class = np.array([0, 0, 1, 1], dtype=np.int64)
+        fine_to_old = np.array([0, 1, 2, 3], dtype=np.int64)
+        wire_bank, actions = wire_fixed_bank_and_actions(
+            table, token_class, fine_to_old, token_class)
+        np.testing.assert_array_equal(wire_bank.probability, table)
+        self.assertEqual(wire_bank.old_to_global, (0, 1, 2, 3))
+        self.assertEqual(tuple(row[0] for row in actions), (0, 1, 2, 3))
+        base = JointPolicy(wire_bank, wire_bank, actions, actions,
+                           GateWeights.zeros(input_width=8))
+        for token in range(4):
+            score = table[token].copy()
+            self.assertEqual(IdentityPolicy(base).sample_public_pair(
+                score, score, token, token), (token, token))
+
     def test_exact_identity_is_source_bank_action_and_zero_excess(self):
         base, s1, s2 = _fixture()
         identity = IdentityPolicy(base)

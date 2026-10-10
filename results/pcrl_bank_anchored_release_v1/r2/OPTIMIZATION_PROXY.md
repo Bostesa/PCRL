@@ -60,9 +60,21 @@ most four actions, so each joint row has at most 16. The central J gate uses
 both frozen U0 probability vectors, clipped entropy and top margin for each:
 12 inputs, 16 tanh hidden units, 16 padded pair logits (`4*a1+a2`), 480
 parameters. R1 verifies the bank and routing; no score, cell or local action
-position is transmitted. The complete transmitted state is one global code,
-its fixed decoded probability/decision and fixed public metadata per
-recipient.
+position is transmitted. The complete transmitted state is one ten-bit
+global code, its fixed decoded probability and decision per recipient. There
+is no emitted fallback or per-person metadata field; public weights, bank and
+source identities remain side information for defense-aware readers.
+
+**Public ID repair before FIT:** the inherited channel source sorted decoded
+bank vectors by class and probability bytes, whereas W_TSTAR's existing ten-bit
+wire names original QPC token rows. The source action construction is first
+run in its inherited sorted namespace to retain neighbor/medoid tie rules.
+Its unique old-token→sorted-ID map is then inverted and all bank rows/actions
+are converted to the original W_TSTAR token namespace before fitting or
+release. The required identity check is `action[cell][0] == original
+cell_token[cell]` for every fine cell, and the original table row must match
+the source decoded vector exactly. Duplicate bank rows that prevent this
+bijection block admission. R1/R5 separately check actual raw-wire parity.
 
 The inherited protected objective is exact finite empirical-law SEX Bayes
 accuracy `G_pair + 0.5*(G_r1+G_r2)`, with each local `G_r` constrained to be

@@ -16,6 +16,9 @@ from math import isfinite
 
 import numpy as np
 
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.bank import (
+    FixedBank, build_actions,
+)
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.channel import (
     JointPolicy,
     _score,
@@ -27,6 +30,45 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.release 
 
 
 FACTOR_STREAM_SCHEMA = "BAR1-factor-uniform-v1"
+
+
+def wire_fixed_bank_and_actions(source_probability, token_class,
+                                fine_to_old_token, input_class):
+    """Keep source action construction, but emit ORIGINAL W_TSTAR token IDs.
+
+    The inherited channel sorted unique probability bytes into new global IDs.
+    W_TSTAR's already admitted ten-bit wire instead uses original QPC token
+    indices. We first build actions with the inherited sorted-bank tie rules,
+    then invert the bijection before any fit, law export, or deployment.
+    Duplicate decoded rows would break that bijection and stop admission.
+    """
+    probability = np.asarray(source_probability)
+    classes = np.asarray(token_class)
+    if probability.dtype != np.float64 or probability.ndim != 2 or classes.dtype != np.int64:
+        raise ValueError("source bank requires exact float64 table/int64 classes")
+    old_ids = np.arange(len(probability), dtype=np.int64)
+    canonical = FixedBank.from_source(probability, old_ids, classes)
+    canonical_actions = build_actions(canonical, input_class=input_class,
+                                      fine_to_old_token=fine_to_old_token)
+    old_to_sorted = np.asarray(canonical.old_to_global, dtype=np.int64)
+    if (len(old_to_sorted) != len(canonical.probability) or
+            not np.array_equal(np.sort(old_to_sorted), old_ids)):
+        raise ValueError("W_TSTAR bank has duplicate public values; original-ID remap is unavailable")
+    sorted_to_old = np.empty_like(old_to_sorted)
+    sorted_to_old[old_to_sorted] = old_ids
+    wire_probability = np.ascontiguousarray(canonical.probability[old_to_sorted])
+    wire_decision = np.ascontiguousarray(canonical.decision[old_to_sorted])
+    if not np.array_equal(wire_probability, probability) or \
+            not np.array_equal(wire_decision, classes):
+        raise ValueError("original token order cannot reproduce frozen bank wire")
+    wire_bank = FixedBank(wire_probability, wire_decision,
+                          tuple(int(i) for i in old_ids))
+    wire_actions = tuple(tuple(int(sorted_to_old[z]) for z in row)
+                         for row in canonical_actions)
+    old_token = np.asarray(fine_to_old_token, dtype=np.int64)
+    if any(row[0] != int(old_token[cell]) for cell, row in enumerate(wire_actions)):
+        raise ValueError("remapped identity differs from original source token")
+    return wire_bank, wire_actions
 
 
 def _eta(value: float) -> float:
