@@ -31,6 +31,22 @@ LAW_MEMBERS = {"row_id", "unit", "code_r1", "code_r2", "mass", "valid",
 METRICS = ("accuracy", "nll", "brier")
 
 
+def _point_status(margin: float, cap: float, metric: str) -> str:
+    if metric not in METRICS or not (math.isfinite(margin) and math.isfinite(cap)):
+        raise ValueError("nonfinite or unregistered utility boundary")
+    passed = margin >= cap if metric == "accuracy" else margin <= cap
+    return "PASS" if passed else "FAIL"
+
+
+def _boundary_diagnostic(independent: float, reported: float,
+                         cap: float, metric: str) -> tuple[str, str, bool]:
+    own, prior = (_point_status(value, cap, metric)
+                  for value in (independent, reported))
+    if own != prior and not min(independent, reported) <= cap <= max(independent, reported):
+        raise ValueError("independent status differs away from cap boundary")
+    return own, prior, own != prior
+
+
 def _sha(path: Path) -> str:
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -141,7 +157,9 @@ def replay(config: Path, config_sha256: str, receipt_path: Path) -> dict:
         raise ValueError("R3 utility clause count differs")
     checked = set()
     max_gap = 0.0
-    primary_pass = 0
+    reported_primary_pass = 0
+    independent_primary_pass = 0
+    boundary_disagreements = []
     for item in rows:
         task, ref, metric = item["task"], item["reference"], item["metric"]
         key = task, ref, metric
@@ -168,23 +186,38 @@ def replay(config: Path, config_sha256: str, receipt_path: Path) -> dict:
                else .0005 if regime == "fit" else .005)
         if not math.isclose(float(item["cap"]), cap, rel_tol=0, abs_tol=1e-15):
             raise ValueError("prospective utility cap changed")
-        passed = margin >= cap if metric == "accuracy" else margin <= cap
-        status = "PASS" if passed else "FAIL"
+        reported_margin = float(item["margin"])
+        status, reported_status, disputed = _boundary_diagnostic(
+            margin, reported_margin, cap, metric)
         if primary:
-            if item["point_status"] != status or item["diagnostic_point_status"]:
-                raise ValueError("primary point status differs from independent margin")
-            primary_pass += passed
+            if item["point_status"] != reported_status or item["diagnostic_point_status"]:
+                raise ValueError("R3 primary status differs from its own margin")
+            reported_primary_pass += reported_status == "PASS"
+            independent_primary_pass += status == "PASS"
         elif (item["point_status"] != "DIAGNOSTIC_ONLY" or
-              item["diagnostic_point_status"] != status):
-            raise ValueError("diagnostic point status differs from independent margin")
+              item["diagnostic_point_status"] != reported_status):
+            raise ValueError("R3 diagnostic status differs from its own margin")
+        if disputed:
+            boundary_disagreements.append({
+                "task": task, "reference": ref, "metric": metric,
+                "primary": primary, "cap": cap,
+                "r3_margin": reported_margin, "r5_margin": margin,
+                "r3_status": reported_status, "r5_status": status,
+                "absolute_margin_gap": abs(margin - reported_margin),
+            })
     expected_primary = 6 if role == "OSF_DEFENSE_FIT" else 12
     if receipt["primary_clause_count"] != expected_primary or \
-            receipt["primary_clause_pass_count"] != primary_pass or \
-            receipt["primary_point_pass"] != (primary_pass == expected_primary):
+            receipt["primary_clause_pass_count"] != reported_primary_pass or \
+            receipt["primary_point_pass"] != (reported_primary_pass == expected_primary):
         raise ValueError("R3 primary point-gate receipt differs")
     return {"arm": arm, "seed": seed, "role": role, "rows": len(row),
             "groups": len(np.unique(unit)), "checked_clauses": len(checked),
-            "primary_clauses": expected_primary, "primary_point_passed": primary_pass,
+            "primary_clauses": expected_primary,
+            "primary_point_passed_reported": reported_primary_pass,
+            "primary_point_passed_independent": independent_primary_pass,
+            "boundary_disagreements": boundary_disagreements,
+            "status": ("NUMERIC_BOUNDARY_UNRESOLVED" if boundary_disagreements
+                       else "PASS"),
             "max_absolute_gap": max_gap, "law_sha256": job["law"]["sha256"],
             "r3_receipt_sha256": _sha(receipt_path),
             "r3_csv_sha256": _sha(csv_path)}
@@ -203,8 +236,8 @@ def main() -> None:
     if _sha(args.r3_receipt) != args.r3_receipt_sha256:
         raise PermissionError("R3 receipt differs from independent queue pin")
     result = replay(args.config, args.config_sha256, args.r3_receipt)
-    result.update({"schema": "pcrl-bank-r5-independent-law-utility-v1",
-                   "status": "PASS", "unit_id": active["unit_id"],
+    result.update({"schema": "pcrl-bank-r5-independent-law-utility-v2",
+                   "unit_id": active["unit_id"],
                    "scope": "development role only; candidate/runner scoring not imported"})
     target = args.output.resolve(strict=False)
     expected = Path(__file__).resolve().parents[1] / "results/pcrl_bank_anchored_release_v1/r5"
