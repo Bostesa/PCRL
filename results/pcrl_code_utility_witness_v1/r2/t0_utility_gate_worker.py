@@ -161,6 +161,7 @@ def run(config_path: Path) -> dict:
         if (receipt.get("schema") != "code-utility-witness-worker-v1"
                 or receipt.get("status") != "COMPLETE"
                 or receipt.get("stage") != "fit" or receipt.get("seed") != seed
+                or receipt.get("queue_seal_sha256") != active["seal_sha256"]
                 or receipt.get("source_model_sha256") != seal.get(
                     "source_model_files_sha256_by_seed", {}).get(str(seed), {}).get("model_pt_sha256")
                 or receipt.get("source_feature_schema_sha256") != seal.get("source_schema_sha256")
