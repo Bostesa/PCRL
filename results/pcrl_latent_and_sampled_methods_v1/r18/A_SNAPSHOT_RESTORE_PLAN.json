@@ -1,0 +1,51 @@
+{
+  "schema": "pcrl-r18-a-representative-snapshot-plan-v1",
+  "status": "PROSPECTIVE_NO_A_FIT_OR_RELEASE_SNAPSHOT",
+  "representative": {
+    "arm_id": "A_JOINT_STOCH",
+    "source_seed": 0,
+    "role": "INNER_SELECTION",
+    "realization": 0,
+    "claim": "runnable representative mechanism only; independent of nomination or utility eligibility"
+  },
+  "required_completed_queue_parents": [
+    "A-FIT-A_JOINT_STOCH-S0",
+    "A-RELEASE-A_JOINT_STOCH-S0-INNER-R0"
+  ],
+  "required_private_artifact_classes": [
+    "selected FIT_RECEIPT.json",
+    "selected POLICY_RECEIPT.json",
+    "selected policy.npz",
+    "role RELEASE_RECEIPT.json",
+    "role release_codes.npz",
+    "closed cache.sqlite3",
+    "precommitted 32-byte realization-zero stream root",
+    "one R18 private one-row acceptance result",
+    "admitted INNER role-only fine-cell archive",
+    "same-role seed-zero U0 reference-score archive"
+  ],
+  "required_public_or_source_artifact_classes": [
+    "R00 effective A seal and amendment",
+    "R03 FIT and INNER release receipts",
+    "R01 T-star source audit and role identities",
+    "public stream-root hash manifest",
+    "exact source-code Git bundle and pinned predecessor refs"
+  ],
+  "snapshot_rules": {
+    "version": "fresh UTC timestamp plus content-tip prefix",
+    "snapshot_root_mode": "0700",
+    "private_file_mode": "0600",
+    "write": "exclusive, fsynced, no symlink or traversal, never overwrite prior version",
+    "manifest": "logical IDs, file SHA-256 and byte counts; no person values in public manifest"
+  },
+  "restore_checks": [
+    "verify complete artifact inventory and every hash from the snapshot, independent of originals",
+    "verify Git bundle refs and restore source code to a fresh checkout",
+    "restore policy from POLICY_RECEIPT and policy.npz with exact bank/action/mechanism hashes",
+    "reopen a copied closed cache with offline=True and the committed private stream root",
+    "read one admitted INNER row from snapshot source archives, compare two recipient wires and saved code IDs exactly",
+    "refuse changed source input under the same cache key, and verify snapshot parent cache remains byte-identical"
+  ],
+  "off_device": "If an authorized writable external drive is mounted, copy and fresh-restore from drive alone; otherwise PENDING_NO_AUTHORIZED_WRITABLE_DRIVE with exact later commands.",
+  "current_result": "No A fitted policy, completed INNER release or R18 A acceptance receipt is available; this is a plan, not a backup or deployment PASS."
+}
