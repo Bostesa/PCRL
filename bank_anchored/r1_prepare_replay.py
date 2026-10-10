@@ -66,6 +66,7 @@ def prepare(root: Path, *, arm_id: str, seed: int, fit_unit_id: str,
     fit_unit_receipt = pkg / "r2" / f"{fit_unit_id}_UNIT_RECEIPT.json"
     unit_receipt = json.loads(fit_unit_receipt.read_text())
     fit_receipt = pkg / "r2" / f"{fit_unit_id}_FIT_RECEIPT.json"
+    fit = json.loads(fit_receipt.read_text())
     cached_root = fit_root / "OSF_DEFENSE_FIT_R0"
     cached_release = cached_root / "release_codes.npz"
     cached_receipt = cached_root / "RELEASE_RECEIPT.json"
@@ -78,7 +79,12 @@ def prepare(root: Path, *, arm_id: str, seed: int, fit_unit_id: str,
             unit_receipt.get("unit_id") != fit_unit_id or
             unit_receipt.get("arm_id") != arm_id or
             unit_receipt.get("source_seed") != seed or
-            unit_receipt.get("status") == "INCOMPLETE_SEARCH" or
+            not str(unit_receipt.get("status", "")).startswith("COMPLETE_") or
+            fit.get("status") != unit_receipt.get("status") or
+            fit.get("unit_id") != fit_unit_id or
+            fit.get("source_binding_sha256") != package["source_binding_sha256"] or
+            unit_receipt.get("fit_receipt_sha256") != _sha(fit_receipt) or
+            package.get("fit_receipt_sha256") != _sha(fit_receipt) or
             unit_receipt.get("policy_receipt_sha256") != policy_sha or
             unit_receipt.get("source_binding_sha256") != package["source_binding_sha256"] or
             cached.get("arm_id") != arm_id or cached.get("source_seed") != seed or

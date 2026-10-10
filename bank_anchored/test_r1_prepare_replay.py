@@ -45,9 +45,13 @@ def test_prepare_pins_exact_b0_package_and_raw_sample_without_labels(tmp_path):
     policy = fit_root / "policy"
     policy.mkdir(parents=True, mode=0o700)
     policy_hash = _write(policy / "policy.npz", b"policy arrays")
+    fit_hash = _json(pkg / "r2" / f"{fit_id}_FIT_RECEIPT.json",
+                     {"unit_id": fit_id, "status": "COMPLETE_IDENTITY_CONTROL",
+                      "source_binding_sha256": "a" * 64})
     receipt_hash = _json(policy / "POLICY_RECEIPT.json",
                          {"arm_id": "B0", "source_seed": 0,
                           "source_binding_sha256": "a" * 64,
+                          "fit_receipt_sha256": fit_hash,
                           "policy_file_sha256": policy_hash})
     release = fit_root / "OSF_DEFENSE_FIT_R0"
     release.mkdir(mode=0o700)
@@ -60,8 +64,8 @@ def test_prepare_pins_exact_b0_package_and_raw_sample_without_labels(tmp_path):
           {"unit_id": fit_id, "arm_id": "B0", "source_seed": 0,
            "status": "COMPLETE_IDENTITY_CONTROL",
            "source_binding_sha256": "a" * 64,
+           "fit_receipt_sha256": fit_hash,
            "policy_receipt_sha256": receipt_hash})
-    _write(pkg / "r2" / f"{fit_id}_FIT_RECEIPT.json")
     for name in ("r1_deploy.py", "r1_runtime.py", "r1_release.py",
                  "r1_deployment_replay.py"):
         _write(root / "bank_anchored" / name)
