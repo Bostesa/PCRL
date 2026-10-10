@@ -95,6 +95,7 @@ def test_public_stream_precommitment_selects_one_draw(tmp_path):
                                    "release_realization_roots_hex": {
                                        key: value.hex() for key, value in roots.items()},
                                    "seq_fit_root_hex": seq.hex()}))
+    private.chmod(0o600)
     public = tmp_path / "public.json"
     public.write_text(json.dumps({
         "schema": "scv1-public-stream-root-hashes-v1", "private_file_mode": "0600",

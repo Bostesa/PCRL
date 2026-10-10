@@ -7,6 +7,7 @@ import hmac
 import json
 from pathlib import Path
 import sqlite3
+import stat
 
 import numpy as np
 
@@ -77,6 +78,9 @@ def _selected_root(private_path: Path, draw: int,
     if public_path is None:
         # Only the data-free fixture uses an isolated raw 32-byte root.
         return Path(private_path).read_bytes()
+    if (Path(private_path).is_symlink() or
+            stat.S_IMODE(Path(private_path).stat().st_mode) != 0o600):
+        raise ValueError("A private stream root file mode or path differs")
     if expected_public_sha256 is None or sha_file(public_path) != expected_public_sha256:
         raise ValueError("A stream public root manifest hash differs")
     manifest = json.loads(Path(public_path).read_text())
