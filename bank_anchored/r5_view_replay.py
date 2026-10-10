@@ -101,7 +101,39 @@ def matrices(codes_att: tuple[np.ndarray, np.ndarray],
     return out
 
 
-def verify(spec: dict, public: dict, private: Path) -> dict:
+def _verify_views(role_codes: dict, tables: tuple[np.ndarray, np.ndarray],
+                  private: Path, public: dict, *, side_key: str) -> dict:
+    checked = {}
+    for view in ("r1", "r2", "pair"):
+        expected = matrices(
+            (role_codes["att"]["code_r1"], role_codes["att"]["code_r2"]),
+            (role_codes["inner"]["code_r1"], role_codes["inner"]["code_r2"]),
+            tables, view)
+        reader_root = private / view / "readers"
+        for role, source_role in (("att", "ATTACK_FIT_NEW"),
+                                  ("inner", "INNER_SELECTION")):
+            actual = archive(reader_root / f"view_{role}.npz",
+                             {"row_id", "unit", "x", "x_defense_aware",
+                              "x_code_bits", "cell_key"})
+            for key in ("row_id", "unit"):
+                if not np.array_equal(actual[key], role_codes[role][key]):
+                    raise ValueError("attack view people differ from cached release")
+            for key in ("x", "x_defense_aware", "x_code_bits", "cell_key"):
+                if not np.array_equal(actual[key], expected[role][key]):
+                    raise ValueError(f"{view}/{role} {key} omits or changes public wire")
+            side = public["public_side_information_by_role"][source_role]
+            for purpose in (0, 1):
+                if side[str(purpose)][side_key] != expected[role]["wire_shas"][purpose]:
+                    raise ValueError("public wire byte hash differs from attack side information")
+        checked[view] = {"att_columns": int(expected["att"]["x"].shape[1]),
+                         "defense_aware_columns":
+                             int(expected["att"]["x_defense_aware"].shape[1]),
+                         "complete": True}
+    return {"status": "PASS", "views": checked,
+            "scope": "cached actual draw, all emitted bit/probability/decision fields, public derived columns and fixed side information"}
+
+
+def _verify_selected(spec: dict, public: dict, private: Path) -> dict:
     table_path = Path(spec["public_table_path"])
     if sha(table_path) != spec["public_table_sha256"]:
         raise PermissionError("public decoder table changed")
@@ -124,31 +156,48 @@ def verify(spec: dict, public: dict, private: Path) -> dict:
             raise PermissionError("cached release source identity differs")
         values = archive(source, {"row_id", "unit", "code_r1", "code_r2"})
         role_codes[label] = values
-    checked = {}
-    for view in ("r1", "r2", "pair"):
-        expected = matrices(
-            (role_codes["att"]["code_r1"], role_codes["att"]["code_r2"]),
-            (role_codes["inner"]["code_r1"], role_codes["inner"]["code_r2"]),
-            tables, view)
-        reader_root = private / view / "readers"
-        for role, source_role in (("att", "ATTACK_FIT_NEW"),
-                                  ("inner", "INNER_SELECTION")):
-            actual = archive(reader_root / f"view_{role}.npz",
-                             {"row_id", "unit", "x", "x_defense_aware",
-                              "x_code_bits", "cell_key"})
-            for key in ("row_id", "unit"):
-                if not np.array_equal(actual[key], role_codes[role][key]):
-                    raise ValueError("attack view people differ from cached release")
-            for key in ("x", "x_defense_aware", "x_code_bits", "cell_key"):
-                if not np.array_equal(actual[key], expected[role][key]):
-                    raise ValueError(f"{view}/{role} {key} omits or changes public wire")
-            side = public["public_side_information_by_role"][source_role]
-            for purpose in (0, 1):
-                if side[str(purpose)]["release_sha256"] != expected[role]["wire_shas"][purpose]:
-                    raise ValueError("public wire byte hash differs from attack side information")
-        checked[view] = {"att_columns": int(expected["att"]["x"].shape[1]),
-                         "defense_aware_columns":
-                             int(expected["att"]["x_defense_aware"].shape[1]),
-                         "complete": True}
-    return {"status": "PASS", "views": checked,
-            "scope": "cached actual draw, all emitted bit/probability/decision fields, public derived columns and fixed side information"}
+    return _verify_views(role_codes, tables, private, public,
+                         side_key="release_sha256")
+
+
+def _verify_witness(spec: dict, public: dict, private: Path) -> dict:
+    table_path = Path(spec["public_table_path"])
+    if sha(table_path) != spec["public_table_sha256"]:
+        raise PermissionError("witness public decoder table changed")
+    family_name = "W_TSTAR" if spec["arm_id"] == "B0" else "W_Q"
+    family = json.loads(table_path.read_text())["families"][family_name]
+    tables = tuple(np.asarray(family[f"table{i}"], dtype=np.float64)
+                   for i in (0, 1))
+    role_codes = {}
+    for source_role, short in (("ATTACK_FIT_NEW", "att"),
+                               ("INNER_SELECTION", "inner")):
+        path = Path(spec["release_path_by_role"][source_role])
+        if sha(path) != spec["release_sha256_by_role"][source_role]:
+            raise PermissionError("witness role release source changed")
+        source = archive(path, {"row_id", "unit", "code0", "code1",
+                                "prob0", "prob1", "decision0", "decision1"})
+        normalized = {"row_id": source["row_id"], "unit": source["unit"]}
+        for purpose in (0, 1):
+            bits = source[f"code{purpose}"]
+            if bits.dtype != np.uint8 or bits.ndim != 2 or bits.shape[1] != 10:
+                raise ValueError("witness code bits differ from public interface")
+            ids = np.sum(bits.astype(np.int64) *
+                         (1 << np.arange(10, dtype=np.int64))[None, :], axis=1)
+            wire = public_wire(ids, tables[purpose])
+            if (not np.array_equal(wire["code"], bits) or
+                    not np.array_equal(wire["prob"], source[f"prob{purpose}"]) or
+                    not np.array_equal(wire["decision"], source[f"decision{purpose}"])):
+                raise ValueError("witness cached wire differs from its fixed table")
+            normalized[f"code_r{purpose+1}"] = ids
+        role_codes[short] = normalized
+    return _verify_views(role_codes, tables, private, public,
+                         side_key="wire_npz_sha256")
+
+
+def verify(spec: dict, public: dict, private: Path) -> dict:
+    if spec.get("arm_id") in ("B0", "W_Q"):
+        return _verify_witness(spec, public, private)
+    if spec.get("arm_id") == "P_STAR":
+        from .r5_pstar_view import verify as verify_pstar
+        return verify_pstar(spec, private)
+    return _verify_selected(spec, public, private)
