@@ -15,6 +15,9 @@ def test_reader_plan_freezes_required_complete_and_specialist_readers():
     assert d.probability == a.probability == ("PROB_LR_C1", "PROB_HGB_15x200")
     assert unit_fit_forecast(d)["mandatory_fits"] == 30
     assert unit_fit_forecast(a)["mandatory_fits"] == 30
+    continuous = reader_plan(family="D", code_bits=False)
+    assert continuous.core == d.core[:4]
+    assert unit_fit_forecast(continuous)["mandatory_fits"] == 24
 
 
 def test_task_endpoint_preserves_both_original_references_and_recall():
@@ -48,8 +51,10 @@ def test_probability_fit_requires_a_sealed_lock_before_any_numerical_work(tmp_pa
 
 
 def test_attack_runner_requires_effective_lock_before_any_fit(tmp_path):
+    opened = []
     with pytest.raises(ValueError, match="lock"):
-        run_three_view_attack({}, {}, {}, family="D", seed=0,
+        run_three_view_attack({}, {}, load_inner_sex=lambda: opened.append(True), family="D", seed=0,
                               private_root=tmp_path / ".private" / "unit",
                               lock_path=tmp_path / "missing.json", lock_sha256="0" * 64,
                               queue_guard=lambda: None)
+    assert not opened

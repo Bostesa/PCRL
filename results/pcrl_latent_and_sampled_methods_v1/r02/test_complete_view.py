@@ -73,3 +73,16 @@ def test_actual_float32_softmax_rounding_is_accepted_without_modifying_wire():
     rounded.fields["probabilities"] = Field("probability", p)
     result = prepare_views(rounded, rounded)
     np.testing.assert_array_equal(result.probability_att, p.astype(np.float64))
+
+
+def test_derived_d_code_identity_is_bound_to_transmitted_bits_not_a_second_wire_field():
+    source = batch()
+    source.fields.pop("code")
+    source = WireBatch(source.row_id, source.unit, source.fields, code_fields=("bits",))
+    prepared = prepare_views(source, source)
+    assert "code" not in prepared.att.wire_components
+    assert prepared.att.wire_components == tuple(source.fields)
+    assert prepared.att.cell_key.tolist() == ['["0"]', '["2"]', '["0"]']
+    assert prepared.att.x_code_bits.shape == (3, 2)
+    assert prepared.att.x.shape[1] > sum(np.asarray(f.values).reshape(3, -1).shape[1]
+                                       for f in source.fields.values())

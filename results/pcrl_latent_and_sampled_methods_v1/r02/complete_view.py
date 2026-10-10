@@ -67,6 +67,17 @@ def _strings(values: object, n: int) -> list[str]:
     return [str(x) for x in a.tolist()]
 
 
+def _code_values(field: Field, n: int) -> list[str]:
+    if field.kind in ("category", "metadata_category"):
+        return _strings(field.values, n)
+    if field.kind != "bits":
+        raise ValueError("code identity must be categorical or derived from transmitted bits")
+    bits = _numeric(field, n)
+    if bits.shape[1] > 32:
+        raise ValueError("bit code identity exceeds exact 32-bit packing contract")
+    return [str(sum(int(bit) << j for j, bit in enumerate(row))) for row in bits]
+
+
 def _numeric(field: Field, n: int) -> np.ndarray:
     try:
         a = np.asarray(field.values, dtype=np.float64)
@@ -96,6 +107,8 @@ def _validate_schema(att: WireBatch, inner: WireBatch) -> tuple[str, ...]:
         raise ValueError("code field schema differs")
     if len(set(att.code_fields)) != len(att.code_fields):
         raise ValueError("duplicate code field")
+    if any(att.fields[k].kind not in ("category", "metadata_category", "bits") for k in att.code_fields):
+        raise ValueError("code field must be categorical or transmitted bits")
     for k in names:
         if att.fields[k].kind != inner.fields[k].kind or att.fields[k].kind not in KINDS:
             raise ValueError("wire field kind schema differs")
@@ -128,14 +141,15 @@ def prepare_views(att: WireBatch, inner: WireBatch) -> PreparedViews:
     widths: dict[str, int] = {}
     for name in names:
         field = att.fields[name]
-        if field.kind in ("category", "metadata_category"):
-            values = _strings(field.values, n_att)
-            _strings(inner.fields[name].values, n_inner)
+        if field.kind in ("category", "metadata_category") or \
+                (field.kind == "bits" and name in att.code_fields):
+            values = _code_values(field, n_att)
+            _code_values(inner.fields[name], n_inner)
             choices = tuple(sorted(set(values)))
             if len(choices) > MAX_CATEGORIES:
                 raise ValueError("categorical wire field exceeds frozen vocabulary cap")
             vocab[name] = choices
-            widths[name] = len(choices) + 1
+            widths[name] = len(choices) + 1 + (_numeric(field, n_att).shape[1] if field.kind == "bits" else 0)
         else:
             a, b = _numeric(field, n_att), _numeric(inner.fields[name], n_inner)
             if a.shape[1] != b.shape[1]:
@@ -153,10 +167,11 @@ def prepare_views(att: WireBatch, inner: WireBatch) -> PreparedViews:
         for name in names:
             field = batch.fields[name]
             if name in vocab:
-                values = _strings(field.values, n)
+                values = _code_values(field, n)
                 lookup = {choice: j for j, choice in enumerate(vocab[name])}
-                block = np.zeros((n, widths[name]), dtype=np.float64)
-                block[np.arange(n), [lookup.get(v, widths[name] - 1) for v in values]] = 1.0
+                onehot = np.zeros((n, len(vocab[name]) + 1), dtype=np.float64)
+                onehot[np.arange(n), [lookup.get(v, len(vocab[name])) for v in values]] = 1.0
+                block = np.concatenate((_numeric(field, n), onehot), axis=1) if field.kind == "bits" else onehot
             else:
                 block = _numeric(field, n)
             blocks.append(block)
@@ -164,7 +179,7 @@ def prepare_views(att: WireBatch, inner: WireBatch) -> PreparedViews:
             bindings.append((name, start, end))
             start = end
             if field.kind == "bits":
-                bits.append(block)
+                bits.append(_numeric(field, n))
             if field.kind == "probability":
                 probabilities.append(block)
             if field.kind in ("metadata", "metadata_category"):
@@ -178,7 +193,7 @@ def prepare_views(att: WireBatch, inner: WireBatch) -> PreparedViews:
             if block.ndim != 2 or block.shape[0] != n or not block.shape[1] or not np.isfinite(block).all():
                 raise ValueError(f"public derived field {name} is invalid")
             deriv.append(block)
-        codes = [_strings(batch.fields[name].values, n) for name in batch.code_fields]
+        codes = [_code_values(batch.fields[name], n) for name in batch.code_fields]
         cell_key = np.asarray([json.dumps(list(values), separators=(",", ":"))
                                for values in zip(*codes)], dtype=np.str_) if codes else None
         view = AttackView(row_id=batch.row_id, unit=batch.unit, x=x,

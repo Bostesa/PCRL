@@ -8,6 +8,8 @@ ignore-recipient aliases, private reader custody and INNER scoring.
 
 from __future__ import annotations
 
+import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,11 +43,11 @@ class ReaderPlan:
 
 def reader_plan(*, family: str, code_bits: bool) -> ReaderPlan:
     """The mandatory common slate; family specialists are separate locked IDs."""
-    if family not in ("D", "A") or not code_bits:
+    if family not in ("D", "A") or (family == "A" and not code_bits):
         raise ValueError("family and bit-reader applicability disagree")
-    core = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32", "CELL_A1")
+    core = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32")
     if code_bits:
-        core += ("CODE_BIT_LR_C1",)
+        core += ("CELL_A1", "CODE_BIT_LR_C1")
     return ReaderPlan(family, core, ("PROB_LR_C1", "PROB_HGB_15x200"))
 
 
@@ -152,7 +154,8 @@ def fit_probability_specialists(
 
 
 def run_three_view_attack(
-    prepared: Mapping[str, PreparedViews], sex_att: dict, sex_inner: dict, *,
+    prepared: Mapping[str, PreparedViews], sex_att: dict, *,
+    load_inner_sex: Callable[[], dict],
     family: str, seed: int, private_root: str | Path,
     lock_path: str | Path, lock_sha256: str, queue_guard: Callable[[], None],
     specialists_by_view: Mapping[str, tuple[dict, ...]] | None = None,
@@ -160,15 +163,17 @@ def run_three_view_attack(
     """Fit/custody/score the frozen three-view slate and V2 controls.
 
     This is the numerical worker called *inside* R03's slot. The caller first
-    verifies role admission and release identity. The return's ``fitted`` bank
+    verifies role admission and release identity. ``load_inner_sex`` must be a
+    lazy role-loader closure: it is invoked only after FROZEN_COMPLETE and all
+    reader custody receipts are safely written. The return's ``fitted`` bank
     contains private models/predictions for paired inference; only ``public``
     is JSON-safe. The pair bank includes zero-fit local reader aliases.
     """
     lock = Path(lock_path)
     if len(lock_sha256) != 64 or not lock.is_file() or sha_file(lock) != lock_sha256:
         raise ValueError("effective lock file/hash missing or changed")
-    if not callable(queue_guard):
-        raise ValueError("active queue guard required")
+    if not callable(queue_guard) or not callable(load_inner_sex):
+        raise ValueError("active queue guard and delayed INNER label loader required")
     if set(prepared) != {"r1", "r2", "pair"}:
         raise ValueError("all three prepared complete views are required")
     if specialists_by_view is not None and set(specialists_by_view) != set(prepared):
@@ -176,7 +181,10 @@ def run_three_view_attack(
     root = Path(private_root)
     if ".private" not in root.resolve().parts or root.exists():
         raise ValueError("attack custody requires a new private directory")
-    plan = reader_plan(family=family, code_bits=True)
+    bit_applicability = {prepared[name].att.x_code_bits is not None for name in ("r1", "r2", "pair")}
+    if len(bit_applicability) != 1:
+        raise ValueError("code-bit reader applicability differs across views")
+    plan = reader_plan(family=family, code_bits=bit_applicability.pop())
     for side in ("att", "inner"):
         anchor = getattr(prepared["r1"], side)
         for name in ("r2", "pair"):
@@ -198,12 +206,34 @@ def run_three_view_attack(
         fitted[name] = add_external_fixed_readers(core, view.att, sex_att,
                                                    view.inner, specialists + extras)
     fitted["pair"] = add_ignore_recipient_aliases(fitted["pair"], fitted["r1"], fitted["r2"])
-    scores, custody, controls = {}, {}, {}
+    custody = {}
+    for name in plan.views:
+        view = prepared[name]
+        custody[name] = save_fitted_slate(fitted[name], root / name / "readers",
+                                          att_view=view.att, inner_view=view.inner)
+    freeze = {"schema": "pcrl-next-reader-freeze-v1", "status": "FROZEN_COMPLETE",
+              "family": family, "seed": seed, "effective_lock_sha256": lock_sha256,
+              "reader_receipt_sha256": {name: custody[name]["private_receipt_sha256"]
+                                        for name in plan.views},
+              "att_view_sha256": {name: prepared[name].att.content_hashes()
+                                  for name in plan.views},
+              "inner_view_sha256": {name: prepared[name].inner.content_hashes()
+                                    for name in plan.views}}
+    freeze_path = root / "FROZEN_COMPLETE.json"
+    with freeze_path.open("x") as stream:
+        json.dump(freeze, stream, sort_keys=True, indent=2, allow_nan=False)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    freeze_path.chmod(0o600)
+    freeze_sha = sha_file(freeze_path)
+    # Only this point can open INNER SEX. Every model, orientation, TUNE/INNER
+    # prediction and zero-fit alias already has a hash-sealed private receipt.
+    sex_inner = load_inner_sex()
+    scores, controls = {}, {}
     for name in plan.views:
         view = prepared[name]
         scores[name] = score_slate(fitted[name], sex_inner)
-        custody[name] = save_fitted_slate(fitted[name], root / name / "readers",
-                                          att_view=view.att, inner_view=view.inner)
         queue_guard()
         control, artifacts = run_control_probes_v2(
             view.att, sex_att, view.inner, sex_inner, return_artifacts=True)
@@ -215,6 +245,7 @@ def run_three_view_attack(
               "plan": {"core": plan.core, "probability": plan.probability,
                        "fit_forecast": unit_fit_forecast(plan)},
               "scores": scores, "reader_custody": custody, "controls": controls,
+              "freeze_receipt_sha256": freeze_sha,
               "view_schema_sha256": {name: prepared[name].schema["schema_sha256"]
                                      for name in plan.views}}
     return {"public": public, "fitted": fitted}
