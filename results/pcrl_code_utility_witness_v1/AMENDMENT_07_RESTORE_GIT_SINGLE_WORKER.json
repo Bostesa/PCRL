@@ -1,0 +1,18 @@
+{
+  "affected_queue_stages": [
+    "verification"
+  ],
+  "candidate_ids_caps_margins_selection_changed": false,
+  "correction": "Clone the same immutable bundle with Git pack.threads=1, index.threads=1 and checkout.workers=1 in the independent restore worker. Keep all snapshot member pins, adapter checks, source/schema rejection checks and comparison tolerances unchanged.",
+  "dated_utc": "2026-10-10T06:20:20.855442+00:00",
+  "finding": "The first snapshot-only restore was stopped before any deployment by the queue parallel-heavy-CPU watchdog while git clone spawned unpack children; observed process-tree CPU rate 1.938 and charged CPU 1.579 s. No snapshot hash or scientific check failed.",
+  "original_seal_sha256": "d35a1bd47126bb75dd1bdc7149846377f44a1389c121d6abd4645628e24aa11f",
+  "preserved_incomplete_unit": "R5_SNAPSHOT_ONLY_RESTORE_V1",
+  "preserved_unit_spec_sha256": "ead04cec8205d2a8789df5293cfa78da3ce0179524813455eebb172a11831ef1",
+  "prior_amendment_sha256": "d6f49faa8d4d1e810d61c36cfdb7f17d150084031b2985c28838989b020e4454",
+  "replacement_unit": "R5_SNAPSHOT_ONLY_RESTORE_V2",
+  "schema": "pcrl-code-utility-dated-amendment-v1",
+  "scientific_scope_change": false,
+  "scope_boundary": "Preserve the interrupted unit receipt. No changed model, release, score, endpoint, calibration, privacy fit or utility threshold. If the replacement still exceeds the queue limit, preserve it and report an incomplete restore instead of relaxing the heavy-process ceiling.",
+  "status": "VERIFICATION_RESTORE_GIT_SINGLE_WORKER_CORRECTION"
+}
