@@ -140,3 +140,22 @@ def test_only_18_fixed_cells_leave_1161_of_k6885_estimable():
     assert len(names) == 6885
     assert np.isnan(margins).sum() == 5724
     assert np.isfinite(margins).sum() == 1161
+
+
+def test_inert_proposal_pins_exact_sources_and_fixed_family():
+    from results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint import (
+        CAMPAIGN, SOURCE_NAMES_FIXED, SHARED_NAMES, WORKTREE,
+    )
+
+    proposal = json.loads((CAMPAIGN / "r02/A_FIXED_ENDPOINT_ANALYSIS_PROPOSAL.json").read_text())
+    assert proposal["status"] == "PREFIT_DRAFT_NOT_EFFECTIVE"
+    assert proposal["fixed_family_clause_count"] == 6885
+    assert len(proposal["fixed_attack_unit_ids"]) == 18
+    assert len(proposal["unavailable_attack_unit_ids"]) == 40
+    assert sum(row["category"] == NULL for row in proposal["fit_reason_rows"]) == 14
+    assert sum(row["category"] == FAILED for row in proposal["fit_reason_rows"]) == 2
+    for name in SOURCE_NAMES_FIXED:
+        assert proposal["source_sha256"][name] == sha(CAMPAIGN / name)
+    for name in SHARED_NAMES:
+        relative = f"results/pcrl_method_portfolio_v1/shared/{name}"
+        assert proposal["source_sha256"][relative] == sha(WORKTREE / relative)
