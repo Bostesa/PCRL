@@ -7,6 +7,7 @@ from bank_anchored.r5_independent import (
     aggregate_pair_law,
     expected_costs,
     public_id_from_bits,
+    saved_law_to_pairs,
 )
 
 
@@ -57,6 +58,29 @@ class IndependentScalarChecks(unittest.TestCase):
         self.assertAlmostEqual(out["occupation"]["nll"], -np.log(0.8))
         self.assertAlmostEqual(out["income"]["accuracy"], 1.0)
         self.assertAlmostEqual(out["occupation"]["accuracy"], 1.0)
+
+    def test_saved_law_requires_exact_identity_action_and_zero_invalid_mass(self):
+        tables = (np.array([[.9, .1], [.7, .3]]),
+                  np.array([[.8, .2], [.6, .4]]))
+        law = {
+            "row_id": np.array([2, 3], dtype=np.int64),
+            "unit": np.array([2, 3], dtype=np.int64),
+            "code_r1": np.array([[0, 1], [1, 1]], dtype=np.int64),
+            "code_r2": np.array([[0, 1], [1, 1]], dtype=np.int64),
+            "mass": np.array([[.5, .5], [1., 0.]], dtype=np.float64),
+            "valid": np.array([[True, True], [True, False]]),
+            "b0_code_r1": np.array([0, 1], dtype=np.int64),
+            "b0_code_r2": np.array([0, 1], dtype=np.int64),
+        }
+        self.assertEqual(saved_law_to_pairs(law, tables, law["row_id"],
+                                            law["unit"])[0],
+                         {(0, 0): .5, (1, 1): .5})
+        bad = {**law, "mass": np.array([[.5, .5], [.9, .1]])}
+        with self.assertRaises(ValueError):
+            saved_law_to_pairs(bad, tables, law["row_id"], law["unit"])
+        bad = {**law, "code_r1": np.array([[1, 0], [1, 1]])}
+        with self.assertRaises(ValueError):
+            saved_law_to_pairs(bad, tables, law["row_id"], law["unit"])
 
 
 if __name__ == "__main__":

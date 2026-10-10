@@ -74,6 +74,45 @@ def aggregate_pair_law(actions: np.ndarray, mass: np.ndarray,
     return result
 
 
+def saved_law_to_pairs(saved: dict[str, np.ndarray],
+                       tables: tuple[np.ndarray, np.ndarray],
+                       row_id: np.ndarray, unit: np.ndarray,
+                       ) -> list[dict[tuple[int, int], float]]:
+    """Independently validate private saved law and expose only public pair mass."""
+    required = {"row_id", "unit", "code_r1", "code_r2", "mass", "valid",
+                "b0_code_r1", "b0_code_r2"}
+    if set(saved) != required or len(tables) != 2:
+        raise ValueError("saved law inventory differs")
+    rows, groups = np.asarray(saved["row_id"]), np.asarray(saved["unit"])
+    if (rows.dtype != np.int64 or groups.dtype != np.int64
+            or rows.ndim != 1 or groups.shape != rows.shape or len(rows) == 0
+            or not np.array_equal(rows, row_id) or not np.array_equal(groups, unit)):
+        raise ValueError("saved law role identity differs")
+    mass, valid = np.asarray(saved["mass"]), np.asarray(saved["valid"])
+    if (mass.dtype != np.float64 or mass.ndim != 2 or mass.shape[0] != len(rows)
+            or valid.dtype != np.bool_ or valid.shape != mass.shape
+            or not np.all(valid[:, 0]) or np.any(mass[~valid] != 0)):
+        raise ValueError("saved action slots or mass differ")
+    pairs = []
+    for purpose, table in enumerate(tables, 1):
+        arr = np.asarray(table)
+        audit_table(arr, arr.argmax(axis=1).astype(np.int64))
+        code = np.asarray(saved[f"code_r{purpose}"])
+        b0 = np.asarray(saved[f"b0_code_r{purpose}"])
+        if (code.dtype != np.int64 or code.shape != mass.shape
+                or b0.dtype != np.int64 or b0.shape != rows.shape
+                or np.any(code < 0) or np.any(code >= len(arr))
+                or np.any(b0 < 0) or np.any(b0 >= len(arr))
+                or not np.array_equal(code[:, 0], b0)):
+            raise ValueError("saved global codes or identity slot differ")
+        decisions = arr.argmax(axis=1)
+        if np.any(valid & (decisions[code] != decisions[b0][:, None])):
+            raise ValueError("action changes fixed task decision")
+        pairs.append(code)
+    actions = np.stack(pairs, axis=2)
+    return aggregate_pair_law(actions, mass, (len(tables[0]), len(tables[1])))
+
+
 def expected_costs(law: list[dict[tuple[int, int], float]],
                    tables: tuple[np.ndarray, np.ndarray],
                    labels: np.ndarray) -> dict[str, dict[str, float]]:
