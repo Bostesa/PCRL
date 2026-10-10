@@ -58,12 +58,21 @@ def _hex(value):
     return type(value) is str and HEX64.fullmatch(value) is not None
 
 
-def _private_output(path: Path) -> Path:
-    path = path.resolve(strict=False)
-    if (".private" not in path.parts or path.exists() or
-            not path.parent.is_dir() or path.parent.is_symlink() or
+def _checked_private_output(path: Path) -> Path:
+    """Validate private custody without creating an output or reading a role."""
+    supplied = Path(path).absolute()
+    path = supplied.resolve(strict=False)
+    if (supplied.is_symlink() or supplied.parent.is_symlink() or
+            ".private" not in path.parts or path.exists() or
+            not path.parent.is_dir() or
+            path.parent.stat().st_uid != os.getuid() or
             stat.S_IMODE(path.parent.stat().st_mode) & 0o077):
         raise PermissionError("control FIT output must be fresh in owner-only .private custody")
+    return path
+
+
+def _private_output(path: Path) -> Path:
+    path = _checked_private_output(path)
     path.mkdir(mode=0o700)
     return path
 
@@ -91,7 +100,7 @@ def admit_control_unit(*, unit_id: str, lock_path, amendment_path,
     active = assert_active_from_env(unit_id=unit_id, stage="a")
     lock = Path(lock_path).resolve(strict=True)
     amendment_file = Path(amendment_path).resolve(strict=True)
-    output = Path(output_dir).resolve(strict=False)
+    output = _checked_private_output(Path(output_dir))
     if (not _hex(amendment_sha256) or _sha(amendment_file) != amendment_sha256 or
             _sha(lock) != active["seal_sha256"]):
         raise PermissionError("A control original seal or amendment SHA differs")
@@ -117,7 +126,7 @@ def admit_control_unit(*, unit_id: str, lock_path, amendment_path,
     latest = [item for item in state.get("amendments", []) if "a" in item.get("stages", [])]
     spec = state.get("units", {}).get(unit_id, {}).get("spec", {})
     plan = amendment.get("unit_plan", {}).get(unit_id)
-    if (".private" not in output.parts or not latest or
+    if (not latest or
             latest[-1].get("sha256") != amendment_sha256 or
             Path(latest[-1].get("path", "")).resolve() != amendment_file or
             spec.get("stage") != "a" or spec.get("amendment_sha256") != amendment_sha256 or

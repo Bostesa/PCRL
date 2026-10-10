@@ -15,8 +15,26 @@ class AdmissionTest(TestCase):
             parent = Path(directory)
             parent.chmod(0o700)
             with self.assertRaisesRegex(PermissionError, "private"):
-                worker._private_output(parent / "selected")
+                worker._checked_private_output(parent / "selected")
             self.assertFalse((parent / "selected").exists())
+
+    def test_private_output_parent_guard_runs_without_creating_or_reading_roles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            private = root / ".private"
+            private.mkdir(mode=0o700)
+            target = private / "selected"
+            self.assertEqual(worker._checked_private_output(target),
+                             target.resolve(strict=False))
+            self.assertFalse(target.exists())
+            private.chmod(0o755)
+            with self.assertRaisesRegex(PermissionError, "owner-only"):
+                worker._checked_private_output(target)
+            private.chmod(0o700)
+            link = root / "linked"
+            link.symlink_to(private, target_is_directory=True)
+            with self.assertRaisesRegex(PermissionError, "owner-only"):
+                worker._checked_private_output(link / "selected")
 
     def test_selected_provenance_matches_package_contract(self):
         self.assertEqual(worker._selected_provenance(

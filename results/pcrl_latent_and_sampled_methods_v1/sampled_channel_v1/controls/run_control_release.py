@@ -40,6 +40,7 @@ def run(args: argparse.Namespace) -> dict:
     listed = {Path(row["path"]).resolve(): row["sha256"]
               for row in spec.get("sources", [])}
     if (type(expected) is not str or len(expected) != 64 or
+            Path(__file__).resolve() != source.resolve(strict=True) or
             listed.get(source.resolve(strict=True)) != expected or
             _sha(source) != expected or
             spec.get("arm_id") != args.arm_id or
