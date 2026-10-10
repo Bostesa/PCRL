@@ -1,0 +1,17 @@
+# R0 factual claims handoff
+
+This continuation is an exploratory score-release comparison on repeatedly used Adult people. Source anchors are local: bank study `dda8e450cdd398ec1153c69ae1a9dd732a35b955`, utility witness `4723190fff4219670e38fd449adcf70f36c9c358`, latent/channel study `3e742098d1c46130f88badb94339217f2b8b6b57`. No manuscript, submission or main branch was edited.
+
+The exact historical `U|JOINT|i8o64|l0.1|H-CLASS-TEMP` was restored as P0. Both objectives received the same new P0 bank/support and utility anchor. Fourteen actual fits compared inherited versus complete-wire reader objectives, central joint/product/deterministic mechanisms, own-input local design, and both freeze-first sequential procedures. Two deterministic fits returned exact identity; twelve selected nonidentity. Class-preserving supports retain decisions structurally. They provide no feature-sharing protection claim.
+
+All eight arms met 24/24 original point utility clauses against both references. Simultaneous confidence preservation remains unresolved: 80/192 clauses PASS, 112 UNRESOLVED, zero demonstrated violation. The nominated V-L improved pair AUC by only 0.000635 at the point estimate. The strongest compatible control, sequential 2→1, improved P0 by 0.002351. Joint was 0.001073 worse than that control. Every registered A/B/C conjunction is NOT_ESTABLISHED.
+
+The previous W_TSTAR bank lacked all exact P0 probability states, and its tight B0-relative fitting ball excluded P0 on six of twelve proxy clauses. These mechanical restrictions are demonstrated. They do not prove an objective cause, a population impossibility, or that wider support will succeed. The inherited finite-law objective already read actual public code tuples. This study tests a different finite-reader objective package, using an approximate optimizer; it introduces no proved solver or erasure guarantee.
+
+Fresh attacks were actually refitted for 40 release instances/120 full views, with 1,200 reader/control fits. The unchanged P0 can reproduce its earlier AUC on the same rows and deterministic attack procedure. Neither repeated values, new reader fits, three cached draws, nor two source seeds create new independent population evidence. Independent replay covers all 948 prospective slots and returns the same claims. The additional six reader-refit units are explicitly post-outcome diagnostic checks.
+
+Admit the initial inherited all-role archive byte-hash access deviation and the historical-reader prerequisite ordering deviation. No old assessment arrays were deserialized/scored in those call chains, and safe direct loading now excludes the broad archive. Do not describe the entire execution as deviation-free. See [VALIDATION.md](../VALIDATION.md) and [DATA_ACCESS_CLOSEOUT.json](DATA_ACCESS_CLOSEOUT.json).
+
+Method, joint, randomness and novelty credit remain withheld. A competitive future claim needs a genuinely different fixed design, strong matched controls and appropriate precision; independent confirmation additionally needs a separately authorized unexposed population. This recipe is closed without a post-result sweep.
+
+Exact numerical sources: [claim accounting](../r3/R3_FIXED_CLAIM_ACCOUNTING_V1.json), [independent paired replay](../r5/R5_RECOVERY_CLAIM_REPLAY_V1.json), [all primary endpoints](../PRIMARY_ENDPOINTS.csv), [actual fit activity](ACTUAL_TRAINING_COUNTS.json), and [model identities](../MODEL_MANIFEST.json). Deployment/custody receipts have their own scope and do not strengthen the privacy claim.
