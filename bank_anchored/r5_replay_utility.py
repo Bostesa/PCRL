@@ -141,6 +141,7 @@ def replay(config: Path, config_sha256: str, receipt_path: Path) -> dict:
         raise ValueError("R3 utility clause count differs")
     checked = set()
     max_gap = 0.0
+    primary_pass = 0
     for item in rows:
         task, ref, metric = item["task"], item["reference"], item["metric"]
         key = task, ref, metric
@@ -157,8 +158,33 @@ def replay(config: Path, config_sha256: str, receipt_path: Path) -> dict:
             max_gap = max(max_gap, gap)
             if gap > 1e-10:
                 raise ValueError("independent exact-law utility differs from R3")
+        primary = (ref == "B0" if role == "OSF_DEFENSE_FIT"
+                   else ref in ("U0", "Ucal"))
+        if item["primary_gate"] != str(primary):
+            raise ValueError("primary FIT/INNER gate was misidentified")
+        regime = "fit" if role == "OSF_DEFENSE_FIT" and ref == "B0" else "inner"
+        cap = ((-.002 if regime == "fit" else -.010) if metric == "accuracy"
+               else (.001 if regime == "fit" else .010) if metric == "nll"
+               else .0005 if regime == "fit" else .005)
+        if not math.isclose(float(item["cap"]), cap, rel_tol=0, abs_tol=1e-15):
+            raise ValueError("prospective utility cap changed")
+        passed = margin >= cap if metric == "accuracy" else margin <= cap
+        status = "PASS" if passed else "FAIL"
+        if primary:
+            if item["point_status"] != status or item["diagnostic_point_status"]:
+                raise ValueError("primary point status differs from independent margin")
+            primary_pass += passed
+        elif (item["point_status"] != "DIAGNOSTIC_ONLY" or
+              item["diagnostic_point_status"] != status):
+            raise ValueError("diagnostic point status differs from independent margin")
+    expected_primary = 6 if role == "OSF_DEFENSE_FIT" else 12
+    if receipt["primary_clause_count"] != expected_primary or \
+            receipt["primary_clause_pass_count"] != primary_pass or \
+            receipt["primary_point_pass"] != (primary_pass == expected_primary):
+        raise ValueError("R3 primary point-gate receipt differs")
     return {"arm": arm, "seed": seed, "role": role, "rows": len(row),
             "groups": len(np.unique(unit)), "checked_clauses": len(checked),
+            "primary_clauses": expected_primary, "primary_point_passed": primary_pass,
             "max_absolute_gap": max_gap, "law_sha256": job["law"]["sha256"],
             "r3_receipt_sha256": _sha(receipt_path),
             "r3_csv_sha256": _sha(csv_path)}
