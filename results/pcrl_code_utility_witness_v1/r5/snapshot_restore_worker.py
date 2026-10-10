@@ -141,7 +141,9 @@ def run(config_path: Path) -> dict:
                 raise ValueError("snapshot raw sample inventory differs")
             feature_names = tuple(str(x) for x in archive["feature_names"])
             raw_matrix = np.array(archive["X"], copy=True)
-        if tuple(json.loads(schema.read_text())) != feature_names:
+        schema_record = json.loads(schema.read_text())
+        if (set(schema_record) != {"feature_names"}
+                or tuple(schema_record["feature_names"]) != feature_names):
             raise ValueError("snapshot ordered schema differs")
         with np.load(sample / "expected_wire.npz", allow_pickle=False) as archive:
             t_expected = {key: np.array(archive[key], copy=True) for key in archive.files}
@@ -226,7 +228,7 @@ def run(config_path: Path) -> dict:
         bad_schema = temp / "reordered_schema.json"
         bad_names = list(feature_names)
         bad_names[:2] = bad_names[1::-1]
-        bad_schema.write_text(json.dumps(bad_names))
+        bad_schema.write_text(json.dumps({"feature_names": bad_names}))
         bad_output = temp / "bad_schema.npz"
         bad = b_command.copy()
         bad[bad.index("--schema") + 1] = str(bad_schema)
