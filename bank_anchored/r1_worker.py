@@ -14,8 +14,17 @@ from zipfile import ZipFile
 import numpy as np
 
 from code_witness.bank import bits_to_tokens
+from code_witness.bank_deploy import load_bank_service
 from dpc.deploy import schema_sha256
 from results.pcrl_bank_anchored_release_v1.r0.compute_queue import assert_active_from_env
+from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import (
+    IdentityPolicy, wire_fixed_bank_and_actions,
+)
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.channel import (
+    GateWeights, JointPolicy,
+)
+
+from .r1_runtime import release_pair_from_raw
 
 
 ROLE_KEYS = frozenset({"row_id", "unit", "X", "feature_names"})
@@ -122,6 +131,33 @@ def run(config_path: Path) -> dict:
     schema_file = output / "schema.json"
     schema_file.write_text(json.dumps(list(names)) + "\n")
     os.chmod(schema_file, 0o600)
+    service = load_bank_service(
+        source_root=source, qpc_root=qpc, table_path=pins["public_table"],
+        expected_table_sha256=_sha(pins["public_table"]),
+        expected_source_sha256=_sha(pins["model"]),
+        expected_schema_sha256=cfg["schema_sha256"],
+        ordered_names=names, bank="W_TSTAR", seed=seed)
+    bank_and_actions = []
+    for purpose, part in enumerate((service.policy_pair.p1,
+                                    service.policy_pair.p2)):
+        bank_and_actions.append(wire_fixed_bank_and_actions(
+            np.asarray(public["families"]["W_TSTAR"][f"table{purpose}"],
+                       dtype=np.float64),
+            np.asarray(public["families"]["W_TSTAR"][f"token_class{purpose}"],
+                       dtype=np.int64),
+            np.asarray(part.cell_token, dtype=np.int64),
+            np.asarray(part.fine.cell_class, dtype=np.int64)))
+    base = JointPolicy(bank_and_actions[0][0], bank_and_actions[1][0],
+                       bank_and_actions[0][1], bank_and_actions[1][1],
+                       GateWeights.zeros(input_width=12))
+    identity = IdentityPolicy(base)
+    new_wires = release_pair_from_raw(
+        service, identity, feature["X"][indices], names, None)
+    for purpose, wire in enumerate(new_wires):
+        if any(not np.array_equal(wire[key], saved[f"{key}{purpose}"])
+               for key in ("code", "prob", "decision")):
+            raise ValueError("new IdentityPolicy raw route differs from original B0")
+        _write_npz(output / f"new_identity_recipient{purpose}.npz", wire)
     maximum_gap = 0.0
     for purpose in (0, 1):
         assert_active_from_env(unit_id=active["unit_id"], stage="witness")
@@ -147,6 +183,8 @@ def run(config_path: Path) -> dict:
         if (not np.array_equal(actual["code"], saved[f"code{purpose}"]) or
                 not np.array_equal(actual["prob"], saved[f"prob{purpose}"]) or
                 not np.array_equal(actual["decision"], saved[f"decision{purpose}"]) or
+                any(not np.array_equal(actual[key], new_wires[purpose][key])
+                    for key in ("code", "prob", "decision")) or
                 np.any(token >= len(table)) or
                 not np.array_equal(actual["prob"], table[token]) or
                 not np.array_equal(actual["decision"], table[token].argmax(axis=1))):
@@ -159,6 +197,7 @@ def run(config_path: Path) -> dict:
         "rows": len(indices), "source_role_rows": rows,
         "index_rule": "linspace(0,15433,32,dtype=int64)",
         "exact_code_probability_decision_parity": True,
+        "new_identity_runtime_exact_parity": True,
         "maximum_probability_gap": maximum_gap,
         "public_table_sha256": _sha(pins["public_table"]),
         "source_model_sha256": _sha(pins["model"]),
@@ -166,6 +205,9 @@ def run(config_path: Path) -> dict:
         "sample_input_sha256": _sha(sample),
         "private_recipient_sha256": {str(i): _sha(output / f"recipient{i}.npz")
                                      for i in (0, 1)},
+        "private_new_identity_sha256": {
+            str(i): _sha(output / f"new_identity_recipient{i}.npz")
+            for i in (0, 1)},
         "scope": "Representative role-only FIT rows and actual raw CLI; no task or SEX label read",
     }
     receipt = output / "RECEIPT.json"
