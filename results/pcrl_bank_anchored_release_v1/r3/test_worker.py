@@ -3,10 +3,12 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
-from bank_anchored.r3_worker import (load_law_npz, score_rows,
+from bank_anchored.r3_worker import (identity_law_from_wire, load_law_npz, run,
+                                     score_rows, validate_job_config,
                                      validate_source_replay, verify_bank_wire)
 
 
@@ -91,6 +93,45 @@ class UtilityWorkerBoundaryTests(unittest.TestCase):
                                                  "clauses_total": 24}}}
         with self.assertRaises(PermissionError):
             validate_source_replay(bad)
+
+    def test_run_requires_current_campaign_queue_guard_first(self):
+        # Break caught: importing the predecessor campaign's queue guard.
+        from results.pcrl_bank_anchored_release_v1.r0 import compute_queue
+
+        class CurrentQueueReached(Exception):
+            pass
+
+        with patch.object(compute_queue, "assert_active_from_env",
+                          side_effect=CurrentQueueReached):
+            with self.assertRaises(CurrentQueueReached):
+                run(Path("/nonexistent/r3_job.json"))
+
+    def test_witness_mode_builds_exact_identity_without_r2_law(self):
+        # Break caught: making the B0 prefit gate depend on a protected fit.
+        identity = identity_law_from_wire(self.wire)
+        self.assertEqual(identity["mass"].shape, (2, 16))
+        np.testing.assert_array_equal(identity["mass"][:, 0], [1., 1.])
+        self.assertEqual(np.count_nonzero(identity["mass"][:, 1:]), 0)
+        self.assertTrue(identity["valid"][:, 0].all())
+        self.assertFalse(identity["valid"][:, 1:].any())
+        verify_bank_wire(self.wire, identity, self.tables, self.row, self.unit)
+
+    def test_witness_config_only_allows_b0_and_no_fitted_law(self):
+        # Break caught: protected policy scoring before bank identity gate.
+        record = {"path": "/tmp/test", "sha256": "a" * 64}
+        config = {"schema": "pcrl-bank-r3-utility-job-v1", "unit_id": "R3_B0_FIT_S0",
+                  "stage": "witness", "role": "OSF_DEFENSE_FIT", "arm": "B0",
+                  "seed": 0, "seal": record, "role_manifest": record,
+                  "public_table": record, "bank_receipt": record,
+                  "bank_wire": record, "r5_source_replay": record,
+                  "law": None, "outputs": {"csv": "/tmp/x", "private_vectors": "/tmp/y",
+                                          "receipt": "/tmp/z"}}
+        active = {"unit_id": "R3_B0_FIT_S0", "stage": "witness"}
+        validate_job_config(config, active)
+        with self.assertRaises(PermissionError):
+            validate_job_config({**config, "arm": "J"}, active)
+        with self.assertRaises(PermissionError):
+            validate_job_config({**config, "law": record}, active)
 
 
 if __name__ == "__main__":

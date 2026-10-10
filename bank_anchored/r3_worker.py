@@ -45,6 +45,28 @@ def load_law_npz(path: Path, row_id: np.ndarray, unit: np.ndarray) -> dict:
     return law
 
 
+def identity_law_from_wire(wire: dict) -> dict:
+    """Construct the exact B0 law from its saved public ten-bit codes."""
+    if set(wire) != WIRE_FIELDS:
+        raise PermissionError("B0 wire archive inventory differs")
+    n = len(wire["row_id"])
+    shifts = (1 << np.arange(10, dtype=np.int64))[None, :]
+    out = {"row_id": np.asarray(wire["row_id"]), "unit": np.asarray(wire["unit"])}
+    for purpose in (0, 1):
+        bits = np.asarray(wire[f"code{purpose}"])
+        if (bits.dtype != np.uint8 or bits.shape != (n, 10)
+                or not np.isin(bits, (0, 1)).all()):
+            raise PermissionError("B0 ten-bit source code differs")
+        ids = np.sum(bits.astype(np.int64) * shifts, axis=1)
+        out[f"b0_code_r{purpose + 1}"] = ids
+        out[f"code_r{purpose + 1}"] = np.repeat(ids[:, None], 16, axis=1)
+    out["mass"] = np.zeros((n, 16), dtype=np.float64)
+    out["mass"][:, 0] = 1.
+    out["valid"] = np.zeros((n, 16), dtype=np.bool_)
+    out["valid"][:, 0] = True
+    return out
+
+
 def verify_bank_wire(wire: dict, law: dict,
                      tables: tuple[np.ndarray, np.ndarray],
                      row_id: np.ndarray, unit: np.ndarray) -> None:
@@ -127,18 +149,23 @@ def score_rows(law: dict, tables: tuple[np.ndarray, np.ndarray],
 
 def validate_job_config(config: dict, active: dict) -> None:
     """Reject any undeclared role, queue stage, seed or extra input field."""
+    stage = config.get("stage")
+    arm = config.get("arm")
     if (set(config) != CONFIG_FIELDS
             or config.get("schema") != "pcrl-bank-r3-utility-job-v1"
             or config.get("unit_id") != active.get("unit_id")
-            or config.get("stage") != active.get("stage")
-            or config.get("stage") != "protection"
+            or stage != active.get("stage")
+            or stage not in ("witness", "protection")
             or config.get("role") not in ("OSF_DEFENSE_FIT", "INNER_SELECTION")
             or config.get("seed") not in (0, 1)
-            or config.get("arm") not in ("B0", "T", "D", "P", "L", "J", "S12", "S21")
+            or (arm != "B0" if stage == "witness" else
+                arm not in ("B0", "T", "D", "P", "L", "J", "S12", "S21"))
+            or (config.get("law") is not None if stage == "witness" else
+                not isinstance(config.get("law"), dict))
             or set(config.get("outputs", {})) != OUTPUT_FIELDS):
         raise PermissionError("R3 job config, stage or role differs")
     for name in ("seal", "role_manifest", "public_table", "bank_receipt",
-                 "bank_wire", "r5_source_replay", "law"):
+                 "bank_wire", "r5_source_replay") + (() if stage == "witness" else ("law",)):
         item = config.get(name)
         if (not isinstance(item, dict) or set(item) != {"path", "sha256"}
                 or not isinstance(item["sha256"], str)
@@ -185,12 +212,12 @@ def _new_file(path: Path, *, private: bool):
 
 def run(config_path: Path) -> dict:
     """Execute one byte-pinned FIT or INNER unit under the global queue."""
-    from results.pcrl_code_utility_witness_v1.r0.compute_queue import assert_active_from_env
+    from results.pcrl_bank_anchored_release_v1.r0.compute_queue import assert_active_from_env
     from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import (
         RoleOnlyStore, assert_same_people, sha_array,
     )
 
-    active = assert_active_from_env(stage="protection")
+    active = assert_active_from_env()
     config_path = config_path.resolve(strict=True)
     if (".private" not in config_path.parts or config_path.is_symlink()
             or stat.S_IMODE(config_path.stat().st_mode) & 0o077):
@@ -258,10 +285,13 @@ def run(config_path: Path) -> dict:
     if any(sha_array(wire[key]) != value
            for key, value in bank["array_sha256"].items()):
         raise PermissionError("B0 wire content differs from source receipt")
-    law_path = _pinned(config["law"], sources)
-    if ".private" not in law_path.parts:
-        raise PermissionError("policy law is not private")
-    law = load_law_npz(law_path, row, unit)
+    if active["stage"] == "witness":
+        law = identity_law_from_wire(wire)
+    else:
+        law_path = _pinned(config["law"], sources)
+        if ".private" not in law_path.parts:
+            raise PermissionError("policy law is not private")
+        law = load_law_npz(law_path, row, unit)
     verify_bank_wire(wire, law, tables, row, unit)
     rows, vectors = score_rows(law, tables, labels, references, role=role,
                                arm=config["arm"], seed=config["seed"])
@@ -287,13 +317,13 @@ def run(config_path: Path) -> dict:
         text.detach()
     receipt_out = {
         "schema": "pcrl-bank-r3-utility-receipt-v1", "unit_id": active["unit_id"],
-        "stage": "protection", "role": role, "seed": config["seed"],
+        "stage": active["stage"], "role": role, "seed": config["seed"],
         "arm": config["arm"], "source_seal_sha256": active["seal_sha256"],
         "role_manifest_sha256": config["role_manifest"]["sha256"],
         "source_bank_replay_sha256": config["r5_source_replay"]["sha256"],
         "bank_receipt_sha256": config["bank_receipt"]["sha256"],
         "bank_wire_sha256": config["bank_wire"]["sha256"],
-        "law_sha256": config["law"]["sha256"],
+        "law_sha256": None if config["law"] is None else config["law"]["sha256"],
         "public_table_sha256": config["public_table"]["sha256"],
         "row_unit_pair_sha256": sha_array(np.column_stack((row, unit))),
         "rows": len(row), "groups": len(np.unique(unit)),
