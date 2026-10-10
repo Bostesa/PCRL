@@ -44,6 +44,9 @@ SPEC_KEYS = frozenset({
     "policy_directory", "policy_receipt_sha256",
     "release_directory_by_role", "release_receipt_sha256_by_role",
     "eligibility_receipt_path", "eligibility_receipt_sha256",
+    "source_unit_receipt_path", "source_unit_receipt_sha256",
+    "fit_release_directory", "fit_release_receipt_sha256",
+    "utility_receipts_by_role",
     "source_pins", "private_output_path", "public_receipt_path",
 })
 SOURCES = frozenset({
@@ -55,6 +58,7 @@ SOURCES = frozenset({
 LAW_MEMBERS = frozenset({"row_id", "unit", "code_r1", "code_r2", "mass",
                          "valid", "b0_code_r1", "b0_code_r2"})
 RELEASE_MEMBERS = frozenset({"row_id", "unit", "code_r1", "code_r2"})
+UTILITY_ROLES = ("OSF_DEFENSE_FIT", "INNER_SELECTION")
 
 
 def validate_spec(spec: Mapping) -> None:
@@ -68,7 +72,8 @@ def validate_spec(spec: Mapping) -> None:
         raise ValueError("selected policy attack identity differs")
     for key in ("campaign_seal_sha256", "role_manifest_sha256",
                 "public_table_sha256", "policy_receipt_sha256",
-                "eligibility_receipt_sha256"):
+                "eligibility_receipt_sha256", "source_unit_receipt_sha256",
+                "fit_release_receipt_sha256"):
         if not _hex(spec[key]):
             raise ValueError("selected policy attack SHA-256 missing")
     for key in ("release_directory_by_role", "release_receipt_sha256_by_role"):
@@ -77,6 +82,17 @@ def validate_spec(spec: Mapping) -> None:
     if (any(type(v) is not str or not v for v in spec["release_directory_by_role"].values()) or
             any(not _hex(v) for v in spec["release_receipt_sha256_by_role"].values())):
         raise ValueError("role release path/receipt missing")
+    links = spec["utility_receipts_by_role"]
+    if (type(links) is not dict or set(links) != set(UTILITY_ROLES) or
+            any(type(v) is not dict or set(v) !=
+                {"receipt_path", "receipt_sha256", "csv_path", "csv_sha256"}
+                for v in links.values()) or
+            any(type(v[field]) is not str or not v[field]
+                for v in links.values()
+                for field in ("receipt_path", "csv_path")) or
+            any(not _hex(v[field]) for v in links.values()
+                for field in ("receipt_sha256", "csv_sha256"))):
+        raise ValueError("both exact R3 evaluated utility receipts required")
     pins = spec["source_pins"]
     if (type(pins) is not list or len(pins) != len(SOURCES) or
             {Path(item.get("path", "")).name for item in pins if type(item) is dict} != SOURCES or
@@ -86,6 +102,7 @@ def validate_spec(spec: Mapping) -> None:
         raise ValueError("selected policy transitive source inventory differs")
     for key in ("campaign_seal_path", "role_manifest_path", "public_table_path",
                 "policy_directory", "eligibility_receipt_path",
+                "source_unit_receipt_path", "fit_release_directory",
                 "private_output_path", "public_receipt_path"):
         if type(spec[key]) is not str or not spec[key]:
             raise ValueError("selected policy attack path missing")
@@ -215,6 +232,81 @@ def load_role_release(directory: str, receipt_sha256: str, *,
     return role_view, receipt
 
 
+def validate_utility_linkage(spec: Mapping, gate: Mapping,
+                             policy_receipt: Mapping,
+                             role_receipts: Mapping[str, Mapping]) -> dict:
+    """Prove the exact attacked law is the one that passed R3 utility.
+
+    This reads only public utility receipts/CSVs and private package receipts
+    plus a hash of the FIT law archive. No task or SEX label is loaded.
+    """
+    arm, seed = spec["arm_id"], spec["source_seed"]
+    unit = json.loads(_file(spec["source_unit_receipt_path"],
+                            spec["source_unit_receipt_sha256"]).read_text())
+    if (unit.get("schema") != "BAR1-r2-unit-receipt-v1" or
+            unit.get("arm_id") != arm or unit.get("source_seed") != seed or
+            unit.get("status") == "INCOMPLETE_SEARCH" or
+            unit.get("policy_receipt_sha256") != spec["policy_receipt_sha256"] or
+            unit.get("fit_receipt_sha256") !=
+            policy_receipt.get("fit_receipt_sha256") or
+            unit.get("source_binding_sha256") !=
+            policy_receipt.get("source_binding_sha256")):
+        raise PermissionError("R2 selected source unit and policy differ")
+    fit_dir = Path(spec["fit_release_directory"])
+    fit = json.loads(_file(str(fit_dir / "RELEASE_RECEIPT.json"),
+                           spec["fit_release_receipt_sha256"], private=True).read_text())
+    if (fit.get("schema") != "BAR1-role-release-v1" or
+            fit.get("arm_id") != arm or fit.get("source_seed") != seed or
+            fit.get("role") != "OSF_DEFENSE_FIT" or
+            fit.get("realization") != 0 or
+            fit.get("policy_receipt_sha256") != spec["policy_receipt_sha256"] or
+            fit.get("source_binding_sha256") !=
+            policy_receipt.get("source_binding_sha256")):
+        raise PermissionError("R2 FIT materialization differs from selected law")
+    _file(str(fit_dir / "law.npz"), fit["law_sha256"], private=True)
+    releases = unit.get("role_releases", [])
+    expected_roles = {
+        ("OSF_DEFENSE_FIT", 0): (spec["fit_release_receipt_sha256"],
+                                  fit["law_sha256"]),
+        ("INNER_SELECTION", spec["realization"]):
+            (spec["release_receipt_sha256_by_role"]["INNER_SELECTION"],
+             role_receipts["INNER_SELECTION"]["law_sha256"]),
+    }
+    for key, (receipt_sha, law_sha) in expected_roles.items():
+        matches = [item for item in releases
+                   if (item.get("role"), item.get("realization")) == key]
+        if (len(matches) != 1 or matches[0].get("receipt_sha256") != receipt_sha or
+                matches[0].get("law_sha256") != law_sha):
+            raise PermissionError("R2 unit index does not bind FIT/INNER materialization")
+    evaluated = {}
+    for role in UTILITY_ROLES:
+        link = spec["utility_receipts_by_role"][role]
+        receipt = json.loads(_file(link["receipt_path"],
+                                   link["receipt_sha256"]).read_text())
+        _file(link["csv_path"], link["csv_sha256"])
+        source_key = f"s{seed}_{'fit' if role == 'OSF_DEFENSE_FIT' else 'inner'}"
+        gate_source = gate.get("source_receipts", {}).get(source_key)
+        target_law = (fit["law_sha256"] if role == "OSF_DEFENSE_FIT" else
+                      role_receipts["INNER_SELECTION"]["law_sha256"])
+        if (receipt.get("schema") != "pcrl-bank-r3-utility-receipt-v1" or
+                receipt.get("arm") != arm or receipt.get("seed") != seed or
+                receipt.get("role") != role or
+                receipt.get("source_seal_sha256") != spec["campaign_seal_sha256"] or
+                receipt.get("role_manifest_sha256") != spec["role_manifest_sha256"] or
+                receipt.get("public_table_sha256") != spec["public_table_sha256"] or
+                receipt.get("law_sha256") != target_law or
+                receipt.get("output_csv_sha256") != link["csv_sha256"] or
+                receipt.get("primary_point_pass") is not True or
+                gate_source != {"unit_id": receipt.get("unit_id"),
+                                "receipt_sha256": link["receipt_sha256"],
+                                "csv_sha256": link["csv_sha256"]}):
+            raise PermissionError("R3 evaluated law/role/source differs from attacked law")
+        evaluated[role] = link["receipt_sha256"]
+    return {"source_unit_receipt_sha256": spec["source_unit_receipt_sha256"],
+            "fit_release_receipt_sha256": spec["fit_release_receipt_sha256"],
+            "r3_utility_receipt_sha256_by_role": evaluated}
+
+
 def run(spec_path: str, spec_sha256: str, lock_path: str,
         lock_sha256: str) -> dict:
     active = assert_active_from_env(stage="attacks")
@@ -274,6 +366,8 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
             policy_receipt_sha256=spec["policy_receipt_sha256"],
             source_binding_sha256=policy_receipt["source_binding_sha256"],
             role_meta=store.manifest["roles"][role], tables=tables)
+    utility_linkage = validate_utility_linkage(
+        spec, eligibility, policy_receipt, receipts)
     prepared = prepare_complete_bank_views(
         roles["ATTACK_FIT_NEW"], roles["INNER_SELECTION"], tables,
         metadata_att=({}, {}), metadata_inner=({}, {}))
@@ -324,6 +418,7 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
               "public_table_sha256": spec["public_table_sha256"],
               "release_receipt_sha256_by_role":
                   spec["release_receipt_sha256_by_role"],
+              "utility_linkage": utility_linkage,
               "public_side_information_by_role": public_side_information,
               "side_information_note":
                   "Fixed within this reader unit; release SHA is the exact "

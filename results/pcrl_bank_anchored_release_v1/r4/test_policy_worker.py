@@ -25,6 +25,12 @@ class PolicyWorkerContractTests(unittest.TestCase):
                 "INNER_SELECTION": "/private/inner"},
             "release_receipt_sha256_by_role": {
                 "ATTACK_FIT_NEW": sha, "INNER_SELECTION": sha},
+            "utility_receipts_by_role": {
+                role: {"receipt_path": "/private/receipt",
+                       "receipt_sha256": sha,
+                       "csv_path": "/private/utility.csv",
+                       "csv_sha256": sha}
+                for role in ("OSF_DEFENSE_FIT", "INNER_SELECTION")},
             "source_pins": [{"path": f"/sources/{name}", "sha256": sha}
                             for name in sorted(SOURCES)],
         })

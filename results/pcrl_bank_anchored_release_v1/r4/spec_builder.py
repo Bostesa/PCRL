@@ -30,7 +30,7 @@ CONFIG_KEYS = frozenset({
     "role_manifest_path", "role_manifest_sha256",
     "table_by_seed", "gate_by_arm", "pstar_gate",
     "pstar_historical_gate", "queue_root",
-    "selected_policy_root", "selected_release_root",
+    "selected_r2_root",
     "witness_source_root", "pstar_source_root",
     "private_root", "public_root", "python_executable",
     "max_wall_s", "cpu_reserve_s", "max_rss_gib",
@@ -194,6 +194,9 @@ def eligible_arms(config: Mapping) -> set[str]:
             out.add(arm)
             continue
         gate = _read_pin(config["gate_by_arm"][arm])
+        if gate.get("schema") == "pcrl-bank-r4-incomplete-arm-gate-v1":
+            _validate_incomplete_gate(config, arm, gate)
+            continue
         if gate.get("arm_id") != arm or \
                 gate.get("all_two_seed_task_reference_point_caps_pass") not in (True, False):
             raise PermissionError("R3/old reference arm gate identity differs")
@@ -218,6 +221,62 @@ def eligible_arms(config: Mapping) -> set[str]:
     return out
 
 
+def _validate_incomplete_gate(config: Mapping, arm: str,
+                              gate: Mapping) -> None:
+    if arm not in CHANNEL_ARMS:
+        raise PermissionError("reference requires its own completed point gate")
+    if (set(gate) != {"schema", "arm_id", "source_seal_sha256", "status",
+                      "all_two_seed_task_reference_point_caps_pass", "reason",
+                      "source_receipts_by_seed", "missing_r3_unit_ids"} or
+            gate["arm_id"] != arm or
+            gate["source_seal_sha256"] != config["campaign_seal_sha256"] or
+            gate["all_two_seed_task_reference_point_caps_pass"] is not False or
+            gate["status"] not in ("INCOMPLETE_SEARCH", "MISSING_UTILITY") or
+            type(gate["reason"]) is not str or not gate["reason"] or
+            type(gate["source_receipts_by_seed"]) is not dict or
+            set(gate["source_receipts_by_seed"]) != {"0", "1"} or
+            type(gate["missing_r3_unit_ids"]) is not list or
+            any(type(x) is not str or not x for x in gate["missing_r3_unit_ids"])):
+        raise PermissionError("incomplete search marker structure differs")
+    nonempty = 0
+    incomplete = 0
+    for seed in (0, 1):
+        pair = gate["source_receipts_by_seed"][str(seed)]
+        if pair is None:
+            continue
+        if type(pair) is not dict or set(pair) != {"unit", "fit"}:
+            raise PermissionError("incomplete marker R2 pin pair differs")
+        unit = _read_pin(pair["unit"])
+        fit = _read_pin(pair["fit"])
+        if (unit.get("schema") != "BAR1-r2-unit-receipt-v1" or
+                fit.get("schema") != "BAR1-r2-fit-receipt-v1" or
+                fit.get("arm_id") != arm or fit.get("source_seed") != seed or
+                fit.get("source_lock_sha256") != config["campaign_seal_sha256"] or
+                unit.get("unit_id") != fit.get("unit_id") or
+                (unit.get("arm_id") not in (None, arm)) or
+                (unit.get("source_seed") not in (None, seed)) or
+                unit.get("source_lock_sha256") not in
+                (None, config["campaign_seal_sha256"]) or
+                unit.get("fit_receipt_sha256") != pair["fit"]["sha256"]):
+            raise PermissionError("incomplete marker R2 unit/FIT source differs")
+        nonempty += 1
+        incomplete += unit.get("status") == "INCOMPLETE_SEARCH"
+    if nonempty == 0 or (gate["status"] == "INCOMPLETE_SEARCH" and incomplete == 0):
+        raise PermissionError("incomplete marker has no pinned incomplete R2 attempt")
+    if gate["status"] == "MISSING_UTILITY":
+        if not gate["missing_r3_unit_ids"]:
+            raise PermissionError("missing utility marker names no missing R3 unit")
+        if any(not any(name.startswith(f"R3_{arm}_S{seed}_")
+                       for seed in (0, 1)) or
+               not ("_FIT" in name or "_INNER" in name)
+               for name in gate["missing_r3_unit_ids"]):
+            raise PermissionError("missing R3 unit does not belong to this arm")
+        r3_dir = Path(config["gate_by_arm"][arm]["path"]).parent
+        if any((r3_dir / f"{name}_RECEIPT.json").exists()
+               for name in gate["missing_r3_unit_ids"]):
+            raise PermissionError("claimed missing R3 receipt already exists")
+
+
 def _common(config: Mapping, arm: str, seed: int, realization: int,
             kind: str) -> dict:
     unit_id = _unit_id(arm, seed, realization)
@@ -238,17 +297,40 @@ def _common(config: Mapping, arm: str, seed: int, realization: int,
 
 def _selected_spec(config: Mapping, arm: str, seed: int,
                    realization: int, role: Mapping) -> dict:
-    policy_dir = Path(config["selected_policy_root"]) / f"{arm}_s{seed}"
+    r2_root = Path(config["selected_r2_root"])
+    candidates = []
+    for path in r2_root.glob("*_UNIT_RECEIPT.json"):
+        value = _read_pin(_pin(path))
+        if value.get("schema") == "BAR1-r2-unit-receipt-v1" and \
+                value.get("arm_id") == arm and value.get("source_seed") == seed:
+            candidates.append((path, value))
+    if len(candidates) != 1:
+        raise PermissionError("exactly one completed R2 selected source unit required")
+    unit_path, source_unit = candidates[0]
+    if (source_unit.get("status") == "INCOMPLETE_SEARCH" or
+            source_unit.get("source_lock_sha256") != config["campaign_seal_sha256"]):
+        raise PermissionError("R2 source unit incomplete or from another campaign")
+    source_unit_pin = _pin(unit_path)
+    unit_root = r2_root / ".private" / "units" / source_unit["unit_id"]
+    policy_dir = unit_root / "policy"
     policy_pin = _pin(policy_dir / "POLICY_RECEIPT.json")
     receipt = _read_pin(policy_pin, private=True)
     if (receipt.get("schema") != "BAR1-selected-policy-v1" or
             receipt.get("arm_id") != arm or receipt.get("source_seed") != seed or
             _sha(policy_dir / "policy.npz") != receipt.get("policy_file_sha256")):
         raise PermissionError("selected policy receipt/package identity differs")
-    release_dirs, release_hashes = {}, {}
+    if (source_unit.get("policy_receipt_sha256") != policy_pin["sha256"] or
+            source_unit.get("fit_receipt_sha256") != receipt.get("fit_receipt_sha256") or
+            source_unit.get("source_binding_sha256") != receipt.get("source_binding_sha256")):
+        raise PermissionError("R2 selected policy differs from its public source unit")
+    role_index = {(item["role"], item["realization"]): item
+                  for item in source_unit["role_releases"]}
+    if len(role_index) != len(source_unit["role_releases"]):
+        raise PermissionError("R2 unit repeated a role/realization materialization")
+    release_dirs, release_hashes, role_receipts = {}, {}, {}
     for role_name in ROLES:
-        directory = (Path(config["selected_release_root"]) /
-                     f"{arm}_s{seed}_{role_name}_r{realization}")
+        entry = role_index[(role_name, realization)]
+        directory = unit_root / entry["private_relative_dir"]
         pin = _pin(directory / "RELEASE_RECEIPT.json")
         release = _read_pin(pin, private=True)
         if (release.get("schema") != "BAR1-role-release-v1" or
@@ -259,6 +341,8 @@ def _selected_spec(config: Mapping, arm: str, seed: int,
                 release.get("policy_receipt_sha256") != policy_pin["sha256"] or
                 release.get("source_binding_sha256") !=
                 receipt.get("source_binding_sha256") or
+                release.get("law_sha256") != entry.get("law_sha256") or
+                pin["sha256"] != entry.get("receipt_sha256") or
                 release.get("rows") != role["roles"][role_name]["rows"]):
             raise PermissionError("selected cached role release differs")
         for filename, field in (("law.npz", "law_sha256"),
@@ -267,6 +351,29 @@ def _selected_spec(config: Mapping, arm: str, seed: int,
                 raise PermissionError("selected role release bytes differ")
         release_dirs[role_name] = str(directory.resolve(strict=True))
         release_hashes[role_name] = pin["sha256"]
+        role_receipts[role_name] = release
+    fit_entry = role_index[("OSF_DEFENSE_FIT", 0)]
+    fit_directory = unit_root / fit_entry["private_relative_dir"]
+    fit_pin = _pin(fit_directory / "RELEASE_RECEIPT.json")
+    if fit_pin["sha256"] != fit_entry["receipt_sha256"]:
+        raise PermissionError("R2 source FIT release receipt differs")
+    gate = _read_pin(config["gate_by_arm"][arm])
+    links = {}
+    for utility_role, short in (("OSF_DEFENSE_FIT", "fit"),
+                                ("INNER_SELECTION", "inner")):
+        source = gate["source_receipts"][f"s{seed}_{short}"]
+        name = source["unit_id"]
+        r3_root = Path(config["gate_by_arm"][arm]["path"]).parent
+        receipt_path = r3_root / f"{name}_RECEIPT.json"
+        csv_path = r3_root / f"{name}.csv"
+        if (_sha(receipt_path) != source["receipt_sha256"] or
+                _sha(csv_path) != source["csv_sha256"]):
+            raise PermissionError("R3 gate source receipt/CSV bytes differ")
+        links[utility_role] = {
+            "receipt_path": str(receipt_path.resolve(strict=True)),
+            "receipt_sha256": source["receipt_sha256"],
+            "csv_path": str(csv_path.resolve(strict=True)),
+            "csv_sha256": source["csv_sha256"]}
     spec = {
         **_common(config, arm, seed, realization, "policy"),
         "schema": policy_worker.SCHEMA,
@@ -276,10 +383,16 @@ def _selected_spec(config: Mapping, arm: str, seed: int,
         "policy_receipt_sha256": policy_pin["sha256"],
         "release_directory_by_role": release_dirs,
         "release_receipt_sha256_by_role": release_hashes,
+        "source_unit_receipt_path": source_unit_pin["path"],
+        "source_unit_receipt_sha256": source_unit_pin["sha256"],
+        "fit_release_directory": str(fit_directory.resolve(strict=True)),
+        "fit_release_receipt_sha256": fit_pin["sha256"],
+        "utility_receipts_by_role": links,
         "eligibility_receipt_path": config["gate_by_arm"][arm]["path"],
         "eligibility_receipt_sha256": config["gate_by_arm"][arm]["sha256"],
     }
     policy_worker.validate_spec(spec)
+    policy_worker.validate_utility_linkage(spec, gate, receipt, role_receipts)
     return spec
 
 
@@ -447,7 +560,12 @@ def _queue_sources(spec: Mapping, spec_path: Path,
     if spec["arm_id"] in CHANNEL_ARMS:
         policy = Path(spec["policy_directory"])
         paths.extend((Path(spec["public_table_path"]),
+                      Path(spec["source_unit_receipt_path"]),
                       policy / "POLICY_RECEIPT.json", policy / "policy.npz"))
+        fit_root = Path(spec["fit_release_directory"])
+        paths.extend((fit_root / "RELEASE_RECEIPT.json", fit_root / "law.npz"))
+        for link in spec["utility_receipts_by_role"].values():
+            paths.extend((Path(link["receipt_path"]), Path(link["csv_path"])))
         for directory in spec["release_directory_by_role"].values():
             root = Path(directory)
             paths.extend((root / "RELEASE_RECEIPT.json", root / "law.npz",
