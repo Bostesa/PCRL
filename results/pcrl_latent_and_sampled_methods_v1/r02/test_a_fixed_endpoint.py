@@ -13,6 +13,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_driver import (
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint import (
     FAILED, FITTED_ARMS, FIXED_ARMS, NULL, classify_fixed_scope,
     map_fixed_physical_units, _producer_and_correction, fixed_failure_summary,
+    precheck_fixed_attack_custody, verify_source_records,
 )
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_inference import a_margin_at
 from results.pcrl_latent_and_sampled_methods_v1.r02.test_a_inference import _seed
@@ -144,6 +145,7 @@ def _synthetic_census(tmp_path):
 
 
 def test_fixed_scope_preserves_58_registry_and_14_vs_2_reasons(tmp_path):
+    assert FAILED == "FAILED_AFTER_INFEASIBLE_STAGE1"
     inputs = _synthetic_census(tmp_path)
     cells, fixed, missing, reports = classify_fixed_scope(*inputs)
     assert len(cells) == 58 and len(fixed) == 18 and len(missing) == 40
@@ -286,6 +288,92 @@ def test_r1_parent_list_must_equal_original_scientific_plan(tmp_path):
                              retry_plan, correction)
 
 
+def test_done_rc0_control_fail_or_missing_freeze_blocks_before_inner(tmp_path):
+    root = tmp_path / ".private" / "attempt"
+    root.mkdir(parents=True)
+    index_path = root / "ATTACK_ATTEMPT_INDEX.json"
+    uid = "A-REFERENCE-ATTACK-U0-S0-R1"
+    index = {"schema": "SCV1-reference-attack-attempt-v1",
+             "unit_id": uid, "status": "CONTROL_FAIL",
+             "reference_identity": {"interface_kind": "continuous",
+                                    "reference_id": "U0", "source_seed": 0},
+             "original_lock_sha256": "a" * 64,
+             "reader_freeze_sha256": "b" * 64,
+             "control_status": {"r1": "PASS", "r2": "FAIL", "pair": "PASS"}}
+    index_path.write_text(json.dumps(index))
+    unit = {"status": "done", "returncode": 0,
+            "spec": {"unit_id": uid, "stage": "a",
+                     "argv": ["python", "-m", "retry", "--private-root", str(root)],
+                     "outputs": [str(index_path)]},
+            "output_sha256": {str(index_path): sha(index_path)}}
+    with pytest.raises(PermissionError, match="COMPLETE/PASS"):
+        precheck_fixed_attack_custody({("U0", 0, 0): uid}, {uid: unit})
+    index["status"] = "COMPLETE"
+    index["control_status"]["r2"] = "PASS"
+    index_path.write_text(json.dumps(index))
+    unit["output_sha256"][str(index_path)] = sha(index_path)
+    with pytest.raises(PermissionError, match="freeze"):
+        precheck_fixed_attack_custody({("U0", 0, 0): uid}, {uid: unit})
+
+
+def test_complete_attempt_reader_receipts_pass_preaccess_gate(tmp_path):
+    from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_driver import (
+        CONTINUOUS_READERS, READER_FILES,
+    )
+    from results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint import LOCK
+
+    root = tmp_path / ".private" / "attempt"
+    uid = "A-REFERENCE-ATTACK-U0-S0-R1"
+    reader_hashes = {}
+    for view in ("r1", "r2", "pair"):
+        reader_root = root / "common" / view / "readers"
+        reader_root.mkdir(parents=True)
+        names = [*READER_FILES, *(f"model__{reader}.joblib" if not reader.startswith("PROB_")
+                                  else f"model__{reader}.bin"
+                                  for reader in CONTINUOUS_READERS)]
+        files = {}
+        for name in names:
+            path = reader_root / name
+            path.write_bytes(name.encode())
+            files[name] = sha(path)
+        order = list(CONTINUOUS_READERS)
+        if view == "pair":
+            order += [f"IGNORE_R2__{reader}" for reader in CONTINUOUS_READERS]
+            order += [f"IGNORE_R1__{reader}" for reader in CONTINUOUS_READERS]
+        receipt = {"schema": "pcrl-portfolio-private-reader-custody-v1",
+                   "status": "FROZEN", "reader_order": order, "files": files}
+        receipt_path = reader_root / "READERS_RECEIPT.json"
+        receipt_path.write_text(json.dumps(receipt))
+        reader_hashes[view] = sha(receipt_path)
+    freeze_path = root / "common/FROZEN_COMPLETE.json"
+    freeze = {"schema": "pcrl-next-reader-freeze-v1",
+              "status": "FROZEN_COMPLETE", "effective_lock_sha256": sha(LOCK),
+              "reader_receipt_sha256": reader_hashes}
+    freeze_path.write_text(json.dumps(freeze))
+    index_path = root / "ATTACK_ATTEMPT_INDEX.json"
+    index = {"schema": "SCV1-reference-attack-attempt-v1", "unit_id": uid,
+             "status": "COMPLETE", "control_status": {v: "PASS" for v in reader_hashes},
+             "reference_identity": {"reference_id": "U0", "source_seed": 0,
+                                    "interface_kind": "continuous"},
+             "original_lock_sha256": sha(LOCK),
+             "reader_freeze_sha256": sha(freeze_path)}
+    index_path.write_text(json.dumps(index))
+    unit = {"status": "done", "returncode": 0,
+            "spec": {"unit_id": uid, "stage": "a", "outputs": [str(index_path)],
+                     "argv": ["python", "-m", "retry", "--private-root", str(root)]},
+            "output_sha256": {str(index_path): sha(index_path)}}
+    paths = precheck_fixed_attack_custody({("U0", 0, 0): uid}, {uid: unit})
+    assert index_path in paths and freeze_path in paths
+    assert sum(path.name == "READERS_RECEIPT.json" for path in paths) == 3
+    assert root / "common/r1/readers/model__LR_C1.joblib" in paths
+    source_records = [{"path": str(path), "sha256": sha(path)} for path in paths]
+    verify_source_records(source_records)
+    model = root / "common/r1/readers/model__LR_C1.joblib"
+    model.write_bytes(b"changed after immutable spec render")
+    with pytest.raises(PermissionError, match="source hash"):
+        verify_source_records(source_records)
+
+
 def test_correction_must_be_latest_a_while_original_producer_stays_registered(tmp_path):
     producer_path = tmp_path / "producer.json"
     correction_path = tmp_path / "correction.json"
@@ -337,7 +425,8 @@ def test_superseded_inert_proposal_retains_original_family_only():
     assert len(proposal["fixed_attack_unit_ids"]) == 18
     assert len(proposal["unavailable_attack_unit_ids"]) == 40
     assert sum(row["category"] == NULL for row in proposal["fit_reason_rows"]) == 14
-    assert sum(row["category"] == FAILED for row in proposal["fit_reason_rows"]) == 2
+    assert sum(row["category"] == "FAILED_STAGE1_RESOURCE"
+               for row in proposal["fit_reason_rows"]) == 2
     assert "correction_amendment_sha256" not in proposal
     assert proposal["source_sha256"]["r02/a_fixed_endpoint.py"] != sha(
         CAMPAIGN / "r02/a_fixed_endpoint.py")
@@ -370,6 +459,7 @@ def test_r1_inert_proposal_pins_exact_correction_and_sources():
     assert "stage2 never ran" in proposal["interpretation"][
         "seq21_failed_after_infeasible_stage1_interpretation"]
     assert "failed_stage1_resource_fit_count" not in proposal["queue_contract"]
+    assert proposal["queue_contract"]["pre_role_attack_custody_gate"] is True
     for name in SOURCE_NAMES_FIXED:
         assert proposal["source_sha256"][name] == sha(CAMPAIGN / name)
     for name in SHARED_NAMES:

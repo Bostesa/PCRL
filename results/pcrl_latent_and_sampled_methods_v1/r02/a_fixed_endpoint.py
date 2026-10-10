@@ -21,7 +21,8 @@ from typing import Mapping
 import numpy as np
 
 from .a_endpoint_driver import (A_ARMS, A_REFS, CAMPAIGN, STOCHASTIC_ARMS,
-                                _argv_options, expected_attack_cells,
+                                CONTINUOUS_READERS, FINITE_READERS, READER_FILES,
+                                VIEWS, _argv_options, expected_attack_cells,
                                 load_completed_cell, point_rows, private_cell_path,
                                 save_private_cell, sha)
 from .a_inference import run_a_inference
@@ -45,7 +46,7 @@ SOURCE_NAMES_FIXED = (*SOURCE_NAMES, "r02/a_fixed_endpoint.py",
 FIXED_ARMS = ("A_IDENTITY", "A_CLASS_ONLY", *A_REFS)
 FITTED_ARMS = tuple(arm for arm in A_ARMS if arm not in FIXED_ARMS)
 NULL = "FINALIZED_NO_FEASIBLE_POLICY"
-FAILED = "FAILED_STAGE1_RESOURCE"
+FAILED = "FAILED_AFTER_INFEASIBLE_STAGE1"
 CORRECTED_REFERENCE_ARMS = frozenset(("U0", "Ucal", "P_STAR", "D0_LOCAL",
                                       "D0_SEQ12", "D0_SEQ21"))
 FIT_SCHEMAS = {
@@ -68,6 +69,85 @@ def fixed_failure_summary(reports: list[Mapping]) -> dict:
             "feasible checkpoints; stage2 never ran; rc1 technical incomplete. "
             "No observed CPU, wall-time, or memory cutoff is claimed."),
     }
+
+
+def precheck_fixed_attack_custody(fixed: Mapping, units: Mapping) -> list[Path]:
+    """Hash-seal every completed index and reader artifact before INNER access."""
+    paths = []
+    for (arm, seed, draw), uid in fixed.items():
+        unit = units.get(uid, {})
+        spec = unit.get("spec", {})
+        root = Path(_argv_options(spec.get("argv", []))["private-root"])
+        index_path = root / "ATTACK_ATTEMPT_INDEX.json"
+        if (unit.get("status") != "done" or unit.get("returncode") != 0 or
+                spec.get("unit_id") != uid or spec.get("stage") != "a" or
+                spec.get("outputs") != [str(index_path)] or
+                not index_path.is_file() or index_path.is_symlink() or
+                unit.get("output_sha256", {}).get(str(index_path)) != sha(index_path)):
+            raise PermissionError("fixed attempt index output custody differs")
+        index = json.loads(index_path.read_text())
+        identity = index.get("reference_identity", {})
+        interface = identity.get("interface_kind")
+        if (index.get("schema") != "SCV1-reference-attack-attempt-v1" or
+                index.get("unit_id") != uid or
+                identity.get("reference_id") != arm or
+                identity.get("source_seed") != seed or draw != 0 or
+                interface not in ("finite", "continuous") or
+                index.get("status") != "COMPLETE" or
+                index.get("control_status") != {view: "PASS" for view in VIEWS}):
+            raise PermissionError("fixed attempt is not COMPLETE/PASS")
+        paths.append(index_path)
+        freeze_path = root / "common/FROZEN_COMPLETE.json"
+        if (not freeze_path.is_file() or freeze_path.is_symlink() or
+                sha(freeze_path) != index.get("reader_freeze_sha256")):
+            raise PermissionError("fixed ATT reader freeze marker differs")
+        freeze = json.loads(freeze_path.read_text())
+        if (freeze.get("schema") != "pcrl-next-reader-freeze-v1" or
+                freeze.get("status") != "FROZEN_COMPLETE" or
+                freeze.get("effective_lock_sha256") != index.get("original_lock_sha256") or
+                freeze.get("effective_lock_sha256") != sha(LOCK) or
+                set(freeze.get("reader_receipt_sha256", {})) != set(VIEWS)):
+            raise PermissionError("fixed ATT reader freeze identity differs")
+        paths.append(freeze_path)
+        mandatory = FINITE_READERS if interface == "finite" else CONTINUOUS_READERS
+        for view in VIEWS:
+            reader_root = root / "common" / view / "readers"
+            receipt_path = reader_root / "READERS_RECEIPT.json"
+            if (not receipt_path.is_file() or receipt_path.is_symlink() or
+                    sha(receipt_path) != freeze["reader_receipt_sha256"][view]):
+                raise PermissionError("fixed reader custody receipt differs")
+            receipt = json.loads(receipt_path.read_text())
+            expected_order = (mandatory if view != "pair" else
+                              (*mandatory, *(f"IGNORE_R2__{name}" for name in mandatory),
+                               *(f"IGNORE_R1__{name}" for name in mandatory)))
+            expected_files = set(READER_FILES)
+            for reader in mandatory:
+                suffix = ".bin" if reader.startswith(("PROB_", "Q_POST_")) else ".joblib"
+                expected_files.add(f"model__{reader}{suffix}")
+            if (receipt.get("schema") != "pcrl-portfolio-private-reader-custody-v1" or
+                    receipt.get("status") != "FROZEN" or
+                    tuple(receipt.get("reader_order", ())) != expected_order or
+                    set(receipt.get("files", {})) != expected_files):
+                raise PermissionError("fixed reader inventory differs")
+            paths.append(receipt_path)
+            for filename, digest in receipt["files"].items():
+                path = reader_root / filename
+                if (Path(filename).name != filename or not path.is_file() or
+                        path.is_symlink() or sha(path) != digest):
+                    raise PermissionError("fixed reader model/prediction hash differs")
+                paths.append(path)
+    return paths
+
+
+def verify_source_records(records: list[Mapping]) -> None:
+    """Refuse post-render source drift at verification-worker admission."""
+    for record in records:
+        if type(record) is not dict or set(record) != {"path", "sha256"}:
+            raise PermissionError("verification source record differs")
+        path = Path(record["path"])
+        if (not path.is_absolute() or not path.is_file() or path.is_symlink() or
+                sha(path) != record["sha256"]):
+            raise PermissionError("verification source hash differs")
 
 
 def map_fixed_physical_units(fixed: Mapping, units: Mapping,
@@ -421,6 +501,7 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
         relative = f"results/pcrl_method_portfolio_v1/shared/{name}"
         if sha(WORKTREE / relative) != analysis.get("source_sha256", {}).get(relative):
             raise PermissionError("inherited evaluator source differs")
+    prechecked_attack_paths = precheck_fixed_attack_custody(fixed, state["units"])
     role_path = Path(role_manifest_path).resolve(strict=True)
     if (sha(role_path) != role_manifest_sha256 or
             role_manifest_sha256 != json.loads(LOCK.read_text())[
@@ -445,7 +526,8 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
         raise PermissionError("36 fixed releases or fixed attack/Q parents incomplete")
     if any(path.exists() for path in (PRIVATE_OUT, PUBLIC_JSON, PUBLIC_CSV, PUBLIC_RECEIPT)):
         raise FileExistsError("fixed endpoint output already exists")
-    paths = [LOCK, producer_path, correction_path, analysis_path, role_path, *
+    paths = [LOCK, producer_path, correction_path, analysis_path, role_path,
+             *prechecked_attack_paths, *
              (CAMPAIGN / name for name in SOURCE_NAMES_FIXED), *
              (WORKTREE / "results/pcrl_method_portfolio_v1/shared" / name
               for name in SHARED_NAMES)]
@@ -529,6 +611,7 @@ def _admit(args: argparse.Namespace):
                             "results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint",
                             *sys.argv[1:]]):
         raise PermissionError("R03 fixed endpoint admission differs")
+    verify_source_records(spec["sources"])
     prefix = "results.pcrl_latent_and_sampled_methods_v1."
     for relative in SOURCE_NAMES_FIXED:
         if not relative.endswith(".py"):
