@@ -57,5 +57,11 @@ T0_B16 seed-one replay, the original full INNER batch exactly reproduced the
 saved wire. A 32-row subset reproduced code and decisions exactly; float32
 head arithmetic changed probabilities by at most `2.3296e-08` (income) and
 `9.3348e-08` (occupation). The learned service therefore has no bitwise
-probability invariance claim across batch sizes. The separate verification
-receipt and privacy reporting live in the campaign closeout records.
+probability invariance claim across batch sizes. A dated verification
+amendment requires exact hard bits and decisions, probability decoded from
+the emitted bits, and a maximum absolute saved-wire probability gap at or
+below `2e-7` for the fixed 32-row subset and singleton calls. This engineering
+restore tolerance does not change any task utility or privacy threshold.
+Singleton replay was pending when this quickstart was written. The separate
+verification receipt and privacy reporting live in the campaign closeout
+records.
