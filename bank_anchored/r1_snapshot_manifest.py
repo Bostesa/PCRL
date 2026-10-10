@@ -82,7 +82,7 @@ def build(root: Path, output: Path, *, selected_arms: tuple[str, ...] = (),
                                   private=alias != "raw_witness_receipt"))
         for arm in selected_arms:
             fit_id = fit_unit_ids.get((arm, seed), f"R2_{arm}_S{seed}_FIT")
-            if re.fullmatch(rf"R2_{arm}_S{seed}_FIT(?:_F[1-9][0-9]*)?",
+            if re.fullmatch(rf"R2_{arm}_S{seed}_FIT(?:_[A-Z][1-9][0-9]*)?",
                             fit_id) is None:
                 raise ValueError("selected FIT successor identity differs")
             unit = package / "r2/.private/units" / fit_id
@@ -165,11 +165,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--selected-arm", action="append", default=[])
     parser.add_argument("--fit-unit-id", action="append", default=[],
-                        help="explicit R2_<ARM>_S<seed>_FIT[_F<n>] successor ID")
+                        help="explicit R2_<ARM>_S<seed>_FIT[_<revision>] successor ID")
     args = parser.parse_args()
     overrides = {}
     for value in args.fit_unit_id:
-        match = re.fullmatch(r"R2_(B0|T|D|P|L|J|S12|S21)_S([01])_FIT(?:_F[1-9][0-9]*)?",
+        match = re.fullmatch(r"R2_(B0|T|D|P|L|J|S12|S21)_S([01])_FIT(?:_[A-Z][1-9][0-9]*)?",
                              value)
         if match is None:
             raise ValueError("selected FIT unit ID differs")

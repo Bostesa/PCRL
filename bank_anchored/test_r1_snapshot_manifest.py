@@ -53,7 +53,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path]:
         _json(pkg / "r1" / f"R1_BANK_S{seed}_FIT_RAW_RECEIPT.json",
               {"seed": seed, "status": "PASS",
                "sample_input_sha256": sample_hash})
-        fit_id = f"R2_B0_S{seed}_FIT_F1"
+        fit_id = f"R2_B0_S{seed}_FIT_{'F1' if seed == 0 else 'G1'}"
         unit = pkg / "r2/.private/units" / fit_id
         policy = unit / "policy"
         policy_hash = _write(policy / "policy.npz", b"public bank and action arrays")
@@ -79,7 +79,8 @@ def test_selected_inventory_restores_loader_paths_without_labels(tmp_path):
     root, private = _fixture(tmp_path)
     output = private / "snapshot.json"
     inventory = build(root, output, selected_arms=("B0",),
-                      fit_unit_ids={("B0", seed): f"R2_B0_S{seed}_FIT_F1"
+                      fit_unit_ids={("B0", seed):
+                                    f"R2_B0_S{seed}_FIT_{'F1' if seed == 0 else 'G1'}"
                                     for seed in (0, 1)})
     assert inventory["status"] == "SELECTED_POLICY_BOUND"
     names = {entry["archive_name"] for entry in inventory["entries"]}
@@ -94,9 +95,10 @@ def test_selected_inventory_restores_loader_paths_without_labels(tmp_path):
 
 def test_selected_inventory_refuses_changed_policy(tmp_path):
     root, private = _fixture(tmp_path)
-    path = root / "results/pcrl_bank_anchored_release_v1/r2/.private/units/R2_B0_S1_FIT_F1/policy/policy.npz"
+    path = root / "results/pcrl_bank_anchored_release_v1/r2/.private/units/R2_B0_S1_FIT_G1/policy/policy.npz"
     path.write_bytes(b"changed")
     with pytest.raises(ValueError, match="selected policy"):
         build(root, private / "snapshot.json", selected_arms=("B0",),
-              fit_unit_ids={("B0", seed): f"R2_B0_S{seed}_FIT_F1"
+              fit_unit_ids={("B0", seed):
+                            f"R2_B0_S{seed}_FIT_{'F1' if seed == 0 else 'G1'}"
                             for seed in (0, 1)})

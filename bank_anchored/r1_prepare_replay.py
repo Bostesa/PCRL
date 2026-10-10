@@ -57,7 +57,7 @@ def prepare(root: Path, *, arm_id: str, seed: int, fit_unit_id: str,
     r1 = pkg / "r1"
     private = r1 / ".private"
     if (arm_id not in ARMS or seed not in (0, 1) or
-            re.fullmatch(rf"R2_{arm_id}_S{seed}_FIT(?:_F[1-9][0-9]*)?",
+            re.fullmatch(rf"R2_{arm_id}_S{seed}_FIT(?:_[A-Z][1-9][0-9]*)?",
                          fit_unit_id) is None or
             stat.S_IMODE(private.stat().st_mode) & 0o077):
         raise ValueError("selected FIT unit, interpreter or private root differs")
