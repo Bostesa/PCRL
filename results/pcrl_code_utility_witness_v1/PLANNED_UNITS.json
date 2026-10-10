@@ -1,0 +1,22 @@
+{
+  "schema": "pcrl-code-utility-planned-units-v1",
+  "status": "PREFIT_DEPENDENCY_PLAN",
+  "paired_seeds": [0, 1],
+  "heavy_process_limit_machine_wide": 2,
+  "local_queue_slot_limit_with_external_occupancy": 1,
+  "fixed_units": [
+    {"unit_pattern": "LOSS_AUDIT_S{seed}", "count": 2, "stage": "witness", "dependency": "effective_local_seal", "owner": "R2"},
+    {"unit_pattern": "W_BANK_S{seed}", "count": 2, "stage": "witness", "dependency": "effective_local_seal", "owner": "R1"},
+    {"unit_pattern": "T0_B10_S{seed}", "count": 2, "stage": "witness", "dependency": "loss_audit_and_bank_admission_complete", "owner": "R1"}
+  ],
+  "conditional_units": [
+    {"unit_pattern": "T0_B16_S{seed}", "count": 2, "stage": "witness", "dependency": "ten_bit_point_gate_fails", "owner": "R1"},
+    {"unit_pattern": "{TPLUS,L,J,S12,S21,C}_B{selected}_S{seed}", "count": 12, "stage": "protection", "dependency": "learned_two_seed_point_gate_passes_and_protection_lock_committed", "owner": "R3"},
+    {"unit_pattern": "ATT_{arm}_S{seed}", "count": "30_per_hard_code_arm_seed_before_exact_aliases", "stage": "attacks", "dependency": "arm_release_and_attack_lock", "owner": "R4"},
+    {"unit_pattern": "VERIFY_REPLAY", "count": "bounded_by_actual_outputs", "stage": "verification", "dependency": "endpoint_outputs", "owner": "R5"}
+  ],
+  "zero_new_fit_units": [
+    {"family": "A_sampled_channel", "status": "DEPENDENCY_STOP_I2", "reason": "exact finite bank identity fails old fitting-domain occupation utility constraints on both seeds"}
+  ],
+  "accounting_note": "Each stage lock binds concrete argv, source hashes, forecast, memory and outputs before the corresponding fit. All skipped capacity and arm identities remain in the finite inference registry as null dependency slots."
+}

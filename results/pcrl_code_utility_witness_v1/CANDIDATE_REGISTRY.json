@@ -1,0 +1,29 @@
+{
+  "schema": "pcrl-code-utility-candidate-registry-v1",
+  "status": "PREFIT_FROZEN_IDENTITIES",
+  "paired_seeds": [0, 1],
+  "source_model": "per-seed admitted frozen U encoder with recipient-specific 16-dimensional task latents",
+  "wire": "each recipient receives only its hard public code, code-derived probabilities and decision, and constant public metadata",
+  "arms": [
+    {"id": "W_Q", "kind": "inherited_score_routed_bank", "global_state_counts": [16, 321], "bits": 10, "fit": "historical", "role": "representability_reference"},
+    {"id": "W_TSTAR", "kind": "inherited_score_routed_bank", "global_state_counts": [16, 321], "bits": 10, "fit": "historical", "role": "representability_reference"},
+    {"id": "T0_B10", "kind": "new_teacher_guided_hard_code", "bits": 10, "fit": "primary_ladder", "role": "immutable_task_only_witness"},
+    {"id": "T0_B16", "kind": "new_teacher_guided_hard_code", "bits": 16, "fit": "only_if_B10_fails_point_gate", "role": "immutable_task_only_witness"},
+    {"id": "TPLUS_B10", "kind": "task_only_continuation", "bits": 10, "fit": "only_if_B10_selected", "role": "matched_control"},
+    {"id": "L_B10", "kind": "local_kernel", "bits": 10, "fit": "only_if_B10_selected", "role": "matched_control"},
+    {"id": "J_B10", "kind": "local_plus_coalition_kernel", "bits": 10, "fit": "only_if_B10_selected", "role": "candidate"},
+    {"id": "S12_B10", "kind": "freeze_first_sequential", "bits": 10, "fit": "only_if_B10_selected", "role": "matched_control"},
+    {"id": "S21_B10", "kind": "reverse_freeze_first_sequential", "bits": 10, "fit": "only_if_B10_selected", "role": "matched_control"},
+    {"id": "C_B10", "kind": "ordinary_adversarial_hard_code", "bits": 10, "fit": "only_if_B10_selected", "role": "matched_control"},
+    {"id": "TPLUS_B16", "kind": "task_only_continuation", "bits": 16, "fit": "only_if_B16_selected", "role": "matched_control"},
+    {"id": "L_B16", "kind": "local_kernel", "bits": 16, "fit": "only_if_B16_selected", "role": "matched_control"},
+    {"id": "J_B16", "kind": "local_plus_coalition_kernel", "bits": 16, "fit": "only_if_B16_selected", "role": "candidate"},
+    {"id": "S12_B16", "kind": "freeze_first_sequential", "bits": 16, "fit": "only_if_B16_selected", "role": "matched_control"},
+    {"id": "S21_B16", "kind": "reverse_freeze_first_sequential", "bits": 16, "fit": "only_if_B16_selected", "role": "matched_control"},
+    {"id": "C_B16", "kind": "ordinary_adversarial_hard_code", "bits": 16, "fit": "only_if_B16_selected", "role": "matched_control"}
+  ],
+  "score_channel_continuation": "STOPPED_PREFIT_I2_IDENTITY_FAILURE",
+  "selection": "ten-bit T0 if every seed/task/U0/Ucal point cap passes; else sixteen-bit T0 under same rule; else no D protection fits",
+  "nomination": "if selected capacity exists, nominate its fixed J for comparison; no best seed, noise draw, alternate strength or substitute recipe",
+  "statistical_family": "all 16 arm IDs and both capacity branches remain in the fixed 2376-clause family even if conditionally unrun"
+}
