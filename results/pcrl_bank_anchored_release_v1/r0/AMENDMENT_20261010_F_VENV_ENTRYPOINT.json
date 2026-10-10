@@ -1,0 +1,50 @@
+{
+  "schema": "pcrl-bank-dated-amendment-v1",
+  "dated_utc": "2026-10-10T08:44:45Z",
+  "status": "LOCALLY_SEALED_PROTECTION_INTERPRETER_CORRECTION_BEFORE_FIT_READ",
+  "affected_stages": ["protection"],
+  "source_lock_sha256": "6d39ec3b0e4d56b75dd1bb1b121940078a70c72ad9dc954fe3f050ae8ec9c69e",
+  "previous_protection_amendment_sha256": "e0cb5d19168b44057bcca073481b762d162c247dc1894fc50287e43c270993df",
+  "failed_unit": {
+    "unit_id": "R2_B0_S0_FIT",
+    "queue_status": "failed",
+    "charged_cpu_seconds": 0.27,
+    "queue_receipt_sha256": "0a50ca9ade063b1a5581221013bca01d6280ae1c1e64a287233182cf48110488",
+    "stderr_sha256": "4c1d4faa9f2c521c8f39af377f8f760bd3487eeff795f0ec43a1721f0430465e",
+    "error": "ModuleNotFoundError: No module named 'scipy' during import of r2_factor_projection.py",
+    "FIT_role_read": false,
+    "R2_private_output_created": false,
+    "public_FIT_receipt_created": false
+  },
+  "root_cause": "The E spec builder resolved the virtual-environment Python symlink to its base interpreter. That base interpreter lacks SciPy. The tested virtual-environment entrypoint imports NumPy, SciPy, Torch and the R2 worker successfully.",
+  "old_E_units": {
+    "source_spec_receipt_sha256": "d1a0903f2e0b9270bd770043867f4c73d030985cff01e1cbe04f1f059bc00169",
+    "failed": ["R2_B0_S0_FIT"],
+    "queued_unrun_superseded": [
+      "R2_B0_S1_FIT", "R2_T_S0_FIT", "R2_T_S1_FIT",
+      "R2_D_S0_FIT", "R2_D_S1_FIT", "R2_P_S0_FIT", "R2_P_S1_FIT",
+      "R2_L_S0_FIT", "R2_L_S1_FIT", "R2_J_S0_FIT", "R2_J_S1_FIT",
+      "R2_S12_S0_FIT", "R2_S12_S1_FIT",
+      "R2_S21_S0_FIT", "R2_S21_S1_FIT"
+    ],
+    "preservation": "Original queue state, logs, immutable private configs/specs and E source index remain intact. The latest amendment blocks unrun E specs."
+  },
+  "correction": {
+    "commit": "193ce346f100b41dccd441a7c0a53ac983c490f9",
+    "source_index_F1_sha256": "0f138018ddd17625cb1e7001b6750c49caf2982dedba194396c377253099c779",
+    "r5_independent_prefit_go_sha256": "35ef2fe5c7793a6fba8f5c2b114e1954037f20b1f66fc9a722b5c5c2193bc4e5",
+    "operation": "Preserve the absolute virtual-environment Python entry path without dereferencing its symlink; verify it is executable and smoke-import NumPy, SciPy, Torch and the R2 worker through that exact path before generating specs.",
+    "successor_unit_ids": [
+      "R2_B0_S0_FIT_F1", "R2_B0_S1_FIT_F1",
+      "R2_T_S0_FIT_F1", "R2_T_S1_FIT_F1",
+      "R2_D_S0_FIT_F1", "R2_D_S1_FIT_F1",
+      "R2_P_S0_FIT_F1", "R2_P_S1_FIT_F1",
+      "R2_L_S0_FIT_F1", "R2_L_S1_FIT_F1",
+      "R2_J_S0_FIT_F1", "R2_J_S1_FIT_F1",
+      "R2_S12_S0_FIT_F1", "R2_S12_S1_FIT_F1",
+      "R2_S21_S0_FIT_F1", "R2_S21_S1_FIT_F1"
+    ]
+  },
+  "scientific_scope_unchanged": "Same bank, rows, arms, source seeds, fixed recipe seeds, 300-second optimization ceiling, B0 FIT proxy, original INNER caps, actions, decoder, selection and attack contract. No Adult outcome motivated the correction.",
+  "registration_scope": "Local Git seal before any successor FIT read. Every F1 queue spec must bind this exact amendment SHA and new source index. Old E units must not be retried or relabeled."
+}
