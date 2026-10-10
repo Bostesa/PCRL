@@ -175,7 +175,7 @@ def run(args: argparse.Namespace) -> dict:
     margin_total = sum(margin.values())
     if (amendment["cpu_budget"]["A_stage_total_ceiling_seconds"] != 18000
             or used_a + graph["cpu_reserve_seconds"] + margin_total > 18000
-            or used_global + graph["cpu_reserve_seconds"] > 72000):
+            or used_global + graph["cpu_reserve_seconds"] + margin_total > 72000):
         raise ValueError("A stage or global CPU reserve does not close")
     return {"schema": "pcrl-r04-a-prefit-amendment-audit-v1",
             "status": ("A_220_UNIT_PREFIT_DRAFT_AUDIT_PASS" if args.prefit_draft
@@ -193,6 +193,8 @@ def run(args: argparse.Namespace) -> dict:
             "inference_and_failure_margin_seconds": margin_total,
             "projected_a_stage_cpu_with_margin_seconds":
                 used_a + graph["cpu_reserve_seconds"] + margin_total,
+            "projected_global_cpu_with_margin_seconds":
+                used_global + graph["cpu_reserve_seconds"] + margin_total,
             "a_stage_reserved_ceiling_seconds": 18000,
             "global_reserved_ceiling_seconds": 72000}
 
