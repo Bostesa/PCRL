@@ -13,6 +13,12 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks impor
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.wire import (
     canonical_bank_sha256,
 )
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.bank import (
+    FixedBank, build_actions,
+)
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.diagnostic_codes import (
+    select_codes,
+)
 
 
 def test_reference_output_requires_private_owner_only_ancestry(tmp_path):
@@ -76,6 +82,70 @@ def test_fixed_public_q_mechanism_matches_separate_q_compiler_descriptor():
         canonical({**base, "mechanism_sha256": mechanism})).hexdigest()
 
 
+@pytest.mark.parametrize("arm", ["A_IDENTITY", "A_CLASS_ONLY"])
+def test_diagnostic_q_replays_actual_same_bank_selector(arm):
+    raw1 = np.asarray([[.8, .2], [.7, .3], [.2, .8], [.3, .7]], np.float64)
+    raw2 = []
+    for label in range(6):
+        for main in (.8, .7):
+            row = np.full(6, (1.0 - main) / 5, np.float64)
+            row[label] = main
+            raw2.append(row)
+    banks = tuple(FixedBank.from_source(
+        raw, np.arange(len(raw), dtype=np.int64),
+        np.argmax(raw, axis=1).astype(np.int64))
+        for raw in (raw1, np.asarray(raw2, np.float64)))
+    # The public T* map includes a within-class distinction for each class.
+    fixed = {f"bank_r{i}": bank.probability for i, bank in enumerate(banks, 1)}
+    centroids = []
+    for i, (bank, size) in enumerate(zip(banks, (64, 641)), 1):
+        mapping = np.resize(np.arange(len(bank.probability), dtype=np.int64), size)
+        fixed[f"fine_to_code_r{i}"] = mapping
+        centroids.append(bank.probability[mapping])
+    receipt = {"source_binding_sha256": "a" * 64,
+               "original_bank_receipt_sha256": "b" * 64}
+    mechanism, descriptor_sha, descriptor = worker._diagnostic_q_mechanism(
+        fixed, receipt, tuple(centroids), ref=arm, seed=0,
+        release_id=f"{arm}-s0-v1")
+    assert descriptor["mechanism_sha256"] == mechanism
+    assert len(descriptor_sha) == 64
+    for i, bank in enumerate(banks, 1):
+        mapping = fixed[f"fine_to_code_r{i}"]
+        actions = build_actions(bank, input_class=bank.decision[mapping],
+                                fine_to_old_token=mapping)
+        expected = select_codes(bank, actions,
+                                np.arange(len(mapping), dtype=np.int64), arm_id=arm)
+        assert descriptor["fine_to_code_sha256_by_recipient"][f"r{i}"] == sha_array(expected)
+        if arm == "A_IDENTITY":
+            np.testing.assert_array_equal(expected, mapping)
+        else:
+            assert len(np.unique(expected)) == (2 if i == 1 else 6)
+            assert sha_array(expected) != sha_array(mapping)
+
+
+@pytest.mark.parametrize("mutation", ["kind", "source_kind", "arm", "map_sha"])
+def test_diagnostic_q_parent_refuses_wrong_public_source(mutation):
+    identity = {"receipt_sha256": "a" * 64, "npz_sha256": "b" * 64}
+    plan = {"kind": "q_preprocess", "source_kind": "same_bank_diagnostic",
+            "arm_id": "A_CLASS_ONLY", "seed": 0}
+    spec = {"source_kind": "same_bank_diagnostic", "arm_id": "A_CLASS_ONLY",
+            "seed": 0, "fixed_map_receipt_sha256": "a" * 64,
+            "fixed_map_npz_sha256": "b" * 64}
+    worker._check_fixed_q_parent(plan, spec, ref="A_CLASS_ONLY", seed=0,
+                                  fixed_identity=identity)
+    if mutation == "kind":
+        plan["kind"] = "selected_fit"
+    elif mutation == "source_kind":
+        spec["source_kind"] = "historical_finite_reference"
+    elif mutation == "arm":
+        spec["arm_id"] = "A_IDENTITY"
+    else:
+        spec["fixed_map_npz_sha256"] = "c" * 64
+    with pytest.raises(PermissionError, match="Q parent/source kind"):
+        worker._check_fixed_q_parent(plan, spec, ref="A_CLASS_ONLY", seed=0,
+                                      fixed_identity=identity)
+
+
 def test_reference_worker_requires_active_queue_before_source_or_label_read(monkeypatch):
     def no_slot(**kwargs):
         raise PermissionError("synthetic active slot absent")
@@ -91,8 +161,15 @@ def test_reference_worker_requires_active_queue_before_source_or_label_read(monk
             q_table_dir="unread", private_root="unread")
 
 
+@pytest.mark.parametrize("reference_id,kind,mutation", [
+    ("T_STAR", "reference_attack", None),
+    ("A_IDENTITY", "diagnostic_attack", None),
+    ("A_CLASS_ONLY", "diagnostic_attack", None),
+    ("A_IDENTITY", "diagnostic_attack", "release_arm"),
+    ("A_CLASS_ONLY", "diagnostic_attack", "q_arm"),
+])
 def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
-        tmp_path, monkeypatch):
+        tmp_path, monkeypatch, reference_id, kind, mutation):
     """Queue and live NPZ can agree while the effective science lock disagrees."""
     campaign = tmp_path / "campaign"
     campaign.mkdir()
@@ -107,15 +184,19 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
             "source_role_manifest": manifest_sha,
             "r01/SOURCE_AUDIT.json": "a" * 64}}))
     original_sha = worker._sha(original)
-    unit_id = "A-REFERENCE-ATTACK-T_STAR-S0"
-    deps = ["A-REFERENCE-RELEASE-T_STAR-S0-ATT",
-            "A-REFERENCE-RELEASE-T_STAR-S0-INNER",
-            "A-Q-PREPROCESS-T_STAR-S0"]
+    diagnostic = kind == "diagnostic_attack"
+    unit_id = (f"A-DIAG-ATTACK-{reference_id}-S0" if diagnostic else
+               "A-REFERENCE-ATTACK-T_STAR-S0")
+    release_prefix = (f"A-DIAG-RELEASE-{reference_id}-S0" if diagnostic else
+                      "A-REFERENCE-RELEASE-T_STAR-S0")
+    deps = [f"{release_prefix}-ATT", f"{release_prefix}-INNER",
+            f"A-Q-PREPROCESS-{reference_id}-S0"]
     implementation = {
         name: "e" * 64 for name in (
             "sampled_channel_v1/attacks/run_reference_attack.py",
             "sampled_channel_v1/attacks/reference_wire.py",
-            "sampled_channel_v1/attacks/q_aware.py", "r02/protocol.py",
+            "sampled_channel_v1/attacks/q_aware.py",
+            "sampled_channel_v1/attacks/run_q_preprocess.py", "r02/protocol.py",
             "r03/compute_queue.py")}
     for name in implementation:
         path = campaign / name
@@ -126,6 +207,18 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
     fixed_receipt.write_text("{}\n")
     fixed_archive.write_bytes(b"synthetic public map")
     amendment = campaign / "A_STAGE_AMENDMENT.json"
+    plan = {
+        "kind": kind, "output_id": unit_id,
+        ("arm_id" if diagnostic else "reference_id"): reference_id,
+        "seed": 0, "realization": 0,
+        "trained_reader_and_probe_fits": 33,
+        **({} if diagnostic else
+           {"release_unit_ids": {"ATT": deps[0], "INNER": deps[1]}}),
+        "q_unit_id": deps[2], "deps": deps.copy()}
+    if mutation == "release_arm":
+        plan["deps"][0] = "A-DIAG-RELEASE-A_CLASS_ONLY-S0-ATT"
+    elif mutation == "q_arm":
+        plan["q_unit_id"] = "A-Q-PREPROCESS-A_IDENTITY-S0"
     amendment.write_text(json.dumps({
         "schema": "pcrl-latent-sampled-A-stage-amendment-v1",
         "status": "LOCALLY_SEALED_A_STAGE",
@@ -140,12 +233,7 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
             "reader_ids": list(worker.READER_IDS),
             "reference_ids": ["T_STAR", "P_STAR", "U0", "Ucal",
                               "D0_LOCAL", "D0_SEQ12", "D0_SEQ21"]},
-        "unit_plan": {unit_id: {
-            "kind": "reference_attack", "output_id": unit_id,
-            "reference_id": "T_STAR", "seed": 0, "realization": 0,
-            "trained_reader_and_probe_fits": 33,
-            "release_unit_ids": {"ATT": deps[0], "INNER": deps[1]},
-            "q_unit_id": deps[2], "deps": deps}}}))
+        "unit_plan": {unit_id: plan}}))
     amendment_sha = worker._sha(amendment)
     output_base = tmp_path / ".private"
     output_base.mkdir(mode=0o700)
@@ -155,8 +243,9 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
             "outputs": [str(output / "ATTACK_ATTEMPT_INDEX.json")],
             "sources": [],
             "reference_identity": {
-                "reference_id": "T_STAR", "source_seed": 0,
-                "release_id": "historical-tstar", "interface_kind": "finite",
+                "reference_id": reference_id, "source_seed": 0,
+                "release_id": (f"{reference_id}-s0-v1" if diagnostic else
+                               "historical-tstar"), "interface_kind": "finite",
                 "source_binding_sha256": "f" * 64,
                 "release_receipt_sha256_by_role": {
                     "ATTACK_FIT_NEW": "b" * 64,
@@ -186,7 +275,9 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
         (directory / "REFERENCE_RELEASE_RECEIPT.json").write_text("{}\n")
         (directory / "reference_release.npz").write_bytes(b"synthetic")
         role_dirs.append(directory)
-    with pytest.raises(PermissionError, match="fixed-map source pin"):
+    expected_error = ("sealed unit/dependency plan" if mutation else
+                      "fixed-map source pin")
+    with pytest.raises(PermissionError, match=expected_error):
         worker.admit_reference_attack(
             unit_id=unit_id, original_lock_path=original,
             original_lock_sha256=original_sha,

@@ -1,7 +1,8 @@
-"""Queue-gated fresh ATT/INNER attack on deterministic score references.
+"""Queue-gated fresh ATT/INNER attack on deterministic score releases.
 
-T*/P*/D0 and U0/Ucal are restored from saved role-only release packages.
-Finite references use the same three-view Q specialist as sampled A arms.
+Historical references and same-bank diagnostics are restored from saved
+role-only release packages. Finite releases use the same three-view Q
+specialist as sampled A arms.
 No source fine cell or provider score outside the actual reference wire enters a
 reader. INNER SEX is opened only after every ATT reader has frozen.
 """
@@ -34,6 +35,9 @@ from results.pcrl_latent_and_sampled_methods_v1.r03.compute_queue import (
 )
 from .q_artifact import load_q_table_artifact
 from .q_aware import fit_q_posterior_reader
+from .run_q_preprocess import (
+    build_fixed_public_policy, load_clean_public_centroids,
+)
 from .reference_wire import (
     load_public_fixed_map, load_reference_role_package,
     reference_recipient_batch, with_reference_q_features,
@@ -42,7 +46,10 @@ from .wire import canonical_bank_sha256
 
 
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
-FINITE = frozenset({"T_STAR", "P_STAR", "D0_LOCAL", "D0_SEQ12", "D0_SEQ21"})
+HISTORICAL_FINITE = frozenset({"T_STAR", "P_STAR", "D0_LOCAL",
+                               "D0_SEQ12", "D0_SEQ21"})
+DIAGNOSTIC = frozenset({"A_IDENTITY", "A_CLASS_ONLY"})
+FINITE = HISTORICAL_FINITE | DIAGNOSTIC
 CONTINUOUS = frozenset({"U0", "Ucal"})
 IDENTITY_KEYS = frozenset({
     "reference_id", "source_seed", "release_id", "interface_kind",
@@ -113,6 +120,31 @@ def _fixed_q_mechanism(fixed: dict, receipt: dict) -> tuple[str, str]:
     return mechanism, descriptor_sha
 
 
+def _diagnostic_q_mechanism(fixed: dict, receipt: dict,
+                            centroids: tuple[np.ndarray, np.ndarray], *,
+                            ref: str, seed: int, release_id: str) -> tuple[str, str, dict]:
+    """Replay R13's actual same-bank selector on the public centroid indices."""
+    records = tuple({
+        "probability": fixed[f"bank_r{i}"],
+        "fine_to_hcal_token": fixed[f"fine_to_code_r{i}"],
+        "token_id": np.arange(len(fixed[f"bank_r{i}"]), dtype=np.int64),
+        "token_class": np.argmax(fixed[f"bank_r{i}"], axis=1).astype(np.int64),
+        "input_class": np.argmax(centroids[i - 1], axis=1).astype(np.int64),
+    } for i in (1, 2))
+    bank1, bank2, _, descriptor = build_fixed_public_policy(
+        arm_id=ref, seed=seed, source_kind="same_bank_diagnostic",
+        records=records, release_id=release_id,
+        source_binding_sha256=receipt["source_binding_sha256"],
+        source_receipt_sha256=receipt["original_bank_receipt_sha256"])
+    if (not np.array_equal(bank1.probability, fixed["bank_r1"]) or
+            not np.array_equal(bank2.probability, fixed["bank_r2"])):
+        raise PermissionError("diagnostic Q public bank differs from released full bank")
+    descriptor_sha = hashlib.sha256(json.dumps(
+        descriptor, sort_keys=True, separators=(",", ":"),
+        allow_nan=False).encode()).hexdigest()
+    return descriptor["mechanism_sha256"], descriptor_sha, descriptor
+
+
 def _checked_output(path: str | Path, spec: dict) -> Path:
     supplied = Path(path)
     if not supplied.is_absolute() or ".private" not in supplied.parts:
@@ -148,10 +180,16 @@ def _checked_module_origins(campaign: Path, sources: dict[Path, str]) -> None:
             campaign / "sampled_channel_v1/attacks/q_artifact.py",
         prefix + ".sampled_channel_v1.attacks.reference_wire":
             campaign / "sampled_channel_v1/attacks/reference_wire.py",
+        prefix + ".sampled_channel_v1.attacks.run_q_preprocess":
+            campaign / "sampled_channel_v1/attacks/run_q_preprocess.py",
         prefix + ".sampled_channel_v1.attacks.wire":
             campaign / "sampled_channel_v1/attacks/wire.py",
         prefix + ".sampled_channel_v1.impl.reference_materialize":
             campaign / "sampled_channel_v1/impl/reference_materialize.py",
+        prefix + ".sampled_channel_v1.impl.bank":
+            campaign / "sampled_channel_v1/impl/bank.py",
+        prefix + ".sampled_channel_v1.controls.diagnostic_codes":
+            campaign / "sampled_channel_v1/controls/diagnostic_codes.py",
     }
     shared = campaign.parent / "pcrl_method_portfolio_v1/shared"
     modules.update({name.removesuffix(".py"): shared / name
@@ -176,6 +214,22 @@ def _completed_dependency(state: dict, queue_root: Path, unit_id: str,
             receipt.get("output_sha256") != {str(declared_path): expected_sha} or
             _sha(declared_path) != expected_sha):
         raise PermissionError("reference attack parent dependency receipt differs")
+
+
+def _check_fixed_q_parent(q_plan: dict, q_spec: dict, *, ref: str, seed: int,
+                          fixed_identity: dict) -> None:
+    source_kind = ("same_bank_diagnostic" if ref in DIAGNOSTIC
+                   else "historical_finite_reference")
+    if (q_plan.get("kind") != "q_preprocess" or
+            q_plan.get("source_kind") != source_kind or
+            q_plan.get("arm_id", q_plan.get("reference_id")) != ref or
+            q_plan.get("seed") != seed or
+            q_spec.get("source_kind") != source_kind or
+            q_spec.get("arm_id") != ref or q_spec.get("seed") != seed or
+            q_spec.get("fixed_map_receipt_sha256") !=
+            fixed_identity["receipt_sha256"] or
+            q_spec.get("fixed_map_npz_sha256") != fixed_identity["npz_sha256"]):
+        raise PermissionError("reference Q parent/source kind differs")
 
 
 def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
@@ -226,6 +280,7 @@ def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
         raise PermissionError("reference attack unit/amendment identity differs")
     ref, seed = identity["reference_id"], identity["source_seed"]
     finite = ref in FINITE
+    diagnostic = ref in DIAGNOSTIC
     if ((not finite and ref not in CONTINUOUS) or seed not in (0, 1) or
             identity["interface_kind"] != ("finite" if finite else "continuous") or
             type(identity["release_id"]) is not str or not identity["release_id"] or
@@ -249,17 +304,22 @@ def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
                                    identity["q_table_identity"])
                     for value in record.values())):
             raise PermissionError("reference fixed public source identity differs")
-    release_units = plan.get("release_unit_ids")
+    release_units = (plan.get("release_unit_ids") if not diagnostic else {
+        "ATT": f"A-DIAG-RELEASE-{ref}-S{seed}-ATT",
+        "INNER": f"A-DIAG-RELEASE-{ref}-S{seed}-INNER"})
     expected_deps = ([release_units.get("ATT"), release_units.get("INNER")]
                      if type(release_units) is dict else [])
     if finite:
         expected_deps.append(plan.get("q_unit_id"))
-    if (plan.get("kind") != "reference_attack" or
+    if (plan.get("kind") != ("diagnostic_attack" if diagnostic else "reference_attack") or
             plan.get("output_id") != unit_id or
-            plan.get("reference_id") != ref or plan.get("seed") != seed or
+            plan.get("arm_id" if diagnostic else "reference_id") != ref or
+            plan.get("seed") != seed or
             plan.get("realization") != 0 or
             plan.get("trained_reader_and_probe_fits") != (33 if finite else 24) or
             type(release_units) is not dict or release_units.keys() != {"ATT", "INNER"} or
+            (diagnostic and (unit_id != f"A-DIAG-ATTACK-{ref}-S{seed}" or
+                             plan.get("release_unit_ids") is not None)) or
             any(type(value) is not str or not value for value in expected_deps) or
             plan.get("deps") != expected_deps or spec.get("deps") != expected_deps or
             (plan.get("q_unit_id") is not None) != finite):
@@ -275,6 +335,7 @@ def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
             not {"sampled_channel_v1/attacks/run_reference_attack.py",
                  "sampled_channel_v1/attacks/reference_wire.py",
                  "sampled_channel_v1/attacks/q_aware.py",
+                 "sampled_channel_v1/attacks/run_q_preprocess.py",
                  "r02/protocol.py", "r03/compute_queue.py"} <= set(implementation)):
         raise PermissionError("reference attack implementation map is incomplete")
     for relative, digest in implementation.items():
@@ -319,8 +380,9 @@ def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
         expected_sha = identity["release_receipt_sha256_by_role"][role]
         _completed_dependency(state, queue_root, dependency, receipt, expected_sha)
     if finite:
-        fixed_relative = f"r01/A_FIXED_MAP_{ref}_S{seed}.json"
-        archive_relative = f"r01/A_FIXED_MAP_{ref}_S{seed}.npz"
+        source_arm = "T_STAR" if diagnostic else ref
+        fixed_relative = f"r01/A_FIXED_MAP_{source_arm}_S{seed}.json"
+        archive_relative = f"r01/A_FIXED_MAP_{source_arm}_S{seed}.npz"
         expected_fixed = lock.parent / fixed_relative
         expected_archive = lock.parent / archive_relative
         if (fixed_map_receipt is None or fixed_map_npz is None or
@@ -338,6 +400,15 @@ def admit_reference_attack(*, unit_id: str, original_lock_path: str | Path,
                 raise PermissionError("finite reference public map is absent")
             _checked_source(Path(path), sources,
                             identity["fixed_map_identity"][key])
+        q_plan = amendment["unit_plan"].get(plan["q_unit_id"], {})
+        q_spec = state.get("units", {}).get(plan["q_unit_id"], {}).get("spec", {})
+        _check_fixed_q_parent(q_plan, q_spec, ref=ref, seed=seed,
+                              fixed_identity=identity["fixed_map_identity"])
+        if diagnostic:
+            centroid_path = lock.parent / f"r01/A_PUBLIC_FINE_CENTROIDS_S{seed}.npz"
+            centroid_sha = amendment["attack_plan"][
+                "public_centroid_npz_sha256_by_seed"][f"s{seed}"]
+            _checked_source(centroid_path, sources, centroid_sha)
         if q_table_dir is None or Path(q_table_dir).is_symlink():
             raise PermissionError("finite reference Q directory is absent")
         q_dir = Path(q_table_dir).resolve(strict=True)
@@ -378,15 +449,21 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
     finite = identity["interface_kind"] == "finite"
     bank1 = bank2 = map_receipt = q_table = None
     if finite:
+        source_arm = "T_STAR" if identity["reference_id"] in DIAGNOSTIC else \
+            identity["reference_id"]
         fixed, map_receipt = load_public_fixed_map(
             fixed_map_receipt, fixed_map_npz,
             expected_receipt_sha256=identity["fixed_map_identity"]["receipt_sha256"],
             expected_archive_sha256=identity["fixed_map_identity"]["npz_sha256"],
-            arm_id=identity["reference_id"], seed=identity["source_seed"])
+            arm_id=source_arm, seed=identity["source_seed"])
         bank1, bank2 = fixed["bank_r1"], fixed["bank_r2"]
         if (map_receipt["source_binding_sha256"] !=
                 identity["source_binding_sha256"] or
-                map_receipt["release_id"] != identity["release_id"] or
+                (identity["reference_id"] not in DIAGNOSTIC and
+                 map_receipt["release_id"] != identity["release_id"]) or
+                (identity["reference_id"] in DIAGNOSTIC and
+                 identity["release_id"] !=
+                 f"{identity['reference_id']}-s{identity['source_seed']}-v1") or
                 map_receipt["source_audit_sha256"] != amendment[
                     "source_sha256"]["r01/SOURCE_AUDIT.json"]):
             raise PermissionError("reference public fixed map differs from actual wire")
@@ -396,7 +473,23 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
             expected_content_sha256=identity["q_table_identity"]["content_sha256"],
             expected_policy_receipt_sha256=
                 map_receipt["original_bank_receipt_sha256"])
-        mechanism_sha, descriptor_sha = _fixed_q_mechanism(fixed, map_receipt)
+        if identity["reference_id"] in DIAGNOSTIC:
+            audit = json.loads((Path(original_lock_path).resolve(strict=True).parent /
+                                "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json").read_text())
+            seed = identity["source_seed"]
+            centroid_path = (Path(original_lock_path).resolve(strict=True).parent /
+                             f"r01/A_PUBLIC_FINE_CENTROIDS_S{seed}.npz")
+            c1, c2 = load_clean_public_centroids(
+                centroid_path, audit["public_centroids"][f"s{seed}"])
+            if (amendment["attack_plan"]["public_centroid_npz_sha256_by_seed"][f"s{seed}"]
+                    != _sha(centroid_path)):
+                raise PermissionError("diagnostic Q public centroid pin differs")
+            mechanism_sha, descriptor_sha, _ = _diagnostic_q_mechanism(
+                fixed, map_receipt, (c1, c2),
+                ref=identity["reference_id"], seed=seed,
+                release_id=identity["release_id"])
+        else:
+            mechanism_sha, descriptor_sha = _fixed_q_mechanism(fixed, map_receipt)
         queue_root = Path(os.environ["PCRL_QUEUE_ROOT"]).resolve(strict=True)
         queue_state = json.loads((queue_root / "state.json").read_text())
         q_unit_id = amendment["unit_plan"][unit_id]["q_unit_id"]
@@ -413,7 +506,16 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
         inner_release_dir,
         receipt_sha256=identity["release_receipt_sha256_by_role"]["INNER_SELECTION"],
         full_bank1=bank1, full_bank2=bank2)
+    store = RoleOnlyStore(role_manifest_path)
+    original_source_audit = json.loads((Path(original_lock_path).resolve(strict=True).parent /
+                                        "r01/SOURCE_AUDIT.json").read_text())
     for role, package in (("ATTACK_FIT_NEW", att), ("INNER_SELECTION", inner)):
+        historical_audit = amendment["source_sha256"][
+            "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json"]
+        original_audit = amendment["source_sha256"]["r01/SOURCE_AUDIT.json"]
+        expected_audit = (historical_audit if identity["reference_id"] in
+                          {"P_STAR", "D0_LOCAL", "D0_SEQ12", "D0_SEQ21"}
+                          else original_audit)
         if (package.receipt["role"] != role or
                 package.receipt["arm_id"] != identity["reference_id"] or
                 package.receipt["source_seed"] != identity["source_seed"] or
@@ -421,9 +523,23 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
                 package.receipt["source_binding_sha256"] !=
                 identity["source_binding_sha256"] or
                 package.receipt["interface_kind"] != identity["interface_kind"] or
+                package.receipt["source_identity"]["source_audit_sha256"] !=
+                expected_audit or
                 (finite and package.receipt["source_identity"]["bank_receipt_sha256"] !=
                  map_receipt["original_bank_receipt_sha256"])):
             raise PermissionError("reference release source identity differs")
+        if identity["reference_id"] in DIAGNOSTIC:
+            tstar = original_source_audit["tstar_banks"][str(identity["source_seed"])]
+            role_key = f"{role}:references_s{identity['source_seed']}"
+            if (package.receipt["source_identity"]["role_source_file_sha256"] !=
+                    tstar["file_sha256"][f"tokens_{role}.npz"] or
+                    package.receipt["source_identity"]["reference_file_sha256"] !=
+                    store.manifest["role_file_sha256"][role_key] or
+                    identity["source_binding_sha256"] !=
+                    tstar["source_binding_sha256"] or
+                    map_receipt["original_bank_receipt_sha256"] !=
+                    tstar["receipt_sha256"]):
+                raise PermissionError("diagnostic role source lineage differs")
     batches = {}
     for role, package in (("att", att), ("inner", inner)):
         left = reference_recipient_batch(package, 1)
@@ -439,7 +555,6 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
     prepared = {name: prepare_views(batches["att"][name],
                                     batches["inner"][name])
                 for name in ("r1", "r2", "pair")}
-    store = RoleOnlyStore(role_manifest_path)
     for role, package in (("ATTACK_FIT_NEW", att), ("INNER_SELECTION", inner)):
         if (sha_array(np.column_stack((package.row_id, package.unit))) !=
                 store.manifest["roles"][role]["row_unit_pair_sha256"]):
