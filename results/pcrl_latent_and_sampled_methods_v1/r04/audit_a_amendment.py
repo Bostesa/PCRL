@@ -138,8 +138,10 @@ def run(args: argparse.Namespace) -> dict:
     repair_manifest = Path(args.role_manifest).resolve(strict=True)
     queue_state_path = Path(args.queue_state).resolve(strict=True)
     queue = json.loads(queue_state_path.read_text())
+    allowed_status = ("PREFIT_DRAFT_NOT_EFFECTIVE",) if args.prefit_draft else (
+        "PREFIT_COMPLETE_FOR_SEAL", "LOCALLY_SEALED_A_STAGE")
     if (amendment.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1"
-            or amendment.get("status") not in ("PREFIT_COMPLETE_FOR_SEAL", "LOCALLY_SEALED_A_STAGE")
+            or amendment.get("status") not in allowed_status
             or amendment.get("original_lock_sha256") != sha_file(seal)
             or amendment["interval_family"]["manifest_sha256"] != sha_file(family)
             or amendment["interval_family"]["ordered_clause_count"] != 6885
@@ -166,12 +168,20 @@ def run(args: argparse.Namespace) -> dict:
     graph = _check_graph(amendment["unit_plan"])
     used_a = float(queue["used_by_stage_s"].get("a", 0))
     used_global = float(queue["used_cpu_s"])
+    margin = amendment["cpu_budget"]["inference_and_failure_margin_breakdown_seconds"]
+    if margin != {"R02_K6885_inference_prospective": 1800,
+                  "failed_attempt_margin": 500}:
+        raise ValueError("A inference/failure margin changed")
+    margin_total = sum(margin.values())
     if (amendment["cpu_budget"]["A_stage_total_ceiling_seconds"] != 18000
-            or used_a + graph["cpu_reserve_seconds"] > 18000
+            or used_a + graph["cpu_reserve_seconds"] + margin_total > 18000
             or used_global + graph["cpu_reserve_seconds"] > 72000):
         raise ValueError("A stage or global CPU reserve does not close")
     return {"schema": "pcrl-r04-a-prefit-amendment-audit-v1",
-            "status": "A_220_UNIT_PREFIT_ADMISSION_PASS", "amendment_sha256": amendment_sha,
+            "status": ("A_220_UNIT_PREFIT_DRAFT_AUDIT_PASS" if args.prefit_draft
+                       else "A_220_UNIT_PREFIT_ADMISSION_PASS"),
+            "amendment_status_at_audit": amendment["status"],
+            "amendment_sha256": amendment_sha,
             "original_lock_sha256": sha_file(seal), "family_sha256": sha_file(family),
             "family_independent_receipt_sha256": sha_file(family_receipt),
             "queue_state_sha256_at_audit": sha_file(queue_state_path),
@@ -180,6 +190,9 @@ def run(args: argparse.Namespace) -> dict:
             "role_boundary": "FIT, ATTACK_FIT_NEW and INNER_SELECTION; no assessment release unit",
             "graph": graph, "used_a_stage_cpu_seconds_at_audit": used_a,
             "used_global_cpu_seconds_at_audit": used_global,
+            "inference_and_failure_margin_seconds": margin_total,
+            "projected_a_stage_cpu_with_margin_seconds":
+                used_a + graph["cpu_reserve_seconds"] + margin_total,
             "a_stage_reserved_ceiling_seconds": 18000,
             "global_reserved_ceiling_seconds": 72000}
 
@@ -188,6 +201,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("amendment", "campaign", "role-manifest", "queue-state", "public-receipt"):
         parser.add_argument("--" + name, required=True)
+    parser.add_argument("--prefit-draft", action="store_true",
+                        help="audit complete draft bytes before the effective seal")
     args = parser.parse_args()
     result = run(args)
     output = Path(args.public_receipt)
