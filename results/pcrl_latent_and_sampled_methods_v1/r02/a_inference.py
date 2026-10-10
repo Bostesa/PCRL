@@ -1,7 +1,7 @@
 """Prospective A endpoint family and paired people × realized-release inference.
 
-Ten same-bank arms, four fixed references, two source seeds, and three actual
-sampled releases give 4,455 ordered clauses. No candidate model is imported.
+Ten same-bank arms, seven fixed references, two source seeds, and three actual
+sampled releases give 6,885 ordered clauses. No candidate model is imported.
 The complete saved INNER release and fixed reader predictions are the inputs.
 """
 
@@ -27,14 +27,14 @@ A_ARMS = ("A_JOINT_STOCH", "A_TASK_STOCH", "A_TASK_DET", "A_JOINT_DET",
           "A_IDENTITY", "A_CLASS_ONLY")
 STOCHASTIC_ARMS = frozenset(("A_JOINT_STOCH", "A_TASK_STOCH", "A_CENTRAL_PRODUCT",
                              "A_LOCAL", "A_SEQ12", "A_SEQ21"))
-A_REFS = ("T_STAR", "P_STAR", "U0", "Ucal")
+A_REFS = ("T_STAR", "P_STAR", "U0", "Ucal", "D0_LOCAL", "D0_SEQ12", "D0_SEQ21")
 VIEWS = ("r1", "r2", "pair")
 TASKS = (("income", "prob_1"), ("occupation", "prob_2"))
 METRICS = ("accuracy", "nll", "brier")
 SUMMARIES = ("s0_d0", "s0_d1", "s0_d2", "s1_d0", "s1_d1", "s1_d2",
              "s0_mean", "s1_mean", "mean")
-BASE_CLAUSES = 495
-A_CLAUSES = 4455
+BASE_CLAUSES = 765
+A_CLAUSES = 6885
 REPLICATES = 2048
 INNER_GROUPS = 2234
 STUDENTIZATION_FLOOR = 1e-12
@@ -50,7 +50,7 @@ RELEASE_BOOTSTRAP_SEED_SHA256 = hashlib.sha256(RELEASE_BOOTSTRAP_SEED_BYTES).hex
 
 
 def a_margin_names() -> tuple[str, ...]:
-    """Ordered K=4,455 clauses. This order is sealed before A outcome access."""
+    """Ordered K=6,885 clauses. This order is sealed before A outcome access."""
     base = []
     for arm in A_ARMS:
         for task, _ in TASKS:
@@ -267,7 +267,7 @@ def run_a_inference(seed_records: Mapping[int, Mapping]) -> dict:
     clauses, critical_family, critical = summarize_a_bootstrap(names, point, boot)
     missing_arms = {str(seed): [arm for arm in (*A_ARMS, *A_REFS)
                                 if arm not in seed_records[seed]["releases"]] for seed in (0, 1)}
-    return {"schema": "pcrl-a-crossed-group-release-inference-v1", "finite_family": "A_10_ARMS_4_REFS_9_SUMMARIES_V1",
+    return {"schema": "pcrl-a-crossed-group-release-inference-v1", "finite_family": "A_10_ARMS_7_REFS_9_SUMMARIES_S1",
             "clause_count": A_CLAUSES, "available_clause_count": int(available.sum()),
             "missing_clause_count": int((~available).sum()), "missing_arms_by_seed": missing_arms,
             "family_complete": bool(available.all()), "bootstrap_replicates": REPLICATES,

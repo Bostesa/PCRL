@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from .d0_utility import evaluate_inner_utility
+from results.pcrl_latent_and_sampled_methods_v1.r02.d0_utility import evaluate_inner_utility
 
 
 class D0UtilityTest(unittest.TestCase):
