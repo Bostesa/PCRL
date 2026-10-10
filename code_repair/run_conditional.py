@@ -266,6 +266,12 @@ def _require_t0_scaler_pin(t0: HardCodeRelease, gate: dict, stage: dict,
         raise PermissionError("immutable T0 scaler/gate identity differs")
 
 
+def _require_t0_schema_pin(package_manifest: dict,
+                           role_source_schema_sha256: str) -> None:
+    if package_manifest.get("source_schema_sha256") != role_source_schema_sha256:
+        raise PermissionError("immutable T0 source schema differs from admitted role")
+
+
 def _batch_plan_sha256(plan: tuple, row_ids: np.ndarray) -> str:
     """Hash exact epoch, batch boundary and ordered FIT-person sequence."""
     digest = hashlib.sha256(b"pcrl-code-witness-batch-plan-v1\0")
@@ -299,6 +305,10 @@ def run(args: argparse.Namespace) -> dict:
                       expected_manifest_sha256=stage["t0_manifest_sha256_by_seed"][str(seed)],
                       expected_source_sha256=encoder.model_sha256,
                       expected_bits=bits)
+    _require_t0_schema_pin(
+        _read_json_pinned(Path(args.t0_manifest),
+                          stage["t0_manifest_sha256_by_seed"][str(seed)]),
+        store.manifest["source_schema_sha256"])
     initial = {name: value.detach().cpu().clone()
                for name, value in t0.model.state_dict().items()}
     if state_sha256(initial) != admission["t0_state_sha256_by_seed"][str(seed)]:
@@ -391,6 +401,7 @@ def run(args: argparse.Namespace) -> dict:
         package = save_service(out / public_id, release, source_seed=seed,
                                arm_id=public_id,
                                role_manifest_sha256=stage["role_manifest_sha256"],
+                               source_schema_sha256=store.manifest["source_schema_sha256"],
                                fit_receipt=fit_receipt)
         packages[public_id] = {key: value for key, value in package.items()
                                if key != "manifest_path"}

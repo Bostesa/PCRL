@@ -8,7 +8,7 @@ import pytest
 
 from code_repair.run_conditional import (run, write_release_npz, scientific_arm_id,
                                          _calibration_module, _require_t0_scaler_pin,
-                                         _batch_plan_sha256)
+                                         _batch_plan_sha256, _require_t0_schema_pin)
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_file
 
 
@@ -33,6 +33,12 @@ def test_t0_scaler_is_checked_against_both_sealed_identities():
     stage["t0_scaler_sha256_by_seed"]["0"] = "b" * 64
     with pytest.raises(PermissionError, match="scaler"):
         _require_t0_scaler_pin(Restored(), gate, stage, 0)
+
+
+def test_t0_source_schema_is_pinned_to_admitted_role_manifest():
+    _require_t0_schema_pin({"source_schema_sha256": "a" * 64}, "a" * 64)
+    with pytest.raises(PermissionError, match="schema"):
+        _require_t0_schema_pin({"source_schema_sha256": "b" * 64}, "a" * 64)
 
 
 def test_batch_plan_hash_changes_with_order_or_boundaries():
