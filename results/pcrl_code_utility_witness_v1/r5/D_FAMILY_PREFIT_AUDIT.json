@@ -1,0 +1,36 @@
+{
+  "schema": "pcrl-code-utility-r5-d-finite-family-prefit-audit-v1",
+  "scope": "Independent data-free enumeration from stated arm/task/reference/view dimensions; no R4 module import and no outcome or person arrays",
+  "r4_proposal_sha256": "af1f5378b65705ac6fce205d72e9ab1b4d21437f7a2d66e90503ba475172f291",
+  "independently_recomputed_ordered_ids_sha256": "d0b032ed2b6a6f21b5ecb1db51bbdc1623881b3943bf3289f20da7b93d667108",
+  "exact_order_match": true,
+  "clause_count": 2376,
+  "unique_ids": 2376,
+  "per_summary": {
+    "utility": 288,
+    "arm_pair_auc": 360,
+    "ref_pair_auc": 144
+  },
+  "coverage": {
+    "summaries": ["s0", "s1", "mean"],
+    "capacity_branches": [10, 16],
+    "learned_arms_per_capacity": ["T0", "TPLUS", "L", "J", "S12", "S21", "C"],
+    "inherited_bank_arms": ["W_Q", "W_TSTAR"],
+    "utility_references": ["F", "U0", "Ucal"],
+    "tasks": ["income", "occupation"],
+    "metrics": ["accuracy", "nll", "brier"],
+    "recovery_views": ["r1", "r2", "pair"],
+    "all_twenty_four_T0_point_gate_clauses_per_capacity": true,
+    "all_pairwise_arm_recovery_contrasts": true,
+    "missing_slots_retained_as_null": true
+  },
+  "prefit_issue": "R4 plan proposes max-absolute-t critical on only estimable slots while describing full 2376-slot family adjustment. Conditional capacity/protection arms leave missing slots. The critical rule must be frozen as a valid full-family procedure before seeing outcomes; full-K Bonferroni is one conservative option.",
+  "required_sign_map": {
+    "utility_accuracy": "candidate-minus-reference; PASS lower >= -0.010",
+    "utility_nll": "candidate-minus-reference; PASS upper <= 0.010",
+    "utility_brier": "candidate-minus-reference; PASS upper <= 0.005",
+    "coalition_benefit": "control-minus-candidate; PASS lower >= 0.020",
+    "recipient_worsening": "candidate-minus-control; PASS upper <= 0.010"
+  },
+  "status": "DIMENSION_COVERAGE_PASS_INFERENCE_RULE_NEEDS_SEAL_CLARIFICATION"
+}
