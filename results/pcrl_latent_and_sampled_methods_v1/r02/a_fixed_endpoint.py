@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import importlib
 import json
 import os
@@ -138,6 +139,9 @@ def _producer_and_correction(state: Mapping, producer_path: Path,
         raise PermissionError("original producer/latest A correction registration differs")
     producer = json.loads(producer_path.read_text())
     correction = json.loads(correction_path.read_text())
+    plan_sha256 = hashlib.sha256(json.dumps(
+        producer.get("unit_plan"), sort_keys=True, separators=(",", ":"),
+        allow_nan=False).encode()).hexdigest()
     if (producer.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1" or
             not str(producer.get("status", "")).startswith("LOCALLY_SEALED") or
             producer.get("interval_family", {}).get("ordered_clause_count") != 6885 or
@@ -145,6 +149,7 @@ def _producer_and_correction(state: Mapping, producer_path: Path,
             correction.get("schema") != "pcrl-a-fixed-attack-correction-v1" or
             correction.get("status") != "LOCALLY_SEALED_FIXED_ATTACK_CORRECTION" or
             correction.get("producer_amendment_sha256") != producer_sha256 or
+            correction.get("producer_unit_plan_sha256") != plan_sha256 or
             type(correction.get("physical_attempts")) is not dict):
         raise PermissionError("A producer/correction scientific lineage differs")
     return producer, correction

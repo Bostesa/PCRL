@@ -1,6 +1,7 @@
 """Data-free 18 fixed-attack endpoint and FIT-reason census tests."""
 
 import json
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -284,10 +285,12 @@ def test_correction_must_be_latest_a_while_original_producer_stays_registered(tm
         "interval_family": {"ordered_clause_count": 6885}, "unit_plan": {},
     }))
     producer_sha = sha(producer_path)
+    plan_sha = hashlib.sha256(b"{}").hexdigest()
     correction_path.write_text(json.dumps({
         "schema": "pcrl-a-fixed-attack-correction-v1",
         "status": "LOCALLY_SEALED_FIXED_ATTACK_CORRECTION",
         "producer_amendment_sha256": producer_sha,
+        "producer_unit_plan_sha256": plan_sha,
         "physical_attempts": {},
     }))
     correction_sha = sha(correction_path)
@@ -299,6 +302,15 @@ def test_correction_must_be_latest_a_while_original_producer_stays_registered(tm
         state, producer_path, producer_sha, correction_path, correction_sha)
     assert producer["unit_plan"] == {}
     assert correction["producer_amendment_sha256"] == producer_sha
+    bad = dict(correction, producer_unit_plan_sha256="f" * 64)
+    correction_path.write_text(json.dumps(bad))
+    bad_sha = sha(correction_path)
+    state["amendments"][-1]["sha256"] = bad_sha
+    with pytest.raises(PermissionError, match="scientific lineage"):
+        _producer_and_correction(state, producer_path, producer_sha,
+                                 correction_path, bad_sha)
+    correction_path.write_text(json.dumps(correction))
+    state["amendments"][-1]["sha256"] = correction_sha
     state["amendments"].append({"path": str(tmp_path / "other.json"),
                                 "sha256": "f" * 64, "stages": ["a"]})
     with pytest.raises(PermissionError, match="latest"):
