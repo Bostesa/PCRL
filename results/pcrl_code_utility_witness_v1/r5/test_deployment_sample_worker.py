@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from .deployment_sample_worker import check_recipient_wire
+from results.pcrl_code_utility_witness_v1.r5.deployment_sample_worker import check_recipient_wire
 
 
 class DeploymentWireComparatorTest(unittest.TestCase):
