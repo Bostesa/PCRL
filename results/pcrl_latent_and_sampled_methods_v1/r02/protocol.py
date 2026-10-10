@@ -143,6 +143,7 @@ def fit_probability_specialists(
         queue_guard()
         model = _factory(base, seed)
         model.fit(pa[fit], y[fit])
+        queue_guard()
         path = out / f"model__{name}.joblib"
         joblib.dump(model, path, compress=3)
         path.chmod(0o600)
@@ -162,7 +163,10 @@ def run_three_view_attack(
 ) -> dict:
     """Fit/custody/score the frozen three-view slate and V2 controls.
 
-    This is the numerical worker called *inside* R03's slot. The caller first
+    This is the numerical worker called *inside* R03's continuously held slot.
+    Each inherited multi-reader fit is one sequential compound queue unit;
+    the slot is asserted before and after it because the predecessor exposes
+    no per-reader callback. The caller first
     verifies role admission and release identity. ``load_inner_sex`` must be a
     lazy role-loader closure: it is invoked only after FROZEN_COMPLETE and all
     reader custody receipts are safely written. The return's ``fitted`` bank
@@ -199,6 +203,7 @@ def run_three_view_attack(
         queue_guard()
         core = fit_slate(view.att, sex_att, view.inner,
                          required_readers=plan.core, attacker_seed=seed)
+        queue_guard()
         specialists = fit_probability_specialists(
             view, sex_att, seed=seed, private_dir=root / name / "probability",
             lock_path=lock, lock_sha256=lock_sha256, queue_guard=queue_guard)
@@ -237,6 +242,7 @@ def run_three_view_attack(
         queue_guard()
         control, artifacts = run_control_probes_v2(
             view.att, sex_att, view.inner, sex_inner, return_artifacts=True)
+        queue_guard()
         controls[name] = {"scores": control,
                           "custody": save_control_probe_v2_custody(
                               artifacts, root / name / "controls")}
