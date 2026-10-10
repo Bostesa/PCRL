@@ -38,7 +38,8 @@ READER_PLAN = {"core": ["LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32",
 
 def validate_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
                          role_manifest_sha256: str, worker_sha256: str,
-                         unit_id: str, arm_id: str, seed: int, bits: int,
+                         unit_id: str, arm_id: str, seed: int, attacker_seed: int,
+                         bits: int,
                          source_model_sha256: str, service_manifest_sha256: str,
                          release_sha256: Mapping[str, str]) -> None:
     """Bind every scientific input and the full mandatory reader slate."""
@@ -49,7 +50,8 @@ def validate_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
             or lock.get("worker_sha256") != worker_sha256
             or lock.get("reader_plan") != READER_PLAN):
         raise PermissionError("attack lock source, worker or slate differs")
-    expected = {"arm_id": arm_id, "seed": seed, "bits": bits,
+    expected = {"arm_id": arm_id, "seed": seed,
+                "attacker_seed": attacker_seed, "bits": bits,
                 "source_model_sha256": source_model_sha256,
                 "service_manifest_sha256": service_manifest_sha256,
                 "release_sha256": dict(release_sha256)}
@@ -57,6 +59,20 @@ def validate_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
             or set(release_sha256) != set(ROLES)
             or lock.get("units", {}).get(unit_id) != expected):
         raise PermissionError("attack lock unit/release registry differs")
+
+
+def validate_service_manifest_binding(manifest: Mapping, *, arm_id: str,
+                                      seed: int, source_model_sha256: str,
+                                      role_manifest_sha256: str,
+                                      source_schema_sha256: str,
+                                      bits: int) -> None:
+    if (manifest.get("arm_id") != arm_id
+            or manifest.get("source_seed") != seed
+            or manifest.get("role_manifest_sha256") != role_manifest_sha256
+            or manifest.get("source_sha256") != source_model_sha256
+            or manifest.get("source_schema_sha256") != source_schema_sha256
+            or manifest.get("bit_count") != bits):
+        raise PermissionError("service manifest arm/seed/source/schema/capacity differs")
 
 
 def validate_archive_arrays(arrays: Mapping[str, np.ndarray], role_meta: Mapping,
@@ -162,17 +178,19 @@ def run(args: argparse.Namespace) -> dict:
     validate_attack_lock(
         lock, campaign_seal_sha256=args.seal_sha256,
         role_manifest_sha256=args.role_manifest_sha256, worker_sha256=worker_sha,
-        unit_id=args.unit_id, arm_id=args.arm_id, seed=args.seed, bits=args.bits,
+        unit_id=args.unit_id, arm_id=args.arm_id, seed=args.seed,
+        attacker_seed=args.attacker_seed, bits=args.bits,
         source_model_sha256=args.source_model_sha256,
         service_manifest_sha256=args.service_manifest_sha256,
         release_sha256=release_hashes)
     store = RoleOnlyStore(role_path)
     manifest = json.loads(service_path.read_text())
-    if (manifest.get("arm_id") != args.arm_id or manifest.get("source_seed") != args.seed
-            or manifest.get("role_manifest_sha256") != args.role_manifest_sha256
-            or manifest.get("source_sha256") != args.source_model_sha256
-            or manifest.get("bit_count") != args.bits):
-        raise PermissionError("service manifest arm/seed/source/capacity differs")
+    validate_service_manifest_binding(
+        manifest, arm_id=args.arm_id, seed=args.seed,
+        role_manifest_sha256=args.role_manifest_sha256,
+        source_model_sha256=args.source_model_sha256,
+        source_schema_sha256=store.manifest["source_schema_sha256"],
+        bits=args.bits)
     service = load_service(service_path,
                            expected_manifest_sha256=args.service_manifest_sha256,
                            expected_source_sha256=args.source_model_sha256,

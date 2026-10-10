@@ -7,7 +7,9 @@ import numpy as np
 
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_array
 
-from .attack_worker import validate_archive_arrays, validate_attack_lock
+from .attack_worker import (
+    validate_archive_arrays, validate_attack_lock, validate_service_manifest_binding,
+)
 
 
 def fixture(bits=16):
@@ -50,6 +52,23 @@ def fixture(bits=16):
 
 
 class WorkerPrefitTest(unittest.TestCase):
+    def test_service_manifest_binds_role_schema(self):
+        manifest = {"arm_id": "T0_B16", "source_seed": 0,
+                    "source_sha256": "s" * 64,
+                    "source_schema_sha256": "f" * 64, "bit_count": 16,
+                    "role_manifest_sha256": "r" * 64}
+        validate_service_manifest_binding(
+            manifest, arm_id="T0_B16", seed=0,
+            source_model_sha256="s" * 64,
+            role_manifest_sha256="r" * 64,
+            source_schema_sha256="f" * 64, bits=16)
+        with self.assertRaisesRegex(PermissionError, "service manifest"):
+            validate_service_manifest_binding(
+                manifest, arm_id="T0_B16", seed=0,
+                source_model_sha256="s" * 64,
+                role_manifest_sha256="r" * 64,
+                source_schema_sha256="z" * 64, bits=16)
+
     def test_archive_replays_code_only_outputs(self):
         arrays, meta, service = fixture()
         actual = validate_archive_arrays(arrays, meta, service, bits=16)
@@ -80,7 +99,8 @@ class WorkerPrefitTest(unittest.TestCase):
     def test_lock_binds_every_source_identity(self):
         digest = "a" * 64
         units = {"ATTACK_FIT_NEW": "b" * 64, "INNER_SELECTION": "c" * 64}
-        registered = {"arm_id": "T0", "seed": 0, "bits": 16,
+        registered = {"arm_id": "T0", "seed": 0, "attacker_seed": 17,
+                      "bits": 16,
                       "source_model_sha256": "d" * 64,
                       "service_manifest_sha256": "e" * 64,
                       "release_sha256": units}
@@ -97,11 +117,16 @@ class WorkerPrefitTest(unittest.TestCase):
                 "units": {"ATTACK_T0_S0": registered}}
         inputs = dict(campaign_seal_sha256=digest, role_manifest_sha256="f" * 64,
                       worker_sha256="1" * 64, unit_id="ATTACK_T0_S0", arm_id="T0",
-                      seed=0, bits=16, source_model_sha256="d" * 64,
+                      seed=0, attacker_seed=17, bits=16,
+                      source_model_sha256="d" * 64,
                       service_manifest_sha256="e" * 64,
                       release_sha256=units)
         validate_attack_lock(lock, **inputs)
         inputs["bits"] = 10
+        with self.assertRaisesRegex(PermissionError, "unit"):
+            validate_attack_lock(lock, **inputs)
+        inputs["bits"] = 16
+        inputs["attacker_seed"] = 19
         with self.assertRaisesRegex(PermissionError, "unit"):
             validate_attack_lock(lock, **inputs)
 

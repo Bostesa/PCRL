@@ -32,7 +32,8 @@ SOURCE_SCHEMA = "code-utility-witness-worker-v1"
 
 def validate_bank_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
                               role_manifest_sha256: str, worker_sha256: str,
-                              unit_id: str, arm_id: str, seed: int, bits: int,
+                              unit_id: str, arm_id: str, seed: int,
+                              attacker_seed: int, bits: int,
                               source_model_sha256: str, source_receipt_sha256: str,
                               public_table_sha256: str,
                               policy_sha256: str, decoder_sha256: str | None,
@@ -44,7 +45,8 @@ def validate_bank_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
             or lock.get("worker_sha256") != worker_sha256
             or lock.get("reader_plan") != READER_PLAN):
         raise PermissionError("bank attack lock worker/source/slate differs")
-    expected = {"arm_id": arm_id, "seed": seed, "bits": bits,
+    expected = {"arm_id": arm_id, "seed": seed,
+                "attacker_seed": attacker_seed, "bits": bits,
                 "source_model_sha256": source_model_sha256,
                 "source_receipt_sha256": source_receipt_sha256,
                 "public_table_sha256": public_table_sha256,
@@ -86,7 +88,8 @@ def run(args: argparse.Namespace) -> dict:
         lock, campaign_seal_sha256=args.seal_sha256,
         role_manifest_sha256=args.role_manifest_sha256,
         worker_sha256=sha_file(Path(__file__)), unit_id=args.unit_id,
-        arm_id=args.arm_id, seed=args.seed, bits=args.bits,
+        arm_id=args.arm_id, seed=args.seed, attacker_seed=args.attacker_seed,
+        bits=args.bits,
         source_model_sha256=args.source_model_sha256,
         source_receipt_sha256=args.source_receipt_sha256,
         public_table_sha256=args.public_table_sha256,
