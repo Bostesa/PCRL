@@ -37,8 +37,10 @@ SOURCE = (
     "sampled_channel_v1/controls/task_rate",
 )
 ARMS = ("B0", "T", "D", "P", "L", "J", "S12", "S21")
-INDEX = R2 / "R2_PROTECTION_SOURCE_INDEX_F1.json"
-UNIT_SUFFIX = "_F1"
+UNITS = tuple((arm, seed) for arm in ARMS for seed in (0, 1)
+              if (arm, seed) != ("B0", 0))
+INDEX = R2 / "R2_PROTECTION_SOURCE_INDEX_G1.json"
+UNIT_SUFFIX = "_G1"
 
 
 def sha(path):
@@ -83,14 +85,18 @@ def write_index():
     if INDEX.exists():
         raise FileExistsError("source index is write-once")
     inventory = code_inventory()
-    out = {"schema": "BAR1-r2-protection-source-index-f1-v1",
+    out = {"schema": "BAR1-r2-protection-source-index-g1-v1",
            "source_lock_sha256": sha(PACKAGE / "CAMPAIGN_LOCK.json"),
-           "supersedes_source_index_sha256": sha(R2 / "R2_PROTECTION_SOURCE_INDEX.json"),
-           "unit_ids": [f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}" for arm in ARMS for seed in (0, 1)],
+           "supersedes_source_index_sha256": sha(R2 / "R2_PROTECTION_SOURCE_INDEX_F1.json"),
+           "retained_completed_unit_id": "R2_B0_S0_FIT_F1",
+           "retained_completed_unit_receipt_sha256":
+               sha(R2 / "R2_B0_S0_FIT_F1_UNIT_RECEIPT.json"),
+           "unit_ids": [f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}" for arm, seed in UNITS],
            "recipe_seeds": {f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}": 2026101200 +
                             100*seed + ARMS.index(arm)
-                            for arm in ARMS for seed in (0, 1)},
+                            for arm, seed in UNITS},
            "whole_arm_cpu_ceiling_s": 300,
+           "queue_max_rss_gib": 3.0,
            "code": inventory,
            "builder_command": "python -m results.pcrl_bank_anchored_release_v1.bank_anchored.r2_build_protection_specs --amendment PATH --role-manifest PATH --portfolio-manifest PATH --source-audit PATH --stream-roots PATH"}
     INDEX.write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
@@ -111,9 +117,11 @@ def write_private(path, payload):
 
 def build(args):
     index = json.loads(INDEX.read_text())
-    if (index.get("schema") != "BAR1-r2-protection-source-index-f1-v1" or
+    if (index.get("schema") != "BAR1-r2-protection-source-index-g1-v1" or
             index["code"] != code_inventory() or
-            index["source_lock_sha256"] != sha(PACKAGE / "CAMPAIGN_LOCK.json")):
+            index["source_lock_sha256"] != sha(PACKAGE / "CAMPAIGN_LOCK.json") or
+            index["retained_completed_unit_receipt_sha256"] !=
+            sha(R2 / "R2_B0_S0_FIT_F1_UNIT_RECEIPT.json")):
         raise PermissionError("R2 source index differs before protection specs")
     amendment = Path(args.amendment).resolve(strict=True)
     role_manifest = Path(args.role_manifest).resolve(strict=True)
@@ -134,8 +142,7 @@ def build(args):
         raise PermissionError("R2 unit custody root is not owner-only")
     code = [record(REPO / v["relative_path"]) for v in index["code"]]
     created = {}
-    for arm in ARMS:
-        for seed in (0, 1):
+    for arm, seed in UNITS:
             unit = f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}"
             identity = R2 / f"R2_FULL_FIT_IDENTITY_S{seed}_RECEIPT.json"
             pins = {"campaign_lock": PACKAGE / "CAMPAIGN_LOCK.json",
@@ -188,7 +195,7 @@ def build(args):
                              "results.pcrl_bank_anchored_release_v1.bank_anchored.r2_worker",
                              "--config", str(config_path)],
                     "cwd": str(REPO), "env": {}, "max_wall_s": 600,
-                    "cpu_reserve_s": 600, "max_rss_gib": 4.0,
+                    "cpu_reserve_s": 600, "max_rss_gib": 3.0,
                     "projected_output_bytes": 134217728,
                     "deps": [f"R2_FULL_FIT_IDENTITY_S{seed}"],
                     "outputs": [str(fit_receipt), str(unit_receipt)],
@@ -202,7 +209,7 @@ def build(args):
                "source_index_sha256": sha(INDEX),
                "amendment_sha256": sha(amendment),
                "unit_sha256": created}
-    summary_path = R2 / "R2_PROTECTION_SPEC_RECEIPT_F1.json"
+    summary_path = R2 / "R2_PROTECTION_SPEC_RECEIPT_G1.json"
     if summary_path.exists():
         raise FileExistsError("protection spec receipt is write-once")
     summary_path.write_text(json.dumps(summary, sort_keys=True, indent=2) + "\n")
