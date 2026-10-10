@@ -2,7 +2,7 @@
 
 The source prompt requires a **run** on one real admitted input for each
 representative. These tests are prepared, not yet evidence of a real run. R00
-must seal the source/model/role contract and R03 must admit each unit before a
+must seal the source/role contract and R03 must admit each unit before a
 scientific worker opens a role-only export.
 
 ## Source and one-row custody
@@ -22,9 +22,14 @@ scientific worker opens a role-only export.
 
 ## D hard-code acceptance
 
-R07's provisional API is `HardCodeRelease.recipient_from_raw(purpose, raw,
-columns, encoder)`. The frozen source checkpoint must hash to the sealed
-purpose/seed pin before load. Run both purposes against the same admitted raw
+R07's service API is `load_service(manifest_path, expected_manifest_sha256,
+expected_source_sha256)` followed by
+`HardCodeRelease.recipient_from_raw(purpose, raw, columns, encoder)`. The
+frozen source checkpoint must hash to the sealed
+purpose/seed pin before load. The **postfit** private service manifest and
+public fit receipt must bind the effective D seal and completed R03 fit unit;
+model, head and CAL hashes are verified from that postfit chain, since those
+hashes cannot exist in the prefit lock. Run both purposes against the same admitted raw
 row through their own frozen encoders. Require ten binary `uint8` bits per
 recipient, at most 1,024 states, and exactly `code`, `probabilities`,
 `decision`, and fixed `metadata` on the wire. Recompute probability and
@@ -55,6 +60,9 @@ fine tokens, action indices, gate probabilities, random coins/seeds, clean
 teacher scores, unsampled expectations and hidden routing flags on the wire.
 Save the sampled realization privately and replay it from that cache; never
 substitute expected probabilities for the actual sampled output.
+The A real worker must use the dated effective A amendment and fitted
+policy/bank/cache manifests as its trusted pins. It cannot infer them from
+the service response being checked.
 
 ## Queue and evidence boundary
 
@@ -68,8 +76,8 @@ checkpoint/bank manifests before requesting those units. If A is not fitted
 or no sampled bank exists, mark its real unit untriggered under the sealed
 condition; do not describe a synthetic fixture as a deployed result.
 
-The current R07 `HardCodeRelease` is an uncalibrated provisional service and
-does not yet carry the R06 H-GLOBAL-TEMP calibration marker/SHA or head/model
-hashes. The strict D acceptance fixture is intentionally expected to fail
-until R07's versioned service and independent head/calibrator reconstruction
-are implemented. No real D deployment PASS is inferred from its present code.
+R07's source now carries a versioned calibrated service package; source and
+test hashes are still under review. The R18 synthetic fixture reconstructs
+probabilities from separately opened package head tensors and CAL records,
+without calling the service's code-head method. It has not run under the R03
+seal, and no real D deployment PASS is inferred from this engineering state.

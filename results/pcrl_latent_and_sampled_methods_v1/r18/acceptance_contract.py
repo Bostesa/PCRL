@@ -20,6 +20,9 @@ EXCLUDED_SOURCE_COLUMNS = frozenset({"sex", "race", "income", "occupation", "fnl
 D_FIELDS = frozenset({"code", "probabilities", "decision", "metadata"})
 A_FIELDS = frozenset({"schema", "recipient", "code_id", "probability", "decision",
                       "release_id", "public_metadata"})
+A_METADATA_FIELDS = frozenset({"model_id", "source_binding_sha256",
+                               "canonical_bank_sha256", "mechanism_sha256",
+                               "code_length_bits", "fallback", "sampling_contract"})
 D_METADATA_FIELDS = frozenset({"schema", "purpose", "bits", "bit_order",
                                "capacity_states", "version", "source_sha256",
                                "model_sha256", "head_sha256",
@@ -79,12 +82,14 @@ def check_d_public_release(release: Mapping[str, Any], purpose: int,
     if code.shape != (1, 10) or code.dtype != np.uint8 or not np.isin(code, (0, 1)).all():
         raise ValueError("D public code must be ten hard bits")
     metadata = release["metadata"]
-    if (not isinstance(metadata, Mapping) or set(metadata) != set(expected_metadata)
+    if (not isinstance(metadata, Mapping) or set(metadata) != D_METADATA_FIELDS
+            or set(expected_metadata) != D_METADATA_FIELDS
             or dict(metadata) != dict(expected_metadata)
-            or not D_METADATA_FIELDS.issubset(metadata)
             or metadata["schema"] != "latent-repair-hardbits-v1"
             or metadata["purpose"] != purpose or metadata["bits"] != 10
+            or metadata["bit_order"] != "c0_least_significant"
             or metadata["capacity_states"] != 1024
+            or not isinstance(metadata["version"], str) or not metadata["version"]
             or metadata["calibration_family"] != "H-GLOBAL-TEMP"
             or any(not isinstance(metadata[key], str) or len(metadata[key]) != 64
                    or any(character not in "0123456789abcdef" for character in metadata[key])
@@ -110,10 +115,11 @@ def check_a_public_release(release: Mapping[str, Any],
         raise ValueError("A release has missing or hidden public fields")
     if (release["schema"] != "SCV1-score-release-v1"
             or release["recipient"] != expected_recipient
+            or expected_recipient not in (1, 2)
             or release["release_id"] != expected_release_id):
         raise ValueError("A release identity differs from the sealed service")
     code_id = release["code_id"]
-    if code_id not in bank:
+    if type(code_id) not in (int, np.int64) or code_id < 0 or code_id not in bank:
         raise ValueError("A code ID is not in the frozen global public bank")
     expected_probability, expected_decision = bank[code_id]
     actual = np.asarray(release["probability"], dtype=np.float64)
@@ -123,7 +129,18 @@ def check_a_public_release(release: Mapping[str, Any],
         raise ValueError("A sampled probability differs from the public bank")
     if release["decision"] != expected_decision:
         raise ValueError("A decision differs from the selected public bank entry")
-    if release["public_metadata"] != expected_public_metadata:
+    metadata = release["public_metadata"]
+    if (not isinstance(metadata, Mapping) or set(metadata) != A_METADATA_FIELDS
+            or metadata != expected_public_metadata
+            or metadata["model_id"] != expected_release_id
+            or metadata["sampling_contract"] != "cached_one_joint_draw_v1"
+            or metadata["fallback"] is not False
+            or not isinstance(metadata["code_length_bits"], int)
+            or metadata["code_length_bits"] != (len(bank) - 1).bit_length()
+            or any(not isinstance(metadata[key], str) or len(metadata[key]) != 64
+                   or any(character not in "0123456789abcdef" for character in metadata[key])
+                   for key in ("source_binding_sha256", "canonical_bank_sha256",
+                               "mechanism_sha256"))):
         raise ValueError("A metadata is not the sealed global constant")
 
 
