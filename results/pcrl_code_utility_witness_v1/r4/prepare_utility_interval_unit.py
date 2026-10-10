@@ -165,7 +165,7 @@ def prepare(role_manifest: Path, gate_b10: Path, gate_b16: Path,
     spec = {
         "unit_id": UNIT_ID, "stage": "verification",
         "amendment_sha256": amendment["sha256"],
-        "argv": [str(ROOT / ".venv/bin/python"), "-m",
+        "argv": [str(ROOT.parent.parent / ".venv/bin/python"), "-m",
                  "results.pcrl_code_utility_witness_v1.r4.utility_interval_worker",
                  "--config", str(config_path)],
         "cwd": str(ROOT), "max_wall_s": 900, "cpu_reserve_s": 900,
