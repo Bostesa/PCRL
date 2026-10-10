@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import stat
 
 
@@ -33,7 +34,8 @@ def _entry(path: Path, *, role: str, archive_name: str, private: bool) -> dict:
             "bytes": path.stat().st_size, "owner_only": private}
 
 
-def build(root: Path, output: Path, *, selected_arms: tuple[str, ...] = ()) -> dict:
+def build(root: Path, output: Path, *, selected_arms: tuple[str, ...] = (),
+          fit_unit_ids: dict[tuple[str, int], str] | None = None) -> dict:
     root = root.resolve(strict=True)
     package = root / "results/pcrl_bank_anchored_release_v1"
     private = package / "r1/.private"
@@ -42,6 +44,9 @@ def build(root: Path, output: Path, *, selected_arms: tuple[str, ...] = ()) -> d
             len(set(selected_arms)) != len(selected_arms) or
             not set(selected_arms) <= OPTIONAL_ARMS):
         raise ValueError("private output or selected arms differ")
+    fit_unit_ids = {} if fit_unit_ids is None else fit_unit_ids
+    if set(fit_unit_ids) - {(arm, seed) for arm in selected_arms for seed in (0, 1)}:
+        raise ValueError("unexpected selected FIT unit override")
     entries: list[dict] = []
     for seed in (0, 1):
         cfg_path = private / f"R1_BANK_S{seed}_FIT_SAMPLE32_CONFIG.json"
@@ -76,7 +81,10 @@ def build(root: Path, output: Path, *, selected_arms: tuple[str, ...] = ()) -> d
                                   archive_name=f"seed{seed}/sample/{name}",
                                   private=alias != "raw_witness_receipt"))
         for arm in selected_arms:
-            fit_id = f"R2_{arm}_S{seed}_FIT"
+            fit_id = fit_unit_ids.get((arm, seed), f"R2_{arm}_S{seed}_FIT")
+            if re.fullmatch(rf"R2_{arm}_S{seed}_FIT(?:_F[1-9][0-9]*)?",
+                            fit_id) is None:
+                raise ValueError("selected FIT successor identity differs")
             unit = package / "r2/.private/units" / fit_id
             policy = unit / "policy"
             policy_receipt = policy / "POLICY_RECEIPT.json"
@@ -156,9 +164,21 @@ def main() -> None:
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--selected-arm", action="append", default=[])
+    parser.add_argument("--fit-unit-id", action="append", default=[],
+                        help="explicit R2_<ARM>_S<seed>_FIT[_F<n>] successor ID")
     args = parser.parse_args()
+    overrides = {}
+    for value in args.fit_unit_id:
+        match = re.fullmatch(r"R2_(B0|T|D|P|L|J|S12|S21)_S([01])_FIT(?:_F[1-9][0-9]*)?",
+                             value)
+        if match is None:
+            raise ValueError("selected FIT unit ID differs")
+        key = (match.group(1), int(match.group(2)))
+        if key in overrides:
+            raise ValueError("duplicate selected FIT unit ID")
+        overrides[key] = value
     result = build(args.root, args.output,
-                   selected_arms=tuple(args.selected_arm))
+                   selected_arms=tuple(args.selected_arm), fit_unit_ids=overrides)
     print(json.dumps({"status": result["status"],
                       "entries": len(result["entries"]),
                       "manifest_sha256": _sha(args.output)}, sort_keys=True))

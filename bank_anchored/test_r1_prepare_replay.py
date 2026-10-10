@@ -40,7 +40,7 @@ def test_prepare_pins_exact_b0_package_and_raw_sample_without_labels(tmp_path):
     _json(r1 / "R1_BANK_S0_FIT_RAW_RECEIPT.json",
           {"status": "PASS", "seed": 0, "sample_input_sha256": sample_hash})
     lock_hash = _json(pkg / "CAMPAIGN_LOCK.json", {"selected_bank": "W_TSTAR"})
-    fit_id = "R2_B0_S0_FIT"
+    fit_id = "R2_B0_S0_FIT_F1"
     fit_root = pkg / "r2/.private/units" / fit_id
     policy = fit_root / "policy"
     policy.mkdir(parents=True, mode=0o700)
@@ -86,6 +86,8 @@ def test_prepare_pins_exact_b0_package_and_raw_sample_without_labels(tmp_path):
     assert spec["deps"] == [fit_id]
     assert spec["stage"] == "verification"
     assert config["pins"]["raw_sample"] == str(prior / "sample_input.npz")
+    assert config["python"] == sys.executable
+    assert Path(sys.executable).is_symlink()
     assert "stream_roots" not in config["pins"]
     assert all("sex" not in path.lower() and "income.npz" not in path.lower()
                for path in config["pins"].values())

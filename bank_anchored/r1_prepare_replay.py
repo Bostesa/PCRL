@@ -14,9 +14,25 @@ import os
 from pathlib import Path
 import re
 import stat
+import subprocess
 
 
 ARMS = frozenset({"B0", "T", "D", "P", "L", "J", "S12", "S21"})
+
+
+def _interpreter_entrypoint(python: str, root: Path) -> str:
+    """Keep the venv symlink path and smoke the exact queued executable."""
+    path = Path(os.path.abspath(python))
+    if not path.is_file() or not os.access(path, os.X_OK):
+        raise ValueError("queued interpreter entrypoint is unavailable")
+    check = subprocess.run(
+        [str(path), "-c", "import numpy, scipy, torch, sklearn, joblib"],
+        cwd=root, capture_output=True, text=True, timeout=30, check=False,
+        env={**os.environ, "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1",
+             "MKL_NUM_THREADS": "1", "VECLIB_MAXIMUM_THREADS": "1"})
+    if check.returncode != 0:
+        raise ValueError("queued interpreter failed scientific import smoke")
+    return str(path)
 
 
 def _sha(path: Path) -> str:
@@ -41,10 +57,11 @@ def prepare(root: Path, *, arm_id: str, seed: int, fit_unit_id: str,
     r1 = pkg / "r1"
     private = r1 / ".private"
     if (arm_id not in ARMS or seed not in (0, 1) or
-            fit_unit_id != f"R2_{arm_id}_S{seed}_FIT" or
-            not Path(python).is_file() or
+            re.fullmatch(rf"R2_{arm_id}_S{seed}_FIT(?:_F[1-9][0-9]*)?",
+                         fit_unit_id) is None or
             stat.S_IMODE(private.stat().st_mode) & 0o077):
         raise ValueError("selected FIT unit, interpreter or private root differs")
+    python_entrypoint = _interpreter_entrypoint(python, root)
     unit = f"R1_DEPLOY_S{seed}_{arm_id}"
     source_config = private / f"R1_BANK_S{seed}_FIT_SAMPLE32_CONFIG.json"
     source = json.loads(source_config.read_text())
@@ -117,7 +134,7 @@ def prepare(root: Path, *, arm_id: str, seed: int, fit_unit_id: str,
         "unit_id": unit, "seed": seed, "arm_id": arm_id,
         "source_binding_sha256": package["source_binding_sha256"],
         "policy_receipt_sha256": policy_sha,
-        "python": str(Path(python).resolve(strict=True)), "cwd": str(root),
+        "python": python_entrypoint, "cwd": str(root),
         "pins": {name: str(path.resolve(strict=True)) for name, path in pins.items()},
         "private_output_dir": str(private / unit),
         "public_receipt": str(r1 / f"{unit}_RECEIPT.json"),
