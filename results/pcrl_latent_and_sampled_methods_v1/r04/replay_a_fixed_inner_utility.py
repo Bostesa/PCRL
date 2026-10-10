@@ -49,8 +49,10 @@ def load_role(manifest_path: Path, manifest: dict, kind: str) -> dict[str, np.nd
     key = f"INNER_SELECTION:{kind}"
     path = manifest_path.parent.parent / manifest["role_file_relative_path"][key]
     check(sha_file(path) == manifest["role_file_sha256"][key], f"{kind} role source SHA")
+    expected = REF_FIELDS if kind.startswith("references_s") else {"row_id", "unit", kind}
     with np.load(path, allow_pickle=False) as npz:
-        return {field: np.array(npz[field], copy=True) for field in npz.files}
+        check(set(npz.files) == expected, f"{kind} role schema")
+        return {field: np.array(npz[field], copy=True) for field in expected}
 
 
 def main() -> None:

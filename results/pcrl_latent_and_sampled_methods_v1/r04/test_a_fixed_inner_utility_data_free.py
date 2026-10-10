@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 
 import numpy as np
 
 from .audit_diagnostic_q_parity import _canonical, _distance
 from .independent_replay import task_metrics, task_point_gate
+from .independent_a_source import sha_file
+from .replay_a_fixed_inner_utility import load_role
 
 
 class FixedInnerUtilityFixture(unittest.TestCase):
@@ -32,6 +36,22 @@ class FixedInnerUtilityFixture(unittest.TestCase):
                                {"income": {"U0": reference, "Ucal": reference},
                                 "occupation": {"U0": reference, "Ucal": reference}})
         self.assertTrue(gate["point_pass"])
+
+    def test_label_archive_rejects_extra_member_before_materialization(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest_path = root / "m1/DATA_ACCESS_MANIFEST.json"
+            manifest_path.parent.mkdir()
+            relative = ".private/role_export_v1/INNER_SELECTION/income.npz"
+            source = root / relative
+            source.parent.mkdir(parents=True)
+            np.savez(source, row_id=np.array([1], np.int64),
+                     unit=np.array([2], np.int64), income=np.array([0], np.int64),
+                     forbidden_sex=np.array([1], np.int64))
+            manifest = {"role_file_relative_path": {"INNER_SELECTION:income": relative},
+                        "role_file_sha256": {"INNER_SELECTION:income": sha_file(source)}}
+            with self.assertRaisesRegex(ValueError, "role schema"):
+                load_role(manifest_path, manifest, "income")
 
 
 if __name__ == "__main__":
