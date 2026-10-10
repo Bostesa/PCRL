@@ -116,10 +116,10 @@ def run(args: argparse.Namespace) -> dict:
     source_receipt = _read_json(Path(args.source_receipt), args.source_receipt_sha256)
     if (source_receipt.get("status") != "T_DK_RELEASES_READY"
             or source_receipt.get("seal_sha256") != args.seal_sha256
-            or source_receipt.get("seed") != 0
+            or source_receipt.get("seed") != args.seed
             or source_receipt.get("role_manifest_sha256") != sha256(role_path)
             or source_receipt.get("source_sha256") !=
-            locked_roles["source_model_sha256"]["0"]
+            locked_roles["source_model_sha256"][str(args.seed)]
             or set(source_receipt.get("packages", {})) != set(ARMS)):
         raise ValueError("first paired-seed source receipt identity differs")
     first_private = Path(args.source_private).resolve(strict=True)
@@ -200,7 +200,7 @@ def run(args: argparse.Namespace) -> dict:
         attack_receipt_path = Path(args.attack_t_receipt if arm == "T" else args.attack_k_receipt)
         attack_sha = args.attack_t_receipt_sha256 if arm == "T" else args.attack_k_receipt_sha256
         attack_receipt = _read_json(attack_receipt_path, attack_sha)
-        if (attack_receipt.get("arm_id") != arm or attack_receipt.get("source_seed") != 0
+        if (attack_receipt.get("arm_id") != arm or attack_receipt.get("source_seed") != args.seed
                 or attack_receipt.get("source_receipt_sha256") != args.source_receipt_sha256
                 or attack_receipt.get("effective_lock_sha256") != args.seal_sha256):
             raise ValueError("attack/source identity differs")
@@ -281,6 +281,7 @@ def run(args: argparse.Namespace) -> dict:
     comparison = comparison_margins(auc["D-K"], auc["T"])
     receipt = {"schema": "r04-first-real-d-pair-replay-v1",
                "status": "TECHNICAL_REPLAY_PASS",
+               "seed": args.seed,
                "effective_lock_sha256": args.seal_sha256,
                "source_receipt_sha256": args.source_receipt_sha256,
                "attack_receipt_sha256": {"T": args.attack_t_receipt_sha256,
@@ -292,7 +293,7 @@ def run(args: argparse.Namespace) -> dict:
                "complete_view": view_replay, "reader_custody": custody,
                "task": task, "references": references, "point_gates": gates,
                "sex_recovery": recovery, "D_K_vs_T_margins": comparison,
-               "inference_scope": "seed-zero point comparison only; no two-seed simultaneous PASS"}
+               "inference_scope": "one paired seed point comparison only; no two-seed simultaneous PASS"}
     output = Path(args.public_receipt)
     if output.exists() or not output.parent.is_dir():
         raise FileExistsError("R04 public replay receipt must be new")
@@ -313,6 +314,7 @@ def main() -> None:
                  "attack-k-private", "attack-k-receipt", "attack-k-receipt-sha256",
                  "public-receipt"):
         parser.add_argument("--" + name, required=True)
+    parser.add_argument("--seed", type=int, choices=(0, 1), required=True)
     print(json.dumps(run(parser.parse_args()), sort_keys=True))
 
 
