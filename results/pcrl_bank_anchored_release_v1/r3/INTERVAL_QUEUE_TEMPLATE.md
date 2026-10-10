@@ -35,6 +35,14 @@ Use a fresh owner-only config file (`0600`) under `r3/.private`:
 }
 ```
 
+`python3 -m bank_anchored.r3_make_interval_config` creates that config and
+its queue spec from an owner-only source manifest with schema
+`pcrl-bank-r3-interval-sources-v1`. Its ordered `entries` list contains
+`arm`, `seed`, `receipt_path` and `vector_path` for each completed INNER unit.
+Pass `--manifest`, `--seal`, `--amendment`, `--unit-id` and `--stage`.
+The builder hashes vectors as opaque private files and checks each public
+INNER receipt before registration. It writes a public hash-only unit index.
+
 Add each completed protected INNER arm/seed to `entries` in the frozen arm
 order `B0,T,D,P,L,J,S12,S21,W_Q,P_STAR`, with seed 0 before seed 1. Do not
 insert synthetic identity entries for unrun arms. Every entry needs the exact

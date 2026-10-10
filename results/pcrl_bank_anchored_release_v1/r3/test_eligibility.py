@@ -63,6 +63,14 @@ class EligibilityTests(unittest.TestCase):
         incomplete = point_nomination_rows({}, {"J"})
         self.assertEqual(next(r for r in incomplete if r["arm_id"] == "J")["nomination"],
                          "INCOMPLETE_SEARCH")
+        historical = {"schema": "pcrl-bank-r3-historical-original-inner-eligibility-v1",
+                      "arm_id": "W_Q", "fit_bank_proxy_applied": False,
+                      "original_inner_point_clauses_total": 24,
+                      "original_inner_point_clauses_passed": 24,
+                      "all_two_seed_task_reference_point_caps_pass": True}
+        with_history = point_nomination_rows({}, historical_gates={"W_Q": historical})
+        self.assertEqual(next(r for r in with_history if r["arm_id"] == "W_Q")["utility_gate"],
+                         "HISTORICAL_INNER_PASS")
 
 
 if __name__ == "__main__":

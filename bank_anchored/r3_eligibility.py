@@ -88,16 +88,32 @@ def summarize_arm(arm: str, docs: dict) -> dict:
 
 
 def point_nomination_rows(gates: dict[str, dict],
-                          incomplete: set[str] | None = None) -> list[dict]:
+                          incomplete: set[str] | None = None,
+                          historical_gates: dict[str, dict] | None = None) -> list[dict]:
     """Keep the locked J nomination distinct from controls and missing arms."""
     incomplete = set() if incomplete is None else set(incomplete)
+    historical_gates = {} if historical_gates is None else dict(historical_gates)
     if (set(gates) - set(ARMS) or incomplete - set(ARMS)
-            or set(gates) & incomplete or incomplete & {"B0", "W_Q", "P_STAR"}):
+            or set(gates) & incomplete or incomplete & {"B0", "W_Q", "P_STAR"}
+            or set(historical_gates) - {"W_Q", "P_STAR"}
+            or set(historical_gates) & set(gates)):
         raise PermissionError("unregistered nomination arm")
     out = []
     for arm in ARMS:
         gate = gates.get(arm)
-        if gate is None:
+        historical = historical_gates.get(arm)
+        if historical is not None:
+            if (historical.get("schema") != "pcrl-bank-r3-historical-original-inner-eligibility-v1"
+                    or historical.get("arm_id") != arm
+                    or historical.get("fit_bank_proxy_applied") is not False
+                    or historical.get("original_inner_point_clauses_total") != 24
+                    or historical.get("all_two_seed_task_reference_point_caps_pass") is not
+                       (historical.get("original_inner_point_clauses_passed") == 24)):
+                raise PermissionError("historical original-INNER gate identity differs")
+            status = ("HISTORICAL_INNER_PASS" if
+                      historical["all_two_seed_task_reference_point_caps_pass"]
+                      else "HISTORICAL_INNER_FAIL")
+        elif gate is None:
             status = ("INCOMPLETE_SEARCH" if arm in incomplete else
                       "HISTORICAL_SEPARATE" if arm in ("W_Q", "P_STAR") else
                       "NOT_RUN")
@@ -119,7 +135,7 @@ def point_nomination_rows(gates: dict[str, dict],
                                    "NOT_ELIGIBLE" if arm == "J" and status == "FAIL" else
                                    "INCOMPLETE_SEARCH" if arm == "J" and status == "INCOMPLETE_SEARCH" else
                                    "PENDING" if arm == "J" else "CONTROL"),
-                    "fresh_attack_eligible": status == "PASS"})
+                    "fresh_attack_eligible": status in ("PASS", "HISTORICAL_INNER_PASS")})
     return out
 
 
