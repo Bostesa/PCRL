@@ -33,7 +33,12 @@ def run(args: argparse.Namespace) -> dict:
         raise PermissionError("effective D seal differs")
     amendment = _read_json(Path(args.anchor_amendment), args.anchor_amendment_sha256)
     if (amendment.get("status") != "LOCALLY_SEALED_D_FOLLOWUP"
-            or amendment.get("effective_seal_sha256") != args.seal_sha256):
+            or amendment.get("effective_seal_sha256") != args.seal_sha256
+            or amendment.get("r01_source_map_sha256") != args.source_map_sha256
+            or amendment.get("role_manifest_sha256") != args.role_manifest_sha256
+            or set(amendment.get("authorized_unit_ids", [])) !=
+               {f"D_U_ANCHOR_{anchor.upper()}_S{seed}"
+                for anchor in ANCHORS for seed in (0, 1)}):
         raise PermissionError("D anchor amendment differs")
     role_path = Path(args.role_manifest).resolve(strict=True)
     role = _read_json(role_path, args.role_manifest_sha256)
