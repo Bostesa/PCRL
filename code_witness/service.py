@@ -34,13 +34,15 @@ def _write_once(path: Path, writer) -> None:
 
 def save_service(directory: Path, release: HardCodeRelease,
                  *, source_seed: int, arm_id: str, role_manifest_sha256: str,
+                 source_schema_sha256: str,
                  fit_receipt: dict) -> dict:
     """Save fixed parameters only; no per-person arrays, labels or teacher scores."""
     path = Path(directory)
     if path.exists():
         raise FileExistsError(path)
     if (not path.parent.is_dir() or not arm_id or source_seed not in (0, 1)
-            or len(role_manifest_sha256) != 64 or release.calibrators is None):
+            or len(role_manifest_sha256) != 64
+            or len(source_schema_sha256) != 64 or release.calibrators is None):
         raise ValueError("pinned source, CAL and private parent required")
     path.mkdir(mode=0o700)
     state = release.model.state_dict()
@@ -52,6 +54,7 @@ def save_service(directory: Path, release: HardCodeRelease,
     manifest = {
         "schema": SCHEMA, "source_seed": source_seed, "arm_id": arm_id,
         "version": release.version, "source_sha256": release.source_sha256,
+        "source_schema_sha256": source_schema_sha256,
         "model_sha256": release.model_sha256,
         "scaler_sha256": release.scaler_sha256,
         "head_sha256": list(release.head_sha256),
@@ -86,6 +89,8 @@ def load_service(manifest_path: Path, *, expected_manifest_sha256: str,
     manifest = json.loads(path.read_text())
     if (manifest.get("schema") != SCHEMA
             or manifest.get("source_sha256") != expected_source_sha256
+            or not isinstance(manifest.get("source_schema_sha256"), str)
+            or len(manifest["source_schema_sha256"]) != 64
             or manifest.get("latent_dim") != 16
             or manifest.get("classes") != [2, 6]
             or manifest.get("bit_count") != expected_bits

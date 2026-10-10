@@ -21,6 +21,7 @@ def test_private_package_restores_code_derived_release(tmp_path):
     release = _release()
     saved = save_service(tmp_path / "package", release, source_seed=0,
                          arm_id="T0", role_manifest_sha256="b" * 64,
+                         source_schema_sha256="c" * 64,
                          fit_receipt={"selected_epoch": 4})
     restored = load_service(tmp_path / "package/manifest.json",
                             expected_manifest_sha256=saved["manifest_sha256"],

@@ -281,6 +281,7 @@ def _fit(args, store: RoleOnlyStore, private: Path, queue: dict) -> dict:
     package = save_service(private / f"service__{arm_id}__s{args.seed}", release,
                            source_seed=args.seed, arm_id=arm_id,
                            role_manifest_sha256=args.role_manifest_sha256,
+                           source_schema_sha256=store.manifest["source_schema_sha256"],
                            fit_receipt=fit_receipt)
     role_result = {}
     for role in ROLES_FIT:
