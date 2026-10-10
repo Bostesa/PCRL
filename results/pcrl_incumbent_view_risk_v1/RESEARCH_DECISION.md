@@ -1,6 +1,6 @@
 # Research decision
 
-Exact P0 preserved useful predictions and confidence at the point estimates in this narrow development search. Complete-view training did not establish the required improvement. No objective, joint-design or randomness component earns competitive empirical credit. Raw83 deployment is executable; independent final numerical replay and standalone custody checks are tracked separately below.
+Exact P0 preserved useful predictions and confidence at the point estimates in this narrow development search; simultaneous confidence preservation remains unresolved. Complete-view training did not establish the required improvement. No objective, joint-design or randomness component earns competitive empirical credit. Raw83 deployment, independent numerical replay and snapshot-only restore are complete; fresh-population confirmation and repeated-query protection remain untested.
 
 ## Tested comparison
 
@@ -42,4 +42,4 @@ The study supplies a reproducible, well-scoped negative for this conservative ne
 
 Close this particular objective/support recipe. The next different hypothesis should test a wider class-preserving output support, with the same useful references and explicitly measured utility cost, to isolate the demonstrated support limitation from an objective change. This is a later design recommendation, not a promised gain or automatic extension.
 
-Numerical and custody completion is recorded in [INDEPENDENT_VERIFICATION.json](INDEPENDENT_VERIFICATION.json), [VALIDATION.md](VALIDATION.md), [MODEL_MANIFEST.json](MODEL_MANIFEST.json), and the atomic [HANDOFF.json](HANDOFF.json). The branch remains local because inherited identifying-path history is unresolved. Same-device restore does not satisfy off-device custody. Old assessment and HEAD_VALIDATION labels stay closed; no fresh confirmation population was used.
+Numerical and custody completion is recorded in [INDEPENDENT_VERIFICATION.json](INDEPENDENT_VERIFICATION.json), [VALIDATION.md](VALIDATION.md), [MODEL_MANIFEST.json](MODEL_MANIFEST.json), and the atomic [HANDOFF.json](HANDOFF.json). The branch remains local because inherited identifying-path history is unresolved. Same-device restore does not satisfy off-device custody. No old assessment array was deserialized or scored and no HEAD_VALIDATION label was scored. An initial inherited completeness check byte-read the compressed all-role archive; the access supplement records that deviation. No fresh confirmation population was used.

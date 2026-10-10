@@ -1,6 +1,6 @@
 # Incumbent and complete-view study
 
-Starting from exact P0 preserved the useful service at the point estimates; simultaneous confidence preservation remains unresolved. Complete-view training produced small recovery changes, with no competitive or joint advantage established. No protection component earns credit for the required improvement. Raw83 deployment runs for P0, the selected local policy and the joint diagnostic; independent standalone restore and the strongest-control deployment are still being completed.
+Starting from exact P0 preserved the useful service at the point estimates; simultaneous confidence preservation remains unresolved. Complete-view training produced small recovery changes, with no competitive or joint advantage established. No protection component earns credit for the required improvement. Raw83 deployment and independent snapshot-only restore pass for P0, the selected local policy, the joint diagnostic and the strongest sequential control. Fresh-population confirmation and repeated-query protection were not tested.
 
 ## What actually ran
 
@@ -9,6 +9,8 @@ Six native roles ran one registered comparison with two paired source seeds. P0 
 All eight arms passed all 24 original point utility clauses against both U0 and Ucal. Across the 192 simultaneous utility clauses, 80 passed, 112 were unresolved and none demonstrated a violation. Point eligibility is not a statistical confidence-preservation pass.
 
 Forty fresh attack instances covered 120 complete recipient/coalition views and 1,200 fitted reader/control models. Every null, shuffled-label and planted-leak control passed. The privacy numbers below are equal-seed/draw means, not independent populations.
+
+Independent numerical replay matched all 948 endpoint slots. Twelve selected readers were independently refitted in a disclosed post-outcome diagnostic; this is not a refit of every attacker. The standalone restore reproduced complete wires and representative saved-reader predictions exactly. Same-device snapshot hashes passed; later final-report commits are outside its captured Git bundle.
 
 | Arm | Coalition SEX AUC | P0 minus arm |
 |:--|--:|--:|
@@ -33,4 +35,4 @@ Close this objective/support recipe. A different support hypothesis can be consi
 
 Read [RESEARCH_DECISION.md](RESEARCH_DECISION.md), [VALIDATION.md](VALIDATION.md), [QUICKSTART.md](QUICKSTART.md), the exact [protocol](EFFECTIVE_PROTOCOL.md), and the final [verification manifest](INDEPENDENT_VERIFICATION.json). Raw inputs, labels, fitted models and private randomness remain private. Failed and superseded attempts are retained.
 
-This branch is local. Inherited identifying-path history is unresolved, so it is not pushed. Same-device custody is recovery protection; off-device custody remains pending if the external drive is absent. Final numerical and custody receipts will replace the pending status above before handoff.
+This branch is local. Inherited identifying-path history is unresolved, so it is not pushed. Same-device custody is recovery protection; off-device custody remains pending because no writable external drive was available. An early inherited completeness check byte-read a compressed all-role archive without extracting its arrays. This access deviation, and a late historical-reader prerequisite check, remain disclosed in [VALIDATION.md](VALIDATION.md).

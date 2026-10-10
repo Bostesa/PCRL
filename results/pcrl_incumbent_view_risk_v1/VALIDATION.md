@@ -1,6 +1,6 @@
 # Validation record
 
-Status: comparison in progress. This file records limitations and deviations; it is not a completion certificate.
+Status: fitting, fresh attacks, primary independent numerical replay and standalone restores complete with disclosed process deviations. This file records limitations and deviations; it is not a scientific success certificate.
 
 ## Exposure and source
 
@@ -24,7 +24,7 @@ J seals independent FIT reader reconstruction, task-only utility intervals and p
 
 An untracked R5 inference plan was edited after J/K bound it to add nomination provenance. Its original byte serialization could not be recovered. The parsed original, versioned V2 and deviation receipt remain. L binds V2; every primary mathematical source hash and criterion remained unchanged. Independent K FIT/utility units did not pin the altered plan. This is a source custody/process deviation, not a new inference design.
 
-The first L deployment replay failed after its raw CLI returned. The saved recipient 1 JSONL was byte-identical to the admitted historical wire, but the replay compared a Python list with an expected tuple. Recipient 2 had not yet run. M normalizes only comparison containers and preserves the failure; 13 unrun L specs are explicitly superseded. Full raw deployment parity still requires the successor units.
+The first L deployment replay failed after its raw CLI returned. The saved recipient 1 JSONL was byte-identical to the admitted historical wire, but the replay compared a Python list with an expected tuple. Recipient 2 had not yet run. M normalizes only comparison containers and preserves the failure; 13 unrun L specs are explicitly superseded. At that point, full raw deployment parity required the successor units; the later M/O successes are recorded below.
 
 Independent inference fixture V1 failed an exact floating-point equality for a mean of three 0.8 values. M's versioned V2 uses a 1e-15 synthetic tolerance, leaving primary mathematics unchanged. V2 then exposed a wrong expected PASS for a toy with draw variation under the registered conservative simultaneous interval. Its data, draw law and failure are retained; the interval, rather than a desired synthetic status, determines the corrected expected result.
 
@@ -67,3 +67,17 @@ The final budget charge includes a separate 3,600-second conservative allowance 
 The final call-chain review identified a transient access deviation during initial source restoration. Historical `hcal.deploy` and the original independent router check call `qpc.deploy.load_teacher`, inherited from `dpc.deploy.load_teacher`, which invokes `jcv.finalize.unit_complete`. That completeness function reads every COMPLETE-listed file into bytes for SHA-256, including the historical all-role teacher `release.npz`. The entire compressed archive was therefore byte-read. It was not deserialized, its member arrays/labels were not extracted, and no old assessment endpoint was fitted or scored. This is an access deviation even though it supplied no scientific label use; it must not be described as universal prevention of old archive access.
 
 The post-L direct loader validates the model, two heads, record, seed and COMPLETE hash bindings without opening that archive. All M/O deployment and prospective standalone replay use that safe route. The old unsafe replay source is preserved as historical evidence and is not an endorsed rerun entrypoint. Custody excludes the all-role archive. Locked admission declarations are retained; the final access supplement qualifies their broad access wording.
+
+## Versioned custody execution
+
+P sealed the V3 custody source map and independent restore implementation before copying. Independent pre-copy audit hash-checked all 4,774 file entries (808,544,835 bytes) and bound runtime code to the committed branch. The P snapshot copied its files, but default Git packing exceeded the one-slot CPU-rate ceiling during bundle creation. The queue stopped that owned unit and marked it INCOMPLETE. Its partial directory is preserved; it is not called a successful snapshot.
+
+Q changes only Git's packing thread environment to `pack.threads=1`. The identical frozen V3 data/code plan was copied to a new versioned target. The Q unit completed and created a 64,489,193-byte bundle of local tip `de3752cbe167c1cbe63cc7a829fafd077fff07f2`. This bundle captures the runtime and scientific results; later restore receipts and final reporting commits are later artifacts, unless separately bundled. No scientific model, criterion, output or comparison changed.
+
+The Q snapshot-only restore completed. R5 independently rehashed all 4,774 restored file entries using uncached reads. Its independently authored numerical checker reconstructed 64 P0 raw83 code rows, 576 sampled selected-code rows across all three declared draws, 1,280 complete recipient wire rows, and 256 representative frozen HGB predictions exactly. No task or SEX label was opened during these restore checks. This is separate from the R1 black-box engineering replay; neither scope is an independent refit of every attacker.
+
+One final root enqueue attempt guessed the restored-spec filename convention incorrectly and failed before enqueueing any unit. The corrected paths were taken from the actual generated spec directory and matched the reviewed hashes. The empty runner invocation launched no child. This metadata error changed no source, scientific output or resource threshold.
+
+All 18 R1 restored-code engineering units passed: eight draw-zero wire checks, two historical P0 reader checks and eight fresh HGB reader checks, across both seeds. R5 audited their source, output and receipt bindings independently. Raw spec-file hashes and canonical registered-spec hashes have distinct conventions and both matched. The wrapper paused after 15 units when host capacity was full; the remaining three resumed without changing the cap or stopping another session's process.
+
+The final independent manifest is copied byte-for-byte from R5's owner namespace. It certifies the disclosed replay/refit/restore scope, with scientific claims A/B/C still NOT_ESTABLISHED. Off-device custody and remote publication remain pending; the local bundle captures the scientific/runtime tip before these final reporting receipts.
