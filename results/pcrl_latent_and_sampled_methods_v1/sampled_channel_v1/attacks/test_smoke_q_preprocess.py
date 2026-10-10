@@ -44,6 +44,8 @@ def test_selected_and_fixed_laws_preserve_public_decisions():
 
 
 def test_exact_two_case_output_contract():
+    assert worker.q_aware.ZERO_SUPPORT_RULE == \
+        "all_zero_features_with_zero_support_v1"
     assert worker.OUTPUT_NAMES == [
         "SMOKE_RECEIPT.json", "selected/Q_TABLE_RECEIPT.json",
         "selected/q_table.npz", "fixed/Q_TABLE_RECEIPT.json",

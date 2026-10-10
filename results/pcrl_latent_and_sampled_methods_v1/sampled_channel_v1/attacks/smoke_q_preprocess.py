@@ -118,6 +118,8 @@ def run(args: argparse.Namespace) -> dict:
             banks[0], banks[1], c1, c2,
             _law(*banks, fixed=case == "fixed"),
             public_centroids_sha256="f" * 64)
+        if table.identity.get("zero_support_rule") != q_aware.ZERO_SUPPORT_RULE:
+            raise RuntimeError("Q smoke table lacks the frozen zero-support rule")
         compile_wall = time.monotonic() - t0
         child = root / case
         child.mkdir(mode=0o700)
@@ -127,6 +129,7 @@ def run(args: argparse.Namespace) -> dict:
                        "compile_wall_s": compile_wall,
                        "compile_and_save_wall_s": time.monotonic() - t0,
                        "compile_and_save_cpu_s": time.process_time() - c0,
+                       "zero_support_rule": table.identity["zero_support_rule"],
                        "table_content_sha256": table.table_sha256,
                        "q_receipt_sha256": artifact["receipt_sha256"],
                        "q_file_bytes": (child / "q_table.npz").stat().st_size}
