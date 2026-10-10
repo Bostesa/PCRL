@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pcrl-r19-handoff-schema-proposal-v1",
+  "title": "PCRL latent and sampled methods atomic handoff proposal",
+  "description": "R19 structural proposal only. R00 writes the actual atomic shared HANDOFF.json from final receipts. Complete means the bounded campaign is closed, not that a method passed or off-device custody finished.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "complete",
+    "development_status",
+    "source_pins",
+    "agent_roster",
+    "protocol_and_amendments",
+    "units_and_resources",
+    "endpoint_artifacts",
+    "methods",
+    "research_decision",
+    "independent_verification",
+    "custody",
+    "pending",
+    "one_next_step"
+  ],
+  "properties": {
+    "schema": {
+      "const": "pcrl-latent-and-sampled-handoff-v1"
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "Set true only after R00 reconciles all terminal or explicitly incomplete campaign units and writes the final decision."
+    },
+    "development_status": {
+      "const": "EXPLORATORY_REUSED_ADULT_NO_INDEPENDENT_CONFIRMATION"
+    },
+    "source_pins": {
+      "type": "object",
+      "description": "Full Git and public artifact SHA-256 pins; remote/off-device verification reported separately.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "agent_roster": {
+      "$ref": "#/$defs/public_artifact"
+    },
+    "protocol_and_amendments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/public_artifact"
+      }
+    },
+    "units_and_resources": {
+      "type": "object",
+      "required": ["unit_status_artifact", "planned", "run", "failed", "skipped", "aliased", "incomplete", "charged_cpu_seconds", "elapsed_seconds", "max_heavy_processes"],
+      "properties": {
+        "unit_status_artifact": {"$ref": "#/$defs/public_artifact"},
+        "planned": {"type": "integer", "minimum": 0},
+        "run": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "skipped": {"type": "integer", "minimum": 0},
+        "aliased": {"type": "integer", "minimum": 0},
+        "incomplete": {"type": "integer", "minimum": 0},
+        "charged_cpu_seconds": {"type": "number", "minimum": 0},
+        "elapsed_seconds": {"type": "number", "minimum": 0},
+        "max_heavy_processes": {"type": "integer", "minimum": 0, "maximum": 2},
+        "separate_charges_included": {"type": "boolean"},
+        "receipt_count": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "endpoint_artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/public_artifact"}
+    },
+    "methods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["family", "arm_id", "service_contract", "fit_status", "utility_status", "recovery_status", "verification_status"],
+        "properties": {
+          "family": {"enum": ["D", "A"]},
+          "arm_id": {"type": "string"},
+          "service_contract": {"type": "string"},
+          "fit_status": {"type": "string"},
+          "utility_status": {"type": "string"},
+          "recovery_status": {"type": "string"},
+          "verification_status": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "research_decision": {
+      "type": "object",
+      "required": ["strongest_result", "competitive_method", "joint_design", "randomness", "confirmation"],
+      "properties": {
+        "strongest_result": {"type": "string"},
+        "competitive_method": {"type": "string"},
+        "joint_design": {"type": "string"},
+        "randomness": {"type": "string"},
+        "confirmation": {"const": "NO_NEW_UNEXPOSED_POPULATION"}
+      },
+      "additionalProperties": true
+    },
+    "independent_verification": {
+      "$ref": "#/$defs/public_artifact"
+    },
+    "custody": {
+      "type": "object",
+      "required": ["local_restore", "restored_runtime_replay", "off_device"],
+      "properties": {
+        "local_restore": {"type": "string"},
+        "restored_runtime_replay": {"type": "string"},
+        "off_device": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "pending": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "one_next_step": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "public_artifact": {
+      "type": "object",
+      "required": ["path", "sha256", "status"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Repository-relative public path, never an absolute home/drive/private path."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  }
+}

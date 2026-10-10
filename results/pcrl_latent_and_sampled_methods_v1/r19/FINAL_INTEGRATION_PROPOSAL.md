@@ -2,6 +2,8 @@
 
 Status: `SCOPED_PROPOSAL_ONLY`. R00 owns shared `PRIMARY_ENDPOINTS.csv`, `UNIT_STATUS.csv`, `START_HERE.md`, `COMPONENT_LEDGER.md`, decision and handoff. No R19 draft is a method verdict or an A result.
 
+Copy-ready **templates**, still requiring R00's final evidence integration, are under `r19/closeout_skeletons/`: `START_HERE.md`, `RESEARCH_DECISION.md`, `COMPONENT_LEDGER.md`, `QUICKSTART.md`, `INDEPENDENT_VERIFICATION.json`, and `HANDOFF.schema.json`. The verification JSON is an R19 integration template, not R04's final attestation.
+
 | Proposed input | Exact scope for shared integration |
 | --- | --- |
 | `PRIMARY_ENDPOINTS_D_UNIFIED_PROPOSAL.csv` | 665 public D rows: 56 absolute task, 42 absolute local/pair AUC, 567 fixed-K signed clauses. SHA-256 `4ec0adda1dc9aa83df64093e51cfdbcda842730820e32d1ed94da1820d68cd12`; schema and field sign rules in `PRIMARY_ENDPOINTS_SCHEMA_PROPOSAL.md`. |
@@ -12,6 +14,6 @@ Status: `SCOPED_PROPOSAL_ONLY`. R00 owns shared `PRIMARY_ENDPOINTS.csv`, `UNIT_S
 
 **A status to preserve:** R02's superseding seven-reference manifest has 6,885 prospective clauses (SHA-256 `f54765a485297cfa40a10e178586b51230679cdefcca9c05b9be421c9a3c1d5b`) and passed R04's prospective order audit (SHA-256 `36f03cede6c511a61d999af03c2340600cfe064c2c0f6e5b7f3cef7ccfcd5654`), but the R19 unified CSV contains no A rows. The old K4,455 family is superseded. Add A only from later independently checked actual sampled releases, readers, utility and full-family inference, retaining every registered K6,885 clause ID even if unavailable. Score-only A and feature-code D have different service contracts.
 
-**Ambiguities and omissions for R00:** D's point CSV uses `accuracy_drop=reference-candidate`, while K567 uses `candidate-reference`; the unified CSV converts to `accuracy_delta` with the latter sign. K567 contains signed AUC *differences* and gives no absolute AUC intervals. F comparisons cross wire capacity. R04 task receipts include class recall and gain over majority, which the 56-row task export omits; carry those in a separate usefulness table or independently replay them. A public queue charge has a charge ID, not a scientific unit ID. The old assessment is embargoed and both model seeds share the same INNER people.
+**Ambiguities and omissions for R00:** D's point CSV uses `accuracy_drop=reference-candidate`, while K567 uses `candidate-reference`; the unified CSV converts to `accuracy_delta` with the latter sign. K567 contains signed AUC *differences* and gives no absolute AUC intervals. F comparisons cross wire capacity. R04 task receipts include class recall and gain over majority, which the 56-row task export omits; carry those in a separate usefulness table or independently replay them. R18 one-real-row deployment and data-free negatives passed, while restored-service numerical replay and off-device custody remain pending. A public queue charge has a charge ID, not a scientific unit ID. The old assessment is embargoed and both model seeds share the same INNER people.
 
 The unified builder and queue helper are read-only with respect to source evidence and write only R19 proposal output. R00 should recheck current queue state, effective A admission, source hashes, R04 replay and final deployment before adopting any row or claim.
