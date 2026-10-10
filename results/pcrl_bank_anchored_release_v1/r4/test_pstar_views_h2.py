@@ -61,6 +61,8 @@ class PStarH2ViewsTests(unittest.TestCase):
             self.assertEqual(p.att.x_defense_aware.shape[0], 2)
             self.assertEqual(p.inner.x_defense_aware.shape[0], 2)
             self.assertIsNotNone(p.att.cell_key)
+            self.assertIsNotNone(p.att.x_metadata)
+            self.assertIsNotNone(p.att.x_code_bits)
             self.assertEqual(p.att.x_defense_aware.shape[1] - p.att.x.shape[1],
                              2 if view == "r1" else 6 if view == "r2" else 9)
 
