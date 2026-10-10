@@ -23,6 +23,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.dete
     DeterministicJointPolicy,
 )
 from .r2_laws import IdentityPolicy, BoundaryJointPolicy, BoundaryFactorPolicy
+from .r2_sequential import BoundarySequentialPolicy
 
 
 SCHEMA = "BAR1-selected-policy-v1"
@@ -73,7 +74,7 @@ def _unpad(array):
 
 
 def _base(policy):
-    if isinstance(policy, BoundaryFactorPolicy):
+    if isinstance(policy, (BoundaryFactorPolicy, BoundarySequentialPolicy)):
         return policy.base
     return policy
 
@@ -85,6 +86,8 @@ def _kind(policy):
         return "boundary_joint"
     if isinstance(policy, BoundaryFactorPolicy):
         return "boundary_factor"
+    if isinstance(policy, BoundarySequentialPolicy):
+        return "boundary_sequential"
     if isinstance(policy, DeterministicJointPolicy):
         return "deterministic"
     if isinstance(policy, SequentialPolicy):
@@ -132,7 +135,8 @@ def save_policy(directory, policy, *, arm_id, source_seed,
     if (arm_id in ("J", "T") and kind not in ("boundary_joint", "identity") or
             arm_id in ("P", "L") and kind not in ("boundary_factor", "identity") or
             arm_id == "D" and kind not in ("deterministic", "identity") or
-            arm_id in ("S12", "S21") and kind not in ("sequential", "identity")):
+            arm_id in ("S12", "S21") and kind not in
+            ("boundary_sequential", "sequential", "identity")):
         raise ValueError("arm and fitted law differ")
     arr = _arrays(policy)
     expected = COMMON | (FACTOR if isinstance(base, (ProductPolicy, LocalPolicy)) else set()) | \
@@ -155,6 +159,8 @@ def save_policy(directory, policy, *, arm_id, source_seed,
         "eta": policy.eta if isinstance(policy, BoundaryJointPolicy) else None,
         "eta1": policy.eta1 if isinstance(policy, BoundaryFactorPolicy) else None,
         "eta2": policy.eta2 if isinstance(policy, BoundaryFactorPolicy) else None,
+        "eta_first": policy.eta_first if isinstance(policy, BoundarySequentialPolicy) else None,
+        "eta_second": policy.eta_second if isinstance(policy, BoundarySequentialPolicy) else None,
         "order": base.order if isinstance(base, SequentialPolicy) else None,
         "first_checkpoint_sha256": (base.first_checkpoint_sha256
                                     if isinstance(base, SequentialPolicy) else None),
@@ -233,6 +239,9 @@ def load_policy(directory, *, receipt_sha256):
         policy = BoundaryJointPolicy(base, receipt["eta"])
     elif kind == "boundary_factor":
         policy = BoundaryFactorPolicy(base, receipt["eta1"], receipt["eta2"])
+    elif kind == "boundary_sequential":
+        policy = BoundarySequentialPolicy(base, receipt["eta_first"],
+                                          receipt["eta_second"])
     elif kind in ("deterministic", "sequential"):
         policy = base
     else:

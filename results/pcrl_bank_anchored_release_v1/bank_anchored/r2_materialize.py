@@ -19,6 +19,9 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.release 
 )
 from .r2_laws import BoundaryFactorPolicy, IdentityPolicy, offline_factor_uniforms
 from .r2_package import _sha
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.deterministic_policy import (
+    DeterministicJointPolicy,
+)
 
 
 LAW_KEYS = frozenset(("row_id", "unit", "code_r1", "code_r2", "mass", "valid",
@@ -48,7 +51,7 @@ def materialize_arrays(policy, *, row_id, unit, score1, score2, cell1, cell2,
                        source_seed: int, role: str, realization: int,
                        private_root: bytes):
     """Return exact-law and one cached release arrays, never private scores."""
-    if (source_seed not in (0, 1) or role not in ("ATTACK_FIT_NEW", "INNER_SELECTION") or
+    if (source_seed not in (0, 1) or role not in ("OSF_DEFENSE_FIT", "ATTACK_FIT_NEW", "INNER_SELECTION") or
             realization not in (0, 1, 2) or type(private_root) is not bytes or
             len(private_root) != 32):
         raise ValueError("release identity/stream differs from sealed roles")
@@ -97,6 +100,8 @@ def materialize_arrays(policy, *, row_id, unit, score1, score2, cell1, cell2,
         if key not in cached:
             if isinstance(policy, IdentityPolicy):
                 sampled = b0
+            elif isinstance(policy, DeterministicJointPolicy):
+                sampled = policy.sample_public_pair(a, b, c1, c2, 0.5)
             elif isinstance(policy, BoundaryFactorPolicy):
                 coins = offline_factor_uniforms(private_root, source_seed=source_seed,
                     role=role, realization=realization, unit=key)

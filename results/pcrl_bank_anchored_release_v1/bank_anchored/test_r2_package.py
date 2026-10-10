@@ -10,12 +10,17 @@ import numpy as np
 
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.bank import FixedBank
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.channel import GateWeights, JointPolicy
-from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.factor_controls import FactorGate, ProductPolicy
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.factor_controls import (
+    FactorGate, ProductPolicy, SequentialPolicy, public_probability_embedding,
+)
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import (
     IdentityPolicy, BoundaryJointPolicy, BoundaryFactorPolicy,
 )
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_package import (
     save_policy, load_policy,
+)
+from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_sequential import (
+    BoundarySequentialPolicy,
 )
 
 
@@ -52,6 +57,19 @@ class PackageTests(unittest.TestCase):
         self._roundtrip("B0", IdentityPolicy(base))
         self._roundtrip("J", BoundaryJointPolicy(base, .23))
         self._roundtrip("P", BoundaryFactorPolicy(product, .11, .37))
+
+    def test_fractional_first_sequential_round_trip(self):
+        base, _ = fixture()
+        factor = FactorGate(np.zeros((8, 16)), np.zeros(16),
+                            np.zeros((16, 4)), np.zeros(4))
+        second = FactorGate(np.zeros((8, 16)), np.zeros(16),
+                            np.zeros((16, 4)), np.zeros(4),
+                            public_probability_embedding(base.bank1.probability))
+        sequential = SequentialPolicy(base.bank1, base.bank2,
+                                      base.actions1, base.actions2,
+                                      base.gate, factor, second, order="12",
+                                      first_checkpoint_sha256="c"*64)
+        self._roundtrip("S12", BoundarySequentialPolicy(sequential, .27, .43))
 
 
 if __name__ == "__main__":
