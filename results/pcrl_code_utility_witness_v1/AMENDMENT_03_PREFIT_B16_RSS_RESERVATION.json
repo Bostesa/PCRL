@@ -1,0 +1,36 @@
+{
+  "affected_queue_stages": [
+    "witness"
+  ],
+  "candidate_ids_caps_margins_selection_changed": false,
+  "dated_utc": "2026-10-10T05:55:51.578939+00:00",
+  "finding": "The original B16 queue specification reserved 4 GiB RSS plus the queue 1 GiB safety headroom. Host available memory was about 4.17 GiB, so the queued units were not admitted before child creation. Completed B10 fits with the same data/architecture except six extra bits measured 495845376 and 480378880 bytes maximum RSS.",
+  "old_real_outputs": "NONE; old B16 units remained queued, no scientific child or role read.",
+  "old_units": [
+    {
+      "id": "T0_B16_S0",
+      "max_rss_gib": 4,
+      "role_arrays_opened": false,
+      "spec_sha256": "87b80ef31e30c036613d0a48aa53ed324c7f07e1203094636d416751d7436b7c",
+      "status": "queued"
+    },
+    {
+      "id": "T0_B16_S1",
+      "max_rss_gib": 4,
+      "role_arrays_opened": false,
+      "spec_sha256": "5db1c8dd2b1305e8dc1d66a9978a7a03aac56043ee9cafbca1fb35a49bc9e39f",
+      "status": "queued"
+    }
+  ],
+  "operational_change": "Use a 2 GiB RSS reservation for new B16 replacement unit IDs; this exceeds measured B10 peak by more than fourfold. Keep CPU/wall budgets, bits, model/loss/selection, source pins, role permissions and point gates unchanged.",
+  "original_seal_sha256": "d35a1bd47126bb75dd1bdc7149846377f44a1389c121d6abd4645628e24aa11f",
+  "prior_amendment_sha256": "27ab1813ecde90b9bc5701aadd27bd0bb96b32b9740df18f144c9df98c7b3299",
+  "replacement_units": [
+    "T0_B16_S0_R1",
+    "T0_B16_S1_R1"
+  ],
+  "schema": "pcrl-code-utility-dated-amendment-v1",
+  "scientific_scope_change": false,
+  "status": "PREFIT_B16_MEMORY_RESERVATION_CORRECTION",
+  "supersession": "Preserve old queued specs and report them as superseded. New specs must pin this committed amendment and otherwise match old specs except unit ID, output paths and max_rss_gib."
+}
