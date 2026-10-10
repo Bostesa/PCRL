@@ -13,11 +13,12 @@ import json
 import os
 from pathlib import Path
 import stat
+import sys
 
 from .a_graph import compile_graph
 
 
-PYTHON = Path("/Users/nathansamson/PCRL/.venv/bin/python")
+PYTHON = Path(sys.executable)
 THREAD_ENV = {
     "PYTHONDONTWRITEBYTECODE": "1", "PYTHONHASHSEED": "0",
     "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",

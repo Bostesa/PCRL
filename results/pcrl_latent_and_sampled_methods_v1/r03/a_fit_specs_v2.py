@@ -1,8 +1,8 @@
 """FIT spec renderer with the admitted predecessor portfolio path corrected.
 
-The sealed a_specs.py bytes remain untouched. This module corrects its
-predecessor portfolio worktree location and pins its own bytes in each spec.
-It never enqueues or runs a worker.
+The original sealed a_specs.py bytes remain in the append-only history. This
+module corrects its predecessor portfolio worktree location and pins its own
+bytes in each spec. It never enqueues or runs a worker.
 """
 
 from __future__ import annotations
@@ -13,11 +13,12 @@ import json
 import os
 from pathlib import Path
 import stat
+import sys
 
 from .a_graph import compile_graph
 
 
-PYTHON = Path("/Users/nathansamson/PCRL/.venv/bin/python")
+PYTHON = Path(sys.executable)
 THREAD_ENV = {
     "PYTHONDONTWRITEBYTECODE": "1", "PYTHONHASHSEED": "0",
     "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
