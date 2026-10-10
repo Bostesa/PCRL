@@ -1,0 +1,9 @@
+# R19 public queue-status proposal helper
+
+Run `python3 results/pcrl_latent_and_sampled_methods_v1/r19/queue_unit_status.py` from the campaign worktree to print a **proposed**, read-only CSV snapshot of R03's current enqueued units. R00 owns the shared `UNIT_STATUS.csv` and decides when to integrate rows. The helper does not call the scheduler, launch jobs or alter queue state.
+
+The only CSV columns are `unit_id`, `stage`, `status`, `direct_child_cpu_s`, `charged_cpu_s`, `wall_s`, `sampled_tree_rss_peak_bytes`, and `receipt_sha256`. A finished unit's hash is recomputed from its R03 `RECEIPT.json` after checking unit identity, stage, status and the four resource values against queue state. A superseded unit carries its recorded supersession receipt hash. Queued, held and running units have blank finished-resource and receipt fields. `charged_cpu_s` is R03's conservative charge, which may equal elapsed wall time rather than process CPU.
+
+The exporter constructs every output row from an explicit whitelist. It never emits `argv`, `cwd`, source or output paths, per-person data, private logs, PID data, hold reasons, or output-path keys. It validates safe unit IDs and known stages/statuses; inconsistent or incomplete state rejects the entire snapshot with no CSV output and a generic error. Its rows cover enqueued **units** only. R03's separate `charges` records have charge IDs, not unit IDs, and require separate resource accounting by R00.
+
+The CSV is a live proposal, not a campaign closeout receipt. Rerun it after queue changes; do not treat an earlier queued or held row as a final scientific unit status. The helper's targeted synthetic tests and a read-only run on the live queue passed without private path markers. No full research test suite or numerical fit was run for this integration helper.

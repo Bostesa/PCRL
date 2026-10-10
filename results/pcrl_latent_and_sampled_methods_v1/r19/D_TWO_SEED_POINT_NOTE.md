@@ -1,0 +1,17 @@
+# D two-seed source and point-result integration note
+
+R04 status: `TECHNICAL_REPLAY_PASS` for T/D-K on paired seeds 0 and 1; `FOLLOWUP_RELEASE_REPLAY_PASS` for C/F/L/S12/S21 source releases and task endpoints; later `FOLLOWUP_COMPLETE_VIEW_REPLAY_PASS` for all seven arms' fresh attacks. This note has **point** results only. Both model seeds use the same 2,235 INNER_SELECTION people, so they are not separate populations. The old assessment remains embargoed.
+
+| Seed | T recipient 1 AUC | T recipient 2 AUC | T pair AUC | D-K recipient 1 AUC | D-K recipient 2 AUC | D-K pair AUC | T minus D-K pair |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.710718 | 0.795267 | 0.832582 | 0.671178 | 0.753706 | 0.805905 | **0.026676** |
+| 1 | 0.703878 | 0.807146 | 0.835960 | 0.678322 | 0.749381 | 0.793778 | **0.042181** |
+| Arithmetic mean | 0.707298 | 0.801207 | 0.834271 | 0.674750 | 0.751543 | 0.799842 | **0.034429** |
+
+Both seed-specific descriptive pair reductions exceed the 0.020 point target, and both local AUCs are lower for D-K. **Neither ten-bit arm is task-utility eligible:** T misses occupation NLL/Brier point caps against both U0 and Ucal in both seeds, with occupation accuracy also missing in seed 1. D-K misses occupation accuracy/NLL/Brier in both seeds and income Brier in seed 0. Thus the measured AUC contrast cannot establish a competitive privacy benefit, kernel component gain or joint-design advantage. The arithmetic mean is a summary across fitted seeds on paired people, not a new population estimate or simultaneous interval.
+
+The larger F service discloses each purpose's **16 continuous scaled latent values**, plus task probabilities/decisions. R04 independently restored its actual releases and task endpoints. F passes **all 24 point utility clauses** (two seeds × two tasks × U0/Ucal × accuracy/NLL/Brier). Its largest point accuracy drop is **0.002237** (cap 0.010), largest NLL excess **0.003833** (cap 0.010), and largest Brier excess **0.001878** (cap 0.005). This is point feasibility only. Later R04 attack replay gives F pair SEX AUC **0.869335/0.862196** by seed, higher than either ten-bit T or D-K; simultaneous intervals remain pending. F cannot be treated as a capacity-matched ten-bit comparator merely because it is task feasible.
+
+R04 also restored L, S12, S21 and ordinary adversarial C source releases and task endpoints. Each misses the full two-task point conjunction in both seeds. Its later independent attack replay measured all four complete views: the point pair AUCs appear in `D_ENDPOINTS_PROPOSAL.md`. C has the lowest hard-code pair AUC but fails utility. No ten-bit arm is an eligible matched control, and this point ordering earns no joint attribution.
+
+Evidence: `r04/FIRST_PAIR_INDEPENDENT_REPLAY.json` SHA-256 `6ebf1a518ce23ef32835c3f39cdac4c5663e56a14df51f4c8b38866a9e68bfad`; `r04/FIRST_PAIR_S1_INDEPENDENT_REPLAY.json` SHA-256 `64e8d7cadd68cc73bae543c5d9c598e20081797de9e601b60d410d985e580bec`; `r04/FOLLOWUP_S0_INDEPENDENT_REPLAY.json` SHA-256 `a3ffef4a9e33ee0e3e0bcd5b2c8afed21a26d74f30fc6010f14aa4f05f996a6c`; `r04/FOLLOWUP_S1_INDEPENDENT_REPLAY.json` SHA-256 `8d753141489dd404e38a1eeca36cc3d05cfebdc548d242fed61ed1051c4bf15a`; later all-arm attack receipts SHA-256 `e7b2a5ca7a28466008e9a26dab8441437462b23299f9ffd8faee2f08a3b1024f` and `7654b780f1db676c173b1d625f4da7ca18f18a77e619fd340b0cf31cb1eae086`. R04's scope statement is `r04/D_ALL_ARM_POINT_AND_INTERVAL_PLAN.md`. R00 owns the shared final decision.
