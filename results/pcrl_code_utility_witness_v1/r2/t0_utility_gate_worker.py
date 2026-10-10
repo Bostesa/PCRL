@@ -101,6 +101,14 @@ def _release(path: Path, expected: str, sources: dict[Path, str],
     return wire
 
 
+def _states(code: np.ndarray, bits: int) -> dict:
+    _, counts = np.unique(code, axis=0, return_counts=True)
+    fractions = counts / len(code)
+    return {"global_capacity_states": 1 << bits,
+            "occupied_states": int(len(counts)),
+            "observed_entropy_bits": float(-np.sum(fractions * np.log2(fractions)))}
+
+
 def run(config_path: Path) -> dict:
     active = assert_active_from_env(stage="witness")
     config_path = config_path.resolve(strict=True)
@@ -122,7 +130,8 @@ def run(config_path: Path) -> dict:
         raise PermissionError("T0 gate seal differs from queue")
     seal = _read(seal_path)
     role_path = _record(config["role_manifest"], sources)
-    if seal.get("role_manifest_sha256") != config["role_manifest"]["sha256"]:
+    if (seal.get("role_manifest_sha256") != config["role_manifest"]["sha256"]
+            or seal.get("source_schema_sha256") != _read(role_path).get("source_schema_sha256")):
         raise PermissionError("T0 gate role manifest differs from seal")
     store = RoleOnlyStore(role_path)
     for field in ("income", "occupation", "references_s0", "references_s1"):
@@ -152,6 +161,9 @@ def run(config_path: Path) -> dict:
         if (receipt.get("schema") != "code-utility-witness-worker-v1"
                 or receipt.get("status") != "COMPLETE"
                 or receipt.get("stage") != "fit" or receipt.get("seed") != seed
+                or receipt.get("source_model_sha256") != seal.get(
+                    "source_model_files_sha256_by_seed", {}).get(str(seed), {}).get("model_pt_sha256")
+                or receipt.get("source_feature_schema_sha256") != seal.get("source_schema_sha256")
                 or receipt.get("class_order") != {"income": [0, 1],
                                                   "occupation_group": [0, 1, 2, 3, 4, 5]}
                 or receipt.get("role_manifest_sha256") != config["role_manifest"]["sha256"]
@@ -163,6 +175,12 @@ def run(config_path: Path) -> dict:
         manifest_path = private / f"service__{arm}__s{seed}" / "manifest.json"
         _pin(manifest_path, package["manifest_sha256"], sources)
         _pin(manifest_path.with_name("weights.npz"), package["weights_sha256"], sources)
+        manifest = _read(manifest_path)
+        if (manifest.get("source_schema_sha256") != seal["source_schema_sha256"]
+                or manifest.get("role_manifest_sha256") != config["role_manifest"]["sha256"]
+                or manifest.get("source_seed") != seed
+                or manifest.get("arm_id") != arm):
+            raise PermissionError("T0 package schema/role/seed differs from seal")
         service = load_service(manifest_path,
                                expected_manifest_sha256=package["manifest_sha256"],
                                expected_source_sha256=receipt["source_model_sha256"],
@@ -182,8 +200,12 @@ def run(config_path: Path) -> dict:
                                            (1, "occupation", "occupation")):
             label = (income if task == "income" else occupation)[label_field]
             candidate = task_metrics(wire[f"prob{purpose}"], label, task)
-            absolute[str(seed)][task] = {name: candidate[name] for name in
-                                          ("accuracy", "nll", "brier")}
+            absolute[str(seed)][task] = {
+                **{name: candidate[name] for name in
+                   ("accuracy", "nll", "brier", "constant_accuracy",
+                    "accuracy_gain_over_constant", "class_counts", "per_class_recall")},
+                "code_states": _states(wire[f"code{purpose}"], bits),
+            }
             for ref_name in ("U0", "Ucal"):
                 reference = task_metrics(references[f"{ref_name}_{purpose+1}"],
                                          label, task)
