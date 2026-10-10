@@ -1,0 +1,40 @@
+{
+  "schema": "pcrl-r04-a-seq21-stage1-stop-audit-v1",
+  "status": "STAGE1_NO_FEASIBLE_CHECKPOINT_FULL_FIT_INCOMPLETE",
+  "scope": "Aggregate receipt, queue receipt, and frozen source review only; no protected arrays or new fit",
+  "unit_id": "A-FIT-A_SEQ21-S0",
+  "private_fit_receipt_sha256": "76bbf0d432b8318cfe55fb4f67b2ad2ce130285e7a5d13baea497856959c1ca5",
+  "private_queue_receipt_sha256": "32ca111dccc26b06cb3d31982b9e04e868771a2d21c7be5dfde263d9e39fca55",
+  "source_sha256": {
+    "seq_train.py": "7b15628770ecc7829329b8526c1727559689733521e5b0411db7d7a20bd59972",
+    "run_admitted_controls.py": "73604d8b0b80954533903a927dfdcc5681f99d114cd9a7201c91e99852201d85"
+  },
+  "stage1": {
+    "completed": true,
+    "starts_completed": 2,
+    "updates_per_start": 150,
+    "checkpoints": 14,
+    "feasible_checkpoints": 0,
+    "minimum_r2_nll": 1.2238249029017558,
+    "r2_nll_cap": 1.2194177869878788,
+    "minimum_r2_nll_excess": 0.004407115913876991,
+    "minimum_r2_brier_excess": 0.000014672036858343063
+  },
+  "stage2": {
+    "starts_attempted": 0,
+    "full_fit_complete": false,
+    "selected_policy": false
+  },
+  "queue": {
+    "status": "failed",
+    "returncode": 1,
+    "timed_out": false,
+    "resource_limit": null,
+    "charged_cpu_s": 8.73,
+    "cpu_reserve_s": 300,
+    "max_wall_s": 300,
+    "admitted_output_hash_count": 0
+  },
+  "source_path_explanation": "The sequential trainer returns complete=false when stage1 has no feasible checkpoint; the control runner writes INCOMPLETE_RESOURCE and raises TimeoutError. The queue did not report a time or resource cutoff.",
+  "inference_limit": "The observed stage1 search has no feasible checkpoint; stage2 and the complete two-stage search were not run. This unit cannot satisfy the current finalized-null endpoint contract."
+}
