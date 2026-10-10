@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import sys
 
 
@@ -36,7 +37,8 @@ SOURCE = (
     "sampled_channel_v1/controls/task_rate",
 )
 ARMS = ("B0", "T", "D", "P", "L", "J", "S12", "S21")
-INDEX = R2 / "R2_PROTECTION_SOURCE_INDEX.json"
+INDEX = R2 / "R2_PROTECTION_SOURCE_INDEX_F1.json"
+UNIT_SUFFIX = "_F1"
 
 
 def sha(path):
@@ -49,6 +51,23 @@ def record(path):
     if path.is_symlink() or not path.is_file():
         raise PermissionError("source is not a regular file")
     return {"path": str(path), "sha256": sha(path)}
+
+
+def python_entry(path):
+    """Keep the configured venv entry; resolving its symlink loses site packages."""
+    entry = Path(path).absolute()
+    if not entry.is_file() or not os.access(entry, os.X_OK):
+        raise PermissionError("configured Python entry is not executable")
+    return str(entry)
+
+
+def python_import_smoke(entry):
+    completed = subprocess.run(
+        [entry, "-c", "import numpy, scipy, torch; from scipy.optimize import minimize_scalar; "
+         "import results.pcrl_bank_anchored_release_v1.bank_anchored.r2_worker"],
+        capture_output=True, text=True, timeout=20, check=False)
+    if completed.returncode:
+        raise RuntimeError("configured Python entry cannot import required numeric packages")
 
 
 def code_inventory():
@@ -64,10 +83,11 @@ def write_index():
     if INDEX.exists():
         raise FileExistsError("source index is write-once")
     inventory = code_inventory()
-    out = {"schema": "BAR1-r2-protection-source-index-v1",
+    out = {"schema": "BAR1-r2-protection-source-index-f1-v1",
            "source_lock_sha256": sha(PACKAGE / "CAMPAIGN_LOCK.json"),
-           "unit_ids": [f"R2_{arm}_S{seed}_FIT" for arm in ARMS for seed in (0, 1)],
-           "recipe_seeds": {f"R2_{arm}_S{seed}_FIT": 2026101200 +
+           "supersedes_source_index_sha256": sha(R2 / "R2_PROTECTION_SOURCE_INDEX.json"),
+           "unit_ids": [f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}" for arm in ARMS for seed in (0, 1)],
+           "recipe_seeds": {f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}": 2026101200 +
                             100*seed + ARMS.index(arm)
                             for arm in ARMS for seed in (0, 1)},
            "whole_arm_cpu_ceiling_s": 300,
@@ -91,7 +111,7 @@ def write_private(path, payload):
 
 def build(args):
     index = json.loads(INDEX.read_text())
-    if (index.get("schema") != "BAR1-r2-protection-source-index-v1" or
+    if (index.get("schema") != "BAR1-r2-protection-source-index-f1-v1" or
             index["code"] != code_inventory() or
             index["source_lock_sha256"] != sha(PACKAGE / "CAMPAIGN_LOCK.json")):
         raise PermissionError("R2 source index differs before protection specs")
@@ -100,6 +120,8 @@ def build(args):
     portfolio_manifest = Path(args.portfolio_manifest).resolve(strict=True)
     source_audit = Path(args.source_audit).resolve(strict=True)
     roots = Path(args.stream_roots).resolve(strict=True)
+    interpreter = python_entry(args.python)
+    python_import_smoke(interpreter)
     stream_manifest = REPO / "results/pcrl_latent_and_sampled_methods_v1/sampled_channel_v1/design/STREAM_ROOT_HASH_MANIFEST.json"
     role = json.loads(role_manifest.read_text())
     private_root = role_manifest.parent.parent
@@ -114,7 +136,7 @@ def build(args):
     created = {}
     for arm in ARMS:
         for seed in (0, 1):
-            unit = f"R2_{arm}_S{seed}_FIT"
+            unit = f"R2_{arm}_S{seed}_FIT{UNIT_SUFFIX}"
             identity = R2 / f"R2_FULL_FIT_IDENTITY_S{seed}_RECEIPT.json"
             pins = {"campaign_lock": PACKAGE / "CAMPAIGN_LOCK.json",
                     "protection_amendment": amendment,
@@ -162,7 +184,7 @@ def build(args):
                          *(record(v) for v in source_files)]:
                 seen[item["path"]] = item
             spec = {"unit_id": unit, "stage": "protection",
-                    "argv": [str(Path(args.python).resolve(strict=True)), "-m",
+                    "argv": [interpreter, "-m",
                              "results.pcrl_bank_anchored_release_v1.bank_anchored.r2_worker",
                              "--config", str(config_path)],
                     "cwd": str(REPO), "env": {}, "max_wall_s": 600,
@@ -180,7 +202,7 @@ def build(args):
                "source_index_sha256": sha(INDEX),
                "amendment_sha256": sha(amendment),
                "unit_sha256": created}
-    summary_path = R2 / "R2_PROTECTION_SPEC_RECEIPT.json"
+    summary_path = R2 / "R2_PROTECTION_SPEC_RECEIPT_F1.json"
     if summary_path.exists():
         raise FileExistsError("protection spec receipt is write-once")
     summary_path.write_text(json.dumps(summary, sort_keys=True, indent=2) + "\n")
