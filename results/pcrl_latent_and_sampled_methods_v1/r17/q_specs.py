@@ -14,6 +14,9 @@ from results.pcrl_latent_and_sampled_methods_v1.r03.a_graph import compile_graph
 from results.pcrl_latent_and_sampled_methods_v1.r03.a_specs import (
     PYTHON, THREAD_ENV, _add_source, _latest_a_amendment, _owner_private_dir,
 )
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.downstream_sources import (
+    verify_downstream_registration, verify_downstream_sidecar,
+)
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks import (
     run_q_preprocess as q,
 )
@@ -145,7 +148,8 @@ def _fixed_fields(*, plan: dict, campaign: Path, amendment: dict,
 
 def q_spec(*, unit_id: str, amendment_path: Path, amendment_sha256: str,
            seal_path: Path, seal_sha256: str, queue_state: Path,
-           private_parent: Path) -> dict:
+           private_parent: Path, sidecar_path: Path, sidecar_sha256: str,
+           registration_path: Path, registration_sha256: str) -> dict:
     """Render one immutable R03 Q spec after all applicable parents complete."""
     if Path(amendment_path).is_symlink() or Path(seal_path).is_symlink():
         raise PermissionError("Q seal paths cannot be symlinks")
@@ -153,6 +157,10 @@ def q_spec(*, unit_id: str, amendment_path: Path, amendment_sha256: str,
     seal_path = Path(seal_path).resolve(strict=True)
     queue_state = Path(queue_state).resolve(strict=True)
     private_parent = Path(private_parent).resolve(strict=True)
+    if Path(sidecar_path).is_symlink() or Path(registration_path).is_symlink():
+        raise PermissionError("Q downstream source custody cannot be symlinked")
+    sidecar_path = Path(sidecar_path).resolve(strict=True)
+    registration_path = Path(registration_path).resolve(strict=True)
     _owner_private_dir(private_parent)
     campaign = amendment_path.parent
     worktree = campaign.parents[1]
@@ -172,12 +180,42 @@ def q_spec(*, unit_id: str, amendment_path: Path, amendment_sha256: str,
     sources: dict[str, str] = {}
     _add(sources, seal_path, seal_sha256)
     _add(sources, amendment_path, amendment_sha256)
-    _add(sources, Path(__file__), _sha(Path(__file__)))
-    for relative in sorted(q.IMPLEMENTATION):
+    _add(sources, sidecar_path, sidecar_sha256)
+    _add(sources, registration_path, registration_sha256)
+    for relative in sorted(amendment["implementation_source_sha256"]):
         digest = amendment["implementation_source_sha256"].get(relative)
         if not q._hex(digest):
             raise ValueError("Q implementation is absent from latest amendment")
         _add(sources, campaign / relative, digest)
+    sidecar = json.loads(sidecar_path.read_text())
+    for relative, digest in sorted(sidecar.get("new_source_sha256", {}).items()):
+        _add(sources, campaign / relative, digest)
+    shared = (sidecar.get("attack_plan", {})
+              .get("inherited_shared_source_sha256", {}))
+    for basename, digest in sorted(shared.items()):
+        _add(sources, campaign.parent / "pcrl_method_portfolio_v1/shared" /
+             basename, digest)
+    sidecar_fields = {
+        "amendment_sha256": amendment_sha256,
+        "downstream_manifest_path": str(sidecar_path),
+        "downstream_manifest_sha256": sidecar_sha256,
+        "downstream_registration_path": str(registration_path),
+        "downstream_registration_sha256": registration_sha256,
+        "sources": [{"path": path, "sha256": digest}
+                    for path, digest in sorted(sources.items())],
+    }
+    verify_downstream_sidecar(
+        sidecar_path=sidecar_path, sidecar_sha256=sidecar_sha256,
+        producer_path=amendment_path, producer_sha256=amendment_sha256,
+        original_lock_path=seal_path, original_lock_sha256=seal_sha256,
+        campaign_root=campaign, spec=sidecar_fields,
+        required_new_paths=frozenset({"r17/q_specs.py"}))
+    verify_downstream_registration(
+        registration_path=registration_path,
+        registration_sha256=registration_sha256,
+        sidecar_path=sidecar_path, sidecar_sha256=sidecar_sha256,
+        producer_sha256=amendment_sha256, repo_root=worktree,
+        spec=sidecar_fields)
     historical_rel = "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json"
     historical_sha = amendment["source_sha256"].get(historical_rel)
     if not q._hex(historical_sha):
@@ -217,6 +255,10 @@ def q_spec(*, unit_id: str, amendment_path: Path, amendment_sha256: str,
     spec = {
         "unit_id": unit_id, "stage": "a", "mode": "real_data",
         "data_access": "PUBLIC_Q_ONLY", "amendment_sha256": amendment_sha256,
+        "downstream_manifest_path": str(sidecar_path),
+        "downstream_manifest_sha256": sidecar_sha256,
+        "downstream_registration_path": str(registration_path),
+        "downstream_registration_sha256": registration_sha256,
         "arm_id": arm, "seed": seed, "source_kind": plan["source_kind"],
         "output_id": plan["output_id"], "fit_unit_id": plan.get("fit_unit_id"),
         "deps": list(plan.get("deps", [])), "argv": argv,

@@ -21,14 +21,30 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _downstream_fixture(tmp_path):
+    sidecar = tmp_path / "downstream.json"
+    sidecar.write_text(json.dumps({
+        "new_source_sha256": {"r17/q_specs.py": _sha(Path(q_specs.__file__))},
+        "attack_plan": {"inherited_shared_source_sha256": {}},
+    }))
+    registration = tmp_path / "registration.json"
+    registration.write_text("{}")
+    return {"sidecar_path": sidecar, "sidecar_sha256": _sha(sidecar),
+            "registration_path": registration,
+            "registration_sha256": _sha(registration)}
+
+
 def test_fixed_q_specs_bind_public_maps_and_complete_worker_contract(tmp_path):
     """A fixed Q spec must use the admitted public map, never a role token."""
     private = tmp_path / ".private"
     private.mkdir(mode=0o700)
     state = tmp_path / "state.json"
     state.write_text(json.dumps({"units": {}}))
+    downstream = _downstream_fixture(tmp_path)
     with mock.patch.object(q_specs, "_latest_a_amendment"), \
-         mock.patch.object(q_specs, "compile_graph"):
+         mock.patch.object(q_specs, "compile_graph"), \
+         mock.patch.object(q_specs, "verify_downstream_sidecar"), \
+         mock.patch.object(q_specs, "verify_downstream_registration"):
         for arm, seed in (("T_STAR", 0), ("A_IDENTITY", 0),
                           ("A_CLASS_ONLY", 1), ("D0_SEQ21", 1)):
             unit_id = f"A-Q-PREPROCESS-{arm}-S{seed}"
@@ -36,11 +52,13 @@ def test_fixed_q_specs_bind_public_maps_and_complete_worker_contract(tmp_path):
                 unit_id=unit_id, amendment_path=AMENDMENT,
                 amendment_sha256=_sha(AMENDMENT), seal_path=SEAL,
                 seal_sha256=_sha(SEAL), queue_state=state,
-                private_parent=private)
+                private_parent=private, **downstream)
             assert spec["unit_id"] == unit_id
             assert spec["deps"] == []
             assert spec["cpu_reserve_s"] == spec["max_wall_s"] == 30
             assert spec["zero_support_rule"] == "all_zero_features_with_zero_support_v1"
+            assert spec["downstream_manifest_sha256"] == downstream["sidecar_sha256"]
+            assert spec["downstream_registration_sha256"] == downstream["registration_sha256"]
             assert len(spec["source_descriptor_sha256"]) == 64
             assert len(spec["outputs"]) == 2
             assert spec["outputs"][0].endswith("Q_TABLE_RECEIPT.json")
@@ -101,14 +119,80 @@ def test_selected_q_fields_refuse_no_policy_and_bind_retry_receipt(tmp_path):
     assert len(sources) == 3
     state_path = tmp_path / "state.json"
     state_path.write_text(json.dumps(state))
+    downstream = _downstream_fixture(tmp_path)
     with mock.patch.object(q_specs, "_latest_a_amendment"), \
-         mock.patch.object(q_specs, "compile_graph"):
+         mock.patch.object(q_specs, "compile_graph"), \
+         mock.patch.object(q_specs, "verify_downstream_sidecar"), \
+         mock.patch.object(q_specs, "verify_downstream_registration"):
         spec = q_specs.q_spec(
             unit_id="A-Q-PREPROCESS-A_JOINT_STOCH-S0",
             amendment_path=AMENDMENT, amendment_sha256=amendment_sha,
             seal_path=SEAL, seal_sha256=_sha(SEAL),
-            queue_state=state_path, private_parent=parent)
+            queue_state=state_path, private_parent=parent, **downstream)
     assert spec["fit_unit_id"] == fit_id
     assert spec["deps"] == [fit_id]
     assert spec["source_descriptor_sha256"] == fields["source_descriptor_sha256"]
     assert any(item["path"] == str(policy_path) for item in spec["sources"])
+
+
+def test_q_renderer_refuses_unregistered_sidecar_before_public_centroids(tmp_path):
+    private = tmp_path / ".private"
+    private.mkdir(mode=0o700)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({"units": {}}))
+    downstream = _downstream_fixture(tmp_path)
+    with mock.patch.object(q_specs, "_latest_a_amendment"), \
+         mock.patch.object(q_specs, "compile_graph"), \
+         mock.patch.object(q_specs, "verify_downstream_sidecar"), \
+         mock.patch.object(q_specs, "verify_downstream_registration",
+                           side_effect=PermissionError("registration absent")), \
+         mock.patch.object(q_specs.q, "load_clean_public_centroids",
+                           side_effect=AssertionError("public centroids read too early")):
+        with pytest.raises(PermissionError, match="registration absent"):
+            q_specs.q_spec(
+                unit_id="A-Q-PREPROCESS-T_STAR-S0",
+                amendment_path=AMENDMENT, amendment_sha256=_sha(AMENDMENT),
+                seal_path=SEAL, seal_sha256=_sha(SEAL), queue_state=state,
+                private_parent=private, **downstream)
+
+
+def test_q_renderer_rejects_tampered_registration_before_public_centroids(tmp_path):
+    private = tmp_path / ".private"
+    private.mkdir(mode=0o700)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({"units": {}}))
+    downstream = _downstream_fixture(tmp_path)
+    with mock.patch.object(q_specs, "_latest_a_amendment"), \
+         mock.patch.object(q_specs, "compile_graph"), \
+         mock.patch.object(q_specs, "verify_downstream_sidecar"), \
+         mock.patch.object(q_specs.q, "load_clean_public_centroids",
+                           side_effect=AssertionError("public centroids read too early")):
+        with pytest.raises(PermissionError, match="registration fields"):
+            q_specs.q_spec(
+                unit_id="A-Q-PREPROCESS-T_STAR-S0",
+                amendment_path=AMENDMENT, amendment_sha256=_sha(AMENDMENT),
+                seal_path=SEAL, seal_sha256=_sha(SEAL), queue_state=state,
+                private_parent=private, **downstream)
+
+
+def test_q_renderer_rejects_changed_renderer_source_pin(tmp_path):
+    private = tmp_path / ".private"
+    private.mkdir(mode=0o700)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({"units": {}}))
+    downstream = _downstream_fixture(tmp_path)
+    downstream["sidecar_path"].write_text(json.dumps({
+        "new_source_sha256": {"r17/q_specs.py": "0" * 64},
+        "attack_plan": {"inherited_shared_source_sha256": {}},
+    }))
+    downstream["sidecar_sha256"] = _sha(downstream["sidecar_path"])
+    with mock.patch.object(q_specs, "_latest_a_amendment"), \
+         mock.patch.object(q_specs, "compile_graph"), \
+         mock.patch.object(q_specs.q, "load_clean_public_centroids",
+                           side_effect=AssertionError("public centroids read too early")):
+        with pytest.raises(ValueError, match="source hash changed"):
+            q_specs.q_spec(
+                unit_id="A-Q-PREPROCESS-T_STAR-S0",
+                amendment_path=AMENDMENT, amendment_sha256=_sha(AMENDMENT),
+                seal_path=SEAL, seal_sha256=_sha(SEAL), queue_state=state,
+                private_parent=private, **downstream)
