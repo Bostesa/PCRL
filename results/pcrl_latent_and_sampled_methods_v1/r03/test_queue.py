@@ -11,7 +11,7 @@ import time
 import unittest
 from pathlib import Path
 
-from compute_queue import Queue, digest
+from compute_queue import Queue, atomic, digest
 
 
 class QueueControlTests(unittest.TestCase):
@@ -118,6 +118,21 @@ class QueueControlTests(unittest.TestCase):
         self.queue.charge("LIGHT", "admission", 60.0, receipt)
         self.queue.charge("LIGHT", "admission", 60.0, receipt)
         self.assertEqual(self.queue.status()["used_cpu_s"], 60.0)
+
+    def test_orphan_blocks_until_process_checked_and_charged(self):
+        self.queue.open(self.seal, digest(self.seal))
+        self.queue.enqueue(self.spec("D_ORPHAN"))
+        self.queue.enqueue(self.spec("D_NEXT"))
+        with self.queue.mutex():
+            state = self.queue.read()
+            state["units"]["D_ORPHAN"].update(status="running", slot=0,
+                                               wrapper_pid=99999999, child_pid=99999998)
+            atomic(self.queue.state, state)
+        self.assertEqual(self.queue.run_once()["status"], "orphan_unresolved")
+        recovered = self.queue.reconcile("D_ORPHAN")
+        self.assertEqual(recovered["status"], "incomplete")
+        self.assertEqual(self.queue.status()["used_cpu_s"], 5.0)
+        self.assertEqual(self.queue.run_once()["status"], "done")
 
 
 if __name__ == "__main__":

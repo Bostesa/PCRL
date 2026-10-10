@@ -54,4 +54,4 @@ The final CPU charge is the greatest of child CPU, observed process-tree CPU and
 
 ## Current state and checks
 
-At setup the seal is absent, the queue is empty, no science jobs have run, projected private output is zero, and campaign capacity is one. The private `SETUP_COST.json` records a conservative 60 CPU-second admission charge for scheduler setup and data-free checks. Six isolated control tests pass for the seal gate, exclusive slot, milestone gate, child PID observation, resource receipt, immutable cache, amendment requirement and idempotent charge. Run them with `python -m unittest -v test_queue.py` from `r03`.
+At setup the seal is absent, the queue is empty, no science jobs have run, projected private output is zero, and campaign capacity is one. The private `SETUP_COST.json` records a conservative 60 CPU-second admission charge for scheduler setup and data-free checks. Seven isolated control tests pass for the seal gate, exclusive slot, milestone gate, child PID observation, resource receipt, immutable cache, amendment requirement, idempotent charge and orphan recovery. Run them with `python -m unittest -v test_queue.py` from `r03`.

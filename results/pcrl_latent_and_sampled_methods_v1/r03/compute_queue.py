@@ -235,6 +235,8 @@ class Queue:
             raise ValueError("projected_output_bytes must be a nonnegative integer")
         if not isinstance(spec.get("deps", []), list) or not isinstance(spec.get("outputs", []), list):
             raise ValueError("deps and outputs must be arrays")
+        if any(not isinstance(item, str) for item in spec.get("deps", []) + spec.get("outputs", [])):
+            raise ValueError("deps and outputs must contain only strings")
         spec.setdefault("deps", [])
         spec.setdefault("outputs", [])
         spec.setdefault("env", {})
@@ -243,6 +245,9 @@ class Queue:
             raise ValueError("custom environment cannot override one-thread limits")
         if not isinstance(spec["sources"], list) or not spec["sources"] or any(not isinstance(item, dict) or set(item) != {"path", "sha256"} for item in spec["sources"]):
             raise ValueError("sources must contain at least one path/SHA-256 record")
+        if any(not isinstance(item["path"], str) or not isinstance(item["sha256"], str)
+               or len(item["sha256"]) != 64 for item in spec["sources"]):
+            raise ValueError("source path or SHA-256 malformed")
         with self.mutex():
             state = self.read()
             existing = state["units"].get(uid)
@@ -494,6 +499,21 @@ class Queue:
                 state = self.read()
                 if slot >= self._capacity(state):
                     return {"status": "external_capacity_full"}
+                for other in state["units"].values():
+                    if other["status"] != "running":
+                        continue
+                    if other["slot"] == slot:
+                        return {"status": "orphan_unresolved", "unit_id": other["spec"]["unit_id"]}
+                    probe = (self.root / f"slot{other['slot']}.lock").open("a+")
+                    try:
+                        fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        pass
+                    else:
+                        fcntl.flock(probe, fcntl.LOCK_UN)
+                        return {"status": "orphan_unresolved", "unit_id": other["spec"]["unit_id"]}
+                    finally:
+                        probe.close()
                 queued = sorted(((uid, u) for uid, u in state["units"].items() if u["status"] == "queued"),
                                 key=lambda pair: (PRIORITY[pair[1]["spec"]["stage"]], pair[1]["submitted_utc"], pair[0]))
                 choices = [(uid, u) for uid, u in queued if self._admit_reason(state, u["spec"]) is None]
