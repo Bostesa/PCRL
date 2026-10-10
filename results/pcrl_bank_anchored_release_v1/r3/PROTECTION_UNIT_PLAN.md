@@ -7,9 +7,13 @@ After R0 marks the new bank and channel identity milestones, register at most **
 `python3 -m bank_anchored.r3_make_protection_config` derives one private
 config, private queue spec and public hash-only index from the corresponding
 corrected B0 witness config/spec, a completed R2 realization-zero law and
-`BAR1-role-release-v1` receipt, and the latest R0 protection-stage amendment.
-It verifies the inherited source bytes and R2 arm/seed/role/law identity
-without opening role arrays or law members. R0 still chooses and registers
+`BAR1-role-release-v1` receipt, the selected R2 policy receipt and package,
+the seed's public full-FIT source-identity receipt, and the latest R0
+protection-stage amendment. It verifies that release, selected policy and
+source identity share exactly one source-binding hash; the release names the
+selected policy receipt hash; and the policy receipt names the pinned policy
+package hash. It also verifies inherited source bytes and R2 arm/seed/role/law
+identity without opening role arrays or law members. R0 still chooses and registers
 the dependency IDs in the shared queue. Each output unit ID and path is new.
 
 Each protected private config uses `pcrl-bank-r3-utility-job-v1`, `stage=protection`, exact arm and seed, exact FIT or INNER role, and the same source records as its matching B0 witness unit **plus** `law={path,sha256}` for the R2 private role law. That NPZ must have exactly eight members: `row_id,unit,code_r1,code_r2,mass,valid,b0_code_r1,b0_code_r2`. The R3 worker verifies ordered role rows/groups, law normalization, in-bank global IDs, class preservation and exact B0 codes against the pinned original R1 wire. The queue sources additionally pin the R2 law file; no label or SEX archive is an R2-to-R3 payload.
