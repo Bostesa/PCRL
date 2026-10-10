@@ -331,3 +331,32 @@ def test_superseded_inert_proposal_retains_original_family_only():
     assert "correction_amendment_sha256" not in proposal
     assert proposal["source_sha256"]["r02/a_fixed_endpoint.py"] != sha(
         CAMPAIGN / "r02/a_fixed_endpoint.py")
+
+
+def test_r1_inert_proposal_pins_exact_correction_and_sources():
+    from results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint import (
+        CAMPAIGN, SOURCE_NAMES_FIXED, SHARED_NAMES, WORKTREE,
+    )
+
+    proposal = json.loads((CAMPAIGN / "r02/A_FIXED_ENDPOINT_R1_ANALYSIS_PROPOSAL.json").read_text())
+    correction_path = CAMPAIGN / "AMENDMENT_20261010_A_FIXED_ATTACK_CORRECTION_R1.json"
+    correction = json.loads(correction_path.read_text())
+    assert proposal["status"] == "PREFIT_DRAFT_NOT_EFFECTIVE"
+    assert proposal["correction_amendment_sha256"] == sha(correction_path)
+    assert proposal["producer_amendment_sha256"] == correction["producer_amendment_sha256"]
+    assert proposal["fixed_family_clause_count"] == 6885
+    assert len(proposal["fixed_attack_unit_ids"]) == 18
+    assert len(proposal["fixed_physical_attack_unit_ids"]) == 18
+    assert len(proposal["unavailable_attack_unit_ids"]) == 40
+    assert proposal["physical_to_original_attack_units"] == {
+        **{uid: uid for uid in proposal["fixed_attack_unit_ids"]
+           if uid + "-R1" not in correction["physical_attempts"]},
+        **{physical: record["original_attack_unit_id"]
+           for physical, record in correction["physical_attempts"].items()},
+    }
+    assert sum(uid.endswith("-R1") for uid in proposal["fixed_physical_attack_unit_ids"]) == 12
+    for name in SOURCE_NAMES_FIXED:
+        assert proposal["source_sha256"][name] == sha(CAMPAIGN / name)
+    for name in SHARED_NAMES:
+        relative = f"results/pcrl_method_portfolio_v1/shared/{name}"
+        assert proposal["source_sha256"][relative] == sha(WORKTREE / relative)
