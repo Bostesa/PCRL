@@ -3,8 +3,9 @@
 This is R04's verification scope before an effective A seal or Adult channel
 fit. The admitted T* source/bank/cell decoder and FIT identity arithmetic
 already have the independent `A_PREFIT_INDEPENDENT_REPLAY.json` receipt. P*
-and the other historical score wires require their own admitted source and
-fresh reader custody if included in a claim. No A outcome is inferred here.
+source parity and the six D0 INNER utility cells now also have independent
+receipts. Every historical reference still requires fresh A reader custody.
+No A outcome is inferred here.
 
 1. **Source and bank.** Pin the effective A lock, R01 role-only references,
    predecessor T*/P* bank archives, policy/decoder hashes, and the exact
@@ -36,7 +37,7 @@ fresh reader custody if included in a claim. No A outcome is inferred here.
    readers, verify ATT-only winner/orientation, all fixed INNER reader AUCs,
    zero-fit pair aliases and null/planted controls. Apply fixed matched-control
    membership and eligibility without selecting a favorable draw.
-5. **Inference.** Enumerate the exact 4,455 ordered A IDs independently of
+5. **Inference.** Enumerate the exact 6,885 ordered A S1 IDs independently of
    R02. With every required arm and anchor present, use the same paired
    group positions across arms and both seeds, and the predeclared coupled
    three-draw index resampling for mean summaries. Recompute the reader
