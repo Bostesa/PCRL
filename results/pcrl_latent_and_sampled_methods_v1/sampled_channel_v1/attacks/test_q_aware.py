@@ -1,10 +1,12 @@
 """Synthetic public-prototype Q reader checks; no Adult role values."""
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.q_aware import (
-    compile_uniform_prototype_features, with_q_features,
+    compile_uniform_prototype_features, fit_q_posterior_reader, with_q_features,
 )
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.test_wire import (
     bank, release,
@@ -89,3 +91,39 @@ def test_uniform_lookup_refuses_private_or_unreachable_code_state():
         compile_uniform_prototype_features(b1, b2, *public_prototypes(),
                                            public_law, public_centroids_sha256="d" * 64,
                                            expected_identity=wrong)
+
+
+def test_public_q_table_bytes_are_rehashed_before_lookup():
+    features = table()
+    changed = features.r1.copy()
+    changed[0, 0] += 0.01
+    tampered = replace(features, r1=changed)
+    b1 = bank(1)
+    local = materialize_recipient_batch([release(b1, 0)],
+                                        np.asarray([11], dtype=np.int64),
+                                        np.asarray([21], dtype=np.int64), b1)
+    with pytest.raises(ValueError, match="public Q table content SHA"):
+        with_q_features(local, tampered, view="r1")
+
+
+def test_q_reader_refuses_fit_without_active_a_queue_before_sex_access(tmp_path):
+    features = table()
+    b1 = bank(1)
+    local = materialize_recipient_batch([release(b1, 0)],
+                                        np.asarray([11], dtype=np.int64),
+                                        np.asarray([21], dtype=np.int64), b1)
+    lock = tmp_path / "A_LOCK.json"
+    lock.write_text("{}\n")
+    import hashlib
+    lock_sha = hashlib.sha256(lock.read_bytes()).hexdigest()
+    class NoSex(dict):
+        def __getitem__(self, key):
+            raise AssertionError("ATT SEX accessed before A queue gate")
+    with pytest.raises(RuntimeError, match="active queue slot environment missing"):
+        fit_q_posterior_reader(local, local, NoSex(), features,
+                               view="r1", attacker_seed=0,
+                               private_dir=tmp_path / ".private" / "reader",
+                               lock_path=lock, lock_sha256=lock_sha,
+                               expected_table_sha256=features.table_sha256,
+                               queue_unit_id="A-SYNTHETIC-NOT-RUNNING",
+                               queue_guard=lambda: None)

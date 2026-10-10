@@ -26,6 +26,9 @@ from results.pcrl_latent_and_sampled_methods_v1.r02.complete_view import (
 from results.pcrl_latent_and_sampled_methods_v1.r02.protocol import (
     _factory, _label_record, attack_fit_tune_split, sha_file,
 )
+from results.pcrl_latent_and_sampled_methods_v1.r03.compute_queue import (
+    assert_active_from_env,
+)
 from .wire import PublicBank
 
 
@@ -113,6 +116,21 @@ class PrototypeFeatureTable:
     table_sha256: str
 
 
+def table_content_sha256(table: PrototypeFeatureTable) -> str:
+    """Hash actual array bytes, so a forged dataclass digest cannot admit a fit."""
+    if not isinstance(table, PrototypeFeatureTable):
+        raise ValueError("public Q table type is invalid")
+    digest = hashlib.sha256(_canonical_json(table.identity) + b"\n")
+    for value in (table.r1, table.r2, table.pair,
+                  table.r1_mass, table.r2_mass, table.pair_mass):
+        a = np.asarray(value)
+        if a.dtype != np.dtype("float64") or not np.isfinite(a).all():
+            raise ValueError("public Q table arrays are not finite float64")
+        digest.update(_canonical_json(list(a.shape)) + b"\n")
+        digest.update(np.ascontiguousarray(a, dtype="<f8").tobytes())
+    return digest.hexdigest()
+
+
 def compile_uniform_prototype_features(
     bank1: PublicBank, bank2: PublicBank,
     centroids1: np.ndarray, centroids2: np.ndarray,
@@ -190,18 +208,17 @@ def compile_uniform_prototype_features(
     if not all(math.isclose(float(m.sum()), 1.0, rel_tol=0, abs_tol=1e-10)
                for m in (m1, m2, mp)):
         raise ValueError("public prototype lookup does not have unit output mass")
-    digest = hashlib.sha256(_canonical_json(identity) + b"\n")
-    for value in (r1, r2, pair, m1, m2, mp):
-        digest.update(_canonical_json(list(value.shape)) + b"\n")
-        digest.update(np.ascontiguousarray(value, dtype="<f8").tobytes())
+    unsigned = PrototypeFeatureTable(r1, r2, pair, m1, m2, mp, n, identity, "")
     return PrototypeFeatureTable(r1, r2, pair, m1, m2, mp, n,
-                                 identity, digest.hexdigest())
+                                 identity, table_content_sha256(unsigned))
 
 
 def with_q_features(batch: WireBatch, table: PrototypeFeatureTable, *, view: str) -> WireBatch:
     """Attach a public deterministic code lookup to the complete attack view."""
     if view not in ("r1", "r2", "pair") or not isinstance(table, PrototypeFeatureTable):
         raise ValueError("public Q lookup view/table is invalid")
+    if table_content_sha256(table) != table.table_sha256:
+        raise ValueError("public Q table content SHA differs from actual arrays")
     names = ("r1.code_id", "r2.code_id") if view == "pair" else ("code_id",)
     if any(name not in batch.fields for name in names):
         raise ValueError("actual emitted public code field is absent")
@@ -257,6 +274,7 @@ def fit_q_posterior_reader(
     sex_att: dict, table: PrototypeFeatureTable,
     *, view: str, attacker_seed: int, private_dir: str | Path,
     lock_path: str | Path, lock_sha256: str, expected_table_sha256: str,
+    queue_unit_id: str,
     queue_guard: Callable[[], None],
 ) -> dict:
     """ATT-only Q_POST_LR_C1; return the R02 external-reader record.
@@ -269,10 +287,13 @@ def fit_q_posterior_reader(
             not lock.is_file() or sha_file(lock) != lock_sha256):
         raise ValueError("effective A lock file/hash is missing or changed")
     if (not isinstance(table, PrototypeFeatureTable) or
-            table.table_sha256 != expected_table_sha256):
+            table.table_sha256 != expected_table_sha256 or
+            table_content_sha256(table) != expected_table_sha256):
         raise ValueError("public Q table differs from sealed artifact")
     if not callable(queue_guard):
         raise ValueError("active shared compute queue guard is required")
+    assert_active_from_env(unit_id=queue_unit_id, stage="a")
+    queue_guard()
     out = Path(private_dir)
     if ".private" not in out.resolve().parts or out.exists():
         raise ValueError("Q reader custody must be a new private directory")
@@ -288,10 +309,12 @@ def fit_q_posterior_reader(
     fit, tune = split["fit"], split["tune"]
     if np.unique(y[fit]).size != 2 or np.unique(y[tune]).size != 2:
         raise ValueError("Q reader ATT fit/tune lacks both SEX classes")
+    assert_active_from_env(unit_id=queue_unit_id, stage="a")
     queue_guard()
     out.mkdir(parents=True, mode=0o700)
     model = _factory("LR_C1", attacker_seed)
     model.fit(x_att[fit], y[fit])
+    assert_active_from_env(unit_id=queue_unit_id, stage="a")
     queue_guard()
     p_tune = np.asarray(model.predict_proba(x_att[tune])[:, 1], dtype=np.float64)
     p_inner = np.asarray(model.predict_proba(x_inner)[:, 1], dtype=np.float64)
