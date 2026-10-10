@@ -98,9 +98,12 @@ and decision values decode through the fixed bank. The B0 seed-0 reader takes
 the concatenated emitted probabilities (`[n,2] + [n,6]`) and returned 32 finite
 probabilities in [0,1]. No task or SEX label entered this replay.
 
-The V1 replay failed because the source archive omitted `latent_repair_v1`;
+The separate [independent X replay](../r5/R5_VERIFY_RESTORE_V3_RECEIPT.json)
+confirmed all eight wire hashes, fixed bank and cached code parity, and the
+reader's 32 predictions with maximum absolute difference 0. It accessed no
+labels. The V1 replay failed because the source archive omitted `latent_repair_v1`;
 V2 reached decoder reconstruction but failed because the archive omitted
 `lra`. Both failures and their original outputs are retained in
-[R1_RESTORE_ATTEMPTS_V3.json](R1_RESTORE_ATTEMPTS_V3.json). Final independent
-numerical review of V3 remains pending; these representative 32 FIT rows do
-not establish population deployment or privacy performance.
+[R1_RESTORE_ATTEMPTS_V3.json](R1_RESTORE_ATTEMPTS_V3.json). These representative
+32 FIT rows verify executable custody and replay; they do not establish
+population deployment or privacy performance.
