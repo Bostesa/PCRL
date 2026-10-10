@@ -137,6 +137,7 @@ def run(args: argparse.Namespace) -> dict:
     family_receipt = campaign / "r04/A_S1_FAMILY_INDEPENDENT_AUDIT.json"
     repair_manifest = Path(args.role_manifest).resolve(strict=True)
     queue_state_path = Path(args.queue_state).resolve(strict=True)
+    queue_state_sha = sha_file(queue_state_path)
     queue = json.loads(queue_state_path.read_text())
     allowed_status = ("PREFIT_DRAFT_NOT_EFFECTIVE",) if args.prefit_draft else (
         "PREFIT_COMPLETE_FOR_SEAL", "LOCALLY_SEALED_A_STAGE")
@@ -183,6 +184,8 @@ def run(args: argparse.Namespace) -> dict:
             or used_a + graph["cpu_reserve_seconds"] + margin_total > 18000
             or used_global + graph["cpu_reserve_seconds"] + margin_total > 72000):
         raise ValueError("A stage or global CPU reserve does not close")
+    if sha_file(amendment_path) != amendment_sha or sha_file(queue_state_path) != queue_state_sha:
+        raise ValueError("A amendment or queue state changed during prefit audit")
     return {"schema": "pcrl-r04-a-prefit-amendment-audit-v1",
             "status": ("A_220_UNIT_PREFIT_DRAFT_AUDIT_PASS" if args.prefit_draft
                        else "A_220_UNIT_PREFIT_ADMISSION_PASS"),
@@ -190,7 +193,7 @@ def run(args: argparse.Namespace) -> dict:
             "amendment_sha256": amendment_sha,
             "original_lock_sha256": sha_file(seal), "family_sha256": sha_file(family),
             "family_independent_receipt_sha256": sha_file(family_receipt),
-            "queue_state_sha256_at_audit": sha_file(queue_state_path),
+            "queue_state_sha256_at_audit": queue_state_sha,
             "source_hashes_checked": {field: len(amendment[field]) for field in
                                       ("source_sha256", "implementation_source_sha256")},
             "scope": "producer_only; endpoint scorer requires a dated source amendment",
