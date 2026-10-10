@@ -72,8 +72,48 @@ def _wire_hash(policy: IndependentAPolicy, receipt: dict,
     return digest.hexdigest()
 
 
+def _selected_root(private_path: Path, draw: int,
+                   public_path: Path | None, expected_public_sha256: str | None) -> bytes:
+    if public_path is None:
+        # Only the data-free fixture uses an isolated raw 32-byte root.
+        return Path(private_path).read_bytes()
+    if expected_public_sha256 is None or sha_file(public_path) != expected_public_sha256:
+        raise ValueError("A stream public root manifest hash differs")
+    manifest = json.loads(Path(public_path).read_text())
+    if (manifest.get("schema") != "scv1-public-stream-root-hashes-v1"
+            or manifest.get("private_file_sha256") != sha_file(private_path)
+            or manifest.get("private_file_mode") != "0600"
+            or manifest.get("release_hmac_message") !=
+               "compact ASCII JSON [SCV1-uniform-v1,source_seed,role,realization,unit]"
+            or manifest.get("seq_fit_hmac_domain") != "SCV1-seq-fit-first-v1"):
+        raise ValueError("A private HMAC root file differs from public commitment")
+    private = json.loads(Path(private_path).read_text())
+    if (private.get("schema") != "scv1-private-stream-roots-v1"
+            or set(private.get("release_realization_roots_hex", {})) != {"0", "1", "2"}):
+        raise ValueError("A private HMAC root bundle schema differs")
+    roots = {}
+    for name, hex_value in private["release_realization_roots_hex"].items():
+        if (not isinstance(hex_value, str) or len(hex_value) != 64
+                or any(c not in "0123456789abcdef" for c in hex_value)):
+            raise ValueError("A HMAC root is not lowercase 32-byte hex")
+        roots[name] = bytes.fromhex(hex_value)
+    if ({name: hashlib.sha256(root).hexdigest() for name, root in roots.items()}
+            != manifest["release_realization_root_sha256"]):
+        raise ValueError("A HMAC roots differ from public hashes")
+    seq_hex = private.get("seq_fit_root_hex")
+    if (not isinstance(seq_hex, str) or len(seq_hex) != 64
+            or any(c not in "0123456789abcdef" for c in seq_hex)
+            or hashlib.sha256(bytes.fromhex(seq_hex)).hexdigest() !=
+               manifest.get("seq_fit_root_sha256")
+            or len(set(roots.values()) | {bytes.fromhex(seq_hex)}) != 4):
+        raise ValueError("A fourth private stream commitment differs")
+    return roots[str(draw)]
+
+
 def replay_sampled_release(policy: IndependentAPolicy, *, directory: Path,
                            expected_receipt_sha256: str, root_path: Path,
+                           public_stream_manifest_path: Path | None = None,
+                           expected_stream_manifest_sha256: str | None = None,
                            row_id: np.ndarray, unit: np.ndarray,
                            score1: np.ndarray, score2: np.ndarray,
                            cell1: np.ndarray, cell2: np.ndarray,
@@ -98,7 +138,9 @@ def replay_sampled_release(policy: IndependentAPolicy, *, directory: Path,
             or sha_file(cache_path) != receipt["cache_file_sha256"]
             or sha_file(code_path) != receipt["codes_file_sha256"]):
         raise ValueError("A sampled release/policy binding differs")
-    private_root = Path(root_path).read_bytes()
+    private_root = _selected_root(root_path, receipt["realization"],
+                                  public_stream_manifest_path,
+                                  expected_stream_manifest_sha256)
     if len(private_root) != 32 or hashlib.sha256(private_root).hexdigest() != receipt["private_stream_root_sha256"]:
         raise ValueError("A private HMAC root differs from precommitment")
     n = len(row_id)

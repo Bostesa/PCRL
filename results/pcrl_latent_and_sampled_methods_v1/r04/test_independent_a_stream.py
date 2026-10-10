@@ -12,7 +12,8 @@ from results.pcrl_latent_and_sampled_methods_v1.r04.independent_a_source import 
 from results.pcrl_latent_and_sampled_methods_v1.r04.independent_a_law import (
     IndependentAPolicy, _bank_hash)
 from results.pcrl_latent_and_sampled_methods_v1.r04.independent_a_stream import (
-    _cache_key, _input_digest, _uniform, _wire_hash, replay_sampled_release)
+    _cache_key, _input_digest, _selected_root, _uniform, _wire_hash,
+    replay_sampled_release)
 
 
 def test_replay_one_sticky_pair_and_complete_wire(tmp_path):
@@ -84,3 +85,23 @@ def test_replay_one_sticky_pair_and_complete_wire(tmp_path):
         score1=score1, score2=score2, cell1=cells, cell2=cells,
         expected_source_identity=source_identity)
     assert result["hmac_cache_exact"] and result["groups"] == 1
+
+
+def test_public_stream_precommitment_selects_one_draw(tmp_path):
+    roots = {str(i): bytes([i + 1]) * 32 for i in range(3)}
+    seq = b"s" * 32
+    private = tmp_path / "roots.json"
+    private.write_text(json.dumps({"schema": "scv1-private-stream-roots-v1",
+                                   "release_realization_roots_hex": {
+                                       key: value.hex() for key, value in roots.items()},
+                                   "seq_fit_root_hex": seq.hex()}))
+    public = tmp_path / "public.json"
+    public.write_text(json.dumps({
+        "schema": "scv1-public-stream-root-hashes-v1", "private_file_mode": "0600",
+        "private_file_sha256": sha_file(private),
+        "release_hmac_message": "compact ASCII JSON [SCV1-uniform-v1,source_seed,role,realization,unit]",
+        "seq_fit_hmac_domain": "SCV1-seq-fit-first-v1",
+        "release_realization_root_sha256": {
+            key: hashlib.sha256(value).hexdigest() for key, value in roots.items()},
+        "seq_fit_root_sha256": hashlib.sha256(seq).hexdigest()}))
+    assert _selected_root(private, 2, public, sha_file(public)) == roots["2"]
