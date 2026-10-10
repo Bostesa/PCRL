@@ -32,12 +32,18 @@ python3 -m bank_anchored.r1_custody snapshot \
 python3 -m bank_anchored.r1_custody restore \
   --source results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v2 \
   --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/restore_20261010_v2
+python3 -m bank_anchored.r1_custody snapshot \
+  --source results/pcrl_bank_anchored_release_v1/r1/.private/R1_CUSTODY_PLAN_B0_J_READER_V5.json \
+  --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v3
+python3 -m bank_anchored.r1_custody restore \
+  --source results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v3 \
+  --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/restore_20261010_v3
 ```
 
-Both commands are write-once and refuse existing targets. Use a new versioned
+The commands are write-once and refuse existing targets. Use a new versioned
 target for another copy. Their owner-only receipts and public hashes appear
-in [RESTORE_INDEX_V2.json](RESTORE_INDEX_V2.json). The original V1 copy
-and failed replay remain preserved. This is a same-device restore;
+in [RESTORE_INDEX_V3.json](RESTORE_INDEX_V3.json). The V1 and V2 copies
+and failed numerical replay receipts remain preserved. This is a same-device restore;
 off-device custody remains pending because no writable external drive was
 mounted.
 
@@ -74,24 +80,27 @@ replays check the two recipient views and exact frozen bank decode.
 
 ## Restored numerical replay
 
-The snapshot and restore contain both seed routers, public bank tables,
-B0/J policy packages, sealed J sample draws, raw permitted samples, a pinned
-runtime source archive and one completed B0 nonlinear probability reader.
-[RESTORE_REPLAY_SOURCE_PLAN.json](RESTORE_REPLAY_SOURCE_PLAN.json) lists the
-first restore's relative source labels and hashes. Its queued
-`R1_RESTORE_B0_J_READER` attempt failed at the first restored CLI import:
-the runtime source archive omitted a transitive `latent_repair_v1` module.
-The failure and original snapshot remain preserved in
-[R1_RESTORE_ATTEMPTS.json](R1_RESTORE_ATTEMPTS.json). The corrected runtime
-archive adds only that tracked module family and passes an isolated import
-and seven synthetic deployment tests. The separate V2 snapshot and restore
-have 55/55 uncached hash checks. Their relative source labels and hashes are
-in [RESTORE_REPLAY_SOURCE_PLAN_V2.json](RESTORE_REPLAY_SOURCE_PLAN_V2.json).
-The successor shared-queue numerical replay awaits a verification amendment.
+The V3 snapshot contains both seed routers, public bank tables, B0/J policy
+packages, sealed J sample draws, raw permitted samples, a pinned runtime
+source archive and one completed B0 nonlinear probability reader. The private
+manifest specifies all 55 entries; [RESTORE_REPLAY_SOURCE_PLAN_V3.json](RESTORE_REPLAY_SOURCE_PLAN_V3.json)
+lists their relative labels and hashes. The V3 runtime archive adds the
+tracked `lra` dependency required by the restored decoder; its 450 prior
+members are byte-identical. V3 passed independent uncached source, snapshot
+and restored-file hash checks.
 
-The successor numerical replay will execute eight restored one-recipient
-CLI calls and one reader inference; its status must come from its queued
-receipt.
-The reader takes the emitted B0 seed-0 probabilities concatenated as
-`[n,2] + [n,6]` and returns a finite probability per person. It never uses
-SEX at inference.
+The shared-queue unit `R1_RESTORE_B0_J_READER_V3` executed eight restored
+one-recipient raw-input CLI calls on 32 admitted FIT rows and one restored
+nonlinear reader inference. Its [public receipt](R1_RESTORE_B0_J_READER_V3_RECEIPT.json)
+reports PASS. Each emitted wire file has the exact hash of the earlier
+raw-input deployment receipt, the cached codes agree, and all code, probability
+and decision values decode through the fixed bank. The B0 seed-0 reader takes
+the concatenated emitted probabilities (`[n,2] + [n,6]`) and returned 32 finite
+probabilities in [0,1]. No task or SEX label entered this replay.
+
+The V1 replay failed because the source archive omitted `latent_repair_v1`;
+V2 reached decoder reconstruction but failed because the archive omitted
+`lra`. Both failures and their original outputs are retained in
+[R1_RESTORE_ATTEMPTS_V3.json](R1_RESTORE_ATTEMPTS_V3.json). Final independent
+numerical review of V3 remains pending; these representative 32 FIT rows do
+not establish population deployment or privacy performance.
