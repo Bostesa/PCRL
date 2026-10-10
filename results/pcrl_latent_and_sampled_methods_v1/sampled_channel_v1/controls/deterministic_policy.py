@@ -1,13 +1,16 @@
 """Exact one-hot public release law for separately fitted deterministic gates.
 
-Import with the shared sampled_channel_v1/impl directory on PYTHONPATH. This
-subclass keeps the R12 cached wire adapter while changing the emitted law.
+This subclass keeps the R12 cached wire adapter while changing the emitted law.
 """
 
 import numpy as np
 
-from channel import JointPolicy, _entropy_margin, expected_cost, bayes_recovery
-from fit import TaskOnlyData, ProtectedData
+if __package__:
+    from ..impl.channel import JointPolicy, _entropy_margin, expected_cost, bayes_recovery
+    from ..impl.fit import TaskOnlyData, ProtectedData
+else:
+    from channel import JointPolicy, _entropy_margin, expected_cost, bayes_recovery
+    from fit import TaskOnlyData, ProtectedData
 
 
 class DeterministicJointPolicy(JointPolicy):

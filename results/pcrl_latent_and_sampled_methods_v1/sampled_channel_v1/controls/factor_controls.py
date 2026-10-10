@@ -9,7 +9,10 @@ import re
 
 import numpy as np
 
-from channel import JointPolicy, _entropy_margin, aggregate_public_pairs
+if __package__:
+    from ..impl.channel import JointPolicy, _entropy_margin, aggregate_public_pairs
+else:
+    from channel import JointPolicy, _entropy_margin, aggregate_public_pairs
 
 
 @dataclass(frozen=True)

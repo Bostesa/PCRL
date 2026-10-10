@@ -20,7 +20,7 @@ from channel import GateWeights
 from fit import FitRecipe, ProtectedData, TaskOnlyData, prepare_law
 
 from deterministic_trainer import (DeterministicConfig, batch_from_prepared,
-                                   fit_deterministic)
+                                   FitResult, fit_deterministic)
 from factor_controls import (FactorGate, ProductPolicy, SequentialPolicy,
                              public_probability_embedding)
 from fit_local import LocalFactorData, fit_local_pair
@@ -53,6 +53,16 @@ def _role(rng, bank, fine_count, n):
     score = np.asarray(bank.probability[np.asarray(identity)[cell]], dtype=np.float64)
     label = np.asarray(np.argmax(score, axis=1), dtype=np.int64)
     return score, cell, label, tuple(actions)
+
+
+def _result_status(result):
+    """The hard trainer returns a dataclass; factor trainers return mappings."""
+    if isinstance(result, FitResult):
+        return result.complete, result.success
+    if (type(result) is dict and type(result.get("complete")) is bool and
+            type(result.get("success")) is bool):
+        return result["complete"], result["success"]
+    raise TypeError("synthetic timing worker returned no complete/success status")
 
 
 def main():
@@ -128,10 +138,11 @@ def main():
             dual_every=25, replay_every=25, grad_clip=5.0,
             cpu_limit_seconds=args.cpu_limit, seed=2701,
             bias_deltas=(-.5, -.1, .1, .5)), caps=(10.0,) * 4)
+    complete, success = _result_status(result)
     print(json.dumps({"synthetic_only": True, "arm": args.arm,
                       "rows": args.rows, "fine_cells": [64, 641],
                       "bank_sizes": [len(bank1.probability), len(bank2.probability)],
-                      "complete": result["complete"], "success": result["success"],
+                      "complete": complete, "success": success,
                       "cpu_seconds_total": time.process_time() - started,
                       "maxrss_platform_units": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss},
                      sort_keys=True))

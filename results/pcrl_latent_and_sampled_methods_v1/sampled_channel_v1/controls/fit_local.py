@@ -5,10 +5,16 @@ import time
 
 import numpy as np
 
-from bank import FixedBank
-from channel import GateWeights, _entropy_margin
-from fit import FitRecipe, TaskOnlyData, ProtectedData, exact_metrics
-from factor_controls import FactorGate, LocalPolicy, initial_factor_gate
+if __package__:
+    from ..impl.bank import FixedBank
+    from ..impl.channel import GateWeights, _entropy_margin
+    from ..impl.fit import FitRecipe, TaskOnlyData, ProtectedData, exact_metrics
+    from .factor_controls import FactorGate, LocalPolicy, initial_factor_gate
+else:
+    from bank import FixedBank
+    from channel import GateWeights, _entropy_margin
+    from fit import FitRecipe, TaskOnlyData, ProtectedData, exact_metrics
+    from factor_controls import FactorGate, LocalPolicy, initial_factor_gate
 
 
 @dataclass(frozen=True)

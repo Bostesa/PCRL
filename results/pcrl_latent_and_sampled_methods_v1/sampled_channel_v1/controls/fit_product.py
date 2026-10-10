@@ -4,9 +4,14 @@ import time
 
 import numpy as np
 
-from fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, prepare_law,
-                 exact_metrics, _identity_guards, _torch_metrics)
-from factor_controls import FactorGate, ProductPolicy, initial_factor_gate
+if __package__:
+    from ..impl.fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, prepare_law,
+                            exact_metrics, _identity_guards, _torch_metrics)
+    from .factor_controls import FactorGate, ProductPolicy, initial_factor_gate
+else:
+    from fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, prepare_law,
+                     exact_metrics, _identity_guards, _torch_metrics)
+    from factor_controls import FactorGate, ProductPolicy, initial_factor_gate
 
 
 def fit_product(data: ProtectedData, policy: ProductPolicy, *,

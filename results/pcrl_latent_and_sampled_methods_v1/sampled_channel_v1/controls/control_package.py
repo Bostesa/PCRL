@@ -12,15 +12,24 @@ from zipfile import ZipFile
 
 import numpy as np
 
-from bank import FixedBank
-from channel import GateWeights
-from policy_package import (_private_directory, _sha, _padded, _unpad,
-                            load_policy_package)
-from release import _bank_hash, _mechanism_hash
-from source_bridge import action_map_sha256
-
-from deterministic_policy import DeterministicJointPolicy
-from factor_controls import FactorGate, ProductPolicy, LocalPolicy, SequentialPolicy
+if __package__:
+    from ..impl.bank import FixedBank
+    from ..impl.channel import GateWeights
+    from ..impl.policy_package import (_private_directory, _sha, _padded, _unpad,
+                                       load_policy_package)
+    from ..impl.release import _bank_hash, _mechanism_hash
+    from ..impl.source_bridge import action_map_sha256
+    from .deterministic_policy import DeterministicJointPolicy
+    from .factor_controls import FactorGate, ProductPolicy, LocalPolicy, SequentialPolicy
+else:
+    from bank import FixedBank
+    from channel import GateWeights
+    from policy_package import (_private_directory, _sha, _padded, _unpad,
+                                load_policy_package)
+    from release import _bank_hash, _mechanism_hash
+    from source_bridge import action_map_sha256
+    from deterministic_policy import DeterministicJointPolicy
+    from factor_controls import FactorGate, ProductPolicy, LocalPolicy, SequentialPolicy
 
 
 SCHEMA = "SCV1-selected-control-policy-v1"
@@ -29,10 +38,37 @@ COMMON = {"bank1_probability", "bank1_decision", "bank1_old_to_global",
           "actions1", "actions2", "gate_w1", "gate_b1", "gate_w2", "gate_b2"}
 FACTOR = ("w1", "b1", "w2", "b2")
 HEX = set("0123456789abcdef")
+ARM_LAW = {
+    "A_JOINT_STOCH": "stochastic_joint_v1",
+    "A_TASK_STOCH": "stochastic_joint_v1",
+    "A_TASK_DET": DeterministicJointPolicy.law_kind,
+    "A_JOINT_DET": DeterministicJointPolicy.law_kind,
+    "A_CENTRAL_PRODUCT": ProductPolicy.law_kind,
+    "A_LOCAL": LocalPolicy.law_kind,
+    "A_SEQ12": SequentialPolicy.law_kind,
+    "A_SEQ21": SequentialPolicy.law_kind,
+}
 
 
 def _hex64(value):
     return type(value) is str and len(value) == 64 and set(value) <= HEX
+
+
+def _check_arm_law(arm_id, policy):
+    if ARM_LAW.get(arm_id) != policy.law_kind:
+        raise ValueError("arm ID and law kind differ")
+    if arm_id in ("A_SEQ12", "A_SEQ21") and policy.order != arm_id[-2:]:
+        raise ValueError("arm ID and sequential order differ")
+
+
+def _check_selection_provenance(arm_id, start, update):
+    if type(update) is not int or update < 0:
+        raise ValueError("selected control update is invalid")
+    if arm_id in ("A_LOCAL", "A_SEQ12", "A_SEQ21"):
+        if start != "composite" or update != 0:
+            raise ValueError("multistage control must identify composite selection")
+    elif start not in ("identity_biased", "uniform", "uniform_logit"):
+        raise ValueError("selected control start is invalid")
 
 
 def _factor_arrays(arrays, prefix, factor):
@@ -86,13 +122,13 @@ def save_control_policy_package(directory, policy, *, arm_id, release_id,
             type(release_id) is not str or not release_id or
             type(source_seed) is not int or source_seed not in (0, 1) or
             type(fit_unit_id) is not str or not fit_unit_id or
-            start not in ("identity_biased", "uniform", "uniform_logit") or
-            type(update) is not int or update < 0 or
             len(bank_sha256) != 2 or len(action_sha256) != 2 or
             not all(_hex64(value) for value in
                     (source_binding_sha256, row_unit_pair_sha256,
                      fit_receipt_sha256, *bank_sha256, *action_sha256))):
         raise ValueError("selected control identity is incomplete")
+    _check_arm_law(arm_id, policy)
+    _check_selection_provenance(arm_id, start, update)
     if ((_bank_hash(policy.bank1), _bank_hash(policy.bank2)) != tuple(bank_sha256) or
             (action_map_sha256(policy.actions1),
              action_map_sha256(policy.actions2)) != tuple(action_sha256)):
@@ -203,6 +239,10 @@ def _load_control(directory, *, receipt_sha256):
     if (policy.mechanism_descriptor() != receipt.get("mechanism_descriptor") or
             _mechanism_hash(policy) != receipt.get("mechanism_sha256")):
         raise ValueError("selected control law differs from receipt")
+    _check_arm_law(receipt.get("arm_id"), policy)
+    _check_selection_provenance(receipt.get("arm_id"),
+                                receipt.get("selected_start"),
+                                receipt.get("selected_update"))
     return policy, receipt
 
 
@@ -214,7 +254,9 @@ def load_selected_policy_package(directory, *, receipt_sha256):
         raise ValueError("selected policy receipt SHA differs")
     schema = json.loads(receipt_path.read_text()).get("schema")
     if schema == "SCV1-selected-stochastic-policy-v1":
-        return load_policy_package(root, receipt_sha256=receipt_sha256)
+        policy, receipt = load_policy_package(root, receipt_sha256=receipt_sha256)
+        _check_arm_law(receipt.get("arm_id"), policy)
+        return policy, receipt
     if schema == SCHEMA:
         return _load_control(root, receipt_sha256=receipt_sha256)
     raise ValueError("unregistered selected policy package schema")

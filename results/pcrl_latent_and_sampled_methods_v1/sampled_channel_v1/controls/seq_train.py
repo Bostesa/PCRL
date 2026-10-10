@@ -21,10 +21,16 @@ import time
 
 import numpy as np
 
-from factor_controls import (FactorGate, SequentialPolicy, _factor_law,
-                             public_probability_embedding)
-from fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, _identity_guards,
-                 _torch_metrics, exact_metrics, prepare_law)
+if __package__:
+    from .factor_controls import (FactorGate, SequentialPolicy, _factor_law,
+                                  public_probability_embedding)
+    from ..impl.fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, _identity_guards,
+                            _torch_metrics, exact_metrics, prepare_law)
+else:
+    from factor_controls import (FactorGate, SequentialPolicy, _factor_law,
+                                 public_probability_embedding)
+    from fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, _identity_guards,
+                     _torch_metrics, exact_metrics, prepare_law)
 
 
 CHECKPOINT_DOMAIN = b"PCRL-A-SEQ-FIRST-CHECKPOINT-v1\0"
