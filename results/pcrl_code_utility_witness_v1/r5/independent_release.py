@@ -11,8 +11,10 @@ import hashlib
 
 import numpy as np
 
-from independent_decoder import continuous_head_probabilities, probabilities_from_hard_bits
-from independent_checks import task_means, task_rows
+from results.pcrl_code_utility_witness_v1.r5.independent_decoder import (
+    continuous_head_probabilities, probabilities_from_hard_bits,
+)
+from results.pcrl_code_utility_witness_v1.r5.independent_checks import task_means, task_rows
 
 
 HARD_MEMBERS = frozenset({"row_id", "unit", "code0", "prob0", "decision0",
