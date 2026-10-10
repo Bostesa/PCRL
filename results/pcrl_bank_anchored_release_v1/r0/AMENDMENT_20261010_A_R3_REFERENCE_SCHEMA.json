@@ -1,0 +1,35 @@
+{
+  "affected_stages": [
+    "witness",
+    "protection"
+  ],
+  "correction": "Verify exact eight-key reference schema and row/group alignment; pass only U0_1,U0_2,Ucal_1,Ucal_2 to scorer. Keep all task endpoints, cap values, role membership, seeds, arm designs and inference family unchanged.",
+  "dated_utc": "2026-10-10T08:08:34.116704+00:00",
+  "failed_or_partial_outputs": "none",
+  "issue": "R3 worker passed full eight-key reference role archive to pure scorer, which correctly accepts only four U0/Ucal probability arrays. Old queued R3 witness specs never ran and no new FIT or INNER label was read by them.",
+  "new_units": "R3 will issue distinct successor IDs with byte-pinned config/spec and this amendment SHA before any affected role read",
+  "new_worker_sha256": "083b463a1fed0149b65f5337ce5121c6178e5322d2ab6f203d703959537adc3e",
+  "old_queued_units_superseded": [
+    {
+      "queue_spec_sha256": "ac82f3c68a4cce5508cbf8bc1d6290f7fd7667c6663c61e460c73599f2670bc6",
+      "unit_id": "R3_B0_S0_FIT"
+    },
+    {
+      "queue_spec_sha256": "00da2e5f8f0e3c9886366cef6fea6a7004676287cb8cc18b150fbba92ebf0f46",
+      "unit_id": "R3_B0_S0_INNER"
+    },
+    {
+      "queue_spec_sha256": "bebdf83740c22017043d44fffa12b5b92e4045681540d346f55bf7cd1cf3e9dc",
+      "unit_id": "R3_B0_S1_FIT"
+    },
+    {
+      "queue_spec_sha256": "08530e309b3bc803bf9306fd9fab7062daffa50af3d0096dc9068aecbced7883",
+      "unit_id": "R3_B0_S1_INNER"
+    }
+  ],
+  "old_worker_sha256": "fd2c74eb62a07ee826477c8a6246dbf88b606563088560c46a3a455ad817a5eb",
+  "schema": "pcrl-bank-dated-amendment-v1",
+  "source_lock_sha256": "6d39ec3b0e4d56b75dd1bb1b121940078a70c72ad9dc954fe3f050ae8ec9c69e",
+  "status": "ENGINEERING_CORRECTION_BEFORE_AFFECTED_ROLE_READ",
+  "tests": "data-free failing test added, corrected R3 target suite 18 passed"
+}
