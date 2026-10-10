@@ -26,11 +26,18 @@ python3 -m bank_anchored.r1_custody snapshot \
 python3 -m bank_anchored.r1_custody restore \
   --source results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v1 \
   --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/restore_20261010_v1
+python3 -m bank_anchored.r1_custody snapshot \
+  --source results/pcrl_bank_anchored_release_v1/r1/.private/R1_CUSTODY_PLAN_B0_J_READER_V4.json \
+  --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v2
+python3 -m bank_anchored.r1_custody restore \
+  --source results/pcrl_bank_anchored_release_v1/r1/.private/custody/snapshot_20261010_v2 \
+  --target results/pcrl_bank_anchored_release_v1/r1/.private/custody/restore_20261010_v2
 ```
 
 Both commands are write-once and refuse existing targets. Use a new versioned
 target for another copy. Their owner-only receipts and public hashes appear
-in [RESTORE_INDEX.json](RESTORE_INDEX.json). This is a same-device restore;
+in [RESTORE_INDEX_V2.json](RESTORE_INDEX_V2.json). The original V1 copy
+and failed replay remain preserved. This is a same-device restore;
 off-device custody remains pending because no writable external drive was
 mounted.
 
@@ -70,10 +77,21 @@ replays check the two recipient views and exact frozen bank decode.
 The snapshot and restore contain both seed routers, public bank tables,
 B0/J policy packages, sealed J sample draws, raw permitted samples, a pinned
 runtime source archive and one completed B0 nonlinear probability reader.
-[RESTORE_REPLAY_SOURCE_PLAN.json](RESTORE_REPLAY_SOURCE_PLAN.json) lists all
-relative source labels and hashes. `R1_RESTORE_B0_J_READER` is the planned
-shared-queue verification unit for eight restored one-recipient CLI calls
-and one reader inference; its status is determined by its queued receipt.
+[RESTORE_REPLAY_SOURCE_PLAN.json](RESTORE_REPLAY_SOURCE_PLAN.json) lists the
+first restore's relative source labels and hashes. Its queued
+`R1_RESTORE_B0_J_READER` attempt failed at the first restored CLI import:
+the runtime source archive omitted a transitive `latent_repair_v1` module.
+The failure and original snapshot remain preserved in
+[R1_RESTORE_ATTEMPTS.json](R1_RESTORE_ATTEMPTS.json). The corrected runtime
+archive adds only that tracked module family and passes an isolated import
+and seven synthetic deployment tests. The separate V2 snapshot and restore
+have 55/55 uncached hash checks. Their relative source labels and hashes are
+in [RESTORE_REPLAY_SOURCE_PLAN_V2.json](RESTORE_REPLAY_SOURCE_PLAN_V2.json).
+The successor shared-queue numerical replay awaits a verification amendment.
+
+The successor numerical replay will execute eight restored one-recipient
+CLI calls and one reader inference; its status must come from its queued
+receipt.
 The reader takes the emitted B0 seed-0 probabilities concatenated as
 `[n,2] + [n,6]` and returns a finite probability per person. It never uses
 SEX at inference.
