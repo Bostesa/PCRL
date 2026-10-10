@@ -7,11 +7,17 @@ from bank_anchored.r5_independent import (
     aggregate_pair_law,
     expected_costs,
     public_id_from_bits,
-    saved_law_to_pairs,
+    saved_law_to_pairs, independent_auc,
 )
 
 
 class IndependentScalarChecks(unittest.TestCase):
+    def test_auc_ties_and_reverse_alias(self):
+        y = np.array([0, 1, 0, 1], dtype=np.int64)
+        score = np.array([0.1, 0.2, 0.2, 0.9])
+        self.assertAlmostEqual(independent_auc(y, score), 0.875)
+        self.assertAlmostEqual(independent_auc(y, -score), 0.125)
+
     def test_global_id_is_ten_little_endian_bits(self):
         bits = np.array([[1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
                          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], dtype=np.uint8)

@@ -152,3 +152,32 @@ def expected_costs(law: list[dict[tuple[int, int], float]],
                "brier": sums[p][2] / len(law)}
         for p, name in enumerate(("income", "occupation"))
     }
+
+
+def independent_auc(labels: np.ndarray, scores: np.ndarray) -> float:
+    """Mann-Whitney AUC with half-credit for tied scores, without sklearn."""
+    y = np.asarray(labels)
+    value = np.asarray(scores)
+    if (y.ndim != 1 or value.shape != y.shape or len(y) == 0 or
+            not np.isin(y, (0, 1)).all() or not np.isfinite(value).all()):
+        raise ValueError("binary labels or finite reader scores differ")
+    positive = int(np.count_nonzero(y == 1))
+    negative = len(y) - positive
+    if min(positive, negative) == 0:
+        raise ValueError("AUC needs both protected classes")
+    order = np.argsort(value, kind="mergesort")
+    ranked = value[order]
+    sorted_y = y[order]
+    concordant = 0.0
+    lower_negative = 0
+    start = 0
+    while start < len(y):
+        stop = start + 1
+        while stop < len(y) and ranked[stop] == ranked[start]:
+            stop += 1
+        tie_positive = int(np.count_nonzero(sorted_y[start:stop] == 1))
+        tie_negative = stop - start - tie_positive
+        concordant += tie_positive * (lower_negative + 0.5 * tie_negative)
+        lower_negative += tie_negative
+        start = stop
+    return concordant / (positive * negative)
