@@ -4,8 +4,10 @@ Status: prefit interface draft. No A person row has been opened by R18.
 
 ## Parents and source identity
 
-Use one selected `A_JOINT_STOCH` FIT package and one completed R12
-`INNER_SELECTION` release realization for the same seed. R03 must show both
+Use the selected checkpoint inside the fitted `A_JOINT_STOCH` seed-zero
+package and its completed R12 `INNER_SELECTION` realization zero release.
+This is a representative mechanism check regardless of later utility
+eligibility or nomination; it makes no winner claim. R03 must show both
 unit IDs done with rc0 and byte hashes for the selected `FIT_RECEIPT.json`,
 `POLICY_RECEIPT.json`, `policy.npz`, `RELEASE_RECEIPT.json`,
 `release_codes.npz`, and `cache.sqlite3`. The R18 unit must be separately
