@@ -213,13 +213,22 @@ def summarize_a_bootstrap(names: tuple[str, ...], point: np.ndarray,
         scaled = np.zeros_like(boot)
         scaled[:, ~zero] = np.abs((boot[:, ~zero] - estimate[~zero]) / scale[~zero])
         critical = float(np.quantile(scaled.max(axis=1), 1 - ALPHA, method="higher"))
+        clause_critical = np.full(len(estimate), critical)
         critical_family = "two-sided-maximum-absolute-studentized-full-K"
     else:
         # The denominator remains the predeclared K, including every missing
         # arm clause. A max over the available subset would silently shrink it.
-        critical = float(student_t.ppf(1 - ALPHA / (2 * A_CLAUSES), INNER_GROUPS - 1))
+        # Three-release means have only two release degrees of freedom, even
+        # though each fixed release scores 2,234 independent INNER groups.
+        level = 1 - ALPHA / (2 * A_CLAUSES)
+        group_critical = float(student_t.ppf(level, INNER_GROUPS - 1))
+        release_critical = float(student_t.ppf(level, 2))
+        clause_critical = np.asarray([
+            group_critical if name.startswith(("s0_d", "s1_d")) else release_critical
+            for name, included in zip(names, available) if included], dtype=np.float64)
+        critical = float(clause_critical.max())
         critical_family = "two-sided-fixed-K-Bonferroni-t-approximation"
-    width = critical * np.where(zero, 0.0, scale)
+    width = clause_critical * np.where(zero, 0.0, scale)
     present = iter(zip(estimate, se, estimate - width, estimate + width, zero))
     clauses = []
     for name, is_available in zip(names, available):
@@ -266,6 +275,9 @@ def run_a_inference(seed_records: Mapping[int, Mapping]) -> dict:
             "seed_summaries": list(SUMMARIES), "mechanism_draws_in_primary_interval": 3,
             "release_resample": "three coupled complete draw IDs with replacement per seed for mean summaries; draw-specific clauses keep original release ID",
             "critical_family": critical_family, "critical_95": critical,
+            "bonferroni_degrees_of_freedom_if_incomplete": {
+                "fixed_draw_group_only": INNER_GROUPS - 1,
+                "three_release_seed_or_grand_mean": 2},
             "fixed_family_denominator": A_CLAUSES, "studentization_floor": STUDENTIZATION_FLOOR,
             "numpy_version": np.__version__, "group_bootstrap_seed_rule": "PCG64DXSM(20261010)",
             "group_bootstrap_seed_bytes_sha256": GROUP_BOOTSTRAP_SEED_SHA256,

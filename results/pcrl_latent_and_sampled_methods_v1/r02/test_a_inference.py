@@ -99,3 +99,7 @@ def test_missing_clause_uses_full_k_bonferroni_and_keeps_incomplete_slot():
     assert len(clauses) == 4455
     assert clauses[1]["status"] == "INCOMPLETE_MISSING_ARM"
     assert clauses[0]["status"] == "BOUND_ONLY"
+    # A three-release mean has just two release degrees of freedom. Its
+    # fallback interval must be wider than a fixed-draw group-only interval.
+    assert clauses[6 * 495]["upper"] > clauses[0]["upper"]
+    assert critical > 100
