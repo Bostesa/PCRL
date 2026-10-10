@@ -16,19 +16,26 @@ from pathlib import Path
 import sys
 
 from queue_unit_status import DEFAULT_STATE, SHA256, UNIT_ID, propose_rows
+from a_fixed_attack_alias import ATTEMPT_FIELDS, attach_aliases
 
 
 BASE = Path(__file__).resolve().parents[1]
 DEFAULT_AMENDMENT = BASE / "AMENDMENT_20261010_A_PRODUCER_STAGE_FIT_RETRY_001.json"
 DEFAULT_CHECKPOINT = BASE / "r03" / "A_FIRST_REAL_FIT_CHECKPOINT.json"
 DEFAULT_CLOSEOUT = BASE / "r03" / "A_PRODUCER_FIT_CLOSEOUT.json"
+DEFAULT_CORRECTION = BASE / "AMENDMENT_20261010_A_FIXED_ATTACK_CORRECTION_R1.json"
+DEFAULT_ATTACK_COMPLETION = BASE / "r03" / "A_FIXED_ATTACK_COMPLETION_RECEIPT.json"
 AMENDMENT_SHA256 = "526f509f8077f2ee1c412f6d290df939966a6b81f1ae5a87e9639d4bd317271f"
 CHECKPOINT_SHA256 = "58ec6fe13369587cf3bbaee94a336ebb162679d56b28970da6bb1a5bed10bb30"
 CLOSEOUT_SHA256 = "beb24a699c696adf0c0f7b483c7a1c9e074510393907e05a710d1fac892a9d39"
+CORRECTION_SHA256 = "5cfcf570e27d623625db30f2be61727934f1290d7cef9fdb33a8a38fa146d613"
+ATTACK_COMPLETION_SHA256 = "30084787e0e83b622f09fb87d28a63ff84db4926b500d0cf561548f7bc0f0af6"
 PARENT = "A-FIT-A_JOINT_STOCH-S0-R1"
 FIELDS = ("unit_id", "kind", "arm_or_reference_id", "seed", "fit_unit_id", "status",
           "scientific_status", "charged_cpu_s", "wall_s",
-          "sampled_tree_rss_peak_bytes", "queue_receipt_sha256", "fit_receipt_sha256")
+          "sampled_tree_rss_peak_bytes", "queue_receipt_sha256", "fit_receipt_sha256",
+          "physical_unit_id", "physical_queue_receipt_sha256", "attack_index_sha256",
+          "original_attempt_status", "original_queue_receipt_sha256")
 NULL_CHILD_KINDS = frozenset(("release", "q_preprocess", "attack"))
 
 
@@ -148,11 +155,22 @@ def csv_text(rows: list[dict]) -> str:
     return stream.getvalue()
 
 
+def attempt_csv_text(rows: list[dict]) -> str:
+    stream = io.StringIO()
+    writer = csv.DictWriter(stream, fieldnames=ATTEMPT_FIELDS, lineterminator="\n", extrasaction="raise")
+    writer.writeheader()
+    writer.writerows(rows)
+    return stream.getvalue()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read-only A 220-unit status proposal")
     parser.add_argument("--amendment", type=Path, default=DEFAULT_AMENDMENT)
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
     parser.add_argument("--closeout", type=Path, default=DEFAULT_CLOSEOUT)
+    parser.add_argument("--correction", type=Path, default=DEFAULT_CORRECTION)
+    parser.add_argument("--attack-completion", type=Path, default=DEFAULT_ATTACK_COMPLETION)
+    parser.add_argument("--attempt-output", type=Path, help="write separate sanitized physical attempt CSV")
     parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
     args = parser.parse_args()
     try:
@@ -171,6 +189,14 @@ def main() -> int:
         if hashlib.sha256(closeout_bytes).hexdigest() != CLOSEOUT_SHA256:
             raise ValueError("A closeout hash mismatch")
         closeout = json.loads(closeout_bytes)
+        correction_bytes = args.correction.read_bytes()
+        if hashlib.sha256(correction_bytes).hexdigest() != CORRECTION_SHA256:
+            raise ValueError("A attack correction hash mismatch")
+        correction = json.loads(correction_bytes)
+        completion_bytes = args.attack_completion.read_bytes()
+        if hashlib.sha256(completion_bytes).hexdigest() != ATTACK_COMPLETION_SHA256:
+            raise ValueError("A fixed attack completion hash mismatch")
+        completion = json.loads(completion_bytes)
         state = json.loads(args.state.read_bytes())
         for record in closeout["rows"]:
             if record["queue_status"] == "done":
@@ -182,10 +208,18 @@ def main() -> int:
         rows = build_rows(plan, queued, checkpoint, closeout)
         if len(rows) != 220:
             raise ValueError("incomplete A rows")
+        output_hashes = {uid: set(entry.get("output_sha256", {}).values())
+                         for uid, entry in state["units"].items()}
+        rows, attempts = attach_aliases(rows, queued, correction, completion, output_hashes)
+        if len(attempts) != 20:
+            raise ValueError("incomplete physical attempt ledger")
         output = csv_text(rows)
+        attempt_output = attempt_csv_text(attempts)
     except Exception:
         print("A plan export rejected: invalid or incomplete evidence", file=sys.stderr)
         return 2
+    if args.attempt_output is not None:
+        args.attempt_output.write_text(attempt_output)
     sys.stdout.write(output)
     return 0
 
