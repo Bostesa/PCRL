@@ -1,0 +1,42 @@
+{
+  "schema": "BAR1-r5-prefit-reader-refit-subset-rule-v1",
+  "status": "FIXED_BEFORE_FRESH_ATTACK_RESULTS",
+  "scope": "Exploratory independent ATT-only reader refit diagnostic; no change to locked primary attack slate, comparator selection, or utility gate",
+  "arm_selection": {
+    "nominee": "J when J passes the frozen two-seed point utility gate; otherwise use only an arm already nominated by R0's frozen rule, if any, and do not attribute a joint result to it",
+    "comparator": "strongest eligible within-bank control under the already frozen eligible-control rule; do not use a best draw or post-attack comparator switch",
+    "same_arm": "skip duplicate refit unit and record alias",
+    "no_nominee": "skip refit; report incomplete diagnostic"
+  },
+  "units": {
+    "source_seeds": [0, 1],
+    "cached_realizations": [0],
+    "view": "pair",
+    "fit_role": "ATTACK_FIT_NEW/ATTACK_TRAIN",
+    "tune_role": "ATTACK_FIT_NEW/ATTACK_TUNE",
+    "evaluation_role": "INNER_SELECTION",
+    "split": "fixed 1015-group SHA256 ATT tune split from inherited attack contract",
+    "resource": "queue stage verification; each unit counts all model fits and predictions"
+  },
+  "readers": [
+    {
+      "id": "INDEPENDENT_HGB_15x200_REPLAY",
+      "library": "sklearn.ensemble.HistGradientBoostingClassifier",
+      "learning_rate": 0.05,
+      "max_leaf_nodes": 15,
+      "max_iter": 200,
+      "early_stopping": false,
+      "random_state": "same fixed R4 attacker_seed for exact model replay"
+    },
+    {
+      "id": "INDEPENDENT_HGB_31x300_DIAGNOSTIC",
+      "library": "sklearn.ensemble.HistGradientBoostingClassifier",
+      "learning_rate": 0.05,
+      "max_leaf_nodes": 31,
+      "max_iter": 300,
+      "early_stopping": false,
+      "random_state": "20261010 + source_seed, fixed before results"
+    }
+  ],
+  "reporting": "Compare each refit on identical complete pair wires and aligned people; report all seeds and the fixed draw. The stronger diagnostic can expose leakage but cannot be used to choose a method or draw."
+}
