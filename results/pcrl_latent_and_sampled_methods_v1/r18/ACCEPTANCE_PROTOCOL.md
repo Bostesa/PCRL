@@ -1,9 +1,11 @@
-# R18 deployment acceptance, staged version 2
+# R18 deployment acceptance, staged version 3
 
 The source prompt requires a **run** on one real admitted input for each
-representative. The D worker and data-free tests are prepared, not yet
-evidence of a real R18 run. R00 must date-admit each unit and R03 must run
-it under the shared slot before the worker opens a role-only export.
+representative. The D-K seed-0 one-row worker completed under the R03 slot;
+its hash-only public receipt is `D_REAL_DEPLOY_ACCEPTANCE_RECEIPT.json`
+(SHA-256 `6675a2ce2dd174e41987b04cae3bcb1390989bd8891cb305cfc1c15d5ee24c6d`).
+The A representative and the separate data-free negative fixture still need
+their own queued receipts.
 
 ## Source and one-row custody
 
@@ -74,14 +76,20 @@ exact `argv`/`cwd`/source and manifest SHAs, private output, CPU/wall/RSS
 ceilings and a fresh R03 receipt. The D worker at `r18/run_real_d_acceptance.py`
 is bound to the completed seed-0 D-K fit receipt and hash-pinned service,
 source checkpoint, effective lock, and canonical frozen U implementation.
-R10 statically reviewed its direct-script preaccess path; R00 has not yet
-listed the unit in a dated `d_followup` amendment. A will bind R12's fitted
-API and policy/bank/cache manifests when they exist. If A is not fitted
+R10 statically reviewed its direct-script preaccess path; R00 admitted it in
+dated A4 amendment SHA-256
+`9bb03642f7f42d44f26bf611ed2aedb53bea6ab438456757c5c0623250560b3a`.
+R03 completed it with receipt SHA-256
+`98f053d640bdd5cdc69b52caf342421aea974c2cfd12d0e6c5f17b0e6fcf137b`,
+rc0 and one private result SHA-256
+`7bcc5dd95de2013c0e6a917ca4d26639e2df24d651857dbe8674a64a19db312b`.
+A will bind R12's fitted API and policy/bank/cache manifests when they exist. If A is not fitted
 or no sampled bank exists, mark its real unit untriggered under the sealed
 condition; do not describe a synthetic fixture as a deployed result.
 
 R07's completed seed-0 D-K package is hash-bound to its public fit receipt.
-The R18 synthetic fixture reconstructs probabilities from separately opened
-head tensors and CAL records, without calling the service's code-head method.
-The fixture and real worker have not run under R03, so no R18 deployment PASS
-is inferred from the static checks.
+The R18 real worker reconstructed probabilities from separately opened head
+tensors and CAL records, without calling the service's code-head method. The
+real positive check passed; the synthetic negative fixture remains R03 queued
+and held. Its wrong/reordered/excluded schema, incompatible checkpoint and
+hidden-wire refusal cases have no numerical PASS receipt yet.
