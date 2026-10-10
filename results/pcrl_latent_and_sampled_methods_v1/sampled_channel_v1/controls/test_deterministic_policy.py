@@ -10,8 +10,9 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "impl"))
 from bank import FixedBank
 from channel import GateWeights, JointPolicy
+from fit import TaskOnlyData, exact_metrics
 from release import CachedJointRelease, _mechanism_hash
-from deterministic_policy import DeterministicJointPolicy
+from deterministic_policy import DeterministicJointPolicy, replay_deployed_hard
 
 
 class DeterministicPolicyTest(unittest.TestCase):
@@ -34,6 +35,17 @@ class DeterministicPolicyTest(unittest.TestCase):
         self.assertEqual(hard_law, ((actions1[0][1], actions2[0][0], 1.0),))
         self.assertEqual(len(soft.sparse_law(score1, score2, 0, 0)), 4)
         self.assertNotEqual(_mechanism_hash(hard), _mechanism_hash(soft))
+        task = TaskOnlyData(score1[None, :], score2[None, :],
+                            np.array([0], dtype=np.int64),
+                            np.array([0], dtype=np.int64),
+                            np.array([0], dtype=np.int64),
+                            np.array([0], dtype=np.int64))
+        canonical = exact_metrics(task, hard)
+        independent = replay_deployed_hard(task, hard)
+        for key in ("r1_nll", "r1_brier", "r2_nll", "r2_brier", "task_rate"):
+            self.assertAlmostEqual(canonical[key], independent[key])
+        self.assertNotAlmostEqual(canonical["r1_nll"],
+                                  exact_metrics(task, soft)["r1_nll"])
         with tempfile.TemporaryDirectory() as directory:
             service = CachedJointRelease(hard, cache_path=Path(directory) / "hard.sqlite",
                                          release_id="hard-fixture", source_seed=0,
