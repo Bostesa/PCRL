@@ -10,6 +10,7 @@ from .r2_policy import Policy
 from .r2_train import initial_weights,backoff,_torch_law,_bayes_torch,_constraints,_objective
 from .r2_space import bayes_objective
 from .r2_torch_cache import FrozenRound
+from .r2_worker import complete_whole_p0_fallback
 from .r2_readers import weighted_counts,categorical_probability,wire_features,fit_round,reader_guard_receipt,Reader
 from .r2_projection import law_coefficients,constraint_coefficients
 
@@ -167,6 +168,36 @@ class Tests(unittest.TestCase):
         self.assertEqual(len(actual),len(expected))
         self.assertLess(max(abs(float(a-b)) for a,b in zip(actual,expected)),1e-13)
         self.assertAlmostEqual(float(cache.objective(q,"V_J")),float(_objective(q,p,None,readers,"V_J",torch)),places=13)
+
+    def test_2d_bayes_count_vs_manual_actual_code_enumeration(self):
+        s=tiny_space();code=np.tile(np.arange(4,dtype=np.int64),9);p=s.prepare(code,code)
+        sex=np.tile(np.asarray([0,1],np.int64),18)
+        q=np.random.default_rng(75).dirichlet(np.ones(16),len(code))
+        actual,views=bayes_objective(p,q,sex)
+        manual={}
+        for view,key in (("r1",p["code_r1"]),("r2",p["code_r2"]),
+                         ("pair",p["code_r1"]*4+p["code_r2"])):
+            count={}
+            for i in range(len(code)):
+                for j in range(16):
+                    bucket=count.setdefault(int(key[i,j]),[0.,0.]);bucket[int(sex[i])]+=q[i,j]/len(code)
+            manual[view]=sum(max(v) for v in count.values())
+            self.assertAlmostEqual(views[view],manual[view],places=13)
+        self.assertAlmostEqual(actual,manual["pair"]+.5*(manual["r1"]+manual["r2"]),places=13)
+
+    def test_sequential_whole_fallback_complete_receipt(self):
+        s=tiny_space();code=np.tile(np.arange(4,dtype=np.int64),9);p=s.prepare(code,code)
+        fold=group_folds(np.repeat(np.arange(18,dtype=np.int64),2))
+        loss=np.full((36,16),np.log(2.))
+        # Real fit_round names the constant-prior member */prior.  The
+        # fallback must be replayed with that exact retained-slate contract.
+        readers=[Reader(f"{v}/prior",v,loss,np.log(2.),{},0,0) for v in ("r1","r2","pair")]
+        summary={"status":"COMPLETE_WHOLE_P0_DEPENDENCY_FALLBACK","stage":2,"readers":readers,
+                 "checkpoints":[],"rounds":[],"elapsed_cpu_seconds":0.}
+        done=complete_whole_p0_fallback(summary,s,p,np.ones(36,np.int64),np.zeros(36,np.int64),fold)
+        self.assertTrue(done["utility"]["feasible"] and done["guards"]["feasible"])
+        self.assertEqual(done["selection"]["start"],"separate_whole_p0_fallback")
+        self.assertEqual(done["nomination"]["pair_min_ce"],done["nomination"]["constant_prior_ce"])
 
 
 def main():

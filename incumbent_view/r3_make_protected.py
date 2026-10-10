@@ -19,13 +19,42 @@ def build(arm,seed,r2_unit_id,seal_path,amendment_path=None):
     if arm not in ARMS or arm=='P0' or seed not in (0,1) or not r2_unit_id.startswith(f'R2_{arm}_S{seed}_FIT') or any(c not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-' for c in r2_unit_id):
         raise ValueError('selected R2 unit identity differs')
     root=Path(__file__).resolve().parents[1];owner=root/'results/pcrl_incumbent_view_risk_v1/r3';private=owner/'.private';r1=root/'results/pcrl_incumbent_view_risk_v1/r1';r2=root/'results/pcrl_incumbent_view_risk_v1/r2'
-    source=json.loads((r1/'.private/P0_SOURCE_PATHS.json').read_text());bankdoc=source['seeds'][str(seed)];unit_root=r2/'.private/units'/r2_unit_id;policy_dir=unit_root/'policy'
+    r0=root/'results/pcrl_incumbent_view_risk_v1/r0';admission_path=r0/'ADMISSION_LOCK.json'
+    queue=json.loads((r0/'.private/compute/state.json').read_text())
+    science_sha=sha(seal_path);admission_sha=sha(admission_path)
+    if queue['seal']['sha256']!=admission_sha:raise PermissionError('original admission queue seal differs')
+    protection=[a for a in queue['amendments'] if 'protection' in a['stages']]
+    if science_sha not in {a['sha256'] for a in protection}:raise PermissionError('science lock is not registered for protection')
+    witness=[a for a in queue['amendments'] if 'witness' in a['stages']]
+    if not witness:raise PermissionError('utility witness stage amendment absent')
+    latest=witness[-1]
+    if amendment_path is None or sha(amendment_path)!=latest['sha256']:
+        raise PermissionError('selected latest witness amendment differs')
+    if latest['sha256']!=science_sha:
+        if json.loads(Path(amendment_path).read_text()).get('campaign_lock_sha256')!=science_sha:
+            raise PermissionError('scoring amendment does not bind science lock')
+    source=json.loads((r1/'.private/P0_SOURCE_PATHS.json').read_text());bankdoc=source['seeds'][str(seed)]
+    unit_receipt_path=r2/f'{r2_unit_id}_UNIT_RECEIPT.json';unit_doc=json.loads(unit_receipt_path.read_text())
+    if (unit_doc.get('schema')!='IVR1-r2-protection-unit-v1' or unit_doc.get('source_unit_id')!=r2_unit_id
+        or unit_doc.get('arm_id')!=arm or unit_doc.get('source_seed')!=seed):
+        raise PermissionError('selected R2 unit source identity differs')
+    if unit_doc.get('status')=='INCOMPLETE':raise RuntimeError('selected R2 fit incomplete; no R3 utility unit may be fabricated')
+    if unit_doc.get('status') not in ('COMPLETE_SELECTED','COMPLETE_IDENTITY_ALIAS','COMPLETE_WHOLE_P0_DEPENDENCY_FALLBACK'):
+        raise PermissionError('selected R2 completion status differs')
+    if { (x['role'],x['realization']) for x in unit_doc['role_releases'] } != {(role,d) for role in ('OSF_DEFENSE_FIT','ATTACK_FIT_NEW','INNER_SELECTION') for d in (0,1,2)}:
+        raise PermissionError('R2 complete role/release inventory differs')
+    unit_root=r2/'.private/units'/r2_unit_id;policy_dir=unit_root/'policy'
     policy_path=policy_dir/'POLICY_RECEIPT.json';package_path=policy_dir/'policy.npz';policy=json.loads(policy_path.read_text())
-    if policy['schema']!='IVR1-selected-policy-v1' or policy['arm_id']!=arm or policy['source_seed']!=seed or policy['policy_package_sha256']!=sha(package_path):raise PermissionError('R2 selected policy source differs')
+    if (policy['schema']!='IVR1-selected-policy-v1' or policy['arm_id']!=arm or policy['source_seed']!=seed
+        or policy['policy_package_sha256']!=sha(package_path) or unit_doc['selected_policy_receipt_sha256']!=sha(policy_path)
+        or unit_doc['selected_policy_package_sha256']!=sha(package_path)
+        or unit_doc['source_binding_sha256']!=policy['source_binding_sha256']):
+        raise PermissionError('R2 selected policy source differs')
     currentbank=Path(bankdoc['public_bank']['path'])
     if sha(currentbank)!=bankdoc['public_bank']['sha256'] or policy['public_bank_sha256']!=sha(currentbank):raise PermissionError('original P0 bank source differs')
-    if policy['source_lock_sha256']!=sha(seal_path):raise PermissionError('R2 policy selected under different science seal')
+    if policy['source_lock_sha256']!=science_sha or unit_doc.get('source_lock_sha256')!=science_sha:raise PermissionError('R2 policy selected under different science seal')
     if 'source_binding_sha256' not in policy:raise PermissionError('R2 source binding absent')
+    if unit_doc['crossfit_manifest_sha256']!=unit_doc['nomination']['crossfit_manifest_sha256']:raise PermissionError('R2 OOF fold identity differs')
     outputs=[]
     code=[root/f'incumbent_view/r3_{name}.py' for name in ('worker','utility','family','make_protected')]+[root/'results/pcrl_incumbent_view_risk_v1/r0/compute_queue.py']
     manifest=r1/'.private/P0_SOURCE_PATHS.json'
@@ -34,18 +63,23 @@ def build(arm,seed,r2_unit_id,seal_path,amendment_path=None):
         for d in (0,1,2):
             folder=unit_root/f'{role}_R{d}';recp=folder/'RELEASE_RECEIPT.json';rec=json.loads(recp.read_text())
             if (rec.get('schema')!='IVR1-selected-role-release-v1' or rec.get('arm_id')!=arm or rec.get('source_seed')!=seed or rec.get('role')!=role or rec.get('realization')!=d
+                or rec.get('source_lock_sha256')!=science_sha
                 or rec.get('policy_receipt_sha256')!=sha(policy_path) or rec.get('source_binding_sha256')!=policy['source_binding_sha256']
                 or rec.get('law_file_sha256')!=sha(folder/'law.npz') or rec.get('codes_file_sha256')!=sha(folder/'release_codes.npz')):
                 raise PermissionError('R2 selected release receipt differs')
+            identity=next((x for x in unit_doc['role_releases'] if x['role']==role and x['realization']==d),None)
+            if (identity is None or identity['receipt_sha256']!=sha(recp) or identity['law_file_sha256']!=sha(folder/'law.npz')
+                or identity['codes_file_sha256']!=sha(folder/'release_codes.npz')):
+                raise PermissionError('R2 public UNIT receipt disagrees with selected role release')
             releases[d]=(folder,recp,rec)
         law_hashes={r['law_content_sha256'] for _,_,r in releases.values()}
         if len(law_hashes)!=1:raise PermissionError('R2 law changes between virtual deployments')
         uid=f'R3_{arm}_S{seed}_{tag}_PROTECTED_V1'
         labels=source['roles'][role];p0=bankdoc['roles'][role]
-        pinpaths={'seal':Path(seal_path),'role_manifest':manifest,'public_bank':currentbank,'p0_admission_receipt':r1/f'R1_P0_S{seed}_ADMISSION_RECEIPT.json',
+        pinpaths={'seal':Path(seal_path),'admission_lock':admission_path,'role_manifest':manifest,'public_bank':currentbank,'p0_admission_receipt':r1/f'R1_P0_S{seed}_ADMISSION_RECEIPT.json',
                   'p0_wire':Path(p0['path']),'income':Path(labels['income']['path']),'occupation':Path(labels['occupation']['path']),
                   'references':Path(labels[f'references_s{seed}']['path']),'policy_receipt':policy_path,'policy_package':package_path,
-                  'release_receipt':releases[0][1],'law':releases[0][0]/'law.npz'}
+                  'release_receipt':releases[0][1],'law':releases[0][0]/'law.npz','r2_unit_receipt':unit_receipt_path}
         for d in (0,1,2):pinpaths[f'draw{d}']=releases[d][0]/'release_codes.npz';pinpaths[f'draw{d}_receipt']=releases[d][1]
         pins={k:{'path':str(p),'sha256':sha(p)} for k,p in pinpaths.items()}
         for field in ('income','occupation',f'references_s{seed}'):
@@ -54,19 +88,19 @@ def build(arm,seed,r2_unit_id,seal_path,amendment_path=None):
         if pins['p0_wire']['sha256']!=p0['sha256']:raise PermissionError('P0 role wire differs from R1 manifest')
         identity=json.loads((r1/f'R1_P0_S{seed}_ADMISSION_RECEIPT.json').read_text())['roles'][role]
         paths={'csv':owner/f'{uid}.csv','private_vectors':private/f'{uid}_VECTORS.npz','receipt':owner/f'{uid}_RECEIPT.json'}
-        cfg={'schema':'pcrl-incumbent-r3-utility-config-v1','unit_id':uid,'stage':'protection','role':role,'arm_id':arm,'source_seed':seed,
+        cfg={'schema':'pcrl-incumbent-r3-utility-config-v1','unit_id':uid,'stage':'witness','role':role,'arm_id':arm,'source_seed':seed,
              'rows':identity['rows'],'groups':identity['groups'],'row_unit_pair_sha256':identity['row_unit_pair_sha256'],
              'source_unit_id':r2_unit_id,'pins':pins,'outputs':{k:str(v) for k,v in paths.items()}}
         cfgp=private/f'{uid}_CONFIG.json'
         with os.fdopen(os.open(cfgp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w') as f:json.dump(cfg,f,sort_keys=True,indent=2);f.write('\n')
         sources=[{'path':str(p),'sha256':sha(p)} for p in dict.fromkeys(list(pinpaths.values())+code+[cfgp])]
-        spec={'unit_id':uid,'stage':'protection','argv':[str(root.parents[1]/'.venv/bin/python'),'-m','incumbent_view.r3_worker','--config',str(cfgp)],'cwd':str(root),
+        spec={'unit_id':uid,'stage':'witness','argv':[str(root.parents[1]/'.venv/bin/python'),'-m','incumbent_view.r3_worker','--config',str(cfgp)],'cwd':str(root),
               'max_wall_s':300 if tag=='FIT' else 180,'cpu_reserve_s':300 if tag=='FIT' else 180,'max_rss_gib':2.5,'projected_output_bytes':10000000,
               'deps':[r2_unit_id], 'outputs':[str(v) for v in paths.values()],'sources':sources,'env':{'PYTHONPATH':str(root)}}
         if amendment_path is not None:spec['amendment_sha256']=sha(amendment_path);spec['sources'].append({'path':str(amendment_path),'sha256':sha(amendment_path)})
         specp=private/f'{uid}_QUEUE_SPEC.json'
         with os.fdopen(os.open(specp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w') as f:json.dump(spec,f,sort_keys=True,indent=2);f.write('\n')
-        outputs.append({'unit_id':uid,'config_sha256':sha(cfgp),'spec_sha256':sha(specp),'private_config_label':f'r3/.private/{cfgp.name}','private_spec_label':f'r3/.private/{specp.name}','source_count':len(sources),'selected_r2_unit_id':r2_unit_id,'selected_policy_receipt_sha256':sha(policy_path),'law_content_sha256':next(iter(law_hashes))})
+        outputs.append({'unit_id':uid,'config_sha256':sha(cfgp),'spec_sha256':sha(specp),'private_config_label':f'r3/.private/{cfgp.name}','private_spec_label':f'r3/.private/{specp.name}','source_count':len(sources),'selected_r2_unit_id':r2_unit_id,'r2_unit_receipt_sha256':sha(unit_receipt_path),'selected_policy_receipt_sha256':sha(policy_path),'law_content_sha256':next(iter(law_hashes))})
     index=owner/f'R3_{arm}_S{seed}_PROTECTED_UNIT_INDEX_V1.json'
     with index.open('x') as f:json.dump({'schema':'pcrl-incumbent-r3-protected-unit-index-v1','units':outputs,'role_arrays_deserialized':False},f,sort_keys=True,indent=2);f.write('\n')
     return {'index_sha256':sha(index),'units':outputs}

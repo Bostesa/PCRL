@@ -5,6 +5,15 @@ import numpy as np
 from .r2_space import Space,central_features,summaries,identity_q,check_law
 
 ARMS=("P0","O_J","V_J","V_P","V_D","V_L","V_S12","V_S21")
+_FORWARDS={"numpy_policy_forward_calls":0,"numpy_policy_forward_rows":0,
+           "numpy_policy_forward_action_positions":0}
+
+
+def reset_forward_counts():
+    for key in _FORWARDS:_FORWARDS[key]=0
+
+
+def forward_counts():return dict(_FORWARDS)
 
 
 def logits(x,w):
@@ -62,6 +71,9 @@ class Policy:
         p=self.space.prepare(c1,c2);return self.law_prepared(p)
 
     def law_prepared(self,p):
+        _FORWARDS["numpy_policy_forward_calls"]+=1
+        _FORWARDS["numpy_policy_forward_rows"]+=len(p["code_r1"])
+        _FORWARDS["numpy_policy_forward_action_positions"]+=p["code_r1"].size
         if self.arm=="P0":return identity_q(p)
         if self.arm in ("O_J","V_J","V_P","V_D"):
             source=softmax(logits(p["features"],self.weights[0]),p["valid"])

@@ -16,6 +16,8 @@ from results.pcrl_incumbent_view_risk_v1.r0.compute_queue import assert_active_f
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import assert_same_people, sha_array
 from results.pcrl_latent_and_sampled_methods_v1.r02.protocol import run_three_view_attack
 from .r2_package import load_policy
+from .r2_policy import reset_forward_counts, forward_counts
+from .r2_space import reset_preprocess_counts, preprocess_counts
 from .r4_views import ARRAY_KEYS, package_from_arrays, prepare_three_views
 from .r4_public_law import uniform_output_masses
 
@@ -24,7 +26,7 @@ ROLES=("ATTACK_FIT_NEW","INNER_SELECTION")
 LAW_KEYS=frozenset({"row_id","unit","code_r1","code_r2","mass","valid","b0_code_r1","b0_code_r2"})
 CODE_KEYS=frozenset({"row_id","unit","code_r1","code_r2"})
 SPEC_KEYS=frozenset({"schema","unit_id","arm_id","source_seed","realization","attacker_seed",
-    "campaign_seal","role_manifest","public_bank","eligibility","source_pins","utility_links",
+    "queue_seal","campaign_seal","role_manifest","public_bank","eligibility","source_pins","utility_links",
     "role_releases","sex_archives","policy_package","private_output_path","public_receipt_path"})
 MODULES={
     "incumbent_view.r4_worker": "incumbent_view/r4_worker.py",
@@ -70,6 +72,15 @@ def validate_gate(gate,spec):
         raise PermissionError("fresh attacks require original INNER24-only point gate")
     if set(gate.get("source_receipts",{}))!={"s0_fit","s0_inner","s1_fit","s1_inner"}:
         raise PermissionError("point gate source-receipt inventory differs")
+
+
+def validate_seal_bridge(spec,active_seal,lock):
+    queue=spec["queue_seal"]["sha256"]
+    campaign=spec["campaign_seal"]["sha256"]
+    if (queue==campaign or active_seal!=queue or
+            lock.get("queue_seal_sha256")!=queue or
+            lock.get("campaign_seal_sha256")!=campaign):
+        raise PermissionError("queue admission seal/scientific campaign lock bridge differs")
 
 
 def _archive(path,keys):
@@ -143,10 +154,12 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
         return path
     def read(pin):return json.loads(pinned(pin).read_text())
     spec=read({"path":spec_path,"sha256":spec_sha256});validate_identity(spec)
-    if spec["unit_id"]!=active["unit_id"] or spec["campaign_seal"]["sha256"]!=active["seal_sha256"]:
+    if spec["unit_id"]!=active["unit_id"]:
         raise PermissionError("worker campaign/unit differs from active queue")
+    pinned(spec["queue_seal"])
     seal=pinned(spec["campaign_seal"])
     lock=read({"path":stage_lock_path,"sha256":stage_lock_sha256})
+    validate_seal_bridge(spec,active["seal_sha256"],lock)
     expected={"spec_sha256":spec_sha256,"arm_id":spec["arm_id"],"source_seed":spec["source_seed"],
               "realization":spec["realization"],"point_eligible":True}
     if (lock.get("schema")!="pcrl-incumbent-final-attack-stage-lock-v1" or
@@ -221,6 +234,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
                 policy_record["source_seed"]!=spec["source_seed"] or
                 policy_record["source_binding_sha256"]!=identity["source_binding_sha256"] or
                 policy_record["public_bank_sha256"]!=spec["public_bank"]["sha256"] or
+                policy_record["source_lock_sha256"]!=spec["campaign_seal"]["sha256"] or
                 policy_record["policy_package_sha256"]!=spec["policy_package"]["archive"]["sha256"] or
                 package_path.parent!=(pinned(spec["policy_package"]["receipt"])).parent or
                 policy_record["source_unit_id"]!=package_path.parent.parent.name or
@@ -250,6 +264,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
             if (receipt["arm_id"]!=spec["arm_id"] or receipt["source_seed"]!=spec["source_seed"] or
                     receipt["role"]!=role or receipt["realization"]!=spec["realization"] or
                     receipt["source_binding_sha256"]!=identity["source_binding_sha256"] or
+                    receipt["source_lock_sha256"]!=spec["campaign_seal"]["sha256"] or
                     receipt["codes_file_sha256"]!=item["codes"]["sha256"] or
                     receipt["law_file_sha256"]!=item["law"]["sha256"] or
                     receipt["source_unit_id"]!=policy_record["source_unit_id"]):
@@ -274,7 +289,17 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
             "policy_receipt_sha256":None if spec["policy_package"] is None else spec["policy_package"]["receipt"]["sha256"],
             "rows":len(arrays["row_id"]),"draw_kind":receipt.get("draw_kind","none"),
             "recipient_jsonl_release_sha256":actual_wire}
+    reset_preprocess_counts();reset_forward_counts()
     masses=uniform_output_masses(identity["bank_r1"],identity["bank_r2"],policy)
+    pair_count=len(identity["bank_r1"])*len(identity["bank_r2"])
+    public_law_activity={"original_code_pair_rows_enumerated":pair_count,
+                         "action_slots_enumerated":pair_count*(1 if policy is None else 16),
+                         "preprocessing":preprocess_counts(),"selected_policy_forward":forward_counts()}
+    required_rows=0 if policy is None else pair_count
+    if (public_law_activity["preprocessing"]["prepared_rows"]!=required_rows or
+            public_law_activity["selected_policy_forward"]["numpy_policy_forward_rows"]!=required_rows or
+            public_law_activity["selected_policy_forward"]["numpy_policy_forward_action_positions"]!=16*required_rows):
+        raise PermissionError("public-law preprocessing/forward counter differs from exact bank enumeration")
     prepared=prepare_three_views(packages[ROLES[0]],packages[ROLES[1]],uniform_masses=masses)
     output=Path(spec["private_output_path"])
     if output.exists() or ".private" not in output.parts or output.parent.stat().st_mode&0o077:
@@ -282,7 +307,8 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
     if Path(spec["public_receipt_path"]).exists():raise FileExistsError("public attack receipt exists")
     def guard():
         current=assert_active_from_env(unit_id=spec["unit_id"],stage="attacks")
-        if current["seal_sha256"]!=spec["campaign_seal"]["sha256"]:raise PermissionError("campaign seal changed")
+        if current["seal_sha256"]!=spec["queue_seal"]["sha256"]:raise PermissionError("queue seal changed")
+        if sha(seal)!=spec["campaign_seal"]["sha256"]:raise PermissionError("scientific campaign lock changed")
     guard()
     sex_att=load_sex(spec["sex_archives"]["ATTACK_FIT_NEW"],"ATTACK_FIT_NEW",manifest,pinned)
     assert_same_people(sex_att,{"row_id":packages[ROLES[0]].row_id,"unit":packages[ROLES[0]].unit})
@@ -298,6 +324,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
     public={"schema":"pcrl-incumbent-r4-fresh-attack-v1","status":"COMPLETE_PRIVATE_DEVELOPMENT_ONLY",
             "unit_id":spec["unit_id"],"arm_id":spec["arm_id"],"source_seed":spec["source_seed"],
             "realization":spec["realization"],"attacker_seed":spec["attacker_seed"],
+            "queue_seal_sha256":spec["queue_seal"]["sha256"],
             "campaign_seal_sha256":spec["campaign_seal"]["sha256"],"stage_lock_sha256":stage_lock_sha256,
             "unit_spec_sha256":spec_sha256,"public_bank_sha256":spec["public_bank"]["sha256"],
             "eligibility_sha256":spec["eligibility"]["sha256"],
@@ -312,6 +339,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
                 "table_sha256":{"r1":sha_array(masses["r1"]),"r2":sha_array(masses["r2"]),
                                 "pair":sha_array(masses["pair"])},
                 "checkpoint_receipt_sha256":None if spec["policy_package"] is None else spec["policy_package"]["receipt"]["sha256"]},
+            "public_law_activity":public_law_activity,
             "role_release_sha256":{role:item["receipt"]["sha256"] for role,item in spec["role_releases"].items()},
             "public_invocation_constants_by_role":invocation_constants,
             "attack":attack["public"]}

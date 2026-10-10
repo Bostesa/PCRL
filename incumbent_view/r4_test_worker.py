@@ -1,7 +1,7 @@
 """Data-free admission negative tests; execute only in the shared queue."""
 import unittest
 import numpy as np
-from incumbent_view.r4_worker import validate_gate, load_sex, check_law
+from incumbent_view.r4_worker import validate_gate, validate_seal_bridge, load_sex, check_law
 
 
 class AdmissionTests(unittest.TestCase):
@@ -20,6 +20,15 @@ class AdmissionTests(unittest.TestCase):
 
     def test_wrong_arm_gate_rejected(self):
         with self.assertRaises(PermissionError):validate_gate(self.gate(),{"arm_id":"V_S21"})
+
+    def test_admission_queue_seal_is_distinct_from_campaign_science_lock(self):
+        spec={"queue_seal":{"sha256":"a"*64},"campaign_seal":{"sha256":"b"*64}}
+        lock={"queue_seal_sha256":"a"*64,"campaign_seal_sha256":"b"*64}
+        validate_seal_bridge(spec,"a"*64,lock)
+        with self.assertRaises(PermissionError):validate_seal_bridge(spec,"b"*64,lock)
+        with self.assertRaises(PermissionError):validate_seal_bridge(spec,"a"*64,{**lock,"campaign_seal_sha256":"c"*64})
+        with self.assertRaises(PermissionError):validate_seal_bridge({**spec,"campaign_seal":spec["queue_seal"]},"a"*64,
+                                                                        {**lock,"campaign_seal_sha256":"a"*64})
 
     def test_unadmitted_sex_role_refused_before_file_access(self):
         calls=[]

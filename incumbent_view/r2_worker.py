@@ -11,8 +11,10 @@ import numpy as np
 from results.pcrl_incumbent_view_risk_v1.r0.compute_queue import assert_active_from_env
 from .r1_bank import load_bank,sha_file
 from .r2_package import array_sha,from_bank,read_exact,save_policy,write_json,write_npz
-from .r2_space import group_folds,decimal_cost_check,costs,accurate_margin,identity_q,utility_receipt
-from .r2_train import fit_arm
+from .r2_space import (group_folds,decimal_cost_check,costs,accurate_margin,identity_q,
+                       utility_receipt,reset_preprocess_counts,preprocess_counts)
+from .r2_policy import reset_forward_counts,forward_counts
+from .r2_train import fit_arm,reset_training_counts,training_counts
 from .r2_materialize import materialize
 from .r2_readers import reader_guard_receipt,nomination
 
@@ -97,6 +99,54 @@ def _same_wire_source(space,source):
             raise PermissionError("P0 original-ID decoder wire differs")
 
 
+def complete_whole_p0_fallback(summary,space,prepared,y1,y2,fold):
+    """Make dependency failure an explicit, runnable whole-P0 alias receipt."""
+    if summary["status"]!="COMPLETE_WHOLE_P0_DEPENDENCY_FALLBACK":
+        raise ValueError("whole-P0 completion called for another status")
+    q0=identity_q(prepared);reader_slate=summary["readers"]
+    summary["selection"]={"start":"separate_whole_p0_fallback","update":0,
+                          "dependency_failure_stage":summary["stage"]}
+    summary["utility"]=utility_receipt(q0,costs(space,prepared,y1,y2),fold)
+    summary["guards"]=reader_guard_receipt(q0,reader_slate,fold)
+    summary["nomination"]=nomination(q0,reader_slate)
+    return summary
+
+
+def reader_fit_counts(readers):
+    """Count every group-fold reader fit, excluding stage marker metadata."""
+    by_family={family:sum(sum(key in reader.models for key in ("f0","f1","f2"))
+                          for reader in readers if reader.name.endswith("/"+family))
+               for family in ("prior","categorical","nonlinear")}
+    return {"reader_family_fold_fits":by_family,
+            "trained_reader_fits":by_family["categorical"]+by_family["nonlinear"],
+            "constant_prior_fits":by_family["prior"]}
+
+
+def _science_lock_bridge(cfg,active,queue,registered):
+    """Bind the immutable queue admission seal and later science lock.
+
+    The queue's active seal is the original ADMISSION_LOCK.  The prospective
+    CAMPAIGN_LOCK is registered as the latest protection-stage amendment.
+    Both files must be byte-pinned in this unit's queued source list before
+    any role array is opened.
+    """
+    pins=cfg["pins"]
+    admission=_pinned(pins["admission_lock"],registered)
+    science=_pinned(pins["science_lock"],registered)
+    admission_sha=sha_file(admission);science_sha=sha_file(science)
+    if admission_sha!=active["seal_sha256"] or admission_sha!=cfg["admission_lock_sha256"]:
+        raise PermissionError("original admission seal differs")
+    if science_sha!=cfg["science_lock_sha256"] or science_sha!=cfg["source_lock_sha256"]:
+        raise PermissionError("scientific campaign lock differs")
+    amendments=[item["sha256"] for item in queue.get("amendments",[]) if "protection" in item["stages"]]
+    unit=queue["units"][active["unit_id"]]
+    amendment_sha=cfg["protection_amendment_sha256"]
+    if (science_sha not in amendments or not amendments or amendments[-1]!=amendment_sha
+        or unit["spec"].get("amendment_sha256")!=amendment_sha):
+        raise PermissionError("science lock registration or latest protection amendment differs")
+    return science_sha,admission_sha
+
+
 def run(config_path):
     active=assert_active_from_env(stage="protection")
     queue=json.loads((Path(os.environ["PCRL_QUEUE_ROOT"])/"state.json").read_text())
@@ -106,11 +156,11 @@ def run(config_path):
     cfg=json.loads(config_path.read_text())
     arm,seed=cfg["arm_id"],cfg["source_seed"]
     if (cfg.get("schema")!="IVR1-r2-fit-config-v1" or cfg["unit_id"]!=active["unit_id"]
-        or arm not in ARM_IDS or seed not in (0,1) or cfg["source_lock_sha256"]!=active["seal_sha256"]):
+        or arm not in ARM_IDS or seed not in (0,1)):
         raise PermissionError("R2 scientific unit configuration differs")
     pins={name:_pinned(rec,registered) for name,rec in cfg["pins"].items()}
-    if (sha_file(pins["campaign_lock"])!=active["seal_sha256"] or
-        sha_file(pins["stream_roots"])!=cfg["stream_roots_sha256"] or
+    science_sha,admission_sha=_science_lock_bridge(cfg,active,queue,registered)
+    if (sha_file(pins["stream_roots"])!=cfg["stream_roots_sha256"] or
         sha_file(pins["stream_manifest"])!=cfg["stream_manifest_sha256"]):
         raise PermissionError("protection lock/streams byte binding differs")
     bank=load_bank(pins["public_bank"],cfg["pins"]["public_bank"]["sha256"])
@@ -125,6 +175,7 @@ def run(config_path):
     if any(hashlib.sha256(v).hexdigest()!=stream["realization_root_sha256"][str(i)] for i,v in release_roots.items()):
         raise PermissionError("private HMAC root commitment differs")
     # All source/provenance byte checks precede any person-array read.
+    reset_preprocess_counts();reset_forward_counts();reset_training_counts()
     source=_release_inputs(cfg,registered)
     space=from_bank(bank)
     for role,value in source.items():_same_wire_source(space,value)
@@ -159,23 +210,25 @@ def run(config_path):
         # A frozen sequential first stage cannot be retroactively edited. The
         # separately archived whole-P0 policy remains an honest alias with
         # complete task/reader receipts and a named dependency failure.
-        q0=identity_q(exact);reader_slate=summary["readers"]
-        summary["selection"]={"start":"separate_whole_p0_fallback","update":0,
-                              "dependency_failure_stage":summary["stage"]}
-        summary["utility"]=utility_receipt(q0,costs(space,exact,y1,y2),fold)
-        summary["guards"]=reader_guard_receipt(q0,reader_slate,fold)
-        summary["nomination"]=nomination(q0,reader_slate)
+        complete_whole_p0_fallback(summary,space,exact,y1,y2,fold)
+    reader_slate=list(summary["readers"])
+    reader_counts=reader_fit_counts(reader_slate)
     archive=_policy_archive(private,summary)
     status=summary["status"]
     public={"schema":"IVR1-r2-protection-unit-v1","source_unit_id":cfg["unit_id"],"arm_id":arm,
-            "source_seed":seed,"status":status,"source_lock_sha256":active["seal_sha256"],
+            "source_seed":seed,"status":status,"source_lock_sha256":science_sha,
+            "admission_lock_sha256":admission_sha,
             "source_binding_sha256":bank["source_binding_sha256"],"public_bank_sha256":sha_file(pins["public_bank"]),
             "stream_manifest_sha256":sha_file(pins["stream_manifest"]),"crossfit_manifest_sha256":crossfit_sha,
             "crossfit_manifest_relative":f"r2/{crossfit_path.name}","fit_rows":len(fit["row_id"]),
             "fit_groups":len(np.unique(fit["unit"])),"reachable_p0_pair_count":int(active_pairs),
             "valid_action_width_counts":{str(k):int(np.sum(support_widths==k)) for k in np.unique(support_widths)},
             "archive":archive,"rounds":summary["rounds"],"optimization_cpu_seconds":summary["elapsed_cpu_seconds"],
-            "whole_unit_cpu_seconds_before_receipt":time.process_time()-started}
+            "whole_unit_cpu_seconds_before_receipt":time.process_time()-started,
+            "activity":{"role_p0_files_read":len(source),"role_p0_rows_read":sum(len(v["row_id"]) for v in source.values()),
+                        "fit_label_files_read":3,"reader_objects_retained":len(reader_slate),
+                        **reader_counts,
+                        "weighted_oof_loss_positions":sum(r.loss.size for r in reader_slate)}}
     if policy is not None:
         q=policy.law_prepared(exact)
         decimal=decimal_cost_check(space,exact,q,y1,y2)
@@ -187,7 +240,7 @@ def run(config_path):
         summary_selection=summary["selection"]
         p_receipt,p_sha=save_policy(private/"policy",policy,arm_id=arm,source_seed=seed,
                                    source_unit_id=cfg["unit_id"],bank_sha256=sha_file(pins["public_bank"]),
-                                   source_binding_sha256=bank["source_binding_sha256"],lock_sha256=active["seal_sha256"],
+                                   source_binding_sha256=bank["source_binding_sha256"],lock_sha256=science_sha,
                                    selection=summary_selection,crossfit_manifest_sha256=crossfit_sha,exact_p0_alias=alias)
         release_records=[]
         for role,role_source in source.items():
@@ -195,8 +248,11 @@ def run(config_path):
                 name=f"{role}_R{draw}"
                 r_receipt,r_sha=materialize(private/name,policy,role_source,bank,arm_id=arm,
                               source_seed=seed,source_unit_id=cfg["unit_id"],role=role,realization=draw,
-                              private_root=release_roots[draw],policy_receipt_sha256=p_sha)
-                release_records.append({"role":role,"realization":draw,"private_relative_dir":f"r2/.private/units/{cfg['unit_id']}/{name}",
+                              private_root=release_roots[draw],policy_receipt_sha256=p_sha,
+                              source_lock_sha256=science_sha)
+                release_records.append({"role":role,"realization":draw,"rows":r_receipt["rows"],
+                                        "draw_kind":r_receipt["draw_kind"],
+                                        "private_relative_dir":f"r2/.private/units/{cfg['unit_id']}/{name}",
                                         "receipt_sha256":r_sha,"law_file_sha256":r_receipt["law_file_sha256"],
                                         "codes_file_sha256":r_receipt["codes_file_sha256"]})
         public.update({"selected_policy_receipt_sha256":p_sha,"selected_policy_package_sha256":p_receipt["policy_package_sha256"],
@@ -208,6 +264,10 @@ def run(config_path):
     else:
         public.update({"selected_policy_receipt_sha256":None,"selection":None,"role_releases":[],
                        "incomplete":True,"checkpoint_preserved":archive["checkpoint_count"]})
+    public["activity"].update({"preprocessing":preprocess_counts(),"policy_numpy":forward_counts(),
+                                "policy_training":training_counts(),
+                                "release_law_and_draw_packages":len(public["role_releases"]),
+                                "release_rows_materialized":sum(item["rows"] for item in public["role_releases"])})
     path=public_root/f"{cfg['unit_id']}_UNIT_RECEIPT.json"
     receipt_sha=write_json(path,public,private=False)
     print(json.dumps({"status":status,"unit_id":cfg["unit_id"],"unit_receipt_sha256":receipt_sha,

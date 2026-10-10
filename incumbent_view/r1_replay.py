@@ -164,7 +164,12 @@ def main(argv=None):
             "returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr})
         raise RuntimeError("selected raw CLI failed; preserved private diagnostics")
     metadata = json.loads(result.stdout)
-    if metadata["rows"] != 32 or metadata["arm_id"] != config["arm_id"]:
+    if (metadata["rows"] != 32 or metadata["arm_id"] != config["arm_id"] or
+            metadata["seed"] != seed or
+            metadata["policy_receipt_sha256"] != config["policy_receipt_sha256"] or
+            metadata["draw_kind"] != policy.law_kind or
+            metadata["release_r1_sha256"] != sha_file(wire_paths[0]) or
+            metadata["release_r2_sha256"] != sha_file(wire_paths[1])):
         raise ValueError("raw selected CLI stdout identity differs")
     actual = [read_jsonl(path) for path in wire_paths]
     if any(len(wires) != 32 for wires in actual):

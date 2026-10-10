@@ -46,7 +46,7 @@ def nominate_family(gates, reader_records):
             record = reader_records.get((arm, seed))
             if record is None:
                 break
-            fold_hash = record.get("crossfit_fold_manifest_sha256")
+            fold_hash = record.get("crossfit_manifest_sha256")
             if not isinstance(fold_hash, str) or len(fold_hash) != 64 or any(c not in "0123456789abcdef" for c in fold_hash):
                 raise ValueError("fixed FIT crossfit manifest hash required")
             prior = record.get("constant_prior_ce")
@@ -61,7 +61,7 @@ def nominate_family(gates, reader_records):
                     or abs(float(record["pair_min_ce"]) - best) > 1e-12
                     or abs(float(record["reader_recovery_gap"]) - (prior - best)) > 1e-12):
                 raise ValueError("R2 internal reader summary differs from full retained CE slate")
-            by_seed.append({"seed": seed, "prior_ce": prior, "strongest_reader_ce": best, "gain": prior - best, "crossfit_fold_manifest_sha256": fold_hash})
+            by_seed.append({"seed": seed, "prior_ce": prior, "strongest_reader_ce": best, "gain": prior - best, "crossfit_manifest_sha256": fold_hash})
             alias = record.get("exact_p0_alias")
             if type(alias) is not bool:
                 raise ValueError("exact alias declaration required")

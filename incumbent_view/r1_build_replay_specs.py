@@ -53,7 +53,7 @@ def main(argv=None):
     if not python.is_file() or not os.access(python, os.X_OK):
         raise ValueError("virtualenv Python entrypoint missing")
     smoke = subprocess.run(
-        [str(python), "-c", "import scipy, torch, incumbent_view.r1_selected_deploy"],
+        [str(python), "-c", "import scipy, torch, hcal.calib, lra.deploy, incumbent_view.r1_selected_deploy"],
         cwd=repo, capture_output=True, text=True, timeout=30, check=False)
     if smoke.returncode:
         raise RuntimeError("exact virtualenv argv cannot import deployment dependencies")
@@ -97,7 +97,7 @@ def main(argv=None):
 
     code = [repo / "incumbent_view" / name for name in (
         "r1_bank.py", "r1_deploy.py", "r1_channel.py", "r1_selected_deploy.py", "r1_replay.py",
-        "r2_space.py", "r2_policy.py", "r2_package.py")]
+        "r1_build_replay_specs.py", "r2_space.py", "r2_policy.py", "r2_package.py")]
     for directory in ("qpc", "hcal", "lra",
                       "results/pcrl_latent_and_sampled_methods_v1/sampled_channel_v1/impl",
                       "results/pcrl_latent_and_sampled_methods_v1/latent_repair_v1"):

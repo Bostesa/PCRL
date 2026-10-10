@@ -12,6 +12,16 @@ from .r2_space import (ETA,INITIAL_ETA,SAFETY,CAPS,group_folds,costs,identity_q,
 from .r2_policy import Policy
 from .r2_readers import fit_round,reader_guard_receipt,risks,nomination
 from .r2_torch_cache import FrozenRound
+_TRAINING={"torch_policy_forward_calls":0,"torch_policy_forward_rows":0,
+           "torch_policy_forward_action_positions":0,"optimizer_steps":0,
+           "factor_optimizer_steps":0}
+
+
+def reset_training_counts():
+    for key in _TRAINING:_TRAINING[key]=0
+
+
+def training_counts():return dict(_TRAINING)
 
 
 def initial_weights(width,hidden,output,seed,start):
@@ -34,6 +44,9 @@ def _shape_weights(arm,seed,start):
 
 
 def _torch_law(space,p,w,arm,eta1,eta2,*,torch,stage=None,frozen_first=None,temperature=1.):
+    _TRAINING["torch_policy_forward_calls"]+=1
+    _TRAINING["torch_policy_forward_rows"]+=len(p["code_r1"])
+    _TRAINING["torch_policy_forward_action_positions"]+=p["code_r1"].size
     tx=torch.as_tensor(p["features"])
     valid=torch.as_tensor(p["valid"])
     def lg(x,ww):return torch.tanh(x@ww[0]+ww[1])@ww[2]+ww[3]
@@ -233,6 +246,8 @@ def fit_arm(space,arm,code1,code2,y1,y2,sex,unit,*,seed,cpu_seconds=1800.):
                     if dual is None or len(dual)!=len(residual):dual=np.zeros(len(residual))
                     loss=obj+sum(float(d)*r+50*torch.clamp(r,min=0).square() for d,r in zip(dual,residual))
                     loss.backward();torch.nn.utils.clip_grad_norm_(trainable,5);opt.step()
+                    _TRAINING["optimizer_steps"]+=1
+                    _TRAINING["factor_optimizer_steps"]+=sum(any(a.requires_grad for a in ww) for ww in w)
                     if (total_update+1)%25==0:
                         dual=np.maximum(0,dual+100*np.asarray([float(r.detach()) for r in residual]))
                 round_receipts.append({"stage":stage,"start":start,"round":round_index,"completed":not incomplete,

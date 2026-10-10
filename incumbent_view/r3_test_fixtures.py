@@ -69,10 +69,10 @@ class SelectionFixtures(unittest.TestCase):
     def test_nomination_minimizes_reader_gain(self):
         gates={a:gate(a) for a in ("V_J","V_P")};records={}
         for a,ce in (("V_J",.60),("V_P",.65)):
-            for s in (0,1): records[(a,s)]={"constant_prior_ce":.7,"crossfit_fold_manifest_sha256":"a"*64,"pair_reader_losses":{"reader":ce},"pair_min_ce":ce,"reader_recovery_gap":.7-ce,"exact_p0_alias":False}
+            for s in (0,1): records[(a,s)]={"constant_prior_ce":.7,"crossfit_manifest_sha256":"a"*64,"pair_reader_losses":{"reader":ce},"pair_min_ce":ce,"reader_recovery_gap":.7-ce,"exact_p0_alias":False}
         self.assertEqual(nominate_family(gates,records)["nominee"],"V_P")
     def test_prior_included_and_alias_not_gain(self):
-        records={("V_J",s):{"constant_prior_ce":.7,"crossfit_fold_manifest_sha256":"a"*64,"pair_reader_losses":{"bad":.9},"pair_min_ce":.7,"reader_recovery_gap":0.,"exact_p0_alias":True} for s in (0,1)}
+        records={("V_J",s):{"constant_prior_ce":.7,"crossfit_manifest_sha256":"a"*64,"pair_reader_losses":{"bad":.9},"pair_min_ce":.7,"reader_recovery_gap":0.,"exact_p0_alias":True} for s in (0,1)}
         result=nominate_family({"V_J":gate("V_J")},records)
         self.assertIsNone(result["nominee"]);self.assertEqual(result["slate"][0]["equal_seed_mean_reader_gain"],0)
     def test_strongest_control_missing_is_incomplete(self):

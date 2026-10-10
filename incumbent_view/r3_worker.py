@@ -49,6 +49,41 @@ def identity_law(wire):
             'mass':np.ones((n,1),np.float64),'valid':np.ones((n,1),bool)}
 
 
+def lock_bridge(cfg,active,state,spec,registered):
+    """Separate the immutable queue admission seal from the policy science seal.
+
+    All referenced files have already been byte checked against ``registered``.
+    Protected utility scores run in the witness queue stage after R2 protection
+    fits. Its latest scoring amendment must explicitly point to the separately
+    registered science lock.
+    """
+    science=cfg['pins']['seal']['sha256']
+    if cfg['arm_id']=='P0':
+        if active['stage']!='witness':raise PermissionError('P0 historical witness stage differs')
+        if science!=active['seal_sha256'] or science!=state['seal']['sha256']:
+            raise PermissionError('P0 witness admission seal differs')
+        return science
+    admission=cfg['pins']['admission_lock']['sha256']
+    if admission!=active['seal_sha256'] or admission!=state['seal']['sha256']:
+        raise PermissionError('original queue admission seal differs')
+    protection=[a for a in state.get('amendments',[]) if 'protection' in a['stages']]
+    if science not in {a['sha256'] for a in protection}:
+        raise PermissionError('science lock is not registered for protection')
+    active_stage=[a for a in state.get('amendments',[]) if active['stage'] in a['stages']]
+    if not active_stage:raise PermissionError('scoring stage amendment absent')
+    latest=active_stage[-1]
+    if spec.get('amendment_sha256')!=latest['sha256']:
+        raise PermissionError('scoring unit does not bind latest protection amendment')
+    path=Path(latest['path']).resolve(strict=True)
+    if registered.get(path)!=latest['sha256'] or sha(path)!=latest['sha256']:
+        raise PermissionError('latest protection amendment is not byte pinned')
+    if latest['sha256']!=science:
+        amendment=json.loads(path.read_text())
+        if amendment.get('campaign_lock_sha256')!=science:
+            raise PermissionError('later scoring amendment does not bind science lock')
+    return science
+
+
 def wire_check(wire,tables):
     for j in (1,2):
         code=wire[f'code_r{j}']
@@ -100,10 +135,10 @@ def run(config_path):
     arm,role,seed=cfg['arm_id'],cfg['role'],cfg['source_seed']
     if (cfg.get('schema')!='pcrl-incumbent-r3-utility-config-v1' or cfg['unit_id']!=active['unit_id'] or cfg['stage']!=active['stage']
         or arm not in ARMS or seed not in (0,1) or role not in ('OSF_DEFENSE_FIT','INNER_SELECTION')
-        or cfg['stage'] not in ('witness','protection') or (cfg['stage']=='witness' and arm!='P0')):
+        or cfg['stage']!='witness'):
         raise PermissionError('utility unit identity differs')
     paths={name:pinned(item) for name,item in cfg['pins'].items()}
-    if cfg['pins']['seal']['sha256']!=active['seal_sha256']:raise PermissionError('seal differs')
+    science_sha=lock_bridge(cfg,active,state,state['units'][active['unit_id']]['spec'],sources)
     bank=json.loads(paths['public_bank'].read_text())
     if bank['schema']!='pcrl-incumbent-original-public-bank-v1' or bank['seed']!=seed:raise PermissionError('P0 bank differs')
     binding=bank['source_binding_sha256'];tables=tuple(np.array(bank['recipients'][str(j)]['probability'],np.float64) for j in (1,2))
@@ -114,14 +149,28 @@ def run(config_path):
         release_receipt=json.loads(paths['release_receipt'].read_text())
         policy=json.loads(paths['policy_receipt'].read_text())
         if (policy.get('schema')!='IVR1-selected-policy-v1' or policy.get('arm_id')!=arm or policy.get('source_seed')!=seed
-            or policy.get('public_bank_sha256')!=sha(paths['public_bank']) or policy.get('source_lock_sha256')!=active['seal_sha256']
-            or release_receipt.get('schema')!='IVR1-selected-role-release-v1' or release_receipt.get('realization')!=0):
+            or policy.get('public_bank_sha256')!=sha(paths['public_bank']) or policy.get('source_lock_sha256')!=science_sha
+            or release_receipt.get('schema')!='IVR1-selected-role-release-v1' or release_receipt.get('realization')!=0
+            or release_receipt.get('source_lock_sha256')!=science_sha):
             raise PermissionError('selected policy/release identity differs')
         if (release_receipt['arm_id']!=arm or release_receipt['source_seed']!=seed or release_receipt['role']!=role
             or release_receipt['law_file_sha256']!=sha(paths['law']) or release_receipt['policy_receipt_sha256']!=sha(paths['policy_receipt'])
             or release_receipt['source_binding_sha256']!=binding or policy['source_binding_sha256']!=binding):
             raise PermissionError('selected policy/law/source provenance differs')
         if 'policy_package' in paths and policy.get('policy_package_sha256')!=sha(paths['policy_package']):raise PermissionError('policy package differs')
+        unit_doc=json.loads(paths['r2_unit_receipt'].read_text())
+        if (unit_doc.get('schema')!='IVR1-r2-protection-unit-v1' or unit_doc.get('arm_id')!=arm or unit_doc.get('source_seed')!=seed
+            or unit_doc.get('source_unit_id')!=cfg['source_unit_id'] or unit_doc.get('source_binding_sha256')!=binding
+            or unit_doc.get('source_lock_sha256')!=science_sha
+            or unit_doc.get('selected_policy_receipt_sha256')!=sha(paths['policy_receipt'])
+            or unit_doc.get('selected_policy_package_sha256')!=sha(paths['policy_package'])
+            or unit_doc.get('status') not in ('COMPLETE_SELECTED','COMPLETE_IDENTITY_ALIAS','COMPLETE_WHOLE_P0_DEPENDENCY_FALLBACK')):
+            raise PermissionError('selected R2 UNIT receipt differs')
+        for d in range(3):
+            match=[x for x in unit_doc['role_releases'] if x['role']==role and x['realization']==d]
+            if (len(match)!=1 or match[0]['receipt_sha256']!=sha(paths[f'draw{d}_receipt'])
+                or match[0]['codes_file_sha256']!=sha(paths[f'draw{d}'])):
+                raise PermissionError('selected R2 role/draw package differs')
     # Only after source and policy checks, deserialize declared task-only archives.
     income=read_exact(paths['income'],{'row_id','unit','income'})
     occupation=read_exact(paths['occupation'],{'row_id','unit','occupation'})
@@ -149,7 +198,7 @@ def run(config_path):
             dr=json.loads(paths[f'{key}_receipt'].read_text())
             if (dr.get('schema')!='IVR1-selected-role-release-v1' or dr['arm_id']!=arm or dr['source_seed']!=seed or dr['role']!=role
                 or dr['realization']!=d or dr['policy_receipt_sha256']!=sha(paths['policy_receipt'])
-                or dr['source_binding_sha256']!=binding or dr['codes_file_sha256']!=sha(paths[key])
+                or dr['source_binding_sha256']!=binding or dr.get('source_lock_sha256')!=science_sha or dr['codes_file_sha256']!=sha(paths[key])
                 or dr['law_content_sha256']!=release_receipt['law_content_sha256'] or dr['row_unit_pair_sha256']!=pair_hash):
                 raise PermissionError('cached actual release provenance differs')
             positive=((law['code_r1']==draw['code_r1'][:,None])&(law['code_r2']==draw['code_r2'][:,None])&(law['mass']>0)).any(1)

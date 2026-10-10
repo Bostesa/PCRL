@@ -14,14 +14,26 @@ CAPS = {"accuracy": .002, "nll": .001, "brier": .0005}
 INITIAL_ETA = tuple(.05 * .5**k for k in range(41)) + (0.,)
 ETA = tuple(.5**k for k in range(41)) + (0.,)
 FOLD_SALT = "IVR1|FIT-crossfold|20261010|"
+_PREPROCESS={"group_fold_calls":0,"group_fold_rows":0,"prepared_calls":0,
+             "prepared_rows":0,"prepared_action_positions":0,
+             "cost_matrix_calls":0,"cost_matrix_rows":0,"cost_matrix_action_positions":0}
+
+
+def reset_preprocess_counts():
+    for key in _PREPROCESS:_PREPROCESS[key]=0
+
+
+def preprocess_counts():return dict(_PREPROCESS)
 
 
 def group_folds(unit):
     values = np.asarray(unit)
     if values.ndim != 1 or values.dtype.kind not in "iuU":
         raise ValueError("group IDs must be exact one-dimensional integer/string IDs")
-    return np.asarray([int(hashlib.sha256((FOLD_SALT+str(v)).encode()).hexdigest(),16)%3
-                       for v in values], dtype=np.int64)
+    out=np.asarray([int(hashlib.sha256((FOLD_SALT+str(v)).encode()).hexdigest(),16)%3
+                    for v in values], dtype=np.int64)
+    _PREPROCESS["group_fold_calls"]+=1;_PREPROCESS["group_fold_rows"]+=len(values)
+    return out
 
 
 def summaries(p):
@@ -74,6 +86,8 @@ class Space:
         a1=self.actions1[c1]; a2=self.actions2[c2]
         code_r1=np.repeat(a1,4,axis=1); code_r2=np.tile(a2,(1,4))
         valid=np.repeat(self.valid1[c1],4,axis=1)&np.tile(self.valid2[c2],(1,4))
+        _PREPROCESS["prepared_calls"]+=1;_PREPROCESS["prepared_rows"]+=len(c1)
+        _PREPROCESS["prepared_action_positions"]+=valid.size
         return {"code_r1":code_r1,"code_r2":code_r2,"valid":valid,
                 "b0_code_r1":c1.copy(),"b0_code_r2":c2.copy(),
                 "features":central_features(self.probability1[c1],self.probability2[c2])}
@@ -102,6 +116,8 @@ def costs(space,prepared,y1,y2):
         out[f"r{r}_nll"]=-np.log(np.clip(np.take_along_axis(p,y[:,None,None],axis=2).squeeze(2),CLIP,1))
         out[f"r{r}_brier"]=np.sum((p-target[:,None,:])**2,axis=2)
         out[f"r{r}_accuracy"]=(p.argmax(2)==y[:,None]).astype(np.float64)
+    _PREPROCESS["cost_matrix_calls"]+=1;_PREPROCESS["cost_matrix_rows"]+=len(prepared["code_r1"])
+    _PREPROCESS["cost_matrix_action_positions"]+=prepared["code_r1"].size
     return out
 
 

@@ -9,7 +9,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.release 
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import offline_factor_uniforms
 
 
-def materialize(directory,policy,source,bank,*,arm_id,source_seed,source_unit_id,role,realization,private_root,policy_receipt_sha256):
+def materialize(directory,policy,source,bank,*,arm_id,source_seed,source_unit_id,role,realization,private_root,policy_receipt_sha256,source_lock_sha256):
     if role not in ("OSF_DEFENSE_FIT","ATTACK_FIT_NEW","INNER_SELECTION") or realization not in (0,1,2):raise ValueError("release role/draw differs")
     row=np.asarray(source["row_id"]);unit=np.asarray(source["unit"])
     c1=np.asarray(source["code_r1"]);c2=np.asarray(source["code_r2"])
@@ -42,6 +42,7 @@ def materialize(directory,policy,source,bank,*,arm_id,source_seed,source_unit_id
     law_sha=write_npz(directory/"law.npz",law);codes_sha=write_npz(directory/"release_codes.npz",sampled)
     content=hashlib.sha256("".join(k+array_sha(law[k]) for k in sorted(law)).encode()).hexdigest()
     receipt={"schema":"IVR1-selected-role-release-v1","arm_id":arm_id,"source_seed":source_seed,"source_unit_id":source_unit_id,"role":role,"realization":realization,
+             "source_lock_sha256":source_lock_sha256,
              "rows":n,"groups":len(group),"policy_receipt_sha256":policy_receipt_sha256,
              "law_file_sha256":law_sha,"law_content_sha256":content,"codes_file_sha256":codes_sha,
              "row_unit_pair_sha256":array_sha(np.c_[row,unit]),"source_binding_sha256":bank["source_binding_sha256"],

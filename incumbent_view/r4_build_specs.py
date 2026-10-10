@@ -51,6 +51,30 @@ def _module_pins(repo):
     return result
 
 
+def _public_relative(path,repo):
+    """Expose a repository-relative locator, never a private home path."""
+    return str(Path(path).absolute().relative_to(repo))
+
+
+def _private_from_public(relative,repo):
+    path=Path(relative)
+    if path.is_absolute() or ".." in path.parts or ".private" not in path.parts:
+        raise PermissionError("private locator must stay inside repository")
+    result=(repo/path).absolute()
+    if not result.is_relative_to(repo):raise PermissionError("private locator escapes repository")
+    return result
+
+
+def _policy_pinset(arm,seed_record):
+    source=seed_record.get("policy_package")
+    if arm=="P0":
+        if source is not None:raise PermissionError("P0 must retain the original identity law")
+        return None
+    if not isinstance(source,dict) or set(source)!={"receipt","archive"}:
+        raise ValueError("selected policy package incomplete")
+    return {name:entry(value) for name,value in source.items()}
+
+
 def _source_list(spec):
     values=[]
     def add(item):
@@ -61,7 +85,7 @@ def _source_list(spec):
                 for child in item.values():add(child)
         elif type(item)==list:
             for child in item:add(child)
-    for key in ("campaign_seal","role_manifest","public_bank","eligibility","source_pins",
+    for key in ("queue_seal","campaign_seal","role_manifest","public_bank","eligibility","source_pins",
                 "utility_links","role_releases","sex_archives","policy_package"):
         add(spec[key])
     unique={}
@@ -82,7 +106,10 @@ def prepare(config_path):
     if private.stat().st_mode&0o077:raise PermissionError("owner output root loose")
     python=Path(os.path.abspath(cfg["python_executable"])) # retain venv symlink entrypoint
     if not python.is_file() or not os.access(python,os.X_OK):raise ValueError("venv executable missing")
-    campaign=entry(cfg["campaign_seal"]);manifest=entry(cfg["role_manifest"])
+    queue_seal=entry(cfg["queue_seal"]);campaign=entry(cfg["campaign_seal"])
+    if queue_seal["sha256"]==campaign["sha256"]:
+        raise PermissionError("admission queue seal and scientific campaign lock must be distinct")
+    manifest=entry(cfg["role_manifest"])
     manifest_doc=json.loads(Path(manifest["path"]).read_text())
     if manifest_doc.get("schema")!="pcrl-incumbent-r1-data-access-manifest-v1":
         raise PermissionError("new role allowlist manifest absent")
@@ -112,7 +139,7 @@ def prepare(config_path):
             if set(sex)!=set(ROLES):raise ValueError("both final label roles required")
             draws=range(3) if arm in STOCHASTIC else range(1)
             for draw in draws:
-                uid=f"R4_FINAL_{arm}_S{seed}_R{draw}_V1"
+                uid=f"R4_FINAL_{arm}_S{seed}_R{draw}"
                 slots.append({"unit_id":uid,"arm_id":arm,"source_seed":seed,"realization":draw,"status":status})
                 if status!="ATTACK_PLANNED":continue
                 r2=record["seeds"][str(seed)]
@@ -132,22 +159,22 @@ def prepare(config_path):
                     if (source["receipt_sha256"]!=links[key]["receipt"]["sha256"] or
                             source["csv_sha256"]!=links[key]["csv"]["sha256"]):
                         raise PermissionError("gate/scorer source receipt differs")
-                policy=None if arm=="P0" else {name:entry(value) for name,value in r2["policy_package"].items()}
-                if arm!="P0" and set(policy)!={"receipt","archive"}:
-                    raise ValueError("selected policy package incomplete")
+                policy=_policy_pinset(arm,r2)
                 worker={"schema":"pcrl-incumbent-r4-final-unit-v1","unit_id":uid,"arm_id":arm,
                         "source_seed":seed,"realization":draw,"attacker_seed":100000+1000*seed+draw,
-                        "campaign_seal":campaign,"role_manifest":manifest,"public_bank":bank,"eligibility":gate_item,
+                        "queue_seal":queue_seal,"campaign_seal":campaign,"role_manifest":manifest,
+                        "public_bank":bank,"eligibility":gate_item,
                         "source_pins":modules,"utility_links":links,"role_releases":releases,
                         "sex_archives":sex,"policy_package":policy,
                         "private_output_path":str(private/"attacks"/uid),
                         "public_receipt_path":str(root/f"{uid}_RECEIPT.json")}
                 spec_path=private/"worker_specs"/f"{uid}.json";spec_sha=new_json(spec_path,worker)
-                unit_index[uid]={"spec_path":str(spec_path),"spec_sha256":spec_sha,
+                unit_index[uid]={"spec_path":_public_relative(spec_path,repo),"spec_sha256":spec_sha,
                                  "arm_id":arm,"source_seed":seed,"realization":draw,
                                  "source_count":len(_source_list(worker))}
     public={"schema":"pcrl-incumbent-r4-prepared-index-v1","status":"RECEIPT_ONLY_NO_SEX_READ",
-            "config_sha256":cfgpin["sha256"],"campaign_seal_sha256":campaign["sha256"],
+            "config_sha256":cfgpin["sha256"],"queue_seal_sha256":queue_seal["sha256"],
+            "campaign_seal_sha256":campaign["sha256"],
             "all_slots":slots,"prepared_units":unit_index,"planned_fits":30*len(unit_index),
             "unit_count":len(unit_index),"aliases":[],"source_worker":"incumbent_view.r4_worker"}
     index_path=root/"ATTACK_PREPARED_INDEX.json";digest=new_json(index_path,public,private=False)
@@ -160,6 +187,8 @@ def finalize(index_path,lock_path,lock_sha256,python,repo):
     lock=json.loads(lockpath.read_text())
     if (lock.get("schema")!="pcrl-incumbent-final-attack-stage-lock-v1" or
             lock.get("status")!="LOCALLY_SEALED_ATTACKS" or
+            lock.get("campaign_seal_sha256")!=index["campaign_seal_sha256"] or
+            lock.get("queue_seal_sha256")!=index["queue_seal_sha256"] or
             set(lock.get("units",{}))!=set(index["prepared_units"])):
         raise PermissionError("R0 attack-stage lock did not bind exact prepared units")
     repo=Path(repo).resolve(strict=True);root=repo/"results/pcrl_incumbent_view_risk_v1/r4"
@@ -167,8 +196,8 @@ def finalize(index_path,lock_path,lock_sha256,python,repo):
     if not python.is_file() or not os.access(python,os.X_OK):raise ValueError("venv entrypoint missing")
     queue={}
     for uid,entrydata in index["prepared_units"].items():
-        prepared=entry(entrydata["spec_path"] if isinstance(entrydata["spec_path"],dict) else
-                       {"path":entrydata["spec_path"],"sha256":entrydata["spec_sha256"]})
+        prepared=entry({"path":str(_private_from_public(entrydata["spec_path"],repo)),
+                        "sha256":entrydata["spec_sha256"]})
         unit=json.loads(Path(prepared["path"]).read_text())
         expected={"spec_sha256":entrydata["spec_sha256"],"arm_id":unit["arm_id"],
                   "source_seed":unit["source_seed"],"realization":unit["realization"],"point_eligible":True}
@@ -182,7 +211,8 @@ def finalize(index_path,lock_path,lock_sha256,python,repo):
               "projected_output_bytes":134217728,"deps":[],"outputs":[unit["public_receipt_path"]],
               "sources":list(sources.values()),"env":THREAD_ENV,"amendment_sha256":lock_sha256}
         path=root/".private"/"queue_specs"/f"{uid}.json";digest=new_json(path,spec)
-        queue[uid]={"path":str(path),"sha256":digest,"worker_spec_sha256":prepared["sha256"]}
+        queue[uid]={"path":_public_relative(path,repo),"sha256":digest,
+                    "worker_spec_sha256":prepared["sha256"]}
     public={"schema":"pcrl-incumbent-r4-final-queue-index-v1","stage_lock_sha256":lock_sha256,
             "amendment_sha256":lock_sha256,"unit_count":len(queue),"units":queue,
             "venv_entrypoint":"repository .venv/bin/python","queue_admission":"R0/R5 required before enqueue"}

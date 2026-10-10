@@ -94,5 +94,47 @@ class ExactWireTests(unittest.TestCase):
         np.testing.assert_allclose(masses["r2"],[.5,.5],rtol=0,atol=1e-15)
         self.assertEqual(masses["source_prior"],"uniform_over_all_original_P0_global_code_pairs")
 
+    def test_public_law_zero_mass_clamp_and_bank_permutation_rejection(self):
+        from incumbent_view.r2_space import Space
+        identity,_,_=fixture();p1,p2=identity["bank_r1"],identity["bank_r2"]
+        a1=np.repeat(np.arange(4,dtype=np.int64)[:,None],4,axis=1)
+        a2=np.repeat(np.arange(2,dtype=np.int64)[:,None],4,axis=1)
+        a1[:,1]=[1,0,0,0];a2[:,1]=[1,0]
+        v1=np.zeros((4,4),bool);v1[:,:2]=True
+        v2=np.zeros((2,4),bool);v2[:,:2]=True
+        class FixedCollapse:
+            space=Space(p1,p2,a1,a2,v1,v2)
+            def law_prepared(self,prepared):
+                q=np.zeros((len(prepared["code_r1"]),16),np.float64)
+                q[:,5]=1.
+                return q
+        policy=FixedCollapse()
+        masses=uniform_output_masses(p1,p2,policy)
+        self.assertAlmostEqual(float(masses["pair"].sum()),1.)
+        expected=np.log(1e-12)
+        self.assertAlmostEqual(float(row_log_mass(masses,"pair",np.array([0]),np.array([0]))[0,0]),np.log(3/8))
+        self.assertAlmostEqual(float(row_log_mass(masses,"pair",np.array([3]),np.array([1]))[0,0]),expected)
+        with self.assertRaises(ValueError):
+            uniform_output_masses(p1[::-1].copy(),p2,policy)
+
+    def test_public_law_forward_counters_charge_actual_bank_enumeration(self):
+        from incumbent_view.r2_space import Space,reset_preprocess_counts,preprocess_counts
+        from incumbent_view.r2_policy import Policy,reset_forward_counts,forward_counts
+        identity,_,_=fixture();p1,p2=identity["bank_r1"],identity["bank_r2"]
+        a1=np.repeat(np.arange(4,dtype=np.int64)[:,None],4,axis=1)
+        a2=np.repeat(np.arange(2,dtype=np.int64)[:,None],4,axis=1)
+        v1=np.zeros((4,4),bool);v1[:,0]=True
+        v2=np.zeros((2,4),bool);v2[:,0]=True
+        policy=Policy(Space(p1,p2,a1,a2,v1,v2),"P0",())
+        reset_preprocess_counts();reset_forward_counts()
+        uniform_output_masses(p1,p2,policy)
+        self.assertEqual(preprocess_counts()["prepared_rows"],8)
+        self.assertEqual(forward_counts()["numpy_policy_forward_rows"],8)
+        self.assertEqual(forward_counts()["numpy_policy_forward_action_positions"],128)
+        reset_preprocess_counts();reset_forward_counts()
+        uniform_output_masses(p1,p2)
+        self.assertEqual(preprocess_counts()["prepared_rows"],0)
+        self.assertEqual(forward_counts()["numpy_policy_forward_rows"],0)
+
 
 if __name__=="__main__": unittest.main()
