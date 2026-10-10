@@ -32,6 +32,7 @@ CONFIG_KEYS = frozenset({
     "table_by_seed", "gate_by_arm", "pstar_gate",
     "pstar_historical_gate", "queue_root",
     "selected_r2_root", "selected_unit_by_arm_seed",
+    "bounds_pin",
     "witness_source_root", "pstar_source_root",
     "private_root", "public_root", "python_executable",
     "max_wall_s", "cpu_reserve_s", "max_rss_gib",
@@ -156,6 +157,7 @@ def _validate_config(config: Mapping) -> tuple[dict, dict]:
             type(config["projected_output_bytes"]) is not int or
             config["projected_output_bytes"] < 0):
         raise ValueError("attack queue resource bounds differ")
+    _validate_bounds(config)
     seal = _read_pin({"path": config["campaign_seal_path"],
                       "sha256": config["campaign_seal_sha256"]})
     if seal.get("schema") != "pcrl-bank-anchored-campaign-lock-v1" or \
@@ -173,6 +175,18 @@ def _validate_config(config: Mapping) -> tuple[dict, dict]:
                 table.get("seed") != seed or table.get("bit_count") != 10:
             raise PermissionError("public bank source/seed differs")
     return seal, role
+
+
+def _validate_bounds(config: Mapping) -> str:
+    bounds = _read_pin(config["bounds_pin"])
+    fields = (("max_wall_s", "max_wall_s_per_release_unit"),
+              ("cpu_reserve_s", "cpu_reserve_s_per_release_unit"),
+              ("max_rss_gib", "max_rss_gib_per_release_unit"),
+              ("projected_output_bytes", "projected_output_bytes_per_release_unit"))
+    if (bounds.get("schema") != "pcrl-bank-r4-attack-queue-bounds-v1" or
+            any(config.get(key) != bounds.get(field) for key, field in fields)):
+        raise PermissionError("queue resources differ from prefit bound receipt")
+    return config["bounds_pin"]["sha256"]
 
 
 def eligible_arms(config: Mapping) -> set[str]:
@@ -539,6 +553,7 @@ def prepare(config_path: str) -> dict:
     index = {"schema": INDEX_SCHEMA,
              "campaign_seal_sha256": config["campaign_seal_sha256"],
              "builder_sha256": _sha(Path(__file__)),
+             "queue_bounds_sha256": _validate_bounds(config),
              "eligible_arms": [arm for arm in ARMS if arm in eligible],
              "ineligible_arms": [arm for arm in ARMS if arm not in eligible],
              "gate_sha256_by_arm": {
@@ -615,6 +630,7 @@ def finalize(config_path: str, stage_lock_path: str,
     index = json.loads((public / "ATTACK_UNIT_INDEX.json").read_text())
     if (index.get("schema") != INDEX_SCHEMA or
             index.get("builder_sha256") != _sha(Path(__file__)) or
+            index.get("queue_bounds_sha256") != _validate_bounds(config) or
             index.get("campaign_seal_sha256") != config["campaign_seal_sha256"]):
         raise PermissionError("attack spec index differs from active builder/source")
     lock_path = Path(stage_lock_path).resolve(strict=True)
@@ -656,7 +672,8 @@ def finalize(config_path: str, stage_lock_path: str,
             "projected_output_bytes": config["projected_output_bytes"],
             "deps": [], "env": {},
             "outputs": [spec["public_receipt_path"]],
-            "sources": _queue_sources(spec, spec_path, lock_path),
+            "sources": _queue_sources(spec, spec_path, lock_path) +
+                       [config["bounds_pin"]],
         }
         queue_path = private / "queue_units" / f"{uid}.json"
         queue_sha = _write_once(queue_path, queue_spec, 0o600)

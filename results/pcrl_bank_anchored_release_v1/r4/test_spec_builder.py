@@ -29,6 +29,21 @@ def write_json(path: Path, value: dict, mode=0o644) -> dict:
 
 
 class AttackSpecBuilderTests(unittest.TestCase):
+    def test_prefit_queue_bounds_are_hash_pinned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bounds = {"schema": "pcrl-bank-r4-attack-queue-bounds-v1",
+                      "max_wall_s_per_release_unit": 300,
+                      "cpu_reserve_s_per_release_unit": 300,
+                      "max_rss_gib_per_release_unit": 2.0,
+                      "projected_output_bytes_per_release_unit": 134217728}
+            pin = write_json(Path(directory) / "BOUNDS.json", bounds)
+            config = {"bounds_pin": pin, "max_wall_s": 300,
+                      "cpu_reserve_s": 300, "max_rss_gib": 2.0,
+                      "projected_output_bytes": 134217728}
+            self.assertEqual(spec_builder._validate_bounds(config), pin["sha256"])
+            with self.assertRaises(PermissionError):
+                spec_builder._validate_bounds(config | {"max_wall_s": 301})
+
     def test_queue_python_preserves_working_venv_entrypoint(self):
         python = Path("/Users/nathansamson/PCRL/.venv/bin/python")
         if not python.exists():

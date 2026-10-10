@@ -52,8 +52,11 @@ Prepare an owner-only `.private/ATTACK_BUILD_CONFIG.json` with schema
   entrypoint, preserved without symlink dereference. Finalization runs that
   exact argv to verify `scipy` and `sklearn` imports before writing queue specs.
 - `max_wall_s`, `cpu_reserve_s`, `max_rss_gib`,
-  `projected_output_bytes`: fixed queue ceilings. The queue requires CPU
-  reserve at least wall limit; set these before attack-stage lock.
+  `projected_output_bytes`: fixed queue ceilings. `bounds_pin` is the exact
+  `{path,sha256}` of `ATTACK_QUEUE_BOUNDS.json`; these four values must equal
+  that prefit receipt. The public attack index pins its SHA, and each queue
+  source list includes it. The queue requires CPU reserve at least wall
+  limit; set these before attack-stage lock.
 
 After all gates and R2 packages exist, run:
 
