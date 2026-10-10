@@ -40,20 +40,24 @@ python -m bank_anchored.r1_deploy \
 ```
 
 For stochastic arms, append `--draws "$PRIVATE_DRAWS_NPZ"` and
-`--draws-sha256 "$PRIVATE_DRAWS_SHA256"`. The actual frozen HMAC realization-0
-draws for the admitted 32 FIT sample are derived inside the queued replay
-worker and checked against R2's full-FIT cached release before this CLI runs.
+`--draws-sha256 "$PRIVATE_DRAWS_SHA256"`. The frozen HMAC realization-0 draws
+for the admitted 32 FIT sample were derived inside the queued replay worker
+and checked against R2's full-FIT cached release before this CLI ran. The
+draw files remain private.
 
-The two-seed B0 source/policy dependency inventory is private at
-`r1/.private/R1_DEPLOYMENT_SNAPSHOT_DEPENDENCIES_B0_SELECTED.json`; its public
-hash and relative archive labels are in `r1/R1_B0_SELECTED_SNAPSHOT_INDEX.json`.
-The corresponding B0 CLI replay units are `R1_DEPLOY_S0_B0` and
-`R1_DEPLOY_S1_B0`. Their numerical status is determined by their queued
-receipts, not by this adapter description.
+The final B0/J draw-bound dependency inventory is private at
+`r1/.private/R1_DEPLOYMENT_SNAPSHOT_DEPENDENCIES_B0_J_DRAW_BOUND.json`.
+The versioned same-device snapshot and restore use the reviewed private
+`R1_CUSTODY_PLAN_B0_J_READER_V2.json`. Public hashes and relative labels are
+in `r1/RESTORE_INDEX.json` and `r1/RESTORE_REPLAY_SOURCE_PLAN.json`.
+Both B0 CLI units, `R1_DEPLOY_S0_B0` and `R1_DEPLOY_S1_B0`, passed actual
+32-person raw-input, fixed-decoder, original-wire, and cached-code checks.
 
-Conditional J replay specs are `R1_DEPLOY_S0_J` and `R1_DEPLOY_S1_J`.
-Their source packages are complete and their specs passed independent static
-pin checks. The original INNER utility endpoints passed independent numerical
-replay for both seeds. Separate FIT proxy boundary disagreements remain
-unresolved; they do not supply a J recovery or competitive claim. J's actual
-raw-input CLI and frozen-coin parity need queued verification receipts.
+Both J units, `R1_DEPLOY_S0_J` and `R1_DEPLOY_S1_J`, passed the same actual
+raw-input CLI and frozen-coin parity checks. J seed 0 happened to emit the
+same 32 sample wires as B0; that sample equality does not alias their laws.
+The original INNER utility endpoints passed independent numerical replay for
+both seeds. Separate FIT proxy boundary disagreements remain unresolved. The
+snapshot-only numerical CLI and nonlinear-reader replay is queued for a
+separate verification amendment; no J recovery or competitive claim follows
+from the deployment receipts alone.
