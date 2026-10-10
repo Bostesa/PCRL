@@ -93,7 +93,7 @@ def pstar_seed(portfolio: Path, cache: Path, store: RoleOnlyStore, seed: int) ->
                 or sha_array(mapping) != bound["fine_to_hcal_token_sha256"]):
             raise ValueError("P* bank, class or source binding differs")
         banks[recipient] = bank
-        bank_report[f"r{recipient}"] = {"path": str(path), "sha256": sha_file(path),
+        bank_report[f"r{recipient}"] = {"path": str(path.relative_to(portfolio)), "sha256": sha_file(path),
                                         "tokens": len(ids), "classes": width,
                                         "input_fine_cells": len(cell_class),
                                         "per_class_tokens": np.bincount(d, minlength=width).tolist()}
@@ -125,12 +125,12 @@ def pstar_seed(portfolio: Path, cache: Path, store: RoleOnlyStore, seed: int) ->
                     or sha_array(cell) != bound[f"cell_{recipient}_sha256"]
                     or sha_array(token) != bound[f"token_{recipient}_sha256"]):
                 raise ValueError("P* cell/token mapping differs")
-        role_report[role] = {"path": str(path), "sha256": sha_file(path),
+        role_report[role] = {"path": str(path.relative_to(portfolio)), "sha256": sha_file(path),
                              "rows": len(rec["row_id"]), "row_unit_pair_sha256": pair,
                              "source_reference_sha256": bound["source_reference_sha256"]}
-    return {"receipt_path": str(receipt_path), "receipt_sha256": sha_file(receipt_path),
+    return {"receipt_path": str(receipt_path.relative_to(portfolio)), "receipt_sha256": sha_file(receipt_path),
             "source_binding_sha256": receipt["source_binding_sha256"],
-            "source_paths_sha256": {name: {"path": str(path), "sha256": expected[name]}
+            "source_paths_sha256": {name: {"path": str(path.relative_to(cache)), "sha256": expected[name]}
                                      for name, path in paths.items()},
             "banks": bank_report, "roles": role_report,
             "decoder_internal_sha256": receipt["decoder_sha256"],
@@ -216,7 +216,7 @@ def d0_seed(portfolio: Path, cache: Path, store: RoleOnlyStore,
                 or sha_array(d) != bound["token_class_sha256"]
                 or sha_array(mapping) != bound["fine_to_hcal_token_sha256"]):
             raise ValueError("D0 bank, class or receipt array binding differs")
-        bank_report[f"r{recipient}"] = {"path": str(path), "sha256": sha_file(path),
+        bank_report[f"r{recipient}"] = {"path": str(path.relative_to(portfolio)), "sha256": sha_file(path),
                                         "tokens": len(ids), "classes": width,
                                         "input_fine_cells": len(cell_class)}
     role_report = {}
@@ -230,14 +230,14 @@ def d0_seed(portfolio: Path, cache: Path, store: RoleOnlyStore,
                 or bound["source_reference_sha256"] !=
                    store.manifest["role_file_sha256"][f"{role}:references_s{seed}"]):
             raise ValueError("D0 role token/reference file binding differs")
-        role_report[role] = {"path": str(path), "sha256": sha_file(path),
+        role_report[role] = {"path": str(path.relative_to(portfolio)), "sha256": sha_file(path),
                              "rows": bound["rows"],
                              "row_unit_pair_sha256": bound["row_unit_pair_sha256"],
                              "source_reference_sha256": bound["source_reference_sha256"]}
-    return {"release_id": release_id, "receipt_path": str(receipt_path),
+    return {"release_id": release_id, "receipt_path": str(receipt_path.relative_to(portfolio)),
             "receipt_sha256": sha_file(receipt_path),
             "source_binding_sha256": receipt["source_binding_sha256"],
-            "source_paths_sha256": {name: {"path": str(path), "sha256": expected[name]}
+            "source_paths_sha256": {name: {"path": str(path.relative_to(cache)), "sha256": expected[name]}
                                      for name, path in paths.items()},
             "banks": bank_report, "roles": role_report,
             "calibration": "D0 original smoothed prototypes; no H-GLOBAL decoder"}
@@ -273,8 +273,10 @@ def public_centroids(cache: Path) -> dict:
                                      separators=(",", ":")).encode() + b"\n")
             digest.update(value.tobytes())
         out[f"s{seed}"] = {
-            "clean_path": str(destination), "clean_sha256": sha_file(destination),
-            "source_fine_path": str(source), "source_fine_sha256": sha_file(source),
+            "clean_relative_path": str(Path("r01") / destination.name),
+            "clean_sha256": sha_file(destination),
+            "source_fine_cache_relative_path": str(source.relative_to(cache)),
+            "source_fine_sha256": sha_file(source),
             "prototype_array_pair_sha256": digest.hexdigest(),
             "centroid_r1_sha256": sha_array(clean["centroid_r1"]),
             "centroid_r2_sha256": sha_array(clean["centroid_r2"]),
@@ -296,6 +298,9 @@ def main() -> None:
     store = RoleOnlyStore(args.repair_manifest)
     report = {"schema": "pcrl-r01-a-historical-score-source-audit-v1",
               "status": "ROLE_ONLY_HISTORICAL_SCORE_SOURCES_VERIFIED",
+              "path_roots": {"banks_receipts_roles": "portfolio_package_relative",
+                             "source_paths": "cache_root_relative",
+                             "clean_centroids": "campaign_package_relative"},
               "scope": "P* bank and ATT/INNER token/reference arrays; T* bank/action tables only; no X, labels, assessment or fit",
               "pstar_release_id": RELEASE,
               "pstar_complete_wire": "per recipient coarse token ID, fixed H-CLASS-TEMP probability vector and strict-argmax decision; fine cell remains private",

@@ -69,9 +69,21 @@ class D0SourceStore(PStarSourceStore):
         cache = Path(cache_root).resolve(strict=True)
         expected_keys = {"model.pt": "teacher_model_sha256", "fine.json": "fine_sha256",
                          "policy.json": "policy_sha256"}
+        policy_parent = ("lra_v1/run/units" if release_key == "lra_seq21"
+                         else "hcal_v1/admitted/units")
+        policy_stem = {"hcal_local_d0": "U_LOCAL_i8o64_l0.1",
+                       "hcal_seq12_d0": "U_SEQ-12_i8o64_l0.1",
+                       "lra_seq21": "U_SEQ-21_i8o64_l0.1"}[release_key]
+        exact_relative = {
+            "model.pt": f"hcal_v1/admitted/rel__s{seed}__U/model.pt",
+            "fine.json": f"hcal_v1/admitted/units/fine__s{seed}/fine.json",
+            "policy.json": f"{policy_parent}/pol__s{seed}__{policy_stem}/policy.json",
+        }
         for name, record in self.bound["source_paths_sha256"].items():
-            path = Path(record["path"]).resolve(strict=True)
-            if (name not in expected_keys or not path.is_relative_to(cache)
+            if name not in expected_keys or record["path"] != exact_relative[name]:
+                raise AccessRefused("D0 source relative identity differs")
+            path = (cache / record["path"]).resolve(strict=True)
+            if (not path.is_relative_to(cache)
                     or sha_file(path) != record["sha256"]
                     or record["sha256"] !=
                        self.receipt["source_json_sha256"][expected_keys[name]]):

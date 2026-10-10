@@ -85,7 +85,9 @@ class PStarSourceStore:
                          "policy.json": "policy_sha256", "decoder.json": "decoder_file_sha256"}
         for name, path in source_paths.items():
             expected = self.bound["source_paths_sha256"][name]
-            if (path.resolve(strict=True) != Path(expected["path"]).resolve(strict=True)
+            relative = Path(expected["path"])
+            if (relative.is_absolute() or ".." in relative.parts
+                    or path.resolve(strict=True) != (cache / relative).resolve(strict=True)
                     or sha_file(path) != expected["sha256"]
                     or expected["sha256"] !=
                        self.receipt["source_json_sha256"][expected_keys[name]]):
