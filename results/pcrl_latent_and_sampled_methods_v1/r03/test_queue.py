@@ -11,7 +11,7 @@ import time
 import unittest
 from pathlib import Path
 
-from compute_queue import Queue, atomic, digest
+from compute_queue import Queue, assert_active_from_env, atomic, digest
 
 
 class QueueControlTests(unittest.TestCase):
@@ -133,6 +133,21 @@ class QueueControlTests(unittest.TestCase):
         self.assertEqual(recovered["status"], "incomplete")
         self.assertEqual(self.queue.status()["used_cpu_s"], 5.0)
         self.assertEqual(self.queue.run_once()["status"], "done")
+
+    def test_worker_can_prove_active_slot_and_direct_launch_fails(self):
+        with self.assertRaises(RuntimeError):
+            assert_active_from_env("D_ASSERT", "d_first")
+        self.queue.open(self.seal, digest(self.seal))
+        path = self.spec("D_ASSERT")
+        spec = json.loads(path.read_text())
+        source_dir = str(Path(__file__).resolve().parent)
+        spec["argv"] = [sys.executable, "-c",
+                        f"import sys;sys.path.insert(0,{source_dir!r});from compute_queue import assert_active_from_env;print(assert_active_from_env('D_ASSERT','d_first')['slot'])"]
+        path.write_text(json.dumps(spec))
+        self.queue.enqueue(path)
+        result = self.queue.run_once()
+        self.assertEqual(result["status"], "done")
+        self.assertEqual((self.root / "queue" / "units" / "D_ASSERT" / "stdout.log").read_text().strip(), "0")
 
 
 if __name__ == "__main__":

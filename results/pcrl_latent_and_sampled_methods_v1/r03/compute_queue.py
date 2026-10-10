@@ -85,6 +85,65 @@ def group_pids(pgid: int) -> tuple[set[int], bool]:
     return pids | {pgid}, True
 
 
+def assert_active_from_env(unit_id: str | None = None, stage: str | None = None) -> dict:
+    """Fail closed when a protected worker is not running under its queue slot.
+
+    Call in the worker process before protected data access and each fit. The
+    wrapper supplies the environment and inherited locked FD; direct launches
+    do not satisfy this check. A short wait covers the child-start state write.
+    """
+    required = ("PCRL_QUEUE_ROOT", "PCRL_QUEUE_UNIT_ID", "PCRL_QUEUE_STAGE",
+                "PCRL_QUEUE_SLOT", "PCRL_QUEUE_SLOT_FD", "PCRL_QUEUE_SEAL_SHA256",
+                "PCRL_QUEUE_SPEC_SHA256")
+    if any(not os.environ.get(key) for key in required):
+        raise RuntimeError("active queue slot environment missing")
+    root = Path(os.environ["PCRL_QUEUE_ROOT"]).resolve()
+    uid = os.environ["PCRL_QUEUE_UNIT_ID"]
+    actual_stage = os.environ["PCRL_QUEUE_STAGE"]
+    slot = int(os.environ["PCRL_QUEUE_SLOT"])
+    fd = int(os.environ["PCRL_QUEUE_SLOT_FD"])
+    if unit_id is not None and uid != unit_id:
+        raise RuntimeError("active queue unit ID mismatch")
+    if stage is not None and actual_stage != stage:
+        raise RuntimeError("active queue stage mismatch")
+    held = os.fstat(fd)
+    lock_path = root / f"slot{slot}.lock"
+    path_stat = lock_path.stat()
+    if (held.st_dev, held.st_ino) != (path_stat.st_dev, path_stat.st_ino):
+        raise RuntimeError("inherited slot FD does not identify queue slot")
+    probe = lock_path.open("a+")
+    try:
+        try:
+            fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            pass
+        else:
+            fcntl.flock(probe, fcntl.LOCK_UN)
+            raise RuntimeError("queue slot lock is not held")
+    finally:
+        probe.close()
+    deadline = time.monotonic() + 3
+    while True:
+        state = json.loads((root / "state.json").read_text())
+        unit = state.get("units", {}).get(uid)
+        seal = state.get("seal")
+        if (unit and unit.get("child_pid") == os.getpgid(0)
+                and unit.get("status") == "running"):
+            break
+        if time.monotonic() >= deadline:
+            raise RuntimeError("unit is not recorded running for owned process group")
+        time.sleep(0.05)
+    if (unit["slot"] != slot or unit["spec"]["stage"] != actual_stage
+            or unit["spec_sha256"] != os.environ["PCRL_QUEUE_SPEC_SHA256"]):
+        raise RuntimeError("active queue state does not match worker environment")
+    if (state["closed"] or not seal or seal["sha256"] != os.environ["PCRL_QUEUE_SEAL_SHA256"]
+            or digest(Path(seal["path"])) != seal["sha256"]):
+        raise RuntimeError("campaign closed or effective seal changed")
+    return {"unit_id": uid, "stage": actual_stage, "slot": slot,
+            "child_pgid": unit["child_pid"], "seal_sha256": seal["sha256"],
+            "spec_sha256": unit["spec_sha256"]}
+
+
 class Queue:
     def __init__(self, root: Path = ROOT):
         self.root = root.resolve()
@@ -536,6 +595,17 @@ class Queue:
         env = os.environ.copy()
         env.update({str(k): str(v) for k, v in spec["env"].items()})
         env.update(THREAD_ENV)
+        with self.mutex():
+            seal_sha256 = self.read()["seal"]["sha256"]
+        env.update({
+            "PCRL_QUEUE_ROOT": str(self.root),
+            "PCRL_QUEUE_UNIT_ID": uid,
+            "PCRL_QUEUE_STAGE": spec["stage"],
+            "PCRL_QUEUE_SLOT": str(slot),
+            "PCRL_QUEUE_SLOT_FD": str(slot_handle.fileno()),
+            "PCRL_QUEUE_SEAL_SHA256": seal_sha256,
+            "PCRL_QUEUE_SPEC_SHA256": hashlib.sha256(canonical(spec).encode()).hexdigest(),
+        })
         t0 = time.monotonic()
         r0 = resource.getrusage(resource.RUSAGE_CHILDREN)
         proc = None
