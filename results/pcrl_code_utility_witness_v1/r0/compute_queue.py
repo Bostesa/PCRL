@@ -36,9 +36,10 @@ PROTECTION_RESERVE = 5 * 3600
 VERIFY_RESERVE = 3 * 3600
 CHANNEL_LIMIT = 4 * 3600
 DISK_FLOOR = 5 * 1024**3
-STAGES = {"admission", "witness", "protection", "verification", "channel", "custody"}
+STAGES = {"admission", "witness", "protection", "attacks", "verification",
+          "channel", "custody"}
 PRIORITY = {"witness": 0, "verification": 1, "protection": 2,
-            "admission": 3, "channel": 4, "custody": 5}
+            "attacks": 3, "admission": 4, "channel": 5, "custody": 6}
 THREAD_ENV = {key: "1" for key in (
     "OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "BLIS_NUM_THREADS",
@@ -389,7 +390,7 @@ class Queue:
             except OSError:
                 return "source_hash_missing"
         stage = spec["stage"]
-        if stage == "protection" and "witness_pass" not in state["milestones"]:
+        if stage in ("protection", "attacks") and "witness_pass" not in state["milestones"]:
             return "learned_code_witness_gate"
         if stage == "channel" and "channel_identity_pass" not in state["milestones"]:
             return "channel_identity_gate"
@@ -408,22 +409,23 @@ class Queue:
         reserve = float(spec["cpu_reserve_s"])
         active_reserve = sum(float(u["spec"]["cpu_reserve_s"]) for u in running)
         used = float(state["used_cpu_s"])
-        def remaining_reserve(stage_name: str, floor: float, released: bool) -> float:
+        def remaining_reserve(stage_names: tuple[str, ...], floor: float, released: bool) -> float:
             if released:
                 return 0.0
             stage_running = sum(float(u["spec"]["cpu_reserve_s"]) for u in running
-                                if u["spec"]["stage"] == stage_name)
-            return max(0.0, floor - float(state["used_by_stage_s"][stage_name]) - stage_running)
-        future_witness = remaining_reserve("witness", WITNESS_RESERVE,
+                                if u["spec"]["stage"] in stage_names)
+            used_stage = sum(float(state["used_by_stage_s"][name]) for name in stage_names)
+            return max(0.0, floor - used_stage - stage_running)
+        future_witness = remaining_reserve(("witness",), WITNESS_RESERVE,
                                            "witness_pass" in state["milestones"] or
                                            "witness_stop" in state["milestones"])
-        future_protection = remaining_reserve("protection", PROTECTION_RESERVE,
+        future_protection = remaining_reserve(("protection", "attacks"), PROTECTION_RESERVE,
                                               "witness_stop" in state["milestones"] or
                                               "protection_complete" in state["milestones"])
-        future_verify = remaining_reserve("verification", VERIFY_RESERVE,
+        future_verify = remaining_reserve(("verification",), VERIFY_RESERVE,
                                           "verification_complete" in state["milestones"])
         protected = ((future_witness if stage != "witness" else 0.0) +
-                     (future_protection if stage != "protection" else 0.0) +
+                     (future_protection if stage not in ("protection", "attacks") else 0.0) +
                      (future_verify if stage != "verification" else 0.0))
         if used + active_reserve + reserve + protected > CPU_LIMIT:
             return "cpu_budget_or_protected_reserve"
