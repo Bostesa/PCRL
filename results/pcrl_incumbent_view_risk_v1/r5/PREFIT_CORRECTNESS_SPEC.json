@@ -1,0 +1,72 @@
+{
+  "schema": "pcrl-incumbent-r5-independent-correctness-spec-v1",
+  "status": "PRE_ALGORITHM_SPEC_REQUIRES_R0_FIXTURE_SEAL",
+  "laws": [
+    {
+      "id": "IDENTITY_WIRE",
+      "public_ids": [4, 9],
+      "public_probabilities": [[0.8, 0.2], [0.25, 0.75]],
+      "source_public_ids": [4, 9, 4],
+      "q_identity": [[1, 0], [0, 1], [1, 0]],
+      "checks": ["unchanged public IDs and emitted wire", "expected excess zero", "no source-private metadata emitted", "explicit identity unlike softmax approximation"]
+    },
+    {
+      "id": "EXPECTED_REALIZED_SERVICE",
+      "public_probabilities": [[0.45, 0.55], [0.15, 0.85]],
+      "q": [0.5, 0.5],
+      "target": 1,
+      "checks": ["expected NLL equals arithmetic mean of action NLLs", "expected summed Brier equals arithmetic mean of action Briers", "mean-probability NLL and Brier are a different service", "enumerated realized draws match their actual probabilities"]
+    },
+    {
+      "id": "MEAN_OUTPUT_TRAP",
+      "sex0_outputs": [0.55, 0.85],
+      "sex1_outputs": [0.60, 0.80],
+      "weights": [0.5, 0.5],
+      "checks": ["both averaged positive probabilities equal 0.70", "all decisions positive", "actual disjoint public IDs/probabilities distinguish SEX", "actual-wire reader loss differs from mean-only reader", "constant-prior reader retained"]
+    },
+    {
+      "id": "FAMILY_COUPLING",
+      "joint_q": [[0.5, 0.0], [0.0, 0.5]],
+      "product_q": [[0.25, 0.25], [0.25, 0.25]],
+      "checks": ["same local marginals but different pair law", "independent product coins implement product law", "deterministic checkpoint one-hot", "deterministic identity never randomized"]
+    },
+    {
+      "id": "SEQUENTIAL_FREEZE",
+      "first_q": [0.25, 0.75],
+      "second_before": [[0.8, 0.2], [0.1, 0.9]],
+      "second_after": [[0.6, 0.4], [0.3, 0.7]],
+      "whole_identity_first_q": [1.0, 0.0],
+      "checks": ["changing conditional second factor leaves first marginal exactly unchanged", "second support fixed from original source input", "global pair mix with whole identity changes first and must be rejected after freeze", "whole-P0 fallback separately archived/reported"]
+    },
+    {
+      "id": "GROUP_FOLDS",
+      "groups": [11, 11, 22, 33, 44, 44],
+      "fold_by_group": {"11": 0, "22": 1, "33": 2, "44": 1},
+      "checks": ["all rows of each duplicate group remain in one fold", "each reader train/eval group intersection empty", "fold assignment is identical across seeds and arms", "label role access checked before deserialization"]
+    },
+    {
+      "id": "NUMERIC_MARGIN",
+      "public_probabilities": [[0.75, 0.25], [0.25, 0.75]],
+      "target": 1,
+      "q_identity": [1.0, 0.0],
+      "q_candidate": [0.999, 0.001],
+      "checks": ["math.fsum float64 action and person accumulation", "independent high-precision logarithms at same 1e-12 floor and exact binary input values", "summed multiclass Brier convention", "signed excess interval includes estimated arithmetic error", "safety threshold fixed prospectively, not a relaxed statistical cap", "identity exact zero under subtraction"]
+    },
+    {
+      "id": "READER_WEIGHT_AND_NULL",
+      "sex": [0, 1],
+      "action_probabilities": [[0.8, 0.2], [0.3, 0.7]],
+      "checks": ["categorical likelihood uses weighted action counts", "sensitive CE is expectation of frozen reader output at each actual wire", "pair objective min across retained reader losses including prior", "every retained local guard compared to P0 on identical rows", "nonlinear reader consumes categorical representation plus complete public derived fields, not raw numeric ID alone", "null/shuffle outputs finite and constant reader equals empirical prior loss"]
+    },
+    {
+      "id": "PUBLIC_SUPPORT",
+      "checks": ["identity state is exact original ID", "candidate alternatives preserve predicted class", "symmetric-KL nearest ranking uses source clipping and global-ID ties", "no merging distinct public IDs", "public metadata participates in view", "support source inputs frozen before sequential first output changes"]
+    },
+    {
+      "id": "SNAPSHOT_CLOSURE",
+      "checks": ["restore uses only snapshot bytes", "archive safe and all lazy runtime imports present", "schema names hash distinct from schema file hash", "P0/nominee/control wires match sealed deployment receipts", "representative attack predictions recomputed independently", "same-device and off-device status separated"]
+    }
+  ],
+  "oracle_scope": "Analytic finite-law identities and directly enumerated expectations; no heuristic optimizer labeled an exact oracle.",
+  "synthetic_claim": "Correctness only; no required synthetic method win and no inference about Adult prevalence."
+}
