@@ -56,22 +56,41 @@ def run(config_path):
         raise PermissionError("witness config is not byte-pinned")
     cfg = json.loads(config_path.read_text())
     if (set(cfg) != {"schema", "unit_id", "seed", "source_lock_sha256",
-                     "pins", "output"} or
+                     "pins", "transitive_pins", "output"} or
             cfg["schema"] != "BAR1-r2-full-fit-identity-config-v1" or
             cfg["unit_id"] != active["unit_id"] or
             cfg["seed"] not in (0, 1) or
             cfg["source_lock_sha256"] != active["seal_sha256"] or
-            set(cfg["pins"]) != PINS):
+            set(cfg["pins"]) != PINS or
+            not isinstance(cfg["transitive_pins"], list)):
         raise PermissionError("full-FIT witness config or seal differs")
     pins = {key: _pinned(value, registered) for key, value in cfg["pins"].items()}
+    transitive = {_pinned(value, registered) for value in cfg["transitive_pins"]}
+    if len(transitive) != len(cfg["transitive_pins"]):
+        raise PermissionError("duplicate transitive source pin")
     if pins["r2_laws_source"].resolve() != Path(__file__).with_name("r2_laws.py").resolve() or \
             pins["r2_witness_source"].resolve() != Path(__file__).resolve():
         raise PermissionError("witness implementation pin differs")
     portfolio_package = pins["portfolio_manifest"].parent
+    role_export = (pins["role_manifest"].parent.parent /
+                   ".private/role_export_v1")
+    role = "OSF_DEFENSE_FIT"
+    bank_root = portfolio_package / f"shared/.private/tstar_score_bank_s{cfg['seed']}_v1"
+    expected_transitive = {
+        role_export / role / f"references_s{cfg['seed']}.npz",
+        bank_root / "BANK_ADMISSION_RECEIPT.json",
+        bank_root / "bank_r1.npz", bank_root / "bank_r2.npz",
+        bank_root / f"tokens_{role}.npz",
+        Path(__file__).resolve().parents[2] / "pcrl_latent_and_sampled_methods_v1" /
+        "r01/role_store.py",
+        Path(__file__).resolve().parents[2] / "pcrl_latent_and_sampled_methods_v1" /
+        "r01/tstar_source.py",
+    }
+    if transitive != {path.resolve(strict=True) for path in expected_transitive}:
+        raise PermissionError("transitive role/source pin inventory differs")
     roles = RoleOnlyStore(pins["role_manifest"])
     source = TStarSourceStore(portfolio_package, pins["role_manifest"],
                               pins["source_audit"], cfg["seed"])
-    role = "OSF_DEFENSE_FIT"
     reference = roles.read(role, f"references_s{cfg['seed']}")
     cells = source.read_role_cells(role)
     assert_same_people(reference, cells)
