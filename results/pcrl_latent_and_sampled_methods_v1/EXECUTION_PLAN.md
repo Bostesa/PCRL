@@ -8,7 +8,7 @@
 
 **Tech stack:** Existing Python `.venv`, NumPy, PyTorch, scikit-learn, JSON/CSV receipts, Git worktree, flock.
 
-**Spec:** `/Users/nathansamson/Downloads/PCRL_Next_Method_Portfolio_Execution_Prompt.txt` and `PROTOCOL.md`.
+**Spec:** the user's PCRL next-method execution prompt and `PROTOCOL.md`.
 
 ## Global constraints
 
