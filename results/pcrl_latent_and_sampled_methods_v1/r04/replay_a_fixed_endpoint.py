@@ -11,8 +11,8 @@ import numpy as np
 from .audit_a_family_s1 import independent_ids
 from .independent_a_intervals import NAMES, STOCHASTIC, _Release, independent_a_intervals
 from .independent_a_source import bound_json, sha_array, sha_file
-from .replay_a_endpoint import (_cell, _compare_csv, _truth, METRICS, TASKS,
-                                TOLERANCE, VIEWS)
+from .replay_a_endpoint import (_cell, _compare_csv, _reader_ids, _truth,
+                                METRICS, TASKS, TOLERANCE, VIEWS)
 from .replay_a_prefit import queue_guard
 
 
@@ -71,6 +71,20 @@ def _point_table(records: dict) -> dict[tuple[str, ...], tuple[float, float | No
                     float(np.mean(values)),
                     float(np.std(values, ddof=1)) if len(values) > 1 else 0.0)
     return table
+
+
+def _fixed_cell(path: Path, info: dict, truth: dict, arm: str) -> dict:
+    """Check the exact NPZ member allowlist before materializing any member."""
+    expected = {"row_id", "unit", "prob_1", "prob_2"}
+    for view in VIEWS:
+        expected.update(f"reader__{view}__{reader}" for reader in
+                        _reader_ids(arm, view))
+    require(info.get("npz_keys") == sorted(expected),
+            "fixed A normalized cell manifest contains an unregistered member")
+    with np.load(path, allow_pickle=False) as archive:
+        require(set(archive.files) == expected,
+                "fixed A normalized cell archive contains an unregistered member")
+    return _cell(path, info, truth, arm)
 
 
 def run(args: argparse.Namespace) -> dict:
@@ -170,7 +184,7 @@ def run(args: argparse.Namespace) -> dict:
         info = entry["normalized_private_cell"]
         require(Path(info["private_file"]).resolve(strict=True) == path,
                 "fixed A normalized cell path differs")
-        records[key[1]]["releases"].setdefault(key[0], {})[0] = _cell(
+        records[key[1]]["releases"].setdefault(key[0], {})[0] = _fixed_cell(
             path, info, truth, key[0])
         attack_root = Path(entry["private_attack_root"]).resolve(strict=True)
         require(sha_file(attack_root / "ATTACK_ATTEMPT_INDEX.json") ==
