@@ -11,15 +11,17 @@ T/D-K receipt and its hash-pinned warm state, then fits L, S12, S21, ordinary
 adversarial C, and unchanged-latent F. It calibrates each arm on the admitted
 CAL role and writes owner-only ATT/INNER releases. It checks the active R03
 `d_followup` queue slot before any role read. A dated effective seal amendment
-must bind `d_followup.worker_sha256`,
-`d_followup.first_receipt_sha256_by_seed[str(seed)]`, and the worker file in
-`source_files_sha256`. The seed-1 first pair also needs its own prefit amendment;
-the first runner is still seed-0-only. No controls Adult fit has run.
+must be registered separately from the immutable original seal and be the
+latest R03 amendment affecting `d_followup`. A2 must bind
+`controls_worker_sha256`, `first_receipt_sha256_by_seed[str(seed)]`,
+`role_manifest_sha256`, and `source_seed_sha256_by_seed[str(seed)]`; the queue
+unit spec must bind A2's byte hash. Seed-1 T/D-K uses a separate seed-1 worker
+and A1 amendment before A2. No controls Adult fit has run.
 
 `f_adapter.py` passes F's full scaled 16-dimensional latent, probabilities,
 decisions, and all public metadata into R02's complete view. F uses
 `reader_plan(family="D", code_bits=False)`; no code-ID or bit specialist applies.
-The controls suite passes 18 tests, including queue rejection before reads,
+The controls suite passes 19 tests, including queue rejection before reads,
 warm-state hash validation, F private package roundtrip, and F attack view.
 
 Commit `a51d1d847` contains the two D follow-up worker files and five A

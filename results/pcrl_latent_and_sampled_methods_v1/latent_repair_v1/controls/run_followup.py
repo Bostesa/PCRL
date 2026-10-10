@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -53,6 +54,35 @@ def _warm_state(path: Path, expected_sha256: str, dim: int) -> dict[str, torch.T
     return {name: torch.from_numpy(value) for name, value in arrays.items()}
 
 
+def _amendment_guard(args: argparse.Namespace, queue: dict, seal: Path) -> None:
+    """Bind this worker and both first receipts to R03's latest D amendment."""
+    amendment_path = Path(args.amendment).resolve(strict=True)
+    if (amendment_path.parent != seal.parent
+            or sha_file(amendment_path) != args.amendment_sha256):
+        raise PermissionError("dated D controls amendment path/hash mismatch")
+    queue_state = Path(os.environ["PCRL_QUEUE_ROOT"]) / "state.json"
+    state = json.loads(queue_state.read_text())
+    latest = [entry for entry in state.get("amendments", [])
+              if "d_followup" in entry.get("stages", [])]
+    unit = state.get("units", {}).get(args.unit_id, {})
+    if (not latest or latest[-1].get("sha256") != args.amendment_sha256
+            or Path(latest[-1]["path"]).resolve() != amendment_path
+            or unit.get("spec", {}).get("amendment_sha256") != args.amendment_sha256
+            or queue["seal_sha256"] != args.seal_sha256):
+        raise PermissionError("R03 does not bind the latest D controls amendment")
+    amendment = json.loads(amendment_path.read_text())
+    if (amendment.get("schema") != "pcrl-d-followup-amendment-v1"
+            or amendment.get("status") != "LOCALLY_SEALED_D_FOLLOWUP"
+            or amendment.get("effective_seal_sha256") != args.seal_sha256
+            or amendment.get("controls_worker_sha256") != sha_file(Path(__file__))
+            or amendment.get("first_receipt_sha256_by_seed", {}).get(str(args.seed))
+            != args.first_receipt_sha256
+            or amendment.get("role_manifest_sha256") != args.role_manifest_sha256
+            or amendment.get("source_seed_sha256_by_seed", {}).get(str(args.seed))
+            != args.source_sha256):
+        raise PermissionError("A2 amendment does not bind controls and seed sources")
+
+
 def _admit(args: argparse.Namespace) -> tuple[dict, dict, Path, Path]:
     queue = assert_active_from_env(args.unit_id, "d_followup")
     seal = Path(args.seal).resolve(strict=True)
@@ -61,18 +91,10 @@ def _admit(args: argparse.Namespace) -> tuple[dict, dict, Path, Path]:
         raise PermissionError("follow-up effective seal byte hash mismatch")
     protocol = json.loads(seal.read_text())
     if (protocol.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1"
-            or protocol.get("status") not in ("LOCALLY_SEALED_D_STAGE",
-                                               "LOCALLY_SEALED_D_FOLLOWUP")
+            or protocol.get("status") != "LOCALLY_SEALED_D_STAGE"
             or args.seed not in (0, 1)):
         raise PermissionError("D follow-up effective protocol is unavailable")
-    followup = protocol.get("d_followup", {})
-    worker_relative = "latent_repair_v1/controls/run_followup.py"
-    if (followup.get("worker_sha256") != sha_file(Path(__file__))
-            or followup.get("first_receipt_sha256_by_seed", {}).get(str(args.seed))
-            != args.first_receipt_sha256
-            or protocol.get("source_files_sha256", {}).get(worker_relative)
-            != followup.get("worker_sha256")):
-        raise PermissionError("dated follow-up amendment does not bind worker and first receipt")
+    _amendment_guard(args, queue, seal)
     sources = protocol.get("source_files_sha256", {})
     if (sources.get("source_role_manifest") != args.role_manifest_sha256
             or sources.get("inherited_calibration_code") != args.common_eval_sha256):
@@ -97,10 +119,13 @@ def _admit(args: argparse.Namespace) -> tuple[dict, dict, Path, Path]:
     if (first.get("schema") != "latent-repair-first-paired-seed-receipt-v1"
             or first.get("status") != "T_DK_RELEASES_READY"
             or first.get("seed") != args.seed
+            or args.first_seal_sha256 != args.seal_sha256
             or first.get("role_manifest_sha256") != args.role_manifest_sha256
             or first.get("source_sha256") != args.source_sha256
             or first.get("common_eval_sha256") != args.common_eval_sha256
             or first.get("seal_sha256") != args.first_seal_sha256
+            or set(first.get("packages", {})) != {"T", "D-K"}
+            or len(first.get("warm_full_state_sha256", "")) != 64
             or sha_file(first_receipt_path) != args.first_receipt_sha256):
         raise PermissionError("first T/D-K receipt is not the pinned seed/source")
     first_private = Path(args.first_private_output).resolve(strict=True)
@@ -145,16 +170,20 @@ def run(args: argparse.Namespace) -> dict:
     plan = make_batch_plan(np.arange(protected.rows), seed=args.seed, epochs=ec,
                            batch_size=256, sex=protected.sex)
     config = TrainConfig(epochs=ec, privacy_weight=lam)
-    local = {mode: fit_local_or_sequential(protected, config, args.seed,
-                                          warm, scaler, mode,
-                                          args.source_sha256, plan)
-             for mode in ("L", "S12", "S21")}
+    local = {}
+    for mode in ("L", "S12", "S21"):
+        assert_active_from_env(args.unit_id, "d_followup")
+        local[mode] = fit_local_or_sequential(protected, config, args.seed,
+                                              warm, scaler, mode,
+                                              args.source_sha256, plan)
+    assert_active_from_env(args.unit_id, "d_followup")
     critic = fit_c_stage(protected, TrainConfig(epochs=ec), args.seed,
                          warm, scaler, np.arange(protected.rows),
                          coefficient=1.0, critic_steps_per_update=2,
                          batch_plan=plan)
     fold_train, fold_val, fold_receipt = outer_split(unit, protected.y0,
                                                       protected.y1, args.seed)
+    assert_active_from_env(args.unit_id, "d_followup")
     f = fit_f_reference(protected, TrainConfig(epochs=40, privacy_weight=0,
                         checkpoints=tuple(range(5, 41, 5))), args.seed,
                         scaler, fold_train, fold_val, args.source_sha256)
@@ -191,6 +220,7 @@ def run(args: argparse.Namespace) -> dict:
         records = []
         for purpose, labels, task_name in ((0, cal_income["income"], "income"),
                                            (1, cal_occupation["occupation"], "occupation")):
+            assert_active_from_env(args.unit_id, "d_followup")
             if arm_id == "F":
                 scaled = raw.scaler.transform(purpose, cal_latent[purpose])
                 p = raw.uncalibrated_probabilities_from_features(purpose, scaled)
@@ -269,7 +299,8 @@ def main() -> None:
                  "role-manifest-sha256", "shared-dir", "common-eval-sha256",
                  "model-pt", "source-sha256", "first-receipt",
                  "first-receipt-sha256", "first-seal-sha256",
-                 "first-private-output", "private-output", "public-receipt"):
+                 "first-private-output", "private-output", "public-receipt",
+                 "amendment", "amendment-sha256"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--seed", type=int, required=True)
     args = parser.parse_args()
