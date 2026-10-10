@@ -1,0 +1,110 @@
+{
+  "schema": "pcrl-r18-a-real-deployment-spec-template-v1",
+  "status": "PROSPECTIVE_NOT_ENQUEUEABLE_NO_A_PARENT_OR_AMENDMENT",
+  "unit_id": "R18-A-DEPLOY-REAL-S0",
+  "stage": "a",
+  "data_access": "INNER_SELECTION_SCORES_AND_FINE_CELLS_FOR_ONE_ROW",
+  "representative": {
+    "arm_id": "A_JOINT_STOCH",
+    "seed": 0,
+    "role": "INNER_SELECTION",
+    "realization": 0,
+    "row_index": 0,
+    "nomination_claim": false
+  },
+  "deps": [
+    "A-FIT-A_JOINT_STOCH-S0",
+    "A-RELEASE-A_JOINT_STOCH-S0-INNER-R0"
+  ],
+  "pending_binding_markers": [
+    "<A_EFFECTIVE_AMENDMENT_SHA256>",
+    "<A_FIT_QUEUE_RECEIPT_SHA256>",
+    "<A_INNER_RELEASE_QUEUE_RECEIPT_SHA256>",
+    "<FIT_RECEIPT_SHA256>",
+    "<POLICY_RECEIPT_SHA256>",
+    "<POLICY_NPZ_SHA256>",
+    "<RELEASE_RECEIPT_SHA256>",
+    "<RELEASE_CODES_NPZ_SHA256>",
+    "<CLOSED_PARENT_CACHE_SHA256>",
+    "<A_WORKER_SOURCE_SHA256>",
+    "<CACHE_CUSTODY_HELPER_SHA256>"
+  ],
+  "planned_outputs": [
+    "r18/.private/deploy/R18-A-DEPLOY-REAL-S0.json",
+    "r18/.private/deploy/R18-A-DEPLOY-REAL-S0.cache.sqlite3"
+  ],
+  "resource_ceiling_proposed": {
+    "max_wall_s": 120,
+    "cpu_reserve_s": 120,
+    "max_rss_gib": 1.5,
+    "projected_output_bytes": 2097152,
+    "one_global_heavy_slot": true,
+    "numerical_threads": 1
+  },
+  "current_preseal_source_sha256_by_path": {
+    "sampled_channel_v1/impl/bank.py": "d989c307a3bcebcb82aba0695b97849b12693cfe71d4e4318c3409d95e536f50",
+    "sampled_channel_v1/impl/channel.py": "b19212337f86638d8a3136691b719d5ac82a38978c83c49ad6e47a4584b689df",
+    "sampled_channel_v1/impl/release.py": "54f671e02a64ed6107b91d09c6d89640bb29c4500bd8416e5dec89fb332a7987",
+    "sampled_channel_v1/impl/policy_package.py": "9368a6a286fe094eeb3fcad66e1421c4f8046a315ff8fd082a369c0da09d74a2",
+    "sampled_channel_v1/impl/run_release.py": "000d407f41f62c259aac6b4d05847294ad37cc1f126255f30bd948e7092be63b",
+    "sampled_channel_v1/impl/source_bridge.py": "d1055ec8b54cb206f2b760232de2d8856c750d850583e3a583507e9c10bf35c8",
+    "r01/tstar_source.py": "3fa033ef73da9c6c7accdda92e999a7bb166a745bcbbb48255a9c668c26666c5",
+    "r01/role_store.py": "0cfa7e69bd8e11b275f5f40eb66b2ddd01d87cca7ac153029f569769cb4b09c5",
+    "r18/acceptance_contract.py": "1599ac9d63e0e8b46cd5598947e840ac99c38ab9a26d7fc65807a9aaa58b3b6c",
+    "r03/compute_queue.py": "c818ef42cab0b8af8ca3b92f0db2eaaee3ada8a84a8665c2db8135cd94297be4",
+    "r01/SOURCE_AUDIT.json": "2340740e76de666126ed1b187e31550954b6b44b2eb56d191f2476e514b8b2cd",
+    "sampled_channel_v1/design/STREAM_ROOT_HASH_MANIFEST.json": "ec572fb43077236e3734754a290da1fc6f1376a2c47bba4773609a92ce1ff839"
+  },
+  "external_private_inputs": [
+    "R01 role-only seed-zero T-star INNER fine-cell archive",
+    "repaired same-role seed-zero U0 reference-score archive",
+    "selected JOINT-STOCH seed-zero FIT package",
+    "completed INNER realization-zero cached release",
+    "precommitted realization-zero private stream root"
+  ],
+  "preaccess_requirements": [
+    "R03 active exact unit/spec/PGID and effective A-stage seal",
+    "completed FIT and release parent receipts with exact output hashes",
+    "A amendment unit-plan identity and source pins",
+    "source-role row and unit pair hash parity",
+    "public stream-root SHA and private 32-byte root hash parity",
+    "closed source SQLite cache with no WAL/SHM/journal sidecar before exclusive copy"
+  ],
+  "execution_scope": "Restore policy from exact FIT package, copy the closed cache, reopen with offline=True, read exactly row index zero of INNER cells and U0 scores, compare both repeated seven-field wires to saved codes/global banks, reject changed input on the same key; no labels or SEX.",
+  "finalization": "Replace every marker only after both parent units are done and R00 dates an effective A amendment. R15/R04 static review, R03 preflight and one-slot launch then required. No Adult read authorized by this template.",
+  "cwd_template": "<A_CAMPAIGN_WORKTREE_ABSOLUTE>",
+  "argv_template": [
+    "<SEALED_PYTHON_ABSOLUTE>",
+    "<A_CAMPAIGN_WORKTREE_ABSOLUTE>/results/pcrl_latent_and_sampled_methods_v1/r18/run_real_a_acceptance.py",
+    "--unit-id",
+    "R18-A-DEPLOY-REAL-S0",
+    "--original-lock",
+    "<ORIGINAL_D_LOCK_ABSOLUTE>",
+    "--a-amendment",
+    "<EFFECTIVE_A_AMENDMENT_ABSOLUTE>",
+    "--a-amendment-sha256",
+    "<A_EFFECTIVE_AMENDMENT_SHA256>",
+    "--fit-unit-id",
+    "A-FIT-A_JOINT_STOCH-S0",
+    "--release-unit-id",
+    "A-RELEASE-A_JOINT_STOCH-S0-INNER-R0",
+    "--policy-dir",
+    "<SELECTED_FIT_PRIVATE_DIR_ABSOLUTE>",
+    "--release-dir",
+    "<INNER_R0_PRIVATE_DIR_ABSOLUTE>",
+    "--repair-manifest",
+    "<REPAIR_ROLE_MANIFEST_ABSOLUTE>",
+    "--source-audit",
+    "<R01_SOURCE_AUDIT_ABSOLUTE>",
+    "--portfolio-package",
+    "<PORTFOLIO_PACKAGE_ABSOLUTE>",
+    "--private-stream-roots",
+    "<SEALED_PRIVATE_STREAM_ROOT_FILE_ABSOLUTE>",
+    "--row-index",
+    "0",
+    "--private-output",
+    "<R18_PRIVATE_RESULT_ABSOLUTE>",
+    "--cache-copy-output",
+    "<R18_PRIVATE_CACHE_COPY_ABSOLUTE>"
+  ]
+}
