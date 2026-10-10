@@ -256,6 +256,30 @@ def _occupied(code: np.ndarray) -> dict:
             "rare_state_row_fraction": float(counts[counts < 5].sum() / len(code))}
 
 
+def _require_t0_scaler_pin(t0: HardCodeRelease, gate: dict, stage: dict,
+                           seed: int) -> None:
+    """Bind restored scaler bytes to both R0 seals, beyond package self-checks."""
+    key = str(seed)
+    digest = t0.scaler_sha256
+    if (digest != gate.get("t0_by_seed", {}).get(key, {}).get("scaler_sha256")
+            or digest != stage.get("t0_scaler_sha256_by_seed", {}).get(key)):
+        raise PermissionError("immutable T0 scaler/gate identity differs")
+
+
+def _batch_plan_sha256(plan: tuple, row_ids: np.ndarray) -> str:
+    """Hash exact epoch, batch boundary and ordered FIT-person sequence."""
+    digest = hashlib.sha256(b"pcrl-code-witness-batch-plan-v1\0")
+    ids = np.asarray(row_ids, dtype=np.int64)
+    digest.update(len(plan).to_bytes(8, "little"))
+    for epoch in plan:
+        digest.update(len(epoch).to_bytes(8, "little"))
+        for chunk in epoch:
+            ordered = np.ascontiguousarray(ids[np.asarray(chunk, dtype=np.int64)])
+            digest.update(len(ordered).to_bytes(8, "little"))
+            digest.update(ordered.tobytes())
+    return digest.hexdigest()
+
+
 def run(args: argparse.Namespace) -> dict:
     # This check must precede every supplied path open and every role read.
     queue = assert_active_from_env(args.unit_id, "protection")
@@ -279,11 +303,9 @@ def run(args: argparse.Namespace) -> dict:
                for name, value in t0.model.state_dict().items()}
     if state_sha256(initial) != admission["t0_state_sha256_by_seed"][str(seed)]:
         raise PermissionError("immutable T0 restored model differs from capacity gate")
-    if (t0.scaler.dim != protected.h0.shape[1]
-            # The pinned private T0 manifest covers both scaler arrays.
-            or gate["t0_by_seed"][str(seed)].get("scaler_sha256")
-               != stage["t0_scaler_sha256_by_seed"][str(seed)]):
-        raise PermissionError("immutable T0 scaler/gate identity differs")
+    if t0.scaler.dim != protected.h0.shape[1]:
+        raise PermissionError("immutable T0 scaler dimension differs")
+    _require_t0_scaler_pin(t0, gate, stage, seed)
     ec = int(stage["continuation_epochs_by_seed"][str(seed)])
     config = TrainConfig(epochs=ec, patience=max(ec, 1))
     plan = make_batch_plan(np.arange(protected.rows),
@@ -326,6 +348,8 @@ def run(args: argparse.Namespace) -> dict:
                    "t0_model_sha256": state_sha256(initial),
                    "continuation_epochs": ec,
                    "batch_size": config.batch_size,
+                   "batch_plan_sha256": _batch_plan_sha256(plan, protected.row_ids),
+                   "batch_seed_offset": int(stage["continuation_batch_seed_offset"]),
                    "gradient_ratio": gradient,
                    "optimizer_updates": {}, "critic_updates": {},
                    "training_history": {},

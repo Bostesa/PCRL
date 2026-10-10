@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 
 from code_repair.run_conditional import (run, write_release_npz, scientific_arm_id,
-                                         _calibration_module)
+                                         _calibration_module, _require_t0_scaler_pin,
+                                         _batch_plan_sha256)
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_file
 
 
@@ -16,6 +17,31 @@ def test_public_arm_ids_include_selected_capacity():
     assert scientific_arm_id("J", 16) == "J_B16"
     with pytest.raises(ValueError):
         scientific_arm_id("J", 12)
+
+
+def test_t0_scaler_is_checked_against_both_sealed_identities():
+    class Restored:
+        scaler_sha256 = "a" * 64
+
+    gate = {"t0_by_seed": {"0": {"scaler_sha256": "a" * 64}}}
+    stage = {"t0_scaler_sha256_by_seed": {"0": "a" * 64}}
+    _require_t0_scaler_pin(Restored(), gate, stage, 0)
+    gate["t0_by_seed"]["0"]["scaler_sha256"] = "b" * 64
+    with pytest.raises(PermissionError, match="scaler"):
+        _require_t0_scaler_pin(Restored(), gate, stage, 0)
+    gate["t0_by_seed"]["0"]["scaler_sha256"] = "a" * 64
+    stage["t0_scaler_sha256_by_seed"]["0"] = "b" * 64
+    with pytest.raises(PermissionError, match="scaler"):
+        _require_t0_scaler_pin(Restored(), gate, stage, 0)
+
+
+def test_batch_plan_hash_changes_with_order_or_boundaries():
+    rows = np.array([10, 11, 12], dtype=np.int64)
+    plan = ((np.array([0, 1], dtype=np.int64), np.array([2], dtype=np.int64)),)
+    digest = _batch_plan_sha256(plan, rows)
+    assert len(digest) == 64
+    assert digest != _batch_plan_sha256(((np.array([1, 0]), np.array([2])),), rows)
+    assert digest != _batch_plan_sha256(((np.array([0]), np.array([1, 2])),), rows)
 
 
 def test_pinned_calibration_loads_its_sibling_guard():
