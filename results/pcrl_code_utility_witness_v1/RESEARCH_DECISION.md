@@ -1,0 +1,21 @@
+# Research decision: code utility witness and conditional repair
+
+**Status:** exploratory development on reused Adult people, 2026-10-10. The old assessment and new HEAD_VALIDATION labels stayed closed. This campaign does not supply independent confirmation.
+
+## Result
+
+The inherited score-routed `W_Q` and `W_TSTAR` banks each meet all 24 current INNER **point** utility caps across two seeds, two tasks, and U0/Ucal. Their complete public codes have 16 income and 321 occupation states, including class, so ten global bits per recipient suffice. The frozen teacher score is used inside the provider to route a bank code; it is not sent. This is a useful representability witness for that score service, not a new latent repair or a privacy result. [Bank witness](BANK_WITNESS.json) and [independent point replay](r5/BANK_OLD_POINT_AUDIT.json) record the evidence.
+
+The new teacher-guided, hard-bit latent learner failed the locked utility prerequisite at both allowed capacities. `T0_B10` passed 13/24 point clauses. `T0_B16` passed 21/24; its three failures are all seed-one occupation: NLL excess 0.011373 versus U0, NLL excess 0.012915 versus Ucal (cap 0.010), and summed Brier excess 0.005376 versus U0 (cap 0.005). Seed-zero B16 passed all 12 clauses. The sixteen-bit arm used more occupied occupation states (490/496 versus ten-bit 169/200), but more capacity did not clear the full two-seed gate. These are failures of this fitted recipe under the sealed criteria, not proof of an information-capacity limit. [Both capacity tables](TASK_ONLY_UTILITY.csv), [gate decision](CAPACITY_LADDER_DECISION.json), and [independent B16 replay](r5/T0_B16_GATE_INDEPENDENT_COMPARISON.json) give the full record.
+
+The full fixed family has 2,376 simultaneous development clauses. Only 144 task utility clauses were estimable; 41 bounds passed, 103 crossed their caps, and none established a bound violation. The remaining 720 utility and 1,512 privacy clauses retain null values because their required arms or attacks were not run. In particular, the three B16 point failures are interval-unresolved, but a point failure still stops the predeclared continuation. The W banks also lack a complete simultaneous confidence pass. [Intervals](UTILITY_INTERVALS.csv) were [independently replayed](r5/UTILITY_INTERVALS_INDEPENDENT_REPLAY.json). They are conditional on fitted models and reused people.
+
+No new kernel, local, sequential, ordinary adversarial, or fresh SEX attack fit ran. The matched privacy stage was gated on a learned task-only code passing every point cap; neither did. The kernel hypothesis, competitive recovery criterion and joint-design attribution are therefore **not tested in this follow-up**. The prior campaign's kernel AUC contrast remains historical development evidence, not a new result here. [R3 stage record](r3/CONDITIONAL_NOT_RUN.json) preserves this distinction.
+
+The separate sampled-channel identity audit found an exact diagnostic bank action and current INNER point utility, but the old stochastic parameterization lacked an explicit exact-identity checkpoint. More decisively, its exact bank identity exceeds the FIT occupation NLL cap in both seeds under the old constraint formulation. The required I1/I2/I3 conjunction is not met, so no new A optimization was authorized. This is a scoped missing witness, not a proof that all bank policies are infeasible. [Identity audit](r2/R2_UTILITY_AND_CHANNEL_AUDIT.md) and [cell table](CHANNEL_IDENTITY_AUDIT.csv) preserve the two domains.
+
+## Claims and next step
+
+The strongest favorable comparison is the ten-bit inherited W banks' 24/24 current-role point utility result; the strongest adverse new comparison is B16 seed-one occupation NLL excess 0.012915 against Ucal despite the 0.010 cap. No protected method in this campaign demonstrated reduced sensitive recovery beyond a matched control, and no joint benefit was measured.
+
+The next method study should predefine a task-only latent mapper trained toward the existing useful bank codes on admitted fitting data, while preserving the same public bit/accounting and calibration contract. Its task-only two-seed utility gate must clear before any privacy fitting. That would be a new prospective development design; confirmation later requires a separately authorized, unexposed population.
