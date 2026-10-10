@@ -38,10 +38,15 @@ class LocalFactorData:
                 np.any(y < 0) or np.any(y >= score.shape[1]) or
                 np.any(cell < 0) or np.any(cell >= len(self.actions))):
             raise ValueError("invalid own-purpose local FIT capability")
+        if any(any(type(code) not in (int, np.int64) for code in row)
+               for row in self.actions):
+            raise ValueError("local action IDs must be exact integers")
         actions = tuple(tuple(int(code) for code in row) for row in self.actions)
         if (any(not 1 <= len(row) <= 4 or len(set(row)) != len(row) or
                 any(code < 0 or code >= len(self.bank.probability) for code in row)
                 for row in actions) or
+                any(any(self.bank.decision[code] != self.bank.decision[row[0]]
+                        for code in row) for row in actions) or
                 any(int(np.argmax(score[i])) !=
                     int(self.bank.decision[actions[int(cell[i])][0]])
                     for i in range(n))):
