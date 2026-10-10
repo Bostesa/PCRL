@@ -27,9 +27,8 @@ def wire_batch(public: PublicCode, unit: np.ndarray) -> WireBatch:
         raise ValueError("admitted int64 resampling units must align with D release rows")
     n = len(public.row_id)
     fields: dict[str, Field] = {
-        # The ID is exactly reconstructible from the ten emitted bits. It is
-        # categorical, never an ordinal predictor.
-        "code_id": Field("category", public.code_id.astype(np.int64)),
+        # R02 derives a categorical ID and one-hot from the transmitted bits;
+        # the ID is not a separate item on the wire.
         "code_bits": Field("bits", public.code),
         "probabilities": Field("probability", public.probabilities),
         "decision": Field("decision", public.decision),
@@ -38,7 +37,7 @@ def wire_batch(public: PublicCode, unit: np.ndarray) -> WireBatch:
         fields[f"metadata.{key}"] = _metadata_field(public.metadata[key], n)
     derived = {"log_probabilities": np.log(np.maximum(public.probabilities.astype(np.float64), 1e-12))}
     return WireBatch(public.row_id.astype(np.int64), groups, fields,
-                     code_fields=("code_id",), public_derived=derived)
+                     code_fields=("code_bits",), public_derived=derived)
 
 
 def _pair_wire(first: WireBatch, second: WireBatch, pair: AlignedPair) -> WireBatch:

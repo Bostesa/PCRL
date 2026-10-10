@@ -72,7 +72,7 @@ class HardCodeTest(unittest.TestCase):
         self.assertEqual(result["pair"].att.x_code_bits.shape, (2, 20))
         self.assertEqual(result["pair"].att.x_defense_aware.shape[1] -
                          result["pair"].att.x.shape[1], 104)
-        self.assertTrue(any(f["name"] == "r1.code_id"
+        self.assertTrue(any(f["name"] == "r1.code_bits" and f["att_categories"] is not None
                             for f in result["pair"].schema["fields"]))
 
     def test_grouped_controls_keep_duplicates_and_plant_public_category(self):
@@ -88,10 +88,10 @@ class HardCodeTest(unittest.TestCase):
         self.assertEqual(b1[0], b1[1])
         self.assertEqual(b2[2], b2[3])
         from ...r02.complete_view import Field, WireBatch
+        code = ((np.arange(6)[:, None] >> np.arange(10)[None, :]) & 1).astype(np.uint8)
         batch = WireBatch(np.arange(6, dtype=np.int64), unit,
-                          {"code_id": Field("category", np.arange(6)),
-                           "code_bits": Field("bits", np.zeros((6, 10), dtype=np.uint8))},
-                          code_fields=("code_id",))
+                          {"code_bits": Field("bits", code)},
+                          code_fields=("code_bits",))
         augmented = append_planted_public_bit(batch, plant)
         self.assertEqual(augmented.code_fields, ("control_code_id",))
         self.assertEqual(augmented.fields["control_code_id"].values.tolist(),

@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 from ...r02.complete_view import Field, WireBatch
+from .hard_code import code_ids
 
 
 def _group_labels(sex: np.ndarray, unit: np.ndarray):
@@ -76,10 +77,10 @@ def append_planted_public_bit(wire: WireBatch, bit: np.ndarray,
     if (value.shape != np.asarray(wire.row_id).shape
             or not np.issubdtype(value.dtype, np.integer)
             or not np.isin(value, (0, 1)).all()
-            or wire.code_fields != ("code_id",)
+            or wire.code_fields != ("code_bits",)
             or name in wire.fields or "control_code_id" in wire.fields):
         raise ValueError("diagnostic plant requires one valid D code and binary bit")
-    base = np.asarray(wire.fields["code_id"].values, dtype=np.int64)
+    base = code_ids(np.asarray(wire.fields["code_bits"].values)).astype(np.int64)
     if np.any(base < 0) or np.any(base >= 1024):
         raise ValueError("base D code is outside the 10-bit alphabet")
     fields = dict(wire.fields)
