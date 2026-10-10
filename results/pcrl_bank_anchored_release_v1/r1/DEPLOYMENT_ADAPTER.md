@@ -50,3 +50,10 @@ hash and relative archive labels are in `r1/R1_B0_SELECTED_SNAPSHOT_INDEX.json`.
 The corresponding B0 CLI replay units are `R1_DEPLOY_S0_B0` and
 `R1_DEPLOY_S1_B0`. Their numerical status is determined by their queued
 receipts, not by this adapter description.
+
+Conditional J replay specs are `R1_DEPLOY_S0_J` and `R1_DEPLOY_S1_J`.
+Their source packages are complete and their specs passed independent static
+pin checks. The original INNER utility endpoints passed independent numerical
+replay for both seeds. Separate FIT proxy boundary disagreements remain
+unresolved; they do not supply a J recovery or competitive claim. J's actual
+raw-input CLI and frozen-coin parity need queued verification receipts.
