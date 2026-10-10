@@ -193,12 +193,17 @@ def oriented_auc(scores: np.ndarray, sex: np.ndarray,
 
 
 def simultaneous_group_bounds(group_id: np.ndarray, statistic: Callable[[np.ndarray], np.ndarray],
-                              clause_count: int, seed: int, replicates: int) -> dict[str, np.ndarray | float]:
-    """Generic paired-group max-|t| family; statistic gets per-row weights.
+                              clause_count: int, seed: int, replicates: int,
+                              full_family_count: int | None = None) -> dict[str, np.ndarray | float]:
+    """Paired-group bounds; optional full-K t critical retains missing slots.
 
     The caller fixes clause order, group IDs, RNG, replicate count and family
     before reading results. Model seeds are scored in a single statistic call,
-    so each draw resamples the same people across all seeds and arms.
+    so each draw resamples the same people across all seeds and arms. When
+    `full_family_count` is set, it counts all prospective clauses, including
+    dependency-missing ones, and uses a two-sided Bonferroni Student-t critical
+    with number-of-groups-minus-one degrees of freedom. The default max-|t|
+    branch is only suitable for a complete, fixed observed family.
     """
     groups = np.asarray(group_id)
     if groups.ndim != 1 or len(groups) == 0 or replicates < 2 or clause_count < 1:
@@ -221,7 +226,13 @@ def simultaneous_group_bounds(group_id: np.ndarray, statistic: Callable[[np.ndar
     scale = np.maximum(standard_error, 1e-12)
     standardized = np.abs((draws - point) / scale)
     standardized[:, constant] = 0.0
-    critical = float(np.quantile(standardized.max(axis=1), .95, method="higher"))
+    if full_family_count is None:
+        critical = float(np.quantile(standardized.max(axis=1), .95, method="higher"))
+    else:
+        if full_family_count < clause_count:
+            raise ValueError("full family cannot be smaller than estimable subset")
+        from scipy.stats import t as student_t
+        critical = float(student_t.ppf(1 - .05 / (2 * full_family_count), group_count - 1))
     half = critical * np.where(constant, 0.0, scale)
     return {"point": point, "standard_error": standard_error,
             "lower": point - half, "upper": point + half,

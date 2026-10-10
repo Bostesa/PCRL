@@ -68,6 +68,17 @@ class IndependentChecksTest(unittest.TestCase):
         self.assertEqual(receipt["lower"][0], 1.)
         self.assertEqual(receipt["upper"][0], 1.)
 
+    def test_full_family_bonferroni_critical_uses_missing_slots(self):
+        from scipy.stats import t
+        group = np.array([0, 1, 2, 3])
+        def mean(w):
+            return np.array([float(np.dot(w, np.array([0., 1., 0., 1.])) / w.sum())])
+        out = simultaneous_group_bounds(group, mean, 1, 123, 128,
+                                        full_family_count=2376)
+        expected = float(t.ppf(1 - .05 / (2 * 2376), 3))
+        self.assertAlmostEqual(out["critical_95"], expected)
+        self.assertGreater(out["upper"][0], out["point"][0])
+
     def test_sampled_loss_is_linear_not_loss_of_mean_probability(self):
         bank = np.array([[.9, .1], [.1, .9]])
         q = np.array([[.5, .5]])

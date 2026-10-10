@@ -1,0 +1,34 @@
+{
+  "schema": "pcrl-code-utility-r5-d-inference-prefit-review-v1",
+  "scope": "Independent static arithmetic and code review before real outcome access; no candidate or R4 endpoint module imported by the R5 scorer",
+  "r4_source_sha256": {
+    "inference_rule.py": "45047ba6c79481f2cff1c5be35c86db3595944fdb27c5406bd1d7f5c90344869",
+    "ATTACK_AND_INFERENCE_PLAN.md": "61e956ce7bce2f2414f59ac492f815ed81a2469ded8318948ca18eeba2dd0ac1",
+    "test_inference_rule.py": "16378637ac9e13e51ea27c6ddcab27b130fab467b73b72cde2b4e6061f437230"
+  },
+  "finite_family": {
+    "prospective_slots": 2376,
+    "independent_order_hash": "d0b032ed2b6a6f21b5ecb1db51bbdc1623881b3943bf3289f20da7b93d667108",
+    "missing_slots": "retained as NOT_ESTIMABLE_DEPENDENCY with null point/lower/upper",
+    "critical_never_uses_observed_subset_size": true
+  },
+  "inference": {
+    "paired_duplicate_groups": 2234,
+    "bootstrap_se_draws": 2048,
+    "two_sided_alpha": 0.05,
+    "critical_formula": "Student_t_ppf(1-0.05/(2*2376),2233)",
+    "independently_calculated_critical": 4.262627512538624,
+    "r4_formula_and_constant_match": true,
+    "scope_limit": "Approximate conditional intervals from bootstrap SE and t critical; no fresh-population or adaptive-history coverage"
+  },
+  "sign_review": {
+    "raw_clause": "first-minus-second",
+    "pair_benefit": "control-minus-candidate; sign inversion also maps [lower,upper] to [-upper,-lower]",
+    "recipient_worsening": "candidate-minus-control with same inversion rule",
+    "eligible_control_check": "separate R0 selection rule; appearance of F/U anchor in family does not establish matched eligibility",
+    "status": "PASS_STATIC_SIGN_IMPLEMENTATION"
+  },
+  "data_free_r4_tests_observed": 5,
+  "prior_issue": "Initial R4 plan proposed observed-subset max-t while claiming full-family adjustment; amended plan and source use full-K t/Bonferroni instead.",
+  "status": "PREFIT_INFERENCE_RULE_ACCEPTABLE_FOR_R0_SEAL"
+}
