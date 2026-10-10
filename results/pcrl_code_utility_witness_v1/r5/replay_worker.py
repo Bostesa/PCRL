@@ -136,7 +136,17 @@ def _reference_metrics(ref: dict, labels: tuple[np.ndarray, np.ndarray]) -> dict
         for purpose, task, classes in ((0, "income", 2), (1, "occupation", 6)):
             rows = task_rows(labels[purpose], ref[f"{kind}_{purpose+1}"], classes,
                              ref[f"d_{purpose+1}"])
-            out[kind][task] = task_means(rows)
+            values = task_means(rows)
+            count = np.bincount(labels[purpose], minlength=classes)
+            majority = int(np.argmax(count))
+            decision = ref[f"d_{purpose+1}"]
+            constant = float(np.mean(labels[purpose] == majority))
+            values.update({"constant_accuracy": constant,
+                           "accuracy_gain_over_constant": values["accuracy"] - constant,
+                           "class_counts": count.tolist(),
+                           "per_class_recall": [float(np.mean(decision[labels[purpose] == cls] == cls))
+                                                if count[cls] else None for cls in range(classes)]})
+            out[kind][task] = values
     return out
 
 
@@ -170,6 +180,27 @@ def _r1_lineage(case: dict, registered: dict[Path, str], role_sha: str,
             raise PermissionError("R1 learned package receipt differs")
     if record["private_release_sha256"] != case["release"]["sha256"]:
         raise PermissionError("R1 saved release hash differs from producer")
+
+
+def _old_lineage(case: dict, registered: dict[Path, str], role_sha: str,
+                 source_model_sha: str) -> None:
+    receipt = json.loads(_pin(case["producer_receipt"], registered).read_text())
+    first = case["arm"] in ("T", "D-K")
+    if (receipt.get("schema") != ("latent-repair-first-paired-seed-receipt-v1" if first
+                                  else "latent-repair-followup-controls-receipt-v1")
+            or receipt.get("status") != ("T_DK_RELEASES_READY" if first
+                                        else "D_FOLLOWUP_RELEASES_READY")
+            or receipt.get("seed") != case["seed"]
+            or receipt.get("source_sha256") != source_model_sha
+            or receipt.get("role_manifest_sha256") != role_sha):
+        raise PermissionError("old F/T/D-K producer lineage differs")
+    arm = case["arm"]
+    package = receipt["packages"][arm]
+    release = receipt["roles"]["INNER_SELECTION"][arm]
+    if (package["manifest_sha256"] != case["manifest"]["sha256"]
+            or package["weights_sha256"] != case["weights"]["sha256"]
+            or release["private_release_sha256"] != case["release"]["sha256"]):
+        raise PermissionError("old F/T/D-K package/release hash differs")
 
 
 def run(config_path: Path) -> dict:
@@ -224,6 +255,9 @@ def run(config_path: Path) -> dict:
         if kind == "bank" or arm.startswith("T0_"):
             _r1_lineage(case, registered, config["role_manifest"]["sha256"],
                         source_model_sha)
+        else:
+            _old_lineage(case, registered, config["role_manifest"]["sha256"],
+                         source_model_sha)
         wire = _release(case["release"], registered, kind)
         if kind == "bank":
             table = json.loads(_pin(case["public_table"], registered).read_text())
