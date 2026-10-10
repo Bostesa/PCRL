@@ -1,0 +1,78 @@
+{
+  "affected_units": [
+    {
+      "call_path": "P0Service; historical hcal.deploy CLI",
+      "inferred_historical_unit_complete_calls": 2,
+      "private_queue_receipt_sha256": "dba6e60ce0e89dc59ed382d6418e28a49caeb97699f55bc6073ad3a017ac9dca",
+      "private_queue_spec_sha256": "ad71a5f074bc6cdf2651a4e7a2e0e0a0eefa9137accc0c9963d28705be4ac67e",
+      "queue_status": "DONE_RETURN_0",
+      "seed": 0,
+      "source_hashes": {
+        "finalize.py": "e64ade104eff6e8067e969b7dcc98d91d9310e56425acc9601e17da92fd41831",
+        "r1_admission.py": "446c0d010d5da2cd3fc70b1a58ad1b68170621fc0856b3248c53c6b599b1a337",
+        "r1_deploy.py": "54b5917636d2308d9a98ef9bee2c28698f80c0903608679b2457d20793b93c6c"
+      },
+      "unit_id": "R1_P0_S0_ADMISSION"
+    },
+    {
+      "call_path": "P0Service; historical hcal.deploy CLI",
+      "inferred_historical_unit_complete_calls": 2,
+      "private_queue_receipt_sha256": "06c0fb1f596dcced23b0c0df184f64e1cf154f29910109634c28f47d0a17d191",
+      "private_queue_spec_sha256": "b398566cea27b03acdf78db5744c80c43d46690864b0595efde04e1572848bdc",
+      "queue_status": "DONE_RETURN_0",
+      "seed": 1,
+      "source_hashes": {
+        "finalize.py": "e64ade104eff6e8067e969b7dcc98d91d9310e56425acc9601e17da92fd41831",
+        "r1_admission.py": "446c0d010d5da2cd3fc70b1a58ad1b68170621fc0856b3248c53c6b599b1a337",
+        "r1_deploy.py": "54b5917636d2308d9a98ef9bee2c28698f80c0903608679b2457d20793b93c6c"
+      },
+      "unit_id": "R1_P0_S1_ADMISSION"
+    },
+    {
+      "call_path": "QD.load_teacher; two r1_deploy recipient CLIs",
+      "inferred_historical_unit_complete_calls": 3,
+      "private_queue_receipt_sha256": "49eebca9f91684a85e41e713a4586b02d89aa02b0ee9f0fc895ad29859fce23f",
+      "private_queue_spec_sha256": "129fd1d8537c95e2dcf99635f8e1f1acb39a2d96bd905ba588a5a2f7bd030456",
+      "queue_status": "DONE_RETURN_0",
+      "seed": 0,
+      "source_hashes": {
+        "finalize.py": "e64ade104eff6e8067e969b7dcc98d91d9310e56425acc9601e17da92fd41831",
+        "r1_admission.py": "446c0d010d5da2cd3fc70b1a58ad1b68170621fc0856b3248c53c6b599b1a337",
+        "r1_deploy.py": "54b5917636d2308d9a98ef9bee2c28698f80c0903608679b2457d20793b93c6c",
+        "r5_router_replay.py": "28f88e6fc084019e9f50f4c45b22dc1c2b57c10c4b4cb5b38422ec62c6a8b53c"
+      },
+      "unit_id": "R5_P0_ROUTER_S0_V1"
+    },
+    {
+      "call_path": "QD.load_teacher; two r1_deploy recipient CLIs",
+      "inferred_historical_unit_complete_calls": 3,
+      "private_queue_receipt_sha256": "5cca50dcd3a1d4675dd4efda5bc87940a93ee4c8b234afa317a656ecb951d573",
+      "private_queue_spec_sha256": "7fd21ecea046a452ef7a2442f28589050943699f1f7348cde23e442d32f32206",
+      "queue_status": "DONE_RETURN_0",
+      "seed": 1,
+      "source_hashes": {
+        "finalize.py": "e64ade104eff6e8067e969b7dcc98d91d9310e56425acc9601e17da92fd41831",
+        "r1_admission.py": "446c0d010d5da2cd3fc70b1a58ad1b68170621fc0856b3248c53c6b599b1a337",
+        "r1_deploy.py": "54b5917636d2308d9a98ef9bee2c28698f80c0903608679b2457d20793b93c6c",
+        "r5_router_replay.py": "28f88e6fc084019e9f50f4c45b22dc1c2b57c10c4b4cb5b38422ec62c6a8b53c"
+      },
+      "unit_id": "R5_P0_ROUTER_S1_V1"
+    }
+  ],
+  "correction": "Later R1 raw deployment uses a direct frozen model/head loader that validates admitted sidecar hashes without reading the all-role archive. It does not rerun or rewrite the four original units.",
+  "count_basis": "Static successful-call-path inference from pinned sources and DONE/returncode-0 receipts; not an operating-system I/O trace. The count is archive-hash invocations, not people, labels, or dataset openings.",
+  "date": "2026-10-10",
+  "finding": "Historical teacher load_teacher called jcv.finalize.unit_complete. That function hashes every file listed by COMPLETE.json with Path.read_bytes; the sidecar includes historical all-role release.npz. Thus it transiently read compressed archive bytes despite the scientific role-only allowlist. The loader did not deserialize that archive or select rows/labels from it in these paths.",
+  "inferred_compressed_archive_byte_read_count": 10,
+  "original_records_preserved": [
+    "SOURCE_ADMISSION",
+    "R1_P0_S0_ADMISSION_RECEIPT.json",
+    "R1_P0_S1_ADMISSION_RECEIPT.json",
+    "r5/P0_ROUTER_S0_V1.json",
+    "r5/P0_ROUTER_S1_V1.json"
+  ],
+  "schema": "pcrl-incumbent-r1-source-access-deviation-v1",
+  "scientific_use": "No task/SEX label array deserialization from the all-role archive was found in these paths. Role-only feature/release scientific comparisons remain as recorded. No claim of zero forbidden bytes accessed is valid for these units.",
+  "scope_limit": "Independent R5 access audit remains in progress; any additional affected units require an additive update, not silent replacement.",
+  "status": "PRESERVED_DEVIATION"
+}

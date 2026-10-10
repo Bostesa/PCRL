@@ -1,0 +1,78 @@
+{
+  "schema": "IVR1-r5-final-inference-prefit-plan-v1",
+  "status": "SOURCE_PREPARED_BEFORE_FRESH_FINAL_ATTACK_RESULTS",
+  "scope": "Independent development replay; no new population or confirmation claim",
+  "source_sha256": {
+    "incumbent_view/r5_attack_math.py": "cbd05fe6a6c2ac1eb1f263ec55b40e5800df0b9a72bf44a4f0dc9a1bb0e9c4b1",
+    "incumbent_view/r5_attack_auc_replay.py": "33a800255764825dbfa174e9eb02e93c3b1ef9edc77005dbf568c9cc6e858dd8",
+    "incumbent_view/r5_selection_math.py": "fee210e19cd3a5fcdce714e2272cda20090bda0b7c12e358ccae728c1995a49c",
+    "incumbent_view/r5_reader_refit.py": "6f84ca119410f92b47776ddb29c04c765efd078ef4a3a3e765c643ac1e7394d3",
+    "incumbent_view/r5_attack_fixtures.py": "0be36d0f84929315cc64cf7e05809662af507829472f70831f6b10f261ce2a09",
+    "incumbent_view/r5_utility_interval_math.py": "a3ecaab7d5698e8280d44d523d2fc549968e80d4ec6757786b6757bfa12e33ad",
+    "incumbent_view/r5_utility_interval_replay.py": "c357f5fbc69b33ee398c42a42609b2ae756342708564e3f7301e5a0086abc61b"
+  },
+  "fixed_arms": [
+    "P0",
+    "O_J",
+    "V_J",
+    "V_P",
+    "V_D",
+    "V_L",
+    "V_S12",
+    "V_S21"
+  ],
+  "release_slots": 40,
+  "stochastic_draw_ids": [
+    0,
+    1,
+    2
+  ],
+  "deterministic_draw_ids": [
+    0
+  ],
+  "views": [
+    "r1",
+    "r2",
+    "pair"
+  ],
+  "family": {
+    "K": 948,
+    "utility_slots": 192,
+    "recovery_slots": 756,
+    "null_rule": "Keep all fixed recovery pair slots null when either arm lacks an eligible completed fresh attack",
+    "simultaneous_alpha": 0.05,
+    "bootstrap_replicates": 2048,
+    "duplicate_groups": 2234,
+    "release_resampling": "One coupled three-draw tuple per seed and bootstrap replicate, shared across all arms and views"
+  },
+  "replay_units": {
+    "fixture": 1,
+    "frozen_attack_auc": "At most 40 release units; one per completed eligible fixed slot",
+    "recovery_and_selection": "One aggregate unit after all fixed slots are accounted",
+    "utility_intervals": "One independent aggregate after all 16 INNER utility vector sources",
+    "refit": "At most 6 units: realization zero, pair view, two seeds each for P0, the FIT-nominated new policy, and the strongest eligible control; exact aliases count once"
+  },
+  "refit_contract": {
+    "training_role": "ATTACK_FIT_NEW, inherited fixed SHA group train subset only",
+    "scoring_role": "INNER_SELECTION after frozen R4 reader custody checks",
+    "common_reader": "HGB learning_rate=.05, max_leaf_nodes=15, max_iter=200, early_stopping=False, R4 attacker seed; require prediction parity",
+    "stronger_diagnostic": "HGB learning_rate=.05, max_leaf_nodes=31, max_iter=300, early_stopping=False, random_state=20261010+source_seed",
+    "selection": "No best draw, best seed, or refit configuration selection; the refits are a bounded post-selection diagnostic"
+  },
+  "access": {
+    "old_assessment": false,
+    "HEAD_VALIDATION_labels": false,
+    "ATTACK_FIT_NEW_SEX": "Refit units only, after exact verification seal",
+    "INNER_SELECTION_SEX": "AUC replay and refit units only, after frozen public attack/readers/controls source checks",
+    "all_role_loader": false
+  },
+  "queue": {
+    "global_local_heavy_slots": 1,
+    "fixture_reserve_s": 30,
+    "auc_replay_per_unit_reserve_s": 300,
+    "refit_per_unit_reserve_s": 360,
+    "max_rss_gib": 2.5,
+    "prerequisite": "R0 registers dated exact-source verification amendment and queue admits specs before any numerical replay"
+  },
+  "final_attack_result_observed": false
+}

@@ -38,6 +38,7 @@ def main(argv=None):
     parser.add_argument("--repo", required=True)
     parser.add_argument("--python", required=True)
     parser.add_argument("--seed", type=int, choices=(0, 1), required=True)
+    parser.add_argument("--realization", type=int, choices=(0, 1, 2), required=True)
     parser.add_argument("--arm-id", required=True)
     parser.add_argument("--unit-id", required=True)
     parser.add_argument("--selected-unit-id", required=True)
@@ -49,6 +50,11 @@ def main(argv=None):
 
     repo = Path(args.repo).resolve(strict=True)
     root = repo / "results/pcrl_incumbent_view_risk_v1"
+    admission_lock = root / "r0/ADMISSION_LOCK.json"
+    science_lock = root / "r0/CAMPAIGN_LOCK.json"
+    if (sha(args.queue_seal) != sha(admission_lock) or
+            args.policy_lock_sha256 != sha(science_lock)):
+        raise ValueError("queue admission seal and selected policy science lock differ from pinned roles")
     python = Path(os.path.abspath(args.python))  # Preserve virtualenv symlink entrypoint.
     if not python.is_file() or not os.access(python, os.X_OK):
         raise ValueError("virtualenv Python entrypoint missing")
@@ -59,7 +65,7 @@ def main(argv=None):
         raise RuntimeError("exact virtualenv argv cannot import deployment dependencies")
     selected_dir = root / "r2/.private/units" / args.selected_unit_id
     policy_dir = selected_dir / "policy"
-    selected_fit_dir = selected_dir / "OSF_DEFENSE_FIT_R0"
+    selected_fit_dir = selected_dir / f"OSF_DEFENSE_FIT_R{args.realization}"
     policy_receipt = json.loads((policy_dir / "POLICY_RECEIPT.json").read_text())
     selected_receipt = json.loads((selected_fit_dir / "RELEASE_RECEIPT.json").read_text())
     if (policy_receipt["arm_id"] != args.arm_id or
@@ -76,8 +82,8 @@ def main(argv=None):
     if (selected_receipt["arm_id"] != args.arm_id or
             selected_receipt["source_seed"] != args.seed or
             selected_receipt["role"] != "OSF_DEFENSE_FIT" or
-            selected_receipt["realization"] != 0):
-        raise ValueError("R2 selected release is not realization-0 FIT for this arm/seed")
+            selected_receipt["realization"] != args.realization):
+        raise ValueError("R2 selected release realization differs from requested FIT draw")
     raw32 = root / "r1/.private" / f"R1_P0_S{args.seed}_ADMISSION/OSF_DEFENSE_FIT/sample_input.npz"
     essential = {
         "source_manifest": pin(source_manifest),
@@ -98,12 +104,16 @@ def main(argv=None):
     code = [repo / "incumbent_view" / name for name in (
         "r1_bank.py", "r1_deploy.py", "r1_channel.py", "r1_selected_deploy.py", "r1_replay.py",
         "r1_build_replay_specs.py", "r2_space.py", "r2_policy.py", "r2_package.py")]
-    for directory in ("qpc", "hcal", "lra",
+    for directory in ("qpc", "hcal", "lra", "dpc", "cbp", "jcv", "rgj",
+                      "results/pcrl_latent_and_sampled_methods_v1/r01",
+                      "results/pcrl_latent_and_sampled_methods_v1/r02",
+                      "results/pcrl_latent_and_sampled_methods_v1/r03",
                       "results/pcrl_latent_and_sampled_methods_v1/sampled_channel_v1/impl",
+                      "results/pcrl_latent_and_sampled_methods_v1/sampled_channel_v1/controls",
                       "results/pcrl_latent_and_sampled_methods_v1/latent_repair_v1"):
         code.extend(sorted((repo / directory).rglob("*.py")))
     code.extend((repo / "results/pcrl_bank_anchored_release_v1/bank_anchored/r2_laws.py",
-                 root / "r0/compute_queue.py", Path(args.queue_seal)))
+                 root / "r0/compute_queue.py", admission_lock, science_lock))
     source_paths = [*(item["path"] for item in essential.values()),
                     *(item["path"] for item in source["pins"].values()),
                     str(policy_dir / "policy.npz"), str(policy_dir / "POLICY_RECEIPT.json"),
@@ -115,7 +125,8 @@ def main(argv=None):
         raise FileExistsError("replay unit output already exists")
     config = {"schema": "IVR1-r1-selected-replay-config-v1", "unit_id": args.unit_id,
               "repo": str(repo), "python": str(python), "source_seed": args.seed,
-              "arm_id": args.arm_id, "policy_dir": str(policy_dir),
+              "arm_id": args.arm_id, "realization": args.realization,
+              "policy_dir": str(policy_dir),
               "policy_receipt_sha256": sha(policy_dir / "POLICY_RECEIPT.json"),
               "policy_lock_sha256": args.policy_lock_sha256,
               "output_dir": str(output_dir), "receipt_output": str(receipt_output),
@@ -140,7 +151,8 @@ def main(argv=None):
     spec_sha = write_new(spec_path, spec)
     index = {"schema": "IVR1-r1-selected-raw32-spec-index-v1", "unit_id": args.unit_id,
              "selected_unit_id": args.selected_unit_id, "source_seed": args.seed,
-             "arm_id": args.arm_id, "config_sha256": config_sha, "spec_sha256": spec_sha,
+             "arm_id": args.arm_id, "realization": args.realization,
+             "config_sha256": config_sha, "spec_sha256": spec_sha,
              "source_count": len(queue_sources), "source_lock_sha256": seal_sha,
              "amendment_sha256": args.amendment_sha256, "role_arrays_read": False,
              "queue_stage": "verification", "max_wall_s": 120, "max_rss_gib": 2.}

@@ -14,6 +14,38 @@ from qpc import release as RL
 from .r1_bank import load_bank, sha_file, wires_for_codes
 
 
+def load_pinned_teacher(paths, seed):
+    """Reconstruct frozen dpc teacher without opening historical release.npz.
+
+    The original COMPLETE sidecar includes an all-role person-level release.
+    The admitted model/head/record hashes are checked against that sidecar and
+    against the source manifest before this function is called. The weights
+    and estimators are loaded with the same operations as dpc.deploy.
+    """
+    import joblib
+    import torch
+    from jcv.train import Model
+
+    expected = {"model.pt": "model", "head_0.joblib": "head0",
+                "head_1.joblib": "head1", "record.json": "record"}
+    complete = json.loads(Path(paths["complete"]["path"]).read_text())
+    listed = complete.get("files", {})
+    if not isinstance(listed, dict):
+        raise ValueError("frozen teacher COMPLETE sidecar differs")
+    for filename, key in expected.items():
+        item = paths[key]
+        if Path(item["path"]).name != filename or listed.get(filename) != item["sha256"]:
+            raise ValueError("frozen teacher hash/filename differs from source COMPLETE")
+    record = json.loads(Path(paths["record"]["path"]).read_text())
+    if int(record["seed"]) != int(seed):
+        raise ValueError("frozen teacher seed differs")
+    model = Model(83, [2, 6], int(seed))
+    model.load_state_dict(torch.load(paths["model"]["path"]))
+    model.eval()
+    heads = [joblib.load(paths[key]["path"]) for key in ("head0", "head1")]
+    return model, heads, paths["model"]["sha256"]
+
+
 class P0Service:
     def __init__(self, paths, bank):
         self.bank = bank
@@ -21,7 +53,7 @@ class P0Service:
         self.names = tuple(bank["feature_names"])
         self.schema_sha256 = bank["feature_schema_sha256"]
         self.pair = QD.load_pair(paths["policy"]["path"])
-        self.model, self.heads, model_sha = QD.load_teacher(paths["model"]["path"].rsplit("/", 1)[0], self.seed)
+        self.model, self.heads, model_sha = load_pinned_teacher(paths, self.seed)
         QD.check_bindings(self.pair, model_sha, self.schema_sha256)
         family, tables, decoder_sha, d1 = load_decoder(paths["decoder"]["path"], self.pair,
                                                      bank["decoder_embedded_sha256"])

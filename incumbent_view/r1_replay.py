@@ -86,6 +86,10 @@ def main(argv=None):
     for item in config["sources"]:
         if sha_file(item["path"]) != item["sha256"]:
             raise PermissionError("pinned replay source bytes differ")
+    protocol = Path(config["repo"]) / "results/pcrl_incumbent_view_risk_v1/r0"
+    if (active["seal_sha256"] != sha_file(protocol / "ADMISSION_LOCK.json") or
+            config["policy_lock_sha256"] != sha_file(protocol / "CAMPAIGN_LOCK.json")):
+        raise ValueError("queue admission seal and selected science lock must be checked separately")
 
     seed = config["source_seed"]
     bank = load_bank(config["public_bank"]["path"], config["public_bank"]["sha256"])
@@ -116,11 +120,14 @@ def main(argv=None):
             policy_receipt["source_lock_sha256"] != config["policy_lock_sha256"] or
             policy_receipt["public_bank_sha256"] != config["public_bank"]["sha256"]):
         raise ValueError("selected policy lock, source or bank differs")
+    realization = config["realization"]
+    if realization not in (0, 1, 2):
+        raise ValueError("selected replay realization is outside frozen three-draw contract")
     selected_receipt = json.loads(Path(config["selected_receipt"]["path"]).read_text())
     if (selected_receipt["source_seed"] != seed or
             selected_receipt["arm_id"] != config["arm_id"] or
             selected_receipt["role"] != "OSF_DEFENSE_FIT" or
-            selected_receipt["realization"] != 0 or
+            selected_receipt["realization"] != realization or
             selected_receipt["policy_receipt_sha256"] != config["policy_receipt_sha256"] or
             selected_receipt["source_binding_sha256"] != bank["source_binding_sha256"] or
             selected_receipt["codes_file_sha256"] != config["selected_fit"]["sha256"]):
@@ -130,10 +137,11 @@ def main(argv=None):
     roots = json.loads(Path(config["stream_roots"]["path"]).read_text())
     if roots["schema"] != "scv1-private-stream-roots-v1":
         raise ValueError("private release stream schema differs")
-    root = bytes.fromhex(roots["release_realization_roots_hex"]["0"])
+    root = bytes.fromhex(roots["release_realization_roots_hex"][str(realization)])
     if hashlib.sha256(root).hexdigest() != selected_receipt["private_stream_root_sha256"]:
         raise ValueError("cached FIT release used a different private draw root")
-    coins = derive_coins(root, seed=seed, unit=source["unit"][sample], arm=policy.law_kind)
+    coins = derive_coins(root, seed=seed, unit=source["unit"][sample], arm=policy.law_kind,
+                         realization=realization)
     output = Path(config["output_dir"])
     if output.exists():
         raise FileExistsError("write-once raw replay directory already exists")
@@ -176,10 +184,11 @@ def main(argv=None):
         raise ValueError("selected raw CLI row count differs")
     for recipient in (1, 2):
         expected = wires_for_codes(bank, recipient, chosen[f"code_r{recipient}"][sample])
-        if actual[recipient-1] != expected:
+        if tuple(actual[recipient-1]) != expected:
             raise ValueError("raw83 selected CLI differs from full FIT cached original-ID wire")
     record = {"schema": "IVR1-r1-selected-raw32-replay-v1", "unit_id": args.unit_id,
               "status": "PASS", "source_seed": seed, "arm_id": config["arm_id"],
+              "realization": realization,
               "policy_receipt_sha256": config["policy_receipt_sha256"],
               "selected_fit_receipt_sha256": config["selected_receipt"]["sha256"],
               "p0_fit_sha256": config["p0_fit"]["sha256"],
@@ -189,7 +198,7 @@ def main(argv=None):
               "coin_kind": policy.law_kind, "coin_file_sha256": sha_file(coin_path) if coins is not None else None,
               "release_sha256_by_recipient": {f"r{r}": sha_file(wire_paths[r-1]) for r in (1, 2)},
               "wire_content_sha256_by_recipient": {f"r{r}": wire_hash(actual[r-1]) for r in (1, 2)},
-              "parity": "32/32 each recipient against R2 FIT realization 0 codes and P0 original wire",
+              "parity": f"32/32 each recipient against R2 FIT realization {realization} codes and P0 original wire",
               "label_fields_read": [], "queue_seal_sha256": active["seal_sha256"]}
     write_json(config["receipt_output"], record)
 
