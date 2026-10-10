@@ -1,0 +1,9 @@
+# R15 fixed release metadata review
+
+Source and JSON receipt review only. I did not load an NPZ array or inspect any per-person value. This is separate from R04's independent wire replay.
+
+The public `A_FIXED_RELEASE_COMPLETION_RECEIPT.json` has SHA-256 `19c351574ce3e4c3a9d319fa82731c9d77378a0f5438745cdba6e3c6127a0b04` and reports 36/36 completed fixed releases: 28 historical and eight diagnostics. Its rows contain 18 `ATTACK_FIT_NEW` releases at 4,064 rows/4,061 groups and 18 `INNER_SELECTION` releases at 2,235 rows/2,234 groups. Each row contains queue, release receipt, and archive SHA-256 digests. The charged CPU values sum to the stated 19.025 seconds.
+
+For representative `A-REFERENCE-RELEASE-T_STAR-S0-ATT`, private spec SHA-256 is `282d44e234701e9cb2fce581a91dfee725f3caf7555dbc6bfa4aff2a0bd4bcb5`; queue receipt SHA-256 is `f385ea56f874dbe5d08d80f42534ea093d715ab6352196052395df528c770346`; release receipt SHA-256 is `4a52e086ba4097c5e96243dd8e7b14e89c5f79fb570c16b62fa8a8357e5dac84`; archive SHA-256 is `e5a9cf8a1c78cd42d4a80bf910d2fa5310e79177806b78b1d22c2b5f9dede5cc`. The canonical spec digest matches the queued spec digest. The queue reports `done`, return code 0, no timeout or resource limit. The spec binds the unchanged producer, downstream manifest and registration, has 125 distinct source entries, 30-second caps, and contains no SEX or old-assessment source path.
+
+The representative release receipt reports finite `FROZEN_DETERMINISTIC`, 4,064 rows/4,061 groups, exact source/bank identities, and two recipient wire hashes. The sealed writer reconstructs each recipient wire with probability, decision, global code ID, release ID, and public metadata, including source and bank identities and code length. The fixed-release workers read admitted references and public cells; their source has no task or SEX label read. This review checks contracts and receipt hashes, not the actual per-person emitted arrays or attack outcomes.
