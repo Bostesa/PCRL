@@ -12,7 +12,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_driver import (
 )
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint import (
     FAILED, FITTED_ARMS, FIXED_ARMS, NULL, classify_fixed_scope,
-    map_fixed_physical_units, _producer_and_correction,
+    map_fixed_physical_units, _producer_and_correction, fixed_failure_summary,
 )
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_inference import a_margin_at
 from results.pcrl_latent_and_sampled_methods_v1.r02.test_a_inference import _seed
@@ -150,6 +150,16 @@ def test_fixed_scope_preserves_58_registry_and_14_vs_2_reasons(tmp_path):
     assert sum(row["category"] == NULL for row in reports) == 14
     assert sum(row["category"] == FAILED for row in reports) == 2
     assert {row["arm_id"] for row in reports if row["category"] == FAILED} == {"A_SEQ21"}
+    summary = fixed_failure_summary(reports)
+    assert summary["seq21_failed_after_infeasible_stage1_count"] == 2
+    assert "both 150-update stage1 starts completed" in summary[
+        "seq21_failed_after_infeasible_stage1_interpretation"]
+    assert "stage2 never ran" in summary[
+        "seq21_failed_after_infeasible_stage1_interpretation"]
+    assert "rc1 technical incomplete" in summary[
+        "seq21_failed_after_infeasible_stage1_interpretation"]
+    assert "resource cutoff" not in summary[
+        "seq21_failed_after_infeasible_stage1_interpretation"]
 
 
 def test_failed_seq21_is_not_promoted_to_finalized_null(tmp_path):
@@ -355,6 +365,11 @@ def test_r1_inert_proposal_pins_exact_correction_and_sources():
            for physical, record in correction["physical_attempts"].items()},
     }
     assert sum(uid.endswith("-R1") for uid in proposal["fixed_physical_attack_unit_ids"]) == 12
+    assert "both 150-update stage1 starts completed" in proposal["interpretation"][
+        "seq21_failed_after_infeasible_stage1_interpretation"]
+    assert "stage2 never ran" in proposal["interpretation"][
+        "seq21_failed_after_infeasible_stage1_interpretation"]
+    assert "failed_stage1_resource_fit_count" not in proposal["queue_contract"]
     for name in SOURCE_NAMES_FIXED:
         assert proposal["source_sha256"][name] == sha(CAMPAIGN / name)
     for name in SHARED_NAMES:

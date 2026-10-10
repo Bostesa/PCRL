@@ -56,6 +56,20 @@ FIT_SCHEMAS = {
 }
 
 
+def fixed_failure_summary(reports: list[Mapping]) -> dict:
+    count = sum(row.get("category") == FAILED for row in reports)
+    if count != 2 or {row.get("arm_id") for row in reports
+                      if row.get("category") == FAILED} != {"A_SEQ21"}:
+        raise ValueError("SEQ21 incomplete FIT inventory differs")
+    return {
+        "seq21_failed_after_infeasible_stage1_count": count,
+        "seq21_failed_after_infeasible_stage1_interpretation": (
+            "For each seed, both 150-update stage1 starts completed with zero "
+            "feasible checkpoints; stage2 never ran; rc1 technical incomplete. "
+            "No observed CPU, wall-time, or memory cutoff is claimed."),
+    }
+
+
 def map_fixed_physical_units(fixed: Mapping, units: Mapping,
                              retry_plan: Mapping, producer_sha256: str,
                              correction_sha256: str, queue_root: Path) -> dict:
@@ -640,7 +654,7 @@ def run(args: argparse.Namespace) -> dict:
                "corrected_physical_attack_instances": 12,
                "fixed_att_inner_release_instances": 36,
                "unavailable_fitted_attack_instances": 40,
-               "finalized_null_fit_count": 14, "failed_stage1_resource_fit_count": 2,
+               "finalized_null_fit_count": 14, **fixed_failure_summary(reports),
                "clauses": 6885, "available_clause_count": 1161,
                "missing_clause_count": 5724,
                "missing_clause_interpretation": "not estimable; retained in the fixed family",
