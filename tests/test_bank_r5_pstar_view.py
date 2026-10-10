@@ -93,7 +93,8 @@ class SeparateReferenceViewTests(unittest.TestCase):
                     return {((f"r{i+1}." if view == "pair" else "") + key): val
                             for i in chosen for key, val in fields[i].items()}
                 codes = ("r1.code_id", "r2.code_id") if view == "pair" else ("code_id",)
-                expected = encode(named("att"), named("inner"), code_fields=codes)
+                expected = encode(named("att"), named("inner"),
+                                  code_fields=codes, view=view)
                 out = root / view / "readers"
                 out.mkdir(parents=True)
                 for role in ("att", "inner"):

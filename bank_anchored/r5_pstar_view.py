@@ -98,7 +98,7 @@ def role_fields(source: dict[str, np.ndarray], receipt: dict, recipient: int,
 
 def encode(att: dict[str, tuple[str, np.ndarray]],
            inner: dict[str, tuple[str, np.ndarray]],
-           *, code_fields: tuple[str, ...]) -> dict[str, dict[str, np.ndarray]]:
+           *, code_fields: tuple[str, ...], view: str) -> dict[str, dict[str, np.ndarray]]:
     if tuple(att) != tuple(inner):
         raise ValueError("P* ATT/INNER field order differs")
     vocab = {}
@@ -129,7 +129,17 @@ def encode(att: dict[str, tuple[str, np.ndarray]],
         cell_key = np.asarray([json.dumps([str(int(v)) for v in values],
                                          separators=(",", ":"))
                                for values in zip(*cell_values)], dtype=np.str_)
-        out[role] = {"x": np.concatenate(blocks, axis=1),
+        x = np.concatenate(blocks, axis=1)
+        if view == "pair":
+            left = np.asarray(fields["r1.code_bits"][1], dtype=np.float64)
+            right = np.asarray(fields["r2.code_bits"][1], dtype=np.float64)
+            derived = [np.log(np.maximum(fields["r1.probability"][1], 1e-12)),
+                       np.log(np.maximum(fields["r2.probability"][1], 1e-12)),
+                       (left[:, :, None] * right[:, None, :]).reshape(n, -1)]
+        else:
+            derived = [np.log(np.maximum(fields["probability"][1], 1e-12))]
+        out[role] = {"x": x,
+                     "x_defense_aware": np.concatenate([x, *derived], axis=1),
                      "x_metadata": np.concatenate(metadata, axis=1),
                      "x_code_bits": np.concatenate(bits, axis=1),
                      "cell_key": cell_key}
@@ -194,18 +204,21 @@ def verify(spec: dict, private: Path) -> dict:
         att = named(releases["att"][1])
         inner = named(releases["inner"][1])
         codes = ("r1.code_id", "r2.code_id") if view == "pair" else ("code_id",)
-        expected = encode(att, inner, code_fields=codes)
+        expected = encode(att, inner, code_fields=codes, view=view)
         for role in ("att", "inner"):
             actual = archive(private / view / "readers" / f"view_{role}.npz",
-                             {"row_id", "unit", "x", "x_metadata",
+                             {"row_id", "unit", "x", "x_defense_aware", "x_metadata",
                               "x_code_bits", "cell_key"})
             source = releases[role][0]
             if (not np.array_equal(actual["row_id"], source["row_id"]) or
                     not np.array_equal(actual["unit"], source["unit"]) or
                     any(not np.array_equal(actual[name], expected[role][name])
-                        for name in ("x", "x_metadata", "x_code_bits", "cell_key"))):
+                        for name in ("x", "x_defense_aware", "x_metadata",
+                                     "x_code_bits", "cell_key"))):
                 raise ValueError("P* frozen view omits or changes a public field")
         checked[view] = {"att_columns": int(expected["att"]["x"].shape[1]),
+                         "defense_aware_columns":
+                             int(expected["att"]["x_defense_aware"].shape[1]),
                          "complete": True}
     return {"status": "PASS", "views": checked,
             "scope": "P* separate finite full-bank wire, code/probability/decision and every fixed metadata field"}
