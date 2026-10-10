@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[3]
 STUDY = Path(__file__).resolve().parents[1]
 R1 = STUDY / "r1"
 R4 = STUDY / "r4"
-UNIT_ID = "R4_UTILITY_INTERVALS_ALL8"
+UNIT_ID = "R4_UTILITY_INTERVALS_ALL8_A04"
 
 
 def record(path: Path) -> dict:
@@ -50,6 +50,7 @@ def prepare(role_manifest: Path, gate_b10: Path, gate_b16: Path,
     execution = record(STUDY / "UTILITY_INTERVAL_EXECUTION_LOCK.json")
     source_lock = record(STUDY / "UTILITY_INTERVAL_SOURCE_LOCK.json")
     ladder_decision = record(STUDY / "CAPACITY_LADDER_DECISION.json")
+    amendment = record(STUDY / "AMENDMENT_04_DEPLOYMENT_DIAGNOSTIC.json")
     worker = record(R4 / "utility_interval_worker.py")
     utility = record(R4 / "utility_intervals.py")
     inference = record(R4 / "inference_rule.py")
@@ -67,7 +68,7 @@ def prepare(role_manifest: Path, gate_b10: Path, gate_b16: Path,
         "output": str((R4 / "UTILITY_INTERVALS_RECEIPT.json").resolve()),
     }
     all_sources = {item["path"]: item for item in (
-        seal, randomness, execution, source_lock, ladder_decision,
+        seal, randomness, execution, source_lock, ladder_decision, amendment,
         worker, utility, inference,
         family, config["inference_proposal"], config["finite_family_proposal"],
         role, record(gate_b10), record(gate_b16))}
@@ -163,6 +164,7 @@ def prepare(role_manifest: Path, gate_b10: Path, gate_b16: Path,
     add(record(config_path))
     spec = {
         "unit_id": UNIT_ID, "stage": "verification",
+        "amendment_sha256": amendment["sha256"],
         "argv": [str(ROOT / ".venv/bin/python"), "-m",
                  "results.pcrl_code_utility_witness_v1.r4.utility_interval_worker",
                  "--config", str(config_path)],
