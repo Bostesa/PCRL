@@ -18,11 +18,12 @@ import subprocess
 from typing import Mapping
 
 from . import policy_worker, reference_worker, witness_worker
+from .successor_plan import build_plan
 
 
-SCHEMA = "pcrl-bank-r4-spec-build-config-v2"
-INDEX_SCHEMA = "pcrl-bank-r4-attack-unit-index-v2"
-QUEUE_INDEX_SCHEMA = "pcrl-bank-r4-queue-unit-index-v2"
+SCHEMA = "pcrl-bank-r4-spec-build-config-v3-h1"
+INDEX_SCHEMA = "pcrl-bank-r4-attack-unit-index-v3-h1"
+QUEUE_INDEX_SCHEMA = "pcrl-bank-r4-queue-unit-index-v3-h1"
 ARMS = ("B0", "T", "D", "P", "L", "J", "S12", "S21", "W_Q", "P_STAR")
 CHANNEL_ARMS = ("T", "D", "P", "L", "J", "S12", "S21")
 ROLES = ("ATTACK_FIT_NEW", "INNER_SELECTION")
@@ -33,6 +34,9 @@ CONFIG_KEYS = frozenset({
     "pstar_historical_gate", "prior_combined_gate_by_arm", "queue_root",
     "selected_r2_root", "selected_unit_by_arm_seed",
     "bounds_pin",
+    "unit_revision", "h1_source_plan_pin", "h1_correction_amendment_pin",
+    "predecessor_attack_index_pin", "predecessor_queue_index_pin",
+    "predecessor_stage_lock_pin",
     "witness_source_root", "pstar_source_root",
     "private_root", "public_root", "python_executable",
     "max_wall_s", "cpu_reserve_s", "max_rss_gib",
@@ -138,12 +142,16 @@ def planned_units(eligible_arms: set[str]) -> list[tuple[str, int, int]]:
                                 else range(1))]
 
 
-def _unit_id(arm: str, seed: int, realization: int) -> str:
-    return f"R4_ATTACK_{arm}_S{seed}_R{realization}"
+def _unit_id(arm: str, seed: int, realization: int,
+             revision: str = "H1") -> str:
+    if revision != "H1":
+        raise ValueError("only the sealed H1 successor namespace is supported")
+    return f"R4_ATTACK_{arm}_S{seed}_R{realization}_H1"
 
 
 def _validate_config(config: Mapping) -> tuple[dict, dict]:
-    if not isinstance(config, Mapping) or set(config) != CONFIG_KEYS or config["schema"] != SCHEMA:
+    if (not isinstance(config, Mapping) or set(config) != CONFIG_KEYS or
+            config["schema"] != SCHEMA or config["unit_revision"] != "H1"):
         raise ValueError("attack builder config schema differs")
     if set(config["table_by_seed"]) != {"0", "1"} or \
             set(config["gate_by_arm"]) != set(ARMS) - {"P_STAR"} or \
@@ -160,6 +168,7 @@ def _validate_config(config: Mapping) -> tuple[dict, dict]:
             config["projected_output_bytes"] < 0):
         raise ValueError("attack queue resource bounds differ")
     _validate_bounds(config)
+    _validate_h1_correction(config)
     seal = _read_pin({"path": config["campaign_seal_path"],
                       "sha256": config["campaign_seal_sha256"]})
     if seal.get("schema") != "pcrl-bank-anchored-campaign-lock-v1" or \
@@ -189,6 +198,79 @@ def _validate_bounds(config: Mapping) -> str:
             any(config.get(key) != bounds.get(field) for key, field in fields)):
         raise PermissionError("queue resources differ from prefit bound receipt")
     return config["bounds_pin"]["sha256"]
+
+
+def _validate_h1_correction(config: Mapping, *, require_latest: bool = False) -> dict:
+    plan_pin = config["h1_source_plan_pin"]
+    plan = _read_pin(plan_pin)
+    old_index_pin = config["predecessor_attack_index_pin"]
+    old_queue_pin = config["predecessor_queue_index_pin"]
+    old_lock_pin = config["predecessor_stage_lock_pin"]
+    expected = build_plan(_read_pin(old_index_pin), _read_pin(old_queue_pin),
+                          _read_pin(old_lock_pin),
+                          attack_sha=old_index_pin["sha256"],
+                          queue_sha=old_queue_pin["sha256"],
+                          lock_sha=old_lock_pin["sha256"])
+    if (plan != expected or plan.get("unit_count") != 38 or
+            plan.get("planned_fits") != 1140):
+        raise PermissionError("H1 source plan differs from predecessor 38 units")
+    correction_pin = config["h1_correction_amendment_pin"]
+    correction = _read_pin(correction_pin)
+    if (correction.get("h1_source_plan_sha256") != plan_pin["sha256"] or
+            correction.get("successor_suffix") != "H1" or
+            correction.get("unit_count") != 38):
+        raise PermissionError("R0 correction amendment does not bind H1 plan")
+    state = json.loads((Path(config["queue_root"]) / "state.json").read_text())
+    attack_amendments = [a for a in state.get("amendments", [])
+                         if "attacks" in a.get("stages", [])]
+    if (not any(a["sha256"] == correction_pin["sha256"]
+                for a in attack_amendments) or
+            (require_latest and
+             attack_amendments[-1]["sha256"] != correction_pin["sha256"])):
+        raise PermissionError("R0 correction amendment not registered for H1 preparation")
+    return plan
+
+
+def validate_h1_science_identity(old: Mapping, new: Mapping) -> None:
+    """The H1 retry changes only immutable queue identity/output destinations."""
+    identity = {"unit_id", "private_output_path", "public_receipt_path"}
+    if (set(old) != set(new) or
+            {key: value for key, value in old.items() if key not in identity} !=
+            {key: value for key, value in new.items() if key not in identity} or
+            new.get("unit_id") != old.get("unit_id", "") + "_H1" or
+            Path(new.get("private_output_path", "")).parent !=
+            Path(old.get("private_output_path", "")).parent or
+            Path(new.get("public_receipt_path", "")).parent !=
+            Path(old.get("public_receipt_path", "")).parent or
+            Path(new.get("private_output_path", "")).name != new["unit_id"] or
+            Path(new.get("public_receipt_path", "")).name !=
+            new["unit_id"] + "_RECEIPT.json"):
+        raise PermissionError("H1 successor changed a scientific source or reader contract")
+
+
+def build_queue_spec(*, unit_id: str, kind: str, python: str, spec_path: str,
+                     spec_sha: str, lock_path: str, lock_sha: str,
+                     public_receipt_path: str, cwd: str, max_wall_s: float,
+                     cpu_reserve_s: float, max_rss_gib: float,
+                     projected_output_bytes: int,
+                     source_pins: list[dict[str, str]]) -> dict:
+    modules = {"policy": "results.pcrl_bank_anchored_release_v1.r4.policy_worker",
+               "witness": "results.pcrl_bank_anchored_release_v1.r4.witness_worker",
+               "pstar": "results.pcrl_bank_anchored_release_v1.r4.reference_worker"}
+    if kind not in modules or len(lock_sha) != 64:
+        raise ValueError("H1 worker kind or latest stage lock SHA differs")
+    return {"unit_id": unit_id, "stage": "attacks",
+            "amendment_sha256": lock_sha,
+            "argv": [python, "-m", modules[kind],
+                     "--unit-spec", spec_path,
+                     "--unit-spec-sha256", spec_sha,
+                     "--stage-lock", lock_path,
+                     "--stage-lock-sha256", lock_sha],
+            "cwd": cwd, "max_wall_s": max_wall_s,
+            "cpu_reserve_s": cpu_reserve_s, "max_rss_gib": max_rss_gib,
+            "projected_output_bytes": projected_output_bytes,
+            "deps": [], "env": {},
+            "outputs": [public_receipt_path], "sources": source_pins}
 
 
 def eligible_arms(config: Mapping) -> set[str]:
@@ -322,7 +404,7 @@ def _validate_incomplete_gate(config: Mapping, arm: str,
 
 def _common(config: Mapping, arm: str, seed: int, realization: int,
             kind: str) -> dict:
-    unit_id = _unit_id(arm, seed, realization)
+    unit_id = _unit_id(arm, seed, realization, config["unit_revision"])
     private = Path(config["private_root"])
     public = Path(config["public_root"])
     return {
@@ -548,8 +630,13 @@ def prepare(config_path: str) -> dict:
         raise PermissionError("attack builder input must be private")
     config = json.loads(config_file.read_text())
     _, role = _validate_config(config)
+    plan = _validate_h1_correction(config, require_latest=True)
     eligible = eligible_arms(config)
     units = planned_units(eligible)
+    plan_by_id = {row["successor_unit_id"]: row for row in plan["units"]}
+    if ({_unit_id(*unit) for unit in units} != set(plan_by_id) or
+            len(units) != len(plan["units"])):
+        raise PermissionError("H1 eligible units differ from the sealed source plan")
     private = Path(config["private_root"])
     public = Path(config["public_root"])
     _private_directory(private)
@@ -567,6 +654,15 @@ def prepare(config_path: str) -> dict:
         else:
             spec, kind = _pstar_spec(config, seed), "pstar"
         uid = spec["unit_id"]
+        old_row = plan_by_id[uid]
+        if ((old_row["arm_id"], old_row["source_seed"],
+             old_row["realization"], old_row["attacker_seed"]) !=
+                (arm, seed, realization, spec["attacker_seed"])):
+            raise PermissionError("H1 arm, seed, draw or attacker seed differs")
+        old_path = private / "units" / f'{old_row["predecessor_unit_id"]}.json'
+        if _sha(old_path) != old_row["predecessor_worker_spec_sha256"]:
+            raise PermissionError("predecessor worker spec bytes differ")
+        validate_h1_science_identity(json.loads(old_path.read_text()), spec)
         spec_path = private / "units" / f"{uid}.json"
         spec_sha = _write_once(spec_path, spec, 0o600)
         lock_units[uid] = {"spec_sha256": spec_sha, "arm_id": arm,
@@ -579,6 +675,15 @@ def prepare(config_path: str) -> dict:
     index = {"schema": INDEX_SCHEMA,
              "campaign_seal_sha256": config["campaign_seal_sha256"],
              "builder_sha256": _sha(Path(__file__)),
+             "h1_source_plan_sha256": config["h1_source_plan_pin"]["sha256"],
+             "h1_correction_amendment_sha256":
+                 config["h1_correction_amendment_pin"]["sha256"],
+             "predecessor_attack_unit_index_sha256":
+                 config["predecessor_attack_index_pin"]["sha256"],
+             "predecessor_attack_queue_index_sha256":
+                 config["predecessor_queue_index_pin"]["sha256"],
+             "predecessor_stage_lock_sha256":
+                 config["predecessor_stage_lock_pin"]["sha256"],
              "queue_bounds_sha256": _validate_bounds(config),
              "eligible_arms": [arm for arm in ARMS if arm in eligible],
              "ineligible_arms": [arm for arm in ARMS if arm not in eligible],
@@ -592,7 +697,7 @@ def prepare(config_path: str) -> dict:
              "pstar_independent_replay_sha256": config["pstar_gate"]["sha256"],
              "unit_count": len(entries), "planned_fits": 30 * len(entries),
              "units": entries, "stage_lock_units": lock_units}
-    index_sha = _write_once(public / "ATTACK_UNIT_INDEX.json", index, 0o644)
+    index_sha = _write_once(public / "ATTACK_UNIT_INDEX_H1.json", index, 0o644)
     return {"status": "SPECS_READY_NO_ATTACK_FIT", "index_sha256": index_sha,
             "unit_count": len(entries), "planned_fits": 30 * len(entries),
             "eligible_arms": index["eligible_arms"]}
@@ -656,9 +761,13 @@ def finalize(config_path: str, stage_lock_path: str,
     config = json.loads(config_file.read_text())
     _validate_config(config)
     public = Path(config["public_root"])
-    index = json.loads((public / "ATTACK_UNIT_INDEX.json").read_text())
+    index = json.loads((public / "ATTACK_UNIT_INDEX_H1.json").read_text())
     if (index.get("schema") != INDEX_SCHEMA or
             index.get("builder_sha256") != _sha(Path(__file__)) or
+            index.get("h1_source_plan_sha256") !=
+            config["h1_source_plan_pin"]["sha256"] or
+            index.get("h1_correction_amendment_sha256") !=
+            config["h1_correction_amendment_pin"]["sha256"] or
             index.get("queue_bounds_sha256") != _validate_bounds(config) or
             index.get("campaign_seal_sha256") != config["campaign_seal_sha256"]):
         raise PermissionError("attack spec index differs from active builder/source")
@@ -671,15 +780,13 @@ def finalize(config_path: str, stage_lock_path: str,
         raise PermissionError("R0 attack-stage lock omits or alters a planned unit")
     queue_root = Path(config["queue_root"]).resolve(strict=True)
     state = json.loads((queue_root / "state.json").read_text())
-    if not any(a["sha256"] == stage_lock_sha256 and "attacks" in a["stages"]
-               for a in state.get("amendments", [])):
-        raise PermissionError("R0 did not register attack-stage lock in global queue")
+    attack_amendments = [a for a in state.get("amendments", [])
+                         if "attacks" in a.get("stages", [])]
+    if not attack_amendments or attack_amendments[-1]["sha256"] != stage_lock_sha256:
+        raise PermissionError("H1 stage lock is not latest registered attack amendment")
     python = _python_entrypoint(config["python_executable"])
     private = Path(config["private_root"])
     queue_entries = []
-    modules = {"policy": "results.pcrl_bank_anchored_release_v1.r4.policy_worker",
-               "witness": "results.pcrl_bank_anchored_release_v1.r4.witness_worker",
-               "pstar": "results.pcrl_bank_anchored_release_v1.r4.reference_worker"}
     for entry in index["units"]:
         uid = entry["unit_id"]
         spec_path = private / "units" / f"{uid}.json"
@@ -687,33 +794,35 @@ def finalize(config_path: str, stage_lock_path: str,
             raise PermissionError("private attack unit spec differs from sealed index")
         spec = json.loads(spec_path.read_text())
         kind = entry["worker_kind"]
-        queue_spec = {
-            "unit_id": uid, "stage": "attacks",
-            "argv": [python, "-m", modules[kind],
-                     "--unit-spec", str(spec_path),
-                     "--unit-spec-sha256", entry["spec_sha256"],
-                     "--stage-lock", str(lock_path),
-                     "--stage-lock-sha256", stage_lock_sha256],
-            "cwd": str(Path(__file__).parents[3]),
-            "max_wall_s": config["max_wall_s"],
-            "cpu_reserve_s": config["cpu_reserve_s"],
-            "max_rss_gib": config["max_rss_gib"],
-            "projected_output_bytes": config["projected_output_bytes"],
-            "deps": [], "env": {},
-            "outputs": [spec["public_receipt_path"]],
-            "sources": _queue_sources(spec, spec_path, lock_path) +
-                       [config["bounds_pin"]],
-        }
+        queue_spec = build_queue_spec(
+            unit_id=uid, kind=kind, python=python, spec_path=str(spec_path),
+            spec_sha=entry["spec_sha256"], lock_path=str(lock_path),
+            lock_sha=stage_lock_sha256,
+            public_receipt_path=spec["public_receipt_path"],
+            cwd=str(Path(__file__).parents[3]),
+            max_wall_s=config["max_wall_s"],
+            cpu_reserve_s=config["cpu_reserve_s"],
+            max_rss_gib=config["max_rss_gib"],
+            projected_output_bytes=config["projected_output_bytes"],
+            source_pins=_queue_sources(spec, spec_path, lock_path) +
+            [config[key] for key in (
+                "bounds_pin", "h1_source_plan_pin",
+                "h1_correction_amendment_pin",
+                "predecessor_attack_index_pin",
+                "predecessor_queue_index_pin",
+                "predecessor_stage_lock_pin")])
         queue_path = private / "queue_units" / f"{uid}.json"
         queue_sha = _write_once(queue_path, queue_spec, 0o600)
         queue_entries.append({"unit_id": uid, "queue_spec_sha256": queue_sha,
                               "attack_spec_sha256": entry["spec_sha256"]})
     queue_index = {"schema": QUEUE_INDEX_SCHEMA,
-                   "attack_unit_index_sha256": _sha(public / "ATTACK_UNIT_INDEX.json"),
+                   "attack_unit_index_sha256": _sha(public / "ATTACK_UNIT_INDEX_H1.json"),
                    "stage_lock_sha256": stage_lock_sha256,
+                   "amendment_sha256": stage_lock_sha256,
+                   "h1_source_plan_sha256": config["h1_source_plan_pin"]["sha256"],
                    "unit_count": len(queue_entries), "units": queue_entries,
                    "status": "READY_TO_ENQUEUE_NO_ATTACK_FIT"}
-    queue_index_sha = _write_once(public / "ATTACK_QUEUE_INDEX.json", queue_index, 0o644)
+    queue_index_sha = _write_once(public / "ATTACK_QUEUE_INDEX_H1.json", queue_index, 0o644)
     return {"status": queue_index["status"],
             "queue_index_sha256": queue_index_sha,
             "unit_count": len(queue_entries)}

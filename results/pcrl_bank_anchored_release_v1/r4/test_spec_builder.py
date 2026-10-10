@@ -29,6 +29,39 @@ def write_json(path: Path, value: dict, mode=0o644) -> dict:
 
 
 class AttackSpecBuilderTests(unittest.TestCase):
+    def test_h1_successor_changes_only_identity_and_outputs(self):
+        old = {"unit_id": "R4_ATTACK_J_S0_R1", "arm_id": "J",
+               "source_seed": 0, "realization": 1,
+               "attacker_seed": 100001,
+               "private_output_path": "/private/attacks/R4_ATTACK_J_S0_R1",
+               "public_receipt_path": "/public/R4_ATTACK_J_S0_R1_RECEIPT.json",
+               "policy_receipt_sha256": "a" * 64}
+        new = old | {
+            "unit_id": "R4_ATTACK_J_S0_R1_H1",
+            "private_output_path": "/private/attacks/R4_ATTACK_J_S0_R1_H1",
+            "public_receipt_path": "/public/R4_ATTACK_J_S0_R1_H1_RECEIPT.json"}
+        spec_builder.validate_h1_science_identity(old, new)
+        with self.assertRaises(PermissionError):
+            spec_builder.validate_h1_science_identity(
+                old, new | {"attacker_seed": 100002})
+        with self.assertRaises(PermissionError):
+            spec_builder.validate_h1_science_identity(
+                old, new | {"private_output_path":
+                           "/another/R4_ATTACK_J_S0_R1_H1"})
+
+    def test_h1_queue_spec_binds_latest_attack_stage_amendment(self):
+        q = spec_builder.build_queue_spec(
+            unit_id="R4_ATTACK_B0_S0_R0_H1", kind="witness",
+            python="/venv/bin/python", spec_path="/private/H1.json",
+            spec_sha="a" * 64, lock_path="/public/H1_LOCK.json",
+            lock_sha="b" * 64, public_receipt_path="/public/H1_RECEIPT.json",
+            cwd="/workspace", max_wall_s=300, cpu_reserve_s=300,
+            max_rss_gib=2.0, projected_output_bytes=134217728,
+            source_pins=[{"path": "/public/source", "sha256": "c" * 64}])
+        self.assertEqual(q["amendment_sha256"], "b" * 64)
+        self.assertEqual(q["unit_id"], "R4_ATTACK_B0_S0_R0_H1")
+        self.assertEqual(q["argv"][0], "/venv/bin/python")
+
     def test_prefit_queue_bounds_are_hash_pinned(self):
         with tempfile.TemporaryDirectory() as directory:
             bounds = {"schema": "pcrl-bank-r4-attack-queue-bounds-v1",
@@ -277,6 +310,7 @@ class AttackSpecBuilderTests(unittest.TestCase):
                 "all_two_seed_task_reference_point_caps_pass": True,
                 "source_receipts": sources})
             config = {
+                "unit_revision": "H1",
                 "private_root": str(root / ".private"),
                 "public_root": str(root),
                 "campaign_seal_path": str(root / "CAMPAIGN_LOCK.json"),

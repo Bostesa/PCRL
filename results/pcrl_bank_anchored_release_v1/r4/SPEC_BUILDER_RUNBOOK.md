@@ -1,5 +1,59 @@
 # R4 attack-stage unit builder
 
+## Current H1 correction
+
+The V2 commands below document the original 38 specs and their failed queue
+admission. They are historical and must not be rerun with those IDs. No
+attacker fit or ATT/INNER SEX read occurred. The queue rejected all old
+specs because they lacked `amendment_sha256`. The H1 successor keeps each
+scientific arm, source, seed, draw, reader, role and resource cap unchanged.
+The write-once `ATTACK_H1_SOURCE_PLAN.json` records all 38 old/new IDs and
+their original hashes. `ATTACK_QUEUE_H1_CORRECTION.md` records the failure.
+
+Before H1 `prepare`, R0 must register a dated attacks-stage correction
+amendment with `h1_source_plan_sha256` equal to the plan hash,
+`successor_suffix:"H1"`, and `unit_count:38`. Create an owner-only
+`r4/.private/ATTACK_BUILD_CONFIG_H1.json` by copying the V2 config, changing
+its schema to `pcrl-bank-r4-spec-build-config-v3-h1`, and adding:
+
+- `unit_revision:"H1"`;
+- `h1_source_plan_pin`, `h1_correction_amendment_pin`;
+- `predecessor_attack_index_pin`, `predecessor_queue_index_pin`,
+  `predecessor_stage_lock_pin`.
+
+Each pin is an exact absolute `{path,sha256}` pair. The builder rederives the
+plan from the predecessor indexes and checks the correction amendment is the
+latest registered attacks amendment. It compares each H1 worker spec to the
+old spec on every field except unit ID and output destinations, before
+writing anything. Then run:
+
+```sh
+/Users/nathansamson/PCRL/.venv/bin/python -m results.pcrl_bank_anchored_release_v1.r4.spec_builder prepare \
+  --config results/pcrl_bank_anchored_release_v1/r4/.private/ATTACK_BUILD_CONFIG_H1.json
+```
+
+This writes `ATTACK_UNIT_INDEX_H1.json` and private H1 worker specs. R5 must
+audit the exact index/spec hashes. R0 then registers a new exact H1
+`pcrl-bank-attack-stage-lock-v1` amendment whose `units` equal the H1 index
+`stage_lock_units`. Finalize only after that registration:
+
+```sh
+/Users/nathansamson/PCRL/.venv/bin/python -m results.pcrl_bank_anchored_release_v1.r4.spec_builder finalize \
+  --config results/pcrl_bank_anchored_release_v1/r4/.private/ATTACK_BUILD_CONFIG_H1.json \
+  --stage-lock <R0-H1-stage-lock-path> \
+  --stage-lock-sha256 <R0-H1-stage-lock-sha256>
+```
+
+`ATTACK_QUEUE_INDEX_H1.json` lists private queue specs. Each spec contains
+`amendment_sha256` equal to the latest registered H1 stage-lock SHA, and pins
+that lock and the earlier correction/plan among its sources. R5 must check
+the global queue's `_admit_reason` on all 38 specs before R0 enqueues them.
+The expected result is `None` for every unit. A changed latest attacks
+amendment requires another explicit versioned correction; never edit H1
+specs in place.
+
+## Original V2 procedure, preserved as admission history
+
 `spec_builder.py` is a receipt-only prefit step. It reads pinned public
 tables/gates and private **receipt JSON and file hashes** for R2 policies,
 cached releases and historical references. It never loads a person-level
