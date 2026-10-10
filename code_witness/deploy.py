@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--bits", type=int, choices=(10, 16), required=True)
+    parser.add_argument("--purpose", type=int, choices=(0, 1), required=True)
     args = parser.parse_args(argv)
 
     manifest_path = Path(args.service_manifest)
@@ -51,12 +52,9 @@ def main(argv: list[str] | None = None) -> None:
                                   names, actual_schema_sha,
                                   int(manifest["source_seed"]))
     raw = load_permitted_input(args.input, list(names))
-    exported: dict[str, np.ndarray] = {}
-    for purpose in (0, 1):
-        one = release.recipient_from_raw(purpose, raw, names, encoder)
-        exported[f"code{purpose}"] = one["code"]
-        exported[f"prob{purpose}"] = one["probabilities"]
-        exported[f"decision{purpose}"] = one["decision"]
+    one = release.recipient_from_raw(args.purpose, raw, names, encoder)
+    exported = {"code": one["code"], "prob": one["probabilities"],
+                "decision": one["decision"]}
     output = Path(args.output)
     fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "wb") as stream:
@@ -64,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
         stream.flush()
         os.fsync(stream.fileno())
     print(json.dumps({"schema": "code-utility-hardbits-deployment-v1",
-                      "rows": len(raw), "bits": args.bits,
+                      "rows": len(raw), "bits": args.bits, "purpose": args.purpose,
                       "source_schema_sha256": actual_schema_sha,
                       "service_manifest_sha256": args.service_manifest_sha256,
                       "release_sha256": sha256_file(output)}, sort_keys=True))
