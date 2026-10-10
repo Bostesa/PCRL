@@ -95,6 +95,30 @@ class ReleaseWorkerTest(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(PermissionError):
                 run_release._selected_parent_identity(fit, swapped, **expected)
 
+    def test_control_selected_policy_must_match_frozen_fit_checkpoint(self):
+        common = {
+            "status": "SELECTED_FIT_POLICY", "arm_id": "A_CENTRAL_PRODUCT",
+            "source_seed": 0, "source_binding_sha256": "b" * 64,
+            "row_unit_pair_sha256": "c" * 64,
+            "bank_sha256_by_recipient": {"r1": "d" * 64, "r2": "e" * 64},
+            "action_sha256_by_recipient": {"r1": "f" * 64, "r2": "0" * 64},
+        }
+        fit = {**common, "schema": "SCV1-private-control-fit-v1",
+               "unit_id": "fit-0", "a_amendment_sha256": "a" * 64,
+               "fit": {"complete": True, "success": True,
+                       "diagnostic_best": [0.7, 0, 25]}}
+        policy = {**common, "fit_unit_id": "fit-0",
+                  "selected_start": "identity_biased", "selected_update": 25}
+        expected = dict(unit_id="fit-0", arm_id="A_CENTRAL_PRODUCT", seed=0,
+                        amendment_sha256="a" * 64)
+        run_release._selected_parent_identity(fit, policy, **expected)
+        for changed in ({"selected_start": "uniform_logit"},
+                        {"selected_update": 50}):
+            with self.subTest(changed=changed), self.assertRaisesRegex(
+                    PermissionError, "selected checkpoint"):
+                run_release._selected_parent_identity(
+                    fit, {**policy, **changed}, **expected)
+
     def test_queue_output_is_receipt_file_not_directory(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
