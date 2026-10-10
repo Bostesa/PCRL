@@ -17,6 +17,12 @@ from results.pcrl_latent_and_sampled_methods_v1.r03.a_graph import compile_graph
 from results.pcrl_latent_and_sampled_methods_v1.r03.a_specs import (
     PYTHON, THREAD_ENV, _add_source, _owner_private_dir,
 )
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.downstream_sources import (
+    verify_downstream_registration, verify_downstream_sidecar,
+)
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.run_downstream_attack import (
+    validate_registration as validate_committed_registration,
+)
 
 
 REFERENCES = ("D0_LOCAL", "D0_SEQ12", "D0_SEQ21", "P_STAR", "T_STAR", "U0", "Ucal")
@@ -236,21 +242,93 @@ def source_release_spec(*, unit_id: str, amendment_path: Path,
     return spec
 
 
+def guarded_source_release_spec(*, downstream_manifest: Path,
+                                downstream_manifest_sha256: str,
+                                downstream_registration: Path,
+                                downstream_registration_sha256: str,
+                                **source_kwargs) -> dict:
+    """Bind R00's committed downstream custody without changing the worker."""
+    spec = source_release_spec(**source_kwargs)
+    campaign = Path(source_kwargs["amendment_path"]).resolve(strict=True).parent
+    manifest_path = Path(downstream_manifest).resolve(strict=True)
+    registration_path = Path(downstream_registration).resolve(strict=True)
+    if manifest_path.parent != campaign or registration_path.parent != campaign:
+        raise PermissionError("downstream custody files are outside campaign")
+    manifest = json.loads(manifest_path.read_text())
+    new = manifest.get("new_source_sha256")
+    inherited = manifest.get("attack_plan", {}).get("inherited_shared_source_sha256")
+    if type(new) is not dict or type(inherited) is not dict:
+        raise PermissionError("downstream source inventory is absent")
+    sources = {row["path"]: row["sha256"] for row in spec["sources"]}
+    _add_source(sources, manifest_path, downstream_manifest_sha256)
+    _add_source(sources, registration_path, downstream_registration_sha256)
+    for relative, digest in sorted(new.items()):
+        part = Path(relative)
+        if part.is_absolute() or ".." in part.parts:
+            raise PermissionError("downstream source escapes campaign")
+        _add_source(sources, campaign / part, digest)
+    shared_root = campaign.parent / "pcrl_method_portfolio_v1/shared"
+    for basename, digest in sorted(inherited.items()):
+        part = Path(basename)
+        if part.is_absolute() or len(part.parts) != 1:
+            raise PermissionError("inherited reader name is not a basename")
+        _add_source(sources, shared_root / part, digest)
+    spec["sources"] = [{"path": path, "sha256": digest}
+                       for path, digest in sorted(sources.items())]
+    spec["downstream_manifest_path"] = str(manifest_path)
+    spec["downstream_manifest_sha256"] = downstream_manifest_sha256
+    spec["downstream_registration_path"] = str(registration_path)
+    spec["downstream_registration_sha256"] = downstream_registration_sha256
+    verify_downstream_sidecar(
+        sidecar_path=manifest_path, sidecar_sha256=downstream_manifest_sha256,
+        producer_path=Path(source_kwargs["amendment_path"]),
+        producer_sha256=source_kwargs["amendment_sha256"],
+        original_lock_path=Path(source_kwargs["seal_path"]),
+        original_lock_sha256=source_kwargs["seal_sha256"],
+        campaign_root=campaign, spec=spec,
+        required_new_paths=frozenset({
+            "sampled_channel_v1/controls/reference_diag_specs.py",
+            "sampled_channel_v1/impl/downstream_sources.py",
+        }))
+    verify_downstream_registration(
+        registration_path=registration_path,
+        registration_sha256=downstream_registration_sha256,
+        sidecar_path=manifest_path, sidecar_sha256=downstream_manifest_sha256,
+        producer_sha256=source_kwargs["amendment_sha256"],
+        repo_root=campaign.parents[1], spec=spec)
+    # The shared source helper checks the registration fields and sidecar blob.
+    # The existing attack guard also proves the registration itself is in HEAD
+    # and its manifest commit is an ancestor; source releases need that custody.
+    validate_committed_registration(
+        campaign=campaign, producer_sha256=source_kwargs["amendment_sha256"],
+        manifest_path=manifest_path,
+        manifest_sha256=downstream_manifest_sha256, manifest=manifest,
+        registration_path=registration_path,
+        registration_sha256=downstream_registration_sha256)
+    return spec
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     for name in ("unit-id", "amendment", "amendment-sha256", "seal",
                  "seal-sha256", "repair-manifest", "portfolio-package",
                  "historical-cache-root", "queue-state", "private-parent",
+                 "downstream-manifest", "downstream-manifest-sha256",
+                 "downstream-registration", "downstream-registration-sha256",
                  "spec-output"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args(argv)
-    spec = source_release_spec(
+    spec = guarded_source_release_spec(
         unit_id=args.unit_id, amendment_path=Path(args.amendment),
         amendment_sha256=args.amendment_sha256, seal_path=Path(args.seal),
         seal_sha256=args.seal_sha256, repair_manifest=Path(args.repair_manifest),
         portfolio_package=Path(args.portfolio_package),
         historical_cache_root=Path(args.historical_cache_root),
-        queue_state=Path(args.queue_state), private_parent=Path(args.private_parent))
+        queue_state=Path(args.queue_state), private_parent=Path(args.private_parent),
+        downstream_manifest=Path(args.downstream_manifest),
+        downstream_manifest_sha256=args.downstream_manifest_sha256,
+        downstream_registration=Path(args.downstream_registration),
+        downstream_registration_sha256=args.downstream_registration_sha256)
     target = Path(args.spec_output)
     _owner_private_dir(target.parent)
     data = (json.dumps(spec, indent=2, sort_keys=True) + "\n").encode()

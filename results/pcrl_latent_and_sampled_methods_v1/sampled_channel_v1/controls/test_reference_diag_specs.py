@@ -136,6 +136,11 @@ class SourceReleaseSpecTest(unittest.TestCase):
     def test_cli_writes_owner_only_spec_once(self):
         with tempfile.TemporaryDirectory() as temp:
             kwargs, _, _ = self._synthetic_context(Path(temp).resolve())
+            manifest = kwargs["amendment_path"].parent / "DOWNSTREAM.json"
+            registration = kwargs["amendment_path"].parent / "REGISTRATION.json"
+            manifest.write_text(json.dumps({"new_source_sha256": {},
+                                            "attack_plan": {"inherited_shared_source_sha256": {}}}))
+            registration.write_text("{}")
             output = kwargs["private_parent"] / "rendered.json"
             argv = ["--unit-id", "A-REFERENCE-RELEASE-U0-S0-ATT",
                     "--amendment", str(kwargs["amendment_path"]),
@@ -147,12 +152,68 @@ class SourceReleaseSpecTest(unittest.TestCase):
                     "--historical-cache-root", str(kwargs["historical_cache_root"]),
                     "--queue-state", str(kwargs["queue_state"]),
                     "--private-parent", str(kwargs["private_parent"]),
+                    "--downstream-manifest", str(manifest),
+                    "--downstream-manifest-sha256", target._sha(manifest),
+                    "--downstream-registration", str(registration),
+                    "--downstream-registration-sha256", target._sha(registration),
                     "--spec-output", str(output)]
-            with patch.object(target, "compile_graph", return_value={"unit_count": 220}):
+            with (patch.object(target, "compile_graph", return_value={"unit_count": 220}),
+                  patch.object(target, "verify_downstream_sidecar"),
+                  patch.object(target, "verify_downstream_registration"),
+                  patch.object(target, "validate_committed_registration")):
                 target.main(argv)
                 self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
                 with self.assertRaises(FileExistsError):
                     target.main(argv)
+
+    def test_guarded_renderer_pins_sidecar_and_registration_without_worker_change(self):
+        with tempfile.TemporaryDirectory() as temp:
+            kwargs, _, _ = self._synthetic_context(Path(temp).resolve())
+            campaign = kwargs["amendment_path"].parent
+            manifest = campaign / "DOWNSTREAM.json"
+            registration = campaign / "REGISTRATION.json"
+            manifest.write_text(json.dumps({"new_source_sha256": {},
+                                            "attack_plan": {"inherited_shared_source_sha256": {}}}))
+            registration.write_text("{}")
+            with (patch.object(target, "compile_graph", return_value={"unit_count": 220}),
+                  patch.object(target, "verify_downstream_sidecar"),
+                  patch.object(target, "verify_downstream_registration"),
+                  patch.object(target, "validate_committed_registration")):
+                spec = target.guarded_source_release_spec(
+                    unit_id="A-DIAG-RELEASE-A_IDENTITY-S0-ATT",
+                    downstream_manifest=manifest,
+                    downstream_manifest_sha256=target._sha(manifest),
+                    downstream_registration=registration,
+                    downstream_registration_sha256=target._sha(registration),
+                    **kwargs)
+            pinned = {row["path"]: row["sha256"] for row in spec["sources"]}
+            self.assertEqual(pinned[str(manifest)], target._sha(manifest))
+            self.assertEqual(pinned[str(registration)], target._sha(registration))
+            self.assertEqual(spec["downstream_manifest_sha256"], target._sha(manifest))
+            self.assertIn("controls.run_diagnostic_release", spec["argv"][2])
+
+    def test_uncommitted_downstream_registration_is_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            kwargs, _, _ = self._synthetic_context(Path(temp).resolve())
+            campaign = kwargs["amendment_path"].parent
+            manifest = campaign / "DOWNSTREAM.json"
+            registration = campaign / "REGISTRATION.json"
+            manifest.write_text(json.dumps({"new_source_sha256": {},
+                                            "attack_plan": {"inherited_shared_source_sha256": {}}}))
+            registration.write_text("{}")
+            with (patch.object(target, "compile_graph", return_value={"unit_count": 220}),
+                  patch.object(target, "verify_downstream_sidecar"),
+                  patch.object(target, "verify_downstream_registration"),
+                  patch.object(target, "validate_committed_registration",
+                               side_effect=PermissionError("registration lacks Git custody"))):
+                with self.assertRaisesRegex(PermissionError, "Git custody"):
+                    target.guarded_source_release_spec(
+                        unit_id="A-REFERENCE-RELEASE-U0-S0-ATT",
+                        downstream_manifest=manifest,
+                        downstream_manifest_sha256=target._sha(manifest),
+                        downstream_registration=registration,
+                        downstream_registration_sha256=target._sha(registration),
+                        **kwargs)
 
 
 if __name__ == "__main__":
