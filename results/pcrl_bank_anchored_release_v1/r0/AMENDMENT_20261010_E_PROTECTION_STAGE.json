@@ -1,0 +1,47 @@
+{
+  "schema": "pcrl-bank-dated-amendment-v1",
+  "dated_utc": "2026-10-10T08:39:37Z",
+  "status": "LOCALLY_SEALED_PROTECTION_BEFORE_REAL_FIT",
+  "affected_stages": ["protection"],
+  "source_lock_sha256": "6d39ec3b0e4d56b75dd1bb1b121940078a70c72ad9dc954fe3f050ae8ec9c69e",
+  "predecessor_witness_gate_sha256": "89e72dea3bba0c8d9cd24dcb459a8e9c61a49145ce82241b52223c38aaa910c0",
+  "predecessor_channel_identity_gate_sha256": "ba5f68e8343fcfcd472c369b0aa0b82fc75453fd0b859c416ba3f752225ad812",
+  "r2_implementation_commit": "019363d07b7f213ad8b96bdfb6d09724dc81db44",
+  "r2_protection_source_index_sha256": "5840c022c032f9d3326e9d6ed12aec62e51460ec1dad1d8d8ca2aa9726d4c749",
+  "r5_independent_prefit_go_sha256": "24be66ce73f450208a34a27fe48c12b0282f9db6c37e2e2e4a05b29772a36929",
+  "source_index_code_files": 29,
+  "planned_units": [
+    "R2_B0_S0_FIT", "R2_B0_S1_FIT",
+    "R2_T_S0_FIT", "R2_T_S1_FIT",
+    "R2_D_S0_FIT", "R2_D_S1_FIT",
+    "R2_P_S0_FIT", "R2_P_S1_FIT",
+    "R2_L_S0_FIT", "R2_L_S1_FIT",
+    "R2_J_S0_FIT", "R2_J_S1_FIT",
+    "R2_S12_S0_FIT", "R2_S12_S1_FIT",
+    "R2_S21_S0_FIT", "R2_S21_S1_FIT"
+  ],
+  "recipe": {
+    "source_seeds": [0, 1],
+    "optimization_cpu_ceiling_seconds_each": 300,
+    "queue_wall_and_cpu_reservation_seconds_each": 600,
+    "fixed_recipe_seed_formula": "2026101200 + 100*source_seed + arm_index in B0,T,D,P,L,J,S12,S21 order",
+    "selection_data": "OSF_DEFENSE_FIT only",
+    "source_and_role_files": "Each owner-only queue spec pins the exact role-only inputs, selected bank source files, code and amendment before any FIT role read."
+  },
+  "engineering_clarifications_before_outcomes": [
+    "P and L retain inherited checkpoint training and project each candidate toward the B0 boundary within their factorized laws; independent recipient coins remain required.",
+    "S12 and S21 project retained first-stage gates to a FIT-feasible fractional B0 boundary before freezing and sampling the first public code. Stage two trains only after that freeze and has an exact conditional B0 boundary. Both orders preserve freeze-first training.",
+    "D uses a faithful checkpoint-retaining copy of the inherited deterministic trainer. A data-free same-law test matched selected metrics, start receipts and selected weights; every considered checkpoint and accepted bias-pass state is privately archived.",
+    "A completed source search selects one policy on FIT quantities. A stopped two-start search is INCOMPLETE_SEARCH and cannot silently become completed B0. Public checkpoint receipts contain hashes and scalar metrics, not matrices."
+  ],
+  "unchanged_scientific_scope": {
+    "selected_bank": "W_TSTAR",
+    "fit_proxy": "B0-relative accuracy loss <=0.002, expected NLL excess <=0.001, summed Brier excess <=0.0005 for each task and seed",
+    "original_inner_caps": "Each task/seed versus both U0 and Ucal: accuracy loss <=0.010, NLL excess <=0.010, summed Brier excess <=0.005",
+    "privacy_objective": "Inherited exact empirical-law SEX Bayes G_pair + 0.5*(G_r1+G_r2), with B0 local ceilings; T uses empirical I(X;Zpair)",
+    "attack_stage": "NOT_ADMITTED by this amendment",
+    "assessment_and_new_head_labels": "CLOSED"
+  },
+  "prefit_tests": "R2 21/21 data-free tests and R5 separate targeted checks passed; R0 independently reran R2 21/21 and rehashed all 29 source-index code files.",
+  "registration_scope": "Local Git seal before real protection fitting; not externally witnessed and not confirmation. Queue registration of this amendment is required for all 16 immutable protection specs."
+}
