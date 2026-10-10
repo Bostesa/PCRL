@@ -51,6 +51,12 @@ class LocalFactorData:
                     int(self.bank.decision[actions[int(cell[i])][0]])
                     for i in range(n))):
             raise ValueError("local score class differs from frozen action map")
+        same_unit = {}
+        for i, unit in enumerate(self.unit_ids):
+            source = (score[i].tobytes(), int(cell[i]), int(y[i]), int(sex[i]))
+            if unit in same_unit and same_unit[unit] != source:
+                raise ValueError("duplicate local unit has inconsistent input or labels")
+            same_unit[unit] = source
         for name, value in (("score", score), ("cell", cell), ("y", y), ("sex", sex)):
             frozen = np.ascontiguousarray(value).copy()
             frozen.setflags(write=False)
