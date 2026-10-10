@@ -122,7 +122,8 @@ def _fixed_q_mechanism(fixed: dict, receipt: dict) -> tuple[str, str]:
 
 def _diagnostic_q_mechanism(fixed: dict, receipt: dict,
                             centroids: tuple[np.ndarray, np.ndarray], *,
-                            ref: str, seed: int, release_id: str) -> tuple[str, str, dict]:
+                            ref: str, seed: int, release_id: str
+                            ) -> tuple[str, str, dict, np.ndarray, np.ndarray]:
     """Replay R13's actual same-bank selector on the public centroid indices."""
     records = tuple({
         "probability": fixed[f"bank_r{i}"],
@@ -136,13 +137,11 @@ def _diagnostic_q_mechanism(fixed: dict, receipt: dict,
         records=records, release_id=release_id,
         source_binding_sha256=receipt["source_binding_sha256"],
         source_receipt_sha256=receipt["original_bank_receipt_sha256"])
-    if (not np.array_equal(bank1.probability, fixed["bank_r1"]) or
-            not np.array_equal(bank2.probability, fixed["bank_r2"])):
-        raise PermissionError("diagnostic Q public bank differs from released full bank")
     descriptor_sha = hashlib.sha256(json.dumps(
         descriptor, sort_keys=True, separators=(",", ":"),
         allow_nan=False).encode()).hexdigest()
-    return descriptor["mechanism_sha256"], descriptor_sha, descriptor
+    return (descriptor["mechanism_sha256"], descriptor_sha, descriptor,
+            bank1.probability, bank2.probability)
 
 
 def _checked_output(path: str | Path, spec: dict) -> Path:
@@ -484,7 +483,7 @@ def run_reference_attack(*, unit_id: str, original_lock_path: str | Path,
             if (amendment["attack_plan"]["public_centroid_npz_sha256_by_seed"][f"s{seed}"]
                     != _sha(centroid_path)):
                 raise PermissionError("diagnostic Q public centroid pin differs")
-            mechanism_sha, descriptor_sha, _ = _diagnostic_q_mechanism(
+            mechanism_sha, descriptor_sha, _, bank1, bank2 = _diagnostic_q_mechanism(
                 fixed, map_receipt, (c1, c2),
                 ref=identity["reference_id"], seed=seed,
                 release_id=identity["release_id"])

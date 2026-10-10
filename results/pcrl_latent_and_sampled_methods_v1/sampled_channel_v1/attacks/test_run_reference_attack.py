@@ -19,6 +19,9 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.bank imp
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.diagnostic_codes import (
     select_codes,
 )
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.reference_materialize import (
+    materialize_reference_role,
+)
 
 
 def test_reference_output_requires_private_owner_only_ancestry(tmp_path):
@@ -83,7 +86,7 @@ def test_fixed_public_q_mechanism_matches_separate_q_compiler_descriptor():
 
 
 @pytest.mark.parametrize("arm", ["A_IDENTITY", "A_CLASS_ONLY"])
-def test_diagnostic_q_replays_actual_same_bank_selector(arm):
+def test_diagnostic_q_replays_actual_same_bank_selector(tmp_path, arm):
     raw1 = np.asarray([[.8, .2], [.7, .3], [.2, .8], [.3, .7]], np.float64)
     raw2 = []
     for label in range(6):
@@ -91,36 +94,83 @@ def test_diagnostic_q_replays_actual_same_bank_selector(arm):
             row = np.full(6, (1.0 - main) / 5, np.float64)
             row[label] = main
             raw2.append(row)
+    source_banks = (raw1, np.asarray(raw2, np.float64))
     banks = tuple(FixedBank.from_source(
         raw, np.arange(len(raw), dtype=np.int64),
-        np.argmax(raw, axis=1).astype(np.int64))
-        for raw in (raw1, np.asarray(raw2, np.float64)))
-    # The public T* map includes a within-class distinction for each class.
-    fixed = {f"bank_r{i}": bank.probability for i, bank in enumerate(banks, 1)}
+        np.argmax(raw, axis=1).astype(np.int64)) for raw in source_banks)
+    # T* source bank is in old token order; the actual wire uses canonical IDs.
+    fixed = {f"bank_r{i}": raw for i, raw in enumerate(source_banks, 1)}
     centroids = []
-    for i, (bank, size) in enumerate(zip(banks, (64, 641)), 1):
-        mapping = np.resize(np.arange(len(bank.probability), dtype=np.int64), size)
+    for i, (raw, size) in enumerate(zip(source_banks, (64, 641)), 1):
+        mapping = np.resize(np.arange(len(raw), dtype=np.int64), size)
         fixed[f"fine_to_code_r{i}"] = mapping
-        centroids.append(bank.probability[mapping])
+        centroids.append(raw[mapping])
     receipt = {"source_binding_sha256": "a" * 64,
                "original_bank_receipt_sha256": "b" * 64}
-    mechanism, descriptor_sha, descriptor = worker._diagnostic_q_mechanism(
+    mechanism, descriptor_sha, descriptor, wire_bank1, wire_bank2 = (
+        worker._diagnostic_q_mechanism(
         fixed, receipt, tuple(centroids), ref=arm, seed=0,
-        release_id=f"{arm}-s0-v1")
+        release_id=f"{arm}-s0-v1"))
     assert descriptor["mechanism_sha256"] == mechanism
     assert len(descriptor_sha) == 64
+    np.testing.assert_array_equal(wire_bank1, banks[0].probability)
+    np.testing.assert_array_equal(wire_bank2, banks[1].probability)
+    assert not np.array_equal(wire_bank1, raw1)
     for i, bank in enumerate(banks, 1):
         mapping = fixed[f"fine_to_code_r{i}"]
-        actions = build_actions(bank, input_class=bank.decision[mapping],
+        actions = build_actions(bank, input_class=np.argmax(
+                                    source_banks[i - 1][mapping], axis=1).astype(np.int64),
                                 fine_to_old_token=mapping)
         expected = select_codes(bank, actions,
                                 np.arange(len(mapping), dtype=np.int64), arm_id=arm)
         assert descriptor["fine_to_code_sha256_by_recipient"][f"r{i}"] == sha_array(expected)
         if arm == "A_IDENTITY":
-            np.testing.assert_array_equal(expected, mapping)
+            np.testing.assert_array_equal(expected,
+                                          np.asarray(bank.old_to_global)[mapping])
         else:
             assert len(np.unique(expected)) == (2 if i == 1 else 6)
             assert sha_array(expected) != sha_array(mapping)
+    # R13 writes canonical code IDs: loading against the old source bank must
+    # fail, while the reconstructed canonical full bank restores every wire.
+    selected = []
+    for i, bank in enumerate(banks, 1):
+        mapping = fixed[f"fine_to_code_r{i}"]
+        actions = build_actions(bank, input_class=np.argmax(
+                                    source_banks[i - 1][mapping], axis=1).astype(np.int64),
+                                fine_to_old_token=mapping)
+        selected.append(select_codes(bank, actions,
+                                     np.asarray([0, 1], np.int64), arm_id=arm))
+    private = tmp_path / ".private"
+    private.mkdir(mode=0o700)
+    output = private / "role"
+    ids = np.asarray([101, 102], np.int64)
+    groups = np.asarray([201, 202], np.int64)
+    source_identity = {"bank_receipt_sha256": "b" * 64,
+                       "role_source_file_sha256": "c" * 64,
+                       "reference_file_sha256": "d" * 64,
+                       "source_audit_sha256": "e" * 64}
+    materialize_reference_role(
+        row_id=ids, unit=groups,
+        prob1=wire_bank1[selected[0]], prob2=wire_bank2[selected[1]],
+        decision1=banks[0].decision[selected[0]],
+        decision2=banks[1].decision[selected[1]],
+        code1=selected[0], code2=selected[1], arm_id=arm, seed=0,
+        role="ATTACK_FIT_NEW", release_id=f"{arm}-s0-v1",
+        source_binding_sha256="a" * 64, source_identity=source_identity,
+        interface_kind="finite",
+        bank_sha256_by_recipient={"r1": sha_array(wire_bank1),
+                                  "r2": sha_array(wire_bank2)},
+        expected_row_unit_sha256=sha_array(np.column_stack((ids, groups))),
+        output_dir=output, bank1=wire_bank1, bank2=wire_bank2)
+    receipt_sha = worker._sha(output / "REFERENCE_RELEASE_RECEIPT.json")
+    restored = worker.load_reference_role_package(
+        output, receipt_sha256=receipt_sha,
+        full_bank1=wire_bank1, full_bank2=wire_bank2)
+    assert [wire["code_id"] for wire in restored.wires1] == selected[0].tolist()
+    with pytest.raises(ValueError, match="full bank"):
+        worker.load_reference_role_package(
+            output, receipt_sha256=receipt_sha,
+            full_bank1=raw1, full_bank2=source_banks[1])
 
 
 @pytest.mark.parametrize("mutation", ["kind", "source_kind", "arm", "map_sha"])
@@ -173,6 +223,7 @@ def test_reference_gate_refuses_npz_not_pinned_by_effective_amendment(
     """Queue and live NPZ can agree while the effective science lock disagrees."""
     campaign = tmp_path / "campaign"
     campaign.mkdir()
+    (campaign / "r01").mkdir()
     manifest = tmp_path / "role_manifest.json"
     manifest.write_text("{}\n")
     manifest_sha = worker._sha(manifest)
