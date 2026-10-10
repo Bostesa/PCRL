@@ -62,6 +62,9 @@ amendment requires exact hard bits and decisions, probability decoded from
 the emitted bits, and a maximum absolute saved-wire probability gap at or
 below `2e-7` for the fixed 32-row subset and singleton calls. This engineering
 restore tolerance does not change any task utility or privacy threshold.
-Singleton replay was pending when this quickstart was written. The separate
-verification receipt and privacy reporting live in the campaign closeout
-records.
+The independent T0_B16 seed-one replay passed: all 32 singleton calls had
+exact bits and decisions and decoded probability from those bits; the largest
+saved-wire gap was `9.9768e-08`. Wrong source, reordered columns and an extra
+excluded column were refused. This covers the stated sample and seed; the
+learned service remains utility-ineligible. The separate verification receipt
+and privacy reporting live in the campaign closeout records.
