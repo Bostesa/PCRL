@@ -1,11 +1,12 @@
-# R18 deployment acceptance, staged version 3
+# R18 deployment acceptance, staged version 4
 
 The source prompt requires a **run** on one real admitted input for each
 representative. The D-K seed-0 one-row worker completed under the R03 slot;
 its hash-only public receipt is `D_REAL_DEPLOY_ACCEPTANCE_RECEIPT.json`
 (SHA-256 `6675a2ce2dd174e41987b04cae3bcb1390989bd8891cb305cfc1c15d5ee24c6d`).
-The A representative and the separate data-free negative fixture still need
-their own queued receipts.
+The separate data-free negative suite completed under R03 with six of six
+tests passing. Its hash-only closeout is `D_DEPLOYMENT_CLOSEOUT_RECEIPT.json`.
+The A representative still needs a real queued release and acceptance receipt.
 
 ## Source and one-row custody
 
@@ -69,8 +70,18 @@ the service response being checked.
 ## Queue and evidence boundary
 
 The data-free fixtures in `test_adapter_acceptance.py` and
-`test_role_input.py` must be registered under R03 before running. They test
-the contract but do not establish a real deployment. The later real units are
+`test_role_input.py` were registered under R03. The original unit
+`R18-ADAPTER-CONTRACT-SYN-001` passed five of six tests; its test expected
+the weights-file hash refusal after supplying an already mismatched expected
+hash. The production guard correctly refused at manifest identity. R00's
+dated retry amendment SHA-256
+`b838a3c0af4269972e11974198183a0d175ded1c2d77762b75a48faa1422e42b`
+authorized distinct unit `R18-ADAPTER-CONTRACT-SYN-R1-002`. It passed six of
+six with R03 receipt SHA-256
+`d024f9eff8a86b2d8922489b559877aa0c55f287550fa7ee69153c8e55b6768b`.
+The corrected fixture tests the early manifest mismatch and a separately
+tampered weights file. These invented-input tests establish the refusal
+contract, not a real deployment. The real units are
 `R18-D-DEPLOY-REAL-S0` and `R18-A-DEPLOY-REAL-S0`, with one heavy slot each,
 exact `argv`/`cwd`/source and manifest SHAs, private output, CPU/wall/RSS
 ceilings and a fresh R03 receipt. The D worker at `r18/run_real_d_acceptance.py`
@@ -90,6 +101,7 @@ condition; do not describe a synthetic fixture as a deployed result.
 R07's completed seed-0 D-K package is hash-bound to its public fit receipt.
 The R18 real worker reconstructed probabilities from separately opened head
 tensors and CAL records, without calling the service's code-head method. The
-real positive check passed; the synthetic negative fixture remains R03 queued
-and held. Its wrong/reordered/excluded schema, incompatible checkpoint and
-hidden-wire refusal cases have no numerical PASS receipt yet.
+real positive check and separate data-free negative suite passed. The
+one-row D snapshot has a fresh byte-for-byte local restore receipt, while a
+restored-service numerical replay and off-device custody remain pending. The
+A real one-row deployment remains pending its selected FIT and cached release.
