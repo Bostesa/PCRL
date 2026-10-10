@@ -1,88 +1,233 @@
 {
-  "schema": "pcrl-sampled-channel-r11-design-candidate-v1",
-  "status": "PREFIT_DRAFT_NOT_EFFECTIVE",
-  "source": {
-    "repaired_tip": "ce1308a52fb97b4673d26f44c1466ce3b0cea379",
-    "r01_source_audit_sha256": "1f9ac4656120cfbd1a2e6f2ac19e5d3727d90cc887e52a4942414e69a48f5a0f",
-    "r01_duplicate_unit_audit_sha256": "533ff0775a6eb794b586e930f9f28a227389c545aaba9abe20e11eaf514b6e91",
-    "r01_bank_identity_audit_sha256": "92b94195f46ae564062f769ad41b881386a2ecf249fdd8ca95bab17da230bba1",
-    "model_seeds": [0, 1],
-    "input_token": "qpc_U0_fine_cell",
-    "output_law": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
-    "source_old_bank_ids_by_seed": {
-      "0": {"r1": 16, "r2": 321},
-      "1": {"r1": 16, "r2": 321}
-    },
-    "canonical_bank_ids_by_seed": {
-      "0": {"r1": 16, "r2": 321},
-      "1": {"r1": 16, "r2": 321}
-    },
-    "canonical_code_length_bits": {"r1": 4, "r2": 9},
-    "fine_cells_by_seed": {
-      "0": {"r1": 64, "r2": 641},
-      "1": {"r1": 64, "r2": 641}
-    },
-    "per_class_bank_counts": {"r1": [8, 8], "r2": [64, 64, 64, 64, 64, 1]},
-    "independent_score_bank_parity": "PENDING",
-    "identity_utility_against_both_references": "PENDING"
+  "attacks_prospective": {
+    "attack_runtime_smoke": "PENDING",
+    "core": 6,
+    "historical_fits": "ADDITIONAL_PENDING_REGISTRY",
+    "new_fitted_arm_seed_realization_instances": 40,
+    "new_trained_fits_total": 1320,
+    "probability_only": 2,
+    "q_aware": 1,
+    "status": "PROSPECTIVE_NOT_EFFECTIVE",
+    "trained_fits_per_view_per_new_instance": 11,
+    "v2_probes": 2,
+    "views": [
+      "r1",
+      "r2",
+      "pair"
+    ]
   },
   "bank_and_actions": {
+    "action_order": [
+      "identity",
+      "nearest_1",
+      "nearest_2",
+      "within_class_medoid"
+    ],
     "canonical_identity": "exact_float64_probability_bytes_after_signed_zero_normalization_plus_strict_argmax_decision",
     "canonical_sort": "decision_then_little_endian_vector_bytes_lexicographic",
-    "distance": "half_symmetrized_KL_after_component_floor_1e-12_and_renormalization_for_distance_only",
-    "action_order": ["identity", "nearest_1", "nearest_2", "within_class_medoid"],
-    "nearest_tie": "lower_canonical_code_id",
-    "medoid_rule": "unweighted_sum_of_within_class_distances_tie_lower_code_id",
     "deduplication": "first_occurrence_preserved",
+    "distance": "half_symmetrized_KL_after_component_floor_1e-12_and_renormalization_for_distance_only",
+    "fallback": false,
     "max_actions_per_recipient": 4,
     "max_joint_actions_per_person": 16,
-    "fallback": false
+    "medoid_rule": "unweighted_sum_of_within_class_distances_tie_lower_code_id",
+    "nearest_tie": "lower_canonical_code_id"
   },
-  "joint_gate": {
-    "inputs": "U0_r1_2plus_U0_r2_6plus_clipped_entropy_and_top_margin_each",
-    "input_width": 12,
-    "hidden_width": 16,
-    "hidden_activation": "tanh",
-    "output_width": 16,
-    "output_slot": "4*a1+a2_mask_invalid",
-    "parameter_count": 480,
-    "source_scope": "central_provider_both_U0_scores_and_both_private_fine_cells",
-    "recipient_scope": "own_sampled_global_code_probability_decision_constant_metadata"
+  "control_architectures": {
+    "local": "own_score_only_4x16x4_148_and_8x16x4_212",
+    "product": "two_12x16_tanh_x4_factors_552_parameters",
+    "seq12": "first_276_second_276_plus_16x16_public_first_code_embedding_total_808",
+    "seq21": "first_276_second_276_plus_321x16_public_first_code_embedding_total_5688",
+    "seq_unseen_embedding": "E0[z,j]=first_bank_probability[z,j_mod_K_first]_float64_no_weight_decay_unseen_rows_bitwise_E0"
   },
   "fit_math": {
-    "nll_clip": 1e-12,
-    "nll_excess_cap_each_reference": 0.01,
-    "summed_multiclass_brier_excess_cap_each_reference": 0.005,
     "accuracy_drop_cap_each_reference": 0.01,
+    "cpu_ceiling_seconds_per_arm_seed": null,
     "expected_utility": "sum_over_actual_output_pairs_q_times_loss_of_fixed_bank_vector",
     "finite_privacy": "G_view=sum_output_max(P(SEX0,output),P(SEX1,output))",
-    "protected_objective": "G_pair+0.5*(G_r1+G_r2)",
     "local_fitted_guards": "G_r<=G_r_identity",
+    "nll_clip": 1e-12,
+    "nll_excess_cap_each_reference": 0.01,
     "optimizer": "two_start_full_batch_augmented_Lagrangian_Adam_heuristic",
-    "optimizer_numeric_recipe": "PENDING_DATA_FREE_SMOKE_AND_R00_SEAL",
-    "cpu_ceiling_seconds_per_arm_seed": null
+    "optimizer_numeric_recipe": {
+      "batch": "all_OSF_DEFENSE_FIT_rows",
+      "checkpoint_interval_updates": 25,
+      "deterministic_STE_updates_per_start": 300,
+      "deterministic_bias_trials_per_start_max": 64,
+      "dtype": "float64",
+      "dual_update_interval_updates": 25,
+      "fit_cap_slack": 0.0,
+      "gradient_norm": 5.0,
+      "hidden_init_normal_sd": 0.01,
+      "joint_task_product_updates_per_start": 300,
+      "learning_rate": 0.01,
+      "local_updates_per_start_per_recipient": 150,
+      "matched_whole_arm_cpu_seconds": "PENDING_ROLE_SIZED_CONTROL_SMOKE_AND_R00_SEAL",
+      "optimizer": "Adam",
+      "output_weight_init": 0.0,
+      "rho": 100.0,
+      "sequential_updates_per_start_per_stage": 150,
+      "start0_slot0_bias": 4.0,
+      "start1_all_output_bias": 0.0,
+      "starts": [
+        "identity_biased",
+        "uniform_logit"
+      ],
+      "threads": 1,
+      "weight_decay": 0.0
+    },
+    "protected_objective": "G_pair+0.5*(G_r1+G_r2)",
+    "summed_multiclass_brier_excess_cap_each_reference": 0.005
   },
-  "wire": {
-    "schema_value": "SCV1-score-release-v1",
-    "top_level_keys": ["schema", "recipient", "code_id", "probability", "decision", "release_id", "public_metadata"],
-    "metadata_keys": ["model_id", "source_binding_sha256", "canonical_bank_sha256", "mechanism_sha256", "code_length_bits", "fallback", "sampling_contract"],
-    "sampling_contract": "cached_one_joint_draw_v1",
-    "release_id": "one_shared_pair_arm_id_both_recipients",
-    "person_varying_metadata": false
+  "joint_gate": {
+    "hidden_activation": "tanh",
+    "hidden_width": 16,
+    "input_width": 12,
+    "inputs": "U0_r1_2plus_U0_r2_6plus_clipped_entropy_and_top_margin_each",
+    "output_slot": "4*a1+a2_mask_invalid",
+    "output_width": 16,
+    "parameter_count": 480,
+    "recipient_scope": "own_sampled_global_code_probability_decision_constant_metadata",
+    "source_scope": "central_provider_both_U0_scores_and_both_private_fine_cells"
   },
-  "sampling": {
-    "realizations": [0, 1, 2],
-    "roles": ["ATTACK_FIT_NEW", "INNER_SELECTION"],
-    "sequential_fit_first_draw_domain": "precommitted_OSF_DEFENSE_FIT_stage1_output_per_unit_after_stage1_freeze_distinct_from_eval_realizations",
-    "private_cache_key": ["release_id", "source_seed", "role", "realization", "unit"],
-    "one_joint_draw_and_cache_per_key": true,
-    "offline_uniform": "HMAC_SHA256_private_root_first8bytes_big_endian_plus_half_over_2pow64",
-    "private_root_hash_and_manifest": "PENDING_R00_SEAL",
-    "attacker_training": "separate_single_release_fit_per_realization",
-    "best_draw_selection": false
-  },
-  "required_controls": ["JOINT-DET", "TASK-STOCH-CENTRAL", "TASK-DET-CENTRAL", "PRODUCT-CENTRAL", "LOCAL", "SEQ-12-FREEZE-FIRST", "SEQ-21-FREEZE-FIRST", "IDENTITY", "U0", "Ucal", "CLASS-ONLY", "ADMITTED_HISTORICAL"],
-  "source_admission_required_before_fit": true,
+  "new_real_data_fit_authorized_by_this_file": false,
   "r00_effective_seal_required_before_fit": true,
-  "new_real_data_fit_authorized_by_this_file": false
+  "required_controls": [
+    "JOINT-DET",
+    "TASK-STOCH-CENTRAL",
+    "TASK-DET-CENTRAL",
+    "PRODUCT-CENTRAL",
+    "LOCAL",
+    "SEQ-12-FREEZE-FIRST",
+    "SEQ-21-FREEZE-FIRST",
+    "IDENTITY",
+    "U0",
+    "Ucal",
+    "CLASS-ONLY",
+    "ADMITTED_HISTORICAL"
+  ],
+  "sampling": {
+    "attacker_training": "separate_single_release_fit_per_realization",
+    "best_draw_selection": false,
+    "offline_uniform": "HMAC_SHA256_private_root_first8bytes_big_endian_plus_half_over_2pow64",
+    "one_joint_draw_and_cache_per_key": true,
+    "private_cache_key": [
+      "release_id",
+      "source_seed",
+      "role",
+      "realization",
+      "unit"
+    ],
+    "private_root_file_sha256": "66aee0707b64ac92f5f0502618c19e30793138d2e1949e019ad4234f9b198933",
+    "private_root_hash_and_manifest": "HASH_ONLY_PUBLIC_MANIFEST_FIXED_PRIVATE_CUSTODY_PENDING",
+    "realizations": [
+      0,
+      1,
+      2
+    ],
+    "release_root_sha256_by_realization": {
+      "0": "122942fa702ddbdc9e2106681d6236c9842881907720c027fd82761664e3d848",
+      "1": "1c1be3c92e235c19b345505ff66774fcfad80679d2608b27b1e653d04089032f",
+      "2": "bff2057bda820ab4d9e32063bf03d387d02a07df9d2b4eeef0b3dfff5d339943"
+    },
+    "roles": [
+      "ATTACK_FIT_NEW",
+      "INNER_SELECTION"
+    ],
+    "root_manifest_sha256": "ec572fb43077236e3734754a290da1fc6f1376a2c47bba4773609a92ce1ff839",
+    "seq_fit_hmac_message": "compact_ASCII_JSON_[SCV1-seq-fit-first-v1,source_seed,order,unit]",
+    "seq_fit_root_sha256": "9b71ff6d50ae6a9d1ab72265189fdbe139db027a4f7727ebc4e53d3a7b0a3904",
+    "sequential_fit_first_draw_domain": "precommitted_OSF_DEFENSE_FIT_stage1_output_per_unit_after_stage1_freeze_distinct_from_eval_realizations"
+  },
+  "schema": "pcrl-sampled-channel-r11-design-candidate-v1",
+  "source": {
+    "canonical_bank_ids_by_seed": {
+      "0": {
+        "r1": 16,
+        "r2": 321
+      },
+      "1": {
+        "r1": 16,
+        "r2": 321
+      }
+    },
+    "canonical_code_length_bits": {
+      "r1": 4,
+      "r2": 9
+    },
+    "fine_cells_by_seed": {
+      "0": {
+        "r1": 64,
+        "r2": 641
+      },
+      "1": {
+        "r1": 64,
+        "r2": 641
+      }
+    },
+    "identity_utility_against_both_references": "FAIL_FIT_OCCUPATION_U0_NLL_S0_S1_AND_BRIER_S1;INNER_POINT_PASS",
+    "identity_witness_status": "NOT_FIT_UTILITY_FEASIBLE;BANK_ORACLE_LOWER_BOUNDS_NECESSARY_ONLY",
+    "independent_score_bank_parity": "PASS_R04_SEEDS_0_1_FIT_ATT_INNER",
+    "input_token": "qpc_U0_fine_cell",
+    "model_seeds": [
+      0,
+      1
+    ],
+    "output_law": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP",
+    "per_class_bank_counts": {
+      "r1": [
+        8,
+        8
+      ],
+      "r2": [
+        64,
+        64,
+        64,
+        64,
+        64,
+        1
+      ]
+    },
+    "r01_bank_identity_audit_sha256": "92b94195f46ae564062f769ad41b881386a2ecf249fdd8ca95bab17da230bba1",
+    "r01_duplicate_unit_audit_sha256": "533ff0775a6eb794b586e930f9f28a227389c545aaba9abe20e11eaf514b6e91",
+    "r01_source_audit_sha256": "1f9ac4656120cfbd1a2e6f2ac19e5d3727d90cc887e52a4942414e69a48f5a0f",
+    "r04_prefit_replay_sha256": "2f5fed77088d665aeac2be0147b73cbe9bba4f09e4b15807e5c4e78c85e19b8d",
+    "repaired_tip": "ce1308a52fb97b4673d26f44c1466ce3b0cea379",
+    "source_old_bank_ids_by_seed": {
+      "0": {
+        "r1": 16,
+        "r2": 321
+      },
+      "1": {
+        "r1": 16,
+        "r2": 321
+      }
+    }
+  },
+  "source_admission_required_before_fit": true,
+  "status": "PREFIT_DRAFT_NOT_EFFECTIVE",
+  "wire": {
+    "metadata_keys": [
+      "model_id",
+      "source_binding_sha256",
+      "canonical_bank_sha256",
+      "mechanism_sha256",
+      "code_length_bits",
+      "fallback",
+      "sampling_contract"
+    ],
+    "person_varying_metadata": false,
+    "release_id": "one_shared_pair_arm_id_both_recipients",
+    "sampling_contract": "cached_one_joint_draw_v1",
+    "schema_value": "SCV1-score-release-v1",
+    "top_level_keys": [
+      "schema",
+      "recipient",
+      "code_id",
+      "probability",
+      "decision",
+      "release_id",
+      "public_metadata"
+    ]
+  }
 }
