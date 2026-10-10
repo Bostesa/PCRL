@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""Propose one sanitized status row for each sealed A producer unit.
+
+The shared R00 ledger remains authoritative. This read-only exporter joins the
+220-unit public plan to R03's verified queue receipts and the first-fit public
+checkpoint. A completed process with no selected policy does not trigger its
+release, Q or attack children.
+"""
+
+import argparse
+import csv
+import hashlib
+import io
+import json
+from pathlib import Path
+import sys
+
+from queue_unit_status import DEFAULT_STATE, SHA256, UNIT_ID, propose_rows
+
+
+BASE = Path(__file__).resolve().parents[1]
+DEFAULT_AMENDMENT = BASE / "AMENDMENT_20261010_A_PRODUCER_STAGE_FIT_RETRY_001.json"
+DEFAULT_CHECKPOINT = BASE / "r03" / "A_FIRST_REAL_FIT_CHECKPOINT.json"
+AMENDMENT_SHA256 = "526f509f8077f2ee1c412f6d290df939966a6b81f1ae5a87e9639d4bd317271f"
+CHECKPOINT_SHA256 = "58ec6fe13369587cf3bbaee94a336ebb162679d56b28970da6bb1a5bed10bb30"
+PARENT = "A-FIT-A_JOINT_STOCH-S0-R1"
+FIELDS = ("unit_id", "kind", "arm_or_reference_id", "seed", "fit_unit_id", "status",
+          "scientific_status", "charged_cpu_s", "wall_s",
+          "sampled_tree_rss_peak_bytes", "queue_receipt_sha256", "fit_receipt_sha256")
+NULL_CHILD_KINDS = frozenset(("release", "q_preprocess", "attack"))
+
+
+def build_rows(plan: dict, queued: dict, checkpoint: dict, *, expected_descendants: int = 10) -> list[dict]:
+    """Join a sealed plan to already validated queue rows; never infer child completion."""
+    if (checkpoint.get("unit_id") != PARENT or
+            checkpoint.get("scientific_status") != "COMPLETE_NO_FEASIBLE_POLICY" or
+            checkpoint.get("selected_policy_present") is not False or
+            checkpoint.get("feasible_checkpoint_count") != 0 or
+            checkpoint.get("checkpoint_count") != 26 or
+            checkpoint.get("start_count") != 2):
+        raise ValueError("unverified null-policy checkpoint")
+    for key in ("private_queue_receipt_sha256", "private_fit_receipt_sha256"):
+        if not isinstance(checkpoint.get(key), str) or not SHA256.fullmatch(checkpoint[key]):
+            raise ValueError("invalid checkpoint hash")
+    parent = queued.get(PARENT)
+    if (not isinstance(parent, dict) or parent.get("status") != "done" or
+            parent.get("stage") != "a" or
+            parent.get("receipt_sha256") != checkpoint["private_queue_receipt_sha256"]):
+        raise ValueError("parent queue receipt mismatch")
+    if PARENT not in plan or plan[PARENT].get("kind") != "fit":
+        raise ValueError("parent absent from sealed plan")
+    null_children = {uid for uid, spec in plan.items()
+                     if spec.get("fit_unit_id") == PARENT and spec.get("kind") in NULL_CHILD_KINDS}
+    if len(null_children) != expected_descendants:
+        raise ValueError("null-parent descendant count mismatch")
+    if any(uid in queued for uid in null_children):
+        raise ValueError("null-parent descendant was queued")
+
+    rows = []
+    for uid, spec in sorted(plan.items()):
+        identity = spec.get("arm_id", spec.get("reference_id"))
+        if (not isinstance(uid, str) or not UNIT_ID.fullmatch(uid) or ".." in uid or
+                not isinstance(spec, dict) or not isinstance(spec.get("kind"), str) or
+                not isinstance(identity, str) or not UNIT_ID.fullmatch(identity) or
+                isinstance(spec.get("seed"), bool) or spec.get("seed") not in (0, 1)):
+            raise ValueError("invalid planned unit identity")
+        fit_id = spec.get("fit_unit_id", "")
+        if fit_id and (not isinstance(fit_id, str) or not UNIT_ID.fullmatch(fit_id)):
+            raise ValueError("invalid planned fit identity")
+        row = dict.fromkeys(FIELDS, "")
+        row.update(unit_id=uid, kind=spec["kind"], arm_or_reference_id=identity,
+                   seed=str(spec["seed"]), fit_unit_id=fit_id)
+        q = queued.get(uid)
+        if uid in null_children:
+            row["status"] = "NOT_TRIGGERED_PARENT_NO_FEASIBLE_POLICY"
+        elif q is None:
+            row["status"] = "PLANNED_NOT_ENQUEUED"
+        else:
+            if q.get("stage") != "a" or q.get("unit_id") != uid:
+                raise ValueError("queue identity mismatch")
+            row["status"] = q["status"]
+            for key in ("charged_cpu_s", "wall_s", "sampled_tree_rss_peak_bytes"):
+                row[key] = q.get(key, "")
+            row["queue_receipt_sha256"] = q.get("receipt_sha256", "")
+        if uid == PARENT:
+            row["scientific_status"] = "COMPLETE_NO_FEASIBLE_POLICY"
+            row["fit_receipt_sha256"] = checkpoint["private_fit_receipt_sha256"]
+        rows.append(row)
+    return rows
+
+
+def csv_text(rows: list[dict]) -> str:
+    stream = io.StringIO()
+    writer = csv.DictWriter(stream, fieldnames=FIELDS, lineterminator="\n", extrasaction="raise")
+    writer.writeheader()
+    writer.writerows(rows)
+    return stream.getvalue()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Read-only A 220-unit status proposal")
+    parser.add_argument("--amendment", type=Path, default=DEFAULT_AMENDMENT)
+    parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--state", type=Path, default=DEFAULT_STATE)
+    args = parser.parse_args()
+    try:
+        amendment_bytes = args.amendment.read_bytes()
+        if hashlib.sha256(amendment_bytes).hexdigest() != AMENDMENT_SHA256:
+            raise ValueError("A amendment hash mismatch")
+        amendment = json.loads(amendment_bytes)
+        plan = amendment["unit_plan"]
+        if amendment.get("status") != "LOCALLY_SEALED_A_STAGE" or len(plan) != 220:
+            raise ValueError("invalid A plan")
+        checkpoint_bytes = args.checkpoint.read_bytes()
+        if hashlib.sha256(checkpoint_bytes).hexdigest() != CHECKPOINT_SHA256:
+            raise ValueError("A checkpoint hash mismatch")
+        checkpoint = json.loads(checkpoint_bytes)
+        state = json.loads(args.state.read_bytes())
+        fit_output_hashes = state["units"][PARENT].get("output_sha256", {})
+        if checkpoint["private_fit_receipt_sha256"] not in fit_output_hashes.values():
+            raise ValueError("fit receipt not bound to queue output")
+        queued = {row["unit_id"]: row for row in propose_rows(args.state)
+                  if row["record_kind"] == "unit" and row["stage"] == "a"}
+        rows = build_rows(plan, queued, checkpoint)
+        if len(rows) != 220:
+            raise ValueError("incomplete A rows")
+        output = csv_text(rows)
+    except Exception:
+        print("A plan export rejected: invalid or incomplete evidence", file=sys.stderr)
+        return 2
+    sys.stdout.write(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

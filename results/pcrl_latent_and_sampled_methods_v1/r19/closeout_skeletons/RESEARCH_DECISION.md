@@ -1,6 +1,6 @@
 # Research decision draft: latent repair and sampled channel
 
-Status: `R19_TEMPLATE_D_EVIDENCE_FILLED_A_PENDING`. R00 alone writes the effective shared decision. No confirmation population was opened.
+Status: `R19_TEMPLATE_D_EVIDENCE_FILLED_A_FIRST_FIT_NULL_REMAINDER_PENDING`. R00 alone writes the effective shared decision. No confirmation population was opened.
 
 ## D: verified exploratory result
 
@@ -10,11 +10,12 @@ Status: `R19_TEMPLATE_D_EVIDENCE_FILLED_A_PENDING`. R00 alone writes the effecti
 - Strongest favorable descriptive recovery contrast: D-K versus Ucal score-wire anchor, mean AUC reduction `0.056925` with interval `[0.034748, 0.079102]`; this exceeds 0.020 but D-K fails utility and the service is an anchor, not an eligible ten-bit matched control. Strongest adverse cross-capacity contrast: F coalition AUC exceeds D-K by `0.065924`, interval `[0.043268, 0.088580]`. F passes 24/24 task point clauses, while nine of its 36 seed/mean simultaneous utility clauses remain unresolved.
 - D conclusion: a real lower-recovery hard-code tradeoff, **no competitive method pass, no kernel component gain and no joint-design gain**. R18's real one-row D-K deployment and data-free negatives passed (receipt SHA-256 `66aeaf924d030618d67cf60f4a7b151322d3165e48d599a1ab39ce91b4667c81`); restored-service numerical replay and off-device custody remain pending.
 
-## A: fill only from admitted results
+## A: one completed null fit; comparison pending
 
 - Prospective family: seven references, ten registered A arms, three releases per stochastic arm and K=6,885 ordered clauses. Manifest SHA-256 `f54765a485297cfa40a10e178586b51230679cdefcca9c05b9be421c9a3c1d5b`; R04 prospective order audit SHA-256 `36f03cede6c511a61d999af03c2340600cfe064c2c0f6e5b7f3cef7ccfcd5654`.
-- Effective A fit admission: `PENDING_R00_RECEIPT`. Actual sampled policy/release, both-task utility, local and coalition recovery, matched deterministic/product/local/sequential controls, fixed K6,885 inference and independent replay: `PENDING_OR_NOT_RUN`; fill each from exact receipts. A source replay or synthetic smoke is not an Adult A result.
-- A decision: `PENDING`. If the budget or clock stops before A completion, state which planned units were not run. Do not replace the K6,885 denominator with the superseded K4,455 draft or shrink it after missing results.
+- First real `A_JOINT_STOCH` seed-0 FIT retry `A-FIT-A_JOINT_STOCH-S0-R1` ended queue `done` in 14.728 charged seconds (peak sampled tree RSS 484,016,128 bytes), but its scientific status is `COMPLETE_NO_FEASIBLE_POLICY`: 0/26 feasible checkpoints and `selected=null`. Public R03 checkpoint SHA-256 is `58ec6fe13369587cf3bbaee94a336ebb162679d56b28970da6bb1a5bed10bb30`; private FIT and queue receipt hashes are `788739bd944cbe7c8494900e370fc2ec33c1ae0c446560ca8aee432905df1f75` and `28e065c93d3adc6146195e1c4506fdaa07dd44af25025289fda0dd170456014e`. The six selected-policy releases, one Q and three attack descendants remain `NOT_TRIGGERED_PARENT_NO_FEASIBLE_POLICY`, with zero fitted release/attack evidence for this arm/seed.
+- Other A fits/seeds, same-bank deterministic ablation, central-product, local and both sequential controls, historical/continuous references, actual sampled releases, local and coalition fresh readers, K6,885 inference and R04 independent outcome replay still require exact receipts. A queue job finishing for another arm does not establish its selected policy or endpoints.
+- A competitive, joint-design and randomness decision remains `PENDING`. If the budget or clock stops before the rest, state all 220 planned producer-unit statuses and preserve unrun K6,885 clause IDs. Do not replace the denominator with the superseded K4,455 draft or shrink it after missing results.
 
 ## Campaign-level decision fields for R00
 
@@ -22,9 +23,9 @@ Status: `R19_TEMPLATE_D_EVIDENCE_FILLED_A_PENDING`. R00 alone writes the effecti
 | --- | --- |
 | Strongest complete method | `NONE_ESTABLISHED_FROM_D`; update only from eligible A evidence. |
 | Joint-design contribution | `NOT_EARNED_IN_D`; A pending. |
-| Randomness contribution | `A_PENDING`; requires same-bank deterministic ablation. |
+| Randomness contribution | `NOT_EARNED_FROM_FIRST_NULL_FIT`; A comparison pending and requires same-bank deterministic ablation. |
 | Reused-data status | `EXPLORATORY_DEVELOPMENT_ONLY`. |
-| Shared CPU/unit accounting | Regenerate from all R03 unit, supersession and charge receipts; R00 classifies planned/run/failed/aliased/incomplete. |
+| Shared CPU/unit accounting | Join all 220 sealed A producer IDs to actual R03 receipts and keep ten null-parent descendants explicitly not triggered; include historical failed attempt and separate charges outside the 220 graph. R00 classifies planned/run/failed/aliased/incomplete. |
 | Custody | Same-device D byte restore passed; restored numerical replay pending; off-device pending with no authorized writable drive. |
 | One next step | Fill after A terminal receipt: either test a frozen eligible lead on a separately authorized unexposed population, or revise the method from the observed shortfall under a new development protocol. |
 
