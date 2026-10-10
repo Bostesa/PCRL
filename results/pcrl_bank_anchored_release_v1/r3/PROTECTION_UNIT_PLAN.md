@@ -8,11 +8,14 @@ After R0 marks the new bank and channel identity milestones, register at most **
 config, private queue spec and public hash-only index from the corresponding
 corrected B0 witness config/spec, a completed R2 realization-zero law and
 `BAR1-role-release-v1` receipt, the selected R2 policy receipt and package,
-the seed's public full-FIT source-identity receipt, and the latest R0
+the seed's public full-FIT source-identity receipt, the authoritative public
+R2 F1 selected-unit receipt, and the latest R0
 protection-stage amendment. It verifies that release, selected policy and
 source identity share exactly one source-binding hash; the release names the
 selected policy receipt hash; and the policy receipt names the pinned policy
-package hash. It also verifies inherited source bytes and R2 arm/seed/role/law
+package hash. The selected-unit receipt must name the same policy and exact
+role/realization-zero law and release hashes, and its explicit successor unit
+ID must appear in the requested queue dependencies. It also verifies inherited source bytes and R2 arm/seed/role/law
 identity without opening role arrays or law members. The spec inherits the
 exact interpreter path from its successfully completed corrected B0 witness
 unit, avoiding an untested `python3` launcher. R0 still chooses and registers

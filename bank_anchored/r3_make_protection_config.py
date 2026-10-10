@@ -26,7 +26,8 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
                      arm: str, unit_id: str, law_record: dict,
                      release_record: dict, policy: dict, policy_record: dict,
                      policy_package_record: dict, identity: dict,
-                     identity_record: dict, amendment_record: dict,
+                     identity_record: dict, selected_unit: dict,
+                     selected_unit_record: dict, amendment_record: dict,
                      config_path: str, outputs: dict, deps: list[str],
                      max_wall_s: int = 60, cpu_reserve_s: int = 60) -> tuple[dict, dict]:
     """Derive immutable successor documents without reading any role array."""
@@ -59,11 +60,24 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
             or identity.get("source_lock_sha256") != base["seal"]["sha256"]
             or release.get("source_binding_sha256") != policy.get("source_binding_sha256")
             or policy.get("source_binding_sha256") != identity.get("source_binding_sha256")
+            or selected_unit.get("schema") != "BAR1-r2-unit-receipt-v1"
+            or not str(selected_unit.get("status", "")).startswith("COMPLETE")
+            or selected_unit.get("arm_id") != arm
+            or selected_unit.get("source_seed") != base["seed"]
+            or selected_unit.get("source_lock_sha256") != base["seal"]["sha256"]
+            or selected_unit.get("source_binding_sha256") != identity.get("source_binding_sha256")
+            or selected_unit.get("policy_receipt_sha256") != policy_record["sha256"]
+            or selected_unit.get("unit_id") not in deps
             or set(outputs) != {"csv", "private_vectors", "receipt"}
             or set(outputs.values()) & set(base["outputs"].values())
             or not deps or len(deps) != len(set(deps))
             or max_wall_s <= 0 or cpu_reserve_s <= 0):
         raise PermissionError("R3 protected law/source identity differs")
+    matching = [row for row in selected_unit.get("role_releases", [])
+                if row.get("role") == base["role"] and row.get("realization") == 0]
+    if (len(matching) != 1 or matching[0].get("receipt_sha256") != release_record["sha256"]
+            or matching[0].get("law_sha256") != law_record["sha256"]):
+        raise PermissionError("R2 selected unit does not bind R3 role law")
     cfg = {**base, "unit_id": unit_id, "stage": "protection", "arm": arm,
            "law": law_record, "outputs": outputs}
     config_rec = {"path": str(config_path),
@@ -75,7 +89,8 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
     # bank, role, worker and archive sources; replace only that config.
     sources = [config_rec, *old_sources[1:]]
     for item in (law_record, release_record, policy_record,
-                 policy_package_record, identity_record, amendment_record):
+                 policy_package_record, identity_record,
+                 selected_unit_record, amendment_record):
         if item not in sources:
             sources.append(item)
     spec = {"unit_id": unit_id, "stage": "protection",
@@ -92,7 +107,7 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
 def build(*, base_config: Path, base_spec: Path, law: Path,
           release_receipt: Path, policy_receipt: Path,
           policy_package: Path, source_identity: Path,
-          amendment: Path, arm: str,
+          selected_unit_receipt: Path, amendment: Path, arm: str,
           unit_id: str, deps: list[str]) -> dict:
     base_config_rec = record(base_config)
     base_spec_rec = record(base_spec)
@@ -108,10 +123,12 @@ def build(*, base_config: Path, base_spec: Path, law: Path,
     policy_record = record(policy_receipt)
     policy_package_record = record(policy_package)
     identity_record = record(source_identity)
+    selected_unit_record = record(selected_unit_receipt)
     amendment_record = record(amendment)
     release = json.loads(release_receipt.read_text())
     policy = json.loads(policy_receipt.read_text())
     identity = json.loads(source_identity.read_text())
+    selected_unit = json.loads(selected_unit_receipt.read_text())
     if (".private" not in Path(law_record["path"]).parts
             or ".private" not in Path(release_record["path"]).parts
             or ".private" not in Path(policy_record["path"]).parts
@@ -132,6 +149,8 @@ def build(*, base_config: Path, base_spec: Path, law: Path,
                                  policy=policy, policy_record=policy_record,
                                  policy_package_record=policy_package_record,
                                  identity=identity, identity_record=identity_record,
+                                 selected_unit=selected_unit,
+                                 selected_unit_record=selected_unit_record,
                                  amendment_record=amendment_record,
                                  config_path=str(config_path), outputs=outputs,
                                  deps=deps)
@@ -151,6 +170,8 @@ def build(*, base_config: Path, base_spec: Path, law: Path,
              "r2_policy_receipt_sha256": policy_record["sha256"],
              "r2_policy_package_sha256": policy_package_record["sha256"],
              "r2_full_fit_identity_sha256": identity_record["sha256"],
+             "r2_selected_unit_receipt_sha256": selected_unit_record["sha256"],
+             "r2_selected_unit_id": selected_unit["unit_id"],
              "source_binding_sha256": identity["source_binding_sha256"],
              "amendment_sha256": amendment_record["sha256"],
              "dependency_unit_ids": deps}
@@ -163,7 +184,7 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(allow_abbrev=False)
     for name in ("base-config", "base-spec", "law", "release-receipt",
                  "policy-receipt", "policy-package", "source-identity",
-                 "amendment"):
+                 "selected-unit-receipt", "amendment"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--arm", choices=PROTECTED_ARMS, required=True)
     parser.add_argument("--unit-id", required=True)
@@ -174,6 +195,7 @@ def main(argv: list[str] | None = None) -> None:
                            policy_receipt=args.policy_receipt,
                            policy_package=args.policy_package,
                            source_identity=args.source_identity,
+                           selected_unit_receipt=args.selected_unit_receipt,
                            amendment=args.amendment, arm=args.arm,
                            unit_id=args.unit_id, deps=args.dep), sort_keys=True))
 

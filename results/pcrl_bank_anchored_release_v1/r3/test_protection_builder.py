@@ -28,6 +28,15 @@ class ProtectionBuilderTests(unittest.TestCase):
                     "source_seed": 0, "role": "OSF_DEFENSE_FIT",
                     "source_lock_sha256": "a" * 64,
                     "source_binding_sha256": "f" * 64}
+        selected_unit = {"schema": "BAR1-r2-unit-receipt-v1",
+                         "status": "COMPLETE_PROTECTED",
+                         "unit_id": "R2_J_S0_FIT_F1", "arm_id": "J", "source_seed": 0,
+                         "source_lock_sha256": "a" * 64,
+                         "source_binding_sha256": "f" * 64,
+                         "policy_receipt_sha256": "e" * 64,
+                         "role_releases": [{"role": "INNER_SELECTION", "realization": 0,
+                                            "law_sha256": "b" * 64,
+                                            "receipt_sha256": "c" * 64}]}
         base["seal"] = {"path": "/x/seal", "sha256": "a" * 64}
         args = dict(base=base, source_spec=source, release=release, arm="J",
                     unit_id="R3_J_S0_INNER", law_record={"path": "/x/law", "sha256": "b" * 64},
@@ -35,14 +44,17 @@ class ProtectionBuilderTests(unittest.TestCase):
                     policy=policy, policy_record={"path": "/x/policy_receipt", "sha256": "e" * 64},
                     policy_package_record={"path": "/x/policy.npz", "sha256": "g" * 64},
                     identity=identity, identity_record={"path": "/x/identity", "sha256": "h" * 64},
+                    selected_unit=selected_unit,
+                    selected_unit_record={"path": "/x/unit_receipt", "sha256": "i" * 64},
                     amendment_record={"path": "/x/amend", "sha256": "d" * 64},
                     config_path="/x/.private/new_config.json",
                     outputs={"csv": "/x/new.csv", "private_vectors": "/x/.private/new.npz",
-                             "receipt": "/x/new.json"}, deps=["R2_J_S0_INNER"])
+                             "receipt": "/x/new.json"}, deps=["R2_J_S0_FIT_F1"])
         cfg, spec = derive_documents(**args)
         self.assertEqual(cfg["stage"], "protection")
         self.assertEqual(cfg["law"]["sha256"], "b" * 64)
-        self.assertEqual(spec["deps"], ["R2_J_S0_INNER"])
+        self.assertEqual(spec["deps"], ["R2_J_S0_FIT_F1"])
+        self.assertIn(args["selected_unit_record"], spec["sources"])
         self.assertEqual(spec["argv"][0], source["argv"][0])
         self.assertEqual(spec["amendment_sha256"], "d" * 64)
         self.assertIn(args["policy_package_record"], spec["sources"])
@@ -57,6 +69,9 @@ class ProtectionBuilderTests(unittest.TestCase):
             derive_documents(**(args | {"identity": identity | {"source_binding_sha256": "z" * 64}}))
         with self.assertRaises(PermissionError):
             derive_documents(**(args | {"source_spec": source | {"argv": ["python3"]}}))
+        with self.assertRaises(PermissionError):
+            derive_documents(**(args | {"selected_unit": selected_unit | {
+                "policy_receipt_sha256": "z" * 64}}))
 
 
 if __name__ == "__main__":
