@@ -120,11 +120,18 @@ def verify_reader_custody(root: str | Path, prepared: Mapping, index: Mapping,
         expected_order = (mandatory if name != "pair" else
                           (*mandatory, *(f"IGNORE_R2__{reader}" for reader in mandatory),
                            *(f"IGNORE_R1__{reader}" for reader in mandatory)))
-        if (receipt.get("status") != "FROZEN" or
+        expected_files = set(READER_FILES)
+        for reader_id in mandatory:
+            suffix = ".bin" if reader_id.startswith(("PROB_", "Q_POST_")) else ".joblib"
+            expected_files.add(f"model__{reader_id}{suffix}")
+        if (receipt.get("schema") != "pcrl-portfolio-private-reader-custody-v1" or
+                receipt.get("status") != "FROZEN" or
                 receipt["att_view_content_sha256"] != item.att.content_hashes() or
                 receipt["inner_view_content_sha256"] != item.inner.content_hashes() or
                 tuple(receipt.get("reader_order", ())) != expected_order):
             raise ValueError("reader receipt view identity differs")
+        if set(receipt.get("files", {})) != expected_files:
+            raise ValueError("reader receipt required view/prediction/model inventory differs")
         expected_alias = ([{"alias": f"IGNORE_R2__{reader}",
                             "source_view": "r1", "source_reader": reader,
                             "new_fit": False} for reader in mandatory] +
@@ -395,10 +402,10 @@ def save_private_cell(path: Path, cell: Mapping) -> dict:
                 raise ValueError("normalized reader key differs")
             arrays[key] = values
             readers.setdefault(view, []).append(reader_id)
-    with path.open("xb") as stream:
+    fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(fd, "wb") as stream:
         np.savez_compressed(stream, **arrays)
         stream.flush(); os.fsync(stream.fileno())
-    path.chmod(0o600)
     return {"private_file": str(path), "sha256": sha(path),
             "npz_keys": sorted(arrays), "reader_ids": readers}
 

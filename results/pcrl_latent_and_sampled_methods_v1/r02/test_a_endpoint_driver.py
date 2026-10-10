@@ -62,6 +62,7 @@ def test_private_normalized_cell_retains_exact_reader_arrays(tmp_path):
     cell = normalized_cell(row, row, q1, q2, pred)
     receipt = save_private_cell(path, cell)
     assert receipt["sha256"] == sha(path)
+    assert path.stat().st_mode & 0o777 == 0o600
     with np.load(path, allow_pickle=False) as archive:
         assert set(archive.files) == set(receipt["npz_keys"])
         assert np.array_equal(archive["reader__r1__LR_C1"], pred["r1"]["LR_C1"])
@@ -131,7 +132,13 @@ def test_saved_complete_view_and_reader_hashes_are_replayed(tmp_path):
             path = folder / f"predictions_{role}.npz"
             np.savez_compressed(path, **readers)
             files[path.name] = sha(path)
-        receipt = {"status": "FROZEN", "files": files,
+        for reader in FINITE_READERS:
+            suffix = ".bin" if reader.startswith(("PROB_", "Q_POST_")) else ".joblib"
+            path = folder / f"model__{reader}{suffix}"
+            path.write_bytes(b"synthetic model")
+            files[path.name] = sha(path)
+        receipt = {"schema": "pcrl-portfolio-private-reader-custody-v1",
+                   "status": "FROZEN", "files": files,
                    "att_view_content_sha256": view.content_hashes(),
                    "inner_view_content_sha256": view.content_hashes(),
                    "reader_order": list(readers),
@@ -184,6 +191,15 @@ def test_saved_complete_view_and_reader_hashes_are_replayed(tmp_path):
     index["reader_freeze_sha256"] = sha(freeze_path)
     index_path.write_text(json.dumps(index))
     with pytest.raises(ValueError, match="reader receipt view identity"):
+        verify_reader_custody(root, prepared, index, index_sha256=sha(index_path))
+    receipt["reader_order"].append("Q_POST_LR_C1")
+    del receipt["files"]["model__Q_POST_LR_C1.bin"]
+    receipt_path.write_text(json.dumps(receipt))
+    freeze["reader_receipt_sha256"]["r1"] = sha(receipt_path)
+    freeze_path.write_text(json.dumps(freeze))
+    index["reader_freeze_sha256"] = sha(freeze_path)
+    index_path.write_text(json.dumps(index))
+    with pytest.raises(ValueError, match="required view/prediction/model inventory"):
         verify_reader_custody(root, prepared, index, index_sha256=sha(index_path))
 
 
