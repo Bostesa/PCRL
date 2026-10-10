@@ -1,6 +1,6 @@
 # R19 component ledger draft
 
-Status: `ALL_SEVEN_POINT_AND_FIXED_K567_INTERVAL_REPLAY`. R00 owns the final shared `COMPONENT_LEDGER.md`. R04 independently replayed all seven D releases, task endpoints and fresh complete-view attacks in both paired seeds, then computed all 567 fixed-family simultaneous intervals. All six ten-bit arms fail the both-task/both-reference point utility conjunction; only continuous-latent F passes all point clauses. The hard-code eligible matched-control set is empty. A source file, synthetic check or fit count is not an Adult method advantage.
+Status: `D_ALL_SEVEN_POINT_AND_FIXED_K567_INTERVAL_REPLAY; A_PENDING`. R00 owns the final shared `COMPONENT_LEDGER.md`. R04 independently replayed all seven D releases, task endpoints and fresh complete-view attacks in both paired seeds, then computed all 567 fixed-family simultaneous intervals. All six ten-bit arms fail the both-task/both-reference point utility conjunction; only continuous-latent F passes all point clauses, with nine seed/mean interval clauses unresolved. The hard-code eligible matched-control set is empty. A's superseding, seven-reference K6,885 family has an independent prospective order audit, not an Adult result. A source file, synthetic check or fit count is not a method advantage.
 
 | Component | Inherited basis | New implementation or test in this campaign | Task-feasible on both tasks? | Matched recovery benefit? | Compression explanation? | Joint/randomness attribution? | Untested or limiting evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |

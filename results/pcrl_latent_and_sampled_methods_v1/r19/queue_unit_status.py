@@ -17,7 +17,8 @@ import sys
 
 
 DEFAULT_STATE = Path(__file__).resolve().parents[1] / "r03" / ".private" / "compute" / "state.json"
-FIELDS = ("unit_id", "stage", "status", "direct_child_cpu_s", "charged_cpu_s",
+FIELDS = ("record_kind", "record_id", "unit_id", "charge_id", "stage", "status",
+          "direct_child_cpu_s", "charged_cpu_s",
           "wall_s", "sampled_tree_rss_peak_bytes", "receipt_sha256")
 STAGES = frozenset(("admission", "d_first", "d_followup", "verification", "a", "optional"))
 STATUSES = frozenset(("queued", "held", "running", "done", "failed", "incomplete", "superseded"))
@@ -39,11 +40,13 @@ def _number(entry: dict, key: str) -> str:
 
 
 def propose_rows(state_path: Path) -> list[dict[str, str]]:
-    """Return only whitelisted public fields for every R03 enqueued unit."""
+    """Return whitelisted fields for units, supersessions and charge receipts."""
     state = json.loads(state_path.read_text())
     if state.get("schema") != "pcrl-latent-sampled-queue-v1" or not isinstance(state.get("units"), dict):
         raise ValueError("invalid queue state")
+    root = state_path.parent.resolve()
     rows = []
+    expected_unit_receipts = set()
     for uid, entry in sorted(state["units"].items()):
         if not isinstance(uid, str) or not UNIT_ID.fullmatch(uid) or ".." in uid:
             raise ValueError("invalid unit ID")
@@ -56,9 +59,10 @@ def propose_rows(state_path: Path) -> list[dict[str, str]]:
         if entry["spec"].get("unit_id", uid) != uid or entry.get("stage", stage) != stage:
             raise ValueError("unit identity mismatch")
         row = dict.fromkeys(FIELDS, "")
-        row.update(unit_id=uid, stage=stage, status=status)
+        row.update(record_kind="unit", record_id=uid, unit_id=uid, stage=stage, status=status)
         if status in FINAL_STATUSES:
             receipt_path = state_path.parent / "units" / uid / "RECEIPT.json"
+            expected_unit_receipts.add(receipt_path.resolve())
             receipt_bytes = receipt_path.read_bytes()
             receipt = json.loads(receipt_bytes)
             if any(receipt.get(key) != value for key, value in (("unit_id", uid), ("stage", stage),
@@ -74,7 +78,54 @@ def propose_rows(state_path: Path) -> list[dict[str, str]]:
             value = entry.get("supersession_receipt_sha256")
             if not isinstance(value, str) or not SHA256.fullmatch(value):
                 raise ValueError("invalid supersession receipt")
+            receipt_path = root / "units" / uid / "SUPERSESSION.json"
+            expected_unit_receipts.add(receipt_path.resolve())
+            if Path(entry.get("supersession_receipt_path", "")).resolve() != receipt_path.resolve():
+                raise ValueError("supersession receipt path mismatch")
+            receipt_bytes = receipt_path.read_bytes()
+            if hashlib.sha256(receipt_bytes).hexdigest() != value:
+                raise ValueError("supersession receipt hash mismatch")
+            receipt = json.loads(receipt_bytes)
+            if (receipt.get("schema") != "pcrl-queue-unstarted-supersession-v1" or
+                    receipt.get("old_unit_id") != uid or
+                    receipt.get("new_unit_id") != entry.get("superseded_by") or
+                    receipt.get("old_child_started") is not False):
+                raise ValueError("supersession receipt identity mismatch")
+            cpu = receipt.get("old_cpu_charge_s")
+            if isinstance(cpu, bool) or not isinstance(cpu, (int, float)) or not math.isfinite(cpu) or cpu < 0:
+                raise ValueError("invalid supersession charge")
+            row["charged_cpu_s"] = str(cpu)
             row["receipt_sha256"] = value
+        rows.append(row)
+
+    unit_root = root / "units"
+    actual_unit_receipts = ({path.resolve() for pattern in ("*/RECEIPT.json", "*/SUPERSESSION.json")
+                             for path in unit_root.glob(pattern)} if unit_root.exists() else set())
+    if actual_unit_receipts != expected_unit_receipts:
+        raise ValueError("unaccounted unit receipt")
+
+    charges = state.get("charges", {})
+    if not isinstance(charges, dict):
+        raise ValueError("invalid charges")
+    for cid, entry in sorted(charges.items()):
+        if (not isinstance(cid, str) or not UNIT_ID.fullmatch(cid) or ".." in cid or
+                not isinstance(entry, dict) or entry.get("charge_id") != cid or
+                entry.get("stage") not in STAGES):
+            raise ValueError("invalid charge")
+        cpu = entry.get("cpu_s")
+        if isinstance(cpu, bool) or not isinstance(cpu, (int, float)) or not math.isfinite(cpu) or cpu <= 0:
+            raise ValueError("invalid charge CPU")
+        digest = entry.get("receipt_sha256")
+        if not isinstance(digest, str) or not SHA256.fullmatch(digest):
+            raise ValueError("invalid charge receipt")
+        receipt_path = Path(entry.get("receipt_path", "")).resolve()
+        receipt_bytes = receipt_path.read_bytes()
+        if hashlib.sha256(receipt_bytes).hexdigest() != digest:
+            raise ValueError("charge receipt hash mismatch")
+        row = dict.fromkeys(FIELDS, "")
+        row.update(record_kind="charge", record_id=cid, charge_id=cid,
+                   stage=entry["stage"], status="charged", charged_cpu_s=str(cpu),
+                   receipt_sha256=digest)
         rows.append(row)
     return rows
 
