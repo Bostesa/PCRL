@@ -329,7 +329,14 @@ def test_mixed_realizations_or_roles_refused_before_attack_fit():
                                     role("INNER_SELECTION"), bank(1), bank(2))
 
 
-def test_outer_worker_blocks_before_saved_role_loader_without_a_queue(tmp_path):
+def test_outer_worker_blocks_before_saved_role_loader_without_a_queue(
+        tmp_path, monkeypatch):
+    # The test itself may run inside R03's registered synthetic queue unit.
+    # Remove only the inherited slot variables to exercise direct-launch refusal.
+    for name in ("PCRL_QUEUE_ROOT", "PCRL_QUEUE_UNIT_ID", "PCRL_QUEUE_STAGE",
+                 "PCRL_QUEUE_SLOT", "PCRL_QUEUE_SLOT_FD", "PCRL_QUEUE_SEAL_SHA256",
+                 "PCRL_QUEUE_SPEC_SHA256"):
+        monkeypatch.delenv(name, raising=False)
     lock = tmp_path / "A_LOCK.json"
     lock.write_text("{}\n")
     import hashlib
@@ -433,6 +440,7 @@ def test_outer_worker_uses_actual_wires_and_delays_inner_sex(tmp_path, monkeypat
     amendment = tmp_path / "amendment.json"
     amendment.write_text("{}\n")
     root = tmp_path / ".private" / "attempt"
+    root.parent.mkdir(mode=0o700)
     att = role("ATTACK_FIT_NEW")
     inner = role("INNER_SELECTION")
     pair_sha = sha_array(np.column_stack((att.row_id, att.unit)))
