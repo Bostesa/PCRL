@@ -53,6 +53,7 @@ def save_service(directory: Path, release: HardCodeRelease,
         "schema": SCHEMA, "source_seed": source_seed, "arm_id": arm_id,
         "version": release.version, "source_sha256": release.source_sha256,
         "model_sha256": release.model_sha256,
+        "scaler_sha256": release.scaler_sha256,
         "head_sha256": list(release.head_sha256),
         "role_manifest_sha256": role_manifest_sha256,
         "weights_sha256": sha256_file(weights), "weights_keys": sorted(arrays),
@@ -73,7 +74,8 @@ def save_service(directory: Path, release: HardCodeRelease,
     return {"manifest_path": str(manifest_path),
             "manifest_sha256": hashlib.sha256(payload).hexdigest(),
             "weights_sha256": manifest["weights_sha256"],
-            "model_sha256": release.model_sha256}
+            "model_sha256": release.model_sha256,
+            "scaler_sha256": release.scaler_sha256}
 
 
 def load_service(manifest_path: Path, *, expected_manifest_sha256: str,
@@ -110,6 +112,7 @@ def load_service(manifest_path: Path, *, expected_manifest_sha256: str,
     release = HardCodeRelease(model, scaler, manifest["version"],
                               expected_source_sha256, tuple(manifest["calibrators"]))
     if (release.model_sha256 != manifest.get("model_sha256")
+            or release.scaler_sha256 != manifest.get("scaler_sha256")
             or list(release.head_sha256) != manifest.get("head_sha256")):
         raise ValueError("service model/head identity mismatch")
     return release

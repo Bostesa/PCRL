@@ -99,6 +99,10 @@ class HardCodeRelease:
         self.scaler = scaler
         self.version = version
         self.source_sha256 = source_sha256
+        self.scaler_sha256 = state_sha256({
+            "scaler.center": torch.from_numpy(scaler.center),
+            "scaler.divisor": torch.from_numpy(scaler.divisor),
+        })
         state = self.model.state_dict()
         self.model_sha256 = state_sha256(state)
         self.head_sha256 = tuple(state_sha256({k: v for k, v in state.items()
@@ -154,6 +158,7 @@ class HardCodeRelease:
             "capacity_states": 1 << self.model.bits_count,
             "version": self.version, "source_sha256": self.source_sha256,
             "model_sha256": self.model_sha256,
+            "scaler_sha256": self.scaler_sha256,
             "head_sha256": self.head_sha256[purpose],
         }
         if self.calibrators is not None:

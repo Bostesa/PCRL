@@ -30,6 +30,8 @@ def test_private_package_restores_code_derived_release(tmp_path):
     for key in ("code", "probabilities", "decision"):
         assert np.array_equal(a[key], b[key])
     assert saved["model_sha256"] == restored.model_sha256
+    assert len(saved["scaler_sha256"]) == 64
+    assert saved["scaler_sha256"] == restored.scaler_sha256
     with pytest.raises(ValueError):
         load_service(tmp_path / "package/manifest.json",
                      expected_manifest_sha256=saved["manifest_sha256"],
