@@ -1,0 +1,29 @@
+{
+  "schema": "BAR1-r5-protection-g1-prefit-audit-v1",
+  "status": "GO_RESOURCE_AMENDMENT_ONLY",
+  "scope": "Independent static audit before G1 specs or fits; no G1 data read or method outcome evaluated",
+  "g1_commit": "90860a8421156d8398fafdea688540c28ed0ac37",
+  "g1_source_index_sha256": "0eb3ae45f1690a2abaf083412b60dfd41a4dbbf248281dcf11942a3dcdb9a3f9",
+  "g1_builder_sha256": "8975633380722414a68856fefe595287654860426a1b6fa93c8f8b727aada8d7",
+  "checks": {
+    "code_pins_matching": 29,
+    "code_pins_total": 29,
+    "unique_successor_units": 15,
+    "excluded_completed_unit": "R2_B0_S0_FIT_F1",
+    "completed_unit_receipt_sha256": "83f22db2c847e84b1197e453144e79fae766f62b4e915fe3647b94ff9a46a588",
+    "f1_source_index_pinned": true,
+    "campaign_lock_unchanged": true,
+    "recipe_seeds_unchanged_for_all_successors": true,
+    "science_code_hashes_unchanged_from_f1": true,
+    "only_changed_code_pin": "r2_build_protection_specs.py",
+    "new_queue_max_rss_gib": 3.0,
+    "whole_arm_optimizer_cpu_cap_seconds_unchanged": 300,
+    "queue_cpu_reservation_seconds_unchanged": 600,
+    "new_g1_specs_present_at_audit": 0,
+    "spec_builder_tests_passed": 2,
+    "spec_builder_tests_total": 2
+  },
+  "resource_reason": "The shared queue requires at least 1 GiB host memory headroom after reservation. A reported 4.965 GiB available could not admit a 4 GiB F1 reservation, whereas a 3 GiB reservation leaves approximately 1.965 GiB. The completed F1 B0 seed-zero unit used 0.151 GiB peak RSS; this is not a bound for protected arms.",
+  "limitation": "The 3 GiB cap is a hard operational ceiling. A successor exceeding it must fail and remain incomplete; this audit does not predict protected-arm memory use or certify numerical results.",
+  "condition": "R0 must seal a dated G resource amendment and bind its hash in each write-once G1 spec before any G1 unit runs. F1 B0 seed zero stays a separate completed unit; other F1 records remain preserved."
+}
