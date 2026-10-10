@@ -1,0 +1,58 @@
+{
+  "schema": "scv1-proposed-synthetic-diagnostic-release-timing-v1",
+  "proposal_only": true,
+  "owner": "R13",
+  "stage_scope": ["a"],
+  "interpretation": "Resource timing only. Synthetic role-shaped scores/codes; no Adult source, model, labels or outcomes may be opened. This proposal does not authorize a real A release.",
+  "required_prior_review": "R15 static GO on exact smoke/test bytes; R12 reference writer must be frozen and reviewed before R00 seal.",
+  "unit_ids": ["A-DIAG-SMOKE-ATT", "A-DIAG-SMOKE-INNER"],
+  "unit_specs": {
+    "A-DIAG-SMOKE-ATT": {
+      "arm_id": "A_CLASS_ONLY",
+      "role": "ATTACK_FIT_NEW",
+      "rows": 4064,
+      "groups": 4061,
+      "command_module": "results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.smoke_diagnostic_release",
+      "argv": ["--unit-id", "A-DIAG-SMOKE-ATT", "--arm-id", "A_CLASS_ONLY", "--role", "ATTACK_FIT_NEW", "--rows", "4064", "--output", "{new_R03_private_regular_file}"],
+      "output_contract": "one new regular JSON file with aggregate-only timing",
+      "cpu_reserve_s": 300,
+      "max_wall_s": 300,
+      "max_rss_bytes": 2147483648,
+      "projected_output_bytes": 65536
+    },
+    "A-DIAG-SMOKE-INNER": {
+      "arm_id": "A_CLASS_ONLY",
+      "role": "INNER_SELECTION",
+      "rows": 2235,
+      "groups": 2234,
+      "command_module": "results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.smoke_diagnostic_release",
+      "argv": ["--unit-id", "A-DIAG-SMOKE-INNER", "--arm-id", "A_CLASS_ONLY", "--role", "INNER_SELECTION", "--rows", "2235", "--output", "{new_R03_private_regular_file}"],
+      "output_contract": "one new regular JSON file with aggregate-only timing",
+      "cpu_reserve_s": 300,
+      "max_wall_s": 300,
+      "max_rss_bytes": 2147483648,
+      "projected_output_bytes": 65536
+    }
+  },
+  "numerical_threads": 1,
+  "environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "implementation_source_sha256": {
+    "r01/role_store.py": "0cfa7e69bd8e11b275f5f40eb66b2ddd01d87cca7ac153029f569769cb4b09c5",
+    "r03/compute_queue.py": "c818ef42cab0b8af8ca3b92f0db2eaaee3ada8a84a8665c2db8135cd94297be4",
+    "sampled_channel_v1/impl/bank.py": "d989c307a3bcebcb82aba0695b97849b12693cfe71d4e4318c3409d95e536f50",
+    "sampled_channel_v1/impl/channel.py": "b19212337f86638d8a3136691b719d5ac82a38978c83c49ad6e47a4584b689df",
+    "sampled_channel_v1/impl/fit.py": "6cc6c56ec03495adf3333132ee357cde4c6c42a0a14b4a96c5a27e40ee59d357",
+    "sampled_channel_v1/impl/release.py": "54f671e02a64ed6107b91d09c6d89640bb29c4500bd8416e5dec89fb332a7987",
+    "sampled_channel_v1/impl/source_bridge.py": "d1055ec8b54cb206f2b760232de2d8856c750d850583e3a583507e9c10bf35c8",
+    "sampled_channel_v1/impl/reference_materialize.py": "844351e1df1a093317a032282be5f39c4062ea01e603f5a44f3b75f01d71ca7d",
+    "sampled_channel_v1/controls/diagnostic_codes.py": "39ac1ef9cb3766c00ca6924137f25a93889f17b0b8cd2b6fe0ce6b5209048438",
+    "sampled_channel_v1/controls/smoke_diagnostic_release.py": "b2cf79978b85b70ce1fed65bc22fd1bae44dd2cc6256acc22554a2a79b57b68a"
+  },
+  "verification_test_sha256": {
+    "sampled_channel_v1/controls/test_smoke_diagnostic_release.py": "4f226736bb5b216ba290b4fd079a0da8a9326dd898a7d012ac954f4b913e873e"
+  }
+}
