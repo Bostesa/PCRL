@@ -5,9 +5,11 @@ Run only through R03's global heavy-process queue with one numerical thread.
 
 import argparse
 import json
+import os
 from pathlib import Path
 import resource
 import sys
+import tempfile
 import time
 
 import numpy as np
@@ -19,9 +21,11 @@ from fit import FitRecipe, ProtectedData, TaskOnlyData, prepare_law
 
 from deterministic_trainer import (DeterministicConfig, batch_from_prepared,
                                    fit_deterministic)
-from factor_controls import FactorGate, ProductPolicy
+from factor_controls import (FactorGate, ProductPolicy, SequentialPolicy,
+                             public_probability_embedding)
 from fit_local import LocalFactorData, fit_local_pair
 from fit_product import fit_product
+from seq_train import fit_sequential
 
 
 def _bank(rng, counts):
@@ -53,7 +57,8 @@ def _role(rng, bank, fine_count, n):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arm", choices=("det", "product", "local"), required=True)
+    parser.add_argument("--arm", choices=("det", "product", "local",
+                                          "seq12", "seq21"), required=True)
     parser.add_argument("--rows", type=int, default=15434)
     parser.add_argument("--cpu-limit", type=float, default=900)
     args = parser.parse_args()
@@ -88,6 +93,29 @@ def main():
                                 recipe2=FitRecipe(updates=150, checkpoint_every=25,
                                                   cpu_seconds=args.cpu_limit,
                                                   seed=2801))
+    elif args.arm.startswith("seq"):
+        order = args.arm[-2:]
+        first_bank = bank1 if order == "12" else bank2
+        second = FactorGate(np.zeros((12, 16)), np.zeros(16),
+                            np.zeros((16, 4)), np.zeros(4),
+                            public_probability_embedding(first_bank.probability))
+        seq = SequentialPolicy(bank1, bank2, actions1, actions2, gate,
+                               dummy, second, order=order,
+                               first_checkpoint_sha256="0" * 64)
+        task = TaskOnlyData(score1, score2, cell1, cell2, y1, y2)
+        with tempfile.TemporaryDirectory() as directory:
+            os.chmod(directory, 0o700)
+            stage_ceiling = args.cpu_limit / 2
+            result = fit_sequential(
+                ProtectedData(task, sex), seq, caps=caps,
+                recipe_stage1=FitRecipe(updates=150, checkpoint_every=25,
+                                        cpu_seconds=stage_ceiling, seed=2701),
+                recipe_stage2=FitRecipe(updates=150, checkpoint_every=25,
+                                        cpu_seconds=stage_ceiling, seed=2801),
+                total_cpu_seconds=args.cpu_limit, unit_ids=units,
+                private_root=b"synthetic-fourth-root-only-00000",
+                source_seed=0, source_binding_sha256="0" * 64,
+                private_draw_cache_path=Path(directory) / "seq-fit-draw.json")
     else:
         task = TaskOnlyData(score1, score2, cell1, cell2, y1, y2)
         prepared = prepare_law(task, policy)
