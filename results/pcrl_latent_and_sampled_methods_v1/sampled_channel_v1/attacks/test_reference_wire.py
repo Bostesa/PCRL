@@ -11,7 +11,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.referenc
     materialize_reference_role,
 )
 from .reference_wire import (
-    load_reference_role_package, prepare_reference_three_views,
+    load_public_fixed_map, load_reference_role_package, prepare_reference_three_views,
     reference_recipient_batch, with_reference_q_features,
 )
 from .q_aware import compile_uniform_prototype_features
@@ -164,3 +164,42 @@ def test_continuous_reference_has_no_fabricated_code_and_pair_is_aligned(tmp_pat
     assert prepared["pair"].att.cell_key is None
     assert prepared["pair"].probability_att.shape == (2, 8)
     assert prepared["pair"].att.row_id.tolist() == row.tolist()
+
+
+def test_public_fixed_map_checks_exact_label_free_banks_and_member_set(tmp_path):
+    b1, b2 = _banks()
+    values = {"bank_r1": b1, "bank_r2": b2,
+              "fine_to_code_r1": np.arange(64, dtype=np.int64) % 2,
+              "fine_to_code_r2": np.arange(641, dtype=np.int64) % 2}
+    archive = tmp_path / "A_FIXED_MAP_T_STAR_S0.npz"
+    np.savez_compressed(archive, **values)
+    sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+    receipt = {"schema": "pcrl-r01-public-fixed-fine-map-v1",
+               "status": "LABEL_FREE_FIXED_PUBLIC_SOURCE",
+               "arm_id": "T_STAR", "seed": 0, "release_id": "T_STAR-s0",
+               "source_kind": "historical_finite_reference",
+               "source_binding_sha256": "a" * 64,
+               "source_audit_sha256": "b" * 64,
+               "original_bank_receipt_sha256": "c" * 64,
+               "original_bank_file_sha256_by_recipient": {
+                   "r1": "d" * 64, "r2": "e" * 64},
+               "array_sha256": {name: sha_array(value)
+                                for name, value in values.items()},
+               "array_shape": {name: list(value.shape)
+                               for name, value in values.items()},
+               "npz_sha256": sha(archive)}
+    receipt_path = tmp_path / "A_FIXED_MAP_T_STAR_S0.json"
+    receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n")
+    restored, got = load_public_fixed_map(
+        receipt_path, archive, expected_receipt_sha256=sha(receipt_path),
+        expected_archive_sha256=sha(archive), arm_id="T_STAR", seed=0)
+    assert got["source_binding_sha256"] == "a" * 64
+    assert np.array_equal(restored["fine_to_code_r2"], values["fine_to_code_r2"])
+    with archive.open("wb") as stream:
+        np.savez_compressed(stream, **values, hidden_role=np.array([1], np.int64))
+    receipt["npz_sha256"] = sha(archive)
+    receipt_path.write_text(json.dumps(receipt, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="member set"):
+        load_public_fixed_map(
+            receipt_path, archive, expected_receipt_sha256=sha(receipt_path),
+            expected_archive_sha256=sha(archive), arm_id="T_STAR", seed=0)

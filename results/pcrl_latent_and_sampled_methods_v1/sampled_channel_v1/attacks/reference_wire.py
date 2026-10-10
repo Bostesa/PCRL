@@ -37,6 +37,13 @@ SOURCE_KEYS = frozenset({"role_source_file_sha256", "reference_file_sha256",
                          "bank_receipt_sha256", "source_audit_sha256"})
 ARRAYS = ("row_id", "unit", "prob_r1", "prob_r2", "decision_r1",
           "decision_r2", "code_r1", "code_r2")
+FIXED_MAP_ARRAYS = ("bank_r1", "bank_r2", "fine_to_code_r1", "fine_to_code_r2")
+FIXED_MAP_RECEIPT_KEYS = frozenset({
+    "schema", "status", "arm_id", "seed", "release_id", "source_kind",
+    "source_binding_sha256", "source_audit_sha256",
+    "original_bank_receipt_sha256", "original_bank_file_sha256_by_recipient",
+    "array_sha256", "array_shape", "npz_sha256",
+})
 WIRE_SCHEMA = "SCV1-reference-score-release-v1"
 METADATA_KEYS = frozenset({"model_id", "source_binding_sha256",
                            "bank_sha256", "code_length_bits"})
@@ -63,6 +70,73 @@ class ReferenceRoleRelease:
     unit: np.ndarray
     wires1: tuple[dict, ...]
     wires2: tuple[dict, ...]
+
+
+def load_public_fixed_map(receipt_path: str | Path, archive_path: str | Path, *,
+                          expected_receipt_sha256: str,
+                          expected_archive_sha256: str,
+                          arm_id: str, seed: int) -> tuple[dict, dict]:
+    """Load only R01's label-free full bank and fine-to-code public map."""
+    supplied_receipt, supplied_archive = Path(receipt_path), Path(archive_path)
+    if supplied_receipt.is_symlink() or supplied_archive.is_symlink():
+        raise PermissionError("public fixed-map source cannot be a symlink")
+    receipt_path = supplied_receipt.resolve(strict=True)
+    archive_path = supplied_archive.resolve(strict=True)
+    if (type(expected_receipt_sha256) is not str or
+            type(expected_archive_sha256) is not str or
+            HEX64.fullmatch(expected_receipt_sha256) is None or
+            HEX64.fullmatch(expected_archive_sha256) is None or
+            _sha(receipt_path) != expected_receipt_sha256 or
+            _sha(archive_path) != expected_archive_sha256):
+        raise ValueError("public fixed-map source bytes differ")
+    receipt = json.loads(receipt_path.read_text())
+    if (type(receipt) is not dict or receipt.keys() != FIXED_MAP_RECEIPT_KEYS or
+            receipt.get("schema") != "pcrl-r01-public-fixed-fine-map-v1" or
+            receipt.get("status") != "LABEL_FREE_FIXED_PUBLIC_SOURCE" or
+            receipt.get("arm_id") != arm_id or receipt.get("seed") != seed or
+            receipt.get("source_kind") != "historical_finite_reference" or
+            receipt.get("npz_sha256") != expected_archive_sha256 or
+            type(receipt.get("release_id")) is not str or
+            not receipt["release_id"] or
+            any(type(receipt.get(key)) is not str or
+                HEX64.fullmatch(receipt[key]) is None for key in (
+                    "source_binding_sha256", "source_audit_sha256",
+                    "original_bank_receipt_sha256")) or
+            type(receipt.get("original_bank_file_sha256_by_recipient")) is not dict or
+            receipt["original_bank_file_sha256_by_recipient"].keys() != {"r1", "r2"} or
+            any(type(value) is not str or HEX64.fullmatch(value) is None
+                for value in receipt["original_bank_file_sha256_by_recipient"].values()) or
+            type(receipt.get("array_sha256")) is not dict or
+            type(receipt.get("array_shape")) is not dict or
+            set(receipt["array_sha256"]) != set(FIXED_MAP_ARRAYS) or
+            set(receipt["array_shape"]) != set(FIXED_MAP_ARRAYS)):
+        raise ValueError("public fixed-map receipt identity differs")
+    with ZipFile(archive_path) as archive:
+        if (len(archive.infolist()) != len(FIXED_MAP_ARRAYS) or
+                {item.filename for item in archive.infolist()} !=
+                {f"{name}.npy" for name in FIXED_MAP_ARRAYS}):
+            raise ValueError("public fixed-map NPZ member set differs")
+    with np.load(archive_path, allow_pickle=False) as archive:
+        values = {name: np.array(archive[name], copy=True)
+                  for name in FIXED_MAP_ARRAYS}
+    for name, value in values.items():
+        if (sha_array(value) != receipt["array_sha256"][name] or
+                list(value.shape) != receipt["array_shape"][name]):
+            raise ValueError("public fixed-map array content differs")
+    for recipient in (1, 2):
+        bank = values[f"bank_r{recipient}"]
+        mapping = values[f"fine_to_code_r{recipient}"]
+        if (bank.dtype != np.float64 or bank.ndim != 2 or
+                bank.shape[1] != (2 if recipient == 1 else 6) or
+                not np.isfinite(bank).all() or np.any(bank < 0) or
+                not np.allclose(bank.sum(axis=1), 1, rtol=0, atol=1e-8) or
+                mapping.dtype != np.int64 or
+                mapping.shape != (64 if recipient == 1 else 641,) or
+                np.any((mapping < 0) | (mapping >= len(bank))) or
+                np.any(np.sort(bank, axis=1)[:, -1] <=
+                       np.sort(bank, axis=1)[:, -2])):
+            raise ValueError("public fixed-map bank/code semantics differ")
+    return values, receipt
 
 
 def load_reference_role_package(directory: str | Path, *, receipt_sha256: str,
