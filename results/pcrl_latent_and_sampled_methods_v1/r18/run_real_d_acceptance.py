@@ -204,6 +204,7 @@ def run(args: argparse.Namespace) -> dict:
     row, columns, row_id, unit = load_one_admitted_feature_row(
         role_root, paths["role_manifest"], role_sha, ROLE, args.row_index)
     check_raw_schema(row, columns, columns, FEATURE_NAMES_SHA256)
+    row_bytes = np.ascontiguousarray(row, dtype="<f4").tobytes()
     source_encoder = _encoder(paths["encoder_source"]).load(
         paths["source_checkpoint"], source_sha, columns, FEATURE_NAMES_SHA256, 0)
     releases = {}
@@ -223,7 +224,9 @@ def run(args: argparse.Namespace) -> dict:
               "service_manifest_sha256": package["manifest_sha256"],
               "source_checkpoint_sha256": source_sha,
               "role_manifest_sha256": role_sha,
-              "input_row_sha256": hashlib.sha256(row.tobytes()).hexdigest(),
+              "input_row_sha256": hashlib.sha256(row_bytes).hexdigest(),
+              "input_row_float32_le_hex": row_bytes.hex(),
+              "input_columns": list(columns),
               "releases": releases,
               "checks": {"role_only_83_ordered": True, "excluded_columns_absent": True,
                          "source_checkpoint_exact": True,
