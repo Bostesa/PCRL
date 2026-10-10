@@ -279,6 +279,7 @@ class Queue:
                 and payload.get("bank_relative_proxy") == "PASS"
                 and payload.get("original_inner_point_caps") == "PASS"
                 and payload.get("constraint_semantics") == "ESTABLISHED"
+                and payload.get("source_lock_sha256") == self.read()["seal"]["sha256"]
             ):
                 raise ValueError("bank-relative channel identity receipt does not establish gate")
         with self.mutex():
@@ -391,7 +392,9 @@ class Queue:
                 return "source_hash_missing"
         stage = spec["stage"]
         if stage in ("protection", "attacks") and "witness_pass" not in state["milestones"]:
-            return "learned_code_witness_gate"
+            return "bank_identity_gate"
+        if stage in ("protection", "attacks") and "channel_identity_pass" not in state["milestones"]:
+            return "bank_channel_identity_gate"
         if stage == "channel" and "channel_identity_pass" not in state["milestones"]:
             return "channel_identity_gate"
         if "witness_pass" in state["milestones"] and "witness_stop" in state["milestones"]:
