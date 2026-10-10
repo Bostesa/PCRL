@@ -1,0 +1,45 @@
+{
+  "schema": "pcrl-code-utility-deployment-manifest-v1",
+  "deployment_code_commit": "abac75cf48dd8a30c458d5fd883863c004a2204d",
+  "source_files_sha256": {
+    "code_witness/bank_deploy.py": "0a9ed5022399674710ad86b2b10a07cef63830dd77ca1bea617e6925d4dfc86a",
+    "code_witness/deploy.py": "9ab4e1389100ca8f68f01296db6c1f9850d55842fc928b3da949f22aa8036fd0",
+    "code_witness/bank.py": "68a68d0cbd28bad385608ec1a05340a1d0abfcad9878bd909301a24907687b57",
+    "code_witness/model.py": "ab83a9067a0c3488cecb445f440aa52faa8898661f70bed56c0bb0f181fb6395",
+    "code_witness/service.py": "150fc85ce820f0162a1f7121200368d4bac83abb44e0bd8be8614b3e1b8bcf6a"
+  },
+  "feature_schema_sha256": "7101f2fb37b623a08221c32b33eedf132cf0c4c376bb4042ab9cf16da08ad975",
+  "source_model_sha256_by_seed": {
+    "0": "5061a0074af74d21b53aca80b96d8b83b85a3e43cdb9e6758b2551be9045b9a7",
+    "1": "f52bef54ef77faf51cb6f55273e54f75ea094c4379bbf73b57a3941ce2f7a74c"
+  },
+  "bank_public_table_sha256_by_seed": {
+    "0": "23f8406880a983f6cc16cf1fbab2f38236757dfd3e05aca5846b30216fa1e362",
+    "1": "19fe88eca92c050375976f3cdcf421b3128766e6337d0e34c2082b0390170b4d"
+  },
+  "private_service_manifest_sha256_by_arm_and_seed": {
+    "T0_B10": {
+      "0": "5066cc219d9bc892b0530b921d8608371baf61632454ccea21eb6103e6cbbd0c",
+      "1": "e74267ef4578f9ae8c208355ea71c12ebcc938a4a2a0d807423bb2aab0720096"
+    },
+    "T0_B16": {
+      "0": "4f9678b0c8836c5a539156573947ef6b5ded6ac3d1ec271bd4eb09e548c43441",
+      "1": "54d0bde1e5a397b814eaf0367b3a3bc238d7e5bdea693b66c308328248d57052"
+    }
+  },
+  "input_contract": "NPZ with exactly X float matrix of shape (n,83) and feature_names in pinned order; source preprocessing must match the admitted model",
+  "single_recipient_output_npz": {
+    "code": "uint8 (n,10) for W_Q/W_TSTAR and T0_B10, or (n,16) for T0_B16",
+    "prob": "float64 (n,2) for purpose 0 income, or (n,6) for purpose 1 occupation",
+    "decision": "int64 (n,), exactly argmax(prob)"
+  },
+  "deployment_scope": "One purpose at a time; frozen U task score and latent remain local; only code and fixed-head/table-derived probability/decision are written",
+  "observed_numeric_replay": {
+    "independent_receipt_sha256": "ef42dba4a901e770748dd270d8e572bb1f427289608aeaddc10ae6503d9770c1",
+    "T0_B16_seed1_full_inner_rows": "Exact code, probability and decision parity when restored in the original 2235-row batch",
+    "T0_B16_seed1_32_row_subset": "Exact code and decision parity; maximum absolute probability difference 2.3296e-08 income and 9.3348e-08 occupation",
+    "cause": "Float32 code-head matrix arithmetic differs by batch shape; subset same-bit head output matched subset raw deployment exactly",
+    "limit": "The learned service's floating probabilities are not bitwise invariant to batch shape; only the tested full batch and subset are numerically checked. No repeat-query or all-batch stability claim."
+  },
+  "result_scope": "Runnable exploratory artifacts, not a utility or privacy pass for T0_B10/T0_B16; current-role Q and T* utility point caps passed, privacy attacks and independent deployment replay are recorded separately"
+}
