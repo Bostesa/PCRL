@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from results.pcrl_latent_and_sampled_methods_v1.r02.d_inference import (
-    D_ARMS, d_margin_names, d_margin_at,
+    D_ARMS, D_BOOTSTRAP_SEED_BYTES, d_margin_names, d_margin_at,
 )
 
 
@@ -25,6 +25,11 @@ def test_exact_d_family_covers_all_567_finite_clauses():
     assert sum(":arm_pair:" in name for name in names) == 189
     assert sum(":u_anchor:" in name for name in names) == 126
     assert {n.split(":", 1)[0] for n in names} == {"s0", "s1", "mean"}
+
+
+def test_d_bootstrap_seed_matches_lock_pcg64dxsm_integer():
+    assert len(D_BOOTSTRAP_SEED_BYTES) == 32
+    assert int.from_bytes(D_BOOTSTRAP_SEED_BYTES[:16], "big") == 20261010
 
 
 def test_d_family_reuses_same_people_and_scores_each_seed_and_mean():

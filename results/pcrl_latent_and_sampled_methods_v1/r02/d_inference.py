@@ -8,6 +8,7 @@ resample positions are passed to both seeds and every arm. No fit or data load.
 from __future__ import annotations
 
 import itertools
+import hashlib
 import sys
 from pathlib import Path
 from typing import Mapping
@@ -27,6 +28,9 @@ VIEWS = ("r1", "r2", "pair")
 TASKS = (("income", "prob_1"), ("occupation", "prob_2"))
 METRICS = ("accuracy", "nll", "brier")
 SUMMARIES = ("s0", "s1", "mean")
+D_BOOTSTRAP_SEED_BYTES = (20261010).to_bytes(16, "big") + hashlib.sha256(
+    b"pcrl-latent-sampled-inference-v1").digest()[:16]
+D_BOOTSTRAP_SEED_SHA256 = hashlib.sha256(D_BOOTSTRAP_SEED_BYTES).hexdigest()
 
 
 def d_margin_names() -> tuple[str, ...]:
@@ -112,7 +116,7 @@ def d_margin_at(seed_records: Mapping[int, Mapping], positions) -> tuple[tuple[s
     return d_margin_names(), np.concatenate((s0, s1, (s0 + s1) / 2))
 
 
-def run_d_inference(seed_records: Mapping[int, Mapping], private_seed: bytes) -> dict:
+def run_d_inference(seed_records: Mapping[int, Mapping]) -> dict:
     """Inherited 2048 paired-group simultaneous max-|t| over all 567 margins."""
     if set(seed_records) != {0, 1}:
         raise ValueError("fixed D screen requires paired seeds zero and one")
@@ -127,7 +131,7 @@ def run_d_inference(seed_records: Mapping[int, Mapping], private_seed: bytes) ->
             raise ValueError("D finite margin schema differs")
         return values
 
-    report = paired_group_inference(unit, names, at, private_seed)
+    report = paired_group_inference(unit, names, at, D_BOOTSTRAP_SEED_BYTES)
     # These are raw signed differences. The inherited helper's zero-threshold
     # PASS/VIOLATION labels do not encode this campaign's nonzero utility and
     # privacy allowances, nor the chosen direction of each arm pair.
@@ -136,5 +140,7 @@ def run_d_inference(seed_records: Mapping[int, Mapping], private_seed: bytes) ->
     report["finite_family"] = "D_7_ARMS_2_U_ANCHORS_2_SEEDS_AND_MEAN_V1"
     report["clause_count"] = len(names)
     report["seed_summaries"] = SUMMARIES
+    report["bootstrap_seed_rule"] = "PCG64DXSM(20261010)"
+    report["bootstrap_seed_bytes_sha256"] = D_BOOTSTRAP_SEED_SHA256
     report["contrast_convention"] = "raw first-minus-second; apply sealed allowances and desired direction to simultaneous lower/upper bounds"
     return report
