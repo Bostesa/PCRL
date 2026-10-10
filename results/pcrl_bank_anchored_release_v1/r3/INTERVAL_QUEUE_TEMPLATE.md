@@ -39,7 +39,10 @@ Use a fresh owner-only config file (`0600`) under `r3/.private`:
 its queue spec from an owner-only source manifest with schema
 `pcrl-bank-r3-interval-sources-v1`. Its ordered `entries` list contains
 `arm`, `seed`, `receipt_path` and `vector_path` for each completed INNER unit.
-Pass `--manifest`, `--seal`, `--amendment`, `--unit-id` and `--stage`.
+Pass `--manifest`, `--seal`, `--amendment`, `--unit-id`, `--stage` and an
+absolute `--interpreter` that imports both NumPy and SciPy. The builder checks
+that import, resolves and hashes the interpreter, and puts that exact binary
+path into the queue spec.
 The builder hashes vectors as opaque private files and checks each public
 INNER receipt before registration. It writes a public hash-only unit index.
 

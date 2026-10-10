@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import sys
 
 from .r3_make_witness_configs import ROOT, OUT, record, sha, write_new
 
@@ -38,6 +37,9 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
             or base.get("seed") not in (0, 1)
             or source_spec.get("unit_id") != base.get("unit_id")
             or source_spec.get("stage") != "witness"
+            or len(source_spec.get("argv", [])) != 5
+            or source_spec["argv"][1:4] != ["-m", "bank_anchored.r3_worker", "--config"]
+            or not Path(source_spec["argv"][0]).is_absolute()
             or arm not in PROTECTED_ARMS or not unit_id or unit_id == base["unit_id"]
             or release.get("schema") != "BAR1-role-release-v1"
             or release.get("arm_id") != arm
@@ -77,7 +79,7 @@ def derive_documents(*, base: dict, source_spec: dict, release: dict,
         if item not in sources:
             sources.append(item)
     spec = {"unit_id": unit_id, "stage": "protection",
-            "argv": [sys.executable, "-m", "bank_anchored.r3_worker",
+            "argv": [source_spec["argv"][0], "-m", "bank_anchored.r3_worker",
                      "--config", str(config_path)],
             "cwd": str(ROOT), "max_wall_s": max_wall_s,
             "cpu_reserve_s": cpu_reserve_s, "max_rss_gib": 1.0,

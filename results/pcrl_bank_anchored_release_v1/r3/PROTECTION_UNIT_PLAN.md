@@ -13,7 +13,9 @@ protection-stage amendment. It verifies that release, selected policy and
 source identity share exactly one source-binding hash; the release names the
 selected policy receipt hash; and the policy receipt names the pinned policy
 package hash. It also verifies inherited source bytes and R2 arm/seed/role/law
-identity without opening role arrays or law members. R0 still chooses and registers
+identity without opening role arrays or law members. The spec inherits the
+exact interpreter path from its successfully completed corrected B0 witness
+unit, avoiding an untested `python3` launcher. R0 still chooses and registers
 the dependency IDs in the shared queue. Each output unit ID and path is new.
 
 Each protected private config uses `pcrl-bank-r3-utility-job-v1`, `stage=protection`, exact arm and seed, exact FIT or INNER role, and the same source records as its matching B0 witness unit **plus** `law={path,sha256}` for the R2 private role law. That NPZ must have exactly eight members: `row_id,unit,code_r1,code_r2,mass,valid,b0_code_r1,b0_code_r2`. The R3 worker verifies ordered role rows/groups, law normalization, in-bank global IDs, class preservation and exact B0 codes against the pinned original R1 wire. The queue sources additionally pin the R2 law file; no label or SEX archive is an R2-to-R3 payload.

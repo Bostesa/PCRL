@@ -12,6 +12,7 @@ class IntervalBuilderTests(unittest.TestCase):
                     "receipt": {"path": f"/x/r{seed}", "sha256": "c" * 64}}
                    for seed in (0, 1)]
         args = {"unit_id": "R3_INTERVALS", "stage": "verification",
+                "interpreter": "/opt/homebrew/opt/python@3.14/bin/python3.14",
                 "seal_record": {"path": "/x/seal", "sha256": "a" * 64},
                 "entries": entries, "config_path": "/x/.private/config",
                 "outputs": {"results": "/x/out", "receipt": "/x/receipt"},
@@ -21,8 +22,11 @@ class IntervalBuilderTests(unittest.TestCase):
         cfg, spec = derive_documents(**args)
         self.assertEqual(len(cfg["entries"]), 2)
         self.assertEqual(spec["amendment_sha256"], "e" * 64)
+        self.assertEqual(spec["argv"][0], args["interpreter"])
         with self.assertRaises(PermissionError):
             derive_documents(**(args | {"entries": entries[:1]}))
+        with self.assertRaises(PermissionError):
+            derive_documents(**(args | {"interpreter": "python3"}))
 
 
 if __name__ == "__main__":

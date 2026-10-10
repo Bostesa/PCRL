@@ -13,6 +13,8 @@ class ProtectionBuilderTests(unittest.TestCase):
                 "outputs": {"csv": "/x/old.csv", "private_vectors": "/x/.private/old.npz",
                             "receipt": "/x/old.json"}}
         source = {"unit_id": base["unit_id"], "stage": "witness",
+                  "argv": ["/opt/homebrew/opt/python@3.14/bin/python3.14",
+                           "-m", "bank_anchored.r3_worker", "--config", "/x/base"],
                   "sources": [{"path": "/x/base", "sha256": "a" * 64}],
                   "deps": [], "outputs": list(base["outputs"].values())}
         release = {"schema": "BAR1-role-release-v1", "arm_id": "J",
@@ -41,6 +43,7 @@ class ProtectionBuilderTests(unittest.TestCase):
         self.assertEqual(cfg["stage"], "protection")
         self.assertEqual(cfg["law"]["sha256"], "b" * 64)
         self.assertEqual(spec["deps"], ["R2_J_S0_INNER"])
+        self.assertEqual(spec["argv"][0], source["argv"][0])
         self.assertEqual(spec["amendment_sha256"], "d" * 64)
         self.assertIn(args["policy_package_record"], spec["sources"])
         self.assertIn(args["identity_record"], spec["sources"])
@@ -52,6 +55,8 @@ class ProtectionBuilderTests(unittest.TestCase):
             derive_documents(**(args | {"release": release | {"policy_receipt_sha256": "z" * 64}}))
         with self.assertRaises(PermissionError):
             derive_documents(**(args | {"identity": identity | {"source_binding_sha256": "z" * 64}}))
+        with self.assertRaises(PermissionError):
+            derive_documents(**(args | {"source_spec": source | {"argv": ["python3"]}}))
 
 
 if __name__ == "__main__":

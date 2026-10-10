@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import sys
+import subprocess
 
 from .r3_family import ARMS
 from .r3_interval_worker import validate_config, validate_entry_receipt
@@ -25,8 +25,9 @@ def _bytes(value: dict) -> bytes:
 def derive_documents(*, unit_id: str, stage: str, seal_record: dict,
                      entries: list[dict], config_path: str, outputs: dict,
                      sources: list[dict], amendment_record: dict,
-                     deps: list[str]) -> tuple[dict, dict]:
+                     deps: list[str], interpreter: str) -> tuple[dict, dict]:
     if (not unit_id or stage not in ("protection", "verification")
+            or not Path(interpreter).is_absolute()
             or not deps or len(deps) != len(set(deps))
             or len(sources) != len({item["path"] for item in sources})
             or not all(isinstance(item.get("sha256"), str) and
@@ -42,7 +43,7 @@ def derive_documents(*, unit_id: str, stage: str, seal_record: dict,
     if amendment_record not in all_sources:
         all_sources.append(amendment_record)
     spec = {"unit_id": unit_id, "stage": stage,
-            "argv": [sys.executable, "-m", "bank_anchored.r3_interval_worker",
+            "argv": [interpreter, "-m", "bank_anchored.r3_interval_worker",
                      "--config", config_path],
             "cwd": str(ROOT), "max_wall_s": 120,
             "cpu_reserve_s": 120, "max_rss_gib": 1.0,
@@ -54,7 +55,7 @@ def derive_documents(*, unit_id: str, stage: str, seal_record: dict,
 
 
 def build(*, manifest: Path, seal: Path, amendment: Path,
-          unit_id: str, stage: str) -> dict:
+          unit_id: str, stage: str, interpreter: Path) -> dict:
     manifest_record = record(manifest)
     if ".private" not in Path(manifest_record["path"]).parts:
         raise PermissionError("interval source manifest must be owner-only")
@@ -65,8 +66,13 @@ def build(*, manifest: Path, seal: Path, amendment: Path,
         raise PermissionError("interval source manifest inventory differs")
     seal_record = record(seal)
     amendment_record = record(amendment)
+    interpreter_record = record(interpreter)
+    interpreter = Path(interpreter_record["path"])
+    subprocess.run([str(interpreter), "-c", "import numpy, scipy"],
+                   check=True, timeout=10, capture_output=True)
     source_records = [record(ROOT / f"bank_anchored/{name}") for name in
                       ("r3_interval_worker.py", "r3_intervals.py", "r3_family.py")]
+    source_records.append(interpreter_record)
     entries, deps = [], []
     for item in document["entries"]:
         if set(item) != {"arm", "seed", "receipt_path", "vector_path"}:
@@ -99,7 +105,7 @@ def build(*, manifest: Path, seal: Path, amendment: Path,
                                  config_path=str(config_path), outputs=outputs,
                                  sources=list(unique.values()),
                                  amendment_record=amendment_record,
-                                 deps=deps)
+                                 deps=deps, interpreter=str(interpreter))
     cfg_sha = write_new(config_path, _bytes(cfg), mode=0o600)
     if cfg_sha != spec["sources"][0]["sha256"]:
         raise AssertionError("interval config byte digest differs")
@@ -125,10 +131,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--amendment", type=Path, required=True)
     parser.add_argument("--unit-id", required=True)
     parser.add_argument("--stage", choices=("protection", "verification"), required=True)
+    parser.add_argument("--interpreter", type=Path, required=True)
     args = parser.parse_args(argv)
     print(json.dumps(build(manifest=args.manifest, seal=args.seal,
                            amendment=args.amendment, unit_id=args.unit_id,
-                           stage=args.stage), sort_keys=True))
+                           stage=args.stage, interpreter=args.interpreter), sort_keys=True))
 
 
 if __name__ == "__main__":
