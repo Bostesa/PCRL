@@ -20,3 +20,6 @@ def test_protection_requires_bank_and_channel_identity(tmp_path):
     state["milestones"]["witness_pass"] = {"path": str(seal),
                                              "sha256": state["seal"]["sha256"]}
     assert queue._admit_reason(state, spec) == "bank_channel_identity_gate"
+    state["milestones"]["channel_identity_pass"] = {"path": str(seal),
+                                                     "sha256": state["seal"]["sha256"]}
+    assert queue._admit_reason(state, spec) == "protection_stage_lock_missing"

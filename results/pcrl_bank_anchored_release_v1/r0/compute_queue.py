@@ -395,6 +395,10 @@ class Queue:
             return "bank_identity_gate"
         if stage in ("protection", "attacks") and "channel_identity_pass" not in state["milestones"]:
             return "bank_channel_identity_gate"
+        if stage in ("protection", "attacks") and not any(
+            stage in item["stages"] for item in state.get("amendments", [])
+        ):
+            return f"{stage}_stage_lock_missing"
         if stage == "channel" and "channel_identity_pass" not in state["milestones"]:
             return "channel_identity_gate"
         if "witness_pass" in state["milestones"] and "witness_stop" in state["milestones"]:
