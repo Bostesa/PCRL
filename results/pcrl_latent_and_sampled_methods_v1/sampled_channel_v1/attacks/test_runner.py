@@ -446,7 +446,11 @@ def test_outer_worker_uses_actual_wires_and_delays_inner_sex(tmp_path, monkeypat
 
     monkeypatch.setattr(runner, "assert_active_from_env", lambda **kwargs: {})
     monkeypatch.setattr(runner, "assert_a_attack_admission",
-                        lambda **kwargs: ({"attack": {"reader_ids": []}}, {
+                        lambda **kwargs: ({"attack_plan": {
+                            "reader_ids": ["LR_C1", "MLP_64x32", "HGB_15x200",
+                                           "DA_MLP_64x32", "CELL_A1", "CODE_BIT_LR_C1",
+                                           "PROB_LR_C1", "PROB_HGB_15x200"],
+                            "q_inapplicable_reason": "synthetic no-Q fixture"}}, {
                             "outputs": [str(root / "ATTACK_ATTEMPT_INDEX.json")],
                             "attack_identity": {"arm_id": "A_JOINT_STOCH",
                                                 "policy_receipt_sha256": "a" * 64},
@@ -497,11 +501,35 @@ def test_a_admission_binds_latest_amendment_and_every_saved_source(tmp_path, mon
             "source_role_manifest": role_manifest_sha,
             "r01/SOURCE_AUDIT.json": audit_sha}}) + "\n")
     lock_sha = sha(lock)
+    implementation = {}
+    for relative in (
+            "sampled_channel_v1/attacks/runner.py",
+            "sampled_channel_v1/attacks/wire.py",
+            "sampled_channel_v1/attacks/q_aware.py",
+            "sampled_channel_v1/attacks/q_artifact.py",
+            "sampled_channel_v1/controls/control_package.py",
+            "r02/complete_view.py", "r02/protocol.py", "r03/compute_queue.py"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"synthetic {relative}\n")
+        implementation[relative] = sha(path)
     amendment = tmp_path / "A_STAGE_AMENDMENT.json"
+    deps = ["A-FIT-S0", "A-RELEASE-S0-ATT-R1", "A-RELEASE-S0-INNER-R1", "A-Q-S0"]
     amendment.write_text(json.dumps({
         "schema": "pcrl-latent-sampled-A-stage-amendment-v1",
         "status": "LOCALLY_SEALED_A_STAGE",
         "original_lock_sha256": lock_sha,
+        "implementation_source_sha256": implementation,
+        "unit_plan": {
+            "A-SYNTHETIC": {"kind": "attack", "output_id": "A-SYNTHETIC",
+                            "arm_id": "A_JOINT_STOCH", "seed": 0, "realization": 1,
+                            "fit_unit_id": deps[0],
+                            "release_unit_ids": {"ATT": deps[1], "INNER": deps[2]},
+                            "q_unit_id": deps[3], "deps": deps,
+                            "trained_reader_and_probe_fits": 33},
+            "A-Q-S0": {"kind": "q_preprocess", "output_id": "A-Q-S0",
+                         "arm_id": "A_JOINT_STOCH", "seed": 0,
+                         "fit_unit_id": deps[0]}},
         "realizations": {
             "ids": [0, 1, 2],
             "stream_root_hash_manifest_sha256": sha(stream),
@@ -511,12 +539,15 @@ def test_a_admission_binds_latest_amendment_and_every_saved_source(tmp_path, mon
     saved = tmp_path / "saved-package.json"
     saved.write_text('{"synthetic":true}\n')
     spec = {"amendment_sha256": amendment_sha,
-            "attack_identity": {"realization": 1,
+            "deps": deps,
+            "attack_identity": {"arm_id": "A_JOINT_STOCH", "source_seed": 0,
+                                "realization": 1,
                                 "private_stream_root_sha256_by_role": {
                                     "ATTACK_FIT_NEW": roots["1"],
                                     "INNER_SELECTION": roots["1"]}},
             "sources": [{"path": str(path.resolve()), "sha256": sha(path)}
-                        for path in (lock, amendment, stream, saved)]}
+                        for path in (lock, amendment, stream, saved,
+                                     *(tmp_path / name for name in implementation))]}
     queue = tmp_path / "queue"
     queue.mkdir()
     state = {"units": {"A-SYNTHETIC": {"spec": spec}},
@@ -534,6 +565,39 @@ def test_a_admission_binds_latest_amendment_and_every_saved_source(tmp_path, mon
         source_paths=(saved,))
     assert got["status"] == "LOCALLY_SEALED_A_STAGE"
     assert got_spec == spec
+    old_amendment = amendment.read_text()
+    altered = json.loads(old_amendment)
+    altered["implementation_source_sha256"]["sampled_channel_v1/attacks/runner.py"] = "f" * 64
+    amendment.write_text(json.dumps(altered))
+    altered_sha = sha(amendment)
+    spec["amendment_sha256"] = altered_sha
+    next(item for item in spec["sources"] if item["path"] == str(amendment.resolve()))[
+        "sha256"] = altered_sha
+    state["amendments"][-1]["sha256"] = altered_sha
+    (queue / "state.json").write_text(json.dumps(state))
+    with pytest.raises(ValueError, match="implementation source differs"):
+        assert_a_attack_admission(
+            queue_unit_id="A-SYNTHETIC", original_lock_path=lock,
+            original_lock_sha256=lock_sha, a_amendment_path=amendment,
+            a_amendment_sha256=altered_sha,
+            role_manifest_sha256=role_manifest_sha, source_paths=(saved,))
+    amendment.write_text(old_amendment)
+    spec["amendment_sha256"] = amendment_sha
+    next(item for item in spec["sources"] if item["path"] == str(amendment.resolve()))[
+        "sha256"] = amendment_sha
+    state["amendments"][-1]["sha256"] = amendment_sha
+    (queue / "state.json").write_text(json.dumps(state))
+    spec["deps"] = deps[:-1]
+    (queue / "state.json").write_text(json.dumps(state))
+    with pytest.raises(ValueError, match="sealed arm/seed/draw/Q unit plan"):
+        assert_a_attack_admission(
+            queue_unit_id="A-SYNTHETIC", original_lock_path=lock,
+            original_lock_sha256=lock_sha, a_amendment_path=amendment,
+            a_amendment_sha256=amendment_sha,
+            role_manifest_sha256=role_manifest_sha,
+            source_paths=(saved,))
+    spec["deps"] = deps
+    (queue / "state.json").write_text(json.dumps(state))
     spec["attack_identity"]["private_stream_root_sha256_by_role"]["INNER_SELECTION"] = roots["0"]
     (queue / "state.json").write_text(json.dumps(state))
     with pytest.raises(ValueError, match="precommitted realization"):
@@ -571,3 +635,38 @@ def test_a_admission_binds_latest_amendment_and_every_saved_source(tmp_path, mon
             a_amendment_sha256=amendment_sha,
             role_manifest_sha256="f" * 64,
             source_paths=(saved,))
+
+
+def test_q_preprocess_dependency_binds_completed_queue_outputs(tmp_path, monkeypatch):
+    from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks import runner
+
+    q_dir = tmp_path / ".private" / "q"
+    q_dir.mkdir(parents=True)
+    receipt = q_dir / "Q_TABLE_RECEIPT.json"
+    table = q_dir / "q_table.npz"
+    receipt.write_text("synthetic public Q receipt\n")
+    table.write_bytes(b"synthetic public Q table")
+    sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+    q_id = "A-Q-S0"
+    queue = tmp_path / "queue"
+    (queue / "units" / q_id).mkdir(parents=True)
+    outputs = [str(receipt), str(table)]
+    state = {"units": {q_id: {"status": "done", "spec_sha256": "a" * 64,
+                              "spec": {"outputs": outputs}}}}
+    (queue / "state.json").write_text(json.dumps(state))
+    queue_receipt = {"status": "done", "returncode": 0,
+                     "spec_sha256": "a" * 64,
+                     "output_sha256": {str(path): sha(path) for path in (receipt, table)}}
+    receipt_path = queue / "units" / q_id / "RECEIPT.json"
+    receipt_path.write_text(json.dumps(queue_receipt))
+    monkeypatch.setenv("PCRL_QUEUE_ROOT", str(queue))
+    spec = {"deps": [q_id]}
+    amendment = {"unit_plan": {"A-ATTACK": {"q_unit_id": q_id}}}
+    identity = {"receipt_sha256": sha(receipt), "content_sha256": "b" * 64}
+    runner._assert_q_unit_custody(q_dir, spec=spec, amendment=amendment,
+                                  queue_unit_id="A-ATTACK", q_identity=identity)
+    queue_receipt["output_sha256"][str(table)] = "c" * 64
+    receipt_path.write_text(json.dumps(queue_receipt))
+    with pytest.raises(ValueError, match="dependency receipt/content"):
+        runner._assert_q_unit_custody(q_dir, spec=spec, amendment=amendment,
+                                      queue_unit_id="A-ATTACK", q_identity=identity)

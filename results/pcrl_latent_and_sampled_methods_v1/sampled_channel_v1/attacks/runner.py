@@ -37,7 +37,7 @@ from .q_aware import (PrototypeFeatureTable, fit_q_posterior_reader,
 from .q_artifact import load_q_table_artifact
 from .wire import (CacheIdentity, PublicBank, materialize_pair_batch,
                    materialize_recipient_batch)
-from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl import policy_package
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls import control_package
 
 
 @dataclass(frozen=True)
@@ -243,10 +243,10 @@ def load_fixed_saved_release_pair(
     policy_directory: str | Path, att_directory: str | Path,
     inner_directory: str | Path, *, attack_identity: dict,
 ) -> tuple[SampledRoleRelease, SampledRoleRelease, PublicBank, PublicBank, dict]:
-    """Restore one R12 selected stochastic policy and two actual role packages."""
+    """Restore one selected stochastic or matched-control policy and role packages."""
     if type(attack_identity) is not dict:
         raise ValueError("immutable A attack identity is required before policy loading")
-    policy, receipt = policy_package.load_policy_package(
+    policy, receipt = control_package.load_selected_policy_package(
         policy_directory,
         receipt_sha256=attack_identity["policy_receipt_sha256"])
     if (receipt["arm_id"] != attack_identity["arm_id"] or
@@ -329,6 +329,34 @@ def assert_a_attack_admission(
             or Path(stage_amendments[-1].get("path", "")).resolve() != amendment_path
             or spec.get("amendment_sha256") != a_amendment_sha256):
         raise ValueError("A unit does not bind latest registered stage amendment")
+    identity = spec.get("attack_identity")
+    unit_plan = amendment.get("unit_plan")
+    if type(unit_plan) is not dict:
+        raise ValueError("A amendment has no sealed unit plan")
+    planned = unit_plan.get(queue_unit_id)
+    if type(identity) is not dict or type(planned) is not dict:
+        raise ValueError("A attack lacks sealed unit plan or immutable identity")
+    release_units = planned.get("release_unit_ids")
+    if type(release_units) is not dict or set(release_units) != {"ATT", "INNER"}:
+        raise ValueError("A attack release unit plan is incomplete")
+    expected_deps = [planned.get("fit_unit_id"), release_units["ATT"],
+                     release_units["INNER"], planned.get("q_unit_id")]
+    q_planned = unit_plan.get(planned.get("q_unit_id"))
+    if (planned.get("kind") != "attack" or
+            planned.get("output_id") != queue_unit_id or
+            planned.get("arm_id") != identity.get("arm_id") or
+            planned.get("seed") != identity.get("source_seed") or
+            planned.get("realization") != identity.get("realization") or
+            planned.get("trained_reader_and_probe_fits") != 33 or
+            any(type(value) is not str or not value for value in expected_deps) or
+            planned.get("deps") != expected_deps or spec.get("deps") != expected_deps or
+            type(q_planned) is not dict or
+            q_planned.get("kind") != "q_preprocess" or
+            q_planned.get("output_id") != planned.get("q_unit_id") or
+            q_planned.get("arm_id") != planned.get("arm_id") or
+            q_planned.get("seed") != planned.get("seed") or
+            q_planned.get("fit_unit_id") != planned.get("fit_unit_id")):
+        raise ValueError("A attack spec differs from sealed arm/seed/draw/Q unit plan")
     stream_path = (lock.parent / "sampled_channel_v1" / "design" /
                    "STREAM_ROOT_HASH_MANIFEST.json").resolve(strict=True)
     streams = json.loads(stream_path.read_text())
@@ -348,6 +376,28 @@ def assert_a_attack_admission(
         raise ValueError("A attack stream roots differ from precommitted realization")
     declared = {Path(item["path"]).resolve(): item["sha256"]
                 for item in spec.get("sources", [])}
+    implementation = amendment.get("implementation_source_sha256")
+    required_implementation = {
+        "sampled_channel_v1/attacks/runner.py",
+        "sampled_channel_v1/attacks/wire.py",
+        "sampled_channel_v1/attacks/q_aware.py",
+        "sampled_channel_v1/attacks/q_artifact.py",
+        "sampled_channel_v1/controls/control_package.py",
+        "r02/complete_view.py", "r02/protocol.py", "r03/compute_queue.py",
+    }
+    if (type(implementation) is not dict or
+            not required_implementation <= set(implementation)):
+        raise ValueError("A amendment lacks mandatory attack implementation pins")
+    for relative, digest in implementation.items():
+        part = Path(relative)
+        if (type(relative) is not str or part.is_absolute() or
+                ".." in part.parts or type(digest) is not str or
+                HEX64.fullmatch(digest) is None):
+            raise ValueError("A implementation source path or SHA is malformed")
+        path = (lock.parent / part).resolve(strict=True)
+        if (not path.is_relative_to(lock.parent) or
+                declared.get(path) != digest or _sha_file(path) != digest):
+            raise ValueError("A implementation source differs from amendment/queue")
     for path in (lock, amendment_path, stream_path,
                  *(Path(p).resolve(strict=True) for p in source_paths)):
         if declared.get(path) != _sha_file(path):
@@ -368,6 +418,28 @@ def _wire_content_sha256(package: SampledRoleRelease) -> str:
             digest.update(json.dumps(wire, sort_keys=True, separators=(",", ":"),
                                      ensure_ascii=False, allow_nan=False).encode() + b"\n")
     return digest.hexdigest()
+
+
+def _assert_q_unit_custody(q_dir: Path, *, spec: dict, amendment: dict,
+                           queue_unit_id: str, q_identity: dict) -> None:
+    """Require the one public Q preprocessing unit named by the sealed plan."""
+    q_id = amendment["unit_plan"][queue_unit_id]["q_unit_id"]
+    root = Path(os.environ["PCRL_QUEUE_ROOT"]).resolve(strict=True)
+    state = json.loads((root / "state.json").read_text())
+    q_unit = state.get("units", {}).get(q_id, {})
+    files = [str(q_dir / "Q_TABLE_RECEIPT.json"), str(q_dir / "q_table.npz")]
+    if (q_id not in spec.get("deps", []) or q_unit.get("status") != "done" or
+            q_unit.get("spec", {}).get("outputs") != files):
+        raise ValueError("A public Q dependency/output differs from sealed unit")
+    queue_receipt_path = root / "units" / q_id / "RECEIPT.json"
+    queue_receipt = json.loads(queue_receipt_path.read_text())
+    if (queue_receipt.get("status") != "done" or
+            queue_receipt.get("returncode") != 0 or
+            queue_receipt.get("spec_sha256") != q_unit.get("spec_sha256") or
+            queue_receipt.get("output_sha256") !=
+                {path: _sha_file(Path(path)) for path in files} or
+            q_identity.get("receipt_sha256") != _sha_file(Path(files[0]))):
+        raise ValueError("A public Q dependency receipt/content differs")
 
 
 def prepare_sampled_three_views(
@@ -436,7 +508,9 @@ def run_sampled_attack(
     from results.pcrl_latent_and_sampled_methods_v1.r02 import complete_view, protocol
     from results.pcrl_latent_and_sampled_methods_v1.r03 import compute_queue
     from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl import (
-        bank, channel, fit, materialize, release, source_bridge)
+        bank, channel, fit, materialize, policy_package, release, source_bridge)
+    from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls import (
+        deterministic_policy, factor_controls)
     for supplied in (policy_package_dir, att_release_dir, inner_release_dir,
                      *((q_table_dir,) if q_table_dir is not None else ())):
         if Path(supplied).is_symlink():
@@ -458,6 +532,7 @@ def run_sampled_attack(
           for name in ("RELEASE_RECEIPT.json", "release_codes.npz", "cache.sqlite3")),
         manifest_path, source_audit_path, stream_path,
         *(Path(module.__file__).resolve(strict=True) for module in (
+            control_package, deterministic_policy, factor_controls,
             policy_package, bank, channel, fit, materialize, release, source_bridge,
             q_aware, q_artifact, wire, role_store, complete_view, protocol,
             compute_queue)),
@@ -488,8 +563,20 @@ def run_sampled_attack(
     identity = spec.get("attack_identity")
     if type(identity) is not dict:
         raise ValueError("immutable A attack identity descriptor is missing")
-    declared_readers = amendment.get("attack", {}).get("reader_ids", [])
+    attack_plan = amendment.get("attack_plan")
+    declared_readers = (attack_plan.get("reader_ids")
+                        if type(attack_plan) is dict else None)
+    plan = protocol.reader_plan(family="A", code_bits=True)
+    common_readers = (*plan.core, *plan.probability)
+    if (type(declared_readers) is not list or
+            declared_readers not in (list(common_readers),
+                                     [*common_readers, "Q_POST_LR_C1"])):
+        raise ValueError("A amendment attack_plan.reader_ids differs from fixed slate")
     q_required = "Q_POST_LR_C1" in declared_readers
+    reason = attack_plan.get("q_inapplicable_reason")
+    if ((q_required and reason is not None) or
+            (not q_required and (type(reason) is not str or not reason.strip()))):
+        raise ValueError("A Q reader applicability lacks its prelocked reason")
     q_identity = spec.get("q_table_identity")
     if (not isinstance(declared_readers, list) or
             q_required != (q_dir is not None) or
@@ -504,6 +591,8 @@ def run_sampled_attack(
     q_table = None
     expected_q_table_sha256 = None
     if q_required:
+        _assert_q_unit_custody(q_dir, spec=spec, amendment=amendment,
+                               queue_unit_id=queue_unit_id, q_identity=q_identity)
         expected_q_table_sha256 = q_identity["content_sha256"]
         q_table = load_q_table_artifact(
             q_dir, expected_receipt_sha256=q_identity["receipt_sha256"],
