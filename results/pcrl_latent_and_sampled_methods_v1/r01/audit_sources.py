@@ -92,6 +92,7 @@ def main():
     model_manifest = json.loads((repair / "results/pcrl_heldout_calibration_v1/MODEL_MANIFEST.json").read_text())
     u0_manifest = next(package for package in model_manifest["packages"] if package["release"] == "SRC|U")
     models = {}
+    calibration = {}
     for seed in (0, 1):
         directory = cache / f"hcal_v1/admitted/rel__s{seed}__U"
         complete = json.loads((directory / "COMPLETE.json").read_text())
@@ -106,6 +107,18 @@ def main():
         assert component_hashes["model.pt"] == u0_manifest["model_pt_sha256"][str(seed)]
         models[str(seed)] = {"source_id": complete["id"], "components_sha256": component_hashes,
                              "fit_role": "OSF_DEFENSE_FIT", "continuation_epoch": 40}
+        cal_dir = cache / f"hcal_v1/run/units/calU__s{seed}"
+        cal_complete = json.loads((cal_dir / "COMPLETE.json").read_text())
+        cal_path = cal_dir / "record.json"
+        assert cal_complete["id"] == f"calU__s{seed}"
+        assert sha_file(cal_path) == cal_complete["files"]["record.json"]
+        cal_record = json.loads(cal_path.read_text())
+        assert cal_record["schema"] == "hcal-calU-v1" and cal_record["seed"] == seed
+        assert {"H-GLOBAL-TEMP|r1", "H-GLOBAL-TEMP|r2"} <= set(cal_record["tables"])
+        calibration[str(seed)] = {"source_id": cal_complete["id"],
+                                  "record_sha256": cal_complete["files"]["record.json"],
+                                  "parameter_fit_role": "CALIBRATION_HELDOUT",
+                                  "family_selection_exposure": "INNER_SELECTION"}
     bank_summary = {}
     for seed in (0, 1):
         root = ppackage / f"shared/.private/tstar_score_bank_s{seed}_v1"
@@ -117,6 +130,13 @@ def main():
         assert receipt["status"] == "ROLE_ONLY_BANK_ADMITTED"
         assert receipt["preprocessing_only"] is True
         assert receipt["data_access_manifest_sha256"] == sha_file(pmanifest_path)
+        source_json = {
+            "fine_sha256": cache / f"hcal_v1/admitted/units/fine__s{seed}/fine.json",
+            "policy_sha256": cache / f"hcal_v1/admitted/units/pol__s{seed}__U_FINE-TASK_i8o64/policy.json",
+            "decoder_file_sha256": cache / f"hcal_v1/package/decoder__s{seed}__U_FINE-TASK_i8o64_H-GLOBAL-TEMP.json",
+        }
+        for key, path in source_json.items():
+            assert sha_file(path) == receipt["source_json_sha256"][key]
         binding_bytes = json.dumps(receipt["source_binding"], sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode()
         assert hashlib.sha256(binding_bytes).hexdigest() == receipt["source_binding_sha256"]
         for filename, expected in receipt["private_output_sha256"].items():
@@ -134,6 +154,8 @@ def main():
             dims[f"r{recipient}"] = {"output_tokens": len(probability), "task_classes": expected_classes}
         bank_summary[str(seed)] = {"receipt_sha256": sha_file(receipt_path),
                                    "source_binding_sha256": receipt["source_binding_sha256"],
+                                   "source_json_sha256": {key: receipt["source_json_sha256"][key]
+                                                          for key in source_json},
                                    "file_sha256": receipt["private_output_sha256"],
                                    "dimensions": dims,
                                    "independent_s4_parity": "PENDING_IN_PREDECESSOR_HANDOFF"}
@@ -144,6 +166,7 @@ def main():
               "source_schema_sha256": manifest["source_schema_sha256"],
               "role_file_count": len(checked), "role_file_sha256": checked,
               "roles": role_summary, "overlap": overlap, "u0_models": models,
+              "ucal_calibration": calibration,
               "tstar_banks": bank_summary,
               "reference_parity_inherited": "48/48 bitwise U0/Ucal cells on FIT/CAL/INNER, two seeds; not freshly recomputed in this read-only audit"}
     print(json.dumps(result, indent=2, sort_keys=True))
