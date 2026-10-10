@@ -22,8 +22,9 @@ import numpy as np
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import RoleOnlyStore
 from results.pcrl_latent_and_sampled_methods_v1.r01.tstar_source import TStarSourceStore
 from results.pcrl_latent_and_sampled_methods_v1.r03.compute_queue import assert_active_from_env
-from ..impl.admitted_fit import (MANDATORY_IMPLEMENTATION, REQUIRED,
-                                 load_fit_capability, _sha)
+from ..impl.admitted_fit import (MANDATORY_IMPLEMENTATION,
+                                 load_fit_capability, validate_a_amendment_envelope,
+                                 _sha)
 from ..impl.run_admitted import (_binding, _independent_source_gate, _once_json)
 from ..impl.source_bridge import ExpectedIdentity, sha_array
 from .control_dispatch import ARMS, fit_control_arm
@@ -105,9 +106,9 @@ def admit_control_unit(*, unit_id: str, lock_path, amendment_path,
             _sha(lock) != active["seal_sha256"]):
         raise PermissionError("A control original seal or amendment SHA differs")
     original, amendment = json.loads(lock.read_text()), json.loads(amendment_file.read_text())
+    validate_a_amendment_envelope(amendment)
     if (original.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1" or
             original.get("status") != "LOCALLY_SEALED_D_STAGE" or
-            amendment.keys() != REQUIRED or
             amendment.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1" or
             amendment.get("status") != "LOCALLY_SEALED_A_STAGE" or
             amendment.get("original_lock_sha256") != active["seal_sha256"]):

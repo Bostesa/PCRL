@@ -1,6 +1,7 @@
 """Data-free checks for the guarded fixed diagnostic release."""
 
 from argparse import Namespace
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory, gettempdir
 import unittest
@@ -27,6 +28,14 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.diag
 
 
 class DiagnosticWorkerTest(unittest.TestCase):
+    def test_actual_corrected_a_envelope_and_unknown_key(self):
+        campaign = Path(worker.__file__).resolve().parents[2]
+        amendment = json.loads((campaign /
+            "AMENDMENT_20261010_A_PRODUCER_STAGE_FIT_PATH_CORRECTION.json").read_text())
+        worker.validate_a_amendment_envelope(amendment)
+        with self.assertRaisesRegex(PermissionError, "top-level keys"):
+            worker.validate_a_amendment_envelope({**amendment, "unreviewed_key": True})
+
     def test_no_r03_slot_blocks_before_role_access(self):
         args = Namespace(unit_id="A-DIAG-RELEASE-A_IDENTITY-S0-ATT",
                          original_lock="absent", a_amendment="absent",

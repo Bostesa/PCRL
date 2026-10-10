@@ -1,6 +1,7 @@
 """Admission must fail before any role or SEX access without an R03 slot."""
 
 from argparse import Namespace
+import json
 from pathlib import Path
 import tempfile
 from unittest import TestCase
@@ -10,6 +11,14 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls impo
 
 
 class AdmissionTest(TestCase):
+    def test_actual_corrected_a_envelope_and_unknown_key(self):
+        campaign = Path(worker.__file__).resolve().parents[2]
+        amendment = json.loads((campaign /
+            "AMENDMENT_20261010_A_PRODUCER_STAGE_FIT_PATH_CORRECTION.json").read_text())
+        worker.validate_a_amendment_envelope(amendment)
+        with self.assertRaisesRegex(PermissionError, "top-level keys"):
+            worker.validate_a_amendment_envelope({**amendment, "unreviewed_key": True})
+
     def test_selected_output_requires_resolved_private_parent(self):
         with tempfile.TemporaryDirectory() as directory:
             parent = Path(directory)
