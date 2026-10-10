@@ -40,7 +40,17 @@ them by streaming file bytes; do not load NPZ members to build the spec.
         "W_TSTAR": {"release": {"path": "<new-private-W_TSTAR-INNER-release>", "sha256": "<sha>"}}
       }
     },
-    "1": "<same keys with S1 and s1 paths>",
+    "1": {
+      "first_receipt": {"path": "<current>/D_FIRST_S1_RECEIPT.json", "sha256": "<sha>"},
+      "followup_receipt": {"path": "<current>/D_FOLLOWUP_CONTROLS_S1_RECEIPT.json", "sha256": "<sha>"},
+      "first_private_root": "<old>/.private/d_first_s1",
+      "followup_private_root": "<old>/.private/d_followup_s1",
+      "public_tables": {"path": "<current>/r1/W_BANK_PUBLIC_TABLES_S1.json", "sha256": "<sha>"},
+      "banks": {
+        "W_Q": {"release": {"path": "<new-private-W_Q-INNER-release>", "sha256": "<sha>"}},
+        "W_TSTAR": {"release": {"path": "<new-private-W_TSTAR-INNER-release>", "sha256": "<sha>"}}
+      }
+    }
   },
   "output_private_dir": "<this-r2>/.private/pre_refit_loss",
   "output_csv": "<this-r2>/LOSS_DECOMPOSITION.csv",
