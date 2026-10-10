@@ -30,7 +30,12 @@ Prepare an owner-only `.private/ATTACK_BUILD_CONFIG.json` with schema
 - `pstar_historical_gate`: R3 separate P* reference gate `{path,sha256}`.
   `pstar_gate`: independent R5 P* INNER replay `{path,sha256}`.
 - `selected_r2_root`: R2 public result root. The builder finds exactly one
-  matching `*_UNIT_RECEIPT.json` per eligible arm/seed and follows its
+  source package under this root.
+- `selected_unit_by_arm_seed`: exact `{path,sha256}` for each of the fourteen
+  channel arm/seed R2 public successor unit receipts, keyed `T_s0` through
+  `S21_s1`. For a skipped incomplete arm, its unused entries may be null.
+  The builder never infers a winner by globbing old and successor attempts.
+  For each eligible arm/seed, it follows the selected receipt's
   `private_relative_dir` entries into the immutable nested
   `.private/units/<unit_id>/{policy,ROLE_Rdraw}` package. No alias or copied
   per-person array is created. Each attacked INNER law SHA must equal the
@@ -43,7 +48,9 @@ Prepare an owner-only `.private/ATTACK_BUILD_CONFIG.json` with schema
   witness and P* source results, with their own private releases.
 - `private_root`: owner-only R4 `.private` directory;
   `public_root`: R4 public result directory; `queue_root`: global R0 private
-  queue root; `python_executable`: admitted numerical interpreter.
+  queue root; `python_executable`: absolute admitted virtual-environment
+  entrypoint, preserved without symlink dereference. Finalization runs that
+  exact argv to verify `scipy` and `sklearn` imports before writing queue specs.
 - `max_wall_s`, `cpu_reserve_s`, `max_rss_gib`,
   `projected_output_bytes`: fixed queue ceilings. The queue requires CPU
   reserve at least wall limit; set these before attack-stage lock.

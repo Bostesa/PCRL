@@ -15,6 +15,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.channel 
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import BoundaryJointPolicy
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_materialize import materialize_arrays
 
+from . import spec_builder
 from .spec_builder import (ARMS, _selected_spec, eligible_arms,
                            planned_units, source_pins)
 
@@ -28,6 +29,15 @@ def write_json(path: Path, value: dict, mode=0o644) -> dict:
 
 
 class AttackSpecBuilderTests(unittest.TestCase):
+    def test_queue_python_preserves_working_venv_entrypoint(self):
+        python = Path("/Users/nathansamson/PCRL/.venv/bin/python")
+        if not python.exists():
+            self.skipTest("campaign virtual environment unavailable")
+        self.assertTrue(python.is_symlink())
+        self.assertEqual(spec_builder._python_entrypoint(str(python)), str(python))
+        with self.assertRaises(PermissionError):
+            spec_builder._python_entrypoint("/bin/false")
+
     def test_r2_exact_law_archive_is_realization_invariant(self):
         b1 = FixedBank(np.array([[.8, .2], [.7, .3]], dtype=np.float64),
                        np.array([0, 0], dtype=np.int64), (0, 1))
@@ -189,14 +199,19 @@ class AttackSpecBuilderTests(unittest.TestCase):
                                       "receipt_sha256": release_pin["sha256"],
                                       "law_sha256": law_sha})
                 law_by_role[role] = law_sha
-            write_json(r2 / "R2_J_S0_UNIT_RECEIPT.json", {
+            unit_pin = write_json(r2 / "R2_J_S0_UNIT_RECEIPT.json", {
                 "schema": "BAR1-r2-unit-receipt-v1", "unit_id": "R2_J_S0",
-                "arm_id": "J", "source_seed": 0, "status": "COMPLETE",
+                "arm_id": "J", "source_seed": 0,
+                "status": "COMPLETE_SELECTED_PROTECTED",
                 "source_lock_sha256": "a" * 64,
                 "source_binding_sha256": "b" * 64,
                 "policy_receipt_sha256": policy_pin["sha256"],
                 "fit_receipt_sha256": fit_receipt_sha,
                 "role_releases": release_items})
+            old_pin = write_json(r2 / "R2_J_S0_E_UNIT_RECEIPT.json", {
+                "schema": "BAR1-r2-unit-receipt-v1", "unit_id": "R2_J_S0_E",
+                "arm_id": "J", "source_seed": 0, "status": "SUPERSEDED",
+                "source_lock_sha256": "a" * 64})
             r3 = root / "r3"
             sources = {}
             for role, short in (("OSF_DEFENSE_FIT", "fit"),
@@ -230,6 +245,7 @@ class AttackSpecBuilderTests(unittest.TestCase):
                                         "sha256": "d" * 64}},
                 "gate_by_arm": {"J": gate_pin},
                 "selected_r2_root": str(r2),
+                "selected_unit_by_arm_seed": {"J_s0": unit_pin},
             }
             role = {"roles": {"ATTACK_FIT_NEW": {"rows": 4064},
                               "INNER_SELECTION": {"rows": 2235}}}
@@ -239,6 +255,10 @@ class AttackSpecBuilderTests(unittest.TestCase):
             self.assertEqual(spec["attacker_seed"], 100001)
             self.assertEqual(spec["utility_receipts_by_role"]["INNER_SELECTION"]
                              ["receipt_sha256"], sources["s0_inner"]["receipt_sha256"])
+            config["selected_unit_by_arm_seed"]["J_s0"] = old_pin
+            with self.assertRaises(PermissionError):
+                _selected_spec(config, "J", 0, 1, role)
+            config["selected_unit_by_arm_seed"]["J_s0"] = unit_pin
             bad = json.loads((r3 / "R3_J_S0_INNER_RECEIPT.json").read_text())
             bad["law_sha256"] = "0" * 64
             new_pin = write_json(r3 / "R3_J_S0_INNER_RECEIPT.json", bad)

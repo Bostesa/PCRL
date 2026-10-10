@@ -245,7 +245,8 @@ def validate_utility_linkage(spec: Mapping, gate: Mapping,
                             spec["source_unit_receipt_sha256"]).read_text())
     if (unit.get("schema") != "BAR1-r2-unit-receipt-v1" or
             unit.get("arm_id") != arm or unit.get("source_seed") != seed or
-            unit.get("status") == "INCOMPLETE_SEARCH" or
+            unit.get("status") not in
+            ("COMPLETE_IDENTITY_ALIAS", "COMPLETE_SELECTED_PROTECTED") or
             unit.get("policy_receipt_sha256") != spec["policy_receipt_sha256"] or
             unit.get("fit_receipt_sha256") !=
             policy_receipt.get("fit_receipt_sha256") or

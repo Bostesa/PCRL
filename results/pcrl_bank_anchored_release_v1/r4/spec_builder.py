@@ -14,6 +14,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+import subprocess
 from typing import Mapping
 
 from . import policy_worker, reference_worker, witness_worker
@@ -30,7 +31,7 @@ CONFIG_KEYS = frozenset({
     "role_manifest_path", "role_manifest_sha256",
     "table_by_seed", "gate_by_arm", "pstar_gate",
     "pstar_historical_gate", "queue_root",
-    "selected_r2_root",
+    "selected_r2_root", "selected_unit_by_arm_seed",
     "witness_source_root", "pstar_source_root",
     "private_root", "public_root", "python_executable",
     "max_wall_s", "cpu_reserve_s", "max_rss_gib",
@@ -144,7 +145,9 @@ def _validate_config(config: Mapping) -> tuple[dict, dict]:
     if not isinstance(config, Mapping) or set(config) != CONFIG_KEYS or config["schema"] != SCHEMA:
         raise ValueError("attack builder config schema differs")
     if set(config["table_by_seed"]) != {"0", "1"} or \
-            set(config["gate_by_arm"]) != set(ARMS) - {"P_STAR"}:
+            set(config["gate_by_arm"]) != set(ARMS) - {"P_STAR"} or \
+            set(config["selected_unit_by_arm_seed"]) != {
+                f"{arm}_s{seed}" for arm in CHANNEL_ARMS for seed in (0, 1)}:
         raise ValueError("all two-seed tables and non-P* arm gates required")
     if (type(config["max_wall_s"]) not in (int, float) or
             type(config["cpu_reserve_s"]) not in (int, float) or
@@ -298,19 +301,19 @@ def _common(config: Mapping, arm: str, seed: int, realization: int,
 def _selected_spec(config: Mapping, arm: str, seed: int,
                    realization: int, role: Mapping) -> dict:
     r2_root = Path(config["selected_r2_root"])
-    candidates = []
-    for path in r2_root.glob("*_UNIT_RECEIPT.json"):
-        value = _read_pin(_pin(path))
-        if value.get("schema") == "BAR1-r2-unit-receipt-v1" and \
-                value.get("arm_id") == arm and value.get("source_seed") == seed:
-            candidates.append((path, value))
-    if len(candidates) != 1:
-        raise PermissionError("exactly one completed R2 selected source unit required")
-    unit_path, source_unit = candidates[0]
-    if (source_unit.get("status") == "INCOMPLETE_SEARCH" or
+    source_unit_pin = config["selected_unit_by_arm_seed"][f"{arm}_s{seed}"]
+    unit_path = Path(source_unit_pin["path"])
+    if unit_path.parent.resolve(strict=True) != r2_root.resolve(strict=True):
+        raise PermissionError("selected R2 unit receipt outside pinned result root")
+    source_unit = _read_pin(source_unit_pin)
+    if (source_unit.get("schema") != "BAR1-r2-unit-receipt-v1" or
+            source_unit.get("arm_id") != arm or
+            source_unit.get("source_seed") != seed):
+        raise PermissionError("selected successor R2 unit identity differs")
+    if (source_unit.get("status") not in
+            ("COMPLETE_IDENTITY_ALIAS", "COMPLETE_SELECTED_PROTECTED") or
             source_unit.get("source_lock_sha256") != config["campaign_seal_sha256"]):
         raise PermissionError("R2 source unit incomplete or from another campaign")
-    source_unit_pin = _pin(unit_path)
     unit_root = r2_root / ".private" / "units" / source_unit["unit_id"]
     policy_dir = unit_root / "policy"
     policy_pin = _pin(policy_dir / "POLICY_RECEIPT.json")
@@ -584,6 +587,22 @@ def _queue_sources(spec: Mapping, spec_path: Path,
     return [_pin(path) for path in sorted(set(paths))]
 
 
+def _python_entrypoint(value: str) -> str:
+    """Keep the virtual environment path used by Python to find its packages."""
+    if type(value) is not str or not value:
+        raise PermissionError("numerical Python entrypoint missing")
+    path = Path(value)
+    if (not path.is_absolute() or not path.is_file() or
+            not os.access(path, os.X_OK)):
+        raise PermissionError("numerical Python entrypoint unavailable")
+    result = subprocess.run([value, "-c", "import scipy, sklearn"],
+                            capture_output=True, text=True, timeout=20,
+                            check=False)
+    if result.returncode != 0:
+        raise PermissionError("queued Python cannot import scipy and sklearn")
+    return value
+
+
 def finalize(config_path: str, stage_lock_path: str,
              stage_lock_sha256: str) -> dict:
     """After R0 registers its exact lock, write queue specs but never enqueue."""
@@ -610,9 +629,7 @@ def finalize(config_path: str, stage_lock_path: str,
     if not any(a["sha256"] == stage_lock_sha256 and "attacks" in a["stages"]
                for a in state.get("amendments", [])):
         raise PermissionError("R0 did not register attack-stage lock in global queue")
-    python = Path(config["python_executable"]).resolve(strict=True)
-    if not python.is_file() or not os.access(python, os.X_OK):
-        raise PermissionError("numerical Python executable missing")
+    python = _python_entrypoint(config["python_executable"])
     private = Path(config["private_root"])
     queue_entries = []
     modules = {"policy": "results.pcrl_bank_anchored_release_v1.r4.policy_worker",
@@ -627,7 +644,7 @@ def finalize(config_path: str, stage_lock_path: str,
         kind = entry["worker_kind"]
         queue_spec = {
             "unit_id": uid, "stage": "attacks",
-            "argv": [str(python), "-m", modules[kind],
+            "argv": [python, "-m", modules[kind],
                      "--unit-spec", str(spec_path),
                      "--unit-spec-sha256", entry["spec_sha256"],
                      "--stage-lock", str(lock_path),
