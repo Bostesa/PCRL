@@ -1,0 +1,9 @@
+# R15 downstream registration check
+
+Source and metadata review only. No Adult person arrays or numerical jobs were opened.
+
+The effective A downstream manifest is `A_DOWNSTREAM_SOURCE_MANIFEST_20261010_001.json`, SHA-256 `2634bfa069741b3589bb5c789cdc26ebd17d802b0081830ab1682351bfadac85`, committed at `e28e821786dd635264cec75a3a4cce8aef87eeff`. Its live bytes match the committed blob. It binds the existing producer amendment SHA-256 `526f509f8077f2ee1c412f6d290df939966a6b81f1ae5a87e9639d4bd317271f`, original lock SHA-256 `a75db45770d2ecb1385cf0bbbcbfec86a217b244ebf898ce61acd569609f5a48`, and the unchanged 220-unit plan SHA-256 `3a152e6b464b93911b7be55cded988697e4caa9a0d5bda550b313e179a62a36c`. Its five new module hashes and four inherited reader hashes match live files reviewed by R15.
+
+The local registration is `A_DOWNSTREAM_SOURCE_REGISTRATION_20261010_001.json`, SHA-256 `a3fbd98ad1a267402076ebdf233de72c77a4d73e07881259a70901abb26da0d4`, committed at `53e420500488cda679258eda0f00d09b8e86cd29`. Its live bytes match the HEAD blob. The registered manifest commit is an ancestor of HEAD; the registered source-map SHA-256 `116ab5f1465d6e33d55d162e3861404516c84c4d9663f379a88da482b6242ace` recomputes from the five new and four inherited source hashes. The registered independent review SHA-256 `1d59902e31d887b012abb820c9e82053b0e28ff45179709b488e540be8f7d843` matches the frozen `R15_DOWNSTREAM_DISPATCH_REVIEW.md` bytes.
+
+**Disposition:** exact-byte static GO for this local source-registration chain. This is an engineering custody seal, not prospective scientific preregistration or independent result verification. R03 queued data-free tests and unit admission remain required before fixed source, Q, or attack jobs. Selected A releases remain ineligible without a selected FIT policy.
