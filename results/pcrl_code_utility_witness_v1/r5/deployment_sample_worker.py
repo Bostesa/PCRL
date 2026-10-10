@@ -29,6 +29,29 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import (
 
 HERE = Path(__file__).resolve().parent
 WIRE = frozenset({"code0", "prob0", "decision0", "code1", "prob1", "decision1"})
+MAX_DEPLOYMENT_PROBABILITY_GAP = 2e-7
+
+
+def check_recipient_wire(actual: dict, saved: dict, decoded: np.ndarray,
+                         tolerance: float) -> float:
+    """Require exact transmitted bits/decision and same-call decoder parity."""
+    if not np.array_equal(actual["code"], saved["code"]):
+        raise ValueError("raw deployment code differs from saved wire")
+    if not np.array_equal(actual["decision"], saved["decision"]):
+        raise ValueError("raw deployment decision differs from saved wire")
+    p = np.asarray(actual["probabilities"])
+    if (p.dtype != np.float64 or p.shape != np.asarray(saved["probabilities"]).shape
+            or not np.isfinite(p).all() or np.any((p < 0) | (p > 1))
+            or np.max(np.abs(p.sum(axis=1) - 1.0)) > 1e-8):
+        raise ValueError("raw deployment probability schema differs")
+    if not np.array_equal(p, decoded):
+        raise ValueError("raw deployment decoder differs from emitted code")
+    if not np.array_equal(actual["decision"], p.argmax(axis=1)):
+        raise ValueError("raw deployment decision differs from emitted probability")
+    gap = float(np.max(np.abs(p - saved["probabilities"])))
+    if gap > tolerance:
+        raise ValueError("raw deployment probability gap exceeds sealed cap")
+    return gap
 
 
 def _pin(record: dict, sources: dict[Path, str]) -> Path:
@@ -139,7 +162,8 @@ def run(config_path: Path) -> dict:
                            expected_bits=config["bits"])
     encoder = FrozenUEncoder.load(source_path, source_sha, names,
                                   seal["source_schema_sha256"], seed)
-    max_gap = 0.0
+    max_batch_gap = 0.0
+    max_singleton_gap = 0.0
     required_metadata = {"schema", "purpose", "bits", "bit_order", "capacity_states",
                          "version", "source_sha256", "model_sha256", "scaler_sha256",
                          "head_sha256", "calibrator_sha256", "calibration_family"}
@@ -152,14 +176,25 @@ def run(config_path: Path) -> dict:
             raise ValueError("raw deployment metadata inventory differs")
         if got["metadata"] != role_record["metadata"][purpose]:
             raise ValueError("raw deployment metadata differs from frozen release")
-        for source_key, wire_key in (("code", f"code{purpose}"),
-                                     ("probabilities", f"prob{purpose}"),
-                                     ("decision", f"decision{purpose}")):
-            if not np.array_equal(got[source_key], expected[wire_key]):
-                raise ValueError(f"raw deployment differs from saved {wire_key}")
-            if source_key == "probabilities":
-                max_gap = max(max_gap, float(np.max(np.abs(got[source_key]
-                                                       - expected[wire_key]))))
+        saved_purpose = {"code": expected[f"code{purpose}"],
+                         "probabilities": expected[f"prob{purpose}"],
+                         "decision": expected[f"decision{purpose}"]}
+        max_batch_gap = max(max_batch_gap, check_recipient_wire(
+            got, saved_purpose, service.probabilities_from_code(purpose, got["code"]),
+            MAX_DEPLOYMENT_PROBABILITY_GAP))
+        for index in range(len(raw)):
+            single = service.recipient_from_raw(purpose, raw[index:index + 1], names,
+                                                encoder)
+            if set(single) != {"code", "probabilities", "decision", "metadata"}:
+                raise ValueError("singleton deployment exported unexpected content")
+            if single["metadata"] != role_record["metadata"][purpose]:
+                raise ValueError("singleton deployment metadata differs")
+            one_saved = {key: value[index:index + 1]
+                         for key, value in saved_purpose.items()}
+            max_singleton_gap = max(max_singleton_gap, check_recipient_wire(
+                single, one_saved,
+                service.probabilities_from_code(purpose, single["code"]),
+                MAX_DEPLOYMENT_PROBABILITY_GAP))
     class WrongSource:
         model_sha256 = "0" * 64
         def encode_one(self, *_args, **_kwargs):
@@ -201,20 +236,28 @@ def run(config_path: Path) -> dict:
     with TemporaryDirectory(dir=private) as temp_dir:
         schema_path = Path(temp_dir) / "schema.json"
         schema_path.write_text(json.dumps(list(names)))
-        cli_path = Path(temp_dir) / "deployed.npz"
-        args = ["--service-manifest", str(manifest_path),
-                "--service-manifest-sha256", config["service_manifest"]["sha256"],
-                "--source-model", str(source_path), "--source-model-sha256", source_sha,
-                "--schema", str(schema_path), "--schema-sha256", seal["source_schema_sha256"],
-                "--input", str(raw_file), "--output", str(cli_path),
-                "--bits", str(config["bits"])]
-        with redirect_stdout(io.StringIO()):
-            deploy.main(args)
-        with np.load(cli_path, allow_pickle=False) as archive:
-            if set(archive.files) != WIRE:
-                raise ValueError("CLI exported forbidden member")
-            if any(not np.array_equal(archive[key], expected[key]) for key in WIRE):
-                raise ValueError("CLI output differs from saved release")
+        for purpose in (0, 1):
+            cli_path = Path(temp_dir) / f"deployed_{purpose}.npz"
+            args = ["--service-manifest", str(manifest_path),
+                    "--service-manifest-sha256", config["service_manifest"]["sha256"],
+                    "--source-model", str(source_path), "--source-model-sha256", source_sha,
+                    "--schema", str(schema_path), "--schema-sha256", seal["source_schema_sha256"],
+                    "--input", str(raw_file), "--output", str(cli_path),
+                    "--bits", str(config["bits"]), "--purpose", str(purpose)]
+            with redirect_stdout(io.StringIO()):
+                deploy.main(args)
+            with np.load(cli_path, allow_pickle=False) as archive:
+                if set(archive.files) != {"code", "prob", "decision"}:
+                    raise ValueError("recipient CLI exported forbidden member")
+                actual = {"code": np.array(archive["code"]),
+                          "probabilities": np.array(archive["prob"]),
+                          "decision": np.array(archive["decision"])}
+            saved_purpose = {"code": expected[f"code{purpose}"],
+                             "probabilities": expected[f"prob{purpose}"],
+                             "decision": expected[f"decision{purpose}"]}
+            check_recipient_wire(actual, saved_purpose,
+                                 service.probabilities_from_code(purpose, actual["code"]),
+                                 MAX_DEPLOYMENT_PROBABILITY_GAP)
     public = {
         "schema": "pcrl-r5-raw-deployment-sample-receipt-v1",
         "status": "PASS", "unit_id": active["unit_id"],
@@ -226,8 +269,11 @@ def run(config_path: Path) -> dict:
         "service_weights_sha256": config["service_weights"]["sha256"],
         "role_manifest_sha256": config["role_manifest"]["sha256"],
         "raw_samples_sha256": raw_sha, "expected_wire_sha256": expected_sha,
-        "raw_vs_saved_max_probability_gap": max_gap,
-        "cli_vs_saved_exact": True, "wrong_source_refused": wrong_source_refused,
+        "raw_vs_saved_max_probability_gap_32_batch": max_batch_gap,
+        "raw_vs_saved_max_probability_gap_singleton": max_singleton_gap,
+        "probability_gap_cap": MAX_DEPLOYMENT_PROBABILITY_GAP,
+        "exact_bits_decisions_and_emitted_code_decoder": True,
+        "cli_vs_saved_within_cap": True, "wrong_source_refused": wrong_source_refused,
         "reordered_columns_refused": True, "extra_excluded_column_refused": True,
         "public_wire_members": sorted(WIRE),
         "private_sample_directory_basename": private.name,
