@@ -165,6 +165,12 @@ def run(args: argparse.Namespace) -> dict:
                 raise ValueError(f"A {field} bytes differ: {relative}")
     if amendment["source_sha256"].get("r04/A_S1_FAMILY_INDEPENDENT_AUDIT.json") != sha_file(family_receipt):
         raise ValueError("A independent family receipt not bound into amendment")
+    scorer_path = "r02/a_inference.py"
+    if (amendment["interval_family"].get("scorer_sha256") !=
+            "DEFERRED_TO_DATED_ENDPOINT_AMENDMENT"
+            or scorer_path in amendment["source_sha256"]
+            or scorer_path in amendment["implementation_source_sha256"]):
+        raise ValueError("A producer-only seal does not defer the evolving endpoint scorer")
     graph = _check_graph(amendment["unit_plan"])
     used_a = float(queue["used_by_stage_s"].get("a", 0))
     used_global = float(queue["used_cpu_s"])
@@ -187,6 +193,7 @@ def run(args: argparse.Namespace) -> dict:
             "queue_state_sha256_at_audit": sha_file(queue_state_path),
             "source_hashes_checked": {field: len(amendment[field]) for field in
                                       ("source_sha256", "implementation_source_sha256")},
+            "scope": "producer_only; endpoint scorer requires a dated source amendment",
             "role_boundary": "FIT, ATTACK_FIT_NEW and INNER_SELECTION; no assessment release unit",
             "graph": graph, "used_a_stage_cpu_seconds_at_audit": used_a,
             "used_global_cpu_seconds_at_audit": used_global,
