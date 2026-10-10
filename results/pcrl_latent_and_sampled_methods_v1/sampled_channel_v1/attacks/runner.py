@@ -552,11 +552,16 @@ def run_sampled_attack(
         a_amendment_sha256=a_amendment_sha256,
         role_manifest_sha256=role_manifest_sha256,
         source_paths=sources)
-    if Path(private_root).is_symlink():
-        raise PermissionError("A attack output root cannot be a symlink")
-    root = Path(private_root).resolve()
-    if (".private" not in root.parts or root.exists()
-            or str(root / "ATTACK_ATTEMPT_INDEX.json") not in spec.get("outputs", [])):
+    supplied_output = Path(private_root)
+    if any(path.is_symlink() for path in
+           (supplied_output, *supplied_output.parents)):
+        raise PermissionError("A attack output ancestry cannot be a symlink")
+    root = supplied_output.resolve()
+    parent = root.parent
+    if (".private" not in root.parts or root.exists() or
+            not parent.is_dir() or parent.stat().st_uid != os.getuid() or
+            stat.S_IMODE(parent.stat().st_mode) & 0o077 or
+            spec.get("outputs") != [str(root / "ATTACK_ATTEMPT_INDEX.json")]):
         raise ValueError("A attack output differs from immutable private queue custody")
     if _sha_file(manifest_path) != role_manifest_sha256:
         raise ValueError("admitted role-only manifest SHA differs")

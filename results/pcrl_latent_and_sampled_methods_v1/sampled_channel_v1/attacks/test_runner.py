@@ -382,8 +382,9 @@ def test_outer_worker_refuses_unregistered_output_before_role_access(tmp_path, m
     amendment = tmp_path / "amendment.json"
     amendment.write_text("{}\n")
     monkeypatch.setattr(runner, "assert_active_from_env", lambda **kwargs: {})
+    spec = {"outputs": ["/other/ATTACK_ATTEMPT_INDEX.json"]}
     monkeypatch.setattr(runner, "assert_a_attack_admission",
-                        lambda **kwargs: ({}, {"outputs": ["/other/ATTACK_ATTEMPT_INDEX.json"]}))
+                        lambda **kwargs: ({}, spec))
     with pytest.raises(ValueError, match="output differs"):
         run_sampled_attack(
             policy_package_dir=policy, att_release_dir=att_dir,
@@ -394,6 +395,28 @@ def test_outer_worker_refuses_unregistered_output_before_role_access(tmp_path, m
             a_amendment_path=amendment, a_amendment_sha256="c" * 64,
             queue_unit_id="A-SYNTHETIC",
             private_root=tmp_path / ".private" / "attempt")
+    parent = tmp_path / ".private"
+    spec["outputs"] = [str(parent / "attempt" / "ATTACK_ATTEMPT_INDEX.json")]
+    parent.chmod(0o755)
+    with pytest.raises(ValueError, match="private queue custody"):
+        run_sampled_attack(
+            policy_package_dir=policy, att_release_dir=att_dir,
+            inner_release_dir=inner_dir, q_table_dir=None,
+            role_manifest_path=manifest, role_manifest_sha256="a" * 64,
+            original_lock_path=lock, original_lock_sha256="b" * 64,
+            a_amendment_path=amendment, a_amendment_sha256="c" * 64,
+            queue_unit_id="A-SYNTHETIC", private_root=parent / "attempt")
+    parent.chmod(0o700)
+    alias = tmp_path / "alias"
+    alias.symlink_to(parent, target_is_directory=True)
+    with pytest.raises(PermissionError, match="ancestry"):
+        run_sampled_attack(
+            policy_package_dir=policy, att_release_dir=att_dir,
+            inner_release_dir=inner_dir, q_table_dir=None,
+            role_manifest_path=manifest, role_manifest_sha256="a" * 64,
+            original_lock_path=lock, original_lock_sha256="b" * 64,
+            a_amendment_path=amendment, a_amendment_sha256="c" * 64,
+            queue_unit_id="A-SYNTHETIC", private_root=alias / "attempt")
 
 
 def test_outer_worker_uses_actual_wires_and_delays_inner_sex(tmp_path, monkeypatch):
