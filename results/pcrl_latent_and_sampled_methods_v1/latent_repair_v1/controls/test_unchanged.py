@@ -36,3 +36,20 @@ def test_unchanged_release_rejects_bad_source_or_nonfinite_latent():
         pass
     else:
         raise AssertionError("nonfinite latent accepted")
+
+
+def test_f_calibration_is_applied_to_the_public_head_probability():
+    scaler = FixedScaler.fit(np.array([[0.], [1.]]), np.array([[2.], [3.]]))
+    heads = (ContinuousHead(1, 2), ContinuousHead(1, 6))
+    records = ({"schema": "pcrl-portfolio-global-temp-v1", "task": "income", "alpha": 2.0},
+               {"schema": "pcrl-portfolio-global-temp-v1", "task": "occupation", "alpha": 1.0})
+    raw = UnchangedLatentRelease(heads, scaler, "f-v1", "c" * 64)
+    calibrated = UnchangedLatentRelease(heads, scaler, "f-v1", "c" * 64,
+                                        calibrators=records)
+    h = np.array([[0.], [1.]], dtype=np.float32)
+    p = raw.recipient(0, h)["probabilities"]
+    q = calibrated.recipient(0, h)["probabilities"]
+    expected = p ** 2
+    expected /= expected.sum(axis=1, keepdims=True)
+    np.testing.assert_allclose(q, expected, atol=1e-12)
+    assert calibrated.recipient(0, h)["metadata"]["calibration_family"] == "H-GLOBAL-TEMP"
