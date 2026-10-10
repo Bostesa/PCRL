@@ -11,6 +11,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_array
 from results.pcrl_latent_and_sampled_methods_v1.r02.complete_view import pair_batch, prepare_views
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.reference_materialize import reconstruct_reference_wires
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.reference_wire import ReferenceRoleRelease, reference_recipient_batch
+from .r4_public_law import row_log_mass
 
 ARRAY_KEYS = frozenset({"row_id", "unit", "code_r1", "code_r2", "prob_r1", "prob_r2", "decision_r1", "decision_r2"})
 
@@ -56,23 +57,28 @@ def package_from_arrays(arrays, *, identity, role):
     return ReferenceRoleRelease(receipt, "", row, unit, wires["r1"], wires["r2"])
 
 
-def local_batch(package, recipient):
+def local_batch(package, recipient, masses):
     batch = reference_recipient_batch(package, recipient)
     probability = batch.fields["probability"].values
+    code=np.asarray(batch.fields["code_id"].values,dtype=np.int64)
     return replace(batch, public_derived={
-        "public_log_probability": np.log(np.maximum(probability, 1e-12))})
+        "public_log_probability": np.log(np.maximum(probability, 1e-12)),
+        "public_uniform_source_log_output_mass": row_log_mass(masses,f"r{recipient}",code)})
 
 
-def coalition_batch(left, right):
+def coalition_batch(left, right, masses):
     batch = pair_batch(left, right)
     bits1 = np.asarray(left.fields["code_bits"].values, np.float64)
     bits2 = np.asarray(right.fields["code_bits"].values, np.float64)
     return replace(batch, public_derived={**batch.public_derived,
         "pair_code_bit_products": (bits1[:, :, None] * bits2[:, None, :]).reshape(
-            len(bits1), bits1.shape[1] * bits2.shape[1])})
+            len(bits1), bits1.shape[1] * bits2.shape[1]),
+        "pair_public_uniform_source_log_output_mass": row_log_mass(masses,"pair",
+            np.asarray(left.fields["code_id"].values,dtype=np.int64),
+            np.asarray(right.fields["code_id"].values,dtype=np.int64))})
 
 
-def prepare_three_views(att, inner):
+def prepare_three_views(att, inner, *, uniform_masses):
     for key in ("release_id", "source_binding_sha256", "bank_sha256_by_recipient"):
         if att.receipt[key] != inner.receipt[key]:
             raise ValueError("ATT/INNER public identities differ")
@@ -80,8 +86,8 @@ def prepare_three_views(att, inner):
         raise ValueError("ATT/INNER role identities differ")
     batches = {}
     for role, package in (("att", att), ("inner", inner)):
-        left, right = local_batch(package, 1), local_batch(package, 2)
-        batches[role] = {"r1": left, "r2": right, "pair": coalition_batch(left, right)}
+        left, right = local_batch(package, 1, uniform_masses), local_batch(package, 2, uniform_masses)
+        batches[role] = {"r1": left, "r2": right, "pair": coalition_batch(left, right, uniform_masses)}
     prepared = {view: prepare_views(batches["att"][view], batches["inner"][view])
                 for view in ("r1", "r2", "pair")}
     if any(getattr(p, side).x_defense_aware is None

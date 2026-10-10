@@ -1,0 +1,7 @@
+# R3 prefit source and scope note
+
+The exact P0 witness units ran under the admission seal with the worker SHA recorded separately in their queue specs. The public witness aggregates and owner-only per-person vectors remain unchanged. The subsequently tightened `r3_worker.py` verifies policy, release, law-content and three cached-draw provenance before new protected task arrays are read. New policy units must pin its new SHA in R0's science lock and queue specs; the P0 witness is not silently rerun under the changed file.
+
+The P0 gate at `P0_TWO_SEED_INNER_GATE.json` counts only 24 original INNER task/reference clauses. Its FIT proxy is separate. The old B0 FIT restriction in `P0_VS_OLD_B0_FIT_RESTRICTION.json` has six substantive failures across seeds, independently checked with Decimal arithmetic. Those data compare exact P0 with an old output bank and formulation. They cannot isolate an objective effect. O-J and V-J will both use the newly admitted exact P0 bank and support before their objective comparison can be interpreted.
+
+The family file `SIMULTANEOUS_FAMILY.json` contains all 948 potential slots, including unrun and point-ineligible arms. Candidate nomination uses only three-fold, duplicate-group-disjoint all-FIT out-of-fold retained pair-reader CE. R4's final attacks are not used to choose the nominee. Every original INNER point-eligible fixed arm enters fresh attack fitting; confidence bounds are reported separately.

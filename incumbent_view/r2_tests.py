@@ -7,8 +7,9 @@ import unittest
 import numpy as np
 from .r2_space import Space,group_folds,costs,identity_q,utility_receipt,decimal_cost_check,accurate_margin
 from .r2_policy import Policy
-from .r2_train import initial_weights,backoff,_torch_law,_bayes_torch
+from .r2_train import initial_weights,backoff,_torch_law,_bayes_torch,_constraints,_objective
 from .r2_space import bayes_objective
+from .r2_torch_cache import FrozenRound
 from .r2_readers import weighted_counts,categorical_probability,wire_features,fit_round,reader_guard_receipt,Reader
 from .r2_projection import law_coefficients,constraint_coefficients
 
@@ -151,6 +152,21 @@ class Tests(unittest.TestCase):
             expected=(int(s.actions1[0,a]),int(s.actions2[0,b]))
             actual=tuple(int(x[0]) for x in policy.sample_codes(code,code,np.asarray([[coin1,coin2]])))
             self.assertEqual(actual,expected)
+
+    def test_cached_round_matches_direct_loss_guards(self):
+        import torch
+        s=tiny_space();code=np.tile(np.arange(4,dtype=np.int64),9);p=s.prepare(code,code)
+        fold=group_folds(np.repeat(np.arange(18,dtype=np.int64),2));rng=np.random.default_rng(414)
+        q=torch.as_tensor(rng.dirichlet(np.ones(16),36))
+        c=costs(s,p,np.ones(36,np.int64),np.zeros(36,np.int64))
+        readers=[Reader(f"{v}/fake{i}",v,rng.random((36,16)),0.,{},0,0)
+                 for v in ("r1","r2","pair") for i in range(3)]
+        cache=FrozenRound(c,fold,readers,torch=torch)
+        expected=_constraints(q,c,fold,readers,torch)
+        actual=cache.constraints(q)
+        self.assertEqual(len(actual),len(expected))
+        self.assertLess(max(abs(float(a-b)) for a,b in zip(actual,expected)),1e-13)
+        self.assertAlmostEqual(float(cache.objective(q,"V_J")),float(_objective(q,p,None,readers,"V_J",torch)),places=13)
 
 
 def main():

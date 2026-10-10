@@ -50,12 +50,17 @@ def nominate_family(gates, reader_records):
             if not isinstance(fold_hash, str) or len(fold_hash) != 64 or any(c not in "0123456789abcdef" for c in fold_hash):
                 raise ValueError("fixed FIT crossfit manifest hash required")
             prior = record.get("constant_prior_ce")
-            readers = record.get("retained_pair_reader_ce")
+            readers = record.get("pair_reader_losses")
             if not isinstance(readers, dict) or not readers or not isinstance(prior, (float, int)) or not math.isfinite(prior):
                 raise ValueError("internal-reader record incomplete")
             if any(not isinstance(v, (float, int)) or not math.isfinite(v) for v in readers.values()):
                 raise ValueError("reader CE must be finite")
             best = min(prior, *readers.values())
+            if (not isinstance(record.get("pair_min_ce"), (float, int))
+                    or not isinstance(record.get("reader_recovery_gap"), (float, int))
+                    or abs(float(record["pair_min_ce"]) - best) > 1e-12
+                    or abs(float(record["reader_recovery_gap"]) - (prior - best)) > 1e-12):
+                raise ValueError("R2 internal reader summary differs from full retained CE slate")
             by_seed.append({"seed": seed, "prior_ce": prior, "strongest_reader_ce": best, "gain": prior - best, "crossfit_fold_manifest_sha256": fold_hash})
             alias = record.get("exact_p0_alias")
             if type(alias) is not bool:

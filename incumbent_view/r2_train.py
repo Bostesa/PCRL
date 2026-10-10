@@ -11,6 +11,7 @@ from .r2_space import (ETA,INITIAL_ETA,SAFETY,CAPS,group_folds,costs,identity_q,
                       utility_receipt,bayes_objective,central_features,summaries)
 from .r2_policy import Policy
 from .r2_readers import fit_round,reader_guard_receipt,risks,nomination
+from .r2_torch_cache import FrozenRound
 
 
 def initial_weights(width,hidden,output,seed,start):
@@ -207,6 +208,9 @@ def fit_arm(space,arm,code1,code2,y1,y2,sex,unit,*,seed,cpu_seconds=1800.):
                 if stage==2:
                     fp=frozen.law_prepared(p).reshape(-1,4,4)
                     fixedfirst=fp.sum(2 if first==1 else 1)
+                round_cache=FrozenRound(c,fold,retained,torch=torch,
+                              task_views=(first,) if stage==1 else (1,2),
+                              guard_views=(f"r{first}",) if stage==1 else ("r1","r2"))
                 per_round=50 if arm=="V_L" or stage is not None else 100
                 for update in range(per_round+1):
                     total_update=round_index*per_round+update
@@ -223,10 +227,9 @@ def fit_arm(space,arm,code1,code2,y1,y2,sex,unit,*,seed,cpu_seconds=1800.):
                     opt.zero_grad()
                     tq=_torch_law(space,p,w,arm,eta1,eta2,torch=torch,stage=stage,frozen_first=fixedfirst,
                                   temperature=.5**(total_update/299) if arm=="V_D" else 1.)
-                    obj=_objective(tq,p,sex,retained,arm,torch,stage=stage)
-                    residual=_constraints(tq,c,fold,retained,torch,
-                              task_views=(first,) if stage==1 else (1,2),
-                              guard_views=(f"r{first}",) if stage==1 else ("r1","r2"))
+                    obj=(_bayes_torch(p,tq,sex,torch) if arm=="O_J" else
+                         round_cache.objective(tq,arm,stage=stage))
+                    residual=round_cache.constraints(tq)
                     if dual is None or len(dual)!=len(residual):dual=np.zeros(len(residual))
                     loss=obj+sum(float(d)*r+50*torch.clamp(r,min=0).square() for d,r in zip(dual,residual))
                     loss.backward();torch.nn.utils.clip_grad_norm_(trainable,5);opt.step()

@@ -137,7 +137,7 @@ def bayes_objective(prepared,q,sex):
     z2=int(prepared["code_r2"].max())+1
     for key in (prepared["code_r1"],prepared["code_r2"],prepared["code_r1"]*z2+prepared["code_r2"]):
         unique,inverse=np.unique(key,return_inverse=True)
-        count=np.stack([np.bincount(inverse,weights=(q*(sex==s)[:,None]/n).ravel(),minlength=len(unique)) for s in (0,1)])
+        count=np.stack([np.bincount(inverse.ravel(),weights=(q*(sex==s)[:,None]/n).ravel(),minlength=len(unique)) for s in (0,1)])
         vals.append(float(count.max(0).sum()))
     return vals[2]+.5*(vals[0]+vals[1]),{"r1":vals[0],"r2":vals[1],"pair":vals[2]}
 

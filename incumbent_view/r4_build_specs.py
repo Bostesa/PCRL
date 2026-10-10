@@ -83,6 +83,9 @@ def prepare(config_path):
     python=Path(os.path.abspath(cfg["python_executable"])) # retain venv symlink entrypoint
     if not python.is_file() or not os.access(python,os.X_OK):raise ValueError("venv executable missing")
     campaign=entry(cfg["campaign_seal"]);manifest=entry(cfg["role_manifest"])
+    manifest_doc=json.loads(Path(manifest["path"]).read_text())
+    if manifest_doc.get("schema")!="pcrl-incumbent-r1-data-access-manifest-v1":
+        raise PermissionError("new role allowlist manifest absent")
     cfgpin=pin(config_path);modules=_module_pins(repo)
     unit_index={};slots=[]
     for arm in ARMS:
@@ -95,7 +98,17 @@ def prepare(config_path):
             status="POINT_INELIGIBLE" if gate else "INCOMPLETE_SEARCH"
         for seed in (0,1):
             bank=entry(cfg["seeds"][str(seed)]["public_bank"])
-            sex={role:entry(item) for role,item in cfg["seeds"][str(seed)]["sex_archives"].items()}
+            sex={}
+            for role,item in cfg["seeds"][str(seed)]["sex_archives"].items():
+                # Check the public allowlist BEFORE touching label-file bytes.
+                if role not in ROLES:raise PermissionError("barred label role in final attack map")
+                path=Path(item["path"])
+                expected=manifest_doc["roles"][role]["source_files"]["sex"]["sha256"]
+                if (item["sha256"]!=expected or path.name!="sex.npz" or
+                        path.parent.name!=role or path.parent.parent.name!="role_export_v1" or
+                        ".private" not in path.parts):
+                    raise PermissionError("final SEX source is outside the new exact role-only allowlist")
+                sex[role]=entry(item)
             if set(sex)!=set(ROLES):raise ValueError("both final label roles required")
             draws=range(3) if arm in STOCHASTIC else range(1)
             for draw in draws:

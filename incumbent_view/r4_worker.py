@@ -17,6 +17,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import assert_sam
 from results.pcrl_latent_and_sampled_methods_v1.r02.protocol import run_three_view_attack
 from .r2_package import load_policy
 from .r4_views import ARRAY_KEYS, package_from_arrays, prepare_three_views
+from .r4_public_law import uniform_output_masses
 
 ARMS=("P0","O_J","V_J","V_P","V_D","V_L","V_S12","V_S21")
 ROLES=("ATTACK_FIT_NEW","INNER_SELECTION")
@@ -28,6 +29,7 @@ SPEC_KEYS=frozenset({"schema","unit_id","arm_id","source_seed","realization","at
 MODULES={
     "incumbent_view.r4_worker": "incumbent_view/r4_worker.py",
     "incumbent_view.r4_views": "incumbent_view/r4_views.py",
+    "incumbent_view.r4_public_law": "incumbent_view/r4_public_law.py",
     "incumbent_view.r2_package": "incumbent_view/r2_package.py",
     "incumbent_view.r2_policy": "incumbent_view/r2_policy.py",
     "incumbent_view.r2_space": "incumbent_view/r2_space.py",
@@ -210,6 +212,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
     if set(spec["sex_archives"])!=set(ROLES):raise PermissionError("exact two authorized SEX pins required")
     if spec["arm_id"]=="P0":
         if spec["policy_package"] is not None:raise PermissionError("P0 cannot have a refitted policy")
+        policy=None
     else:
         policy_record=read(spec["policy_package"]["receipt"])
         package_path=pinned(spec["policy_package"]["archive"])
@@ -228,6 +231,7 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
             if not np.array_equal(getattr(policy.space,f"probability{r}"),identity[f"bank_r{r}"]):
                 raise PermissionError("selected policy changes P0 decoder/order")
     packages={}
+    invocation_constants={}
     for role,item in spec["role_releases"].items():
         receipt=read(item["receipt"])
         arrays=_archive(pinned(item["codes"]),ARRAY_KEYS if spec["arm_id"]=="P0" else CODE_KEYS)
@@ -266,7 +270,12 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
         actual_wire={"r1":wire_hash(packages[role].wires1),"r2":wire_hash(packages[role].wires2)}
         if receipt.get("wire_sha256_by_recipient")!=actual_wire:
             raise PermissionError("attack wire differs from metadata-bearing deployed role wire")
-    prepared=prepare_three_views(packages[ROLES[0]],packages[ROLES[1]])
+        invocation_constants[role]={"seed":spec["source_seed"],"arm_id":spec["arm_id"],
+            "policy_receipt_sha256":None if spec["policy_package"] is None else spec["policy_package"]["receipt"]["sha256"],
+            "rows":len(arrays["row_id"]),"draw_kind":receipt.get("draw_kind","none"),
+            "recipient_jsonl_release_sha256":actual_wire}
+    masses=uniform_output_masses(identity["bank_r1"],identity["bank_r2"],policy)
+    prepared=prepare_three_views(packages[ROLES[0]],packages[ROLES[1]],uniform_masses=masses)
     output=Path(spec["private_output_path"])
     if output.exists() or ".private" not in output.parts or output.parent.stat().st_mode&0o077:
         raise PermissionError("new owner-only output parent required")
@@ -292,7 +301,19 @@ def run(spec_path,spec_sha256,stage_lock_path,stage_lock_sha256):
             "campaign_seal_sha256":spec["campaign_seal"]["sha256"],"stage_lock_sha256":stage_lock_sha256,
             "unit_spec_sha256":spec_sha256,"public_bank_sha256":spec["public_bank"]["sha256"],
             "eligibility_sha256":spec["eligibility"]["sha256"],
+            "public_law_feature_contract":{
+                "source_prior":masses["source_prior"],
+                "derived_column_order":{
+                    "r1":["public_log_probability","public_uniform_source_log_output_mass"],
+                    "r2":["public_log_probability","public_uniform_source_log_output_mass"],
+                    "pair":["r1.public_log_probability","r1.public_uniform_source_log_output_mass",
+                            "r2.public_log_probability","r2.public_uniform_source_log_output_mass",
+                            "pair_code_bit_products","pair_public_uniform_source_log_output_mass"]},
+                "table_sha256":{"r1":sha_array(masses["r1"]),"r2":sha_array(masses["r2"]),
+                                "pair":sha_array(masses["pair"])},
+                "checkpoint_receipt_sha256":None if spec["policy_package"] is None else spec["policy_package"]["receipt"]["sha256"]},
             "role_release_sha256":{role:item["receipt"]["sha256"] for role,item in spec["role_releases"].items()},
+            "public_invocation_constants_by_role":invocation_constants,
             "attack":attack["public"]}
     with os.fdopen(os.open(spec["public_receipt_path"],os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o644),"w") as f:
         json.dump(public,f,sort_keys=True,indent=2,allow_nan=False);f.write("\n")
