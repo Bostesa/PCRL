@@ -63,7 +63,8 @@ def build(unit_id: str, amendment_path: Path, python_entry: Path) -> dict:
         raise PermissionError("H1 attack index/queue family differs")
     workers = {item["unit_id"]: item for item in worker_index["units"]}
     queues = {item["unit_id"]: item for item in queue_index["units"]}
-    if set(workers) != set(queues) or unit_id not in workers:
+    if (len(workers) != 38 or len(queues) != 38 or
+            set(workers) != set(queues) or unit_id not in workers):
         raise PermissionError("H1 unit is absent or duplicated")
     state = json.loads(QSTATE.read_text())
     if state["units"].get(unit_id, {}).get("status") != "done":
@@ -85,6 +86,9 @@ def build(unit_id: str, amendment_path: Path, python_entry: Path) -> dict:
     if (source.get("unit_id") != unit_id or queue.get("unit_id") != unit_id or
             queue.get("stage") != "attacks" or
             queue.get("amendment_sha256") != queue_index["stage_lock_sha256"] or
+            queue.get("argv", [])[3:7] !=
+            ["--unit-spec", str(worker_path.resolve()),
+             "--unit-spec-sha256", worker_pin["sha256"]] or
             public.get("status") != "COMPLETE_PRIVATE_DEVELOPMENT_ONLY" or
             public.get("unit_id") != unit_id or
             public.get("unit_spec_sha256") != worker_pin["sha256"] or
