@@ -25,5 +25,7 @@ in every V2 gate and the corrected nomination table.
 Git custody note: while R3 had staged 65 aggregate utility CSV/receipt and
 original combined-gate/nomination files, R5's concurrent shared-index commit
 `9019442aa` included those exact staged R3 bytes with its independent replay.
-R5 did not edit the R3 files. The records remain intact; no history rewrite
-was attempted. The V2 correction has its own path-limited commit.
+R5 did not edit the R3 files. A second shared-index race occurred while R3
+staged its V2 code and receipts: R4's concurrent commit `bbf17e618` included
+those exact R3 files together with R4's attack builder correction. R4 did not
+edit the R3 files. The records remain intact; no history rewrite was attempted.
