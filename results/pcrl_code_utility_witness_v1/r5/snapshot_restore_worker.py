@@ -115,8 +115,9 @@ def run(config_path: Path) -> dict:
     with TemporaryDirectory(dir=HERE / ".private", prefix="snapshot_restore_") as temp_name:
         temp = Path(temp_name)
         clone = temp / "checkout"
-        _command(["git", "clone", "--quiet", str(snapshot / "git/campaign.bundle"),
-                  str(clone)], cwd=temp)
+        _command(["git", "-c", "pack.threads=1", "-c", "index.threads=1",
+                  "-c", "checkout.workers=1", "clone", "--quiet",
+                  str(snapshot / "git/campaign.bundle"), str(clone)], cwd=temp)
         tip = _command(["git", "rev-parse", "HEAD"], cwd=clone)
         if tip != manifest["git_tip"]:
             raise PermissionError("bundle clone tip differs")
