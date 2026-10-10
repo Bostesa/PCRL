@@ -87,6 +87,8 @@ def run(args: argparse.Namespace) -> dict:
                     or receipt.get("anchor") != anchor
                     or receipt.get("source_seed") != seed
                     or receipt.get("effective_lock_sha256") != args.seal_sha256
+                    or receipt.get("d_anchor_amendment_sha256") !=
+                       args.anchor_amendment_sha256
                     or receipt.get("role_manifest_sha256") != args.role_manifest_sha256
                     or receipt.get("r01_source_map_sha256") != args.source_map_sha256):
                 raise ValueError("anchor attack receipt/source differs")
@@ -94,6 +96,8 @@ def run(args: argparse.Namespace) -> dict:
                                         receipt["private_source_binding_sha256"])
             if (source_binding.get("anchor") != anchor
                     or source_binding.get("source_seed") != seed
+                    or source_binding.get("d_anchor_amendment_sha256") !=
+                       args.anchor_amendment_sha256
                     or source_binding.get("r01_source_map_sha256") != args.source_map_sha256
                     or source_binding.get("view_schema_sha256") !=
                        receipt["attack"]["view_schema_sha256"]
