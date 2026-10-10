@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import sys
 from pathlib import Path
 
@@ -29,6 +30,10 @@ def _admit(args: argparse.Namespace) -> tuple[dict, dict, dict]:
             any(path.exists() for path in (PRIVATE_OUT, PUBLIC_JSON, PUBLIC_CSV,
                                            PUBLIC_RECEIPT))):
         raise PermissionError("A endpoint output or unit identity differs")
+    parent = PRIVATE_OUT.parent
+    if (parent.is_symlink() or not parent.is_dir() or
+            stat.S_IMODE(parent.stat().st_mode) & 0o077):
+        raise PermissionError("A endpoint private parent must be owner-only")
     state = json.loads((Path(os.environ["PCRL_QUEUE_ROOT"]) / "state.json").read_text())
     registered = state["units"].get(UNIT_ID, {})
     expected = build_spec(amendment_path=args.amendment,
