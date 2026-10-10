@@ -20,9 +20,11 @@ controls for both source seeds.
 | Seed-1 owner-only `warm_full_state.npz` | `6abf48ad77e3071d8ea7256873df3f8f4e7c71c2159a25cf6f0bd2e452cb258a` |
 | Controls worker `run_followup.py` | `d6957aa155b53c14a55859c256916d9cf3f0b787d0f95aae45b5e751fea3d942` |
 
-The role manifest path passed to both queue units must be the predecessor
-repair-worktree copy with its sibling admitted archives:
-`/Users/nathansamson/PCRL/.worktrees/pcrl-utility-reference-repair-v1/results/pcrl_utility_reference_repair_v1/m1/DATA_ACCESS_MANIFEST.json`.
+The role manifest passed to both queue units is the admitted
+`pcrl_utility_reference_repair_v1/m1/DATA_ACCESS_MANIFEST.json` copy beside
+its role-only archives in the predecessor repair worktree. Its byte hash is
+listed above; the R01 custodian resolves its local path for the private queue
+spec.
 The first private directories are campaign `.private/d_first_s0` and
 `.private/d_first_s1`.
 
@@ -69,15 +71,16 @@ as the Python module. Pass these required arguments to its `argv`:
 `--public-receipt`, `--amendment`, `--amendment-sha256`, and `--seed`.
 `--first-seal-sha256` is the original seal SHA for both seeds.
 
-Seed 0 uses `D_FIRST_S0_R1_RECEIPT.json`, `.private/d_first_s0`, source model
-`/Users/nathansamson/PCRL_eval_cache_private/hcal_v1/admitted/rel__s0__U/model.pt`,
-new `.private/d_followup_s0`, and a new public `D_CONTROLS_S0_RECEIPT.json`.
-Its queue dependency is completed unit `D_FIRST_T_DK_S0_R1`. Seed 1 uses the
-new A1 first-pair receipt, `.private/d_first_s1`, source model
-`/Users/nathansamson/PCRL_eval_cache_private/hcal_v1/admitted/rel__s1__U/model.pt`,
-new `.private/d_followup_s1`, and `D_CONTROLS_S1_RECEIPT.json`; its dependency
-is completed unit `D_FIRST_T_DK_S1`. No controls unit is enqueued
-before R00's A2 registration and R03's milestone/budget gate.
+Seed 0 uses `D_FIRST_S0_R1_RECEIPT.json`, `.private/d_first_s0`, the admitted
+seed-0 U checkpoint identified by the hash above, new
+`.private/d_followup_s0`, and a new public
+`D_FOLLOWUP_CONTROLS_S0_RECEIPT.json`. Its queue dependency is completed unit
+`D_FIRST_T_DK_S0_R1`. Seed 1 uses `D_FIRST_S1_RECEIPT.json`,
+`.private/d_first_s1`, the admitted seed-1 U checkpoint identified by the
+hash above, new `.private/d_followup_s1`, and
+`D_FOLLOWUP_CONTROLS_S1_RECEIPT.json`; its dependency is completed unit
+`D_FIRST_T_DK_S1`. R03 admits either controls unit only after A2 registration
+and its milestone/budget gate.
 
 Each spec's `sources` pins the original seal, A2, the predecessor role
 manifest, inherited CAL code, source model, matching first receipt and warm
@@ -93,6 +96,15 @@ owner-only private index, five model manifests, and ten ATT/INNER release
 NPZ files. Use one thread for each numerical library and `PYTHONHASHSEED=0`.
 
 The first-pair queue unit used a 3 GiB RSS cap, 3,600-second wall/CPU reserve,
-and 200 MB projected output. R03 must set the follow-up cap from observed
-first-pair timing and its remaining D/A budget before queueing the five-arm
-controls fit. The worker makes no runtime cap assumption.
+and 200 MB projected output. A2 sets each controls unit to a 3 GiB RSS cap,
+3,600-second wall/CPU reserve, and 300 MiB projected output. R03 applies its
+remaining D/A budget gate before dispatch. The worker makes no runtime cap
+assumption.
+
+## Custody correction
+
+The initial handoff in commit `0ef6e1ed7` contained absolute local paths for
+the admitted role manifest and both private U checkpoints. Those historical
+Git bytes remain recoverable. This revision uses role descriptors and hashes;
+the exposed strings were path metadata, with no person rows, labels, or model
+payloads. The private R03 queue specs retain their necessary local paths.
