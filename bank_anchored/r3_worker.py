@@ -24,6 +24,8 @@ LAW_FIELDS = {"row_id", "unit", "code_r1", "code_r2", "mass", "valid",
               "b0_code_r1", "b0_code_r2"}
 WIRE_FIELDS = {"row_id", "unit", "code0", "code1", "prob0", "prob1",
                "decision0", "decision1"}
+ROLE_REFERENCE_FIELDS = {"row_id", "unit", "U0_1", "U0_2", "Ucal_1",
+                         "Ucal_2", "d_1", "d_2"}
 CONFIG_FIELDS = {"schema", "unit_id", "stage", "role", "arm", "seed", "seal",
                  "role_manifest", "public_table", "bank_receipt", "bank_wire",
                  "r5_source_replay", "law", "outputs"}
@@ -65,6 +67,13 @@ def identity_law_from_wire(wire: dict) -> dict:
     out["valid"] = np.zeros((n, 16), dtype=np.bool_)
     out["valid"][:, 0] = True
     return out
+
+
+def reference_probabilities(archive: dict) -> dict:
+    """Select exactly the four admitted task probabilities after role alignment."""
+    if set(archive) != ROLE_REFERENCE_FIELDS:
+        raise PermissionError("role-only reference archive member inventory differs")
+    return {key: archive[key] for key in ("U0_1", "U0_2", "Ucal_1", "Ucal_2")}
 
 
 def verify_bank_wire(wire: dict, law: dict,
@@ -293,7 +302,8 @@ def run(config_path: Path) -> dict:
             raise PermissionError("policy law is not private")
         law = load_law_npz(law_path, row, unit)
     verify_bank_wire(wire, law, tables, row, unit)
-    rows, vectors = score_rows(law, tables, labels, references, role=role,
+    rows, vectors = score_rows(law, tables, labels,
+                               reference_probabilities(references), role=role,
                                arm=config["arm"], seed=config["seed"])
     primary = [item for item in rows if item["primary_gate"]]
     if len(primary) != (6 if role == "OSF_DEFENSE_FIT" else 12):

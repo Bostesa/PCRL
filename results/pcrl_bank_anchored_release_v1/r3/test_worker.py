@@ -7,8 +7,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from bank_anchored.r3_worker import (identity_law_from_wire, load_law_npz, run,
-                                     score_rows, validate_job_config,
+from bank_anchored.r3_worker import (identity_law_from_wire, load_law_npz,
+                                     reference_probabilities, run, score_rows,
+                                     validate_job_config,
                                      validate_source_replay, verify_bank_wire)
 
 
@@ -132,6 +133,17 @@ class UtilityWorkerBoundaryTests(unittest.TestCase):
             validate_job_config({**config, "arm": "J"}, active)
         with self.assertRaises(PermissionError):
             validate_job_config({**config, "law": record}, active)
+
+    def test_role_reference_archive_strips_only_nonprobability_members(self):
+        # Break caught: passing the role archive's row/decision keys into scorer.
+        archive = {"row_id": self.row, "unit": self.unit,
+                   "U0_1": self.wire["prob0"], "Ucal_1": self.wire["prob0"],
+                   "U0_2": self.wire["prob1"], "Ucal_2": self.wire["prob1"],
+                   "d_1": self.wire["decision0"], "d_2": self.wire["decision1"]}
+        selected = reference_probabilities(archive)
+        self.assertEqual(set(selected), {"U0_1", "Ucal_1", "U0_2", "Ucal_2"})
+        with self.assertRaises(PermissionError):
+            reference_probabilities({**archive, "sex": np.array([0, 1])})
 
 
 if __name__ == "__main__":
