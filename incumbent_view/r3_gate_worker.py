@@ -29,7 +29,7 @@ def run(config_path):
     if sources.get(cfgpath)!=sha(cfgpath):raise PermissionError('gate config unpinned')
     cfg=json.loads(cfgpath.read_text())
     arm=cfg['arm_id']
-    if cfg.get('schema')!='pcrl-incumbent-r3-gate-config-v1' or cfg['unit_id']!=active['unit_id'] or arm not in ARMS or active['stage'] not in ('witness','protection') or (active['stage']=='witness' and arm!='P0'):
+    if cfg.get('schema')!='pcrl-incumbent-r3-gate-config-v1' or cfg['unit_id']!=active['unit_id'] or arm not in ARMS or active['stage']!='witness':
         raise PermissionError('gate queue identity differs')
     if set(cfg['source_units'])!={'s0_fit','s0_inner','s1_fit','s1_inner'}:raise PermissionError('four source units required')
     clauses=[];identities={};fit_records=[]

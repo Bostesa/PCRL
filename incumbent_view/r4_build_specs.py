@@ -75,6 +75,15 @@ def _policy_pinset(arm,seed_record):
     return {name:entry(value) for name,value in source.items()}
 
 
+def _ensure_custody_root(private):
+    private=Path(private)
+    private.mkdir(mode=0o700,exist_ok=True)
+    if private.stat().st_mode&0o077:raise PermissionError("owner output root loose")
+    attacks=private/"attacks";attacks.mkdir(mode=0o700,exist_ok=True)
+    if attacks.stat().st_mode&0o077:raise PermissionError("owner attack custody root loose")
+    return attacks
+
+
 def _source_list(spec):
     values=[]
     def add(item):
@@ -102,8 +111,7 @@ def prepare(config_path):
         raise ValueError("all eight prospective arms required")
     repo=Path(cfg["repo"]).resolve(strict=True)
     root=repo/"results/pcrl_incumbent_view_risk_v1/r4"
-    private=root/".private";private.mkdir(mode=0o700,exist_ok=True)
-    if private.stat().st_mode&0o077:raise PermissionError("owner output root loose")
+    private=root/".private";_ensure_custody_root(private)
     python=Path(os.path.abspath(cfg["python_executable"])) # retain venv symlink entrypoint
     if not python.is_file() or not os.access(python,os.X_OK):raise ValueError("venv executable missing")
     queue_seal=entry(cfg["queue_seal"]);campaign=entry(cfg["campaign_seal"])

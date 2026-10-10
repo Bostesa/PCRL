@@ -3,11 +3,17 @@ from pathlib import Path
 import json
 import tempfile
 import unittest
-from incumbent_view.r4_build_specs import _policy_pinset, _public_relative, _private_from_public
+from incumbent_view.r4_build_specs import _policy_pinset, _public_relative, _private_from_public, _ensure_custody_root
 from incumbent_view.r4_aggregate import fixed_slots
 
 
 class BuilderChecks(unittest.TestCase):
+    def test_owner_attack_custody_root_exists_before_unit_specs(self):
+        with tempfile.TemporaryDirectory() as name:
+            path=_ensure_custody_root(Path(name)/".private")
+            self.assertTrue(path.is_dir())
+            self.assertEqual(path.stat().st_mode&0o077,0)
+
     def test_generated_unit_ids_equal_prefit_registry(self):
         path=Path(__file__).parents[1]/"results/pcrl_incumbent_view_risk_v1/r4/PLANNED_UNITS.json"
         planned=json.loads(path.read_text())
