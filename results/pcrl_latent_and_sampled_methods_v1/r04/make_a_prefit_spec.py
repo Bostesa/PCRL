@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from .independent_a_source import sha_file
@@ -57,7 +58,7 @@ def main() -> None:
     source = [path.resolve(strict=True) for path in source]
     if len(source) != len(set(source)):
         raise ValueError("duplicate queued source")
-    argv = ["/Users/nathansamson/PCRL/.venv/bin/python", "-m",
+    argv = [sys.executable, "-m",
             "results.pcrl_latent_and_sampled_methods_v1.r04.replay_a_prefit"]
     flags = {"seal": seal, "role-manifest": manifest_path, "source-audit": audit_path,
              "portfolio-package": portfolio, "source-root": source_root,

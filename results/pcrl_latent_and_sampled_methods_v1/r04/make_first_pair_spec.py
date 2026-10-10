@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 
@@ -35,7 +36,8 @@ def main() -> None:
                  "attack-k-private", "attack-k-receipt"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--deps", required=True, help="comma-separated R03 source and attack unit IDs")
-    parser.add_argument("--unit-id", default="R04-D-FIRST-PAIR-001")
+    parser.add_argument("--seed", type=int, choices=(0, 1), required=True)
+    parser.add_argument("--unit-id", default=None)
     args = parser.parse_args()
     seal = args.seal.resolve(strict=True)
     if json.loads(seal.read_text()).get("status") != "LOCALLY_SEALED_D_STAGE":
@@ -43,14 +45,15 @@ def main() -> None:
     for private in (args.source_private, args.attack_t_private, args.attack_k_private):
         if ".private" not in private.resolve(strict=True).parts:
             raise ValueError("per-person source must be in private custody")
-    public_receipt = HERE / "FIRST_PAIR_INDEPENDENT_REPLAY.json"
+    public_receipt = HERE / f"FIRST_PAIR_S{args.seed}_INDEPENDENT_REPLAY.json"
     private_specs = HERE / ".private"
     private_specs.mkdir(mode=0o700, exist_ok=True)
-    spec_path = private_specs / "R04_FIRST_PAIR_QUEUE_SPEC.json"
+    spec_path = private_specs / f"R04_FIRST_PAIR_S{args.seed}_QUEUE_SPEC.json"
     if public_receipt.exists() or spec_path.exists():
         raise FileExistsError("first pair R04 verification already prepared or run")
-    argv = [str(Path("/Users/nathansamson/PCRL/.venv/bin/python")), "-m",
-            "results.pcrl_latent_and_sampled_methods_v1.r04.replay_first_pair"]
+    argv = [sys.executable, "-m",
+            "results.pcrl_latent_and_sampled_methods_v1.r04.replay_first_pair",
+            "--seed", str(args.seed)]
     paths = {
         "seal": seal, "role-manifest": args.role_manifest.resolve(strict=True),
         "source-checkpoint": args.source_checkpoint.resolve(strict=True),
@@ -89,7 +92,8 @@ def main() -> None:
     deps = [value for value in args.deps.split(",") if value]
     if len(deps) != 3 or len(set(deps)) != 3:
         raise ValueError("one source and two attack queue dependency IDs required")
-    spec = {"unit_id": args.unit_id, "stage": "verification", "argv": argv,
+    unit_id = args.unit_id or f"R04-D-FIRST-PAIR-S{args.seed}-001"
+    spec = {"unit_id": unit_id, "stage": "verification", "argv": argv,
             "cwd": str(WORKTREE), "max_wall_s": 1800, "cpu_reserve_s": 1800,
             "max_rss_gib": 3, "projected_output_bytes": 250000,
             "sources": sources, "deps": deps, "outputs": [str(public_receipt)]}

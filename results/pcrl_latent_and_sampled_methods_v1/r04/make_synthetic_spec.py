@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 
@@ -18,7 +19,7 @@ FILES = (
 
 
 def main() -> None:
-    python = Path("/Users/nathansamson/PCRL/.venv/bin/python")
+    python = Path(sys.executable)
     if not python.exists():
         raise SystemExit("project .venv Python missing")
     source = [
@@ -39,7 +40,9 @@ def main() -> None:
         "deps": [],
         "outputs": [],
     }
-    target = HERE / "R04_SYNTHETIC_QUEUE_SPEC.json"
+    private_specs = HERE / ".private"
+    private_specs.mkdir(mode=0o700, exist_ok=True)
+    target = private_specs / "R04_SYNTHETIC_QUEUE_SPEC.json"
     target.write_text(json.dumps(spec, sort_keys=True, indent=2) + "\n")
     print(target)
 
