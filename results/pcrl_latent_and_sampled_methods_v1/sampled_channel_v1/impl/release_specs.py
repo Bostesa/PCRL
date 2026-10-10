@@ -16,7 +16,12 @@ import stat
 from results.pcrl_latent_and_sampled_methods_v1.r03.a_downstream_specs import (
     _flag, release_spec,
 )
-from .run_release import _control_selected_provenance, _selected_parent_identity
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.run_admitted_controls import (
+    _selected_provenance as _control_selected_provenance,
+)
+from .run_release import _selected_parent_identity
+from .downstream_sources import (_sha as _downstream_sha,
+                                 verify_downstream_sidecar)
 
 
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
@@ -83,7 +88,7 @@ def _selected_parent(fit_dir: Path, *, parent: dict, amendment_sha256: str,
         start, update = _control_selected_provenance(arm_id, detail)
         if (policy.get("selected_start") != start or
                 policy.get("selected_update") != update):
-            raise PermissionError("control policy differs from selected FIT checkpoint")
+            raise PermissionError("control policy differs from selected checkpoint")
     if (policy.get("fit_receipt_sha256") != _sha(fit_path) or
             policy.get("policy_file_sha256") != _sha(policy_file) or
             type(policy.get("mechanism_sha256")) is not str or
@@ -177,3 +182,68 @@ def selected_release_spec(*, unit_id: str, amendment_path: Path,
 
 
 __all__ = ["selected_release_spec"]
+
+
+def guarded_release_spec(*, unit_id: str, amendment_path: Path,
+                         amendment_sha256: str, seal_path: Path,
+                         seal_sha256: str, queue_state: Path,
+                         private_parent: Path, downstream_manifest: Path,
+                         downstream_manifest_sha256: str) -> dict:
+    """Render the same producer unit through the new same-PID sidecar guard."""
+    spec = selected_release_spec(
+        unit_id=unit_id, amendment_path=amendment_path,
+        amendment_sha256=amendment_sha256, seal_path=seal_path,
+        seal_sha256=seal_sha256, queue_state=queue_state,
+        private_parent=private_parent)
+    campaign = Path(amendment_path).resolve(strict=True).parent
+    sidecar = Path(downstream_manifest).resolve(strict=True)
+    if _downstream_sha(sidecar) != downstream_manifest_sha256:
+        raise PermissionError("A downstream sidecar SHA differs before spec render")
+    manifest = json.loads(sidecar.read_text())
+    new = manifest.get("new_source_sha256")
+    inherited = manifest.get("attack_plan", {}).get("inherited_shared_source_sha256")
+    if type(new) is not dict or type(inherited) is not dict:
+        raise PermissionError("A downstream source map is missing")
+    additions = {str(sidecar): downstream_manifest_sha256}
+    for relative, digest in new.items():
+        path = (campaign / relative).resolve(strict=True)
+        if not path.is_relative_to(campaign):
+            raise PermissionError("A downstream new source escapes campaign")
+        additions[str(path)] = digest
+    shared = campaign.parent / "pcrl_method_portfolio_v1/shared"
+    for basename, digest in inherited.items():
+        path = (shared / basename).resolve(strict=True)
+        if not path.is_relative_to(shared.resolve(strict=True)):
+            raise PermissionError("A downstream inherited source escapes package")
+        additions[str(path)] = digest
+    source_map = {entry["path"]: entry["sha256"] for entry in spec["sources"]}
+    for path, digest in additions.items():
+        if path in source_map and source_map[path] != digest:
+            raise PermissionError("A downstream source conflicts with producer")
+        source_map[path] = digest
+    spec["sources"] = [{"path": path, "sha256": digest}
+                       for path, digest in sorted(source_map.items())]
+    spec["downstream_manifest_path"] = str(sidecar)
+    spec["downstream_manifest_sha256"] = downstream_manifest_sha256
+    spec["argv"][2] = (
+        "results.pcrl_latent_and_sampled_methods_v1."
+        "sampled_channel_v1.impl.run_release_guarded")
+    spec["argv"].extend(["--downstream-manifest", str(sidecar),
+                         "--downstream-manifest-sha256",
+                         downstream_manifest_sha256])
+    verify_downstream_sidecar(
+        sidecar_path=sidecar, sidecar_sha256=downstream_manifest_sha256,
+        producer_path=Path(amendment_path),
+        producer_sha256=amendment_sha256,
+        original_lock_path=Path(seal_path),
+        original_lock_sha256=seal_sha256,
+        campaign_root=campaign, spec=spec,
+        required_new_paths=frozenset({
+            "sampled_channel_v1/impl/run_release_guarded.py",
+            "sampled_channel_v1/impl/release_specs.py",
+            "sampled_channel_v1/impl/downstream_sources.py",
+        }))
+    return spec
+
+
+__all__ = ["selected_release_spec", "guarded_release_spec"]
