@@ -33,7 +33,8 @@ SOURCE_SCHEMA = "code-utility-witness-worker-v1"
 def validate_bank_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
                               role_manifest_sha256: str, worker_sha256: str,
                               unit_id: str, arm_id: str, seed: int, bits: int,
-                              source_model_sha256: str, public_table_sha256: str,
+                              source_model_sha256: str, source_receipt_sha256: str,
+                              public_table_sha256: str,
                               policy_sha256: str, decoder_sha256: str | None,
                               release_sha256: Mapping[str, str]) -> None:
     if (not isinstance(lock, Mapping) or lock.get("schema") != LOCK_SCHEMA
@@ -45,6 +46,7 @@ def validate_bank_attack_lock(lock: Mapping, *, campaign_seal_sha256: str,
         raise PermissionError("bank attack lock worker/source/slate differs")
     expected = {"arm_id": arm_id, "seed": seed, "bits": bits,
                 "source_model_sha256": source_model_sha256,
+                "source_receipt_sha256": source_receipt_sha256,
                 "public_table_sha256": public_table_sha256,
                 "policy_sha256": policy_sha256,
                 "decoder_sha256": decoder_sha256,
@@ -86,6 +88,7 @@ def run(args: argparse.Namespace) -> dict:
         worker_sha256=sha_file(Path(__file__)), unit_id=args.unit_id,
         arm_id=args.arm_id, seed=args.seed, bits=args.bits,
         source_model_sha256=args.source_model_sha256,
+        source_receipt_sha256=args.source_receipt_sha256,
         public_table_sha256=args.public_table_sha256,
         policy_sha256=args.policy_sha256, decoder_sha256=args.decoder_sha256,
         release_sha256=hashes)

@@ -10,6 +10,7 @@ class BankAttackWorkerTest(unittest.TestCase):
     def test_public_bank_lock_binds_table_policy_and_two_releases(self):
         unit = {"arm_id": "W_Q", "seed": 0, "bits": 10,
                 "source_model_sha256": "s" * 64,
+                "source_receipt_sha256": "h" * 64,
                 "public_table_sha256": "t" * 64,
                 "policy_sha256": "p" * 64,
                 "decoder_sha256": None,
@@ -28,6 +29,10 @@ class BankAttackWorkerTest(unittest.TestCase):
                 "unit_id": "ATTACK_W_Q_S0", **unit}
         validate_bank_attack_lock(lock, **args)
         args["public_table_sha256"] = "z" * 64
+        with self.assertRaisesRegex(PermissionError, "bank attack lock"):
+            validate_bank_attack_lock(lock, **args)
+        args["public_table_sha256"] = "t" * 64
+        args["source_receipt_sha256"] = "z" * 64
         with self.assertRaisesRegex(PermissionError, "bank attack lock"):
             validate_bank_attack_lock(lock, **args)
 
