@@ -73,6 +73,38 @@ def point_utility_pass(differences: Mapping[str, float]) -> bool:
             and differences["brier"] <= BRIER_CAP)
 
 
+def select_capacity(rows: list[Mapping]) -> dict[str, object]:
+    """Replay the sealed 10-then-16-bit point ladder without looking at AUC."""
+    expected = {(seed, task, reference) for seed in (0, 1)
+                for task in ("income", "occupation") for reference in ("U0", "Ucal")}
+    groups: dict[int, dict[tuple[int, str, str], dict[str, float]]] = {10: {}, 16: {}}
+    for row in rows:
+        bits = row["bits"]
+        key = (row["seed"], row["task"], row["reference"])
+        if bits not in groups or key not in expected or key in groups[bits]:
+            raise ValueError("unregistered or duplicate capacity/seed/task/reference row")
+        values = {metric: float(row[metric]) for metric in ("accuracy", "nll", "brier")}
+        if not all(np.isfinite(value) for value in values.values()):
+            raise ValueError("nonfinite utility difference")
+        groups[bits][key] = values
+    if set(groups[10]) != expected or (groups[16] and set(groups[16]) != expected):
+        raise ValueError("incomplete capacity utility grid")
+    ten_failed = sorted(key for key in expected if not point_utility_pass(groups[10][key]))
+    if not ten_failed:
+        if groups[16]:
+            raise ValueError("sixteen-bit evaluation followed a passing ten-bit gate")
+        return {"status": "TEN_BIT_POINT_FEASIBLE", "selected_bits": 10,
+                "ten_failed_cells": [], "sixteen_failed_cells": None}
+    if not groups[16]:
+        return {"status": "SIXTEEN_BIT_STAGE_REQUIRED", "selected_bits": None,
+                "ten_failed_cells": ten_failed, "sixteen_failed_cells": None}
+    sixteen_failed = sorted(key for key in expected if not point_utility_pass(groups[16][key]))
+    return {"status": ("LEARNER_RECIPE_NOT_UTILITY_FEASIBLE" if sixteen_failed
+                       else "SIXTEEN_BIT_POINT_FEASIBLE"),
+            "selected_bits": None if sixteen_failed else 16,
+            "ten_failed_cells": ten_failed, "sixteen_failed_cells": sixteen_failed}
+
+
 def minimal_public_bits(public_probabilities: np.ndarray, decisions: np.ndarray,
                         independent_tags: np.ndarray | None = None,
                         public_code_ids: np.ndarray | None = None) -> dict[str, int]:

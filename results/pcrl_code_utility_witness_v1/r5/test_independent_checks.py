@@ -6,7 +6,7 @@ import numpy as np
 
 from independent_checks import (
     minimal_public_bits, oriented_auc, point_utility_pass,
-    sampled_expected_losses, simultaneous_group_bounds, task_means,
+    sampled_expected_losses, select_capacity, simultaneous_group_bounds, task_means,
     task_rows, utility_differences, verify_hard_code_wire,
 )
 
@@ -76,6 +76,22 @@ class IndependentChecksTest(unittest.TestCase):
         self.assertGreater(out["nll"][0], -np.log(.5))
         one = sampled_expected_losses(np.array([[1., 0.]]), bank, np.array([0]))
         self.assertAlmostEqual(one["nll"][0], -np.log(.9))
+
+    def test_capacity_ladder_requires_all_two_seed_task_reference_clauses(self):
+        def rows(bits, nll=0.0):
+            return [{"bits": bits, "seed": seed, "task": task, "reference": ref,
+                     "accuracy": 0.0, "nll": nll, "brier": 0.0}
+                    for seed in (0, 1) for task in ("income", "occupation")
+                    for ref in ("U0", "Ucal")]
+        self.assertEqual(select_capacity(rows(10))["selected_bits"], 10)
+        first = rows(10)
+        first[3]["nll"] = .02
+        self.assertEqual(select_capacity(first)["status"], "SIXTEEN_BIT_STAGE_REQUIRED")
+        self.assertEqual(select_capacity(first + rows(16))["selected_bits"], 16)
+        self.assertEqual(select_capacity(first + rows(16, nll=.02))["status"],
+                         "LEARNER_RECIPE_NOT_UTILITY_FEASIBLE")
+        with self.assertRaises(ValueError):
+            select_capacity(rows(10) + rows(10))
 
 
 if __name__ == "__main__":
