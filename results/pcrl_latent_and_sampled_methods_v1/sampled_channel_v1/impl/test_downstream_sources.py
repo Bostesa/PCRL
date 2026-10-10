@@ -158,6 +158,11 @@ def _registration_fixture(tmp_path):
         "downstream_registration_path": str(registration),
         "downstream_registration_sha256": _sha(registration),
     })
+    subprocess.run(["git", "add", registration.relative_to(repo).as_posix()],
+                   cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.name=test", "-c",
+                    "user.email=test@example.invalid", "commit", "-qm",
+                    "registered sidecar"], cwd=repo, check=True)
     return kwargs, registration, repo
 
 
@@ -169,8 +174,9 @@ def test_r00_registration_binds_manifest_commit_and_source_map(tmp_path):
         sidecar_sha256=kwargs["sidecar_sha256"],
         producer_sha256=kwargs["producer_sha256"], repo_root=repo,
         spec=kwargs["spec"])
-    assert value["manifest_commit_full_sha"] == subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    assert subprocess.run(["git", "merge-base", "--is-ancestor",
+                           value["manifest_commit_full_sha"], "HEAD"],
+                          cwd=repo, check=False).returncode == 0
 
 
 def test_r00_registration_refuses_wrong_sha_and_uncommitted_manifest(tmp_path):
@@ -188,7 +194,55 @@ def test_r00_registration_refuses_wrong_sha_and_uncommitted_manifest(tmp_path):
     kwargs["spec"]["downstream_registration_sha256"] = _sha(registration)
     next(row for row in kwargs["spec"]["sources"]
          if row["path"] == str(registration))["sha256"] = _sha(registration)
+    subprocess.run(["git", "add", registration.relative_to(repo).as_posix()],
+                   cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.name=test", "-c",
+                    "user.email=test@example.invalid", "commit", "-qm",
+                    "different manifest reference"], cwd=repo, check=True)
     with pytest.raises(PermissionError, match="manifest commit"):
+        verify_downstream_registration(
+            registration_path=registration, registration_sha256=_sha(registration),
+            sidecar_path=kwargs["sidecar_path"],
+            sidecar_sha256=kwargs["sidecar_sha256"],
+            producer_sha256=kwargs["producer_sha256"], repo_root=repo,
+            spec=kwargs["spec"])
+
+
+def test_r00_registration_refuses_uncommitted_local_bytes(tmp_path):
+    kwargs, registration, repo = _registration_fixture(tmp_path)
+    registration.write_text(registration.read_text() + " ")
+    kwargs["spec"]["downstream_registration_sha256"] = _sha(registration)
+    next(row for row in kwargs["spec"]["sources"]
+         if row["path"] == str(registration))["sha256"] = _sha(registration)
+    with pytest.raises(PermissionError, match="registration.*Git custody"):
+        verify_downstream_registration(
+            registration_path=registration, registration_sha256=_sha(registration),
+            sidecar_path=kwargs["sidecar_path"],
+            sidecar_sha256=kwargs["sidecar_sha256"],
+            producer_sha256=kwargs["producer_sha256"], repo_root=repo,
+            spec=kwargs["spec"])
+
+
+def test_r00_registration_refuses_manifest_commit_outside_head_history(tmp_path):
+    kwargs, registration, repo = _registration_fixture(tmp_path)
+    tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"],
+                                   cwd=repo, text=True).strip()
+    orphan = subprocess.check_output([
+        "git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
+        "commit-tree", tree, "-m", "orphan manifest"], cwd=repo,
+        text=True).strip()
+    value = json.loads(registration.read_text())
+    value["manifest_commit_full_sha"] = orphan
+    _json(registration, value)
+    kwargs["spec"]["downstream_registration_sha256"] = _sha(registration)
+    next(row for row in kwargs["spec"]["sources"]
+         if row["path"] == str(registration))["sha256"] = _sha(registration)
+    subprocess.run(["git", "add", registration.relative_to(repo).as_posix()],
+                   cwd=repo, check=True)
+    subprocess.run(["git", "-c", "user.name=test", "-c",
+                    "user.email=test@example.invalid", "commit", "-qm",
+                    "register orphan manifest"], cwd=repo, check=True)
+    with pytest.raises(PermissionError, match="outside HEAD ancestry"):
         verify_downstream_registration(
             registration_path=registration, registration_sha256=_sha(registration),
             sidecar_path=kwargs["sidecar_path"],

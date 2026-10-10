@@ -197,6 +197,25 @@ def verify_downstream_registration(*, registration_path: Path,
         raise PermissionError("A downstream manifest commit is unavailable") from exc
     if committed != sidecar.read_bytes():
         raise PermissionError("A downstream manifest commit differs from live sidecar")
+    try:
+        registration_relative = registration.relative_to(repo).as_posix()
+        committed_registration = subprocess.run(
+            ["git", "show", f"HEAD:{registration_relative}"],
+            cwd=repo, capture_output=True, check=True, timeout=10).stdout
+    except (ValueError, OSError, subprocess.CalledProcessError,
+            subprocess.TimeoutExpired) as exc:
+        raise PermissionError("A downstream registration lacks Git custody") from exc
+    if committed_registration != registration.read_bytes():
+        raise PermissionError("A downstream registration differs from HEAD Git custody")
+    try:
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor",
+             value["manifest_commit_full_sha"], "HEAD"],
+            cwd=repo, capture_output=True, check=False, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise PermissionError("A downstream manifest commit is outside HEAD ancestry") from exc
+    if ancestor.returncode != 0:
+        raise PermissionError("A downstream manifest commit is outside HEAD ancestry")
     return value
 
 
