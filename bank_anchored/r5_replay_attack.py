@@ -16,6 +16,7 @@ from zipfile import ZipFile
 import numpy as np
 
 from .r5_independent import independent_auc
+from .r5_view_replay import verify as verify_public_views
 
 
 SALT = "pcrl-method-portfolio-v1|attack-tune|20261008|"
@@ -167,6 +168,7 @@ def replay(spec_path: Path, spec_sha: str, receipt_path: Path,
         for name, digest in custody["files"].items():
             if sha(path.parent / name) != digest:
                 raise PermissionError("private reader model/view/prediction bytes differ")
+    view_completeness = verify_public_views(spec, public, private)
     # The two allowed SEX exports are opened only after all three private
     # reader receipts and the shared freeze have passed byte verification.
     manifest = Path(spec["role_manifest_path"])
@@ -225,6 +227,7 @@ def replay(spec_path: Path, spec_sha: str, receipt_path: Path,
             "arm_id": spec["arm_id"], "source_seed": spec["source_seed"],
             "realization": spec["realization"], "r4_receipt_sha256": receipt_sha,
             "checked_views": results, "max_absolute_auc_gap": max_gap,
+            "public_view_replay": view_completeness,
             "scope": "development INNER only; all frozen readers and ATT selection replayed"}
 
 
