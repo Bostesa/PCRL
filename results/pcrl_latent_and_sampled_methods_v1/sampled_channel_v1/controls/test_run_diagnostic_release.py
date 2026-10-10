@@ -2,7 +2,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, gettempdir
 import unittest
 from unittest.mock import patch
 
@@ -41,7 +41,7 @@ class DiagnosticWorkerTest(unittest.TestCase):
         roles.assert_not_called()
 
     def test_output_custody_is_checked_without_creating_directory(self):
-        with TemporaryDirectory() as directory:
+        with TemporaryDirectory(dir=Path(gettempdir()).resolve()) as directory:
             root = Path(directory)
             private = root / ".private"
             private.mkdir(mode=0o700)
@@ -96,7 +96,7 @@ class DiagnosticWorkerTest(unittest.TestCase):
         cells2 = np.asarray([0, 1, 2], np.int64)
         row_id = np.asarray([10, 11, 12], np.int64)
         unit = np.asarray([20, 21, 22], np.int64)
-        with TemporaryDirectory() as directory:
+        with TemporaryDirectory(dir=Path(gettempdir()).resolve()) as directory:
             private = Path(directory) / ".private"
             private.mkdir(mode=0o700)
             for arm in ("A_IDENTITY", "A_CLASS_ONLY"):

@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, gettempdir
 import time
 
 import numpy as np
@@ -71,7 +71,7 @@ def run(*, unit_id: str, arm_id: str, role: str, rows: int,
     code1 = select_codes(bank1, actions1, cell1, arm_id=arm_id)
     code2 = select_codes(bank2, actions2, cell2, arm_id=arm_id)
     assert_group_coherent(unit, code1, code2)
-    with TemporaryDirectory() as temporary:
+    with TemporaryDirectory(dir=Path(gettempdir()).resolve()) as temporary:
         private = Path(temporary) / ".private"
         private.mkdir(mode=0o700)
         receipt = materialize_reference_role(
