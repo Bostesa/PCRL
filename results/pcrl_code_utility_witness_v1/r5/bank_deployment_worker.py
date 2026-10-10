@@ -150,7 +150,7 @@ def run(config_path: Path) -> dict:
                     raise ValueError("raw bank CLI differs from saved/public decoded wire")
                 max_gap = max(max_gap, float(np.max(np.abs(prob - saved[f"prob{purpose}"]))))
     private = Path(c["private_output"]).resolve(strict=False)
-    if private.exists() or private.parent != ROOT / ".private":
+    if private.exists() or private.parent != paths["raw_sample"].parent:
         raise PermissionError("new private bank wire output required")
     fd = os.open(private, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(fd, "wb") as stream:
