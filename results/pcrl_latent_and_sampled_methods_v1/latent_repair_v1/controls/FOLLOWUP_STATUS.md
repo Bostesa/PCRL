@@ -15,8 +15,11 @@ must be registered separately from the immutable original seal and be the
 latest R03 amendment affecting `d_followup`. A2 must bind
 `controls_worker_sha256`, `first_receipt_sha256_by_seed[str(seed)]`,
 `role_manifest_sha256`, and `source_seed_sha256_by_seed[str(seed)]`; the queue
-unit spec must bind A2's byte hash. Seed-1 T/D-K uses a separate seed-1 worker
-and A1 amendment before A2. No controls Adult fit has run.
+unit spec must bind A2's byte hash. Seed-1 T/D-K used a separate seed-1 worker
+and A1 amendment before A2. The seed-0 controls fit completed under R03;
+its public `D_FOLLOWUP_CONTROLS_S0_RECEIPT.json` has SHA-256
+`a1901a87cd808215fddd0943befc0e5add4cc0c987013f6b0dd54c5ea24697ac`.
+The public per-seed receipts and R03 queue state give the current fit status.
 
 `f_adapter.py` passes F's full scaled 16-dimensional latent, probabilities,
 decisions, and all public metadata into R02's complete view. F uses
