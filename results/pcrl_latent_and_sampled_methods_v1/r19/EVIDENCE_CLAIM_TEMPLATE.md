@@ -34,12 +34,12 @@ Status: `TEMPLATE_ONLY`. R19 records evidence and claim limits; R00 owns the cam
 
 | Claim ID | Question | Necessary comparison | Current status | Evidence and limitation |
 | --- | --- | --- | --- | --- |
-| D-SERVICE | Did D transmit a real hard public code with code-only task output? | Saved release, representative deployment, independent restore | `PENDING` | Add R07/R18 and R04 receipts. |
-| D-USEFUL | Was D point and interval useful on both tasks against U0 and Ucal? | Per seed, task and reference utility clauses | `PENDING` | Do not borrow earlier F point feasibility. |
-| D-COMPRESSION | Did protected D improve beyond equally trained task-only hard-code T? | Same initialization, capacity, rows, training allowance and complete views | `PENDING` | If tied, credit ordinary compression. |
-| D-COMPETITIVE | Did D beat every eligible relevant control without a local shift? | T, local repair, both freeze-first sequential orders and ordinary adversarial comparator | `PENDING` | Missing controls make this incomplete. |
-| D-KERNEL | Did the fixed-kernel objective add benefit? | D-K versus matched T and any admitted D-C objective variant | `PENDING` | MMD is an established objective, not a privacy certificate. |
-| D-JOINT | Did joint D design add benefit? | Both local and both freeze-first sequential orders under same service | `PENDING` | Do not generalize to all sequential laws. |
+| D-SERVICE | Did D transmit a real hard public code with code-only task output? | Saved release, representative deployment, independent restore | `TECHNICAL_REPLAY_PASS_SEED0; DEPLOYMENT_PENDING` | R04 raw-to-wire and complete views exact; R18 separate acceptance pending. |
+| D-USEFUL | Was D point and interval useful on both tasks against U0 and Ucal? | Per seed, task and reference utility clauses | `POINT_SHORTFALL_SEED0` | D-K misses income Brier and occupation accuracy/NLL/Brier; no simultaneous bounds. |
+| D-COMPRESSION | Did protected D improve beyond equally trained task-only hard-code T? | Same initialization, capacity, rows, training allowance and complete views | `DESCRIPTIVE_RECOVERY_REDUCTION_WITH_UTILITY_COST` | Pair T-minus-D-K AUC 0.026676; both arms fail occupation confidence caps. |
+| D-COMPETITIVE | Did D beat every eligible relevant control without a local shift? | T, local repair, both freeze-first sequential orders and ordinary adversarial comparator | `NO_SEED0_POINT_ELIGIBILITY; FULL_COMPARISON_PENDING` | Missing controls and utility failure prevent a competitive claim. |
+| D-KERNEL | Did the fixed-kernel objective add benefit? | D-K versus matched T and any admitted D-C objective variant | `NO_ELIGIBLE_COMPONENT_GAIN_YET` | Lower AUC accompanies worse utility; MMD is no privacy certificate. |
+| D-JOINT | Did joint D design add benefit? | Both local and both freeze-first sequential orders under same service | `UNTESTED` | Do not generalize to all sequential laws. |
 | A-SERVICE | Was an actual sampled confidence output transmitted and scored? | Fixed draw realization, public bank/code/metadata and replay | `PENDING` | Expected utility and sampled utility are distinct. |
 | A-USEFUL | Did A meet both task and confidence limits? | Expected-law arithmetic and the precommitted fixed sampled realizations | `PENDING` | No averaged-probability substitution or best-draw selection. |
 | A-RANDOMNESS | Did randomness add benefit? | Strong same-bank deterministic and task-only stochastic controls | `PENDING` | A deterministic tie removes randomness attribution. |
