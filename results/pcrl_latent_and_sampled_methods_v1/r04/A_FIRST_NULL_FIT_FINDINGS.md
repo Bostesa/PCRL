@@ -1,0 +1,7 @@
+# First A FIT: independent checkpoint replay
+
+The first real retry FIT, `A-FIT-A_JOINT_STOCH-S0-R1`, completed its sealed search and returned `COMPLETE_NO_FEASIBLE_POLICY`. Its FIT receipt SHA-256 is `788739bd944cbe7c8494900e370fc2ec33c1ae0c446560ca8aee432905df1f75`. No selected policy package was issued.
+
+R04 replayed all 26 saved checkpoints: two starts, each at updates 0, 25, …, 300. The independent verifier reconstructed the canonical public banks and input-local actions from admitted T* FIT exports, computed the minimum U0/Ucal task-loss caps and the identity local Bayes guards, and scored each checkpoint's actual finite output law on 15,434 FIT rows. It found zero feasible checkpoints. The smallest occupation NLL excess was **0.004342791799733847** above its FIT cap of **1.2194177869878788**. The largest discrepancy from reported checkpoint metrics was **6.27×10⁻¹²**. Full replay receipt: `A_FIT_A_JOINT_STOCH_S0_NULL_CHECKPOINT_REPLAY.json`, SHA-256 `5a1cd08d978cc0d2dd47de592e8fcf65512415f77d7c200275912e74a82305ec`.
+
+This verifies the outcome of the bounded, frozen two-start search. It does not establish that no feasible mechanism exists. The arm-seed has no release, Q, or attack input to propagate to the A endpoint. The predeclared K=6,885 family must retain the affected clause IDs and mark them not estimable; a complete common-criterion or all-controls claim is unavailable while this arm-seed is missing.
