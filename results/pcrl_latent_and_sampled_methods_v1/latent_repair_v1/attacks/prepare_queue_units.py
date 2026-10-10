@@ -1,4 +1,4 @@
-"""Materialize the two seed-zero D attack queue specs after source completion.
+"""Materialize paired D attack queue specs after source completion.
 
 This is a read-only planning helper until it writes the two JSON specifications.
 It never opens role labels or runs an attacker. R03 admits and runs each spec.
@@ -29,8 +29,7 @@ SOURCE_CODE = (
 )
 SHARED_CODE = ("attack_eval.py", "attack_controls_v2.py", "safe_data_guard.py")
 RELEASE_ROLES = ("ATTACK_FIT_NEW", "INNER_SELECTION")
-ARMS = (("T", "D_ATTACK_T_S0", "d_attack_t_s0"),
-        ("D-K", "D_ATTACK_DK_S0", "d_attack_dk_s0"))
+ARMS = (("T", "T"), ("D-K", "DK"))
 
 
 def _sha(path: Path) -> str:
@@ -59,8 +58,12 @@ def _source(path: Path, expected: str) -> dict:
     return {"path": str(path), "sha256": actual}
 
 
-def build_specs(source_unit_id: str) -> dict[str, dict]:
+def build_specs(source_unit_id: str, *, seed: int = 0,
+                after_unit_id: str | None = None) -> dict[str, dict]:
     """Require completed release, then create exact read-only attack plans."""
+    if seed not in (0, 1):
+        raise ValueError("only sealed D source seeds 0 and 1 are admitted")
+    stage = "d_first" if seed == 0 else "d_followup"
     state = json.loads((QUEUE_ROOT / "state.json").read_text())
     seal = state.get("seal") or {}
     if seal.get("path") != str(LOCK) or _sha(LOCK) != seal.get("sha256"):
@@ -69,11 +72,13 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
     if lock.get("status") != "LOCALLY_SEALED_D_STAGE":
         raise PermissionError("D stage is not locally sealed")
     unit = state.get("units", {}).get(source_unit_id, {})
-    if unit.get("status") != "done" or unit.get("stage") != "d_first":
+    if unit.get("status") != "done" or unit.get("stage") != stage:
         raise PermissionError("the source release queue unit must be done")
     source_spec = unit["spec"]
-    if source_spec.get("stage") != "d_first" or source_spec.get("unit_id") != source_unit_id:
+    if source_spec.get("stage") != stage or source_spec.get("unit_id") != source_unit_id:
         raise ValueError("source spec identity differs")
+    if after_unit_id and state.get("units", {}).get(after_unit_id, {}).get("status") != "done":
+        raise PermissionError("ordered predecessor queue unit must be done")
     source_argv = source_spec["argv"]
     receipt_path = Path(_arg(source_argv, "public-receipt")).resolve(strict=True)
     receipt_sha = _sha(receipt_path)
@@ -82,7 +87,7 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
     receipt = json.loads(receipt_path.read_text())
     if (receipt.get("schema") != "latent-repair-first-paired-seed-receipt-v1"
             or receipt.get("status") != "T_DK_RELEASES_READY"
-            or receipt.get("seed") != 0
+            or receipt.get("seed") != seed
             or receipt.get("unit_id") != source_unit_id
             or receipt.get("seal_sha256") != seal["sha256"]):
         raise ValueError("source receipt is not the finished paired seed-zero release")
@@ -99,7 +104,7 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
     if set(receipt.get("roles", {})) != set(RELEASE_ROLES):
         raise ValueError("paired ATT/INNER roles are incomplete")
     amendment = next((item["sha256"] for item in reversed(state.get("amendments", []))
-                      if "d_first" in item["stages"]), None)
+                      if stage in item["stages"]), None)
     static_sources = [_source(LOCK, seal["sha256"]), _source(role_manifest, role_sha),
                       _source(receipt_path, receipt_sha)]
     for name in SOURCE_CODE:
@@ -113,7 +118,9 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
     static_sources.append(_source(endpoint,
         receipt["roles"]["INNER_SELECTION"]["endpoint_labels_references_sha256"]))
     specs = {}
-    for arm, unit_id, private_name in ARMS:
+    for arm, short_id in ARMS:
+        unit_id = f"D_ATTACK_{short_id}_S{seed}"
+        private_name = f"d_attack_{short_id.lower()}_s{seed}"
         if unit_id in state["units"]:
             raise FileExistsError(f"attack unit ID already exists: {unit_id}")
         private_output = CAMPAIGN / ".private" / private_name
@@ -133,22 +140,22 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
         argv = [str(python), "-m",
                 "results.pcrl_latent_and_sampled_methods_v1.latent_repair_v1.attacks.worker",
                 "--seal", str(LOCK), "--seal-sha256", seal["sha256"],
-                "--unit-id", unit_id, "--stage", "d_first",
+                "--unit-id", unit_id, "--stage", stage,
                 "--role-manifest", str(role_manifest), "--role-manifest-sha256", role_sha,
                 "--source-private", str(source_root), "--source-receipt", str(receipt_path),
                 "--source-receipt-sha256", receipt_sha,
                 "--source-unit-id", source_unit_id, "--arm-id", arm,
                 "--private-output", str(private_output), "--public-receipt", str(public_receipt),
-                "--seed", "0", "--attacker-seed", "0"]
+                "--seed", str(seed), "--attacker-seed", str(seed)]
         outputs = [public_receipt, private_output / "FROZEN_COMPLETE.json"]
         outputs += [private_output / view / "readers/READERS_RECEIPT.json"
                     for view in ("r1", "r2", "pair")]
         outputs += [private_output / view / "controls/CUSTODY_RECEIPT.json"
                     for view in ("r1", "r2", "pair")]
-        spec = {"unit_id": unit_id, "stage": "d_first", "argv": argv,
+        spec = {"unit_id": unit_id, "stage": stage, "argv": argv,
                 "cwd": str(WORKTREE), "max_wall_s": 600, "cpu_reserve_s": 600,
                 "max_rss_gib": 3.0, "projected_output_bytes": 300000000,
-                "sources": sources, "deps": [source_unit_id],
+                "sources": sources, "deps": [source_unit_id] + ([after_unit_id] if after_unit_id else []),
                 "outputs": [str(path) for path in outputs],
                 "env": {"PYTHONHASHSEED": "0"}}
         if amendment:
@@ -160,8 +167,11 @@ def build_specs(source_unit_id: str) -> dict[str, dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-unit-id", required=True)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--after-unit-id")
     args = parser.parse_args()
-    specs = build_specs(args.source_unit_id)
+    specs = build_specs(args.source_unit_id, seed=args.seed,
+                        after_unit_id=args.after_unit_id)
     spec_dir = CAMPAIGN / ".private" / "d_attack_specs"
     spec_dir.mkdir(mode=0o700, exist_ok=True)
     if spec_dir.stat().st_mode & 0o077:
