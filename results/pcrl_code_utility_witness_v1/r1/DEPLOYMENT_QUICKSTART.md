@@ -53,6 +53,9 @@ It passed 19 tests. The historical banks passed current-role point utility
 caps. The learned ten-bit and sixteen-bit task-only arms failed the locked
 two-seed utility gate, so their service packages are reproducible research
 artifacts rather than eligible protected mechanisms. On an independent
+32-row seed-one raw deployment replay, W_Q and W_TSTAR matched the saved code,
+probability and decision exactly for both purposes; independent decoding from
+the public table also matched with zero probability gap. On an independent
 T0_B16 seed-one replay, the original full INNER batch exactly reproduced the
 saved wire. A 32-row subset reproduced code and decisions exactly; float32
 head arithmetic changed probabilities by at most `2.3296e-08` (income) and
