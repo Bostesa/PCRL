@@ -1,9 +1,11 @@
 import unittest
+import hashlib
+import io
 
 import numpy as np
 
 from .views import (bits_from_ids, ids_from_bits, materialize_role_from_ids,
-                    prepare_complete_bank_views)
+                    prepare_complete_bank_views, public_wire_npz_sha256)
 
 
 class BankCompleteViewTests(unittest.TestCase):
@@ -66,6 +68,13 @@ class BankCompleteViewTests(unittest.TestCase):
             prepare_complete_bank_views(self.att, self.inner, self.tables,
                                         metadata_att=({"arm": "J"}, {}),
                                         metadata_inner=({}, {}))
+
+    def test_public_wire_hash_matches_deployment_npz_bytes(self):
+        stream = io.BytesIO()
+        np.savez_compressed(stream, code=self.att["code0"],
+                            prob=self.att["prob0"], decision=self.att["decision0"])
+        self.assertEqual(public_wire_npz_sha256(self.att, 0, self.tables),
+                         hashlib.sha256(stream.getvalue()).hexdigest())
 
 
 if __name__ == "__main__":

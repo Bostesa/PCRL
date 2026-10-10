@@ -26,7 +26,7 @@ from results.pcrl_code_utility_witness_v1.r4.bank_service import make_bank_servi
 
 from .reference_worker import (_file, _hex, _private_new_directory,
                                _write_public_once)
-from .views import prepare_complete_bank_views
+from .views import prepare_complete_bank_views, public_wire_npz_sha256
 
 
 SCHEMA = "pcrl-bank-r4-witness-unit-v1"
@@ -219,6 +219,13 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
     prepared = prepare_complete_bank_views(
         roles["ATTACK_FIT_NEW"], roles["INNER_SELECTION"], tables,
         metadata_att=({}, {}), metadata_inner=({}, {}))
+    public_side_information = {
+        role: {str(purpose): {
+            "service_metadata": service.recipient(
+                purpose, np.empty((0, 16), dtype=np.float64))["metadata"],
+            "rows": len(roles[role]["row_id"]),
+            "wire_npz_sha256": public_wire_npz_sha256(roles[role], purpose, tables),
+        } for purpose in (0, 1)} for role in ROLES}
     private_out = _private_new_directory(spec["private_output_path"])
     if Path(spec["public_receipt_path"]).exists():
         raise FileExistsError("public witness attack receipt already exists")
@@ -255,6 +262,11 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
               "public_table_sha256": spec["public_table_sha256"],
               "source_receipt_sha256": spec["source_receipt_sha256"],
               "release_sha256_by_role": spec["release_sha256_by_role"],
+              "public_side_information_by_role": public_side_information,
+              "side_information_note":
+                  "Fixed within this reader unit; wire NPZ SHA is the "
+                  "R1-compatible serialization of the inherited cached role wire. "
+                  "All fixed fields are available to defense-aware readers.",
               "attack": attack["public"]}
     receipt_sha256 = _write_public_once(spec["public_receipt_path"], public)
     return {"unit_id": spec["unit_id"], "status": public["status"],

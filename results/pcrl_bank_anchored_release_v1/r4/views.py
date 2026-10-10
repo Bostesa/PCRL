@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import math
+import hashlib
+import io
 from collections.abc import Mapping
 
 import numpy as np
@@ -65,6 +67,24 @@ def materialize_role_from_ids(row_id: np.ndarray, unit: np.ndarray,
         out[f"decision{purpose}"] = np.asarray(prob.argmax(axis=1), dtype=np.int64)
     _check_role(out, tables)
     return out
+
+
+def public_wire_npz_sha256(role: Mapping, purpose: int,
+                           tables: tuple[np.ndarray, np.ndarray]) -> str:
+    """Hash the exact R1-compatible recipient NPZ serialization in memory.
+
+    R1's deployment CLI saves the ordered `code`, `prob`, `decision` arrays
+    with `np.savez_compressed`. This digest describes the cached role wire,
+    without creating a second per-person output file or opening any label.
+    """
+    _check_role(role, tables)
+    if purpose not in (0, 1):
+        raise ValueError("recipient purpose must be zero or one")
+    stream = io.BytesIO()
+    np.savez_compressed(stream, code=role[f"code{purpose}"],
+                        prob=role[f"prob{purpose}"],
+                        decision=role[f"decision{purpose}"])
+    return hashlib.sha256(stream.getvalue()).hexdigest()
 
 
 def _table(value: np.ndarray, purpose: int) -> np.ndarray:
