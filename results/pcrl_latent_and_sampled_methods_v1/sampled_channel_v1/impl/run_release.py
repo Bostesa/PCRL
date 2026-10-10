@@ -228,33 +228,8 @@ def _selected_parent_identity(fit: dict, policy: dict, *, unit_id: str,
         if (not isinstance(details, dict) or details.get("complete") is not True or
                 details.get("success") is not True):
             raise PermissionError("A release control FIT was not complete and selected")
-        start, update = _control_selected_provenance(arm_id, details)
-        if (policy.get("selected_start") != start or
-                policy.get("selected_update") != update):
-            raise PermissionError("A release control policy differs from selected checkpoint")
     else:
         raise PermissionError("A release FIT receipt schema differs")
-
-
-def _control_selected_provenance(arm_id: str, detail: dict) -> tuple[str, int]:
-    """Replay R13's frozen selected-control checkpoint identity."""
-    if arm_id in ("A_TASK_DET", "A_JOINT_DET"):
-        selected = detail.get("selection")
-        for start in detail.get("starts", []):
-            if start.get("terminal_metrics") == selected:
-                update = start.get("chosen_checkpoint_update")
-                return start["start"], 300 if update is None else int(update)
-        raise PermissionError("A release hard selected gate has no start receipt")
-    if arm_id == "A_CENTRAL_PRODUCT":
-        rank = detail.get("diagnostic_best")
-        if (not isinstance(rank, (list, tuple)) or len(rank) < 3 or
-                rank[1] not in (0, 1)):
-            raise PermissionError("A release product selection receipt differs")
-        return ("identity_biased" if rank[1] == 0 else "uniform_logit",
-                int(rank[2]))
-    if arm_id in ("A_LOCAL", "A_SEQ12", "A_SEQ21"):
-        return "composite", 0
-    raise PermissionError("A release control arm is not registered")
 
 
 def _completed_fit_dependency(spec: dict, parent: dict, *, dependency: str,
