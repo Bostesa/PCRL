@@ -122,7 +122,7 @@ class AdmittedFitTest(unittest.TestCase):
             spec = {"stage": "a", "seed": 0, "arm_id": "A_JOINT_STOCH",
                     "output_id": "joint_s0",
                     "amendment_sha256": sha(amendment),
-                    "outputs": [str(output.resolve())],
+                    "outputs": [str(output.resolve() / "FIT_RECEIPT.json")],
                     "sources": [{"path": str(p.resolve()), "sha256": sha(p)}
                                 for p in (lock, amendment,
                                           *(root / name for name in MANDATORY_IMPLEMENTATION),
@@ -140,6 +140,14 @@ class AdmittedFitTest(unittest.TestCase):
                                            output_dir=output)
                 self.assertEqual(got["unit_plan"]["A-JOINT-STOCH-S0"]["seed"], 0)
                 self.assertEqual(unit["stage"], "a")
+                spec["outputs"] = [str(output.resolve())]
+                (queue / "state.json").write_text(json.dumps(state))
+                with self.assertRaisesRegex(PermissionError, "unit/amendment/output"):
+                    admit_fit_unit(unit_id="A-JOINT-STOCH-S0", lock_path=lock,
+                                   amendment_path=amendment,
+                                   amendment_sha256=sha(amendment), output_dir=output)
+                spec["outputs"] = [str(output.resolve() / "FIT_RECEIPT.json")]
+                (queue / "state.json").write_text(json.dumps(state))
                 saved_stream = stream.read_bytes()
                 stream.write_text('{"tampered":true}')
                 with self.assertRaisesRegex(PermissionError, "stream"):

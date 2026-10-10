@@ -94,6 +94,93 @@ class ReleaseWorkerTest(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(PermissionError):
                 run_release._selected_parent_identity(fit, swapped, **expected)
 
+    def test_queue_output_is_receipt_file_not_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            lock = root / "CAMPAIGN_LOCK.json"
+            queue = root / "queue"
+            queue.mkdir()
+            output = root / ".private" / "release_s0"
+            output.parent.mkdir(mode=0o700)
+            public = root / "sampled_channel_v1/design/STREAM_ROOT_HASH_MANIFEST.json"
+            public.parent.mkdir(parents=True)
+            roots = {str(i): str(i + 1) * 64 for i in range(3)}
+            public.write_text(json.dumps({
+                "schema": "scv1-public-stream-root-hashes-v1",
+                "release_realization_root_sha256": roots,
+                "seq_fit_root_sha256": "4" * 64,
+                "seq_fit_hmac_domain": "SCV1-seq-fit-first-v1"}))
+            lock.write_text(json.dumps({
+                "schema": "pcrl-latent-and-sampled-campaign-lock-v1",
+                "status": "LOCALLY_SEALED_D_STAGE",
+                "source_files_sha256": {"source_role_manifest": "a" * 64,
+                                        "r01/SOURCE_AUDIT.json": "b" * 64,
+                                        "r03/compute_queue.py": "c" * 64}}))
+            amendment = root / "A_STAGE.json"
+            plan = {"kind": "release", "arm_id": "A_JOINT_STOCH", "seed": 0,
+                    "role": "ATTACK_FIT_NEW", "realization": 0,
+                    "output_id": "joint_s0_att_0", "cpu_seconds": 5.,
+                    "wall_seconds": 5.}
+            payload = {key: {} for key in run_release.A_REQUIRED}
+            payload.update(schema="pcrl-latent-sampled-A-stage-amendment-v1",
+                           status="LOCALLY_SEALED_A_STAGE",
+                           original_lock_sha256=run_release._sha(lock),
+                           role_bindings={"repair_manifest_sha256": "a" * 64,
+                                          "source_audit_sha256": "b" * 64},
+                           implementation_source_sha256={"r03/compute_queue.py": "c" * 64},
+                           unit_plan={"A-RELEASE-0": plan},
+                           realizations={"ids": [0, 1, 2],
+                                         "stream_root_hash_manifest_sha256": run_release._sha(public),
+                                         "release_root_sha256_by_realization": roots,
+                                         "seq_fit_root_sha256": "4" * 64,
+                                         "seq_fit_hmac_domain": "SCV1-seq-fit-first-v1"})
+            amendment.write_text(json.dumps(payload))
+            spec = {"stage": "a", "mode": "real_data", "arm_id": "A_JOINT_STOCH",
+                    "seed": 0, "role": "ATTACK_FIT_NEW", "realization": 0,
+                    "output_id": "joint_s0_att_0", "cpu_reserve_s": 5.,
+                    "max_wall_s": 5., "amendment_sha256": run_release._sha(amendment),
+                    "outputs": [str(output.resolve() / "RELEASE_RECEIPT.json")],
+                    "sources": [{"path": str(path.resolve()),
+                                 "sha256": run_release._sha(path)}
+                                for path in (lock, amendment, public)]}
+            state = {"amendments": [{"path": str(amendment.resolve()),
+                                      "sha256": run_release._sha(amendment),
+                                      "stages": ["a"]}],
+                     "units": {"A-RELEASE-0": {"spec": spec}}}
+            (queue / "state.json").write_text(json.dumps(state))
+            with patch.dict("os.environ", {"PCRL_QUEUE_ROOT": str(queue)}), \
+                 patch.object(run_release, "assert_active_from_env",
+                              return_value={"seal_sha256": run_release._sha(lock)}), \
+                 patch.object(run_release, "RELEASE_IMPLEMENTATION", frozenset()):
+                run_release.admit_release_unit(
+                    unit_id="A-RELEASE-0", lock_path=lock, amendment_path=amendment,
+                    amendment_sha256=run_release._sha(amendment), output_dir=output)
+                spec["outputs"] = [str(output.resolve())]
+                (queue / "state.json").write_text(json.dumps(state))
+                with self.assertRaisesRegex(PermissionError, "unit/role/draw"):
+                    run_release.admit_release_unit(
+                        unit_id="A-RELEASE-0", lock_path=lock, amendment_path=amendment,
+                        amendment_sha256=run_release._sha(amendment), output_dir=output)
+
+    def test_parent_fit_receipt_matches_completed_queue_output(self):
+        path = Path("/private/fit/FIT_RECEIPT.json")
+        fit_sha = "a" * 64
+        spec = {"deps": ["A-FIT-0"]}
+        parent = {"status": "done", "spec": {
+            "arm_id": "A_JOINT_STOCH", "seed": 0, "outputs": [str(path)]},
+            "output_sha256": {str(path): fit_sha}}
+        expected = dict(dependency="A-FIT-0", arm_id="A_JOINT_STOCH",
+                        seed=0, fit_receipt_path=path, fit_sha256=fit_sha)
+        run_release._completed_fit_dependency(spec, parent, **expected)
+        for key, changed in (("outputs", ["/private/other/FIT_RECEIPT.json"]),
+                             ("seed", 1)):
+            bad = {**parent, "spec": {**parent["spec"], key: changed}}
+            with self.subTest(key=key), self.assertRaises(PermissionError):
+                run_release._completed_fit_dependency(spec, bad, **expected)
+        bad = {**parent, "output_sha256": {str(path): "b" * 64}}
+        with self.assertRaises(PermissionError):
+            run_release._completed_fit_dependency(spec, bad, **expected)
+
 
 if __name__ == "__main__":
     unittest.main()

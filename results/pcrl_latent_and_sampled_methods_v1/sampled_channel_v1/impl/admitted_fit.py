@@ -89,7 +89,8 @@ def admit_fit_unit(*, unit_id: str, lock_path, amendment_path,
             Path(candidates[-1].get("path", "")).resolve() != amendment_file or
             spec.get("stage") != "a" or
             spec.get("amendment_sha256") != amendment_sha256 or
-            spec.get("outputs") != [str(output)] or output.exists()):
+            spec.get("outputs") != [str(output / "FIT_RECEIPT.json")] or
+            output.exists()):
         raise PermissionError("A unit/amendment/output differs from latest queue registration")
     plan = amendment.get("unit_plan", {}).get(unit_id)
     if (type(plan) is not dict or type(plan.get("output_id")) is not str or

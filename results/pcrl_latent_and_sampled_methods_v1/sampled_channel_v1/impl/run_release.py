@@ -115,7 +115,8 @@ def admit_release_unit(*, unit_id: str, lock_path, amendment_path,
             Path(amendments[-1].get("path", "")).resolve() != amendment_file or
             spec.get("stage") != "a" or spec.get("mode") != "real_data" or
             spec.get("amendment_sha256") != amendment_sha256 or
-            spec.get("outputs") != [str(output)] or output.exists() or
+            spec.get("outputs") != [str(output / "RELEASE_RECEIPT.json")] or
+            output.exists() or
             type(plan) is not dict or plan.get("kind") != "release" or
             plan.get("arm_id") != spec.get("arm_id") or
             plan.get("seed") != spec.get("seed") or
@@ -231,6 +232,19 @@ def _selected_parent_identity(fit: dict, policy: dict, *, unit_id: str,
         raise PermissionError("A release FIT receipt schema differs")
 
 
+def _completed_fit_dependency(spec: dict, parent: dict, *, dependency: str,
+                              arm_id: str, seed: int, fit_receipt_path: Path,
+                              fit_sha256: str) -> None:
+    """Require the selected receipt at the exact completed R03 parent output."""
+    if (spec.get("deps") != [dependency] or parent.get("status") != "done" or
+            parent.get("spec", {}).get("arm_id") != arm_id or
+            parent.get("spec", {}).get("seed") != seed or
+            parent.get("spec", {}).get("outputs") != [str(fit_receipt_path)] or
+            parent.get("output_sha256", {}).get(str(fit_receipt_path)) !=
+            fit_sha256):
+        raise PermissionError("A release lacks completed selected fit dependency")
+
+
 def run(args: argparse.Namespace) -> dict:
     started_cpu, started_wall = time.process_time(), time.monotonic()
     amendment, spec, state = admit_release_unit(
@@ -245,6 +259,13 @@ def run(args: argparse.Namespace) -> dict:
     if (args.seed != seed or args.role != role or args.realization != realization or
             args.arm_id != unit["arm_id"]):
         raise PermissionError("A release CLI differs from sealed unit identity")
+    supplied_output = Path(args.private_output)
+    output = supplied_output.resolve(strict=False)
+    if (supplied_output.is_symlink() or output.exists() or
+            not output.parent.is_dir() or output.parent.is_symlink() or
+            ".private" not in output.parts or
+            stat.S_IMODE(output.parent.stat().st_mode) & 0o077):
+        raise PermissionError("A release output requires a new owner-only private directory")
     # Every future checkpoint/role path is hash-bound by this immutable unit.
     policy_dir = Path(args.policy_dir).resolve(strict=True)
     policy_receipt_path = policy_dir / "POLICY_RECEIPT.json"
@@ -258,11 +279,11 @@ def run(args: argparse.Namespace) -> dict:
         _spec_source(spec, path, expected)
     dependency = spec.get("fit_unit_id")
     parent = state.get("units", {}).get(dependency, {})
-    if (dependency is None or spec.get("deps") != [dependency] or
-            parent.get("status") != "done" or
-            parent.get("spec", {}).get("arm_id") != unit["arm_id"] or
-            parent.get("spec", {}).get("seed") != seed):
+    if dependency is None:
         raise PermissionError("A release lacks completed selected fit dependency")
+    _completed_fit_dependency(
+        spec, parent, dependency=dependency, arm_id=unit["arm_id"],
+        seed=seed, fit_receipt_path=fit_receipt_path, fit_sha256=fit_sha)
     fit_receipt = json.loads(fit_receipt_path.read_text())
     if (fit_receipt.get("status") != "SELECTED_FIT_POLICY" or
             (policy_dir / "INCOMPLETE_RESOURCE.json").exists()):
@@ -314,7 +335,6 @@ def run(args: argparse.Namespace) -> dict:
             fit_receipt["bank_sha256_by_recipient"] !=
             policy_receipt["bank_sha256_by_recipient"]):
         raise PermissionError("A released public bank differs from selected FIT")
-    output = Path(args.private_output).resolve(strict=False)
     if (output.exists() or not output.parent.is_dir() or output.parent.is_symlink() or
             ".private" not in output.parts or
             stat.S_IMODE(output.parent.stat().st_mode) & 0o077 or
