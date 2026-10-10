@@ -29,11 +29,14 @@ no income, occupation or SEX label file is opened. Verify the selected
 source-binding SHA and recipient-global bank/action/mechanism hashes against
 the fitted policy receipt and the queued release receipt.
 
-Copy the parent `cache.sqlite3` into a fresh R18 mode-0700 private directory
-using an exclusive mode-0600 file, then rehash it against the parent release
-receipt. Restore `JointPolicy` from the selected package and construct
-`CachedJointRelease` on the copied cache with the exact precommitted private
-root, release ID, seed, role and realization. Query both recipients for the
+Require the parent release unit to be completed and its SQLite connection
+closed, with no live `-wal`, `-shm` or journal sidecar before taking a byte
+copy. Copy the parent `cache.sqlite3` into a fresh R18 mode-0700 private
+directory using an exclusive mode-0600 file, then rehash it against the
+parent release receipt. Restore `JointPolicy` from the selected package and
+construct `CachedJointRelease` on the copied cache with `offline=True` and
+the exact precommitted private root, release ID, seed, role and realization.
+Query both recipients for the
 same provider unit, then query both again. Compare the first and repeated
 seven-field wires byte-for-byte. Require each code ID to equal the saved
 `release_codes.npz` value at row 0, and independently reconstruct probability
