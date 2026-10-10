@@ -1,0 +1,37 @@
+{
+  "schema": "pcrl-r17-a-q-retry-guard-setup-receipt-v1",
+  "status": "DATA_FREE_LOCAL_SETUP_ONLY",
+  "scope": "Pure Q unit-contract and synthetic smoke tests; no Adult role rows, labels, or Q preprocessing run",
+  "worker_source_sha256": "bfbc7bcafac7414add716eb58ada0ed453ae7da80eec76c3f9ec104af2bd5a5a",
+  "worker_test_sha256": "8a1a900f31c1e558bd447e53c4a34fd6fdc01baf3ddc846823c7202f0587ccde",
+  "smoke_source_sha256": "bf73784b8afc5f809f53d2679499b3151380d01bd1aec5f96a28a5b012812f21",
+  "smoke_test_sha256": "aa94751061e095a483e9fbf9490789fec27f674032a58edbc5133a8b5ff94e35",
+  "scoped_commit": "cbfbcfeb8a8a53aee7c0934edd4bd269099faac5",
+  "runs": [
+    {
+      "phase": "RED_BEFORE_SOURCE_FIX",
+      "test_selector": "test_run_q_preprocess.py::test_unit_contract_accepts_registered_retry_fit_only_for_same_arm_seed",
+      "result": "1 failed: hardcoded base FIT ID rejected the registered R1 parent",
+      "pytest_seconds": 1.35,
+      "tool_wall_seconds": 1.9
+    },
+    {
+      "phase": "TEST_ASSERTION_CORRECTION_AFTER_SOURCE_FIX",
+      "test_selector": "test_run_q_preprocess.py",
+      "result": "8 passed, 1 failed: rejection reason changed to the specific FIT ID guard; test regex corrected without changing production logic",
+      "pytest_seconds": 1.47,
+      "tool_wall_seconds": 2.1
+    },
+    {
+      "phase": "GREEN_AFTER_TEST_CORRECTION",
+      "test_selector": "test_run_q_preprocess.py and test_smoke_q_preprocess.py",
+      "result": "12 passed",
+      "pytest_seconds": 1.32,
+      "tool_wall_seconds": 1.8
+    }
+  ],
+  "observed_tool_wall_seconds_approx": 5.8,
+  "cpu_seconds_measured": null,
+  "conservative_external_cpu_charge_seconds": 10.0,
+  "note": "An initial mistyped local interpreter path failed before pytest started and is outside the 5.8-second test-run estimate; the 10-second charge covers that setup attempt. Queued R03 verification has a separate receipt and charge."
+}
