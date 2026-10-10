@@ -9,7 +9,7 @@ config, private queue spec and public hash-only index from the corresponding
 corrected B0 witness config/spec, a completed R2 realization-zero law and
 `BAR1-role-release-v1` receipt, the selected R2 policy receipt and package,
 the seed's public full-FIT source-identity receipt, the authoritative public
-R2 F1 selected-unit receipt, and the latest R0
+R2 selected-unit receipt (using whichever successor ID completed), and the latest R0
 protection-stage amendment. It verifies that release, selected policy and
 source identity share exactly one source-binding hash; the release names the
 selected policy receipt hash; and the policy receipt names the pinned policy

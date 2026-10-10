@@ -30,7 +30,7 @@ class ProtectionBuilderTests(unittest.TestCase):
                     "source_binding_sha256": "f" * 64}
         selected_unit = {"schema": "BAR1-r2-unit-receipt-v1",
                          "status": "COMPLETE_PROTECTED",
-                         "unit_id": "R2_J_S0_FIT_F1", "arm_id": "J", "source_seed": 0,
+                         "unit_id": "R2_J_S0_FIT_G1", "arm_id": "J", "source_seed": 0,
                          "source_lock_sha256": "a" * 64,
                          "source_binding_sha256": "f" * 64,
                          "policy_receipt_sha256": "e" * 64,
@@ -49,11 +49,11 @@ class ProtectionBuilderTests(unittest.TestCase):
                     amendment_record={"path": "/x/amend", "sha256": "d" * 64},
                     config_path="/x/.private/new_config.json",
                     outputs={"csv": "/x/new.csv", "private_vectors": "/x/.private/new.npz",
-                             "receipt": "/x/new.json"}, deps=["R2_J_S0_FIT_F1"])
+                             "receipt": "/x/new.json"}, deps=["R2_J_S0_FIT_G1"])
         cfg, spec = derive_documents(**args)
         self.assertEqual(cfg["stage"], "protection")
         self.assertEqual(cfg["law"]["sha256"], "b" * 64)
-        self.assertEqual(spec["deps"], ["R2_J_S0_FIT_F1"])
+        self.assertEqual(spec["deps"], ["R2_J_S0_FIT_G1"])
         self.assertIn(args["selected_unit_record"], spec["sources"])
         self.assertEqual(spec["argv"][0], source["argv"][0])
         self.assertEqual(spec["amendment_sha256"], "d" * 64)
