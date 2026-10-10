@@ -55,7 +55,7 @@ def _fixture(tmp_path: Path):
         "unit_plan": plan,
     }))
     queue_state = _write(campaign / "r03/.private/compute/state.json", json.dumps({
-        "seal": {"sha256": _sha(seal)}, "occupancy": None,
+        "seal": {"sha256": _sha(seal), "path": str(seal)}, "occupancy": None,
         "amendments": [{"sha256": _sha(amendment), "stages": ["a"],
                         "path": str(amendment)}],
     }))

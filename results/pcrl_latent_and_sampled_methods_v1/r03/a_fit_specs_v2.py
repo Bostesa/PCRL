@@ -50,13 +50,16 @@ def _owner_private_dir(path: Path) -> None:
         raise PermissionError("A spec/output parent requires owner-only custody")
 
 
-def _latest_a_amendment(queue_state: Path, amendment: Path, digest: str) -> None:
+def _latest_a_amendment(queue_state: Path, amendment: Path, digest: str,
+                        seal_path: Path, seal_sha256: str) -> None:
     state = json.loads(queue_state.read_text())
+    registered_seal = state.get("seal", {})
     registrations = [entry for entry in state.get("amendments", [])
                      if "a" in entry.get("stages", [])]
     if (not registrations or registrations[-1]["sha256"] != digest or
             Path(registrations[-1]["path"]).resolve(strict=True) != amendment or
-            state.get("seal", {}).get("sha256") is None or
+            registered_seal.get("sha256") != seal_sha256 or
+            Path(registered_seal.get("path", "")).resolve() != seal_path or
             state.get("occupancy") is not None):
         raise PermissionError("effective A amendment is not latest in idle queue")
 
@@ -75,7 +78,8 @@ def fit_spec(*, unit_id: str, amendment_path: Path, amendment_sha256: str,
     queue_state = Path(queue_state).resolve(strict=True)
     private_parent = Path(private_parent).resolve(strict=True)
     _owner_private_dir(private_parent)
-    _latest_a_amendment(queue_state, amendment_path, amendment_sha256)
+    _latest_a_amendment(queue_state, amendment_path, amendment_sha256,
+                        seal_path, seal_sha256)
     graph = compile_graph(amendment_path, amendment_sha256, seal_path,
                           seal_sha256, source_root=campaign,
                           expected_units=220)

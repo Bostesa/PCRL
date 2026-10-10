@@ -1,5 +1,6 @@
 """Data-free regression for the predecessor portfolio path correction."""
 
+import json
 import shutil
 from pathlib import Path
 
@@ -29,3 +30,14 @@ def test_fit_spec_requires_predecessor_portfolio_and_pins_renderer(tmp_path):
     assert any(row["path"].startswith(str(predecessor)) and
                row["path"].endswith("BANK_ADMISSION_RECEIPT.json")
                for row in spec["sources"])
+    original_state = json.loads(state.read_text())
+    wrong_digest = json.loads(state.read_text())
+    wrong_digest["seal"]["sha256"] = "f" * 64
+    state.write_text(json.dumps(wrong_digest))
+    with pytest.raises(PermissionError, match="not latest"):
+        fit_spec(portfolio_package=predecessor, **arguments)
+    wrong_path = json.loads(json.dumps(original_state))
+    wrong_path["seal"]["path"] = str(seal.parent / "inactive-lock.json")
+    state.write_text(json.dumps(wrong_path))
+    with pytest.raises(PermissionError, match="not latest"):
+        fit_spec(portfolio_package=predecessor, **arguments)
