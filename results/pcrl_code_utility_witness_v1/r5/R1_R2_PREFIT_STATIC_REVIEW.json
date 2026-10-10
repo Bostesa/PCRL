@@ -1,0 +1,33 @@
+{
+  "schema": "pcrl-r5-r1-r2-prefit-static-review-v1",
+  "status": "STATIC_REVIEW_PASS_WITH_SEAL_BINDING_PENDING",
+  "scope": "Source and data-free test review only. No real role arrays, labels, fitted packages, or outcomes were opened. Effective seal and queue jobs were not yet available for numerical replay.",
+  "r1_source_sha256": {
+    "code_witness/worker.py": "03154b985ee956e25aea18712a40744429257049084a764c85d46727abaa8f24",
+    "code_witness/learner.py": "629ebde79d8da8b0f47dc2c5492dc7f8da532d52184d4a5c0930c774b023d0b0",
+    "code_witness/model.py": "ab83a9067a0c3488cecb445f440aa52faa8898661f70bed56c0bb0f181fb6395",
+    "code_witness/service.py": "373073640c0ddacdf8279d594c08c02ccc2d663dcb33b18ed0fe41dc3679fd33",
+    "code_witness/bank.py": "68a68d0cbd28bad385608ec1a05340a1d0abfcad9878bd909301a24907687b57"
+  },
+  "r2_draft_sha256": {
+    "r2/loss_audit_worker.py": "596a4fc01dbd53fd03c02b81ac2e90e5651b0170efd3cf79abe7475243e90bbc",
+    "r2/loss_metrics.py": "6213f610796c9902baa53755972b19e7ae7f739ac5fa3e743d95ab2854dde7ea"
+  },
+  "checks": {
+    "role_access": "R1 queue check precedes RoleOnlyStore; FIT task labels only and CAL calibration labels only; bank FIT/ATT/INNER and fitted ATT/INNER reads are role-specific. R2 queue check precedes private config; R2 registers exact INNER label/reference exports and old release/package files by SHA before opening them.",
+    "source_score_routing": "R1 loads historical source heads byte-checked by source COMPLETE; source reference replay validates U0/Ucal parity on each opened role. W_Q routes with historical Q policy; W_TSTAR routes the same source scores with fixed historical H-GLOBAL-TEMP decoder table.",
+    "hard_bit_release": "R1 model head accepts hard binary code; fitting forward passes hard values with straight-through gradient; released per-person payload has only code bits, probabilities and decisions, with global metadata in receipt. Package decoder reconstructs probabilities from bits.",
+    "r2_reconstruction": "R2 T/D-K reconstruct from transmitted ten-bit codes and historical service; F reconstructs from transmitted float32 features and historical head. R2 F calibration arithmetic matches the prior UnchangedLatentRelease.recipient implementation exactly. Optional W bank verifies fixed table lookup from bits.",
+    "training_recipe": "FIT-only grouped outer split chooses hard-code epoch using task NLL, full-FIT refit uses selected epoch, task CE plus 0.5 Ucal teacher KL, no SEX tensor. Source encoder historically saw all FIT, as R1 receipt discloses."
+  },
+  "tests": {
+    "r1_data_free_pytest": "13 passed in 0.99s",
+    "r2_python_compile": "PASS",
+    "r2_behavioral_tests": "NOT_YET_COMMITTED_AT_REVIEW"
+  },
+  "remaining_checks": [
+    "Confirm effective seal pins exact historical source COMPLETE/head/calibration records and the source files listed here.",
+    "Verify registered queue source list and R1/R2 command arguments for each real unit before opening person-level arrays.",
+    "Independently replay numerical endpoints, service reconstruction, selection, and intervals after sealed outputs exist."
+  ]
+}
