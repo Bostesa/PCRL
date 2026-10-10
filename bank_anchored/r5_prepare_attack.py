@@ -1,4 +1,4 @@
-"""Prepare independent attack AUC/view replay specs from completed H1 receipts.
+"""Prepare independent attack AUC/view replay specs from effective receipts.
 
 Only receipt and source bytes are read here. R5 role labels and predictions open
 later inside each admitted verification queue unit.
@@ -49,23 +49,37 @@ def write_once(path: Path, payload: dict, mode: int) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _source_index_paths(unit_id: str) -> tuple[Path, Path, str, str, int]:
+    if unit_id in (f"R4_ATTACK_P_STAR_S{seed}_R0_H2" for seed in (0, 1)):
+        return (R4 / "PSTAR_H2_UNIT_INDEX.json",
+                R4 / "PSTAR_H2_QUEUE_INDEX.json",
+                "pcrl-bank-r4-pstar-h2-unit-index-v1",
+                "pcrl-bank-r4-pstar-h2-queue-index-v1", 2)
+    if unit_id.endswith("_H1") and "_P_STAR_" not in unit_id:
+        return (R4 / "ATTACK_UNIT_INDEX_H1.json",
+                R4 / "ATTACK_QUEUE_INDEX_H1.json",
+                "pcrl-bank-r4-attack-unit-index-v3-h1",
+                "pcrl-bank-r4-queue-unit-index-v3-h1", 38)
+    raise PermissionError("source unit is not in the effective H1/H2 attack family")
+
+
 def build(unit_id: str, amendment_path: Path, python_entry: Path) -> dict:
-    worker_index_path = R4 / "ATTACK_UNIT_INDEX_H1.json"
-    queue_index_path = R4 / "ATTACK_QUEUE_INDEX_H1.json"
+    (worker_index_path, queue_index_path, worker_schema,
+     queue_schema, expected_count) = _source_index_paths(unit_id)
     worker_index_pin, queue_index_pin = pin(worker_index_path), pin(queue_index_path)
     worker_index = json.loads(worker_index_path.read_text())
     queue_index = json.loads(queue_index_path.read_text())
-    if (worker_index.get("schema") != "pcrl-bank-r4-attack-unit-index-v3-h1" or
-            queue_index.get("schema") != "pcrl-bank-r4-queue-unit-index-v3-h1" or
+    if (worker_index.get("schema") != worker_schema or
+            queue_index.get("schema") != queue_schema or
             queue_index.get("attack_unit_index_sha256") != worker_index_pin["sha256"] or
-            worker_index.get("unit_count") != 38 or
-            queue_index.get("unit_count") != 38):
-        raise PermissionError("H1 attack index/queue family differs")
+            worker_index.get("unit_count") != expected_count or
+            queue_index.get("unit_count") != expected_count):
+        raise PermissionError("effective attack index/queue family differs")
     workers = {item["unit_id"]: item for item in worker_index["units"]}
     queues = {item["unit_id"]: item for item in queue_index["units"]}
-    if (len(workers) != 38 or len(queues) != 38 or
+    if (len(workers) != expected_count or len(queues) != expected_count or
             set(workers) != set(queues) or unit_id not in workers):
-        raise PermissionError("H1 unit is absent or duplicated")
+        raise PermissionError("effective attack unit is absent or duplicated")
     state = json.loads(QSTATE.read_text())
     if state["units"].get(unit_id, {}).get("status") != "done":
         raise PermissionError("H1 attack fit has not completed under shared queue")
@@ -79,7 +93,7 @@ def build(unit_id: str, amendment_path: Path, python_entry: Path) -> dict:
     if (worker_pin["sha256"] != worker["spec_sha256"] or
             worker_pin["sha256"] != queued["attack_spec_sha256"] or
             queue_pin["sha256"] != queued["queue_spec_sha256"]):
-        raise PermissionError("H1 indexed unit spec hashes differ")
+        raise PermissionError("indexed attack unit spec hashes differ")
     source = json.loads(worker_path.read_text())
     queue = json.loads(queue_path.read_text())
     public = json.loads(receipt_path.read_text())
@@ -96,10 +110,10 @@ def build(unit_id: str, amendment_path: Path, python_entry: Path) -> dict:
             (public.get("arm_id"), public.get("source_seed"),
              public.get("realization")) !=
             (worker["arm_id"], worker["source_seed"], worker["realization"])):
-        raise PermissionError("completed H1 public receipt or queue identity differs")
+        raise PermissionError("completed public attack receipt or queue identity differs")
     for item in queue["sources"]:
         if pin(Path(item["path"])) != item:
-            raise PermissionError("H1 queue source changed before R5 replay")
+            raise PermissionError("attack queue source changed before R5 replay")
     amendment_pin = pin(amendment_path)
     amendment = json.loads(amendment_path.read_text())
     latest = [item["sha256"] for item in state["amendments"]
