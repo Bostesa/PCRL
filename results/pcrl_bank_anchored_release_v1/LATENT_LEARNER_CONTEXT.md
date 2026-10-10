@@ -1,0 +1,5 @@
+# Prior latent learner scope
+
+The last hard-bit learner in source commit `4723190fff4219670e38fd449adcf70f36c9c358` did **not** train to fixed bank IDs or use the bank's fixed decoder. Its `code_witness/learner.py` loss is true-label cross entropy plus 0.5 KL to frozen teacher probabilities through a newly learned code head. `code_witness/model.py` supplies the ten- or sixteen-bit latent mapper and learned task head. The inherited W_TSTAR bank was separately compiled from frozen score routing in `code_witness/bank.py` and `worker.py`; it was a reference service, not the learner's target or initialization.
+
+Earlier design discussion allowed auxiliary bank-code initialization, so the phrase “train toward bank codes” alone would not establish a new method. Predicting arbitrary binary ID bits also has no guarantee of preserving the fixed decoded probabilities. A future bank-target mapper would require a separate frozen task loss/decoder, design lock and matched two-seed utility gate. No new latent fit is part of this campaign. This campaign directly changes the selected useful bank's released state under its existing decoder.
