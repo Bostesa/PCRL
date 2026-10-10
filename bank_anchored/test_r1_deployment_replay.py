@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from bank_anchored.r1_deployment_replay import audit_wire, run
+from bank_anchored.r1_deployment_replay import audit_wire, derive_uniforms, run
 
 
 def _wire(path, **overrides):
@@ -39,3 +39,17 @@ def test_replay_rejects_hidden_field_and_direct_nonqueue_call(tmp_path):
         audit_wire(hidden, table, original, identity=False)
     with pytest.raises(RuntimeError, match="active queue"):
         run(tmp_path / "not_read.json")
+
+
+def test_replay_draws_match_sealed_unit_cached_hmac_domains():
+    root = bytes(range(32))
+    units = np.array([7, 7, *range(8, 38)], dtype=np.int64)
+    joint = derive_uniforms(root, seed=0, arm_id="J", units=units)
+    assert joint.dtype == np.float64 and joint.shape == (32,)
+    assert joint[0] == joint[1] == 0.8224904208972221
+    factor = derive_uniforms(root, seed=0, arm_id="P", units=units)
+    assert factor.dtype == np.float64 and factor.shape == (32, 2)
+    assert tuple(factor[0]) == (0.10723990052591165, 0.6892582348827188)
+    assert np.array_equal(factor[0], factor[1])
+    assert derive_uniforms(root, seed=0, arm_id="B0", units=units) is None
+    assert derive_uniforms(root, seed=0, arm_id="D", units=units) is None
