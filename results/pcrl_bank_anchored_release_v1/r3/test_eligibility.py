@@ -23,7 +23,7 @@ def unit(arm, seed, role, *, pass_all=True):
                              "task": task, "reference": ref, "metric": metric,
                              "primary_gate": "True", "point_status": "PASS"})
     if not pass_all:
-        rows[-1]["point_status"] = "VIOLATION"
+        rows[-1]["point_status"] = "FAIL"
     return receipt, rows
 
 
@@ -48,7 +48,9 @@ class EligibilityTests(unittest.TestCase):
         self.assertFalse(summarize_arm("J", docs)["all_two_seed_task_reference_point_caps_pass"])
         docs[(0, "OSF_DEFENSE_FIT")] = unit("J", 0, "OSF_DEFENSE_FIT")
         docs[(1, "INNER_SELECTION")] = unit("J", 1, "INNER_SELECTION", pass_all=False)
-        self.assertFalse(summarize_arm("J", docs)["all_two_seed_task_reference_point_caps_pass"])
+        result = summarize_arm("J", docs)
+        self.assertEqual(result["inner_clauses"], {"passed": 23, "total": 24})
+        self.assertFalse(result["all_two_seed_task_reference_point_caps_pass"])
 
     def test_nomination_table_retains_missing_arms_and_only_j_as_nominee(self):
         gate = {"schema": "pcrl-bank-r3-arm-point-eligibility-v1", "arm_id": "J",

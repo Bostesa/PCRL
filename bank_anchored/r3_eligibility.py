@@ -61,7 +61,7 @@ def summarize_arm(arm: str, docs: dict) -> dict:
                 key = (row.get("task"), row.get("reference"), row.get("metric"))
                 if (row.get("arm") != arm or str(row.get("seed")) != str(seed)
                         or row.get("role") != role or key in seen
-                        or row.get("point_status") not in ("PASS", "VIOLATION")):
+                        or row.get("point_status") not in ("PASS", "FAIL")):
                     raise PermissionError("primary clause identity or status differs")
                 seen[key] = row["point_status"]
             if set(seen) != expected:
