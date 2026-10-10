@@ -1,0 +1,7 @@
+# Advisor brief — bank-anchored output release
+
+On reused Adult development rows, the original W_TSTAR ten-bit income/occupation release was restored as a working B0 identity service. Seven fixed channel designs were trained with the bank as their FIT reference. B0, task-only, deterministic, product, local, joint and one freeze-first order met all 24 original common-INNER point utility clauses; the reverse order met 22/24. None has a complete simultaneous utility-bound pass.
+
+Fresh complete-view SEX attacks found a small gain for the product channel P over unchanged B0: pair AUC 0.832301 versus 0.838251, a 0.005951 decrease across the two paired source seeds. The joint channel J reached 0.833786 and did not beat P. An eligible historical privacy-trained P* reference reached 0.803141, 0.030645 below J. J also had 0.051984 higher recipient-2 recovery than P* at the point estimate. These are exploratory point comparisons; wide simultaneous intervals leave the formal benefit and local-worsening clauses unresolved.
+
+The useful result is an executable, fixed-table bank service with source-bound protected release adapters and independent attack/utility replay. The method result is negative against the strongest control. The next method design should address the strong complete-view P* comparison explicitly before more fits. New population confirmation requires separate prospective authorization.
