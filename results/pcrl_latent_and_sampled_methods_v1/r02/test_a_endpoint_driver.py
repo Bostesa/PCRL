@@ -3,7 +3,7 @@ import pytest
 import json
 
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_driver import (
-    expected_attack_cells, normalized_cell, point_rows, save_private_cell,
+    FINITE_READERS, expected_attack_cells, normalized_cell, point_rows, save_private_cell,
     sha, verify_reader_custody,
 )
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_inference import (
@@ -117,10 +117,16 @@ def test_saved_complete_view_and_reader_hashes_are_replayed(tmp_path):
             path = folder / f"view_{role}.npz"
             np.savez_compressed(path, row_id=row, unit=row, x=view.x)
             files[path.name] = sha(path)
-        readers = {"LR_C1": np.array([.1, .9], dtype=np.float64)}
+        readers = {reader: np.array([.1, .9], dtype=np.float64)
+                   for reader in FINITE_READERS}
+        alias_records = []
         if name == "pair":
-            readers.update({"IGNORE_R2__LR_C1": readers["LR_C1"],
-                            "IGNORE_R1__LR_C1": readers["LR_C1"]})
+            for source, prefix in (("r1", "IGNORE_R2__"), ("r2", "IGNORE_R1__")):
+                for reader in FINITE_READERS:
+                    alias = prefix + reader
+                    readers[alias] = readers[reader]
+                    alias_records.append({"alias": alias, "source_view": source,
+                                          "source_reader": reader, "new_fit": False})
         for role in ("tune", "inner"):
             path = folder / f"predictions_{role}.npz"
             np.savez_compressed(path, **readers)
@@ -128,17 +134,32 @@ def test_saved_complete_view_and_reader_hashes_are_replayed(tmp_path):
         receipt = {"status": "FROZEN", "files": files,
                    "att_view_content_sha256": view.content_hashes(),
                    "inner_view_content_sha256": view.content_hashes(),
-                   "reader_order": list(readers)}
+                   "reader_order": list(readers),
+                   "ignore_recipient_aliases": alias_records}
         path = folder / "READERS_RECEIPT.json"
         path.write_text(json.dumps(receipt))
         reader_sha[name] = sha(path)
+        control_root = common / name / "controls"
+        control_root.mkdir()
+        control_files = {}
+        for filename in ("shuffled_model.joblib", "planted_model.joblib",
+                         "probe_replay.npz"):
+            file = control_root / filename
+            file.write_bytes(b"synthetic")
+            control_files[filename] = sha(file)
+        (control_root / "CUSTODY_RECEIPT.json").write_text(json.dumps({
+            "schema": "pcrl-portfolio-private-control-v2-custody-v1",
+            "status": "FROZEN", "files": control_files,
+            "att_view_content_sha256": view.content_hashes(),
+            "inner_view_content_sha256": view.content_hashes()}))
     freeze = {"status": "FROZEN_COMPLETE", "effective_lock_sha256": "a" * 64,
               "reader_receipt_sha256": reader_sha,
               "att_view_sha256": {v: view.content_hashes() for v in prepared},
               "inner_view_sha256": {v: view.content_hashes() for v in prepared}}
     freeze_path = common / "FROZEN_COMPLETE.json"
     freeze_path.write_text(json.dumps(freeze))
-    index = {"status": "COMPLETE", "original_lock_sha256": "a" * 64,
+    index = {"schema": "SCV1-sampled-attack-attempt-v1", "status": "COMPLETE",
+             "original_lock_sha256": "a" * 64,
              "control_status": {v: "PASS" for v in prepared},
              "reader_freeze_sha256": sha(freeze_path),
              "view_content_sha256": {v: {"att": view.content_hashes(),
@@ -147,8 +168,89 @@ def test_saved_complete_view_and_reader_hashes_are_replayed(tmp_path):
     index_path = root / "ATTACK_ATTEMPT_INDEX.json"
     index_path.write_text(json.dumps(index))
     bank = verify_reader_custody(root, prepared, index, index_sha256=sha(index_path))
-    assert set(bank["pair"]) == {"LR_C1", "IGNORE_R2__LR_C1", "IGNORE_R1__LR_C1"}
+    assert len(bank["pair"]) == 27
     saved = common / "r1/readers/view_inner.npz"
+    original_bytes = saved.read_bytes()
     np.savez_compressed(saved, row_id=row, unit=row, x=np.array([[.2], [1.]]))
     with pytest.raises(ValueError, match="artifact hash"):
         verify_reader_custody(root, prepared, index, index_sha256=sha(index_path))
+    saved.write_bytes(original_bytes)
+    receipt_path = common / "r1/readers/READERS_RECEIPT.json"
+    receipt = json.loads(receipt_path.read_text())
+    receipt["reader_order"].remove("Q_POST_LR_C1")
+    receipt_path.write_text(json.dumps(receipt))
+    freeze["reader_receipt_sha256"]["r1"] = sha(receipt_path)
+    freeze_path.write_text(json.dumps(freeze))
+    index["reader_freeze_sha256"] = sha(freeze_path)
+    index_path.write_text(json.dumps(index))
+    with pytest.raises(ValueError, match="reader receipt view identity"):
+        verify_reader_custody(root, prepared, index, index_sha256=sha(index_path))
+
+
+def test_diagnostic_replay_uses_canonical_bank_order_for_saved_code_ids(tmp_path):
+    from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_array
+    from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.run_reference_attack import (
+        _diagnostic_q_mechanism,
+    )
+    from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.attacks.reference_wire import (
+        load_reference_role_package,
+    )
+    from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.reference_materialize import (
+        materialize_reference_role,
+    )
+
+    old1 = np.array([[.1, .9], [.9, .1]], dtype=np.float64)
+    permutation = np.array([4, 1, 5, 0, 3, 2])
+    old2 = (np.eye(6, dtype=np.float64) * .9 + .1 / 6)[permutation]
+    centroids = (np.eye(2, dtype=np.float64)[np.arange(64) % 2],
+                 np.eye(6, dtype=np.float64)[np.arange(641) % 6])
+    fixed = {"bank_r1": old1, "bank_r2": old2,
+             "fine_to_code_r1": np.array([1, 0], dtype=np.int64)[
+                 np.argmax(centroids[0], axis=1)],
+             "fine_to_code_r2": np.argsort(permutation)[
+                 np.argmax(centroids[1], axis=1)].astype(np.int64)}
+    binding = "a" * 64
+    original_receipt = "b" * 64
+    mechanism, descriptor, _, canonical1, canonical2 = _diagnostic_q_mechanism(
+        fixed, {"source_binding_sha256": binding,
+                "original_bank_receipt_sha256": original_receipt}, centroids,
+        ref="A_IDENTITY", seed=0, release_id="A_IDENTITY-s0-v1")
+    assert len(mechanism) == len(descriptor) == 64
+    assert not np.array_equal(canonical1, old1)
+    assert not np.array_equal(canonical2, old2)
+    row = np.array([11, 12], dtype=np.int64)
+    unit = np.array([21, 22], dtype=np.int64)
+    code = np.array([0, 1], dtype=np.int64)
+    root = tmp_path / ".private" / "diagnostic"
+    root.parent.mkdir(mode=0o700)
+    materialize_reference_role(
+        row_id=row, unit=unit, prob1=canonical1[code], prob2=canonical2[code],
+        decision1=np.argmax(canonical1[code], axis=1).astype(np.int64),
+        decision2=np.argmax(canonical2[code], axis=1).astype(np.int64),
+        code1=code, code2=code, arm_id="A_IDENTITY", seed=0,
+        role="INNER_SELECTION", release_id="A_IDENTITY-s0-v1",
+        source_binding_sha256=binding,
+        source_identity={"role_source_file_sha256": "c" * 64,
+                         "reference_file_sha256": "d" * 64,
+                         "bank_receipt_sha256": original_receipt,
+                         "source_audit_sha256": "e" * 64},
+        interface_kind="finite",
+        bank_sha256_by_recipient={"r1": sha_array(canonical1),
+                                  "r2": sha_array(canonical2)},
+        expected_row_unit_sha256=sha_array(np.column_stack((row, unit))),
+        output_dir=root, bank1=canonical1, bank2=canonical2)
+    digest = sha(root / "REFERENCE_RELEASE_RECEIPT.json")
+    restored = load_reference_role_package(root, receipt_sha256=digest,
+                                           full_bank1=canonical1,
+                                           full_bank2=canonical2)
+    assert restored.wires1[0]["probability"] == canonical1[0].tolist()
+    with pytest.raises(ValueError, match="bank|code"):
+        load_reference_role_package(root, receipt_sha256=digest,
+                                    full_bank1=old1, full_bank2=old2)
+
+
+def test_endpoint_replay_imports_originate_from_pinned_worktree():
+    from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_worker import (
+        _assert_module_origins,
+    )
+    _assert_module_origins()

@@ -24,6 +24,11 @@ CAMPAIGN = Path(__file__).resolve().parents[1]
 READER_FILES = ("view_att.npz", "view_inner.npz", "predictions_tune.npz",
                 "predictions_inner.npz")
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+FINITE_READERS = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32",
+                  "CELL_A1", "CODE_BIT_LR_C1", "PROB_LR_C1",
+                  "PROB_HGB_15x200", "Q_POST_LR_C1")
+CONTINUOUS_READERS = ("LR_C1", "MLP_64x32", "HGB_15x200", "DA_MLP_64x32",
+                      "PROB_LR_C1", "PROB_HGB_15x200")
 
 
 def sha(path: str | Path) -> str:
@@ -91,6 +96,14 @@ def verify_reader_custody(root: str | Path, prepared: Mapping, index: Mapping,
     if (freeze.get("status") != "FROZEN_COMPLETE" or
             freeze.get("effective_lock_sha256") != index.get("original_lock_sha256")):
         raise ValueError("ATT reader freeze status differs")
+    if index.get("schema") == "SCV1-sampled-attack-attempt-v1":
+        finite = True
+    elif index.get("schema") == "SCV1-reference-attack-attempt-v1" and \
+            index.get("reference_identity", {}).get("interface_kind") in ("finite", "continuous"):
+        finite = index["reference_identity"]["interface_kind"] == "finite"
+    else:
+        raise ValueError("A attack attempt schema/interface differs")
+    mandatory = FINITE_READERS if finite else CONTINUOUS_READERS
     predictions = {}
     for name in VIEWS:
         item = prepared[name]
@@ -104,10 +117,22 @@ def verify_reader_custody(root: str | Path, prepared: Mapping, index: Mapping,
         if sha(receipt_path) != freeze["reader_receipt_sha256"][name]:
             raise ValueError("reader custody receipt hash differs")
         receipt = json.loads(receipt_path.read_text())
+        expected_order = (mandatory if name != "pair" else
+                          (*mandatory, *(f"IGNORE_R2__{reader}" for reader in mandatory),
+                           *(f"IGNORE_R1__{reader}" for reader in mandatory)))
         if (receipt.get("status") != "FROZEN" or
                 receipt["att_view_content_sha256"] != item.att.content_hashes() or
-                receipt["inner_view_content_sha256"] != item.inner.content_hashes()):
+                receipt["inner_view_content_sha256"] != item.inner.content_hashes() or
+                tuple(receipt.get("reader_order", ())) != expected_order):
             raise ValueError("reader receipt view identity differs")
+        expected_alias = ([{"alias": f"IGNORE_R2__{reader}",
+                            "source_view": "r1", "source_reader": reader,
+                            "new_fit": False} for reader in mandatory] +
+                          [{"alias": f"IGNORE_R1__{reader}",
+                            "source_view": "r2", "source_reader": reader,
+                            "new_fit": False} for reader in mandatory]) if name == "pair" else []
+        if receipt.get("ignore_recipient_aliases") != expected_alias:
+            raise ValueError("fixed reader ignore-recipient alias plan differs")
         for filename, digest in receipt["files"].items():
             if Path(filename).name != filename or sha(reader_root / filename) != digest:
                 raise ValueError("reader model/view/prediction artifact hash differs")
@@ -126,6 +151,19 @@ def verify_reader_custody(root: str | Path, prepared: Mapping, index: Mapping,
                     not np.isfinite(values).all() or np.any((values < 0) | (values > 1))):
                 raise ValueError(f"saved INNER reader vector invalid: {reader_id}")
         predictions[name] = bank
+        control_root = common / name / "controls"
+        control_path = control_root / "CUSTODY_RECEIPT.json"
+        control = json.loads(control_path.read_text())
+        if (control.get("schema") != "pcrl-portfolio-private-control-v2-custody-v1" or
+                control.get("status") != "FROZEN" or
+                control.get("att_view_content_sha256") != item.att.content_hashes() or
+                control.get("inner_view_content_sha256") != item.inner.content_hashes() or
+                set(control.get("files", {})) != {"shuffled_model.joblib",
+                                                    "planted_model.joblib", "probe_replay.npz"}):
+            raise ValueError("V2 null/planted probe custody differs")
+        for filename, digest in control["files"].items():
+            if sha(control_root / filename) != digest:
+                raise ValueError("V2 null/planted probe file hash differs")
     pair = predictions["pair"]
     for local, prefix in (("r1", "IGNORE_R2__"), ("r2", "IGNORE_R1__")):
         for reader_id, values in predictions[local].items():
@@ -195,12 +233,14 @@ def _sampled_cell(spec: Mapping, options: Mapping):
                                         "wire_content_sha256": views.wire_content_sha256}
 
 
-def _reference_cell(spec: Mapping, options: Mapping):
+def _reference_cell(spec: Mapping, options: Mapping, q_spec: Mapping | None):
     from .complete_view import pair_batch, prepare_views
     from ..sampled_channel_v1.attacks.reference_wire import (
         load_public_fixed_map, load_reference_role_package,
         reference_recipient_batch, with_reference_q_features)
-    from ..sampled_channel_v1.attacks.run_reference_attack import _fixed_q_mechanism
+    from ..sampled_channel_v1.attacks.run_reference_attack import (
+        _diagnostic_q_mechanism, _fixed_q_mechanism)
+    from ..sampled_channel_v1.attacks.run_q_preprocess import load_clean_public_centroids
     identity = spec["reference_identity"]
     finite = identity["interface_kind"] == "finite"
     bank1 = bank2 = fixed_receipt = q_table = mechanism_sha = None
@@ -215,9 +255,32 @@ def _reference_cell(spec: Mapping, options: Mapping):
         bank1, bank2 = fixed["bank_r1"], fixed["bank_r2"]
         q_table = _q_table(options["q-table-dir"], identity["q_table_identity"],
                            fixed_receipt["original_bank_receipt_sha256"])
-        mechanism_sha = (q_table.identity["mechanism_sha256"] if
-                         source_arm != identity["reference_id"] else
-                         _fixed_q_mechanism(fixed, fixed_receipt)[0])
+        if source_arm != identity["reference_id"]:
+            producer = json.loads(Path(options["a-amendment-path"]).read_text())
+            if sha(options["a-amendment-path"]) != spec["amendment_sha256"]:
+                raise ValueError("diagnostic producer amendment changed")
+            audit_path = CAMPAIGN / "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json"
+            if sha(audit_path) != producer["source_sha256"][
+                    "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json"]:
+                raise ValueError("diagnostic public source audit changed")
+            audit = json.loads(audit_path.read_text())
+            seed = identity["source_seed"]
+            centroid_path = CAMPAIGN / f"r01/A_PUBLIC_FINE_CENTROIDS_S{seed}.npz"
+            if sha(centroid_path) != producer["attack_plan"][
+                    "public_centroid_npz_sha256_by_seed"][f"s{seed}"]:
+                raise ValueError("diagnostic public centroids changed")
+            centroids = load_clean_public_centroids(
+                centroid_path, audit["public_centroids"][f"s{seed}"])
+            mechanism_sha, descriptor_sha, _, bank1, bank2 = _diagnostic_q_mechanism(
+                fixed, fixed_receipt, centroids,
+                ref=identity["reference_id"], seed=seed,
+                release_id=identity["release_id"])
+        else:
+            mechanism_sha, descriptor_sha = _fixed_q_mechanism(fixed, fixed_receipt)
+        if (q_spec is None or q_spec.get("mechanism_sha256") != mechanism_sha or
+                q_spec.get("source_descriptor_sha256") != descriptor_sha or
+                q_table.identity["mechanism_sha256"] != mechanism_sha):
+            raise ValueError("finite reference Q descriptor/mechanism differs")
     att = load_reference_role_package(
         options["att-release-dir"],
         receipt_sha256=identity["release_receipt_sha256_by_role"]["ATTACK_FIT_NEW"],
@@ -246,7 +309,8 @@ def _reference_cell(spec: Mapping, options: Mapping):
                                   identity["fixed_map_identity"]["receipt_sha256"]}
 
 
-def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping) -> tuple[dict, dict]:
+def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping,
+                        *, queue_units: Mapping | None = None) -> tuple[dict, dict]:
     """Rebuild one actual ATT/INNER wire and verify frozen reader custody."""
     if (unit.get("status") != "done" or unit.get("returncode") != 0 or
             unit.get("spec", {}).get("unit_id") != unit_id or
@@ -271,7 +335,9 @@ def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping) -> tuple[dic
                 index.get("q_table_sha256") != source["q"]):
             raise ValueError("sampled release/attempt identity differs")
     elif kind in ("reference_attack", "diagnostic_attack"):
-        att, inner, prepared, source = _reference_cell(spec, options)
+        q_spec = None if plan.get("q_unit_id") is None else (
+            (queue_units or {})[plan["q_unit_id"]]["spec"])
+        att, inner, prepared, source = _reference_cell(spec, options, q_spec)
         if (index.get("reference_identity") != spec["reference_identity"] or
                 index.get("att_release_receipt_sha256") != source["att"] or
                 index.get("inner_release_receipt_sha256") != source["inner"] or
@@ -303,7 +369,10 @@ def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping) -> tuple[dic
                   "source": source,
                   "view_content_sha256": index["view_content_sha256"],
                   "reader_receipt_sha256": json.loads((root / "common/FROZEN_COMPLETE.json").read_text())[
-                      "reader_receipt_sha256"]}
+                      "reader_receipt_sha256"],
+                  "v2_control_receipt_sha256": {
+                      view: sha(root / "common" / view / "controls/CUSTODY_RECEIPT.json")
+                      for view in VIEWS}}
     return cell, provenance
 
 

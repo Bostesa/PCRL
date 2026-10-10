@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .a_endpoint_driver import (CAMPAIGN, expected_attack_cells,
+from .a_endpoint_driver import (CAMPAIGN, _argv_options, expected_attack_cells,
                                 private_cell_path, sha)
 
 WORKTREE = CAMPAIGN.parents[1]
@@ -21,15 +21,33 @@ SOURCE_NAMES = (
     "r02/a_endpoint_driver.py", "r02/a_endpoint_worker.py",
     "r02/prepare_a_endpoint_unit.py", "r02/a_inference.py",
     "r02/A_FAMILY_ORDER_S1.json", "r02/complete_view.py",
+    "r02/protocol.py",
     "r01/role_store.py", "r03/compute_queue.py",
     "sampled_channel_v1/attacks/runner.py",
     "sampled_channel_v1/attacks/reference_wire.py",
     "sampled_channel_v1/attacks/run_reference_attack.py",
+    "sampled_channel_v1/attacks/run_q_preprocess.py",
     "sampled_channel_v1/attacks/q_artifact.py",
     "sampled_channel_v1/attacks/q_aware.py",
     "sampled_channel_v1/attacks/wire.py",
+    "sampled_channel_v1/controls/control_package.py",
+    "sampled_channel_v1/controls/diagnostic_codes.py",
+    "sampled_channel_v1/controls/deterministic_policy.py",
+    "sampled_channel_v1/controls/factor_controls.py",
+    "sampled_channel_v1/impl/bank.py",
+    "sampled_channel_v1/impl/channel.py",
+    "sampled_channel_v1/impl/fit.py",
+    "sampled_channel_v1/impl/materialize.py",
+    "sampled_channel_v1/impl/policy_package.py",
+    "sampled_channel_v1/impl/reference_materialize.py",
+    "sampled_channel_v1/impl/release.py",
+    "sampled_channel_v1/impl/source_bridge.py",
+    "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json",
+    "r01/A_PUBLIC_FINE_CENTROIDS_S0.npz",
+    "r01/A_PUBLIC_FINE_CENTROIDS_S1.npz",
 )
-SHARED_NAMES = ("attack_eval.py", "common_eval.py")
+SHARED_NAMES = ("attack_eval.py", "attack_controls_v2.py",
+                "common_eval.py", "safe_data_guard.py")
 
 
 def _source(path: Path) -> dict:
@@ -103,6 +121,14 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
         actual = sha(CAMPAIGN / name)
         if actual != analysis.get("source_sha256", {}).get(name):
             raise PermissionError(f"A analysis amendment does not pin {name}")
+    if (analysis["source_sha256"].get("r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json") !=
+            amendment.get("source_sha256", {}).get(
+                "r01/A_HISTORICAL_SCORE_SOURCE_AUDIT.json") or
+            any(analysis["source_sha256"].get(f"r01/A_PUBLIC_FINE_CENTROIDS_S{seed}.npz") !=
+                amendment.get("attack_plan", {}).get(
+                    "public_centroid_npz_sha256_by_seed", {}).get(f"s{seed}")
+                for seed in (0, 1))):
+        raise PermissionError("diagnostic public source pins differ from producer")
     for name in SHARED_NAMES:
         relative = f"results/pcrl_method_portfolio_v1/shared/{name}"
         if sha(WORKTREE / relative) != analysis.get("source_sha256", {}).get(relative):
@@ -141,6 +167,13 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
             if sha(path) != digest:
                 raise PermissionError(f"A parent output changed: {uid}")
             source_paths.append(Path(path))
+    for uid in cells.values():
+        attack_root = Path(_argv_options(units[uid]["spec"]["argv"])["private-root"])
+        for view in ("r1", "r2", "pair"):
+            control_root = attack_root / "common" / view / "controls"
+            source_paths += [control_root / filename for filename in (
+                "CUSTODY_RECEIPT.json", "shuffled_model.joblib",
+                "planted_model.joblib", "probe_replay.npz")]
     unique = {str(path.resolve(strict=True)): path for path in source_paths}
     sources = [_source(unique[key]) for key in sorted(unique)]
     python = Path(units[next(iter(cells.values()))]["spec"]["argv"][0]).resolve(strict=True)

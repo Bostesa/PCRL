@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 import stat
@@ -16,9 +17,28 @@ from .a_endpoint_driver import (A_ARMS, A_REFS, CAMPAIGN, STOCHASTIC_ARMS,
                                 private_cell_path, save_private_cell, sha,
                                 write_aggregate)
 from .prepare_a_endpoint_unit import (PRIVATE_OUT, PUBLIC_CSV, PUBLIC_JSON,
-                                      PUBLIC_RECEIPT, UNIT_ID, build_spec)
+                                      PUBLIC_RECEIPT, SOURCE_NAMES, SHARED_NAMES,
+                                      UNIT_ID, WORKTREE, build_spec)
 from ..r01.role_store import RoleOnlyStore
 from ..r03.compute_queue import assert_active_from_env
+
+
+def _assert_module_origins() -> None:
+    """Tie imported replay code to the exact files in the analysis source map."""
+    prefix = "results.pcrl_latent_and_sampled_methods_v1."
+    for relative in SOURCE_NAMES:
+        if not relative.endswith(".py"):
+            continue
+        module = importlib.import_module(prefix + relative[:-3].replace("/", "."))
+        expected = (CAMPAIGN / relative).resolve(strict=True)
+        if Path(module.__file__).resolve(strict=True) != expected:
+            raise PermissionError("A endpoint replay module origin differs")
+    for name in SHARED_NAMES:
+        module = importlib.import_module(name[:-3])
+        expected = (WORKTREE / "results/pcrl_method_portfolio_v1/shared" / name
+                    ).resolve(strict=True)
+        if Path(module.__file__).resolve(strict=True) != expected:
+            raise PermissionError("A endpoint inherited evaluator origin differs")
 
 
 def _admit(args: argparse.Namespace) -> tuple[dict, dict, dict]:
@@ -31,7 +51,10 @@ def _admit(args: argparse.Namespace) -> tuple[dict, dict, dict]:
                                            PUBLIC_RECEIPT))):
         raise PermissionError("A endpoint output or unit identity differs")
     parent = PRIVATE_OUT.parent
-    if (parent.is_symlink() or not parent.is_dir() or
+    campaign = CAMPAIGN.resolve(strict=True)
+    if (not parent.resolve(strict=True).is_relative_to(campaign) or
+            any(path.is_symlink() for path in (parent, CAMPAIGN, *CAMPAIGN.parents)) or
+            not parent.is_dir() or parent.stat().st_uid != os.getuid() or
             stat.S_IMODE(parent.stat().st_mode) & 0o077):
         raise PermissionError("A endpoint private parent must be owner-only")
     state = json.loads((Path(os.environ["PCRL_QUEUE_ROOT"]) / "state.json").read_text())
@@ -56,6 +79,7 @@ def _admit(args: argparse.Namespace) -> tuple[dict, dict, dict]:
         raise PermissionError("full A amendment source differs")
     if spec["amendment_sha256"] != args.analysis_amendment_sha256:
         raise PermissionError("analysis stage source amendment differs")
+    _assert_module_origins()
     return state, amendment, active
 
 
@@ -79,7 +103,8 @@ def run(args: argparse.Namespace) -> dict:
     for (arm, seed, draw), unit_id in cells.items():
         assert_active_from_env(unit_id=UNIT_ID, stage="verification")
         cell, source = load_completed_cell(
-            unit_id, state["units"][unit_id], amendment["unit_plan"][unit_id])
+            unit_id, state["units"][unit_id], amendment["unit_plan"][unit_id],
+            queue_units=state["units"])
         if (not np.array_equal(cell["row_id"], truth["row_id"]) or
                 not np.array_equal(cell["unit"], truth["unit"])):
             raise PermissionError("A saved release INNER rows/groups differ from admitted labels")
