@@ -1,0 +1,38 @@
+{
+  "schema": "pcrl-code-utility-r2-fixed-role-numerical-plan-v1",
+  "status": "DATA_FREE_PLAN_NO_NEW_ROLE_READ",
+  "role": "R2",
+  "prerequisite": "R0 local effective stage seal, registered queue unit and role-only manifest hash",
+  "comparison_role": "INNER_SELECTION",
+  "reference_identities": ["U0", "Ucal"],
+  "prior_release_identities": ["F_continuous", "T_hard_code", "D_K_hard_code"],
+  "task_order": ["income", "occupation"],
+  "seed_order": [0, 1],
+  "metric_order": ["accuracy", "nll", "brier", "constant_accuracy_gain", "per_class_recall", "occupied_public_code_states"],
+  "loss_decomposition_pairs": [
+    ["U0", "F_continuous"],
+    ["F_continuous", "T_hard_code"],
+    ["T_hard_code", "D_K_hard_code"],
+    ["teacher_distillation", "true_label_loss"]
+  ],
+  "checks": [
+    "same ordered row and duplicate-group identity per seed and release",
+    "task labels only from admitted role-only export",
+    "hard public code alone reconstructs saved probabilities and decisions",
+    "first-argmax tie, natural-log NLL floor 1e-12, summed Brier, unweighted people",
+    "report U0 and Ucal costs separately on every task and seed",
+    "flag training/head/exposure changes that prevent causal interpretation"
+  ],
+  "receipt_fields": [
+    "effective_seal_sha256", "queue_unit_id", "source_model_sha256",
+    "source_release_sha256", "row_unit_pair_sha256", "role_file_sha256",
+    "task_metrics", "reference_costs", "code_state_counts",
+    "decomposition", "checks", "cpu_wall_memory_receipt_sha256"
+  ],
+  "blocked_scopes": [
+    "HEAD_VALIDATION new labels",
+    "OSF_DEVELOPMENT_ASSESSMENT person arrays or predictions",
+    "all-role scientific loader",
+    "new A optimization because I2 failed"
+  ]
+}
