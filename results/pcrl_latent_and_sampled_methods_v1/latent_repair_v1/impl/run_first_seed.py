@@ -120,6 +120,7 @@ def run(args: argparse.Namespace) -> dict:
     protocol = json.loads(seal.read_text())
     if (protocol.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1"
             or protocol.get("status") != "LOCALLY_SEALED_D_STAGE"
+            or args.seed != protocol.get("d_training", {}).get("first_seed")
             or protocol.get("d_model", {}).get("states_per_recipient_max") != 1024
             or "H-GLOBAL-TEMP" not in protocol.get("d_model", {}).get("calibration", "")):
         raise PermissionError("R00 D protocol seal is not effective")
