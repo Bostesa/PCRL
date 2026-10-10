@@ -204,6 +204,7 @@ def collect_reference_role(*, reference_id: str, seed: int, role: str,
                                   json.loads(Path(source_audit_path).read_text()))
         kind = reference_id
         return dict(row_id=references["row_id"], unit=references["unit"],
+                    source_release_id=f"{reference_id}-s{seed}-v1",
                     prob1=references[f"{kind}_1"], prob2=references[f"{kind}_2"],
                     decision1=references["d_1"], decision2=references["d_2"],
                     code1=np.full(len(references["row_id"]), -1, np.int64),
@@ -230,6 +231,9 @@ def collect_reference_role(*, reference_id: str, seed: int, role: str,
                                    historical_audit_path, historical_cache_root,
                                    D0_KEYS[reference_id], seed)
     cells = source.read_role_cells(role)
+    source_release_id = source.receipt.get("release_id")
+    if type(source_release_id) is not str or not source_release_id:
+        raise PermissionError("historical public release ID is absent from source receipt")
     assert_same_people(cells, references)
     bank1, bank2 = source.read_bank(1), source.read_bank(2)
     if reference_id == "T_STAR":
@@ -247,6 +251,7 @@ def collect_reference_role(*, reference_id: str, seed: int, role: str,
     bank_receipt = sha_file(source.root / "BANK_ADMISSION_RECEIPT.json")
     role_file = sha_file(source.root / f"tokens_{role}.npz")
     return dict(row_id=references["row_id"], unit=references["unit"],
+                source_release_id=source_release_id,
                 prob1=wire1["probabilities"], prob2=wire2["probabilities"],
                 decision1=wire1["decision"], decision2=wire2["decision"],
                 code1=wire1["code"], code2=wire2["code"],
@@ -295,13 +300,14 @@ def run(*, unit_id: str, lock_path, amendment_path, amendment_sha256: str,
         historical_audit_path=historical_audit_path,
         portfolio_package=portfolio_package,
         historical_cache_root=historical_cache_root)
+    source_release_id = values.pop("source_release_id")
     plan = amendment["unit_plan"][unit_id]
     if (time.process_time() - started_cpu >= plan["cpu_seconds"] or
             time.monotonic() - started_wall >= plan["wall_seconds"]):
         raise TimeoutError("reference unit expired before release write")
     result = materialize_reference_role(
         **values, arm_id=reference_id, seed=seed, role=role,
-        release_id=f"{reference_id}-s{seed}-v1", output_dir=output)
+        release_id=source_release_id, output_dir=output)
     if (time.process_time() - started_cpu > plan["cpu_seconds"] or
             time.monotonic() - started_wall > plan["wall_seconds"]):
         raise TimeoutError("reference unit exceeded sealed whole-unit ceiling")

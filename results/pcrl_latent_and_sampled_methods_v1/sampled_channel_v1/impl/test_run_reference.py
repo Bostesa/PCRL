@@ -60,6 +60,7 @@ class ReferenceWorkerTest(unittest.TestCase):
 
             class Source:
                 source_binding_sha256 = "c" * 64
+                receipt = {"release_id": "U|FINE-TASK|i8o64|H-GLOBAL-TEMP"}
 
                 def __init__(self, source_root):
                     self.root = source_root
@@ -83,6 +84,8 @@ class ReferenceWorkerTest(unittest.TestCase):
                     historical_audit_path=root / "historical.json",
                     portfolio_package=root, historical_cache_root=root)
             self.assertEqual(result["interface_kind"], "finite")
+            self.assertEqual(result["source_release_id"],
+                             "U|FINE-TASK|i8o64|H-GLOBAL-TEMP")
             self.assertTrue(np.array_equal(result["code1"], cells["token_1"]))
             self.assertTrue(np.array_equal(result["prob1"], p1[cells["token_1"]]))
             self.assertTrue(np.array_equal(result["decision2"],
