@@ -123,6 +123,13 @@ def _pinned(path: str, expected: str, *, private: bool = False) -> Path:
     return item
 
 
+def _role_manifest(path: str, expected: str) -> Path:
+    item = _pinned(path, expected)
+    if item.name != "DATA_ACCESS_MANIFEST.json":
+        raise PermissionError("admitted role manifest filename differs")
+    return item
+
+
 def _private_output(path: str) -> Path:
     item = Path(path).resolve(strict=False)
     if (".private" not in item.parts or item.exists() or not item.parent.is_dir()
@@ -159,7 +166,7 @@ def run(args: argparse.Namespace) -> dict:
     guard()
     seal = _pinned(args.seal, args.seal_sha256)
     attack_lock = _pinned(args.attack_lock, args.attack_lock_sha256)
-    role_path = _pinned(args.role_manifest, args.role_manifest_sha256, private=True)
+    role_path = _role_manifest(args.role_manifest, args.role_manifest_sha256)
     service_path = _pinned(args.service_manifest, args.service_manifest_sha256, private=True)
     release = {role: _pinned(getattr(args, f"release_{role.lower()}"),
                              getattr(args, f"release_{role.lower()}_sha256"),

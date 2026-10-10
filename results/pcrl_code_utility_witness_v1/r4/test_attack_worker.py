@@ -1,6 +1,9 @@
 """No-role-data tests for queued attack preflight and release replay."""
 
 import unittest
+import hashlib
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -9,6 +12,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_array
 
 from .attack_worker import (
     validate_archive_arrays, validate_attack_lock, validate_service_manifest_binding,
+    _role_manifest,
 )
 
 
@@ -52,6 +56,14 @@ def fixture(bits=16):
 
 
 class WorkerPrefitTest(unittest.TestCase):
+    def test_public_role_manifest_is_pinned_without_private_custody_requirement(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "DATA_ACCESS_MANIFEST.json"
+            path.write_text("{}\n")
+            path.chmod(0o644)
+            expected = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.assertEqual(_role_manifest(str(path), expected), path.resolve())
+
     def test_service_manifest_binds_role_schema(self):
         manifest = {"arm_id": "T0_B16", "source_seed": 0,
                     "source_sha256": "s" * 64,

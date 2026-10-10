@@ -21,6 +21,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r02.protocol import run_three_vi
 from results.pcrl_code_utility_witness_v1.r0.compute_queue import assert_active_from_env
 
 from .attack_worker import (READER_PLAN, ROLES, _load_release, _pinned,
+                            _role_manifest,
                             _private_output, _write_once)
 from .bank_service import make_bank_service
 from .code_views import prepare_complete_views
@@ -68,7 +69,7 @@ def run(args: argparse.Namespace) -> dict:
     guard()
     seal = _pinned(args.seal, args.seal_sha256)
     attack_lock = _pinned(args.attack_lock, args.attack_lock_sha256)
-    role_path = _pinned(args.role_manifest, args.role_manifest_sha256, private=True)
+    role_path = _role_manifest(args.role_manifest, args.role_manifest_sha256)
     table_path = _pinned(args.public_table, args.public_table_sha256)
     source_receipt_path = _pinned(args.source_receipt, args.source_receipt_sha256)
     release = {role: _pinned(getattr(args, f"release_{role.lower()}"),
