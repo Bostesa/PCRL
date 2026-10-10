@@ -118,10 +118,16 @@ def _bank(recipient: int, probability: np.ndarray) -> wire.PublicBank:
 
 def _role(name: str, first: int, count: int, banks: tuple[wire.PublicBank, wire.PublicBank],
           rng: np.random.Generator) -> tuple[runner.SampledRoleRelease, dict]:
+    duplicates = 3 if name == "ATTACK_FIT_NEW" else 1
+    if count <= duplicates:
+        raise ValueError("synthetic role needs more rows than repeated groups")
     row_id = np.arange(first, first + count, dtype=np.int64)
     unit = row_id.copy()
+    unit[-duplicates:] = unit[:duplicates]
     code1 = rng.integers(0, PUBLIC_CODES[0], size=count)
     code2 = rng.integers(0, PUBLIC_CODES[1], size=count)
+    code1[-duplicates:] = code1[:duplicates]
+    code2[-duplicates:] = code2[:duplicates]
     wires = []
     for bank, codes in zip(banks, (code1, code2), strict=True):
         wires.append(tuple({
@@ -139,6 +145,7 @@ def _role(name: str, first: int, count: int, banks: tuple[wire.PublicBank, wire.
                                         cache, cache, "d" * 64, "e" * 64)
     strength = 0.2 + 0.6 * ((code1 % 3 == 0) | (code2 % 5 == 0))
     sex = (rng.random(count) < strength).astype(np.int64)
+    sex[-duplicates:] = sex[:duplicates]
     return package, {"row_id": row_id, "unit": unit, "sex": sex}
 
 
@@ -175,6 +182,9 @@ def run(args: argparse.Namespace) -> dict:
     guard()
     att, sex_att = _role("ATTACK_FIT_NEW", 0, ATT_ROWS, banks, rng)
     inner, sex_inner = _role("INNER_SELECTION", ATT_ROWS, INNER_ROWS, banks, rng)
+    if (np.unique(att.unit).size != 4061 or
+            np.unique(inner.unit).size != 2234):
+        raise RuntimeError("synthetic role group counts differ from inherited split")
     views = runner.prepare_sampled_three_views(att, inner, *banks, q_table=table)
     out.mkdir(parents=True, mode=0o700)
     q_readers = {}

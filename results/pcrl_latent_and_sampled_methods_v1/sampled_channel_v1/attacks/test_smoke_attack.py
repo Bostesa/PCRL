@@ -17,6 +17,12 @@ def test_synthetic_bank_and_wires_match_complete_public_contract():
         "ATTACK_FIT_NEW", 100, 12, banks, np.random.default_rng(3))
     assert set(labels) == {"row_id", "unit", "sex"}
     assert len(package.wires1) == len(package.wires2) == 12
+    assert np.unique(package.unit).size == 9
+    for j in range(3):
+        assert package.unit[-3 + j] == package.unit[j]
+        assert package.wires1[-3 + j] == package.wires1[j]
+        assert package.wires2[-3 + j] == package.wires2[j]
+        assert labels["sex"][-3 + j] == labels["sex"][j]
     assert set(package.wires1[0]) == wire.WIRE_KEYS
     left = wire.materialize_recipient_batch(
         package.wires1, package.row_id, package.unit, banks[0])
@@ -38,3 +44,20 @@ def test_role_sized_plan_counts_all_three_q_readers_and_v2_controls():
         "score_role": "INNER_SELECTION",
     }
     assert counts["mandatory_fits"] + 3 == smoke_attack.EXPECTED_FITS
+
+
+def test_synthetic_att_group_count_admits_inherited_fixed_split():
+    import sys
+    from pathlib import Path
+
+    shared = Path(smoke_attack.protocol.__file__).resolve().parents[2] / \
+        "pcrl_method_portfolio_v1" / "shared"
+    sys.path.insert(0, str(shared))
+    from attack_eval import attack_fit_tune_split
+
+    unit = np.arange(smoke_attack.ATT_ROWS, dtype=np.int64)
+    unit[-3:] = unit[:3]
+    split = attack_fit_tune_split(unit)
+    assert split["fit_groups"] == 3046
+    assert split["tune_groups"] == 1015
+    assert len(split["fit"]) + len(split["tune"]) == smoke_attack.ATT_ROWS
