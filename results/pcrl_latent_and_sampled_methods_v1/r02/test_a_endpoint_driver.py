@@ -4,7 +4,8 @@ import json
 
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_endpoint_driver import (
     FINITE_READERS, expected_attack_cells, normalized_cell, point_rows, save_private_cell,
-    sha, verify_reader_custody,
+    sha, verify_reader_custody, _reference_batch_for_attempt,
+    _verify_attempt_lineage,
 )
 from results.pcrl_latent_and_sampled_methods_v1.r02.a_inference import (
     A_ARMS, A_REFS, STOCHASTIC_ARMS,
@@ -37,6 +38,47 @@ def test_exact_58_instances_and_deterministic_alias_inventory():
     plan["second"] = {**duplicate, "output_id": "second"}
     with pytest.raises(ValueError, match="duplicate"):
         expected_attack_cells(plan)
+
+
+def test_r1_continuous_endpoint_rebuilds_mandatory_da_columns():
+    from results.pcrl_latent_and_sampled_methods_v1.r02.complete_view import (
+        pair_batch, prepare_views,
+    )
+    from results.pcrl_latent_and_sampled_methods_v1.r02.test_a_continuous_da_regression import _role
+
+    for arm in ("U0", "Ucal"):
+        att, inner = _role(arm, "ATTACK_FIT_NEW"), _role(arm, "INNER_SELECTION")
+        local = {}
+        for role, package in (("att", att), ("inner", inner)):
+            left = _reference_batch_for_attempt(package, 1, retry=True)
+            right = _reference_batch_for_attempt(package, 2, retry=True)
+            local[role] = {"r1": left, "r2": right,
+                           "pair": pair_batch(left, right)}
+        for name, extra in (("r1", 2), ("r2", 6), ("pair", 8)):
+            view = prepare_views(local["att"][name], local["inner"][name])
+            assert view.inner.x_defense_aware is not None
+            assert view.inner.x_defense_aware.shape[1] == view.inner.x.shape[1] + extra
+            np.testing.assert_array_equal(
+                view.inner.x_defense_aware[:, -extra:],
+                np.log(np.maximum(view.probability_inner, 1e-12)))
+
+
+def test_r1_attempt_index_retains_original_producer_and_physical_correction():
+    logical = "A-REFERENCE-ATTACK-U0-S0"
+    physical = logical + "-R1"
+    spec = {"unit_id": physical, "output_id": physical,
+            "original_attack_unit_id": logical,
+            "producer_amendment_sha256": "a" * 64,
+            "amendment_sha256": "c" * 64}
+    plan = {"kind": "reference_attack", "output_id": logical,
+            "reference_id": "U0", "seed": 0, "realization": 0}
+    index = {"unit_id": physical, "original_attack_unit_id": logical,
+             "a_amendment_sha256": "a" * 64,
+             "correction_amendment_sha256": "c" * 64}
+    _verify_attempt_lineage(physical, spec, plan, index)
+    index["original_attack_unit_id"] = "A-REFERENCE-ATTACK-U0-S1"
+    with pytest.raises(ValueError, match="lineage"):
+        _verify_attempt_lineage(physical, spec, plan, index)
 
 
 def test_normalized_cell_rejects_changed_probability_or_missing_view():

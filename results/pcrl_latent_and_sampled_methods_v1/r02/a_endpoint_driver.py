@@ -240,11 +240,20 @@ def _sampled_cell(spec: Mapping, options: Mapping):
                                         "wire_content_sha256": views.wire_content_sha256}
 
 
+def _reference_batch_for_attempt(package, recipient: int, *, retry: bool):
+    from ..sampled_channel_v1.attacks.reference_wire import reference_recipient_batch
+    if retry and package.receipt["interface_kind"] == "continuous":
+        from ..sampled_channel_v1.attacks.retry_reference_view import (
+            corrected_continuous_recipient_batch)
+        return corrected_continuous_recipient_batch(package, recipient)
+    return reference_recipient_batch(package, recipient)
+
+
 def _reference_cell(spec: Mapping, options: Mapping, q_spec: Mapping | None):
     from .complete_view import pair_batch, prepare_views
     from ..sampled_channel_v1.attacks.reference_wire import (
         load_public_fixed_map, load_reference_role_package,
-        reference_recipient_batch, with_reference_q_features)
+        with_reference_q_features)
     from ..sampled_channel_v1.attacks.run_reference_attack import (
         _diagnostic_q_mechanism, _fixed_q_mechanism)
     from ..sampled_channel_v1.attacks.run_q_preprocess import load_clean_public_centroids
@@ -297,9 +306,10 @@ def _reference_cell(spec: Mapping, options: Mapping, q_spec: Mapping | None):
         receipt_sha256=identity["release_receipt_sha256_by_role"]["INNER_SELECTION"],
         full_bank1=bank1, full_bank2=bank2)
     batches = {}
+    retry = "original_attack_unit_id" in spec
     for role, package in (("att", att), ("inner", inner)):
-        left = reference_recipient_batch(package, 1)
-        right = reference_recipient_batch(package, 2)
+        left = _reference_batch_for_attempt(package, 1, retry=retry)
+        right = _reference_batch_for_attempt(package, 2, retry=retry)
         views = {"r1": left, "r2": right, "pair": pair_batch(left, right)}
         if finite:
             views = {name: with_reference_q_features(
@@ -314,6 +324,28 @@ def _reference_cell(spec: Mapping, options: Mapping, q_spec: Mapping | None):
                                   "q": None if q_table is None else q_table.table_sha256,
                                   "fixed_map": None if fixed_receipt is None else
                                   identity["fixed_map_identity"]["receipt_sha256"]}
+
+
+def _verify_attempt_lineage(unit_id: str, spec: Mapping,
+                            plan: Mapping, index: Mapping) -> None:
+    original = spec.get("original_attack_unit_id")
+    if original is None:
+        if (index.get("unit_id") != unit_id or plan.get("output_id") != unit_id or
+                index.get("a_amendment_sha256") != spec.get("amendment_sha256") or
+                "correction_amendment_sha256" in index or
+                "original_attack_unit_id" in index):
+            raise ValueError("original attack attempt lineage differs")
+        return
+    if (plan.get("kind") != "reference_attack" or
+            unit_id != original + "-R1" or plan.get("output_id") != original or
+            spec.get("unit_id") != unit_id or spec.get("output_id") != unit_id or
+            index.get("unit_id") != unit_id or
+            index.get("original_attack_unit_id") != original or
+            index.get("a_amendment_sha256") !=
+                spec.get("producer_amendment_sha256") or
+            index.get("correction_amendment_sha256") !=
+                spec.get("amendment_sha256")):
+        raise ValueError("corrected attack attempt lineage differs")
 
 
 def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping,
@@ -354,8 +386,7 @@ def load_completed_cell(unit_id: str, unit: Mapping, plan: Mapping,
             raise ValueError("reference release/attempt identity differs")
     else:
         raise ValueError("unregistered A attack kind")
-    if index.get("a_amendment_sha256") != spec.get("amendment_sha256"):
-        raise ValueError("attack attempt amendment differs")
+    _verify_attempt_lineage(unit_id, spec, plan, index)
     predictions = verify_reader_custody(root, prepared, index, index_sha256=digest)
     wires1, wires2 = inner.wires1, inner.wires2
     cell = normalized_cell(inner.row_id, inner.unit,

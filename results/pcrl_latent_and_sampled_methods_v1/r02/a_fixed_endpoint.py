@@ -25,7 +25,7 @@ from .a_endpoint_driver import (A_ARMS, A_REFS, CAMPAIGN, STOCHASTIC_ARMS,
                                 save_private_cell, sha)
 from .a_inference import run_a_inference
 from .prepare_a_endpoint_unit import (LOCK, QUEUE_STATE, SHARED_NAMES,
-                                      SOURCE_NAMES, WORKTREE, _latest_a, _source)
+                                      SOURCE_NAMES, WORKTREE, _source)
 from ..r01.role_store import RoleOnlyStore
 from ..r03.compute_queue import assert_active_from_env
 
@@ -38,17 +38,116 @@ R03_CLOSEOUT = CAMPAIGN / "r03/A_PRODUCER_FIT_CLOSEOUT.json"
 R04_FIT_AUDIT = CAMPAIGN / "r04/A_FIT_16_STATUS_INDEPENDENT_AUDIT.json"
 SOURCE_NAMES_FIXED = (*SOURCE_NAMES, "r02/a_fixed_endpoint.py",
                       "r03/A_PRODUCER_FIT_CLOSEOUT.json",
-                      "r04/A_FIT_16_STATUS_INDEPENDENT_AUDIT.json")
+                      "r04/A_FIT_16_STATUS_INDEPENDENT_AUDIT.json",
+                      "sampled_channel_v1/attacks/retry_reference_view.py",
+                      "sampled_channel_v1/attacks/run_reference_retry.py")
 FIXED_ARMS = ("A_IDENTITY", "A_CLASS_ONLY", *A_REFS)
 FITTED_ARMS = tuple(arm for arm in A_ARMS if arm not in FIXED_ARMS)
 NULL = "FINALIZED_NO_FEASIBLE_POLICY"
 FAILED = "FAILED_STAGE1_RESOURCE"
+CORRECTED_REFERENCE_ARMS = frozenset(("U0", "Ucal", "P_STAR", "D0_LOCAL",
+                                      "D0_SEQ12", "D0_SEQ21"))
 FIT_SCHEMAS = {
     "results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.run_admitted":
         "SCV1-private-stochastic-fit-v1",
     "results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.run_admitted_controls":
         "SCV1-private-control-fit-v1",
 }
+
+
+def map_fixed_physical_units(fixed: Mapping, units: Mapping,
+                             retry_plan: Mapping, producer_sha256: str,
+                             correction_sha256: str, queue_root: Path) -> dict:
+    """Map 18 sealed scientific cells to six original and twelve R1 attempts."""
+    expected_retry = {logical + "-R1": (key, logical)
+                      for key, logical in fixed.items()
+                      if key[0] in CORRECTED_REFERENCE_ARMS}
+    attempts = retry_plan.get("physical_attempts", {})
+    failed_originals = {"A-REFERENCE-ATTACK-U0-S0",
+                        "A-REFERENCE-ATTACK-P_STAR-S0"}
+    failed_hashes = retry_plan.get("old_attempt_failed_queue_receipt_sha256", {})
+    if (len(fixed) != 18 or len(expected_retry) != 12 or
+            set(attempts) != set(expected_retry) or
+            set(failed_hashes) != failed_originals or
+            retry_plan.get("producer_amendment_sha256") != producer_sha256):
+        raise PermissionError("fixed R1 correction inventory differs")
+    mapped = {}
+    for key, logical in fixed.items():
+        arm, seed, draw = key
+        if draw != 0:
+            raise PermissionError("fixed reference realization differs")
+        if arm not in CORRECTED_REFERENCE_ARMS:
+            unit = units.get(logical, {})
+            spec = unit.get("spec", {})
+            if (unit.get("status") != "done" or unit.get("returncode") != 0 or
+                    spec.get("unit_id") != logical or spec.get("stage") != "a" or
+                    spec.get("amendment_sha256") != producer_sha256):
+                raise PermissionError("original fixed attack is not R03 done")
+            mapped[key] = logical
+            continue
+        physical = logical + "-R1"
+        item = attempts[physical]
+        unit = units.get(physical, {})
+        spec = unit.get("spec", {})
+        expected_status = ("FAILED_TECHNICAL_PRESERVED" if
+                           (arm, seed) in {("U0", 0), ("P_STAR", 0)} else
+                           "NOT_ENQUEUED_SOURCE_CORRECTION")
+        if (item.get("original_attack_unit_id") != logical or
+                item.get("physical_unit_id") != physical or
+                item.get("output_id") != physical or
+                item.get("reference_id") != arm or item.get("seed") != seed or
+                item.get("original_attempt_status") != expected_status or
+                unit.get("status") != "done" or unit.get("returncode") != 0 or
+                spec.get("unit_id") != physical or spec.get("output_id") != physical or
+                spec.get("stage") != "a" or
+                spec.get("amendment_sha256") != correction_sha256 or
+                spec.get("original_attack_unit_id") != logical):
+            raise PermissionError("R1 fixed attack correction custody differs")
+        old = units.get(logical)
+        if expected_status == "FAILED_TECHNICAL_PRESERVED":
+            queue_receipt = queue_root / "units" / logical / "RECEIPT.json"
+            if (old is None or old.get("status") != "failed" or
+                    old.get("returncode") != 1 or
+                    not queue_receipt.is_file() or
+                    sha(queue_receipt) != failed_hashes[logical] or
+                    item.get("original_failed_queue_receipt_sha256") !=
+                        failed_hashes[logical]):
+                raise PermissionError("old failed fixed attack custody differs")
+        elif old is not None:
+            raise PermissionError("old unstarted fixed attack unexpectedly queued")
+        mapped[key] = physical
+    if len(set(mapped.values())) != 18:
+        raise PermissionError("fixed physical attempt alias is not bijective")
+    return mapped
+
+
+def _producer_and_correction(state: Mapping, producer_path: Path,
+                             producer_sha256: str, correction_path: Path,
+                             correction_sha256: str) -> tuple[dict, dict]:
+    entries = [row for row in state.get("amendments", [])
+               if "a" in row.get("stages", [])]
+    original = next((row for row in entries if row.get("sha256") == producer_sha256), None)
+    latest = entries[-1] if entries else None
+    if (original is None or latest is None or latest.get("sha256") != correction_sha256 or
+            Path(original.get("path", "")).resolve(strict=True) !=
+                producer_path.resolve(strict=True) or
+            Path(latest.get("path", "")).resolve(strict=True) !=
+                correction_path.resolve(strict=True) or
+            sha(producer_path) != producer_sha256 or
+            sha(correction_path) != correction_sha256):
+        raise PermissionError("original producer/latest A correction registration differs")
+    producer = json.loads(producer_path.read_text())
+    correction = json.loads(correction_path.read_text())
+    if (producer.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1" or
+            not str(producer.get("status", "")).startswith("LOCALLY_SEALED") or
+            producer.get("interval_family", {}).get("ordered_clause_count") != 6885 or
+            type(producer.get("unit_plan")) is not dict or
+            correction.get("schema") != "pcrl-a-fixed-attack-correction-v1" or
+            correction.get("status") != "LOCALLY_SEALED_FIXED_ATTACK_CORRECTION" or
+            correction.get("producer_amendment_sha256") != producer_sha256 or
+            type(correction.get("physical_attempts")) is not dict):
+        raise PermissionError("A producer/correction scientific lineage differs")
+    return producer, correction
 
 
 def _fit_receipt_from_queued_unit(fit_id: str, unit: Mapping, plan: Mapping,
@@ -104,7 +203,8 @@ def _failed_stage1_is_unselected(receipt: Mapping) -> bool:
 
 def classify_fixed_scope(unit_plan: Mapping, units: Mapping,
                          r03_closeout: Mapping, r04_audit: Mapping,
-                         producer_sha256: str, queue_root: Path):
+                         producer_sha256: str, queue_root: Path,
+                         retry_plan: Mapping, correction_sha256: str):
     """Require all 16 terminal FIT lineages and the fixed 18-instance plan."""
     cells = expected_attack_cells(unit_plan)
     fixed = {key: uid for key, uid in cells.items() if key[0] in FIXED_ARMS}
@@ -113,9 +213,23 @@ def classify_fixed_scope(unit_plan: Mapping, units: Mapping,
             {key[0] for key in fixed} != set(FIXED_ARMS) or
             {key[0] for key in missing} != set(FITTED_ARMS)):
         raise PermissionError("fixed 18/40 A cell partition differs")
-    for uid in fixed.values():
-        if units.get(uid, {}).get("status") != "done" or units[uid].get("returncode") != 0:
-            raise PermissionError("fixed attack parent is not R03 done")
+    fixed = map_fixed_physical_units(fixed, units, retry_plan,
+                                     producer_sha256, correction_sha256,
+                                     queue_root)
+    for key, physical in fixed.items():
+        logical = cells[key]
+        if physical == logical:
+            continue
+        original_plan = unit_plan[logical]
+        retry = retry_plan["physical_attempts"][physical]
+        spec = units[physical]["spec"]
+        if (retry.get("deps") != original_plan.get("deps") or
+                spec.get("deps") != original_plan.get("deps") or
+                retry.get("release_unit_ids") !=
+                    original_plan.get("release_unit_ids") or
+                retry.get("q_unit_id") != original_plan.get("q_unit_id") or
+                spec.get("producer_amendment_sha256") != producer_sha256):
+            raise PermissionError("R1 parent/source plan differs from original science")
     for uid in missing.values():
         if units.get(uid, {}).get("status") not in (None, "blocked", "cancelled", "superseded"):
             raise PermissionError("fitted attack descendant unexpectedly ran or failed")
@@ -209,7 +323,8 @@ def classify_fixed_scope(unit_plan: Mapping, units: Mapping,
     return cells, fixed, missing, reports
 
 
-def _analysis(state: Mapping, path: Path, digest: str, producer_sha: str) -> dict:
+def _analysis(state: Mapping, path: Path, digest: str, producer_sha: str,
+              correction_sha: str) -> dict:
     latest = next((entry for entry in reversed(state.get("amendments", []))
                    if "verification" in entry.get("stages", [])), None)
     if (latest is None or latest.get("sha256") != digest or
@@ -220,6 +335,7 @@ def _analysis(state: Mapping, path: Path, digest: str, producer_sha: str) -> dic
     if (document.get("schema") != "pcrl-a-fixed-endpoint-analysis-amendment-v1" or
             document.get("status") != "LOCALLY_SEALED_A_FIXED_ENDPOINT" or
             document.get("producer_amendment_sha256") != producer_sha or
+            document.get("correction_amendment_sha256") != correction_sha or
             document.get("authorized_unit_ids") != [UNIT_ID] or
             document.get("fixed_family_clause_count") != 6885 or
             document.get("registered_attack_instances") != 58 or
@@ -229,6 +345,8 @@ def _analysis(state: Mapping, path: Path, digest: str, producer_sha: str) -> dic
 
 
 def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
+               correction_amendment_path: str | Path,
+               correction_amendment_sha256: str,
                analysis_amendment_path: str | Path, analysis_amendment_sha256: str,
                role_manifest_path: str | Path, role_manifest_sha256: str,
                allow_registered: bool = False) -> dict:
@@ -239,10 +357,13 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
             sha(LOCK) != seal.get("sha256")):
         raise PermissionError("R03 effective original seal differs")
     producer_path = Path(amendment_path).resolve(strict=True)
-    producer = _latest_a(state, producer_path, amendment_sha256)
+    correction_path = Path(correction_amendment_path).resolve(strict=True)
+    producer, correction = _producer_and_correction(
+        state, producer_path, amendment_sha256, correction_path,
+        correction_amendment_sha256)
     analysis_path = Path(analysis_amendment_path).resolve(strict=True)
     analysis = _analysis(state, analysis_path, analysis_amendment_sha256,
-                         amendment_sha256)
+                         amendment_sha256, correction_amendment_sha256)
     if (analysis.get("effective_seal_sha256") != seal["sha256"] or
             analysis.get("source_sha256", {}).get(
                 "r03/A_PRODUCER_FIT_CLOSEOUT.json") != sha(R03_CLOSEOUT) or
@@ -256,8 +377,15 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
     cells, fixed, missing, reports = classify_fixed_scope(
         producer["unit_plan"], state["units"],
         json.loads(R03_CLOSEOUT.read_text()), json.loads(R04_FIT_AUDIT.read_text()),
-        amendment_sha256, QUEUE_STATE.parent)
-    if (analysis.get("fixed_attack_unit_ids") != sorted(fixed.values()) or
+        amendment_sha256, QUEUE_STATE.parent, correction,
+        correction_amendment_sha256)
+    original_fixed = {key: cells[key] for key in fixed}
+    physical_to_original = {physical: original_fixed[key]
+                            for key, physical in fixed.items()}
+    if (analysis.get("fixed_attack_unit_ids") != sorted(original_fixed.values()) or
+            analysis.get("fixed_physical_attack_unit_ids") != sorted(fixed.values()) or
+            analysis.get("physical_to_original_attack_units") !=
+                physical_to_original or
             analysis.get("unavailable_attack_unit_ids") != sorted(missing.values()) or
             analysis.get("fit_reason_rows") != [
                 {key: row[key] for key in ("unit_id", "arm_id", "seed", "category",
@@ -285,8 +413,8 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
     units = state["units"]
     deps = set(fixed.values())
     release_ids = set()
-    for uid in fixed.values():
-        plan = producer["unit_plan"][uid]
+    for key, uid in fixed.items():
+        plan = producer["unit_plan"][original_fixed[key]]
         deps.update(plan.get("deps", []))
         release_ids.update(dep for dep in plan.get("deps", []) if
                            producer["unit_plan"][dep].get("kind") in
@@ -298,7 +426,7 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
         raise PermissionError("36 fixed releases or fixed attack/Q parents incomplete")
     if any(path.exists() for path in (PRIVATE_OUT, PUBLIC_JSON, PUBLIC_CSV, PUBLIC_RECEIPT)):
         raise FileExistsError("fixed endpoint output already exists")
-    paths = [LOCK, producer_path, analysis_path, role_path, *
+    paths = [LOCK, producer_path, correction_path, analysis_path, role_path, *
              (CAMPAIGN / name for name in SOURCE_NAMES_FIXED), *
              (WORKTREE / "results/pcrl_method_portfolio_v1/shared" / name
               for name in SHARED_NAMES)]
@@ -328,6 +456,8 @@ def build_spec(*, amendment_path: str | Path, amendment_sha256: str,
             "results.pcrl_latent_and_sampled_methods_v1.r02.a_fixed_endpoint",
             "--unit-id", UNIT_ID, "--amendment", str(producer_path),
             "--amendment-sha256", amendment_sha256,
+            "--correction-amendment", str(correction_path),
+            "--correction-amendment-sha256", correction_amendment_sha256,
             "--analysis-amendment", str(analysis_path),
             "--analysis-amendment-sha256", analysis_amendment_sha256,
             "--role-manifest", str(role_path),
@@ -366,6 +496,8 @@ def _admit(args: argparse.Namespace):
     registered = state["units"].get(UNIT_ID, {})
     expected = build_spec(amendment_path=args.amendment,
                           amendment_sha256=args.amendment_sha256,
+                          correction_amendment_path=args.correction_amendment,
+                          correction_amendment_sha256=args.correction_amendment_sha256,
                           analysis_amendment_path=args.analysis_amendment,
                           analysis_amendment_sha256=args.analysis_amendment_sha256,
                           role_manifest_path=args.role_manifest,
@@ -396,10 +528,12 @@ def _admit(args: argparse.Namespace):
 
 def run(args: argparse.Namespace) -> dict:
     state, producer = _admit(args)
-    _, fixed, missing, reports = classify_fixed_scope(
+    correction = json.loads(Path(args.correction_amendment).read_text())
+    cells, fixed, missing, reports = classify_fixed_scope(
         producer["unit_plan"], state["units"],
         json.loads(R03_CLOSEOUT.read_text()), json.loads(R04_FIT_AUDIT.read_text()),
-        args.amendment_sha256, QUEUE_STATE.parent)
+        args.amendment_sha256, QUEUE_STATE.parent, correction,
+        args.correction_amendment_sha256)
     store = RoleOnlyStore(args.role_manifest)
     labels = {name: store.read("INNER_SELECTION", name, procedure="screen")
               for name in ("income", "occupation", "sex")}
@@ -412,21 +546,24 @@ def run(args: argparse.Namespace) -> dict:
     records = {seed: {"truth": truth, "releases": {}} for seed in (0, 1)}
     provenance = []
     for (arm, seed, draw), uid in fixed.items():
+        original_uid = cells[arm, seed, draw]
         assert_active_from_env(unit_id=UNIT_ID, stage="verification")
         cell, source = load_completed_cell(uid, state["units"][uid],
-                                           producer["unit_plan"][uid],
+                                           producer["unit_plan"][original_uid],
                                            queue_units=state["units"])
         if (not np.array_equal(cell["row_id"], truth["row_id"]) or
                 not np.array_equal(cell["unit"], truth["unit"])):
             raise PermissionError("fixed release differs from INNER people")
         records[seed]["releases"].setdefault(arm, {})[draw] = cell
         release_parents = sorted(
-            dep for dep in producer["unit_plan"][uid].get("deps", []) if
+            dep for dep in producer["unit_plan"][original_uid].get("deps", []) if
             producer["unit_plan"][dep].get("kind") in
             ("reference_release", "diagnostic_release"))
         if len(release_parents) != 2:
             raise PermissionError("fixed attack lacks ATT/INNER release pair")
         source["attack_spec_sha256"] = state["units"][uid]["spec_sha256"]
+        source["original_attack_unit_id"] = original_uid
+        source["physical_attack_unit_id"] = uid
         source["release_parents"] = [
             {"unit_id": dep, "spec_sha256": state["units"][dep]["spec_sha256"],
              "output_sha256": state["units"][dep]["output_sha256"]}
@@ -456,11 +593,14 @@ def run(args: argparse.Namespace) -> dict:
               for (arm, seed, draw), uid in missing.items()]
     binding = {"schema": "pcrl-a-k6885-private-fixed-source-binding-v1",
                "status": "INCOMPLETE_FITTED_ARM_SOURCES", "a_amendment_sha256": args.amendment_sha256,
+               "correction_amendment_sha256": args.correction_amendment_sha256,
                "analysis_amendment_sha256": args.analysis_amendment_sha256,
                "role_manifest_sha256": args.role_manifest_sha256,
                "ordered_inner_row_group_sha256": store.manifest["roles"][
                    "INNER_SELECTION"]["row_unit_pair_sha256"],
                "registered_attack_instances": 58, "fixed_cells": provenance,
+               "physical_to_original_attack_units": {
+                   physical: cells[key] for key, physical in fixed.items()},
                "unavailable_fitted_cells": absent, "fit_status_rows": reports,
                "deterministic_aliases": aliases,
                "original_lock_sha256": sha(LOCK),
@@ -492,6 +632,7 @@ def run(args: argparse.Namespace) -> dict:
                "status": "INCOMPLETE_FITTED_ARM_SOURCES", "family_complete": False,
                "full_conjunction_status": "INCOMPLETE_NOT_ESTIMABLE",
                "registered_attack_instances": 58, "fixed_attack_instances": 18,
+               "corrected_physical_attack_instances": 12,
                "fixed_att_inner_release_instances": 36,
                "unavailable_fitted_attack_instances": 40,
                "finalized_null_fit_count": 14, "failed_stage1_resource_fit_count": 2,
@@ -512,6 +653,7 @@ def run(args: argparse.Namespace) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for flag in ("unit-id", "amendment", "amendment-sha256",
+                 "correction-amendment", "correction-amendment-sha256",
                  "analysis-amendment", "analysis-amendment-sha256", "role-manifest",
                  "role-manifest-sha256", "private-output", "public-json",
                  "public-csv", "public-receipt"):
