@@ -27,7 +27,7 @@ from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.cont
     load_selected_policy_package,
 )
 
-from .admitted_fit import MANDATORY_IMPLEMENTATION, REQUIRED as A_REQUIRED, _sha
+from .admitted_fit import MANDATORY_IMPLEMENTATION, _sha, validate_a_amendment_envelope
 from .materialize import materialize_role
 from .release import CachedJointRelease, _bank_hash, _mechanism_hash
 from .run_admitted import _binding, _independent_source_gate
@@ -90,9 +90,9 @@ def admit_release_unit(*, unit_id: str, lock_path, amendment_path,
         raise PermissionError("A release original/amended lock SHA differs")
     original = json.loads(lock.read_text())
     amendment = json.loads(amendment_file.read_text())
+    validate_a_amendment_envelope(amendment)
     if (original.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1" or
             original.get("status") != "LOCALLY_SEALED_D_STAGE" or
-            amendment.keys() != A_REQUIRED or
             amendment.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1" or
             amendment.get("status") != "LOCALLY_SEALED_A_STAGE" or
             amendment.get("original_lock_sha256") != active["seal_sha256"]):

@@ -99,6 +99,12 @@ class AdmittedFitTest(unittest.TestCase):
                 "seq_fit_hmac_domain": "SCV1-seq-fit-first-v1"}))
             payload = {"schema": "pcrl-latent-sampled-A-stage-amendment-v1",
                        "status": "LOCALLY_SEALED_A_STAGE",
+                       "dated_utc": "2026-10-10T02:31:25Z",
+                       "frozen_candidate_sha256": "e" * 64,
+                       "independent_prefit_audit_sha256": "f" * 64,
+                       "input_scope": "ADMITTED_DEVELOPMENT_ROLES_ONLY",
+                       "owner": "R00", "previous_a_amendment_sha256": "1" * 64,
+                       "scope_note": "synthetic admission test", "stage_scope": ["a"],
                        "original_lock_sha256": sha(lock),
                        "source_sha256": {}, "role_bindings": {
                            "repair_manifest_sha256": "a" * 64,

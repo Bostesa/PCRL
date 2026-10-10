@@ -29,6 +29,10 @@ REQUIRED = frozenset({"schema", "status", "original_lock_sha256", "source_sha256
                       "optimizer_recipe", "control_recipe", "utility_caps",
                       "attack_plan", "realizations", "interval_family",
                       "cpu_budget", "implementation_source_sha256", "unit_plan"})
+PROVENANCE = frozenset({"dated_utc", "frozen_candidate_sha256",
+                        "independent_prefit_audit_sha256", "input_scope", "owner",
+                        "previous_a_amendment_sha256", "scope_note", "stage_scope"})
+CORRECTION_PROVENANCE = frozenset({"amendment_kind", "engineering_correction"})
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 MANDATORY_IMPLEMENTATION = frozenset({
     "sampled_channel_v1/impl/__init__.py",
@@ -52,6 +56,36 @@ def _sha(path: Path) -> str:
     return digest.hexdigest()
 
 
+def validate_a_amendment_envelope(amendment: dict) -> None:
+    """Accept only the sealed scientific keys and dated custody provenance."""
+    if type(amendment) is not dict:
+        raise PermissionError("A amendment is not a mapping")
+    keys = set(amendment)
+    base = REQUIRED | PROVENANCE
+    if keys not in (base, base | CORRECTION_PROVENANCE):
+        raise PermissionError("A amendment top-level keys differ from sealed schema")
+    if (amendment.get("owner") != "R00" or
+            amendment.get("input_scope") != "ADMITTED_DEVELOPMENT_ROLES_ONLY" or
+            amendment.get("stage_scope") != ["a"] or
+            type(amendment.get("dated_utc")) is not str or
+            not re.fullmatch(r"20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ",
+                             amendment["dated_utc"]) or
+            any(type(amendment.get(key)) is not str or
+                HEX64.fullmatch(amendment[key]) is None
+                for key in ("frozen_candidate_sha256",
+                            "independent_prefit_audit_sha256",
+                            "previous_a_amendment_sha256")) or
+            type(amendment.get("scope_note")) is not str or
+            not amendment["scope_note"]):
+        raise PermissionError("A amendment provenance differs from dated seal")
+    if CORRECTION_PROVENANCE <= keys and (
+            type(amendment["amendment_kind"]) is not str or
+            not re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", amendment["amendment_kind"]) or
+            type(amendment["engineering_correction"]) is not dict or
+            not amendment["engineering_correction"]):
+        raise PermissionError("A dated engineering correction provenance differs")
+
+
 def admit_fit_unit(*, unit_id: str, lock_path, amendment_path,
                    amendment_sha256: str, output_dir) -> tuple[dict, dict]:
     """Refuse all role access until R03 and latest R00 A amendment agree."""
@@ -72,9 +106,10 @@ def admit_fit_unit(*, unit_id: str, lock_path, amendment_path,
         raise PermissionError("original seal or A amendment byte hash differs")
     original = json.loads(lock.read_text())
     amendment = json.loads(amendment_file.read_text())
+    validate_a_amendment_envelope(amendment)
     if (original.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1" or
             original.get("status") != "LOCALLY_SEALED_D_STAGE" or
-            amendment.keys() != REQUIRED or amendment.get("schema") != SCHEMA or
+            amendment.get("schema") != SCHEMA or
             amendment.get("status") != "LOCALLY_SEALED_A_STAGE" or
             amendment.get("original_lock_sha256") != active["seal_sha256"]):
         raise PermissionError("A-stage amendment is not effective")

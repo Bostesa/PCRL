@@ -25,7 +25,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.pstar_source import PStarSou
 from results.pcrl_latent_and_sampled_methods_v1.r01.d0_source import D0SourceStore
 from results.pcrl_latent_and_sampled_methods_v1.r03.compute_queue import assert_active_from_env
 
-from .admitted_fit import REQUIRED as A_REQUIRED, _sha
+from .admitted_fit import _sha, validate_a_amendment_envelope
 from .reference_materialize import materialize_reference_role
 
 
@@ -106,9 +106,9 @@ def admit_reference_unit(*, unit_id: str, lock_path, amendment_path,
         raise PermissionError("reference stage seal bytes differ")
     original = json.loads(lock.read_text())
     amendment = json.loads(amendment_path.read_text())
+    validate_a_amendment_envelope(amendment)
     if (original.get("schema") != "pcrl-latent-and-sampled-campaign-lock-v1" or
             original.get("status") != "LOCALLY_SEALED_D_STAGE" or
-            amendment.keys() != A_REQUIRED or
             amendment.get("schema") != "pcrl-latent-sampled-A-stage-amendment-v1" or
             amendment.get("status") != "LOCALLY_SEALED_A_STAGE" or
             amendment.get("original_lock_sha256") != active["seal_sha256"] or

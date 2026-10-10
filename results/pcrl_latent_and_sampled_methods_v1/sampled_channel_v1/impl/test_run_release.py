@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from . import run_release
+from .admitted_fit import REQUIRED as A_REQUIRED
 
 
 class ReleaseWorkerTest(unittest.TestCase):
@@ -121,9 +122,15 @@ class ReleaseWorkerTest(unittest.TestCase):
                     "role": "ATTACK_FIT_NEW", "realization": 0,
                     "output_id": "joint_s0_att_0", "cpu_seconds": 5.,
                     "wall_seconds": 5.}
-            payload = {key: {} for key in run_release.A_REQUIRED}
+            payload = {key: {} for key in A_REQUIRED}
             payload.update(schema="pcrl-latent-sampled-A-stage-amendment-v1",
                            status="LOCALLY_SEALED_A_STAGE",
+                           dated_utc="2026-10-10T02:31:25Z",
+                           frozen_candidate_sha256="e" * 64,
+                           independent_prefit_audit_sha256="f" * 64,
+                           input_scope="ADMITTED_DEVELOPMENT_ROLES_ONLY",
+                           owner="R00", previous_a_amendment_sha256="1" * 64,
+                           scope_note="synthetic release admission", stage_scope=["a"],
                            original_lock_sha256=run_release._sha(lock),
                            role_bindings={"repair_manifest_sha256": "a" * 64,
                                           "source_audit_sha256": "b" * 64},
