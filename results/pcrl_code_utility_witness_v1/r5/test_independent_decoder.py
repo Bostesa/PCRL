@@ -5,7 +5,10 @@ import unittest
 import numpy as np
 import torch
 
-from independent_decoder import hard_bits_from_latent, probabilities_from_hard_bits, public_head_table
+from independent_decoder import (
+    continuous_head_probabilities, hard_bits_from_latent,
+    probabilities_from_hard_bits, public_head_table,
+)
 
 
 def flat_state(bits: int) -> dict[str, torch.Tensor]:
@@ -53,6 +56,22 @@ class IndependentDecoderTest(unittest.TestCase):
         p1 = probabilities_from_hard_bits(state, code, 0, 10)
         p2 = probabilities_from_hard_bits(state, code, 0, 10, alpha=2.0)
         self.assertGreater(p2[0, 0], p1[0, 0])
+
+    def test_old_continuous_head_is_feature_derived(self):
+        state = {}
+        for purpose, classes in ((0, 2), (1, 6)):
+            prefix = f"head{purpose}."
+            state[prefix + "layer1.weight"] = torch.zeros((64, 16), dtype=torch.float32)
+            state[prefix + "layer1.bias"] = torch.zeros(64, dtype=torch.float32)
+            state[prefix + "layer2.weight"] = torch.zeros((classes, 64), dtype=torch.float32)
+            state[prefix + "layer2.bias"] = torch.zeros(classes, dtype=torch.float32)
+        state["head0.layer2.bias"][0] = 1.0
+        features = np.zeros((2, 16), dtype=np.float32)
+        raw = continuous_head_probabilities(state, features, 0)
+        calibrated = continuous_head_probabilities(state, features, 0, 2.0)
+        self.assertGreater(calibrated[0, 0], raw[0, 0])
+        with self.assertRaises(ValueError):
+            continuous_head_probabilities(state, features.astype(np.float64), 0)
 
 
 if __name__ == "__main__":

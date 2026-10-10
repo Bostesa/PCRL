@@ -97,3 +97,39 @@ def public_head_table(state: Mapping, purpose: int, bits: int,
         code = ((ids[:, None] >> powers[None, :]) & 1).astype(np.uint8)
         outputs.append(probabilities_from_hard_bits(state, code, purpose, bits, alpha))
     return np.concatenate(outputs, axis=0)
+
+
+def continuous_head_probabilities(state: Mapping, features: np.ndarray,
+                                  purpose: int, alpha: float | None = None) -> np.ndarray:
+    """Replay the old F head from transmitted features and serialized tensors.
+
+    This uses independent tensor arithmetic rather than the F service module.
+    The old F deployment calibrator uses normalized probability powers, which
+    differ in rounding from the hard-code service's log-softmax temperature.
+    """
+    if purpose not in (0, 1):
+        raise ValueError("purpose invalid")
+    x = np.asarray(features)
+    if x.dtype != np.float32 or x.ndim != 2 or x.shape[1] != 16 or not np.isfinite(x).all():
+        raise ValueError("transmitted F features must be finite float32 16-D")
+    classes = (2, 6)[purpose]
+    prefix = f"head{purpose}."
+    with torch.no_grad():
+        hidden = F.gelu(F.linear(torch.from_numpy(x),
+                                 _weight(state, prefix + "layer1.weight", (64, 16)),
+                                 _weight(state, prefix + "layer1.bias", (64,))))
+        logits = F.linear(hidden,
+                          _weight(state, prefix + "layer2.weight", (classes, 64)),
+                          _weight(state, prefix + "layer2.bias", (classes,)))
+    raw = logits.numpy().astype(np.float64)
+    raw -= raw.max(axis=1, keepdims=True)
+    value = np.exp(raw)
+    p = value / value.sum(axis=1, keepdims=True)
+    if alpha is None:
+        return p
+    if not np.isfinite(alpha) or not .25 <= alpha <= 4.0:
+        raise ValueError("global temperature alpha invalid")
+    clipped = np.maximum(p, 1e-12)
+    clipped /= clipped.sum(axis=1, keepdims=True)
+    powered = clipped ** alpha
+    return powered / powered.sum(axis=1, keepdims=True)
