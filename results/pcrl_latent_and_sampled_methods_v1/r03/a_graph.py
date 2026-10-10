@@ -73,6 +73,47 @@ def _topological_order(plan: dict[str, dict]) -> list[str]:
     return order
 
 
+def _check_parent_bindings(plan: dict[str, dict]) -> None:
+    for unit_id, node in plan.items():
+        kind = node["kind"]
+        deps = node.get("deps", [])
+        if kind in ("fit", "diagnostic_release", "reference_release"):
+            if deps:
+                raise ValueError(f"{unit_id} source unit has unexpected deps")
+        elif kind == "release":
+            if deps != [node.get("fit_unit_id")]:
+                raise ValueError(f"{unit_id} release deps differ from selected FIT")
+        elif kind == "q_preprocess":
+            fit = node.get("fit_unit_id")
+            if deps != ([fit] if fit else []):
+                raise ValueError(f"{unit_id} Q deps differ from selected FIT")
+        elif kind == "attack":
+            releases = node.get("release_unit_ids")
+            if not isinstance(releases, dict) or set(releases) != {"ATT", "INNER"}:
+                raise ValueError(f"{unit_id} attack release binding missing")
+            expected = [node.get("fit_unit_id"), releases["ATT"],
+                        releases["INNER"], node.get("q_unit_id")]
+            if deps != expected:
+                raise ValueError(f"{unit_id} attack deps differ from FIT/releases/Q")
+            for role, parent_id in (("ATT", releases["ATT"]),
+                                    ("INNER", releases["INNER"])):
+                parent = plan[parent_id]
+                if (parent["kind"] != "release" or
+                        parent.get("arm_id") != node.get("arm_id") or
+                        parent.get("seed") != node.get("seed") or
+                        parent.get("realization") != node.get("realization") or
+                        parent.get("role") != ("ATTACK_FIT_NEW" if role == "ATT" else "INNER_SELECTION")):
+                    raise ValueError(f"{unit_id} attack {role} release identity differs")
+            fit = plan[expected[0]]
+            q = plan[expected[3]]
+            if (fit["kind"] != "fit" or q["kind"] != "q_preprocess" or
+                    fit.get("arm_id") != node.get("arm_id") or
+                    q.get("arm_id") != node.get("arm_id") or
+                    fit.get("seed") != node.get("seed") or
+                    q.get("seed") != node.get("seed")):
+                raise ValueError(f"{unit_id} attack FIT/Q identity differs")
+
+
 def compile_graph(amendment_path: Path, amendment_sha256: str,
                   seal_path: Path, seal_sha256: str, *, source_root: Path,
                   expected_units: int) -> dict:
@@ -114,6 +155,7 @@ def compile_graph(amendment_path: Path, amendment_sha256: str,
         if any(value is None for value in node.values()):
             raise ValueError(f"{unit_id} has a pending null field")
     order = _topological_order(plan)
+    _check_parent_bindings(plan)
     node_hashes = {
         unit_id: hashlib.sha256(json.dumps(plan[unit_id], sort_keys=True,
                                             separators=(",", ":")).encode()).hexdigest()
