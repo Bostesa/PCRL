@@ -254,10 +254,17 @@ def load_independent_policy(directory: Path, expected_receipt_sha256: str) -> In
         raise ValueError("A selected policy receipt SHA differs")
     receipt = json.loads(receipt_path.read_text())
     arm = receipt.get("arm_id")
+    expected_schema = ("SCV1-selected-stochastic-policy-v1" if arm in
+                       ("A_JOINT_STOCH", "A_TASK_STOCH") else
+                       "SCV1-selected-control-policy-v1")
     if (arm not in KINDS or receipt.get("status") != "SELECTED_FIT_POLICY"
+            or receipt.get("schema") != expected_schema
             or receipt.get("law_kind") != KINDS[arm]
             or sha_file(package) != receipt.get("policy_file_sha256")):
         raise ValueError("A selected policy identity differs")
+    if arm in ("A_SEQ12", "A_SEQ21") and receipt.get(
+            "mechanism_descriptor", {}).get("order") != arm[-2:]:
+        raise ValueError("A sequential law order differs from registered arm")
     kind = receipt["law_kind"]
     keys = set(BASE)
     if kind in ("stochastic_joint_v1", "deterministic_argmax_v1"):
