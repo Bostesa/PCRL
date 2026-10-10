@@ -30,6 +30,13 @@ F_MEMBERS = frozenset({"row_id", "unit", "features0", "features1", "prob0",
                        "prob1", "decision0", "decision1"})
 
 
+def _source_arg(argv: list[str], name: str) -> str:
+    flag = "--" + name
+    if argv.count(flag) != 1 or argv.index(flag) + 1 >= len(argv):
+        raise PermissionError(f"completed parent argv lacks exactly one {flag}")
+    return argv[argv.index(flag) + 1]
+
+
 def _admit(args: argparse.Namespace) -> tuple[Path, Path, Path]:
     if (args.stage != "d_followup" or args.seed not in (0, 1)
             or args.arm_id not in ARMS or args.source_unit_id != f"D_FOLLOWUP_CONTROLS_S{args.seed}"):
@@ -38,8 +45,22 @@ def _admit(args: argparse.Namespace) -> tuple[Path, Path, Path]:
     if active["seal_sha256"] != args.seal_sha256:
         raise PermissionError("R03 active seal and worker argument differ")
     state = json.loads((Path(os.environ["PCRL_QUEUE_ROOT"]) / "state.json").read_text())
-    if state.get("units", {}).get(args.source_unit_id, {}).get("status") != "done":
+    parent = state.get("units", {}).get(args.source_unit_id, {})
+    if parent.get("status") != "done" or parent.get("stage") != "d_followup":
         raise PermissionError("five-arm source release queue unit is incomplete")
+    parent_spec = parent.get("spec", {})
+    parent_argv = parent_spec.get("argv", [])
+    if (parent_spec.get("unit_id") != args.source_unit_id
+            or parent_spec.get("stage") != "d_followup"
+            or _source_arg(parent_argv, "unit-id") != args.source_unit_id
+            or _source_arg(parent_argv, "seed") != str(args.seed)
+            or _source_arg(parent_argv, "seal-sha256") != args.seal_sha256
+            or _source_arg(parent_argv, "role-manifest-sha256") != args.role_manifest_sha256
+            or _source_arg(parent_argv, "private-output") != args.source_private
+            or _source_arg(parent_argv, "public-receipt") != args.source_receipt
+            or parent.get("output_sha256", {}).get(args.source_receipt)
+               != args.source_receipt_sha256):
+        raise PermissionError("attack source path/hash differs from completed parent output")
     current = next((a["sha256"] for a in reversed(state.get("amendments", []))
                     if "d_followup" in a["stages"]), None)
     if current != args.attack_amendment_sha256:

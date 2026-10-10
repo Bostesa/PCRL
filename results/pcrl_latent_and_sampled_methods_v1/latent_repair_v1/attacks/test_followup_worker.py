@@ -83,6 +83,10 @@ class FollowupWorkerTests(unittest.TestCase):
                                         "status": "LOCALLY_SEALED_D_STAGE"}))
             manifest = root / "manifest.json"
             manifest.write_text("{}")
+            source_receipt = root / "source_receipt.json"
+            source_receipt.write_text("{}")
+            source_private = root / ".private/source"
+            source_private.mkdir(parents=True)
             amendment = root / "a3.json"
             amendment.write_text(json.dumps({
                 "schema": "pcrl-d-followup-amendment-v1",
@@ -91,7 +95,17 @@ class FollowupWorkerTests(unittest.TestCase):
                 "control_attack_worker_sha256": "0" * 64,
                 "role_manifest_sha256": sha_file(manifest),
                 "authorized_unit_ids": ["D_ATTACK_F_S0"]}))
-            state = {"units": {"D_FOLLOWUP_CONTROLS_S0": {"status": "done"}},
+            parent_argv = ["python", "-m", "source_worker",
+                           "--unit-id", "D_FOLLOWUP_CONTROLS_S0", "--seed", "0",
+                           "--seal-sha256", sha_file(lock),
+                           "--role-manifest-sha256", sha_file(manifest),
+                           "--private-output", str(source_private),
+                           "--public-receipt", str(source_receipt)]
+            state = {"units": {"D_FOLLOWUP_CONTROLS_S0": {
+                        "status": "done", "stage": "d_followup",
+                        "spec": {"unit_id": "D_FOLLOWUP_CONTROLS_S0",
+                                 "stage": "d_followup", "argv": parent_argv},
+                        "output_sha256": {str(source_receipt): sha_file(source_receipt)}}},
                      "amendments": [{"stages": ["d_followup"],
                                      "sha256": sha_file(amendment)}]}
             (root / "state.json").write_text(json.dumps(state))
@@ -102,10 +116,17 @@ class FollowupWorkerTests(unittest.TestCase):
                                    attack_amendment=str(amendment),
                                    attack_amendment_sha256=sha_file(amendment),
                                    role_manifest=str(manifest),
-                                   role_manifest_sha256=sha_file(manifest))
+                                   role_manifest_sha256=sha_file(manifest),
+                                   source_private=str(source_private),
+                                   source_receipt=str(source_receipt),
+                                   source_receipt_sha256=sha_file(source_receipt))
             with patch.dict(os.environ, {"PCRL_QUEUE_ROOT": str(root)}), \
                  patch("results.pcrl_latent_and_sampled_methods_v1.latent_repair_v1.attacks.followup_worker.assert_active_from_env",
                        return_value={"seal_sha256": sha_file(lock)}):
+                changed = SimpleNamespace(**vars(args))
+                changed.source_private = str(root / ".private/other")
+                with self.assertRaisesRegex(PermissionError, "completed parent output"):
+                    _admit(changed)
                 with self.assertRaisesRegex(PermissionError, "A3 does not authorize"):
                     _admit(args)
 
