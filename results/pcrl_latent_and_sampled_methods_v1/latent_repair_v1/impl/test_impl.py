@@ -7,6 +7,7 @@ import torch
 from .fit import FitData, TrainConfig, calibrate_privacy_weight, fit_arm, make_batch_plan
 from .model import FixedScaler, HardCodeModel, HardCodeRelease
 from .service import load_service, save_service
+from .run_first_seed import _batch_plan_receipt
 
 
 def _data(sex: bool) -> FitData:
@@ -67,6 +68,10 @@ def test_zero_privacy_same_task_continuation_and_gradient_receipt():
     protected = _data(True)
     train, val = np.arange(24), np.arange(24, 32)
     plan = make_batch_plan(train, seed=3, epochs=5, batch_size=8, sex=protected.sex)
+    plan_receipt = _batch_plan_receipt(plan, len(train), batch_size=8)
+    assert plan_receipt["ordered_plan_sha256"] == _batch_plan_receipt(
+        plan, len(train), batch_size=8)["ordered_plan_sha256"]
+    assert plan_receipt["tail_merge_epoch_count"] == 0
     config_t = TrainConfig(epochs=5, batch_size=8, privacy_weight=0, checkpoints=(5,))
     torch.manual_seed(9)
     state = HardCodeModel(16, (2, 6)).state_dict()

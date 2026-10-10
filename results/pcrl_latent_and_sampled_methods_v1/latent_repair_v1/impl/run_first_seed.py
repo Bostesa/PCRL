@@ -113,6 +113,33 @@ def _occupied(code: np.ndarray) -> dict:
             "capacity_states": 1024}
 
 
+def _batch_plan_receipt(plan: tuple[tuple[np.ndarray, ...], ...],
+                        rows: int, batch_size: int = 256) -> dict:
+    """Aggregate fixed-batch identity without publishing ordered FIT row indices."""
+    digest = hashlib.sha256()
+    normal_batches = (rows + batch_size - 1) // batch_size
+    merged_epochs = []
+    min_size, max_size = rows, 0
+    for epoch, chunks in enumerate(plan, start=1):
+        digest.update(np.asarray([epoch, len(chunks)], dtype=np.int64).tobytes())
+        if len(chunks) == normal_batches - 1:
+            merged_epochs.append(epoch)
+        elif len(chunks) != normal_batches:
+            raise ValueError("batch plan has unregistered tail merge count")
+        for chunk in chunks:
+            values = np.ascontiguousarray(chunk, dtype=np.int64)
+            digest.update(np.asarray([len(values)], dtype=np.int64).tobytes())
+            digest.update(values.tobytes())
+            min_size = min(min_size, len(values))
+            max_size = max(max_size, len(values))
+    return {"schema": "d-aligned-batch-plan-receipt-v1", "epochs": len(plan),
+            "rows_per_epoch": rows, "batch_size": batch_size,
+            "ordered_plan_sha256": digest.hexdigest(),
+            "tail_merge_epoch_count": len(merged_epochs),
+            "tail_merge_epochs": merged_epochs,
+            "min_batch_rows": min_size, "max_batch_rows": max_size}
+
+
 def run(args: argparse.Namespace) -> dict:
     seal = Path(args.seal).resolve(strict=True)
     queue_state = Path(args.queue_state).resolve(strict=True)
@@ -211,6 +238,8 @@ def run(args: argparse.Namespace) -> dict:
                        "t_split_updates": t_split.optimizer_updates,
                        "warm_full_updates": warm_full.optimizer_updates,
                        "continuation_updates": t_full.optimizer_updates,
+                       "split_batch_plan": _batch_plan_receipt(split_plan, len(train)),
+                       "full_batch_plan": _batch_plan_receipt(full_plan, task.rows),
                        "gradient_ratio": lambda_receipt}
         for arm_id, fit in fits.items():
             raw = HardCodeRelease(fit.model, scaler, f"D-{arm_id}-s{args.seed}-v1",
