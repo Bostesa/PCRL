@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,6 +20,9 @@ from results.pcrl_latent_and_sampled_methods_v1.r18.acceptance_contract import (
     check_a_cached_service, check_a_public_release, check_cached_pair,
     check_d_public_release,
     check_raw_schema, check_source_checkpoint,
+)
+from results.pcrl_latent_and_sampled_methods_v1.r18.independent_d_head import (
+    IndependentDHead,
 )
 
 
@@ -90,7 +92,6 @@ class DeploymentAcceptanceTests(unittest.TestCase):
                                    arm_id="D-SYNTHETIC", role_manifest_sha256="c" * 64,
                                    fit_receipt={"status": "SYNTHETIC_ONLY"})
             manifest_path = Path(package["manifest_path"])
-            manifest = json.loads(manifest_path.read_text())
             restored = load_service(manifest_path,
                                     expected_manifest_sha256=package["manifest_sha256"],
                                     expected_source_sha256=self.source_sha)
@@ -98,68 +99,37 @@ class DeploymentAcceptanceTests(unittest.TestCase):
                 load_service(manifest_path,
                              expected_manifest_sha256=package["manifest_sha256"],
                              expected_source_sha256="b" * 64)
-            with np.load(manifest_path.with_name("weights.npz"), allow_pickle=False) as saved:
-                frozen_heads = {
-                    purpose: {name: np.asarray(saved[f"heads.{purpose}.{name}"]).copy()
-                              for name in ("layer1.weight", "layer1.bias",
-                                           "layer2.weight", "layer2.bias")}
-                    for purpose in (0, 1)
-                }
-
-            def independent_head(purpose: int, code: np.ndarray) -> np.ndarray:
-                tensors = frozen_heads[purpose]
-                bits = torch.from_numpy(code.astype(np.float32))
-                hidden = torch.nn.functional.gelu(torch.nn.functional.linear(
-                    bits, torch.from_numpy(tensors["layer1.weight"]),
-                    torch.from_numpy(tensors["layer1.bias"])))
-                logits = torch.nn.functional.linear(
-                    hidden, torch.from_numpy(tensors["layer2.weight"]),
-                    torch.from_numpy(tensors["layer2.bias"])).detach().numpy().astype(np.float64)
-                logits -= logits.max(axis=1, keepdims=True)
-                values = np.exp(logits)
-                probability = values / values.sum(axis=1, keepdims=True)
-                alpha = float(manifest["calibrators"][purpose]["alpha"])
-                if alpha != 1.0:
-                    clipped = np.maximum(probability, 1e-12)
-                    clipped /= clipped.sum(axis=1, keepdims=True)
-                    scores = alpha * np.log(clipped)
-                    scores -= scores.max(axis=1, keepdims=True)
-                    values = np.exp(scores)
-                    probability = values / values.sum(axis=1, keepdims=True)
-                return probability
+            reference = IndependentDHead(
+                manifest_path, manifest_sha256=package["manifest_sha256"],
+                weights_sha256=package["weights_sha256"],
+                source_sha256=self.source_sha, model_sha256=package["model_sha256"])
+            with self.assertRaisesRegex(ValueError, "weights SHA"):
+                IndependentDHead(
+                    manifest_path, manifest_sha256=package["manifest_sha256"],
+                    weights_sha256="0" * 64, source_sha256=self.source_sha,
+                    model_sha256=package["model_sha256"])
 
             for purpose in (0, 1):
                 first = restored.recipient_from_raw(purpose, self.raw, self.columns, encoder)
                 second = restored.recipient_from_raw(purpose, self.raw, self.columns, encoder)
-                record = manifest["calibrators"][purpose]
-                record_bytes = (json.dumps(record, sort_keys=True, separators=(",", ":"),
-                                           allow_nan=False) + "\n").encode()
-                expected_metadata = {
-                    "schema": "latent-repair-hardbits-v1", "purpose": purpose,
-                    "bits": 10, "bit_order": "c0_least_significant",
-                    "capacity_states": 1024, "version": manifest["version"],
-                    "source_sha256": manifest["source_sha256"],
-                    "model_sha256": manifest["model_sha256"],
-                    "head_sha256": manifest["head_sha256"][purpose],
-                    "calibration_family": "H-GLOBAL-TEMP",
-                    "calibrator_sha256": hashlib.sha256(record_bytes).hexdigest(),
-                }
-                check_d_public_release(first, purpose, expected_metadata, independent_head)
+                expected_metadata = reference.expected_metadata(purpose)
+                check_d_public_release(first, purpose, expected_metadata,
+                                       reference.probabilities)
                 for field in ("code", "probabilities", "decision"):
                     np.testing.assert_array_equal(first[field], second[field])
                 self.assertEqual(first["metadata"], second["metadata"])
                 with self.assertRaisesRegex(ValueError, "hidden"):
                     check_d_public_release(dict(first, latent=self.raw[:, :16]), purpose,
-                                           expected_metadata, independent_head)
+                                           expected_metadata, reference.probabilities)
                 with self.assertRaisesRegex(ValueError, "code"):
                     check_d_public_release(
                         dict(first, probabilities=np.roll(first["probabilities"], 1, axis=1)),
-                        purpose, expected_metadata, independent_head)
+                        purpose, expected_metadata, reference.probabilities)
                 with self.assertRaisesRegex(ValueError, "metadata"):
                     check_d_public_release(
                         dict(first, metadata=dict(first["metadata"],
                                                   calibrator_sha256="0" * 64)),
-                        purpose, expected_metadata, independent_head)
+                        purpose, expected_metadata, reference.probabilities)
             encoder.model_sha256 = "b" * 64
             with self.assertRaisesRegex(ValueError, "checkpoint"):
                 restored.recipient_from_raw(0, self.raw, self.columns, encoder)
