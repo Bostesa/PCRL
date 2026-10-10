@@ -103,7 +103,7 @@ class DeploymentAcceptanceTests(unittest.TestCase):
                 manifest_path, manifest_sha256=package["manifest_sha256"],
                 weights_sha256=package["weights_sha256"],
                 source_sha256=self.source_sha, model_sha256=package["model_sha256"])
-            with self.assertRaisesRegex(ValueError, "weights SHA"):
+            with self.assertRaisesRegex(ValueError, "manifest identity"):
                 IndependentDHead(
                     manifest_path, manifest_sha256=package["manifest_sha256"],
                     weights_sha256="0" * 64, source_sha256=self.source_sha,
@@ -133,6 +133,15 @@ class DeploymentAcceptanceTests(unittest.TestCase):
             encoder.model_sha256 = "b" * 64
             with self.assertRaisesRegex(ValueError, "checkpoint"):
                 restored.recipient_from_raw(0, self.raw, self.columns, encoder)
+            weights_path = manifest_path.with_name("weights.npz")
+            with weights_path.open("ab") as handle:
+                handle.write(b"synthetic weight tamper")
+            with self.assertRaisesRegex(ValueError, "weights SHA"):
+                IndependentDHead(
+                    manifest_path, manifest_sha256=package["manifest_sha256"],
+                    weights_sha256=package["weights_sha256"],
+                    source_sha256=self.source_sha,
+                    model_sha256=package["model_sha256"])
 
     def test_a_global_bank_wire_and_cached_joint_draw(self) -> None:
         bank = {0: ([0.8, 0.2], 0), 1: ([0.3, 0.7], 1)}
