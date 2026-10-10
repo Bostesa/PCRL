@@ -89,6 +89,37 @@ def test_unit_contract_rejects_unregistered_extra_seed_or_dependency(tmp_path):
         worker.validate_q_unit_contract(unit_id, plan, bad, output)
 
 
+def test_unit_contract_accepts_registered_retry_fit_only_for_same_arm_seed(tmp_path):
+    output = tmp_path / ".private" / "q"
+    unit_id = "A-Q-PREPROCESS-A_JOINT_STOCH-S0"
+    fit_id = "A-FIT-A_JOINT_STOCH-S0-R1"
+    plan = {"kind": "q_preprocess", "arm_id": "A_JOINT_STOCH", "seed": 0,
+            "source_kind": "selected_fit", "output_id": unit_id,
+            "fit_unit_id": fit_id, "deps": [fit_id],
+            "expected_outputs": ["Q_TABLE_RECEIPT.json", "q_table.npz"],
+            "cpu_seconds": 30, "wall_seconds": 30}
+    spec = {"stage": "a", "mode": "real_data", "arm_id": "A_JOINT_STOCH",
+            "seed": 0, "source_kind": "selected_fit", "output_id": unit_id,
+            "fit_unit_id": fit_id, "deps": [fit_id],
+            "outputs": [str(output / name) for name in plan["expected_outputs"]],
+            "cpu_reserve_s": 30, "max_wall_s": 30,
+            "source_descriptor_sha256": "a" * 64,
+            "public_centroids_sha256": "b" * 64,
+            "zero_support_rule": worker.ZERO_SUPPORT_RULE}
+    assert worker.validate_q_unit_contract(unit_id, plan, spec, output) == "A_JOINT_STOCH"
+    for wrong_fit_id in ("A-FIT-A_TASK_STOCH-S0-R1",
+                         "A-FIT-A_JOINT_STOCH-S1-R1",
+                         "A-FIT-A_JOINT_STOCH-S0-R0"):
+        wrong_plan = dict(plan, fit_unit_id=wrong_fit_id, deps=[wrong_fit_id])
+        wrong_spec = dict(spec, fit_unit_id=wrong_fit_id, deps=[wrong_fit_id])
+        with pytest.raises(PermissionError, match="FIT ID"):
+            worker.validate_q_unit_contract(unit_id, wrong_plan, wrong_spec, output)
+    wrong_plan = dict(plan, source_kind="same_bank_diagnostic")
+    wrong_spec = dict(spec, source_kind="same_bank_diagnostic")
+    with pytest.raises(PermissionError):
+        worker.validate_q_unit_contract(unit_id, wrong_plan, wrong_spec, output)
+
+
 def test_clean_centroid_loader_rejects_extra_npz_member(tmp_path):
     (tmp_path / "r01").mkdir()
     source = tmp_path / "r01" / "centroids.npz"

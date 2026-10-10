@@ -136,7 +136,15 @@ def validate_q_unit_contract(unit_id: str, plan: dict, spec: dict, output: Path)
                      "same_bank_diagnostic" if arm in DIAGNOSTIC else
                      "historical_finite_reference" if arm in HISTORICAL else None)
     expected_id = f"A-Q-PREPROCESS-{arm}-S{seed}"
-    fit_id = f"A-FIT-{arm}-S{seed}" if kind == "selected_fit" else None
+    fit_id = plan.get("fit_unit_id")
+    if kind == "selected_fit":
+        fit_prefix = f"A-FIT-{arm}-S{seed}"
+        if (type(fit_id) is not str or
+                re.fullmatch(re.escape(fit_prefix) + r"(?:-R[1-9][0-9]*)?", fit_id)
+                is None):
+            raise PermissionError("Q selected FIT ID differs from its arm and seed")
+    elif fit_id is not None:
+        raise PermissionError("Q fixed public unit cannot depend on a FIT")
     deps = [fit_id] if fit_id else []
     outputs = [str(output / name) for name in ("Q_TABLE_RECEIPT.json", "q_table.npz")]
     for key in ("cpu_seconds", "wall_seconds"):
