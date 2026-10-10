@@ -25,6 +25,7 @@ from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import (
 from .attack_worker import (_load_release, _role_manifest, _write_once,
                             validate_service_manifest_binding)
 from .bank_service import make_bank_service
+from . import finite_family, inference_rule, utility_intervals
 from .finite_family import ordered_clause_ids
 from .utility_intervals import BOOTSTRAP_SEED, evaluate_utility_family
 
@@ -35,16 +36,26 @@ ROLE = "INNER_SELECTION"
 
 def validate_interval_config(config: Mapping, *, unit_id: str,
                              worker_sha256: str, utility_source_sha256: str,
+                             inference_rule_source_sha256: str,
+                             finite_family_source_sha256: str,
                              seal_sha256: str,
                              inference_lock_sha256: str) -> None:
     if (not isinstance(config, Mapping) or config.get("schema") != CONFIG_SCHEMA
             or config.get("unit_id") != unit_id
             or config.get("worker_sha256") != worker_sha256
             or config.get("utility_source_sha256") != utility_source_sha256
+            or config.get("inference_rule_source_sha256")
+               != inference_rule_source_sha256
+            or config.get("finite_family_source_sha256")
+               != finite_family_source_sha256
             or config.get("seal", {}).get("sha256") != seal_sha256
             or config.get("inference_lock", {}).get("sha256") != inference_lock_sha256
             or Path(config.get("role_manifest", {}).get("path", "")).name
                != "DATA_ACCESS_MANIFEST.json"
+            or Path(config.get("inference_proposal", {}).get("path", "")).name
+               != "INFERENCE_RULE_PROPOSAL.json"
+            or Path(config.get("finite_family_proposal", {}).get("path", "")).name
+               != "D_FINITE_FAMILY_PROPOSAL.json"
             or not isinstance(config.get("candidates"), list)
             or not isinstance(config.get("output"), str)):
         raise PermissionError("utility interval config source or schema differs")
@@ -179,17 +190,21 @@ def run(config_path: Path) -> dict:
         raise PermissionError("interval config must be owner-only")
     sources = _registered(path, active["unit_id"])
     config = json.loads(path.read_text())
-    from . import utility_intervals
     validate_interval_config(
         config, unit_id=active["unit_id"], worker_sha256=sha_file(Path(__file__)),
         utility_source_sha256=sha_file(Path(utility_intervals.__file__)),
+        inference_rule_source_sha256=sha_file(Path(inference_rule.__file__)),
+        finite_family_source_sha256=sha_file(Path(finite_family.__file__)),
         seal_sha256=active["seal_sha256"],
         inference_lock_sha256=config["inference_lock"]["sha256"])
-    for source in (Path(__file__), Path(utility_intervals.__file__)):
+    for source in (Path(__file__), Path(utility_intervals.__file__),
+                   Path(inference_rule.__file__), Path(finite_family.__file__)):
         if sources.get(source) != sha_file(source):
             raise PermissionError("utility interval implementation is not queue pinned")
     seal_path = _record(config["seal"], sources)
     lock_path = _record(config["inference_lock"], sources)
+    _record(config["inference_proposal"], sources)
+    _record(config["finite_family_proposal"], sources)
     seal = json.loads(seal_path.read_text())
     seal["_seal_sha256"] = active["seal_sha256"]
     lock = json.loads(lock_path.read_text())
@@ -198,7 +213,11 @@ def run(config_path: Path) -> dict:
             or lock.get("campaign_lock_sha256") != active["seal_sha256"]
             or lock.get("randomness", {}).get("seed_integer") != BOOTSTRAP_SEED
             or lock.get("paired_draws") != 2048
-            or lock.get("fixed_family_K") != 2376):
+            or lock.get("fixed_family_K") != 2376
+            or lock.get("inference_rule_sha256")
+               != config["inference_proposal"]["sha256"]
+            or lock.get("finite_family_sha256")
+               != config["finite_family_proposal"]["sha256"]):
         raise PermissionError("sealed utility interval randomness differs")
     role_path = _record(config["role_manifest"], sources)
     _role_manifest(str(role_path), config["role_manifest"]["sha256"])

@@ -11,6 +11,12 @@ class IntervalWorkerTest(unittest.TestCase):
             "schema": "pcrl-r4-utility-interval-config-v1",
             "unit_id": "R4_UTILITY_INTERVALS", "worker_sha256": "w" * 64,
             "utility_source_sha256": "u" * 64,
+            "inference_rule_source_sha256": "n" * 64,
+            "finite_family_source_sha256": "f" * 64,
+            "inference_proposal": {"path": "/proposal/INFERENCE_RULE_PROPOSAL.json",
+                                   "sha256": "p" * 64},
+            "finite_family_proposal": {"path": "/proposal/D_FINITE_FAMILY_PROPOSAL.json",
+                                       "sha256": "q" * 64},
             "role_manifest": {"path": "/repair/m1/DATA_ACCESS_MANIFEST.json",
                               "sha256": "r" * 64},
             "seal": {"path": "/study/CAMPAIGN_LOCK.json", "sha256": "s" * 64},
@@ -26,6 +32,8 @@ class IntervalWorkerTest(unittest.TestCase):
         validate_interval_config(config, unit_id="R4_UTILITY_INTERVALS",
                                  worker_sha256="w" * 64,
                                  utility_source_sha256="u" * 64,
+                                 inference_rule_source_sha256="n" * 64,
+                                 finite_family_source_sha256="f" * 64,
                                  seal_sha256="s" * 64,
                                  inference_lock_sha256="i" * 64)
         config["utility_source_sha256"] = "q" * 64
@@ -33,6 +41,8 @@ class IntervalWorkerTest(unittest.TestCase):
             validate_interval_config(config, unit_id="R4_UTILITY_INTERVALS",
                                      worker_sha256="w" * 64,
                                      utility_source_sha256="u" * 64,
+                                     inference_rule_source_sha256="n" * 64,
+                                     finite_family_source_sha256="f" * 64,
                                      seal_sha256="s" * 64,
                                      inference_lock_sha256="i" * 64)
 
