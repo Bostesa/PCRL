@@ -117,3 +117,47 @@ def test_graph_rejects_attack_without_inner_release_dependency(tmp_path):
     with pytest.raises(ValueError, match="attack deps differ"):
         compile_graph(amendment, _digest(amendment), seal, _digest(seal),
                       source_root=tmp_path, expected_units=5)
+
+
+def test_continuous_reference_has_exact_two_role_parents_and_no_q(tmp_path):
+    seal, amendment, _, plan = _fixture(tmp_path)
+    for role, suffix in (("ATTACK_FIT_NEW", "ATT"),
+                         ("INNER_SELECTION", "INNER")):
+        unit_id = f"A-REFERENCE-RELEASE-U0-S0-{suffix}"
+        plan[unit_id] = {"kind": "reference_release", "reference_id": "U0",
+                         "seed": 0, "role": role, "output_id": unit_id,
+                         "cpu_seconds": 5, "wall_seconds": 5}
+    attack_id = "A-REFERENCE-ATTACK-U0-S0"
+    plan[attack_id] = {
+        "kind": "reference_attack", "reference_id": "U0", "seed": 0,
+        "q_unit_id": None, "output_id": attack_id,
+        "release_unit_ids": {"ATT": "A-REFERENCE-RELEASE-U0-S0-ATT",
+                             "INNER": "A-REFERENCE-RELEASE-U0-S0-INNER"},
+        "deps": ["A-REFERENCE-RELEASE-U0-S0-ATT",
+                 "A-REFERENCE-RELEASE-U0-S0-INNER"],
+        "trained_reader_and_probe_fits": 24,
+        "cpu_seconds": 10, "wall_seconds": 10,
+    }
+    document = json.loads(amendment.read_text())
+    document["unit_plan"] = plan
+    amendment.write_text(json.dumps(document))
+    index = compile_graph(amendment, _digest(amendment), seal, _digest(seal),
+                          source_root=tmp_path, expected_units=8)
+    assert index["kind_counts"]["reference_attack"] == 1
+    plan[attack_id]["release_unit_ids"]["INNER"] = "A-RELEASE-X-S0-INNER-R0"
+    plan[attack_id]["deps"][1] = "A-RELEASE-X-S0-INNER-R0"
+    amendment.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="reference attack INNER release identity"):
+        compile_graph(amendment, _digest(amendment), seal, _digest(seal),
+                      source_root=tmp_path, expected_units=8)
+
+
+def test_graph_rejects_pending_numeric_cap_but_allows_only_continuous_null_q(tmp_path):
+    seal, amendment, _, plan = _fixture(tmp_path)
+    plan["A-ATTACK-X-S0-R0"]["q_unit_id"] = None
+    document = json.loads(amendment.read_text())
+    document["unit_plan"] = plan
+    amendment.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match="pending null"):
+        compile_graph(amendment, _digest(amendment), seal, _digest(seal),
+                      source_root=tmp_path, expected_units=5)

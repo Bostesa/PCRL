@@ -87,6 +87,12 @@ def _check_parent_bindings(plan: dict[str, dict]) -> None:
             fit = node.get("fit_unit_id")
             if deps != ([fit] if fit else []):
                 raise ValueError(f"{unit_id} Q deps differ from selected FIT")
+            if fit:
+                parent = plan[fit]
+                if (parent["kind"] != "fit" or
+                        parent.get("arm_id") != node.get("arm_id") or
+                        parent.get("seed") != node.get("seed")):
+                    raise ValueError(f"{unit_id} Q selected FIT identity differs")
         elif kind == "attack":
             releases = node.get("release_unit_ids")
             if not isinstance(releases, dict) or set(releases) != {"ATT", "INNER"}:
@@ -112,6 +118,42 @@ def _check_parent_bindings(plan: dict[str, dict]) -> None:
                     fit.get("seed") != node.get("seed") or
                     q.get("seed") != node.get("seed")):
                 raise ValueError(f"{unit_id} attack FIT/Q identity differs")
+        elif kind in ("reference_attack", "diagnostic_attack"):
+            releases = node.get("release_unit_ids")
+            if kind == "diagnostic_attack" and releases is None and len(deps) == 3:
+                releases = {"ATT": deps[0], "INNER": deps[1]}
+            if not isinstance(releases, dict) or set(releases) != {"ATT", "INNER"}:
+                raise ValueError(f"{unit_id} release binding missing")
+            q_id = node.get("q_unit_id")
+            expected = [releases["ATT"], releases["INNER"]]
+            if q_id is not None:
+                expected.append(q_id)
+            if deps != expected:
+                raise ValueError(f"{unit_id} attack deps differ from releases/Q")
+            release_kind = ("reference_release" if kind == "reference_attack"
+                            else "diagnostic_release")
+            identity = ("reference_id" if kind == "reference_attack" else "arm_id")
+            for role, parent_id in (("ATT", releases["ATT"]),
+                                    ("INNER", releases["INNER"])):
+                parent = plan[parent_id]
+                if (parent["kind"] != release_kind or
+                        parent.get(identity) != node.get(identity) or
+                        parent.get("seed") != node.get("seed") or
+                        parent.get("role") != ("ATTACK_FIT_NEW" if role == "ATT"
+                                               else "INNER_SELECTION")):
+                    raise ValueError(f"{unit_id} {kind.replace('_', ' ')} {role} release identity differs")
+            if q_id is None:
+                if (kind != "reference_attack" or
+                        node.get("reference_id") not in {"U0", "Ucal"} or
+                        node.get("trained_reader_and_probe_fits") != 24):
+                    raise ValueError(f"{unit_id} Q absent outside continuous reference")
+            else:
+                q = plan[q_id]
+                if (q["kind"] != "q_preprocess" or
+                        q.get(identity) != node.get(identity) or
+                        q.get("seed") != node.get("seed") or
+                        node.get("trained_reader_and_probe_fits") != 33):
+                    raise ValueError(f"{unit_id} Q identity differs")
 
 
 def compile_graph(amendment_path: Path, amendment_sha256: str,
@@ -141,6 +183,17 @@ def compile_graph(amendment_path: Path, amendment_sha256: str,
         if not source.is_relative_to(source_root):
             raise ValueError("implementation source escapes source root")
         _check_hash(source, digest, f"implementation source {relative}")
+    admitted_sources = amendment.get("source_sha256", {})
+    if not isinstance(admitted_sources, dict):
+        raise ValueError("A source snapshot malformed")
+    for relative, digest in sorted(admitted_sources.items()):
+        if not isinstance(relative, str) or not isinstance(digest, str):
+            raise ValueError("A source record malformed")
+        source = (source_root / relative).resolve()
+        if not source.is_relative_to(source_root):
+            raise ValueError("A source escapes source root")
+        _check_hash(source, digest, f"A source {relative}")
+    cap_sum = 0.0
     for unit_id, node in plan.items():
         if not isinstance(unit_id, str) or not UNIT_ID.fullmatch(unit_id):
             raise ValueError("invalid unit ID")
@@ -150,9 +203,13 @@ def compile_graph(amendment_path: Path, amendment_sha256: str,
             raise ValueError(f"{unit_id} output_id differs")
         cpu = _positive_cap(node, "cpu_seconds", unit_id)
         wall = _positive_cap(node, "wall_seconds", unit_id)
-        if cpu < wall:
-            raise ValueError(f"{unit_id} cpu_seconds below wall_seconds")
-        if any(value is None for value in node.values()):
+        if cpu != wall:
+            raise ValueError(f"{unit_id} cpu_seconds differs from wall_seconds")
+        cap_sum += cpu
+        allowed_null = ({"q_unit_id"} if node["kind"] == "reference_attack" and
+                        node.get("reference_id") in {"U0", "Ucal"} else set())
+        if any(value is None for key, value in node.items()
+               if key not in allowed_null):
             raise ValueError(f"{unit_id} has a pending null field")
     order = _topological_order(plan)
     _check_parent_bindings(plan)
@@ -168,6 +225,8 @@ def compile_graph(amendment_path: Path, amendment_sha256: str,
         "unit_count": len(plan),
         "kind_counts": dict(sorted(Counter(node["kind"] for node in plan.values()).items())),
         "implementation_source_count": len(source_map),
+        "admitted_source_count": len(admitted_sources),
+        "producer_cpu_cap_sum_s": cap_sum,
         "node_sha256": node_hashes,
         "topological_order": order,
     }
