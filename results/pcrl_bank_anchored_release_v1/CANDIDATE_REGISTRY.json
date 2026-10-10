@@ -1,0 +1,23 @@
+{
+  "schema": "pcrl-bank-anchored-candidate-registry-v1",
+  "status": "PREFIT_FIXED",
+  "selected_bank": "W_TSTAR",
+  "source_seeds": [0, 1],
+  "arm_order": ["B0", "T", "D", "P", "L", "J", "S12", "S21", "W_Q", "P_STAR"],
+  "arms": {
+    "B0": {"kind": "immutable_exact_bank_identity", "fit_per_seed": 0, "sex_fit": false, "input_scope": "private_frozen_teacher_route", "sampling": "deterministic"},
+    "T": {"kind": "task_only_finite_channel", "fit_per_seed": 1, "sex_fit": false, "input_scope": "central_private_scores", "sampling": "joint_stochastic"},
+    "D": {"kind": "deterministic_central_privacy_channel", "fit_per_seed": 1, "sex_fit": true, "input_scope": "central_private_scores", "sampling": "deterministic"},
+    "P": {"kind": "central_product_privacy_channel", "fit_per_seed": 1, "sex_fit": true, "input_scope": "central_private_scores", "sampling": "independent_recipient_coins"},
+    "L": {"kind": "local_privacy_channel", "fit_per_seed": 1, "sex_fit": true, "input_scope": "own_recipient_score_and_cell", "sampling": "independent_recipient_coins"},
+    "J": {"kind": "central_joint_privacy_channel", "fit_per_seed": 1, "sex_fit": true, "input_scope": "central_private_scores", "sampling": "joint_stochastic"},
+    "S12": {"kind": "freeze_first_sequential_1_then_2", "fit_per_seed": 1, "sex_fit": true, "input_scope": "central_private_scores_plus_public_first_code", "sampling": "conditional_stochastic"},
+    "S21": {"kind": "freeze_first_sequential_2_then_1", "fit_per_seed": 1, "sex_fit": true, "input_scope": "central_private_scores_plus_public_first_code", "sampling": "conditional_stochastic"},
+    "W_Q": {"kind": "inherited_task_only_reference", "fit_per_seed": 0, "sex_fit": false, "input_scope": "frozen_source_service", "sampling": "deterministic"},
+    "P_STAR": {"kind": "inherited_privacy_trained_reference", "fit_per_seed": 0, "sex_fit": false, "input_scope": "frozen_source_service", "sampling": "deterministic"}
+  },
+  "candidate_policy": "one FIT-selected policy per nonidentity arm and source seed; all exact aliases retained and labeled; no best INNER checkpoint or best sampled draw",
+  "point_eligibility": "all 24 original INNER task/seed/U0/Ucal clauses inclusive",
+  "nominee": "J only if J passes its own all-24 point gate",
+  "strongest_control": "eligible non-J member with minimum equal-seed-mean pair AUC; ties use arm_order"
+}

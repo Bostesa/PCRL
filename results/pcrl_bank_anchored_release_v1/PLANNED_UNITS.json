@@ -1,0 +1,11 @@
+{
+  "schema": "pcrl-bank-anchored-planned-units-v1",
+  "status": "PREFIT_FORECAST_NOT_RUN",
+  "witness": {"raw_bank_identity": 2, "channel_identity_and_proxy": 2, "total": 4, "note": "Two source seeds; bank replay uses exactly 32 fixed FIT positions each, linspace(0,15433,32,dtype=int64). No task or SEX labels are read by raw adapter replay."},
+  "protection": {"arms": ["T", "D", "P", "L", "J", "S12", "S21"], "seeds": [0, 1], "policies": 14, "starts_per_policy": 2, "central_updates_per_start": 300, "local_or_sequential_updates_per_recipient_or_stage": 150, "whole_arm_cpu_ceiling_seconds": 300, "note": "Checkpoint attempts, first and second sequential stages, and all failed starts are counted, not only selected policies."},
+  "utility": {"fit_proxy_and_old_reference_diagnostics": "all 10 registered arms x 2 seeds where admitted", "inner_original_caps": "all 10 registered arms x 2 seeds where admitted", "stochastic_secondary_cached_draws": 3, "note": "Exact expected cost primary; one-draw realized cost secondary."},
+  "attacks": {"required_views": ["r1", "r2", "pair"], "fits_per_distinct_arm_seed_realization": 30, "main_max_distinct_release_instances": 40, "conditional_W_Q_P_STAR_extra_instances": 4, "maximum_fits_if_every_arm_eligible_and_no_alias": 1320, "note": "Actual units depend only on predeclared point eligibility and exact output aliases. Null/permutation/planted controls and attacker preprocessing/forward passes are charged."},
+  "verification": {"independent_endpoint_replay": "all reported fitted endpoints and comparisons", "bounded_attack_winner_refit": "if budget permits", "deployment_replay": "B0 and nominee/eligible policies", "local_restore": "versioned same-device snapshot plus representative restore"},
+  "global_limits": {"elapsed_hours": 10, "aggregate_cpu_hours": 12, "cloud_spend_usd": 0, "heavy_processes_machine_wide": 2, "numerical_threads_per_worker": 1, "protected_cpu_hours": {"admission_and_engineering": 1, "channel_comparison": 4, "utility_and_attacks": 5, "independent_replay": 2}},
+  "unit_status_categories": ["planned", "run", "skipped_by_gate", "aliased", "failed", "incomplete"]
+}
