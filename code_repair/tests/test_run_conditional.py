@@ -8,7 +8,8 @@ import pytest
 
 from code_repair.run_conditional import (run, write_release_npz, scientific_arm_id,
                                          _calibration_module, _require_t0_scaler_pin,
-                                         _batch_plan_sha256, _require_t0_schema_pin)
+                                         _batch_plan_sha256, _require_t0_schema_pin,
+                                         _prepare_private_parent)
 from results.pcrl_latent_and_sampled_methods_v1.r01.role_store import sha_file
 
 
@@ -48,6 +49,19 @@ def test_batch_plan_hash_changes_with_order_or_boundaries():
     assert len(digest) == 64
     assert digest != _batch_plan_sha256(((np.array([1, 0]), np.array([2])),), rows)
     assert digest != _batch_plan_sha256(((np.array([0]), np.array([1, 2])),), rows)
+
+
+def test_private_parent_is_created_owner_only_before_fit(tmp_path):
+    out = tmp_path / ".private" / "protection_s0"
+    _prepare_private_parent(out)
+    assert out.parent.is_dir() and out.parent.stat().st_mode & 0o777 == 0o700
+    assert not out.exists()
+    diverted = tmp_path / "diverted"
+    diverted.mkdir()
+    out.parent.rmdir()
+    out.parent.symlink_to(diverted, target_is_directory=True)
+    with pytest.raises(PermissionError, match="private parent"):
+        _prepare_private_parent(out)
 
 
 def test_pinned_calibration_loads_its_sibling_guard():

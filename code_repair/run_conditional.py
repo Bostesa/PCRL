@@ -12,6 +12,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 
@@ -286,10 +287,23 @@ def _batch_plan_sha256(plan: tuple, row_ids: np.ndarray) -> str:
     return digest.hexdigest()
 
 
+def _prepare_private_parent(out: Path) -> None:
+    """Ensure a local owner-only package root exists before expensive FIT work."""
+    parent = out.parent
+    if parent.name != ".private" or parent.is_symlink():
+        raise PermissionError("private parent must be a direct directory")
+    parent.mkdir(mode=0o700, exist_ok=True)
+    info = parent.stat()
+    if (not parent.is_dir() or info.st_uid != os.getuid()
+            or stat.S_IMODE(info.st_mode) != 0o700):
+        raise PermissionError("private parent must be owner-only")
+
+
 def run(args: argparse.Namespace) -> dict:
     # This check must precede every supplied path open and every role read.
     queue = assert_active_from_env(args.unit_id, "protection")
     stage, gate, admission, out = _preflight(args, queue)
+    _prepare_private_parent(out)
     seed, bits = args.seed, stage["selected_bits"]
     root = Path(__file__).resolve().parents[1]
     common = _calibration_module(stage, root)
