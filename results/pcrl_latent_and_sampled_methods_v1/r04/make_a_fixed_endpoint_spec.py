@@ -98,7 +98,7 @@ def make(args: argparse.Namespace) -> dict:
             "cwd": str(WORKTREE), "deps": ["R02-A-K6885-FIXED-ENDPOINT-001-R2",
                                            "R04-A-FIXED-ATTACK-S0-004",
                                            "R04-A-FIXED-ATTACK-S1-004"],
-            "max_wall_s": 900, "cpu_reserve_s": 900, "max_rss_gib": 3,
+            "max_wall_s": 1800, "cpu_reserve_s": 1800, "max_rss_gib": 3,
             "projected_output_bytes": 1000000, "outputs": [str(output)],
             "sources": sources, "amendment_sha256": verification_sha}
     spec_path = HERE / ".private" / f"{UNIT}_SPEC.json"
