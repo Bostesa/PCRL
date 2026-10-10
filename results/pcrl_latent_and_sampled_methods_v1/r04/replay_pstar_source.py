@@ -41,6 +41,7 @@ def run(args: argparse.Namespace) -> dict:
             or audit.get("pstar_release_id") != RELEASE_ID):
         raise ValueError("R01 historical P* source audit differs")
     portfolio = Path(args.portfolio_package).resolve(strict=True)
+    cache_root = Path(args.cache_root).resolve(strict=True)
     if sha_file(portfolio / "DATA_ACCESS_MANIFEST.json") != manifest["portfolio_manifest_sha256"]:
         raise ValueError("P* predecessor portfolio admission differs")
     report = {"schema": "pcrl-r04-pstar-source-independent-replay-v1",
@@ -53,7 +54,7 @@ def run(args: argparse.Namespace) -> dict:
               "seeds": {}}
     for seed in (0, 1):
         entry = audit["pstar"][f"s{seed}"]
-        receipt_path = Path(entry["receipt_path"]).resolve(strict=True)
+        receipt_path = (portfolio / entry["receipt_path"]).resolve(strict=True)
         receipt = bound_json(receipt_path, entry["receipt_sha256"])
         if (receipt.get("status") != "ROLE_ONLY_BANK_ADMITTED"
                 or receipt.get("preprocessing_only") is not True
@@ -73,7 +74,7 @@ def run(args: argparse.Namespace) -> dict:
                         "policy.json": "policy_sha256", "decoder.json": "decoder_file_sha256"}
         for name, receipt_name in source_names.items():
             record = entry["source_paths_sha256"][name]
-            path = Path(record["path"]).resolve(strict=True)
+            path = (cache_root / record["path"]).resolve(strict=True)
             if (sha_file(path) != record["sha256"]
                     or record["sha256"] != receipt["source_json_sha256"][receipt_name]):
                 raise ValueError(f"P* original {name} bytes differ")
@@ -91,7 +92,7 @@ def run(args: argparse.Namespace) -> dict:
             bank_record = entry["banks"][f"r{recipient}"]
             if receipt["private_output_sha256"][name] != bank_record["sha256"]:
                 raise ValueError("P* bank byte hash not admitted")
-            bank = bound_npz(Path(bank_record["path"]), bank_record["sha256"], BANK_FIELDS)
+            bank = bound_npz(portfolio / bank_record["path"], bank_record["sha256"], BANK_FIELDS)
             banks[recipient] = bank
             detail = check_pstar_bank(bank, source["policy.json"][f"p{recipient}"],
                                       source["fine.json"][f"fine{recipient}"],
@@ -106,7 +107,7 @@ def run(args: argparse.Namespace) -> dict:
             token_name = f"tokens_{role}.npz"
             if receipt["private_output_sha256"][token_name] != role_record["sha256"]:
                 raise ValueError("P* role tokens not admitted")
-            tokens = bound_npz(Path(role_record["path"]), role_record["sha256"], TOKEN_FIELDS)
+            tokens = bound_npz(portfolio / role_record["path"], role_record["sha256"], TOKEN_FIELDS)
             references = _role_npz(manifest, manifest_path, role,
                                    f"references_s{seed}", REFERENCE_FIELDS)
             reference_path = role_reference_path(manifest_path, manifest, role, seed)
@@ -147,7 +148,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("seal", "seal-sha256", "role-manifest", "role-manifest-sha256",
                  "source-audit", "source-audit-sha256", "historical-audit",
-                 "historical-audit-sha256", "portfolio-package", "public-receipt"):
+                 "historical-audit-sha256", "portfolio-package", "cache-root",
+                 "public-receipt"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
     report = run(args)

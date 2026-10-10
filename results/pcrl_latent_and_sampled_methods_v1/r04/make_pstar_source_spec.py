@@ -17,7 +17,7 @@ WORKTREE = HERE.parents[2]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("seal", "role-manifest", "source-audit", "historical-audit",
-                 "portfolio-package"):
+                 "portfolio-package", "cache-root"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--unit-id", default="R04-PSTAR-SOURCE-001")
     args = parser.parse_args()
@@ -25,7 +25,7 @@ def main() -> None:
         raise ValueError("P* replay must use R04 namespace")
     paths = {name: getattr(args, name.replace("-", "_")).resolve(strict=True)
              for name in ("seal", "role-manifest", "source-audit",
-                          "historical-audit", "portfolio-package")}
+                          "historical-audit", "portfolio-package", "cache-root")}
     historical = json.loads(paths["historical-audit"].read_text())
     role_manifest = json.loads(paths["role-manifest"].read_text())
     if historical.get("status") != "ROLE_ONLY_HISTORICAL_SCORE_SOURCES_VERIFIED":
@@ -39,7 +39,8 @@ def main() -> None:
     source = [HERE / name for name in (
         "make_pstar_source_spec.py", "replay_pstar_source.py", "independent_pstar.py",
         "independent_a_source.py", "replay_a_prefit.py")]
-    source.extend(path for name, path in paths.items() if name != "portfolio-package")
+    source.extend(path for name, path in paths.items()
+                  if name not in ("portfolio-package", "cache-root"))
     source.append(paths["portfolio-package"] / "DATA_ACCESS_MANIFEST.json")
     for role in ("ATTACK_FIT_NEW", "INNER_SELECTION"):
         for seed in (0, 1):
@@ -48,10 +49,12 @@ def main() -> None:
                           role_manifest["role_file_relative_path"][key])
     for seed in (0, 1):
         entry = historical["pstar"][f"s{seed}"]
-        source.append(Path(entry["receipt_path"]))
-        source.extend(Path(record["path"]) for record in entry["source_paths_sha256"].values())
-        source.extend(Path(record["path"]) for record in entry["banks"].values())
-        source.extend(Path(entry["roles"][role]["path"])
+        source.append(paths["portfolio-package"] / entry["receipt_path"])
+        source.extend(paths["cache-root"] / record["path"]
+                      for record in entry["source_paths_sha256"].values())
+        source.extend(paths["portfolio-package"] / record["path"]
+                      for record in entry["banks"].values())
+        source.extend(paths["portfolio-package"] / entry["roles"][role]["path"]
                       for role in ("ATTACK_FIT_NEW", "INNER_SELECTION"))
     source = [path.resolve(strict=True) for path in source]
     if len(source) != len(set(source)):
@@ -60,7 +63,7 @@ def main() -> None:
             "results.pcrl_latent_and_sampled_methods_v1.r04.replay_pstar_source"]
     for name, path in paths.items():
         argv.extend(("--" + name, str(path)))
-        if name not in ("portfolio-package",):
+        if name not in ("portfolio-package", "cache-root"):
             argv.extend(("--" + name + "-sha256", sha_file(path)))
     argv.extend(("--public-receipt", str(output)))
     spec = {"unit_id": args.unit_id, "stage": "verification", "argv": argv,

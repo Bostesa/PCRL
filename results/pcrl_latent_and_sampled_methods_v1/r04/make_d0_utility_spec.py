@@ -18,7 +18,7 @@ ARMS = {"LOCAL": "hcal_local_d0", "SEQ12": "hcal_seq12_d0", "SEQ21": "lra_seq21"
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("seal", "role-manifest", "source-audit", "historical-audit",
-                 "portfolio-package"):
+                 "portfolio-package", "cache-root"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--unit-id", default="R04-D0-UTILITY-001")
     args = parser.parse_args()
@@ -26,7 +26,7 @@ def main() -> None:
         raise ValueError("D0 independent replay must use R04 namespace")
     paths = {name: getattr(args, name.replace("-", "_")).resolve(strict=True)
              for name in ("seal", "role-manifest", "source-audit",
-                          "historical-audit", "portfolio-package")}
+                          "historical-audit", "portfolio-package", "cache-root")}
     historical = json.loads(paths["historical-audit"].read_text())
     role_manifest = json.loads(paths["role-manifest"].read_text())
     if historical.get("status") != "ROLE_ONLY_HISTORICAL_SCORE_SOURCES_VERIFIED":
@@ -41,7 +41,8 @@ def main() -> None:
     source = [HERE / name for name in (
         "make_d0_utility_spec.py", "replay_d0_utility.py", "independent_a_source.py",
         "independent_replay.py", "replay_a_prefit.py")]
-    source.extend(path for name, path in paths.items() if name != "portfolio-package")
+    source.extend(path for name, path in paths.items()
+                  if name not in ("portfolio-package", "cache-root"))
     source.append(paths["portfolio-package"] / "DATA_ACCESS_MANIFEST.json")
     for field in ("references_s0", "references_s1", "income", "occupation"):
         key = f"INNER_SELECTION:{field}"
@@ -56,10 +57,12 @@ def main() -> None:
             receipt = paths["seal"].parent / "r02" / f"{unit}_RECEIPT.json"
             receipt_hashes[unit] = sha_file(receipt)
             deps.append(unit)
-            source.extend((receipt, Path(entry["receipt_path"]),
-                           Path(entry["roles"]["INNER_SELECTION"]["path"])))
-            source.extend(Path(record["path"]) for record in entry["banks"].values())
-            source.extend(Path(record["path"]) for record in entry["source_paths_sha256"].values())
+            source.extend((receipt, paths["portfolio-package"] / entry["receipt_path"],
+                           paths["portfolio-package"] / entry["roles"]["INNER_SELECTION"]["path"]))
+            source.extend(paths["portfolio-package"] / record["path"]
+                          for record in entry["banks"].values())
+            source.extend(paths["cache-root"] / record["path"]
+                          for record in entry["source_paths_sha256"].values())
     map_path.write_text(json.dumps(receipt_hashes, sort_keys=True, indent=2) + "\n")
     map_path.chmod(0o600)
     source.append(map_path)
@@ -68,7 +71,7 @@ def main() -> None:
             "results.pcrl_latent_and_sampled_methods_v1.r04.replay_d0_utility"]
     for name, path in paths.items():
         argv.extend(("--" + name, str(path)))
-        if name != "portfolio-package":
+        if name not in ("portfolio-package", "cache-root"):
             argv.extend(("--" + name + "-sha256", sha_file(path)))
     argv.extend(("--receipt-map", str(map_path), "--receipt-map-sha256", sha_file(map_path),
                  "--public-receipt", str(output)))

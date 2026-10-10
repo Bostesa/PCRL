@@ -66,6 +66,7 @@ def run(args: argparse.Namespace) -> dict:
             or audit.get("status") != "ROLE_ONLY_HISTORICAL_SCORE_SOURCES_VERIFIED"):
         raise ValueError("historical D0 source map differs")
     portfolio = Path(args.portfolio_package).resolve(strict=True)
+    cache_root = Path(args.cache_root).resolve(strict=True)
     if sha_file(portfolio / "DATA_ACCESS_MANIFEST.json") != manifest["portfolio_manifest_sha256"]:
         raise ValueError("historical D0 portfolio admission differs")
     report = {"schema": "pcrl-r04-d0-inner-utility-independent-replay-v1",
@@ -81,7 +82,7 @@ def run(args: argparse.Namespace) -> dict:
         arm_report = {}
         for seed in (0, 1):
             entry = audit["d0"][key][f"s{seed}"]
-            receipt_path = Path(entry["receipt_path"]).resolve(strict=True)
+            receipt_path = (portfolio / entry["receipt_path"]).resolve(strict=True)
             source_receipt = bound_json(receipt_path, entry["receipt_sha256"])
             if (source_receipt.get("status") != "ROLE_ONLY_BANK_ADMITTED"
                     or source_receipt.get("seed") != seed
@@ -95,7 +96,7 @@ def run(args: argparse.Namespace) -> dict:
                 source = entry["banks"][f"r{recipient}"]
                 if source_receipt["private_output_sha256"][name] != source["sha256"]:
                     raise ValueError("D0 bank hash not admitted")
-                bank[recipient] = bound_npz(Path(source["path"]), source["sha256"], BANK_FIELDS)
+                bank[recipient] = bound_npz(portfolio / source["path"], source["sha256"], BANK_FIELDS)
                 b = bank[recipient]
                 if (b["probability"].dtype != np.float64
                         or b["probability"].shape != (source["tokens"], 2 if recipient == 1 else 6)
@@ -107,7 +108,7 @@ def run(args: argparse.Namespace) -> dict:
             role_record = entry["roles"][ROLE]
             if source_receipt["private_output_sha256"][token_name] != role_record["sha256"]:
                 raise ValueError("D0 INNER tokens not admitted")
-            tokens = bound_npz(Path(role_record["path"]), role_record["sha256"], TOKEN_FIELDS)
+            tokens = bound_npz(portfolio / role_record["path"], role_record["sha256"], TOKEN_FIELDS)
             references = _role_npz(manifest, manifest_path, ROLE,
                                    f"references_s{seed}", REFERENCE_FIELDS)
             reference_path = role_reference_path(manifest_path, manifest, ROLE, seed)
@@ -121,7 +122,7 @@ def run(args: argparse.Namespace) -> dict:
                            for task in labels)):
                 raise ValueError("D0 INNER row/person alignment differs")
             fine_record = entry["source_paths_sha256"]["fine.json"]
-            fine = bound_json(Path(fine_record["path"]), fine_record["sha256"])
+            fine = bound_json(cache_root / fine_record["path"], fine_record["sha256"])
             q = {}
             d = {}
             for recipient in (1, 2):
@@ -191,7 +192,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("seal", "seal-sha256", "role-manifest", "role-manifest-sha256",
                  "source-audit", "source-audit-sha256", "historical-audit",
-                 "historical-audit-sha256", "portfolio-package", "receipt-map",
+                 "historical-audit-sha256", "portfolio-package", "cache-root", "receipt-map",
                  "receipt-map-sha256", "public-receipt"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
