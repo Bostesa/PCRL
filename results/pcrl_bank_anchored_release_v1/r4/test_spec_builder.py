@@ -98,6 +98,7 @@ class AttackSpecBuilderTests(unittest.TestCase):
             root = Path(directory)
             seal = "a" * 64
             gates = {}
+            prior = {}
             for arm in ARMS:
                 if arm == "P_STAR":
                     continue
@@ -110,12 +111,33 @@ class AttackSpecBuilderTests(unittest.TestCase):
                             "fit_bank_proxy_applied": False,
                             "fit_bank_proxy_pass": None}
                 else:
-                    passed = arm == "B0"
-                    body = {"schema": "pcrl-bank-r3-arm-point-eligibility-v1",
+                    inner = arm in ("B0", "J")
+                    fit = arm == "B0"
+                    sources = {f"s{seed}_{role}": {
+                        "unit_id": f"R3_{arm}_S{seed}_{role.upper()}",
+                        "receipt_sha256": "e" * 64,
+                        "csv_sha256": "f" * 64}
+                        for seed in (0, 1) for role in ("fit", "inner")}
+                    old = {"schema": "pcrl-bank-r3-arm-point-eligibility-v1",
                             "arm_id": arm, "source_seal_sha256": seal,
-                            "all_two_seed_task_reference_point_caps_pass": passed,
-                            "fit_bank_proxy_pass": passed,
-                            "inner_original_caps_pass": passed}
+                            "all_two_seed_task_reference_point_caps_pass": fit and inner,
+                            "fit_bank_proxy_pass": fit,
+                            "inner_original_caps_pass": inner,
+                            "source_receipts": sources}
+                    prior[arm] = write_json(root / f"{arm}_OLD_GATE.json", old)
+                    body = {"schema": "pcrl-bank-r3-inner-attack-eligibility-v2",
+                            "arm_id": arm, "source_seal_sha256": seal,
+                            "fit_clauses": {"passed": 12 if fit else 10,
+                                            "total": 12},
+                            "inner_clauses": {"passed": 24 if inner else 22,
+                                              "total": 24},
+                            "all_two_seed_task_reference_point_caps_pass": inner,
+                            "fit_bank_proxy_pass": fit,
+                            "inner_original_caps_pass": inner,
+                            "source_receipts": sources,
+                            "gate_semantics": "INNER 24/24 only; FIT diagnostic",
+                            "scope": "development",
+                            "supersedes_combined_gate_sha256": prior[arm]["sha256"]}
                 gates[arm] = write_json(root / f"{arm}.json", body)
             historical = write_json(root / "PSTAR_HIST.json", {
                 "schema": "pcrl-bank-r3-historical-original-inner-eligibility-v1",
@@ -128,9 +150,14 @@ class AttackSpecBuilderTests(unittest.TestCase):
                 "status": "PASS_UTILITY_POINT_ONLY",
                 "all_24_point_clauses_pass": True})
             config = {"campaign_seal_sha256": seal, "gate_by_arm": gates,
+                      "prior_combined_gate_by_arm": prior,
                       "pstar_historical_gate": historical,
                       "pstar_gate": independent}
-            self.assertEqual(eligible_arms(config), {"B0", "W_Q", "P_STAR"})
+            self.assertEqual(eligible_arms(config), {"B0", "J", "W_Q", "P_STAR"})
+            config["prior_combined_gate_by_arm"]["J"] = prior["B0"]
+            with self.assertRaises(PermissionError):
+                eligible_arms(config)
+            config["prior_combined_gate_by_arm"]["J"] = prior["J"]
             fit = write_json(root / "R2_J_S0_FIT_RECEIPT.json", {
                 "schema": "BAR1-r2-fit-receipt-v1", "unit_id": "R2_J_S0",
                 "arm_id": "J", "source_seed": 0,
@@ -241,7 +268,7 @@ class AttackSpecBuilderTests(unittest.TestCase):
                     "public_table_sha256": "d" * 64,
                     "law_sha256": law_by_role[role],
                     "output_csv_sha256": csv_pin["sha256"],
-                    "primary_point_pass": True})
+                    "primary_point_pass": role == "INNER_SELECTION"})
                 sources[f"s0_{short}"] = {
                     "unit_id": unit_id, "receipt_sha256": utility_pin["sha256"],
                     "csv_sha256": csv_pin["sha256"]}

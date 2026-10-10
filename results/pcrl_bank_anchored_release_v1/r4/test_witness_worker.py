@@ -1,9 +1,25 @@
 import unittest
 
+from . import witness_worker
 from .witness_worker import SCHEMA, SOURCES, SPEC_KEYS, validate_spec
 
 
 class WitnessWorkerContractTests(unittest.TestCase):
+    def test_b0_inner_gate_v2_and_wq_historical_gate(self):
+        b0 = {"schema": "pcrl-bank-r3-inner-attack-eligibility-v2",
+              "arm_id": "B0", "inner_clauses": {"passed": 24, "total": 24},
+              "inner_original_caps_pass": True,
+              "all_two_seed_task_reference_point_caps_pass": True}
+        witness_worker.validate_attack_gate(b0, "B0")
+        with self.assertRaises(PermissionError):
+            witness_worker.validate_attack_gate(
+                b0 | {"schema": "pcrl-bank-r3-arm-point-eligibility-v1"}, "B0")
+        wq = {"schema": "pcrl-bank-r3-historical-original-inner-eligibility-v1",
+              "arm_id": "W_Q", "original_inner_point_clauses_passed": 24,
+              "original_inner_point_clauses_total": 24,
+              "all_two_seed_task_reference_point_caps_pass": True}
+        witness_worker.validate_attack_gate(wq, "W_Q")
+
     def setUp(self):
         sha = "c" * 64
         self.spec = {key: "/private/file" for key in SPEC_KEYS}

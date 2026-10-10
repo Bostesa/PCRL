@@ -6,16 +6,22 @@ cached releases and historical references. It never loads a person-level
 array or a label, enqueues a job, or fits an attacker.
 
 Prepare an owner-only `.private/ATTACK_BUILD_CONFIG.json` with schema
-`pcrl-bank-r4-spec-build-config-v1` and these fields:
+`pcrl-bank-r4-spec-build-config-v2` and these fields:
 
 - `campaign_seal_path`, `campaign_seal_sha256`: locked campaign.
 - `role_manifest_path`, `role_manifest_sha256`: role-specific admission map.
 - `table_by_seed`: keys `"0"`, `"1"`, each `{path,sha256}` for its public
   W_TSTAR/W_Q table JSON.
 - `gate_by_arm`: keys `B0,T,D,P,L,J,S12,S21,W_Q`, each `{path,sha256}`.
-  Every new arm must have its R3 two-seed point gate, including failed arms;
-  W_Q uses its separate historical-original-INNER admission gate. This makes
-  missing outcomes explicit rather than silently skipping an arm. If R2 search
+  B0 and the seven channel arms use R3's write-once
+  `{ARM}_TWO_SEED_ATTACK_GATE_V2.json`, whose point admission is the 24
+  original INNER clauses only. The separate FIT proxy result remains visible
+  in that gate; a FIT failure does not erase an INNER pass. W_Q uses its
+  historical-original-INNER admission gate. `prior_combined_gate_by_arm`
+  supplies exact `{path,sha256}` pins for the eight original R3 combined
+  gates. The builder verifies the V2 gate's `supersedes_combined_gate_sha256`,
+  four source receipt identities, counts and unchanged FIT/INNER facts before
+  admitting a release. Missing outcomes stay explicit. If R2 search
   did not produce a policy or an expected R3 utility receipt is absent, use an
   R4 operational marker with schema `pcrl-bank-r4-incomplete-arm-gate-v1`.
   It has `arm_id`, `source_seal_sha256`, `status` (`INCOMPLETE_SEARCH` or

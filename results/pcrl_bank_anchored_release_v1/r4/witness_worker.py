@@ -150,6 +150,25 @@ def _load_witness_release(path: Path, role_meta: Mapping,
     return release
 
 
+def validate_attack_gate(gate: Mapping, arm: str) -> None:
+    if gate.get("arm_id") != arm or \
+            gate.get("all_two_seed_task_reference_point_caps_pass") is not True:
+        raise PermissionError("reference failed original INNER point utility")
+    if arm == "B0":
+        if (gate.get("schema") != "pcrl-bank-r3-inner-attack-eligibility-v2" or
+                gate.get("inner_original_caps_pass") is not True or
+                gate.get("inner_clauses") != {"passed": 24, "total": 24}):
+            raise PermissionError("B0 effective INNER attack gate differs")
+    elif arm == "W_Q":
+        if (gate.get("schema") !=
+                "pcrl-bank-r3-historical-original-inner-eligibility-v1" or
+                gate.get("original_inner_point_clauses_passed") != 24 or
+                gate.get("original_inner_point_clauses_total") != 24):
+            raise PermissionError("W_Q historical INNER attack gate differs")
+    else:
+        raise PermissionError("unknown witness attack reference")
+
+
 def run(spec_path: str, spec_sha256: str, lock_path: str,
         lock_sha256: str) -> dict:
     active = assert_active_from_env(stage="attacks")
@@ -179,9 +198,7 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
     store = RoleOnlyStore(spec["role_manifest_path"])
     gate = json.loads(_file(spec["eligibility_receipt_path"],
                             spec["eligibility_receipt_sha256"]).read_text())
-    if (gate.get("arm_id") != spec["arm_id"] or
-            gate.get("all_two_seed_task_reference_point_caps_pass") is not True):
-        raise PermissionError("reference did not pass original common point utility")
+    validate_attack_gate(gate, spec["arm_id"])
     table_doc = json.loads(_file(spec["public_table_path"],
                                  spec["public_table_sha256"]).read_text())
     inherited = "W_TSTAR" if spec["arm_id"] == "B0" else "W_Q"

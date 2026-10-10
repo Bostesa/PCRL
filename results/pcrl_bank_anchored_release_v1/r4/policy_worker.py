@@ -297,7 +297,8 @@ def validate_utility_linkage(spec: Mapping, gate: Mapping,
                 receipt.get("public_table_sha256") != spec["public_table_sha256"] or
                 receipt.get("law_sha256") != target_law or
                 receipt.get("output_csv_sha256") != link["csv_sha256"] or
-                receipt.get("primary_point_pass") is not True or
+                (role == "INNER_SELECTION" and
+                 receipt.get("primary_point_pass") is not True) or
                 gate_source != {"unit_id": receipt.get("unit_id"),
                                 "receipt_sha256": link["receipt_sha256"],
                                 "csv_sha256": link["csv_sha256"]}):
@@ -337,7 +338,10 @@ def run(spec_path: str, spec_sha256: str, lock_path: str,
     store = RoleOnlyStore(spec["role_manifest_path"])
     eligibility = json.loads(_file(spec["eligibility_receipt_path"],
                                    spec["eligibility_receipt_sha256"]).read_text())
-    if (eligibility.get("arm_id") != spec["arm_id"] or
+    if (eligibility.get("schema") != "pcrl-bank-r3-inner-attack-eligibility-v2" or
+            eligibility.get("arm_id") != spec["arm_id"] or
+            eligibility.get("inner_original_caps_pass") is not True or
+            eligibility.get("inner_clauses") != {"passed": 24, "total": 24} or
             eligibility.get("all_two_seed_task_reference_point_caps_pass") is not True):
         raise PermissionError("arm did not pass original common point utility gate")
     policy, policy_receipt = load_policy(

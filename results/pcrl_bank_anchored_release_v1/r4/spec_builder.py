@@ -20,9 +20,9 @@ from typing import Mapping
 from . import policy_worker, reference_worker, witness_worker
 
 
-SCHEMA = "pcrl-bank-r4-spec-build-config-v1"
-INDEX_SCHEMA = "pcrl-bank-r4-attack-unit-index-v1"
-QUEUE_INDEX_SCHEMA = "pcrl-bank-r4-queue-unit-index-v1"
+SCHEMA = "pcrl-bank-r4-spec-build-config-v2"
+INDEX_SCHEMA = "pcrl-bank-r4-attack-unit-index-v2"
+QUEUE_INDEX_SCHEMA = "pcrl-bank-r4-queue-unit-index-v2"
 ARMS = ("B0", "T", "D", "P", "L", "J", "S12", "S21", "W_Q", "P_STAR")
 CHANNEL_ARMS = ("T", "D", "P", "L", "J", "S12", "S21")
 ROLES = ("ATTACK_FIT_NEW", "INNER_SELECTION")
@@ -30,7 +30,7 @@ CONFIG_KEYS = frozenset({
     "schema", "campaign_seal_path", "campaign_seal_sha256",
     "role_manifest_path", "role_manifest_sha256",
     "table_by_seed", "gate_by_arm", "pstar_gate",
-    "pstar_historical_gate", "queue_root",
+    "pstar_historical_gate", "prior_combined_gate_by_arm", "queue_root",
     "selected_r2_root", "selected_unit_by_arm_seed",
     "bounds_pin",
     "witness_source_root", "pstar_source_root",
@@ -147,6 +147,8 @@ def _validate_config(config: Mapping) -> tuple[dict, dict]:
         raise ValueError("attack builder config schema differs")
     if set(config["table_by_seed"]) != {"0", "1"} or \
             set(config["gate_by_arm"]) != set(ARMS) - {"P_STAR"} or \
+            set(config["prior_combined_gate_by_arm"]) != \
+            set(ARMS) - {"W_Q", "P_STAR"} or \
             set(config["selected_unit_by_arm_seed"]) != {
                 f"{arm}_s{seed}" for arm in CHANNEL_ARMS for seed in (0, 1)}:
         raise ValueError("all two-seed tables and non-P* arm gates required")
@@ -224,13 +226,37 @@ def eligible_arms(config: Mapping) -> set[str]:
                     gate.get("fit_bank_proxy_applied") is not False or
                     gate.get("fit_bank_proxy_pass") is not None):
                 raise PermissionError("separate W_Q historical gate differs")
-        elif (gate.get("schema") != "pcrl-bank-r3-arm-point-eligibility-v1" or
-              gate.get("source_seal_sha256") != config["campaign_seal_sha256"] or
-              gate.get("fit_bank_proxy_pass") not in (True, False) or
-              gate.get("inner_original_caps_pass") not in (True, False) or
-              gate["all_two_seed_task_reference_point_caps_pass"] !=
-              (gate["fit_bank_proxy_pass"] and gate["inner_original_caps_pass"])):
-            raise PermissionError("two-seed original common gate differs")
+        else:
+            prior_pin = config["prior_combined_gate_by_arm"][arm]
+            prior = _read_pin(prior_pin)
+            fit = gate.get("fit_clauses", {})
+            inner = gate.get("inner_clauses", {})
+            receipts = gate.get("source_receipts", {})
+            if (gate.get("schema") != "pcrl-bank-r3-inner-attack-eligibility-v2" or
+                    gate.get("source_seal_sha256") != config["campaign_seal_sha256"] or
+                    fit.get("total") != 12 or inner.get("total") != 24 or
+                    type(fit.get("passed")) is not int or
+                    type(inner.get("passed")) is not int or
+                    not 0 <= fit["passed"] <= 12 or
+                    not 0 <= inner["passed"] <= 24 or
+                    gate.get("fit_bank_proxy_pass") is not (fit["passed"] == 12) or
+                    gate.get("inner_original_caps_pass") is not (inner["passed"] == 24) or
+                    gate["all_two_seed_task_reference_point_caps_pass"] is not
+                    gate["inner_original_caps_pass"] or
+                    set(receipts) != {f"s{seed}_{role}" for seed in (0, 1)
+                                      for role in ("fit", "inner")} or
+                    prior.get("schema") != "pcrl-bank-r3-arm-point-eligibility-v1" or
+                    prior.get("arm_id") != arm or
+                    prior.get("source_seal_sha256") != config["campaign_seal_sha256"] or
+                    prior.get("source_receipts") != receipts or
+                    prior.get("fit_clauses") not in (None, fit) or
+                    prior.get("inner_clauses") not in (None, inner) or
+                    prior.get("fit_bank_proxy_pass") is not gate["fit_bank_proxy_pass"] or
+                    prior.get("inner_original_caps_pass") is not gate["inner_original_caps_pass"] or
+                    prior.get("all_two_seed_task_reference_point_caps_pass") is not
+                    (gate["fit_bank_proxy_pass"] and gate["inner_original_caps_pass"]) or
+                    gate.get("supersedes_combined_gate_sha256") != prior_pin["sha256"]):
+                raise PermissionError("new INNER-only attack gate differs from original receipts")
         if gate["all_two_seed_task_reference_point_caps_pass"]:
             out.add(arm)
     if "B0" not in out:
@@ -560,6 +586,9 @@ def prepare(config_path: str) -> dict:
                  **{arm: config["gate_by_arm"][arm]["sha256"]
                     for arm in ARMS if arm != "P_STAR"},
                  "P_STAR": config["pstar_historical_gate"]["sha256"]},
+             "prior_combined_gate_sha256_by_arm": {
+                 arm: (config["prior_combined_gate_by_arm"][arm] or {}).get("sha256")
+                 for arm in ARMS if arm not in ("W_Q", "P_STAR")},
              "pstar_independent_replay_sha256": config["pstar_gate"]["sha256"],
              "unit_count": len(entries), "planned_fits": 30 * len(entries),
              "units": entries, "stage_lock_units": lock_units}
