@@ -98,7 +98,7 @@ def classify_null_descendants(unit_plan: Mapping, units: Mapping,
                 receipt.get("source_seed") != entry["seed"] or
                 receipt.get("a_amendment_sha256") != producer_sha256 or
                 any((path.parent / name).exists() for name in
-                    ("INCOMPLETE_RESOURCE.json", "POLICY_RECEIPT.json"))):
+                    ("INCOMPLETE_RESOURCE.json", "POLICY_RECEIPT.json", "policy.npz"))):
             raise PermissionError("FIT receipt does not certify no feasible policy")
         null_fits[fit_id] = entry
     descendants = set(null_fits)

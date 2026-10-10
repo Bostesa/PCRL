@@ -100,6 +100,13 @@ def test_null_descendant_technical_failure_is_not_a_scientific_missing_cell(tmp_
         classify_null_descendants(plan, units, [receipt], producer)
 
 
+def test_null_fit_with_stray_selected_policy_archive_is_rejected(tmp_path):
+    plan, units, receipt, _, producer = _plan_and_units(tmp_path)
+    (tmp_path / "policy.npz").write_bytes(b"stray selected policy")
+    with pytest.raises(PermissionError, match="no feasible policy"):
+        classify_null_descendants(plan, units, [receipt], producer)
+
+
 def test_missing_seed_keeps_k6885_and_seed1_clauses_available():
     from results.pcrl_latent_and_sampled_methods_v1.r02.test_a_inference import _seed
 
