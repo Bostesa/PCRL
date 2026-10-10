@@ -6,7 +6,7 @@ import numpy as np
 
 from fit import (FitRecipe, ProtectedData, TASK_CAP_KEYS, prepare_law,
                  exact_metrics, _identity_guards, _torch_metrics)
-from factor_controls import FactorGate, ProductPolicy
+from factor_controls import FactorGate, ProductPolicy, initial_factor_gate
 
 
 def fit_product(data: ProtectedData, policy: ProductPolicy, *,
@@ -45,12 +45,12 @@ def fit_product(data: ProtectedData, policy: ProductPolicy, *,
         rng = np.random.default_rng(recipe.seed + start_index)
         initial = []
         for _ in (1, 2):
-            arrays = [rng.normal(0, recipe.init_scale, size=shape) for shape in
-                      ((feature.shape[1], 16), (16,), (16, 4), (4,))]
-            if start_index == 0:
-                arrays[3][0] += recipe.identity_logit_bias
-            initial.extend(arrays)
-        weights = [torch.nn.Parameter(torch.as_tensor(v, dtype=torch.float64))
+            factor = initial_factor_gate(feature.shape[1], rng,
+                identity_biased=start_index == 0,
+                init_scale=recipe.init_scale,
+                identity_bias=recipe.identity_logit_bias)
+            initial.extend((factor.w1, factor.b1, factor.w2, factor.b2))
+        weights = [torch.nn.Parameter(torch.as_tensor(v.copy(), dtype=torch.float64))
                    for v in initial]
         optimizer = torch.optim.Adam(weights, lr=recipe.learning_rate)
         dual = {key: 0.0 for key in limits}

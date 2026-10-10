@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 import numpy as np
@@ -9,10 +10,11 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "impl"))
 from bank import FixedBank
 from channel import GateWeights
-from release import _mechanism_hash
+from release import _mechanism_hash, CachedJointRelease
 
 from factor_controls import (FactorGate, ProductPolicy, LocalPolicy,
-                             SequentialPolicy, public_probability_embedding)
+                             SequentialPolicy, public_probability_embedding,
+                             initial_factor_gate, _factor_law)
 
 
 def fixture():
@@ -34,6 +36,18 @@ def factor(width, bias=(0.0, 0.0, 0.0, 0.0), embedding=None):
 
 
 class FactorControlTest(unittest.TestCase):
+    def test_start_zero_and_uniform_factor_laws(self):
+        first = initial_factor_gate(8, np.random.default_rng(7),
+                                    identity_biased=True)
+        uniform = initial_factor_gate(8, np.random.default_rng(8),
+                                      identity_biased=False)
+        self.assertTrue(np.array_equal(first.w2, np.zeros((16, 4))))
+        self.assertTrue(np.array_equal(uniform.w2, np.zeros((16, 4))))
+        q0 = _factor_law(first, np.ones(8), (3, 1))
+        q1 = _factor_law(uniform, np.ones(8), (3, 1))
+        self.assertGreater(q0[0][1], .9)
+        self.assertEqual(q1, ((3, .5), (1, .5)))
+
     def test_central_product_has_independent_factors_and_distinct_hash(self):
         s1, s2, b1, b2, a1, a2, base = fixture()
         q = ProductPolicy(b1, b2, a1, a2, base,
@@ -53,6 +67,33 @@ class FactorControlTest(unittest.TestCase):
         self.assertAlmostEqual(sum(p for _, _, p in local.sparse_law(s1, s2, 0, 0)), 1)
         with self.assertRaises(ValueError):
             LocalPolicy(b1, b2, a1, a2, base, factor(8), factor(4))
+
+    def test_product_and_local_release_nonmonotone_action_ids(self):
+        s1, s2, b1, b2, a1, a2, base = fixture()
+        reverse1 = (tuple(sorted(a1[0], reverse=True)),)
+        reverse2 = (tuple(sorted(a2[0], reverse=True)),)
+        policies = (
+            ProductPolicy(b1, b2, reverse1, reverse2, base, factor(8), factor(8)),
+            LocalPolicy(b1, b2, reverse1, reverse2, base, factor(4), factor(4)),
+        )
+        for index, policy in enumerate(policies):
+            with self.subTest(kind=policy.law_kind):
+                law = policy.sparse_law(s1, s2, 0, 0)
+                self.assertEqual(tuple((i, j) for i, j, _ in law),
+                                 tuple(sorted((i, j) for i, j, _ in law)))
+                with tempfile.TemporaryDirectory() as directory:
+                    service = CachedJointRelease(
+                        policy, cache_path=Path(directory) / "release.sqlite",
+                        release_id=f"factor-{index}", source_seed=0,
+                        role="SYNTHETIC", realization=0,
+                        source_binding_sha256="0" * 64,
+                        private_root=b"r" * 32, offline=True)
+                    left = service.recipient(recipient=1, unit="p", score1=s1,
+                                             score2=s2, cell1=0, cell2=0)
+                    right = service.recipient(recipient=2, unit="p", score1=s1,
+                                              score2=s2, cell1=0, cell2=0)
+                    self.assertIn((left["code_id"], right["code_id"]),
+                                  {(i, j) for i, j, mass in law if mass > 0})
 
     def test_sequential_conditions_on_actual_first_public_code(self):
         s1, s2, b1, b2, a1, a2, base = fixture()

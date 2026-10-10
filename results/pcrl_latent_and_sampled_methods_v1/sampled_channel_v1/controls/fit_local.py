@@ -8,7 +8,7 @@ import numpy as np
 from bank import FixedBank
 from channel import GateWeights, _entropy_margin
 from fit import FitRecipe, TaskOnlyData, ProtectedData, exact_metrics
-from factor_controls import FactorGate, LocalPolicy
+from factor_controls import FactorGate, LocalPolicy, initial_factor_gate
 
 
 @dataclass(frozen=True)
@@ -122,11 +122,12 @@ def _fit_one(data, *, caps, recipe, clock):
             interrupted = True
             break
         rng = np.random.default_rng(recipe.seed + start_index)
-        arrays = [rng.normal(0, recipe.init_scale, size=shape) for shape in
-                  ((x.shape[1], 16), (16,), (16, 4), (4,))]
-        if start_index == 0:
-            arrays[3][0] += recipe.identity_logit_bias
-        weights = [torch.nn.Parameter(torch.as_tensor(v, dtype=torch.float64))
+        initial = initial_factor_gate(x.shape[1], rng,
+            identity_biased=start_index == 0,
+            init_scale=recipe.init_scale,
+            identity_bias=recipe.identity_logit_bias)
+        arrays = (initial.w1, initial.b1, initial.w2, initial.b2)
+        weights = [torch.nn.Parameter(torch.as_tensor(v.copy(), dtype=torch.float64))
                    for v in arrays]
         optim = torch.optim.Adam(weights, lr=recipe.learning_rate)
         dual = np.zeros(3)
@@ -185,19 +186,23 @@ def _fit_one(data, *, caps, recipe, clock):
 
 
 def fit_local_pair(data1: LocalFactorData, data2: LocalFactorData, *,
-                   gate: GateWeights, caps1, caps2, recipe: FitRecipe):
+                   gate: GateWeights, caps1, caps2,
+                   recipe1: FitRecipe, recipe2: FitRecipe):
     """Fit each purpose alone, then compose and replay the aligned coalition."""
     if (not isinstance(data1, LocalFactorData) or
             not isinstance(data2, LocalFactorData) or
-            not isinstance(gate, GateWeights) or not isinstance(recipe, FitRecipe) or
+            not isinstance(gate, GateWeights) or
+            not isinstance(recipe1, FitRecipe) or not isinstance(recipe2, FitRecipe) or
+            recipe1.seed == recipe2.seed or
+            recipe1.cpu_seconds != recipe2.cpu_seconds or
             data1.unit_ids != data2.unit_ids or
             not np.array_equal(data1.sex, data2.sex) or
             len(caps1) != 2 or len(caps2) != 2 or
             any(not np.isfinite(v) for v in (*caps1, *caps2))):
         raise ValueError("local factors require aligned own-purpose FIT capabilities")
     clock = time.process_time()
-    first = _fit_one(data1, caps=caps1, recipe=recipe, clock=clock)
-    second = (_fit_one(data2, caps=caps2, recipe=recipe, clock=clock)
+    first = _fit_one(data1, caps=caps1, recipe=recipe1, clock=clock)
+    second = (_fit_one(data2, caps=caps2, recipe=recipe2, clock=clock)
               if first["complete"] else None)
     complete = bool(first["complete"] and second is not None and second["complete"])
     success = bool(complete and first["success"] and second["success"])

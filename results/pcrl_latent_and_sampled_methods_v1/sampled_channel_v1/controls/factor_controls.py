@@ -9,7 +9,7 @@ import re
 
 import numpy as np
 
-from channel import JointPolicy, _entropy_margin
+from channel import JointPolicy, _entropy_margin, aggregate_public_pairs
 
 
 @dataclass(frozen=True)
@@ -58,6 +58,24 @@ class FactorGate:
         elif first_code is not None:
             raise ValueError("unconditioned factor cannot receive a first code")
         return np.tanh(hidden) @ self.w2 + self.b2
+
+
+def initial_factor_gate(input_width, rng, *, identity_biased,
+                        init_scale=.01, identity_bias=4.0, embedding=None):
+    """Frozen two-start geometry: random hidden layer, exact-zero output W2."""
+    if (type(input_width) is not int or input_width < 1 or
+            not isinstance(rng, np.random.Generator) or
+            type(identity_biased) is not bool or
+            not np.isfinite(init_scale) or init_scale <= 0 or
+            not np.isfinite(identity_bias) or identity_bias <= 0):
+        raise ValueError("invalid fixed factor initialization")
+    w1 = rng.normal(0, init_scale, size=(input_width, 16))
+    b1 = rng.normal(0, init_scale, size=(16,))
+    w2 = np.zeros((16, 4), dtype=np.float64)
+    b2 = np.zeros(4, dtype=np.float64)
+    if identity_biased:
+        b2[0] = identity_bias
+    return FactorGate(w1, b1, w2, b2, embedding)
 
 
 def _factor_law(gate, features, choices, *, first_code=None):
@@ -118,7 +136,10 @@ class ProductPolicy(JointPolicy):
         x1, x2 = self._factor_features(score1, score2)
         q1 = _factor_law(self.factor1, x1, self.actions1[cell1])
         q2 = _factor_law(self.factor2, x2, self.actions2[cell2])
-        return tuple((i, j, p1 * p2) for i, p1 in q1 for j, p2 in q2)
+        pair_mass = tuple(((i, j), p1 * p2) for i, p1 in q1 for j, p2 in q2)
+        return aggregate_public_pairs((pair for pair, _ in pair_mass),
+                                      np.asarray([mass for _, mass in pair_mass],
+                                                 dtype=np.float64))
 
 
 class LocalPolicy(ProductPolicy):

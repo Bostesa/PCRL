@@ -82,9 +82,12 @@ def main():
         data2 = LocalFactorData(score2, cell2, y2, sex, bank2, actions2, units)
         result = fit_local_pair(data1, data2, gate=gate,
                                 caps1=(10.0, 10.0), caps2=(10.0, 10.0),
-                                recipe=FitRecipe(updates=150, checkpoint_every=25,
-                                                 cpu_seconds=args.cpu_limit,
-                                                 seed=2701))
+                                recipe1=FitRecipe(updates=150, checkpoint_every=25,
+                                                  cpu_seconds=args.cpu_limit,
+                                                  seed=2701),
+                                recipe2=FitRecipe(updates=150, checkpoint_every=25,
+                                                  cpu_seconds=args.cpu_limit,
+                                                  seed=2801))
     else:
         task = TaskOnlyData(score1, score2, cell1, cell2, y1, y2)
         prepared = prepare_law(task, policy)

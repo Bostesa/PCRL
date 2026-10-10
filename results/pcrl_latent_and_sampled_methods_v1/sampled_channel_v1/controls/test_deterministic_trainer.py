@@ -11,6 +11,7 @@ import numpy as np
 from deterministic_trainer import (
     DeterministicBatch, DeterministicConfig, evaluate_selection,
     fit_deterministic, batch_from_prepared, as_public_gate, GateWeights,
+    initial_deterministic_gate,
 )
 
 
@@ -44,6 +45,14 @@ def _config(*, mode):
 
 
 class DeterministicTrainerTest(unittest.TestCase):
+    def test_update_zero_gate_initialization_is_exactly_uniform_or_identity_biased(self):
+        biased = initial_deterministic_gate(7, 0)
+        uniform = initial_deterministic_gate(7, 1)
+        self.assertTrue(np.array_equal(biased.w2, np.zeros((16, 16))))
+        self.assertTrue(np.array_equal(uniform.w2, np.zeros((16, 16))))
+        self.assertEqual(tuple(uniform.b2), (0.0,) * 16)
+        self.assertEqual(tuple(biased.b2), (4.0,) + (0.0,) * 15)
+
     def test_hard_task_rate_equals_entropy_of_emitted_public_pairs(self):
         batch = _batch()
         metrics = evaluate_selection(batch, np.array([0, 1, 0, 1]),

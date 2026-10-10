@@ -33,7 +33,10 @@ class LocalFitTest(unittest.TestCase):
         recipe = FitRecipe(updates=2, checkpoint_every=1, cpu_seconds=30,
                            seed=23, dual_every=1)
         result = fit_local_pair(d1, d2, gate=GateWeights.zeros(input_width=8),
-                                caps1=(1.0, 1.0), caps2=(1.0, 1.0), recipe=recipe)
+                                caps1=(1.0, 1.0), caps2=(1.0, 1.0),
+                                recipe1=recipe,
+                                recipe2=FitRecipe(updates=2, checkpoint_every=1,
+                                                  cpu_seconds=30, seed=24, dual_every=1))
         self.assertTrue(result["complete"])
         self.assertTrue(result["success"])
         self.assertEqual(len(result["recipient1"]["starts"]), 2)

@@ -200,6 +200,20 @@ def _rank(m):
     return (m.primary, m.occupied_pairs, sum(m.occupied_codes), sum(m.costs))
 
 
+def initial_deterministic_gate(seed: int, start_index: int) -> GateWeights:
+    """R11 two-start law: random hidden layer, exact-zero output matrix."""
+    if type(seed) is not int or seed < 0 or start_index not in (0, 1):
+        raise ValueError("invalid deterministic start identity")
+    rng = np.random.default_rng(seed + start_index)
+    w1 = rng.normal(0, .01, size=(12, 16))
+    b1 = rng.normal(0, .01, size=(16,))
+    w2 = np.zeros((16, 16), dtype=np.float64)
+    b2 = np.zeros(16, dtype=np.float64)
+    if start_index == 0:
+        b2[0] = 4.0
+    return GateWeights(w1, b1, w2, b2)
+
+
 def fit_deterministic(batch, config, *, caps, local_caps=None):
     """Two independent STE starts and a deployable 64-trial bias pass per start."""
     if not isinstance(batch, DeterministicBatch) or not isinstance(config, DeterministicConfig):
@@ -235,11 +249,8 @@ def fit_deterministic(batch, config, *, caps, local_caps=None):
         if time.process_time() - clock >= config.cpu_limit_seconds:
             complete = False
             break
-        rng = np.random.default_rng(config.seed + start_index)
-        arrays = [rng.normal(0, .01, size=shape) for shape in
-                  ((12, 16), (16,), (16, 16), (16,))]
-        if start_index == 0:
-            arrays[3][0] += 4.0
+        initialized = initial_deterministic_gate(config.seed, start_index)
+        arrays = (initialized.w1, initialized.b1, initialized.w2, initialized.b2)
         params = [torch.nn.Parameter(torch.as_tensor(a, dtype=torch.float64))
                   for a in arrays]
         optim = torch.optim.Adam(params, lr=config.learning_rate)
