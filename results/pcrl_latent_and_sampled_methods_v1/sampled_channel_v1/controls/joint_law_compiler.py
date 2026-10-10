@@ -74,6 +74,9 @@ def compile_joint_actions(
     one = Fraction(1) if rational else 1.0
     joint: dict[tuple[int, int], Fraction | float] = {}
     for id1, id2, weight in rows:
+        if (isinstance(id1, bool) or isinstance(id2, bool)
+                or not isinstance(id1, Integral) or not isinstance(id2, Integral)):
+            raise ValueError("joint action IDs must be integers, not booleans")
         if id1 not in ids1 or id2 not in ids2:
             raise ValueError("joint action names an inadmissible public bank ID")
         if (isinstance(weight, bool) or not isinstance(weight, (int, float, Fraction))
@@ -114,3 +117,64 @@ def compile_both_orders(
     ids1, ids2 = tuple(allowed1), tuple(allowed2)
     return (compile_joint_actions(rows, ids1, ids2, order="12"),
             compile_joint_actions(rows, ids1, ids2, order="21"))
+
+
+def verify_fitted_rows(
+    rows: Iterable[tuple[
+        Iterable[tuple[int, int, Fraction | float]], Iterable[int], Iterable[int]
+    ]],
+    *,
+    tolerance: float = 1e-12,
+) -> dict[str, int | float | tuple[str, str]]:
+    """Stream every fitted input row through both aliases and report residuals.
+
+    Each item is ``(public_pair_actions, allowed_ids_1, allowed_ids_2)``.
+    The caller supplies *all* admitted fitted rows; this function never
+    selects a convenient subset. Fractions are checked exactly. Float
+    probability and replay discrepancies are measured and bounded.
+    """
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("finite nonnegative replay tolerance required")
+    count = exact = zero_conditionals = 0
+    max_pair_residual = max_mass_residual = 0.0
+    for row_index, (actions, allowed1, allowed2) in enumerate(rows):
+        try:
+            action_list = tuple(actions)
+            ids1, ids2 = tuple(allowed1), tuple(allowed2)
+            if len(action_list) > 16 or len(ids1) > 4 or len(ids2) > 4:
+                raise ValueError("row exceeds the fixed 4-by-4 action capacity")
+            compiled = compile_both_orders(action_list, ids1, ids2)
+            rational = all(isinstance(item[2], Fraction) for item in action_list)
+            zero = Fraction(0) if rational else 0.0
+            expected: dict[tuple[int, int], Fraction | float] = {}
+            for id1, id2, mass in action_list:
+                key = (int(id1), int(id2))
+                expected[key] = expected.get(key, zero) + mass
+            expected = {key: mass for key, mass in expected.items() if mass}
+            if rational:
+                exact += 1
+            mass_residual = abs(float(sum(expected.values(), zero)) - 1.0)
+            max_mass_residual = max(max_mass_residual, mass_residual)
+            for factorization in compiled:
+                zero_conditionals += sum(mass == 0 for mass in factorization.marginal)
+                replay = factorization.replay()
+                keys = set(expected) | set(replay)
+                residual = max((abs(float(expected.get(key, zero) - replay.get(key, zero)))
+                                for key in keys), default=0.0)
+                max_pair_residual = max(max_pair_residual, residual)
+                if (rational and expected != replay) or residual > tolerance:
+                    raise ValueError("sequential compiler changed the public pair law")
+            count += 1
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"row {row_index}: {exc}") from exc
+    if count == 0:
+        raise ValueError("at least one fitted law row is required")
+    return {
+        "rows": count,
+        "orders": ("12", "21"),
+        "exact_rational_rows": exact,
+        "zero_marginal_conditionals": zero_conditionals,
+        "max_row_sum_residual": max_mass_residual,
+        "max_pair_replay_residual": max_pair_residual,
+        "tolerance": tolerance,
+    }
