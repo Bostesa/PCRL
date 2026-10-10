@@ -1,9 +1,9 @@
-# R18 deployment acceptance, preseal version 1
+# R18 deployment acceptance, staged version 2
 
 The source prompt requires a **run** on one real admitted input for each
-representative. These tests are prepared, not yet evidence of a real run. R00
-must seal the source/role contract and R03 must admit each unit before a
-scientific worker opens a role-only export.
+representative. The D worker and data-free tests are prepared, not yet
+evidence of a real R18 run. R00 must date-admit each unit and R03 must run
+it under the shared slot before the worker opens a role-only export.
 
 ## Source and one-row custody
 
@@ -71,13 +71,17 @@ The data-free fixtures in `test_adapter_acceptance.py` and
 the contract but do not establish a real deployment. The later real units are
 `R18-D-DEPLOY-REAL-S0` and `R18-A-DEPLOY-REAL-S0`, with one heavy slot each,
 exact `argv`/`cwd`/source and manifest SHAs, private output, CPU/wall/RSS
-ceilings and a fresh R03 receipt. R18 will bind R07/R12's final API and
-checkpoint/bank manifests before requesting those units. If A is not fitted
+ceilings and a fresh R03 receipt. The D worker at `r18/run_real_d_acceptance.py`
+is bound to the completed seed-0 D-K fit receipt and hash-pinned service,
+source checkpoint, effective lock, and canonical frozen U implementation.
+R10 statically reviewed its direct-script preaccess path; R00 has not yet
+listed the unit in a dated `d_followup` amendment. A will bind R12's fitted
+API and policy/bank/cache manifests when they exist. If A is not fitted
 or no sampled bank exists, mark its real unit untriggered under the sealed
 condition; do not describe a synthetic fixture as a deployed result.
 
-R07's source now carries a versioned calibrated service package; source and
-test hashes are still under review. The R18 synthetic fixture reconstructs
-probabilities from separately opened package head tensors and CAL records,
-without calling the service's code-head method. It has not run under the R03
-seal, and no real D deployment PASS is inferred from this engineering state.
+R07's completed seed-0 D-K package is hash-bound to its public fit receipt.
+The R18 synthetic fixture reconstructs probabilities from separately opened
+head tensors and CAL records, without calling the service's code-head method.
+The fixture and real worker have not run under R03, so no R18 deployment PASS
+is inferred from the static checks.
