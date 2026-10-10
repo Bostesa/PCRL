@@ -13,6 +13,9 @@ from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_laws import (
     BoundaryJointPolicy, IdentityPolicy, wire_fixed_bank_and_actions,
 )
 from results.pcrl_bank_anchored_release_v1.bank_anchored.r2_package import save_policy
+from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.controls.deterministic_policy import (
+    DeterministicJointPolicy,
+)
 from results.pcrl_latent_and_sampled_methods_v1.sampled_channel_v1.impl.channel import (
     GateWeights, JointPolicy,
 )
@@ -102,6 +105,38 @@ def test_selected_stochastic_cli_uses_private_pinned_draws(synthetic_bank, tmp_p
     with np.load(out, allow_pickle=False) as archive:
         assert set(archive.files) == {"code", "prob", "decision"}
         assert all(np.array_equal(archive[name], expected[name]) for name in expected)
+
+
+def test_selected_deterministic_cli_needs_no_random_draw_file(synthetic_bank, tmp_path):
+    s = synthetic_bank
+    service = load_bank_service(
+        source_root=s["source_root"], qpc_root=s["qpc_root"],
+        table_path=s["table"], expected_table_sha256=s["table_sha"],
+        expected_source_sha256=s["source_sha"],
+        expected_schema_sha256=s["schema_hash"], ordered_names=s["names"],
+        bank="W_TSTAR", seed=0)
+    base = _base(service)
+    policy = DeterministicJointPolicy(base.bank1, base.bank2,
+                                      base.actions1, base.actions2, base.gate)
+    package = tmp_path / "private_policy"
+    package.mkdir(mode=0o700)
+    receipt = save_policy(package, policy, arm_id="D", source_seed=0,
+                          source_binding_sha256="a" * 64,
+                          fit_receipt_sha256="b" * 64,
+                          selected_start="identity", selected_update=1)
+    out = tmp_path / "deterministic.npz"
+    main(_args(s, package, receipt, out))
+    repeated = tmp_path / "deterministic_repeated.npz"
+    main(_args(s, package, receipt, repeated))
+    with np.load(out, allow_pickle=False) as archive:
+        assert set(archive.files) == {"code", "prob", "decision"}
+        assert archive["code"].shape == (len(s["x"]), 10)
+        with np.load(repeated, allow_pickle=False) as second:
+            assert all(np.array_equal(archive[name], second[name])
+                       for name in ("code", "prob", "decision"))
+    with pytest.raises(ValueError, match="cannot read sampling coins"):
+        main(_args(s, package, receipt, tmp_path / "d_with_coin.npz") +
+             ["--draws", str(tmp_path / "unused.npz"), "--draws-sha256", "0" * 64])
 
 
 def test_selected_cli_refuses_wrong_source_schema_and_hidden_predictor(

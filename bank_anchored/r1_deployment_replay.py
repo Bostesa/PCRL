@@ -100,7 +100,7 @@ def run(config_path: Path) -> dict:
     pins = {name: _pin(value, registered) for name, value in cfg["pins"].items()}
     required = {"source_config", "source_receipt", "raw_sample", "schema_file",
                 "b0_r0", "b0_r1", "public_table", "policy_receipt", "policy_npz"}
-    if set(pins) != required | ({"draws"} if cfg["arm_id"] != "B0" else set()):
+    if set(pins) != required | ({"draws"} if cfg["arm_id"] not in ("B0", "D") else set()):
         raise ValueError("deployment replay source set differs")
     source = json.loads(pins["source_config"].read_text())
     witness = json.loads(pins["source_receipt"].read_text())
@@ -149,7 +149,7 @@ def run(config_path: Path) -> dict:
                    "--policy-receipt-sha256", cfg["policy_receipt_sha256"],
                    "--source-binding-sha256", cfg["source_binding_sha256"],
                    "--input", str(pins["raw_sample"]), "--output", str(wire)]
-        if cfg["arm_id"] != "B0":
+        if cfg["arm_id"] not in ("B0", "D"):
             command.extend(("--draws", str(pins["draws"]),
                             "--draws-sha256", _sha(pins["draws"])))
         result = subprocess.run(command, cwd=cfg["cwd"], check=True,

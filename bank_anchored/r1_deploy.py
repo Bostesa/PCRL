@@ -83,10 +83,13 @@ def main(argv: list[str] | None = None) -> None:
                                                     policy.actions2)[purpose]))):
             raise ValueError("selected policy bank or identity action differs from source wire")
     raw = load_permitted_input(args.input, list(names))
-    if receipt["arm_id"] == "B0":
+    if receipt["arm_id"] in ("B0", "D"):
         if args.draws is not None or args.draws_sha256 is not None:
-            raise ValueError("exact identity cannot read sampling coins")
-        uniforms = None
+            raise ValueError("deterministic release cannot read sampling coins")
+        # D inherits the one-uniform sampler API but its law is one-hot. A
+        # fixed selector is a call convention, not a sampled release coin.
+        uniforms = (None if receipt["arm_id"] == "B0" else
+                    np.full(len(raw), 0.5, dtype=np.float64))
     else:
         if args.draws is None or args.draws_sha256 is None:
             raise ValueError("selected nonidentity policy needs pinned private draws")
