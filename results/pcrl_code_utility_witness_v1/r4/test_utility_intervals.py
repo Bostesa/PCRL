@@ -4,11 +4,21 @@ import unittest
 import numpy as np
 
 from .finite_family import ordered_clause_ids
-from .utility_intervals import (BOOTSTRAP_SEED, cost_vectors,
+from .utility_intervals import (BOOTSTRAP_SEED, _weights, cost_vectors,
                                 evaluate_utility_family)
 
 
 class UtilityIntervalTest(unittest.TestCase):
+    def test_draws_match_locked_pcg64_integer_sequence(self):
+        units = np.array([20, 20, 10, 30], dtype=np.int64)
+        draw, inverse = _weights(units)
+        sampled = np.random.Generator(np.random.PCG64(BOOTSTRAP_SEED)).integers(
+            0, 3, size=(2048, 3), dtype=np.int64)
+        expected = np.stack([np.bincount(row, minlength=3)
+                             for row in sampled])
+        self.assertTrue(np.array_equal(draw, expected))
+        self.assertTrue(np.array_equal(inverse, [1, 1, 0, 2]))
+
     def test_cost_signs_and_metrics(self):
         y = np.array([0, 1], dtype=np.int64)
         candidate = np.array([[.8, .2], [.6, .4]], dtype=np.float64)

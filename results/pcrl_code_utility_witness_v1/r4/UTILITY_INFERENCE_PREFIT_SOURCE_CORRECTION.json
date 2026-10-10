@@ -1,0 +1,9 @@
+{
+  "schema": "pcrl-r4-utility-inference-prefit-source-correction-v1",
+  "dated_utc": "2026-10-10T05:52:07Z",
+  "status": "PREFIT_ENGINEERING_CORRECTION",
+  "reason": "Initial pure-array implementation used NumPy multinomial group counts. The sealed INFERENCE_RANDOMNESS_LOCK specifies PCG64 integer-index draws. The two are distributionally equivalent but have different deterministic streams.",
+  "correction": "Use explicit numpy.random.Generator(numpy.random.PCG64(24681357)), integers(0, n_groups, size=(2048, n_groups), dtype=int64) on ascending unique group IDs, and count each draw with bincount.",
+  "scope": "No INNER person arrays, labels, candidate outcomes, or interval run were read by R4 before this correction. The finite K, endpoint signs, full-K critical, and seed-mean rule are unchanged.",
+  "test": "Data-free synthetic test compares all 2048 group-count rows to the locked PCG64 integer stream."
+}

@@ -58,10 +58,11 @@ def _weights(units: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     groups, inverse = np.unique(ids, return_inverse=True)
     if len(groups) < 2:
         raise ValueError("paired-group inference needs at least two groups")
-    rng = np.random.default_rng(BOOTSTRAP_SEED)
-    draw = rng.multinomial(len(groups),
-                           np.full(len(groups), 1 / len(groups), dtype=np.float64),
-                           size=BOOTSTRAP_DRAWS)
+    rng = np.random.Generator(np.random.PCG64(BOOTSTRAP_SEED))
+    sampled = rng.integers(0, len(groups),
+                           size=(BOOTSTRAP_DRAWS, len(groups)), dtype=np.int64)
+    draw = np.stack([np.bincount(row, minlength=len(groups))
+                     for row in sampled])
     return draw, inverse
 
 
