@@ -185,6 +185,10 @@ def run(args: argparse.Namespace) -> dict:
                                     sex=protected.sex)
         warm_full = fit_arm(task, TrainConfig(epochs=e0), args.seed, mode="T",
                             scaler=scaler, full_fit=True, batch_plan=full_plan[:e0])
+        warm_full_sha = _npz_once(out / "warm_full_state.npz", {
+            name: value.detach().cpu().numpy().copy()
+            for name, value in warm_full.state_dict.items()
+        })
         t_full = fit_arm(task, TrainConfig(epochs=ec), args.seed, mode="T",
                          init_state=warm_full.state_dict, scaler=scaler,
                          full_fit=True, batch_plan=full_plan[:ec])
@@ -272,6 +276,7 @@ def run(args: argparse.Namespace) -> dict:
                    "reference_replay": {"OSF_DEFENSE_FIT": reference_fit_receipt,
                                         "INNER_SELECTION": reference_inner_receipt},
                    "fit": fit_receipt,
+                   "warm_full_state_sha256": warm_full_sha,
                    "packages": {arm: {k: v for k, v in package.items() if k != "manifest_path"}
                                 for arm, package in packages.items()},
                    "roles": role_receipts,
@@ -282,6 +287,7 @@ def run(args: argparse.Namespace) -> dict:
             "release_files": [str(out / f"release__{arm}__{role}.npz")
                               for role in role_receipts for arm in releases],
             "endpoint_file": str(out / "endpoint__INNER_SELECTION.npz"),
+            "warm_full_state_file": str(out / "warm_full_state.npz"),
         })
         _json_once(Path(args.public_receipt), receipt)
         return receipt
