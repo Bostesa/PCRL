@@ -440,7 +440,8 @@ def test_outer_worker_uses_actual_wires_and_delays_inner_sex(tmp_path, monkeypat
     amendment = tmp_path / "amendment.json"
     amendment.write_text("{}\n")
     root = tmp_path / ".private" / "attempt"
-    root.parent.mkdir(mode=0o700)
+    root.parent.mkdir(mode=0o700, exist_ok=True)
+    root.parent.chmod(0o700)
     att = role("ATTACK_FIT_NEW")
     inner = role("INNER_SELECTION")
     pair_sha = sha_array(np.column_stack((att.row_id, att.unit)))
