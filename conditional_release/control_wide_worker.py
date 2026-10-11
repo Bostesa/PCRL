@@ -8,7 +8,7 @@ from .source import load_manifest,load_allowed_role,sha_file,write_once
 from .fit import prepare_inputs,archive_result,write_npz
 from .preparation import constraint_rows,ORIGINAL_CAPS
 from .templates import build_template_law
-from .secondary import bank_action_costs,bank_expected_rows
+from . import memory_lp
 from .reader_extension import frozen_local_loss_tables,losses_for_actions
 from .controls import ControlCeilings,solve_binary_control
 from .wide_control_fit import fit_product,fit_sequential,pad_template
@@ -17,7 +17,7 @@ from .control_wide_policy import ControlWidePolicy,save_wide_control_policy
 
 def run(config):
     from .scheduler import assert_active_from_env
-    from .lp import direct_bayes
+    direct_bayes=memory_lp.direct_bayes
     active=assert_active_from_env(stage="protection")
     cfg=json.loads(Path(config).read_text())
     if active["unit_id"]!=cfg["unit_id"] or sha_file(cfg["science_lock"])!=cfg["science_lock_sha256"]:
@@ -53,7 +53,7 @@ def run(config):
     tables,catalog,reader_arrays,index=frozen_local_loss_tables(manifest,cfg["seed"],space,data["fit"]["fold"],sex)
     del reader_arrays
     p={"code_r1":template.emitted1,"code_r2":template.emitted2,"b0_code_r1":c1,"b0_code_r2":c2}
-    costs=bank_action_costs(space,p,data["labels"])
+    costs=memory_lp.LazyTaskCosts(space,p,data["labels"])
     losses=losses_for_actions(tables,template.emitted1,template.emitted2,data["fit"]["fold"],sex)
     def constraints(law):
         return constraint_rows(law,costs,data["fit"]["fold"],data["references"],losses,cfg["budget"])[0]
@@ -63,10 +63,11 @@ def run(config):
             own1,groups1=np.unique(c1,return_inverse=True);own2,groups2=np.unique(c2,return_inverse=True)
         else:
             groups1=groups2=layout_contexts.copy();groups1[groups1<0]=0
-        result=fit_product(template,metadata,layout_contexts,groups1,groups2,sex,constraints,ceilings)
-        for i,attempt in enumerate(result["attempts"]):
+        def archive_coordinate(i,attempt):
             archives.append({"start":attempt["start"],"round":attempt["round"],"recipient":attempt["recipient"],
                              "solve":archive_result(private,f"COORD_{i:02d}",attempt["result"])})
+        result=fit_product(template,metadata,layout_contexts,groups1,groups2,sex,constraints,ceilings,
+                           solver_module=memory_lp,attempt_callback=archive_coordinate)
         if result["success"]:
             selected=result["selected"];one,two=selected["factors"]
             if kind=="LOCAL":
@@ -77,7 +78,7 @@ def run(config):
             else:
                 policy=ControlWidePolicy(space,kind,data["context"],one,two,metadata=metadata)
     elif kind=="DETERMINISTIC":
-        result=solve_binary_control(template,sex,constraints(template),ceilings)
+        result=solve_binary_control(template,sex,constraints(template),ceilings,protection_program_builder=memory_lp.protection_program)
         archives.append({"stage":"relaxation","solve":archive_result(private,"RELAXATION",result["relaxation"])})
         archives.append({"stage":"binary","solve":archive_result(private,"BINARY",result)})
         if result["unsnapped_primal"] is not None:write_npz(private/"BINARY_RAW_SOLVER_PRIMAL.npz",{"primal":result["unsnapped_primal"]})
@@ -87,7 +88,7 @@ def run(config):
             policy=ControlWidePolicy(space,kind,data["context"],result["theta"],metadata=metadata)
     else:
         first=1 if kind=="SEQ12" else 2
-        result=fit_sequential(template,metadata,layout_contexts,sex,constraints,first,ceilings)
+        result=fit_sequential(template,metadata,layout_contexts,sex,constraints,first,ceilings,solver_module=memory_lp)
         archives.append({"stage":"first","solve":archive_result(private,"FIRST",result["first_result"])})
         if result["second_result"] is not None:
             archives.append({"stage":"second","solve":archive_result(private,"SECOND",result["second_result"])})
@@ -102,6 +103,7 @@ def run(config):
             "maximum_planned_solver_calls":16 if kind in ("LOCAL","PRODUCT") else 2,
             "skipped_solver_slots":(16 if kind in ("LOCAL","PRODUCT") else 2)-len(archives),
             "support_metadata":metadata,"frozen_guard_catalog":catalog,
+            "engineering_backend":"exact encoded-pair memory_lp with lazy task costs; mature HiGHS unchanged",
             "status":"INCOMPLETE_CONTROL" if policy is None else "COMPLETE","global_optimality_claimed":False}
     if policy is not None:
         law,theta=selected["law"],selected["theta"]
@@ -126,7 +128,7 @@ def run(config):
         inner=load_allowed_role(manifest,cfg["seed"],"INNER_SELECTION",fields=("income","occupation","references"))
         w=inner["wire"];a,b,mass=policy.law_codes(w["code_r1"],w["code_r2"])
         ip={"code_r1":a,"code_r2":b,"b0_code_r1":w["code_r1"],"b0_code_r2":w["code_r2"]}
-        utility=bank_expected_rows(ip,mass,space,(inner["income"]["income"],inner["occupation"]["occupation"]),inner["references"])
+        utility=memory_lp.expected_rows(ip,mass,space,(inner["income"]["income"],inner["occupation"]["occupation"]),inner["references"])
         gates=[];utility_arrays={"row_id":w["row_id"],"unit":w["unit"]}
         for ref,values in utility["excess"].items():
             for key,value in values.items():

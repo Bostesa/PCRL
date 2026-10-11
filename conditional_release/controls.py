@@ -252,13 +252,14 @@ def fit_independent_product(emitted1, emitted2, identity1, identity2, groups1, g
             "elapsed_seconds": time.monotonic() - begun}
 
 
-def solve_binary_control(law, sensitive, constraints, ceilings=ControlCeilings()):
+def solve_binary_control(law, sensitive, constraints, ceilings=ControlCeilings(), *, protection_program_builder=None):
     """Fit binary context/action weights with a genuine mixed-integer solver."""
     import time
     from scipy.optimize import milp, Bounds, LinearConstraint
     from .lp import protection_program, solve_program
     begun = time.monotonic()
-    program = protection_program(law, sensitive, constraints)
+    builder = protection_program if protection_program_builder is None else protection_program_builder
+    program = builder(law, sensitive, constraints)
     # The continuous relaxation is a lower bound for this exact MIP family.
     # It is separately counted by the caller, not reported as the MIP fit.
     relaxation = solve_program(program, time_limit=max(.001, (ceilings.seconds - (time.monotonic()-begun)) / 4),

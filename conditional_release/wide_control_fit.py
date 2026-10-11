@@ -97,7 +97,10 @@ def sequential_second_law(template,metadata,contexts,groups,frozen_first,first_r
                      delta,bounds,template.weights,equality[:count],rhs[:count])
 
 
-def fit_product(template,metadata,contexts,groups1,groups2,sensitive,constraints_builder,ceilings=ControlCeilings()):
+def fit_product(template,metadata,contexts,groups1,groups2,sensitive,constraints_builder,ceilings=ControlCeilings(), *, solver_module=None, attempt_callback=None):
+    backend = solver_module
+    solve = solve_protection if backend is None else backend.solve_protection
+    bayes = direct_bayes if backend is None else backend.direct_bayes
     begun=time.monotonic();width=widths(metadata)
     groups=(np.asarray(groups1,np.int64),np.asarray(groups2,np.int64))
     active=np.asarray(contexts)>=0
@@ -114,11 +117,18 @@ def fit_product(template,metadata,contexts,groups1,groups2,sensitive,constraints
                 rows=constraints_builder(law)
                 remaining=ceilings.seconds-(time.monotonic()-begun)
                 if remaining<=0:stop=True;break
-                result=solve_protection(law,sensitive,rows,time_limit=remaining,tolerance=ceilings.feasibility_tolerance)
-                attempts.append({"start":start,"round":iteration,"recipient":recipient,"result":result})
+                result=solve(law,sensitive,rows,time_limit=remaining,tolerance=ceilings.feasibility_tolerance)
+                attempt={"start":start,"round":iteration,"recipient":recipient,"result":result}
+                if attempt_callback is not None:
+                    attempt_callback(len(attempts),attempt)
+                    # Full primal/dual/matrices are already immutable on disk.
+                    # Keep only what selection needs; no array/result history.
+                    result={k:result[k] for k in ("success","theta","certificate","solver_class") if k in result}
+                    attempt["result"]=result
+                attempts.append(attempt)
                 if not result["success"]:stop=True;break
                 factors[own]=result["theta"].reshape(-1,width[own])
-                objective,views=direct_bayes(law,result["theta"],sensitive)
+                objective,views=bayes(law,result["theta"],sensitive)
                 if best is None or objective<best["objective"]-1e-12:
                     best={"law":law,"theta":result["theta"],"objective":objective,"views":views,
                           "factors":[v.copy() for v in factors],"result":result,
@@ -142,7 +152,10 @@ def emitted_first_matrix(template,metadata,contexts,recipient):
     return output
 
 
-def fit_sequential(template,metadata,contexts,sensitive,constraints_builder,first_recipient,ceilings=ControlCeilings()):
+def fit_sequential(template,metadata,contexts,sensitive,constraints_builder,first_recipient,ceilings=ControlCeilings(), *, solver_module=None):
+    backend = solver_module
+    solve = solve_protection if backend is None else backend.solve_protection
+    bayes = direct_bayes if backend is None else backend.direct_bayes
     begun=time.monotonic();width=widths(metadata);first=first_recipient-1;later=1-first
     contexts=np.asarray(contexts,np.int64)
     # Unsupported rows have constant identity mass in the template and do not
@@ -155,7 +168,7 @@ def fit_sequential(template,metadata,contexts,sensitive,constraints_builder,firs
     keys_groups[positive]=apply_second_groups(group[positive],emitted[positive],keys)
     keep=np.zeros((len(group),width[later]));keep[:,0]=1.
     law1=coordinate_law(template,metadata,contexts,group,keep,first_recipient)
-    result1=solve_protection(law1,sensitive,constraints_builder(law1),
+    result1=solve(law1,sensitive,constraints_builder(law1),
                               time_limit=max(.001,ceilings.seconds/2-(time.monotonic()-begun)),
                               tolerance=ceilings.feasibility_tolerance)
     record={"success":False,"first_result":result1,"second_result":None,
@@ -165,12 +178,12 @@ def fit_sequential(template,metadata,contexts,sensitive,constraints_builder,firs
     theta1=result1["theta"].reshape(-1,width[first])
     frozen_first=theta1[group]
     law2=sequential_second_law(template,metadata,contexts,keys_groups,frozen_first,first_recipient)
-    result2=solve_protection(law2,sensitive,constraints_builder(law2),
+    result2=solve(law2,sensitive,constraints_builder(law2),
                               time_limit=max(.001,min(ceilings.seconds/2,ceilings.seconds-(time.monotonic()-begun))),
                               tolerance=ceilings.feasibility_tolerance)
     record["second_result"]=result2
     if result2["success"]:
-        objective,views=direct_bayes(law2,result2["theta"],sensitive)
+        objective,views=bayes(law2,result2["theta"],sensitive)
         record.update(success=True,first_theta=theta1,second_theta=result2["theta"].reshape(-1,width[later]),
                       law=law2,theta=result2["theta"],objective=objective,views=views)
     return record
