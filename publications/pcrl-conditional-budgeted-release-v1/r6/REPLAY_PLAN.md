@@ -1,54 +1,92 @@
-# Independent replay scope
+# Independent replay scope and progress
 
-R6 shares only written definitions and serialized input formats. Its scientific
+R6 shares written definitions and serialized file formats. Its scientific
 package imports no runner optimization, deployment, metric or selection code.
-The shared queue guard is used as infrastructure. Standard NumPy/SciPy,
-PyTorch functional layers and frozen third-party estimator predictions are
-permitted; an estimator prediction replay is not an independent refit.
+The shared queue guard is infrastructure. Standard numerical libraries and
+frozen third-party estimator predictions are permitted; prediction replay is
+not an independent refit. Every numerical job uses the common resource queue.
 
-## Completed
+## Completed with actual queued PASS receipts
 
-Thirteen locked arithmetic/context/group-score fixtures passed through the
-shared queue. Independent frozen raw83 encoder and fine-cell routing matched
-192 representative outputs exactly, with teacher-score gaps at most
-2.23e-16. Source seeds/roles, inherited folds and full-role source laws were
-checked. Both preparation units matched all 72 budget translations exactly,
-27/22 supported contexts, 48/0 FIT fallback rows and every local guard.
+- Thirteen locked arithmetic/context/group-score fixtures and five independent
+  sampler fixtures.
+- All 43,466 admitted raw83 role/seed rows: source codes, H-CLASS decoded
+  probabilities and decisions exactly match; original U0 scores agree within
+  1e-12. No task or SEX labels enter this source forward. Ucal is a pinned
+  predecessor reference; no recalibration claim is made here.
+- Full allowed-role source laws, disjoint/paired people, inherited folds,
+  27/22 supported contexts, 48/0 FIT fallback rows, all 72 budget translations
+  per seed and every frozen local guard coefficient.
+- Every G/C primary and NARROW/WIDE secondary witness/protection/Phase-I
+  program: complete constraints, epigraph, objective, support, normalization,
+  dual signs and primal-dual arithmetic. ORIGINAL finite-family infeasibility
+  is certified on FIT. That does not prove INNER or population infeasibility.
+- Exact executable G/C/N/W and baseline P0/history laws on every allowed
+  person, actual tuple Bayes objectives/change, all 144 FIT reader guards per
+  policy, every INNER task-loss vector and all point utility gates.
+- FIT-only nomination: W_STRICT and G_STRICT eligible across both paired
+  seeds; W_STRICT nominated by the locked equal-seed FIT objective. Exact
+  task-only witness preservation independently passes both seeds.
+- Raw83, law, HMAC/CDF and every CLI/API wire byte for both seeds of P0,
+  historical joint/sequential, G/C/N/W/UT, deterministic, PRODUCT and LOCAL.
+  Every real duplicate group has equal float32 raw83 and equal P0 wires.
+- Deterministic-control seed0 full program matches the independently
+  reconstructed WIDE program. Its feasible integer incumbent has an
+  independently valid remaining objective-gap upper bound of 0.00511352294.
+  Integer global optimality is not independently proved. Corrected seed1
+  also passes, with a valid relaxation-gap upper bound of 0.00537989494.
+  Its original 4.96408e-7 raw-integrality refusal remains preserved.
+- Both LOCAL controls: every archived successful LP arithmetic check,
+  registered factor updates/earliest-best choice, actual tuple objectives,
+  all matched FIT task caps/guards and INNER utility arrays. Both fail the
+  INNER point utility gate. Their lower FIT recovery is not an eligible win.
+
+- Both PRODUCT controls: archived LP arithmetic, selected factor provenance,
+  actual laws/task caps/local guards and INNER point gates independently pass.
+  Corrected seed0 retains the original tiny-negative runtime refusal and uses
+  one registered fixed numerical-accuracy rerun without projection.
+- Both sequential orders across both seeds: archive arithmetic, frozen first-stage/actual-code
+  hierarchy, deployed laws, FIT caps/guards and INNER task gates pass.
+
+- All twenty frozen reader banks: all 600 frozen model prediction laws,
+  complete-bank wire/DA-prior features, exact weighted ATT training counts,
+  ATT-only orientations and ignore-other aliases pass. CELL predictions use
+  independent count arithmetic without loading its pickle. Other predictions
+  use frozen standard sklearn estimators/scalers; no refits. Separate custody
+  replay proves every bank uses the exact admitted ATT rows/groups/SEX labels.
+- All 408 absolute task slots: 312 actual expected-law task means and both
+  references independently pass; 96 ORIGINAL-family slots remain absent.
+  Maximum absolute arithmetic disagreement is 4.44e-16.
+- Both sequential orders across both seeds also pass actual raw83/HMAC/CDF
+  and every wire byte. One failed metadata-label replay is preserved, followed
+  by a registered config-only correction using existing sampler fixtures.
+
+## Final scientific core replay completed
+
+All twenty actual INNER reports pass independent score lookup, every reader
+AUC, complete-view envelope and null/shuffled/planted probe arithmetic. Every
+report's rows/groups/SEX matches the admitted role-only source after the global
+all-reader freeze. All 552 registered primary slots are replayed, including
+393 evaluated and 159 missing dependencies. Every one of the 2,048 paired
+bootstrap vectors and interval/boundary values matches exactly. Public arm
+aggregates and the frozen eligible control pool/tolerance/tie order also pass.
+The strongest descriptive control is S12; the nominee stays W.
+
+Correct replay preserves the result: W has 9 passed and 15 unresolved utility
+bounds; all 27 evaluated coalition 0.020 targets are shortfalls. No complete
+common-criterion or competitive joint advantage is established.
 
 ## Required remaining replay
 
-1. Every successful primary witness and protection solve: all task/reference
-   and guard matrix coefficients, all actual Bayes output/SEX epigraph rows,
-   expected action losses, change rates, bounds and primal/dual certificate.
-   Any Phase-I infeasibility certificate is checked against the actual bounded
-   family. Certified optimization of an empirical family is not a population
-   guarantee or held-out sensitive recovery result.
-2. Every eligible secondary/control: public template support and runtime
-   information scope, exact simplex/binary/factorization behavior, frozen
-   source guard extension, actual emitted wire and all utility clauses.
-   A bilinear coordinate optimum is not a joint global optimality result.
-3. FIT-only nomination and original INNER utility point gate, retaining all
-   prospective endpoint dependencies. No reporting SEX enters selection.
-4. Every frozen reader's integrated AUC, controls, paired group resampling,
-   mean across source seeds, primary endpoint intervals and boundary labels.
-   Reader fitting remains fixed in the primary uncertainty calculation.
-5. Restored raw83 deployment, public wire fields, cached duplicate-person
-   behavior, independent sampler-law parity and representative frozen-reader
-   predictions from versioned backup alone.
+1. Representative raw83 deployment and frozen-reader prediction replay using
+   actual versioned restored inputs alone; off-device custody remains pending
+   unless a different mounted filesystem is verified.
+2. Final complete resource/unit/custody account and independent closeout record.
 
-No independent reader has yet been refitted for this campaign. Any later
-diagnostic refit will have its own queue unit and explicit scope. Replaying
-saved prediction tables is not a refit.
+No independent reader has been refitted. Seeds are fitted on the same paired
+people; no fresh confirmation population is opened. Exact expected-law AUC
+is single-query integration conditional on fixed models and policy, and does
+not make development rows unexposed. WIDE versus NARROW changes both support
+and parameter capacity, so it does not isolate support attribution.
 
-## Findings and limits
-
-The ORIGINAL FIT budget contains negative remaining allowances; these remain
-negative in independent reconstruction. This is a role/family feasibility
-question and does not establish INNER infeasibility. Data-free heterogeneity
-shows a possible allocation effect in that law only. WIDE versus NARROW
-changes support and parameter capacity; no isolated support credit follows.
-Model seeds are paired fits on the same people. No new confirmation population
-is opened, and exact expected-law AUC does not remove prior exposure.
-
-All final statuses remain pending until corresponding numerical replay units
-finish. This plan is not a completion receipt.
+This progress document is not a final completion receipt.
