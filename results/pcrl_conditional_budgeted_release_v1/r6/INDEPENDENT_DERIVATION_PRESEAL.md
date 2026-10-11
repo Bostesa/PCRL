@@ -62,6 +62,6 @@ untested protection, not a privacy failure.
 
 ## Execution status
 
-The eight fixed tests in `test_arithmetic.py` are written but not run pending
+The nine fixed tests in `test_arithmetic.py` are written but not run pending
 engineering-law lock and shared queue permission. No numerical optimizer,
 private array, INNER sensitive label or new reader is used by this document.
