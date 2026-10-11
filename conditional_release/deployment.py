@@ -92,3 +92,66 @@ def historical_law(policy):
         p=policy.space.prepare(c1,c2)
         return p['code_r1'],p['code_r2'],policy.law_prepared(p)
     return law
+
+
+def main(argv=None):
+    import argparse
+    from qpc.deploy import load_permitted_input
+    from .source import sha_file,load_historical_policy
+    parser=argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument('--source-manifest',required=True)
+    parser.add_argument('--source-manifest-sha256',required=True)
+    parser.add_argument('--seed',type=int,choices=(0,1),required=True)
+    parser.add_argument('--kind',choices=('P0','ALLOCATION','V_J','V_S21'),required=True)
+    parser.add_argument('--policy-dir')
+    parser.add_argument('--policy-receipt-sha256')
+    parser.add_argument('--input',required=True)
+    parser.add_argument('--input-sha256',required=True)
+    parser.add_argument('--person-keys',required=True)
+    parser.add_argument('--person-keys-sha256',required=True)
+    parser.add_argument('--sampling-root',required=True)
+    parser.add_argument('--cache',required=True)
+    parser.add_argument('--output-r1',required=True)
+    parser.add_argument('--output-r2',required=True)
+    args=parser.parse_args(argv)
+    if args.output_r1==args.output_r2:raise ValueError('recipient outputs must differ')
+    if any(Path(x).exists() for x in (args.output_r1,args.output_r2)):raise FileExistsError('new output paths required')
+    if sha_file(args.input)!=args.input_sha256:raise PermissionError('raw input binding differs')
+    if sha_file(args.person_keys)!=args.person_keys_sha256:raise PermissionError('provider cache keys binding differs')
+    manifest=load_manifest(args.source_manifest,args.source_manifest_sha256)
+    service=load_p0_service(manifest,args.seed)
+    if args.kind=='ALLOCATION':
+        if not args.policy_dir or not args.policy_receipt_sha256:raise ValueError('allocation requires bound policy')
+        from .fit import load_allocation_policy
+        policy=load_allocation_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+        receipt=json.loads((Path(args.policy_dir)/'POLICY_RECEIPT.json').read_text())
+        if receipt['seed']!=args.seed:raise PermissionError('allocation source seed differs')
+        law=policy.law_codes;binding=args.policy_receipt_sha256
+    elif args.kind=='P0':
+        if args.policy_dir or args.policy_receipt_sha256:raise ValueError('P0 cannot accept policy arguments')
+        law=identity_law;binding=manifest['seeds'][str(args.seed)]['public_bank']['sha256']
+    else:
+        if args.policy_dir or args.policy_receipt_sha256:raise ValueError('historical policy paths come only from admitted manifest')
+        law=historical_law(load_historical_policy(manifest,args.seed,args.kind))
+        binding=manifest['seeds'][str(args.seed)]['policies'][args.kind]['receipt']['sha256']
+    raw=load_permitted_input(args.input,list(service.names))
+    keys=json.loads(Path(args.person_keys).read_text())
+    if not isinstance(keys,list):raise ValueError('provider person keys must be JSON list')
+    root=Path(args.sampling_root)
+    if root.is_symlink() or root.stat().st_mode&0o077:raise PermissionError('private sampling root permission required')
+    secret=root.read_bytes()
+    if len(secret)!=32:raise ValueError('private root must be exactly 32 bytes')
+    api=CachedRelease(service,law,policy_sha256=binding,cache_path=args.cache,secret=secret)
+    try:wires=api.release(raw,service.names,keys)
+    finally:api.close()
+    hashes=[]
+    for path,view in zip((args.output_r1,args.output_r2),wires):
+        with os.fdopen(os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w') as stream:
+            for wire in view:stream.write(json.dumps(wire,sort_keys=True,separators=(',',':'),allow_nan=False)+'\n')
+            stream.flush();os.fsync(stream.fileno())
+        hashes.append(sha_file(path))
+    print(json.dumps({'schema':'CBR1-cached-raw83-deployment-receipt-v1','kind':args.kind,'seed':args.seed,
+                      'rows':len(wires[0]),'policy_binding_sha256':binding,'wire_sha256':hashes,
+                      'contract':'one cached draw per provider person key; no transmitted cache key'},sort_keys=True))
+
+if __name__=='__main__':main()
