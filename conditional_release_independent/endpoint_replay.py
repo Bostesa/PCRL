@@ -101,6 +101,7 @@ def run(config):
             gaps.extend([abs(interval['sd']-float(row['bootstrap_sd'])),abs(interval['critical']-float(row['critical_value']))])
             if item['direction']=='upper_cap':status='PASS' if interval['upper']<=item['threshold'] else 'VIOLATION' if interval['lower']>item['threshold'] else 'UNRESOLVED'
             elif item['direction']=='lower_target':status='PASS' if interval['lower']>=item['threshold'] else 'SHORTFALL' if interval['upper']<item['threshold'] else 'UNRESOLVED'
+            elif item['direction']=='lower_strict':status='PASS' if interval['lower']>item['threshold'] else 'SHORTFALL' if interval['upper']<item['threshold'] else 'UNRESOLVED'
             else:raise ValueError('unknown frozen boundarydirection')
             if row['status']!=status:raise ValueError('boundary label mismatch')
             checked.append({'endpoint_id':endpoint,'status':status})
