@@ -31,6 +31,22 @@ A runnable diagnostic package is not a utility or privacy pass. Scientific eligi
 
 `conditional_release.restore_deployment_worker` replays the raw inputs and original private sampling roots from a restored snapshot, comparing recipient wires byte-for-byte against the wires stored in that same backup. It rejects artifact inputs outside the restore tree. Actual restore unit receipts, when run, state their coverage; the small synthetic custody fixture is not a real-data restore.
 
+## Actual recovery checks and required layout supplement
+
+The captured scientific commit is `75b2ac258b451e17029e6d4c7426f46c942f8217`. The actual private snapshot contains 8,738 files. Its separate-filesystem copy and both restored trees passed uncached byte verification. All eight implementer W_STRICT/S12_SELECTED wire checks (both paired seeds, both trees) and both independent raw and frozen-reader replay pairs passed. These are representative recovery checks; they do not numerically rerun every package. No scientific model or reader was refitted. `CUSTODY_NUMERICAL_SUMMARY.json` binds the actual receipts.
+
+A first restored runtime failed because the versioned aliases separated a historical policy receipt from its package, while the pinned predecessor loader requires adjacent files. Correction T was pushed before affected reruns. The original failed unit and three unrun superseded units remain recorded. The scientific snapshot, original manifest, package bytes and release laws were preserved.
+
+After `conditional_release.custody restore` and before deployment, execute the generic [restore_layout_companions.py](restore_layout_companions.py) with a custody queue lease. It creates four byte-identical `policy.npz` companions next to the historical V_J/V_S21 receipts, using only restored, hash-bound inputs. Its executed command shape was:
+
+```sh
+PYTHONPATH=SOURCE_ROOT PYTHON restore_layout_companions.py --config PRIVATE_LAYOUT_CONFIG
+```
+
+The private restore index and closeout supplement retain the two actual configuration files. For a new restore location, create a new metadata configuration with `unit_id`, `restore_root`, the actual `manifest_sha256` for `runtime/SOURCE_PATHS.json`, `amendment_sha256` from correction T, and a new `public_output`; register it through the durable custody queue. The helper refuses existing companion targets rather than overwriting them. Then use the restored manifest in the normal deployment command above.
+
+The layout helper and metadata supplement helper are separately hash-bound closeout artifacts outside the frozen 165-file scientific export. The supplement contains helpers, indices, configurations and actual receipts only. It does not recapture person data. Numerical restore integrity scans and queue preflight hash admitted archives, including admitted label archives; inference does not deserialize or require those label arrays.
+
 ## Public engineering fixtures
 
 From the published `source` directory, the complete campaign fixture command is:
