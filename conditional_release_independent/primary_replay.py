@@ -30,6 +30,33 @@ def certify(arrays,reported,tolerance=1e-7):
     return result
 
 
+def epigraph_rows(prep,sex,mode):
+    """Reconstruct every declared Bayes output/SEX epigraph independently."""
+    contexts=prep['contexts'];param=np.zeros(len(contexts),int) if mode=='scalar' else np.maximum(contexts,0)
+    nparam=1 if mode=='scalar' else len(prep['merged_fit_counts'])
+    delta=prep['donor'].copy();delta[:,0]-=1
+    baseline=np.zeros_like(delta);baseline[:,0]=1
+    groups=[];weights=[]
+    for code,weight in ((np.column_stack((prep['code_r1'].ravel(),prep['code_r2'].ravel())),1.),
+                        (prep['code_r1'].ravel()[:,None],.5),
+                        (prep['code_r2'].ravel()[:,None],.5)):
+        unique,index=np.unique(code,axis=0,return_inverse=True);z=len(unique)
+        blocks=[]
+        for label in (0,1):
+            rowweight=np.repeat((sex==label)/len(sex),delta.shape[1])
+            slope=np.bincount(index*nparam+np.repeat(param,delta.shape[1]),weights=delta.ravel()*rowweight,minlength=z*nparam).reshape(z,nparam)
+            mass=np.bincount(index,weights=baseline.ravel()*rowweight,minlength=z)
+            blocks.append((slope,mass))
+        groups.append(blocks);weights.extend([weight]*z)
+    matrices=[];rhs=[];cursor=0;nt=len(weights)
+    for blocks in groups:
+        z=len(blocks[0][1]);neg=sparse.coo_matrix((-np.ones(z),(np.arange(z),cursor+np.arange(z))),shape=(z,nt)).tocsr()
+        for slope,mass in blocks:
+            matrices.append(sparse.hstack((sparse.csr_matrix(slope),neg)));rhs.append(-mass)
+        cursor+=z
+    return sparse.vstack(matrices).tocsr(),np.concatenate(rhs),np.r_[np.zeros(nparam),weights]
+
+
 def run(config):
     from conditional_release.scheduler import assert_active_from_env
     active=assert_active_from_env(stage='verification')
@@ -65,6 +92,11 @@ def run(config):
                 if m.shape!=target.shape or np.max(np.abs(m.toarray()-target),initial=0)>1e-12:raise ValueError('PhaseI matrix formation')
             elif np.max(np.abs(m[:size,:nparam].toarray()-expected_matrix),initial=0)>1e-12:raise ValueError('independent complete utility/guard matrix mismatch')
             if np.max(np.abs(data['inequality_rhs'][:size]-expected_rhs),initial=0)>1e-12:raise ValueError('independent complete budget RHS mismatch')
+            if name=='protection':
+                em,erhs,ecost=epigraph_rows(prep,sex['sex'],mode)
+                if m[size:].shape!=em.shape:raise ValueError('missing Bayes epigraph rows')
+                difference=m[size:]-em
+                if np.max(np.abs(difference.data),initial=0)>1e-12 or np.max(np.abs(data['inequality_rhs'][size:]-erhs),initial=0)>1e-12 or not np.array_equal(data['objective'],ecost):raise ValueError('actual output/SEX epigraph formation mismatch')
             slot={'name':name,'success':item['success'],'archive_sha256':entry['sha256'],'matrix_and_RHS':'PASS'}
             if item['success']:
                 cert=certify(data,item['certificate']);slot['certificate']=cert
