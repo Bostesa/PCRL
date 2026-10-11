@@ -9,7 +9,7 @@ def law_from_numbers(source,c1,c2,kind,receipt=None,package=None):
     c1,c2=np.asarray(c1,np.int64),np.asarray(c2,np.int64);n=len(c1)
     if kind=='P0':return c1[:,None],c2[:,None],np.ones((n,1))
     if kind in ('V_J','V_S21'):
-        if kind=='V_J':return source_joint_law(source,c1,c2,receipt['eta'])
+        if kind=='V_J':return source_joint_law(source,c1,c2,receipt['eta1'])
         return source_seq21_law(source,c1,c2,receipt['eta1'],receipt['eta2'])
     p1,p2=source['probability1'],source['probability2']
     ctx=None if 'context_mapping' not in package else package['context_mapping'][context_cells(p1[c1],p2[c2])]
@@ -70,7 +70,7 @@ def law_from_numbers(source,c1,c2,kind,receipt=None,package=None):
         else:
             rec=receipt['first_recipient'];codes=actions1[sel] if rec==1 else actions2[sel]
             lookup={tuple(map(int,key)):j for j,key in enumerate(package['second_keys'])}
-            groups=np.array([[lookup[(int(group),int(code))] for code in row] for group,row in zip(g,codes)])
+            groups=np.array([[lookup.get((int(group),int(code)),lookup[(int(group),-1)]) for code in row] for group,row in zip(g,codes)])
             z=first[g,:,None]*second[groups]
             q[sel]=(z if rec==1 else z.transpose(0,2,1)).reshape(len(sel),16)
     return a,b,q
