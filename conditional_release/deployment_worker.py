@@ -4,7 +4,7 @@ import argparse,hashlib,json,os,subprocess,sys
 from pathlib import Path
 import numpy as np
 from .source import load_manifest,load_allowed_role,load_historical_policy,sha_file,write_once
-from .deployment import (load_p0_service,CachedRelease,identity_law,historical_law,sample_tuple,validate_law)
+from .deployment import (load_p0_service,CachedRelease,identity_law,historical_law,sample_tuple,validate_law,load_control_package)
 from .scheduler import assert_active_from_env
 
 
@@ -21,8 +21,7 @@ def load_model(item,manifest):
         from .secondary import load_template_policy
         policy=load_template_policy(item['policy_dir'],manifest,expected_receipt_sha256=item['receipt_sha256']);sampler='joint'
     elif kind=='CONTROL':
-        from .controls import load_control_policy
-        policy=load_control_policy(item['policy_dir'],manifest,expected_receipt_sha256=item['receipt_sha256'])
+        policy=load_control_package(item['policy_dir'],manifest,item['receipt_sha256'])
         sampler={'LOCAL':'product','PRODUCT':'product','DETERMINISTIC':'deterministic','SEQUENTIAL':'seq12' if policy.first_recipient==1 else 'seq21'}[policy.kind]
     else:raise PermissionError('unknown deployed model kind')
     receipt=json.loads((Path(item['policy_dir'])/'POLICY_RECEIPT.json').read_text())

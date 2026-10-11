@@ -130,6 +130,20 @@ def historical_law(policy):
     return law
 
 
+def load_control_package(directory,manifest,receipt_sha256):
+    from .source import sha_file
+    receipt=Path(directory)/'POLICY_RECEIPT.json'
+    if sha_file(receipt)!=receipt_sha256:raise PermissionError('control receipt differs before dispatch')
+    schema=json.loads(receipt.read_text())['schema']
+    if schema=='CBR1-control-policy-v1':
+        from .controls import load_control_policy
+        return load_control_policy(directory,manifest,expected_receipt_sha256=receipt_sha256)
+    if schema=='CBR1-wide-control-policy-v1':
+        from .control_wide_policy import load_wide_control_policy
+        return load_wide_control_policy(directory,manifest,expected_receipt_sha256=receipt_sha256)
+    raise PermissionError('unregistered control package schema')
+
+
 def main(argv=None):
     import argparse
     from qpc.deploy import load_permitted_input
@@ -138,7 +152,7 @@ def main(argv=None):
     parser.add_argument('--source-manifest',required=True)
     parser.add_argument('--source-manifest-sha256',required=True)
     parser.add_argument('--seed',type=int,choices=(0,1),required=True)
-    parser.add_argument('--kind',choices=('P0','ALLOCATION','CONTROL','V_J','V_S21'),required=True)
+    parser.add_argument('--kind',choices=('P0','ALLOCATION','CONTROL','TEMPLATE','V_J','V_S21'),required=True)
     parser.add_argument('--policy-dir')
     parser.add_argument('--policy-receipt-sha256')
     parser.add_argument('--input',required=True)
@@ -157,14 +171,16 @@ def main(argv=None):
     manifest=load_manifest(args.source_manifest,args.source_manifest_sha256)
     service=load_p0_service(manifest,args.seed)
     sampling_kind='joint'
-    if args.kind in ('ALLOCATION','CONTROL'):
+    if args.kind in ('ALLOCATION','CONTROL','TEMPLATE'):
         if not args.policy_dir or not args.policy_receipt_sha256:raise ValueError('allocation requires bound policy')
         if args.kind=='ALLOCATION':
             from .fit import load_allocation_policy
             policy=load_allocation_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+        elif args.kind=='TEMPLATE':
+            from .secondary import load_template_policy
+            policy=load_template_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
         else:
-            from .controls import load_control_policy
-            policy=load_control_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+            policy=load_control_package(args.policy_dir,manifest,args.policy_receipt_sha256)
             sampling_kind={'LOCAL':'product','PRODUCT':'product','DETERMINISTIC':'deterministic','SEQUENTIAL':'seq12' if policy.first_recipient==1 else 'seq21'}[policy.kind]
         receipt=json.loads((Path(args.policy_dir)/'POLICY_RECEIPT.json').read_text())
         if receipt['seed']!=args.seed:raise PermissionError('allocation source seed differs')
