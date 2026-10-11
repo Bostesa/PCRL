@@ -28,7 +28,7 @@ not an independent refit. Every numerical job uses the common resource queue.
   seeds; W_STRICT nominated by the locked equal-seed FIT objective. Exact
   task-only witness preservation independently passes both seeds.
 - Raw83, law, HMAC/CDF and every CLI/API wire byte for both seeds of P0,
-  historical joint/sequential, G/C/N/W and deterministic-control seed0.
+  historical joint/sequential, G/C/N/W/UT, deterministic, PRODUCT and LOCAL.
   Every real duplicate group has equal float32 raw83 and equal P0 wires.
 - Deterministic-control seed0 full program matches the independently
   reconstructed WIDE program. Its feasible integer incumbent has an
@@ -45,7 +45,7 @@ not an independent refit. Every numerical job uses the common resource queue.
   actual laws/task caps/local guards and INNER point gates independently pass.
   Corrected seed0 retains the original tiny-negative runtime refusal and uses
   one registered fixed numerical-accuracy rerun without projection.
-- Both SEQ12 controls: archive arithmetic, frozen first-stage/actual-code
+- Both sequential orders across both seeds: archive arithmetic, frozen first-stage/actual-code
   hierarchy, deployed laws, FIT caps/guards and INNER task gates pass.
 
 ## Required remaining replay
