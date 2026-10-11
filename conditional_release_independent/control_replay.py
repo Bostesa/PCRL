@@ -20,18 +20,21 @@ def run(config):
             solve=item['solve'];entry={'path':str(Path(unit['private_root'])/solve['archive_name']),'sha256':solve['archive_sha256']}
             if pins.get(entry['path'])!=entry['sha256']:raise PermissionError('control archive not queued')
             data=load_archive(entry);record={'archive_sha256':entry['sha256'],'stage':item.get('stage'),'success':solve['success']}
-            if solve['success']:
+            if solve['success'] or (item.get('stage')=='binary' and 'primal' in data):
                 if item.get('stage')=='binary':
                     x=data['primal'];p=len(data['theta']);m=matrix(data,'inequality');eq=matrix(data,'equality');bounds=data['bounds']
                     violation=max(0.,float(np.max(m@x-data['inequality_rhs'],initial=0)),float(np.max(np.abs(eq@x-data['equality_rhs']),initial=0)),float(np.max(bounds[:,0]-x,initial=0)),float(np.max(x-bounds[:,1],initial=0)))
                     integer=float(np.max(np.abs(x[:p]-np.rint(x[:p])),initial=0));objective=float(data['objective']@x)
-                    if max(violation,integer)>1e-7 or abs(objective-solve['certificate']['primal_objective'])>1e-7:raise ValueError('binary primal/integrality/objective replay')
+                    feasible=max(violation,integer)<=1e-8
+                    if feasible!=solve['success'] or abs(objective-solve['certificate']['primal_objective'])>1e-7:raise ValueError('binary primal/integrality/objective replay')
                     rawentry=unit['raw_binary'];
                     if pins.get(rawentry['path'])!=rawentry['sha256']:raise PermissionError('raw binary incumbent not queued')
                     from .reconstruction import admitted_arrays
                     raw=admitted_arrays(rawentry,{'primal'})['primal'];error=float(np.max(np.abs(raw[:p]-np.rint(raw[:p])),initial=0))
-                    if error>1e-7 or not np.array_equal(x[:p],np.rint(raw[:p])) or not np.array_equal(x[p:],raw[p:]):raise ValueError('binary snap changed noninteger coordinates or exceeded tolerance')
-                    record.update(maximum_primal_violation=violation,maximum_integer_error=integer,unsnapped_integer_error=error,primal_objective=objective,independent_relaxation_gap_upper_bound=None if relaxation_bound is None else max(0.,objective-relaxation_bound),global_optimality_independently_proved=relaxation_bound is not None and objective-relaxation_bound<=1e-7)
+                    expected=raw.copy()
+                    if error<=1e-8:expected[:p]=np.rint(raw[:p])
+                    if not np.array_equal(x,expected):raise ValueError('binary snap changed noninteger coordinates or exceeded registered tolerance')
+                    record.update(maximum_primal_violation=violation,maximum_integer_error=integer,unsnapped_integer_error=error,primal_objective=objective,registered_binary_tolerance=1e-8,acceptance_replayed='FEASIBLE' if feasible else 'NUMERICAL_REFUSAL',independent_relaxation_gap_upper_bound=None if relaxation_bound is None or not feasible else max(0.,objective-relaxation_bound),global_optimality_independently_proved=feasible and relaxation_bound is not None and objective-relaxation_bound<=1e-7)
                 else:
                     certificate=certify(data,solve['certificate']);record['certificate']=certificate
                     if item.get('stage')=='relaxation':relaxation_bound=certificate['dual_objective']
