@@ -1,3 +1,5 @@
 # Conditional budgeted release study
 
-Status: admission/engineering registration; no Adult optimization yet. Execution and publication have separate ancestry. This exploratory development study uses previously exposed Adult people; it is not confirmation. Stages and results will be added with verified commits. Private inputs and fitted weights are not published.
+SCIENCE_LOCK and552endpointregistry are frozen before Adultoptimization. Pinned raw83/incumbent/donor/source roles and independent preparation replay passed. Negative ORIGINAL FIT allowances are disclosed in BUDGET_TRANSLATION.csv and remain unchanged. Results will be added after fitting/fresh readers/replay. This study uses repeatedly exposed Adult development people and is not confirmation.
+
+Execution and publication have separate ancestry. Private inputs, weights and coins are not published.
