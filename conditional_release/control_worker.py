@@ -118,11 +118,22 @@ def run(config):
                 private_utility[f"{ref}_{key}"]=value
         write_npz(private/arm_id/"INNER_UTILITY_ROWS.npz",{"row_id":inner["wire"]["row_id"],"unit":inner["wire"]["unit"],**private_utility})
         change=float(law.change_coefficients()[0]+law.change_coefficients()[1]@theta)
+        decisions=(space.probability1[identity1].argmax(1),space.probability2[identity2].argmax(1))
+        decision_views={}
+        for name,key in (("r1",decisions[0][:,None]),("r2",decisions[1][:,None]),("pair",np.c_[*decisions])):
+            unique,inverse=np.unique(key,axis=0,return_inverse=True)
+            count=np.stack([np.bincount(inverse,weights=(sex==b)/n,minlength=len(unique)) for b in (0,1)])
+            decision_views[name]=float(count.max(0).sum())
+        lower_bound=decision_views["pair"]+.5*(decision_views["r1"]+decision_views["r2"])
         record.update(arm_id=arm_id,fitted_objective=selected["objective"],fitted_recovery=selected["views"],
                       actual_change_rate=change,minimum_fitting_constraint_margin=float(margins.min()),
                       optimization_deployment_max_gap=gap,policy_receipt_sha256=receipt_sha,
                       policy_package_sha256=package["package_sha256"],parameter_count=package["parameter_count"],
                       role_laws=role_laws,inner_point_utility=gates,inner_point_eligible=all(x["pass"] for x in gates))
+        record.update(decision_only_relaxation_bound=lower_bound,
+                      decision_only_relaxation_scope="remove utility/CE caps and retain only mandatory same-class decisions",
+                      heuristic_global_gap_upper_bound=max(0.,selected["objective"]-lower_bound),
+                      exact_remaining_global_gap=None)
     public=Path(cfg["public_output"]);public.mkdir(parents=True,exist_ok=True)
     write_once(public/(cfg["unit_id"]+"_RECEIPT.json"),record,False)
     return {"unit_id":cfg["unit_id"],"status":record["status"],"solver_calls":record["solver_calls"]}
