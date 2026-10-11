@@ -88,6 +88,8 @@ def run(config):
             "budget":cfg["budget"],"support":"NARROW","source_manifest_sha256":cfg["source_manifest_sha256"],
             "science_lock_sha256":cfg["science_lock_sha256"],"solver_class":result["solver_class"],
             "solves":archives,"solver_calls":len(archives),"closed_role_access":False,"inner_sex_access":False,
+            "maximum_planned_solver_calls":16 if kind in ("LOCAL","PRODUCT") else 2,
+            "skipped_solver_slots":(16 if kind in ("LOCAL","PRODUCT") else 2)-len(archives),
             "status":"INCOMPLETE_CONTROL" if policy is None else "COMPLETE", "global_optimality_claimed":False}
     if policy is not None:
         law,theta=selected["law"],selected["theta"]
@@ -97,7 +99,8 @@ def run(config):
         rows=constraints(law);margins=rows.rhs-rows.matrix@theta
         if float(margins.min()) < -ceilings.feasibility_tolerance:
             raise AssertionError("executable control violates fitting constraints")
-        arm_id=kind+"_"+cfg["budget"]
+        arm_id={"LOCAL":"L_SELECTED","PRODUCT":"P_SELECTED","DETERMINISTIC":"D_SELECTED",
+                "SEQ12":"S12_SELECTED","SEQ21":"S21_SELECTED"}[kind]
         package,receipt_sha=save_control_policy(private/arm_id,policy,seed=cfg["seed"],arm_id=arm_id,
                                                budget=cfg["budget"],source_manifest=manifest)
         role_laws=[]

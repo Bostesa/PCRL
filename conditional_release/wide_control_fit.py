@@ -166,7 +166,7 @@ def fit_sequential(template,metadata,contexts,sensitive,constraints_builder,firs
     frozen_first=theta1[group]
     law2=sequential_second_law(template,metadata,contexts,keys_groups,frozen_first,first_recipient)
     result2=solve_protection(law2,sensitive,constraints_builder(law2),
-                              time_limit=max(.001,ceilings.seconds-(time.monotonic()-begun)),
+                              time_limit=max(.001,min(ceilings.seconds/2,ceilings.seconds-(time.monotonic()-begun))),
                               tolerance=ceilings.feasibility_tolerance)
     record["second_result"]=result2
     if result2["success"]:

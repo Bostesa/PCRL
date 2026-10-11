@@ -270,7 +270,7 @@ def solve_binary_control(law, sensitive, constraints, ceilings=ControlCeilings()
                        np.zeros(len(program.objective) - program.parameters, dtype=np.int32)]
     result = milp(program.objective, integrality=integrality,
                   bounds=Bounds(program.bounds[:, 0], program.bounds[:, 1]), constraints=linear,
-                  options={"time_limit": max(.001, ceilings.seconds - (time.monotonic()-begun)), "threads": 1,
+                  options={"time_limit": max(.001, min(ceilings.seconds*.75, ceilings.seconds - (time.monotonic()-begun))), "threads": 1,
                            "mip_rel_gap": ceilings.relative_mip_gap})
     cert = {"scope": "registered binary context-action kernel and fixed empirical constraints",
             "solver_status": int(result.status), "solver_message": str(result.message),
@@ -348,7 +348,7 @@ def fit_sequential(emitted1, emitted2, identity1, identity2, contexts, valid1, v
     law2 = map_law(emitted1, emitted2, identity1, identity2, mapping2, bounds2, weights)
     rows2 = constraints_builder(law2)
     result2 = solve_protection(law2, sensitive, rows2,
-                              time_limit=max(.001, ceilings.seconds-(time.monotonic()-begun)),
+                              time_limit=max(.001, min(ceilings.seconds/2, ceilings.seconds-(time.monotonic()-begun))),
                               tolerance=ceilings.feasibility_tolerance)
     record["second_result"] = result2
     if result2["success"]:
