@@ -472,6 +472,6 @@ def load_control_policy(directory,manifest,*,expected_receipt_sha256=None):
     arrays = read_exact({"path":str(directory/"control.npz"),"sha256":record["package_sha256"]},keys)
     context = None if record["context_labels"] is None else ContextMap(arrays["context_mapping"],arrays["raw_fit_counts"],
                                   arrays["merged_fit_counts"],tuple(record["context_labels"]))
-    space = load_historical_policy(manifest,record["seed"],"P0").space
+    space = load_historical_policy(manifest,record["seed"],"V_J").space
     return ControlPolicy(space,record["kind"],context,arrays["first_weights"],arrays.get("second_weights"),
                          arrays.get("second_keys"),record["first_recipient"])
