@@ -44,6 +44,11 @@ def run(config):
             with ZipFile(item['package']['path']) as z:names={n[:-4] for n in z.namelist()}
             package=admitted_arrays(item['package'],names)
             if receipt['package_sha256']!=item['package']['sha256']:raise ValueError('policy package binding')
+            if item.get('utility_witness'):
+                check(item['utility_witness'])
+                with ZipFile(item['utility_witness']['path']) as z:witnesskeys={name[:-4] for name in z.namelist()}
+                witness=admitted_arrays(item['utility_witness'],witnesskeys)
+                if not np.array_equal(package['theta'],witness['theta']):raise ValueError('task-only saved theta differs from original minimum-NLL witness')
             if receipt['public_bank_sha256']!=source['seeds'][str(seed)]['public_bank']['sha256']:raise ValueError('policy bank binding')
         guardtables=None;guards=[];maxgap=0.;utilitygates=[];fittedobjective=None;changerate=None
         for role,entry in item['role_laws'].items():

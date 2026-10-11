@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from .reconstruction import digest,admitted_arrays
 from .arithmetic import integrated_auc,validate_group_pairing
+from .policy_replay import source_numbers
+from .policy_laws import checked_law
 
 
 def tables(bank,prior):
@@ -45,7 +47,7 @@ def run(config):
     def check(entry):
         if pins.get(entry['path'])!=entry['sha256'] or digest(entry['path'])!=entry['sha256']:raise PermissionError('unqueued reader input')
     if pins.get(str(Path(config).absolute()))!=digest(config):raise PermissionError('unqueued reader config')
-    cfg=json.loads(Path(config).read_text());results=[]
+    cfg=json.loads(Path(config).read_text());check(cfg['manifest']);source=json.loads(Path(cfg['manifest']['path']).read_text());results=[]
     import joblib
     for item in cfg['readers']:
         check(item['bank']);bank=json.loads(Path(item['bank']['path']).read_text());root=Path(item['private_root'])
@@ -54,6 +56,18 @@ def run(config):
         check(item['receipt']);receipt=json.loads(Path(item['receipt']['path']).read_text())
         train=admitted_arrays(entry('TRAINING_INPUTS.npz',receipt['input_sha256']),{'row_id','unit','code_r1','code_r2','mass','sex','fit','tune'})
         prior=admitted_arrays(entry('PUBLIC_UNIFORM_PRIOR.npz',receipt['public_uniform_prior_sha256']),{'pair'})['pair']
+        description=item['policy'];kind=description['kind'];numbers,policy_receipt=source_numbers(source,item['seed'],'V_S21' if kind=='V_S21' else 'V_J');policy_package=None
+        if description.get('receipt'):
+            check(description['receipt']);check(description['package']);policy_receipt=json.loads(Path(description['receipt']['path']).read_text())
+            from zipfile import ZipFile
+            with ZipFile(description['package']['path']) as z:packagekeys={name[:-4] for name in z.namelist()}
+            policy_package=admitted_arrays(description['package'],packagekeys)
+        n1,n2=(len(bank['recipients'][str(r)]['probability']) for r in (1,2));input1=np.repeat(np.arange(n1,dtype=np.int64),n2);input2=np.tile(np.arange(n2,dtype=np.int64),n1)
+        out1,out2,law=checked_law(numbers,input1,input2,kind,policy_receipt,policy_package)
+        expected_prior=np.bincount((out1*n2+out2).ravel(),weights=(law/(n1*n2)).ravel(),minlength=n1*n2).reshape(n1,n2)
+        priorgap=float(np.max(np.abs(prior-expected_prior),initial=0))
+        if priorgap>1e-12:raise ValueError('defense-aware prior differs from independent complete-bank policy law')
+        del out1,out2,law
         computed,left,right=tables(bank,prior)
         frozen_entry=entry('FROZEN_SCORE_TABLES.npz',receipt['score_table_sha256'])
         names={v+'__'+r for v in ('r1','r2','pair') for r in receipt['reader_order']+['SHUFFLED','PLANTED']}
@@ -97,8 +111,8 @@ def run(config):
         for local,ix,ignored in (('r1',left,'R2'),('r2',right,'R1')):
             for reader in receipt['reader_order']:
                 if not np.array_equal(frozen['pair__IGNORE_'+ignored+'__'+reader],frozen[local+'__'+reader][ix]):raise ValueError('ignore-other alias mismatch')
-        results.append({'arm_id':item['arm_id'],'seed':item['seed'],'models_replayed':checked,'all_public_wire_states':True,'maximum_numeric_gap':maxgap,'ATT_group_split':'EXACT','law_weighted_counts':'PASS','ATT_orientation':'PASS','ignore_other_aliases':'EXACT','reader_receipt_sha256':item['receipt']['sha256']})
-    report={'schema':'CBR1-independent-frozen-reader-replay-v1','status':'PASS','unit_id':active['unit_id'],'results':results,'reader_refits':0,'INNER_SEX_access':False,'scope':'Independent feature construction, weighted training counts, frozen third-party model predictions on every public wire state, ATT-only orientations and aliases. Public prior values are pinned inputs; their policy-law derivation is a separate deployment replay.'}
+        results.append({'arm_id':item['arm_id'],'seed':item['seed'],'models_replayed':checked,'all_public_wire_states':True,'maximum_numeric_gap':maxgap,'ATT_group_split':'EXACT','law_weighted_counts':'PASS','ATT_orientation':'PASS','ignore_other_aliases':'EXACT','reader_receipt_sha256':item['receipt']['sha256'],'public_prior_all_bank_input_pairs':'PASS','public_prior_maximum_gap':priorgap})
+    report={'schema':'CBR1-independent-frozen-reader-replay-v1','status':'PASS','unit_id':active['unit_id'],'results':results,'reader_refits':0,'INNER_SEX_access':False,'scope':'Independent feature construction, weighted training counts, frozen third-party model predictions on every public wire state, ATT-only orientations and aliases. Public uniform-prior DA features independently derive from the policy over every original bank input-code pair.'}
     with Path(cfg['output']).open('x') as f:json.dump(report,f,indent=2,sort_keys=True,allow_nan=False);f.write('\n')
     print(json.dumps({'status':'PASS','banks':len(results),'models':sum(x['models_replayed'] for x in results)}))
 
