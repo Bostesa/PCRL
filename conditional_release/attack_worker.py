@@ -50,8 +50,17 @@ def _policy(config, manifest):
         from .fit import load_allocation_policy
         return load_allocation_policy(config["directory"], manifest, expected_receipt_sha256=config["receipt_sha256"])
     if kind == "control":
-        from .controls import load_control_policy
-        return load_control_policy(config["directory"], manifest, expected_receipt_sha256=config["receipt_sha256"])
+        receipt=Path(config["directory"])/"POLICY_RECEIPT.json"
+        if sha_file(receipt)!=config["receipt_sha256"]:
+            raise PermissionError("control receipt differs before schema dispatch")
+        schema=json.loads(receipt.read_text())["schema"]
+        if schema=="CBR1-control-policy-v1":
+            from .controls import load_control_policy
+            return load_control_policy(config["directory"], manifest, expected_receipt_sha256=config["receipt_sha256"])
+        if schema=="CBR1-wide-control-policy-v1":
+            from .control_wide_policy import load_wide_control_policy
+            return load_wide_control_policy(config["directory"], manifest, expected_receipt_sha256=config["receipt_sha256"])
+        raise PermissionError("unregistered control package schema")
     if kind == "template":
         from .secondary import load_template_policy
         return load_template_policy(config["directory"], manifest, expected_receipt_sha256=config["receipt_sha256"])

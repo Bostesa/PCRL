@@ -272,7 +272,10 @@ def solve_binary_control(law, sensitive, constraints, ceilings=ControlCeilings()
     result = milp(program.objective, integrality=integrality,
                   bounds=Bounds(program.bounds[:, 0], program.bounds[:, 1]), constraints=linear,
                   options={"time_limit": max(.001, min(ceilings.seconds*.75, ceilings.seconds - (time.monotonic()-begun))), "threads": 1,
-                           "mip_rel_gap": ceilings.relative_mip_gap})
+                           "mip_rel_gap": ceilings.relative_mip_gap,
+                           "mip_feasibility_tolerance": 1e-9,
+                           "primal_feasibility_tolerance": 1e-9,
+                           "dual_feasibility_tolerance": 1e-9})
     cert = {"scope": "registered binary context-action kernel and fixed empirical constraints",
             "solver_status": int(result.status), "solver_message": str(result.message),
             "optimality_certified": False, "feasible": False,

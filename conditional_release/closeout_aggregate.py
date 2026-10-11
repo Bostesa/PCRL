@@ -71,10 +71,14 @@ def run(root, queue):
                       'observed_peak_rss_bytes':actual.get('sampled_tree_rss_peak_bytes'),'receipt_sha256':sha(receipt) if receipt.is_file() else None})
     # Reader compound receipts use a different naming convention.
     for path in root.glob('r5/R5_FIT_*.json'):
-        d=json.loads(path.read_text());counts['fresh_reader_fits']+=d.get('fit_count',d.get('fits',0))
+        d=json.loads(path.read_text());counts['fresh_reader_fits']+=d.get('numerical_fit_count',d.get('fit_count',d.get('fits',0)))
+    charges={}
+    for name, value in state.get('charges',{}).items():
+        charges[name]={k:v for k,v in value.items() if k!='receipt_path'}
+        if 'receipt_path' in value:charges[name]['receipt_alias']=Path(value['receipt_path']).name
     write(root/'UNIT_MANIFEST.json',{'schema':'CBR1-complete-unit-accounting-v1','as_of_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
           'units':units,'scientific_call_counts_from_actual_receipts':counts,'charged_cpu_s':state['used_cpu_s'],
-          'used_by_stage_s':state['used_by_stage_s'],'light_charges':state.get('charges',{}),'deadline_utc':state['deadline_utc'],
+          'used_by_stage_s':state['used_by_stage_s'],'light_charges':charges,'deadline_utc':state['deadline_utc'],
           'note':'Numerical control refusals and engineering attempts remain recorded. Conditional untriggered scientific slots appear in the registered stage indexes.'})
 
 if __name__=='__main__':

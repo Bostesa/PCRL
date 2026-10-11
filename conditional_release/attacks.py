@@ -32,6 +32,7 @@ TRAIN_SAMPLE_SEED_BASE = 310700
 TIE = 1e-12
 SHUFFLE_ATT_SALT = "pcrl-method-portfolio-v1|shuffled-sex-probe|20261008"
 SHUFFLE_INNER_SALT = "pcrl-method-portfolio-v1|independent-inner-sex-null|20261008|v2"
+HGB_DENSE_DESIGN_LIMIT_BYTES = 1024**3
 
 
 def sha_file(path):
@@ -164,8 +165,18 @@ def sample_training_actions(law, *, seed):
     return slots[inverse]
 
 
+def hgb_dense_projection(rows, columns):
+    if type(rows) is not int or type(columns) is not int or rows < 0 or columns < 0:
+        raise ValueError("dense HGB dimensions must be nonnegative integers")
+    size = rows * columns * np.dtype(np.float64).itemsize
+    return {"rows":rows,"columns":columns,"dense_float64_bytes":size,
+            "limit_bytes":HGB_DENSE_DESIGN_LIMIT_BYTES,"within_limit":size <= HGB_DENSE_DESIGN_LIMIT_BYTES}
+
+
 def fit_weighted(table, wire, label, weight, name, seed):
     if "HGB" in name:
+        if not hgb_dense_projection(len(wire),table.shape[1])["within_limit"]:
+            raise MemoryError("registered dense HGB design exceeds fixed 1GiB preallocation ceiling")
         model = HistGradientBoostingClassifier(learning_rate=0.05, max_leaf_nodes=15, max_iter=200,
                                                early_stopping=False, random_state=seed)
         model.fit(table[wire], label, sample_weight=weight)
