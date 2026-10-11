@@ -61,21 +61,27 @@ not an independent refit. Every numerical job uses the common resource queue.
   and every wire byte. One failed metadata-label replay is preserved, followed
   by a registered config-only correction using existing sampler fixtures.
 
+## Final scientific core replay completed
+
+All twenty actual INNER reports pass independent score lookup, every reader
+AUC, complete-view envelope and null/shuffled/planted probe arithmetic. Every
+report's rows/groups/SEX matches the admitted role-only source after the global
+all-reader freeze. All 552 registered primary slots are replayed, including
+393 evaluated and 159 missing dependencies. Every one of the 2,048 paired
+bootstrap vectors and interval/boundary values matches exactly. Public arm
+aggregates and the frozen eligible control pool/tolerance/tie order also pass.
+The strongest descriptive control is S12; the nominee stays W.
+
+Correct replay preserves the result: W has 9 passed and 15 unresolved utility
+bounds; all 27 evaluated coalition 0.020 targets are shortfalls. No complete
+common-criterion or competitive joint advantage is established.
+
 ## Required remaining replay
 
-1. Remaining controls and engineering corrections: preserve original
-   refusals/partial archives, recheck every actual attempted solve, selected
-   factor/stage binding, actual-code sequential groups, complete task/reader
-   caps and deployed laws. Report skipped and failed units. Product
-   coordinate and freeze-first sequential results are not global optima.
-2. Only after the global all-reader freeze: every actual INNER score-law
-   lookup, every reader AUC, null/shuffled/planted probe, paired group/seed
-   bootstrap, all 552 primary endpoints and exact boundary labels. Correct
-   replay of a shortfall or a failed probe remains a shortfall or failure.
-3. A representative restored deployment and a representative restored
-   raw83 and reader replay using versioned restored inputs alone. Pending
-   off-device custody remains pending if no separate drive is available.
-4. Final complete unit/resource account and independent claims audit.
+1. Representative raw83 deployment and frozen-reader prediction replay using
+   actual versioned restored inputs alone; off-device custody remains pending
+   unless a different mounted filesystem is verified.
+2. Final complete resource/unit/custody account and independent closeout record.
 
 No independent reader has been refitted. Seeds are fitted on the same paired
 people; no fresh confirmation population is opened. Exact expected-law AUC
