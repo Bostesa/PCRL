@@ -110,7 +110,10 @@ def run(config):
             selected={'first_stage_frozen_exactly':True,'second_keys_count':len(keys),'actual_emitted_first_code_groups':True}
         else:
             if not np.array_equal(package['first_weights'],archives[-1]['theta']):raise ValueError('deterministic weights differ from actual binary incumbent')
-            checked(unit['independently_verified_program']);reference=load_archive(unit['independently_verified_program'])
+            checked(unit['independently_verified_program']);checked(unit['program_verification_receipt'])
+            prior=json.loads(Path(unit['program_verification_receipt']['path']).read_text())
+            if prior['status']!='PASS' or unit['independently_verified_program']['sha256'] not in json.dumps(prior):raise ValueError('reference full program has no independent PASS binding')
+            reference=load_archive(unit['independently_verified_program'])
             for archive in archives:
                 for key in ('objective','inequality_data','inequality_indices','inequality_indptr','inequality_shape','inequality_rhs','equality_data','equality_indices','equality_indptr','equality_shape','equality_rhs','bounds'):
                     if archive[key].shape!=reference[key].shape or not np.allclose(archive[key],reference[key],rtol=0,atol=1e-12):raise ValueError('MIP full program differs from independently reconstructed WIDE program')
