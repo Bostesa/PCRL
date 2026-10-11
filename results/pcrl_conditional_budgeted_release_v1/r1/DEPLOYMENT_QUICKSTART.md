@@ -19,7 +19,7 @@ PYTHON -m conditional_release.deployment \
   --output-r1 PRIVATE_R1_JSONL --output-r2 PRIVATE_R2_JSONL
 ```
 
-The same person key returns the same cached tuple after repeated calls or process restarts. A changed raw input under that key is refused. Providers must assign stable, unique canonical keys across duplicate records; integer and string keys with the same textual form are the same key. Keys, roots, source states, contexts and fallback flags are never transmitted. Distinct-person coin independence is the declared ideal PRF assumption; the deployed HMAC sampler uses a 53-bit uniform grid.
+The same person key returns the same cached tuple after repeated calls or process restarts. A changed canonical float32 input under that key is refused. Providers must assign stable, unique canonical keys across duplicate records; integer and string keys with the same textual form are the same key. Keys, roots, source states, contexts and fallback flags are never transmitted. Distinct-person coin independence is the declared ideal PRF assumption; the deployed HMAC sampler uses a 53-bit uniform grid.
 
 Executed commands, exact private pins and outputs are retained in each deployment unit's private `EXECUTED_COMMAND.json`. Public `RAW83_PRIMARY_DEPLOY_S0_V1.json` and `S1_V1.json` record successful CLI/API byte parity for P0, source V_J/S21, G_STRICT, C_STRICT and N_STRICT on 34 allowed fitting inputs per arm, including duplicate records. The additional `RAW83_WIDE_DEPLOY_S0_V1.json` and `S1_V1.json` receipts record the same successful checks for the full-bank W_STRICT package. `RAW83_UT_DEPLOY_S0_V1.json` and `S1_V1.json` cover its utility-only control; `RAW83_D_W_S0_V1.json` and `S1_V1.json` cover the deterministic controls; `RAW83_P_W_S0_V1.json` and `S1_V1.json` cover independent product controls; `RAW83_L_W_S0_V1.json` and `S1_V1.json` cover the local controls. Both sequential orders are covered by `RAW83_S12_W_S0_V1.json`/`S1_V1.json` and `RAW83_S21_W_S0_V1.json`/`S1_V1.json`. They also record cache/restart parity, finite-law sampler parity and refusal of reordered columns, extra columns, nonfinite values and changed raw inputs under an existing key. This is implementer verification; independent numerical replay has its own receipts.
 
@@ -39,4 +39,8 @@ From the published `source` directory, the complete campaign fixture command is:
 python -m pytest -q conditional_release conditional_release_independent
 ```
 
-The export contains the fixed synthetic fixture JSONs and exact package requirements. This command tests engineering laws and correctness; it does not reproduce private person-level fits. Its queued executed result is recorded separately in `PUBLIC_EXPORT_FIXTURES_V1.json`.
+The export contains the fixed synthetic fixture JSONs and exact package requirements. This command tests engineering laws and correctness; it does not reproduce private person-level fits. The final actual export is bound by `EXPORT_SOURCE_MANIFEST_V4.json`; `PUBLIC_EXPORT_FIXTURES_V2.json` records all 112 tests passed, with zero failures, errors or skips, from that 165-file tree. The earlier V1 source manifest and fixture receipt are preserved.
+
+## Runtime label independence
+
+`RUNTIME_LABEL_INDEPENDENCE_V1.json` records exact original wire parity for all 20 fitted packages through the unchanged CLI after every role/label/role-wire/reader/sample record was removed from its runtime manifest. An audit hook installed before deployment imports observed no denied-path access. The unit preflight contains no role-data or label archive pin. `RUNTIME_LABEL_GUARD_SCOPE.md` states the boundary: this verifies the current Python loaders and is not an operating system sandbox. Earlier comprehensive queue preflight label hashes remain documented.
