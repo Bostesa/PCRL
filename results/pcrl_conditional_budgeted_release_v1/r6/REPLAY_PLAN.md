@@ -48,6 +48,19 @@ not an independent refit. Every numerical job uses the common resource queue.
 - Both sequential orders across both seeds: archive arithmetic, frozen first-stage/actual-code
   hierarchy, deployed laws, FIT caps/guards and INNER task gates pass.
 
+- All twenty frozen reader banks: all 600 frozen model prediction laws,
+  complete-bank wire/DA-prior features, exact weighted ATT training counts,
+  ATT-only orientations and ignore-other aliases pass. CELL predictions use
+  independent count arithmetic without loading its pickle. Other predictions
+  use frozen standard sklearn estimators/scalers; no refits. Separate custody
+  replay proves every bank uses the exact admitted ATT rows/groups/SEX labels.
+- All 408 absolute task slots: 312 actual expected-law task means and both
+  references independently pass; 96 ORIGINAL-family slots remain absent.
+  Maximum absolute arithmetic disagreement is 4.44e-16.
+- Both sequential orders across both seeds also pass actual raw83/HMAC/CDF
+  and every wire byte. One failed metadata-label replay is preserved, followed
+  by a registered config-only correction using existing sampler fixtures.
+
 ## Required remaining replay
 
 1. Remaining controls and engineering corrections: preserve original
@@ -55,18 +68,14 @@ not an independent refit. Every numerical job uses the common resource queue.
    factor/stage binding, actual-code sequential groups, complete task/reader
    caps and deployed laws. Report skipped and failed units. Product
    coordinate and freeze-first sequential results are not global optima.
-2. All eligible frozen reader banks: independently reconstruct ATT policy
-   laws, complete wire features, law-weighted counts, public uniform-prior
-   defense features, saved estimator predictions, ATT-only orientations and
-   ignore-other aliases. All reader fits remain fixed in primary uncertainty.
-3. Only after the global all-reader freeze: every actual INNER score-law
+2. Only after the global all-reader freeze: every actual INNER score-law
    lookup, every reader AUC, null/shuffled/planted probe, paired group/seed
    bootstrap, all 552 primary endpoints and exact boundary labels. Correct
    replay of a shortfall or a failed probe remains a shortfall or failure.
-4. Remaining runnable UT/control deployment and a representative restored
+3. A representative restored deployment and a representative restored
    raw83 and reader replay using versioned restored inputs alone. Pending
    off-device custody remains pending if no separate drive is available.
-5. Final complete unit/resource account and independent claims audit.
+4. Final complete unit/resource account and independent claims audit.
 
 No independent reader has been refitted. Seeds are fitted on the same paired
 people; no fresh confirmation population is opened. Exact expected-law AUC
