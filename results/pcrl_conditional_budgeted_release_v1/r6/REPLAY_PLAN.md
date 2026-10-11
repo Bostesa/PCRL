@@ -33,11 +33,20 @@ not an independent refit. Every numerical job uses the common resource queue.
 - Deterministic-control seed0 full program matches the independently
   reconstructed WIDE program. Its feasible integer incumbent has an
   independently valid remaining objective-gap upper bound of 0.00511352294.
-  Integer global optimality is not independently proved.
+  Integer global optimality is not independently proved. Corrected seed1
+  also passes, with a valid relaxation-gap upper bound of 0.00537989494.
+  Its original 4.96408e-7 raw-integrality refusal remains preserved.
 - Both LOCAL controls: every archived successful LP arithmetic check,
   registered factor updates/earliest-best choice, actual tuple objectives,
   all matched FIT task caps/guards and INNER utility arrays. Both fail the
   INNER point utility gate. Their lower FIT recovery is not an eligible win.
+
+- Both PRODUCT controls: archived LP arithmetic, selected factor provenance,
+  actual laws/task caps/local guards and INNER point gates independently pass.
+  Corrected seed0 retains the original tiny-negative runtime refusal and uses
+  one registered fixed numerical-accuracy rerun without projection.
+- Both SEQ12 controls: archive arithmetic, frozen first-stage/actual-code
+  hierarchy, deployed laws, FIT caps/guards and INNER task gates pass.
 
 ## Required remaining replay
 
