@@ -57,6 +57,7 @@ class AffineLaw:
             raise ValueError("affine derivative shape differs")
         self.bounds = np.asarray(self.bounds, dtype=np.float64)
         if (self.bounds.shape != (self.delta.shape[1], 2) or np.isnan(self.bounds).any()
+                or np.isposinf(self.bounds[:, 0]).any() or np.isneginf(self.bounds[:, 1]).any()
                 or np.any(self.bounds[:, 0] > self.bounds[:, 1])):
             raise ValueError("parameter bounds invalid")
         self.weights = np.ones(len(self.base)) / len(self.base) if self.weights is None else np.asarray(self.weights, dtype=np.float64)
@@ -230,7 +231,7 @@ def primal_dual_certificate(program, result, tolerance=1e-7):
             "primal_dual_gap": gap, "maximum_primal_violation": violation,
             "maximum_dual_violation": dual_violation, "maximum_complementarity_error": complementarity,
             "objective_longdouble_accumulation_difference": accumulation_error,
-            "minimum_inequality_margin": float(margin.min(initial=np.inf)),
+            "minimum_inequality_margin": float(margin.min()) if len(margin) else None,
             "active_constraint_names": [name for name, slack in zip(program.names, margin) if abs(slack) <= tolerance],
             "status": int(result.status)}
 
@@ -324,6 +325,6 @@ def omitted_column_report(program, inequality_dual, equality_dual, columns, equa
     if cols.shape[0] != len(program.inequality_rhs) or eqcols.shape != (len(program.equality_rhs), cols.shape[1]) or costs.shape != (cols.shape[1],):
         raise ValueError("pricing column scope/shape differs")
     reduced = costs - cols.T @ inequality_dual - eqcols.T @ equality_dual
-    return {"scope": scope, "columns_evaluated": len(costs), "minimum_reduced_cost": float(reduced.min(initial=np.inf)),
+    return {"scope": scope, "columns_evaluated": len(costs), "minimum_reduced_cost": float(reduced.min()) if len(reduced) else None,
             "negative_reduced_cost_count": int((reduced < -tolerance).sum()),
             "all_supplied_columns_dual_feasible": bool(np.all(reduced >= -tolerance)), "reduced_cost": reduced}
