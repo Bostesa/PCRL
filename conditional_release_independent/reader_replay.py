@@ -106,12 +106,18 @@ def run(config):
                 counts[:,label]=np.bincount(indexes[view][use].ravel(),weights=train['mass'][use].ravel(),minlength=len(counts))
             if np.max(np.abs(counts-archived['weighted_counts']),initial=0)>1e-10:raise ValueError('actual law training counts mismatch')
             for reader in receipt['reader_order']+['SHUFFLED','PLANTED']:
-                modelname='MODEL_'+view+'__'+reader+'.joblib';model_entry=entry(modelname,receipt['model_files'][modelname]);model=joblib.load(model_entry['path'])
+                modelname='MODEL_'+view+'__'+reader+'.joblib';model_entry=entry(modelname,receipt['model_files'][modelname]);model=None
+                # CELL is reconstructed from audited training counts. Never unpickle
+                # a custom categorical implementation, even transiently.
+                if reader!='CELL_A1':
+                    model=joblib.load(model_entry['path'])
+                    if not type(model['model']).__module__.startswith('sklearn.') or (model.get('scaler') is not None and not type(model['scaler']).__module__.startswith('sklearn.')):raise TypeError('nonstandard frozen reader class')
                 kind='defense' if reader.startswith('DA_') else 'bits' if reader=='CODE_BIT_LR_C1' else 'probability' if reader.startswith('PROB_') else 'x'
                 x=computed[view][kind]
                 if reader=='CELL_A1':
                     prior_cell=(counts[:,1].sum()+1)/(counts.sum()+2);pred=np.full(len(counts),prior_cell);seen=counts.sum(1)>0;pred[seen]=(counts[seen,1]+1)/(counts[seen].sum(1)+2)
-                    if not np.allclose(model['counts'],counts,rtol=0,atol=1e-10) or abs(model['prior']-prior_cell)>1e-12:raise ValueError('cell model mismatch')
+                    # The CELL model file is hash-bound but not loaded; its entire
+                    # prediction law is independently derived above.
                 elif reader=='PLANTED':pred=predictions(model,np.c_[np.repeat(x,2,axis=0),np.tile([0.,1.],len(x))]).reshape(-1,2)
                 else:pred=predictions(model,x)
                 if reader not in ('SHUFFLED','PLANTED'):
@@ -126,7 +132,7 @@ def run(config):
         for local,ix,ignored in (('r1',left,'R2'),('r2',right,'R1')):
             for reader in receipt['reader_order']:
                 if not np.array_equal(frozen['pair__IGNORE_'+ignored+'__'+reader],frozen[local+'__'+reader][ix]):raise ValueError('ignore-other alias mismatch')
-        results.append({'arm_id':item['arm_id'],'seed':item['seed'],'models_replayed':checked,'all_public_wire_states':True,'maximum_numeric_gap':maxgap,'ATT_group_split':'EXACT','ATT_policy_law':'EXACT','law_weighted_counts':'PASS','ATT_orientation':'PASS','ignore_other_aliases':'EXACT','reader_receipt_sha256':item['receipt']['sha256'],'public_prior_all_bank_input_pairs':'PASS','public_prior_maximum_gap':priorgap,'snapshot_only':restore is not None})
+        results.append({'arm_id':item['arm_id'],'seed':item['seed'],'models_replayed':checked,'CELL_prediction':'own exact weighted-count arithmetic; no CELL pickle load','other_predictions':'frozen standard sklearn estimators/scalers','all_public_wire_states':True,'maximum_numeric_gap':maxgap,'ATT_group_split':'EXACT','ATT_policy_law':'EXACT','law_weighted_counts':'PASS','ATT_orientation':'PASS','ignore_other_aliases':'EXACT','reader_receipt_sha256':item['receipt']['sha256'],'public_prior_all_bank_input_pairs':'PASS','public_prior_maximum_gap':priorgap,'snapshot_only':restore is not None})
     report={'schema':'CBR1-independent-frozen-reader-replay-v1','status':'PASS','unit_id':active['unit_id'],'results':results,'reader_refits':0,'INNER_SEX_access':False,'snapshot_only':restore is not None,'scope':'Independent feature construction, independently reconstructed ATT policy laws, weighted training counts, frozen third-party model predictions on every public wire state, ATT-only orientations and aliases. Public uniform-prior DA features independently derive from the policy over every original bank input-code pair.'}
     with Path(cfg['output']).open('x') as f:json.dump(report,f,indent=2,sort_keys=True,allow_nan=False);f.write('\n')
     print(json.dumps({'status':'PASS','banks':len(results),'models':sum(x['models_replayed'] for x in results)}))
