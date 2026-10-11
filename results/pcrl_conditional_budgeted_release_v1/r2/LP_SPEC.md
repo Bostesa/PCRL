@@ -45,9 +45,21 @@ complementarity errors and gap <=1e-7 (or max(1e-7,10solver_tolerance)).
 This certificate concerns only the supplied finite empirical law, support
 and constraints. It makes no population or held-out AUC guarantee.
 
+G is nested in C: assigning the same scalar to every supported context
+reconstructs G exactly, including identity fallback. Identical constraints
+and objective therefore imply optimal C objective <= optimal G objective
+in exact arithmetic. This inclusion is not evidence of a strict advantage.
+A fitted strict improvement must exceed the independently recomputed
+numerical error and solver gap; its held-out effect requires fresh readers.
+
 A solver infeasible status without a supplied dual ray is explicitly
 uncertified infeasibility. It blocks that solve, but does not certify global
 impossibility. A restricted master is certified only within its columns.
+`certify_infeasibility(program)` is a separate explicitly counted Phase-I
+LP minimizing one nonnegative common slack for all inequalities and both
+signs of each equality, retaining parameter bounds. A certified positive
+dual objective exceeding tolerance proves infeasibility for the original
+finite constraints within those bounds. No extra solve runs implicitly.
 Every omitted allowed column must be evaluated before full-support
 optimality is claimed. Pricing is `new_c - new_A.T@y - new_Aeq.T@ye` for
 nonnegative omitted variables. Negative reduced cost invalidates a
