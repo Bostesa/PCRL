@@ -1,0 +1,270 @@
+{
+  "arms": [
+    "P0",
+    "HIST_V_J",
+    "HIST_V_S21",
+    "G_STRICT",
+    "C_STRICT",
+    "G_ORIGINAL",
+    "C_ORIGINAL",
+    "N_STRICT",
+    "W_STRICT",
+    "N_ORIGINAL",
+    "W_ORIGINAL",
+    "UT_SELECTED",
+    "L_SELECTED",
+    "P_SELECTED",
+    "D_SELECTED",
+    "S12_SELECTED",
+    "S21_SELECTED"
+  ],
+  "bank_source_sha": "dda8e450cdd398ec1153c69ae1a9dd732a35b955",
+  "bound_spec_hashes": {
+    "ADMISSION_LOCK.json": "06772ef78c57e1eccd73ea15a23774865279ae80c73925c176377d73acaf513d",
+    "ENGINEERING_ADDITIONAL_LOCK.json": "9de8a4a5e840c41a5a0da527230f99dde969d9955bf1a983e53f8b5a03c97d5d",
+    "ENGINEERING_LOCK.json": "3b92f9e1b9e97cd1626b02eb8f4f9e0f8189ac6e723d8465ec0c2d86cd7be7c3",
+    "ENGINEERING_STAGE_D_LOCK.json": "1587e459d12447d18de4814a4dd0696a57cf4a4c999521f6f61165629f642112",
+    "ENGINEERING_SUPPLEMENT_LOCK.json": "4d696b6241bbc0dde5c20a9dd7f796a17b305abe9ba500ec93394a8fffed1c35",
+    "r1/DUPLICATE_CACHE_ADMISSION_V2.json": "d1d8e53f5b61d3f68e2a6907be33a3319b23431b1436da456c00cd4ac6326c25",
+    "r1/SOURCE_FORWARD_ADMISSION.json": "714d8f4c2850c5ff321926253cc51c9f1e42d268bf0627dc8a9a79fbb31a4266",
+    "r2/LP_SPEC.md": "f5e02f1d1d1371719e81df171b6c7a5430c328c6b3d6aa05738ac8b761b0faf6",
+    "r2/TEMPLATE_SPEC.md": "4e635249a404e0fdedb568fd56ab2e73cad2a8267a71bbfc75bcd0afb09406a9",
+    "r3/PROPOSED_SPEC.md": "0c11c6285bfdcf16d10ef3201bbe18924814e4843b456df4191f021db2103891",
+    "r3/R3_S0_BUDGET_TRANSLATION.csv": "c65cee6fef256f06ded18eb675dc011c2a8236b4e04f238ddff8a20b742298b1",
+    "r3/R3_S1_BUDGET_TRANSLATION.csv": "ee31677b951c30cba5ed030b490f6f65794645a61bf2048c43dee8a2342119a9",
+    "r4/PROPOSED_SPEC.md": "8e21f55535dd22ac70dee63753eb3cfc8bbec518037464314fbc6c299db6c061",
+    "r6/R6_PREPARATION_S0_01.json": "36680c86908f9b778c58174a39fc658a2f91a856e7b2daccd6500d9b93d8644f",
+    "r6/R6_PREPARATION_S1_01.json": "fa9b30dc732d632434ef75e65153098cbf63335097652a845014b1cc8f0ba52f"
+  },
+  "boundaries": {
+    "accuracy_pass": "lower >=-.010",
+    "coalition_pass": "lower >=.020 versusP0 ANDevery eligiblecontrol",
+    "samebudget_allocation_effect": "strictpositive benefit lower>0; fittedlaw strict advantage > certificate errors/gaps",
+    "selection_point_feasibility": "no hidden utility threshold relaxation",
+    "utility_and_local_pass": "upper <= cap; violation lower > cap; elseUNRESOLVED"
+  },
+  "budgets": {
+    "ORIGINAL": {
+      "accuracy_loss": 0.01,
+      "negative_rhs": "retain exactly, no clamping",
+      "nll_excess": 0.01,
+      "references": [
+        "U0",
+        "Ucal"
+      ],
+      "summed_brier_excess": 0.005,
+      "translation": "cap - (cost(P0)-cost(reference))"
+    },
+    "STRICT": {
+      "accuracy_loss": 0.002,
+      "nll_excess": 0.001,
+      "reference": "P0",
+      "summed_brier_excess": 0.0005
+    },
+    "fixed_CE_guard": "all36 retained local readers on each4 views, expected CE >= P0 CE -1e-10; no finalAUC guarantee",
+    "views": [
+      "pooled",
+      "fold0",
+      "fold1",
+      "fold2"
+    ]
+  },
+  "candidate_priority": [
+    "G_STRICT",
+    "C_STRICT",
+    "N_STRICT",
+    "W_STRICT",
+    "G_ORIGINAL",
+    "C_ORIGINAL",
+    "N_ORIGINAL",
+    "W_ORIGINAL"
+  ],
+  "competitive_control_slots": [
+    "P0",
+    "HIST_V_J",
+    "HIST_V_S21",
+    "UT_SELECTED",
+    "G_BUDGET",
+    "L_SELECTED",
+    "P_SELECTED",
+    "D_SELECTED",
+    "S12_SELECTED",
+    "S21_SELECTED"
+  ],
+  "contexts": {
+    "count_floor": 64,
+    "fallback_fit_rows": [
+      48,
+      0
+    ],
+    "initial_cells": 96,
+    "margin_edges": [
+      0,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "merge": "entropy siblings then entire classpair if any margin parent below floor; no crossclass merge",
+    "normalized_entropy_edges": [
+      0,
+      0.5,
+      1
+    ],
+    "supported_context_counts": [
+      27,
+      22
+    ]
+  },
+  "controls": {
+    "W_support": "same formulas with KEEP+ALLsameclass global IDs; resource forecast beforeallocation; no narrowed replacement",
+    "deterministic": "genuine binary MIP;150srelaxation450sMIPgap1e-6; snapintegerthenfullrecheck",
+    "historical": "P0,VJ,S21 exact restoredlaw mandatory freshly attacked ifeligible",
+    "local_product": "2starts KEEP/uniformvalid,4alternatingrounds eachorder1then2; own-code vs pooled-context information/parameter differences disclosed",
+    "scalar": "G with selected budget; ifnomineeG same exactalias",
+    "sequential": "freeze first then second conditional on inputcontext+actualfirstglobalcode;512group ceiling label-free count64 largestthenlex ties;600s/order",
+    "utility": "MIN_SUM_NLL witness exact same nominee family/support/budget, zero extra solverfit forserialization"
+  },
+  "exposure": "This study is exploratory development research designed from prior outcomes on repeatedly used Adult people. A new branch, optimizer, inference rule or lock does not make these people fresh confirmation.",
+  "forecasts": {
+    "conditional_final_pair_benefit_atleast_020_allguards": 0.1,
+    "conditional_improves_fitted_samebudget": 0.75,
+    "fitted_gain_fails_transfer_reader_orutility": 0.75,
+    "full_competitive_not_established": 0.9,
+    "wider_support_fitted_frontier_improves": 0.6
+  },
+  "inference": {
+    "allocation": "G-C for eachbudget each r1/r2/pair seed0/seed1/equalseedmean",
+    "allocation_slots": 18,
+    "auc_estimand": "exact expected singlequery finite-law score rankings, strictordering half ties, independentcoins across opposite-sex groups",
+    "bootstrap": "2048 paired duplicate-group multinomial counts identical across allarms/seeds; maxfrozenreader envelope recomputed each replicate before equalseedmean",
+    "bootstrap_seed": 2026101105,
+    "budget": "STRICT-ORIGINAL for G/C same summaries",
+    "budget_slots": 18,
+    "competitive": "nominee vs each10controlslots all3views\u00d7seed0/seed1/equalseedmean",
+    "competitive_slots": 90,
+    "coverage": "approximate conditional development, readertraining fixed, no population guarantee or reuse reversal",
+    "draw_MC_variance": "removed by verified exact integration; deployment cached draw separate",
+    "interval": "point +- paired bootstrap SD ddof1 * t.ppf(1-.05/(2K), df2233)",
+    "missing_slots": "retain NA/dependency; never remove afteroutcomes",
+    "primary_K": 552,
+    "support": "N-W for eachbudget same summaries",
+    "support_slots": 18,
+    "utility_slots": 408
+  },
+  "mechanism": {
+    "C": "one coefficient per fixed pooled context",
+    "G": "one scalar shared supported contexts",
+    "N": "context simplex on KEEP+three neighbors Cartesian16, no person parameters",
+    "W": "context simplex on KEEP+ALL samepredclass globalIDs Cartesian; all allowedcolumns no pruning",
+    "donor": "exact admitted VJ preidentity donor from weights, frozen G/C bothbudgets",
+    "support_causal_claim": "N/W differ in support AND capacity; no support-only credit"
+  },
+  "nomination": {
+    "family_both_seeds": true,
+    "gate": "independent source/premises/certificates complete and both seed original INNER point utility all12each versus bothrefs; no INNER SEX",
+    "no_qualified_nominee": "competition untested; finish allocation/feasibility",
+    "rank": "min equal-two-seed FIT objective; tie<=1e-10 uses candidate_priority"
+  },
+  "objective": "FIT empirical Bayes pair +0.5recipient1 +0.5recipient2 actual original global tuples",
+  "readers": {
+    "DA_prior": "uniform over public source bank inputs, publicly known fitted kernel; no private person input access",
+    "fit": "ATTACK_FIT_NEW source groupfit/tune fixed only; exact aggregated weights LR/CELL/MLP; positive person-action weighted rows HGB leafcount caveat",
+    "fits_per_arm_seed": 24,
+    "maximum_arm_seed_units": 34,
+    "maximum_reader_and_control_fits": 1020,
+    "orientation": "ATTvalidation only",
+    "probe_fits_per_arm_seed": 6,
+    "report": "max AUC envelope of frozen oriented slate and ignoreother; no INNER-selected new model or nominee",
+    "slate": [
+      "LR_C1",
+      "MLP64x32",
+      "HGB15x200",
+      "DA_MLP64x32",
+      "CELL_A1",
+      "CODE_BIT_LR_C1",
+      "PROB_LR",
+      "PROB_HGB"
+    ],
+    "source_alias": "only exactlaw+wire verifiedaliases may reuse fits"
+  },
+  "resources": {
+    "campaign_heavy": 1,
+    "cloud_spend": 0,
+    "cpu_s": 72000,
+    "elapsed_s": 36000,
+    "epoch": "conservative admission epoch inADMISSION_LOCK",
+    "machine_heavy_max": 2,
+    "reserve_os_headroom_gib": 1,
+    "reserved_verify_s": 14400,
+    "secondary_s": 5400,
+    "threads": 1
+  },
+  "sampling": {
+    "G_C_N_W": "joint tuple inverseCDF",
+    "duplicates": "same provider-only person key gives cached draw; shared key/raw mismatch refused; groupsex consistent; distinctpersons independent pseudorandomcoins assumption",
+    "local_product": "independent recipient-domain provider HMAC uniforms",
+    "metadata": "original complete P0wire; no extra personkey/coefficient/context/action/fallback/coin fields",
+    "seq12_seq21": "two independent domain uniforms, firstmarginal then conditional second",
+    "single_query_cached": true
+  },
+  "schema": "CBR1-science-lock-v1",
+  "sealed_utc": "2026-10-11T02:30:44.811338+00:00",
+  "seeds": [
+    0,
+    1
+  ],
+  "solver": {
+    "infeasibility": "explicit extra PhaseI solve validated positive dual lowerbound; solverstringalone insufficient",
+    "primal_dual_certificate_tolerance": 1e-07,
+    "primary_solve_time_s": 120,
+    "primary_unit_wall_s": 600,
+    "safety_guard_rhs": 1e-10,
+    "scope": "fixed FIT empirical law only",
+    "secondary_input_memory_bytes": 1073741824,
+    "secondary_reservation_gib": 3.5,
+    "secondary_total_cpu_s": 5400,
+    "secondary_unit_wall_s": 1200,
+    "threads": 1
+  },
+  "source_execution_sha": "320c07c81beba3a82ad4d1f9fe0adc490f65c043",
+  "source_manifest_sha256": "8fec9ea38a020e3f2a797710f95a67131a1cf89ea0dea2ff0876514189d4ffba",
+  "source_publication_sha": "3603b7464fc844681acb766d405502da6f165274",
+  "status": "FROZEN_BEFORE_ANY_ADULT_OPTIMIZATION",
+  "unit_plan": {
+    "controls": {
+      "binary_MIP_calls": 2,
+      "coordinate_and_relaxation_LP_max": 74,
+      "policy_units": 10,
+      "prerequisite": "eligible nominee bothseeds"
+    },
+    "final_attacks": {
+      "exact_aliases_only": true,
+      "fits_each": 30,
+      "max_units": 34
+    },
+    "forward_preprocessing": "eachworker activity receipts; no counts claimedbefore execution",
+    "independent_replay": "allsource/primary/secondary/control/nomination/attackprimary slots, restoredraw+readerpredictions; actualrefitcount separately",
+    "primary": {
+      "conditional_PhaseI_max": 8,
+      "nominal_LP_calls": 24,
+      "policy_units": 2,
+      "setups": 8
+    },
+    "reference_law_and_utility_units": 2,
+    "reporting": "up to34frozen scoretable forwards + shared552slot inference2048groups",
+    "secondary": {
+      "conditional_PhaseI_max": 8,
+      "nominal_LP_calls": 24,
+      "policy_units": 4,
+      "prerequisite": "primary completed and independent primary replay PASS BEFORE secondary",
+      "setups": 8
+    },
+    "utility_witness_serializations": 2
+  },
+  "witness_scope": "utility-only OBJECTIVE under common utility and retained fixed SEX-dependent safeguards; before new protection objective; Wguard replay explicitly reads FIT SEX without newreaderfitting",
+  "witnesses": [
+    "MIN_SUM_NLL",
+    "MAX_ACTUAL_TUPLE_CHANGE"
+  ]
+}
