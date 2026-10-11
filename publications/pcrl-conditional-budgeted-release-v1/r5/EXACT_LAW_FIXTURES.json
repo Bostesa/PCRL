@@ -1,0 +1,16 @@
+{
+  "schema": "pcrl-conditional-r5-synthetic-laws-v1",
+  "scope": "Data-free correctness laws; to be sealed before any algorithm run",
+  "cases": [
+    {"name":"identical_ties","scores":[[0.2,0.8],[0.2,0.8]],"mass":[[0.5,0.5],[0.5,0.5]],"sex":[0,1],"groups":[10,20],"auc":0.5},
+    {"name":"nontrivial_tied_scores","scores":[[0.2,0.8],[0.2,0.8]],"mass":[[0.75,0.25],[0.25,0.75]],"sex":[0,1],"groups":[10,20],"auc":0.75},
+    {"name":"action_aliases","scores":[[0.2,0.2,0.8],[0.2,0.2,0.8]],"mass":[[0.3,0.45,0.25],[0.1,0.15,0.75]],"sex":[0,1],"groups":[10,20],"auc":0.75},
+    {"name":"decision_leakage_floor","scores":[[0.1],[0.9]],"mass":[[1],[1]],"sex":[0,1],"groups":[10,20],"auc":1.0},
+    {"name":"duplicate_cache_law","scores":[[0.2,0.8],[0.2,0.8],[0.2,0.8],[0.2,0.8]],"mass":[[0.75,0.25],[0.75,0.25],[0.25,0.75],[0.25,0.75]],"sex":[0,0,1,1],"groups":[10,10,20,30],"auc":0.75}
+  ],
+  "monte_carlo": {"case":"nontrivial_tied_scores","seed":202610110505,"draws":10000,"absolute_tolerance":0.02},
+  "bootstrap": {"seed":2026101105,"replicates":2048,"exact_shared_count_requirement":true},
+  "invalid_cases": ["negative_mass", "unnormalized_mass", "sex_crossing_duplicate_group", "different_duplicate_score_law", "unpaired_bootstrap_groups"],
+  "exhaustive_ties": "Enumerate every two-person outcome pair and its independent product probability; compare strict-order plus half-tie sum.",
+  "interval": {"K_fixture":495,"groups_fixture":2234,"ddof":1,"df":2233,"alpha":0.05,"critical_probability":"1 - 0.05 / (2 * K)"}
+}
