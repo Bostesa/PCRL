@@ -26,7 +26,13 @@ def safe_alias(alias):
 
 
 def create_plan(repo,source_manifest,out,public):
-    assert_active_from_env(stage='custody')
+    active=assert_active_from_env(stage='custody')
+    # A running unit's stdout and final receipt are still mutable. Only
+    # registered terminal unit logs can enter an immutable copy plan.
+    state=json.loads((Path(os.environ['PCRL_QUEUE_ROOT'])/'state.json').read_text())
+    terminal_units={uid for uid,unit in state['units'].items()
+                    if unit.get('status') in ('done','failed','incomplete')
+                    and uid!=active['unit_id']}
     repo=Path(repo).resolve();source_manifest=Path(source_manifest).resolve()
     manifest=load_manifest(source_manifest);entries={};source_alias={}
     def add(alias,path,expected=None):
@@ -52,7 +58,8 @@ def create_plan(repo,source_manifest,out,public):
         if not p.is_file():continue
         rel=p.relative_to(private)
         if rel.parts[0]=='custody':continue
-        if rel.parts[0]=='compute' and (len(rel.parts)<2 or rel.parts[1]!='units'):continue
+        if rel.parts[0]=='compute':
+            if len(rel.parts)<4 or rel.parts[1]!='units' or rel.parts[2] not in terminal_units:continue
         add('campaign/'+str(rel),p)
     files=subprocess.run(['git','ls-files','-z'],cwd=repo,check=True,capture_output=True).stdout.split(b'\0')
     for raw in files:
@@ -62,7 +69,7 @@ def create_plan(repo,source_manifest,out,public):
     head=subprocess.run(['git','rev-parse','HEAD'],cwd=repo,check=True,capture_output=True,text=True).stdout.strip()
     plan={'schema':'CBR1-versioned-custody-plan-v1','execution_commit_captured':head,'source_manifest_sha256':uncached_hash(source_manifest),
           'entries':list(entries.values()),'source_aliases':source_alias,'source_manifest':manifest,
-          'scope':'admitted role-only sources and this campaign private artifacts; opaque copy; no barred archive opened'}
+          'scope':'admitted role-only sources and this campaign private artifacts; only registered terminal queue-unit logs; opaque copy; no barred archive opened'}
     sha=write_once(out,plan)
     report={k:v for k,v in plan.items() if k not in ('entries','source_aliases','source_manifest')}
     report['entries']=[{k:v for k,v in e.items() if k!='path'} for e in entries.values()]
