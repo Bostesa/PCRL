@@ -32,12 +32,50 @@ def validate_law(bank,c1,c2,out1,out2,mass):
     return a,b,q
 
 
+def sample_tuple(a,b,q,u_joint,u1,u2,kind):
+    """Sample actual tuples; product uses two independent recipient coins."""
+    a,b,q=np.asarray(a),np.asarray(b),np.asarray(q)
+    if kind=='joint':
+        j=int(np.searchsorted(np.cumsum(q),u_joint,side='right'))
+        if j>=len(q) or q[j]<=0:j=int(np.flatnonzero(q>0)[-1])
+        return int(a[j]),int(b[j])
+    pairs,inv=np.unique(np.c_[a,b],axis=0,return_inverse=True)
+    weights=np.bincount(inv,weights=q,minlength=len(pairs));active=weights>0
+    pairs,weights=pairs[active],weights[active]
+    if kind=='deterministic':
+        if len(pairs)!=1:raise ValueError('deterministic sampler given a nonconstant law')
+        return int(pairs[0,0]),int(pairs[0,1])
+    def draw(ids,mass,u):
+        values,idx=np.unique(ids,return_inverse=True);m=np.bincount(idx,weights=mass,minlength=len(values));m=m/m.sum()
+        slot=int(np.searchsorted(np.cumsum(m),u,side='right'))
+        if slot>=len(m) or m[slot]<=0:slot=int(np.flatnonzero(m>0)[-1])
+        return int(values[slot])
+    if kind=='product':
+        v1,i1=np.unique(pairs[:,0],return_inverse=True);v2,i2=np.unique(pairs[:,1],return_inverse=True)
+        marginal1=np.bincount(i1,weights=weights);marginal2=np.bincount(i2,weights=weights)
+        expected=marginal1[i1]*marginal2[i2]
+        # Check every Cartesian emitted tuple, including omitted zero tuples.
+        actual=np.zeros((len(v1),len(v2)));actual[i1,i2]=weights
+        if not np.allclose(actual,marginal1[:,None]*marginal2[None,:],rtol=0,atol=1e-10):
+            raise ValueError('independent-coin sampler requires an actual product law')
+        return draw(pairs[:,0],weights,u1),draw(pairs[:,1],weights,u2)
+    if kind=='seq12':
+        first=draw(pairs[:,0],weights,u1);mask=pairs[:,0]==first
+        return first,draw(pairs[mask,1],weights[mask],u2)
+    if kind=='seq21':
+        first=draw(pairs[:,1],weights,u2);mask=pairs[:,1]==first
+        return draw(pairs[mask,0],weights[mask],u1),first
+    raise ValueError('unknown sampler')
+
+
 class CachedRelease:
     """Provider-only persistent single-query cache. Never include keys in wire."""
-    def __init__(self,service,law_codes,*,policy_sha256,cache_path,secret):
+    def __init__(self,service,law_codes,*,policy_sha256,cache_path,secret,sampling_kind='joint'):
         if not isinstance(secret,bytes) or len(secret)<32: raise ValueError('private 256-bit sampling root required')
+        if sampling_kind not in ('joint','product','seq12','seq21','deterministic'):raise ValueError('unregistered sampler')
+        self.sampling_kind=sampling_kind
         self.service=service;self.law_codes=law_codes;self.secret=secret
-        self.domain=('CBR1|'+policy_sha256+'|'+service.bank['source_binding_sha256']+'|'+str(service.seed)).encode()
+        self.domain=('CBR1|'+sampling_kind+'|' +policy_sha256+'|'+service.bank['source_binding_sha256']+'|'+str(service.seed)).encode()
         cache_path=Path(cache_path)
         cache_path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         if not cache_path.exists():
@@ -54,8 +92,9 @@ class CachedRelease:
         if not isinstance(key,(str,int,np.integer)):raise ValueError('provider-only canonical person key required')
         return hmac.new(self.secret,self.domain+b'|key|'+str(key).encode(),hashlib.sha256).hexdigest()
 
-    def uniform(self,key):
-        token=hmac.new(self.secret,self.domain+b'|draw|'+self._key(key).encode(),hashlib.sha256).digest()
+    def uniform(self,key,recipient=None):
+        domain=b'joint' if recipient is None else ('recipient'+str(recipient)).encode()
+        token=hmac.new(self.secret,self.domain+b'|draw|'+domain+b'|'+self._key(key).encode(),hashlib.sha256).digest()
         return (int.from_bytes(token[:8],'big')>>11)/float(2**53)
 
     def release(self,raw,names,person_keys):
@@ -75,10 +114,7 @@ class CachedRelease:
                 if saved is not None:
                     if saved[0]!=binding:raise ValueError('same person key supplied with a different raw input')
                     e1[i],e2[i]=saved[1:];continue
-                u=self.uniform(key)
-                j=int(np.searchsorted(np.cumsum(q[i]),u,side='right'))
-                if j>=len(q[i]) or q[i,j]<=0:j=int(np.flatnonzero(q[i]>0)[-1])
-                e1[i],e2[i]=a[i,j],b[i,j]
+                e1[i],e2[i]=sample_tuple(a[i],b[i],q[i],self.uniform(key),self.uniform(key,1),self.uniform(key,2),self.sampling_kind)
                 self.db.execute('INSERT INTO releases VALUES (?,?,?,?)',(cachekey,binding,int(e1[i]),int(e2[i])))
         return wires_for_codes(self.service.bank,1,e1),wires_for_codes(self.service.bank,2,e2)
 
@@ -102,7 +138,7 @@ def main(argv=None):
     parser.add_argument('--source-manifest',required=True)
     parser.add_argument('--source-manifest-sha256',required=True)
     parser.add_argument('--seed',type=int,choices=(0,1),required=True)
-    parser.add_argument('--kind',choices=('P0','ALLOCATION','V_J','V_S21'),required=True)
+    parser.add_argument('--kind',choices=('P0','ALLOCATION','CONTROL','V_J','V_S21'),required=True)
     parser.add_argument('--policy-dir')
     parser.add_argument('--policy-receipt-sha256')
     parser.add_argument('--input',required=True)
@@ -120,18 +156,26 @@ def main(argv=None):
     if sha_file(args.person_keys)!=args.person_keys_sha256:raise PermissionError('provider cache keys binding differs')
     manifest=load_manifest(args.source_manifest,args.source_manifest_sha256)
     service=load_p0_service(manifest,args.seed)
-    if args.kind=='ALLOCATION':
+    sampling_kind='joint'
+    if args.kind in ('ALLOCATION','CONTROL'):
         if not args.policy_dir or not args.policy_receipt_sha256:raise ValueError('allocation requires bound policy')
-        from .fit import load_allocation_policy
-        policy=load_allocation_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+        if args.kind=='ALLOCATION':
+            from .fit import load_allocation_policy
+            policy=load_allocation_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+        else:
+            from .controls import load_control_policy
+            policy=load_control_policy(args.policy_dir,manifest,expected_receipt_sha256=args.policy_receipt_sha256)
+            sampling_kind={'LOCAL':'product','PRODUCT':'product','DETERMINISTIC':'deterministic','SEQUENTIAL':'seq12' if policy.first_recipient==1 else 'seq21'}[policy.kind]
         receipt=json.loads((Path(args.policy_dir)/'POLICY_RECEIPT.json').read_text())
         if receipt['seed']!=args.seed:raise PermissionError('allocation source seed differs')
         law=policy.law_codes;binding=args.policy_receipt_sha256
     elif args.kind=='P0':
         if args.policy_dir or args.policy_receipt_sha256:raise ValueError('P0 cannot accept policy arguments')
+        sampling_kind='deterministic'
         law=identity_law;binding=manifest['seeds'][str(args.seed)]['public_bank']['sha256']
     else:
         if args.policy_dir or args.policy_receipt_sha256:raise ValueError('historical policy paths come only from admitted manifest')
+        sampling_kind='seq21' if args.kind=='V_S21' else 'joint'
         law=historical_law(load_historical_policy(manifest,args.seed,args.kind))
         binding=manifest['seeds'][str(args.seed)]['policies'][args.kind]['receipt']['sha256']
     raw=load_permitted_input(args.input,list(service.names))
@@ -141,7 +185,7 @@ def main(argv=None):
     if root.is_symlink() or root.stat().st_mode&0o077:raise PermissionError('private sampling root permission required')
     secret=root.read_bytes()
     if len(secret)!=32:raise ValueError('private root must be exactly 32 bytes')
-    api=CachedRelease(service,law,policy_sha256=binding,cache_path=args.cache,secret=secret)
+    api=CachedRelease(service,law,policy_sha256=binding,cache_path=args.cache,secret=secret,sampling_kind=sampling_kind)
     try:wires=api.release(raw,service.names,keys)
     finally:api.close()
     hashes=[]
@@ -151,7 +195,7 @@ def main(argv=None):
             stream.flush();os.fsync(stream.fileno())
         hashes.append(sha_file(path))
     print(json.dumps({'schema':'CBR1-cached-raw83-deployment-receipt-v1','kind':args.kind,'seed':args.seed,
-                      'rows':len(wires[0]),'policy_binding_sha256':binding,'wire_sha256':hashes,
+                      'rows':len(wires[0]),'policy_binding_sha256':binding,'wire_sha256':hashes,'sampling_kind':sampling_kind,
                       'contract':'one cached draw per provider person key; no transmitted cache key'},sort_keys=True))
 
 if __name__=='__main__':main()
