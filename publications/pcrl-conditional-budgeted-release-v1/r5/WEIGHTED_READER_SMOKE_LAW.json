@@ -1,0 +1,19 @@
+{
+  "schema":"pcrl-conditional-r5-weighted-reader-smoke-law-v1",
+  "scope":"Data-free architecture/interface timing; no Adult rows or release selection",
+  "bank_source":"WIRE_READER_FIXTURES.json",
+  "fit_people":400,
+  "report_people":400,
+  "sex_rule":"int(i % 5 >= 2)",
+  "recipient1_codes":"[2*SEX, 2*SEX+1]",
+  "recipient2_codes":"[i%6,i%6]",
+  "conditional_mass":[0.7,0.3],
+  "groups":"one unique group per synthetic person",
+  "model_seed":0,
+  "required_models":30,
+  "required_views":["r1","r2","pair"],
+  "checks":["weighted_MLP_signature","all_reader_freeze_before_report","all8sourcefamilies","metadata_complete","ignore_other_monotonicity","null_and_planted_controls","fixed_training_inputs_restore"],
+  "max_cpu_seconds":120,
+  "max_wall_seconds":120,
+  "max_rss_gib":2
+}
