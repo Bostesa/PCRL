@@ -22,10 +22,20 @@ def main():
     # Explicit all-family and all-reader freezes precede either label opening.
     nomination=json.loads(checked(spec['nomination_lock']).read_text())
     reader_lock=json.loads(checked(spec['reader_lock']).read_text())
-    if nomination.get('status')!='FROZEN' or not nomination.get('nominees'):
+    if nomination.get('status')!='FROZEN' or len(nomination.get('nominees',[]))!=22:
         raise PermissionError('complete nomination freeze required before INNER tasks')
     if not spec.get('all_reader_banks_frozen') or reader_lock.get('status') not in ('FROZEN','FROZEN_COMPLETE','FROZEN_ALL','ALL_READERS_FROZEN'):
         raise PermissionError('all-reader freeze required before INNER SEX')
+    if reader_lock.get('K_primary')!=51 or reader_lock.get('K_secondary')!=33 or reader_lock.get('inner_sex_sha256')!=spec['inner_sex']['sha256']:
+        raise PermissionError('reporting lock multiplicity or SEX pin differs')
+    freezes=reader_lock.get('reader_freezes',[])
+    if len(freezes)<26:raise PermissionError('all26 service reader bank freezes required')
+    for freeze_pin in freezes:
+        frozen=json.loads(checked(freeze_pin).read_text())
+        if frozen.get('status')!='FROZEN_COMPLETE':raise PermissionError('reporting reader bank not frozen')
+    refit_receipt=json.loads(checked(spec['independent_refits']).read_text())
+    if refit_receipt.get('status')!='FROZEN_COMPLETE' or refit_receipt.get('numerical_fit_count')!=4 or any(r['INNER_SEX_opened'] for r in refit_receipt.get('fits',[])):
+        raise PermissionError('all four independent refits must freeze before reporting labels')
     import numpy as np
     import torch
     from .science import own_release,wire,metrics,task_rows,auc
@@ -212,8 +222,6 @@ def main():
             scoreprivacy[f'{legacy}__{view}']=dict(clause(point,reps,33,ng,.020 if view=='pair' else .010,'lower' if view=='pair' else 'upper'),
                 comparator_contract='literal historical complete code/probability/decision/metadata wire',
                 candidate_contract='new own-head probability/decision only',equal_capacity_claim=False)
-    refit_receipt=json.loads(checked(spec['independent_refits']).read_text())
-    if refit_receipt['status']!='FROZEN_COMPLETE' or refit_receipt['numerical_fit_count']!=4:raise ValueError('independent refits not frozen before reporting')
     from .endpoint_math import FixedAUC
     refit_results=[];refit_points={};refit_boots={}
     for record in refit_receipt['fits']:

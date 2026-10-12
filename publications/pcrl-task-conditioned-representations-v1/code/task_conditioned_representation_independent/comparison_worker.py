@@ -19,7 +19,8 @@ def main():
     def compare(left,right,identity):
         nonlocal count,max_error
         for key in ('point','se','lower','upper','critical'):
-            error=abs(float(left[key])-float(right[key]));max_error=max(max_error,error)
+            reported_key='bootstrap_se' if key=='se' else key
+            error=abs(float(left[key])-float(right[reported_key]));max_error=max(max_error,error)
             if error>1e-10:raise ValueError(f'independent endpoint mismatch {identity}: {key} error={error}')
         count+=1
     for family,n in [('primary',51),('utility',240),('secondary',33)]:
