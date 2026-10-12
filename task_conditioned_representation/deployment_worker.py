@@ -65,6 +65,9 @@ def run(spec_path):
         # Deliberately requires no source manifest or checkpoint. All numerical
         # inputs, deployed weights and reader estimators are within restore root.
         root=Path(spec['restore_root']).resolve()
+        from importlib.metadata import version
+        environment={name:version(name) for name in ('numpy','torch','scipy','scikit-learn','joblib')}
+        if environment!=spec['environment_pins']:raise PermissionError('restored model environment differs from verified live environment')
         if not Path(__file__).resolve().is_relative_to(root):raise PermissionError('numerical restore must execute its backed-up runtime code')
         for field in ('package','input','expected'):
             if not Path(spec[field]).resolve().is_relative_to(root):raise PermissionError('restore input outside restored tree')
@@ -90,8 +93,8 @@ def run(spec_path):
             with np.load(record['expected'],allow_pickle=False) as z:target=z[record.get('score_field',view+'__'+name)]
             diff=float(np.max(np.abs(scores-target)))
             if diff!=0.:raise AssertionError('restored reader differs')
-            reader_checks.append({'view':view,'reader_name':name,'orientation':record['orientation'],'max_abs_score_difference':diff,'reader_sha256':record['path_sha256']})
-        result={'schema':'TCR1-restored-numerical-deployment-receipt-v1','status':'PASS','rows':len(actual[0]['full']),'family':meta['provenance'].get('family'),'package_manifest_sha256':spec['package_manifest_sha256'],'max_abs_wire_difference':differences,'max_abs_score_wire_difference':score_differences,'reader_checks':reader_checks,'original_sources_used':False,'labels_required':False}
+            reader_checks.append({'view':view,'reader_name':name,'reported_view':record['reported_view'],'reported_reader':record['reported_reader'],'purpose':record['purpose'],'orientation':record['orientation'],'max_abs_score_difference':diff,'reader_sha256':record['path_sha256']})
+        result={'schema':'TCR1-restored-numerical-deployment-receipt-v1','status':'PASS','arm_id':spec['arm_id'],'seed':spec['seed'],'rows':len(actual[0]['full']),'family':meta['provenance'].get('family'),'package_manifest_sha256':spec['package_manifest_sha256'],'max_abs_wire_difference':differences,'max_abs_score_wire_difference':score_differences,'reader_checks':reader_checks,'original_sources_used':False,'labels_required':False,'environment_pins':environment}
     else:raise ValueError('unregistered deployment operation')
     write_json(spec['public'],result);return result
 

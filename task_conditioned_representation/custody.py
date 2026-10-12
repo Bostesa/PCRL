@@ -78,6 +78,7 @@ def create_plan(repo,source_manifest,out,public,supplemental_metadata=()):
     files=subprocess.run(['git','ls-files','-z'],cwd=repo,check=True,capture_output=True).stdout.split(b'\0')
     tracked={os.fsdecode(raw) for raw in files if raw}
     required={'conditional_release/'+name for name in ('__init__.py','attacks.py','metrics.py','inference.py')}
+    required.update(('conditional_release/custody.py','task_conditioned_representation/requirements-deployment.txt'))
     for namespace in ('task_conditioned_representation','task_conditioned_representation_independent'):
         required.update(str(path.relative_to(repo)) for path in (repo/namespace).rglob('*.py'))
     if required-tracked:raise PermissionError('runtime/helper closure has uncommitted files: '+','.join(sorted(required-tracked)))

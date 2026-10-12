@@ -50,28 +50,46 @@ def prepare_live(index_path,output):
 
 def prepare_restore(live_index,restore_root,output,tag='LOCAL'):
     index=json.loads(Path(live_index).read_text());root=Path(restore_root).resolve();r7=BASE/'.private/task_conditioned_representation/r7';public=BASE/'results/pcrl_task_conditioned_representations_v1/r7';units=[]
-    def remap(p):return root/'files/campaign'/Path(p).resolve().relative_to(BASE/'.private/task_conditioned_representation')
+    def suffix(p,prefix):
+        parts=Path(p).parts
+        for pos in range(len(parts)-len(prefix)+1):
+            if parts[pos:pos+len(prefix)]==prefix:return Path(*parts[pos+len(prefix):])
+        raise PermissionError('metadata path lacks campaign namespace')
+    def remap(p):return root/'files/campaign'/suffix(p,('.private','task_conditioned_representation'))
+    def remap_public(p):return root/'files/code/results/pcrl_task_conditioned_representations_v1'/suffix(p,('results','pcrl_task_conditioned_representations_v1'))
+    reader_index=root/'files/campaign/r5/PREPARED_ALL_READERS_V1.json'
+    reader_metadata=json.loads(reader_index.read_text())
     code=root/'files/code';runtime_code=[code/'task_conditioned_representation'/name for name in CODE+('attacks.py','inference.py')]
     runtime_code.extend(code/name for name in LEGACY_READER_CODE)
     for item in index['units']:
         arm=item['arm_id'];seed=item['seed'];uid=f'R7_RESTORE_{tag}_{arm}_S{seed}_V1'
-        receipt=json.loads(Path(item['public']).read_text());package=remap(item['package']);inp=remap(item['input']);expected=remap(item['expected'])
-        cfg={'unit_id':uid,'operation':'restore','stage':'custody','restore_root':str(root),'package':str(package),'package_manifest_sha256':receipt['package_manifest_sha256'],'input':str(inp),'input_sha256':receipt['input_sha256'],'expected':str(expected),'expected_sha256':receipt['expected_sha256'],'public':str(public/f'{uid}.json'),'readers':[]}
-        reader_dir=root/'files/campaign/r5/readers'/f'{arm}_s{seed}'
+        receipt_path=remap_public(item['public']);receipt=json.loads(receipt_path.read_text());package=remap(item['package']);inp=remap(item['input']);expected=remap(item['expected'])
+        cfg={'unit_id':uid,'operation':'restore','stage':'custody','restore_root':str(root),'arm_id':arm,'seed':seed,'package':str(package),'package_manifest_sha256':receipt['package_manifest_sha256'],'input':str(inp),'input_sha256':receipt['input_sha256'],'expected':str(expected),'expected_sha256':receipt['expected_sha256'],'public':str(public/f'{uid}.json'),'readers':[],'environment_pins':receipt['environment_pins']}
+        choices=[record for record in reader_metadata['units'] if record['arm_id']==arm and record['seed']==seed]
+        if len(choices)!=1:raise ValueError('actual restored reader bank metadata must uniquely match arm and seed')
+        reader_dir=remap(choices[0]['private_output'])
         freeze=reader_dir/'FROZEN_COMPLETE.json'
-        sources=[pin(package/'DEPLOYMENT.json'),pin(package/'model_state.pt'),pin(inp),pin(expected)]+[pin(p) for p in runtime_code]
+        sources=[pin(receipt_path),pin(reader_index),pin(package/'DEPLOYMENT.json'),{'path':str(package/'model_state.pt'),'sha256':receipt['model_sha256']},{'path':str(inp),'sha256':receipt['input_sha256']},{'path':str(expected),'sha256':receipt['expected_sha256']}]+[pin(p) for p in runtime_code]
         if freeze.exists():
             frozen=json.loads(freeze.read_text());scores=reader_dir/'INNER_SCORES.npz'
+            if frozen.get('status')!='FROZEN_COMPLETE' or frozen['source_seed']!=seed or frozen['bindings']['arm_id']!=arm:raise ValueError('reader bank freeze identity differs')
+            report_path=root/'files/code/results/pcrl_task_conditioned_representations_v1/r5'/f'R5_REPORT_{arm}_S{seed}_V1.json'
+            report=json.loads(report_path.read_text());sources.append(pin(report_path))
             for view in ('r1','r2','pair'):
-                name='LR_C1';model=reader_dir/f'MODEL_{view}__{name}.joblib'
-                cfg['readers'].append({'path':str(model),'path_sha256':pin(model)['sha256'],'expected':str(scores),'expected_sha256':pin(scores)['sha256'],'view':view,'reader_name':name,'orientation':frozen['validation'][view][name]['orientation'],'score_field':view+'__'+name})
-                sources.append(pin(model))
-            sources.extend((pin(freeze),pin(scores)))
+                for name in dict.fromkeys(('LR_C1',report['views'][view]['strongest_reader'])):
+                    actual_view=view;actual_name=name
+                    if name.startswith('IGNORE_'):
+                        ignored,actual_name=name.split('__',1);actual_view='r2' if ignored=='IGNORE_r1' else 'r1' if ignored=='IGNORE_r2' else None
+                        if view!='pair' or actual_view is None:raise ValueError('invalid frozen ignore-other reader alias')
+                    model=reader_dir/f'MODEL_{actual_view}__{actual_name}.joblib';model_sha=frozen['model_files'][model.name]
+                    cfg['readers'].append({'path':str(model),'path_sha256':model_sha,'expected':str(scores),'expected_sha256':frozen['score_sha256'],'view':actual_view,'reader_name':actual_name,'orientation':frozen['validation'][actual_view][actual_name]['orientation'],'score_field':view+'__'+name,'reported_view':view,'reported_reader':name,'purpose':'representative_linear' if name=='LR_C1' else 'frozen_final_envelope_strongest'})
+                    sources.append({'path':str(model),'sha256':model_sha})
+            sources.extend((pin(freeze),{'path':str(scores),'sha256':frozen['score_sha256']}))
         else:raise FileNotFoundError('representative restored reader bank is required')
         config=write(r7/'configs'/f'{uid}.json',cfg);sources.append(config)
         spec={'unit_id':uid,'stage':'custody','cwd':str(code),'argv':[PYTHON,'-m','task_conditioned_representation.deployment_worker',str(config['path'])],'max_wall_s':120,'cpu_reserve_s':120,'max_rss_gib':2,'projected_output_bytes':1000000,'sources':exact_sources(sources),'deps':[],'outputs':[cfg['public']]}
         spec_pin=write(r7/'specs'/f'{uid}.json',spec);units.append({'arm_id':arm,'seed':seed,'spec':spec_pin,'public':cfg['public']})
-    return write(output,{'schema':'TCR1-prepared-backup-only-numerical-restore-v1','units':units,'executed':False,'restore_code_only':True})
+    return write(output,{'schema':'TCR1-prepared-backup-only-numerical-restore-v1','units':units,'executed':False,'restore_code_only':True,'metadata_read_from_backup_only':True,'person_arrays_opened_or_hashed_by_builder':False,'reader_scope':'representative LR_C1 and frozen final-envelope strongest reader for every actual recipient and pair; no refitting or model selection change'})
 
 
 if __name__=='__main__':
