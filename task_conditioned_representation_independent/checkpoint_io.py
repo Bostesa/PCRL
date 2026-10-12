@@ -8,7 +8,7 @@ class ReferenceState:
 
 class Unpickler(pickle.Unpickler):
     def find_class(self,module,name):
-        if module.startswith('task_conditioned_representation'):
+        if module=='task_conditioned_representation' or module.startswith('task_conditioned_representation.'):
             if module=='task_conditioned_representation.kernels' and name=='DiagonalReference':
                 return ReferenceState
             raise ImportError('candidate scientific checkpoint class refused: '+module+'.'+name)

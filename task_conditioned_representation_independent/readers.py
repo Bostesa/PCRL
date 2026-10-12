@@ -19,7 +19,7 @@ def load_saved_reader(path):
     from joblib.numpy_pickle_utils import _validate_fileobject_and_memmap
     class IndependentUnpickler(NumpyUnpickler):
         def find_class(self,module,name):
-            if module.startswith('task_conditioned_representation'):
+            if module=='task_conditioned_representation' or module.startswith('task_conditioned_representation.'):
                 if module=='task_conditioned_representation.attacks' and name=='FiniteScaler':
                     return ScaleState
                 raise ImportError('candidate scientific pickle class refused: '+module+'.'+name)

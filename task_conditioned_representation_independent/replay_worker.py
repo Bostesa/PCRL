@@ -53,7 +53,7 @@ def main():
     banks=spec['banks']
     if len(banks)!=20 or len({(r['family'],r['seed']) for r in banks})!=20:raise ValueError('complete ten-family/two-seed replay required')
     families=sorted({r['family'] for r in banks})
-    all_points={};all_boots={};rows={};reports=[];restore=[];gate={}
+    all_points={};all_boots={};rows={};nominee_rows={};reports=[];restore=[];gate={};actual_gates={}
     started=time.process_time()
     for entry in banks:
         assert_active_from_env(stage='verification')
@@ -105,17 +105,34 @@ def main():
         points,boots=scores_envelope(scores,sex,groups);all_points[key]=points;all_boots[key]=boots
         tm=[metrics(ys[r],released[f'p{r+1}']) for r in (0,1)]
         rows[key]=[task_rows(ys[r],released[f'p{r+1}']) for r in (0,1)]
-        clauses=[]
+        nominal_path=checked({'path':entry['nominee_checkpoint'],'sha256':entry['nominee_checkpoint_sha256']})
+        nominal_payload=read_checkpoint(nominal_path)
+        if nominal_payload['seed']!=seed:raise ValueError('nominee checkpoint seed differs')
+        nominal_release=own_release(nominal_payload['model'],x['X'])
+        nominal_tm=[metrics(ys[r],nominal_release[f'p{r+1}']) for r in (0,1)]
+        nominee_rows[key]=[task_rows(ys[r],nominal_release[f'p{r+1}']) for r in (0,1)]
+        clauses=[];actual_clauses=[]
         for r in (0,1):
             for refname in ('U0','Ucal'):
                 baseline=metrics(ys[r],refs[seed][f'{refname}_{r+1}'])
                 for metric,cap in [('accuracy',.010),('nll',.010),('brier',.005)]:
-                    deviation=baseline[metric]-tm[r][metric] if metric=='accuracy' else tm[r][metric]-baseline[metric]
+                    deviation=baseline[metric]-nominal_tm[r][metric] if metric=='accuracy' else nominal_tm[r][metric]-baseline[metric]
                     clauses.append({'task':r,'reference':refname,'metric':metric,'point':deviation,'cap':cap,'pass':deviation<=cap})
+                    actual_deviation=baseline[metric]-tm[r][metric] if metric=='accuracy' else tm[r][metric]-baseline[metric]
+                    actual_clauses.append({'task':r,'reference':refname,'metric':metric,'point':actual_deviation,'cap':cap,'pass':actual_deviation<=cap})
         gate[key]=all(c['pass'] for c in clauses)
+        actual_gate=all(c['pass'] for c in actual_clauses)
+        actual_gates[key]=actual_gate
         restore.append({'family':family,'seed':seed,'checkpoint_sha256':entry['checkpoint_sha256'],'release_max_abs_errors':errors,'max_reader_prediction_error':max(reader_errors),'readers_replayed':27})
-        reports.append({'family':family,'seed':seed,'task_metrics':tm,'point_eligible':gate[key],'point_clauses':clauses,'controls':controls,
+        reports.append({'family':family,'seed':seed,'task_metrics':tm,'nominee_task_metrics':nominal_tm,
+                        'nominee_point_eligible_per_seed':gate[key],'actual_point_eligible_per_seed':actual_gate,'diagnostic_only':bool(entry['diagnostic_only']),
+                        'nominee_point_clauses':clauses,'actual_model_point_clauses':actual_clauses,'controls':controls,
                         'recovery':{contract:{view:points[(contract,view)] for view in ('r1','r2','pair')} for contract in ('full','score','representation')}})
+    for entry in banks:
+        family=entry['family'];eligible=all(gate[(family,s)] for s in (0,1));actual_eligible=all(actual_gates[(family,s)] for s in (0,1))
+        if eligible!=entry['nominee_point_eligible'] or actual_eligible!=entry['point_eligible_of_actualmodel'] or bool(entry['diagnostic_only'])==eligible:
+            raise ValueError('common two-seed nominee/fallback utility classification differs')
+        if eligible and entry['checkpoint_sha256']!=entry['nominee_checkpoint_sha256']:raise ValueError('qualified nominee replaced after task gate')
     primary={};secondaryutility={};scoreprivacy={};absolute={}
     for family in families:
         eligible=all(gate[(family,s)] for s in (0,1))
@@ -135,7 +152,10 @@ def main():
                     for j,(metric,cap) in enumerate([('accuracy',.010),('nll',.010),('brier',.005)]):
                         id=f'{family}__s{seed}__task{r}__{refname}__{metric}'
                         secondaryutility[id]=clause(points[j],reps[:,j],240,ng,cap,'upper')
-                        if family=='JOINT_CONDITIONAL':primary[id]=clause(points[j],reps[:,j],51,ng,cap,'upper')
+                        if family=='JOINT_CONDITIONAL':
+                            nominal_diff=nominee_rows[(family,seed)][r]-base;nominal_diff[:,0]*=-1
+                            nominal_reps=np.array([np.average(nominal_diff,axis=0,weights=w) for w in bootstrap_counts(groups)])
+                            primary[id]=clause(nominal_diff.mean(axis=0)[j],nominal_reps[:,j],51,ng,cap,'upper')
     for comparator in families:
         if comparator=='JOINT_CONDITIONAL':continue
         eligible=all(gate[(comparator,s)] for s in (0,1))
