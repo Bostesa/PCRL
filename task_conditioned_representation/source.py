@@ -93,14 +93,14 @@ def write_json(path,value,private=False):
     return sha_file(p)
 
 
-def make_manifest(prior_path,out,public):
+def make_manifest(prior_path,out,public,*,calibration_units_root):
     old=load_manifest(prior_path)
     m={'schema':'TCR1-role-safe-private-source-v1','roles':old['roles'],'seeds':{},
        'upstream_source_execution_sha':old['source_execution_sha'],'upstream_source_publication_sha':old['source_publication_sha']}
     for s in ('0','1'):
         r=old['seeds'][s]
         m['seeds'][s]={'pins':{k:r['pins'][k] for k in ('model','head0','head1','record','complete')},'public_bank':r['public_bank']}
-        cal=Path('/Users/nathansamson/PCRL_eval_cache_private/hcal_v1/run/units')/f'calU__s{s}'
+        cal=Path(calibration_units_root).expanduser().absolute()/f'calU__s{s}'
         m['seeds'][s]['ucal']={k:{'path':str(cal/v),'sha256':sha_file(cal/v),'size_bytes':(cal/v).stat().st_size} for k,v in [('complete','COMPLETE.json'),('record','record.json')]}
     entries={}
     def walk(v,prefix=''):
@@ -115,5 +115,5 @@ def make_manifest(prior_path,out,public):
 
 if __name__=='__main__':
     import argparse
-    p=argparse.ArgumentParser();p.add_argument('--prior-manifest',required=True);p.add_argument('--out',required=True);p.add_argument('--public',required=True)
-    a=p.parse_args();print(json.dumps({'source_manifest_sha256':make_manifest(a.prior_manifest,a.out,a.public)}))
+    p=argparse.ArgumentParser();p.add_argument('--prior-manifest',required=True);p.add_argument('--calibration-units-root',required=True);p.add_argument('--out',required=True);p.add_argument('--public',required=True)
+    a=p.parse_args();print(json.dumps({'source_manifest_sha256':make_manifest(a.prior_manifest,a.out,a.public,calibration_units_root=a.calibration_units_root)}))
