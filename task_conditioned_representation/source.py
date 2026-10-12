@@ -112,3 +112,8 @@ def make_manifest(prior_path,out,public):
     h=write_json(out,m,True)
     write_json(public,{'schema':'TCR1-source-hash-inventory-v1','manifest_sha256':h,'entries':entries,'INNER_SEX_opened_or_hashed':False,'barred_arrays_opened':False})
     return h
+
+if __name__=='__main__':
+    import argparse
+    p=argparse.ArgumentParser();p.add_argument('--prior-manifest',required=True);p.add_argument('--out',required=True);p.add_argument('--public',required=True)
+    a=p.parse_args();print(json.dumps({'source_manifest_sha256':make_manifest(a.prior_manifest,a.out,a.public)}))
