@@ -26,8 +26,12 @@ def fold_estimator(pipeline):
     if k==2:
         if w.shape!=(1,16) or b.shape!=(1,):raise ValueError('binary logistic convention differs')
         # sklearn binary predict_proba uses sigmoid(d), equivalent to softmax(-d/2,+d/2).
-        w=np.concatenate((-w/2,w/2));b=np.concatenate((-b/2,b/2))
-        convention='binary sigmoid(d) = softmax(-d/2,+d/2); ties choose class0'
+        if getattr(lr,'multi_class','auto')=='multinomial':
+            w=np.concatenate((-w,w));b=np.concatenate((-b,b))
+            convention='binary multinomial softmax(-d,+d); ties choose class0'
+        else:
+            w=np.concatenate((-w/2,w/2));b=np.concatenate((-b/2,b/2))
+            convention='binary sigmoid(d) = softmax(-d/2,+d/2); ties choose class0'
     else:
         if w.shape!=(k,16) or b.shape!=(k,) or lr.solver=='liblinear' or getattr(lr,'multi_class','auto')=='ovr':raise ValueError('nonmultinomial logistic source cannot fold to softmax')
         w=w-w.mean(0,keepdims=True);b=b-b.mean()
