@@ -40,7 +40,7 @@ def prepare_fit(index_path,output):
             if actual['sha256']!=item['sha256']:raise PermissionError('source bytes changed before queue preparation')
             by_path[actual['path']]=actual['sha256']
         spec={'unit_id':uid,'stage':'attacks','cwd':str(BASE),'argv':[sys.executable,'-m','task_conditioned_representation.attack_worker','--phase','fit','--spec',config['path']],
-              'max_wall_s':1200,'cpu_reserve_s':900,'max_rss_gib':2,'projected_output_bytes':128*1024**2,'sources':[{'path':p,'sha256':h} for p,h in sorted(by_path.items())],'deps':index.get('deps',[]),'outputs':[cfg['public_output']]}
+              'max_wall_s':1200,'cpu_reserve_s':1200,'max_rss_gib':2,'projected_output_bytes':128*1024**2,'sources':[{'path':p,'sha256':h} for p,h in sorted(by_path.items())],'deps':index.get('deps',[]),'outputs':[cfg['public_output']]}
         if index.get('amendment_sha256'):spec['amendment_sha256']=index['amendment_sha256']
         spec_pin=write(private/'specs'/f'{uid}.json',spec)
         metadata.append({'unit_id':uid,'config':config,'spec':spec_pin,'private_output':cfg['private_output'],'public_output':cfg['public_output']})

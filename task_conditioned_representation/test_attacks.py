@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from task_conditioned_representation import attacks, inference
+from task_conditioned_representation import utility_worker
 
 class ContractTests(unittest.TestCase):
     def test_scale_retains_small_finite_variance(self):
@@ -8,6 +9,48 @@ class ContractTests(unittest.TestCase):
         z=attacks.FiniteScaler().fit(x).transform(x)
         self.assertGreater(np.std(z[:,0]),.9)
         self.assertEqual(z.shape,x.shape)
+    def test_planted_signal_at_1e_minus_25_keeps_unit_variance(self):
+        y=np.tile(np.array([0,1]),64)
+        x=np.column_stack((1e-25*y,np.ones(len(y))))
+        scaler=attacks.FiniteScaler().fit(x)
+        z=scaler.transform(x)
+        self.assertGreater(scaler.raw_scale_[0],0.)
+        self.assertAlmostEqual(float(np.std(z[:,0])),1.)
+        self.assertEqual(float(scaler.scale_[1]),1.)
+        self.assertTrue(np.array_equal(z[:,1],np.zeros(len(y))))
+    def test_fresh_reader_recovers_planted_1e_minus_25_bit(self):
+        train_y=np.tile(np.array([0,1]),64)
+        train_x=np.column_stack((1e-25*train_y,np.ones(len(train_y))))
+        record=attacks.fit_reader(train_x,train_y,'LR_C1',2026101205)
+        validation_y=np.tile(np.array([0,1]),16)
+        validation_x=np.column_stack((1e-25*validation_y,np.ones(len(validation_y))))
+        scores=attacks.predict_reader(record,validation_x)
+        self.assertEqual(inference.auc(validation_y,scores),1.)
+    def test_nomination_membership_requires_exact_arm_seed_checkpoint(self):
+        checkpoint='a'*64
+        lock={'instances':[{'arm_id':'JOINT_CONDITIONAL','seed':0,'checkpoint_sha256':checkpoint}],
+              'unrelated_notes':{'checkpoint_sha256':'b'*64}}
+        self.assertTrue(utility_worker.admitted_checkpoint(lock,'JOINT_CONDITIONAL',0,checkpoint))
+        self.assertFalse(utility_worker.admitted_checkpoint(lock,'LOCAL_TWIN',0,checkpoint))
+        self.assertFalse(utility_worker.admitted_checkpoint(lock,'JOINT_CONDITIONAL',1,checkpoint))
+        self.assertFalse(utility_worker.admitted_checkpoint(lock,'JOINT_CONDITIONAL',0,'b'*64))
+        lock['instances'].append(dict(lock['instances'][0]))
+        self.assertFalse(utility_worker.admitted_checkpoint(lock,'JOINT_CONDITIONAL',0,checkpoint))
+    def test_utility_point_cap_has_no_positive_tolerance(self):
+        cap=.01
+        self.assertTrue(utility_worker.utility_clause_pass(cap,cap))
+        self.assertFalse(utility_worker.utility_clause_pass(np.nextafter(cap,np.inf),cap))
+    def test_weighted_1e_minus_25_scaling_retains_variance(self):
+        x=np.array([[0.,1.],[1e-25,1.]])
+        weight=np.array([3.,1.])
+        scaler=attacks.FiniteScaler().fit(x,sample_weight=weight)
+        z=scaler.transform(x)
+        self.assertAlmostEqual(float(np.average(z[:,0],weights=weight)),0.)
+        self.assertAlmostEqual(float(np.average(z[:,0]**2,weights=weight)),1.)
+        self.assertEqual(float(scaler.scale_[1]),1.)
+    def test_legacy_adapter_uses_positive_empirical_scaler(self):
+        from task_conditioned_representation.legacy_attack_worker import legacy_adapter
+        self.assertIs(legacy_adapter().StandardScaler,attacks.FiniteScaler)
     def test_primary_complete_wire(self):
         a=np.arange(4*21,dtype=float).reshape(4,21);b=np.arange(4*29,dtype=float).reshape(4,29)
         t=attacks.feature_tables(a,b)

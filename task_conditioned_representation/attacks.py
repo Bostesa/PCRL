@@ -40,10 +40,18 @@ def save_npz(path,**arrays):
 
 class FiniteScaler:
     """Preserve every finite coordinate, including small positive variance."""
-    def fit(self,x):
+    def fit(self,x,sample_weight=None):
         x=np.asarray(x,dtype=np.float64)
         if x.ndim!=2 or not np.isfinite(x).all() or len(x)<2:raise ValueError('scaler needs finite training matrix')
-        self.mean_=x.mean(0);self.raw_scale_=x.std(0);self.scale_=np.maximum(self.raw_scale_,np.finfo(np.float64).eps)
+        if sample_weight is None:
+            self.mean_=x.mean(0);self.raw_scale_=x.std(0)
+        else:
+            weight=np.asarray(sample_weight,dtype=np.float64)
+            if weight.shape!=(len(x),) or not np.isfinite(weight).all() or np.any(weight<0) or not 0<weight.sum()<np.inf:raise ValueError('scaler needs aligned finite nonnegative positive-total weights')
+            self.mean_=np.average(x,axis=0,weights=weight)
+            self.raw_scale_=np.sqrt(np.average(np.square(x-self.mean_),axis=0,weights=weight))
+        if not np.isfinite(self.mean_).all() or not np.isfinite(self.raw_scale_).all():raise ValueError('empirical scaler moments must be finite')
+        self.scale_=np.where(self.raw_scale_>0,self.raw_scale_,1.)
         return self
     def transform(self,x):
         x=np.asarray(x,dtype=np.float64)
@@ -134,7 +142,7 @@ def fit_bank(att,inner,*,seed,private_output,queue_guard,bindings=None):
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter('always');record=fit_reader(x,labels,name,MODEL_SEED_BASE+seed)
         path=root/f'MODEL_{view}__{name}.joblib';joblib.dump(record,path,compress=3);path.chmod(0o600);model_hashes[path.name]=sha_file(path)
-        account.append({'view':view,'reader':name,'input':derived_kind,'train_rows':len(x),'columns':x.shape[1],'cpu_s':time.process_time()-cpu,'wall_s':time.perf_counter()-t,'scaler_floor':float(np.finfo(float).eps),'floor_coordinates':int(np.sum(record['scaler'].raw_scale_<np.finfo(float).eps)),'warnings':[str(w.message) for w in caught]})
+        account.append({'view':view,'reader':name,'input':derived_kind,'train_rows':len(x),'columns':x.shape[1],'cpu_s':time.process_time()-cpu,'wall_s':time.perf_counter()-t,'scaler_positive_variance_floor':None,'zero_variance_scale':1.,'zero_variance_coordinates':int(np.sum(record['scaler'].raw_scale_==0)),'warnings':[str(w.message) for w in caught]})
         return record
     for view,tab in tables.items():
         val_receipt[view]={}
