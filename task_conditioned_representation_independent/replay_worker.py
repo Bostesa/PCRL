@@ -158,6 +158,7 @@ def main():
             raise ValueError('common two-seed nominee/fallback utility classification differs')
         if eligible and entry['checkpoint_sha256']!=entry['nominee_checkpoint_sha256']:raise ValueError('qualified nominee replaced after task gate')
     primary={};secondaryutility={};scoreprivacy={};absolute={}
+    per_seed_absolute={f'{family}__s{seed}__{contract}__{view}':interval(all_points[(family,seed)][(contract,view)],all_boots[(family,seed)][(contract,view)],1,ng) for family,seed in all_points for contract in ('full','score','representation') for view in ('r1','r2','pair')}
     historical_descriptive={}
     for view in ('r1','r2','pair'):
         for contract in ('full','score','representation'):
@@ -198,8 +199,13 @@ def main():
     if len(primary)!=51 or len(secondaryutility)!=240 or len(scoreprivacy)!=27:raise ValueError('registered endpoint slots lost')
     from .legacy_replay import replay as replay_legacy
     legacy_points,legacy_boots,legacy_reports=replay_legacy(spec['legacy_banks'],sexdata,checked)
+    legacy_absolute={}
     for legacy in ('P0','S12'):
         for view in ('r1','r2','pair'):
+            legacy_mean=sum(legacy_points[(legacy,seed,view)] for seed in (0,1))/2
+            legacy_mean_boot=sum(legacy_boots[(legacy,seed,view)] for seed in (0,1))/2
+            legacy_absolute[f'{legacy}__mean__{view}']=interval(legacy_mean,legacy_mean_boot,1,ng)
+            for seed in (0,1):legacy_absolute[f'{legacy}__s{seed}__{view}']=interval(legacy_points[(legacy,seed,view)],legacy_boots[(legacy,seed,view)],1,ng)
             point=sum(legacy_points[(legacy,s,view)]-all_points[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
             reps=sum(legacy_boots[(legacy,s,view)]-all_boots[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
             if view!='pair':point,reps=-point,-reps
@@ -238,7 +244,7 @@ def main():
          'source_seeds_are_paired_fitted_runs':True,'bootstrap_replicates':2048,'groups':ng,'cpu_s':time.process_time()-started,
          'reader_refit_scope':'separate four predeclared independent pair reader fits; this worker restores saved readers',
          'legacy_score_scope':'all4available legacy banks; all24saved scientificreader predictions perbank; exactfinite-law AUC andpaired2048bootstrap',
-         'legacy_replay':legacy_reports,'historical_restoration':historical_restoration,
+         'legacy_replay':legacy_reports,'legacy_absolute_recovery':legacy_absolute,'per_seed_absolute_recovery':per_seed_absolute,'historical_restoration':historical_restoration,
          'historical_reference_descriptive':historical_descriptive,'independent_refit_results':refit_results,
          'independent_refit_pair_difference':refit_difference}
     p=Path(spec['output']);p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.tmp');tmp.write_text(json.dumps(out,indent=2,sort_keys=True,allow_nan=False)+'\n');tmp.replace(p)
