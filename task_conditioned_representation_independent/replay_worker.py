@@ -29,6 +29,7 @@ def main():
     import numpy as np
     import torch
     from .science import own_release,wire,metrics,task_rows,auc
+    from .checkpoint_io import read as read_checkpoint
     from .readers import READERS,features,predict,load_saved_reader,split,shuffled_groups
     from .endpoint_math import scores_envelope,bootstrap_counts,interval,clause
     torch.set_num_threads(1)
@@ -58,7 +59,7 @@ def main():
         assert_active_from_env(stage='verification')
         family,seed=entry['family'],entry['seed'];key=(family,seed)
         checkpoint=checked({'path':entry['checkpoint'],'sha256':entry['checkpoint_sha256']})
-        payload=torch.load(checkpoint,map_location='cpu',weights_only=False)
+        payload=read_checkpoint(checkpoint)
         if payload['schema']!='TCR1-trainable-own-head-checkpoint-v1' or list(payload['feature_names'])!=list(map(str,x['feature_names'])) or payload['class_orders']!=[[0,1],[0,1,2,3,4,5]]:
             raise ValueError('checkpoint schema/class order mismatch')
         released=own_release(payload['model'],x['X'])
