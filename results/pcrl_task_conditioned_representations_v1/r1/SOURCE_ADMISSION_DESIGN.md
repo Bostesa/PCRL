@@ -1,0 +1,17 @@
+# Useful baseline source admission
+
+This is an exploratory method search designed from prior outcomes on repeatedly used Adult people. New fits, methods, locks and model seeds do not create fresh confirmation.
+
+The source encoders are separate 83→64→64→16 networks with ReLU after the first two affine layers and no final activation. Deployed U0 uses these float32 encoders and the fitted StandardScaler/LogisticRegression pipelines in head_0.joblib and head_1.joblib, rather than the historical affine heads inside model.pt. The new own heads use float64 arithmetic to preserve useful deployed predictions when scaler and classifier are folded.
+
+For scaler mean μ and scale s, fitted logistic coefficient A and intercept c, the equivalent affine coefficients are W=A/s and b=c−Wμ. A binary pipeline has one decision value d=Wz+b; softmax logits (−d/2,+d/2) recover probabilities (1−sigmoid(d),sigmoid(d)). A multinomial pipeline retains each fitted coefficient row, then centers the rows and intercepts. Class orders remain income [0,1] and occupation [0,1,2,3,4,5]. Argmax ties choose the first class. No raw task label or protected label is passed to inference.
+
+The admitted 83 columns contain five already standardized numeric predictors and fixed one-hot categories from age, education-num, capital-gain, capital-loss, hours-per-week, workclass, education, marital-status, relationship and native-country. Their exact order is checked against the source public bank. SEX, race, income, occupation, fnlwgt, row IDs and duplicate-group IDs are excluded. Deployment raw83 means this admitted preprocessed column schema.
+
+Income maps <=50K→0 and >50K→1. Occupation group maps professional/technical→0; managerial/admin→1; service→2; sales→3; manual/agriculture→4; Armed Forces→5. The detailed source mapping is pcrl/data/adult.py OCCUPATION_GROUPS. SEX maps female→0 and male→1.
+
+OSF_DEFENSE_FIT contains 15434 rows/15428 exact-record duplicate groups; ATTACK_FIT_NEW 4064/4061; INNER_SELECTION 2235/2234. Duplicate groups use inherited canonical exact-record units, not household IDs. FIT internal folds preserve SHA256("IVR1|FIT-crossfold|20261010|"+str(unit)) modulo 3. Folds0/1 are the prospective optimization subset and fold2 is its internal selection subset. Their source encoders and logistic heads were already fitted on the entire FIT role, so these internal selection rows are not independent of the pretrained source.
+
+Historically U0 encoders and deployed logistic/scaler heads fitted all FIT rows; logistic C selection used HEAD_VALIDATION. Ucal is the same U0 followed by recipient global inverse-temperature calibration fitted on CALIBRATION_HELDOUT. Its H-GLOBAL-TEMP family was previously selected using INNER task NLL. The present study opens none of those historical HEAD or calibration person arrays; the calibration record JSON and role-specific frozen Ucal vectors are hash-bound and replayed. This distinguishes direct fitting exposure from historical family selection exposure.
+
+The queued admission worker validates source weights and heads, probability and decision parity on each admitted role, frozen Ucal forward identities, group-disjoint roles, FIT-only task metrics and conditional stratum support. INNER task labels are refused until nominees freeze; INNER SEX is absent from the prefit manifest and barred before even hashing. The algebra parity tolerance is 2e−12, with exact decisions; a failure blocks protected training and requires engineering repair.
