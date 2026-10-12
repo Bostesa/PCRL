@@ -31,7 +31,7 @@ def manifest_pins(value):
         for child in value:yield from manifest_pins(child)
 
 
-def prepare(action,version,output,*,manifest=None,release_lock=None,reader_lock=None,plan=None,snapshot=None,target=None,deps=(),python=None):
+def prepare(action,version,output,*,manifest=None,release_lock=None,reader_lock=None,plan=None,snapshot=None,target=None,deps=(),python=None,supplemental_metadata=()):
     if not version or any(x not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_' for x in version):raise ValueError('safe version tag required')
     r7=BASE/'.private/task_conditioned_representation/r7';public=BASE/'results/pcrl_task_conditioned_representations_v1/r7'
     custody=r7/'custody'/version
@@ -46,6 +46,9 @@ def prepare(action,version,output,*,manifest=None,release_lock=None,reader_lock=
         sources.extend([pin(manifest),pin(release_lock),pin(reader_lock),*manifest_pins(parsed)])
         plan_out=custody/'PLAN.private.json';receipt=public/f'{uid}.json'
         argv.extend(['--repo',str(BASE),'--source-manifest',str(manifest),'--out',str(plan_out),'--public',str(receipt)])
+        for path in supplemental_metadata:
+            parsed_metadata=json.loads(Path(path).read_text());sources.extend([pin(path),*manifest_pins(parsed_metadata)])
+            argv.extend(['--supplemental-metadata',str(path)])
         outputs=[str(plan_out),str(receipt)]
     elif action=='snapshot':
         if not plan:raise ValueError('finished plan required')
@@ -72,5 +75,5 @@ def prepare(action,version,output,*,manifest=None,release_lock=None,reader_lock=
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('action',choices=('plan','snapshot','restore','off-device'));p.add_argument('version');p.add_argument('output');p.add_argument('--manifest');p.add_argument('--release-lock');p.add_argument('--reader-lock');p.add_argument('--plan');p.add_argument('--snapshot');p.add_argument('--target');p.add_argument('--deps',default='');a=p.parse_args()
-    print(json.dumps(prepare(a.action,a.version,a.output,manifest=a.manifest,release_lock=a.release_lock,reader_lock=a.reader_lock,plan=a.plan,snapshot=a.snapshot,target=a.target,deps=tuple(filter(None,a.deps.split(','))))))
+    p=argparse.ArgumentParser();p.add_argument('action',choices=('plan','snapshot','restore','off-device'));p.add_argument('version');p.add_argument('output');p.add_argument('--manifest');p.add_argument('--release-lock');p.add_argument('--reader-lock');p.add_argument('--plan');p.add_argument('--snapshot');p.add_argument('--target');p.add_argument('--deps',default='');p.add_argument('--supplemental-metadata',action='append',default=[]);a=p.parse_args()
+    print(json.dumps(prepare(a.action,a.version,a.output,manifest=a.manifest,release_lock=a.release_lock,reader_lock=a.reader_lock,plan=a.plan,snapshot=a.snapshot,target=a.target,deps=tuple(filter(None,a.deps.split(','))),supplemental_metadata=a.supplemental_metadata)))

@@ -51,6 +51,15 @@ class ContractTests(unittest.TestCase):
     def test_legacy_adapter_uses_positive_empirical_scaler(self):
         from task_conditioned_representation.legacy_attack_worker import legacy_adapter
         self.assertIs(legacy_adapter().StandardScaler,attacks.FiniteScaler)
+    def test_original_reference_keys_cannot_collide_with_u0_candidate(self):
+        original=np.array([[.25,.75]])
+        folded=np.array([[np.nextafter(.25,1.),np.nextafter(.75,0.)]])
+        key=utility_worker.reference_probability_key(0,'U0',1)
+        arrays={key:original.copy(),'s0__U0__p1':folded.copy()}
+        self.assertEqual(key,'s0__REF_U0__p1')
+        self.assertTrue(np.array_equal(arrays[key],original))
+        self.assertTrue(np.array_equal(arrays['s0__U0__p1'],folded))
+        self.assertEqual(utility_worker.reference_probability_key(1,'Ucal',2),'s1__REF_Ucal__p2')
     def test_primary_complete_wire(self):
         a=np.arange(4*21,dtype=float).reshape(4,21);b=np.arange(4*29,dtype=float).reshape(4,29)
         t=attacks.feature_tables(a,b)

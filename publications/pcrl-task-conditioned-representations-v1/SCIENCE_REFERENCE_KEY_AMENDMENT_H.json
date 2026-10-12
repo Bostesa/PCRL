@@ -1,0 +1,52 @@
+{
+  "affected_reruns": [
+    "all40 scalar utility archive/report V2",
+    "legacy finite-law scalar utility V2",
+    "paired master endpoints V2",
+    "independent legacy scalar admission V2 and final endpoint comparison"
+  ],
+  "cause": "utility_worker stored original source probabilities under U0 keys; saving U0 candidate overwrote them with folded warm-forward probabilities. Logarithms amplified tiny rounding differences. Scalar point gates used direct originals and remained correct; saved-reference consumers were affected.",
+  "code_after": [
+    {
+      "path": "task_conditioned_representation/utility_worker.py",
+      "sha256": "a3b1884d7063d515cdc1f0cf312283b0d30827b3d05435374a7e15242713b55d"
+    },
+    {
+      "path": "task_conditioned_representation/legacy_utility_worker.py",
+      "sha256": "b81ebc4baa4e8f880caae91c1477e2724cbb5972032e2b98cfc8c7bf826673fc"
+    },
+    {
+      "path": "task_conditioned_representation/inference_worker.py",
+      "sha256": "40c896727cddfffc345dd459187219bf97c752cd51d52e9e07dae84d8d10414a"
+    },
+    {
+      "path": "task_conditioned_representation/test_attacks.py",
+      "sha256": "730b4d03096a31cc38d8855bf71f732fb70be157f650793180f68f016a2b86c2"
+    }
+  ],
+  "correction": "REF_U0/REF_Ucal archive keys preserve exact original reference bytes; U0 candidate keys stay separate. Consumers require distinct original keys and refuse old format.",
+  "created_utc": "2026-10-12T03:29:11.644072+00:00",
+  "dated_amendment_must_push_before_affected_reruns": true,
+  "diagnosis_receipt_sha256": "4d71390433b8fe849f7334f3921d49a8bab8d200e681cf7f4fdf3a25446f31fe",
+  "maximum_probability_difference": 3.3306690738754696e-16,
+  "maximum_reference_NLL_difference": 2.3203938770421928e-11,
+  "new_forbidden_access": false,
+  "new_model_or_reader_fits": 0,
+  "not_changed": [
+    "models/readers or fitting",
+    "FIT nomination/fallbacks",
+    "source references",
+    "rows/roles/caps",
+    "loss convention",
+    "K51/K240/K33",
+    "reader-freeze/sampling/bootstrap counts",
+    "promotion/comparator rules",
+    "scientific scope"
+  ],
+  "original_legacy_utility_sha256": "5884f45872781ada59b8a95fcce81b05f7143b0f389caa9e7dc55c8a1b1f7441",
+  "original_master_sha256": "01c9d107c46f95e0e9f60200cfe9c16b629f166aef32d7038ea2a274dc2f7c4c",
+  "original_utility_sha256": "4b33509a407eea370cac7cf06956de665a649a3b7d0d27d051222db03a65f805",
+  "preserved": "All original outputs/configs/specs/failed verifier logs and original science lock remain. V2 output IDs preserve chronology.",
+  "reason": "Independent legacy utility V1 rejected four income/U0 NLL deltas; aggregate diagnosis confirmed reference/candidate archive-key collision",
+  "schema": "TCR1-engineering-reference-amendment-H-v1"
+}
