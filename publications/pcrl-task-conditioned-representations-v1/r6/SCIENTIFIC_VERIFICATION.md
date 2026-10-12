@@ -31,7 +31,7 @@ Their paired mean pair benefit is 0.00002748, descriptive interval [-0.00839787,
 
 ## Limits and corrections
 
-The literal official Adult variance proxy omits the paper's division by hypothetical block size. The implementation preserves that code proxy; its output is not interpreted as calibrated test-power probability. Multiclass weighting, task conditioning and aligned-pair kernels are named adaptations. The training pair penalty covers 90.4333% of supported population mass; the remaining 9.5667% is uncovered. Sequential search uses 37.5% more aggregate encoder epochs than simultaneous search, favoring that control, with matched e/e nominee updates.
+The literal official Adult variance proxy omits the paper's division by hypothetical block size. The implementation preserves that code proxy; its output is not interpreted as calibrated test-power probability. Multiclass weighting, task conditioning and aligned-pair kernels are named adaptations. The training pair penalty covers 90.4333% of optimization population mass; the remaining 9.5667% is uncovered. Sequential search uses 37.5% more aggregate encoder epochs than simultaneous search, favoring that control, with matched e/e nominee updates.
 
 Source fitting exposed all FIT rows, source head selection used historical HEAD aggregates, and Ucal inherits historical calibration/family-selection exposure. No old assessment or HEAD person arrays were reopened. The intervals are approximate conditional development evidence on reused Adult people.
 
@@ -41,7 +41,9 @@ True-label oracle and conditional-class interpretation diagnostics were not inde
 
 ## Custody stage
 
-Live deployment verification is complete. The separately predeclared independent snapshot-only replay is pending its actual restore receipt: U_NEW, JOINT, LOCAL_TWIN, both sequential orders and H_RAW_CSTAR, both seeds; per-view LR plus actual strongest frozen reader, including local-ignore aliases; and all four independent refits. It will use only backed-up code, deployment weights, raw83 inputs and frozen reader/score files, without original sources, training checkpoints, task labels or SEX.
+Live deployment verification and the separately predeclared independent snapshot-only replay are complete. Actual unit R6_INDEPENDENT_BACKUP_ONLY_REPLAY_V1 returned zero with status done, 4.976 charged seconds and no resource limit or timeout. Its receipt SHA256 is 327568b3ed5095cae1d9a6b891895fe1f2b44c7c2018b35c4d94b82a6c1ec782. U_NEW, JOINT, LOCAL_TWIN, both sequential orders and H_RAW_CSTAR, both seeds, reproduced all twelve raw83 wires, 72 LR/actual-strongest reader outputs and four independent-refit score vectors with exactly zero error. All numerical inputs and independent code were within the restored snapshot tree; original sources, training checkpoints, task labels and SEX were unused.
+
+R6 also read all 22 R7 local restoration receipts: every full/score wire and all 132 frozen-reader checks had zero error. Off-device custody remains pending because the approved drives are absent; local numerical restoration does not establish off-device redundancy.
 
 ## Evidence
 
