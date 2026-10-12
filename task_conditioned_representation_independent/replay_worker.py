@@ -38,7 +38,7 @@ def main():
     def npz(pin):
         path=checked(pin)
         with np.load(path,allow_pickle=False) as z:return {k:z[k] for k in z.files}
-    x=npz(role['features']);ys=[]
+    x=npz(role['features']);att_source=npz(source['roles']['ATTACK_FIT_NEW']['features']);ys=[]
     for name in ('income','occupation'):
         y=npz(role[name])
         if not np.array_equal(y['row_id'],x['row_id']) or not np.array_equal(y['unit'],x['unit']):raise ValueError('task person alignment differs')
@@ -53,9 +53,13 @@ def main():
     banks=spec['banks']
     if len(banks)!=20 or len({(r['family'],r['seed']) for r in banks})!=20:raise ValueError('complete ten-family/two-seed replay required')
     families=sorted({r['family'] for r in banks})
+    historical_banks=spec['historical_banks']
+    from .historical_replay import verify_restoration
+    historical_restoration=verify_restoration(historical_banks,spec['historical_manifest'],checked)
+    all_banks=banks+historical_banks
     all_points={};all_boots={};rows={};nominee_rows={};reports=[];restore=[];gate={};actual_gates={}
     started=time.process_time()
-    for entry in banks:
+    for entry in all_banks:
         assert_active_from_env(stage='verification')
         family,seed=entry['family'],entry['seed'];key=(family,seed)
         checkpoint=checked({'path':entry['checkpoint'],'sha256':entry['checkpoint_sha256']})
@@ -72,6 +76,10 @@ def main():
         if not np.array_equal(saved['row_id'],x['row_id']) or not np.array_equal(saved['unit'],groups):raise ValueError('saved release person order mismatch')
         errors=[float(np.max(abs(wire(released,r)-saved[f'r{r}']))) for r in (1,2)]
         if max(errors)>1e-10:raise ValueError('independent actual model release mismatch')
+        if not all(np.array_equal(att[k],att_source[k]) for k in ('row_id','unit')):raise ValueError('ATT released person order differs')
+        att_actual=own_release(payload['model'],att_source['X'])
+        att_errors=[float(np.max(abs(wire(att_actual,r)-att[f'r{r}']))) for r in (1,2)]
+        if max(att_errors)>1e-10:raise ValueError('independent ATT actual model release mismatch')
         train,val=split(att['unit'])
         if not np.array_equal(train,att['train']) or not np.array_equal(val,att['validation']):raise ValueError('reader split mismatch')
         reader_errors=[]
@@ -83,7 +91,9 @@ def main():
                 # Independently restore ATT-trained standardization and orientation.
                 feature=features(att['r1'],att['r2'],view,name)
                 sc=record['scaler']
-                if max(float(np.max(abs(sc.mean_-feature[train].mean(0)))),float(np.max(abs(sc.scale_-np.maximum(feature[train].std(0),np.finfo(float).eps)))))>1e-10:
+                raw_std=feature[train].std(0)
+                declared_scale=np.where(raw_std>0,raw_std,1.0)
+                if not np.array_equal(sc.mean_,feature[train].mean(0)) or not np.allclose(sc.scale_,declared_scale,atol=0,rtol=1e-12):
                     raise ValueError('reader scaler not the declared ATT-training fit')
                 vs=predict(record,feature[val]);sign=1 if auc(att['sex'][val],vs)>=.5 else -1
                 if sign!=frozen['validation'][view][name]['orientation']:raise ValueError('reader orientation mismatch')
@@ -92,6 +102,20 @@ def main():
                 err=float(np.max(abs(p-scores[f'{view}__{name}'])))
                 if err>1e-10:raise ValueError('independent saved-reader predictions mismatch')
                 reader_errors.append(err)
+        for view in ('r1','r2','pair'):
+            feature=features(att['r1'],att['r2'],view,'LR_C1')
+            target=features(saved['r1'],saved['r2'],view,'LR_C1')
+            for name in ('SHUFFLED','PLANTED'):
+                filename=f'MODEL_{view}__{name}.joblib'
+                record=load_saved_reader(checked({'path':str(root/filename),'sha256':frozen['model_files'][filename]}))
+                fitted=np.column_stack((feature[train],att['sex'][train])) if name=='PLANTED' else feature[train]
+                sd=fitted.std(0);scale=np.where(sd>0,sd,1.)
+                if not np.array_equal(record['scaler'].mean_,fitted.mean(0)) or not np.allclose(record['scaler'].scale_,scale,atol=0,rtol=1e-12):raise ValueError('engineering reader scaler differs')
+                targets=[(f'{view}__PLANTED_{bit}',np.column_stack((target,np.full(len(target),bit)))) for bit in (0,1)] if name=='PLANTED' else [(f'{view}__SHUFFLED',target)]
+                for field,xx in targets:
+                    err=float(np.max(abs(predict(record,xx)-scores[field])))
+                    if err>1e-10:raise ValueError('engineering reader saved prediction differs')
+                    reader_errors.append(err)
         for view,other in [('r1','r2'),('r2','r1')]:
             for name in READERS:
                 if not np.array_equal(scores[f'pair__IGNORE_{other}__{name}'],scores[f'{view}__{name}']):raise ValueError('ignore-other alias differs')
@@ -123,17 +147,23 @@ def main():
         gate[key]=all(c['pass'] for c in clauses)
         actual_gate=all(c['pass'] for c in actual_clauses)
         actual_gates[key]=actual_gate
-        restore.append({'family':family,'seed':seed,'checkpoint_sha256':entry['checkpoint_sha256'],'release_max_abs_errors':errors,'max_reader_prediction_error':max(reader_errors),'readers_replayed':27})
+        restore.append({'family':family,'seed':seed,'checkpoint_sha256':entry['checkpoint_sha256'],'release_max_abs_errors':errors,'ATT_release_max_abs_errors':att_errors,'max_reader_prediction_error':max(reader_errors),'readers_replayed':33})
         reports.append({'family':family,'seed':seed,'task_metrics':tm,'nominee_task_metrics':nominal_tm,
                         'nominee_point_eligible_per_seed':gate[key],'actual_point_eligible_per_seed':actual_gate,'diagnostic_only':bool(entry['diagnostic_only']),
                         'nominee_point_clauses':clauses,'actual_model_point_clauses':actual_clauses,'controls':controls,
                         'recovery':{contract:{view:points[(contract,view)] for view in ('r1','r2','pair')} for contract in ('full','score','representation')}})
-    for entry in banks:
+    for entry in all_banks:
         family=entry['family'];eligible=all(gate[(family,s)] for s in (0,1));actual_eligible=all(actual_gates[(family,s)] for s in (0,1))
         if eligible!=entry['nominee_point_eligible'] or actual_eligible!=entry['point_eligible_of_actualmodel'] or bool(entry['diagnostic_only'])==eligible:
             raise ValueError('common two-seed nominee/fallback utility classification differs')
         if eligible and entry['checkpoint_sha256']!=entry['nominee_checkpoint_sha256']:raise ValueError('qualified nominee replaced after task gate')
     primary={};secondaryutility={};scoreprivacy={};absolute={}
+    historical_descriptive={}
+    for view in ('r1','r2','pair'):
+        for contract in ('full','score','representation'):
+            point=sum(all_points[('H_RAW_CSTAR',seed)][(contract,view)] for seed in (0,1))/2
+            boot=sum(all_boots[('H_RAW_CSTAR',seed)][(contract,view)] for seed in (0,1))/2
+            historical_descriptive[f'{contract}__{view}']=dict(interval(point,boot,1,ng),scope='additional historical reference, descriptive K1 interval',point_eligible=all(gate[('H_RAW_CSTAR',seed)] for seed in (0,1)))
     for family in families:
         eligible=all(gate[(family,s)] for s in (0,1))
         for contract in ('full','score','representation'):
@@ -166,10 +196,40 @@ def main():
                 if view!='pair':point,reps=-point,-reps
                 dest[f'{comparator}__{view}']=dict(clause(point,reps,k,ng,.020 if view=='pair' else .010,'lower' if view=='pair' else 'upper'),comparator_eligible=eligible)
     if len(primary)!=51 or len(secondaryutility)!=240 or len(scoreprivacy)!=27:raise ValueError('registered endpoint slots lost')
-    # Legacy score slots remain explicit dependencies unless separately replayed.
+    from .legacy_replay import replay as replay_legacy
+    legacy_points,legacy_boots,legacy_reports=replay_legacy(spec['legacy_banks'],sexdata,checked)
     for legacy in ('P0','S12'):
-        for view in ('r1','r2','pair'):scoreprivacy[f'{legacy}__{view}']={'status':'PENDING_LEGACY_DEPENDENCY','K':33}
-    if any(name.startswith('task_conditioned_representation.') and name!='task_conditioned_representation.scheduler' for name in sys.modules):
+        for view in ('r1','r2','pair'):
+            point=sum(legacy_points[(legacy,s,view)]-all_points[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
+            reps=sum(legacy_boots[(legacy,s,view)]-all_boots[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
+            if view!='pair':point,reps=-point,-reps
+            scoreprivacy[f'{legacy}__{view}']=dict(clause(point,reps,33,ng,.020 if view=='pair' else .010,'lower' if view=='pair' else 'upper'),
+                comparator_contract='literal historical complete code/probability/decision/metadata wire',
+                candidate_contract='new own-head probability/decision only',equal_capacity_claim=False)
+    refit_receipt=json.loads(checked(spec['independent_refits']).read_text())
+    if refit_receipt['status']!='FROZEN_COMPLETE' or refit_receipt['numerical_fit_count']!=4:raise ValueError('independent refits not frozen before reporting')
+    from .endpoint_math import FixedAUC
+    refit_results=[];refit_points={};refit_boots={}
+    for record in refit_receipt['fits']:
+        key=(record['family'],record['seed'])
+        entry=next(e for e in banks if (e['family'],e['seed'])==key)
+        root=Path(entry['directory']);frozen=json.loads((root/'FROZEN_COMPLETE.json').read_text())
+        saved=npz({'path':str(root/'INNER_RELEASE.npz'),'sha256':frozen['inner_release_sha256']})
+        refit_root=Path(spec['independent_refit_root'])/f'{key[0]}__s{key[1]}'
+        model=load_saved_reader(checked({'path':str(refit_root/'MODEL.joblib'),'sha256':record['model_sha256']}))
+        score=npz({'path':str(refit_root/'INNER_SCORE.npz'),'sha256':record['score_sha256']})
+        if record['INNER_SEX_opened'] or not all(np.array_equal(score[k],x[k]) for k in ('row_id','unit')):raise ValueError('refit reporting boundary/person order differs')
+        prediction=predict(model,features(saved['r1'],saved['r2'],'pair',record['reader']))
+        if record['orientation']==-1:prediction=1-prediction
+        error=float(np.max(abs(prediction-score['score'])))
+        if error>1e-10:raise ValueError('independent refit saved prediction differs')
+        metric=FixedAUC(sex,prediction);point=metric.evaluate(np.ones(len(sex)));reps=np.array([metric.evaluate(w) for w in bootstrap_counts(groups)])
+        refit_points[key]=point;refit_boots[key]=reps
+        refit_results.append(dict(family=key[0],seed=key[1],reader=record['reader'],prediction_error=error,diagnostic_only=bool(entry['diagnostic_only']),interval=interval(point,reps,1,ng)))
+    refit_delta=sum(refit_points[('U_NEW',seed)]-refit_points[('JOINT_CONDITIONAL',seed)] for seed in (0,1))/2
+    refit_boot_delta=sum(refit_boots[('U_NEW',seed)]-refit_boots[('JOINT_CONDITIONAL',seed)] for seed in (0,1))/2
+    refit_difference=dict(interval(refit_delta,refit_boot_delta,1,ng),scope='descriptive independently refitted strongest ATT pair reader sensitivity; no competitive promotion')
+    if any((name.startswith('task_conditioned_representation.') and name!='task_conditioned_representation.scheduler') or name=='conditional_release' or name.startswith('conditional_release.') for name in sys.modules):
         raise ImportError('candidate scientific implementation imported during independent replay')
     out={'schema':'TCR1-R6-independent-final-replay-v1','status':'PASS_NEW_CONTINUOUS_SERVICE_REPLAY','guard':guard,
          'model_and_reader_restore':restore,'complete_view_recovery':reports,'absolute_recovery':absolute,
@@ -177,7 +237,10 @@ def main():
          'point_eligibility':{f'{family}__s{seed}':value for (family,seed),value in gate.items()},
          'source_seeds_are_paired_fitted_runs':True,'bootstrap_replicates':2048,'groups':ng,'cpu_s':time.process_time()-started,
          'reader_refit_scope':'separate four predeclared independent pair reader fits; this worker restores saved readers',
-         'legacy_score_scope':'six registered legacy score slots retained pending independent legacy artifact replay'}
+         'legacy_score_scope':'all4available legacy banks; all24saved scientificreader predictions perbank; exactfinite-law AUC andpaired2048bootstrap',
+         'legacy_replay':legacy_reports,'historical_restoration':historical_restoration,
+         'historical_reference_descriptive':historical_descriptive,'independent_refit_results':refit_results,
+         'independent_refit_pair_difference':refit_difference}
     p=Path(spec['output']);p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.tmp');tmp.write_text(json.dumps(out,indent=2,sort_keys=True,allow_nan=False)+'\n');tmp.replace(p)
 
 if __name__=='__main__':main()

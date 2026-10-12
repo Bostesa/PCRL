@@ -14,7 +14,7 @@ class ScaleState:
     def transform(self,x):
         return (np.asarray(x,dtype=np.float64)-self.mean_)/self.scale_
 
-def load_saved_reader(path):
+def load_saved_reader(path,validate=True):
     from joblib.numpy_pickle import NumpyUnpickler
     from joblib.numpy_pickle_utils import _validate_fileobject_and_memmap
     class IndependentUnpickler(NumpyUnpickler):
@@ -28,7 +28,7 @@ def load_saved_reader(path):
     with open(filename,'rb') as raw:
         with _validate_fileobject_and_memmap(raw,filename,None) as (stream,mmap):
             record = IndependentUnpickler(filename,stream,True,mmap_mode=None).load()
-    if set(record)!={'model','scaler'} or not np.array_equal(record['model'].classes_,[0,1]):
+    if validate and (set(record)!={'model','scaler'} or not np.array_equal(record['model'].classes_,[0,1])):
         raise ValueError('invalid reader file/class order')
     return record
 
@@ -70,7 +70,7 @@ def refit(x,y,name,seed):
     scaler=ScaleState()
     scaler.mean_=x.mean(axis=0)
     scaler.raw_scale_=x.std(axis=0)
-    scaler.scale_=np.maximum(scaler.raw_scale_,np.finfo(np.float64).eps)
+    scaler.scale_=np.where(scaler.raw_scale_>0,scaler.raw_scale_,1.0)
     if 'MLP' in name:
         model=MLPClassifier(hidden_layer_sizes=(64,32),activation='relu',solver='adam',alpha=1e-4,max_iter=300,early_stopping=False,random_state=2026101205+seed)
     elif 'HGB' in name:
