@@ -8,6 +8,10 @@ def run(spec_path):
     spec=json.loads(Path(spec_path).read_text())
     from .scheduler import assert_active_from_env
     assert_active_from_env(stage='admission' if spec['operation'] in ('calibrate','timing') else 'protection')
+    if spec['operation'] not in ('fit','calibrate','timing'):raise ValueError('unregistered worker operation')
+    private_root=Path(__file__).resolve().parents[1]/'.private'/'task_conditioned_representation'
+    if spec['operation']=='fit' or spec['family']=='RAW_JOINT' and spec['operation']=='calibrate':
+        if not Path(spec['private_output']).resolve().is_relative_to(private_root.resolve()):raise PermissionError('learned models must stay in private campaign custody')
     import torch
     torch.set_num_threads(1)
     from .source import load_manifest,load_role
@@ -15,15 +19,40 @@ def run(spec_path):
     from .objectives import KernelObjective,StrataRegistry
     from .trainer import Recipe,fit,seed_for,task_loss,gradient_norm,calibrate_ratio,atomic_json,task_metrics
     m=load_manifest(spec['manifest'],spec['manifest_sha256']);seed=int(spec['seed'])
-    data=load_role(m,seed,'OSF_DEFENSE_FIT',{'features','income','occupation','sex'})
+    family=spec['family'];recipe=Recipe(**{k:tuple(v) if k=='checkpoints' else v for k,v in spec.get('recipe',{}).items()})
     model=load_useful_model(m,seed)
+    if spec['operation']=='timing':
+        # Engineering timing reads no real FIT raw rows or labels.
+        import time
+        if spec.get('steps',2) not in (1,2):raise ValueError('engineering timing bound is at most two updates')
+        if family!='JOINT_CONDITIONAL':raise ValueError('registered synthetic timing family is JOINT_CONDITIONAL')
+        generator=torch.Generator().manual_seed(2026101210)
+        x=torch.randn(10223,83,generator=generator,dtype=torch.float32)
+        rows=torch.arange(len(x));labels=((rows//6)%2,rows%6);sex=(rows//12)%2
+        synthetic_registry=StrataRegistry(labels[0].tolist(),labels[1].tolist(),sex.tolist(),rows.tolist())
+        objective=KernelObjective();objective.refresh_model_reference(model,x[:recipe.reference_size]);parameters=list(model.parameters());privacy_rng=random.Random(2026101210);durations=[]
+        optimizer=torch.optim.Adam(parameters,lr=recipe.learning_rate)
+        for repeat in range(spec.get('steps',2)):
+            started=time.monotonic();indices=torch.arange(recipe.batch_size)
+            terms=objective.loss(model,x,synthetic_registry.draw(privacy_rng,family),family)
+            loss=task_loss(model,x[indices],tuple(y[indices] for y in labels))+terms['target_loss']+terms['sensitive']
+            optimizer.zero_grad(set_to_none=True);loss.backward();torch.nn.utils.clip_grad_norm_(parameters,recipe.clip);optimizer.step();durations.append(time.monotonic()-started)
+        out={'seed':seed,'family':family,'steps':len(durations),'step_elapsed_s':durations,'synthetic_rows':len(x),'real_FIT_raw_or_labels_read':False,'synthetic_seed':2026101210,'discarded_model':True,'science_fit':False}
+        atomic_json(spec['output'],out);return out
+    # Every actual-data calibration and fit must bind the registered science lock.
+    from .trainer import sha_file
+    lock=Path(spec['science_lock'])
+    if lock.name!='SCIENCE_LOCK.json' or sha_file(lock)!=spec['science_lock_sha256']:raise PermissionError('science lock hash binding required before FIT label access')
+    queue_state=json.loads((Path(os.environ['PCRL_QUEUE_ROOT'])/'state.json').read_text())
+    authorized_hashes={queue_state['seal']['sha256']}|{a['sha256'] for a in queue_state.get('amendments',[])}
+    if spec['science_lock_sha256'] not in authorized_hashes:raise PermissionError('science lock is not registered with active queue')
+    data=load_role(m,seed,'OSF_DEFENSE_FIT',{'features','income','occupation','sex'})
     x=torch.from_numpy(data['X']);labels=tuple(torch.as_tensor(data[k],dtype=torch.long) for k in ('income','occupation'))
     ti=torch.as_tensor((data['fold']!=2).nonzero()[0],dtype=torch.long);vi=torch.as_tensor((data['fold']==2).nonzero()[0],dtype=torch.long)
     def registry(ix):
         ids=ix.numpy();return StrataRegistry(data['income'][ids],data['occupation'][ids],data['sex'][ids],data['unit'][ids])
     train_registry=registry(ti);val_registry=registry(vi);objective=KernelObjective()
     # Freeze selection diagnostic weights/support from optimization population.
-    # Held-out support still must independently supply 32 distinct groups/arm.
     training_weights={(kind,key):weight for kind,key,pools,weight in train_registry.specs}
     val_registry.specs=[(kind,key,pools,training_weights[(kind,key)]) for kind,key,pools,weight in val_registry.specs if (kind,key) in training_weights]
     for row in val_registry.coverage:
@@ -31,7 +60,6 @@ def run(spec_path):
         row['training_supported']=identity in training_weights
         row['fixed_training_weight']=training_weights.get(identity,0.)
         row['selection_supported']=row['supported'] and row['training_supported']
-    family=spec['family'];recipe=Recipe(**{k:tuple(v) if k=='checkpoints' else v for k,v in spec.get('recipe',{}).items()})
     if family=='RAW_JOINT':
         from .controls import RawObjective,RawRegistry
         train_registry=RawRegistry(data['sex'][ti.numpy()],recipe.batch_size)
@@ -62,17 +90,6 @@ def run(spec_path):
             from .trainer import sha_file
             out['warm_checkpoint_sha256']=sha_file(warm_path)
             out['critic_warm_updates_per_critic']=80;out['critic_warm_optimizer_steps']=objective.critic_steps
-        atomic_json(spec['output'],out);return out
-    if spec['operation']=='timing':
-        import time
-        if spec.get('steps',2) not in (1,2):raise ValueError('engineering timing bound is at most two updates')
-        tx=x[ti];ty=tuple(y[ti] for y in labels);objective.refresh_model_reference(model,tx[:recipe.reference_size]);parameters=list(model.parameters());privacy_rng=random.Random(seed_for('TCR1timing',seed));durations=[]
-        optimizer=torch.optim.Adam(parameters,lr=recipe.learning_rate)
-        for repeat in range(spec.get('steps',2)):
-            started=time.monotonic();indices=torch.arange(recipe.batch_size)
-            loss=task_loss(model,tx[indices],tuple(y[indices] for y in ty))+objective.loss(model,tx,train_registry.draw(privacy_rng,family),family)['sensitive']
-            optimizer.zero_grad(set_to_none=True);loss.backward();torch.nn.utils.clip_grad_norm_(parameters,recipe.clip);optimizer.step();durations.append(time.monotonic()-started)
-        out={'seed':seed,'family':family,'steps':len(durations),'step_elapsed_s':durations,'train_rows':len(ti),'selection_rows':len(vi),'science_fit':False,'discarded_model':True}
         atomic_json(spec['output'],out);return out
     initial_baseline=task_metrics(model,x[vi],tuple(y[vi] for y in labels))
     coefficient=float(spec.get('coefficient',0.));strength=float(spec.get('strength',0.))
