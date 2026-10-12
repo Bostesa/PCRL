@@ -8,6 +8,8 @@ import json
 import math
 from pathlib import Path
 import random
+from .scheduler import assert_active_from_env
+assert_active_from_env(stage="admission")
 import numpy as np
 import torch
 from .kernels import (official_core,DiagonalReference,full_wire,kernel_triplet,
