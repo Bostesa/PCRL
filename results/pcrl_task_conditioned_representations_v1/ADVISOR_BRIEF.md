@@ -1,0 +1,7 @@
+# Advisor brief
+
+The requested upstream study completed actual fits and required comparisons. Conditional local and pair kernel training retained the original utility limits at point estimates, but did not produce the required privacy gain. Pair AUC is 0.861891, better than task-only 0.870143 but worse than matched adversarial 0.856824. The 0.008252 gain over task-only has a simultaneous interval [0.000111,0.016393], entirely below the 0.020 target. Confidence bounds remain unresolved, not demonstrated violations.
+
+There is no supported conditioning, coalition-coupling or joint-over-sequential contribution. The strongest adverse comparison is income-view leakage versus RAW: +0.063252 [0.043198,0.083306], violating the local cap. Reusable features remain much more revealing than their probabilities alone. Historic lower-leakage raw features fail current utility and are diagnostic.
+
+Independent code replayed source services, selected checkpoints, actual wires, fresh-reader predictions, all registered endpoints and deployment. A predeclared four-reader refit sensitivity check is separate from prediction replay. Runnable raw83 packages and versioned private restores accompany aggregates/public code. New methods, seeds and locks do not create new people or confirmation. Keep the empirical motivation, add this bounded negative method result, retain the stronger benchmark, and do not recast fairness loss as privacy proof.

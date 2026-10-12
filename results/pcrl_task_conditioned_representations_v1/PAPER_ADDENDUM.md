@@ -1,0 +1,7 @@
+# Factual paper addendum
+
+This exploratory development run on reused Adult people tested task-conditioned local and aligned coalition distribution matching on trainable continuous purpose features. All required matched loss controls and both sequential orders were completed. Useful task outputs come solely from protected features; no clean-output bypass exists. Fresh nonlinear full-wire recovery remains high.
+
+Jointconditional pair AUC:0.861891; task-only:0.870143; matched RAW:0.856824. Benefit versus task-only:0.008252 [0.000111,0.016393], below0.020. Income local worsening versus RAW:+0.063252 [0.043198,0.083306], a violation. All24point utility clauses pass; the simultaneous confidence conjunction remains unresolved. Conditioning, coupling and joint-over-sequential advantages are not established. Official fairness/kernel tools are prior work, not new algorithmic claims. Unsupported pair-stratum mass is9.5666634%; low conditional objective is not unconditional privacy.
+
+Suitable manuscript claim: bounded matched comparison did not establish a competitive representation method. Unsuitable: conditional MMD certifies privacy, joint novelty demonstrated, unchanged decisions, allconfidence bounds pass, new independent confirmation, or old scores match reusable features. No manuscript or submission metadata was edited. Atomic claims/manuscript JSON handoffs bind final source/results pins, development status and these limits.
