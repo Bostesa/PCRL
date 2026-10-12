@@ -55,12 +55,31 @@ search compute was described as 40 aggregate epochs. The coordinator and R3
 confirmed the corrected selector and branch accounting. Their effective lock
 must contain the corrected definitions before any protected fit.
 
-Queued independent prefit numerical evidence is pending. The worker checks
+Queued independent prefit numerical evidence passed in actual unit
+`R6_PREFIT_V3`: 2.076 charged CPU seconds, approximately 396 MB observed RSS.
+The receipt is `PREFIT_REPLAY.json`, SHA256
+`e5fbc1c931bbf078066c924042d44ff19b12ecf8086536eb10845d5c8475a2d9`.
+The worker checks
 source/role/schema hashes, useful U0 and Ucal forward parity on all three
 admitted roles, FIT metrics/strata, authentic official-core parity, reciprocal
 scale handling, conditional no-extra-signal/planted/XOR/alignment fixtures,
 metric conventions, and AUC tie handling. It refuses direct unqueued launch
 and never opens INNER task labels or INNER SEX during prefit admission.
+Maximum source U0/Ucal parity error across both seeds and all three admitted
+roles was 5.55e-16. Authentic official MMD, variance and power parity errors
+were 2.22e-16, 6.94e-18 and 1.55e-15. Reciprocal scale fixture error was at most
+8.88e-16. Identical conditional laws and XOR recipient marginals had proxy
+power at most .05 (rounding 1.55e-16); planted conditional signal and the
+aligned XOR pair each had proxy power 1. Shuffled alignment was refused.
+FIT folds independently contained 5185/5038/5211 rows; optimization pair
+coverage was 90.4333366%, so 9.5666634% remains uncovered by the pair penalty.
+These are correctness checks and coverage limits, not empirical method wins.
+
+Unstarted V1 was rejected by source hashing after the lower-median correction.
+Actual V2 failed at Python parsing before source array access because of an
+R6 missing parenthesis. The correction also replaced deliberately provisional
+NPZ field names with the exact shared export schema. The successful V3 is
+the prefit evidence; earlier failures remain preserved in queue history.
 
 Independent final replay will cover actual new releases, point gates,
 FIT selections, all fixed-reader AUC envelopes, paired group bootstraps,

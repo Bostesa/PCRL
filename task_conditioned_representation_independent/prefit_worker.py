@@ -57,12 +57,18 @@ def main():
                 roledata[role][name] = {k:data[k] for k in data.files}
                 layout[role][name] = {k:{'shape':list(data[k].shape),'dtype':str(data[k].dtype)} for k in data.files}
     models = {}
+    schema_names = None
     model_layout = {}
     for seed in (0,1):
         entry = source['seeds'][str(seed)]
         paths = {k:checked(v) for k,v in entry['pins'].items()}
         for pin in entry['ucal'].values(): checked(pin)
-        checked(entry['public_bank'])
+        bank_path = checked(entry['public_bank'])
+        names = json.loads(bank_path.read_text())['feature_names']
+        if len(names)!=83 or len(set(names))!=83 or any(n.lower().split('=')[0] in {'sex','race','income','occupation','fnlwgt','row_id','unit'} for n in names):
+            raise ValueError('source public schema contains forbidden inputs')
+        if schema_names is not None and names!=schema_names:raise ValueError('paired source schemas differ')
+        schema_names=names
         state = torch.load(paths['model'],map_location='cpu',weights_only=True)
         heads = [joblib.load(paths[f'head{r}']) for r in (0,1)]
         models[seed] = state,heads
@@ -76,8 +82,15 @@ def main():
     for role,(n,g) in expected.items():
         arrays = roledata[role]['features']
         x,ids,groups = arrays['X'],arrays['row_id'],arrays['unit']
-        if x.shape!=(n,83) or len(np.unique(groups))!=g or len(np.unique(ids))!=n:
+        if set(arrays)!={'X','row_id','unit','feature_names'} or list(map(str,arrays['feature_names']))!=schema_names:
+            raise ValueError('role feature schema differs from pinned source public schema')
+        if x.shape!=(n,83) or x.dtype!=np.float32 or not np.isfinite(x).all() or len(np.unique(groups))!=g or len(np.unique(ids))!=n:
             raise ValueError('source role count/schema mismatch')
+        for name,data in roledata[role].items():
+            if not np.array_equal(data['row_id'],ids) or not np.array_equal(data['unit'],groups):
+                raise ValueError('source person order differs across role-safe files')
+            expected_fields = {'row_id','unit','U0_1','U0_2','Ucal_1','Ucal_2','d_1','d_2'} if name.startswith('references_') else {'row_id','unit',name} if name!='features' else {'X','row_id','unit','feature_names'}
+            if set(data)!=expected_fields:raise ValueError('source role-safe file fields differ')
         row_sets.append(set(ids.tolist())); group_sets.append(set(groups.tolist()))
         for seed in (0,1):
             state,heads = models[seed]
@@ -93,21 +106,21 @@ def main():
                 p = softmax(c)
                 deployed = heads[r].predict_proba(z)
                 # Stored export keys are established by layout first.
-                stored = ref[f'U0_p{r+1}']
+                stored = ref[f'U0_{r+1}']
                 alpha = cal['tables'][f'H-GLOBAL-TEMP|r{r+1}']['alpha']
                 clipped = np.maximum(stored,1e-12)
                 clipped/=clipped.sum(1,keepdims=True)
                 ucal = softmax(alpha*np.log(clipped))
                 err = float(np.max(np.abs(p-deployed)))
                 serr = float(np.max(np.abs(deployed-stored)))
-                cerr = float(np.max(np.abs(ucal-ref[f'Ucal_p{r+1}'])))
-                if max(err,serr,cerr)>2e-12 or not np.array_equal(p.argmax(1),deployed.argmax(1)):
+                cerr = float(np.max(np.abs(ucal-ref[f'Ucal_{r+1}'])))
+                if max(err,serr,cerr)>2e-12 or not np.array_equal(p.argmax(1),deployed.argmax(1)) or not np.array_equal(p.argmax(1),ref[f'd_{r+1}']):
                     raise ValueError('independent source fold/Ucal parity failure')
                 report = {'recipient':r+1,'folded_vs_source_max_abs':err,'source_vs_export_max_abs':serr,
                     'ucal_vs_export_max_abs':cerr,'alpha':alpha,'classes':classes.tolist(),'head_norm':float(np.linalg.norm(w))}
                 if role=='OSF_DEFENSE_FIT':
                     labelname = ('income','occupation')[r]
-                    y = roledata[role][labelname]['y']
+                    y = roledata[role][labelname][labelname]
                     report['metrics'] = metrics(y,p)
                 task_reports.append(report)
             reports.append({'role':role,'seed':seed,'rows':n,'groups':g,'tasks':task_reports})
@@ -117,7 +130,12 @@ def main():
     groups = fit['features']['unit']; folds=fit_fold(groups)
     cov = {}
     for name,mask in [('allFIT',np.ones(len(groups),dtype=bool)),('training01',folds!=2),('selection2',folds==2)]:
-        cov[name] = coverage(fit['income']['y'],fit['occupation']['y'],fit['sex']['y'],groups,mask)
+        cov[name] = coverage(fit['income']['income'],fit['occupation']['occupation'],fit['sex']['sex'],groups,mask)
+    laws = {}
+    for g,yi,yo,s in zip(groups,fit['income']['income'],fit['occupation']['occupation'],fit['sex']['sex']):
+        law=(int(yi),int(yo),int(s))
+        if g in laws and laws[g]!=law:raise ValueError('duplicate-group labels contradict')
+        laws[g]=law
     # Official authentic pinned core is checked against the independent NumPy derivation.
     official = Path(__file__).parent/'vendor'/'mmd_official.py'
     code = official.read_text().replace('from utils.utils import zero_diag','')

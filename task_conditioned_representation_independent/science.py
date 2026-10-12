@@ -163,7 +163,8 @@ def fixtures():
     rejected = False
     try: aligned_product(first,second,ids,ids[::-1])
     except ValueError: rejected=True
-    planted = float(core_power(*gram_bank(np.zeros((32,2)),np.ones((32,2)),np.vstack((np.zeros((32,2)),np.ones((32,2)))))[0].max())
+    planted_triplet = gram_bank(np.zeros((32,2)),np.ones((32,2)),np.vstack((np.zeros((32,2)),np.ones((32,2)))))
+    planted = float(core_power(*planted_triplet)[0].max())
     metric = metrics(np.array([0,1]),np.array([[.8,.2],[.25,.75]]))
     metric_ok = abs(metric['brier']-(.08+.125)/2)<1e-15 and metric['accuracy']==1
     tied_auc = auc(np.array([0,1,0,1]),np.array([.2,.2,.8,.8]))
