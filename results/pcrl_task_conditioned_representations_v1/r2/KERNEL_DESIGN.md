@@ -100,5 +100,16 @@ must yield actual protected z, and model.head[r] must read that z. The trainer
 controls source initialization, uniform task batch RNG, sequential freezing,
 calibration and selection. R2 does not read any private role arrays.
 
+Sequential control update accounting, approved before lock: train the first
+recipient through epoch 20 and save prefixes 0/5/10/20. Train second branches
+for 5, 10, and 20 epochs from the corresponding first prefix. The four combined
+candidates are (0,0), (5,5), (10,10), and (20,20), preserving matched per-encoder
+nominee updates and four checkpoint opportunities. The second recipient's
+searched steps sum to 35 epochs; first recipient has 20. This is 55 aggregate
+encoder epochs versus 40 for a joint 20-epoch path, an extra 37.5% optimization
+compute for each sequential order, charged and disclosed. First stage uses
+local-only protection and its own target power; second stage freezes first
+encoder AND head, and the pair kernel reads that actual frozen wire.
+
 No novelty claim is made for conditional alignment, MMD, block testing,
 bandwidth maximization, trainable representations, or fair classification.
