@@ -1,0 +1,11 @@
+# Original-reference key correction and immutable V2 replay
+
+Dated 2026-10-12 UTC. R6 found a concrete reference collision: the V1 utility archive first stored original admitted U0 probabilities under `s{seed}__U0__p{task}`, then overwrote those arrays with the folded Torch U0 candidate probabilities. Those two probability vectors differ by ordinary folding/softmax floating-point roundoff, even though warm-start parity is close. Four legacy income-versus-U0 NLL differences reached 2.3204e-11. The verification tolerance is unchanged.
+
+The V1 scalar point-gate records used original admitted references directly. The collision affected the saved per-person reference archive and its legacy-utility/bootstrap consumers. New V2 arrays use `s{seed}__REF_U0__p{task}` and `s{seed}__REF_Ucal__p{task}` for the exact original admitted references; candidate U0 retains its own candidate key. Utility, legacy utility and inference share that explicit reference-key definition. Consumers reject archives missing the separate original-reference keys.
+
+R00 executed the data-free RED regression against the previous implementation. The test distinguishes an original probability vector from a neighboring folded vector and confirms that assigning candidate U0 cannot overwrite its reference. The prior 18 contract tests still passed in RED; the new 19th failed on the missing correction helper. R00's corrected GREEN run passed all 19 tests; the failed and passing receipts remain separate.
+
+R00 owns the dated effective amendment and queue execution. The metadata helper creates fresh ALL40 utility V2 configuration/output/spec paths. After that job produces the corrected archive hash, a second metadata phase prepares legacy utility V2 and paired inference V2. Every V1 artifact remains preserved. Fitted encoders, heads, readers, orientations, nominee/fallback choices, row/group identities, original caps, bootstrap stream, endpoint IDs and multiplicity stay fixed. No tolerance, model, reader or method is tuned from reporting outcomes.
+
+This is a correction to reference provenance and numeric replay, not evidence for a method advantage. Closeout tables must cite the corrected V2 master and utility results; actual primary AUC predictions were already frozen and are unchanged.

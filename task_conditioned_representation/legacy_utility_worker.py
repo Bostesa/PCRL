@@ -11,12 +11,13 @@ def run(spec_path):
     from .source import read_exact
     from .attacks import write_json
     from .inference import task_vectors,task_metrics,point_utility
-    from .utility_worker import utility_clause_pass
+    from .utility_worker import utility_clause_pass,reference_probability_key
     from conditional_release.attacks import law_arrays
     lock=json.loads(verify(cfg['nomination_lock']['path'],cfg['nomination_lock']['sha256']).read_text())
     if lock.get('status')!='FROZEN' or not lock.get('nominees'):raise PermissionError('global family nomination freeze absent')
     verify(cfg['utility_inputs']['path'],cfg['utility_inputs']['sha256'])
     with np.load(cfg['utility_inputs']['path'],allow_pickle=False) as z:u={k:z[k].copy() for k in z.files}
+    if any(reference_probability_key(s,r,i) not in u for s in (0,1) for r in ('U0','Ucal') for i in (1,2)):raise PermissionError('distinct original reference probability keys absent')
     records=[]
     for item in cfg['instances']:
         bank=json.loads(verify(item['bank']['path'],item['bank']['sha256']).read_text());verify(item['inner_law']['path'],item['inner_law']['sha256'])
@@ -32,7 +33,7 @@ def run(spec_path):
             metrics.update(confidence=float((p.max(2)*mass).sum(1).mean()),balanced_accuracy=float(np.mean(recall)),per_class_recall=recall,class_order=list(range(p.shape[-1])),class_counts=[int((y==c).sum()) for c in range(p.shape[-1])])
             references={}
             for ref in ('U0','Ucal'):
-                reference=task_metrics(y,u[f"s{item['seed']}__{ref}__p{i}"]);delta=point_utility(metrics,reference)
+                reference=task_metrics(y,u[reference_probability_key(item['seed'],ref,i)]);delta=point_utility(metrics,reference)
                 references[ref]={'metrics':reference,'difference':delta}
                 for name,cap in (('accuracy_loss',.010),('nll_excess',.010),('brier_excess',.005)):
                     clauses.append({'task':key,'reference':ref,'metric':name,'value':delta[name],'cap':cap,'pass':utility_clause_pass(delta[name],cap)})
@@ -43,7 +44,7 @@ def run(spec_path):
         rows=[r for r in records if r['arm_id']==arm]
         if sorted(r['seed'] for r in rows)!=[0,1]:raise PermissionError('both fixed historical seeds required')
         eligibility[arm]={'point_eligible':all(r['point_eligible_seed'] for r in rows),'passed':sum(r['clauses_passed'] for r in rows),'total':24}
-    out={'schema':'TCR1-fresh-historical-score-law-utility-v1','unit_id':active['unit_id'],'metric_contract':'per-person exact finite-law expected decision accuracy, expected per-action NLL with floor1e-12 and expected summed multiclass Brier; no averaged-probability scoring','utility_input_sha256':cfg['utility_inputs']['sha256'],'records':records,'family_eligibility':eligibility,'INNER_SEX_opened':False,'new_fits_or_calibration':False,'primary_pool_changed':False,'secondary_contract':'literal historical code/probability/decision/metadata wire'}
+    out={'schema':'TCR1-fresh-historical-score-law-utility-v2','unit_id':active['unit_id'],'reference_namespace':'REF_U0/REF_Ucal original admitted service probabilities','metric_contract':'per-person exact finite-law expected decision accuracy, expected per-action NLL with floor1e-12 and expected summed multiclass Brier; no averaged-probability scoring','utility_input_sha256':cfg['utility_inputs']['sha256'],'records':records,'family_eligibility':eligibility,'INNER_SEX_opened':False,'new_fits_or_calibration':False,'primary_pool_changed':False,'secondary_contract':'literal historical code/probability/decision/metadata wire'}
     write_json(cfg['public_output'],out,False);write_json(cfg['private_output'],out);return out
 
 

@@ -10,12 +10,14 @@ def run(spec_path):
     import numpy as np
     from .attacks import READERS,OUTPUT_READERS,REP_READERS,write_json,save_npz
     from .inference import auc,bootstrap_auc,group_bootstrap,interval,task_vectors
+    from .utility_worker import reference_probability_key
     reporting_lock(cfg,verify)
     registry=json.loads(verify(cfg['endpoint_registry']['path'],cfg['endpoint_registry']['sha256']).read_text())
     expected={'primary':51,'utility':240,'secondary':33}
     if registry.get('K')!=expected or any(len(registry.get('families',{}).get(k,[]))!=v for k,v in expected.items()):raise PermissionError('finite endpoint family and preserved multiplicity differ')
     up=verify(cfg['utility_inputs']['path'],cfg['utility_inputs']['sha256'])
     with np.load(up,allow_pickle=False) as z:utility={k:z[k].copy() for k in z.files}
+    if any(reference_probability_key(s,r,i) not in utility for s in (0,1) for r in ('U0','Ucal') for i in (1,2)):raise PermissionError('distinct original reference probability keys absent')
     labels=read_reporting_sex(cfg['inner_sex'],verify,utility);sex=labels['sex'];unit=labels['unit'];G=len(np.unique(unit))
     weights=group_bootstrap(unit,2048,2026101208);denominator=weights.sum(1);envelopes={};absolute=[];admissions={};primary_available={}
     for item in cfg['instances']:
@@ -66,7 +68,7 @@ def run(spec_path):
     results={};boot_arrays={};utility_cache={}
     def utility_endpoint(e):
         arm=e['arm'];seed=e['seed'];task=e['task'];ref=e['reference'];metric=e['metric'];i={'income':1,'occupation':2}[task]
-        pkey=f's{seed}__{arm}__p{i}';rkey=f's{seed}__{ref}__p{i}'
+        pkey=f's{seed}__{arm}__p{i}';rkey=reference_probability_key(seed,ref,i)
         if pkey not in utility or rkey not in utility:return None
         key=(arm,seed,task,ref,metric)
         if key not in utility_cache:
@@ -99,7 +101,7 @@ def run(spec_path):
     private=Path(cfg['private_output'])
     if '.private' not in private.resolve().parts or private.exists():raise PermissionError('fresh private inference output required')
     private.mkdir(parents=True,mode=0o700);boot_sha=save_npz(private/'BOOTSTRAP_ENDPOINTS.npz',**boot_arrays);weight_sha=save_npz(private/'BOOTSTRAP_ROW_WEIGHTS.npz',row_id=labels['row_id'],unit=unit,weights=weights)
-    out={'schema':'TCR1-paired-group-conditional-inference-v1','unit_id':active['unit_id'],'endpoint_registry_sha256':cfg['endpoint_registry']['sha256'],'K':expected,'groups':G,'rows':len(unit),'replicates':2048,'bootstrap_seed':2026101208,'bootstrap_endpoint_sha256':boot_sha,'bootstrap_weight_sha256':weight_sha,'families':results,'absolute_recovery':absolute,'fixed_models_readers':True,'two_seeds':'paired fitted runs on same people; averaged within each replicate','coverage':'approximate conditional development, exploratory on reused Adult people'}
+    out={'schema':'TCR1-paired-group-conditional-inference-v2','reference_namespace':'REF_U0/REF_Ucal original admitted service probabilities','unit_id':active['unit_id'],'endpoint_registry_sha256':cfg['endpoint_registry']['sha256'],'K':expected,'groups':G,'rows':len(unit),'replicates':2048,'bootstrap_seed':2026101208,'bootstrap_endpoint_sha256':boot_sha,'bootstrap_weight_sha256':weight_sha,'families':results,'absolute_recovery':absolute,'fixed_models_readers':True,'two_seeds':'paired fitted runs on same people; averaged within each replicate','coverage':'approximate conditional development, exploratory on reused Adult people'}
     write_json(private/'INFERENCE_COMPLETE.json',out);write_json(cfg['public_output'],out,False);return out
 
 

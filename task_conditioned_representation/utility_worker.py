@@ -17,6 +17,12 @@ def utility_clause_pass(value,cap):
     return bool(value<=cap)
 
 
+def reference_probability_key(seed,reference,task_index):
+    """Original service references occupy a namespace distinct from candidates."""
+    if seed not in (0,1) or reference not in ('U0','Ucal') or task_index not in (1,2):raise ValueError('unregistered reference identity')
+    return f's{seed}__REF_{reference}__p{task_index}'
+
+
 def run(spec_path):
     from .attack_worker import queue_config
     active,cfg,verify=queue_config(spec_path,'attacks')
@@ -44,7 +50,7 @@ def run(spec_path):
             arrays.update(row_id=data['row_id'],unit=data['unit'],income=data['income'],occupation=data['occupation'])
         elif not all(np.array_equal(data[k],arrays[k]) for k in ('row_id','unit','income','occupation')):raise PermissionError('utility source seeds are not same people/labels')
         for i in (1,2):
-            for ref in ('U0','Ucal'):arrays[f's{seed}__{ref}__p{i}']=data['references'][f'{ref}_{i}']
+            for ref in ('U0','Ucal'):arrays[reference_probability_key(seed,ref,i)]=data['references'][f'{ref}_{i}']
     for item in cfg['instances']:
         seed=item['seed'];data=roles[seed];model,payload=load_checkpoint(item['checkpoint'],item['checkpoint_sha256'])
         if int(payload['seed'])!=seed:raise PermissionError('utility checkpoint source seed differs')
@@ -65,7 +71,7 @@ def run(spec_path):
         if sorted(i['seed'] for i in matched)!=[0,1]:raise PermissionError('both paired source seeds required')
         family[arm]={'point_eligible':all(i['point_eligible_seed'] for i in matched),'passed':sum(i['clauses_passed'] for i in matched),'total':24}
     input_sha=save_npz(root/'UTILITY_INPUTS.npz',**arrays)
-    out={'schema':'TCR1-original-INNER-point-utility-v1','nomination_lock_sha256':cfg['nomination_lock_sha256'],'source_manifest_sha256':cfg['manifest_sha256'],'unit_id':active['unit_id'],'INNER_SEX_opened':False,'records':records,'family_eligibility':family,'utility_input_sha256':input_sha}
+    out={'schema':'TCR1-original-INNER-point-utility-v2','reference_namespace':'REF_U0/REF_Ucal preserve original admitted probabilities separately from candidateU0','nomination_lock_sha256':cfg['nomination_lock_sha256'],'source_manifest_sha256':cfg['manifest_sha256'],'unit_id':active['unit_id'],'INNER_SEX_opened':False,'records':records,'family_eligibility':family,'utility_input_sha256':input_sha}
     write_json(root/'UTILITY_COMPLETE.json',out);write_json(cfg['public_output'],out,False)
     return out
 
