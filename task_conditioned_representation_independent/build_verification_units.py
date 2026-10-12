@@ -4,7 +4,7 @@ No package importing numerical code, person-array deserialization, dispatch or
 label exploration occurs in this builder. The root executes every queue unit.
 """
 from __future__ import annotations
-import argparse,hashlib,json
+import argparse,hashlib,json,sys
 from pathlib import Path
 
 def pin(path):
@@ -31,7 +31,7 @@ def build_refits(root,index_path):
     cfg={'banks':selected,'private_output':str(private),'output':str(public)};write(config,cfg);sources.append(pin(config))
     for name in ('__init__','science','readers','refit_worker'):sources.append(pin(root/f'task_conditioned_representation_independent/{name}.py'))
     deps=[u['unit_id'] for u in index['units']+index['legacy_units']]
-    spec={'unit_id':unit_id,'stage':'verification','argv':['/Users/nathansamson/PCRL/.venv/bin/python','-m','task_conditioned_representation_independent.refit_worker','--spec',str(config)],'cwd':str(root),'sources':sources,'outputs':[str(public)],'deps':deps,'cpu_reserve_s':300,'max_wall_s':300,'max_rss_gib':2,'projected_output_bytes':10485760}
+    spec={'unit_id':unit_id,'stage':'verification','argv':[sys.executable,'-m','task_conditioned_representation_independent.refit_worker','--spec',str(config)],'cwd':str(root),'sources':sources,'outputs':[str(public)],'deps':deps,'cpu_reserve_s':300,'max_wall_s':300,'max_rss_gib':2,'projected_output_bytes':10485760}
     destination=root/f'.private/task_conditioned_representation/r6/specs/{unit_id}.json';write(destination,spec)
     return {'unit_id':unit_id,'config':pin(config),'spec':pin(destination),'public_output':str(public),'private_output':str(private),'numerical_jobs_launched':0,'INNER_SEX_opened_or_hashed':False}
 
@@ -79,7 +79,7 @@ def build_final(root,index_path,operational_path,reporting_config_path):
         unique[path]=sha
     sources=[{'path':path,'sha256':sha} for path,sha in sorted(unique.items())]
     deps=[u['unit_id'] for u in index['units']+index['legacy_units']]+[refit_index['unit_id']]
-    spec={'unit_id':unit_id,'stage':'verification','argv':['/Users/nathansamson/PCRL/.venv/bin/python','-m','task_conditioned_representation_independent.replay_worker','--spec',str(config)],'cwd':str(root),'sources':sources,'outputs':[str(output)],'deps':deps,'cpu_reserve_s':1800,'max_wall_s':1800,'max_rss_gib':2,'projected_output_bytes':20971520}
+    spec={'unit_id':unit_id,'stage':'verification','argv':[sys.executable,'-m','task_conditioned_representation_independent.replay_worker','--spec',str(config)],'cwd':str(root),'sources':sources,'outputs':[str(output)],'deps':deps,'cpu_reserve_s':1800,'max_wall_s':1800,'max_rss_gib':2,'projected_output_bytes':20971520}
     destination=root/f'.private/task_conditioned_representation/r6/specs/{unit_id}.json';write(destination,spec)
     return {'unit_id':unit_id,'config':pin(config),'spec':pin(destination),'public_output':str(output),'numerical_jobs_launched':0,'reporting_label_array_deserializations':0}
 
