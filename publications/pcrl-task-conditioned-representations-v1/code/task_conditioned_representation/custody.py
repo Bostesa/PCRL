@@ -5,6 +5,7 @@ or calls the inherited all-role source inventory. All heavy work uses queue.
 """
 from __future__ import annotations
 import argparse,fcntl,hashlib,json,os,shutil,subprocess,sys
+from importlib.metadata import version,PackageNotFoundError
 from pathlib import Path
 from .source import admitted_path,load_manifest,write_json
 
@@ -66,13 +67,25 @@ def create_plan(repo,source_manifest,out,public):
             if len(rel.parts)<4 or rel.parts[1]!='units' or rel.parts[2] not in terminal_units:continue
         add('campaign/'+str(rel),p)
     files=subprocess.run(['git','ls-files','-z'],cwd=repo,check=True,capture_output=True).stdout.split(b'\0')
+    tracked={os.fsdecode(raw) for raw in files if raw}
+    required={'conditional_release/'+name for name in ('__init__.py','attacks.py','metrics.py','inference.py')}
+    for namespace in ('task_conditioned_representation','task_conditioned_representation_independent'):
+        required.update(str(path.relative_to(repo)) for path in (repo/namespace).rglob('*.py'))
+    if required-tracked:raise PermissionError('runtime/helper closure has uncommitted files: '+','.join(sorted(required-tracked)))
+    if subprocess.run(['git','diff','--quiet','HEAD','--'],cwd=repo,check=False).returncode!=0:raise PermissionError('commit tracked changes before immutable custody capture')
     for raw in files:
         if not raw:continue
         relative=os.fsdecode(raw);p=repo/relative
         if p.is_file():add('code/'+relative,p)
     head=subprocess.run(['git','rev-parse','HEAD'],cwd=repo,check=True,capture_output=True,text=True).stdout.strip()
+    environment={}
+    for package in ('numpy','torch','scipy','scikit-learn','joblib','psutil'):
+        try:environment[package]=version(package)
+        except PackageNotFoundError:environment[package]=None
     plan={'schema':'TCR1-versioned-custody-plan-v1','execution_commit_captured':head,'source_manifest_sha256':uncached_hash(source_manifest),
           'entries':list(entries.values()),'source_aliases':source_alias,'source_manifest':manifest,
+          'environment_pins':environment,'python_version':sys.version.split()[0],
+          'helper_closure':[{'path':name,'sha256':entries['code/'+name]['sha256']} for name in sorted(required)],
           'adapter':{'source':'conditional_release/custody.py','source_sha256':uncached_hash(repo/'conditional_release/custody.py'),'namespace':'task_conditioned_representation','layout':'same original parent pins remain adjacent; correction T applied prospectively'},'scope':'admitted role-only sources and this campaign private artifacts; only registered terminal queue-unit logs; opaque copy; no barred archive opened'}
     sha=write_once(out,plan)
     report={k:v for k,v in plan.items() if k not in ('entries','source_aliases','source_manifest')}

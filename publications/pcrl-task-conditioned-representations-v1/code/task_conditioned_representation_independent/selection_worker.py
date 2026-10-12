@@ -1,6 +1,6 @@
 """Independent replay of every saved FIT checkpoint and common nomination."""
 from __future__ import annotations
-import argparse,hashlib,json,math,sys
+import argparse,hashlib,json,math,statistics,sys
 from pathlib import Path
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -37,11 +37,35 @@ def main():
             head=joblib.load(checked(pins[f'head{r}']));w,b,c=fold_pipeline(head)
             tasks.append(metrics(labels[r],softmax(encoder(state,r,x)@w.T+b)))
         baselines[seed]=tasks
-    allrows=[];checked_rows=[];sequential_freezes=[];updatecounts=[]
+    calibration_checks=[];calibration_constants={}
+    for pin in cfg.get('calibrations',[]):
+        receipt=json.loads(checked(pin).read_text())
+        task,protection=receipt['task_norms'],receipt['protection_norms']
+        if len(task)!=16 or len(protection)!=16:raise ValueError('calibration draw count differs')
+        if not all(math.isfinite(v) for v in task+protection):raise ValueError('nonfinite recorded calibration norms')
+        tn,pn=statistics.median(task),statistics.median(protection)
+        if min(tn,pn)<=1e-12:raise ValueError('recorded calibration norm below floor')
+        ratio=tn/pn
+        if ratio*3>1e4:raise ValueError('recorded normalization exceeds prospectively fixed coefficient ceiling')
+        if not receipt['supported'] or abs(tn-receipt['median_task'])>1e-12 or abs(pn-receipt['median_protection'])>1e-12 or abs(ratio-receipt['coefficient_per_ratio'])>1e-12:
+            raise ValueError('calibration arithmetic/median/support replay differs')
+        for strength in (.3,1.,3.):
+            if abs(receipt['coefficients'][str(strength)]-strength*ratio)>1e-12:raise ValueError('strength ladder arithmetic differs')
+        calibration_constants[(receipt['family'],receipt['seed'])]=ratio
+        calibration_checks.append({'family':receipt['family'],'seed':receipt['seed'],'recorded_norm_draws':16,
+          'task_median':tn,'protection_median':pn,'coefficient_per_ratio':ratio,'largest_coefficient':3*ratio,
+          'scope':'independent arithmetic on recorded 16 norms; gradients not independently regenerated'})
+    allrows=[];checked_rows=[];sequential_freezes=[];updatecounts=[];training_accounting=[]
     seen_paths=set()
     for pin in cfg['fit_results']:
         result=json.loads(checked(pin).read_text())
         if result['family'] not in cfg['family_strengths']:raise ValueError('unregistered family')
+        if result['family']=='RAW_JOINT' and result['critic_optimizer_steps']!=720+45*800:
+            raise ValueError('RAW per-fit critic step accounting differs from 720 shared warm plus 45 per model step')
+        training_accounting.append({'family':result['family'],'seed':result['seed'],'strength':result['strength'],
+            'critic_optimizer_steps':result.get('critic_optimizer_steps'),
+            'aggregate_encoder_epochs':result.get('aggregate_encoder_epochs'),
+            'control_extra_search_exposure_percent':result.get('control_extra_search_exposure_percent')})
         first_prefix=None
         if result['family'] in ('SEQ12','SEQ21') and 'stages' in result:
             first_prefix={row['epoch']:row for row in result['stages'][0]['checkpoints']}
@@ -51,6 +75,10 @@ def main():
             payload=read(checkpoint)
             if payload['seed']!=row['seed'] or payload['epoch']!=row['epoch'] or payload['strength']!=row['strength']:
                 raise ValueError('FIT checkpoint metadata mismatch')
+            if result['family'] not in ('U_NEW','U_TASKPOWER') and calibration_constants:
+                cal_family=result['family'] if result['family'] in ('LOCAL_CONDITIONAL','RAW_JOINT') else 'JOINT_CONDITIONAL'
+                expected_coefficient=row['strength']*calibration_constants[(cal_family,row['seed'])]
+                if abs(payload['coefficient']-expected_coefficient)>1e-12:raise ValueError('actual coefficient differs from registered shared/separate calibration rule')
             out=own_release(payload['model'],x)
             tm=[metrics(labels[r],out[f'p{r+1}']) for r in (0,1)]
             diff=max(abs(tm[r][m]-row['metrics'][r][m]) for r in (0,1) for m in ('accuracy','nll','brier'))
@@ -116,6 +144,7 @@ def main():
     body={'schema':'TCR1-R6-independent-FIT-selection-v1','status':'PASS','guard':guard,
          'checkpoints_replayed':len(checked_rows),'checkpoint_checks':checked_rows,'sequential_freeze_checks':sequential_freezes,
          'updates':updatecounts,'independent_selections':selections,'INNER_task_labels_read':False,'INNER_SEX_read':False,
+         'calibration_checks':calibration_checks,'training_accounting':training_accounting,'independent_gradient_regeneration':False,
          'training_pair_coverage_definition':'>=32 unique duplicate groups per SEX arm; fixed optimization weights; missing mass retained'}
     output=Path(cfg['output']);output.parent.mkdir(parents=True,exist_ok=True);tmp=output.with_suffix('.tmp');tmp.write_text(json.dumps(body,indent=2,sort_keys=True,allow_nan=False)+'\n');tmp.replace(output)
 

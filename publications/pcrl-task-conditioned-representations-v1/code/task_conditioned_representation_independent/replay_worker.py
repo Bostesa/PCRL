@@ -85,7 +85,7 @@ def main():
                 sc=record['scaler']
                 raw_std=feature[train].std(0)
                 declared_scale=np.where(raw_std>0,raw_std,1.0)
-                if max(float(np.max(abs(sc.mean_-feature[train].mean(0)))),float(np.max(abs(sc.scale_-declared_scale))))>1e-10:
+                if not np.array_equal(sc.mean_,feature[train].mean(0)) or not np.allclose(sc.scale_,declared_scale,atol=0,rtol=1e-12):
                     raise ValueError('reader scaler not the declared ATT-training fit')
                 vs=predict(record,feature[val]);sign=1 if auc(att['sex'][val],vs)>=.5 else -1
                 if sign!=frozen['validation'][view][name]['orientation']:raise ValueError('reader orientation mismatch')
@@ -168,9 +168,16 @@ def main():
                 if view!='pair':point,reps=-point,-reps
                 dest[f'{comparator}__{view}']=dict(clause(point,reps,k,ng,.020 if view=='pair' else .010,'lower' if view=='pair' else 'upper'),comparator_eligible=eligible)
     if len(primary)!=51 or len(secondaryutility)!=240 or len(scoreprivacy)!=27:raise ValueError('registered endpoint slots lost')
-    # Legacy score slots remain explicit dependencies unless separately replayed.
+    from .legacy_replay import replay as replay_legacy
+    legacy_points,legacy_boots,legacy_reports=replay_legacy(spec['legacy_banks'],sexdata,checked)
     for legacy in ('P0','S12'):
-        for view in ('r1','r2','pair'):scoreprivacy[f'{legacy}__{view}']={'status':'PENDING_LEGACY_DEPENDENCY','K':33}
+        for view in ('r1','r2','pair'):
+            point=sum(legacy_points[(legacy,s,view)]-all_points[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
+            reps=sum(legacy_boots[(legacy,s,view)]-all_boots[('JOINT_CONDITIONAL',s)][('score',view)] for s in (0,1))/2
+            if view!='pair':point,reps=-point,-reps
+            scoreprivacy[f'{legacy}__{view}']=dict(clause(point,reps,33,ng,.020 if view=='pair' else .010,'lower' if view=='pair' else 'upper'),
+                comparator_contract='literal historical complete code/probability/decision/metadata wire',
+                candidate_contract='new own-head probability/decision only',equal_capacity_claim=False)
     if any(name.startswith('task_conditioned_representation.') and name!='task_conditioned_representation.scheduler' for name in sys.modules):
         raise ImportError('candidate scientific implementation imported during independent replay')
     out={'schema':'TCR1-R6-independent-final-replay-v1','status':'PASS_NEW_CONTINUOUS_SERVICE_REPLAY','guard':guard,
@@ -179,7 +186,8 @@ def main():
          'point_eligibility':{f'{family}__s{seed}':value for (family,seed),value in gate.items()},
          'source_seeds_are_paired_fitted_runs':True,'bootstrap_replicates':2048,'groups':ng,'cpu_s':time.process_time()-started,
          'reader_refit_scope':'separate four predeclared independent pair reader fits; this worker restores saved readers',
-         'legacy_score_scope':'six registered legacy score slots retained pending independent legacy artifact replay'}
+         'legacy_score_scope':'all4available legacy banks; all24saved scientificreader predictions perbank; exactfinite-law AUC andpaired2048bootstrap',
+         'legacy_replay':legacy_reports}
     p=Path(spec['output']);p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.tmp');tmp.write_text(json.dumps(out,indent=2,sort_keys=True,allow_nan=False)+'\n');tmp.replace(p)
 
 if __name__=='__main__':main()

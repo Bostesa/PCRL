@@ -14,7 +14,7 @@ class ScaleState:
     def transform(self,x):
         return (np.asarray(x,dtype=np.float64)-self.mean_)/self.scale_
 
-def load_saved_reader(path):
+def load_saved_reader(path,validate=True):
     from joblib.numpy_pickle import NumpyUnpickler
     from joblib.numpy_pickle_utils import _validate_fileobject_and_memmap
     class IndependentUnpickler(NumpyUnpickler):
@@ -28,7 +28,7 @@ def load_saved_reader(path):
     with open(filename,'rb') as raw:
         with _validate_fileobject_and_memmap(raw,filename,None) as (stream,mmap):
             record = IndependentUnpickler(filename,stream,True,mmap_mode=None).load()
-    if set(record)!={'model','scaler'} or not np.array_equal(record['model'].classes_,[0,1]):
+    if validate and (set(record)!={'model','scaler'} or not np.array_equal(record['model'].classes_,[0,1])):
         raise ValueError('invalid reader file/class order')
     return record
 
