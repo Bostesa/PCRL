@@ -85,7 +85,7 @@ def run(spec_path):
         if cal['draws']!=16 or not cal['supported']:raise ValueError('normalization accounting scope differs')
         if cal['family']=='RAW_JOINT' and (cal['critic_warm_updates_per_critic']!=80 or cal['critic_warm_optimizer_steps']!=720):raise ValueError('unique warm accounting differs')
     def summary(values):return {'count':len(values),'min':min(values),'median':statistics.median(values),'max':max(values)} if values else None
-    report={'schema':'TCR1-actual-training-accounting-v1','status':'PASS','guard':guard,'source_code_pins':cfg['code_pins'],
+    report={'schema':'TCR1-actual-training-accounting-v1','status':'PASS','guard':guard,'source_code_pins':[{'path':Path(item['path']).resolve().relative_to(Path(__file__).resolve().parents[1]).as_posix(),'sha256':item['sha256']} for item in cfg['code_pins']],
             'fitted_configurations':46,'actual_stage_calls':sum(u['stage_calls'] for u in units),'nomination_checkpoints':184,
             'fitting_totals':totals,'per_family':per_family,'units':units,'calibration':calibration,
             'unique_total_RAW_critic_optimizer_steps':totals['new_critic_optimizer_steps']+1440,

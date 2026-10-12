@@ -1,0 +1,5 @@
+# Accounting publication metadata correction G1, 2026-10-12 UTC
+
+The coordinator's public scan blocked publication of `ACTUAL_TRAINING_ACCOUNTING_V1.json` because six `source_code_pins` records contained absolute local code paths. No push occurred. The exact original accounting artifact, SHA256 `b1913b075555fdec81ae9bd072551adc292dd75fed69e7eae54e5686ae304b71`, remains preserved in private publication-receipt custody by the coordinator. The public projection changes those code-path strings to paths relative to the study root.
+
+The accounting emitter now writes relative code paths directly, preventing recurrence. Its before SHA256 was `2b88efeb76aeaa77d3bcfa7c9fe98a3e29d37829e2fd4a6536780c907dc1d20e`; its after SHA256 is `17d0d77b2fe732fa2c2c45d4d35f903189e0f8beeeb9602fad3a8ea65de32a45`. This changes publication metadata only. All numerical totals, fit models, endpoints, scientific criteria and held fitting source hashes remain unchanged. No numerical rerun is needed or claimed. The original queue receipt continues to bind the privately preserved original artifact.
