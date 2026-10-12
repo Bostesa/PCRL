@@ -29,12 +29,14 @@ def main():
     yi,yo,sex=[f[name] for f,name in zip(label_files,('income','occupation','sex'))]
     folds=fit_fold(data['unit']);train=folds!=2;val=folds==2;x=data['X'][val];labels=[yi[val],yo[val]]
     train_specs=specs([yi[train],yo[train]],sex[train],data['unit'][train]);val_specs=specs(labels,sex[val],data['unit'][val])
-    baselines={}
+    baselines={};source_states={}
     for seed in (0,1):
         pins=source['seeds'][str(seed)]['pins'];state=torch.load(checked(pins['model']),map_location='cpu',weights_only=True)
-        tasks=[]
+        tasks=[];source_states[seed]={k:v for k,v in state.items() if k.startswith('enc.')}
         for r in (0,1):
             head=joblib.load(checked(pins[f'head{r}']));w,b,c=fold_pipeline(head)
+            source_states[seed][f'head.{r}.weight']=torch.from_numpy(w.copy())
+            source_states[seed][f'head.{r}.bias']=torch.from_numpy(b.copy())
             tasks.append(metrics(labels[r],softmax(encoder(state,r,x)@w.T+b)))
         baselines[seed]=tasks
     calibration_checks=[];calibration_constants={}
@@ -140,6 +142,22 @@ def main():
         selections['LOCAL_TWIN']['selected']={'strength':joint['strength'],'epoch':joint['epoch'],
             'violation':max(r['violation'] for r in twinrows),'nll':sum(r['nll'] for r in twinrows),'sensitive':sum(r['sensitive'] for r in twinrows)/2,
             'forced_exact_joint_configuration':True}
+    draft=json.loads(checked(cfg['nomination_draft']).read_text())
+    if draft['status']!='FIT_SELECTED_AWAITING_R6' or draft['saved_candidates']!=184 or draft['continuations']!=46:
+        raise ValueError('complete all-family draft count/status differs')
+    for family,choice in selections.items():
+        recorded=draft['families'][family]
+        for name in ('strength','epoch'):
+            if recorded[name]!=choice['selected'][name] or recorded['fallback_'+name]!=choice['fallback'][name]:raise ValueError('independent common nominee/fallback differs from draft')
+        for kind,instances in [('selected',draft['nominees']),('fallback',draft['fallbacks'])]:
+            candidates=[r for r in allrows if r['family']==family and r['strength']==choice[kind]['strength'] and r['epoch']==choice[kind]['epoch']]
+            for row in candidates:
+                arm=family if kind=='selected' else family+'_DIAGNOSTIC_FALLBACK'
+                matches=[i for i in instances if i['arm_id']==arm and i['seed']==row['seed']]
+                if len(matches)!=1 or matches[0]['checkpoint_sha256']!=row['checkpoint_sha256']:raise ValueError('draft canonical checkpoint association differs')
+                state=read(row['checkpoint'])['model'];reference=source_states[row['seed']]
+                alias=set(state)==set(reference) and all(torch.equal(state[k],reference[k]) for k in state)
+                if matches[0]['exact_source_alias']!=alias:raise ValueError('source alias claim independently differs')
     if any(n.startswith('task_conditioned_representation.') and n!='task_conditioned_representation.scheduler' for n in sys.modules):raise ImportError('candidate scientific modules imported')
     body={'schema':'TCR1-R6-independent-FIT-selection-v1','status':'PASS','guard':guard,
          'checkpoints_replayed':len(checked_rows),'checkpoint_checks':checked_rows,'sequential_freeze_checks':sequential_freezes,
