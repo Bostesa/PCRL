@@ -61,7 +61,7 @@ def create_plan(repo,source_manifest,out,public):
     for p in sorted(private.rglob('*')):
         if not p.is_file():continue
         rel=p.relative_to(private)
-        if rel.parts[0]=='custody':continue
+        if rel.parts[0]=='custody' or rel.parts[:2]==('r7','custody'):continue
         if rel.parts[0]=='compute':
             if len(rel.parts)<4 or rel.parts[1]!='units' or rel.parts[2] not in terminal_units:continue
         add('campaign/'+str(rel),p)

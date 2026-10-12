@@ -5,7 +5,8 @@ from pathlib import Path
 
 BASE=Path(__file__).resolve().parents[1]
 PYTHON=sys.executable
-CODE=('deployment.py','deployment_worker.py','source.py','scheduler.py','__init__.py','models.py','useful_service.py')
+CODE=('deployment.py','deployment_worker.py','source.py','scheduler.py','__init__.py','models.py','useful_service.py','kernels.py')
+LEGACY_READER_CODE=('conditional_release/__init__.py','conditional_release/attacks.py','conditional_release/metrics.py','conditional_release/inference.py')
 
 
 def pin(p):
@@ -41,6 +42,7 @@ def prepare_restore(live_index,restore_root,output,tag='LOCAL'):
     index=json.loads(Path(live_index).read_text());root=Path(restore_root).resolve();r7=BASE/'.private/task_conditioned_representation/r7';public=BASE/'results/pcrl_task_conditioned_representations_v1/r7';units=[]
     def remap(p):return root/'files/campaign'/Path(p).resolve().relative_to(BASE/'.private/task_conditioned_representation')
     code=root/'files/code';runtime_code=[code/'task_conditioned_representation'/name for name in CODE+('attacks.py','inference.py')]
+    runtime_code.extend(code/name for name in LEGACY_READER_CODE)
     for item in index['units']:
         arm=item['arm_id'];seed=item['seed'];uid=f'R7_RESTORE_{tag}_{arm}_S{seed}_V1'
         receipt=json.loads(Path(item['public']).read_text());package=remap(item['package']);inp=remap(item['input']);expected=remap(item['expected'])

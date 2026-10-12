@@ -40,10 +40,16 @@ def save_npz(path,**arrays):
 
 class FiniteScaler:
     """Preserve every finite coordinate, including small positive variance."""
-    def fit(self,x):
+    def fit(self,x,sample_weight=None):
         x=np.asarray(x,dtype=np.float64)
         if x.ndim!=2 or not np.isfinite(x).all() or len(x)<2:raise ValueError('scaler needs finite training matrix')
-        self.mean_=x.mean(0);self.raw_scale_=x.std(0)
+        if sample_weight is None:
+            self.mean_=x.mean(0);self.raw_scale_=x.std(0)
+        else:
+            weight=np.asarray(sample_weight,dtype=np.float64)
+            if weight.shape!=(len(x),) or not np.isfinite(weight).all() or np.any(weight<0) or not 0<weight.sum()<np.inf:raise ValueError('scaler needs aligned finite nonnegative positive-total weights')
+            self.mean_=np.average(x,axis=0,weights=weight)
+            self.raw_scale_=np.sqrt(np.average(np.square(x-self.mean_),axis=0,weights=weight))
         if not np.isfinite(self.mean_).all() or not np.isfinite(self.raw_scale_).all():raise ValueError('empirical scaler moments must be finite')
         self.scale_=np.where(self.raw_scale_>0,self.raw_scale_,1.)
         return self

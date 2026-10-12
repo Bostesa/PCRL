@@ -4,6 +4,19 @@ import argparse,json
 from pathlib import Path
 
 
+def admitted_checkpoint(lock,arm_id,seed,checkpoint_sha256):
+    """One exact canonical nomination association; unrelated hash strings fail."""
+    instances=lock.get('instances')
+    if not isinstance(instances,list):return False
+    matching=[item for item in instances if isinstance(item,dict) and item.get('arm_id')==arm_id and type(item.get('seed')) is int and item['seed']==seed]
+    return len(matching)==1 and matching[0].get('checkpoint_sha256')==checkpoint_sha256
+
+
+def utility_clause_pass(value,cap):
+    """The frozen point requirement is literal, without tolerance slack."""
+    return bool(value<=cap)
+
+
 def run(spec_path):
     from .attack_worker import queue_config
     active,cfg,verify=queue_config(spec_path,'attacks')
@@ -22,7 +35,7 @@ def run(spec_path):
     root.mkdir(parents=True,mode=0o700);records=[];arrays={};roles={}
     # Verify all frozen requested checkpoint bytes before opening any task label.
     for item in cfg['instances']:
-        if item['checkpoint_sha256'] not in json.dumps(lock,sort_keys=True):raise PermissionError('requested checkpoint absent from all-family nomination seal')
+        if not admitted_checkpoint(lock,item['arm_id'],item['seed'],item['checkpoint_sha256']):raise PermissionError('exact requested arm/seed/checkpoint absent or duplicated in canonical nomination instances')
         verify(item['checkpoint'],item['checkpoint_sha256'])
     for seed in (0,1):
         data=load_role(manifest,seed,'INNER_SELECTION',{'features','income','occupation','references'},nomination_seal=lock)
@@ -43,7 +56,7 @@ def run(spec_path):
                 baseline=task_metrics(data[key],data['references'][f'{reference}_{i+1}'],model.class_orders[i]);delta=point_utility(metrics,baseline)
                 references[reference]={'metrics':baseline,'difference':delta}
                 for metric,cap in (('accuracy_loss',.010),('nll_excess',.010),('brier_excess',.005)):
-                    clauses.append({'task':key,'reference':reference,'metric':metric,'value':delta[metric],'cap':cap,'pass':delta[metric]<=cap+1e-12})
+                    clauses.append({'task':key,'reference':reference,'metric':metric,'value':delta[metric],'cap':cap,'pass':utility_clause_pass(delta[metric],cap)})
             tasks[key]={'metrics':metrics,'references':references}
         records.append({'arm_id':item['arm_id'],'seed':seed,'checkpoint_sha256':item['checkpoint_sha256'],'tasks':tasks,'clauses':clauses,'clauses_passed':sum(c['pass'] for c in clauses),'point_eligible_seed':all(c['pass'] for c in clauses)})
     family={}

@@ -8,6 +8,8 @@ LAW_FIELDS={'row_id','unit','code_r1','code_r2','mass'}
 def legacy_adapter():
     # Registered random-seed update only; validated scientific reader slate is retained.
     from conditional_release import attacks as legacy
+    from .attacks import FiniteScaler
+    legacy.StandardScaler=FiniteScaler
     legacy.TRAIN_SAMPLE_SEED_BASE=2026101205
     legacy.SHUFFLE_ATT_SALT='TCR1|legacy-ATT-null|2026101206'
     legacy.SHUFFLE_INNER_SALT='TCR1|legacy-INNER-null|2026101207'

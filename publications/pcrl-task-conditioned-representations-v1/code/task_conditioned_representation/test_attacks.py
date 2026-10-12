@@ -40,6 +40,17 @@ class ContractTests(unittest.TestCase):
         cap=.01
         self.assertTrue(utility_worker.utility_clause_pass(cap,cap))
         self.assertFalse(utility_worker.utility_clause_pass(np.nextafter(cap,np.inf),cap))
+    def test_weighted_1e_minus_25_scaling_retains_variance(self):
+        x=np.array([[0.,1.],[1e-25,1.]])
+        weight=np.array([3.,1.])
+        scaler=attacks.FiniteScaler().fit(x,sample_weight=weight)
+        z=scaler.transform(x)
+        self.assertAlmostEqual(float(np.average(z[:,0],weights=weight)),0.)
+        self.assertAlmostEqual(float(np.average(z[:,0]**2,weights=weight)),1.)
+        self.assertEqual(float(scaler.scale_[1]),1.)
+    def test_legacy_adapter_uses_positive_empirical_scaler(self):
+        from task_conditioned_representation.legacy_attack_worker import legacy_adapter
+        self.assertIs(legacy_adapter().StandardScaler,attacks.FiniteScaler)
     def test_primary_complete_wire(self):
         a=np.arange(4*21,dtype=float).reshape(4,21);b=np.arange(4*29,dtype=float).reshape(4,29)
         t=attacks.feature_tables(a,b)

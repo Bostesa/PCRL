@@ -96,12 +96,24 @@ def common_cfg(manifest,science,seed,family,operation,uid):
             'recipe':recipe(read(science))}
 
 
-def prepare(manifest,science,amendments,output,python=sys.executable):
+def prepare(manifest,science,amendments,output,python=sys.executable,existing_utility=()):
     lock=read(science)
     if manifest['sha256']!=lock['source_manifest_sha256']:raise PermissionError('science source manifest differs')
     units=[]
+    seen=set()
+    for ready_path in existing_utility:
+        ready_pin=pin(ready_path);ready=read(ready_pin);cfg=read(ready['config'])
+        identity=(cfg['family'],int(cfg['seed']))
+        if identity in seen or identity not in {(f,s) for f in UTILITY for s in (0,1)}:raise ValueError('utility aliases differ')
+        if cfg['recipe']!=recipe(lock) or cfg['coefficient']!=0 or cfg['strength']!=0 or cfg['science_lock_sha256']!=science['sha256'] or cfg['manifest_sha256']!=manifest['sha256']:raise ValueError('prepared utility recipe/bindings differ')
+        seen.add(identity);uid=Path(ready['config']['path']).stem
+        units.append({'unit_id':uid,'family':cfg['family'],'seed':cfg['seed'],'strength':0.,'config':ready['config'],'spec':None,
+                      'spec_expected_path':str(Path(ready_path).parent/'specs'/f'{uid}.json'),
+                      'output':cfg['output'],'private_output':cfg['private_output'],'external_prepared':True,'ready':ready_pin,'deps':[]})
+    if existing_utility and seen!={(f,s) for f in UTILITY for s in (0,1)}:raise ValueError('all four external utility aliases required')
     for family in UTILITY:
         for seed in (0,1):
+            if (family,seed) in seen:continue
             uid=f'R3_FIT_{family}_S{seed}_V1';cfg=common_cfg(manifest,science,seed,family,'fit',uid)
             cfg.update(coefficient=0.,strength=0.,target_enabled=family=='U_TASKPOWER',private_output=str(PRIVATE/'fits'/f'{family}_s{seed}'),output=str(PUBLIC/f'{uid}.json'))
             units.append(unit(cfg,metadata_sources(manifest,science,amendments,seed),[],amendments,python,600))
@@ -150,14 +162,14 @@ def protect(initial_index,calibration_index,amendments,output):
 
 def main():
     ap=argparse.ArgumentParser();sub=ap.add_subparsers(dest='phase',required=True)
-    first=sub.add_parser('prepare');first.add_argument('--manifest',required=True);first.add_argument('--manifest-sha256',required=True);first.add_argument('--science-lock',required=True);first.add_argument('--science-lock-sha256',required=True);first.add_argument('--python',default=sys.executable)
+    first=sub.add_parser('prepare');first.add_argument('--manifest',required=True);first.add_argument('--manifest-sha256',required=True);first.add_argument('--science-lock',required=True);first.add_argument('--science-lock-sha256',required=True);first.add_argument('--python',default=sys.executable);first.add_argument('--existing-utility-ready',action='append',default=[])
     second=sub.add_parser('protect');second.add_argument('--initial-index',required=True);second.add_argument('--initial-index-sha256',required=True);second.add_argument('--calibration-index',required=True);second.add_argument('--calibration-index-sha256',required=True)
     for p in (first,second):
         p.add_argument('--amendment',action='append',required=True);p.add_argument('--amendment-sha256',action='append',required=True);p.add_argument('--output',required=True)
     a=ap.parse_args()
     if len(a.amendment)!=len(a.amendment_sha256):raise ValueError('one hash per ordered amendment required')
     amendments=[pin(p,h) for p,h in zip(a.amendment,a.amendment_sha256)]
-    if a.phase=='prepare':result=prepare(pin(a.manifest,a.manifest_sha256),pin(a.science_lock,a.science_lock_sha256),amendments,a.output,a.python)
+    if a.phase=='prepare':result=prepare(pin(a.manifest,a.manifest_sha256),pin(a.science_lock,a.science_lock_sha256),amendments,a.output,a.python,a.existing_utility_ready)
     else:result=protect(pin(a.initial_index,a.initial_index_sha256),pin(a.calibration_index,a.calibration_index_sha256),amendments,a.output)
     print(json.dumps(result,sort_keys=True))
 if __name__=='__main__':main()
