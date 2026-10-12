@@ -17,7 +17,7 @@ Forty-six two-seed configurations were fitted under the fixed three-strength lad
 - Joint versus sequential contribution: not established against either order. Benefits are 0.001114 [−0.004744, 0.006971] against SEQ12 and 0.005394 [−0.001500, 0.012288] against SEQ21.
 - Novelty: established conditional fairness/kernel tools plus a tested recipient-pair adaptation; no new mechanism/solver or competitive joint-design claim earned.
 - Missing scientific dependency: none among required comparisons. Optional CFair was not registered or run. Oracle-label diagnostics are interpretation only, not independently verified endpoints.
-- Historical raw reference: actually restored, deployed and freshly attacked, but failed 16/24 original point utility clauses. Its lower recovery is diagnostic and cannot be promoted.
+- Historical raw reference: actually restored, deployed and freshly attacked, but passed 16/24 and failed 8/24 original point utility clauses. Its lower recovery is diagnostic and cannot be promoted.
 
 ## Strongest favorable and adverse comparisons
 
