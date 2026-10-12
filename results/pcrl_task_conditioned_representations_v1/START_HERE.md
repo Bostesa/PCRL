@@ -6,7 +6,7 @@ All ten primary nominees met all 24 original accuracy/NLL/Brier point limits aga
 
 Conditioning, pair coupling and joint training each lack a demonstrated advantage over their required matched controls. A small favorable point difference against the local twin is unresolved. No new mechanism or solver novelty is established.
 
-Closeout status: corrected reference-summary replay and versioned backup numerical restore are pending. No final complete handoff has been issued.
+Corrected reference replay and local backup-only numerical restores passed. Final closure binds these receipts; off-device custody remains pending because the external drive is absent.
 
 ## Read and run
 
