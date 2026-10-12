@@ -24,7 +24,8 @@ official_reference_mmd.py for reproducible fixture parity.
 
 For n paired observations per arm, use off-diagonal one-sample U-statistic
 MMD2 = offmean(Kx)+offmean(Ky)-2offmean(Kxy). Let H=Kx+Ky-Kxy-Kxy.T.
-The official biased branch computes v=4*(mean_i(mean_j H_ij)^2)-mean(H)^2).
+The official biased branch computes
+v=4*[mean_i((mean_j H_ij)^2) - (mean_ij H_ij)^2].
 Power is Phi(sqrt(b)*MMD2/sqrt(max(v,1e-6))-Phi^-1(.95)). No clipping of
 negative MMD2 occurs. The max variance floor and CDF are essential; this is
 not raw squared MMD. The official biased branch ignores its population-size
