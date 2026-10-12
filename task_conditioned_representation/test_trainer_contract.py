@@ -90,3 +90,36 @@ class TrainerContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fit(m,x,y,torch.arange(14),torch.arange(14,20),Recipe(epochs=1,checkpoints=(0,1),batch_size=7),'U_NEW',0,0,tmp,active=(1,))
         self.assertTrue(all(torch.equal(v,m.state_dict()[k]) for k,v in frozen.items()))
+
+    def test_sequential_all_nominee_diagnostics_include_both_locals_and_pair(self):
+        import random,tempfile
+        from task_conditioned_representation.trainer import fit,seed_for
+        from task_conditioned_representation.objectives import KernelObjective,StrataRegistry
+        from task_conditioned_representation.useful_service import UsefulModel
+        torch.manual_seed(23)
+        # Two disjoint synthetic roles, each with32 groups in every task-pair/SEX arm.
+        n=768;rows=torch.arange(n);yi=(rows//64)//6;yo=(rows//64)%6;sex=(rows//32)%2
+        x=torch.randn(2*n,83);labels=(yi.repeat(2),yo.repeat(2))
+        m=UsefulModel([str(i) for i in range(83)]);objective=KernelObjective()
+        reg=StrataRegistry(yi.tolist(),yo.tolist(),sex.tolist(),rows.tolist())
+        train=torch.arange(n);val=torch.arange(n,2*n);recipe=Recipe(epochs=1,checkpoints=(0,1),batch_size=n,gradient_log_every=100)
+        with tempfile.TemporaryDirectory() as tmp:
+            first=fit(m,x,labels,train,val,recipe,'LOCAL_TWIN',0,.01,tmp+'/first',objective=objective,registry=reg,selection_registry=reg,active=(0,),selection_active=(0,1),selection_family='SEQ12')
+            second=fit(m,x,labels,train,val,recipe,'SEQ12',0,.01,tmp+'/second',objective=objective,registry=reg,selection_registry=reg,active=(1,),selection_active=(0,1),selection_family='SEQ12',initial_updates=tuple(first['updates_per_recipient']))
+            combined=(first['checkpoints'][0],second['checkpoints'][-1])
+            for row in combined:
+                payload=torch.load(row['checkpoint'],weights_only=False);m.load_state_dict(payload['model'])
+                check=KernelObjective();prior=payload['reference']
+                # Recover the exact detached fitting references saved for this candidate.
+                from task_conditioned_representation.kernels import DiagonalReference
+                check.references=tuple(DiagonalReference(r['mean'],r['scale'],r['initial_scale'],torch.tensor(r['distance'],dtype=torch.float64),r['floor_count']) for r in prior)
+                draws=reg.draw(random.Random(seed_for('TCR1selectiondraw',0)),'SEQ12')
+                with torch.no_grad():parts=check.loss(m,x[val],draws,'SEQ12',active=(0,1))
+                expected=float(parts['local0']+parts['local1']+parts['pair'])
+                self.assertAlmostEqual(row['sensitive'],expected,places=12)
+                self.assertEqual(row['selection_active'],[0,1])
+                self.assertEqual(row['selection_family'],'SEQ12')
+                self.assertEqual(payload['selection_active'],[0,1])
+                self.assertEqual(payload['selection_family'],'SEQ12')
+            self.assertEqual(combined[0]['updates_per_recipient'],[0,0])
+            self.assertEqual(combined[1]['updates_per_recipient'],[1,1])

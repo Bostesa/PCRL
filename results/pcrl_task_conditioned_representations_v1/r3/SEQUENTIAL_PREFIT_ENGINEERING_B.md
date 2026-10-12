@@ -1,0 +1,11 @@
+# Sequential nomination diagnostic repair B, 2026-10-12 UTC
+
+Independent R6 review found that the original sequential nomination table compared different quantities. Epoch zero reused its first-stage LOCAL_TWIN loss over the first recipient only, while positive e/e checkpoints reused the second-stage loss over the second recipient plus the pair. The unchanged first local loss differs across first-stage prefixes, so omitting it could distort checkpoint selection.
+
+No scientific fit or INNER outcome preceded this repair. The original implementation remains preserved at execution commit `75004059f` (and its ancestor `82932708f`). The root-executed data-free RED unit `R3_SEQUENTIAL_DIAGNOSTIC_RED_V1` ran 11 tests: ten passed and the new sequential diagnostic test failed because the old fit API lacked `selection_active`. Its queue receipt and stderr preserve the pre-repair evidence.
+
+The repaired trainer separates `active`/training family from `selection_active`/`selection_family`. All saved sequential stage rows and all combined e/e nominees, including exact source epoch zero, use the same diagnostic: full local0 + local1 + pair, with `selection_active=[0,1]` and the sequential family. Every checkpoint uses the fixed registered FIT selection draw seed, frozen training-frequency weights/support, and registered detached fitting references. Training retains first-recipient local-plus-target loss in stage one and second-recipient local-plus-pair-plus-target loss in stage two; the first encoder and head remain frozen during stage two.
+
+Checkpoint metadata, result metadata and candidate rows now record the selection definition. The epoch-zero combined row explicitly records its exact U0 source alias; its checkpoint retains the original LOCAL_TWIN training-family provenance. No checkpoint is rewrapped and the actual model state/wire remains unchanged.
+
+The new concrete data-free fixture uses the real kernel objective and saved references to recompute the source-zero and positive e/e diagnostics, verifies their complete sum, and checks zero [0,0] and positive [1,1] matched per-encoder update counts. The coordinator owns queued GREEN verification and the science lock; R3 launches no numerical jobs.

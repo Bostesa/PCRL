@@ -104,16 +104,19 @@ def select_common(rows,family,strengths=(.3,1.,3.),forced=None):
     return dict(chosen,fallback=fallback,selection='FIT_ONLY_COMMON_CONFIGURATION',surrogate_feasible=chosen['violation']<=1)
 
 
-def _save(model,optimizer,path,recipe,family,seed,strength,coefficient,epoch,updates,task_generator,privacy_rng,reference,rows,objective=None):
+def _save(model,optimizer,path,recipe,family,seed,strength,coefficient,epoch,updates,task_generator,privacy_rng,reference,rows,objective=None,selection_active=None,selection_family=None):
     p=Path(path);p.parent.mkdir(parents=True,exist_ok=True);tmp=p.with_suffix('.tmp')
-    payload={'schema':'TCR1-trainable-own-head-checkpoint-v1','model':model.state_dict(),'optimizer':optimizer.state_dict(),'feature_names':list(model.names),'class_orders':model.class_orders,'source_bindings':getattr(model,'source_bindings',{}),'recipe':asdict(recipe),'family':family,'seed':seed,'strength':strength,'coefficient':coefficient,'epoch':epoch,'updates_per_recipient':updates[:],'task_rng_state':task_generator.get_state(),'privacy_rng_state':privacy_rng.getstate(),'reference':reference,'selection_history':rows,'objective_state':objective.state_dict() if objective is not None and hasattr(objective,'state_dict') else None}
+    payload={'schema':'TCR1-trainable-own-head-checkpoint-v1','model':model.state_dict(),'optimizer':optimizer.state_dict(),'feature_names':list(model.names),'class_orders':model.class_orders,'source_bindings':getattr(model,'source_bindings',{}),'recipe':asdict(recipe),'family':family,'selection_active':list(selection_active) if selection_active is not None else None,'selection_family':selection_family,'seed':seed,'strength':strength,'coefficient':coefficient,'epoch':epoch,'updates_per_recipient':updates[:],'task_rng_state':task_generator.get_state(),'privacy_rng_state':privacy_rng.getstate(),'reference':reference,'selection_history':rows,'objective_state':objective.state_dict() if objective is not None and hasattr(objective,'state_dict') else None}
     torch.save(payload,tmp);os.chmod(tmp,0o600);os.replace(tmp,p);return sha_file(p)
 
 
-def fit(model,x,labels,train_indices,selection_indices,recipe,family,seed,coefficient,output,*,strength=0.,target_enabled=None,objective=None,registry=None,selection_registry=None,active=(0,1),initial_baseline=None,stage_tag='simultaneous',initial_updates=(0,0)):
+def fit(model,x,labels,train_indices,selection_indices,recipe,family,seed,coefficient,output,*,strength=0.,target_enabled=None,objective=None,registry=None,selection_registry=None,active=(0,1),initial_baseline=None,stage_tag='simultaneous',initial_updates=(0,0),selection_active=None,selection_family=None):
     if target_enabled is None:target_enabled=family!='U_NEW'
     needs_kernel=target_enabled or coefficient!=0
     objective_family='U_TASKPOWER' if coefficient==0 and target_enabled else family
+    selection_active=tuple(active if selection_active is None else selection_active)
+    selection_family=objective_family if selection_family is None else selection_family
+    if not selection_active or any(i not in (0,1) for i in selection_active) or len(set(selection_active))!=len(selection_active):raise ValueError('invalid selection recipient set')
     if not math.isfinite(coefficient) or coefficient<0 or coefficient>1e4:raise ValueError('derived coefficient outside registered range')
     if needs_kernel and (objective is None or registry is None or selection_registry is None):raise ValueError('registered objective and strata required')
     for i in range(2):
@@ -134,10 +137,10 @@ def fit(model,x,labels,train_indices,selection_indices,recipe,family,seed,coeffi
             if needs_kernel:
                 val_rng=random.Random(seed_for('TCR1selectiondraw',seed))
                 with torch.no_grad():
-                    losses=objective.loss(model,vx,selection_registry.draw(val_rng,objective_family),objective_family,active)
+                    losses=objective.loss(model,vx,selection_registry.draw(val_rng,selection_family),selection_family,selection_active)
                 sensitive=float(losses['sensitive']);diagnostics=losses['diagnostics']
-            row={'family':family,'seed':seed,'strength':strength,'epoch':epoch,'metrics':metrics,'violation':normalized_violation(metrics,baseline),'nll':sum(t['nll'] for t in metrics),'sensitive':sensitive,'updates_per_recipient':updates[:],'checkpoint':str(output/f'epoch_{epoch}.pt')}
-            row['checkpoint_sha256']=_save(model,optimizer,row['checkpoint'],recipe,family,seed,strength,coefficient,epoch,updates,task_generator,privacy_rng,reference,rows,objective)
+            row={'family':family,'seed':seed,'strength':strength,'epoch':epoch,'metrics':metrics,'violation':normalized_violation(metrics,baseline),'nll':sum(t['nll'] for t in metrics),'sensitive':sensitive,'selection_active':list(selection_active),'selection_family':selection_family,'updates_per_recipient':updates[:],'checkpoint':str(output/f'epoch_{epoch}.pt')}
+            row['checkpoint_sha256']=_save(model,optimizer,row['checkpoint'],recipe,family,seed,strength,coefficient,epoch,updates,task_generator,privacy_rng,reference,rows,objective,selection_active,selection_family)
             rows.append(row);atomic_json(output/f'epoch_{epoch}_selection.json',dict(row,diagnostics=diagnostics))
             atomic_json(output/'FIT_CHECKPOINTS.json',rows)
         if epoch==recipe.epochs:break
@@ -159,5 +162,5 @@ def fit(model,x,labels,train_indices,selection_indices,recipe,family,seed,coeffi
             step+=1
         atomic_json(output/'GRADIENT_SCALE_LOG.json',logs)
         atomic_json(output/'RUNNING.json',{'epoch':epoch+1,'updates_per_recipient':updates,'elapsed_s':time.monotonic()-started})
-    result={'family':family,'seed':seed,'strength':strength,'coefficient':coefficient,'recipe':asdict(recipe),'checkpoints':rows,'updates_per_recipient':updates,'steps':step,'elapsed_s':time.monotonic()-started,'selection_baseline':'exact_source_U0_epoch0_on_FIT_fold2','train_rows':len(tx),'selection_rows':len(vx),'active':list(active),'target_enabled':target_enabled,'parameter_counts':{'encoders':[sum(p.numel() for p in e.parameters()) for e in model.enc],'heads':[sum(p.numel() for p in h.parameters()) for h in model.head],'all':sum(p.numel() for p in model.parameters()),'trainable_this_stage':sum(p.numel() for p in parameters)},'transformations':['encoder0','actual_affine_head0','encoder1','actual_affine_head1'],'task_population_weights':[1.,1.]}
+    result={'family':family,'seed':seed,'strength':strength,'coefficient':coefficient,'recipe':asdict(recipe),'checkpoints':rows,'updates_per_recipient':updates,'steps':step,'elapsed_s':time.monotonic()-started,'selection_baseline':'exact_source_U0_epoch0_on_FIT_fold2','train_rows':len(tx),'selection_rows':len(vx),'active':list(active),'selection_active':list(selection_active),'selection_family':selection_family,'target_enabled':target_enabled,'parameter_counts':{'encoders':[sum(p.numel() for p in e.parameters()) for e in model.enc],'heads':[sum(p.numel() for p in h.parameters()) for h in model.head],'all':sum(p.numel() for p in model.parameters()),'trainable_this_stage':sum(p.numel() for p in parameters)},'transformations':['encoder0','actual_affine_head0','encoder1','actual_affine_head1'],'task_population_weights':[1.,1.]}
     atomic_json(output/'FIT_RESULT.json',result);return result

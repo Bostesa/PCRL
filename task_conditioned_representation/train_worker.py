@@ -97,9 +97,9 @@ def run(spec_path):
         import copy
         first,second=(0,1) if family=='SEQ12' else (1,0)
         source_model=copy.deepcopy(model)
-        first_result=fit(model,x,labels,ti,vi,recipe,'LOCAL_TWIN',seed,coefficient,Path(spec['private_output'])/'stage1',strength=strength,objective=objective,registry=train_registry,selection_registry=val_registry,active=(first,),initial_baseline=initial_baseline)
+        first_result=fit(model,x,labels,ti,vi,recipe,'LOCAL_TWIN',seed,coefficient,Path(spec['private_output'])/'stage1',strength=strength,objective=objective,registry=train_registry,selection_registry=val_registry,active=(first,),selection_active=(0,1),selection_family=family,initial_baseline=initial_baseline)
         first_rows={r['epoch']:r for r in first_result['checkpoints']}
-        source_row=dict(first_rows[0],family=family)
+        source_row=dict(first_rows[0],family=family,source_alias_of='U0_exact_zero_update')
         combined=[source_row];branches=[]
         for e in recipe.checkpoints:
             if e==0:continue
@@ -108,12 +108,12 @@ def run(spec_path):
             model.load_state_dict(checkpoint['model'])
             frozen={k:v.detach().clone() for k,v in model.state_dict().items() if k.startswith((f'enc.{first}.',f'head.{first}.'))}
             stage_recipe=Recipe(**dict(spec.get('recipe',{}),epochs=e,checkpoints=(0,e)))
-            second_result=fit(model,x,labels,ti,vi,stage_recipe,family,seed,coefficient,Path(spec['private_output'])/f'stage2_from_{e}',strength=strength,objective=objective,registry=train_registry,selection_registry=val_registry,active=(second,),initial_baseline=initial_baseline,initial_updates=tuple(first_rows[e]['updates_per_recipient']))
+            second_result=fit(model,x,labels,ti,vi,stage_recipe,family,seed,coefficient,Path(spec['private_output'])/f'stage2_from_{e}',strength=strength,objective=objective,registry=train_registry,selection_registry=val_registry,active=(second,),selection_active=(0,1),selection_family=family,initial_baseline=initial_baseline,initial_updates=tuple(first_rows[e]['updates_per_recipient']))
             if any(not torch.equal(v,model.state_dict()[k]) for k,v in frozen.items()):raise AssertionError('frozen first encoder/head changed')
             last=second_result['checkpoints'][-1]
             if last['updates_per_recipient'][0]!=last['updates_per_recipient'][1]:raise AssertionError('sequential matched e/e updates differ')
             combined.append(last);branches.append(second_result)
-        result={'family':family,'seed':seed,'strength':strength,'checkpoints':combined,'stages':[first_result]+branches,'updates_per_recipient':combined[-1]['updates_per_recipient'],'first_encoder_and_head_frozen':True,'aggregate_encoder_epochs':recipe.epochs+sum(e for e in recipe.checkpoints if e),'control_extra_search_exposure_percent':37.5}
+        result={'family':family,'seed':seed,'strength':strength,'checkpoints':combined,'selection_active':[0,1],'selection_family':family,'stages':[first_result]+branches,'updates_per_recipient':combined[-1]['updates_per_recipient'],'first_encoder_and_head_frozen':True,'aggregate_encoder_epochs':recipe.epochs+sum(e for e in recipe.checkpoints if e),'control_extra_search_exposure_percent':37.5}
     else:
         result=fit(model,x,labels,ti,vi,recipe,family,seed,coefficient,spec['private_output'],strength=strength,objective=objective,registry=train_registry,selection_registry=val_registry,initial_baseline=initial_baseline,target_enabled=spec.get('target_enabled',False if family=='RAW_JOINT' else None))
     if family=='RAW_JOINT':result['critic_optimizer_steps']=objective.critic_steps
