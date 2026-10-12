@@ -1,6 +1,6 @@
 """Queue-authenticated package export, live release and restore parity worker."""
 from __future__ import annotations
-import argparse,json
+import argparse,json,os,subprocess,sys
 from pathlib import Path
 
 
@@ -33,7 +33,15 @@ def run(spec_path):
         # Save feature-only deployment inputs and the actual wires privately.
         np.savez(spec['input'],X=x,feature_names=data['feature_names'])
         np.savez(spec['expected'],recipient1=actual[0]['full'],recipient2=actual[1]['full'],score1=actual[0]['output_only'],score2=actual[1]['output_only'])
-        result={'schema':'TCR1-live-deployment-receipt-v1','status':'PASS','family':meta['provenance'].get('family'),'seed':spec['seed'],'rows':len(x),'package_manifest_sha256':binding,'model_sha256':meta['model_sha256'],'source_checkpoint_sha256':spec['checkpoint_sha256'],'input_sha256':sha_file(spec['input']),'expected_sha256':sha_file(spec['expected']),'max_abs_wire_difference':diffs,'full_dimensions':[21,29,50],'score_dimensions':[3,7,10],'true_labels_or_SEX_read':False,'actual_new_saved_encoders_heads':True}
+        for field in ('input','expected'):os.chmod(spec[field],0o600)
+        cli_output=str(Path(spec['expected']).with_suffix('.cli.npz'))
+        command=[sys.executable,'-m','task_conditioned_representation.deployment','--package',spec['package'],'--manifest-sha256',binding,'--input',spec['input'],'--input-sha256',sha_file(spec['input']),'--output',cli_output,'--contract','full']
+        completed=subprocess.run(command,capture_output=True,text=True,check=True)
+        with np.load(cli_output,allow_pickle=False) as z:
+            if any(not np.array_equal(z[f'recipient{i+1}'],actual[i]['full']) for i in range(2)):raise AssertionError('standalone CLI wire differs')
+        from importlib.metadata import version
+        versions={name:version(name) for name in ('numpy','torch','scipy','scikit-learn','joblib')}
+        result={'schema':'TCR1-live-deployment-receipt-v1','status':'PASS','family':meta['provenance'].get('family'),'seed':spec['seed'],'rows':len(x),'package_manifest_sha256':binding,'model_sha256':meta['model_sha256'],'source_checkpoint_sha256':spec['checkpoint_sha256'],'input_sha256':sha_file(spec['input']),'expected_sha256':sha_file(spec['expected']),'max_abs_wire_difference':diffs,'full_dimensions':[21,29,50],'score_dimensions':[3,7,10],'true_labels_or_SEX_read':False,'actual_new_saved_encoders_heads':True,'standalone_CLI_executed':True,'standalone_CLI_exact_parity':True,'standalone_CLI_output_sha256':sha_file(cli_output),'standalone_CLI_receipt':json.loads(completed.stdout),'environment_pins':versions}
     elif operation=='restore':
         # Deliberately requires no source manifest or checkpoint. All numerical
         # inputs, deployed weights and reader estimators are within restore root.
