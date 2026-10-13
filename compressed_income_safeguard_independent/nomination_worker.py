@@ -6,7 +6,7 @@ from pathlib import Path
 
 def run(inputs):
     from .replay import metrics,envelopes,close
-    from .registry import ARMS,common_epoch
+    from .registry import ARMS,common_epoch,task_deltas
     cfg=inputs.cfg;starts={};records=[]
     for item in cfg['starts']:
         a=inputs.arrays(item['fit_inputs']);seed=item['seed'];keys=item['probability_keys']
@@ -14,6 +14,8 @@ def run(inputs):
     for item in cfg['records']:
         a=inputs.arrays(item['fit_inputs']);att=inputs.arrays(item['att_release']);scores=inputs.arrays(item['att_scores'])
         fitted={task:metrics(a[task],a[item['probability_keys'][task]]) for task in ('income','occupation')}
+        if item['epoch']==0 and any(value!=0 for task in ('income','occupation') for value in task_deltas(fitted[task],starts[item['seed']][task]).values()):
+            raise ValueError('epoch-zero actual task metrics must exactly alias RAW_HYBRID')
         bank=envelopes(scores,att['sex'],att['validation'])
         values={view+'__'+name:auc for view,r in bank.items() for name,auc in r['reader_auc'].items()}
         records.append({'arm_id':item['arm_id'],'seed':item['seed'],'epoch':item['epoch'],
@@ -24,7 +26,8 @@ def run(inputs):
         expected=saved.get('nominees',saved.get('arms'))
         for choice in choices:
             prior=expected[choice['arm_id']] if isinstance(expected,dict) else next(r for r in expected if r['arm_id']==choice['arm_id'])
-            if choice['epoch']!=prior['epoch'] or choice['proxy_eligible']!=prior['proxy_eligible']:raise AssertionError('independent common-epoch nomination differs')
+            prior_epoch=prior.get('epoch',prior.get('selected_epoch'))
+            if choice['epoch']!=prior_epoch or choice['proxy_eligible']!=prior['proxy_eligible']:raise AssertionError('independent common-epoch nomination differs')
     return {'schema':'CIS1-independent-nomination-v1','status':'PASS' if all(c['epoch'] is not None for c in choices) else 'MISSING',
             'nominees':choices,'INNER_truth_opened_or_hashed':False,'scientific_runner_imports':False}
 

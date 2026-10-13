@@ -2,7 +2,7 @@
 
 Every command below must be registered and run by the root-owned queue. Numerical libraries, person arrays, model deserialization and numerical artifact hashes are never accessed by this verifier outside that queue. The `Inputs` adapter authenticates the new queue at stage `verification`; each config and all source pins must be included in the unit's source list. Outputs are immutable fresh paths.
 
-The first queued fixture receipt is `engineering/INDEPENDENT_PREFLIGHT_V1.json`: PASS, ten fixtures, no source artifacts opened. Later source, fitting and assessment evidence is separate from that engineering receipt.
+The first queued fixture receipt is `engineering/INDEPENDENT_PREFLIGHT_V1.json`: PASS, ten fixtures, no source artifacts opened. The later `independent/PREFLIGHT_REGISTRY_V2.json` is PASS, eleven fixtures and actual frozen K240 semantic validation. Later source, fitting and assessment evidence is separate from those engineering receipts.
 
 | Worker module | Required config fields beyond `unit_id` and `public_output` |
 | --- | --- |
@@ -15,6 +15,7 @@ The first queued fixture receipt is `engineering/INDEPENDENT_PREFLIGHT_V1.json`:
 | `refit_worker` (`refit`) | Exact frozen 54-target registry pin; nonempty unique subset of target attempts, copied exactly; fresh private output directory. |
 | `final_worker` | Committed canonical reporting lock pin, manifest, separate sealed income/occupation/SEX truth pins and eighteen final release/score/freeze bank pins. Optional runner metric/vector comparisons and fresh private metric-vector directory. |
 | `replay` (`assessment`) | Reporting lock, combined endpoint registry, unit input and aligned tables. Optional runner summary and fresh private bootstrap directory. |
+| `deployment_replay_worker` | `operation=live` with all eighteen deployed packages, or `operation=restore` with restored-tree-only candidate/ordinary/hybrid/compressed representatives and a selected frozen reader. Package entries carry deployment/model-state/geometry/raw83-input/expected-wire pins. |
 
 Each module is invoked as `python -m compressed_income_safeguard_independent.<module> --spec <config>`, using the compatible executable admitted by the root. The operation is a config field where applicable. No agent launches these commands directly.
 

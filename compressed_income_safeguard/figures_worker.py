@@ -55,7 +55,7 @@ def run(spec):
             if not dest.resolve().is_relative_to(public) or dest.exists():raise PermissionError('fresh public figure required')
             dest.parent.mkdir(parents=True,exist_ok=True);fig.savefig(dest,dpi=240,bbox_inches='tight');figures.append({'alias':str(dest.relative_to(public)),'chart':chart['name'],'points':len(points),'format':format})
         plt.close(fig);guard()
-    out={'schema':'OB1-public-aggregate-figures-v1','status':'PASS','unit_id':active['unit_id'],'figures':figures,'sources':[chart['csv']['sha256'] for chart in cfg['charts']],'only_observed_points':True,'utility_caps':{'accuracy_loss':.010,'NLL_excess':.010,'summed_Brier_excess':.005},'interpolated_deployment_claim':False};write_json(cfg['public_output'],out);return out
+    out={'schema':'CIS1-public-aggregate-figures-v1','status':'PASS','unit_id':active['unit_id'],'figures':figures,'sources':[chart['csv']['sha256'] for chart in cfg['charts']],'only_observed_points':True,'utility_caps':{'accuracy_loss':.010,'NLL_excess':.010,'summed_Brier_excess':.005},'interpolated_deployment_claim':False};write_json(cfg['public_output'],out);return out
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--spec',required=True);a=p.parse_args();print(json.dumps(run(a.spec)))

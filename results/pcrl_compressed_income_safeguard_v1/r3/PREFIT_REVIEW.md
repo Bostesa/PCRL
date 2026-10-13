@@ -20,6 +20,8 @@ Nomination uses both tasks' FIT2 changes relative to the exact same-seed RAW_HYB
 
 Numerical evidence still required: queued independent fixtures; admitted source/head folding and geometry; literal income/epoch-zero aliases; frozen tensors and proposal accounting; nominations and 54 ATT-selected independent refits; all nine task/recovery records; K240 paired bootstrap and decisions; independent deployment and backup-only restore. Passing engineering tests cannot establish an Adult benefit or full criterion.
 
+Queued independent engineering evidence now exists: `engineering/INDEPENDENT_PREFLIGHT_V1.json` passed ten fixtures. The later `independent/PREFLIGHT_REGISTRY_V2.json` passed eleven fixtures, including accepted rounding-zero accounting, and independently validated the actual frozen K240 registry. Neither fixture worker opened source artifacts. `SOURCE_ADMISSION.json` separately reports the runner's four required source packages admitted with canonical batching; independent real-source replay is a separate receipt.
+
 Accounting must distinguish accepted nonzero moves from feasible accepted rounding-zero proposals. Zero-stall fraction includes both rejected and accepted zero movements. The log retains all three statuses; independent reporting should show both accepted conventions explicitly.
 
 All people were repeatedly used Adult development people. FIT2 remains exposed to source training, the two fitted seeds share people, and final intervals are approximate conditional development intervals. Frozen income uncertainty cannot be improved by occupation updates.
