@@ -16,7 +16,7 @@ two adverse and two favorable starting batches do not establish a stable causal
 conflict. Prediction leakage, extra feature leakage, limited critic strength,
 and objective/reader mismatch remain competing explanations.
 
-The source is `FINAL_OCCUPATION_RESULTS_SHA`, to be replaced by ROOT with the
+The source is `35f7636a159cb1efcc349ee69fed8b6c94b389c4`, to be replaced by ROOT with the
 full final campaign commit. The useful predecessor public source remains
 `6e767c5a5ccebcf984e2c4deb678ed7a560413cf`; private execution artifacts are located
 through the admitted role-safe manifest and roster, not a public source checkout.
