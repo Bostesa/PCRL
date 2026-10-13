@@ -142,7 +142,7 @@ def run(manifest_path,manifest_sha256,output,coverage_output,private_output, ros
     entries=validate_source_metadata(m,roster)
     import joblib,numpy as np,torch
     torch.set_num_threads(1)
-    reports=[];pairings={};models={};source_models={}
+    reports=[];pairings={};models={};source_models={};att_split_audit=None
     # Guard behavior is exercised before any request can reach filesystem hashing.
     for role,field in [('INNER_SELECTION','sex'),('INNER_SELECTION','income'),('INNER_SELECTION','occupation'),('ATTACK_FIT_NEW','income')]:
         try:load_role(m,0,role,(field,))
@@ -154,8 +154,20 @@ def run(manifest_path,manifest_sha256,output,coverage_output,private_output, ros
         if complete['files']['record.json']!=calpins['record']['sha256'] or cal['schema']!='hcal-calU-v1' or cal['seed']!=seed:raise AssertionError('Ucal provenance differs')
         heads=[joblib.load(pinned(m['seeds'][str(seed)]['pins'][k])) for k in ('head0','head1')]
         for role in ROLES:
-            fields={'features','references'}|({'income','occupation','sex'} if role=='OSF_DEFENSE_FIT' else set())
+            fields={'features','references'}|({'income','occupation','sex'} if role=='OSF_DEFENSE_FIT' else {'sex'} if role=='ATTACK_FIT_NEW' else set())
             data=load_role(m,seed,role,fields)
+            if role=='ATTACK_FIT_NEW' and seed==0:
+                from task_conditioned_representation.attacks import attack_split
+                train,val=attack_split(data['unit'])
+                if np.intersect1d(data['unit'][train],data['unit'][val]).size or any(np.unique(data['sex'][ix]).size!=2 for ix in (train,val)):
+                    raise PermissionError('inherited ATT training/validation pairing or SEX support differs')
+                for group in np.unique(data['unit']):
+                    if np.unique(data['sex'][data['unit']==group]).size!=1:
+                        raise PermissionError('ATT duplicate-group SEX labels differ')
+                att_split_audit={'train_rows':len(train),'validation_rows':len(val),'train_groups':len(np.unique(data['unit'][train])),
+                                 'validation_groups':len(np.unique(data['unit'][val])),'group_overlap':0,
+                                 'training_indices_sha256':arr_sha(train),'validation_indices_sha256':arr_sha(val),
+                                 'both_SEX_classes_in_each_split':True,'selection_and_orientation_role':'ATT validation only'}
             if role in pairings:
                 if any(not np.array_equal(data[k],pairings[role][k]) for k in ('row_id','unit')):raise AssertionError('source seeds not paired')
             else:pairings[role]={k:data[k] for k in ('row_id','unit')}
@@ -245,6 +257,7 @@ def run(manifest_path,manifest_sha256,output,coverage_output,private_output, ros
         admitted.append(row)
     report.update(checkpoint_roster_sha256=roster_sha256,checkpoint_packages=admitted,
                   exact_source_alias_checks=alias_checks,available_checkpoint_packages=4,missing_checkpoint_packages=0,
+                  ATT_group_split=att_split_audit,
                   required_source_instances=list(REQUIRED_SOURCES),geometry_bindings=geometry_bindings,
                   geometry_audits=geometry_audits,canonical_wire_contract=WIRE_CONTRACT,
                   canonical_role_forward_batch_size=ROLE_FORWARD_BATCH_SIZE,

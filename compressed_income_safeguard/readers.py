@@ -281,7 +281,7 @@ def fit_development_bank(att, inner=None, *, seed, private_output, queue_guard,
                              'logits_output': 'centered_logitsK+probabilitiesK+decision',
                              'decision': 'own numeric decision only',
                              'confidence': 'max own probability only'},
-               'primary_envelope': 'all registered base readers plus exact local-ignore aliases',
+               'primary_envelope': 'all18 registered readers plus36 exact local-ignore aliases; complete_view is primary for this trial',
                'orientation_selection': 'inherited ATT validation only',
                'numpy_version': np.__version__, 'sklearn_version': __import__('sklearn').__version__}
     write_json(root/'FROZEN_COMPLETE.json', receipt)
@@ -296,9 +296,9 @@ def score_envelopes(scores, sex, *, indices=None):
         values = {key.split('__', 1)[1]: auc(y[ix], np.asarray(s)[ix]) for key, s in scores.items()
                   if key.startswith(view+'__') and not key.split('__', 1)[1].startswith(('SHUFFLED', 'PLANTED'))}
         contracts = {}
-        for contract in ('primary', 'representation', 'output', 'logits_output', 'decision', 'confidence'):
+        for contract in ('complete_view', 'primary', 'representation', 'output', 'logits_output', 'decision', 'confidence'):
             selected = {name: value for name, value in values.items()
-                        if ((name.split('__')[-1] in READERS) if contract == 'primary'
+                        if ((name.split('__')[-1] in tuple(READERS)+tuple(EXTENDED_READERS)) if contract=='complete_view' else (name.split('__')[-1] in READERS) if contract == 'primary'
                             else kind_for(name.split('__')[-1]) == contract)}
             contracts[contract] = None if not selected else {
                 'auc': max(selected.values()), 'strongest_reader': max(selected, key=selected.get),

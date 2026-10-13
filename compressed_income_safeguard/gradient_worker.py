@@ -151,7 +151,7 @@ def gradient_summary(vectors):
 def occupation_refinement_step(model,x,occupation,raw_terms,*,arm,coefficient,geometry,frozen_guard=None,learning_rate=.01,max_norm=.01):
     """Runnable single pilot update; coordinator owns exposure and critic jobs.
 
-    raw_terms comes from the admitted RAW objective's actual full wires,
+    raw_terms comes from the corrected projected-income/full-occupation wires,
     after the same five critic updates in every arm. Even the local twin and
     task-only arm train the pair bank for equal compute; only the update term
     is removed. Caller must freeze one recipe before calling this function.
@@ -226,13 +226,13 @@ def _sha(path):
 def run(spec_path):
     """Frozen spec: manifest/checkpoint pins, explicit FIT indices, output path.
 
-    Source RAW critics are restored at the actual checkpoint and never trained.
-    JOINT checkpoints may lack neural critics: that is MISSING, not zero.
+    Predecessor full-income critics are incompatible with the hybrid release.
+    Their sensitive gradient is MISSING, never relabeled or treated as zero.
     """
-    import numpy as np
+    from .evaluation_worker import queue_config
+    active,spec,verify,queue_guard=queue_config(spec_path,'admission')
     from compressed_income_safeguard.scheduler import assert_active_from_env
-    assert_active_from_env(stage='admission')
-    spec=json.loads(Path(spec_path).read_text())
+    import numpy as np
     if spec.get('operation')!='regenerate_fixed_fit_gradients':raise ValueError('unregistered gradient operation')
     import torch
     torch.set_num_threads(1)
@@ -248,7 +248,7 @@ def run(spec_path):
         if not np.isin(data['fold'][b],[0,1]).all():raise PermissionError('gradient batch outside FIT folds 0/1')
     model,payload=load_checkpoint(spec['checkpoint'],spec['checkpoint_sha256'])
     if int(payload['seed'])!=int(spec['seed']):raise ValueError('checkpoint source seed differs')
-    geometry=prepare_geometry(json.loads(Path(spec['geometry']['path']).read_text()), expected_sha256=spec['geometry_binding_sha256'],source_seed=int(spec['seed']),checkpoint_sha256=spec['geometry_checkpoint_sha256'])
+    geometry=prepare_geometry(json.loads(verify(spec['geometry']['path'],spec['geometry']['sha256']).read_text()), expected_sha256=spec['geometry_binding_sha256'],source_seed=int(spec['seed']),checkpoint_sha256=spec['geometry_checkpoint_sha256'])
     # Predecessor critics and their full-income references are incompatible
     # with this corrected interface; never relabel their gradient as hybrid.
     objective=None
@@ -256,23 +256,15 @@ def run(spec_path):
     for j,indices in enumerate(batches):
         assert_active_from_env(stage='admission')
         x=torch.from_numpy(data['X'][indices]);yi=torch.as_tensor(data['income'][indices]);yo=torch.as_tensor(data['occupation'][indices]);sex=torch.as_tensor(data['sex'][indices])
-        def sensitive(model,x):
-            views=objective._views(model,x);losses=[]
-            for bank,view in zip(objective.critics,views):
-                for c in bank:
-                    for parameter in c.parameters():parameter.requires_grad_(False)
-                ce=torch.stack([torch.nn.functional.cross_entropy(c(view),sex) for c in bank]+[view.sum()*0+objective.entropy])
-                losses.append(1-ce.min()/objective.entropy)
-            return sum(losses)
-        summary,tensors=batch_gradients(model,x,yi,yo,geometry=geometry,sensitive_loss=sensitive if objective else None)
-        summary.update(batch_number=j,rows=len(indices),sensitive_gradient_status='REGENERATED_SAVED_ACTUAL_CRITICS' if objective else 'MISSING_CORRECTED_WIRE_CRITIC_STATE',
+        summary,tensors=batch_gradients(model,x,yi,yo,geometry=geometry)
+        summary.update(batch_number=j,rows=len(indices),sensitive_gradient_status='MISSING_CORRECTED_WIRE_CRITIC_STATE',
                        fixed_batch_index_sha256=hashlib.sha256(json.dumps(indices,separators=(',',':')).encode()).hexdigest())
         records.append(summary);tensor_batches[str(j)]={block:{name:torch.from_numpy(vector) for name,vector in v.items()} for block,v in tensors.items()}
     out=Path(spec['private_output'])
     if '.private' not in out.resolve().parts or out.exists():raise PermissionError('fresh private gradient directory required')
     out.mkdir(parents=True,mode=0o700)
-    torch.save({'schema':'OB1-regenerated-fit-gradient-tensors-v1','batches':tensor_batches},out/'gradients.pt');(out/'gradients.pt').chmod(0o600)
-    result={'schema':'OB1-regenerated-fit-gradients-v1','seed':int(spec['seed']),'checkpoint_sha256':spec['checkpoint_sha256'],
+    torch.save({'schema':'CIS1-regenerated-fit-gradient-tensors-v1','batches':tensor_batches},out/'gradients.pt');(out/'gradients.pt').chmod(0o600)
+    result={'schema':'CIS1-regenerated-fit-gradients-v1','seed':int(spec['seed']),'checkpoint_sha256':spec['checkpoint_sha256'],
             'tensor_sha256':_sha(out/'gradients.pt'),'records':records,'source_gradient_logs_not_regenerated_tensors':True,
             'new_critic_fit_count':0,'model_updates':0,'INNER_labels_opened':False,'conditional_kernel_gradient_status':'NOT_REGENERATED_BY_THIS_FIXED_BATCH_OPERATION'}
     for path in (out/'SUMMARY.json',Path(spec['output'])):

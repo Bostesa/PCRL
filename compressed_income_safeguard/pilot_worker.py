@@ -293,7 +293,7 @@ def run(spec_path):
     if tuple(source_model.names) != tuple(map(str, fit['feature_names'])):
         raise PermissionError('pilot feature order differs from admitted source')
     update = np.flatnonzero(np.isin(fit['fold'], [0, 1])); selected = np.flatnonzero(fit['fold'] == 2)
-    if len(update) < 256 or not len(selected):
+    if len(update) != 10223 or len(selected) != 5211:
         raise PermissionError('inherited update/selection folds unavailable')
     x = torch.from_numpy(fit['X'][update]); occupation = torch.from_numpy(fit['occupation'][update]).long()
     sex = torch.from_numpy(fit['sex'][update]).long()

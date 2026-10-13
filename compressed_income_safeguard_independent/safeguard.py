@@ -72,7 +72,7 @@ def finite_step(arrays, proposal, guards, evaluator, *, guarded=True, radius=.01
 def audit_steps(records, expected_proposals=800):
     """Check every logged proposal, including failures and accepted zero moves."""
     import math
-    counts={'accepted':0,'rejected':0,'zero':0,'shortened':0,'norm_repaired':0}
+    counts={'accepted_nonzero':0,'feasibility_accepted':0,'rejected':0,'zero':0,'shortened':0,'norm_repaired':0}
     by_epoch={}
     for record in records:
         step=record.get('step',record)
@@ -87,8 +87,9 @@ def audit_steps(records, expected_proposals=800):
         else:
             if len(accepted)!=1 or fraction!=accepted[0]['fraction']:raise ValueError('unique accepted attempt required')
             if (status=='ROUNDING_ZERO_STEP')!=(norm==0):raise ValueError('zero-step status differs')
-            counts['accepted']+=1
-            counts['shortened']+=fraction<1
+            counts['feasibility_accepted']+=1
+            counts['accepted_nonzero']+=status=='ACCEPTED'
+            counts['shortened']+=status=='ACCEPTED' and fraction<1
         counts['zero']+=norm==0
         if step.get('guarded'):
             for attempt in accepted:
@@ -104,5 +105,6 @@ def audit_steps(records, expected_proposals=800):
         epoch=record.get('epoch',0);by_epoch.setdefault(epoch,[]).append((status,norm))
     if len(records)!=expected_proposals:raise ValueError('complete proposal log required')
     return {'proposal_count':len(records),'counts':counts,
-            'epochs':{str(e):{'proposals':len(v),'accepted_fraction':sum(s!='REJECTED_ZERO_STEP' for s,n in v)/len(v),
+            'epochs':{str(e):{'proposals':len(v),'accepted_fraction':sum(s=='ACCEPTED' for s,n in v)/len(v),
+                             'feasibility_accepted_fraction':sum(s!='REJECTED_ZERO_STEP' for s,n in v)/len(v),
                              'zero_stall_fraction':sum(n==0 for s,n in v)/len(v)} for e,v in by_epoch.items()}}

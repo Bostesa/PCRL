@@ -46,7 +46,7 @@ def fixtures():
     passed('factorized income discards residual and first-class near ties')
     generator=torch.Generator().manual_seed(471);state={}
     for i,k in enumerate((2,6)):
-        for layer,inn,out in ((0,83,96),(2,96,24),(4,24,16)):
+        for layer,inn,out in ((0,83,64),(2,64,64),(4,64,16)):
             state[f'enc.{i}.{layer}.weight']=torch.randn((out,inn),generator=generator)*.02
             state[f'enc.{i}.{layer}.bias']=torch.randn((out,),generator=generator)*.02
         state[f'head.{i}.weight']=torch.randn((k,16),generator=generator,dtype=torch.float64)*.02
@@ -77,6 +77,10 @@ def fixtures():
                        lambda:{'nll':float(arrays[0][0]),'brier':float(arrays[0][0])})
     assert result['status']=='REJECTED_ZERO_STEP' and all(a.tobytes()==b.tobytes() for a,b in zip(arrays,saved))
     passed('failed finite checks restore mixed-dtype parameter bytes')
+    arrays=[np.array([100.],np.float32),np.array([-.2],np.float64)]
+    result=finite_step(arrays,np.array([1e-15,0.]),np.zeros((2,2)),lambda:{'nll':1.,'brier':.5})
+    assert result['status']=='ROUNDING_ZERO_STEP' and result['accepted_fraction']==1.
+    passed('feasible accepted rounding-zero distinguished from nonzero accepted')
     return {'schema':'CIS1-independent-preflight-v1','status':'PASS','tests':tests,
             'test_count':len(tests),'scientific_runner_imports':False,'source_artifacts_opened':False,
             'engineering_fixtures_only':True,'Adult_benefit_established':False}

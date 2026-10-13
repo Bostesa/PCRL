@@ -14,6 +14,8 @@ def audit(inputs):
     for package in cfg['packages']:
         payload=torch_load(inputs.path(package['checkpoint']));names=payload['feature_names']
         contract=package['wire_contract'];binding=inputs.json(package['geometry_binding']) if package.get('geometry_binding') else payload.get('wire_binding')
+        if payload.get('wire_binding') and payload['wire_binding']!=binding:
+            raise AssertionError('checkpoint fixed basis differs from admitted geometry')
         if payload['seed']!=package['seed']:raise ValueError('source seed differs')
         if package.get('frozen_source_checkpoint'):
             source=torch_load(inputs.path(package['frozen_source_checkpoint']))
@@ -30,8 +32,10 @@ def audit(inputs):
             if tuple(map(str,f['feature_names']))!=tuple(names):raise AssertionError('checkpoint feature order differs')
             arrays=inputs.arrays(package[key]);expected={name:arrays[name] for name in ('row_id','unit','r1','r2')}
             if any(not np.array_equal(expected[k],f[k][ix]) for k in ('row_id','unit')):raise AssertionError('actual checkpoint and frozen release people differ')
-            actual=forward(payload,f['X'][ix],wire_contract=contract,geometry_binding=binding)
-            raw=forward(payload,f['X'][ix]);errors=[];checks=[]
+            # Canonical batching is on the whole role, then FIT2 is sliced.
+            # Slice-first float32 GEMM can change low bits and break aliases.
+            actual=[a[ix] for a in forward(payload,f['X'],wire_contract=contract,geometry_binding=binding)]
+            raw=[a[ix] for a in forward(payload,f['X'])];errors=[];checks=[]
             for i,task in enumerate(('income','occupation')):
                 if contract[task]=='head_row_space':
                     w=payload['model'][f'head.{i}.weight'].numpy();b=payload['model'][f'head.{i}.bias'].numpy()

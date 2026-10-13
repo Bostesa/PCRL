@@ -41,7 +41,7 @@ def fit_count(*, include_base=True, include_extended=False, aliases=None, contro
 
 def reader_bindings(*, checkpoint_sha256, source_seed, release_variant,
                     manifest_sha256, science_lock_sha256, role_feature_hashes):
-    if source_seed not in (0,1) or release_variant not in ('full','head_row_space'):
+    if source_seed not in (0,1) or release_variant not in ('RAW_FULL','RAW_HYBRID','RAW_PROJ','U0_FULL','U0_PROJ','CONSTRAINED','ORDINARY','LOCAL_TWIN','TASK_ONLY'):
         raise ValueError('unregistered release identity')
     return {'checkpoint_sha256': checkpoint_sha256, 'source_seed': source_seed,
             'release_variant': release_variant, 'manifest_sha256': manifest_sha256,
@@ -66,7 +66,7 @@ def freeze_refit_targets(validation_records, *, required_arms=('U0','RAW_JOINT')
                 raise ValueError('missing or duplicate mandatory independent refit anchor')
             record = matches[0]
             for view in ('r1','r2','pair'):
-                primary = record['ATT_validation'][view]['contracts']['primary']
+                primary = record['ATT_validation'][view]['contracts']['complete_view']
                 name = primary['strongest_reader']
                 targets.append({'arm_id': arm, 'seed': seed, 'view': view, 'reader': name,
                                 'freeze_sha256': record['freeze_sha256'],

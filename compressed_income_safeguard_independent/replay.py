@@ -130,7 +130,7 @@ def folds(unit):
     return np.array([int.from_bytes(hashlib.sha256((FIT_SALT+str(v)).encode()).digest(),'big')%3 for v in unit])
 
 
-def forward(payload,x,*,wire_contract=None,geometry_binding=None,batch_size=1024):
+def forward(payload,x,*,wire_contract=None,geometry_binding=None,batch_size=1024,legacy_whole_role=False):
     import torch
     import torch.nn.functional as f
     import numpy as np
@@ -140,6 +140,8 @@ def forward(payload,x,*,wire_contract=None,geometry_binding=None,batch_size=1024
     x=np.asarray(x)
     if x.ndim!=2 or x.shape[1]!=83 or x.dtype!=np.float32 or not np.isfinite(x).all():raise ValueError('exact finite raw83 predictors required')
     if batch_size!=1024:raise ValueError('canonical role forwarding uses batch1024')
+    if legacy_whole_role and (wire_contract is not None or geometry_binding is not None):raise ValueError('legacy source reference audit cannot define new release')
+    if legacy_whole_role:batch_size=max(1,len(x))
     variants=('full','full') if wire_contract is None else (wire_contract['income'],wire_contract['occupation'])
     if any(v not in ('full','head_row_space') for v in variants):raise ValueError('independent recipient wire variant')
     binding=geometry_binding or payload.get('wire_binding')
@@ -197,7 +199,12 @@ def refit(inputs):
     from sklearn.linear_model import LogisticRegression
     from sklearn.neural_network import MLPClassifier
     from sklearn.ensemble import HistGradientBoostingClassifier
-    cfg=inputs.cfg;out=Path(cfg['private_output']);out.mkdir(parents=True,exist_ok=False,mode=0o700);records=[]
+    cfg=inputs.cfg;registry=inputs.json(cfg['target_registry'])
+    if registry.get('status')!='FROZEN' or registry.get('registered_attempts')!=54 or len(registry['targets'])!=54:raise PermissionError('all54 independent targets must freeze before fitting')
+    frozen={t['target_id']:t for t in registry['targets']}
+    if len(frozen)!=54 or not cfg['targets'] or len({t['target_id'] for t in cfg['targets']})!=len(cfg['targets']):raise ValueError('unique target attempt shard')
+    if any(frozen.get(t['target_id'])!=t for t in cfg['targets']):raise PermissionError('post-freeze target reselection refused')
+    out=Path(cfg['private_output']);out.mkdir(parents=True,exist_ok=False,mode=0o700);records=[];exact={}
     for target in cfg['targets']:
         inputs.guard(stage='verification');a=inputs.arrays(target['att_release']);b=inputs.arrays(target['inner_release'],{'row_id','unit','r1','r2'})
         unique=np.unique(a['unit']);ranked=sorted((hashlib.sha256((ATT_SALT+str(int(g))).encode()).hexdigest(),int(g)) for g in unique)
@@ -215,8 +222,28 @@ def refit(inputs):
         key=target['target_id'];joblib.dump({'model':model,'mean':mean,'scale':scale},out/(key+'.joblib'));np.savez_compressed(out/(key+'.npz'),row_id=b['row_id'],unit=b['unit'],score=inner)
         def sha(path):
             with path.open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
-        records.append({'target_id':key,'arm_id':target['arm_id'],'seed':target['seed'],'reader':name,'orientation':sign,'ATT_positive_auc':positive,'ATT_oriented_auc':max(positive,1-positive),'orientation_matches_target':sign==target['orientation'],'model_sha256':sha(out/(key+'.joblib')),'score_sha256':sha(out/(key+'.npz')),'ATT_release_sha256':target['att_release']['sha256'],'INNER_label_free_release_sha256':target['inner_release']['sha256'],'INNER_labels_opened':False,'warnings':[str(w.message) for w in ws]})
-    return {'schema':'OB1-independent-refits-v1','records':records,'numerical_fit_count':len(records),'scientific_runner_imports':False}
+        # Entire ATT archives differ when another recipient changes. Alias
+        # identity therefore binds the actual selected reader table and roles.
+        identity_hash=hashlib.sha256()
+        for value in (a['row_id'],a['unit'],a['sex'],a['train'],a['validation'],x,b['row_id'],b['unit'],xi):
+            value=np.ascontiguousarray(value);identity_hash.update(str(value.dtype).encode());identity_hash.update(str(value.shape).encode());identity_hash.update(value.tobytes())
+        identity=(identity_hash.hexdigest(),name,target['model_seed'],sign)
+        repeated=exact.get(identity)
+        if repeated:
+            if repeated['score_sha256']!=sha(out/(key+'.npz')):raise AssertionError('repeated exact-target score receipt differs')
+        record={'target_id':key,'arm_id':target['arm_id'],'seed':target['seed'],'reader':name,'view':view,
+                'requested_view':target['requested_view'],'orientation':sign,'ATT_positive_auc':positive,
+                'ATT_oriented_auc':max(positive,1-positive),'orientation_matches_target':sign==target['orientation'],
+                'model_sha256':sha(out/(key+'.joblib')),'score_sha256':sha(out/(key+'.npz')),
+                'ATT_release_sha256':target['att_release']['sha256'],'INNER_label_free_release_sha256':target['inner_release']['sha256'],
+                'repeated_exact_target_of':None if repeated is None else repeated['target_id'],
+                'actual_target_input_sha256':identity[0],
+                'INNER_labels_opened':False,'warnings':[str(w.message) for w in ws]}
+        if sign!=target['orientation']:raise AssertionError('independent refit ATT orientation differs from frozen target')
+        records.append(record);exact.setdefault(identity,record)
+    return {'schema':'CIS1-independent-refits-v1','status':'PASS','records':records,'registered_target_attempts':54,
+            'target_registry_sha256':cfg['target_registry']['sha256'],'numerical_fit_count':len(records),
+            'scientific_runner_imports':False,'INNER_truth_opened_or_hashed':False}
 
 
 def development(inputs):
@@ -458,7 +485,7 @@ def source_audit(inputs,item):
             if len(names)!=83 or len(set(names))!=83 or any(v.lower().split('=')[0] in forbidden for v in names):raise AssertionError('source forbidden feature schema')
             if any(not np.array_equal(f[k],ref[k]) for k in ('row_id','unit')):raise ValueError('source reference rows unpaired')
             if role in roles and any(not np.array_equal(f[k],roles[role][k]) for k in ('row_id','unit')):raise ValueError('two source seed people differ')
-            roles[role]=f;wire=forward(payload,f['X']);tasks=[]
+            roles[role]=f;wire=forward(payload,f['X'],legacy_whole_role=True);tasks=[]
             for i,k in enumerate((2,6)):
                 p=wire[i][:,16+k:16+2*k];reference=heads[i].predict_proba(wire[i][:,:16]);close(p,reference,'source folded parity');close(reference,ref[f'U0_{i+1}'],'source stored parity')
                 if not np.array_equal(p.argmax(1),ref[f'd_{i+1}']):raise AssertionError('source decisions')

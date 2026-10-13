@@ -51,37 +51,29 @@ def manifest_and_model(cfg, verify):
     return manifest, model
 
 
-def forward_release(model, role, *, include_sex=False, projection=None):
-    """Use actual own heads; projection is only the declared head-row release.
+def geometry_from_cfg(cfg, verify):
+    from .wires import prepare_geometry
+    item=cfg['geometry']
+    binding=json.loads(verify(item['path'],item['sha256']).read_text())
+    return prepare_geometry(binding,expected_sha256=cfg['geometry_binding_sha256'],source_seed=cfg['seed'])
 
-    Optional projection is a pair of admitted head geometry dictionaries
-    loaded by the queue owner. It never carries residual coordinates or a teacher.
-    """
+
+def forward_release(model, role, *, include_sex=False, geometry=None, variant=None):
+    """Literal canonical per-recipient wire; labels never enter the adapter."""
+    from .wires import forward_role, VARIANTS
+    if geometry is None or variant not in VARIANTS:
+        raise PermissionError('explicit corrected per-recipient wire contract required')
     import numpy as np
-    views = model.route_raw(role['X'], role['feature_names'])
-    if projection is not None:
-        from .geometry import projected_release, audit_geometry
-        for i, geometry in enumerate(projection):
-            audit = audit_geometry(views[i]['representation'], geometry)
-            if not audit['passed']:
-                raise PermissionError('projected release exact decision parity failed')
-            projected = projected_release(views[i]['representation'], geometry)
-            # Every output is recomputed solely from actual released Pz16.
-            views[i] = {'representation': projected['representation'],
-                        'centered_logits': projected['centered_logits'],
-                        'probability': projected['probabilities'],
-                        'decision': projected['decision'], 'wire': projected['full']}
-    out = {k: role[k] for k in ('row_id', 'unit')}
-    out.update(r1=views[0]['wire'], r2=views[1]['wire'])
-    if include_sex:
-        out['sex'] = role['sex']
-    for view in ('r1', 'r2'):
+    views=forward_role(model,role['X'],role['feature_names'],geometry,variant=variant)
+    out={k:role[k] for k in ('row_id','unit')}
+    out.update(r1=views[0]['wire'],r2=views[1]['wire'])
+    if include_sex:out['sex']=role['sex']
+    for key in ('r1','r2'):
         for group in np.unique(out['unit']):
-            indices = np.flatnonzero(out['unit'] == group)
-            if len(indices) > 1 and not np.array_equal(out[view][indices], np.repeat(out[view][indices[:1]], len(indices), axis=0)):
-                raise PermissionError('duplicate group releases differ')
+            ix=np.flatnonzero(out['unit']==group)
+            if len(ix)>1 and not np.array_equal(out[key][ix],np.repeat(out[key][ix[:1]],len(ix),axis=0)):
+                raise PermissionError('duplicate group canonical releases differ')
     return out
-
 
 def useful_metrics(y, probability, class_order, constant_probability):
     """Inherited metric definitions, with the inherited FIT constant reference.
@@ -124,7 +116,10 @@ def trajectory_worker(spec_path):
     if not len(selected):
         raise PermissionError('inherited FIT selection fold empty')
     guard()
-    views = model.route_raw(fit['X'][selected], fit['feature_names'])
+    from .wires import forward_role
+    geometry=geometry_from_cfg(cfg,verify)
+    whole=forward_role(model,fit['X'],fit['feature_names'],geometry,variant=cfg['service_variant'])
+    views=[{k:v[selected] for k,v in w.items()} for w in whole]
     arrays = {key: fit[key][selected] for key in ('row_id', 'unit', 'income', 'occupation')}
     records = {}
     for i, task in enumerate(('income', 'occupation')):
@@ -180,19 +175,18 @@ def fit_worker(spec_path):
             # All model/freeze sources are registered and pinned by this unit.
             for pin in alias['sources']:
                 verify(pin['path'], pin['sha256'])
-    projection = None
-    if cfg.get('release_variant') == 'head_row_space':
-        from .geometry import build_geometry
-        projection = [build_geometry(head.weight.detach().numpy(), head.bias.detach().numpy(), model.class_orders[i]) for i, head in enumerate(model.head)]
-    elif cfg.get('release_variant', 'full') != 'full':
-        raise PermissionError('unknown release variant')
-    receipt = fit_development_bank(forward_release(model, att, include_sex=True, projection=projection),
-                                   None if inner is None else forward_release(model, inner, projection=projection),
-                                   seed=cfg['seed'], private_output=cfg['private_output'], queue_guard=guard,
-                                   bindings=cfg['bindings'], include_base=cfg.get('include_base', True),
-                                   include_extended=cfg.get('include_extended', False),
-                                   controls=cfg.get('controls', False), view_aliases=aliases,
-                                   diagnostic=None if diagnostic is None else forward_release(model, diagnostic, projection=projection))
+    geometry=geometry_from_cfg(cfg,verify)
+    # FIT2 must slice a full-role canonical forward, not change its batching.
+    diagnostic_release=None
+    if cfg.get('forward_fit_selection',True):
+        full=forward_release(model,fit,geometry=geometry,variant=cfg['service_variant'])
+        diagnostic_release={key:value[ix] for key,value in full.items()}
+    receipt=fit_development_bank(
+        forward_release(model,att,include_sex=True,geometry=geometry,variant=cfg['service_variant']),
+        None if inner is None else forward_release(model,inner,geometry=geometry,variant=cfg['service_variant']),
+        seed=cfg['seed'],private_output=cfg['private_output'],queue_guard=guard,
+        bindings=cfg['bindings'],include_base=True,include_extended=True,
+        controls=cfg.get('controls',False),view_aliases=aliases,diagnostic=diagnostic_release)
     out = {**receipt, 'unit_id': active['unit_id'], 'arm_id': cfg['arm_id'],
            'frozen_complete_sha256': sha_file(Path(cfg['private_output'])/'FROZEN_COMPLETE.json')}
     write_json(cfg['public_output'], out, False)
@@ -270,7 +264,8 @@ def report_utility_worker(spec_path):
     from task_conditioned_representation.attacks import save_npz, write_json
     manifest, model = manifest_and_model(cfg, verify)
     truth = load_role(manifest, cfg['seed'], 'INNER_SELECTION', {'features','income','occupation','references'}, reporting_seal=seal)
-    wire = model.route_raw(truth['X'], truth['feature_names'])
+    from .wires import forward_role
+    wire=forward_role(model,truth['X'],truth['feature_names'],geometry_from_cfg(cfg,verify),variant=cfg['service_variant'])
     arrays = {key: truth[key] for key in ('row_id','unit','income','occupation')}
     tasks = {}; clauses = []
     for i, task in enumerate(('income','occupation')):
