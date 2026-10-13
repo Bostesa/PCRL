@@ -205,9 +205,11 @@ def require_reporting(cfg, verify):
     seal = cfg['reporting_seal']
     verify(seal['path'], seal['sha256'])
     lock = _reporting_seal(seal)
-    pins = lock.get('reader_freezes', [])
+    pins = seal.get('reader_freezes', [])
     if not pins:
         raise PermissionError('global reporting freeze needs every reader bank pin')
+    if sorted(p['sha256'] for p in pins) != sorted(lock.get('reader_freeze_sha256', [])):
+        raise PermissionError('reader freeze list differs from committed reporting hashes')
     for pin in pins:
         receipt = json.loads(verify(pin['path'], pin['sha256']).read_text())
         if receipt.get('status') != 'FROZEN_COMPLETE':

@@ -102,9 +102,13 @@ def load_role(manifest, seed, role, fields=('features',), reporting_seal=None):
     if role == 'INNER_SELECTION' and fields & LABELS:
         _reporting_seal(reporting_seal)
         # Label pins enter only as a separately frozen reporting supplement.
-        label_items = _reporting_seal(reporting_seal).get('roles',{}).get(role,{})
+        lock = _reporting_seal(reporting_seal)
+        label_items = reporting_seal.get('roles',{}).get(role,{})
         if not (fields & LABELS) <= label_items.keys():
             raise PermissionError('sealed INNER label supplement missing')
+        for name in fields & LABELS:
+            if lock.get('role_label_sha256',{}).get(role,{}).get(name) != label_items[name]['sha256']:
+                raise PermissionError('INNER supplement differs from committed public label hash')
     if role == 'ATTACK_FIT_NEW' and fields & {'income','occupation'}:
         if not (fields & {'income','occupation'}) <= manifest['roles'][role].keys():
             raise PermissionError('ATT task exports absent; use separate FIT diagnostic folds')
@@ -126,8 +130,9 @@ def load_role(manifest, seed, role, fields=('features',), reporting_seal=None):
             expected_path=Path(manifest['roles'][role]['features']['path']).parent/(name+'.npz')
             if Path(item['path']) != expected_path:
                 lock = _reporting_seal(reporting_seal)
-                admitted = lock.get('inherited_label_custody', {}).get(name)
-                if name != 'sex' or admitted != item:
+                admitted = lock.get('inherited_label_custody', {}).get(name, {})
+                inherited = ROOT.parent / 'pcrl-task-conditioned-representations-v1' / admitted.get('relative_path','')
+                if name != 'sex' or admitted.get('sha256') != item['sha256'] or Path(item['path']) != inherited:
                     raise PermissionError('INNER supplement must use inherited exact role export or pinned SEX custody')
         z=read_exact(item,REFERENCE_FIELDS if name=='references' else {'row_id','unit',name},reporting_seal)
         if any(not np.array_equal(z[k],f[k]) for k in ('row_id','unit')):
