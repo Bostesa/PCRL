@@ -16,8 +16,8 @@ two adverse and two favorable starting batches do not establish a stable causal
 conflict. Prediction leakage, extra feature leakage, limited critic strength,
 and objective/reader mismatch remain competing explanations.
 
-The source is `35f7636a159cb1efcc349ee69fed8b6c94b389c4`, to be replaced by ROOT with the
-full final campaign commit. The useful predecessor public source remains
+The pinned full results source is `35f7636a159cb1efcc349ee69fed8b6c94b389c4`.
+The useful predecessor public source remains
 `6e767c5a5ccebcf984e2c4deb678ed7a560413cf`; private execution artifacts are located
 through the admitted role-safe manifest and roster, not a public source checkout.
 The proposed new identity is `pcrl-occupation-safeguarded-trial-v1`, branch
@@ -40,6 +40,9 @@ family, or strength sweep is added.
 | LOCAL_TWIN | Same CE and coefficient, pair term removed only from model objective | On |
 | TASK_ONLY | CE; privacy model gradient disabled | Off |
 | Unchanged RAW | No updates | Source control |
+| U0 | No updates | Useful source control |
+| U0_PROJ | Fixed own-head-row-space release | Exact current-head computation check |
+| RAW_PROJ | Fixed own-head-row-space release | Exact current-head computation check |
 
 All four continuation arms share starting weights, random draw streams, six
 actual-wire critics, optimizer schedule, model proposal count, reference scheme
@@ -83,8 +86,12 @@ Fit income once per source seed for RAW and share its exact frozen bank across
 every pilot checkpoint/arm. Epoch-zero and unchanged RAW releases are exact
 aliases, subject to queued wire/parity checks. Aliasing removes duplicate fits,
 not recipients or reader families. Refit fresh U0 banks as useful reference
-anchors. Include ordinary head-row-space releases of U0 and RAW as fixed
-interpretation comparators; these are separate disclosure contracts.
+controls. Include ordinary head-row-space releases of U0 and RAW as prospective
+competitive controls as well as interpretation comparators. They serve the same
+purpose-specific feature/head service. Lower effective feature dimension cannot
+exclude an eligible projected service from the competitive comparison. Record
+its exact release contract and effective dimension; dimension differences limit
+structural novelty attribution, rather than competitiveness.
 
 Before any fit, lock the following common per-arm selection rule. Across paired
 seeds, calculate the largest FIT-fold2 ratio of each utility excess to its
@@ -118,8 +125,8 @@ packages remain. Pair-ignore aliases require no fits. Null/planted fits are
 logistic under the current `fit_reader` implementation and are diagnostics,
 never deployed SEX inputs.
 
-Independent ATT refits must cover U0, RAW, CONSTRAINED, ORDINARY, LOCAL_TWIN and
-TASK_ONLY nominees, both seeds and all three views: 36 targets. This preserves
+Independent ATT refits must cover CONSTRAINED, ORDINARY, LOCAL_TWIN, TASK_ONLY,
+RAW, U0, U0_PROJ and RAW_PROJ, both seeds and all three views: 48 targets. This preserves
 the eventual most protective eligible control even when assessment usefulness
 changes eligibility. Freeze target architectures from ATT validation before new
 reporting access; their logistic/MLP/HGB allocation is then counted explicitly. If an
@@ -130,7 +137,7 @@ Use a new maximum of 20 total CPU-hours, ten elapsed hours, $0 cloud, at most tw
 heavy processes including unrelated jobs, one numerical thread per process,
 2 GiB RSS per worker/4 GiB aggregate, and at least 15 GiB free disk. Training
 artifacts reserve 256 MiB; reserve another measured allowance for the 1,320 main
-reader/control fits and private scores before starting. Do not assert runtime
+reader/control fits, 48 independent refits and private scores before starting. Do not assert runtime
 feasibility from fit counts. Fresh queued engineering timing must show both
 seeds, every mandatory reader, independent replay and closeout fit the budget.
 If they do not, report preflight infeasibility or an incomplete attempt. Do not
@@ -146,11 +153,11 @@ HEAD_VALIDATION, all-role loaders, or acquire another cohort. Keep new trial
 INNER truth arrays inaccessible until nominees, all readers/orientations, independent
 targets and reporting registries are committed. Document prior exposure.
 
-The five nominated services contribute 120 utility clauses: five services ×
-two seeds × two tasks × two references × accuracy/NLL/Brier. Register all twelve
-CONSTRAINED privacy contrasts against unchanged RAW, ORDINARY, LOCAL_TWIN and
-TASK_ONLY: pair benefit at least .020 and each recipient worsening at most .010.
-One frozen combined family therefore has K=132, subject to independent registry
+The eight services contribute 192 utility clauses: eight services ×
+two seeds × two tasks × two references × accuracy/NLL/Brier. Register all 21
+CONSTRAINED privacy contrasts against RAW_PROJ, RAW, ORDINARY, LOCAL_TWIN,
+TASK_ONLY, U0_PROJ and U0: pair benefit at least .020 and each recipient worsening
+at most .010. One frozen combined family therefore has K=213, subject to independent registry
 validation before reporting; add explicitly registered diagnostic intervals to
 a separately declared family. Do not reuse the current campaign's K values.
 Use shared paired duplicate-group bootstrap draws across every arm and both
@@ -158,8 +165,11 @@ fitted seeds, 2,048 replicates, and a newly frozen bootstrap seed. The two model
 seeds are not independent populations.
 
 The competitive comparator is the most protective complete-view control
-among all four point-eligible matched controls: the smallest paired-seed mean
-pair AUC, with a prelocked deterministic tie order. Preserve all four comparisons.
+among all seven point-eligible controls: the smallest paired-seed mean
+pair AUC, with prelocked tie order RAW_PROJ, RAW, ORDINARY, LOCAL_TWIN, TASK_ONLY,
+U0_PROJ, U0. Preserve all seven comparisons. Projected services are eligible on
+the same usefulness and purpose-specific service requirements; their smaller
+effective dimension does not remove them from this envelope.
 Require the CONSTRAINED nominee's 24 original utility clauses, pair benefit,
 and both local guards to be established under the registered simultaneous
 family. Report point values and PASS/UNRESOLVED/SHORTFALL/VIOLATION/MISSING
