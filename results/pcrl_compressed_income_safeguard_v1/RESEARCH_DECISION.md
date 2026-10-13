@@ -45,4 +45,4 @@ There were 1332 main fresh-reader fits (444 logistic, 444 MLP, 444 HGB), 24 real
 
 Do not advance this recipe as a competitive algorithm or a joint-design contribution. Retain the implementation, negative comparison and compression baseline. Before another Adult privacy search, a new safeguard should demonstrate task retention away from its update minibatches under a separately frozen design. Eventual confirmation requires a separately authorized unexposed population.
 
-Independent source/model/selection/metric/K240 replay passed. Final refit-curve and custody completion are recorded separately in INDEPENDENT_VERIFICATION.json and HANDOFF.json; this decision does not substitute for those closeout checks.
+Independent source/model/selection/metric/K240 replay passed. Verified refit-curve and local custody completion are recorded separately in INDEPENDENT_VERIFICATION.json and HANDOFF.json; this decision does not substitute for those closeout checks.

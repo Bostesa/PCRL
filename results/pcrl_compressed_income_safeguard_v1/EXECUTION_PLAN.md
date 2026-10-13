@@ -13,4 +13,4 @@ Authority: SOURCE_HANDOFF.txt. Scientific hyperparameters and criteria come from
 
 Every numerical operation is queued. ROOT alone owns shared locks, queue and final decisions. Agents have distinct edit ownership. Preserve all failures, amendments and actual unit receipts. No new cohort, cloud, original-history rewrite or manuscript edit.
 
-Status: metadata/implementation setup.
+Status: all authorized scientific and local custody stages complete; off-device custody pending absence of a writable separate device.
