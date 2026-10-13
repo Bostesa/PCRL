@@ -56,12 +56,14 @@ def stamp() -> str:
 
 
 def digest(path: Path) -> str:
-    from compressed_income_safeguard.admission import inner_truth_path
+    from compressed_income_safeguard.admission import inner_truth_path, admitted_path
     if inner_truth_path(path):
-        from compressed_income_safeguard.source import REPORTING_LOCK, _reporting_seal
+        from compressed_income_safeguard.source import REPORTING_LOCK, admitted_path as reporting_path
         if not REPORTING_LOCK.is_file():
             raise PermissionError('INNER truth hashing barred before committed reporting lock')
-        _reporting_seal({'path': str(REPORTING_LOCK), 'sha256': digest(REPORTING_LOCK)})
+        path = reporting_path(path, {'path': str(REPORTING_LOCK), 'sha256': digest(REPORTING_LOCK)})
+    else:
+        path = admitted_path(path)
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
