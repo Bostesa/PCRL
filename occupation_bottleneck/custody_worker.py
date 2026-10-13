@@ -89,7 +89,9 @@ def run(config):
         target=_new_target(cfg['target'],total)
         same_device=Path(source_plan).stat().st_dev==target.stat().st_dev
         if operation=='snapshot' and not same_device:raise PermissionError('initial versioned snapshot must remain on same device')
-        for e in entries:guard();copy_exact(sources[e['alias']],target/'files'/alias_path(e['alias']),e['sha256'],e['size_bytes'])
+        for index,e in enumerate(entries):
+            if index%128==0:guard()
+            copy_exact(sources[e['alias']],target/'files'/alias_path(e['alias']),e['sha256'],e['size_bytes'])
         copy_exact(source_plan,target/'PLAN.private.json',source_plan_sha,Path(source_plan).stat().st_size)
         result={'schema':'OB1-versioned-custody-receipt-v1','status':'PASS','operation':operation,'plan_sha256':source_plan_sha,'execution_commit':plan['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':total,'uncached_full_readback':True,'numerical_replay':'SEPARATELY_QUEUED','originals_intact':True,'same_device':same_device,'separate_filesystem_verified':operation=='off_device'}
         if receipt_pin:result['source_snapshot_receipt_sha256']=receipt_pin
