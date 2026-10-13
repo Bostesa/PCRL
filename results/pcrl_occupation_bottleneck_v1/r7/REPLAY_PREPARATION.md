@@ -4,7 +4,7 @@ R7 performs metadata and code work only. ROOT alone registers and launches every
 
 The pending `REPLAY_PATCH.diff` covers an invocation-local cache of exact bootstrap envelope inputs, a flat INNER truth filename guard before hashing, and direct selection of each registered epoch from the pinned saved checkpoint-index JSON list. The cache retains the original ordered reader loop, AUC routine, bootstrap draws, seed averaging, thresholds, family size, and interval arithmetic. Its key includes the exact truth-table SHA, truth column, score-table SHA, and ordered reader keys. No cached object is mutated by endpoint subtraction or sign multiplication. Numerical equivalence still requires ROOT's queued verification.
 
-Do not apply the patch while reader units still pin the current replay code. After all those units finish, ROOT may apply the patch, pin the new exact code bytes, and register the final replay units. No shared reporting or diagnostic lock is edited by R7.
+The patch was applied after ROOT reported all 72 reader banks and 66 trajectories complete. `FINAL_CODE_PINS.json` gives the current exact code bytes. No shared reporting or diagnostic lock is edited by R7. The prepatch config directory is retained as preparation evidence and must not be launched.
 
 Run the metadata builder with a new private destination:
 
@@ -26,3 +26,25 @@ python3 results/pcrl_occupation_bottleneck_v1/r7/build_audit_config.py \
 ```
 
 The final reporting replay also needs original INNER frozen wires, separately pinned task/SEX truth under the canonical committed reporting lock, source U0/Ucal references, real control scores, and the frozen FIT01 label table. The numerical final report and every headline gate must be independently replayed before campaign closeout. Config preparation and code review do not establish numerical PASS.
+
+The complete audit with ROOT's four fixed gradient witnesses is prepared at `.private/occupation_bottleneck/r7/audit_final_v1/`. It contains 4 tensor summaries covering 8 batches, plus independent batch-zero regeneration for each of the 4 states/seeds. Its two configs and source lists are ready for ROOT queue registration.
+
+After ROOT's reporting unit completes, prepare final headline and inference checks with another new destination:
+
+```sh
+python3 results/pcrl_occupation_bottleneck_v1/r7/build_headline_config.py \
+  --report-config .private/occupation_bottleneck/root/configs/ROOT_REPORT_CONFIG.json \
+  --output-dir .private/occupation_bottleneck/r7/headlines_final_v1 \
+  --inference-dir results/pcrl_occupation_bottleneck_v1/r8
+```
+
+Use the actual completed ROOT report config path. Omit `--inference-dir` until both runner inference receipts exist; a later invocation with a fresh destination prepares the utility and privacy configs. The headline worker replays all 72 packages on both FIT2 and INNER from the original frozen wires, class metrics and U0/Ucal references; verifies original-to-derived person-level metric, truth and score arrays; checks the 12 seed clauses and 24 paired clauses; preserves historical RAW ineligibility; checks all 144 supported-stratum banks and 12 exact decision-reader alias packages; and independently regenerates the FIT01 label table. Real ATT and INNER controls are recomputed before comparing the constant bool dependency table. Failed controls yield MISSING privacy endpoints while retaining K108. Utility K864 is unchanged.
+
+ROOT can verify the cache separately with the queue-only synthetic fixture:
+
+```sh
+python -m results.pcrl_occupation_bottleneck_v1.r7.cache_equivalence_fixture \
+  --output results/pcrl_occupation_bottleneck_v1/r7/CACHE_EQUIVALENCE.json
+```
+
+This fixture requires an authenticated verification queue slot before importing numerical libraries. It compares cached and uncached serialized results exactly, including repeated two-seed envelopes and reversed signs, and requires fewer AUC calls. R7 has not executed it.
