@@ -9,9 +9,18 @@ import argparse,fcntl,hashlib,json,os,shutil,sys
 from pathlib import Path
 
 
-def uncached_hash(path):
-    from .admission import admitted_path
-    p=admitted_path(path);digest=hashlib.sha256()
+def _admitted_custody_path(path,reporting_seal=None):
+    from .admission import admitted_path,inner_truth_path
+    if inner_truth_path(Path(path)):
+        from .source import admitted_path as reporting_admitted_path
+        if not isinstance(reporting_seal,dict) or not reporting_seal.get('sha256') or os.environ.get('PCRL_CIS_REPORTING_LOCK_SHA256')!=reporting_seal['sha256']:
+            raise PermissionError('custody INNER truth requires explicit canonical reporting seal and exact environment binding')
+        return reporting_admitted_path(Path(path),reporting_seal)
+    return admitted_path(Path(path))
+
+
+def uncached_hash(path,*,reporting_seal=None):
+    p=_admitted_custody_path(path,reporting_seal);digest=hashlib.sha256()
     with p.open('rb') as f:
         if sys.platform=='darwin':fcntl.fcntl(f.fileno(),fcntl.F_NOCACHE,1)
         for part in iter(lambda:f.read(1024**2),b''):digest.update(part)
@@ -24,16 +33,15 @@ def alias_path(alias):
     return p
 
 
-def copy_exact(source,target,pin,size):
-    from .admission import admitted_path
-    source=admitted_path(source);target=Path(target)
-    if source.stat().st_size!=size or uncached_hash(source)!=pin:raise PermissionError('copy source differs')
+def copy_exact(source,target,pin,size,*,reporting_seal=None):
+    source=_admitted_custody_path(source,reporting_seal);target=Path(target)
+    if source.stat().st_size!=size or uncached_hash(source,reporting_seal=reporting_seal)!=pin:raise PermissionError('copy source differs')
     if any(p.is_symlink() for p in (target,*target.parents)):raise PermissionError('copy target symlink refused')
     target.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     with source.open('rb') as src,os.fdopen(os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as dst:
         if sys.platform=='darwin':fcntl.fcntl(src.fileno(),fcntl.F_NOCACHE,1)
         shutil.copyfileobj(src,dst,1024**2);dst.flush();os.fsync(dst.fileno())
-    if target.stat().st_size!=size or uncached_hash(target)!=pin:raise PermissionError('uncached copied bytes differ')
+    if target.stat().st_size!=size or uncached_hash(target,reporting_seal=reporting_seal)!=pin:raise PermissionError('uncached copied bytes differ')
 
 
 def _new_target(path,total):
@@ -54,6 +62,17 @@ def run(config):
     from .evaluation_worker import queue_config
     active,cfg,verify,guard=queue_config(config,'custody')
     from .source import write_json
+    reporting_seal=cfg.get('reporting_seal')
+    ordinary_verify=verify
+    def verify(path,expected):
+        from .admission import inner_truth_path
+        if not inner_truth_path(Path(path)):return ordinary_verify(path,expected)
+        p=_admitted_custody_path(path,reporting_seal)
+        state=json.loads((Path(os.environ['PCRL_QUEUE_ROOT'])/'state.json').read_text())
+        registered={str(Path(i['path']).resolve()):i['sha256'] for i in state['units'][active['unit_id']]['spec']['sources']}
+        if not expected or registered.get(str(p.resolve()))!=expected or uncached_hash(p,reporting_seal=reporting_seal)!=expected:
+            raise PermissionError('sealed custody source absent from active exact queue pins')
+        return p
     operation=cfg['operation']
     if operation=='plan':
         entries=[];seen=set();repo=Path(cfg['repo']).resolve();private=repo/'.private/compressed_income_safeguard'
@@ -68,7 +87,7 @@ def run(config):
                 if not p.is_relative_to(repo) or '.private' in p.relative_to(repo).parts:raise PermissionError('code scope differs')
             elif scope!='admitted_source':raise PermissionError('explicit custody file scope required')
             # Already admitted exact source bytes only; no manifest recursion.
-            pin=uncached_hash(p)
+            pin=uncached_hash(p,reporting_seal=reporting_seal)
             if pin!=e['sha256']:raise PermissionError('uncached plan source differs')
             entries.append({'alias':e['alias'],'path':str(p),'sha256':pin,'size_bytes':p.stat().st_size,'scope':scope})
         plan={'schema':'CIS1-exact-custody-plan-v1','status':'FROZEN','execution_commit':cfg['execution_commit'],'entries':entries,'scope':'only explicit new campaign artifacts, code closure, exact admitted source files; no historical walks or restore recursion','no_original_deletion':True}
@@ -91,12 +110,12 @@ def run(config):
         if operation=='snapshot' and not same_device:raise PermissionError('initial versioned snapshot must remain on same device')
         for index,e in enumerate(entries):
             if index%128==0:guard()
-            copy_exact(sources[e['alias']],target/'files'/alias_path(e['alias']),e['sha256'],e['size_bytes'])
-        copy_exact(source_plan,target/'PLAN.private.json',source_plan_sha,Path(source_plan).stat().st_size)
+            copy_exact(sources[e['alias']],target/'files'/alias_path(e['alias']),e['sha256'],e['size_bytes'],reporting_seal=reporting_seal)
+        copy_exact(source_plan,target/'PLAN.private.json',source_plan_sha,Path(source_plan).stat().st_size,reporting_seal=reporting_seal)
         result={'schema':'CIS1-versioned-custody-receipt-v1','status':'PASS','operation':operation,'plan_sha256':source_plan_sha,'execution_commit':plan['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':total,'uncached_full_readback':True,'numerical_replay':'SEPARATELY_QUEUED','originals_intact':True,'same_device':same_device,'separate_filesystem_verified':operation=='off_device'}
         if receipt_pin:result['source_snapshot_receipt_sha256']=receipt_pin
         if operation=='snapshot':write_json(target/'SNAPSHOT_RECEIPT.json',result,private=True)
-        elif operation=='off_device':copy_exact(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json',target/'SNAPSHOT_RECEIPT.json',receipt_pin,(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json').stat().st_size)
+        elif operation=='off_device':copy_exact(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json',target/'SNAPSHOT_RECEIPT.json',receipt_pin,(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json').stat().st_size,reporting_seal=reporting_seal)
         else:write_json(target/'RESTORE_RECEIPT.json',result,private=True)
     else:raise ValueError('unregistered custody operation')
     write_json(cfg['public_output'],result);return result

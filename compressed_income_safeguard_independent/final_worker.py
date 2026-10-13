@@ -6,9 +6,15 @@ from pathlib import Path
 
 def run(inputs):
     import numpy as np
-    from .replay import metrics,vectors,envelopes,control_replay,close
+    from .replay import metrics,vectors,envelopes,control_replay,compare_controls,close
     from .registry import SERVICES,CAPS,TASKS,task_deltas,strongest_control
     cfg=inputs.cfg;lock=inputs.seal();manifest=inputs.json(cfg['manifest']);truth={}
+    label_hashes=lock.get('role_label_sha256',{}).get('INNER_SELECTION',{})
+    if any(label_hashes.get(t)!=cfg['truth'][t]['sha256'] for t in ('income','occupation','sex')):
+        raise PermissionError('independent truth pins differ from committed label custody')
+    frozen_hashes=set(lock.get('reader_freeze_sha256',[]))
+    if any(bank['freeze']['sha256'] not in frozen_hashes for bank in cfg['banks']):
+        raise PermissionError('independent bank absent from committed reader freeze')
     for task in ('income','occupation','sex'):
         truth[task]=inputs.arrays(cfg['truth'][task],{'row_id','unit',task})
     people=truth['sex']
@@ -19,7 +25,10 @@ def run(inputs):
     refs={s:inputs.arrays(manifest['roles']['INNER_SELECTION'][f'references_s{s}'],{'row_id','unit','U0_1','U0_2','Ucal_1','Ucal_2','d_1','d_2'}) for s in (0,1)}
     for r in refs.values():
         if any(not np.array_equal(r[k],people[k]) for k in ('row_id','unit')):raise ValueError('reference people differ')
-    records=[];clauses=[];pair={};private=Path(cfg['private_output']) if cfg.get('private_output') else None
+    records=[];clauses=[];pair={};control_gates={k:people[k] for k in ('row_id','unit')}
+    runner_gates=inputs.arrays(cfg['runner_control_gates'])
+    if any(not np.array_equal(runner_gates[k],people[k]) for k in ('row_id','unit')):raise ValueError('required real-control gate people differ')
+    private=Path(cfg['private_output']) if cfg.get('private_output') else None
     if private:private.mkdir(parents=True,exist_ok=False,mode=0o700)
     for bank in banks:
         release=inputs.arrays(bank['release'],{'row_id','unit','r1','r2'});scores=inputs.arrays(bank['scores']);freeze=inputs.json(bank['freeze'])
@@ -44,6 +53,19 @@ def run(inputs):
         recovery=envelopes(scores,people['sex']);controls=control_replay(scores,people['sex'],people['unit'],2026101207)
         pair.setdefault(service,{})[seed]=recovery['pair']['contracts']['complete']['auc']
         record={'arm_id':service,'seed':seed,'tasks':task_records,'recovery':recovery,'controls':controls}
+        if service in ('U0_FULL','RAW_FULL'):
+            att=inputs.arrays(bank['att_release']);att_scores=inputs.arrays(bank['att_scores'])
+            if freeze['att_release_sha256']!=bank['att_release']['sha256'] or freeze['att_scores_sha256']!=bank['att_scores']['sha256']:
+                raise ValueError('ATT real-control input differs from frozen bank')
+            att_controls=control_replay(att_scores,att['sex'],att['unit'],2026101206,att['validation'])
+            compare_controls(att_controls,freeze.get('ATT_validation_controls'),'independent ATT real controls')
+            valid=(controls is not None and att_controls is not None
+                   and all(v['passed'] for v in controls.values()) and all(v['passed'] for v in att_controls.values()))
+            key=f'{service}__S{seed}';expected=np.full(len(people['unit']),valid,dtype=bool)
+            actual=runner_gates.get(key)
+            if actual is None or actual.shape!=expected.shape or actual.dtype.kind!='b' or not np.array_equal(actual,expected):
+                raise AssertionError('independent required real-control gate vector differs '+key)
+            control_gates[key]=expected;record['ATT_controls']=att_controls;record['control_gate_valid']=bool(valid)
         if bank.get('runner_metrics'):
             expected=inputs.json(bank['runner_metrics'])
             for task in TASKS:
@@ -58,8 +80,10 @@ def run(inputs):
         if private:np.savez_compressed(private/f'METRICS_{service}_S{seed}.npz',**metric_table)
         records.append(record)
     selected=strongest_control(clauses,pair)
+    if private:np.savez_compressed(private/'CONTROL_GATES.npz',**control_gates)
     return {'schema':'CIS1-independent-complete-services-v1','status':'PASS','services':9,'fitted_seed_packages':18,
             'utility_clause_count':len(clauses),'records':records,'utility_clauses':clauses,'strongest_control':selected,
+            'control_gate_validity':{k:bool(v[0]) for k,v in control_gates.items() if k not in ('row_id','unit')},
             'scientific_runner_imports':False,'stored_prediction_replay':True,'independent_model_forward':False,
             'INNER_truth_access':'after committed canonical REPORTING_LOCK','reporting_lock_sha256':cfg['reporting_lock']['sha256']}
 
