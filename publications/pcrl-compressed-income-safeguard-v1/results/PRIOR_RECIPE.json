@@ -1,0 +1,62 @@
+{
+  "QP_tolerance": 1e-10,
+  "actual_norm_repair_maximum_attempts": 16,
+  "actual_norm_repair_safety_fraction": 1e-06,
+  "actual_norm_repair_scope": "all_arms_without_task_metrics",
+  "backtrack_fractions": [
+    1.0,
+    0.5,
+    0.25,
+    0.125
+  ],
+  "batch_size": 256,
+  "checkpoint_epochs": [
+    0,
+    5,
+    10,
+    20
+  ],
+  "coefficient_scope": "same_full_local_plus_pair_coefficient_all_arms_within_source_seed",
+  "critic_kinds": [
+    "linear",
+    "mlp32",
+    "mlp64"
+  ],
+  "critic_learning_rate": 0.003,
+  "critic_optimizer": "Adam",
+  "critic_updates_per_model_step": 5,
+  "critic_views": [
+    "occupation_full29",
+    "aligned_pair_full50"
+  ],
+  "epochs": 20,
+  "finite_step_tolerance": 1e-10,
+  "income_encoder_and_head": "bitwise_frozen_every_update",
+  "learning_rate": 0.01,
+  "maximum_actual_step_norm": 0.01,
+  "maximum_coefficient": 10000.0,
+  "nll_probability_floor": 1e-12,
+  "normalization_draws": 16,
+  "normalization_min_median_norm": 1e-12,
+  "normalization_target_ratio": 3.0,
+  "optimizer": "SGD_no_momentum_actual_displacement",
+  "reference_absolute_scale_floor": 1e-12,
+  "reference_initial_relative_scale_floor": 1e-08,
+  "reference_refresh": "initial_and_each_epoch",
+  "reference_rows": 256,
+  "schema": "OB1-occupation-bounded-SGD-recipe-v1",
+  "selection_fold": 2,
+  "sensitive_penalty": "sum_views(1-min(critic_cross_entropies,sex_entropy)/sex_entropy)",
+  "source_epoch": 5,
+  "source_family": "RAW_JOINT",
+  "source_strength": 0.3,
+  "task_guard_metrics": [
+    "nll",
+    "summed_multiclass_brier"
+  ],
+  "update_folds": [
+    0,
+    1
+  ],
+  "warm_updates_per_critic": 80
+}

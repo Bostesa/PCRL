@@ -1,0 +1,123 @@
+{
+  "QP_tolerance": 1e-10,
+  "actual_norm_repair_maximum_attempts": 16,
+  "actual_norm_repair_safety_fraction": 1e-06,
+  "actual_norm_repair_scope": "all_arms_without_task_metrics",
+  "authorization": "SOURCE_HANDOFF_EXPLICIT_DIRECT_TRIAL",
+  "backtrack_fractions": [
+    1.0,
+    0.5,
+    0.25,
+    0.125
+  ],
+  "batch_size": 256,
+  "campaign": "pcrl_compressed_income_safeguard_v1",
+  "checkpoint_epochs": [
+    0,
+    5,
+    10,
+    20
+  ],
+  "coefficient_scope": "same_full_local_plus_pair_coefficient_all_arms_within_source_seed",
+  "critic_kinds": [
+    "linear",
+    "mlp32",
+    "mlp64"
+  ],
+  "critic_learning_rate": 0.003,
+  "critic_optimizer": "Adam",
+  "critic_updates_per_model_step": 5,
+  "critic_views": [
+    "occupation_full29",
+    "aligned_pair_projected_income_full_occupation50"
+  ],
+  "epochs": 20,
+  "finite_step_tolerance": 1e-10,
+  "geometry_scope": "per_seed_admitted_start_checkpoint_head_and_basis_bytes",
+  "income_basis": "bitwise_frozen_every_critic_and_model_update",
+  "income_encoder_and_head": "bitwise_frozen_every_critic_and_model_update",
+  "learning_rate": 0.01,
+  "maximum_actual_step_norm": 0.01,
+  "maximum_coefficient": 10000.0,
+  "nll_probability_floor": 1e-12,
+  "normalization_draws": 16,
+  "normalization_min_median_norm": 1e-12,
+  "normalization_target_ratio": 3.0,
+  "optimizer": "SGD_no_momentum_actual_displacement",
+  "reader_slate": "all_18_per_direct_view_plus_36_pair_ignore_other_aliases",
+  "reference_absolute_scale_floor": 1e-12,
+  "reference_initial_relative_scale_floor": 1e-08,
+  "reference_refresh": "initial_and_each_epoch",
+  "reference_rows": 256,
+  "reporting_registry": {
+    "K": 240,
+    "recovery_contrasts": 24,
+    "services": 9,
+    "utility_clauses": 216
+  },
+  "schema": "CIS1-compressed-income-safeguard-recipe-v1",
+  "selection": {
+    "common_epoch_across_seeds": true,
+    "eligible_order": [
+      "mean_ATT_validation_complete_pair_AUC",
+      "paired_occupation_NLL",
+      "earlier_epoch"
+    ],
+    "fallback_order": [
+      "maximum_normalized_task_excess",
+      "occupation_NLL",
+      "ATT_pair_AUC",
+      "earlier_epoch"
+    ],
+    "proxy_scales": {
+      "accuracy_loss": 0.01,
+      "brier_increase": 0.005,
+      "nll_increase": 0.01
+    },
+    "reference": "unchanged_RAW_HYBRID"
+  },
+  "selection_fold": 2,
+  "sensitive_penalty": "sum_views(1-min(critic_cross_entropies,sex_entropy)/sex_entropy)",
+  "source_epoch": 5,
+  "source_family": "RAW_JOINT",
+  "source_strength": 0.3,
+  "task_guard_metrics": [
+    "nll",
+    "summed_multiclass_brier"
+  ],
+  "update_folds": [
+    0,
+    1
+  ],
+  "warm_updates_per_critic": 80,
+  "wire_contract": {
+    "campaign": "pcrl_compressed_income_safeguard_v1",
+    "class_order": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    ],
+    "decision_rule": "argmax probabilities; first class in fixed source order",
+    "extra_raw_z_or_q_release": false,
+    "income": "factorized_float64_z_times_B_transpose_times_B",
+    "income_effective_feature_rank": 1,
+    "occupation": "actual_learned_full_z16",
+    "outputs": "unchanged_own_head_recomputed_from_released_representation",
+    "role_forward_batch_size": 1024,
+    "schema": "CIS1-literal-hybrid-wire-v1",
+    "widths": [
+      21,
+      29,
+      50
+    ]
+  }
+}

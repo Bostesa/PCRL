@@ -1,0 +1,9 @@
+# Advisor brief
+
+The corrected compressed-income trial was actually fitted: both source seeds, four matched 20 epoch arms, all fresh readers, matched compression controls and independent refits. The safeguard moved parameters; it was not an all-zero implementation. However, trained protection checkpoints reduced ATT recovery while violating the incremental occupation utility proxy. The locked selector returned the unchanged hybrid start for all three privacy-training arms. Task-only selected epoch 5.
+
+No competitive safeguard or pair-term contribution was established. The selected candidate trails fully projected RAW at the point estimate by 0.001854 in coalition AUC; its benefit interval [-0.011110,0.007402] cannot meet 0.020. Income compression removes avoidable recovery:0.062452 improvement over full RAW with unchanged source decisions. That result belongs to the compression baseline, not the safeguard's novelty. The largest registered pair benefit is 0.022152 versus U0_FULL, interval [0.009946, 0.034358], unresolved at 0.020; it does not replace the stronger RAW_PROJ control.
+
+Every candidate utility point clause meets the original cap against U0 and Ucal, but the simultaneous conjunction remains unresolved:6 PASS, 18 UNRESOLVED, 0 VIOLATION. All 12 fixed-income clauses are unresolved. Occupation updates cannot repair their uncertainty.
+
+For the algorithm paper, this supplies a reproducible negative method comparison and useful compression control, not confirmation, a new guarantee or a competitive joint algorithm. Keep the old occupation campaign's zero-fit/no-trigger status separate. A new guard should first demonstrate task retention beyond update minibatches before further Adult search. See RESEARCH_DECISION.md, COMPONENT_DECISION.md and the independent replay/custody records.
