@@ -4,4 +4,6 @@ from occupation_bottleneck.admission import admitted_path
 def test_forbidden_before_open(path):
  with pytest.raises(PermissionError):admitted_path(path)
 def test_features_permitted():
- assert str(admitted_path('/tmp/INNER_SELECTION/features.npz'))=='/tmp/INNER_SELECTION/features.npz'
+ from pathlib import Path
+ path=Path.cwd()/'fixtures/INNER_SELECTION/features.npz'
+ assert admitted_path(path)==path
