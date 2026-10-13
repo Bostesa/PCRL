@@ -1,0 +1,24 @@
+{
+  "schema": "OB1-prefit-engineering-correction-v1",
+  "status": "SOURCE_AST_VALID_NUMERICAL_QUEUE_TEST_PENDING",
+  "scientific_scope_change": false,
+  "reason": "Exact float64 norm-ball clipping can round outside the ball when assigned to float32 encoder parameters; unguarded controls had only one attempt and could reject valid directions solely because of dtype rounding.",
+  "correction": "Before task checks, every arm contracts only the scalar candidate displacement using its actual dtype-rounded norm; certify exact norm bound, with fixed safety fraction 1e-6 and at most 16 assignments. Original NLL/Brier safeguards remain enabled only in constrained arms.",
+  "task_metrics_used_for_norm_repair": false,
+  "norm_repair_scope": "all_arms",
+  "original_recipe_canonical_sha256": "f4b16067594550072c69a96942dcd1d3b6fe662068c79f5acc33d5aa8dcfe848",
+  "proposed_recipe_canonical_sha256": "7c4ca6110be3c4774c9cdfdcff46babd44c117a39cf81e47d7f727de7bbf1528",
+  "gradient_worker_sha256": "d475254241fcb8fe72b1cdf2a2227763089784234829cd83800bdb477b058c61",
+  "fixture_sha256": "a55ab33ef585bcc9e994c8ac12bbbc0306a9419da20edb26515b63f2a46a5e7a",
+  "fixture": "occupation_bottleneck/test_pilot_rounding.py",
+  "queue_stage_for_fixture": "admission",
+  "expected_checks": [
+    "Mixed-dtype exact .125 float32 boundary accepts nonzero bounded movement in guarded and unguarded modes",
+    "Actual occupation parameter count 10576 float32 encoder plus 102 float64 head accepts nonzero bounded movement",
+    "Ordinary control can accept finite task-worsening movement after norm repair",
+    "Constrained task-unsafe movement restores exact starting parameters",
+    "Genuine unrepresentable movement remains explicitly ROUNDING_ZERO_STEP"
+  ],
+  "freeze_requirement": "ROOT runs queued fixture and independent review before freezing corrected recipe; earlier recipe JSON remains an earlier implementation artifact, not the final pilot lock.",
+  "numerical_work_performed_by_R5": false
+}

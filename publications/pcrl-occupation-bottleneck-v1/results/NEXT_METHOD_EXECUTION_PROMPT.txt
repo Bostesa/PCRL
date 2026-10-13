@@ -1,0 +1,326 @@
+EXECUTE A NEW DIRECT OCCUPATION-SAFEGUARDED TRIAL
+
+This prompt describes future work. No trial was run by the occupation-bottleneck
+campaign. Its automatic pilot was NOT_TRIGGERED_DIAGNOSIS_UNRESOLVED: two of four
+fixed gradient batches were adverse; its threshold was three of four. Preserve
+that decision. Explicit execution of this prompt authorizes a new direct trial
+testing the safeguard's usefulness, without assuming a stable causal conflict.
+
+Pinned result source: 35f7636a159cb1efcc349ee69fed8b6c94b389c4
+This is the frozen scientific-results commit; publication and closeout receipts may be later commits.
+Useful predecessor public source: 6e767c5a5ccebcf984e2c4deb678ed7a560413cf.
+Read NEXT_METHOD_DESIGN.md, current BOTTLENECK_DECISION.md, exposure/provenance,
+PILOT_TRIGGER_DECISION.json and final verification before numerical work.
+
+NEW IDENTITY AND PRIVATE INPUTS
+
+New branch: research/pcrl-occupation-safeguarded-trial-v1
+New worktree: .worktrees/pcrl-occupation-safeguarded-trial-v1
+New results: results/pcrl_occupation_safeguarded_trial_v1/
+New private root: .private/occupation_safeguarded_trial/
+New queue root: .private/occupation_safeguarded_trial/compute/
+
+Preserve the old queue, locks, results, branches and source checkpoints. Never
+submit a new job to the closed occupation-bottleneck queue. If any new name
+already exists, preserve it and select one documented suffix before fitting.
+
+Start in the existing occupation result worktree with its private metadata.
+Use the private backup/restore index from the final HANDOFF if not on the same
+machine. The published checkout does not contain people or models. Resolve the
+existing compatible Python executable from the private environment record;
+do not upgrade the environment. Set PCRL_PYTHON to that executable.
+
+Commands below prepare metadata; they do not launch a fit:
+
+  export PCRL_SOURCE_TREE="$(pwd -P)"
+  export PCRL_FINAL_SHA=35f7636a159cb1efcc349ee69fed8b6c94b389c4
+  git cat-file -e "$PCRL_FINAL_SHA^{commit}"
+  git worktree add -b research/pcrl-occupation-safeguarded-trial-v1 \
+    "$PCRL_SOURCE_TREE/../pcrl-occupation-safeguarded-trial-v1" "$PCRL_FINAL_SHA"
+  cd "$PCRL_SOURCE_TREE/../pcrl-occupation-safeguarded-trial-v1"
+  export PCRL_TRIAL_TREE="$(pwd -P)"
+  mkdir -p .private/occupation_safeguarded_trial/inputs \
+    .private/occupation_safeguarded_trial/configs \
+    results/pcrl_occupation_safeguarded_trial_v1
+  chmod 700 .private/occupation_safeguarded_trial
+  cp "$PCRL_SOURCE_TREE/.private/occupation_bottleneck/r1/SOURCE_PATHS.json" \
+    .private/occupation_safeguarded_trial/inputs/SOURCE_PATHS.json
+  cp "$PCRL_SOURCE_TREE/.private/occupation_bottleneck/r1/ROSTER_METADATA.json" \
+    .private/occupation_safeguarded_trial/inputs/ROSTER_METADATA.json
+  chmod 600 .private/occupation_safeguarded_trial/inputs/*.json
+
+Copying metadata is allowed outside the compute queue. Hashing/deserializing
+checkpoints, loading person arrays, fitting or testing numerical behavior is
+queue-only. Restored paths must be rebound in a new private manifest and verified
+inside the queue; do not weaken role or forbidden-label guards.
+
+PREPARE THE NEW CAMPAIGN ADAPTER AND PREFLIGHT
+
+The trainer is runnable, but the current scheduler and assessment registry are
+bound to the old campaign. Before opening the new queue, make these explicit
+namespace adaptations in the NEW worktree only and commit their source:
+
+1. occupation_bottleneck/scheduler.py:
+   ROOT -> HERE.parent / '.private' / 'occupation_safeguarded_trial' / 'compute'.
+   START -> the new recorded UTC campaign start, DEADLINE -> START + ten hours.
+   Retain 20 total CPU-hours, thread limits, stage guards, disk floor, and sole
+   durable queue ownership. Reserve four CPU-hours for independent replay and
+   closeout before optional training/readers. Count already-running heavy jobs.
+2. occupation_bottleneck/source.py:
+   REPORTING_LOCK -> ROOT / 'results/pcrl_occupation_safeguarded_trial_v1/REPORTING_LOCK.json'.
+   Keep exact commitment/hash verification and prelabel admission guards.
+3. Add a trial reporting adapter (occupation_bottleneck/trial_reporting.py).
+   Use the runner's existing metric/bootstrap functions, but construct the
+   trial's five nominee services and K=132 endpoint registry. Use all 18 keys per
+   local and 54 keys per pair from complete_view_audit.complete_keys. Do not call
+   reporting.build_registries: it requires the old 36 configurations/72 models.
+   Do not reuse complete_view_audit.build_registry: its six anchors are also fixed
+   to the old campaign. Require the new committed reporting lock and registry.
+   Independently replay this adapter before any new trial assessment access.
+
+These are preparation tasks, not completed artifacts in the present campaign.
+They do not authorize another recipe or outcome-driven endpoint change.
+
+Create NEW ENGINEERING_LOCK.json and PREFLIGHT.json. Record start time, resource
+headroom, actual source/code hashes, environment versions, inherited exposure,
+intended unit counts and restoration dependencies. Queue one engineering job
+that runs the existing geometry/gradient, rounding and access-guard tests:
+
+  "$PCRL_PYTHON" -m occupation_bottleneck.engineering_worker \
+    results/pcrl_occupation_safeguarded_trial_v1/ENGINEERING_TESTS.json
+
+That command must appear in a queued unit's argv, never run it directly.
+Use stage admission, max_wall_s/cpu_reserve_s chosen before launch, RSS <=2 GiB,
+and sources including every code/config/lock pin. The current campaign reported
+22 engineering tests; require fresh success after the new identity adaptation.
+Include checkpoint restoration, class order, raw83 schema rejection, actual
+mixed-dtype movement, frozen-income parity, queue ownership and zero-stall logs.
+Record finite synthetic timing for the exact architectures and reader slate
+through the queue, without tuning science. Decide whether BOTH full source-seed
+trials, all required readers, independent replay and closeout fit the ceiling.
+If not, stop as PREFLIGHT_BUDGET_INFEASIBLE; do not secretly narrow the slate.
+
+The active scheduler CLI is:
+
+  "$PCRL_PYTHON" -m occupation_bottleneck.scheduler open <new-engineering-lock> <sha256>
+  "$PCRL_PYTHON" -m occupation_bottleneck.scheduler enqueue <engineering-unit.json>
+  "$PCRL_PYTHON" -m occupation_bottleneck.host_queue --count 1
+
+host_queue measures name/PID occupancy and executes finite queued units. Its
+queue must be the newly adapted root. Refresh occupancy before each unit. Keep
+at most one runner and one independent verifier, with at most two heavy jobs
+across the machine; unrelated jobs reduce capacity. No endless wait/watchdog.
+
+LOCK ONE EXACT RECIPE AND DIRECT AUTHORIZATION
+
+Read occupation_bottleneck.pilot.RECIPE (metadata-only) and check canonical SHA
+7c4ca6110be3c4774c9cdfdcff46babd44c117a39cf81e47d7f727de7bbf1528.
+This is the corrected live recipe; the old r5 IMPLEMENTATION_RECIPE.json predates
+norm repair. Retain all science parameters. New preflight adapter changes have
+their own code pins. No strength grid, teacher, controller or distillation.
+
+Starting admitted RAW_JOINT strength .3 epoch5 pins are:
+seed 0 a1a0dfba5a9036dffa3953f57a79c9e91d701b36ba490070ba77fdb33d984a4c
+seed 1 b10a389a6c73943765afc40b3014c9580c42c6c73700cd7a62291b7810cb7bdf
+Resolve paths from ROSTER_METADATA.json; do not fabricate missing models or
+retrain a predecessor. Source admission must reproduce both useful actual
+heads and these models before the new direct trial begins.
+
+Create DIRECT_TRIAL_LOCK.json under the NEW results identity. It must have:
+owner ROOT; status PILOT_TRIGGERED (the existing worker capability spelling);
+authorization_kind DIRECT_TRIAL_NEW_IDENTITY; INNER_used_for_trigger false;
+current_conditional_status NOT_TRIGGERED_DIAGNOSIS_UNRESOLVED;
+diagnosis_sha256 binding the current measured decision; recipe_sha256;
+starting_checkpoints with keys '0' and '1', each exact {path,sha256};
+campaign_id, preflight_receipt_sha256, code pins, selection rule and resource
+ceilings. The capability status does not relabel the old unmet trigger.
+Create SCIENCE_LOCK.json, bind this authorization, and commit both before fits.
+Register the science lock as a dated queue amendment affecting protection and
+attacks (the scheduler requires a filename containing 'science'):
+
+  "$PCRL_PYTHON" -m occupation_bottleneck.scheduler amend \
+    <SCIENCE_LOCK.json> <sha256> <new-UTC-ISO-time> protection,attacks
+
+CONCRETE TRAINER CONFIG PREPARATION
+
+The following metadata-only script resolves both start pins and creates the
+worker specs after ROOT's direct trial lock exists. Run in the NEW worktree:
+
+  "$PCRL_PYTHON" - <<'PY'
+  import hashlib,json
+  from pathlib import Path
+  from occupation_bottleneck.pilot import RECIPE,canonical_sha
+  root=Path.cwd()
+  private=root/'.private/occupation_safeguarded_trial'
+  results=root/'results/pcrl_occupation_safeguarded_trial_v1'
+  manifest=private/'inputs/SOURCE_PATHS.json'
+  roster=json.loads((private/'inputs/ROSTER_METADATA.json').read_text())
+  lock=results/'DIRECT_TRIAL_LOCK.json'
+  digest=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # metadata/code only
+  assert canonical_sha(RECIPE)=='7c4ca6110be3c4774c9cdfdcff46babd44c117a39cf81e47d7f727de7bbf1528'
+  authorization=json.loads(lock.read_text())
+  for seed in (0,1):
+      matched=[x for x in roster['entries'] if x.get('family')=='RAW_JOINT'
+               and x.get('strength')==.3 and x.get('epoch')==5 and x.get('seed')==seed]
+      assert len(matched)==1
+      entry=matched[0]
+      checkpoint={'path':entry['checkpoint'],'sha256':entry['checkpoint_sha256']}
+      assert checkpoint==authorization['starting_checkpoints'][str(seed)]
+      spec={'operation':'occupation_bounded_pilot','seed':seed,'recipe':RECIPE,
+            'manifest':str(manifest),'manifest_sha256':digest(manifest),
+            'checkpoint':checkpoint,'trigger_lock':{'path':str(lock),'sha256':digest(lock)},
+            'private_output':str(private/f'fits/S{seed}'),
+            'output':str(results/f'TRAINING_S{seed}.json')}
+      path=private/f'configs/PILOT_S{seed}.json'
+      with path.open('x') as f: json.dump(spec,f,indent=2,sort_keys=True); f.write('\n')
+      path.chmod(0o600)
+  PY
+
+For each seed create a queue unit JSON with the scheduler's required schema:
+unit_id NEWTRIAL_PILOT_S0/S1; stage protection;
+argv [existing-python, '-m', 'occupation_bottleneck.pilot_worker', '--spec',
+      absolute-new-private-spec-path]; cwd new worktree;
+max_wall_s and cpu_reserve_s fixed from preflight, reserve >=wall cap;
+max_rss_gib 2; projected_output_bytes 268435456 per seed;
+deps [successful new preflight/admission unit IDs];
+outputs [private fits/S#/SUMMARY.json, aggregate TRAINING_S#.json];
+amendment_sha256 current SCIENCE_LOCK amendment;
+sources [{path,sha256}, ...] with worker spec, manifest, trigger/science locks,
+code modules, selected checkpoint, all accessed FIT role pins. Numerical pins
+come from the admitted manifest; verify their bytes only inside the queue.
+Register other referenced sources as demanded by each worker's guards.
+
+Enqueue both units then run finite host_queue --count 1 invocations. Never launch
+pilot_worker directly. A worker executes all four arms for its source seed.
+20 epochs; checkpoints 0/5/10/20; batch256; income encoder/head bitwise frozen.
+Stop on source mismatch, invalid normalization, missing critical artifact,
+resource boundary or failed independent safeguard check. Preserve all failures.
+
+ATT READERS AND COMMON EPOCH NOMINATION
+
+Use evaluation_worker --phase trajectory --spec <private-utility-config.json>
+in new admission-stage units for each distinct checkpoint. Config binds unit_id,
+arm_id, seed, manifest/hash, checkpoint/hash, fresh private_output and
+public_output. That entrypoint opens only FIT features/tasks/references and
+computes fold2 deltas to the real U0/Ucal references; pilot checkpoint metrics
+alone do not contain both reference delta tables. Deduplicate epoch0 aliases.
+
+Use evaluation_worker --phase fit --spec <private-reader-config.json> in NEW
+attacks-stage queue units. Required config fields: unit_id, arm_id, seed,
+manifest/manifest_sha256, checkpoint/checkpoint_sha256, science_lock/hash,
+release_variant full or head_row_space, include_base true,
+include_extended true, forward_inner true for label-free features only,
+forward_fit_selection true, controls as registered, bindings, fresh
+private_output, public_output. Build bindings using reader_specs.reader_bindings
+with checkpoint hash, source seed, variant, manifest/science hashes and role
+feature hashes. It freezes the actual inherited split, preprocessing and model
+seed. All reader selection/orientation uses ATT only. Label-free INNER scores
+may be saved while readers fit; no INNER truth is opened, and these scores may
+not inform nomination. Extra inputs cannot enter the reader wire.
+
+Use ALL 18 fresh readers, not just base 9:
+BASE: LR_C1, MLP_64x32, HGB_15x200, DA_MLP_64x32, REP_LR_C1,
+REP_MLP_64x32, REP_HGB_15x200, OUTPUT_LR_C1, OUTPUT_HGB_15x200.
+EXTENDED: LOGITS_OUTPUT, DECISION and CONFIDENCE, each crossed with LR_C1,
+MLP_64x32 and HGB_15x200. That is six logistic, six MLP and six HGB per view.
+Income bank is freshly fitted ONCE per RAW source seed, then exact-wire aliased
+across every pilot arm/checkpoint. Fit occupation and pair banks for all common
+checkpoints before nominee selection. Epoch0/unchanged RAW are exact aliases.
+Aliases require queue-pinned frozen model/score receipts and literal wire parity.
+The pair includes 18 pair scores plus both 18-reader local-ignore banks: 54
+complete-view scores. No alias may change orientation or random seed.
+
+Fresh U0 full and U0/RAW head-row-space anchor banks are interpretation controls.
+Keep head-row-space a distinct disclosure contract, not an equal-information
+or equal-effective-capacity training win. Real ATT shuffled-label and planted
+controls run for U0 and RAW full, both seeds, all views. Planted SEX is an
+engineering control only and is absent from every deployed/primary attack input.
+
+UNIT ACCOUNTING (freeze before fitting)
+Training: 10,223 update rows; 40 proposals/epoch; 800/arm; 6,400 total;
+24,480 critic optimizer updates/arm; 195,840 total; 32,640 critic draws;
+32 normalization draws; 32 nominal pilot checkpoint files.
+Epoch0 aliases leave 26 distinct seed/checkpoint packages. Fresh RAW income 2
+plus 26 occupation and26 pair banks =>54*18=972 fits (324 per architecture).
+U0 full adds 108 (36 per architecture). U0/RAW projected anchors add 216
+(72 per architecture). Main total 1,296 =432 logistic+432 MLP+432 HGB.
+Real-data null/planted adds 24 logistic: main+controls 1,320 fits.
+Independent refits 36, with architecture allocation frozen from ATT;
+they are additional, never included in runner counts. Their target identities
+are U0, RAW, CONSTRAINED, ORDINARY, LOCAL_TWIN and TASK_ONLY nominees, both seeds
+and all 3 views. Register every possible strongest control before new assessment
+access; keep repeated exact-target attempt receipts.
+Pair aliases add no numerical fits. Restore/forward/verification jobs and failed
+attempts still count CPU. Reconcile actual counts; mark missing attempts MISSING.
+
+Freeze selection before training: for each continuation arm choose one common
+epoch across seeds. Among epochs satisfying all original utility point caps on
+FIT fold2 relative to both U0/Ucal, minimize paired mean ATT all 18 pair AUC;
+tie by occupation NLL then earlier epoch. If none satisfy proxy caps, choose
+lowest maximum normalized excess; tie by NLL, pair AUC, earlier epoch, mark
+point-ineligible. Score and retain every class recall/support and confidence.
+FIT selection is not assessment feasibility; do not use the old unequal-exposure
+FIT confidence gate. No new recipe, threshold, controller, or selection rule
+after an adverse result.
+
+FROZEN ONE-TIME EXPLORATORY ASSESSMENT
+
+Retain the saved label-free INNER forwards/scores from each reader bank. Existing
+fit_worker provides them with forward_inner true, including exact income alias
+checks. After nominations use the existing frozen scores, not another fit. If
+saved scores are unavailable, implement a queue-guarded frozen-model forward
+adapter before reporting; do not fit a replacement or load unsealed truth.
+Freeze all banks,
+orientations, nominees, ignored-recipient aliases, missing units, independent
+refit targets and the new registry in a committed REPORTING_LOCK.json before
+new trial INNER truth access. Truth has already been used in the earlier
+campaign; disclose that exposure. A new seal does not make it unseen.
+
+Register K=132: 120 utility clauses for five nominated services ×2seeds ×2tasks
+×2references ×3metrics; twelve constrained privacy contrasts against all four
+matched controls (each pair benefit and both recipient local worsenings).
+Use all 18/full 54 recovery envelopes. Use paired duplicate-group resampling,
+2048 replicates, one new frozen bootstrap seed, shared draws across arms and
+seeds, and the independently checked familywise interval definition. Freeze
+diagnostic interval families separately before assessment; no post-result K
+reduction. Preserve strongest eligible control: minimum paired mean complete
+pair AUC among original-point-eligible RAW, ordinary, local and task-only;
+prelocked tie order RAW, ORDINARY, LOCAL_TWIN, TASK_ONLY.
+
+Original caps: accuracy loss <=.010,NLL excess <=.010,summed Brier excess <=.005
+for both tasks, seeds, U0/Ucal. Competitive constrained result requires its all 24
+utility requirements, pair benefit >=.020 over the most protective eligible
+matched control, and each local worsening <=.010, with simultaneous intervals.
+Report POINT and PASS/UNRESOLVED/SHORTFALL/VIOLATION/MISSING separately. Do not
+infer an effect from passing a percentage of clauses. No eligible control or
+missing verification means the competitive claim is unavailable.
+
+Finish independent source/head parity, arithmetic, gradient sign, all 18 reader
+envelopes/aliases, nomination, group resampling/classifications, fresh refits,
+frozen-income equality and backup-only numerical restore. The verifier must
+not simply import the runner's numerical implementation as independent replay.
+Run raw83 label-free deployment for U0, RAW and selected repaired/control models;
+reject extra/reordered/nonfinite inputs and mismatched artifacts. Preserve the
+TCR1 checkpoint schema/classes/features/sourcebindings; no teacher co-release.
+
+CLOSEOUT AND LIMITS
+
+Maximum 20 CPU-hours / 10 elapsed hours / $0 cloud; 2 heavy machine processes total;
+one numerical thread each; 2 GiB RSS each / 4 GiB aggregate; at least 15 GiB free disk.
+Reserve replay, deployment and closeout before optional expansion. Verify both
+seed completion and every mandatory fit or mark the study incomplete. Never
+turn a budget-limited subset into the planned full comparison.
+
+Publish safe code, aggregate tables/figures, hashes and decisions only. Private
+people, predictions, checkpoint/reader weights, absolute personal paths and
+drive-folder names stay private. Verify backups and representative restore;
+off-device copy if writable, otherwise record pending custody and exact command.
+Do not modify old manuscripts, old locks, main, predecessor branches or source
+artifacts; no history rewrite or force-push. Close new workers/queue cleanly.
+
+Final answer: whether this new direct safeguard trial improved the occupation
+task/privacy trade-off against its most protective eligible control; strongest
+favorable/adverse comparisons; all point/interval misses; engineering stalls;
+independent replay/custody status; and one justified next change. A favorable
+result is an exploratory repair lead. An unrun future design is not a pilot
+result, and the present campaign's unmet conditional trigger remains unchanged.

@@ -1,0 +1,263 @@
+def shuffled_groups(y,unit,seed):
+    """Independent fixed-seed permutation within duplicate-group-size buckets."""
+    import numpy as np
+    if seed not in (2026101206,2026101207):raise ValueError('unregistered control shuffle seed')
+    rng=np.random.default_rng(seed);buckets={};out=np.empty_like(y)
+    for group in np.unique(unit):
+        ix=np.flatnonzero(unit==group)
+        if np.unique(y[ix]).size!=1:raise ValueError('control duplicate group truth differs')
+        buckets.setdefault(len(ix),[]).append(ix)
+    for size in sorted(buckets):
+        groups=buckets[size]
+        for target,source in zip(groups,rng.permutation(len(groups))):out[target]=y[groups[int(source)]]
+    return out
+
+
+def control_replay(scores,y,unit,seed,indices=None):
+    import numpy as np
+    ix=np.arange(len(y)) if indices is None else indices;y=y[ix];unit=unit[ix]
+    names=[view+'__'+name for view in ('r1','r2','pair') for name in ('SHUFFLED','PLANTED_0','PLANTED_1')]
+    if not any(name in scores for name in names):return None
+    if not all(name in scores for name in names):raise ValueError('incomplete registered real control bank')
+    shuffled=shuffled_groups(y,unit,seed);out={}
+    for view in ('r1','r2','pair'):
+        sh=float(weighted_auc(shuffled,scores[view+'__SHUFFLED'][ix])[0])
+        planted=np.where(y==1,scores[view+'__PLANTED_1'][ix],scores[view+'__PLANTED_0'][ix])
+        values={'null_auc':float(weighted_auc(y,np.full(len(y),.5))[0]),'shuffled_independent_auc':max(sh,1-sh),'planted_auc':float(weighted_auc(y,planted)[0])}
+        gates={'null_exact':values['null_auc']==.5,'shuffle_at_most_0.60':values['shuffled_independent_auc']<=.60,'planted_at_least_0.99':values['planted_auc']>=.99}
+        out[view]={'controls':values,'gates':gates,'passed':all(gates.values())}
+    return out
+
+
+def supported_strata(scores,y,unit,income,occupation):
+    import numpy as np
+    result={}
+    for view,size,labels in (('r1',2,income),('r2',6,occupation),('pair',12,income*6+occupation)):
+        candidates={name.split('__',1)[1]:value for name,value in scores.items() if name.startswith(view+'__') and name.split('__')[-1] in BASE};records=[]
+        for value in range(size):
+            mask=labels==value;support=[len(np.unique(unit[mask&(y==s)])) for s in (0,1)]
+            item={'class_or_pair_id':value,'rows':int(mask.sum()),'SEX_group_counts':support,'minimum_groups_each_SEX':32}
+            if min(support)<32:item.update(status='MISSING_SPARSE_STRATUM',auc=None,reader_auc=None)
+            elif not candidates:item.update(status='MISSING_FROZEN_READER_SCORES',auc=None,reader_auc=None)
+            else:
+                values={name:float(weighted_auc(y[mask],score[mask])[0]) for name,score in candidates.items()}
+                item.update(status='ESTIMATED_DESCRIPTIVE',auc=max(values.values()),reader_auc=values)
+            records.append(item)
+        result[view]=records
+    return result
+
+
+def compare_controls(actual,expected,label):
+    if actual is None or expected is None:
+        if actual is not expected:raise AssertionError(label+' missing control bank differs')
+        return
+    expected=expected.get('views',expected)
+    for view in ('r1','r2','pair'):
+        for name,value in actual[view]['controls'].items():close(value,expected[view]['controls'][name],label+' '+view+' '+name)
+        gates=expected[view].get('gates',expected[view].get('control_gates'))
+        if actual[view]['gates']!=gates:raise AssertionError(label+' exact gates differ '+view)
+        passed=expected[view].get('passed',expected[view].get('controls_pass'))
+        if actual[view]['passed']!=passed:raise AssertionError(label+' control conjunction differs '+view)
+
+
+def compare_recovery(actual,expected,label):
+    for view in ('r1','r2','pair'):
+        reported=expected[view]['reader_auc']
+        if any(not name.startswith(view+'__') for name in reported):raise AssertionError(label+' reported score key must include view prefix')
+        reported={name.split('__',1)[1]:value for name,value in reported.items()}
+        if set(actual[view]['reader_auc'])!=set(reported):raise AssertionError(label+' frozen reader names differ '+view)
+        for name,value in actual[view]['reader_auc'].items():close(value,reported[name],label+' '+view+' '+name)
+        for contract,value in actual[view]['contracts'].items():
+            saved=expected[view]['contracts'][contract]
+            if value is None or saved is None:
+                if value is not saved:raise AssertionError(label+' contract availability differs '+view+' '+contract)
+            else:
+                close(value['auc'],saved['auc'],label+' '+view+' '+contract)
+                if value['reader_count']!=saved['reader_count']:raise AssertionError(label+' reader count differs '+view+' '+contract)
+
+
+def compare_utility(actual,expected,label):
+    for task in ('income','occupation'):
+        for name,value in actual[task]['metrics'].items():
+            if isinstance(value,dict):
+                for key,point in value.items():close(point,expected[task]['metrics'][name][key],label+' '+task+' '+name+' '+key)
+            else:close(value,expected[task]['metrics'][name],label+' '+task+' '+name)
+        for ref in ('U0','Ucal'):
+            for name,value in actual[task]['references'][ref]['metrics'].items():
+                if isinstance(value,dict):
+                    for key,point in value.items():close(point,expected[task]['references'][ref]['metrics'][name][key],label+' '+task+' '+ref+' '+name+' '+key)
+                else:close(value,expected[task]['references'][ref]['metrics'][name],label+' '+task+' '+ref+' '+name)
+            for name,value in actual[task]['references'][ref]['difference'].items():close(value,expected[task]['references'][ref]['difference'][name],label+' '+task+' '+ref+' '+name)
+
+
+def compare_strata(actual,expected,label):
+    for view in ('r1','r2','pair'):
+        if len(actual[view])!=len(expected[view]):raise AssertionError(label+' class list differs')
+        for value,saved in zip(actual[view],expected[view]):
+            for key in ('class_or_pair_id','rows','SEX_group_counts','status'):
+                if value[key]!=saved[key]:raise AssertionError(label+' '+view+' '+key+' differs')
+            if value['auc'] is None or saved['auc'] is None:
+                if value['auc'] is not saved['auc']:raise AssertionError(label+' sparse availability differs')
+            else:close(value['auc'],saved['auc'],label+' '+view+' supported stratum AUC')
+
+
+def wire_utility(release,labels,priors,references):
+    import numpy as np
+    utility={};clauses=[]
+    for i,task,size in ((1,'income',2),(2,'occupation',6)):
+        wire=release['r'+str(i)]
+        if wire.shape!=(len(labels[task]),16+2*size+1):raise ValueError('headline wire dimension differs')
+        probability=wire[:,16+size:16+2*size];actual=metrics(labels[task],probability,priors[task])
+        if not np.array_equal(wire[:,-1],probability.argmax(1)):raise ValueError('headline actual released decisions differ')
+        actual['per_class_recall']=[recall if available else None for recall,available in zip(actual['per_class_recall'],actual['per_class_recall_available'])]
+        refs={}
+        for ref in ('U0','Ucal'):
+            baseline=metrics(labels[task],references[ref+'_'+str(i)],priors[task])
+            baseline['per_class_recall']=[recall if available else None for recall,available in zip(baseline['per_class_recall'],baseline['per_class_recall_available'])]
+            delta={'accuracy_loss':baseline['accuracy']-actual['accuracy'],'nll_excess':actual['nll']-baseline['nll'],'brier_excess':actual['brier']-baseline['brier']}
+            refs[ref]={'metrics':baseline,'difference':delta}
+            for name,cap in (('accuracy_loss',.010),('nll_excess',.010),('brier_excess',.005)):
+                clauses.append({'task':task,'reference':ref,'metric':name,'value':delta[name],'cap':cap,'point_pass':bool(delta[name]<=cap)})
+        utility[task]={'metrics':actual,'references':refs}
+    return utility,clauses
+
+
+def headlines(inputs):
+    """Final replay of both roles from original frozen wires and actual labels."""
+    import numpy as np
+    cfg=inputs.cfg;lock=inputs.seal();manifest=inputs.json(cfg['manifest']);fitpins=manifest['roles']['OSF_DEFENSE_FIT'];fit={};truth={};identity=None
+    for task in ('income','occupation','sex'):
+        if lock.get('role_label_sha256',{}).get('INNER_SELECTION',{}).get(task)!=cfg['truth'][task]['sha256']:raise PermissionError('independent INNER truth pin differs from committed reporting lock')
+        fit[task]=inputs.arrays(fitpins[task],{'row_id','unit',task})
+        truth[task]=inputs.arrays(cfg['truth'][task],{'row_id','unit',task})
+        if identity is None:identity=truth[task]
+        if any(not np.array_equal(truth[task][name],identity[name]) for name in ('row_id','unit')):raise ValueError('headline truth people/order differs')
+        if any(not np.array_equal(fit[task][name],fit['income'][name]) for name in ('row_id','unit')):raise ValueError('headline FIT truth people/order differs')
+    if (len(identity['unit']),len(np.unique(identity['unit'])))!=(2235,2234):raise ValueError('headline INNER admitted counts differ')
+    if np.intersect1d(identity['unit'],fit['income']['unit']).size or np.intersect1d(identity['row_id'],fit['income']['row_id']).size:raise ValueError('headline FIT/INNER people overlap')
+    report_truth=inputs.arrays(cfg['reported_truth'],{'row_id','unit','income','occupation','sex'})
+    if any(not np.array_equal(report_truth[name],identity[name]) for name in ('row_id','unit')) or any(not np.array_equal(report_truth[name],truth[name][name]) for name in ('income','occupation','sex')):raise AssertionError('derived report truth differs from original pinned truth')
+    train=folds(fit['income']['unit'])!=2;selected=~train
+    labels={'INNER':{task:truth[task][task] for task in truth},'FIT2':{task:fit[task][task][selected] for task in fit}}
+    identities={'INNER':{name:identity[name] for name in ('row_id','unit')},'FIT2':{name:fit['income'][name][selected] for name in ('row_id','unit')}}
+    priors={task:np.array([(fit[task][task]==value).mean() for value in range(size)]) for task,size in (('income',2),('occupation',6))}
+    references={'INNER':{},'FIT2':{}}
+    for seed in (0,1):
+        for role,pin in (('INNER',cfg['references']['s'+str(seed)]),('FIT2',fitpins['references_s'+str(seed)])):
+            reference=inputs.arrays(pin,{'row_id','unit','U0_1','U0_2','Ucal_1','Ucal_2','d_1','d_2'})
+            if role=='FIT2':reference={name:value[selected] for name,value in reference.items()}
+            if any(not np.array_equal(reference[name],identities[role][name]) for name in ('row_id','unit')):raise ValueError('headline reference people/order differs '+role)
+            references[role][seed]=reference
+    tables={};table_counts={};association={'FIT2':{},'INNER':{}}
+    for view,size,ft in (('r1',2,fit['income']['income']),('r2',6,fit['occupation']['occupation']),('pair',12,fit['income']['income']*6+fit['occupation']['occupation'])):
+        count=np.array([[int(((ft[train]==value)&(fit['sex']['sex'][train]==sex)).sum()) for sex in (0,1)] for value in range(size)])
+        table=(count[:,1]+1)/(count.sum(1)+2);tables[view]=table;table_counts[view]=count
+        for role,rolelabels in labels.items():
+            label=rolelabels['income'] if view=='r1' else rolelabels['occupation'] if view=='r2' else rolelabels['income']*6+rolelabels['occupation']
+            association[role][view]={'auc':float(weighted_auc(rolelabels['sex'],table[label])[0]),'rows':len(label),'groups':len(np.unique(identities[role]['unit']))}
+    stored=inputs.arrays(cfg['c3_table'],{'r1','r2','pair','r1__counts','r2__counts','pair__counts'})
+    for view in tables:
+        close(tables[view],stored[view],'independently regenerated FIT01 label table '+view)
+        if not np.array_equal(table_counts[view],stored[view+'__counts']):raise AssertionError('FIT01 label table counts differ')
+    expected=inputs.json(cfg['public_report']);expected_c3=inputs.json(cfg['c3_summary']);records=[];computed_gates={};decision_scores={}
+    for bank in cfg['banks']:
+        inputs.guard(stage='verification');freeze=inputs.json(bank['freeze']);roles={}
+        if freeze.get('source_seed')!=bank['seed'] or freeze.get('status')!='FROZEN_COMPLETE' or freeze['bindings']['release_variant']!=bank['release_variant']:raise ValueError('headline frozen bank identity/contract differs')
+        att_controls=None
+        if freeze.get('ATT_validation_controls') is not None:
+            att=inputs.arrays(bank['att_release']);att_scores=inputs.arrays(bank['att_scores'])
+            if freeze['att_release_sha256']!=bank['att_release']['sha256'] or freeze['att_scores_sha256']!=bank['att_scores']['sha256']:raise ValueError('headline ATT control bytes differ')
+            att_controls=control_replay(att_scores,att['sex'],att['unit'],2026101206,att['validation'])
+            compare_controls(att_controls,freeze['ATT_validation_controls'],'independent ATT control prerequisite')
+        for role,release_name,scores_name,release_field,scores_field in (('INNER','release','scores','inner_release_sha256','score_sha256'),('FIT2','fit_release','fit_scores','FIT_selection_release_sha256','FIT_selection_scores_sha256')):
+            release=inputs.arrays(bank[release_name],{'row_id','unit','r1','r2'});scores=inputs.arrays(bank[scores_name])
+            if any(not np.array_equal(release[name],identities[role][name]) for name in ('row_id','unit')):raise ValueError('headline bank people/order differs '+role)
+            if freeze.get(release_field)!=bank[release_name]['sha256'] or freeze.get(scores_field)!=bank[scores_name]['sha256']:raise ValueError('headline frozen bank byte binding differs '+role)
+            utility,clauses=wire_utility(release,labels[role],priors,references[role][bank['seed']])
+            if role=='INNER':
+                reported_metrics=inputs.arrays(bank['reported_metrics']);reported_scores=inputs.arrays(bank['reported_scores'])
+                for reported in (reported_metrics,reported_scores):
+                    if any(not np.array_equal(reported[name],identity[name]) for name in ('row_id','unit')):raise AssertionError('derived report input person/order differs')
+                metric_fields={'row_id','unit'}
+                for i,task,size in ((1,'income',2),(2,'occupation',6)):
+                    sources={'own':release['r'+str(i)][:,16+size:16+2*size],**{'REF_'+ref:references[role][bank['seed']][ref+'_'+str(i)] for ref in ('U0','Ucal')}}
+                    for prefix,probability in sources.items():
+                        for metric,vector in vectors(labels[role][task],probability).items():
+                            key=prefix+'__'+task+'__'+metric;metric_fields.add(key);close(vector,reported_metrics[key],'independent actual per-row utility '+key)
+                if set(reported_metrics)!=metric_fields or set(reported_scores)!=set(scores)|{'row_id','unit'}:raise AssertionError('derived report exact vector/score fields differ')
+                if any(not np.array_equal(score,reported_scores[name]) for name,score in scores.items()):raise AssertionError('derived report reader scores differ from original frozen curves')
+            recovery=envelopes(scores,labels[role]['sex']);controls=control_replay(scores,labels[role]['sex'],identities[role]['unit'],2026101207) if role=='INNER' else None
+            strata=supported_strata(scores,labels[role]['sex'],identities[role]['unit'],labels[role]['income'],labels[role]['occupation'])
+            if bank['arm_id'] in ('U0','RAW_JOINT_R03_E5','JOINT_CONDITIONAL_R03_E5') or bank['release_variant']=='head_row_space':
+                decision_scores[bank['arm_id'],bank['seed'],role]={name:value for name,value in scores.items() if name.split('__')[-1].startswith('DECISION_')}
+            roles[role]={'tasks':utility,'clauses':clauses,'recovery':recovery,'controls':controls,'within_true_task_strata':strata,'point_eligible_seed':all(c['point_pass'] for c in clauses),'assessment_gate_applied':role=='INNER'}
+        inner_controls=roles['INNER']['controls']
+        computed_gates[bank['arm_id']+'__S'+str(bank['seed'])]=att_controls is not None and inner_controls is not None and all(v['passed'] for v in att_controls.values()) and all(v['passed'] for v in inner_controls.values())
+        record={'arm_id':bank['arm_id'],'seed':bank['seed'],'release_variant':bank['release_variant'],'historical_point_ineligible':bank['historical_point_ineligible'],'eligible_control':roles['INNER']['point_eligible_seed'] and not bank['historical_point_ineligible'],'roles':roles,'ATT_controls':att_controls,'status':'PASS'}
+        compare_headline(record,expected,bank)
+        for role in roles:
+            matching=[item for item in expected_c3['reader_banks'] if item['arm_id']==bank['arm_id'] and item['seed']==bank['seed'] and item['role']==role]
+            if len(matching)!=1:raise AssertionError('unique reported task-stratum bank required')
+            compare_strata(roles[role]['within_true_task_strata'],matching[0]['within_true_task_strata'],bank['arm_id']+' '+str(bank['seed'])+' '+role)
+        records.append(record)
+    if len(records)!=72 or len({(r['arm_id'],r['seed']) for r in records})!=72:raise ValueError('all72 independent headline packages required')
+    if len(expected['packages'])!=72 or len(expected_c3['reader_banks'])!=144:raise AssertionError('complete reported package/role dimensions differ')
+    compare_association(association,expected_c3)
+    aliases=inputs.json(cfg['decision_aliases'])['aliases'];alias_checks=[]
+    for bank in cfg['banks']:
+        if bank['release_variant']!='head_row_space':continue
+        source=bank['source_arm']
+        for role in ('FIT2','INNER'):
+            actual=decision_scores[bank['arm_id'],bank['seed'],role];full=decision_scores[source,bank['seed'],role]
+            reported=[a for a in aliases if a['arm_id']==bank['arm_id'] and a['source_arm']==source and a['seed']==bank['seed'] and a['role']==role]
+            if len(actual)!=15 or len(reported)!=1 or set(reported[0]['reader_keys'])!=set(actual) or not reported[0]['exact_score_alias']:raise AssertionError('complete exact decision reader alias receipt differs')
+            if any(name not in full or not np.array_equal(value,full[name]) for name,value in actual.items()):raise AssertionError('decision-preserving full/projected scores differ')
+            alias_checks.append({'arm_id':bank['arm_id'],'seed':bank['seed'],'role':role,'reader_count':15,'status':'PASS'})
+    if len(aliases)!=12 or len(alias_checks)!=12:raise AssertionError('all12 fixed decision reader alias packages required')
+    summary=inputs.json(cfg['report_summary']);by_arm={}
+    for record in records:by_arm.setdefault(record['arm_id'],[]).append(record)
+    if len(summary['configurations'])!=36 or len({c['arm_id'] for c in summary['configurations']})!=36:raise AssertionError('all36 paired report configurations required')
+    for configuration in summary['configurations']:
+        pair=by_arm[configuration['arm_id']]
+        if len(pair)!=2 or {p['seed'] for p in pair}!={0,1}:raise AssertionError('paired report model seeds differ')
+        checks={'point_eligible_both_seeds_all24':all(p['roles']['INNER']['point_eligible_seed'] for p in pair),'historical_point_ineligible':any(p['historical_point_ineligible'] for p in pair),'eligible_control':all(p['eligible_control'] for p in pair)}
+        if any(configuration[name]!=value for name,value in checks.items()):raise AssertionError('paired24 point utility/historical control eligibility differs')
+        for view in ('r1','r2','pair'):close(sum(p['roles']['INNER']['recovery'][view]['contracts']['primary']['auc'] for p in pair)/2,configuration['recovery_paired_seed_mean'][view],'paired-seed complete recovery mean')
+    gates=inputs.arrays(cfg['control_gates'])
+    if any(not np.array_equal(gates[name],identity[name]) for name in ('row_id','unit')):raise ValueError('reported recovery control people/order differs')
+    if set(gates)-{'row_id','unit'}!=set(expected['control_gate_validity']):raise AssertionError('reported recovery control dependency names differ')
+    for name,value in expected['control_gate_validity'].items():
+        if name not in computed_gates or bool(value)!=computed_gates[name] or gates[name].shape!=identity['unit'].shape or gates[name].dtype.kind!='b' or not np.all(gates[name]==computed_gates[name]):raise AssertionError('independent ATT+INNER recovery control eligibility differs '+name)
+    return {'schema':'OB1-independent-FIT-INNER-headlines-v1','scientific_runner_imports':False,'rows':len(identity['unit']),'groups':len(np.unique(identity['unit'])),'records':records,'task_association':association,'FIT01_table_counts':{view:count.tolist() for view,count in table_counts.items()},'independently_regenerated_FIT01_tables':True,'all72_headline_packages_replayed':True,'roles_checked':['FIT2','INNER'],'control_gate_validity':expected['control_gate_validity'],'decision_alias_checks':alias_checks,'all36_paired_point_gates_replayed':True,'report_compared':True,'interpretation_only_label_diagnostics':True,'universal_privacy_floor':False}
+
+
+def compare_headline(record,expected,bank):
+    matching=[item for item in expected['packages'] if item['arm_id']==record['arm_id'] and item['seed']==record['seed']]
+    if len(matching)!=1:raise AssertionError('unique reported package required')
+    saved=matching[0]
+    if saved['freeze_sha256']!=bank['freeze']['sha256'] or saved['release_variant']!=bank['release_variant']:raise AssertionError('reported package freeze/contract differs')
+    if bool(record['historical_point_ineligible'])!=(record['arm_id']=='H_RAW_CSTAR') or saved['historical_point_ineligible']!=record['historical_point_ineligible'] or saved['eligible_control']!=record['eligible_control']:raise AssertionError('historical diagnostic control eligibility differs')
+    for role,actual in record['roles'].items():
+        label=record['arm_id']+' '+str(record['seed'])+' '+role;reported=saved['roles'][role]
+        compare_utility(actual['tasks'],reported['tasks'],label)
+        compare_recovery(actual['recovery'],reported['recovery'],label)
+        compare_controls(actual['controls'],reported['controls'],label)
+        expected_clauses={(c['task'],c['reference'],c['metric']):c for c in reported['clauses']}
+        if len(reported['clauses'])!=12 or len(expected_clauses)!=12:raise AssertionError(label+' actual12 clause family differs')
+        for clause in actual['clauses']:
+            key=(clause['task'],clause['reference'],clause['metric']);saved_clause=expected_clauses[key]
+            close(clause['value'],saved_clause['value'],label+' '+str(key))
+            if clause['cap']!=saved_clause['cap'] or clause['point_pass']!=saved_clause['point_pass']:raise AssertionError(label+' literal utility cap/gate differs')
+        if actual['assessment_gate_applied']!=reported['assessment_gate_applied']:raise AssertionError(label+' FIT diagnostic versus assessment role differs')
+        if role=='INNER' and actual['point_eligible_seed']!=reported['point_eligible_seed']:raise AssertionError(label+' point utility conjunction differs')
+
+
+def compare_association(association,expected):
+    for role in ('FIT2','INNER'):
+        for view in ('r1','r2','pair'):
+            reported=expected['task_association'][role][view]
+            close(association[role][view]['auc'],reported['auc'],'independent true-label association '+role+' '+view)
+            for key in ('rows','groups'):
+                if association[role][view][key]!=reported[key]:raise AssertionError('task association actual row/group counts differ')
+
+

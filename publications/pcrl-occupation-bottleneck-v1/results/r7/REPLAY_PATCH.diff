@@ -1,0 +1,52 @@
+--- a/occupation_bottleneck_independent/replay.py
++++ b/occupation_bottleneck_independent/replay.py
+@@ -64,7 +64,7 @@
+         if any(x in low for x in ('head_validation','old_assessment','osf_development_assessment','all_role','all-role')):raise PermissionError('barred source')
+         if p.name=='release.npz' and ('teacher' in low or 'rel__s' in low):raise PermissionError('barred all-role release')
+         if any(q.is_symlink() for q in (p,*p.parents)):raise PermissionError('symlink refused')
+-        if ('inner_selection' in low or 'inner_truth' in low) and p.stem.lower() in ('sex','income','occupation'):self.seal()
++        if ('inner_selection' in low or 'inner_truth' in low) and any(p.stem.lower()==label or p.stem.lower().endswith('_'+label) for label in ('sex','income','occupation')):self.seal()
+         if p.stem.lower() in ('inner_utility_inputs','inner_truth','inner_labels'):self.seal()
+         sha=self.pins.get(str(p))
+         if not sha or isinstance(item,dict) and item['sha256']!=sha:raise PermissionError('unregistered independent source')
+@@ -347,7 +347,14 @@
+     from scipy.stats import rankdata
+     points=[]
+     for point in sorted(path['points'],key=lambda p:p['epoch']):
+-        selection=inputs.json(point['selection']);bank=inputs.json(point['bank_freeze']);utility=inputs.json(point['utility_summary']);task=utility['metrics']['occupation']['metrics']
++        selection=inputs.json(point['selection'])
++        if isinstance(selection,list):
++            selected=[p for p in selection if p.get('epoch')==point['epoch'] and p.get('seed')==path['seed'] and p.get('family')==path['family'] and p.get('strength')==path['strength']]
++            if len(selected)!=1:raise ValueError('unique registered path checkpoint selection')
++            selection=selected[0]
++        if selection.get('epoch')!=point['epoch'] or selection.get('seed')!=path['seed']:raise ValueError('path selection epoch/seed mismatch')
++        if point.get('checkpoint_sha256') and selection.get('checkpoint_sha256')!=point['checkpoint_sha256']:raise ValueError('path selection checkpoint differs')
++        bank=inputs.json(point['bank_freeze']);utility=inputs.json(point['utility_summary']);task=utility['metrics']['occupation']['metrics']
+         points.append({'epoch':point['epoch'],'saved_sensitive_objective':selection['sensitive'],'occupation_nll':task['nll'],'occupation_brier':task['brier'],'occupation_accuracy':task['accuracy'],'occupation_confidence':task['confidence'],'r1_recovery':bank['ATT_validation']['r1']['contracts']['primary']['auc'],'r2_recovery':bank['ATT_validation']['r2']['contracts']['primary']['auc'],'pair_recovery':bank['ATT_validation']['pair']['contracts']['primary']['auc']})
+     transitions=[]
+     for left,right in zip(points,points[1:]):
+@@ -474,7 +481,7 @@
+     rng=np.random.default_rng(seed);draws=rng.integers(len(unique),size=(B,len(unique)))
+     count=np.zeros((B,len(unique)),dtype=np.int32)
+     for b,draw in enumerate(draws):count[b]=np.bincount(draw,minlength=len(unique))
+-    weights=count[:,inverse];den=weights.sum(1);tables={};values={};out=[]
++    weights=count[:,inverse];den=weights.sum(1);tables={};values={};out=[];envelope_cache={}
+     for key,item in cfg['arrays'].items():
+         table=inputs.arrays(item)
+         if any(name not in table or not np.array_equal(table[name],units[name]) for name in ('row_id','unit')):raise ValueError('assessment table person/order alignment '+key)
+@@ -493,9 +500,15 @@
+                 def envelope(which):
+                     tab=tables[part[which+'_table']];keys=part[which+'_keys']
+                     if not keys or len(set(keys))!=len(keys):raise ValueError('nonempty unique frozen reader envelope')
++                    # All tables have already passed pinned-byte and person-order checks.
++                    # Invocation-local draws are identical for every endpoint. Preserve
++                    # the original ordered-key arithmetic and cache only exact inputs.
++                    identity=(cfg['arrays'][part['truth_table']]['sha256'],part['truth_key'],cfg['arrays'][part[which+'_table']]['sha256'],tuple(keys))
++                    if identity in envelope_cache:return envelope_cache[identity]
+                     p=max(float(weighted_auc(y,tab[k])[0]) for k in keys);boots=np.zeros(B)
+                     for k in keys:
+                         for start in range(0,B,32):boots[start:start+32]=np.maximum(boots[start:start+32],weighted_auc(y,tab[k],weights[start:start+32]))
++                    envelope_cache[identity]=(p,boots)
+                     return p,boots
+                 lp,lb=envelope('left');rp,rb=envelope('right');point.append((lp-rp)*part.get('sign',1));parts.append((lb-rb)*part.get('sign',1))
+             else:raise ValueError('unknown frozen endpoint')
