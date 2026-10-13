@@ -9,8 +9,8 @@ from pathlib import Path
 from .admission import sha_metadata,read_metadata
 from .source import write_json
 ROOT=Path(__file__).resolve().parents[1]
-PRIVATE=ROOT/'.private/compressed_income_safeguard/r6'
-PUBLIC=ROOT/'results/pcrl_compressed_income_safeguard_v1/r6'
+PRIVATE=ROOT/'.private/compressed_income_safeguard/r5'
+PUBLIC=ROOT/'results/pcrl_compressed_income_safeguard_v1/r5'
 
 
 def metadata_pin(p):
@@ -41,41 +41,58 @@ def write_unit(cfg,sources,*,python=sys.executable,cwd=ROOT,deps=(),max_wall_s=1
 
 def prepare_live(index,output):
     data=read_metadata(index);manifest_pin=data['manifest'];manifest=read_metadata(manifest_pin['path']);role=data.get('role','INNER_SELECTION');units=[]
+    services={'CONSTRAINED','ORDINARY','LOCAL_TWIN','TASK_ONLY','RAW_FULL','RAW_HYBRID','RAW_PROJ','U0_FULL','U0_PROJ'}
+    identities=[(x['arm_id'],x['seed']) for x in data['instances']]
+    if len(identities)!=18 or set(identities)!={(arm,seed) for arm in services for seed in (0,1)}:
+        raise PermissionError('exact nine services by two admitted source seeds required')
     for item in data['instances']:
-        arm=item['arm_id'];seed=item['seed'];variant=item.get('release_variant','full');tag=f'{arm}_S{seed}_{variant}';uid='R6_DEPLOY_'+tag.upper()+'_V1'
-        cfg={'unit_id':uid,'stage':'verification','operation':'export_live','arm_id':arm,'seed':seed,'release_variant':variant,'manifest':manifest_pin['path'],'manifest_sha256':manifest_pin['sha256'],'checkpoint':item['checkpoint'],'checkpoint_sha256':item['checkpoint_sha256'],'role':role,'package':str(PRIVATE/'packages'/tag),'input':str(PRIVATE/'inputs'/f'{tag}.npz'),'expected':str(PRIVATE/'expected'/f'{tag}.npz'),'public_output':str(PUBLIC/f'{uid}.json')}
+        arm=item['arm_id'];seed=item['seed'];tag=f'{arm}_S{seed}';uid='R5_DEPLOY_'+tag.upper()+'_V1'
+        geometry=item['geometry'];bank=item['bank_wire'];geometry_meta=read_metadata(geometry['path'])
+        if geometry_meta['binding_sha256']!=item['geometry_binding_sha256'] or geometry_meta['source_seed']!=seed:
+            raise PermissionError('per-seed admitted geometry metadata differs')
+        role=item.get('role',data.get('role','INNER_SELECTION'))
+        cfg={'unit_id':uid,'stage':'verification','operation':'export_live','arm_id':arm,'seed':seed,
+             'service_variant':arm,'geometry':geometry,'geometry_binding_sha256':item['geometry_binding_sha256'],
+             'bank_wire':bank,'bank_slice':item.get('bank_slice','whole_role'),
+             'manifest':manifest_pin['path'],'manifest_sha256':manifest_pin['sha256'],
+             'checkpoint':item['checkpoint'],'checkpoint_sha256':item['checkpoint_sha256'],'role':role,
+             'package':str(PRIVATE/'packages'/tag),'input':str(PRIVATE/'inputs'/f'{tag}.npz'),
+             'expected':str(PRIVATE/'expected'/f'{tag}.npz'),'public_output':str(PUBLIC/f'{uid}.json')}
         for name in ('science_lock','diagnostic_lock'):
             if name in data:cfg[name]=data[name]['path'];cfg[name+'_sha256']=data[name]['sha256']
-        sources=[manifest_pin,{'path':item['checkpoint'],'sha256':item['checkpoint_sha256']},manifest['roles'][role]['features'],*code_pins(),*[data[k] for k in ('science_lock','diagnostic_lock') if k in data]]
-        unit=write_unit(cfg,sources,python=data.get('python',sys.executable),deps=data.get('deps',[]));unit.update({k:cfg[k] for k in ('arm_id','seed','release_variant','package','input','expected')});units.append(unit)
-    write_json(output,{'schema':'OB1-prepared-live-deployment-v1','units':units,'unit_count':len(units),'executed':False},private=True)
+        sources=[manifest_pin,{'path':item['checkpoint'],'sha256':item['checkpoint_sha256']},geometry,bank,
+                 manifest['roles'][role]['features'],*code_pins(),
+                 *[data[k] for k in ('science_lock','diagnostic_lock') if k in data]]
+        unit=write_unit(cfg,sources,python=data.get('python',sys.executable),deps=item.get('deps',data.get('deps',[])))
+        unit.update({k:cfg[k] for k in ('arm_id','seed','service_variant','package','input','expected')});units.append(unit)
+    write_json(output,{'schema':'CIS1-prepared-live-deployment-v1','units':units,'unit_count':len(units),'executed':False},private=True)
     return len(units)
 
 
 def prepare_restore(live_index,restore_root,reader_index,output,tag='LOCAL',python=sys.executable):
-    live=read_metadata(live_index);root=Path(restore_root).resolve();plan=read_metadata(root/'files/campaign/r6/CUSTODY_PLAN.private.json') if (root/'files/campaign/r6/CUSTODY_PLAN.private.json').exists() else read_metadata(root/'PLAN.private.json')
+    live=read_metadata(live_index);root=Path(restore_root).resolve();plan=read_metadata(root/'files/campaign/r5/CUSTODY_PLAN.private.json') if (root/'files/campaign/r5/CUSTODY_PLAN.private.json').exists() else read_metadata(root/'PLAN.private.json')
     remapping={e['path']:root/'files'/e['alias'] for e in plan['entries']}
     def remap(path):
         if path not in remapping:raise PermissionError('needed file absent from exact snapshot plan: '+Path(path).name)
         return remapping[path]
     readers=read_metadata(reader_index);units=[]
     for item in live['units']:
-        receipt=read_metadata(remap(item['public_output']));variant=item['release_variant'];identity=(item['arm_id'],item['seed'],variant)
-        choices=[r for r in readers['instances'] if (r['arm_id'],r['seed'],r.get('release_variant','full'))==identity]
+        receipt=read_metadata(remap(item['public_output']));variant=item['service_variant'];identity=(item['arm_id'],item['seed'])
+        choices=[r for r in readers['instances'] if (r['arm_id'],r['seed'])==identity]
         if len(choices)!=1 or not choices[0]['readers']:raise ValueError('unique frozen representative reader records required')
         package=remap(str(Path(item['package'])/'DEPLOYMENT.json')).parent;files=[{'path':str(package/'DEPLOYMENT.json'),'sha256':receipt['package_manifest_sha256']},{'path':str(package/'model_state.pt'),'sha256':receipt['model_sha256']}]
-        if receipt['projection']:files.append({'path':str(package/'projection.npz'),'sha256':receipt['projection']['sha256']})
+        files.append({'path':str(package/'geometry.json'),'sha256':receipt['geometry']['sha256']})
         rr=[]
         for record in choices[0]['readers']:
             record=dict(record)
             for key in ('path','expected'):record[key]=str(remap(record[key]))
             rr.append(record)
-        uid=f"R6_RESTORE_{tag}_{item['arm_id']}_S{item['seed']}_{variant}_V1".upper()
-        cfg={'unit_id':uid,'stage':'custody','operation':'restore','restore_root':str(root),'arm_id':item['arm_id'],'seed':item['seed'],'release_variant':variant,'package':str(package),'package_files':files,'package_manifest_sha256':receipt['package_manifest_sha256'],'input':str(remap(item['input'])),'input_sha256':receipt['input_sha256'],'expected':str(remap(item['expected'])),'expected_sha256':receipt['expected_sha256'],'environment_pins':receipt['environment_pins'],'readers':rr,'public_output':str(PUBLIC/f'{uid}.json')}
+        uid=f"R5_RESTORE_{tag}_{item['arm_id']}_S{item['seed']}_{variant}_V1".upper()
+        cfg={'unit_id':uid,'stage':'custody','operation':'restore','restore_root':str(root),'arm_id':item['arm_id'],'seed':item['seed'],'service_variant':variant,'package':str(package),'package_files':files,'package_manifest_sha256':receipt['package_manifest_sha256'],'input':str(remap(item['input'])),'input_sha256':receipt['input_sha256'],'expected':str(remap(item['expected'])),'expected_sha256':receipt['expected_sha256'],'environment_pins':receipt['environment_pins'],'readers':rr,'public_output':str(PUBLIC/f'{uid}.json')}
         sources=[*files,{'path':cfg['input'],'sha256':cfg['input_sha256']},{'path':cfg['expected'],'sha256':cfg['expected_sha256']},*code_pins(root/'files/code')]
         for r in rr:sources.extend({'path':r[k],'sha256':r[k+'_sha256']} for k in ('path','expected'))
-        unit=write_unit(cfg,sources,python=python,cwd=root/'files/code');unit.update(arm_id=item['arm_id'],seed=item['seed'],release_variant=variant);units.append(unit)
-    write_json(output,{'schema':'OB1-prepared-backup-only-numerical-replay-v1','units':units,'unit_count':len(units),'executed':False,'original_numerical_inputs_used':False},private=True);return len(units)
+        unit=write_unit(cfg,sources,python=python,cwd=root/'files/code');unit.update(arm_id=item['arm_id'],seed=item['seed'],service_variant=variant);units.append(unit)
+    write_json(output,{'schema':'CIS1-prepared-backup-only-numerical-replay-v1','units':units,'unit_count':len(units),'executed':False,'original_numerical_inputs_used':False},private=True);return len(units)
 
 
 def prepare_custody(config,output,python=sys.executable):
@@ -124,5 +141,5 @@ def prepare_reader_index(instances,output):
                     model_sha=original['model_files'][filename]
                     if model_sha!=entry['model_sha256']:raise PermissionError('reader alias model differs')
                 records.append({'path':str(model_dir/filename),'path_sha256':model_sha,'expected':str(root/'INNER_SCORES.npz'),'expected_sha256':freeze['score_sha256'],'view':view,'reader_name':name,'orientation':freeze['validation'][view][name]['orientation'],'score_field':reported_view+'__'+reported_name,'purpose':'representative_linear' if reported_name=='LR_C1' else 'ATT_frozen_primary_envelope_strongest'})
-        result.append({'arm_id':instance['arm_id'],'seed':instance['seed'],'release_variant':instance.get('release_variant','full'),'readers':records})
-    write_json(output,{'schema':'OB1-frozen-restore-reader-index-v1','instances':result,'reader_records':sum(len(x['readers']) for x in result),'scientific_outputs_or_labels_read':False},private=True);return result
+        result.append({'arm_id':instance['arm_id'],'seed':instance['seed'],'service_variant':instance['arm_id'],'readers':records})
+    write_json(output,{'schema':'CIS1-frozen-restore-reader-index-v1','instances':result,'reader_records':sum(len(x['readers']) for x in result),'scientific_outputs_or_labels_read':False},private=True);return result

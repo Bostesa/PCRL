@@ -71,9 +71,9 @@ def run(config):
             pin=uncached_hash(p)
             if pin!=e['sha256']:raise PermissionError('uncached plan source differs')
             entries.append({'alias':e['alias'],'path':str(p),'sha256':pin,'size_bytes':p.stat().st_size,'scope':scope})
-        plan={'schema':'OB1-exact-custody-plan-v1','status':'FROZEN','execution_commit':cfg['execution_commit'],'entries':entries,'scope':'only explicit new campaign artifacts, code closure, exact admitted source files; no historical walks or restore recursion','no_original_deletion':True}
+        plan={'schema':'CIS1-exact-custody-plan-v1','status':'FROZEN','execution_commit':cfg['execution_commit'],'entries':entries,'scope':'only explicit new campaign artifacts, code closure, exact admitted source files; no historical walks or restore recursion','no_original_deletion':True}
         binding=write_json(cfg['plan_output'],plan,private=True)
-        result={'schema':'OB1-custody-plan-receipt-v1','status':'PASS','plan_sha256':binding,'execution_commit':cfg['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':sum(e['size_bytes'] for e in entries),'scope':plan['scope'],'uncached_source_hashes':True}
+        result={'schema':'CIS1-custody-plan-receipt-v1','status':'PASS','plan_sha256':binding,'execution_commit':cfg['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':sum(e['size_bytes'] for e in entries),'scope':plan['scope'],'uncached_source_hashes':True}
     elif operation in ('snapshot','restore','off_device'):
         if operation=='snapshot':
             plan=json.loads(verify(cfg['plan'],cfg['plan_sha256']).read_text());entries=plan['entries'];source_plan=cfg['plan'];source_plan_sha=cfg['plan_sha256'];receipt_pin=None
@@ -93,7 +93,7 @@ def run(config):
             if index%128==0:guard()
             copy_exact(sources[e['alias']],target/'files'/alias_path(e['alias']),e['sha256'],e['size_bytes'])
         copy_exact(source_plan,target/'PLAN.private.json',source_plan_sha,Path(source_plan).stat().st_size)
-        result={'schema':'OB1-versioned-custody-receipt-v1','status':'PASS','operation':operation,'plan_sha256':source_plan_sha,'execution_commit':plan['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':total,'uncached_full_readback':True,'numerical_replay':'SEPARATELY_QUEUED','originals_intact':True,'same_device':same_device,'separate_filesystem_verified':operation=='off_device'}
+        result={'schema':'CIS1-versioned-custody-receipt-v1','status':'PASS','operation':operation,'plan_sha256':source_plan_sha,'execution_commit':plan['execution_commit'],'entries':_public_entries(entries),'file_count':len(entries),'bytes':total,'uncached_full_readback':True,'numerical_replay':'SEPARATELY_QUEUED','originals_intact':True,'same_device':same_device,'separate_filesystem_verified':operation=='off_device'}
         if receipt_pin:result['source_snapshot_receipt_sha256']=receipt_pin
         if operation=='snapshot':write_json(target/'SNAPSHOT_RECEIPT.json',result,private=True)
         elif operation=='off_device':copy_exact(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json',target/'SNAPSHOT_RECEIPT.json',receipt_pin,(Path(cfg['snapshot'])/'SNAPSHOT_RECEIPT.json').stat().st_size)
