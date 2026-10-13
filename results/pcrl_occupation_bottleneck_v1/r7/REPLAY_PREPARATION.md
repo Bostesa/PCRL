@@ -2,7 +2,7 @@
 
 R7 performs metadata and code work only. ROOT alone registers and launches every numerical verifier through the shared queue. No numerical files were opened, hashed, imported, fitted, or tested by R7.
 
-The pending `REPLAY_PATCH.diff` covers an invocation-local cache of exact bootstrap envelope inputs, a flat INNER truth filename guard before hashing, and direct selection of each registered epoch from the pinned saved checkpoint-index JSON list. The cache retains the original ordered reader loop, AUC routine, bootstrap draws, seed averaging, thresholds, family size, and interval arithmetic. Its key includes the exact truth-table SHA, truth column, score-table SHA, and ordered reader keys. No cached object is mutated by endpoint subtraction or sign multiplication. Numerical equivalence still requires ROOT's queued verification.
+The initial `REPLAY_PATCH.diff` covers an invocation-local cache of exact bootstrap envelope inputs, a flat INNER truth filename guard before hashing, and direct selection of each registered epoch from the pinned saved checkpoint-index JSON list. `FINAL_REPLAY_PATCH.diff` includes the complete final audit and reporting replay. The cache retains the original ordered reader loop, AUC routine, bootstrap draws, seed averaging, thresholds, family size, and interval arithmetic. Its key includes the exact truth-table SHA, truth column, score-table SHA, and ordered reader keys. No cached object is mutated by endpoint subtraction or sign multiplication.
 
 The patch was applied after ROOT reported all 72 reader banks and 66 trajectories complete. `FINAL_CODE_PINS.json` gives the current exact code bytes. No shared reporting or diagnostic lock is edited by R7. The prepatch config directory is retained as preparation evidence and must not be launched.
 
@@ -43,8 +43,12 @@ Use the actual completed ROOT report config path. Omit `--inference-dir` until b
 ROOT can verify the cache separately with the queue-only synthetic fixture:
 
 ```sh
-python -m results.pcrl_occupation_bottleneck_v1.r7.cache_equivalence_fixture \
-  --output results/pcrl_occupation_bottleneck_v1/r7/CACHE_EQUIVALENCE.json
+python -m results.pcrl_occupation_bottleneck_v1.r7.cache_equivalence_fixture_v2 \
+  --output results/pcrl_occupation_bottleneck_v1/r7/CACHE_EQUIVALENCE_REPLAY.json
 ```
 
 This fixture requires an authenticated verification queue slot before importing numerical libraries. It compares cached and uncached serialized results exactly, including repeated two-seed envelopes and reversed signs, and requires fewer AUC calls. R7 has not executed it.
+
+ROOT executed the original fixture and preserved its class-scope setup failure. ROOT's corrected `cache_equivalence_fixture_v2` passed as `OB_INDEPENDENT_CACHE_EQUIVALENCE_V2`: serialized cached and uncached results were exactly equal, with 12 versus 96 AUC calls. Use that corrected module for future execution; the first source and failed queue receipt remain retained.
+
+ROOT's `OB_INDEPENDENT_AUDIT_R7` and `OB_INDEPENDENT_C3_R7` completed. The audit replays 66 trajectories, 72 ATT banks, 18 geometry role pairs, 18 paths, 4 stored gradient summaries, and 4 independently regenerated gradient batches. All four regeneration checks report PASS. Source admission reports 84 nominal packages, 66 canonical packages, 20 exact source aliases, no missing package, and no INNER label bytes read or hashed. R7 inspected these JSON receipts only. Final INNER headline and inference replay remain required before campaign closeout.
