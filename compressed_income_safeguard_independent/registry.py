@@ -55,6 +55,8 @@ def validate_registry(registry):
     expected = membership()
     if registry.get('K')!=len(expected) or registry.get('replicates')!=2048:
         raise ValueError('direct trial requires K240 and 2048 shared draws')
+    if (registry.get('family')!='compressed_income_safeguard' or registry.get('bootstrap_seed')!=2026101401
+        or registry.get('alpha')!=.05):raise ValueError('new frozen combined interval procedure required')
     actual=registry['endpoints']
     def utility_key(e):
         return (e.get('service',e.get('arm_id')),e.get('seed'),e.get('task'),e.get('reference'),e.get('metric'))
@@ -73,11 +75,26 @@ def validate_registry(registry):
         if (e['threshold'],e['direction'])!=(cap,direction): raise ValueError('original criterion differs')
         if len(e['paired_seeds'])!=(1 if e['kind']=='mean_difference' else 2):
             raise ValueError('seed-specific usefulness and paired-mean recovery required')
+        if e['kind']=='mean_difference':
+            part=e['paired_seeds'][0];base=e['metric'].split('_')[0]
+            own=f'own__{e["task"]}__{base}';reference=f'REF_{e["reference"]}__{e["task"]}__{base}'
+            left,right=(reference,own) if base=='accuracy' else (own,reference)
+            table=f'metrics__{e.get("service",e.get("arm_id"))}__S{e["seed"]}'
+            if (part.get('source_seed'),part['left_table'],part['right_table'],part['left_key'],part['right_key'],part.get('sign',1))!=(e['seed'],table,table,left,right,1):
+                raise ValueError('utility direction, source seed or service vector differs')
         if e['kind']=='auc_envelope_difference':
+            if {p.get('source_seed') for p in e['paired_seeds']}!={0,1}:raise ValueError('two source seeds must remain paired')
             for part in e['paired_seeds']:
                 expected_keys=set(score_keys(e['view']))
                 if set(part['left_keys'])!=expected_keys or set(part['right_keys'])!=expected_keys:
                     raise ValueError('all applicable 18/54 score curves required')
+                seed=part['source_seed'];candidate=f'scores__CONSTRAINED__S{seed}';control=f'scores__{e["control"]}__S{seed}'
+                left,right=(control,candidate) if e['metric']=='pair_benefit' else (candidate,control)
+                if (part['left_table'],part['right_table'],part['truth_table'],part['truth_key'],part.get('sign',1))!=(left,right,'truth','sex',1):
+                    raise ValueError('recovery benefit/worsening sign or paired source differs')
+            required={('control_gates',f'{anchor}__S{seed}') for anchor in ('U0_FULL','RAW_FULL') for seed in (0,1)}
+            if {(d['table'],d['key']) for d in e.get('failure_dependencies',[])}!=required:
+                raise ValueError('all four mandatory real control gates required')
     return True
 
 

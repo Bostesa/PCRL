@@ -12,6 +12,9 @@ def audit(inputs):
         features[role]=inputs.arrays(m['roles'][role]['features'],{'row_id','unit','X','feature_names'})
     records=[];cache={};frozen=[]
     for package in cfg['packages']:
+        from .registry import ARMS
+        if package['arm_id'] in ARMS and not package.get('frozen_source_checkpoint'):
+            raise ValueError('continuation independent replay needs admitted frozen source')
         payload=torch_load(inputs.path(package['checkpoint']));names=payload['feature_names']
         contract=package['wire_contract'];binding=inputs.json(package['geometry_binding']) if package.get('geometry_binding') else payload.get('wire_binding')
         if payload.get('wire_binding') and payload['wire_binding']!=binding:

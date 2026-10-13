@@ -1,6 +1,6 @@
 """Independent source folding and actual compressed wire admission."""
 from __future__ import annotations
-import argparse,json
+import argparse,json,hashlib
 from pathlib import Path
 
 
@@ -16,6 +16,21 @@ def run(inputs):
         binding=receipt['geometry_bindings'][entry['unit_id']]
         # Some public inventories wrap bindings together with file pins.
         binding=binding.get('binding',binding)
+        canonical=dict(binding);digest=canonical.pop('binding_sha256',None)
+        if (binding.get('schema')!='CIS1-per-seed-geometry-v1'
+            or binding.get('campaign')!='pcrl_compressed_income_safeguard_v1'
+            or binding.get('source_seed')!=entry['seed']
+            or binding.get('checkpoint_sha256')!=entry['checkpoint_sha256']
+            or digest!=hashlib.sha256(json.dumps(canonical,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()):
+            raise ValueError('independent geometry identity/hash differs')
+        for i in (0,1):
+            hashes={}
+            for name in ('weight','bias'):
+                value=payload['model'][f'head.{i}.{name}'].detach().contiguous().numpy()
+                h=hashlib.sha256();h.update(str(value.dtype).encode());h.update(str(value.shape).encode());h.update(value.tobytes());hashes[name]=h.hexdigest()
+                close(value,binding['heads'][i][name],'independent public head '+name,0.)
+            head_digest=hashlib.sha256(json.dumps(hashes,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+            if binding['head_tensor_sha256'][i]!=head_digest:raise ValueError('independent geometry head bytes differ')
         stem='U0' if entry['unit_id'].startswith('U0_') else 'RAW'
         variants=(('full','full'),('head_row_space','head_row_space')) if stem=='U0' else (
             ('full','full'),('head_row_space','full'),('head_row_space','head_row_space'))

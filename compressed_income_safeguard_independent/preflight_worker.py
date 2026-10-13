@@ -90,6 +90,10 @@ def main():
     from .replay import Inputs
     parser=argparse.ArgumentParser();parser.add_argument('--spec',required=True);args=parser.parse_args()
     inputs=Inputs(args.spec);result=fixtures();inputs.guard(stage='verification')
+    if inputs.cfg.get('endpoint_registry'):
+        from .registry import validate_registry
+        validate_registry(inputs.json(inputs.cfg['endpoint_registry']))
+        result['frozen_K240_registry_validation']='PASS'
     output=Path(inputs.cfg['public_output']);output.parent.mkdir(parents=True,exist_ok=True)
     with output.open('x') as stream:json.dump(result,stream,sort_keys=True,indent=2,allow_nan=False);stream.write('\n')
     print(json.dumps({'status':result['status'],'test_count':result['test_count']}))

@@ -32,11 +32,11 @@ def run(inputs):
             if wire.shape!=(len(people['unit']),17+2*classes) or not np.isfinite(wire).all() or not np.array_equal(wire[:,-1],p.argmax(1)):
                 raise ValueError('actual own output wire convention')
             y=truth[task][task];v=vectors(y,p);actual=metrics(y,p);reference_records={}
-            for metric,value in v.items():metric_table[f'{task}__{metric}']=value
+            for metric,value in v.items():metric_table[f'own__{task}__{metric}']=value
             for reference in ('U0','Ucal'):
                 reference_p=refs[seed][f'{reference}_{i}'];baseline=metrics(y,reference_p);delta=task_deltas(actual,baseline)
                 reference_records[reference]={'metrics':baseline,'difference':delta}
-                for metric,value in vectors(y,reference_p).items():metric_table[f'{reference}__{task}__{metric}']=value
+                for metric,value in vectors(y,reference_p).items():metric_table[f'REF_{reference}__{task}__{metric}']=value
                 for metric,value in delta.items():
                     clauses.append({'service':service,'seed':seed,'task':task,'reference':reference,'metric':metric,
                                     'point':value,'threshold':CAPS[metric],'point_pass':value<=CAPS[metric]})

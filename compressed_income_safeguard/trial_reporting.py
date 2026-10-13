@@ -113,8 +113,9 @@ def validate_registries(registries):
 
 def nominate(records, starts):
     """Metadata arithmetic only; never consult INNER or U0/Ucal FIT gates."""
-    starts = {r['seed']: r for r in starts}
-    if set(starts) != {0, 1}:
+    start_records = list(starts)
+    starts = {r['seed']: r for r in start_records}
+    if len(start_records) != 2 or set(starts) != {0, 1}:
         raise ValueError('both exact unchanged RAW_HYBRID starts required')
     identities = [(r['arm_id'], r['seed'], r['epoch']) for r in records]
     required = {(a, s, e) for a in ARMS for s in (0, 1) for e in EPOCHS}
@@ -317,6 +318,8 @@ def report_worker(spec_path):
     for bank in packages:
         service = bank.get('service', bank.get('arm_id')); seed = bank['seed']
         receipt = json.loads(verify(bank['freeze']['path'], bank['freeze']['sha256']).read_text())
+        if bank['freeze']['sha256'] not in lock.get('reader_freeze_sha256', []):
+            raise PermissionError('report package bank absent from canonical reporting lock')
         if receipt.get('status') != 'FROZEN_COMPLETE' or receipt.get('source_seed') != seed or set(receipt.get('readers', [])) != set(READERS):
             raise PermissionError('complete frozen new-trial bank identity differs')
         for field, receipt_field in (('release', 'inner_release_sha256'), ('scores', 'score_sha256')):
@@ -490,7 +493,7 @@ def inference_worker(spec_path):
 def fixture_worker(spec_path):
     """Data-free registry boundaries plus inherited queued numerical fixture."""
     from .evaluation_worker import queue_config
-    active, cfg, verify, guard = queue_config(spec_path, 'attacks')
+    active, cfg, verify, guard = queue_config(spec_path, 'admission')
     roster = [{'service': name, 'seed': seed} for name in SERVICES for seed in (0, 1)]
     registry = build_registries(roster)[FAMILY]
     checks = {'K240_derived': len(registry['endpoints']) == K,
