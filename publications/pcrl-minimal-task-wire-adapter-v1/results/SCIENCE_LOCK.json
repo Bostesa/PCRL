@@ -1,0 +1,607 @@
+{
+  "ATT_labels_opened": false,
+  "FIT2_outcomes_opened_by_campaign": false,
+  "INNER_truth_accessed": false,
+  "adapter_binding_values": {
+    "0": {
+      "head_norms": {
+        "final_map_64_to_16_frobenius": 4.042723632485673,
+        "income_rank": 1,
+        "occupation_centered_bias_norm": 5.7826891387650505,
+        "occupation_centered_singular_values": [
+          1.1086172383099244,
+          1.078308419719677,
+          0.9311811812371528,
+          0.779269432819569,
+          0.049755566714719736,
+          1.0875287422732063e-16
+        ],
+        "occupation_centered_weight_frobenius": 1.9668797845197674,
+        "occupation_head_weight_frobenius": 1.9668801589252414,
+        "occupation_rank": 5
+      },
+      "hidden_norms": {
+        "fraction_zero_coordinates": 0.2707375525775213,
+        "max_norm": 11.876786050820867,
+        "mean_squared_norm": 21.381792999584647,
+        "median_norm": 4.267251054657137,
+        "min_norm": 2.5800816819843972,
+        "per_coordinate_std_max": 0.4603904093095701,
+        "per_coordinate_std_min": 0.0,
+        "rms_per_coordinate": 0.5780056363207111,
+        "rows": 10223,
+        "rule": "s = max(1, sqrt(mean_x ||h64(x)||^2 / 64)) over the authorized full task fitting pool (UPDATE+GUARD), float64",
+        "scale": 1.0
+      },
+      "rank": 5,
+      "scale": 1.0,
+      "trainable_parameters": 325
+    },
+    "1": {
+      "head_norms": {
+        "final_map_64_to_16_frobenius": 3.9651402851777946,
+        "income_rank": 1,
+        "occupation_centered_bias_norm": 5.464432111051976,
+        "occupation_centered_singular_values": [
+          1.3399729466703514,
+          1.1642383833050223,
+          1.0819943497753883,
+          0.9762657392975747,
+          0.10889061767681843,
+          1.0250474670579506e-16
+        ],
+        "occupation_centered_weight_frobenius": 2.29926993723209,
+        "occupation_head_weight_frobenius": 2.2992703997585884,
+        "occupation_rank": 5
+      },
+      "hidden_norms": {
+        "fraction_zero_coordinates": 0.24737418076885453,
+        "max_norm": 9.312447430141301,
+        "mean_squared_norm": 16.115612619726793,
+        "median_norm": 3.757892887071261,
+        "min_norm": 2.4986415505892436,
+        "per_coordinate_std_max": 0.3860635543030594,
+        "per_coordinate_std_min": 0.0,
+        "rms_per_coordinate": 0.5018031956686119,
+        "rows": 10223,
+        "rule": "s = max(1, sqrt(mean_x ||h64(x)||^2 / 64)) over the authorized full task fitting pool (UPDATE+GUARD), float64",
+        "scale": 1.0
+      },
+      "rank": 5,
+      "scale": 1.0,
+      "trainable_parameters": 325
+    }
+  },
+  "adapter_bindings": {
+    "0": "088bda167ced14c2441b5384765a3d0cf25d4176b9e24c73cb9a9356d1242557",
+    "1": "b40beae26f36fe2aacebbc1c28e1fa44c625805a7c98114f382ca3a7145fe43c"
+  },
+  "admission_sha256": "2d19936be72f40e9a3f6c1dbe4da76b617d0cc72336af62564163d91f027f178",
+  "admission_status": "PASS",
+  "attack_slate": {
+    "control_criteria": {
+      "null_exact": "constant score AUC == 0.5",
+      "planted": "planted envelope >= 0.99",
+      "shuffle": "max two-sided shuffled envelope vs group-permuted INNER SEX (INNER_NULL_SEED) <= 0.60"
+    },
+    "controls": "per seed x view (r1,r2,pair): full 18-reader banks with group-permuted ATT SEX (ATT_NULL_SEED) and with an appended true-SEX bit (planted); diagnostic-only RAW_PROJ wires",
+    "envelope": "max over all 18 (pair: 18 + 36 ignore aliases), reselected inside each bootstrap draw",
+    "fit_accounting": {
+      "cap": 1500,
+      "controls_per_seed": 216,
+      "independent_refits_max": 36,
+      "per_seed": 594,
+      "r1_per_seed": 18,
+      "service_r2_pair_per_seed": 360,
+      "total_direct": 1188
+    },
+    "note": "Inherited single-reader SHUFFLED/PLANTED controls expanded to full 18-reader control banks as the handoff accounts (~216 control fits); r1 aliasing reduces direct fits from the 1080 upper count.",
+    "r1_alias": "income wire identical in every service: fitted once per seed on RAW_PROJ, alias verified by exact ATT/INNER wire hash in each service unit",
+    "readers": "inherited complete-view 18 (9 base attacks.READERS + 9 extended LOGITS_OUTPUT/DECISION/CONFIDENCE x LR/MLP/HGB), registered K18 slate",
+    "service_slots_per_seed": 10,
+    "services_per_seed": [
+      "J_TRUST",
+      "J_FREE",
+      "L_TRUST",
+      "L_FREE",
+      "TASK_TRUST",
+      "RAW_PROJ",
+      "RAW_HYBRID",
+      "PRIOR_SEPARATE_GUARD_E5",
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5",
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ"
+    ],
+    "training": "ATT train groups (inherited split salt), SEX; orientation on ATT validation groups only; INNER label-free scoring",
+    "views": [
+      "r1 income21",
+      "r2 occupation29",
+      "pair 50 with exact IGNORE_r1/IGNORE_r2 local aliases"
+    ]
+  },
+  "bootstrap": {
+    "alpha": 0.05,
+    "draws": "default_rng(seed).integers(0,G,(B,G)); row multiplicity by group; shared across services and both seeds",
+    "groups": "numpy.unique(INNER unit) 2234 groups",
+    "interval": "point +/- Student-t(1-alpha/(2K),G-1) * bootstrap SD(ddof=1)",
+    "note": "seed 2026101301 is the registered K18 complete-view family convention (occupation-bottleneck r8); the compressed-income K240 family used 2026101401",
+    "replicates": 2048,
+    "seed": 2026101301,
+    "sidedness": "fixed per endpoint as above"
+  },
+  "campaign": "pcrl_minimal_task_wire_adapter_v1",
+  "code_sha256": {
+    "compressed_income_safeguard/reader_specs.py": "600d22b8886a00d2939dc859ba546afc4357178cd251f2aacbe647a3bf77463d",
+    "compressed_income_safeguard/readers.py": "f3583c820b630eaed3a2c72daca4d85bcf8f78f35177cc089ed6754a5d1d869d",
+    "minimal_task_wire_adapter/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "minimal_task_wire_adapter/adapter.py": "356f2dadac7fc8d96b253bc72726567776c2873819bd51eb90a9d3d7dc2b88d0",
+    "minimal_task_wire_adapter/admission.py": "3a55e0f13dc3d4644f8d20acb235e54581708a6dc726f5a5d80f53191b0c5a1d",
+    "minimal_task_wire_adapter/admission_worker.py": "2ab0e8ebbb05f1a40e81657a7236d8481da8943524573fbc4b217057753d98b3",
+    "minimal_task_wire_adapter/evaluation_queue.py": "2dc4ec7157d41a98d8e717fce5d90acff53619916138b2a1d85a10e1f1f952f3",
+    "minimal_task_wire_adapter/geometry.py": "2f97eea7e79988818980bf3120c75a7cea8bc556a2dfd52947031c2411cbeb0b",
+    "minimal_task_wire_adapter/guard.py": "15b3b57b684db43fc9df334a561d21453c0696506ff4c4c91bd4f688287b265e",
+    "minimal_task_wire_adapter/host_queue.py": "51206989970cfe8c9df0c8e93521657c0bbf905e179b4b06d8619e127f29635f",
+    "minimal_task_wire_adapter/reader_worker.py": "93e6c62a25fe30e4e355c669941b8a28ea0a08e686c92f4d9c8674ab21897a0d",
+    "minimal_task_wire_adapter/recipe.py": "58761804f981902d0019e9a7c064292f03adf1a8a2cd1814e1c1ab4224006127",
+    "minimal_task_wire_adapter/report_worker.py": "b68ed843c49a055affea1a1b1576ada20d3d1230ec2ddbac9ff3d2af6c9a34a3",
+    "minimal_task_wire_adapter/scheduler.py": "b1eccc442bf522dcbe1b295f7d8b87ee436ba35378e6b336349fa051792e3aaf",
+    "minimal_task_wire_adapter/services.py": "e0aa81b8acac9ac4de7a821736cac05aecc1438fac0b81a13bf3a62d5facc409",
+    "minimal_task_wire_adapter/test_engineering.py": "b6da4f983c099190e621a6632b2b163d949aee561f3f6439cc99f8b2a196ae9a",
+    "minimal_task_wire_adapter/train_worker.py": "5fe0ed89fa9796387c61b8d495991cecab918e1e2a140775e10692439c2e55d8",
+    "minimal_task_wire_adapter/utility_worker.py": "02204f576a253ba1ad2a3c946f3b4ad8230b5de8161857768195e34872cc8958",
+    "minimal_task_wire_adapter/wires.py": "b917545d0a0b1e684b9e4e896bbb060009907eae5a0bba251a0cfe0d68c301a5",
+    "separate_pool_utility_guard/admission.py": "a6a2dcb05c7cfddd09e72a057b6235cf86efd14523018603d703a863dc909b8b",
+    "separate_pool_utility_guard/geometry.py": "2f97eea7e79988818980bf3120c75a7cea8bc556a2dfd52947031c2411cbeb0b",
+    "separate_pool_utility_guard/recipe.py": "8438c91d1c1cab58d6bd6d87d54b8521b33d92441c0781ffd00dea56476cb9f2",
+    "separate_pool_utility_guard/roles_worker.py": "63a217e1f318880c318621d4c35315018a0a079af65ced3c9caa28d53b14e995",
+    "separate_pool_utility_guard/scheduler.py": "abebe25fe59f2f46c6a500c467770304516ea6f481067699e20e2c4aa9c6c98d",
+    "separate_pool_utility_guard/wires.py": "5b0a09a3ca4263dd8bbd5a197395b35f42eebceb1edc2891cac904cc9dfe32a3",
+    "task_conditioned_representation/attacks.py": "bdcabb20ba2fa588f741f0bc76fa750b2d77858994b3a7b4c5e49c5d88e5dd20",
+    "task_conditioned_representation/inference.py": "b034299d036408909221187cca49f1c87f96a47f0d0a5eb869ec70b1bbf29a51",
+    "task_conditioned_representation/kernels.py": "cffc349bf27f06f9a318c629ede4f6c46b5834973da8ceea848d8e73ddde42ca",
+    "task_conditioned_representation/models.py": "752d49f7eb6b8f1592fdaee7a114140daef4936f32450c6b4a31304ee86775af",
+    "task_conditioned_representation/useful_service.py": "f771b829d2e358a4b790f77f4df94440211fed802be24fc61d6bf331bd2c73df"
+  },
+  "completion_labels": [
+    "INCOMPLETE_EXECUTION_OR_VERIFICATION",
+    "NO_POINT_FEASIBLE_NOMINEE_WITH_PRIVACY_DIAGNOSIS",
+    "POINT_FEASIBLE_NO_COMPETITIVE_CRITERION",
+    "POINT_FEASIBLE_PRIVACY_LEAD_UTILITY_UNRESOLVED",
+    "DEVELOPMENT_BANK_CRITERION_ESTABLISHED"
+  ],
+  "compute_plan": {
+    "ceilings": {
+      "cloud_usd": 0,
+      "cpu_hours": 20,
+      "elapsed_hours": 10
+    },
+    "reserve_for_readers_verification_restore": ">=25% (scheduler protects 3h protection/attacks and 3h verification)",
+    "units": {
+      "FIT2_utility": 1,
+      "custody": 2,
+      "deployment": 1,
+      "independent_verification": "agent-owned units",
+      "readers": "per seed: 1 r1 + 10 service + 1 controls",
+      "report": 1,
+      "reporting_fixture": 1,
+      "selection_lock": "metadata",
+      "training": 2
+    }
+  },
+  "dated_utc": "2026-10-14T12:36:34+00:00",
+  "diagnostic_checkpoints": {
+    "0": {
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5": "d9ffe2bfb55c04167b28b1869f158fdb09d32bf90d87b7dd83c9e4f8b8709614",
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ": {
+        "checkpoint": "d9ffe2bfb55c04167b28b1869f158fdb09d32bf90d87b7dd83c9e4f8b8709614",
+        "ownproj_binding_sha256": "06b57d9c47cd78635e686d89aac34e80672ede41c5308d03331c4a389dae1bb3",
+        "ownproj_file_sha256": "4aabd62c1ab74aef64a6bc91b8c416b40aad99dba65cd043fac9751922c30096"
+      },
+      "PRIOR_SEPARATE_GUARD_E5": "7941097f88f667e7cd87f962fde04d942475746d952efcb1279845a490a667c7",
+      "RAW_HYBRID": "start checkpoint, inherited RAW_HYBRID variant",
+      "RAW_PROJ": "start checkpoint, inherited RAW_PROJ variant = adapter zero witness"
+    },
+    "1": {
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5": "d9c71344924d20de7e1928a3ebb7ab6bab15ad4f39ab28e1b0250a46338998cf",
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ": {
+        "checkpoint": "d9c71344924d20de7e1928a3ebb7ab6bab15ad4f39ab28e1b0250a46338998cf",
+        "ownproj_binding_sha256": "2f480bb09adf492bbf56b216966b02e5cef5e305d9dda368ce03980348e89010",
+        "ownproj_file_sha256": "7613997bf4cfabef7897a05bd396b715aaada0eeb225ec993b0504558fbad7fe"
+      },
+      "PRIOR_SEPARATE_GUARD_E5": "a4262cc617d3be35a90b5e77361ce451841a01ef465ad0bc79ac9ae5fa45eb73",
+      "RAW_HYBRID": "start checkpoint, inherited RAW_HYBRID variant",
+      "RAW_PROJ": "start checkpoint, inherited RAW_PROJ variant = adapter zero witness"
+    }
+  },
+  "diagnostic_family": {
+    "K": 45,
+    "contrasts": [
+      {
+        "candidate": "PRIOR_SEPARATE_GUARD_E5",
+        "control": "RAW_HYBRID",
+        "id": "D01_SEPARATE_vs_RAW_HYBRID",
+        "question": "did the prior separate guard lower independent recovery vs its unchanged start"
+      },
+      {
+        "candidate": "PRIOR_GLOBAL_UPDATE_GUARD_E5",
+        "control": "RAW_HYBRID",
+        "id": "D02_GLOBAL_vs_RAW_HYBRID",
+        "question": "did the prior global guard lower independent recovery vs its unchanged start"
+      },
+      {
+        "candidate": "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ",
+        "control": "PRIOR_GLOBAL_UPDATE_GUARD_E5",
+        "id": "D03_GLOBALPROJ_vs_GLOBAL",
+        "question": "residual-feature removal at fixed changed predictions"
+      },
+      {
+        "candidate": "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ",
+        "control": "RAW_PROJ",
+        "id": "D04_GLOBALPROJ_vs_RAW_PROJ",
+        "question": "changed predictions at fixed head-row-space projection"
+      },
+      {
+        "candidate": "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ",
+        "control": "RAW_HYBRID",
+        "id": "D05_GLOBALPROJ_vs_RAW_HYBRID",
+        "question": "changed predictions plus residual removal combined"
+      },
+      {
+        "candidate": "RAW_PROJ",
+        "control": "RAW_HYBRID",
+        "id": "D06_RAW_PROJ_vs_RAW_HYBRID",
+        "question": "already-known compression (removal of occupation residual at unchanged predictions)"
+      },
+      {
+        "candidate": "J_TRUST",
+        "control": "RAW_PROJ",
+        "id": "D07_J_TRUST_vs_RAW_PROJ",
+        "question": "J_TRUST attacked checkpoint vs unchanged RAW_PROJ"
+      },
+      {
+        "candidate": "J_FREE",
+        "control": "RAW_PROJ",
+        "id": "D08_J_FREE_vs_RAW_PROJ",
+        "question": "J_FREE attacked checkpoint vs unchanged RAW_PROJ"
+      },
+      {
+        "candidate": "L_TRUST",
+        "control": "RAW_PROJ",
+        "id": "D09_L_TRUST_vs_RAW_PROJ",
+        "question": "L_TRUST attacked checkpoint vs unchanged RAW_PROJ"
+      },
+      {
+        "candidate": "L_FREE",
+        "control": "RAW_PROJ",
+        "id": "D10_L_FREE_vs_RAW_PROJ",
+        "question": "L_FREE attacked checkpoint vs unchanged RAW_PROJ"
+      },
+      {
+        "candidate": "TASK_TRUST",
+        "control": "RAW_PROJ",
+        "id": "D11_TASK_TRUST_vs_RAW_PROJ",
+        "question": "TASK_TRUST attacked checkpoint vs unchanged RAW_PROJ"
+      },
+      {
+        "candidate": "J_TRUST",
+        "control": "J_FREE",
+        "id": "D12_J_TRUST_vs_J_FREE",
+        "question": "functional-trust package at joint objective"
+      },
+      {
+        "candidate": "J_TRUST",
+        "control": "L_TRUST",
+        "id": "D13_J_TRUST_vs_L_TRUST",
+        "question": "coalition-aware adaptation at fixed trust"
+      },
+      {
+        "candidate": "L_TRUST",
+        "control": "L_FREE",
+        "id": "D14_L_TRUST_vs_L_FREE",
+        "question": "trust constraint at local objective"
+      },
+      {
+        "candidate": "J_TRUST",
+        "control": "TASK_TRUST",
+        "id": "D15_J_TRUST_vs_TASK_TRUST",
+        "question": "applied joint privacy term at fixed trust and task objective"
+      }
+    ],
+    "metric": "recovery reduction AUC_control - AUC_candidate (complete envelope), paired-seed mean; per-seed values reported",
+    "separate_from_primary": true,
+    "status": "REDUCTION_ESTABLISHED if lower>0; INCREASE_ESTABLISHED if upper<0; else UNRESOLVED"
+  },
+  "diagnostic_rule": "fixed by the handoff, not selected; manifests locked before any reader fit; outcomes withheld from training/selection; descriptive diagnosis only",
+  "engineering_tests": {
+    "admission_superseded": [
+      "MTA_ADMISSION_V1 (imported separate-pool queue guard; rebound wires module to this queue; no data read)"
+    ],
+    "math_review": "MATH_REVIEW.md: no blockers; 3 should-fix applied before this lock",
+    "result": "13 passed",
+    "superseded": [
+      "MTA_ENGINEERING_TESTS_V1 (test expected exact-zero KL gradient; actual round-off 1e-19; test corrected, code unchanged)",
+      "MTA_ENGINEERING_TESTS_V2/V3 (passed; superseded by math-review fixes: zero-step status labels, QP fallback counts, degenerate-row solver tests)"
+    ],
+    "unit": "MTA_ENGINEERING_TESTS_V4"
+  },
+  "exposure_statement": "This campaign is exploratory development on repeatedly used Adult people. Source models already trained on all FIT. The previous FIT2 validation outcomes and study-level results are exposed. This successor was designed in light of those failures. Excluding FIT2 from this continuation's optimization does not make it fresh confirmation. Intervals are conditional on the fitted models and readers and do not account for the full adaptive research history.",
+  "forecasts": {
+    "F1_nonzero_J_TRUST_checkpoint_passes_both_seed_original_point_utility_on_FIT2": {
+      "probability": 0.55,
+      "reason": "KL<=0.001 keeps the function near the start, but seed-0 FIT2 occupation headroom vs U0 is only ~0.0044 NLL and ~0.0023 Brier, so modest held-out drift could still break a clause."
+    },
+    "F2_trust_improves_heldout_utility_relative_to_J_FREE": {
+      "probability": 0.75,
+      "reason": "J_FREE can spend the full +0.004 fitting NLL budget on privacy-driven changes that generalize worse, while the KL anchor limits that movement."
+    },
+    "F3_J_TRUST_beats_RAW_PROJ_by_required_coalition_margin": {
+      "probability": 0.04,
+      "reason": "A 325-parameter correction confined to KL<=0.001 is unlikely to cut coalition AUC by a simultaneously-bounded >0.020 when predictions themselves carry most of the signal."
+    },
+    "F4_J_TRUST_beats_strongest_eligible_local_control": {
+      "probability": 0.05,
+      "reason": "Coupling the pair critic adds little when income is frozen and rank one; local and joint adapters should move similarly within the same trust region."
+    },
+    "F5_old_GLOBAL_UPDATE_GUARD_lowers_independent_recovery_vs_RAW_HYBRID": {
+      "probability": 0.3,
+      "reason": "Its accepted updates changed occupation predictions and its own critics, but fresh nonlinear readers on the complete hybrid wire usually recover what training critics miss; a simultaneously established reduction is unlikely."
+    },
+    "note": "Predictions, not gates; never revised after outcomes."
+  },
+  "geometry_bindings": {
+    "0": "75ad1421b66b8a2a915053242e19d0e415a4e91fa71c356806ce78e6a58be179",
+    "1": "2a3a667c647590053bd8462bd10c5e3dafdb8924694bcd85ce90194dd86935c4"
+  },
+  "owner": "ROOT",
+  "primary_family": {
+    "K_rule": "24 candidate INNER utility clauses + 3 privacy endpoints per eligible comparison (<=39); K=0 if no J_TRUST nominee",
+    "candidate": "J_TRUST nominee",
+    "comparators": [
+      "RAW_PROJ",
+      "TASK_TRUST",
+      "L_TRUST",
+      "L_FREE",
+      "J_FREE"
+    ],
+    "control_gate_failure": "privacy endpoints NOT_ESTIMABLE (scoring validity), not protection",
+    "privacy_endpoints": {
+      "pair": "benefit AUC_control-AUC_candidate, paired-seed mean, lower simultaneous bound > 0.020",
+      "r1": "income excess AUC_candidate-AUC_control, upper bound <= 0.010",
+      "r2": "occupation excess, upper bound <= 0.010"
+    },
+    "roster_rule": "comparators point-eligible at FIT2 selection (RAW_PROJ: its 24 FIT2 clauses; arms: POINT_FEASIBLE_NOMINEE); fixed at SELECTION_LOCK, never shrunk",
+    "statuses": [
+      "PASS",
+      "ESTABLISHED_VIOLATION",
+      "UNRESOLVED",
+      "NOT_ESTIMABLE"
+    ],
+    "utility_endpoints": "per seed, task, reference, metric: mean INNER difference (accuracy loss, NLL excess, summed Brier excess), upper simultaneous bound <= cap"
+  },
+  "protocol_seal_sha256": "74be75a4f2f34a500902bdc052fe50156eca66247540b2274938a2efa9404821",
+  "recipe": {
+    "QP_tolerance": 1e-10,
+    "adapter_contract": {
+      "campaign": "pcrl_minimal_task_wire_adapter_v1",
+      "class_order": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "decision_rule": "argmax probabilities; first class in fixed source order",
+      "hidden_layer": "enc.1 modules 0..3 (Linear 83->64, ReLU, Linear 64->64, ReLU): final 64-d activation before enc.1.4 (Linear 64->16)",
+      "income": "admitted factorized RAW income projection z Bi^T Bi with frozen own head (byte-identical RAW_PROJ income wire)",
+      "never_transmitted": [
+        "h64",
+        "original z16",
+        "discarded residual",
+        "q0 alongside q",
+        "teacher probabilities",
+        "unprotected task output",
+        "per-person adapter state",
+        "labels",
+        "row ids",
+        "fine ids"
+      ],
+      "nominal_layout": "projected representation(16), own centered logits(K), own probabilities(K), own decision(1)",
+      "occupation": "z_release = (q0 + hbar64 R^T + b_res) B with q0 = float64(z0) B^T; frozen folded own head outputs",
+      "role_forward_batch_size": 1024,
+      "scale_rule": "s = max(1, sqrt(mean_x ||h64(x)||^2 / 64)) over the authorized full task fitting pool (UPDATE+GUARD), float64",
+      "schema": "MTA1-task-wire-adapter-contract-v1",
+      "widths": [
+        21,
+        29,
+        50
+      ]
+    },
+    "arm_rules": {
+      "J_FREE": {
+        "privacy": "joint",
+        "trust": false
+      },
+      "J_TRUST": {
+        "privacy": "joint",
+        "trust": true
+      },
+      "L_FREE": {
+        "privacy": "local",
+        "trust": false
+      },
+      "L_TRUST": {
+        "privacy": "local",
+        "trust": true
+      },
+      "TASK_TRUST": {
+        "privacy": null,
+        "trust": true
+      }
+    },
+    "arms": [
+      "J_TRUST",
+      "J_FREE",
+      "L_TRUST",
+      "L_FREE",
+      "TASK_TRUST"
+    ],
+    "backtrack_fractions": [
+      1.0,
+      0.5,
+      0.25,
+      0.125
+    ],
+    "batch_size": 256,
+    "budgets": {
+      "anchor": "exact zero-residual start; never reset",
+      "correct_rule": "correct >= start_correct - floor(0.005*N)",
+      "disclosure": "outcome-informed conservative internal development budgets, not the original criterion or a bound",
+      "nll_increase": 0.004,
+      "pool": "full 10223-row task pool",
+      "summed_brier_increase": 0.002
+    },
+    "campaign": "pcrl_minimal_task_wire_adapter_v1",
+    "checkpoint_epochs": [
+      0,
+      1,
+      3,
+      5,
+      10
+    ],
+    "critic_bank_all_arms": true,
+    "critic_kinds": [
+      "linear",
+      "mlp32",
+      "mlp64"
+    ],
+    "critic_learning_rate": 0.003,
+    "critic_optimizer": "Adam",
+    "critic_updates_per_model_step": 5,
+    "critic_views": [
+      "occupation_full29",
+      "aligned_pair_projected_income21_occupation29"
+    ],
+    "critics_continue_across_model_rejection": true,
+    "epochs": 10,
+    "finite_acceptance": "recompute full-pool NLL, Brier, correct (and K for TRUST) after real update; NLL/Brier/K <= limit + 1e-10",
+    "finite_step_tolerance": 1e-10,
+    "full_pool_chunk_rows": 1024,
+    "full_pool_reduction": "float64 sum of per-chunk row-sum losses in fixed row order, divided by pool rows",
+    "income": "bitwise frozen factorized RAW income projection; checked after every update and in every wire",
+    "initialization": "R = 0, b_res = 0 exactly (zero-residual witness = RAW_PROJ)",
+    "learning_rate": 0.01,
+    "maximum_actual_step_norm": 0.01,
+    "maximum_coefficient": 10000.0,
+    "nll_probability_floor": 1e-12,
+    "no_sweeps": "no lambda, KL, temperature, capacity, head architecture, mask, calibration, controller or refitted-critic family",
+    "normalization": {
+      "coefficients": "lambda_J from joint risk shared by J_TRUST/J_FREE; lambda_L from local risk shared by L_TRUST/L_FREE; TASK_TRUST none",
+      "draws": 16,
+      "statistic": "median gradient norm over draws at matched warm zero-residual state",
+      "target_ratio": 3.0,
+      "task_gradient": "shared UPDATE-minibatch plus whole-GUARD task objective",
+      "unavailable_if": "median nonfinite or <=1e-12, or coefficient > 1e4; recorded, no search"
+    },
+    "normalization_min_median_norm": 1e-12,
+    "optimizer": "SGD_no_momentum_actual_displacement",
+    "privacy_movement": {
+      "contribution_tolerance": "max(1e-10, 10*repeat-proposal max abs noise)",
+      "counterfactual_rule": "at saved pre-step state remove applied privacy gradient; identical task gradient, pool metrics/gradients, budgets, solver and ladder",
+      "counterfactual_scope": "J_TRUST first eight accepted nonzero updates per seed, in update order",
+      "probe": "inherited fixed 512-row UPDATE probe (label-independent SHA256 order; same rows both seeds)",
+      "saved_state": "pre-step R/b, minibatch rows, critic state, references, gradients for verifier re-solve",
+      "wire_tolerance": "max(1e-10, 10*measured repeat-forward max abs noise) per coordinate block; any decision change counts"
+    },
+    "privacy_objectives": {
+      "joint": "risk(occupation29) + risk(pair50)",
+      "local": "risk(occupation29)"
+    },
+    "proposal": "p = -0.01*(g_task + lambda_arm*g_privacy_arm); TASK_TRUST applies g_privacy = 0",
+    "proposals_per_epoch": 32,
+    "qp": "min ||d-p||^2 s.t. g_NLL.d<=s_NLL, g_Brier.d<=s_Brier, [g_K.d<=s_K for TRUST], ||d||<=0.01; exact KKT active-set enumeration",
+    "reference_pool": "UPDATE",
+    "reference_refresh": "initial_and_each_epoch",
+    "reference_rows": 256,
+    "reference_scale_floors": "inherited DiagonalReference: max(raw std, max(initial*1e-8, 1e-12))",
+    "roles": {
+      "critic_data": "UPDATE rows and UPDATE SEX only (GUARD has no SEX export)",
+      "excluded_from_training": [
+        "FIT fold 2",
+        "ATT",
+        "INNER"
+      ],
+      "task_pool": "inherited UPDATE (8180) + GUARD (2043) = 10223 rows; FIT folds 0/1"
+    },
+    "schema": "MTA1-minimal-task-wire-adapter-recipe-v1",
+    "sensitive_risk_per_view": "1 - min(critic CEs, SEX entropy)/SEX entropy",
+    "slack_rule": "slack < -1e-10 is an infeasible current state (zero step); [-1e-10,0) resolved to 0 and logged",
+    "source_epoch": 5,
+    "source_family": "RAW_JOINT",
+    "source_strength": 0.3,
+    "task_objective": "(8180/10223)*mean CE(current UPDATE minibatch) + (2043/10223)*mean CE(whole GUARD pool)",
+    "task_objective_all_arms": true,
+    "trainable": "R (rank x 64) and b_res (rank) only; every source tensor, both heads, bases, class orders and preprocessing frozen",
+    "trust": {
+      "K": "mean_x KL(p0(x)||p_theta(x)) on full task pool",
+      "arms": [
+        "J_TRUST",
+        "L_TRUST",
+        "TASK_TRUST"
+      ],
+      "free_arms": "omit KL halfspace and KL acceptance; K logged as diagnostic",
+      "limit": 0.001,
+      "p0": "immutable zero-residual start distribution"
+    },
+    "warm_updates_per_critic": 80
+  },
+  "recipe_sha256": "aa96975ed96c72228de852b43a36667d45cdf392bb09942c0214c2d659e14042",
+  "role_exports_sha256": {
+    "GUARD": {
+      "features": "eed4f1e83e9185d008d76efee10fd0fdd98ab64229c09e029487b52c72b581a6",
+      "occupation": "ab52cca5a41633f1b02b6cc2122d3a8028a9c7fc71b99fb32087b5991fd3f90b"
+    },
+    "UPDATE": {
+      "features": "132d8d1f4d917bde6e0f20169776ff2949d89d14169c8dab0145f3771313ba99",
+      "occupation": "e853ba023a88b8a3dfb209333ffb89a5df2d196e89e7707371ca4b559e1514b8",
+      "sex": "8155ef0af14e729e051c7cdf754accc0edd521b23ff3b251ae1c9ab26985d7a2"
+    },
+    "VALIDATION": {
+      "features": "f50b5ebcf96e8422bc82be83b777eabd16367f9665611b574a52ec8278035f13",
+      "income": "e2e65485068c05047872f13d49a7613ca36d4aa6bd4d6ac08764b5ebc4ed26b0",
+      "occupation": "7be33821b5283667cfda75f0949b2026afef3249fdfd91d46ac8f2dcdc1f0874",
+      "references_s0": "eb5764f8c4645708e6044155fc802d0d5376b08c153cca627234f76bfa11982f",
+      "references_s1": "e77a7cd5f86ef6b3dc1e95a41bb7cfcb358675921f786972e71ccde7f039a50f"
+    }
+  },
+  "role_split_sha256": "16227d376cc0f44584758df3f1b8cbb6a60e3931c758ed7d19da5f7903cd9f0e",
+  "schema": "MTA1-science-lock-v1",
+  "selection_rule": {
+    "no_feasible": "NO_POINT_FEASIBLE_NOMINEE: epoch 0 unchanged fallback, fixed epoch 10 diagnostic attacked as clearly ineligible",
+    "no_incremental_proxies": true,
+    "nominee_also_requires": [
+      "occupation wire differs from start beyond frozen tolerance",
+      ">=1 independently verified privacy-driven accepted update at or before the selected epoch in each seed"
+    ],
+    "per_arm": "latest common saved epoch >0 meeting all 24 original POINT clauses (income+occupation x U0/Ucal x accuracy loss<=.010, NLL excess<=.010, summed Brier excess<=.005 x both seeds)",
+    "primary_nominee": "J_TRUST only",
+    "role": "FIT2 (inherited FIT fold 2), exposed development selection role, opened once after TRAINING_COMPLETE_LOCK",
+    "stop_training_after_FIT2": true
+  },
+  "source_manifest_sha256": "28ab196ec3d7f235984582d7ad134624dfaaaf72a7713f05e3a115652f4cccac",
+  "starting_checkpoints": {
+    "0": "a1a0dfba5a9036dffa3953f57a79c9e91d701b36ba490070ba77fdb33d984a4c",
+    "1": "b10a389a6c73943765afc40b3014c9580c42c6c73700cd7a62291b7810cb7bdf"
+  },
+  "status": "BANK_FITS_AUTHORIZED",
+  "wire_tolerance": {
+    "centered_logits": 1e-10,
+    "probabilities": 1e-10,
+    "representation": 1e-10
+  }
+}

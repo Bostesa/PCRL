@@ -1,0 +1,106 @@
+{
+ "campaign": "pcrl_minimal_task_wire_adapter_v1",
+ "campaign_scientific_label": "POINT_FEASIBLE_NO_COMPETITIVE_CRITERION",
+ "checks": {
+  "A1_S0_epoch0_equals_my_RAW_PROJ": "PASS",
+  "A1_S0_frozen_income_and_bases_all_checkpoints": "PASS",
+  "A1_S0_only_R_b_trainable_differ": "PASS",
+  "A1_S0_own_SVD_rowspace_equals_bound": "PASS",
+  "A1_S0_probe_order": "PASS",
+  "A1_S0_rank_param_count_scale": "PASS",
+  "A1_S0_zero_residual_witness_bitwise": "PASS",
+  "A1_S1_epoch0_equals_my_RAW_PROJ": "PASS",
+  "A1_S1_frozen_income_and_bases_all_checkpoints": "PASS",
+  "A1_S1_only_R_b_trainable_differ": "PASS",
+  "A1_S1_own_SVD_rowspace_equals_bound": "PASS",
+  "A1_S1_probe_order": "PASS",
+  "A1_S1_rank_param_count_scale": "PASS",
+  "A1_S1_zero_residual_witness_bitwise": "PASS",
+  "A2_S0_J_FREE_metrics_and_budget_audit": "PASS",
+  "A2_S0_J_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S0_L_FREE_metrics_and_budget_audit": "PASS",
+  "A2_S0_L_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S0_TASK_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S0_start_pool_metrics": "PASS",
+  "A2_S1_J_FREE_metrics_and_budget_audit": "PASS",
+  "A2_S1_J_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S1_L_FREE_metrics_and_budget_audit": "PASS",
+  "A2_S1_L_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S1_TASK_TRUST_metrics_and_budget_audit": "PASS",
+  "A2_S1_start_pool_metrics": "PASS",
+  "A3_S0_counterfactual_resolve_matches": "PASS",
+  "A3_S0_privacy_changes_displacement_and_wire": "PASS",
+  "A3_S1_counterfactual_resolve_matches": "PASS",
+  "A3_S1_privacy_changes_displacement_and_wire": "PASS",
+  "A4_S0_clause_values_match_campaign": "PASS",
+  "A4_S1_clause_values_match_campaign": "PASS",
+  "A4_selection_rule_reapplied": "PASS",
+  "B1_own_wires_equal_campaign_INNER_release": "PASS",
+  "B1_reader_refits": "PASS",
+  "B2_control_gates": "PASS",
+  "B2_diagnostic_endpoints_K45": "PASS",
+  "B2_primary_endpoints_K39": "PASS",
+  "B2_service_table_complete_AUCs": "PASS",
+  "B3_queue_accounting": "PASS",
+  "B3_scientific_label": "PASS",
+  "C1_restore_from_snapshot_alone": "PASS",
+  "C2_raw_input_deployment_replay": "PASS"
+ },
+ "code": "minimal_task_wire_adapter_independent/ (core.py, stage_a.py, stage_b.py, stage_c.py, merge_a.py, merge_b.py, merge_c.py)",
+ "independent_scientific_label": "POINT_FEASIBLE_NO_COMPETITIVE_CRITERION",
+ "nominee_condition_privacy_driven_update": {
+  "how": "all 8 saved J_TRUST counterfactual states per seed (updates 1-8, epoch 1) re-solved; privacy changed the accepted displacement (min max-abs diff S0 7.76e-04, S1 6.01e-04) and the probe wire beyond 1e-10",
+  "verified": true
+ },
+ "notes": [
+  "In the 16 re-solved states no budget halfspace was active (ball active once, S0 update 6); the solver re-solve therefore exercises unconstrained and ball branches only.",
+  "Scientific label rule text is not formalised in SCIENCE_LOCK; the reading applied is recorded in STAGE_B.json B3_scientific_label.rule_reading.",
+  "Failed/superseded verification units: MTAV_B2_V1 (config key collision with queue guard), MTAV_C_V1 (manifest entry format misread; restore aborted before any comparison, copy deleted). Both rerun as _V2.",
+  "B1 refit units ran stage_b.py before an edit that only renamed a report-path config key (refit code unchanged)."
+ ],
+ "overall": "PASS",
+ "queue_units": [
+  "MTAV_A_S0_V1",
+  "MTAV_A_S1_V1",
+  "MTAV_B1_S0_V1",
+  "MTAV_B1_S1_V1",
+  "MTAV_B2_V2",
+  "MTAV_C_V2"
+ ],
+ "re_solved": [
+  "A3: 16 J_TRUST privacy/no-privacy projections (own gradients from role data + saved critic state, own exact projection solver with KKT check and SLSQP cross-check, own ladder); max displacement diff vs stored 2.2e-18",
+  "A1: own SVD row space / rank / scale; own raw83 forward on UPDATE/GUARD/VALIDATION",
+  "A2: own pool metrics at all 50 checkpoints and all 3210 trace states (10 arms x 321)",
+  "A4: 24 FIT2 clauses for every arm/epoch + selection rule",
+  "B1: 18 independent reader refits (<=36)",
+  "B2: K=39 primary, K=45 diagnostic, control gates, service-table AUCs from frozen INNER scores/releases with own AUC/bootstrap/intervals",
+  "B3: scientific label and queue accounting"
+ ],
+ "replayed_not_resolved": [
+  "C: deployment wires replayed from raw inputs after restore from snapshot alone (no retraining)",
+  "B2 uses the campaign's frozen INNER reader scores (only 18 of 972 reader fits were independently refit in B1)",
+  "training trajectories themselves were audited (A2) but not re-run from scratch; only the 16 counterfactual steps were re-solved"
+ ],
+ "role": "independent verification",
+ "schema": "MTAV-independent-verification-v1",
+ "stage_files": [
+  "independent/STAGE_A.json",
+  "independent/STAGE_B.json",
+  "independent/STAGE_C.json"
+ ],
+ "tolerances": {
+  "AUC refit": 1e-09,
+  "budgets finite step": 1e-10,
+  "decisions": "exact",
+  "forward/metrics exact": 1e-12,
+  "re-solve": 1e-10,
+  "wire replay": 1e-10
+ },
+ "versions": {
+  "numpy": "2.4.2",
+  "python": "3.13.7",
+  "scipy": "1.17.1",
+  "sklearn": "1.8.0",
+  "torch": "2.10.0"
+ }
+}

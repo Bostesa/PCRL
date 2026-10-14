@@ -1,0 +1,39 @@
+{
+  "observed_concurrency": "at most 3 agents simultaneously (coordinator + verifier + one reviewer); heavy numerical work serialized through one queue: effectively 1 campaign slot because the host occupancy rule reserves one slot for the local VM",
+  "reviewers_used_queue_for_real_data": true,
+  "roles": [
+    {
+      "agent_ref": "ROOT",
+      "assignment": "whole campaign",
+      "role": "coordinator (+adapter implementation, training/reader execution, deployment, custody, closeout)",
+      "status": "ROOT"
+    },
+    {
+      "agent_ref": "agent-9569dc87",
+      "assignment": "metadata-only source/exposure ledger draft (no person arrays)",
+      "role": "source/role custody",
+      "status": "completed"
+    },
+    {
+      "agent_ref": "agent-d874abde",
+      "assignment": "code review of adapter, solver, trainer; 0 blockers, 3 should-fix applied before SCIENCE_LOCK",
+      "role": "mathematical review",
+      "status": "completed"
+    },
+    {
+      "agent_ref": "agent-7ca082a1",
+      "assignment": "own numpy/scipy/sklearn code; stages A (witness, metrics, counterfactual re-solve), A4 (FIT2 selection), B (reader refits, endpoints, labels), C (backup-alone restore + deployment replay)",
+      "role": "independent verification",
+      "status": "see INDEPENDENT_VERIFICATION.json"
+    },
+    {
+      "agent_ref": "agent-322f7c3a",
+      "assignment": "numbers, labels and overclaiming review of public reports",
+      "role": "claims/report review",
+      "status": "see CLAIMS_REVIEW.md"
+    }
+  ],
+  "roster_vs_concurrency": "5 assignments total, not simultaneous; the handoff allowed 6-8 initial roles; adapter implementation, training/reader execution and closeout were done by the coordinator",
+  "schema": "MTA1-agent-roster-v1",
+  "total_assignments": 5
+}

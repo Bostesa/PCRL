@@ -1,0 +1,97 @@
+{
+  "backup_alone_restore": {
+    "adapter_checkpoint_vs_package": {
+      "J_TRUST_E10_S0": {
+        "checkpoint_residual_equals_package": true
+      },
+      "J_TRUST_E10_S1": {
+        "checkpoint_residual_equals_package": true
+      }
+    },
+    "all_file_hashes_match": true,
+    "files": 1301,
+    "packages_replayed": {
+      "J_TRUST_E10_S0": [
+        0.0,
+        0.0
+      ],
+      "J_TRUST_E10_S1": [
+        0.0,
+        0.0
+      ],
+      "L_TRUST_E10_S0": [
+        0.0,
+        0.0
+      ],
+      "L_TRUST_E10_S1": [
+        0.0,
+        0.0
+      ],
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ_S0": [
+        0.0,
+        0.0
+      ],
+      "PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ_S1": [
+        0.0,
+        0.0
+      ],
+      "RAW_PROJ_S0": [
+        0.0,
+        0.0
+      ],
+      "RAW_PROJ_S1": [
+        0.0,
+        0.0
+      ],
+      "TASK_TRUST_E10_S0": [
+        0.0,
+        0.0
+      ],
+      "TASK_TRUST_E10_S1": [
+        0.0,
+        0.0
+      ]
+    },
+    "readers_reloaded_and_repredicted": {
+      "MTA_READ_S0_J_TRUST_V1|pair|REP_MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "MTA_READ_S0_PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ_V1|r2|HGB_15x200": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "MTA_READ_S0_RAW_PROJ_V1|pair|MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "MTA_READ_S1_J_TRUST_V1|pair|REP_MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "MTA_READ_S1_PRIOR_GLOBAL_UPDATE_GUARD_E5_OWNPROJ_V1|r2|HGB_15x200": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "MTA_READ_S1_RAW_PROJ_V1|pair|MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      }
+    },
+    "restore_directory_removed": true,
+    "unit": "MTA_CUSTODY_RESTORE_V1"
+  },
+  "independent_restore": "see INDEPENDENT_VERIFICATION.json (verifier stage C)",
+  "off_device": {
+    "note": "A same-device copy is not an off-device backup.",
+    "observed": "only the internal volume and a read-only system disk image are mounted (/Volumes: Macintosh HD, BackgroundSyncService Setup)",
+    "safe_commands": [
+      "rsync -a --checksum \"$PRIV/custody/SNAPSHOT_V1/\" \"/Volumes/<EXTERNAL>/pcrl_minimal_task_wire_adapter_v1/SNAPSHOT_V1/\"",
+      "cd \"/Volumes/<EXTERNAL>/pcrl_minimal_task_wire_adapter_v1/SNAPSHOT_V1\" && python3 -c \"import json,hashlib;m=json.load(open('SNAPSHOT_MANIFEST.json'));bad=[k for k,v in m['files'].items() if hashlib.sha256(open(k,'rb').read()).hexdigest()!=v['sha256']];print('bad',len(bad))\""
+    ],
+    "status": "PENDING_NO_WRITABLE_EXTERNAL_DRIVE"
+  },
+  "same_device_snapshot": {
+    "file_count": 1301,
+    "manifest_sha256": "806ada7cd044965b18e9cd49a1f5cee84b69333836beb7602127a7d0c5091b8e",
+    "token": "$PRIV/custody/SNAPSHOT_V1",
+    "total_bytes": 242734576,
+    "unit": "MTA_CUSTODY_SNAPSHOT_V1",
+    "version": "SNAPSHOT_V1"
+  },
+  "schema": "MTA1-backup-verification-v1"
+}
