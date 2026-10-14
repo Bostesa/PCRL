@@ -1,0 +1,262 @@
+{
+  "ATT_opened": false,
+  "INNER_truth_accessed": false,
+  "VALIDATION_outcomes_opened": false,
+  "authorization": "execution prompt (handoff sha in ENGINEERING_LOCK)",
+  "campaign": "pcrl_separate_pool_utility_guard_v1",
+  "code_sha256": {
+    "separate_pool_utility_guard/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "separate_pool_utility_guard/admission.py": "a6a2dcb05c7cfddd09e72a057b6235cf86efd14523018603d703a863dc909b8b",
+    "separate_pool_utility_guard/evaluation_queue.py": "b74ae75f3ef503a3403e02f84adbaa44e57b150cac58db52a9fbd700d6abe538",
+    "separate_pool_utility_guard/geometry.py": "2f97eea7e79988818980bf3120c75a7cea8bc556a2dfd52947031c2411cbeb0b",
+    "separate_pool_utility_guard/guard.py": "8894db038a7a50ebfae0c6df5e6632009069f565daf31b1a1f40aa04eae894af",
+    "separate_pool_utility_guard/host_queue.py": "51206989970cfe8c9df0c8e93521657c0bbf905e179b4b06d8619e127f29635f",
+    "separate_pool_utility_guard/preflight_worker.py": "9d603fa51a95f3109fd92500fe0bf395288ef56915fc9a535ed49ced4041af84",
+    "separate_pool_utility_guard/recipe.py": "8438c91d1c1cab58d6bd6d87d54b8521b33d92441c0781ffd00dea56476cb9f2",
+    "separate_pool_utility_guard/roles_worker.py": "63a217e1f318880c318621d4c35315018a0a079af65ced3c9caa28d53b14e995",
+    "separate_pool_utility_guard/scheduler.py": "abebe25fe59f2f46c6a500c467770304516ea6f481067699e20e2c4aa9c6c98d",
+    "separate_pool_utility_guard/strict.py": "febc5c3396b0fc39aba2b44a98fa864b943b0f337d32723f3ef1e8cff7c91205",
+    "separate_pool_utility_guard/test_corrected_wires.py": "5d4904c4d8b216802645850140528b0d22178622c05b2b1a367c4aa169b2ddbf",
+    "separate_pool_utility_guard/test_engineering.py": "118ede23f0d0889fb8164cba8c1b4c2a9727b7629345e2ac87c8f2e5452a5cac",
+    "separate_pool_utility_guard/train_worker.py": "b77ca9e8470664f0fc22f8d7f2546a8d9d7e4cd0390ede55dcde7decdf1a8d0d",
+    "separate_pool_utility_guard/utility_worker.py": "d8b0d123af6de0a5a9a6b7c1418cc8c4cea4fc5c4d1f8c20c9a49db0d7461a45",
+    "separate_pool_utility_guard/wires.py": "5b0a09a3ca4263dd8bbd5a197395b35f42eebceb1edc2891cac904cc9dfe32a3",
+    "task_conditioned_representation/inference.py": "b034299d036408909221187cca49f1c87f96a47f0d0a5eb869ec70b1bbf29a51",
+    "task_conditioned_representation/kernels.py": "cffc349bf27f06f9a318c629ede4f6c46b5834973da8ceea848d8e73ddde42ca",
+    "task_conditioned_representation/models.py": "752d49f7eb6b8f1592fdaee7a114140daef4936f32450c6b4a31304ee86775af",
+    "task_conditioned_representation/source.py": "040570db8d6a7ff1f35b676a10e42094b76b8d978dad0993c20f457ec0976ccf",
+    "task_conditioned_representation/useful_service.py": "f771b829d2e358a4b790f77f4df94440211fed802be24fc61d6bf331bd2c73df"
+  },
+  "counterfactual_scan": {
+    "arm": "SEPARATE_GUARD",
+    "order": "first eight accepted nonzero updates per seed in update order",
+    "tolerance": "max(1e-10, 10*repeat-computation proposal max abs noise)"
+  },
+  "engineering_receipts": {
+    "SPG_ENGINEERING_TESTS_V1": "done",
+    "SPG_PREFLIGHT_V1": "done",
+    "SPG_ROLES_V1": "done"
+  },
+  "gate": {
+    "caps": {
+      "accuracy_loss": 0.01,
+      "brier_increase": 0.005,
+      "nll_increase": 0.01
+    },
+    "opened_after": "TRAINING_COMPLETE_LOCK committed",
+    "reference": "unchanged starting RAW_HYBRID (epoch 0)",
+    "scope": "both tasks and both source seeds",
+    "selection": "latest common saved epoch passing every incremental point proxy in both seeds; epoch 0 fallback",
+    "separate_guard_pass_requires": [
+      "chosen common epoch > 0",
+      "released occupation wire changed beyond frozen tolerance",
+      "accepted nonzero privacy-bearing update evidence in both seeds",
+      "all incremental validation point proxies pass in both seeds",
+      "training, source and independent feasibility checks complete"
+    ],
+    "slice": "inherited FIT fold 2 (VALIDATION)"
+  },
+  "geometry_bindings": {
+    "0": "75ad1421b66b8a2a915053242e19d0e415a4e91fa71c356806ce78e6a58be179",
+    "1": "2a3a667c647590053bd8462bd10c5e3dafdb8924694bcd85ce90194dd86935c4"
+  },
+  "guard_rows": 2043,
+  "outcome_semantics": {
+    "budget_missing": "INCOMPLETE, not a negative privacy result",
+    "gate_fail": "COMPLETE_NEGATIVE_FEASIBILITY; privacy comparison NOT_TESTED",
+    "gate_pass": "Stage B automatically; trainability evidence, not a privacy win"
+  },
+  "owner": "ROOT",
+  "prefit_amendments": [
+    "train_worker.run: science_lock passed as path + science_lock_sha256 (queue guard form) before any fit; no recipe change"
+  ],
+  "preflight_sha256": "86e721439902d770c6167e6ba0ed03d265af98a97c776c76a2e1bba3aaaf861b",
+  "proposals_per_epoch": 32,
+  "recipe": {
+    "QP_tolerance": 1e-10,
+    "actual_norm_repair_maximum_attempts": 16,
+    "actual_norm_repair_safety_fraction": 1e-06,
+    "actual_norm_repair_scope": "all_arms_without_task_metrics",
+    "arms": [
+      "SEPARATE_GUARD",
+      "GLOBAL_UPDATE_GUARD",
+      "OLD_BATCH_GUARD",
+      "ORDINARY",
+      "TASK_ONLY"
+    ],
+    "backtrack_fractions": [
+      1.0,
+      0.5,
+      0.25,
+      0.125
+    ],
+    "batch_size": 256,
+    "campaign": "pcrl_separate_pool_utility_guard_v1",
+    "checkpoint_epochs": [
+      0,
+      1,
+      3,
+      5
+    ],
+    "coefficient_scope": "one coefficient per source seed shared by all five arms",
+    "controls": {
+      "ORDINARY": "same objective/coefficient/step bound; no task acceptance",
+      "TASK_ONLY": "zero applied privacy gradient; no task acceptance; critics still trained"
+    },
+    "critic_data": "UPDATE rows and UPDATE SEX only",
+    "critic_kinds": [
+      "linear",
+      "mlp32",
+      "mlp64"
+    ],
+    "critic_learning_rate": 0.003,
+    "critic_optimizer": "Adam",
+    "critic_updates_per_model_step": 5,
+    "critic_views": [
+      "occupation_full29",
+      "aligned_pair_projected_income_full_occupation50"
+    ],
+    "critics_continue_across_model_rejection": true,
+    "epochs": 5,
+    "finite_step_tolerance": 1e-10,
+    "full_pool_chunk_rows": 1024,
+    "full_pool_reduction": "float64 sum of per-chunk row-sum losses in fixed row order, divided by pool rows",
+    "geometry_scope": "inherited per-seed admitted start checkpoint head and basis bytes, unchanged",
+    "global_guard": {
+      "accuracy_rule": "correct_count >= correct_count_0 - floor(0.010*N_pool + 1e-9)",
+      "anchor": "exact starting metrics on the fixed guard pool; never reset",
+      "arms": {
+        "GLOBAL_UPDATE_GUARD": "UPDATE",
+        "SEPARATE_GUARD": "GUARD"
+      },
+      "budgets": {
+        "accuracy_loss": 0.01,
+        "nll_increase": 0.01,
+        "summed_brier_increase": 0.005
+      },
+      "finite_acceptance": "recompute full-pool NLL, Brier, accuracy after actual mixed-dtype displacement; NLL/Brier <= budget + 1e-10",
+      "qp": "min ||d-p||^2 s.t. g_NLL.d<=b_NLL, g_Brier.d<=b_Brier, ||d||<=0.01; exact KKT active-set enumeration",
+      "slack_tolerance_rule": "slack in [-1e-10,0) treated as 0 and logged; slack < -1e-10 is a real infeasible state"
+    },
+    "income_basis": "bitwise_frozen_every_critic_and_model_update",
+    "income_encoder_and_head": "bitwise_frozen_every_critic_and_model_update",
+    "learning_rate": 0.01,
+    "maximum_actual_step_norm": 0.01,
+    "maximum_coefficient": 10000.0,
+    "nll_probability_floor": 1e-12,
+    "normalization_draws": 16,
+    "normalization_min_median_norm": 1e-12,
+    "normalization_target_ratio": 3.0,
+    "normalization_task_gradient": "shared UPDATE-minibatch plus whole-GUARD task objective",
+    "old_batch_guard": "strict current-UPDATE-minibatch NLL/Brier nonincrease cone projection and finite check (predecessor rule)",
+    "optimizer": "SGD_no_momentum_actual_displacement",
+    "privacy_movement": {
+      "contribution_tolerance": "max(1e-10, 10*repeat-computation max abs displacement noise)",
+      "counterfactual_rule": "remove applied privacy gradient; identical task gradient, pool, budgets, solver and ladder; restore state",
+      "counterfactual_scope": "SEPARATE_GUARD; first eight accepted nonzero updates per source seed, in update order",
+      "probe": "first 512 UPDATE rows in SHA256(probe salt+str(row_id)) order",
+      "probe_rows": 512,
+      "probe_salt": "SPG1|UPDATE-wire-probe|20261013|",
+      "wire_tolerance": "max(1e-10, 10*independently measured repeat-forward max abs noise), per coordinate block"
+    },
+    "proposal": "d=-0.01*(g_shared_task+lambda*g_sensitive); TASK_ONLY applies g_sensitive=0",
+    "proposals_per_epoch_rule": "ceil(N_UPDATE/256), locked after the group split",
+    "reference_absolute_scale_floor": 1e-12,
+    "reference_initial_relative_scale_floor": 1e-08,
+    "reference_pool": "UPDATE",
+    "reference_refresh": "initial_and_each_epoch",
+    "reference_rows": 256,
+    "roles": {
+      "continuation_pool_folds": [
+        0,
+        1
+      ],
+      "guard_fraction": 0.2,
+      "guard_rule": "first floor(0.2*eligible groups) in SHA256(salt+str(unit)) order; UPDATE is the remainder",
+      "same_partition_both_seeds": true,
+      "split_salt": "SPG1|UPDATE-GUARD-split|20261013|",
+      "validation_fold": 2
+    },
+    "schema": "SPG1-separate-pool-utility-guard-recipe-v1",
+    "sensitive_penalty": "sum_views(1-min(critic_cross_entropies,sex_entropy)/sex_entropy)",
+    "source_epoch": 5,
+    "source_family": "RAW_JOINT",
+    "source_strength": 0.3,
+    "task_guard_metrics": [
+      "nll",
+      "summed_multiclass_brier",
+      "accuracy"
+    ],
+    "task_objective": "(N_UPDATE/N_TOTAL)*mean CE(UPDATE minibatch) + (N_GUARD/N_TOTAL)*mean CE(whole GUARD pool)",
+    "task_objective_all_arms": true,
+    "validation_gate": {
+      "caps": {
+        "accuracy_loss": 0.01,
+        "brier_increase": 0.005,
+        "nll_increase": 0.01
+      },
+      "opened_after": "TRAINING_COMPLETE_LOCK committed",
+      "reference": "unchanged starting RAW_HYBRID (epoch 0)",
+      "scope": "both tasks and both source seeds",
+      "selection": "latest common saved epoch passing every incremental point proxy in both seeds; epoch 0 fallback",
+      "separate_guard_pass_requires": [
+        "chosen common epoch > 0",
+        "released occupation wire changed beyond frozen tolerance",
+        "accepted nonzero privacy-bearing update evidence in both seeds",
+        "all incremental validation point proxies pass in both seeds",
+        "training, source and independent feasibility checks complete"
+      ],
+      "slice": "inherited FIT fold 2 (VALIDATION)"
+    },
+    "warm_updates_per_critic": 80,
+    "wire_contract": {
+      "campaign": "pcrl_compressed_income_safeguard_v1",
+      "class_order": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "decision_rule": "argmax probabilities; first class in fixed source order",
+      "extra_raw_z_or_q_release": false,
+      "income": "factorized_float64_z_times_B_transpose_times_B",
+      "income_effective_feature_rank": 1,
+      "occupation": "actual_learned_full_z16",
+      "outputs": "unchanged_own_head_recomputed_from_released_representation",
+      "role_forward_batch_size": 1024,
+      "schema": "CIS1-literal-hybrid-wire-v1",
+      "widths": [
+        21,
+        29,
+        50
+      ]
+    }
+  },
+  "recipe_sha256": "da493159b4cfa21c5d80eaa1e611357ab6debeca2e4dddfadcf5ac582f5f7a1f",
+  "role_split_sha256": "16227d376cc0f44584758df3f1b8cbb6a60e3931c758ed7d19da5f7903cd9f0e",
+  "schema": "SPG1-science-lock-v1",
+  "starting_checkpoints": {
+    "0": "a1a0dfba5a9036dffa3953f57a79c9e91d701b36ba490070ba77fdb33d984a4c",
+    "1": "b10a389a6c73943765afc40b3014c9580c42c6c73700cd7a62291b7810cb7bdf"
+  },
+  "status": "DIRECT_TRIAL_AUTHORIZED",
+  "units": [
+    "SPG_TRAIN_S0_V1",
+    "SPG_TRAIN_S1_V1"
+  ],
+  "update_rows": 8180,
+  "validation_rows": 5211,
+  "wire_tolerance": {
+    "centered_logits": 1e-10,
+    "probabilities": 1e-10,
+    "representation": 1e-10
+  }
+}

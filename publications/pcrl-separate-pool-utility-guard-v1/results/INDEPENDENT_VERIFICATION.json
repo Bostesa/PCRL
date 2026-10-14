@@ -1,0 +1,47 @@
+{
+  "checks": {
+    "1_role_partition_and_exposure": "PASS",
+    "2_frozen_income_parity": "PASS",
+    "3_task_weights_and_accounting": "PASS",
+    "4_global_anchors_slacks_displacement": "PASS",
+    "5_privacy_counterfactual": "PASS",
+    "6_validation": "PASS"
+  },
+  "cpu_s": 9.6,
+  "deployment_replay": "SPG_DEPLOYMENT_V1: standalone + CLI outputs equal canonical wires exactly on VALIDATION and GUARD feature exports; 8 packages; rejection checks all fired; 8 bitwise epoch-0 alias receipts",
+  "discrepancies_with_runner": "none",
+  "gate_classification_independent": "FAIL (identical to runner on all five criteria)",
+  "independence": "separately written numpy forward and metrics (separate_pool_utility_guard_independent/numerics.py); imports no runner metric, guard, trainer or utility code; f32 and f64 paths",
+  "key_numbers": {
+    "anchor_max_abs_diff": 2.4e-09,
+    "closest_failing_cap_margin": -7.1e-06,
+    "closest_passing_cap_margin": 2.1e-05,
+    "counterfactual_contribution_over_tolerance_min_ratio": 110000.0,
+    "slack_max_abs_diff": 9.7e-09,
+    "tightest_guard_margins": {
+      "s1_SEPARATE_GUARD_brier": 3.43e-09,
+      "s1_SEPARATE_GUARD_correct_count": 0
+    },
+    "validation_metric_max_abs_diff": 5e-09
+  },
+  "kinds": {
+    "1_role_partition_and_exposure": "recomputed from inherited arrays; byte comparison",
+    "2_frozen_income_parity": "new forwards + bitwise tensors",
+    "3_task_weights_and_accounting": "stored-record arithmetic",
+    "4_global_anchors_slacks_displacement": "new whole-pool forwards at all 161 trace states",
+    "5_privacy_counterfactual": "stored-vector check for counterfactual displacement (QP not re-solved); new probe forwards",
+    "6_validation": "new forwards of all 40 checkpoints with own metrics"
+  },
+  "not_independent": "deployment and restore checks use runner deployment runtime against stored canonical wires; they are custody checks, not independent arithmetic",
+  "output_sha256": "13e1de1e5e6be91055f65b7e235425a1fa655015f7389136ea730d1ca6be997a",
+  "overall_status": "PASS",
+  "restore_replay": "SPG_CUSTODY_RESTORE_V1: 171 hashes, 6 packages re-executed bit-exactly from snapshot alone",
+  "schema": "SPG1-independent-verification-v1",
+  "stage_a_feasibility_replay": "COMPLETE_PASS",
+  "stage_b": "NOT_RUN (gate failed); no reader envelopes, resampling or criteria to replay",
+  "superseded_attempt": {
+    "status": "verifier code key-name bugs (post_metrics extra key; probabilities field name); outputs overwritten by V2; no runner discrepancy",
+    "unit": "SPG_INDEPENDENT_STAGE_A_V1"
+  },
+  "unit": "SPG_INDEPENDENT_STAGE_A_V2"
+}
