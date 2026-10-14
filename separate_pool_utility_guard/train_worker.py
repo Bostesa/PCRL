@@ -476,15 +476,16 @@ def counterfactual(model, params, before, after, proposal, g_task, gpool, anchor
 def run(spec_path):
     from .evaluation_queue import queue_config
     active, spec, verify, queue_guard = queue_config(spec_path, 'protection')
-    for key in ('science_lock', 'geometry', 'checkpoint', 'role_split'):
+    for key in ('geometry', 'checkpoint', 'role_split'):
         verify(spec[key]['path'], spec[key]['sha256'])
+    verify(spec['science_lock'], spec['science_lock_sha256'])
     if spec.get('operation') != 'separate_pool_utility_guard_trial' or spec.get('seed') not in (0, 1):
         raise PermissionError('unregistered trainer operation or seed')
     if any('VALIDATION' in Path(s['path']).as_posix().upper().split('/') for s in
            json.loads((Path(os.environ['PCRL_QUEUE_ROOT']) / 'state.json').read_text())['units'][active['unit_id']]['spec']['sources']):
         raise PermissionError('VALIDATION is not a trainer source')
     validate_recipe(spec['recipe'])
-    lock = json.loads(Path(spec['science_lock']['path']).read_text())
+    lock = json.loads(Path(spec['science_lock']).read_text())
     split = json.loads(Path(spec['role_split']['path']).read_text())
     validate_science_lock(lock, seed=spec['seed'], checkpoint_sha256=spec['checkpoint']['sha256'],
                           geometry_sha256=spec['geometry_binding_sha256'], role_split_sha256=spec['role_split']['sha256'])
@@ -524,7 +525,7 @@ def run(spec_path):
     anchors = {'GUARD': pool_pass(source_model, xG, yG, geometry), 'UPDATE': pool_pass(source_model, xU, yU, geometry)}
     reference_rows = _draw(random.Random(_seed(spec['seed'], 'reference')), len(xU))
     common = {'source_seed': spec['seed'], 'starting_checkpoint_sha256': spec['checkpoint']['sha256'],
-              'science_lock_sha256': spec['science_lock']['sha256'], 'recipe_sha256': canonical_sha(RECIPE),
+              'science_lock_sha256': spec['science_lock_sha256'], 'recipe_sha256': canonical_sha(RECIPE),
               'role_split_sha256': spec['role_split']['sha256'], 'update_rows': len(xU), 'guard_rows': len(xG),
               'task_weights': {'update': task.w_update, 'guard': task.w_guard}, 'proposals_per_epoch': P,
               'VALIDATION_loaded': False, 'INNER_loaded': False, 'ATT_loaded': False,
