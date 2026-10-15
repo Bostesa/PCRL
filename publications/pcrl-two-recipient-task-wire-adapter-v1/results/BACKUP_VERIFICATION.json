@@ -1,0 +1,152 @@
+{
+  "off_device": {
+    "reason": "no writable external drive is mounted on this host (/Volumes has only the system volume); no off-host destination is configured for person-level private data in this campaign; the existing cloud archive was not used because uploading person-level private arrays is outside this handoff authorization",
+    "safe_commands": [
+      "rsync -a --checksum \"$PRIV/custody/SNAPSHOT_V2/\" \"/Volumes/<DRIVE>/pcrl_two_recipient_task_wire_adapter_v1/SNAPSHOT_V2/\"",
+      "cd \"/Volumes/<DRIVE>/pcrl_two_recipient_task_wire_adapter_v1/SNAPSHOT_V2\" && shasum -a 256 SNAPSHOT_MANIFEST.json  # expect 8855f564931a82f7f24e6a7770d2337df9b4d27847e8271d19658e39e9ee7d1d",
+      "python3 -c \"import json,hashlib,pathlib;m=json.load(open('SNAPSHOT_MANIFEST.json'));bad=[k for k,v in m['files'].items() if hashlib.sha256(pathlib.Path(k).read_bytes()).hexdigest()!=v['sha256']];print(len(m['files']),'files',len(bad),'mismatches')\""
+    ],
+    "status": "PENDING"
+  },
+  "predecessor_off_device_backup": "still PENDING (not completed by this campaign)",
+  "restore_from_snapshot_alone": {
+    "adapter_replay": {
+      "I_ONLY_S0": {
+        "checkpoint_residuals_equal_package": true
+      },
+      "I_ONLY_S1": {
+        "checkpoint_residuals_equal_package": true
+      },
+      "J_BOTH_S0": {
+        "checkpoint_residuals_equal_package": true
+      },
+      "J_BOTH_S1": {
+        "checkpoint_residuals_equal_package": true
+      },
+      "S12_S0": {
+        "checkpoint_residuals_equal_package": true
+      },
+      "S12_S1": {
+        "checkpoint_residuals_equal_package": true
+      }
+    },
+    "all_file_hashes_match": true,
+    "files": 1739,
+    "packages_reexecuted_equal_stored_release": {
+      "I_ONLY_S0": [
+        0.0,
+        0.0
+      ],
+      "I_ONLY_S1": [
+        0.0,
+        0.0
+      ],
+      "J_BOTH_S0": [
+        0.0,
+        0.0
+      ],
+      "J_BOTH_S1": [
+        0.0,
+        0.0
+      ],
+      "L_BOTH_S0": [
+        0.0,
+        0.0
+      ],
+      "L_BOTH_S1": [
+        0.0,
+        0.0
+      ],
+      "O_PREVIOUS_S0": [
+        0.0,
+        0.0
+      ],
+      "O_PREVIOUS_S1": [
+        0.0,
+        0.0
+      ],
+      "RAW_PROJ_S0": [
+        0.0,
+        0.0
+      ],
+      "RAW_PROJ_S1": [
+        0.0,
+        0.0
+      ],
+      "S12_S0": [
+        0.0,
+        0.0
+      ],
+      "S12_S1": [
+        0.0,
+        0.0
+      ],
+      "S21_S0": [
+        0.0,
+        0.0
+      ],
+      "S21_S1": [
+        0.0,
+        0.0
+      ],
+      "T_BOTH_S0": [
+        0.0,
+        0.0
+      ],
+      "T_BOTH_S1": [
+        0.0,
+        0.0
+      ]
+    },
+    "readers_repredicted": {
+      "TRA_READ_S0_I_ONLY_V1|r1|LR_C1": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S0_J_BOTH_V1|pair|REP_MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S0_L_BOTH_V1|r2|HGB_15x200": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S0_RAW_PROJ_V1|pair|MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S1_I_ONLY_V1|r1|LR_C1": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S1_J_BOTH_V1|pair|REP_MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S1_L_BOTH_V1|r2|HGB_15x200": {
+        "max_abs_vs_frozen_scores": 0.0
+      },
+      "TRA_READ_S1_RAW_PROJ_V1|pair|MLP_64x32": {
+        "max_abs_vs_frozen_scores": 0.0
+      }
+    },
+    "restore_directory_removed_after_check": true,
+    "unit": "TRA_CUSTODY_RESTORE_V1"
+  },
+  "same_host_is_not_off_device_custody": true,
+  "same_host_snapshot": {
+    "file_count": 1739,
+    "snapshot_manifest_sha256": "f0c2a944614c04bc82d4e6718b268047b4b13b263fd1d8fa1a52b45052e6875d",
+    "token": "$PRIV/custody/SNAPSHOT_V1",
+    "total_bytes": 391860748,
+    "unit": "TRA_CUSTODY_SNAPSHOT_V1",
+    "version": "SNAPSHOT_V1"
+  },
+  "same_host_snapshot_V2_final": {
+    "adapter_replay": true,
+    "all_file_hashes_match": true,
+    "file_count": 1754,
+    "includes": "V1 contents plus independent verification outputs",
+    "packages_equal_stored": true,
+    "readers_exact": true,
+    "restore_unit": "TRA_CUSTODY_RESTORE_V2",
+    "snapshot_manifest_sha256": "8855f564931a82f7f24e6a7770d2337df9b4d27847e8271d19658e39e9ee7d1d",
+    "token": "$PRIV/custody/SNAPSHOT_V2",
+    "total_bytes": 392334648
+  },
+  "schema": "TRA1-backup-verification-v1"
+}
