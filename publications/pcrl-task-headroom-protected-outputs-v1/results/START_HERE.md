@@ -31,9 +31,9 @@
 8. Locks, in order:
    - `PROTOCOL_SEAL.json`
    - `ADMISSION.json`
-   - `SCIENCE_LOCK.json` (pushed prefit, `27f888e`)
+   - `SCIENCE_LOCK.json` (prefit receipt `27f888e`: a local timestamped commit, published to GitHub only at closeout; see LOCK_NOTES.md)
    - `STAGE_A_REPORT.json`
-   - `STAGE_B_LOCK.json` (pushed before protected fits, `4ba4c58`)
+   - `STAGE_B_LOCK.json` (receipt `4ba4c58`, committed before protected fits; local, published at closeout)
    - `TRAINING_COMPLETE_LOCK.json`
    - `SELECTION_LOCK.json` and `SELECTION_DETAIL.json`
    - `ATTACKS_AUTHORIZATION.json`

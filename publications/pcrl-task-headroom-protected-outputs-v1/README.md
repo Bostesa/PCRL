@@ -7,7 +7,7 @@
 **What is here:**
 - **Start:** `results/START_HERE.md`, then `results/ADVISOR_BRIEF.md` and `results/RESEARCH_DECISION.md`.
 - **Code:** `code/task_headroom` (campaign code) and `code/task_headroom_independent` (verifier).
-- **Receipts:** `prefit/` and `stage_b_prefit/`, pushed before any fit and before any protected fit.
+- **Receipts:** `prefit/` and `stage_b_prefit/`, committed before any fit and before any protected fit. They reached only a local mirror at those times (not a public preregistration); see `results/LOCK_NOTES.md`.
 
 **What is not here:** people, labels, predictions, model weights, packages and absolute paths all stay private. The data are repeatedly used Adult development roles; this is not confirmation.
 
