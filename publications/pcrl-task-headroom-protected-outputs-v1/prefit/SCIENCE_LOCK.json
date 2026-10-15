@@ -1,0 +1,356 @@
+{
+  "admission": {
+    "path": "ADMISSION.json (private receipt mirrored to results)",
+    "sha256": "1dc2f04d9ae595ca52fa147b2dddd3a44591e403b8306c42d00246ca5a09f905",
+    "status": "PASS"
+  },
+  "campaign": "pcrl_task_headroom_protected_outputs_v1",
+  "code_sha256_at_lock": {
+    "task_headroom/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "task_headroom/admission.py": "dad67481c630f7adfcfcb40d73b215a1f7b83276de361c9ca1daca32ec1ed20c",
+    "task_headroom/admission_worker.py": "91b35cb5e00f7fa8c8e2b2cfcf18a65e45d60157552b836de407beeefcc4a1ee",
+    "task_headroom/data.py": "829d8c40a344bd49e93c5c37e7730cce914e7a376398624d77b17c829e8a8572",
+    "task_headroom/evaluation_queue.py": "97ac34d234a649b6dc15626873086faf5435222f84747c776a6736824231d90a",
+    "task_headroom/host_queue.py": "51206989970cfe8c9df0c8e93521657c0bbf905e179b4b06d8619e127f29635f",
+    "task_headroom/inference.py": "124c8bde8106355a9aa12b8a8430e88a6d40bb7917be63bd8775e1d9c98dc502",
+    "task_headroom/leafcorr.py": "86a11dc0259731d9825ec1f88524964069e2146fd1f44c0c8994e0971d24b282",
+    "task_headroom/neural.py": "30030adc3b36d9773afa36910eefcb1e21f2925d6fffacaf837ceed4d38e661c",
+    "task_headroom/rawproj/__init__.py": "afac6de719e69a27f3055d68b4b284a3d6016ccb62d47bc0dd59751e8b4911d9",
+    "task_headroom/rawproj/adapter.py": "59db94de941de9c4932f64694ca1a508a942e546e2659be2fbeeb1e4c60ec3f9",
+    "task_headroom/rawproj/geometry.py": "2f97eea7e79988818980bf3120c75a7cea8bc556a2dfd52947031c2411cbeb0b",
+    "task_headroom/rawproj/services.py": "7ff89e923611705a353913de5933cad1e7b25ab4cba45c0868341d50fb9d80f1",
+    "task_headroom/rawproj/wires.py": "9e42b8610fa78b8a9a94a6261cbce79117c44b346e0f8d8ca3e8d50cf9235d6e",
+    "task_headroom/scheduler.py": "6444b5bec2df8571dd115c334897d52dc02d4a69dd9146a5e67410fbf89fd0c9",
+    "task_headroom/services.py": "b8644be9bfed89d9936d9da46ef4dcbd2cc77f5afc37a967a5d878d97f8e8d9d",
+    "task_headroom/stage_a_report.py": "5cb5eea5976a8ee43e49a8e1ac20607a0e63016e96fa8d8fcdea446207762e79",
+    "task_headroom/stage_a_worker.py": "f1b5fae11abe7d52186b49c787d2a64238846f603acb9b776745ced32861139f",
+    "task_headroom/trees.py": "faf4bed51c8dd3c8358f521324e7cc39fa6617c8aacd3d2bb070506e0c8b4394"
+  },
+  "comparators": {
+    "B_roster": [
+      "RAW_PROJ",
+      "N_EQ",
+      "T_TREE",
+      "H_JOINT_CODE",
+      "H_SEQ21_CODE",
+      "H_DPC_JOINT",
+      "FARE"
+    ],
+    "C_roster": [
+      "L_TREE",
+      "L_STRONG",
+      "S12_TREE",
+      "S21_TREE"
+    ],
+    "FARE_note": "stored official FARE c1 (fair_gini_dp, k100, gamma 0.3) with own LR heads, fit historically on OSF_DEFENSE_FIT and selected historically on INNER; not newly fitted (GUARD SEX is not exported); Z1 = same budget gamma 0",
+    "RAW_J": "exact alias of RAW_PROJ (restored RAW_JOINT s0.3 E5, the competitively selected RAW-J); not refitted",
+    "diagnostic_only": [
+      "FARE_Z1 (FARE matched no-fairness compression control)",
+      "T_REFIT",
+      "DIAG_PRIV",
+      "fallbacks"
+    ],
+    "eligibility": "RAW_PROJ always required (incumbent). Every other B service is required iff point-feasible on all 12 FIT2 clauses vs N_EQ in both seeds (U0/Ucal-trained historical models are in-sample on FIT2, which favours their eligibility). Exact aliases of the primary are excluded. Ineligible comparators are reported descriptively.",
+    "unavailable": {
+      "combined-study FARE": "different split and hidden-layer inputs",
+      "confidence_constrained_mechanism": "never fitted (go rule failed)"
+    }
+  },
+  "design_disclosure": "Designed after observing every predecessor result (including INNER outcomes of the two-recipient and minimal adapters). Exploratory development on repeatedly used Adult people; not confirmation.",
+  "documents": {
+    "ADVERSARY_AND_MOTIVATION.md": "ac3ac361b7b8032fb5f8a1ff7a042a13099ecfcba252e2f27698638662bf93d8",
+    "PRIOR_METHOD_DIFFERENCES.md": "80d315717ea5f61b4d21c70241e71e23bc2f1d4388b1435682c2aa0641bf213a",
+    "PROTOCOL_SEAL.json": "2041a56fa7fce4dc5a6b2496ca5b0967c3b586f541f58270be173e9c049c785a"
+  },
+  "endpoints": {
+    "A": "24 INNER clauses of the primary vs U0 and Ucal (accuracy loss <= 0.010, NLL excess <= 0.010, summed Brier excess <= 0.005; both tasks, both seeds): point status and simultaneous status",
+    "B": "per required comparator c: pair benefit = mean_s[AUC_pair(c) - AUC_pair(P)] needs lower > 0.020; recipient excess = mean_s[AUC_r(P) - AUC_r(c)] needs upper <= 0.010 (r = income, occupation)",
+    "C": "J_TREE vs each of L_TREE, L_STRONG, S12_TREE, S21_TREE: pair benefit lower > 0 (improvement; >0.020 also reported), recipient excess upper <= 0.010, and J_TREE internally point-feasible; if J_TREE is not the primary its 24 INNER clauses join the family",
+    "bootstrap": {
+      "draws": 2048,
+      "seed": 2026101501,
+      "unit": "INNER duplicate groups, shared across models and both seeds"
+    },
+    "family": "K = 24 + 3 x (#required B comparators) + 12 (+24 if J_TREE != primary), frozen at SELECTION_LOCK; Student-t Bonferroni, alpha 0.05, df = INNER groups - 1",
+    "status_rules": "interval crossing a cap = UNRESOLVED preservation (not violation); whole benefit interval below margin = ESTABLISHED_SHORTFALL; fewer resolved clauses alone is not damage"
+  },
+  "fit2_proxy": {
+    "coalition_proxy": "pair view value",
+    "definition": "per candidate, seed and view: two-fold group cross-fit on FIT2 (fold = int(sha256(\"THP1|FIT2-proxy|\"+unit))%2); readers LR_C1 and HGB_15x200 (validated fit_reader, model seed 2026101502) on the output wire [p, decision]; value = max over the two readers of the AUC of pooled out-of-fold scores against FIT2 SEX",
+    "fitting_rows": "FIT2 fold A <-> B (never ATT/INNER, never training-critic loss)",
+    "selection_rows": "the other FIT2 fold"
+  },
+  "forecasts": [
+    {
+      "claim": "selected teachers improve occupation FIT2 NLL over N_EQ by >= 0.010 (seed mean point)",
+      "id": "F1",
+      "p": 0.3
+    },
+    {
+      "claim": "TASK_MODEL_PREREQUISITE_MET",
+      "id": "F2",
+      "p": 0.75
+    },
+    {
+      "claim": "at least one protected family has a point-feasible FIT2 nominee",
+      "id": "F3",
+      "p": 0.6
+    },
+    {
+      "claim": "COMPETITIVE_PROTECTION_ESTABLISHED",
+      "id": "F4",
+      "p": 0.05
+    },
+    {
+      "claim": "JOINT_COMPONENT_ESTABLISHED",
+      "id": "F5",
+      "p": 0.05
+    },
+    {
+      "claim": "primary pair-benefit point estimate vs RAW_PROJ > 0",
+      "id": "F6",
+      "p": 0.4
+    }
+  ],
+  "labels": {
+    "completion": [
+      "COMPLETE",
+      "INCOMPLETE"
+    ],
+    "joint": [
+      "JOINT_COMPONENT_ESTABLISHED",
+      "JOINT_COMPONENT_NOT_ESTABLISHED"
+    ],
+    "scientific": [
+      "TASK_MODEL_PREREQUISITE_NOT_MET",
+      "NO_POINT_FEASIBLE_PROTECTED_NOMINEE",
+      "COMPETITIVE_PROTECTION_ESTABLISHED",
+      "COMPETITIVE_PROTECTION_INCOMPLETE",
+      "POINT_FEASIBLE_NO_COMPETITIVE_CRITERION",
+      "NOT_POINT_FEASIBLE_ON_INNER_NO_COMPETITIVE_CRITERION"
+    ]
+  },
+  "locked_utc": "2026-10-15T17:45:00Z",
+  "model_role_table": [
+    {
+      "model": "U0",
+      "selected_on": "historical",
+      "trained_on": "all FIT (UPDATE+GUARD+FIT2) per inherited provenance; heads on FIT; HEAD_VALIDATION exposure",
+      "use": "final INNER reference only (in-sample on FIT2)"
+    },
+    {
+      "model": "Ucal",
+      "selected_on": "historical",
+      "trained_on": "U0 + calibration on CALIBRATION_HELDOUT; family selection had historical INNER exposure",
+      "use": "final INNER reference only (in-sample on FIT2)"
+    },
+    {
+      "model": "N_EQ (new neural reference)",
+      "selected_on": "internal fold (epochs)",
+      "trained_on": "UPDATE+GUARD (internal 15% group fold for early stopping, then whole pool)",
+      "use": "internal FIT2 reference for prerequisite, headroom and nomination; attacked service"
+    },
+    {
+      "model": "CatBoost teachers (T_TREE)",
+      "selected_on": "internal fold NLL summed over seeds (depth)",
+      "trained_on": "UPDATE+GUARD (same internal fold for tree count, then whole pool)",
+      "use": "teacher of every protected arm; attacked service"
+    },
+    {
+      "model": "leaf-correction arms",
+      "selected_on": "FIT2 utility vs N_EQ + FIT2 SEX proxy",
+      "trained_on": "UPDATE+GUARD task labels; UPDATE SEX for critics",
+      "use": "nominees"
+    },
+    {
+      "model": "RAW_PROJ (= RAW_J alias)",
+      "selected_on": "historical",
+      "trained_on": "all FIT with SEX (RAW_JOINT s0.3 E5)",
+      "use": "incumbent"
+    },
+    {
+      "model": "historical codes / FARE",
+      "selected_on": "historical (including INNER)",
+      "trained_on": "OSF_DEFENSE_FIT (all FIT) with SEX; FARE config selected on INNER historically",
+      "use": "competitive references, narrowed and re-attacked"
+    }
+  ],
+  "nomination": {
+    "T_REFIT": "checkpoint matched to the J_TREE nominee (or fallback) epoch",
+    "candidates": "per family: strengths {1,3,10} x checkpoints E{2,5,10,20} (sequential: P2E{2,5,10,20}); epoch 0 is the teacher alias and is excluded",
+    "diagnostic_privacy_checkpoint": "DIAG_PRIV = J_TREE rho 10 E20, always attacked, descriptive only",
+    "fallback": "if none feasible: minimum worst-seed max normalized clause violation (value/cap), same ties; attacked as ineligible diagnostic; never chosen by recovery",
+    "family_nominee": "among point-feasible common (strength, checkpoint) candidates: lowest worst-seed coalition proxy; ties: lower summed FIT2 NLL (seeds x tasks), lower strength, earlier checkpoint",
+    "frozen_by": "SELECTION_LOCK before any reader fit; no nomination from INNER",
+    "internal_point_feasible": "all 12 FIT2 clauses vs N_EQ pass in both seeds",
+    "primary_service": "among point-feasible family nominees of L_TREE, L_STRONG, J_TREE, S12_TREE, S21_TREE: lowest worst-seed coalition proxy; ties: summed FIT2 NLL, then family order J_TREE, L_TREE, L_STRONG, S12_TREE, S21_TREE. If none: NO_POINT_FEASIBLE_PROTECTED_NOMINEE"
+  },
+  "owner": "ROOT",
+  "readers": {
+    "controls": "per seed and view on the T_TREE wire: group-shuffled SEX (OUT_HGB) and planted SEX bit (OUT_HGB); gates shuffled max(AUC,1-AUC) <= 0.60, planted >= 0.99; constant 0.5 exact",
+    "descriptive": "INNER envelope maximum over the slate",
+    "equal_budget": "every attacked service gets the same 21 direct fits per seed",
+    "implementation": "task_conditioned_representation.attacks.fit_reader (LR C=1 lbfgs; MLP 64x32 adam alpha 1e-4 300 iters; HGB 15 leaves 200 iters lr 0.05), FiniteScaler, model seed 2026101205+seed",
+    "label_only_reference": "FIT2 two-fold cross-fit SEX reader on true task labels (onehot income x occupation), diagnostic only",
+    "pair": "same seven on the concatenated features plus IGNORE_income / IGNORE_occupation aliases of all fourteen single-view readers (selection candidates, no extra fits)",
+    "primary_reading": "INNER AUC of the ATT-validation winner per service, seed and view",
+    "slate_per_view": {
+      "CONF_HGB": "max p",
+      "DEC_LR": "onehot d",
+      "LOG_LR": "[log p, onehot d]",
+      "LOG_MLP": "[log p, onehot d]",
+      "OUT_HGB": "[p, d]",
+      "OUT_LR": "[p, d]",
+      "OUT_MLP": "[p, d]"
+    },
+    "training": "ATT train groups with SEX; orientation and winner selection on ATT validation groups (fixed-orientation AUC); frozen before INNER labels"
+  },
+  "release_contract": "each recipient: own full-precision probability vector + argmax decision only; pair = aligned concatenation (income then occupation). Nothing else: no leaf ids, raw inputs, scores, representations, teacher outputs, tokens, cells or flags.",
+  "resources": {
+    "cpu_hours": 20,
+    "elapsed_hours": 10,
+    "heavy_jobs": 2,
+    "note": "planning and admission began ~17:05Z; failed admission attempts V1/V2 are charged",
+    "paid_usd": 0,
+    "queue_start_utc": "2026-10-15T17:20:03Z",
+    "rss_gib_total": 4,
+    "threads": 1
+  },
+  "roles": {
+    "ATT": "attacker-fit (train groups) and attacker-validation (validation groups, inherited SPLIT_SALT): fresh readers only",
+    "FIT2": "internal selection role (5211 = inherited FIT fold 2): task labels for Stage A headroom/prerequisite and Stage B utility nomination; FIT2 SEX (new export) for the predeclared recovery proxy and comparator eligibility only",
+    "GUARD": "fitting pool (2043): task labels only (no SEX export)",
+    "INNER": "repeatedly used development reporting role: features label-free until REPORTING_LOCK; labels opened once for the frozen report; never used to repair, nominate or select",
+    "UPDATE": "fitting pool (8180): task labels for every model; SEX for training critics only",
+    "closed": "historical assessment, HEAD_VALIDATION, CALIBRATION_HELDOUT (as fitting data), every reserved confirmation population"
+  },
+  "schema": "THP1-science-lock-v1",
+  "source_publication_pin": "8f8dd4cfce57d6bfe4fd40a8afe7aaf09c585709",
+  "stage_a": {
+    "calibration_or_temperature": null,
+    "catboost_version": "1.2.8",
+    "catboost_wheel_sha256": "777987e1483824f93b9cb904860ef46dfb3cd184f879e47413bc7163b9514830",
+    "early_stopping": "fit 800 trees on the internal fit part with the internal 15% group fold as eval set; tree count = first argmin of the eval loss + 1; refit on the whole 10223-row pool with that count and the same random_seed; no early-stopping wait",
+    "headroom": "N_EQ minus teacher on FIT2: NLL, summed Brier, accuracy per task, per seed and seed mean, paired group bootstrap 95% percentile intervals; prospective practical target: occupation NLL improvement >= 0.010 nats (a miss is not proof of impossibility)",
+    "loss": {
+      "income": "Logloss",
+      "occupation": "MultiClass"
+    },
+    "neural_reference": {
+      "architecture": "83-64-ReLU-64-ReLU-16-linear K",
+      "batch_size": 512,
+      "calibration": null,
+      "learning_rate": 0.001,
+      "max_epochs": 30,
+      "min_delta_nll": 0.0001,
+      "patience": 5,
+      "validation_fraction": 0.15
+    },
+    "prerequisite": "selected teachers meet all 12 internal point clauses vs N_EQ on FIT2 (2 tasks x accuracy/NLL/Brier x 2 seeds; caps 0.010/0.010/0.005). If not met: stop protected fitting, attack T_TREE (predeclared diagnostic teacher) with fresh readers, label TASK_MODEL_PREREQUISITE_NOT_MET",
+    "random_seed": "seed_for(THP1catboost, seed, task, depth)",
+    "registry": {
+      "depth": [
+        4,
+        6
+      ],
+      "l2_leaf_reg": 3.0,
+      "learning_rate": 0.05,
+      "max_trees": 800,
+      "task_type": "CPU",
+      "thread_count": 1
+    },
+    "reported": "accuracy, NLL, summed Brier, gain over constant, balanced accuracy, per-class recall, distinct decisions",
+    "selection": "per recipient the depth with the lowest internal-fold NLL summed over seeds 0 and 1 (tie: depth 4), shared across seeds; task performance only"
+  },
+  "stage_b": {
+    "family": "fixed teacher routing; f_r = f_teacher,r + sum_t delta[r,t,leaf_t]; delta = theta/T; zero start reproduces the teacher; income binary log-odds released as softmax(-d/2,d/2); occupation softmax(center(f))",
+    "gradient_magnitude_logging": "task, raw privacy and weighted privacy gradient norms per recipient every 20 steps",
+    "privacy_movement_check": "J_TREE rho 3: first 8 updates per seed re-solved without the privacy gradient (same AdamW state); transmitted 512-row probe outputs compared",
+    "recipe": {
+      "arms": {
+        "J_TREE": {
+          "coefficient": "lambda_J",
+          "privacy": "joint",
+          "schedule": "simultaneous"
+        },
+        "L_STRONG": {
+          "coefficient": "lambda_L",
+          "privacy": "local",
+          "schedule": "simultaneous"
+        },
+        "L_TREE": {
+          "coefficient": "lambda_J",
+          "privacy": "local",
+          "schedule": "simultaneous"
+        },
+        "S12_TREE": {
+          "coefficient": "lambda_J",
+          "order": [
+            0,
+            1
+          ],
+          "privacy": "joint",
+          "schedule": "sequential"
+        },
+        "S21_TREE": {
+          "coefficient": "lambda_J",
+          "order": [
+            1,
+            0
+          ],
+          "privacy": "joint",
+          "schedule": "sequential"
+        },
+        "T_REFIT": {
+          "coefficient": null,
+          "privacy": null,
+          "schedule": "simultaneous"
+        }
+      },
+      "batch_size": 256,
+      "calibration": "FIT-only: at the exact teacher with warm critics, 16 fixed draws; lambda_J_r(rho) = rho * median||grad CE_r|| / median||grad joint_r||; lambda_L_r(rho) = rho * median||grad CE_r|| / median||grad local_r||",
+      "checkpoint_epochs": [
+        0,
+        2,
+        5,
+        10,
+        20
+      ],
+      "critic_input_normalization": "inherited DiagonalReference refreshed at every epoch start on a fixed 256-row UPDATE reference sample",
+      "critic_kinds": [
+        "linear",
+        "mlp32",
+        "mlp64"
+      ],
+      "critic_learning_rate": 0.003,
+      "critic_optimizer": "Adam",
+      "critic_rounds_per_recipient_update": 5,
+      "critic_views": [
+        "income(3)",
+        "occupation(7)",
+        "pair(10)"
+      ],
+      "epochs_per_active_recipient": 20,
+      "learning_rate": 0.01,
+      "no_sweeps": "no KL trust region, no decision-preservation constraint, no temperature/calibration, no critic-refresh or gradient controller",
+      "optimizer": "AdamW per recipient, lr 0.01, betas (0.9, 0.999), eps 1e-8, decoupled weight decay 0.01 (shrink toward the teacher)",
+      "parametrization": "delta[r,t,leaf] = theta_r[t,leaf]/T_r; theta_r = 0 at start (exact teacher)",
+      "privacy_pool": "UPDATE rows with UPDATE SEX only (8180)",
+      "probe": "fixed 512-row UPDATE probe (label-free SHA256 order) for privacy-movement counterfactuals",
+      "schema": "THP1-leaf-score-correction-recipe-v1",
+      "sequential_rule": "first recipient trains 20 epochs while the other stays at its teacher; it is then frozen bitwise and the second trains 20 epochs with the joint objective restricted to it; critics continue",
+      "steps_per_epoch": 40,
+      "strength_ratios": [
+        1.0,
+        3.0,
+        10.0
+      ],
+      "task_pool": "UPDATE + GUARD (10223 rows); uniform minibatches with replacement-free epoch order",
+      "warm_critic_rounds": 80,
+      "weight_decay": 0.01
+    },
+    "stage_b_lock": "after Stage A, a dated STAGE_B_LOCK binds the selected teachers, tree counts and exact leaf family before any protected fit",
+    "zero_identity_tolerance": "probabilities within 1e-12 (float64) and decisions identical on every admitted role"
+  },
+  "status": "SCIENCE_LOCKED"
+}
