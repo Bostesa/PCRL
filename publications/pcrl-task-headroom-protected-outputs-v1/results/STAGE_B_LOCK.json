@@ -1,0 +1,240 @@
+{
+  "arms_units": "per seed: T_REFIT (one run) and L_TREE, L_STRONG, J_TREE, S12_TREE, S21_TREE at rho 1, 3, 10 (15 runs), each restarting from theta = 0",
+  "campaign": "pcrl_task_headroom_protected_outputs_v1",
+  "code_sha256": {
+    "task_headroom/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "task_headroom/admission.py": "dad67481c630f7adfcfcb40d73b215a1f7b83276de361c9ca1daca32ec1ed20c",
+    "task_headroom/admission_worker.py": "91b35cb5e00f7fa8c8e2b2cfcf18a65e45d60157552b836de407beeefcc4a1ee",
+    "task_headroom/data.py": "829d8c40a344bd49e93c5c37e7730cce914e7a376398624d77b17c829e8a8572",
+    "task_headroom/evaluation_queue.py": "97ac34d234a649b6dc15626873086faf5435222f84747c776a6736824231d90a",
+    "task_headroom/fit2_worker.py": "2b84c4839e4bb400b19a58d10f30f76addc6db3f32124556b5b104f7aef0680e",
+    "task_headroom/host_queue.py": "51206989970cfe8c9df0c8e93521657c0bbf905e179b4b06d8619e127f29635f",
+    "task_headroom/inference.py": "124c8bde8106355a9aa12b8a8430e88a6d40bb7917be63bd8775e1d9c98dc502",
+    "task_headroom/leafcorr.py": "86a11dc0259731d9825ec1f88524964069e2146fd1f44c0c8994e0971d24b282",
+    "task_headroom/neural.py": "30030adc3b36d9773afa36910eefcb1e21f2925d6fffacaf837ceed4d38e661c",
+    "task_headroom/rawproj/__init__.py": "afac6de719e69a27f3055d68b4b284a3d6016ccb62d47bc0dd59751e8b4911d9",
+    "task_headroom/rawproj/adapter.py": "59db94de941de9c4932f64694ca1a508a942e546e2659be2fbeeb1e4c60ec3f9",
+    "task_headroom/rawproj/geometry.py": "2f97eea7e79988818980bf3120c75a7cea8bc556a2dfd52947031c2411cbeb0b",
+    "task_headroom/rawproj/services.py": "7ff89e923611705a353913de5933cad1e7b25ab4cba45c0868341d50fb9d80f1",
+    "task_headroom/rawproj/wires.py": "9e42b8610fa78b8a9a94a6261cbce79117c44b346e0f8d8ca3e8d50cf9235d6e",
+    "task_headroom/scheduler.py": "6444b5bec2df8571dd115c334897d52dc02d4a69dd9146a5e67410fbf89fd0c9",
+    "task_headroom/selection_worker.py": "fed4a3fa7ea0805912083a8638c39537473d0f1173785046cd667248b570f8a4",
+    "task_headroom/services.py": "b8644be9bfed89d9936d9da46ef4dcbd2cc77f5afc37a967a5d878d97f8e8d9d",
+    "task_headroom/stage_a_report.py": "5cb5eea5976a8ee43e49a8e1ac20607a0e63016e96fa8d8fcdea446207762e79",
+    "task_headroom/stage_a_worker.py": "f1b5fae11abe7d52186b49c787d2a64238846f603acb9b776745ced32861139f",
+    "task_headroom/train_worker.py": "ffde1e5d49dd2b71e7f705286a79ce848bd1e11b0c58c78e6c33a266a1bc718d",
+    "task_headroom/trees.py": "faf4bed51c8dd3c8358f521324e7cc39fa6617c8aacd3d2bb070506e0c8b4394"
+  },
+  "engineering_since_science_lock": {
+    "added": [
+      "task_headroom/train_worker.py",
+      "task_headroom/fit2_worker.py",
+      "task_headroom/selection_worker.py",
+      "task_headroom/stage_a_report.py (run before this lock)"
+    ],
+    "changed": [],
+    "definitions_changed": "none"
+  },
+  "forecasts_resolved_so_far": {
+    "F1": true,
+    "F2": true
+  },
+  "leaf_family": "exactly SCIENCE_LOCK.stage_b: fixed routing of the teachers above; theta_r of shape (T_r x 16, dim_r), dim = 1 income / 6 occupation; delta = theta/T_r; zero start",
+  "notes": [
+    "SCIENCE_LOCK.locked_utc (17:45Z) and PROTOCOL_SEAL.sealed_utc (17:25Z) were hand-entered placeholders; the authoritative times are the git commit times (seal 6813ff54b, lock 959664cdc, both ~17:20-17:25Z) and the pushed prefit receipt 27f888e (before any fit).",
+    "Admission attempts V1 (foreign-queue capability in the inherited RAW_PROJ path) and V2 (non-fresh export directory) failed and are charged; V3 passed. The two-recipient RAW_PROJ forward modules were vendored unchanged (task_headroom/rawproj) and bound to this queue.",
+    "Stage A seed 0 V1 was stopped by the queue CPU-rate sampler after 4.7 CPU-s (incomplete, charged); V2 reran identical code."
+  ],
+  "owner": "ROOT",
+  "schema": "THP1-stage-b-lock-v1",
+  "science_lock_sha256": "c79b89165028502bf8a498015e6545702ea25fb1185b64ac3a25413d374699bf",
+  "selected_teachers": {
+    "0|N_EQ": {
+      "best_epochs": {
+        "income": 10,
+        "occupation": 29
+      },
+      "model_sha256": "c1c392201da00744526719249cf9c97965a625786c4f7b19706d8c6b2d95c0fc"
+    },
+    "0|income": {
+      "catboost_model_sha256": "61c88fc836a55fdbee108340fbde5a07cd8eeabe7f567c38dbd2e0cd50fb78af",
+      "depth": 4,
+      "parity": {
+        "ATT": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 7.771561172376096e-16,
+          "raw_max_abs_diff": 1.7763568394002505e-14,
+          "routing_identical": true
+        },
+        "FIT2": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 8.881784197001252e-16,
+          "raw_max_abs_diff": 1.7763568394002505e-14,
+          "routing_identical": true
+        },
+        "INNER": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 9.43689570931383e-16,
+          "raw_max_abs_diff": 1.9539925233402755e-14,
+          "routing_identical": true
+        },
+        "POOL": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 1.6653345369377348e-15,
+          "raw_max_abs_diff": 1.9539925233402755e-14,
+          "routing_identical": true
+        }
+      },
+      "teacher_canonical_sha256": "adbe414be0e449a74acd2772650af366b0bea97e7430ed5f7aeb918b3d5d671f",
+      "teacher_payload_sha256": "adbe414be0e449a74acd2772650af366b0bea97e7430ed5f7aeb918b3d5d671f",
+      "tree_count": 747
+    },
+    "0|occupation": {
+      "catboost_model_sha256": "baf57caff1684033c5e4de76098cbfe8258f1b7bd6c4cfcc118047cf6583c90a",
+      "depth": 4,
+      "parity": {
+        "ATT": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 2.220446049250313e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "FIT2": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 2.220446049250313e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "INNER": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 2.220446049250313e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "POOL": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 3.3306690738754696e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        }
+      },
+      "teacher_canonical_sha256": "698d34ec51c1894753ab17dd07a2615a617bccb04f8c2ce2392c173fccdf1ef0",
+      "teacher_payload_sha256": "698d34ec51c1894753ab17dd07a2615a617bccb04f8c2ce2392c173fccdf1ef0",
+      "tree_count": 494
+    },
+    "1|N_EQ": {
+      "best_epochs": {
+        "income": 8,
+        "occupation": 26
+      },
+      "model_sha256": "e66e309e304b4ed144be635b74c956c90b8d61f1238184a767290d8f9972d936"
+    },
+    "1|income": {
+      "catboost_model_sha256": "32cd00fbd781a485d3b3b43ea69f46c52cf75824095098353be52f6b44d8becc",
+      "depth": 4,
+      "parity": {
+        "ATT": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 7.216449660063518e-16,
+          "raw_max_abs_diff": 1.1546319456101628e-14,
+          "routing_identical": true
+        },
+        "FIT2": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 5.551115123125783e-16,
+          "raw_max_abs_diff": 1.1546319456101628e-14,
+          "routing_identical": true
+        },
+        "INNER": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 5.551115123125783e-16,
+          "raw_max_abs_diff": 1.0658141036401503e-14,
+          "routing_identical": true
+        },
+        "POOL": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 8.881784197001252e-16,
+          "raw_max_abs_diff": 1.1546319456101628e-14,
+          "routing_identical": true
+        }
+      },
+      "teacher_canonical_sha256": "1ca5602e9f7f749c494caa57f84fff7c8a7736e9d9690eff428c7da61b4831d9",
+      "teacher_payload_sha256": "1ca5602e9f7f749c494caa57f84fff7c8a7736e9d9690eff428c7da61b4831d9",
+      "tree_count": 492
+    },
+    "1|occupation": {
+      "catboost_model_sha256": "aa9b65695ab71544c2ba315326ced154f83869fd7af3e59870da93b832c3d0c6",
+      "depth": 4,
+      "parity": {
+        "ATT": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 3.3306690738754696e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "FIT2": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 3.3306690738754696e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "INNER": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 2.220446049250313e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        },
+        "POOL": {
+          "decision_identical": true,
+          "probability_max_abs_diff": 3.3306690738754696e-16,
+          "raw_max_abs_diff": 0.0,
+          "routing_identical": true
+        }
+      },
+      "teacher_canonical_sha256": "a1fb8be572a2b0aceb86c460fa57e1502caa24f64413d887e03746c3e32f6003",
+      "teacher_payload_sha256": "a1fb8be572a2b0aceb86c460fa57e1502caa24f64413d887e03746c3e32f6003",
+      "tree_count": 751
+    }
+  },
+  "stage_a_outcome": {
+    "income_nll_headroom_vs_N_EQ": {
+      "level": 0.95,
+      "lower": 0.021857132650042164,
+      "point": 0.026732050591527237,
+      "upper": 0.0319623474175664
+    },
+    "occupation_nll_headroom_vs_N_EQ": {
+      "level": 0.95,
+      "lower": 0.008841289096467727,
+      "point": 0.013877471211827315,
+      "upper": 0.018931248245107283
+    },
+    "prerequisite": "TASK_MODEL_PREREQUISITE_MET",
+    "selection": {
+      "income": {
+        "depth": 4,
+        "internal_nll_sum_by_depth": {
+          "4": 0.648316652265118,
+          "6": 0.6531845461056769
+        },
+        "tree_count_by_seed": {
+          "0": 747,
+          "1": 492
+        }
+      },
+      "occupation": {
+        "depth": 4,
+        "internal_nll_sum_by_depth": {
+          "4": 2.517011124667494,
+          "6": 2.5188309229834327
+        },
+        "tree_count_by_seed": {
+          "0": 494,
+          "1": 751
+        }
+      }
+    }
+  },
+  "stage_a_report_sha256": "6d64367b7d10c5fbb106f3d49691dc17733f64c2bb723890131216c87fd7b7c1",
+  "status": "STAGE_B_LOCKED"
+}

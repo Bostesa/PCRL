@@ -1,0 +1,80 @@
+{
+  "schema": "THP1-backup-verification-v1",
+  "same_device": {
+    "status": "VERIFIED",
+    "snapshot": "~/PCRL_eval_cache_private/thp_v1/backups/SNAPSHOT_V2",
+    "files": 1478,
+    "bytes": 351465910,
+    "manifest_sha256": "1879621c1c7483e2bea00c8032296838d1aceadf42d14f466556761d439d6f3e",
+    "queue_ledger_copy": {
+      "path": "~/PCRL_eval_cache_private/thp_v1/backups/SNAPSHOT_V2_COMPUTE",
+      "files": 132,
+      "manifest_sha256": "5842c5a8e96dc15c7272822b046b068fb726c7ebff4879ac928d8d8babe1c921",
+      "mismatches": 0
+    },
+    "restore_from_backup_alone": {
+      "status": "PASS",
+      "files_restored": 1478,
+      "hash_mismatches": 0,
+      "packages_bitwise": {
+        "J_TREE_S0": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "J_TREE_S1": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "L_TREE_S0": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "L_TREE_S1": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "S12_TREE_S0": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "S12_TREE_S1": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "T_TREE_S0": {
+          "bitwise": true,
+          "returncode": 0
+        },
+        "T_TREE_S1": {
+          "bitwise": true,
+          "returncode": 0
+        }
+      },
+      "readers_bitwise": {
+        "readers/S0|L_TREE|pair": {
+          "bitwise": true,
+          "reader": "LOG_MLP"
+        },
+        "readers/S0|T_TREE|occupation": {
+          "bitwise": true,
+          "reader": "LOG_MLP"
+        },
+        "readers/S1|H_JOINT_CODE|income": {
+          "bitwise": true,
+          "reader": "OUT_LR"
+        },
+        "readers/S1|RAW_PROJ|pair": {
+          "bitwise": true,
+          "reader": "LOG_MLP"
+        }
+      }
+    },
+    "earlier_snapshot": "SNAPSHOT_V1 (1454 files, restore PASS on 2 packages + 4 readers)"
+  },
+  "off_device": {
+    "status": "PENDING",
+    "reason": "no writable external drive attached (only a read-only installer image is mounted); same-device backup is not off-device custody",
+    "command_when_drive_attached": "rsync -a --checksum ~/PCRL_eval_cache_private/thp_v1/backups/ /Volumes/<DRIVE>/pcrl_thp_v1_backups/ && (cd /Volumes/<DRIVE>/pcrl_thp_v1_backups/SNAPSHOT_V2 && python3 -c \"import json,hashlib;m=json.load(open('SNAPSHOT_MANIFEST.json'));print(sum(hashlib.sha256(open(x['path'],'rb').read()).hexdigest()!=x['sha256'] for x in m),'mismatches')\")"
+  },
+  "predecessors_off_device": "two-recipient and minimal-adapter off-device copies are also still pending"
+}
