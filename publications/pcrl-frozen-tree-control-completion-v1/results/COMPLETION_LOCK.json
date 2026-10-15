@@ -1,0 +1,230 @@
+{
+  "added_controls": {
+    "FARE_TC": {
+      "access": "fair tree on UPDATE rows only (task label + SEX); own head (jcv.finalize.fit_head) on UPDATE+GUARD one-hot cells with task labels only, C chosen on the internal 15% group fold; GUARD SEX never used",
+      "certificate": "not computed and not claimed; a demographic-parity certificate is not an attribute-recovery AUC guarantee",
+      "implementation": "official eth-sri/fare via oar.fare_official (pinned commit 89cb1b66; patched sklearn criterion fair_gini_dp; the previously documented sensitive-buffer fix applies)",
+      "nomination": "among F1, F2, F3: same feasibility + lowest worst-seed coalition proxy rule (ties summed NLL then setting order); else descriptive fallback; matched zero-fairness control Z<id>",
+      "settings": [
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.3,
+          "id": 1,
+          "max_leaf_nodes": 100,
+          "min_samples_leaf": 100,
+          "name": "F1_task_first_k100_g0.3"
+        },
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.7,
+          "id": 2,
+          "max_leaf_nodes": 50,
+          "min_samples_leaf": 100,
+          "name": "F2_task_first_k50_g0.7"
+        },
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.85,
+          "id": 3,
+          "max_leaf_nodes": 20,
+          "min_samples_leaf": 100,
+          "name": "F3_balanced_k20_g0.85"
+        }
+      ],
+      "zero_fairness_twins": "one per setting (gamma 0, same k-bar / n_i)"
+    },
+    "RAW_J_NEQ": {
+      "checkpoints_saved": [
+        0,
+        2,
+        5,
+        10,
+        20
+      ],
+      "existing_artifact_search": "no admitted artifact is a fresh neural RAW-J on UPDATE+GUARD with UPDATE-only SEX; the original lock records RAW_J as an exact alias of the historical RAW_PROJ (trained on all FIT with SEX), and N_EQ is task-only",
+      "matched_task_only_continuation": "T_NEURAL at the nominee checkpoint (identical loop, lambda 0)",
+      "nomination": "among rho {1,3,10} x E{2,5,10,20}: point-feasible on all 12 FIT2 clauses vs N_EQ in both seeds, lowest worst-seed FIT2 coalition proxy; ties summed FIT2 NLL, lower rho, earlier checkpoint; else minimum worst-seed normalized violation (descriptive fallback)",
+      "recipe": {
+        "batch_size": 256,
+        "calibration": "FIT-only: at the exact teacher with warm critics, 16 fixed draws; lambda_J_r(rho) = rho * median||grad CE_r|| / median||grad joint_r||; lambda_L_r(rho) = rho * median||grad CE_r|| / median||grad local_r||",
+        "checkpoint_epochs": [
+          0,
+          2,
+          5,
+          10,
+          20
+        ],
+        "clip": 5.0,
+        "epochs": 20,
+        "learning_rate": 0.0001,
+        "nomination_checkpoints": [
+          2,
+          5,
+          10,
+          20
+        ],
+        "optimizer": "Adam per recipient network, lr 1e-4, betas (0.9, 0.999), eps 1e-8, no weight decay; clip_grad_norm 5 per recipient network (validated TCR1 continuation recipe)",
+        "privacy": "joint (RAW-J): risk(income) + risk(occupation) + risk(pair); identical online critics/schedule/references to the tree arms",
+        "rng": "same seed_for names as the tree arms, so task, privacy, critic and warm batches are identical row draws",
+        "schema": "TC1-neural-rawj-recipe-v1",
+        "start": "admitted N_EQ (equally exposed neural task reference, UPDATE+GUARD, Recipe A)",
+        "steps_per_epoch": 40,
+        "strength_rationale": "identical nominal grid to the tree arms (not weaker); the source TCR1 RAW-J grid was {0.3, 1, 3} under its own objective, and 1 and 3 are shared",
+        "strength_ratios": [
+          1.0,
+          3.0,
+          10.0
+        ],
+        "task_only_continuation": "T_NEURAL: the identical loop, batches and checkpoints with lambda = 0"
+      }
+    },
+    "T_REFIT_E20": {
+      "checkpoint": "T_REFIT|none|E20 (existing, TRAINING_COMPLETE_LOCK hashes)",
+      "choice": "fixed in advance by the epoch-matching rule; no checkpoint chosen after seeing recovery",
+      "recipe": "original task-only leaf-score continuation (same teacher, data, optimizer, batches) at the candidate epoch 20"
+    }
+  },
+  "campaign": "pcrl_frozen_tree_control_completion_v1",
+  "code_sha256": {
+    "tree_completion/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tree_completion/admission.py": "8b5ea457ae2f28ca99c69fdc7f2ed518a46c7171544a8821c76b473af7861983",
+    "tree_completion/admission_worker.py": "af8da4e0d1ee05646defa556ca2ebf39b50bd3dfb20a1804c7c8cf3db1b8fa21",
+    "tree_completion/evaluation_queue.py": "6d9129141717d1f18033c26ff494528e7a244af8780d720ff32729fc0b8429d4",
+    "tree_completion/fare_worker.py": "d0d2eb83a54e95d00ba0c7c900fbf5bfcafb17d1ea985489d311303e6775fb44",
+    "tree_completion/fit2_worker.py": "42db8bc94444838461f1ea6cbb043162437e8fc689d1e4eb535608acdf5c7114",
+    "tree_completion/host_queue.py": "51206989970cfe8c9df0c8e93521657c0bbf905e179b4b06d8619e127f29635f",
+    "tree_completion/neural_rawj.py": "96af5d628c5d606263786daaef5d8f3e6b1a1c98f40ef3171247f04d96a046cd",
+    "tree_completion/reader_worker.py": "30c7ce4a882ac4a82e86a9cb08c461a4becfa9467c08b12f889bf4db499969bf",
+    "tree_completion/scheduler.py": "4a09e068ed33197f27b588c11278e927e3f1a23abb3fb1b3330d8fafdb40eb2a",
+    "tree_completion/selection_worker.py": "4cd4fcc80c4342ef4e3d31a53b20b99a57da8cb85cfdb956305fb44e06389fec",
+    "tree_completion/train_neural_worker.py": "df347a5af76983725fe43c284c08c350ce3b983507bf53a3b8a808d9bec5881e"
+  },
+  "endpoints": {
+    "C1": "L_TREE vs T_REFIT_E20: pair benefit mean_s[AUC_pair(T_REFIT_E20)-AUC_pair(L_TREE)] (privacy-training effect beyond continued task fitting: lower > 0; 0.020 also reported), income excess, occupation excess (upper <= 0.010)  [3]",
+    "C2": "L_TREE vs RAW_J_NEQ nominee: pair benefit (lower > 0.020 under the original criterion; lower > 0 reported), income excess, occupation excess  [3]",
+    "C3": "RAW_J_NEQ vs T_NEURAL: pair benefit (neural privacy effect beyond its own task continuation: lower > 0)  [1]",
+    "C4": "L_TREE vs FARE_TC nominee: pair benefit (lower > 0.020 if FARE_TC is a required comparator, else descriptive), income excess, occupation excess  [3]",
+    "C5": "FARE_TC vs FARE_TC_Z: pair benefit (lower > 0)  [1]",
+    "descriptive": "L_TREE vs T_TREE and vs T_REFIT E5 (stored), T_REFIT_E20 vs T_TREE, RAW_J_NEQ and FARE_TC vs RAW_PROJ and the historical codes; J_TREE vs L_TREE at the common E20 checkpoint on FIT2 only (no new INNER scoring)",
+    "family_K": 11,
+    "inference": "paired duplicate-group bootstrap (seed 2026101501, 2048 draws; the same INNER resamples as the original report), mean over seeds, Student-t Bonferroni over K=11, alpha 0.05, df = INNER groups - 1; PASS/UNRESOLVED/ESTABLISHED_VIOLATION and ESTABLISHED/UNRESOLVED/ESTABLISHED_SHORTFALL as originally defined",
+    "labels": {
+      "C1": [
+        "PRIVACY_TRAINING_EFFECT_ESTABLISHED",
+        "PRIVACY_TRAINING_EFFECT_NOT_ESTABLISHED"
+      ],
+      "C2": [
+        "MARGIN_OVER_NEURAL_RAWJ_ESTABLISHED (lower > 0.020, no excess violations)",
+        "SUPERIORITY_OVER_NEURAL_RAWJ_ONLY (lower > 0)",
+        "NOT_DISTINGUISHABLE",
+        "NEURAL_RAWJ_LOWER_RECOVERY (upper < 0)"
+      ],
+      "C4": [
+        "as C2 for FARE_TC if required, else FARE_TC_DESCRIPTIVE_ONLY"
+      ],
+      "original_criterion_update": "reported as an exploratory addendum (the original label is not changed)"
+    },
+    "utility": "24 original clauses (vs U0 and Ucal) for each new service, reported with point and interval status (descriptive, outside the family)"
+  },
+  "feasibility_plan": {
+    "designs": [
+      "ORIGINAL: two-sided Student-t/normal Bonferroni simultaneous bounds over the full family (K=78 sensitivity and the claim-specific K)",
+      "IUT: one fixed global claim, each clause one-sided at alpha (recommendation from the statistics role, fixed before results are tabulated)"
+    ],
+    "grids": {
+      "coalition_benefit_vs_binding_comparators": [
+        0.01,
+        0.015,
+        0.02,
+        0.025,
+        0.03,
+        0.04
+      ],
+      "evaluation_groups": [
+        2234,
+        5000,
+        10000,
+        20000,
+        50000,
+        100000,
+        200000,
+        500000
+      ],
+      "occupation_brier_slack": "observed point estimates and shifts of the excess by -0.002, -0.001, +0.0005 nats-equivalent units",
+      "power_targets": [
+        0.8,
+        0.9
+      ],
+      "sex_prevalence": [
+        0.25,
+        0.33,
+        0.45
+      ],
+      "variance_multiplier": [
+        0.8,
+        1.0,
+        1.25,
+        1.5
+      ]
+    },
+    "inputs": "per-group influence functions on INNER (already used) for every clause statistic of the frozen candidate and comparators, with duplicate groups as the unit; validated against the original bootstrap SEs",
+    "note": "conditional power from selected development estimates is optimistic; no sample size is a promise",
+    "tables": {
+      "A": "ORIGINAL criterion: 24 utility clauses + benefit >= 0.020 vs every required comparator + no-excess",
+      "B": "NEW narrower prospective claim: 24 utility clauses + benefit >= 0.020 vs the incumbent RAW_PROJ + superiority > 0 vs the strongest utility-feasible code control + no-excess"
+    }
+  },
+  "frozen_admission": {
+    "checks": 46,
+    "sha256": "25a3c2a1b4ea5e6a0c182572cba704158d91f5fd15117cdfdfd3975b0518ca93",
+    "status": "PASS"
+  },
+  "frozen_candidate": {
+    "key": "L_TREE|1.0|E20",
+    "reported_inner_values": "reused from the frozen reader banks (stored INNER scores and releases); its readers are never refit or reselected",
+    "retuning": "none (no new corrections, strengths, epochs, teachers, depths, temperatures, ensembles or allocations)",
+    "seeds": [
+      0,
+      1
+    ],
+    "service": "L_TREE"
+  },
+  "frozen_code_sha256": {
+    "task_headroom/data.py": "829d8c40a344bd49e93c5c37e7730cce914e7a376398624d77b17c829e8a8572",
+    "task_headroom/deploy.py": "11e148710bd976b328b96bc709109bdd754c6045bc5e6d6b964ebbaccbc7775a",
+    "task_headroom/fit2_worker.py": "2b84c4839e4bb400b19a58d10f30f76addc6db3f32124556b5b104f7aef0680e",
+    "task_headroom/inference.py": "124c8bde8106355a9aa12b8a8430e88a6d40bb7917be63bd8775e1d9c98dc502",
+    "task_headroom/leafcorr.py": "86a11dc0259731d9825ec1f88524964069e2146fd1f44c0c8994e0971d24b282",
+    "task_headroom/neural.py": "30030adc3b36d9773afa36910eefcb1e21f2925d6fffacaf837ceed4d38e661c",
+    "task_headroom/reader_worker.py": "50a2f408b9414d646316e76602c2e5d7902e8617ccbfc8d6ee848a452cba0089",
+    "task_headroom/selection_worker.py": "fed4a3fa7ea0805912083a8638c39537473d0f1173785046cd667248b570f8a4",
+    "task_headroom/services.py": "b8644be9bfed89d9936d9da46ef4dcbd2cc77f5afc37a967a5d878d97f8e8d9d",
+    "task_headroom/trees.py": "faf4bed51c8dd3c8358f521324e7cc39fa6617c8aacd3d2bb070506e0c8b4394"
+  },
+  "owner": "ROOT",
+  "population_audit": "documentation, provenance and safe metadata only; no prospective task/sensitive labels opened, no class frequencies, no fitting or scoring, no ranking by performance; unresolved history = UNKNOWN",
+  "readers": {
+    "candidate_scores": "L_TREE uses its stored INNER winner scores from the frozen banks; never refit",
+    "controls": "group-shuffled SEX and planted SEX bit (OUT_HGB) per view on the T_TREE wire; gates shuffled <= 0.60, planted >= 0.99",
+    "procedure": "task_headroom/reader_worker.py (frozen) via a verbatim copy tree_completion/reader_worker.py changed only in queue binding and required lock; 7 readers x 3 views per service, 14 ignore-one-recipient pair aliases, ATT train groups for fitting, ATT validation groups for orientation and winner selection, model seed 2026101205+seed",
+    "replay_control": "T_TREE is re-attacked in the completion banks; its INNER scores must reproduce the stored scores bitwise (procedure reproducibility)"
+  },
+  "release_contract": "each recipient: own full-precision probability vector + argmax decision; pair = aligned concatenation (income then occupation)",
+  "remotes": {
+    "github": "https://github.com/Bostesa/PCRL.git (external; receipts are pushed here and verified)",
+    "origin": "local mirror ~/PCRL (never called a public registration)"
+  },
+  "required_status_rule": "a new control becomes a required comparator for L_TREE under the ORIGINAL criterion iff its nominee is internally point-feasible on FIT2 in both seeds (same rule as the original lock)",
+  "resources": {
+    "cpu_hours": 12,
+    "elapsed_hours": 8,
+    "heavy_jobs": 2,
+    "paid_usd": 0,
+    "queue_start_utc": "2026-10-15T19:16:06Z",
+    "threads": 1
+  },
+  "schema": "TC1-completion-lock-v1",
+  "source_publication_sha": "c8ae518190100decf39e605f191747d0f10723e2",
+  "status": "COMPLETION_LOCKED",
+  "status_of_this_work": "EXPLORATORY completion of missing controls on already-used development people (UPDATE, GUARD, FIT2, ATT, INNER). Not replication, not confirmation. The original 78-endpoint report and its labels are unchanged."
+}

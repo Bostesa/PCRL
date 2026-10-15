@@ -1,0 +1,48 @@
+{
+  "schema": "TC1-backup-verification-v1",
+  "same_device": {
+    "status": "VERIFIED",
+    "snapshot": "~/PCRL_eval_cache_private/tc_v1/backups/SNAPSHOT_V2",
+    "files": 1561,
+    "bytes": 152796896,
+    "manifest_sha256": "b0b3e0c66bcb805edd0960f498d42460bc4b43fe0a9c0942f3135e1ce6c1e8be",
+    "contents": "completion private tree (queue state excluded while live), results, frozen deployment packages, original reader banks, runtime code",
+    "queue_ledger_copy": {
+      "path": "~/PCRL_eval_cache_private/tc_v1/backups/SNAPSHOT_V2_COMPUTE",
+      "files": 96,
+      "mismatches": 0,
+      "manifest_sha256": "3753e017d50ed1e2e3ab1d9ff466294443075142c48bac74add05293dc42134d"
+    },
+    "restore_from_backup_alone": {
+      "status": "PASS",
+      "files_restored": 1561,
+      "hash_mismatches": 0,
+      "packages_bitwise": {
+        "J_TREE_S0": true,
+        "J_TREE_S1": true,
+        "L_TREE_S0": true,
+        "L_TREE_S1": true,
+        "S12_TREE_S0": true,
+        "S12_TREE_S1": true,
+        "T_TREE_S0": true,
+        "T_TREE_S1": true
+      },
+      "readers_bitwise": {
+        "frozen_readers_old/S1|L_TREE|pair": true,
+        "private/readers/S0|FARE_TC|occupation": true,
+        "private/readers/S0|RAW_J_NEQ|pair": true,
+        "private/readers/S1|T_REFIT_E20|pair": true
+      }
+    },
+    "independent_restore": "verifier stage RESTORE PASS (L_TREE_S0, T_TREE_S1 and three reader views bitwise, from SNAPSHOT_V1 alone)",
+    "earlier_snapshot": "SNAPSHOT_V1 (1,518 files; restore PASS)"
+  },
+  "off_device": {
+    "status": "PENDING",
+    "reason": "no writable external drive is attached (only a read-only installer image is mounted at /Volumes)",
+    "this_campaign_command": "rsync -a --checksum ~/PCRL_eval_cache_private/tc_v1/backups/ /Volumes/<DRIVE>/pcrl_tc_v1_backups/",
+    "previous_task_headroom_campaign_command": "rsync -a --checksum ~/PCRL_eval_cache_private/thp_v1/backups/ /Volumes/<DRIVE>/pcrl_thp_v1_backups/",
+    "verify_after_copy": "cd /Volumes/<DRIVE>/pcrl_tc_v1_backups/SNAPSHOT_V2 && python3 -c \"import json,hashlib;m=json.load(open('SNAPSHOT_MANIFEST.json'));print(sum(hashlib.sha256(open(x['path'],'rb').read()).hexdigest()!=x['sha256'] for x in m),'mismatches')\""
+  },
+  "predecessors_off_device": "task-headroom, two-recipient and minimal-adapter off-device copies are still pending"
+}
