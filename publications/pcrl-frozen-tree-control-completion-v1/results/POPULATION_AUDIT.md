@@ -1,5 +1,7 @@
 _Orchestrator note (2026-10-15): statuses originally drafted as UNUSED_VERIFIED are relabelled NO_USE_FOUND_IN_SEARCHED_RECORDS, because non-use outside the searched PCRL/durable-guarantees records (S3 listings, deleted EC2 disks, other machines) is UNKNOWN. No prospective label was opened in this audit._
 
+_Post-closeout correction (2026-10-15): wording aligned with CLAIMS_REVIEW M4 ("identified", not "exists") and S7 (NY 2018 is the conditional fallback of the reserved TX 2018 cohort, not a reservation of its own). Both items were listed as applied at publication but had been missed in this file and in the CSV. No count, Adult role status or conclusion changed._
+
 # Population and provenance audit: frozen L_TREE confirmation feasibility
 
 **Role:** POPULATION/PROVENANCE, campaign `pcrl_frozen_tree_control_completion_v1` (branch `research/pcrl-frozen-tree-control-completion-v1`, seal commit `3c6d4aadd`).
@@ -17,7 +19,7 @@ Companion table: `POPULATION_COMPATIBILITY_AND_USAGE.csv`.
 
 ## Bottom line
 
-**(a) Frozen-release confirmation of the Adult L_TREE packages: no compatible unexposed population exists.**
+**(a) Frozen-release confirmation of the Adult L_TREE packages: no compatible unexposed population identified.** Non-use outside the searched records (S3 listings, deleted EC2 disks, other machines) is UNKNOWN.
 - **Adult is closed-world.** All 48,842 UCI records are accounted for below, and none is both raw83-compatible and unused.
 - **The 39,170-row raw83 row space is fully exposed.** Every role in it has been used for training, selection, attacker fitting, calibration or reporting.
 - **The 9,672 rows outside it:**
@@ -30,7 +32,7 @@ Companion table: `POPULATION_COMPATIBILITY_AND_USAGE.csv`.
 **(b) Recipe replication (a transported benchmark that refits the recipe end to end under a new, registered input contract):**
 - **Only ACS PUMS state-years outside the spent California years are candidates.** None has been acquired.
   - **TX 2018 1-Year:** reserved by name. It is the primary confirmation cohort of the shared-context release programme.
-  - **NY 2018:** named only as that programme's conditional TX+NY fallback.
+  - **NY 2018:** not a reservation of its own; it is only the conditional fallback (TX+NY pooled) of the reserved TX 2018 cohort.
   - **Other 2018 states:** no use found.
   - **2019 and 2021–2023:** no use found, but the relationship variable changed (`RELP` became `RELSHIPP`).
 - **CA 2016, 2017 and 2018 are all spent.**
@@ -195,7 +197,7 @@ The memory notes ("2018, 2017 and 2016 spent") are **verified**.
 - The programme ledgers call CA 2016 and 2017 spent at population level.
 - I mark them **UNKNOWN**: an owner ruling is needed, and they are not recommended.
 
-### 3.2 Reserved
+### 3.2 Reserved (TX 2018) and its conditional fallback (NY 2018)
 
 **TX 2018 1-Year (`csv_ptx.zip` → `psam_p48.csv`)**
 - **What:** named primary confirmation cohort of the **shared-context release programme**: "same-year geographic transport"; AGEP 19–34; same-residence and service tasks.
@@ -209,7 +211,7 @@ The memory notes ("2018, 2017 and 2016 spent") are **verified**.
 **NY 2018 1-Year (`csv_pny.zip`)**
 - No use found.
 - Named only as the registered **conditional fallback** (TX+NY pooled, triggered only if the TX label-free count falls short), in the same plan.
-- Treat it as entangled with the TX reservation until the user releases it.
+- It is not a reservation of its own. It is the conditional fallback of the reserved TX 2018 cohort, so treat it as entangled with that reservation until the user releases TX 2018.
 
 ### 3.3 No use found (candidates for recipe replication only)
 
@@ -339,7 +341,7 @@ None is schema-compatible with raw83 or with the income + occupation_group + SEX
 | U3 | Uncommitted or git-ignored durable-guarantees local state at relocation | Mount YOTUO, verify `tree-durable-guarantees.tar` (sha256 `55a116f1…`), and inspect it read-only. |
 | U4 | Person and household counts for TX 2018, NY 2018, other 2018 states and 2019+ years | A label-blind admission (feature, key and weight columns only) after a registered protocol, or official Census sample-size documentation. Not available from any receipt. |
 | U5 | Non-use outside the searched scopes (S3 objects, deleted EC2 disks, other machines) for TX, NY and other states | Re-run the S3 name listing (owner-authorised; outside this role's no-paid-cloud rule) and the rgj section 5 checklist immediately before any acquisition. |
-| U6 | Whether the TX 2018 reservation (and the NY fallback) is still live after the shared-context programme closed | An explicit user decision to keep, release or transfer the reservation. |
+| U6 | Whether the TX 2018 reservation (and with it the NY conditional fallback) is still live after the shared-context programme closed | An explicit user decision to keep, release or transfer the reservation. |
 | U7 | CA 2016/2017 persons outside AGEP 19–34 | An owner ruling on whether population-level "spent" covers them (the files were opened and households are linked). |
 | U8 | Schema of 2010–2015 1-Year dictionaries relative to 2018 | A dictionary diff from official documentation only. |
 | U9 | Person overlap between CPS-derived alternatives and Adult | Cannot be resolved (no person ids). Treat such sources as non-independent of Adult. |

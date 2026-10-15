@@ -1,6 +1,6 @@
 # Claims review (independent read-only role) and resolutions
 
-The review checked every listed figure against the evidence files. All figures matched except where noted, and all items were applied before publication.
+The review checked every listed figure against the evidence files. All figures matched except where noted. All items were applied before publication except M4 and S7, which were applied to START_HERE, ADVISOR_BRIEF and CONFIRMATION_PROTOCOL_DRAFT but missed in `POPULATION_AUDIT.md`, `POPULATION_COMPATIBILITY_AND_USAGE.csv` (NY 2018 row) and the feasibility verdict of `POWER_AND_FEASIBILITY.md`. Those were corrected after closeout (2026-10-15; see LOCK_NOTES). Wording only: no figure, Adult role status or conclusion changed.
 
 | item | finding | resolution |
 |---|---|---|

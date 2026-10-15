@@ -111,6 +111,6 @@ An **underpowered acceptable effect** has a true excess below the cap: a large e
 The original criterion is **not practically feasible**:
 - it is impossible at the observed code margins;
 - even if those margins were 0.025, it needs about 320,000–735,000 groups;
-- no compatible unexposed population is available.
+- no compatible unexposed population was identified (`POPULATION_AUDIT.md`; non-use outside the searched records is UNKNOWN).
 
 Claim B is a scientifically narrower, prospective claim: materially better than the incumbent and better than the best code control by a positive margin. Its comparator choice used exposed INNER outcomes. It also needs about 317,000 groups under the observed utility slack, more than any compatible population, and is infeasible if the evaluation population's SEX composition is more balanced. Neither table authorizes opening new labels.
