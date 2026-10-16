@@ -25,15 +25,17 @@ recipients link records, another recipient's output. The results separate three 
 test, a test holding while recovery occurs outside its scope, and recovery through a surface the test does not cover.
 
 \section*{2. Why this adversary and this access}
-The claims concern a release policy, so the adversary holds what the policy delivers. An authorized recipient
-necessarily possesses its own release, so that part needs no further justification. Two capabilities are granted, not
+The claims concern a release policy, so we chose to evaluate an adversary that holds what the policy delivers. An
+authorized recipient necessarily possesses its own release, so that part describes the service rather than an
+assumption. Two capabilities are granted, not
 established. \emph{Linkage}: two recipients serving the same person may pool releases by record; we grant perfect
 linkage, the attacker-favourable limit, without assuming that governance prevents linkage or that pooling is
 unavoidable. \emph{Labelled auxiliary data}: our attackers are supervised and learn from releases of other records with
 the attribute, which models a recipient that knows the attribute for some of the people it serves; availability, size
 and population match are assumptions. A stronger attacker alone does not justify more access. Inputs held by the
-recipient, published parameters, repeated queries and insiders are distinct threat models, not necessarily breaches;
-they are untested, not dismissed. The paper now has a table that states, for each experiment, what the recipient
+recipient, published parameters and permitted repeated queries are distinct threat models that need not involve a
+breach; insiders are another distinct threat model. All are untested, not dismissed. Within the evaluated access a
+stronger attacker could recover more, so each recovery figure is a lower estimate, not a guarantee. The paper now has a table that states, for each experiment, what the recipient
 receives, the labelled sample (5{,}388 to 7{,}571 labelled rows for fitting and 2{,}082 to 2{,}239 for selection,
 depending on dataset and experiment), how attackers are fitted, selected and scored, what they know about the defense, how releases are linked
 and what is untested. It also reports two facts the earlier draft omitted: the noise scale and FARE's configuration
@@ -46,13 +48,14 @@ scale recovered more from the noisy features than the slate did (Adult 0.563, HM
 the attribute about as well as from untreated features (AUC 0.817 and 0.863 against 0.815 and 0.870).
 \item \textbf{A method's own test failing.} The encoders' stored linear check fails on 11 of 42 attribute--seed
 combinations (the earlier manuscript said 12; the committed table and the source's own list give 11).
-\item \textbf{Other surfaces.} Releasing the untreated model's output beside defended features restores recovery to
-0.76--0.79, and outputs reveal more than the true label alone would.
-\item \textbf{Utility changes the reading.} With useful heads, FARE's score recovers 0.539 against 0.774 untreated, but a
+\item \textbf{Other surfaces.} Releasing the untreated model's output beside noisy or FARE features restores recovery
+to 0.76--0.79, and outputs reveal more than the true label alone would.
+\item \textbf{Utility changes the reading.} With useful heads, FARE's score recovers 0.539 against 0.773 untreated, but a
 same-budget tree without the fairness term already reaches 0.648, and FARE's accuracy is not shown to stay within one
 point. On an easier task, compression reproduces most of FARE's effect.
-\item \textbf{Linked recipients.} Two linked recipients recover race better than either alone in every output format,
-including hard decisions (0.611 against 0.576).
+\item \textbf{Linked recipients.} In the one coalition evaluated (Adult income and occupation-group recipients, race),
+two recipients granted perfect linkage recover race better than either alone in every output format, including hard
+decisions (0.611 against 0.576).
 \end{itemize}
 All of this is development evidence on previously used rows, with intervals conditional on the fitted heads and
 attackers.

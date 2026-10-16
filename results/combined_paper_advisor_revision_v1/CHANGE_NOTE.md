@@ -82,10 +82,49 @@ The numeric record is unchanged, apart from one correction and the reporting of 
     admitted manuscript, which said that no attacker used defense knowledge beyond refitting.
 - **Reported from committed metadata:** the labelled-sample sizes per experiment (Table 3), the FARE certification
   sizes, and the selection rules for σ\* and FARE's configuration.
+- **Rounding corrected against stored values** (claims reviewer, `review/CLAIM_SOURCE_INDEX.md` D2–D6):
+  - untreated useful-head score: 0.774 → **0.773** (stored 0.773489; the paper already printed 0.773 for the same value
+    elsewhere);
+  - Table 1, HMDA LEACE features in Experiment 2: 0.864 → **0.863**;
+  - zero-fairness tree, HMDA: 0.607 → **0.608**;
+  - a per-seed offset value: "−0.000" → **−0.0003**;
+  - compute: "about 0.2 CPU-hours" → **about 0.25** (`COST_AND_STORAGE.md`).
+- **Further stored values now reported:**
+  - the unadjusted 90% upper ends of the held-out ρ₁² (0.013 and 0.033), so that "near zero" no longer rests on point
+    estimates alone;
+  - the complete-release contrast R(F0) − R(F) = 0.096 [0.076, 0.116] (secondary endpoint of Experiment 4), so that the
+    two cells in Section 6.6 are compared on the same surface;
+  - the size of the owner's `defense_fit` (24,127 and 63,704 records);
+  - Experiment 1's level bars (0.55 AUC, 0.05, one point).
 - **Replaced and removed values.** The abstract's loose AUC ranges (0.81–0.86 / 0.82–0.87) are replaced by Table 1's
   exact values. The count of attacker units is dropped together with the word "unit".
 - **Check.** A token-level comparison of the two `main.tex` files found no other new or missing scientific value (see
   `CLAIM_SOURCE_CHECK.md`).
+
+## Disclosures added after the claims review
+
+- **Three post-run changes,** stated in Section 5:
+  - the FARE certification duplicate guard (without it, every certificate was unavailable);
+  - the easier-task scoring repair (found by the replay; the lower bound moved from 0.0001 to 0.0019, and the decision
+    is unchanged);
+  - reporting repairs that changed no estimand, selection, role or decision.
+- **The replay's scope:** it recomputed every registered endpoint, but not the post hoc diagnostics, the two separately
+  recomputed descriptive values or the Figure 2 intervals.
+- **Interval types:** the unadjusted 90% intervals used in Section 6.1 and the marginal intervals of Figure 2 are named
+  as such.
+- **Citation scope:**
+  - Stadler et al. (every attribute, with the label granted to the adversary; finite discrete data);
+  - "could not" is attributed to Elazar and Goldberg, not to Song and Shmatikov;
+  - AttriGuard's attacker reads public data;
+  - Li et al.'s guarantee is for linear least-squares reconstruction;
+  - Tian et al.'s result is one attack on image benchmarks;
+  - LEACE's guarantee is stated for the fitted moments;
+  - FARE's certificate holds with high probability;
+  - Jayaraman and Evans concern training-record inference.
+- **Bibliography:** `tian2025fairnessprivacy` now cites IEEE TDSC 22(5):4654–4670 (DOI 10.1109/TDSC.2025.3551157);
+  `jia2018attriguard` gains pages 513–529 and its publisher.
+- **Figures:** the Figure 1 caption explains that Experiments 1–3 release the stored frozen head's output, and the
+  bypass label is clarified. The Figure 3 caption maps "employment" to the occupation-group task.
 
 ## Not changed
 

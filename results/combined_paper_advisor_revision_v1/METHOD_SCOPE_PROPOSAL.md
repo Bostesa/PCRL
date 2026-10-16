@@ -20,8 +20,9 @@ sensitive-attribute recovery from everything recipients receive, both individual
    remove information that the permitted tasks do not need, for example by giving the same output to inputs whose
    sensitive posteriors differ, or by not releasing a degree of freedom that no task uses, such as a free logit offset.
    It is still evaluated through finite attacks. The design intent explains why recovery should fall; the attacks
-   measure whether it does. Learning curves over the auxiliary budget help to tell the two apart in practice: a release
-   that only slows learning tends to lose its advantage as the attacker receives more labelled data.
+   measure whether it does. Learning curves over the auxiliary budget can indicate, but not establish, which applies:
+   an advantage that shrinks as the labelled budget grows is consistent with slower learning, and one that persists is
+   consistent with information removal or with a limit of the attacker families.
 3. **A formal claim needs formal evidence.** A statement about arbitrary attackers (every classifier, every budget)
    needs a valid theorem with stated assumptions, or other evidence appropriate to that statement. Finite-attack results
    support statements about the evaluated attackers and budgets only.
@@ -46,14 +47,19 @@ Where this scope refers to the current benchmarks, their definitions are used ex
   - release contract: recipient *i* receives R_i = (f_i(X), argmax f_i(X)), its own probability vector and decision,
     deterministic in the six permitted fields; nothing else is released; the coalition view is the perfectly linked
     pair;
+  - access: readers are fitted on 8,001 labelled people (ATTACK_FIT) and selected and oriented on 3,000
+    (ATTACK_VALIDATION) from random household splits of the same cohort; one fixed deterministic release per person;
+    the pair bank includes readers that ignore either recipient; household and person identifiers are never reader
+    features;
   - utility: 24 clauses with inclusive caps (accuracy loss ≤ 0.010, NLL excess ≤ 0.010 nats, summed Brier excess
     ≤ 0.005) for 2 tasks × references U0 and Ucal × 2 seeds, plus the within-SEX occupation Brier guard (≤ 0.005);
   - claims reported separately: point feasibility, utility confidence, recovery reduction against the method's own
     task-only twin (lower bound > 0.020 on both seeds, each recipient's worsening ≤ 0.010), competitive method (lower
     bound > 0 against every eligible comparator, at minimum the neural adversarial control, with the nested 0.020
     margin), joint component, subgroup suitability and novelty.
-- **Stored-model benchmark of the revised paper**: release contracts (output only; features with own head output; the
-  clean-output bypass as an adverse control), the four output formats, the non-inferiority margin of −0.01, the gain
+- **Stored-model benchmark of the revised paper**: release contracts (features only, for interpretation; output only;
+  features with own head output; the clean-output bypass as an adverse control), the four output formats, each
+  experiment's access and labelled budget (the paper's access table), the non-inferiority margin of −0.01, the gain
   target of 0.03, the retention contrast and the recovery target of 0.02 AUC.
 
 A randomised release, shared randomness or any change to the released objects is a contract change. It would have to be
