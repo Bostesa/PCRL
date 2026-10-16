@@ -1,0 +1,2222 @@
+{
+  "adversary": "auxiliary labelled releases (ATTACK_FIT with SEX) plus one target release (DEV_REPORT outputs); perfect linkage of the two recipients for the coalition; no true task labels, no target raw inputs, no model internals",
+  "bank": {
+    "bank_files_sha256": {
+      "S0": "ce3c713036eb4f37f7481ac64675e536b4014a9b162cba9883e6aff5bbc784a6",
+      "S1": "f98a7360a0f1b93d299709c6f2d0501bbd1f2b40f399c74431450a58620c76b9"
+    },
+    "combinations": {
+      "H_JJ": {
+        "income": "JOINT_TREE",
+        "occupation": "JOINT_TREE"
+      },
+      "H_JL": {
+        "income": "JOINT_TREE",
+        "occupation": "LOCAL_TREE"
+      },
+      "H_LJ": {
+        "income": "LOCAL_TREE",
+        "occupation": "JOINT_TREE"
+      },
+      "H_LL": {
+        "income": "LOCAL_TREE",
+        "occupation": "LOCAL_TREE"
+      }
+    },
+    "controls": {
+      "NEURAL_RAW": "NEURAL_RAW_rho1.0_E2",
+      "TASK_REFIT": "TASK_REFIT",
+      "T_TREE": "T_TREE"
+    },
+    "frozen_bank_manifest_sha256": "d8006b2d51ec1328160ffdc779d42e59769c773611ac712593c345fa33760d60",
+    "ineligible_baselines_not_reattacked": {
+      "FAGTB": "INELIGIBLE_FALLBACK (source SELECTION_LOCK)",
+      "FARE": "INELIGIBLE_FALLBACK (source SELECTION_LOCK)"
+    },
+    "references_for_utility_only": [
+      "U0",
+      "Ucal"
+    ]
+  },
+  "branch": "research/pcrl-acs-frozen-hybrids-v1",
+  "campaign": "pcrl_acs_frozen_hybrids_v1",
+  "central_question": {
+    "labels": [
+      "H_LJ_FIXED_COMPOSITION_SUPPORTED",
+      "H_LJ_FIXED_COMPOSITION_NOT_SUPPORTED"
+    ],
+    "rule": "reported last: SUPPORTED iff the controls are valid, claim A is RECIPE_BENEFIT_ESTABLISHED and claim B is SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL; otherwise NOT_SUPPORTED listing every unmet component in this order: controls; DEV_REPORT utility point gate (keys); MODEL_SELECT feasibility; coalition benefit s0 and s1; recipient worsening (4 keys); claim B completeness or eligibility; COMPETITIVE benefit s0 and s1. No extra alpha; it excludes subgroup status, overall confidence status, the nested 0.020 targets and the increment. Recommendations follow the source separation rule: unqualified only with SUBGROUP_QUALIFIED; with SUBGROUP_UNRESOLVED they must say that subgroup suitability is unresolved; with ESTABLISHED_SUBGROUP_HARM no recommendation for that group.",
+    "scope_sentence": "Exploratory development result on already-opened DEV_REPORT data; the composition was fixed after its components' DEV_REPORT results were public, so error rates are nominal; conditional on the two fitted seed pairs (shared people, not independent samples), the frozen defense models and the fitted readers, in the unweighted DEV_REPORT household superpopulation; not confirmation; source labels unchanged."
+  },
+  "checks_at_truth": [
+    "per-person utility metric vectors equal those of the components",
+    "the bootstrap weight matrix reproduces the source: every endpoint recomputing a published source value has the published point and SE within 1e-12 (utility and subgroup always; income worsening only if the reader replay held bitwise)",
+    "exactly 38 primary and 22 secondary keys exist and all are finite",
+    "any failure halts the report and no decision is issued"
+  ],
+  "checks_before_truth": [
+    "each hybrid output array equals its components' frozen outputs bit for bit in every role (BANK)",
+    "each hybrid pair wire equals [income wire | occupation wire] of its components, row-aligned by row_id",
+    "all 250 reader fits complete and every DEV_REPORT score finite",
+    "replay against the source recorded",
+    "Stage-1 controls pass (ATTACK_VALIDATION)",
+    "any failure halts the run before truth is opened"
+  ],
+  "claim_keys": {
+    "A_coalition_benefit": [
+      "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s0",
+      "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s1"
+    ],
+    "A_recipient_worsening": [
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s0",
+      "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s0",
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s1",
+      "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s1"
+    ],
+    "A_utility": [
+      "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s0",
+      "RECIPE|H_LJ|utility|income|U0|nll_excess|s0",
+      "RECIPE|H_LJ|utility|income|U0|brier_excess|s0",
+      "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s0",
+      "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s0",
+      "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s0",
+      "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s0",
+      "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s0",
+      "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s0",
+      "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s0",
+      "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s0",
+      "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s0",
+      "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s1",
+      "RECIPE|H_LJ|utility|income|U0|nll_excess|s1",
+      "RECIPE|H_LJ|utility|income|U0|brier_excess|s1",
+      "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s1",
+      "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s1",
+      "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s1",
+      "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s1",
+      "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s1",
+      "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s1",
+      "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s1",
+      "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s1",
+      "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s1"
+    ],
+    "B_competitive": [
+      "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s0",
+      "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s1"
+    ],
+    "C_subgroup": [
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1"
+    ],
+    "increment": [
+      "INCREMENT|H_LJ_over_H_LL|coalition_gain|s0",
+      "INCREMENT|H_LJ_over_H_LL|coalition_gain|s1"
+    ]
+  },
+  "claims": {
+    "A": {
+      "invalid_label": "INVALID_CONTROL_FAILURE",
+      "labels": [
+        "RECIPE_BENEFIT_ESTABLISHED",
+        "RECIPE_BENEFIT_NOT_ESTABLISHED"
+      ],
+      "name": "RECIPE_BENEFIT (H_LJ vs TASK_REFIT; one-sided alpha/3; IUT)",
+      "nested_labels": [
+        "RECIPE_BENEFIT_AND_UTILITY_BOUNDS_ESTABLISHED",
+        "RECIPE_BENEFIT_AND_UTILITY_BOUNDS_NOT_ESTABLISHED"
+      ],
+      "rule": "If the controls are not valid: INVALID_CONTROL_FAILURE. Otherwise RECIPE_BENEFIT_ESTABLISHED iff keys RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s0 and |s1 have clause lower bound L1 > 0.020, the four recipient worsening keys have clause upper bound U1 <= 0.010, and all 24 utility keys pass at the point (deterministic gate, no error control); otherwise RECIPE_BENEFIT_NOT_ESTABLISHED listing every failed clause. Nested (no extra alpha): RECIPE_BENEFIT_AND_UTILITY_BOUNDS_ESTABLISHED iff claim A is established and all 24 utility keys have U1 <= cap.",
+      "scope": "error-controlled for the 6 recovery clauses (approximate Wald, nominal given post-hoc composition, conditional on frozen models and fitted readers); utility gate: point only"
+    },
+    "B": {
+      "labels": {
+        "fails_gate": "H_LJ_FAILS_SAME_UTILITY_REQUIREMENTS",
+        "incomplete": "INCOMPLETE",
+        "invalid": "INVALID_CONTROL_FAILURE",
+        "no_eligible": "NO_ELIGIBLE_BASELINE",
+        "not_superior": "NOT_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL",
+        "superior": "SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL"
+      },
+      "name": "COMPETITIVE (H_LJ vs eligible NEURAL_RAW; one-sided alpha/3)",
+      "nested_labels": [
+        "MATERIALLY_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL",
+        "NOT_ESTABLISHED"
+      ],
+      "rule": "First rule that applies: (1) INCOMPLETE if NEURAL_RAW pair scores are missing or non-finite for either seed (never a win); (2) INVALID_CONTROL_FAILURE if the controls are not valid; (3) NO_ELIGIBLE_BASELINE if SELECTION_LOCK.frozen.NEURAL_RAW.status != ELIGIBLE; (4) H_LJ_FAILS_SAME_UTILITY_REQUIREMENTS if H_LJ fails MODEL_SELECT point feasibility (24 clauses, 12 per seed) or the DEV_REPORT 24-clause point gate; (5) SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL if COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s0 and |s1 both have L1 > 0; (6) otherwise NOT_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL. Nested (no extra alpha): MATERIALLY_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL iff rule 5 and both L1 > 0.020, else NOT_ESTABLISHED. The decision prints the eligible set {NEURAL_RAW} and states that FAGTB and FARE had no MODEL_SELECT-feasible configuration and were not compared. T_TREE is never part of claim B. The K = 38 status of both keys is reported at 0 and at 0.020."
+    },
+    "C": {
+      "labels": {
+        "harm": "ESTABLISHED_SUBGROUP_HARM",
+        "not_estimable": "NOT_ESTIMABLE",
+        "qualified": "SUBGROUP_QUALIFIED",
+        "unresolved": "SUBGROUP_UNRESOLVED"
+      },
+      "name": "SUBGROUP_SUITABILITY (H_LJ occupation = JOINT occupation; one-sided alpha/3; IUT)",
+      "rule": "First rule that applies: (1) NOT_ESTIMABLE if fewer than 200 DEV_REPORT households contain a member of either SEX group (counted from SEX alone); (2) SUBGROUP_QUALIFIED if the four SUBGROUP keys all have U1 <= 0.005; (3) ESTABLISHED_SUBGROUP_HARM if any has K = 38 lower bound L > 0.005 (guards named); (4) otherwise SUBGROUP_UNRESOLVED. Reader controls do not affect claim C."
+    }
+  },
+  "code_sha256": {
+    "acs_hybrids/bank.py": "f219c10a41ef0667743ee0e45c57090073e4617f70e08790098d6387ec1b8393",
+    "acs_hybrids/common.py": "edac9d805db44359f584debb8f1bcd951da525698c879583401964b3709236f5",
+    "acs_hybrids/hybrid_deploy.py": "02d1659108abee2bc0f89a183c87612c850f361c3bacb2d53f68bcf6f303b86e",
+    "acs_hybrids/jobqueue.py": "dafd324dc17a0e57f0cdb7f4d572ef35cdf8ec41fd083a2c6bbda8c844197ba0",
+    "acs_hybrids/lock.py": "c85a63ac3ba03190eab181f89f7399745f12a1fb6843587c9e99d4afc53b3b2d",
+    "acs_hybrids/readers.py": "41aa797d1356698bbba2e31073b527b061329a2407a0309f92ac8438e476a043",
+    "acs_hybrids/report.py": "d415bb93eecdff598055ce35338dbcd5539e0f42cd674878f75013d3b246bb02",
+    "acs_hybrids/restore_admit.py": "d3096d5ffc3a5ed633b669b55786ec9ae37ef3de69b5c8592ff38f2e6bdf2fa1",
+    "acs_replication/deploy.py": "38371544e4fa55926c1468c996272765f947d1a8a4fe314fc223f7ea06eb219a",
+    "acs_replication/neural.py": "cbc53a2b8c1425714507c9bfbdf3b250f51973d658df974807dafee448c0defc",
+    "acs_replication/schema.py": "113bbaeaff3a7c5493e14803d98af4485680fa7b8840ff2e057e2a1d8bf8f9dd",
+    "acs_replication/trees.py": "cb9a35b83d8781f3d3f298b93a63579980b36686fd5b941e9325911786449cb7",
+    "task_conditioned_representation/attacks.py": "bdcabb20ba2fa588f741f0bc76fa750b2d77858994b3a7b4c5e49c5d88e5dd20",
+    "task_conditioned_representation/inference.py": "b034299d036408909221187cca49f1c87f96a47f0d0a5eb869ec70b1bbf29a51",
+    "task_headroom/inference.py": "124c8bde8106355a9aa12b8a8430e88a6d40bb7917be63bd8775e1d9c98dc502"
+  },
+  "controls": {
+    "acceptance": "PLANTED_PASS iff all 12 planted AUCs are finite and >= 0.99; NULL_PASS iff all 12 null AUCs are finite and in [0.45, 0.55]; CONTROLS_VALID iff both; a missing, unfit, refused or non-finite control counts as a failure",
+    "disclosure": "each DEV_REPORT null AUC with its household-bootstrap SE and (AUC - 0.5)/SE; NULL_WIDE flags a null outside [0.47, 0.53] but inside [0.45, 0.55] (no decision effect)",
+    "interpretation": "controls test pipeline validity only; a failed or refused control is never evidence of privacy; the DEV_REPORT planted check cannot detect score-label row misalignment, which the row_id and wire-construction checks cover",
+    "layout": "H_LJ wire, each seed and view; OUT_HGB with model seed MODEL_SEED_BASE + s; no control is oriented. Shuffled null: trained on ATTACK_FIT with SEX permuted by default_rng(2026101602 + s). Planted leak: trained on [wire, SEX] with true ATTACK_FIT SEX; scored with the role's SEX on ATTACK_VALIDATION; on DEV_REPORT bit 1 for SEX = 1 and bit 0 for SEX = 0 persons. 12 null and 12 planted AUCs.",
+    "null_band": [
+      0.45,
+      0.55
+    ],
+    "null_wide_band_disclosure_only": [
+      0.47,
+      0.53
+    ],
+    "planted_min_auc": 0.99,
+    "replay": "readers on the LOCAL, JOINT, TASK_REFIT, NEURAL_RAW and T_TREE wires are compared with the source stored DEV_REPORT scores before truth; a mismatch from a construction or alignment defect is fixed before truth with a full refit and disclosure; any other mismatch is recorded, the run continues and statements that recovery values equal the source are withdrawn; a replay result never changes the slate, hyperparameters or winners",
+    "stage_1_before_truth": "the 6 ATTACK_VALIDATION planted and 6 ATTACK_VALIDATION null values; on failure stop and do not open truth; a code, wire-construction or alignment defect may be fixed (slate, hyperparameters, seeds and thresholds may not change), then all 250 fits are refit and Stage 1 rerun, with disclosure; if no defect is found the campaign ends ATTACK_PIPELINE_INVALID and DEV_REPORT is never re-read",
+    "stage_2_at_truth": "the 6 DEV_REPORT planted and 6 DEV_REPORT null values; on failure claims A and B and their nested decisions become INVALID_CONTROL_FAILURE, the increment and every recovery status (primary and secondary) become INVALID (numbers still shown, marked invalid), the conjunction is NOT_SUPPORTED with CONTROL_FAILURE first; utility point feasibility, overall confidence status and claim C are unaffected; nothing is repaired, rerun or substituted"
+  },
+  "deployment_check_before_lock": {
+    "deployment_results_sha256": "9959a0c7fa99681f144cfccaac5d261fbbab10e6b43cc4e7c640c559b471935c",
+    "note": "label-free parity of the H_LJ package; no recovery result"
+  },
+  "descriptive_extras": "DEV_REPORT AUC of every slate reader on the pair view for H_LJ, H_LL, TASK_REFIT and NEURAL_RAW, with the envelope (max over readers) labelled \"selected on report data\"; absolute AUCs for the 17 distinct wires per seed with marginal intervals; per-recipient differences vs NEURAL_RAW and T_TREE; utility and subgroup statistics of every service; PWGTP-weighted points",
+  "distance_rule": "one row per reference value m: coalition benefits (vs TASK_REFIT, NEURAL_RAW, T_TREE) and both increments m in {0, 0.020}; recipient worsening m in {0, 0.010}; utility and subgroup m = cap; interaction m = 0. Columns point_minus_m, lower_minus_m, upper_minus_m (the endpoint's own family interval), clause_bound_minus_m (claim clauses only: L1 - m or U1 - m), status_at_m; signed, positive = above m; unrounded in JSON, 4 decimals in tables; never from a marginal interval for an endpoint in a family; absolute AUCs get only AUC - 0.5",
+  "forecasts_sha256": "aa17457886ece6cab6e29301914ca02664049a776dfebaff0d32444878d8190b",
+  "increment_rule": "keys INCREMENT|H_LJ_over_H_LL|coalition_gain|s0/s1: point, SE, K = 38 interval, status at 0 and at 0.020, distance columns; no clause status, no claim, no gate role",
+  "inference": {
+    "K_primary": 38,
+    "K_secondary": 22,
+    "alpha_family_one_sided": 0.025,
+    "alpha_per_claim_one_sided": 0.008333333333333333,
+    "bootstrap_B": 2048,
+    "bootstrap_seed": 2026101603,
+    "bootstrap_seed_note": "reused from the source so that, with the same household order, the draw matrix and every recomputed source SE reproduce exactly",
+    "bootstrap_unit": "DEV_REPORT household (G = 3,955), one draw matrix shared across services, views, endpoints and both seeds",
+    "bounds": "Wald-type: point +/- t(G-1) x bootstrap SE (not studentized)",
+    "critical_values": {
+      "clause_one_sided_alpha_over_3": 2.395,
+      "df": 3954,
+      "marginal_95": 1.9606,
+      "primary_K38": 3.2148,
+      "secondary_K22": 3.0541,
+      "source_K40_reference": 3.2295
+    },
+    "distinct_statistics_note": "Ucal is argmax-invariant, so the U0 and Ucal accuracy-loss rows are identical statistics; K = 38 covers 34 distinct statistics (Bonferroni conservative, as in the source)",
+    "families": "decision family: one-sided FWER 0.025 over the three claims (Bonferroni alpha/3; IUT within claims; clause bounds decide only positive claim clauses). Primary reporting family: two-sided 95% Bonferroni-t simultaneous intervals over the K = 38 keys; every failing-direction label comes only from these. Secondary descriptive family: two-sided 95% Bonferroni-t over the K = 22 keys; statuses labelled \"descriptive (secondary family)\" and never decision-bearing. Marginal 95% intervals (t = 1.9606) outside both families are labelled unadjusted. One statistic never carries two family intervals.",
+    "monte_carlo_error_note": "relative Monte Carlo error of a bootstrap SE at B = 2,048 is about 1.6% (1/sqrt(2(B-1)))",
+    "multiplicity_vs_source": "every status is recomputed under K = 38 (never inherited from K = 40); for endpoints with a source status the source K = 40 status is shown beside it and any difference is labelled STATUS_CHANGED_BY_MULTIPLICITY_ONLY, never new evidence; source labels are not revised",
+    "n_claims": 3,
+    "subgroup_min_households_per_sex": 200
+  },
+  "inheritance_rule": "exact, before rounding: H_LJ income per-person metric vectors equal LOCAL income's, H_LJ occupation equal JOINT occupation's, H_LL equal LOCAL, H_JJ equal JOINT. An equality failure is a computation or alignment defect: it halts the run and is never a scientific outcome or a tolerance change.",
+  "primary": {
+    "fixed": "fixed before any reader fit; never replaced by another combination after results; a favourable alternative is a post-hoc observation, not a nominee",
+    "service": "H_LJ"
+  },
+  "primary_roster": [
+    {
+      "claim": "A",
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_LJ)",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s0",
+      "kind": "benefit",
+      "margin": 0.02,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null,
+      "value_source": "N"
+    },
+    {
+      "claim": "A",
+      "definition": "AUC_income(H_LJ) - AUC_income(TASK_REFIT)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LJ",
+        "type": "auc_diff",
+        "view": "income"
+      },
+      "key": "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s0",
+        "note": "LOCAL income wire; P assumes the reader replay holds",
+        "type": "endpoint"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "definition": "AUC_occupation(H_LJ) - AUC_occupation(TASK_REFIT)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LJ",
+        "type": "auc_diff",
+        "view": "occupation"
+      },
+      "key": "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "minus": "TASK_REFIT",
+        "plus": "JOINT_TREE",
+        "type": "recovery_points",
+        "view": "occupation"
+      },
+      "value_source": "p"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|U0|accuracy_loss",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|nll_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|U0|nll_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|brier_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|U0|brier_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|Ucal|accuracy_loss",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|Ucal|nll_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "income|Ucal|brier_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|U0|accuracy_loss",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|U0|nll_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|U0|brier_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|Ucal|accuracy_loss",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|Ucal|nll_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "occupation|Ucal|brier_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "B",
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_LJ); nested material margin 0.020",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s0",
+      "kind": "benefit",
+      "margin": 0.0,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null,
+      "value_source": "N"
+    },
+    {
+      "claim": "C",
+      "estimand": {
+        "group": 0,
+        "service": "H_LJ",
+        "type": "subgroup_occupation_brier_vs_U0"
+      },
+      "key": "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "group": "sex0",
+        "service": "JOINT_TREE",
+        "type": "service_subgroup"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "C",
+      "estimand": {
+        "group": 1,
+        "service": "H_LJ",
+        "type": "subgroup_occupation_brier_vs_U0"
+      },
+      "key": "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "group": "sex1",
+        "service": "JOINT_TREE",
+        "type": "service_subgroup"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": null,
+      "definition": "AUC_pair(H_LL) - AUC_pair(H_LJ); no claim, no clause status, no gate role",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "H_LL",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "INCREMENT|H_LJ_over_H_LL|coalition_gain|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null,
+      "value_source": "N"
+    },
+    {
+      "claim": "A",
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_LJ)",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s1",
+      "kind": "benefit",
+      "margin": 0.02,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null,
+      "value_source": "N"
+    },
+    {
+      "claim": "A",
+      "definition": "AUC_income(H_LJ) - AUC_income(TASK_REFIT)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LJ",
+        "type": "auc_diff",
+        "view": "income"
+      },
+      "key": "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s1",
+        "note": "LOCAL income wire; P assumes the reader replay holds",
+        "type": "endpoint"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "definition": "AUC_occupation(H_LJ) - AUC_occupation(TASK_REFIT)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LJ",
+        "type": "auc_diff",
+        "view": "occupation"
+      },
+      "key": "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "minus": "TASK_REFIT",
+        "plus": "JOINT_TREE",
+        "type": "recovery_points",
+        "view": "occupation"
+      },
+      "value_source": "p"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|U0|accuracy_loss",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|nll_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|U0|nll_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|U0|brier_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|U0|brier_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|Ucal|accuracy_loss",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|Ucal|nll_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "income",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "income|Ucal|brier_excess",
+        "service": "LOCAL_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|U0|accuracy_loss",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|U0|nll_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "U0",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|U0|brier_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "accuracy_loss",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|Ucal|accuracy_loss",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "nll_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.01,
+      "refs": [
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|Ucal|nll_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "A",
+      "estimand": {
+        "metric": "brier_excess",
+        "reference": "Ucal",
+        "service": "H_LJ",
+        "task": "occupation",
+        "type": "utility"
+      },
+      "key": "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "occupation|Ucal|brier_excess",
+        "service": "JOINT_TREE",
+        "type": "service_utility"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "B",
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_LJ); nested material margin 0.020",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s1",
+      "kind": "benefit",
+      "margin": 0.0,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null,
+      "value_source": "N"
+    },
+    {
+      "claim": "C",
+      "estimand": {
+        "group": 0,
+        "service": "H_LJ",
+        "type": "subgroup_occupation_brier_vs_U0"
+      },
+      "key": "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "group": "sex0",
+        "service": "JOINT_TREE",
+        "type": "service_subgroup"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": "C",
+      "estimand": {
+        "group": 1,
+        "service": "H_LJ",
+        "type": "subgroup_occupation_brier_vs_U0"
+      },
+      "key": "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1",
+      "kind": "no_excess",
+      "margin": 0.005,
+      "refs": [
+        0.005
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "group": "sex1",
+        "service": "JOINT_TREE",
+        "type": "service_subgroup"
+      },
+      "value_source": "P"
+    },
+    {
+      "claim": null,
+      "definition": "AUC_pair(H_LL) - AUC_pair(H_LJ); no claim, no clause status, no gate role",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "H_LL",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "INCREMENT|H_LJ_over_H_LL|coalition_gain|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null,
+      "value_source": "N"
+    }
+  ],
+  "prohibitions": [
+    "no defense-model fitting, new teachers, leaf updates, calibration, strength or epoch changes, averaging, stochastic channels, per-person routing or new populations",
+    "no reader trained on MODEL_SELECT, DEV_REPORT or sealed people; no winner chosen by DEV_REPORT AUC",
+    "the Florida sealed assessment stays closed; the ACS extractor is not rerun and the raw census file is not read",
+    "no post-report calibration, model repair, strength search, new combination bank or additional population",
+    "no change of family, alpha or roster after results"
+  ],
+  "question": "Does the fixed composition H_LJ (LOCAL_TREE income output + JOINT_TREE occupation output, paired within each model seed) retain the point utility expected from its components, reduce coalition SEX recovery materially below continued task fitting (TASK_REFIT E20), and beat the eligible neural control (NEURAL_RAW rho1.0 E2)? Each answered separately, then the conjunction.",
+  "readers": {
+    "controls": "per view per seed on the H_LJ wire: shuffled-SEX null (permutation seed 2026101602 + s; OUT_HGB) and planted SEX bit (OUT_HGB)",
+    "definitions": "task_conditioned_representation.attacks.fit_reader (MLP 64x32 adam alpha 1e-4 300 iter; HGB 15 leaves 200 iter lr 0.05; LR C=1 lbfgs 500 iter); frozen code hash below",
+    "effective_fits": {
+      "per_seed": 125,
+      "total": 250
+    },
+    "marginal_banks": "fit once per unique single-recipient wire (10 per seed x 7 readers = 70); sharing services alias the bank",
+    "pair_candidates": "7 pair readers + 14 ignore-one aliases (own income-only and occupation-only marginal readers)",
+    "pair_readers": "fresh 7 per roster service (7 services x 7 = 49 per seed), including H_LL and H_JJ",
+    "replay_check": "label-free comparison with the source stored DEV_REPORT reader scores (recorded only)",
+    "rng_rule": "reader model seed = MODEL_SEED_BASE (2026101205) + model seed s, for every service, view and reader",
+    "score": "DEV_REPORT released outputs only (no labels)",
+    "select_and_orient": "ATTACK_VALIDATION only",
+    "slate": [
+      "OUT_LR",
+      "OUT_MLP",
+      "OUT_HGB",
+      "LOG_LR",
+      "LOG_MLP",
+      "DEC_LR",
+      "CONF_HGB"
+    ],
+    "train": "ATTACK_FIT (SEX)",
+    "transformations": {
+      "CONF_HGB": "max probability",
+      "DEC_LR": "one-hot decision",
+      "LOG_*": "log-probabilities + one-hot decision",
+      "OUT_*": "probabilities + decision index"
+    },
+    "views": [
+      "income",
+      "occupation",
+      "pair"
+    ],
+    "winner_rule": "max ATTACK_VALIDATION AUC with fixed orientation; ties to the earlier candidate (pair readers in slate order, then income-only, then occupation-only)"
+  },
+  "registration_status": "EXPLORATORY DEVELOPMENT FOLLOW-UP of the already-opened ACS DEV_REPORT results. Not confirmation, not an independent replication, not a rescue of the source claim. Source labels stay unchanged: RECIPE_EFFECT_NOT_ESTABLISHED, NOT_SUPERIOR_TO_ALL_ELIGIBLE (complete), SUBGROUP_UNRESOLVED, benchmark SUPPORTED. A public receipt does not make the already-exposed data confirmatory.",
+  "resources": {
+    "combined_rss_gib": 4,
+    "cpu_hours": 6,
+    "elapsed_hours": 6,
+    "heavy_jobs_at_once": 2,
+    "paid_compute_usd": 0,
+    "threads_per_job": 1
+  },
+  "schema": "ACSH1-analysis-lock-v1",
+  "scope_and_selection": [
+    "H_LJ was fixed after the DEV_REPORT results of its components were public (the source published, for LOCAL_TREE and JOINT_TREE, recovery on all three views, all 12 utility clauses per seed and both subgroup guards). The alpha guarantees assume a roster fixed independently of DEV_REPORT, so the error rates are nominal and every label is exploratory, not confirmation.",
+    "Already public: the 24 utility clauses and the 4 subgroup guards are exact recomputations of published values (same outputs, labels and draws, hence the same points, SEs and alpha/3 bounds); the H_LJ income worsening endpoint is the source RECIPE income worsening endpoint (if the reader replay holds); the point of the H_LJ occupation worsening endpoint follows from published AUCs.",
+    "New: only the H_LJ and H_JL pair-view recovery. Six primary endpoints carry new information: the two coalition benefits vs TASK_REFIT, the two COMPETITIVE benefits and the two increments. The outcomes already settled are written below (settled_before_readers) so that none is reported as a finding.",
+    "Scope: all intervals and decisions are conditional on the frozen defense models and the fitted readers; the two seeds share people and are not independent evaluation populations (\"both seeds\" is a two-fit replication); the target is the unweighted DEV_REPORT household superpopulation, not ACS survey-design variance; PWGTP values are points only; the source labels are unchanged and the sealed assessment stays closed."
+  ],
+  "secondary_roster": [
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_LL)",
+      "estimand": {
+        "minus": "H_LL",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LL|coalition_benefit_vs_TASK_REFIT|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "RECIPE|coalition_benefit_vs_TASK_REFIT|s0",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_JL)",
+      "estimand": {
+        "minus": "H_JL",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JL|coalition_benefit_vs_TASK_REFIT|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_JJ)",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JJ|coalition_benefit_vs_TASK_REFIT|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_LL)",
+      "estimand": {
+        "minus": "H_LL",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LL|coalition_benefit_vs_NEURAL_RAW|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s0",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_JL)",
+      "estimand": {
+        "minus": "H_JL",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JL|coalition_benefit_vs_NEURAL_RAW|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_JJ)",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JJ|coalition_benefit_vs_NEURAL_RAW|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_income(JOINT) - AUC_income(TASK_REFIT) (shared by H_JL and H_JJ)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_JJ",
+        "type": "auc_diff",
+        "view": "income"
+      },
+      "key": "SEC|JOINT_income_wire|recipient_worsening_vs_TASK_REFIT|s0",
+      "kind": "no_excess",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_occupation(LOCAL) - AUC_occupation(TASK_REFIT) (shared by H_LL and H_JL)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LL",
+        "type": "auc_diff",
+        "view": "occupation"
+      },
+      "key": "SEC|LOCAL_occupation_wire|recipient_worsening_vs_TASK_REFIT|s0",
+      "kind": "no_excess",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 0,
+      "source_counterpart": {
+        "key": "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s0",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(H_JL) - AUC_pair(H_JJ): the occupation swap under JOINT income",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "H_JL",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|INCREMENT_J|H_JJ_over_H_JL|coalition_gain|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "(AUC_LL - AUC_LJ) - (AUC_JL - AUC_JJ), pair view; descriptive, not a theorem about synergy",
+      "estimand": {
+        "type": "auc_interaction",
+        "view": "pair"
+      },
+      "key": "SEC|INTERACTION|pair|s0",
+      "kind": "difference",
+      "margin": null,
+      "refs": [
+        0.0
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(T_TREE) - AUC_pair(H_LJ); diagnostic, never a substitute for claim B",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "T_TREE",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LJ|coalition_benefit_vs_T_TREE|s0",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 0,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_LL)",
+      "estimand": {
+        "minus": "H_LL",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LL|coalition_benefit_vs_TASK_REFIT|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "RECIPE|coalition_benefit_vs_TASK_REFIT|s1",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_JL)",
+      "estimand": {
+        "minus": "H_JL",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JL|coalition_benefit_vs_TASK_REFIT|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(TASK_REFIT) - AUC_pair(H_JJ)",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "TASK_REFIT",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JJ|coalition_benefit_vs_TASK_REFIT|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_LL)",
+      "estimand": {
+        "minus": "H_LL",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LL|coalition_benefit_vs_NEURAL_RAW|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s1",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_JL)",
+      "estimand": {
+        "minus": "H_JL",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JL|coalition_benefit_vs_NEURAL_RAW|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(NEURAL_RAW) - AUC_pair(H_JJ)",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "NEURAL_RAW",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_JJ|coalition_benefit_vs_NEURAL_RAW|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_income(JOINT) - AUC_income(TASK_REFIT) (shared by H_JL and H_JJ)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_JJ",
+        "type": "auc_diff",
+        "view": "income"
+      },
+      "key": "SEC|JOINT_income_wire|recipient_worsening_vs_TASK_REFIT|s1",
+      "kind": "no_excess",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_occupation(LOCAL) - AUC_occupation(TASK_REFIT) (shared by H_LL and H_JL)",
+      "estimand": {
+        "minus": "TASK_REFIT",
+        "plus": "H_LL",
+        "type": "auc_diff",
+        "view": "occupation"
+      },
+      "key": "SEC|LOCAL_occupation_wire|recipient_worsening_vs_TASK_REFIT|s1",
+      "kind": "no_excess",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.01
+      ],
+      "seed": 1,
+      "source_counterpart": {
+        "key": "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s1",
+        "type": "endpoint"
+      }
+    },
+    {
+      "definition": "AUC_pair(H_JL) - AUC_pair(H_JJ): the occupation swap under JOINT income",
+      "estimand": {
+        "minus": "H_JJ",
+        "plus": "H_JL",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|INCREMENT_J|H_JJ_over_H_JL|coalition_gain|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "(AUC_LL - AUC_LJ) - (AUC_JL - AUC_JJ), pair view; descriptive, not a theorem about synergy",
+      "estimand": {
+        "type": "auc_interaction",
+        "view": "pair"
+      },
+      "key": "SEC|INTERACTION|pair|s1",
+      "kind": "difference",
+      "margin": null,
+      "refs": [
+        0.0
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    },
+    {
+      "definition": "AUC_pair(T_TREE) - AUC_pair(H_LJ); diagnostic, never a substitute for claim B",
+      "estimand": {
+        "minus": "H_LJ",
+        "plus": "T_TREE",
+        "type": "auc_diff",
+        "view": "pair"
+      },
+      "key": "SEC|H_LJ|coalition_benefit_vs_T_TREE|s1",
+      "kind": "benefit",
+      "margin": null,
+      "refs": [
+        0.0,
+        0.02
+      ],
+      "seed": 1,
+      "source_counterpart": null
+    }
+  ],
+  "sensitivity": "for each claim clause a one-sided percentile bound at alpha/3 from the same draws; bootstrap skewness for all 38 primary keys; every disagreement with the Wald clause decision disclosed; never decisive",
+  "separate_status_fields": {
+    "overall_confidence_status": "from the K = 38 intervals of the 24 utility keys: CONFIDENCE_FEASIBLE_24 if all PASS; ESTABLISHED_UTILITY_VIOLATION if any ESTABLISHED_VIOLATION (keys named); otherwise CONFIDENCE_UNRESOLVED; plus PASS / UNRESOLVED / VIOLATION counts and the number of clause bounds passing out of 24 (descriptive except inside claim A's nested decision)",
+    "overall_point_feasibility": "DEV_REPORT: POINT_FEASIBLE_24 or POINT_INFEASIBLE (failed keys listed); MODEL_SELECT: the admission result; no error control",
+    "rule": "never merged with each other or into the conjunction",
+    "subgroup_status": "the claim C decision plus the four K = 38 guard statuses"
+  },
+  "settled_before_readers": {
+    "claim_C_outcome_implied": "SUBGROUP_UNRESOLVED",
+    "dev_report_utility_point_gate_24": true,
+    "income_worsening_clause_passes": {
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s0": true,
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s1": true
+    },
+    "note": "derived only from published source values (DEV_REPORT_RESULTS of publication f4ea199) before any reader of this campaign was fit; not findings of this campaign; the income worsening entries assume the reader replay holds",
+    "per_key": {
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s0": {
+        "K38_interval": [
+          -0.0176670261114051,
+          -0.01001324283845277
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": -0.010989131156103372,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.013840134474928933,
+        "published_se": 0.0011903980454386477,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s0",
+          "note": "LOCAL income wire; P assumes the reader replay holds",
+          "type": "endpoint"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|income_recipient_worsening_vs_TASK_REFIT|s1": {
+        "K38_interval": [
+          -0.02486444414553045,
+          -0.011963863942025098
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": -0.013608740085305191,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.018414154043777775,
+        "published_se": 0.002006435890802749,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s1",
+          "note": "LOCAL income wire; P assumes the reader replay holds",
+          "type": "endpoint"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s0": {
+        "note": "point derivable from published AUCs; SE new (not yet computed)",
+        "published_point": -0.08929162697757076,
+        "value_source": "p"
+      },
+      "RECIPE|H_LJ|occupation_recipient_worsening_vs_TASK_REFIT|s1": {
+        "note": "point derivable from published AUCs; SE new (not yet computed)",
+        "published_point": -0.061293561969721355,
+        "value_source": "p"
+      },
+      "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s0": {
+        "K38_interval": [
+          -0.009659878913408101,
+          0.012352121888336587
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.009545502774041719,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": 0.0013461214874642437,
+        "published_se": 0.003423541247005209,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "income|U0|accuracy_loss",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|U0|accuracy_loss|s1": {
+        "K38_interval": [
+          -0.0024443124214685186,
+          0.02028042213036975
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.017382926580787036,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.008918054854450614,
+        "published_se": 0.003534393205150906,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "income|U0|accuracy_loss",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|U0|brier_excess|s0": {
+        "K38_interval": [
+          -0.008366185322008564,
+          0.002085642167104587
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.0007529918971694496,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0031402715774519886,
+        "published_se": 0.0016255797388816026,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|U0|brier_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|U0|brier_excess|s1": {
+        "K38_interval": [
+          -0.00745667767337103,
+          0.003357259681232446
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.001978438939148346,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.002049708996069292,
+        "published_se": 0.001681898929109661,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|U0|brier_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|U0|nll_excess|s0": {
+        "K38_interval": [
+          -0.012104729734520151,
+          0.0014847287461048058
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": -0.0002479821631922478,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.005310000494207673,
+        "published_se": 0.002113577591238173,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|U0|nll_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|U0|nll_excess|s1": {
+        "K38_interval": [
+          -0.01072753464581238,
+          0.003423345963876493
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.0016190514628464233,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.003652094340967943,
+        "published_se": 0.0022008959514882532,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|U0|nll_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s0": {
+        "K38_interval": [
+          -0.009659878913408101,
+          0.012352121888336587
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.009545502774041719,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": 0.0013461214874642437,
+        "published_se": 0.003423541247005209,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "income|Ucal|accuracy_loss",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|accuracy_loss|s1": {
+        "K38_interval": [
+          -0.0024443124214685186,
+          0.02028042213036975
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.017382926580787036,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.008918054854450614,
+        "published_se": 0.003534393205150906,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "income|Ucal|accuracy_loss",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s0": {
+        "K38_interval": [
+          -0.006259531848573882,
+          0.003172285169460415
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.0019696903593035596,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0015436233395567333,
+        "published_se": 0.0014669368262464689,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|Ucal|brier_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|brier_excess|s1": {
+        "K38_interval": [
+          -0.006138124898968922,
+          0.003948457058290262
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.002662377070645451,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.00109483392033933,
+        "published_se": 0.0015687728563610777,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|Ucal|brier_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s0": {
+        "K38_interval": [
+          -0.007911588062007062,
+          0.0038964220163341928
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.002390852982144794,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0020075830228364344,
+        "published_se": 0.0018365077265057321,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|Ucal|nll_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|income|Ucal|nll_excess|s1": {
+        "K38_interval": [
+          -0.008090883338218464,
+          0.004767453501725018
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.003127963558122669,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0016617149182467227,
+        "published_se": 0.001999865752137533,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "income|Ucal|nll_excess",
+          "service": "LOCAL_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s0": {
+        "K38_interval": [
+          -0.017842434562743714,
+          0.00841958415049401
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.005071070566272242,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.004711425206124852,
+        "published_se": 0.004084549383046803,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "occupation|U0|accuracy_loss",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|accuracy_loss|s1": {
+        "K38_interval": [
+          -0.010539623720159914,
+          0.015251048926284766
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.011962633871607127,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.002355712603062426,
+        "published_se": 0.004011240613171065,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|U0|accuracy_loss",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s0": {
+        "K38_interval": [
+          -0.003559993571715771,
+          0.006024286908596275
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.004802252390467649,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": 0.001232146668440252,
+        "published_se": 0.0014906495707838817,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|U0|brier_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|brier_excess|s1": {
+        "K38_interval": [
+          -0.003767010657855632,
+          0.005590599724833277
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.00439746656075956,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": 0.0009117945334888225,
+        "published_se": 0.0014553954184846505,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|U0|brier_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s0": {
+        "K38_interval": [
+          -0.004393175800677035,
+          0.018295846826728124
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.01540290469192242,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.006951335513025544,
+        "published_se": 0.0035288389055936854,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|U0|nll_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|U0|nll_excess|s1": {
+        "K38_interval": [
+          -0.00568467782058589,
+          0.015476252024942832
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.01277814789912405,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.004895787102178471,
+        "published_se": 0.0032911736104156903,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|U0|nll_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s0": {
+        "K38_interval": [
+          -0.017842434562743714,
+          0.00841958415049401
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.005071070566272242,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.004711425206124852,
+        "published_se": 0.004084549383046803,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "key": "occupation|Ucal|accuracy_loss",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|accuracy_loss|s1": {
+        "K38_interval": [
+          -0.010539623720159914,
+          0.015251048926284766
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.011962633871607127,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.002355712603062426,
+        "published_se": 0.004011240613171065,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|Ucal|accuracy_loss",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s0": {
+        "K38_interval": [
+          -0.0024915263299783398,
+          0.006638433746305989
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.005474326916870583,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.0020734537081638247,
+        "published_se": 0.0014199888136562661,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|Ucal|brier_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|brier_excess|s1": {
+        "K38_interval": [
+          -0.0035869425608933735,
+          0.005662698149293437
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.0044833315550712235,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": 0.0010378777942000315,
+        "published_se": 0.0014386028229107272,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|Ucal|brier_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s0": {
+        "K38_interval": [
+          -0.002100968150269014,
+          0.01943196190012025
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.016686426243888275,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.008665496874925618,
+        "published_se": 0.0033490310517589376,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|Ucal|nll_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "RECIPE|H_LJ|utility|occupation|Ucal|nll_excess|s1": {
+        "K38_interval": [
+          -0.005317604342818714,
+          0.015597009132696255
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.012930311340107734,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.005139702394938771,
+        "published_se": 0.0032528638601958086,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "key": "occupation|Ucal|nll_excess",
+          "service": "JOINT_TREE",
+          "type": "service_utility"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0": {
+        "K38_interval": [
+          -0.0032990676773075396,
+          0.009769346041856418
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.008103070446645112,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.0032351391822744388,
+        "published_se": 0.002032539150050385,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "group": "sex0",
+          "service": "JOINT_TREE",
+          "type": "service_subgroup"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1": {
+        "K38_interval": [
+          -0.0023879021695665274,
+          0.010290214650735156
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.008673703488410388,
+        "clause_pass": false,
+        "point_pass": true,
+        "published_point": 0.003951156240584314,
+        "published_se": 0.0019718360116184027,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "group": "sex0",
+          "service": "JOINT_TREE",
+          "type": "service_subgroup"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0": {
+        "K38_interval": [
+          -0.00754473197763053,
+          0.005808333672261052
+        ],
+        "K38_status": "UNRESOLVED",
+        "clause_bound_U1": 0.004105763804807226,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0008681991526847388,
+        "published_se": 0.0020768112557377726,
+        "source_K40_status": "UNRESOLVED",
+        "source_record": {
+          "group": "sex1",
+          "service": "JOINT_TREE",
+          "type": "service_subgroup"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1": {
+        "K38_interval": [
+          -0.00902717363107518,
+          0.004476589438497856
+        ],
+        "K38_status": "PASS",
+        "clause_bound_U1": 0.0027548050406448047,
+        "clause_pass": true,
+        "point_pass": true,
+        "published_point": -0.0022752920962886623,
+        "published_se": 0.00210024932648579,
+        "source_K40_status": "PASS",
+        "source_record": {
+          "group": "sex1",
+          "service": "JOINT_TREE",
+          "type": "service_subgroup"
+        },
+        "status_changed_by_multiplicity_only": false,
+        "value_source": "P"
+      }
+    },
+    "subgroup_K38_statuses": {
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0": "UNRESOLVED",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1": "UNRESOLVED",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0": "UNRESOLVED",
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1": "PASS"
+    },
+    "subgroup_clause_passes": {
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0": false,
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1": false,
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0": true,
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1": true
+    },
+    "subgroup_estimable": true,
+    "subgroup_households_per_sex": {
+      "0": 2815,
+      "1": 2728
+    },
+    "utility_K38_status_counts": {
+      "ESTABLISHED_VIOLATION": 0,
+      "PASS": 10,
+      "UNRESOLVED": 14
+    },
+    "utility_clause_bounds_passing_of_24": 15
+  },
+  "source": {
+    "publication_commit": "f4ea19982bce3dc3c88c5951ad34c4cf84620a20",
+    "source_admission_sha256": "4c11d2cd85c16bb345aa7ee178b41213d7a98d9f3832fdfea8c599e33faea7c7",
+    "url": "https://github.com/Bostesa/PCRL/tree/f4ea19982bce3dc3c88c5951ad34c4cf84620a20/publications/pcrl-acs-protected-tree-replication-v1"
+  },
+  "source_disclosures": {
+    "D1": "transport-annotation failure in the source (wording of the ACS-CHANGE rule), not a numerical failure; source verification stays 10/11 PASS",
+    "D2": "source extractor computed sealed features and labels transiently in memory before role separation; the holdout is not described as never accessed"
+  },
+  "statistical_review_prelock_sha256": "a579209fb31d4e19aa88263b53803c1e9d9b6f37fa1d92acf8b843d112db28f6",
+  "status": "ANALYSIS_LOCKED",
+  "utc": "2026-10-16T02:46:48+00:00"
+}

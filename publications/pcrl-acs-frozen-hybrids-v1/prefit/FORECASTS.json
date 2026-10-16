@@ -1,0 +1,26 @@
+{
+  "schema": "ACSH1-forecasts-v1",
+  "registered_utc": "2026-10-16T02:50:00Z",
+  "author": "campaign lead (orchestrator)",
+  "basis": "published source DEV_REPORT AUCs only (LOCAL_TREE, JOINT_TREE, TASK_REFIT, NEURAL_RAW); no reader of this campaign had been fit",
+  "scoring": "binary forecasts scored by Brier score after the report; numeric forecasts by whether the 80% interval covers the point estimate",
+  "forecasts": [
+    {"id": "F1", "event": "claim A = RECIPE_BENEFIT_ESTABLISHED", "probability": 0.30,
+     "reasoning": "H_LJ pair AUC expected near 0.62-0.64 against TASK_REFIT 0.664/0.666; the clause needs point minus 2.395 SE above 0.020 on both seeds, i.e. roughly a point benefit above 0.037 on both"},
+    {"id": "F2", "event": "claim B = SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL", "probability": 0.30,
+     "reasoning": "NEURAL_RAW pair AUC 0.640/0.638; H_LJ must be lower by roughly 0.017 or more on both seeds"},
+    {"id": "F3", "event": "nested MATERIALLY_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL (lower bounds above 0.020)", "probability": 0.05},
+    {"id": "F4", "event": "increment point AUC_pair(H_LL) - AUC_pair(H_LJ) > 0 on both seeds", "probability": 0.85,
+     "reasoning": "JOINT occupation output carries less SEX signal than LOCAL occupation (0.560/0.583 vs 0.582/0.584 single-recipient AUC) and JOINT training targeted the coalition"},
+    {"id": "F5", "event": "increment K = 38 interval wholly above 0 on both seeds", "probability": 0.50},
+    {"id": "F6", "event": "H_LJ pair AUC point, each seed", "median": 0.625, "interval_80": [0.600, 0.648]},
+    {"id": "F7", "event": "H_JL pair AUC point, each seed", "median": 0.630, "interval_80": [0.605, 0.655]},
+    {"id": "F8", "event": "four-way interaction (pair view) point > 0 on seed 0", "probability": 0.50},
+    {"id": "F9", "event": "absolute four-way interaction below 0.02 on both seeds", "probability": 0.75},
+    {"id": "F10", "event": "CONTROLS_VALID (both stages)", "probability": 0.97},
+    {"id": "F11", "event": "reader replay against the source bitwise for every compared score", "probability": 0.90},
+    {"id": "F12", "event": "overall H_LJ_FIXED_COMPOSITION_SUPPORTED", "probability": 0.20},
+    {"id": "F13", "event": "claim C = SUBGROUP_UNRESOLVED", "probability": 1.0,
+     "reasoning": "already determined by published JOINT occupation guards (settled_before_readers); recorded for completeness, not a forecast of new information"}
+  ]
+}
