@@ -30,6 +30,10 @@ FILES = [
     'results/combined_paper_advisor_revision_v1/SOURCE_RESOLUTION.md',
     'results/combined_paper_advisor_revision_v1/EVIDENCE_EXTENSIONS.md',
     'results/combined_paper_advisor_revision_v1/MANUSCRIPT_DIFF.diff',
+    'results/combined_paper_advisor_revision_v1/MANUSCRIPT_WORD_DIFF.txt',
+    'results/combined_paper_advisor_revision_v1/README.md',
+    'results/combined_paper_advisor_revision_v1/backup_and_restore.sh',
+    'results/combined_paper_advisor_revision_v1/offdevice_copy_and_check.sh',
 ]
 
 
