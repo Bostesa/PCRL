@@ -1,0 +1,2057 @@
+{
+ "preregistration": {
+  "mechanism": "MMP: release m_i = (1 - pibar) q_i^0 + pibar q_i^1 (designer 1 proposal sha256 2b7273ae...)",
+  "reference": "exact SEX-blind posterior eta (a perfect U0); budgets cap = (acc 0.010, NLL 0.010, summed Brier 0.005) and cap_plus_headroom = (0.016, 0.020, 0.009)",
+  "strongest_baseline_analogue": "exact global frontier: minimum pair Bayes AUC over all calibrated partition pairs feasible at the budget (weakly dominates every deterministic release in Bayes terms)",
+  "expected": {
+   "identities": "In all four finite laws and both tasks: Brier(m) - Brier(eta) equals E[(pi - pibar)^2 ||q^1 - q^0||^2] exactly; NLL excess equals E KL(eta || m) and is <= I(S; X).",
+   "L_NEG": "MMP releases are constant (no task information); MMP infeasible at both budgets; the global frontier at the cap stays at pair AUC >= 0.70 (required disclosure); twin pair AUC = AUC*(S; X) (about 0.81).",
+   "L_PROXY": "MMP pair AUC = 1/2 exactly; MMP feasible at the cap (no decision changes); global frontier at the cap = 1/2; local, S12 and S21 designs also reach 1/2 (no joint component needed); twin pair AUC about 0.77.",
+   "L_PROXY_FLIP": "MMP view still has pair AUC 1/2 but MMP fails the strict-cap accuracy clause (decision changes); the global frontier at the cap stays above 1/2.",
+   "L_MIXED": "MMP pair AUC = AUC*(S; h) = 0.65 exactly (residual through the task-relevant proxy); MMP feasible at the cap; twin pair AUC > 0.65; global frontier at the cap within 0.02 of 0.65 (at least 0.63).",
+   "L_NOPROXY": "No pure proxy: MMP separates every cell, so its pair Bayes AUC equals the twin's (= AUC*(S; X)); MMP gives no Bayes-level reduction here (an honest limit, not a failure of the code).",
+   "L_XOR": "Coalition required disclosure: MMP single-recipient AUCs are 1/2 but its pair AUC equals AUC*(S; X) (the tasks jointly need a SEX-revealing combination); no release feasible at the cap lowers the pair below 0.80.",
+   "subgroup": "Within-SEX occupation Brier increases are reported for every law; in L_CONT laws (pibar = 0.47) the women's increase is expected to exceed the men's (verifier M5, constant-gap approximation); a reversal is reported as such.",
+   "masking_comparison": "In L_CONT laws a critic-style local linear eraser on each recipient's own wire, at the same summed-Brier price as MMP per task, lowers single-recipient fitted AUCs more than the pair AUC relative to the twin (masking signature); MMP's pair AUC is below the eraser's pair AUC (deletion beats masking at equal price). If not, MMP section 3.6 is not supported in that law.",
+   "L_CONT_PROXY": "Bayes: MMP pair AUC (P(S | H, E, A)) below the twin (AUC*(S; X)). Fitted 7-reader slate, mean over 3 replications: MMP pair AUC below the twin by >= 0.005.",
+   "L_CONT_NOPROXY": "Bayes: MMP equals the twin (both functions of the same fields; no merging). Fitted: MMP pair AUC below the twin by >= 0.005 (the learnability part of the rationale). If not, that part is not supported in this law and any real-data benefit would have to come from genuine merging.",
+   "demonstrations": "D1 decision-preserving bound, D2 true labels not a floor, D3 fitted below Bayes: all checks pass."
+  },
+  "what_would_contradict_the_rationale": [
+   "Brier identity or NLL bound fails anywhere",
+   "MMP feasible in L_NEG, or MMP pair AUC not 1/2 in L_PROXY, or not 0.65 in L_MIXED",
+   "MMP far (> 0.02) above the global frontier at its own feasible budget in L_PROXY or L_MIXED",
+   "In L_CONT_NOPROXY the fitted pair AUC of MMP is not below the twin by >= 0.005",
+   "In an L_CONT law MMP's fitted pair AUC is not below the matched-price local eraser's"
+  ],
+  "added_before_first_run_per_selection_conditions": "L_NOPROXY, L_XOR, the matched-price local linear eraser, subgroup and w* reporting (verifier fixes (i), (ii), (iv); SELECTION_DECISION.md)"
+ },
+ "preregistration_sha256": "84b97ba3ef8ecebd3f64fb463e29c48ed6e40b3416f63c12ae595888a533ea08",
+ "finite": {
+  "L_NEG": {
+   "name": "L_NEG",
+   "pibar": "1/2",
+   "auc_star_X": 0.8111111111111111,
+   "I_S_X_bits": 0.26010646352239963,
+   "twin_eta": {
+    "pair_auc": 0.8111111111111111,
+    "income_auc": 0.8111111111111111,
+    "occupation_auc": 0.8111111111111111
+   },
+   "mmp": {
+    "pair_auc_exact": "1/2",
+    "pair_auc": 0.5,
+    "income_auc": 0.5,
+    "occupation_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.008333333333333333,
+      "nll_excess": 0.010503756597568525,
+      "brier_excess": 0.010208333333333333
+     },
+     "task2": {
+      "accuracy_loss": 0.015833333333333335,
+      "nll_excess": 0.03462239754064056,
+      "brier_excess": 0.020008333333333333
+     }
+    },
+    "feasible": {
+     "cap": false,
+     "cap_plus_headroom": false
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.008333333333333333,
+      "nll_excess": 0.010503756597568525,
+      "brier_excess": 0.010208333333333333
+     },
+     "task2": {
+      "accuracy_loss": 0.015833333333333335,
+      "nll_excess": 0.03462239754064056,
+      "brier_excess": 0.020008333333333333
+     }
+    },
+    "feasible": {
+     "cap": false,
+     "cap_plus_headroom": false
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "49/4800",
+     "identity_rhs_exact": "49/4800",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.010503756597568525,
+     "expected_kl_eta_m": 0.010503756597568595,
+     "I_S_X_nats": 0.1802920618359696,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "2401/120000",
+     "identity_rhs_exact": "2401/120000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.03462239754064056,
+     "expected_kl_eta_m": 0.034622397540640386,
+     "I_S_X_nats": 0.1802920618359696,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.010208333333333333,
+     "female": 0.010208333333333333,
+     "population": 0.010208333333333333,
+     "female_over_population": 1.0
+    },
+    "task2": {
+     "male": 0.020008333333333333,
+     "female": 0.020008333333333333,
+     "population": 0.020008333333333333,
+     "female_over_population": 1.0
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.010208333333333333,
+     "brier_price_at_w_star": 0.010208333333333333
+    },
+    "task2": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.020008333333333333,
+     "brier_price_at_w_star": 0.020008333333333333
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 70,
+     "n_feasible_occupation_partitions": 36,
+     "feasible": true,
+     "global_min_pair_auc": 0.7722222222222223,
+     "global_argmin_partitions": [
+      [
+       [
+        0,
+        1,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ],
+      [
+       [
+        0,
+        1,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.7722222222222223,
+     "local_single_aucs": [
+      0.7333333333333334,
+      0.7722222222222223
+     ],
+     "s12_pair_auc": 0.7722222222222223,
+     "s21_pair_auc": 0.7722222222222223
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 178,
+     "n_feasible_occupation_partitions": 70,
+     "feasible": true,
+     "global_min_pair_auc": 0.7333333333333333,
+     "global_argmin_partitions": [
+      [
+       [
+        1,
+        2
+       ],
+       [
+        0,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ],
+      [
+       [
+        1,
+        2
+       ],
+       [
+        0,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.7333333333333332,
+     "local_single_aucs": [
+      0.6166666666666667,
+      0.7333333333333334
+     ],
+     "s12_pair_auc": 0.7333333333333332,
+     "s21_pair_auc": 0.7333333333333334
+    }
+   }
+  },
+  "L_PROXY": {
+   "name": "L_PROXY",
+   "pibar": "1/2",
+   "auc_star_X": 0.7666666666666667,
+   "I_S_X_bits": 0.1853812700750918,
+   "twin_eta": {
+    "pair_auc": 0.7666666666666667,
+    "income_auc": 0.7666666666666667,
+    "occupation_auc": 0.7666666666666667
+   },
+   "mmp": {
+    "pair_auc_exact": "1/2",
+    "pair_auc": 0.5,
+    "income_auc": 0.5,
+    "occupation_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0014269583533408348,
+      "brier_excess": 0.0012
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0077788575839157215,
+      "brier_excess": 0.00375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0014269583533408348,
+      "brier_excess": 0.0012
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0077788575839157215,
+      "brier_excess": 0.00375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "3/2500",
+     "identity_rhs_exact": "3/2500",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.0014269583533408348,
+     "expected_kl_eta_m": 0.0014269583533410215,
+     "I_S_X_nats": 0.12849650468117169,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "3/800",
+     "identity_rhs_exact": "3/800",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.0077788575839157215,
+     "expected_kl_eta_m": 0.007778857583915827,
+     "I_S_X_nats": 0.12849650468117169,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.0012,
+     "female": 0.0012,
+     "population": 0.0012,
+     "female_over_population": 1.0
+    },
+    "task2": {
+     "male": 0.00375,
+     "female": 0.00375,
+     "population": 0.00375,
+     "female_over_population": 1.0
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.0012,
+     "brier_price_at_w_star": 0.0012
+    },
+    "task2": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.00375,
+     "brier_price_at_w_star": 0.00375
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 25,
+     "feasible": true,
+     "global_min_pair_auc": 0.5,
+     "global_argmin_partitions": [
+      [
+       [
+        2
+       ],
+       [
+        3
+       ],
+       [
+        0,
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ],
+      [
+       [
+        2
+       ],
+       [
+        3
+       ],
+       [
+        0,
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.5,
+     "local_single_aucs": [
+      0.5,
+      0.5
+     ],
+     "s12_pair_auc": 0.5,
+     "s21_pair_auc": 0.5
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 25,
+     "feasible": true,
+     "global_min_pair_auc": 0.5,
+     "global_argmin_partitions": [
+      [
+       [
+        2
+       ],
+       [
+        3
+       ],
+       [
+        0,
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ],
+      [
+       [
+        2
+       ],
+       [
+        3
+       ],
+       [
+        0,
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.5,
+     "local_single_aucs": [
+      0.5,
+      0.5
+     ],
+     "s12_pair_auc": 0.5,
+     "s21_pair_auc": 0.5
+    }
+   }
+  },
+  "L_PROXY_FLIP": {
+   "name": "L_PROXY_FLIP",
+   "pibar": "1/2",
+   "auc_star_X": 0.7666666666666667,
+   "I_S_X_bits": 0.1853812700750918,
+   "twin_eta": {
+    "pair_auc": 0.7666666666666667,
+    "income_auc": 0.7666666666666667,
+    "occupation_auc": 0.7666666666666667
+   },
+   "mmp": {
+    "pair_auc_exact": "1/2",
+    "pair_auc": 0.5,
+    "income_auc": 0.5,
+    "occupation_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0014269583533408348,
+      "brier_excess": 0.0012
+     },
+     "task2": {
+      "accuracy_loss": 0.028333333333333332,
+      "nll_excess": 0.01344259112119639,
+      "brier_excess": 0.0084
+     }
+    },
+    "feasible": {
+     "cap": false,
+     "cap_plus_headroom": false
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0014269583533408348,
+      "brier_excess": 0.0012
+     },
+     "task2": {
+      "accuracy_loss": 0.028333333333333332,
+      "nll_excess": 0.01344259112119639,
+      "brier_excess": 0.0084
+     }
+    },
+    "feasible": {
+     "cap": false,
+     "cap_plus_headroom": false
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "3/2500",
+     "identity_rhs_exact": "3/2500",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.0014269583533408348,
+     "expected_kl_eta_m": 0.0014269583533410215,
+     "I_S_X_nats": 0.12849650468117169,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "21/2500",
+     "identity_rhs_exact": "21/2500",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.01344259112119639,
+     "expected_kl_eta_m": 0.01344259112119647,
+     "I_S_X_nats": 0.12849650468117169,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.0012,
+     "female": 0.0012,
+     "population": 0.0012,
+     "female_over_population": 1.0
+    },
+    "task2": {
+     "male": 0.0084,
+     "female": 0.0084,
+     "population": 0.0084,
+     "female_over_population": 1.0
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.0012,
+     "brier_price_at_w_star": 0.0012
+    },
+    "task2": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.0084,
+     "brier_price_at_w_star": 0.0084
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 15,
+     "feasible": true,
+     "global_min_pair_auc": 0.65,
+     "global_argmin_partitions": [
+      [
+       [
+        0,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ],
+      [
+       [
+        0,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.65,
+     "local_single_aucs": [
+      0.5,
+      0.65
+     ],
+     "s12_pair_auc": 0.65,
+     "s21_pair_auc": 0.65
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 15,
+     "feasible": true,
+     "global_min_pair_auc": 0.65,
+     "global_argmin_partitions": [
+      [
+       [
+        0,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ],
+      [
+       [
+        0,
+        2
+       ],
+       [
+        3
+       ],
+       [
+        4
+       ],
+       [
+        1,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.65,
+     "local_single_aucs": [
+      0.5,
+      0.65
+     ],
+     "s12_pair_auc": 0.65,
+     "s21_pair_auc": 0.65
+    }
+   }
+  },
+  "L_MIXED": {
+   "name": "L_MIXED",
+   "pibar": "1/2",
+   "auc_star_X": 0.7166666666666667,
+   "I_S_X_bits": 0.11466794991238224,
+   "twin_eta": {
+    "pair_auc": 0.7166666666666667,
+    "income_auc": 0.7166666666666667,
+    "occupation_auc": 0.7166666666666667
+   },
+   "mmp": {
+    "pair_auc_exact": "13/20",
+    "pair_auc": 0.65,
+    "income_auc": 0.65,
+    "occupation_auc": 0.65,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.000834629111320484,
+      "brier_excess": 0.00075
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.003970193976434944,
+      "brier_excess": 0.00234375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.65,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0003367469873781781,
+      "brier_excess": 0.0003
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.001627621285223091,
+      "brier_excess": 0.0009375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "3/4000",
+     "identity_rhs_exact": "3/4000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.000834629111320484,
+     "expected_kl_eta_m": 0.0008346291113206054,
+     "I_S_X_nats": 0.07948176618235679,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "3/1280",
+     "identity_rhs_exact": "3/1280",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.003970193976434944,
+     "expected_kl_eta_m": 0.003970193976434974,
+     "I_S_X_nats": 0.07948176618235679,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.00075,
+     "female": 0.00075,
+     "population": 0.00075,
+     "female_over_population": 1.0
+    },
+    "task2": {
+     "male": 7.3125e-05,
+     "female": 0.004614375,
+     "population": 0.00234375,
+     "female_over_population": 1.9688000000000003
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.00075,
+     "brier_price_at_w_star": 0.00075
+    },
+    "task2": {
+     "w_star": 0.542,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.00234375,
+     "brier_price_at_w_star": 0.0022335
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 25,
+     "feasible": true,
+     "global_min_pair_auc": 0.65,
+     "global_argmin_partitions": [
+      [
+       [
+        1
+       ],
+       [
+        0,
+        2
+       ],
+       [
+        4
+       ],
+       [
+        3,
+        5
+       ]
+      ],
+      [
+       [
+        1
+       ],
+       [
+        0,
+        2
+       ],
+       [
+        4
+       ],
+       [
+        3,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.65,
+     "local_single_aucs": [
+      0.65,
+      0.65
+     ],
+     "s12_pair_auc": 0.65,
+     "s21_pair_auc": 0.65
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 25,
+     "n_feasible_occupation_partitions": 25,
+     "feasible": true,
+     "global_min_pair_auc": 0.65,
+     "global_argmin_partitions": [
+      [
+       [
+        1
+       ],
+       [
+        0,
+        2
+       ],
+       [
+        4
+       ],
+       [
+        3,
+        5
+       ]
+      ],
+      [
+       [
+        1
+       ],
+       [
+        0,
+        2
+       ],
+       [
+        4
+       ],
+       [
+        3,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.65,
+     "local_single_aucs": [
+      0.65,
+      0.65
+     ],
+     "s12_pair_auc": 0.65,
+     "s21_pair_auc": 0.65
+    }
+   }
+  },
+  "L_NOPROXY": {
+   "name": "L_NOPROXY",
+   "pibar": "21/40",
+   "auc_star_X": 0.7311333890281259,
+   "I_S_X_bits": 0.1284375962054553,
+   "twin_eta": {
+    "pair_auc": 0.7311333890281259,
+    "income_auc": 0.7311333890281259,
+    "occupation_auc": 0.7311333890281259
+   },
+   "mmp": {
+    "pair_auc_exact": "5251/7182",
+    "pair_auc": 0.7311333890281259,
+    "income_auc": 0.6810080757449178,
+    "occupation_auc": 0.7311333890281259,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0009575538551319651,
+      "brier_excess": 0.0008458333333333333
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.006586946382828751,
+      "brier_excess": 0.0033833333333333332
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.7311333890281259,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.00031026264286604377,
+      "brier_excess": 0.0003
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0,
+      "brier_excess": 0.0
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "203/240000",
+     "identity_rhs_exact": "203/240000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.0009575538551319651,
+     "expected_kl_eta_m": 0.0009575538551319422,
+     "I_S_X_nats": 0.08902615768770801,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "203/60000",
+     "identity_rhs_exact": "203/60000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.006586946382828751,
+     "expected_kl_eta_m": 0.006586946382828783,
+     "I_S_X_nats": 0.08902615768770801,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.0010239035087719298,
+     "female": 0.0006847222222222222,
+     "population": 0.0008458333333333333,
+     "female_over_population": 0.8095238095238095
+    },
+    "task2": {
+     "male": 0.004095614035087719,
+     "female": 0.002738888888888889,
+     "population": 0.0033833333333333332,
+     "female_over_population": 0.8095238095238095
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.525,
+     "pibar": 0.525,
+     "brier_price_at_pibar": 0.0008458333333333333,
+     "brier_price_at_w_star": 0.0008458333333333333
+    },
+    "task2": {
+     "w_star": 0.525,
+     "pibar": 0.525,
+     "brier_price_at_pibar": 0.0033833333333333332,
+     "brier_price_at_w_star": 0.0033833333333333332
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 8,
+     "n_feasible_occupation_partitions": 43,
+     "feasible": true,
+     "global_min_pair_auc": 0.703285992759677,
+     "global_argmin_partitions": [
+      [
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        0,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ],
+      [
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        0,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.7311333890281259,
+     "local_single_aucs": [
+      0.6810080757449178,
+      0.6475912002227792
+     ],
+     "s12_pair_auc": 0.703285992759677,
+     "s21_pair_auc": 0.7311333890281259
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 19,
+     "n_feasible_occupation_partitions": 111,
+     "feasible": true,
+     "global_min_pair_auc": 0.6698691172375383,
+     "global_argmin_partitions": [
+      [
+       [
+        0,
+        1,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        2,
+        5
+       ]
+      ],
+      [
+       [
+        0,
+        1,
+        3
+       ],
+       [
+        4
+       ],
+       [
+        2,
+        5
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.7116402116402116,
+     "local_single_aucs": [
+      0.6698691172375383,
+      0.6086048454469508
+     ],
+     "s12_pair_auc": 0.6698691172375383,
+     "s21_pair_auc": 0.7116402116402116
+    }
+   }
+  },
+  "L_XOR": {
+   "name": "L_XOR",
+   "pibar": "1/2",
+   "auc_star_X": 0.85,
+   "I_S_X_bits": 0.39015969528359956,
+   "twin_eta": {
+    "pair_auc": 0.85,
+    "income_auc": 0.85,
+    "occupation_auc": 0.85
+   },
+   "mmp": {
+    "pair_auc_exact": "17/20",
+    "pair_auc": 0.85,
+    "income_auc": 0.5,
+    "occupation_auc": 0.5,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.000733340538578986,
+      "brier_excess": 0.0006125
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0034888745172582114,
+      "brier_excess": 0.0018375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "mmp_partition_calibrated": {
+    "pair_auc": 0.85,
+    "excess_vs_eta": {
+     "task1": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.000733340538578986,
+      "brier_excess": 0.0006125
+     },
+     "task2": {
+      "accuracy_loss": 0.0,
+      "nll_excess": 0.0034888745172582114,
+      "brier_excess": 0.0018375
+     }
+    },
+    "feasible": {
+     "cap": true,
+     "cap_plus_headroom": true
+    }
+   },
+   "identities": {
+    "task1": {
+     "brier_excess_exact": "49/80000",
+     "identity_rhs_exact": "49/80000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.000733340538578986,
+     "expected_kl_eta_m": 0.0007333405385790614,
+     "I_S_X_nats": 0.2704380927539544,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    },
+    "task2": {
+     "brier_excess_exact": "147/80000",
+     "identity_rhs_exact": "147/80000",
+     "brier_identity_holds_exactly": true,
+     "nll_excess": 0.0034888745172582114,
+     "expected_kl_eta_m": 0.0034888745172581906,
+     "I_S_X_nats": 0.2704380927539544,
+     "nll_equals_expected_kl": true,
+     "nll_bound_holds": true
+    }
+   },
+   "subgroup_brier_increase_mmp_vs_eta": {
+    "task1": {
+     "male": 0.0006125,
+     "female": 0.0006125,
+     "population": 0.0006125,
+     "female_over_population": 1.0
+    },
+    "task2": {
+     "male": 0.0018375,
+     "female": 0.0018375,
+     "population": 0.0018375,
+     "female_over_population": 1.0
+    }
+   },
+   "w_star": {
+    "task1": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.0006125,
+     "brier_price_at_w_star": 0.0006125
+    },
+    "task2": {
+     "w_star": 0.5,
+     "pibar": 0.5,
+     "brier_price_at_pibar": 0.0018375,
+     "brier_price_at_w_star": 0.0018375
+    }
+   },
+   "frontier": {
+    "cap": {
+     "n_feasible_income_partitions": 4,
+     "n_feasible_occupation_partitions": 4,
+     "feasible": true,
+     "global_min_pair_auc": 0.85,
+     "global_argmin_partitions": [
+      [
+       [
+        0
+       ],
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        3
+       ]
+      ],
+      [
+       [
+        0
+       ],
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        3
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.8499999999999999,
+     "local_single_aucs": [
+      0.5,
+      0.5
+     ],
+     "s12_pair_auc": 0.8499999999999999,
+     "s21_pair_auc": 0.8499999999999999
+    },
+    "cap_plus_headroom": {
+     "n_feasible_income_partitions": 4,
+     "n_feasible_occupation_partitions": 4,
+     "feasible": true,
+     "global_min_pair_auc": 0.85,
+     "global_argmin_partitions": [
+      [
+       [
+        0
+       ],
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        3
+       ]
+      ],
+      [
+       [
+        0
+       ],
+       [
+        1
+       ],
+       [
+        2
+       ],
+       [
+        3
+       ]
+      ]
+     ],
+     "local_pair_auc": 0.8499999999999999,
+     "local_single_aucs": [
+      0.5,
+      0.5
+     ],
+     "s12_pair_auc": 0.8499999999999999,
+     "s21_pair_auc": 0.8499999999999999
+    }
+   }
+  }
+ },
+ "continuous": {
+  "L_CONT_PROXY": {
+   "replications": [
+    {
+     "local_linear_fractions": [
+      0.11117830248816096,
+      0.426569560595603
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "LOG_LR",
+       "test_auc": 0.6532982343247916
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7602453896713529
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7767153999516703
+      },
+      "bayes_pair_auc_mc": 0.7876239588277617
+     },
+     "mmp": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6322222186826905
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7176064199420862
+      },
+      "pair": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7181690158791992
+      },
+      "bayes_pair_auc_mc": 0.7197944573662637
+     },
+     "local_linear": {
+      "income": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.6529800177755286
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.760451200803858
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7770443109434182
+      },
+      "bayes_pair_auc_mc": 0.7876239588277617
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.0007791274289487946,
+       "nll_excess": 0.0010156019112665456,
+       "accuracy_loss": 0.0006089983854455034,
+       "within_sex_brier_increase": {
+        "male": 0.0013099028058014136,
+        "female": 0.00017937397441880428
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.00851645539872887,
+       "nll_excess": 0.0129019986131418,
+       "accuracy_loss": 0.010595182002402637,
+       "within_sex_brier_increase": {
+        "male": 0.013394228871464854,
+        "female": 0.0032727257627146508
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.0008088757719665122,
+       "nll_excess": 0.0011309674284091017,
+       "accuracy_loss": 0.0006073659224887192,
+       "within_sex_brier_increase": {
+        "male": 0.0021208386590000176,
+        "female": -0.0008025372040439561
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.00858021854902567,
+       "nll_excess": 0.013318697259959607,
+       "accuracy_loss": 0.010861564992986617,
+       "within_sex_brier_increase": {
+        "male": 0.016968932237407183,
+        "female": -0.0008606887544933964
+       }
+      }
+     }
+    },
+    {
+     "local_linear_fractions": [
+      0.11026626519028992,
+      0.4249388559724365
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6730242814186745
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7670545358503307
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7791756180176059
+      },
+      "bayes_pair_auc_mc": 0.7914119672641495
+     },
+     "mmp": {
+      "income": {
+       "winner": "LOG_LR",
+       "test_auc": 0.6527242285047319
+      },
+      "occupation": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7255831198169522
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__LOG_MLP",
+       "test_auc": 0.7255831198169522
+      },
+      "bayes_pair_auc_mc": 0.7260768622667316
+     },
+     "local_linear": {
+      "income": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.6731240055945377
+      },
+      "occupation": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7673793484959461
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7787490390628332
+      },
+      "bayes_pair_auc_mc": 0.7914119672641495
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.000778814062943702,
+       "nll_excess": 0.0010104854254814023,
+       "accuracy_loss": 0.0007269874867835317,
+       "within_sex_brier_increase": {
+        "male": 0.0013248647811594265,
+        "female": 0.00026894123680416354
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.008224311509168325,
+       "nll_excess": 0.012506053602648398,
+       "accuracy_loss": 0.009925350744728311,
+       "within_sex_brier_increase": {
+        "male": 0.013022279969799669,
+        "female": 0.0035763427529564634
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.0008084640441468739,
+       "nll_excess": 0.001110329882449619,
+       "accuracy_loss": 0.0007106848906348317,
+       "within_sex_brier_increase": {
+        "male": 0.0023121295446423564,
+        "female": -0.0007325784027916121
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.008038423630599489,
+       "nll_excess": 0.012604448319441595,
+       "accuracy_loss": 0.01046896080036763,
+       "within_sex_brier_increase": {
+        "male": 0.01621134003569266,
+        "female": -0.0001728365570051148
+       }
+      }
+     }
+    },
+    {
+     "local_linear_fractions": [
+      0.10965025202583467,
+      0.4297076641165867
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.6711735599235599
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7677393302393303
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7816564291564292
+      },
+      "bayes_pair_auc_mc": 0.7947211984711985
+     },
+     "mmp": {
+      "income": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.6499342524342524
+      },
+      "occupation": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7256440531440531
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__LOG_MLP",
+       "test_auc": 0.7256440531440531
+      },
+      "bayes_pair_auc_mc": 0.7265066202566203
+     },
+     "local_linear": {
+      "income": {
+       "winner": "LOG_LR",
+       "test_auc": 0.670944580944581
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7672710210210211
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7812380562380562
+      },
+      "bayes_pair_auc_mc": 0.7947211984711985
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.0008041940002111062,
+       "nll_excess": 0.0010369442958804145,
+       "accuracy_loss": 0.0006096959807565884,
+       "within_sex_brier_increase": {
+        "male": 0.0013532589158913283,
+        "female": 0.00026607169837725885
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.008573503768655441,
+       "nll_excess": 0.012959581739557975,
+       "accuracy_loss": 0.010658712688823397,
+       "within_sex_brier_increase": {
+        "male": 0.01372185373087438,
+        "female": 0.003625957950974723
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.0007769557440726193,
+       "nll_excess": 0.0010882415532824294,
+       "accuracy_loss": 0.0006070304722242935,
+       "within_sex_brier_increase": {
+        "male": 0.0020732729926480208,
+        "female": -0.0006627375165734838
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.008525158117555415,
+       "nll_excess": 0.01311906926058105,
+       "accuracy_loss": 0.01018114745640463,
+       "within_sex_brier_increase": {
+        "male": 0.015251022391499095,
+        "female": 0.0017636374824109514
+       }
+      }
+     }
+    }
+   ],
+   "summary": {
+    "local_linear_fractions": [
+     [
+      0.11117830248816096,
+      0.426569560595603
+     ],
+     [
+      0.11026626519028992,
+      0.4249388559724365
+     ],
+     [
+      0.10965025202583467,
+      0.4297076641165867
+     ]
+    ],
+    "twin_eta": {
+     "income": 0.665832025222342,
+     "occupation": 0.7650130852536713,
+     "pair": 0.779182482375235,
+     "bayes_pair_auc_mc": 0.7912523748543699,
+     "pair_winners": [
+      "LOG_LR",
+      "LOG_LR",
+      "LOG_LR"
+     ]
+    },
+    "mmp": {
+     "income": 0.644960233207225,
+     "occupation": 0.7229445309676971,
+     "pair": 0.7231320629467349,
+     "bayes_pair_auc_mc": 0.7241259799632052,
+     "pair_winners": [
+      "LOG_MLP",
+      "IGNORE_other__occupation__LOG_MLP",
+      "IGNORE_other__occupation__LOG_MLP"
+     ]
+    },
+    "local_linear": {
+     "income": 0.6656828681048824,
+     "occupation": 0.7650338567736084,
+     "pair": 0.7790104687481025,
+     "bayes_pair_auc_mc": 0.7912523748543699,
+     "pair_winners": [
+      "LOG_LR",
+      "LOG_LR",
+      "LOG_LR"
+     ]
+    },
+    "pair_auc_difference_twin_minus_mmp": 0.05605041942850009,
+    "pair_auc_difference_local_linear_minus_mmp": 0.0558784058013676,
+    "per_replication_pair_difference": [
+     0.058546384072471036,
+     0.053592498200653704,
+     0.056012376012376075
+    ],
+    "per_replication_local_linear_minus_mmp": [
+     0.05887529506421896,
+     0.05316591924588099,
+     0.055594003094003086
+    ],
+    "masking_signature_local_linear": {
+     "single_drop_income": 0.00014915711745955296,
+     "single_drop_occupation": -2.0771519937068383e-05,
+     "pair_drop": 0.00017201362713248347
+    },
+    "utility_vs_eta_mc": {
+     "mmp|task1": {
+      "brier_excess": 0.0007873784973678675,
+      "nll_excess": 0.0010210105442094541,
+      "accuracy_loss": 0.0006485606176618745,
+      "within_sex_brier_increase": {
+       "male": 0.0013293421676173894,
+       "female": 0.00023812896986674225
+      }
+     },
+     "mmp|task2": {
+      "brier_excess": 0.008438090225517546,
+      "nll_excess": 0.012789211318449392,
+      "accuracy_loss": 0.010393081811984782,
+      "within_sex_brier_increase": {
+       "male": 0.013379454190712967,
+       "female": 0.0034916754888819454
+      }
+     },
+     "local_linear|task1": {
+      "brier_excess": 0.0007980985200620018,
+      "nll_excess": 0.00110984628804705,
+      "accuracy_loss": 0.0006416937617826148,
+      "within_sex_brier_increase": {
+       "male": 0.0021687470654301317,
+       "female": -0.0007326177078030173
+      }
+     },
+     "local_linear|task2": {
+      "brier_excess": 0.008381266765726857,
+      "nll_excess": 0.013014071613327419,
+      "accuracy_loss": 0.01050389108325296,
+      "within_sex_brier_increase": {
+       "male": 0.016143764888199647,
+       "female": 0.00024337072363748007
+      }
+     }
+    }
+   }
+  },
+  "L_CONT_NOPROXY": {
+   "replications": [
+    {
+     "local_linear_fractions": [
+      0.08181375971371851,
+      0.3386638608354784
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6659364327579775
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7223146224090204
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__LOG_LR",
+       "test_auc": 0.7223146224090204
+      },
+      "bayes_pair_auc_mc": 0.7234624733781895
+     },
+     "mmp": {
+      "income": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.6560769695826304
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7220539948551031
+      },
+      "pair": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7217588591233152
+      },
+      "bayes_pair_auc_mc": 0.7234624733781895
+     },
+     "local_linear": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6659035137725089
+      },
+      "occupation": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7230036508290022
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__LOG_LR",
+       "test_auc": 0.7230036508290022
+      },
+      "bayes_pair_auc_mc": 0.7234624733781895
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.00042596907465684885,
+       "nll_excess": 0.0005770391795583251,
+       "accuracy_loss": 0.0003251231929260634,
+       "within_sex_brier_increase": {
+        "male": 0.001143110729209441,
+        "female": -0.0003297347412357162
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.0050024262257179365,
+       "nll_excess": 0.007600101907777814,
+       "accuracy_loss": 0.006225919729759505,
+       "within_sex_brier_increase": {
+        "male": 0.011567774639851348,
+        "female": -0.00247429706807133
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.0004232262293982691,
+       "nll_excess": 0.0005937824013470252,
+       "accuracy_loss": 0.00032325839543147786,
+       "within_sex_brier_increase": {
+        "male": 0.0015247178827818009,
+        "female": -0.0007021253775576591
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.004982896368710369,
+       "nll_excess": 0.0077749232250585365,
+       "accuracy_loss": 0.006489782777448195,
+       "within_sex_brier_increase": {
+        "male": 0.013192892672890439,
+        "female": -0.004360774989589769
+       }
+      }
+     }
+    },
+    {
+     "local_linear_fractions": [
+      0.08118528576400807,
+      0.3413238717855873
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "LOG_LR",
+       "test_auc": 0.6512963510540342
+      },
+      "occupation": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.7165229288704072
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7179727981782834
+      },
+      "bayes_pair_auc_mc": 0.719424717737361
+     },
+     "mmp": {
+      "income": {
+       "winner": "LOG_LR",
+       "test_auc": 0.6415033261908656
+      },
+      "occupation": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.716647880290844
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7169302454424055
+      },
+      "bayes_pair_auc_mc": 0.719424717737361
+     },
+     "local_linear": {
+      "income": {
+       "winner": "OUT_LR",
+       "test_auc": 0.6501093695113067
+      },
+      "occupation": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.717478232027384
+      },
+      "pair": {
+       "winner": "LOG_LR",
+       "test_auc": 0.7175670762461085
+      },
+      "bayes_pair_auc_mc": 0.719424717737361
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.0004259205148120943,
+       "nll_excess": 0.0005748011750096726,
+       "accuracy_loss": 0.00037447377713493155,
+       "within_sex_brier_increase": {
+        "male": 0.0011170223519726785,
+        "female": -0.0003861699214268056
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.004984409290673317,
+       "nll_excess": 0.007587999676915027,
+       "accuracy_loss": 0.006453191114056016,
+       "within_sex_brier_increase": {
+        "male": 0.011567817333387806,
+        "female": -0.002485928254251982
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.00041871878322356895,
+       "nll_excess": 0.0005869274179220697,
+       "accuracy_loss": 0.00037550043757073905,
+       "within_sex_brier_increase": {
+        "male": 0.0014768776993603475,
+        "female": -0.0007869947708998919
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.00498535889318694,
+       "nll_excess": 0.007787539521739793,
+       "accuracy_loss": 0.00653583481871654,
+       "within_sex_brier_increase": {
+        "male": 0.012634963842860862,
+        "female": -0.0038679683575612548
+       }
+      }
+     }
+    },
+    {
+     "local_linear_fractions": [
+      0.08132186434801936,
+      0.3394639811622535
+     ],
+     "twin_eta": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6608217922861619
+      },
+      "occupation": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.7230260091358255
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__OUT_MLP",
+       "test_auc": 0.7230260091358255
+      },
+      "bayes_pair_auc_mc": 0.7237439376817558
+     },
+     "mmp": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6514801947217757
+      },
+      "occupation": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.7234041295386385
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__LOG_MLP",
+       "test_auc": 0.7234041295386385
+      },
+      "bayes_pair_auc_mc": 0.7237439376817558
+     },
+     "local_linear": {
+      "income": {
+       "winner": "LOG_MLP",
+       "test_auc": 0.6610852032823489
+      },
+      "occupation": {
+       "winner": "OUT_MLP",
+       "test_auc": 0.7238228359257584
+      },
+      "pair": {
+       "winner": "IGNORE_other__occupation__OUT_MLP",
+       "test_auc": 0.7238228359257584
+      },
+      "bayes_pair_auc_mc": 0.7237439376817558
+     },
+     "utility_vs_eta_mc": {
+      "mmp|task1": {
+       "brier_excess": 0.00043207017772662145,
+       "nll_excess": 0.0005872367811454456,
+       "accuracy_loss": 0.00040438360417063097,
+       "within_sex_brier_increase": {
+        "male": 0.0011102019427938548,
+        "female": -0.0003452882653415567
+       }
+      },
+      "mmp|task2": {
+       "brier_excess": 0.005085757773770342,
+       "nll_excess": 0.007773955626113238,
+       "accuracy_loss": 0.00626459289904692,
+       "within_sex_brier_increase": {
+        "male": 0.01143554858286221,
+        "female": -0.0018078914655564418
+       }
+      },
+      "local_linear|task1": {
+       "brier_excess": 0.00041107912674154707,
+       "nll_excess": 0.0005841036097557859,
+       "accuracy_loss": 0.0002927397289689681,
+       "within_sex_brier_increase": {
+        "male": 0.0014329487463513799,
+        "female": -0.0007131583718863264
+       }
+      },
+      "local_linear|task2": {
+       "brier_excess": 0.0049798427409010965,
+       "nll_excess": 0.007813439809968147,
+       "accuracy_loss": 0.005803571994260307,
+       "within_sex_brier_increase": {
+        "male": 0.012352651717779354,
+        "female": -0.0028492706586487728
+       }
+      }
+     }
+    }
+   ],
+   "summary": {
+    "local_linear_fractions": [
+     [
+      0.08181375971371851,
+      0.3386638608354784
+     ],
+     [
+      0.08118528576400807,
+      0.3413238717855873
+     ],
+     [
+      0.08132186434801936,
+      0.3394639811622535
+     ]
+    ],
+    "twin_eta": {
+     "income": 0.6593515253660579,
+     "occupation": 0.7206211868050844,
+     "pair": 0.7211044765743764,
+     "bayes_pair_auc_mc": 0.7222103762657688,
+     "pair_winners": [
+      "IGNORE_other__occupation__LOG_LR",
+      "LOG_LR",
+      "IGNORE_other__occupation__OUT_MLP"
+     ]
+    },
+    "mmp": {
+     "income": 0.6496868301650905,
+     "occupation": 0.7207020015615285,
+     "pair": 0.720697744701453,
+     "bayes_pair_auc_mc": 0.7222103762657688,
+     "pair_winners": [
+      "LOG_MLP",
+      "LOG_LR",
+      "IGNORE_other__occupation__LOG_MLP"
+     ]
+    },
+    "local_linear": {
+     "income": 0.6590326955220548,
+     "occupation": 0.7214349062607148,
+     "pair": 0.7214645210002897,
+     "bayes_pair_auc_mc": 0.7222103762657688,
+     "pair_winners": [
+      "IGNORE_other__occupation__LOG_LR",
+      "LOG_LR",
+      "IGNORE_other__occupation__OUT_MLP"
+     ]
+    },
+    "pair_auc_difference_twin_minus_mmp": 0.00040673187292339374,
+    "pair_auc_difference_local_linear_minus_mmp": 0.0007667762988367022,
+    "per_replication_pair_difference": [
+     0.0005557632857052797,
+     0.001042552735877944,
+     -0.0003781204028130425
+    ],
+    "per_replication_local_linear_minus_mmp": [
+     0.0012447917056870317,
+     0.0006368308037030257,
+     0.0004187063871198271
+    ],
+    "masking_signature_local_linear": {
+     "single_drop_income": 0.0003188298440031101,
+     "single_drop_occupation": -0.0008137194556304683,
+     "pair_drop": -0.00036004442591330843
+    },
+    "utility_vs_eta_mc": {
+     "mmp|task1": {
+      "brier_excess": 0.00042798658906518817,
+      "nll_excess": 0.0005796923785711478,
+      "accuracy_loss": 0.0003679935247438753,
+      "within_sex_brier_increase": {
+       "male": 0.0011234450079919914,
+       "female": -0.00035373097600135945
+      }
+     },
+     "mmp|task2": {
+      "brier_excess": 0.005024197763387198,
+      "nll_excess": 0.0076540190702686925,
+      "accuracy_loss": 0.00631456791428748,
+      "within_sex_brier_increase": {
+       "male": 0.011523713518700454,
+       "female": -0.0022560389292932514
+      }
+     },
+     "local_linear|task1": {
+      "brier_excess": 0.0004176747131211284,
+      "nll_excess": 0.0005882711430082936,
+      "accuracy_loss": 0.0003304995206570617,
+      "within_sex_brier_increase": {
+       "male": 0.0014781814428311759,
+       "female": -0.0007340928401146259
+      }
+     },
+     "local_linear|task2": {
+      "brier_excess": 0.004982699334266135,
+      "nll_excess": 0.007791967518922159,
+      "accuracy_loss": 0.006276396530141681,
+      "within_sex_brier_increase": {
+       "male": 0.012726836077843551,
+       "female": -0.0036926713352665986
+      }
+     }
+    }
+   }
+  }
+ },
+ "demonstrations": {
+  "D1": {
+   "D1a": {
+    "auc_decision_only": "11/20",
+    "auc_decision_only_float": 0.55,
+    "n_partitions": 15,
+    "n_decision_preserving": 4,
+    "min_auc_decision_preserving": 0.55,
+    "max_auc_decision_preserving": 0.775,
+    "all_preserving_at_least_decision_only": true,
+    "some_preserving_strictly_above": true,
+    "min_auc_decision_changing": 0.5,
+    "some_changing_strictly_below_decision_only": true
+   },
+   "D1b": {
+    "auc_decision_only": "43/66",
+    "auc_decision_only_float": 0.6515151515151515,
+    "n_partitions": 15,
+    "n_decision_preserving": 4,
+    "min_auc_decision_preserving": 0.6515151515151515,
+    "max_auc_decision_preserving": 0.6515151515151515,
+    "all_preserving_at_least_decision_only": true,
+    "some_preserving_strictly_above": false,
+    "min_auc_decision_changing": 0.5,
+    "some_changing_strictly_below_decision_only": true
+   }
+  },
+  "D2": {
+   "D2a": {
+    "auc_star_X": "1/2",
+    "auc_label_only_Y1": "7/10",
+    "auc_label_only_float": 0.7,
+    "every_release_auc": "1/2",
+    "label_exceeds_every_release": true
+   },
+   "D2b": {
+    "auc_star_full_release": "33/40",
+    "auc_label_only": "13/25",
+    "release_exceeds_label_only": true
+   }
+  },
+  "D3": {
+   "auc_star_release": "71/90",
+   "auc_star_release_float": 0.7888888888888889,
+   "auc_star_X_float": 0.7888888888888889,
+   "release_is_injective": true,
+   "fitted_logistic": {
+    "200": {
+     "mean_auc": 0.5664545462427973,
+     "sd": 0.0242750617996524
+    },
+    "5000": {
+     "mean_auc": 0.570267692211074,
+     "sd": 0.0039903439254224595
+    }
+   },
+   "fitted_below_bayes_both": true,
+   "more_aux_data_helps": true
+  }
+ },
+ "checks": {
+  "identities_exact_in_all_finite_laws": true,
+  "L_NEG_mmp_infeasible_both_budgets": true,
+  "L_NEG_frontier_at_cap_at_least_0.70": true,
+  "L_PROXY_mmp_pair_auc_is_half": true,
+  "L_PROXY_mmp_feasible_at_cap": true,
+  "L_PROXY_frontier_at_cap_is_half": true,
+  "L_PROXY_local_s12_s21_reach_half": true,
+  "L_PROXY_FLIP_mmp_view_half": true,
+  "L_PROXY_FLIP_mmp_fails_cap_accuracy": true,
+  "L_PROXY_FLIP_frontier_at_cap_above_half": true,
+  "L_MIXED_mmp_pair_auc_0.65": true,
+  "L_MIXED_mmp_feasible_at_cap": true,
+  "L_MIXED_twin_above_0.65": true,
+  "L_MIXED_frontier_at_cap_at_least_0.63": true,
+  "L_CONT_PROXY_bayes_mmp_below_twin": true,
+  "L_CONT_PROXY_fitted_mmp_below_twin_by_0.005": true,
+  "L_CONT_NOPROXY_bayes_equal": true,
+  "L_CONT_NOPROXY_fitted_mmp_below_twin_by_0.005": false,
+  "L_NOPROXY_mmp_equals_twin_bayes": true,
+  "L_XOR_mmp_singles_half": true,
+  "L_XOR_mmp_pair_equals_auc_star_X": true,
+  "L_XOR_frontier_at_cap_at_least_0.80": true,
+  "L_CONT_women_increase_exceeds_men_occupation": false,
+  "L_CONT_masking_signature_singles_drop_more_than_pair": false,
+  "L_CONT_PROXY_mmp_pair_below_local_linear": true,
+  "L_CONT_NOPROXY_mmp_pair_below_local_linear": true,
+  "demonstrations_all_pass": true
+ },
+ "provenance": {
+  "wall_s": 52.4,
+  "utc": "2026-10-16T06:05:12Z"
+ }
+}

@@ -1,0 +1,36 @@
+{
+ "schema": "MD1-backup-verification-v1",
+ "snapshot": {
+  "name": "SNAPSHOT_V1",
+  "location": "<private backup> (same device)",
+  "created_utc": "2026-10-16T06:24:47Z",
+  "git_head": "1c564efd27bcd2257567640b58d299c9eb8ea1b9",
+  "files": 159,
+  "bytes": 1710065,
+  "manifest_sha256": "4e23d3fe0b53e01849935b3072c9f440a492424d2ade3630dbbef2e44dc9922a",
+  "contents": "results/pcrl_mechanism_design_v1 (all), code (mechanism_design, mechanism_design_independent, reader-slate dependency modules), private queue ledger and unit logs; no person-level data exists in this campaign",
+  "unit": "CUSTODY_SNAPSHOT_V1"
+ },
+ "restore_check": {
+  "unit": "CUSTODY_RESTORE_CHECK_V1",
+  "restore_dir": "fresh scratch directory",
+  "files": 159,
+  "hash_mismatches": 0,
+  "prototype_rerun_from_backup_only": "PYTHONPATH = restored code only; returncode 0",
+  "prototype_results_identical": true,
+  "status": "PASS"
+ },
+ "off_device": {
+  "unit": "CUSTODY_OFFDEVICE_V1",
+  "drive": "external drive YOTUO",
+  "path": "<external drive>,
+  "tar_sha256": "ea9d3679c0f9c650ac097892806fae348e2781bf01827a15a38f22189e10091f",
+  "tar_bytes": 2109440,
+  "readback_extract_files": 159,
+  "readback_hash_mismatches": 0,
+  "status": "PASS",
+  "caveat": "read back immediately after writing; it may have been served from the file cache",
+  "cold_recheck_after_remount": "shasum -a 256 <external drive>  # expect ea9d3679c0f9c650ac097892806fae348e2781bf01827a15a38f22189e10091f; then tar -xf into a fresh directory and compare against SNAPSHOT_MANIFEST.json"
+ },
+ "not_backed_up_by_design": ".private/mechanism_design/pylib (third-party CatBoost wheel, reinstallable: pip install --no-deps --target .private/mechanism_design/pylib catboost==1.2.8)"
+}

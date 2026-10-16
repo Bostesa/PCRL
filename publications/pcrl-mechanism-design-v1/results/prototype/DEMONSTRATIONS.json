@@ -1,0 +1,77 @@
+{
+ "expected_before_run": {
+  "D1": "Every decision-preserving release has AUC* >= AUC*(S; d_ref); on law D1a some release is strictly above it; on law D1b (S constant within each decision block given the task posterior) every one equals it; a decision-changing release on D1a goes strictly below AUC*(S; d_ref).",
+  "D2": "Law D2a: AUC*(S; X) = 1/2 exactly (so every release has AUC* = 1/2) while label-only AUC*(S; Y1) > 1/2. Law D2b: AUC*(S; full release) > AUC*(S; Y1, Y2).",
+  "D3": "Injective release: AUC* = AUC*(S; X). Fitted logistic reader (on the release, n_aux = 200 and 5000, 200 repetitions each): mean held-out AUC below AUC*, and higher at n_aux = 5000 than at 200."
+ },
+ "D1_decision_preserving": {
+  "D1a": {
+   "auc_decision_only": "11/20",
+   "auc_decision_only_float": 0.55,
+   "n_partitions": 15,
+   "n_decision_preserving": 4,
+   "min_auc_decision_preserving": 0.55,
+   "max_auc_decision_preserving": 0.775,
+   "all_preserving_at_least_decision_only": true,
+   "some_preserving_strictly_above": true,
+   "min_auc_decision_changing": 0.5,
+   "some_changing_strictly_below_decision_only": true
+  },
+  "D1b": {
+   "auc_decision_only": "43/66",
+   "auc_decision_only_float": 0.6515151515151515,
+   "n_partitions": 15,
+   "n_decision_preserving": 4,
+   "min_auc_decision_preserving": 0.6515151515151515,
+   "max_auc_decision_preserving": 0.6515151515151515,
+   "all_preserving_at_least_decision_only": true,
+   "some_preserving_strictly_above": false,
+   "min_auc_decision_changing": 0.5,
+   "some_changing_strictly_below_decision_only": true
+  }
+ },
+ "D2_true_label_not_floor": {
+  "D2a": {
+   "auc_star_X": "1/2",
+   "auc_label_only_Y1": "7/10",
+   "auc_label_only_float": 0.7,
+   "every_release_auc": "1/2",
+   "label_exceeds_every_release": true
+  },
+  "D2b": {
+   "auc_star_full_release": "33/40",
+   "auc_label_only": "13/25",
+   "release_exceeds_label_only": true
+  }
+ },
+ "D3_fitted_vs_bayes": {
+  "auc_star_release": "71/90",
+  "auc_star_release_float": 0.7888888888888889,
+  "auc_star_X_float": 0.7888888888888889,
+  "release_is_injective": true,
+  "fitted_logistic": {
+   "200": {
+    "mean_auc": 0.5664545462427973,
+    "sd": 0.0242750617996524
+   },
+   "5000": {
+    "mean_auc": 0.570267692211074,
+    "sd": 0.0039903439254224595
+   }
+  },
+  "fitted_below_bayes_both": true,
+  "more_aux_data_helps": true
+ },
+ "checks": {
+  "D1a_bound_holds": true,
+  "D1a_strict_exists": true,
+  "D1a_changing_goes_below": true,
+  "D1b_bound_holds": true,
+  "D1b_all_equal": true,
+  "D2a_label_exceeds_release": true,
+  "D2b_release_exceeds_label": true,
+  "D3_injective_equals_X": true,
+  "D3_fitted_below_bayes": true,
+  "D3_more_data_helps": true
+ }
+}

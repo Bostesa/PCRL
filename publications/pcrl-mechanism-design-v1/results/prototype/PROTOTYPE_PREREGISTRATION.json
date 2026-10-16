@@ -1,0 +1,42 @@
+{
+ "schema": "MD1-prototype-preregistration-v1",
+ "written_utc": "2026-10-16T06:04:10Z",
+ "selected_mechanism": "MMP (designer 1, proposal sha256 2b7273ae01d6449036f25c7a6f5e74efb8d2843f1251cbceb8e4c7024c9ff368)",
+ "selection_record": "SELECTION_DECISION.md",
+ "preregistration": {
+  "mechanism": "MMP: release m_i = (1 - pibar) q_i^0 + pibar q_i^1 (designer 1 proposal sha256 2b7273ae...)",
+  "reference": "exact SEX-blind posterior eta (a perfect U0); budgets cap = (acc 0.010, NLL 0.010, summed Brier 0.005) and cap_plus_headroom = (0.016, 0.020, 0.009)",
+  "strongest_baseline_analogue": "exact global frontier: minimum pair Bayes AUC over all calibrated partition pairs feasible at the budget (weakly dominates every deterministic release in Bayes terms)",
+  "expected": {
+   "identities": "In all four finite laws and both tasks: Brier(m) - Brier(eta) equals E[(pi - pibar)^2 ||q^1 - q^0||^2] exactly; NLL excess equals E KL(eta || m) and is <= I(S; X).",
+   "L_NEG": "MMP releases are constant (no task information); MMP infeasible at both budgets; the global frontier at the cap stays at pair AUC >= 0.70 (required disclosure); twin pair AUC = AUC*(S; X) (about 0.81).",
+   "L_PROXY": "MMP pair AUC = 1/2 exactly; MMP feasible at the cap (no decision changes); global frontier at the cap = 1/2; local, S12 and S21 designs also reach 1/2 (no joint component needed); twin pair AUC about 0.77.",
+   "L_PROXY_FLIP": "MMP view still has pair AUC 1/2 but MMP fails the strict-cap accuracy clause (decision changes); the global frontier at the cap stays above 1/2.",
+   "L_MIXED": "MMP pair AUC = AUC*(S; h) = 0.65 exactly (residual through the task-relevant proxy); MMP feasible at the cap; twin pair AUC > 0.65; global frontier at the cap within 0.02 of 0.65 (at least 0.63).",
+   "L_NOPROXY": "No pure proxy: MMP separates every cell, so its pair Bayes AUC equals the twin's (= AUC*(S; X)); MMP gives no Bayes-level reduction here (an honest limit, not a failure of the code).",
+   "L_XOR": "Coalition required disclosure: MMP single-recipient AUCs are 1/2 but its pair AUC equals AUC*(S; X) (the tasks jointly need a SEX-revealing combination); no release feasible at the cap lowers the pair below 0.80.",
+   "subgroup": "Within-SEX occupation Brier increases are reported for every law; in L_CONT laws (pibar = 0.47) the women's increase is expected to exceed the men's (verifier M5, constant-gap approximation); a reversal is reported as such.",
+   "masking_comparison": "In L_CONT laws a critic-style local linear eraser on each recipient's own wire, at the same summed-Brier price as MMP per task, lowers single-recipient fitted AUCs more than the pair AUC relative to the twin (masking signature); MMP's pair AUC is below the eraser's pair AUC (deletion beats masking at equal price). If not, MMP section 3.6 is not supported in that law.",
+   "L_CONT_PROXY": "Bayes: MMP pair AUC (P(S | H, E, A)) below the twin (AUC*(S; X)). Fitted 7-reader slate, mean over 3 replications: MMP pair AUC below the twin by >= 0.005.",
+   "L_CONT_NOPROXY": "Bayes: MMP equals the twin (both functions of the same fields; no merging). Fitted: MMP pair AUC below the twin by >= 0.005 (the learnability part of the rationale). If not, that part is not supported in this law and any real-data benefit would have to come from genuine merging.",
+   "demonstrations": "D1 decision-preserving bound, D2 true labels not a floor, D3 fitted below Bayes: all checks pass."
+  },
+  "what_would_contradict_the_rationale": [
+   "Brier identity or NLL bound fails anywhere",
+   "MMP feasible in L_NEG, or MMP pair AUC not 1/2 in L_PROXY, or not 0.65 in L_MIXED",
+   "MMP far (> 0.02) above the global frontier at its own feasible budget in L_PROXY or L_MIXED",
+   "In L_CONT_NOPROXY the fitted pair AUC of MMP is not below the twin by >= 0.005",
+   "In an L_CONT law MMP's fitted pair AUC is not below the matched-price local eraser's"
+  ],
+  "added_before_first_run_per_selection_conditions": "L_NOPROXY, L_XOR, the matched-price local linear eraser, subgroup and w* reporting (verifier fixes (i), (ii), (iv); SELECTION_DECISION.md)"
+ },
+ "preregistration_sha256": "84b97ba3ef8ecebd3f64fb463e29c48ed6e40b3416f63c12ae595888a533ea08",
+ "code_sha256": {
+  "mechanism_design/prototype/finite_law.py": "925dd20bfc36d4b0a6a9ff094de2184f17e59ef0b7bd38790e6326f063b4b65b",
+  "mechanism_design/prototype/mmp.py": "fa57b36512eb05f757b41e34bc81d0ed8bd8bccc21f1d4fa7c69d1c3aa0a3cf3",
+  "mechanism_design/prototype/run_prototype.py": "1fc9a50ee468e4f9aa2361111da6a49564c11ead174e6755b403c27a48a1e45f",
+  "mechanism_design/prototype/demonstrations.py": "d0188ebb719ee7173af9f30ea4447a8bfa5dfeee4e32acf1d7804a25c047ff46"
+ },
+ "run_command": "python -m mechanism_design.prototype.run_prototype --out results/pcrl_mechanism_design_v1/prototype/PROTOTYPE_RESULTS.json (through the campaign queue)",
+ "note": "No prototype run had happened when this file was written; the only earlier run is the mechanism-independent demonstrations unit COORD_DEMONSTRATIONS_V1."
+}

@@ -1,0 +1,105 @@
+{
+ "schema": "MD1-agent-roster-v1",
+ "note": "Actual participation, honestly reported. Six roles were requested: coordinator, adversary/methodology reviewer, two independent mechanism designers, closest-prior-work reviewer and mathematical/implementation verifier. All six were filled by separate agents except the coordinator, which was the main session. One additional read-only helper compiled the closed-lane facts as a coordinator aid. Durations are from the agents' completion notices (wall-clock, LLM time, not local CPU). Local numerical work by agents ran through the campaign queue and is in RESOURCE_INVENTORY.json.",
+ "agents": [
+  {
+   "role": "coordinator",
+   "who": "main session",
+   "work": "worktree, ledger and guard; problem specification; evidence pack; selection criteria; decision log; reveal protocol; selection; prototype (finite laws, continuous laws, demonstrations); pilot code and rehearsal; curation of all top-level deliverables; custody; publication"
+  },
+  {
+   "role": "closed-lane evidence helper (coordinator aid, not one of the six roles)",
+   "agent_type": "Explore (read-only)",
+   "duration_s": 1172,
+   "tool_uses": 135,
+   "output": "roles/coordinator/CLOSED_LANES_HELPER_REPORT.md (saved by the coordinator; 6 claims spot-checked)"
+  },
+  {
+   "role": "adversary and methodology reviewer",
+   "agent_type": "general-purpose",
+   "phases": [
+    {
+     "phase": "1: papers, code tracing, access table, motivation, manuscript patch",
+     "duration_s": 2446,
+     "tool_uses": 176
+    },
+    {
+     "phase": "2: threat-model assessment of both proposals",
+     "duration_s": 470,
+     "tool_uses": 9
+    }
+   ],
+   "output": "roles/adversary_reviewer/ (PRIVATE_NOTES.md git-ignored)"
+  },
+  {
+   "role": "closest-prior-work reviewer",
+   "agent_type": "general-purpose",
+   "phases": [
+    {
+     "phase": "1: literature base (47 PDFs read in full text) and manuscript citation fidelity",
+     "duration_s": 2806,
+     "tool_uses": 179
+    },
+    {
+     "phase": "2: comparison of both proposals with closest methods",
+     "duration_s": 1472,
+     "tool_uses": 50
+    }
+   ],
+   "output": "roles/prior_work_reviewer/"
+  },
+  {
+   "role": "mechanism designer 1",
+   "agent_type": "general-purpose",
+   "phases": [
+    {
+     "phase": "independent proposal (MMP)",
+     "duration_s": 1869,
+     "tool_uses": 61
+    },
+    {
+     "phase": "cross-critique after the reveal",
+     "duration_s": 453,
+     "tool_uses": 9
+    }
+   ],
+   "output": "roles/designer_1/"
+  },
+  {
+   "role": "mechanism designer 2",
+   "agent_type": "general-purpose",
+   "phases": [
+    {
+     "phase": "independent proposal (RCCS)",
+     "duration_s": 2220,
+     "tool_uses": 47
+    },
+    {
+     "phase": "cross-critique after the reveal",
+     "duration_s": 355,
+     "tool_uses": 10
+    }
+   ],
+   "output": "roles/designer_2/"
+  },
+  {
+   "role": "mathematical and implementation verifier",
+   "agent_type": "general-purpose",
+   "phases": [
+    {
+     "phase": "1: assessment of both proposals with separate code",
+     "duration_s": 1937,
+     "tool_uses": 61
+    },
+    {
+     "phase": "2: independent recomputation of the MMP prototype and a registered post-hoc probe (P7)",
+     "duration_s": 956,
+     "tool_uses": 30,
+     "status": "done; roles/math_verifier/PROTOTYPE_VERIFICATION.md (+ .json); durations derived from the cumulative completion notice (2893 s total, 91 tool uses)"
+    }
+   ],
+   "output": "roles/math_verifier/ and mechanism_design_independent/"
+  }
+ ],
+ "independence": "Designers were launched in parallel with the identical brief (roles/coordinator/DESIGNER_BRIEF.md); launch messages differed by one sentence (disclosed in DECISION_LOG.md). Each designer reported never opening the other's directory; both proposals were hashed and logged before any reveal. The verifier wrote separate code and did not import the coordinator's prototype modules."
+}
