@@ -1,0 +1,155 @@
+{
+  "evidence": {
+    "deployment_inputs": {
+      "DEV_REPORT_raw_inputs.csv": {
+        "forbidden_columns_in_header": [],
+        "header": [
+          "AGEP",
+          "WKHP",
+          "COW",
+          "SCHL",
+          "MAR",
+          "POBP"
+        ],
+        "header_equals_permitted_order": true,
+        "rows": 5943
+      },
+      "forbidden.csv": {
+        "SEX_column_distinct_values": 1,
+        "forbidden_columns_in_header": [
+          "SEX"
+        ],
+        "header": [
+          "AGEP",
+          "WKHP",
+          "COW",
+          "SCHL",
+          "MAR",
+          "POBP",
+          "SEX"
+        ],
+        "header_equals_permitted_order": false,
+        "rows": 5943
+      },
+      "refusal_inputs_well_formed_and_SEX_placeholder_constant": true,
+      "reordered.csv": {
+        "forbidden_columns_in_header": [],
+        "header": [
+          "POBP",
+          "MAR",
+          "SCHL",
+          "COW",
+          "WKHP",
+          "AGEP"
+        ],
+        "header_equals_permitted_order": false,
+        "rows": 5943
+      }
+    },
+    "flags": {
+      "DEV_REPORT_rows": 5943,
+      "all_decisions_identical": true,
+      "eligible_control_from_SELECTION_LOCK": "NEURAL_RAW_rho1.0_E2",
+      "expected_packages": [
+        "LOCAL_TREE_S0",
+        "LOCAL_TREE_S1",
+        "NEURAL_RAW_rho1.0_E2_S0",
+        "T_TREE_S0",
+        "T_TREE_S1"
+      ],
+      "labels_used": false,
+      "max_abs_prob_diff_over_all": 0.0,
+      "n_packages": 5,
+      "package_set_as_expected": true,
+      "packages": [
+        "LOCAL_TREE_S0",
+        "LOCAL_TREE_S1",
+        "NEURAL_RAW_rho1.0_E2_S0",
+        "T_TREE_S0",
+        "T_TREE_S1"
+      ],
+      "parity_entries": 10,
+      "parity_entries_ok": 10,
+      "raw_rows_deployed": 5943,
+      "recomputed_all_parity_ok": true,
+      "recomputed_all_refusals_ok": true,
+      "recorded_all_parity_ok": true,
+      "recorded_all_refusals_ok": true,
+      "refusal_entries": 15,
+      "refusal_entries_refused": 15,
+      "refusal_exception_types_as_expected": true
+    },
+    "independent_reencoding": {
+      "exact_equal_to_exported_DEV_REPORT_X": true,
+      "feature_names_equal_export": true,
+      "max_abs_diff": 0.0,
+      "note": "deployment parity of probabilities then reduces to the stored-output identity re-derived in check 6 (teacher routing / theta on DEV_REPORT X)",
+      "rows_mapped_to_OTHER_per_variable": {
+        "COW": 0,
+        "MAR": 0,
+        "POBP": 128,
+        "SCHL": 4
+      },
+      "width": 145
+    },
+    "package_provenance": {
+      "LOCAL_TREE_S0": {
+        "encoder_equals_extraction_encoder": true,
+        "files_equal_frozen_run_sources": {
+          "THETA.npz": true,
+          "TREE_TEACHER_income.json": true,
+          "TREE_TEACHER_occupation.json": true
+        },
+        "frozen_by_TRAINING_COMPLETE_LOCK": true,
+        "listed_files_match": true,
+        "package_json_sha256_matches": true
+      },
+      "LOCAL_TREE_S1": {
+        "encoder_equals_extraction_encoder": true,
+        "files_equal_frozen_run_sources": {
+          "THETA.npz": true,
+          "TREE_TEACHER_income.json": true,
+          "TREE_TEACHER_occupation.json": true
+        },
+        "frozen_by_TRAINING_COMPLETE_LOCK": true,
+        "listed_files_match": true,
+        "package_json_sha256_matches": true
+      },
+      "NEURAL_RAW_rho1.0_E2_S0": {
+        "encoder_equals_extraction_encoder": true,
+        "files_equal_frozen_run_sources": {
+          "NEURAL_STATE.pt": true
+        },
+        "frozen_by_TRAINING_COMPLETE_LOCK": true,
+        "listed_files_match": true,
+        "package_json_sha256_matches": true
+      },
+      "T_TREE_S0": {
+        "encoder_equals_extraction_encoder": true,
+        "files_equal_frozen_run_sources": {
+          "TREE_TEACHER_income.json": true,
+          "TREE_TEACHER_occupation.json": true
+        },
+        "frozen_by_TRAINING_COMPLETE_LOCK": true,
+        "listed_files_match": true,
+        "package_json_sha256_matches": true
+      },
+      "T_TREE_S1": {
+        "encoder_equals_extraction_encoder": true,
+        "files_equal_frozen_run_sources": {
+          "TREE_TEACHER_income.json": true,
+          "TREE_TEACHER_occupation.json": true
+        },
+        "frozen_by_TRAINING_COMPLETE_LOCK": true,
+        "listed_files_match": true,
+        "package_json_sha256_matches": true
+      }
+    }
+  },
+  "id": 11,
+  "name": "DEPLOYMENT",
+  "problems": [],
+  "scope": "recorded parity/refusal flags re-derived from per-package records (not re-executed with the lead deploy code); package files re-hashed against PACKAGE.json, the frozen run sources and TRAINING_COMPLETE_LOCK; raw->feature encoding re-implemented independently; probability parity of the tree packages is covered by check 6 (routing on the identical DEV_REPORT X). Control package covers seed 0 only (as run).",
+  "sealed_assessment_touched": false,
+  "status": "PASS"
+}

@@ -1,0 +1,931 @@
+{
+  "access": {
+    "CALIBRATION": "Ucal temperatures only",
+    "every_method": "MODEL_FIT task labels and SEX; the same registered MODEL_SELECT information for selection",
+    "forbidden_for_fitting": "ATTACK_FIT/ATTACK_VALIDATION labels (readers only), DEV_REPORT labels (opened once after REPORTING_LOCK), SEALED_ASSESSMENT (closed: no features, labels or predictions)"
+  },
+  "adversary_and_readers": {
+    "readers": "Fresh output-only readers, one seed, every service on the frozen SELECTION_LOCK attack roster.\n\nTransport of task_headroom/reader_worker.py: the same 7-reader slate (OUT_LR, OUT_MLP, OUT_HGB on probabilities+decision;\nLOG_LR, LOG_MLP on log-probabilities + one-hot decision; DEC_LR on the one-hot decision; CONF_HGB on the max probability)\nx 3 views (income, occupation, coalition pair), validated sklearn reader definitions (task_conditioned_representation.attacks).\nACS roles: readers train on ATTACK_FIT with SEX; orientation and the per-view winner are chosen on ATTACK_VALIDATION only\n(pair candidates include the 14 ignore-one-recipient aliases); DEV_REPORT is scored from released outputs alone\n(DEV_REPORT labels are never opened here). Real-data controls on the T_TREE wire: a shuffled-SEX null (fixed-seed row\npermutation of ATTACK_FIT SEX) and a planted SEX bit (OUT_HGB), per view.\nThe adversary sees auxiliary labelled releases (ATTACK_FIT) and the target release only.",
+    "threat": "auxiliary labelled releases (ATTACK_FIT) plus one target release (DEV_REPORT); no target raw inputs, model internals, insiders or interaction; perfect linkage of the two recipients assumed; auxiliary-data recipient adversaries follow existing literature (not a new adversary)"
+  },
+  "base_commit": "12cebc22ffe119c0ce53888c827039d2edd178e5",
+  "benchmark": {
+    "adjinc": 1010145,
+    "cap_rule": "within each development role, households in ascending cap_order_key; include whole households while the role total is below its cap; the household that reaches or crosses the cap is included and the overshoot recorded; every later household stays unopened (no labels or predictions computed)",
+    "cap_salt": "PCRL-ACS-protected-tree-replication-v1|cap-order|FL-2019|2026-10-15|",
+    "caps": {
+      "ATTACK_FIT": 8000,
+      "ATTACK_VALIDATION": 3000,
+      "CALIBRATION": 3000,
+      "DEV_REPORT": 8000,
+      "MODEL_FIT": 20000,
+      "MODEL_SELECT": 8000
+    },
+    "category_min_count": 10,
+    "development_shares": {
+      "ATTACK_FIT": 0.15,
+      "ATTACK_VALIDATION": 0.1,
+      "CALIBRATION": 0.05,
+      "DEV_REPORT": 0.1,
+      "MODEL_FIT": 0.45,
+      "MODEL_SELECT": 0.15
+    },
+    "docs": {
+      "accuracy": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/accuracy/2019AccuracyPUMS.pdf",
+      "code_lists": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/code_lists/ACSPUMS2019CodeLists.xls",
+      "data_dictionary_csv": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2019.csv",
+      "data_dictionary_txt": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/data_dict/PUMS_Data_Dictionary_2019.txt",
+      "design_factors": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/accuracy/2019_PUMS_1yr_Design_Factors.csv",
+      "occupation_code_list": "https://www2.census.gov/programs-surveys/demo/guidance/industry-occupation/2018-ACS-PUMS-and-2018-SIPP-Public-Use-Occupation-Code-List.xlsx",
+      "occupation_crosswalk": "https://www2.census.gov/programs-surveys/demo/guidance/industry-occupation/2018-occupation-code-list-and-crosswalk.xlsx",
+      "readme": "https://www2.census.gov/programs-surveys/acs/tech_docs/pums/ACS2019_PUMS_README.pdf"
+    },
+    "forbidden_inputs": [
+      "SEX",
+      "RAC1P",
+      "RAC2P",
+      "RAC3P",
+      "RACAIAN",
+      "RACASN",
+      "RACBLK",
+      "RACNH",
+      "RACPI",
+      "RACSOR",
+      "RACWHT",
+      "HISP",
+      "OCCP",
+      "SOCP",
+      "INDP",
+      "NAICSP",
+      "PINCP",
+      "PERNP",
+      "WAGP",
+      "SEMP",
+      "INTP",
+      "RETP",
+      "SSP",
+      "SSIP",
+      "PAP",
+      "OIP",
+      "POVPIP",
+      "ESR",
+      "RELP",
+      "RELSHIPP",
+      "SERIALNO",
+      "SPORDER",
+      "PUMA",
+      "POWPUMA",
+      "POWSP",
+      "ST",
+      "PWGTP",
+      "ADJINC"
+    ],
+    "group_quarters": "excluded by the household-resident predicate (2019GQ serials)",
+    "groups": [
+      "MANAGEMENT_BUSINESS_SCIENCE_ARTS",
+      "SERVICE",
+      "SALES_OFFICE",
+      "NATRES_CONSTRUCTION_MAINTENANCE",
+      "PRODUCTION_TRANSPORT_MATERIAL"
+    ],
+    "horizon": "1-Year",
+    "income_rule": "income01 = 1 iff PINCP * ADJINC / 1,000,000 > 50000 (2019 dollars; NOT the Adult 1994 threshold)",
+    "inputs": {
+      "categorical": [
+        "COW",
+        "SCHL",
+        "MAR",
+        "POBP"
+      ],
+      "numeric": [
+        "AGEP",
+        "WKHP"
+      ]
+    },
+    "numeric_scaling": "z-score with MODEL_FIT mean and population sd (ddof=0), float64 then float32",
+    "occupation_mapping_counts": {
+      "MANAGEMENT_BUSINESS_SCIENCE_ARTS": 222,
+      "NATRES_CONSTRUCTION_MAINTENANCE": 71,
+      "PRODUCTION_TRANSPORT_MATERIAL": 92,
+      "SALES_OFFICE": 68,
+      "SERVICE": 72
+    },
+    "occupation_mapping_excluded": {
+      "9800": "military specific occupation",
+      "9810": "military specific occupation",
+      "9825": "military specific occupation",
+      "9830": "military specific occupation",
+      "9920": "unemployed, no work experience in last 5 years or never worked",
+      "bbbb": "blank (N/A)"
+    },
+    "occupation_mapping_rule": "Map every 2019 dictionary OCCP code to one of the five official broad groups.\n\nSource of the groups: the official '2018 American Community Survey PUMS Occupation Code List'\n(sheet 'ACS'), whose header rows list the five civilian broad groups with their code ranges and whose\nbody lists every code under its group. The mapping is taken from that document, code by code:\neach individual 4-digit code row inherits the most recent broad-group header row above it.\nCross-check: the 2019 dictionary label prefixes (MGR, BUS, ..., MIL) must be consistent with the groups.",
+    "occupation_mapping_sha256": "b4cdae00812e8f26cf5076552a34b41a61a7ede58ef6fdad0a077b74ffb6a0c7",
+    "person_csv": "psam_p12.csv",
+    "person_zip_url": "https://www2.census.gov/programs-surveys/acs/data/pums/2019/1-Year/csv_pfl.zip",
+    "predicate": {
+      "age": "AGEP integer, 25 <= AGEP <= 64",
+      "duplicates": "(SERIALNO, SPORDER) must be unique; any duplicate person key aborts extraction",
+      "employment": "ESR in {\"1\",\"2\"} (civilian employed, at work / with a job but not at work)",
+      "hours": "WKHP non-blank integer in 1..99 (WKHP > 0)",
+      "household_residents": "SERIALNO matches ^2019HU[0-9]{7}$ (housing-unit person); every 2019GQ (group quarters) row excluded",
+      "income": "PINCP non-blank (signed integer) and ADJINC == 1010145",
+      "inputs": "AGEP, WKHP numeric as above; COW, SCHL, MAR, POBP non-blank strings (any other blank -> row ineligible and counted)",
+      "occupation": "OCCP non-blank, present in the 2019 dictionary, and mapped to one of the five civilian groups (military 9800-9830, 9920 and blank excluded)",
+      "record_type": "person file rows only (RT == \"P\")",
+      "sex": "SEX in {\"1\",\"2\"}",
+      "state": "ST == \"12\""
+    },
+    "role_salt": "PCRL-ACS-protected-tree-replication-v1|household-roles|FL-2019|2026-10-15|",
+    "sealed_share": 0.2,
+    "sex_code": {
+      "1": 0,
+      "2": 1
+    },
+    "state": [
+      "Florida",
+      "FL",
+      "12"
+    ],
+    "support_thresholds": {
+      "sex_class_min_attacker_roles": 100,
+      "subgroup_households_min_per_sex_DEV_REPORT": 200,
+      "task_class_min_MODEL_FIT": 100
+    },
+    "survey": "ACS",
+    "weights": "PWGTP retained privately for secondary weighted summaries only; never a model or attacker feature",
+    "year": "2019"
+  },
+  "branch": "research/pcrl-acs-protected-tree-replication-v1",
+  "budgets": {
+    "cpu_hours": 20,
+    "elapsed_hours": 10,
+    "heavy_jobs": 2,
+    "paid_usd": 0,
+    "queue": "acs_replication/jobqueue.py (renamed from queue.py before the lock to avoid shadowing the standard library), ledger under .private/acs_replication/compute (failed attempts and agent work charged)",
+    "rss_gib_total": 6,
+    "threads_per_job": 1
+  },
+  "campaign": "pcrl_acs_protected_tree_replication_v1",
+  "code_sha256_at_lock": {
+    "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission.py": "85018a68c2cd8958911d55be92b87d99fe663e9671942eb85a8196c98027721e",
+    "custody.py": "79b17c4e843ec5b62ed61a14b4f5283e8a31aa76783c6b7f259deffd410f68de",
+    "data.py": "7e7cfae034789b274f162ad4e4626e46fd594f4af1f8613da22a0f529a6a76c2",
+    "deploy.py": "38371544e4fa55926c1468c996272765f947d1a8a4fe314fc223f7ea06eb219a",
+    "extract.py": "7417439ba20bf364839ef682fbb791af0acd9c262baadac4c1187568c5653c61",
+    "fagtb.py": "5efa2efff983a2154bedf7f3a62313c619f5b92fedc93db552060c713f91ee4f",
+    "fagtb_worker.py": "86d7ef3b0d6ec23f9f79e8a3d73c4b4c2d40327498e383164baf0e4e03d543d2",
+    "fare_worker.py": "30c6a5f93a23b6ff7bb2b772dedbb90f8acbe4d71e7caba179098329c5b65359",
+    "jobqueue.py": "be7d8ded49545dbee53d6f7b26b816d79a6115d624d9affce254588922483e7c",
+    "leafcorr.py": "661965aa55dda784ebbe1bb0cac828926920c9c19dd9a4f0e4938f3625cffaef",
+    "lock_science.py": "5ad1e93e8eadd006c21627d5ade301dca26d4133b21fd1825cab2a8748dac0bf",
+    "lock_stage.py": "3969d7f5f6d614a2e250a38a1811033cf75e2ce26e9a58e21dd786087e7046c1",
+    "neural.py": "cbc53a2b8c1425714507c9bfbdf3b250f51973d658df974807dafee448c0defc",
+    "neural_raw.py": "629895a7fa1d514f7e246dbb68c106cdce777f477550e53b68e8074203b04a45",
+    "neural_raw_worker.py": "0b241b19c87242020f63b4c3ae51af77152520c09d8955f5ba2131b4abc490ce",
+    "provenance.py": "8e8fc8b2b506669c3ede99d2982a411a8f9dc6e953bff169996d835d3b03bba4",
+    "readers.py": "a176d76d913eec4a1956c4a8f37dc02b0a0bc3d95ef4f5e46042f16ae9ad9ae5",
+    "registry.py": "a348ad96c6312fa56dfa1c6c55baddd8c35fdc6105ea58f29e276748170ef461",
+    "report.py": "6406d555064b4354cfe7f6ba652b4e3c5a2b686dc70c66b1c27f3a704abc4908",
+    "schema.py": "113bbaeaff3a7c5493e14803d98af4485680fa7b8840ff2e057e2a1d8bf8f9dd",
+    "selection.py": "3f432687c6f9312c8742bcbf11e57f14b4932791a15d4e9a3868d33a8f61e9c0",
+    "stage_a.py": "849375892562dc2944dafc6d9d7aef237ac9db9fe3bf9874553d57bbf7e2f117",
+    "stage_a_report.py": "1f7f00c5ad9cd4360f88428a980592488fa6ad5a42b9f3461e115c3b35680303",
+    "stage_b.py": "0e4ec7ee29a8ef6864b73d28b88fc26487328b78741ef0e08ff69d3f26812336",
+    "test_fagtb.py": "9c57c5ab4358379a46dc20274b9c90c3daa2141b2230f4d8b22f5ec39ee88b6b",
+    "test_pipeline_synthetic.py": "1fae3b4c7edffaf7deed408c271dc6ebc181f64663c478ad434b784bfc2a0d89",
+    "trees.py": "cb9a35b83d8781f3d3f298b93a63579980b36686fd5b941e9325911786449cb7"
+  },
+  "estimand": "RECIPE REPLICATION with new models, inputs and task definitions on one ACS 1-Year state-year; NOT confirmation of the frozen Adult packages; no Adult AUC, score map, U0/Ucal weight or 317,000-group requirement is transferred.",
+  "forecast_note": "FORECASTS.json was committed at the protocol seal (12cebc22f), before any label; after the pre-lock statistical review the ESTABLISHED_SUBGROUP_HARM label (F12) is read from the K = 40 simultaneous intervals and the decision alpha is one-sided 0.025 (family); probabilities are unchanged and scored as registered.",
+  "forecasts_registered_before_labels": {
+    "author": "campaign lead (subjective probabilities; scored honestly at closeout)",
+    "forecasts": [
+      {
+        "event": "T_TREE has lower MODEL_SELECT NLL than U0 for BOTH tasks on BOTH seeds (teacher headroom)",
+        "id": "F1",
+        "p": 0.55
+      },
+      {
+        "event": "LOCAL_TREE passes all 24 DEV_REPORT utility clauses at the point",
+        "id": "F2",
+        "p": 0.45
+      },
+      {
+        "event": "Coalition benefit point estimate vs TASK_REFIT > 0.020 on both seeds",
+        "id": "F3",
+        "p": 0.45
+      },
+      {
+        "event": "RECIPE_EFFECT decision = RECIPE_EFFECT_ESTABLISHED",
+        "id": "F4",
+        "p": 0.25
+      },
+      {
+        "event": "COMPETITIVE decision = SUPERIOR_TO_ALL_ELIGIBLE",
+        "id": "F5",
+        "p": 0.15
+      },
+      {
+        "event": "COMPETITIVE decision = INCOMPLETE",
+        "id": "F6",
+        "p": 0.25
+      },
+      {
+        "event": "NEURAL_RAW has a MODEL_SELECT-feasible (ELIGIBLE) configuration",
+        "id": "F7",
+        "p": 0.6
+      },
+      {
+        "event": "FARE has an ELIGIBLE configuration",
+        "id": "F8",
+        "p": 0.15
+      },
+      {
+        "event": "FAGTB two-task service valid (binary + MC adaptation)",
+        "id": "F9",
+        "p": 0.75
+      },
+      {
+        "event": "FAGTB has an ELIGIBLE configuration",
+        "id": "F10",
+        "p": 0.4
+      },
+      {
+        "event": "SUBGROUP decision = SUBGROUP_QUALIFIED (all four guards PASS)",
+        "id": "F11",
+        "p": 0.3
+      },
+      {
+        "event": "SUBGROUP decision = ESTABLISHED_SUBGROUP_HARM",
+        "id": "F12",
+        "p": 0.15
+      },
+      {
+        "event": "All three shuffled-label null AUCs on DEV_REPORT lie in [0.47, 0.53]",
+        "id": "F13",
+        "p": 0.9
+      },
+      {
+        "event": "All three planted-bit control AUCs on DEV_REPORT exceed 0.95",
+        "id": "F14",
+        "p": 0.95
+      }
+    ],
+    "registered": "before any ACS label value is read (committed with the SCIENCE_LOCK)",
+    "schema": "ACSR1-forecasts-v1"
+  },
+  "inference": {
+    "K_primary": 40,
+    "alpha_family_one_sided": 0.025,
+    "alpha_per_clause_one_sided": 0.008333333333333333,
+    "bootstrap_B": 2048,
+    "bootstrap_seed": 2026101603,
+    "claim_rules": {
+      "COMPETITIVE_COMPARISON": "SUPERIOR_TO_ALL_ELIGIBLE (coalition recovery only) iff the comparison is complete, LOCAL_TREE meets the same utility requirements (the baselines' eligibility rule: 24-clause MODEL_SELECT point feasibility on both seeds; plus the DEV_REPORT 24-clause point gate of RECIPE_EFFECT), at least one required baseline is ELIGIBLE, and coalition benefit vs every ELIGIBLE required baseline (NEURAL_RAW, FAGTB two-task, FARE) has one-sided alpha/3 lower bound > 0 on both seeds; INCOMPLETE if a required family is missing or invalid (never a win); LOCAL_TREE_FAILS_SAME_UTILITY_REQUIREMENTS if the LOCAL_TREE gate fails; the decision names the eligible set; ineligible baselines and recipient-level differences are descriptive. Nested (no extra alpha): MATERIALLY_SUPERIOR_TO_ALL_ELIGIBLE at margin 0.020.",
+      "RECIPE_EFFECT": "ESTABLISHED iff (IUT, one-sided alpha/3 per clause) coalition benefit vs TASK_REFIT has lower bound > 0.020 on both seeds AND each recipient worsening has upper bound <= 0.010 on both seeds, AND (point-feasibility gate; a deterministic condition on the estimates, no error control) all 24 LOCAL_TREE utility clauses pass at the point. Reported separately: the count of utility clauses whose one-sided alpha/3 upper bound <= cap, and the nested decision RECIPE_EFFECT_AND_UTILITY_BOUNDS (all 30 clauses at their bounds; same clause tests, no extra alpha). Conditional on the two fitted seed pairs and the frozen readers.",
+      "SUBGROUP_SUITABILITY": "SUBGROUP_QUALIFIED iff all four guards (occupation summed-Brier excess vs U0 within each SEX group, both seeds) have one-sided alpha/3 upper bound <= 0.005 (IUT); ESTABLISHED_SUBGROUP_HARM iff any guard has K = 40 simultaneous lower bound > 0.005; otherwise SUBGROUP_UNRESOLVED (crossing intervals are unresolved, never harm); NOT_ESTIMABLE if fewer than 200 DEV_REPORT households contain a member of a SEX group (counted from SEX alone, before any outcome is computed). All PASS/VIOLATION/SHORTFALL/HARM labels are read from the K = 40 simultaneous intervals; marginal alpha/3 bounds decide only the positive claim clauses."
+    },
+    "claims": [
+      "RECIPE_EFFECT",
+      "COMPETITIVE_COMPARISON",
+      "SUBGROUP_SUITABILITY"
+    ],
+    "design": "Open DEV_REPORT once (after the committed REPORTING_LOCK) and evaluate the frozen roster.\n\nInference (SCIENCE_LOCK 'inference'): one nonparametric household (cluster) bootstrap (B = 2048, seed 2026101603) over DEV_REPORT\nhouseholds, shared across every service, endpoint and both fitted seeds (paired). Every bound is Wald-type: point +/- t(G - 1) x\nbootstrap SE (G = DEV_REPORT households); this is not a studentized bootstrap-t.\nDecision family (positive direction only): three claims, each an intersection-union test (IUT) whose bound-based clauses are tested at\none-sided level alpha/3 (alpha = 0.025; Bonferroni across the three claims). Hence P(at least one of the three positive claim decisions is\nfalse) <= 0.025 ONE-SIDED (each claim <= 0.0083 one-sided), approximately (Wald clause tests), conditional on the fitted models and readers.\nRECIPE_EFFECT = 6 bound-based clauses plus a 24-clause utility POINT-feasibility gate (a deterministic condition on the estimates, with no\nerror control); its nested decision that also requires the 24 utility clauses to pass at their alpha/3 bounds shares the clause tests\nand needs no further alpha. COMPETITIVE_COMPARISON = coalition benefit > 0 vs every eligible required baseline, both seeds, gated by\nLOCAL_TREE meeting the same utility requirements. SUBGROUP_SUITABILITY = four guards. The IUT is NOT a simultaneous coverage statement:\nper-clause alpha/3 bounds are marginal and can neither establish violations, shortfalls or harm nor be counted after a failed conjunction.\nReporting family: two-sided 95% intervals over the frozen K = 40 primary roster (Bonferroni t), with approximate simultaneous coverage\nconditional on the fitted models and readers; every failing-direction label (ESTABLISHED_VIOLATION, ESTABLISHED_SHORTFALL,\nESTABLISHED_SUBGROUP_HARM) is read from these simultaneous intervals only.\nScope: the two seeds share people and are not independent samples; each seed is its own clause, so 'both seeds' is a two-fit\nreplication, not an estimate of between-fit variance. The household bootstrap treats DEV_REPORT households as a simple random sample\nfrom a household superpopulation (unweighted ACS-sample composition); it is not ACS survey-design variance (no strata, PUMA clustering\nor PWGTP1-80 replicate weights). PWGTP-weighted values are point summaries only.\nPre-registered sensitivity (reported, never decisive): one-sided percentile bounds from the same draws and bootstrap skewness per\nroster endpoint; every disagreement with the primary Wald decision is disclosed.",
+    "familywise": "decision family: one-sided FWER 0.025 over the three positive claim decisions (Bonferroni, alpha/3 = 0.0083 per claim; IUT within claims; Wald clause tests, approximate); reporting family: K = 40 two-sided simultaneous 95% intervals (approximate simultaneous coverage); the two families carry separate guarantees and are labelled separately",
+    "primary_roster": [
+      "RECIPE|coalition_benefit_vs_TASK_REFIT|s0 (benefit; margin 0.020)",
+      "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s0 (no-excess; cap 0.010)",
+      "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s0 (no-excess; cap 0.010)",
+      "RECIPE|utility|income|U0|accuracy_loss|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|U0|nll_excess|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|U0|brier_excess|s0 (no-excess; cap 0.005)",
+      "RECIPE|utility|income|Ucal|accuracy_loss|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|Ucal|nll_excess|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|Ucal|brier_excess|s0 (no-excess; cap 0.005)",
+      "RECIPE|utility|occupation|U0|accuracy_loss|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|U0|nll_excess|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|U0|brier_excess|s0 (no-excess; cap 0.005)",
+      "RECIPE|utility|occupation|Ucal|accuracy_loss|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|Ucal|nll_excess|s0 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|Ucal|brier_excess|s0 (no-excess; cap 0.005)",
+      "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s0 (benefit; superiority margin 0; material 0.020 reported)",
+      "COMPETITIVE|coalition_benefit_vs_FAGTB|s0 (benefit; superiority margin 0; material 0.020 reported)",
+      "COMPETITIVE|coalition_benefit_vs_FARE|s0 (benefit; superiority margin 0; material 0.020 reported)",
+      "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0 (no-excess; cap 0.005)",
+      "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0 (no-excess; cap 0.005)",
+      "RECIPE|coalition_benefit_vs_TASK_REFIT|s1 (benefit; margin 0.020)",
+      "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s1 (no-excess; cap 0.010)",
+      "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s1 (no-excess; cap 0.010)",
+      "RECIPE|utility|income|U0|accuracy_loss|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|U0|nll_excess|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|U0|brier_excess|s1 (no-excess; cap 0.005)",
+      "RECIPE|utility|income|Ucal|accuracy_loss|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|Ucal|nll_excess|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|income|Ucal|brier_excess|s1 (no-excess; cap 0.005)",
+      "RECIPE|utility|occupation|U0|accuracy_loss|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|U0|nll_excess|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|U0|brier_excess|s1 (no-excess; cap 0.005)",
+      "RECIPE|utility|occupation|Ucal|accuracy_loss|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|Ucal|nll_excess|s1 (no-excess; cap 0.01)",
+      "RECIPE|utility|occupation|Ucal|brier_excess|s1 (no-excess; cap 0.005)",
+      "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s1 (benefit; superiority margin 0; material 0.020 reported)",
+      "COMPETITIVE|coalition_benefit_vs_FAGTB|s1 (benefit; superiority margin 0; material 0.020 reported)",
+      "COMPETITIVE|coalition_benefit_vs_FARE|s1 (benefit; superiority margin 0; material 0.020 reported)",
+      "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1 (no-excess; cap 0.005)",
+      "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s1 (no-excess; cap 0.005)"
+    ],
+    "primary_roster_structured": [
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|coalition_benefit_vs_TASK_REFIT|s0",
+        "kind": "benefit",
+        "margin": 0.02
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|accuracy_loss|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|nll_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|brier_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|accuracy_loss|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|nll_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|brier_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|accuracy_loss|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|nll_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|brier_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|accuracy_loss|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|nll_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|brier_excess|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s0",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_FAGTB|s0",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_FARE|s0",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "SUBGROUP",
+        "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "SUBGROUP",
+        "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|coalition_benefit_vs_TASK_REFIT|s1",
+        "kind": "benefit",
+        "margin": 0.02
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|income_recipient_worsening_vs_TASK_REFIT|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|occupation_recipient_worsening_vs_TASK_REFIT|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|accuracy_loss|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|nll_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|U0|brier_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|accuracy_loss|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|nll_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|income|Ucal|brier_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|accuracy_loss|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|nll_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|U0|brier_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|accuracy_loss|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|nll_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.01
+      },
+      {
+        "claim": "RECIPE",
+        "key": "RECIPE|utility|occupation|Ucal|brier_excess|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s1",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_FAGTB|s1",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "COMPETITIVE",
+        "key": "COMPETITIVE|coalition_benefit_vs_FARE|s1",
+        "kind": "benefit",
+        "margin": 0.0
+      },
+      {
+        "claim": "SUBGROUP",
+        "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      },
+      {
+        "claim": "SUBGROUP",
+        "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s1",
+        "kind": "no_excess",
+        "margin": 0.005
+      }
+    ],
+    "scope": "all intervals and decisions are conditional on the two fitted seed pairs and the frozen readers, in the unweighted DEV_REPORT household superpopulation; they do not quantify between-fit (training) variance or uncertainty about the recipe effect over refits",
+    "sealed_assessment": "remains closed; a favourable DEV_REPORT does not authorise opening it",
+    "sensitivity": "pre-registered: one-sided percentile bounds from the same 2,048 draws and bootstrap skewness for every roster endpoint; the primary Wald bound governs and every disagreement is disclosed",
+    "separation": "the three conclusions are reported separately and never merged; an UNQUALIFIED recommendation requires SUBGROUP_QUALIFIED; under SUBGROUP_UNRESOLVED any recommendation must state that subgroup suitability is unresolved; under ESTABLISHED_SUBGROUP_HARM (simultaneous intervals) no recommendation for that group; crossing intervals are unresolved, never established harm",
+    "weighted_secondary": "PWGTP-weighted point summaries (ratio estimators) of AUCs and utility, targeting the person-weighted Florida 2019 household-resident cohort analogue for the same fitted models; no interval is attached to weighted values; the household-bootstrap intervals apply only to the unweighted primary estimands; ACS design-based variance (PWGTP1-80 replicate weights, successive-difference replication) is not computed"
+  },
+  "locked_utc": "2026-10-16T00:09:08+00:00",
+  "models": {
+    "FAGTB": {
+      "adversary_init": "official TF seed-7 value (-0.046945683658123016 for w and b), both seeds",
+      "binary": "FAGTB_BINARY faithful repaired port (income)",
+      "fixed": {
+        "adversary_lr": 0.01,
+        "learning_rate": 0.01,
+        "max_depth": 9,
+        "max_features": 20,
+        "n_estimators": 300
+      },
+      "known_caveats": [
+        "adversary step on the summed CE scales with n (0.01 * n on the mean loss)",
+        "at lam = 0 the score can move at most 3 logits from its initialisation (300 x 0.01)",
+        "free-running lam > 0 trajectories are not bitwise reproducible across implementations; report across seeds"
+      ],
+      "lambda": [
+        0.03,
+        0.06,
+        0.15
+      ],
+      "multiclass": "FAGTB_MC_ADAPTATION documented softmax extension (occupation), not official",
+      "schema": "ACSR1-fagtb-grid-v1",
+      "seed_pairing": "seed s sets every tree random_state to s (official: 0 for all trees = seed 0); registered deviation for seed 1",
+      "selection": "the common MODEL_SELECT rule (feasibility first, then the proxy); one lam applies to both recipients",
+      "source": "baselines/FAGTB_AUDIT.md (published-baseline role): notebook/paper values"
+    },
+    "FARE": {
+      "access": "tree on MODEL_FIT with task labels + SEX",
+      "head": "jcv.finalize.fit_head on one-hot cells, C by internal-fold log loss",
+      "official": "eth-sri/fare pinned commit via oar.fare_official (own Python 3.9 environment)",
+      "settings": [
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.3,
+          "id": 1,
+          "max_leaf_nodes": 100,
+          "min_samples_leaf": 100,
+          "name": "F1_task_first_k100_g0.3"
+        },
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.7,
+          "id": 2,
+          "max_leaf_nodes": 50,
+          "min_samples_leaf": 100,
+          "name": "F2_task_first_k50_g0.7"
+        },
+        {
+          "criterion": "fair_gini_dp",
+          "gamma": 0.85,
+          "id": 3,
+          "max_leaf_nodes": 20,
+          "min_samples_leaf": 100,
+          "name": "F3_balanced_k20_g0.85"
+        }
+      ],
+      "twins": "Z1-Z3 = gamma 0, same k-bar/n_i budget"
+    },
+    "JOINT_TREE": {
+      "arm": "J_TREE",
+      "checkpoint": "E20",
+      "rho": 1.0,
+      "status": "OPTIONAL diagnostic only if budget remains; exact local coefficients/initialisation/updates plus the pair term; no strength search, no nomination"
+    },
+    "LOCAL_TREE": {
+      "arm": "L_TREE",
+      "checkpoint": "E20",
+      "recipe": {
+        "arms": {
+          "J_TREE": {
+            "coefficient": "lambda_J",
+            "privacy": "joint",
+            "schedule": "simultaneous"
+          },
+          "L_STRONG": {
+            "coefficient": "lambda_L",
+            "privacy": "local",
+            "schedule": "simultaneous"
+          },
+          "L_TREE": {
+            "coefficient": "lambda_J",
+            "privacy": "local",
+            "schedule": "simultaneous"
+          },
+          "S12_TREE": {
+            "coefficient": "lambda_J",
+            "order": [
+              0,
+              1
+            ],
+            "privacy": "joint",
+            "schedule": "sequential"
+          },
+          "S21_TREE": {
+            "coefficient": "lambda_J",
+            "order": [
+              1,
+              0
+            ],
+            "privacy": "joint",
+            "schedule": "sequential"
+          },
+          "T_REFIT": {
+            "coefficient": null,
+            "privacy": null,
+            "schedule": "simultaneous"
+          }
+        },
+        "batch_size": 256,
+        "calibration": "FIT-only: at the exact teacher with warm critics, 16 fixed draws; lambda_J_r(rho) = rho * median||grad CE_r|| / median||grad joint_r||; lambda_L_r(rho) = rho * median||grad CE_r|| / median||grad local_r||",
+        "checkpoint_epochs": [
+          0,
+          2,
+          5,
+          10,
+          20
+        ],
+        "critic_input_normalization": "inherited DiagonalReference refreshed at every epoch start on a fixed 256-row UPDATE reference sample",
+        "critic_kinds": [
+          "linear",
+          "mlp32",
+          "mlp64"
+        ],
+        "critic_learning_rate": 0.003,
+        "critic_optimizer": "Adam",
+        "critic_rounds_per_recipient_update": 5,
+        "critic_views": [
+          "income(3)",
+          "occupation(6)",
+          "pair(9)"
+        ],
+        "epochs_per_active_recipient": 20,
+        "learning_rate": 0.01,
+        "no_sweeps": "no KL trust region, no decision-preservation constraint, no temperature/calibration, no critic-refresh or gradient controller",
+        "optimizer": "AdamW per recipient, lr 0.01, betas (0.9, 0.999), eps 1e-8, decoupled weight decay 0.01 (shrink toward the teacher)",
+        "parametrization": "delta[r,t,leaf] = theta_r[t,leaf]/T_r; theta_r = 0 at start (exact teacher)",
+        "privacy_pool": "MODEL_FIT rows with MODEL_FIT SEX (ACS-CHANGE: authorised access)",
+        "probe": "fixed 512-row MODEL_FIT probe (label-free SHA256 order) for privacy-movement counterfactuals",
+        "schema": "ACSR1-leaf-score-correction-recipe-v1 (transport of THP1-leaf-score-correction-recipe-v1)",
+        "sequential_rule": "first recipient trains 20 epochs while the other stays at its teacher; it is then frozen bitwise and the second trains 20 epochs with the joint objective restricted to it; critics continue",
+        "steps_per_epoch": 40,
+        "strength_ratios": [
+          1.0,
+          3.0,
+          10.0
+        ],
+        "task_pool": "MODEL_FIT (ACS-CHANGE: role name; capped at 20,000 people); uniform minibatches with replacement-free epoch order",
+        "warm_critic_rounds": 80,
+        "weight_decay": 0.01
+      },
+      "rho": 1.0,
+      "widths": [
+        3,
+        6,
+        9
+      ],
+      "zero_witness": "theta = 0 reproduces T_TREE probabilities <= 1e-12 and decisions exactly on every development role"
+    },
+    "NEURAL_RAW": {
+      "grid": {
+        "checkpoints": [
+          "E2",
+          "E5",
+          "E10",
+          "E20"
+        ],
+        "strengths": [
+          1.0,
+          3.0,
+          10.0
+        ]
+      },
+      "note": "start from the new U0; joint privacy objective; same critics/calibration/batches as LOCAL_TREE",
+      "recipe": {
+        "batch_size": 256,
+        "calibration": "FIT-only: at the exact teacher with warm critics, 16 fixed draws; lambda_J_r(rho) = rho * median||grad CE_r|| / median||grad joint_r||; lambda_L_r(rho) = rho * median||grad CE_r|| / median||grad local_r||",
+        "checkpoint_epochs": [
+          0,
+          2,
+          5,
+          10,
+          20
+        ],
+        "clip": 5.0,
+        "epochs": 20,
+        "learning_rate": 0.0001,
+        "nomination_checkpoints": [
+          2,
+          5,
+          10,
+          20
+        ],
+        "optimizer": "Adam per recipient network, lr 1e-4, betas (0.9, 0.999), eps 1e-8, no weight decay; clip_grad_norm 5 per recipient network (validated TCR1 continuation recipe)",
+        "privacy": "joint (RAW-J): risk(income) + risk(occupation) + risk(pair); identical online critics/schedule/references to the tree arms",
+        "rng": "same seed_for names as the tree arms, so task, privacy, critic and warm batches are identical row draws",
+        "schema": "ACSR1-neural-raw-recipe-v1 (transport of TC1-neural-rawj-recipe-v1)",
+        "start": "new ACS U0 (equally exposed neural task reference, MODEL_FIT, Recipe A)",
+        "steps_per_epoch": 40,
+        "strength_rationale": "identical nominal grid to the tree arms (not weaker); the source TCR1 RAW-J grid was {0.3, 1, 3} under its own objective, and 1 and 3 are shared",
+        "strength_ratios": [
+          1.0,
+          3.0,
+          10.0
+        ],
+        "task_only_continuation": "T_NEURAL: the identical loop, batches and checkpoints with lambda = 0"
+      }
+    },
+    "TASK_REFIT": {
+      "arm": "T_REFIT",
+      "checkpoint": "E20",
+      "note": "identical loop, privacy terms disabled, all 20 stages"
+    },
+    "T_TREE": {
+      "catboost_version": "1.2.8",
+      "classes": {
+        "income": 2,
+        "occupation": 5
+      },
+      "headroom_gate": "Teacher headroom on MODEL_SELECT (both seeds) and the pre-registered usefulness gate.\n\nMetrics per task and service (T_TREE, U0, Ucal): NLL, summed Brier, accuracy, gain over constant prediction\n(accuracy, NLL, Brier), balanced accuracy, per-class recall. Headroom = U0 minus T_TREE (positive = teacher better).\nGate (SCIENCE_LOCK): the benchmark is SUPPORTED and the teacher USEFUL iff, for both tasks and both seeds, T_TREE has\npositive NLL gain and positive accuracy gain over constant prediction on MODEL_SELECT and MODEL_FIT task-class support\npassed. A useful teacher continues through the fixed protected recipe even if headroom over U0 is small or negative;\notherwise the study closes as UNSUPPORTED after this honest diagnostic comparison.",
+      "loss": {
+        "income": "Logloss",
+        "occupation": "MultiClass"
+      },
+      "registry": {
+        "depth": [
+          4
+        ],
+        "l2_leaf_reg": 3.0,
+        "learning_rate": 0.05,
+        "max_trees": 800,
+        "task_type": "CPU",
+        "thread_count": 1
+      },
+      "rule": "internal fold early stopping: tree count = first argmin of internal loss + 1; refit on all MODEL_FIT with that count and seed; numpy teacher verified bitwise against CatBoost"
+    },
+    "U0": {
+      "note": "validated source per-task network with only input width and occupation output count changed; Recipe A on MODEL_FIT with a 15% household-disjoint internal fold, refit on all MODEL_FIT",
+      "spec": {
+        "architecture": "d-64-ReLU-64-ReLU-16-linear K (ACS-CHANGE: d = ACS input width)",
+        "batch_size": 512,
+        "calibration": null,
+        "learning_rate": 0.001,
+        "max_epochs": 30,
+        "min_delta_nll": 0.0001,
+        "patience": 5,
+        "validation_fraction": 0.15
+      }
+    },
+    "Ucal": {
+      "bound": [
+        0.05,
+        20.0
+      ],
+      "no_privacy_selection": true,
+      "no_sweep": true,
+      "rule": "one global positive temperature per task: T* = argmin_T mean NLL of softmax(centered U0 logits / T) on CALIBRATION",
+      "solver": "scipy.optimize.minimize_scalar(method=\"bounded\", bounds=(0.05, 20.0), options={\"xatol\": 1e-6, \"maxiter\": 500})"
+    }
+  },
+  "population": {
+    "admission_order": [
+      "Florida 2019",
+      "Pennsylvania 2019",
+      "Illinois 2019",
+      "Ohio 2019",
+      "Georgia 2019",
+      "North Carolina 2019"
+    ],
+    "admitted": "Florida 2019 1-Year",
+    "decision_record": "POPULATION_DECISION.json",
+    "decision_sha256": "88b434b15fb90b6c723e4446e69bc150b95487d17784375b0490bac8fd8470f8",
+    "excluded_by_rule": [
+      "CA 2016",
+      "CA 2017",
+      "CA 2018",
+      "NY 2018",
+      "TX 2018"
+    ],
+    "metadata_admission": {
+      "csv_member_sha256": "42f64f67a05f6614270c2ed7e286c024b4ecd9dbacc5ec9f049912341d9ef406",
+      "distinct_group_quarters_serials": 8202,
+      "distinct_housing_unit_serials": 86036,
+      "n_columns": 288,
+      "raw_person_records": 205294,
+      "zip_bytes": 36712920,
+      "zip_sha256": "754320fa6d56ea198ef8a11e6dde1f9bceb58d24c51c9637be415149b31642cb"
+    },
+    "provenance": {
+      "classification": [
+        "Florida 2019 1-Year: REVIEW_REQUIRED"
+      ],
+      "receipt_sha256": "c55f02e3dbfd1a0dbe95de1d56a2b0915ea0e57eb73b69a14b6abe3030dfa3b1",
+      "unknown_scope": [
+        "S3/GCS object listings (not queried: no paid cloud access)",
+        "deleted EC2 disks",
+        "other machines",
+        "archive tar members on the unmounted YOTUO drive (inventories searched instead)"
+      ],
+      "wording": "NO_USE_FOUND_IN_SEARCHED_RECORDS is bounded documented absence, not certified non-use or person-level independence"
+    }
+  },
+  "prohibitions": [
+    "no retuning of the Adult candidate",
+    "no change to LOCAL_TREE after any baseline result",
+    "no post-report rescue, replacement, threshold change or new nominee",
+    "SEALED_ASSESSMENT closed throughout (features, labels and predictions)",
+    "no merging of classes or population switch after weak support"
+  ],
+  "release_contract": "each recipient receives only its own probability vector and argmax decision; the coalition gets the aligned concatenation for the same person; no leaf ids, representations, teacher outputs, labels, raw features, ids, weights or flags",
+  "schema": "ACSR1-science-lock-v1",
+  "selection": {
+    "common_across_seeds": true,
+    "comparator_eligibility": "a tunable control is an ELIGIBLE strong comparator iff its frozen configuration came from the MODEL_SELECT-feasible set; a fallback is INELIGIBLE (descriptive only). FAGTB counts as a two-task baseline only if both FAGTB_BINARY (income) and FAGTB_MC_ADAPTATION (occupation) are valid; otherwise the competitive comparison is INCOMPLETE. A required family that cannot run makes it INCOMPLETE, never defeated.",
+    "rule": "Frozen MODEL_SELECT rule: one common configuration across both seeds for every tunable control.\n\nRule (SCIENCE_LOCK 'selection'): (1) task feasibility first: a configuration is FEASIBLE iff all 24 point utility\nclauses (2 tasks x {U0, Ucal} x {accuracy loss <= 0.010, NLL excess <= 0.010, summed Brier excess <= 0.005} x 2 seeds)\npass on MODEL_SELECT; (2) among feasible configurations, minimise the mean over seeds of the validation recovery proxy:\ncoalition AUC on MODEL_SELECT of a fixed OUT_LR reader (LogisticRegression C=1 on the released pair wire, finite\nscaler) trained on the MODEL_FIT pair wire with MODEL_FIT SEX; ties by the fixed grid order; (3) if no configuration\nis feasible, freeze one diagnostic fallback minimising the maximum normalised clause value (value / cap) over all 24\nclauses, ties by grid order; the fallback is INELIGIBLE (descriptive only). LOCAL_TREE (rho1 E20), TASK_REFIT (E20),\nT_TREE and the references are fixed and reported, never selected. No DEV_REPORT, ATTACK or SEALED label is read."
+  },
+  "source_publications": {
+    "frozen_tree_completion": "8975a23d3d57cbab8c3e7fb27c723d8c4dc827ad",
+    "source_recipe": "L_TREE rho=1 E20 (task_headroom/leafcorr.py arm L_TREE), transported in acs_replication/leafcorr.py with marked ACS-CHANGE lines only",
+    "task_headroom": "c8ae518190100decf39e605f191747d0f10723e2"
+  },
+  "statistical_review_prelock": {
+    "file": "STATISTICAL_REVIEW_PRELOCK.md",
+    "recommended_adopted": [
+      "Rc1 alpha = 0.025 one-sided family",
+      "Rc3 percentile/skewness sensitivity (primary governs, disagreements disclosed)",
+      "Rc5 reader-slate AUC matrix for LOCAL_TREE and TASK_REFIT (descriptive)",
+      "Rc6 in_primary_family labels",
+      "Rc7 structured roster + roster-size assertion",
+      "Rc9 nested material superiority + descriptive per-recipient differences",
+      "Rc10 LOCAL_TREE minus TASK_REFIT utility (descriptive)",
+      "Rc11 DEV_REPORT row-alignment checks",
+      "Rc13 unused per-person store removed"
+    ],
+    "recommended_not_adopted": [
+      "Rc2 Holm (Bonferroni kept)",
+      "Rc4 Monte Carlo flip flags (MC SD of the SE ~1.6% disclosed instead)",
+      "Rc8 domain degrees of freedom (negligible at expected size)",
+      "Rc12 label renames (decision_scope fields added instead)"
+    ],
+    "required_fixes": "R1-R6 all applied (report.py claims/endpoint/planning/docstring; lock rule strings, familywise, scope, weighted wording)",
+    "sha256": "778d81b3c37da8e542655b65403cb6ebf97d48ec5b4d9fba47c073f4af45c2f2"
+  },
+  "status": "SCIENCE_LOCKED"
+}

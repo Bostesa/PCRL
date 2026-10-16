@@ -1,0 +1,25 @@
+{
+  "schema": "ACSR1-backup-verification-v2",
+  "final": {
+    "snapshot": "SNAPSHOT_V2 at 2026-10-16T00:56:39Z: 743 private files, 405,693,958 bytes, plus a git archive of source commit bd4d9812a (source tar sha256 79acb408...3799)",
+    "same_device_restore": "RESTORE_V2: 743/743 sha256 match, source tar ok (unit CUSTODY_RESTORE_V2)",
+    "off_device_copy": "SNAPSHOT_V2 copied to an external drive (volume label YOTUO, the programme's existing private-backup drive) at PCRL_private_backups/pcrl_acs_protected_tree_replication_v1/SNAPSHOT_V2; 743/743 sha256 re-read on the drive match the manifest; manifest identical; source tar ok (unit CUSTODY_OFFDEVICE_COPY_V2, 2026-10-16T00:57:20Z)",
+    "restore_from_off_device_copy": "RESTORE_V2_FROM_DRIVE: restored from the drive copy alone into a fresh directory; 743/743 sha256 match, source tar ok (unit CUSTODY_RESTORE_FROM_DRIVE_V2)",
+    "restore_use_check_from_off_device_restore": "isolated interpreter (-I, no PYTHONPATH, code and private files only from the drive-restored copy): LOCAL_TREE_S0 redeploy max |p diff| = 0.0 for both tasks, decisions identical; restored LOCAL_TREE pair-winner reader (LOG_MLP) re-score max |diff| = 0.0; labels not used (unit CUSTODY_USE_CHECK_FROM_DRIVE_V2)",
+    "caveat": "the on-drive read-back happened immediately after writing, so some reads may have been served from the operating-system file cache rather than the physical drive; the drive was not unmounted because it is shared with other studies' backups. Cold re-verification after a remount: see cold_reverify_command",
+    "cold_reverify_command": "cd /Volumes/YOTUO/PCRL_private_backups/pcrl_acs_protected_tree_replication_v1/SNAPSHOT_V2 && python3 -c \"import json,hashlib;m=json.load(open('SNAPSHOT_MANIFEST.json'));bad=[k for k,v in m['manifest'].items() if hashlib.sha256(open('private/'+k,'rb').read()).hexdigest()!=v['sha256']];print('mismatches',len(bad))\""
+  },
+  "locations": {
+    "same_device": "~/PCRL_eval_cache_private/acsr_v1/{backups,restore_tests}",
+    "off_device": "external drive YOTUO: PCRL_private_backups/pcrl_acs_protected_tree_replication_v1/SNAPSHOT_V2"
+  },
+  "earlier": {
+    "snapshot_v1": "SNAPSHOT_V1 (736 files, 405,687,312 bytes; source commit be3270e77)",
+    "restore_v1": "RESTORE_V1: 736/736 sha256 match, source tar ok",
+    "restore_use_check_v1": "from the restored copy alone (cwd = restored code, no worktree on the path): LOCAL_TREE_S0 redeploy max |p diff| = 0.0, decisions identical; restored LOCAL_TREE pair-winner reader (LOG_MLP) re-score max |diff| = 0.0; labels not used",
+    "note": "V1 (after deployment, source be3270e77) was same-device only because no writable external drive was mounted then; the drive was mounted at about 2026-10-16T00:30Z and V2 supersedes V1"
+  },
+  "contents": "private campaign root: raw official ACS zip copy, role exports (including DEV_REPORT truth), fitted weights and deployment packages, per-person predictions and reader scores, receipts, queue ledger and access log",
+  "excluded_from_snapshot": "pylib (pip-installable pinned CatBoost/openpyxl) and vendor (FAGTB clone + TensorFlow parity venv; reproducible from the pinned commit)",
+  "sealed_assessment": "no sealed export, label file, prediction or other sealed-derived value exists in any backup; the backups do contain the official raw ACS zip copy, which, like the public Census file, holds every household's raw record, sealed households included"
+}

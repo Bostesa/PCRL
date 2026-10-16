@@ -1,0 +1,26 @@
+{
+  "adversary_init": "official TF seed-7 value (-0.046945683658123016 for w and b), both seeds",
+  "binary": "FAGTB_BINARY faithful repaired port (income)",
+  "fixed": {
+    "adversary_lr": 0.01,
+    "learning_rate": 0.01,
+    "max_depth": 9,
+    "max_features": 20,
+    "n_estimators": 300
+  },
+  "known_caveats": [
+    "adversary step on the summed CE scales with n (0.01 * n on the mean loss)",
+    "at lam = 0 the score can move at most 3 logits from its initialisation (300 x 0.01)",
+    "free-running lam > 0 trajectories are not bitwise reproducible across implementations; report across seeds"
+  ],
+  "lambda": [
+    0.03,
+    0.06,
+    0.15
+  ],
+  "multiclass": "FAGTB_MC_ADAPTATION documented softmax extension (occupation), not official",
+  "schema": "ACSR1-fagtb-grid-v1",
+  "seed_pairing": "seed s sets every tree random_state to s (official: 0 for all trees = seed 0); registered deviation for seed 1",
+  "selection": "the common MODEL_SELECT rule (feasibility first, then the proxy); one lam applies to both recipients",
+  "source": "baselines/FAGTB_AUDIT.md (published-baseline role): notebook/paper values"
+}
