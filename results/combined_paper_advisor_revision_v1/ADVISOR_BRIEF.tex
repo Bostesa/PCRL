@@ -34,15 +34,18 @@ the attribute, which models a recipient that knows the attribute for some of the
 and population match are assumptions. A stronger attacker alone does not justify more access. Inputs held by the
 recipient, published parameters, repeated queries and insiders are distinct threat models, not necessarily breaches;
 they are untested, not dismissed. The paper now has a table that states, for each experiment, what the recipient
-receives, the labelled sample, how attackers are fitted, selected and scored, what they know about the defense, how
-releases are linked and what is untested.
+receives, the labelled sample (5{,}388 to 7{,}571 labelled rows for fitting and 2{,}082 to 2{,}239 for selection,
+depending on dataset and experiment), how attackers are fitted, selected and scored, what they know about the defense, how releases are linked
+and what is untested. It also reports two facts the earlier draft omitted: the noise scale and FARE's configuration
+were selected against our own attacker slate on its validation rows, and two exploratory attackers that know the noise
+scale recovered more from the noisy features than the slate did (Adult 0.563, HMDA 0.575, against 0.528 and 0.513).
 
 \section*{3. What the results establish}
 \begin{itemize}
 \item \textbf{Scope, not failure.} Official LEACE meets its linear bound on every map, while nonlinear attackers recover
 the attribute about as well as from untreated features (AUC 0.817 and 0.863 against 0.815 and 0.870).
-\item \textbf{A method's own test failing.} The encoders' stored linear check fails on 12 of 42 attribute--seed
-combinations.
+\item \textbf{A method's own test failing.} The encoders' stored linear check fails on 11 of 42 attribute--seed
+combinations (the earlier manuscript said 12; the committed table and the source's own list give 11).
 \item \textbf{Other surfaces.} Releasing the untreated model's output beside defended features restores recovery to
 0.76--0.79, and outputs reveal more than the true label alone would.
 \item \textbf{Utility changes the reading.} With useful heads, FARE's score recovers 0.539 against 0.774 untreated, but a

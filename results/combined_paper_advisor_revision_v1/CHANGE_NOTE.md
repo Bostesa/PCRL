@@ -64,10 +64,28 @@ model and access", replaces the single paragraph and adds:
 
 ## Numbers
 
-No number was added to or removed from the scientific record. A token-level comparison of the two `main.tex` files finds
-no new scientific value. The only values absent from the revision are the abstract's loose AUC ranges and the
-attacker-unit count, which was dropped together with the word "unit". The role sizes in Table 3 come from committed
-metadata (see `CLAIM_SOURCE_CHECK.md`).
+The numeric record is unchanged, apart from one correction and the reporting of existing values.
+
+- **Corrected: "12 of 42" becomes "11 of 42"** (abstract-level claim, introduction, Section 6.1, Table 1,
+  Discussion).
+  - In the committed native-check table (`results/combined_matched_removal_benchmark_v1/NATIVE_AND_HELDOUT_CHECKS.csv`,
+    `70f978ffc`), 11 of the 42 historical rows read "above tau (historical check fails)" and 31 read "passes". There is
+    no borderline value: the largest passing value is 0.0438 and the smallest failing value is 0.0546.
+  - The source decision file (`RESEARCH_DECISION.md` §1) says "12 of 42", but its own itemized list names 11
+    combinations. The manuscript and the earlier claim ledger inherited the "12". The historical files are left
+    unchanged; this note and `CLAIM_SOURCE_CHECK.md` record the correction.
+- **Reported from Experiment 1's committed record** (`RECOVERY.csv`, `70f978ffc`): the exploratory Gaussian
+  likelihood-ratio attackers on the noise treatment.
+  - Adult: 0.546 and 0.563, against 0.528 for the slate.
+  - HMDA: 0.526 and 0.575, against 0.513.
+  - These attackers know the noise scale; one also uses clean auxiliary representations. They were omitted from the
+    admitted manuscript, which said that no attacker used defense knowledge beyond refitting.
+- **Reported from committed metadata:** the labelled-sample sizes per experiment (Table 3), the FARE certification
+  sizes, and the selection rules for σ\* and FARE's configuration.
+- **Replaced and removed values.** The abstract's loose AUC ranges (0.81–0.86 / 0.82–0.87) are replaced by Table 1's
+  exact values. The count of attacker units is dropped together with the word "unit".
+- **Check.** A token-level comparison of the two `main.tex` files found no other new or missing scientific value (see
+  `CLAIM_SOURCE_CHECK.md`).
 
 ## Not changed
 

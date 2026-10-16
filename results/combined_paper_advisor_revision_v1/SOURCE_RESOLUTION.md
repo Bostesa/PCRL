@@ -54,7 +54,9 @@ unavailable `PCRL_Combined_Empirical_Revised` version.
 
 - **Numbers.** The numeric record is that of the admitted manuscript: four stored-model experiments, the last of which
   (the useful-head comparison) was locked at `a0de44953` with results at `90253ed39` and `5150f42e8`, all 2026-10-03.
-  No number was added or changed.
+  - One value was corrected against its committed source: the native-check count, 12 → 11 of 42.
+  - Exploratory values that Experiment 1 had already computed, and committed metadata, are now reported.
+  - No new statistic was computed (`CHANGE_NOTE.md`, "Numbers").
 - **Later work.** The later census (ACS) studies, the rejected mechanism proposals and the other negative method results
   are not added to the paper.
 - **Later corrections.** These are used only where they repair a claim the paper makes:
