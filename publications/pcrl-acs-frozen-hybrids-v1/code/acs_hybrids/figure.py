@@ -26,7 +26,7 @@ STYLE = {'H_LJ': dict(marker='*', s=260, c='#d62728', label='H_LJ (preselected p
 
 def main(results, out):
     res = json.loads(Path(results).read_text())
-    fig, axes = plt.subplots(1, 2, figsize=(12.5, 5.2), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(12.5, 6.0), sharey=True)
     for ax, task in zip(axes, C.TASKS):
         for svc, st in STYLE.items():
             for s in C.SEEDS:
@@ -34,7 +34,7 @@ def main(results, out):
                 x = max(u['point'] / u['cap'] for k, u in v['utility'].items() if k.startswith(task))
                 r = v['recovery']['pair']; lo, hi = r['marginal95']
                 ax.errorbar([x], [r['auc']], yerr=[[r['auc'] - lo], [hi - r['auc']]], fmt='none', ecolor=st['c'], alpha=0.5, lw=1)
-                ax.scatter([x], [r['auc']], label=st['label'] if s == 0 else None, edgecolors='black' if s == 1 else 'none', linewidths=1.2,
+                ax.scatter([x], [r['auc']], label=st['label'] if (s == 0 and task == 'income') else None, edgecolors=('black' if s == 1 and st['marker'] != 'x' else 'none'), linewidths=1.2,
                            **{k: val for k, val in st.items() if k != 'label'})
         ax.axvline(1.0, color='black', ls='--', lw=1)
         ax.text(1.0, ax.get_ylim()[0], '  cap', va='bottom', fontsize=9)
@@ -42,9 +42,9 @@ def main(results, out):
         ax.set_title(f'Coalition recovery vs {task} utility')
         ax.grid(alpha=0.3)
     axes[0].set_ylabel('coalition (pair) SEX-recovery AUC, DEV_REPORT (lower = reveals less)')
-    axes[1].legend(fontsize=8, loc='upper right')
+    fig.legend(loc='lower center', ncol=4, fontsize=8, frameon=False)
     fig.suptitle('ACS frozen hybrids (exploratory development follow-up; already-exposed people). Filled: seed 0; black edge: seed 1. Bars: unadjusted 95%.', fontsize=10)
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.1, 1, 0.95))
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=150)
 

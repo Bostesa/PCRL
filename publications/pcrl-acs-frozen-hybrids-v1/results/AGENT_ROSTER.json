@@ -1,0 +1,29 @@
+{
+  "schema": "ACSH1-agent-roster-v1",
+  "roles": [
+    {
+      "role": "lead / implementation",
+      "agent": "main session",
+      "scope": "admission, bank, readers, locks, report, deployment, custody, documents, publication"
+    },
+    {
+      "role": "statistics reviewer (readers/statistics)",
+      "agent": "subagent",
+      "scope": "pre-lock review of the protocol: fixed K = 38 / 22 rosters, decision rules, controls, critical values; opened no data",
+      "output": "STATISTICAL_REVIEW_PRELOCK.md"
+    },
+    {
+      "role": "independent verifier",
+      "agent": "subagent",
+      "scope": "separate metric and inference code; fixed refit sample of winning pair readers; checks V1-V10",
+      "output": "independent/, INDEPENDENT_VERIFICATION.json"
+    },
+    {
+      "role": "claims reviewer",
+      "agent": "subagent",
+      "scope": "read-only check of every figure and claim in the closeout documents",
+      "output": "CLAIMS_REVIEW.md"
+    }
+  ],
+  "note": "four roles, as the handoff suggests; at most two heavy numerical jobs ran at once (shared queue)"
+}

@@ -100,12 +100,48 @@ def restore_check(snapshot_dir, restore_dir):
     return out
 
 
+def offdevice(snapshot_dir, dest_dir, restore_dir):
+    """Write the snapshot as ONE uncompressed tar on the external drive (exFAT cannot store '|' in file names, which the
+    marginal reader ids use), read it back from the drive, extract it into a fresh local directory, verify every file
+    against the snapshot manifest and run restore_check (re-deploy H_LJ, re-score winning pair readers) from that copy."""
+    import tarfile, hashlib
+    snap, dest = Path(snapshot_dir), Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+    tar_path = dest / f'{snap.name}.tar'
+    if tar_path.exists():
+        raise PermissionError('off-device archive exists (versioned, never overwritten)')
+    with tarfile.open(tar_path, 'w', format=tarfile.PAX_FORMAT) as tf:
+        tf.add(snap, arcname=snap.name)
+    h = hashlib.sha256()
+    with open(tar_path, 'rb') as f:
+        for b in iter(lambda: f.read(1 << 20), b''):
+            h.update(b)
+    tar_sha = h.hexdigest()
+    (dest / f'{snap.name}.tar.sha256').write_text(f'{tar_sha}  {tar_path.name}\n')
+    extracted = Path(restore_dir + '_EXTRACTED')
+    if extracted.exists():
+        raise PermissionError('extraction directory must be fresh')
+    extracted.mkdir(parents=True)
+    with tarfile.open(tar_path, 'r') as tf:
+        tf.extractall(extracted, filter='data')
+    copy = extracted / snap.name
+    man = json.loads((copy / 'SNAPSHOT_MANIFEST.json').read_text())
+    bad = [m['path'] for m in man if C.sha(copy / m['path']) != m['sha256']]
+    use = restore_check(copy, restore_dir)
+    return {'archive': str(tar_path), 'archive_sha256': tar_sha, 'archive_bytes': tar_path.stat().st_size, 'files_in_manifest': len(man),
+            'hash_mismatches_after_extraction_from_drive': len(bad), 'restore_and_use_from_drive_copy': use,
+            'pass': bool(not bad and use['pass']),
+            'caveat': 'read back immediately after writing; reads may have been served from the OS file cache (not a cold-media check)'}
+
+
 def main():
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest='cmd', required=True)
     a1 = sub.add_parser('snapshot'); a1.add_argument('--name', required=True)
     a2 = sub.add_parser('restore-check'); a2.add_argument('--snapshot', required=True); a2.add_argument('--restore', required=True)
+    a3 = sub.add_parser('offdevice'); a3.add_argument('--snapshot', required=True); a3.add_argument('--dest', required=True); a3.add_argument('--restore', required=True)
     a = ap.parse_args()
-    print(json.dumps(snapshot(a.name) if a.cmd == 'snapshot' else restore_check(a.snapshot, a.restore), indent=1))
+    res = snapshot(a.name) if a.cmd == 'snapshot' else restore_check(a.snapshot, a.restore) if a.cmd == 'restore-check' else offdevice(a.snapshot, a.dest, a.restore)
+    print(json.dumps(res, indent=1, default=str))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,112 @@
+{
+  "schema": "ACSH1-backup-verification-v1",
+  "same_device": {
+    "status": "VERIFIED",
+    "snapshot": "~/PCRL_eval_cache_private/acsh_v1/backups/SNAPSHOT_V2",
+    "files": 352,
+    "bytes": 212739376,
+    "manifest_sha256": "8305ff2f2f90da3c1cdfc1c220581df81c6f2d1e5eb522fed065a124b2216ce3",
+    "contents": "restored source artifacts, frozen bank, reader models and scores, H_LJ deployment packages, admission detail, access log, queue ledger, results folder, campaign code",
+    "restore_from_backup_alone": {
+      "status": "PASS",
+      "files_restored": 352,
+      "hash_mismatches": 0,
+      "H_LJ_package_parity": {
+        "S0": {
+          "income": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          },
+          "occupation": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          }
+        },
+        "S1": {
+          "income": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          },
+          "occupation": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          }
+        }
+      },
+      "winning_pair_readers_rescored_bitwise": {
+        "S0": {
+          "H_LJ|pair|OUT_MLP": true,
+          "H_LL|pair|LOG_MLP": true,
+          "NEURAL_RAW|pair|LOG_MLP": true,
+          "TASK_REFIT|pair|LOG_MLP": true
+        },
+        "S1": {
+          "H_LJ|pair|OUT_MLP": true,
+          "H_LL|pair|LOG_MLP": true,
+          "NEURAL_RAW|pair|LOG_MLP": true,
+          "TASK_REFIT|pair|OUT_MLP": true
+        }
+      }
+    },
+    "earlier_snapshot": {
+      "name": "SNAPSHOT_V1",
+      "files": 329,
+      "manifest_sha256": "7358d8a1e0d95370343ecad5c5cf08003debc26ff18836e4872342911710a5a7",
+      "restore": "PASS"
+    }
+  },
+  "off_device": {
+    "status": "COPIED_AND_USED_WARM",
+    "drive": "YOTUO (external USB, exFAT)",
+    "archive": "/Volumes/YOTUO/PCRL_private_backups/pcrl_acs_frozen_hybrids_v1/SNAPSHOT_V2.tar",
+    "format_note": "one uncompressed PAX tar, because exFAT cannot store the \"|\" character used in 140 marginal-reader file names",
+    "archive_sha256": "21cb284e44860a06705eb80658f017e7d927e24a6c0881d251cd28e11456ed27",
+    "archive_bytes": 213524480,
+    "read_back_and_extracted_from_drive": {
+      "files": 352,
+      "hash_mismatches": 0
+    },
+    "restore_and_use_from_drive_copy": {
+      "pass": true,
+      "H_LJ_package_parity": {
+        "S0": {
+          "income": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          },
+          "occupation": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          }
+        },
+        "S1": {
+          "income": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          },
+          "occupation": {
+            "max_abs_prob_diff": 0.0,
+            "decisions_identical": true
+          }
+        }
+      },
+      "winning_pair_readers_rescored_bitwise": {
+        "S0": {
+          "H_LJ|pair|OUT_MLP": true,
+          "H_LL|pair|LOG_MLP": true,
+          "NEURAL_RAW|pair|LOG_MLP": true,
+          "TASK_REFIT|pair|LOG_MLP": true
+        },
+        "S1": {
+          "H_LJ|pair|OUT_MLP": true,
+          "H_LL|pair|LOG_MLP": true,
+          "NEURAL_RAW|pair|LOG_MLP": true,
+          "TASK_REFIT|pair|OUT_MLP": true
+        }
+      }
+    },
+    "caveat": "read back immediately after writing; reads may have been served from the OS file cache (not a cold-media check)",
+    "cold_recheck_after_remount": "shasum -a 256 /Volumes/YOTUO/PCRL_private_backups/pcrl_acs_frozen_hybrids_v1/SNAPSHOT_V2.tar   # must print 21cb284e44860a06705eb80658f017e7d927e24a6c0881d251cd28e11456ed27"
+  },
+  "not_backed_up_here": "the source study's private artifacts have their own backups (source BACKUP_VERIFICATION); the frozen source files used here are inside this snapshot under private/source"
+}

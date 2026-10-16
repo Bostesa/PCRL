@@ -1,0 +1,526 @@
+{
+  "campaign": "pcrl_acs_frozen_hybrids_v1",
+  "concerns": [
+    "C1 (disclosed, verified benign) acs_hybrids/report.py no longer matches the sha256 pinned in ANALYSIS_LOCK.code_sha256 (d415bb93... at lock -> 3dbd1fef... now). This is engineering amendment E1 in LOCK_NOTES. git diff 88c86cf57 HEAD -- acs_hybrids/report.py shows only the HALT_ON_SOURCE_REPRODUCTION constant and its guard; no rule, roster, threshold or real-run behaviour changed. The other 14 pinned code files match their lock hashes.",
+    "C2 (cosmetic) ANALYSIS_LOCK.settled_before_readers clause bounds were computed with the rounded clause critical value 2.3950 (reproduced to 0.0) rather than the exact t quantile 2.394999068 used by the report; the recorded U1 values differ from the exact-t values by up to 3.8e-9. No clause decision changes (the nearest U1 is 2.0e-4 from its margin).",
+    "C3 (robustness, not triggered) Claim B rule 1 (INCOMPLETE) is implemented in acs_hybrids/report.py by testing finiteness of the NEURAL_RAW pair AUC, not presence/finiteness of the score arrays; a missing score array would raise instead of returning INCOMPLETE. Both seeds' NEURAL_RAW pair winner scores are present and finite (verified), so the decision is unaffected.",
+    "C4 (closed) The STAGE_B (LOCAL/JOINT/TASK_REFIT) and NEURAL_RAW source output files carry no row ids, so V2's row-id equality alone cannot prove their content order. Closed by the V2 supplement: all 144 bank arrays recomputed from the frozen models on the admitted export features: 128 bitwise; the 16 U0 reference arrays differ by <= 4.4e-16 with identical decisions (the same pattern as the campaign admission record, 96/112 bitwise). TASK_REFIT and NEURAL_RAW (the claim A and claim B comparators) are bitwise in every role and seed.",
+    "C5 (informational) The inherited source results folder has one file not in the published commit f4ea199: PUBLICATION_RECORD.json, a post-publication record. All 52 published files are byte-identical.",
+    "C6 (verifier wording correction) The service-independence note in V7_household_bootstrap.json says '~1-5 percent'; the measured relative SE changes under the alternative seed 2026101604 were 0.83 percent (coalition benefit s0) and 2.65 percent (occupation Brier excess s0). The SE reproduction itself is exact to 4.3e-19, so a service- or seed-specific matrix would have been detected.",
+    "C7 (verifier process) Two verifier units failed before producing any result and were superseded under new ids: VERIFY_TRUTH_SYNTH_REHEARSAL_V1 (verifier KeyError; synthetic labels, no truth read) and VERIFY_V10_DEPLOY_V1 (syntax error; no data read). Both remain in the ledger. The single real truth re-read was VERIFY_TRUTH_V1.",
+    "C8 (scope) Every check replays or recomputes the same frozen artifacts and stored scores. Agreement establishes computational and rule-application correctness, not external validity; error rates stay nominal because H_LJ was fixed after its components' DEV_REPORT results were public, as the campaign states. Only 17 of the 250 reader fits were refit from scratch (5 declared pair winners + 12 controls); the other 233 saved models were replayed.",
+    "C9 (informational) During verification another session had uncommitted edits to acs_hybrids/custody.py and results/.../LOCK_NOTES.md (appended rows). Neither file is an input to any verifier check, and the verifier modified no existing file."
+  ],
+  "dev_report_truth_reread_events": [
+    {
+      "purpose": "independent verification: V3 utility, V4 subgroups, V7 household bootstrap, V8 endpoints, V9 decisions (verifier own metric and inference code; single re-read)",
+      "unit_id": "VERIFY_TRUTH_V1",
+      "utc": "2026-10-16T03:16:46+00:00"
+    }
+  ],
+  "dev_report_truth_rereads_by_verifier": 1,
+  "extractor_run": false,
+  "fail_count": 0,
+  "files": {
+    "V1": {
+      "file": "independent/V1_source_identities.json",
+      "sha256": "ebaecbff4598ade35c584e0dc2e7bda658545cc362e50f9f43b8dd04b0ce0ec4"
+    },
+    "V10": {
+      "file": "independent/V10_deployment.json",
+      "sha256": "a0cbace81e6b608340d760e874f5ae99f9aa11b1f87fa2795f0ed5dd219c757f"
+    },
+    "V2": {
+      "file": "independent/V2_row_pairing_and_inheritance.json",
+      "sha256": "8de1a6b06d10ed2cdb9b36e2dac0a67fe284ff0d2c591e7c134b6ebe4aa9efcd"
+    },
+    "V2_supplement": {
+      "file": "independent/V2b_comparator_row_alignment_recompute.json",
+      "sha256": "a1284c2cd9c25062c01e3bd3d69807a10e6362ace998a74d4ff7d06db805a092"
+    },
+    "V3": {
+      "file": "independent/V3_utility.json",
+      "sha256": "c14a4855e23cebe195151fe298c2e9043675c216528cfc6612885f5725787ee2"
+    },
+    "V4": {
+      "file": "independent/V4_subgroups.json",
+      "sha256": "a078c3dfb9ff9bd434a4dc1a67edfcb21b7cd88735ee7a0c29c3c05dbe7b6ff1"
+    },
+    "V5": {
+      "file": "independent/V5_reader_selection.json",
+      "sha256": "af1b5c7fc156870dc2ef6b3802bba262c37186455c9e37b4ea6612971bbd5048"
+    },
+    "V6": {
+      "file": "independent/V6_refit_sample.json",
+      "sha256": "c95e64619595392e1e893f072f7460b5019a83c3d9c317161827b6e40295dcea"
+    },
+    "V7": {
+      "file": "independent/V7_household_bootstrap.json",
+      "sha256": "622401bc729ff209e9d852b9ed13dacbd0ded38cad522fedb0a64bb2b140e535"
+    },
+    "V8": {
+      "file": "independent/V8_endpoints_and_multiplicity.json",
+      "sha256": "d088c7c3dd12504d68f25cd4f019223b084d0addaa452cd2a0247f6c85ac164e"
+    },
+    "V8_supplement": {
+      "file": "independent/V8b_multiplicity_labels.json",
+      "sha256": "378b8ed38ba05921498c9215f1c9644470e081317dc76f9ffdd06721df43958b"
+    },
+    "V9": {
+      "file": "independent/V9_decisions_and_labels.json",
+      "sha256": "8440de224ed1a21fef92950f12db7d4deaabc1122a9f83f7108dbabbf8cd6c02"
+    }
+  },
+  "key_numbers": {
+    "V1": {
+      "extra_inherited": [
+        "PUBLICATION_RECORD.json"
+      ],
+      "pins_checked": 59,
+      "published_docs_identical": "52/52",
+      "restored_files_pinned_and_matching": "39/40"
+    },
+    "V10": {
+      "S0": {
+        "isolation": {
+          "income": {
+            "files_in_own_component_package": [
+              "LOCAL_TREE__E20.npz",
+              "PACKAGE.json",
+              "TREE_TEACHER_income.json"
+            ],
+            "other_component_deleted_equals_full": true,
+            "other_recipient_release_after_deletion": "refused (FileNotFoundError)",
+            "own_component_only_package_equals_full": true,
+            "unused_checkpoint_half_zeroed_equals_full": true
+          },
+          "occupation": {
+            "files_in_own_component_package": [
+              "JOINT_TREE__E20.npz",
+              "PACKAGE.json",
+              "TREE_TEACHER_occupation.json"
+            ],
+            "other_component_deleted_equals_full": true,
+            "other_recipient_release_after_deletion": "refused (FileNotFoundError)",
+            "own_component_only_package_equals_full": true,
+            "unused_checkpoint_half_zeroed_equals_full": true
+          }
+        },
+        "parity": {
+          "income": true,
+          "occupation": true
+        }
+      },
+      "S1": {
+        "isolation": {
+          "income": {
+            "files_in_own_component_package": [
+              "LOCAL_TREE__E20.npz",
+              "PACKAGE.json",
+              "TREE_TEACHER_income.json"
+            ],
+            "other_component_deleted_equals_full": true,
+            "other_recipient_release_after_deletion": "refused (FileNotFoundError)",
+            "own_component_only_package_equals_full": true,
+            "unused_checkpoint_half_zeroed_equals_full": true
+          },
+          "occupation": {
+            "files_in_own_component_package": [
+              "JOINT_TREE__E20.npz",
+              "PACKAGE.json",
+              "TREE_TEACHER_occupation.json"
+            ],
+            "other_component_deleted_equals_full": true,
+            "other_recipient_release_after_deletion": "refused (FileNotFoundError)",
+            "own_component_only_package_equals_full": true,
+            "unused_checkpoint_half_zeroed_equals_full": true
+          }
+        },
+        "parity": {
+          "income": true,
+          "occupation": true
+        }
+      }
+    },
+    "V2": {
+      "S0": {
+        "bitwise_identity": "72/72",
+        "complete_wires": {
+          "H_JJ_equals_JOINT_TREE_complete_wire": true,
+          "H_LL_equals_LOCAL_TREE_complete_wire": true
+        },
+        "other_seed_equal": 0
+      },
+      "S1": {
+        "bitwise_identity": "72/72",
+        "complete_wires": {
+          "H_JJ_equals_JOINT_TREE_complete_wire": true,
+          "H_LL_equals_LOCAL_TREE_complete_wire": true
+        },
+        "other_seed_equal": 0
+      }
+    },
+    "V2_supplement": {
+      "S0": {
+        "NEURAL_RAW_bitwise": "8/8",
+        "TASK_REFIT_bitwise": "8/8",
+        "all_decisions_equal": true,
+        "arrays_recomputed": 72,
+        "bitwise": 64,
+        "max_abs_diff": 4.440892098500626e-16
+      },
+      "S1": {
+        "NEURAL_RAW_bitwise": "8/8",
+        "TASK_REFIT_bitwise": "8/8",
+        "all_decisions_equal": true,
+        "arrays_recomputed": 72,
+        "bitwise": 64,
+        "max_abs_diff": 4.440892098500626e-16
+      }
+    },
+    "V3": {
+      "H_LJ_model_select_point_feasible_24": true,
+      "H_LJ_points_passing": "24/24",
+      "campaign_vs_source_points_exact": "168/168",
+      "campaign_vs_source_se_bitwise": "168/168",
+      "vs_campaign_compared": 504,
+      "vs_campaign_max_abs_diff": 4.336808689942018e-19
+    },
+    "V4": {
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s0": {
+        "K38_status": "UNRESOLVED",
+        "U1": 0.008103068552321489,
+        "point": 0.0032351391822744388,
+        "se": 0.002032539150050385
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex0|s1": {
+        "K38_status": "UNRESOLVED",
+        "U1": 0.008673701650662006,
+        "point": 0.003951156240584314,
+        "se": 0.0019718360116184027
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s0": {
+        "K38_status": "UNRESOLVED",
+        "U1": 0.0041057618692220636,
+        "point": -0.0008681991526847388,
+        "se": 0.0020768112557377726
+      },
+      "SUBGROUP|H_LJ|occupation_brier_excess_vs_U0|sex1|s1": {
+        "K38_status": "PASS",
+        "U1": 0.0027548030832153935,
+        "point": -0.0022752920962886623,
+        "se": 0.00210024932648579
+      },
+      "households_per_sex": {
+        "0": 2815,
+        "1": 2728
+      }
+    },
+    "V5": {
+      "S0": {
+        "av_auc_max_abs_diff": 0.0,
+        "dev_report_replay_bitwise": "119/119",
+        "fit_counts": 125,
+        "winner_disagreements": []
+      },
+      "S1": {
+        "av_auc_max_abs_diff": 0.0,
+        "dev_report_replay_bitwise": "119/119",
+        "fit_counts": 125,
+        "winner_disagreements": []
+      }
+    },
+    "V6": {
+      "H_LJ|s0": {
+        "bitwise": true,
+        "max_abs_diff": 0.0,
+        "reader_id": "PAIR__H_LJ__OUT_MLP"
+      },
+      "H_LJ|s1": {
+        "bitwise": true,
+        "max_abs_diff": 0.0,
+        "reader_id": "PAIR__H_LJ__OUT_MLP"
+      },
+      "H_LL|s0": {
+        "bitwise": true,
+        "max_abs_diff": 0.0,
+        "reader_id": "PAIR__H_LL__LOG_MLP"
+      },
+      "NEURAL_RAW|s1": {
+        "bitwise": true,
+        "max_abs_diff": 0.0,
+        "reader_id": "PAIR__NEURAL_RAW__LOG_MLP"
+      },
+      "TASK_REFIT|s0": {
+        "bitwise": true,
+        "max_abs_diff": 0.0,
+        "reader_id": "PAIR__TASK_REFIT__LOG_MLP"
+      }
+    },
+    "V7": {
+      "B": 2048,
+      "G": 3955,
+      "campaign_ses_reproduced": "298/298",
+      "matrix_equals_group_weights_bitwise": true,
+      "se_max_abs_diff": 4.336808689942018e-19
+    },
+    "V8": {
+      "claim_endpoints": {
+        "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s0": {
+          "L": -0.017785663878904394,
+          "L1": -0.013598464989877466,
+          "U": 0.015053603633519756,
+          "U1": 0.010866404744492828,
+          "clause_pass": false,
+          "point": -0.0013660301226923188,
+          "se": 0.005107490449836763,
+          "status": "UNRESOLVED"
+        },
+        "COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s1": {
+          "L": -0.02107580641454224,
+          "L1": -0.017001104003084334,
+          "U": 0.010881176301051263,
+          "U1": 0.006806473889593359,
+          "clause_pass": false,
+          "point": -0.005097315056745488,
+          "se": 0.004970268717587593,
+          "status": "UNRESOLVED"
+        },
+        "INCREMENT|H_LJ_over_H_LL|coalition_gain|s0": {
+          "L": 0.0064520229747316304,
+          "U": 0.024270113466918042,
+          "point": 0.015361068220824836,
+          "se": 0.0027712471658735663,
+          "status": {
+            "0.0": "ESTABLISHED",
+            "0.02": "UNRESOLVED"
+          }
+        },
+        "INCREMENT|H_LJ_over_H_LL|coalition_gain|s1": {
+          "L": -0.0039010748969826817,
+          "U": 0.016129055862534124,
+          "point": 0.006113990482775722,
+          "se": 0.0031152857329874634,
+          "status": {
+            "0.0": "UNRESOLVED",
+            "0.02": "ESTABLISHED_SHORTFALL"
+          }
+        },
+        "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s0": {
+          "L": 0.007851002126593343,
+          "L1": 0.01155525864997226,
+          "U": 0.036902660318581415,
+          "U1": 0.033198403795202495,
+          "clause_pass": false,
+          "point": 0.02237683122258738,
+          "se": 0.004518403667541113,
+          "status": "UNRESOLVED"
+        },
+        "RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s1": {
+          "L": 0.011031629193495965,
+          "L1": 0.01423918823792386,
+          "U": 0.03618779977758348,
+          "U1": 0.032980240733155586,
+          "clause_pass": false,
+          "point": 0.023609714485539723,
+          "se": 0.003912538577910774,
+          "status": "UNRESOLVED"
+        }
+      },
+      "critical_values": {
+        "clause_one_sided_alpha_over_3": 2.395,
+        "df": 3954,
+        "marginal_95": 1.9606,
+        "primary_K38": 3.2148,
+        "secondary_K22": 3.0541,
+        "source_K40_reference": 3.2295
+      },
+      "distance_failures": 0,
+      "distance_rows_compared": 542,
+      "endpoint_fields_compared": 980,
+      "endpoint_max_abs_diff": 1.2906342661267445e-15
+    },
+    "V8_supplement": {
+      "endpoints_with_source_K40_status": 36,
+      "label_failures": [],
+      "settled_clause_bounds": {
+        "clause_decisions_identical": true,
+        "max_abs_diff_vs_exact_t": 3.806794266966729e-09,
+        "max_abs_diff_vs_rounded_2.3950": 0.0,
+        "min_distance_of_any_U1_from_its_margin": 0.00019774899881565017,
+        "n": 30
+      }
+    },
+    "V9": {
+      "claim_A": "RECIPE_BENEFIT_NOT_ESTABLISHED",
+      "claim_B": "NOT_SUPERIOR_TO_ELIGIBLE_NEURAL_CONTROL",
+      "claim_B_nested": "NOT_ESTABLISHED",
+      "claim_C": "SUBGROUP_UNRESOLVED",
+      "confidence_status": {
+        "clause_bounds_passing_of_24": 15,
+        "counts": {
+          "ESTABLISHED_VIOLATION": 0,
+          "PASS": 10,
+          "UNRESOLVED": 14
+        },
+        "status": "CONFIDENCE_UNRESOLVED",
+        "violation_keys": []
+      },
+      "controls_valid": true,
+      "overall": "H_LJ_FIXED_COMPOSITION_NOT_SUPPORTED",
+      "unmet": [
+        "coalition benefit clause RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s0",
+        "coalition benefit clause RECIPE|H_LJ|coalition_benefit_vs_TASK_REFIT|s1",
+        "COMPETITIVE benefit clause COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s0",
+        "COMPETITIVE benefit clause COMPETITIVE|H_LJ|coalition_benefit_vs_NEURAL_RAW|s1"
+      ]
+    }
+  },
+  "other_count": 0,
+  "pass_count": 10,
+  "per_check": {
+    "V1": {
+      "name": "V1 Source identities",
+      "status": "PASS"
+    },
+    "V10": {
+      "name": "V10 Deployment",
+      "status": "PASS"
+    },
+    "V2": {
+      "name": "V2 Within-seed row pairing and wire inheritance",
+      "status": "PASS",
+      "status_main_file": "PASS",
+      "supplement": {
+        "file": "V2b_comparator_row_alignment_recompute.json",
+        "status": "PASS"
+      }
+    },
+    "V3": {
+      "name": "V3 Utility",
+      "status": "PASS"
+    },
+    "V4": {
+      "name": "V4 Subgroups",
+      "status": "PASS"
+    },
+    "V5": {
+      "name": "V5 Reader selection",
+      "status": "PASS"
+    },
+    "V6": {
+      "name": "V6 Fixed refit sample",
+      "status": "PASS"
+    },
+    "V7": {
+      "name": "V7 Household resampling",
+      "status": "PASS"
+    },
+    "V8": {
+      "name": "V8 Endpoints and multiplicity",
+      "status": "PASS",
+      "status_main_file": "PASS",
+      "supplement": {
+        "file": "V8b_multiplicity_labels.json",
+        "status": "PASS"
+      }
+    },
+    "V9": {
+      "name": "V9 Decisions and labels",
+      "status": "PASS"
+    }
+  },
+  "raw_census_file_read": false,
+  "refit_vs_replay_scope": {
+    "not_refit": "of the 250 campaign reader fits, 17 were refit from scratch (5 declared pair winners + all 12 controls, which were never saved); the other 233 saved models were replayed, not refit",
+    "refits_from_scratch": [
+      "V6: the 5 declared pair winners (H_LJ s0, H_LJ s1, H_LL s0, TASK_REFIT s0, NEURAL_RAW s1) via fit_reader on ATTACK_FIT",
+      "V9 support: the 12 control readers (2 seeds x 3 views x {shuffled null, planted leak}) for Stage-1 ATTACK_VALIDATION AUCs"
+    ],
+    "replays_of_saved_models_or_stored_scores": [
+      "V5: all 238 saved reader models (119 per seed) re-applied to ATTACK_VALIDATION (AUC, orientation, winners) and DEV_REPORT (scores)",
+      "V5: campaign stored DEV_REPORT scores vs restored source scores on 105 shared wires per seed",
+      "V8/V9: every DEV_REPORT AUC, SE and endpoint recomputed from the stored winner scores and control scores",
+      "V10: H_LJ packages released from raw permitted fields",
+      "V1/V2: hash and array identity replays"
+    ]
+  },
+  "role": "independent verifier (own metric, AUC, bootstrap, endpoint, critical-value and decision code)",
+  "schema": "ACSH1-independent-verification-v1",
+  "sealed_assessment_touched": false,
+  "verifier_cpu_s_total": 48.451,
+  "verifier_queue_units": [
+    {
+      "cpu_s": 0.646,
+      "status": "done",
+      "unit_id": "VERIFY_V2_BANK_V1",
+      "wall_s": 1.033
+    },
+    {
+      "cpu_s": 0.903,
+      "status": "done",
+      "unit_id": "VERIFY_V1_SOURCES_V1",
+      "wall_s": 1.544
+    },
+    {
+      "cpu_s": 2.253,
+      "status": "done",
+      "unit_id": "VERIFY_V9_CONTROL_REFITS_V1",
+      "wall_s": 3.066
+    },
+    {
+      "cpu_s": 4.549,
+      "status": "done",
+      "unit_id": "VERIFY_V5_READERS_V1",
+      "wall_s": 5.103
+    },
+    {
+      "cpu_s": 4.286,
+      "status": "done",
+      "unit_id": "VERIFY_V6_REFIT_V1",
+      "wall_s": 5.114
+    },
+    {
+      "cpu_s": 5.921,
+      "status": "failed",
+      "unit_id": "VERIFY_TRUTH_SYNTH_REHEARSAL_V1",
+      "wall_s": 6.639
+    },
+    {
+      "cpu_s": 6.567,
+      "status": "done",
+      "unit_id": "VERIFY_TRUTH_SYNTH_REHEARSAL_V2",
+      "wall_s": 7.12
+    },
+    {
+      "cpu_s": 0.021,
+      "status": "failed",
+      "unit_id": "VERIFY_V10_DEPLOY_V1",
+      "wall_s": 0.52
+    },
+    {
+      "cpu_s": 6.491,
+      "status": "done",
+      "unit_id": "VERIFY_TRUTH_V1",
+      "wall_s": 7.129
+    },
+    {
+      "cpu_s": 6.856,
+      "status": "done",
+      "unit_id": "VERIFY_V10_DEPLOY_V2",
+      "wall_s": 7.111
+    },
+    {
+      "cpu_s": 9.466,
+      "status": "done",
+      "unit_id": "VERIFY_V2B_RECOMPUTE_V1",
+      "wall_s": 10.238
+    },
+    {
+      "cpu_s": 0.492,
+      "status": "done",
+      "unit_id": "VERIFY_V8B_MULTIPLICITY_V1",
+      "wall_s": 1.04
+    }
+  ]
+}
