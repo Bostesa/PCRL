@@ -101,5 +101,53 @@
    "output": "roles/math_verifier/ and mechanism_design_independent/"
   }
  ],
- "independence": "Designers were launched in parallel with the identical brief (roles/coordinator/DESIGNER_BRIEF.md); launch messages differed by one sentence (disclosed in DECISION_LOG.md). Each designer reported never opening the other's directory; both proposals were hashed and logged before any reveal. The verifier wrote separate code and did not import the coordinator's prototype modules."
+ "independence": "Designers were launched in parallel with the identical brief (roles/coordinator/DESIGNER_BRIEF.md); launch messages differed by one sentence (disclosed in DECISION_LOG.md). Each designer reported never opening the other's directory; both proposals were hashed and logged before any reveal. The verifier wrote separate code and did not import the coordinator's prototype modules.",
+ "correction_pass_2026_10_16": {
+  "note": "Correction and interpretation pass (no new method experiment). Four roles were filled (the brief asked for about four): coordinator/editor, mathematical reviewer, adversary reviewer and independent verifier. The coordinator was the main session; the other three were separate agents with distinct files and responsibilities. Durations are from the agents' completion notices (wall-clock LLM time, not local CPU). Local numerical work ran through the correction queue (RESOURCE_INVENTORY.json, section correction_pass_2026_10_16).",
+  "agents": [
+   {
+    "role": "coordinator and editor",
+    "who": "main session",
+    "work": "worktree and queue; pre-registered exact checks and their code; CORRECTIONS.md; corrected START_HERE, ADVISOR_BRIEF, METHOD_SPECIFICATION, PILOT_PROTOCOL_DRAFT, ADVERSARY_AND_MOTIVATION; dated notes in DECISION_LOG, SELECTION_DECISION, PROTOTYPE_REPORT; handoff; custody; publication"
+   },
+   {
+    "role": "mathematical reviewer",
+    "agent_type": "general-purpose",
+    "duration_s": 1528,
+    "tool_uses": 56,
+    "output": "roles/correction_v1/math_reviewer/MATH_REVIEW.md",
+    "numerical_jobs": 0
+   },
+   {
+    "role": "adversary reviewer",
+    "agent_type": "general-purpose",
+    "duration_s": 784,
+    "tool_uses": 46,
+    "output": "roles/correction_v1/adversary_reviewer/ADVERSARY_REVIEW.md and MANUSCRIPT_ADVERSARY_PATCH_v2.diff",
+    "numerical_jobs": 0
+   },
+   {
+    "role": "independent verifier",
+    "agent_type": "general-purpose",
+    "phases": [
+     {
+      "phase": "1: independent recomputation of the pre-registered exact checks and assessment of the mathematical statements",
+      "duration_s": 1009,
+      "tool_uses": 25,
+      "queue_unit": "V_CORR_EXACT_CHECKS_V1"
+     },
+     {
+      "phase": "2: consistency, numerical quotations, line citations and status derivation across the corrected summaries",
+      "duration_s": 1032,
+      "tool_uses": 57,
+      "status": "done (2 MUST-FIX, 15 SHOULD-FIX, 21 MINOR; addressed in the commit after 717b566d8)",
+      "helpers": "three read-only helper forks of the verifier did the mechanical parts (patch and citation check, numerical quotations, phrase scan); the verifier checked their key claims itself",
+      "numerical_jobs": "none (only a lookup of 28 stored values in V_RCCS_MAP_V1.json)"
+     }
+    ],
+    "output": "roles/correction_v1/verifier/ and mechanism_design_independent/correction_v1/"
+   }
+  ],
+  "independence": "The verifier re-entered the laws from the committed pre-registration and opened the coordinator's check code and results only after writing its own; it did not read the mathematical reviewer's file before its own assessment. The three role agents were launched in parallel with separate briefs and wrote only in their own directories."
+ }
 }

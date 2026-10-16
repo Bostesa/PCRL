@@ -370,5 +370,92 @@
    "started_utc": "2026-10-16T06:26:01+00:00",
    "ended_utc": "2026-10-16T06:26:02+00:00"
   }
- ]
+ ],
+ "correction_pass_2026_10_16": {
+  "schema": "MD1-resource-inventory-correction-v1",
+  "campaign_start_utc": "2026-10-16T12:36:49+00:00",
+  "inventory_utc": "2026-10-16T13:37:12+00:00",
+  "elapsed_h_at_inventory": 1.007,
+  "limits": {
+   "cpu_h": 2.0,
+   "elapsed_h": 2,
+   "slots": 2,
+   "rss_gib": 2.0,
+   "threads_per_job": 1,
+   "cloud_usd": 0
+  },
+  "units_done": 5,
+  "units_failed": 0,
+  "failed_units": [],
+  "queue_cpu_s": 5.052,
+  "allowance_charges": [
+   {
+    "label": "CORR_AGENT_AND_COORDINATOR_SHELL_ALLOWANCE",
+    "cpu_s": 360.0,
+    "note": "Allowance (estimate, deliberately generous) for local shell work outside the queue: the three role agents' reads, greps, git show/apply, the adversary reviewer's scratch LaTeX build, the verifier's phase-2 helper forks, and the coordinator's scans, edits, builds and git operations. Agent LLM time is not local CPU.",
+    "utc": "2026-10-16T13:37:12+00:00"
+   }
+  ],
+  "charged_cpu_h_total": 0.1014,
+  "peak_unit_rss_mib": 37.6,
+  "cloud_spend_usd": 0,
+  "units": [
+   {
+    "unit_id": "CORR_EXACT_CHECKS_V1",
+    "stage": "coordinator_checks",
+    "status": "done",
+    "returncode": 0,
+    "wall_s": 0.527,
+    "charged_cpu_s": 0.062,
+    "sampled_peak_rss_mib": 13.6,
+    "started_utc": "2026-10-16T12:47:21+00:00",
+    "ended_utc": "2026-10-16T12:47:21+00:00"
+   },
+   {
+    "unit_id": "V_CORR_EXACT_CHECKS_V1",
+    "stage": "verify",
+    "status": "done",
+    "returncode": 0,
+    "wall_s": 2.581,
+    "charged_cpu_s": 2.342,
+    "sampled_peak_rss_mib": 16.7,
+    "started_utc": "2026-10-16T12:58:20+00:00",
+    "ended_utc": "2026-10-16T12:58:23+00:00"
+   },
+   {
+    "unit_id": "CORR_CUSTODY_SNAPSHOT_V1",
+    "stage": "custody",
+    "status": "done",
+    "returncode": 0,
+    "wall_s": 0.525,
+    "charged_cpu_s": 0.072,
+    "sampled_peak_rss_mib": 10.8,
+    "started_utc": "2026-10-16T13:36:40+00:00",
+    "ended_utc": "2026-10-16T13:36:40+00:00"
+   },
+   {
+    "unit_id": "CORR_RESTORE_CHECK_V1",
+    "stage": "custody",
+    "status": "done",
+    "returncode": 0,
+    "wall_s": 2.569,
+    "charged_cpu_s": 2.458,
+    "sampled_peak_rss_mib": 37.6,
+    "started_utc": "2026-10-16T13:36:50+00:00",
+    "ended_utc": "2026-10-16T13:36:53+00:00"
+   },
+   {
+    "unit_id": "CORR_OFFDEVICE_V1",
+    "stage": "custody",
+    "status": "done",
+    "returncode": 0,
+    "wall_s": 3.599,
+    "charged_cpu_s": 0.118,
+    "sampled_peak_rss_mib": 18.1,
+    "started_utc": "2026-10-16T13:37:00+00:00",
+    "ended_utc": "2026-10-16T13:37:03+00:00"
+   }
+  ],
+  "note": "Correction pass only (separate ledger under .private/mechanism_design/correction_v1/compute). The campaign figures above are unchanged. Agent (LLM) time is not local CPU; agent shell work is covered by the allowance entry."
+ }
 }

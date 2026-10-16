@@ -125,3 +125,15 @@ Source: `../roles/math_verifier/PROTOTYPE_VERIFICATION.md` and `.json`. The veri
 **Updated verdict.** MMP's genuine removal is confirmed only where it merges inputs: pure-proxy fields, or SEX directions outside the span of the within-SEX task effects. Without such structure its effect on coalition recovery has no definite sign, and it can increase recovery. Its utility price, and in particular the within-SEX burden, can exceed the guards.
 
 **MMP is not ready for a real-data pilot.** The verifier agrees and states the reason more strongly than the coordinator did.
+
+## Correction note (added 2026-10-16 in the correction pass; numbers, checks and verdict unchanged)
+
+See `../CORRECTIONS.md` rows 8 and 10.
+
+- **The verdict's sentence about trees.** "Fitted SEX-aware CatBoost releases are essentially injective, so they do not merge cells. The synthetic pilot rehearsal found 797–798 distinct release pairs for 799 distinct inputs." This is **unsupported**.
+  - Those counts come from 800 invented MODEL_SELECT rows, compared bitwise. MMP had 1–2 collisions per seed and the twin none.
+  - They describe that synthetic sample only. Population injectivity of any real model is unknown.
+  - The failure of the learnability leg (check (a)) and the verifier's probe P7 do not depend on this sentence.
+- **"The leg a real-data benefit would need"** is **conditional**. A real-data benefit would need either merging structure in the Florida fields (inputs with different SEX posteriors merged by the release) or a learnability effect. Which applies, if either, is unknown.
+- **"With no pure proxy, deleting Δ changed nothing a reader learns"** is correct for L_CONT_NOPROXY, whose release is one-to-one in three fields by construction. It is not a general statement about laws without pure proxies (P7).
+- **The "Updated verdict"** above already states removal through merging of SEX directions outside the span of the within-SEX task effects. That stands. Its next sentence, "Without such structure its effect … has no definite sign", should read "without pure-proxy fields": the probe's releases do merge through dimension reduction, and the sign was still indeterminate (`../CORRECTIONS.md` row 21).

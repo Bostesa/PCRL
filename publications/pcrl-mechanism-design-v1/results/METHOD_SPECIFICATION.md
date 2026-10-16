@@ -1,11 +1,20 @@
 # Method specification: SEX-mixture marginalisation (MMP)
 
+> **Corrected on 2026-10-16 (see `CORRECTIONS.md`, rows 8, 10–12 and 19, and §4).** Rewritten passages:
+> - the classification note on the adjustment formula;
+> - §2's "counterfactual law" and the meaning of the SEX-switched evaluations;
+> - §3's "only pure proxies / essentially injective";
+> - §4's assumptions and scope;
+> - §9's "injective in practice", its probe wording and its verdict;
+> - §10's "exactly known price" and subgroup wording.
+> No number changed. The original text is at public commit `e141330`.
+
 **Status.** MMP was selected for a data-free prototype, conditionally (`SELECTION_DECISION.md`). **Its pre-registered prototype partly contradicted its rationale (§9), so it is not described as ready for a real-data pilot.** The pilot is prepared and rehearsed on synthetic stand-ins, but not run and not recommended as a competitive test (`PILOT_PROTOCOL_DRAFT.md`).
 
 **Origin.** Designer 1, `roles/designer_1/PROPOSAL.md` (sha256 `2b7273ae…ff368`). Corrections from the mathematical verifier and the prior-work reviewer are applied here.
 
 **Classification.** MMP is an **established technique applied to a new endpoint**:
-- fit with the sensitive attribute, then release the prediction averaged over that attribute with fixed population weights (Žliobaitė & Custers 2016; Žliobaitė 2017; Pearl's adjustment formula, 1995);
+- fit with the sensitive attribute, then release the prediction averaged over that attribute with fixed population weights (Žliobaitė & Custers 2016; Žliobaitė 2017). The release has the same algebraic form as Pearl's adjustment formula (1995), but no causal or interventional reading is claimed. That reading would require a causal graph in which SEX meets the back-door condition, plus positivity;
 - the new endpoint is linked-coalition SEX inference from released task outputs under per-task utility caps.
 
 No new algorithmic ingredient is claimed, and no novelty or priority is claimed. MMP is also not "fair" in any technical sense. It is a disparate learning process in the sense of Lipton et al., and it is not counterfactually fair.
@@ -24,8 +33,10 @@ The release contract is the primary one. Each recipient i receives R_i = (m̂_i(
 
 m_i(x) = (1 − w) q_i^0(x) + w q_i^1(x), with the fixed weight w = π̄ (registered).
 
-- **Population view.** m_i is the Bayes posterior under the counterfactual law P̃(x, s, y) = P(x) P(s) P(y | x, s), in which the fields carry no information about SEX. Equivalently, it minimises any proper task loss under P̃.
+- **Population view.** m_i is the Bayes posterior under the hypothetical product law P̃(x, s, y) = P(x) P(s) P(y | x, s), in which the fields carry no information about SEX. Equivalently, it minimises any proper task loss under P̃. P̃ is a mathematical construct built from observational conditionals; it is not a causal counterfactual.
 - **Fitted version.** q̂_i^s are SEX-aware CatBoost teachers fitted on MODEL_FIT with SEX as an extra input. At release they are evaluated with the SEX slot set to 0 and to 1, then mixed in probability space.
+  - These are evaluations of a fitted conditional model with its SEX input switched. They estimate P(Y | x, S = s); they are not predictions of what a given person's outcome would have been under another SEX.
+  - In sex-atypical cells the evaluation for the rarer SEX is an extrapolation.
 - **Utility-only variant (reported, not nominated).** The Brier-optimal constant weight is w\* = E[π‖g_i‖²] / E[‖g_i‖²], where g_i = q_i^1 − q_i^0. Any constant w removes the inferred-SEX term equally; w\* only lowers the Brier price.
 
 ## 3. What is removed, and what is not
@@ -35,19 +46,32 @@ The decomposition η_i = m_i + Δ_i is exact, with **Δ_i = (π(x) − π̄)(q_i
 **What MMP keeps:**
 - the within-SEX task effects q_i^s(x) of every field. Fields such as hours, schooling and class of worker predict SEX and also predict the tasks within each SEX, so their SEX information remains in m. Linked recipients can still triangulate it.
 
-**Where the removal is a population (Bayes) reduction:**
-- only along directions where q_i^s(x) is constant, i.e. pure SEX proxies. There, cells merge and AUC*(S; V) falls to the SEX information of the task-relevant fields.
+**Where the removal is a population (Bayes) reduction (corrected):**
+- MMP lowers AUC\*(S; V) only where its release merges inputs that differ in SEX posterior. That happens along input directions on which both q_i^0 and q_i^1 are constant (pure SEX-proxy fields are one case), and wherever the mixture itself coincides for different pairs of components. Even then, the residual AUC\* equals the AUC\* of the task-relevant fields if the release is one-to-one in them, and in general exactly when it keeps P(S | task-relevant fields).
+- More generally, such directions are the input directions on which q⁰ and q¹ are constant. For the linear-index laws of the probe, these are the orthogonal complement of the span of the within-SEX task effects. On a continuum of inputs they exist whenever the inputs have more dimensions than the task-relevant part, even if every field matters for the tasks. On the discrete ACS support, dimension counting proves nothing either way. The verifier's probe P7 showed this (`roles/math_verifier/PROTOTYPE_VERIFICATION.md` §3).
 
-**Where it is only a learnability reduction:**
-- everywhere else. With fitted continuous teachers, m̂ is essentially injective on the populated inputs, so its Bayes recovery equals AUC*(S; X), exactly as for the neural control and the trees. Any real-data benefit is therefore a reduction in what readers fitted on finite auxiliary data can learn, not a population guarantee.
+**Where it changes only what readers learn, or acts in either direction:**
+- Where m̂ keeps P(S | X) (for example, where it is one-to-one on the population support), its Bayes recovery equals AUC\*(S; X), and any benefit is a learnability effect.
+- Whether the fitted SEX-aware trees keep P(S | X) on the real support is **unknown**. The original text said they are "essentially injective", which nothing establishes (`CORRECTIONS.md` rows 1 and 8).
+- Where neither the twin nor MMP keeps P(S | X), MMP's population effect can go either way (P7, as twin − MMP: +0.033 in one draw, −0.018 and −0.019 in two).
 
 **It can backfire (verifier M10).** When the SEX-blind posterior pools two cells because the π-term cancels a within-SEX difference, m separates those cells, and recovery *rises*. So the premise gate F1 is essential.
 
 ## 4. Utility price: exact forms
 
-For any release f that is a function of X:
+For any release f that is a function of X, under the known population law, with expectations over the same law that defines η:
 - Brier(f) − Brier(η) = E‖f − η‖²;
-- NLL(f) − NLL(η) = E KL(η ‖ f).
+- NLL(f) − NLL(η) = E KL(η ‖ f), which needs f_y > 0 wherever η_y > 0 (true for m when 0 < π̄ < 1).
+
+Against any other predictor r of X, Brier(f) − Brier(r) = E‖f − η‖² − E‖r − η‖².
+
+**Scope (corrected).** The forms below are exact under a known law, relative to η. For fitted models on real data the cost is **not known in advance**:
+- q^s and π are estimated;
+- the rarer SEX's component is extrapolated in sex-atypical cells;
+- NLL is clipped at 1e−12;
+- the binding references are the fitted U0 and Ucal, not η.
+
+Finite-sample uncertainty is a separate matter (gate F3, clause bounds).
 
 For MMP these give:
 - **summed Brier price:** E[(π − π̄)² ‖q^1 − q^0‖²], an exact identity;
@@ -140,7 +164,7 @@ Unit `COORD_PROTOTYPE_MMP_V1` was pre-registered in `prototype/PROTOTYPE_PREREGI
 - L_CONT_PROXY: fitted pair 0.779 → 0.723. This is the Bayes merge; the price exceeds the strict caps but sits within cap + headroom.
 - The expected limits all appeared: L_NEG (MMP infeasible), L_XOR (singles 1/2, pair unchanged at 0.85) and L_NOPROXY (no Bayes effect; a partial merge reaches 0.703 where MMP stays at 0.731).
 
-**Contradicted: the learnability leg.** In the continuous law without pure proxies, MMP's fitted pair AUC equalled the twin's (0.7207 vs 0.7211, against the pre-registered ≥ 0.005 reduction), while MMP paid an occupation Brier price of 0.005. With readers near Bayes and an injective release, deleting Δ changes nothing a reader learns. Fitted SEX-aware trees are injective in practice, giving about 1.0 release pair per distinct input in the synthetic rehearsal. A real-data benefit would therefore have needed exactly this leg.
+**Contradicted: the learnability leg.** In the continuous law without pure proxies, MMP's fitted pair AUC equalled the twin's (MMP 0.7207, twin 0.7211, against the pre-registered ≥ 0.005 reduction), while MMP paid an occupation Brier price of 0.005. With readers near Bayes and a release that is one-to-one by construction, deleting Δ changes nothing a reader learns. *(Corrected 2026-10-16.)* The original text went on: "Fitted SEX-aware trees are injective in practice, giving about 1.0 release pair per distinct input in the synthetic rehearsal." That is unsupported. The rehearsal counts describe 800 invented rows only, and population injectivity of the real models is unknown. A real-data benefit would need either merging structure in the Florida fields or a learnability effect; which applies, if either, is unknown.
 
 **Also observed.**
 - The within-SEX burden fell on **men** in both continuous laws, against the constant-gap prediction for women; it fell on women in L_MIXED. The direction depends on the law.
@@ -149,12 +173,12 @@ Unit `COORD_PROTOTYPE_MMP_V1` was pre-registered in `prototype/PROTOTYPE_PREREGI
 **Independent verification** (`roles/math_verifier/PROTOTYPE_VERIFICATION.md`): every number reproduces and there is no bug. The verifier also found:
 - **The masking comparison was mis-specified (coordinator error).** The matched-price eraser was invertible, so deletion versus masking at matched price is untested.
 - **The subgroup expectation was mis-specified.** Men's within-SEX occupation increase was 2.2–2.6× the guard in the continuous laws.
-- **A registered post-hoc probe** (10 task-relevant fields, 3-dimensional release) showed **no definite sign**: MMP changed pair recovery by −0.033 in one draw and **+0.018 / +0.019** in two. The sign is set by whether field-mediated and direct SEX effects align.
+- **A probe registered before it ran, post-hoc relative to the prototype pre-registration** (10 task-relevant fields, 3-dimensional release) showed **no definite sign**: MMP changed pair recovery by −0.033 in one draw and **+0.018 / +0.019** in two. The sign is set by whether field-mediated and direct SEX effects align.
 
-**Verdict.** The rationale is contradicted where it matters for real data. Without merging structure, MMP's effect on coalition recovery is indeterminate in sign, and its subgroup price can exceed the guard. **MMP is not ready for a real-data pilot.**
+**Verdict** *(corrected 2026-10-16; the original read "The rationale is contradicted where it matters for real data")*. The rationale's learnability prediction failed in the pre-registered synthetic law, and the verifier's probe showed that MMP's effect can have either sign. Whether the Florida data have the merging structure in which MMP removes information is unknown. Without pure-proxy fields (as in P7), MMP's effect on coalition recovery is indeterminate in sign, and its subgroup price can exceed the guard. **MMP is not ready for a real-data pilot.**
 
 ## 10. Why MMP might beat the neural benchmark, and why it probably will not
 
-**Why it might.** The neural control starts from U0 and moves only slightly: its only feasible configuration is 80 updates at the smallest strength. U0 estimates the SEX-blind posterior η, which contains the inferred-SEX term Δ in full. Δ is the most direct route by which the six fields' SEX information enters both outputs, and the same latent π(x) appears in each. If Δ carries a large share of what fitted readers learn from the linked pair, MMP deletes it at an exactly known price, with no critic to fool.
+**Why it might.** The neural control starts from U0 and moves only slightly: its only feasible configuration is 80 updates at the smallest strength. U0 estimates the SEX-blind posterior η, which contains the inferred-SEX term Δ in full. Δ is the most direct route by which the six fields' SEX information enters both outputs, and the same latent π(x) appears in each. If Δ carries a large share of what fitted readers learn from the linked pair, MMP deletes it with no critic to fool. Its price is an exact formula under a known law; on real data the cost must be estimated (§4).
 
-**Why it probably will not.** Hours, schooling and class of worker predict SEX *and* the two tasks within each SEX, and MMP keeps those within-SEX effects. If most of the learnable coalition signal lives there, MMP cannot reach the roughly 0.606 pair AUC needed for the material margin, or even beat NEURAL_RAW. Its utility price, decision flips and women's subgroup cost all grow with the same gap that would make it effective. No published number gives Δ's share, which is why the pilot is gated on it before any attacker is fitted.
+**Why it probably will not.** Hours, schooling and class of worker predict SEX *and* the two tasks within each SEX, and MMP keeps those within-SEX effects. If most of the learnable coalition signal lives there, MMP cannot reach the roughly 0.606 pair AUC needed for the material margin, or even beat NEURAL_RAW. Its utility price, decision flips and subgroup cost all grow with the same gap that would make it effective. The subgroup cost falls on whichever group the gap concentrates on; in the prototype's continuous laws that was men. No published number gives Δ's share, which is why the pilot is gated on it before any attacker is fitted.

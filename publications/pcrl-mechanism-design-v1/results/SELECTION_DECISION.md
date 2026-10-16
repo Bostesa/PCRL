@@ -72,3 +72,22 @@ The selected candidate failed the part of its pre-registered prototype that a re
 - **The verifier's registered post-hoc probe** showed MMP's effect on coalition recovery has no definite sign without merging structure: −0.033 in one draw, +0.018 / +0.019 in two.
 
 **Final status: `NO_DEFENSIBLE_NEW_MECHANISM_IDENTIFIED` for a real-data pilot.** MMP is reported as a design-stage selection that did not survive its prototype. It is not reported as a mechanism ready to test.
+
+## Correction note (added 2026-10-16 in the correction pass; the decision and the status above are unchanged as a record)
+
+See `CORRECTIONS.md` rows 11, 13 and 14, and §5.
+
+- **MMP, "prices the deletion exactly" (reason 3) and "Utility price is a closed form" (S5).** These are exact only under a known law and relative to the SEX-blind posterior η. For fitted models on real data the cost against U0 and Ucal is not known in advance.
+- **RCCS, S6 "Fail".** The S6 reading, "protection defined against its own linear and quadratic critic class … the rationale itself depends on the reader class", is corrected to **unresolved (law-dependent)**. The record shows four things:
+  - its objective controls only linear and quadratic critics;
+  - in two settings of the verifier's smooth Gaussian law family, every fitted reader (linear, quadratic, HGB, MLP) fell by 0.018–0.045. This was within the strict caps at B = 0.005 and within cap plus headroom at B = 0.009; the source text says 0.019, and its data give a smallest drop of 0.0183. RCCS was 0.008–0.022 below the matched local-targeting comparator for HGB and MLP pair readers;
+  - its population-optimal recovery rose in every tested law;
+  - with a categorical driver an optimal reader recovers 21% to over 100% of the cancelled signal.
+- **The rejection as presented still follows.**
+  - RCCS fails S5 as presented: its feasible case violates the binding clauses, and its supporting accounting is inconsistent. So under rule 1 MMP was the only eligible proposal.
+  - Even if both had been eligible, rule 2 favours MMP: 3 SERIOUS objections against 4. The S4 row above counts 5 for RCCS; the verifier's final count is 4 (`DECISION_LOG.md` 06:12Z post-decision note; `MATH_ASSESSMENT.md` 2.8).
+  - A repaired RCCS is unresolved. It is not prototyped or promoted here.
+- **The post-prototype status** (`NO_DEFENSIBLE_NEW_MECHANISM_IDENTIFIED` for a real-data pilot) follows under rule 4 from MMP's failed pre-registered learnability check (a low-power test). It is reinforced by the verifier's probe, registered before it ran and post-hoc relative to the prototype pre-registration. The subgroup burden and the strict-cap failure inform the label but are not rule-4 grounds. None of this depends on the injectivity claim withdrawn in `CORRECTIONS.md` row 1.
+- **Wording in the post-prototype status section above:**
+  - "failed the part of its pre-registered prototype that a real-data benefit would need" rested on the withdrawn injectivity reading. Read instead: it contradicted the learnability leg in a synthetic law; a real-data benefit would need merging structure or a learnability effect, and which applies is unknown (`CORRECTIONS.md` row 20).
+  - "no definite sign without merging structure" should read "without pure-proxy fields", because the probe's releases do merge through dimension reduction (row 21).

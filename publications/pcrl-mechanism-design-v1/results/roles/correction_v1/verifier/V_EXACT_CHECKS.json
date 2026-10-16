@@ -1,0 +1,2532 @@
+{
+ "schema": "V_EXACT_CHECKS/1",
+ "role": "independent verifier, correction pass correction_v1 (2026-10-16)",
+ "unit_id": "V_CORR_EXACT_CHECKS_V1",
+ "generated_utc": "2026-10-16T12:58:22+00:00",
+ "python": "3.13.7",
+ "module": "mechanism_design_independent.correction_v1.v_exact_checks",
+ "laws_source": "entered by hand from results/pcrl_mechanism_design_v1/corrections/CHECKS_PREREGISTRATION.md (the program reads no file)",
+ "independence": "no import of mechanism_design.correction.* or campaign metric modules; only the no_real_data guard is imported and installed",
+ "summary": {
+  "registered_checks": 16,
+  "registered_ids": [
+   "A1",
+   "A2",
+   "B1",
+   "B2",
+   "B3",
+   "B4",
+   "C1a",
+   "C1b",
+   "C1c",
+   "C2a",
+   "C2b",
+   "D1",
+   "D2",
+   "E1",
+   "E2",
+   "E3"
+  ],
+  "registered_pass": 16,
+  "registered_failed_ids": [],
+  "hand_values_compared": 15,
+  "hand_value_disagreements": [],
+  "supplementary_pass": {
+   "S1_C2_cross_method": true,
+   "S2_bayes_accuracy_vs_auc": true,
+   "S3_scoring_identities": true
+  },
+  "errors": []
+ },
+ "checks": [
+  {
+   "id": "A1",
+   "statement": "Injective release R = ((1-eta, eta), argmax): AUC*(S;R) == AUC*(S;X)",
+   "expected": "equal; R has 4 distinct values",
+   "value": {
+    "auc_star_X": {
+     "exact": "3299/4606",
+     "float": 0.7162396873643074
+    },
+    "auc_star_R": {
+     "exact": "3299/4606",
+     "float": 0.7162396873643074
+    },
+    "distinct_release_values": 4
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_star": {
+     "exact": "3299/4606",
+     "float": 0.7162396873643074
+    },
+    "approx": 0.71624
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "A2",
+   "statement": "Restricted readers: score = released eta, and its reversal; both strictly below AUC*",
+   "expected": "AUC(eta) = 1763/4606, AUC(reversal) = 2843/4606, both < AUC*",
+   "value": {
+    "auc_score_eta": {
+     "exact": "1763/4606",
+     "float": 0.38276161528441166
+    },
+    "auc_score_reversed": {
+     "exact": "2843/4606",
+     "float": 0.6172383847155883
+    },
+    "auc_star": {
+     "exact": "3299/4606",
+     "float": 0.7162396873643074
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_score_eta": {
+     "exact": "1763/4606",
+     "float": 0.38276161528441166
+    },
+    "approx_eta": 0.38276,
+    "auc_score_reversed": {
+     "exact": "2843/4606",
+     "float": 0.6172383847155883
+    },
+    "approx_reversed": 0.61724
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "B1",
+   "statement": "Release R_i(x) equals the full-input Bayes predictor P(Y_i | X = x) in every cell; metrics equal Bayes",
+   "expected": "exact equality in all 6 cells for both tasks; accuracy, summed Brier and NLL equal the Bayes values",
+   "value": {
+    "release_equals_bayes_per_cell(task1,task2)": {
+     "(0, 0)": [
+      true,
+      true
+     ],
+     "(0, 1)": [
+      true,
+      true
+     ],
+     "(1, 0)": [
+      true,
+      true
+     ],
+     "(1, 1)": [
+      true,
+      true
+     ],
+     "(2, 0)": [
+      true,
+      true
+     ],
+     "(2, 1)": [
+      true,
+      true
+     ]
+    },
+    "release_in_simplex": true,
+    "income_release": {
+     "accuracy": {
+      "exact": "29/40",
+      "float": 0.725
+     },
+     "brier_summed": {
+      "exact": "73/200",
+      "float": 0.365
+     },
+     "nll_nats": 0.5428771827370371,
+     "min_prob_on_positive_mass_label": {
+      "exact": "1/10",
+      "float": 0.1
+     }
+    },
+    "income_bayes": {
+     "accuracy": {
+      "exact": "29/40",
+      "float": 0.725
+     },
+     "brier_summed": {
+      "exact": "73/200",
+      "float": 0.365
+     },
+     "nll_nats": 0.5428771827370371,
+     "min_prob_on_positive_mass_label": {
+      "exact": "1/10",
+      "float": 0.1
+     }
+    },
+    "occupation_release": {
+     "accuracy": {
+      "exact": "5/8",
+      "float": 0.625
+     },
+     "brier_summed": {
+      "exact": "53/100",
+      "float": 0.53
+     },
+     "nll_nats": 0.9000763389666465,
+     "min_prob_on_positive_mass_label": {
+      "exact": "1/10",
+      "float": 0.1
+     }
+    },
+    "occupation_bayes": {
+     "accuracy": {
+      "exact": "5/8",
+      "float": 0.625
+     },
+     "brier_summed": {
+      "exact": "53/100",
+      "float": 0.53
+     },
+     "nll_nats": 0.9000763389666465,
+     "min_prob_on_positive_mass_label": {
+      "exact": "1/10",
+      "float": 0.1
+     }
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "income_accuracy": {
+     "exact": "29/40",
+     "float": 0.725
+    },
+    "income_brier_summed": {
+     "exact": "73/200",
+     "float": 0.365
+    },
+    "occupation_accuracy": {
+     "exact": "5/8",
+     "float": 0.625
+    },
+    "occupation_brier_summed": {
+     "exact": "53/100",
+     "float": 0.53
+    }
+   },
+   "hand_value_agrees": true,
+   "note": "NLL equality is established by exact equality of the predicted distributions in every cell."
+  },
+  {
+   "id": "B2",
+   "statement": "AUC*(S;X) with S = Z a coordinate of X",
+   "expected": "1",
+   "value": {
+    "auc_star_X": {
+     "exact": "1",
+     "float": 1.0
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_star_X": {
+     "exact": "1",
+     "float": 1.0
+    }
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "B3",
+   "statement": "AUC*(S;R_1) = AUC*(S;R_2) = AUC*(S;(R_1,R_2))",
+   "expected": "all 1/2",
+   "value": {
+    "auc_star_R1": {
+     "exact": "1/2",
+     "float": 0.5
+    },
+    "auc_star_R2": {
+     "exact": "1/2",
+     "float": 0.5
+    },
+    "auc_star_R1R2": {
+     "exact": "1/2",
+     "float": 0.5
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_star": {
+     "exact": "1/2",
+     "float": 0.5
+    }
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "B4",
+   "statement": "Distinct release pairs; I(S;X) = h(2/5) bits; I(S;(R_1,R_2)) = 0",
+   "expected": "3 distinct pairs for 6 inputs; I(S;X) = h(2/5) ~ 0.97095 bits; I(S;R) = 0 (exact independence)",
+   "value": {
+    "inputs": 6,
+    "distinct_release_pairs": 3,
+    "I_S_X_bits": 0.9709505944546685,
+    "h(2/5)_bits": 0.9709505944546686,
+    "I_S_R_bits": 0.0,
+    "S_R_exactly_independent": true,
+    "S_X_exactly_independent": false
+   },
+   "pass": true,
+   "hand_value": {
+    "distinct_pairs": 3,
+    "I_S_X_bits_approx": 0.97095,
+    "I_S_R_bits": 0
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "C1a",
+   "statement": "Sample-uniqueness check on observed O = {0,2,4}: f and the identity both pass",
+   "expected": "f: 3 distinct outputs for 3 distinct inputs; identity: 3 for 3",
+   "value": {
+    "f_distinct_outputs_on_O": 3,
+    "identity_distinct_outputs_on_O": 3,
+    "inputs_in_O": 3
+   },
+   "pass": true,
+   "hand_value": {
+    "f_distinct_on_O": 3,
+    "inputs": 3
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "C1b",
+   "statement": "On the declared support f is 2-to-1",
+   "expected": "3 distinct outputs for 6 cells, each with exactly 2 preimages",
+   "value": {
+    "distinct_outputs_on_support": 3,
+    "preimage_sizes": [
+     2,
+     2,
+     2
+    ]
+   },
+   "pass": true,
+   "hand_value": {
+    "distinct_outputs": 3,
+    "cells": 6
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "C1c",
+   "statement": "AUC*(S; f(X)) < AUC*(S; X) under the population law",
+   "expected": "strictly below",
+   "value": {
+    "auc_star_fX": {
+     "exact": "1091/1782",
+     "float": 0.6122334455667789
+    },
+    "auc_star_X": {
+     "exact": "487/594",
+     "float": 0.8198653198653199
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_star_fX": {
+     "exact": "1091/1782",
+     "float": 0.6122334455667789
+    },
+    "approx_fX": 0.61223,
+    "auc_star_X": {
+     "exact": "487/594",
+     "float": 0.8198653198653199
+    },
+    "approx_X": 0.81987
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "C2a",
+   "statement": "Closed form equals brute-force enumeration at (M,n) = (3,4) and (2,5)",
+   "expected": "exact equality",
+   "value": {
+    "P(3, 4)": {
+     "closed": {
+      "exact": "77/216",
+      "float": 0.35648148148148145
+     },
+     "brute": {
+      "exact": "77/216",
+      "float": 0.35648148148148145
+     },
+     "counts_good_total": [
+      462,
+      1296
+     ]
+    },
+    "P(2, 5)": {
+     "closed": {
+      "exact": "31/256",
+      "float": 0.12109375
+     },
+     "brute": {
+      "exact": "31/256",
+      "float": 0.12109375
+     },
+     "counts_good_total": [
+      124,
+      1024
+     ]
+    }
+   },
+   "pass": true,
+   "hand_value": null,
+   "hand_value_agrees": null,
+   "note": "No hand value is registered for C2a (only the equality)."
+  },
+  {
+   "id": "C2b",
+   "statement": "Exact P(1000, n) inside the registered intervals",
+   "expected": "P(1000,20) in [0.88,0.94]; P(1000,60) in [0.35,0.47]; P(1000,200) < 1e-3",
+   "value": {
+    "P(1000,20)": 0.9093531248007676,
+    "P(1000,60)": 0.41270164959004774,
+    "P(1000,200)": 4.8862175139230125e-05,
+    "approx_exp(-n(n-1)/4M)": {
+     "20": 0.9093729344682314,
+     "60": 0.41271417327904963,
+     "200": 4.772763393680197e-05
+    },
+    "approx_inside_same_intervals": [
+     true,
+     true,
+     true
+    ],
+    "exact_fractions_in_cross_method_table": true
+   },
+   "pass": true,
+   "hand_value": {
+    "P(1000,20)": "[0.88, 0.94]",
+    "P(1000,60)": "[0.35, 0.47]",
+    "P(1000,200)": "< 1e-3"
+   },
+   "hand_value_agrees": true,
+   "note": "The hand values are intervals derived from exp(-n(n-1)/(4M)); agreement means both the exact value and the approximation fall inside them."
+  },
+  {
+   "id": "D1",
+   "statement": "The release eta merges {0,2} and {1,3}: 2-to-1",
+   "expected": "2 distinct outputs, each with 2 preimages",
+   "value": {
+    "distinct_outputs": 2,
+    "preimage_sizes": [
+     2,
+     2
+    ],
+    "blocks": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      3
+     ]
+    ]
+   },
+   "pass": true,
+   "hand_value": {
+    "distinct_outputs": 2,
+    "cells": 4
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "D2",
+   "statement": "Non-injective release keeps all S-information: AUC*(S;R) = AUC*(S;X)",
+   "expected": "both exactly 4/5",
+   "value": {
+    "auc_star_R": {
+     "exact": "4/5",
+     "float": 0.8
+    },
+    "auc_star_X": {
+     "exact": "4/5",
+     "float": 0.8
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "auc_star": {
+     "exact": "4/5",
+     "float": 0.8
+    }
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "E1",
+   "statement": "AUC*(S; block) <= AUC*(S; X) for all set partitions of the 5 cells",
+   "expected": "all 52 partitions satisfy <=",
+   "value": {
+    "partitions_enumerated": 52,
+    "distinct_partitions": 52,
+    "bell_5_recurrence": 52,
+    "auc_star_X": {
+     "exact": "569/833",
+     "float": 0.6830732292917167
+    },
+    "all_le": true,
+    "max_auc_over_non_equal": {
+     "exact": "241/357",
+     "float": 0.6750700280112045
+    }
+   },
+   "pass": true,
+   "hand_value": {
+    "partitions": 52
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "E2",
+   "statement": "Equality holds exactly for the partitions whose blocks each have constant pi",
+   "expected": "exactly 2: finest and {{0},{1,2},{3},{4}} (first injective, second not)",
+   "value": {
+    "equality_partitions": [
+     [
+      [
+       0
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    ],
+    "count": 2,
+    "injective_flags": [
+     false,
+     true
+    ],
+    "equality_iff_pi_constant_all_52": true
+   },
+   "pass": true,
+   "hand_value": {
+    "count": 2,
+    "partitions": [
+     [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     [
+      [
+       0
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ]
+    ]
+   },
+   "hand_value_agrees": true,
+   "note": null
+  },
+  {
+   "id": "E3",
+   "statement": "The other partitions are strictly below",
+   "expected": "50 strictly below",
+   "value": {
+    "strictly_below": 50,
+    "equal": 2,
+    "total": 52
+   },
+   "pass": true,
+   "hand_value": {
+    "strictly_below": 50
+   },
+   "hand_value_agrees": true,
+   "note": null
+  }
+ ],
+ "supplementary": {
+  "A": {
+   "P(S=1)": {
+    "exact": "49/96",
+    "float": 0.5104166666666666
+   },
+   "P(S=0)": {
+    "exact": "47/96",
+    "float": 0.4895833333333333
+   },
+   "release_values": {
+    "0": [
+     {
+      "exact": "3/5",
+      "float": 0.6
+     },
+     {
+      "exact": "2/5",
+      "float": 0.4
+     }
+    ],
+    "1": [
+     {
+      "exact": "1/5",
+      "float": 0.2
+     },
+     {
+      "exact": "4/5",
+      "float": 0.8
+     }
+    ],
+    "2": [
+     {
+      "exact": "4/5",
+      "float": 0.8
+     },
+     {
+      "exact": "1/5",
+      "float": 0.2
+     }
+    ],
+    "3": [
+     {
+      "exact": "2/5",
+      "float": 0.4
+     },
+     {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    ]
+   }
+  },
+  "B": {
+   "P(S=1)": {
+    "exact": "2/5",
+    "float": 0.4
+   },
+   "release_pairs": [
+    [
+     [
+      "4/5",
+      "1/5"
+     ],
+     [
+      "7/10",
+      "1/5",
+      "1/10"
+     ]
+    ],
+    [
+     [
+      "4/5",
+      "1/5"
+     ],
+     [
+      "7/10",
+      "1/5",
+      "1/10"
+     ]
+    ],
+    [
+     [
+      "2/5",
+      "3/5"
+     ],
+     [
+      "1/5",
+      "3/5",
+      "1/5"
+     ]
+    ],
+    [
+     [
+      "2/5",
+      "3/5"
+     ],
+     [
+      "1/5",
+      "3/5",
+      "1/5"
+     ]
+    ],
+    [
+     [
+      "1/10",
+      "9/10"
+     ],
+     [
+      "1/10",
+      "3/10",
+      "3/5"
+     ]
+    ],
+    [
+     [
+      "1/10",
+      "9/10"
+     ],
+     [
+      "1/10",
+      "3/10",
+      "3/5"
+     ]
+    ]
+   ]
+  },
+  "C2_cross_method": {
+   "registered_and_large_cases": [
+    {
+     "M": 3,
+     "n": 4,
+     "closed_form": "77/216",
+     "float": 0.35648148148148145,
+     "dp_draws_equal": true,
+     "stirling_equal": true,
+     "dp_pairs_equal": true,
+     "cpu_s": {
+      "closed": 0.0,
+      "dp_draws": 0.0,
+      "stirling": 0.0,
+      "dp_pairs": 0.0
+     },
+     "brute_force_equal": true,
+     "brute_force_counts": [
+      462,
+      1296
+     ]
+    },
+    {
+     "M": 2,
+     "n": 5,
+     "closed_form": "31/256",
+     "float": 0.12109375,
+     "dp_draws_equal": true,
+     "stirling_equal": true,
+     "dp_pairs_equal": true,
+     "cpu_s": {
+      "closed": 0.0,
+      "dp_draws": 0.0,
+      "stirling": 0.0,
+      "dp_pairs": 0.0
+     },
+     "brute_force_equal": true,
+     "brute_force_counts": [
+      124,
+      1024
+     ]
+    },
+    {
+     "M": 1000,
+     "n": 20,
+     "closed_form": "476762931095544842182441733002356871343024344946500575802354867/524288000000000000000000000000000000000000000000000000000000000",
+     "float": 0.9093531248007676,
+     "dp_draws_equal": true,
+     "stirling_equal": true,
+     "dp_pairs_equal": true,
+     "cpu_s": {
+      "closed": 0.0097,
+      "dp_draws": 0.0,
+      "stirling": 0.0,
+      "dp_pairs": 0.0098
+     }
+    },
+    {
+     "M": 1000,
+     "n": 60,
+     "closed_form": "237906303399542791825420806687682935616434987536822419380460102983631396535178057433902399691613161893334297246098836278074897325131971462314254922175141246209210104002421328389015168948686262067/576460752303423488000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+     "float": 0.41270164959004774,
+     "dp_draws_equal": true,
+     "stirling_equal": true,
+     "dp_pairs_equal": true,
+     "cpu_s": {
+      "closed": 0.0099,
+      "dp_draws": 0.0003,
+      "stirling": 0.0002,
+      "dp_pairs": 0.0913
+     }
+    },
+    {
+     "M": 1000,
+     "n": 200,
+     "closed_form": "39259244078237359075130918722997860564705791581388454937603364904698953182853140002315293236611942061978932516062588342992674526587543224145888669697066494572340341088484023959094083546936128340058039811574685376981875822866014101368905076468967215746329906766375045294481086173405203069844201640738495104292359731152874932499381411495054288119264750760327057824046151424952125033364411837366919136423089489640453995542570584589187651586767521891965378258688965913263643060646151506981364036894401491808214195808749835515569873104884303869267754213524855751721918710256075488261237684976724821446713694774897423799100002978453108767936442187840402337267/803469022129495137770981046170581301261101496891396417650688000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+     "float": 4.8862175139230125e-05,
+     "dp_draws_equal": true,
+     "stirling_equal": true,
+     "dp_pairs_equal": true,
+     "cpu_s": {
+      "closed": 0.0115,
+      "dp_draws": 0.0052,
+      "stirling": 0.0027,
+      "dp_pairs": 2.1301
+     }
+    }
+   ],
+   "extra_small_brute_force_cases": [
+    {
+     "M": 1,
+     "n": 1,
+     "brute_force": "1",
+     "counts_good_total": [
+      2,
+      2
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 1,
+     "n": 3,
+     "brute_force": "1/4",
+     "counts_good_total": [
+      2,
+      8
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 2,
+     "n": 2,
+     "brute_force": "3/4",
+     "counts_good_total": [
+      12,
+      16
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 2,
+     "n": 6,
+     "brute_force": "63/1024",
+     "counts_good_total": [
+      252,
+      4096
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 3,
+     "n": 3,
+     "brute_force": "7/12",
+     "counts_good_total": [
+      126,
+      216
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 3,
+     "n": 5,
+     "brute_force": "29/144",
+     "counts_good_total": [
+      1566,
+      7776
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 4,
+     "n": 4,
+     "brute_force": "235/512",
+     "counts_good_total": [
+      1880,
+      4096
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 5,
+     "n": 3,
+     "brute_force": "73/100",
+     "counts_good_total": [
+      730,
+      1000
+     ],
+     "all_methods_equal_brute": true
+    },
+    {
+     "M": 3,
+     "n": 0,
+     "brute_force": "1",
+     "counts_good_total": [
+      1,
+      1
+     ],
+     "all_methods_equal_brute": true
+    }
+   ],
+   "all_agree": true,
+   "timing": {
+    "closed_form_large_cpu_s": 0.030723999999999998
+   },
+   "supplementary_expectation": "all equal (S1, not pre-registered)",
+   "supplementary_pass": true
+  },
+  "E_partitions": {
+   "auc_star_X": {
+    "exact": "569/833",
+    "float": 0.6830732292917167
+   },
+   "bayes_acc_S_X": {
+    "exact": "13/20",
+    "float": 0.65
+   },
+   "rows": [
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "569/833",
+      "float": 0.6830732292917167
+     },
+     "equal_X": true,
+     "pi_constant_blocks": true,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "569/833",
+      "float": 0.6830732292917167
+     },
+     "equal_X": true,
+     "pi_constant_blocks": true,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "241/357",
+      "float": 0.6750700280112045
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2
+      ],
+      [
+       1
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "559/833",
+      "float": 0.6710684273709484
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "159/238",
+      "float": 0.6680672268907563
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "159/238",
+      "float": 0.6680672268907563
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       2
+      ],
+      [
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1657/2499",
+      "float": 0.6630652260904362
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       2
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1657/2499",
+      "float": 0.6630652260904362
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "3299/4998",
+      "float": 0.6600640256102441
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2
+      ],
+      [
+       1
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1093/1666",
+      "float": 0.656062424969988
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2,
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "32/49",
+      "float": 0.6530612244897959
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1627/2499",
+      "float": 0.6510604241696679
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       2
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "3239/4998",
+      "float": 0.6480592236894758
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/20",
+      "float": 0.65
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1612/2499",
+      "float": 0.6450580232092837
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       2,
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "226/357",
+      "float": 0.6330532212885154
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       4
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "524/833",
+      "float": 0.6290516206482593
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       3,
+       4
+      ],
+      [
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "3119/4998",
+      "float": 0.6240496198479392
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "519/833",
+      "float": 0.6230492196878752
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "519/833",
+      "float": 0.6230492196878752
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       4
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "514/833",
+      "float": 0.617046818727491
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2,
+       4
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "514/833",
+      "float": 0.617046818727491
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2
+      ],
+      [
+       1,
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "437/714",
+      "float": 0.6120448179271709
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "61/100",
+      "float": 0.61
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       3
+      ],
+      [
+       2
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "509/833",
+      "float": 0.6110444177671068
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       4
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1522/2499",
+      "float": 0.6090436174469788
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2,
+       3
+      ],
+      [
+       1
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "72/119",
+      "float": 0.6050420168067226
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1
+      ],
+      [
+       2,
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "59/98",
+      "float": 0.6020408163265306
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       4
+      ],
+      [
+       1,
+       2
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1487/2499",
+      "float": 0.5950380152060825
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       4
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1487/2499",
+      "float": 0.5950380152060825
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1
+      ],
+      [
+       2,
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "2969/4998",
+      "float": 0.5940376150460184
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       2,
+       3
+      ],
+      [
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "494/833",
+      "float": 0.5930372148859544
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "3/5",
+      "float": 0.6
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       2,
+       4
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "494/833",
+      "float": 0.5930372148859544
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3,
+       4
+      ],
+      [
+       1,
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "983/1666",
+      "float": 0.5900360144057623
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3,
+       4
+      ],
+      [
+       1
+      ],
+      [
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "983/1666",
+      "float": 0.5900360144057623
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "59/100",
+      "float": 0.59
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       4
+      ],
+      [
+       2,
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1472/2499",
+      "float": 0.5890356142456983
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       4
+      ],
+      [
+       2
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1447/2499",
+      "float": 0.579031612645058
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3
+      ],
+      [
+       1,
+       4
+      ],
+      [
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "479/833",
+      "float": 0.575030012004802
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2,
+       4
+      ],
+      [
+       1
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1427/2499",
+      "float": 0.5710284113645459
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       2,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1417/2499",
+      "float": 0.5670268107242897
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "11/20",
+      "float": 0.55
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       4
+      ],
+      [
+       1,
+       3
+      ],
+      [
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "1412/2499",
+      "float": 0.5650260104041617
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "11/20",
+      "float": 0.55
+     }
+    },
+    {
+     "blocks": [
+      [
+       0
+      ],
+      [
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "2789/4998",
+      "float": 0.5580232092837135
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "11/20",
+      "float": 0.55
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2,
+       3
+      ],
+      [
+       1,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "464/833",
+      "float": 0.5570228091236494
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       2,
+       4
+      ],
+      [
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1387/2499",
+      "float": 0.5550220088035214
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "14/25",
+      "float": 0.56
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       4
+      ],
+      [
+       1
+      ],
+      [
+       2,
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1387/2499",
+      "float": 0.5550220088035214
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "27/50",
+      "float": 0.54
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       3,
+       4
+      ],
+      [
+       2
+      ]
+     ],
+     "auc_star": {
+      "exact": "923/1666",
+      "float": 0.5540216086434574
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "11/20",
+      "float": 0.55
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3
+      ],
+      [
+       1
+      ],
+      [
+       2,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "27/49",
+      "float": 0.5510204081632653
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "27/50",
+      "float": 0.54
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       3
+      ],
+      [
+       2,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "449/833",
+      "float": 0.539015606242497
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "27/50",
+      "float": 0.54
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2,
+       3,
+       4
+      ],
+      [
+       1
+      ]
+     ],
+     "auc_star": {
+      "exact": "893/1666",
+      "float": 0.536014405762305
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "53/100",
+      "float": 0.53
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       4
+      ],
+      [
+       1,
+       2,
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "191/357",
+      "float": 0.5350140056022409
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "27/50",
+      "float": 0.54
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       2,
+       4
+      ],
+      [
+       1,
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1297/2499",
+      "float": 0.5190076030412165
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "13/25",
+      "float": 0.52
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       3
+      ],
+      [
+       1,
+       2,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "419/833",
+      "float": 0.503001200480192
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "51/100",
+      "float": 0.51
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       4
+      ],
+      [
+       2,
+       3
+      ]
+     ],
+     "auc_star": {
+      "exact": "1252/2499",
+      "float": 0.501000400160064
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "51/100",
+      "float": 0.51
+     }
+    },
+    {
+     "blocks": [
+      [
+       0,
+       1,
+       2,
+       3,
+       4
+      ]
+     ],
+     "auc_star": {
+      "exact": "1/2",
+      "float": 0.5
+     },
+     "equal_X": false,
+     "pi_constant_blocks": false,
+     "bayes_acc_S": {
+      "exact": "51/100",
+      "float": 0.51
+     }
+    }
+   ]
+  },
+  "S2_bayes_accuracy_vs_auc": {
+   "statement": "partitions with Bayes accuracy for S equal to that of X but AUC* strictly lower",
+   "expected_supplementary": 8,
+   "count": 8,
+   "partitions": [
+    [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      3
+     ],
+     [
+      4
+     ]
+    ],
+    [
+     [
+      0,
+      1
+     ],
+     [
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    [
+     [
+      0,
+      1
+     ],
+     [
+      2
+     ],
+     [
+      3
+     ],
+     [
+      4
+     ]
+    ],
+    [
+     [
+      0,
+      2
+     ],
+     [
+      1
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    [
+     [
+      0,
+      2
+     ],
+     [
+      1
+     ],
+     [
+      3
+     ],
+     [
+      4
+     ]
+    ],
+    [
+     [
+      0
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    [
+     [
+      0
+     ],
+     [
+      1
+     ],
+     [
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   ],
+   "pass": true,
+   "keeps_bayes_accuracy_total": 10
+  },
+  "S3_scoring_identities": {
+   "law": {
+    "P(X)": [
+     {
+      "exact": "1/3",
+      "float": 0.3333333333333333
+     },
+     {
+      "exact": "1/2",
+      "float": 0.5
+     },
+     {
+      "exact": "1/6",
+      "float": 0.16666666666666666
+     }
+    ],
+    "pi": [
+     {
+      "exact": "1/4",
+      "float": 0.25
+     },
+     {
+      "exact": "1/2",
+      "float": 0.5
+     },
+     {
+      "exact": "4/5",
+      "float": 0.8
+     }
+    ],
+    "q0": [
+     [
+      {
+       "exact": "1/2",
+       "float": 0.5
+      },
+      {
+       "exact": "1/3",
+       "float": 0.3333333333333333
+      },
+      {
+       "exact": "1/6",
+       "float": 0.16666666666666666
+      }
+     ],
+     [
+      {
+       "exact": "1/5",
+       "float": 0.2
+      },
+      {
+       "exact": "3/5",
+       "float": 0.6
+      },
+      {
+       "exact": "1/5",
+       "float": 0.2
+      }
+     ],
+     [
+      {
+       "exact": "1/10",
+       "float": 0.1
+      },
+      {
+       "exact": "1/10",
+       "float": 0.1
+      },
+      {
+       "exact": "4/5",
+       "float": 0.8
+      }
+     ]
+    ],
+    "q1": [
+     [
+      {
+       "exact": "1/6",
+       "float": 0.16666666666666666
+      },
+      {
+       "exact": "1/3",
+       "float": 0.3333333333333333
+      },
+      {
+       "exact": "1/2",
+       "float": 0.5
+      }
+     ],
+     [
+      {
+       "exact": "2/5",
+       "float": 0.4
+      },
+      {
+       "exact": "2/5",
+       "float": 0.4
+      },
+      {
+       "exact": "1/5",
+       "float": 0.2
+      }
+     ],
+     [
+      {
+       "exact": "3/10",
+       "float": 0.3
+      },
+      {
+       "exact": "1/2",
+       "float": 0.5
+      },
+      {
+       "exact": "1/5",
+       "float": 0.2
+      }
+     ]
+    ],
+    "w": {
+     "exact": "1/3",
+     "float": 0.3333333333333333
+    }
+   },
+   "eta_equals_total_probability_formula": true,
+   "i": {
+    "brier_m_minus_brier_eta": {
+     "exact": "26671/1215000",
+     "float": 0.021951440329218107
+    },
+    "E_sq_eta_minus_m": {
+     "exact": "26671/1215000",
+     "float": 0.021951440329218107
+    },
+    "E_(pi-w)^2_sq_q1_minus_q0": {
+     "exact": "26671/1215000",
+     "float": 0.021951440329218107
+    },
+    "holds_exactly": true
+   },
+   "ii": {
+    "nll_m_minus_nll_eta": 0.029224115649940208,
+    "E_KL_eta_m": 0.029224115649940263,
+    "abs_diff": 5.551115123125783e-17,
+    "holds_1e-12": true
+   },
+   "iii": {
+    "brier_f_minus_brier_r": {
+     "exact": "-71/6000",
+     "float": -0.011833333333333333
+    },
+    "E_sq_f_eta_minus_E_sq_r_eta": {
+     "exact": "-71/6000",
+     "float": -0.011833333333333333
+    },
+    "holds_exactly": true
+   },
+   "iv": {
+    "brier_mhat_minus_brier_eta": {
+     "exact": "30871/1215000",
+     "float": 0.025408230452674898
+    },
+    "E_sq_mhat_minus_eta": {
+     "exact": "30871/1215000",
+     "float": 0.025408230452674898
+    },
+    "closed_form_with_qhat": {
+     "exact": "412261/19440000",
+     "float": 0.021206841563786008
+    },
+    "decomposition_value": {
+     "exact": "30871/1215000",
+     "float": 0.025408230452674898
+    },
+    "general_identity_holds": true,
+    "closed_form_with_qhat_differs": true,
+    "decomposition_holds": true
+   },
+   "v": {
+    "brier_qS_minus_brier_eta": {
+     "exact": "-1747/45000",
+     "float": -0.03882222222222222
+    },
+    "E_sq_qS_minus_eta": {
+     "exact": "1747/45000",
+     "float": 0.03882222222222222
+    },
+    "equals_minus_E_sq": true,
+    "negative": true
+   },
+   "pass": true
+  }
+ },
+ "errors": [],
+ "process_cpu_s": 2.313,
+ "wall_s": 2.313
+}

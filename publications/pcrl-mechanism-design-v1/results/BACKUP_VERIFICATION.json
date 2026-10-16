@@ -32,5 +32,42 @@
   "caveat": "read back immediately after writing; it may have been served from the file cache",
   "cold_recheck_after_remount": "shasum -a 256 <external drive>  # expect ea9d3679c0f9c650ac097892806fae348e2781bf01827a15a38f22189e10091f; then tar -xf into a fresh directory and compare against SNAPSHOT_MANIFEST.json"
  },
- "not_backed_up_by_design": ".private/mechanism_design/pylib (third-party CatBoost wheel, reinstallable: pip install --no-deps --target .private/mechanism_design/pylib catboost==1.2.8)"
+ "not_backed_up_by_design": ".private/mechanism_design/pylib (third-party CatBoost wheel, reinstallable: pip install --no-deps --target .private/mechanism_design/pylib catboost==1.2.8)",
+ "correction_pass_2026_10_16": {
+  "snapshot": {
+   "name": "CORRECTION_V1",
+   "location": "<private backup> (same device)",
+   "created_utc": "2026-10-16T13:36:40Z",
+   "git_head": "c2dc15c4900fd6ac9759055f8ef4894af5ba40c7",
+   "files": 123,
+   "bytes": 1541479,
+   "manifest_sha256": "7a73cb36dccef9f1fe358dea48059b7a74cb7ca6a7d120b2b06bfc6d0ea425a9",
+   "contents": "results/pcrl_mechanism_design_v1 (all, as corrected), code (mechanism_design incl. correction/, mechanism_design_independent incl. correction_v1/, reader-slate dependency modules), the correction pass queue ledger and unit logs",
+   "unit": "CORR_CUSTODY_SNAPSHOT_V1"
+  },
+  "restore_check": {
+   "unit": "CORR_RESTORE_CHECK_V1",
+   "restore_dir": "fresh directory (CORRECTION_V1_RESTORE)",
+   "files": 123,
+   "hash_mismatches": 0,
+   "reruns_from_restored_code_only": {
+    "mechanism_design.correction.exact_checks": "returncode 0; identical to stored corrections/EXACT_CHECKS.json minus provenance",
+    "mechanism_design_independent.correction_v1.v_exact_checks": "returncode 0; identical to stored V_EXACT_CHECKS.json minus run-specific fields (unit id, timestamp, interpreter, timings)"
+   },
+   "status": "PASS"
+  },
+  "off_device": {
+   "unit": "CORR_OFFDEVICE_V1",
+   "drive": "external drive YOTUO",
+   "path": "<external drive>,
+   "tar_sha256": "a0d32606c9ffdb77722317e127a99b142e41a8648e07fd389eaf1c47576a2e9f",
+   "tar_bytes": 1843200,
+   "readback_extract_files": 123,
+   "readback_hash_mismatches": 0,
+   "status": "PASS",
+   "caveat": "read back immediately after writing; it may have been served from the file cache (the drive appears to have stayed mounted since about 04:43Z, so this is not a cold read)",
+   "cold_recheck_after_remount": "shasum -a 256 <external drive>  # expect a0d32606c9ffdb77722317e127a99b142e41a8648e07fd389eaf1c47576a2e9f; then tar -xf into a fresh directory and compare against SNAPSHOT_MANIFEST.json"
+  },
+  "note": "The campaign snapshot SNAPSHOT_V1 and its off-device tar are unchanged; their cold re-check is also still open."
+ }
 }

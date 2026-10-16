@@ -168,3 +168,139 @@ The verifier's synthetic test of the literal RCCS map (`V_RCCS_MAP_V1`) was not 
 - **Coordinator error, disclosed.** Check (c) used a mis-specified comparator: the matched-price local eraser (t < 1) is exactly invertible, so refitted readers undo it. Deletion versus masking at matched price is therefore untested. The pre-registration is not edited; this note records the error.
 - **Registered post-hoc probe P7** (verifier): 10 task-relevant fields, 3-dimensional release. MMP's effect had no definite sign (+0.033, −0.018, −0.019, as twin − MMP) and raised recovery in 2 of 3 draws. This is not a reader artefact: a 1M-row reader was within 0.003 of exact Bayes. The merging case in L_CONT_PROXY fails all three occupation cap clauses at the strict cap.
 - **Final campaign status: `NO_DEFENSIBLE_NEW_MECHANISM_IDENTIFIED` for a real-data pilot.** MMP was a design-stage selection that did not survive its prototype. The prepared pilot is delivered as code and protocol only, marked not recommended. No new method lane is opened.
+
+## 2026-10-16T06:33Z — custody, publication, closeout
+- **Custody.**
+  - SNAPSHOT_V1: 159 files, manifest `4e23d3fe…`.
+  - Restore-and-use PASS: the prototype re-ran from the backup alone with identical results.
+  - Off-device tar on YOTUO PASS (`ea9d3679…`). The read-back may have been served from the cache, so the cold re-check command is in `BACKUP_VERIFICATION.json`.
+- **Publication.** Orphan branch `publication/pcrl-mechanism-design-v1` pushed to the real GitHub remote, first at `0c7f389`, then fast-forward to `e141330`.
+  - The remote SHA equals the local SHA, a fresh clone is identical, and the links return HTTP 200.
+  - Sanitisation scan: 0 problems.
+  - The account name and the commit identity remain visible; the configured identity was not rewritten.
+- **Branches.** The research branch is mirrored to the local origin only.
+- **Processes.** No campaign-owned process is left running.
+
+## 2026-10-16T06:28Z — correction to the previous entry's time
+- The previous entry's heading time, 06:33Z, was typed before the clock was checked. The entry was written at about 06:28Z: the clock read 06:28:16Z immediately after the commit `af2196730`. Nothing else in that entry changes.
+
+## 2026-10-16T12:36:49Z — correction pass start (focused correction and interpretation pass; no new method experiment)
+- **First action.** Inspected the worktree, branches and remotes. No correction beyond the timestamp note `12ffa8558` existed on any branch, and no AGENTS.md exists (re-checked). `github` is still the real GitHub; `origin` is still the local mirror.
+- **Limits:**
+  - 2 elapsed hours from 12:36:49Z;
+  - 2 CPU-hours, including agent allowances and failed attempts;
+  - $0 cloud;
+  - at most two numerical jobs. This is read as at most two running at once, which the queue enforces; every run is listed in the ledger.
+- **Isolated worktree.** Created `<worktrees>/pcrl-mechanism-design-correction-v1` on new branch `research/pcrl-mechanism-design-correction-v1` from `12ffa8558`. The campaign branch, the publication branch, main and every other worktree are untouched.
+- **Data rule for every role.** No real-person feature, prediction or label array; no fits; no new population; SEALED_ASSESSMENT closed; no DEV_REPORT labels.
+
+## 2026-10-16T12:43:57Z — correction queue and pre-registered exact checks
+- **Queue.** `mechanism_design/correction/cqueue.py` reuses the campaign queue unchanged with its own ledger under `.private/mechanism_design/correction_v1/compute/`: 2 CPU-hours, 2 elapsed hours from 12:36:49Z, two slots, one thread per job, 2 GiB RSS.
+- **Pre-registration.** `corrections/CHECKS_PREREGISTRATION.md` fixes laws A–E and every expected outcome, including hand-computed exact values. It was committed at `b2958c76d` before any check code was written.
+  - The file says "about 12:45Z". That was typed before the clock was checked; the commit time is 12:43:57Z.
+
+## 2026-10-16T12:45Z — three roles launched in parallel
+- **Mathematical reviewer** (`roles/correction_v1/math_reviewer/`):
+  - the injectivity argument and every downstream assertion, level by level;
+  - MMP's scope;
+  - the RCCS reconciliation;
+  - the status derivation.
+- **Adversary reviewer** (`roles/correction_v1/adversary_reviewer/`): the access definition kept, the exclusion rationale and overstatements corrected, and a v2 manuscript patch checked against `3b5065805`.
+- **Independent verifier, phase 1** (`roles/correction_v1/verifier/`, code in `mechanism_design_independent/correction_v1/`):
+  - recomputes laws A–E from the pre-registration with its own exact code, without opening the coordinator's check code or results first;
+  - independently assesses the corrected mathematical statements and the MMP identities.
+- No role may open real-person arrays. Each writes only in its own directory.
+
+## 2026-10-16T12:47:21Z — coordinator's exact checks (unit CORR_EXACT_CHECKS_V1): 28 of 28 held
+- Output: `corrections/EXACT_CHECKS.json` (sha256 `d12fc73a…`).
+- Every pre-registered expectation and every hand-computed value held:
+  - **A:** an injective release keeps AUC\* (3299/4606), while a restricted reader does worse.
+  - **B:** a deterministic many-to-one release equal to the full-input Bayes predictor has pair AUC\* 1/2, against AUC\*(S; X) = 1.
+  - **C:** sample uniqueness coexists with population collisions.
+  - **D:** a 2-to-1 release keeps all SEX information.
+  - **E:** in all 52 partitions, equality holds exactly for the posterior-constant ones.
+- 0.06 CPU-seconds.
+
+## 2026-10-16T13:01Z — adversary review received and integrated
+- **Review:** `roles/correction_v1/adversary_reviewer/ADVERSARY_REVIEW.md` (42-row classification table) and `MANUSCRIPT_ADVERSARY_PATCH_v2.diff`. About 13 minutes; no commit, no private source, no array.
+- **Kept:** the concrete access definition is unchanged.
+- **Corrected:**
+  - the exclusion rationale ("a breach of the provider … a release policy controls neither");
+  - "no reader can be calibrated" without the labelled sample;
+  - "cannot take away / cannot forbid" for linkage and pooling;
+  - the reversed linkage argument;
+  - the patch's "None knows a defense's … training objective".
+- **Added:** an optional abstract hunk ("often releases" → "may release").
+- **Coordinator's check.** The coordinator re-applied v2 independently to a fresh extraction of `3b5065805`. It applies cleanly: `main.tex` `cf0b25f2…`, `references.bib` `b7043344…`, patch sha256 `3d296d2b…`. v2 is installed as `MANUSCRIPT_ADVERSARY_PATCH.diff`, and v1 remains at `e141330`.
+- **Integrated into the current summaries:** `ADVERSARY_AND_MOTIVATION.md` §1, §4, §5 and §9 (the reviewer's text; the two headings keep the local naming, which the public build replaces), precisions to §6, §7 and §8, `ADVISOR_BRIEF.md` §3, and `CORRECTIONS.md` §6.
+
+## 2026-10-16T13:03Z — independent verifier, phase 1 received
+- **Result:** `roles/correction_v1/verifier/VERIFICATION.md` and `V_EXACT_CHECKS.json`, unit `V_CORR_EXACT_CHECKS_V1` (return code 0, 2.3 CPU-seconds, no failed attempt).
+  - All 16 registered expectations hold and all 15 hand values agree exactly.
+  - Every exact fraction matches the coordinator's run; the comparison was made only after the verifier wrote its own results.
+  - C2 was confirmed by three further exact methods.
+- **Statements (a)–(e):** verified, with conditions.
+  - **The converse (d)** is true under S → X → R and false without it (noisy-copies counterexample). It is specific to AUC\*/ROC: the Bayes accuracy for S can be kept while AUC\* falls.
+  - **The MMP identities** are verified with explicit conditions. With fitted components, the closed form gives the wrong number (verifier's law, post-hoc: 0.02121 against the true 0.02541).
+- **Disclosure.** The verifier's supplementary checks S1–S3 are post-hoc; their expectations were written in its module docstring before the run but not committed.
+- `CORRECTIONS.md` §1(d), §4 and §8 were updated from this report.
+
+## 2026-10-16T13:10Z — mathematical review received and integrated
+- **Review:** `roles/correction_v1/math_reviewer/MATH_REVIEW.md`, about 25 minutes. No numerical job, no array, no commit. Its line numbers cite `b2958c76d`.
+- **Agrees with the coordinator's corrections and the verifier's proofs:**
+  - the injectivity claim is false as stated;
+  - no valid proof of population injectivity exists for any actual model;
+  - the five downstream assertions are unsupported or false;
+  - the converse (d) holds under S → X → R;
+  - MMP's identities hold only under a known law;
+  - "if male / if female" implies counterfactuals;
+  - removal is not limited to pure-proxy fields;
+  - RCCS stays rejected as presented on S5, while "linear and quadratic only" is contradicted in the tested smooth law;
+  - the rule-4 status still follows, with a changed reason.
+- **Added by this review:**
+  - the tree arms, FAGTB, MMP and its twin are piecewise constant, and FARE has finitely many outputs, so "continuous" was itself false for most arms;
+  - an AUC\* loss bound by the population mass of merged fibres;
+  - the finite-population caveat on AUC\*(S; X);
+  - the kept-level counts and the three pooled SCHL codes;
+  - the precision path (float32 inputs and routing, float64 sums);
+  - two further false statements in the historical verifier text ("constant only along columns no tree splits on"; "AGEP and WKHP are continuous");
+  - an unsupported verdict line in `METHOD_SPECIFICATION.md` §9;
+  - the observation that the status label is a rule-4 outcome carrying the rule-3 name.
+- **Its caution about the advisor brief's encoding sentence** concerned a draft before the coordinator added "on their declared domain" and "whether … merges people with different SEX posteriors in the population is unknown". The current wording claims non-injectivity only on the declared domain (three SCHL codes share OTHER), not in the population.
+- **Integrated:** `CORRECTIONS.md` §1, §2 and rows 1, 2, 6, 10, 13, 15, 18 and 19; `CORRECTIONS.md` §7; `METHOD_SPECIFICATION.md` §3 and §9.
+
+## 2026-10-16T13:35Z — verifier phase 2 received; fixes applied
+- **Review:** `roles/correction_v1/verifier/VERIFICATION.md` §P2.1–P2.8, checking `717b566d8` against `12ffa8558`. About 17 minutes. Three read-only helper forks of the verifier did the mechanical parts. No queue unit; the only computation was a lookup of 28 stored values.
+- **Confirmed:**
+  - the mathematics, apart from the fixes below;
+  - the status derivation from rules 1 and 4 without the withdrawn claim;
+  - all 47 line citations;
+  - the quoted numbers, apart from the fixes below;
+  - patch v2 (`3d296d2b…`, applies cleanly, `cf0b25f2…` / `b7043344…`);
+  - no implied pilot authorisation, no competitive claim, and no claim that the ACS models are non-injective on the population.
+- **Found:** 2 MUST-FIX, 15 SHOULD-FIX and 21 MINOR items. All MUST-FIX and SHOULD-FIX items were applied, and so were the MINOR items in the current summaries:
+  - **MUST-FIX:** the headline reason for the status still echoed the withdrawn logic (now `CORRECTIONS.md` row 20), and §1(b) misstated declared-domain injectivity.
+  - **SHOULD-FIX:**
+    - "without merging structure" for P7 (row 21);
+    - rule-4 grounds and check (a)'s low power;
+    - rule 1, not rule 2, for RCCS;
+    - the 0.018–0.045 rounding slip (row 22; inherited from `MATH_ASSESSMENT.md` 2.7 and also in this log's 06:12Z post-decision note, line 152);
+    - "both releases" in P7;
+    - the scope of the exact checks;
+    - the resource and encoder citations;
+    - a missing §9;
+    - uncovered historical lines;
+    - stale handoff hashes.
+- **Corrections to this pass's own earlier entries:**
+  - The 13:10Z entry's phrase '"if male / if female" implies counterfactuals' means the wording wrongly suggests counterfactuals.
+  - Its "contradicted in the tested smooth law" refers to two settings (g = 0.35 and 0.6) of one smooth Gaussian law family.
+  - Its "the rule-4 status still follows, with a changed reason" stands.
+
+## 2026-10-16T13:37Z — custody and resources (correction pass)
+- **Snapshot.** `CORRECTION_V1` (unit `CORR_CUSTODY_SNAPSHOT_V1`): 123 files, manifest `7a73cb36…`, at `c2dc15c49`.
+- **Restore check.** `CORR_RESTORE_CHECK_V1`: PASS.
+  - Copied to a fresh directory, with 0 hash mismatches.
+  - The coordinator's and the verifier's exact checks were re-run from the restored code alone. Both match the stored results exactly; only provenance and timing fields differ.
+- **Off device.** `CORR_OFFDEVICE_V1`: tar `a0d32606…` on YOTUO, read back with 0 mismatches. The read-back may have come from the file cache, because the drive has stayed mounted, so a cold re-check remains open, as for the campaign's tars.
+- **Resources.** 5 queue units, none failed; 5.1 queue CPU-seconds plus a generous 0.1-hour shell allowance, 0.10 CPU-hours charged in all. 1.0 hour elapsed at the inventory; $0 cloud. Never more than one numerical job ran at a time, except possibly the two phase-1 check runs, which together took under 3 CPU-seconds.
+- `RESOURCE_INVENTORY.json`, `BACKUP_VERIFICATION.json` and `HANDOFF.json` (v2) have correction sections. The publication fields follow at closeout.

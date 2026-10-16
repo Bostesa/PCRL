@@ -1,10 +1,14 @@
 # Pilot protocol draft: MMP on the Florida ACS 2019 two-recipient service
 
-**Status: prepared and rehearsed on synthetic stand-ins. Not run. Not recommended as a competitive test.**
+**Status: prepared and rehearsed on synthetic stand-ins. Not run. Not recommended as a competitive test.** The 2026-10-16 correction pass does not change this status and authorises no run.
 
-MMP's own pre-registered prototype contradicted the learnability leg of its rationale (`prototype/PROTOTYPE_REPORT.md`). Without exact merging of input cells, deleting the inferred-SEX term did not reduce what readers learn. Fitted SEX-aware trees do not merge cells. Under the brief, MMP is therefore not described as pilot-ready.
+> **Corrected on 2026-10-16 (see `CORRECTIONS.md` row 8).**
+> - The original text said "Fitted SEX-aware trees do not merge cells", and the D0 row said the synthetic rehearsal suggested injective releases. Both are unsupported. The rehearsal counts come from 800 invented rows, and population injectivity of real models is unknown.
+> - A distinct-value count on MODEL_SELECT is descriptive only. It can reveal frequent merges in that sample. It cannot certify injectivity, rare merges, merges outside the sample, or whether merged inputs differ in SEX posterior.
 
-The verifier's registered post-hoc probe then showed that, without merging structure, MMP's effect on coalition recovery has no definite sign: −0.033 in one draw and about +0.02 in two. The protocol is delivered complete because the brief asks for it whenever a mechanism is selected. It also records exactly what would be tested if the advisor nevertheless wants the one cheap data answer: Stage 0 alone (§4).
+MMP's own pre-registered prototype contradicted the learnability leg of its rationale (`prototype/PROTOTYPE_REPORT.md`). In a law whose release is one-to-one by construction, deleting the inferred-SEX term did not reduce what readers learn. Under the brief, MMP is therefore not described as pilot-ready.
+
+The verifier's probe, registered before it ran and post-hoc relative to the prototype pre-registration, then showed that without pure-proxy fields (all ten fields task-relevant), MMP's net effect relative to its twin had no definite sign: −0.033 in one draw and about +0.02 in two. The protocol is delivered complete because the brief asks for it whenever a mechanism is selected. It also records exactly what would be tested if the advisor nevertheless wants the one cheap data answer: Stage 0 alone (§4).
 
 **Exploratory label.** Any run on these people is an exploratory development pilot on repeatedly used Florida ACS 2019 DEVELOPMENT people. It is not confirmation, error rates are nominal, and a new lock does not erase their selection history. SEALED_ASSESSMENT stays closed.
 
@@ -76,7 +80,7 @@ Stage 0 uses MODEL_FIT and MODEL_SELECT only, with no ATTACK or DEV roles. If th
 
 | Gate | Test | Why |
 |---|---|---|
-| D0 merge diagnostic (label-free; reported first, not a stopping rule) | Distinct MMP release pairs per distinct encoded input on MODEL_SELECT; split usage of the SEX-aware trees on each field | The prototype showed genuine removal **only** where cells merge. If MMP's releases are injective, as the synthetic rehearsal suggests (about 1.0 release pair per input), any benefit is a learnability effect, which the prototype did not support |
+| D0 merge diagnostic (label-free; reported first, not a stopping rule) | Distinct MMP release pairs per distinct encoded input on MODEL_SELECT; split usage of the SEX-aware trees on each field | The prototype showed population removal only where the release merges inputs with different SEX posteriors. *(Corrected 2026-10-16.)* The count is descriptive: it shows frequent merges in MODEL_SELECT at stored precision and cannot certify injectivity. The original text inferred injectivity from the synthetic rehearsal, which is unsupported |
 | G0 SEX gain | Held-out NLL gain from adding SEX to the teacher > 0 for at least one task, both seeds | Without it, Δ ≈ 0 |
 | G1 utility (F3) | MMP passes all 24 MODEL_SELECT point clauses | Frozen selection rule |
 | G2 premise (F1) | Frozen OUT_LR coalition proxy: MMP_TWIN − MMP ≥ 0.02, both seeds | Δ must carry learnable signal |

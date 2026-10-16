@@ -1,5 +1,14 @@
 --- a/papers/combined_empirical_v1/main.tex
 +++ b/papers/combined_empirical_v1/main.tex
+@@ -26,7 +26,7 @@
+ \maketitle
+ 
+ \begin{abstract}
+-A model that serves several purposes often releases two things to each recipient: protected features and a task prediction.
++A model that serves several purposes may release two things to each recipient: protected features and a task prediction.
+ We ask, on stored Adult and HMDA models, what a recipient can recover about a declared protected attribute from the
+ \emph{complete} release, and how useful that release is for its task.
+ We evaluate purpose-specific encoders with each method's own protection check, official target LEACE, official FARE,
 @@ -42,7 +42,8 @@
  (untreated 0.774), while FARE's recovers 0.539 at an accuracy cost whose non-inferiority within one point is not established.
  A same-size tree without the fairness term recovers 0.648, so on this cell the fairness term removes 0.109 AUC beyond
@@ -10,7 +19,7 @@
  All results are development evidence on repeatedly used data. We propose no new algorithm, no population privacy
  certificate and no composition theorem.
  \end{abstract}
-@@ -50,10 +51,19 @@
+@@ -50,10 +51,23 @@
  \section{Introduction}
  
  Representation-level defenses are usually evaluated on the representation: a linear probe, an in-training adversary,
@@ -24,43 +33,54 @@
 +an income band, the other a prediction of an occupation group, and neither may use a declared attribute such as sex
 +or race. For each person it serves, a recipient receives the output of its own task (a score, a probability vector or
 +a decision) and possibly the features that produced it. The policy is written per recipient, but the person is shared.
-+A recipient normally knows whom an output describes, so two recipients that serve the same person can link their
-+outputs by record, and a recipient may know the protected attribute for some of the people it serves, which lets it
-+learn how outputs relate to that attribute. Under these conditions a defense applied to the features addresses only
++A recipient usually knows whom an output describes, so two recipients that serve the same person could link their
++outputs by record, and a recipient may know the protected attribute for some of the people it serves, which would let
++it learn how outputs relate to that attribute. Under these conditions a defense applied to the features addresses only
 +part of what recipients see: the task output may carry what was removed from the features, a recipient may hold
 +features and output together, and two recipients may pool linked outputs. We know of no source that documents a
-+deployment with all of these properties, so we do not claim that one exists; we study the conditional threat model
-+they define (Section~\ref{sec:threat}) and report what a fixed set of attackers recovers under it.
++deployment with all of these properties, so we do not claim that one exists. We study one narrow question that these
++conditions raise: what a fixed set of attackers, each fitted on labelled releases of other records from the same
++population, recovers from the releases themselves, held by one recipient or by two whose releases are perfectly linked
++(Section~\ref{sec:threat}). Other access, such as a recipient that also holds a person's inputs, public model
++parameters or permission to query repeatedly, defines a different threat model, which we leave untested rather than
++dismiss.
  
  This paper reports a controlled empirical analysis of that complete view on stored models. We evaluate four bodies of
  work in our repositories that were developed separately and are \emph{not} connected by any pipeline: purpose-specific
-@@ -104,6 +114,25 @@
+@@ -104,6 +118,32 @@
  invariance~\citep[\S4.1]{goodfellow2016deep}). The formats are \emph{full} logits, \emph{centred} logits,
  \emph{probabilities}, and the \emph{hard} decision.
  
-+\paragraph{Adversary and access.}\label{sec:threat} A \emph{recipient} is a party permitted one purpose. For each
-+scored record it receives that purpose's release under the contract in force, and nothing else about the record: not
-+its inputs, its true task label or its protected attribute, and not the model's parameters, gradients or internal
-+states (defense maps, heads, or a representation that the contract does not release). Each record is released once,
-+and the recipient cannot submit inputs of its choosing. To turn a release into a guess about the protected attribute,
-+the recipient is granted labelled auxiliary data: the releases of the records in \texttt{attacker\_fit} together with
-+their protected attribute, and a second labelled set, \texttt{attacker\_val}, on which it chooses and orients its
-+attacker. Both come from the same population as the scored records. This grant is an assumption of the benchmark. It
-+models a recipient that knows the attribute for some of the people it serves, as in attribute-inference work in which
-+attackers train on labelled examples or on people who disclosed the attribute
++\paragraph{Adversary and access.}\label{sec:threat} A \emph{recipient} is a party permitted one purpose. In our
++evaluation, for each scored record it receives that purpose's release under the contract in force, and nothing else
++about the record: not its inputs, its true task label or its protected attribute, and not the model's parameters,
++gradients or internal states (defense maps, heads, or a representation that the contract does not release). Each
++record is released once, and no attacker submits inputs of its choosing. Our attackers are supervised: each learns to
++turn a release into a guess about the protected attribute from labelled auxiliary data that the benchmark grants,
++namely the releases of the records in \texttt{attacker\_fit} together with their protected attribute, and a second
++labelled set, \texttt{attacker\_val}, on which the attacker is chosen and oriented. Both come from the same population
++as the scored records, and these two roles (Section~\ref{sec:protocol}) fix the attacker's data budget. This grant is
++an assumption of the benchmark. It models a recipient that knows the attribute for some of the people it serves, as in
++attribute-inference work in which attackers train on labelled examples or on people who disclosed the attribute
 +\citep{song2020overlearning,jia2018attriguard}; we do not show that a recipient can obtain such data, in this amount
-+or from the same population, in practice. A \emph{coalition} of two recipients holds both recipients' releases for the
-+same record, perfectly linked; this is the attacker-favourable limit of record linkage, and we model no linkage error.
-+Attackers are refitted to the releases of the defended system and so adapt to the distribution that the defense emits;
-+only in that limited sense are they defense-aware. None knows a defense's parameters or training objective, and no
-+white-box, adaptive-query, repeated-release or insider attacker is evaluated. Record and household identifiers assign
-+roles and align releases; they are never attacker inputs. Recovery is therefore a measured property of a fixed
++or from the same population, in practice. Attacks that need no such sample, for example ones that use a known
++population law, are not evaluated. A \emph{coalition} of two recipients holds both recipients' releases for the same
++record, perfectly linked. We do not assume that contracts or governance prevent such linkage; perfect linkage is the
++attacker-favourable limit, and we model no linkage error. Attackers are refitted to the releases of the defended
++system and so adapt to the distribution that the defense emits; only in that limited sense are they defense-aware. A
++recipient may know a defense's published algorithm and objective, but our attackers use no such knowledge beyond this
++refitting, and none uses fitted parameters or gradients. Record and household identifiers assign roles and align
++releases; they are never attacker inputs. This scope isolates one narrow question: what attackers that learn from
++this labelled sample recover from the releases alone. A record's own inputs in the attacker's hands, public model
++parameters or gradients, permitted repeated or chosen queries, attacks that exploit a defense's published objective or
++its parameters, and insiders each define a different threat model (Section~\ref{sec:limits}); we do not test them, and
++we neither claim protection against them nor dismiss them. Recovery is therefore a measured property of a fixed
 +attacker slate under this conditional threat model, not a privacy guarantee.
 +
  \begin{figure}[t]
  \centering
  \resizebox{\linewidth}{!}{\input{fig_recipient.tex}}
-@@ -153,9 +182,13 @@
+@@ -153,9 +193,13 @@
  information and compare fairness-unaware $k$-means encoders. We add a same-budget zero-fairness tree and measure
  attribute recovery from the complete release.
  
@@ -77,7 +97,7 @@
  releases~\citep{taylor2026collusion}. We measure the purpose-permission version, as a property of our attackers.
  
  \paragraph{Position.} In a bounded reading of the closest work, we did not find one protocol that applies, on the same
-@@ -175,12 +208,16 @@
+@@ -175,12 +219,16 @@
  the uncleaned roles (assessment 5{,}250 Adult and 4{,}778 HMDA records; the overlapping records retained and
  disclosed; its decisions were stable when they were removed).
  
@@ -100,7 +120,7 @@
  
  \paragraph{Utility.} We report the accuracy, balanced accuracy, minority recall, log loss and gain over the constant
  (majority class on \texttt{attacker\_fit}) of the \emph{deployed} head whose output is released, and, separately, the
-@@ -346,12 +383,16 @@
+@@ -346,12 +394,16 @@
  \label{fig:pairs}
  \end{figure}
  
@@ -123,17 +143,19 @@
  
  \section{Discussion}\label{sec:discussion}
  
-@@ -381,8 +422,11 @@
+@@ -381,8 +433,13 @@
  \paragraph{Limitations.} Two datasets, a small number of primary cells and three encoder seeds; the encoder seeds differ
  strongly (one HMDA encoder is heavily collapsed). All assessment rows were used before; nothing here is fresh
  confirmation. Intervals are conditional on fitted heads and attackers and omit retraining variance. FARE is applied to
 -stored representations rather than raw inputs. Rare HMDA race groups are not estimable. We test no repeated-query or
 -adaptive-query attacker. Several observations in Section~\ref{sec:useful} are post hoc and labelled as such.
 +stored representations rather than raw inputs. Rare HMDA race groups are not estimable. The threat model of
-+Section~\ref{sec:threat} leaves untested repeated or adaptive queries, white-box access to parameters or gradients,
-+insiders, recipients that also hold a record's inputs or later learn its true label, imperfect linkage, coalitions of
-+more than two recipients, and auxiliary data that are scarcer than ours or drawn from another population. Several
-+observations in Section~\ref{sec:useful} are post hoc and labelled as such.
++Section~\ref{sec:threat} is one of several. We leave the following distinct threat models untested, not ruled out:
++recipients that also hold a record's inputs or later learn its true label; public or leaked model parameters or
++gradients; permitted repeated, adaptive or chosen-input queries; attacks that exploit a defense's published objective
++or its parameters; insiders; imperfect linkage; coalitions of more than two recipients; and auxiliary samples larger
++or smaller than ours or drawn from another population. Several observations in Section~\ref{sec:useful} are post hoc
++and labelled as such.
  
  \paragraph{Reproducibility.} For every study the protocol, code pin, admitted-input hashes, unit list, endpoint
  families and budget were committed before fitting; each study's result tables, inference code, verification replay and
