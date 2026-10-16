@@ -1,0 +1,90 @@
+{
+  "ATTACK_labels_used": false,
+  "DEV_REPORT_labels_opened": false,
+  "attack_roster": [
+    "T_TREE",
+    "LOCAL_TREE",
+    "TASK_REFIT",
+    "U0",
+    "JOINT_TREE",
+    "NEURAL_RAW_rho1.0_E2",
+    "FAGTB_lam0.03",
+    "FARE_F1",
+    "FARE_Z1"
+  ],
+  "fixed_services": {
+    "JOINT_TREE": {
+      "failed_clauses": [
+        "s0|income|U0|brier_excess",
+        "s0|income|Ucal|brier_excess",
+        "s1|income|U0|accuracy_loss",
+        "s1|income|Ucal|accuracy_loss"
+      ],
+      "point_feasible_24": false,
+      "proxy_auc_per_seed": [
+        0.5871389049632484,
+        0.5904915441925457
+      ]
+    },
+    "LOCAL_TREE": {
+      "failed_clauses": [],
+      "point_feasible_24": true,
+      "proxy_auc_per_seed": [
+        0.6333514456299892,
+        0.634714211080851
+      ]
+    },
+    "TASK_REFIT": {
+      "failed_clauses": [],
+      "point_feasible_24": true,
+      "proxy_auc_per_seed": [
+        0.6491326407541048,
+        0.6512076287868657
+      ]
+    },
+    "T_TREE": {
+      "failed_clauses": [],
+      "point_feasible_24": true,
+      "proxy_auc_per_seed": [
+        0.6495262160652218,
+        0.6501753216156461
+      ]
+    }
+  },
+  "frozen": {
+    "FAGTB": {
+      "configuration": "FAGTB_lam0.03",
+      "rule": "no feasible configuration; minimum maximum normalised clause value",
+      "status": "INELIGIBLE_FALLBACK",
+      "two_task_valid": true
+    },
+    "FARE": {
+      "configuration": "FARE_F1",
+      "matched_compression_twin": "FARE_Z1",
+      "rule": "no feasible configuration; minimum maximum normalised clause value",
+      "status": "INELIGIBLE_FALLBACK"
+    },
+    "NEURAL_RAW": {
+      "configuration": "NEURAL_RAW_rho1.0_E2",
+      "rule": "feasible; minimum mean MODEL_SELECT proxy AUC",
+      "status": "ELIGIBLE"
+    }
+  },
+  "output_file_sha256": {
+    "runs/FAGTB_0/FAGTB_OUTPUTS.npz": "e62a667822c0db88448a394baaa4df41628bff4bc7fd2e24bcf0722c757931c9",
+    "runs/FAGTB_1/FAGTB_OUTPUTS.npz": "0e870431e57229cde59de2c36ce0f909e286d29c4cf2dabe6c0225ccd7c63895",
+    "runs/FARE_0/FARE_OUTPUTS.npz": "82c94b9031f029a2ea2425b693fc315fc39a4d3be7fb03f691e1c53b882c5c15",
+    "runs/FARE_1/FARE_OUTPUTS.npz": "9d4a0f78305af21eb3a58799b0128191b287fcffdaa8de3dd3942be35acccaac",
+    "runs/NEURAL_RAW_0/NEURAL_RAW_OUTPUTS.npz": "ff8b769a17f5d4c1fb858eb983dc7ed0e2d41525d9c8bcd1a3965b3bceff9bac",
+    "runs/NEURAL_RAW_1/NEURAL_RAW_OUTPUTS.npz": "3683e8ec0be1898785445e0f965a1155b075198571f06d0a62c468eadc7b018a",
+    "runs/STAGE_A_0/STAGE_A_OUTPUTS.npz": "ae8d29e829dc68ed7d65c260c81523dc09fa015ef449038775551a7221242e73",
+    "runs/STAGE_A_1/STAGE_A_OUTPUTS.npz": "8cd3254ecf49001784c5ad0018e2b3fa76e86a8a7cfa561ba3035983b33ce91b",
+    "runs/STAGE_B_0/STAGE_B_OUTPUTS_E20.npz": "b7ebbefe7576527ca7d57412c3b1def29e286062e9e43e2eaa97dc4d8f77e922",
+    "runs/STAGE_B_1/STAGE_B_OUTPUTS_E20.npz": "50bf2824ca2f429f2cb60772c3f670549fb9861fee6408bd7ecfadc7710762d8"
+  },
+  "rule": "Frozen MODEL_SELECT rule: one common configuration across both seeds for every tunable control.\n\nRule (SCIENCE_LOCK 'selection'): (1) task feasibility first: a configuration is FEASIBLE iff all 24 point utility\nclauses (2 tasks x {U0, Ucal} x {accuracy loss <= 0.010, NLL excess <= 0.010, summed Brier excess <= 0.005} x 2 seeds)\npass on MODEL_SELECT; (2) among feasible configurations, minimise the mean over seeds of the validation recovery proxy:\ncoalition AUC on MODEL_SELECT of a fixed OUT_LR reader (LogisticRegression C=1 on the released pair wire, finite\nscaler) trained on the MODEL_FIT pair wire with MODEL_FIT SEX; ties by the fixed grid order; (3) if no configuration\nis feasible, freeze one diagnostic fallback minimising the maximum normalised clause value (value / cap) over all 24\nclauses, ties by grid order; the fallback is INELIGIBLE (descriptive only). LOCAL_TREE (rho1 E20), TASK_REFIT (E20),\nT_TREE and the references are fixed and reported, never selected. No DEV_REPORT, ATTACK or SEALED label is read.",
+  "schema": "ACSR1-selection-lock-v1",
+  "sealed_assessment_touched": false,
+  "status": "SELECTION_LOCKED",
+  "utc": "2026-10-16T00:18:37+00:00"
+}
