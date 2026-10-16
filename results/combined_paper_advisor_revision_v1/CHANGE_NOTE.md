@@ -126,6 +126,79 @@ The numeric record is unchanged, apart from one correction and the reporting of 
 - **Figures:** the Figure 1 caption explains that Experiments 1–3 release the stored frozen head's output, and the
   bypass label is clarified. The Figure 3 caption maps "employment" to the occupation-group task.
 
+## Changes from the adversary review and the independent reader
+
+**Adversary review** (`review/ADVERSARY_REVIEW_DRAFT.md`: 7 must-fix, 19 should-fix).
+- **The exploratory noise-aware attackers are described exactly.**
+  - Which one exceeds the access: the second, fitted on clean auxiliary representations.
+  - Neither is selected on validation.
+  - They ran on the features-only surface only.
+  - Neither is an insider, repeated-query or white-box attack.
+- **Noise was evaluated only on the two primary settings,** not on all 14 pairs.
+- **Utility claims are stated per experiment.**
+- **The introduction no longer says that "where promises could be checked, they held"** (it contradicted the 11 of 42).
+- **The held-out LEACE statement is a measurement on one split,** not a guarantee.
+- **The access is described as a choice,** not a consequence.
+- **Stronger attackers within the same access make each figure a lower estimate,** while more access is a separate
+  threat model.
+- **Table 3 coverage is completed.**
+- **The brief and the scope proposal are corrected to match.**
+
+**Independent reader** (`review/INDEPENDENT_READER.md`: 9 major, 38 minor, 7 layout).
+- **New description of the data and models:**
+  - UCI Adult and HMDA 2023 California;
+  - the six purposes and their 14 pairs;
+  - the training and test splits;
+  - supported classes;
+  - the collapsed encoder.
+- **One name per head and output:** frozen head, clean output, own head, probe. Release and output contracts are
+  defined.
+- **HMDA's FARE release is disclosed as constant on seed 1.** HMDA's task gain is only 0.6–2.3 points, so the one-point
+  admissibility rule admits a single-cell release.
+- **What the intervals cover is stated:** the mean over the three stored encoders, without retraining variance. The
+  family sizes and α of Experiments 1–2 are given. "Registered" and "not established" are defined.
+- **The bypass and the features-plus-own-output results are framed as expected by construction.** The contribution now
+  names what the paper adds.
+- **The breakdown of the 4 correct and 6 wrong predictions is given.**
+- **The offset subsection now comes before the decisions subsection,** so the argument runs from decisions to useful
+  heads.
+- **The Discussion is trimmed of restated numbers.** It now explains the score–decision gap as what scores reveal beyond
+  their thresholded decisions.
+- **Slogans and repeated disclaimers are replaced,** and hard sentences are rewritten.
+- **Layout:**
+  - all three tables had floated past the references; float placement is fixed;
+  - the Figure 1 bypass label no longer collides with the recipient box;
+  - the Figure 3 caption states that no intervals are shown and that the axes are truncated.
+
+## Changes from the claims reviewer's second pass
+
+`review/CLAIMS_REVIEW_DRAFT.md` (4 must-fix, 12 should-fix, 13 notes; 32 of the 35 phase-1 discrepancies resolved).
+- **Post-run changes.** All are now listed:
+  - two lock amendments before the affected fits;
+  - two changes after results;
+  - a report-script fix;
+  - reporting repairs that belonged to Experiment 2.
+- **The measured gap is a within-head comparison.** The zero-fairness tree's score recovers 0.648 and its own decisions
+  0.546, so the gap is no longer explained through a different head's decisions.
+- **`defense_fit` is the training split minus 18 / 43 records that also occur in the test split** (24,145 → 24,127;
+  63,747 → 63,704).
+- **"Weak frozen heads" is limited to the primary settings.** Three other heads gain 0.37–0.69 over the constant.
+- **Terminology:**
+  - "development evidence" (all results) is kept apart from "exploratory" (outside registered families);
+  - the scopes of the own head and the probe are stated per experiment;
+  - the HMDA gain is the probe's.
+- **Coverage:** noise ran on four secondary pairs, not reported; the cell-conditional match claim is limited to
+  Experiment 2; the unsupported claims that the pair was "conservative" are removed.
+- **Citations and sources:**
+  - LAFTR's guarantee is conditional on an optimal adversary;
+  - output-surface numbers are labelled by experiment;
+  - the easier task's non-inferiority interval is added;
+  - the 0.096 interval type is stated.
+- **Records:**
+  - the brief now gives both noise-aware attackers' values;
+  - the scope proposal cites the access source, the worsening upper bound and the per-experiment targets;
+  - the claim-to-source table has corrected rows, renumbered rows 1–51 and the reviewer's verdict.
+
 ## Not changed
 
 - The data, fits, endpoints, intervals, decisions and figures.

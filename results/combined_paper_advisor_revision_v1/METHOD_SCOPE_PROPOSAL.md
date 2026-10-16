@@ -43,7 +43,8 @@ sensitive-attribute recovery from everything recipients receive, both individual
 Where this scope refers to the current benchmarks, their definitions are used exactly as they stand.
 
 - **ACS two-recipient output service** (Florida ACS 2019; definitions recovered from code in the mechanism-design
-  package's `PROBLEM_SPECIFICATION.md`, public commit `c9709a2`):
+  package's `PROBLEM_SPECIFICATION.md`, with the access taken from its `ADVERSARY_AND_MOTIVATION.md` and
+  `CORRECTIONS.md` §6, public commit `c9709a2`):
   - release contract: recipient *i* receives R_i = (f_i(X), argmax f_i(X)), its own probability vector and decision,
     deterministic in the six permitted fields; nothing else is released; the coalition view is the perfectly linked
     pair;
@@ -54,13 +55,16 @@ Where this scope refers to the current benchmarks, their definitions are used ex
   - utility: 24 clauses with inclusive caps (accuracy loss ≤ 0.010, NLL excess ≤ 0.010 nats, summed Brier excess
     ≤ 0.005) for 2 tasks × references U0 and Ucal × 2 seeds, plus the within-SEX occupation Brier guard (≤ 0.005);
   - claims reported separately: point feasibility, utility confidence, recovery reduction against the method's own
-    task-only twin (lower bound > 0.020 on both seeds, each recipient's worsening ≤ 0.010), competitive method (lower
+    task-only twin (lower bound > 0.020 on both seeds, each recipient's worsening upper bound ≤ 0.010), competitive method (lower
     bound > 0 against every eligible comparator, at minimum the neural adversarial control, with the nested 0.020
     margin), joint component, subgroup suitability and novelty.
 - **Stored-model benchmark of the revised paper**: release contracts (features only, for interpretation; output only;
-  features with own head output; the clean-output bypass as an adverse control), the four output formats, each
-  experiment's access and labelled budget (the paper's access table), the non-inferiority margin of −0.01, the gain
-  target of 0.03, the retention contrast and the recovery target of 0.02 AUC.
+  features with own head output; the clean-output bypass as an adverse control), the four output formats (and, in one experiment, the offset alone and the margin
+  with the offset), each experiment's access and labelled budget (the paper's access table), and the per-experiment
+  targets: level bars of 0.55 AUC, 0.05 and one point in Experiment 1; the 0.02 AUC recovery target for the contrasts
+  of Experiments 2–4; the gain target of 0.01 for the frozen heads in Experiment 3; and the non-inferiority margin of
+  −0.01, the gain target of 0.03 and the retention contrast for the useful heads of Experiment 4 (retention also on
+  Experiment 3's easier task).
 
 A randomised release, shared randomness or any change to the released objects is a contract change. It would have to be
 declared and every comparator evaluated under the same changed contract. This scope does not make such a change.
@@ -69,8 +73,8 @@ declared and every comparator evaluated under the same changed contract. This sc
 
 1. **What usefulness the service actually needs.** Do recipients need calibrated probabilities, scores for ranking, or
    only decisions? The current caps protect probabilistic quality (NLL and Brier) as well as accuracy. If decisions
-   suffice, the revised paper's post-hoc gap (on one Adult cell, decisions recover about 0.10 AUC less than the best
-   equally accurate scores) suggests a simpler release; if scores are needed, that gap is the problem to solve.
+   suffice, the revised paper's post-hoc gap (on one Adult setting, the zero-fairness tree's
+   scores recover about 0.10 AUC more than its own, equally accurate, decisions) suggests a simpler release; if scores are needed, that gap is the problem to solve.
 2. **Which attacker families and auxiliary budgets are declared,** and whether results are reported as learning curves
    over the budget rather than at one size.
 3. **Which recipients and which linkage model:** perfect or error-prone linkage, and whether coalitions larger than two
