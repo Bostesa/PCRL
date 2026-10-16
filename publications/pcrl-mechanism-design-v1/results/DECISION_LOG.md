@@ -304,3 +304,9 @@ The verifier's synthetic test of the literal RCCS map (`V_RCCS_MAP_V1`) was not 
 - **Off device.** `CORR_OFFDEVICE_V1`: tar `a0d32606…` on YOTUO, read back with 0 mismatches. The read-back may have come from the file cache, because the drive has stayed mounted, so a cold re-check remains open, as for the campaign's tars.
 - **Resources.** 5 queue units, none failed; 5.1 queue CPU-seconds plus a generous 0.1-hour shell allowance, 0.10 CPU-hours charged in all. 1.0 hour elapsed at the inventory; $0 cloud. Never more than one numerical job ran at a time, except possibly the two phase-1 check runs, which together took under 3 CPU-seconds.
 - `RESOURCE_INVENTORY.json`, `BACKUP_VERIFICATION.json` and `HANDOFF.json` (v2) have correction sections. The publication fields follow at closeout.
+
+## 2026-10-16T13:39Z — correction published on GitHub
+- **Push.** Sanitised follow-up built with the established tools: 0 scan problems; 15 files added, 15 modified, 0 deleted. Committed on `publication/pcrl-mechanism-design-v1` as `e04ff7fa8`, a fast-forward of `e141330`. Pushed to the real GitHub remote with no force push.
+- **Verified:** the remote SHA equals the local one; a fresh clone is identical (tree `32badcc0…`); six links return HTTP 200, including the original pinned `e141330` tree, which is unchanged.
+- **Entry point.** The public README and START_HERE open with the correction banner and point to `results/CORRECTIONS.md`.
+- **Mirroring.** The research branch stays off GitHub and is mirrored to the local origin only.
