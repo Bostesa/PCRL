@@ -23,11 +23,13 @@ def main(out):
             'sex': np.array([hh_sex[u] if rng.random() < 0.5 else int(rng.integers(0, 2)) for u in R['unit']], dtype=np.int64),
             'weights': rng.integers(1, 200, n).astype(np.int64)}
     C.dev_report_truth = lambda purpose: fake
+    C._SYNTHETIC_REHEARSAL = True
+    report.HALT_ON_SOURCE_REPRODUCTION = False   # synthetic labels cannot reproduce the published source values
     C.committed = lambda p: True
     res = report.run(out)
     print(json.dumps({'SYNTHETIC': True, 'claims': {k: v['decision'] for k, v in res['claims'].items()}, 'K': [len(res['endpoints_primary']), len(res['endpoints_secondary'])],
-                      'inheritance_internal': [k for k in res['inheritance_checks']['failures'] if 'source_' not in k],
-                      'controls': res['controls']['pipeline_status']}, indent=1))
+                      'checks_at_truth': res['checks_at_truth'], 'controls_valid': res['controls']['CONTROLS_VALID'],
+                      'central': res['central_question']['overall']}, indent=1))
 
 
 if __name__ == '__main__':

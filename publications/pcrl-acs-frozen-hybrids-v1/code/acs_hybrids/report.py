@@ -21,6 +21,9 @@ import numpy as np
 from . import common as C
 
 
+HALT_ON_SOURCE_REPRODUCTION = True   # engineering-rehearsal hook (amendment E1): only the synthetic-label rehearsal may switch it off
+
+
 def crit(G, level_one_sided):
     from scipy import stats
     return float(stats.t.ppf(1 - level_one_sided, G - 1))
@@ -178,7 +181,9 @@ def run(out_dir):
                 th = src_res['endpoints'][f'RECIPE|{v}_recipient_worsening_vs_TASK_REFIT|s{s}']
                 d = auc_dr[('H_LL', s, v)] - auc_dr[('TASK_REFIT', s, v)]
                 rep[f'S{s}|LOCAL_{v}_worsening_endpoint'] = bool(auc_pt[('H_LL', s, v)] - auc_pt[('TASK_REFIT', s, v)] == th['point'] and abs(float(np.std(d, ddof=1)) - th['se']) <= 1e-12)
-    if not all(rep.values()):
+    if not HALT_ON_SOURCE_REPRODUCTION and not getattr(C, '_SYNTHETIC_REHEARSAL', False):
+        raise SystemExit('HALT: the source-reproduction halt may be disabled only in the synthetic-label rehearsal')
+    if not all(rep.values()) and HALT_ON_SOURCE_REPRODUCTION:
         halts.append(f'bootstrap / source reproduction failed: {[k for k, v in rep.items() if not v]}')
     res['checks_at_truth'] = {'inheritance_equalities': {'n': len(inh), 'all_pass': all(inh.values())},
                               'source_reproduction': {'n': len(rep), 'all_pass': all(rep.values()), 'reader_replay_bitwise': replay_bitwise,
