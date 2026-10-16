@@ -1,0 +1,85 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.2em}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\pagestyle{plain}
+
+\begin{document}
+{\large\bfseries Advisor brief: the revised combined empirical paper and a proposed method scope}\\[0.2em]
+{\small 16 October 2026. Revision of the combined manuscript at commit \texttt{3b5065805}; the later
+\texttt{PCRL\_Combined\_Empirical\_Revised} files were not available on this machine and were not revised.}
+
+\section*{1. What the paper now asks}
+For stored representation models and published defenses, what can a recipient recover about a declared protected
+attribute from everything it receives, alone or linked with one other recipient, and how useful is that release for
+the recipient's task? The paper now argues from the problem to the evidence. Protection methods make promises scoped to
+an object and an attacker class: LEACE covers linear classifiers reading the representation, and FARE certifies
+classifiers that read its released cell. A recipient may receive more than that object, namely a task output and, if
+recipients link records, another recipient's output. The results separate three outcomes: a method failing its own
+test, a test holding while recovery occurs outside its scope, and recovery through a surface the test does not cover.
+
+\section*{2. Why this adversary and this access}
+The claims concern a release policy, so the adversary holds what the policy delivers. An authorized recipient
+necessarily possesses its own release, so that part needs no further justification. Two capabilities are granted, not
+established. \emph{Linkage}: two recipients serving the same person may pool releases by record; we grant perfect
+linkage, the attacker-favourable limit, without assuming that governance prevents linkage or that pooling is
+unavoidable. \emph{Labelled auxiliary data}: our attackers are supervised and learn from releases of other records with
+the attribute, which models a recipient that knows the attribute for some of the people it serves; availability, size
+and population match are assumptions. A stronger attacker alone does not justify more access. Inputs held by the
+recipient, published parameters, repeated queries and insiders are distinct threat models, not necessarily breaches;
+they are untested, not dismissed. The paper now has a table that states, for each experiment, what the recipient
+receives, the labelled sample, how attackers are fitted, selected and scored, what they know about the defense, how
+releases are linked and what is untested.
+
+\section*{3. What the results establish}
+\begin{itemize}
+\item \textbf{Scope, not failure.} Official LEACE meets its linear bound on every map, while nonlinear attackers recover
+the attribute about as well as from untreated features (AUC 0.817 and 0.863 against 0.815 and 0.870).
+\item \textbf{A method's own test failing.} The encoders' stored linear check fails on 12 of 42 attribute--seed
+combinations.
+\item \textbf{Other surfaces.} Releasing the untreated model's output beside defended features restores recovery to
+0.76--0.79, and outputs reveal more than the true label alone would.
+\item \textbf{Utility changes the reading.} With useful heads, FARE's score recovers 0.539 against 0.774 untreated, but a
+same-budget tree without the fairness term already reaches 0.648, and FARE's accuracy is not shown to stay within one
+point. On an easier task, compression reproduces most of FARE's effect.
+\item \textbf{Linked recipients.} Two linked recipients recover race better than either alone in every output format,
+including hard decisions (0.611 against 0.576).
+\end{itemize}
+All of this is development evidence on previously used rows, with intervals conditional on the fitted heads and
+attackers.
+
+\section*{4. What remains unproved}
+There is no population privacy guarantee: recovery is a property of our attacker slate and data budget. Differences in
+recovery may reflect information removed, limits of our attackers, or both, and the paper does not separate them. A
+deterministic release need not be reversible, and the paper does not establish whether any release keeps or discards
+the attribute's posterior. The excluded threat models, imperfect linkage and other auxiliary budgets are untested.
+Nothing is fresh confirmation, and there is no new method and no composition or synergy result.
+
+\section*{5. Proposed objective for the future method}
+Develop purpose-specific releases that retain the usefulness required by each permitted task while reducing
+sensitive-attribute recovery from everything recipients receive, both individually and when releases are linked. The
+endpoint is empirical: recovery under declared access, attacker families and auxiliary-data budgets, reported beside the
+utility of what is released. A mechanism may aim to remove information that the tasks do not need and still be judged
+by finite attacks; the two goals are compatible. A claim about arbitrary attackers would need a theorem; exact examples
+demonstrate their own laws, not real-population privacy. A competitive method need not be a joint design, and joint
+benefit, competitiveness and novelty are separate questions. Existing utility caps, release contracts and references
+stay unchanged. No competitive new mechanism has been established, and agreeing on this scope does not supply one.
+
+\section*{6. Feedback and decisions needed}
+\begin{enumerate}
+\item Is the question and the stated threat model the right framing for the empirical paper, and is the per-experiment
+access table sufficient?
+\item Should the paper stay at its current evidence cutoff? Possible extensions are listed separately and none is
+proposed for immediate work.
+\item What usefulness does the service actually need: calibrated probabilities, ranking scores, or decisions? This
+choice defines the method problem.
+\item Which attacker families, auxiliary budgets, linkage model and comparators should a future method be judged
+against, and is a formal guarantee a goal?
+\end{enumerate}
+\end{document}

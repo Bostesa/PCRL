@@ -5,6 +5,8 @@
 \usepackage{microtype}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage{graphicx}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{xcolor}
@@ -16,6 +18,7 @@
 
 \newcommand{\Rec}{\mathrm{R}}
 \newcommand{\Acc}{\mathrm{Acc}}
+\newcommand{\TBD}[1]{\textcolor{red}{[TBD: #1]}}
 
 \title{What a Recipient Can Recover from a Useful Prediction:\\
 An Evaluation of Feature Defenses and Output Contracts on Stored Representation Models}
@@ -26,151 +29,251 @@ An Evaluation of Feature Defenses and Output Contracts on Stored Representation 
 \maketitle
 
 \begin{abstract}
-A model that serves several purposes may release two things to each recipient: protected features and a task prediction.
-We ask, on stored Adult and HMDA models, what a recipient can recover about a declared protected attribute from the
-\emph{complete} release, and how useful that release is for its task.
-We evaluate purpose-specific encoders with each method's own protection check, official target LEACE, official FARE,
-a capacity-matched zero-fairness FARE tree, and several output formats (full logits, logits without their common
-offset, probabilities, hard decisions), using one attacker slate, held-out roles, and paired group-bootstrap intervals.
-Four findings recur.
-(i) Methods can pass their own checks while nonlinear recipients still recover the attribute (AUC about 0.81--0.86 under
-official LEACE, against 0.82--0.87 untreated), and the purpose-specific encoders fail their own stored linear check on 12 of 42 attribute--seed
-combinations.
-(ii) Releasing an unchanged task output bypasses any feature defense (recovery returns to 0.76--0.79).
-(iii) The frozen heads' hard decisions leak little but are also weakly useful; when every arm releases a genuinely
-useful logistic-regression head fitted on its own features, the head's score under LEACE still recovers sex at 0.759
-(untreated 0.774), while FARE's recovers 0.539 at an accuracy cost whose non-inferiority within one point is not established.
-A same-size tree without the fairness term recovers 0.648, so on this cell the fairness term removes 0.109 AUC beyond
-compression, whereas on an easier task compression reproduced most of FARE's effect.
-(iv) When two recipients link their outputs by record, our attackers recover more from the pair than from either
-output alone, including from decisions only.
-All results are development evidence on repeatedly used data. We propose no new algorithm, no population privacy
-certificate and no composition theorem.
+Methods that protect a declared attribute in a learned representation come with checks that cover a particular object
+and a particular class of attackers. A recipient served by a multi-purpose model may receive more than that object: a
+task output instead of, or together with, protected features, and two recipients that serve the same person may link
+what they receive. We ask what a recipient can recover about the attribute from everything it receives, alone or linked
+with a second recipient, and how useful the release remains. On stored Adult and HMDA representation models we apply
+each method's own check and then attack every released surface with one slate of attackers fitted on labelled releases
+of other records. Official LEACE meets its linear bound, yet nonlinear attackers recover the attribute about as well as
+from untreated features (AUC 0.817 and 0.863, against 0.815 and 0.870). The guarantee covers linear classifiers, so
+this recovery lies outside its scope and does not contradict it. Releasing the untreated model's task output beside noisy or FARE features restores recovery to
+0.76--0.79. When each treatment releases a useful logistic-regression head, FARE lowers sex recovery from the head's
+score from 0.774 to 0.539, but a same-budget tree without the fairness term accounts for about half of that reduction,
+and FARE's accuracy is not shown to stay within one point. In the one coalition we evaluated, two recipients granted
+perfect linkage of their outputs recover more than either alone, even from decisions. All results are development evidence on previously used data under a
+declared threat model; we propose no new method and no privacy guarantee.
 \end{abstract}
 
 \section{Introduction}
 
-Representation-level defenses are usually evaluated on the representation: a linear probe, an in-training adversary,
-or a certificate about classifiers that read the representation. A release policy, however, is defined by what each
-recipient receives. As an illustration, and not a description of any documented deployment, consider a service that
-holds records about people and serves two recipients with different permitted purposes: one receives a prediction of
-an income band, the other a prediction of an occupation group, and neither may use a declared attribute such as sex
-or race. For each person it serves, a recipient receives the output of its own task (a score, a probability vector or
-a decision) and possibly the features that produced it. The policy is written per recipient, but the person is shared.
-A recipient usually knows whom an output describes, so two recipients that serve the same person could link their
-outputs by record, and a recipient may know the protected attribute for some of the people it serves, which would let
-it learn how outputs relate to that attribute. Under these conditions a defense applied to the features addresses only
-part of what recipients see: the task output may carry what was removed from the features, a recipient may hold
-features and output together, and two recipients may pool linked outputs. We know of no source that documents a
-deployment with all of these properties, so we do not claim that one exists. We study one narrow question that these
-conditions raise: what a fixed set of attackers, each fitted on labelled releases of other records from the same
-population, recovers from the releases themselves, held by one recipient or by two whose releases are perfectly linked
-(Section~\ref{sec:threat}). Other access, such as a recipient that also holds a person's inputs, public model
-parameters or permission to query repeatedly, defines a different threat model, which we leave untested rather than
-dismiss.
+Methods that protect a declared attribute in a learned representation are stated and checked on that representation.
+LEACE erases the linearly available information about the attribute, so that no linear classifier reading the erased
+representation predicts it better than a constant~\citep{belrose2023leace}. FARE maps records to a finite set of cells
+and certifies the demographic-parity distance of any classifier that reads only the cell~\citep{jovanovic2023fare}. The
+purpose-specific encoders we study were trained so that a linear probe's $R^2$ for each disallowed attribute stays below
+a threshold. Each of these promises is precise about two things, the object it covers and the attackers it covers, and
+neither has to coincide with what a recipient of the system holds.
 
-This paper reports a controlled empirical analysis of that complete view on stored models. We evaluate four bodies of
-work in our repositories that were developed separately and are \emph{not} connected by any pipeline: purpose-specific
-encoders with a linear protection constraint; attribute-removal and isolation work on those encoders (an erase layer,
-noise, and comparisons with LEACE, INLP, LAFTR and SPLINCE); finite-release studies on later census data; and the
-stored-model analyses that this paper centres on (a matched removal benchmark, an output-aware study, an output
-diagnosis and the useful-head comparison). We never describe them as one evaluated architecture. The encoders use a frozen, \emph{seeded, randomly
-initialised} backbone with trained per-purpose adapters and heads; the backbone is not pretrained.
+A release policy is defined by what each recipient receives. As an illustration, and not a description of any
+documented deployment, consider a service that holds records about people and serves two recipients with different
+permitted purposes: one receives a prediction of income, the other a prediction of an employment group, and neither may
+use a declared attribute such as sex or race. For each person it serves, a recipient receives the output of its own task
+(a score, a probability vector or a decision) and possibly the features that produced it. The policy is written per
+recipient, but the person is shared. A recipient usually knows whom an output describes, so two recipients that serve
+the same person could link their outputs by record, and a recipient that knows the protected attribute for some of the
+people it serves could learn how outputs relate to that attribute. Under these conditions a defense applied to the
+features addresses only part of what recipients see: the task output may carry what was removed from the features, a
+recipient may hold features and output together, and two recipients may pool linked outputs. We know of no source that
+documents a deployment with all of these properties, so we do not claim that one exists.
 
-\paragraph{Questions.} We organise the evidence around five questions: what each method's own protection check
-establishes; what a recipient recovers from the features, the output, or both; how useful the released output is;
-how much of a fair-representation method's effect is ordinary compression; and what changes when recipients combine
-their releases.
+These conditions raise a narrow question, which this paper studies. For stored representation models and published
+defenses, what can a recipient recover about a declared protected attribute from everything it receives, alone or
+linked with one other recipient, and how useful is that release for the recipient's task? We answer it under a declared
+threat model (Section~\ref{sec:threat}). The recipient holds exactly its release, the attacker learns from a labelled
+sample of other records' releases from the same population, and a pair of recipients is granted perfect linkage. Other
+access, such as a recipient that also holds a person's inputs, public model parameters or permission to query
+repeatedly, defines a different threat model, which we leave untested rather than dismiss.
 
-\paragraph{Contributions.} (1) A common evaluation protocol (one attacker slate and endpoint discipline; roles and bootstrap differ
-slightly across studies, Section~\ref{sec:protocol}) applied to the same stored models: each method's native
-check, nonlinear recovery from the representation, from the complete output and from both, held-out utility of the
-output actually released, a capacity-matched zero-fairness control, and recipient pairs (Section~\ref{sec:protocol}).
-(2) A matched comparison in which every arm releases a deployable task head of one common family fitted on its own
-features, so that recovery is read beside real utility rather than beside a probe (Section~\ref{sec:useful}).
-(3) Measured findings with their adverse qualifications: an output-contract change that lowered recovery for particular
-frozen heads but not in general; the compression share of FARE's effect, which differs between two cells; and
-decision-level coalition gains. The individual observations---that linear protection does not stop nonlinear recovery,
-that outputs leak beyond labels, that hard labels are not a defense in general, and that combined releases leak
-more---are established (Section~\ref{sec:related}); our contribution is measuring them together, with utility, on the
-same models.
+We study six stored purpose-specific encoders trained on Adult and HMDA. For each, we first apply each method's own
+protection check and then measure recovery from every surface a recipient could receive: the representation, the task
+output in four formats that carry different amounts of information, features and output together, and the outputs of
+two recipients linked by record. The same slate of linear, tree and neural attackers, fitted and selected on held-out
+roles, attacks every surface, and each recovery figure is read beside the held-out utility of the output that is
+actually released. A tree of the same budget as FARE's but without its fairness term separates the effect of that term
+from the effect of compression.
 
-\paragraph{Scope.} Every assessment row has been used by earlier analyses in our repositories. Registering endpoints and
-committing locks before fitting does not turn these rows into fresh confirmation. Intervals are conditional on the
-fitted heads and attackers. Recovery is a measured property of our attackers, not a population privacy guarantee. We
-make no use of an earlier, retired bound from linear $R^2$ to classifier accuracy, and we do not claim that the public
-code's default interface has been repaired: a fix exists on an unmerged branch.
+The results separate three situations that a single recovery figure would conflate. A method can pass its own check
+while recovery continues outside the check's scope: official LEACE meets its linear bound on every map, and nonlinear
+attackers recover the attribute about as well as from untreated features. The encoders' own constraint is a different
+case, because their stored linear check fails on 11 of 42 attribute--seed combinations, which is a failure of the
+method's own test. Finally, recovery can come through a surface that a feature defense does not cover: releasing the
+untreated model's output beside defended features restores recovery, and output-only recovery exceeds what the true
+label alone allows. Utility changes how low recovery should be read. The frozen task heads' hard decisions leak little,
+but they barely beat a constant. When every treatment releases a useful head, FARE's score recovers much less than the
+untreated or LEACE score, yet about half of that reduction is reproduced by a same-budget tree without the fairness
+term, and FARE's accuracy is not shown to stay within one point. In the one coalition we evaluated, two recipients with
+perfectly linked outputs recover more than either alone, even when each receives only decisions.
+
+None of this shows that the evaluated methods are broken; where their promises could be checked, they held. The results
+show what a method has to address if its aim is to limit what recipients can learn: the complete release under a stated
+access model, the utility of the output that is actually released, a capacity-matched control for any effect claimed for
+a fairness term, and the linked view of recipients that serve the same people (Section~\ref{sec:discussion}). Our
+contribution is this evaluation and its measurements, with their qualifications. The individual observations, that
+linear protection does not stop nonlinear recovery, that outputs leak beyond labels, that hard labels are not a defense
+in general and that combined releases can leak more, are known (Section~\ref{sec:related}); we measure them together,
+with utility, on the same models and under one stated threat model. Every assessment row had been used by earlier
+analyses of these models, and registering endpoints before fitting does not turn these rows into fresh confirmation.
+Intervals are conditional on the fitted heads and attackers. We propose no new algorithm, no population privacy
+guarantee and no composition theorem, and we make no use of an earlier, retired bound from linear $R^2$ to classifier
+accuracy.
 
 \section{Setting}\label{sec:setting}
 
-\paragraph{Stored models.} We use six stored purpose-specific encoders (Round~4 checkpoints): Adult and HMDA, encoder
-seeds 0, 1 and 2. Each maps a record to a 64-dimensional representation per purpose and carries a frozen task head per
-purpose. The encoders were trained with a linear (one-hot ridge $R^2\le 0.05$) constraint on declared disallowed
-attributes. The primary cells are Adult \texttt{income\_prediction} with protected attribute sex and HMDA
-\texttt{underwriting} with race; secondary analyses use all 14 stored purpose--attribute pairs.
+\paragraph{Stored models.} We use six stored purpose-specific encoders from earlier work, trained on Adult and HMDA with
+encoder seeds 0, 1 and 2. Each encoder passes a record through a frozen, seeded, randomly initialised backbone, which is
+not pretrained, and a trained adapter per purpose. It produces a 64-dimensional representation for each purpose and
+carries a frozen task head for each purpose. The encoders were trained with a linear constraint on declared disallowed
+attributes, a one-hot ridge $R^2$ computed on each training minibatch and held at or below 0.05; their stored check is a
+different object, an in-sample one-hot ridge $R^2$ on the test split with the same threshold. The primary cells are Adult \texttt{income\_prediction} with protected
+attribute sex and HMDA \texttt{underwriting} with race; secondary analyses use all 14 stored purpose--attribute pairs.
 
-\paragraph{Recipients and release contracts.} Figure~\ref{fig:recipient} shows the paths. A recipient receives (1) a
-task output only; (2) features together with the output of a head fitted only on those features; or, as an adverse
-control, (3) features together with the historical clean task logits of the untreated model---a bypass that a
-release policy should not permit. Outputs are released in one of four formats. For a $K$-class logit vector $l$, write
-the common offset $c=\frac1K\sum_k l_k$ and the centred logits $l-c\mathbf 1$; for $K=2$ the centred logits are
+\paragraph{Recipients and release contracts.} Figure~\ref{fig:recipient} shows the paths. Besides features alone, which
+we report for interpretation, a recipient receives (1) a task output only; (2) features together with the output of a
+head fitted only on those features; or, as an adverse control, (3) features together with the historical clean task
+logits of the untreated model. The third path is a bypass
+that a release policy should not permit. Outputs are released in one of four formats. For a $K$-class logit vector $l$,
+write the common offset $c=\frac1K\sum_k l_k$ and the centred logits $l-c\mathbf 1$; for $K=2$ the centred logits are
 determined by the margin $d=l_1-l_0$. Probabilities and decisions do not depend on $c$ (softmax shift
 invariance~\citep[\S4.1]{goodfellow2016deep}). The formats are \emph{full} logits, \emph{centred} logits,
 \emph{probabilities}, and the \emph{hard} decision.
-
-\paragraph{Adversary and access.}\label{sec:threat} A \emph{recipient} is a party permitted one purpose. In our
-evaluation, for each scored record it receives that purpose's release under the contract in force, and nothing else
-about the record: not its inputs, its true task label or its protected attribute, and not the model's parameters,
-gradients or internal states (defense maps, heads, or a representation that the contract does not release). Each
-record is released once, and no attacker submits inputs of its choosing. Our attackers are supervised: each learns to
-turn a release into a guess about the protected attribute from labelled auxiliary data that the benchmark grants,
-namely the releases of the records in \texttt{attacker\_fit} together with their protected attribute, and a second
-labelled set, \texttt{attacker\_val}, on which the attacker is chosen and oriented. Both come from the same population
-as the scored records, and these two roles (Section~\ref{sec:protocol}) fix the attacker's data budget. This grant is
-an assumption of the benchmark. It models a recipient that knows the attribute for some of the people it serves, as in
-attribute-inference work in which attackers train on labelled examples or on people who disclosed the attribute
-\citep{song2020overlearning,jia2018attriguard}; we do not show that a recipient can obtain such data, in this amount
-or from the same population, in practice. Attacks that need no such sample, for example ones that use a known
-population law, are not evaluated. A \emph{coalition} of two recipients holds both recipients' releases for the same
-record, perfectly linked. We do not assume that contracts or governance prevent such linkage; perfect linkage is the
-attacker-favourable limit, and we model no linkage error. Attackers are refitted to the releases of the defended
-system and so adapt to the distribution that the defense emits; only in that limited sense are they defense-aware. A
-recipient may know a defense's published algorithm and objective, but our attackers use no such knowledge beyond this
-refitting, and none uses fitted parameters or gradients. Record and household identifiers assign roles and align
-releases; they are never attacker inputs. This scope isolates one narrow question: what attackers that learn from
-this labelled sample recover from the releases alone. A record's own inputs in the attacker's hands, public model
-parameters or gradients, permitted repeated or chosen queries, attacks that exploit a defense's published objective or
-its parameters, and insiders each define a different threat model (Section~\ref{sec:limits}); we do not test them, and
-we neither claim protection against them nor dismiss them. Recovery is therefore a measured property of a fixed
-attacker slate under this conditional threat model, not a privacy guarantee.
 
 \begin{figure}[t]
 \centering
 \resizebox{\linewidth}{!}{\input{fig_recipient.tex}}
 \caption{Recipient view. Solid paths are permitted releases: (1) output only, in one of four formats; (2) features of
-an arm (A untreated, B LEACE, F FARE, F0 zero-fairness FARE tree) released with the output of a task head fitted only
-on those features. The dashed path (3) is the historical clean-output bypass, evaluated only as an adverse control.}
+a treatment (A untreated, B LEACE, F FARE, F0 zero-fairness FARE tree) released with the output of a task head fitted
+only on those features. The dashed path (3) is the historical clean-output bypass, evaluated only as an adverse
+control.}
 \label{fig:recipient}
 \end{figure}
 
-\paragraph{Feature arms.} A: untreated representation. B: official target LEACE~\citep{belrose2023leace}
+\paragraph{Feature treatments.} A: the untreated representation. B: official target LEACE~\citep{belrose2023leace}
 (concept-erasure 0.2.4), fitted on the owner's \texttt{defense\_fit} role. F: official FARE~\citep{jovanovic2023fare},
-whose nominee is chosen from a frozen grid on validation only among configurations within one point of untreated
-validation accuracy; its release is the one-hot tree cell. F0: the same FARE configuration with fairness weight zero,
-i.e.\ a tree of the same budget that only compresses. Gaussian noise at a validation-selected scale appears in the
-benchmark. No defense grid was expanded and no candidate was re-selected after assessment.
+whose release is the one-hot tree cell. Its configuration is chosen from a frozen grid among those whose probe accuracy
+on \texttt{attacker\_val} is within one point of the untreated probe's, as the one with the lowest validation recovery
+for our nonlinear attacker. F0: the same FARE configuration with fairness weight zero, that is, a tree of the same budget
+that only compresses. Experiment~1 also adds Gaussian noise to the representation at the smallest scale $\sigma^*$
+whose validation recovery for our nonlinear attacker is at most 0.55 ($\sigma^*=2$ on Adult and 4 on HMDA). Both
+defenses were therefore tuned against the evaluated attacker slate on the attackers' own selection rows, a selection
+that favours them when they are scored against the same slate. No defense grid was expanded and no configuration was re-selected after assessment.
+
+\section{Threat model and access}\label{sec:threat}
+
+\paragraph{The recipient and its release.} A \emph{recipient} is a party permitted one purpose. For each record it
+serves, it receives that purpose's release under the contract in force and nothing else about the record: not the
+record's inputs, its true task label or its protected attribute, and not the model's parameters, gradients or internal
+states (defense maps, heads, or a representation that the contract does not release). Each record is released once, and
+no recipient submits inputs of its choosing. For the noise treatment, noise is drawn once per record for each of three
+release seeds; the three realizations are attacked separately and averaged, never pooled for one record. The label-only
+reference of Section~\ref{sec:outputs} is a comparator, not a recipient: it reads the scored record's true task label.
+
+\paragraph{Why this access.} The claims we evaluate concern a release policy, so the adversary holds what the policy
+delivers. That part of the access describes the service itself: an authorized recipient necessarily possesses the
+information delivered to it. Two further capabilities are granted by the evaluation and are
+not established for any deployment. The first is linkage. Two recipients that serve the same person may link their
+releases by record, and the linked-recipient evaluation asks whether protection that holds for each recipient survives
+when they pool. We grant perfect linkage, the attacker-favourable limit: a low pair recovery cannot be blamed on linkage
+error, while a high one may overstate what a coalition with imperfect linkage would recover. We do not assume that
+contracts or governance prevent linkage, and we do not claim that pooling is unavoidable. The second capability is
+labelled auxiliary data: releases of other records from the same population together with their protected attribute.
+This models a recipient that knows the attribute for some of the people it serves and can therefore learn how outputs
+relate to the attribute, as in attribute-inference work in which attackers train on labelled examples or on people who
+disclosed the attribute~\citep{song2020overlearning,jia2018attriguard}. The availability of such data, its size and its
+match to the scored population are assumptions of the benchmark; we do not show that a recipient could obtain such data
+in practice. A stronger attacker could recover more, but that alone does not justify granting more access. Each further
+capability defines a separate threat model that needs its own justification.
+
+\paragraph{Attackers.} Our attackers are supervised. Each is fitted on the releases of the \texttt{attacker\_fit}
+records labelled with the protected attribute, chosen by log loss on the labelled \texttt{attacker\_val} records, and
+scored on \texttt{assessment} records that no attacker was fitted or selected on (Section~\ref{sec:protocol}). Tree and
+neural attackers also hold out an internal 10\% of \texttt{attacker\_fit} for early stopping. The sizes of the two
+labelled roles fix the attacker's data budget; they differ between experiments and are listed in
+Table~\ref{tab:access}. The labelled sample is a requirement of these supervised attackers, not of every conceivable
+attack, and attacks that need no labelled sample, for example ones built from a known population law, are not
+evaluated. Attackers are refitted to the releases of the defended system and so adapt to the distribution that the
+defense emits; only in that limited sense are they defense-aware. Knowing a defense's published algorithm and objective
+is different from holding its fitted parameters. A recipient may know the former, but the attackers whose recovery we
+report use neither beyond refitting to the defended releases. Records are assigned to roles by a hash of a canonical
+record key, which also groups duplicate records; keys and row identifiers align releases and are never attacker
+inputs.
+
+\paragraph{What recovery measures.} Recovery is the held-out AUC that our attackers achieve. It is a measured property
+of a fixed attacker slate under this threat model, not a privacy guarantee. A difference in recovery between two
+treatments can reflect information about the attribute that one treatment removed, limits of our attackers at this data
+budget, or both, and our measurements do not separate the two. A deterministic or real-valued release need not be
+reversible: a function of the representation can merge records, and a deterministic map to probability vectors, which
+stays within the probability-output contract, can remove information about the attribute. Conversely, we do not
+establish that any evaluated release preserves the population distribution of the attribute given the record. A high
+recovery therefore does not show that a release kept all of the attribute's information, and a low recovery does not
+show that the information is gone.
+
+\paragraph{Access in each experiment.} Table~\ref{tab:access} gives, for each experiment, what the recipient receives,
+the labelled sample, how the attackers are fitted, selected and scored, what they know about the defense, how releases
+are linked, and what remains untested. The attackers of each experiment are described as they were implemented; no
+experiment is credited with a capability that only a later evaluation added. One historical attacker exceeds the access
+described above. On the noise treatment only, Experiment~1 also ran two exploratory Gaussian likelihood-ratio attackers
+that know the noise scale; one of them is fitted on clean, pre-noise representations of the auxiliary records, which no
+contract releases. They are not insider, repeated-query or white-box attacks: each sees one noisy release per record and
+none uses model parameters or the target's clean representation. At $\sigma^*$ they recovered 0.546 and 0.563 on Adult
+and 0.526 and 0.575 on HMDA, against 0.528 and 0.513 for the slate (exploratory values with unadjusted intervals and no
+paired test). The noise rows of Table~\ref{tab:summary} are therefore not the strongest attack that was run on that
+surface.
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Access in each experiment. Common to every attack: one release per record (noise: one draw per record for each
+of three release seeds, attacked separately); attackers fitted on labelled \texttt{attacker\_fit} releases, selected by
+\texttt{attacker\_val} log loss and scored on \texttt{assessment}; no attacker receives a record's inputs, model
+parameters, gradients or defense maps, and record keys are never attacker inputs. Labelled sample: rows of
+\texttt{attacker\_fit} / \texttt{attacker\_val}. The label-only reference reads the scored record's true task label and
+is a comparator, not a recipient.}\label{tab:access}
+\begin{tabular}{@{}L{2.2cm}L{4.6cm}L{2.5cm}L{5.6cm}@{}}
+\toprule
+Experiment & What the recipient receives & Labelled sample (Adult; HMDA) & Defense knowledge, linkage, untested access\\
+\midrule
+Encoders' stored check (reproduced in Exp.~1) & a check, not an attack: ridge fitted and scored in sample on the
+64-dimensional representation of every test record & none; uses the scored records' own labels (15{,}060; 13{,}661) &
+the method's own test; covers only linear prediction from the representation\\
+\addlinespace
+1. Feature removal (all 14 pairs) & representation (untreated, LEACE, noise at $\sigma^*$); representation with the
+untreated head's full logits; full logits only & 7{,}571 / 2{,}239; 6{,}794 / 2{,}089 & slate refitted to releases;
+$\sigma^*$ chosen on \texttt{attacker\_val} with the slate; exploratory likelihood-ratio attackers know $\sigma$ (see
+text). Features and output held by one recipient. Untested: repeated or fresh-noise queries, own-head outputs, other
+formats, pairs\\
+\addlinespace
+2. Finite releases and output formats & FARE or zero-fairness cell (one-hot) or representation; either with the
+untreated head's full logits; frozen-head output as full logits, probabilities or hard decision & 6{,}065 / 2{,}235;
+5{,}388 / 2{,}082 (after 1{,}500; 1{,}385 rows for FARE certification) & slate refitted to releases; FARE configuration
+chosen on \texttt{attacker\_val} with the slate; a cell-conditional attacker on some finite releases (descriptive). No
+pairs. Untested: attacks using FARE's tree or objective, noise-aware attacks, repeated queries\\
+\addlinespace
+3. Output diagnosis & frozen-head output in six formats (full, centred, probabilities, offset, centred with offset,
+hard) and two format banks; Adult income and employment outputs concatenated for one linked pair; features, own output
+or both on an easier task & as Exp.~2 (pair and easier task: Adult only) & no defense on the frozen and pair outputs;
+FARE configuration on the easier task chosen on \texttt{attacker\_val} with the slate. Pair: perfect linkage granted by
+aligned rows, linked labelled sample, single-recipient attackers among the candidates. Untested: imperfect linkage, more
+than two recipients, pairs that include features or defended outputs, HMDA pairs\\
+\addlinespace
+4. Useful heads (Adult income / sex) & output of a logistic-regression head fitted on each treatment's features, in
+four formats and two banks; features with own output; features only; features with the untreated head's logits & as
+Exp.~2 (Adult) & slate refitted to releases; F is Exp.~2's configuration. No pairs. Untested: repeated queries, other
+head families, HMDA\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Threat models outside this evaluation.} The following are distinct threat models that we do not test.
+Several involve no breach of the provider: a recipient may legitimately hold a person's inputs, a model may be
+published, and a service may permit repeated queries. Some are governed by release-policy choices such as rate limits,
+one release per person, query auditing and whether to publish the model; others need security controls. We claim no
+protection against any of them and do not dismiss them: recipients that also hold a record's inputs or later learn its
+true label; public or leaked model parameters or gradients; permitted repeated, adaptive or chosen-input queries,
+including releases from several model versions; attacks that exploit a defense's published objective or its fitted
+parameters beyond refitting; insiders; imperfect linkage; coalitions of more than two recipients; and auxiliary samples
+larger or smaller than ours, drawn from another population, or containing the auxiliary records' inputs or task labels.
 
 \section{Related work}\label{sec:related}
 
 \paragraph{Concept erasure and its evaluation.} Linear concept erasure aims to stop linear classifiers from recovering a
 concept: INLP~\citep{ravfogel2020inlp} by iterative nullspace projection, R-LACE~\citep{ravfogel2022rlace} through a
 linear minimax game, and LEACE~\citep{belrose2023leace}, which guarantees it in closed form with minimal change to the
-representation. Such guarantees do not extend to nonlinear
-recipients: INLP and R-LACE report nonlinear recovery after linear erasure, kernelized erasure does not transfer
-across kernels~\citep{ravfogel2022kernel}, and LEACE restricts its claim to linear adversaries. Adversarially trained
-representations show the same pattern: post-hoc attackers recover what the in-training adversary could
-not~\citep{elazar2018adversarial,song2020overlearning}, and independent post-hoc adversaries are a standard
-check~\citep{moyer2018invariant}. Our LEACE measurements are a further instance, not a refutation of LEACE's theorem.
+representation. Such guarantees do not extend to nonlinear recipients: INLP and R-LACE report nonlinear recovery after
+linear erasure, kernelized erasure does not transfer across kernels~\citep{ravfogel2022kernel}, and LEACE restricts its
+claim to linear adversaries. Adversarially trained representations show the same pattern: post-hoc attackers recover
+what the in-training adversary could not~\citep{elazar2018adversarial,song2020overlearning}, and independent post-hoc
+adversaries are a standard check~\citep{moyer2018invariant}. Our LEACE measurements are a further instance, not a
+refutation of LEACE's theorem.
 
 \paragraph{Leakage through task outputs.} Model-inversion and attribute-inference attacks exploit confidence
 scores~\citep{fredrikson2014pharmacogenetics,fredrikson2015model}; label-only attacks can match confidence-based
@@ -178,29 +281,32 @@ ones~\citep{mehnaz2022sensitive}, and masking confidences does not stop label-on
 inference~\citep{choquettechoo2021label}. \citet{wang2019balanced} compare leakage from predictions with that implied
 by the true labels at matched task performance; we report a label-only reference in the same spirit. A multiclass
 log-linear head on a linearly guarded representation can still reveal the erased concept, although a binary one
-cannot~\citep{ravfogel2023loglinear}.
-Many black-box attribute-inference results do not exceed imputation~\citep{jayaraman2022imputation}, so we report
-constant and label-only references. Coarsening outputs, e.g.\ rounding confidences~\citep{fredrikson2015model}, is an
-old countermeasure; releasing probabilities rather than logits leaves calibration~\citep{guo2017calibration} and every
-proper task loss unchanged.
+cannot~\citep{ravfogel2023loglinear}. Many black-box attribute-inference results do not exceed
+imputation~\citep{jayaraman2022imputation}, so we report constant and label-only references. Coarsening outputs, for
+example rounding confidences~\citep{fredrikson2015model}, is an old countermeasure; releasing probabilities rather than
+logits leaves calibration~\citep{guo2017calibration} and every proper task loss unchanged.
 
 \paragraph{Fair representations and trade-offs.} When the label depends on the protected attribute, fair
-representations trade accuracy for protection~\citep{zhao2019inherent,zhao2022inherent}, and a release useful for a
-task reveals what the task's label reveals~\citep{stadler2024lpl}. Adversarial methods such as
-LAFTR~\citep{madras2018laftr} lack guarantees against unseen classifiers; FCRL~\citep{gupta2021fcrl} evaluates with a
-common downstream protocol. FARE~\citep{jovanovic2023fare} restricts the encoder to a finite partition and certifies the
-demographic-parity distance of any classifier that reads only the cell; its authors note that restricted encoders lose
-information and compare fairness-unaware $k$-means encoders. We add a same-budget zero-fairness tree and measure
-attribute recovery from the complete release.
+representations trade accuracy for protection~\citep{zhao2019inherent,zhao2022inherent}.
+\citet{stadler2024lpl} prove that, when the label posterior is strictly positive, no useful representation can bound
+inference beyond the task label for \emph{every} attribute; the violating attribute is constructed, and the authors note
+that leakage of a single attribute can sometimes be restricted. We report a label-only reference as a descriptive
+comparison rather than a floor: our releases are computed from the inputs alone, so they can reveal less, or more, than
+the true label does. Adversarial methods such as LAFTR~\citep{madras2018laftr} lack guarantees against unseen
+classifiers; FCRL~\citep{gupta2021fcrl} evaluates with a common downstream protocol. FARE~\citep{jovanovic2023fare}
+restricts the encoder to a finite partition and certifies the demographic-parity distance of any classifier that reads
+only the cell; its authors note that restricted encoders lose information and compare fairness-unaware $k$-means
+encoders. We add a same-budget zero-fairness tree and measure attribute recovery from the complete release.
 
 \paragraph{Adversary models and combined releases.} Our recipient is not a new adversary. It is the auxiliary-data
 attacker of attribute inference, which learns from labelled examples to read a sensitive attribute from what a model
-exposes~\citep{song2020overlearning,jia2018attriguard}, applied here to released task outputs. Combining independent
-releases is a classical route to breaches~\citep{ganta2008composition}; recipients of differently perturbed copies of
-the same data can pool them, and mechanisms exist under which the pool reconstructs the data no more accurately than
-the best single copy~\citep{li2012multilevel}; combining a biased and a debiased version of one model raises attribute
-inference~\citep{tian2025fairnessprivacy}; and collusion-aware mechanisms exist for sequential finite-alphabet
-releases~\citep{taylor2026collusion}. We measure the purpose-permission version, as a property of our attackers.
+exposes~\citep{song2020overlearning,jia2018attriguard}, applied here to released task outputs as well as
+representations. Combining independent releases is a classical route to breaches~\citep{ganta2008composition}; recipients
+of differently perturbed copies of the same data can pool them, and mechanisms exist under which the pool reconstructs
+the data no more accurately than the best single copy~\citep{li2012multilevel}; combining a biased and a debiased
+version of one model raises attribute inference~\citep{tian2025fairnessprivacy}; and collusion-aware mechanisms exist
+for sequential finite-alphabet releases~\citep{taylor2026collusion}. We measure the purpose-permission version, as a
+property of our attackers.
 
 \paragraph{Position.} In a bounded reading of the closest work, we did not find one protocol that applies, on the same
 stored models, each method's native check, nonlinear recovery from representation and complete output, the released
@@ -210,122 +316,164 @@ utility and compression, \citet{wang2019balanced} on utility-qualified output le
 
 \section{Evaluation protocol}\label{sec:protocol}
 
-\paragraph{Roles.} The output-aware, output-diagnosis and useful-head analyses use the same record-group roles: \texttt{defense\_fit} (owner side: LEACE maps, FARE
-trees, task heads, with a 20\% head holdout for head selection), \texttt{attacker\_fit} and \texttt{attacker\_val}
+\paragraph{Experiments.} The evidence comes from four experiments on the same stored models. They share the attacker
+slate and the endpoint discipline described below, but they were run separately, with their own registered endpoints,
+and they differ slightly in roles and in how intervals are computed. Experiment~1 compares untreated, LEACE and noisy
+representations on all 14 pairs. Experiment~2 adds official FARE and the zero-fairness tree, and compares the frozen
+heads' full logits with their hard decisions. Experiment~3 measures the effect of withholding the logit offset, the
+usefulness of the frozen heads, a two-recipient pair, and FARE's compression share on an easier task. Experiment~4
+replaces the frozen heads with a useful head fitted on each treatment's features. Table~\ref{tab:access} gives each
+experiment's access.
+
+\paragraph{Roles.} Experiments~2--4 use the same record-group roles: \texttt{defense\_fit} (owner side: LEACE maps, FARE
+trees and task heads, with a 20\% head holdout for head selection), \texttt{attacker\_fit} and \texttt{attacker\_val}
 (attacker fitting and selection), and \texttt{assessment} (scoring only: 5{,}243 Adult and 4{,}764 HMDA records).
 Records that also occur in the encoder's training split are excluded from every scored role (17 Adult and 42 HMDA test
-records), and a further 20\% of \texttt{attacker\_fit} groups is reserved for FARE certification. No sensitive
-assessment label selects a release, grouping, penalty, attacker or utility probe. The earlier matched benchmark used
-the uncleaned roles (assessment 5{,}250 Adult and 4{,}778 HMDA records; the overlapping records retained and
-disclosed; its decisions were stable when they were removed).
+records), and a further 20\% of \texttt{attacker\_fit} groups is reserved for FARE certification. The owner also uses
+the attacker roles: the task labels of \texttt{attacker\_fit} fit the common utility probe, and the protected labels of
+\texttt{attacker\_val} choose the noise scale and FARE's configuration (Section~\ref{sec:setting}). No sensitive
+assessment label selects a release, grouping, penalty, attacker or utility probe. Experiment~1 used the uncleaned roles
+(assessment 5{,}250 Adult and 4{,}778 HMDA records); the overlapping records were retained and disclosed, and its
+decisions were stable when they were removed.
 
-\paragraph{Attackers and recovery.} Every surface is attacked by the same slate, with the access of
+\paragraph{Attackers and recovery.} Every reported surface is attacked by the same slate, with the access of
 Section~\ref{sec:threat}: logistic regression (5 regularisation values), gradient-boosted trees (20 configurations) and
 an MLP (18), each fitted on \texttt{attacker\_fit} releases labelled with the protected attribute. The nonlinear
 attacker is the better of the tree and MLP families on \texttt{attacker\_val} log loss, refitted at three attacker
-seeds. Recovery is the macro one-vs-rest AUC on assessment over supported classes, averaged over attacker seeds and then
-encoder seeds. For features plus output, candidates that ignore one part are also eligible on validation; for a
-recipient pair, the bank also contains each single recipient's attacker, chosen on validation like any other
-candidate. For finite releases we additionally fit a cell-conditional attacker, which estimates the attribute's
-distribution within each released cell, and report it descriptively. Banks over output formats select on validation
-only.
+seeds. Recovery is the macro one-vs-rest AUC on assessment over supported classes, averaged over attacker seeds, release
+realizations (noise only) and then encoder seeds. For features plus output, candidates that ignore one part are also
+eligible on validation. For the recipient pair of Experiment~3, the candidates also include each single recipient's
+attacker, chosen on validation like any other candidate. For some finite releases (Table~\ref{tab:access}) we
+additionally fit a cell-conditional attacker, which estimates the attribute's distribution within each released cell;
+we report it descriptively, and where both were fitted it matched the nonlinear attacker. In Experiments~3 and~4 a
+\emph{bank} is a set of release formats of the same output; for each encoder seed the format whose nonlinear attacker
+has the lowest validation log loss is scored. The full bank includes the full logits and the offset-free bank does not.
+The label-only and constant references, the cell-conditional attacker, the exploratory likelihood-ratio attackers of
+Section~\ref{sec:threat} and the encoders' in-sample check are not part of the slate.
 
-\paragraph{Utility.} We report the accuracy, balanced accuracy, minority recall, log loss and gain over the constant
-(majority class on \texttt{attacker\_fit}) of the \emph{deployed} head whose output is released, and, separately, the
-accuracy of a common refitted probe used by earlier analyses.
+\paragraph{Utility.} In Experiments~3 and~4 we report the accuracy, balanced accuracy, minority recall, log loss and gain
+over the constant (majority class on \texttt{attacker\_fit}) of the \emph{deployed} head whose output is released.
+Experiments~1 and~2 report the accuracy of a common refitted probe, and Experiment~2 also the accuracy and log loss of
+the head fitted on each treatment's features.
 
-\paragraph{Native checks.} The encoders' stored check is in-sample one-hot ridge $R^2\le0.05$; LEACE's implementation
-bound is a whitened residual cross-covariance below its tolerance on \texttt{defense\_fit}; FARE's is its
-demographic-parity certificate on the certification role.
+\paragraph{Native checks.} The encoders' stored check is a historical value, the in-sample one-hot ridge $R^2$ on the
+test split with threshold 0.05, which Experiment~1 reproduced on all 42 attribute--seed combinations. LEACE's
+implementation bound is a whitened residual cross-covariance below its tolerance on \texttt{defense\_fit}. FARE's is
+its demographic-parity certificate on the certification role (1{,}500 Adult and 1{,}385 HMDA rows).
 
-\paragraph{Inference.} Each endpoint is a mean over encoder seeds of a per-seed statistic. In the output-diagnosis and
-useful-head studies, standard errors come from 1{,}999 paired multinomial bootstrap replicates over assessment record
-groups, shared by every unit, and intervals are simultaneous two-sided 95\% Bonferroni normal intervals over the
-endpoint family; the matched benchmark and the output-aware study used one-sided Bonferroni percentile bounds from
-20{,}000 group-bootstrap replicates (the bounds in Table~\ref{tab:summary} from those studies are of that kind). In all studies and an endpoint passes only if its lower bound exceeds
-its registered target. Utility targets are a non-inferiority margin of $-0.01$, a gain of $0.03$, and the retention
-contrast $\Acc(\text{arm})-0.8\,\Acc(A)-0.2\,\Acc(\text{const})>0$; recovery targets are $0.02$ AUC (the earlier frozen-head usefulness endpoints used a gain target of 0.01). An interval that
-excludes zero but not the target is reported as a smaller difference below the target, never as ``no difference''.
-Each study's protocol, code, inputs, unit list and endpoint families were committed and pushed before its first fit;
-an independent replay that does not import the runner's code recomputed every primary result.
+\paragraph{Inference.} Each endpoint is a mean over encoder seeds of a per-seed statistic. In Experiments~3 and~4,
+standard errors come from 1{,}999 paired multinomial bootstrap replicates over assessment record groups, shared by every
+attacker fit, and intervals are simultaneous two-sided 95\% Bonferroni normal intervals over the endpoint family.
+Experiments~1 and~2 used one-sided Bonferroni percentile bounds from 20{,}000 group-bootstrap replicates, and the bounds
+in Table~\ref{tab:summary} from those experiments are of that kind. In every experiment an endpoint passes only if its
+lower bound exceeds its registered target. Utility targets are a non-inferiority margin of $-0.01$, a gain of $0.03$,
+and the retention contrast $\Acc(\text{treatment})-0.8\,\Acc(A)-0.2\,\Acc(\text{const})>0$; recovery targets are $0.02$ AUC.
+Experiment~3's frozen-head usefulness endpoints used a gain target of 0.01. An interval that excludes zero but not the
+target is reported as a smaller difference below the target, never as ``no difference''. Each experiment's protocol,
+code, inputs, list of fits and endpoint families were committed before its first fit, and an independent replay that
+does not import the analysis code recomputed every primary result. The encoders' stored check predates these
+experiments; Experiment~1 reproduced its values.
 
 \section{Results}\label{sec:results}
 
-Table~\ref{tab:summary} summarises the earlier stored-model analyses; Sections~\ref{sec:useful}--\ref{sec:pairs}
-report the new useful-head comparison and the combined findings.
+Table~\ref{tab:summary} collects the main contrasts from Experiments~1--3. Section~\ref{sec:useful} reports the
+useful-head comparison, and Sections~\ref{sec:compression} and~\ref{sec:pairs} the compression share of FARE's effect
+and the linked recipients.
 
 \begin{table}[t]
 \centering\small
-\caption{Key contrasts from the stored-model analyses (means over three encoder seeds; simultaneous lower bounds in
-parentheses where an endpoint was registered).}\label{tab:summary}
-\begin{tabular}{@{}p{7.0cm}cc@{}}
+\caption{Main contrasts from Experiments~1--3 (means over three encoder seeds). Lower confidence bounds are in
+parentheses where an endpoint was registered: one-sided Bonferroni percentile bounds in Experiments~1 and~2, and lower
+ends of simultaneous two-sided Bonferroni intervals in Experiment~3 (Section~\ref{sec:protocol}).}\label{tab:summary}
+\begin{tabular}{@{}L{5.5cm}ccc@{}}
 \toprule
-Quantity & Adult income / sex & HMDA underwriting / race\\
+Quantity & Exp. & Adult income / sex & HMDA underwriting / race\\
 \midrule
-Encoders' own linear check fails (pair$\times$seed, all 14 pairs) & \multicolumn{2}{c}{12 of 42}\\
-Nonlinear recovery, untreated features & 0.815 & 0.870\\
-Nonlinear recovery, LEACE features (benchmark roles) & 0.817 & 0.863\\
-Noise at $\sigma^*$, features only / plus clean outputs & 0.528 / 0.778 & 0.513 / 0.758\\
-Full logits vs hard decision (frozen head) & 0.776 vs 0.513: +0.263 (0.249) & 0.768 vs 0.505: +0.262 (0.254)\\
-Offset removed: full-bank minus offset-free bank & +0.072 (0.062) & +0.067 (0.060)\\
-\quad per encoder seed & 0.079 / 0.064 / 0.072 & 0.058 / $-$0.000 / 0.143\\
-Frozen head: accuracy gain over constant (target 0.01) & 0.039 (0.031) & 0.016 (0.0098), not established\\
-FARE vs LEACE features (output-aware roles) & 0.550 vs 0.812 & 0.501 vs 0.864\\
-Zero-fairness tree (same budget), features & 0.645 & 0.607\\
-FARE features plus historical clean outputs & 0.788 & 0.768\\
+Encoders' own linear check fails (pair$\times$seed, all 14 pairs) & 1 & \multicolumn{2}{c}{11 of 42}\\
+Nonlinear recovery, untreated features & 1 & 0.815 & 0.870\\
+Nonlinear recovery, LEACE features & 1 & 0.817 & 0.863\\
+Noise at $\sigma^*$, features only / plus clean outputs & 1 & 0.528 / 0.778 & 0.513 / 0.758\\
+Full logits vs hard decision (frozen head) & 2 & 0.776 vs 0.513: +0.263 (0.249) & 0.768 vs 0.505: +0.262 (0.254)\\
+FARE vs LEACE features & 2 & 0.550 vs 0.812 & 0.501 vs 0.864\\
+Zero-fairness tree (same budget), features & 2 & 0.645 & 0.607\\
+FARE features plus historical clean outputs & 2 & 0.788 & 0.768\\
+Offset withheld: full bank minus offset-free bank & 3 & +0.072 (0.062) & +0.067 (0.060)\\
+\quad per encoder seed & 3 & 0.079 / 0.064 / 0.072 & 0.058 / $-$0.000 / 0.143\\
+Frozen head: accuracy gain over constant (target 0.01) & 3 & 0.039 (0.031) & 0.016 (0.0098), not established\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Native checks and recovery outside their scope.} Three outcomes must be kept apart: a method failing its own
-test, its test holding while recovery occurs outside its scope, and an output bypass. The encoders fail their own
-stored linear check on 12 of 42 untreated attribute--seed combinations, including HMDA underwriting/race on two of
-three seeds. Official LEACE meets its bound on all 60 maps and its held-out squared top canonical correlation
-$\rho_1^2$ is near zero (Adult 0.0006, HMDA 0.0001, on one already-used held-out split), yet nonlinear recovery changes
-by less than 0.01 AUC (Adult $+0.002$, HMDA $-0.007$; the HMDA interval excludes zero; Table~\ref{tab:summary}). FARE's native
-certificate was unavailable, vacuous or weak (Adult bounds about 0.50) at the available certification sizes; its only
-informative bound (0.175) belongs to a degenerate single-cell HMDA nominee.
+\subsection{What each method's own check establishes}\label{sec:native}
 
-\paragraph{Outputs and the bypass.} Outputs leak beyond the true label: output-only recovery exceeds the label-only
-reference by 0.177 (Adult) and 0.236 (HMDA). Whatever is done to the features, releasing the historical clean output
-restores recovery to 0.76--0.79 (noise, FARE). Changing the features cannot remove what an unchanged output carries.
+Three outcomes have to be kept apart: a method failing its own test, its test holding while recovery occurs outside the
+test's scope, and recovery through a surface that the test does not cover. The encoders' constraint is an instance of
+the first. Their stored linear check fails on 11 of 42 untreated attribute--seed combinations, including HMDA
+underwriting/race on two of three seeds, so for those combinations the encoders do not deliver the protection that their
+own test describes. LEACE is an instance of the second. It meets its bound on all 60 maps, and its held-out squared top
+canonical correlation $\rho_1^2$ is near zero (Adult 0.0006, HMDA 0.0001, on one already-used held-out split), so the
+linear guarantee also holds on held-out data. Nonlinear recovery nevertheless changes by less than 0.01 AUC (Adult
+$+0.002$, HMDA $-0.007$; the HMDA interval excludes zero; Table~\ref{tab:summary}). The guarantee concerns linear
+classifiers, and this measurement shows how much of the attribute remains available to nonlinear ones; it is not
+evidence against the theorem. FARE's certificate could not be assessed in the same way. At the available certification
+sizes it was unavailable, vacuous or weak (Adult bounds about 0.50), and its only informative bound (0.175) belongs to a
+degenerate HMDA configuration with a single cell.
 
-\paragraph{Usefulness qualifies low decision-level recovery.} Hard decisions of the frozen heads leak little (0.513 /
-0.505), but those decisions are weakly useful: the Adult frozen head gains 3--5 accuracy points over a constant and
-recalls 14--22\% of high earners; HMDA underwriting usefulness is not established; and the HMDA fair\_lending head
-predicts the same class for everyone, although its scores still vary and are informative about race and sex (centred-logit recovery
-0.646 and 0.655). Low decision-level recovery here coincides with decisions that barely beat a constant.
+\subsection{The task output as a separate surface}\label{sec:outputs}
 
-\paragraph{An output-contract measurement, not a general method.} Withholding the common logit offset---which changes no
-probability, decision or task loss---lowered recovery by 0.072 (Adult) and 0.067 (HMDA) AUC. The effect appeared on 5
-of 6 primary encoder seeds (not on the collapsed HMDA seed~1) and on 5 of 14 stored pairs; it was not established for any of the six multiclass
-Adult pairs, although it passed for the five-class HMDA pricing head with race. For a refitted logistic-regression head whose logits are log-probabilities, the offset is a function of the
-margin, so the effect is zero by construction; that head is about twice as useful (gain 0.083) and its margin alone
-recovers 0.773.
+The third outcome concerns what a feature defense does not cover. Output-only recovery exceeds the label-only reference
+by 0.177 on Adult and 0.236 on HMDA, so the outputs carry information about the attribute beyond what the true label
+carries. When the historical clean output of the untreated model is released beside defended features, recovery returns
+to 0.76--0.79 for both noise and FARE (Table~\ref{tab:summary}). Changing the features cannot remove what an unchanged
+output carries. The defenses make no claim about outputs, so this is a property of the release, not of the defenses;
+what it shows is that protecting the features does not limit recovery when the original output is also sent.
+
+\subsection{Low decision-level recovery and usefulness}\label{sec:frozen}
+
+The frozen heads' hard decisions leak little (0.513 on Adult, 0.505 on HMDA), but those decisions are weakly useful. The
+Adult frozen head gains 3--5 accuracy points over a constant and recalls 14--22\% of high earners; HMDA underwriting
+usefulness is not established; and the HMDA fair\_lending head predicts the same class for everyone, although its scores
+still vary and are informative about race and sex (centred-logit recovery 0.646 and 0.655). Low decision-level recovery
+here coincides with decisions that barely beat a constant. This matters for any reading of hard decisions as a defense:
+on these heads, the low recovery cannot be separated from the low usefulness, which is why Experiment~4 repeats the
+comparison with useful heads.
+
+\subsection{Withholding the logit offset}\label{sec:offset}
+
+The common logit offset changes no probability, decision or task loss, yet the frozen heads release it as part of their
+full logits. Withholding it lowered recovery by 0.072 (Adult) and 0.067 (HMDA) AUC. The effect appeared on 5 of 6
+primary encoder seeds (not on the collapsed HMDA seed~1) and on 5 of 14 stored pairs; it was not established for any of
+the six multiclass Adult pairs, although it passed for the five-class HMDA pricing head with race. For a refitted
+logistic-regression head whose logits are log-probabilities, the offset is a function of the margin, so the effect is
+zero by construction; that head is about twice as useful (gain 0.083), and its margin alone recovers 0.773. The result is
+therefore a measurement of an output contract for particular frozen heads, not a general method: it depends on how the
+heads were trained and disappears for heads whose logits carry no free offset.
 
 \subsection{Matched useful-head comparison}\label{sec:useful}
 
-\paragraph{Design.} On Adult income/sex, every arm releases the output of a logistic-regression head from one common
-family (regularisation grid fitted on \texttt{defense\_fit} minus a holdout, selected on holdout log loss) whose only
-runtime input is that arm's features. The heads, LEACE maps and FARE trees are reused unchanged. Full-logit output-only,
-features-only, features-plus-full-output and bypass surfaces are reused, hash-verified, from the output-aware study,
-whose exploratory tables had already reported their levels. The centred, probability and hard surfaces and the banks
-are new: 84 attacker units (3{,}924 model fits), run after the protocol lock. Because the heads emit log-probabilities, their full logits,
-centred margin and probabilities carry identical information (verified to $10^{-12}$); the 19 primary endpoints use
-the centred and hard formats.
+\paragraph{Design.} On Adult income/sex, every treatment releases the output of a logistic-regression head from one
+common family (regularisation grid fitted on \texttt{defense\_fit} minus a holdout, selected on holdout log loss) whose
+only runtime input is that treatment's features. The heads, LEACE maps and FARE trees are reused unchanged. Full-logit
+output-only, features-only, features-plus-full-output and bypass surfaces are reused, hash-verified, from
+Experiment~2, whose exploratory tables had already reported their levels. The centred, probability and hard surfaces and
+the banks are new and were fitted after the protocol was registered (3{,}924 model fits). Because the heads emit
+log-probabilities, their full logits, centred margin and probabilities are functions of one another and carry the same
+information (verified to $10^{-12}$); the 19 primary endpoints use the centred and hard formats.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_useful_head.pdf}
-\caption{Useful-head comparison on Adult income/sex. Each arm releases the output of a deployable logistic-regression
-head fitted on its own features. Large markers: means over three encoder seeds with 90\% intervals; small markers:
-individual seeds. The dotted line is chance.}\label{fig:useful}
+\caption{Useful-head comparison on Adult income/sex. Each treatment releases the output of a deployable
+logistic-regression head fitted on its own features. Large markers: means over three encoder seeds with 90\% intervals
+(the simultaneous intervals of the registered endpoints are in Table~\ref{tab:useful}); small markers: individual
+seeds. The dotted line is chance.}\label{fig:useful}
 \end{figure}
 
 \begin{table}[t]
 \centering\small
-\caption{Primary useful-head endpoints (19; Bonferroni $z=3.008$). Recovery is output-only. n.e.: not established;
-``excl.\ 0'': the interval excludes zero but not the target.}\label{tab:useful}
+\caption{Primary useful-head endpoints (19; Bonferroni $z=3.008$). Intervals are simultaneous two-sided 95\% Bonferroni
+normal intervals; for gain and retention only their lower ends are shown. Recovery is output-only. n.e.: not
+established; ``excl.\ 0'': the interval excludes zero but not the target.}\label{tab:useful}
 \begin{tabular}{@{}lccl@{}}
 \toprule
 Endpoint (target) & Point & Interval & Decision\\
@@ -346,105 +494,117 @@ Hard: all five contrasts & $-0.002$ to 0.010 & lower bounds $<0$ & n.e.\\
 \end{tabular}
 \end{table}
 
-\paragraph{Utility.} All four heads are genuinely useful (Figure~\ref{fig:useful}, Table~\ref{tab:useful}): accuracy
-0.832 (A), 0.831 (B), 0.822 (F) and 0.828 (F0) against a constant of 0.749, with balanced accuracy 0.72--0.73 and about
-half of high earners recalled. LEACE and the zero-fairness tree are non-inferior within one point; FARE is not
-established as non-inferior (lower bound $-0.015$), because seed~2 loses 2.0 points. FARE passes the gain and
-retention criteria, the latter narrowly.
+\paragraph{Utility.} All four heads are useful (Figure~\ref{fig:useful}, Table~\ref{tab:useful}): accuracy 0.832 (A),
+0.831 (B), 0.822 (F) and 0.828 (F0) against a constant of 0.749, with balanced accuracy 0.72--0.73 and about half of high
+earners recalled. LEACE and the zero-fairness tree are non-inferior within one point. FARE is not established as
+non-inferior (lower bound $-0.015$), because seed~2 loses 2.0 points; it passes the gain and retention criteria, the
+latter narrowly.
 
-\paragraph{Recovery from useful scores.} The untreated head's score recovers sex at 0.774 and the LEACE head's at
-0.759: a smaller difference of 0.015, below the registered target, carried by seed~0 alone. FARE's head recovers 0.539
-and the zero-fairness tree's 0.648. Of FARE's 0.234 reduction, compression accounts for 0.125 and the fairness term for
-a further 0.109, on every seed. Post hoc and descriptively, a linear attacker on the untreated head's margin recovers
-only 0.515, while nonlinear attackers on the same scalar recover 0.773. This is consistent with, but does not establish,
-the reading that the sex signal left in the score is not linearly decodable and so lies outside a linear eraser's scope.
+\paragraph{Recovery from useful scores.} The untreated head's score recovers sex at 0.774 and the LEACE head's at 0.759,
+a smaller difference of 0.015 that lies below the registered target and is carried by seed~0 alone. FARE's head
+recovers 0.539 and the zero-fairness tree's 0.648. Of FARE's 0.234 reduction, compression accounts for 0.125 and the
+fairness term for a further 0.109, on every seed. Post hoc and descriptively, a linear attacker on the untreated head's
+margin recovers only 0.515, while nonlinear attackers on the same scalar recover 0.773. This is consistent with, but does
+not establish, the reading that the sex signal left in the score is not linearly decodable and so lies outside a linear
+eraser's scope.
 
-\paragraph{Recovery from useful decisions.} When only the decision is released, every arm recovers 0.536--0.546 and no
-contrast is established. The decision has the same accuracy as the score it comes from. Post hoc and descriptively, the
-untreated head's decisions leak about as much as FARE's scores (difference $+0.005$, 90\% interval [$-0.003$, 0.013])
-while being about one point more accurate.
+\paragraph{Recovery from useful decisions.} When only the decision is released, every treatment recovers 0.536--0.546
+and no contrast is established. The decision has the same accuracy as the score it comes from. Post hoc and
+descriptively, the untreated head's decisions leak about as much as FARE's scores (difference $+0.005$, 90\% interval
+[$-0.003$, 0.013]) while being about one point more accurate.
 
 \paragraph{Complete release.} With features plus own output, the features dominate (A 0.816, B 0.817, F 0.550, F0
-0.646); withholding the offset changes nothing for these heads; and adding the historical clean logits to F or F0
-features restores recovery to 0.788 / 0.789.
+0.646), and withholding the offset changes nothing for these heads. Adding the historical clean logits to F or F0
+features restores recovery to 0.788 and 0.789.
 
-\paragraph{Pre-registered predictions.} Four of the ten primary recovery predictions were correct. The predictions
-were registered after full-logit recovery of these same heads had been reported as exploratory in the output-aware
-study, and that was not disclosed in the protocol; we disclose it here. We predicted a
-larger LEACE effect on the score, a smaller fairness-term effect, and established hard-decision contrasts; all three
-were wrong.
+\paragraph{Registered predictions.} Four of the ten primary recovery predictions were correct. The predictions were
+registered after full-logit recovery of these same heads had been reported as exploratory in Experiment~2, and the
+protocol did not disclose that; we disclose it here. We predicted a larger LEACE effect on the score, a smaller
+fairness-term effect, and established hard-decision contrasts; all three were wrong.
 
 \subsection{How much of FARE's effect is compression?}\label{sec:compression}
 
-The answer differs by cell. On Adult income/sex features (output-aware analysis), the zero-fairness tree recovers 0.645
-against FARE's 0.550 and LEACE's 0.812. On the head outputs above, the fairness term removes 0.109 beyond compression.
-On an easier task chosen by a validation-only screen (Adult employment group with age group protected; accuracy 0.974
-for FARE vs 0.975 untreated against a constant of 0.277), FARE's complete-release recovery is 0.151 below LEACE's, but
-the zero-fairness tree reproduces most of that reduction: FARE had a smaller additional improvement of 0.0074
+The answer differs by cell. On Adult income/sex features (Experiment~2), the zero-fairness tree recovers 0.645 against
+FARE's 0.550 and LEACE's 0.812, and on the head outputs above the fairness term removes 0.109 beyond compression. On an
+easier task chosen by a validation-only screen (Adult employment group with age group protected; accuracy 0.974 for FARE
+and 0.975 untreated, against a constant of 0.277), FARE's complete-release recovery is 0.151 below LEACE's, but the
+zero-fairness tree reproduces most of that reduction: FARE's additional improvement is a smaller difference of 0.0074
 [0.0019, 0.0129], below the registered 0.02 target. That task is easy, but no single input column determines it. A
 claim about a fairness term therefore needs its capacity-matched twin.
 
-\subsection{Combining recipients}\label{sec:pairs}
+\subsection{Linked recipients}\label{sec:pairs}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_formats_pairs.pdf}
 \caption{Left: recovery from the frozen heads' outputs by release format (Adult income/sex, HMDA underwriting/race).
-Right: race recovery on Adult from the income recipient, the employment recipient and both pooled, by format.}
+Right: race recovery on Adult from the income recipient, the employment recipient and both linked, by format.}
 \label{fig:pairs}
 \end{figure}
 
-Two Adult recipients, each permitted only its own task output (income; employment group), link their outputs by
-record and pool them to recover race, which is disallowed for both (Figure~\ref{fig:pairs}). The pair beats both
-single recipients by more than 0.02 AUC under every format: full logits 0.917 vs 0.845, centred 0.883 vs 0.792, and
-hard decisions 0.611 vs 0.576 (pair minus best single $+0.034$, lower bound 0.023, the weakest of six passes). We report
-absolute pair recovery and its increment over the strongest single release separately. On seed~2 under full logits,
-validation selected the income-only attacker for the pair, so that seed's pair-minus-income difference is exactly
-zero. These are measurements with a fixed attacker slate. They show that linked outputs need an evaluation of their
-own; they do not show that race is carried only jointly by the two outputs. AUC is not an information measure, the
-pair gain does not separate evidence that each output carries on its own from evidence present only in their
-combination, and we prove no composition or synergy result.
+We evaluated one coalition: two Adult recipients, each permitted only its own task output (income; employment group)
+from the untreated frozen heads, whose outputs are linked by record and pooled to recover race, which is disallowed for
+both (Figure~\ref{fig:pairs}). The linkage is granted by aligning rows, and no linkage procedure is evaluated. The pair beats both single
+recipients by more than 0.02 AUC under every format: full logits 0.917 against 0.845, centred 0.883 against 0.792, and
+hard decisions 0.611 against 0.576 (pair minus best single $+0.034$, lower bound 0.023, the weakest of six passes). We
+report absolute pair recovery and its increment over the strongest single release separately. On seed~2 under full
+logits, validation selected the income-only attacker for the pair, so that seed's pair-minus-income difference is
+exactly zero. These are measurements with a fixed attacker slate under perfect linkage. They show that linked outputs
+need an evaluation of their own; they do not show that race is carried only jointly by the two outputs. AUC is not an
+information measure, the pair gain does not separate evidence that each output carries on its own from evidence present
+only in their combination, and we prove no composition or synergy result.
 
 \section{Discussion}\label{sec:discussion}
 
-\paragraph{What helped while preserving utility.} LEACE preserved the deployed head's accuracy (difference $-0.0006$, lower bound $-0.0016$;
-non-inferior within one point) and passed its
-own bound, but it barely changed what that head's score reveals (0.759 vs 0.774). The zero-fairness tree preserved
-accuracy within one point and reduced score-level recovery to 0.648; FARE reduced it further to 0.539, with an
-accuracy cost not shown to be within one point. Releasing only the decision preserved accuracy by construction and gave
-the lowest recovery for every arm, but discards scores that a recipient may need.
+\paragraph{Where the remaining recovery comes from.} LEACE's promise held wherever we could check it, FARE's
+certificate was too weak at our certification sizes to be checked, and the encoders' own linear constraint failed its
+check on 11 of 42 combinations. Apart from that failure, the recovery that remained came from attacker classes or
+surfaces that the promises do not cover: nonlinear attackers on LEACE features, task outputs released beside defended
+features, and a second recipient whose outputs are linked to the first. This is why the three outcomes of
+Section~\ref{sec:native} are reported separately. A method can meet its own promise while the release as a whole
+remains informative about the attribute.
 
-\paragraph{What was compression or weak usefulness.} Part of FARE's effect is compression, by an amount that depends on
-the cell. The earlier ``decisions leak little'' pattern was observed on decisions that barely beat a
-constant; with useful heads, decisions still recovered only 0.536--0.546, so weak usefulness is not the whole story.
+\paragraph{What lowered recovery at matched utility, and what limits that reading.} LEACE preserved the deployed head's
+accuracy (difference $-0.0006$, lower bound $-0.0016$; non-inferior within one point) and passed its own bound, but it
+barely changed what that head's score reveals (0.759 against 0.774). The zero-fairness tree preserved accuracy within
+one point and reduced score-level recovery to 0.648. FARE reduced it further, to 0.539, and its fairness term removed
+0.109 AUC beyond the capacity-matched tree on every seed; post hoc, its score leaks about as little as the untreated
+decision. Three results limit what this comparison supports. FARE's accuracy is not shown to be within one point of the
+untreated head, so its larger reduction is not established at matched utility. On an easier task the same-budget tree
+reproduced most of FARE's effect, so the contribution of the fairness term depends on the cell. And any feature defense
+is bypassed when the unchanged output is also released. Releasing only the decision preserved accuracy by construction
+and gave the lowest recovery for every treatment, but it discards scores that a recipient may need. The earlier pattern
+of decisions leaking little was observed on decisions that barely beat a constant; with useful heads, decisions still
+recovered only 0.536--0.546, so weak usefulness does not explain all of it.
 
-\paragraph{A measured gap (post hoc, descriptive).} At matched accuracy (within one point, established), the lowest score-level recovery among
-the evaluated arms is the zero-fairness tree's 0.648, while the untreated decision---same accuracy, no scores---recovers
-0.544. A method that released calibrated, useful scores with recovery near the decision's level would close a measured
-gap of about 0.10 AUC on this cell. We do not claim such a method exists, nor that it is impossible.
+\paragraph{A measured gap (post hoc, descriptive).} At matched accuracy (within one point, established), the lowest
+score-level recovery among the evaluated treatments is the zero-fairness tree's 0.648, while the untreated decision,
+which has the same accuracy and no scores, recovers 0.544. A method that released calibrated, useful scores with
+recovery near the decision's level would close a measured gap of about 0.10 AUC on this cell. We do not claim that such
+a method exists, nor that it is impossible.
 
-\paragraph{Strongest favourable and adverse comparisons.} Favourable: on the useful-head cell the fairness term removes
-0.109 AUC beyond a capacity-matched tree on every seed, and, post hoc, FARE's score leaks about as little as the
-untreated decision. Adverse: FARE's accuracy is not shown to be within one point; any defense is bypassed by an unchanged output;
-two recipients recover more than one, even from decisions.
+\paragraph{What the findings ask of future methods.} If the aim is to limit what recipients can learn about an
+attribute, the evaluation has to follow the release. A method's claim should name the surfaces it covers, including task
+outputs and any features released with them, and the access model under which it is evaluated, including the attacker's
+labelled-data budget. Recovery should be reported beside the held-out utility of the output that is actually released.
+An effect claimed for a fairness term should be compared with a capacity-matched control. Where recipients serve the
+same people, the linked view should be evaluated as well as each recipient alone. These are requirements for evaluating
+a method, not evidence that any particular method fails them.
 
 \section{Limitations, reproducibility, ethics and LLM assistance}\label{sec:limits}
 
-\paragraph{Limitations.} Two datasets, a small number of primary cells and three encoder seeds; the encoder seeds differ
-strongly (one HMDA encoder is heavily collapsed). All assessment rows were used before; nothing here is fresh
-confirmation. Intervals are conditional on fitted heads and attackers and omit retraining variance. FARE is applied to
-stored representations rather than raw inputs. Rare HMDA race groups are not estimable. The threat model of
-Section~\ref{sec:threat} is one of several. We leave the following distinct threat models untested, not ruled out:
-recipients that also hold a record's inputs or later learn its true label; public or leaked model parameters or
-gradients; permitted repeated, adaptive or chosen-input queries; attacks that exploit a defense's published objective
-or its parameters; insiders; imperfect linkage; coalitions of more than two recipients; and auxiliary samples larger
-or smaller than ours or drawn from another population. Several observations in Section~\ref{sec:useful} are post hoc
-and labelled as such.
+\paragraph{Limitations.} The evidence covers two datasets, a small number of primary cells and three encoder seeds, and
+the encoder seeds differ strongly (one HMDA encoder is heavily collapsed). All assessment rows were used before, so
+nothing here is fresh confirmation. Intervals are conditional on fitted heads and attackers and omit retraining variance.
+FARE is applied to stored representations rather than raw inputs. Rare HMDA race groups are not estimable. The threat
+model of Section~\ref{sec:threat} is one of several, and the threat models listed there are untested, not ruled out.
+Several observations in Section~\ref{sec:useful} are post hoc and labelled as such.
 
-\paragraph{Reproducibility.} For every study the protocol, code pin, admitted-input hashes, unit list, endpoint
-families and budget were committed before fitting; each study's result tables, inference code, verification replay and
-hash indexes are in the anonymous repository. Per-record outputs, weights and checkpoints are kept privately with
-hash indexes and a verified offline copy. The useful-head comparison used about 0.2 CPU-hours on a laptop.
+\paragraph{Reproducibility.} For every experiment the protocol, code version, admitted-input hashes, list of fits and
+endpoint families were committed before fitting. Result tables, inference code and the independent replay are in the
+anonymous repository; per-record outputs, weights and checkpoints are kept privately with hash indexes. The encoders'
+public code still exposes the interface of the retired $R^2$-to-accuracy bound, which we do not use. The useful-head
+comparison used about 0.2 CPU-hours on a laptop.
 
 \paragraph{Ethics.} We study recovery of declared protected attributes from public benchmark data to inform release
 policies. Attack code is standard; we release no per-person predictions.
