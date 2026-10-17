@@ -1,0 +1,50 @@
+{
+ "schema": "SMP1-resource-inventory-v1",
+ "utc": "2026-10-17T02:07:51+00:00",
+ "elapsed_h": 2.48,
+ "elapsed_limit_h": 8,
+ "charged_cpu_h": 0.234,
+ "cpu_limit_h": 12.0,
+ "units_done": 3,
+ "units_failed": 0,
+ "agent_and_light_script_charges": [
+  {
+   "label": "AGENT_DESIGNERS",
+   "charged_cpu_s": 240.0,
+   "note": "upper estimate: two designer agents (1,245 s and 2,311 s wall), file reads and small exact synthetic toy scripts in their scratch space; no real data"
+  },
+  {
+   "label": "AGENT_REVIEWERS",
+   "charged_cpu_s": 240.0,
+   "note": "upper estimate: adversary reviewer (1,156 s + 382 s wall) and closest-work reviewer (1,338 s + 392 s wall): file reads, PDF downloads and pdftotext, greps; no real data"
+  },
+  {
+   "label": "COORDINATOR_LIGHT_SCRIPTS",
+   "charged_cpu_s": 120.0,
+   "note": "upper estimate: synthetic merge-engine and lookup-reader checks, compile checks, file inspection and hashing, git; no real data beyond the queued restore and label-free support units"
+  },
+  {
+   "label": "AGENT_VERIFIER",
+   "charged_cpu_s": 180.0,
+   "note": "upper estimate: independent verifier (1,330 s wall): byte hashing of 38 restored files, separate brute-force merge and lookup checks, exhaustive greedy comparison, provenance scripts; no array loaded"
+  },
+  {
+   "label": "COORDINATOR_CLOSEOUT",
+   "charged_cpu_s": 60.0,
+   "note": "upper estimate: verifier follow-up edits, access-guard test (no truth content read), compile checks, publication dry run"
+  }
+ ],
+ "heavy_process_limit": 2,
+ "threads_per_job": 1,
+ "cloud_or_paid_compute_usd": 0,
+ "agents": {
+  "coordinator_and_implementation_owner": "main session",
+  "designer_1": "1 agent (SCM), 1,245 s wall",
+  "designer_2": "1 agent (SCAR), 2,311 s wall",
+  "recipient_use_and_adversary_reviewer": "1 agent, 2 passes (service review 1,156 s; proposal threat check 382 s)",
+  "closest_work_and_baseline_reviewer": "1 agent, 2 phases (field matrix 1,338 s; proposal comparison 392 s)",
+  "independent_verifier": "1 agent, 1,330 s wall",
+  "total": "6 roles: the main session plus 5 agents; no agent was used to multiply a search budget"
+ },
+ "processes_left_running": "none (no queue unit running; all agents completed)"
+}
