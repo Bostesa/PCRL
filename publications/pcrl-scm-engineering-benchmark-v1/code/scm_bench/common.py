@@ -133,8 +133,12 @@ def load_role(role, wanted=('features',)):
     return out
 
 
-def dev_report_truth(purpose):
-    """Re-read the ALREADY-OPENED DEV_REPORT truth (labels, SEX) for this campaign's frozen final comparison only."""
+def dev_report_truth(purpose, event_name='DEV_REPORT_TRUTH_REREAD_BY_FOLLOWUP'):
+    """Re-read the ALREADY-OPENED DEV_REPORT truth (labels, SEX) for this campaign's frozen final comparison only.
+    The independent verifier calls it with event_name='DEV_REPORT_TRUTH_REREAD_BY_INDEPENDENT_VERIFIER' so its re-read is
+    logged under the same procedure (both access logs, committed REPORTING_LOCK required)."""
+    if event_name not in ('DEV_REPORT_TRUTH_REREAD_BY_FOLLOWUP', 'DEV_REPORT_TRUTH_REREAD_BY_INDEPENDENT_VERIFIER'):
+        raise PermissionError('unregistered DEV_REPORT access event')
     lock = RESULTS / 'REPORTING_LOCK.json'
     if not committed(lock):
         raise PermissionError("DEV_REPORT truth re-read requires this campaign's committed REPORTING_LOCK")
@@ -147,7 +151,7 @@ def dev_report_truth(purpose):
     for name, p in truth.items():
         if not p.is_file() or sha(p) != pub[name]:
             raise PermissionError(f'DEV_REPORT {name} truth file missing or hash differs from the public extraction summary')
-    event = {'event': 'DEV_REPORT_TRUTH_REREAD_BY_FOLLOWUP', 'campaign': 'pcrl_scm_engineering_benchmark_v1', 'utc': now(),
+    event = {'event': event_name, 'campaign': 'pcrl_scm_engineering_benchmark_v1', 'utc': now(),
              'purpose': purpose, 'reporting_lock_sha256': sha(lock), 'unit_id': os.environ.get('SCM_UNIT_ID'),
              'files_sha256': {k: pub[k] for k in ('income', 'occupation', 'sex')},
              'note': 'already-exposed development role; not a first opening; sealed assessment untouched'}
