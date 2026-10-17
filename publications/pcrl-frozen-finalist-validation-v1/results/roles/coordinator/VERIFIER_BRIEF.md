@@ -53,7 +53,7 @@ Report each as PASS / FAIL / PARTIAL, with numbers.
 9. **Reporting labels and limitations.** Read `CONFIRMATION_FEASIBILITY.md`, `OUTPUT_MAPPING_CHECK.md` and the decision text, if present, and flag any statement not supported by the numbers.
 
 **Rules.**
-- Run every computation longer than a few seconds through the queue: `python3 -m ffv.jobqueue run --unit VER_<name>_V1 --stage verification --rss-gib 3 -- <repository>/.venv/bin/python <script>`. At most 2 heavy jobs at once.
+- Run every computation longer than a few seconds through the queue: `python3 -m ffv.jobqueue run --unit VER_<name>_V1 --stage verification --rss-gib 3 -- /Users/<you>/PCRL/.venv/bin/python <script>`. At most 2 heavy jobs at once.
 - Put your code under `results/pcrl_frozen_finalist_validation_v1/roles/verifier/code/` and your report in `roles/verifier/VERIFICATION.md`.
 - Write a machine-readable `INDEPENDENT_VERIFICATION.json` in the results root with:
   - `checks` (name → status, numbers);

@@ -1,0 +1,3217 @@
+{
+ "binding_clauses": [
+  "UTILITY|income|Ucal|brier_excess|s0",
+  "UTILITY|income|Ucal|brier_excess|s1",
+  "UTILITY|income|U0|accuracy_loss|s1",
+  "UTILITY|income|Ucal|accuracy_loss|s1"
+ ],
+ "governing_scorecard_by_scenario": {
+  "S1_plugin|D1": "ENHANCED",
+  "S1_plugin|D2": "ENHANCED",
+  "S1_plugin|D3": "ORIGINAL",
+  "S2_benefit_x0.5|D1": "ENHANCED",
+  "S2_benefit_x0.5|D2": "ENHANCED",
+  "S2_benefit_x0.5|D3": "ENHANCED",
+  "S2_benefit_x0.75|D1": "ENHANCED",
+  "S2_benefit_x0.75|D2": "ENHANCED",
+  "S2_benefit_x0.75|D3": "ENHANCED",
+  "S3_binding_at_cap|D1": "ENHANCED",
+  "S3_binding_at_cap|D2": "ENHANCED",
+  "S3_binding_at_cap|D3": "ENHANCED",
+  "S3_binding_halfway_to_cap|D1": "ENHANCED",
+  "S3_binding_halfway_to_cap|D2": "ENHANCED",
+  "S3_binding_halfway_to_cap|D3": "ENHANCED",
+  "S4_plugin_tau_reader_refit_measured|D1": "ENHANCED",
+  "S4_plugin_tau_reader_refit_measured|D2": "ENHANCED",
+  "S4_plugin_tau_reader_refit_measured|D3": "ENHANCED",
+  "S4_plugin_tau_release_retraining_HYPOTHETICAL|D1": "ORIGINAL",
+  "S4_plugin_tau_release_retraining_HYPOTHETICAL|D2": "ENHANCED",
+  "S4_plugin_tau_release_retraining_HYPOTHETICAL|D3": "ENHANCED",
+  "S5_binding_true_slack_-0.001|D1": "ENHANCED",
+  "S5_binding_true_slack_-0.001|D2": "ENHANCED",
+  "S5_binding_true_slack_-0.001|D3": "ENHANCED",
+  "S5_binding_true_slack_0.0005|D1": "ENHANCED",
+  "S5_binding_true_slack_0.0005|D2": "ENHANCED",
+  "S5_binding_true_slack_0.0005|D3": "ORIGINAL",
+  "S5_binding_true_slack_0.001|D1": "ENHANCED",
+  "S5_binding_true_slack_0.001|D2": "ENHANCED",
+  "S5_binding_true_slack_0.001|D3": "ORIGINAL",
+  "S5_binding_true_slack_0.002|D1": "ENHANCED",
+  "S5_binding_true_slack_0.002|D2": "ENHANCED",
+  "S5_binding_true_slack_0.002|D3": "ORIGINAL",
+  "S5_binding_true_slack_0.0|D1": "ENHANCED",
+  "S5_binding_true_slack_0.0|D2": "ENHANCED",
+  "S5_binding_true_slack_0.0|D3": "ENHANCED",
+  "S6_assurance|D1": "ENHANCED",
+  "S6_assurance|D2": "ENHANCED",
+  "S6_assurance|D3": "ENHANCED"
+ },
+ "grid_households": [
+  3955,
+  100000000,
+  100
+ ],
+ "mc_draws": 40000,
+ "mc_seed": 2026101803,
+ "method": "Unit FFV_FEASIBILITY: confirmation-feasibility analysis from existing evidence only (PROTOCOL.md section 10). No label is read;\ninputs are the logged evaluation's private per-replicate endpoint draws and its published points and refit spreads.\n\nEstimand: the frozen releases with the frozen fitted readers and frozen winners, applied to n new independent households drawn\nfrom the same population (Florida ACS 2019 development population), unweighted, no transport.\n\nApproximation (registered, reviewed): every endpoint is a household-clustered ratio mean or a two-sample U-statistic (AUC), so\nthe estimates for n households are approximately multivariate normal with mean theta (a scenario) and covariance\nSigma_DEV x 3955 / n, where Sigma_DEV is the covariance of the 2048 shared household-bootstrap replicates of all endpoints jointly\n(both seeds share people; the covariance carries that). Sigma is factored by eigendecomposition (negative eigenvalues clipped).\nDecisions use the scorecard rules with SE(n) = SE_DEV x sqrt(3955 / n) and clause critical value c1 = 2.3949991. Joint power is\nthe Monte Carlo probability (40,000 draws, seed 2026101803, common random numbers across n) that every required condition holds.\n\nA non-shrinking component (refit variation) is a study-level random effect added to AUC-type endpoints only; it is not covered by\nconditional intervals, so with it the power is bounded as n grows. The reader-refit component is measured (RNG and auxiliary-sample\nrefits; a lower bound); the release-retraining component is HYPOTHETICAL (|benefit(s0) - benefit(s1)| / sqrt 2; 1 degree of\nfreedom, confounded with the reader seed and same-people noise).\n",
+ "schema": "FFV1-confirmation-feasibility-v1",
+ "scorecards": {
+  "ENHANCED": {
+   "benefit_points": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.028391783105012003,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.025997802566890216,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.027025752982319684,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.02174469525913325
+   },
+   "binding_slack": {
+    "UTILITY|income|U0|accuracy_loss|s1": {
+     "cap": 0.01,
+     "point": 0.009591115598182737,
+     "se_dev": 0.003719467842452972,
+     "slack": 0.0004088844018172635,
+     "slack_over_se": 0.1099308877335544
+    },
+    "UTILITY|income|Ucal|accuracy_loss|s1": {
+     "cap": 0.01,
+     "point": 0.009591115598182737,
+     "se_dev": 0.003719467842452972,
+     "slack": 0.0004088844018172635,
+     "slack_over_se": 0.1099308877335544
+    },
+    "UTILITY|income|Ucal|brier_excess|s0": {
+     "cap": 0.005,
+     "point": 0.004918925526824347,
+     "se_dev": 0.001925046276171818,
+     "slack": 8.107447317565273e-05,
+     "slack_over_se": 0.04211559700106478
+    },
+    "UTILITY|income|Ucal|brier_excess|s1": {
+     "cap": 0.005,
+     "point": 0.004943757826752634,
+     "se_dev": 0.00204702160027423,
+     "slack": 5.6242173247365856e-05,
+     "slack_over_se": 0.027475124463675102
+    }
+   },
+   "by_kind": {
+    "benefit": 4,
+    "recipient": 6,
+    "utility": 28
+   },
+   "conditions": 38,
+   "scenarios": {
+    "S1_plugin|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.006982182835820895,
+      "100000": 0.10784014609275419,
+      "1000000": 0.6061939414374611,
+      "10000000": 0.9135721888982191,
+      "100000000": 1.0,
+      "3955": 0.002725
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.928075
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S1_plugin|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.00011482743406216295,
+      "1000000": 0.010726350352063548,
+      "10000000": 0.14243220969096332,
+      "100000000": 0.977375,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S1_plugin|D3": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 1.327581135405432e-05,
+      "1000000": 0.010453430643015934,
+      "10000000": 0.14243220969096332,
+      "100000000": 0.977375,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.004298973880597016,
+      "100000": 0.10784014609275419,
+      "1000000": 0.6061939414374611,
+      "10000000": 0.9135721888982191,
+      "100000000": 1.0,
+      "3955": 0.000575
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.928075
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.00011482743406216295,
+      "1000000": 0.010726350352063548,
+      "10000000": 0.14243220969096332,
+      "100000000": 0.977375,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.006666977611940298,
+      "100000": 0.10784014609275419,
+      "1000000": 0.6061939414374611,
+      "10000000": 0.9135721888982191,
+      "100000000": 1.0,
+      "3955": 0.0018
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.928075
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.00011482743406216295,
+      "1000000": 0.010726350352063548,
+      "10000000": 0.14243220969096332,
+      "100000000": 0.977375,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.977375
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.999975
+      }
+     ]
+    },
+    "S3_binding_at_cap|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0625,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.006100186567164179,
+      "100000": 0.07279050151975684,
+      "1000000": 0.2655770802909524,
+      "10000000": 0.26565,
+      "100000000": 0.26565,
+      "3955": 0.002475
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.49895
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.49895
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.504
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.5059
+      }
+     ]
+    },
+    "S3_binding_at_cap|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 6.327581135405432e-05,
+      "1000000": 0.000425,
+      "10000000": 0.000425,
+      "100000000": 0.000425,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.008325
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      }
+     ]
+    },
+    "S3_binding_at_cap|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0004006934303174618,
+      "10000000": 0.000425,
+      "100000000": 0.000425,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.008325
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D1": {
+     "bracket_80": [
+      15830010,
+      17536965
+     ],
+     "bracket_90": [
+      32418585,
+      35914293
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 17536965,
+     "n_households_90": 35914293,
+     "power_at": {
+      "10000": 0.006650186567164179,
+      "100000": 0.09056721982547308,
+      "1000000": 0.45788572979936565,
+      "10000000": 0.7247875967175422,
+      "100000000": 0.986275,
+      "3955": 0.002625
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.822125
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.922875
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999825
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999825
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 6.327581135405432e-05,
+      "1000000": 0.002581934303174618,
+      "10000000": 0.029068270902964263,
+      "100000000": 0.41935,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.423675
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.833875
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.002459014594127003,
+      "10000000": 0.029068270902964263,
+      "100000000": 0.41935,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.423675
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.833875
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D1": {
+     "bracket_80": [
+      4632356,
+      5131865
+     ],
+     "bracket_90": [
+      10509646,
+      11642906
+     ],
+     "limit_n_to_infinity": 0.9750303387136164,
+     "mc_se_max": 0.0025,
+     "n_households_80": 5131865,
+     "n_households_90": 11642906,
+     "power_at": {
+      "10000": 0.006232182835820895,
+      "100000": 0.10331135405431904,
+      "1000000": 0.5876620071342864,
+      "10000000": 0.8885717415414003,
+      "100000000": 0.97445,
+      "3955": 0.00215
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.8409
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.937525
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.976075
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.99635
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      73549580,
+      81480459
+     ],
+     "limit_n_to_infinity": 0.9750303387136164,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 81480459,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.00011482743406216295,
+      "1000000": 0.010350656921746087,
+      "10000000": 0.13834394918437112,
+      "100000000": 0.95225,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.977525
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.99655
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.31525892474508393,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.655162270810864e-05,
+      "1000000": 0.0025333211638095413,
+      "10000000": 0.04335957343592521,
+      "100000000": 0.302575,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.6764
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.7017
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.729675
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.89585
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D1": {
+     "bracket_80": [
+      4632356,
+      5131865
+     ],
+     "bracket_90": [
+      10509646,
+      11642906
+     ],
+     "limit_n_to_infinity": 0.9704388001188146,
+     "mc_se_max": 0.0025,
+     "n_households_80": 5131865,
+     "n_households_90": 11642906,
+     "power_at": {
+      "10000": 0.006007182835820896,
+      "100000": 0.102573078242965,
+      "1000000": 0.5848627005646039,
+      "10000000": 0.8844340178629908,
+      "100000000": 0.969625,
+      "3955": 0.002
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.8409
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.937525
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.971825
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.995975
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      73549580,
+      81480459
+     ],
+     "limit_n_to_infinity": 0.9704388001188146,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 81480459,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.00010155162270810863,
+      "1000000": 0.010275656921746087,
+      "10000000": 0.13785631497732545,
+      "100000000": 0.947525,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840275
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.973025
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.99625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99765
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.2844557925482432,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.655162270810864e-05,
+      "1000000": 0.002356934303174618,
+      "10000000": 0.03967131292933302,
+      "100000000": 0.27515,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.626225
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.695075
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.7265
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.8884
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0019958022388059703,
+      "100000": 9.844837729189136e-05,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.001175
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D1": {
+     "bracket_80": [
+      358072,
+      396683
+     ],
+     "bracket_90": [
+      486844,
+      539341
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 396683,
+     "n_households_90": 539341,
+     "power_at": {
+      "10000": 0.008855970149253732,
+      "100000": 0.18631098391999215,
+      "1000000": 0.9838192700146035,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.00315
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.889475
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.910475
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.910475
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.993725
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D2": {
+     "bracket_80": [
+      2261982,
+      2505892
+     ],
+     "bracket_90": [
+      2776103,
+      3075452
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 2505892,
+     "n_households_90": 3075452,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.0011374129816648692,
+      "1000000": 0.38792386800174866,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.83875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.83875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.999975
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D3": {
+     "bracket_80": [
+      2261982,
+      2505892
+     ],
+     "bracket_90": [
+      2776103,
+      3075452
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 2505892,
+     "n_households_90": 3075452,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.00013982743406216295,
+      "1000000": 0.38010361248825675,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.83875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.83875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.999975
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D1": {
+     "bracket_80": [
+      291759,
+      323219
+     ],
+     "bracket_90": [
+      396683,
+      439457
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 323219,
+     "n_households_90": 439457,
+     "power_at": {
+      "10000": 0.011637966417910447,
+      "100000": 0.24617597068340036,
+      "1000000": 0.9996069343031747,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.00365
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.809125
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.9929
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.9929
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.999975
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D2": {
+     "bracket_80": [
+      597498,
+      661927
+     ],
+     "bracket_90": [
+      733302,
+      812375
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 661927,
+     "n_households_90": 812375,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 0.010629647514462203,
+      "1000000": 0.970354342892223,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.860575
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.860575
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.9892
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.9971
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D3": {
+     "bracket_80": [
+      661927,
+      733302
+     ],
+     "bracket_90": [
+      812375,
+      899973
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 733302,
+     "n_households_90": 899973,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0012982743406216295,
+      "1000000": 0.951656094606033,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.896375
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.896375
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.9255
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.994175
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D1": {
+     "bracket_80": [
+      291759,
+      323219
+     ],
+     "bracket_90": [
+      396683,
+      439457
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 323219,
+     "n_households_90": 439457,
+     "power_at": {
+      "10000": 0.014436753731343283,
+      "100000": 0.267685280419649,
+      "1000000": 0.9996069343031747,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0042
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.809125
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.999975
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.999975
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D2": {
+     "bracket_80": [
+      358072,
+      396683
+     ],
+     "bracket_90": [
+      439457,
+      486844
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 396683,
+     "n_households_90": 486844,
+     "power_at": {
+      "10000": 2.7985074626865674e-06,
+      "100000": 0.03588859447004608,
+      "1000000": 0.9996069343031747,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.889475
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.9441
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.9897
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.9987
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D3": {
+     "bracket_80": [
+      539341,
+      597498
+     ],
+     "bracket_90": [
+      661927,
+      733302
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 597498,
+     "n_households_90": 733302,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.004937753701343269,
+      "1000000": 0.9803677006111117,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.8552
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 0.97995
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.99375
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.999725
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0625,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.006100186567164179,
+      "100000": 0.07279050151975684,
+      "1000000": 0.2655770802909524,
+      "10000000": 0.26565,
+      "100000000": 0.26565,
+      "3955": 0.002475
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.49895
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.49895
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.504
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.5059
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 1.3992537313432837e-06,
+      "100000": 6.327581135405432e-05,
+      "1000000": 0.000425,
+      "10000000": 0.000425,
+      "100000000": 0.000425,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.008325
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0004006934303174618,
+      "10000000": 0.000425,
+      "100000000": 0.000425,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.008325
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0084
+      }
+     ]
+    },
+    "S6_assurance|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.022038526119402983,
+      "100000": 0.07088551328561624,
+      "1000000": 0.092584014594127,
+      "10000000": 0.09912491052863621,
+      "100000000": 0.100975,
+      "3955": 0.00565
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.5088
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.514675
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.5404
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.5404
+      }
+     ]
+    },
+    "S6_assurance|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.00027919776119402986,
+      "100000": 0.021522237474262185,
+      "1000000": 0.06662076640095248,
+      "10000000": 0.08941361839204734,
+      "100000000": 0.097825,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.502625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.5086
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.534225
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.534225
+      }
+     ]
+    },
+    "S6_assurance|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.006336550151975684,
+      "1000000": 0.02965135035206355,
+      "10000000": 0.04472562629954651,
+      "100000000": 0.050425,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.502625
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.5086
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.534225
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.534225
+      }
+     ]
+    }
+   },
+   "sensitivity_B_only_c1.960_plugin_D1": {
+    "bracket_80": [
+     4181467,
+     4632356
+    ],
+    "bracket_90": [
+     8563308,
+     9486693
+    ],
+    "limit_n_to_infinity": 1.0,
+    "mc_se_max": 0.0025,
+    "n_households_80": 4632356,
+    "n_households_90": 9486693,
+    "power_at": {
+     "10000": 0.01747416044776119,
+     "100000": 0.17014289391116777,
+     "1000000": 0.6063654742858737,
+     "10000000": 0.9135721888982191,
+     "100000000": 1.0,
+     "3955": 0.008225
+    },
+    "status_80": "REACHED",
+    "weakest_conditions_at_n80_or_1e8": [
+     {
+      "condition": "UTILITY|income|Ucal|brier_excess|s1",
+      "marginal_power": 0.828625
+     },
+     {
+      "condition": "UTILITY|income|Ucal|brier_excess|s0",
+      "marginal_power": 0.928075
+     },
+     {
+      "condition": "UTILITY|income|U0|accuracy_loss|s1",
+      "marginal_power": 0.999925
+     },
+     {
+      "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+      "marginal_power": 0.999925
+     }
+    ]
+   },
+   "tau_reader_refit_measured_lower_bound": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.006691428318516119,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.009529329491830048,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.013398544917231171,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.0036399395279710254
+   },
+   "tau_release_retraining_HYPOTHETICAL": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.0016927998725345358,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.0016927998725345358,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.003734271727902716,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.003734271727902716
+   }
+  },
+  "ORIGINAL": {
+   "benefit_points": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.028391783105012003,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.024985716458153062,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.027025752982319684,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.019888401401407574
+   },
+   "binding_slack": {
+    "UTILITY|income|U0|accuracy_loss|s1": {
+     "cap": 0.01,
+     "point": 0.009591115598182737,
+     "se_dev": 0.003719467842452972,
+     "slack": 0.0004088844018172635,
+     "slack_over_se": 0.1099308877335544
+    },
+    "UTILITY|income|Ucal|accuracy_loss|s1": {
+     "cap": 0.01,
+     "point": 0.009591115598182737,
+     "se_dev": 0.003719467842452972,
+     "slack": 0.0004088844018172635,
+     "slack_over_se": 0.1099308877335544
+    },
+    "UTILITY|income|Ucal|brier_excess|s0": {
+     "cap": 0.005,
+     "point": 0.004918925526824347,
+     "se_dev": 0.001925046276171818,
+     "slack": 8.107447317565273e-05,
+     "slack_over_se": 0.04211559700106478
+    },
+    "UTILITY|income|Ucal|brier_excess|s1": {
+     "cap": 0.005,
+     "point": 0.004943757826752634,
+     "se_dev": 0.00204702160027423,
+     "slack": 5.6242173247365856e-05,
+     "slack_over_se": 0.027475124463675102
+    }
+   },
+   "by_kind": {
+    "benefit": 4,
+    "recipient": 6,
+    "utility": 28
+   },
+   "conditions": 38,
+   "scenarios": {
+    "S1_plugin|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.21511119402985074,
+      "100000": 0.38606067261496224,
+      "1000000": 0.6069120071342864,
+      "10000000": 0.9158962941845813,
+      "100000000": 1.0,
+      "3955": 0.114825
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828975
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.92825
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S1_plugin|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.0005765516227081086,
+      "1000000": 0.009831897794603242,
+      "10000000": 0.14292047019755552,
+      "100000000": 0.976425,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.997475
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S1_plugin|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.5e-05,
+      "1000000": 5.0693430317461796e-05,
+      "10000000": 7.5e-05,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.976425
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.12100606343283582,
+      "100000": 0.38606067261496224,
+      "1000000": 0.6069120071342864,
+      "10000000": 0.9158962941845813,
+      "100000000": 1.0,
+      "3955": 0.01855
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828975
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.92825
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0005765516227081086,
+      "1000000": 0.009831897794603242,
+      "10000000": 0.14292047019755552,
+      "100000000": 0.976425,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.997475
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.5|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D1": {
+     "bracket_80": [
+      4181467,
+      4632356
+     ],
+     "bracket_90": [
+      8563308,
+      9486693
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 4632356,
+     "n_households_90": 9486693,
+     "power_at": {
+      "10000": 0.20345587686567165,
+      "100000": 0.38606067261496224,
+      "1000000": 0.6069120071342864,
+      "10000000": 0.9158962941845813,
+      "100000000": 1.0,
+      "3955": 0.0695
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.828975
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.92825
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      66390651,
+      73549580
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 73549580,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.0005765516227081086,
+      "1000000": 0.009831897794603242,
+      "10000000": 0.14292047019755552,
+      "100000000": 0.976425,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840875
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.997475
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S2_benefit_x0.75|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.976425
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S3_binding_at_cap|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0625,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.1879588619402985,
+      "100000": 0.2634622389449946,
+      "1000000": 0.2681,
+      "10000000": 0.2681,
+      "100000000": 0.2681,
+      "3955": 0.106125
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.50075
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.50075
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.5038
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.506075
+      }
+     ]
+    },
+    "S3_binding_at_cap|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.000175,
+      "1000000": 0.000325,
+      "10000000": 0.000325,
+      "100000000": 0.000325,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0078
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      }
+     ]
+    },
+    "S3_binding_at_cap|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0078
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D1": {
+     "bracket_80": [
+      15830010,
+      17536965
+     ],
+     "bracket_90": [
+      32418585,
+      35914293
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 17536965,
+     "n_households_90": 35914293,
+     "power_at": {
+      "10000": 0.2012204291044776,
+      "100000": 0.32628499117560544,
+      "1000000": 0.46071489038127045,
+      "10000000": 0.7251109862329941,
+      "100000000": 0.98565,
+      "3955": 0.110425
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.821975
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.922825
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.999925
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.0003,
+      "1000000": 0.0023798540122222326,
+      "10000000": 0.02830653140955645,
+      "100000000": 0.418925,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.422925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.8338
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S3_binding_halfway_to_cap|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.5e-05,
+      "1000000": 2.5e-05,
+      "10000000": 5e-05,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.422925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.8338
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D1": {
+     "bracket_80": [
+      4632356,
+      5131865
+     ],
+     "bracket_90": [
+      10509646,
+      11642906
+     ],
+     "limit_n_to_infinity": 0.9738693997398301,
+     "mc_se_max": 0.0025,
+     "n_households_80": 5131865,
+     "n_households_90": 11642906,
+     "power_at": {
+      "10000": 0.18337751865671642,
+      "100000": 0.36893170653985685,
+      "1000000": 0.5875488319582547,
+      "10000000": 0.8902709362991261,
+      "100000000": 0.9733,
+      "3955": 0.0825
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.84175
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.9375
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.97635
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.995075
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      73549580,
+      81480459
+     ],
+     "limit_n_to_infinity": 0.9738693997398301,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 81480459,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.0005765516227081086,
+      "1000000": 0.009581897794603242,
+      "10000000": 0.13840720969096332,
+      "100000000": 0.95025,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840875
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.9775
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.99545
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.997475
+      }
+     ]
+    },
+    "S4_plugin_tau_reader_refit_measured|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.21380390723899226,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.5e-05,
+      "1000000": 0.0014805474425396944,
+      "10000000": 0.029695328744331364,
+      "100000000": 0.204175,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.478125
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.69475
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.701525
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.895875
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D1": {
+     "bracket_80": [
+      5131865,
+      5685236
+     ],
+     "bracket_90": [
+      11642906,
+      12898364
+     ],
+     "limit_n_to_infinity": 0.9644089625329508,
+     "mc_se_max": 0.0025,
+     "n_households_80": 5685236,
+     "n_households_90": 12898364,
+     "power_at": {
+      "10000": 0.17063432835820896,
+      "100000": 0.3630255000490244,
+      "1000000": 0.5813481385279372,
+      "10000000": 0.8815708468277623,
+      "100000000": 0.96385,
+      "3955": 0.075525
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.854525
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.946875
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.969075
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.9939
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D2": {
+     "bracket_80": [
+      54095407,
+      59928535
+     ],
+     "bracket_90": [
+      73549580,
+      81480459
+     ],
+     "limit_n_to_infinity": 0.9644089625329508,
+     "mc_se_max": 0.0025,
+     "n_households_80": 59928535,
+     "n_households_90": 81480459,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.0005765516227081086,
+      "1000000": 0.009506897794603243,
+      "10000000": 0.13745694127687197,
+      "100000000": 0.9411,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.840875
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.969875
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.99425
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.997475
+      }
+     ]
+    },
+    "S4_plugin_tau_release_retraining_HYPOTHETICAL|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.20737512281426435,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 7.5e-05,
+      "1000000": 0.0015798540122222327,
+      "10000000": 0.02959541821569515,
+      "100000000": 0.199425,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.4868
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+       "marginal_power": 0.6893
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+       "marginal_power": 0.689725
+      },
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+       "marginal_power": 0.881
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.061797108208955225,
+      "100000": 0.0009141386410432395,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.056825
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_-0.001|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D1": {
+     "bracket_80": [
+      193700,
+      214587
+     ],
+     "bracket_90": [
+      358072,
+      396683
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 214587,
+     "n_households_90": 396683,
+     "power_at": {
+      "10000": 0.2743172574626866,
+      "100000": 0.6630421977644867,
+      "1000000": 0.9838977371661907,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.135125
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.8406
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.8406
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.964775
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.97385
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D2": {
+     "bracket_80": [
+      2261982,
+      2505892
+     ],
+     "bracket_90": [
+      2776103,
+      3075452
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 2505892,
+     "n_households_90": 3075452,
+     "power_at": {
+      "10000": 5e-05,
+      "100000": 0.004613790567702716,
+      "1000000": 0.3888612767303203,
+      "10000000": 0.9999875447356819,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.840425
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.840425
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.99995
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.999975
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0005|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 2.5e-05,
+      "1000000": 0.0013291605819047707,
+      "10000000": 0.0004122763215905325,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D1": {
+     "bracket_80": [
+      62795,
+      69566
+     ],
+     "bracket_90": [
+      104783,
+      116082
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 69566,
+     "n_households_90": 116082,
+     "power_at": {
+      "10000": 0.35540942164179107,
+      "100000": 0.8863211711932543,
+      "1000000": 1.0,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.1626
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.873125
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.873125
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.9519
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.97635
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D2": {
+     "bracket_80": [
+      539341,
+      597498
+     ],
+     "bracket_90": [
+      733302,
+      812375
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 597498,
+     "n_households_90": 812375,
+     "power_at": {
+      "10000": 0.0001,
+      "100000": 0.038478081184429844,
+      "1000000": 0.970420328298096,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.81855
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.81855
+      },
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.993725
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.999575
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.001|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.00010155162270810863,
+      "1000000": 0.003472226278730153,
+      "10000000": 0.0004122763215905325,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D1": {
+     "bracket_80": [
+      37632,
+      41690
+     ],
+     "bracket_90": [
+      62795,
+      69566
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 41690,
+     "n_households_90": 69566,
+     "power_at": {
+      "10000": 0.439034328358209,
+      "100000": 0.9641634277870379,
+      "1000000": 1.0,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.194825
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.90085
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.93825
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.96075
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.96075
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D2": {
+     "bracket_80": [
+      291759,
+      323219
+     ],
+     "bracket_90": [
+      358072,
+      396683
+     ],
+     "limit_n_to_infinity": 1.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": 323219,
+     "n_households_90": 396683,
+     "power_at": {
+      "10000": 0.0002819962686567164,
+      "100000": 0.12869372732620846,
+      "1000000": 0.9999506934303175,
+      "10000000": 1.0,
+      "100000000": 1.0,
+      "3955": 0.0
+     },
+     "status_80": "REACHED",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|occupation|Ucal|nll_excess|s0",
+       "marginal_power": 0.88425
+      },
+      {
+       "condition": "UTILITY|income|U0|brier_excess|s1",
+       "marginal_power": 0.9688
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.99295
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.99295
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.002|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.000514827434062163,
+      "1000000": 0.003618759127142844,
+      "10000000": 0.0004122763215905325,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+       "marginal_power": 1.0
+      },
+      {
+       "condition": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+       "marginal_power": 1.0
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0625,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.1879588619402985,
+      "100000": 0.2634622389449946,
+      "1000000": 0.2681,
+      "10000000": 0.2681,
+      "100000000": 0.2681,
+      "3955": 0.106125
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.50075
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.50075
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.5038
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.506075
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 4.769211015389854e-09,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 2.5e-05,
+      "100000": 0.000175,
+      "1000000": 0.000325,
+      "10000000": 0.000325,
+      "100000000": 0.000325,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0078
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      }
+     ]
+    },
+    "S5_binding_true_slack_0.0|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": 0.0,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0,
+      "100000": 0.0,
+      "1000000": 0.0,
+      "10000000": 0.0,
+      "100000000": 0.0,
+      "3955": 0.0
+     },
+     "status_80": "LIMIT_BELOW_TARGET",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.0
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.0078
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.008025
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.00805
+      }
+     ]
+    },
+    "S6_assurance|D1": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.13126110074626865,
+      "100000": 0.1599694823021865,
+      "1000000": 0.1613284671515873,
+      "10000000": 0.16107508947136379,
+      "100000000": 0.1612,
+      "3955": 0.06925
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.50515
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.51415
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.537925
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.537925
+      }
+     ]
+    },
+    "S6_assurance|D2": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 0.0020585820895522387,
+      "100000": 0.05102654426904599,
+      "1000000": 0.11755547442539693,
+      "10000000": 0.1456887973347749,
+      "100000000": 0.156325,
+      "3955": 0.000175
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.49935
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.508
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.531525
+      },
+      {
+       "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+       "marginal_power": 0.531525
+      }
+     ]
+    },
+    "S6_assurance|D3": {
+     "bracket_80": null,
+     "bracket_90": null,
+     "limit_n_to_infinity": NaN,
+     "mc_se_max": 0.0025,
+     "n_households_80": null,
+     "n_households_90": null,
+     "power_at": {
+      "10000": 7.639925373134328e-05,
+      "100000": 0.010368445435827042,
+      "1000000": 0.03912565692174609,
+      "10000000": 0.05510116312772923,
+      "100000000": 0.061325,
+      "3955": 0.0
+     },
+     "status_80": "NOT_REACHED_BY_1E8",
+     "weakest_conditions_at_n80_or_1e8": [
+      {
+       "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+       "marginal_power": 0.48795
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s1",
+       "marginal_power": 0.49935
+      },
+      {
+       "condition": "UTILITY|income|Ucal|brier_excess|s0",
+       "marginal_power": 0.508
+      },
+      {
+       "condition": "UTILITY|income|U0|accuracy_loss|s1",
+       "marginal_power": 0.531525
+      }
+     ]
+    }
+   },
+   "sensitivity_B_only_c1.960_plugin_D1": {
+    "bracket_80": [
+     4181467,
+     4632356
+    ],
+    "bracket_90": [
+     8563308,
+     9486693
+    ],
+    "limit_n_to_infinity": 1.0,
+    "mc_se_max": 0.0025,
+    "n_households_80": 4632356,
+    "n_households_90": 9486693,
+    "power_at": {
+     "10000": 0.2156874067164179,
+     "100000": 0.38606067261496224,
+     "1000000": 0.6069120071342864,
+     "10000000": 0.9158962941845813,
+     "100000000": 1.0,
+     "3955": 0.140225
+    },
+    "status_80": "REACHED",
+    "weakest_conditions_at_n80_or_1e8": [
+     {
+      "condition": "UTILITY|income|Ucal|brier_excess|s1",
+      "marginal_power": 0.828975
+     },
+     {
+      "condition": "UTILITY|income|Ucal|brier_excess|s0",
+      "marginal_power": 0.92825
+     },
+     {
+      "condition": "UTILITY|income|U0|accuracy_loss|s1",
+      "marginal_power": 0.999925
+     },
+     {
+      "condition": "UTILITY|income|Ucal|accuracy_loss|s1",
+      "marginal_power": 0.999925
+     }
+    ]
+   },
+   "tau_reader_refit_measured_lower_bound": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.006691428318516119,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.009529329491830048,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.013398544917231171,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.0036399395279710254
+   },
+   "tau_release_retraining_HYPOTHETICAL": {
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.0024084528231672823,
+    "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.0024084528231672823,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.0050468697025754785,
+    "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.0050468697025754785
+   }
+  }
+ },
+ "utc": "2026-10-17T22:29:47+00:00"
+}

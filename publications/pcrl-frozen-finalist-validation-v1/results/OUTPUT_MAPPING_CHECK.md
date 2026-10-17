@@ -1,8 +1,10 @@
 # Output-mapping check: frozen finalist `B3CTL_UNCOUPLED_MIX50_C6A`
 
-**Data.** Public-use ACS 2019 Florida person records, in the development roles. The service predicts income class (2) and occupation group (5) from AGEP, WKHP, COW, SCHL, MAR and POBP. Each recipient receives its own float64 probability vector and argmax decision. SEX is the recorded column that evaluation readers try to infer.
+**Data.** Public-use U.S. Census Bureau ACS 2019 1-Year PUMS person records for Florida, in the development roles. The service predicts income class (2) and occupation group (5) from AGEP, WKHP, COW, SCHL, MAR and POBP. Each recipient receives its own float64 probability vector and argmax decision. SEX is the recorded column that evaluation readers try to infer.
 
-**How this was done.** Label-free: no SEX or task label was read. All numbers come from `OUTPUT_MAPPING_RESULTS.json` (unit FFV_MAPPING_V2), using the exact transmitted float64 bytes from the evaluated batch outputs, with no rounding. Domain-wide statements (Part 2) are kept separate from empirical counts (Part 1).
+**How this was done.** Label-free: no SEX or task label was read. All numbers use the exact transmitted float64 bytes from the evaluated batch outputs, with no rounding. They come from:
+- `OUTPUT_MAPPING_RESULTS.json` (unit FFV_MAPPING_V2);
+- `MAPPING_CONFLICTS.json` (unit FFV_MAPPING_CONFLICTS_V2, `ffv/mapping_conflicts.py`) for the exact union count of shared vectors and the identifier-free conflict details. That unit replaces the session-scratchpad script of unit FFV_MAPPING_CONFLICTS_V1, which printed the same details. Domain-wide statements (Part 2) are kept separate from empirical counts (Part 1).
 
 ## What the source said, and what is checked
 
@@ -58,8 +60,8 @@ In both pairs the encoded inputs differ only in POBP. The occupation vectors are
 **Most vectors occur once.** Within a role, 92.8–97.1% of distinct occupation vectors occur exactly once. A relation "income code = f(occupation vector)" that holds on a set where nearly every vector occurs once is close to vacuous: any assignment of codes to once-seen vectors is a function.
 
 **Only repeated vectors can test it.** Most repeated vectors are repeated identical inputs, which receive identical outputs trivially. The informative cases are distinct inputs that share an occupation vector:
-- seed 0: 6 such vectors in the union, with no conflict;
-- seed 1: 49 such vectors in the union, of which 2 carry different income codes.
+- seed 0: 5 such vectors in the union (distinct inputs exceed distinct vectors by 6; at most 3 inputs share one vector), with no conflict;
+- seed 1: 46 such vectors in the union (excess 49; at most 4 inputs share one vector), of which 2 carry different income codes (`MAPPING_CONFLICTS.json`).
 
 **Future records are not covered.** Whether the relation holds for future records depends on how often distinct inputs fall in the same occupation routing cell. That is a property of the frozen trees over the input domain (Part 2), not of these 47,927 people.
 
@@ -74,7 +76,7 @@ This part is separate from the empirical counts, and it is not a population theo
 
 Counting distinct encodings, the domain has 369,388,800 encoded inputs.
 
-**Routing cells.** The frozen oblivious trees split on exact borders: 587 depth-4 income trees and 800 occupation trees per seed. A routing cell is a set of inputs that every tree of a teacher sends to the same leaves. For each raw variable, the equivalence classes of its valid values are exact; so are the cell counts.
+**Routing cells.** The frozen oblivious trees split on exact borders: depth-4 trees, 587 income and 800 occupation trees on seed 0, and 529 and 799 on seed 1. A routing cell is a set of inputs that every tree of a teacher sends to the same leaves. For each raw variable, the equivalence classes of its valid values are exact; so are the cell counts.
 
 Classes per variable (seed 0 / seed 1):
 
@@ -124,14 +126,15 @@ Only about 10% of ATTACK_VALIDATION and DEV_REPORT occupation vectors occur exac
 
 **Batch-size last bit.** The package's per-level income probability depends on the request batch size at the last bit, for 2 of the 6 levels on each seed.
 - On 200 DEV_REPORT rows requested one at a time or in 8-row batches, 60 (seed 0) and 47 (seed 1) rows differ bitwise from the evaluated batch outputs, by at most 1.1e-16.
-- Decisions are unchanged, and the occupation output and H_LJ are unaffected (`DEPLOYMENT_CHECKS.json`).
+- The affected levels are 2 and 4 (seed 0) and 3 and 4 (seed 1). Decisions are unchanged, and the occupation output is unaffected (`DEPLOYMENT_CHECKS.json`; confirmed by the claims reviewer's spot check).
+- H_LJ was tested on seed 0 only and was unaffected. TASKONLY uses the same family-B arithmetic and was not tested; it probably shares the dependence.
 - The counts above use the evaluated batch bytes. An exact-byte lookup keyed on batch outputs would see different keys for small-batch requests.
 
-**Threshold ties** (source D3). These are people exactly on a frozen label-free MODEL_FIT threshold:
+**Threshold ties** (source deviation D3). These are people exactly on a frozen label-free MODEL_FIT threshold:
 - seed 0: 2 MODEL_FIT people; neither changes level under an exactly rounded or reversed summation;
-- seed 1: 4 MODEL_FIT people; 2 move to the adjacent level under either alternative summation (the package value is 2–4e-16 below the exact sum).
+- seed 1: 4 MODEL_FIT people; 2 move to the adjacent level under either alternative summation (the package value is 2.2e-16 and 4.4e-16 below the exact sum).
 
-No person in any other role is closer than 4.5e-6 to a threshold. Thresholds are unchanged: a midpoint-threshold variant would be a different release, needing its own evaluation.
+In every other role, the closest person is 4.5e-6 from a threshold (ATTACK_FIT, seed 0). Neither seed-1 move crosses the income decision: the levels change 0→1 and 1→2. Thresholds are unchanged: a midpoint-threshold variant would be a different release, needing its own evaluation.
 
 ## Consequences for the source wording
 
