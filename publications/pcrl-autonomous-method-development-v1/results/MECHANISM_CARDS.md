@@ -48,3 +48,25 @@ Written 2026-10-17 ~17:05Z, before any fit.
 - **Closest prior.**
   - Pope & Sydnor (2011): estimate with the protected characteristic included, then predict with it averaged out.
   - Marginalization of protected attributes in fair prediction.
+
+### Family A revisions (recorded as they happened)
+
+- **A1, initial (17:08Z), seed 0, MODEL_SELECT.**
+  - Result: income summed-Brier excess 0.0062 against U0, so the clause fails (worst normalized 1.32 against Ucal). Pair proxy 0.6235, not below H_LJ's 0.6224. Occupation proxy 0.615, versus 0.643 for the teacher.
+  - Diagnosis 1. The in-sample per-SEX headroom on the internal holdout put the men's budget at 0.003. The controller then cut occupation pressure to kappa ≈ 0.1–0.2, so occupation was barely protected; on MODEL_SELECT both guards had large slack.
+  - Diagnosis 2. Income cost measured on the internal holdout under-stated MODEL_SELECT by about 0.004. The teacher is in-sample on MODEL_FIT, so a holdout of MODEL_FIT people is not held out for the teacher.
+- **A2, revision 1 (17:10Z).** Three changes:
+  - per-SEX budgets from the teacher's measured MODEL_SELECT per-SEX headroom (a logged MODEL_SELECT use);
+  - income budgets at 20% of each cap;
+  - income pressure capped at the recipe strength.
+
+  Seed 0 result:
+  - all 12 clauses and both guards pass, with every value ≤ 0.8 × its cap (worst 0.53);
+  - pair proxy 0.6103 (H_LJ 0.6224, NEURAL_RAW 0.6238) and income proxy 0.528;
+  - **occupation proxy 0.597, above H_LJ's 0.5724 + 0.010**, so recipient non-worsening against H_LJ fails.
+
+  The holdout log shows the men's occupation Brier budget throttling occupation pressure.
+- **A3, revision 2 (17:12Z).** The occupation task loss was weighted men 2 : women 1 (SEX used at training time only), with per-SEX budgets at 80% of the guard.
+  - Seed 0 result: the weighting shifted occupation predictions toward men's outcomes. On MODEL_SELECT the men's guard went to −0.0082 and the women's to +0.0020. On the holdout the women's budget was exceeded repeatedly, the controller drove occupation pressure to 0, and the final state is weakly protected: pair proxy 0.639, occupation 0.625.
+  - Conclusion: a fixed SEX weighting of the task loss moves calibration across subgroups rather than reallocating the privacy burden.
+- **Family A stops here** (initial version plus two revisions used). Its best configuration is A2: eligible on MODEL_SELECT seed 0 except occupation recipient non-worsening against H_LJ. A2 is also being run on seed 1 for the record.

@@ -67,7 +67,11 @@ def committed(path):
 
 
 def admission():
-    return json.loads((RESULTS / 'SOURCE_ADMISSION.json').read_text())
+    rec = json.loads((RESULTS / 'SOURCE_ADMISSION.json').read_text())
+    extra = RESULTS / 'SOURCE_ADMISSION_2.json'
+    if extra.is_file():
+        rec['copies'] = {**rec['copies'], **json.loads(extra.read_text())['copies']}
+    return rec
 
 
 def admitted(rel):

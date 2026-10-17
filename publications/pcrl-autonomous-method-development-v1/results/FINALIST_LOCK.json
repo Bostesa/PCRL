@@ -1,0 +1,180 @@
+{
+ "bank": [
+  {
+   "role": "FINALIST",
+   "source": {
+    "config_id": "B3CTL_UNCOUPLED_MIX50_C6A",
+    "family": "B",
+    "kind": "release"
+   }
+  },
+  {
+   "role": "NEURAL_RAW",
+   "source": {
+    "kind": "frozen",
+    "name": "NEURAL_RAW"
+   }
+  },
+  {
+   "role": "H_LJ",
+   "source": {
+    "kind": "frozen",
+    "name": "H_LJ"
+   }
+  },
+  {
+   "role": "TASKONLY",
+   "source": {
+    "config_id": "B3CTL_TASKONLY_TR_C6A",
+    "family": "B",
+    "kind": "release"
+   }
+  },
+  {
+   "role": "B2TWIN",
+   "source": {
+    "config_id": "B2CTL_UNCOUPLED_C6A",
+    "family": "B",
+    "kind": "release"
+   }
+  },
+  {
+   "role": "H_JJ",
+   "source": {
+    "kind": "frozen",
+    "name": "H_JJ"
+   }
+  },
+  {
+   "role": "PUB_IBSI",
+   "source": {
+    "kind": "um",
+    "name": "IBSI_NLLM"
+   }
+  },
+  {
+   "role": "T_TREE",
+   "source": {
+    "kind": "frozen",
+    "name": "T_TREE"
+   }
+  }
+ ],
+ "finalist": {
+  "config_id": "B3CTL_UNCOUPLED_MIX50_C6A",
+  "family": "B",
+  "mean_pair_proxy": 0.6000196068433904,
+  "selection_label": "EDGE_SELECTED"
+ },
+ "note": "frozen before any final reader fit; the final bank deduplicates exact aliases (at most 8 effective releases per seed)",
+ "output_contract": "each recipient: its own float64 probability vector and argmax decision; the linked pair is the aligned two outputs; nothing else",
+ "promotion_sha256": "5c547cd060536ca63887028cdc13079d2446e361c2bdc2ca92621b2189a6db74",
+ "release_records": {
+  "B/B2CTL_UNCOUPLED_C6A|S0": {
+   "base_occupation": "JOINT_TREE",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the LOCAL_TREE E20 income log-odds (m = 6, aligned); thresholds [-1.6883161298426321, -0.7783793888138786, 0.0, 0.5333879408847376, 1.155828817337758] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "B2 control: uncoupled, income = calibrated 6 aligned LOCAL_TREE income bins only (same pair information as B2)",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  },
+  "B/B2CTL_UNCOUPLED_C6A|S1": {
+   "base_occupation": "JOINT_TREE",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the LOCAL_TREE E20 income log-odds (m = 6, aligned); thresholds [-1.6622717223030707, -0.7651939464084943, 0.0, 0.5273540617022752, 1.161000071798616] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "B2 control on seed 1: uncoupled, income = calibrated 6 aligned LOCAL_TREE income bins only",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  },
+  "B/B3CTL_TASKONLY_TR_C6A|S0": {
+   "base_occupation": "TASK_REFIT",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the TASK_REFIT E20 income log-odds (m = 6, aligned); thresholds [-1.7176920976938586, -0.7785255710464224, 0.0, 0.5448338498328016, 1.1706890412247088] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "coordinator-run matched task-only control of the B3 coarse-code twin: TASK_REFIT occupation + uncoupled h(6 aligned bins of TASK_REFIT income log-odds)",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  },
+  "B/B3CTL_TASKONLY_TR_C6A|S1": {
+   "base_occupation": "TASK_REFIT",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the TASK_REFIT E20 income log-odds (m = 6, aligned); thresholds [-1.7029844549258484, -0.7715496975776132, 0.0, 0.5493479183521728, 1.180563595359177] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "coordinator-run matched task-only control of the B3 coarse-code twin: TASK_REFIT occupation + uncoupled h(6 aligned bins of TASK_REFIT income log-odds)",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  },
+  "B/B3CTL_UNCOUPLED_MIX50_C6A|S0": {
+   "base_occupation": "JOINT_TREE",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the MIX = 0.5 x LOCAL_TREE + 0.5 x JOINT_TREE E20 income log-odds (m = 6, aligned); thresholds [-1.6316728131139604, -0.742758134503039, 0.0, 0.5138379786836021, 1.1429649865238223] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "B3 coarse-only twin: income = calibrated 6 aligned bins of 0.5 LOCAL + 0.5 JOINT income log-odds; does not depend on the occupation output",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  },
+  "B/B3CTL_UNCOUPLED_MIX50_C6A|S1": {
+   "base_occupation": "JOINT_TREE",
+   "config": null,
+   "h_fit_role": "CALIBRATION (all 2982 rows; features -> base outputs; income labels; no SEX)",
+   "income_statistic_definition": "c = bins of the MIX = 0.5 x LOCAL_TREE + 0.5 x JOINT_TREE E20 income log-odds (m = 6, aligned); thresholds [-1.6071908026665747, -0.7350476397331345, 0.0, 0.5175485487696541, 1.1383853883896806] (label-free MODEL_FIT log-odds); one-hot into h",
+   "labels_used_at_training": {
+    "CALIBRATION": [
+     "income"
+    ],
+    "MODEL_FIT": "none read by this code; the stored base corrections (replication Stage B LOCAL_TREE / JOINT_TREE) used MODEL_FIT income, occupation and SEX labels; coarse thresholds use MODEL_FIT features only"
+   },
+   "mechanism": "Family B CSR: occupation = base output; income = softmax(-s/2, s/2), s = h(phi(occupation output)[, income statistic])",
+   "note": "B3 coarse-only twin on seed 1 (same recipe; seed-specific base outputs, thresholds and h)",
+   "runtime_inputs": "the admitted 145-column encoding of AGEP, WKHP, COW, SCHL, MAR, POBP; SEX is never an input"
+  }
+ },
+ "release_sha256": {
+  "B/B2CTL_UNCOUPLED_C6A": {
+   "S0": "caee7d4fcff661a526b526f7f3a85a75b59ec0b12dae019ab0afd1a106a12b16",
+   "S1": "9f30d801743f71060017d105555bb3291707241d4746012021124582b25f1e3c"
+  },
+  "B/B3CTL_TASKONLY_TR_C6A": {
+   "S0": "bddd291868c9fbb5fe73d6961d929029d475ebcddafdbb81a06382416313252a",
+   "S1": "54b2353a9132c6085d7668580460b4924168300fc5bfb62abbee6c084c2706d7"
+  },
+  "B/B3CTL_UNCOUPLED_MIX50_C6A": {
+   "S0": "04e6a1b36c1543d797fc1dc0cad48f451cc3cb6933ece7f666784b5a821c0b91",
+   "S1": "b7b72562639267517e8dbfa8273640e3597e543bee5bdb72d7e2656a6d65b5eb"
+  }
+ },
+ "schema": "AMD1-finalist-lock-v1",
+ "utc": "2026-10-17T17:37:02+00:00"
+}

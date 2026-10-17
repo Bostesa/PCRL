@@ -70,5 +70,29 @@ def main():
     print(json.dumps({'status': rec['status'], 'n_copies': len(copies), 'problems': problems}))
 
 
+def main_extra():
+    """Second admission record (write-once SOURCE_ADMISSION_2.json): the replication's frozen T_TREE deployment package records
+    (the 145-column raw-field encoder and teacher file names), hash-checked against its public MODEL_MANIFEST.json."""
+    dp = json.loads((C.REP_RESULTS / 'MODEL_MANIFEST.json').read_text())['deployment_packages']
+    copies, problems = {}, []
+    for s in C.SEEDS:
+        rel = f'packages/T_TREE_S{s}/PACKAGE.json'
+        src = C.REP_PRIV / 'deploy' / f'T_TREE_S{s}' / 'PACKAGE.json'
+        expected = dp[f'T_TREE_S{s}']['package_json_sha256']
+        if not src.is_file() or C.sha(src) != expected:
+            problems.append(rel); continue
+        dst = C.SRCP / rel; dst.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if not dst.exists():
+            shutil.copyfile(src, dst); dst.chmod(0o400)
+        copies[rel] = {'sha256': expected, 'hash_basis': 'pcrl_acs_protected_tree_replication_v1/MODEL_MANIFEST.json deployment_packages',
+                       'bytes': dst.stat().st_size}
+    rec = {'schema': 'AMD1-source-admission-v1', 'utc': C.now(), 'campaign': C.CAMPAIGN, 'status': 'ADMITTED' if not problems else 'ADMISSION_FAILED',
+           'problems': problems, 'n_copies': len(copies), 'copies': copies, 'labels_read': False, 'fits': 0,
+           'purpose': 'raw-field encoder for this campaign\'s deployment packages'}
+    C.write_json_x(C.RESULTS / 'SOURCE_ADMISSION_2.json', rec)
+    print(json.dumps({'status': rec['status'], 'n_copies': len(copies), 'problems': problems}))
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    main_extra() if sys.argv[1:] == ['extra'] else main()
