@@ -70,3 +70,33 @@ Written 2026-10-17 ~17:05Z, before any fit.
   - Seed 0 result: the weighting shifted occupation predictions toward men's outcomes. On MODEL_SELECT the men's guard went to −0.0082 and the women's to +0.0020. On the holdout the women's budget was exceeded repeatedly, the controller drove occupation pressure to 0, and the final state is weakly protected: pair proxy 0.639, occupation 0.625.
   - Conclusion: a fixed SEX weighting of the task loss moves calibration across subgroups rather than reallocating the privacy burden.
 - **Family A stops here** (initial version plus two revisions used). Its best configuration is A2: eligible on MODEL_SELECT seed 0 except occupation recipient non-worsening against H_LJ. A2 is also being run on seed 1 for the record.
+
+### Family B revisions
+
+Recorded by investigator B as they happened. Full text: `roles/investigator_b/CARD_REVISIONS.md` and `REPORT.md`.
+
+- **B1, initial (17:15Z).** Pure coupling.
+  - Result: pair proxy 0.5666, but income NLL +0.053.
+  - Revise condition met: a simple calibrated map of the occupation vector cannot carry income within the caps. The vector itself is essentially one-to-one in the inputs.
+- **B2, revision 1 (17:17Z).** Added a 6-level decision-aligned code of the LOCAL_TREE income log-odds.
+  - Eligible on both seeds; pair 0.6131 / 0.6132.
+  - The uncoupled twin reads 0.6153 / 0.6154. On the observed people, both pairs are functions of the same, essentially one-to-one occupation output; no injectivity is inferred from the construction.
+- **B3, revision 2 (about 17:23Z).** The code is built from 0.5 LOCAL_TREE + 0.5 JOINT_TREE income log-odds.
+  - The coordinator had suggested a JOINT_TREE-only code; investigator B chose alpha = 0.5 on its CALIBRATION screen, the largest alpha inside the income caps.
+  - The coupled B3 fails income Brier on seed 0.
+  - Its uncoupled twin, B3CTL_UNCOUPLED_MIX50_C6A (pair 0.6000 / 0.6001), was run afterwards. This was an adaptive step.
+- **Controls.**
+  - Teacher-base coupled control: B2CTL_TASKONLY_TT_C6A.
+  - Matched task-only control for the twin, run by the coordinator: B3CTL_TASKONLY_TR_C6A.
+- **Family stops.** Initial version plus two revisions; 10 of investigator B's 10 configurations used.
+
+### Family C revisions
+
+Recorded by investigator C. Full text: `roles/investigator_c/CARD_REVISIONS.md` and `REPORT.md`.
+
+- **C1, initial.** Full SEX-mixture marginalization of both tasks.
+  - Eligible on seed 0. Fails the men's guard on seed 1 and the occupation recipient bar on both seeds.
+  - Pair 0.6263 / 0.6368.
+- **C1 control.** Matched-cost temperature control. It moves every reader proxy by at most ±0.0025.
+- **C2, revision 1.** Marginalized income with the JOINT_TREE occupation output: pair 0.6277. Abandoned.
+- **Family stops after one revision.** Nothing left in the family could close the occupation gap at a feasible men's guard.

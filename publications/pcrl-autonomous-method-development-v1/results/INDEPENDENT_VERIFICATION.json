@@ -1,0 +1,3521 @@
+{
+ "checks": {
+  "1_data_roles_and_exposure": "PASS",
+  "2_runtime_outputs": "PASS",
+  "3_utility_and_subgroup": "PASS",
+  "4_selection": "PASS",
+  "5_paired_household_bootstrap": "PASS",
+  "6_labels": "PASS",
+  "7_reader_refits": "PASS",
+  "8_deployment": "PASS"
+ },
+ "dev_truth_event": [
+  {
+   "event": "DEV_REPORT_TRUTH_REREAD_BY_AMD_INDEPENDENT_VERIFIER",
+   "reporting_lock_sha256": "f8d6e35427a4ae0c62149d67f626d76e2779a887ea9a3368933776c8a4aaa4fa",
+   "unit_id": "AMD_VERIFY_DEV_V1",
+   "utc": "2026-10-17T17:56:47+00:00"
+  }
+ ],
+ "discrepancies": [
+  {
+   "id": "D1",
+   "severity": "LOW (custody narrative; no numerical effect)",
+   "text": "The statistical reviewer's CLAIMS_AND_ENDPOINTS_DRAFT.md says it was written 'at about 17:50Z, before any finalist freeze', and DEVELOPMENT_REVIEW.md says 'written 17:30-17:50Z'. Git shows DEVELOPMENT_REVIEW.md first committed in ad37c120c (17:37:13Z, the finalist freeze) and the draft first committed in 345e0adb0 (17:43:02Z), whose ANALYSIS_LOCK (utc 17:42:54Z) carries the draft's hash. The self-reported 17:50Z times are impossible. The repository cannot show that the draft existed before the finalist freeze (its first commit is 5 min 49 s after it, and its worked instance names the adjudicated finalist). What is verifiable: the draft hash in ANALYSIS_LOCK equals the current file; the lock was committed before the reader fits (17:43:14Z) and was published (origin/publication 614c9f36b, 17:45:17Z, same blobs as 721d4163d) before the coordinator's DEV_REPORT read (17:45:30Z)."
+  },
+  {
+   "id": "D2",
+   "severity": "INFO (documentation)",
+   "text": "PROTOCOL.md section 3 gives MODEL_SELECT as 8,000 people; the admitted export, the bank and every evaluation use 8,001 rows."
+  },
+  {
+   "id": "D3",
+   "severity": "INFO (numerical fragility on a non-evaluated role)",
+   "text": "The verifier's own recomputation of the finalist on MODEL_FIT (not a released or evaluated role) differs from RELEASE.npz for the people whose MIX income statistic lies within 4.4e-16 of a bin threshold (2 people on seed 0, 4 on seed 1; max probability difference 0.179 / 0.191; decisions unchanged). The thresholds are empirical quantiles of those same MODEL_FIT values, so some people sit exactly on a threshold. A last-bit change in the summation order of the tree scores moves them to the other bin. On MODEL_SELECT and DEV_REPORT the nearest statistic is at least 3.5e-5 from any threshold, and outputs match bitwise."
+  }
+ ],
+ "numbers": {
+  "B_nested_recorded": {
+   "conditions": [
+    {
+     "category": "UNRESOLVED",
+     "clause_L1": 0.01353942053601708,
+     "clause_U1": 0.04051208542862229,
+     "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+     "family": [
+      0.008420626455181626,
+      0.04563087950945774
+     ],
+     "gate": null,
+     "holds": false,
+     "point": 0.027025752982319684,
+     "test": "clause_at_0020"
+    },
+    {
+     "category": "UNRESOLVED",
+     "clause_L1": 0.019066605140884284,
+     "clause_U1": 0.03771696106913972,
+     "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+     "family": [
+      0.015527194707723803,
+      0.0412563715023002
+     ],
+     "gate": null,
+     "holds": false,
+     "point": 0.028391783105012003,
+     "test": "clause_at_0020"
+    },
+    {
+     "category": "POINT_SHORTFALL",
+     "clause_L1": 0.005917497135134779,
+     "clause_U1": 0.03385930566768037,
+     "condition": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+     "family": [
+      0.0006147817863282751,
+      0.03916202101648687
+     ],
+     "gate": null,
+     "holds": false,
+     "point": 0.019888401401407574,
+     "test": "clause_at_0020"
+    },
+    {
+     "category": "UNRESOLVED",
+     "clause_L1": 0.012898664878333075,
+     "clause_U1": 0.03707276803797305,
+     "condition": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+     "family": [
+      0.008310973723018429,
+      0.041660459193287695
+     ],
+     "gate": null,
+     "holds": false,
+     "point": 0.024985716458153062,
+     "test": "clause_at_0020"
+    }
+   ],
+   "label": "NOT_ESTABLISHED"
+  },
+  "CV": true,
+  "E_recipient_clause_counts": {
+   "ESTABLISHED_VIOLATION": 0,
+   "PASS": 8,
+   "POINT_EXCESS": 0,
+   "UNRESOLVED": 0
+  },
+  "E_simultaneous_utility": {
+   "ESTABLISHED_VIOLATION": 0,
+   "PASS": 3,
+   "UNRESOLVED": 25,
+   "label": "CONFIDENCE_UNRESOLVED",
+   "n": 28,
+   "unresolved_keys": [
+    "UTILITY|income|U0|accuracy_loss|s0",
+    "UTILITY|income|U0|nll_excess|s0",
+    "UTILITY|income|U0|brier_excess|s0",
+    "UTILITY|income|Ucal|accuracy_loss|s0",
+    "UTILITY|income|Ucal|nll_excess|s0",
+    "UTILITY|income|Ucal|brier_excess|s0",
+    "UTILITY|occupation|U0|nll_excess|s0",
+    "UTILITY|occupation|U0|brier_excess|s0",
+    "UTILITY|occupation|Ucal|nll_excess|s0",
+    "UTILITY|occupation|Ucal|brier_excess|s0",
+    "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0",
+    "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0",
+    "UTILITY|income|U0|accuracy_loss|s1",
+    "UTILITY|income|U0|nll_excess|s1",
+    "UTILITY|income|U0|brier_excess|s1",
+    "UTILITY|income|Ucal|accuracy_loss|s1",
+    "UTILITY|income|Ucal|nll_excess|s1",
+    "UTILITY|income|Ucal|brier_excess|s1",
+    "UTILITY|occupation|U0|accuracy_loss|s1",
+    "UTILITY|occupation|U0|nll_excess|s1",
+    "UTILITY|occupation|U0|brier_excess|s1",
+    "UTILITY|occupation|Ucal|accuracy_loss|s1",
+    "UTILITY|occupation|Ucal|nll_excess|s1",
+    "UTILITY|occupation|Ucal|brier_excess|s1",
+    "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1"
+   ]
+  },
+  "auc_by_service": [
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5531125089831637,
+    "auc_recorded": 0.5531125089831637,
+    "se": 0.006556525252828635,
+    "se_recorded": 0.006556525252828635,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "B2TWIN",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5603878233740616,
+    "auc_recorded": 0.5603878233740616,
+    "se": 0.0072789688255894755,
+    "se_recorded": 0.0072789688255894755,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "B2TWIN",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6293858292307103,
+    "auc_recorded": 0.6293858292307103,
+    "se": 0.006796555370368972,
+    "se_recorded": 0.006796555370368972,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "B2TWIN",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5413233460723716,
+    "auc_recorded": 0.5413233460723716,
+    "se": 0.006542476029191341,
+    "se_recorded": 0.006542476029191341,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "FINALIST",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5603878233740616,
+    "auc_recorded": 0.5603878233740616,
+    "se": 0.0072789688255894755,
+    "se_recorded": 0.0072789688255894755,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "FINALIST",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.612988368516966,
+    "auc_recorded": 0.612988368516966,
+    "se": 0.0068476159001922676,
+    "se_recorded": 0.0068476159001922676,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "FINALIST",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5346941055715219,
+    "auc_recorded": 0.5346941055715219,
+    "se": 0.006774258962442542,
+    "se_recorded": 0.006774258962442542,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_JJ",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5603878233740616,
+    "auc_recorded": 0.5603878233740616,
+    "se": 0.0072789688255894755,
+    "se_recorded": 0.0072789688255894755,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_JJ",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6034923344803227,
+    "auc_recorded": 0.6034923344803227,
+    "se": 0.006879163213791078,
+    "se_recorded": 0.006879163213791078,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_JJ",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5581682935513179,
+    "auc_recorded": 0.5581682935513179,
+    "se": 0.006608816176852135,
+    "se_recorded": 0.006608816176852135,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_LJ",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5603878233740616,
+    "auc_recorded": 0.5603878233740616,
+    "se": 0.0072789688255894755,
+    "se_recorded": 0.0072789688255894755,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_LJ",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.641380151621978,
+    "auc_recorded": 0.641380151621978,
+    "se": 0.006719518752820694,
+    "se_recorded": 0.006719518752820694,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "H_LJ",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5462479101608845,
+    "auc_recorded": 0.5462479101608845,
+    "se": 0.006637314535652128,
+    "se_recorded": 0.006637314535652128,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "NEURAL_RAW",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6217060316773944,
+    "auc_recorded": 0.6217060316773944,
+    "se": 0.0066225060477374895,
+    "se_recorded": 0.0066225060477374895,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "NEURAL_RAW",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6400141214992857,
+    "auc_recorded": 0.6400141214992857,
+    "se": 0.006524170133646393,
+    "se_recorded": 0.006524170133646393,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "NEURAL_RAW",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5583307893784387,
+    "auc_recorded": 0.5583307893784387,
+    "se": 0.00703611907808977,
+    "se_recorded": 0.00703611907808977,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "PUB_IBSI",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6203077630171736,
+    "auc_recorded": 0.6203077630171736,
+    "se": 0.006823859243096996,
+    "se_recorded": 0.006823859243096996,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "PUB_IBSI",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6296626047242545,
+    "auc_recorded": 0.6296626047242545,
+    "se": 0.006582932955259865,
+    "se_recorded": 0.006582932955259865,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "PUB_IBSI",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5688471816265945,
+    "auc_recorded": 0.5688471816265945,
+    "se": 0.006590847156369591,
+    "se_recorded": 0.006590847156369591,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "TASKONLY",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6496794503516323,
+    "auc_recorded": 0.6496794503516323,
+    "se": 0.006628348390711947,
+    "se_recorded": 0.006628348390711947,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "TASKONLY",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6645168831351315,
+    "auc_recorded": 0.6645168831351315,
+    "se": 0.006596609117945963,
+    "se_recorded": 0.006596609117945963,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "TASKONLY",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5686994735996407,
+    "auc_recorded": 0.5686994735996407,
+    "se": 0.006659198402183704,
+    "se_recorded": 0.006659198402183704,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "T_TREE",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6503535700695832,
+    "auc_recorded": 0.6503535700695832,
+    "se": 0.006610553477585227,
+    "se_recorded": 0.006610553477585227,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "T_TREE",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6637841787988952,
+    "auc_recorded": 0.6637841787988952,
+    "se": 0.006501930109033715,
+    "se_recorded": 0.006501930109033715,
+    "se_rel_diff": 0.0,
+    "seed": 0,
+    "svc": "T_TREE",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5518059700105679,
+    "auc_recorded": 0.5518059700105679,
+    "se": 0.006533142215807862,
+    "se_recorded": 0.006533142215807862,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "B2TWIN",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5832703293724693,
+    "auc_recorded": 0.5832703293724693,
+    "se": 0.007242973033055311,
+    "se_recorded": 0.007242973033055311,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "B2TWIN",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6277663101503687,
+    "auc_recorded": 0.6277663101503687,
+    "se": 0.006812824904226103,
+    "se_recorded": 0.006812824904226103,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "B2TWIN",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5453637583539739,
+    "auc_recorded": 0.5453637583539739,
+    "se": 0.006520632165958082,
+    "se_recorded": 0.006520632165958082,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "FINALIST",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5832703293724693,
+    "auc_recorded": 0.5832703293724693,
+    "se": 0.007242973033055311,
+    "se_recorded": 0.007242973033055311,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "FINALIST",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6178515717335222,
+    "auc_recorded": 0.6178515717335222,
+    "se": 0.00704551510118951,
+    "se_recorded": 0.00704551510118951,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "FINALIST",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5371697306308714,
+    "auc_recorded": 0.5371697306308714,
+    "se": 0.00700376618085384,
+    "se_recorded": 0.00700376618085384,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_JJ",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5832703293724693,
+    "auc_recorded": 0.5832703293724693,
+    "se": 0.007242973033055311,
+    "se_recorded": 0.007242973033055311,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_JJ",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6064881388244685,
+    "auc_recorded": 0.6064881388244685,
+    "se": 0.007103348261709486,
+    "se_recorded": 0.007103348261709486,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_JJ",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5488854078067347,
+    "auc_recorded": 0.5488854078067347,
+    "se": 0.006775225476097969,
+    "se_recorded": 0.006775225476097969,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_LJ",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5832703293724693,
+    "auc_recorded": 0.5832703293724693,
+    "se": 0.007242973033055311,
+    "se_recorded": 0.007242973033055311,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_LJ",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6428372881916753,
+    "auc_recorded": 0.6428372881916753,
+    "se": 0.006802180823769854,
+    "se_recorded": 0.006802180823769854,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "H_LJ",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5509160957216005,
+    "auc_recorded": 0.5509160957216005,
+    "se": 0.006655562175357262,
+    "se_recorded": 0.006655562175357262,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "NEURAL_RAW",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6226678619288595,
+    "auc_recorded": 0.6226678619288595,
+    "se": 0.006649752015805774,
+    "se_recorded": 0.006649752015805774,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "NEURAL_RAW",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6377399731349298,
+    "auc_recorded": 0.6377399731349298,
+    "se": 0.0065485241518886475,
+    "se_recorded": 0.0065485241518886475,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "NEURAL_RAW",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5584412162846655,
+    "auc_recorded": 0.5584412162846655,
+    "se": 0.006928476374901501,
+    "se_recorded": 0.006928476374901501,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "PUB_IBSI",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6127766933390989,
+    "auc_recorded": 0.6127766933390989,
+    "se": 0.007010256836224102,
+    "se_recorded": 0.007010256836224102,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "PUB_IBSI",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6225519391735286,
+    "auc_recorded": 0.6225519391735286,
+    "se": 0.006811472329446326,
+    "se_recorded": 0.006811472329446326,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "PUB_IBSI",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5688372664349118,
+    "auc_recorded": 0.5688372664349118,
+    "se": 0.006597734115275639,
+    "se_recorded": 0.006597734115275639,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "TASKONLY",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6445638913421906,
+    "auc_recorded": 0.6445638913421906,
+    "se": 0.006812525159459849,
+    "se_recorded": 0.006812525159459849,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "TASKONLY",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6643634526261206,
+    "auc_recorded": 0.6643634526261206,
+    "se": 0.00664734216551909,
+    "se_recorded": 0.00664734216551909,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "TASKONLY",
+    "view": "pair"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.5684403188181726,
+    "auc_recorded": 0.5684403188181726,
+    "se": 0.006660396891697062,
+    "se_recorded": 0.006660396891697062,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "T_TREE",
+    "view": "income"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.6485420928782635,
+    "auc_recorded": 0.6485420928782635,
+    "se": 0.006644564845911842,
+    "se_recorded": 0.006644564845911842,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "T_TREE",
+    "view": "occupation"
+   },
+   {
+    "abs_diff": 0.0,
+    "auc": 0.664138292787565,
+    "auc_recorded": 0.664138292787565,
+    "se": 0.006584819073391526,
+    "se_recorded": 0.006584819073391526,
+    "se_rel_diff": 0.0,
+    "seed": 1,
+    "svc": "T_TREE",
+    "view": "pair"
+   }
+  ],
+  "bank_integrity": {
+   "S0|B2TWIN": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B2CTL_UNCOUPLED_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S0|FINALIST": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B3CTL_UNCOUPLED_MIX50_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S0|H_JJ": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "H_JJ"
+    }
+   },
+   "S0|H_LJ": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "H_LJ"
+    }
+   },
+   "S0|NEURAL_RAW": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "NEURAL_RAW"
+    }
+   },
+   "S0|PUB_IBSI": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "um",
+     "name": "IBSI_NLLM"
+    }
+   },
+   "S0|TASKONLY": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B3CTL_TASKONLY_TR_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S0|T_TREE": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "T_TREE"
+    }
+   },
+   "S1|B2TWIN": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B2CTL_UNCOUPLED_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S1|FINALIST": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B3CTL_UNCOUPLED_MIX50_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S1|H_JJ": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "H_JJ"
+    }
+   },
+   "S1|H_LJ": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "H_LJ"
+    }
+   },
+   "S1|NEURAL_RAW": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "NEURAL_RAW"
+    }
+   },
+   "S1|PUB_IBSI": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "um",
+     "name": "IBSI_NLLM"
+    }
+   },
+   "S1|TASKONLY": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": true,
+    "source": {
+     "config_id": "B3CTL_TASKONLY_TR_C6A",
+     "family": "B",
+     "kind": "release"
+    }
+   },
+   "S1|T_TREE": {
+    "bitwise_all_roles": true,
+    "release_sha256_matches_lock": null,
+    "source": {
+     "kind": "frozen",
+     "name": "T_TREE"
+    }
+   }
+  },
+  "check1": {
+   "attack_sex_reads_in_code": [
+    {
+     "file": "readers.py",
+     "line": 61,
+     "text": "A = C.load_role('ATTACK_FIT', ('features', 'sex')); V = C.load_role('ATTACK_VALIDATION', ('features', 'sex'))"
+    }
+   ],
+   "dev_events": [
+    {
+     "event": "DEV_REPORT_TRUTH_REREAD_BY_AMD_COORDINATOR",
+     "reporting_lock_sha256": "f8d6e35427a4ae0c62149d67f626d76e2779a887ea9a3368933776c8a4aaa4fa",
+     "unit_id": "AMD_REPORT_DEV_V1",
+     "utc": "2026-10-17T17:45:30+00:00"
+    },
+    {
+     "event": "DEV_REPORT_TRUTH_REREAD_BY_AMD_INDEPENDENT_VERIFIER",
+     "reporting_lock_sha256": "f8d6e35427a4ae0c62149d67f626d76e2779a887ea9a3368933776c8a4aaa4fa",
+     "unit_id": "AMD_VERIFY_DEV_V1",
+     "utc": "2026-10-17T17:56:47+00:00"
+    }
+   ],
+   "failed_units_in_ledger": [
+    "AMD_A_CCLC_a1_S0_V1"
+   ],
+   "ms_reads_by_stage": {
+    "baselines": 2,
+    "ctl-taskonly-score": 2,
+    "famA-score": 4,
+    "famB-score": 10,
+    "famC-score": 6,
+    "verifier": 1
+   },
+   "queue_units": 71,
+   "sealed_in_any_argv": [],
+   "source_access_log_events_this_campaign": [
+    {
+     "event": "DEV_REPORT_TRUTH_REREAD_BY_AMD_COORDINATOR",
+     "unit_id": "AMD_REPORT_DEV_V1",
+     "utc": "2026-10-17T17:45:30+00:00"
+    },
+    {
+     "event": "DEV_REPORT_TRUTH_REREAD_BY_AMD_INDEPENDENT_VERIFIER",
+     "unit_id": "AMD_VERIFY_DEV_V1",
+     "utc": "2026-10-17T17:56:47+00:00"
+    }
+   ]
+  },
+  "check2": {
+   "S0": {
+    "DEV_REPORT_max_abs_vs_bank": {
+     "income": 0.0,
+     "occupation": 0.0
+    },
+    "MODEL_FIT_income_vs_release_npz_max_abs": 0.17865790638860407,
+    "MODEL_SELECT_max_abs_vs_bank": {
+     "income": 0.0,
+     "occupation": 0.0
+    },
+    "distinct_income_vectors_DEV": 6,
+    "h_refit_on_CALIBRATION": {
+     "b_abs": 0.0,
+     "b_refit": -0.37111647979434415,
+     "mu_max_abs": 0.0,
+     "sd_max_abs": 0.0,
+     "w_max_abs": 0.0,
+     "w_refit": [
+      0.39505484520940726,
+      0.7459995332266584,
+      0.7730205374226349,
+      0.9917004648389763,
+      1.3093223735825346
+     ]
+    },
+    "occupation_identical_to": {
+     "B2TWIN|DEV_REPORT": true,
+     "B2TWIN|MODEL_SELECT": true,
+     "H_JJ|DEV_REPORT": true,
+     "H_JJ|MODEL_SELECT": true,
+     "H_LJ|DEV_REPORT": true,
+     "H_LJ|MODEL_SELECT": true,
+     "NEURAL_RAW|DEV_REPORT": false,
+     "NEURAL_RAW|MODEL_SELECT": false,
+     "TASKONLY|DEV_REPORT": false,
+     "TASKONLY|MODEL_SELECT": false
+    },
+    "thresholds_max_abs_diff": 3.3306690738754696e-16,
+    "thresholds_recomputed": [
+     -1.6316728131139604,
+     -0.7427581345030387,
+     0.0,
+     0.5138379786836018,
+     1.1429649865238225
+    ],
+    "thresholds_recorded": [
+     -1.6316728131139604,
+     -0.742758134503039,
+     0.0,
+     0.5138379786836021,
+     1.1429649865238223
+    ]
+   },
+   "S1": {
+    "DEV_REPORT_max_abs_vs_bank": {
+     "income": 0.0,
+     "occupation": 0.0
+    },
+    "MODEL_FIT_income_vs_release_npz_max_abs": 0.19105155111037236,
+    "MODEL_SELECT_max_abs_vs_bank": {
+     "income": 0.0,
+     "occupation": 0.0
+    },
+    "distinct_income_vectors_DEV": 6,
+    "h_refit_on_CALIBRATION": {
+     "b_abs": 0.0,
+     "b_refit": -0.3636041202060226,
+     "mu_max_abs": 0.0,
+     "sd_max_abs": 0.0,
+     "w_max_abs": 0.0,
+     "w_refit": [
+      0.43209109307156557,
+      0.7310496776156797,
+      0.7831622975018615,
+      0.9751308291057544,
+      1.3418235885394223
+     ]
+    },
+    "occupation_identical_to": {
+     "B2TWIN|DEV_REPORT": true,
+     "B2TWIN|MODEL_SELECT": true,
+     "H_JJ|DEV_REPORT": true,
+     "H_JJ|MODEL_SELECT": true,
+     "H_LJ|DEV_REPORT": true,
+     "H_LJ|MODEL_SELECT": true,
+     "NEURAL_RAW|DEV_REPORT": false,
+     "NEURAL_RAW|MODEL_SELECT": false,
+     "TASKONLY|DEV_REPORT": false,
+     "TASKONLY|MODEL_SELECT": false
+    },
+    "thresholds_max_abs_diff": 1.1102230246251565e-15,
+    "thresholds_recomputed": [
+     -1.607190802666575,
+     -0.7350476397331337,
+     0.0,
+     0.5175485487696534,
+     1.1383853883896817
+    ],
+    "thresholds_recorded": [
+     -1.6071908026665747,
+     -0.7350476397331345,
+     0.0,
+     0.5175485487696541,
+     1.1383853883896806
+    ]
+   }
+  },
+  "check3_dev_comparator_point_status_12": {
+   "S0|B2TWIN": true,
+   "S0|FINALIST": true,
+   "S0|H_JJ": false,
+   "S0|H_LJ": true,
+   "S0|NEURAL_RAW": true,
+   "S0|PUB_IBSI": true,
+   "S0|TASKONLY": true,
+   "S0|T_TREE": true,
+   "S1|B2TWIN": true,
+   "S1|FINALIST": true,
+   "S1|H_JJ": false,
+   "S1|H_LJ": true,
+   "S1|NEURAL_RAW": true,
+   "S1|PUB_IBSI": false,
+   "S1|TASKONLY": true,
+   "S1|T_TREE": true
+  },
+  "check3_model_select": {
+   "S0": {
+    "all_12_point_pass": true,
+    "clauses": [
+     {
+      "abs_diff": 1.5178830414797062e-17,
+      "metric": "accuracy_loss",
+      "normalized": -0.23747031621047368,
+      "point_pass": true,
+      "recomputed": -0.002374703162104737,
+      "recorded": -0.002374703162104752,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 4.0766001685454967e-17,
+      "metric": "nll_excess",
+      "normalized": 0.553267126765726,
+      "point_pass": true,
+      "recomputed": 0.0055326712676572595,
+      "recorded": 0.005532671267657219,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.1275702593849246e-17,
+      "metric": "brier_excess",
+      "normalized": 0.7835119266583113,
+      "point_pass": true,
+      "recomputed": 0.0039175596332915565,
+      "recorded": 0.003917559633291545,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.5178830414797062e-17,
+      "metric": "accuracy_loss",
+      "normalized": -0.23747031621047368,
+      "point_pass": true,
+      "recomputed": -0.002374703162104737,
+      "recorded": -0.002374703162104752,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.3444106938820255e-16,
+      "metric": "nll_excess",
+      "normalized": 0.6632629315101469,
+      "point_pass": true,
+      "recomputed": 0.006632629315101469,
+      "recorded": 0.006632629315101335,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 3.382710778154774e-17,
+      "metric": "brier_excess",
+      "normalized": 0.8731446201434246,
+      "point_pass": true,
+      "recomputed": 0.004365723100717123,
+      "recorded": 0.004365723100717089,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.0061396160665481e-16,
+      "metric": "accuracy_loss",
+      "normalized": -0.1999750031246094,
+      "point_pass": true,
+      "recomputed": -0.001999750031246094,
+      "recorded": -0.0019997500312461947,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 1.5135462327897642e-16,
+      "metric": "nll_excess",
+      "normalized": 0.2525617341008272,
+      "point_pass": true,
+      "recomputed": 0.0025256173410082724,
+      "recorded": 0.0025256173410084237,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 9.454242944073599e-17,
+      "metric": "brier_excess",
+      "normalized": -0.04168853608052751,
+      "point_pass": true,
+      "recomputed": -0.00020844268040263753,
+      "recorded": -0.000208442680402543,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 1.0061396160665481e-16,
+      "metric": "accuracy_loss",
+      "normalized": -0.1999750031246094,
+      "point_pass": true,
+      "recomputed": -0.001999750031246094,
+      "recorded": -0.0019997500312461947,
+      "ref": "Ucal",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 1.97758476261356e-16,
+      "metric": "nll_excess",
+      "normalized": 0.34060491349070765,
+      "point_pass": true,
+      "recomputed": 0.0034060491349070764,
+      "recorded": 0.003406049134907274,
+      "ref": "Ucal",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 1.1758172560605296e-16,
+      "metric": "brier_excess",
+      "normalized": 0.024643848526407976,
+      "point_pass": true,
+      "recomputed": 0.00012321924263203988,
+      "recorded": 0.0001232192426319223,
+      "ref": "Ucal",
+      "task": "occupation"
+     }
+    ],
+    "guards": {
+     "sex0": {
+      "abs_diff": 0.0,
+      "pass": true,
+      "recomputed": 0.004417365683711137,
+      "recorded": 0.004417365683711137
+     },
+     "sex1": {
+      "abs_diff": 0.0,
+      "pass": true,
+      "recomputed": -0.0049383200395634605,
+      "recorded": -0.0049383200395634605
+     }
+    },
+    "guards_pass": true,
+    "max_abs_diff_vs_EVAL_MS": 1.97758476261356e-16,
+    "max_normalized_12": 0.8731446201434246,
+    "robust_0p8": false
+   },
+   "S1": {
+    "all_12_point_pass": true,
+    "clauses": [
+     {
+      "abs_diff": 1.8648277366750676e-17,
+      "metric": "accuracy_loss",
+      "normalized": 0.34995625546806647,
+      "point_pass": true,
+      "recomputed": 0.003499562554680665,
+      "recorded": 0.0034995625546806464,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 7.806255641895632e-17,
+      "metric": "nll_excess",
+      "normalized": 0.6352787107833191,
+      "point_pass": true,
+      "recomputed": 0.006352787107833191,
+      "recorded": 0.006352787107833269,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 3.382710778154774e-17,
+      "metric": "brier_excess",
+      "normalized": 0.873627265145631,
+      "point_pass": true,
+      "recomputed": 0.004368136325728155,
+      "recorded": 0.004368136325728189,
+      "ref": "U0",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.8648277366750676e-17,
+      "metric": "accuracy_loss",
+      "normalized": 0.34995625546806647,
+      "point_pass": true,
+      "recomputed": 0.003499562554680665,
+      "recorded": 0.0034995625546806464,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 6.331740687315346e-17,
+      "metric": "nll_excess",
+      "normalized": 0.6628263561884443,
+      "point_pass": true,
+      "recomputed": 0.006628263561884443,
+      "recorded": 0.0066282635618845065,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 1.734723475976807e-18,
+      "metric": "brier_excess",
+      "normalized": 0.8834786876605435,
+      "point_pass": true,
+      "recomputed": 0.004417393438302717,
+      "recorded": 0.004417393438302719,
+      "ref": "Ucal",
+      "task": "income"
+     },
+     {
+      "abs_diff": 9.020562075079397e-17,
+      "metric": "accuracy_loss",
+      "normalized": -0.3999500062492188,
+      "point_pass": true,
+      "recomputed": -0.003999500062492188,
+      "recorded": -0.003999500062492278,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 3.426078865054194e-17,
+      "metric": "nll_excess",
+      "normalized": 0.2898937855111451,
+      "point_pass": true,
+      "recomputed": 0.0028989378551114507,
+      "recorded": 0.0028989378551114164,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 2.905661822261152e-17,
+      "metric": "brier_excess",
+      "normalized": 0.09795644743644831,
+      "point_pass": true,
+      "recomputed": 0.0004897822371822415,
+      "recorded": 0.0004897822371822125,
+      "ref": "U0",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 9.020562075079397e-17,
+      "metric": "accuracy_loss",
+      "normalized": -0.3999500062492188,
+      "point_pass": true,
+      "recomputed": -0.003999500062492188,
+      "recorded": -0.003999500062492278,
+      "ref": "Ucal",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 5.4643789493269423e-17,
+      "metric": "nll_excess",
+      "normalized": 0.29470897527113504,
+      "point_pass": true,
+      "recomputed": 0.0029470897527113507,
+      "recorded": 0.002947089752711296,
+      "ref": "Ucal",
+      "task": "occupation"
+     },
+     {
+      "abs_diff": 9.150666335777657e-17,
+      "metric": "brier_excess",
+      "normalized": 0.0988344587741624,
+      "point_pass": true,
+      "recomputed": 0.000494172293870812,
+      "recorded": 0.0004941722938707205,
+      "ref": "Ucal",
+      "task": "occupation"
+     }
+    ],
+    "guards": {
+     "sex0": {
+      "abs_diff": 0.0,
+      "pass": true,
+      "recomputed": 0.003940625787321147,
+      "recorded": 0.003940625787321147
+     },
+     "sex1": {
+      "abs_diff": 0.0,
+      "pass": true,
+      "recomputed": -0.003038696569772226,
+      "recorded": -0.003038696569772226
+     }
+    },
+    "guards_pass": true,
+    "max_abs_diff_vs_EVAL_MS": 9.150666335777657e-17,
+    "max_normalized_12": 0.8834786876605435,
+    "robust_0p8": false
+   }
+  },
+  "check4": {
+   "choice": "B3CTL_UNCOUPLED_MIX50_C6A",
+   "comparison": [
+    {
+     "config": "CCLC_a1",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    },
+    {
+     "config": "CCLC_a2",
+     "mine_eligible": false,
+     "mine_mean_pair_proxy": 0.619940480287446,
+     "mine_promotable": false,
+     "mine_robust_both": true,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.619940480287446,
+     "recorded_promotable": false,
+     "recorded_robust_both": true,
+     "recorded_screen_both": false
+    },
+    {
+     "config": "CCLC_a3",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    },
+    {
+     "config": "B1_CSR_JT_LIN",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    },
+    {
+     "config": "B2CTL_TASKONLY_TT_C6A",
+     "mine_eligible": false,
+     "mine_mean_pair_proxy": 0.6458582566658624,
+     "mine_promotable": false,
+     "mine_robust_both": true,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.6458582566658624,
+     "recorded_promotable": false,
+     "recorded_robust_both": true,
+     "recorded_screen_both": false
+    },
+    {
+     "config": "B2CTL_UNCOUPLED_C6A",
+     "mine_eligible": true,
+     "mine_mean_pair_proxy": 0.615332524189513,
+     "mine_promotable": true,
+     "mine_robust_both": false,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.615332524189513,
+     "recorded_promotable": true,
+     "recorded_robust_both": false,
+     "recorded_screen_both": true
+    },
+    {
+     "config": "B2_CSR_JT_C6A",
+     "mine_eligible": true,
+     "mine_mean_pair_proxy": 0.6131448730776827,
+     "mine_promotable": true,
+     "mine_robust_both": false,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.6131448730776827,
+     "recorded_promotable": true,
+     "recorded_robust_both": false,
+     "recorded_screen_both": true
+    },
+    {
+     "config": "B3CTL_TASKONLY_TR_C6A",
+     "mine_eligible": false,
+     "mine_mean_pair_proxy": 0.6461568552371645,
+     "mine_promotable": false,
+     "mine_robust_both": true,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.6461568552371645,
+     "recorded_promotable": false,
+     "recorded_robust_both": true,
+     "recorded_screen_both": false
+    },
+    {
+     "config": "B3CTL_UNCOUPLED_MIX50_C6A",
+     "mine_eligible": true,
+     "mine_mean_pair_proxy": 0.6000196068433904,
+     "mine_promotable": true,
+     "mine_robust_both": false,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.6000196068433904,
+     "recorded_promotable": true,
+     "recorded_robust_both": false,
+     "recorded_screen_both": true
+    },
+    {
+     "config": "B3_CSR_JT_MIX50_C6A",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    },
+    {
+     "config": "C1_CTRL_TEMP",
+     "mine_eligible": false,
+     "mine_mean_pair_proxy": 0.6492263937621849,
+     "mine_promotable": false,
+     "mine_robust_both": true,
+     "recorded_eligible_both": true,
+     "recorded_mean_pair_proxy": 0.6492263937621849,
+     "recorded_promotable": false,
+     "recorded_robust_both": true,
+     "recorded_screen_both": false
+    },
+    {
+     "config": "C1_MIX_FULL",
+     "mine_eligible": false,
+     "mine_mean_pair_proxy": 0.6315516059081376,
+     "mine_promotable": false,
+     "mine_robust_both": false,
+     "recorded_eligible_both": false,
+     "recorded_mean_pair_proxy": 0.6315516059081376,
+     "recorded_promotable": false,
+     "recorded_robust_both": false,
+     "recorded_screen_both": false
+    },
+    {
+     "config": "C2_MIXINC_JOCC",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    },
+    {
+     "config": "CDIAG_TTINC_JOCC",
+     "mine_eligible": null,
+     "mine_mean_pair_proxy": null,
+     "mine_promotable": null,
+     "mine_robust_both": null,
+     "recorded_eligible_both": null,
+     "recorded_mean_pair_proxy": null,
+     "recorded_promotable": null,
+     "recorded_robust_both": null,
+     "recorded_screen_both": null
+    }
+   ],
+   "label": "EDGE_SELECTED",
+   "ledger_counts_toward_36": 21,
+   "ledger_rows": 48,
+   "n_configs_with_eval_ms": 14,
+   "promotable": [
+    "B2CTL_UNCOUPLED_C6A",
+    "B2_CSR_JT_C6A",
+    "B3CTL_UNCOUPLED_MIX50_C6A"
+   ],
+   "recorded_finalist": {
+    "config_id": "B3CTL_UNCOUPLED_MIX50_C6A",
+    "family": "B",
+    "mean_pair_proxy": 0.6000196068433904,
+    "selection_label": "EDGE_SELECTED"
+   },
+   "reference_bar": {
+    "0": {
+     "H_LJ": {
+      "income": 0.5423250532949266,
+      "occupation": 0.5723926406880636,
+      "pair": 0.6224387455933978
+     },
+     "NEURAL_RAW": {
+      "income": 0.5399790916513967,
+      "occupation": 0.6211231755114424,
+      "pair": 0.6238069942818704
+     }
+    },
+    "1": {
+     "H_LJ": {
+      "income": 0.5439264953773406,
+      "occupation": 0.5853418691532699,
+      "pair": 0.6232578045716943
+     },
+     "NEURAL_RAW": {
+      "income": 0.5376005924612544,
+      "occupation": 0.616343175496729,
+      "pair": 0.626878166722232
+     }
+    }
+   },
+   "robust_promotable": []
+  },
+  "check4_promotable_eval_ms_recheck_max_abs_diff": {
+   "B2CTL_UNCOUPLED_C6A|S0": 1.97758476261356e-16,
+   "B2CTL_UNCOUPLED_C6A|S1": 1.3530843112619095e-16,
+   "B2_CSR_JT_C6A|S0": 1.97758476261356e-16,
+   "B2_CSR_JT_C6A|S1": 9.150666335777657e-17,
+   "B3CTL_UNCOUPLED_MIX50_C6A|S0": 1.97758476261356e-16,
+   "B3CTL_UNCOUPLED_MIX50_C6A|S1": 9.150666335777657e-17
+  },
+  "check5_weights": {
+   "B": 2048,
+   "G": 3955,
+   "G_src": 3955,
+   "equal_to_group_weights_bitwise": true,
+   "max_abs_diff_vs_group_weights": 0.0,
+   "n": 5943,
+   "row_sums_equal_n_persons_on_average": 5943.3310546875
+  },
+  "check7_refits": [
+   {
+    "attack_validation_auc": 0.5832416566022365,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.14,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__FINALIST__OUT_HGB",
+    "recorded_attack_validation_auc": 0.5832416566022365,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.5928032357958133,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.33,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__FINALIST__LOG_MLP",
+    "recorded_attack_validation_auc": 0.5928032357958133,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.6216891878671886,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.45,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__NEURAL_RAW__OUT_MLP",
+    "recorded_attack_validation_auc": 0.6216891878671886,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.6202786854045901,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.52,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__H_LJ__OUT_MLP",
+    "recorded_attack_validation_auc": 0.6202786854045901,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.6408085665346285,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.14,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__TASKONLY__OUT_HGB",
+    "recorded_attack_validation_auc": 0.6408085665346285,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.5995324709050517,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.13,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__B2TWIN__OUT_HGB",
+    "recorded_attack_validation_auc": 0.5995324709050517,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.5276315297993103,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.0,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "MARG__FINALIST|income__LOOKUP",
+    "recorded_attack_validation_auc": 0.5276315297993103,
+    "recorded_orientation": 1,
+    "seed": 0
+   },
+   {
+    "attack_validation_auc": 0.601924144138055,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.13,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__FINALIST__OUT_HGB",
+    "recorded_attack_validation_auc": 0.601924144138055,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.587315082771415,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.78,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__FINALIST__LOG_MLP",
+    "recorded_attack_validation_auc": 0.587315082771415,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.6233260288397061,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.42,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__NEURAL_RAW__OUT_MLP",
+    "recorded_attack_validation_auc": 0.6233260288397061,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.6247089615820395,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.55,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__H_LJ__OUT_MLP",
+    "recorded_attack_validation_auc": 0.6247089615820395,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.6406518193347338,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.14,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__TASKONLY__OUT_HGB",
+    "recorded_attack_validation_auc": 0.6406518193347338,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.6141944483476844,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.14,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "PAIR__B2TWIN__OUT_HGB",
+    "recorded_attack_validation_auc": 0.6141944483476844,
+    "recorded_orientation": 1,
+    "seed": 1
+   },
+   {
+    "attack_validation_auc": 0.5317042889591275,
+    "av_auc_abs_diff": 0.0,
+    "cpu_s": 0.0,
+    "dev_scores_bitwise": true,
+    "dev_scores_max_abs_diff": 0.0,
+    "orientation": 1,
+    "reader_id": "MARG__FINALIST|income__LOOKUP",
+    "recorded_attack_validation_auc": 0.5317042889591275,
+    "recorded_orientation": 1,
+    "seed": 1
+   }
+  ],
+  "check7_winner_rule": {
+   "S0": {
+    "all_match": true,
+    "n": 24,
+    "winners": {
+     "B2TWIN": {
+      "income": "MARG__B2TWIN|income__OUT_MLP",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__B2TWIN__LOG_MLP"
+     },
+     "FINALIST": {
+      "income": "MARG__FINALIST|income__LOG_MLP",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__FINALIST__LOG_MLP"
+     },
+     "H_JJ": {
+      "income": "MARG__H_JJ|income__LOG_MLP",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__H_JJ__OUT_MLP"
+     },
+     "H_LJ": {
+      "income": "MARG__H_LJ|income__LOG_LR",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__H_LJ__OUT_MLP"
+     },
+     "NEURAL_RAW": {
+      "income": "MARG__NEURAL_RAW|income__OUT_MLP",
+      "occupation": "MARG__NEURAL_RAW|occupation__LOG_MLP",
+      "pair": "PAIR__NEURAL_RAW__LOG_MLP"
+     },
+     "PUB_IBSI": {
+      "income": "MARG__PUB_IBSI|income__OUT_HGB",
+      "occupation": "MARG__PUB_IBSI|occupation__OUT_HGB",
+      "pair": "PAIR__PUB_IBSI__LOG_LR"
+     },
+     "TASKONLY": {
+      "income": "MARG__TASKONLY|income__OUT_LR",
+      "occupation": "MARG__TASKONLY|occupation__LOG_MLP",
+      "pair": "PAIR__TASKONLY__LOG_MLP"
+     },
+     "T_TREE": {
+      "income": "MARG__T_TREE|income__LOG_MLP",
+      "occupation": "MARG__T_TREE|occupation__LOG_MLP",
+      "pair": "PAIR__T_TREE__LOG_MLP"
+     }
+    }
+   },
+   "S1": {
+    "all_match": true,
+    "n": 24,
+    "winners": {
+     "B2TWIN": {
+      "income": "MARG__B2TWIN|income__OUT_LR",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__B2TWIN__OUT_MLP"
+     },
+     "FINALIST": {
+      "income": "MARG__FINALIST|income__OUT_LR",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__FINALIST__OUT_HGB"
+     },
+     "H_JJ": {
+      "income": "MARG__H_JJ|income__LOG_MLP",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__H_JJ__OUT_HGB"
+     },
+     "H_LJ": {
+      "income": "MARG__H_LJ|income__LOG_MLP",
+      "occupation": "MARG__FINALIST|occupation__OUT_HGB",
+      "pair": "PAIR__H_LJ__OUT_MLP"
+     },
+     "NEURAL_RAW": {
+      "income": "MARG__NEURAL_RAW|income__OUT_LR",
+      "occupation": "MARG__NEURAL_RAW|occupation__LOG_MLP",
+      "pair": "PAIR__NEURAL_RAW__LOG_MLP"
+     },
+     "PUB_IBSI": {
+      "income": "MARG__PUB_IBSI|income__OUT_HGB",
+      "occupation": "MARG__PUB_IBSI|occupation__OUT_MLP",
+      "pair": "PAIR__PUB_IBSI__LOG_MLP"
+     },
+     "TASKONLY": {
+      "income": "MARG__TASKONLY|income__OUT_LR",
+      "occupation": "MARG__TASKONLY|occupation__OUT_MLP",
+      "pair": "PAIR__TASKONLY__OUT_MLP"
+     },
+     "T_TREE": {
+      "income": "MARG__T_TREE|income__LOG_MLP",
+      "occupation": "MARG__T_TREE|occupation__LOG_MLP",
+      "pair": "PAIR__T_TREE__OUT_MLP"
+     }
+    }
+   }
+  },
+  "check8_deployment": {
+   "FINALIST_S0": {
+    "all_refused": true,
+    "api_income_decision_equal": true,
+    "api_income_prob_bitwise": true,
+    "api_income_prob_max_abs": 0.0,
+    "api_output_field_names": [
+     "decision",
+     "probability"
+    ],
+    "api_occupation_decision_equal": true,
+    "api_occupation_prob_bitwise": true,
+    "api_occupation_prob_max_abs": 0.0,
+    "csv_income_decision_equal": true,
+    "csv_income_prob_bitwise": true,
+    "csv_income_prob_max_abs": 0.0,
+    "csv_keys": [
+     "decision",
+     "probability"
+    ],
+    "csv_occupation_decision_equal": true,
+    "csv_occupation_prob_bitwise": true,
+    "csv_occupation_prob_max_abs": 0.0,
+    "parity": true,
+    "refusals": {
+     "api_extra_key": "PermissionError",
+     "api_lowercase_sex_key": "PermissionError",
+     "api_missing_key": "ValueError",
+     "api_reordered_keys": "ValueError",
+     "api_sex_key": "PermissionError",
+     "csv_extra_column": "PermissionError",
+     "csv_lowercase_sex_column": "PermissionError",
+     "csv_missing_column": "ValueError",
+     "csv_reordered_columns": "ValueError",
+     "csv_sex_column": "PermissionError",
+     "csv_sex_first": "PermissionError",
+     "csv_sex_replacing_field": "PermissionError",
+     "csv_swap_two_columns": "ValueError",
+     "hidden_coarse_bin": "PermissionError",
+     "hidden_h_logit": "PermissionError",
+     "hidden_income_statistic": "PermissionError",
+     "hidden_leaf_ids": "PermissionError",
+     "hidden_propensity": "PermissionError",
+     "hidden_raw_score": "PermissionError",
+     "hidden_sex_specific_probability": "PermissionError",
+     "hidden_teacher_probability": "PermissionError",
+     "hidden_theta": "PermissionError"
+    }
+   },
+   "FINALIST_S1": {
+    "all_refused": true,
+    "api_income_decision_equal": true,
+    "api_income_prob_bitwise": true,
+    "api_income_prob_max_abs": 0.0,
+    "api_output_field_names": [
+     "decision",
+     "probability"
+    ],
+    "api_occupation_decision_equal": true,
+    "api_occupation_prob_bitwise": true,
+    "api_occupation_prob_max_abs": 0.0,
+    "csv_income_decision_equal": true,
+    "csv_income_prob_bitwise": true,
+    "csv_income_prob_max_abs": 0.0,
+    "csv_keys": [
+     "decision",
+     "probability"
+    ],
+    "csv_occupation_decision_equal": true,
+    "csv_occupation_prob_bitwise": true,
+    "csv_occupation_prob_max_abs": 0.0,
+    "parity": true,
+    "refusals": {
+     "api_extra_key": "PermissionError",
+     "api_lowercase_sex_key": "PermissionError",
+     "api_missing_key": "ValueError",
+     "api_reordered_keys": "ValueError",
+     "api_sex_key": "PermissionError",
+     "csv_extra_column": "PermissionError",
+     "csv_lowercase_sex_column": "PermissionError",
+     "csv_missing_column": "ValueError",
+     "csv_reordered_columns": "ValueError",
+     "csv_sex_column": "PermissionError",
+     "csv_sex_first": "PermissionError",
+     "csv_sex_replacing_field": "PermissionError",
+     "csv_swap_two_columns": "ValueError",
+     "hidden_coarse_bin": "PermissionError",
+     "hidden_h_logit": "PermissionError",
+     "hidden_income_statistic": "PermissionError",
+     "hidden_leaf_ids": "PermissionError",
+     "hidden_propensity": "PermissionError",
+     "hidden_raw_score": "PermissionError",
+     "hidden_sex_specific_probability": "PermissionError",
+     "hidden_teacher_probability": "PermissionError",
+     "hidden_theta": "PermissionError"
+    }
+   },
+   "TASKONLY_S0": {
+    "all_refused": true,
+    "api_income_decision_equal": true,
+    "api_income_prob_bitwise": true,
+    "api_income_prob_max_abs": 0.0,
+    "api_output_field_names": [
+     "decision",
+     "probability"
+    ],
+    "api_occupation_decision_equal": true,
+    "api_occupation_prob_bitwise": true,
+    "api_occupation_prob_max_abs": 0.0,
+    "csv_income_decision_equal": true,
+    "csv_income_prob_bitwise": true,
+    "csv_income_prob_max_abs": 0.0,
+    "csv_keys": [
+     "decision",
+     "probability"
+    ],
+    "csv_occupation_decision_equal": true,
+    "csv_occupation_prob_bitwise": true,
+    "csv_occupation_prob_max_abs": 0.0,
+    "parity": true,
+    "refusals": {
+     "api_extra_key": "PermissionError",
+     "api_lowercase_sex_key": "PermissionError",
+     "api_missing_key": "ValueError",
+     "api_reordered_keys": "ValueError",
+     "api_sex_key": "PermissionError",
+     "csv_extra_column": "PermissionError",
+     "csv_lowercase_sex_column": "PermissionError",
+     "csv_missing_column": "ValueError",
+     "csv_reordered_columns": "ValueError",
+     "csv_sex_column": "PermissionError",
+     "csv_sex_first": "PermissionError",
+     "csv_sex_replacing_field": "PermissionError",
+     "csv_swap_two_columns": "ValueError",
+     "hidden_coarse_bin": "PermissionError",
+     "hidden_h_logit": "PermissionError",
+     "hidden_income_statistic": "PermissionError",
+     "hidden_leaf_ids": "PermissionError",
+     "hidden_propensity": "PermissionError",
+     "hidden_raw_score": "PermissionError",
+     "hidden_sex_specific_probability": "PermissionError",
+     "hidden_teacher_probability": "PermissionError",
+     "hidden_theta": "PermissionError"
+    }
+   },
+   "TASKONLY_S1": {
+    "all_refused": true,
+    "api_income_decision_equal": true,
+    "api_income_prob_bitwise": true,
+    "api_income_prob_max_abs": 0.0,
+    "api_output_field_names": [
+     "decision",
+     "probability"
+    ],
+    "api_occupation_decision_equal": true,
+    "api_occupation_prob_bitwise": true,
+    "api_occupation_prob_max_abs": 0.0,
+    "csv_income_decision_equal": true,
+    "csv_income_prob_bitwise": true,
+    "csv_income_prob_max_abs": 0.0,
+    "csv_keys": [
+     "decision",
+     "probability"
+    ],
+    "csv_occupation_decision_equal": true,
+    "csv_occupation_prob_bitwise": true,
+    "csv_occupation_prob_max_abs": 0.0,
+    "parity": true,
+    "refusals": {
+     "api_extra_key": "PermissionError",
+     "api_lowercase_sex_key": "PermissionError",
+     "api_missing_key": "ValueError",
+     "api_reordered_keys": "ValueError",
+     "api_sex_key": "PermissionError",
+     "csv_extra_column": "PermissionError",
+     "csv_lowercase_sex_column": "PermissionError",
+     "csv_missing_column": "ValueError",
+     "csv_reordered_columns": "ValueError",
+     "csv_sex_column": "PermissionError",
+     "csv_sex_first": "PermissionError",
+     "csv_sex_replacing_field": "PermissionError",
+     "csv_swap_two_columns": "ValueError",
+     "hidden_coarse_bin": "PermissionError",
+     "hidden_h_logit": "PermissionError",
+     "hidden_income_statistic": "PermissionError",
+     "hidden_leaf_ids": "PermissionError",
+     "hidden_propensity": "PermissionError",
+     "hidden_raw_score": "PermissionError",
+     "hidden_sex_specific_probability": "PermissionError",
+     "hidden_teacher_probability": "PermissionError",
+     "hidden_theta": "PermissionError"
+    }
+   }
+  },
+  "claims_recomputed": {
+   "B": {
+    "failed": [],
+    "label": "SUPERIOR_TO_ALL_ELIGIBLE",
+    "n_conditions": 14,
+    "nested": {
+     "L1_values": {
+      "COMPETITIVE|pair_benefit_vs_H_LJ|s0": 0.019066605140884284,
+      "COMPETITIVE|pair_benefit_vs_H_LJ|s1": 0.012898664878333075,
+      "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0": 0.01353942053601708,
+      "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1": 0.005917497135134779
+     },
+     "MATERIAL_SUPERIORITY_ESTABLISHED": false
+    }
+   },
+   "E": {
+    "failed": [],
+    "label": "DEV_POINT_ELIGIBLE",
+    "n_conditions": 36
+   },
+   "J": {
+    "failed": [
+     "JOINT|pair_benefit_vs_B2TWIN|s1"
+    ],
+    "label": "JOINT_ADVANTAGE_NOT_ESTABLISHED",
+    "n_conditions": 9
+   },
+   "M": {
+    "label": "MECHANISM_ATTRIBUTION_ESTABLISHED",
+    "steps": {
+     "M_SS": true,
+     "M_TO": true
+    }
+   }
+  },
+  "claims_recorded": {
+   "B": "SUPERIOR_TO_ALL_ELIGIBLE",
+   "E": "DEV_POINT_ELIGIBLE",
+   "IBSI": "DESCRIPTIVE (secondary key SEC|IBSI_NLLM_minus_F|pair; COMPARATOR_INELIGIBLE)",
+   "J": "JOINT_ADVANTAGE_NOT_ESTABLISHED",
+   "M": "MECHANISM_ATTRIBUTION_ESTABLISHED",
+   "N": "NOT_CLAIMED"
+  },
+  "controls": {
+   "s0|income": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5096385861639222,
+    "shuffled_attack_validation_auc_recorded": 0.5173426880655128,
+    "shuffled_null_auc": 0.5096385861639222,
+    "wire": "FINALIST"
+   },
+   "s0|occupation": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5113615065289554,
+    "shuffled_attack_validation_auc_recorded": 0.5022409291173598,
+    "shuffled_null_auc": 0.5113615065289554,
+    "wire": "FINALIST"
+   },
+   "s0|pair": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5119895064410218,
+    "shuffled_attack_validation_auc_recorded": 0.5159657584074306,
+    "shuffled_null_auc": 0.5119895064410218,
+    "wire": "FINALIST"
+   },
+   "s1|income": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5208076246577559,
+    "shuffled_attack_validation_auc_recorded": 0.5352959120330267,
+    "shuffled_null_auc": 0.5208076246577559,
+    "wire": "FINALIST"
+   },
+   "s1|occupation": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5000544485668978,
+    "shuffled_attack_validation_auc_recorded": 0.4992956381145157,
+    "shuffled_null_auc": 0.5000544485668978,
+    "wire": "FINALIST"
+   },
+   "s1|pair": {
+    "planted_attack_validation_auc_recorded": 1.0,
+    "planted_bit_auc": 1.0,
+    "report_planted_bit_auc": 1.0,
+    "report_shuffled_null_auc": 0.5054952825217721,
+    "shuffled_attack_validation_auc_recorded": 0.49896746950877874,
+    "shuffled_null_auc": 0.5054952825217721,
+    "wire": "FINALIST"
+   }
+  },
+  "critical": {
+   "c1": 2.3949990680014097,
+   "c_P": 3.3040310158422845,
+   "c_S": 3.0252810293281223,
+   "expected": {
+    "c1": 2.3949991,
+    "c_P": 3.304031,
+    "c_S": 3.025281,
+    "marginal": 1.9605641
+   },
+   "marginal": 1.9605641325490435,
+   "recorded": {
+    "K": {
+     "P": 52,
+     "S": 20
+    },
+    "n_claims": 3,
+    "t_family": {
+     "P": 3.3040310158422845,
+     "S": 3.0252810293281223
+    },
+    "t_marginal_95": 1.9605641325490435,
+    "t_one_sided_alpha_over_n_claims": 2.3949990680014097
+   }
+  },
+  "endpoints_all_72": [
+   {
+    "L1": -0.00450786060425481,
+    "L1_rec": -0.00450786060425481,
+    "Lf": -0.0077516161959862336,
+    "Lf_rec": -0.0077516161959862336,
+    "U1": 0.012584589529040272,
+    "U1_rec": 0.012584589529040272,
+    "Uf": 0.015828345120771695,
+    "Uf_rec": 0.015828345120771695,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|accuracy_loss|s0",
+    "point": 0.004038364462392731,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004038364462392731,
+    "se": 0.003568362585535048,
+    "se_rec": 0.003568362585535048,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.004311306925109143,
+    "L1_rec": -0.004311306925109143,
+    "Lf": -0.0070896955723898855,
+    "Lf_rec": -0.0070896955723898855,
+    "U1": 0.010328966690330156,
+    "U1_rec": 0.010328966690330156,
+    "Uf": 0.013107355337610899,
+    "Uf_rec": 0.013107355337610899,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|nll_excess|s0",
+    "point": 0.003008829882610507,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.003008829882610507,
+    "se": 0.003056425743759555,
+    "se_rec": 0.003056425743759555,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0016673799540337028,
+    "L1_rec": -0.0016673799540337028,
+    "Lf": -0.0035612253017121972,
+    "Lf_rec": -0.0035612253017121972,
+    "U1": 0.008311934531891888,
+    "U1_rec": 0.008311934531891888,
+    "Uf": 0.010205779879570383,
+    "Uf_rec": 0.010205779879570383,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|brier_excess|s0",
+    "point": 0.0033222772889290927,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0033222772889290927,
+    "se": 0.0020833650040317504,
+    "se_rec": 0.0020833650040317504,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.00450786060425481,
+    "L1_rec": -0.00450786060425481,
+    "Lf": -0.0077516161959862336,
+    "Lf_rec": -0.0077516161959862336,
+    "U1": 0.012584589529040272,
+    "U1_rec": 0.012584589529040272,
+    "Uf": 0.015828345120771695,
+    "Uf_rec": 0.015828345120771695,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|accuracy_loss|s0",
+    "point": 0.004038364462392731,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004038364462392731,
+    "se": 0.003568362585535048,
+    "se_rec": 0.003568362585535048,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -2.7907541750452416e-06,
+    "L1_rec": -2.7907541750452416e-06,
+    "Lf": -0.0023993104175371437,
+    "Lf_rec": -0.0023993104175371437,
+    "U1": 0.012625285462138532,
+    "U1_rec": 0.012625285462138532,
+    "Uf": 0.015021805125500632,
+    "Uf_rec": 0.015021805125500632,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|nll_excess|s0",
+    "point": 0.006311247353981744,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.006311247353981744,
+    "se": 0.0026363426159600797,
+    "se_rec": 0.0026363426159600797,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": 0.000308441489533259,
+    "L1_rec": 0.000308441489533259,
+    "Lf": -0.0014414870765790313,
+    "Lf_rec": -0.0014414870765790313,
+    "U1": 0.009529409564115436,
+    "U1_rec": 0.009529409564115436,
+    "Uf": 0.011279338130227726,
+    "Uf_rec": 0.011279338130227726,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|brier_excess|s0",
+    "point": 0.004918925526824347,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004918925526824347,
+    "se": 0.001925046276171818,
+    "se_rec": 0.001925046276171818,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.014716060823785022,
+    "L1_rec": -0.014716060823785022,
+    "Lf": -0.018513362260962226,
+    "Lf_rec": -0.018513362260962226,
+    "U1": 0.005293210411535318,
+    "U1_rec": 0.005293210411535318,
+    "Uf": 0.009090511848712523,
+    "Uf_rec": 0.009090511848712523,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "UTILITY|occupation|U0|accuracy_loss|s0",
+    "point": -0.004711425206124852,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.004711425206124852,
+    "se": 0.004177302509770447,
+    "se_rec": 0.004177302509770447,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.0014363160062368938,
+    "L1_rec": -0.0014363160062368938,
+    "Lf": -0.004619884342540363,
+    "Lf_rec": -0.004619884342540363,
+    "U1": 0.015338987032287983,
+    "U1_rec": 0.015338987032287983,
+    "Uf": 0.018522555368591452,
+    "Uf_rec": 0.018522555368591452,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|U0|nll_excess|s0",
+    "point": 0.006951335513025544,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.006951335513025544,
+    "se": 0.003502152310339647,
+    "se_rec": 0.003502152310339647,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.002257463038875334,
+    "L1_rec": -0.002257463038875333,
+    "Lf": -0.0035819590488435707,
+    "Lf_rec": -0.00358195904884357,
+    "U1": 0.0047217563757558385,
+    "U1_rec": 0.004721756375755838,
+    "Uf": 0.006046252385724074,
+    "Uf_rec": 0.0060462523857240736,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "UTILITY|occupation|U0|brier_excess|s0",
+    "point": 0.001232146668440252,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.001232146668440252,
+    "se": 0.0014570401107619688,
+    "se_rec": 0.0014570401107619685,
+    "se_rel_diff": 1.4882255669935043e-16,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.014716060823785022,
+    "L1_rec": -0.014716060823785022,
+    "Lf": -0.018513362260962226,
+    "Lf_rec": -0.018513362260962226,
+    "U1": 0.005293210411535318,
+    "U1_rec": 0.005293210411535318,
+    "Uf": 0.009090511848712523,
+    "Uf_rec": 0.009090511848712523,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "UTILITY|occupation|Ucal|accuracy_loss|s0",
+    "point": -0.004711425206124852,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.004711425206124852,
+    "se": 0.004177302509770447,
+    "se_rec": 0.004177302509770447,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.0006273063181678803,
+    "L1_rec": 0.0006273063181678803,
+    "Lf": -0.0024236226431628514,
+    "Lf_rec": -0.0024236226431628514,
+    "U1": 0.016703687431683358,
+    "U1_rec": 0.016703687431683358,
+    "Uf": 0.01975461639301409,
+    "Uf_rec": 0.01975461639301409,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|Ucal|nll_excess|s0",
+    "point": 0.008665496874925618,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.008665496874925618,
+    "se": 0.003356239534350001,
+    "se_rec": 0.003356239534350001,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0012755164497657073,
+    "L1_rec": -0.0012755164497657073,
+    "Lf": -0.0025466321285137926,
+    "Lf_rec": -0.0025466321285137926,
+    "U1": 0.005422423866093357,
+    "U1_rec": 0.005422423866093357,
+    "Uf": 0.006693539544841442,
+    "Uf_rec": 0.006693539544841442,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|Ucal|brier_excess|s0",
+    "point": 0.0020734537081638247,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0020734537081638247,
+    "se": 0.0013983179378538116,
+    "se_rec": 0.0013983179378538116,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0016659822164018646,
+    "L1_rec": -0.0016659822164018646,
+    "Lf": -0.0035262234128049896,
+    "Lf_rec": -0.0035262234128049896,
+    "U1": 0.008136260580950742,
+    "U1_rec": 0.008136260580950742,
+    "Uf": 0.009996501777353867,
+    "Uf_rec": 0.009996501777353867,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0",
+    "point": 0.0032351391822744388,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0032351391822744388,
+    "se": 0.0020463980400485977,
+    "se_rec": 0.0020463980400485977,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.005699281119219949,
+    "L1_rec": -0.005699281119219949,
+    "Lf": -0.007532938555205156,
+    "Lf_rec": -0.007532938555205156,
+    "U1": 0.0039628828138504706,
+    "U1_rec": 0.0039628828138504706,
+    "Uf": 0.0057965402498356775,
+    "Uf_rec": 0.0057965402498356775,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0",
+    "point": -0.0008681991526847388,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.0008681991526847388,
+    "se": 0.002017154006897662,
+    "se_rec": 0.002017154006897662,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": 0.01353942053601708,
+    "L1_rec": 0.01353942053601708,
+    "Lf": 0.008420626455181626,
+    "Lf_rec": 0.008420626455181626,
+    "U1": 0.04051208542862229,
+    "U1_rec": 0.04051208542862229,
+    "Uf": 0.04563087950945774,
+    "Uf_rec": 0.04563087950945774,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s0",
+    "point": 0.027025752982319684,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.027025752982319684,
+    "se": 0.005631038703308032,
+    "se_rec": 0.005631038703308032,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.012013413069412456,
+    "L1_rec": -0.012013413069412456,
+    "Lf": -0.014704015451330876,
+    "Lf_rec": -0.014704015451330876,
+    "U1": 0.0021642848923867997,
+    "U1_rec": 0.0021642848923867997,
+    "Uf": 0.00485488727430522,
+    "Uf_rec": 0.00485488727430522,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+    "point": -0.004924564088512828,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.004924564088512828,
+    "se": 0.0029598545885093663,
+    "se_rec": 0.0029598545885093663,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.07941406429202225,
+    "L1_rec": -0.07941406429202225,
+    "Lf": -0.08628242237909799,
+    "Lf_rec": -0.08628242237909799,
+    "U1": -0.04322235231464333,
+    "U1_rec": -0.04322235231464333,
+    "Uf": -0.03635399422756759,
+    "Uf_rec": -0.03635399422756759,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s0",
+    "point": -0.06131820830333279,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.06131820830333279,
+    "se": 0.00755568393761012,
+    "se_rec": 0.00755568393761012,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.019066605140884284,
+    "L1_rec": 0.019066605140884284,
+    "Lf": 0.015527194707723803,
+    "Lf_rec": 0.015527194707723803,
+    "U1": 0.03771696106913972,
+    "U1_rec": 0.03771696106913972,
+    "Uf": 0.0412563715023002,
+    "Uf_rec": 0.0412563715023002,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|pair_benefit_vs_H_LJ|s0",
+    "point": 0.028391783105012003,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.028391783105012003,
+    "se": 0.0038936040054117584,
+    "se_rec": 0.0038936040054117584,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.02294302007442823,
+    "L1_rec": -0.02294302007442823,
+    "Lf": -0.025257569121068094,
+    "Lf_rec": -0.025257569121068094,
+    "U1": -0.01074687488346431,
+    "U1_rec": -0.01074687488346431,
+    "Uf": -0.008432325836824447,
+    "Uf_rec": -0.008432325836824447,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+    "point": -0.01684494747894627,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.01684494747894627,
+    "se": 0.0025461690891473744,
+    "se_rec": 0.0025461690891473744,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.0,
+    "L1_rec": 0.0,
+    "Lf": 0.0,
+    "Lf_rec": 0.0,
+    "U1": 0.0,
+    "U1_rec": 0.0,
+    "Uf": 0.0,
+    "Uf_rec": 0.0,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|occupation_worsening_vs_H_LJ|s0",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.03908781986218562,
+    "L1_rec": 0.03908781986218562,
+    "Lf": 0.034365901955153086,
+    "Lf_rec": 0.034365901955153086,
+    "U1": 0.06396920937414524,
+    "U1_rec": 0.06396920937414524,
+    "Uf": 0.06869112728117778,
+    "Uf_rec": 0.06869112728117778,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|pair_benefit_vs_TASKONLY|s0",
+    "point": 0.05152851461816543,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.05152851461816543,
+    "se": 0.005194446595906772,
+    "se_rec": 0.005194446595906772,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.033357400472585785,
+    "L1_rec": -0.033357400472585785,
+    "Lf": -0.03557155452026181,
+    "Lf_rec": -0.03557155452026181,
+    "U1": -0.021690270635859984,
+    "U1_rec": -0.021690270635859984,
+    "Uf": -0.01947611658818396,
+    "Uf_rec": -0.01947611658818396,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|income_worsening_vs_TASKONLY|s0",
+    "point": -0.027523835554222886,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.027523835554222886,
+    "se": 0.002435727427330869,
+    "se_rec": 0.002435727427330869,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.10694583421668799,
+    "L1_rec": -0.10694583421668799,
+    "Lf": -0.11364656266730623,
+    "Lf_rec": -0.11364656266730623,
+    "U1": -0.07163741973845353,
+    "U1_rec": -0.07163741973845353,
+    "Uf": -0.06493669128783529,
+    "Uf_rec": -0.06493669128783529,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|occupation_worsening_vs_TASKONLY|s0",
+    "point": -0.08929162697757076,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.08929162697757076,
+    "se": 0.007371279377511156,
+    "se_rec": 0.007371279377511156,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.009919803723607366,
+    "L1_rec": 0.009919803723607366,
+    "Lf": 0.007461181826896996,
+    "Lf_rec": 0.007461181826896996,
+    "U1": 0.022875117703881155,
+    "U1_rec": 0.022875117703881155,
+    "Uf": 0.025333739600591525,
+    "Uf_rec": 0.025333739600591525,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "JOINT|pair_benefit_vs_B2TWIN|s0",
+    "point": 0.01639746071374426,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.01639746071374426,
+    "se": 0.0027046595034971766,
+    "se_rec": 0.0027046595034971766,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.016832053162873443,
+    "L1_rec": -0.016832053162873443,
+    "Lf": -0.018746103322576736,
+    "Lf_rec": -0.018746103322576736,
+    "U1": -0.006746272658710592,
+    "U1_rec": -0.006746272658710592,
+    "Uf": -0.0048322224990073,
+    "Uf_rec": -0.0048322224990073,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "JOINT|income_worsening_vs_B2TWIN|s0",
+    "point": -0.011789162910792017,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.011789162910792017,
+    "se": 0.002105591738826704,
+    "se_rec": 0.002105591738826704,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.0,
+    "L1_rec": 0.0,
+    "Lf": 0.0,
+    "Lf_rec": 0.0,
+    "U1": 0.0,
+    "U1_rec": 0.0,
+    "Uf": 0.0,
+    "Uf_rec": 0.0,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "JOINT|occupation_worsening_vs_B2TWIN|s0",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "key": "SEC|F_pair_minus_F_occupation|s0",
+    "point": 0.052600545142904465,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.052600545142904465,
+    "se": 0.007714068597703376,
+    "se_rec": 0.007714068597703376,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|F_pair_minus_F_income|s0",
+    "point": 0.07166502244459438,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.07166502244459438,
+    "se": 0.008056594895772137,
+    "se_rec": 0.008056594895772137,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|IBSI_NLLM_minus_F|pair|s0",
+    "point": 0.016674236207288473,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.016674236207288473,
+    "se": 0.006044323238900782,
+    "se_rec": 0.006044323238900782,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_NEURAL_RAW|s0",
+    "point": 0.0008346428292921166,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0008346428292921166,
+    "se": 0.002765748327065495,
+    "se_rec": 0.0027657483270654946,
+    "se_rel_diff": 1.5680416932741832e-16,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_H_LJ|s0",
+    "point": 0.008318830376818178,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.008318830376818178,
+    "se": 0.0021013051561202143,
+    "se_rec": 0.0021013051561202143,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|occupation_nll_diff_vs_NEURAL_RAW|s0",
+    "point": 0.006986499145327025,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.006986499145327025,
+    "se": 0.003161898143318429,
+    "se_rec": 0.003161898143318429,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|occupation_nll_diff_vs_H_LJ|s0",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "IDENTICAL_RELEASE",
+    "status_rec": "IDENTICAL_RELEASE"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_TO|s0",
+    "point": 0.005013431445277582,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.005013431445277582,
+    "se": 0.0022392776596832894,
+    "se_rec": 0.00223927765968329,
+    "se_rel_diff": 1.9366998421068471e-16,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_LOC|s0",
+    "point": 0.0031838617337092323,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0031838617337092323,
+    "se": 0.0015417943919739314,
+    "se_rec": 0.0015417943919739312,
+    "se_rel_diff": 1.4064160281416256e-16,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|H_JJ_minus_F|pair|s0",
+    "point": -0.009496034036643342,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.009496034036643342,
+    "se": 0.004000000321634836,
+    "se_rec": 0.004000000321634836,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": 0.0006829935820466537,
+    "L1_rec": 0.0006829935820466537,
+    "Lf": -0.0026981215157098667,
+    "Lf_rec": -0.0026981215157098667,
+    "U1": 0.01849923761431882,
+    "U1_rec": 0.01849923761431882,
+    "Uf": 0.021880352712075342,
+    "Uf_rec": 0.021880352712075342,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|accuracy_loss|s1",
+    "point": 0.009591115598182737,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.009591115598182737,
+    "se": 0.003719467842452972,
+    "se_rec": 0.003719467842452972,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0033963783084102585,
+    "L1_rec": -0.0033963783084102585,
+    "Lf": -0.006199174234106039,
+    "Lf_rec": -0.006199174234106039,
+    "U1": 0.01137250554827592,
+    "U1_rec": 0.01137250554827592,
+    "Uf": 0.0141753014739717,
+    "Uf_rec": 0.0141753014739717,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|nll_excess|s1",
+    "point": 0.00398806361993283,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.00398806361993283,
+    "se": 0.0030832754914202503,
+    "se_rec": 0.0030832754914202503,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0011742392018333709,
+    "L1_rec": -0.0011742392018333709,
+    "Lf": -0.003133923808166565,
+    "Lf_rec": -0.003133923808166565,
+    "U1": 0.009152004703878714,
+    "U1_rec": 0.009152004703878714,
+    "Uf": 0.01111168931021191,
+    "Uf_rec": 0.01111168931021191,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|U0|brier_excess|s1",
+    "point": 0.003988882751022672,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.003988882751022672,
+    "se": 0.002155792886034227,
+    "se_rec": 0.002155792886034227,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": 0.0006829935820466537,
+    "L1_rec": 0.0006829935820466537,
+    "Lf": -0.0026981215157098667,
+    "Lf_rec": -0.0026981215157098667,
+    "U1": 0.01849923761431882,
+    "U1_rec": 0.01849923761431882,
+    "Uf": 0.021880352712075342,
+    "Uf_rec": 0.021880352712075342,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|accuracy_loss|s1",
+    "point": 0.009591115598182737,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.009591115598182737,
+    "se": 0.003719467842452972,
+    "se_rec": 0.003719467842452972,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0007301961059492197,
+    "L1_rec": -0.0007301961059492197,
+    "Lf": -0.0032764882503154283,
+    "Lf_rec": -0.0032764882503154283,
+    "U1": 0.012687082191257321,
+    "U1_rec": 0.012687082191257321,
+    "Uf": 0.01523337433562353,
+    "Uf_rec": 0.01523337433562353,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|nll_excess|s1",
+    "point": 0.005978443042654051,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.005978443042654051,
+    "se": 0.002801103030992629,
+    "se_rec": 0.002801103030992629,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": 4.1143001917098854e-05,
+    "L1_rec": 4.1143001917098854e-05,
+    "Lf": -0.001819665030652529,
+    "Lf_rec": -0.001819665030652529,
+    "U1": 0.00984637265158817,
+    "U1_rec": 0.00984637265158817,
+    "Uf": 0.011707180684157797,
+    "Uf_rec": 0.011707180684157797,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|income|Ucal|brier_excess|s1",
+    "point": 0.004943757826752634,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004943757826752634,
+    "se": 0.00204702160027423,
+    "se_rec": 0.00204702160027423,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.007398848243253904,
+    "L1_rec": -0.007398848243253904,
+    "Lf": -0.01110123275142777,
+    "Lf_rec": -0.01110123275142777,
+    "U1": 0.012110273449378756,
+    "U1_rec": 0.012110273449378756,
+    "Uf": 0.01581265795755262,
+    "Uf_rec": 0.01581265795755262,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|U0|accuracy_loss|s1",
+    "point": 0.002355712603062426,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.002355712603062426,
+    "se": 0.004072887115758405,
+    "se_rec": 0.004072887115758405,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0030727901636650803,
+    "L1_rec": -0.0030727901636650803,
+    "Lf": -0.006097297108269039,
+    "Lf_rec": -0.006097297108269039,
+    "U1": 0.012864364368022022,
+    "U1_rec": 0.012864364368022022,
+    "Uf": 0.01588887131262598,
+    "Uf_rec": 0.01588887131262598,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|U0|nll_excess|s1",
+    "point": 0.004895787102178471,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004895787102178471,
+    "se": 0.003327173430799373,
+    "se_rec": 0.003327173430799373,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0025340841844519917,
+    "L1_rec": -0.0025340841844519917,
+    "Lf": -0.0038419819138682735,
+    "Lf_rec": -0.0038419819138682735,
+    "U1": 0.004357673251429637,
+    "U1_rec": 0.004357673251429637,
+    "Uf": 0.005665570980845918,
+    "Uf_rec": 0.005665570980845918,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "UTILITY|occupation|U0|brier_excess|s1",
+    "point": 0.0009117945334888225,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0009117945334888225,
+    "se": 0.0014387808179050139,
+    "se_rec": 0.0014387808179050139,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.007398848243253904,
+    "L1_rec": -0.007398848243253904,
+    "Lf": -0.01110123275142777,
+    "Lf_rec": -0.01110123275142777,
+    "U1": 0.012110273449378756,
+    "U1_rec": 0.012110273449378756,
+    "Uf": 0.01581265795755262,
+    "Uf_rec": 0.01581265795755262,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|Ucal|accuracy_loss|s1",
+    "point": 0.002355712603062426,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.002355712603062426,
+    "se": 0.004072887115758405,
+    "se_rec": 0.004072887115758405,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.00274578141784232,
+    "L1_rec": -0.00274578141784232,
+    "Lf": -0.0057387498936011866,
+    "Lf_rec": -0.0057387498936011866,
+    "U1": 0.013025186207719863,
+    "U1_rec": 0.013025186207719863,
+    "Uf": 0.016018154683478728,
+    "Uf_rec": 0.016018154683478728,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "UTILITY|occupation|Ucal|nll_excess|s1",
+    "point": 0.005139702394938771,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.005139702394938771,
+    "se": 0.0032924788648712954,
+    "se_rec": 0.0032924788648712954,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0023743381991245364,
+    "L1_rec": -0.0023743381991245364,
+    "Lf": -0.0036694591001335012,
+    "Lf_rec": -0.0036694591001335012,
+    "U1": 0.004450093787524599,
+    "U1_rec": 0.004450093787524599,
+    "Uf": 0.005745214688533565,
+    "Uf_rec": 0.005745214688533565,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "UTILITY|occupation|Ucal|brier_excess|s1",
+    "point": 0.0010378777942000315,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0010378777942000315,
+    "se": 0.0014247253950591347,
+    "se_rec": 0.0014247253950591347,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.0006182325298149677,
+    "L1_rec": -0.0006182325298149677,
+    "Lf": -0.0023525632149055866,
+    "Lf_rec": -0.0023525632149055866,
+    "U1": 0.008520545010983595,
+    "U1_rec": 0.008520545010983595,
+    "Uf": 0.010254875696074214,
+    "Uf_rec": 0.010254875696074214,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1",
+    "point": 0.003951156240584314,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.003951156240584314,
+    "se": 0.0019078874941744202,
+    "se_rec": 0.0019078874941744202,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.007196190611241599,
+    "L1_rec": -0.007196190611241599,
+    "Lf": -0.009063938295130178,
+    "Lf_rec": -0.009063938295130178,
+    "U1": 0.0026456064186642747,
+    "U1_rec": 0.0026456064186642747,
+    "Uf": 0.004513354102552852,
+    "Uf_rec": 0.004513354102552852,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s1",
+    "point": -0.0022752920962886623,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.0022752920962886623,
+    "se": 0.002054655711853513,
+    "se_rec": 0.002054655711853513,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.005917497135134779,
+    "L1_rec": 0.005917497135134779,
+    "Lf": 0.0006147817863282751,
+    "Lf_rec": 0.0006147817863282751,
+    "U1": 0.03385930566768037,
+    "U1_rec": 0.03385930566768037,
+    "Uf": 0.03916202101648687,
+    "Uf_rec": 0.03916202101648687,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|pair_benefit_vs_NEURAL_RAW|s1",
+    "point": 0.019888401401407574,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.019888401401407574,
+    "se": 0.005833365220442989,
+    "se_rec": 0.005833365220442989,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.013361670398259315,
+    "L1_rec": -0.013361670398259315,
+    "Lf": -0.016325735525056242,
+    "Lf_rec": -0.016325735525056242,
+    "U1": 0.002256995663006087,
+    "U1_rec": 0.002256995663006087,
+    "Uf": 0.005221060789803016,
+    "Uf_rec": 0.005221060789803016,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s1",
+    "point": -0.005552337367626614,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.005552337367626614,
+    "se": 0.003260683118824539,
+    "se_rec": 0.003260683118824539,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.05586077282600002,
+    "L1_rec": -0.05586077282600002,
+    "Lf": -0.06210946476496779,
+    "Lf_rec": -0.06210946476496779,
+    "U1": -0.02293429228678043,
+    "U1_rec": -0.02293429228678043,
+    "Uf": -0.016685600347812662,
+    "Uf_rec": -0.016685600347812662,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s1",
+    "point": -0.039397532556390225,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.039397532556390225,
+    "se": 0.006874006962912148,
+    "se_rec": 0.006874006962912148,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.012898664878333075,
+    "L1_rec": 0.012898664878333075,
+    "Lf": 0.008310973723018429,
+    "Lf_rec": 0.008310973723018429,
+    "U1": 0.03707276803797305,
+    "U1_rec": 0.03707276803797305,
+    "Uf": 0.041660459193287695,
+    "Uf_rec": 0.041660459193287695,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|pair_benefit_vs_H_LJ|s1",
+    "point": 0.024985716458153062,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.024985716458153062,
+    "se": 0.005046787592241715,
+    "se_rec": 0.005046787592241715,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.012879034913894253,
+    "L1_rec": -0.012879034913894253,
+    "Lf": -0.016430669837715038,
+    "Lf_rec": -0.016430669837715038,
+    "U1": 0.005835736008372675,
+    "U1_rec": 0.005835736008372675,
+    "Uf": 0.009387370932193459,
+    "Uf_rec": 0.009387370932193459,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+    "point": -0.003521649452760789,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.003521649452760789,
+    "se": 0.00390705181732787,
+    "se_rec": 0.00390705181732787,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.0,
+    "L1_rec": 0.0,
+    "Lf": 0.0,
+    "Lf_rec": 0.0,
+    "U1": 0.0,
+    "U1_rec": 0.0,
+    "Uf": 0.0,
+    "Uf_rec": 0.0,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "COMPETITIVE|occupation_worsening_vs_H_LJ|s1",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.03358318024138012,
+    "L1_rec": 0.03358318024138012,
+    "Lf": 0.02867603764869598,
+    "Lf_rec": 0.02867603764869598,
+    "U1": 0.05944058154381666,
+    "U1_rec": 0.05944058154381666,
+    "Uf": 0.0643477241365008,
+    "Uf_rec": 0.0643477241365008,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|pair_benefit_vs_TASKONLY|s1",
+    "point": 0.04651188089259839,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.04651188089259839,
+    "se": 0.005398206965486243,
+    "se_rec": 0.005398206965486243,
+    "se_rel_diff": 0.0,
+    "status": "ESTABLISHED",
+    "status_rec": "ESTABLISHED"
+   },
+   {
+    "L1": -0.030998381166118347,
+    "L1_rec": -0.030998381166118347,
+    "Lf": -0.033854478326767794,
+    "Lf_rec": -0.033854478326767794,
+    "U1": -0.015948634995757563,
+    "U1_rec": -0.015948634995757563,
+    "Uf": -0.013092537835108114,
+    "Uf_rec": -0.013092537835108114,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|income_worsening_vs_TASKONLY|s1",
+    "point": -0.023473508080937955,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.023473508080937955,
+    "se": 0.0031419106527919376,
+    "se_rec": 0.0031419106527919376,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.07711470884666882,
+    "L1_rec": -0.07711470884666882,
+    "Lf": -0.08311969154364732,
+    "Lf_rec": -0.08311969154364732,
+    "U1": -0.045472415092773895,
+    "U1_rec": -0.045472415092773895,
+    "Uf": -0.039467432395795386,
+    "Uf_rec": -0.039467432395795386,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "MECH_TO|occupation_worsening_vs_TASKONLY|s1",
+    "point": -0.061293561969721355,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.061293561969721355,
+    "se": 0.006605909408620341,
+    "se_rec": 0.006605909408620341,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": -0.002526285044400665,
+    "L1_rec": -0.002526285044400665,
+    "Lf": -0.007248327712896938,
+    "Lf_rec": -0.007248327712896938,
+    "U1": 0.022355761878093516,
+    "U1_rec": 0.022355761878093516,
+    "Uf": 0.027077804546589788,
+    "Uf_rec": 0.027077804546589788,
+    "category": "UNRESOLVED",
+    "category_rec": "UNRESOLVED",
+    "key": "JOINT|pair_benefit_vs_B2TWIN|s1",
+    "point": 0.009914738416846425,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.009914738416846425,
+    "se": 0.005194583842418333,
+    "se_rec": 0.005194583842418333,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "L1": -0.013131525164438693,
+    "L1_rec": -0.013131525164438693,
+    "Lf": -0.015670482180747135,
+    "Lf_rec": -0.015670482180747135,
+    "U1": 0.0002471018512507405,
+    "U1_rec": 0.0002471018512507405,
+    "Uf": 0.0027860588675591817,
+    "Uf_rec": 0.0027860588675591817,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "JOINT|income_worsening_vs_B2TWIN|s1",
+    "point": -0.006442211656593977,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.006442211656593977,
+    "se": 0.002793033866784277,
+    "se_rec": 0.002793033866784277,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "L1": 0.0,
+    "L1_rec": 0.0,
+    "Lf": 0.0,
+    "Lf_rec": 0.0,
+    "U1": 0.0,
+    "U1_rec": 0.0,
+    "Uf": 0.0,
+    "Uf_rec": 0.0,
+    "category": "PASS",
+    "category_rec": "PASS",
+    "key": "JOINT|occupation_worsening_vs_B2TWIN|s1",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "PASS",
+    "status_rec": "PASS"
+   },
+   {
+    "key": "SEC|F_pair_minus_F_occupation|s1",
+    "point": 0.03458124236105298,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.03458124236105298,
+    "se": 0.005393105135003226,
+    "se_rec": 0.005393105135003226,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|F_pair_minus_F_income|s1",
+    "point": 0.07248781337954835,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.07248781337954835,
+    "se": 0.007835358571685982,
+    "se_rec": 0.007835358571685982,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|IBSI_NLLM_minus_F|pair|s1",
+    "point": 0.004700367440006348,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.004700367440006348,
+    "se": 0.00660922401749311,
+    "se_rec": 0.00660922401749311,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_NEURAL_RAW|s1",
+    "point": 0.0010394494603186621,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0010394494603186621,
+    "se": 0.0028591032874292523,
+    "se_rec": 0.0028591032874292523,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_H_LJ|s1",
+    "point": 0.007640157960900774,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.007640157960900774,
+    "se": 0.0020025506068534612,
+    "se_rec": 0.0020025506068534612,
+    "se_rel_diff": 0.0,
+    "status": "ABOVE_ZERO",
+    "status_rec": "ABOVE_ZERO"
+   },
+   {
+    "key": "SEC|occupation_nll_diff_vs_NEURAL_RAW|s1",
+    "point": 0.002754870674882183,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.002754870674882183,
+    "se": 0.0031132708645318957,
+    "se_rec": 0.0031132708645318957,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|occupation_nll_diff_vs_H_LJ|s1",
+    "point": 0.0,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.0,
+    "se": 0.0,
+    "se_rec": 0.0,
+    "se_rel_diff": 0.0,
+    "status": "IDENTICAL_RELEASE",
+    "status_rec": "IDENTICAL_RELEASE"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_TO|s1",
+    "point": 0.003941443890840756,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.003941443890840756,
+    "se": 0.002127103720342783,
+    "se_rec": 0.0021271037203427832,
+    "se_rel_diff": 2.0388327322577106e-16,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|income_nll_diff_vs_LOC|s1",
+    "point": 0.003614057492643029,
+    "point_abs_diff": 0.0,
+    "point_rec": 0.003614057492643029,
+    "se": 0.0015566633685462638,
+    "se_rec": 0.0015566633685462638,
+    "se_rel_diff": 0.0,
+    "status": "UNRESOLVED",
+    "status_rec": "UNRESOLVED"
+   },
+   {
+    "key": "SEC|H_JJ_minus_F|pair|s1",
+    "point": -0.011363432909053728,
+    "point_abs_diff": 0.0,
+    "point_rec": -0.011363432909053728,
+    "se": 0.0037240835830846825,
+    "se_rec": 0.0037240835830846825,
+    "se_rel_diff": 0.0,
+    "status": "BELOW_ZERO",
+    "status_rec": "BELOW_ZERO"
+   }
+  ],
+  "lock_ab_sign_encoding_matches_estimands": true,
+  "lock_chain": {
+   "access_events_reporting_lock_hash": true,
+   "bank_files_in_manifest": true,
+   "draft_hash_in_analysis_lock": true,
+   "finalist_lock_in_analysis_lock": true,
+   "finalist_lock_in_bank_manifest": true,
+   "promotion_in_finalist_lock": true,
+   "reader_scores_S0_in_reporting_lock": true,
+   "reader_scores_S1_in_reporting_lock": true,
+   "report_locks_match_files": true
+  },
+  "mandatory_qualifiers": {
+   "s0|F_minus_B2TWIN_income_brier": {
+    "marginal95": [
+     0.00024162817086832494,
+     0.005074006821732233
+    ],
+    "marginal95_rec": [
+     0.00024162817086832494,
+     0.005074006821732233
+    ],
+    "point": 0.0026578174963002793,
+    "point_rec": 0.0026578174963002793,
+    "se": 0.0012323949445563539,
+    "se_rec": 0.0012323949445563539
+   },
+   "s0|F_minus_TASKONLY_occupation_nll": {
+    "marginal95": [
+     0.014926597047129578,
+     0.023808065734871382
+    ],
+    "marginal95_rec": [
+     0.014926597047129578,
+     0.023808065734871382
+    ],
+    "point": 0.01936733139100048,
+    "point_rec": 0.01936733139100048,
+    "se": 0.0022650288609009925,
+    "se_rec": 0.0022650288609009925
+   },
+   "s1|F_minus_B2TWIN_income_brier": {
+    "marginal95": [
+     0.0003166496302526491,
+     0.005106437199875352
+    ],
+    "marginal95_rec": [
+     0.0003166496302526491,
+     0.005106437199875352
+    ],
+    "point": 0.0027115434150640004,
+    "point_rec": 0.0027115434150640004,
+    "se": 0.0012215329991259252,
+    "se_rec": 0.0012215329991259252
+   },
+   "s1|F_minus_TASKONLY_occupation_nll": {
+    "marginal95": [
+     0.011632969870611192,
+     0.018958780081137397
+    ],
+    "marginal95_rec": [
+     0.011632969870611192,
+     0.018958780081137397
+    ],
+    "point": 0.015295874975874294,
+    "point_rec": 0.015295874975874294,
+    "se": 0.0018682913986092084,
+    "se_rec": 0.0018682913986092084
+   }
+  },
+  "max_point_abs_diff": 0.0,
+  "max_se_rel_diff": 2.0388327322577106e-16,
+  "threshold_proximity": {
+   "S0|DEV_REPORT": {
+    "min_abs_distance_to_threshold": 3.50866225981572e-05,
+    "n_within_1e-12": 0,
+    "n_within_1e-9": 0
+   },
+   "S0|MODEL_FIT": {
+    "min_abs_distance_to_threshold": 2.220446049250313e-16,
+    "n_within_1e-12": 2,
+    "n_within_1e-9": 2
+   },
+   "S0|MODEL_SELECT": {
+    "min_abs_distance_to_threshold": 0.00021806682897355933,
+    "n_within_1e-12": 0,
+    "n_within_1e-9": 0
+   },
+   "S1|DEV_REPORT": {
+    "min_abs_distance_to_threshold": 5.9428152236723486e-05,
+    "n_within_1e-12": 0,
+    "n_within_1e-9": 0
+   },
+   "S1|MODEL_FIT": {
+    "min_abs_distance_to_threshold": 4.440892098500626e-16,
+    "n_within_1e-12": 4,
+    "n_within_1e-9": 4
+   },
+   "S1|MODEL_SELECT": {
+    "min_abs_distance_to_threshold": 5.7019334991581516e-05,
+    "n_within_1e-12": 0,
+    "n_within_1e-9": 0
+   }
+  }
+ },
+ "observations": [
+  "E holds at the point with very thin utility margins on DEV_REPORT: worst clause = income Brier excess vs Ucal at 0.004919 (s0) and 0.004944 (s1) against the 0.005 cap (0.984 / 0.989 of cap; the registered forecast cited 0.87-0.88 on MODEL_SELECT). Its clause L1 is above 0 on both seeds (0.000308, 0.000041). Simultaneous confidence over the 28 utility and subgroup endpoints is CONFIDENCE_UNRESOLVED (3 PASS, 25 UNRESOLVED, 0 ESTABLISHED_VIOLATION).",
+  "The nested 0.020 target is not established: clause L1 = H_LJ s0 0.019067, H_LJ s1 0.012899, NEURAL_RAW s0 0.013539, NEURAL_RAW s1 0.005917. All are \"positive, below the original 0.020 target\".",
+  "J fails on JOINT|pair_benefit_vs_B2TWIN|s1 (point 0.009915, clause L1 -0.002526; family status UNRESOLVED). Seed 0 passes (L1 0.009920).",
+  "M_SS is the alias of claim B's H_LJ keys (sigma = 0). The step therefore adds no comparison beyond B. MECHANISM_ATTRIBUTION_ESTABLISHED rests on the task-only control (pair benefit 0.0515 / 0.0465) plus those H_LJ legs.",
+  "The occupation outputs of FINALIST, H_LJ, B2TWIN and H_JJ are bitwise identical on MODEL_SELECT and DEV_REPORT. The occupation recipient keys against H_LJ and B2TWIN therefore have point = SE = 0, which matches the IDENTICAL_RELEASE flags.",
+  "Scope: the non-refit reader scores are the frozen DEV_REPORT_SCORES.npz. The winner rule was re-applied to the recorded ATTACK_VALIDATION AUCs, and the 14-id subset was refitted. The ATTACK_VALIDATION control AUCs are the recorded values. The section 6 proxies are the recorded EVAL_MS.json values; the utility clauses of all 3 promotable configurations were recomputed. The NEURAL_RAW seed-1 package does not exist in the source (coverage gap); deployment check 8 covers FINALIST and TASKONLY only, as briefed."
+ ],
+ "schema": "AMD1-independent-verification-v1",
+ "utc": "2026-10-17T17:56:47+00:00",
+ "verifier_units": [
+  "AMD_VERIFY_NOLABEL_V1",
+  "AMD_VERIFY_READERS_V1",
+  "AMD_VERIFY_DEVDRY_V1",
+  "AMD_VERIFY_DEVDRY_V2",
+  "AMD_VERIFY_DEV_V1",
+  "AMD_VERIFY_DEPLOY_V1",
+  "AMD_VERIFY_ACCESS_V1",
+  "AMD_VERIFY_ASSEMBLE_V1"
+ ]
+}

@@ -64,3 +64,10 @@ from `amd.fam_b diag|diag2` (CALIBRATION income labels only, household 5-fold cr
   - Pair proxy **0.6000 / 0.6001**: 0.0224 / 0.0232 below H_LJ and 0.0238 / 0.0268 below NEURAL_RAW.
   - Income proxy 0.5277 / 0.5286; occupation proxy 0.5724 / 0.5853.
 - **Budget.** 10 of 10 family-B configurations used. Family B stops here.
+
+**Reviewer note (2026-10-17, appended by the coordinator from the claims review, item 18; the investigator's text above is unchanged).**
+
+- Do not cite the "at most log 6" information bound. It is vacuous for m ≥ 2, because I(SEX; ·) ≤ log 2 (DEVELOPMENT_REVIEW F2).
+- On every observed role, the finalist's income output adds no distinct split beyond the occupation output.
+- Of the controls listed as not run, the uncoupled matched task-only control was later run by the coordinator: B3CTL_TASKONLY_TR_C6A, ledger 43–44.
+- The continuous-mixture control and the coupled B3 on seed 1 were never run.

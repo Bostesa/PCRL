@@ -25,10 +25,13 @@ Person-level arrays, fitted models and reader artifacts live under `.private/pcr
    - The income statistic is d = 0.5 × (LOCAL_TREE income log-odds) + 0.5 × (JOINT_TREE income log-odds), using the stored E20 corrections on the income teacher.
    - c is one of 6 decision-aligned levels of d, with label-free MODEL_FIT quantile thresholds and 3 levels on each side of 0.
    - The income probability is a per-level value fitted on CALIBRATION income labels, using an L2 logistic regression on one-hot c. It is released with its argmax decision.
-   - The income output therefore takes 6 distinct values. It does not depend on the occupation output.
+   - The income output therefore takes at most 6 values; 6 distinct values are observed on every evaluated role and seed.
+   - It is not computed from the occupation output. On the observed people it is nevertheless a function of the occupation vector, because that vector is essentially one-to-one in the inputs.
 4. SEX is never an input. Training-time SEX labels entered only through the stored replication corrections. The CALIBRATION fit uses income labels only.
 
-To refit the release from the admitted pieces (deterministic) and score it on MODEL_SELECT (each scoring is logged):
+To refit the release from the admitted pieces and score it on MODEL_SELECT:
+- The refit is deterministic, with one exception (`PROTOCOL_POSTRUN_CLARIFICATIONS.md` D3). A person whose income statistic sits within about 1e-15 of a threshold can change bin under a different floating-point summation order. This happens only on MODEL_FIT; no evaluated role is affected.
+- Each scoring is a logged MODEL_SELECT use and appends one ledger row.
 
 ```
 $PY -m amd.fam_b fit --seed 0 --config <new id> --base JOINT_TREE --phi none --m 6 --coarse-kind aligned --stat bins --stat-source MIX --alpha 0.5
@@ -42,7 +45,7 @@ $PY -m amd.deploy --out-root .private/pcrl_autonomous_method_development_v1/depl
     --package FINALIST:B:B3CTL_UNCOUPLED_MIX50_C6A:family --package TASKONLY:B:B3CTL_TASKONLY_TR_C6A:family
 ```
 
-The run also copies and reruns the frozen references NEURAL_RAW (seed 0) and H_LJ (both seeds). There is no NEURAL_RAW seed-1 package; the source never built one.
+The run also copies and reruns the frozen references NEURAL_RAW (seed 0) and H_LJ (both seeds). There is no NEURAL_RAW seed-1 package; the source never built one. The frozen references run through their own source deployment code, wrapped in this campaign's strict input check. Their refusals therefore come from that wrapper.
 
 Entry points:
 - API: `amd.deploy.release(pkg_dir, rows)`. Each row must have exactly AGEP, WKHP, COW, SCHL, MAR and POBP, in that order.

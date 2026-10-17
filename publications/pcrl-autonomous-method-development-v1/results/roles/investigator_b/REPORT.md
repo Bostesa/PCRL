@@ -104,3 +104,10 @@ This is exploratory development on the Florida ACS 2019 public-use development r
   - `roles/investigator_b/CARD_REVISIONS.md`
   - private runs under `.private/pcrl_autonomous_method_development_v1/runs/B/`: `<config>/S<seed>/{RELEASE.npz, RELEASE.json, EVAL_MS.json}`, `DIAG/DIAG_S0.json`, `DIAG2_S0.json`, `DIAG3_S0.json` and `PKG_TEST_V1/`
 - Nothing was committed and no shared module was edited.
+
+**Reviewer note (2026-10-17, appended by the coordinator from the claims review, item 18; the investigator's text above is unchanged).**
+
+- Do not cite the "at most log 6" information bound. It is vacuous for m ≥ 2, because I(SEX; ·) ≤ log 2 (DEVELOPMENT_REVIEW F2).
+- On every observed role, the finalist's income output adds no distinct split beyond the occupation output.
+- Of the controls listed as not run, the uncoupled matched task-only control was later run by the coordinator: B3CTL_TASKONLY_TR_C6A, ledger 43–44.
+- The continuous-mixture control and the coupled B3 on seed 1 were never run.
