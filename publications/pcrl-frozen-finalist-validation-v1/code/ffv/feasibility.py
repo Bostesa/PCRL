@@ -18,6 +18,8 @@ freedom, confounded with the reader seed and same-people noise).
 """
 from __future__ import annotations
 import json
+import sys
+from pathlib import Path
 
 import numpy as np
 from scipy.stats import norm
@@ -112,9 +114,12 @@ def summarize(pw, pc, conds, lim):
             'weakest_conditions_at_n80_or_1e8': [{'condition': conds[j][0], 'marginal_power': pc[at][j]} for j in worst]}
 
 
-def main():
-    rep = json.loads((C.RESULTS / 'report' / 'DEV_REPORT_RESULTS.json').read_text())
-    with np.load(C.RUNS / 'REPORT' / 'ENDPOINT_DRAWS.npz') as z:
+def main(report_path=None, draws_path=None, out_path=None):
+    report_path = Path(report_path) if report_path else C.RESULTS / 'report' / 'DEV_REPORT_RESULTS.json'
+    draws_path = Path(draws_path) if draws_path else C.RUNS / 'REPORT' / 'ENDPOINT_DRAWS.npz'
+    out_path = Path(out_path) if out_path else C.RESULTS / 'CONFIRMATION_FEASIBILITY_RESULTS.json'
+    rep = json.loads(report_path.read_text())
+    with np.load(draws_path) as z:
         keys = [str(k) for k in z['keys']]; D = z['draws'].copy()
     out = {'schema': 'FFV1-confirmation-feasibility-v1', 'utc': C.now(), 'method': __doc__, 'grid_households': [int(GRID[0]), int(GRID[-1]), len(GRID)],
            'mc_draws': N_MC, 'mc_seed': MC_SEED, 'binding_clauses': list(BINDING), 'scorecards': {}}
@@ -186,10 +191,10 @@ def main():
             return x['n_households_80'] if x['n_households_80'] is not None else float('inf')
         gov[key] = 'ENHANCED' if rank(e) >= rank(o) else 'ORIGINAL'
     out['governing_scorecard_by_scenario'] = gov
-    C.write_json_x(C.RESULTS / 'CONFIRMATION_FEASIBILITY_RESULTS.json', out)
+    C.write_json_x(out_path, out)
     for sc, r in out['scorecards'].items():
         print(sc, json.dumps({k: (v['n_households_80'], v['status_80'], round(v['power_at']['100000'], 3)) for k, v in r['scenarios'].items()}))
 
 
 if __name__ == '__main__':
-    main()
+    main(*sys.argv[1:4])
