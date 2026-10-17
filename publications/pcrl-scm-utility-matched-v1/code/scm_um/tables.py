@@ -115,11 +115,14 @@ def figure(sel, tsum, rep):
             if r.get('release') and r['release'] in per:
                 x, y = per[r['release']]['occupation_nll_expenditure_vs_C0'], per[r['release']]['proxy']['arm_proxy']
                 ax.plot(x, y, mk, ms=11 if mk == '*' else 7, color=COL[ROLE_FAMILY[rn]], markeredgecolor=INK, markeredgewidth=0.9, zorder=5)
-                ax.annotate(rn, (x, y), xytext=(5, 5), textcoords='offset points', fontsize=7.5, color=INK)
+                off = {'SCM': (8, -16), 'ORD_NLLM': (6, 7), 'ORD_CNT': (6, 7), 'IBSI_NLLM': (-62, -16), 'SHUF_NLLM': (8, -12)}[rn]
+                ax.annotate(rn, (x, y), xytext=off, textcoords='offset points', fontsize=7.5, color=INK,
+                            arrowprops=dict(arrowstyle='-', color=INK2, lw=0.5, shrinkA=0, shrinkB=3))
         for name in ('NEURAL_RAW', 'H_LJ'):
             m = sel['frozen_measurements'][str(s)][name]
             ax.plot(m['occupation_nll_expenditure_vs_C0'], m['proxy']['arm_proxy'], 'X', ms=8, color=COL['FROZEN'], zorder=5)
-            ax.annotate(name, (m['occupation_nll_expenditure_vs_C0'], m['proxy']['arm_proxy']), xytext=(5, -10), textcoords='offset points', fontsize=7.5, color=INK)
+            ax.annotate(name, (m['occupation_nll_expenditure_vs_C0'], m['proxy']['arm_proxy']), xytext=(-78, 14) if name == 'NEURAL_RAW' else (14, 12),
+                        textcoords='offset points', fontsize=7.5, color=INK, arrowprops=dict(arrowstyle='-', color=INK2, lw=0.5, shrinkA=0, shrinkB=3))
         e = sel['nomination']['e_star'][str(s)]
         ax.axvspan(e - 0.001, e + 0.001, color=COL['SCM'], alpha=0.08, lw=0, zorder=0)
         ax.set_title(f'MODEL_SELECT reader proxy (cross-fitted, max of 3 readers), seed {s}', fontsize=9, color=INK, loc='left')
@@ -133,7 +136,8 @@ def figure(sel, tsum, rep):
             fam = ROLE_FAMILY[rnames[0]]
             ax2.errorbar(x, y, yerr=1.96 * se, fmt='o' if fam != 'FROZEN' else 'X', ms=7, color=COL[fam], ecolor=COL[fam], elinewidth=1.2, capsize=0,
                          markeredgecolor=INK if fam != 'FROZEN' else COL[fam], markeredgewidth=0.6, zorder=4)
-            ax2.annotate('+'.join(rnames), (x, y), xytext=(6, 3), textcoords='offset points', fontsize=7.2, color=INK)
+            off = {'SCM': (8, -12), 'IBSI_CNT': (8, 6), 'IBSI_NLLM': (8, 6), 'SHUF_NLLM': (8, -12)}.get(rnames[0], (8, 3))
+            ax2.annotate('+'.join(rnames), (x, y), xytext=off, textcoords='offset points', fontsize=7.2, color=INK)
         ax2.set_title(f'DEV_REPORT fresh readers (8-reader slate, ±1.96 SE), seed {s}', fontsize=9, color=INK, loc='left')
         ax2.set_xlabel('DEV_REPORT occupation-NLL expenditure vs C0 (nats)'); ax2.set_ylabel('pair AUC, selected fresh reader')
         ax2.grid(color=GRID, lw=0.6)
@@ -146,7 +150,8 @@ def figure(sel, tsum, rep):
 def selection_md(sel):
     nom = sel['nomination']; L = []
     L.append('# Selection and matching (MODEL_SELECT only; frozen in SELECTION_LOCK.json)\n')
-    L.append(f"**Status:** `{sel['status']}`; common threshold t* = {nom['t_star']}; cells K* = {nom['K_star']}; expenditure e* = "
+    L.append('"MATCHED" below is the MODEL_SELECT role status. None of these matches carried over to DEV_REPORT (`RESEARCH_DECISION.md` §6).\n')
+    L.append(f"**Status:** `{sel['status']}`; common threshold t* = {nom['t_star']}; cells K* = {nom['K_star']['0']} / {nom['K_star']['1']}; expenditure e* = "
              + ', '.join(f"{float(v):.5f}" for v in nom['e_star'].values()) + ' nats (seed 0, seed 1).\n')
     L.append('## SCM nomination grid (both seeds; eligible = 24 clauses + occupation NLL excess ≤ 0.008 + both within-SEX guards)\n')
     L.append('| t | cells s0 / s1 | eligible | worst normalised | mean proxy | expenditure s0 / s1 | failed conditions |')
@@ -156,7 +161,7 @@ def selection_md(sel):
         L.append(f"| {g['t']:.3f} | {g['cells']['0']} / {g['cells']['1']} | {g['eligible']} | {g['worst_normalized']:.3f} | {g['mean_proxy']:.4f} | "
                  f"{g['expenditure']['0']:.5f} / {g['expenditure']['1']:.5f} | {fails} |")
     L.append('\n## Roles (per seed)\n')
-    L.append('| seed | role | status | trajectory | labels | cells | release | Δ expenditure vs SCM | proxy | 12 clauses |')
+    L.append('| seed | role | status | trajectory | labels | cells | release | Δ expenditure (comparator − SCM) | proxy | 12 clauses |')
     L.append('|---|---|---|---|---|---|---|---|---|---|')
     for s, rr in sel['roles'].items():
         for rn in sel['role_order']:
@@ -166,15 +171,15 @@ def selection_md(sel):
                      f"{'' if d is None else f'{d:+.5f}'} | {'' if p is None else f'{p:.4f}'} | {r.get('point_pass_12', '—')} |")
     m = sel['matching']
     L.append('\n## Matching outcome\n')
-    L.append(f"- ORD_NLLM available (MODEL_SELECT match within 0.001 and 12 clauses): {m['ORD_NLLM_available']}")
-    L.append(f"- IBSI_NLLM: trajectory {m['IBSI_NLLM']['gamma_trajectory']}, matched in both seeds: {m['IBSI_NLLM']['available_both_seeds']}, admissible: {m['IBSI_NLLM']['admissible']}")
-    L.append(f"- SHUF_NLLM: trajectory {m['SHUF_NLLM']['r_trajectory']}, matched in both seeds: {m['SHUF_NLLM']['available_both_seeds']}, admissible: {m['SHUF_NLLM']['admissible']}")
+    L.append('- ORD_NLLM available (MODEL_SELECT match within 0.001 and 12 clauses): seed 0 ' + str(m['ORD_NLLM_available']['0']) + ', seed 1 ' + str(m['ORD_NLLM_available']['1']))
+    L.append(f"- IBSI_NLLM: trajectory {m['IBSI_NLLM']['gamma_trajectory']}, matched in both seeds: {m['IBSI_NLLM']['available_both_seeds']}, admissible: {', '.join(m['IBSI_NLLM']['admissible'])}")
+    L.append(f"- SHUF_NLLM: trajectory {m['SHUF_NLLM']['r_trajectory']}, matched in both seeds: {m['SHUF_NLLM']['available_both_seeds']}, admissible: {', '.join(m['SHUF_NLLM']['admissible'])}")
     L.append(f"- ORD_CNT available at exactly K* cells in both seeds: {m['ORD_CNT_available_both_seeds']}")
     L.append(f"- IBSI_CNT: {m['IBSI_CNT']['trajectory']} (24-clause eligible: {m['IBSI_CNT']['eligible_24']})")
     L.append('\n## Selection effort (distinct candidate releases examined)\n')
     L.append('```\n' + json.dumps(sel['selection_effort'], indent=1) + '\n```')
     L.append('\n## Candidates nearest the SCM expenditure (per comparator trajectory and seed)\n')
-    L.append('| seed | trajectory | labels | cells | Δ expenditure | match | 12 clauses | proxy |')
+    L.append('| seed | trajectory | labels | cells | Δ expenditure (candidate − SCM) | match | 12 clauses | proxy |')
     L.append('|---|---|---|---|---|---|---|---|')
     for name, per in m['candidates'].items():
         for s, cands in per.items():

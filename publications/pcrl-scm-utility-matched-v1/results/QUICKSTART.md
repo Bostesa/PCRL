@@ -30,7 +30,7 @@ must be present; they are admitted by hash, never modified.
 6. `python -m scm_um.bank --out results/pcrl_scm_utility_matched_v1/SERVICE_BANK_MANIFEST.json`. Commit.
 7. `python -m scm_um.readers --seed {0,1} --out .private/pcrl_scm_utility_matched_v1/runs/READERS_{s}`.
 8. `python -m scm_um.locks reporting`: commit `REPORTING_LOCK.json` and `READERS_SUMMARY.json`; publish the reporting receipt.
-9. `python -m scm_um.report --out results/pcrl_scm_utility_matched_v1/report`: the one logged coordinator re-read of DEV_REPORT truth.
+9. `python -m scm_um.report --out results/pcrl_scm_utility_matched_v1/report`: the one logged coordinator re-read of DEV_REPORT truth. It has been used. `scm_um.common.dev_report_truth` refuses a second coordinator re-read, so a reproduction starts from the committed `report/DEV_REPORT_RESULTS.json`. The verifier's single replay is a separate registered event.
 10. `python -m scm_um.deploy --out-root .private/pcrl_scm_utility_matched_v1/deploy --report results/pcrl_scm_utility_matched_v1/DEPLOYMENT_RESULTS.json`.
 11. `python -m scm_um.tables`: `UTILITY_TABLE.csv`, `RECOVERY_TABLE.csv`, `PRIMARY_ENDPOINTS.csv`, `SELECTION_AND_MATCHING.md`, `UTILITY_RECOVERY_FRONTIER.png`.
 
@@ -52,8 +52,19 @@ or, from Python rows (each row a dict with exactly those six keys, in that order
 Output: `income_probability` (n × 2), `income_decision`, `occupation_probability` (n × 5) and `occupation_decision`. In service each
 task's output goes only to its own recipient.
 
-**Refusals** (both entry points): extra, missing or reordered columns or keys; any forbidden column (SEX, for example); any request for
-anything but probability and decision (cell or group ids, teacher probabilities, propensity).
+**Refusals.** Both entry points share one input check (exactly the six fields, in this order, and no forbidden field) and one output check
+(probability and decision only). `DEPLOYMENT_RESULTS.json` exercised:
+- CSV path: an extra, missing or reordered column; a SEX column; and SEX replacing a field;
+- API path: an extra key, reordered keys and a SEX key;
+- through the API: requests for cell id, fine cell, group id, income group, teacher probability or propensity.
+
+A missing API key, and hidden-output requests through the CSV path, are refused by the same shared checks but were not exercised separately.
+
+These refusals hold for the documented entry points: `scm_um.deploy.release` / `release_csv` for the SCM-format packages, and, for the
+frozen NEURAL_RAW and H_LJ packages, the campaign wrapper (`scm_um.deploy.check_rows` before the source release) or the CSV path. The
+source functions `acs_replication.deploy.release`, `acs_hybrids.hybrid_deploy.release` and `scm_bench.deploy_scm.release`, called
+directly with dictionary rows, ignore extra or reordered keys instead of refusing them; they still encode only the six permitted fields
+(verifier D6).
 
 ## Tests (invented data only)
 
@@ -65,6 +76,13 @@ python -m structural_pilot.test_lookup_synthetic
 
 ## Custody
 
-`scm_um/custody.sh backup <dest parent>` writes a branch bundle, a source archive and the private tree, then restores them into a fresh
-directory and re-runs the packages and the synthetic tests from the backup alone; `scm_um/custody.sh offdevice <backup dir> <dest>`
-repeats the check on another device. Set `SCM_PYLIB` to the private CatBoost library and `SCM_PYTHON` to the interpreter.
+`scm_um/custody.sh backup <dest parent>` writes a branch bundle, a source archive and the private tree. It restores them into a fresh
+directory and, from the backup alone, re-runs two checks:
+- the SCM, ORD_NLLM and IBSI_NLLM packages (both seeds), compared bitwise with the restored evaluated wires;
+- the synthetic tests.
+
+The frozen NEURAL_RAW and H_LJ source packages are checked in `DEPLOYMENT_RESULTS.json`, not in the restore check.
+`scm_um/custody.sh offdevice <backup dir> <dest>` repeats the check on the external drive. Record whether that read-back is warm (the drive
+stayed mounted, so the file cache may have served it) or cold (after an ordinary remount). `BACKUP_VERIFICATION.json` holds the same-device
+result, the warm off-device result, the cold re-check when it is done, and the final refresh. Set `SCM_PYLIB` to the private CatBoost
+library and `SCM_PYTHON` to the interpreter.
