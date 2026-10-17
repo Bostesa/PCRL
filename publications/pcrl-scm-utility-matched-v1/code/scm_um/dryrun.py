@@ -32,6 +32,11 @@ def main(mode, out):
     if mode == 'select':
         from . import select as S
         S.C.load_role = fake_load
+
+        def fake_proxy(outs, sex, unit, seed):          # stand-in: the source proxy itself is unchanged and not under test here
+            h = int(C.arr_sha(outs['occupation'])[:8], 16) / 16 ** 8
+            return {'OUT_LR': {'mean': 0.5 + 0.1 * h}, 'arm_proxy': 0.5 + 0.1 * h}
+        S.proxy = fake_proxy
         r = S.run(out)
         print(json.dumps({'status': r['status'], 't_star': r['nomination']['t_star'], 'roles_seed0': sorted(r['roles']['0']),
                           'services_seed0': r['services']['0']['aliases'], 'DRY_RUN': 'invented labels; values meaningless'}, indent=1))

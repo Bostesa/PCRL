@@ -32,8 +32,9 @@ Read first: `PROTOCOL.md`, `UNIT_INVENTORY.json`, `ANALYSIS_LOCK.json`, `SOURCE_
 5. **Primary results, intervals and labels** (after the coordinator's report exists). One logged DEV_REPORT replay through
    `scm_um.common.dev_report_truth(<purpose>, event_name='DEV_REPORT_TRUTH_REREAD_BY_INDEPENDENT_VERIFIER')` — the only permitted route
    (the coordinator will tell you when the reporting lock is committed). Dry-run your pipeline on invented labels first. Recompute the
-   household bootstrap, AUCs, every primary and secondary endpoint, statuses, matching carry-over and every claim label from the registered
-   conjunctions.
+   household bootstrap, AUCs, every primary (58) and secondary (24) endpoint, availabilities, statuses, matching carry-over and direction,
+   the strict M → IBSI → SHUF sequence, and every claim label from the registered conjunctions in the statistical reviewer's
+   `FROZEN DESIGN` block (`roles/statistical_reviewer/PREFIT_STATISTICAL_REVIEW.md`), which is authoritative where the protocol is ambiguous.
 6. **Raw-field packages and input validation.** Run every package through the API and CSV paths on DEV_REPORT raw inputs and compare with
    the evaluated wires; try the refusals (extra, reordered, SEX column or key, hidden outputs).
 7. **Predefined reader refits.** Refit, with your own code and the source settings, the pair winners of SCM, ORD_NLLM, IBSI_NLLM and
