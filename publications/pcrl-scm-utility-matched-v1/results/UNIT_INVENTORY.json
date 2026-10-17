@@ -1,0 +1,1658 @@
+{
+ "campaign": "pcrl_scm_utility_matched_v1",
+ "checkpoints": {
+  "count_grid": [
+   512,
+   448,
+   384,
+   320,
+   256,
+   224,
+   192,
+   160,
+   128,
+   96,
+   64,
+   32
+  ],
+  "dedupe": "bit-identical per-initial-cell (v1[group], v2[cell]) tables",
+  "historical": "HIST: prefix at the historical count (261 / 266)",
+  "nll_grid": [
+   0.0,
+   0.001,
+   0.002,
+   0.003,
+   0.004,
+   0.005,
+   0.006,
+   0.007,
+   0.008,
+   0.009,
+   0.01
+  ],
+  "nll_reached": "m*(t) < M or F_M >= t - 1e-15; else alias of TERM, missing coverage",
+  "nll_rule": "last prefix m with F_m <= t + 1e-15 (F = engine running sum of occupation-NLL changes)",
+  "scm_count_companions": "S{t} on ORD, IBSI_g*, SHUF_r*: prefix at SCM N{t} merge count",
+  "terminal": "TERM"
+ },
+ "claim_keys": {
+  "capacity_benefit": [
+   "CAPACITY|coalition_benefit_vs_ORD_CNT|s0",
+   "CAPACITY|coalition_benefit_vs_ORD_CNT|s1"
+  ],
+  "capacity_ibsi": [
+   "CAPACITY|coalition_benefit_vs_IBSI_CNT|s0",
+   "CAPACITY|coalition_benefit_vs_IBSI_CNT|s1"
+  ],
+  "capacity_worsening": [
+   "CAPACITY|income_worsening_vs_ORD_CNT|s0",
+   "CAPACITY|occupation_worsening_vs_ORD_CNT|s0",
+   "CAPACITY|income_worsening_vs_ORD_CNT|s1",
+   "CAPACITY|occupation_worsening_vs_ORD_CNT|s1"
+  ],
+  "competitive_benefit": [
+   "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s0",
+   "COMPETITIVE|coalition_benefit_vs_H_LJ|s0",
+   "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s1",
+   "COMPETITIVE|coalition_benefit_vs_H_LJ|s1"
+  ],
+  "competitive_worsening": [
+   "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+   "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s0",
+   "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+   "COMPETITIVE|occupation_worsening_vs_H_LJ|s0",
+   "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s1",
+   "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s1",
+   "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+   "COMPETITIVE|occupation_worsening_vs_H_LJ|s1"
+  ],
+  "component_ibsi": [
+   "MATCH_COMPONENT|coalition_benefit_vs_IBSI_NLLM|s0",
+   "MATCH_COMPONENT|coalition_benefit_vs_IBSI_NLLM|s1",
+   "SEC|occupation_nll_difference_vs_IBSI_NLLM|s0",
+   "SEC|occupation_nll_difference_vs_IBSI_NLLM|s1"
+  ],
+  "component_shuf": [
+   "MATCH_COMPONENT|coalition_benefit_vs_SHUF_NLLM|s0",
+   "MATCH_COMPONENT|coalition_benefit_vs_SHUF_NLLM|s1",
+   "SEC|occupation_nll_difference_vs_SHUF_NLLM|s0",
+   "SEC|occupation_nll_difference_vs_SHUF_NLLM|s1"
+  ],
+  "match_benefit": [
+   "MATCH|coalition_benefit_vs_ORD_NLLM|s0",
+   "MATCH|coalition_benefit_vs_ORD_NLLM|s1"
+  ],
+  "match_nll": [
+   "SEC|occupation_nll_difference_vs_ORD_NLLM|s0",
+   "SEC|occupation_nll_difference_vs_ORD_NLLM|s1"
+  ],
+  "match_worsening": [
+   "MATCH|income_worsening_vs_ORD_NLLM|s0",
+   "MATCH|occupation_worsening_vs_ORD_NLLM|s0",
+   "MATCH|income_worsening_vs_ORD_NLLM|s1",
+   "MATCH|occupation_worsening_vs_ORD_NLLM|s1"
+  ],
+  "subgroup": [
+   "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0",
+   "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0",
+   "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1",
+   "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s1"
+  ],
+  "utility_24": [
+   "UTILITY|income|U0|accuracy_loss|s0",
+   "UTILITY|income|U0|nll_excess|s0",
+   "UTILITY|income|U0|brier_excess|s0",
+   "UTILITY|income|Ucal|accuracy_loss|s0",
+   "UTILITY|income|Ucal|nll_excess|s0",
+   "UTILITY|income|Ucal|brier_excess|s0",
+   "UTILITY|occupation|U0|accuracy_loss|s0",
+   "UTILITY|occupation|U0|nll_excess|s0",
+   "UTILITY|occupation|U0|brier_excess|s0",
+   "UTILITY|occupation|Ucal|accuracy_loss|s0",
+   "UTILITY|occupation|Ucal|nll_excess|s0",
+   "UTILITY|occupation|Ucal|brier_excess|s0",
+   "UTILITY|income|U0|accuracy_loss|s1",
+   "UTILITY|income|U0|nll_excess|s1",
+   "UTILITY|income|U0|brier_excess|s1",
+   "UTILITY|income|Ucal|accuracy_loss|s1",
+   "UTILITY|income|Ucal|nll_excess|s1",
+   "UTILITY|income|Ucal|brier_excess|s1",
+   "UTILITY|occupation|U0|accuracy_loss|s1",
+   "UTILITY|occupation|U0|nll_excess|s1",
+   "UTILITY|occupation|U0|brier_excess|s1",
+   "UTILITY|occupation|Ucal|accuracy_loss|s1",
+   "UTILITY|occupation|Ucal|nll_excess|s1",
+   "UTILITY|occupation|Ucal|brier_excess|s1"
+  ]
+ },
+ "final_bank_roles": [
+  "SCM",
+  "ORD_NLLM",
+  "ORD_CNT",
+  "IBSI_NLLM",
+  "IBSI_CNT",
+  "SHUF_NLLM",
+  "NEURAL_RAW",
+  "H_LJ",
+  "C0",
+  "HIST_SCM"
+ ],
+ "inference": {
+  "K_primary": 58,
+  "K_secondary": 24,
+  "alpha_family_one_sided": 0.025,
+  "bootstrap_B": 2048,
+  "bootstrap_seed": 2026101705,
+  "claim_slices": [
+   "M",
+   "K",
+   "B",
+   "C"
+  ],
+  "family": "two-sided 95% Bonferroni-t",
+  "n_claims": 4,
+  "wald": "point +/- t(G-1) x bootstrap SE"
+ },
+ "inputs": [
+  "AGEP",
+  "WKHP",
+  "COW",
+  "SCHL",
+  "MAR",
+  "POBP"
+ ],
+ "labels": {
+  "B": [
+   "CONTROL_FAILURE",
+   "NOMINEE_INELIGIBLE",
+   "NOMINEE_IS_C0",
+   "NOMINEE_FAILS_DEV_UTILITY_GATE",
+   "NOMINEE_FAILS_DEV_SUBGROUP_POINT_GUARD",
+   "SUPERIOR_TO_ALL_ELIGIBLE | NOT_SUPERIOR_TO_ALL_ELIGIBLE"
+  ],
+  "C": [
+   "SUBGROUP_QUALIFIED",
+   "SUBGROUP_HARM",
+   "SUBGROUP_UNRESOLVED"
+  ],
+  "K": [
+   "CONTROL_FAILURE",
+   "NOMINEE_INELIGIBLE",
+   "NOMINEE_IS_C0",
+   "UNMATCHED_CAPACITY",
+   "COMPARATOR_INELIGIBLE",
+   "NOMINEE_FAILS_DEV_UTILITY_GATE",
+   "NOMINEE_FAILS_DEV_SUBGROUP_POINT_GUARD",
+   "SAME_CAPACITY_ADVANTAGE_ESTABLISHED | SAME_CAPACITY_ADVANTAGE_NOT_ESTABLISHED"
+  ],
+  "M": [
+   "CONTROL_FAILURE",
+   "NOMINEE_INELIGIBLE",
+   "NOMINEE_IS_C0",
+   "MATCH_UNAVAILABLE",
+   "MATCH_DID_NOT_CARRY_OVER",
+   "NOMINEE_FAILS_DEV_UTILITY_GATE",
+   "NOMINEE_FAILS_DEV_SUBGROUP_POINT_GUARD",
+   "MATCHED_ADVANTAGE_ESTABLISHED | MATCHED_ADVANTAGE_NOT_ESTABLISHED"
+  ]
+ },
+ "limits": {
+  "cloud_usd": 0,
+  "cpu_h": 10,
+  "elapsed_h": 6,
+  "heavy_jobs": 2,
+  "start_utc": "2026-10-17T04:38:00+00:00",
+  "threads_per_job": 1
+ },
+ "max_releases_per_seed": 10,
+ "predictions": {
+  "P1": 0.95,
+  "P2": 0.7,
+  "P3": 0.7,
+  "P4": 0.35,
+  "P5": 0.55,
+  "P6": 0.75,
+  "P7": 0.5,
+  "P8": 0.1
+ },
+ "primary_roster": [
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH|coalition_benefit_vs_ORD_NLLM|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "MATCH|income_worsening_vs_ORD_NLLM|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "MATCH|occupation_worsening_vs_ORD_NLLM|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "MC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "IBSI_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH_COMPONENT|coalition_benefit_vs_IBSI_NLLM|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "MC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "SHUF_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH_COMPONENT|coalition_benefit_vs_SHUF_NLLM|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "CAPACITY|coalition_benefit_vs_ORD_CNT|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "CAPACITY|income_worsening_vs_ORD_CNT|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "CAPACITY|occupation_worsening_vs_ORD_CNT|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "KC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "IBSI_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "CAPACITY|coalition_benefit_vs_IBSI_CNT|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "NEURAL_RAW",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "H_LJ",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "COMPETITIVE|coalition_benefit_vs_H_LJ|s0",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "NEURAL_RAW",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "NEURAL_RAW",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "H_LJ",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "COMPETITIVE|income_worsening_vs_H_LJ|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "H_LJ",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "COMPETITIVE|occupation_worsening_vs_H_LJ|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|accuracy_loss|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|nll_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|brier_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|accuracy_loss|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|nll_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|brier_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|accuracy_loss|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|nll_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|brier_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|accuracy_loss|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|nll_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|brier_excess|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "C",
+   "estimand": {
+    "group": 0,
+    "service": "SCM",
+    "type": "subgroup_occupation_brier_vs_U0"
+   },
+   "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "C",
+   "estimand": {
+    "group": 1,
+    "service": "SCM",
+    "type": "subgroup_occupation_brier_vs_U0"
+   },
+   "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s0",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 0
+  },
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH|coalition_benefit_vs_ORD_NLLM|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "MATCH|income_worsening_vs_ORD_NLLM|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "M",
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "MATCH|occupation_worsening_vs_ORD_NLLM|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "MC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "IBSI_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH_COMPONENT|coalition_benefit_vs_IBSI_NLLM|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "MC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "SHUF_NLLM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "MATCH_COMPONENT|coalition_benefit_vs_SHUF_NLLM|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "CAPACITY|coalition_benefit_vs_ORD_CNT|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "CAPACITY|income_worsening_vs_ORD_CNT|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "K",
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "CAPACITY|occupation_worsening_vs_ORD_CNT|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "KC",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "IBSI_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "CAPACITY|coalition_benefit_vs_IBSI_CNT|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "NEURAL_RAW",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "COMPETITIVE|coalition_benefit_vs_NEURAL_RAW|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "SCM",
+    "plus": "H_LJ",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "COMPETITIVE|coalition_benefit_vs_H_LJ|s1",
+   "kind": "benefit",
+   "margin": 0.0,
+   "refs": [
+    0.0,
+    0.02
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "NEURAL_RAW",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "COMPETITIVE|income_worsening_vs_NEURAL_RAW|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "NEURAL_RAW",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "COMPETITIVE|occupation_worsening_vs_NEURAL_RAW|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "H_LJ",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "income"
+   },
+   "key": "COMPETITIVE|income_worsening_vs_H_LJ|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "B",
+   "estimand": {
+    "minus": "H_LJ",
+    "plus": "SCM",
+    "type": "auc_diff",
+    "view": "occupation"
+   },
+   "key": "COMPETITIVE|occupation_worsening_vs_H_LJ|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|accuracy_loss|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|nll_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|U0|brier_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|accuracy_loss|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|nll_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "income",
+    "type": "utility"
+   },
+   "key": "UTILITY|income|Ucal|brier_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|accuracy_loss|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|nll_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "U0",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|U0|brier_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "accuracy_loss",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|accuracy_loss|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "nll_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|nll_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.01,
+   "refs": [
+    0.01
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "U",
+   "estimand": {
+    "metric": "brier_excess",
+    "reference": "Ucal",
+    "service": "SCM",
+    "task": "occupation",
+    "type": "utility"
+   },
+   "key": "UTILITY|occupation|Ucal|brier_excess|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "C",
+   "estimand": {
+    "group": 0,
+    "service": "SCM",
+    "type": "subgroup_occupation_brier_vs_U0"
+   },
+   "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex0|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  },
+  {
+   "claim": "C",
+   "estimand": {
+    "group": 1,
+    "service": "SCM",
+    "type": "subgroup_occupation_brier_vs_U0"
+   },
+   "key": "SUBGROUP|occupation_brier_excess_vs_U0|sex1|s1",
+   "kind": "no_excess",
+   "margin": 0.005,
+   "refs": [
+    0.005
+   ],
+   "seed": 1
+  }
+ ],
+ "readers": {
+  "controls": {
+   "null_band": [
+    0.45,
+    0.55
+   ],
+   "planted_min_auc": 0.99,
+   "wire": "SCM"
+  },
+  "fit": "ATTACK_FIT 8001",
+  "lookup_pseudo": 2.0,
+  "pair_candidates": "8 pair + 16 ignore-one",
+  "seed": "MODEL_SEED_BASE + s",
+  "select": "ATTACK_VALIDATION 3000",
+  "slate": [
+   "OUT_LR",
+   "OUT_MLP",
+   "OUT_HGB",
+   "LOG_LR",
+   "LOG_MLP",
+   "DEC_LR",
+   "CONF_HGB",
+   "LOOKUP"
+  ],
+  "verifier_refits": "pair winners of SCM, ORD_NLLM, IBSI_NLLM, NEURAL_RAW on both seeds"
+ },
+ "roles_access": {
+  "ATTACK_FIT": "readers (8,001)",
+  "ATTACK_VALIDATION": "readers (3,000)",
+  "CALIBRATION": "unused",
+  "DEV_REPORT": "one logged evaluation + one verifier replay",
+  "MODEL_FIT": "admitted source statistics only",
+  "MODEL_SELECT": "selection and matching (labels, SEX)",
+  "SEALED_ASSESSMENT": "closed"
+ },
+ "schema": "SCMUM1-unit-inventory-v1",
+ "secondary_roster": [
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "C0",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|C0_minus_SCM|pair|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "C0",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|C0_minus_ORD_NLLM|pair|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "HIST_SCM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|HIST_SCM_minus_SCM|pair|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "ORD_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|ORD_CNT_minus_ORD_NLLM|pair|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_NLLM",
+    "type": "auc_diff_slate7",
+    "view": "pair"
+   },
+   "key": "SEC|ORD_NLLM_minus_SCM_slate7|pair|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_ORD_CNT|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "IBSI_CNT",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_IBSI_CNT|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus_view": "occupation",
+    "plus_view": "pair",
+    "service": "SCM",
+    "type": "auc_view_diff"
+   },
+   "key": "SEC|SCM_pair_minus_SCM_occupation|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_ORD_NLLM|s0",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "IBSI_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_IBSI_NLLM|s0",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "SHUF_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_SHUF_NLLM|s0",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "task": "income",
+    "type": "nll_diff"
+   },
+   "key": "SEC|income_nll_difference_vs_ORD_NLLM|s0",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 0
+  },
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "C0",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|C0_minus_SCM|pair|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "C0",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|C0_minus_ORD_NLLM|pair|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "HIST_SCM",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|HIST_SCM_minus_SCM|pair|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "ORD_CNT",
+    "type": "auc_diff",
+    "view": "pair"
+   },
+   "key": "SEC|ORD_CNT_minus_ORD_NLLM|pair|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "SCM",
+    "plus": "ORD_NLLM",
+    "type": "auc_diff_slate7",
+    "view": "pair"
+   },
+   "key": "SEC|ORD_NLLM_minus_SCM_slate7|pair|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "ORD_CNT",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_ORD_CNT|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "IBSI_CNT",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_IBSI_CNT|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus_view": "occupation",
+    "plus_view": "pair",
+    "service": "SCM",
+    "type": "auc_view_diff"
+   },
+   "key": "SEC|SCM_pair_minus_SCM_occupation|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_ORD_NLLM|s1",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "IBSI_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_IBSI_NLLM|s1",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "SHUF_NLLM",
+    "plus": "SCM",
+    "task": "occupation",
+    "type": "nll_diff"
+   },
+   "key": "SEC|occupation_nll_difference_vs_SHUF_NLLM|s1",
+   "kind": "match",
+   "margin": 0.001,
+   "refs": [
+    -0.001,
+    0.001
+   ],
+   "seed": 1
+  },
+  {
+   "estimand": {
+    "minus": "ORD_NLLM",
+    "plus": "SCM",
+    "task": "income",
+    "type": "nll_diff"
+   },
+   "key": "SEC|income_nll_difference_vs_ORD_NLLM|s1",
+   "kind": "difference",
+   "margin": 0.0,
+   "refs": [
+    0.0
+   ],
+   "seed": 1
+  }
+ ],
+ "seeds": [
+  0,
+  1
+ ],
+ "selection": {
+  "IBSI_CNT": "source rule 6 at S{t*}",
+  "IBSI_NLLM": "common gamma: admissible in both seeds; min mean proxy; grid ties",
+  "ORD_CNT": "ORD S{t*}; UNMATCHED_CAPACITY if unreached",
+  "ORD_NLLM": "per seed: match and 12 clauses; min (proxy, |delta|, m)",
+  "SHUF_NLLM": "common r: as IBSI",
+  "expenditure": "mean MODEL_SELECT occupation NLL minus frozen C0, per seed",
+  "fallback": "min worst normalised violation over 32 conditions; ties smaller t; ineligible",
+  "match_tolerance_nats": 0.001,
+  "nearest_diagnostic": "12 clauses; min (worst-seed |delta|, mean proxy, grid, m); labelled NEAREST_DIAGNOSTIC_NOT_MATCHED",
+  "nomination": {
+   "clauses_24": true,
+   "objective": "min mean proxy over seeds",
+   "occupation_nll_excess_max": 0.008,
+   "subgroup_guard_max": 0.005,
+   "ties": "smaller t"
+  },
+  "scm_candidates": "SCM N{t}, common t"
+ },
+ "source": {
+  "public_package": "6fc06021d",
+  "recorded_tip": "2738cc30b",
+  "research_branch": "research/pcrl-scm-engineering-benchmark-v1"
+ },
+ "trajectories": {
+  "IBSI": {
+   "gammas": [
+    0.5,
+    1.0,
+    2.0
+   ],
+   "target_cells": 32
+  },
+  "ORD": "source TWIN rule at beta 1.0, no target, stop at no admissible pair",
+  "SCM": "source SCM, beta 1.0, stop at no admissible pair",
+  "SHUF": {
+   "r": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "rule": "source shuffled-signal SCM, beta 1.0, stop at no admissible pair"
+  },
+  "names": [
+   "SCM",
+   "ORD",
+   "IBSI_g0.5",
+   "IBSI_g1.0",
+   "IBSI_g2.0",
+   "SHUF_r0",
+   "SHUF_r1",
+   "SHUF_r2",
+   "SHUF_r3",
+   "SHUF_r4"
+  ]
+ },
+ "units": {
+  "UM_ADMIT_V1": 0.01,
+  "UM_BANK": 0.02,
+  "UM_DEPLOY": 0.05,
+  "UM_READERS_S0": 0.15,
+  "UM_READERS_S1": 0.15,
+  "UM_REPORT": 0.05,
+  "UM_SELECT": 0.3,
+  "UM_TRAJ_S0": 0.25,
+  "UM_TRAJ_S1": 0.25,
+  "agents_and_light_scripts": 1.5,
+  "backup": 0.05,
+  "failed_attempt_margin": 1.5,
+  "total_estimate_cpu_h": 4.8,
+  "verifier": 0.5
+ }
+}
