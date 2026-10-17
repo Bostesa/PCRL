@@ -1,4 +1,7 @@
-"""Frozen MODEL_SELECT rule applied to this campaign's fitted arms (copied from acs_replication.selection, unchanged in substance).
+"""NOTE (2026-10-17, verifier D5): this benchmark uses only `clauses()` from this module. `select()` and `proxy_auc()` describe the
+source's frozen OUT_LR proxy and are unused; the cross-fitted proxy of PROTOCOL.md section 7 is `select_scm.proxy`.
+
+Frozen MODEL_SELECT rule applied to this campaign's fitted arms (copied from acs_replication.selection, unchanged in substance).
 
 Rule: (1) a configuration is FEASIBLE iff all 24 point utility clauses (2 tasks x {U0, Ucal} x {accuracy loss <= 0.010, NLL
 excess <= 0.010, summed Brier excess <= 0.005} x 2 seeds) pass on MODEL_SELECT; (2) among feasible configurations, minimise

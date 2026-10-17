@@ -25,29 +25,32 @@ def main():
                  f"{f(P[0]['proxy']['arm_proxy'])} / {f(P[1]['proxy']['arm_proxy'])} | {f(P[0]['subgroup_occupation_brier_excess_vs_U0']['sex0'])} / {f(P[1]['subgroup_occupation_brier_excess_vs_U0']['sex0'])} |")
     for name in ('FROZEN_NEURAL_RAW', 'FROZEN_H_LJ'):
         P = [sel['per_seed'][s][name] for s in ('0', '1')]
-        L.append(f"| {name} (frozen) | n/a | n/a | n/a | {f(P[0]['proxy']['arm_proxy'])} / {f(P[1]['proxy']['arm_proxy'])} | n/a |")
+        feas = all(c['point_pass'] for p in P for c in p['clauses'])
+        wn = [max(c['normalized'] for c in p['clauses']) for p in P]
+        L.append(f"| {name} (frozen) | n/a | {feas} | {f(wn[0], 3)} / {f(wn[1], 3)} | {f(P[0]['proxy']['arm_proxy'])} / {f(P[1]['proxy']['arm_proxy'])} | not recorded |")
     L += ['', f"Nominee {sel['nominee']['arm']}; twin {sel['twin']['arm']} (matched capacity: {sel['twin_matched_capacity']}); IBSI {sel['ibsi']['arm']} "
           f"(eligible gammas {sel['ibsi']['eligible_gammas']}); SHUF {sel['shuf']['arm']}. Registered F1 check on the proxy (TWIN - SCM): "
           f"{f(sel['falsifier_F1_check']['0'])} / {f(sel['falsifier_F1_check']['1'])}.", '']
     L += ['## 2. Final bank on DEV_REPORT: recovery (selected reader AUC, 8-reader bank incl. LOOKUP) and point utility', '',
-          '| Seed | Release | Pair AUC (se) | Income AUC | Occupation AUC | Pair AUC, 7-reader slate | Pair winner | DEV point-feasible 24 (this seed) |', '|---|---|---|---|---|---|---|---|']
+          '| Seed | Release | Pair AUC (se) | Income AUC | Occupation AUC | Pair AUC, 7-reader slate | Pair winner | DEV point-feasible, this seed (12 clauses) |', '|---|---|---|---|---|---|---|---|']
     for s in ('S0', 'S1'):
         for svc, v in rep['per_seed'][s]['services'].items():
             rc = v['recovery']
             L.append(f"| {s} | {svc} | {f(rc['pair']['auc'])} ({f(rc['pair']['auc_se'])}) | {f(rc['income']['auc'])} | {f(rc['occupation']['auc'])} | "
                      f"{f(v['recovery_slate7']['pair']['auc'])} | {rc['pair']['winner']} | {v['utility_point_feasible_24_this_seed']} |")
     L += ['', '## 3. Primary endpoints (benefit = comparator AUC - SCM AUC; worsening = SCM - TWIN; clause one-sided alpha/3; family K = 42)', '',
+          'Status is each endpoint\'s own family-interval status (K = 42) against its margin. It is not a claim status. The nominee fails the DEV utility gate, so every RECIPE, ATTRIBUTION and COMPETITIVE endpoint is descriptive; the claim labels are in section 4. Clause bound is the one-sided alpha/3 lower bound (L1) for benefit endpoints, and the upper bound (U1) for worsening, utility and subgroup endpoints.', '',
           '| Endpoint | Point | Clause bound | Family interval | Status |', '|---|---|---|---|---|']
     for k, e in rep['endpoints_primary'].items():
         if e.get('status') == 'MISSING':
             L.append(f'| {k} | MISSING | | | comparator absent |'); continue
         cb = e['clause_L1'] if e['kind'] == 'benefit' else e['clause_U1']
         L.append(f"| {k} | {f(e['point'])} | {f(cb)} | [{f(e['family_lower'])}, {f(e['family_upper'])}] | {e['status']} |")
-    L += ['', '## 4. Claims', '']
+    L += ['', 'Secondary endpoints (SECONDARY_ENDPOINTS.csv) are descriptive differences: use their intervals and difference status only.', '', '## 4. Claims', '']
     for k, v in rep['claims'].items():
         L.append(f"- **{k}:** {v['decision'] if isinstance(v, dict) else v}")
     L += ['', f"Separate status fields: {json.dumps(rep['separate_status_fields'])}", '', f"Controls: {json.dumps(rep['controls'])}", '',
-          '## 5. Coverage on the attack roles (pair view; diagnostic)', '', '| Seed | Release | Distinct pair vectors ATTACK_FIT | Median people per vector | Share of validation vectors seen in ATTACK_FIT |', '|---|---|---|---|---|']
+          '## 5. Coverage on the attack roles (pair view; diagnostic)', '', '| Seed | Release | Distinct pair vectors ATTACK_FIT | Median people per vector | Share of ATTACK_VALIDATION people whose pair vector occurs in ATTACK_FIT |', '|---|---|---|---|---|']
     for s in ('S0', 'S1'):
         for svc, cov in rd['per_seed'][s]['coverage'].items():
             c = cov['pair']

@@ -1,0 +1,47 @@
+{
+ "schema": "SCM1-resource-inventory-v1",
+ "utc": "2026-10-17T03:47:55+00:00",
+ "elapsed_h": 1.15,
+ "elapsed_limit_h": 6,
+ "charged_cpu_h": 0.463,
+ "cpu_limit_h": 8.0,
+ "units_done": 11,
+ "units_failed": 2,
+ "failed_units": [
+  "SCM_FIT_S0_V1",
+  "SCM_FIT_S1_V1"
+ ],
+ "charges": [
+  {
+   "label": "AGENT_MATH_REVIEWER",
+   "charged_cpu_s": 120.0,
+   "note": "upper estimate: mathematical and baseline reviewer (1,336 s wall): file reads and invented-data numeric checks (math_checks.py); no real data"
+  },
+  {
+   "label": "AGENT_VERIFIER",
+   "charged_cpu_s": 300.0,
+   "note": "upper estimate: independent verifier and its three helpers (762 s wall): separate recomputation of identities, capacity, costs, selection, 52 endpoints, wire, 6 reader refits (reported about 2-3 CPU-min, one thread)"
+  },
+  {
+   "label": "COORDINATOR_LIGHT_SCRIPTS",
+   "charged_cpu_s": 180.0,
+   "note": "upper estimate: synthetic engine/proxy/lookup tests, full-scale engine timing on invented data, compile checks, publication builds, table generation"
+  },
+  {
+   "label": "AGENT_CLAIMS_REVIEWER",
+   "charged_cpu_s": 120.0,
+   "note": "upper estimate: claims and closeout reviewer (1,188 s wall): reads and small python recomputations over public JSON/CSV records; no private arrays"
+  }
+ ],
+ "heavy_process_limit": 2,
+ "threads_per_job": 1,
+ "cloud_or_paid_compute_usd": 0,
+ "roles": {
+  "coordinator_and_implementation_owner": "main session",
+  "mathematical_and_baseline_reviewer": "1 agent (pre-fit protocol and engine review; 5 must-fix applied before the lock)",
+  "independent_verifier": "1 agent (with three helper sub-checks of its own; 8/8 PASS)",
+  "claims_and_closeout_reviewer": "1 agent (9 must-fix, 11 should-fix applied)",
+  "designers": "none (no new mechanism designers)"
+ },
+ "processes_left_running": "none"
+}

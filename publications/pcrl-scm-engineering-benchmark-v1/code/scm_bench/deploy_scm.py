@@ -62,9 +62,29 @@ def build(seed, arm, label, out_root):
     return d
 
 
+def check_rows(rows):
+    """Repair (2026-10-17, verifier D1): the package path itself refuses any row whose fields are not exactly the six
+    permitted raw fields, and names any forbidden field (SEX among them) explicitly."""
+    from acs_replication import schema
+    permitted = list(SRC_DEPLOY.PERMITTED)
+    for r in rows:
+        keys = list(r.keys())
+        bad = [k for k in keys if str(k).upper() in schema.FORBIDDEN]
+        if bad:
+            raise PermissionError(f'forbidden fields present (never accepted as inputs): {bad}')
+        if sorted(keys) != sorted(permitted) or len(keys) != len(permitted):
+            raise ValueError(f'incompatible schema: expected exactly {permitted}, got {keys}')
+
+
+def release_csv(pkg_dir, csv_path, requested=('probability', 'decision')):
+    """Single path from a raw CSV through an SCM package: the shared reader refuses forbidden or reordered columns."""
+    return release(pkg_dir, SRC_DEPLOY.read_raw_csv(csv_path), requested)
+
+
 def release(pkg_dir, rows, requested=('probability', 'decision')):
     if set(requested) - ALLOWED:
         raise PermissionError(f'hidden-output request refused: {sorted(set(requested) - ALLOWED)}')
+    check_rows(rows)
     pkg_dir = Path(pkg_dir); meta = json.loads((pkg_dir / 'PACKAGE.json').read_text())
     for name, h in meta['files'].items():
         if sha(pkg_dir / name) != h:
