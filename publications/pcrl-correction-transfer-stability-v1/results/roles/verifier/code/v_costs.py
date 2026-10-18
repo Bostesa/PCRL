@@ -39,10 +39,11 @@ def npz(path):
         return {k: z[k].copy() for k in z.files}
 
 
-def read_labels(P):
-    """All label reads of this unit (operation 'verify'; called from this script so the access layer logs this entry point)."""
+def read_labels(P, with_check=True):
+    """All label reads of this unit (operation 'verify'; called from this script so the access layer logs this entry point).
+    Repair partitions before the committed REPAIR_FREEZE: no CHECK (panel) read."""
     out = {}
-    for r in ('FIT', 'GUARD', 'CHECK'):
+    for r in (('FIT', 'GUARD', 'CHECK') if with_check else ('FIT', 'GUARD')):
         out[r] = C.load('MODEL_FIT', ('features', 'occupation', 'sex'), 'verify',
                         f'independent verifier: replay of Track F {P} {r} incremental costs and rule selections with separate code',
                         partition=P, prole=r)
@@ -94,6 +95,8 @@ def ladder_mine(P, W, O, T, D, L, masks_ok):
     res['OOF'] = {str(s): V.incremental_costs(V.softmax_rows(z0 + s * T['delta_oof']), p0, F['occupation'], F['sex'], F['unit'])
                   for s in V.LADDER}
     for name in ('GUARD', 'CHECK'):
+        if name not in L:
+            continue
         X = L[name]; rows = X['rows']
         pw, dl = W['dep__MODEL_FIT'][rows], D['full__MODEL_FIT'][rows]
         pf, df = W['fold__MODEL_FIT'][:, rows], D['folds__MODEL_FIT'][:, rows]
@@ -101,6 +104,8 @@ def ladder_mine(P, W, O, T, D, L, masks_ok):
         e0 = V.release_ensemble(pf, df, 0.0)
         res[name + '_ENS'] = {str(s): V.incremental_costs(V.release_ensemble(pf, df, s), e0, X['occupation'], X['sex'], X['unit'])
                               for s in V.LADDER}
+    if 'CHECK' not in L:              # repair partition before the freeze: correction outcomes on MODEL_SELECT are not computed
+        return res
     S = L['MS']
     pw, dl = W['dep__MODEL_SELECT'], D['full__MODEL_SELECT']
     res['MS'] = {str(s): V.incremental_costs(V.release_full(pw, dl, s), pw, S['occupation'], S['sex'], S['unit']) for s in V.LADDER}
@@ -122,10 +127,17 @@ def magnitude_defs(W, D, rows, s):
             'flip_rate': float((np.argmax(p, 1) != np.argmax(pw, 1)).mean()), 'max_abs_prob_change': float(np.abs(p - pw).max())}
 
 
-def compare_ladder(mine, rec):
+def compare_ladder(mine, rec, required=None):
+    """Compare every estimator present in both; `required` estimators must be present in the record."""
     worst = {'stats': 0.0, 'se': 0.0}
     count_mismatch, missing = [], []
-    for est in ESTS:
+    extra = sorted(set(rec['estimators']) - set(mine))
+    if extra:
+        missing.append(f'record has estimators the verifier did not compute: {extra}')
+    for e in (required or ()):
+        if e not in rec['estimators']:
+            missing.append(e)
+    for est in [e for e in ESTS if e in mine and e in rec['estimators']]:
         if est not in rec['estimators']:
             missing.append(est); continue
         for s in map(str, V.LADDER):
@@ -149,10 +161,12 @@ def main():
     seed = int(spec['partitions'][P]['associated_source_seed'])
     Fall = C.features('MODEL_FIT')
     masks = V.partition_masks_from_json(Fall['unit'], spec)
-    L = read_labels(P)
+    kind = spec['partitions'][P]['kind']
+    with_check = kind == 'diagnosis' or C.repair_frozen()
+    L = read_labels(P, with_check)
     out, record = [], {'partition': P, 'tag': a.tag}
     # ---------------- access layer returned exactly the reconstructed rows
-    rows_ok = {r: bool(np.array_equal(L[r]['rows'], masks[P][r])) for r in ('FIT', 'GUARD', 'CHECK')}
+    rows_ok = {r: bool(np.array_equal(L[r]['rows'], masks[P][r])) for r in ('FIT', 'GUARD', 'CHECK') if r in L}
     # ---------------- witness arrays and integrity
     wd = TRACKF / P / 'WITNESS'
     wj = json.loads((wd / 'WITNESS.json').read_text())
@@ -199,7 +213,16 @@ def main():
         # ---------------- check 3: ladder costs
         if lp.is_file():
             lad = json.loads(lp.read_text())
-            worst, cm, missing = compare_ladder(mine, lad)
+            req = ESTS if kind == 'diagnosis' else ('OOF', 'GUARD', 'GUARD_ENS')
+            worst, cm, missing = compare_ladder(mine, lad, req)
+            lpc = TRACKF / P / 'LADDER_CHECK' / f'{did}.json'
+            if kind == 'repair' and with_check and lpc.is_file():          # post-freeze ladder with CHECK and MODEL_SELECT estimators
+                w2, cm2, m2 = compare_ladder(mine, json.loads(lpc.read_text()), ESTS)
+                worst = {k: max(worst[k], w2[k]) for k in worst}
+                cm += [f'LADDER_CHECK: {x}' for x in cm2]
+                missing += [f'LADDER_CHECK: {x}' for x in m2]
+            elif kind == 'repair' and with_check:
+                missing.append('LADDER_CHECK record absent')
             mag = magnitude_defs(W, D, L['GUARD']['rows'], 1.0)
             rec_mag = lad['estimators']['GUARD']['1.0']['magnitude']
             out.append({'id': f'C3.{P}.{did}.LADDER_COSTS', 'kind': 'NUMERICAL_REPLAY',
@@ -285,7 +308,7 @@ def main():
                                     'baseline_margin_max_abs_diff': bm, 'baseline_se_used_max_abs_diff': bs,
                                     'rho_used': rho}})
             # ---------------- realized outcomes and zero-correction accounting
-            if rp.is_file():
+            if rp.is_file() and with_check:
                 real = json.loads(rp.read_text())
                 worst, flag_mism, ident, complete, missing_complete = 0.0, [], {}, {}, []
                 sets = {'CHECK': L['CHECK'], 'MS': L['MS']}
@@ -350,14 +373,18 @@ def main():
                                                  'reserve), not from the correction') if id_cross else ''}})
             else:
                 out.append({'id': f'C4.{P}.{did}.REALIZED_AND_IDENTITY', 'kind': 'NUMERICAL_REPLAY', 'what': f'{P} {did} realized',
-                            'method': '-', 'status': 'NOT_RUN', 'numbers': {'reason': 'REALIZED record absent at run time'}})
+                            'method': '-', 'status': 'NOT_RUN',
+                            'numbers': {'reason': ('REALIZED record absent at run time' if with_check else
+                                                   'repair CHECK panel and correction MODEL_SELECT outcomes stay closed until the '
+                                                   'committed REPAIR_FREEZE'),
+                                        'realized_record_exists': rp.is_file()}})
         else:
             out.append({'id': f'C4.{P}.{did}.RULE_SELECTIONS', 'kind': 'NUMERICAL_REPLAY', 'what': f'{P} {did} selections', 'method': '-',
                         'status': 'NOT_RUN', 'numbers': {'reason': 'SELECT record absent at run time'}})
         # ---------------- transfer summary at the ladder (descriptive; numbers for the coordinator)
         ss = {k: min(base_mine[c]['rho'] for c in V.CONDITIONS if V.STAT_FOR[c] == k) for k in V.STATS}
         record[f'{did}__men_brier_by_strength'] = {
-            str(s): {e: mine[e][str(s)]['stats']['men_brier'] for e in ESTS} for s in V.LADDER[1:]}
+            str(s): {e: mine[e][str(s)]['stats']['men_brier'] for e in ESTS if e in mine} for s in V.LADDER[1:]}
         record[f'{did}__stat_slack'] = ss
     code = V.code_hashes(__file__, V.__file__)
     for c in out:

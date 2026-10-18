@@ -62,10 +62,12 @@ def resolve(P, name):
     return p, {'kind': 'direction', 'direction': did, 'strength': s, 'strength_source': src or did, 'deployment': dep}
 
 
-def materialize(stage, name):
-    out = C.RUNS / 'RELEASES' / stage / (name.replace(':', '__').replace('@', '_AT_').replace('|', '_') + '.npz')
+def materialize(stage, name, parts=None):
+    parts = tuple(parts or STAGES[stage])
+    suffix = '' if parts == STAGES[stage] else '__' + '_'.join(parts)
+    out = C.RUNS / 'RELEASES' / stage / (name.replace(':', '__').replace('@', '_AT_').replace('|', '_') + suffix + '.npz')
     arrays, desc = {}, {}
-    for P in STAGES[stage]:
+    for P in parts:
         s = str(TF.seed_of(P))
         arrays[f'occ_S{s}'], desc[P] = resolve(P, name)
     if out.exists():
@@ -78,22 +80,37 @@ def materialize(stage, name):
     return out, desc
 
 
-def member(stage, name):
-    out, desc = materialize(stage, name)
+def _trackr_income(P, tag):
+    """Track R refitted income (H3R or the task-only twin HCR) on MODEL_SELECT: path, key and file hash for a bank member."""
+    d = C.RUNS / 'TRACK_R' / P / 'INCOME'
+    rec = json.loads((d / 'INCOME.json').read_text())
+    p = d / 'RELEASE.npz'
+    if C.sha(p) != rec['files_sha256']['RELEASE.npz']:
+        raise PermissionError('Track R release differs from its record')
+    return {'path': str(p.relative_to(C.ROOT)), 'key': f'{tag}__MODEL_SELECT__income', 'sha256': C.sha(p),
+            'row_id_key': 'row_id__MODEL_SELECT'}
+
+
+def member(stage, name, parts=None):
+    """A bank member. Names 'H3R:<release>' / 'HCR:<release>' pair the Track R refitted income (or its task-only twin) of each
+    repair partition with the occupation release <release>; all other names use H3's frozen income."""
+    parts = tuple(parts or STAGES[stage])
+    income_tag, occ_name = (name.split(':', 1) if name.split(':', 1)[0] in ('H3R', 'HCR') else (None, name))
+    out, desc = materialize(stage, occ_name, parts)
     sha = C.sha(out)
     rel = str(out.relative_to(C.ROOT))
-    seeds = {str(TF.seed_of(P)): {'income': {'frozen_anchor': 'H3'},
-                                  'occupation': {'path': rel, 'key': f'occ_S{TF.seed_of(P)}', 'sha256': sha}} for P in STAGES[stage]}
-    return {'type': 'arrays', 'seeds': seeds, 'description': desc}
+    seeds = {str(TF.seed_of(P)): {'income': ({'frozen_anchor': 'H3'} if income_tag is None else _trackr_income(P, income_tag)),
+                                  'occupation': {'path': rel, 'key': f'occ_S{TF.seed_of(P)}', 'sha256': sha}} for P in parts}
+    return {'type': 'arrays', 'seeds': seeds, 'description': {**desc, 'income': income_tag or 'H3 (frozen)'}}
 
 
-def bank(stage, bank_id, candidates, comparators, references=False, purpose='', reps=('R1', 'R2'), fractions=(1.0,)):
+def bank(stage, bank_id, candidates, comparators, references=False, purpose='', reps=('R1', 'R2'), fractions=(1.0,), parts=None):
     members = {}
     for n in list(candidates) + list(comparators):
         if n in REQUIRED:
             members[n] = {'type': 'reference', 'name': n}
         else:
-            members[n] = member(stage, n)
+            members[n] = member(stage, n, parts)
     comps = list(comparators) + ([r for r in REQUIRED if r not in comparators] if references else [])
     for r in comps:
         if r in REQUIRED and r not in members:
@@ -111,9 +128,11 @@ def main(argv=None):
     x = sub.add_parser('bank'); x.add_argument('--stage', required=True, choices=('D', 'R')); x.add_argument('--bank-id', required=True)
     x.add_argument('--candidates', required=True); x.add_argument('--comparators', default=''); x.add_argument('--references', action='store_true')
     x.add_argument('--reps', default='R1,R2'); x.add_argument('--fractions', default='1.0'); x.add_argument('--purpose', default='')
+    x.add_argument('--parts', default=None, help='restrict to these partitions (e.g. R0: a seed-0-only bank)')
     a = ap.parse_args(argv)
     p, spec = bank(a.stage, a.bank_id, [c for c in a.candidates.split(',') if c], [c for c in a.comparators.split(',') if c],
-                   a.references, a.purpose, tuple(a.reps.split(',')), tuple(float(f) for f in a.fractions.split(',')))
+                   a.references, a.purpose, tuple(a.reps.split(',')), tuple(float(f) for f in a.fractions.split(',')),
+                   parts=tuple(a.parts.split(',')) if a.parts else None)
     print(json.dumps({'spec': str(p.relative_to(C.ROOT)), 'members': list(spec['members']), 'comparators': spec['comparators']}))
     return 0
 

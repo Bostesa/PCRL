@@ -84,8 +84,11 @@ def one_resample_boot(sets, ks, ss, rng):
     return e_o - e_g
 
 
-def replay(P, L, W, O, did, dep, oof, tag):
-    rec = json.loads((TRACKF / P / 'QUESTION_A' / f'{did}__{dep}__{oof}.json').read_text())['result']
+def replay(P, L, W, O, did, dep, oof, tag, reg=False):
+    """reg=True: compare with the corrected record <ID>__<dep>__<oof>__REG.json (PROTOCOL_DEVIATIONS item 10) and seed the verifier's
+    one-resample-per-set bootstrap from the REGISTERED tag CTS1_transfer_boot (same seed derivation and set order OOF, GUARD, CHECK as
+    RULES.md / cts.rules), so identical replicates are expected; otherwise the verifier's own tag."""
+    rec = json.loads((TRACKF / P / 'QUESTION_A' / f'{did}__{dep}__{oof}{"__REG" if reg else ""}.json').read_text())['result']
     sel = json.loads((TRACKF / P / 'SELECT' / f'{did}.json').read_text())
     rho = {c: sel['baseline'][c]['slack'] for c in V.CONDITIONS}
     ss = {k: min(rho[c] for c in V.CONDITIONS if V.STAT_FOR[c] == k) for k in V.STATS}
@@ -119,7 +122,8 @@ def replay(P, L, W, O, did, dep, oof, tag):
     mae_g = float(np.mean([np.abs(point['CHECK', k] - point['GUARD', k]) / ss[k] for k in ks], axis=0).mean())
     mae_o = float(np.mean([np.abs(point['CHECK', k] - point['OOF', k]) / ss[k] for k in ks], axis=0).mean())
     Dp = mae_o - mae_g
-    rng = np.random.default_rng(int(hashlib.sha256(b'CTS1_verifier_questionA').hexdigest()[:15], 16))
+    seed_bytes = b'CTS1_transfer_boot' if reg else b'CTS1_verifier_questionA'
+    rng = np.random.default_rng(int(hashlib.sha256(seed_bytes).hexdigest()[:15], 16))
     Db = one_resample_boot(sets, ks, ss, rng)
     q05, q95, se = float(np.quantile(Db, 0.05)), float(np.quantile(Db, 0.95)), float(Db.std(ddof=1))
     label = 'PREDICTION_IMPROVED' if (Dp > 0 and q05 > 0) else 'NOT_IMPROVED'
@@ -136,8 +140,14 @@ def replay(P, L, W, O, did, dep, oof, tag):
            'stat_slack': ss}
     point_ok = all(v <= 1e-9 for v in num['point_abs_diff'].values()) and wins == rec['guard_closer_cells'] and ks == rec['stats_used']
     label_ok = label == rec['label']
-    status = 'FAIL' if not point_ok else ('PASS' if label_ok else 'ATTENTION')
-    chk = {'id': f'C3.QA.{P}.{did}.{dep}.{oof}__{tag}', 'kind': 'NUMERICAL_REPLAY',
+    if reg:
+        num['q05_abs_diff'] = abs(q05 - rec['q05']); num['boot_se_abs_diff'] = abs(se - rec['boot_se'])
+        num['scheme_recorded'] = rec.get('scheme')
+        same_draws = num['q05_abs_diff'] <= 1e-9 and num['boot_se_abs_diff'] <= 1e-9
+        status = 'FAIL' if not (point_ok and label_ok) else ('PASS' if same_draws else 'ATTENTION')
+    else:
+        status = 'FAIL' if not point_ok else ('PASS' if label_ok else 'ATTENTION')
+    chk = {'id': f'C3.QA.{P}.{did}.{dep}.{oof}{".REG" if reg else ""}__{tag}', 'kind': 'NUMERICAL_REPLAY',
            'what': f'question A on {P} {did} ({dep}, {oof}): transfer errors e_X = Delta_CHECK - Delta_X, MAE_rel (stat slack > 0), '
                    'D = MAE_rel(OOF) - MAE_rel(GUARD), bootstrap quantiles and the PREDICTION_IMPROVED label',
            'method': 'own per-person increments at the 10 nonzero strengths; point estimates compared at 1e-9; own household bootstrap (B = '
@@ -146,7 +156,12 @@ def replay(P, L, W, O, did, dep, oof, tag):
                      'are compared only through the label and the SE',
            'status': status, 'numbers': num}
     chk['code_sha256'] = V.code_hashes(__file__, V.__file__)
-    V.write_record(f'V_QUESTIONA__{P}__{did}__{dep}__{oof}__{tag}.json', chk)
+    if reg:
+        chk['method'] = ('own per-person increments at the 10 nonzero strengths; point estimates compared at 1e-9; own implementation of '
+                         'the registered bootstrap (one household multinomial weight matrix per set and replicate, sets drawn in the order '
+                         'OOF, GUARD, CHECK, generator seeded from the registered tag CTS1_transfer_boot, B = 2000), so identical replicates '
+                         'are expected: q05 and SE compared at 1e-9 (PASS), labels must agree (else FAIL)')
+    V.write_record(f'V_QUESTIONA__{P}__{did}__{dep}__{oof}{"__REG" if reg else ""}__{tag}.json', chk)
     return chk
 
 
@@ -156,13 +171,17 @@ def main():
     ap.add_argument('--deployment', default='full', choices=('full', 'ens')); ap.add_argument('--oof', default='OOF', choices=('OOF', 'NESTED'))
     ap.add_argument('--all', action='store_true', help='every QUESTION_A record of the partition')
     ap.add_argument('--skip-done-tag', default=None, help='skip records already replayed under this tag')
+    ap.add_argument('--registered', action='store_true', help='replay the corrected __REG records with the registered seed tag')
     ap.add_argument('--tag', required=True)
     a = ap.parse_args()
     P = a.partition
     if a.all:
         jobs = []
         for f in sorted((TRACKF / P / 'QUESTION_A').glob('*.json')):
-            did, dep, oof = f.stem.split('__')
+            parts = f.stem.split('__')
+            if a.registered != (len(parts) == 4 and parts[3] == 'REG'):
+                continue
+            did, dep, oof = parts[:3]
             if a.skip_done_tag and (V.VER_DIR / 'records' / f'V_QUESTIONA__{P}__{did}__{dep}__{oof}__{a.skip_done_tag}.json').is_file():
                 continue
             jobs.append((did, dep, oof))
@@ -170,7 +189,7 @@ def main():
         jobs = [(a.direction, a.deployment, a.oof)]
     L = labels(P, C.PARTITIONS[P]['kind'])
     W, O = npz(TRACKF / P / 'WITNESS' / 'WITNESS.npz'), npz(TRACKF / P / 'WITNESS' / 'OOF.npz')
-    out = [replay(P, L, W, O, did, dep, oof, a.tag) for did, dep, oof in jobs]
+    out = [replay(P, L, W, O, did, dep, oof, a.tag, reg=a.registered) for did, dep, oof in jobs]
     print(json.dumps(V.append_checks(out)))
     print(json.dumps({c['id']: [c['status'], c['numbers']['mine']['label'], c['numbers']['recorded']['label'],
                                 round(c['numbers']['mine']['D'], 4), round(c['numbers']['mine']['q05'], 4),

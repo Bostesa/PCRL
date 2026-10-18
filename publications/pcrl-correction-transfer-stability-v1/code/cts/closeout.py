@@ -14,6 +14,7 @@ Local paths are reduced to module or script names.
 from __future__ import annotations
 import datetime as dt
 import json
+import re
 import subprocess
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -83,8 +84,8 @@ def main():
                 stats[k] += v
     specs = fitted_specs()
     ps = subprocess.run(['ps', '-axo', 'pid,command'], capture_output=True, text=True).stdout.splitlines()
-    mine = [l.strip()[:120] for l in ps if ('cts.' in l or 'cts/' in l or 'roles/verifier/code' in l) and 'closeout' not in l
-            and 'ps -axo' not in l]
+    owned = re.compile(r'(-m cts\.|/cts/|roles/verifier/code)')      # campaign modules only ('cts.' alone also matches Contacts.framework)
+    mine = [l.strip()[:120] for l in ps if owned.search(l) and 'closeout' not in l and 'ps -axo' not in l]
     res = {'schema': 'CTS1-resource-accounting-v1', 'utc': now.isoformat(timespec='seconds'), 'start_utc': Q.CAMPAIGN_START_UTC,
            'elapsed_h': round((now - Q.start_utc()).total_seconds() / 3600, 3), 'research_limit_h': Q.RESEARCH_LIMIT_H,
            'elapsed_limit_h': Q.ELAPSED_LIMIT_H, 'charged_cpu_h': round(Q.charged_cpu_s() / 3600, 3), 'cpu_limit_h': Q.CPU_LIMIT_S / 3600,

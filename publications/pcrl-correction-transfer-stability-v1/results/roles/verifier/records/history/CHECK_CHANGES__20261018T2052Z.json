@@ -1,0 +1,49 @@
+{
+ "schema": "CTS1-verifier-check-changes-v1",
+ "rule": "append-only; a change records the original result, the changed rule and the reason; no criterion is widened; every change awaits independent adjudication by the coordinator; the original check entries stay in CHECKS.json unchanged",
+ "changes": [
+  {
+   "change": 1,
+   "utc": "2026-10-18T20:22:25+00:00",
+   "checks_affected": ["C5.D_FRONTIER.S0.READER_REFIT_S0R1k0__V1", "C5.D_FRONTIER.S1.READER_REFIT_S1R1k0__V1"],
+   "original_result": "FAIL on both seeds. Problems listed: 'REFIT_PAIR@s1.0/pair: no cache entry' and 'REFIT_PAIR@s1.0/occupation: no cache entry'. Every comparison the check did make passed: W pair-view OUT_LR and LOG_LR refits equal the cached reader scores exactly (SCORE AUC difference 0.0, same orientation, VALIDATION AUC difference 0.0), and the 6 recorded winner SCORE AUCs equal the AUC of the cached winner scores exactly.",
+   "bug": "In part (c) the verifier fed the readers its OWN recomposition of the REFIT_PAIR@s1.0 occupation array, softmax(centred log p_W + 1.0 x Delta_full). That array differs from the stored release in the last bits: the max abs difference is 3.3e-16 to 4.4e-16, the size part (b) RELEASE_MATERIALIZATION already reports and accepts within 1e-12. The reader cache key hashes the exact float64 bytes, so the verifier computed a key for an array the grid never read and found no cache entry. W was found because the stored W array is the witness output itself, byte for byte.",
+   "changed_rule": "Part (c) now reads the exact stored release bytes. Part (b) of the same run checks those bytes first: file SHA-256 against the bank spec, wire hash, and recomposition within 1e-12. If no hash-checked stored array exists, the check records a problem; it never falls back to the recomposition. The criteria are unchanged: refit SCORE and VALIDATION AUC within 1e-6 with the same orientation, and winner AUC within 1e-12.",
+   "rerun_as": "C5.D_FRONTIER.*__V2 (unit VER_GRID_D_FRONTIER_V2)",
+   "adjudication": "A1: accepted by the coordinator (roles/coordinator/ADJUDICATIONS.md, A1, 20:31Z); was PENDING until then",
+   "adjudication_recorded_by_verifier_utc": "2026-10-18T20:39:20+00:00"
+  },
+  {
+   "change": 2,
+   "utc": "2026-10-18T20:32:03+00:00",
+   "checks_affected": ["C2.2_LABEL_ACCESS_ROWS__V3", "C2.1_WITNESS_ROWS_FOLDS_DICTIONARY__V3"],
+   "original_result": "C2.2 FAIL: the only problems were 'line 196: unknown partition role (P70, FIT)' and 'line 209: unknown partition role (P70A, FIT)'. All other 422 lines matched the reconstruction, and repair-panel reads after the freeze commit were accepted. C2.1 ATTENTION: verifier errors KeyError 'P70' / 'P70A'; all registered partitions (D0, D0B, D1, R0, R1) passed.",
+   "bug": "The verifier rebuilt partitions from the registered PARTITIONS.json only. P70 and P70A were added after registration by dated amendment 9 (PROTOCOL_DEVIATIONS item 9; cts.common, commits a279f9f8f and 5002fed58, before their fits). The verifier had no definition for them, so it could not test their reads and reported them as unknown rather than as a violation.",
+   "changed_rule": "Amended partitions are rebuilt from their documented definition: FIT = the whole non-panel pool (my own reconstruction of the 14 pool blocks), no GUARD or CHECK role; P70A has the same rows as P70 and uses the admitted dictionary. Their access lines must equal the reconstructed pool rows, and their first read must come after the amendment commit 5002fed58. The C2.1 dictionary test expects no collapse for P70A. A new item records whether P70A also has P70's folds, as registered ('the same rows / folds'). No criterion is relaxed for the registered partitions.",
+   "rerun_as": "C2.*__V4 (unit VER_STRUCT_V4)",
+   "adjudication": "A3: accepted by the coordinator (roles/coordinator/ADJUDICATIONS.md, A3, 20:38Z); was PENDING until then",
+   "adjudication_recorded_by_verifier_utc": "2026-10-18T20:39:20+00:00"
+  },
+  {
+   "change": 3,
+   "utc": "2026-10-18T20:32:54+00:00",
+   "checks_affected": ["C2.1_WITNESS_ROWS_FOLDS_DICTIONARY__V4"],
+   "original_result": "FAIL, with problems ['P70A'] (outer_folds_equal False: dealing the P70A FIT households with the recorded tag CTS1_cf_P70A does not give the saved fold array) and a diagnostic item 'registered_same_folds_not_implemented': ['P70A vs P70: registered \"same rows / folds\", folds differ (tags ...)'].",
+   "bug": "The diagnostic item was computed from the fold tags written in the two WITNESS.json records, not from the saved fold arrays. The arrays show the opposite: P70A's outer fold array is identical to P70's (same_outer_folds_as_twin True). In cts.trackf.fit_witness, both the outer and inner folds of P70A are dealt with P70's tags (base = same_rows_as), as registered. So the item wrongly says the registered 'same folds' was not implemented.",
+   "changed_rule": "The item now judges sameness on the saved rows and outer fold arrays (inner folds are not saved). When the arrays agree but the stated tags differ, the record defect is written in a separate 'record_note'. The FAIL criterion of C2.1 is unchanged and still applies: the recorded outer_fold_tag must generate the saved folds. For P70A it does not; its WITNESS.json states CTS1_cf_P70A / CTS1_inner_P70A while the folds come from CTS1_cf_P70 / CTS1_inner_P70.",
+   "rerun_as": "C2.*__V5 (unit VER_STRUCT_V5); C2.1 is expected to FAIL again for the record defect (the P70A fold tags in WITNESS.json)",
+   "adjudication": "A3: accepted by the coordinator (roles/coordinator/ADJUDICATIONS.md, A3, 20:38Z); the C2.1 FAIL stays; the record defect is ERRATA.md E1; was PENDING until then",
+   "adjudication_recorded_by_verifier_utc": "2026-10-18T20:39:20+00:00"
+  },
+  {
+   "change": 4,
+   "utc": "2026-10-18T20:51:26+00:00",
+   "checks_affected": ["C6.3.SCREENS.READER_STABILITY_R_COMP0__V1"],
+   "original_result": "FAIL. Every mismatch had the form 'gate / AGG1 / stability <mine> vs None'. R_COMP0 is scored on release seed 0 only (compression codes exist only on R0), so each record has 4 cells, and the table records only the mean and per-seed mean, with no screen label.",
+   "bug": "The verifier computed the old per-cell gate, AGG1 and the stability label on the 4 one-seed cells. RULES.md section 10 defines the gate over the 8 registered cells (both release seeds x 2 repetitions x 2 reader seeds), and rung 3 defines the stability screen over 8 cells. So no registered screen exists for a one-seed bank. The table's None is the correct output, and the verifier's labels were not defined under the rules.",
+   "changed_rule": "Records with fewer than 8 cells or a one-seed bank are checked for the recorded mean, and must carry no gate, AGG1 or stability label. For 8-cell records (D_FRONTIER_KEY, R_TRACKR, R_FRONTIER) the criteria are unchanged: exact gate, AGG1 U and stability numbers at 1e-12.",
+   "rerun_as": "C6.3.SCREENS.READER_STABILITY_R_COMP0__V2",
+   "adjudication": "PENDING (coordinator)"
+  }
+ ]
+}

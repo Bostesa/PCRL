@@ -559,6 +559,50 @@ def prediction_comparison(sets, slack, B=BOOT_B, seed_tag=BOOT_TAG):
             'guard_closer_cells': wins, 'cells': 10 * len(ks), 'stats_used': ks, 'mean_signed_error': bias, 'B': B}
 
 
+def prediction_comparison_registered(sets, slack, B=BOOT_B, seed_tag=BOOT_TAG):
+    """Recorded correction (20:36Z; roles/statistical_reviewer/ADJUDICATION_QA_BOOTSTRAP.md): the scheme RULES.md section 6 defines.
+    ONE household-resample weight matrix per set (drawn in the fixed order OOF, GUARD, CHECK from the generator seeded by the
+    registered tag) is shared by every statistic (with its SEX mask) and every strength of that set, so the correlation between the
+    statistics on the same households enters Var(D). The point estimates, D, B, the tag and the q05 > 0 rule are unchanged.
+    `prediction_comparison` above drew a fresh resample per (set, statistic); its labels are kept as superseded."""
+    ss = stat_slack(slack)
+    ks = [k for k in STATS if ss[k] > 0]
+    if not ks:
+        raise ValueError('no statistic has a positive slack; relative errors are undefined')
+    rng = np.random.default_rng(int(hashlib.sha256(seed_tag.encode()).hexdigest()[:15], 16))
+    point, boot = {}, {}
+    for name in ('OOF', 'GUARD', 'CHECK'):
+        st = sets[name]
+        _, inv = np.unique(st['unit'], return_inverse=True)
+        G = inv.max() + 1
+        W = rng.multinomial(G, np.full(G, 1.0 / G), size=B).astype(np.float64)          # one resample per set and replicate
+        for k, (arr, mask) in _set_stats(st['db'], st['dn'], st['da'], st['sex']).items():
+            a = np.asarray(arr, dtype=np.float64)
+            if a.shape[1] != 10:
+                raise ValueError('increments must have 10 columns (the nonzero ladder strengths)')
+            msk = np.ones(len(a), dtype=bool) if mask is None else np.asarray(mask, dtype=bool)
+            point[name, k] = a[msk].mean(0)
+            S = np.zeros((G, a.shape[1])); np.add.at(S, inv[msk], a[msk])
+            cnt = np.bincount(inv[msk], minlength=G).astype(np.float64)
+            boot[name, k] = (W @ S) / (W @ cnt)[:, None]
+
+    def mae(get, X):
+        return np.mean([np.abs(get('CHECK', k) - get(X, k)) / ss[k] for k in ks], axis=0)
+    p_g = mae(lambda n, k: point[n, k], 'GUARD').mean()
+    p_o = mae(lambda n, k: point[n, k], 'OOF').mean()
+    b_g = np.mean([np.abs(boot['CHECK', k] - boot['GUARD', k]) / ss[k] for k in ks], axis=0).mean(1)
+    b_o = np.mean([np.abs(boot['CHECK', k] - boot['OOF', k]) / ss[k] for k in ks], axis=0).mean(1)
+    Db = b_o - b_g
+    D = float(p_o - p_g)
+    q05, q95 = float(np.quantile(Db, 0.05)), float(np.quantile(Db, 0.95))
+    wins = int(sum((np.abs(point['CHECK', k] - point['GUARD', k]) < np.abs(point['CHECK', k] - point['OOF', k])).sum() for k in ks))
+    bias = {X: {k: float((point['CHECK', k] - point[X, k]).mean()) for k in STATS} for X in ('OOF', 'GUARD')}
+    return {'MAE_rel_GUARD': float(p_g), 'MAE_rel_OOF': float(p_o), 'D': D, 'boot_se': float(Db.std(ddof=1)),
+            'q05': q05, 'q95': q95, 'label': 'PREDICTION_IMPROVED' if (D > 0 and q05 > 0) else 'NOT_IMPROVED',
+            'guard_closer_cells': wins, 'cells': 10 * len(ks), 'stats_used': ks, 'mean_signed_error': bias, 'B': B,
+            'scheme': 'registered: one household resample per set and replicate, shared by statistics and strengths'}
+
+
 # ================================================================ screens (question C)
 def _parse_cells(cells):
     out = {}

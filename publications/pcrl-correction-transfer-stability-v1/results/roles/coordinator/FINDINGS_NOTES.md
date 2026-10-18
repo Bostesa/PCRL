@@ -95,3 +95,65 @@
 - Reading: for the correction directions, an excluded-household GUARD estimate is not reliably better than the source's out-of-fold
   estimate at predicting realized CHECK costs with these sample sizes: GUARD wins where the out-of-fold estimate is biased (D1) and
   loses where its own sampling noise dominates (D0). Either estimator's average error is 0.4-1.3 times the available slack.
+
+## F9. Question A under the registered bootstrap (20:36; diagnosis/QUESTION_A_LABELS.csv; PROTOCOL_DEVIATIONS items 10-11)
+- The verifier found that the first implementation resampled households separately for each statistic. RULES.md section 6 registers
+  one resample per set. The corrected run (one shared resample per set, B = 2000, registered tag) gives the primary labels; the first
+  labels are kept as superseded. D, the MAE terms and the point estimates are unchanged. The bootstrap SE of D is 0.99-1.37 times the
+  superseded one (median about 1.1).
+- Primary PREDICTION_IMPROVED (5 of 34 units): D1 FROZEN_PAIR ens (q05 +0.014; A1_NOT_SUPPORTED), D1 REFIT_CONT full (+0.380) and
+  ens (+0.458), R0 REFIT_CONT full (+1.376) and ens (+2.017).
+- Superseded to NOT_IMPROVED: D0 REFIT_CONT ens (q05 +0.010 -> -0.059), R1 REFIT_LOC full (+0.105 -> -0.020), R1 REFIT_PAIR_TR full
+  (+0.050 -> -0.020). This matches the verifier's five-seed replays.
+- No PAIR or LOC arm is PREDICTION_IMPROVED on any of the four partitions. GUARD beats the source's out-of-fold estimate only for
+  the zero-critic continuation CONT, on D1 and R0, where the out-of-fold estimate badly over-predicts CONT's own small costs.
+  The nested estimator (D0) does not resolve PAIR or LOC either.
+
+## F10. Rules on the repair panels (20:48; repair/RULE_OUTCOMES_REPAIR.csv, repair/RULE_COMPARISON.json)
+- R1 (men's reserve slack -0.00031): every rule selects identity for every direction and deployment. The identity outcome is itself
+  a reserve crossing (the witness alone fails the two-SE reserve; verifier ATTENTION, wording only).
+- R0 (men's slack +0.00014): REFIT_PAIR full: OLD-B80 0.027 crosses on the C0 panel (max slack use 1.50; MODEL_SELECT 0.96); OLD-B50
+  0.017 does not (0.94 / 0.60); SIMPLE and UNCERTAINTY select identity. REFIT_PAIR ens: SIMPLE 0.5 crosses on both (13.8 / 10.5).
+  REFIT_LOC full: both OLD levels cross on C0 (1.05, 1.67). REFIT_PAIR_TR full: OLD 0.014 / 0.023 do not cross (0.60 / 0.96);
+  SIMPLE ens 0.2 crosses (4.8 / 3.9).
+- compare_rules: SIMPLE and UNCERTAINTY never improve on OLD on both R partitions. In the full deployment they are identity
+  (A_IDENTITY_NO_IMPROVEMENT). In the ensemble deployment SIMPLE crosses (A_CROSSES). On R1 every rule ties at identity.
+- Realized MODEL_SELECT utilization of REFIT_PAIR on R0 at the reader-evaluated strengths: u = 3.8 (s = 0.1), 8.4 (0.2), 13.7 (0.3),
+  26.6 (0.5), 70.1 (1.0). On R1 u is infinite for every strength: the slack is negative, so any non-negative men's cost exceeds it.
+  The continuation CONT has u <= 0.3 at s >= 0.3 on R1, because it lowers the men's Brier.
+
+## F11. Track R whole-service refit (20:48; TRACKR_EVAL_MS per R partition, TRACK_R/<P>/CROSSCHECK.json)
+- Each R partition's Track R occupation teacher is bitwise identical to its Track F REFIT routing teacher (R0 682 trees, R1 791).
+  Track R adds only the refitted income lineage.
+- H3R income (the H3 recipe refitted on FIT and CALIBRATION, without GUARD / CHECK households) loses H3's Brier / NLL headroom. Its
+  income Brier excess vs U0 is +0.0016 (R0) and +0.0011 (R1), against H3 frozen -0.0028 / -0.0033; NLL is +0.0010 / +0.0006 against
+  -0.0047 / -0.0052. Its income accuracy is slightly better: loss -0.0017 / +0.0014 against +0.0001 / +0.0017.
+- Complete Track R releases (with the refitted witness) pass the 12 clauses and 2 guards at the point. They fail the reserve: R0 on
+  income Ucal Brier (ratio 1.92), R1 on the men's guard (1.82, inherited from the witness). The task-only twin HCR keeps income
+  headroom on R0 (ratio 3.46) but fails on R1 through the witness's men's guard.
+- So the frozen H3 package's income margin does not survive a refit of its recipe on 75% of MODEL_FIT. This is the income-side
+  limitation, and Track R cannot rescue the occupation side either: its occupation witness is the same refitted witness.
+
+## F12. Repair-stage readers, reserve-qualified frontier and original benchmark (20:58; repair/, tables/READER_STABILITY_R_*)
+- R_FRONTIER (R0 -> seed-0 cells, R1 -> seed-1 cells; 8 cells per comparison). REFIT_PAIR at s = 1.0:
+  - vs W +0.0412 and vs CONT at 1.0 +0.0417, both STABLE_POSITIVE;
+  - vs LOC at 1.0 +0.0096, SIGN_CHANGES;
+  - vs SUCC +0.0083, NEURAL_RAW +0.0242 and H_LJ +0.0257, all POSITIVE_NOT_STABLE;
+  - vs B2TWIN +0.0143 and RETIRED_B3CTL +0.0014, both SIGN_CHANGES; vs TWJ +0.0382, STABLE_POSITIVE.
+- At s = 0.5: vs CONT +0.0285 STABLE_POSITIVE, vs W +0.0279 and vs LOC +0.0131 POSITIVE_NOT_STABLE. At s = 0.3: vs CONT +0.0113
+  STABLE_POSITIVE.
+- Controls against W: CONT -0.0006 to -0.0028 (never positive); LOC +0.0315 at s = 1.0 (POSITIVE_NOT_STABLE). The occupation-only
+  critic carries most of the effect.
+- These repeat the D-stage ordering (F6).
+- Compression twins (R0 only, 4 cells): REFIT_PAIR beats its GUARD-utilization-matched twin by +0.004 to +0.018 at every strength.
+  The 8-cell rule cannot label this.
+- Track R: the refitted-income correction vs its own witness gives +0.047 (s = 1.0) and +0.023 (0.5), both STABLE_POSITIVE. Against
+  Track F at equal strength it gives +0.006 / -0.005. H3R:W vs W gives -0.0001: the refitted income lineage does not change
+  recovery.
+- Reserve-qualified frontier (same rule for every point): no candidate qualifies; the witness fails (1.82 on R1); every required
+  reference fails (source records). The only qualified points are CONT at s >= 0.3 (ratios 2.04-2.24), with pair AUC 0.634, the
+  same as the witness. No reserve-qualified protected control exists.
+- Original benchmark: REFIT_PAIR passes 24 + 4 at the point for s <= 0.5 and fails at s = 1.0. The old recipient gate fails at
+  every strength (H3's income view). There is no superiority over all six required comparators at any strength. The 0.020 target
+  reaches POINT_ONLY at s = 1.0 only, where utility fails.
+- The men's guard binds every reader-evaluated point on both R partitions (repair/FRONTIER_DRIVERS.csv).

@@ -43,3 +43,44 @@
   source witness margin depends on its larger training set.
 - 19:26 Lineage DEV_REPORT access log (replication private tree, read-only) snapshot: SHA-256 c7829e99e6af303cdf070f698b6088e024f3c2b806974a6b1f711785bb50c567,
   identical to the source campaign's admission and closeout snapshot; to be compared again at closeout (DEV_REPORT stays closed).
+
+**Catch-up entries for 19:26-20:58.** They were written at 21:00 from the commit history, the queue ledger and the records listed;
+they are not contemporaneous notes. Times are commit or record times.
+- 19:13-19:35 Code for question A, Track R, deployment, sensitivity witness, screen study, compression, figures, tables, ledger,
+  custody and claims-review brief committed (019241108 ... c2bc040e1). Deviations 1-4 recorded (0f6267004).
+- 19:21 Independent verifier launched (separate code, 'verify' operation). 19:29 Engineering reviewer launched. 19:09 Correction
+  investigator launched for the B2_SINGLE sensitivity witness (D0B).
+- 19:46 Engineering review (no blocker; 5 major, 15 minor) and its 11 patches applied before any ladder, selection or realized
+  outcome (4a17c64a3); deviations 6-7 (79edfb034).
+- 19:53-19:55 Screen operating-characteristic study results and the reader investigator's findings and report saved with
+  attribution (12d692291, 6834ef240, 1b21c42ae); statistical reviewer's SCREEN_REVIEW.md (f314f8a75).
+- 19:57 F4. 20:08 Refit investigator's report saved (601ef6844). 20:10 Pending amendment P70 (a279f9f8f), diagnosis tables and
+  recipe gates (c06a8e2aa), F5. 20:13:25 Amendment 9 committed after the written review (5002fed58).
+- 20:17 D-stage frontier readers and F6 (113612ac7). 20:22 Training-size diagnostic results and F7 (b17107a1d). 20:23 F8.
+- 20:23:59 REPAIR_FREEZE committed (c269256d2): NO_RECIPE, no redesign, comparison plan frozen; public receipt d3f28497b verified
+  with ls-remote at 20:24:44Z (a12f2887f). Repair panels opened only after that.
+- 20:25-20:26 R-stage banks: R_FRONTIER (c76ee2d11), R0-only compression twins (8150f4259), Track R (b9096af57).
+- 20:28 Adjudication A1 accepted; the question-A bootstrap issue went to the statistical reviewer as A2 (a45fb7a9e). 20:29
+  Diagnosis tables now include the R partitions.
+- 20:34:05 Recorded correction of the question-A bootstrap (eece7dbdb). 20:34:41-20:35:44 The 34 units ran under the registered
+  scheme. 20:37:36 Primary labels, ERRATA E1, A3 and deviation 11 committed (5b8ea7a86).
+- 20:38-20:52 R_FRONTIER S0 (790 CPU-s) and S1 (706 CPU-s), R_COMP0 S0 and R_TRACKR S0 / S1. 20:39-20:50 Deployment lane: 10
+  packages stored, built and checked (all bitwise, every refusal). 20:42-20:50 Bank evaluations.
+- 20:47 cts.claims (2f581043e). 20:53 Repair-stage results, figures and deployment checks (4290cc2a1). 20:55 Frontier drivers and
+  the P70 task-witness package (5db2acace).
+- 20:56 Launch audit of units that started with uncommitted code (deviation 14). Deviations 12-15 recorded. RESEARCH_DECISION,
+  START_HERE and F9-F12 drafted.
+
+**Entries for 21:00-21:35 (written 21:35 from commits and message timestamps).**
+- 21:00:44 Decision documents drafted (f4e559843). Independent claims reviewer launched (assignment 7).
+- 21:00-21:01 Verifier's final report received: 263 checks; genuine FAILs F3 V2 (post-freeze code change) and C2.1 (P70A record).
+  Saved with attribution at 21:02:44, committed with A4 and deviations 16-17 at 21:04:27 (f3d183f3c).
+- 21:02:56 Section 8 conflict referred to the statistical reviewer. 21:04:46 Its ruling, ADJUDICATION_SECTION8.md: (b), with
+  conditions. 21:05:10 Conditions 1 and 4 requested from the verifier. 21:06:36 A5, deviation 18 and the SCHEME_DEPENDENT flags
+  committed (ce4c6079b).
+- 21:07:12 Restore check made to find the packages in the deploy folder (fd8565463). 21:09:18 Quickstart (30809faaf). 21:09:49
+  Deviation 19 on time stamps written ahead of the clock (2b49277ec).
+- 21:10-21:12 Verifier follow-up: the trigger used D-stage inputs only (P4 V2 PASS), plus the R1 variance detail. A5 resolved as (b)
+  and A6 recorded (6956507a1, 21:12:07). 21:12:36 Closeout process filter fixed (97de83f0f).
+- 21:22 Claims review returned: 130 statements, 14 required edits. Saved with attribution; all edits applied, ERRATA E2 and A7
+  recorded (d1a829736, 21:34:56).

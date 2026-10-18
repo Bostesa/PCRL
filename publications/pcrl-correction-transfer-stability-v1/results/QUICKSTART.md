@@ -23,11 +23,17 @@ points in `ACCESS_POLICY.json` and `ACCESS_AMENDMENTS.json`).
 4. Track R on R0, R1: `cts.track_r teachers` (CATBOOST), `stage_b` (TORCH), `income` (TORCH); `cts.evaluate trackr`;
    `cts.trackf direction --income TRACKR`.
 5. Recipe selection: `cts.dstage gates`, `bank`, reader grid, `select`. Then `cts.freeze write` and its receipt.
-6. After the freeze: `cts.select check`, `cts.trackf ladder --check`, `cts.questiona run`, `cts.compression fit / realized` on R0, R1.
-7. Readers: `cts.devreaders run --spec grid_specs/<bank>.json --seed 0|1` (TORCH); screen study `cts.screen_study`.
-8. Tables and figures: `cts.diagnosis`, `cts.figures`.
-9. Deployment: `cts.deploy store`, `build`, `check`.
-10. Closeout: `cts.closeout`; backup with the custody tool.
+6. After the freeze: `cts.select check`, `cts.trackf ladder --check`, `cts.questiona run` (default `--scheme registered`, one household
+   resample per set; `--scheme superseded` reproduces the first records only), `cts.compression fit / realized` on R0, R1.
+7. Readers: `cts.devreaders run --spec grid_specs/<bank>.json --seed 0|1` (TORCH); screen study `cts.screen_study`; whole-release
+   utility and reserve of every bank member: `cts.evaluate bank --bank-id <bank>` (PY).
+8. Tables and figures (label-free): `cts.diagnosis` (cost transfer and factors), `cts.diagnosis qa` (question-A labels, primary and
+   superseded), `cts.tables stability --bank-id <bank>`, `cts.claims all` (repair rule comparison, matched controls, reserve-qualified
+   frontier, original benchmark, claim ladder, frontier drivers), `<TORCH> -m cts.figures cost | frontier`.
+9. Deployment: `cts.deploy store`, `build`, `check` (packages under `.private/<campaign>/deploy/`; the P70 task witness is packaged the
+   same way with `--partition P70 --name W`).
+10. Closeout: `cts.ledger`, `cts.closeout`; backup with `cts.custody backup <parent>` and, on an already attached drive,
+    `cts.custody offdevice <backup> <dest>`; `cts.publish_build build / commit`.
 
 ## Deployment from the six raw fields
 

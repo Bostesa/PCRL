@@ -103,11 +103,23 @@ def lr_reader(X, y, fit, val):
 
 
 def release_of(stage, seed, name):
-    """Own recomposition of a Track F release on MODEL_SELECT: W, or <DIR>@s<x> = softmax(log p_W + x Delta_full)."""
+    """Own recomposition of a Track F occupation release on MODEL_SELECT: W; <DIR>@s<x> = softmax(log p_W + x Delta_full);
+    COMP:<DIR>@s<x> = nearest centroid (squared Euclidean, ties to the first) of the deployed witness vector with the saved code;
+    H3R:<occ> / HCR:<occ> = the occupation part <occ> (the income comes from Track R)."""
     P = STAGE_PARTS[stage][seed]
+    if ':' in name and name.split(':', 1)[0] in ('H3R', 'HCR'):
+        return release_of(stage, seed, name.split(':', 1)[1])
     W = npz(TRACKF / P / 'WITNESS' / 'WITNESS.npz')
     if name == 'W':
         return W['dep__MODEL_SELECT']
+    if name.startswith('COMP:'):
+        m = re.match(r'^COMP:([A-Z_]+)@s([0-9.]+)$', name)
+        cents = npz(TRACKF / P / 'COMP' / f'COMP__{m.group(1)}__s{m.group(2)}' / 'CODE.npz')['centroids']
+        pw = W['dep__MODEL_SELECT']
+        idx = np.empty(len(pw), dtype=np.int64)
+        for i in range(0, len(pw), 256):
+            idx[i:i + 256] = np.argmin(np.sum((pw[i:i + 256, None, :] - cents[None, :, :]) ** 2, axis=2), axis=1)
+        return cents[idx]
     m = re.match(r'^([A-Z_]+)@s([0-9.]+)$', name)
     if not m:
         return None
@@ -163,7 +175,14 @@ def main():
             mine = release_of(a.stage, seed, name)
             diff = float(np.max(np.abs(mine - arr))) if mine is not None else None
             ws = wire_sha(arr) == mem['wire_sha256']['occupation']
-            wi = (wire_sha(inc) == mem['wire_sha256']['income']) if mem.get('income', {}).get('frozen_anchor') == 'H3' else None
+            isrc = mem.get('income', {})
+            if isrc.get('frozen_anchor') == 'H3':
+                wi = wire_sha(inc) == mem['wire_sha256']['income']
+            elif 'path' in isrc:                                  # Track R refitted income (H3R / HCR) read from its release file
+                ip = ROOT / isrc['path']
+                wi = V.file_sha(ip) == isrc['sha256'] and wire_sha(npz(ip)[isrc['key']]) == mem['wire_sha256']['income']
+            else:
+                wi = None
             rels[name] = {'file_sha_ok': ok_sha, 'recomposition_max_abs_diff': diff, 'occupation_wire_sha_ok': ws, 'income_wire_sha_ok': wi}
             if not ok_sha or not ws or wi is False or diff is None or diff > 1e-12:
                 rel_prob.append(name)

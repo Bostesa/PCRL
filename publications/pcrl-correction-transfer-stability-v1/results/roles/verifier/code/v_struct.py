@@ -10,6 +10,7 @@ No label is read. Partition masks, dictionaries, folds and hashes are recomputed
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import glob
 import json
 import math
@@ -37,6 +38,17 @@ MIRROR = ROOT / '.private' / 'pcrl_income_headroom_successor_v1'
 OHN_PUB = '1435c395d3f753a9bf0b553d14d264ca9e991421'
 IHS_PUB = '89fd2f6e649547f65cf1b69a9e8e8b51f854d25e'
 BLOCKS = ('COW', 'SCHL', 'MAR', 'POBP')
+# partitions added after registration by a dated amendment (PROTOCOL_DEVIATIONS item 9; cts.common commit 5002fed58, before their fits):
+# witness training-size curve, FIT = the whole non-panel pool, no GUARD / CHECK role; P70A = same rows (and, as registered, folds) as P70
+# with the admitted dictionary
+AMENDED = {'P70': {'FIT': 'POOL'}, 'P70A': {'FIT': 'POOL', 'same_rows_as': 'P70', 'dictionary': 'admitted'}}
+
+
+def add_amended(masks):
+    n = len(masks['POOL'])
+    for pid, spec in AMENDED.items():
+        masks[pid] = {'FIT': masks[spec['FIT']].copy(), 'GUARD': np.zeros(n, dtype=bool), 'CHECK': np.zeros(n, dtype=bool)}
+    return masks
 
 
 def git(*a):
@@ -199,7 +211,7 @@ def check_admission(out):
 def check_oof_and_dicts(F, masks, out):
     unit, rid, X, names = F['unit'], F['row_id'], F['X'], F['feature_names']
     res, bad = {}, []
-    errors = {}
+    errors, folds_differ = {}, []
     for P in sorted(p.name for p in TRACKF.iterdir() if (p / 'WITNESS' / 'OOF.npz').is_file()):
       try:
         wj = json.loads((TRACKF / P / 'WITNESS' / 'WITNESS.json').read_text())
@@ -216,6 +228,24 @@ def check_oof_and_dicts(F, masks, out):
         # dictionary: FIT-only collapse; is the record discriminating against FIT+GUARD+CHECK (pool) and all MODEL_FIT?
         dj = json.loads((TRACKF / P / 'DICT.json').read_text())
         mine = my_dictionary(X[fit], names)
+        if AMENDED.get(P, {}).get('dictionary') == 'admitted':          # P70A: the admitted dictionary, no re-collapse
+            mine = {b: [] for b in BLOCKS}
+        if AMENDED.get(P, {}).get('same_rows_as'):                      # registered: 'the same rows / folds' as the twin partition
+            twin = AMENDED[P]['same_rows_as']
+            Ot = npz(TRACKF / twin / 'WITNESS' / 'OOF.npz')
+            wt = json.loads((TRACKF / twin / 'WITNESS' / 'WITNESS.json').read_text())
+            r['same_rows_as_twin'] = bool(np.array_equal(O['fit_rows'], Ot['fit_rows']))
+            r['same_outer_folds_as_twin'] = bool(np.array_equal(O['fold'], Ot['fold']))
+            r['outer_fold_tags'] = [wj['outer_fold_tag'], wt['outer_fold_tag']]
+            r['inner_fold_tags'] = [wj.get('inner_fold_tag'), wt.get('inner_fold_tag')]
+            r['T_star'] = [wj.get('T_star'), wt.get('T_star')]
+            # judged on the fold ARRAYS (the inner folds are not saved; cts.trackf derives both outer and inner tags from same_rows_as)
+            if not r['same_rows_as_twin'] or not r['same_outer_folds_as_twin']:
+                folds_differ.append(f'{P} vs {twin}: registered "same rows / folds", but the saved rows or outer fold arrays differ')
+            if r['outer_fold_tags'][0] != r['outer_fold_tags'][1] and r['same_outer_folds_as_twin']:
+                r['record_note'] = (f'{P} WITNESS.json states fold tags {r["outer_fold_tags"][0]} / {r["inner_fold_tags"][0]}, but its '
+                                    f'outer fold array equals {twin}\'s (dealt with {r["outer_fold_tags"][1]}); the stated tag does not '
+                                    'generate the folds used')
         rec = {b: sorted(dj['collapsed'][b]) for b in BLOCKS}
         r['dict_equal_fit_only'] = mine == rec
         r['dict_sha_matches_witness_record'] = V.file_sha(TRACKF / P / 'DICT.json') == wj['dictionary']['dict_sha256']
@@ -249,9 +279,23 @@ def check_oof_and_dicts(F, masks, out):
                 'what': 'OOF.npz FIT-row mask and row ids equal the verifier reconstruction; outer cross-fitting folds equal the '
                         'household dealing of FIT with the recorded tag; DICT.json collapse lists follow from FIT inputs only (and differ '
                         'from a pool or all-MODEL_FIT dictionary where noted); nested DICT_k from FIT minus fold k',
-                'method': 'own masks / dealing / level counts (label-free admitted encoding, minimum 10 people)',
-                'status': 'FAIL' if bad else ('ATTENTION' if errors else 'PASS'),
-                'numbers': {'partitions': res, 'problems': bad, 'verifier_errors': errors}})
+                'method': 'own masks / dealing / level counts (label-free admitted encoding, minimum 10 people); amended partitions '
+                          'P70 / P70A (PROTOCOL_DEVIATIONS item 9, commit 5002fed58): FIT = the whole non-panel pool, P70A with the '
+                          'admitted dictionary and registered as the same rows / folds as P70',
+                'status': 'FAIL' if bad else ('ATTENTION' if (errors or folds_differ) else 'PASS'),
+                'numbers': {'partitions': res, 'problems': bad, 'verifier_errors': errors,
+                            'registered_same_folds_not_implemented': folds_differ}})
+
+
+_FZ = []
+
+
+def freeze_commit_utc():
+    """UTC time of the commit that added REPAIR_FREEZE.json (None if not committed)."""
+    if not _FZ:
+        rc, out = git('log', '--diff-filter=A', '--format=%cI', '--', str(RES / 'REPAIR_FREEZE.json'))
+        _FZ.append(dt.datetime.fromisoformat(out.splitlines()[-1]).astimezone(dt.timezone.utc) if (rc == 0 and out.strip()) else None)
+    return _FZ[0]
 
 
 def check_access_log(F, masks, out):
@@ -296,19 +340,31 @@ def check_access_log(F, masks, out):
         if e['operation'] == 'check_diag' and not e['partition'].startswith('D'):
             problems.append(f'line {i}: check_diag on {e["partition"]}')
         if e['touches_repair_panel'] and e['operation'] not in ('source_replay', 'support_count'):
-            problems.append(f'line {i}: repair panel touched by {e["operation"]}')
+            fz = freeze_commit_utc()
+            after = fz is not None and dt.datetime.fromisoformat(e['utc']) > fz
+            if not (e['operation'] in ('check_repair', 'verify') and after):
+                problems.append(f'line {i}: repair panel touched by {e["operation"]} (freeze commit {fz})')
         uid = e.get('unit_id') or ''
         tokens = set(uid.replace('-', '_').split('_'))
         named = {p for p in ('D0', 'D1', 'D0B', 'R0', 'R1') if p in tokens}
         if named and e['partition'] not in named:
             problems.append(f'line {i}: unit {uid} read partition {e["partition"]}')
+    rc, amend_utc = git('show', '-s', '--format=%cI', '5002fed58')
+    amend_t = dt.datetime.fromisoformat(amend_utc.strip()).astimezone(dt.timezone.utc) if rc == 0 and amend_utc.strip() else None
+    amended_reads = {pid: sorted(e['utc'] for e in lines if e.get('partition') == pid) for pid in AMENDED}
+    for pid, utcs in amended_reads.items():
+        if utcs and (amend_t is None or dt.datetime.fromisoformat(utcs[0]) <= amend_t):
+            problems.append(f'{pid}: label read at {utcs[0]} before the amendment commit 5002fed58 ({amend_t})')
     out.append({'id': 'C2.2_LABEL_ACCESS_ROWS', 'kind': 'PROCEDURAL_COMPLIANCE',
                 'what': 'every label-access line: rows hash equals the verifier reconstruction of the stated partition role; fit reads '
                         'only FIT rows, select only GUARD, check_diag only diagnostic CHECK; units named for a partition read only that '
                         'partition; no repair-panel or closed-role label read except the registered whole-role preflight operations',
                 'method': 'own masks + own row-set hash (SHA-256 of dtype + shape + bytes of the row ids) against LABEL_ACCESS.jsonl',
                 'status': 'PASS' if not problems else 'FAIL',
-                'numbers': {'lines': len(lines), 'by_operation_role': per_op, 'problems': problems}})
+                'numbers': {'lines': len(lines), 'by_operation_role': per_op, 'problems': problems,
+                            'amendment_5002fed58_commit_utc': amend_t.isoformat() if amend_t else None,
+                            'amended_partition_reads': {pid: {'n': len(u), 'first': u[0] if u else None} for pid, u in amended_reads.items()},
+                            'freeze_commit_utc': freeze_commit_utc().isoformat() if freeze_commit_utc() else None}})
     return lines
 
 
@@ -386,6 +442,18 @@ def check_identity(lines, out):
                 f = TRACKR / P / 'TEACHERS' / f'TEACHER_{task}.json'
                 if f.is_file():
                     art[f'TRACKR/{P}/teacher_{task}'] = _teacher_shas(f)[1]
+        rel = TRACKR / P / 'INCOME' / 'RELEASE.npz'
+        if rel.is_file():
+            R = npz(rel)
+            for cfg in ('H3R', 'HCR'):
+                art[f'TRACKR/{P}/income_{cfg}_MODEL_SELECT'] = V.arr_sha(R[f'{cfg}__MODEL_SELECT__income'])
+    try:                                    # the frozen H3 income anchors (the refitted lineage must differ from them)
+        sys.path.insert(0, str(ROOT))
+        from ohn import devrun as OD
+        for s in (0, 1):
+            art[f'FROZEN_S{s}/H3_income_MODEL_SELECT'] = V.arr_sha(np.asarray(OD.anchor_income('H3', s, 'MODEL_SELECT')))
+    except Exception as ex:                 # recorded, never hidden
+        integrity.append(f'frozen H3 anchor not hashed: {type(ex).__name__}')
     # distinctness across partitions (witness files, releases, routing, thetas)
     hashes = {k: v for k, v in art.items() if isinstance(v, str)}
     groups = {}
@@ -393,8 +461,11 @@ def check_identity(lines, out):
         groups.setdefault(v, []).append(k)
     aliases = [sorted(g) for g in groups.values() if len(g) > 1]
 
-    def part_of(key):                      # Track R artifacts belong to their repair partition (expected deterministic aliases)
-        return key.split('/')[1] if key.startswith('TRACKR/') else key.split('/')[0]
+    def part_of(key):
+        """Training-row set of an artifact: Track R artifacts belong to their repair partition, and D0B has D0's rows (PARTITIONS.json
+        same_rows_as), so a byte-identical routing refit on the same rows is an expected deterministic alias, counted once."""
+        p = key.split('/')[1] if key.startswith('TRACKR/') else key.split('/')[0]
+        return 'D0' if p == 'D0B' else p
     cross_partition_aliases = [g for g in aliases if len({part_of(x) for x in g}) > 1]
     same_partition_aliases = [g for g in aliases if len({part_of(x) for x in g}) == 1]
     out.append({'id': 'C2.3_MODEL_IDENTITY', 'kind': 'NUMERICAL_REPLAY',
@@ -420,8 +491,9 @@ def check_order(lines, out):
         first = min(reads) if reads else None
         late = sorted(d['direction'] for d in dirs if first and d['utc'] > first)
         res[P] = {'directions': len(dirs), 'last_direction_utc': max([d['utc'] for d in dirs], default=None),
-                  'first_guard_or_check_read_utc': first, 'directions_written_after_first_guard_check_read': late}
-        if late:
+                  'first_guard_or_check_read_utc': first, 'directions_written_after_first_guard_check_read': late,
+                  'gating': P.startswith('D')}
+        if late and P.startswith('D'):          # section 7 is a D-partition rule; R partitions are governed by REPAIR_FREEZE (F checks)
             att.append(P)
     out.append({'id': 'C2.4_DIRECTIONS_BEFORE_GUARD_CHECK', 'kind': 'PROCEDURAL_COMPLIANCE',
                 'what': 'PROTOCOL section 7: within each D partition, directions are frozen before any GUARD or CHECK outcome is computed',
@@ -436,7 +508,7 @@ def main():
     spec = json.loads((RES / 'PARTITIONS.json').read_text())
     F = C.features('MODEL_FIT')              # label-free
     out = []
-    masks = check_partitions(F, spec, out)
+    masks = add_amended(check_partitions(F, spec, out))
     if not a.skip_admission:
         check_admission(out)
     check_oof_and_dicts(F, masks, out)

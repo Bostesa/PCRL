@@ -3,6 +3,7 @@ aggregation; no label is read here).
 
     python3 -m cts.diagnosis tables        results/<campaign>/diagnosis/COST_TRANSFER.csv, COST_TRANSFER_SUMMARY.json,
                                            RULE_OUTCOMES.csv
+    python3 -m cts.diagnosis qa            results/<campaign>/diagnosis/QUESTION_A_LABELS.csv / .json (primary vs superseded)
 
 For every partition (D0, D1, D0B when present), routing (FROZEN, REFIT), arm (PAIR, LOC, CONT) and ladder strength, the incremental
 costs (men's / women's / all summed-Brier increase, NLL increase, accuracy loss) of each estimator with its household-clustered SE:
@@ -19,13 +20,15 @@ from . import common as C
 from . import rules as RL
 from . import trackf as TF
 
-PARTS = ('D0', 'D1', 'D0B')
+PARTS = ('D0', 'D1', 'D0B', 'R0', 'R1')
 PRED = ('OOF', 'NESTED_OOF', 'GUARD', 'GUARD_ENS')
 REAL = ('CHECK', 'MS', 'CHECK_ENS', 'MS_ENS')
 
 
 def _load(P, did):
-    f = TF.pdir(P) / 'LADDER' / f'{did}.json'
+    f = TF.pdir(P) / 'LADDER_CHECK' / f'{did}.json'
+    if not f.is_file():
+        f = TF.pdir(P) / 'LADDER' / f'{did}.json'
     if not f.is_file():
         return None
     lad = json.loads(f.read_text())
@@ -115,7 +118,7 @@ def tables():
     return agg
 
 
-def factors(parts=('D0', 'D1')):
+def factors(parts=('D0', 'D1', 'R0', 'R1')):
     """Factor comparisons of the transfer error (label-free), over the nonzero ladder strengths, per partition and statistic:
     - routing: (CHECK - OOF) and (MS - OOF) under FROZEN vs REFIT, and the CHECK - MS gap (CHECK households were seen by the FROZEN
       routing, MODEL_SELECT never was);
@@ -154,7 +157,54 @@ def factors(parts=('D0', 'D1')):
     return out
 
 
+def qa_labels(parts=('D0', 'D1', 'R0', 'R1')):
+    """Question A labels (label-free, from the saved records): per partition, direction, deployment and OOF estimator, the primary
+    label (registered scheme, one household resample per set: <ID>__<dep>__<oof>__REG.json) beside the superseded first label
+    (per-statistic resample; PROTOCOL_DEVIATIONS item 10)."""
+    rows = []
+    for P in parts:
+        d = TF.pdir(P) / 'QUESTION_A'
+        for f in sorted(d.glob('*__REG.json')):
+            reg = json.loads(f.read_text())
+            x = reg['result']
+            r = {'partition': P, 'direction': reg['direction'], 'deployment': reg['deployment'], 'oof_estimator': reg['oof_estimator'],
+                 'D': x['D'], 'q05': x['q05'], 'q95': x['q95'], 'boot_se': x['boot_se'], 'label': x['label'],
+                 'MAE_rel_GUARD': x['MAE_rel_GUARD'], 'MAE_rel_OOF': x['MAE_rel_OOF'], 'guard_closer_cells': x['guard_closer_cells'],
+                 'cells': x['cells'], 'A1_assumption': reg['A1_assumption']}
+            old_f = d / f.name.replace('__REG', '')
+            if old_f.is_file():
+                y = json.loads(old_f.read_text())['result']
+                dep = y['label'] != x['label']
+                r.update({'superseded_q05': y['q05'], 'superseded_boot_se': y['boot_se'], 'superseded_label': y['label'],
+                          'label_depends_on_scheme': dep, 'flag': 'SCHEME_DEPENDENT' if dep else '',
+                          'superseded_note': 'frozen implementation output, superseded: departed from RULES.md section 6'})
+            rows.append(r)
+    out = C.RESULTS / 'diagnosis'
+    out.mkdir(parents=True, exist_ok=True)
+    keys = list(rows[0])
+    for r in rows:
+        keys += [k for k in r if k not in keys]
+    with open(out / 'QUESTION_A_LABELS.csv', 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=keys); w.writeheader(); w.writerows(rows)
+    tag = lambda r: f"{r['partition']}|{r['direction']}|{r['deployment']}|{r['oof_estimator']}"
+    summ = {'schema': 'CTS1-question-a-labels-v1', 'utc': C.now(), 'units': len(rows),
+            'primary_scheme': 'registered: one household resample per set and replicate (RULES.md section 6; B = 2000, registered tag)',
+            'prediction_improved_primary': [tag(r) for r in rows if r['label'] == 'PREDICTION_IMPROVED'],
+            'prediction_improved_superseded': [tag(r) for r in rows if r.get('superseded_label') == 'PREDICTION_IMPROVED'],
+            'labels_depending_on_scheme': [tag(r) for r in rows if r.get('label_depends_on_scheme')],
+            'direction_arms_improved_on_all_four': sorted(
+                did for did in ('REFIT_PAIR', 'REFIT_LOC') for dep in ('full', 'ens')
+                if all(any(r['partition'] == P and r['direction'] == did and r['deployment'] == dep and r['oof_estimator'] == 'OOF'
+                           and r['label'] == 'PREDICTION_IMPROVED' for r in rows) for P in parts))}
+    C.write_json(out / 'QUESTION_A_LABELS.json', summ)
+    print(json.dumps({k: v for k, v in summ.items() if k != 'utc'}, indent=1))
+    return summ
+
+
 if __name__ == '__main__':
-    tables()
-    factors()
+    if sys.argv[1:] == ['qa']:
+        qa_labels()
+    else:
+        tables()
+        factors()
     sys.exit(0)

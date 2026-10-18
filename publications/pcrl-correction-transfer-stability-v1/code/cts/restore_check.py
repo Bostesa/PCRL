@@ -6,7 +6,8 @@
   MODEL_SELECT release, and each REFIT_PAIR correction at s = 0.5 reproduces the evaluated MODEL_SELECT array (bitwise);
 - reader-grid results (GRID.json / BOOT.npz) re-hash against the queue ledger's recorded outputs where recorded, and the reader cache
   entries of this campaign pass their own checksums;
-- every deployment package under runs/DEPLOY redeploys the restored DEV_REPORT raw inputs and reproduces its stored wire bitwise,
+- every deployment package (under runs/DEPLOY or the campaign's private deploy/ folder) redeploys the restored DEV_REPORT raw
+  inputs and reproduces its stored wire bitwise,
   with every refusal (cts.deploy check)."""
 from __future__ import annotations
 import json
@@ -67,7 +68,8 @@ def main(out):
     for g in sorted((C.RUNS / 'GRID').glob('*/S*/GRID.json')) if (C.RUNS / 'GRID').is_dir() else []:
         grid[str(g.relative_to(C.RUNS))] = {'json_parses': bool(json.loads(g.read_text()).get('paired') is not None),
                                             'boot_present': (g.parent / 'BOOT.npz').is_file()}
-    pkgs = sorted(str(p.parent) for p in (C.RUNS / 'DEPLOY').glob('*/PACKAGE.json')) if (C.RUNS / 'DEPLOY').is_dir() else []
+    pkgs = sorted(str(p.parent) for base in (C.RUNS / 'DEPLOY', C.PRIV / 'deploy') if base.is_dir()      # the deployment lane builds
+                  for p in base.glob('*/PACKAGE.json'))                                                  # under .private/<campaign>/deploy
     if pkgs:
         from cts import deploy as DP
         dep = DP.check(pkgs, Path(out).with_name('restore_deploy_detail.json'))

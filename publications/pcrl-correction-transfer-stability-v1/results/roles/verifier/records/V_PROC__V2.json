@@ -1,0 +1,609 @@
+{
+ "checks": [
+  {
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "id": "P1_REGISTRATION_LOCK__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "method": "SHA-256 of the six registration files against REGISTRATION_RECEIPT_VERIFIED.json; git log / status of those files after 39a27cc1e; first LABEL_ACCESS.jsonl time",
+   "numbers": {
+    "commits_touching_after_registration": [],
+    "files_sha_match": {
+     "ACCESS_POLICY.json": true,
+     "EXPOSURE_MAP.md": true,
+     "PARTITIONS.json": true,
+     "PROTOCOL.md": true,
+     "roles/statistical_reviewer/RULES.json": true,
+     "roles/statistical_reviewer/RULES.md": true
+    },
+    "first_label_read_utc": "2026-10-18T19:13:16+00:00",
+    "receipt_commit": "2ad31d2afc0b3080a53713cb22d3f46e1e3c9922",
+    "receipt_verified_utc": "2026-10-18T19:13:08+00:00",
+    "uncommitted_changes": []
+   },
+   "status": "PASS",
+   "what": "registration files unchanged since the registration commit and byte-identical to the verified public receipt; the receipt verification precedes the first label read"
+  },
+  {
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "id": "P2_ACCESS_AMENDMENTS_BEFORE_USE__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "method": "git history of ACCESS_AMENDMENTS.json (first commit containing each entry) against LABEL_ACCESS.jsonl entry points",
+   "numbers": {
+    "amendments": [
+     {
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "entry_point": "cts.questiona",
+      "first_commit": "019241108",
+      "first_use_utc": "2026-10-18T20:15:00+00:00",
+      "operation": "fit",
+      "uses": 68
+     },
+     {
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "entry_point": "cts.questiona",
+      "first_commit": "019241108",
+      "first_use_utc": "2026-10-18T20:15:00+00:00",
+      "operation": "select",
+      "uses": 68
+     },
+     {
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "entry_point": "cts.questiona",
+      "first_commit": "019241108",
+      "first_use_utc": "2026-10-18T20:15:00+00:00",
+      "operation": "check_diag",
+      "uses": 36
+     },
+     {
+      "commit_utc": "2026-10-18T19:14:44+00:00",
+      "dated_utc": "2026-10-18T19:20:00+00:00",
+      "entry_point": "cts.questiona",
+      "first_commit": "019241108",
+      "first_use_utc": "2026-10-18T20:25:19+00:00",
+      "operation": "check_repair",
+      "uses": 32
+     }
+    ],
+    "dating_inconsistencies": [
+     "cts.questiona/fit: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/select: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/check_diag: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)",
+     "cts.questiona/check_repair: dated 2026-10-18T19:20:00+00:00 but committed at 2026-10-18T19:14:44+00:00 (dated after its own commit)"
+    ],
+    "problems": []
+   },
+   "status": "ATTENTION",
+   "what": "every dated ACCESS_AMENDMENTS.json entry is committed before the first label read through its entry point; its stated date is consistent with the commit"
+  },
+  {
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "id": "P3_UNIT_CODE_PROVENANCE__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "method": "ledger unit_start uncommitted_code_paths intersected with a static import closure of the unit entry module, built from the sources at the unit's recorded HEAD (uncommitted files: current text) (top-level imports: certainly executed; lazy imports: executed only on some code paths); CODE_AT_LAUNCH.json",
+   "numbers": {
+    "drifted_units_without_launch_record": [],
+    "reading": "PASS = no unit imported uncommitted campaign code at module top level, and every unit whose code changed while it waited has its launch-time hashes recorded (CODE_AT_LAUNCH.json); lazy imports listed below are reached only on other code paths (D0B witness, Track R income option); consistent with PROTOCOL_DEVIATIONS items 3 and 7",
+    "units_checked": 286,
+    "units_with_code_drift_while_waiting": [
+     {
+      "files_changed_while_waiting": [
+       "cts/dstage.py",
+       "cts/freeze.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_D0_DIR_REFIT_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/deploy.py",
+       "cts/freeze.py",
+       "cts/releases.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_TRACKR_R0_TEACHERS_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/deploy.py",
+       "cts/releases.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_D1_DIR_REFIT_CONT_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py",
+       "cts/rstage.py",
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ],
+      "unit": "CTS_D0_DIR_REFIT_CONT_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py",
+       "cts/rstage.py",
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ],
+      "unit": "CTS_TRACKR_R0_STAGEB_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/screen_study.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_D0_NESTED_ROUTING_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/screen_study.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ],
+      "unit": "CTS_D1_DIR_FROZEN_PAIR_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ],
+      "unit": "CTS_TRACKR_R0_INCOME_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/sensitivity.py"
+      ],
+      "in_unit_closure": [
+       "cts/sensitivity.py"
+      ],
+      "unit": "CTS_D0_NESTED_PAIR_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_D0_DIR_FROZEN_PAIR_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_TRACKR_R1_TEACHERS_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_SCREEN_SIM_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/figures.py",
+       "cts/rstage.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_SCREEN_L0B_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/diagnosis.py",
+       "cts/figures.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/tables.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_SCREEN_L2_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/custody.py",
+       "cts/diagnosis.py",
+       "cts/figures.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/tables.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_D0B_WITNESS_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_D1_DIR_FROZEN_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_D0_NESTED_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_TRACKR_R1_STAGEB_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/custody.py",
+       "cts/deploy.py",
+       "cts/diagnosis.py",
+       "cts/dstage.py",
+       "cts/figures.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/ledger.py",
+       "cts/restore_check.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/tables.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_D0_DIR_FROZEN_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/closeout.py",
+       "cts/common.py",
+       "cts/compression.py",
+       "cts/deploy.py",
+       "cts/dstage.py",
+       "cts/freeze.py",
+       "cts/jobqueue.py",
+       "cts/rstage.py",
+       "cts/select.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/common.py"
+      ],
+      "unit": "VER_STRUCT_V2"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_DIAGNOSIS_TABLES_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_R1_DIR_REFIT_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/evaluate.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/common.py"
+      ],
+      "unit": "VER_NESTED_WITNESS_D0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_R0_EVAL_TRACKR_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/evaluate.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_R0_DIR_REFIT_LOC_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/common.py",
+       "cts/evaluate.py",
+       "cts/trackf.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_D0_QA_REFIT_PAIR_full_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_R1_DIR_REFIT_CONT_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "VER_NESTED_ROUTING_D0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/releases.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_R0_REALIZED_REFIT_CONT_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_DEPLOY_STORE_R1_REFIT_PAIR_AT_s1.0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "VER_QA_REG_D0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/evaluate.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "VER_ERRATUM_E1_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_DEPLOY_BUILD_R1_REFIT_PAIR_AT_s1.0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "VER_QA_REG_D1_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_BANK_EVAL_R_FRONTIER_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_DEPLOY_STORE_R1_REFIT_CONT_AT_s1.0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "VER_QA_REG_R0_V1"
+     },
+     {
+      "files_changed_while_waiting": [
+       "cts/claims.py"
+      ],
+      "in_unit_closure": [],
+      "unit": "CTS_BANK_EVAL_R_COMP0_V1"
+     }
+    ],
+    "units_with_uncommitted_lazy_imports_only": [
+     {
+      "root": "cts/trackf.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_D0_DIR_REFIT_CONT_V1",
+      "utc": "2026-10-18T19:23:16+00:00"
+     },
+     {
+      "root": "cts/track_r.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_TRACKR_R0_STAGEB_V1",
+      "utc": "2026-10-18T19:23:21+00:00"
+     },
+     {
+      "root": "cts/nested.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_D0_NESTED_ROUTING_V1",
+      "utc": "2026-10-18T19:24:46+00:00"
+     },
+     {
+      "root": "cts/trackf.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_D1_DIR_FROZEN_PAIR_V1",
+      "utc": "2026-10-18T19:25:01+00:00"
+     },
+     {
+      "root": "cts/track_r.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_TRACKR_R0_INCOME_V1",
+      "utc": "2026-10-18T19:25:12+00:00"
+     },
+     {
+      "root": "cts/nested.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/sensitivity.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_D0_NESTED_PAIR_V1",
+      "utc": "2026-10-18T19:25:59+00:00"
+     },
+     {
+      "root": "cts/evaluate.py",
+      "uncommitted_lazy_imports_only": [
+       "cts/trackf.py"
+      ],
+      "uncommitted_top_level_imports": [],
+      "unit": "CTS_R0_EVAL_TRACKR_V1",
+      "utc": "2026-10-18T20:12:53+00:00"
+     }
+    ],
+    "units_with_uncommitted_top_level_imports": [
+     {
+      "root": "cts/trackf.py",
+      "uncommitted_lazy_imports_only": [],
+      "uncommitted_top_level_imports": [
+       "cts/trackf.py"
+      ],
+      "unit": "CTS_R0_DIR_REFIT_LOC_V1",
+      "utc": "2026-10-18T20:12:55+00:00"
+     }
+    ]
+   },
+   "status": "ATTENTION",
+   "what": "queue units launched with uncommitted code they import (deviation 3 says none other than the disclosed one), and code that changed between registration and launch of a unit"
+  },
+  {
+   "code_sha256": {
+    "v_proc.py": "f3af36e500682ee24aca15a8fb80e56e02774523001e92e4643194a4c6f59dea",
+    "vlib.py": "6eb95fd23481c6964fe19472e6169428de3980f351c4a78a43d375ac6e81a534"
+   },
+   "id": "P4_CPU_ACCOUNTING__V2",
+   "kind": "PROCEDURAL_COMPLIANCE",
+   "method": "sum of charged_cpu_s over unit_end and charge events of the ledger",
+   "numbers": {
+    "charged_cpu_h": 3.2309,
+    "failed_units_kept": [],
+    "units_started": 286,
+    "verifier_cpu_s": 332.2
+   },
+   "status": "PASS",
+   "what": "campaign CPU charged against the 14 CPU-hour limit (queue units + charges), the verifier's own share, failed units kept"
+  }
+ ],
+ "utc": "2026-10-18T20:58:05+00:00"
+}

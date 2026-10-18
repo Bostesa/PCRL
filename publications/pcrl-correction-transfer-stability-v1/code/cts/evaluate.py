@@ -11,6 +11,7 @@ references: 24 utility clauses + 4 guards. Repetitions are never pooled into ext
                                                            design input of the strength rules)
     python3 -m cts.evaluate release --partition P --name N --occ PATH.npz --key KEY
     python3 -m cts.evaluate pair --stage D|R --name N      combine the two seeds' evaluations (24 + 4) with the reserve
+    python3 -m cts.evaluate bank --bank-id ID              every array member of a reader bank: utility and reserve per seed
 """
 from __future__ import annotations
 import argparse
@@ -199,6 +200,60 @@ def trackr(P):
     return rec
 
 
+def bank_eval(bank_id):
+    """Whole-release utility and reserve on MODEL_SELECT of every array member of a reader bank: the exact occupation arrays the
+    readers read (hash-checked against the bank spec) with the member's income (H3's frozen income, or the Track R refitted income
+    of the partition), per associated seed; 12 clauses + 2 guards per seed and the frozen whole-release reserve (28 conditions on a
+    two-seed pair, k = 2, H_LJ floor; RULES.md section 11: the same rule for candidates, controls and references). Writes
+    PAIRS/BANK_EVAL__<bank>.json."""
+    from ohn import rules as OR
+    out = C.RUNS / 'PAIRS' / f'BANK_EVAL__{bank_id}.json'
+    if out.exists():
+        raise PermissionError(f'{out.name} exists (append-only)')
+    spec = json.loads((C.RESULTS / 'grid_specs' / f'{bank_id}.json').read_text())
+    S = _ms(f'benchmark: whole-release utility and reserve of the {bank_id} bank members on MODEL_SELECT (frontier and '
+            'reserve-qualified comparison, RULES.md sections 7 and 11)')
+
+    def arr(d, what):
+        p = C.ROOT / d['path']
+        if C.sha(p) != d['sha256']:
+            raise PermissionError(f'{what}: {p.name} differs from the bank spec')
+        with np.load(p) as z:
+            if 'row_id_key' in d and not np.array_equal(z[d['row_id_key']], S['row_id']):
+                raise AssertionError(f'{what}: MODEL_SELECT row order differs')
+            return z[d['key']].copy()
+    res = {}
+    for name, m in spec['members'].items():
+        if m['type'] != 'arrays':
+            continue
+        evs = {}
+        for s_str, sd in sorted(m['seeds'].items()):
+            s = int(s_str)
+            occ = arr(sd['occupation'], f'{name} S{s} occupation')
+            inc = h3_income(s) if 'frozen_anchor' in sd['income'] else arr(sd['income'], f'{name} S{s} income')
+            evs[s] = eval_release(s, occ, inc, '', S=S)
+        rr = OR.reserve(evs)
+        per = {str(s): {'status': rr['per_seed'][s]['status'],
+                        'min_ratio': min(OR._ratio(v) for v in rr['per_seed'][s]['conditions'].values()),
+                        'binding': min(rr['per_seed'][s]['conditions'], key=lambda n: OR._ratio(rr['per_seed'][s]['conditions'][n])),
+                        'point_pass_12': evs[s]['utility']['point_pass_12'], 'guard_pass': evs[s]['utility']['guard_pass'],
+                        'clauses': {f'{c["task"]}|{c["reference"]}|{c["metric"]}': {k: c[k] for k in ('value', 'se', 'margin', 'point_pass')}
+                                    for c in evs[s]['utility']['clauses']},
+                        'guards': {g['group']: {k: g[k] for k in ('value', 'se', 'margin', 'point_pass')} for g in evs[s]['utility']['guards']}}
+               for s in evs}
+        res[name] = {'description': m.get('description'), 'seeds': sorted(per), 'per_seed': per, 'reserve_status': rr['status'],
+                     'min_ratio': rr['min_ratio'], 'binding_condition': rr['binding_condition'],
+                     'min_occupation_side_ratio': rr['min_occupation_side_ratio'], 'min_income_ratio': rr['min_income_ratio'],
+                     'point_pass_all': all(per[s]['point_pass_12'] and per[s]['guard_pass'] for s in per)}
+    rec = {'schema': 'CTS1-bank-eval-v1', 'bank_id': bank_id, 'members': res, 'reserve_rule': 'ohn.rules.reserve (frozen source rule)',
+           'note': ('reserve-qualified iff the per-seed minimum ratio is >= 2 on both seeds (RULES.md section 11); single-seed members '
+                    '(R0-only compression twins) are reported per seed and cannot qualify on two seeds'), 'utc': C.now()}
+    C.write_json(out, rec)
+    print(json.dumps({n: {'ratios': {s: round(v['min_ratio'], 3) for s, v in r['per_seed'].items()}, 'point_pass': r['point_pass_all']}
+                      for n, r in res.items()}))
+    return rec
+
+
 def pair(stage, name):
     from ohn import rules as OR
     from . import trackf as TF
@@ -233,9 +288,12 @@ def main(argv=None):
     x = sub.add_parser('trackr'); x.add_argument('--partition', required=True)
     x = sub.add_parser('witness_curve'); x.add_argument('--partition', required=True)
     sub.add_parser('curve_pairs')
+    x = sub.add_parser('bank'); x.add_argument('--bank-id', required=True)
     a = ap.parse_args(argv)
     if a.cmd == 'witness':
         witness(a.partition)
+    elif a.cmd == 'bank':
+        bank_eval(a.bank_id)
     elif a.cmd == 'trackr':
         trackr(a.partition)
     elif a.cmd == 'witness_curve':
