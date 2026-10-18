@@ -38,6 +38,9 @@ def build(family, config_id, seed, out):
     enc = json.loads(C.admitted(f'packages/T_TREE_S{seed}/PACKAGE.json').read_text())['encoder']
     run_dir = D.release_dir(family, config_id, seed)
     deps = {f'runs/{family}/{config_id}/S{seed}/{p.name}': C.sha(p) for p in sorted(run_dir.iterdir()) if p.is_file()}
+    if family == 'H':                                         # family H's STRONG learner (pickled HGB and its step-1 record)
+        step1 = C.RUNS / 'H' / 'STEP1' / f'S{seed}'
+        deps.update({f'runs/H/STEP1/S{seed}/{p.name}': C.sha(p) for p in sorted(step1.iterdir()) if p.is_file()})
     deps.update({rel: C.sha(C.ADM / rel) for rel in (f'stage_a/S{seed}/TREE_TEACHER_income.json', f'stage_a/S{seed}/TREE_TEACHER_occupation.json',
                                                    f'stage_b/S{seed}/JOINT_TREE__E20.npz', f'stage_b/S{seed}/LOCAL_TREE__E20.npz')})
     meta = {'schema': 'IHS1-deploy-package-v1', 'family': family, 'config_id': config_id, 'seed': seed, 'module': MODULE[family],

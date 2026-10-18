@@ -3,8 +3,10 @@
 Public-use U.S. Census Bureau ACS 2019 1-Year PUMS person records for Florida, development roles only. The service predicts an
 income class (2) and an occupation group (5) from AGEP, WKHP, COW, SCHL, MAR and POBP; each recipient receives its own float64
 probability vector and argmax decision. SEX is the dataset's recorded demographic column; readers estimate it from the released
-vectors. Each family's full card was written by its investigator **before that family's first fit** and revisions were appended
-as they happened: `roles/investigator_h/CARD.md`, `roles/investigator_p/CARD.md`, `roles/investigator_o/CARD.md`. Numbers below
+vectors. Each family's card states that it was written by its investigator before that family's first fit (H 02:27Z, P and O
+about 02:25Z) and that revisions were appended as they happened; the cards were first committed at the freeze `930235e9e`
+(03:03:35Z), after all family fits, so this timing is self-reported, not commit-verified: `roles/investigator_h/CARD.md`,
+`roles/investigator_p/CARD.md`, `roles/investigator_o/CARD.md`. Numbers below
 are MODEL_SELECT development values (seed 0 / seed 1; pair = development pair proxy, two-seed grid mean), from the reports and
 `EXPERIMENT_LEDGER.csv`. No novelty is claimed for any family.
 
@@ -21,8 +23,8 @@ are MODEL_SELECT development values (seed 0 / seed 1; pair = development pair pr
 - **Revise / abandon if.** No genuine held-out headroom over T_TREE (< 0.0005 Brier), or the step on the old base does as well.
 - **Closest known.** Stacking / calibrated gradient boosting; the lineage's LOCAL/JOINT mixtures (H3 is ≈ s_L + 0.2-0.25·D_J on
   a better base).
-- **Record.** H1 (β set by the registered rule) released β = 0: the noisy CALIBRATION accuracy term stopped it; pair ≈ H_LJ.
-  H2 (decision-preserving residual, β 0.85) reached pair 0.6042 but income Brier +0.00497 (reserve not met) and a readable
+- **Record.** H1 (β set by the registered rule; seed 0 only) released β = 0: the noisy CALIBRATION accuracy term stopped it; pair ≈ H_LJ.
+  H2 (decision-preserving residual, β 0.85; seed 0 only) reached pair 0.6042 but income Brier +0.00497 (reserve not met) and a readable
   income view; abandoned. H3 (precision-aware rule; β 0.25 / 0.20): pair 0.6101 / 0.6136 at income Brier vs Ucal −0.0023 /
   −0.0033, RESERVE_MET (min ratio 2.862). STRONG's headroom over T_TREE (0.0016 / 0.0013 Brier) is visible on MODEL_SELECT but
   not on CALIBRATION (+0.0003); the CALIBRATION budget under-predicted the MODEL_SELECT Brier cost 6-9-fold.
@@ -38,10 +40,10 @@ are MODEL_SELECT development values (seed 0 / seed 1; pair = development pair pr
 - **Revise / abandon if.** A control explains the reduction at matched cost, or no budget inside the reserve reads below H_LJ.
 - **Closest known.** JOINT_TREE / LOCAL_TREE (the transported L_TREE recipe), the source campaign's CCLC, adversarial debiasing,
   FAGTB, distortion-constrained privacy-utility formulations.
-- **Record.** P1 (rho 3, per-epoch projection) was dominated by PC_JSCALE at the same budget (revise). P2 (rho 1, one end
+- **Record.** P1 (rho 3, per-epoch projection; seed 0 only) was dominated by PC_JSCALE at the same budget (revise). P2 (rho 1, one end
   projection): pair 0.6133 / 0.6157, qualified with a thin seed-1 margin over B2TWIN. P3 (same training, larger budget): pair
-  0.6072 / 0.6113 at income Brier vs Ucal −0.0001 / −0.0014, RESERVE_MET (2.677). Temperature at P3's cost reads 0.6363 (no
-  effect). PC_JSCALE_B60 reads 0.6083 / 0.6120: the trained step adds only ~0.001 of pair over scaling the stored JOINT
+  0.6072 / 0.6113 at income Brier vs Ucal −0.0001 / −0.0014, RESERVE_MET (2.677). Temperature on the twin at P3's cost reads 0.6363 on seed 0 (no
+  effect; one-seed control). PC_JSCALE_B60 reads 0.6083 / 0.6120: the trained step adds only ~0.001 of pair over scaling the stored JOINT
   correction, plus some income utility.
 
 ## Family O: occupation-side margin repair (investigator O; the recorded expansion, PROTOCOL.md §5 and §8)
@@ -62,5 +64,6 @@ are MODEL_SELECT development values (seed 0 / seed 1; pair = development pair pr
 ## Coordinator combinations (reserve configurations)
 
 CMB_P2JR_O1SEXBAL and CMB_P3JR_O1SEXBAL: a family-P income output beside O1's occupation output (no new fit). The occupation repair
-coexists with the income-side gain (CMB_P3: pair 0.6079 / 0.6093, men's guard 0.00166 / 0.00230); they qualify but lose the
-registered tie-break (equal income-reserve ratio, more model fits).
+coexists with the income-side gain (CMB_P3: pair 0.6079 / 0.6093, men's guard 0.00166 / 0.00230). Both qualify. CMB_P3 had the
+best development pair score but lost to H3 on the minimum income-reserve ratio (2.677 < 2.862); CMB_P2 was outside the 0.005
+near-tie window.

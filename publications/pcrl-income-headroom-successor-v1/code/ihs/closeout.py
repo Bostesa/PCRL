@@ -57,6 +57,16 @@ def main():
            'attack_sex_reads': [{k: e.get(k) for k in ('utc', 'role', 'purpose', 'unit_id')} for e in lab],
            'dev_report_follow_up_events': [{k: e.get(k) for k in ('event', 'utc', 'unit_id', 'purpose', 'reporting_lock_sha256')} for e in dev],
            'dev_report_note': "already-exposed development role; new follow-up event names; appended to this campaign's log and to the lineage-wide log; earlier logs and one-use counters untouched",
+           'training_and_calibration_exposure': {
+               'H': 'MODEL_FIT income labels (HistGradientBoosting, household-separated 5-fold CV); CALIBRATION income labels (STRONG stack, Platt maps, '
+                    'beta budget); no SEX in any new fit (the transplanted LOCAL / JOINT_TREE income corrections were trained with MODEL_FIT SEX by the replication)',
+               'P': 'MODEL_FIT income labels and SEX (online critics; SEX a training-time label only); CALIBRATION income labels for the optional '
+                    '2-parameter Platt map (off in P1); label-free distortion budget on MODEL_FIT people (projection toward the teacher); no MODEL_SELECT fitting',
+               'O': 'CALIBRATION occupation labels (temperature; OC_TBCAL bias); MODEL_FIT occupation labels and SEX (O1 bias, SEX a training-time label only; OC_BFIT without SEX)',
+               'CMB': 'no fit (combinations of stored releases)',
+               'MODEL_SELECT': 'labels and SEX only through ihs.references and ihs.devrun score (every read logged); guided adaptive choices and revisions '
+                               '(budgets, selection rules, the next configuration); never a gradient-fitting or calibration role for any release parameter',
+               'DEV_REPORT': 'lineage events before this campaign: 12; this campaign: one coordinator evaluation and one verifier replay'},
            'never_read': ['the sealed assessment (refused by every loader)', 'any new population, download or person-level file outside the admitted Florida 2019 development exports',
                           'ATTACK_FIT / ATTACK_VALIDATION SEX before a committed FINALIST_LOCK (refused by the loader)',
                           'DEV_REPORT truth outside the two registered follow-up events'],

@@ -1,0 +1,176 @@
+{
+ "schema": "IHS1-independent-verification-v1",
+ "campaign": "pcrl_income_headroom_successor_v1",
+ "role": "independent verifier with separate code (roles/coordinator/VERIFIER_BRIEF.md)",
+ "context": "Public-use U.S. Census Bureau ACS 2019 1-Year PUMS person records for Florida, development roles only; service predicts income class (2) and occupation group (5) from AGEP, WKHP, COW, SCHL, MAR, POBP; readers estimate the recorded SEX column from released probability vectors (each output alone and the linked pair). Development evidence on already-used records, conditional on the fitted releases and readers; two seeds are fits on the same people, not replications.",
+ "state_verified": {
+  "registration": "74376912c",
+  "finalist_freeze": "930235e9e",
+  "reporting_lock": "8e559efe8",
+  "nominee": "H/H3_STRONG_LJDIR_PB",
+  "matched_task_twin": "H/HC_STRONG",
+  "component_control": "H/HC_TTREE_LJDIR_PB"
+ },
+ "report": "roles/verifier/VERIFICATION.md",
+ "code_dir": "roles/verifier/code/",
+ "overall": "PASS on every verified number, label and selection; PARTIAL on documentation (check 10) with LOW / TRIVIAL wording items and two feasibility-document mismatches (one MODERATE); no numerical discrepancy",
+ "checks": {
+  "1_source_admission_and_role_integrity": {
+   "status": "PASS",
+   "admitted_copies_rehashed": 124,
+   "admitted_mismatches": 0,
+   "run_releases_rehashed": 34,
+   "run_release_mismatches": 0,
+   "final_banks_match_manifest": true,
+   "reader_files_and_locks_match_reporting_lock": true,
+   "gates_confirmed_from_code": ["sealed refusal", "MODEL_SELECT labels need committed registration, purpose, logged", "ATTACK SEX needs committed FINALIST_LOCK, purpose, logged", "dev_report_truth: registered event, one use per event, committed REPORTING_LOCK, hash check before the log"],
+   "live_refusals_without_log_lines": 4,
+   "model_select_log_lines": 40,
+   "model_select_lines_without_purpose": 0,
+   "attack_reads_before_finalist_lock_commit": 0,
+   "dev_events_this_campaign": ["DEV_REPORT_TRUTH_REREAD_BY_IHS_COORDINATOR 2026-10-18T03:08:07Z IHS_REPORT_V1", "DEV_REPORT_TRUTH_REREAD_BY_IHS_INDEPENDENT_VERIFIER 2026-10-18T03:17:54Z VER_DEV_REPLAY_V1"],
+   "lineage_dev_report_reads": 14
+  },
+  "2_training_and_calibration_exposure": {
+   "status": "PASS",
+   "note": "no MODEL_SELECT, ATTACK or DEV_REPORT label used to fit or calibrate the finalist, twin, component control or best H / P / O / combination configurations; MODEL_SELECT label reads only in score, reference and verifier units; first ATTACK SEX read 8 s after the FINALIST_LOCK commit; no MODEL_FIT fold described as unseen; SEX only as a MODEL_FIT training label (P critics, O balancing) or via stored corrections; runtime inputs the six fields; disclosed adaptive use of MODEL_SELECT summaries in H3's design"
+  },
+  "3_task_and_subgroup_metrics_and_SEs": {
+   "status": "PASS",
+   "evaluations": 42,
+   "configurations": 21,
+   "configuration_seeds": 34,
+   "references": ["H_LJ", "NEURAL_RAW", "B2TWIN", "RETIRED_B3CTL"],
+   "max_point_difference": 0.0,
+   "max_se_difference": 0.0,
+   "point_pass_flags_match": true,
+   "wire_hashes_match": true
+  },
+  "4_reserve_calculations": {
+   "status": "PASS",
+   "per_seed_screens_matching": "34 of 34 (status, failed conditions, min ratio)",
+   "two_seed_statuses_matching": "21 of 21",
+   "nominee_min_income_ratio": 2.8619483139645507,
+   "references": {"H_LJ": [5.5553, 4.1626], "NEURAL_RAW": [2.6545, 1.5575], "B2TWIN": [2.7978, 3.1148], "RETIRED_B3CTL": [0.4024, 0.3489]}
+  },
+  "5_development_proxies": {
+   "status": "PASS",
+   "releases": ["H3_STRONG_LJDIR_PB", "HC_STRONG", "HC_TTREE_LJDIR_PB", "NEURAL_RAW", "H_LJ"],
+   "cells": "A0, A1, B0, B1 on both release seeds",
+   "per_reader_cell_values_identical": "840 of 840",
+   "per_direction_aucs_identical": "840 of 840",
+   "max_difference": 0.0
+  },
+  "6_candidate_and_comparator_selection": {
+   "status": "PASS",
+   "labels_matching": "21 of 21",
+   "qualifying": ["CMB_P2JR_O1SEXBAL", "CMB_P3JR_O1SEXBAL", "P2_JR_B40", "P3_JR_B60", "PC_JSCALE_B60", "H3_STRONG_LJDIR_PB"],
+   "near_tie_set": ["CMB/CMB_P3JR_O1SEXBAL", "H/H3_STRONG_LJDIR_PB", "P/P3_JR_B60", "P/PC_JSCALE_B60"],
+   "best_score": 0.6086170012859595,
+   "choice": "H/H3_STRONG_LJDIR_PB",
+   "stored_choice": "H/H3_STRONG_LJDIR_PB"
+  },
+  "7_actual_transmitted_outputs": {
+   "status": "PASS",
+   "vectors_bitwise": "12 of 12 (finalist, twin, component control x 2 seeds x 2 tasks) vs RELEASE.npz and the final bank",
+   "own_formula_recompute_bitwise": "6 of 6",
+   "occupation_bitwise_H_LJ_JOINT_TREE": true,
+   "runtime_fields": ["AGEP", "WKHP", "COW", "SCHL", "MAR", "POBP"],
+   "refusals": ["SEX", "PINCP", "OCCP", "extra field", "reordered fields", "missing POBP", "hidden output"]
+  },
+  "8a_final_reader_refits": {
+   "status": "PASS",
+   "refits_per_seed": 48,
+   "av_arrays_bitwise": "96 of 96",
+   "dev_report_score_arrays_bitwise": "96 of 96",
+   "max_av_auc_difference": 0.0
+  },
+  "8b_winners": {
+   "status": "PASS",
+   "winners_matching": "96 of 96",
+   "candidate_aucs_recomputed": 608,
+   "max_auc_difference": 0.0
+  },
+  "8c_dev_report_replay": {
+   "status": "PASS",
+   "endpoints_per_scorecard": 130,
+   "max_point_difference": 0.0,
+   "max_se_difference": 2.168404344971009e-19,
+   "max_bound_difference": 1.734723475976807e-18,
+   "clause_pass_mismatches": 0,
+   "draw_vectors": "216 of 216 within 5.2e-18 of the stored draws",
+   "controls_inside_bands": "30 of 30",
+   "coordinator_evaluation_completed": true,
+   "coordinator_events": 1,
+   "labels_ENHANCED": {"E": "DEV_POINT_ELIGIBLE", "R2": "RESERVE_ERODED", "R3": "INCOME_CONFIDENCE_UNRESOLVED (4 of 12)", "P": "NOT_SUPERIOR_TO_ALL_ELIGIBLE [READER_SENSITIVE]", "N": "NON_WORSENING_UNRESOLVED", "M": "TASK_ONLY_ATTRIBUTION_ONLY", "C": "NOT_ESTABLISHED", "T": "TARGET_NOT_ESTABLISHED", "O": "INHERITED_CONSTRAINTS_BIND", "D": "NO_DESCRIPTIVE_GAIN_OVER_B2TWIN", "COMPOSITE": "NOT_COMPETITIVE"},
+   "labels_ORIGINAL": {"E": "DEV_POINT_ELIGIBLE", "R2": "RESERVE_ERODED", "R3": "INCOME_CONFIDENCE_UNRESOLVED (4 of 12)", "P": "NOT_SUPERIOR_TO_ALL_ELIGIBLE", "N": "NON_WORSENING_ESTABLISHED", "M": "TASK_ONLY_ATTRIBUTION_ONLY", "C": "NOT_ESTABLISHED", "T": "TARGET_NOT_ESTABLISHED", "O": "INHERITED_CONSTRAINTS_BIND", "D": "NO_DESCRIPTIVE_GAIN_OVER_B2TWIN", "COMPOSITE": "NOT_COMPETITIVE"},
+   "labels_match_stored": true,
+   "reader_sensitive_key": "NW_H_LJ|income|s1 (ENHANCED fails, ORIGINAL passes; claim P)",
+   "key_numbers": {
+    "BEN_NEURAL_RAW": {"s0": {"point": 0.01278, "L1": 0.00037}, "s1": {"point": 0.01233, "L1": -0.00148}},
+    "BEN_H_LJ": {"s0": {"point": 0.01414, "L1": 0.00916}, "s1": {"point": 0.01659, "L1": 0.00565}},
+    "NW_H_LJ_income_s1": {"ENHANCED": {"point": 0.00606, "U1": 0.02169}, "ORIGINAL": {"point": -0.00700, "U1": 0.00134}},
+    "BEN_TW": {"s0": {"point": 0.02848, "L1": 0.02199}, "s1": {"point": 0.03158, "L1": 0.02091}},
+    "BEN_CC": {"s0": {"point": 0.00203, "L1": -0.00258}, "s1": {"point": -0.00260, "L1": -0.01344}},
+    "R2_seed1_income_accuracy": {"loss": 0.00707, "margin": 0.00293, "ratio_se_units": 0.830, "required": 0.00610},
+    "O_below_rule": ["guard|sex0|s0", "guard|sex0|s1", "occupation|U0|nll_excess|s0", "occupation|U0|nll_excess|s1", "occupation|Ucal|nll_excess|s0", "occupation|Ucal|nll_excess|s1"]
+   }
+  },
+  "9_planning_feasibility": {
+   "status": "PASS (numbers); documentation discrepancies V9-D1, V9-D2",
+   "binding_clauses_margin_se": {"occupation NLL vs Ucal s0": 0.397619, "men's guard s1": 0.549741, "men's guard s0": 0.862423, "income accuracy s1": 0.868509},
+   "at_17510_households": {"occupation NLL vs Ucal s0": 0.836636, "men's guard s1": 1.156719, "men's guard s0": 1.814639, "income accuracy s1": 1.827444},
+   "weakest_condition_analytic_households": 113758,
+   "stored_joint_D1_households": 128599,
+   "joint_reproduction": "own Gaussian MC and bootstrap rescaling reproduce the stored 80%-power counts to within one grid step",
+   "not_recomputed": ["S4 reader-refit spread", "S6 assurance"]
+  },
+  "10_labels_and_limitations": {
+   "status": "PARTIAL",
+   "note": "every checked number matches; required caveats present in RESEARCH_DECISION.md; wording items V10-F1 to F4 (LOW), F5 to F7 (TRIVIAL), F8 to F10 (INFO); documents may still change (state at about 03:25Z)"
+  }
+ },
+ "discrepancies": [
+  {"id": "V9-D2", "severity": "MODERATE", "description": "CONFIRMATION_FEASIBILITY.md S4 reader-refit row and conclusion 1 quote about 733,000 households (ENHANCED); the JSON names ORIGINAL as governing for S4|D1 and S4|D2 at 1,355,573 households (limit 0.828); under the document's own less-favourable-governs rule the requirement is about 1.36 million. Documentation only; no claim or decision change; S4 not recomputed by the verifier."},
+  {"id": "V9-D1", "severity": "LOW", "description": "CONFIRMATION_FEASIBILITY.md 'true slack 0.002' row gives D2 about 157,800 (ORIGINAL's 157,828); the JSON's governing ENHANCED value is 174,847, reproduced by both verifier methods."},
+  {"id": "V7-D1", "severity": "LOW", "description": "ihs/deploy.py changed after REPORTING_LOCK and the DEV read (commit f615cbf53, 03:15:07Z; +3 lines adding family H's Step-1 HGB files to package dependency hashes). Not covered by any lock; no output changed (check 7 bitwise); not recorded in PROTOCOL_DEVIATIONS.md."},
+  {"id": "V10-F1", "severity": "LOW", "description": "RESEARCH_DECISION.md:61-62 and MECHANISM_CARDS.md:66: 'lost the tie-break (equal income ratio; more model fits)' is wrong. CMB_P3JR_O1SEXBAL lost to H3 on the min income ratio (2.677 < 2.862); equal ratio and more fits only order it behind P3_JR_B60; CMB_P2JR_O1SEXBAL was outside the near-tie window. No label changes."},
+  {"id": "V10-F2", "severity": "LOW", "description": "'Established income headroom' (RESEARCH_DECISION.md:22, 119, 128; START_HERE.md:27; HANDOFF_DECISION.json status INCOME_HEADROOM_ESTABLISHED_NOT_COMPETITIVE, not a registered label). Registered labels are R2 RESERVE_ERODED and R3 INCOME_CONFIDENCE_UNRESOLVED (4 of 12); supported only for the 8 income Brier / NLL clauses, as development evidence on already-used records; needs 'for Brier and NLL' everywhere."},
+  {"id": "V10-F3", "severity": "LOW", "description": "RESEARCH_DECISION.md:16-19 and START_HERE.md:21-22 state reader results without 'evidence against the declared readers and auxiliary budget only'."},
+  {"id": "V10-F4", "severity": "LOW", "description": "Claims M / C wording beyond the registered sentence (RESEARCH_DECISION.md:110-111 'do the recovery work'; MANUSCRIPT_CLAIMS_HANDOFF.md:18 'The privacy work is done by...'); mandatory M qualifiers not printed beside the label (S - TW and S - CC NLL / Brier differences, TW's own eligibility and reserve, TW's pair benefit against the references, negative on DEV: TW pair 0.6557 / 0.6578 vs H_LJ 0.6414 / 0.6428)."},
+  {"id": "V10-F5", "severity": "TRIVIAL", "description": "RESEARCH_DECISION.md:94 '0.0143' should be 0.0142 (seed-0 pair difference vs the retired candidate 0.014248)."},
+  {"id": "V10-F6", "severity": "TRIVIAL", "description": "RESEARCH_DECISION.md:107 '(0.0016 / 0.0033)' should be 0.0016 / 0.0032 (MODEL_SELECT pair-proxy differences HC_TTREE_LJDIR_PB - H3: 0.001563 / 0.003243)."},
+  {"id": "V10-F7", "severity": "TRIVIAL", "description": "MANUSCRIPT_CLAIMS_HANDOFF.md:10-11 'household-clustered SEs': DEV_REPORT SEs are household-bootstrap SEs, and the 3.8 lower end uses max(SE_S, SE_H_LJ)."},
+  {"id": "V10-F8", "severity": "INFO", "description": "Cited closeout files absent at check time: BACKUP_VERIFICATION.json, RESOURCE_ACCOUNTING.json, ACCESS_RECEIPT.json, HANDOFF.json, PUBLICATION_RECORD.json, INDEPENDENT_VERIFICATION.json (closeout in progress)."},
+  {"id": "V10-F9", "severity": "INFO", "description": "HANDOFF_DECISION.json / NOMINATION.json call CMB_P3JR_O1SEXBAL the 'best diagnostic package'; NOMINATION_RULE.md defines that term only for the no-qualifier case."},
+  {"id": "V10-F10", "severity": "INFO", "description": "Family O 'information-preserving' / 'bijection' wording describes the exact map; consistent with equal distinct-vector counts against H_LJ on MODEL_SELECT (7,500 / 7,500; 7,498 / 7,498); no population information-equality inference follows."},
+  {"id": "V7-D2", "severity": "INFO", "description": "FINALIST_LOCK.json does not list the HGB model file; it is covered via the locked STATE.json, whose recorded hash matches on disk."},
+  {"id": "V8-I1", "severity": "INFO", "description": "Coordinator unit IHS_REPORT_V1 is recorded FAILED by the queue (KeyError in the __main__ print after run() returned); all outputs were complete and are reproduced exactly; one coordinator event; disclosed in PROTOCOL_DEVIATIONS.md item 6."},
+  {"id": "V1-I1", "severity": "INFO", "description": "Two MODEL_SELECT label reads precede the registration commit (IHS_REFERENCES_S0_V1 / S1_V1, historical references only); disclosed in PROTOCOL_DEVIATIONS.md item 2; the reference cells reproduce bitwise under the current evaluator (check 5)."}
+ ],
+ "dev_truth_event": {
+  "event": "DEV_REPORT_TRUTH_REREAD_BY_IHS_INDEPENDENT_VERIFIER",
+  "utc": "2026-10-18T03:17:54+00:00",
+  "unit_id": "VER_DEV_REPLAY_V1",
+  "reporting_lock_sha256": "6f7ee4c1a8aa876df334f7556c5b09e3e6544a8ae3d1b84019e424618f8de749",
+  "count": 1,
+  "via": "ihs.common.dev_report_truth"
+ },
+ "verifier_units": [
+  {"unit": "VER_READERS_WINNERS_V1", "status": "done", "wall_s": 1.044, "cpu_s": 0.775},
+  {"unit": "VER_REDEPLOY_V1", "status": "done", "wall_s": 5.056, "cpu_s": 4.684},
+  {"unit": "VER_READERS_S0_V1", "status": "done", "wall_s": 29.199, "cpu_s": 28.612},
+  {"unit": "VER_READERS_S1_V1", "status": "done", "wall_s": 29.1, "cpu_s": 28.742},
+  {"unit": "VER_PROXY_CELLS_V1", "status": "done", "wall_s": 125.03, "cpu_s": 124.195},
+  {"unit": "VER_DEV_DRYRUN_INVENTED_V1", "status": "done", "wall_s": 11.102, "cpu_s": 10.835},
+  {"unit": "VER_FEAS_CHECK_V1", "status": "done", "wall_s": 22.43, "cpu_s": 22.331},
+  {"unit": "VER_DEV_REPLAY_V1", "status": "done", "wall_s": 12.475, "cpu_s": 12.14},
+  {"unit": "VER_PROXY_CELLS_S1_V1", "status": "done", "wall_s": 125.249, "cpu_s": 124.411},
+  {"unit": "VER_MS_CHECKS_V1", "status": "done", "wall_s": 1.587, "cpu_s": 1.159, "note": "verifier wire-hash definition corrected in V2; numbers identical"},
+  {"unit": "VER_MS_CHECKS_V2", "status": "done", "wall_s": 1.542, "cpu_s": 1.157},
+  {"unit": "VER_ADMISSION_V1", "status": "done", "wall_s": 0.592, "cpu_s": 0.45},
+  {"unit": "VER_DEPLOY_MECHANISM_V1", "status": "done", "wall_s": 2.22, "cpu_s": 1.871}
+ ],
+ "verifier_units_total": {"units": 13, "failed": 0, "wall_s": 366.6, "cpu_s": 361.4},
+ "label_reads": {"MODEL_SELECT": 4, "ATTACK_SEX": 5, "DEV_REPORT_truth": 1, "sealed_assessment": 0}
+}
