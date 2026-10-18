@@ -218,9 +218,74 @@ def score(family, config_id, seed, version, kind, budget_class, counts, hypothes
     return results, n
 
 
+def load_complete(family, config_id, seed, roles=None):
+    """A complete release (both tasks, all six roles) saved as RELEASE.npz / RELEASE.json (income branch)."""
+    d = occ_dir(family, config_id, seed)
+    rec = json.loads((d / 'RELEASE.json').read_text())
+    if C.sha(d / 'RELEASE.npz') != rec['release_sha256']:
+        raise PermissionError('release file differs from its record')
+    out = {}
+    with np.load(d / 'RELEASE.npz') as z:
+        for k in z.files:
+            role, t = k.split('__')
+            if roles is None or role in roles:
+                out.setdefault(role, {})[t] = z[k].copy()
+    return out, rec
+
+
+def save_complete(family, config_id, seed, rel_by_role, record):
+    """Write RELEASE.npz / RELEASE.json for a complete release (income branch); refuses overwrites."""
+    d = occ_dir(family, config_id, seed)
+    if (d / 'RELEASE.npz').exists():
+        raise PermissionError(f'{family}/{config_id}/S{seed} already exists (append-only; use a new configuration id)')
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if set(C.ROLES6) - set(rel_by_role):
+        raise ValueError('complete release must cover all six roles')
+    arrays = {f'{role}__{t}': _check_prob(rel_by_role[role][t], C.K[t], f'{role} {t}') for role in C.ROLES6 for t in C.TASKS}
+    with open(d / 'RELEASE.npz', 'wb') as f:
+        np.savez(f, **arrays)
+    rec = {**record, 'family': family, 'config_id': config_id, 'seed': seed, 'utc': C.now(), 'interpreter': sys.executable,
+           'python': sys.version.split()[0], 'numpy': np.__version__, 'release_sha256': C.sha(d / 'RELEASE.npz'),
+           'wire_sha256': {k: C.wire_sha(v) for k, v in arrays.items()}, 'unit_id': os.environ.get(C.UNIT_ENV)}
+    for key in ('n_model_fits', 'n_calibrator_fits', 'n_crossfit_fits', 'operation', 'roles_read', 'exposure', 'fit_cpu_s', 'kind'):
+        if key not in rec:
+            raise ValueError(f'RELEASE.json record needs {key!r}')
+    (d / 'RELEASE.json').write_text(json.dumps(rec, indent=1, sort_keys=True, default=float) + '\n')
+    return d
+
+
+def score_complete(family, config_id, seed, version, kind, budget_class, counts, hypothesis, change, training, selection, notes=''):
+    """Score a complete release (both tasks from RELEASE.npz) with the registered evaluator -> EVAL_MS_COMPLETE.json + ledger row."""
+    from . import evaluate as EV
+    from . import ledger as L
+    from . import rules as RU
+    t0 = time.process_time()
+    rel, rec = load_complete(family, config_id, seed, roles=('MODEL_SELECT',))
+    S, refs, others = EV.ms_context(seed, purpose=f'development utility evaluation {family}/{config_id}/S{seed} (complete release)')
+    m = EV.complete_eval(seed, rel['MODEL_SELECT']['income'], rel['MODEL_SELECT']['occupation'], S, refs, others)
+    m['reserve'] = RU.reserve({seed: m})
+    (occ_dir(family, config_id, seed) / 'EVAL_MS_COMPLETE.json').write_text(json.dumps(m, indent=1, sort_keys=True, default=float) + '\n')
+    row = {'family': family, 'version': version, 'config_id': config_id, 'seed': seed, 'anchor': 'COMPLETE', 'kind': kind,
+           'budget_class': budget_class, 'counts': int(counts), 'n_model_fits': rec.get('n_model_fits', ''),
+           'n_calibrator_fits': rec.get('n_calibrator_fits', ''), 'n_crossfit_fits': rec.get('n_crossfit_fits', ''),
+           'code_sha256': L.code_sha(Path(__file__), Path(EV.__file__)), 'unit_id': os.environ.get(C.UNIT_ENV, ''),
+           'interpreter': rec.get('python', ''), 'hypothesis': hypothesis, 'change_from_previous': change,
+           'roles_read': str(rec.get('roles_read', '')) + ' | MODEL_SELECT (labels, SEX: development evaluation, logged)',
+           'training_effort': training, 'selection_effort': selection,
+           'cpu_s': round(float(rec.get('fit_cpu_s', 0.0)) + time.process_time() - t0, 1), 'notes': notes, **L.summarize(m)}
+    return m, L.append(row)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
+    sc = sub.add_parser('score-complete')
+    for a in ('--family', '--config', '--hypothesis', '--change', '--training', '--selection'):
+        sc.add_argument(a, required=True)
+    sc.add_argument('--seed', type=int, required=True); sc.add_argument('--version', default='')
+    sc.add_argument('--kind', default='income_branch', choices=('income_branch', 'control', 'privacy', 'stability'))
+    sc.add_argument('--budget-class', default='INC8', choices=('OCC36', 'PRIV24', 'INC8', 'CTRL12', 'NONE'))
+    sc.add_argument('--counts', type=int, default=1); sc.add_argument('--notes', default='')
     e = sub.add_parser('score')
     for a in ('--family', '--config', '--hypothesis', '--change', '--training', '--selection'):
         e.add_argument(a, required=True)
@@ -232,6 +297,12 @@ def main(argv=None):
     e.add_argument('--notes', default=''); e.add_argument('--code', action='append', default=[])
     r = sub.add_parser('references'); r.add_argument('--seed', type=int, required=True)
     a = ap.parse_args(argv)
+    if a.cmd == 'score-complete':
+        from . import ledger as L
+        m, n = score_complete(a.family, a.config, a.seed, a.version, a.kind, a.budget_class, a.counts, a.hypothesis, a.change,
+                              a.training, a.selection, a.notes)
+        print(json.dumps({'ledger_entry': n, 'complete': L.summarize(m)}, default=float))
+        return
     if a.cmd == 'references':
         out = references(a.seed)
         print(json.dumps({k: {'point_pass_12': v['utility']['point_pass_12'], 'guard_pass': v['utility']['guard_pass']} for k, v in out.items()}))

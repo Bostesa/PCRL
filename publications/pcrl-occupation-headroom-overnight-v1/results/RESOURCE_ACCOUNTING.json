@@ -1,0 +1,682 @@
+{
+ "agent_charges": [
+  {
+   "charged_cpu_s": 15.0,
+   "label": "STATISTICAL_REVIEWER_AGENT",
+   "note": "rule writing: reading source JSON/CSV records, critical-value computation with scipy, py_compile of ohn/rules.py and ohn/test_rules.py (upper estimate)"
+  },
+  {
+   "charged_cpu_s": 60.0,
+   "label": "CLOSEST_WORK_AGENT",
+   "note": "literature review, no numerical work"
+  },
+  {
+   "charged_cpu_s": 90.0,
+   "label": "INVESTIGATOR_A_AGENT",
+   "note": "family A out-of-queue work (upper estimate): reading source/registration files and JSON records, py_compile of ohn/fam_a.py, label-free compact-coding check on the six roles' features, a tiny invented-array XGBoost API check (.venv), EVAL/OCC JSON summaries, two-seed reserve computation from saved EVAL JSON with ohn.rules (no label read), git log/show"
+  },
+  {
+   "charged_cpu_s": 90.0,
+   "label": "INVESTIGATOR_C_AGENT",
+   "note": "investigator C out-of-queue light work (upper estimate): py_compile checks, JSON summaries of fit/score records, label-free feature/teacher/TASK_REFIT-magnitude and class-shift inspections, read-only witness-rule application to stored evaluations; no label read outside the queue"
+  },
+  {
+   "charged_cpu_s": 180.0,
+   "label": "INVESTIGATOR_B_AGENT",
+   "note": "family B out-of-queue work (upper estimate): py_compile checks, light JSON/ledger/queue reads and summaries, one label-free MODEL_FIT feature summary, code patch scripts, git log checks; no label read outside the queue"
+  },
+  {
+   "charged_cpu_s": 10.0,
+   "label": "INVESTIGATOR_B_AGENT",
+   "note": "family B: label-free check that deployed base models coincide across seeds (MODEL_SELECT features only) and final JSON reads"
+  },
+  {
+   "charged_cpu_s": 60.0,
+   "label": "INVESTIGATOR_A_AGENT",
+   "note": "income branch out-of-queue work (upper estimate): reading source STEP1/STATE records and the briefs, py_compile of ohn/fam_inc.py, label-free fold-function equality check, label-free decision-agreement comparison of saved INC and source releases, EVAL/GRID JSON summaries, two-seed reserve computation from saved EVAL JSON (no label read)"
+  },
+  {
+   "charged_cpu_s": 120.0,
+   "label": "VERIFIER_AGENT",
+   "note": "independent verifier out-of-queue light work 05:42-07:32Z: JSON/log parsing (v_access, v_reserve, v_tables, v_nominate, v_provenance, v_checks), paired-grid recomputation from GRID.json/BOOT.npz (v_grid paired, ~0.2 s per run), invented-data feature unit test, py_compile (upper estimate)"
+  },
+  {
+   "charged_cpu_s": 200.0,
+   "label": "READER_ROBUSTNESS_AGENT",
+   "note": "reader-robustness investigator out-of-queue light work (upper estimate): label-free analysis of grid outputs (rr_analysis.py, rr_table.py, rr_index.py runs over GRID.json / BOOT.npz / PROBE.json / R3.json / LCFIX.json), ohn.grid_summary runs into roles/reader_robustness, probe / split / learning-curve summaries (summarize, lcfixed_summary; label-free), py_compile checks, JSON inspections and queue-status reads; no label read outside the queue; queue units OHN_RR_* total 1852.1 CPU-s (31 units, 1 failed selftest)"
+  },
+  {
+   "charged_cpu_s": 60.0,
+   "label": "ENGINEERING_REVIEW_AGENT",
+   "note": "engineering/deployment review out-of-queue work (upper estimate): code reading, record/log JSON parsing, git-history hashing, 7 label-free package builds, py_compile, CHECKS.json builder runs with 12 negative gate tests refused before any data access, publication leak scan; queue units OHN_ENG_* charged separately (206.1 CPU-s)"
+  },
+  {
+   "charged_cpu_s": 180.0,
+   "label": "PROTECTION_AGENT",
+   "note": "protection investigator out-of-queue work (upper estimate): py_compile of ohn/protect.py, about 40 light scripts reading EVAL_MS / OCC / GRID / SUMMARY JSON, grid-spec writes, ledger appends, grid_summary merges, frontier tables; no fit or label read outside the queue"
+  },
+  {
+   "charged_cpu_s": 60.0,
+   "label": "VERIFIER_AGENT",
+   "note": "independent verifier out-of-queue light work 07:48-07:59Z (resume): nomination replay from own records and GRID.json/BOOT.npz (~1 s per run), paired-grid and table recomputations, access-log parsing, JSON record edits, py_compile (upper estimate)"
+  },
+  {
+   "charged_cpu_s": 15.0,
+   "label": "VERIFIER_AGENT",
+   "note": "independent verifier out-of-queue light work 08:02-08:06Z: code-closure re-hash in the restored copy (380 entries), restore summary record, rm of the extracted copy (upper estimate)"
+  }
+ ],
+ "ceilings": {
+  "CTRL12": 12,
+  "INC8": 8,
+  "OCC36": 36,
+  "PRIV24": 24,
+  "TOTAL": 80
+ },
+ "charged_cpu_h": 4.922,
+ "cloud_or_paid_compute_usd": 0,
+ "configurations": [
+  {
+   "class": "OCC36",
+   "config_id": "A0_HGB_S",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "A0_HGB_L",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C1_RB_D2",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B1_STACK",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B1_SINGLE",
+   "family": "B",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C1_RB_D1",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "A1_PO_8",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "A1_PO_16",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "CC_CONT_D4",
+   "family": "C",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "CC_VSCAL",
+   "family": "C",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "A1_PO_8",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "A1_PO_16",
+   "family": "A",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B2_STACK",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B2_SINGLE",
+   "family": "B",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C2_XF_D2",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C2_XF_D1",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "CC_XF_CONT_D4",
+   "family": "C",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B2_STACK",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B2_SINGLE",
+   "family": "B",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B1_STACK",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B1_SINGLE",
+   "family": "B",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C2_XF_D1",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C3_XC_D1",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C3_XC_D2",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C3_XC_D1",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "C3_XC_D2",
+   "family": "C",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B3_CALTR",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 0
+  },
+  {
+   "class": "OCC36",
+   "config_id": "B3_CALTR",
+   "family": "B",
+   "kind": "task_model",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P1_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P1_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "INC8",
+   "config_id": "INC_TW_PO",
+   "family": "INC",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P1_PAIR_M90",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "INC8",
+   "config_id": "INC_TW_PO",
+   "family": "INC",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "INC8",
+   "config_id": "INC_H3_PO",
+   "family": "INC",
+   "kind": "income_branch",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P1_CONT",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P1_LOC_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "INC8",
+   "config_id": "INC_H3_PO",
+   "family": "INC",
+   "kind": "income_branch",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_M90",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2_CONT",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_LOC_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2_COMP_B80",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2_COMP_M90",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_PAIR_M90",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2A_CONT",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2A_COMP_B80",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_LOC_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_PAIR_M90",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2_CONT",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2_COMP_B80",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2A_CONT",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "CTRL12",
+   "config_id": "P2A_COMP_B80",
+   "family": "PROT",
+   "kind": "control",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P3_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P3_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P3A_PAIR_B50",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P3A_PAIR_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 0
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2_LOC_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  },
+  {
+   "class": "PRIV24",
+   "config_id": "P2A_LOC_B80",
+   "family": "PROT",
+   "kind": "privacy",
+   "seed": 1
+  }
+ ],
+ "configurations_by_class": {
+  "CTRL12": 10,
+  "INC8": 4,
+  "OCC36": 28,
+  "PRIV24": 23
+ },
+ "configurations_total": 65,
+ "cpu_limit_h": 14.0,
+ "cpu_s_by_stage": {
+  "admission": 7.1,
+  "closeout": 0.5,
+  "custody": 91.8,
+  "deployment_check": 563.5,
+  "diagnostic": 2192.2,
+  "fit": 8201.4,
+  "readers": 4694.0,
+  "score": 83.5,
+  "selection": 4.1,
+  "selftest": 316.1,
+  "verification": 426.7
+ },
+ "cpu_s_by_unit_prefix": {
+  "OHN_A": 1583.5,
+  "OHN_ADMIT": 0.6,
+  "OHN_B": 2579.9,
+  "OHN_BACKUP": 91.8,
+  "OHN_C": 1772.0,
+  "OHN_CLOSEOUT": 0.2,
+  "OHN_DECOMP": 3.4,
+  "OHN_DEPLOY": 253.7,
+  "OHN_DEVGRID": 79.1,
+  "OHN_ENG": 206.1,
+  "OHN_EVAL": 0.9,
+  "OHN_FRONTIER": 0.1,
+  "OHN_GRID": 2135.0,
+  "OHN_INC": 1010.6,
+  "OHN_NOMINATE": 4.1,
+  "OHN_PROT": 4521.5,
+  "OHN_REFERENCES": 3.6,
+  "OHN_RR": 1852.1,
+  "OHN_RULES": 0.1,
+  "OHN_SEED": 4.0,
+  "OHN_SOURCE": 5.4,
+  "OHN_TABLES": 0.2,
+  "OHN_WITNESS": 0.1,
+  "VER_DEPLOY": 146.0,
+  "VER_GRID": 271.4,
+  "VER_OUTPUTS": 1.7,
+  "VER_PREDICT": 40.8,
+  "VER_RESTORE": 2.8,
+  "VER_SOURCE": 0.8,
+  "VER_UTILITY": 9.4
+ },
+ "development_reader_cache_hits": 14124,
+ "development_reader_fits_requested": 87360,
+ "development_reader_note": "grid ledger rows: requested reader fits and cache hits (identical views are read from the cache); diagnostic probes, learning-curve fixed-recipe reads and verifier refits are counted in their units",
+ "elapsed_h": 3.981,
+ "elapsed_limit_h": 8.5,
+ "failed_units": [
+  {
+   "charged_cpu_s": 0.075,
+   "returncode": 1,
+   "stage": "admission",
+   "unit": "OHN_ADMIT_V1"
+  },
+  {
+   "charged_cpu_s": 1.086,
+   "returncode": 1,
+   "stage": "selftest",
+   "unit": "OHN_PROT_SELFTEST_V1"
+  },
+  {
+   "charged_cpu_s": 9.642,
+   "returncode": 1,
+   "stage": "selftest",
+   "unit": "OHN_B_SELFTEST_V4"
+  },
+  {
+   "charged_cpu_s": 8.895,
+   "returncode": 1,
+   "stage": "selftest",
+   "unit": "OHN_PROT_SELFTEST_V2"
+  },
+  {
+   "charged_cpu_s": 49.618,
+   "returncode": 1,
+   "stage": "diagnostic",
+   "unit": "OHN_C_DRYRUNFULL_C2_XF_D2_S0_V1"
+  },
+  {
+   "charged_cpu_s": 49.765,
+   "returncode": -15,
+   "stage": "fit",
+   "unit": "OHN_PROT_P1_PAIR_S0_V1"
+  },
+  {
+   "charged_cpu_s": 49.742,
+   "returncode": -15,
+   "stage": "fit",
+   "unit": "OHN_PROT_P1_CONT_S0_V1"
+  },
+  {
+   "charged_cpu_s": 407.669,
+   "returncode": 1,
+   "stage": "fit",
+   "unit": "OHN_INC_STEP1_S0_V1"
+  },
+  {
+   "charged_cpu_s": 409.415,
+   "returncode": 1,
+   "stage": "fit",
+   "unit": "OHN_INC_STEP1_S1_V1"
+  },
+  {
+   "charged_cpu_s": 12.751,
+   "returncode": 1,
+   "stage": "selftest",
+   "unit": "OHN_RR_PROBE_SELFTEST_V1"
+  },
+  {
+   "charged_cpu_s": 0.946,
+   "returncode": 1,
+   "stage": "diagnostic",
+   "unit": "OHN_SEED_IDENTITY_A_V1"
+  }
+ ],
+ "fits": {
+  "n_calibrator_fits": 1227,
+  "n_crossfit_fits": 4870,
+  "n_model_fits": 1006
+ },
+ "heavy_process_limit": 2,
+ "model_fits_by_family": {
+  "A": 36,
+  "B": 620,
+  "C": 66,
+  "INC": 4,
+  "PROT": 280
+ },
+ "processes_left_running": [],
+ "research_limit_h": 8.0,
+ "schema": "OHN1-resource-accounting-v1",
+ "start_utc": "2026-10-18T04:36:11+00:00",
+ "threads_per_job": 1,
+ "units_done": 323,
+ "units_failed": 11,
+ "utc": "2026-10-18T08:35:02+00:00"
+}

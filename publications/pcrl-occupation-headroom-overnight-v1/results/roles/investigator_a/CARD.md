@@ -152,3 +152,111 @@ revisions, at most two predefined capacity settings per revision, both seeds. Ai
 task-model work by about 08:00Z.
 
 ## Record of fits and revisions (appended as they happen)
+
+### Initial design, seed 0 (fits 05:11:36-05:13:48Z; scores 05:25Z and 05:42Z)
+
+- Units `OHN_A_A0_HGB_S_S0_V1` (131.6 CPU-s) and `OHN_A_A0_HGB_L_S0_V1` (127.2 CPU-s): 36 HGB fits each (6 deployed pipeline + 30
+  cross-fitting) and 7 temperature diagnostic fits each. T\* = 71 / 40 (cross-fitting pipelines 58-64 / 37-41); no flag.
+- Internal (no MODEL_SELECT): cross-fitted MODEL_FIT NLL 1.22342 / 1.22649, Brier 0.61822 / 0.61907, accuracy 0.49365 / 0.49245;
+  pooled inner-CV minimum 1.22166 / 1.22470 followed by a sharp rise (S 1.2347 at 300 iterations; L 1.2762 at 300); committee of
+  the 5 inner models minus refit, cross-fitted NLL -0.00130 (SE 0.00030) / -0.00306 (SE 0.00049); CALIBRATION temperature 0.956 /
+  0.964 with cross-fitted NLL change -0.00029 (SE 0.00059) / -0.00015 (SE 0.00049): no calibration problem.
+- MODEL_SELECT (anchor H3), S / L: occupation NLL excess vs U0 -0.00349 (SE 0.00251) / +0.00010 (SE 0.00278); Brier -0.00220
+  (0.00108) / -0.00096 (0.00118); accuracy loss -0.00212 (0.00322) / +0.00100 (0.00325); men's guard +0.00086 (0.00155) / +0.00251
+  (0.00170); women's -0.00533 (0.00151) / -0.00452 (0.00167). Against T_TREE: NLL +0.00864 (0.00196) / +0.01223 (0.00220), Brier
+  +0.00292 (0.00086) / +0.00416 (0.00099); against TASK_REFIT NLL +0.01030 / +0.01389. The deficit is spread over all five classes
+  and both SEX groups. Deployed minus fold-average NLL -0.00061 (0.00054) / +0.00327 (0.00070). L fails the reserve on the men's guard.
+- Trigger met: **replacement** (both initial settings worse than T_TREE on MODEL_SELECT NLL and Brier); also the variance trigger
+  for L. Not capacity (T\* far from T_max; smaller trees better) and not calibration.
+
+### Diagnostic unit, seed 0 (MODEL_FIT only; no release, no MODEL_SELECT; decided ~05:17-05:27Z)
+
+Pooled 5-fold inner-CV occupation NLL on MODEL_FIT, the same seed-0 inner folds as A0 (so directly comparable with A0_HGB_S's
+1.22166); 5 HGB fits per setting (25 fits; units `OHN_A_DIAG_D1D4_S0_V1` 98 CPU-s, `OHN_A_DIAG_D5_S0_V1` 548 CPU-s; settings in
+`ohn/fam_a.py` DIAG_SETTINGS, fixed before the A0 MODEL_SELECT score was read except D5's iteration cap, raised to 2000 after it):
+
+| Setting | change from A0_HGB_S | T\* | OOF NLL min | Brier | accuracy |
+|---|---|---|---|---|---|
+| A0_HGB_S | (lr 0.05, 8 leaves, min leaf 50, l2 1, native COW/MAR/POBP) | 71 | 1.22166 | | 0.4929 |
+| D1 | lr 0.025, min leaf 100, l2 3 | 155 | 1.22167 | 0.61782 | 0.4931 |
+| D2 | D1 with 4 leaves | 273 | 1.22183 | 0.61833 | 0.4921 |
+| D3 | D1 with 16 leaves, min leaf 200 | 96 | 1.22349 | 0.61844 | 0.4929 |
+| **D4** | **D1 with POBP as its ordinal place-of-birth code** | 279 | **1.21073** | 0.61351 | 0.4962 |
+| D5 | D1 on the admitted one-hot X (no native categories; SCHL one-hot) | 397 | 1.22219 | 0.61799 | 0.4938 |
+
+Diagnosis: the failure is the native-category POBP split (106 admitted levels, many rare). scikit-learn's categorical split
+takes, in every node, the best binary partition of the levels ordered by their gradient statistics; on 20,000 people this fits
+noise in level means, and neither leaf size, L2, learning rate nor tree size touches it (D1-D3). Coding POBP as its numeric
+place-of-birth code (US states 001-056, territories 072/078, Europe 100-164, Asia 207-247, the Americas 301-373, Africa 440/449,
+`__OTHER__` = 999) lets trees split only contiguous code ranges, i.e. pool related countries; the OOF NLL falls by 0.0109 and the
+curve is flat after its minimum. One level per split (D5) does not help: it cannot pool related countries (and loses SCHL's order).
+
+### Revision 1 (replacement of the POBP coding): `A1_PO_8`, `A1_PO_16` (decided 05:43Z, before their fits)
+
+- One change from the initial design: the re-coding `compact_po` (deterministic from X): AGEP, WKHP as admitted; COW, MAR native
+  categories; SCHL ordinal; **POBP = its numeric place-of-birth code** (`__OTHER__` = 999), at the diagnostic's neutral
+  regularisation (learning rate 0.025, min leaf 100, l2 3). Everything else as the initial design: seed-specific inner CV for T\*,
+  refit on all MODEL_FIT, full nested household cross-fitting, no calibrator (temperature diagnostic only), no SEX.
+- Two predefined capacity settings: `A1_PO_8` = 8 leaves, T_max 1200 (the diagnostic's D4); `A1_PO_16` = 16 leaves, T_max 1000
+  (more interaction capacity now that the POBP overfitting is removed).
+- Matched controls: unchanged (T_TREE, TASK_REFIT, U0, Ucal; the fold-average and the cross-fitted committee diagnostic; no
+  calibrator, so no calibration control).
+- Recorded expectation: A1_PO_8 inner OOF about 1.211; MODEL_SELECT NLL about 0.008-0.011 better than A0_HGB_S, i.e. about T_TREE's
+  level (-0.012) or slightly better; Brier about -0.004 to -0.006; men's guard unknown.
+- Selection caveat: the coding was chosen with the seed-0 inner CV on all of MODEL_FIT (5 diagnostic settings), so the pipeline's
+  cross-fitted check does not cover that choice (mild optimism); MODEL_SELECT remains the arbiter, and seed 1 uses its own folds.
+- Next: promising (MODEL_SELECT NLL and Brier below T_TREE's, both guards no worse than T_TREE's + 0.001) -> seed 1 for the better
+  setting(s); below T_TREE but not TASK_REFIT, or a committee gain above about 0.001 in the cross-fitted diagnostic -> Revision 2
+  (variance reduction: committee deployment); no gain over A0 -> stop the representation line and report.
+
+### Revision 1 results, both seeds (fits 05:43-06:00Z; scores 05:46-06:01Z; commit cb89a8b51 before the first fit)
+
+Units `OHN_A_A1_PO_8_S0_V1` 111.6, `OHN_A_A1_PO_16_S0_V1` 125.9, `OHN_A_A1_PO_8_S1_V1` 110.8, `OHN_A_A1_PO_16_S1_V1` 128.4 CPU-s; 36
+HGB fits and 7 temperature diagnostic fits each; no flag. A1_PO_8's pooled seed-0 inner-CV minimum (1.21073) equals diagnostic D4
+exactly (same setting and folds). MODEL_SELECT, anchor H3, occupation against U0 (SE), and paired against the task-only references:
+
+| Config / seed | T\* | OOF NLL (MODEL_FIT, cross-fitted) | NLL excess | Brier excess | accuracy loss | men's guard | women's guard | NLL vs T_TREE | Brier vs T_TREE | NLL vs TASK_REFIT | Brier vs TASK_REFIT |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1_PO_8 / 0 | 279 | 1.21253 | -0.01443 (0.00265) | -0.00628 (0.00121) | -0.00962 (0.00341) | -0.00344 (0.00170) | -0.00917 (0.00171) | -0.00231 (0.00166) | -0.00115 (0.00074) | -0.00064 (0.00166) | -0.00063 (0.00075) |
+| A1_PO_16 / 0 | 168 | 1.21231 | -0.01614 (0.00271) | -0.00673 (0.00124) | -0.00987 (0.00343) | -0.00385 (0.00174) | -0.00968 (0.00174) | -0.00402 (0.00171) | -0.00161 (0.00078) | -0.00235 (0.00171) | -0.00109 (0.00079) |
+| A1_PO_8 / 1 | 240 | 1.21249 | -0.01118 (0.00249) | -0.00502 (0.00115) | -0.00975 (0.00342) | -0.00195 (0.00160) | -0.00816 (0.00162) | -0.00293 (0.00161) | -0.00142 (0.00074) | -0.00086 (0.00164) | -0.00078 (0.00076) |
+| A1_PO_16 / 1 | 154 | 1.21215 | -0.01280 (0.00257) | -0.00546 (0.00118) | -0.00975 (0.00353) | -0.00229 (0.00165) | -0.00870 (0.00166) | -0.00456 (0.00168) | -0.00186 (0.00078) | -0.00248 (0.00170) | -0.00123 (0.00080) |
+| T_TREE / 0, 1 (registered) | - | in-sample | -0.0121 / -0.0082 | -0.0051 / -0.0036 | -0.0064 / -0.0061 | -0.0010 / +0.0006 | -0.0093 / -0.0079 | | | | |
+| TASK_REFIT / 0, 1 | - | in-sample | -0.0138 / -0.0103 | -0.0056 / -0.0042 | -0.0044 / -0.0035 | -0.0012 / -0.0004 | -0.0102 / -0.0082 | | | | |
+
+- Both settings meet the pre-declared "promising" trigger on both seeds; A1_PO_16 is ahead of A1_PO_8 on both seeds. The men's
+  guard (the binding condition of every task-only reference) improves on T_TREE's registered value by 0.0028 / 0.0029 (A1_PO_16,
+  seed 0 / 1) and 0.0024 / 0.0025 (A1_PO_8), point differences of the unpaired guard values; the women's guard is at T_TREE's level. All 12 utility clauses and both guards pass on both seeds; every per-seed reserve condition is met (binding:
+  H3's income accuracy, ratio 3.51 / 2.86; occupation-side minimum ratio 4.65-4.88 / 4.09-4.30).
+- Cross-fitted versus deployed: deployed minus fold-average NLL +0.00021 (0.00050) / -0.00011 (0.00058) on seed 0 and -0.00000
+  (0.00042) / +0.00020 (0.00049) on seed 1: no variance gap on MODEL_SELECT. Cross-fitted committee minus refit on MODEL_FIT: -0.00097
+  / -0.00058 (seed 0), -0.00086 / -0.00045 (seed 1), SEs about 0.0003. CALIBRATION temperatures 0.950-0.960 with cross-fitted NLL
+  changes -0.00015 to -0.00038 (SEs 0.00055-0.00068): no calibration trigger.
+
+### Further MODEL_FIT-only diagnostics on the revision-1 coding (no release, no MODEL_SELECT; seed-0 inner folds)
+
+Units `OHN_A_DIAG_D6D8_S0_V1` (fixed ~05:57Z after the A1 seed-0 scores) and `OHN_A_DIAG_D9D10_S0_V1` (fixed ~06:03Z after the A1
+seed-1 scores); 5 HGB fits per setting. Reference pooled minima: A1_PO_8 (= D4) 1.21073, A1_PO_16 1.21141.
+
+| Setting | change from A1_PO_16 | T\* | OOF NLL min |
+|---|---|---|---|
+| D6 | 32 leaves (lr 0.025) | 103 | 1.21512 |
+| D7 | learning rate 0.01 | 440 | 1.21124 |
+| D8 | min leaf 200, l2 10 | 168 | 1.21194 |
+| D9 | COW as its numeric code (not native) | 176 | 1.21312 |
+| D10 | COW and MAR as numeric codes | 169 | 1.21233 |
+
+### Decision (06:05Z): no Revision 2; the line is exhausted
+
+- The only lever that moved the held-out quality was the POBP coding (0.011 nats internally; 0.008-0.012 nats on MODEL_SELECT
+  against A0). On the new coding, capacity (8 = 16 leaves; 32 worse), learning rate, leaf regularisation and the remaining category
+  codings are flat or worse (D6-D10, within about +-0.0005 or worse), the committee gain of the better setting (A1_PO_16) is 0.0005-
+  0.0006 nats internally (below the card's 0.001 trigger) and invisible on MODEL_SELECT, and no calibration trigger fired. A
+  revision with no diagnostic support would only spend configurations on differences below the MODEL_SELECT resolution (paired NLL
+  SE about 0.0017), so none is fitted. Configurations used: 6 of 12 (A0_HGB_S S0, A0_HGB_L S0, A1_PO_8 S0/S1, A1_PO_16 S0/S1).
+- Promising task-only witnesses (both seeds scored before 07:15Z): A1_PO_16 first, A1_PO_8 second (same coding, smaller trees).
+- Deployment: `python3 -m ohn.fam_a verify` recomputes all six family-A releases (A0_HGB_S S0, A0_HGB_L S0, A1_PO_8 S0/S1, A1_PO_16
+  S0/S1) bitwise on all six roles from features alone, with each model file's SHA-256 checked against OCC.json (units
+  `OHN_A_<config>_S<s>_VERIFY_V1`, 05:43-06:07Z). Final code `ohn/fam_a.py` passes selftest `OHN_A_SELFTEST_V4` (30 invented-data
+  checks; the changes since V3 are registry entries and diagnostic-only codings). Family-A queue use: 26 units, 0 failed,
+  1,583.5 CPU-s (0.44 CPU-h; the one-hot diagnostic D5 alone 548 CPU-s).

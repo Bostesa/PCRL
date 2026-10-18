@@ -1,0 +1,70 @@
+{
+ "schema": "OHN1-backup-verification-v1",
+ "contents": "TIP_COMMIT; branch bundle (income-headroom successor tip 2af3c9db2..research/pcrl-occupation-headroom-overnight-v1); code.tar (git archive of ohn, ihs and the lineage code and the public records the check needs); private.tar (this campaign's private tree: releases, development evaluations, reader-grid caches and summaries, deployment packages, compute ledger and unit logs, access logs, admitted logs; plus the verified source mirror .private/pcrl_income_headroom_successor_v1 that the ohn code reads); MANIFEST.sha256; RESTORE_CHECK.json",
+ "restore_check": "from the backup alone (ohn.custody): manifest re-hash; git bundle verify; extraction of code.tar and private.tar into a fresh directory; there, with the restored code (ohn.restore_check): re-hash of the 201 admitted mirror copies against SOURCE_ADMISSION.json, every occupation release record (OCC.json -> OCC.npz) and complete release record (RELEASE.json -> RELEASE.npz), and redeployment of every package under runs/DEPLOY on the restored DEV_REPORT raw inputs (no labels) compared bitwise with the restored evaluated releases through the wrapper API, the CSV path and the underlying function, with every refusal. Interpreter: the local Homebrew python3 (3.14.3, numpy 2.4.4, scikit-learn 1.8.0).",
+ "same_device_backups": [
+  {
+   "label": "B1 (before closeout; used for the independent verifier's restored-copy check)",
+   "path": "<worktrees>/pcrl-occupation-headroom-overnight-v1-backup/pcrl_occupation_headroom_overnight_v1_20261018T075928Z",
+   "unit": "OHN_BACKUP_V1",
+   "tip_commit": "b7d4f8090ab3fc5c663bffd08dd34175be114d6d",
+   "size_bytes": 1123789009,
+   "manifest_sha256": {
+    "TIP_COMMIT": "af8203d19ed12b2d2e3612ada6333f29b1d7292dd450135f9cc3c6ac4d6c7559",
+    "branch_since_base.bundle": "ca2d3282f8cf4a7fc2b122381deb5213ccb4f5bcd14f08c5e4ee679875d4e42c",
+    "code.tar": "f0bf643f16db144627b695de0ee5639e4258ba7c63d91be0febbb19a93693678",
+    "private.tar": "5e3e1df3c48dc5576f87b67aeee30171d20413e9ccd16b34e5c628a7d9c51468"
+   },
+   "result": {
+    "manifest_rehash_ok": true,
+    "bundle_verify": true,
+    "admitted_copies_rehash_ok": true,
+    "admitted_copies_checked": 201,
+    "release_records_checked": 65,
+    "release_records_mismatched": [],
+    "deployment_packages": 38,
+    "deployment_from_backup_bitwise": true,
+    "deployment_from_backup_all_refused": true,
+    "labels_read": false,
+    "all_ok": true
+   },
+   "read_back": "same device (local disk); not an off-device or cold check",
+   "checked_utc": "2026-10-18T08:01:03+00:00",
+   "independent_restored_copy_check": "the independent verifier extracted B1 into a fresh scratch directory, ran its own v_deploy.py with the restored root's own code on all 38 packages (own raw-field encoder, wrapper / CSV / underlying bitwise against the restored DEV_REPORT release, refusal battery, runtime-read trace) and removed the extracted copy: all_ok true (roles/verifier/records/VER_DEPLOY_RESTORED.json)"
+  },
+  {
+   "label": "B2 (final, after the closeout receipts; the custody copy of record)",
+   "path": "<worktrees>/pcrl-occupation-headroom-overnight-v1-backup/pcrl_occupation_headroom_overnight_v1_20261018T083508Z",
+   "unit": "OHN_BACKUP_V2",
+   "tip_commit": "e96df979315bb9f95636e6f81d5555cd02e995d2",
+   "size_bytes": 1124349251,
+   "manifest_sha256": {
+    "TIP_COMMIT": "8629283c579944c0c9dbbf0bd22d499ba7b751bb4bc5bfb0a4ca8cb18808520a",
+    "branch_since_base.bundle": "5a9ecc2db7b9b707cc3e4f57e5c3192cd7facd79e324ca020705138030fe28ea",
+    "code.tar": "0363c36c15766831a1b89648b1057a71fb1829528ca74452c612badeeb1d3ec9",
+    "private.tar": "4a86be1caaa23775716dcf5a261f5f4ae7230a7929942f929d2dd9ec0b5f84d9"
+   },
+   "result": {
+    "manifest_rehash_ok": true,
+    "bundle_verify": true,
+    "admitted_copies_rehash_ok": true,
+    "admitted_copies_checked": 201,
+    "release_records_checked": 65,
+    "release_records_mismatched": [],
+    "deployment_packages": 38,
+    "deployment_from_backup_bitwise": true,
+    "deployment_from_backup_all_refused": true,
+    "labels_read": false,
+    "all_ok": true
+   },
+   "read_back": "same device (local disk); not an off-device or cold check",
+   "checked_utc": "2026-10-18T08:36:43+00:00",
+   "note": "commits after the tip (this record, the publication record) are not in this backup; they live on the local research branch"
+  }
+ ],
+ "off_device": {
+  "status": "PENDING",
+  "reason": "no external backup drive attached at closeout (/Volumes holds only the system volume and two mounted application installer images, not backup drives); nothing was mounted, unmounted or forced",
+  "command": "python3 -m ohn.custody offdevice <same-device backup dir> /Volumes/<external drive>/pcrl_backups"
+ }
+}

@@ -140,17 +140,34 @@ def run(unit_id, argv, stage, rss_gib, outputs=(), cwd=None, max_wall_s=6 * 3600
         raise PermissionError('CPU budget exhausted')
     slot_files = [ROOT / f'slot{i}.lock' for i in range(SLOTS)]
     handle = None
-    while handle is None:
-        for sf in slot_files:
-            f = open(sf, 'a+')
-            try:
-                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                handle, slot = f, sf.name
-                break
-            except BlockingIOError:
-                f.close()
-        if handle is None:
-            time.sleep(2)
+    # FIFO tickets (engineering repair 05:40Z): only the oldest live waiter may try a free slot, so a chain of units cannot keep
+    # re-taking a slot ahead of units that have been waiting; tickets of dead processes are discarded.
+    tdir = ROOT / 'tickets'; tdir.mkdir(parents=True, exist_ok=True)
+    ticket = tdir / f'{time.time_ns():020d}_{os.getpid()}_{unit_id}'
+    ticket.write_text(now().isoformat(timespec='seconds'))
+    try:
+        while handle is None:
+            live = []
+            for t in sorted(tdir.iterdir()):
+                try:
+                    pid = int(t.name.split('_')[1]); os.kill(pid, 0); live.append(t)
+                except (ValueError, IndexError, ProcessLookupError):
+                    t.unlink(missing_ok=True)
+                except PermissionError:
+                    live.append(t)
+            if live and live[0] == ticket:
+                for sf in slot_files:
+                    f = open(sf, 'a+')
+                    try:
+                        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        handle, slot = f, sf.name
+                        break
+                    except BlockingIOError:
+                        f.close()
+            if handle is None:
+                time.sleep(1)
+    finally:
+        ticket.unlink(missing_ok=True)
     try:
         res = running_reservations()
         if sum(res.values()) + rss_gib > RSS_LIMIT_GIB + 1e-9:

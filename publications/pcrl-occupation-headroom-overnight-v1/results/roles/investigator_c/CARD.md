@@ -214,3 +214,129 @@ No novelty or theorem is claimed.
   - `OHN_C_DRYRUNFULL_CC_VSCAL_S0_V1`, `OHN_C_DRYRUNFULL_C1_RB_D1_S0_V1` (same invented labels, round cap 60, written only to a
     scratch directory outside the repository and the campaign runs): `fit` -> `save_occupation` -> `verify` end to end, bitwise
     on all six roles.
+
+### Revision 1 (appended 2026-10-18 06:01Z, before its first fit): residual trained against cross-fitted teacher margins
+
+**Seed-0 results of the initial design** (MODEL_SELECT through `ohn.devrun score`, anchor H3; ledger entries 49-56; household-
+clustered paired SEs). Every residual configuration selected M = 1 round, with alpha at its upper bound 2 on the full model and in
+every cross-fitting fold:
+
+| Config | M | alpha | occ NLL excess vs U0 | NLL vs T_TREE (SE) | NLL vs TASK_REFIT (SE) | Brier vs TASK_REFIT (SE) | men's guard (SE) | women's guard (SE) |
+|---|---|---|---|---|---|---|---|---|
+| C1_RB_D1 | 1 | 2.000 | -0.012184 | -0.000057 (0.000018) | +0.001605 (0.000400) | +0.000499 (0.000184) | -0.001059 (0.001513) | -0.009322 (0.001536) |
+| C1_RB_D2 | 1 | 2.000 | -0.012163 | -0.000036 (0.000024) | +0.001627 (0.000398) | +0.000502 (0.000183) | -0.001047 (0.001512) | -0.009329 (0.001536) |
+| CC_CONT_D4 | 1 | 2.000 | -0.012226 | -0.000099 (0.000036) | +0.001564 (0.000397) | +0.000474 (0.000183) | -0.001073 (0.001511) | -0.009359 (0.001535) |
+| CC_VSCAL | - | - | -0.011899 | +0.000228 (0.000789) | +0.001891 (0.000849) | +0.000573 (0.000396) | +0.001701 (0.001571) | -0.011995 (0.001566) |
+
+**Diagnosis.**
+1. The in-sample CV is blind. At every depth the pooled held-out-fold NLL (teacher margins in-sample on both sides of every split)
+   rises from round 1 (D1 1.17257 -> 1.17833 at round 800; D2 1.17258 -> 1.18166; D4 1.17262 -> 1.19105) and is already above the
+   uncorrected 1.17255. CALIBRATION asks for more of the same correction (alpha = 2, the bound, everywhere), and the tiny correction
+   still lowers CALIBRATION NLL (household-cross-fitted alpha: D2 -0.000086, SE 0.00003; D4 -0.00016, SE 0.00006). A transferable
+   out-of-sample residual exists; the in-sample criterion cannot see it.
+2. The cause is measured (unit OHN_C_EXPOSURE_S0_V1, MODEL_FIT and CALIBRATION occupation labels, no SEX, nothing released): a
+   routing-fixed re-estimation of the teacher's leaf values (Plain boosting, one full-Hessian multiclass Newton step per tree, l2 3,
+   lr 0.05, unit weights: the CatBoost options recorded in the admitted model file) reproduces the frozen teacher EXACTLY (max
+   |dp| 4.1e-9 on CALIBRATION, identical decisions). Re-estimated without each registered household fold, the teacher's
+   out-of-fold MODEL_FIT NLL is 1.20678 against 1.17255 in-sample: the frozen layer's in-sample optimism on MODEL_FIT is 0.034
+   nats, far larger than any residual signal (TASK_REFIT's MODEL_SELECT gain over T_TREE is 0.0017).
+3. Trigger status. T4 fires (C1 worse than TASK_REFIT by 0.0016). T3 fires trivially (C1 has no gain for calibration to
+   explain; CC_VSCAL is within 0.0005 / 0.0003) and T5 flags CC_VSCAL (vector scaling moves Brier from men to women: men's guard
+   +0.0027 against T_TREE). T2 does not fire. T1's literal condition did NOT fire (alpha* = 2 >= 0.5; CALIBRATION gain > 0;
+   MODEL_FIT out-of-fold gain <= 0): the in-sample offset showed up as the opposite symptom (a blind selection criterion and a
+   strength pinned at its upper bound), which I read as the failure T1 was written for. Disclosed as such.
+4. T4's listed revision (the same correction stacked on TASK_REFIT's margin) is not run: TASK_REFIT's margins are even more
+   in-sample (MODEL_FIT NLL 1.16633 against CALIBRATION 1.18528) and its stored stochastic AdamW correction cannot be refitted per
+   fold exactly, so its in-sample CV would collapse the same way. T1's remedy addresses the measured cause and is now exact.
+
+**Revision 1: one change, the margins the correction is trained and selected on.**
+- Training margins: each MODEL_FIT person's teacher margin re-estimated exactly (routing fixed) WITHOUT that person's household
+  fold (registered folds): out-of-fold leaf values. M by 5-fold CV with validation margins re-estimated without the validation
+  fold and training margins re-estimated without {validation fold, own fold}. Everything else unchanged (xgboost multi:softprob,
+  eta 0.05, lambda 3, M_max 800, first argmin, numpy deployment).
+- Deployed output unchanged in form: p = softmax(z_T + alpha * g) on the FROZEN teacher margin (equal to the full re-estimate
+  within 4e-9), alpha by NLL on CALIBRATION in [0, 2]. Runtime inputs: X only.
+- Household cross-fitting check, now out of fold for every label-using step except the teacher's split structure: fold k is
+  predicted by z^(-k) + alpha_k g_k, z^(-k) the teacher re-estimated without fold k; M_k by a CV over the other folds (validation
+  margins without {k, j}, training margins without {k, j, own fold}); g_k trained on margins without {k, own fold}; alpha_k on
+  CALIBRATION with z^(-k). The split structure (CatBoost's choice of split features and borders, made on all MODEL_FIT) is NOT
+  refitted, so the check is still not fully out of sample. 26 exact re-estimations per configuration.
+- Capacity settings: C2_XF_D1 (depth 1) and C2_XF_D2 (depth 2), with the matched continuation control CC_XF_CONT_D4 (depth 4,
+  same margins and rules). CC_VSCAL is unchanged (it uses no MODEL_FIT label). Seed 0 first: 3 configurations (7 of 12 used).
+- Invented-data checks: OHN_C_SELFTEST_REBOOST_V1 4/4 PASS (centred leaf values, Newton step, out-of-fold independence);
+  OHN_C_SELFTEST_XF_V1 7/7 PASS (permuting the fold-0 labels leaves the fold-0 out-of-fold outputs and the fold-0 pipeline's M_k
+  and alpha_k bitwise unchanged and changes the other folds').
+- Registered expectation: M well above 1 (tens to hundreds of rounds) and alpha in [0.5, 1.5], not at a bound; MODEL_SELECT
+  occupation NLL better than T_TREE by 0.001-0.003 and within +-0.001 of TASK_REFIT; the out-of-fold MODEL_FIT gain of the
+  correction comparable to its CALIBRATION gain; men's guard moved by less than 0.001.
+- Triggers carried over with C2 in place of C1: T2 (CC_XF_CONT_D4 against the better C2), T3, T4 (complementarity is reported, not
+  re-revised), T5, promotion and abandonment. Revision 2 only if a C2 setting fails the transfer test under the honest margins
+  (CALIBRATION household-cross-fitted gain <= 0 while the out-of-fold MODEL_FIT gain > 0, or alpha* < 0.5).
+
+### Revision 2 (appended 2026-10-18 06:11Z, before its first fit): ordered block codes as inputs of the correction
+
+**Seed-0 results of revision 1** (MODEL_SELECT through the scorer, anchor H3):
+
+| Config | M (fold M_k) | alpha | NLL vs T_TREE (SE) | Brier vs T_TREE (SE) | NLL vs TASK_REFIT (SE) | men's guard (SE) | women's guard (SE) |
+|---|---|---|---|---|---|---|---|
+| C2_XF_D1 | 7 (1, 1, 38, 1, 16) | 2.000 | -0.000343 (0.000104) | -0.000105 (0.000045) | +0.001319 (0.000405) | -0.001170 (0.001511) | -0.009380 (0.001533) |
+| C2_XF_D2 | 1 (4, 1, 19, 1, 6) | 2.000 | -0.000027 (0.000026) | -0.000011 (0.000011) | +0.001636 (0.000398) | -0.001042 (0.001512) | -0.009321 (0.001535) |
+| CC_XF_CONT_D4 | 1 (1, 1, 16, 1, 1) | 2.000 | -0.000061 (0.000039) | -0.000027 (0.000017) | +0.001601 (0.000396) | -0.001066 (0.001512) | -0.009329 (0.001535) |
+
+Reading. Honest margins changed the selection (the in-sample twin C1_RB_D1 gained -0.000057; C2_XF_D1 -0.000343, 3.3 SE), but
+the CV curves stay nearly flat (D1's minimum at round 7 is within 1e-5 of round 1; D2 and D4 rise from round 1) and alpha stays
+at its upper bound. No transfer failure occurred (CALIBRATION gains >= 0). What new trees on the one-hot X can reach on top of
+the frozen teacher is at most about a fifth of TASK_REFIT's gain. T2 does not fire; T4 fires (C2 worse than TASK_REFIT by
+0.0013-0.0016). C2_XF_D1 meets the seed-1 promotion rule and runs on seed 1 now (no design change).
+
+**Disclosed deviation.** Revision 1's text limited a revision 2 to a transfer failure under honest margins, which did not occur.
+Revision 2 is instead motivated by a new fact relayed by the coordinator at about 06:02Z (after revision 1 was written): fresh
+learners of families A and B that code POBP as an ordered value reach occupation NLL -0.0128 to -0.0167 against U0 (0.003-0.005
+nats beyond the teacher) with men's guard -0.0019 to -0.0039. This is adaptive use of other families' MODEL_SELECT results.
+
+**Why it could work and why it matters.** The teacher sees each block (COW, SCHL, MAR, POBP) only as one-hot columns, so a split
+isolates one level; ranges of POBP codes (US states 001-056, then world regions) or of SCHL levels need many splits, which a
+budget-truncated booster may not have made for small levels. Revision 1's corrections had the same one-hot inputs. A
+correction that can split on ordered codes may reach the coding headroom on top of the FROZEN teacher, and an output that keeps
+the teacher's routing stays compatible with the lineage's leaf-score correction machinery used by the privacy stage.
+
+**Revision 2: one change against revision 1, the inputs of the correction trees.** g sees X plus four deterministic, label-free
+ordered codes of its one-hot blocks (`ohn.fam_c.compact_codes`: COW, MAR, POBP = index of the active column inside the block,
+columns in code order with the block's __OTHER__ level last; SCHL = its ordinal value, __OTHER__ = 3; the coding of
+`ihs.fam_h.compact` without the two numeric columns). Everything else as revision 1: cross-fitted training margins, honest CV for
+M, alpha on CALIBRATION in [0, 2], deployment on the frozen teacher margin, the nested cross-fitting check (out of fold except
+the teacher's split structure). Runtime inputs remain X only (the codes are computed from X).
+
+- Capacity settings: C3_XC_D1 (depth 1: main effects incl. code ranges) and C3_XC_D2 (depth 2). Matched comparisons: C2_XF_D1 /
+  C2_XF_D2 (same margins and depth, one-hot inputs only), T_TREE, TASK_REFIT; CC_XF_CONT_D4 as the continuation control.
+- Registered expectation (bet): C3 lowers MODEL_SELECT occupation NLL against T_TREE by 0.0005-0.002 and the men's guard by at
+  most 0.001; it beats TASK_REFIT by 0.0005 only if the coding headroom is mostly main-effect / pairwise structure reachable
+  from the teacher's margin; prior below even odds.
+- Stop rule: this is the last revision. If no C3 setting lowers seed-0 NLL against TASK_REFIT by at least 0.0005 with Brier not
+  worse and T5 not flagged, the family stops with the negative of the card's abandon rule; the best configuration on both seeds
+  is still reported against TASK_REFIT, T_TREE and the controls.
+
+### Closing record (appended 2026-10-18 06:22Z; no design change, no further fit)
+
+- **Revision 2 results** (MODEL_SELECT through the scorer, anchor H3; NLL / Brier differences are candidate minus reference,
+  paired household-clustered SEs). C3_XC_D1: seed 0 M = 61, alpha 1.447, NLL vs T_TREE -0.001532 (0.000668), vs TASK_REFIT
+  +0.000131 (0.000669), men's guard -0.000759, women's -0.010328; seed 1 M = 70, alpha 1.405, vs T_TREE -0.001615 (0.000683), vs
+  TASK_REFIT +0.000463 (0.000690), men's +0.000801, women's -0.008946. C3_XC_D2: seed 0 M = 40, alpha 1.613, vs T_TREE -0.001490
+  (0.000824), vs TASK_REFIT +0.000172 (0.000794), men's -0.000623, women's -0.010403; seed 1 M = 37, alpha 1.726, vs T_TREE
+  -0.001740 (0.000842), vs TASK_REFIT +0.000338 (0.000815), men's +0.000908, women's -0.009066. C2_XF_D1 seed 1 (promoted): M = 12,
+  alpha 2 (bound), vs T_TREE -0.000316 (0.000161), vs TASK_REFIT +0.001762 (0.000453), men's +0.000494.
+- With the ordered codes the honest CV finds a transferable residual (M 37-70; alpha 1.4-1.7, inside its bounds; out-of-fold
+  MODEL_FIT gains and CALIBRATION gains agree at about 0.0013-0.0024 nats per fold model), so the coding headroom is reachable on
+  top of the frozen teacher to about TASK_REFIT's NLL level. It is not beyond it, and it is spent on women: both C3 settings
+  leave the men's guard 0.0003-0.0004 worse than T_TREE's (inside T5's 0.0005) and about 0.0012 worse than TASK_REFIT's.
+- **Abandon rule applies**: no configuration lowers seed-0 occupation NLL against TASK_REFIT by 0.0005 (best +0.000131). The
+  family stops with the negative of the card: no residual learner of this family creates occupation headroom beyond TASK_REFIT.
+- **Frozen witness rule** (ohn.rules.witness applied read-only to the stored evaluations): C2_XF_D1, C3_XC_D1, C3_XC_D2 are
+  PROMISING_WITNESS with minimum occupation-side ratios 2.656, 2.475, 2.412 (binding: seed-1 men's guard); yardsticks H3+T_TREE
+  2.600 and H3+TASK_REFIT 3.186. None is a stronger witness than TASK_REFIT.
+- Post-hoc, CALIBRATION only (no fit, no release; unit OHN_C_COMBO_CAL_S{0,1}_V1): TASK_REFIT's margin plus a C3 correction at its
+  saved strength lowers CALIBRATION NLL against TASK_REFIT by 0.00085 / 0.00087 (C3_XC_D1, SE about 0.0010) and 0.0015 / 0.0016
+  (C3_XC_D2, SE about 0.0013) on seeds 0 / 1; on MODEL_SELECT the two corrections improve different classes (C3: service; TASK_REFIT:
+  sales / office). A combined release would be a coordinator decision; it was not made or scored here.
+- Configurations used: 12 of 12 (9 on seed 0, 3 on seed 1). Every release reproduces bitwise on all six roles from features
+  (`python -m ohn.fam_c verify`).

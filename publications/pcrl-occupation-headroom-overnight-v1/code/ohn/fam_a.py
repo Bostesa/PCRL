@@ -67,7 +67,45 @@ CONFIGS = {
                  'calibrator': None, 'deploy': 'refit', 'kind': 'task_model', 'revision': 0,
                  'what': 'initial design, large capacity: HGB multinomial, native categories (compact coding), 31 leaves, min leaf 20, '
                          'l2 1, lr 0.05, T* <= 800 by household 5-fold CV on MODEL_FIT, refit on all MODEL_FIT, no calibrator'},
+    # Revision 1 (CARD.md, decided 05:43Z after the A0 seed-0 results and the MODEL_FIT-only diagnostic): POBP as its ordinal
+    # place-of-birth code instead of a native category, at the diagnostic's neutral regularisation; two capacity settings.
+    'A1_PO_8': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.025, 'leaves': 8, 'msl': 100, 'l2': 3.0, 'max_iter': 1200,
+                'calibrator': None, 'deploy': 'refit', 'kind': 'task_model', 'revision': 1,
+                'what': 'revision 1 (POBP coding replaced), 8 leaves: HGB multinomial on compact_po (AGEP, WKHP numeric; COW, MAR native '
+                        'categories; SCHL ordinal; POBP ordinal place-of-birth code), min leaf 100, l2 3, lr 0.025, T* <= 1200 by household '
+                        '5-fold CV on MODEL_FIT, refit on all MODEL_FIT, no calibrator'},
+    'A1_PO_16': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.025, 'leaves': 16, 'msl': 100, 'l2': 3.0, 'max_iter': 1000,
+                 'calibrator': None, 'deploy': 'refit', 'kind': 'task_model', 'revision': 1,
+                 'what': 'revision 1 (POBP coding replaced), 16 leaves: HGB multinomial on compact_po (AGEP, WKHP numeric; COW, MAR native '
+                         'categories; SCHL ordinal; POBP ordinal place-of-birth code), min leaf 100, l2 3, lr 0.025, T* <= 1000 by household '
+                         '5-fold CV on MODEL_FIT, refit on all MODEL_FIT, no calibrator'},
 }
+
+
+# Diagnostic settings (no release; MODEL_FIT internal household CV only, on the same seed-specific inner folds as the deployed
+# pipelines, so the curves are directly comparable with A0's recorded main curves). Fixed 2026-10-18 ~05:20Z after the A0 seed-0
+# fits (internal diagnosis: sharp early OOF minimum, smaller trees better, committee gain 4-6 SE => variance), before any
+# MODEL_SELECT result of this family was read.
+DIAG_SETTINGS = {
+    'D1': {'learner': 'hgb', 'rep': 'cmp', 'lr': 0.025, 'leaves': 8, 'msl': 100, 'l2': 3.0, 'max_iter': 1200},     # regularization bundle
+    'D2': {'learner': 'hgb', 'rep': 'cmp', 'lr': 0.025, 'leaves': 4, 'msl': 100, 'l2': 3.0, 'max_iter': 2000},     # smaller trees
+    'D3': {'learner': 'hgb', 'rep': 'cmp', 'lr': 0.025, 'leaves': 16, 'msl': 200, 'l2': 3.0, 'max_iter': 1000},    # larger trees, larger leaves
+    'D4': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.025, 'leaves': 8, 'msl': 100, 'l2': 3.0, 'max_iter': 1200},  # POBP ordinal code
+    'D5': {'learner': 'hgb', 'rep': 'ohe', 'lr': 0.025, 'leaves': 8, 'msl': 100, 'l2': 3.0, 'max_iter': 2000},     # admitted one-hot X
+}
+# (D5 max_iter raised from 1200 to 2000 at ~05:27Z, after the A0_HGB_S MODEL_SELECT score was read and before any diagnostic
+# fit: single-level one-hot splits are weaker learners and need more iterations; the iteration cap is not a selection on MODEL_SELECT.)
+# Second diagnostic on the revision-1 coding (fixed ~05:57Z, after the A1 seed-0 MODEL_SELECT scores; MODEL_FIT only, no release):
+DIAG_SETTINGS.update({
+    'D6': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.025, 'leaves': 32, 'msl': 100, 'l2': 3.0, 'max_iter': 800},    # more capacity
+    'D7': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.01, 'leaves': 16, 'msl': 100, 'l2': 3.0, 'max_iter': 2000},    # finer steps
+    'D8': {'learner': 'hgb', 'rep': 'cmp_po', 'lr': 0.025, 'leaves': 16, 'msl': 200, 'l2': 10.0, 'max_iter': 1000},  # stronger leaf regularisation
+})
+# Third diagnostic (fixed ~06:03Z, after the A1 seed-1 scores; MODEL_FIT only, no release): the remaining native categories.
+DIAG_SETTINGS.update({
+    'D9': {'learner': 'hgb', 'rep': 'cmp_po_cow', 'lr': 0.025, 'leaves': 16, 'msl': 100, 'l2': 3.0, 'max_iter': 1000},  # COW as code
+    'D10': {'learner': 'hgb', 'rep': 'cmp_ord', 'lr': 0.025, 'leaves': 16, 'msl': 100, 'l2': 3.0, 'max_iter': 1000},    # COW, MAR as codes
+})
 
 
 def run_dir(seed, config_id):
@@ -127,9 +165,43 @@ def compact(X, names):
     return np.column_stack(cols)
 
 
+def compact_po(X, names):
+    """compact() with POBP as its numeric place-of-birth CODE (ordinal geographic code: US states < 60, then world regions in
+    code ranges; the admitted __OTHER__ level = 999) instead of a native category. Deterministic from X."""
+    names = tuple(map(str, names))
+    Z = compact(X, names)
+    idx = [i for i, n in enumerate(names) if n.startswith('POBP=')]
+    vals = np.array([999.0 if names[i].endswith('__OTHER__') else float(names[i].split('=')[1]) for i in idx])
+    Z[:, 5] = vals[Z[:, 5].astype(np.int64)]
+    return Z
+
+
+def compact_codes(X, names, blocks):
+    """compact_po() with the listed blocks (COW, MAR) also entered as their numeric admitted codes (__OTHER__ = 99) instead of
+    native categories. Deterministic from X (diagnostic representations)."""
+    names = tuple(map(str, names))
+    Z = compact_po(X, names)
+    col = {'COW': 2, 'MAR': 4}
+    for b in blocks:
+        idx = [i for i, n in enumerate(names) if n.startswith(b + '=')]
+        vals = np.array([99.0 if names[i].endswith('__OTHER__') else float(names[i].split('=')[1]) for i in idx])
+        Z[:, col[b]] = vals[Z[:, col[b]].astype(np.int64)]
+    return Z
+
+
+CAT_MASK = {'cmp': CMP_CATEGORICAL, 'cmp_po': np.array([False, False, True, False, True, False]), 'ohe': None,
+            'cmp_po_cow': np.array([False, False, False, False, True, False]), 'cmp_ord': None}
+
+
 def rep_matrix(rep, X, names):
     if rep == 'cmp':
         return compact(X, names)
+    if rep == 'cmp_po':
+        return compact_po(X, names)
+    if rep == 'cmp_po_cow':
+        return compact_codes(X, names, ('COW',))
+    if rep == 'cmp_ord':
+        return compact_codes(X, names, ('COW', 'MAR'))
     if rep == 'ohe':
         return np.asarray(X, dtype=np.float64)
     raise KeyError(rep)
@@ -143,8 +215,7 @@ def make_model(cfg, max_iter, seed):
     return HistGradientBoostingClassifier(loss='log_loss', learning_rate=float(cfg['lr']), max_iter=int(max_iter),
                                           max_leaf_nodes=int(cfg['leaves']), min_samples_leaf=int(cfg['msl']),
                                           l2_regularization=float(cfg['l2']), max_bins=255, early_stopping=False,
-                                          categorical_features=CMP_CATEGORICAL if cfg['rep'] == 'cmp' else None,
-                                          random_state=int(seed))
+                                          categorical_features=CAT_MASK[cfg['rep']], random_state=int(seed))
 
 
 def fit_model(cfg, Xr, y, max_iter, seed):
@@ -458,6 +529,34 @@ def fit(seed, config_id):
     return rec
 
 
+# ---------------------------------------------------------------- internal diagnostic (no release; MODEL_FIT only)
+def diag(seed, ids):
+    """Pooled out-of-fold occupation NLL curves on MODEL_FIT for diagnostic settings (seed-specific inner folds; 5 fits each)."""
+    t0 = time.process_time()
+    from . import devrun as D
+    F = _load('MODEL_FIT', ('features', 'occupation'),
+              purpose=f'family A diagnostic {"+".join(ids)} S{seed}: internal household CV scan on MODEL_FIT only (no release, no MODEL_SELECT)')
+    names, y, unit = F['feature_names'], F['occupation'], F['unit']
+    inner = C.household_folds(unit, 5, inner_tag(seed))
+    allr = np.ones(len(y), dtype=bool)
+    out = {}
+    for sid in ids:
+        cfg = DIAG_SETTINGS[sid]; tc = time.process_time()
+        Xr = rep_matrix(cfg['rep'], F['X'], names)
+        T, cur, ms = cv_select(cfg, seed, Xr, y, inner, allr)
+        del ms
+        out[sid] = {'setting': cfg, 'T_star': T, 'at_T_max': bool(T >= cfg['max_iter']), 'oof_nll_min': float(cur[0, T - 1]),
+                    'oof_brier_at_T': float(cur[1, T - 1]), 'oof_accuracy_at_T': float(cur[2, T - 1]), 'curve': _curve_summary(cur),
+                    'fits': 5, 'cpu_s': time.process_time() - tc}
+        print(json.dumps({sid: {k: v for k, v in out[sid].items() if k != 'curve'}}, default=float), flush=True)
+    rec = {'seed': seed, 'ids': list(ids), 'inner_cv_tag': inner_tag(seed), 'results': out, 'utc': C.now(), 'unit_id': os.environ.get(C.UNIT_ENV),
+           'roles_read': 'MODEL_FIT (features, occupation); no SEX; no MODEL_SELECT', 'n_model_fits': 5 * len(ids),
+           'cpu_s': time.process_time() - t0, 'code_sha256': C.sha(__file__), 'interpreter': sys.executable}
+    C.write_json_x(C.RUNS / FAMILY / 'DIAG' / f'S{seed}' / f'DIAG_{"_".join(ids)}.json', rec)
+    D.unit_stats(model_fits=5 * len(ids))
+    return rec
+
+
 # ---------------------------------------------------------------- deployment
 def load_models(seed, config_id):
     d = run_dir(seed, config_id)
@@ -537,6 +636,16 @@ def selftest():
         compact(bad, names); checks['compact_rejects_incomplete_block'] = False
     except ValueError:
         checks['compact_rejects_incomplete_block'] = True
+    Xpo = compact_po(X, names)
+    pob_codes = {999.0 if nm.endswith('__OTHER__') else float(nm.split('=')[1]) for nm in names if nm.startswith('POBP=')}
+    pob_idx = [i for i, nm in enumerate(names) if nm.startswith('POBP=')]
+    expect_po = np.array([999.0 if names[i].endswith('__OTHER__') else float(names[i].split('=')[1]) for i in pob_idx])[X[:, pob_idx].argmax(1)]
+    checks['compact_po_changes_only_pobp_to_codes'] = bool(np.array_equal(Xpo[:, :5], Xc[:, :5]) and set(np.unique(Xpo[:, 5])) <= pob_codes
+                                                           and np.array_equal(Xpo[:, 5], expect_po))
+    checks['rep_matrix_cmp_is_compact'] = bool(np.array_equal(rep_matrix('cmp', X, names), Xc))
+    Xo = rep_matrix('cmp_ord', X, names)
+    checks['cmp_ord_changes_only_cow_mar'] = bool(np.array_equal(Xo[:, [0, 1, 3, 5]], Xpo[:, [0, 1, 3, 5]]) and Xo[:, 2].min() >= 1
+                                                  and Xo[:, 4].min() >= 1 and np.array_equal(np.unique(Xo[:, 2]).size, np.unique(Xpo[:, 2]).size))
     y = _fake_labels(Xc, rng)
     unit = np.repeat(np.arange(n // 2), 2)                     # invented two-person households
     folds = C.household_folds(unit, 5, 'OHN_A_selftest')
@@ -548,6 +657,16 @@ def selftest():
     r_tr = raw_at(m40, Xc, 17); r_fr = raw_full(m17, Xc)
     checks['truncation_equals_fresh_fit_bitwise'] = bool(np.array_equal(r_tr, r_fr) and np.array_equal(softmax(r_tr), softmax(r_fr)))
     checks['softmax_matches_sklearn_proba'] = bool(np.allclose(softmax(r_fr), m17.predict_proba(Xc), atol=1e-12, rtol=0))
+    rep_ok = True
+    for rep in ('cmp_po', 'ohe'):
+        mr_ = fit_model({**cfg, 'rep': rep}, rep_matrix(rep, X, names), y, 10, 0)
+        cats = getattr(mr_, 'is_categorical_', None)
+        expect = CAT_MASK[rep]
+        rep_ok &= bool(np.isfinite(raw_full(mr_, rep_matrix(rep, X, names))).all())
+        rep_ok &= bool((cats is None and expect is None) or (cats is not None and expect is not None and np.array_equal(cats, expect))
+                       or (expect is None and cats is not None and not cats.any()))
+    checks['alternative_representations_fit'] = rep_ok
+    checks['cmp_mask_unchanged'] = bool(np.array_equal(m17.is_categorical_, CMP_CATEGORICAL))
     # the pipeline and an independent brute-force replay of the deployed and every cross-fitting pipeline
     inner = C.household_folds(unit, 5, 'OHN_A_selftest_inner')
     checks['inner_folds_household_separated'] = bool(all(len(np.unique(inner[unit == u])) == 1 for u in np.unique(unit)))
@@ -633,9 +752,12 @@ def main(argv=None):
     sub.add_parser('selftest')
     f = sub.add_parser('fit'); f.add_argument('--seed', type=int, required=True); f.add_argument('--config', required=True)
     v = sub.add_parser('verify'); v.add_argument('--seed', type=int, required=True); v.add_argument('--config', required=True)
+    g = sub.add_parser('diag'); g.add_argument('--seed', type=int, required=True); g.add_argument('--ids', nargs='+', required=True)
     a = ap.parse_args(argv)
     if a.cmd == 'selftest':
         return 0 if selftest() else 1
+    if a.cmd == 'diag':
+        diag(a.seed, a.ids); return 0
     if a.cmd == 'verify':
         return 0 if verify(a.seed, a.config) else 1
     fit(a.seed, a.config)

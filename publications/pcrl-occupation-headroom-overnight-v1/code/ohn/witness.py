@@ -46,8 +46,13 @@ def candidates(families):
     return out, skipped
 
 
-def select(families):
+def select(families, dry_run=False):
     cands, _ = candidates(families)
+    if dry_run:                                         # plumbing test only: nothing written, no ledger row
+        sel = RU.select_witnesses(cands)
+        top = sel['selected'][0] if sel['selected'] else None
+        trig = RU.income_branch_trigger(sel, RU.reserve(cands[top]['evals']) if top else None)
+        return {'dry_run': True, 'selection': sel, 'income_branch_trigger': trig}
     sel = RU.select_witnesses(cands)
     top = sel['selected'][0] if sel['selected'] else None
     complete_reserve = RU.reserve(cands[top]['evals']) if top else None
@@ -68,8 +73,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('select'); s.add_argument('--families', nargs='+', default=['A', 'B', 'C'])
+    s.add_argument('--dry-run', action='store_true')
     a = ap.parse_args(argv)
-    rec = select(a.families)
+    rec = select(a.families, a.dry_run)
     sel = rec['selection']
     print(json.dumps({'selected': sel['selected'], 'ranking': sel['ranking'],
                       'labels': {k: (v['label'], v.get('selection')) for k, v in sel['records'].items()},

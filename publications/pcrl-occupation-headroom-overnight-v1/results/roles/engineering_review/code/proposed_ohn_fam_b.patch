@@ -1,0 +1,15 @@
+--- a/ohn/fam_b.py
++++ b/ohn/fam_b.py
+@@ -677,7 +677,11 @@
+ 
+ def predict(seed, config_id, X, names, root=None):
+     """Deterministic deployment: occupation probability vectors from features and the saved, hash-recorded parameters."""
+-    st = json.loads(state_path(seed, config_id, root).read_text())
++    sp = state_path(seed, config_id, root)
++    rec_p = sp.parent / 'OCC.json'                  # absent only inside fit (before save_occupation) and the selftest
++    if rec_p.is_file() and C.sha(sp) != json.loads(rec_p.read_text())['state_sha256']:
++        raise PermissionError('STATE.json differs from the state_sha256 recorded in OCC.json')
++    st = json.loads(sp.read_text())
+     zs = {}
+     for lid in st['params']['bases']:
+         obj, _, rec = load_base(seed, lid, root, arrays=False)
